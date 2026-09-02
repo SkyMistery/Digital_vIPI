@@ -2099,6 +2099,90 @@ proposte del 1 settembre: `docs/design/regole-perimetro-servizi.md`. Suite verde
 
 ---
 
+## §AW — Il ciclo entrante (2 settembre 2026)
+
+Segnalazione del committente: *«è uscito il ciclo 2609 ma il sito non ha pubblicato le SID previste per quel
+ciclo»*. Carta: `docs/feature/2026-09-02-il-ciclo-entrante.md`.
+
+**Prima il calendario, perché tutto il resto ci poggia sopra.** Girata la matematica di `AiracService`
+sull'orologio vero: il 2 settembre il ciclo corrente è **2608**, e il **2609 entra in vigore il 3**. Quel
+che era uscito l'1 settembre è il **sectorfile** (`pushed_at 2026-09-01T12:55:01Z`), non il ciclo. Quindi il
+selettore che offre 2609 come primo ciclo pubblicabile è **corretto** — `UpcomingCycles` salta di proposito
+il corrente — e non è un «pubblica ora». Su quel punto non c'era niente da riparare. **Ma la segnalazione
+aveva ragione lo stesso**, per quattro motivi indipendenti che si sommavano.
+
+**§AW1 — la deriva guardava solo a oggi.** `ImpactDriftUseCase` costruiva lo snapshot di confronto con
+`GetCycle(UtcNow)`, e le derivate che dipendono dal ciclo — SID d'aeroporto, shape dei settori —
+**nascondono** quel che entra dopo: il giro non poteva vedere quel che stava per cambiare, e la riga «da
+ripubblicare» arrivava **il giorno dopo il rollover**, a ciclo già in vigore. Sempre tardi di uno, per
+costruzione. Ora `DriftFromEffectiveAsync` prende `alCiclo` — il motore lo sapeva già fare, perché
+`BuildSnapshotJsonAsync` apre `ShapeReleaseContext` sul ciclo che gli si passa, la stessa porta che serve
+l'anteprima di release — e nasce `ImpactKind.ReleaseDriftNextCycle`, **in fondo all'enum** perché gli
+ordinali sono già scritti in archivio. Severità sua, `DaPreparare`, fra «ripubblicare» e «rileggere»: qui
+non è rotto niente e nessuno legge una copia sbagliata, c'è del lavoro con una **scadenza**. ⚠️ Le due
+righe non compaiono mai insieme sullo stesso documento, e il giro non fa nemmeno la seconda domanda.
+
+**§AW2 — il timbro delle SID dipendeva dall'ora in cui passava un job.** `SourceAiracCycle` era
+`GetCycle(UtcNow)`, e la riga usciva al ciclo dopo: stesso sectorfile, giro che passa il 2 → pubblico il 3
+settembre; giro che passa il 3 alle 02:00 → pubblico il **1º ottobre**. Un mese deciso da un ritentativo
+slittato, e **muto**. 🔴 **E la sorgente il proprio ciclo lo DICHIARA**, e per un anno nessuno gliel'ha
+chiesto: il repo Aurora tiene `CHANGELOG/<ciclo>.txt`, e il più alto è il ciclo pubblicato — il 2 settembre
+era `2608.txt`, che si apre con «**AIRAC A2608 IN VIGORE DAL 06/08/2026**», la stessa data che calcola
+`AiracService`. **E `2609.txt` non c'era**: le SID del 2609 il sito non le pubblicava perché **non
+esistevano ancora** in sorgente. `SourceAiracCycle` cambia significato — «il ciclo **dal quale** la riga
+vale», `IsPublicAt` con `>=`, **nessuna migrazione**, il nome resta perché rinominarlo sarebbe una
+migrazione senza guadagno — e l'attesa la decide **una volta sola** `SidStampCycle`: dichiarato → successivo
+al cambiamento in sorgente → successivo all'ultimo giro riuscito. ⚠️ I ripieghi sbagliano **apposta in
+avanti**: il ritardo è nostro e non deve diventare del dato. ⚠️ Cade così il buffer che si sommava **due
+volte**, nel timbro e nella derivazione: una release programmata al ciclo entrante ora contiene le SID di
+**quel** ciclo, non di quello dopo. ⚠️ `raw.githubusercontent.com` manda `ETag` ma **non**
+`Last-Modified` (misurato), e la quota anonima di GitHub è 60/ora contro decine di aeroporti: **una**
+chiamata per giro, in cache anche quando la risposta è «non lo so», e l'adattatore **non solleva mai**.
+
+**§AW3 — «Prossimo AIRAC».** Mancava il posto in cui uno sguardo dice «al ciclo entrante cambiano questi
+documenti, e per questi una release c'è già». ⚠️ **Non** una pagina nuova e **non** una lista nuova (§1 del
+`FEATURE-PROCESS`: estendere, mai affiancare — le righe di lavoro le porta già la lista unica): una
+**sezione** di `/services/vsop/versions`, chiusa di suo, con ciclo entrante, data efficace, giorni mancanti
+**per eccesso**, e il tasto che programma i mancanti. ⚠️ Passa dallo **stesso** `PublishAsync` di un
+pubblica singolo, uno per uno — permessi e lock si chiedono già lì — e chi non passa finisce fra i saltati
+**col suo motivo**: riuscire a metà in silenzio è peggio che fallire. ⚠️ «Già programmato» vuol dire **a
+quel ciclo**: una release schedulata più in là non copre l'entrante.
+
+**§AW4 — lo sweep delle release, da «all'avvio» a ogni 24 ore.** `RecomputeStatuses` gira solo in scrittura,
+ma gli stati **invecchiano da soli**: al rollover una schedulata entra in vigore e la precedente diventa
+superata senza che nessuno scriva niente. Su un processo che resta su per settimane il ricalcolo non
+arrivava mai, e la retention **non potava più niente** perché non nascevano righe `Superseded`. La
+visibilità era salva (le letture ordinano per **data**, e le etichette guardano `IsEffectiveNow` prima
+dello stato): quel che si accumulava erano le release superate coi loro payload. Nuovo
+`ReleaseSweepHostedService` dal solito `GatedImportLoop`, e la passata d'avvio `PruneVipiReleases` è stata
+**tolta** — lo stesso lavoro fatto da due parti non si tiene.
+
+**La verifica dal vivo ha trovato quel che i test non vedevano.** Guidata l'app su una copia del `vipi.db`
+(Edge + puppeteer, aspettando il **circuito** e non il DOM del prerender): la sezione esce giusta e il gesto
+in blocco funziona — 16 release programmate, il pannello si rilegge da sé. Ma: (1) **«in 1 days»**, e il
+singolare capita *proprio* il giorno prima del cambio, l'unico in cui quella riga si legge; (2) **«vIPI
+Brindisi— LIBB»**, lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore (trappola già
+nota, ripagata); (3) 🔴 **due documenti che il pubblico legge restavano fuori da tutto**. Una release
+**programmata** non promuove la bozza a versione pubblicata — è voluto — quindi un documento pubblicato
+*solo* per schedulazione resta `Status = Draft` **per sempre** pur essendo in vigore: con il cancello su
+`IsPublished`, la vIPI di Milano (in vigore al 2608) e Catania Radar (2607) non erano guardate né dal quadro
+né dal **giro della deriva**, che quel cancello ce l'ha da sempre. **Due su diciassette.** E il difetto si
+**alimentava da sé**: programmare al ciclo entrante è proprio il gesto che §AW3 insegna. Cancello unico
+`ManagedDoc.VaTenutoAggiornato` = non nascosto **e** (pubblicato **o** in vigore); ⚠️ l'**OR** serve in
+tutt'e due i versi, perché un documento le cui release stanno sotto una **chiave vecchia** non ne ha una
+effettiva ed è esattamente il caso C6 che la deriva ripara. Rimisurato dal vivo: **14 → 16**, e l'unico
+rimasto fuori è il **nascosto**.
+
+Più una guardia strutturale resa meno fragile: `FiltroPerTipoCompletoTests` cercava la **prima** occorrenza
+di `KindFilters`, che è l'uso nel markup centosessanta righe più su, e da lì il primo `};` è di un membro
+qualunque scritto in mezzo — è bastato aggiungere un metodo con un'espressione `switch` perché accusasse la
+pagina di aver perso **tutti e cinque** i filtri, che erano al loro posto. Ora cerca la dichiarazione.
+
+**32 test nuovi (9820 in tutto, E2E compresi), build Release verde sui due TFM con 0 avvisi, nessuna
+migrazione** — quindi consegnabile dentro la finestra cieca al 16 settembre.
+
+---
+
 ## La corsa del blocco allegato (2 settembre 2026)
 
 Segnalazione: guai sulla versione pubblica, e la cartella `diagnostica/` in mano. **Il file che ha detto

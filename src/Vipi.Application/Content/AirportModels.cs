@@ -32,12 +32,25 @@ public sealed record SidRow(int Id, string? Runway, string Fix, string Name, str
     string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false,
     bool InitialClimbByApp = false)
 {
-    /// <summary>La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate solo se forzate o dal ciclo successivo al prelievo.</summary>
+    /// <summary>
+    /// La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate se forzate o se il ciclo
+    /// indicato ha <b>raggiunto</b> quello da cui la riga è in vigore.
+    ///
+    /// <para>⚠️ <b><c>SourceAiracCycle</c> è «il ciclo DAL QUALE la riga vale», e il confronto è
+    /// <c>&gt;=</c></b> — dal 2 settembre 2026, carta §AW2. Prima era «il ciclo in cui l'abbiamo
+    /// prelevata» con un <c>&gt;</c>, cioè un buffer di un ciclo <b>indovinato</b>: la sorgente il proprio
+    /// ciclo lo <b>dichiara</b> (<c>CHANGELOG/&lt;ciclo&gt;.txt</c> nel sectorfile Aurora) e nessuno glielo
+    /// chiedeva. Dove non lo dichiara il buffer resta, ma lo aggiunge <see cref="SidStampCycle"/> scrivendo
+    /// direttamente il ciclo d'entrata: qui non c'è più niente da indovinare.</para>
+    ///
+    /// <para>⚠️ Senza ciclo scritto <b>non si nasconde</b>: una riga senza timbro è un dato che non sappiamo
+    /// collocare, e nessuna SID è peggio di una SID in anticipo.</para>
+    /// </summary>
     public bool IsPublicAt(string currentCycle, Vipi.Domain.Services.IAiracService airac)
     {
         if (!IsImported || ForcePublished) return true;
         if (string.IsNullOrWhiteSpace(SourceAiracCycle)) return true;   // sicurezza: senza ciclo sorgente non nascondere
-        try { return airac.EffectiveUtcForCycle(currentCycle) > airac.EffectiveUtcForCycle(SourceAiracCycle); }
+        try { return airac.EffectiveUtcForCycle(currentCycle) >= airac.EffectiveUtcForCycle(SourceAiracCycle); }
         catch (ArgumentException) { return true; }
     }
 }

@@ -1552,6 +1552,7 @@
   <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area sparita</value></data>
   <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area cambiata</value></data>
   <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Copia pubblicata indietro</value></data>
+  <data name="ImpactKind_ReleaseDriftNextCycle" xml:space="preserve"><value>Da preparare al ciclo entrante</value></data>
   <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Bersaglio spostato</value></data>
   <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Bersaglio rotto</value></data>
   <data name="ImpactKind_SectorRenamed" xml:space="preserve"><value>Settore rinominato</value></data>
@@ -1562,6 +1563,8 @@
   <data name="Impact_PublicNowTitle" xml:space="preserve"><value>Questa sezione è viva: il cambio si vede già sul sito, senza ripubblicare.</value></data>
   <data name="Impact_Republish" xml:space="preserve"><value>da ripubblicare</value></data>
   <data name="Impact_RepublishTitle" xml:space="preserve"><value>La copia pubblicata non dice più quel che direbbe oggi.</value></data>
+  <data name="Impact_Prepare" xml:space="preserve"><value>da preparare</value></data>
+  <data name="Impact_PrepareTitle" xml:space="preserve"><value>Al ciclo AIRAC entrante la copia pubblicata non dirà più il vero: c'è ancora tempo per programmare una release.</value></data>
   <data name="Impact_Broken" xml:space="preserve"><value>rotto</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>si chiude da sé</value></data>
   <data name="Impact_SectorGone" xml:space="preserve"><value>Il settore {0} non è più nei cataloghi: verifica frequenze, AoR e coordinamenti.</value></data>
@@ -1619,6 +1622,21 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>L'area regolamentata {0} è cambiata: rileggi quel che il documento ne dice.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>La copia pubblicata è indietro rispetto alla bozza: {0}.</value></data>
+  <data name="Impact_ReleaseDriftNextCycle" xml:space="preserve"><value>Al ciclo AIRAC {0} la copia pubblicata non dirà più il vero: {1}. Programmare una release a quel ciclo.</value></data>
+  <data name="Airac_NextTitle" xml:space="preserve"><value>Prossimo AIRAC</value></data>
+  <data name="Airac_NextFrom" xml:space="preserve"><value>in vigore dal {0}</value></data>
+  <data name="Airac_NextToday" xml:space="preserve"><value>entra oggi</value></data>
+  <data name="Airac_NextInDays" xml:space="preserve"><value>fra {0} giorni</value></data>
+  <data name="Airac_NextInOneDay" xml:space="preserve"><value>fra un giorno</value></data>
+  <data name="Airac_NextMissing" xml:space="preserve"><value>{0} da programmare</value></data>
+  <data name="Airac_NextCounts" xml:space="preserve"><value>{0} documenti hanno già una release programmata a questo ciclo, {1} no.</value></data>
+  <data name="Airac_NextAllDone" xml:space="preserve"><value>Tutti i documenti pubblicati hanno già una release programmata a questo ciclo.</value></data>
+  <data name="Airac_NextAndMore" xml:space="preserve"><value>…e altri {0}.</value></data>
+  <data name="Airac_NextScheduleAll" xml:space="preserve"><value>Programma i mancanti al ciclo {0}</value></data>
+  <data name="Airac_NextScheduleAllTitle" xml:space="preserve"><value>Pubblica lo snapshot di ogni documento che ne è privo, con effetto dalla data del ciclo entrante. Chi è occupato da un altro editor, o su cui non hai i permessi, viene saltato e detto.</value></data>
+  <data name="Airac_NextSkipped" xml:space="preserve"><value>{0} documenti saltati:</value></data>
+  <data name="Airac_NextDone" xml:space="preserve"><value>{0} release programmate al ciclo {1}.</value></data>
+  <data name="Airac_NextHelp" xml:space="preserve"><value>Una release programmata entra in vigore <b>da sola</b> alla data del ciclo: non serve tornare qui il giorno del cambio. Lo snapshot viene congelato <b>a quel ciclo</b>, quindi contiene già le SID e i confini che entrano allora.</value></data>
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>Le release di questo documento sono archiviate sotto un bersaglio che non è più il suo ({0}): il pubblico non le trova.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>Il bersaglio di pubblicazione di questo documento non risolve più: la pagina pubblica non lo raggiunge.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.</value></data>

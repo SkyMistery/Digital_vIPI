@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -30,11 +30,20 @@ public enum WorkSeverity
     /// <summary>La copia pubblicata è indietro: c'è da ripubblicare.</summary>
     DaRipubblicare = 3,
 
+    /// <summary>
+    /// La copia pubblicata non dirà il vero al <b>ciclo AIRAC entrante</b>: c'è da programmare una release.
+    /// <para>⚠️ Sta sotto <see cref="DaRipubblicare"/> e sopra <see cref="DaRileggere"/> perché non è la
+    /// stessa urgenza: qui non è rotto niente e nessuno sta leggendo una copia sbagliata: c'è del lavoro con
+    /// una <b>scadenza</b>. Nella stessa banda avrebbe mescolato «il pubblico legge il falso» con «prepara il
+    /// prossimo AIRAC» (carta 2026-09-02 §AW1).</para>
+    /// </summary>
+    DaPreparare = 4,
+
     /// <summary>Il testo va riletto: qualcosa che il documento nomina non c'è più o è cambiato.</summary>
-    DaRileggere = 4,
+    DaRileggere = 5,
 
     /// <summary>Un impegno ordinario, senza urgenza dichiarata.</summary>
-    Normale = 5,
+    Normale = 6,
 }
 
 /// <summary>Che cosa <b>chiude</b> una riga. Non è un'etichetta grafica: è la promessa del tasto.</summary>
@@ -131,6 +140,7 @@ public static class WorkMapping
         giaInPubblico ? WorkSeverity.GiaInPubblico
         : kind.IsRotto() ? WorkSeverity.Rotto
         : kind.IsDaRipubblicare() ? WorkSeverity.DaRipubblicare
+        : kind.IsDaPreparare() ? WorkSeverity.DaPreparare
         : WorkSeverity.DaRileggere;
 
     /// <summary>
@@ -138,7 +148,7 @@ public static class WorkMapping
     /// stanotte, e un ✓ che non tiene è peggio di nessun ✓. Si offre invece l'atto che rende il fatto falso.
     /// </summary>
     public static WorkAction AzioneCheChiude(this ImpactKind kind) =>
-        kind.IsDaRipubblicare() ? WorkAction.Ripubblica
+        kind.IsDaRipubblicare() || kind.IsDaPreparare() ? WorkAction.Ripubblica
         : kind.IsCalcolato() ? WorkAction.VaiASistemare
         : WorkAction.SegnaFatto;
 }

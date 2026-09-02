@@ -315,6 +315,22 @@ public enum ImpactKind
     /// più è un 404 che vede solo chi ci clicca sopra, cioè un lettore.</para>
     /// </summary>
     AttachmentDeleted,
+
+    /// <summary>
+    /// La copia pubblicata <b>non dirà il vero al ciclo AIRAC entrante</b>: c'è da programmare una release a
+    /// quel ciclo. <b>Calcolato.</b> Carta <c>docs/feature/2026-09-02-il-ciclo-entrante.md</c> §AW1.
+    ///
+    /// <para>⚠️ <b>Va in fondo all'enum, e non accanto a <see cref="ReleaseDrift"/> dove sarebbe stato più
+    /// leggibile</b>: gli ordinali sono già scritti in archivio, e infilarne uno in mezzo li sposterebbe
+    /// tutti — un <c>AreaGone</c> diventerebbe un <c>AreaChanged</c> senza che nessuna riga cambi.</para>
+    ///
+    /// <para>Non è <see cref="ReleaseDrift"/>: quello dice «il pubblico sta leggendo una copia indietro,
+    /// <b>adesso</b>». Qui non è rotto niente e nessuno sta leggendo il falso — c'è del lavoro con una
+    /// <b>scadenza</b>, e la scadenza è la data efficace del ciclo. Le due righe non compaiono mai insieme
+    /// sullo stesso documento: chi è già indietro oggi ha già la sua riga, e una seconda che dice «e sarà
+    /// indietro anche domani» sarebbe rumore su una lista che vive di essere corta.</para>
+    /// </summary>
+    ReleaseDriftNextCycle,
 }
 
 /// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>
@@ -322,11 +338,18 @@ public static class ImpactKinds
 {
     /// <summary>Prodotto da un calcolo che lo riapre da solo finché la causa c'è: <b>non</b> chiudibile a mano.</summary>
     public static bool IsCalcolato(this ImpactKind kind) =>
-        kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseKeyMoved or ImpactKind.BrokenTarget
-             or ImpactKind.SectorStale;
+        kind is ImpactKind.ReleaseDrift or ImpactKind.ReleaseDriftNextCycle or ImpactKind.ReleaseKeyMoved
+             or ImpactKind.BrokenTarget or ImpactKind.SectorStale;
 
     /// <summary>Vero se l'impatto dice «la copia pubblicata è indietro» invece di «rileggi il testo».</summary>
     public static bool IsDaRipubblicare(this ImpactKind kind) => kind is ImpactKind.ReleaseDrift;
+
+    /// <summary>
+    /// Vero se l'impatto dice «c'è da preparare il ciclo entrante»: non è rotto niente <b>adesso</b>, ma c'è
+    /// del lavoro con una scadenza. Lo chiude lo stesso atto di <see cref="IsDaRipubblicare"/> — si pubblica —
+    /// e per questo i due sono fratelli e non lo stesso fatto: cambia l'<b>urgenza</b>, non il rimedio.
+    /// </summary>
+    public static bool IsDaPreparare(this ImpactKind kind) => kind is ImpactKind.ReleaseDriftNextCycle;
 
     /// <summary>Vero se l'impatto segnala qualcosa di rotto, non solo da rileggere.</summary>
     public static bool IsRotto(this ImpactKind kind) =>

@@ -49,4 +49,26 @@ public sealed record ManagedDoc(
 
     /// <summary>C'è un lock di editing attivo su questo documento (di chiunque).</summary>
     public bool IsLocked => LockedByUserId is not null;
+
+    /// <summary>
+    /// Il documento <b>va tenuto aggiornato</b>: qualcuno lo legge, o è destinato a essere letto. È il
+    /// cancello dei due giri che guardano le pubblicazioni — la deriva e il quadro del ciclo entrante — e
+    /// sta qui, in un posto solo, perché la stessa domanda in due file è il modo in cui due racconti
+    /// divergono (Regola del 2 del <c>FEATURE-PROCESS</c>).
+    ///
+    /// <para>⚠️ <b><see cref="IsPublished"/> da solo NON basta, ed è un difetto misurato dal vivo il 2
+    /// settembre 2026.</b> Una release <b>programmata</b> non promuove la bozza a versione pubblicata — è
+    /// scritto in <c>PublishAsync</c> ed è voluto — quindi un documento pubblicato <i>solo</i> per
+    /// schedulazione resta <c>Status = Draft</c> <b>per sempre</b>, pur essendo in vigore e letto dal
+    /// pubblico. Sul database di sviluppo erano <b>due su diciassette</b> (la vIPI di Milano, in vigore al
+    /// 2608, e Catania Radar, al 2607): due documenti che nessun giro guardava. E il difetto si
+    /// <b>alimenta da sé</b>, perché programmare al ciclo entrante è proprio il gesto che la carta §AW3
+    /// insegna: più lo si usa, più documenti escono dal controllo.</para>
+    ///
+    /// <para>⚠️ E <see cref="HasEffectiveRelease"/> da solo non basta nell'altro verso: un documento
+    /// pubblicato le cui release stanno sotto una <b>chiave vecchia</b> non ne ha una effettiva — è
+    /// esattamente il caso C6 che la deriva ripara — e togliendolo dal cancello il guasto non lo vedrebbe
+    /// più nessuno. Servono tutt'e due, in OR.</para>
+    /// </summary>
+    public bool VaTenutoAggiornato => !IsHidden && (IsPublished || HasEffectiveRelease);
 }

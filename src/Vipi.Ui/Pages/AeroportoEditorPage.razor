@@ -760,7 +760,7 @@ else
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
             InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
+            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
         }).ToList();
         _imported = _data.Sids.Where(s => s.IsImported)
             .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
@@ -768,7 +768,7 @@ else
             {
                 Id = s.Id, Fix = s.Fix, Name = s.Name, Runway = s.Runway, Transition = s.Transition, Type = s.Type,
                 Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
-                IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = NextCycleOf(s.SourceAiracCycle),
+                IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
                 InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
             }).ToList();
         // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che
@@ -945,11 +945,13 @@ else
     // ──────────────────────────────────────────────────────────────────────────────────────────────
 
     // --- Tabella manuali: filtro + clona riga ---
-    // Ciclo di prima pubblicazione automatica = ciclo successivo a quello di prelievo.
-    private string NextCycleOf(string? sourceCycle)
+    // Il ciclo dal quale la riga entra in pubblico. ⚠️ E' `SourceAiracCycle` COM'E', non il suo successivo:
+    // dal 2 settembre 2026 quella colonna dice «da quale ciclo la riga vale» e non piu' «in quale l'ho
+    // presa» (carta §AW2, SidStampCycle). Sommarci 28 giorni mostrava un ciclo in piu' di quello vero.
+    private string PublishFromOf(string? inForceFromCycle)
     {
-        if (string.IsNullOrWhiteSpace(sourceCycle)) return "—";
-        try { return Airac.GetCycle(Airac.EffectiveUtcForCycle(sourceCycle).AddDays(28)); }
+        if (string.IsNullOrWhiteSpace(inForceFromCycle)) return "—";
+        try { _ = Airac.EffectiveUtcForCycle(inForceFromCycle); return inForceFromCycle.Trim(); }
         catch (ArgumentException) { return "—"; }
     }
 

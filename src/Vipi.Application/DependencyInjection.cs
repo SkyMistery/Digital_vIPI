@@ -127,6 +127,10 @@ public static class DependencyInjection
         // «Da fare»: il read-model che legge le segnalazioni del sistema e gli incarichi delle persone e ne
         // fa una lista sola. Non è un terzo meccanismo — non salva niente.
         services.AddScoped<IWorkListService, WorkListService>();
+        // Il quadro del ciclo AIRAC entrante, e il gesto per programmare in blocco quel che manca. ⚠️ NON è
+        // una seconda lista: le righe di lavoro le porta già quella sopra (ImpactKind.ReleaseDriftNextCycle),
+        // qui c'è il quadro d'insieme. Carta docs/feature/2026-09-02-il-ciclo-entrante.md §AW3.
+        services.AddScoped<IProssimoAiracService, ProssimoAiracService>();
         // Chi cita cosa nella biblioteca allegati: si RICAVA leggendo i testi, non si mantiene in una
         // tabella di join — quella si desincronizza e mente proprio davanti a una cancellazione.
         services.AddScoped<Abstractions.IAttachmentUsage, AttachmentUsageService>();

@@ -25,14 +25,24 @@ public sealed class SidImporter : ISidImporter
     private readonly IAiracService _airac;
     private readonly Vipi.Application.Auth.IEditAuthorizationService _authz;
 
+    /// <summary>Che cosa dice di sé la sorgente. Opzionale: senza, il ciclo d'entrata scende ai ripieghi di
+    /// <see cref="SidStampCycle"/> — cioè al comportamento di prima della carta §AW2.</summary>
+    private readonly ISidSourceRelease? _sorgente;
+
+    /// <summary>L'ultimo giro riuscito, ultimo ripiego. Opzionale come sopra.</summary>
+    private readonly IImportStateStore? _stati;
+
     public SidImporter(ISidProvider provider, IAirportRepository repo, IImportPolicyStore policy,
-        IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz)
+        IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz,
+        ISidSourceRelease? sorgente = null, IImportStateStore? stati = null)
     {
         _provider = provider;
         _repo = repo;
         _policy = policy;
         _airac = airac;
         _authz = authz;
+        _sorgente = sorgente;
+        _stati = stati;
     }
 
     /// <inheritdoc />
@@ -55,7 +65,15 @@ public sealed class SidImporter : ISidImporter
         var source = await _provider.GetSidsAsync(icao, ct);
         if (source.Count == 0) return 0;                          // nessun file/righe: non azzerare le importate esistenti
 
-        var cycle = _airac.GetCycle(DateTime.UtcNow);
+        // ⚠️ Si scrive il ciclo DAL QUALE la riga vale, e lo dichiara la SORGENTE: non è più «il ciclo in
+        // cui è capitato di girare» più uno. Il giro è ogni 24 ore, con ritardo d'avvio e ritentativi, e da
+        // quel valore dipendeva di un MESE quando la SID diventa pubblica (SidRow.IsPublicAt). I tre gradini
+        // — e perché i ripieghi sbagliano apposta in avanti — stanno in SidStampCycle. Carta §AW2.
+        var cycle = SidStampCycle.Scegli(
+            _airac, DateTime.UtcNow,
+            _sorgente is null ? SidSourceRelease.Muta : await _sorgente.ReadAsync(ct),
+            _stati is null ? null : await _stati.GetLastSuccessAsync(ImportCategories.Sid, ct));
+
         var rows = source.Select(s => new ImportedSid(
             Runway: s.Runway, Fix: s.Fix, Name: s.Name, Transition: s.Transition,
             Type: s.Type, StableKey: s.StableKey, NeedsFixReview: s.NeedsFixReview)).ToList();

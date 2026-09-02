@@ -1547,6 +1547,7 @@
   <data name="ImpactKind_AreaGone" xml:space="preserve"><value>Area gone</value></data>
   <data name="ImpactKind_AreaChanged" xml:space="preserve"><value>Area changed</value></data>
   <data name="ImpactKind_ReleaseDrift" xml:space="preserve"><value>Published copy behind</value></data>
+  <data name="ImpactKind_ReleaseDriftNextCycle" xml:space="preserve"><value>To prepare for the incoming cycle</value></data>
   <data name="ImpactKind_ReleaseKeyMoved" xml:space="preserve"><value>Target moved</value></data>
   <data name="ImpactKind_BrokenTarget" xml:space="preserve"><value>Broken target</value></data>
   <data name="ImpactKind_SectorRenamed" xml:space="preserve"><value>Sector renamed</value></data>
@@ -1556,6 +1557,8 @@
   <data name="Impact_PublicNow" xml:space="preserve"><value>already public</value></data>
   <data name="Impact_PublicNowTitle" xml:space="preserve"><value>This section is live: the change is already on the site, no republish needed.</value></data>
   <data name="Impact_Republish" xml:space="preserve"><value>republish</value></data>
+  <data name="Impact_Prepare" xml:space="preserve"><value>to prepare</value></data>
+  <data name="Impact_PrepareTitle" xml:space="preserve"><value>At the incoming AIRAC cycle the published copy will no longer be accurate: there is still time to schedule a release.</value></data>
   <data name="Impact_RepublishTitle" xml:space="preserve"><value>The published copy no longer says what it would say today.</value></data>
   <data name="Impact_Broken" xml:space="preserve"><value>broken</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>closes by itself</value></data>
@@ -1614,6 +1617,21 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>Regulated area {0} has changed: re-read what the document says about it.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>The published copy is behind the draft: {0}.</value></data>
+  <data name="Impact_ReleaseDriftNextCycle" xml:space="preserve"><value>At AIRAC cycle {0} the published copy will no longer be accurate: {1}. Schedule a release for that cycle.</value></data>
+  <data name="Airac_NextTitle" xml:space="preserve"><value>Next AIRAC</value></data>
+  <data name="Airac_NextFrom" xml:space="preserve"><value>effective from {0}</value></data>
+  <data name="Airac_NextToday" xml:space="preserve"><value>starts today</value></data>
+  <data name="Airac_NextInDays" xml:space="preserve"><value>in {0} days</value></data>
+  <data name="Airac_NextInOneDay" xml:space="preserve"><value>in one day</value></data>
+  <data name="Airac_NextMissing" xml:space="preserve"><value>{0} to schedule</value></data>
+  <data name="Airac_NextCounts" xml:space="preserve"><value>{0} documents already have a release scheduled for this cycle, {1} do not.</value></data>
+  <data name="Airac_NextAllDone" xml:space="preserve"><value>Every published document already has a release scheduled for this cycle.</value></data>
+  <data name="Airac_NextAndMore" xml:space="preserve"><value>…and {0} more.</value></data>
+  <data name="Airac_NextScheduleAll" xml:space="preserve"><value>Schedule the missing ones for cycle {0}</value></data>
+  <data name="Airac_NextScheduleAllTitle" xml:space="preserve"><value>Publishes a snapshot of every document that lacks one, effective from the incoming cycle date. Anything locked by another editor, or that you cannot edit, is skipped and reported.</value></data>
+  <data name="Airac_NextSkipped" xml:space="preserve"><value>{0} documents skipped:</value></data>
+  <data name="Airac_NextDone" xml:space="preserve"><value>{0} releases scheduled for cycle {1}.</value></data>
+  <data name="Airac_NextHelp" xml:space="preserve"><value>A scheduled release comes into force <b>on its own</b> on the cycle date: there is no need to come back on changeover day. The snapshot is frozen <b>at that cycle</b>, so it already contains the SIDs and boundaries that start then.</value></data>
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>This document's releases are stored under a target that is no longer its own ({0}): the public cannot find them.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>This document's publication target no longer resolves: the public page cannot reach it.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>This item is closed by the check that raised it: fix the cause instead.</value></data>

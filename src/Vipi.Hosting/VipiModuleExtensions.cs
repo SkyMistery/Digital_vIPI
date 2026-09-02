@@ -551,7 +551,12 @@ public static class VipiModuleExtensions
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
-        Isolata(host, log, report, "potatura delle release superate", h => h.PruneVipiReleases());
+        // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
+        // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
+        // stati delle release invecchiano DA SOLI — al rollover AIRAC una schedulata entra in vigore senza
+        // che nessuno scriva niente —, quindi su un processo che resta su per settimane non si potava più
+        // niente. Tenerla anche qui sarebbe lo stesso lavoro fatto da due parti: il giro copre l'avvio
+        // (parte a 130s) e tutti i giorni dopo.
 
         return host;
     }
@@ -719,16 +724,6 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
             .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
-        return host;
-    }
-
-    /// <summary>Retention pubblicazione: pota una volta all'avvio release Superseded oltre soglia e versioni Archived
-    /// oltre N (contiene l'accumulo storico; poi il per-publish lo mantiene limitato). Idempotente.</summary>
-    public static IHost PruneVipiReleases(this IHost host)
-    {
-        using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
-            .PruneAllAsync().GetAwaiter().GetResult();
         return host;
     }
 }

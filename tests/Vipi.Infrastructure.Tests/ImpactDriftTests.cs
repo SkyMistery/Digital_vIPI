@@ -93,6 +93,80 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.False(riga.CanClear);   // calcolata: la richiude il giro, non un ✓
     }
 
+    /// <summary>
+    /// La riga che mancava, e che è il cuore della segnalazione del 2 settembre 2026: la copia in vigore dice
+    /// ancora il vero <b>adesso</b>, ma al ciclo entrante no. Prima il giro guardava solo a oggi, e siccome le
+    /// derivate che dipendono dal ciclo nascondono quel che entra dopo, l'avviso arrivava <b>il giorno dopo il
+    /// rollover</b> — a ciclo già in vigore, cioè sempre tardi di uno.
+    /// </summary>
+    [Fact]
+    public async Task La_Deriva_Al_Ciclo_Entrante_Apre_Una_Riga_Da_Preparare()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            // Oggi tutto a posto; al ciclo entrante no.
+            RigheEntranti = new[] { new ReleaseDiffRow("SID", ReleaseChangeKind.Modified, 18, 20) },
+        };
+
+        var esito = await Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        Assert.Equal(1, esito.Aperti);
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal(ImpactKind.ReleaseDriftNextCycle, riga.Kind);
+        Assert.Equal(new[] { "2609", "SID" }, riga.ReasonArgs);   // il ciclo PRIMA del riassunto: è la scadenza
+        Assert.False(riga.CanClear);                              // calcolata: la richiude il giro, non un ✓
+    }
+
+    /// <summary>
+    /// ⚠️ Le due righe non compaiono mai <b>insieme</b>: chi è già indietro oggi ha già la sua riga «da
+    /// ripubblicare», e una seconda che dice «e sarà indietro anche domani» sarebbe rumore su una lista che
+    /// vive di essere corta. Il giro non chiede nemmeno la seconda deriva.
+    /// </summary>
+    [Fact]
+    public async Task Chi_E_Gia_Indietro_Oggi_Non_Prende_Anche_La_Riga_Del_Ciclo_Entrante()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) },
+            RigheEntranti = new[] { new ReleaseDiffRow("SID", ReleaseChangeKind.Modified, 18, 20) },
+        };
+
+        await Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal(ImpactKind.ReleaseDrift, riga.Kind);
+        Assert.Equal(new string?[] { null }, rel.CicliChiesti);   // la seconda domanda non si fa nemmeno
+    }
+
+    /// <summary>
+    /// La riconciliazione vale anche per la riga nuova: schedulata la release, al giro dopo la deriva al ciclo
+    /// entrante è vuota e la riga si <b>richiude da sé</b>. È la regola «chi calcola, riconcilia» (§2 della
+    /// carta), e senza di essa la casella si riempirebbe di segnalazioni che nessuno può togliere.
+    /// </summary>
+    [Fact]
+    public async Task La_Riga_Del_Ciclo_Entrante_Si_Richiude_Da_Se()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            RigheEntranti = new[] { new ReleaseDiffRow("SID", ReleaseChangeKind.Modified, 18, 20) },
+        };
+
+        await Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+        Assert.Single(await _impatti.ListOpenAsync(_docId));
+
+        rel.RigheEntranti = Array.Empty<ReleaseDiffRow>();       // qualcuno ha programmato la release
+        var esito = await Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        Assert.Equal(1, esito.Chiusi);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
     [Fact]
     public async Task Un_Bersaglio_Che_Non_Risolve_Apre_BrokenTarget()
     {
@@ -260,8 +334,20 @@ public class ImpactDriftTests : IAsyncLifetime
     {
         public IReadOnlyList<ReleaseDiffRow> Righe { get; set; } = Array.Empty<ReleaseDiffRow>();
 
-        public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
-            Task.FromResult(Righe);
+        /// <summary>Che cosa risponde quando gli si chiede il CICLO ENTRANTE. Vuoto = niente da preparare.</summary>
+        public IReadOnlyList<ReleaseDiffRow> RigheEntranti { get; set; } = Array.Empty<ReleaseDiffRow>();
+
+        /// <summary>I cicli con cui il giro ha chiesto la deriva, per provare che ne chiede DUE e quali.</summary>
+        public List<string?> CicliChiesti { get; } = new();
+
+        public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default)
+        {
+            CicliChiesti.Add(alCiclo);
+            return Task.FromResult(alCiclo is null ? Righe : RigheEntranti);
+        }
+
+        public Vipi.Domain.Services.AiracCycleInfo NextCycle() =>
+            new("2609", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc));
 
         public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ReleaseInfo>>(Array.Empty<ReleaseInfo>());

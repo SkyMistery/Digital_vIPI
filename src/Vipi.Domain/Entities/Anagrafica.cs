@@ -613,9 +613,19 @@ public class AirportSid
     public int? Priority { get; set; }
     /// <summary>Identità stabile della SID (ICAO|fix|lettera|transition|pista), esclusa la cifra della revisione. Per ri-applicare priorità/pubblicazione tra import.</summary>
     public string? StableKey { get; set; }
-    /// <summary>Ciclo AIRAC in cui la riga è stata prelevata dalla sorgente (YYNN). Governa la pubblicazione differita.</summary>
+    /// <summary>
+    /// Ciclo AIRAC (YYNN) <b>dal quale la riga è in vigore</b>. Governa la pubblicazione differita:
+    /// <c>SidRow.IsPublicAt</c> la mostra quando il ciclo corrente ha <b>raggiunto</b> questo.
+    /// <para>⚠️ <b>Il significato è cambiato il 2 settembre 2026</b> (carta
+    /// <c>docs/feature/2026-09-02-il-ciclo-entrante.md</c> §AW2), e la colonna ha tenuto il nome che aveva
+    /// perché rinominarla è una migrazione senza guadagno. Prima era «il ciclo in cui l'abbiamo
+    /// <i>prelevata</i>», e la riga usciva al ciclo <b>dopo</b>: un buffer di uno indovinato, che dipendeva
+    /// dall'ora in cui era passato un job. Ora ci si scrive il ciclo d'entrata vero — quello che la sorgente
+    /// <b>dichiara</b> nel suo <c>CHANGELOG</c>, o, dove non lo dichiara, il successivo a quello in cui i
+    /// dati si sono mossi. Il calcolo sta tutto in <c>SidStampCycle</c>.</para>
+    /// </summary>
     public string? SourceAiracCycle { get; set; }
-    /// <summary>Forzatura manuale della pubblicazione di una riga importata: scavalca il differimento al ciclo successivo.</summary>
+    /// <summary>Forzatura manuale della pubblicazione di una riga importata: scavalca l'attesa del ciclo d'entrata.</summary>
     public bool ForcePublished { get; set; }
     /// <summary>Fix non risolto automaticamente dal parser (prefisso troncato irregolare): da completare a mano.</summary>
     public bool NeedsFixReview { get; set; }
