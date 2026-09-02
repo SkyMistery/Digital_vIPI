@@ -44,8 +44,10 @@ La catena, per intero:
 
 Il flusso giusto **esiste già** ed è quello previsto dalla carta delle SID: pubblicare **al ciclo 2609**
 *prima* del 3 settembre. Lo snapshot si congela con `ShapeReleaseContext` aperto su 2609, quindi la
-cattura include le SID nuove (timbrate 2608, che al 2609 diventano pubbliche) e la release entra in vigore
-da sola.
+cattura include le SID che entrano a quel ciclo, e la release entra in vigore da sola.
+
+> ⚠️ Salvo che **fino a §AW2 non era vero fino in fondo**: il buffer di un ciclo si sommava una seconda
+> volta dentro la derivazione, e la release programmata al 2609 usciva **senza** le SID del 2609. Vedi lì.
 
 **Il difetto non è nel meccanismo: è che nessuno viene avvisato di azionarlo.** E le tre cose che avrebbero
 dovuto avvisare guardano tutte all'orologio sbagliato.
@@ -57,8 +59,8 @@ dovuto avvisare guardano tutte all'orologio sbagliato.
 `ImpactDriftUseCase` è il rivelatore calcolato che apre le righe «da ripubblicare». Costruisce lo snapshot
 di confronto con `_airac.GetCycle(DateTime.UtcNow)` — **il ciclo di oggi**.
 
-Incrociato col buffer delle SID (`SidRow.IsPublicAt`: una SID importata compare solo dal ciclo
-**successivo** al prelievo) il risultato è che il giro **non può vedere** quel che sta per cambiare:
+Incrociato con l'attesa delle SID (`SidRow.IsPublicAt`: una SID importata compare solo dal ciclo **da cui
+vale**) il risultato è che il giro **non può vedere** quel che sta per cambiare:
 
 | quando | ciclo | la deriva vede | l'admin sa |
 |---|---|---|---|
@@ -88,56 +90,82 @@ non si offre — il giro la riaprirebbe stanotte, ed è la regola già scritta i
 
 ---
 
-## §AW2 — Il timbro del ciclo viene dalla sorgente, non dall'orologio del giro
+## §AW2 — Il ciclo lo **dichiara la sorgente**, e nessuno glielo chiedeva
 
-`SidImporter` timbra `SourceAiracCycle = _airac.GetCycle(DateTime.UtcNow)`, cioè **il ciclo in cui è
-capitato di girare**. Il giro è ogni 24 ore, con `bootDelay` e ritentativi: quando cade è un dettaglio
-d'esercizio, non un fatto sui dati.
+`SidImporter` timbrava `SourceAiracCycle = _airac.GetCycle(DateTime.UtcNow)`, cioè **il ciclo in cui era
+capitato di girare**, e la riga usciva al ciclo **dopo**. Ma il giro è ogni 24 ore, con `bootDelay` e
+ritentativi: quando cade è un dettaglio d'esercizio, non un fatto sui dati.
 
 Il modo di fallire è brutale e **muto**:
 
-- sectorfile aggiornato l'1 settembre, giro che passa il 2 → timbro **2608** → pubbliche dal **3 settembre**. ✔
-- lo stesso sectorfile, ma il giro passa il 3 alle 02:00 (app riavviata, sorgente lenta, un ritentativo
-  slittato) → timbro **2609** → pubbliche dal **1º ottobre**. ✗ **Un mese di ritardo, e nessuno lo vede.**
+- sectorfile aggiornato l'1 settembre, giro che passa il 2 → pubblico il **3 settembre**. ✔
+- lo stesso file, ma il giro passa il 3 alle 02:00 (app riavviata, sorgente lenta, un ritentativo
+  slittato) → pubblico il **1º ottobre**. ✘ **Un mese di ritardo, e nessuno lo vede.**
 
-La stessa riga di dati prende due destini diversi a seconda dell'ora in cui è passato un job. Questo non è
-un buffer prudente: è un lancio di dado.
+La stessa riga di dati prendeva due destini a seconda dell'ora in cui era passato un job. Non è un buffer
+prudente: è un lancio di dado.
 
-**La mossa.** Il timbro diventa *il ciclo in vigore quando la **sorgente** è cambiata*, che è un fatto sul
-dato e non sull'esercizio. Nuova porta `ISidSourceStamp` (Application) con un'unica domanda: «quando è
-cambiata l'ultima volta la cartella dei file `.sid`?». L'adattatore `GitHubSidSourceStamp` la risponde con
-**una** chiamata per giro:
+### La scoperta: il sectorfile dichiara il proprio ciclo
+
+Cercando dove leggere una data affidabile è saltato fuori che **la domanda giusta ha già una risposta
+scritta**. Il repo Aurora tiene `SectorFiles/Include/IT/CHANGELOG/<ciclo>.txt`, uno per AIRAC. Misurato il
+2 settembre 2026, il file più alto era **`2608.txt`**, e comincia così:
 
 ```
-GET /repos/{owner}/{repo}/commits?path={dir}&per_page=1  →  commit.committer.date
+**AIRAC A2608 IN VIGORE DAL 06/08/2026
 ```
 
-Misurato: la API risponde e il dato è utile — `lirf.sid` risulta toccato l'ultima volta il **22 giugno
-2026**, cioè per il 2609 quel file **non è cambiato affatto**. ⚠️ `raw.githubusercontent.com` **non manda
-`Last-Modified`** (solo `ETag`): la via degli header non esiste, la API è l'unica sorgente di quella data.
+Il **6 agosto 2026** è esattamente la data che calcola `AiracService` per il 2608. La sorgente dice il ciclo
+*e* la sua data efficace, e per un anno il ciclo lo abbiamo **indovinato** dall'orologio di un job.
 
-**Tre gradini, e la caduta è dichiarata:**
+> 🔴 **E dice anche un'altra cosa, che è la risposta alla segnalazione: `2609.txt` NON C'ERA.** Il 2
+> settembre la sorgente non aveva ancora i dati del ciclo entrante — il commit dell'1 settembre era
+> «bugfix settore dinamico LIBV_APP», una correzione dentro il 2608. Il sito non pubblicava le SID del
+> 2609 perché **non esistevano ancora**. Il changelog del 2608, per confronto, era stato scritto il **25
+> luglio**, dodici giorni prima dell'entrata in vigore: è quello il ritmo con cui la divisione lavora.
 
-1. la data dell'ultimo cambiamento in sorgente → il ciclo in vigore a quella data;
-2. se la sorgente non risponde (rete, quota, formato): l'**ultimo giro riuscito** di categoria `Sid`, che
-   è già in archivio (`IImportStateStore`) e non costa niente;
-3. se non c'è nemmeno quello (primo avvio): il ciclo corrente, cioè il comportamento di prima.
+### Che cosa cambia
 
-⚠️ **Il ripiego 2 sbaglia per eccesso di fretta, ed è voluto.** Se l'ultimo giro riuscito è di tre giorni
-fa e nel frattempo il ciclo è girato, si timbra il ciclo **vecchio** — cioè le SID escono **prima**. Il
-cambiamento era osservabile in quella finestra e noi non abbiamo guardato: il ritardo è nostro, e non deve
-diventare un ritardo del dato. Il verso opposto — nascondere per un mese — è il difetto che stiamo
-chiudendo. Chi vuole l'opposto ha già `ForcePublished` per riga.
+`SourceAiracCycle` smette di voler dire «il ciclo in cui l'ho prelevata» e vuol dire **«il ciclo dal quale
+la riga è in vigore»**; `IsPublicAt` confronta con `>=` invece che con `>`. Il buffer non sparisce: smette
+di essere sommato **a valle** da chiunque legga, e viene deciso **una volta sola**, in
+`SidStampCycle.Scegli`, che è pura e si verifica senza rete:
 
-⚠️ **Il timbro non può stare nel futuro.** Se la sorgente dichiarasse una data avanti rispetto a
-`UtcNow` (orologi, fusi, un commit datato male) il ciclo si taglia a quello corrente: una SID timbrata a un
-ciclo che non è ancora arrivato sarebbe invisibile fino a lì, che è il difetto di prima al contrario.
+1. **il ciclo dichiarato** dalla sorgente;
+2. il ciclo **successivo** a quello in cui la sorgente è cambiata l'ultima volta (dalla API dei commit —
+   ⚠️ misurato: `raw.githubusercontent.com` manda `ETag` ma **non** `Last-Modified`, la via degli header non
+   esiste);
+3. il ciclo **successivo** all'ultimo giro riuscito, e in mancanza anche di quello, ad adesso — cioè
+   esattamente il comportamento di prima.
 
-⚠️ **`ContentUnchanged` non si tocca.** Il timbro nuovo vale per le righe **nuove o cambiate**; quelle
-identiche conservano il ciclo del primo prelievo, che è la regola pagata nell'audit del 24 luglio (senza,
-il re-timbro le rinascondeva a ogni giro).
+⚠️ **La colonna tiene il nome che aveva.** Rinominarla è una migrazione senza guadagno, e il significato
+nuovo è scritto sull'entità e su `IsPublicAt`. È un debito dichiarato, non dimenticato.
 
----
+⚠️ **I ripieghi sbagliano per eccesso di fretta, ed è voluto.** Al gradino 3, se l'ultimo giro riuscito è
+di tre giorni fa e nel frattempo il ciclo è girato, si parte dal ciclo **vecchio** e la riga esce
+**prima**. Il cambiamento era osservabile in quella finestra e noi non abbiamo guardato: il ritardo è
+nostro e non deve diventare un ritardo del dato. Il verso opposto — nasconderla per un mese — è il difetto
+che si sta chiudendo. Chi vuole trattenerne una ha già `ForcePublished` per riga.
+
+⚠️ **`ContentUnchanged` non si tocca.** Il valore nuovo vale per le righe **nuove o cambiate**; quelle
+identiche conservano il primo, che è la regola pagata nell'audit del 24 luglio (senza, il re-timbro le
+rinascondeva a ogni giro). È anche ciò che limita il rischio del cambio di significato: una riga il cui
+contenuto non si muove non cambia ciclo, e «in vigore adesso» per lei è vero.
+
+⚠️ **Una chiamata per giro, e in cache anche il «non lo so».** Il giro chiama `ImportAsync` una volta per
+aeroporto — decine — e la risposta non dipende dall'ICAO: la quota anonima di GitHub è sessanta all'ora, e
+un 403 richiesto trentanove volte dà trentanove 403. La fetta sta in `SectorfileCache`, che il giro
+d'import già invalida a ogni passata.
+
+⚠️ **Non solleva mai.** Un import che cade perché una API di contorno ha dato 403 sarebbe un danno molto
+più grande della domanda a cui non si è saputo rispondere.
+
+### La ricaduta che vale più di tutte
+
+Il buffer era sommato **due volte**: una nel timbro, una nella derivazione. Per questo una release
+programmata al ciclo entrante **non conteneva le SID di quel ciclo** — uscivano a quello dopo. Ora
+l'anteprima e lo snapshot del 2609 contengono ciò che entra al 2609, che è quel che chi prepara un AIRAC si
+aspetta di leggere.
 
 ## §AW3 — «Prossimo AIRAC»: una sezione, non una lista nuova
 
@@ -197,11 +225,39 @@ che mente.
 | 3 | §AW1 — la deriva al ciclo entrante | Porta la riga nella lista |
 | 4 | §AW3 — la sezione «Prossimo AIRAC» | Legge quel che i tre passi prima hanno reso vero |
 
-## Verifica
+## Verifica — che cosa ha detto
 
-- **Test** sul cuore deterministico: la scelta del ciclo di timbro (i tre gradini + il taglio sul futuro),
-  la deriva al ciclo entrante e la regola «non due righe sullo stesso documento», la severità nuova.
-- **Dal vivo**: la sezione «Prossimo AIRAC» su Versioni con il database di sviluppo, e il gesto in blocco
-  guidato a schermo — le regressioni di binding Blazor sono silenziose coi test verdi.
-- ⚠️ **Nessuna migrazione**: `ImpactKind` è un enum e il valore nuovo si **appende in coda**, così gli
-  ordinali già scritti in archivio non si spostano. La finestra cieca al 16 settembre regge.
+**Test**: 32 nuovi, suite intera verde sui due TFM (**9820**, E2E compresi), build Release
+`--no-incremental` con 0 avvisi. ⚠️ **Nessuna migrazione**: `ImpactKind` è un enum e il valore nuovo si
+**appende in coda**, così gli ordinali già scritti in archivio non si spostano — la finestra cieca al 16
+settembre regge.
+
+**Dal vivo** (Edge + puppeteer su una copia del `vipi.db`, aspettando il **circuito** e non il DOM del
+prerender). La sezione esce giusta — «AIRAC 2609, in vigore dal 03 Sep 2026, fra un giorno» contro «AIRAC
+2608» in testata — e il gesto in blocco funziona: cliccato, **16 release programmate**, il pannello si
+rilegge da sé e dice «tutti a posto». Console pulita, nessun 4xx, nessun letterale Razor.
+
+E ha trovato **tre cose che nessun test poteva dire**:
+
+1. **«in 1 days».** Il singolare capita *proprio* il giorno prima del cambio, cioè l'unico in cui quella
+   riga la legge qualcuno. Chiave sua.
+2. **«vIPI Brindisi— LIBB».** Lo spazio fra un'espressione e un `@if` Razor lo mangia il compilatore: serve
+   un carattere vero. Trappola già nota in questo progetto, e ripagata.
+3. 🔴 **Due documenti che il pubblico legge restavano fuori da tutto.** Una release **programmata** non
+   promuove la bozza a versione pubblicata — è voluto, ed è scritto in `PublishAsync` — quindi un documento
+   pubblicato *solo* per schedulazione resta `Status = Draft` **per sempre**, pur essendo in vigore. Col
+   cancello su `IsPublished`, la vIPI di **Milano** (in vigore al 2608) e **Catania Radar** (2607) non erano
+   guardate né dal quadro né dal **giro della deriva**, che quel cancello ce l'ha da sempre: **due su
+   diciassette**. E il difetto si **alimentava da sé** — programmare al ciclo entrante è proprio il gesto
+   che §AW3 insegna, quindi più lo si usava, più documenti uscivano dal controllo.
+
+   Il cancello è ora `ManagedDoc.VaTenutoAggiornato` — *non nascosto* **e** *(pubblicato **o** in vigore)* —
+   in un posto solo. ⚠️ **Serve l'OR in tutt'e due i versi**: un documento pubblicato le cui release stanno
+   sotto una **chiave vecchia** non ne ha una effettiva, ed è esattamente il caso C6 che la deriva ripara;
+   togliendolo dal cancello, quel guasto non lo vedrebbe più nessuno. Rimisurato dal vivo: da **14 a 16**
+   documenti, e l'unico rimasto fuori è il **nascosto**.
+
+**Più una guardia resa meno fragile.** `FiltroPerTipoCompletoTests` cercava la *prima* occorrenza di
+`KindFilters`, che è l'uso nel markup centosessanta righe più su, e da lì il primo `};` è di un membro
+qualunque scritto in mezzo: è bastato aggiungere un metodo con un'espressione `switch` perché accusasse la
+pagina di aver perso **tutti e cinque** i filtri, che erano al loro posto. Ora cerca la dichiarazione.

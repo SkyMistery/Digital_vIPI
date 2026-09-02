@@ -582,6 +582,12 @@
               <p>Ogni release è uno <b>snapshot congelato</b>: resta consultabile anche dopo. Aggiungi una <b>nota</b>
                per spiegare cosa cambia (comparirà in «Cosa è cambiato»). Gli admin possono vedere le <b>differenze</b>
                e <b>annullare</b> una release.</p>
+              <p><b>Preparare un AIRAC.</b> Quando esce un ciclo nuovo il sito <b>non</b> ripubblica da sé: una release
+               programmata al ciclo entrante, invece, entra in vigore <b>da sola</b> alla sua data, e il suo snapshot
+               è congelato <b>a quel ciclo</b> — quindi contiene già le SID e i confini che entrano allora. Il quadro
+               di chi manca, e il tasto per programmarli tutti insieme, stanno in <b>Bozze e versioni</b>, sezione
+               <b>Prossimo AIRAC</b>. La lista <b>Da fare</b> apre da sé una riga «da preparare» sui documenti che al
+               ciclo entrante non direbbero più il vero.</p>
               <p><b>Regola pratica:</b> salva → anteprima bozza → pubblica. Non pubblicare senza aver guardato l'anteprima.</p>",
             @"<p>The draft goes public with a <b>release</b>, tied to an <b>AIRAC</b> cycle. In the release panel:</p>
               <ul>
@@ -591,6 +597,12 @@
               <p>Each release is a <b>frozen snapshot</b>: it stays consultable afterwards. Add a <b>note</b>
                to explain what changes (it shows up in ""What changed""). Admins can see the <b>differences</b>
                and <b>cancel</b> a release.</p>
+              <p><b>Preparing an AIRAC.</b> When a new cycle starts the site does <b>not</b> republish by itself. A
+               release scheduled for the incoming cycle, on the other hand, takes effect <b>on its own</b> on that
+               date, and its snapshot is frozen <b>at that cycle</b> — so it already contains the SIDs and boundaries
+               that start then. The overview of what is still missing, and the button that schedules them all at once,
+               live in <b>Drafts &amp; versions</b>, section <b>Next AIRAC</b>. The <b>To do</b> list opens a “to
+               prepare” row by itself on documents that would no longer be accurate at the incoming cycle.</p>
               <p><b>Rule of thumb:</b> save → preview draft → publish. Don't publish without checking the preview.</p>"),
 
         new Sec("editor-validita", "clock",
@@ -634,8 +646,10 @@
                 <li><b>Piste</b> — importate da IVAO per singolo aeroporto; le regole pista/area guidano le condizioni
                     di trasferimento.</li>
                 <li><b>Frequenze</b> — sezione derivata dai settori ATC dell'aeroporto.</li>
-                <li><b>SID</b> — importate da Aurora al primo prelievo del ciclo AIRAC; i fix aggiunti a mano vengono
-                    riportati. L'import è bloccato per-ICAO durante l'operazione.</li>
+                <li><b>SID</b> — importate da Aurora, e <b>in vigore dal ciclo AIRAC che la sorgente dichiara</b>
+                    (il sectorfile tiene un changelog per ciclo). Finché quel ciclo non arriva la riga resta in
+                    attesa e la colonna di destra dice da quando uscirà; la si può forzare riga per riga. I fix
+                    aggiunti a mano vengono riportati, e l'import è bloccato per-ICAO durante l'operazione.</li>
                 <li><b>Settori ATC</b> — mostra/nascondi i settori importati e imposta i limiti. Non è una sezione
                     del documento: è amministrazione della struttura, e infatti non compare nella vIPI pubblicata.</li>
               </ul>
