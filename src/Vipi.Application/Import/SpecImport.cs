@@ -78,6 +78,19 @@ public sealed record SpecImport(
     /// <summary>La specifica della tabella generica: colonne quante e come le porta chi incolla.</summary>
     public static SpecImport Generica(string chiave = "generic") =>
         new(chiave, Array.Empty<ColonnaSpec>(), ColonneLibere: true);
+
+    /// <summary>
+    /// Una tabella a <b>colonne fisse e celle libere</b> (Nominativi, Parcheggi): le colonne le decide il
+    /// profilo, il contenuto e' tutto testo e non si risolve niente da nessuna parte.
+    /// <para>⚠️ I titoli arrivano gia' tradotti, e sono anche i <b>sinonimi</b> con cui si riconosce
+    /// l'intestazione incollata: una tabella copiata da un SOP scritto in inglese ha le intestazioni in
+    /// inglese, e chiedere a chi importa di rinominarle sarebbe la prima cosa da ridigitare.</para>
+    /// </summary>
+    public static SpecImport ColonneFisse(string chiave, IReadOnlyList<string> titoli) =>
+        new(chiave,
+            titoli.Select((t, i) => new ColonnaSpec(
+                "c" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), t, TipoCella.Testo))
+                .ToList());
 }
 
 /// <summary>

@@ -310,13 +310,17 @@ else
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilDocumentPage.ColonneNominativi(L)" Righe="_nominativi"
-                                     Editing="_shell.IsEditing" OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
-                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo" />
+                                     Chiave="milcallsigns" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
+                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo"
+                                     OnImporta="ImportaNominativi" />
                 break;
             case "parkings":
                 <MilFixedTableEditor Colonne="MilDocumentPage.ColonneParcheggi(L)" Righe="_parcheggi"
-                                     Editing="_shell.IsEditing" OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
-                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio" />
+                                     Chiave="milparkings" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
+                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio"
+                                     OnImporta="ImportaParcheggi" />
                 break;
             case "validity":
                 <div class="callout info" style="margin:0 0 10px">
@@ -674,6 +678,15 @@ else
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
     private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
         SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+
+    // ⚠️ L'import consegna la tabella INTERA (le vecchie piu' le nuove, o solo le nuove se si e' scelto
+    // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto
+    // che cosa stava per succedere.
+    private Task ImportaNominativi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, righe);
+
+    private Task ImportaParcheggi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, righe);
 
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>

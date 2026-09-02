@@ -6,6 +6,7 @@
 
    ⚠️ Il contenuto sta tutto nel documento: qui non si scrive in nessun catalogo condiviso, e infatti non c'è
    nessun avviso da dare — a differenza delle Radioassistenze, dove quel che si scrive cambia gli altri SOP. *@
+@using Vipi.Application.Import
 @inject IStringLocalizer<SharedResource> L
 
 @* ⚠️ `milt-free` e non `cfg-table`: qui le colonne le decide il PROFILO — tre per i nominativi, tre
@@ -65,7 +66,21 @@
 {
     <div class="mil-add">
         <button type="button" class="btn primary" @onclick="() => OnAdd.InvokeAsync()">+ @L["Mil_TableAddRow"]</button>
+        @* ⚠️ Il tasto c'e' solo se qualcuno ascolta: una tabella a colonne fisse che non sa dove mettere le
+           righe importate mostrerebbe un tasto che non fa niente. *@
+        @if (OnImporta.HasDelegate)
+        {
+            <button type="button" class="btn ghost" @onclick="() => _import = !_import">
+                ⤓ @L["Imp_Open"]
+            </button>
+        }
     </div>
+
+    @if (_import)
+    {
+        <ImportaTabella Spec="@Spec" OnImporta="Importa"
+                        OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
+    }
 }
 
 @code {
@@ -80,6 +95,36 @@
 
     /// <summary>Scrive UNA cella: riga, colonna, testo.</summary>
     [Parameter] public EventCallback<(int Riga, int Colonna, string Testo)> OnSet { get; set; }
+
+    /// <summary>
+    /// La tabella <b>intera</b> dopo l'import: le righe di prima piu' quelle importate, o solo quelle
+    /// importate se si e' scelto «sostituisci». Non impostato = niente tasto d'import.
+    /// <para>⚠️ Esce la tabella intera e non «le righe nuove piu' un flag»: chi salva scrive sempre tutte le
+    /// righe (e' il modello di questo payload), e fargli rifare la fusione qui sarebbe la stessa decisione
+    /// presa due volte.</para>
+    /// </summary>
+    [Parameter] public EventCallback<IReadOnlyList<IReadOnlyList<string>>> OnImporta { get; set; }
+
+    /// <summary>La chiave della tabella, per la specifica d'import (<c>callsigns</c>, <c>parkings</c>).</summary>
+    [Parameter] public string Chiave { get; set; } = "fixed";
+
+    private bool _import;
+
+    /// <summary>
+    /// La specifica si costruisce dalle COLONNE CORRENTI, che sono gia' nella lingua del documento: sono
+    /// anche i nomi con cui si riconosce l'intestazione incollata.
+    /// </summary>
+    private SpecImport Spec => SpecImport.ColonneFisse(Chiave, Colonne);
+
+    private Task Importa(RichiestaImport r)
+    {
+        _import = false;
+        var righe = r.Proposta.Buone
+            .Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList())
+            .ToList();
+        var tutte = r.Sostituisci ? righe : Righe.Concat(righe).ToList();
+        return OnImporta.InvokeAsync(tutte);
+    }
 
     private string Cella(int r, int c) => r < Righe.Count && c < Righe[r].Count ? Righe[r][c] : "";
 }
