@@ -187,6 +187,10 @@
             WorkSeverity.Rotto => ("amber", "Impact_Broken", "Impact_Broken"),
             WorkSeverity.InRitardo => ("amber", "Tasks_Overdue", "Tasks_Overdue"),
             WorkSeverity.DaRipubblicare => ("blue", "Impact_Republish", "Impact_RepublishTitle"),
+            @* ⚠️ Il colore è lo stesso della riga precedente e la parola no: l'atto che le chiude è lo
+               stesso — si pubblica — ma qui non è rotto niente, c'è una SCADENZA. Un colore più acceso
+               direbbe che urge come quella sopra, uno spento che si può ignorare. *@
+            WorkSeverity.DaPreparare => ("blue", "Impact_Prepare", "Impact_PrepareTitle"),
             WorkSeverity.DaRileggere => ("", "Impact_ToReview", "Impact_ToReview"),
             _ => ("", "Work_Task", "Work_Task"),
         };

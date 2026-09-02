@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Domain;
 using Vipi.Domain.Services;
 
@@ -14,6 +14,14 @@ public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, in
 /// Il <b>rivelatore calcolato</b> della casella: confronta quel che la copia pubblicata dice con quel che
 /// direbbe oggi, e apre <see cref="ImpactKind.ReleaseDrift"/> dove i due divergono. Carta
 /// <c>docs/feature/2026-08-25-documenti-da-rivedere.md</c> §5-B.
+///
+/// <para><b>E guarda anche AVANTI</b> (carta <c>2026-09-02-il-ciclo-entrante.md</c> §AW1): dove la copia
+/// pubblicata dice ancora il vero <i>adesso</i> ma non lo dirà al <b>ciclo entrante</b>, apre
+/// <see cref="ImpactKind.ReleaseDriftNextCycle"/>. Serviva perché le derivate che dipendono dal ciclo — le
+/// SID d'aeroporto, le shape dei settori — <b>nascondono</b> quel che entra dopo: chiedendo solo «com'è
+/// oggi», il giro non poteva vedere quel che stava per cambiare, e l'avviso arrivava sempre <b>il giorno
+/// dopo il rollover</b>, a ciclo già in vigore. Ora arriva mentre c'è ancora il tempo di programmare la
+/// release a quel ciclo — che è il gesto che rende il fatto falso.</para>
 ///
 /// <para><b>Perché serve, se già ci sono gli eventi.</b> Gli eventi dipendono da chi si ricorda di
 /// agganciarli: è la trappola del «gate per chiamante», che in questo progetto è già costata due volte.
@@ -82,9 +90,15 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
             .ToList();
 
         var attuali = new List<RaiseImpactInput>();
+        var entranti = new List<RaiseImpactInput>();
         var chiaviSpostate = new List<RaiseImpactInput>();
         var bersagliRotti = new List<RaiseImpactInput>();
         var ripuntate = 0;
+
+        // Il ciclo entrante si chiede UNA volta per giro e non per documento: è lo stesso per tutti, e
+        // ricalcolarlo per riga significherebbe due documenti valutati contro cicli diversi se il giro
+        // scavalcasse la mezzanotte del rollover.
+        var entrante = _releases.NextCycle();
 
         foreach (var d in candidati)
         {
@@ -134,15 +148,35 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
             }
 
             // 2) La deriva vera e propria.
-            var righe = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, ct);
-            if (righe.Count == 0) continue;
+            var righe = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, ct: ct);
+            if (righe.Count > 0)
+            {
+                attuali.Add(new RaiseImpactInput(
+                    docId, ImpactKind.ReleaseDrift, d.ReleaseKey,
+                    DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) }));
+                // ⚠️ E qui si FERMA: un documento già indietro adesso ha già la sua riga «da ripubblicare»,
+                // e una seconda che dice «e sarà indietro anche al ciclo entrante» sarebbe rumore su una
+                // lista che vive di essere corta. Le due righe non compaiono mai insieme (carta §AW1).
+                continue;
+            }
 
-            attuali.Add(new RaiseImpactInput(
-                docId, ImpactKind.ReleaseDrift, d.ReleaseKey,
-                DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) }));
+            // 3) La deriva al CICLO ENTRANTE. È la riga che mancava: le derivate che dipendono dal ciclo —
+            //    le SID d'aeroporto, le shape dei settori — nascondono quel che entra dopo, quindi guardando
+            //    solo a oggi il giro non poteva vedere quel che sta per cambiare e l'avviso arrivava sempre
+            //    IL GIORNO DOPO il rollover, a ciclo già in vigore. Adesso arriva mentre c'è ancora il tempo
+            //    di programmare la release a quel ciclo — che è il gesto che rende il fatto falso.
+            var prossime = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, entrante.Cycle, ct);
+            if (prossime.Count == 0) continue;
+
+            entranti.Add(new RaiseImpactInput(
+                docId, ImpactKind.ReleaseDriftNextCycle, d.ReleaseKey,
+                DocumentImpactService.Reasons.ReleaseDriftNextCycle,
+                new[] { entrante.Cycle, Riassunto(prossime) }));
         }
 
         var (apertiDeriva, chiusiDeriva) = await _impacts.ReconcileAsync(ImpactKind.ReleaseDrift, attuali, ct);
+        var (apertiEntranti, chiusiEntranti) =
+            await _impacts.ReconcileAsync(ImpactKind.ReleaseDriftNextCycle, entranti, ct);
         var (apertiChiavi, chiusiChiavi) = await _impacts.ReconcileAsync(ImpactKind.ReleaseKeyMoved, chiaviSpostate, ct);
         var (apertiRotti, chiusiRotti) = await _impacts.ReconcileAsync(ImpactKind.BrokenTarget, bersagliRotti, ct);
 
@@ -153,8 +187,8 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
 
         return new ImpactDriftResult(
             candidati.Count,
-            apertiDeriva + apertiChiavi + apertiRotti + apertiStantii,
-            chiusiDeriva + chiusiChiavi + chiusiRotti + chiusiStantii,
+            apertiDeriva + apertiEntranti + apertiChiavi + apertiRotti + apertiStantii,
+            chiusiDeriva + chiusiEntranti + chiusiChiavi + chiusiRotti + chiusiStantii,
             potati,
             quantiStantii,
             ripuntate);

@@ -1556,6 +1556,8 @@
   <data name="Impact_PublicNow" xml:space="preserve"><value>already public</value></data>
   <data name="Impact_PublicNowTitle" xml:space="preserve"><value>This section is live: the change is already on the site, no republish needed.</value></data>
   <data name="Impact_Republish" xml:space="preserve"><value>republish</value></data>
+  <data name="Impact_Prepare" xml:space="preserve"><value>to prepare</value></data>
+  <data name="Impact_PrepareTitle" xml:space="preserve"><value>At the incoming AIRAC cycle the published copy will no longer be accurate: there is still time to schedule a release.</value></data>
   <data name="Impact_RepublishTitle" xml:space="preserve"><value>The published copy no longer says what it would say today.</value></data>
   <data name="Impact_Broken" xml:space="preserve"><value>broken</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>closes by itself</value></data>
@@ -1614,6 +1616,7 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>Regulated area {0} is no longer in the catalogues: the document cites it but it is not shown.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>Regulated area {0} has changed: re-read what the document says about it.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>The published copy is behind the draft: {0}.</value></data>
+  <data name="Impact_ReleaseDriftNext" xml:space="preserve"><value>At AIRAC cycle {0} the published copy will no longer be accurate: {1}. Schedule a release for that cycle.</value></data>
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>This document's releases are stored under a target that is no longer its own ({0}): the public cannot find them.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>This document's publication target no longer resolves: the public page cannot reach it.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>This item is closed by the check that raised it: fix the cause instead.</value></data>

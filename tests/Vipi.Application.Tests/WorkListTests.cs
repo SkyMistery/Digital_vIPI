@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
 
@@ -72,6 +72,15 @@ public class WorkListTests
         Assert.Equal(WorkSeverity.Rotto, ImpactKind.BrokenTarget.Severita(false));
         Assert.Equal(WorkSeverity.Rotto, ImpactKind.ReleaseKeyMoved.Severita(false));
         Assert.Equal(WorkSeverity.DaRipubblicare, ImpactKind.ReleaseDrift.Severita(false));
+        // ⚠️ Il ciclo entrante ha una banda SUA, sotto «da ripubblicare» e sopra «da rileggere»: qui non è
+        // rotto niente e nessuno legge una copia sbagliata — c'è del lavoro con una scadenza (carta §AW1).
+        Assert.Equal(WorkSeverity.DaPreparare, ImpactKind.ReleaseDriftNextCycle.Severita(false));
+        Assert.True((int)WorkSeverity.DaRipubblicare < (int)WorkSeverity.DaPreparare);
+        Assert.True((int)WorkSeverity.DaPreparare < (int)WorkSeverity.DaRileggere);
+        // L'atto che la chiude e' lo stesso: si pubblica. Cambia l'urgenza, non il rimedio -- e un spunta
+        // non si offre, perche' il giro la riaprirebbe stanotte.
+        Assert.Equal(WorkAction.Ripubblica, ImpactKind.ReleaseDriftNextCycle.AzioneCheChiude());
+        Assert.True(ImpactKind.ReleaseDriftNextCycle.IsCalcolato());
         Assert.Equal(WorkSeverity.DaRileggere, ImpactKind.SectorGone.Severita(false));
     }
 

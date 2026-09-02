@@ -1562,6 +1562,8 @@
   <data name="Impact_PublicNowTitle" xml:space="preserve"><value>Questa sezione è viva: il cambio si vede già sul sito, senza ripubblicare.</value></data>
   <data name="Impact_Republish" xml:space="preserve"><value>da ripubblicare</value></data>
   <data name="Impact_RepublishTitle" xml:space="preserve"><value>La copia pubblicata non dice più quel che direbbe oggi.</value></data>
+  <data name="Impact_Prepare" xml:space="preserve"><value>da preparare</value></data>
+  <data name="Impact_PrepareTitle" xml:space="preserve"><value>Al ciclo AIRAC entrante la copia pubblicata non dirà più il vero: c'è ancora tempo per programmare una release.</value></data>
   <data name="Impact_Broken" xml:space="preserve"><value>rotto</value></data>
   <data name="Impact_AutoClose" xml:space="preserve"><value>si chiude da sé</value></data>
   <data name="Impact_SectorGone" xml:space="preserve"><value>Il settore {0} non è più nei cataloghi: verifica frequenze, AoR e coordinamenti.</value></data>
@@ -1619,6 +1621,7 @@
   <data name="Impact_AreaGone" xml:space="preserve"><value>L'area regolamentata {0} non è più nei cataloghi: il documento la cita ma non viene mostrata.</value></data>
   <data name="Impact_AreaChanged" xml:space="preserve"><value>L'area regolamentata {0} è cambiata: rileggi quel che il documento ne dice.</value></data>
   <data name="Impact_ReleaseDrift" xml:space="preserve"><value>La copia pubblicata è indietro rispetto alla bozza: {0}.</value></data>
+  <data name="Impact_ReleaseDriftNext" xml:space="preserve"><value>Al ciclo AIRAC {0} la copia pubblicata non dirà più il vero: {1}. Programmare una release a quel ciclo.</value></data>
   <data name="Impact_ReleaseKeyMoved" xml:space="preserve"><value>Le release di questo documento sono archiviate sotto un bersaglio che non è più il suo ({0}): il pubblico non le trova.</value></data>
   <data name="Impact_BrokenTarget" xml:space="preserve"><value>Il bersaglio di pubblicazione di questo documento non risolve più: la pagina pubblica non lo raggiunge.</value></data>
   <data name="Impact_Err_Calcolato" xml:space="preserve"><value>Questa segnalazione la richiude da sé il controllo che l'ha aperta: si chiude risolvendo la causa.</value></data>

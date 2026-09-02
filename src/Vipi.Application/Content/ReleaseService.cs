@@ -84,7 +84,19 @@ public interface IReleaseService
     /// elementi — quindi vede una sezione che cambia numero di righe, <b>non</b> un testo riscritto dentro
     /// una riga esistente. È un limite dichiarato: la casella deve promettere quel che misura.</para>
     /// </summary>
-    Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+    /// <param name="alCiclo">
+    /// A che ciclo AIRAC si guarda. <c>null</c> = quello corrente, cioè «adesso».
+    /// <para>⚠️ Serve per guardare al <b>ciclo entrante</b> (carta 2026-09-02 §AW1). Le derivate che
+    /// dipendono dal ciclo — le SID d'aeroporto, le shape dei settori — <b>nascondono</b> quel che entra
+    /// dopo: chiedendo sempre il ciclo di oggi, il giro della deriva non poteva vedere quel che sta per
+    /// cambiare, e la riga «da ripubblicare» arrivava sempre <b>un ciclo tardi</b>, cioè il giorno dopo il
+    /// rollover, a ciclo già in vigore.</para>
+    /// </param>
+    Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key,
+        string? alCiclo = null, CancellationToken ct = default);
+
+    /// <summary>Il ciclo AIRAC <b>entrante</b> con la sua data efficace: il primo che non è ancora in vigore.</summary>
+    AiracCycleInfo NextCycle();
 
     /// <summary>Sweep di retention su tutti i documenti gestiti (system op, come <see cref="BackfillMissingReleasesAsync"/>):
     /// pota release Superseded oltre soglia e versioni Archived oltre N per ciascun bersaglio. Idempotente. Ritorna il
@@ -274,16 +286,20 @@ public sealed class ReleaseService : IReleaseService
         return new ReleaseDiff(baseline is not null, baseline?.ReleaseAiracCycle, rows);
     }
 
+    public AiracCycleInfo NextCycle() => _airac.NextCycles(DateTime.UtcNow, 2)[1];
+
     public async Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(
-        ReleaseTargetType type, string key, CancellationToken ct = default)
+        ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default)
     {
         var effettiva = await _repo.GetEffectiveAsync(type, key, DateTime.UtcNow, ct);
         if (effettiva is null) return Array.Empty<ReleaseDiffRow>();
 
-        // Lo snapshot che si otterrebbe pubblicando ADESSO. Stesso identico percorso della pubblicazione
+        // Lo snapshot che si otterrebbe pubblicando a quel ciclo. Stesso identico percorso della pubblicazione
         // vera (§3d): se divergessero, la deriva segnalerebbe differenze che al momento di pubblicare non
-        // esistono — o, peggio, tacerebbe su quelle che esistono.
-        var oggiJson = await BuildSnapshotJsonAsync(type, key, _airac.GetCycle(DateTime.UtcNow), ct);
+        // esistono — o, peggio, tacerebbe su quelle che esistono. ⚠️ Vale anche per il ciclo ENTRANTE: è
+        // proprio il fatto che BuildSnapshotJsonAsync apra `ShapeReleaseContext` sul ciclo che le si passa a
+        // rendere quella domanda sensata, ed è la stessa porta che serve l'anteprima di release.
+        var oggiJson = await BuildSnapshotJsonAsync(type, key, alCiclo ?? _airac.GetCycle(DateTime.UtcNow), ct);
         if (oggiJson is null) return Array.Empty<ReleaseDiffRow>();
 
         var oggi = Signature(oggiJson);
