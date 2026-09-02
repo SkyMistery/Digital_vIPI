@@ -30,101 +30,35 @@ cancellati — vale il riquadro qui sotto).
 
 ## Dove siamo, prima di tutto il resto
 
-> ### 🔴 PRIMA DI TUTTO: ci sono SETTE lavori pronti che NON sono online
+> ### 🔴 PRIMA DI TUTTO: `main` ha SETTE lavori pronti che NON sono online
 >
-> `main` è a **`b8e6b22c`** (2 settembre 2026): ha assorbito **`avviso-simulazione`** (§AO),
-> **`coerenza-sectorfile`** (§AP), **`titoli-di-catalogo-bilingui`** (§AQ, `c3ad9dab`) e
-> **`editor-non-si-blocca`** (§AR, `bb265c44`); l'ultimo commit — `b8e6b22c` — è il **record** rimesso in
-> pari dopo le due fusioni.
+> `main` è a **`fb2c6212`** (2 settembre 2026, sera) e ha assorbito **tutto**: `avviso-simulazione` (§AO),
+> `coerenza-sectorfile` (§AP), `titoli-di-catalogo-bilingui` (§AQ), `editor-non-si-blocca` (§AR),
+> `dati-scalo-solo-militare` (**§AS** i dati dello scalo sui campi solo militari, **§AT** l'avviso di
+> traduzione automatica come gettone) e `import-tabelle` (**§AU**, importare una tabella invece di
+> ridigitarla). **Nessun ramo resta aperto**, locale o remoto.
 >
-> 🟡 **E c'è UN ramo aperto**, spinto e **non fuso**: **`dati-scalo-solo-militare`** → **`7bef3c3e`**, che
-> porta **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari — `44c13bd4`) e
-> **§AT** (l'avviso di traduzione automatica come gettone — `f0fabb29`, poi `7bef3c3e`). **Nessuna entità,
-> nessuna migrazione**, e tutt'e due verificati dal vivo. Build Release verde sui due TFM
-> (`--no-incremental`, 0 avvisi) e **4629 test verdi su sette progetti**. 🟡 **Gli E2E non sono stati
-> girati sul ramo**: vogliono l'host vivo e vanno fatti **sul risultato della fusione**.
+> ✅ Misurato **sul risultato della fusione**, non sui rami separati: build Release verde sui due TFM
+> (`--no-incremental`, **0 avvisi**) e **suite intera verde su NOVE progetti, E2E compresi** —
+> **5058 test**, di cui **276 E2E**. ⚠️ Il verde si legge **contando i progetti** nel riepilogo, non
+> dall'exit code: `dotnet test` esce 0 anche quando `Vipi.E2E.Tests` non si è costruito perché l'host era
+> acceso.
 >
 > ⚠️ Dentro `bb265c44` viaggia anche `60a8823f`, **il piè di stampa di §AO**: era rimasto in lavorazione
 > nell'albero e un `git add -A <cartella>` l'ha rastrellato dentro un commit che parlava d'altro. Rimesso
 > in un commit suo prima di fondere. **I file si aggiungono per nome.**
 >
-> Build Release verde sui due TFM (`--no-incremental`, 0 avvisi) e **suite intera verde, E2E compresi**
-> (276/276), misurate **sul risultato della fusione**, non sui rami separati.
+> 🔴 **Il prossimo passo è il pacchetto 1.3.1**, e ora porta **sette** lavori: §AO §AP §AQ §AR §AS §AT
+> §AU. In produzione gira ancora **1.3.0**, quindi niente di tutto questo si vede. ⚠️ Dentro ci sono
+> **due fogli di stile cambiati** (`vipi-theme.css`, `vipi-print.css`) — li toccano §AO, §AT e §AU:
+> impronte nuove, e `wwwroot` insieme all'indice `staticwebassets.endpoints.json`. La regola sta in
+> `docs/guide/preparare-un-pacchetto.md`, i passi meccanici in `tools/prepara-pacchetto.ps1`.
 >
-> 🔴 **Il prossimo passo è il pacchetto 1.3.1**, e ora porta **sei** lavori: §AO, §AP, §AQ, §AR **più
-> §AS e §AT del ramo aperto**, che va fuso prima. In produzione gira ancora **1.3.0**, quindi niente di
-> tutto questo si vede. ⚠️ Dentro ci sono **due fogli di stile cambiati** (`vipi-theme.css`,
-> `vipi-print.css`) — li toccano sia §AO sia §AT: impronte nuove, e `wwwroot` insieme all'indice
-> `staticwebassets.endpoints.json` — la regola sta in `docs/guide/preparare-un-pacchetto.md`, lo script
-> dei passi meccanici in `tools/prepara-pacchetto.ps1`.
->
-> ⚠️ **La coerenza col sectorfile non tocca il database**: nessuna entità, nessuna migrazione, quindi la
-> finestra cieca (fino al 16 settembre) non la riguarda.
->
-> ### ✅ 1.3.0 È IN PRODUZIONE, VERIFICATA — E §AM È CHIUSA PER INTERO
->
-> Timbro **`1.3.0 · 1ade0db`**, caricato dal committente la notte del 31 agosto. Cronaca in **§A19**.
-> Porta §AN (**lingua bloccata**: un documento si legge in UNA lingua sola) con la sua **migrazione
-> additiva** `LinguaBloccata` — una sola colonna, `Documents.LanguageLocked` — e le **cinque correzioni**
-> della sera: il 3D delle aree regolamentate col **nome** invece dell'id, la pagina «Spazi aerei» che
-> aveva **quindici classi senza una regola nel foglio**, i campi delle «Regole piste» illeggibili a tema
-> scuro, e l'anteprima di una release che mostrava le SID del ciclo di **oggi**.
->
-> ✅ **Verificata dall'esterno**: otto controlli verdi, console pulita. E i due file statici scaricati dal
-> sito sono **byte per byte identici** alle impronte consegnate (`vipi-theme.css` 176 853 B,
-> `vipi-aor3d.js` 15 964 B) — che è anche la prova che `wwwroot` e `staticwebassets.endpoints.json` sono
-> saliti **insieme**.
->
-> ### ✅ §AM: tutte e quattro le voci chiuse
->
-> - **La perdita di memoria è chiusa.** `avvii.txt` riletto alle 20:11 locali finisce all'avvio delle
->   14:50:04Z: **nessuna riga ⚠ nuova**, **3h20:56** di vita contro le **3h01:56** della più lunga di
->   1.1.0. ⚠️ Il verdetto regge sull'**assenza di un riavvio**, non su un carico misurato.
-> - **`errori-richieste.txt` non esiste sul server**, e nemmeno `avvio-errore.txt`: zero richieste fallite
->   e nessun avvio storto. Niente da cancellare.
-> - **§AM2 chiusa dal committente da COLLEGATO**: salvataggio dall'editor delle vIPI di LIBB, «A second
->   operation was started» **non comparso**. Era l'unica voce che da fuori non si poteva chiudere.
->
-> ### ⚠️ Due lezioni di questo giro, che valgono oltre
->
-> **1. La sonda ha dato un ROSSO FALSO sul controllo che conta.** `pacchetto-verifica.js` lanciata nel
-> minuto del riavvio ha detto «la RICERCA risponde — NESSUN cambiamento: **sito mezzo caricato**», su un
-> sito sano: un minuto dopo la Ricerca rispondeva in **746 ms con 50 risultati**. È il controllo su cui si
-> decide di **tornare indietro**, e tornare indietro da una consegna sana è peggio che non verificarla. La
-> sonda ora **riprova una volta ricaricando la pagina**. **Non lanciarla nel minuto del riavvio.**
->
-> **2. `Vipi.Host.dll` va nel pacchetto ANCHE se `src/Vipi.Host` non ha una riga cambiata**: il timbro di
-> versione è un `AssemblyMetadata` di quel progetto. Un elenco costruito col solo `git diff` lo lascia
-> fuori, e il sito direbbe la versione **vecchia** pur avendo il codice nuovo — cioè il caso peggiore,
-> perché la verifica «guarda il timbro» direbbe che il caricamento non è andato.
->
-> ### 🟡 Quel che resta
->
-> - Il **controllo A** del foglio, che si fa solo via FTP: `diagnostica/avvio-diagnostica.txt` deve dire
->   `1.3.0 · 1ade0db` con la voce «migrazione del database», e non deve esserci `avvio-errore.txt`.
-> - Il **controllo C** (campi delle «Regole piste» a tema scuro) vuole un accesso da staff.
-> - Da prima: caricare il **KMZ degli spazi aerei** (§A16).
->
-> ### 🆕 DOPO LA FUSIONE — questo riquadro batte tutto il resto del file
->
-> ✅ **`main` è finalmente ciò che vale.** Erano 41 commit indietro rispetto a ciò che gira in produzione
-> (§A17), e adesso contiene tutto: `consegna-db-20260830`, `intro-di-pagina`, `riconnessione-circuito`,
-> `consegna-20260831` (= **1.1.0, il codice online**), `ricaduta-verticale-e-cicli` (§AF–§AL) e
-> `corse-e-perdita-diagnostica` (§AM). I sei rami sono stati **cancellati**, locali e remoti.
->
-> ⚠️ **Tutto ciò che segue e dice «ramo X, non fuso» è STORIA.** Le due schede qui sotto restano perché
-> raccontano *che cosa* è entrato e *perché*, non dove stava.
->
-> 🔴 **E UNA COSA VA DECISA PRIMA DEL PROSSIMO PACCHETTO.** In `main` adesso c'è la migrazione
-> **`CatenaDiRipiego`** (`20260831014235`, più la gemella MySql `20260831014248`), che arriva da §AF. Siamo
-> nella **finestra cieca fino al 16 settembre**: in produzione gira `Database.Migrate()` all'avvio, quindi
-> una migrazione spedita in questa finestra **gira da sola, su DDL non transazionale, senza nessuno che
-> possa ripristinare**. È additiva e passa il presidio
-> (`MigrazioniDellaFinestraCiecaTests`), ma **fondere non è consegnare**: chi costruisce il prossimo
-> pacchetto da `main` se la porta dietro. Se serve consegnare **solo** §AM — i quattro difetti della
-> diagnostica, che non hanno migrazioni — va costruito un ramo di consegna da `bfb2c056`
-> (`consegna-20260831`, il codice online) con sopra i **due soli commit** di §AM.
->
+> 🔴 **E una riga per la nota di consegna** (§AU): la distanza di un aeroporto alternato passa a `decimal`
+> **dentro il `BodyJson`** — nessuna entità e nessuna migrazione, quindi basta l'FTP — ma un `72.2` letto
+> da **binari vecchi** alza `JsonException` e la tabella **sparisce a schermo senza errore**. Un rollback
+> dopo che qualcuno ha scritto un decimale è visibile all'utente.
+
 
 
 > ### 🆕 LO STATO VERO, 1 settembre 2026 (sera) — questo riquadro batte tutto il resto del file
