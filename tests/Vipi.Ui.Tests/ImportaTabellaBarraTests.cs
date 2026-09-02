@@ -77,4 +77,56 @@ public class ImportaTabellaBarraTests : TestContext
 
         Assert.Single(conSorgenti.FindAll(".imp-tools select"));
     }
+
+    /// <summary>
+    /// ⚠️ Il comando «piega in N colonne» si offre <b>solo</b> quando la lettura e' venuta a una colonna
+    /// sola — cioe' nel caso del PDF che non emette righe ma una cella per riga. Su un incolla che era gia'
+    /// a posto sarebbe un comando in piu' da capire.
+    /// </summary>
+    [Fact]
+    public void Il_comando_per_piegare_si_offre_solo_a_colonna_sola()
+    {
+        var cut = Barra();
+        Assert.Empty(cut.FindAll(".imp-fold"));
+
+        cut.Find("textarea.imp-ta").Change("NAME\nApron ALPHA\nApron OSCAR\nNUMBERS");
+        Assert.Single(cut.FindAll(".imp-fold"));
+
+        // Con le colonne gia' separate non c'e' niente da piegare, e il comando sparisce.
+        cut.Find("textarea.imp-ta").Change("a\tb\tc\nd\te\tf");
+        Assert.Empty(cut.FindAll(".imp-fold"));
+    }
+
+    /// <summary>La colonna sola piegata in tre diventa una tabella a tre colonne: e' quel che l'anteprima
+    /// deve mostrare prima che qualcuno prema «importa».</summary>
+    [Fact]
+    public void La_colonna_sola_piegata_diventa_una_tabella()
+    {
+        var cut = Barra();
+        cut.Find("textarea.imp-ta").Change("NOME\nNUMERI\nUSATO DA\nAlfa\n1-4\nSquadrone 1");
+
+        cut.Find(".imp-foldn").Change("3");
+
+        // ⚠️ `.ToList()` e non l'indice diretto: la raccolta viva di bunit indicizza attraverso AngleSharp,
+        // e su questa combinazione di versioni l'indicizzatore non si risolve (MissingMethodException).
+        var righe = cut.FindAll(".imp-preview tbody tr").ToList();
+        Assert.Equal(2, righe.Count);
+        Assert.Equal(new[] { "NOME", "NUMERI", "USATO DA" },
+            righe[0].QuerySelectorAll("td").Skip(1).Select(c => c.TextContent.Trim()));
+    }
+
+    /// <summary>La casella d'incolla dice al foglio di stile — e a `vipi-ui.js` — che qui il TAB scrive una
+    /// tabulazione: senza l'attributo il tasto tornerebbe a cambiare campo.</summary>
+    [Fact]
+    public void La_casella_dichiara_che_il_tab_scrive_una_tabulazione()
+    {
+        var cut = Barra();
+
+        var casella = cut.Find("textarea.imp-ta");
+        Assert.True(casella.HasAttribute("data-tab-testo"));
+
+        // E la scorciatoia e' scritta, perche' una scorciatoia che non si vede non esiste.
+        var aiuto = cut.Find(".imp-tabhint");
+        Assert.Equal(aiuto.Id, casella.GetAttribute("aria-describedby"));
+    }
 }

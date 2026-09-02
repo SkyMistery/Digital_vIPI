@@ -17,8 +17,15 @@
             @L["Imp_PasteLabel"]
             <span class="muted imp-soft">@L["Imp_PasteHint"]</span>
         </label>
+        @* ⚠️ `data-tab-testo`: dentro questa casella il TAB scrive una TABULAZIONE invece di cambiare
+           campo, perche' qui la tabulazione E' il dato — «colonna<TAB>colonna». Lo fa `vipi-ui.js`, fuori
+           dal circuito: un giro sul server per ogni tasto premuto sarebbe assurdo. Le due vie d'uscita
+           (SHIFT+TAB indietro, ESC e poi TAB avanti) sono scritte nella riga d'aiuto qui sotto: una
+           scorciatoia che non si vede non esiste. *@
         <textarea rows="6" spellcheck="false" class="imp-ta" placeholder="@L["Imp_PastePh"]"
-                  value="@_testo" @onchange="ScriviTesto" aria-label="@L["Imp_PasteLabel"]"></textarea>
+                  data-tab-testo value="@_testo" @onchange="ScriviTesto"
+                  aria-label="@L["Imp_PasteLabel"]" aria-describedby="@_aiutoId"></textarea>
+        <p class="help imp-tabhint" id="@_aiutoId">@L["Imp_TabHint"]</p>
     </div>
 
     <div class="imp-tools">
@@ -70,6 +77,27 @@
             <input type="checkbox" checked="@_larghezzaFissa" @onchange="CambiaLarghezzaFissa" />
             @L["Imp_FixedWidth"]
         </label>
+
+        @* ⚠️ Compare solo quando serve, cioe' quando la lettura e' venuta a UNA COLONNA SOLA: e' il caso
+           del PDF che non emette righe ma una cella per riga. Mostrarlo sempre sarebbe un comando in piu'
+           da capire su ogni incolla che invece era gia' a posto. *@
+        @if (_aColonnaSola)
+        {
+            <span class="imp-fold">
+                <label>
+                    @L["Imp_Fold"]
+                    <input class="app-in imp-foldn" type="number" min="2" max="12" step="1"
+                           value="@_piega" aria-label="@L["Imp_Fold"]"
+                           @onchange="e => CambiaPiega(e.Value?.ToString())" />
+                    @L["Imp_FoldUnit"]
+                </label>
+                <select class="app-in" aria-label="@L["Imp_FoldWay"]"
+                        @onchange="e => CambiaVerso(e.Value?.ToString())">
+                    <option value="righe" selected="@(!_perColonne)">@L["Imp_FoldRows"]</option>
+                    <option value="colonne" selected="@_perColonne">@L["Imp_FoldCols"]</option>
+                </select>
+            </span>
+        }
 
         @if (_griglia.Piena)
         {
@@ -139,10 +167,23 @@
     /// <summary>Come si legge la tabella di una di quelle sorgenti. Serve solo se <see cref="Sorgenti"/> c'e'.</summary>
     [Parameter] public Func<string, Task<Griglia>>? CaricaSorgente { get; set; }
 
+    /// <summary>Id della riga d'aiuto sotto la casella: serve a `aria-describedby`, e dev'essere unico
+    /// perche' due import aperti nella stessa pagina avrebbero due caselle.</summary>
+    private readonly string _aiutoId = "imp-tab-" + Guid.NewGuid().ToString("N")[..8];
+
     private string _testo = "";
     private string? _guasto;
     private bool _intestazione;
     private bool _larghezzaFissa;
+
+    /// <summary>In quante colonne piegare una griglia venuta a colonna sola; 0 = non si piega.</summary>
+    private int _piega;
+
+    /// <summary>Vero se le celle vanno lette giu' per la prima colonna e poi la seconda.</summary>
+    private bool _perColonne;
+
+    /// <summary>La lettura ha dato una colonna sola e piu' righe: e' il caso in cui piegare ha senso.</summary>
+    private bool _aColonnaSola;
     private List<int> _tagli = new();
     private Griglia _griglia = Griglia.Vuota;
     private Proposta? _proposta;
@@ -172,6 +213,18 @@
         _larghezzaFissa = e.Value is bool b && b;
         if (_larghezzaFissa && _tagli.Count == 0)
             _tagli = TestoTabellare.TagliSuggeriti(_testo).ToList();
+        await Rileggi();
+    }
+
+    private async Task CambiaPiega(string? valore)
+    {
+        _piega = int.TryParse(valore, out var n) && n >= 2 && n <= 12 ? n : 0;
+        await Rileggi();
+    }
+
+    private async Task CambiaVerso(string? valore)
+    {
+        _perColonne = valore == "colonne";
         await Rileggi();
     }
 
@@ -262,6 +315,11 @@
         // da un PDF, e le ancore sono l'unica cosa che sa dove finisce una cella multi-parola.
         if (_griglia.Forma == FormaGriglia.RigaIntera && Spec.SpezzaRiga is not null)
             _griglia = ConAncore(_griglia);
+
+        // ⚠️ Il comando per piegare si offre in base a com'e' venuta la lettura PRIMA della piega, non dopo:
+        // altrimenti alla prima piega sparirebbe il comando che l'ha fatta, e non si potrebbe correggerlo.
+        _aColonnaSola = !_larghezzaFissa && _griglia.Colonne <= 1 && _griglia.Righe.Count > 1;
+        if (_aColonnaSola && _piega >= 2) _griglia = _griglia.Piega(_piega, _perColonne);
 
         await Ricostruisci();
     }

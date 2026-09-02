@@ -240,4 +240,56 @@ public class ImportGrigliaTests
         Assert.Equal("Aeroporti-alternati-LIBA.csv",
             Vipi.Application.Import.Csv.NomeFile("Aeroporti alternati / LIBA"));
     }
+
+    // ---- una colonna sola, piegata ---------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ Il caso peggiore del copia-incolla da PDF: l'estrattore non emette righe, emette UNA CELLA PER
+    /// RIGA. Nel testo non c'e' piu' nessuna struttura da riconoscere: l'unica cosa che la rimette e' una
+    /// persona che dice quante colonne erano.
+    /// </summary>
+    [Fact]
+    public void Una_colonna_sola_si_piega_riga_per_riga()
+    {
+        var g = Griglia.Leggi("NOME\nNUMERI\nUSATO DA\nAlfa\n1-4\nSquadrone 1");
+
+        var piegata = g.Piega(3, perColonne: false);
+
+        Assert.Equal(new[] { "NOME", "NUMERI", "USATO DA" }, piegata.Riga(0));
+        Assert.Equal(new[] { "Alfa", "1-4", "Squadrone 1" }, piegata.Riga(1));
+    }
+
+    /// <summary>Certi estrattori sputano fuori una colonna alla volta, dall'alto in basso: allora si legge
+    /// nell'altro verso.</summary>
+    [Fact]
+    public void Una_colonna_sola_si_piega_anche_per_colonne()
+    {
+        var g = Griglia.Leggi("NOME\nAlfa\nNUMERI\n1-4\nUSATO DA\nSquadrone 1");
+
+        var piegata = g.Piega(3, perColonne: true);
+
+        Assert.Equal(new[] { "NOME", "NUMERI", "USATO DA" }, piegata.Riga(0));
+        Assert.Equal(new[] { "Alfa", "1-4", "Squadrone 1" }, piegata.Riga(1));
+    }
+
+    /// <summary>⚠️ L'ultima riga corta RESTA corta: pareggiarla nasconderebbe che i conti non tornano, ed e'
+    /// proprio il segno che il numero di colonne scelto e' sbagliato.</summary>
+    [Fact]
+    public void L_ultima_riga_corta_resta_corta()
+    {
+        var piegata = Griglia.Leggi("a\nb\nc\nd\ne").Piega(3, perColonne: false);
+
+        Assert.Equal(2, piegata.Righe.Count);
+        Assert.Equal(new[] { "a", "b", "c" }, piegata.Riga(0));
+        Assert.Equal(new[] { "d", "e" }, piegata.Riga(1));
+    }
+
+    [Fact]
+    public void Piegare_in_meno_di_due_colonne_non_fa_niente()
+    {
+        var g = Griglia.Leggi("a\nb\nc");
+
+        Assert.Same(g.Righe, g.Piega(1, perColonne: false).Righe);
+        Assert.Same(g.Righe, g.Piega(0, perColonne: true).Righe);
+    }
 }

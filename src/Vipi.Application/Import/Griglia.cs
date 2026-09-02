@@ -130,6 +130,47 @@ public sealed record Griglia(IReadOnlyList<IReadOnlyList<string>> Righe, FormaGr
         return new Griglia(fuori, FormaGriglia.LarghezzaFissa);
     }
 
+    /// <summary>
+    /// Piega una griglia di <b>una colonna sola</b> in <paramref name="colonne"/> colonne.
+    ///
+    /// <para>
+    /// ⚠️ E' la cura per il caso peggiore del copia-incolla da PDF: certi estrattori non emettono righe,
+    /// emettono <b>una cella per riga</b> — «NAME / Apron ALPHA / Apron OSCAR / NUMBERS / …». Non c'e'
+    /// nessuna struttura da riconoscere, perche' nel testo non c'e' piu': l'unica cosa che la puo' rimettere
+    /// e' una persona che dice <b>quante colonne</b> erano e in che <b>verso</b> il PDF le ha sputate fuori.
+    /// </para>
+    /// <para>
+    /// ⚠️ E per questo si vede subito nell'anteprima: piegare e' un'ipotesi, e un'ipotesi si guarda. Con
+    /// <paramref name="perColonne"/> le celle si leggono <b>giu' per la prima colonna, poi la seconda</b>
+    /// (l'ordine di certi estrattori); senza, si riempie <b>riga per riga</b>.
+    /// </para>
+    /// <para>
+    /// ⚠️ L'ultima riga puo' restare <b>corta</b>, e resta corta: pareggiarla qui nasconderebbe che i conti
+    /// non tornano — ed e' proprio il segno che il numero di colonne scelto e' sbagliato.
+    /// </para>
+    /// </summary>
+    public Griglia Piega(int colonne, bool perColonne)
+    {
+        if (colonne < 2 || Righe.Count == 0) return this;
+
+        var celle = Righe.SelectMany(r => r).ToList();
+        if (celle.Count == 0) return this;
+
+        var righe = (celle.Count + colonne - 1) / colonne;
+        var fuori = new List<IReadOnlyList<string>>();
+        for (var r = 0; r < righe; r++)
+        {
+            var riga = new List<string>();
+            for (var c = 0; c < colonne; c++)
+            {
+                var i = perColonne ? c * righe + r : r * colonne + c;
+                if (i < celle.Count) riga.Add(celle[i]);
+            }
+            if (riga.Count > 0) fuori.Add(riga);
+        }
+        return this with { Righe = fuori };
+    }
+
     /// <summary>La riga <paramref name="i"/> come lista di celle, o vuota se non c'e'.</summary>
     public IReadOnlyList<string> Riga(int i) =>
         i >= 0 && i < Righe.Count ? Righe[i] : Array.Empty<string>();

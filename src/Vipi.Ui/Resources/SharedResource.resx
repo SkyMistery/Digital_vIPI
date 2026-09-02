@@ -3120,6 +3120,12 @@
   <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Sostituisci con 1 riga</value></data>
   <data name="Imp_SkippedOne" xml:space="preserve"><value>1 riga resta fuori</value></data>
   <data name="Imp_FromDoc" xml:space="preserve"><value>Da un altro documento…</value></data>
+  <data name="Imp_TabHint" xml:space="preserve"><value>Dentro questa casella il tasto Tab scrive una tabulazione. Per uscire dal campo: Maiusc+Tab indietro, oppure Esc e poi Tab.</value></data>
+  <data name="Imp_FoldUnit" xml:space="preserve"><value>colonne</value></data>
+  <data name="Imp_Fold" xml:space="preserve"><value>Piega in</value></data>
+  <data name="Imp_FoldWay" xml:space="preserve"><value>In che verso leggere le celle</value></data>
+  <data name="Imp_FoldRows" xml:space="preserve"><value>riga per riga</value></data>
+  <data name="Imp_FoldCols" xml:space="preserve"><value>colonna per colonna</value></data>
   <data name="Imp_Open" xml:space="preserve"><value>Importa</value></data>
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Incolla la tabella</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>da Excel, da un CSV o da un PDF; oppure carica un file</value></data>

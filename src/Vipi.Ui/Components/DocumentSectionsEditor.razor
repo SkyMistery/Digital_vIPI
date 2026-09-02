@@ -724,9 +724,16 @@ else
     {
         var (cols, rows) = ParseTable(b.BodyJson);
 
-        // Le COLONNE si prendono da chi incolla solo se la tabella non ne ha gia' di sue: sovrascrivere le
-        // intestazioni di una tabella compilata sarebbe una perdita che nessuno ha chiesto.
-        if (cols.Count == 0 && r.Proposta.Colonne.Count > 0) cols = r.Proposta.Colonne.ToList();
+        // Le COLONNE arrivano da chi incolla in due casi: se la tabella non ne ha ancora, e se chi importa ha
+        // detto che la prima riga E' l'intestazione.
+        //
+        // ⚠️ La seconda meta' e' la correzione del 2 settembre 2026: prima si scrivevano solo quando la
+        // tabella era vuota, «per non sovrascrivere le intestazioni di una tabella compilata». Ma spuntare
+        // «la prima riga e' l'intestazione» E' la richiesta di usarle: la casella si accendeva, la riga
+        // spariva dai dati — quindi qualcosa faceva — e le intestazioni restavano «Colonna 1, Colonna 2».
+        // Un comando che fa meta' di quel che dice e' peggio di un comando che non c'e'.
+        if (r.Proposta.Colonne.Count > 0 && (cols.Count == 0 || r.Proposta.Mappatura.Intestazione))
+            cols = r.Proposta.Colonne.ToList();
 
         var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
         var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();

@@ -4253,6 +4253,7 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .imp-box{margin:0 0 8px;background:var(--tint-atmos-soft);border-radius:6px;padding:8px}
 .imp-ta{width:100%;font-family:var(--font-mono,ui-monospace,monospace);font-size:12.5px}
 .imp-soft{font-weight:400}
+.imp-tabhint{margin:4px 0 0;font-size:11.5px}
 .imp-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
 /* ⚠️ Tutti i comandi della barra alla STESSA altezza. Lasciati alle loro misure naturali erano un file a
    21px, una tendina a 39px e due caselle a 19px: verticalmente centrati — quello lo faceva gia'
@@ -4268,6 +4269,14 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .imp-check input{margin:0;cursor:pointer}
 .imp-check:has(input:checked){background:var(--tint-atmos);border-color:var(--line-atmos);color:var(--brand-ink)}
 .imp-sheet{max-width:200px}
+/* Il gruppetto «piega in N colonne»: due comandi che valgono come uno, quindi stanno in una cornice sola e
+   non come due voci indipendenti in mezzo alle altre. */
+.imp-fold{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;font-size:12.5px;
+  white-space:nowrap;border:1px solid var(--line-atmos);border-radius:9px;background:var(--tint-atmos-soft)}
+.imp-fold label{display:inline-flex;align-items:center;gap:6px}
+.imp-fold .app-in{height:24px;padding:0 6px;font-size:12.5px}
+.imp-foldn{width:56px}
+.imp-fold select{max-width:150px}
 .imp-foot{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
 .imp-map{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
 .imp-map-one{display:flex;flex-direction:column;gap:2px;font-size:12px}

@@ -3112,6 +3112,12 @@
   <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Replace with 1 row</value></data>
   <data name="Imp_SkippedOne" xml:space="preserve"><value>1 row left out</value></data>
   <data name="Imp_FromDoc" xml:space="preserve"><value>From another document…</value></data>
+  <data name="Imp_TabHint" xml:space="preserve"><value>Inside this box the Tab key types a tab character. To leave the field: Shift+Tab to go back, or Esc then Tab.</value></data>
+  <data name="Imp_FoldUnit" xml:space="preserve"><value>columns</value></data>
+  <data name="Imp_Fold" xml:space="preserve"><value>Fold into</value></data>
+  <data name="Imp_FoldWay" xml:space="preserve"><value>How to read the cells</value></data>
+  <data name="Imp_FoldRows" xml:space="preserve"><value>row by row</value></data>
+  <data name="Imp_FoldCols" xml:space="preserve"><value>column by column</value></data>
   <data name="Imp_Open" xml:space="preserve"><value>Import</value></data>
   <data name="Imp_PasteLabel" xml:space="preserve"><value>Paste the table</value></data>
   <data name="Imp_PasteHint" xml:space="preserve"><value>from Excel, a CSV or a PDF; or load a file</value></data>

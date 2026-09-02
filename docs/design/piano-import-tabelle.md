@@ -193,6 +193,32 @@ da cui viene, per tutta la catena: costo alto per un dato diagnostico. Scritto n
 calcola.
 
 
+## Tre correzioni nate dall'uso (2 settembre, sera)
+
+Segnalate dal committente dopo il primo giro vero, e tutte e tre invisibili ai test:
+
+1. **Il TAB usciva dal campo invece di scrivere una tabulazione.** In quella casella la tabulazione *è* il
+   dato — «colonna<TAB>colonna» — e chi scriveva a mano non aveva nessun modo di metterla. Ora la scrive
+   (`data-tab-testo` + un ascoltatore delegato in `vipi-ui.js`, fuori dal circuito: un giro sul server per
+   tasto sarebbe assurdo). ⚠️ Ma il TAB è **anche** il modo di girare una pagina con la sola tastiera, e una
+   casella che se lo tiene tutto è una trappola: due vie d'uscita, **Maiusc+Tab** indietro sempre ed **Esc
+   poi Tab** avanti, scritte nella riga d'aiuto sotto la casella — una scorciatoia che non si vede non
+   esiste.
+2. **«La prima riga è l'intestazione» non sostituiva le intestazioni.** Le colonne incollate si scrivevano
+   solo se la tabella era vuota, «per non sovrascrivere una tabella compilata». Ma spuntare quella casella
+   *è* la richiesta di usarle: la casella si accendeva, la riga spariva dai dati — quindi qualcosa faceva —
+   e le intestazioni restavano «Colonna 1, Colonna 2». Un comando che fa metà di quel che dice è peggio di
+   un comando che non c'è.
+3. **Il PDF che emette una cella per riga.** Certi estrattori non producono righe: «NAME / Apron ALPHA /
+   Apron OSCAR / NUMBERS / …», tutto in colonna. Non c'è nessuna struttura da riconoscere, perché nel testo
+   non c'è più: l'unica cosa che la rimette è una persona che dice **quante colonne** erano e in che
+   **verso** il PDF le ha sputate fuori (riga per riga o colonna per colonna). Il comando compare **solo**
+   quando la lettura è venuta a colonna sola, e il risultato si guarda nell'anteprima — piegare è
+   un'ipotesi, e un'ipotesi si guarda.
+   ⚠️ **Non fa miracoli**: su un incolla in cui il PDF ha mischiato l'ordine (intestazioni sparse fra i
+   dati) nessuna piega è esatta. Rimette la **forma**, e le celle si sistemano poi nell'editor della
+   tabella. L'ultima riga corta **resta corta**, apposta: è il segno che il numero di colonne è sbagliato.
+
 ## Fuori perimetro
 
 `.docx`, `.ods`, `.xls` binario, estrazione PDF lato server (dipendenza pesante, e il layout a colonne si

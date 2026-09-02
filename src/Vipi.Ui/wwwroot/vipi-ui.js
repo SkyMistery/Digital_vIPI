@@ -884,6 +884,44 @@ window.vipiScorrimento = function () {
     // vipiWireUi perché wireHashLanding riscorrerebbe la pagina a ogni render.
     window.vipiWireCollapse = wireCollapse;
 
+    var tabWired = false;
+    function wireTabInCasella() {
+        // Il TAB dentro una casella marcata `data-tab-testo` scrive una TABULAZIONE invece di cambiare campo.
+        //
+        // ⚠️ Serve dove la tabulazione E' il dato: nell'import delle tabelle si incolla — o si scrive a mano —
+        // una riga «colonna<TAB>colonna», e il tasto che la produce, in un modulo, porta al campo dopo. Chi
+        // scriveva a mano non aveva nessun modo di mettere quel carattere.
+        //
+        // ⚠️ Ma il TAB e' ANCHE il modo di girare una pagina con la sola tastiera, e una casella che se lo
+        // tiene tutto e' una trappola: ci si entra e non si esce piu'. Quindi due vie d'uscita, tutt'e due
+        // standard: SHIFT+TAB torna indietro sempre, ed ESC arma l'uscita — il TAB successivo esce. Lo dice
+        // anche la riga d'aiuto sotto la casella: una scorciatoia che non si vede non esiste.
+        if (tabWired) return;
+        tabWired = true;
+        document.addEventListener('keydown', function (e) {
+            var t = e.target;
+            if (!t || t.tagName !== 'TEXTAREA' || !t.hasAttribute('data-tab-testo')) return;
+
+            if (e.key === 'Escape') { t.dataset.tabEsce = '1'; return; }
+            if (e.key !== 'Tab' || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey) return;
+
+            // Uscita armata da ESC: questo TAB cambia campo, e l'arma si scarica.
+            if (t.dataset.tabEsce === '1') { delete t.dataset.tabEsce; return; }
+
+            e.preventDefault();
+            // `insertText` e' una modifica come quelle di chi scrive: tiene l'annulla (CTRL+Z) e segna il
+            // campo come toccato, cosi' il `change` alla perdita di fuoco parte davvero. `setRangeText` e'
+            // il ripiego dove non c'e'.
+            var scritto = false;
+            try { scritto = document.execCommand('insertText', false, '\t'); } catch (err) { scritto = false; }
+            if (!scritto) {
+                var i = t.selectionStart, j = t.selectionEnd;
+                t.setRangeText('\t', i, j, 'end');
+            }
+            t.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+    }
+
     window.vipiWireUi = function () {
         document.querySelectorAll('.aor-block').forEach(wireAor);
         wireExpand();
@@ -894,6 +932,7 @@ window.vipiScorrimento = function () {
         applyDense();
         wireUtcClock();
         wireSearchKey();
+        wireTabInCasella();
         wirePrint();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
         window.vipiFitTopbar();
