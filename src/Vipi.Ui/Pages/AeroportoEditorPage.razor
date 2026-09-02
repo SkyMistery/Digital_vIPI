@@ -1,6 +1,10 @@
 ﻿@page "/services/vsop/{Acc}/airports/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
+   circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Content
 @using Vipi.Application.Aor
 @using Vipi.Application.Weather
@@ -10,7 +14,6 @@
 @using Vipi.Domain
 @using RenderMode = Vipi.Domain.RenderMode
 @inject IAirportEditingService Profile
-@inject IEditingService Editing
 @inject IAirportSectorService Sectors
 @inject IEditAuthorizationService Authz
 @inject IStationResolver Stations
@@ -373,9 +376,24 @@ else
     /// «Salva tutto» sulle sezioni sporche, che è l'unico modello di salvataggio diverso dei quattro.</summary>
     private DocumentEditorShell _shell = default!;
 
-    protected override void OnInitialized() =>
+    /// <summary>
+    /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
+    /// contesto isolato da quello del circuito.
+    ///
+    /// <para>⚠️ <b>Con <c>@@inject</c> veniva dal circuito</b>, cioè dal <c>DbContext</c> che la sessione
+    /// condivide con tutto il resto — barra, isole, pannelli, e il <c>LoadAsync</c> di questa pagina. Basta
+    /// che due di quelle operazioni si sovrappongano perché esca
+    /// «<c>A second operation was started on this context</c>» e il circuito muoia: a schermo una pagina che
+    /// non risponde più, da ricaricare. Vedi <c>DocumentEditorShell.FinishEditingAsync</c>.</para>
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             () => InvokeAsync(StateHasChanged));
+    }
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
     private int? _ta;
@@ -508,20 +526,36 @@ else
         }
     }
 
+    /// <summary>
+    /// ⚠️ <b>Questa pagina è <c>IAsyncDisposable</c>, e per una pagina con uno scope proprio è una trappola:</b>
+    /// il renderer, se il componente è <c>IAsyncDisposable</c>, chiama <b>solo</b> <c>DisposeAsync</c> — mai il
+    /// <c>Dispose</c> sincrono, che è quello con cui <c>OwningComponentBase</c> chiude il proprio scope di DI.
+    /// Senza la riga in fondo, ogni visita all'editor lascerebbe in piedi uno scope con dentro un
+    /// <c>DbContext</c>: un guasto che non si vede il primo giorno e si vede il quindicesimo.
+    /// </summary>
     public async ValueTask DisposeAsync()
     {
-        // I due badge che si spengono da soli: fermarli PRIMA di tutto il resto, o restano in volo su un
-        // renderer che sta sparendo.
-        _shell.Dispose();
-        _dismissInfo.Dispose();
-        _selfRef?.Dispose();
-        // Rilascia la guardia beforeunload lasciando la pagina. Salta se il render interattivo non è mai avvenuto
-        // (dispose durante il prerender statico → JS interop illecito, InvalidOperationException). Il circuito può
-        // anche essere già chiuso (navigazione/refresh): ignora JSDisconnectedException.
-        if (!_shell.JsReady) return;
-        try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
-        catch (JSDisconnectedException) { }
-        catch (InvalidOperationException) { }
+        try
+        {
+            // I due badge che si spengono da soli: fermarli PRIMA di tutto il resto, o restano in volo su un
+            // renderer che sta sparendo.
+            _shell.Dispose();
+            _dismissInfo.Dispose();
+            _selfRef?.Dispose();
+            // Rilascia la guardia beforeunload lasciando la pagina. Salta se il render interattivo non è mai avvenuto
+            // (dispose durante il prerender statico → JS interop illecito, InvalidOperationException). Il circuito può
+            // anche essere già chiuso (navigazione/refresh): ignora JSDisconnectedException.
+            if (!_shell.JsReady) return;
+            try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
+            catch (JSDisconnectedException) { }
+            catch (InvalidOperationException) { }
+        }
+        finally
+        {
+            // Lo scope di DI di questa pagina: lo chiude il Dispose sincrono di OwningComponentBase, che qui
+            // nessuno chiamerebbe. `finally` perché valga anche sul `return` qui sopra.
+            ((IDisposable)this).Dispose();
+        }
     }
 
     // --- Stato "sporco" per sezione (scroll unico): la guardia beforeunload è attiva se c'è qualcosa da salvare ---

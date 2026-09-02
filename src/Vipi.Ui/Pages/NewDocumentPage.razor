@@ -1,8 +1,10 @@
 ﻿@page "/services/vsop/editor/new-document"
 @layout SopLayout
 @rendermode InteractiveServer
+@* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject INewDocumentOptionsService Options
-@inject IEditingService Editing
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
 @inject IMilitaryDocumentService Militari
@@ -246,7 +248,18 @@
     private string _selAcc = "";
     private string _selKey = "";
 
-    protected override async Task OnInitializedAsync() => _opts = await Options.LoadAsync();
+    /// <summary>
+    /// Risolto dallo scope PROPRIO della pagina (<c>OwningComponentBase</c>): contesto isolato da quello del
+    /// circuito, che la sessione condivide con barra, isole e pannelli. Due operazioni sovrapposte sullo
+    /// stesso contesto danno «<c>A second operation was started on this context</c>» e uccidono il circuito.
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+        _opts = await Options.LoadAsync();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
