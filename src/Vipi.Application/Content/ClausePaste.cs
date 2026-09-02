@@ -77,9 +77,13 @@ public static class ClausePaste
         var salta = mappatura.Intestazione ? 1 : 0;
 
         // I numeri di riga sono quelli del TESTO INCOLLATO, righe vuote comprese: dicono DOVE, e chi rilegge
-        // conta le righe sullo schermo da cui ha copiato. Valgono finché la lettura non ha unito righe (una
-        // cella fra virgolette può contenere un a-capo): in quel caso si numera in ordine, che è il meglio
-        // che si possa promettere.
+        // conta le righe sullo schermo da cui ha copiato.
+        //
+        // ⚠️ Valgono finché la lettura non ha UNITO o SALTATO righe, e succede in due casi veri: una cella
+        // fra virgolette che contiene un a-capo (due righe diventano una) e la riga di trattini di una
+        // tabella Markdown, che è impaginazione e sparisce. Allora si numera in ordine — visto dal vivo il
+        // 2 settembre 2026 su un incolla Markdown: le clausole erano alle righe 3 e 4 e l'anteprima diceva
+        // 2 e 3. È il meglio che si possa promettere senza far portare a ogni cella la riga da cui viene.
         var numeri = NumeriDiRiga(text!);
         var allineati = numeri.Count == griglia.Righe.Count;
 

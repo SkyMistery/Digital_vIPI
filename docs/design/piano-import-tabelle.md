@@ -138,23 +138,60 @@ la tabella sparirebbe a schermo senza un errore. Un rollback dell'applicazione d
 scritto un decimale è quindi visibile all'utente. Il rilevamento resta `int` (sono gradi, e il formato è
 `000`).
 
-## Fasi
+## Fasi — tutte eseguite
 
 Una fetta per commit, build verde a ogni passo.
 
-1. **`Griglia` + test** — TSV, CSV, Markdown, HTML, larghezza fissa, normalizzazione. Nessuna UI.
-2. **`XlsxReader` + test** — zip/XML, senza dipendenze.
-3. **Distanza `decimal`** — indipendente dal resto, cinque punti in cinque file.
-4. **Spec + registry + proposta** — con i risolutori di cella; test sul cuore.
-5. **`ImportaTabella.razor` + famiglia A** — prima l'estrazione dell'helper JSON tabella duplicato fra
-   `DocumentBlocksEditor` e `DocumentSectionsEditor` (commit meccanico separato).
-6. **Famiglia B** — Nominativi, Parcheggi.
-7. **Famiglia C** — `mildiversion` (con le ancore) e `milnavaids`.
-8. **Esportazione CSV** — chiude il giro: esporta, sistema in Excel, reimporta con «sostituisci».
-9. **«Prendi la tabella da un altro documento»** — non è un formato, ma sul corpus dei quindici SOP è il
-   guadagno più grosso: stessa anteprima, zero parsing, celle già risolte.
-10. **`ClausePaste` diventa una spec** — ⚠️ propagazione nello stesso giro: `AgreementFillingTests` e
-    `AdminTrasferimentiPage`, o restano due modelli di incolla (domanda 4).
+| | Fetta | Esito |
+|---|---|---|
+| 1 | `Griglia` + test — TSV, CSV, Markdown, HTML, larghezza fissa, normalizzazione | ✅ `e04ef3c7` |
+| 2 | `LettoreXlsx` + test — zip/XML, senza dipendenze | ✅ `8d56b605` |
+| 3 | Distanza `decimal`, e i due numeri separati in due voci | ✅ `5b7484d7` |
+| 4 | Spec, mappatura, proposta, risolutori di cella | ✅ `a31a2537` |
+| 5 | `ImportaTabella.razor` + famiglia A (prima l'estrazione di `TabellaGenerica`, commit meccanico a parte) | ✅ `62b9845c` + `baaba0e8` |
+| 6 | Famiglia B — Nominativi, Parcheggi | ✅ `26ebd7e5` |
+| 7 | Famiglia C — `mildiversion` con le ancore, e il risolutore vero sui cataloghi | ✅ `057d9260` |
+| 8 | Esportazione CSV | ✅ `9a27cfad` |
+| 9 | «Prendi la tabella da un altro documento» | ✅ `beb8eed0` |
+| 10 | `ClausePaste` smette di avere una grammatica sua | ✅ `beb8eed0` |
+
+Fra la 8 e la 9, **due giri di correzioni nati dalla verifica live** (`6cae0835`, `be727ae9`).
+
+## Che cosa ha trovato la verifica live, e i test no
+
+Guidando l'editor militare di LIBG e incollando la tabella vera di un SOP (skill `verifica-live`):
+
+1. **L'intestazione finiva fra i dati, in rosso.** Le ancore cercano un ICAO e due numeri; un'intestazione
+   non ne ha, quindi restava una cella sola — e una cella sola non nomina metà delle colonne. Ora una riga
+   rimasta intera si guarda anche **parola per parola**.
+2. **E poi le righe sono diventate tutte vuote.** Un'intestazione *riconosciuta* non è un'intestazione che
+   dice **dove**: quella del PDF nomina le colonne una dopo l'altra ma non ne colloca nessuna. Quando non
+   colloca niente, le colonne si prendono in ordine.
+3. **«Da scegliere» non aveva un modo di scegliere**: la riga restava fuori per sempre.
+4. **Il giro esporta→reimporta** ha trovato il **segno d'ordine dei byte** dentro la prima cella
+   dell'intestazione: la mappatura «non funzionava» su un file che sembrava giusto.
+
+Nessuno dei quattro sarebbe uscito dai test: i primi tre vivevano nella forma dei dati veri, il quarto
+nell'incontro fra due pezzi che i test provavano separatamente.
+
+✅ **Verificato anche l'incolla clausole** di `AdminTrasferimentiPage` dopo il travaso su `Griglia`
+(accordo `LIBB_ES_CTR ⇄ LAAA_CTR`): una tabella **Markdown** incollata dà due clausole, l'**intestazione**
+`POINTS/LEVEL/RECEIVER` viene saltata invece di diventare una clausola, l'avviso sul ricevente estraneo
+all'accordo compare come prima, e con la forma di sempre (tabulazioni) «EKMUR, PISIP» resta **una cella
+sola**. Nessun errore in console, nessun 4xx.
+
+⚠️ **Il percorso per arrivarci costa quattro clic non ovvi**, e ci sono voluti cinque tentativi per
+trovarli — vale la pena scriverli: ACC dalla barra (`.xt-bar button`) → **controparte**, che nasce
+**chiusa** (`.xt-nav-sec`) → accordo (`.xt-nav-flow`) → **sezione**, il cui corpo esiste solo da aperta e
+la cui levetta è `.xt-dirtoggle`, **non** un `<details>`. A sezione chiusa il tasto «Incolla tabella» c'è
+ed è acceso, ma il modulo non compare: sembra un tasto rotto, ed è solo un corpo non renderizzato.
+
+⚠️ **Sfumatura vista dal vivo e lasciata così**: quando la lettura **salta** una riga — la riga di trattini
+di una tabella Markdown, che è impaginazione — i numeri di riga dell'anteprima scalano di uno (clausole
+alle righe 3 e 4, mostrate come 2 e 3). Farli tornare esatti vorrebbe dire far portare a ogni cella la riga
+da cui viene, per tutta la catena: costo alto per un dato diagnostico. Scritto nel codice dove il numero si
+calcola.
+
 
 ## Fuori perimetro
 
@@ -162,8 +199,19 @@ Una fetta per commit, build verde a ogni passo.
 perde comunque: il copia-incolla dà lo stesso testo gratis), import del payload JSON grezzo (nessuna
 rilettura umana in mezzo), OCR.
 
-## Verifica
+## Verifica — fatta
 
-Test unitari sul cuore puro (`Griglia`, `XlsxReader`, spec, risoluzione) e **verifica live** guidando
-l'editor vero: incollare la tabella «Aeroporti alternati» di un SOP reale e vederla comparire con lo
-scalo risolto dall'archivio, la radioassistenza citata dall'anagrafica e `72.2 NM` intatto.
+Test unitari sul cuore puro (`Griglia`, `LettoreXlsx`, spec, mappatura, proposta, ancore) e **verifica
+live** guidando l'app vera. **4739 test verdi**, build Release verde sui due TFM (`--no-incremental`,
+0 avvisi). E2E **non** girati sul ramo: vogliono l'host vivo e vanno fatti sul risultato della fusione.
+
+Quel che è stato guidato a schermo:
+
+- **Aeroporti alternati di LIBG**: incollata la tabella vera di un SOP (trattino lungo su quattro righe e
+  corto su una, un doppio spazio, nessun separatore). Tre righe risolte — nome dallo **archivio** e
+  frequenza dall'**anagrafica**, non dal testo (GRA rende `117.50`, non il `111.65` incollato) — una
+  ambigua che chiede quale, una sconosciuta che resta fuori. `291.3 NM` arrivata intatta nel `BodyJson`.
+- **La tendina della cella ambigua**: 0 righe importabili → scelto un candidato → 1, con l'identità giusta.
+- **«Da un altro documento»**: gli alternati di LIBG dentro l'editor di LIMS.
+- **Incolla clausole** su `LIBB_ES_CTR ⇄ LAAA_CTR`: Markdown letto, intestazione saltata, avviso sul
+  ricevente intatto, «EKMUR, PISIP» ancora una cella sola.

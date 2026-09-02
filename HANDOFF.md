@@ -34,8 +34,9 @@ cancellati — vale il riquadro qui sotto).
 > schermo, senza errore. Va scritto nella nota di consegna.
 >
 > Build Release verde sui due TFM (`--no-incremental`, 0 avvisi), **4739 test verdi**; E2E **non** girati
-> sul ramo. Verificato dal vivo l'import degli alternati su LIBG e LIMS; ⚠️ **non** verificato dal vivo
-> l'incolla clausole dell'admin trasferimenti.
+> sul ramo — vanno fatti sul risultato della fusione. **Verificato dal vivo**: gli alternati su LIBG, la
+> tendina della cella ambigua, «da un altro documento» su LIMS e l'incolla clausole dell'admin
+> trasferimenti.
 
 > ### 🔴 PRIMA DI TUTTO: `main` ha QUATTRO lavori pronti che NON sono online
 >
