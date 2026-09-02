@@ -1,0 +1,21 @@
+@* La barra che compare quando il circuito muore.
+
+   🔴 ⚠️ Perche' esiste qui e non solo nel guscio dell'host. Quando un'eccezione non gestita abbatte il
+   circuito, Blazor NON ricarica e non dice niente da se': cerca nel documento un elemento con
+   `id="blazor-error-ui"` e lo mostra. Se quell'elemento non c'e', il guasto e' MUTO — la pagina resta a
+   schermo, i tasti smettono di funzionare, e chi la usa non ha nessun modo di capire che cosa e' successo.
+
+   E le pagine dei documenti usano `SopLayout`, che non l'aveva: la barra stava solo in `MainLayout`, cioe'
+   nel guscio delle pagine di servizio. Misurato il 2 settembre 2026 provando il pacchetto 1.4.1, dopo la
+   segnalazione di un collega — «clicco e non succede nulla» — che con questa barra sarebbe stata «e' uscito
+   un messaggio rosso che dice di ricaricare».
+
+   ⚠️ L'id e' quello e non un altro: lo cerca il JavaScript di Blazor. E ce ne deve essere UNO SOLO in
+   pagina, per questo i due gusci montano lo STESSO componente invece di ripetere il markup. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div id="blazor-error-ui">
+    @L["Circuito_Errore"]
+    <a href="" class="reload">@L["Circuito_Ricarica"]</a>
+    <a class="dismiss" aria-label="@L["Common_Close"]">🗙</a>
+</div>

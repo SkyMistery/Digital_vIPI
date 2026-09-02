@@ -4301,3 +4301,13 @@ tr.imp-bad td{opacity:.85}
 .imp-tick.on{background:var(--tint-green);color:var(--ok-ink);font-weight:700}
 .imp-ruler-sample{font-family:var(--font-mono,ui-monospace,monospace);font-size:12px;white-space:pre}
 .imp-cuts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+
+/* ── La barra del circuito morto ────────────────────────────────────────────────────────────────────────
+   ⚠️ Lo stile sta QUI e non nel foglio scoped del guscio dell'host: la barra la montano due gusci diversi,
+   e uno dei due (quello dei documenti) sta in un altro assieme. Uno stile scoped avrebbe coperto solo il
+   primo — cioe' proprio non le pagine dove il guasto e' stato visto. */
+#blazor-error-ui{position:fixed;left:0;bottom:0;width:100%;z-index:1000;display:none;
+  padding:10px 40px 11px 20px;background:var(--tint-yellow);color:var(--ink);
+  box-shadow:0 -1px 2px rgba(0,0,0,.2);font-size:13.5px}
+#blazor-error-ui .reload{margin-left:8px;font-weight:600;color:var(--brand-ink)}
+#blazor-error-ui .dismiss{position:absolute;right:12px;top:8px;cursor:pointer}

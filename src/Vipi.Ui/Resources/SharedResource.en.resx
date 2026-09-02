@@ -1174,6 +1174,8 @@
   <data name="Sorg_ChangeToManual" xml:space="preserve"><value>Moving to manual: {0} — they will no longer update on their own and become editable.</value></data>
   <data name="Sorg_DecidedBy" xml:space="preserve"><value>Decided by {0} on {1}</value></data>
   <data name="Sorg_NeverDecided" xml:space="preserve"><value>No person has ever saved this policy: the exclusions you see come from the columns' initial values.</value></data>
+  <data name="Circuito_Errore" xml:space="preserve"><value>Something went wrong and this page no longer responds. Saved work is not lost: reload it.</value></data>
+  <data name="Circuito_Ricarica" xml:space="preserve"><value>Reload</value></data>
   <data name="Common_Close" xml:space="preserve"><value>Close</value></data>
   <data name="Common_Error" xml:space="preserve"><value>Error: </value></data>
   <data name="Conf_Title" xml:space="preserve"><value>Neighbouring ACCs</value></data>
