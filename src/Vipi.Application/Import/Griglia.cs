@@ -26,6 +26,9 @@ public enum FormaGriglia
     /// <summary>Colonne tagliate a posizioni fisse, scelte a mano.</summary>
     LarghezzaFissa,
 
+    /// <summary>Un foglio di un file <c>.xlsx</c>.</summary>
+    Xlsx,
+
     /// <summary>Nessun separatore riconosciuto: ogni riga e' una cella sola, e chi importa decide come
     /// spezzarla (le ancore della sua specifica, oppure i tagli a larghezza fissa).</summary>
     RigaIntera,
