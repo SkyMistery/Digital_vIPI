@@ -1,4 +1,4 @@
-# Feature — Process (anti-vibecoding) 🟢
+﻿# Feature — Process (anti-vibecoding) 🟢
 
 > Gemello di [refactor/REFACTOR-PROCESS.md](refactor/REFACTOR-PROCESS.md): quello governa i **refactor**,
 > questo le **feature nuove**. Nasce dopo aver ripulito 34 round di vibecoding (asse refactor 01→09):
@@ -72,6 +72,19 @@ Rispondi a queste quattro PRIMA di scrivere. Se una non ha risposta pulita, il d
 - [ ] **Nessun nome/commento morto**: la slice non lascia tipi/file/`<see cref>`/doc/memorie che citano qualcosa rimosso o rinominato in questo giro.
 - [ ] **Se hai aggiunto un pacchetto o un progetto**: `packages.lock.json` rigenerato e committato (la CI
       restora in «locked mode» e si ferma senza). Un progetto nuovo fuori da `Vipi.slnx` va restaurato a mano.
+
+## Un rosso intermittente
+
+- **Catturare il NOME, non il conteggio.** Nel ciclo di caccia si filtra ****, non solo :
+  un riepilogo «Failed: 1» senza il nome del test non si puo' analizzare, e il giro dopo e' verde. Costato
+  due volte il 2 settembre 2026.
+- **Riprodurre nella condizione in cui si e' visto.** Se compare solo a **soluzione intera**, isolare il
+  progetto non prova niente: quel verde e' il verde della condizione sbagliata.
+- ⚠️ **Finche' non ha un nome non si tocca niente.** Una correzione a un difetto che non si sa nominare e'
+  solo un altro cambiamento — e il verde che segue non e' una prova.
+- **Guardare fuori dal processo.** Il terzo caso non era nel codice ne' nei test: era il **registro eventi
+  di Windows**, un provider di log che  aggiunge da se'. Si e' visto con
+   — **535 voci in tre ore** — non leggendo sorgenti. Vedi .
 
 > **Prima di dire «non serve, misuriamo»: misura davvero.** Nell'audit dell'11 agosto tre voci su
 > trentaquattro sono state *ribaltate dal dato* — un difetto reale nel parser dei poligoni non toccava
