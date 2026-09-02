@@ -6802,7 +6802,7 @@ test lo vede — il DOM era corretto.
 
 ### Quel che resta
 
-- 🔴 **Non è in produzione**: serve il pacchetto **1.3.1**, che porta anche §AO.
+- ✅ **In produzione dal 2 settembre 2026**, col pacchetto **1.4.0** (che porta anche §AO).
 - 🟡 Alla **seconda** ricognizione varrà la pena guardare quali divergenze sono sopravvissute a un ciclo
   AIRAC: quelle sono le vere, le altre erano il sectorfile in anticipo (§4 della carta).
 
@@ -6892,7 +6892,7 @@ la famiglia dove il difetto si vede di più.
 - 🟡 **Trovato per strada, e NON è di questo giro**: i passi del **giro guidato** (`vipi-tour.js`) hanno
   titoli e testi **cablati in italiano** — «Indice del documento», con l'interfaccia in inglese. È
   un'eccezione non dichiarata a R7, e vale per tutte le pagine che montano il tour.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** insieme a §AO, §AP, §AR, §AS e §AT.
+- ✅ **In produzione dal 2 settembre 2026**, col pacchetto **1.4.0**, insieme a §AO, §AP, §AR, §AS e §AT.
 
 ## AR. La pagina che si blocca in salvataggio: due buchi e una corsa — 1/2 settembre 2026
 
