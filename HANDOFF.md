@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 2 settembre 2026, sera — ✅ **1.4.0 È IN PRODUZIONE** (timbro `1.4.0 · 669762f`, caricata alle 16:28 UTC, otto controlli pubblici verdi). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
+**Ultimo aggiornamento:** 2 settembre 2026, sera — 🔴 **§AV: UNA CORSA TROVATA SU 1.4.0 E CHIUSA** (da consegnare come 1.4.1). Prima: ✅ **1.4.0 È IN PRODUZIONE** (timbro `1.4.0 · 669762f`, caricata alle 16:28 UTC, otto controlli pubblici verdi). Prima di quello: 🟢 **TUTTO IN `main`, NESSUN RAMO APERTO.** Fusi `dati-scalo-solo-militare` (§AS, §AT) e `import-tabelle` (§AU). Il pacchetto 1.3.1 sale a **SETTE** lavori: §AO §AP §AQ §AR §AS §AT §AU. Vedi il riquadro sotto «Dove siamo».
 
 **Ultimo aggiornamento:** 2 settembre 2026, sera — 🟡 **UN RAMO APERTO: `dati-scalo-solo-militare` (`7bef3c3e`), spinto e NON fuso.** `main` resta a **`b8e6b22c`**. Il ramo porta **DUE** lavori, entrambi da segnalazione del committente, **nessuna entità e nessuna migrazione**: **§AS** (i dati dello scalo scrivibili nell'editor del vSOP sui campi solo militari) e **§AT** (l'avviso di traduzione automatica diventa un gettone). 🔴 **Vanno nel pacchetto 1.3.1 insieme agli altri quattro** — che diventano **sei**. ⚠️ §AT cambia **`vipi-theme.css` e `vipi-print.css`**, cioè gli stessi due fogli che il pacchetto già portava: impronte nuove, `wwwroot` insieme all'indice `staticwebassets`.
 
@@ -40,9 +40,10 @@ cancellati — vale il riquadro qui sotto).
 > sono saliti **col loro indice**: serviti 200 con impronte nuove, e il `vipi-ui.js` servito porta davvero
 > il gestore del Tab.
 >
-> 🔴 **Quel che resta da guardare**: il pannello d'import **dal vivo su produzione**, da un account che può
-> modificare. Da fuori non si raggiunge, quindi da qui si è provato solo che il CSS e il JS che lo fanno
-> funzionare sono arrivati.
+> ✅ Il pannello d'import è stato guardato dal vivo su produzione dal committente: funziona.
+>
+> 🔴 **Ma su 1.4.0 è tornata la corsa sul `DbContext`** (§AV), aggiungendo una sotto-sezione: **corretta in
+> `main`, non ancora consegnata**. Serve un **1.4.1** (PATCH: nessuna migrazione, nessuna pagina nuova).
 >
 > ### I SETTE lavori che porta (§AO §AP §AQ §AR §AS §AT §AU)
 >
