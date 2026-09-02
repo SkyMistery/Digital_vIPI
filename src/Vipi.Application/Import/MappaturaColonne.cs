@@ -49,6 +49,7 @@ public sealed record MappaturaColonne(IReadOnlyList<int> Colonne, bool Intestazi
         var intestazione = SembraIntestazione(spec, prima);
         var mappa = new int[spec.Colonne.Count];
 
+        var trovate = 0;
         if (intestazione)
         {
             var presi = new HashSet<int>();
@@ -60,15 +61,21 @@ public sealed record MappaturaColonne(IReadOnlyList<int> Colonne, bool Intestazi
                     if (presi.Contains(g) || !Combacia(spec.Colonne[c], prima[g])) continue;
                     mappa[c] = g;
                     presi.Add(g);
+                    trovate++;
                     break;
                 }
             }
         }
-        else
-        {
+
+        // ⚠️ Un'intestazione riconosciuta NON vuol dire un'intestazione che dice DOVE. Quella copiata da un
+        // PDF resta tutta in una cella: si legge benissimo che e' un'intestazione — nomina le colonne una
+        // dopo l'altra — ma non ne colloca nessuna, e presa alla lettera lasciava ogni colonna senza posto,
+        // cioe' un'anteprima di righe TUTTE VUOTE. Trovato guidando l'app il 2 settembre 2026, dopo che il
+        // riconoscimento dell'intestazione era appena stato aggiustato: la prima riga smetteva di essere
+        // rossa e le altre cinque diventavano bianche.
+        if (!intestazione || trovate == 0)
             for (var c = 0; c < spec.Colonne.Count; c++)
                 mappa[c] = c < griglia.Colonne ? c : -1;
-        }
 
         return new MappaturaColonne(mappa, intestazione);
     }

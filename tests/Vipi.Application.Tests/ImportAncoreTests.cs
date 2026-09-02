@@ -128,4 +128,27 @@ public class ImportAncoreTests
 
         Assert.False(MappaturaColonne.Proponi(Spec, g).Intestazione);
     }
+
+    /// <summary>
+    /// ⚠️ Il seguito immediato del difetto qui sopra, e la lezione: un'intestazione RICONOSCIUTA non e'
+    /// un'intestazione che dice DOVE. Quella del PDF resta in una cella sola — nomina le colonne una dopo
+    /// l'altra ma non ne colloca nessuna — e presa alla lettera lasciava ogni colonna senza posto: righe
+    /// tutte vuote. Quando l'intestazione non colloca niente, le colonne si prendono in ordine.
+    /// </summary>
+    [Fact]
+    public void Un_intestazione_che_non_colloca_niente_non_svuota_le_righe()
+    {
+        var g = new Griglia(
+            new IReadOnlyList<string>[]
+            {
+                new[] { "AIRPORT NAVAIDS BEARING DISTANCE" },
+                new[] { "LIBA Amendola", "MNL TAC - 99Y 115.25", "308", "72.2" },
+            },
+            FormaGriglia.RigaIntera);
+
+        var m = MappaturaColonne.Proponi(Spec, g);
+
+        Assert.True(m.Intestazione);
+        Assert.Equal(new[] { 0, 1, 2, 3 }, m.Colonne);
+    }
 }

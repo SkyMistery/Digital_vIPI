@@ -76,16 +76,16 @@
         <div class="imp-foot">
             <button class="btn primary" disabled="@(Occupato || p.Buone.Count == 0)"
                     @onclick="() => Consegna(false)">
-                @(string.Format(L["Imp_ImportAppend"].Value, p.Buone.Count))
+                @Conta(p.Buone.Count, "Imp_ImportAppendOne", "Imp_ImportAppend")
             </button>
             <button class="btn" disabled="@(Occupato || p.Buone.Count == 0)"
                     @onclick="() => Consegna(true)">
-                @(string.Format(L["Imp_ImportReplace"].Value, p.Buone.Count))
+                @Conta(p.Buone.Count, "Imp_ImportReplaceOne", "Imp_ImportReplace")
             </button>
             <button class="btn ghost" disabled="@Occupato" @onclick="OnAnnulla">@L["Common_Cancel"]</button>
             @if (p.Scartate.Count > 0)
             {
-                <span class="muted imp-soft">@(string.Format(L["Imp_Skipped"].Value, p.Scartate.Count))</span>
+                <span class="muted imp-soft">@Conta(p.Scartate.Count, "Imp_SkippedOne", "Imp_Skipped")</span>
             }
         </div>
     }
@@ -437,6 +437,11 @@
         if (cella.Candidati is { Count: > 0 }) note.Add(string.Join(" / ", cella.Candidati.Select(x => x.Valore)));
         return string.Join(" — ", note);
     }
+
+    /// <summary>«1 riga» e «3 righe»: il singolare ha una chiave sua. Un «1 righe» in un tasto e' la prima
+    /// cosa che si nota, e la prima che fa sembrare improvvisato tutto il resto.</summary>
+    private string Conta(int quante, string uno, string molti) =>
+        quante == 1 ? L[uno].Value : string.Format(L[molti].Value, quante);
 
     private string Forma(FormaGriglia forma) => forma switch
     {
