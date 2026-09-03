@@ -3192,4 +3192,6 @@
   <data name="Union_LockedBy" xml:space="preserve"><value>Cannot edit: one of the joined documents is being edited by {0}. With a union the lock is taken on all or on none.</value></data>
   <data name="Ver_UnitedTitle" xml:space="preserve"><value>This document is joined to others: they are published together, at the same cycle.</value></data>
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>joined: {0}</value></data>
+  <data name="Union_SearchPh" xml:space="preserve"><value>search by name or code…</value></data>
+  <data name="Union_Found" xml:space="preserve"><value>{0} of {1}</value></data>
 </root>

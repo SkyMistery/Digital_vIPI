@@ -3200,4 +3200,6 @@
   <data name="Union_LockedBy" xml:space="preserve"><value>Non si puo' modificare: uno dei documenti uniti e' in modifica da {0}. Con l'unione il lock si prende su tutti o su nessuno.</value></data>
   <data name="Ver_UnitedTitle" xml:space="preserve"><value>Questo documento e' unito ad altri: si pubblicano insieme, allo stesso ciclo.</value></data>
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>uniti: {0}</value></data>
+  <data name="Union_SearchPh" xml:space="preserve"><value>cerca per nome o codice…</value></data>
+  <data name="Union_Found" xml:space="preserve"><value>{0} di {1}</value></data>
 </root>

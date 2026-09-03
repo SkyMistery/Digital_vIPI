@@ -1,4 +1,4 @@
-﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font: i ruoli stanno qui (--font-head/--font-body/--font-mono), le @font-face in vipi-fonts.css.
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo).
@@ -1050,6 +1050,12 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .union-cmds .btn{padding:2px 8px;line-height:1.4}
 .union-add{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
 .union-add select{min-width:min(420px,100%)}
+/* Il filtro sopra la tendina: con quaranta documenti in divisione scorrere l'elenco non e' cercare.
+   ⚠️ La tendina si APRE (attributo size) solo mentre si filtra: da chiusa non si vedrebbe che il
+   filtro ha ristretto, e chi ha scritto tre lettere resterebbe a guardare lo stesso «—» di prima. */
+.union-add .union-cerca{min-width:min(260px,100%);flex:0 1 260px}
+.union-add select[size]{padding:4px}
+.union-conta{margin:4px 0 0}
 /* ---- Documenti UNITI (carta 2026-09-03): piu' documenti in una pagina sola ----------------------
    Ogni membro non-ospite porta la propria intestazione. Non e' decorazione: le sezioni con la STESSA
    chiave restano tutte e due -- «Frequenze ATC/CRC» di un vSOP militare e «Frequenze» di un

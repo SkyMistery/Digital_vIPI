@@ -113,6 +113,13 @@ public static class GuideSearchCatalog
             "militare militari mil vsop sop aeronautica base campo qra scramble boat bassa quota aree di lavoro destinatario pilota atc chip italiano traduzione inglese aviano ghedi rivolto decimomannu istrana grosseto amendola gioia del colle military base audience pilot atc translation english",
             "L'editor del vSOP militare d'aeroporto: italiano, destinatario per sezione, aree di lavoro, release.",
             "The airport military vSOP editor: written in Italian, audience per section, working areas, release."),
+        new Entry("documenti-uniti", "Unire due documenti", "Joining two documents",
+            "unire unione uniti unita join joined union insieme una pagina sola ospite membro sciogli scioglie separare "
+            + "aeroporto app non remotizzato vsop militare misto presenza militare libv liba limn cameri lims piacenza "
+            + "pubblicare insieme stesso ciclo airac un clic annullare accoppiata redirect rimando ancora doc- "
+            + "host member dissolve split publish together same cycle one click coupled cancel redirect anchor",
+            "Come si uniscono due documenti in una pagina sola: dove sta il comando, chi è l'ospite, e che cosa cambia nella pubblicazione.",
+            "How to join two documents into one page: where the command is, who the host is, and what changes at publish time."),
         new Entry("editor-acc", "Editor vIPI ACC", "ACC vIPI editor",
             "acc vipi editor blocchi blocco gruppo app aerovia comprimi espandi fisarmonica sezioni larghezza piena lock bozza settori blocks group airway expand collapse accordion sections",
             "L'editor del vIPI di ACC: i blocchi che si aprono uno per volta, le sezioni, la bozza.",

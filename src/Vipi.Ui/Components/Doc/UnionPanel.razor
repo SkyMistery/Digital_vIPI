@@ -91,11 +91,19 @@
     }
     else
     {
+        @* ⚠️ Un filtro SOPRA la tendina, e non un `<input list>` con `<datalist>` come altrove: quel modo
+           lega la CHIAVE, e un aeroporto e il suo vSOP militare hanno la stessa (l'ICAO). Scrivere «LIMN»
+           non direbbe QUALE dei due — ed è il caso misto, cioè quello per cui l'unione esiste. Qui il
+           filtro restringe e basta: l'identità resta l'id del documento, che è sempre uno solo. *@
         <div class="union-add">
             <label for="union-add-@Key">@Sito["Union_AddLabel"]</label>
-            <select id="union-add-@Key" class="inp" @bind="_scelto" disabled="@_busy">
+            <input id="union-cerca-@Key" class="inp union-cerca" type="search" autocomplete="off"
+                   placeholder="@Sito["Union_SearchPh"]" aria-label="@Sito["Union_SearchPh"]"
+                   value="@_cerca" @oninput="SuRicerca" disabled="@_busy" />
+            <select id="union-add-@Key" class="inp" @bind="_scelto" disabled="@_busy"
+                    size="@(Filtrati.Count > 1 && _cerca.Length > 0 ? Math.Min(Filtrati.Count + 1, 8) : 1)">
                 <option value="0">—</option>
-                @foreach (var c in _candidati)
+                @foreach (var c in Filtrati)
                 {
                     <option value="@c.DocumentId">
                         @c.Doc.Title — @c.Doc.ReleaseKey@(c.StessoScalo ? $" ({Sito["Union_SameAirport"]})" : "")
@@ -104,6 +112,10 @@
             </select>
             <button class="btn primary" disabled="@(_busy || _scelto == 0)" @onclick="Unisci">@Sito["Union_AddAction"]</button>
         </div>
+        @if (_cerca.Length > 0)
+        {
+            <p class="help union-conta">@Sito.Formatta("Union_Found", Filtrati.Count, _candidati.Count)</p>
+        }
     }
 </div>
 
@@ -124,7 +136,43 @@
     private UnionView? _unione;
     private IReadOnlyList<UnionCandidate> _candidati = Array.Empty<UnionCandidate>();
     private int _scelto;
+    private string _cerca = "";
     private bool _busy;
+
+    /// <summary>
+    /// I candidati che passano il filtro. Funzione <b>pura</b> e <c>public static</c> apposta: e' la parte
+    /// che si puo' sbagliare senza che nulla protesti, e montare il pannello intero per provarla vorrebbe
+    /// dire una fixture con servizio, scope e autorizzazione (stessa scelta di
+    /// <c>EditorTocProjection.DaSezioni</c> e di <c>AppDocumentBody.AnchorOf</c>).
+    ///
+    /// <para>Le parole si cercano <b>tutte</b> e in qualunque ordine, su titolo E chiave: «liba app» trova
+    /// «Amendola Approach — LIBA_APP», che scrivendo il titolo per intero non si troverebbe.</para>
+    /// </summary>
+    public static IReadOnlyList<UnionCandidate> Filtra(IReadOnlyList<UnionCandidate> tutti, string? testo)
+    {
+        var parole = (testo ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parole.Length == 0) return tutti;
+        return tutti.Where(c =>
+        {
+            var ago = $"{c.Doc.Title} {c.Doc.ReleaseKey}";
+            return parole.All(w => ago.Contains(w, StringComparison.OrdinalIgnoreCase));
+        }).ToList();
+    }
+
+    private IReadOnlyList<UnionCandidate> Filtrati => Filtra(_candidati, _cerca);
+
+    /// <summary>
+    /// ⚠️ Filtrando si AZZERA la scelta se è uscita dall'elenco: una scelta che non si vede piu' resterebbe
+    /// nel `select` e il tasto «Unisci» unirebbe un documento che chi preme non ha davanti. E se ne resta
+    /// UNO solo lo si sceglie: e' quel che chi ha appena scritto tre lettere si aspetta.
+    /// </summary>
+    private void SuRicerca(ChangeEventArgs e)
+    {
+        _cerca = e.Value?.ToString() ?? "";
+        var visti = Filtrati;
+        if (_scelto != 0 && visti.All(c => c.DocumentId != _scelto)) _scelto = 0;
+        if (visti.Count == 1) _scelto = visti[0].DocumentId;
+    }
     private string? _errore;
     private string _caricato = "";
 
@@ -154,6 +202,7 @@
                 ? await _unioni.CandidatiPerTargetAsync(Target, Key)
                 : await _unioni.CandidatiAsync(_unione.Host.DocumentId);
         _scelto = 0;
+        _cerca = "";
     }
 
     private Task Unisci() => EseguiAsync(async () =>

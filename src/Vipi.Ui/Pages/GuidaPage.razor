@@ -835,6 +835,59 @@
               <p>Changes go into a <b>draft</b> and become public only with an <b>AIRAC release</b>. The pairs
                vLOAs are born from live in <a href=""#admin-confinanti"">Neighbours</a>.</p>"),
 
+        new Sec("documenti-uniti", "link",
+            @"<p>Due documenti dello stesso scalo si possono <b>unire</b>: si leggono in <b>una pagina sola</b>, si
+               redigono da <b>un editor solo</b> e si pubblicano con <b>un clic</b>. Vale per la vIPI d'aeroporto,
+               il vSOP militare e l'APP non remotizzato — anche su un campo con <b>presenza militare</b>, dove il
+               vSOP diventa cos&#236; il documento completo dello scalo.</p>
+              <p><b>Dove sta il comando.</b> Nell'<b>editor</b> del documento che vuoi come <b>ospite</b> — quello al
+               cui indirizzo vivr&#224; la pagina unita — nel riquadro <b>Documenti uniti</b>, sopra quello di
+               pubblicazione (ancora <code>#sec-unione</code>).</p>
+              <ol>
+                <li>Apri l'editor dell'ospite e premi <b>&#10002; Modifica</b>. &#9888;&#65039; I comandi dell'unione si
+                    accendono <b>solo in modifica</b>: prima il riquadro dice «questo documento si legge da solo».</li>
+                <li>Scrivi nel campo di ricerca il <b>nome o il codice</b> del documento — l'elenco si restringe mentre
+                    scrivi, e quelli dello <b>stesso scalo</b> stanno in cima. Se ne resta uno solo viene gi&#224; scelto.</li>
+                <li>Premi <b>Unisci</b>.</li>
+              </ol>
+              <p>Poi i membri si <b>riordinano</b> con le frecce (il primo &#232; l'<b>ospite</b>), si tolgono con
+               &#10005;, e <b>Sciogli l'unione</b> rimette tutto com'era: non si perde niente di quel che c'&#232;
+               scritto.</p>
+              <ul>
+                <li><b>Le pagine degli altri membri reindirizzano</b> a quella dell'ospite, al loro gruppo. Un
+                    collegamento salvato continua a portare allo stesso contenuto.</li>
+                <li>&#9888;&#65039; <b>Pubblicare uno pubblica tutti</b>, allo stesso ciclo AIRAC — e annullare una release
+                    annulla anche le sorelle di quel ciclo. Il pannello lo dice <b>prima</b>, con quanti sono.</li>
+                <li>&#9888;&#65039; <b>Modifica</b> prende il lock su <b>tutti</b> i membri: se anche uno solo &#232; tenuto da
+                    un altro non se ne prende nessuno, e la pagina dice chi lo tiene.</li>
+                <li>Non si possono unire il <b>vIPI di ACC</b> e la <b>vLOA</b>, e un documento sta in <b>una sola</b> unione.</li>
+              </ul>",
+            @"<p>Two documents of the same airfield can be <b>joined</b>: they are read as <b>one page</b>, edited from
+               <b>one editor</b> and published with <b>one click</b>. It works for the airport vIPI, the military vSOP
+               and the non-remoted APP — including a field with <b>military presence</b>, where the vSOP then becomes
+               the complete document for that airfield.</p>
+              <p><b>Where the command is.</b> In the <b>editor</b> of the document you want as the <b>host</b> — the one
+               whose address the joined page will live at — in the <b>Joined documents</b> box, above the release panel
+               (anchor <code>#sec-unione</code>).</p>
+              <ol>
+                <li>Open the host's editor and press <b>&#10002; Edit</b>. &#9888;&#65039; The union commands light up
+                    <b>only while editing</b>: before that the box says “this document is read on its own”.</li>
+                <li>Type the document's <b>name or code</b> in the search box — the list narrows as you type, and
+                    same-airfield candidates come first. If only one is left it is picked for you.</li>
+                <li>Press <b>Join</b>.</li>
+              </ol>
+              <p>Members can then be <b>reordered</b> with the arrows (the first one is the <b>host</b>), removed with
+               &#10005;, and <b>Dissolve the union</b> puts everything back: nothing written is lost.</p>
+              <ul>
+                <li><b>The other members' pages redirect</b> to the host's, anchored at their group. A saved link keeps
+                    leading to the same content.</li>
+                <li>&#9888;&#65039; <b>Publishing one publishes them all</b>, at the same AIRAC cycle — and cancelling a
+                    release cancels its sisters of that cycle too. The panel says so <b>beforehand</b>, with how many.</li>
+                <li>&#9888;&#65039; <b>Edit</b> takes the lock on <b>all</b> members: if even one is held by someone else,
+                    none is taken, and the page says who holds it.</li>
+                <li>The <b>ACC vIPI</b> and the <b>vLOA</b> cannot be joined, and a document belongs to <b>one</b> union only.</li>
+              </ul>"),
+
         new Sec("editor-acc", "map",
             @"<p>L'editor del vIPI di ACC (<code>/services/vsop/{acc}/editor</code>) è fatto di <b>blocchi</b>: i
                <b>settori di aerovia</b> e un blocco per ogni <b>gruppo APP</b>. Ogni blocco copre il suo albero di
