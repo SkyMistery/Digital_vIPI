@@ -7712,3 +7712,47 @@ A schermo, su copia fresca: **vIPI d'aeroporto (LIPA)** e **vSOP militare (LIBG)
 «Airport charts» con le cinque raccolte, subito prima di «Validity and revision», che resta l'ultima. In
 modifica ogni raccolta offre quel che serve a riempirla: **+ Blocco**, sotto-sezioni, «nascondi», destinatari
 pilota/ATC e le frecce di riordino. Zero errori di console.
+
+## BE. Sezioni e sotto-sezioni che si muovono davvero — 4 settembre 2026
+
+🟡 **IN CORSO**, ramo `sezioni-mobili`. Carta: `docs/feature/2026-09-04-sezioni-mobili.md`.
+Richiesta del committente: *«le sezioni e le sottosezioni devono potersi muovere dentro la sezione di
+appartenenza o nel documento senza problemi; le singole sottosezioni devono potersi nascondere; le
+sottosezioni custom devono poter stare anche sopra il contenuto principale (tipo sopra la mappa in AOR); e
+sarebbe ottimo poter spostare le sottosezioni in sezioni diverse. Su tutti e cinque gli editor.»*
+
+### ⚠️ Tre richieste su quattro avevano già il tasto — e due erano vere a metà
+
+Le frecce ↑/↓ ci sono da sempre anche sulle **sotto-sezioni**, l'occhio «nascondi» è nell'header condiviso a
+**ogni** profondità, e il comando «⤒ sopra il corpo» (`BeforeParentBody`, doc 11 §3g) sta su ogni
+sotto-sezione. Il lavoro nuovo è **uno**: spostare una sotto-sezione in un'**altra** sezione. Ma leggendo il
+codice per dirlo sono usciti due difetti, e sono quelli che facevano sembrare rotto ciò che c'era:
+
+- 🔴 **`SectionNode` ignora «sopra il corpo» quando il corpo lo rende la pagina.** Rende la scheda derivata e
+  poi le sotto-sezioni con `Slot=All`: una figlia marcata «sopra» esce **sotto**. Nel vSOP militare
+  `frequenze`, `piste` e `quote di transizione` sono figlie di «Dati generali» e sono rese dalla pagina —
+  chi ci scrive una nota sopra la vede sopra nell'**editor** e sotto nel **pubblicato**. È la trappola del
+  doc 11 §8, terza volta: `DocumentSectionsView` e `AccSectionBody` i tre slot li fanno giusti, il terzo
+  lettore no.
+- **La vIPI ACC non passa mai `IsDraft`** alle sotto-sezioni: una sotto-sezione nascosta spariva **anche
+  dall'anteprima di bozza**, invece di comparire con la pill «nascosta».
+
+### Le tre decisioni del committente
+
+1. **Solo le sezioni libere si riparentano** — una sezione di catalogo ha una posizione standard, ed è quella
+   che la pill dello scostamento conta.
+2. **Nella vIPI ACC si resta dentro il blocco**: il blocco *è* il gruppo.
+3. **Due gesti**: il menu «Sposta in…» (preciso, tastiera e tocco) **e** il trascinamento nel menu-sezioni.
+
+### Stato per fetta
+
+| Fetta | Che cosa | Stato |
+|---|---|---|
+| S0 | Carta + questa voce | ✅ |
+| S1 | `SectionNode` a tre slot | 🟡 |
+| S2 | `IsDraft` scende in ACC | 🟡 |
+| S3 | Motore `MoveSectionToParentAsync` + cinque guardie | 🟡 |
+| S4 | `SectionMoveTargets` + menu «Sposta in…» | 🟡 |
+| S5 | Figlie trascinabili nel menu-sezioni | 🟡 |
+| S6 | Spareggio stabile nell'ordinamento | 🟡 |
+| S7 | Propagazione e verifica live sulle cinque famiglie | 🟡 |
