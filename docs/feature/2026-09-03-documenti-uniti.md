@@ -162,6 +162,13 @@ esatto: `ReleasePreviewPage` — `NavigateTo(url, replace: true)` **senza `@rend
 302 che il browser segue prima di disegnare.
 ⚠️ **Solo la vista pubblica**: editor e anteprime `?as=` di ogni membro restano al loro indirizzo.
 
+🔴 **E solo se l'ospite ha qualcosa DA MOSTRARE.** Trovato in supervisione: unire un APP già
+**pubblicato** sotto una vIPI d'aeroporto ancora **in bozza** è un gesto di due clic, e il rimando mandava
+chi apriva l'APP su una pagina che dice «niente da mostrare» — un documento in vigore tolto dal web da un
+gesto editoriale che non lo riguardava. Ora il rimando chiede prima: ospite **non nascosto** e con una
+release **in vigore adesso**, perché la visibilità pubblica È la release effettiva. Se non ce l'ha, il
+membro resta dov'è e si legge da sé: non è la pagina unita, ma è vero. Rete: `RimandoAllOspiteTests`.
+
 ## §5a — Il comando dell'unione ✅
 
 `UnionPanel` sta nei tre editor, **sopra** il pannello di pubblicazione: e' cio' che decide QUANTI

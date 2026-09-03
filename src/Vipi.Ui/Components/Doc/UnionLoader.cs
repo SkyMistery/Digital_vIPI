@@ -57,8 +57,8 @@ public sealed class UnionLoader
 
     /// <summary>
     /// L'indirizzo <b>pubblico</b> della pagina unita, per chi ospite non è: la pagina dell'ospite, ancorata
-    /// al gruppo di questo documento. null se questo documento <i>è</i> l'ospite, o se l'indirizzo non si
-    /// risolve.
+    /// al gruppo di questo documento. null se questo documento <i>è</i> l'ospite, se l'indirizzo non si
+    /// risolve, o se <b>l'ospite non ha niente in pubblico</b> — nascosto, o senza release in vigore.
     ///
     /// <para>
     /// ⚠️ <b>Vale per la sola vista pubblica.</b> Le anteprime (<c>?as=rel:</c>, <c>?as=draft</c>) e gli
@@ -71,7 +71,8 @@ public sealed class UnionLoader
     /// non esiste — o, peggio, uno che esiste e mostra un altro scalo.
     /// </para>
     /// </summary>
-    public string? IndirizzoDellOspite(UnionView unione, ReleaseTargetType mioTipo, string miaChiave)
+    public async Task<string?> IndirizzoDellOspiteAsync(UnionView unione, ReleaseTargetType mioTipo,
+                                                        string miaChiave, CancellationToken ct = default)
     {
         if (unione.IsHostTarget(mioTipo, miaChiave)) return null;
 
@@ -83,6 +84,18 @@ public sealed class UnionLoader
         var ospite = unione.Host;
         var acc = (ospite.Doc.AccCode ?? "").ToLowerInvariant();
         if (acc.Length == 0) return null;
+
+        // 🔴 L'ospite deve avere qualcosa DA MOSTRARE, o il rimando toglie dal web un documento che era
+        // pubblicato. Unire un APP gia' pubblico sotto una vIPI d'aeroporto ancora in bozza e' un gesto di
+        // due clic, e senza questa guardia la pagina dell'APP mandava chi la apriva su una pagina che dice
+        // «niente da mostrare». Chi resta dov'e' legge il proprio documento: non e' la pagina unita, ma e'
+        // vero e si legge.
+        // ⚠️ La visibilita' pubblica È la release effettiva (EfContentRepository): non basta che l'ospite
+        // esista, e nemmeno che abbia release: deve averne una IN VIGORE ADESSO.
+        if (ospite.Doc.IsHidden) return null;
+        var sue = await _releases.ListAsync(ospite.Doc.ReleaseTarget, ospite.Doc.ReleaseKey, ct)
+                                 .ConfigureAwait(false);
+        if (!sue.Any(r => r.IsEffectiveNow)) return null;
 
         var url = _rotte.For(ospite.Doc.ReleaseTarget)
                         .PublicUrl(acc, ospite.Doc.ReleaseKey, ospite.Doc.NeighbourCode);

@@ -250,7 +250,7 @@ else
             // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
             // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
             if (_doc.Mode.Kind == PreviewKind.Public
-                && Membri.IndirizzoDellOspite(unione, ReleaseTargetType.Airport, _icao) is { } indirizzo)
+                && await Membri.IndirizzoDellOspiteAsync(unione, ReleaseTargetType.Airport, _icao) is { } indirizzo)
                 Nav.NavigateTo(indirizzo, replace: true);
             return;
         }
