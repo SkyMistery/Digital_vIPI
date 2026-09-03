@@ -275,7 +275,7 @@ di quel campo è l'unico documento. Su LIMN e LIMS i due documenti esistono già
 campo solo militare la civile non nasce. L'unione **presuppone** che i documenti esistano; non è il posto da
 cui cambiare chi può nascere.
 
-## §9 — La verifica dal vivo, e le due cose che ha trovato (3 settembre 2026) ✅
+## §9 — Le verifiche dal vivo (3 settembre 2026) ✅
 
 Guidata su **LIBA Amendola** (ACC LIRR) con la skill `verifica-live`: copia del `vipi.db`, porta 5034, Edge
 via `puppeteer-core`. Il DB del progetto e' rimasto intatto (`git status` muto).
@@ -315,6 +315,36 @@ la rende visibile; in produzione l'argomento sarebbe sparito **in silenzio**.
 **INGLESE**, e il primo giro di script cercava il tasto «Unisci» — non lo trovava, il tasto restava spento e
 sembrava che l'unione non nascesse. Quando un gesto «non fa niente», il primo sospetto va al **selettore**.
 
+### §9b — Il caso MISTO e PUBBLICATO: LIMN Cameri
+
+⚠️ **La regola pagata due volte sui vSOP militari**: quando si prova una famiglia gemella di un'altra, il
+caso di prova si sceglie **misto e PUBBLICATO** — corto e in bozza nasconde i difetti che contano. LIBA (§9)
+e' aeroporto + APP; **LIMN Cameri** e' l'altro asse, quello che la seconda richiesta chiede davvero: presenza
+militare senza essere solo-militare, vSOP **gia' pubblicato** con release effettiva al 2608, vIPI civile in
+bozza e **senza** release.
+
+⚠️ **La migrazione e' stata applicata su una COPIA DEL `vipi.db` REALE**, non su un database vuoto da
+`EnsureCreated`: e' la regola del runbook, e qui l'ha superata (`Applying migration
+'20260903092733_DocumentiUniti'`).
+
+| Passo | Esito |
+|---|---|
+| Candidati sul vSOP | `vIPI — LIMN Cameri — LIMN (same airfield)`: ⚠️ **stessa chiave, tipo diverso**, e la tendina non offre se stesso |
+| Unione | vSOP **ospite**, vIPI civile membro |
+| Editor unito | **una** griglia; indice con i due gruppi (26 sezioni militari + le 8 civili sotto «VIPI — LIMN CAMERI»); il pannello **settori ATC** del membro resta nel suo gruppo |
+| «Pubblica ora» | release **57** (`AirportMil/LIMN` v3) e **58** (`Airport/LIMN` v1), ciclo **2609**, `ReleaseEffectiveUtc` **identico**, tutte e due `Effective` |
+| Promozione | ⚠️ **entrambi** i documenti passano a `Published`: la civile era in bozza, e la «pubblica ora» accoppiata ha promosso la bozza **di ogni membro** |
+| Pagina pubblica unita | due indici, gruppo `doc-28`, tre colonne, **un solo** `.print-meta`, e **34 voci d'indice con ZERO ancore senza bersaglio** |
+| Redirect | `/airports?icao=LIMN` → `/mil?icao=LIMN#doc-28` — sul campo misto la pagina civile porta alla vSOP unita |
+| Anteprima `?as=rel:57` (2609) | banner del 2609, e il membro mostra **la sua** release di quel ciclo |
+| Anteprima `?as=rel:48` (2608) | banner del 2608, e il membro — che a quel ciclo **non aveva pubblicato** — ricade sulla **pubblica**, che e' la verita' |
+| Elenco di governo | tutte e due le righe con la pastiglia 🔗 **«joined: 2»** |
+
+Zero errori di pagina in tutta la sessione. Il `vipi.db` del progetto è rimasto intatto.
+
+⚠️ **Ed è esattamente la seconda richiesta, vista a schermo**: su un campo con presenza militare il vSOP
+diventa il documento **completo** dello scalo — come lo sono oggi quelli dei campi *solo* militari — e la
+pagina civile ci porta invece di vivere per conto suo.
 ## Verifica
 
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde sui **due TFM**, 0 avvisi.

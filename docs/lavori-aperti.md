@@ -7289,7 +7289,11 @@ solo `now`; annullamento accoppiato.
 
 - 🔴 **Non è in produzione**: il ramo non è fuso. Va in un pacchetto suo, e ⚠️ porta **due migrazioni** (una
   per serie) — vedi la finestra cieca al 16 settembre prima di consegnarne una che tocca lo schema.
-- 🟡 **Provato su LIBA** (aeroporto + APP). Il caso **misto** — vIPI civile + vSOP militare su LIMN o LIMS,
-  che è la seconda richiesta — è coperto dai test ma non ancora guidato a schermo.
+- ✅ **Provato a schermo su tutti e due gli assi**: LIBA (aeroporto + APP) e **LIMN Cameri** (misto e
+  **pubblicato**, che è la seconda richiesta). Su LIMN: release 57 e 58 allo stesso ciclo e alla stessa data
+  efficace, **entrambi** i documenti promossi a `Published`, 34 voci d'indice con **zero** ancore senza
+  bersaglio, il redirect dalla pagina civile alla vSOP unita, e l'anteprima a un ciclo in cui il membro non
+  aveva pubblicato che ricade sulla pubblica. ⚠️ La migrazione è stata applicata su una **copia del
+  `vipi.db` reale**, non su un database vuoto.
 - 🟡 **La vIPI ACC e la vLOA restano fuori** dalle famiglie unibili, dichiarato: la prima è a blocchi e non
   passa da `DocumentSectionsView`, la seconda disegna da sé le direzioni dei coordinamenti.
