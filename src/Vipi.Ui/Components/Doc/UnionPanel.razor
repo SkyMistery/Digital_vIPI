@@ -1,0 +1,191 @@
+﻿@* Il comando dell'unione, nell'editor dell'OSPITE (carta 2026-09-03-documenti-uniti.md §5): quali documenti
+   si leggono insieme a questo, in che ordine, e i tasti per cambiarlo.
+
+   ⚠️ SCOPE PROPRIO (OwningComponentBase), come i sei componenti del repository dopo l'audit del 30 luglio
+   2026: qui si SCRIVE, e un servizio di scrittura preso con `@inject` è quello del DbContext del CIRCUITO —
+   che è il difetto già pagato tre volte (la barra, il pannello traduzioni, l'editor che si blocca).
+   ⚠️ Non è il caso di `ReleasePanel`, che il contesto NON lo isola apposta: là il publish è un'operazione
+   sola composta con il `BeforePublishAsync` della pagina, e spezzarla su due context la manda in stallo.
+   Qui i gesti sono a sé — unisci, sposta, sciogli — e non compongono niente.
+
+   ⚠️ I comandi si accendono solo IN MODIFICA, come tutti gli altri dell'editor: l'unione è una scelta
+   editoriale sul documento, non una preferenza di chi guarda. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Domain
+@inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
+
+<div class="rel-panel" id="sec-unione">
+    <div class="doc-head" style="margin:0 0 10px">
+        <h3 class="h-card" style="margin:0">@Sito["Union_Title"]
+            <HelpHint ExtraClass="wide">@Sito["Union_Help"]</HelpHint>
+        </h3>
+    </div>
+
+    @if (_errore is { Length: > 0 })
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+    }
+
+    @if (_unione is null)
+    {
+        <p class="muted">@Sito["Union_None"]</p>
+    }
+    else
+    {
+        <p class="muted" style="margin:0 0 6px">@Sito["Union_Members"]</p>
+        <ol class="union-list">
+            @foreach (var m in _unione.Members)
+            {
+                <li>
+                    <b>@m.Doc.Title</b>
+                    <span class="muted">@m.Doc.ReleaseKey</span>
+                    @if (m.IsHost)
+                    {
+                        <span class="pill green" title="@Sito["Union_HostHint"]">@Sito["Union_Host"]</span>
+                    }
+                    @if (IsEditing)
+                    {
+                        <span class="union-cmds">
+                            <button class="btn ghost" title="@Sito["Union_MoveUp"]" aria-label="@Sito["Union_MoveUp"]"
+                                    disabled="@(_busy || m.Order == 0)" @onclick="() => Sposta(m, -1)">↑</button>
+                            <button class="btn ghost" title="@Sito["Union_MoveDown"]" aria-label="@Sito["Union_MoveDown"]"
+                                    disabled="@(_busy || m.Order == _unione.Members.Count - 1)" @onclick="() => Sposta(m, +1)">↓</button>
+                            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@Sito["Union_Remove"]"
+                                           AriaLabel="@Sito["Union_Remove"]" Prompt="@Sito["Union_RemovePrompt"]"
+                                           ConfirmLabel="@Sito["Union_RemoveYes"]" CancelLabel="@L["Common_Close"]"
+                                           Disabled="@_busy" OnConfirm="() => Togli(m)">
+                                <Trigger>✕</Trigger>
+                            </InlineConfirm>
+                        </span>
+                    }
+                </li>
+            }
+        </ol>
+
+        @if (IsEditing)
+        {
+            <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@Sito["Union_Dissolve"]"
+                           AriaLabel="@Sito["Union_Dissolve"]" Prompt="@Sito["Union_DissolvePrompt"]"
+                           ConfirmLabel="@Sito["Union_DissolveYes"]" CancelLabel="@L["Common_Close"]"
+                           Disabled="@_busy" OnConfirm="Sciogli">
+                <Trigger>@Sito["Union_Dissolve"]</Trigger>
+            </InlineConfirm>
+        }
+    }
+
+    @if (!IsEditing)
+    {
+        <p class="muted" style="margin-top:8px">@Sito["Union_EditToChange"]</p>
+    }
+    else if (_candidati.Count == 0)
+    {
+        <p class="muted" style="margin-top:8px">@Sito["Union_NoCandidates"]</p>
+    }
+    else
+    {
+        <div class="union-add">
+            <label for="union-add-@Key">@Sito["Union_AddLabel"]</label>
+            <select id="union-add-@Key" class="inp" @bind="_scelto" disabled="@_busy">
+                <option value="0">—</option>
+                @foreach (var c in _candidati)
+                {
+                    <option value="@c.DocumentId">
+                        @c.Doc.Title — @c.Doc.ReleaseKey@(c.StessoScalo ? $" ({Sito["Union_SameAirport"]})" : "")
+                    </option>
+                }
+            </select>
+            <button class="btn primary" disabled="@(_busy || _scelto == 0)" @onclick="Unisci">@Sito["Union_AddAction"]</button>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>La famiglia del documento che si sta redigendo.</summary>
+    [Parameter, EditorRequired] public ReleaseTargetType Target { get; set; }
+
+    /// <summary>La sua chiave di release: ICAO o callsign.</summary>
+    [Parameter, EditorRequired] public string Key { get; set; } = "";
+
+    /// <summary>Vero mentre l'editor è in modifica: i comandi si accendono solo allora.</summary>
+    [Parameter] public bool IsEditing { get; set; }
+
+    /// <summary>L'host ricarica: l'unione cambia quel che la pagina mostra, non solo questo riquadro.</summary>
+    [Parameter] public EventCallback Changed { get; set; }
+
+    private IDocumentUnionService _unioni = default!;
+    private UnionView? _unione;
+    private IReadOnlyList<UnionCandidate> _candidati = Array.Empty<UnionCandidate>();
+    private int _scelto;
+    private bool _busy;
+    private string? _errore;
+    private string _caricato = "";
+
+    protected override void OnInitialized() =>
+        _unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // ⚠️ La guardia sta PRIMA dell'await, e su una chiave che comprende la modalità: OnParametersSetAsync
+        // scatta a ogni ridisegno, e senza di essa due catene di caricamento si sovrappongono sullo stesso
+        // DbContext — «A second operation was started». Lo scope proprio protegge dagli ALTRI, non da sé.
+        var chiave = $"{Target}|{Key}|{IsEditing}";
+        if (_caricato == chiave) return;
+        _caricato = chiave;
+        await RicaricaAsync();
+    }
+
+    private async Task RicaricaAsync()
+    {
+        _unione = await _unioni.ForTargetAsync(Target, Key);
+        // I candidati servono solo a chi può premere, e costano una lettura dell'elenco unificato.
+        // ⚠️ Si chiedono a partire dall'OSPITE quando l'unione c'è già: chi arriva entra in coda a quella,
+        // non ne apre una seconda — ed è l'ospite a decidere chi è già dentro.
+        _candidati = !IsEditing
+            ? Array.Empty<UnionCandidate>()
+            : _unione is null
+                ? await _unioni.CandidatiPerTargetAsync(Target, Key)
+                : await _unioni.CandidatiAsync(_unione.Host.DocumentId);
+        _scelto = 0;
+    }
+
+    private Task Unisci() => EseguiAsync(async () =>
+    {
+        if (_scelto == 0) return;
+        var ospite = _unione?.Host.DocumentId ?? await _unioni.DocumentIdAsync(Target, Key) ?? 0;
+        if (ospite == 0) return;
+        await _unioni.UniscoAsync(ospite, _scelto);
+    });
+
+    private Task Sposta(UnionMemberView m, int delta) =>
+        EseguiAsync(() => _unioni.SpostaAsync(m.MemberId, delta));
+
+    private Task Togli(UnionMemberView m) =>
+        EseguiAsync(() => _unioni.RimuoviMembroAsync(m.MemberId));
+
+    private Task Sciogli() =>
+        EseguiAsync(() => _unione is null ? Task.CompletedTask : _unioni.SciogliAsync(_unione.Id));
+
+    /// <summary>
+    /// Un gesto sull'unione: esegue, racconta l'esito, ricarica, e avvisa l'host.
+    /// <para>⚠️ L'errore si MOSTRA. Una <c>ValidationException</c> qui dice cose che chi ha premuto deve
+    /// sapere — «questo documento è già unito ad altri» col nome di quali — e lasciarla cadere darebbe un
+    /// tasto che a volte non fa niente senza dire perché.</para>
+    /// </summary>
+    private async Task EseguiAsync(Func<Task> gesto)
+    {
+        if (_busy) return;
+        _busy = true;
+        _errore = null;
+        try
+        {
+            await gesto();
+            await RicaricaAsync();
+            await Changed.InvokeAsync();
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _errore = ex.Message; }
+        catch (EditNotAllowedException) { _errore = Sito["PageIntro_NotAllowed"]; }
+        finally { _busy = false; }
+    }
+}

@@ -1040,6 +1040,16 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
   .doc-layout{grid-template-columns:248px minmax(0,1fr) 308px}
   .doc-rail{display:block;position:sticky;top:84px;align-self:start}
 }
+/* ---- Il comando dell'unione, nell'editor (carta 2026-09-03) ------------------------------------
+   L'elenco NUMERATO non e' un vezzo: l'ordine dei membri e' proprio la cosa che si sta decidendo, e i
+   numeri lo dicono senza doverlo leggere nelle frecce. */
+.union-list{margin:0 0 12px;padding-left:22px}
+.union-list li{padding:4px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.union-list .muted{font-family:var(--font-mono);font-size:12px}
+.union-cmds{display:inline-flex;gap:4px;margin-left:auto}
+.union-cmds .btn{padding:2px 8px;line-height:1.4}
+.union-add{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.union-add select{min-width:min(420px,100%)}
 /* ---- Documenti UNITI (carta 2026-09-03): piu' documenti in una pagina sola ----------------------
    Ogni membro non-ospite porta la propria intestazione. Non e' decorazione: le sezioni con la STESSA
    chiave restano tutte e due -- «Frequenze ATC/CRC» di un vSOP militare e «Frequenze» di un

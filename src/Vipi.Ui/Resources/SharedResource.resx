@@ -3171,4 +3171,23 @@
   <data name="Imp_ImportAppend" xml:space="preserve"><value>Aggiungi {0} righe in coda</value></data>
   <data name="Imp_ImportReplace" xml:space="preserve"><value>Sostituisci con {0} righe</value></data>
   <data name="Imp_Skipped" xml:space="preserve"><value>{0} righe restano fuori</value></data>
+  <data name="Union_Title" xml:space="preserve"><value>Documenti uniti</value></data>
+  <data name="Union_Help" xml:space="preserve"><value>Unire due o più documenti vuol dire leggerli in una pagina sola e pubblicarli con un clic. Restano documenti separati: si sciolgono quando si vuole, senza perdere niente.</value></data>
+  <data name="Union_None" xml:space="preserve"><value>Questo documento si legge da solo.</value></data>
+  <data name="Union_Members" xml:space="preserve"><value>Nell'unione, in ordine</value></data>
+  <data name="Union_Host" xml:space="preserve"><value>ospite</value></data>
+  <data name="Union_HostHint" xml:space="preserve"><value>La pagina unita vive all'indirizzo dell'ospite: gli altri ci reindirizzano.</value></data>
+  <data name="Union_AddLabel" xml:space="preserve"><value>Unisci a</value></data>
+  <data name="Union_AddAction" xml:space="preserve"><value>Unisci</value></data>
+  <data name="Union_SameAirport" xml:space="preserve"><value>stesso scalo</value></data>
+  <data name="Union_NoCandidates" xml:space="preserve"><value>Nessun documento da unire: gli altri sono già uniti altrove, oppure sono di una famiglia che non si può ancora unire.</value></data>
+  <data name="Union_MoveUp" xml:space="preserve"><value>Sposta su</value></data>
+  <data name="Union_MoveDown" xml:space="preserve"><value>Sposta giù</value></data>
+  <data name="Union_Remove" xml:space="preserve"><value>Togli dall'unione</value></data>
+  <data name="Union_RemovePrompt" xml:space="preserve"><value>Questo documento torna alla sua pagina. Se nell'unione resta un membro solo, l'unione si scioglie.</value></data>
+  <data name="Union_RemoveYes" xml:space="preserve"><value>Togli</value></data>
+  <data name="Union_Dissolve" xml:space="preserve"><value>Sciogli l'unione</value></data>
+  <data name="Union_DissolvePrompt" xml:space="preserve"><value>I documenti tornano alle loro pagine e alle loro pubblicazioni. Non si perde niente di quel che c'è scritto.</value></data>
+  <data name="Union_DissolveYes" xml:space="preserve"><value>Sciogli</value></data>
+  <data name="Union_EditToChange" xml:space="preserve"><value>Per cambiare l'unione, entra in modifica.</value></data>
 </root>

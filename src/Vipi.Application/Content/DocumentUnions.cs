@@ -95,6 +95,19 @@ public interface IDocumentUnionService
     /// <summary>I documenti che si possono unire a questo: famiglia ammessa, non già uniti altrove, non sé
     /// stesso. Quelli dello <b>stesso scalo</b> per primi.</summary>
     Task<IReadOnlyList<UnionCandidate>> CandidatiAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary><inheritdoc cref="CandidatiAsync" path="/summary"/> Per famiglia e chiave, che è quel che
+    /// una pagina ha in mano.</summary>
+    Task<IReadOnlyList<UnionCandidate>> CandidatiPerTargetAsync(ReleaseTargetType type, string key,
+                                                                CancellationToken ct = default);
+
+    /// <summary>
+    /// L'id del documento di questa famiglia e questa chiave, o null.
+    /// <para>⚠️ È la sola porta che una pagina deve usare per la domanda «qual è il mio documento»: dietro
+    /// c'è <c>IReleaseTarget.ResolveDocumentIdAsync</c>, cioè la risoluzione che esiste già. Le prime cinque
+    /// scritte a mano hanno insegnato come vanno a finire.</para>
+    /// </summary>
+    Task<int?> DocumentIdAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IDocumentUnionService"/>
@@ -148,8 +161,24 @@ public sealed class DocumentUnionService : IDocumentUnionService
     {
         // ⚠️ Un bersaglio senza documento non è un errore: un aeroporto senza vIPI, un APP mai scritto. La
         // risposta è «nessuna unione», che è quel che il chiamante deve sapere.
+        var id = await DocumentIdAsync(type, key, ct).ConfigureAwait(false);
+        return id is null ? null : await ForDocumentAsync(id.Value, ct).ConfigureAwait(false);
+    }
+
+    public async Task<int?> DocumentIdAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
+    {
         var id = await _targets.For(type).ResolveDocumentIdAsync(key, ct).ConfigureAwait(false);
-        return id is null or 0 ? null : await ForDocumentAsync(id.Value, ct).ConfigureAwait(false);
+        // ⚠️ Lo zero non è un id: è quel che tornano le proiezioni EF su `int?` quando la riga non c'è e
+        // il campo è un `int` non nullabile a valle. Trattarlo come un documento porterebbe a cercare
+        // un'unione del documento #0.
+        return id is null or 0 ? null : id;
+    }
+
+    public async Task<IReadOnlyList<UnionCandidate>> CandidatiPerTargetAsync(
+        ReleaseTargetType type, string key, CancellationToken ct = default)
+    {
+        var id = await DocumentIdAsync(type, key, ct).ConfigureAwait(false);
+        return id is null ? Array.Empty<UnionCandidate>() : await CandidatiAsync(id.Value, ct).ConfigureAwait(false);
     }
 
     public async Task<int> UniscoAsync(int ospiteDocumentId, int invitatoDocumentId, CancellationToken ct = default)

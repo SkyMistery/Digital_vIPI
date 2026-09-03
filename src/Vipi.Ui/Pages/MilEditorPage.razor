@@ -136,6 +136,11 @@ else
                 </RightRail>
                 <AfterSections>
                     @* L'ancora `sec-versioni` è la stessa nei cinque editor: è dove atterra «Ripubblica». *@
+                    @* L'unione dei documenti (carta 2026-09-03): sopra il pannello di pubblicazione,
+                       perché e' cio' che decide QUANTI documenti quel tasto pubblichera'. *@
+                    <UnionPanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
+                                IsEditing="_shell.IsEditing" Changed="LoadAsync" />
+
                     <div id="sec-versioni">
                         <ReleasePanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
                                       ShowDiff="true" AllowCancel="Authz.IsEditor"

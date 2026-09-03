@@ -132,6 +132,11 @@ else
                     @* ⚠️ L'ancora `sec-versioni` è la stessa nei QUATTRO editor: è dove atterra «Ripubblica» dalla lista
                        «Da fare» (carta 2026-08-26-da-fare-una-lista-sola.md §3). Un editor lungo, aperto in cima, chiede a chi
                        ci arriva di cercare il pannello che gli è stato promesso. *@
+                    @* L'unione dei documenti (carta 2026-09-03): sopra il pannello di pubblicazione,
+                       perché e' cio' che decide QUANTI documenti quel tasto pubblichera'. *@
+                    <UnionPanel Target="ReleaseTargetType.App" Key="@_app"
+                                IsEditing="_shell.IsEditing" Changed="LoadAsync" />
+
                     <div id="sec-versioni">
                         <ReleasePanel Target="ReleaseTargetType.App" Key="@_app"
                                       ShowDiff="true" AllowCancel="Authz.IsEditor"
