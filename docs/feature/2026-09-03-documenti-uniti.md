@@ -353,19 +353,32 @@ mandava fuori due. ⚠️ **È la terza volta in questo giro che lo stesso conte
 dell'annullamento prima sottostimava, poi sovrastimava, e qui taceva del tutto. Corretto: la domanda e il
 titolo del «pubblica al ciclo» passano da `AvvisoUnione(d)`, che conta da `Unito(d)`.
 
-### ⚠️ Quel che NON si è potuto guidare, e perché
+### ✅ E anche la §5, al secondo tentativo — con la domanda giusta all'attrezzo
 
-La **§5** — l'avviso «sezioni non salvate» di un membro — **non è stata provata a schermo**. Il conto
-`_dirtySections` segue le **tabelle** (quote, piste, frequenze, SID) e non i paragrafi, e nessun modo di
-scriverci dentro dal driver l'ha fatto salire: né gli eventi fabbricati, né i tasti veri col blur.
+Al primo giro la §5 non era uscita: nessun modo di scrivere in una tabella faceva salire `_dirtySections`.
+La prova di **controllo** diceva che sbagliava l'attrezzo (sull'ospite, dove quella guardia esiste da prima
+di questo lavoro, il contatore restava a zero identicamente) ma non diceva *cosa*.
 
-🔴 **Ma la prova di controllo dice che l'attrezzo sbaglia, non la correzione**: la stessa scrittura
-sull'**ospite** di LIBA — dove quella guardia esiste da prima di questo lavoro — lascia il contatore a
-`Save all (0)` identicamente. Un difetto che si riproduce anche dove il codice non è stato toccato non è
-del codice. È la regola già scritta per `probe.js`: **quando un numero accusa qualcosa che sta lì da mesi,
-il sospetto va prima allo strumento.** La §5 resta coperta da `GuardiaDiPrepubblicazioneTests`, che è un
-controllo sul **sorgente** — e lo è apposta, perché una guardia che nessuno passa non fallisce nessun
-render: non fa semplicemente niente.
+🔴 **La domanda giusta era: esiste un gesto che sporca in modo DETERMINISTICO?** Sì: «+ Row» chiama
+`OnChanged` direttamente, senza passare da nessun evento del browser. Premuto: **`Save all (1)`**. Quindi il
+collegamento c'era e a non arrivare era la *scrittura* — né gli eventi fabbricati né i tasti veri col blur
+attraversano il binding di quel campo dal driver.
+
+⚠️ **La lezione non è «l'attrezzo sbagliava»** — quella si sapeva già. È che davanti a un gesto che non
+fa niente conviene cercare **l'altro gesto che fa la stessa cosa per una strada più corta**: separa
+«l'attrezzo non arriva» da «il collegamento non c'è» in un colpo, mentre la prova di controllo li lascia
+tutti e due in piedi.
+
+Con quel gesto la §5 si guida, e va nei due versi:
+
+| Passo | Esito |
+|---|---|
+| «+ Row» nelle quote di transizione **del membro**, poi «Publish now» **dall'ospite** | *«Unsaved changes in: Quote di transizione. They will not enter the release. Continue?»* — la domanda viene dal MEMBRO, sollevata dal tasto dell'ospite |
+| Rifiutando | **nessuna** release creata (16 prima, 16 dopo): il no di un membro ferma tutta l'unione |
+| Accettando | la coppia **75/76**, stesso ciclo, `ReleaseEffectiveUtc` identico |
+
+ℹ️ E un pezzo di prova arrivato per caso: i sei tentativi falliti avevano pubblicato sei volte, e in
+archivio sono **sei coppie perfette, mai un orfano**.
 
 ## §8 — La seconda richiesta: vIPI + vSOP sui campi con presenza militare ✅
 

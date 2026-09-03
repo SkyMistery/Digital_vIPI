@@ -84,6 +84,18 @@ Rispondi a queste quattro PRIMA di scrivere. Se una non ha risposta pulita, il d
   volte.)
 - ⚠️ **Finché non ha un nome non si tocca niente.** Una correzione a un difetto che non si sa nominare è
   solo un altro cambiamento — e il verde che segue non è una prova.
+- ✅ **Quando il nome c'è, la strada si MISURA — non si sceglie.** Un test che compra tempo di orologio a
+  credito può cadere per più vie, e a occhio se ne indovina quella sbagliata. Il modo: una misura
+  **temporanea** nel progetto di test che ripete il corpo qualche centinaio di volte **sotto zavorra
+  artificiale del thread pool** e stampa la distribuzione degli esiti. Poi si toglie.
+  (3 settembre 2026, `DelayedUiActionTests.La_nuova_annulla_la_precedente`: 300 giri × 2, l'esito sbagliato
+  era `0` in **109 e 106 giri su 300** e quello che avevo dato per più probabile — `2` — **non è mai
+  comparso in 600 giri**. Il ragionamento a priori aveva scelto la via sbagliata; la misura no.)
+- ⚠️ **E la forma nuova si prova con una MUTAZIONE**, o si è solo tolto il rosso: si rompe di proposito
+  la cosa che il test difende e si controlla che diventi rosso. 🔴 Nello stesso giro la mutazione ha
+  rivelato che il test — vecchio **e** nuovo — ha un punto cieco inerente: provare che una cosa <i>non</i> è
+  successa vuole un'attesa, e sotto fame di thread nessuna attesa basta sempre. Va **scritto nel test**,
+  non scoperto dal prossimo.
 - **Guardare fuori dal processo.** Un caso non era né nel codice né nei test: era il **registro eventi di
   Windows**, un provider di log che `WebApplication.CreateBuilder` aggiunge da sé e che nessuno aveva
   scelto. Si è visto con `Get-WinEvent` — **535 voci in tre ore di suite** — non leggendo sorgenti. La
