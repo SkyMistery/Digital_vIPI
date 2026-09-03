@@ -41,7 +41,7 @@ else
             </div>
             <div>
                 <PrintMeta Title="@_doc.DisplayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
-                           AiracCycle="@Cycle()" Coverage="_doc.Copertura" />
+                           AiracCycle="@Cycle()" Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
                 <div class="doc-head">
                     @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
                        documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
@@ -49,8 +49,12 @@ else
                     @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
                     <div>
                         <h1 class="page-h1" style="margin-bottom:2px">@_doc.DisplayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
-                        <span class="muted">@_app · @Sito["Appn_Subtitle"]</span>
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /></div>
+                        <div class="sub-line">
+                            <span class="muted">@_app · @Sito["Appn_Subtitle"]</span>
+                            <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+                        </div>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_doc.Bloccata" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -69,15 +73,8 @@ else
                 }
                 <div class="callout info"><span class="cic"><Icon Name="radio" Size="18" /></span><div><p class="ct">@Sito["Appn_InfoTitle"]</p>@Sito["Appn_InfoBody"]</div></div>
 
-                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
-                   perché il flag è per-sezione e l'editor lo offre ovunque. *@
-                <AudienceChip Visibile="_doc.HaMarcate" Vista="_doc.Vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
-
-                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
-                @* Il contrario: NON tradotto, e voluto. *@
-                <LinguaBloccataNotice Lingua="@_doc.Bloccata" />
-
+                @* ⚠️ Cartelli e filtro di lettura stanno nella TESTATA: vedi la `.sub-line` e la
+                   `.sim-line` piu' sopra. *@
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <AppDocumentBody Doc="_doc" />

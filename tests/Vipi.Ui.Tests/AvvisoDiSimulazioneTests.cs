@@ -144,6 +144,9 @@ public sealed class AvvisoDiSimulazioneTests
     {
         using var ctx = new TestContext();
         ctx.Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeTesto());
+        // ⚠️ PrintMeta chiede ANCHE `StringheDelSito`: la riga «documento in una lingua sola» segue chi
+        //    GUARDA, non il documento, ed è l'unica di questa intestazione che lo fa.
+        ctx.Services.AddSingleton<Vipi.Ui.StringheDelSito>();
 
         var cut = ctx.RenderComponent<PrintMeta>(p => p
             .Add(x => x.Title, "LIRF — Roma Fiumicino")

@@ -14,13 +14,22 @@
     <DocumentToc Sections="View.Sections" IsDraft="IsDraft" SlotsOf="SenzaDirezioni" />
 
     <div>
-        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage" />
+        <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage"
+                   Bloccata="@Bloccata" />
         <div class="doc-head">
             <div>
                 <h2 style="margin-bottom:2px">@View.Title</h2>
                 @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
-                <span class="muted">@SubtitleOrDefault()</span>
-                <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /></div>
+                @* ⚠️ La chip di lettura e il gettone della lingua arrivano dalla PAGINA e si disegnano qui,
+                   dal 3 settembre 2026: la testata sta in questo componente, e i due cartelli lasciati fuori
+                   restavano due blocchi fra la briciola e il documento. La pagina resta l'unica a sapere
+                   quali parametri della propria rotta vanno conservati nell'indirizzo del filtro. *@
+                <div class="sub-line">
+                    <span class="muted">@SubtitleOrDefault()</span>
+                    <AudienceChip Compatto="true" Visibile="AudienceVisibile" Vista="AudienceVista"
+                                  BaseHref="@(AudienceHref ?? "")" />
+                </div>
+                <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /> <LinguaBloccataNotice Lingua="@Bloccata" Compatto="true" /></div>
             </div>
             <div style="display:flex;align-items:center;gap:10px">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
@@ -69,6 +78,19 @@
 
 @code {
     [Parameter, EditorRequired] public DocumentView View { get; set; } = default!;
+
+    /// <summary>Il codice della lingua in cui il documento e' bloccato («it»/«en»), null se non lo e'.
+    /// ⚠️ Va anche a <c>PrintMeta</c>: il gettone sta in <c>.doc-head</c>, che sul foglio e' nascosto.</summary>
+    [Parameter] public string? Bloccata { get; set; }
+
+    /// <summary>Vero se il documento ha almeno una sezione marcata pilota/ATC: senza, niente chip.</summary>
+    [Parameter] public bool AudienceVisibile { get; set; }
+
+    /// <summary>La vista di lettura corrente; null = «tutto».</summary>
+    [Parameter] public SectionAudience? AudienceVista { get; set; }
+
+    /// <summary>L'indirizzo della pagina SENZA <c>vista</c>, per i tre link della chip.</summary>
+    [Parameter] public string? AudienceHref { get; set; }
 
     /// <summary>Sottotitolo sotto il titolo (es. "Roma ACC ↔ Tunis ACC"). Default: "Letter of Agreement (EN)".</summary>
 

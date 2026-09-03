@@ -875,6 +875,18 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* La CHIP «Tutto · Pilota · ATC» sopra il documento: tre collegamenti, non tre bottoni (vedi il commento
    sul componente). Qui serve solo tenerli in riga e staccarli dal testo che segue. */
 .aud-chip{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
+/* La stessa chip IN TESTATA (AudienceChip Compatto="true"), 3 settembre 2026: sta in coda al sottotitolo,
+   non in un blocco suo sopra il documento. Richiesta del committente sul vSOP militare ed estesa a tutte e
+   cinque le famiglie — un filtro di lettura che occupa una riga intera prima del documento e' un'altra
+   riga fra chi legge e cio' che e' venuto a leggere.
+   ⚠️ `inline-flex` e non `flex`: dentro `.doc-head` la riga del sottotitolo e' testo, e un blocco la
+   spezzerebbe in due. `vertical-align:middle` perche' i tre link sono piu' alti del testo muted accanto.
+   ⚠️ Su schermo stretto va a capo INTERA (`.sub-line` avvolge), non tre link uno sotto l'altro. */
+.aud-chip.inline{display:inline-flex;margin:0 0 0 10px;vertical-align:middle;gap:4px}
+.aud-chip.inline .btn{padding:1px 9px;font-size:11.5px;line-height:1.7;font-weight:600}
+/* La riga del sottotitolo quando porta anche la chip: il testo e i tre link stanno insieme, e vanno a capo
+   come un blocco solo. */
+.sub-line{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
 
 /* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
 .tok-set{display:inline-flex;gap:2px;flex-wrap:wrap}
@@ -1136,6 +1148,17 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* ⚠️ Il popover del «?» non eredita il nowrap del gettone: senza questo la frase lunga uscirebbe su una
    riga sola larga quanto la finestra. */
 .tr-chip .help-pop{white-space:normal;font-weight:400}
+/* IL GETTONE «SOLO IN UNA LINGUA» (LinguaBloccataNotice Compatto="true"), 3 settembre 2026. Stessa forma
+   del gettone di traduzione e stesso posto — la riga sotto il titolo — perche' i due dicono cose vicine e
+   non devono sembrare due meccanismi diversi.
+   ⚠️ BLU e non giallo: in quella riga il rosso e' dell'avviso di simulazione e il giallo del «tradotta a
+   macchina». Questa non e' un'avvertenza, e' un'informazione — il documento e' scritto in una lingua sola
+   perche' cosi' si e' voluto. Un terzo colore d'allarme accanto agli altri due li spegnerebbe entrambi.
+   ⚠️ I due gettoni non compaiono mai insieme (un documento bloccato non ha traduzione da dichiarare), ma la
+   riga e' la stessa: allineamento e nowrap sono quelli di `.tr-chip`, e il popover del «?» torna a capo. */
+.lang-chip{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin-left:4px;padding:1px 7px;border-radius:999px;background:var(--tint-blue);border:1px solid var(--ivao-info);color:var(--info-ink);font-weight:600;white-space:nowrap}
+.lang-chip .tr-hh>summary{color:var(--info-ink)}
+.lang-chip .help-pop{white-space:normal;font-weight:400}
 .struct-nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;max-width:560px}
 .struct-nav .btn{padding:7px 12px;font-size:12.5px;white-space:nowrap}
 .doc card,.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}

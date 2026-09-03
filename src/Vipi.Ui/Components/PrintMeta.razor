@@ -9,6 +9,7 @@
    'beforeprint' (span [data-print-time]), così una pagina rimasta aperta a lungo non stampa un orario vecchio. *@
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
 
 <div class="print-only print-meta">
     @* ⚠️ Un <p> e non un <h1>: dal 23 agosto 2026 la testata di pagina È un <h1> vero, e si stampa insieme
@@ -35,6 +36,19 @@
     @if (Coverage.Segmenti > 0 && !Coverage.Completa)
     {
         <p class="pm-tr">@L["Tr_NoticePartial", Coverage.Mancanti, Coverage.Segmenti]</p>
+    }
+    @* ⚠️ E il suo opposto: NON tradotto, ed e' voluto. Dal 3 settembre 2026 a schermo e' un gettone dentro
+       `.doc-head`, quindi vale la STESSA trappola dei due avvisi qui sopra — senza questa riga il foglio di
+       un documento a lingua bloccata non direbbe in che lingua e' scritto, e su carta non c'e' nessun «?»
+       da aprire. Testo per esteso, quindi.
+       ⚠️ `Sito` e non `L`: questa nota segue chi GUARDA, non il documento (vedi LinguaBloccataNotice). E'
+       l'unica riga di questa intestazione che lo fa, e la ragione e' che e' l'unica scritta per spiegare
+       perche' il resto del foglio non e' nella lingua di chi legge. *@
+    @if (Bloccata is { Length: > 0 } lingua)
+    {
+        <p class="pm-lang" lang="@Vipi.Application.Content.LinguaDiLettura.DelLettore()">
+            @Sito["Lang_LockedTitle"] — @Sito.Formatta("Lang_LockedBody", NomeLingua(lingua))
+        </p>
     }
     <p class="pm-line">
         @if (!string.IsNullOrWhiteSpace(AiracCycle))
@@ -65,4 +79,17 @@
     /// </summary>
     [Parameter] public Vipi.Application.Translation.TranslationCoverage Coverage { get; set; }
         = Vipi.Application.Translation.TranslationCoverage.Nessuna;
+
+    /// <summary>
+    /// La lingua in cui il documento e' bloccato («it»/«en»), o null se non lo e'.
+    /// <para>⚠️ Va passata da <b>ogni</b> pagina che mostra <c>LinguaBloccataNotice</c> in forma compatta
+    /// dentro <c>.doc-head</c>, per la stessa ragione di <c>Coverage</c>: quella riga sul foglio non c'e'.
+    /// Il default (null) non stampa niente, quindi una pagina che non la passa resta come prima.</para>
+    /// </summary>
+    [Parameter] public string? Bloccata { get; set; }
+
+    /// <summary>Il nome della lingua detto a chi legge il foglio; le due chiavi sono quelle del gettone a
+    /// schermo, cosi' carta e schermo non divergono al primo ritocco.</summary>
+    private string NomeLingua(string codice) =>
+        Sito[codice.Equals("en", StringComparison.OrdinalIgnoreCase) ? "Lang_NameEn" : "Lang_NameIt"];
 }

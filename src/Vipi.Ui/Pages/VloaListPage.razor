@@ -42,17 +42,16 @@ else if (_foreign.Length > 0)
                                PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")"
                                DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}&as=draft")" />
             }
-            <AudienceChip Visibile="_haMarcate" Vista="_vista"
-                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}")" />
-            @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, che è dentro VloaDocumentView: la
-               copertura si passa a lui, non si disegna qui. *@
-            <LinguaBloccataNotice Lingua="@_bloccata" />
+            @* ⚠️ Chip di lettura, «tradotto a macchina» e «una lingua sola» stanno tutti nella riga sotto il
+               titolo, che è dentro VloaDocumentView: qui si passano i dati, non si disegna niente. *@
             @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
             <div lang="@_bloccata">
                 <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
                                   ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
                                   Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign"
-                                  Coverage="_copertura" />
+                                  Coverage="_copertura" Bloccata="@_bloccata"
+                                  AudienceVisibile="_haMarcate" AudienceVista="_vista"
+                                  AudienceHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
             </div>
         </div>
     }

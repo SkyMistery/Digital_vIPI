@@ -114,6 +114,9 @@
      si stamperebbe senza dirlo — ed e' l'avviso che conta di piu' proprio su carta, dove chi legge non ha
      nessun «?» da aprire e nessun originale a portata di clic. Per questo qui il testo va per ESTESO. */
   .vipi-root .print-meta .pm-tr { margin: 2px 0 0; font-size: 8.5pt; font-weight: 600; color: var(--warn-ink); }
+  /* «Documento in una lingua sola»: stessa trappola, stessa cura (3 settembre 2026). Non e' un'avvertenza,
+     quindi niente colore d'allarme — sul foglio e' una riga di contesto come il sottotitolo. */
+  .vipi-root .print-meta .pm-lang { margin: 2px 0 0; font-size: 8.5pt; color: var(--ink-strong); }
 
   /* ⚠️ `position:fixed` E' IL MECCANISMO CHE RIPETE LA RIGA SU OGNI FOGLIO. Non e' un ripiego di stile:
      le margin box di `@page` (`@bottom-center{content:...}`) non le implementa nessun browser, e l'unica

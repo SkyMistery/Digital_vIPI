@@ -18,7 +18,11 @@
 
 @if (Visibile)
 {
-    <nav class="aud-chip" aria-label="@Sito["Aud_ChipAria"]">
+    @* ⚠️ `lang` esplicito: le tre etichette vengono da `Sito`, cioe' dalla lingua di CHI GUARDA, e in
+       forma compatta la chip finisce dentro un contenitore marcato con la lingua del DOCUMENTO (sulla vLOA
+       il `<div lang="...">` avvolge tutta la testata). Senza, uno screen reader leggerebbe «Everything»
+       con la pronuncia italiana. *@
+    <nav class="aud-chip@(Compatto ? " inline" : "")" lang="@SiteLang()" aria-label="@Sito["Aud_ChipAria"]">
         <a class="btn ghost @(Vista is null ? "on" : "")" href="@Href(null)"
            aria-current="@(Vista is null ? "true" : null)">@Sito["Aud_All"]</a>
         <a class="btn ghost @(Vista == SectionAudience.Pilots ? "on" : "")" href="@Href(SectionAudience.Pilots)"
@@ -32,6 +36,14 @@
     /// <summary>Vero se il documento ha almeno una sezione marcata. Falso = la chip non si disegna.</summary>
     [Parameter, EditorRequired] public bool Visibile { get; set; }
 
+    /// <summary>
+    /// In coda al sottotitolo invece che in un blocco suo sopra il documento (3 settembre 2026).
+    /// <para>⚠️ Chi la mette in testata la mette DENTRO <c>.doc-head</c>, che sul foglio e' nascosto: qui non
+    /// si perde niente, perche' la chip in stampa era gia' nascosta apposta (<c>vipi-print.css</c>) — e' un
+    /// comando, non contenuto. Il BADGE sulle singole sezioni, che invece e' contenuto, si stampa.</para>
+    /// </summary>
+    [Parameter] public bool Compatto { get; set; }
+
     /// <summary>La vista corrente; null = «tutto».</summary>
     [Parameter] public SectionAudience? Vista { get; set; }
 
@@ -39,6 +51,9 @@
     /// <para>⚠️ Deve arrivare già ripulito dal chiamante, che è l'unico a sapere quali altri parametri
     /// della sua pagina vanno conservati — <c>?acc=</c> su una vLOA, <c>?as=draft</c> in anteprima.</para></summary>
     [Parameter, EditorRequired] public string BaseHref { get; set; } = "";
+
+    /// <summary>La lingua del sito: le etichette della chip sono arredamento, non documento.</summary>
+    private static string SiteLang() => Vipi.Application.Content.LinguaDiLettura.DelLettore();
 
     private string Href(SectionAudience? v)
     {

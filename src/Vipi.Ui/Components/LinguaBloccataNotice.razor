@@ -11,23 +11,53 @@
    una macchina», qui «questa pagina NON è tradotta, ed è voluto». TranslationNotice si spegne da sé su un
    documento bloccato, perché la copertura è zero segmenti.
 
+   ⚠️ DUE FORME, e la seconda è nata il 3 settembre 2026 dalla stessa ragione del gettone di traduzione: il
+   riquadro pieno stava sopra il documento e costava una riga di titolo più due di prosa per dire una cosa
+   che si riassume in due parole. La forma COMPATTA è un gettone nella riga sotto il titolo, accanto
+   all'avviso di simulazione, e la frase per esteso sta nel «?».
+
+   ⚠️ IL PATTO DELLA FORMA COMPATTA: il gettone sta dentro `.doc-head`, e `.doc-head` sul foglio è NASCOSTO
+   (`vipi-print.css`). Chi lo usa deve passare la stessa lingua a `PrintMeta`, che sulla carta la scrive per
+   esteso. È lo stesso inciampo già pagato con l'avviso di simulazione e col gettone di traduzione; qui lo
+   pretende `AvvisoLinguaBloccataSuOgniSedeTests`.
+
    Nessun @rendermode: è testo, quindi SSR statico come il resto del chrome. *@
 
 @if (Lingua is { Length: > 0 } lingua)
 {
-    <div class="callout tr-notice" lang="@SiteLang()">
-        <span class="cic"><Icon Name="info" Size="18" /></span>
-        <div>
-            <p class="ct">@Sito["Lang_LockedTitle"]</p>
-            <p>@Sito.Formatta("Lang_LockedBody", NomeLingua(lingua))</p>
+    if (Compatto)
+    {
+        @* ⚠️ Blu e non giallo: in questa riga il rosso è dell'avviso di simulazione e il giallo del gettone
+           «tradotta a macchina». Un terzo colore d'allarme accanto agli altri due non allarmerebbe nessuno —
+           e questa non è un'avvertenza, è un'informazione: il documento è com'è voluto. *@
+        <span class="tr-notice lang-chip" lang="@SiteLang()">
+            <Icon Name="globe" Size="13" />
+            <span>@Sito.Formatta("Lang_LockedChip", NomeLingua(lingua))</span>
+            <HelpHint AriaLabel="@Sito["Lang_LockedTitle"]" Size="13" ExtraClass="tr-hh">
+                <p>@Sito.Formatta("Lang_LockedBody", NomeLingua(lingua))</p>
+            </HelpHint>
+        </span>
+    }
+    else
+    {
+        <div class="callout tr-notice" lang="@SiteLang()">
+            <span class="cic"><Icon Name="info" Size="18" /></span>
+            <div>
+                <p class="ct">@Sito["Lang_LockedTitle"]</p>
+                <p>@Sito.Formatta("Lang_LockedBody", NomeLingua(lingua))</p>
+            </div>
         </div>
-    </div>
+    }
 }
 
 @code {
     /// <summary>Il codice della lingua in cui il documento è bloccato («it»/«en»); null = non bloccato,
     /// niente avviso.</summary>
     [Parameter] public string? Lingua { get; set; }
+
+    /// <summary>Gettone da riga di testata invece del riquadro pieno. ⚠️ Dentro <c>.doc-head</c> il gettone
+    /// <b>non si stampa</b>: chi lo usa lì deve passare la stessa lingua a <c>PrintMeta</c>.</summary>
+    [Parameter] public bool Compatto { get; set; }
 
     /// <summary>La lingua in cui il documento è pubblicato, detta nella lingua di chi legge: «inglese» a un
     /// italiano, «English» a un inglese. Due chiavi e non un nome di cultura, perché

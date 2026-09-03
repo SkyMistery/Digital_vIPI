@@ -7499,3 +7499,71 @@ da `NewDocumentPage`, con la stessa riga di risoluzione.
   sposta fra la misura delle coordinate e il clic. Le coordinate si rileggono **dopo** l'ultimo movimento,
   da uno screenshot fresco — la regola era già scritta in `.claude/skills/verifica-live` §4-bis, ed è
   costata tre gesti a vuoto per averla applicata a metà.
+
+## BB. La testata si compatta: la chip nel sottotitolo, la lingua a gettone — 3 settembre 2026
+
+🟡 **In lavorazione**, ramo `testata-compatta`. Nessuna carta: richiesta del committente, partita dal vSOP
+militare — *«nelle vsop militari non abbiamo compattato questa sezione come negli altri documenti … Voglio
+che appaia: Military Airport · &lt;ACC&gt; e i tasti everyone, pilot, atc; ONLY FOR SIMULATION … e accanto
+l'informazione sulla lingua»*. Estesa a **tutte e cinque** le famiglie su sua scelta esplicita.
+
+### Il fatto
+
+Sopra il documento stavano fino a **tre** cartelli: il titolo, un blocco di tre bottoni («Everything ·
+Pilot · ATC», `AudienceChip`) e un `callout` pieno a tutta larghezza — titolo più due righe di prosa — per
+dire che il documento è pubblicato in **una lingua sola**. È lo stesso problema chiuso il 2 settembre per
+l'avviso di traduzione (§AT), rimasto aperto per gli altri due elementi della stessa riga.
+
+⚠️ E il vSOP militare era il caso peggiore: **l'unica delle cinque testate senza sottotitolo**, quindi
+titolo nudo, blocco di bottoni, riquadro.
+
+### La forma nuova, uguale sulle cinque famiglie
+
+- **`.sub-line`** — sottotitolo e chip di lettura sulla stessa riga (`AudienceChip Compatto="true"`, classe
+  `.aud-chip.inline`). Sul telefono la riga va a capo **intera**: i tre link restano insieme.
+- **`.sim-line`** — l'avviso di simulazione, il gettone «tradotta a macchina» e il nuovo gettone della
+  lingua (`LinguaBloccataNotice Compatto="true"`, classe `.lang-chip`), col testo per esteso dietro il «?».
+- Il vSOP militare ha finalmente il suo sottotitolo: **«Aeroporto militare · &lt;nome ACC&gt;»**, gemello di
+  «Aeroporto · &lt;nome ACC&gt;» della vIPI civile dello stesso scalo. La pagina ora risolve l'ACC per il
+  **nome** (`IStationResolver`), non solo per il codice della rotta. `Mil_PrintSubtitle` è morta con questo:
+  a schermo e sul foglio il sottotitolo è **uno**.
+
+⚠️ **Il gettone della lingua è BLU**, non giallo e non rosso: in quella riga il rosso è dell'avviso di
+simulazione e il giallo del «tradotta a macchina». E questa non è un'avvertenza — è un'informazione, il
+documento è in una lingua sola perché **così si è voluto**. Un terzo colore d'allarme avrebbe spento gli
+altri due. Contrasto misurato: **5,1:1** chiaro, **7,5:1** scuro.
+
+### ⚠️ La trappola di sempre, terza volta: `.doc-head` sul foglio NON esiste
+
+`vipi-print.css` nasconde `.print-meta + .doc-head`. Tutto quel che si sposta in testata **sparisce dalla
+stampa**, ed è già costato l'avviso di simulazione (§ 1 settembre) e il gettone di traduzione (§AT). Quindi
+`PrintMeta` ha ora una **terza** riga sua, `.pm-lang`, col testo per **esteso** — davanti a un foglio non
+c'è nessun «?» da aprire. Il patto è doppio e lo pretende `TestataCompattaSuOgniSedeTests`: **chi mostra il
+gettone passa la stessa lingua a `PrintMeta`**.
+
+⚠️ La chip pilota/ATC invece **non** ha bisogno del gemello di stampa: è un comando, e in stampa era già
+nascosta apposta. Ciò che resta sul foglio è il **badge** sulle singole sezioni, che è contenuto.
+
+⚠️ `PrintMeta` chiede ora anche `StringheDelSito`: la riga della lingua segue **chi guarda**, non il
+documento — è l'unica di quell'intestazione che lo fa, e la ragione è che è l'unica scritta per spiegare
+perché il resto del foglio non è nella lingua di chi legge.
+
+### 🔴 Quel che si è visto solo guidando la pagina
+
+**L'anteprima di BOZZA di una vIPI ACC bloccata non era bloccata.** `AccVipiPage` leggeva `Language` e
+`LanguageLocked` **solo** nel ramo della release: nel ramo bozza il modello li porta
+(`AccDocumentModel.Language/LanguageLocked`) e la pagina li buttava via. Conseguenze: nessun avviso, e la
+prosa **derivata** — frasi di coordinamento, etichette AoR, intestazioni — calcolata nella lingua di chi
+guarda invece che in quella del documento. Difetto **precedente** a questo lavoro, trovato perché il
+gettone mancava dove doveva esserci; una riga, nello stesso giro.
+
+### Verifica
+
+`dotnet build Vipi.slnx -c Release --no-incremental` verde (0 warning), suite intera verde (net8 + net10),
+**30 test nuovi** (`LinguaBloccataNoticeTests`, `TestataCompattaSuOgniSedeTests`).
+
+A schermo, su copia del `vipi.db` con quattro documenti bloccati a mano e sezioni marcate pilota/ATC: le
+**cinque** famiglie (vSOP militare LIBG, vIPI ACC Brindisi, aeroporto LIPA, vLOA LIBB↔LGGG, APP standalone
+LIBA_APP), in pubblico e in bozza, col filtro `?vista=` attivo, in tema chiaro e scuro, a 1600px e a 390px,
+più il PDF — che porta la riga `Single-language document — …` per esteso. Zero errori di console, zero
+riquadri pieni rimasti.

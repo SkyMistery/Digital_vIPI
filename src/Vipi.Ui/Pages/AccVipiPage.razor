@@ -48,15 +48,21 @@ else
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
-                           AiracCycle="@Cycle()" Coverage="_copertura" />
+                           AiracCycle="@Cycle()" Coverage="_copertura" Bloccata="@_bloccata" />
                 <div class="doc-head">
                     @* ⚠️ L'avviso di simulazione ha una RIGA PROPRIA, non la coda del sottotitolo: qui il
                        sottotitolo è lungo, e sottotitolo + avviso + gettone su una riga sola andavano a capo
                        in mezzo alla frase («…REAL LIFE / NAVIGATION»). Vedi `.sim-line`. *@
                     <div>
                         <h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1>
-                        <span class="muted">@Sito["AccVipi_Subtitle"]</span>
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
+                        @* La chip di lettura sta in coda al sottotitolo dal 3 settembre 2026: prima era un
+                           blocco di tre bottoni fra la testata e il documento. *@
+                        <div class="sub-line">
+                            <span class="muted">@Sito["AccVipi_Subtitle"]</span>
+                            <AudienceChip Compatto="true" Visibile="_haMarcate" Vista="_vista"
+                                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
+                        </div>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_bloccata" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -75,16 +81,10 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi?as=draft")" />
                 }
 
-                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
-                @* Il contrario: NON tradotto, e voluto. *@
-                <LinguaBloccataNotice Lingua="@_bloccata" />
-
-                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3). ⚠️ Vale su TUTTE le famiglie, non
-                   solo sul vSOP militare: il flag è per-sezione e l'editor lo offre ovunque, quindi una
-                   sezione marcata in una vIPI ACC deve poter essere filtrata dove si legge. La chip resta
-                   invisibile finché nessuno ha marcato niente. *@
-                <AudienceChip Visibile="_haMarcate" Vista="_vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
+                @* ⚠️ Tre cartelli — «tradotto a macchina», «una lingua sola» e il filtro pilota/ATC —
+                   stanno tutti nella TESTATA: vedi la `.sub-line` e la `.sim-line` piu' sopra. Il filtro
+                   vale su TUTTE le famiglie, non solo sul vSOP militare (il flag e' per-sezione e l'editor
+                   lo offre ovunque), e resta invisibile finche' nessuno ha marcato niente. *@
 
                 @* `lang` sul CONTENITORE dei blocchi: il chrome parla la lingua del sito, il documento la sua. *@
                 <div lang="@_bloccata">
@@ -216,7 +216,11 @@ else
         switch (_mode.Kind)
         {
             case PreviewKind.Draft:
-                try { var m = await AccDoc.LoadForEditAsync(Acc); _data = m.Data; _blocks = m.Blocks; }
+                // ⚠️ Lingua e blocco vanno presi ANCHE qui. Fino al 3 settembre 2026 li leggeva solo il ramo
+                //    della release: l'anteprima di BOZZA di una vIPI ACC bloccata si mostrava come se non lo
+                //    fosse — niente avviso, e la prosa derivata nella lingua di chi guarda invece che in
+                //    quella del documento. Visto a schermo guidando la pagina, non da un test.
+                try { var m = await AccDoc.LoadForEditAsync(Acc); _data = m.Data; _blocks = m.Blocks; _lingua = m.Language; _bloccato = m.LanguageLocked; }
                 catch (EditNotAllowedException) { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 catch (ValidationException) { _mode = default; LoadViewModel(await AccDoc.LoadForViewAsync(Acc)); }
                 break;

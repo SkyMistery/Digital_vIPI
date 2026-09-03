@@ -77,7 +77,8 @@ else
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
-                           AiracCycle="@(_doc.RelCycle ?? _doc.View.AiracCycle)" Coverage="_doc.Copertura" />
+                           AiracCycle="@(_doc.RelCycle ?? _doc.View.AiracCycle)" Coverage="_doc.Copertura"
+                           Bloccata="@_doc.Bloccata" />
                 <div class="doc-head">
                     <div>
                         <h2 style="margin-bottom:2px">
@@ -85,8 +86,12 @@ else
                             <MilitaryTag HasMilitaryPresence="_doc.MilitaryPresence" IsMilitaryOnly="_doc.MilitaryOnly" />
                         </h2>
                         @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
-                        <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name</span>
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /></div>
+                        <div class="sub-line">
+                            <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name</span>
+                            <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+                        </div>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_doc.Bloccata" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -104,15 +109,9 @@ else
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
 
-                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
-                @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
-                   perché il flag è per-sezione e l'editor lo offre ovunque. Invisibile finché nessuno ha
-                   marcato niente. *@
-                <AudienceChip Visibile="_doc.HaMarcate" Vista="_doc.Vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
-
-                <LinguaBloccataNotice Lingua="@_doc.Bloccata" />
-
+                @* ⚠️ Cartelli e filtro di lettura stanno nella TESTATA: vedi la `.sub-line` e la
+                   `.sim-line` piu' sopra. Il filtro pilota/ATC vale su tutte le famiglie, perche' il flag e'
+                   per-sezione e l'editor lo offre ovunque; invisibile finche' nessuno ha marcato niente. *@
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <AirportDocumentBody Doc="_doc" />

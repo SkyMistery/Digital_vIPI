@@ -6,6 +6,9 @@
 @inject NavigationManager Nav
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
+@* Il nome dell'ACC per il sottotitolo: la pagina aveva solo il CODICE della rotta, e «Aeroporto
+   militare · LIMM» non e' quel che dicono le altre quattro testate. *@
+@inject IStationResolver Stations
 @* ⚠️ Qui resta il solo `Sito`, cioè la lingua di chi GUARDA il sito: è l'arredamento della pagina.
    L'altro localizzatore — quello della lingua del DOCUMENTO, da cui passano le intestazioni delle tabelle
    del vSOP (ColonneNominativi, ColonneParcheggi) — sta in <MilDocumentBody>, insieme alle tabelle che
@@ -67,16 +70,25 @@
             </div>
 
             <div>
-                <PrintMeta Title="@_doc.View.Title" Subtitle="@Sito["Mil_PrintSubtitle"]" AiracCycle="@Cycle()"
-                           Coverage="_doc.Copertura" />
+                <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
+                           Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
                 <div class="doc-head">
                     <div>
-                        <h1 class="page-h1">@_doc.View.Title</h1>
-                        @* Il vSOP militare e' l'unico dei cinque senza una riga di sottotitolo, ed e' per
-                           questo che l'avviso qui si porto' per primo la propria riga. ⚠️ Dal 2 settembre
-                           2026 ce l'hanno TUTTE E CINQUE: appesa al sottotitolo, la riga andava a capo in
-                           mezzo alla frase dove il sottotitolo era lungo. *@
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /></div>
+                        <h1 class="page-h1" style="margin-bottom:2px">@_doc.View.Title</h1>
+                        @* ⚠️ Il sottotitolo e' arrivato il 3 settembre 2026: fino a quel giorno questa era
+                           l'UNICA delle cinque testate senza, e sopra il documento restavano una riga di
+                           titolo nuda, un blocco di tre bottoni e un riquadro pieno per dire in che lingua
+                           e' scritto. La chip di lettura sta ora in coda al sottotitolo e il riquadro e'
+                           diventato un gettone: tre righe sopra il documento sono tornate due. *@
+                        <div class="sub-line">
+                            <span class="muted">@Sottotitolo()</span>
+                            <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                                          BaseHref="@AudienceHref()" />
+                        </div>
+                        @* ⚠️ Dal 2 settembre 2026 la riga propria dell'avviso ce l'hanno TUTTE E CINQUE:
+                           appesa al sottotitolo, la riga andava a capo in mezzo alla frase dove il
+                           sottotitolo era lungo. *@
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_doc.Bloccata" Compatto="true" /></div>
                         @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
                            arrivare al civile senza tornare indietro di due pagine.
 
@@ -129,11 +141,8 @@
                     </div>
                 }
 
-                <AudienceChip Visibile="_doc.HaMarcate" Vista="_doc.Vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")" />
-                @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
-                <LinguaBloccataNotice Lingua="@_doc.Bloccata" />
-
+                @* ⚠️ Chip di lettura e gettone della lingua stanno nella TESTATA, non qui: vedi la
+                   `.sub-line` e la `.sim-line` piu' sopra. *@
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <MilDocumentBody Doc="_doc" />
@@ -191,12 +200,27 @@
     private string _icao = "";
     private bool _canEdit;
 
+    /// <summary>L'ACC della rotta, risolto per il NOME: la briciola e il rail si accontentano del codice,
+    /// il sottotitolo no. null = codice sconosciuto, e allora si scrive il codice.</summary>
+    private AccInfo? _acc;
+
     /// <summary>Il documento caricato — vista, modalità OTTENUTA, derivate, tabelle, stato della civile.
     /// null = questo campo non ha un vSOP militare da mostrare.</summary>
     private MilMemberDocument? _doc;
 
     /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
     private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
+
+    /// <summary>La riga sotto il titolo, la stessa a schermo e sul foglio: «Aeroporto militare · Milano»,
+    /// come «Aeroporto · Milano» sulla vIPI civile dello stesso scalo. ⚠️ Scritta una volta sola perche' le
+    /// due sedi non divergano al primo ritocco — sul foglio la testata a schermo non c'e'.</summary>
+    private string Sottotitolo() => $"{Sito["Mil_SubtitlePrefix"]} · {_acc?.Name ?? Acc.ToUpperInvariant()}";
+
+    /// <summary>L'indirizzo di questa pagina SENZA `vista`, per la chip di lettura. ⚠️ `as=draft` va
+    /// conservato: filtrare dentro un'anteprima non deve buttare fuori dall'anteprima.</summary>
+    private string AudienceHref() =>
+        $"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}"
+        + (_doc?.Mode.Kind == PreviewKind.Draft ? "&as=draft" : "");
 
     /// <summary>Il ciclo AIRAC MOSTRATO: quello dell'anteprima release se è una, altrimenti quello che si
     /// porta dietro lo snapshot del documento.</summary>
@@ -227,6 +251,7 @@
     protected override async Task OnParametersSetAsync()
     {
         _icao = (Icao ?? "").Trim().ToUpperInvariant();
+        _acc = Stations.Resolve(Acc);
         _doc = null;
         if (_icao.Length == 0) return;
 

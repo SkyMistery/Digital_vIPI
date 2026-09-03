@@ -2679,6 +2679,7 @@
   <data name="Lang_NameIt" xml:space="preserve"><value>Italian</value></data>
   <data name="Lang_NameEn" xml:space="preserve"><value>English</value></data>
   <data name="Lang_LockLabel" xml:space="preserve"><value>Publication language</value></data>
+  <data name="Lang_LockedChip" xml:space="preserve"><value>{0} only</value></data>
   <data name="Lang_LockToggle" xml:space="preserve"><value>Publish in this language only</value></data>
   <data name="Lang_LockHelp" xml:space="preserve"><value>Locked, the vIPI is always read in the language it is written in: no machine translation, in either direction. Locking turns translation off, it does not translate — a document written in Italian does not become English by locking it.</value></data>
   <data name="Lang_SourceLabel" xml:space="preserve"><value>Authoring language</value></data>
@@ -2771,7 +2772,7 @@
   <data name="Aud_FilteredNotice" xml:space="preserve"><value>You are reading the {0} view. Sections meant only for the other role are hidden.</value></data>
   <data name="Mil_Title" xml:space="preserve"><value>Military vSOPs</value></data>
   <data name="Mil_EditorTitle" xml:space="preserve"><value>Military vSOP</value></data>
-  <data name="Mil_PrintSubtitle" xml:space="preserve"><value>Military vSOP</value></data>
+  <data name="Mil_SubtitlePrefix" xml:space="preserve"><value>Military Airport</value></data>
   <data name="Mil_NotFound" xml:space="preserve"><value>This airfield has no military vSOP, and one cannot be created from here: start from the list.</value></data>
   <data name="Mil_NoEditPerm" xml:space="preserve"><value>You do not have permission to edit documents of this ACC.</value></data>
   <data name="Mil_HelpAria" xml:space="preserve"><value>Help on the military vSOP editor</value></data>
