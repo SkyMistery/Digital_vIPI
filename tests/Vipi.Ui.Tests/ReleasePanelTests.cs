@@ -39,8 +39,14 @@ public class ReleasePanelTests : TestContext
         public int Published, PublishedNow, Canceled, DiffCalls;
         public string? LastCycle, LastNote;
 
+        /// <summary>Le release di un ALTRO bersaglio, per chiave. ⚠️ Serve a distinguere «il membro ha
+        /// pubblicato a quel ciclo» da «esiste»: la domanda dell'annullamento conta le sorelle vere, non i
+        /// membri, e un doppio che risponde lo stesso a tutte le chiavi non vedrebbe mai la differenza.</summary>
+        public Dictionary<string, List<ReleaseInfo>> PerChiave { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<ReleaseInfo>>(Releases.ToList());
+            Task.FromResult<IReadOnlyList<ReleaseInfo>>(
+                PerChiave.TryGetValue(key ?? "", out var sue) ? sue.ToList() : Releases.ToList());
 
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default)
         {
@@ -54,9 +60,8 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
-        /// <summary>Il documento di prova non e' unito a niente: e' il caso normale, ed e' quello in cui le
-        /// porte dell'unione SONO quelle singole. Delegare invece di contarle a parte tiene in piedi le
-        /// asserzioni che c'erano — e prova, di striscio, proprio quella promessa.</summary>
+        /// <summary>I membri dell'unione di questo documento. Vuoto = documento solo, che e' il caso
+        /// normale: `PublishAsync` e `PublishNowAsync` allora pubblicano lui e basta.</summary>
         public Task<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>> BersagliUnitiAsync(
             ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Uniti);
@@ -486,6 +491,36 @@ public class ReleasePanelTests : TestContext
         // quando e' aperta).
         cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
         Assert.Contains("Rel_CancelPromptUnion", cut.Markup);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La domanda conta le SORELLE, non i membri.</b> <c>CancelReleaseAsync</c> porta via le release
+    /// dello stesso ciclo, e un membro entrato nell'unione <i>dopo</i> quel ciclo non ha niente da annullare:
+    /// promettere «tutte e 2» per toglierne una è lo stesso difetto che questa riga aveva al contrario —
+    /// allora ne annunciava una e ne toglieva due.
+    /// </summary>
+    [Fact]
+    public void Se_il_membro_a_QUEL_ciclo_non_ha_pubblicato_la_domanda_NON_parla_di_unione()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective, cycle: "2609"));
+        // ⚠️ Il primo membro e' il documento DEL PANNELLO (App/LIRP_APP): `BersagliUnitiAsync` risponde
+        // sempre con l'unione INTERA, se stesso compreso, ed e' su quello che il conteggio si salta da solo.
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.App, "LIRP_APP", 3, "Pisa Approach", null, null));
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.Airport, "LIRP", 26, "vIPI — LIRP Pisa", null, null));
+        // Il membro c'e', ma al 2609 non ha pubblicato: la sua unica release e' a un ciclo precedente.
+        fake.PerChiave["LIRP"] = new List<ReleaseInfo> { Rel(9, cycle: "2607") };
+
+        var cut = Render(allowCancel: true);
+
+        // L'avviso dell'unione resta — i documenti SONO uniti e il tasto «pubblica» li tocchera' tutti...
+        Assert.Contains("Rel_UnionTitle", cut.Markup);
+
+        // ...ma la domanda dell'annullamento no: a quel ciclo c'e' solo questa release da togliere.
+        cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
+        Assert.Contains("Rel_CancelPrompt", cut.Markup);
+        Assert.DoesNotContain("Rel_CancelPromptUnion", cut.Markup);
     }
 
     [Fact]

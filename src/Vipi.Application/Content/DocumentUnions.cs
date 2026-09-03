@@ -20,7 +20,11 @@ public sealed record UnionMemberView(int MemberId, int Order, bool IsHost, Manag
 /// </summary>
 public sealed record UnionView(int Id, IReadOnlyList<UnionMemberView> Members)
 {
-    /// <summary>Il membro al cui indirizzo vive la pagina unita.</summary>
+    /// <summary>Il membro al cui indirizzo vive la pagina unita.
+    /// <para>⚠️ È <c>Members[0]</c>, e regge perché una <see cref="UnionView"/> con zero membri
+    /// <b>non si costruisce</b>: chi la proietta torna <c>null</c> invece di una vista vuota. Senza quella
+    /// guardia questa riga alzerebbe <c>ArgumentOutOfRangeException</c> dentro un viewer pubblico — cioè il
+    /// circuito giù su una pagina che chiunque può aprire.</para></summary>
     public UnionMemberView Host => Members[0];
 
     /// <summary>Il membro che porta questo documento, se c'è.</summary>
@@ -293,7 +297,7 @@ public sealed class DocumentUnionService : IDocumentUnionService
         return (i > 0 ? k[..i] : k).ToUpperInvariant();
     }
 
-    private async Task<UnionView> ProiettaAsync(IReadOnlyList<UnionRow> righe, CancellationToken ct)
+    private async Task<UnionView?> ProiettaAsync(IReadOnlyList<UnionRow> righe, CancellationToken ct)
     {
         var descritti = await _docs.DescribeAsync(righe.Select(r => r.DocumentId).ToList(), ct)
                                    .ConfigureAwait(false);
@@ -305,7 +309,14 @@ public sealed class DocumentUnionService : IDocumentUnionService
             .Where(r => descritti.ContainsKey(r.DocumentId))
             .Select((r, i) => new UnionMemberView(r.MemberId, r.Order, IsHost: i == 0, descritti[r.DocumentId]))
             .ToList();
-        return new UnionView(righe[0].UnionId, membri);
+        // ⚠️ Se non ne resta NESSUNO, la risposta è «nessuna unione» e non una vista vuota: `Host` è
+        // `Members[0]`, e una vista senza membri farebbe cadere il primo che gliela chiede — un viewer
+        // pubblico, cioè il circuito giù su una pagina aperta a chiunque.
+        // ⚠️ UNO invece basta, e non si scarta: la pagina non disegnerà nessuna unione (è ospite di sé
+        // stessa) ma il pannello dell'editor mostrerà il tasto «sciogli». Scartando anche quella, un'unione
+        // con un membro rotto diventerebbe invisibile E indissolubile: `TidyAsync` non la tocca, perché le
+        // RIGHE sono ancora due.
+        return membri.Count == 0 ? null : new UnionView(righe[0].UnionId, membri);
     }
 
     private static ManagedDoc Esigi(IReadOnlyDictionary<int, ManagedDoc> descritti, int documentId) =>

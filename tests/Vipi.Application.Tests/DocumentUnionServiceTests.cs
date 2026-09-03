@@ -227,6 +227,48 @@ public class DocumentUnionServiceTests
 
     // ---- doppi di scena -------------------------------------------------------------------------------
 
+    /// <summary>
+    /// ⚠️ <b>Zero membri descritti → nessuna unione, non un'unione VUOTA.</b> La proiezione salta i
+    /// membri che nessun descrittore riconosce; se li salta tutti, la vista resterebbe con zero membri e
+    /// <c>Host</c> — che è <c>Members[0]</c> — alzerebbe <c>ArgumentOutOfRangeException</c> al primo che
+    /// gliela chiede. Il primo che gliela chiede è un <b>viewer pubblico</b>: circuito giù su una pagina
+    /// che apre chiunque.
+    /// </summary>
+    [Fact]
+    public async Task Se_NESSUN_membro_si_descrive_la_risposta_e_null_e_non_una_vista_vuota()
+    {
+        var s = Servizio(out var repo, VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
+        await s.UniscoAsync(24, 3);
+
+        // Le stesse righe in archivio, ma i descrittori non riconoscono piu' nessuno dei due.
+        var authz = new AuthzFinta();
+        var orfana = new DocumentUnionService(repo, new DocsFinti(Array.Empty<ManagedDoc>()), authz,
+                                              new BersagliFinti(Array.Empty<ManagedDoc>()));
+
+        Assert.Null(await orfana.ForDocumentAsync(24));
+    }
+
+    /// <summary>
+    /// ⚠️ <b>UN membro solo invece resta.</b> Scartando anche quella, un'unione con un membro rotto
+    /// diventerebbe insieme invisibile e <b>indissolubile</b>: <c>TidyAsync</c> non la tocca, perché le
+    /// RIGHE in archivio sono ancora due. Il pannello dell'editor deve poter mostrare il tasto «sciogli».
+    /// </summary>
+    [Fact]
+    public async Task Se_UN_membro_si_descrive_l_unione_resta_visibile_per_poterla_SCIOGLIERE()
+    {
+        var s = Servizio(out var repo, VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
+        await s.UniscoAsync(24, 3);
+
+        var solo = new[] { VsopMil(24, "LIBV") };
+        var authz = new AuthzFinta();
+        var mezza = new DocumentUnionService(repo, new DocsFinti(solo), authz, new BersagliFinti(solo));
+
+        var vista = await mezza.ForDocumentAsync(24);
+        Assert.NotNull(vista);
+        Assert.Equal(new[] { 24 }, vista!.Members.Select(m => m.DocumentId));
+        Assert.Equal(24, vista.Host.DocumentId);
+    }
+
     private static DocumentUnionService Servizio(out RepoFinto repo, params ManagedDoc[] docs) =>
         Servizio(out repo, new AuthzFinta(), docs);
 

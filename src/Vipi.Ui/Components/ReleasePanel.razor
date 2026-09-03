@@ -258,12 +258,24 @@
     {
         var sola = Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle].Value
                                : L["Rel_CancelPrompt", r.ReleaseAiracCycle].Value;
-        return _uniti.Count > 1
-            // ⚠️ L[chiave, argomenti] e NON string.Format(L[chiave].Value, ...): quel secondo indexer e'
-            // l'unico che INTERPOLA, ed e' la stessa lezione del numero di versione (Rel_VersionLabel).
-            ? sola + " " + L["Rel_CancelPromptUnion", _uniti.Count]
-            : sola;
+        // ⚠️ Quante ne toglie DAVVERO, non quanti sono i membri. `CancelReleaseAsync` porta via le sorelle
+        // dello stesso ciclo, e un membro entrato nell'unione DOPO a quel ciclo non ha niente da annullare:
+        // dire «tutte e 2» per toglierne una è lo stesso difetto che questa riga aveva al contrario — allora
+        // ne prometteva una e ne toglieva due.
+        var quante = Sorelle(r.ReleaseAiracCycle);
+        return quante > 1 ? sola + " " + L["Rel_CancelPromptUnion", quante] : sola;
     }
+
+    /// <summary>Quante release toglie via l'annullamento a questo ciclo: questa, più quelle degli altri
+    /// membri che a quel ciclo hanno pubblicato.</summary>
+    private int Sorelle(string ciclo) =>
+        _cicliDeiMembri.TryGetValue(ciclo ?? "", out var n) ? n + 1 : 1;
+
+    /// <summary>Per ciclo AIRAC, quanti membri <b>diversi da questo</b> hanno una release a quel ciclo.
+    /// <para>⚠️ Si costruisce UNA volta per carico del pannello, con una lettura per membro (sono due o
+    /// tre): chiederlo per riga di timeline vorrebbe dire una query per release, sulla pagina che ha già
+    /// pagato due volte il difetto N+1.</para></summary>
+    private Dictionary<string, int> _cicliDeiMembri = new();
     private string CancelTitle(ReleaseInfo r) =>
         Superata(r) ? L["Rel_CancelTitleOld"] : L["Rel_CancelTitle"];
 
@@ -362,6 +374,13 @@
     {
         _rels = await Releases.ListAsync(Target, Key);
         _uniti = await Releases.BersagliUnitiAsync(Target, Key);
+        _cicliDeiMembri = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var m in _uniti)
+        {
+            if (m.Type == Target && string.Equals(m.Key, Key, StringComparison.OrdinalIgnoreCase)) continue;
+            foreach (var c in (await Releases.ListAsync(m.Type, m.Key)).Select(x => x.ReleaseAiracCycle).Distinct())
+                _cicliDeiMembri[c] = _cicliDeiMembri.GetValueOrDefault(c) + 1;
+        }
         // ⚠️ Una chiamata per PANNELLO, non una per riga: i VID sono pochi e si risolvono in blocco.
         // ⚠️ E il roster si RISOLVE, non si inietta: dare un nome a un VID e' una comodita', non una
         // dipendenza del pannello. Iniettarlo come obbligatorio rende il componente non montabile per
