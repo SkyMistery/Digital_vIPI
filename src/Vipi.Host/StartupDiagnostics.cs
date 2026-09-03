@@ -24,6 +24,36 @@ public static class StartupDiagnostics
     public const string CrashFileName = "avvio-errore.txt";
 
     /// <summary>
+    /// Eccezione arrivata <b>dopo</b> che l'avvio era riuscito: quasi sempre uno spegnimento andato male.
+    /// <para>⚠️ Esiste perché fino al 3 settembre 2026 finiva in <see cref="CrashFileName"/> con
+    /// l'intestazione «l'avvio è FALLITO», ed era un <b>falso allarme</b>: <c>app.Run()</c> blocca fino
+    /// allo spegnimento, quindi qualunque guasto <i>all'arresto</i> esce da lì e veniva raccontato come un
+    /// avvio mancato. Sul server vero è successo davvero — un processo che aveva servito richieste per
+    /// un'ora e cinquanta è morto chiudendo, e il foglio d'aggiornamento diceva «se compare
+    /// avvio-errore.txt, fermatevi». Due file separati rendono di nuovo <b>vero</b> quel consiglio.</para>
+    /// </summary>
+    public const string ShutdownFileName = "arresto-errore.txt";
+
+    /// <summary>
+    /// Vero da quando l'host ha finito di partire. <c>volatile</c> perché il gancio di
+    /// <see cref="HookFatalErrors"/> scatta su un thread qualunque.
+    /// </summary>
+    private static volatile bool _avvioRiuscito;
+
+    /// <summary>
+    /// Da registrare su <c>ApplicationStarted</c> (vedi <c>VipiStartup</c>): da qui in poi un'eccezione
+    /// fatale non è più un avvio fallito. È l'unica cosa che distingue i due file.
+    /// </summary>
+    public static void SegnaAvvioRiuscito() => _avvioRiuscito = true;
+
+    /// <summary>
+    /// Il file su cui scrivere l'eccezione fatale, secondo il momento in cui arriva. Pubblico e con il
+    /// parametro esplicito perché è la sola riga che decide, e un test la deve poter chiamare nei due stati
+    /// senza far partire un host.
+    /// </summary>
+    public static string FileDelGuasto(bool avvioRiuscito) => avvioRiuscito ? ShutdownFileName : CrashFileName;
+
+    /// <summary>
     /// Registra la scrittura dell'eccezione fatale. Da chiamare come <b>prima</b> istruzione di
     /// <c>Program.cs</c>: quello che succede prima di qui non è coperto.
     /// </summary>
@@ -31,7 +61,7 @@ public static class StartupDiagnostics
     {
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
-            if (e.ExceptionObject is Exception ex) Write(CrashFileName, Describe(ex));
+            if (e.ExceptionObject is Exception ex) Write(FileDelGuasto(_avvioRiuscito), Descrivi(ex, _avvioRiuscito));
         };
     }
 
@@ -41,7 +71,7 @@ public static class StartupDiagnostics
     /// questo copre quelli sul thread principale — <b>compreso il caricamento tipi</b>, che avviene alla
     /// preparazione del metodo e che il gancio non vede mai. Vedi <c>VipiStartup</c>.
     /// </summary>
-    public static void WriteFatal(Exception ex) => Write(CrashFileName, Describe(ex));
+    public static void WriteFatal(Exception ex) => Write(FileDelGuasto(_avvioRiuscito), Descrivi(ex, _avvioRiuscito));
 
     /// <summary>
     /// Riepilogo della configurazione, senza segreti. Va chiamato appena il builder esiste: se l'avvio
@@ -189,12 +219,28 @@ public static class StartupDiagnostics
         }
     }
 
-    private static string Describe(Exception ex)
+    /// <summary>
+    /// Il testo che finisce nel file. ⚠️ È quello che qualcuno legge <b>da solo</b>, via FTP, senza
+    /// nessuno accanto: la prima riga deve dire quale dei due guasti è, perché la cura è diversa.
+    /// </summary>
+    public static string Descrivi(Exception ex, bool avvioRiuscito)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"vIPI — l'avvio è FALLITO, {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+        sb.AppendLine(avvioRiuscito
+            ? $"vIPI — il processo è morto DOPO essere partito, {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC"
+            : $"vIPI — l'avvio è FALLITO, {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
         sb.AppendLine(new string('-', 70));
-        sb.AppendLine("Il messaggio della prima riga è quasi sempre la causa; il resto serve a noi.");
+        if (avvioRiuscito)
+        {
+            sb.AppendLine("Il sito ERA partito e ha servito richieste: questo non è un avvio mancato.");
+            sb.AppendLine("Quasi sempre è lo SPEGNIMENTO che è andato male — su un host che spegne il");
+            sb.AppendLine("processo per inattività è la cosa più comune, e la versione nuova non c'entra.");
+            sb.AppendLine("Per sapere QUANTO era rimasto acceso, guardate l'ultima riga di avvii.txt.");
+        }
+        else
+        {
+            sb.AppendLine("Il messaggio della prima riga è quasi sempre la causa; il resto serve a noi.");
+        }
         sb.AppendLine();
         sb.AppendLine(ex.ToString());
         return sb.ToString();

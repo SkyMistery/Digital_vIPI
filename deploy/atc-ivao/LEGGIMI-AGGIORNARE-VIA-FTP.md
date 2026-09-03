@@ -142,6 +142,19 @@ prima riga dice la causa.
 leggetelo, poi **cancellatelo**. Finché resta lì, questo controllo darà sempre un falso allarme. (Sul server
 ce n'era uno del 16 agosto 2026, rimasto per otto giorni.)
 
+> ### ⚠️ `arresto-errore.txt` è un'altra cosa, e NON è un allarme di caricamento
+>
+> Accanto può comparire `diagnostica/arresto-errore.txt`. Dice che il sito **era partito e stava servendo
+> richieste**, ed è morto **chiudendo**: su questo hosting, che spegne il processo appena il traffico si
+> ferma, è la cosa più comune del mondo e non riguarda la versione appena caricata.
+>
+> Mandatecelo pure — si guarda con calma — ma **non fermate il caricamento per lui**. Quello che ferma il
+> caricamento è `avvio-errore.txt`, e solo quello.
+>
+> ℹ️ Fino al 3 settembre 2026 i due guasti finivano **nello stesso file**, con scritto «l'avvio è
+> FALLITO» anche quando l'avvio era riuscito benissimo. È esattamente l'equivoco che è costato un'ora
+> quel giorno.
+
 ### 8. I controlli finali
 
 | Cosa aprite | Cosa deve succedere |

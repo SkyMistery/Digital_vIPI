@@ -234,6 +234,13 @@ internal static class VipiStartup
         // dopo la chiusura dei servizi, e su un host che tronca lo spegnimento può non arrivare affatto.
         app.Lifetime.ApplicationStopping.Register(RegistroAvvii.RegistraArresto);
 
+        // Da qui in poi un'eccezione fatale NON è più «l'avvio è fallito»: app.Run() blocca fino allo
+        // spegnimento, quindi un guasto all'ARRESTO esce dallo stesso catch di Program.cs. Senza questa
+        // riga finiva in avvio-errore.txt col titolo sbagliato — ed è successo davvero il 3 settembre
+        // 2026, con un processo che aveva servito richieste per un'ora e cinquanta. Vedi
+        // StartupDiagnostics.ShutdownFileName.
+        app.Lifetime.ApplicationStarted.Register(StartupDiagnostics.SegnaAvvioRiuscito);
+
         // Dietro il proxy TLS di Fly.io/Render (TLS al bordo, HTTP interno): fidati di X-Forwarded-Proto/For così
         // UseHttpsRedirection non entra in loop e OIDC costruisce il redirect_uri in https. KnownIPNetworks/Proxies
         // svuotati perché l'IP del proxy non è fisso. Innocuo in locale (gli header non arrivano).

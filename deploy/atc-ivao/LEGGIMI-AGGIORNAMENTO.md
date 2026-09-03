@@ -159,6 +159,7 @@ che c'è.
 | Il login IVAO | entra, e in alto compare il vostro nome |
 | Una pagina di coordinamenti di un vIPI ACC | le tabelle ci sono e non sono vuote |
 | `diagnostica/avvio-errore.txt` | **non deve esistere**. Se c'è, la prima riga dice la causa |
+| `diagnostica/arresto-errore.txt` | ⚠️ **non è un allarme**: dice che il sito era partito ed è morto chiudendo, cosa normale su questo hosting. Mandatecelo, ma non fermatevi |
 
 ⚠️ **Se il sito non parte**, la pagina d'errore di Passenger è la diagnostica migliore che abbiate: mostra
 utente, cartella, variabili e l'ultimo output del processo. Mandatecela così com'è — insieme a
