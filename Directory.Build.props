@@ -161,46 +161,29 @@
       niente indice degli asset — e quindi niente della trappola del 24 agosto.
     -->
     <!--
-      1.5.0 — 2 settembre 2026, notte. **MINOR**, e per il primo motivo della tabella: c'è una sezione
-      nuova. **NESSUNA migrazione**, quindi si consegna da sola via FTP e sta dentro la finestra cieca.
+      1.6.1 — 3 settembre 2026, sera. **PATCH**: solo correzioni, nessuna migrazione, nessuna pagina o
+      sezione nuova. Si consegna da sola via FTP.
 
-      ⚠️ Dentro ci sono DUE cose che, prese da sole, sarebbero state due pacchetti — una PATCH e una
-      MINOR. Sono in un pacchetto solo perché stanno in un `main` solo: separarle vorrebbe dire costruire
-      da un commit intermedio e spedire due volte. Il numero segue il contenuto **complessivo**, e il
-      contenuto complessivo contiene una sezione nuova: 1.5.0.
+      🔴 La ragione per cui va caricato, e viene dalla DIAGNOSTICA di 1.6.0: nove richieste finite in
+      errore in un'ora, tutte «A second operation was started on this context instance», una degenerata in
+      «MySqlProtocolException: Packet received out-of-order». Pagine d'errore vere.
+        · `MilSectionsEditor` prendeva `IMilitaryDocumentService` da `@inject`, cioè dal DbContext del
+          CIRCUITO — e `CreaAsync` SCRIVE (crea il documento se manca);
+        · `AppSectionsEditor` faceva lo stesso con `IAppDocumentService`.
+      ⚠️ In tutti e due i file, dieci righe più sotto, altri servizi vengono presi da `ScopedServices`
+      CON IL COMMENTO CHE SPIEGA PERCHÉ: la regola era scritta accanto alla sua violazione.
+      ⚠️ Difetto **precedente** a §AZ: verificato su git, le pagine avevano la riga identica prima che i
+      loro corpi diventassero componenti. Un refactoring l'ha copiato fedelmente.
 
-      La parte che RIPARA (sarebbe stata 1.4.2, ed è la ragione per cui questo pacchetto va caricato):
-        · 🔴 **la corsa del blocco allegato**, letta nella diagnostica di 1.4.1 — quindici errori, tre
-          circuiti, TUTTI dallo stesso componente. La guardia di `AttachmentBlockEditor` stava dalla parte
-          sbagliata dell'`await`: si controllava prima e si scriveva dopo, e ogni ridisegno del genitore ne
-          faceva partire un'altra sullo stesso `DbContext` (misurate: quattro SELECT insieme). ⚠️ Lo scope
-          proprio protegge dal contesto DEL CIRCUITO, non da SÉ STESSI;
-        · gli altri due componenti con la stessa forma e **nessuna** guardia: `ValidityStamp` (sta in ogni
-          documento, su una vIPI ACC una volta per blocco) e `VloaDocumentView`;
-        · fuori il **registro eventi di Windows** dai provider di log: non lo aveva scelto nessuno, in
-          produzione (Linux) non esiste, e in sviluppo scriveva 535 voci in tre ore nel log della macchina.
+      La parte che AGGIUNGE (piccola, e non basta a farne una MINOR):
+        · i **giri periodici fermi** compaiono ora nella Diagnostica, area Avvio. Il segnale
+          (`ImportHealth.Ferma`) c'era già ma si vedeva solo aprendo la pagina Sorgenti: il 2 settembre la
+          Diagnostica diceva «Avvio 0» mentre metà dei giri non partiva.
 
-      La parte che AGGIUNGE (§AW, il ciclo entrante — ed è quella che fa il MINOR):
-        · la **sezione «Prossimo AIRAC»** su `/services/vsop/versions`, col gesto che programma in blocco
-          le release mancanti al ciclo entrante;
-        · la **deriva guarda anche avanti**: riga nuova nella lista «da fare» («da preparare») quando al
-          ciclo entrante la copia pubblicata non direbbe più il vero;
-        · il ciclo delle SID lo **dichiara la sorgente** (il changelog del sectorfile) invece di dipendere
-          dall'ora in cui è passato un job. ⚠️ `SourceAiracCycle` cambia SIGNIFICATO — ora è «il ciclo dal
-          quale la riga vale» — ma **non cambia lo schema**: stessa colonna, stesso tipo;
-        · lo sweep delle release passa da «all'avvio» a ogni 24 ore.
-
-      🔴 NON è MAJOR: il codice nuovo legge l'archivio che c'è in produzione, e il pacchetto si consegna da
-      solo via FTP. ⚠️ Il limite del ritorno indietro resta quello di 1.4.0 (la distanza di un alternato
-      scritta coi decimali), più uno nuovo: le SID importate da questa versione portano nel timbro il ciclo
-      **d'entrata** e non quello di prelievo — binari vecchi le leggerebbero con la regola vecchia
-      (`>` invece di `>=`) e ne mostrerebbero una in meno per un ciclo. Nessun dato si perde.
-
-      ⚠️ Sei progetti cambiati (`Application`, `Domain`, `Host`, `Hosting`, `Infrastructure`, `Ui`) e le
-      frasi inglesi. **Niente `wwwroot`**, quindi niente indice degli asset e niente della trappola del
-      24 agosto.
+      ⚠️ Due progetti (`Application`, `Ui`) e le frasi. NIENTE `wwwroot`, quindi niente indice degli
+      asset e niente della trappola del 24 agosto.
     -->
-    <VipiVersione>1.6.0</VipiVersione>
+    <VipiVersione>1.6.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
