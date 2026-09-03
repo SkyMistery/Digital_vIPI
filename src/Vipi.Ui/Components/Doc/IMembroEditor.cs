@@ -25,6 +25,15 @@ public interface IMembroEditor
     DocumentEditorShell Guscio { get; }
 
     /// <summary>
+    /// L'id del documento di questo membro: è la sua <b>identità</b>, e serve dove un titolo non basta.
+    /// <para>⚠️ Il gruppo di trascinamento era costruito sul TITOLO: due membri con lo stesso titolo
+    /// avrebbero condiviso il gruppo, e una sezione si sarebbe potuta trascinare da un documento all'altro.
+    /// Il repository la rifiuta comunque (<c>MoveSectionBeforeAsync</c> pretende un fratello), ma un gesto
+    /// che a volte non fa niente è peggio di un gesto che non si può fare.</para>
+    /// </summary>
+    int DocumentId => Guscio.DocumentId ?? 0;
+
+    /// <summary>
     /// Prende il lock di questo membro. <c>null</c> = preso; altrimenti il <b>nome</b> di chi lo tiene.
     /// <para>⚠️ Torna un nome e non un booleano perché è quello che l'ospite deve <b>dire</b>: «non puoi
     /// modificare, lo tiene Tizio» è una risposta, «non puoi modificare» è un muro.</para>

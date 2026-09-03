@@ -1,6 +1,8 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Aor;      // ValidationException: la UI cattura questa, mai quella di DataAnnotations
 using Vipi.Domain.Entities;
+using static Vipi.Application.Messaggio;
 
 namespace Vipi.Infrastructure.Persistence;
 
@@ -41,7 +43,7 @@ public sealed class EfDocumentUnionRepository : IDocumentUnionRepository
         unione.Members.Add(new DocumentUnionMember { DocumentId = hostDocumentId, Order = 0 });
         unione.Members.Add(new DocumentUnionMember { DocumentId = guestDocumentId, Order = 1 });
         _db.DocumentUnions.Add(unione);
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await SalvaAsync(ct).ConfigureAwait(false);
         return unione.Id;
     }
 
@@ -56,7 +58,33 @@ public sealed class EfDocumentUnionRepository : IDocumentUnionRepository
             DocumentId = documentId,
             Order = coda + 1,
         });
-        await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        await SalvaAsync(ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Salva, e traduce la violazione dell'indice unico in una frase leggibile.
+    ///
+    /// <para>⚠️ Il servizio controlla <b>prima</b> che il documento non sia già unito altrove, e quel
+    /// controllo esiste proprio per dare un messaggio col titolo del documento invece di un errore tecnico.
+    /// Ma fra il controllo e la scrittura c'è una finestra, e due redattori che uniscono lo stesso documento
+    /// nello stesso istante ci passano: chi arriva secondo vedeva la <c>DbUpdateException</c> nuda, che è
+    /// esattamente ciò che il controllo anticipato doveva risparmiargli.</para>
+    ///
+    /// <para>⚠️ Una transazione non basterebbe: l'indice unico è il guardiano, e due transazioni
+    /// concorrenti lo violano lo stesso. Quel che serve è <b>raccontare</b> la violazione.</para>
+    /// </summary>
+    private async Task SalvaAsync(CancellationToken ct)
+    {
+        try
+        {
+            await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        }
+        catch (DbUpdateException)
+        {
+            throw new ValidationException(Lingua(
+                "Questo documento è appena stato unito ad altri da qualcun altro: ricarica la pagina per vedere com'è adesso.",
+                "This document has just been joined to others by someone else: reload the page to see how it stands now."));
+        }
     }
 
     public async Task RemoveMemberAsync(int memberId, CancellationToken ct = default)
@@ -122,9 +150,23 @@ public sealed class EfDocumentUnionRepository : IDocumentUnionRepository
         return magre.Count;
     }
 
+    public async Task<int> CompattaAsync(CancellationToken ct = default)
+    {
+        // ⚠️ `RemoveMemberAsync` rinumera, la CASCATA della FK no: un documento eliminato lascia un buco
+        // nelle posizioni (0, 2), e con un buco le frecce su/giu' si spegnevano sul numero sbagliato.
+        // La UI oggi guarda la posizione nella lista e non ha piu' bisogno che i numeri siano densi — ma
+        // tenerli densi costa una passata all'avvio, e il prossimo che leggera' `Order` lo trovera' sano.
+        var unioni = await _db.DocumentUnionMembers.Select(m => m.UnionId).Distinct().ToListAsync(ct)
+                                                   .ConfigureAwait(false);
+        var toccate = 0;
+        foreach (var u in unioni)
+            if (await RinumeraAsync(u, ct).ConfigureAwait(false)) toccate++;
+        return toccate;
+    }
+
     /// <summary>Riporta le posizioni a 0,1,2… dopo una rimozione: un buco nell'ordine non rompe niente, ma
     /// rende «sposta giù» un gesto che a volte non muove nulla.</summary>
-    private async Task RinumeraAsync(int unionId, CancellationToken ct)
+    private async Task<bool> RinumeraAsync(int unionId, CancellationToken ct)
     {
         var fratelli = await _db.DocumentUnionMembers
             .Where(m => m.UnionId == unionId)
@@ -136,5 +178,6 @@ public sealed class EfDocumentUnionRepository : IDocumentUnionRepository
             if (fratelli[i].Order != i) { fratelli[i].Order = i; cambiato = true; }
 
         if (cambiato) await _db.SaveChangesAsync(ct).ConfigureAwait(false);
+        return cambiato;
     }
 }

@@ -303,6 +303,28 @@ di **governo***. Qui la stessa domanda ha avuto **tre** risposte, e due sono «n
    d'accordo, per ottenere quello che un rimando fa da solo. ⚠️ **Un redirect al posto di N chiamanti**: se
    un giorno il rimando cambia, cambia in un posto.
 
+## §9c — Le sei cose piccole della supervisione (3 settembre 2026) ✅
+
+Nessuna di queste faceva cadere niente; cinque su sei erano gesti che a volte non facevano nulla, che è la
+categoria peggiore da lasciare in giro.
+
+| Cosa | Perché |
+|---|---|
+| Le frecce ↑↓ si spengono sulla **posizione**, non su `Order` | La cascata della FK non rinumera: con le posizioni 0 e 2 l'ultimo membro teneva la freccia «giù» accesa su un gesto che non faceva niente. E `CompattaAsync` chiude il buco all'avvio |
+| Il gruppo di trascinamento sull'**id del documento**, non sul titolo | Due membri omonimi avrebbero condiviso il gruppo, e una sezione si sarebbe potuta trascinare da un documento all'altro. Il repository la rifiuta comunque, ma un gesto che a volte non si può fare è peggio di uno che non si può fare mai |
+| L'indice unito confronta **etichette**, non solo ancore | **Rinominare** una sezione di un membro non rinfrescava il menu: l'ancora non cambia. La card prendeva il nome nuovo e l'indice restava col vecchio |
+| ⚠️ Il commento di `UnionToc` diceva `s-{Id}` | Non è mai stato vero: l'ancora è `SectionView.Id` nudo. **Il codice era giusto e la prosa no**, ed è la peggiore delle due da sbagliare — chi costruisce un'ancora leggendo il commento ottiene un link che non fa niente, senza errore |
+| Un modo solo di costruire i caricatori | Tre famiglie, tre modi (DI, `ActivatorUtilities`, non registrato): la strada per cui il quarto viene preso dal posto sbagliato. Ora tutti e tre con `CreateInstance`, che funziona registrato o no |
+| La violazione dell'indice unico si **racconta** | Fra il controllo «sei già unito?» e la scrittura c'è una finestra: due redattori nello stesso istante e chi arriva secondo vedeva la `DbUpdateException` nuda — proprio ciò che il controllo anticipato doveva risparmiargli. ⚠️ Una transazione non basterebbe: l'indice è il guardiano, e due transazioni concorrenti lo violano lo stesso |
+
+E in stampa `.union-part-h` porta `break-after: avoid`: l'intestazione di un membro non si separa dal suo
+contenuto, cosa che su una pagina lunga il doppio del solito capita.
+
+⚠️ **Due prove sono nate sbagliate, e per la stessa ragione**: confrontavano una parola italiana
+(«ricarica») e la stringa `"it"`, mentre l'host dei test gira in **inglese** — sarebbero state verdi solo su
+una macchina italiana. Un messaggio bilingue non si controlla per parola: si controlla che il dettaglio
+tecnico non sia arrivato fino a chi legge.
+
 ## §8 — La seconda richiesta: vIPI + vSOP sui campi con presenza militare ✅
 
 È lo **stesso meccanismo**, senza codice in più: su un campo misto si uniscono la vIPI civile e il vSOP, e la

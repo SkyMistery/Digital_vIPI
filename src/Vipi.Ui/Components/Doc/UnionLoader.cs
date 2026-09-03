@@ -43,6 +43,14 @@ public sealed record MembroUnito(
 /// </summary>
 public sealed class UnionLoader
 {
+    /// <summary>
+    /// Lo scope da cui si costruiscono i caricatori di famiglia.
+    /// <para>⚠️ Tutti e tre con <c>ActivatorUtilities.CreateInstance</c>, e <b>non</b> con
+    /// <c>GetRequiredService</c>: uno di loro — l'aeroporto — <b>non è registrato</b> di proposito, perché
+    /// i nove servizi che interroga vanno presi dallo scope della pagina e non dal circuito. Un modo per
+    /// famiglia è la strada per cui il quarto caricatore verrà preso dal posto sbagliato e nessuno se ne
+    /// accorgerà: `CreateInstance` funziona sia che il tipo sia registrato sia che non lo sia.</para>
+    /// </summary>
     private readonly IServiceProvider _sp;
     private readonly IReleaseService _releases;
     private readonly Vipi.Application.Routing.IDocRoutesRegistry _rotte;
@@ -150,9 +158,9 @@ public sealed class UnionLoader
         {
             case ReleaseTargetType.App:
             {
-                var doc = await _sp.GetRequiredService<AppMemberLoader>()
-                                   .LoadAsync(m.Doc.ReleaseKey, mode, vista, fissaLaPagina: false, ct)
-                                   .ConfigureAwait(false);
+                var loader = ActivatorUtilities.CreateInstance<AppMemberLoader>(_sp);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, fissaLaPagina: false, ct)
+                                      .ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.DisplayName, doc.View.Sections,
                     b => { b.OpenComponent<AppDocumentBody>(0); b.AddComponentParameter(1, nameof(AppDocumentBody.Doc), doc); b.CloseComponent(); });
             }

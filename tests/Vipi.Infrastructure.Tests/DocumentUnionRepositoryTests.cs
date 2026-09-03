@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -40,6 +40,61 @@ public class DocumentUnionRepositoryTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
+    /// <summary>
+    /// ⚠️ <b>La cascata della FK non rinumera.</b> Togliere un membro col suo tasto ricompatta le
+    /// posizioni; <i>eliminare il documento</i> lascia un buco — 0 e 2 su un'unione di due. La UI oggi
+    /// guarda la posizione nella lista e regge, ma per un giro le frecce su/giù si spegnevano sul numero
+    /// sbagliato: l'ultimo membro teneva accesa la freccia «giù» su un gesto che non faceva niente.
+    /// </summary>
+    [Fact]
+    public async Task Compattare_chiude_il_buco_che_la_CASCATA_lascia_nelle_posizioni()
+    {
+        var id = await _repo.CreateAsync(1, 2, 0);
+        await _repo.AddMemberAsync(id, 3);
+
+        // Il documento in mezzo se ne va per conto suo: cascata, non RemoveMemberAsync.
+        _db.Documents.Remove(await _db.Documents.FirstAsync(d => d.Id == 2));
+        await _db.SaveChangesAsync();
+        Assert.Equal(new[] { 0, 2 }, (await _repo.ByUnionAsync(id)).Select(r => r.Order));
+
+        var toccate = await _repo.CompattaAsync();
+
+        Assert.Equal(1, toccate);
+        Assert.Equal(new[] { 0, 1 }, (await _repo.ByUnionAsync(id)).Select(r => r.Order));
+        Assert.Equal(new[] { 1, 3 }, (await _repo.ByUnionAsync(id)).Select(r => r.DocumentId));
+        // ⚠️ Idempotente: al secondo giro non c'è niente da fare, e non deve dire di averlo fatto.
+        Assert.Equal(0, await _repo.CompattaAsync());
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La violazione dell'indice unico si RACCONTA.</b> Il servizio controlla prima che il
+    /// documento non sia già unito altrove, e quel controllo esiste per dare una frase col titolo del
+    /// documento invece di un errore tecnico — ma fra il controllo e la scrittura c'è una finestra, e due
+    /// redattori che uniscono lo stesso documento nello stesso istante ci passano. Chi arriva secondo
+    /// vedeva la <c>DbUpdateException</c> nuda, cioè proprio ciò che il controllo doveva risparmiargli.
+    /// <para>⚠️ Una transazione non basterebbe: l'indice è il guardiano, e due transazioni concorrenti lo
+    /// violano lo stesso.</para>
+    /// </summary>
+    [Fact]
+    public async Task Unire_un_documento_GIA_UNITO_alza_un_errore_LEGGIBILE_e_non_quello_di_EF()
+    {
+        var prima = await _repo.CreateAsync(1, 2, 0);
+        var seconda = await _repo.CreateAsync(3, 4, 0);
+
+        // Il documento 2 sta gia' nella prima unione: la seconda non lo può avere.
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
+            () => _repo.AddMemberAsync(seconda, 2));
+
+        // ⚠️ Non si confronta una PAROLA: il messaggio è bilingue e l'host dei test gira in inglese —
+        // cercare «ricarica» sarebbe un test verde solo sulle macchine italiane. Quel che conta è che il
+        // dettaglio tecnico non sia arrivato fino a chi legge.
+        Assert.DoesNotContain("UNIQUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("IX_DocumentUnionMembers", ex.Message, StringComparison.Ordinal);
+        Assert.NotEmpty(ex.Message);
+        Assert.Equal(new[] { 3, 4 }, (await _repo.ByUnionAsync(seconda)).Select(r => r.DocumentId));
+        Assert.Equal(new[] { 1, 2 }, (await _repo.ByUnionAsync(prima)).Select(r => r.DocumentId));
+    }
+
     [Fact]
     public async Task Un_unione_nasce_con_due_membri_in_ordine()
     {
@@ -70,7 +125,9 @@ public class DocumentUnionRepositoryTests : IAsyncLifetime
 
         // L'indice unico su DocumentId è la guardia: senza, due unioni sullo stesso documento nascerebbero in
         // silenzio e si vedrebbero mesi dopo, come una pagina che ripete lo stesso contenuto.
-        await Assert.ThrowsAnyAsync<DbUpdateException>(() => _repo.CreateAsync(3, 2, 0));
+        // ⚠️ Il RIFIUTO arriva come `ValidationException` e non come `DbUpdateException`: la guardia è
+        // sempre l'indice, ma il repository la traduce in una frase che la pagina sa mostrare.
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _repo.CreateAsync(3, 2, 0));
     }
 
     [Fact]

@@ -363,6 +363,20 @@ public class DocumentUnionServiceTests
             return Task.FromResult(magre.Count);
         }
 
+        public Task<int> CompattaAsync(CancellationToken ct = default)
+        {
+            var toccate = 0;
+            foreach (var g in Righe.GroupBy(r => r.UnionId).ToList())
+            {
+                var ordinate = g.OrderBy(r => r.Order).ToList();
+                var cambiato = false;
+                for (var i = 0; i < ordinate.Count; i++)
+                    if (ordinate[i].Order != i) { Sostituisci(ordinate[i] with { Order = i }); cambiato = true; }
+                if (cambiato) toccate++;
+            }
+            return Task.FromResult(toccate);
+        }
+
         private void Sostituisci(UnionRow aggiornata)
         {
             Righe.RemoveAll(r => r.MemberId == aggiornata.MemberId);

@@ -1,4 +1,4 @@
-﻿/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
+/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
    CSS, nessun endpoint export server-side).
 
    Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
@@ -315,4 +315,4 @@
    foglio solo, e toglierlo li farebbe leggere come uno che cambia argomento a meta'. Si stringe
    soltanto lo spazio, perche' un margine da schermo qui costa una riga di tabella. */
 .union-part{margin-top:18px;padding-top:12px}
-.union-part>.union-part-h{font-size:16px;margin-bottom:8px}
+.union-part>.union-part-h{font-size:16px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}

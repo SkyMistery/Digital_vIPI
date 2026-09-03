@@ -1,4 +1,4 @@
-@* Gli indici degli ALTRI membri di un'unione, impilati sotto quello dell'ospite.
+﻿@* Gli indici degli ALTRI membri di un'unione, impilati sotto quello dell'ospite.
 
    ⚠️ Un indice per membro, e non un indice solo con dentro tutto: `DocumentToc` ha già `HeaderLabel`, e un
    elenco di ventisei voci militari seguito da dieci voci d'avvicinamento senza una riga che dica dove
@@ -22,9 +22,12 @@
     [Parameter] public bool IsDraft { get; set; }
 
     /// <summary>
-    /// L'ancora che usa il CORPO di quella famiglia. Oggi tutte e tre rispondono <c>s-{Id}</c>, ma chiederlo
-    /// al componente invece di ricopiarne la formula è ciò che tiene indice e corpo d'accordo il giorno che
-    /// una famiglia cambia idea.
+    /// L'ancora che usa il CORPO di quella famiglia. Oggi tutte e tre rispondono <c>SectionView.Id</c> nudo,
+    /// ma chiederlo al componente invece di ricopiarne la formula è ciò che tiene indice e corpo d'accordo il
+    /// giorno che una famiglia cambia idea.
+    /// <para>⚠️ Qui c'era scritto <c>s-{Id}</c>, che non è mai stato vero: il codice era giusto e la prosa
+    /// no. È la peggiore delle due da sbagliare — chi legge il commento invece del codice per costruire
+    /// un'ancora a mano ottiene un link che non fa niente, e <b>senza errore</b>.</para>
     /// </summary>
     private static Func<SectionView, string> AncoraDelCorpo(MembroUnito m) =>
         m.Membro.Doc.ReleaseTarget switch

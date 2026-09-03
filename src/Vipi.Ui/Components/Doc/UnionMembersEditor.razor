@@ -112,7 +112,7 @@
         var voci = VociIndice();
         // Si spinge solo se sono davvero cambiate: ogni spinta fa ridisegnare l'ospite, e l'ospite è una
         // pagina intera.
-        if (voci.Count != _ultime.Count || !voci.Select(v => v.AnchorId).SequenceEqual(_ultime.Select(v => v.AnchorId)))
+        if (Firma(voci) != Firma(_ultime))
         {
             _ultime = voci;
             await VociCambiate.InvokeAsync(voci);
@@ -121,6 +121,19 @@
     }
 
     private IReadOnlyList<EditorTocItem> _ultime = Array.Empty<EditorTocItem>();
+
+    /// <summary>
+    /// Che cosa rende due elenchi di voci «gli stessi»: ancore, <b>etichette</b> e gruppo, nell'ordine.
+    ///
+    /// <para>⚠️ Le etichette c'entrano, e mancavano: il confronto era sulle sole ancore, quindi
+    /// <b>rinominare</b> una sezione di un membro non rinfrescava l'indice unito — l'ancora non cambia.
+    /// Chi rinominava vedeva la card prendere il nome nuovo e il menu a sinistra restare col vecchio, che è
+    /// il nome che il redattore aveva appena deciso di non usare piu'.</para>
+    /// <para>⚠️ E il gruppo, che è il titolo del DOCUMENTO: cambia quando cambia il titolo di un membro,
+    /// ed è la riga che intesta tutte le sue voci.</para>
+    /// </summary>
+    private static string Firma(IReadOnlyList<EditorTocItem> voci) =>
+        string.Join('', voci.Select(v => $"{v.AnchorId}{v.Label}{v.GroupLabel}"));
 
     /// <summary>Molla il lock di tutti i membri. No-op su quelli che non erano suoi.</summary>
     public async Task RilasciaLockAsync()
@@ -156,8 +169,9 @@
             // ⚠️ `dragGroup` col DOCUMENTO dentro: il trascinamento non deve poter spostare una sezione
             //    da un membro all'altro. Una sezione non cambia mai documento — e il repository lo rifiuta
             //    comunque (MoveSectionBeforeAsync pretende un FRATELLO), ma un tasto che a volte non fa
-            //    niente è peggio di un tasto spento.
-            .DaSezioni(e.Sezioni, dirty: null, dragGroup: $"membro-{e.Titolo}")
+            //    niente è peggio di un gesto che non si puo' fare.
+            // ⚠️ E sull'ID DEL DOCUMENTO, non sul titolo: due membri OMONIMI avrebbero condiviso il gruppo.
+            .DaSezioni(e.Sezioni, dirty: null, dragGroup: $"membro-{e.DocumentId}")
             .Select(v => v with { GroupLabel = e.Titolo }))
         .ToList();
 
@@ -170,8 +184,7 @@
     {
         if (_editor.Count == 0) return;
         var voci = VociIndice();
-        if (voci.Count == _ultime.Count && voci.Select(v => v.AnchorId).SequenceEqual(_ultime.Select(v => v.AnchorId)))
-            return;
+        if (Firma(voci) == Firma(_ultime)) return;
         _ultime = voci;
         await VociCambiate.InvokeAsync(voci);
     }

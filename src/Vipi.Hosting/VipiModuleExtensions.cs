@@ -171,6 +171,9 @@ public static class VipiModuleExtensions
         // UNITA (carta docs/feature/2026-09-03-documenti-uniti.md).
         // Scoped come i servizi che consultano: LEGGONO soltanto, quindi il contesto del circuito va bene —
         // e' esattamente cio' che le pagine facevano gia' con @inject.
+        // ⚠️ Registrati perché le loro PAGINE li iniettano (`AppnPage`, `MilDocumentPage`), non perché
+        // li usi l'unione: `UnionLoader` costruisce tutti e tre con `ActivatorUtilities`, che funziona sia
+        // che il tipo sia registrato sia che non lo sia.
         services.AddScoped<Vipi.Ui.Components.Doc.AppMemberLoader>();
         services.AddScoped<Vipi.Ui.Components.Doc.MilMemberLoader>();
         // Il caricatore dei MEMBRI di un'unione: dentro istanzia i caricatori di famiglia dal service
@@ -754,8 +757,12 @@ public static class VipiModuleExtensions
     public static IHost TidyVipiDocumentUnions(this IHost host)
     {
         using var scope = host.Services.CreateScope();
-        scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.IDocumentUnionRepository>()
-            .TidyAsync().GetAwaiter().GetResult();
+        var repo = scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.IDocumentUnionRepository>();
+        repo.TidyAsync().GetAwaiter().GetResult();
+        // ⚠️ E le posizioni si ricompattano: la cascata della FK non rinumera, quindi un documento
+        // eliminato lascia un buco (0, 2). Idempotente, e nell'ordine giusto — prima si chiudono le unioni
+        // magre, poi si rinumera quel che resta.
+        repo.CompattaAsync().GetAwaiter().GetResult();
         return host;
     }
 }

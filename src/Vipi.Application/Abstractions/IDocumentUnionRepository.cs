@@ -1,4 +1,4 @@
-namespace Vipi.Application.Abstractions;
+﻿namespace Vipi.Application.Abstractions;
 
 /// <summary>Una riga di appartenenza: quale documento sta in quale unione, e in che posizione.</summary>
 /// <param name="UnionId">L'unione.</param>
@@ -55,4 +55,11 @@ public interface IDocumentUnionRepository
     /// <b>dopo</b>: un'unione rimasta con un membro solo è una pagina unita che unisce sé stessa.</para>
     /// </summary>
     Task<int> TidyAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Riporta le posizioni dei membri a 0,1,2… in ogni unione. Torna quante unioni ha toccato.
+    /// <para>⚠️ Serve perché la <b>cascata</b> della FK non rinumera: togliere un membro col suo tasto
+    /// ricompatta, ma <i>eliminare il documento</i> lascia un buco (posizioni 0 e 2). Idempotente.</para>
+    /// </summary>
+    Task<int> CompattaAsync(CancellationToken ct = default);
 }

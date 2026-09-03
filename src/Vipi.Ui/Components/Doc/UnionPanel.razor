@@ -36,8 +36,14 @@
     {
         <p class="muted" style="margin:0 0 6px">@Sito["Union_Members"]</p>
         <ol class="union-list">
-            @foreach (var m in _unione.Members)
+            @* ⚠️ Le frecce si spengono sulla POSIZIONE nella lista, non su `m.Order`. `RemoveMemberAsync`
+               rinumera, ma la cascata della FK (documento eliminato) no: con le posizioni 0 e 2, l'ultimo
+               membro teneva la freccia «giu'» accesa su un gesto che non fa niente — e un tasto che a volte
+               non fa niente e' peggio di un tasto spento. *@
+            @for (var i = 0; i < _unione.Members.Count; i++)
             {
+                var m = _unione.Members[i];
+                var posizione = i;
                 <li>
                     <b>@m.Doc.Title</b>
                     <span class="muted">@m.Doc.ReleaseKey</span>
@@ -49,9 +55,9 @@
                     {
                         <span class="union-cmds">
                             <button class="btn ghost" title="@Sito["Union_MoveUp"]" aria-label="@Sito["Union_MoveUp"]"
-                                    disabled="@(_busy || m.Order == 0)" @onclick="() => Sposta(m, -1)">↑</button>
+                                    disabled="@(_busy || posizione == 0)" @onclick="() => Sposta(m, -1)">↑</button>
                             <button class="btn ghost" title="@Sito["Union_MoveDown"]" aria-label="@Sito["Union_MoveDown"]"
-                                    disabled="@(_busy || m.Order == _unione.Members.Count - 1)" @onclick="() => Sposta(m, +1)">↓</button>
+                                    disabled="@(_busy || posizione == _unione.Members.Count - 1)" @onclick="() => Sposta(m, +1)">↓</button>
                             <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@Sito["Union_Remove"]"
                                            AriaLabel="@Sito["Union_Remove"]" Prompt="@Sito["Union_RemovePrompt"]"
                                            ConfirmLabel="@Sito["Union_RemoveYes"]" CancelLabel="@L["Common_Close"]"
