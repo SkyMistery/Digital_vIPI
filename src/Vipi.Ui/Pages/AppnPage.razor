@@ -3,6 +3,9 @@
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject AppMemberLoader Loader
+@inject IDocumentUnionService Unioni
+@inject UnionLoader Membri
+@inject NavigationManager Nav
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
 @inject StringheDelSito Sito
@@ -27,8 +30,15 @@ else
             @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo:
                `AppDocumentBody.AnchorOf`. Un'ancora diversa manda l'indice su un id che non esiste, e i
                suoi link non fanno niente — senza errori. *@
-            <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                         AnchorOf="AppDocumentBody.AnchorOf" />
+            <div>
+                @* ⚠️ Un indice per MEMBRO, intestato col titolo del suo documento: un elenco di dieci voci
+                   d'avvicinamento seguito da ventisei voci militari, senza una riga che dica dove finisce
+                   l'uno e comincia l'altro, è un indice che non aiuta a cercare. *@
+                <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
+                             HeaderLabel="@(_altri.Count > 0 ? _doc.DisplayName : null)"
+                             AnchorOf="AppDocumentBody.AnchorOf" />
+                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
+            </div>
             <div>
                 <PrintMeta Title="@_doc.DisplayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" Coverage="_doc.Copertura" />
@@ -71,6 +81,9 @@ else
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <AppDocumentBody Doc="_doc" />
+
+                @* Gli altri documenti dell'unione, nell'ordine scelto dal redattore. *@
+                <UnionBodies Membri="_altri" />
             </div>
 
             <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
@@ -111,6 +124,9 @@ else
     /// non è un APP non remotizzato, o non ha niente da mostrare.</summary>
     private AppMemberDocument? _doc;
 
+    /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
+    private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
+
     private AccInfo? _acc;
     private string _app = "";
     // L'aeroporto di questo APP (dalla testa del callsign) con la sua anagrafica militare: null per gli APP
@@ -143,7 +159,30 @@ else
 
         // Tutto il carico — anteprima, lingua, derivate, traduzione, titoli di catalogo, filtro di lettura —
         // sta nel caricatore: l'ordine di quei passi è la correttezza, e non appartiene a QUESTA pagina.
-        _doc = await Loader.LoadAsync(_app, PreviewMode.Parse(As, Live), Vista);
+        var mode = PreviewMode.Parse(As, Live);
+        _doc = await Loader.LoadAsync(_app, mode, Vista);
+        if (_doc is null) return;
+
+        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
+        // ⚠️ Si compone solo se questo documento è l'OSPITE: la pagina unita vive al suo indirizzo, e chi
+        // ospite non è ci reindirizza (§4) invece di disegnare l'unione a partire da sé — che darebbe lo
+        // stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        var unione = await Unioni.ForTargetAsync(ReleaseTargetType.App, _app);
+        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.App, _app))
+        {
+            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
+            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
+            // anteprima irraggiungibile.
+            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
+            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
+            if (_doc.Mode.Kind == PreviewKind.Public
+                && Membri.IndirizzoDellOspite(unione, ReleaseTargetType.App, _app) is { } indirizzo)
+                Nav.NavigateTo(indirizzo, replace: true);
+            return;
+        }
+        _altri = unione is null
+            ? Array.Empty<MembroUnito>()
+            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, Cycle());
     }
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).

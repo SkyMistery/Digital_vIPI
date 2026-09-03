@@ -32,6 +32,7 @@
 @inject IMilitaryDocumentService Militari
 @inject EnglishStrings En
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
+@inject NavigationManager Nav
 
 @if (_acc is null)
 {
@@ -65,9 +66,14 @@ else
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@En["AccLanding_Airports"]</a> › <b>@_doc.View.Title</b></div>
 
         <div class="doc-layout">
-            @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo. *@
-            <DocumentToc Sections="_doc.Sezioni" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                         AnchorOf="AirportDocumentBody.AnchorOf" />
+            @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo.
+               Con un'unione ce n'è uno per MEMBRO, intestato col titolo del suo documento. *@
+            <div>
+                <DocumentToc Sections="_doc.Sezioni" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
+                             HeaderLabel="@(_altri.Count > 0 ? _doc.View.Title : null)"
+                             AnchorOf="AirportDocumentBody.AnchorOf" />
+                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
+            </div>
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
@@ -110,6 +116,9 @@ else
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <AirportDocumentBody Doc="_doc" />
+
+                @* Gli altri documenti dell'unione, nell'ordine scelto dal redattore. *@
+                <UnionBodies Membri="_altri" />
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
@@ -161,6 +170,9 @@ else
     /// null = questo scalo non ha un documento da mostrare.</summary>
     private AirportMemberDocument? _doc;
 
+    /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
+    private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
+
     /// <summary>Vero se questo scalo ha anche un vSOP MILITARE: allora nel riquadro dei collegamenti compare
     /// il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe a una pagina vuota —
     /// peggio che non averlo.</summary>
@@ -175,6 +187,8 @@ else
     private Vipi.Application.Live.IAirportPresidencyService Presidency = default!;
     private IEditAuthorizationService Authz = default!;
     private AirportMemberLoader Loader = default!;
+    private IDocumentUnionService Unioni = default!;
+    private UnionLoader Membri = default!;
 
     protected override void OnInitialized()
     {
@@ -184,6 +198,10 @@ else
         // interrogano il database, e prenderli dal circuito rimetterebbe questa pagina sul DbContext della
         // richiesta — il guasto delle 17:44 del 24 agosto 2026, che non ha ancora una causa nota.
         Loader = ActivatorUtilities.CreateInstance<AirportMemberLoader>(ScopedServices);
+        Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
+        // ⚠️ Anche il caricatore dei membri esce dallo scope della pagina: dentro istanzia i caricatori di
+        // famiglia, e uno di quelli è proprio quello d'aeroporto — che sul circuito non deve stare.
+        Membri = ActivatorUtilities.CreateInstance<UnionLoader>(ScopedServices);
     }
 
     protected override async Task OnParametersSetAsync()
@@ -218,6 +236,27 @@ else
         // serve più.
         _haMilitare = await Militari.HasPublishedAsync(_icao)
                       || (_canEdit && await Militari.GetDocumentIdAsync(_icao) is not null);
+
+        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
+        // ⚠️ Si compone solo se questo documento è l'OSPITE: la pagina unita vive al suo indirizzo, e chi
+        // ospite non è ci reindirizza (§4) invece di disegnare l'unione a partire da sé — che darebbe lo
+        // stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        var unione = await Unioni.ForTargetAsync(ReleaseTargetType.Airport, _icao);
+        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.Airport, _icao))
+        {
+            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
+            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
+            // anteprima irraggiungibile.
+            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
+            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
+            if (_doc.Mode.Kind == PreviewKind.Public
+                && Membri.IndirizzoDellOspite(unione, ReleaseTargetType.Airport, _icao) is { } indirizzo)
+                Nav.NavigateTo(indirizzo, replace: true);
+            return;
+        }
+        _altri = unione is null
+            ? Array.Empty<MembroUnito>()
+            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, _doc.RelCycle ?? _doc.View.AiracCycle, Lingua);
     }
 
     /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

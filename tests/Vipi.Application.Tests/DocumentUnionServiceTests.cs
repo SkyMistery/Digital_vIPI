@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -163,6 +163,39 @@ public class DocumentUnionServiceTests
     }
 
     [Fact]
+    public async Task Dalla_CHIAVE_di_release_si_arriva_all_unione()
+    {
+        // È la porta che usano i viewer: una pagina conosce il proprio bersaglio, non l'id del suo documento.
+        var s = Servizio(out _, VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
+        await s.UniscoAsync(24, 3);
+
+        var vista = await s.ForTargetAsync(ReleaseTargetType.App, "LIBV_APP");
+
+        Assert.NotNull(vista);
+        Assert.Equal(new[] { 24, 3 }, vista!.Members.Select(m => m.DocumentId));
+        // Un bersaglio senza documento non è un errore: la risposta è «nessuna unione».
+        Assert.Null(await s.ForTargetAsync(ReleaseTargetType.App, "LIRP_APP"));
+    }
+
+    [Fact]
+    public async Task L_OSPITE_si_riconosce_da_famiglia_E_chiave_insieme()
+    {
+        // ⚠️ La trappola: un aeroporto e il suo vSOP militare hanno la STESSA chiave di release (l'ICAO) e
+        // si distinguono per il TIPO — è il fatto su cui poggiano le due edizioni con cicli indipendenti.
+        // Confrontare la sola chiave farebbe credere ospite anche l'edizione che ospite non è, e la pagina
+        // civile disegnerebbe l'unione del militare.
+        var s = Servizio(out _, VsopMil(29, "LIMN"), Aeroporto(28, "LIMN"));
+        await s.UniscoAsync(29, 28);
+
+        var vista = await s.ForTargetAsync(ReleaseTargetType.AirportMil, "LIMN");
+
+        Assert.True(vista!.IsHostTarget(ReleaseTargetType.AirportMil, "LIMN"));
+        Assert.False(vista.IsHostTarget(ReleaseTargetType.Airport, "LIMN"));
+        // E non fa distinzione di maiuscole: le chiavi arrivano dagli indirizzi.
+        Assert.True(vista.IsHostTarget(ReleaseTargetType.AirportMil, "limn"));
+    }
+
+    [Fact]
     public void La_testa_di_una_chiave_e_lo_scalo()
     {
         Assert.Equal("LIBV", DocumentUnionService.Testa("LIBV"));
@@ -181,7 +214,7 @@ public class DocumentUnionServiceTests
     private static DocumentUnionService Servizio(out RepoFinto repo, AuthzFinta authz, params ManagedDoc[] docs)
     {
         repo = new RepoFinto { Authz = authz };
-        return new DocumentUnionService(repo, new DocsFinti(docs), authz);
+        return new DocumentUnionService(repo, new DocsFinti(docs), authz, new BersagliFinti(docs));
     }
 
     private sealed class AuthzFinta : IEditAuthorizationService
@@ -279,6 +312,39 @@ public class DocumentUnionServiceTests
         {
             var fratelli = Righe.Where(r => r.UnionId == unionId).OrderBy(r => r.Order).ToList();
             for (var i = 0; i < fratelli.Count; i++) Sostituisci(fratelli[i] with { Order = i });
+        }
+    }
+
+    /// <summary>I descrittori di release, ridotti a quel che serve: chiave → id del documento.</summary>
+    private sealed class BersagliFinti : IReleaseTargetRegistry
+    {
+        private readonly ManagedDoc[] _docs;
+        public BersagliFinti(ManagedDoc[] docs) => _docs = docs;
+
+        public IReadOnlyList<IReleaseTarget> ByDescribeOrder =>
+            _docs.Select(d => d.ReleaseTarget).Distinct().Select(t => (IReleaseTarget)new Bersaglio(t, _docs)).ToList();
+
+        public IReleaseTarget For(ReleaseTargetType type) => new Bersaglio(type, _docs);
+
+        private sealed class Bersaglio : IReleaseTarget
+        {
+            private readonly ManagedDoc[] _docs;
+            public Bersaglio(ReleaseTargetType type, ManagedDoc[] docs) { Type = type; _docs = docs; }
+            public ReleaseTargetType Type { get; }
+            public int DescribeOrder => 0;
+
+            public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) =>
+                Task.FromResult(_docs.FirstOrDefault(
+                    d => d.ReleaseTarget == Type && string.Equals(d.ReleaseKey, key, StringComparison.OrdinalIgnoreCase))?.DocumentId);
+
+            public Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) =>
+                Task.FromResult<string?>("LIRR");
+
+            public bool TryDescribe(Vipi.Domain.Entities.Document doc, bool hasDraft, out ManagedDoc managed)
+            {
+                managed = default!;
+                return false;
+            }
         }
     }
 

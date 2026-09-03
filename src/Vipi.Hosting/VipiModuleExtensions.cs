@@ -173,6 +173,9 @@ public static class VipiModuleExtensions
         // e' esattamente cio' che le pagine facevano gia' con @inject.
         services.AddScoped<Vipi.Ui.Components.Doc.AppMemberLoader>();
         services.AddScoped<Vipi.Ui.Components.Doc.MilMemberLoader>();
+        // Il caricatore dei MEMBRI di un'unione: dentro istanzia i caricatori di famiglia dal service
+        // provider che riceve, quindi una pagina con scope proprio lo costruisce dal SUO (ActivatorUtilities).
+        services.AddScoped<Vipi.Ui.Components.Doc.UnionLoader>();
         // ⚠⚠ AirportMemberLoader NON si registra qui, ed è voluto: AeroportoPage è OwningComponentBase e
         // lo costruisce dal PROPRIO scope (ActivatorUtilities), perché i nove servizi che interroga vanno
         // presi da lì e non dal circuito — vedi il commento in testa a quella classe.

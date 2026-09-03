@@ -1,7 +1,7 @@
 ﻿# Documenti uniti — una pagina, un editor, una pubblicazione — carta (3 settembre 2026)
 
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Ramo `documenti-uniti`, da `main` (`cd1bc5c7`).
-> Stato: 🟡 **in esecuzione** — §1 chiusa.
+> Stato: 🟡 **in esecuzione** — §1-§4 chiuse.
 
 ## La domanda
 
@@ -96,22 +96,52 @@ query sono due posti in cui può divergere.
 cascata, `Tidy` idempotente) e `DocumentUnionServiceTests` (11, puri: guardie, famiglie ammesse, candidati,
 «leggere non chiede permessi»).
 
-## §2 — I corpi dei viewer diventano componenti ⏳
+## §2 — I corpi dei viewer diventano componenti ✅
 
-Da `AppnPage`, `AeroportoPage` e `MilDocumentPage` si estrae il corpo in `Components/Doc/*DocumentBody.razor`.
-Meccanico: la pagina monta il componente e la resa non cambia di una virgola.
+Da `AppnPage`, `AeroportoPage` e `MilDocumentPage` escono, per famiglia, un **caricatore**
+(`*MemberLoader`, tutto quel che stava in `OnParametersSetAsync`) e un **componente-corpo**
+(`*DocumentBody.razor`, le sezioni più il corpo derivato per chiave). Le pagine tengono il chrome.
+Meccanico: la resa non cambia di una virgola, e la prova è che i 1147 test UI e i 289 E2E restano verdi
+senza un ritocco.
 
-## §3 — La pagina unita ⏳
+⚠️ **`AirportMemberLoader` non si registra in DI**: `AeroportoPage` è `OwningComponentBase` per un motivo
+misurato — sette morti con «A second operation was started» il 24 agosto — e il caricatore si costruisce dal
+suo scope con `ActivatorUtilities`.
 
-Indici impilati (uno per membro, con `HeaderLabel`), corpi in ordine, intestazione per membro, **un solo**
-`PrintMeta`, tre colonne (`DueColonneSuOgniDocumentoTests`).
+⚠️ L'ancora è **pubblica** sui tre componenti-corpo: `DocumentToc` vive nella cella sorella e deve ricevere
+la stessa.
+
+Estratti anche due aiutanti che erano scritti identici in quattro pagine: `SezioniDocumentali` (`ConSezioni`
++ la lettura del payload, ora con il `catch (InvalidOperationException)` che mancava sulle piste cotte) e
+`MilProfiloTabelle` — le colonne delle tabelle militari stavano sulla **pagina del viewer** e l'editor le
+citava da lì, un legame che si è rotto alla prima cosa spostata.
+
+## §3 — La pagina unita ✅
+
+`UnionLoader` prepara gli **altri** membri (ognuno col caricatore della sua famiglia) e ne consegna un
+`RenderFragment` già confezionato — ⚠️ **non** un «tipo di famiglia» che poi ogni pagina switcherebbe:
+aggiungere una famiglia deve costare **un caso lì dentro**, non un ramo in ogni pagina che ospita un'unione.
+`UnionToc` impila un indice per membro (`HeaderLabel`), `UnionBodies` i corpi con l'intestazione del
+documento. Un solo `PrintMeta`, quello dell'ospite; tre colonne come sempre.
+
+⚠️ I membri si caricano **in sequenza**, mai in parallelo: due catene sullo stesso `DbContext` danno
+«A second operation was started».
+
+⚠️ L'ancora del gruppo è `doc-{DocumentId}` — sull'**id del documento** e non sulla posizione: l'ordine si
+cambia con due frecce, e un'ancora che cambia con l'ordine è un collegamento salvato che un giorno porta
+altrove.
+
+⚠️ **L'ospite si riconosce da famiglia E chiave insieme** (`UnionView.IsHostTarget`): un aeroporto e il suo
+vSOP militare hanno la **stessa** chiave di release (l'ICAO) e si distinguono per il tipo — è il fatto su
+cui poggiano le due edizioni con cicli indipendenti. Confrontare la sola chiave farebbe disegnare alla
+pagina civile l'unione del militare.
 ⚠️ Le sezioni con la **stessa chiave** nei due documenti restano **tutte e due**, distinte dal gruppo: chi non
 le vuole le nasconde (`DocumentSection.IsHidden` esiste già). Decisione del committente.
 ⚠️ `?as=rel:{id}` nomina **una** release, quella dell'ospite: gli altri membri mostrano la **propria** release
 dello **stesso ciclo**. E il degrado di un'anteprima non autorizzata deve restare quello di oggi — pubblica
 **con `_useFrozen = true`**, o il congelamento AIRAC si aggira dall'indirizzo.
 
-## §4 — Il redirect ⏳
+## §4 — Il redirect ✅
 
 La vista **pubblica** di un membro non-ospite rimanda alla pagina unita, ancorata al suo gruppo. Precedente
 esatto: `ReleasePreviewPage` — `NavigateTo(url, replace: true)` **senza `@rendermode`**, così diventa una vera

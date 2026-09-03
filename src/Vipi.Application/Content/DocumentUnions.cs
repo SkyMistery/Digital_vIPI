@@ -28,6 +28,18 @@ public sealed record UnionView(int Id, IReadOnlyList<UnionMemberView> Members)
 
     /// <summary>Vero se questo documento è l'ospite: chi non lo è, in pubblico, reindirizza qui.</summary>
     public bool IsHostDocument(int documentId) => Host.DocumentId == documentId;
+
+    /// <summary>
+    /// Vero se l'ospite è il documento di questa famiglia e questa chiave — la domanda che si fa un
+    /// <b>viewer</b>, che conosce il proprio bersaglio e non l'id del proprio documento.
+    /// <para>⚠️ Servono TUTTE E DUE: la chiave da sola non basta. Un aeroporto e il suo vSOP militare hanno
+    /// la <b>stessa</b> chiave di release (l'ICAO) e si distinguono per il tipo — è il fatto su cui poggiano
+    /// le due edizioni con cicli AIRAC indipendenti. Confrontare la sola chiave farebbe credere ospite anche
+    /// l'edizione che ospite non è.</para>
+    /// </summary>
+    public bool IsHostTarget(ReleaseTargetType type, string key) =>
+        Host.Doc.ReleaseTarget == type
+        && string.Equals(Host.Doc.ReleaseKey, key, StringComparison.OrdinalIgnoreCase);
 }
 
 /// <summary>Un documento che si può unire a quello che si sta redigendo.</summary>
@@ -56,6 +68,16 @@ public interface IDocumentUnionService
     /// </summary>
     Task<UnionView?> ForDocumentAsync(int documentId, CancellationToken ct = default);
 
+    /// <summary>
+    /// L'unione a cui appartiene il documento di questa famiglia e questa chiave di release, o null.
+    ///
+    /// <para>È la porta che usano i <b>viewer</b>: una pagina conosce il proprio bersaglio (ICAO, callsign),
+    /// non l'id del suo documento. ⚠️ La chiave → documento la risolve <c>IReleaseTarget</c>, che è la
+    /// risoluzione che esiste già: scriverne una qui sarebbe la sesta, e le prime cinque hanno insegnato
+    /// come vanno a finire.</para>
+    /// </summary>
+    Task<UnionView?> ForTargetAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+
     /// <summary>Unisce <paramref name="invitatoDocumentId"/> a <paramref name="ospiteDocumentId"/>, in coda.
     /// Ritorna l'id dell'unione — nuova, o quella che l'ospite aveva già.</summary>
     Task<int> UniscoAsync(int ospiteDocumentId, int invitatoDocumentId, CancellationToken ct = default);
@@ -81,13 +103,15 @@ public sealed class DocumentUnionService : IDocumentUnionService
     private readonly IDocumentUnionRepository _repo;
     private readonly IDocumentAdminRepository _docs;
     private readonly IEditAuthorizationService _authz;
+    private readonly IReleaseTargetRegistry _targets;
 
     public DocumentUnionService(IDocumentUnionRepository repo, IDocumentAdminRepository docs,
-                                IEditAuthorizationService authz)
+                                IEditAuthorizationService authz, IReleaseTargetRegistry targets)
     {
         _repo = repo;
         _docs = docs;
         _authz = authz;
+        _targets = targets;
     }
 
     /// <summary>
@@ -118,6 +142,14 @@ public sealed class DocumentUnionService : IDocumentUnionService
     {
         var righe = await _repo.ByDocumentAsync(documentId, ct).ConfigureAwait(false);
         return righe.Count == 0 ? null : await ProiettaAsync(righe, ct).ConfigureAwait(false);
+    }
+
+    public async Task<UnionView?> ForTargetAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
+    {
+        // ⚠️ Un bersaglio senza documento non è un errore: un aeroporto senza vIPI, un APP mai scritto. La
+        // risposta è «nessuna unione», che è quel che il chiamante deve sapere.
+        var id = await _targets.For(type).ResolveDocumentIdAsync(key, ct).ConfigureAwait(false);
+        return id is null or 0 ? null : await ForDocumentAsync(id.Value, ct).ConfigureAwait(false);
     }
 
     public async Task<int> UniscoAsync(int ospiteDocumentId, int invitatoDocumentId, CancellationToken ct = default)

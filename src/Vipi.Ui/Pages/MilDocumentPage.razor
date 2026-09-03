@@ -1,6 +1,9 @@
 ﻿@page "/services/vsop/{Acc}/mil"
 @layout SopLayout
 @inject MilMemberLoader Loader
+@inject IDocumentUnionService Unioni
+@inject UnionLoader Membri
+@inject NavigationManager Nav
 @inject IEditAuthorizationService Authz
 @inject IOnlineAtcProvider Online
 @* ⚠️ Qui resta il solo `Sito`, cioè la lingua di chi GUARDA il sito: è l'arredamento della pagina.
@@ -56,8 +59,12 @@
         <div class="doc-layout">
             @* L'indice porta anche le SOTTO-sezioni: su questo documento sono venti su ventisei, e senza di
                loro l'indice ne elencava sei. *@
-            <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                         AnchorOf="MilDocumentBody.AnchorOf" />
+            <div>
+                <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
+                             HeaderLabel="@(_altri.Count > 0 ? _doc.View.Title : null)"
+                             AnchorOf="MilDocumentBody.AnchorOf" />
+                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
+            </div>
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sito["Mil_PrintSubtitle"]" AiracCycle="@Cycle()"
@@ -130,6 +137,9 @@
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <MilDocumentBody Doc="_doc" />
+
+                @* Gli altri documenti dell'unione, nell'ordine scelto dal redattore. *@
+                <UnionBodies Membri="_altri" />
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + collegamenti. Le voci sono quelle
@@ -185,6 +195,9 @@
     /// null = questo campo non ha un vSOP militare da mostrare.</summary>
     private MilMemberDocument? _doc;
 
+    /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
+    private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
+
     /// <summary>Il ciclo AIRAC MOSTRATO: quello dell'anteprima release se è una, altrimenti quello che si
     /// porta dietro lo snapshot del documento.</summary>
     private string Cycle() => _doc?.RelCycle ?? _doc?.View.AiracCycle ?? "";
@@ -223,5 +236,27 @@
         // catalogo, filtro di lettura — sta nel caricatore: l'ordine di quei passi è la correttezza, e non
         // appartiene a QUESTA pagina.
         _doc = await Loader.LoadAsync(_icao, PreviewMode.Parse(As, null), Vista);
+        if (_doc is null) return;
+
+        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
+        // ⚠️ `AirportMil` e non `Airport`: le due edizioni dello stesso scalo hanno la STESSA chiave di
+        // release (l'ICAO) e si distinguono per il tipo. Chiedere con l'altro tipo darebbe l'unione del
+        // documento civile — che è un altro documento, e magari un'altra unione.
+        var unione = await Unioni.ForTargetAsync(ReleaseTargetType.AirportMil, _icao);
+        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.AirportMil, _icao))
+        {
+            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
+            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
+            // anteprima irraggiungibile.
+            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
+            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
+            if (_doc.Mode.Kind == PreviewKind.Public
+                && Membri.IndirizzoDellOspite(unione, ReleaseTargetType.AirportMil, _icao) is { } indirizzo)
+                Nav.NavigateTo(indirizzo, replace: true);
+            return;
+        }
+        _altri = unione is null
+            ? Array.Empty<MembroUnito>()
+            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, Cycle());
     }
 }

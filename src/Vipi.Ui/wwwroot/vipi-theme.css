@@ -1040,6 +1040,14 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
   .doc-layout{grid-template-columns:248px minmax(0,1fr) 308px}
   .doc-rail{display:block;position:sticky;top:84px;align-self:start}
 }
+/* ---- Documenti UNITI (carta 2026-09-03): piu' documenti in una pagina sola ----------------------
+   Ogni membro non-ospite porta la propria intestazione. Non e' decorazione: le sezioni con la STESSA
+   chiave restano tutte e due -- «Frequenze ATC/CRC» di un vSOP militare e «Frequenze» di un
+   avvicinamento non sono la stessa cosa -- ed e' questa riga a dire di quale documento sono.
+   La riga in alto e' un CONFINE, non un ornamento: senza, due documenti diversi si leggono come uno
+   che cambia argomento a meta'. */
+.union-part{margin-top:34px;padding-top:22px;border-top:2px solid var(--line)}
+.union-part>.union-part-h{font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--brand-ink);margin:0 0 14px}
 .rail-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px 16px;margin-bottom:16px}
 .rail-card h5{margin:0 0 11px;font-size:12px;color:var(--brand-ink);text-transform:uppercase;letter-spacing:.05em;font-family:var(--font-head);display:flex;align-items:center;gap:7px}
 .rail-line{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;padding:5px 0;border-top:1px dashed var(--line)}
