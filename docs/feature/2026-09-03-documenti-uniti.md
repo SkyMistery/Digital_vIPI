@@ -325,6 +325,48 @@ contenuto, cosa che su una pagina lunga il doppio del solito capita.
 una macchina italiana. Un messaggio bilingue non si controlla per parola: si controlla che il dettaglio
 tecnico non sia arrivato fino a chi legge.
 
+## §9d — Le prove a schermo della supervisione (3 settembre 2026) ✅
+
+Guidate con la skill `verifica-live` su una **copia del `vipi.db` reale** (migrazione applicata: `Applying
+migration '20260903092733_DocumentiUniti'`), porta 5034, Edge via `puppeteer-core`. Il `vipi.db` del
+progetto è rimasto intatto. **Zero errori di pagina** in tutta la sessione.
+
+Il banco di prova è stato scelto per quello che aveva già in archivio: **LIBA** ha la vIPI d'aeroporto
+**senza nessuna release** e l'APP **pubblicato** — cioè esattamente il difetto §3 — e **LIMN Cameri** è il
+campo misto con le due edizioni.
+
+| Difetto | Che cosa si è visto |
+|---|---|
+| **§1** — pubblicazione accoppiata | Da `/services/vsop/lirr/versions`, «Publish now» sulla riga dell'**APP**: release **57** (`Airport/LIBA` v1) e **58** (`App/LIBA_APP` v3), ciclo **2609**, `ReleaseEffectiveUtc` **identico** (`14:22:08.5445568`), tutte e due `Effective`, le precedenti `Superseded`, e **le bozze di entrambi** promosse a `Published`. Prima ne usciva **uno** |
+| **§1** sull'asse misto | Stessa cosa da LIMN: release **59** (`AirportMil`) e **60** (`Airport`), ciclo 2609, stessa data efficace |
+| **§2** — lingua | vSOP ospite non bloccato + vIPI civile membro **bloccata in inglese**, pagina a `culture=it`: le intestazioni restano **TIPO / COORDINATE / FREQUENZA**, e `lang` sui corpi è `["it","en"]` — **due lingue in una pagina**. ⚠️ **Controllo**: bloccando l'**ospite** la pagina gira davvero (`TYPE / COORDINATES / FREQUENCY`), quindi la sonda è sensibile e il verso giusto funziona ancora |
+| **§3** — rimando | Con l'ospite **senza release**, la pagina dell'APP **resta a casa sua** (10 voci d'indice) mentre quella dell'ospite dice *«No airport vIPI published for LIBA»* — il vicolo cieco in cui mandava i lettori. Dopo la pubblicazione il rimando **riparte**: `/apps/vipi?app=LIBA_APP` → `/airports?icao=LIBA#doc-3`, 19 voci, **zero ancore cieche**, **un solo** `.print-meta` |
+| **§7** — lock | Con i lock di **tutti** i membri presi da me (verificati freschi in archivio): **zero** pastiglie ambra. Passando il lock del membro a un altro: pastiglia col suo nome, «Edit» rifiuta dicendo **chi**, e l'ospite resta **senza lock in archivio** — mezzo lock non preso |
+| **§8** — domanda dell'annullamento | Sulla stessa timeline: al **2609** (dove il compagno ha pubblicato) dice *«all 2 releases of that cycle are cancelled»*; al **2608** (dove non ha pubblicato) quella frase **non c'è** |
+| **§9** — frecce | ↑ del primo e ↓ dell'ultimo **spente**; spostando il membro in cima diventa **ospite**, le frecce si rispengono ai nuovi bordi e **il rimando si gira**: ora è la pagina militare a portare a quella civile, `#doc-29`, 34 voci, zero ancore cieche |
+
+### 🔴 Un difetto NUOVO, trovato guidando
+
+Da `/services/vsop/{acc}/versions` la pubblicazione ora esce accoppiata — giusto — ma la domanda diceva
+ancora *«Publish right away… **The document** becomes public immediately»*, al **singolare**, mentre ne
+mandava fuori due. ⚠️ **È la terza volta in questo giro che lo stesso conteggio sbaglia**: la domanda
+dell'annullamento prima sottostimava, poi sovrastimava, e qui taceva del tutto. Corretto: la domanda e il
+titolo del «pubblica al ciclo» passano da `AvvisoUnione(d)`, che conta da `Unito(d)`.
+
+### ⚠️ Quel che NON si è potuto guidare, e perché
+
+La **§5** — l'avviso «sezioni non salvate» di un membro — **non è stata provata a schermo**. Il conto
+`_dirtySections` segue le **tabelle** (quote, piste, frequenze, SID) e non i paragrafi, e nessun modo di
+scriverci dentro dal driver l'ha fatto salire: né gli eventi fabbricati, né i tasti veri col blur.
+
+🔴 **Ma la prova di controllo dice che l'attrezzo sbaglia, non la correzione**: la stessa scrittura
+sull'**ospite** di LIBA — dove quella guardia esiste da prima di questo lavoro — lascia il contatore a
+`Save all (0)` identicamente. Un difetto che si riproduce anche dove il codice non è stato toccato non è
+del codice. È la regola già scritta per `probe.js`: **quando un numero accusa qualcosa che sta lì da mesi,
+il sospetto va prima allo strumento.** La §5 resta coperta da `GuardiaDiPrepubblicazioneTests`, che è un
+controllo sul **sorgente** — e lo è apposta, perché una guardia che nessuno passa non fallisce nessun
+render: non fa semplicemente niente.
+
 ## §8 — La seconda richiesta: vIPI + vSOP sui campi con presenza militare ✅
 
 È lo **stesso meccanismo**, senza codice in più: su un campo misto si uniscono la vIPI civile e il vSOP, e la

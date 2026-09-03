@@ -548,6 +548,24 @@
     private int? Unito(ManagedDoc d) =>
         d.DocumentId is int id && _unioni.TryGetValue(id, out var n) ? n : null;
 
+    /// <summary>
+    /// La frase che dice quanti documenti quel tasto tocchera', o stringa vuota se è uno solo.
+    /// <para>🔴 Da qui si pubblica, e <c>PublishAsync</c> pubblica TUTTI i membri di un'unione: una
+    /// domanda che parla di «il documento» al singolare mentre ne manda fuori due è la stessa categoria di
+    /// difetto della domanda dell'annullamento, già pagata due volte in questo giro — prima sottostimava,
+    /// poi sovrastimava, e qui taceva del tutto.</para>
+    /// <para>⚠️ <c>L[chiave, argomenti]</c> e NON <c>string.Format(L[chiave].Value, …)</c>: solo il secondo
+    /// indexer interpola, e l'argomento sparirebbe in silenzio.</para>
+    /// </summary>
+    private string AvvisoUnione(ManagedDoc d) =>
+        Unito(d) is int n && n > 1 ? L["Rel_UnionTitle", n].Value : "";
+
+    /// <summary>La domanda prima di «pubblica ora», con l'avviso dell'unione quando serve.</summary>
+    private string PromptPubblicaOra(ManagedDoc d) =>
+        AvvisoUnione(d) is { Length: > 0 } avviso
+            ? L["Ver_PublishNowPrompt"].Value + " " + avviso
+            : L["Ver_PublishNowPrompt"].Value;
+
     private async Task LoadAsync()
     {
         try
@@ -990,10 +1008,14 @@
                     }
                 </select>
                 <input class="app-in ver-note" placeholder="@L["Rel_NotePh"]" value="@NoteOf(key)" @onchange="e => SetNote(key, e.Value?.ToString())" />
-                <button class="btn primary" disabled="@_busy" @onclick="() => PublishRelease(d)">@L["Ver_PublishAtCycle"]</button>
+                @* ⚠️ Su un documento UNITO questi due tasti ne pubblicano PIU' DI UNO, e devono dirlo: la
+                   pastiglia «uniti: N» in cima alla riga dice che l'unione esiste, non che il tasto la
+                   tocchera' tutta. Trovato guidando l'app il 3 settembre 2026: la domanda diceva «il
+                   documento diventa pubblico» al SINGOLARE mentre ne mandava fuori due. *@
+                <button class="btn primary" disabled="@_busy" title="@AvvisoUnione(d)" @onclick="() => PublishRelease(d)">@L["Ver_PublishAtCycle"]</button>
                 @* «Pubblica ora» scavalca il ciclo AIRAC e va al pubblico subito: un clic solo era troppo poco. *@
                 <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_PublishNowTitle"]" AriaLabel="@L["Ver_PublishNowReview"]"
-                               Prompt="@L["Ver_PublishNowPrompt"]" ConfirmLabel="@L["Ver_PublishNowYes"]" CancelLabel="@L["Common_Cancel"]"
+                               Prompt="@PromptPubblicaOra(d)" ConfirmLabel="@L["Ver_PublishNowYes"]" CancelLabel="@L["Common_Cancel"]"
                                Danger="false" Disabled="@_busy" OnConfirm="() => PublishNow(d)">
                     <Trigger>@L["Ver_PublishNowReview"]</Trigger>
                 </InlineConfirm>

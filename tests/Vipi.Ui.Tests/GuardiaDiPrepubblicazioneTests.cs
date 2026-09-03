@@ -54,6 +54,29 @@ public sealed class GuardiaDiPrepubblicazioneTests
         Assert.Contains("_editor is IMembroEditor", sorgente, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 🔴 <b>L'elenco di governo deve dire QUANTI documenti quel tasto pubblichera'.</b> Trovato
+    /// guidando l'app il 3 settembre 2026, subito dopo aver corretto il difetto grosso: da
+    /// <c>/services/vsop/{acc}/versions</c> la pubblicazione ora esce accoppiata — giusto — ma la domanda
+    /// diceva ancora «il documento diventa pubblico» al <b>singolare</b> mentre ne mandava fuori due.
+    /// <para>⚠️ È la terza volta in questo giro che lo stesso conteggio sbaglia: prima la domanda
+    /// dell'annullamento sottostimava, poi sovrastimava, qui taceva. Il conto va sempre da
+    /// <c>Unito(d)</c>, mai dedotto.</para>
+    /// </summary>
+    [Fact]
+    public void L_elenco_di_governo_dice_quanti_documenti_pubblica()
+    {
+        var sorgente = File.ReadAllText(Path.Combine(Radice(), Path.Combine("Pages", "VersioniPage.razor")));
+
+        // la domanda del «pubblica ora» e il titolo del «pubblica al ciclo» passano dall'avviso, non dal
+        // testo nudo della chiave.
+        Assert.Contains("Prompt=\"@PromptPubblicaOra(d)\"", sorgente, StringComparison.Ordinal);
+        Assert.Contains("title=\"@AvvisoUnione(d)\"", sorgente, StringComparison.Ordinal);
+        // e l'avviso conta i membri con l'indexer che INTERPOLA
+        Assert.Contains("L[\"Rel_UnionTitle\", n].Value", sorgente, StringComparison.Ordinal);
+        Assert.DoesNotContain("string.Format(L[\"Rel_UnionTitle\"]", sorgente, StringComparison.Ordinal);
+    }
+
     private static string Radice()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
