@@ -1,7 +1,7 @@
 ﻿# Documenti uniti — una pagina, un editor, una pubblicazione — carta (3 settembre 2026)
 
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Ramo `documenti-uniti`, da `main` (`cd1bc5c7`).
-> Stato: 🟡 **in esecuzione** — §1-§4 e §6 chiuse; il comando (§5a) c'è, l'editor unico (§5b) no.
+> Stato: 🟡 **in esecuzione** — §1-§6 e §9 chiuse. Resta il §7 (governo).
 >
 > ⚠️ **L'ordine e' cambiato in corsa, e vale la pena dirlo**: il piano metteva l'editor unico prima
 > della pubblicazione accoppiata. Il **comando** dell'unione viene prima di tutti e due, perche' senza
@@ -168,13 +168,56 @@ lo scope proprio protegge dagli altri, non da se' stessi.
 ⚠️ L'errore si **mostra**: una `ValidationException` qui dice cose che chi ha premuto deve sapere —
 «questo documento e' gia' unito ad altri» col NOME di quali.
 
-## §5b — I corpi degli editor, e l'editor unico ⏳
+## §5b — I corpi degli editor, e l'editor unico ✅
 
-Stessa estrazione per gli editor, e poi una istanza per membro — **il pattern della vIPI ACC**.
-⚠️ Ogni componente-membro è `OwningComponentBase` con il **proprio scope**: gli editor scrivono, e prenderli
-da `@inject` significa prenderli dal `DbContext` **del circuito** (il difetto già pagato tre volte).
-⚠️ **Il lock si prende su TUTTI i membri in un gesto**: se anche uno solo è tenuto da un altro, non se ne
-prende **nessuno** e la pagina dice chi lo tiene. Mezzo lock preso è peggio di nessun lock.
+**L'estrazione**, a diff minimo: le tre pagine restano gusci sottili e il corpo editoriale passa in
+`Components/Doc/{App,Mil,Airport}SectionsEditor.razor`. Il flag `Chrome` spegne testata, indice e rail
+quando il componente e' un MEMBRO.
+
+⚠️ **Il vincolo che decide la forma**: `DocumentSectionsEditor` **si costruisce la propria griglia**
+(`ed-layout` + `EditorToc`). Montarne uno per membro darebbe N griglie e N indici, uno sotto l'altro. La
+pagina ospite possiede la griglia e monta i figli con `ShowToc="false"` — e' il pattern che la vIPI ACC usa
+gia' per i suoi blocchi.
+
+**L'orchestrazione**: `UnionMembersEditor` monta i membri dentro l'`AfterSections` dell'ospite (quello slot e'
+reso DENTRO la colonna centrale: fuori, i corpi finirebbero larghi quanto la pagina). I membri si
+**registrano** via `IMembroEditor` invece di essere presi con `@ref` — `@ref` vuole il tipo concreto, e le
+famiglie sono tre; cosi' l'ospite ne comanda N senza sapere quale sia quale, e una quarta famiglia costa un
+caso nello switch invece di un ramo in ogni pagina.
+
+⚠️ **Il lock si prende su TUTTI in un gesto, o su nessuno.** Se anche uno solo e' tenuto da un altro, quelli
+gia' presi si **rilasciano** e si dice **chi** lo tiene. Mezzo lock preso e' peggio di nessun lock: chi crede
+di star modificando due documenti ne starebbe modificando uno, e lo scoprirebbe al salvataggio.
+⚠️ `PrendiLockAsync` torna il **nome** e non un booleano, perche' e' quello che va detto: «non puoi
+modificare, lo tiene Tizio» e' una risposta, «non puoi modificare» e' un muro.
+
+⚠️ Sull'aeroporto `RilasciaLockAsync` passa da `FineModificaAsync` e non dal guscio: li' uscire **salva**
+quel che e' in sospeso (i tre editor dei dati dello scalo hanno buffer a salvataggio esplicito), e mollare il
+lock senza quel passo butterebbe via quello che si stava scrivendo.
+
+**Le reti che sono andate rosse, e dicevano il vero.** Le invarianti seguono chi le porta:
+`ScopeDellEditingTests` (chi possiede lo scope), `DatiDelloScaloMilitareTests` (tutte quelle di §AS),
+`GerarchiaTitoliTests` (la testata) — con esenzioni **motivate** e una rete nuova che pretende la testata nei
+componenti: il titolo non e' sparito, ha cambiato file.
+
+### ⚠️ Le tre cose che ha trovato la verifica dal vivo, e nessun test vedeva
+
+1. **L'indice unito restava con le sole voci dell'ospite** — otto invece di diciotto, e nessun errore. Tre
+   cause in fila, ognuna nascosta dalla precedente: le voci si **tiravano** con un `@ref` (assegnato *dopo*
+   il render, mentre i membri si registrano *durante*); si spingevano **una volta sola**, quando il documento
+   del membro **non e' ancora caricato** e le sue sezioni sono zero; e la `.Concat` che le univa **non era
+   mai stata applicata** — lo script che la metteva era morto prima, su un altro errore, e il parametro
+   esisteva senza che nessuno lo leggesse. ⚠️ **Un parametro dichiarato e mai letto non da' nessun segnale**:
+   compila, si passa, e non fa niente.
+2. Dopo l'estrazione, `AeroportoEditorPage` citava se stessa in un `DotNetObjectReference<>`: un rename alla
+   cieca ha poi riscritto anche la **frase** del commento in testa, che e' diventata «sta fuori da se'
+   stesso». ⚠️ Un rename globale non distingue il codice dalla prosa.
+3. La conferma vera che l'invariante del lock funziona: con un membro bloccato da un altro, il messaggio
+   nomina chi lo tiene e **in archivio l'ospite resta senza lock**.
+
+**Verificato dal vivo su LIBA**: una griglia sola, il gruppo `doc-3` «Amendola Approach» con le sue dieci
+sezioni, l'indice con **tutti e due** i documenti raggruppati, i **due lock presi insieme** (documenti 26 e 3,
+a millisecondi di distanza), e il rifiuto pulito quando uno e' occupato.
 
 ## §6 — La pubblicazione accoppiata ✅
 

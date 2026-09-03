@@ -13,6 +13,7 @@
    `DbContext` — non deve venire dal circuito, che lo condivide con barra, isole e pannelli. In un editor
    unito questo conta il DOPPIO: i membri sono piu' d'uno, e ognuno ha il suo. *@
 @inherits OwningComponentBase
+@implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
 @using System.Text.Json
 @inject IAppDocumentService AppDoc
@@ -130,7 +131,7 @@ else
                        testata) e nessuno dei tre era accanto al titolo del documento. *@
                     @if (_shell.IsEditing)
                     {
-                        <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
+                        <button class="btn ghost" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
@@ -138,7 +139,7 @@ else
                     }
                     else
                     {
-                        <button class="btn ghost" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     }
                 </RightRail>
@@ -243,6 +244,11 @@ else
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e'
             // sua, e senza questo resterebbe ferma su quel che era prima del gesto.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
     }
 
     // ⚠️ Espandi/comprimi tutto lo fa il JS sui <details>, e prima del primo render interattivo l'interop non
@@ -295,9 +301,12 @@ else
     /// <summary>Voce d'indice per il pannello di pubblicazione, che sta fuori dalle sezioni.
     /// ⚠️ Solo col chrome: in un editor unito il pannello e' UNO, dell'ospite, e una voce per membro
     /// prometterebbe tre pannelli che non ci sono.</summary>
-    private IReadOnlyList<EditorTocItem> _tocExtra => Chrome
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
         ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
-        : Array.Empty<EditorTocItem>();
+        : Array.Empty<EditorTocItem>())
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
 
     /// <summary>
     /// ⚠️ Anche questo passa dal <b>tornello</b>: qui si legge dal database <i>prima</i> di arrivare al
@@ -585,5 +594,27 @@ else
             }
         </div>
     };
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome: con
+    /// il chrome e' una pagina a se', e non c'e' nessun ospite da avvisare.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
 
 }

@@ -8,6 +8,7 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
    circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`, in fondo. *@
 @inherits OwningComponentBase
+@implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
 @inject IMilitaryDocumentService Militari
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
@@ -139,7 +140,7 @@ else
                     <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.AirportMil).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
                     @if (_shell.IsEditing)
                     {
-                        <button class="btn ghost" @onclick="() => _shell.FinishEditingAsync()">✓ @L["Lock_FinishEdit"]</button>
+                        <button class="btn ghost" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
@@ -147,7 +148,7 @@ else
                     }
                     else
                     {
-                        <button class="btn ghost" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     }
                 </RightRail>
@@ -272,9 +273,12 @@ else
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
     /// ⚠️ Solo col chrome: in un editor unito il pannello di pubblicazione e' UNO, dell'ospite, e una
     /// voce per membro prometterebbe N pannelli che non ci sono.
-    private IReadOnlyList<EditorTocItem> _tocExtra => Chrome
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
         ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
-        : Array.Empty<EditorTocItem>();
+        : Array.Empty<EditorTocItem>())
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
 
     /// <summary>
     /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
@@ -313,6 +317,11 @@ else
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
     }
 
     /// <summary>⚠️ Il guscio tiene un timer (il badge «Salvato» che si spegne da solo): senza questo resta un
@@ -1138,5 +1147,27 @@ else
         _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
     });
 
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome: con
+    /// il chrome e' una pagina a se', e non c'e' nessun ospite da avvisare.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
 
 }

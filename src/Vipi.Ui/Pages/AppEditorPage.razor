@@ -3,15 +3,33 @@
 @rendermode InteractiveServer
 @inject IEditAuthorizationService Authz
 @inject IDocRoutesRegistry DocRoutes
+@inject IDocumentUnionService Unioni
+@inject IStringLocalizer<SharedResource> L
 
-@* La pagina dell'editor di un APP non remotizzato: qui restano l'indirizzo, il pannello dell'unione e
-   quello di pubblicazione. Il CORPO editoriale — sezioni, corpo derivato, lock, salvataggi — sta in
-   <AppSectionsEditor>, perche' lo stesso editor va montato anche nell'editor UNITO (carta
-   2026-09-03-documenti-uniti.md §5b). *@
+@* La pagina dell'editor di un APP non remotizzato: qui restano l'indirizzo, i MEMBRI dell'unione (se
+   questo documento ne è l'ospite), il pannello dell'unione e quello di pubblicazione. Il CORPO editoriale
+   sta in <AppSectionsEditor>, perché lo stesso editor va montato anche come membro di un'unione
+   (carta 2026-09-03-documenti-uniti.md §5b). *@
 
-<AppSectionsEditor @ref="_editor" Acc="@Acc" App="@App" Chrome="true">
+<AppSectionsEditor @ref="_editor" Acc="@Acc" App="@App" Chrome="true"
+                   VociIndiceExtra="_vociMembri"
+                   SuModifica="@(Ospite ? ModificaTutti : null)"
+                   SuFineModifica="@(Ospite ? FineModificaTutti : null)">
     <AfterSections>
-        @* L'unione dei documenti: SOPRA il pannello di pubblicazione, perche' e' cio' che decide QUANTI
+        @if (_errore is { Length: > 0 })
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@_errore</div></div>
+        }
+
+        @* Gli ALTRI documenti dell'unione, nell'ordine scelto dal redattore. Qui dentro e non dopo il
+           componente: questo slot è reso nella colonna centrale della griglia. *@
+        @if (Ospite)
+        {
+            <UnionMembersEditor @ref="_membri" Membri="_altri" Acc="@Acc"
+                               StatoCambiato="Ridisegna" VociCambiate="AggiornaVoci" />
+        }
+
+        @* L'unione dei documenti: SOPRA il pannello di pubblicazione, perché e' cio' che decide QUANTI
            documenti quel tasto pubblichera'. *@
         <UnionPanel Target="ReleaseTargetType.App" Key="@Callsign"
                     IsEditing="_editor?.Guscio.IsEditing ?? false" Changed="UnioneCambiata" />
@@ -32,21 +50,83 @@
     [SupplyParameterFromQuery] public string? App { get; set; }
 
     private AppSectionsEditor? _editor;
+    private UnionMembersEditor? _membri;
+    private IReadOnlyList<UnionMemberView> _altri = Array.Empty<UnionMemberView>();
+    private string? _errore;
 
     private string Callsign => (App ?? "").Trim().ToUpperInvariant();
 
-    /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina. Alzarla e' cio' che
-    /// costringe <c>ReleasePanel</c> a rileggere i suoi bersagli: la sua memoizzazione e' su bersaglio e
-    /// chiave, e quelle non cambiano quando si unisce un documento.</summary>
+    /// <summary>Questo documento è l'OSPITE di un'unione: allora redige anche gli altri.</summary>
+    private bool Ospite => _altri.Count > 0;
+
+    /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina: alzarla costringe
+    /// <c>ReleasePanel</c> a rileggere i suoi bersagli.</summary>
     private int _unioneRev;
+
+    protected override async Task OnParametersSetAsync() => await LeggiUnioneAsync();
+
+    private async Task LeggiUnioneAsync()
+    {
+        // ⚠️ Solo se questo documento è l'OSPITE: l'editor unito vive al suo indirizzo, e comporlo a partire
+        // da un membro darebbe lo stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        var unione = await Unioni.ForTargetAsync(ReleaseTargetType.App, Callsign);
+        _altri = unione is not null && unione.IsHostTarget(ReleaseTargetType.App, Callsign)
+            ? unione.Members.Where(m => m.DocumentId != unione.Host.DocumentId).ToList()
+            : Array.Empty<UnionMemberView>();
+    }
+
+    /// <summary>
+    /// «Modifica» su un editor unito: prende il lock di QUESTO documento e di tutti i membri.
+    ///
+    /// <para>⚠️ Se anche uno solo è tenuto da un altro, <b>non ne resta preso nessuno</b> e si dice chi lo
+    /// tiene. Mezzo lock preso è peggio di nessun lock: chi crede di star modificando due documenti ne
+    /// starebbe modificando uno, e lo scoprirebbe al salvataggio.</para>
+    /// </summary>
+    private async Task ModificaTutti()
+    {
+        _errore = null;
+        if (_editor is null) return;
+
+        if (await _editor.PrendiLockAsync() is { } chiOspite)
+        {
+            _errore = L["Union_LockedBy", chiOspite];
+            return;
+        }
+        if (_membri is not null && await _membri.PrendiLockAsync() is { } chiMembro)
+        {
+            await _editor.RilasciaLockAsync();
+            _errore = L["Union_LockedBy", chiMembro];
+        }
+    }
+
+    private async Task FineModificaTutti()
+    {
+        if (_membri is not null) await _membri.RilasciaLockAsync();
+        if (_editor is not null) await _editor.RilasciaLockAsync();
+    }
 
     private async Task UnioneCambiata()
     {
         _unioneRev++;
+        await LeggiUnioneAsync();
         await Ricarica();
     }
 
     private Task Ricarica() => _editor?.RicaricaAsync() ?? Task.CompletedTask;
+
+    private Task Ridisegna() { StateHasChanged(); return Task.CompletedTask; }
+
+    /// <summary>Le voci d'indice dei membri, portate dal componente che li monta.
+    /// <para>⚠️ Arrivano SPINTE e non si tirano con l'`@ref`: quello si assegna dopo il render, e i
+    /// membri si registrano durante — tirarle lasciava l'indice con le sole voci dell'ospite.</para></summary>
+    private IReadOnlyList<EditorTocItem> _vociMembri = Array.Empty<EditorTocItem>();
+
+    private Task AggiornaVoci(IReadOnlyList<EditorTocItem> voci)
+    {
+        _vociMembri = voci;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
 
     // ---- release AIRAC (target App) ----
     private string? ReleasePreviewUrl(int releaseId) =>

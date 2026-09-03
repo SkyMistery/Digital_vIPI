@@ -10,6 +10,7 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
    circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`. *@
 @inherits OwningComponentBase
+@implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Content
 @using Vipi.Application.Aor
@@ -193,7 +194,7 @@ else
                     {
                         @* ⚠️ Non `FinishEditingAsync` diretto: prima si salva quel che è in sospeso.
                            Vedi FineModificaAsync. *@
-                        <button class="btn ghost" disabled="@_busy" @onclick="FineModificaAsync">✓ @L["Lock_FinishEdit"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
@@ -201,7 +202,7 @@ else
                     }
                     else
                     {
-                        <button class="btn ghost" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
                     @if (LastImport() is DateTime li)
@@ -369,7 +370,10 @@ else
     }
 
     /// <inheritdoc cref="AppSectionsEditor.RilasciaLockAsync"/>
-    public Task RilasciaLockAsync() => _shell.IsEditing ? _shell.FinishEditingAsync() : Task.CompletedTask;
+    /// ⚠️ Passa da <c>FineModificaAsync</c> e non dal guscio: su questo editor uscire SALVA quel che e'
+    /// in sospeso (i tre editor dei dati dello scalo hanno buffer a salvataggio esplicito), e mollare il
+    /// lock senza quel passo butterebbe via quello che si stava scrivendo.
+    public Task RilasciaLockAsync() => _shell.IsEditing ? FineModificaAsync() : Task.CompletedTask;
 
     /// <inheritdoc cref="AppSectionsEditor.RicaricaAsync"/>
     public Task RicaricaAsync() => LoadAsync();
@@ -438,6 +442,11 @@ else
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
     }
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
@@ -513,13 +522,16 @@ else
     /// ⚠️ La voce del pannello Release esce solo col chrome: in un editor unito quel pannello e' UNO,
     /// dell'ospite, e una voce per membro prometterebbe N pannelli che non ci sono. Quella dei SETTORI resta
     /// sempre - il catalogo e' di QUESTO scalo, e in un'unione gli scali possono essere due.
-    private IReadOnlyList<EditorTocItem> _tocExtra => Chrome
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
         ? new[]
         {
             new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0),
             new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]),
         }
-        : new[] { new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0) };
+        : new[] { new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0) })
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
 
     // Espandi/comprimi tutto, in coda al menu-sezioni: stesse chiavi e stesso gesto degli altri tre editor.
     private RenderFragment TocCommands => __builder =>
@@ -1300,5 +1312,28 @@ else
 
     /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
     private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    /// <summary>⚠️ Non `FinishEditingAsync` diretto: qui prima si salva quel che e' in sospeso, ed e' per
+    /// questo che il gancio avvolge <c>FineModificaAsync</c> e non il guscio.</summary>
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : FineModificaAsync();
 
 }

@@ -1,0 +1,172 @@
+﻿@* Gli ALTRI membri di un'unione, dentro l'editor dell'OSPITE (carta 2026-09-03-documenti-uniti.md §5b).
+
+   Si monta dentro `AfterSections` dell'ospite, e non dopo di lui: quello slot è reso DENTRO la colonna
+   centrale della griglia `ed-layout`. Fuori, i corpi dei membri finirebbero larghi quanto la pagina invece
+   che quanto le sezioni — è la stessa ragione per cui ci stanno il catalogo dei settori e il pannello di
+   pubblicazione.
+
+   ⚠️ Ogni membro ha `Chrome="false"`: niente testata, niente indice, niente rail. La griglia è dell'ospite,
+   l'indice è UNO e lo compone lui, e i comandi del lock sono UNO per tutti — è il pattern che la vIPI ACC
+   usa già per i suoi blocchi.
+
+   ⚠️ I membri si REGISTRANO qui invece di essere presi con `@ref`: `@ref` vuole il tipo concreto del
+   componente, e qui le famiglie sono tre. Con `IMembroEditor` l'ospite ne comanda N senza sapere quale sia
+   quale — e aggiungere una quarta famiglia costa un caso nello switch, non un ramo in ogni pagina. *@
+@using Vipi.Domain
+
+@foreach (var m in Membri)
+{
+    <section id="@MembroUnito.AncoraDi(m.DocumentId)" class="union-part">
+        <h2 class="union-part-h">@m.Doc.Title</h2>
+        @switch (m.Doc.ReleaseTarget)
+        {
+            case ReleaseTargetType.App:
+                <AppSectionsEditor Acc="@AccDi(m)" App="@m.Doc.ReleaseKey" Chrome="false"
+                                   Registrati="Registra" StatoCambiato="MembroCambiato" />
+                break;
+            case ReleaseTargetType.Airport:
+                <AirportSectionsEditor Acc="@AccDi(m)" Icao="@m.Doc.ReleaseKey" Chrome="false"
+                                       Registrati="Registra" StatoCambiato="MembroCambiato" />
+                break;
+            case ReleaseTargetType.AirportMil:
+                <MilSectionsEditor Acc="@AccDi(m)" Icao="@m.Doc.ReleaseKey" Chrome="false"
+                                   Registrati="Registra" StatoCambiato="MembroCambiato" />
+                break;
+            @* ⚠️ Nessun `default`: le famiglie ammesse le decide `DocumentUnionService.FamiglieAmmesse`, e
+               un membro di un'altra non può esistere in archivio. Disegnare una scatola vuota che nessuno
+               saprebbe spiegare è peggio del silenzio. *@
+        }
+    </section>
+}
+
+@code {
+    /// <summary>I membri da redigere qui: gli ALTRI, non l'ospite.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<UnionMemberView> Membri { get; set; } = Array.Empty<UnionMemberView>();
+
+    /// <summary>L'ACC della pagina ospite: il ripiego quando il membro non ne dichiara uno.</summary>
+    [Parameter, EditorRequired] public string Acc { get; set; } = "";
+
+    /// <summary>Rimbalza all'ospite il ridisegno di un membro: la testata è sua.</summary>
+    [Parameter] public EventCallback StatoCambiato { get; set; }
+
+    /// <summary>
+    /// Le voci d'indice dei membri, <b>spinte</b> all'ospite appena si sanno.
+    ///
+    /// <para>⚠️ Spinte e non TIRATE con un <c>@@ref</c>, ed è un difetto già pagato: il riferimento a un
+    /// componente si assegna <b>dopo</b> il render, mentre i membri si registrano <b>durante</b> — quindi al
+    /// momento in cui l'ospite ridisegnava, il suo <c>_membri</c> era ancora nullo e l'indice restava con le
+    /// sole voci sue. Misurato dal vivo il 3 settembre: otto voci invece di diciotto, e nessun errore.</para>
+    /// </summary>
+    [Parameter] public EventCallback<IReadOnlyList<EditorTocItem>> VociCambiate { get; set; }
+
+    private readonly List<IMembroEditor> _editor = new();
+
+    /// <summary>Gli editor dei membri, nell'ordine in cui si sono registrati.</summary>
+    public IReadOnlyList<IMembroEditor> Editor => _editor;
+
+    private async Task Registra(IMembroEditor e)
+    {
+        // ⚠️ Idempotente: `OnInitialized` gira una volta per istanza, ma un membro tolto e rimesso
+        // riregistrerebbe lo stesso oggetto — e un doppione vorrebbe dire prendere due volte lo stesso lock.
+        if (_editor.Contains(e)) return;
+        _editor.Add(e);
+
+        StateHasChanged();
+        await MembroCambiato();
+    }
+
+    /// <summary>
+    /// Prende il lock di TUTTI i membri. <c>null</c> = presi tutti; altrimenti il <b>nome</b> di chi ha
+    /// bloccato, e <b>nessun lock resta preso</b>.
+    ///
+    /// <para>⚠️ È la parte che va scritta con più cura: mezzo lock preso è peggio di nessun lock, perché chi
+    /// crede di star modificando due documenti ne starebbe modificando uno — e lo scoprirebbe al
+    /// salvataggio, con il lavoro dell'altro già perso.</para>
+    /// </summary>
+    public async Task<string?> PrendiLockAsync()
+    {
+        var presi = new List<IMembroEditor>();
+        foreach (var e in _editor)
+        {
+            var chi = await e.PrendiLockAsync();
+            if (chi is null) { presi.Add(e); continue; }
+
+            // Indietro tutto, nell'ordine inverso: quel che si era preso si molla.
+            for (var i = presi.Count - 1; i >= 0; i--) await presi[i].RilasciaLockAsync();
+            return chi;
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Un membro ha cambiato stato: si rimbalza all'ospite, e gli si riportano le voci d'indice.
+    ///
+    /// <para>⚠️ Le voci si spingono a OGNI cambiamento, non solo alla registrazione, ed è un difetto già
+    /// pagato: quando un membro si registra il suo documento <b>non è ancora caricato</b> (il carico sta in
+    /// <c>OnParametersSetAsync</c>, che viene dopo), quindi le sue sezioni sono zero. Spingendo una volta
+    /// sola, l'indice unito restava con le sole voci dell'ospite — otto invece di diciotto, e nessun errore
+    /// da nessuna parte.</para>
+    /// </summary>
+    private async Task MembroCambiato()
+    {
+        var voci = VociIndice();
+        // Si spinge solo se sono davvero cambiate: ogni spinta fa ridisegnare l'ospite, e l'ospite è una
+        // pagina intera.
+        if (voci.Count != _ultime.Count || !voci.Select(v => v.AnchorId).SequenceEqual(_ultime.Select(v => v.AnchorId)))
+        {
+            _ultime = voci;
+            await VociCambiate.InvokeAsync(voci);
+        }
+        await StatoCambiato.InvokeAsync();
+    }
+
+    private IReadOnlyList<EditorTocItem> _ultime = Array.Empty<EditorTocItem>();
+
+    /// <summary>Molla il lock di tutti i membri. No-op su quelli che non erano suoi.</summary>
+    public async Task RilasciaLockAsync()
+    {
+        foreach (var e in _editor) await e.RilasciaLockAsync();
+    }
+
+    /// <summary>Ricarica tutti i membri.</summary>
+    public async Task RicaricaAsync()
+    {
+        foreach (var e in _editor) await e.RicaricaAsync();
+    }
+
+    /// <summary>
+    /// Le voci d'indice dei membri, raggruppate col titolo del loro documento.
+    /// <para>⚠️ Il gruppo non è decorazione: senza, l'indice dell'editor unito sarebbe un elenco di trenta
+    /// voci in cui «Frequenze» compare due volte e non si sa di chi sia.</para>
+    /// </summary>
+    public IReadOnlyList<EditorTocItem> VociIndice() =>
+        _editor.SelectMany(e => EditorTocProjection
+            // ⚠️ `dragGroup` col DOCUMENTO dentro: il trascinamento non deve poter spostare una sezione
+            //    da un membro all'altro. Una sezione non cambia mai documento — e il repository lo rifiuta
+            //    comunque (MoveSectionBeforeAsync pretende un FRATELLO), ma un tasto che a volte non fa
+            //    niente è peggio di un tasto spento.
+            .DaSezioni(e.Sezioni, dirty: null, dragGroup: $"membro-{e.Titolo}")
+            .Select(v => v with { GroupLabel = e.Titolo }))
+        .ToList();
+
+    /// <summary>
+    /// ⚠️ Dopo ogni render: è la rete che prende i casi in cui un membro finisce di caricarsi senza passare
+    /// dal guscio (il primo carico, per esempio). Costa un confronto di ancore, e senza di essa l'indice
+    /// unito dipenderebbe da quale callback scatta per prima.
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_editor.Count == 0) return;
+        var voci = VociIndice();
+        if (voci.Count == _ultime.Count && voci.Select(v => v.AnchorId).SequenceEqual(_ultime.Select(v => v.AnchorId)))
+            return;
+        _ultime = voci;
+        await VociCambiate.InvokeAsync(voci);
+    }
+
+    /// <summary>L'ACC di questo membro: il suo, o quello della pagina ospite come ripiego.
+    /// <para>⚠️ Il suo, e non sempre quello della pagina: due documenti uniti possono stare su ACC diversi, e
+    /// dare a un membro l'ACC sbagliato vorrebbe dire chiedere il suo documento a un altro ente.</para></summary>
+    private string AccDi(UnionMemberView m) =>
+        string.IsNullOrWhiteSpace(m.Doc.AccCode) ? Acc : m.Doc.AccCode!;
+}
