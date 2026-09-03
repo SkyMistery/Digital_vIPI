@@ -45,8 +45,8 @@ public class ProfiloMilitareTests
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
         Assert.Equal(6, Mil.Count);
-        Assert.Equal(6, Mil.Single(d => d.Key == "generaldata").Children!.Count);
-        Assert.Equal(4, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
+        Assert.Equal(7, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(8, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
         Assert.Equal(2, Mil.Single(d => d.Key == "regulated").Children!.Count);
     }
@@ -195,4 +195,46 @@ public class ProfiloMilitareTests
         Assert.Equal("Dati generali", Mil.Single(d => d.Key == "generaldata").Title);
         Assert.Equal("Piste", Tutte(Mil).First(d => d.Key == "runways").Title);
     }
+
+    // ---- I parcheggi: un DATO dello scalo, non una procedura (3 settembre 2026) -----------------------
+
+    /// <summary>
+    /// I parcheggi stanno <b>in coda ai Dati generali</b> e non più in testa alle Procedure di terra.
+    /// Richiesta del committente: un piazzale e i suoi stalli sono un dato del campo — come piste,
+    /// radioassistenze e frequenze — non una procedura che si esegue.
+    ///
+    /// <para>⚠️ Il catalogo decide la struttura <b>solo alla nascita</b>: i vSOP già scritti li porta avanti
+    /// <c>IDocumentMaintenance.ReparentMilParkingsAsync</c>, perché a mano nessuno potrebbe — il motore di
+    /// riordino sposta soltanto fra fratelli.</para>
+    /// </summary>
+    [Fact]
+    public void I_parcheggi_chiudono_i_dati_generali()
+    {
+        var generali = Mil.Single(d => d.Key == "generaldata").Children!;
+        Assert.Equal("parkings", generali.OrderBy(d => d.Order).Last().Key);
+    }
+
+    [Fact]
+    public void I_parcheggi_NON_stanno_piu_fra_le_procedure_di_terra()
+    {
+        var terra = Mil.Single(d => d.Key == "groundprocedures").Children!;
+        Assert.DoesNotContain("parkings", terra.Select(d => d.Key));
+        // E il gruppo che l'ha persa riparte da uno: l'ordine di catalogo è una posizione fra fratelli, e un
+        // buco in testa direbbe che manca qualcosa.
+        Assert.Equal(new[] { 1, 2, 3 }, terra.OrderBy(d => d.Order).Select(d => d.Order));
+    }
+
+    /// <summary>
+    /// La chiave resta <b>la stessa</b>, ed è ciò che rende lo spostamento un cambio di posto e non un
+    /// trapianto: il corpo, la tabella fissa <c>milparkings</c> e i blocchi si cercano per chiave.
+    /// </summary>
+    [Fact]
+    public void Spostandola_la_chiave_non_cambia()
+    {
+        var parcheggi = Tutte(Mil).Single(d => d.Key == "parkings");
+        Assert.Equal(SectionCatalog.KindOf("parkings"), parcheggi.Kind);
+        Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, "parkings"));
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "parkings"));
+    }
 }
+

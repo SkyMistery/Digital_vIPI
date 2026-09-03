@@ -7569,3 +7569,81 @@ A schermo, su copia del `vipi.db` con quattro documenti bloccati a mano e sezion
 LIBA_APP), in pubblico e in bozza, col filtro `?vista=` attivo, in tema chiaro e scuro, a 1600px e a 390px,
 più il PDF — che porta la riga `Single-language document — …` per esteso. Zero errori di console, zero
 riquadri pieni rimasti.
+
+## BC. I parcheggi sono un dato dello scalo, non una procedura — 3 settembre 2026
+
+🟡 **In lavorazione**, ramo `parcheggi-dati-generali`. Nessuna carta: richiesta del committente — *«spostare
+parking presente in ground procedure in general data alla fine della sezione, però considera che ci sono vSOP
+in produzione che già usano parking e vanno gestite»*.
+
+### Il fatto
+
+Nel profilo `AirportMil` la sezione `parkings` era la **prima figlia** di «Procedure di terra». Un piazzale e
+i suoi stalli sono un **dato del campo** — come piste, radioassistenze e frequenze — non una procedura che si
+esegue: ora è l'**ultima figlia** di «Dati generali» (ordine 7, dopo «Nominativi»).
+
+### ⚠️ Perché il solo catalogo non bastava, ed è la parte che conta
+
+Il catalogo decide la struttura **solo alla nascita** (`DocumentBirth.Semina`). Sui documenti già scritti non
+cambia niente — e **nessuno potrebbe rimediare a mano**: il motore di riordino sposta soltanto fra
+**fratelli** (`MoveSectionBeforeAsync` pretende un fratello, apposta, perché un riordino non diventi una
+riparentazione silenziosa). In UI il gesto «portala in un altro gruppo» non esiste. Senza un passo di
+riconciliazione i cinque vSOP militari già scritti avrebbero tenuto i parcheggi fra le procedure **per
+sempre**, e la pill dello scostamento avrebbe pure cominciato a segnalarli come fuori posto.
+
+Quindi: `IDocumentMaintenance.ReparentMilParkingsAsync`, one-shot idempotente in `ReconcileVipiDocuments`
+come le altre (mai una migrazione EF: lo schema hostato lo crea il `PostgresSchemaReconciler`).
+
+- **Prudente**: solo documenti militari, solo la chiave `parkings`, e **solo se il padre è ancora
+  `groundprocedures`**. Chi l'avesse già portata altrove ha fatto una scelta, e non si tocca — è anche ciò
+  che rende il passo idempotente.
+- **Il contenuto viaggia con la sezione**: è la stessa riga, quindi blocchi, tabella `milparkings`,
+  «nascosta» e marcatura pilota/ATC restano attaccati. Il corpo si cerca per **chiave**, ricorsivamente
+  (`MilMemberLoader.Cerca`), non per posizione.
+- Il gruppo che l'ha persa si **richiude**: `Order` è una posizione fra fratelli, e lasciare il buco farebbe
+  partire le Procedure di terra dal numero due.
+
+⚠️ **Le release già pubblicate non si toccano** (doc 13 §9): il pubblico continua a vedere i parcheggi
+dov'erano finché quel vSOP non viene **ripubblicato**. Misurato a schermo — vedi sotto — ed è una decisione da
+prendere, non un difetto.
+
+### 🔴 Due buchi dello stesso passo, chiusi insieme
+
+`AddMissingCatalogSectionsAsync` — quello che porta ai documenti già scritti le sezioni aggiunte al catalogo
+dopo la loro nascita — aveva **due limiti mai dichiarati**:
+
+1. **non guardava i vSOP militari**: l'elenco dei documenti da controllare era vLOA + APP standalone +
+   aeroporti. Nessuna chiave aggiunta al profilo militare è mai arrivata a un documento esistente;
+2. **si fermava al primo livello**: confrontava le sole radici. Cioè proprio dove il profilo militare non ha
+   quasi niente, avendo **ventisei sezioni dentro sei contenitori** — su un documento a cui mancava mezzo
+   indice avrebbe risposto «non manca niente».
+
+Ora l'elenco comprende i militari e il confronto **ricorre nei sotto-gruppi**, inserendo ogni mancante nella
+posizione che il catalogo le dà fra i suoi fratelli.
+
+⚠️ **E la presenza si misura sulla CHIAVE in tutta la versione, non dentro il singolo gruppo.** Un documento
+non ancora riparentato ha i parcheggi sotto le Procedure di terra: un confronto fatto gruppo per gruppo ne
+avrebbe creato un **secondo** dentro i Dati generali — due sezioni con la stessa chiave, e il corpo che ne
+pesca una a caso. Una sezione nel posto sbagliato va **spostata**, non duplicata in quello giusto. L'invariante
+su cui poggia questa lettura — *dentro un profilo ogni chiave compare una volta sola* — non era scritta da
+nessuna parte: ora è un test su tutti e sette i profili.
+
+### Verifica
+
+Build Release 0 warning, suite intera verde, **14 test nuovi** (`ParcheggiNeiDatiGeneraliTests`, più le
+guardie di catalogo in `ProfiloMilitareTests` e `SectionCatalogTests`).
+
+A schermo, su una copia fresca del `vipi.db` con i suoi **cinque** vSOP militari nella forma vecchia: al primo
+avvio il log dice *«Spostata la sezione «Parcheggi» sotto «Dati generali» in 5 vSOP militari»* e nessuna
+sezione mancante (quei documenti sono nati col profilo completo). Nel database la sezione sta a `Order` 7,
+`Depth` 1, sotto `generaldata`, e le Procedure di terra ripartono da uno.
+
+Nel documento reso — indice e corpo, `/services/vsop/libb/mil?icao=LIBG` — la **bozza** e l'**editor**
+mostrano «Parking» dopo «Callsigns» e prima del contenitore «Ground procedures», senza nessuna pill di
+scostamento; la vista **pubblica** la mostra ancora dentro «Ground procedures», perché legge lo snapshot della
+release. È esattamente il patto scritto sopra.
+
+### Da decidere
+
+I vSOP militari già **pubblicati** (nel database di sviluppo: LIBG, LIML, LIMN) mostreranno la posizione nuova
+solo dopo una **ripubblicazione**.

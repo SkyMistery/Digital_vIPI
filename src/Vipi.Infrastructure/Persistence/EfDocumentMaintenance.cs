@@ -362,16 +362,20 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
     {
-        // APP standalone, vLOA e — dalla carta 2026-08-26 — AEROPORTI. Resta fuori la sola vIPI ACC, che ha le
-        // sezioni sotto i BLOCCHI: lì la rete a view-time dell'assembler continua a coprirla, e serve anche agli
-        // snapshot di release vecchi, che non si riscrivono.
+        // APP standalone, vLOA, AEROPORTI (carta 2026-08-26) e vSOP MILITARI (3 settembre 2026). Resta fuori la
+        // sola vIPI ACC, che ha le sezioni sotto i BLOCCHI: lì la rete a view-time dell'assembler continua a
+        // coprirla, e serve anche agli snapshot di release vecchi, che non si riscrivono.
         var airportDocIds = await _db.Airports.Where(a => a.DocumentId != null)
             .Select(a => a.DocumentId!.Value).ToListAsync(ct);
+        var milDocIds = await _db.Airports.Where(a => a.MilDocumentId != null)
+            .Select(a => a.MilDocumentId!.Value).ToListAsync(ct);
         var airports = airportDocIds.ToHashSet();
+        var militari = milDocIds.ToHashSet();
         var docs = await _db.Documents
             .Include(d => d.Sectors)
             .Where(d => d.Type == Vipi.Domain.DocumentType.Vloa
                         || airportDocIds.Contains(d.Id)
+                        || milDocIds.Contains(d.Id)
                         || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
                                               && x.ApproachKind == ApproachKind.Standalone))
             .ToListAsync(ct);
@@ -380,7 +384,11 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         var added = 0;
         foreach (var doc in docs)
         {
+            // ⚠️ Il militare PRIMA dell'aeroporto: le due edizioni dello stesso scalo sono due documenti, ma un
+            // campo misto compare in tutt'e due gli elenchi con id diversi — se l'ordine si invertisse, un vSOP
+            // militare non ci finirebbe comunque; è l'ordine che rende la lettura vera, non un caso fortunato.
             var profile = doc.Type == Vipi.Domain.DocumentType.Vloa ? SectionProfile.Vloa
+                : militari.Contains(doc.Id) ? SectionProfile.AirportMil
                 : airports.Contains(doc.Id) ? SectionProfile.Airport
                 : SectionProfile.App;
 
@@ -389,50 +397,168 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
             if (versionId is null) continue;
 
-            var roots = await _db.DocumentSections
-                .Where(x => x.DocumentVersionId == versionId && x.ParentSectionId == null)
+            // ⚠️ TUTTA la versione, non le sole radici: dal 3 settembre 2026 il confronto scende nelle
+            // sotto-sezioni, e il profilo militare ha ventisei sezioni dentro sei contenitori — guardando solo il
+            // primo livello si sarebbe detto «non manca niente» su un documento a cui mancava mezzo indice.
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == versionId)
                 .OrderBy(x => x.Order).ToListAsync(ct);
 
-            var present = roots.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var missing = SectionCatalog.For(profile).Where(d => !present.Contains(d.Key)).OrderBy(d => d.Order).ToList();
-            if (missing.Count == 0) continue;
-
+            // ⚠️ La presenza si misura sulla CHIAVE in tutta la versione: una sezione che sta nel gruppo
+            // sbagliato non va duplicata in quello giusto — va spostata, ed è un altro passo
+            // (ReparentMilParkings). Le chiavi di un profilo sono uniche, e lo pretende un test del catalogo.
+            var present = tutte.Select(x => x.SectionKey).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
-            foreach (var desc in missing)
-            {
-                var section = new DocumentSection
-                {
-                    DocumentVersion = version,
-                    ParentSection = null,
-                    // ⚠️ Nella lingua del DOCUMENTO: una sezione che arriva dopo non deve nascere in una
-                    // lingua diversa dalle sue sorelle.
-                    Title = desc.TitleIn(doc.Language == Vipi.Domain.Language.En ? "en" : "it"),
-                    Order = 0,   // riassegnato sotto, insieme a tutti
-                    Depth = 0,
-                    SectionKey = desc.Key,
-                    RowVersion = Guid.NewGuid().ToByteArray(),
-                    // Una sezione «sempre live» non deve nascere Frozen nemmeno quando arriva da qui: il default
-                    // della colonna e' Frozen, e il meteo congelato e' meteo scaduto (carta 2026-08-26 §1a).
-                    RenderMode = SectionCatalog.IsAlwaysLive(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
-                };
-                // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
-                // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
-                var at = roots.FindIndex(x => SectionCatalog.Find(profile, x.SectionKey) is { } f && f.Order > desc.Order);
-                roots.Insert(at < 0 ? roots.Count : at, section);
-                _db.DocumentSections.Add(section);
-                added++;
-            }
+            var lingua = doc.Language == Vipi.Domain.Language.En ? "en" : "it";
 
-            for (var i = 0; i < roots.Count; i++)
-            {
-                if (roots[i].Order == i + 1) continue;
-                roots[i].Order = i + 1;
-                roots[i].RowVersion = Guid.NewGuid().ToByteArray();
-            }
+            added += AggiungiMancantiNelGruppo(
+                version, profile, genitore: null, SectionCatalog.For(profile), tutte, present, lingua);
         }
 
         if (added > 0) await _db.SaveChangesAsync(ct);
         return added;
+    }
+
+    /// <summary>
+    /// Aggiunge le sezioni di catalogo assenti da UN gruppo di fratelli e ricorre nei figli. Il gruppo è
+    /// «i figli di <paramref name="genitore"/>» (null = le radici).
+    /// <para>⚠️ Rinumera il gruppo alla fine: <c>Order</c> è una posizione fra fratelli, e inserire in mezzo
+    /// senza rinumerare lascerebbe due sezioni sullo stesso numero.</para>
+    /// </summary>
+    private int AggiungiMancantiNelGruppo(
+        DocumentVersion version, SectionProfile profile, DocumentSection? genitore,
+        IReadOnlyList<SectionDescriptor> descrittori, List<DocumentSection> tutte,
+        HashSet<string> present, string lingua)
+    {
+        var added = 0;
+        var gruppo = tutte
+            .Where(x => genitore is null ? x.ParentSectionId is null && x.ParentSection is null
+                                         : ReferenceEquals(x.ParentSection, genitore)
+                                           || (genitore.Id != 0 && x.ParentSectionId == genitore.Id))
+            .OrderBy(x => x.Order).ToList();
+
+        foreach (var desc in descrittori.OrderBy(d => d.Order))
+        {
+            if (present.Contains(desc.Key)) continue;
+
+            var profondita = (genitore?.Depth ?? -1) + 1;
+            // ⚠️ Il vincolo di profondità è applicativo (DocumentSection.MaxDepth), come alla nascita: sforarlo
+            // darebbe un documento fuori regola, e il difetto si vedrebbe solo a schermo in una TOC che non rientra.
+            if (profondita > DocumentSection.MaxDepth) continue;
+
+            var section = new DocumentSection
+            {
+                DocumentVersion = version,
+                ParentSection = genitore,
+                // ⚠️ Nella lingua del DOCUMENTO: una sezione che arriva dopo non deve nascere in una
+                // lingua diversa dalle sue sorelle.
+                Title = desc.TitleIn(lingua),
+                Order = 0,   // riassegnato sotto, insieme a tutti
+                Depth = profondita,
+                SectionKey = desc.Key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+                // Una sezione «sempre live» non deve nascere Frozen nemmeno quando arriva da qui: il default
+                // della colonna e' Frozen, e il meteo congelato e' meteo scaduto (carta 2026-08-26 §1a).
+                RenderMode = SectionCatalog.IsAlwaysLive(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
+            };
+            // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
+            // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
+            var at = gruppo.FindIndex(x => Descrittore(profile, x.SectionKey, descrittori) is { } f && f.Order > desc.Order);
+            gruppo.Insert(at < 0 ? gruppo.Count : at, section);
+            tutte.Add(section);
+            present.Add(desc.Key);
+            _db.DocumentSections.Add(section);
+            added++;
+        }
+
+        for (var i = 0; i < gruppo.Count; i++)
+        {
+            if (gruppo[i].Order == i + 1) continue;
+            gruppo[i].Order = i + 1;
+            gruppo[i].RowVersion = Guid.NewGuid().ToByteArray();
+        }
+
+        // Ricorsione nei contenitori: il padre è la sezione del documento — quella che c'era o quella appena
+        // creata — e i descrittori sono i suoi figli di catalogo.
+        foreach (var desc in descrittori)
+        {
+            if (desc.Children is not { Count: > 0 } figli) continue;
+            var padre = gruppo.FirstOrDefault(x => string.Equals(x.SectionKey, desc.Key, StringComparison.OrdinalIgnoreCase));
+            if (padre is null) continue;
+            added += AggiungiMancantiNelGruppo(version, profile, padre, figli, tutte, present, lingua);
+        }
+
+        return added;
+    }
+
+    /// <summary>Il descrittore di catalogo di una sezione dentro il gruppo che si sta guardando: prima fra i
+    /// fratelli di catalogo, poi — per i profili piatti — nel catalogo intero. Serve solo a sapere «dove viene»
+    /// una sezione fissa rispetto a un'altra.</summary>
+    private static SectionDescriptor? Descrittore(
+        SectionProfile profile, string key, IReadOnlyList<SectionDescriptor> fratelli) =>
+        fratelli.FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
+        ?? SectionCatalog.Find(profile, key);
+
+    // ---- 3 settembre 2026: i parcheggi passano ai Dati generali ----
+
+    public async Task<int> ReparentMilParkingsAsync(CancellationToken ct = default)
+    {
+        const string parkings = "parkings";
+        const string ground = "groundprocedures";
+        const string general = "generaldata";
+
+        var milDocIds = await _db.Airports.Where(a => a.MilDocumentId != null)
+            .Select(a => a.MilDocumentId!.Value).ToListAsync(ct);
+        if (milDocIds.Count == 0) return 0;
+
+        var mosse = 0;
+        foreach (var docId in milDocIds)
+        {
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is not int vid) continue;
+
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
+
+            var parcheggi = tutte.FirstOrDefault(x => string.Equals(x.SectionKey, parkings, StringComparison.OrdinalIgnoreCase));
+            if (parcheggi is null) continue;
+
+            // ⚠️ Solo se il padre è ANCORA «Procedure di terra»: se qualcuno l'ha già portata altrove, quella è
+            // una scelta di chi scrive e non si tocca. È anche ciò che rende il passo idempotente — al secondo
+            // avvio il padre è «Dati generali» e non c'è più niente da fare.
+            var vecchio = tutte.FirstOrDefault(x => x.Id == parcheggi.ParentSectionId);
+            if (vecchio is null || !string.Equals(vecchio.SectionKey, ground, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var nuovo = tutte.FirstOrDefault(x => x.ParentSectionId is null
+                && string.Equals(x.SectionKey, general, StringComparison.OrdinalIgnoreCase));
+            if (nuovo is null) continue;   // documento senza «Dati generali»: non è il posto per inventarlo
+
+            var figli = tutte.Where(x => x.ParentSectionId == nuovo.Id).ToList();
+            parcheggi.ParentSectionId = nuovo.Id;
+            parcheggi.ParentSection = nuovo;
+            parcheggi.Depth = nuovo.Depth + 1;
+            parcheggi.Order = figli.Count == 0 ? 1 : figli.Max(x => x.Order) + 1;   // ultima, come dice il catalogo
+            parcheggi.RowVersion = Guid.NewGuid().ToByteArray();
+
+            // Il gruppo che l'ha persa si richiude: Order è una posizione, e lasciare il buco farebbe partire le
+            // Procedure di terra dal numero due.
+            var rimasti = tutte.Where(x => x.ParentSectionId == vecchio.Id && x.Id != parcheggi.Id)
+                .OrderBy(x => x.Order).ToList();
+            for (var i = 0; i < rimasti.Count; i++)
+            {
+                if (rimasti[i].Order == i + 1) continue;
+                rimasti[i].Order = i + 1;
+                rimasti[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+
+            mosse++;
+        }
+
+        if (mosse > 0) await _db.SaveChangesAsync(ct);
+        return mosse;
     }
 
     // ---- carta 2026-08-26: i documenti d'aeroporto gia' scritti ----

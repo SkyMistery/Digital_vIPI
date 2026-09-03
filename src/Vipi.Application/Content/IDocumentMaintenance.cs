@@ -47,13 +47,45 @@ public interface IDocumentMaintenance
     Task<int> ReconcileVloaSectionKeysAsync(CancellationToken ct = default);
 
     /// <summary>
-    /// Aggiunge alle vIPI APP e alle vLOA esistenti le sezioni FISSE del catalogo che non hanno (doc 13 §3d),
-    /// nella posizione che il catalogo prevede. Serve a rendere uniforme un comportamento che era di una famiglia
-    /// sola: la vIPI ACC le sezioni mancanti se le inventa a view-time (<c>AccDocumentAssembler</c>), APP e vLOA no —
-    /// quindi una chiave aggiunta al catalogo compariva subito su tutte le ACC e mai sugli altri documenti già
-    /// creati. Tocca la versione di lavoro più recente; è idempotente. Ritorna il numero di sezioni aggiunte.
+    /// Aggiunge ai documenti esistenti le sezioni FISSE del catalogo che non hanno (doc 13 §3d), nella posizione
+    /// che il catalogo prevede. Serve a rendere uniforme un comportamento che era di una famiglia sola: la vIPI
+    /// ACC le sezioni mancanti se le inventa a view-time (<c>AccDocumentAssembler</c>), le altre no — quindi una
+    /// chiave aggiunta al catalogo compariva subito su tutte le ACC e mai sugli altri documenti già creati.
+    /// Tocca la versione di lavoro più recente; è idempotente. Ritorna il numero di sezioni aggiunte.
+    ///
+    /// <para>⚠️ Dal 3 settembre 2026 copre anche i <b>vSOP militari</b> e scende nelle <b>sotto-sezioni</b>. Erano
+    /// due buchi dello stesso passo: il vSOP militare non era nell'elenco dei documenti da guardare, e il
+    /// confronto si fermava alle sezioni di primo livello — cioè proprio dove il profilo militare non ha quasi
+    /// niente, avendo ventisei sezioni dentro sei contenitori.</para>
+    ///
+    /// <para>⚠️ La presenza si misura sulla CHIAVE in tutta la versione, non dentro il singolo gruppo: una
+    /// sezione che sta nel posto sbagliato non va duplicata in quello giusto — va spostata, ed è un altro passo
+    /// (<see cref="ReparentMilParkingsAsync"/>). Le chiavi di un profilo sono uniche, e lo pretende un test.</para>
     /// </summary>
     Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Sposta la sezione <c>parkings</c> dei vSOP militari già scritti da «Procedure di terra» a ultima figlia di
+    /// «Dati generali», dove il catalogo la mette dal 3 settembre 2026.
+    ///
+    /// <para>⚠️ <b>Senza questo passo i documenti vecchi non si sistemano né da soli né a mano</b>: il catalogo
+    /// decide la struttura solo alla nascita (<c>DocumentBirth</c>), e il motore di riordino sposta soltanto fra
+    /// FRATELLI — apposta, perché un riordino non diventi una riparentazione silenziosa. Chi scrive non ha nessun
+    /// gesto per portare una sezione in un altro gruppo.</para>
+    ///
+    /// <para>⚠️ <b>Prudente</b>: tocca solo i documenti militari, solo la sezione con chiave <c>parkings</c>, e
+    /// solo se il suo padre è ancora <c>groundprocedures</c>. Se qualcuno l'ha già portata altrove resta dov'è —
+    /// spostare la scelta di un altro sarebbe peggio del difetto.</para>
+    ///
+    /// <para>⚠️ Il <b>contenuto viaggia con la sezione</b>: è la stessa riga, quindi blocchi, tabella fissa,
+    /// «nascosta» e marcatura pilota/ATC restano attaccati. E il corpo si cerca per CHIAVE, ricorsivamente
+    /// (<c>MilMemberLoader</c>), non per posizione.</para>
+    ///
+    /// <para>⚠️ Le <b>release già pubblicate non si toccano</b> (doc 13 §9): il pubblico continua a vedere i
+    /// parcheggi dov'erano finché quel vSOP non viene ripubblicato.</para>
+    /// </summary>
+    /// <returns>Quanti documenti sono stati sistemati.</returns>
+    Task<int> ReparentMilParkingsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Scrive su ogni aeroporto il documento che lo descrive (<c>Airport.DocumentId</c>), leggendolo dove viveva

@@ -251,14 +251,21 @@ public static class SectionCatalog
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
                     HB("callsigns", "Nominativi", 6, en: "Callsigns"),
+                    // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
+                    // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
+                    // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
+                    // radioassistenze e frequenze.
+                    // ⚠️ Il catalogo decide la struttura solo alla NASCITA: i vSOP già scritti li sposta
+                    // `IDocumentMaintenance.ReparentMilParkingsAsync`, perché a mano nessuno potrebbe — il
+                    // motore di riordino sposta solo fra FRATELLI, apposta.
+                    HB("parkings", "Parcheggi", 7, en: "Parking"),
                 }),
 
                 D("groundprocedures", "Procedure di terra", 3, en: "Ground procedures", children: new[]
                 {
-                    HB("parkings", "Parcheggi", 1, en: "Parking"),
-                    D("enginestart", "Messa in moto", 2, en: "Engine start"),
-                    D("taxiing", "Rullaggio", 3, en: "Taxiing"),
-                    D("arming", "Armamento/disarmo", 4, en: "Arming/de-arming"),
+                    D("enginestart", "Messa in moto", 1, en: "Engine start"),
+                    D("taxiing", "Rullaggio", 2, en: "Taxiing"),
+                    D("arming", "Armamento/disarmo", 3, en: "Arming/de-arming"),
                 }),
 
                 D("flightprocedures", "Procedure di volo", 4, en: "Flight procedures", children: new[]

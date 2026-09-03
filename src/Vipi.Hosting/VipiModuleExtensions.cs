@@ -660,11 +660,21 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Riconciliate {Count} sezioni d'aeroporto sulle chiavi del catalogo.", airportKeys);
 
-        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto già creati (doc 13 §3d).
+        // I parcheggi dei vSOP militari passano dalle Procedure di terra ai Dati generali (3 settembre 2026).
+        // ⚠️ PRIMA di AddMissingCatalogSections, e non è indifferente: quel passo aggiunge le sezioni di catalogo
+        // assenti, e una sezione che sta nel gruppo sbagliato va SPOSTATA, non duplicata in quello giusto. La
+        // presenza si misura per chiave su tutta la versione, quindi il doppione non nascerebbe comunque — ma
+        // l'ordine dice l'intenzione, e la prossima riconciliazione strutturale non avrà quella rete.
+        var parcheggi = maintenance.ReparentMilParkingsAsync().GetAwaiter().GetResult();
+        if (parcheggi > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Spostata la sezione «Parcheggi» sotto «Dati generali» in {Count} vSOP militari.", parcheggi);
+
+        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
         if (catalog > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto.", catalog);
+                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari.", catalog);
 
         // vLOA: via la riga «Effective from — AIRAC ####» seminata a mano (doc 14 §3b). ⚠️ DOPO
         // AddMissingCatalogSections: se la sezione «validity» mancasse ancora, non ci sarebbe la tabella da

@@ -268,4 +268,33 @@ public class SectionCatalogTests
         Assert.False(SectionCatalog.IsInitiallyCollapsed("coordination"));
         Assert.False(SectionCatalog.IsInitiallyCollapsed("custom:aaaa1111"));
     }
+
+    /// <summary>
+    /// ⚠️ <b>Dentro un profilo una chiave compare UNA volta sola</b>, a qualunque livello. Non è una
+    /// pignoleria di catalogo: la riconciliazione che aggiunge le sezioni mancanti misura la presenza sulla
+    /// chiave in tutta la versione — così una sezione finita nel gruppo sbagliato viene <b>spostata</b> e non
+    /// duplicata in quello giusto. Con una chiave ripetuta nel profilo quella lettura direbbe il falso.
+    /// <para>La stessa chiave in profili DIVERSI resta lecita, ed è il riuso su cui il catalogo è costruito
+    /// (<c>operationaltechnique</c> è una radice sull'aeroporto e una figlia sul vSOP militare).</para>
+    /// </summary>
+    [Theory]
+    [InlineData(SectionProfile.App)]
+    [InlineData(SectionProfile.AccAerovia)]
+    [InlineData(SectionProfile.AccAppBlock)]
+    [InlineData(SectionProfile.Vloa)]
+    [InlineData(SectionProfile.Airport)]
+    [InlineData(SectionProfile.AirportMil)]
+    [InlineData(SectionProfile.AppMil)]
+    public void Dentro_un_profilo_ogni_chiave_compare_una_volta_sola(SectionProfile profile)
+    {
+        static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
+            d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
+
+        var chiavi = Tutte(SectionCatalog.For(profile)).Select(d => d.Key).ToList();
+        var doppie = chiavi.GroupBy(k => k, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToList();
+
+        Assert.True(doppie.Count == 0, $"{profile}: chiavi ripetute — {string.Join(", ", doppie)}");
+    }
 }
+
