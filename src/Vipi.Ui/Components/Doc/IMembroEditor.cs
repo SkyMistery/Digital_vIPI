@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Ui.Components.Doc;
 
@@ -36,4 +36,15 @@ public interface IMembroEditor
 
     /// <summary>Ricarica questo membro: lo chiama l'ospite dopo un gesto che tocca tutti.</summary>
     Task RicaricaAsync();
+
+    /// <summary>
+    /// L'ultima domanda prima che una pubblicazione parta: <c>false</c> la annulla. Il default è «vai», e
+    /// una famiglia che non ha niente da chiedere non la implementa.
+    ///
+    /// <para>🔴 Esiste perché il pannello di pubblicazione sta <b>solo sull'ospite</b>, e con lui la sua
+    /// <c>BeforePublishAsync</c>: prima di questa riga, l'avviso «sezioni non salvate» di una vIPI
+    /// d'aeroporto <b>non veniva chiesto</b> quando quell'aeroporto era un MEMBRO. Si pubblicava una
+    /// fotografia senza le modifiche aperte, in silenzio — e la fotografia è quel che il pubblico legge.</para>
+    /// </summary>
+    Task<bool> BeforePublishAsync() => Task.FromResult(true);
 }

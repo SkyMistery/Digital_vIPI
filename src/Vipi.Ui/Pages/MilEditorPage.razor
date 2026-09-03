@@ -35,6 +35,7 @@
         <div id="sec-versioni">
             <ReleasePanel Revisione="_unioneRev" Target="ReleaseTargetType.AirportMil" Key="@Codice"
                           ShowDiff="true" AllowCancel="Authz.IsEditor"
+                          BeforePublishAsync="Prepubblicazione"
                           PreviewUrlFactory="ReleasePreviewUrl"
                           Published="Ricarica" />
         </div>
@@ -100,6 +101,22 @@
         _unioneRev++;
         await LeggiUnioneAsync();
         await Ricarica();
+    }
+
+    /// <summary>
+    /// L'ultima domanda prima di pubblicare, per QUESTO documento e per tutti i membri dell'unione.
+    ///
+    /// <para>🔴 Il pannello di pubblicazione sta solo sull'ospite, e con lui la sua guardia: prima di
+    /// questa riga l'avviso «sezioni non salvate» di un MEMBRO non veniva chiesto, e la sua fotografia
+    /// usciva senza le modifiche aperte — in silenzio, e la fotografia è quel che il pubblico legge.</para>
+    /// </summary>
+    private async Task<bool> Prepubblicazione()
+    {
+        // ⚠️ Attraverso l'INTERFACCIA: `IMembroEditor.BeforePublishAsync` ha un'implementazione di
+        // default, e un membro di default si raggiunge solo dal tipo dell'interfaccia — dal tipo concreto
+        // il compilatore non lo vede. Le famiglie che non hanno niente da chiedere cosi' non lo scrivono.
+        if (_editor is IMembroEditor mio && !await mio.BeforePublishAsync()) return false;
+        return _membri is null || await _membri.BeforePublishAsync();
     }
 
     private Task Ricarica() => _editor?.RicaricaAsync() ?? Task.CompletedTask;

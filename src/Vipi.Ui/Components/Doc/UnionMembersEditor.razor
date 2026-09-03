@@ -128,6 +128,18 @@
         foreach (var e in _editor) await e.RilasciaLockAsync();
     }
 
+    /// <summary>
+    /// Chiede a ogni membro l'ultima domanda prima di pubblicare. <c>false</c> al primo che dice di no.
+    /// <para>⚠️ In sequenza e con l'uscita al primo rifiuto: queste domande aprono finestre di conferma, e
+    /// tre finestre insieme non si rispondono. Chi ha detto di no ha gia' detto tutto.</para>
+    /// </summary>
+    public async Task<bool> BeforePublishAsync()
+    {
+        foreach (var e in _editor)
+            if (!await e.BeforePublishAsync()) return false;
+        return true;
+    }
+
     /// <summary>Ricarica tutti i membri.</summary>
     public async Task RicaricaAsync()
     {

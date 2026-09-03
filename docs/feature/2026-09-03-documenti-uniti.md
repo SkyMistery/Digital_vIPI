@@ -232,6 +232,15 @@ componenti: il titolo non e' sparito, ha cambiato file.
 3. La conferma vera che l'invariante del lock funziona: con un membro bloccato da un altro, il messaggio
    nomina chi lo tiene e **in archivio l'ospite resta senza lock**.
 
+🔴 **E l'ultima domanda prima di pubblicare si fa a TUTTI.** Il pannello di pubblicazione sta solo
+sull'ospite, e con lui la sua `BeforePublishAsync`: l'avviso «sezioni non salvate» di una vIPI d'aeroporto
+**non veniva chiesto** quando quell'aeroporto era un MEMBRO, e la sua fotografia usciva senza le modifiche
+aperte — in silenzio, e la fotografia è quel che il pubblico legge. Ora `IMembroEditor` porta la guardia
+(con un default «vai», per le famiglie che non hanno niente da chiedere) e ognuno dei tre ospiti compone la
+propria con quella dei membri. ⚠️ Si chiede **attraverso l'interfaccia**: un membro di default non si vede
+dal tipo concreto, e due delle tre pagine non compilavano affatto. Rete: `GuardiaDiPrepubblicazioneTests`,
+sul **sorgente** — una guardia che nessuno passa non fallisce nessun render, non fa semplicemente niente.
+
 **Verificato dal vivo su LIBA**: una griglia sola, il gruppo `doc-3` «Amendola Approach» con le sue dieci
 sezioni, l'indice con **tutti e due** i documenti raggruppati, i **due lock presi insieme** (documenti 26 e 3,
 a millisecondi di distanza), e il rifiuto pulito quando uno e' occupato.
