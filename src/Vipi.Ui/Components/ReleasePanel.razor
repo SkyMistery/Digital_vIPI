@@ -5,6 +5,7 @@
 @inject IShapeGateNoticeService ShapeGate
 @inject IServiceProvider Servizi
 @inject IJSRuntime JS
+@inject Vipi.Application.Auth.IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 @* Releases NON isolato: il publish è un'unica operazione logica composta con BeforePublishAsync della pagina
    (es. AeroportoEditorPage.EnsureDocumentAsync), che gira sul context della pagina. Isolare ReleasePanel
@@ -131,7 +132,11 @@
                     {
                         <li>
                             <b>@m.Titolo</b> <span class="muted">@m.Key</span>
-                            @if (m.LockedByUserId is not null)
+                            @* ⚠️ Solo il lock ALTRUI: nell'editor unito «Modifica» prende il lock di TUTTI i
+                               membri, quindi il proprio c'è sempre. Segnalarlo accendeva una pastiglia
+                               d'allarme su ogni membro a ogni modifica — un falso allarme permanente, e
+                               `EnsureNotLockedByOthersAsync` il lock proprio lo lascia passare. *@
+                            @if (Altrui(m))
                             {
                                 <span class="pill amber">@L["Rel_UnionLocked", m.LockedByName ?? m.LockedByUserId.ToString()!]</span>
                             }
@@ -363,6 +368,16 @@
         try { await Reload(); }
         catch (Exception ex) { _error = ex.Message; }
     }
+
+    /// <summary>
+    /// Questo membro è tenuto da <b>un altro</b>: la sola condizione che valga un allarme.
+    /// <para>🔴 Il lock PROPRIO non è un problema, ed è la norma: nell'editor unito «Modifica» prende il
+    /// lock di tutti i membri in un gesto. Prima di questa riga il pannello non sapeva distinguere — non
+    /// aveva l'identità di chi guarda — e accendeva una pastiglia d'allarme su ogni membro per tutta la
+    /// durata della modifica. Un avviso che c'è sempre non è un avviso: è rumore che nasconde quello vero.</para>
+    /// </summary>
+    private bool Altrui(Vipi.Application.Content.BersaglioUnito m) =>
+        m.LockedByUserId is { } chi && chi != Authz.CurrentUserId;
 
     /// <summary>I bersagli che il tasto «pubblica» tocchera': questo documento solo, oppure tutti i membri
     /// dell'unione. ⚠️ Si legge SEMPRE, anche quando non c'e' unione: la risposta vuota e' il caso normale,

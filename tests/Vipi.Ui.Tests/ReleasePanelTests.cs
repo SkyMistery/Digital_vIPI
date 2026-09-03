@@ -124,6 +124,17 @@ public class ReleasePanelTests : TestContext
         }
     }
 
+    /// <summary>Chi sta guardando il pannello: VID 704798, che e' l'identita' di sviluppo.
+    /// ⚠️ Serve a distinguere «il lock e' mio» da «il lock e' di un altro»: la pastiglia d'allarme si
+    /// accende solo per il secondo.</summary>
+    private sealed class ChiGuarda : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public VipiRole Role => VipiRole.Editor;
+        public bool IsAdmin => false;
+        public int? CurrentUserId => 704798;
+        public string? CurrentName => "chi guarda";
+    }
+
     /// <summary>Localizer che rende la chiave stessa: le asserzioni restano stabili al variare delle traduzioni.</summary>
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
     {
@@ -144,6 +155,7 @@ public class ReleasePanelTests : TestContext
         Services.AddSingleton<IReleaseService>(fake);
         Services.AddSingleton<IShapeGateNoticeService>(_gate);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Application.Auth.IEditAuthorizationService>(new ChiGuarda());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         return fake;
     }
@@ -491,6 +503,36 @@ public class ReleasePanelTests : TestContext
         // quando e' aperta).
         cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
         Assert.Contains("Rel_CancelPromptUnion", cut.Markup);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il lock PROPRIO non e' un allarme.</b> Nell'editor unito «Modifica» prende il lock di tutti
+    /// i membri in un gesto, quindi il proprio c'è sempre: il pannello, che non aveva l'identità di chi
+    /// guarda, accendeva la pastiglia ambra su ogni membro per tutta la durata della modifica. Un avviso
+    /// che c'è sempre non è un avviso — è rumore che nasconde quello vero.
+    /// </summary>
+    [Fact]
+    public void Il_lock_PROPRIO_non_accende_nessun_allarme_quello_ALTRUI_si()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        // Il membro lo tengo IO (704798, come `ChiGuarda`): normale, l'ho appena preso premendo «Modifica».
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.App, "LIRP_APP", 3, "Pisa Approach", 704798, "chi guarda"));
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.Airport, "LIRP", 26, "vIPI — LIRP Pisa", 704798, "chi guarda"));
+
+        var cut = Render();
+
+        Assert.Contains("Rel_UnionTitle", cut.Markup);           // l'unione si annuncia...
+        Assert.DoesNotContain("Rel_UnionLocked", cut.Markup);    // ...ma non c'e' niente da segnalare
+
+        // Lo stesso pannello, con il membro tenuto da un ALTRO: qui l'allarme ci vuole, perche' la
+        // pubblicazione dell'intera unione si rifiuta.
+        fake.Uniti[1] = new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.Airport, "LIRP", 26, "vIPI — LIRP Pisa", 999, "un altro editor");
+        cut.SetParametersAndRender(p => p.Add(x => x.Revisione, 1));
+
+        Assert.Contains("Rel_UnionLocked un altro editor", cut.Markup);
     }
 
     /// <summary>
