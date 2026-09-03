@@ -50,7 +50,7 @@ else if (_listMode)
         <AirportListPanel Acc="@_acc.Code" />
     </div>
 }
-else if (_view is null)
+else if (_doc is null)
 {
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>@_icao</b></div>
@@ -59,26 +59,28 @@ else if (_view is null)
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()@_view.Title · vIPI IVAO Italy</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_doc.View.Title · vIPI IVAO Italy</PageTitle>
 
     <div class="wrap">
-        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@En["AccLanding_Airports"]</a> › <b>@_view.Title</b></div>
+        <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@En["AccLanding_Airports"]</a> › <b>@_doc.View.Title</b></div>
 
         <div class="doc-layout">
-            <DocumentToc Sections="_sezioni" IsDraft="@(_mode.Kind == PreviewKind.Draft)" AnchorOf="AnchorOf" />
+            @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo. *@
+            <DocumentToc Sections="_doc.Sezioni" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
+                         AnchorOf="AirportDocumentBody.AnchorOf" />
 
             <div>
-                <PrintMeta Title="@_view.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
-                           AiracCycle="@(_relCycle ?? _view.AiracCycle)" Coverage="_copertura" />
+                <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
+                           AiracCycle="@(_doc.RelCycle ?? _doc.View.AiracCycle)" Coverage="_doc.Copertura" />
                 <div class="doc-head">
                     <div>
                         <h2 style="margin-bottom:2px">
-                            @_view.Title
-                            <MilitaryTag HasMilitaryPresence="_militaryPresence" IsMilitaryOnly="_militaryOnly" />
+                            @_doc.View.Title
+                            <MilitaryTag HasMilitaryPresence="_doc.MilitaryPresence" IsMilitaryOnly="_doc.MilitaryOnly" />
                         </h2>
                         @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
                         <span class="muted">@Sito["Airport_SubtitlePrefix"] · @_acc.Name</span>
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -89,9 +91,9 @@ else
                     </div>
                 </div>
 
-                @if (_mode.IsPreview)
+                @if (_doc.Mode.IsPreview)
                 {
-                    <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                    <PreviewBanner Kind="_doc.Mode.Kind" Cycle="@_doc.RelCycle"
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}&as=draft")" />
                 }
@@ -100,37 +102,21 @@ else
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
                    perché il flag è per-sezione e l'editor lo offre ovunque. Invisibile finché nessuno ha
                    marcato niente. *@
-                <AudienceChip Visibile="_haMarcate" Vista="_vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+                <AudienceChip Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
 
-                <LinguaBloccataNotice Lingua="@_bloccata" />
+                <LinguaBloccataNotice Lingua="@_doc.Bloccata" />
 
-                @* ---------- Le sezioni, nell'ORDINE DEL DOCUMENTO ----------
-                   Come nelle altre tre famiglie: si itera `_view.Sections` e si dispaccia per chiave. Fino alla
-                   carta 2026-08-26 questa pagina aveva la sequenza CABLATA (meteo → TA+frequenze affiancate →
-                   piste → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`. Per questo
-                   riordinare, nascondere o infilare una sezione libera in mezzo non aveva alcun effetto: il
-                   documento poteva dire quello che voleva, la pagina disegnava sempre la stessa cosa. *@
-                @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Fino alla carta del
-                   26 agosto questa pagina aveva la sequenza CABLATA (meteo → TA+frequenze affiancate → piste
-                   → SID → extra) e ritrovava le sezioni con `Title.Contains("transi")`: riordinare o
-                   nascondere non aveva alcun effetto. Ora l'ordine è quello del documento, e le regole di
-                   contorno sono le stesse delle altre famiglie perché sono lo STESSO componente. *@
-                @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
-                <div lang="@_bloccata">
-                    <DocumentSectionsView Sections="_sezioni" Profile="SectionProfile.Airport"
-                                          IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                                          AnchorOf="AnchorOf"
-                                          ExtraClass="ClasseExtra" HeaderContent="Intestazione"
-                                          DerivedContent="CorpoDerivato" />
-                </div>
+                @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
+                   anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
+                <AirportDocumentBody Doc="_doc" />
             </div>
 
             @* Colonna destra sticky (desktop ≥1500px): riepilogo + link + eventuali sezioni extra del profilo. *@
             <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
                 <div class="rail-card">
                     <h5><Icon Name="clipboard" /> @Sito["Common_Summary"]</h5>
-                    <div class="rail-line"><span class="muted">@Sito["Common_AiracCycle"]</span><b>@_view.AiracCycle</b></div>
+                    <div class="rail-line"><span class="muted">@Sito["Common_AiracCycle"]</span><b>@_doc.View.AiracCycle</b></div>
                     <div class="rail-line"><span class="muted">@Sito["Common_AtcOnline"]</span>
                         @{ var n = OnlineAt(_icao); }
                         <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? $"{n}" : "off")</span>
@@ -166,63 +152,19 @@ else
     /// militari §3).</summary>
     [SupplyParameterFromQuery(Name = "vista")] public string? Vista { get; set; }
 
-    private Vipi.Domain.SectionAudience? _vista;
-    private bool _haMarcate;
-    private PreviewMode _mode;
-    private string? _relCycle;
-
     private AccInfo? _acc;
-    private DocumentView? _view;
-
-    /// <summary>La lingua in cui questo documento è BLOCCATO, o null se segue chi legge: serve all'avviso e
-    /// all'attributo <c>lang</c> del contenitore (carta lingua-bloccata §5).</summary>
-    private string? _bloccata;
-    private Vipi.Application.Translation.TranslationCoverage _copertura =
-        Vipi.Application.Translation.TranslationCoverage.Nessuna;
-    // La passata di traduzione di QUESTA vista: serve una seconda volta sulle sezioni, dopo che
-    // `AirportLegacySections.ForView` ha rimesso i titoli di catalogo (vedi il commento sul suo uso).
-    private Vipi.Application.Translation.TranslationPass _passata =
-        Vipi.Application.Translation.TranslationPass.Nessuna;
+    private string _icao = "";
     private bool _listMode;
     private bool _canEdit;
-    // Taglio militare/civile dell'elenco: uno alla volta, ricliccato torna a «tutti».
-    // Anagrafica militare dell'aeroporto aperto. Campi a parte e non letti da `_profile`, che in anteprima di
-    // release viene azzerato di proposito: la presenza di una base non è un dato di release, e sparire dalla
-    // testata solo perché si guarda un ciclo passato sarebbe un'informazione persa senza motivo.
-    private bool _militaryPresence;
-    private bool _militaryOnly;
-    /// <summary>L'anagrafica in cache dello scalo aperto: quota, variazione magnetica, IATA e coordinate per
-    /// la scheda «Dati del campo». ⚠️ Non e' un dato di release — la riscrive il giro notturno — e per questo
-    /// non passa dalle derivate congelate, come gia' i due flag militari qui sopra.</summary>
-    private Vipi.Application.Content.AirportStation? _station;
-    // Meteo mini per card (elenco): ICAO → (vento, QNH, piste suggerite decolli/atterraggi) dal METAR live.
-    private string _icao = "";
-    private Vipi.Application.Abstractions.WeatherReport? _wx;
 
-    private ParsedMetar? _metar;
-    private ParsedTaf? _taf;
+    /// <summary>Il documento caricato — vista, sezioni, modalità OTTENUTA, derivate, meteo, pista in uso.
+    /// null = questo scalo non ha un documento da mostrare.</summary>
+    private AirportMemberDocument? _doc;
 
-    /// <summary>Vero se questo scalo ha anche un vSOP MILITARE pubblicato: allora nel riquadro dei
-    /// collegamenti compare il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe
-    /// a una pagina vuota — peggio che non averlo.</summary>
+    /// <summary>Vero se questo scalo ha anche un vSOP MILITARE: allora nel riquadro dei collegamenti compare
+    /// il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe a una pagina vuota —
+    /// peggio che non averlo.</summary>
     private bool _haMilitare;
-
-    private List<string> _runways = new();
-    private int? _windDir;
-    private int _windKt;
-    private RunwaySuggestionResult _sugg = new(null, Array.Empty<RunwayPick>(), "");
-    private AirportData? _profile;
-    private RunwayRuleResult? _ruleResult;
-    private HashSet<string> _depIdents = new(StringComparer.OrdinalIgnoreCase);
-    private HashSet<string> _arrIdents = new(StringComparer.OrdinalIgnoreCase);
-
-    /// <summary>Le sezioni derivate risolte per QUESTA vista: frozen dalla release effettiva se c'è, sennò live.
-    /// Un solo oggetto per tutte, come <c>AppViewDerived</c> sull'APP.</summary>
-    private AirportDerived _derived = AirportDerived.Empty;
-
-    // Pista da cui parte il filtro SID: la pista in uso in partenza. ⚠️ È solo un SEME per <AirportSids>, non
-    // la scelta del lettore — quella vive nell'isola, perché questa pagina è statica e non si ridisegna.
-    private string? _sidRwy;
 
     /// <summary>Chi presiede l'aeroporto: risolto nel ciclo di vita, MAI nel render (regola del progetto:
     /// nessuna I/O sul database mentre si disegna, o il circuito muore con «second operation»).</summary>
@@ -230,188 +172,69 @@ else
 
     // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello
     // della richiesta. Vedi il commento in testa al file.
-    private IVipiViewService ViewService = default!;
-    private IStructureEditingService Structure = default!;
-    private IAirportEditingService Profile = default!;
-    private IAirportViewDerivationService AirportView = default!;
-    private IAirportSectorService AirportSectors = default!;
-    private IDocumentAdminService Docs = default!;
     private Vipi.Application.Live.IAirportPresidencyService Presidency = default!;
     private IEditAuthorizationService Authz = default!;
-    private IReleaseService Releases = default!;
-    // ⚠️ Anche il traduttore legge il database (la memoria di traduzione): va preso dallo scope di QUESTA
-    // pagina come tutti gli altri, o si rimette in coda sul DbContext della richiesta — vedi la nota in testa.
-    private Vipi.Application.Translation.DocumentTranslator Translator = default!;
+    private AirportMemberLoader Loader = default!;
 
     protected override void OnInitialized()
     {
-        ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
-        Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
-        Profile = ScopedServices.GetRequiredService<IAirportEditingService>();
-        AirportView = ScopedServices.GetRequiredService<IAirportViewDerivationService>();
-        AirportSectors = ScopedServices.GetRequiredService<IAirportSectorService>();
-        Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
         Presidency = ScopedServices.GetRequiredService<Vipi.Application.Live.IAirportPresidencyService>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
-        Releases = ScopedServices.GetRequiredService<IReleaseService>();
-        Translator = ScopedServices.GetRequiredService<Vipi.Application.Translation.DocumentTranslator>();
+        // ⚠️ Il caricatore si COSTRUISCE dallo scope della pagina, non si inietta: dentro ha nove servizi che
+        // interrogano il database, e prenderli dal circuito rimetterebbe questa pagina sul DbContext della
+        // richiesta — il guasto delle 17:44 del 24 agosto 2026, che non ha ancora una causa nota.
+        Loader = ActivatorUtilities.CreateInstance<AirportMemberLoader>(ScopedServices);
     }
 
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
-        if (_acc is null) { _view = null; return; }
+        if (_acc is null) { _doc = null; return; }
 
         // Senza ?icao= la pagina è l'elenco degli aeroporti della ACC; con ?icao= mostra il documento.
-        // Senza ?icao= la pagina è l'elenco degli aeroporti della ACC; con ?icao= mostra il documento.
-        // ⚠️ L'elenco non si carica più qui: se lo facesse, questa pagina resterebbe interattiva per servirlo.
-        // Se lo carica l'isola <AirportListPanel>, che è l'unica parte che ne ha bisogno (doc 14 §3g).
+        // ⚠️ L'elenco non si carica qui: se lo facesse, questa pagina resterebbe interattiva per servirlo.
+        // Lo carica l'isola <AirportListPanel>, che è l'unica parte che ne ha bisogno (doc 14 §3g).
         _listMode = string.IsNullOrWhiteSpace(Icao);
         if (_listMode) return;
 
         _icao = Icao!.ToUpperInvariant();
-        _mode = PreviewMode.Parse(As);
-        _relCycle = null;
-        _copertura = Vipi.Application.Translation.TranslationCoverage.Nessuna;
-        _haMarcate = false;
-        _passata = Vipi.Application.Translation.TranslationPass.Nessuna;
-        _presidency = await Presidency.ResolveAsync(_icao);
-        switch (_mode.Kind)
-        {
-            case PreviewKind.Draft:
-                if (Authz.IsEditor)
-                    _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
-                break;
-            case PreviewKind.Release:
-                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.Airport, _icao);
-                if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                else { _mode = default; _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false); }
-                break;
-            default:
-                _view = await ViewService.BuildAirportVipiAsync(_icao, BlockTier.Extended, live: false);
-                break;
-        }
-        if (_view is null) return;
         _canEdit = Authz.IsEditor;   // tasto Editor solo a chi può editare l'ACC
+        _presidency = await Presidency.ResolveAsync(_icao);
 
-        // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
-        // ⚠️ SUBITO, appena si sa qual è il documento, e non in fondo insieme alla traduzione: se è
-        // bloccato la lingua vale anche per le DERIVAZIONI, che partono qui sotto e compongono prosa ed
-        // etichette. Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda e tradurre il resto
-        // nell'altra — mezza schermata per lingua, e nessun errore da nessuna parte.
-        // ⚠️ DUE contesti, e non è un di più: questa pagina possiede uno scope di DI suo
-        // (OwningComponentBase), quindi i servizi presi da ScopedServices vedono un'istanza diversa da quella
-        // iniettata nella pagina.
-        var lettore = LinguaDelDocumento.Prepara(
-            Lingua, _view.LanguageLocked, _view.Language, Vipi.Domain.Language.It,
-            ScopedServices.GetService<Vipi.Application.Content.ReadingLanguageContext>());
-        _bloccata = _view.LanguageLocked ? lettore : null;
+        // Tutto il carico — anteprima, lingua, meteo, derivate, pista in uso, traduzione, titoli di catalogo,
+        // filtro di lettura — sta nel caricatore: l'ordine di quei passi è la correttezza, e non appartiene a
+        // QUESTA pagina.
+        // ⚠️ DUE contesti di lingua, e non è un di più: questa pagina possiede uno scope di DI suo
+        // (OwningComponentBase), quindi i servizi presi da ScopedServices vedono un'istanza di
+        // ReadingLanguageContext diversa da quella iniettata qui. Vanno scritte tutt'e due.
+        _doc = await Loader.LoadAsync(_icao, PreviewMode.Parse(As), Vista, Lingua);
+        if (_doc is null) return;
 
-        _wx = await Weather.GetAsync(_icao);
-        _metar = string.IsNullOrWhiteSpace(_wx?.Metar) ? null : MetarParser.ParseMetar(_wx!.Metar!);
-        _taf = string.IsNullOrWhiteSpace(_wx?.Taf) ? null : MetarParser.ParseTaf(_wx!.Taf!);
-
-        // ⚠️ Il profilo serve solo alle regole piste, che decidono la pista IN USO ADESSO: quella si valuta
-        // sempre sulle regole vive, anche mentre si guarda un ciclo passato — è la risposta a «dove atterro»,
-        // non un dato di release. La tabella delle regole, invece, viene dalle derivate come tutto il resto.
-        _profile = await Profile.LoadForViewAsync(_icao);
-        // L'anagrafica del campo: presenza militare per la testata, quota/variazione/IATA/coordinate per la
-        // scheda della sezione «Quote di transizione». Una lettura sola, e viene dalla mappa gia' in cache.
-        _station = Stations.Airport(_icao);
-        _militaryPresence = _station?.HasMilitaryPresence ?? false;
-        _militaryOnly = _station?.IsMilitaryOnly ?? false;
-        // ⚠️ Le sezioni derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): frozen
-        // solo in vista pubblica, live in bozza e in anteprima di release. Deciderlo sezione per sezione, o
-        // lasciare che un ramo di fallback dimenticasse il flag, renderebbe il congelamento AIRAC aggirabile
-        // da un `?as=` qualsiasi.
-        var useFrozen = _mode.Kind is not (PreviewKind.Draft or PreviewKind.Release);
-        // ⚠️ In anteprima di release si guarda al CICLO DI QUELLA RELEASE, non a quello di oggi. Le derivate
-        // qui si rendono live (useFrozen è false), e una di loro — le SID — ha una regola che dipende dal
-        // ciclo: una SID importata compare dal ciclo successivo al prelievo. Chiedendo sempre «adesso»,
-        // l'anteprima di una release programmata al 2608 mostrava la tabella di oggi e non quella che
-        // uscirà: le SID prelevate nel ciclo in corso mancavano dall'anteprima e poi comparivano da sole
-        // in pubblico. Fuori dall'anteprima `_relCycle` è nullo e non cambia niente.
-        _derived = await AirportView.ResolveForViewAsync(_icao, useFrozen, ReleaseTargetType.Airport, _relCycle);
-        // Il ponte verso l'altra edizione. Al PUBBLICO solo se il vSOP militare è pubblicato: un
-        // collegamento a un documento che non c'è è peggio di nessun collegamento.
+        // Il ponte verso l'altra edizione. Al PUBBLICO solo se il vSOP militare è pubblicato: un collegamento
+        // a un documento che non c'è è peggio di nessun collegamento.
         // ⚠️ Allo STAFF anche se è solo una bozza. Dal 29 agosto 2026 il vSOP militare nasce QUI, dall'editor
         // della vIPI civile, e nasce in bozza: senza questo, chi l'ha appena creato non avrebbe da questa
         // pagina alcun modo di tornarci — il ponte comparirebbe solo dopo la pubblicazione, cioè quando non
         // serve più.
         _haMilitare = await Militari.HasPublishedAsync(_icao)
                       || (_canEdit && await Militari.GetDocumentIdAsync(_icao) is not null);
-        _runways = _derived.Runways.Rows.Count > 0
-            ? _derived.Runways.Rows.Select(r => r.Ident).ToList()
-            : ExtractRunways(_view);
-        // Vento iniziale dal METAR, se noto.
-        _windDir = _metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
-        _windKt = _metar?.Wind?.SpeedKt ?? 0;
-        Recompute();
-
-        // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
-        // ⚠️ La lingua di lettura è quella dell'INTERFACCIA, non un secondo selettore: un documento italiano
-        // dentro una pagina inglese è una schermata mezza tradotta. La sceglie la chip della barra, che
-        // scrive il cookie di cultura — l'unico modo perché la scelta sopravviva al circuito, che su
-        // /_blazor non porta ?culture=.
-        //
-        // ⚠️ La sorgente la dice il DOCUMENTO, non questa pagina: un aeroporto nasce in italiano, ma se un
-        // giorno ne nascesse uno inglese cablare «it» qui vorrebbe dire tradurre l'inglese come italiano —
-        // e il lettore vedrebbe la memoria mancare su ogni frase senza capire perché.
-        //
-        // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
-        // dall'originale (ids, identificatori, JSON dei blocchi), la traduzione porta la PROSA. È la stessa
-        // sequenza del vSOP militare, ed è misurata: tradurre prima significherebbe cercare «regulated» in
-        // un documento che nel frattempo dice altro.
-        var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
-        _view = tradotto.View;
-        _copertura = tradotto.Coverage;
-        _passata = tradotto.Pass;   // serve ai titoli di catalogo, che al traduttore non passano davanti
-
-        // Le sezioni da rendere si ricavano DOPO la traduzione, e si RITRADUCONO.
-        //
-        // ⚠️ Il secondo giro non è per scrupolo: `ForView` riporta ogni sezione di catalogo al suo titolo di
-        // CATALOGO — che è una stringa italiana cablata — e quindi butta via il titolo appena tradotto. Visto
-        // a schermo su LIBC il 28 agosto 2026: indice e testate dicevano «Regole piste» in mezzo a una pagina
-        // inglese, con la copertura che dichiarava «tutto tradotto». Ripassare la sezione dalla stessa passata
-        // costa zero query (la memoria è già in mano) e ritraduce dalla stessa impronta; su un testo già
-        // tradotto non trova nulla e lo lascia dov'è.
-        // ⚠️ `ForView` vuole la LINGUA: i titoli di catalogo non sono segmenti del documento, quindi la
-        // passata non li conosce e ripassarli da lì non basta — su un aeroporto importato, che ha titoli di
-        // sezione inglesi, il catalogo li riportava comunque in italiano. Ora il catalogo li porta in tutte e
-        // due le lingue e si sceglie qui (carta lingua-bloccata §4; chiude anche §Q18a della carta bilingue).
-        _sezioni = AirportLegacySections.ForView(_view.Sections, lettore).Select(_passata.Sezione).ToList();
-
-        // Il filtro di lettura, DOPO la traduzione e DOPO i titoli di catalogo: si filtra la vista che il
-        // lettore vedrà davvero, e la chip si accende solo se c'è qualcosa da filtrare.
-        _vista = AudienceFilter.Leggi(Vista);
-        _haMarcate = AudienceFilter.HaSezioniMarcate(_sezioni);
-        _sezioni = AudienceFilter.Filtra(_sezioni, _vista);
     }
 
-                /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.
-    /// ⚠️ Resta qui perché serve anche al DOCUMENTO, non solo all'elenco — la stessa domanda la fa da sé
-    /// l'isola <AirportListPanel> per le sue schede.</summary>
+    /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.
+    /// ⚠️ Resta qui perché serve al chrome del DOCUMENTO, non solo all'elenco — la stessa domanda la fa da
+    /// sé l'isola <AirportListPanel> per le sue schede.</summary>
     private int OnlineAt(string icao) => Online.GetCurrent().Callsigns.Count(cs =>
         cs.Split('_', 2)[0].Equals(icao, StringComparison.OrdinalIgnoreCase)
         && !cs.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase));
 
-    private string PreviewTitlePrefix() => _mode.Kind switch
+    private string PreviewTitlePrefix() => _doc?.Mode.Kind switch
     {
         PreviewKind.Draft => $"{Sito["Common_DraftTag"]} ",
         PreviewKind.Release => $"{Sito["Common_PreviewTag"]} ",
         _ => "",
     };
 
-    // Carica il METAR (HTTP, in parallelo) di tutti gli aeroporti dell'elenco e ne deriva vento/QNH/pista.
-    // Fuori dal percorso di render: la lista è già visibile, il meteo compare appena pronto.
-        // Piste suggerite dal profilo (decolli, atterraggi): regole piste se presenti, altrimenti miglior vento di testa.
-        private static string? Norm(string? rwy) => string.IsNullOrWhiteSpace(rwy) ? null : rwy.Trim();
-
-    // ATC online per l'aeroporto: callsign il cui primo token (prima del "_") è l'ICAO (es. LIRF_TWR, LIRF_S_APP).
-    // ⚠️ L'ATIS è escluso: nell'elenco delle postazioni c'è, ma è una frequenza registrata, non qualcuno che
-    // controlla — contarlo faceva apparire «1 online» un aeroporto dove non risponde nessuno.
-        /// <summary>
+    /// <summary>
     /// Chi presiede questo aeroporto adesso, in una riga: posizioni sue online dal gate in su e, per ciò che
     /// non è presidiato in loco, chi lo copre risalendo. Stessa risposta della vista live, stesso risolutore.
     /// </summary>
@@ -425,154 +248,5 @@ else
         return locali.Length == 0
             ? Sito.Formatta("Live_AptCoveredBy", p.Covering.Callsign)
             : $"{locali} — {Sito.Formatta("Live_AptCoveredBy", p.Covering.Callsign)}";
-    }
-
-    // Sezioni il cui corpo lo rende questa pagina; le altre passano da SectionNode. Chi siano lo dice il
-    // catalogo, per profilo (doc 13 §3a) — non un insieme scritto qui dentro.
-    /// <summary>Il corpo che questa pagina disegna, per chiave di sezione.</summary>
-    private RenderFragment<SectionView> CorpoDerivato => sec => __builder =>
-    {
-        @switch (sec.SectionKey)
-        {
-            case "weather": <AirportWeather Icao="@_icao" Report="_wx" Metar="_metar" Taf="_taf" Lingua="@_bloccata" />; break;
-            case "runwayrules":
-                <AirportRunwayRules View="_derived.Rules" ActivePosition="@(_ruleResult is null ? null : _ruleResult.RuleIndex + 1)" />;
-                break;
-            case "transition":
-                <AirportTransition View="_derived.Transition" CurrentQnh="_metar?.QnhHpa"
-                                   MetarTimeRaw="@_metar?.TimeRaw" Station="_station" />;
-                break;
-            case "frequencies": <AirportFrequencies View="_derived.Frequencies" />; break;
-            case "runways":
-                <AirportRunways View="_derived.Runways" DepIdents="_depIdents" ArrIdents="_arrIdents"
-                                RuleName="@(_ruleResult is null ? null : _ruleResult.RuleName ?? $"#{_ruleResult.RuleIndex + 1}")"
-                                RuleNote="@_ruleResult?.Note" WindDir="_windDir" WindKt="_windKt"
-                                HasRain="@(_metar?.HasRain == true)" HasSnow="@(_metar?.HasSnow == true)" />;
-                break;
-            case "sids":
-                <AirportSids View="_derived.Sids" InitialRunway="@_sidRwy" Lingua="@_bloccata"
-                             DepIdents="_depIdents.ToArray()" TransitionAltitudeFt="_derived.Transition.TransitionAltitudeFt" />;
-                break;
-            case "validity": <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" ReleaseId="@ReleaseIdShown()" />; break;
-        }
-    };
-
-    /// <summary>⚠️ Il meteo non va in stampa: è un dato live, e su carta sarebbe un'istantanea già scaduta
-    /// quando la si legge. È anche l'unica sezione che non si congela mai.</summary>
-    private static string? ClasseExtra(SectionView sec) =>
-        sec.SectionKey == "weather" ? "noprint" : null;
-
-    /// <summary>L'intestazione del meteo porta l'emoji, l'ICAO e la nota «live NOAA»: non è decorazione, dice
-    /// DI CHI è il tempo che si sta leggendo e che è vivo — le due cose che quella sezione ha da dire prima di
-    /// essere aperta. Le altre sezioni hanno il titolo e basta, e per quelle il componente fa da sé.</summary>
-    private RenderFragment<SectionView> Intestazione => sec => __builder =>
-    {
-        @if (sec.SectionKey == "weather")
-        {
-            <text>🌦️ </text>
-            @sec.Title
-            <text> · @_icao </text>
-            <span class="muted" style="font-weight:400;font-size:13px">@L["Airport_LiveNoaa"]</span>
-        }
-        else
-        {
-            @sec.Title
-        }
-    };
-
-
-    /// <summary>
-    /// Le sezioni da rendere: quelle del documento mostrato, con le <b>cotte</b> riportate alla loro chiave di
-    /// catalogo e con il <b>meteo</b> aggiunto se manca (<see cref="AirportLegacySections.ForView"/>).
-    /// <para>⚠️ Serve agli snapshot di release anteriori alla carta 2026-08-26, che non si riscrivono mai: senza,
-    /// la pagina pubblica di ogni aeroporto non ancora ripubblicato perde le tabelle vere e il meteo.</para>
-    /// </summary>
-    private IReadOnlyList<SectionView> _sezioni = Array.Empty<SectionView>();
-
-    // Ancora di sezione: «s-{Id}» per TUTTE, anche per quelle rese dalla pagina (doc 13 §3e), così i deep-link
-    // della ricerca — che indicizza per Id — atterrano dove devono e non in cima alla pagina.
-    private static string AnchorOf(SectionView s) => s.Id;
-
-    /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
-    private int? ReleaseIdShown() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
-
-    /// <summary>
-    /// Titolo mostrato per una sezione di catalogo. ⚠️ Uno snapshot di release scritto PRIMA della carta
-    /// 2026-08-26 porta i titoli in inglese («Transition levels»), perché li scriveva la cottura: chi legge
-    /// un ciclo passato deve vedere il documento com'era, ma le sezioni riconciliate hanno il titolo nuovo e
-    /// devono leggersi uguali alle altre. Quindi: titolo del catalogo se la chiave è del catalogo.
-    /// </summary>
-
-    private void Recompute()
-    {
-        // Le regole pista (se presenti) scelgono DEP/ARR dal vento in coda/traverso + superficie; altrimenti fallback headwind.
-        // ⚠️ Si valutano sulle regole VIVE, non su quelle eventualmente congelate: «quale pista è in uso adesso»
-        // è una domanda sul presente, e resta tale anche mentre si sfoglia un ciclo passato.
-        var wet = (_metar?.HasRain ?? false) || (_metar?.HasSnow ?? false);
-        _ruleResult = _profile is { Rules.Count: > 0 }
-            ? RunwaySuggestion.EvaluateRules(_profile.Rules.Select(MapRule).ToList(), _windDir, _windKt, wet, DateTime.UtcNow)
-            : null;
-        _sugg = RunwaySuggestion.Suggest(_runways, _windDir, _windKt);
-
-        // Pista consigliata DEP/ARR (la selezione NON cambia: cambia solo come la mostriamo nella tabella Piste).
-        _depIdents = new(StringComparer.OrdinalIgnoreCase);
-        _arrIdents = new(StringComparer.OrdinalIgnoreCase);
-        if (_ruleResult is not null)
-        {
-            foreach (var id in SplitIdents(_ruleResult.Dep)) _depIdents.Add(id);
-            foreach (var id in SplitIdents(_ruleResult.Arr)) _arrIdents.Add(id);
-        }
-        else if (_sugg.Best is not null)
-        {
-            _depIdents.Add((_sugg.DepIdent ?? _sugg.Best.Ident).Trim());
-            _arrIdents.Add((_sugg.ArrIdent ?? _sugg.Best.Ident).Trim());
-        }
-
-        // Seme del filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID.
-        // ⚠️ Qui non c'è più nessun «se l'utente ha già scelto»: la scelta del lettore non passa di qui, e
-        // fingere di conoscerla è esattamente ciò che teneva le chip ferme.
-        var sidRwys = AirportSids.RunwaysOf(_derived.Sids);
-        _sidRwy = sidRwys.FirstOrDefault(r => _depIdents.Contains(r)) ?? sidRwys.FirstOrDefault();
-    }
-
-    private static IEnumerable<string> SplitIdents(string? csv) => (csv ?? "")
-        .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    private static string RwyRowClass(bool dep, bool arr) =>
-        dep && arr ? "rwy-both" : arr ? "rwy-arr" : dep ? "rwy-dep" : "";
-
-    private static RunwayRuleEval MapRule(RunwayRuleRow r) => AirportViewFormat.MapRule(r);
-
-    /// <summary>
-    /// Ripiego: estrae gli identificativi pista dalla tabella «Piste» COTTA nel documento. Serve solo agli
-    /// snapshot di release anteriori alla carta 2026-08-26 — un documento di lavoro le piste le ha nel profilo,
-    /// e la derivazione le porta gia'. Per questo cerca ancora per titolo: quelle sezioni hanno chiavi casuali.
-    /// </summary>
-    private static List<string> ExtractRunways(DocumentView view)
-    {
-        var idents = new List<string>();
-        foreach (var s in view.Sections)
-        {
-            if (!s.Title.Contains("pist", StringComparison.OrdinalIgnoreCase) && !s.Title.Contains("runway", StringComparison.OrdinalIgnoreCase)) continue;
-            foreach (var b in s.Blocks)
-            {
-                if (b.Format != BlockFormat.Table || string.IsNullOrWhiteSpace(b.BodyJson)) continue;
-                try
-                {
-                    using var doc = JsonDocument.Parse(b.BodyJson!);
-                    if (!doc.RootElement.TryGetProperty("rows", out var rows)) continue;
-                    foreach (var row in rows.EnumerateArray())
-                    {
-                        if (row.TryGetProperty("cells", out var cells) && cells.GetArrayLength() > 0)
-                        {
-                            var ident = cells[0].GetString();
-                            if (!string.IsNullOrWhiteSpace(ident)) idents.Add(ident!.Trim());
-                        }
-                    }
-                }
-                catch (JsonException) { /* tabella non standard: ignora */ }
-            }
-        }
-        return idents;
     }
 }

@@ -441,7 +441,7 @@ else
                                  OnSet="ScriviAttivitaArea" />
                 break;
             case "callsigns":
-                <MilFixedTableEditor Colonne="MilDocumentPage.ColonneNominativi(L)" Righe="_nominativi"
+                <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"
                                      Chiave="milcallsigns" Editing="_shell.IsEditing"
                                      OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
                                      OnMove="SpostaNominativo" OnSet="ScriviNominativo"
@@ -449,7 +449,7 @@ else
                                      Sorgenti="_altriSop" CaricaSorgente="NominativiDiUnAltroSop" />
                 break;
             case "parkings":
-                <MilFixedTableEditor Colonne="MilDocumentPage.ColonneParcheggi(L)" Righe="_parcheggi"
+                <MilFixedTableEditor Colonne="MilProfiloTabelle.Parcheggi(L)" Righe="_parcheggi"
                                      Chiave="milparkings" Editing="_shell.IsEditing"
                                      OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
                                      OnMove="SpostaParcheggio" OnSet="ScriviParcheggio"

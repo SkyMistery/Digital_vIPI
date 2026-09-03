@@ -166,6 +166,17 @@ public static class VipiModuleExtensions
             new StringLocalizer<Vipi.Ui.SharedResource>(sp.GetRequiredService<IStringLocalizerFactory>()),
             sp.GetRequiredService<ReadingLanguageContext>()));
 
+        // I caricatori dei documenti da leggere: uno per famiglia. Portano fuori dalle pagine il carico che
+        // stava dentro il loro OnParametersSetAsync, perche' lo stesso documento va reso anche nella pagina
+        // UNITA (carta docs/feature/2026-09-03-documenti-uniti.md).
+        // Scoped come i servizi che consultano: LEGGONO soltanto, quindi il contesto del circuito va bene —
+        // e' esattamente cio' che le pagine facevano gia' con @inject.
+        services.AddScoped<Vipi.Ui.Components.Doc.AppMemberLoader>();
+        services.AddScoped<Vipi.Ui.Components.Doc.MilMemberLoader>();
+        // ⚠⚠ AirportMemberLoader NON si registra qui, ed è voluto: AeroportoPage è OwningComponentBase e
+        // lo costruisce dal PROPRIO scope (ActivatorUtilities), perché i nove servizi che interroga vanno
+        // presi da lì e non dal circuito — vedi il commento in testa a quella classe.
+
         return services;
     }
 

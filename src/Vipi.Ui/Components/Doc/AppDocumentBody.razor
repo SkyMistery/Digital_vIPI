@@ -1,0 +1,63 @@
+@* Il CORPO di una vIPI di APP non remotizzato: le sezioni, con il corpo derivato che questa famiglia
+   disegna per chiave.
+
+   Sta fuori da `AppnPage` perché lo stesso documento va reso in due posti — la sua pagina, e la pagina
+   UNITA che lo mostra insieme ad altri (carta 2026-09-03-documenti-uniti.md).
+
+   ⚠️ Qui c'è SOLO il corpo, non l'indice: `DocumentToc` vive nella colonna di sinistra della griglia
+   `doc-layout`, che è una cella SORELLA di questa. Chi monta questo componente monta anche l'indice, e deve
+   passargli lo STESSO `AnchorOf` — è il motivo per cui l'ancora è pubblica qui sotto invece di essere un
+   dettaglio privato: `DocumentToc` avverte che un'ancora diversa non fa niente, senza errori.
+
+   ⚠️ `lang` sta sul contenitore del CORPO e non sulla pagina: in una pagina unita due membri possono avere
+   lingue di redazione diverse, e il chrome parla comunque la lingua del sito. *@
+@using Vipi.Domain
+
+<div lang="@Doc.Bloccata">
+    <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.App"
+                          IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
+                          AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+</div>
+
+@code {
+    /// <summary>Il documento già caricato: lo prepara <see cref="AppMemberLoader"/>.</summary>
+    [Parameter, EditorRequired] public AppMemberDocument Doc { get; set; } = default!;
+
+    /// <summary>
+    /// Ancora di sezione: «s-{Id}» per TUTTE, comprese quelle rese dalla pagina (doc 13 §3e). Prima le
+    /// speciali usavano «p-{chiave}», e i deep-link della ricerca — che indicizza per Id — cadevano in cima
+    /// alla pagina.
+    /// <para>⚠️ Pubblica perché <c>DocumentToc</c> deve usare la STESSA: un'ancora diversa manda l'indice su
+    /// un id che non esiste, e i suoi link non fanno niente senza dare errore.</para>
+    /// </summary>
+    public static string AnchorOf(SectionView s) => s.Id;
+
+    /// <summary>Il corpo che questa famiglia disegna, per chiave. Le chiavi sono quelle che il catalogo
+    /// dichiara «rese dalla pagina» per il profilo App: il componente condiviso ci arriva solo per quelle.</summary>
+    private RenderFragment<SectionView> CorpoDerivato => s => __builder =>
+    {
+        @switch (s.SectionKey)
+        {
+            case "separations": <AppSeparations Rows="LeggiSeparazioni(s)" />; break;
+            case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="Doc.Derived.ConfigTable" MapScope="@MapScope" />; break;
+            case "aor": <AccAor View="Doc.Derived.Aor" Id="@MapScope" />; break;
+            case "frequencies": <AppFrequencies Rows="Doc.Derived.Freqs" />; break;
+            case "minima": <MinimaSection View="Doc.Derived.Minima" Aor="Doc.Derived.Aor" />; break;
+            case "vfr": <AppVfr Content="LeggiVfr(s)" />; break;
+            case "coordination": <AppCoordinationView Coord="Doc.Derived.Coord" LeadSentence="s.LeadSentence" />; break;
+            case "regulated": <RegulatedAreas Areas="Doc.Areas" />; break;
+            case "validity": <ValidityStamp Target="ReleaseTargetType.App" Key="@Doc.Callsign" ReleaseId="@Doc.ReleaseIdShown" />; break;
+        }
+    };
+
+    /// <summary>L'id della mappa AoR. ⚠️ Porta il callsign: in una pagina unita ci sono più mappe, e due
+    /// contenitori con lo stesso id sarebbero due mappe che si contendono lo stesso elemento.</summary>
+    private string MapScope => $"app-aor-{Doc.Callsign}";
+
+    // Editoriali-strutturate: il dato vive nel BodyJson del primo blocco della sezione keyed del Document.
+    private static IReadOnlyList<AppSeparationRow> LeggiSeparazioni(SectionView s) =>
+        SezioniDocumentali.Deser<List<AppSeparationRow>>(SectionPayload.Read(s)) ?? new List<AppSeparationRow>();
+
+    private static AppVfrContent LeggiVfr(SectionView s) =>
+        SezioniDocumentali.Deser<AppVfrContent>(SectionPayload.Read(s)) ?? AppVfrContent.Empty;
+}
