@@ -1191,6 +1191,18 @@ Tre difetti di **collegamento** fra markup e foglio di stile, e una misura che h
 232. **Due gesti opposti non prendono la stessa freccia.** ↑↓ nel piede **spostano** la clausola; per
      camminare fra le clausole senza chiudere la finestra servono ‹ ›. È un errore che si scopre solo dopo
      averlo commesso, quindi si evita al disegno.
+233. ⚠️ **Un battito che rinnova e non lo DICE lascia la pagina a credere una cosa vecchia.** `EditLockBar`
+     rinnovava il lock ogni 60 s ma pubblicava `ExpiresChanged` solo quando cambiava il **proprietario**: la
+     pagina teneva la scadenza della presa e dopo ~2 minuti mostrava «sta scadendo», col lock rinnovato
+     regolarmente. ⚠️ **Due orologi che dicono cose diverse sullo stesso schermo sono la firma del difetto**:
+     la barra diceva 23:41Z e l'avviso 23:38Z, tre minuti esatti — un rinnovo avvenuto e mai detto. E il
+     ri-render va fatto anche per sé: su una pagina tranquilla l'ora della barra restava indietro quanto
+     l'avviso, e non si vedeva solo perché quella pagina ridisegna di continuo.
+234. ⚠️ **Prima di rifare la FORMA di un avviso, fai il conto se possa comparire.** Avevo proposto di
+     trasformare quella fascia in un colore più un toast perché sposta la pagina di 76px mentre si scrive. Il
+     conto — TTL 3 minuti, battito 60 s, residuo sempre fra 180 e 120, soglia 60 — dice che **a battito vivo
+     non poteva scattare**: non era un avviso brutto, era un avviso che non doveva esserci. La domanda giusta
+     su un avviso è «quando compare?», e viene prima di «come si vede?».
 
 ## Dove sta la roba
 
