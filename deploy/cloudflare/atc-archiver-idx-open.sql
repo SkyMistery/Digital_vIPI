@@ -1,0 +1,16 @@
+-- Indice che ha tolto la saturazione della quota D1 (3 settembre 2026).
+--
+-- Il cron del Worker `atc-archiver` gira ogni minuto e fa:
+--     SELECT id, callsign FROM atc_sessions WHERE ended_at IS NULL
+-- Gli indici che c'erano -- idx_callsign(callsign) e idx_time(started_at, ended_at) -- non servono a
+-- `ended_at IS NULL`: la query scansionava la tabella intera, 73.587 righe, OGNI MINUTO. Dopo ~74 giri
+-- i 5 milioni di righe/giorno del piano gratuito erano finiti, e da li' falliva tutto -- comprese le
+-- letture dell'API che usa il validatore dei tour.
+--
+-- PARZIALE apposta: contiene le sole sessioni aperte, che alla creazione erano 49. Un indice pieno su
+-- `ended_at` avrebbe 73.587 voci per servire una domanda che ne riguarda cinquanta.
+--
+--   wrangler d1 execute atc-archiver-db --remote --file deploy/cloudflare/atc-archiver-idx-open.sql
+--
+-- Verifica il giorno dopo:  wrangler d1 info atc-archiver-db  -> rows_read_24h atteso ~72.000 (1,4%).
+CREATE INDEX IF NOT EXISTS idx_open ON atc_sessions(ended_at) WHERE ended_at IS NULL;
