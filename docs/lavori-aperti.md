@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 3 settembre 2026 — 🔴 **§AZ RIVISTO IN SUPERVISIONE: quindici difetti, tre seri, tutti corretti.** Il peggiore: l'elenco di governo mostrava «uniti: 2» e pubblicava **un** documento, perché l'accoppiamento era una **seconda** porta che quella pagina non chiamava. La cura non era il chiamante — le porte separate non esistono più. Poi: una lingua bloccata in un membro tingeva tutta la pagina unita, e un membro pubblicato sotto un ospite in bozza spariva dal web. Sei commit, suite verde su 8 progetti su 8.
+
 **Aggiornato:** 3 settembre 2026 — ✅ **§AZ: DOCUMENTI UNITI — una pagina, un editor, una pubblicazione.** Un APP non remotizzato si unisce al documento dell'aeroporto o al vSOP militare, indipendentemente dal tipo: ordine deciso dal redattore, **un editor solo**, e la release — fatta o pianificata — con **un clic** su tutti i membri (annullarla li annulla tutti). Provato a schermo su LIBA e su **LIMN Cameri**, misto e pubblicato. Ramo `documenti-uniti`, fuso in `main`.
 
 **Aggiornato:** 3 settembre 2026 — ✅ **§AY: LA SCHEDA DELLA CLAUSOLA DEI TRASFERIMENTI È UNA FINESTRA, e tre classi erano scollegate dal foglio di stile.** Segnalati dal committente due difetti in notturna; cercandoli ne è uscito un terzo, il più caro: markup `xt-panel-f` contro CSS `.xt-panel-foot`, regola **morta da tre settimane**, e senza `display:flex` nel piede **l'elimina stava appiccicato al duplica** — un tasto distruttivo a 8px da uno costruttivo, che non sembrava un guasto ma una scelta. Le barre bianche erano `--on-brand` (bianco di **brand**, che non ha tema) usato per i coperchi dello scroll shadow, e si vedevano **anche senza niente da scorrere**. ⚠️ **La misura ha ribaltato la mia stessa proposta**: «la finestra è larga il doppio quindi ci sta tutto» è **falso** — da 348 a 828px di corpo il contenuto scende da 896 a 860, il **4%**, perché i campi erano impilati in una colonna sola. Quello che paga è la larghezza **spesa in due colonne** (896 → 666), e oltre i 920px non paga più niente (a 1040/1160/1280 il contenuto non si muove). Esito misurato: come la scheda si apre davvero **non scorre** (378 in 378); con tutte e tre le sezioni forzate aperte, **30px fuori invece di 394**. 🔴 **Non è in produzione** e tocca `vipi-theme.css` **e** `vipi-print.css`. Carta: [`docs/feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
@@ -7320,6 +7322,38 @@ Pubblicazione: **dentro** `PublishAsync`/`PublishNowAsync` — una transazione, 
 solo `now`; annullamento accoppiato. 🔴 Le porte separate `PublishUnion*` sono esistite mezza giornata e
 sono state tolte in supervisione: l'elenco di governo chiamava quelle normali e pubblicava **un** documento
 mostrando «uniti: 2».
+
+### 🔴 La supervisione del 3 settembre: quindici cose, tre serie
+
+Rilettura da capo del lavoro §AZ, fingendo di non averlo scritto. **Tutte corrette**, in sei commit.
+Dettaglio in [carta §6, §3, §4, §5b, §9c](feature/2026-09-03-documenti-uniti.md).
+
+Le tre serie, che hanno tutte la stessa forma — **nessun errore, nessun rosso, e una cosa falsa a schermo**:
+
+1. **L'elenco di governo diceva «uniti: 2» e ne pubblicava UNO.** Chiamava `PublishAsync`, la porta a
+   bersaglio singolo, perché quella accoppiata era una **seconda** porta che solo `ReleasePanel` usava.
+   🔴 La cura non era aggiornare il chiamante: **due porte per lo stesso gesto, di cui una sola sicura,
+   sono un invito a chiamare quella sbagliata.** `CancelReleaseAsync` era già accoppiata dentro di sé e da
+   quella pagina funzionava — l'asimmetria fra le due *era* il difetto. Le porte `PublishUnion*` non
+   esistono più.
+2. **Una lingua bloccata in un membro tingeva tutta la pagina.** `ReadingLanguageContext.Fissa` è appiccicoso
+   per il resto della richiesta, e la sua stessa documentazione dice che regge *perché una pagina mostra un
+   documento solo*. 🔴 **L'unione ha rotto quella premessa e nessuno è tornato a rileggere quella riga**:
+   l'ultimo membro caricato con la lingua bloccata decideva la lingua di tutta la pagina, in base
+   all'ordine di caricamento.
+3. **Un membro pubblicato sotto un ospite non pubblicato spariva dal web.** Il rimando partiva senza chiedere
+   se l'ospite avesse qualcosa da mostrare: due clic e un documento in vigore diventava irraggiungibile.
+
+Le altre dodici: la vista di un'unione senza membri descritti faceva `Members[0]` su una lista vuota (circuito
+giù su pagina pubblica), la domanda dell'annullamento sovrastimava, il giro dell'AIRAC entrante avrebbe
+pubblicato la stessa unione una volta per membro, l'avviso «sezioni non salvate» non veniva chiesto ai
+membri, la pastiglia del lock accusava anche sé stessi, e sei cose piccole (§9c).
+
+⚠️ **Quel che la supervisione NON ha trovato** vale quanto il resto: le due migrazioni sono equivalenti,
+l'annullamento è una cancellazione fisica (quindi nessuna release annullata può essere ripescata), i lock
+scaduti sono normalizzati a monte, il rollback dei lock molla davvero quel che aveva preso, e i due `.resx`
+hanno lo stesso insieme di chiavi. 🔴 E un sospetto è stato **ritirato dopo averlo verificato**:
+l'autorizzazione per ACC non è un buco, è morta il 28 agosto — `EnsureAtLeast(Editor)` È il cancello.
 
 ### ⚠️ Le cose che non si deducono dal codice
 
