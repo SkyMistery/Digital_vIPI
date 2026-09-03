@@ -178,6 +178,15 @@ public class ProssimoAiracServiceTests
 
         public AiracCycleInfo NextCycle() => new(Entrante, EfficaceEntrante);
 
+        // Le porte dell'unione: questi doppi non pubblicano niente, e senza unione sono le stesse di sotto.
+        public Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(
+            ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<BersaglioUnito>>(Array.Empty<BersaglioUnito>());
+        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
+            PublishAsync(type, key, releaseCycle, note, ct);
+        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
+            PublishNowAsync(type, key, note, ct);
+
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default)
         {
             if (string.Equals(key, RifiutaChiave, StringComparison.Ordinal)) throw new InvalidOperationException(Motivo);

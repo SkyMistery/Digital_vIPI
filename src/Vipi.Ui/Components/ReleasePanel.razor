@@ -116,6 +116,32 @@
         <p class="help" style="margin:4px 0 0">@L["Lang_LockHelp"]</p>
     }
 
+    @* ---- L'unione: dire PRIMA quanti documenti quel tasto pubblichera' (carta 2026-09-03 §6) --------
+       ⚠️ Un esito che tace meta' del lavoro e' peggio di nessun esito, e qui la meta' taciuta sarebbe un
+       ALTRO documento pubblicato. Il lock si dice PRIMA per la stessa ragione: con un lock altrui la
+       pubblicazione dell'INTERA unione si rifiuta, perche' meta' unione pubblicata e' peggio di nessuna. *@
+    @if (_uniti.Count > 1)
+    {
+        <div class="callout info" style="margin:10px 0 0">
+            <span class="cic"><Icon Name="link" Size="18" /></span>
+            <div>
+                <p class="ct">@string.Format(L["Rel_UnionTitle"].Value, _uniti.Count)</p>
+                <ul class="union-list" style="margin:4px 0 0">
+                    @foreach (var m in _uniti)
+                    {
+                        <li>
+                            <b>@m.Titolo</b> <span class="muted">@m.Key</span>
+                            @if (m.LockedByUserId is not null)
+                            {
+                                <span class="pill amber">@string.Format(L["Rel_UnionLocked"].Value, m.LockedByName ?? m.LockedByUserId.ToString())</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
@@ -299,9 +325,16 @@
         catch (Exception ex) { _error = ex.Message; }
     }
 
+    /// <summary>I bersagli che il tasto «pubblica» tocchera': questo documento solo, oppure tutti i membri
+    /// dell'unione. ⚠️ Si legge SEMPRE, anche quando non c'e' unione: la risposta vuota e' il caso normale,
+    /// e chiederla solo «se serve» vorrebbe dire sapere gia' la cosa che si sta chiedendo.</summary>
+    private IReadOnlyList<Vipi.Application.Content.BersaglioUnito> _uniti =
+        Array.Empty<Vipi.Application.Content.BersaglioUnito>();
+
     private async Task Reload()
     {
         _rels = await Releases.ListAsync(Target, Key);
+        _uniti = await Releases.BersagliUnitiAsync(Target, Key);
         // ⚠️ Una chiamata per PANNELLO, non una per riga: i VID sono pochi e si risolvono in blocco.
         // ⚠️ E il roster si RISOLVE, non si inietta: dare un nome a un VID e' una comodita', non una
         // dipendenza del pannello. Iniettarlo come obbligatorio rende il componente non montabile per
@@ -389,14 +422,16 @@
     private Task PublishAtCycle() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
+        // Se il documento non e' unito queste due porte SONO PublishAsync/PublishNowAsync: passare sempre
+        // di qui evita un `if` nella pagina, che e' il posto in cui si dimentica.
+        await Releases.PublishUnionAsync(Target, Key, _cycle ?? _currentCycle, _note);
         return true;
     }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
     private Task PublishNow() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishNowAsync(Target, Key, _note);
+        await Releases.PublishUnionNowAsync(Target, Key, _note);
         return true;
     }, L["Rel_PublishedNow"], notify: true);
 

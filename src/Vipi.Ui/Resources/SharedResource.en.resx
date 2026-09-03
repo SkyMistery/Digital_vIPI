@@ -3182,4 +3182,6 @@
   <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages and their own publications. Nothing that is written is lost.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Dissolve</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>
+  <data name="Rel_UnionTitle" xml:space="preserve"><value>This document is joined to others: publishing publishes all {0}, at the same cycle.</value></data>
+  <data name="Rel_UnionLocked" xml:space="preserve"><value>being edited by {0}</value></data>
 </root>

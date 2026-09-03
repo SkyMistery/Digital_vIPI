@@ -21,6 +21,40 @@ public interface IReleaseService
     /// Rifiuta se il documento è lockato da un altro editor: lo snapshot fotografa la sua bozza in lavorazione.</summary>
     Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default);
 
+    /// <summary>
+    /// I bersagli che una pubblicazione di questo documento tocca: <b>lui solo</b> se non è unito, oppure
+    /// <b>tutti i membri</b> dell'unione, nell'ordine (carta
+    /// <c>docs/feature/2026-09-03-documenti-uniti.md</c> §6).
+    ///
+    /// <para>Serve a <b>dirlo prima</b>: il pannello mostra i membri e chi ne tiene il lock, e chi preme sa
+    /// quanti documenti sta pubblicando. ⚠️ Un esito che tace metà del lavoro è peggio di nessun esito —
+    /// lezione già pagata con l'«auto-assegna» degli aeroporti.</para>
+    /// </summary>
+    Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(ReleaseTargetType type, string key,
+                                                           CancellationToken ct = default);
+
+    /// <summary>
+    /// <inheritdoc cref="PublishAsync" path="/summary"/> Per <b>tutti</b> i membri dell'unione, se questo
+    /// documento è unito; altrimenti è esattamente <see cref="PublishAsync"/>.
+    ///
+    /// <para>⚠️ <b>Tutto o niente, in una transazione sola.</b> <c>SaveReleaseAsync</c> fa un
+    /// <c>SaveChanges</c> per chiamata e <c>VersionNumber</c> è <c>max+1</c> letto in memoria sotto un
+    /// indice UNICO: due salvataggi in fila non sono atomici, e un secondo membro che collide lascerebbe il
+    /// primo pubblicato da solo — metà unione a un ciclo e metà a un altro.</para>
+    ///
+    /// <para>⚠️ Il ciclo è lo stesso per costruzione: la data efficace la calcola
+    /// <c>AiracService.EffectiveUtcForCycle</c> dal ciclo passato, quindi i membri escono con la stessa
+    /// senza doverla copiare a mano. È questo che fa funzionare anche la pianificata.</para>
+    /// </summary>
+    Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note,
+                           CancellationToken ct = default);
+
+    /// <summary><inheritdoc cref="PublishNowAsync" path="/summary/para[1]"/> Per <b>tutti</b> i membri
+    /// dell'unione, se questo documento è unito; altrimenti è esattamente <see cref="PublishNowAsync"/>.
+    /// <para>⚠️ Le due semantiche restano diverse anche unite: la pianificata <b>non</b> promuove la bozza,
+    /// la «pubblica ora» sì — per ogni membro.</para></summary>
+    Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
+
     /// <summary>Forza la pubblicazione immediata (review): ciclo corrente, effettiva adesso. Rifiuta se il documento
     /// è lockato da un altro editor (promuoverebbe la sua bozza a metà); a pubblicazione avvenuta rilascia
     /// l'eventuale lock del chiamante, come il publish-versione dell'editor.</summary>
@@ -32,7 +66,14 @@ public interface IReleaseService
     /// senza contenuto. Ritorna il numero di release generate.</summary>
     Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default);
 
-    /// <summary>Annulla una release (per Id). Authz sull'ACC del bersaglio.</summary>
+    /// <summary>
+    /// Annulla una release (per Id). Authz sull'ACC del bersaglio.
+    ///
+    /// <para>⚠️ <b>Su un documento UNITO annulla anche le sorelle dello stesso ciclo</b>, nella stessa
+    /// transazione. È il simmetrico della pubblicazione accoppiata: annullarne una sola lascerebbe metà
+    /// unione in vigore a quel ciclo e metà no, cioè esattamente la desincronizzazione che l'accoppiamento
+    /// doveva togliere — e la pagina unita mostrerebbe due fotografie di momenti diversi senza dirlo.</para>
+    /// </summary>
     Task CancelReleaseAsync(int releaseId, CancellationToken ct = default);
 
     /// <summary>Riepilogo differenze di una release rispetto a quella immediatamente PRECEDENTE nella storia del
@@ -104,6 +145,15 @@ public interface IReleaseService
     Task<int> PruneAllAsync(CancellationToken ct = default);
 }
 
+/// <summary>
+/// Un bersaglio che una pubblicazione tocca: il documento stesso, o un membro dell'unione a cui appartiene.
+/// </summary>
+/// <param name="Titolo">Come si chiama, per dirlo a chi sta per premere.</param>
+/// <param name="LockedByUserId">Chi tiene il lock di modifica ATTIVO, se qualcuno. ⚠️ Con un lock altrui la
+/// pubblicazione dell'INTERA unione si rifiuta: mezza unione pubblicata è peggio di nessuna.</param>
+public sealed record BersaglioUnito(ReleaseTargetType Type, string Key, int DocumentId, string Titolo,
+                                    int? LockedByUserId, string? LockedByName);
+
 /// <inheritdoc cref="IReleaseService"/>
 public sealed class ReleaseService : IReleaseService
 {
@@ -117,9 +167,16 @@ public sealed class ReleaseService : IReleaseService
     private readonly ReleaseRetentionOptions _retention;
     private readonly IUnitOfWork _uow;
 
+    /// <summary>Le sole RIGHE delle unioni. ⚠️ Non <c>IDocumentUnionService</c>: quello autorizza, e qui
+    /// l'autorizzazione la fa già <see cref="EnsureCanEditAsync"/> per ogni membro — due cancelli sulla
+    /// stessa porta sono due posti in cui possono dire cose diverse. Opzionale: senza, un documento non
+    /// risulta mai unito, che è il comportamento di prima della carta.</summary>
+    private readonly IDocumentUnionRepository? _unioni;
+
     public ReleaseService(IReleaseRepository repo, IEditAuthorizationService authz, IAiracService airac,
         IFrozenSectionRegistry frozen, IDocumentAdminRepository admin, IEditingRepository editing,
         IReleaseTargetRegistry targets, IOptions<ReleaseRetentionOptions> retention, IUnitOfWork uow,
+        IDocumentUnionRepository? unioni = null,
         ShapeReleaseContext? shapeCycle = null,
         Abstractions.ITranslationMemory? memoriaTraduzioni = null,
         IOptions<Translation.TranslationOptions>? traduzione = null,
@@ -138,6 +195,7 @@ public sealed class ReleaseService : IReleaseService
         _targets = targets;
         _retention = retention.Value;
         _uow = uow;
+        _unioni = unioni;
     }
 
     /// <summary>Il contesto che dice alla lettura delle shape «sto congelando per questo ciclo». Opzionale:
@@ -216,6 +274,92 @@ public sealed class ReleaseService : IReleaseService
             await _editing.ReleaseLockAsync(id, _authz.CurrentUserId ?? 0, ct);
     }
 
+    // ---- L'unione: piu' documenti, un gesto solo (carta 2026-09-03) -----------------------------------
+
+    public async Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(
+        ReleaseTargetType type, string key, CancellationToken ct = default)
+    {
+        if (_unioni is null) return Array.Empty<BersaglioUnito>();
+
+        var docId = await _targets.For(type).ResolveDocumentIdAsync(key, ct).ConfigureAwait(false);
+        if (docId is null or 0) return Array.Empty<BersaglioUnito>();
+
+        var righe = await _unioni.ByDocumentAsync(docId.Value, ct).ConfigureAwait(false);
+        if (righe.Count == 0) return Array.Empty<BersaglioUnito>();
+
+        // L'identita' dei membri con gli STESSI descrittori dell'elenco unificato, e il lock che arriva dalla
+        // stessa query: nessuna interrogazione in piu' per sapere chi sta lavorando su cosa.
+        var descritti = await _admin.DescribeAsync(righe.Select(r => r.DocumentId).ToList(), ct)
+                                    .ConfigureAwait(false);
+        return righe
+            .OrderBy(r => r.Order)
+            // ⚠️ Un membro che nessun descrittore riconosce si SALTA: pubblicare un bersaglio che non si sa
+            // nominare vorrebbe dire scrivere una release sotto una chiave inventata.
+            .Where(r => descritti.ContainsKey(r.DocumentId))
+            .Select(r => descritti[r.DocumentId])
+            .Select(d => new BersaglioUnito(d.ReleaseTarget, d.ReleaseKey, d.DocumentId!.Value, d.Title,
+                                            d.LockedByUserId, d.LockedByName))
+            .ToList();
+    }
+
+    public async Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note,
+                                        CancellationToken ct = default)
+    {
+        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
+        if (membri.Count == 0) { await PublishAsync(type, key, releaseCycle, note, ct).ConfigureAwait(false); return; }
+
+        // ⚠️ I cancelli PRIMA, TUTTI, e fuori dalla transazione: un permesso negato o un lock altrui non
+        // sono scritture da annullare, e scoprirli a meta' elenco vorrebbe dire aver gia' fotografato qualcuno.
+        foreach (var m in membri)
+        {
+            await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+            await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+        }
+
+        var effectiveUtc = _airac.EffectiveUtcForCycle(releaseCycle);
+        await _uow.ExecuteInTransactionAsync(async token =>
+        {
+            // ⚠️ IN SEQUENZA, mai in parallelo: la cattura apre `ShapeReleaseContext.Capturing`, che NON e'
+            // annidabile (il suo Dispose azzera), e `ReadingLanguageContext.Rendering` con la lingua sorgente
+            // di QUEL membro. Due catture sovrapposte congelerebbero l'una nel contesto dell'altra.
+            foreach (var m in membri)
+                await SnapshotAndSaveAsync(m.Type, m.Key, releaseCycle, effectiveUtc, note, token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+    }
+
+    public async Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note,
+                                           CancellationToken ct = default)
+    {
+        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
+        if (membri.Count == 0) { await PublishNowAsync(type, key, note, ct).ConfigureAwait(false); return; }
+
+        foreach (var m in membri)
+        {
+            await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+            await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+        }
+
+        // ⚠️ UN solo `now` per tutti: chiederlo dentro il ciclo darebbe ai membri date efficaci diverse di
+        // qualche millisecondo, e la selezione della release effettiva ordina proprio per quella.
+        var now = DateTime.UtcNow;
+        var cycle = _airac.GetCycle(now);
+
+        await _uow.ExecuteInTransactionAsync(async token =>
+        {
+            foreach (var m in membri)
+            {
+                await SnapshotAndSaveAsync(m.Type, m.Key, cycle, now, note, token).ConfigureAwait(false);
+                await _repo.PublishWorkingVersionAsync(m.Type, m.Key, _authz.CurrentUserId ?? 0, cycle, token)
+                           .ConfigureAwait(false);
+                await PruneArchivedVersionsForTargetAsync(m.Type, m.Key, token).ConfigureAwait(false);
+            }
+        }, ct).ConfigureAwait(false);
+
+        // Pubblicato -> i documenti restano liberi. ReleaseLockAsync e' no-op se il lock non e' del chiamante.
+        foreach (var m in membri)
+            await _editing.ReleaseLockAsync(m.DocumentId, _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
     public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
@@ -241,7 +385,55 @@ public sealed class ReleaseService : IReleaseService
         var rel = await _repo.GetByIdAsync(releaseId, ct)
             ?? throw new Aor.ValidationException(Lingua("Release inesistente.", "The release does not exist."));
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
-        await _repo.CancelAsync(releaseId, ct);
+
+        var daAnnullare = await SorelleDelloStessoCicloAsync(rel, ct).ConfigureAwait(false);
+        if (daAnnullare.Count == 1) { await _repo.CancelAsync(releaseId, ct); return; }
+
+        // Il permesso su OGNI bersaglio prima di toccare qualunque riga, e fuori dalla transazione.
+        foreach (var s in daAnnullare)
+            await EnsureCanEditAsync(s.Type, s.Key, ct).ConfigureAwait(false);
+
+        await _uow.ExecuteInTransactionAsync(async token =>
+        {
+            foreach (var s in daAnnullare)
+                await _repo.CancelAsync(s.Id, token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Le release che vanno annullate <b>insieme</b> a questa: lei sola se il documento non e' unito,
+    /// altrimenti anche la controparte di ogni altro membro <b>allo stesso ciclo AIRAC</b>.
+    ///
+    /// <para>⚠️ Di ogni membro si prende la release <b>piu' recente</b> di quel ciclo
+    /// (<c>VersionNumber</c> piu' alto), non tutte: e' quella la controparte della release che si sta
+    /// annullando — la stessa regola con cui <c>RecomputeStatuses</c> sceglie chi vince per ciclo. Portarsi
+    /// via anche le superate cancellerebbe storia che nessuno ha chiesto di cancellare.</para>
+    ///
+    /// <para>⚠️ Un membro che a quel ciclo non ha pubblicato non ha niente da annullare, e non e' un
+    /// errore: puo' essere entrato nell'unione dopo.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<(ReleaseTargetType Type, string Key, int Id)>> SorelleDelloStessoCicloAsync(
+        Vipi.Domain.Entities.DocRelease rel, CancellationToken ct)
+    {
+        var sola = new[] { (rel.TargetType, rel.TargetKey, rel.Id) };
+        var membri = await BersagliUnitiAsync(rel.TargetType, rel.TargetKey, ct).ConfigureAwait(false);
+        if (membri.Count == 0) return sola;
+
+        var elenco = new List<(ReleaseTargetType, string, int)>();
+        foreach (var m in membri)
+        {
+            if (m.Type == rel.TargetType && string.Equals(m.Key, rel.TargetKey, StringComparison.OrdinalIgnoreCase))
+            {
+                elenco.Add((rel.TargetType, rel.TargetKey, rel.Id));
+                continue;
+            }
+            var sue = await _repo.ListAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+            var sorella = sue.Where(r => r.ReleaseAiracCycle == rel.ReleaseAiracCycle)
+                             .OrderByDescending(r => r.VersionNumber)
+                             .FirstOrDefault();
+            if (sorella is not null) elenco.Add((m.Type, m.Key, sorella.Id));
+        }
+        return elenco.Count == 0 ? sola : elenco;
     }
 
     public async Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)

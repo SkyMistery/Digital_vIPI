@@ -1,7 +1,11 @@
 ﻿# Documenti uniti — una pagina, un editor, una pubblicazione — carta (3 settembre 2026)
 
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Ramo `documenti-uniti`, da `main` (`cd1bc5c7`).
-> Stato: 🟡 **in esecuzione** — §1-§4 chiuse.
+> Stato: 🟡 **in esecuzione** — §1-§4 e §6 chiuse; il comando (§5a) c'è, l'editor unico (§5b) no.
+>
+> ⚠️ **L'ordine e' cambiato in corsa, e vale la pena dirlo**: il piano metteva l'editor unico prima
+> della pubblicazione accoppiata. Il **comando** dell'unione viene prima di tutti e due, perche' senza
+> non c'e' modo di CREARE un'unione — quindi niente da verificare dal vivo, su niente.
 
 ## La domanda
 
@@ -148,7 +152,23 @@ esatto: `ReleasePreviewPage` — `NavigateTo(url, replace: true)` **senza `@rend
 302 che il browser segue prima di disegnare.
 ⚠️ **Solo la vista pubblica**: editor e anteprime `?as=` di ogni membro restano al loro indirizzo.
 
-## §5 — I corpi degli editor, e l'editor unico ⏳
+## §5a — Il comando dell'unione ✅
+
+`UnionPanel` sta nei tre editor, **sopra** il pannello di pubblicazione: e' cio' che decide QUANTI
+documenti quel tasto pubblichera'. Elenco numerato dei membri (l'ordine e' proprio la cosa che si sta
+decidendo), pastiglia «ospite», frecce, «togli», «sciogli», e la tendina «unisci a…» con i candidati
+dello **stesso scalo** in cima — senza recinti per ACC: «indipendentemente dal tipo di documento» vuol
+dire anche senza un recinto che qualcuno dovra' scavalcare.
+
+⚠️ **Scope proprio** (`OwningComponentBase`): qui si SCRIVE. ⚠️ Non e' il caso di `ReleasePanel`, che il
+contesto non lo isola **apposta** — la' il publish e' un'operazione sola composta con il
+`BeforePublishAsync` della pagina. ⚠️ E la guardia di `OnParametersSetAsync` sta **prima dell'await**:
+lo scope proprio protegge dagli altri, non da se' stessi.
+
+⚠️ L'errore si **mostra**: una `ValidationException` qui dice cose che chi ha premuto deve sapere —
+«questo documento e' gia' unito ad altri» col NOME di quali.
+
+## §5b — I corpi degli editor, e l'editor unico ⏳
 
 Stessa estrazione per gli editor, e poi una istanza per membro — **il pattern della vIPI ACC**.
 ⚠️ Ogni componente-membro è `OwningComponentBase` con il **proprio scope**: gli editor scrivono, e prenderli
@@ -156,21 +176,33 @@ da `@inject` significa prenderli dal `DbContext` **del circuito** (il difetto gi
 ⚠️ **Il lock si prende su TUTTI i membri in un gesto**: se anche uno solo è tenuto da un altro, non se ne
 prende **nessuno** e la pagina dice chi lo tiene. Mezzo lock preso è peggio di nessun lock.
 
-## §6 — La pubblicazione accoppiata ⏳
+## §6 — La pubblicazione accoppiata ✅
 
-`PublishUnionAsync(unionId, cycle, note)` e `PublishUnionNowAsync(unionId, note)`: **un giro sopra** le porte
-che ci sono, non un secondo motore.
+`PublishUnionAsync` / `PublishUnionNowAsync`: **un giro sopra** le porte che ci sono, non un secondo motore.
+⚠️ Su un documento **non unito sono esattamente** `PublishAsync`/`PublishNowAsync` — ed e' per questo che
+`ReleasePanel` passa **sempre** di li': un `if` nella pagina e' il posto in cui ci si dimentica.
 
-- ⚠️ **Tutto in `IUnitOfWork.ExecuteInTransactionAsync`, la pianificata compresa.** Oggi la transazione
-  avvolge solo `PublishNowAsync`, e basta perché il bersaglio è uno. Con N bersagli no:
-  `SaveReleaseAsync` fa `SaveChangesAsync` per chiamata e `VersionNumber` è `max+1` **letto in memoria** sotto
-  un **indice unico** — un secondo membro che collide lascerebbe il primo pubblicato da solo.
-- ⚠️ **`ShapeReleaseContext.Capturing` NON è annidabile** (`Dispose` azzera): i membri si catturano **in
-  sequenza**. Stessa cosa per `ReadingLanguageContext.Rendering`, che va aperto con la lingua **sorgente di
-  quel membro**.
-- ⚠️ Le **due semantiche restano diverse**: la pianificata non promuove la bozza, la «pubblica ora» sì.
-- **Annullare si accoppia come pubblicare**: `CancelReleaseAsync` su una release di un membro annulla anche le
-  sorelle dello **stesso ciclo**, e la conferma dice quante ne toglie.
+`BersagliUnitiAsync` dice **prima** quanti documenti quel tasto tocchera' e **chi ne tiene il lock**, e il
+pannello lo mostra. ⚠️ Un esito che tace meta' del lavoro e' peggio di nessun esito, e qui la meta' taciuta
+sarebbe un altro documento pubblicato.
+
+- ⚠️ **I cancelli PRIMA, tutti, e fuori dalla transazione**: un permesso negato o un lock altrui non sono
+  scritture da annullare, e scoprirli a meta' elenco vorrebbe dire aver gia' fotografato qualcuno. Un lock
+  altrui su **un solo** membro ferma **tutta** la pubblicazione, e non scrive niente. Un test lo pinna.
+- ⚠️ **Tutto in `IUnitOfWork.ExecuteInTransactionAsync`, la pianificata compresa**: `SaveReleaseAsync` fa un
+  `SaveChanges` per chiamata e `VersionNumber` e' `max+1` letto in memoria sotto un indice UNICO.
+- ⚠️ **In sequenza, mai in parallelo**: la cattura apre `ShapeReleaseContext.Capturing`, che NON e'
+  annidabile, e `ReadingLanguageContext.Rendering` con la lingua sorgente di QUEL membro.
+- ⚠️ **UN solo `now`** per tutti nella «pubblica ora»: chiederlo dentro il ciclo darebbe date efficaci
+  diverse di qualche millisecondo, e la selezione della release effettiva ordina proprio per quella.
+- Le **due semantiche restano diverse** anche unite: la pianificata non promuove la bozza, la «pubblica ora»
+  si', per ogni membro.
+- **Annullare si accoppia**: `CancelReleaseAsync` porta via anche le sorelle dello **stesso ciclo**, nella
+  stessa transazione. ⚠️ Di ogni membro la **piu' recente** di quel ciclo, non tutte: portarsi via le
+  superate cancellerebbe storia che nessuno ha chiesto di cancellare. ⚠️ E un membro che a quel ciclo non ha
+  pubblicato non ha niente da annullare — puo' essere entrato nell'unione dopo.
+
+**Reti**: `PubblicazioneAccoppiataTests` (9, su LIMN Cameri: due edizioni, stessa chiave, tipi diversi).
 
 ## §7 — Il governo ⏳
 

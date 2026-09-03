@@ -54,6 +54,22 @@ public class ReleasePanelTests : TestContext
             return Task.CompletedTask;
         }
 
+        /// <summary>Il documento di prova non e' unito a niente: e' il caso normale, ed e' quello in cui le
+        /// porte dell'unione SONO quelle singole. Delegare invece di contarle a parte tiene in piedi le
+        /// asserzioni che c'erano — e prova, di striscio, proprio quella promessa.</summary>
+        public Task<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>> BersagliUnitiAsync(
+            ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Uniti);
+
+        /// <summary>I membri che il pannello deve annunciare. Vuoto = documento solo.</summary>
+        public List<Vipi.Application.Content.BersaglioUnito> Uniti { get; } = new();
+
+        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
+            PublishAsync(type, key, releaseCycle, note, ct);
+
+        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
+            PublishNowAsync(type, key, note, ct);
+
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
         {
             Canceled++;

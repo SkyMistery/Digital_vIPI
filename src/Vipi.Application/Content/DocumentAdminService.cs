@@ -30,11 +30,18 @@ public sealed class DocumentAdminService : IDocumentAdminService
     private readonly IEditAuthorizationService _authz;
     private readonly IEditingRepository _editing;
 
-    public DocumentAdminService(IDocumentAdminRepository repo, IEditAuthorizationService authz, IEditingRepository editing)
+    /// <summary>Le righe delle unioni, per rimettere in ordine dopo un'eliminazione. Opzionale: senza,
+    /// l'unione rimasta con un membro solo la chiude comunque il giro d'avvio.</summary>
+    private readonly Abstractions.IDocumentUnionRepository? _unioni;
+
+    public DocumentAdminService(IDocumentAdminRepository repo, IEditAuthorizationService authz,
+                                IEditingRepository editing,
+                                Abstractions.IDocumentUnionRepository? unioni = null)
     {
         _repo = repo;
         _authz = authz;
         _editing = editing;
+        _unioni = unioni;
     }
 
     public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) => _repo.ListAsync(ct);
@@ -63,6 +70,13 @@ public sealed class DocumentAdminService : IDocumentAdminService
         await EnsureCanEditAsync(doc, ct);
         await EnsureNotLockedByOtherAsync(doc, ct);
         await _repo.DeleteAsync(doc, _authz.CurrentUserId ?? 0, ct);
+
+        // Il documento se n'e' andato, e con lui la sua riga di appartenenza (FK cascade). Quel che resta da
+        // chiudere e' l'UNIONE che quella riga teneva in piedi.
+        // ⚠️ Un'unione con un membro solo e' una pagina unita che unisce se' stessa, e un redirect che non
+        // ha dove mandare: chi apre l'altro membro finirebbe su un indirizzo che non esiste piu'. Il giro
+        // d'avvio la chiuderebbe comunque, ma al prossimo riavvio — cioe' non adesso, che e' quando serve.
+        if (_unioni is not null) await _unioni.TidyAsync(ct);
     }
 
     /// <summary>

@@ -3190,4 +3190,6 @@
   <data name="Union_DissolvePrompt" xml:space="preserve"><value>I documenti tornano alle loro pagine e alle loro pubblicazioni. Non si perde niente di quel che c'è scritto.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Sciogli</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>Per cambiare l'unione, entra in modifica.</value></data>
+  <data name="Rel_UnionTitle" xml:space="preserve"><value>Questo documento e' unito ad altri: pubblicando si pubblicano tutti e {0}, allo stesso ciclo.</value></data>
+  <data name="Rel_UnionLocked" xml:space="preserve"><value>in modifica da {0}</value></data>
 </root>
