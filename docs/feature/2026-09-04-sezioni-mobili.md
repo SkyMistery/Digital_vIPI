@@ -123,4 +123,9 @@ appartiene, invece di ricopiarlo.
 
 ## 7. Diario di esecuzione
 
-- **S0** ✅ carta scritta, ramo `sezioni-mobili`.
+- **S0** ✅ carta scritta, ramo `sezioni-mobili` (`c3e9ee36`).
+- **S1** ✅ `SectionNode` rende i tre slot attorno alla scheda della pagina.
+  Tre test bUnit nuovi (`SectionNodeSlotsTests`): ordine dei tre slot, ogni figlia **una volta sola**, e la
+  figlia nascosta che resta fuori dal pubblico anche stando «sopra».
+  ⚠️ **Provato per mutazione**: rimesso il vecchio `SectionNode`, il test dell'ordine diventa **rosso** — gli
+  altri due restavano verdi anche col difetto, e da soli non avrebbero provato niente. Suite UI 1224 verde.

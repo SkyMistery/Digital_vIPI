@@ -7749,7 +7749,7 @@ codice per dirlo sono usciti due difetti, e sono quelli che facevano sembrare ro
 | Fetta | Che cosa | Stato |
 |---|---|---|
 | S0 | Carta + questa voce | ✅ |
-| S1 | `SectionNode` a tre slot | 🟡 |
+| S1 | `SectionNode` a tre slot | ✅ |
 | S2 | `IsDraft` scende in ACC | 🟡 |
 | S3 | Motore `MoveSectionToParentAsync` + cinque guardie | 🟡 |
 | S4 | `SectionMoveTargets` + menu «Sposta in…» | 🟡 |

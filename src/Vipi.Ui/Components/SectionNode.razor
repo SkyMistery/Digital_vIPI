@@ -57,13 +57,35 @@ else
     {
         if (RendeLaPagina)
         {
+            @* TRE SLOT attorno alla scheda, la stessa sequenza di `DocumentSectionsView` e di
+               `AccSectionBody`: sotto-sezioni «prima» → scheda → blocchi propri → sotto-sezioni «dopo».
+
+               ⚠️ Qui c'era una chiamata sola, dopo la scheda e con lo slot `All`: una figlia marcata «sopra
+               il corpo» (`BeforeParentBody`, doc 11 §3g) usciva SOTTO la scheda, mentre l'editor la mostrava
+               sopra. È la trappola del doc 11 §8 — l'editor che dice una cosa e il documento pubblicato
+               un'altra — e si vedeva sulle figlie rese dalla pagina: `frequenze`, `piste` e `quote di
+               transizione` del vSOP militare, che stanno dentro «Dati generali». (4 settembre 2026) *@
+            @if (SectionBody.HasChildren(Section, SectionSlot.Before))
+            {
+                <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" ShowBlocks="false"
+                             Slot="SectionSlot.Before" Profile="Profile" DerivedContent="DerivedContent" />
+            }
             @DerivedContent!(Section)
             @* La scheda in testa, e sotto i blocchi editoriali SOLO se il catalogo dice che li tiene: è la
                definizione di `HostAndBlocks`. Per una derivata pura il blocco porta il payload JSON, non
-               contenuto, e stamparlo vorrebbe dire stampare del JSON. *@
-            <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                         ShowBlocks="@SectionCatalog.KeepsOwnBlocks(Profile!.Value, Section.SectionKey)"
-                         Profile="Profile" DerivedContent="DerivedContent" />
+               contenuto, e stamparlo vorrebbe dire stampare del JSON.
+               ⚠️ `Slot="Blocks"`: SOLO i blocchi. Le sotto-sezioni le rendono le due chiamate attorno, e con
+               lo slot `All` una figlia comparirebbe due volte. *@
+            @if (SectionCatalog.KeepsOwnBlocks(Profile!.Value, Section.SectionKey))
+            {
+                <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" ShowBlocks="true"
+                             Slot="SectionSlot.Blocks" />
+            }
+            @if (SectionBody.HasChildren(Section, SectionSlot.After))
+            {
+                <SectionBody Section="Section" DepthOffset="DepthOffset" IsDraft="IsDraft" ShowBlocks="false"
+                             Slot="SectionSlot.After" Profile="Profile" DerivedContent="DerivedContent" />
+            }
         }
         else
         {
