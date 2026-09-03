@@ -6,6 +6,13 @@ Gate: [FEATURE-PROCESS](../FEATURE-PROCESS.md) ·
 Segue [varianti a livelli](2026-08-12-varianti-a-livelli.md) e
 [trasferimenti ACC↔APP](2026-08-11-trasferimenti-acc-app.md) · branch `feature/trasferimenti-acc-app`.
 
+> ⚠️ **Le colonne sono DUE dal 3 settembre 2026.** La terza — il pannello della riga — è diventata una
+> finestra in [la scheda della clausola diventa una finestra](2026-09-03-trasferimenti-scheda-clausola-finestra.md): nella colonna il suo corpo aveva
+> 348px di larghezza per 896 di contenuto, e allargare il contenitore non bastava (misurato: a 828px
+> scendeva a 860, il 4%). Con lei sono spariti `.xt-noPanel`, il salto del pannello sotto le altre colonne
+> allo scaglione 1200, e `vipiRevealPanel`. Tutto il resto di questa carta — navigatore, riquadro di
+> lavoro, vista a elenco, stato in URL, scrittura in cella — vale ancora.
+
 ## Obiettivo
 
 `/services/vsop/admin/transfers` funziona ma **non è spedita**. Il committente la usa e la definisce «scomoda e poco
@@ -88,7 +95,7 @@ pagina e ritrovarsi dov'era.
 |---|---|
 | `_collapsedFlow` + `ToggleFlow` | la pagina; `ExpandTo`/`CollapseAll`/`ExpandAll` cambiano significato |
 | «espandi/comprimi tutto» sui gruppi | chiavi resx `Xfer_ExpandAll` / `Xfer_CollapseAll` — restano ma valgono sull'albero, non sui gruppi |
-| `vipiRevealPanel` | il pannello non è più in fondo alla pagina: la funzione resta usata **solo** sotto la soglia a colonna singola |
+| `vipiRevealPanel` | il pannello non è più in fondo alla pagina: la funzione resta usata **solo** sotto la soglia a colonna singola — ⚠️ **rimossa** il 3 settembre 2026 con la terza colonna |
 | `ParseQuery` in `VersioniPage` | sostituito dall'helper condiviso |
 
 Nessuna memoria del progetto descrive l'impaginazione di questa pagina in modo che questa modifica renda falso;
@@ -119,6 +126,10 @@ non finisce mai «dopo la lista», perché non c'è più una lista sopra di lui.
 Sotto **1200 px** le tre colonne diventano due (navigatore + riquadro, pannello sotto); sotto **900** una sola,
 col navigatore che si richiude in un selettore. Le colonne che collassano perdono l'altezza fissa: un riquadro
 alto 100vh dentro una pagina che scorre è una trappola, ed è il motivo per cui `vipiRevealPanel` resta.
+
+> ⚠️ **Non più.** Con la scheda diventata finestra le colonne sono due già in partenza, lo scaglione 1200
+> non ha più niente da riorganizzare, e quello che conta è **900**: lì le due si impilano e l'altezza fissa
+> sparisce — la trappola descritta qui sopra resta vera, solo a una soglia sola.
 
 ### Il riquadro di lavoro
 

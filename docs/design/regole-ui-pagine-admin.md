@@ -1152,6 +1152,46 @@ per **tutte** le pagine, non solo per le admin.
      perché compariva in due liste di lavoro. Lo script sta nello scratchpad della verifica live (`titoli.js`,
      due fasi `prima`/`dopo` con la differenza stampata).
 
+## 32. Quello che ha lasciato la scheda della clausola diventata finestra (3 settembre 2026)
+
+Carta: [trasferimenti, la scheda della clausola diventa una finestra](../feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
+Tre difetti di **collegamento** fra markup e foglio di stile, e una misura che ha ribaltato la proposta.
+
+225. ⚠️ **Un token di BRAND non ha un tema: usarlo come colore di superficie è una lastra bianca in
+     notturna.** `--on-brand` è `#fff`, definito una volta sola e mai ribaltato nei blocchi scuri — per
+     costruzione, perché il brand non ha un tema. Dipingerci le due falde-**coperchio** di uno scroll shadow
+     dava due lastre bianche da 24px, una addosso alla prima intestazione. I coperchi vanno di `--surface`.
+226. ⚠️ **E un coperchio del colore sbagliato non copre: si MOSTRA, sempre.** Il segno «sotto c'è dell'altro»
+     sparisce agli estremi proprio perché il coperchio si confonde col fondo. Del colore sbagliato si vedeva
+     anche a contenuto più corto della finestra (`scrollHeight == clientHeight`, barre comunque lì): il
+     sintomo «si vede quando non dovrebbe» è la firma di questo difetto, non di una condizione sbagliata.
+227. ⚠️ **Una classe nel markup senza una regola nel foglio non è «senza stile»: è lo stile del BROWSER.**
+     `.xt-chipx` stava in tre punti del markup e in zero del foglio: usciva il bottone di sistema, fondo
+     grigio e bordo `outset`, 27×23px dentro una pastiglia alta 20. Il controllo costa una riga in console —
+     incrociare le classi del DOM col testo di tutte le regole caricate. ⚠️ **Col confine di parola**: un
+     confronto per sottostringa non vede `xt-panel-f`, perché lo copre `.xt-panel-foot`.
+228. ⚠️ **Rinominare una classe nel foglio e non nel markup non rompe: SPEGNE, e sembra una scelta.**
+     Markup `xt-panel-f`, CSS `.xt-panel-foot` — tre settimane. Il piede perdeva `display:flex`, quindi lo
+     spaziatore `.ln.xt-grow` non spingeva niente e **l'elimina stava appiccicato al duplica**: un tasto
+     distruttivo a 8px da uno costruttivo, che nessuno ha letto come guasto perché non lo sembrava.
+229. ⚠️ **Allargare il contenitore non accorcia un modulo: a compattarlo è la larghezza SPESA IN COLONNE.**
+     Misurato: da 348 a 828px di corpo il contenuto è passato da 896 a 860, il **4%** — i campi erano
+     impilati in una colonna sola e le righe a tre campi ci stavano già. Le stesse 828 spese in **due
+     colonne**: 666. E oltre non paga — a 1040, 1160 e 1280 il contenuto non si muove più, e una **terza**
+     colonna peggiora, perché le righe a tre campi scendono sotto il minimo e vanno a capo da sole.
+230. **Fra una finestra e un cassetto decide quanto ne resta all'ALTRO, non quanto ne prende lui.** Il
+     cassetto a tutta larghezza chiedeva 676px e alla tabella ne lasciava 111; perché funzionassero tutti e
+     due servivano ~1076px di griglia contro ~787. Recuperare il cromo (nav + testata, ~150px su 259 misurati
+     sopra la griglia) non cambia la scelta: dà gli stessi pixel a tutte e due, ma il cassetto li deve
+     dividere in due e la finestra no.
+231. **Un velo è la TERZA via per chiudere, mai l'unica**, e va in whitelist con la ragione scritta: la
+     finestra si chiude con un `<button>` e con Esc. ⚠️ **Esc lo intercetta chi ha una tendina aperta**, non
+     la finestra: `@onkeydown:stopPropagation` legato allo stato aperto dell'elenco a digitazione, o il primo
+     Esc butta via quello che si sta scrivendo invece di chiudere la tendina.
+232. **Due gesti opposti non prendono la stessa freccia.** ↑↓ nel piede **spostano** la clausola; per
+     camminare fra le clausole senza chiudere la finestra servono ‹ ›. È un errore che si scopre solo dopo
+     averlo commesso, quindi si evita al disegno.
+
 ## Dove sta la roba
 
 | Cosa | Dove |
@@ -1240,3 +1280,7 @@ per **tutte** le pagine, non solo per le admin.
   chiude una volta per tutte — la risalita del clic dentro una riga che è già un comando, il render mode che
   su metà di quelle pagine **non c'è** (SSR statico: un `@onclick` non farebbe nulla, in silenzio) e la
   specificità che in stampa fa vincere `.vid-link` su `.vipi-root a`.
+- [La scheda della clausola diventa una finestra](../feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md):
+  perché allargare un contenitore non accorcia un modulo (896 → 860 misurati, il 4%) e spendere la stessa
+  larghezza in due colonne sì (896 → 666), più i tre difetti di collegamento fra markup e foglio di stile
+  che stavano lì da tre settimane senza sembrare guasti.

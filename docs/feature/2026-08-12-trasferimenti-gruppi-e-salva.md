@@ -9,6 +9,12 @@ Segue [editor trasferimenti UX](2026-08-12-editor-trasferimenti-ux.md), stesso b
 > [editor trasferimenti a tre colonne](2026-08-12-editor-trasferimenti-tre-colonne.md), dove l'altezza non è più
 > un `calc` ma una misura, e `vipiRevealPanel` serve solo sotto le soglie di collasso. Il pannello
 > testata · corpo · piede — il cuore di questa scheda — è rimasto quello.
+>
+> ⚠️ **E il 3 settembre 2026 il pannello è diventato una finestra** ([la scheda della clausola diventa una finestra](2026-09-03-trasferimenti-scheda-clausola-finestra.md)):
+> testata · corpo · piede sopravvivono ancora, e per la stessa ragione (il Salva deve stare fuori dal corpo
+> che scorre), ma `vipiRevealPanel` **non esiste più** — una finestra in mezzo allo schermo non ha niente da
+> rivelare scorrendo. ⚠️ E la classe del piede nel markup era `xt-panel-f` mentre il foglio stila
+> `.xt-panel-foot`: la regola descritta qui sotto è stata **morta per tre settimane**.
 
 ## Obiettivo
 
