@@ -10,7 +10,6 @@
 @inherits OwningComponentBase
 @implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
-@inject IMilitaryDocumentService Militari
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
 @using Vipi.Application.Import
@@ -309,11 +308,28 @@ else
     /// Stesso scope, perché si legge nello stesso giro in cui l'altro scrive.</summary>
     private IAirportSectorService Settori = default!;
 
+    /// <summary>
+    /// Il documento militare, dallo <b>stesso scope proprio</b> degli altri tre.
+    ///
+    /// <para>🔴 <b>Fino al 3 settembre 2026 arrivava da <c>@@inject</c></b>, cioè dal circuito — e vale
+    /// parola per parola il blocco di <see cref="Editing"/>, che sta dieci righe più su e che questo campo
+    /// contraddiceva. Non era teoria: in produzione, su 1.6.0, ha prodotto
+    /// <c>A second operation was started on this context instance</c> a <c>CreaAsync</c> — che <b>scrive</b>,
+    /// perché crea il documento se manca — e una di quelle collisioni è degenerata in
+    /// <c>MySqlProtocolException: Packet received out-of-order</c>, cioè la connessione corrotta.</para>
+    ///
+    /// <para>⚠️ Il difetto è <b>precedente</b> all'estrazione di questo componente: <c>MilEditorPage</c>
+    /// aveva la riga identica. L'estrazione l'ha copiato fedelmente, ed è il modo in cui un difetto
+    /// sopravvive a un refactoring — nessuno rilegge una riga che si limita a spostare.</para>
+    /// </summary>
+    private IMilitaryDocumentService Militari = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         Scalo = ScopedServices.GetRequiredService<IAirportEditingService>();
         Settori = ScopedServices.GetRequiredService<IAirportSectorService>();
+        Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));

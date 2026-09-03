@@ -16,7 +16,6 @@
 @implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
 @using System.Text.Json
-@inject IAppDocumentService AppDoc
 @inject IStationResolver Stations
 @inject IJSRuntime JS
 @inject ILogger<AppSectionsEditor> Logger
@@ -237,9 +236,21 @@ else
     /// </summary>
     private IEditingService Editing = default!;
 
+    /// <summary>
+    /// Il documento dell'APP, dallo <b>stesso scope proprio</b> di <see cref="Editing"/>.
+    ///
+    /// <para>🔴 <b>Fino al 3 settembre 2026 arrivava da <c>@@inject</c></b>, cioè dal circuito, e
+    /// contraddiceva il blocco qui sopra. In produzione ha prodotto
+    /// <c>A second operation was started on this context instance</c> a
+    /// <c>EfAppDerivationRepository.ResolveForDocumentAsync</c>. ⚠️ Difetto <b>precedente</b>
+    /// all'estrazione: <c>AppEditorPage</c> aveva la riga identica.</para>
+    /// </summary>
+    private IAppDocumentService AppDoc = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
+        AppDoc = ScopedServices.GetRequiredService<IAppDocumentService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "APP", "App_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e'
             // sua, e senza questo resterebbe ferma su quel che era prima del gesto.

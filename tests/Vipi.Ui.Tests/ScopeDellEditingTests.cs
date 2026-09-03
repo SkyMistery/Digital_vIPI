@@ -47,6 +47,84 @@ public class ScopeDellEditingTests
         "Components/DocumentSectionsEditor.razor",
     };
 
+    /// <summary>
+    /// Gli <b>altri</b> servizi che toccano il database. 🔴 Fino al 3 settembre 2026 questa guardia
+    /// guardava il solo <c>IEditingService</c>, e per questo non ha visto i due che in produzione hanno
+    /// prodotto <c>A second operation was started on this context instance</c>:
+    /// <c>IMilitaryDocumentService</c> in <c>MilSectionsEditor</c> (a <c>CreaAsync</c>, che <b>scrive</b>) e
+    /// <c>IAppDocumentService</c> in <c>AppSectionsEditor</c>. Una regola scritta per un nome solo copre un
+    /// nome solo.
+    /// </summary>
+    private static readonly string[] ServiziCheToccanoIlDatabase =
+    {
+        "IEditingService", "IAirportEditingService", "IAirportSectorService",
+        "IMilitaryDocumentService", "IAppDocumentService", "IDocumentAdminService",
+        "IDocumentUnionService", "IReleaseService",
+    };
+
+    /// <summary>
+    /// Chi è ancora sul contesto del circuito, con la ragione. ⚠️ <b>Non sono assolti</b>: sono noti e non
+    /// ancora decisi, e stanno qui perché la rete valga da subito su tutto il resto. Chi ne sistema uno
+    /// toglie anche la riga.
+    /// </summary>
+    private static readonly HashSet<string> Tollerati = new(StringComparer.Ordinal)
+    {
+        // Tutti e tre HANNO gia' lo scope proprio (`OwningComponentBase`) ma ne usano un servizio solo:
+        // stesso difetto dei due corretti, stessa cura. Non fatti nello stesso giro per non allargare una
+        // correzione mirata a tre pagine di produzione in una sera.
+        "Components/Doc/AirportSectionsEditor.razor|IAirportEditingService",
+        "Components/Doc/AirportSectionsEditor.razor|IAirportSectorService",
+        "Components/Doc/AirportSectionsEditor.razor|IMilitaryDocumentService",
+        "Pages/NewDocumentPage.razor|IMilitaryDocumentService",
+        // ⚠️ VersioniPage e' il caso da guardare con piu' attenzione, non il piu' semplice: sta sul
+        // percorso della PUBBLICAZIONE, e accanto c'e' una scelta documentata di segno opposto
+        // (`ReleasePanel` NON isola il contesto apposta, perche' il publish e' un'operazione sola composta
+        // col `BeforePublishAsync` della pagina, e spezzarla su due context la manda in stallo). Prima di
+        // spostarli va deciso se quella ragione valga anche qui.
+        "Pages/VersioniPage.razor|IReleaseService",
+        "Pages/VersioniPage.razor|IDocumentAdminService",
+        "Pages/VersioniPage.razor|IDocumentUnionService",
+    };
+
+    /// <summary>
+    /// 🔴 La regola vale per <b>ogni</b> servizio che tocca il database, non per un nome solo.
+    /// <para>In Blazor Server «scoped» vuol dire <b>per circuito</b>: un <c>@@inject</c> prende il contesto
+    /// che la sessione condivide con barra, isole e pannelli, e basta che una di quelle letture capiti
+    /// mentre la pagina scrive.</para>
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(ChiScrive))]
+    public void Nessun_servizio_che_tocca_il_database_arriva_dal_circuito(string relativo)
+    {
+        var sorgente = File.ReadAllText(Path.Combine(Radice(), relativo));
+        var colpevoli = ServiziCheToccanoIlDatabase
+            .Where(nome => Regex.IsMatch(sorgente, $@"^@inject\s+[\w\.]*{nome}\b", RegexOptions.Multiline))
+            .Where(nome => !Tollerati.Contains(relativo + "|" + nome))
+            .ToArray();
+
+        Assert.True(colpevoli.Length == 0,
+            $"{relativo} prende dal CIRCUITO servizi che toccano il database: {string.Join(", ", colpevoli)}. "
+            + "Vanno da `ScopedServices.GetRequiredService<...>()`, come i loro vicini nello stesso file.");
+    }
+
+    /// <summary>⚠️ La tolleranza non è un parcheggio: se uno di quelli viene sistemato, la riga va tolta,
+    /// o l'elenco invecchia e smette di dire la verità.</summary>
+    [Fact]
+    public void I_tollerati_sono_ancora_sul_circuito()
+    {
+        var ancora = Tollerati.Where(v =>
+        {
+            var pezzi = v.Split('|');
+            var f = Path.Combine(Radice(), pezzi[0].Replace('/', Path.DirectorySeparatorChar));
+            return File.Exists(f)
+                && Regex.IsMatch(File.ReadAllText(f), $@"^@inject\s+[\w\.]*{pezzi[1]}\b", RegexOptions.Multiline);
+        }).ToArray();
+
+        Assert.True(ancora.Length == Tollerati.Count,
+            "Qualcuno dei tollerati NON e' piu' sul circuito: togli la sua riga dalla tolleranza. Restano: "
+            + string.Join(", ", ancora));
+    }
+
     [Theory]
     [MemberData(nameof(ChiScrive))]
     public void Il_servizio_di_editing_non_si_prende_dal_circuito(string relativo)
