@@ -4,7 +4,7 @@
 @* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
 @if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.Before))
 {
-    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.Before" DepthOffset="-1" />
+    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.Before" DepthOffset="-1" IsDraft="IsDraft" />
 }
 
 @switch (Key)
@@ -40,11 +40,11 @@
         {
             <ValidityStamp Target="ReleaseTargetType.AccVipi" Key="@($"{Acc!.Trim().ToUpperInvariant()}|{Root}")" ReleaseId="ReleaseId" />
         }
-        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" /> }
+        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" /> }
         break;
     default:
         @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
-        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" /> }
+        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" /> }
         break;
 }
 
@@ -52,7 +52,7 @@
    rendono dopo il corpo derivato (prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez»). *@
 @if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.After))
 {
-    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.After" DepthOffset="-1" />
+    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.After" DepthOffset="-1" IsDraft="IsDraft" />
 }
 
 @code {
@@ -63,6 +63,17 @@
     /// e sotto-sezioni delle strutturate. Null = nessun contenuto documentale (es. uso parziale in Operativa).</summary>
 
     [Parameter] public SectionView? Editorial { get; set; }
+
+    /// <summary>
+    /// Anteprima BOZZA: le sotto-sezioni nascoste si vedono, marcate. Pubblica e anteprima release: no.
+    ///
+    /// <para>⚠️ Nessuno lo passava, e il default prudente valeva anche in bozza: la vIPI ACC filtra le sue
+    /// sezioni di primo livello da sé (<c>AccVipiPage.VisibleSections</c>, che la bozza la conosce), ma le
+    /// SOTTO-sezioni scendevano qui col default <c>false</c> e una nascosta spariva <b>anche dall'anteprima
+    /// di bozza</b> — cioè proprio dove si lavora — invece di comparire con la pill «nascosta».
+    /// (4 settembre 2026)</para>
+    /// </summary>
+    [Parameter] public bool IsDraft { get; set; }
 
     // Chi rende il corpo lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
     private bool IsStructured(string key) =>

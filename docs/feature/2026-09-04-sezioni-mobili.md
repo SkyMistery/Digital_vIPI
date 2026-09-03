@@ -129,3 +129,9 @@ appartiene, invece di ricopiarlo.
   figlia nascosta che resta fuori dal pubblico anche stando «sopra».
   ⚠️ **Provato per mutazione**: rimesso il vecchio `SectionNode`, il test dell'ordine diventa **rosso** — gli
   altri due restavano verdi anche col difetto, e da soli non avrebbero provato niente. Suite UI 1224 verde.
+- **S2** ✅ `IsDraft` scende dalla `AccVipiPage` all'`AccSectionBody` e da lì alle quattro chiamate a
+  `SectionBody` (i due slot delle sezioni strutturate, il corpo di «Validità e revisione» e quello delle
+  sezioni libere). ⚠️ `LivePage` monta lo stesso componente e **non** lo passa: la vista operativa non è un
+  documento in bozza, e il default `false` è la risposta giusta lì.
+  Tre test bUnit (`AccDraftHiddenChildTests`), provati per mutazione: tolto il passaggio del parametro — non
+  il parametro — il test della bozza diventa **rosso**. Suite UI 1227 verde.

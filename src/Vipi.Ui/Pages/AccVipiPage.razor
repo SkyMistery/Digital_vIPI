@@ -101,6 +101,7 @@ else
                                 <AccSectionBody Block="block" Key="@s.Key" Root="@_root" Acc="@Acc"
                                                 ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
                                                 Editorial="s.Editorial"
+                                                IsDraft="@(_mode.Kind == PreviewKind.Draft)"
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"
