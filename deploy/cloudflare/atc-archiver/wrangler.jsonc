@@ -1,6 +1,6 @@
 {
   "name": "atc-archiver",
-  "main": "src/index.js",
+  "main": "index.js",
   "workers_dev": true,
   "preview_urls": true,
   "compatibility_date": "2024-07-25",

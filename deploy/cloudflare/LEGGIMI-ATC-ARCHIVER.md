@@ -79,8 +79,11 @@ aumentasse le interrogazioni. Da guardare con i numeri veri sotto gli occhi, non
 Al `scheduled` è stata aggiunta una chiamata a vIPI, **prima** di qualunque accesso a D1:
 
 ```js
-async scheduled(_event, env) {
-    await pingVipi();      // ⚠️ PRIMA di D1
+async scheduled(_event, env, ctx) {
+    await pingVipi();                                  // ⚠️ PRIMA di D1
+    for (const delayMs of PING_EXTRA_MS) {             // ⚠️ in waitUntil, mai atteso qui
+      ctx.waitUntil(pingVipiTraUnPo(delayMs));
+    }
     await runPoller(env);
 }
 
@@ -97,8 +100,39 @@ async function pingVipi() {
 
 **Perché serve.** vIPI gira su Plesk + Passenger, che **spegne il processo per inattività** appena il
 traffico si ferma: vite misurate sul server, **1:00 / 1:49 / 4:52**. Con il processo muoiono il
-campionamento ATC (un giro al minuto) e i giri periodici con ritardo d'avvio oltre i 60 secondi. Una
-richiesta al minuto lo tiene sveglio.
+campionamento ATC (un giro al minuto) e i giri periodici con ritardo d'avvio oltre i 60 secondi.
+
+### 🔴 Un ping al minuto NON basta — misurato il 3 settembre 2026, sera
+
+`diagnostica/avvii.txt` del server vero, l'ora fra le **19:21 e le 20:25**: **58 avvii**. Il processo parte
+a `hh:mm:59` (è il cron), vive **7-15 secondi**, si spegne **in modo ordinato** — inattività, non un crash —
+e al minuto dopo ricomincia. **Il ping sveglia il processo, non lo tiene su.**
+
+🔴 **La conseguenza vera non è il carico, sono i giri periodici**: il `bootDelay` più corto dei tredici è
+**15 s** (`AccImportHostedService`) e il più lungo **150 s** (`TrafficRetentionHostedService`). Su vite di
+7-15 secondi **non ne arriva in fondo nessuno**. Prima del keep-alive capitavano avvii lunghi (1h50, 2h25,
+3h00) e per il gate delle 24 ore ne bastava **uno**; adesso non capitano più.
+
+⚠️ E ogni giro ripaga l'avvio intero: **8 433 ms**, di cui **2 992 ms di migrazioni** e **4 903 ms di
+manutenzioni d'avvio**, contro MariaDB, 58 volte l'ora.
+
+**Il rimedio provato: pingare più spesso del cron.** Il cron di Cloudflare non scende sotto il minuto,
+quindi la frequenza vera la fa una lista di ritardi **dentro** la stessa invocazione:
+
+```js
+var PING_EXTRA_MS = [3e4];   // un ping extra a +30 s, oltre a quello a t=0
+```
+
+⚠️ **I ping extra vanno in `ctx.waitUntil` e non si aspettano in linea**: aspettarli sposterebbe di mezzo
+minuto il campionamento ATC, che è il lavoro vero di questo cron. Verificato con una simulazione locale a
+`fetch` e D1 stubbati: ping a `+1 ms`, poller a `+17 ms`, `scheduled` ritornato a `+18 ms`, secondo ping a
+`+30 026 ms`.
+
+⚠️ **Trenta secondi è un TENTATIVO, non una cura dimostrata**: le vite misurate stanno fra 7 e 15 secondi,
+quindi può non bastare. **La prova è `avvii.txt`, non una `curl`** — anche quella è traffico. Se continua a
+contare un avvio al minuto, il processo muore prima dei 30 s e la lista va infittita, p.es.
+`[1e4, 2e4, 3e4, 4e4, 5e4]`. La strada pulita resta l'altra: alzare l'inattività di Passenger dal pannello
+Plesk, a cui però il committente non ha accesso.
 
 Le tre scelte, e il perché di ognuna:
 

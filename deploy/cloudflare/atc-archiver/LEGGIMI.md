@@ -11,9 +11,17 @@ andato perso. Finché resta così:
   giri periodici che smettono di partire — è invisibile finché qualcuno non apre la Diagnostica;
 - questa copia serve a **vedere che cosa si è perso**, non a sostituire il sorgente.
 
-Se il TypeScript salta fuori, la modifica da riportare è una sola: `pingVipi()` chiamata **per prima** nel
-`scheduled`, prima di qualunque accesso a D1. Il perché sta in
-[`../LEGGIMI-ATC-ARCHIVER.md`](../LEGGIMI-ATC-ARCHIVER.md).
+Se il TypeScript salta fuori, le modifiche da riportare sono **due**, e sono la stessa cosa in due tempi:
+
+1. `pingVipi()` chiamata **per prima** nel `scheduled`, prima di qualunque accesso a D1;
+2. i **ping extra** dentro lo stesso giro — `PING_EXTRA_MS` + `pingVipiTraUnPo()`, lanciati con
+   `ctx.waitUntil` e **mai attesi in linea** — perché un ping al minuto sveglia il processo e non lo tiene
+   su (58 avvii in un'ora, misurati).
+
+Il perché di tutt'e due sta in [`../LEGGIMI-ATC-ARCHIVER.md`](../LEGGIMI-ATC-ARCHIVER.md).
+
+⚠️ `wrangler.jsonc` diceva `"main": "src/index.js"` e qui il bundle è **piatto**: `wrangler deploy` non
+avrebbe trovato niente. Corretto in `"main": "index.js"` il 3 settembre 2026.
 
 ## Ripubblicare da qui
 

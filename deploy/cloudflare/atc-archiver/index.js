@@ -5,6 +5,11 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 var WHAZZUP_URL = "https://api.ivao.aero/v2/tracker/whazzup";
 var FETCH_TIMEOUT_MS = 1e4;
 var CLEANUP_DAYS = 90;
+// Keep-alive: ritardi (ms) dei ping EXTRA dentro lo stesso giro di cron, oltre a quello a t=0.
+// Il cron non scende sotto il minuto, quindi la frequenza vera la fa questa lista.
+// 3-set-2026: si prova [30 s]. Se `avvii.txt` continua a contare un avvio al minuto, il processo
+// muore prima dei 30 s e la lista va infittita (p.es. [1e4, 2e4, 3e4, 4e4, 5e4]).
+var PING_EXTRA_MS = [3e4];
 var index_default = {
   // HTTP handler
   async fetch(request, env) {
@@ -18,10 +23,15 @@ var index_default = {
     return new Response("Not Found", { status: 404 });
   },
   // Cron handler (ogni minuto)
-  async scheduled(_event, env) {
+  async scheduled(_event, env, ctx) {
     // ⚠️ PRIMA di qualunque accesso a D1, e non e' un dettaglio d'ordine: quando la quota D1 e'
     //    esaurita `runPoller` fallisce subito, ed e' esattamente il giorno in cui il keep-alive serve di piu'.
     await pingVipi();
+    // ⚠️ I ping intermedi vanno in `waitUntil` e NON si aspettano qui: aspettarli sposterebbe di mezzo
+    //    minuto il campionamento ATC, che e' il lavoro vero di questo cron.
+    for (const delayMs of PING_EXTRA_MS) {
+      ctx.waitUntil(pingVipiTraUnPo(delayMs));
+    }
     await runPoller(env);
   }
 };
@@ -32,7 +42,13 @@ var index_default = {
  * L'hosting del sito e' Plesk + Phusion Passenger, che spegne il processo per inattivita' appena il
  * traffico si ferma: vite misurate sul server, 1:00 / 1:49 / 4:52. Con il processo muoiono il
  * campionamento ATC (un giro al minuto) e meta' dei giri periodici, che aspettano un ritardo d'avvio
- * fino a 150 s. Una richiesta al minuto lo tiene sveglio.
+ * fino a 150 s.
+ *
+ * 🔴 UNA richiesta al minuto NON basta, ed e' MISURATO: `diagnostica/avvii.txt` del 3 settembre 2026
+ *    conta 58 avvii in un'ora. Il processo parte a hh:mm:59, vive 7-15 s, si spegne in modo ORDINATO,
+ *    e al minuto dopo ricomincia. Il ping SVEGLIA e non TIENE SU, e con vite cosi' corte nessun giro
+ *    periodico (bootDelay da 15 s a 150 s) arriva in fondo. Per questo il cron pinga piu' volte per
+ *    giro: vedi `PING_EXTRA_MS`.
  *
  * ⚠️ Sonda ECONOMICA: `/vsop/health/ready` guarda le sole condizioni critiche. `/vsop/health` include
  *    il report di consistenza, che costa e fa I/O di rete — 1440 volte al giorno sarebbe uno spreco.
@@ -50,6 +66,22 @@ async function pingVipi() {
   }
 }
 __name(pingVipi, "pingVipi");
+
+/**
+ * Lo stesso ping, ritardato di `delayMs` dentro lo stesso giro di cron.
+ *
+ * ⚠️ Il cron di Cloudflare non scende sotto il minuto: per pingare piu' spesso l'unica strada e'
+ *    aspettare DENTRO l'invocazione. L'attesa non consuma CPU e sta larga nei limiti di un cron.
+ * ⚠️ Va lanciato con `ctx.waitUntil`, mai atteso in linea: in linea ritarderebbe il poller.
+ */
+async function pingVipiTraUnPo(delayMs) {
+  try {
+    await new Promise((r) => setTimeout(r, delayMs));
+    await pingVipi();
+  } catch {
+  }
+}
+__name(pingVipiTraUnPo, "pingVipiTraUnPo");
 async function handleHealth(env) {
   try {
     const rows = await env.DB.prepare(
