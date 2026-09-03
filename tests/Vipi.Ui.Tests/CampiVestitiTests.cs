@@ -29,9 +29,11 @@ public sealed class CampiVestitiTests
     /// </summary>
     private static readonly Dictionary<string, string> Tollerate = new()
     {
-        ["in-cond"] = "Campi DENSI nelle celle della tabella SID: se debbano vestirsi come gli altri è una scelta di forma, non ancora fatta.",
-        ["in-prio"] = "Come sopra, stessa tabella.",
-        ["inp"] = "Una select in StrutturaPage (riattacco di un settore orfano): nuda, da vestire.",
+        // ⚠️ Le due che restano NON sono una svista: in una tabella densa un campo vestito occupa più
+        // spazio, e la colonna del fix è larga 76px misurati. Il committente le guarda a schermo prima di
+        // decidere (3 settembre 2026). Chi decide, veste e toglie la riga.
+        ["in-cond"] = "Campo DENSO nella cella «condizione» della tabella SID: vestirlo la allargherebbe. Decisione rimandata, non dimenticata.",
+        ["in-prio"] = "Come sopra, colonna «priorità» della stessa tabella.",
     };
 
     private static readonly Regex Campo =

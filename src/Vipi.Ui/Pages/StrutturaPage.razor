@@ -501,7 +501,7 @@
                         <td>
                             @if (o.DocumentId is not null)
                             {
-                                <select class="inp" value="@(_reattachTo.TryGetValue(o.SectorId, out var t) ? t.ToString() : "")"
+                                <select class="app-in" value="@(_reattachTo.TryGetValue(o.SectorId, out var t) ? t.ToString() : "")"
                                         @onchange="e => _reattachTo[o.SectorId] = int.TryParse(e.Value?.ToString(), out var v) ? v : 0">
                                     <option value="">@L["Orph_PickTarget"]</option>
                                     @foreach (var tgt in Bersagli(o.SectorId))
