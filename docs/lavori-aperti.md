@@ -7405,3 +7405,89 @@ l'autorizzazione per ACC non è un buco, è morta il 28 agosto — `EnsureAtLeas
   `vipi.db` reale**, non su un database vuoto.
 - 🟡 **La vIPI ACC e la vLOA restano fuori** dalle famiglie unibili, dichiarato: la prima è a blocchi e non
   passa da `DocumentSectionsView`, la seconda disegna da sé le direzioni dei coordinamenti.
+
+## BA. Due file per due guasti, e gli ultimi sette servizi fuori dal circuito — 3 settembre 2026 (sera)
+
+Nasce dalla **diagnostica di produzione** mandata dopo il caricamento di 1.6.1, non da una richiesta: due
+cose da guardare, e tutt'e due si sono rivelate più grandi del sintomo.
+
+### 1. `avvio-errore.txt` diceva «l'avvio è FALLITO» di uno spegnimento
+
+🔴 **Era un falso allarme, e il foglio d'aggiornamento appena spedito diceva «se compare, fermatevi».**
+
+Il fatto misurato: `avvii.txt` diceva `19:19:57 ARRESTO acceso per 01:50:57`, cioè il processo aveva
+servito richieste per un'ora e cinquanta prima di morire — e lo stack era
+`AtcPollingHostedService.StopAsync` → `Host.StopAsync` → `WaitForShutdownAsync`. Non era 1.6.1 che non
+partiva: era 1.6.0 che finiva.
+
+⚠️ **La causa è strutturale e non si vede leggendo `Program.cs`**: `app.Run()` **blocca fino allo
+spegnimento**, quindi qualunque eccezione dell'arresto esce dal medesimo `catch`. Non c'era modo di
+distinguerle, perché al momento della scrittura nessuno sapeva se l'host fosse mai partito.
+
+La cura è una sentinella su `ApplicationStarted` e **due file distinti**:
+
+| file | vuol dire | ferma il caricamento? |
+|---|---|---|
+| `diagnostica/avvio-errore.txt` | il sito **non è partito** | **sì** |
+| `diagnostica/arresto-errore.txt` | il sito era partito ed è morto **chiudendo** | **no** |
+
+ℹ️ Due file e non due intestazioni nello stesso file: il consiglio scritto su ogni foglio d'aggiornamento è
+«`avvio-errore.txt` non deve esistere», e con un file solo quel consiglio resta falso per lo spegnimento più
+comune di questo hosting. I due fogli vivi (`LEGGIMI-AGGIORNAMENTO.md`, `LEGGIMI-AGGIORNARE-VIA-FTP.md`)
+dicono che il secondo non ferma niente.
+
+⚠️ **La decisione è una funzione pura col parametro esplicito** (`FileDelGuasto(bool)`,
+`Descrivi(ex, bool)`), non un test sull'host: dentro un host avviato il caso «avvio fallito» non è
+riproducibile, perché la sentinella è già alzata.
+
+### 2. Gli ultimi sette `@inject` che toccano il database
+
+La guardia strutturale nata il mattino (`ScopeDellEditingTests`) tollerava sette casi noti, per non
+allargare in una sera una correzione mirata. La diagnostica di produzione — **nove pagine d'errore vere**,
+tutte `A second operation was started on this context instance`, una degenerata in
+`MySqlProtocolException: Packet received out-of-order` — ha tolto la ragione della tolleranza.
+
+| file | servizi spostati |
+|---|---|
+| `Components/Doc/AirportSectionsEditor.razor` | `IAirportEditingService`, `IAirportSectorService`, `IMilitaryDocumentService` |
+| `Pages/NewDocumentPage.razor` | `IMilitaryDocumentService` |
+| `Pages/VersioniPage.razor` | `IReleaseService`, `IDocumentAdminService`, `IDocumentUnionService` |
+
+⚠️ **`VersioniPage` era il caso da guardare, non il più semplice.** Accanto c'è una scelta documentata di
+segno **opposto**: `ReleasePanel` prende `IReleaseService` dal circuito **apposta**, perché il publish è
+un'operazione sola composta col `BeforePublishAsync` della pagina ospite, e spezzarla su due contesti la
+manda in stallo. Quella ragione qui non vale — `VersioniPage` **non monta `ReleasePanel`**. Verificato col
+`grep`, non dedotto: è la differenza fra applicare una regola e capirla.
+
+L'elenco dei tollerati **resta, vuoto**, col perché dentro e un `Assert.Empty` accanto: con zero voci
+l'asserzione «sono ancora tutti sul circuito» è vera per costruzione, cioè vacua.
+
+### Provato a schermo, con la prova nel database
+
+Ogni servizio spostato è stato **fatto scrivere** guidando l'applicazione in un browser su una copia del
+`vipi.db` reale, e la scrittura è stata verificata in archivio — non a schermo.
+
+| servizio | gesto | prova in archivio |
+|---|---|---|
+| `IReleaseService` | «Publish at cycle» su LIBD | `DocReleases` #57, `LIBD 2610 Scheduled` |
+| `IAirportEditingService` | «+ Rule» + «Save rules» | `AirportRunwayRules` #7, `DepRunways='07'` |
+| `IAirportSectorService` | nascondi `LIBD_ATIS` | `AirportSectors` #7, `IsHidden=1` |
+| `IMilitaryDocumentService` | nuovo documento su **LIBV**, campo solo militare senza vSOP | `Documents` #33, `vSOP MIL — LIBV`, `Edition=Military` |
+
+`IDocumentAdminService` e `IDocumentUnionService` sono stati esercitati in **lettura** (l'elenco di dieci
+documenti e il riquadro «Joined documents»). Barra d'errore mai comparsa, nessun «A second operation».
+
+⚠️ **Quel che NON è stato provato, e va detto**: `IMilitaryDocumentService` **dentro
+`AirportSectionsEditor`** — il tasto «crea il vSOP militare» compare solo su un campo misto che non ce
+l'ha ancora, e nel database di sviluppo non ce n'è. È lo stesso metodo dello stesso servizio già provato
+da `NewDocumentPage`, con la stessa riga di risoluzione.
+
+### ⚠️ Due trappole dello strumento, non del prodotto
+
+- **Il tasto «✕ Cancel» delle release apre una conferma in linea**, non un `confirm()` del browser: un solo
+  clic sembra non fare niente e la release resta. Il testo che spiega la conseguenza sta nella pagina
+  **apposta** (il nativo bloccava tutto). Chi guida la pagina da fuori deve prevedere **due** gesti.
+- **Un `click()` via JavaScript su un elemento appena scrollato non equivale al clic**, e la pagina si
+  sposta fra la misura delle coordinate e il clic. Le coordinate si rileggono **dopo** l'ultimo movimento,
+  da uno screenshot fresco — la regola era già scritta in `.claude/skills/verifica-live` §4-bis, ed è
+  costata tre gesti a vuoto per averla applicata a metà.
