@@ -119,9 +119,13 @@ public sealed class EfEditingRepository : IEditingRepository
 
         var blocksBySection = blocks.GroupBy(b => b.SectionId)
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
+        // ⚠️ `ThenBy(Id)` e non il solo `Order`: `Order` è una POSIZIONE, e il motore che le sposta
+        // (MoveSectionBeforeAsync) spareggia così. Due letture che ordinano in modo diverso a parità di
+        // numero mostrerebbero un ordine e ne sposterebbero un altro — e il numero pari capita: lo lascia
+        // uno scambio ±1 su un gruppo mai rinumerato.
         var childrenByParent = sections.Where(s => s.ParentSectionId != null)
             .GroupBy(s => s.ParentSectionId!.Value)
-            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ToList());
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
 
         EditableSection Build(DocumentSection s) => new()
         {
@@ -145,7 +149,7 @@ public sealed class EfEditingRepository : IEditingRepository
         };
 
         var roots = sections.Where(s => s.ParentSectionId is null)
-            .OrderBy(s => s.Order).Select(Build).ToList();
+            .OrderBy(s => s.Order).ThenBy(s => s.Id).Select(Build).ToList();
 
         return new EditableDocument
         {
@@ -838,11 +842,24 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
 
+        // Stesso spareggio della lettura (BuildEditableAsync) e dell'altra mossa: a parità di `Order` la
+        // freccia deve scambiare i due che si vedono vicini, non due qualsiasi.
         var siblings = await _db.DocumentSections
             .Where(s => s.DocumentVersionId == section.DocumentVersionId && s.ParentSectionId == section.ParentSectionId)
-            .OrderBy(s => s.Order).ToListAsync(ct);
-        if (SwapOrder(siblings, s => s.Id, s => s.Order, (s, o) => s.Order = o, sectionId, direction))
-            await _db.SaveChangesAsync(ct);
+            .OrderBy(s => s.Order).ThenBy(s => s.Id).ToListAsync(ct);
+
+        var da = siblings.FindIndex(s => s.Id == sectionId);
+        var a = da + Math.Sign(direction);
+        if (da < 0 || a < 0 || a >= siblings.Count) return;   // ai bordi non fa niente
+
+        // ⚠️ Si REINSERISCE e si rinumera, invece di scambiare i due `Order`. Lo scambio è la stessa cosa
+        // finché i numeri sono diversi, ma su due fratelli che portano lo STESSO numero — e capita: nessun
+        // indice unico li vieta, e un gruppo mai rinumerato può averceli — scambiarli non cambia niente, e la
+        // freccia diventa un tasto che non fa nulla. Con la rinumerazione la posizione cambia sempre.
+        siblings.RemoveAt(da);
+        siblings.Insert(a, section);
+        Rinumera(siblings);
+        await _db.SaveChangesAsync(ct);
     }
 
     public async Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default)

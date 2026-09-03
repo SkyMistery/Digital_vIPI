@@ -136,7 +136,7 @@ public sealed class EfContentRepository : IContentRepository
         var childrenByParent = sections
             .Where(s => s.ParentSectionId != null)
             .GroupBy(s => s.ParentSectionId!.Value)
-            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ToList());
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
 
         RawSection Build(DocumentSection s) => new()
         {
@@ -278,7 +278,7 @@ public sealed class EfContentRepository : IContentRepository
             .ToDictionary(g => g.Key, g => g.OrderBy(b => b.Order).ToList());
         var childrenByParent = sections.Where(s => s.ParentSectionId != null)
             .GroupBy(s => s.ParentSectionId!.Value)
-            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ToList());
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
 
         RawSection Build(DocumentSection s) => new()
         {
@@ -289,7 +289,7 @@ public sealed class EfContentRepository : IContentRepository
             Children = (childrenByParent.TryGetValue(s.Id, out var cs) ? cs : new()).Select(Build).ToList(),
         };
 
-        var roots = sections.Where(s => s.ParentSectionId is null).OrderBy(s => s.Order).Select(Build).ToList();
+        var roots = sections.Where(s => s.ParentSectionId is null).OrderBy(s => s.Order).ThenBy(s => s.Id).Select(Build).ToList();
         return new RawDocument
         {
             Title = title,

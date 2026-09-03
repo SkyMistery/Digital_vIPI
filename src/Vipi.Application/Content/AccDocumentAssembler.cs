@@ -41,7 +41,7 @@ public static class AccDocumentAssembler
             Id = b.Id, Order = b.Order, Format = b.Format, Tier = b.Tier, Visibility = b.Visibility,
             CalloutKind = b.CalloutKind, Body = b.Body, BodyJson = b.BodyJson,
         }).ToList(),
-        Children = s.Children.OrderBy(c => c.Order).Select(ToEditable).ToList(),
+        Children = s.Children.OrderBy(c => c.Order).ThenBy(c => c.Id).Select(ToEditable).ToList(),
     };
 
     /// <param name="lingua">La lingua del documento, per i titoli delle sezioni di catalogo che il documento
@@ -50,7 +50,7 @@ public static class AccDocumentAssembler
     public static IReadOnlyList<AccAssembledBlock> Assemble(IReadOnlyList<EditableSection> roots, string lingua = "it")
     {
         var result = new List<AccAssembledBlock>();
-        foreach (var blockSection in roots.OrderBy(s => s.Order))
+        foreach (var blockSection in roots.OrderBy(s => s.Order).ThenBy(s => s.Id))
         {
             var meta = Deserialize<AccBlockMeta>(OwnBodyJson(blockSection));
             var kind = meta?.Kind
@@ -58,7 +58,7 @@ public static class AccDocumentAssembler
                     ? AccBlockKind.Aerovia : AccBlockKind.AppGroup);
 
             var childIds = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-            foreach (var c in blockSection.Children.OrderBy(c => c.Order))
+            foreach (var c in blockSection.Children.OrderBy(c => c.Order).ThenBy(c => c.Id))
                 childIds.TryAdd(c.SectionKey, c.Id);
 
             var configs = Deserialize<List<AccConfiguration>>(ChildBodyJson(blockSection, "configurations")) ?? new();
@@ -96,7 +96,7 @@ public static class AccDocumentAssembler
     // tabelle, callout e sotto-sezioni sparivano dal documento pubblicato.
     private static List<AccBlockSection> SectionsOf(EditableSection blockSection, AccBlockKind kind, string lingua)
     {
-        var sections = blockSection.Children.OrderBy(c => c.Order)
+        var sections = blockSection.Children.OrderBy(c => c.Order).ThenBy(c => c.Id)
             .Select(c => new AccBlockSection(c.Id, c.SectionKey, c.Title, c.IsHidden, ToSectionView(c), c.Audience))
             .ToList();
 
@@ -132,7 +132,7 @@ public static class AccDocumentAssembler
             BodyJson = b.BodyJson,
             CalloutKind = b.CalloutKind,
         }).ToList(),
-        Children = s.Children.OrderBy(c => c.Order).Select(ToSectionView).ToList(),
+        Children = s.Children.OrderBy(c => c.Order).ThenBy(c => c.Id).Select(ToSectionView).ToList(),
     };
 
     // BodyJson del blocco proprio della sezione (blockmeta): primo blocco della sezione-blocco stessa.

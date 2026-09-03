@@ -119,7 +119,7 @@ public sealed class VipiViewService : IVipiViewService
             .ToList();
 
         var children = s.Children
-            .OrderBy(c => c.Order)
+            .OrderBy(c => c.Order).ThenBy(c => c.Id)
             .Select(c => Map(c, renders))
             .ToList();
 

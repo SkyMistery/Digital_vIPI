@@ -178,4 +178,14 @@ appartiene, invece di ricopiarlo.
   · La vIPI ACC **non cambia**: costruisce il proprio indice, con le sole sezioni di primo livello per blocco,
     e fra blocchi non si passa (decisione 2).
   Suite UI 1241 verde, build Release intera verde.
+- **S6** ✅ Spareggio stabile `ThenBy(Id)` ovunque si legga l'albero delle sezioni — il modello dell'editor
+  (`BuildEditableAsync`), i due lettori del documento (`EfContentRepository`), la vIPI ACC
+  (`AccDocumentAssembler`) e il viewer condiviso (`VipiViewService`) — e nel motore delle frecce.
+  · ⚠️ E la freccia non **scambia** più i due `Order`: **reinserisce e rinumera**. Lo scambio è la stessa cosa
+    finché i numeri sono diversi, ma su due fratelli con lo **stesso** numero non cambia niente — e nessun
+    indice unico lo vieta. Era una freccia che, in quel caso, non faceva nulla.
+  · Due test (`OrdineSezioniSpareggioTests`) su tre sorelle messe a pari `Order`. ⚠️ Provati per mutazione:
+    col vecchio motore **il primo diventa rosso**, il secondo resta verde — perché a parità di numero SQLite
+    restituiva comunque lo stesso ordine, e da solo non avrebbe provato niente.
+  Quattro suite verdi (Infrastructure 1245, Application 2145, UI 1241, Domain 130), build Release verde.
 
