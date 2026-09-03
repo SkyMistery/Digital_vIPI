@@ -7572,7 +7572,8 @@ riquadri pieni rimasti.
 
 ## BC. I parcheggi sono un dato dello scalo, non una procedura — 3 settembre 2026
 
-🟡 **In lavorazione**, ramo `parcheggi-dati-generali`. Nessuna carta: richiesta del committente — *«spostare
+✅ **FUSA IN MAIN** il 3 settembre 2026 (`9594ac2f`, spinta; il ramo `parcheggi-dati-generali` è stato
+cancellato). Nessuna carta: richiesta del committente — *«spostare
 parking presente in ground procedure in general data alla fine della sezione, però considera che ci sono vSOP
 in produzione che già usano parking e vanno gestite»*.
 
@@ -7650,8 +7651,9 @@ solo dopo una **ripubblicazione**.
 
 ## BD. Le carte dello scalo entrano nel catalogo — 3 settembre 2026
 
-🟡 **In lavorazione**, ramo `carte-aeroportuali`, **impilato** su `parcheggi-dati-generali` (§BC). Nessuna
-carta: richiesta del committente — *«aggiungere la sezione Airport charts prima di validity & revision nelle
+✅ **FUSA IN MAIN** il 3 settembre 2026 (`90156232`, spinta; il ramo `carte-aeroportuali` era impilato su
+quello di §BC e sono stati cancellati tutt'e due — `main` li ha presi in fast-forward, storia lineare).
+Nessuna carta: richiesta del committente — *«aggiungere la sezione Airport charts prima di validity & revision nelle
 vSOP e nelle vIPI. Al suo interno deve contenere Aerodrome, Instrumental approach charts, SID, STAR, VFR»*.
 
 ### Che cosa nasce
