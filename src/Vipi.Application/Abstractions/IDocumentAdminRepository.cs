@@ -9,6 +9,25 @@ public interface IDocumentAdminRepository
     Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// L'identità dei soli documenti indicati — titolo, famiglia, chiave di release, ACC, lock — risolta con
+    /// gli <b>stessi</b> descrittori e lo <b>stesso</b> insieme di <c>Include</c> di <see cref="ListAsync"/>.
+    ///
+    /// <para>Serve a chi ha in mano una manciata di id e non l'intero archivio: i membri di un'unione di
+    /// documenti, che si risolvono a ogni apertura della pagina unita.</para>
+    ///
+    /// <para>⚠️ <b>Non porta i cicli di release</b> (<c>EffectiveCycle</c>, <c>NextScheduledCycle</c>,
+    /// <c>HasAnyRelease</c> restano ai loro default): quella è una seconda query, e chi legge un documento
+    /// non ne ha bisogno. Chi la vuole — il pannello di pubblicazione — chiede
+    /// <c>IReleaseService.SummariesAsync</c>, che è il posto in cui quel dato vive già.</para>
+    ///
+    /// <para>⚠️ Un id che nessun descrittore riconosce semplicemente <b>non torna</b>. È la stessa risposta
+    /// di <see cref="ListAsync"/>, dove un documento non descritto sparisce dall'elenco: qui però il
+    /// chiamante ha chiesto <i>quello</i> documento, quindi l'assenza va guardata invece che ignorata.</para>
+    /// </summary>
+    Task<IReadOnlyDictionary<int, ManagedDoc>> DescribeAsync(IReadOnlyCollection<int> documentIds,
+        CancellationToken ct = default);
+
+    /// <summary>
     /// Titolo dei documenti indicati, per Id, in una query sola. Serve al registro di audit: le righe scritte
     /// prima del 22 agosto 2026 portano solo l'Id del documento, e &#171;documento #12&#187; non dice niente a chi
     /// legge. Gli Id che non esistono pi&#249; (documento eliminato) semplicemente non tornano — per quelli il

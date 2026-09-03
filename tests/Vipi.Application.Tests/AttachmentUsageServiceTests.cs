@@ -42,6 +42,11 @@ public class AttachmentUsageServiceTests
             return Task.FromResult<IReadOnlyList<ManagedDoc>>(_docs);
         }
 
+        public Task<IReadOnlyDictionary<int, ManagedDoc>> DescribeAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, ManagedDoc>>(
+                _docs.Where(d => d.DocumentId is not null && documentIds.Contains(d.DocumentId.Value))
+                     .ToDictionary(d => d.DocumentId!.Value));
+
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<string?> GetAccCodeAsync(ManagedDocRef doc, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<DocumentLanguageState?> GetLanguageAsync(ManagedDocRef doc, CancellationToken ct = default) =>

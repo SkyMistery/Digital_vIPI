@@ -1761,6 +1761,48 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.ToTable("DocumentSections");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentUnion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DocumentUnions");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentUnionMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("DocumentId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UnionId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("UnionId", "Order");
+
+                    b.ToTable("DocumentUnionMembers");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentVersion", b =>
                 {
                     b.Property<int>("Id")
@@ -3164,6 +3206,25 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("ParentSection");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentUnionMember", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Document", "Document")
+                        .WithMany()
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vipi.Domain.Entities.DocumentUnion", "Union")
+                        .WithMany("Members")
+                        .HasForeignKey("UnionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Document");
+
+                    b.Navigation("Union");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentVersion", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Document", "Document")
@@ -3325,6 +3386,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Navigation("Blocks");
 
                     b.Navigation("Children");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.DocumentUnion", b =>
+                {
+                    b.Navigation("Members");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.DocumentVersion", b =>

@@ -152,6 +152,10 @@ public class ProssimoAiracServiceTests
         public FakeAdmin(params ManagedDoc[] docs) => _docs = docs;
         public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ManagedDoc>>(_docs);
+        public Task<IReadOnlyDictionary<int, ManagedDoc>> DescribeAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, ManagedDoc>>(
+                _docs.Where(d => d.DocumentId is not null && documentIds.Contains(d.DocumentId.Value))
+                     .ToDictionary(d => d.DocumentId!.Value));
         public Task<ManagedDocRef?> FindAsync(ReleaseTargetType kind, string key, CancellationToken ct = default) =>
             Task.FromResult<ManagedDocRef?>(null);
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>

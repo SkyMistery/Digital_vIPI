@@ -551,6 +551,7 @@ public static class VipiModuleExtensions
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
         // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
         // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
         // stati delle release invecchiano DA SOLI — al rollover AIRAC una schedulata entra in vigore senza
@@ -724,6 +725,23 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
             .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
+        return host;
+    }
+
+    /// <summary>
+    /// Chiude le unioni di documenti rimaste con meno di due membri (carta
+    /// <c>docs/feature/2026-09-03-documenti-uniti.md</c>). Idempotente: sicuro a ogni avvio.
+    ///
+    /// <para>⚠️ La cascata della FK toglie già la riga di appartenenza insieme al documento eliminato; quel
+    /// che resta da chiudere è l'<b>unione</b> che quella riga teneva in piedi — una pagina unita che unisce
+    /// sé stessa, con un redirect che non ha dove mandare. E un documento non sparisce solo dal tasto
+    /// «elimina»: una riga tolta a mano dal database o un rollback lo fanno lo stesso.</para>
+    /// </summary>
+    public static IHost TidyVipiDocumentUnions(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.IDocumentUnionRepository>()
+            .TidyAsync().GetAwaiter().GetResult();
         return host;
     }
 }

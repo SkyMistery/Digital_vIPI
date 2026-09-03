@@ -137,6 +137,9 @@ public static class DependencyInjection
         services.AddScoped<IAttachmentCuration, AttachmentCurationService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
+        // Le unioni di documenti: chi puo' unire, che cosa si puo' unire, e quando un'unione smette
+        // di essere tale (carta docs/feature/2026-09-03-documenti-uniti.md).
+        services.AddScoped<IDocumentUnionService, DocumentUnionService>();
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();
         services.AddScoped<IAirportDataImportUseCase, AirportDataImportUseCase>();
