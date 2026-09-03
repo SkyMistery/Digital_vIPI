@@ -3194,4 +3194,7 @@
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>joined: {0}</value></data>
   <data name="Union_SearchPh" xml:space="preserve"><value>search by name or code…</value></data>
   <data name="Union_Found" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>periodic runs</value></data>
+  <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Periodic run stalled</value></data>
+  <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>The last successful run was {0}, more than twice its period. No error was recorded: when that happens without an error, the process usually shut down before the run reached its start delay.</value></data>
 </root>

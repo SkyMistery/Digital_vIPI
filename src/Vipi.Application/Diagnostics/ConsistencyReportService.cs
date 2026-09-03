@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Domain;
 
 namespace Vipi.Application.Diagnostics;
@@ -61,7 +61,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     public ConsistencyReportService(IConsistencyReportRepository repo, ISchemaDriftProbe? schema = null,
         Auth.IAdminCoverageService? admin = null, IServerSettingsProbe? server = null,
         IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null,
-        ISectorfileComparisonReport? sectorfile = null)
+        ISectorfileComparisonReport? sectorfile = null,
+        Content.IImportOverviewService? giri = null)
     {
         _repo = repo;
         _schema = schema;
@@ -70,7 +71,11 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _startup = startup;
         _policy = policy;
         _sectorfile = sectorfile;
+        _giri = giri;
     }
+
+    /// <summary>Lo stato dei giri periodici. Opzionale: senza, il report e' quello di prima.</summary>
+    private readonly Content.IImportOverviewService? _giri;
 
     /// <summary>
     /// Categoria dei guasti delle sonde stesse. ⚠️ Non è un dettaglio interno: se una sonda non ha risposto,
@@ -133,6 +138,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         if (_sectorfile is not null)
             await Raccogli(findings, "coerenza col sectorfile", "Diag_Pezzo_Sectorfile", ConsistencyArea.Sectorfile,
                 () => Task.FromResult(_sectorfile.Findings), ct);
+        if (_giri is not null)
+            await Raccogli(findings, "giri periodici", "Diag_Pezzo_Giri", ConsistencyArea.Avvio,
+                async () => GiriFermi(await _giri.ListAsync(ct)), ct);
 
         return findings;
     }
@@ -176,6 +184,48 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// non da una scelta (è la storia di <c>ImportSids</c>, nato spento su un DB già popolato), e un import
     /// fermo da mesi è indistinguibile da una scelta dell'amministratore.</para>
     /// </summary>
+    /// <summary>
+    /// I giri periodici che <b>non stanno girando</b>: <c>ImportHealth.Ferma</c> vuol dire che l'ultimo
+    /// successo e' piu' vecchio di <b>due</b> cadenze, cioe' che almeno un giro e' stato saltato.
+    ///
+    /// <para>🔴 <b>Perche' esiste.</b> Quel segnale c'era gia', ma si vedeva <b>solo aprendo la pagina
+    /// Sorgenti</b>. La Diagnostica — che e' la pagina che si apre per chiedere «c'e' qualcosa che non
+    /// va?» — degli import non sapeva niente: il 2 settembre 2026 diceva <b>«Avvio 0»</b> mentre meta' dei
+    /// giri periodici non partiva. Uno zero che rassicura sul contrario di quel che succede e' peggio di
+    /// nessun numero.</para>
+    ///
+    /// <para>⚠️ <b>Area <c>Avvio</c>, e la scelta e' deliberata</b> (l'enum non ha un default apposta):
+    /// «l'istanza gira, ma non e' partita intera» descrive letteralmente questo caso, e il destinatario e'
+    /// lo stesso — chi guarda il processo e l'hosting, non chi apre un editor. Su Plesk+Passenger la causa
+    /// tipica non e' un errore ma un <b>processo spento per inattivita'</b> prima che il giro arrivasse al
+    /// suo ritardo d'avvio: nessun errore da nessuna parte, e infatti <c>UltimoErrore</c> e' nullo.</para>
+    ///
+    /// <para>⚠️ Solo <c>Ferma</c>: <c>InErrore</c> ha gia' il suo messaggio con la causa vera, e
+    /// duplicarlo qui direbbe due volte la stessa cosa in due aree diverse.</para>
+    /// </summary>
+    public static IReadOnlyList<ConsistencyFinding> GiriFermi(IReadOnlyList<Content.ImportOverviewRow> righe)
+    {
+        var fermi = righe.Where(r => r.Stato == Content.ImportHealth.Ferma).ToList();
+        if (fermi.Count == 0) return Array.Empty<ConsistencyFinding>();
+
+        var oggi = DateTime.UtcNow;
+        return fermi.Select(r =>
+        {
+            var giorni = r.UltimoSuccessoUtc is DateTime u ? (int)Math.Floor((oggi - u).TotalDays) : -1;
+            var quando = giorni < 0 ? "mai" : giorni == 0 ? "oggi" : $"{giorni} giorni fa";
+            return new ConsistencyFinding("Giro periodico fermo", ConsistencySeverity.Warning,
+                r.StateKey,
+                $"L'ultimo giro riuscito e' {quando}, oltre il doppio della sua cadenza. Non c'e' un errore " +
+                "registrato: quando succede senza errore, di solito il processo si e' spento prima che il " +
+                "giro arrivasse al suo ritardo d'avvio. Si guarda in `diagnostica/avvii.txt` se il processo " +
+                "vive abbastanza.",
+                ConsistencyArea.Avvio, DoveSorgenti,
+                CategoryKey: "Diag_Cat_GiroFermo", DetailKey: "Diag_Msg_GiroFermo",
+                DetailArgs: new object[] { quando },
+                EntityKey: null);
+        }).ToList();
+    }
+
     public static IReadOnlyList<ConsistencyFinding> PolicyDiImport(ImportPolicyInfo info)
     {
         if (!info.RigaPresente)

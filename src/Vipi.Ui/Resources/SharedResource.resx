@@ -3202,4 +3202,7 @@
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>uniti: {0}</value></data>
   <data name="Union_SearchPh" xml:space="preserve"><value>cerca per nome o codice…</value></data>
   <data name="Union_Found" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>giri periodici</value></data>
+  <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Giro periodico fermo</value></data>
+  <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>L'ultimo giro riuscito è {0}, oltre il doppio della sua cadenza. Non c'è un errore registrato: quando succede senza errore, di solito il processo si è spento prima che il giro arrivasse al suo ritardo d'avvio.</value></data>
 </root>
