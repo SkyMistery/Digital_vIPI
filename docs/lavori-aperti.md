@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 4 settembre 2026 — ✅ **§BE: LE SEZIONI SI MUOVONO DAVVERO**, ramo `sezioni-mobili`, otto fette. Richiesta del committente. ⚠️ **Tre richieste su quattro avevano già il tasto** — frecce anche sulle sotto-sezioni, occhio «nascondi» a ogni profondità, «⤒ sopra il corpo» — ma leggendo il codice per dirlo sono usciti i due difetti che le rendevano vere a metà: 🔴 `SectionNode` **ignorava «sopra il corpo» quando il corpo lo rende la pagina** (l'editor la mostrava sopra, il pubblicato la metteva sotto — la trappola del doc 11 §8, terza volta), e la **vIPI ACC non passava mai `IsDraft`** alle sotto-sezioni, quindi una nascosta spariva anche dall'anteprima di bozza. Il lavoro nuovo è **la riparentazione**: `MoveSectionToParentAsync` con cinque guardie nel MOTORE, il menu **«⇵ Sposta in…»** su ogni sezione **libera** di tutti e cinque gli editor, e le **figlie che ora si trascinano** nel menu-sezioni — con il drop fuori gruppo che riparenta. Decisioni del committente: solo le libere, dentro il blocco per l'ACC, menu **e** trascinamento. In più: la freccia ↑↓ **reinserisce e rinumera** invece di scambiare due `Order` (su due fratelli con lo stesso numero non faceva nulla) e lo spareggio `ThenBy(Id)` allinea chi legge e chi sposta. Quattro suite verdi, build Release 0 avvisi, **sei prove guidate a schermo** su copia del DB — compreso un trascinamento **vero** via CDP. ⚠️ Nessuna migrazione. ⚠️ I documenti già pubblicati cambiano solo se **ripubblicati**.
+
 **Aggiornato:** 3 settembre 2026, notte fonda — 🔴 **IL KEEP-ALIVE: VERDETTO DATO, e due ping al minuto NON bastano.** `diagnostica/avvii.txt` scaricato alle 22:06Z, le due ore a confronto: col ping **solo a +0** **53 avvii/ora**, vita mediana **15 s**, processo acceso il **43%** del tempo, buchi fino a **72 s**; col ping **+0 e +30** **60 avvii/ora**, vita mediana **44 s**, acceso il **72%**, buchi al massimo **31 s**. Il secondo ping ha fatto qualcosa — vita quasi tripla, e i giri periodici a 15 s ora partono **sempre** (60/60 contro 32/57) — ma **gli avvii restano sessanta l'ora**: il processo muore lo stesso, solo più tardi. E il numero che conta è l'ultimo: **nessuna vita arriva a 150 s** (0 su 60), quindi il giro periodico più lungo continua a non partire mai. ⚠️ **Il regalo della misura**: il processo parte a `:20`, muore fra `:48` e `:57`, e il ping delle `:50` lo ritrova già morto — **la finestra d'inattività di Passenger è ~30 s**, quindi i ping devono stare **sotto** quella distanza, non sopra. ✅ **Cura pubblicata** (commit `f1a38332`, versione Cloudflare `3b415af0`): `PING_EXTRA_MS = [1e4, 2e4, 3e4, 4e4, 5e4]`, un ping ogni 10 s. Provata in locale a `fetch` e D1 stubbati (sei ping a 0/10/20/30/40/50 s, `scheduled()` ritornata in **18 ms**) e confermata con `wrangler tail`: **wallTime 53-61 s** contro i ~31,6 s di prima. ⚠️ Le tre invocazioni del tail escono con `outcome: exception` ed **è la quota D1**, che lancia dentro `runPoller`: i ping erano già partiti e quelli in `ctx.waitUntil` hanno continuato lo stesso — prova sul campo della scelta «ping prima di D1». ▶ **Le due prove che restano, e nessuna si vede da qui**: (1) `avvii.txt` riscaricato via FTP fra qualche ora — se le righe di AVVIO smettono di comparire il processo non muore più; se ne resta una al minuto l'inattività è sotto i 10 s e la strada dei ping è finita (resta il pannello Plesk, e serve Ivao.It); (2) `wrangler d1 info atc-archiver-db` dopo la mezzanotte UTC — stasera `rows_read_24h` era **5 546 878** con la quota esaurita, ma quella finestra comprende ancora le ore **prima** dell'indice parziale: il verdetto è il valore di domani, atteso sulle decine di migliaia. ℹ️ Nella stessa diagnostica: avvio sceso a **5 678 ms** (era 8 433), e `avvio-errore.txt` + `errori-richieste.txt` **cancellati sul server** come previsto.
 
 **Aggiornato:** 3 settembre 2026, notte fonda — ✅ **TRE LAVORI DEL COMMITTENTE, TUTTI IN `main` E NESSUN RAMO APERTO** (`f1a38332`). 🔴 **Non sono in produzione**: servono un pacchetto (§BB tocca due fogli di stile) e, per §BC e §BD, il primo avvio in produzione — che fa girare le riconciliazioni. **§BB — la testata si compatta**: sopra il documento stavano titolo, un blocco di tre bottoni e un riquadro pieno per dire la lingua; ora sono **due righe** (sottotitolo + chip pilota/ATC, avviso di simulazione + gettoni), su tutte e cinque le famiglie. Il vSOP militare, unico senza sottotitolo, ne ha uno gemello del civile. ⚠️ Terza volta che si paga `.doc-head` **nascosto in stampa**: `PrintMeta` ha una riga in più. 🔴 E guidando la pagina è saltato fuori che **l'anteprima di BOZZA di una vIPI ACC bloccata non era bloccata**. **§BC — i parcheggi ai Dati generali**: spostare una sezione in un **altro gruppo** non è un cambio di catalogo ma una **migrazione** (il catalogo decide solo alla nascita, e il riordino sposta solo fra fratelli) → `ReparentMilParkingsAsync`, e nello stesso giro `AddMissingCatalogSections` impara a guardare **i vSOP militari** e a scendere nelle **sotto-sezioni**. **§BD — le carte dello scalo**: «Carte aeroportuali» con Aerodromo, Carte di avvicinamento strumentale, SID, STAR, VFR, prima di «Validità e revisione», su vIPI d'aeroporto **e** vSOP militare. È anche il collaudo del modulo di §BC: su copia fresca del DB, **84 sezioni aggiunte** = 14 documenti × 6, e nient'altro. Suite verde su nove progetti, build Release 0 avvisi, tutto guidato a schermo.
@@ -7715,7 +7717,7 @@ pilota/ATC e le frecce di riordino. Zero errori di console.
 
 ## BE. Sezioni e sotto-sezioni che si muovono davvero — 4 settembre 2026
 
-🟡 **IN CORSO**, ramo `sezioni-mobili`. Carta: `docs/feature/2026-09-04-sezioni-mobili.md`.
+✅ **FATTA**, ramo `sezioni-mobili` (8 fette, 8 commit). Carta: `docs/feature/2026-09-04-sezioni-mobili.md`.
 Richiesta del committente: *«le sezioni e le sottosezioni devono potersi muovere dentro la sezione di
 appartenenza o nel documento senza problemi; le singole sottosezioni devono potersi nascondere; le
 sottosezioni custom devono poter stare anche sopra il contenuto principale (tipo sopra la mappa in AOR); e
@@ -7755,4 +7757,36 @@ codice per dirlo sono usciti due difetti, e sono quelli che facevano sembrare ro
 | S4 | `SectionMoveTargets` + menu «Sposta in…» | ✅ |
 | S5 | Figlie trascinabili nel menu-sezioni | ✅ |
 | S6 | Spareggio stabile nell'ordinamento | ✅ |
-| S7 | Propagazione e verifica live sulle cinque famiglie | 🟡 |
+| S7 | Propagazione e verifica live sulle cinque famiglie | ✅ |
+
+### Che cosa c'è adesso
+
+- **«⇵ Sposta in…»** nell'intestazione di ogni sezione **libera**, a ogni profondità, su tutti e cinque gli
+  editor: l'elenco delle destinazioni lo calcola una funzione pura (`SectionMoveTargets`) che esclude sé
+  stessa, il proprio sottoalbero, il padre attuale e ogni posto senza profondità residua.
+- **Le figlie si trascinano** nel menu-sezioni, e lasciarne una su un altro gruppo la **riparenta**. Le regole
+  del gesto stanno in `TocDropRules`, funzione pura: si provano senza fabbricare eventi di trascinamento —
+  che è ciò che nell'agosto 2026 tenne verdi otto test su un gesto rotto.
+- **Il motore** è `MoveSectionToParentAsync`, con cinque guardie (bozza, sezione libera, stessa versione,
+  niente cicli, profondità del **sottoalbero**), `Depth` riscritta su tutto il sottoalbero e **due** gruppi
+  rinumerati. ⚠️ Le guardie stanno lì e non nella UI: l'elenco che disegna il menu può essere vecchio.
+- **La freccia ↑↓ non scambia più i due `Order`: reinserisce e rinumera.** Su due fratelli con lo stesso
+  numero — e nessun indice unico lo vieta — lo scambio non cambiava niente: era un tasto che non faceva nulla.
+
+### Le tre decisioni, e perché
+
+1. **Solo le sezioni libere cambiano gruppo**: una di catalogo ha un posto standard, ed è quello che conta la
+   pill dello scostamento.
+2. **Nella vIPI ACC si resta dentro il blocco**: il blocco *è* il gruppo. «Primo livello», nel menu, è il
+   **blocco** e non la radice del documento — là una sezione diventerebbe un blocco.
+3. **Due gesti**: il menu (preciso, da tastiera e da tocco) e il trascinamento (veloce).
+
+### Verifica live (copia del DB, Edge headful)
+
+Le sei prove sono nella carta. Le due che valgono di più: una figlia **trascinata** su un gruppo diverso
+finisce sotto il nuovo padre e **prima** del bersaglio; e la stessa sezione, marcata «sopra il corpo» dentro
+«ATC/CRC frequencies», esce **sopra** la tabella nel documento — e rimessa «dopo» torna sotto. Nuovo script
+durevole: `.claude/skills/verifica-live/sposta-verifica.js`.
+
+⚠️ **Niente migrazione**: nessuna colonna nuova, quindi è spedibile dentro la finestra cieca. ⚠️ E i documenti
+**già pubblicati** non cambiano forma finché non si **ripubblicano**: le release non si toccano mai.

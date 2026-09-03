@@ -188,4 +188,27 @@ appartiene, invece di ricopiarlo.
     col vecchio motore **il primo diventa rosso**, il secondo resta verde — perché a parità di numero SQLite
     restituiva comunque lo stesso ordine, e da solo non avrebbe provato niente.
   Quattro suite verdi (Infrastructure 1245, Application 2145, UI 1241, Domain 130), build Release verde.
+- **S7** ✅ Propagazione e verifica.
+  · **Snapshot di release**: la gerarchia viaggia già (`RawSection.Children`), quindi una sezione riparentata
+    esce al posto nuovo alla **prossima pubblicazione**. Le release già pubblicate non cambiano, ed è giusto.
+  · **Diff «Cosa è cambiato»**: la firma è il **percorso dei titoli** (`Padre / Figlia`), quindi una sezione
+    spostata compare come *tolta* dal vecchio percorso e *aggiunta* al nuovo. È la lettura onesta di quel che
+    è successo, e non serve toccare niente.
+  · **Traduzione**: `DocumentTranslator` scende già nelle figlie; niente da fare.
+  · **Pill dello scostamento**: si conta solo fra le sezioni **fisse**, che non si riparentano — resta muta,
+    come deve.
+  · Nuovo script durevole nella skill `verifica-live`: **`sposta-verifica.js`**.
+
+### Verifica live (copia del `vipi.db`, Edge headful, 4 settembre 2026)
+
+| Prova | Esito |
+|---|---|
+| `drag-verifica.js` — il riordino di prima, sulle tre famiglie | tutt'e tre **cambiato + PERSISTE**; fra blocchi diversi **invariato**, come prima |
+| **A.** menu «Sposta in…» sul vSOP militare di LIBG: una sezione libera di primo livello dentro «General data» | diventa `lvl3` nell'indice e **persiste al ricarico** |
+| **B.** la stessa figlia **trascinata** (drag vero, `Input.setInterceptDrags`) su «Engine start», che sta in un altro gruppo | riparentata sotto «Ground procedures» e messa **prima** del bersaglio — la regola a schermo |
+| **C.** spostata dentro «ATC/CRC frequencies» (resa dalla PAGINA) e marcata «⤒ sopra il corpo» | nel documento in bozza esce **sopra** la tabella delle frequenze |
+| **D.** rimessa «⤓ dopo il corpo» | torna **sotto** la tabella: l'ordine lo decide il comando, non il caso |
+| **E.** vIPI ACC: sotto-sezione nascosta | in **bozza** si vede con la pill «hidden (not public)», in **pubblica** non c'è |
+
+Zero errori di console in tutte le prove.
 

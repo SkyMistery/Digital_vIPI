@@ -98,13 +98,14 @@ node driver.js
 `driver.js` accanto a questo file è il punto di partenza: adattarne la sezione dei passi.
 Edge sta in `C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`.
 
-Accanto a `driver.js` ci sono altri **quattro** script, che non si adattano: si lanciano così com'è.
+Accanto a `driver.js` ci sono altri script, che non si adattano: si lanciano così com'è.
 
 | script | cosa prende | quando |
 |---|---|---|
 | `sweep.js` | fondi che **non si sono girati** nel tema scuro (12 pagine) | dopo ogni modifica a un foglio di stile |
 | `probe.js` | testo sotto **4.5:1** su una pagina, in un tema | quando si cambia un colore di testo |
 | `drag-verifica.js` | il riordino delle sezioni trascinando, con un drag **vero** (§4-bis) | quando si tocca `EditorToc` o `wireTocDrop` |
+| `sposta-verifica.js` | le sezioni che **cambiano gruppo**: il menu «Sposta in…», una figlia trascinata su un altro gruppo (drag vero) e «sopra il corpo» sotto una sezione resa dalla pagina | quando si tocca `SectionMoveTargets`, `TocDropRules`, `MoveSectionToParentAsync` o `SectionNode` |
 | `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
 | `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
 
