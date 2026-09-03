@@ -108,6 +108,14 @@ public interface IDocumentUnionService
     /// scritte a mano hanno insegnato come vanno a finire.</para>
     /// </summary>
     Task<int?> DocumentIdAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+
+    /// <summary>
+    /// Tutte le appartenenze, in una lettura sola: serve a chi mostra un ELENCO di documenti e deve dire
+    /// quali sono uniti.
+    /// <para>⚠️ Una lettura sola e non una per riga: l'elenco unificato ha già pagato due volte il difetto
+    /// N+1, e qui le righe sono poche — la divisione ha una manciata di unioni, non una per documento.</para>
+    /// </summary>
+    Task<IReadOnlyList<UnionRow>> TutteAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IDocumentUnionService"/>
@@ -164,6 +172,8 @@ public sealed class DocumentUnionService : IDocumentUnionService
         var id = await DocumentIdAsync(type, key, ct).ConfigureAwait(false);
         return id is null ? null : await ForDocumentAsync(id.Value, ct).ConfigureAwait(false);
     }
+
+    public Task<IReadOnlyList<UnionRow>> TutteAsync(CancellationToken ct = default) => _repo.ListAsync(ct);
 
     public async Task<int?> DocumentIdAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
     {

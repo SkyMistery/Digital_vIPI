@@ -8,6 +8,7 @@
 @inject IReleaseService Releases
 @inject IProssimoAiracService ProssimoAirac
 @inject IDocumentAdminService DocAdmin
+@inject IDocumentUnionService Unioni
 @inject IDocumentImpactService Impacts
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
@@ -251,6 +252,14 @@
                                 @if (d.IsHidden) { <span class="pill grey">@L["Ver_Hidden"]</span> }
                                 else if (d.HasDraft) { <span class="pill grey">@L["Ver_DraftOpen"]</span> }
                                 else { <span class="pill green">@L["Ver_Public"]</span> }
+                                @* ⚠️ Un documento UNITO si pubblica insieme agli altri, e da qui si pubblica: chi
+                                   preme deve saperlo PRIMA. Senza questa riga l'elenco unificato — che è il posto
+                                   da cui si governa — sarebbe l'unico a non sapere dell'unione, ed è esattamente la
+                                   forma del difetto di §V: agganciato al motore di lettura e non a quello di governo. *@
+                                @if (Unito(d) is { } quanti)
+                                {
+                                    <span class="pill blue" title="@L["Ver_UnitedTitle"]">🔗 @L["Ver_UnitedBadge", quanti]</span>
+                                }
                                 @if (d.EffectiveCycle is { } eff)
                                 {
                                     <span class="pill green" title="@L["Ver_EffectiveNowTitle"]">🟢 AIRAC @eff</span>
@@ -532,11 +541,24 @@
         finally { _busy = false; }
     }
 
+    /// <summary>Per ogni documento unito, QUANTI documenti conta la sua unione. Vuoto = nessuna unione.</summary>
+    private Dictionary<int, int> _unioni = new();
+
+    /// <summary>Quanti documenti si pubblicano insieme a questo, lui compreso. null = non è unito.</summary>
+    private int? Unito(ManagedDoc d) =>
+        d.DocumentId is int id && _unioni.TryGetValue(id, out var n) ? n : null;
+
     private async Task LoadAsync()
     {
         try
         {
             _docs = await DocAdmin.ListAsync();
+            // Le appartenenze in UNA lettura: sono poche righe, e senza di esse ogni riga dell'elenco
+            // farebbe la sua domanda (il difetto N+1 che questo elenco ha gia' pagato due volte).
+            _unioni = (await Unioni.TutteAsync())
+                .GroupBy(r => r.UnionId)
+                .SelectMany(g => g.Select(r => (r.DocumentId, Quanti: g.Count())))
+                .ToDictionary(x => x.DocumentId, x => x.Quanti);
             // Pre-filtro per ACC dal route /services/vsop/{acc}/versioni.
             if (!string.IsNullOrWhiteSpace(Acc))
             {

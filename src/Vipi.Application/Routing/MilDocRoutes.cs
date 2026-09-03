@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Routing;
 
@@ -10,6 +10,14 @@ namespace Vipi.Application.Routing;
 /// ⚠️ <b>Non è la stessa pagina con un parametro.</b> Le due edizioni hanno release, cicli AIRAC e
 /// contenuti indipendenti: condividere l'indirizzo vorrebbe dire che un collegamento salvato da qualcuno
 /// porta a un documento diverso a seconda di come è stato costruito.
+/// </para>
+/// <para>
+/// ⚠️ <b>E resta vero anche con i documenti UNITI</b> (carta
+/// <c>docs/feature/2026-09-03-documenti-uniti.md</c>), che pure mettono due edizioni a un indirizzo solo.
+/// L'unione non è un <i>parametro</i>: è un atto editoriale <b>esplicito e reversibile</b>, registrato in
+/// archivio. I cicli AIRAC dei membri smettono di essere indipendenti <b>perché qualcuno ha deciso che lo
+/// smettano</b> — è il senso della pubblicazione accoppiata. E un collegamento salvato continua a portare
+/// allo stesso contenuto: la pagina del membro <b>reindirizza</b> a quella unita, ancorata al suo gruppo.
 /// </para>
 /// </summary>
 public sealed class AirportMilDocRoutes : IDocKindRoutes

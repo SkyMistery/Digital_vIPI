@@ -1,7 +1,7 @@
 ﻿# Documenti uniti — una pagina, un editor, una pubblicazione — carta (3 settembre 2026)
 
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Ramo `documenti-uniti`, da `main` (`cd1bc5c7`).
-> Stato: 🟡 **in esecuzione** — §1-§6 e §9 chiuse. Resta il §7 (governo).
+> Stato: ✅ **eseguita** — §1-§9 chiuse, verificate dal vivo.
 >
 > ⚠️ **L'ordine e' cambiato in corsa, e vale la pena dirlo**: il piano metteva l'editor unico prima
 > della pubblicazione accoppiata. Il **comando** dell'unione viene prima di tutti e due, perche' senza
@@ -247,13 +247,25 @@ sarebbe un altro documento pubblicato.
 
 **Reti**: `PubblicazioneAccoppiataTests` (9, su LIMN Cameri: due edizioni, stessa chiave, tipi diversi).
 
-## §7 — Il governo ⏳
+## §7 — Il governo ✅
 
-La lezione di §V dei vSOP militari — *agganciato al motore di lettura e non a quello di governo* — vale
-identica: elenco versioni, eliminazione (che **scioglie** l'unione), ricerca, «Novità», impatti.
-⚠️ La verifica si fa col `grep`: contare i lettori di `DocumentUnionMember` contro quelli del legame che imita.
+Dalla supervisione dei vSOP militari: *il documento era agganciato al motore di **lettura** e non a quello
+di **governo***. Qui la stessa domanda ha avuto **tre** risposte, e due sono «niente da fare» con una ragione:
 
-## §8 — La seconda richiesta: vIPI + vSOP sui campi con presenza militare ⏳
+1. **L'elenco unificato** (`/services/vsop/versions`) mostra una pastiglia 🔗 «uniti: N» sulle righe dei
+   documenti in un'unione. ⚠️ Da li' si **pubblica**, e chi preme deve sapere PRIMA quanti documenti sta per
+   mandare fuori. Le appartenenze si leggono in **una** query (`IDocumentUnionService.TutteAsync`), non una
+   per riga: quell'elenco ha già pagato due volte il difetto N+1.
+2. **L'eliminazione** scioglie l'unione **subito**, non al prossimo avvio: la cascata della FK toglie già la
+   riga di appartenenza, ma l'unione rimasta con un membro solo è una pagina che unisce sé stessa e un
+   redirect che non ha dove mandare. Rete: `Eliminare_un_membro_SCIOGLIE_l_unione_subito`.
+3. **Ricerca, «Novità» e impatti non si toccano**, ed è una decisione, non una dimenticanza: quei tre
+   producono l'URL del documento con `DocRoutes`, e la **vista pubblica di un membro reindirizza già** alla
+   pagina unita (§4). Renderli «consapevoli dell'unione» vorrebbe dire tre punti di chiamata in più da tenere
+   d'accordo, per ottenere quello che un rimando fa da solo. ⚠️ **Un redirect al posto di N chiamanti**: se
+   un giorno il rimando cambia, cambia in un posto.
+
+## §8 — La seconda richiesta: vIPI + vSOP sui campi con presenza militare ✅
 
 È lo **stesso meccanismo**, senza codice in più: su un campo misto si uniscono la vIPI civile e il vSOP, e la
 pagina unita legge come un documento completo — cioè come oggi legge il vSOP di un campo *solo* militare, che

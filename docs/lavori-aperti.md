@@ -7228,3 +7228,68 @@ fatti sul risultato della fusione — non sul ramo.
 - 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AS — sei in tutto.
 - ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`**, cioè gli stessi due fogli di §AO: impronte nuove, e
   `wwwroot` viaggia insieme all'indice `staticwebassets`.
+
+## AZ. Documenti uniti: una pagina, un editor, una pubblicazione — 3 settembre 2026
+
+Chiesto dal committente: unire il documento di un APP non remotizzato con quello dell'aeroporto (o col vSOP
+militare), **indipendentemente dal tipo di documento**; e poter scegliere di unire vIPI e vSOP anche sui campi
+con *presenza militare*. Precisato dopo: unire vuol dire **una pagina sola**, con l'**ordine** deciso dal
+redattore, **un editor solo**, e la pubblicazione — fatta o **pianificata** — con **un clic**.
+
+Carta `docs/feature/2026-09-03-documenti-uniti.md`, schema `docs/spec/modello-dati.md` §9.33.
+Ramo **`documenti-uniti`**, da `main` (`cd1bc5c7`), spinto. §1-§9 chiuse.
+
+### ⚠️ Il fatto misurato che ha deciso il modello
+
+**LIBV Gioia del Colle ha DUE APP non remotizzati** — `LIBV_APP` e `LIBV_G_APP` — e così LIBN, LIPE, LIRM,
+LIRS. **L'unione è un elenco ORDINATO, non una coppia**: due colonne su `Document` non reggevano un caso che
+era già in archivio. Cinque minuti di query prima di disegnare, e il modello è cambiato.
+
+### Che cosa c'è
+
+`DocumentUnion` + `DocumentUnionMember` (indice **unico** su `DocumentId`), e **nessun tipo nuovo**: l'unione
+è una *relazione*, ed è ciò che la rende indipendente dalla famiglia senza toccare i sei descrittori di
+release, le sei rotte e i cinque provider di congelamento. Il legame è verso `Document.Id` e **non** verso
+`TargetKey`, che è un puntatore e viene riscritto dalla rinomina di un callsign.
+
+Lettura: un indice per membro impilato, i corpi in ordine sotto l'intestazione del loro documento, un solo
+`PrintMeta`. La vista pubblica di un membro non-ospite **reindirizza** alla pagina unita.
+Editor: il corpo delle tre famiglie è uscito dalle pagine in `Components/Doc/*SectionsEditor.razor`, e
+l'ospite li monta con `Chrome="false"` dentro la sua griglia — il pattern della vIPI ACC.
+Pubblicazione: `PublishUnionAsync`/`PublishUnionNowAsync` in **una transazione**, catture **in sequenza**, un
+solo `now`; annullamento accoppiato.
+
+### ⚠️ Le cose che non si deducono dal codice
+
+- **L'ospite si riconosce da famiglia E chiave insieme**: un aeroporto e il suo vSOP militare hanno la
+  **stessa** chiave di release (l'ICAO). Sulla sola chiave, la pagina civile disegnerebbe l'unione del militare.
+- **`AppMil` è fuori dalle famiglie ammesse perché non ha un `IFrozenSectionProvider`**: un membro senza
+  provider si pubblicherebbe senza congelare niente **e senza protestare**.
+- **Il lock si prende su tutti in un gesto, o su nessuno**, e il rifiuto dice **chi** lo tiene.
+- **Ricerca, «Novità» e impatti non sono stati toccati**, ed è una decisione: il redirect li copre tutti. Un
+  rimando al posto di N chiamanti da tenere d'accordo.
+- ⚠️ **Il commento di `MilDocRoutes` — «non è la stessa pagina con un parametro» — resta vero**, ed è stato
+  aggiornato: l'unione non è un parametro, è un atto editoriale esplicito e reversibile.
+
+### ⚠️ Quel che ha trovato la verifica dal vivo, e i test non vedevano
+
+1. **La domanda prima di annullare mentiva**: diceva «il pubblico torna alla precedente» al singolare mentre
+   ne toglieva due.
+2. **Il pannello di release non rileggeva l'unione nata nella stessa pagina**: memoizza su `(bersaglio,
+   chiave)`, e quelle non cambiano quando si unisce. ⚠️ *Quando un componente memoizza su una chiave,
+   chiedersi che cosa può cambiare SENZA cambiare quella chiave.*
+3. **L'indice unito restava con le sole voci dell'ospite**, per TRE cause in fila: le voci si *tiravano* con
+   un `@ref` (assegnato dopo il render, mentre i membri si registrano durante); si spingevano *una volta
+   sola*, quando il documento del membro non è ancora caricato; e la `.Concat` che le univa **non era mai
+   stata applicata**. ⚠️ *Un `[Parameter]` dichiarato e mai letto non dà nessun segnale.*
+4. ⚠️ `string.Format(L[chiave].Value, n)` **non interpola**: l'unico indexer che formatta è `L[chiave, n]`.
+   In produzione l'argomento sarebbe sparito in silenzio.
+
+### Quel che resta
+
+- 🔴 **Non è in produzione**: il ramo non è fuso. Va in un pacchetto suo, e ⚠️ porta **due migrazioni** (una
+  per serie) — vedi la finestra cieca al 16 settembre prima di consegnarne una che tocca lo schema.
+- 🟡 **Provato su LIBA** (aeroporto + APP). Il caso **misto** — vIPI civile + vSOP militare su LIMN o LIMS,
+  che è la seconda richiesta — è coperto dai test ma non ancora guidato a schermo.
+- 🟡 **La vIPI ACC e la vLOA restano fuori** dalle famiglie unibili, dichiarato: la prima è a blocchi e non
+  passa da `DocumentSectionsView`, la seconda disegna da sé le direzioni dei coordinamenti.

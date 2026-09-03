@@ -196,6 +196,25 @@ public class DocumentUnionServiceTests
     }
 
     [Fact]
+    public async Task TUTTE_le_appartenenze_in_una_lettura_sola()
+    {
+        // È quel che serve a chi mostra un ELENCO di documenti e deve dire quali sono uniti. ⚠️ Una lettura
+        // sola e non una per riga: l'elenco unificato ha già pagato due volte il difetto N+1.
+        var s = Servizio(out _, VsopMil(24, "LIBV"), App(3, "LIBV_APP"), App(5, "LIBV_G_APP"),
+                         Aeroporto(26, "LIBA"));
+        await s.UniscoAsync(24, 3);
+        await s.UniscoAsync(24, 5);
+
+        var righe = await s.TutteAsync();
+
+        Assert.Equal(3, righe.Count);
+        Assert.Single(righe.Select(r => r.UnionId).Distinct());
+        Assert.Equal(new[] { 24, 3, 5 }, righe.OrderBy(r => r.Order).Select(r => r.DocumentId));
+        // Il documento non unito non compare: «nessuna riga» è la risposta, non una riga vuota.
+        Assert.DoesNotContain(righe, r => r.DocumentId == 26);
+    }
+
+    [Fact]
     public void La_testa_di_una_chiave_e_lo_scalo()
     {
         Assert.Equal("LIBV", DocumentUnionService.Testa("LIBV"));

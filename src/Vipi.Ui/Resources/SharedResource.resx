@@ -3194,4 +3194,6 @@
   <data name="Rel_UnionLocked" xml:space="preserve"><value>in modifica da {0}</value></data>
   <data name="Rel_CancelPromptUnion" xml:space="preserve"><value>Questo documento e' unito ad altri: si annullano tutte e {0} le release di quel ciclo.</value></data>
   <data name="Union_LockedBy" xml:space="preserve"><value>Non si puo' modificare: uno dei documenti uniti e' in modifica da {0}. Con l'unione il lock si prende su tutti o su nessuno.</value></data>
+  <data name="Ver_UnitedTitle" xml:space="preserve"><value>Questo documento e' unito ad altri: si pubblicano insieme, allo stesso ciclo.</value></data>
+  <data name="Ver_UnitedBadge" xml:space="preserve"><value>uniti: {0}</value></data>
 </root>

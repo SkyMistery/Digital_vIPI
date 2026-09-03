@@ -236,6 +236,24 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
         Assert.Contains("Cameri", bloccato.Titolo);
     }
 
+    [Fact]
+    public async Task Eliminare_un_membro_SCIOGLIE_l_unione_subito()
+    {
+        // §7, il governo: la cascata della FK toglie gia' la riga di appartenenza insieme al documento. Quel
+        // che resta da chiudere e' l'UNIONE che quella riga teneva in piedi — e va chiuso ADESSO, non al
+        // prossimo avvio: un'unione con un membro solo e' una pagina che unisce se' stessa, e un redirect
+        // che non ha dove mandare. Chi apre l'altro membro finirebbe su un indirizzo che non esiste piu'.
+        await Unioni().CreateAsync(_militareId, _civileId, 0);
+        var registry = TestReleaseTargets.Registry(_db);
+        var media = new EfMediaMaintenance(_db);
+        var editing = new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), media);
+        var admin = new DocumentAdminService(TestReleaseTargets.AdminRepo(_db), new AllowAuthz(), editing, Unioni());
+
+        await admin.DeleteAsync(new ManagedDocRef(ReleaseTargetType.Airport, "LIMN", _civileId));
+
+        Assert.Empty(await Unioni().ListAsync());
+    }
+
     private async Task BozzaAsync(int documentId)
     {
         var doc = await _db.Documents.Include(d => d.Versions).FirstAsync(d => d.Id == documentId);
