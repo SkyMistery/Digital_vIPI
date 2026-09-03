@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -33,7 +33,10 @@ public class ScopeDellEditingTests
     public static TheoryData<string> ChiScrive => new()
     {
         "Pages/MilEditorPage.razor",
-        "Pages/AppEditorPage.razor",
+        // ⚠️ L'APP e' passato dalla PAGINA al COMPONENTE (carta 2026-09-03 §5b): l'invariante segue chi
+        // scrive davvero. La pagina ora e' un guscio sottile che non tocca IEditingService — se un giorno
+        // tornasse a toccarlo, va rimessa in questo elenco.
+        "Components/Doc/AppSectionsEditor.razor",
         "Pages/AccEditorPage.razor",
         "Pages/AeroportoEditorPage.razor",
         "Pages/NewDocumentPage.razor",

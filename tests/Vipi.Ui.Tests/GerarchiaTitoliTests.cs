@@ -29,7 +29,35 @@ public class GerarchiaTitoliTests
     {
         // Reindirizza al viewer tipizzato: mostra una riga d'attesa e se ne va. Non è una pagina che si legge.
         ["ReleasePreviewPage.razor"] = "è un redirect, non una pagina",
+
+        // ⚠️ La testata c'è eccome, ma la disegna il COMPONENTE che questa pagina monta: il corpo
+        // editoriale è uscito dalla pagina perché lo stesso editor va montato anche nell'editor UNITO
+        // (carta 2026-09-03-documenti-uniti.md §5b), e con lui la sua testata. Il titolo per chi naviga per
+        // intestazioni non è sparito — ha cambiato file.
+        ["AppEditorPage.razor"] = "la testata la porta <AppSectionsEditor>, che questa pagina monta",
     };
+
+    /// <summary>
+    /// I componenti-corpo degli editor: hanno la testata che le loro pagine hanno ceduto, e va tenuta ferma
+    /// lì con lo stesso rigore.
+    /// </summary>
+    public static TheoryData<string> CorpiDiEditor() => new() { "Doc/AppSectionsEditor.razor" };
+
+    [Theory]
+    [MemberData(nameof(CorpiDiEditor))]
+    public void Il_corpo_di_un_editor_porta_la_testata_che_la_pagina_ha_ceduto(string relativo)
+    {
+        var testo = File.ReadAllText(Path.Combine(CartellaComponenti(), relativo));
+
+        // La testata di pagina e' `<h1 class="page-h1">`, e la classe tiene la misura: qui basta che
+        // la classe ci sia, perche' il rovescio — che non torni a essere un <h2> — lo presidia gia'
+        // Nessuna_testata_di_pagina_e_rimasta_un_h2 sulle pagine.
+        Assert.Contains("page-h1", testo);
+        Assert.Contains("<h1", testo);
+    }
+
+    private static string CartellaComponenti() =>
+        Path.Combine(Path.GetDirectoryName(CartellaPagine())!, "Components");
 
     public static TheoryData<string> Pagine()
     {
