@@ -34,9 +34,24 @@ regola si applica davvero.
 sono fotografie e non si toccano, ma una riga che afferma un fatto **al presente** è quella su cui qualcuno
 prende una decisione fra sei mesi.
 
-🔒 **Dentro la finestra cieca** (nessuno amministra il database di Ivao.It) un MAJOR **non si spedisce**, e
-una migrazione nuova nemmeno: in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL non
-transazionale, senza nessuno che possa ripristinare. Presidio: `MigrazioniDellaFinestraCiecaTests`.
+🔒 **Dentro la finestra cieca** (nessuno amministra il database di Ivao.It) un MAJOR **non si spedisce**:
+in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL non transazionale, senza nessuno che
+possa ripristinare. Presidio: `MigrazioniDellaFinestraCiecaTests`.
+
+🔴 **Una migrazione ADDITIVA invece si spedisce, e queste due righe dicevano il contrario.** Fino al
+3 settembre 2026 qui c'era scritto «e una migrazione nuova nemmeno», nominando quel test come presidio. Il
+test però non dice quello: vieta le sole operazioni **distruttive** (`DropTable`, `DropColumn`,
+`RenameColumn`, `RenameTable`, `AlterColumn`, `Sql`), e la sua stessa documentazione spiega che il punto
+«non è impedirla, è che non possa succedere per distrazione».
+
+⚠️ **E la pratica lo conferma**: `20260831014248_CatenaDiRipiego` e `20260831153616_LinguaBloccata` sono
+già in produzione da **1.3.0** (31 agosto), cioè dentro la finestra — verificato guardando dentro il
+`Vipi.Infrastructure.MySqlMigrations.dll` di quel pacchetto. Una regola che il progetto non ha mai seguito,
+scritta in un runbook che si apre quando si è di fretta, è peggio di nessuna regola: si scavalca, e con lei
+si scavalca l'abitudine di leggerlo.
+
+**La domanda vera, prima di spedire uno schema in finestra**, resta una sola e la risponde il test:
+*quella migrazione può lasciare il database in uno stato da cui l'applicazione non riparte?* Additiva = no.
 
 ## Il ramo: si parte da quel che GIRA, non da `main`
 

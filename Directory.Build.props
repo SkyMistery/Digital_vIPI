@@ -200,7 +200,7 @@
       frasi inglesi. **Niente `wwwroot`**, quindi niente indice degli asset e niente della trappola del
       24 agosto.
     -->
-    <VipiVersione>1.5.0</VipiVersione>
+    <VipiVersione>1.6.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
