@@ -1049,12 +1049,19 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .union-cmds{display:inline-flex;gap:4px;margin-left:auto}
 .union-cmds .btn{padding:2px 8px;line-height:1.4}
 .union-add{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-.union-add select{min-width:min(420px,100%)}
+/* ⚠️ I due campi erano `class="inp"`, una classe che NON ESISTE in nessun foglio: nudi, coi colori del
+   browser in mezzo a un editor vestito. E' lo STESSO difetto gia' pagato con `class="in"` sui moduli di
+   glossario e traduzioni (vedi il commento poco sopra, riga 521): una classe inventata non da errore, non
+   rompe niente, e si vede solo guardando.
+   ⚠️ E vale anche il SECONDO passo scritto la': `.app-in` porta `width:100%`, che dentro una riga flex
+   manda ogni campo su una riga sua. Vestirli senza questo blocco li avrebbe messi in colonna. */
+.union-add .app-in{width:auto}
+.union-add .union-cerca{flex:1 1 240px;min-width:150px}
+.union-add .union-scelta{flex:2 1 320px;min-width:200px;max-width:100%}
 /* Il filtro sopra la tendina: con quaranta documenti in divisione scorrere l'elenco non e' cercare.
    ⚠️ La tendina si APRE (attributo size) solo mentre si filtra: da chiusa non si vedrebbe che il
    filtro ha ristretto, e chi ha scritto tre lettere resterebbe a guardare lo stesso «—» di prima. */
-.union-add .union-cerca{min-width:min(260px,100%);flex:0 1 260px}
-.union-add select[size]{padding:4px}
+.union-add .union-scelta[size]{padding:4px}
 .union-conta{margin:4px 0 0}
 /* ---- Documenti UNITI (carta 2026-09-03): piu' documenti in una pagina sola ----------------------
    Ogni membro non-ospite porta la propria intestazione. Non e' decorazione: le sezioni con la STESSA

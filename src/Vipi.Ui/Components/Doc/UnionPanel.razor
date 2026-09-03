@@ -97,11 +97,11 @@
            filtro restringe e basta: l'identità resta l'id del documento, che è sempre uno solo. *@
         <div class="union-add">
             <label for="union-add-@Key">@Sito["Union_AddLabel"]</label>
-            <input id="union-cerca-@Key" class="inp union-cerca" type="search" autocomplete="off"
+            <input id="union-cerca-@Key" class="app-in union-cerca" type="search" autocomplete="off"
                    placeholder="@Sito["Union_SearchPh"]" aria-label="@Sito["Union_SearchPh"]"
                    value="@_cerca" @oninput="SuRicerca" disabled="@_busy" />
-            <select id="union-add-@Key" class="inp" @bind="_scelto" disabled="@_busy"
-                    size="@(Filtrati.Count > 1 && _cerca.Length > 0 ? Math.Min(Filtrati.Count + 1, 8) : 1)">
+            <select id="union-add-@Key" class="app-in union-scelta" @bind="_scelto" disabled="@_busy"
+                    size="@Apertura">
                 <option value="0">—</option>
                 @foreach (var c in Filtrati)
                 {
@@ -160,6 +160,16 @@
     }
 
     private IReadOnlyList<UnionCandidate> Filtrati => Filtra(_candidati, _cerca);
+
+    /// <summary>
+    /// Quante righe mostrare aperte mentre si filtra; <c>null</c> = tendina normale, chiusa.
+    /// <para>⚠️ <b>null e non 1</b>: con <c>size="1"</c> l'attributo c'è comunque, e una regola
+    /// <c>.union-scelta[size]</c> gli si applicherebbe <b>sempre</b> — misurato, la tendina veniva 4px più
+    /// bassa del campo accanto e con un altro padding. Un attributo omesso non fa scattare il selettore;
+    /// un attributo col valore neutro sì.</para>
+    /// </summary>
+    private int? Apertura =>
+        _cerca.Length > 0 && Filtrati.Count > 1 ? Math.Min(Filtrati.Count + 1, 8) : null;
 
     /// <summary>
     /// ⚠️ Filtrando si AZZERA la scelta se è uscita dall'elenco: una scelta che non si vede piu' resterebbe
