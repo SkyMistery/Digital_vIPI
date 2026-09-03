@@ -1,0 +1,37 @@
+@* Gli indici degli ALTRI membri di un'unione, impilati sotto quello dell'ospite.
+
+   ⚠️ Un indice per membro, e non un indice solo con dentro tutto: `DocumentToc` ha già `HeaderLabel`, e un
+   elenco di ventisei voci militari seguito da dieci voci d'avvicinamento senza una riga che dica dove
+   finisce l'uno e comincia l'altro è un indice che non aiuta a cercare — che è l'unico mestiere di un indice.
+
+   ⚠️ L'ancora la passa il CHIAMANTE, e deve essere quella del corpo di QUELLA famiglia. Un'ancora diversa
+   manda l'indice su un id che non esiste, e i suoi link non fanno niente senza dare errore — è scritto anche
+   in testa a `DocumentToc`. *@
+
+@foreach (var m in Membri)
+{
+    <DocumentToc Sections="m.Sezioni" IsDraft="IsDraft" HeaderLabel="@m.Titolo"
+                 AnchorOf="AncoraDelCorpo(m)" />
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MembroUnito> Membri { get; set; } = Array.Empty<MembroUnito>();
+
+    /// <summary>Anteprima BOZZA: le sezioni nascoste compaiono anche nell'indice. Default <c>false</c>,
+    /// quello prudente — chi lo dimentica nasconde.</summary>
+    [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>
+    /// L'ancora che usa il CORPO di quella famiglia. Oggi tutte e tre rispondono <c>s-{Id}</c>, ma chiederlo
+    /// al componente invece di ricopiarne la formula è ciò che tiene indice e corpo d'accordo il giorno che
+    /// una famiglia cambia idea.
+    /// </summary>
+    private static Func<SectionView, string> AncoraDelCorpo(MembroUnito m) =>
+        m.Membro.Doc.ReleaseTarget switch
+        {
+            Vipi.Domain.ReleaseTargetType.App => AppDocumentBody.AnchorOf,
+            Vipi.Domain.ReleaseTargetType.Airport => AirportDocumentBody.AnchorOf,
+            Vipi.Domain.ReleaseTargetType.AirportMil => MilDocumentBody.AnchorOf,
+            _ => s => s.Id,
+        };
+}

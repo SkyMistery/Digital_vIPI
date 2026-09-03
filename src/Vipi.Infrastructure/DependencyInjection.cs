@@ -184,6 +184,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IDeletionRepository, EfDeletionRepository>();
         services.AddScoped<Vipi.Application.Content.ISectorCatalogMaintenance, EfSectorCatalogMaintenance>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentAdminRepository, EfDocumentAdminRepository>();
+        // Le unioni di documenti (carta 2026-09-03): sole righe, nessuna autorizzazione qui dentro.
+        services.AddScoped<Vipi.Application.Abstractions.IDocumentUnionRepository, EfDocumentUnionRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportSectorRepository, EfAirportSectorRepository>();
         // La rinomina: un motore solo, come l'eliminazione. Lo chiamano i due upsert di catalogo, in cima.
         services.AddScoped<Vipi.Application.Content.ICallsignRenameService, EfCallsignRenameService>();

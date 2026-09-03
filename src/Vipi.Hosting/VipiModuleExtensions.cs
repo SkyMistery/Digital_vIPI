@@ -166,6 +166,20 @@ public static class VipiModuleExtensions
             new StringLocalizer<Vipi.Ui.SharedResource>(sp.GetRequiredService<IStringLocalizerFactory>()),
             sp.GetRequiredService<ReadingLanguageContext>()));
 
+        // I caricatori dei documenti da leggere: uno per famiglia. Portano fuori dalle pagine il carico che
+        // stava dentro il loro OnParametersSetAsync, perche' lo stesso documento va reso anche nella pagina
+        // UNITA (carta docs/feature/2026-09-03-documenti-uniti.md).
+        // Scoped come i servizi che consultano: LEGGONO soltanto, quindi il contesto del circuito va bene —
+        // e' esattamente cio' che le pagine facevano gia' con @inject.
+        services.AddScoped<Vipi.Ui.Components.Doc.AppMemberLoader>();
+        services.AddScoped<Vipi.Ui.Components.Doc.MilMemberLoader>();
+        // Il caricatore dei MEMBRI di un'unione: dentro istanzia i caricatori di famiglia dal service
+        // provider che riceve, quindi una pagina con scope proprio lo costruisce dal SUO (ActivatorUtilities).
+        services.AddScoped<Vipi.Ui.Components.Doc.UnionLoader>();
+        // ⚠⚠ AirportMemberLoader NON si registra qui, ed è voluto: AeroportoPage è OwningComponentBase e
+        // lo costruisce dal PROPRIO scope (ActivatorUtilities), perché i nove servizi che interroga vanno
+        // presi da lì e non dal circuito — vedi il commento in testa a quella classe.
+
         return services;
     }
 
@@ -551,6 +565,7 @@ public static class VipiModuleExtensions
         Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
+        Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
         // ⚠️ La potatura delle release NON è più qui: dal 2 settembre 2026 la fa `ReleaseSweepHostedService`
         // ogni 24 ore (carta 2026-09-02-il-ciclo-entrante.md §AW4). All'avvio girava una volta sola, e gli
         // stati delle release invecchiano DA SOLI — al rollover AIRAC una schedulata entra in vigore senza
@@ -724,6 +739,23 @@ public static class VipiModuleExtensions
         using var scope = host.Services.CreateScope();
         scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IReleaseService>()
             .BackfillMissingReleasesAsync().GetAwaiter().GetResult();
+        return host;
+    }
+
+    /// <summary>
+    /// Chiude le unioni di documenti rimaste con meno di due membri (carta
+    /// <c>docs/feature/2026-09-03-documenti-uniti.md</c>). Idempotente: sicuro a ogni avvio.
+    ///
+    /// <para>⚠️ La cascata della FK toglie già la riga di appartenenza insieme al documento eliminato; quel
+    /// che resta da chiudere è l'<b>unione</b> che quella riga teneva in piedi — una pagina unita che unisce
+    /// sé stessa, con un redirect che non ha dove mandare. E un documento non sparisce solo dal tasto
+    /// «elimina»: una riga tolta a mano dal database o un rollback lo fanno lo stesso.</para>
+    /// </summary>
+    public static IHost TidyVipiDocumentUnions(this IHost host)
+    {
+        using var scope = host.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<Vipi.Application.Abstractions.IDocumentUnionRepository>()
+            .TidyAsync().GetAwaiter().GetResult();
         return host;
     }
 }

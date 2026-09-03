@@ -1235,3 +1235,35 @@ nell'elenco dei permessi due omonimi vanno distinti. Il link ce lo riaggiunge, e
 callsign (APP), id documento (vLOA), `ACC|root` (vIPI ACC — una per albero, non per blocco).
 
 Carta: [2026-08-26-aeroporto-a-sezioni.md](../feature/2026-08-26-aeroporto-a-sezioni.md) §8-§11.
+
+### 9.33 `DocumentUnion` / `DocumentUnionMember` — i documenti uniti (3 set 2026) 🟡
+
+Due o più `Document` che si **leggono in una pagina**, si redigono da un editor e si pubblicano con un gesto.
+Migrazione `DocumentiUniti` nelle **due** serie. Carta:
+[2026-09-03-documenti-uniti.md](../feature/2026-09-03-documenti-uniti.md).
+
+- **`DocumentUnion`** — `Id`, `CreatedUtc`, `CreatedByUserId`. Niente altro: l'unione non ha contenuto suo.
+  ⚠️ **Niente `RowVersion`**: si tocca dall'editor, sotto il lock, un redattore alla volta — la decisione del
+  14 agosto 2026, presidiata da `ConcorrenzaOttimisticaTests`.
+- **`DocumentUnionMember`** — `UnionId` (FK cascade), `DocumentId` (FK cascade, **indice UNICO**), `Order`
+  (0-based e denso). Indici: `DocumentId` unico, `(UnionId, Order)`.
+  - ⚠️ L'**indice unico** è la guardia: un documento sta in al più **una** unione. Due unioni sullo stesso
+    documento si vedrebbero mesi dopo, come una pagina che ripete lo stesso contenuto.
+  - ⚠️ Il legame è verso **`Document.Id`**, non verso `DocRelease.TargetKey`: quella chiave è un *puntatore* e
+    viene riscritta (rinomina di callsign, `RepointKeyAsync`), quindi un'unione agganciata lì si romperebbe.
+  - ⚠️ `Order` **non** è `DocumentSection.Order`: quello ordina i **fratelli dentro** un documento (e una
+    sezione non cambia mai documento), questo ordina i **documenti fra loro**. Il minore è l'**ospite**:
+    pagina ed editor dell'unione vivono al suo indirizzo, gli altri ci reindirizzano.
+
+**Nessun tipo nuovo.** Non c'è un `ReleaseTargetType`, né un `SectionProfile`, né un `DocumentEdition` per
+l'unione: i membri restano quello che sono, e l'unione è una **relazione**. È ciò che la rende indipendente
+dalla famiglia — sei descrittori di release, sei rotte e cinque provider di congelamento restano intatti.
+
+**Le famiglie ammesse** stanno in un posto solo, `DocumentUnionService.FamiglieAmmesse`: `Airport`,
+`AirportMil`, `App`. ⚠️ `AppMil` è fuori perché **non ha un `IFrozenSectionProvider`**, e un membro senza
+provider si pubblicherebbe senza congelare niente **in silenzio**; `AccVipi` perché è l'unica famiglia a
+**blocchi**; `Vloa` perché il suo viewer disegna da sé le due direzioni dei coordinamenti.
+
+**Manutenzione**: `IDocumentUnionRepository.TidyAsync` chiude le unioni rimaste con **meno di due membri** —
+gira all'avvio (`TidyVipiDocumentUnions`) e dopo ogni rimozione. La cascata toglie già la riga insieme al
+documento eliminato; quel che resta da chiudere è l'unione che quella riga teneva in piedi.

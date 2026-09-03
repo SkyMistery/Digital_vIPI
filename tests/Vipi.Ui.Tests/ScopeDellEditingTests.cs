@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -32,10 +32,15 @@ public class ScopeDellEditingTests
     /// <summary>Le pagine e i componenti che scrivono documenti passando da <c>IEditingService</c>.</summary>
     public static TheoryData<string> ChiScrive => new()
     {
-        "Pages/MilEditorPage.razor",
-        "Pages/AppEditorPage.razor",
+        // ⚠️ Anche il militare e' passato dalla PAGINA al COMPONENTE (carta 2026-09-03 §5b).
+        "Components/Doc/MilSectionsEditor.razor",
+        // ⚠️ L'APP e' passato dalla PAGINA al COMPONENTE (carta 2026-09-03 §5b): l'invariante segue chi
+        // scrive davvero. La pagina ora e' un guscio sottile che non tocca IEditingService — se un giorno
+        // tornasse a toccarlo, va rimessa in questo elenco.
+        "Components/Doc/AppSectionsEditor.razor",
         "Pages/AccEditorPage.razor",
-        "Pages/AeroportoEditorPage.razor",
+        // ⚠️ Anche l'aeroporto e' passato dalla PAGINA al COMPONENTE (carta 2026-09-03 §5b).
+        "Components/Doc/AirportSectionsEditor.razor",
         "Pages/NewDocumentPage.razor",
         "Pages/VersioniPage.razor",
         "Components/VloaEditor.razor",
@@ -67,7 +72,8 @@ public class ScopeDellEditingTests
     [Fact]
     public void Una_pagina_async_disposable_chiude_lo_scope_a_mano()
     {
-        var sorgente = File.ReadAllText(Path.Combine(Radice(), "Pages/AeroportoEditorPage.razor"));
+        // ⚠️ Lo scope lo possiede il COMPONENTE, non piu' la pagina: l'invariante segue chi lo possiede.
+        var sorgente = File.ReadAllText(Path.Combine(Radice(), "Components/Doc/AirportSectionsEditor.razor"));
 
         Assert.Contains("IAsyncDisposable", sorgente);
         Assert.Contains("((IDisposable)this).Dispose();", sorgente);

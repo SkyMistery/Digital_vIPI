@@ -1,0 +1,21 @@
+@* I corpi degli ALTRI membri di un'unione, nell'ordine, ognuno sotto l'intestazione del suo documento.
+
+   ⚠️ L'intestazione NON è decorazione: le sezioni con la stessa chiave restano tutte e due — «Frequenze
+   ATC/CRC» di un vSOP militare e «Frequenze» di un avvicinamento non sono la stessa cosa, e nasconderne una
+   perderebbe contenuto vero (decisione del committente). È l'intestazione a dire di quale documento sono, e
+   chi non le vuole nasconde la sezione con il tasto che la nasconde.
+
+   ⚠️ Nessun `PrintMeta` qui: la pagina unita ne ha UNO solo, quello dell'ospite, in cima. Uno per membro
+   stamperebbe tre testate su un foglio che è un documento solo. *@
+
+@foreach (var m in Membri)
+{
+    <section id="@m.Ancora" class="union-part">
+        <h2 class="union-part-h">@m.Titolo</h2>
+        @m.Corpo
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<MembroUnito> Membri { get; set; } = Array.Empty<MembroUnito>();
+}

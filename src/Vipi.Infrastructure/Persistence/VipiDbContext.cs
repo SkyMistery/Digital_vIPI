@@ -106,6 +106,13 @@ public class VipiDbContext : DbContext
     public DbSet<SpecialAreaCenter> SpecialAreaCenters => Set<SpecialAreaCenter>();
     public DbSet<NeighbourCandidate> NeighbourCandidates => Set<NeighbourCandidate>();
     public DbSet<DocumentProfile> DocumentProfiles => Set<DocumentProfile>();
+
+    /// <summary>Le unioni di documenti: due o più documenti in una pagina, un editor, una pubblicazione.</summary>
+    public DbSet<DocumentUnion> DocumentUnions => Set<DocumentUnion>();
+
+    /// <summary>I membri di un'unione, in ordine. Il primo è l'ospite.</summary>
+    public DbSet<DocumentUnionMember> DocumentUnionMembers => Set<DocumentUnionMember>();
+
     public DbSet<DocRelease> DocReleases => Set<DocRelease>();
     public DbSet<EditorTask> EditorTasks => Set<EditorTask>();
     public DbSet<EditResourceLock> EditResourceLocks => Set<EditResourceLock>();
@@ -581,6 +588,27 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => x.DocumentId).IsUnique();
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
             // Niente token di concorrenza: vedi il commento su SharedBlock.
+        });
+
+        // --- Unioni di documenti (carta 2026-09-03): una pagina, un editor, una pubblicazione. ---
+        b.Entity<DocumentUnion>(e =>
+        {
+            e.HasMany(x => x.Members).WithOne(x => x.Union!).HasForeignKey(x => x.UnionId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<DocumentUnionMember>(e =>
+        {
+            // ⚠️ Un documento sta in AL PIÙ UNA unione. Senza questo indice due unioni sullo stesso documento
+            // nascerebbero in silenzio e si vedrebbero mesi dopo, come una pagina che ripete un contenuto.
+            e.HasIndex(x => x.DocumentId).IsUnique();
+            // La lettura vera è «dammi i membri di questa unione, in ordine».
+            e.HasIndex(x => new { x.UnionId, x.Order });
+
+            // Il documento eliminato porta via il suo posto nell'unione. Chi resta lo ricompatta:
+            // un'unione con un membro solo non è un'unione, e il servizio la scioglie.
+            e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
 
         // --- Immagini dei documenti (blocchi Image). Content-addressed: lo sha256 È l'identità, quindi unico. ---

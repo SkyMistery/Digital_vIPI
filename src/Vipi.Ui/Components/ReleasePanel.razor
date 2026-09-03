@@ -116,6 +116,32 @@
         <p class="help" style="margin:4px 0 0">@L["Lang_LockHelp"]</p>
     }
 
+    @* ---- L'unione: dire PRIMA quanti documenti quel tasto pubblichera' (carta 2026-09-03 §6) --------
+       ⚠️ Un esito che tace meta' del lavoro e' peggio di nessun esito, e qui la meta' taciuta sarebbe un
+       ALTRO documento pubblicato. Il lock si dice PRIMA per la stessa ragione: con un lock altrui la
+       pubblicazione dell'INTERA unione si rifiuta, perche' meta' unione pubblicata e' peggio di nessuna. *@
+    @if (_uniti.Count > 1)
+    {
+        <div class="callout info" style="margin:10px 0 0">
+            <span class="cic"><Icon Name="link" Size="18" /></span>
+            <div>
+                <p class="ct">@L["Rel_UnionTitle", _uniti.Count]</p>
+                <ul class="union-list" style="margin:4px 0 0">
+                    @foreach (var m in _uniti)
+                    {
+                        <li>
+                            <b>@m.Titolo</b> <span class="muted">@m.Key</span>
+                            @if (m.LockedByUserId is not null)
+                            {
+                                <span class="pill amber">@L["Rel_UnionLocked", m.LockedByName ?? m.LockedByUserId.ToString()!]</span>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
@@ -222,8 +248,22 @@
 
     /// <summary>Superata = né in vigore né programmata: annullarla è cancellare storia, non cambiare il pubblico.</summary>
     private static bool Superata(ReleaseInfo r) => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled;
-    private string CancelPrompt(ReleaseInfo r) =>
-        Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle] : L["Rel_CancelPrompt", r.ReleaseAiracCycle];
+    /// <summary>
+    /// La domanda prima di annullare. ⚠️ Su un documento UNITO l'annullamento porta via anche le sorelle
+    /// dello stesso ciclo, e la domanda deve dirlo: chiedere «annullo questa?» per poi toglierne due è la
+    /// stessa categoria di difetto dell'esito che tace metà del lavoro, ma peggiore — qui la metà taciuta
+    /// è una pubblicazione che sparisce.
+    /// </summary>
+    private string CancelPrompt(ReleaseInfo r)
+    {
+        var sola = Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle].Value
+                               : L["Rel_CancelPrompt", r.ReleaseAiracCycle].Value;
+        return _uniti.Count > 1
+            // ⚠️ L[chiave, argomenti] e NON string.Format(L[chiave].Value, ...): quel secondo indexer e'
+            // l'unico che INTERPOLA, ed e' la stessa lezione del numero di versione (Rel_VersionLabel).
+            ? sola + " " + L["Rel_CancelPromptUnion", _uniti.Count]
+            : sola;
+    }
     private string CancelTitle(ReleaseInfo r) =>
         Superata(r) ? L["Rel_CancelTitleOld"] : L["Rel_CancelTitle"];
 
@@ -283,7 +323,19 @@
     // sullo stesso context. Su Postgres/Neon, con la latenza di rete, le due si sovrappongono davvero:
     // eccezione nel ciclo di vita del componente → renderer in errore → CIRCUITO TERMINATO (l'editor APP su
     // Render moriva al primo click su «Modifica»). In locale su SQLite le query finiscono prima e non collidono.
-    private (ReleaseTargetType Target, string Key)? _loaded;
+    private (ReleaseTargetType Target, string Key, int Revisione)? _loaded;
+
+    /// <summary>
+    /// Un contatore che l'host alza quando cambia qualcosa che questo pannello ha gia' letto e non
+    /// rileggerebbe: oggi l'UNIONE, che decide quanti documenti il tasto «pubblica» tocchera' e che cosa
+    /// dice la domanda prima di annullare.
+    ///
+    /// <para>⚠️ Serve perche' la memoizzazione qui sopra e' su (bersaglio, chiave), e quelle due non
+    /// cambiano quando si unisce un documento: senza, subito dopo aver unito il pannello continuerebbe a
+    /// dire «questo documento e' solo» e la domanda dell'annullamento parlerebbe di UNA release mentre ne
+    /// toglie due. Misurato dal vivo il 3 settembre 2026 — la domanda mentiva davvero.</para>
+    /// </summary>
+    [Parameter] public int Revisione { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -291,17 +343,25 @@
         _upcoming = Releases.UpcomingCycles(14);
         _cycle ??= _upcoming.FirstOrDefault()?.Cycle;
 
-        if (_loaded is { } l && l.Target == Target && string.Equals(l.Key, Key, StringComparison.Ordinal)) return;
-        _loaded = (Target, Key);
+        if (_loaded is { } l && l.Target == Target && string.Equals(l.Key, Key, StringComparison.Ordinal)
+            && l.Revisione == Revisione) return;
+        _loaded = (Target, Key, Revisione);
         // Rete di sicurezza: un'eccezione qui NON è catturabile dall'host (è ciclo di vita, non evento) e
         // abbatterebbe il circuito. Meglio il pannello con un errore visibile che la pagina morta.
         try { await Reload(); }
         catch (Exception ex) { _error = ex.Message; }
     }
 
+    /// <summary>I bersagli che il tasto «pubblica» tocchera': questo documento solo, oppure tutti i membri
+    /// dell'unione. ⚠️ Si legge SEMPRE, anche quando non c'e' unione: la risposta vuota e' il caso normale,
+    /// e chiederla solo «se serve» vorrebbe dire sapere gia' la cosa che si sta chiedendo.</summary>
+    private IReadOnlyList<Vipi.Application.Content.BersaglioUnito> _uniti =
+        Array.Empty<Vipi.Application.Content.BersaglioUnito>();
+
     private async Task Reload()
     {
         _rels = await Releases.ListAsync(Target, Key);
+        _uniti = await Releases.BersagliUnitiAsync(Target, Key);
         // ⚠️ Una chiamata per PANNELLO, non una per riga: i VID sono pochi e si risolvono in blocco.
         // ⚠️ E il roster si RISOLVE, non si inietta: dare un nome a un VID e' una comodita', non una
         // dipendenza del pannello. Iniettarlo come obbligatorio rende il componente non montabile per
@@ -389,14 +449,16 @@
     private Task PublishAtCycle() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
+        // Se il documento non e' unito queste due porte SONO PublishAsync/PublishNowAsync: passare sempre
+        // di qui evita un `if` nella pagina, che e' il posto in cui si dimentica.
+        await Releases.PublishUnionAsync(Target, Key, _cycle ?? _currentCycle, _note);
         return true;
     }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
     private Task PublishNow() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishNowAsync(Target, Key, _note);
+        await Releases.PublishUnionNowAsync(Target, Key, _note);
         return true;
     }, L["Rel_PublishedNow"], notify: true);
 

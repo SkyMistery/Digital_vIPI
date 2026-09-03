@@ -1,49 +1,56 @@
 ﻿@page "/services/vsop/{Acc}/apps/vipi"
 @layout SopLayout
 @inject IStationResolver Stations
-@inject IAppDocumentService AppDoc
-@inject IAppViewDerivationService AppView
 @inject IEditAuthorizationService Authz
-@inject IVipiViewService ViewService
-@inject IReleaseService Releases
+@inject AppMemberLoader Loader
+@inject IDocumentUnionService Unioni
+@inject UnionLoader Membri
+@inject NavigationManager Nav
 @inject IOnlineAtcProvider Online
 @inject IAiracService Airac
 @inject StringheDelSito Sito
-@inject Vipi.Application.Translation.DocumentTranslator Translator
-@inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
-@using System.Text.Json
-@using System.Globalization
 @using Vipi.Ui.Shared
 
 @if (_acc is null)
 {
     <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@Sito["Common_UnknownAcc"]</p>@Acc</div></div></div>
 }
-else if (_view is null)
+else if (_doc is null)
 {
     <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(Sito["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
 }
 else
 {
-    <PageTitle>@PreviewTitlePrefix()@_displayName · vIPI IVAO Italy</PageTitle>
+    <PageTitle>@PreviewTitlePrefix()@_doc.DisplayName · vIPI IVAO Italy</PageTitle>
 
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["AccLanding_Apps"]</a> › <b>@_app</b></div>
         <div class="doc-layout">
-            <DocumentToc Sections="_view.Sections" IsDraft="@(_mode.Kind == PreviewKind.Draft)" AnchorOf="AnchorOf" />
+            @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo:
+               `AppDocumentBody.AnchorOf`. Un'ancora diversa manda l'indice su un id che non esiste, e i
+               suoi link non fanno niente — senza errori. *@
             <div>
-                <PrintMeta Title="@_displayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
-                           AiracCycle="@Cycle()" Coverage="_copertura" />
+                @* ⚠️ Un indice per MEMBRO, intestato col titolo del suo documento: un elenco di dieci voci
+                   d'avvicinamento seguito da ventisei voci militari, senza una riga che dica dove finisce
+                   l'uno e comincia l'altro, è un indice che non aiuta a cercare. *@
+                <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
+                             HeaderLabel="@(_altri.Count > 0 ? _doc.DisplayName : null)"
+                             AnchorOf="AppDocumentBody.AnchorOf" />
+                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
+            </div>
+            <div>
+                <PrintMeta Title="@_doc.DisplayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
+                           AiracCycle="@Cycle()" Coverage="_doc.Copertura" />
                 <div class="doc-head">
                     @* L'APP di uno scalo militare porta la stessa etichetta del suo aeroporto: chi legge questo
                        documento sta guardando quel campo, e l'informazione non deve dipendere da quale dei due
                        documenti ha aperto. *@
                     @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
                     <div>
-                        <h1 class="page-h1" style="margin-bottom:2px">@_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                        <h1 class="page-h1" style="margin-bottom:2px">@_doc.DisplayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
                         <span class="muted">@_app · @Sito["Appn_Subtitle"]</span>
-                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /></div>
+                        <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /></div>
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
@@ -54,9 +61,9 @@ else
                         }
                     </div>
                 </div>
-                @if (_mode.IsPreview)
+                @if (_doc.Mode.IsPreview)
                 {
-                    <PreviewBanner Kind="_mode.Kind" Cycle="@_relCycle"
+                    <PreviewBanner Kind="_doc.Mode.Kind" Cycle="@_doc.RelCycle"
                                    PublicHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}")"
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}&as=draft")" />
                 }
@@ -64,21 +71,19 @@ else
 
                 @* Il filtro di lettura pilota/ATC (carta vSOP militari §3): vale su tutte le famiglie,
                    perché il flag è per-sezione e l'editor lo offre ovunque. *@
-                <AudienceChip Visibile="_haMarcate" Vista="_vista"
-                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+                <AudienceChip Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                              BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/apps/vipi?app={_app}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
 
                 @* ⚠️ «Tradotto a macchina» sta nella riga sotto il titolo, non qui: vedi TranslationNotice. *@
                 @* Il contrario: NON tradotto, e voluto. *@
-                <LinguaBloccataNotice Lingua="@_bloccata" />
+                <LinguaBloccataNotice Lingua="@_doc.Bloccata" />
 
-                @* Il ciclo delle sezioni lo fa il componente condiviso (doc 14 §3e). Qui resta il solo corpo
-                   derivato, per chiave: quello che l'APP disegna e le altre famiglie no. *@
-                @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
-                <div lang="@_bloccata">
-                    <DocumentSectionsView Sections="_view.Sections" Profile="SectionProfile.App"
-                                          IsDraft="@(_mode.Kind == PreviewKind.Draft)"
-                                          AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
-                </div>
+                @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
+                   anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
+                <AppDocumentBody Doc="_doc" />
+
+                @* Gli altri documenti dell'unione, nell'ordine scelto dal redattore. *@
+                <UnionBodies Membri="_altri" />
             </div>
 
             <aside class="doc-rail" aria-label="@Sito["Doc_RailAria"]">
@@ -115,191 +120,70 @@ else
     [SupplyParameterFromQuery] public string? Live { get; set; }   // legacy: live=1 → alias di as=draft
     [SupplyParameterFromQuery(Name = "as")] public string? As { get; set; }
 
-    private PreviewMode _mode;   // pubblica | bozza | release
-    private string? _relCycle;   // ciclo AIRAC della release (banner)
+    /// <summary>Il documento caricato — vista, modalità OTTENUTA, derivate, lingua. null = questo callsign
+    /// non è un APP non remotizzato, o non ha niente da mostrare.</summary>
+    private AppMemberDocument? _doc;
 
-    private Vipi.Domain.SectionAudience? _vista;
-    private bool _haMarcate;
-
-    /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato (lo snapshot lo porta con sé); in mancanza,
-    /// quello corrente.</summary>
-    private string Cycle() => _relCycle ?? _view?.AiracCycle ?? Airac.GetCycle(DateTime.UtcNow);
+    /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
+    private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
 
     private AccInfo? _acc;
     private string _app = "";
-    private string _displayName = "";
     // L'aeroporto di questo APP (dalla testa del callsign) con la sua anagrafica militare: null per gli APP
     // di ACC, che non descrivono uno scalo.
     private Vipi.Application.Content.AirportStation? _mil;
     private bool _canEdit;
 
-    // Storage APP su Document (doc 08e): struttura + editoriale dal DocumentView; derivate frozen (release effettiva) o
-    // live (bozza/anteprima) via AppViewDerivationService.
-    private DocumentView? _view;
+    /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato (lo snapshot lo porta con sé); in mancanza,
+    /// quello corrente.</summary>
+    private string Cycle() => _doc?.RelCycle ?? _doc?.View.AiracCycle ?? Airac.GetCycle(DateTime.UtcNow);
 
-    /// <summary>La lingua in cui questo documento è BLOCCATO, o null se segue chi legge: serve all'avviso e
-    /// all'attributo <c>lang</c> del contenitore (carta lingua-bloccata §5).</summary>
-    private string? _bloccata;
-    private Vipi.Application.Translation.TranslationCoverage _copertura =
-        Vipi.Application.Translation.TranslationCoverage.Nessuna;
-    private bool _useFrozen;   // vista pubblica: leggi le derivate frozen dalla release effettiva (doc 10 §3d)
-    private AppVfrContent _vfr = AppVfrContent.Empty;
-    private List<AppFreqRow> _freqs = new();
-    private AppCoordination _coord = AppCoordination.Empty;
-    private AccAorView _aorView = AccAorView.Empty;
-    private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
-    private IReadOnlyList<AccSpecialAreaView> _areas = Array.Empty<AccSpecialAreaView>();
-    private MinimaView _minima = MinimaView.Empty;
-
-    // Sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate); le altre via SectionNode.
-    // Chi siano lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie dell'insieme.
-    /// <summary>Il corpo che questa pagina disegna, per chiave. Le chiavi sono quelle che il catalogo dichiara
-    /// «rese dalla pagina» per il profilo App: il componente condiviso ci arriva solo per quelle.</summary>
-    private RenderFragment<SectionView> CorpoDerivato => s => __builder =>
-    {
-        @switch (s.SectionKey)
-        {
-            case "separations": <AppSeparations Rows="ReadSeparations(s)" />; break;
-            case "configurations": <AppConfigurations Configs="Array.Empty<AccConfiguration>()" Tables="_configTable" MapScope="@($"app-aor-{_app}")" />; break;
-            case "aor": <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />; break;
-            case "frequencies": <AppFrequencies Rows="_freqs" />; break;
-            case "minima": <MinimaSection View="_minima" Aor="_aorView" />; break;
-            case "vfr": <AppVfr Content="ReadVfr(s)" />; break;
-            case "coordination": <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />; break;
-            case "regulated": <RegulatedAreas Areas="_areas" />; break;
-            case "validity": <ValidityStamp Target="ReleaseTargetType.App" Key="@_app" ReleaseId="@ReleaseIdShown()" />; break;
-        }
-    };
-
-
-    // Ancora di sezione: «s-{Id}» per TUTTE, comprese quelle rese dalla pagina (doc 13 §3e). Prima le speciali
-    // usavano «p-{chiave}», e i deep-link della ricerca — che indicizza per Id — cadevano in cima alla pagina.
-    private static string AnchorOf(SectionView s) => s.Id;
-
-    /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
-    private int? ReleaseIdShown() => _mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null;
-    private string PreviewTitlePrefix() => _mode.Kind switch
+    private string PreviewTitlePrefix() => _doc?.Mode.Kind switch
     {
         PreviewKind.Draft => $"{Sito["Common_DraftTag"]} ",
         PreviewKind.Release => $"{Sito["Common_PreviewTag"]} ",
         _ => "",
     };
 
-    // Vista PUBBLICA (doc 11 §3d): documento + derivate frozen si impostano INSIEME. È anche il degrado di
-    // un'anteprima non autorizzata/non corrispondente: senza questo, il fallback lasciava _useFrozen=false e
-    // serviva al pubblico le derivate LIVE (congelamento AIRAC bypassabile dall'URL con un ?as=rel: qualsiasi).
-    private async Task LoadAppPublicAsync()
-    {
-        _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false);
-        _useFrozen = true;
-    }
-
-    // Anteprima release gated (authz nel servizio) + verifica identità: null se inesistente/altro bersaglio/non autorizzato.
     protected override async Task OnParametersSetAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
 
-        _mode = PreviewMode.Parse(As, Live);
-        _relCycle = null;
-        _haMarcate = false;
-
         _app = (App ?? "").Trim().ToUpperInvariant();
-        _view = null;
-        _useFrozen = false;
+        _doc = null;
         if (string.IsNullOrWhiteSpace(_app)) return;
 
-        var identity = await AppDoc.GetIdentityAsync(_app);
-        if (identity is null) return;   // callsign non è un APP standalone
-        _displayName = string.IsNullOrWhiteSpace(identity.Title) ? _app : identity.Title;
         _mil = Stations.AirportOfCallsign(_app);
         _canEdit = Authz.IsEditor;
 
-        // Vista documentale (struttura + editoriale). Le derivate restano vuote nel view → rese live sotto.
-        switch (_mode.Kind)
+        // Tutto il carico — anteprima, lingua, derivate, traduzione, titoli di catalogo, filtro di lettura —
+        // sta nel caricatore: l'ordine di quei passi è la correttezza, e non appartiene a QUESTA pagina.
+        var mode = PreviewMode.Parse(As, Live);
+        _doc = await Loader.LoadAsync(_app, mode, Vista);
+        if (_doc is null) return;
+
+        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
+        // ⚠️ Si compone solo se questo documento è l'OSPITE: la pagina unita vive al suo indirizzo, e chi
+        // ospite non è ci reindirizza (§4) invece di disegnare l'unione a partire da sé — che darebbe lo
+        // stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        var unione = await Unioni.ForTargetAsync(ReleaseTargetType.App, _app);
+        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.App, _app))
         {
-            case PreviewKind.Draft:
-                if (_canEdit) _view = await ViewService.BuildAppVipiAsync(_app, BlockTier.Extended, live: false, ignoreRelease: true, preferWorking: true);
-                else { _mode = default; await LoadAppPublicAsync(); }
-                break;
-            case PreviewKind.Release:
-                var pv = await Releases.GetPreviewAsync(_mode.ReleaseId, ReleaseTargetType.App, _app);
-                if (pv?.Doc is not null) { _relCycle = pv.AiracCycle; _view = await ViewService.BuildFromRawAsync(pv.Doc, BlockTier.Extended); }
-                else { _mode = default; await LoadAppPublicAsync(); }
-                break;
-            default:
-                await LoadAppPublicAsync();
-                break;
+            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
+            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
+            // anteprima irraggiungibile.
+            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
+            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
+            if (_doc.Mode.Kind == PreviewKind.Public
+                && Membri.IndirizzoDellOspite(unione, ReleaseTargetType.App, _app) is { } indirizzo)
+                Nav.NavigateTo(indirizzo, replace: true);
+            return;
         }
-        if (_view is null) return;
-
-        // ---- In che lingua si legge QUESTO documento (carta 2026-08-31-lingua-bloccata.md §3-4) ---------
-        // ⚠️ SUBITO, appena si sa qual è il documento, e non in fondo insieme alla traduzione: se è
-        // bloccato la lingua vale anche per le DERIVAZIONI che partono qui sotto, che compongono prosa ed
-        // etichette. Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda e tradurre il resto
-        // nell'altra — mezza schermata per lingua, e nessun errore da nessuna parte.
-        var lettore = LinguaDelDocumento.Prepara(Lingua, _view.LanguageLocked, _view.Language, Vipi.Domain.Language.It);
-        _bloccata = _view.LanguageLocked ? lettore : null;
-
-        // Derivate: frozen dalla release effettiva nella vista pubblica, live in bozza/anteprima (doc 10 §3d).
-        // Il documento mostrato viaggia col resolver: la tabella «Configurazioni» si deriva dalle configurazioni
-        // di QUESTA versione, non da quella di lavoro — prima la pagina pubblica mostrava quelle della bozza.
-        var derived = await AppView.ResolveForViewAsync(_app, _view, _useFrozen);
-        _freqs = derived.Freqs.ToList();
-        _coord = derived.Coord;
-        _aorView = derived.Aor;
-        _configTable = derived.ConfigTable;
-        _minima = derived.Minima;
-
-        // Aree regolamentate: gli id li porta il documento mostrato (pubblico/bozza/release), i dettagli e le shape
-        // vengono dai cataloghi correnti — come nella vIPI ACC.
-        var regulated = _view.Sections.FirstOrDefault(s => string.Equals(s.SectionKey, "regulated", StringComparison.OrdinalIgnoreCase));
-        _areas = regulated is null
-            ? Array.Empty<AccSpecialAreaView>()
-            : await AppDoc.ResolveRegulatedAreasAsync(ReadRegulated(regulated));
-
-        // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
-        // ⚠️ La lingua di lettura è quella dell'INTERFACCIA, non un secondo selettore: la sceglie la chip
-        // della barra, che scrive il cookie di cultura — l'unico modo perché la scelta sopravviva al
-        // circuito, che su /_blazor non porta ?culture=.
-        //
-        // ⚠️ La sorgente la dice il DOCUMENTO: qui si passa solo la lingua in cui la famiglia NASCE, per i
-        // documenti salvati prima che il campo esistesse.
-        //
-        // ⚠️ IN FONDO, dopo le derivate e le aree: quelle si leggono dall'originale (gli id stanno nel JSON
-        // dei blocchi), la traduzione porta la PROSA. Tradurre prima vorrebbe dire cercare «regulated» in un
-        // documento che nel frattempo dice altro.
-        var tradotto = await Translator.TranslateAsync(_view, Vipi.Domain.Language.It, lettore);
-        _view = tradotto.View;
-        _copertura = tradotto.Coverage;
-
-        // I titoli delle sezioni di CATALOGO nella lingua di lettura, DOPO la traduzione.
-        //
-        // ⚠️ Non è un doppione della passata: quei titoli stanno scritti nel documento nella lingua che
-        // aveva alla NASCITA, e la passata li copre solo finché c'è una passata. Su un documento BLOCCATO
-        // la traduzione è spenta per definizione (sorgente == bersaglio) e senza questo passo un APP
-        // dichiarato inglese mostrava «Separazioni / Configurazioni / Aree regolamentate».
-        // ⚠️ DOPO, e non prima: il catalogo è la resa DECISA, la memoria quella plausibile.
-        _view = ConSezioni(TitoliDiCatalogo.Applica(_view.Sections, SectionProfile.App, lettore));
-
-        // Il filtro di lettura, DOPO la traduzione: si filtra la vista che il lettore vedrà davvero.
-        _vista = AudienceFilter.Leggi(Vista);
-        _haMarcate = AudienceFilter.HaSezioniMarcate(_view.Sections);
-        _view = ConSezioni(AudienceFilter.Filtra(_view.Sections, _vista));
+        _altri = unione is null
+            ? Array.Empty<MembroUnito>()
+            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, Cycle());
     }
-
-    /// <summary>Lo stesso documento con altre sezioni.
-    /// <para>⚠️ Ogni campo si ricopia: <c>DocumentView</c> è una classe con <c>init</c>, e quello che non si
-    /// ricopia torna al default in silenzio — «non bloccato» su un documento bloccato, «niente congelato» su
-    /// una release. La pagina si renderebbe lo stesso.</para></summary>
-    private DocumentView ConSezioni(IReadOnlyList<SectionView> sezioni) =>
-        ReferenceEquals(sezioni, _view!.Sections)
-            ? _view
-            : new DocumentView
-            {
-                Title = _view.Title, AiracCycle = _view.AiracCycle, Sections = sezioni,
-                Language = _view.Language, LanguageLocked = _view.LanguageLocked, Translations = _view.Translations,
-            };
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).
     private int OnlineApp()
@@ -311,22 +195,5 @@ else
             return t.Length >= 2 && (t[^1].ToUpperInvariant() is "APP" or "DEP")
                 && t[0].Equals(head, StringComparison.OrdinalIgnoreCase);
         });
-    }
-
-    // Editoriali-strutturate: il dato vive nel BodyJson del primo blocco Table della sezione keyed del Document.
-    private static IReadOnlyList<AppSeparationRow> ReadSeparations(SectionView s) =>
-        Deser<List<AppSeparationRow>>(SectionPayload.Read(s)) ?? new List<AppSeparationRow>();
-
-    private static AppVfrContent ReadVfr(SectionView s) =>
-        Deser<AppVfrContent>(SectionPayload.Read(s)) ?? AppVfrContent.Empty;
-
-    private static RegulatedSelection ReadRegulated(SectionView s) =>
-        Deser<RegulatedSelection>(SectionPayload.Read(s)) ?? new RegulatedSelection { OwnAuto = false };
-
-    private static T? Deser<T>(string? json) where T : class
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<T>(json); }
-        catch (JsonException) { return null; }
     }
 }

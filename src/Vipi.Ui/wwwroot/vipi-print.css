@@ -309,3 +309,10 @@
   .vipi-root details:not([open]) > .cb-body { display: block !important; }
   .vipi-root details::details-content { content-visibility: visible !important; }
 }
+
+/* ---- Documenti UNITI (carta 2026-09-03) --------------------------------------------------------
+   In stampa il confine fra un membro e l'altro RESTA: e' cio' che distingue due documenti su un
+   foglio solo, e toglierlo li farebbe leggere come uno che cambia argomento a meta'. Si stringe
+   soltanto lo spazio, perche' un margine da schermo qui costa una riga di tabella. */
+.union-part{margin-top:18px;padding-top:12px}
+.union-part>.union-part-h{font-size:16px;margin-bottom:8px}

@@ -2245,8 +2245,10 @@
   <data name="Xfer_PanelEmptyTitle" xml:space="preserve"><value>No clause open</value></data>
   <data name="Xfer_PanelEmptyBody" xml:space="preserve"><value>Pick «✎» on a clause to edit it, or «+ Clause» to add one. Fields, sentence preview and actions appear here.</value></data>
   <data name="Xfer_PanelEdit" xml:space="preserve"><value>Edit row</value></data>
-  <data name="Xfer_PanelNew" xml:space="preserve"><value>New row</value></data>
-  <data name="Xfer_WalkPrev" xml:space="preserve"><value>Previous clause</value></data>
+  <data name="Xfer_PanelNew" xml:space="preserve"><value>New row</value></data>
+
+  <data name="Xfer_WalkPrev" xml:space="preserve"><value>Previous clause</value></data>
+
   <data name="Xfer_WalkNext" xml:space="preserve"><value>Next clause</value></data>
   <data name="Xfer_GrpIdentity" xml:space="preserve"><value>Entry and receiver</value></data>
   <data name="Xfer_GrpCleared" xml:space="preserve"><value>Cleared level</value></data>
@@ -3165,4 +3167,29 @@
   <data name="Imp_ImportAppend" xml:space="preserve"><value>Append {0} rows</value></data>
   <data name="Imp_ImportReplace" xml:space="preserve"><value>Replace with {0} rows</value></data>
   <data name="Imp_Skipped" xml:space="preserve"><value>{0} rows left out</value></data>
+  <data name="Union_Title" xml:space="preserve"><value>Joined documents</value></data>
+  <data name="Union_Help" xml:space="preserve"><value>Joining two or more documents means reading them on one page and publishing them with one click. They stay separate documents: unjoin them whenever you like, losing nothing.</value></data>
+  <data name="Union_None" xml:space="preserve"><value>This document is read on its own.</value></data>
+  <data name="Union_Members" xml:space="preserve"><value>In the union, in order</value></data>
+  <data name="Union_Host" xml:space="preserve"><value>host</value></data>
+  <data name="Union_HostHint" xml:space="preserve"><value>The joined page lives at the host's address: the others redirect to it.</value></data>
+  <data name="Union_AddLabel" xml:space="preserve"><value>Join to</value></data>
+  <data name="Union_AddAction" xml:space="preserve"><value>Join</value></data>
+  <data name="Union_SameAirport" xml:space="preserve"><value>same airfield</value></data>
+  <data name="Union_NoCandidates" xml:space="preserve"><value>No document to join: the others are already joined elsewhere, or belong to a family that cannot be joined yet.</value></data>
+  <data name="Union_MoveUp" xml:space="preserve"><value>Move up</value></data>
+  <data name="Union_MoveDown" xml:space="preserve"><value>Move down</value></data>
+  <data name="Union_Remove" xml:space="preserve"><value>Remove from the union</value></data>
+  <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
+  <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
+  <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
+  <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages and their own publications. Nothing that is written is lost.</value></data>
+  <data name="Union_DissolveYes" xml:space="preserve"><value>Dissolve</value></data>
+  <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>
+  <data name="Rel_UnionTitle" xml:space="preserve"><value>This document is joined to others: publishing publishes all {0}, at the same cycle.</value></data>
+  <data name="Rel_UnionLocked" xml:space="preserve"><value>being edited by {0}</value></data>
+  <data name="Rel_CancelPromptUnion" xml:space="preserve"><value>This document is joined to others: all {0} releases of that cycle are cancelled.</value></data>
+  <data name="Union_LockedBy" xml:space="preserve"><value>Cannot edit: one of the joined documents is being edited by {0}. With a union the lock is taken on all or on none.</value></data>
+  <data name="Ver_UnitedTitle" xml:space="preserve"><value>This document is joined to others: they are published together, at the same cycle.</value></data>
+  <data name="Ver_UnitedBadge" xml:space="preserve"><value>joined: {0}</value></data>
 </root>

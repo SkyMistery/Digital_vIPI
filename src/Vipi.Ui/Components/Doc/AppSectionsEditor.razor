@@ -1,0 +1,620 @@
+﻿@* Il CORPO EDITORIALE di una vIPI di APP non remotizzato: sezioni, corpo derivato, lock e salvataggi.
+
+   Sta fuori da `AppEditorPage` perche' lo stesso editor va montato in due posti — la sua pagina, e
+   l'editor UNITO che redige piu' documenti insieme (carta 2026-09-03-documenti-uniti.md §5b).
+
+   ⚠️ `Chrome` decide se questo componente porta anche la propria TESTATA (titolo, aiuto, pastiglia di
+   versione, chip del lock) e il proprio INDICE. Dentro un editor unito la risposta e' NO: la griglia
+   `ed-layout` la possiede la pagina ospite, che monta un `DocumentSectionsEditor` per membro con
+   `ShowToc="false"` e costruisce UN indice solo — e' il pattern che la vIPI ACC usa gia' per i suoi
+   blocchi. Montarne N con l'indice acceso darebbe N griglie e N indici, uno sotto l'altro.
+
+   ⚠️ SCOPE PROPRIO (OwningComponentBase), come la pagina da cui viene: `IEditingService` — e con lui il
+   `DbContext` — non deve venire dal circuito, che lo condivide con barra, isole e pannelli. In un editor
+   unito questo conta il DOPPIO: i membri sono piu' d'uno, e ognuno ha il suo. *@
+@inherits OwningComponentBase
+@implements IMembroEditor
+@using Microsoft.Extensions.DependencyInjection
+@using System.Text.Json
+@inject IAppDocumentService AppDoc
+@inject IStationResolver Stations
+@inject IJSRuntime JS
+@inject ILogger<AppSectionsEditor> Logger
+@inject IDocRoutesRegistry DocRoutes
+@inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
+}
+else
+{
+    @if (Chrome)
+    {
+        <PageTitle>@L["App_EditorTitle"] @_app · vIPI</PageTitle>
+    }
+    <div class="@(Chrome ? "wrap struct" : null)">
+        @if (Chrome)
+        {
+            <div class="breadcrumb">
+                <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> ›
+                <a href="/services/vsop/@Acc.ToLowerInvariant()/apps">@En["App_NonRemotized"]</a> ›
+                <a href="/services/vsop/@Acc.ToLowerInvariant()/apps/vipi?app=@_app">@_app</a> › <b>@En["Common_Editor"]</b>
+            </div>
+        }
+
+        @if (_notFound)
+        {
+            @* Stessa testata dell'altro ramo, e stesso livello: è il titolo DI QUESTA pagina, che qui dice
+               «non trovato» invece del documento. *@
+            <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">✎ @L["App_EditorTitle"] @_app <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1><span class="muted">@_acc.Name</span></div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@((MarkupString)L["App_NotFound"].Value)</div></div>
+        }
+        else if (_denied)
+        {
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["App_DeniedBody"].Value, _acc.Code))</div></div>
+        }
+        else if (_shell.Doc is null)
+        {
+            <p class="help">@L["App_LoadingEditor"]</p>
+        }
+        else
+        {
+            @* ---- Testata in UNA riga: titolo · «?» · stato · lock · larghezza piena ----
+               Come sull'editor ACC e su quello dell'aeroporto. Erano un h2 grande piu' un sottotitolo in
+               prosa su due righe (84px): il sottotitolo sta ora nel «?» con la sua chiave (regola 8), e il
+               lock e' uno STATO in riga, non una voce in fondo al rail (regola 1). *@
+            @if (Chrome)
+            {
+            <div class="editor-bar">
+                    <div class="doc-head st-head" style="margin:0">
+                        <h1 class="st-h2 page-h1">✎ @L["App_EditorTitle"] @_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                        <HelpHint Href="/services/vsop/guide#editor-app" AriaLabel="@L["App_HelpAria"]" ExtraClass="wide">
+                            <p>@_app · @_acc.Name</p>
+                            @((MarkupString)L["App_HelpBody"].Value)
+                        </HelpHint>
+                        <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                            @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
+                        </span>
+                        @if (_shell.IsEditing)
+                        {
+                            @* ⚠️ Il chip dice l'ORA, la frase intera sta nel `title`: misurato, «Stai modificando ·
+                               lock fino alle 21:06» sono 266px, e a 1024 la testata andava a capo per nove pixel.
+                               E' la stessa cura gia' pagata sul giro Versioni (la frase del lock, 647 → 289). *@
+                            <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_shell.Lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                                🔒 @(_shell.Lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                            </span>
+                        }
+                        else if (_shell.Lock is { Locked: true, IsMine: false })
+                        {
+                            <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value, _shell.Lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                                🔒 @(_shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_shell.Lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                            </span>
+                        }
+                        @* ⤢ Larghezza piena: stesse classi e stesse chiavi degli altri due editor — qui serve
+                           alle tabelle larghe (frequenze, coordinamenti, separazioni). *@
+                        <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
+                                aria-pressed="@_wide.ToString().ToLowerInvariant()"
+                                title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
+                    </div>
+                </div>
+    
+                <DocReviewBar DocumentId="_shell.DocumentId" />
+    
+                @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+                   apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+                @if (_shell.DocumentId is int docIdTraduzione)
+                {
+                    <TranslationReviewPanel DocumentId="docIdTraduzione" />
+                }
+            }
+
+            @if (_shell.Error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div> }
+
+            <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
+                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    IsMandatory="IsMandatory" Profile="SectionProfile.App"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    ShowToc="Chrome" ExtraTocItems="_tocExtra" Wide="_wide"
+                                    TocFooter="@TocCommands">
+                <RightRail>
+                    @* ⚠️ Solo con il chrome: in un editor unito il rail e' dell'OSPITE, e i comandi del lock
+                       sono UNO per tutti i membri — non uno per ciascuno. *@
+                    @if (Chrome)
+                    {
+                    @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                    else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.App).DraftUrl(Acc.ToLowerInvariant(), _app, null))" />
+                    @* Il lock e' salito in testata: qui restano i COMANDI, che e' quello per cui il rail
+                       esiste. Prima lo stato del lock stava scritto in tre punti (callout, rail, e nulla in
+                       testata) e nessuno dei tre era accanto al titolo del documento. *@
+                    @if (_shell.IsEditing)
+                    {
+                        <button class="btn ghost" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
+                    }
+                    }
+                </RightRail>
+                @* ⚠️ Dentro la colonna centrale, non dopo il componente: reso fuori da <DocumentSectionsEditor>
+                   il pannello finiva fuori dalla griglia, quindi largo quanto la PAGINA invece che quanto le
+                   sezioni. L'editor ACC, che la griglia se la costruisce da sé, lo teneva già dentro. *@
+                <AfterSections>@AfterSections</AfterSections>
+            </DocumentSectionsEditor>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Acc { get; set; } = default!;
+
+    /// <summary>Il callsign dell'APP non remotizzato.</summary>
+    [Parameter, EditorRequired] public string? App { get; set; }
+
+    /// <summary>
+    /// Vero: questo componente porta anche la propria TESTATA (titolo, aiuto, pastiglia di versione, chip
+    /// del lock), il proprio INDICE e il proprio rail. E' il caso della sua pagina.
+    ///
+    /// <para>Falso: e' un MEMBRO di un editor unito. La griglia, l'indice e i comandi del lock sono
+    /// dell'ospite — uno solo per tutti i membri. ⚠️ Montarne N con l'indice acceso darebbe N griglie e N
+    /// indici, uno sotto l'altro: e' la ragione per cui la vIPI ACC, che monta un editor per blocco, la
+    /// griglia se la costruisce da se'.</para>
+    /// </summary>
+    [Parameter] public bool Chrome { get; set; } = true;
+
+    /// <summary>Quel che va sotto le sezioni, dentro la colonna centrale: il pannello dell'unione e quello
+    /// di pubblicazione. ⚠️ Reso FUORI da <c>DocumentSectionsEditor</c> finirebbe fuori dalla griglia,
+    /// quindi largo quanto la pagina invece che quanto le sezioni.</summary>
+    [Parameter] public RenderFragment? AfterSections { get; set; }
+
+    /// <summary>Avvisa l'ospite che qui e' cambiato qualcosa che lui mostra: lo stato del lock, la versione,
+    /// il titolo. Un editor unito ha UNA testata per N documenti, e quella testata la disegna l'ospite.</summary>
+    [Parameter] public EventCallback StatoCambiato { get; set; }
+
+    // ---- quel che l'OSPITE di un editor unito ha bisogno di sapere e di comandare -------------------
+
+    /// <summary>Il guscio di QUESTO membro: documento, lock, stato di salvataggio.</summary>
+    public DocumentEditorShell Guscio => _shell;
+
+    /// <summary>Il titolo del documento di questo membro, per l'intestazione del suo gruppo.</summary>
+    public string Titolo => _displayName;
+
+    /// <summary>Le sezioni radice di questo membro, per l'indice unico dell'ospite.</summary>
+    public IReadOnlyList<EditableSection> Sezioni => _shell.Doc?.Sections ?? Array.Empty<EditableSection>();
+
+    /// <summary>
+    /// Prende il lock di questo membro. Torna <c>null</c> se ci e' riuscito, altrimenti il nome di chi lo
+    /// tiene.
+    /// <para>⚠️ L'ospite li chiede a TUTTI i membri e, se anche uno solo risponde con un nome, RILASCIA
+    /// quelli gia' presi: mezzo lock preso e' peggio di nessun lock — chi crede di star modificando due
+    /// documenti ne starebbe modificando uno.</para>
+    /// </summary>
+    public async Task<string?> PrendiLockAsync()
+    {
+        if (_shell.Doc is null) return null;   // niente documento, niente da bloccare
+        if (_shell.Lock is { Locked: true, IsMine: false })
+            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
+        await _shell.StartEditingAsync(LoadAsync);
+        return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
+    }
+
+    /// <summary>Molla il lock di questo membro. No-op se non era suo.</summary>
+    public Task RilasciaLockAsync() => _shell.IsEditing ? _shell.FinishEditingAsync() : Task.CompletedTask;
+
+    /// <summary>Ricarica questo membro: lo chiama l'ospite dopo un gesto che tocca tutti.</summary>
+    public Task RicaricaAsync() => LoadAsync();
+
+    private AccInfo? _acc;
+    private string _app = "";
+    private string _displayName = "";
+    // Vedi AppnPage: l'aeroporto di questo APP, per l'etichetta militare in testata.
+    private Vipi.Application.Content.AirportStation? _mil;
+    private string _accCode = "";
+
+    private bool _notFound, _denied;
+    private bool _wide;
+
+    /// <summary>Il guscio comune dei quattro editor (doc 14 §3d): documento, modifica, errore, lock, badge di
+    /// salvataggio, e i gesti che li muovono. Qui resta solo ciò che è dell'APP.</summary>
+    private DocumentEditorShell _shell = default!;
+
+    /// <summary>
+    /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
+    /// contesto isolato da quello del circuito.
+    ///
+    /// <para>⚠️ <b>Con <c>@@inject</c> veniva dal circuito</b>, cioè dal <c>DbContext</c> che la sessione
+    /// condivide con tutto il resto — barra, isole, pannelli, e il <c>LoadAsync</c> di questa pagina. Basta
+    /// che due di quelle operazioni si sovrappongano perché esca
+    /// «<c>A second operation was started on this context</c>» e il circuito muoia: a schermo una pagina che
+    /// non risponde più, da ricaricare. Vedi <c>DocumentEditorShell.FinishEditingAsync</c>.</para>
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+        _shell = new DocumentEditorShell(Editing, JS, L, Logger, "APP", "App_NoEditPerm",
+            // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e'
+            // sua, e senza questo resterebbe ferma su quel che era prima del gesto.
+            () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
+    }
+
+    // ⚠️ Espandi/comprimi tutto lo fa il JS sui <details>, e prima del primo render interattivo l'interop non
+    // è lecita. Questa pagina si proteggeva con `catch (Exception) { }`, che ingoiava in silenzio anche tutto
+    // il resto (invariante #7 del runbook): ora la guardia è un segnale, come nell'editor ACC.
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _shell.JsReady = true;
+    }
+
+    // Espandi/comprimi tutto, in coda al TOC: stesse chiavi e stesso gesto degli altri due editor — quel che
+    // si fa in un editor si fa anche nell'altro (regola 68). Le sezioni sono gia' <details> con persistenza:
+    // mancava solo il comando, e con undici sezioni aperte l'unica cosa da fare era scorrere.
+    private RenderFragment TocCommands => __builder =>
+    {
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+    };
+
+        // Derivate/editoriali-strutturate (data-driven), rese via DerivedContent per SectionKey.
+    private List<AppSeparationRow> _separations = new();
+    private AppVfrContent _vfr = AppVfrContent.Empty;
+    private List<AppFreqRow> _freqs = new();
+    private List<int> _linkIds = new();
+    private AppCoordination _coord = AppCoordination.Empty;
+    private AccAorView _aorView = AccAorView.Empty;   // AoR multi-settore (primario + figli del dominio), come il viewer
+    private MinimaView _minima = MinimaView.Empty;    // carta MRVA dell'aeroporto, dal sectorfile (sola lettura)
+
+    // Configurazioni (APP multi-settore, es. LIPE_APP con LIPE_W/LIPE_E). Pool + salvate + accorpamento derivato.
+    private IReadOnlyList<AccSectorPick> _sectorPool = Array.Empty<AccSectorPick>();
+    private List<AccConfiguration> _configs = new();
+    private IReadOnlyList<AccConfigTableView> _configTable = Array.Empty<AccConfigTableView>();
+
+    // Aree regolamentate: selezione salvata + cataloghi del picker (aree dell'ACC dell'APP, aree di altri ACC).
+    // Nessuna area di default (a differenza del blocco Aerovia ACC): si scelgono tutte a mano.
+    private RegulatedSelection _regulated = new() { OwnAuto = false };
+    private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
+    private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();
+
+    // Shape AoR extra (settori DB scelti a mano) + override colore per settore + catalogo globale del picker.
+    private List<string> _aorExtras = new();
+    private Dictionary<string, string> _aorColors = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();
+
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+    private string _freqSearch = "";
+    private int? _freqDragIndex;
+
+    // Voce TOC per il blocco Release (reso fuori da DocumentSectionsEditor); ancora e titolo li possiede il pannello.
+    /// <summary>Voce d'indice per il pannello di pubblicazione, che sta fuori dalle sezioni.
+    /// ⚠️ Solo col chrome: in un editor unito il pannello e' UNO, dell'ospite, e una voce per membro
+    /// prometterebbe tre pannelli che non ci sono.</summary>
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
+        ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
+        : Array.Empty<EditorTocItem>())
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
+
+    /// <summary>
+    /// ⚠️ Anche questo passa dal <b>tornello</b>: qui si legge dal database <i>prima</i> di arrivare al
+    /// caricamento, e <c>OnParametersSetAsync</c> scatta a ogni ridisegno — compreso quello che un gesto
+    /// provoca mentre il suo ricarico è ancora in volo. Erano le due catene che si sovrapponevano.
+    /// </summary>
+    protected override Task OnParametersSetAsync() => _shell.InFilaAsync(ParametriAsync);
+
+    private async Task ParametriAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+
+        _notFound = _denied = false;
+        _shell.Error = null;
+        _shell.Doc = null;
+        _shell.DocumentId = null;
+        _app = (App ?? "").Trim().ToUpperInvariant();
+        if (string.IsNullOrWhiteSpace(_app)) { _notFound = true; return; }
+
+        var identity = await AppDoc.GetIdentityAsync(_app);
+        if (identity is null) { _notFound = true; return; }
+        _displayName = string.IsNullOrWhiteSpace(identity.Title) ? _app : identity.Title;
+        _mil = Stations.AirportOfCallsign(_app);
+        _accCode = identity.AccCode;
+
+        try
+        {
+            _shell.DocumentId = await AppDoc.EnsureAsync(_app);   // ACC-gated: crea il Document se manca
+        }
+        catch (EditNotAllowedException) { _denied = true; return; }
+        catch (ValidationException) { _notFound = true; return; }
+
+        _linkable = await AppDoc.ListLinkableFrequenciesAsync();
+        _sectorPool = await AppDoc.ListSectorsAsync(_app);
+        _shapeCatalog = await AppDoc.ListSelectableSectorShapesAsync();
+        _areaPicks = await AppDoc.ListSpecialAreasAsync(_app);
+        _otherAreaPicks = await AppDoc.ListOtherAccSpecialAreasAsync(_app);
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// ⚠️ Il caricamento passa dal <b>tornello</b> del guscio (<c>InFilaAsync</c>): su questo contesto ci sta
+    /// una operazione per volta. Senza, un gesto che ricarica e il <c>OnParametersSetAsync</c> che segue il
+    /// suo ridisegno diventano DUE catene sullo stesso <c>DbContext</c> — «A second operation was started»,
+    /// e il circuito muore. Visto il 2 settembre 2026 aggiungendo una sotto-sezione.
+    /// </summary>
+    private Task LoadAsync() => _shell.InFilaAsync(LoadAsyncCore);
+
+    private async Task LoadAsyncCore()
+    {
+        if (_shell.DocumentId is not int id) return;
+        try
+        {
+            _shell.Doc = await Editing.LoadForEditAsync(id);
+            _shell.Lock = await Editing.InspectLockAsync(id);
+            if (_shell.Doc is null) { _notFound = true; return; }
+            _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable;
+
+            _separations = (await AppDoc.GetSeparationsAsync(_app)).ToList();
+            _vfr = await AppDoc.GetVfrAsync(_app);
+            _regulated = await AppDoc.GetRegulatedAsync(_app);
+            var overrides = await AppDoc.GetOverridesAsync(_app);
+            _linkIds = overrides.FreqLinkSectorIds.ToList();
+            await RefreshDerivedAsync();
+        }
+        catch (EditNotAllowedException) { _denied = true; }
+    }
+
+    private async Task RefreshDerivedAsync()
+    {
+        _freqs = (await AppDoc.DeriveFrequenciesAsync(_app)).ToList();
+        _coord = await AppDoc.DeriveCoordinationAsync(_app);
+        var aorCustom = await AppDoc.GetAorCustomizationAsync(_app);
+        _aorExtras = aorCustom.Callsigns.ToList();
+        _aorColors = new Dictionary<string, string>(aorCustom.Colors, StringComparer.OrdinalIgnoreCase);
+        _aorView = await AppDoc.GetAorViewAsync(_app);
+        _minima = await AppDoc.DeriveMinimaAsync(_app);
+        _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);
+    }
+
+    // ---- workflow bozza/lock/pubblicazione (come VloaEditor) ----
+        // Fine modifica: rilascia il lock così il documento è subito libero per gli altri (non aspetta i 30 min di TTL).
+        // ---- sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate) ----
+    // L'insieme lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie.
+    private static bool IsDerived(EditableSection s) =>
+        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.App, s.SectionKey);
+
+    // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.App, s.SectionKey);
+    // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+    // ---- editoriali-strutturate (persist immediato via AppDocumentService) ----
+    private Task SaveSeparations(IReadOnlyList<AppSeparationRow> rows) => _shell.GuardAsync(async () =>
+    {
+        _separations = rows.ToList();
+        await AppDoc.SaveSeparationsAsync(_app, _separations);
+    });
+
+    private Task SaveVfr(AppVfrContent content) => _shell.GuardAsync(async () =>
+    {
+        _vfr = content;
+        await AppDoc.SaveVfrAsync(_app, content);
+    });
+
+    // ---- configurazioni ----
+    private Task SaveConfigs(IReadOnlyList<AccConfiguration> configs) => _shell.GuardAsync(async () =>
+    {
+        _configs = configs.ToList();
+        await AppDoc.SaveConfigurationsAsync(_app, _configs);
+        _configTable = await AppDoc.DeriveConfigTableAsync(_app);   // ri-deriva l'accorpamento
+        _aorView = await AppDoc.GetAorViewAsync(_app);              // e i selettori config sulla mappa
+    });
+
+    // ---- aree regolamentate (picker condiviso con la vIPI ACC, senza modo automatico) ----
+    private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
+    {
+        await AppDoc.SaveRegulatedAsync(_app, sel);
+        _regulated = await AppDoc.GetRegulatedAsync(_app);
+    });
+
+    // ---- shape AoR extra + colori ----
+    private Task SaveAorExtras(IReadOnlyList<string> callsigns) => _shell.GuardAsync(async () =>
+    {
+        _aorExtras = callsigns.ToList();
+        await SaveAorCustomization();
+    });
+
+    private Task SaveAorColor((string Callsign, string? Hex) pick) => _shell.GuardAsync(async () =>
+    {
+        if (pick.Hex is null) _aorColors.Remove(pick.Callsign);
+        else _aorColors[pick.Callsign] = pick.Hex;
+        await SaveAorCustomization();
+    });
+
+    private async Task SaveAorCustomization()
+    {
+        await AppDoc.SaveAorCustomizationAsync(_app, new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors });
+        _aorView = await AppDoc.GetAorViewAsync(_app);   // ri-deriva gli anelli sulla mappa
+    }
+
+    private async Task<bool> ConfirmRemoveConfig(AccConfiguration c) =>
+        await JS.InvokeAsync<bool>("confirm", string.Format(L["App_RemoveConfigConfirm"].Value, c.Name));
+
+    // ---- frequenze (derivate + override/link) ----
+    private Task MoveFreq((int Index, int Dir) m) => _shell.GuardAsync(async () =>
+    {
+        var j = m.Index + m.Dir;
+        if (j < 0 || j >= _freqs.Count) return;
+        (_freqs[m.Index], _freqs[j]) = (_freqs[j], _freqs[m.Index]);
+        await AppDoc.SaveFrequencyOrderAsync(_app, _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList());
+    });
+
+    private void FreqDragOver(int idx)
+    {
+        if (_freqDragIndex is not int from || from == idx) return;
+        var item = _freqs[from];
+        _freqs.RemoveAt(from);
+        _freqs.Insert(idx, item);
+        _freqDragIndex = idx;
+    }
+
+    private Task FreqDragDrop() => _freqDragIndex is null ? Task.CompletedTask : _shell.GuardAsync(async () =>
+    {
+        _freqDragIndex = null;
+        await AppDoc.SaveFrequencyOrderAsync(_app, _freqs.Select((r, i) => new AppFreqOrderOverride(r.Callsign, i)).ToList());
+    });
+
+    private Task RemoveLink(int sourceSectorId) => _shell.GuardAsync(async () =>
+    {
+        _linkIds.Remove(sourceSectorId);
+        await AppDoc.SaveFrequencyLinksAsync(_app, _linkIds);
+        await RefreshDerivedAsync();
+    });
+
+    private Task AddLink(int sourceSectorId) => _shell.GuardAsync(async () =>
+    {
+        if (sourceSectorId <= 0 || _linkIds.Contains(sourceSectorId)) return;
+        _linkIds.Add(sourceSectorId);
+        _freqSearch = "";
+        await AppDoc.SaveFrequencyLinksAsync(_app, _linkIds);
+        await RefreshDerivedAsync();
+    });
+
+    // ---- infra ----
+    // Firma a 1 parametro preservata: passata come Run= a DocumentSectionsEditor (Func<Func<Task>,Task>).
+        /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
+    /// <para>⚠️ È un <c>override</c> e non più un <c>public void Dispose()</c>: <c>OwningComponentBase</c>
+    /// implementa <c>IDisposable</c> in modo ESPLICITO, quindi un metodo pubblico con quel nome non lo
+    /// chiamerebbe nessuno — il badge continuerebbe a programmare ridisegni su una pagina smontata, in
+    /// silenzio.</para>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _shell.Dispose();
+        base.Dispose(disposing);
+    }
+
+    private static string AsString(object? v) => v as string ?? "";
+
+    // ---- render sezioni derivate ----
+    private RenderFragment DerivedSection(EditableSection s) => __builder =>
+    {
+        switch (s.SectionKey)
+        {
+            case "separations":
+                <AppSeparations Rows="_separations" Editing="_shell.IsEditing" RowsChanged="SaveSeparations" />
+                break;
+            case "configurations":
+                <AppConfigurations Configs="_configs" Pool="_sectorPool" Tables="_configTable" Editing="_shell.IsEditing"
+                                   MapScope="@($"app-aor-{_app}")" ConfigsChanged="SaveConfigs" ConfirmRemove="ConfirmRemoveConfig" />
+                break;
+            case "aor":
+                <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
+                @if (_shell.IsEditing)
+                {
+                    <div class="block" style="margin-top:10px">
+                        <h2 class="h-card" style="margin:0 0 6px">@L["Aor_ExtraShapesTitle"]</h2>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ExtraShapesHelp"]</p>
+                        <AorExtraShapePicker Selected="_aorExtras" Catalog="_shapeCatalog" Editing="_shell.IsEditing" SelectedChanged="SaveAorExtras" />
+                    </div>
+                    <div class="block" style="margin-top:10px">
+                        <h2 class="h-card" style="margin:0 0 6px">@L["Aor_ColorsTitle"]</h2>
+                        <p class="help" style="margin:0 0 8px">@L["Aor_ColorsHelp"]</p>
+                        <AorColorEditor Sectors="_aorView.Sectors" Editing="_shell.IsEditing" ColorChanged="SaveAorColor" />
+                    </div>
+                }
+                break;
+            case "frequencies":
+                <AppFrequencies Rows="_freqs" Editing="_shell.IsEditing" OnMove="MoveFreq" OnRemoveLink="RemoveLink"
+                                DragIndex="_freqDragIndex" OnDragStart="i => _freqDragIndex = i"
+                                OnDragEnter="FreqDragOver" OnDrop="FreqDragDrop" OnDragEnd="FreqDragDrop" />
+                @if (_shell.IsEditing) { @FreqLinkPicker() }
+                break;
+            case "vfr":
+                <AppVfr Content="_vfr" Editing="_shell.IsEditing" ContentChanged="SaveVfr" />
+                break;
+            case "minima":
+                @* Sola lettura anche in modifica: la carta viene dal sectorfile. Qui si decide solo se resti Live
+                   o venga congelata alla release (toggle del pannello sezione). *@
+                <MinimaSection View="_minima" Aor="_aorView" />
+                break;
+            case "coordination":
+                <AppCoordinationView Coord="_coord" LeadSentence="s.LeadSentence" />
+                break;
+            case "regulated":
+                @* Come la vIPI ACC ma senza aree di default: AllowAuto=false, si scelgono tutte a mano. *@
+                <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
+                                      SelectionChanged="SaveRegulated" />
+                break;
+            @* ⚠️ In modifica non c'è niente da compilare: i tre campi li scrive il documento quando lo si
+               pubblica. Vale la pena dirlo, perché sotto la scheda i blocchi si scrivono eccome — e chi
+               vede una tabella che non risponde al clic pensa a un guasto. *@
+            case "validity":
+                <div class="callout info" style="margin:0 0 10px">
+                    <span class="cic"><Icon Name="clock" Size="18" /></span>
+                    <div>@L["Val_EditNote"]</div>
+                </div>
+                <ValidityStamp Target="ReleaseTargetType.App" Key="@_app" />
+                break;
+        }
+    };
+
+    private RenderFragment FreqLinkPicker() => __builder =>
+    {
+        <div class="app-linkpick">
+            <input class="app-in" placeholder="@L["App_LinkFreqPh"]" value="@_freqSearch"
+                   @oninput="e => _freqSearch = AsString(e.Value)" />
+            @if (!string.IsNullOrWhiteSpace(_freqSearch))
+            {
+                <div class="sector-pick">
+                    @foreach (var l in _linkable
+                        .Where(l => !_linkIds.Contains(l.SectorId))
+                        .Where(l => l.Callsign.Contains(_freqSearch, StringComparison.OrdinalIgnoreCase)
+                                 || (l.Icao ?? "").Contains(_freqSearch, StringComparison.OrdinalIgnoreCase))
+                        .Take(8))
+                    {
+                        var row = l;
+                        <button type="button" class="sp-item" @onclick="() => AddLink(row.SectorId)">
+                            <b>@row.Callsign</b> <span class="muted">@row.FrequencyMhz</span>
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    };
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome: con
+    /// il chrome e' una pagina a se', e non c'e' nessun ospite da avvisare.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+
+}

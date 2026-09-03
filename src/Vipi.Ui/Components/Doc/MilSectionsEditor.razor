@@ -1,0 +1,1173 @@
+﻿@* Il CORPO EDITORIALE di un vSOP militare d'aeroporto: sezioni, corpo derivato, tabelle, lock, salvataggi.
+
+   Sta fuori da `MilEditorPage` perche' lo stesso editor va montato in due posti — la sua pagina, e
+   l'editor UNITO che redige piu' documenti insieme (carta 2026-09-03-documenti-uniti.md §5b).
+
+   ⚠️ `Chrome` spegne testata, indice e rail quando questo componente e' un MEMBRO di un'unione: la'
+   griglia, indice e comandi del lock sono dell'OSPITE — uno per tutti i membri. Vedi <AppSectionsEditor>. *@
+@* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
+   circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`, in fondo. *@
+@inherits OwningComponentBase
+@implements IMembroEditor
+@using Microsoft.Extensions.DependencyInjection
+@inject IMilitaryDocumentService Militari
+@inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
+@inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
+@using Vipi.Application.Import
+@inject Vipi.Application.Import.IRisolutoreCelle RisolutoreCelle
+@inject IStationResolver Stations
+@inject IEditAuthorizationService Authz
+@inject IJSRuntime JS
+@inject ILogger<MilSectionsEditor> Logger
+@inject IDocRoutesRegistry DocRoutes
+@inject IStringLocalizer<SharedResource> L
+@inject EnglishStrings En
+@using Vipi.Application.Content
+@using Vipi.Application.Abstractions
+@using Vipi.Ui.Shared
+
+@* ---- Editor del vSOP MILITARE d'aeroporto (carta vSOP militari §5-6) --------------------------------
+
+   ⚠️ È l'editor più magro dei cinque, e apposta: delle 26 sezioni, 20 sono PROSA e le altre sei le
+   disegna la pagina da dati che sono dell'ANAGRAFICA dello scalo. Su un campo MISTO quei dati non si
+   toccano da qui — piste, quote di transizione e frequenze di LIPI sono quelle, qualunque documento le
+   mostri, e due editor sullo stesso dato sono due verità che divergono. Qui si scrive, e si scelgono le
+   aree di lavoro.
+
+   ⚠️ Su un campo SOLO MILITARE SENZA vIPI civile l'eccezione è obbligata: là il secondo editor non
+   esiste, quindi non c'è nessuna verità da far divergere — e fino al 2 settembre 2026 il rimando
+   all'editor d'aeroporto era un GIRO CHIUSO (quella pagina rimandava indietro qui), cioè TA, livelli di
+   transizione, colonne editoriali delle piste e collegamenti di frequenza non avevano nessuna porta di
+   scrittura in tutto il sito. Vedi `DatiDelloScalo`.
+
+   ⚠️ Nessun `AirportProfile`: il documento è ACC-gated come il gemello civile, ma il suo contenuto sta
+   tutto nei blocchi. *@
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
+}
+else
+{
+    @if (Chrome)
+    {
+        <PageTitle>@L["Mil_EditorTitle"] @_icao · vIPI</PageTitle>
+    }
+    <div class="@(Chrome ? "wrap struct" : null)">
+        @if (Chrome)
+        {
+        <div class="breadcrumb">
+                <a href="/services/vsop">@En["Common_Home"]</a> ›
+                <a href="/services/vsop/mil">@En["Mil_Title"]</a> ›
+                <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}")">@_icao</a> ›
+                <b>@En["Common_Editor"]</b>
+            </div>
+        }
+
+        @if (_notFound)
+        {
+            <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">✎ @L["Mil_EditorTitle"] @_icao</h1><span class="muted">@_acc.Name</span></div></div>
+            <div class="callout warning"><span class="cic">⚠️</span><div>@L["Mil_NotFound"]</div></div>
+        }
+        else if (_denied)
+        {
+            <div class="callout danger"><span class="cic">🔒</span><div><p class="ct">@L["Vle_Unauthorized"]</p>@(string.Format(L["App_DeniedBody"].Value, _acc.Code))</div></div>
+        }
+        else if (_shell.Doc is null)
+        {
+            <p class="help">@L["App_LoadingEditor"]</p>
+        }
+        else
+        {
+            @* Testata in UNA riga: titolo · «?» · stato · lock, come negli altri quattro editor. *@
+            @if (Chrome)
+            {
+            <div class="editor-bar">
+                    <div class="doc-head st-head" style="margin:0">
+                        <h1 class="st-h2 page-h1">✎ @L["Mil_EditorTitle"] @_icao</h1>
+                        <HelpHint Href="/services/vsop/guide#editor-mil" AriaLabel="@L["Mil_HelpAria"]" ExtraClass="wide">
+                            <p>@_icao · @_acc.Name</p>
+                            @((MarkupString)L["Mil_HelpBody"].Value)
+                            @* ⚠️ Dove si cambiano piste, frequenze e quote di transizione dipende dal campo, e
+                               le due risposte sono opposte: la frase non può stare dentro `Mil_HelpBody`. *@
+                            <p>@(ScaloSenzaCivile ? L["Mil_HelpDataOwn"] : L["Mil_HelpDataCivil"])</p>
+                        </HelpHint>
+                        <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                            @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
+                        </span>
+                        @if (_shell.IsEditing)
+                        {
+                            <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_shell.Lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                                🔒 @(_shell.Lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                            </span>
+                        }
+                        else if (_shell.Lock is { Locked: true, IsMine: false })
+                        {
+                            <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value, _shell.Lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                                🔒 @(_shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_shell.Lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                            </span>
+                        }
+                    </div>
+                </div>
+    
+                <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+    
+                @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+                   apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+                @if (_shell.DocumentId is int docIdTraduzione)
+                {
+                    <TranslationReviewPanel DocumentId="docIdTraduzione" />
+                }
+            }
+
+            @if (_shell.Error is not null)
+            {
+                <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div>
+            }
+
+            <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
+                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    ShowToc="Chrome" ExtraTocItems="_tocExtra" TocFooter="@TocCommands">
+                <RightRail>
+                    @* ⚠️ Solo col chrome: in un editor unito il rail e' dell'OSPITE, e il lock si prende su
+                       TUTTI i membri in un gesto — non uno per ciascuno. *@
+                    @if (Chrome)
+                    {
+                    @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving">💾 @L["Ed_Saving"]</span> }
+                    else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved">✓ @L["Ed_Saved"]</span> }
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.AirportMil).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
+                    @if (_shell.IsEditing)
+                    {
+                        <button class="btn ghost" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
+                    }
+                    }
+                </RightRail>
+                <AfterSections>@AfterSections</AfterSections>
+            </DocumentSectionsEditor>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Acc { get; set; } = default!;
+
+    /// <summary>L'ICAO del campo.</summary>
+    [Parameter, EditorRequired] public string? Icao { get; set; }
+
+    /// <inheritdoc cref="AppSectionsEditor.Chrome"/>
+    [Parameter] public bool Chrome { get; set; } = true;
+
+    /// <inheritdoc cref="AppSectionsEditor.AfterSections"/>
+    [Parameter] public RenderFragment? AfterSections { get; set; }
+
+    /// <inheritdoc cref="AppSectionsEditor.StatoCambiato"/>
+    [Parameter] public EventCallback StatoCambiato { get; set; }
+
+    // ---- quel che l'OSPITE di un editor unito ha bisogno di sapere e di comandare -------------------
+
+    /// <inheritdoc cref="AppSectionsEditor.Guscio"/>
+    public DocumentEditorShell Guscio => _shell;
+
+    /// <inheritdoc cref="AppSectionsEditor.Titolo"/>
+    public string Titolo => _shell.Doc?.Title ?? _icao;
+
+    /// <inheritdoc cref="AppSectionsEditor.Sezioni"/>
+    public IReadOnlyList<EditableSection> Sezioni => _shell.Doc?.Sections ?? Array.Empty<EditableSection>();
+
+    /// <inheritdoc cref="AppSectionsEditor.PrendiLockAsync"/>
+    public async Task<string?> PrendiLockAsync()
+    {
+        if (_shell.Doc is null) return null;
+        if (_shell.Lock is { Locked: true, IsMine: false })
+            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
+        await _shell.StartEditingAsync(LoadAsync);
+        return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
+    }
+
+    /// <inheritdoc cref="AppSectionsEditor.RilasciaLockAsync"/>
+    public Task RilasciaLockAsync() => _shell.IsEditing ? _shell.FinishEditingAsync() : Task.CompletedTask;
+
+    /// <inheritdoc cref="AppSectionsEditor.RicaricaAsync"/>
+    public Task RicaricaAsync() => LoadAsync();
+
+    private AccInfo? _acc;
+    private string _icao = "";
+    private string _loaded = "";
+    private bool _notFound, _denied;
+
+    /// <summary>Il guscio comune dei cinque editor (doc 14 §3d): documento, modifica, errore, lock, badge.</summary>
+    private DocumentEditorShell _shell = default!;
+
+    // Radioassistenze: le righe citate dal documento (nell'ordine) e tutta l'anagrafica, per suggerire i
+    // codici già noti. ⚠️ Sono due cose diverse: la prima è contenuto del documento, la seconda è di tutti.
+    private IReadOnlyList<NavaidRow> _radioassistenze = Array.Empty<NavaidRow>();
+    private IReadOnlyList<NavaidRow> _anagrafica = Array.Empty<NavaidRow>();
+
+    // Aeroporti alternati: le righe del documento e l'elenco dei NOSTRI scali, per suggerire i codici.
+    private IReadOnlyList<MilDiversionView> _alternati = Array.Empty<MilDiversionView>();
+    private IReadOnlyList<AirportName> _aeroportiNoti = Array.Empty<AirportName>();
+
+    // Le due tabelle a mano e le attività delle aree.
+    private IReadOnlyList<IReadOnlyList<string>> _nominativi = Array.Empty<IReadOnlyList<string>>();
+    private IReadOnlyList<IReadOnlyList<string>> _parcheggi = Array.Empty<IReadOnlyList<string>>();
+    private IReadOnlyDictionary<string, MilActivity> _attivitaAree = new Dictionary<string, MilActivity>();
+
+    // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
+    private RegulatedSelection _regulated = new() { OwnAuto = false };
+    private IReadOnlyList<SpecialAreaPick> _areaPicks = Array.Empty<SpecialAreaPick>();
+    private IReadOnlyList<SpecialAreaPick> _otherAreaPicks = Array.Empty<SpecialAreaPick>();
+
+    /// <summary>Le aree SCELTE, risolte: la tabella sotto la mappa prende di qui nome e limiti, e così
+    /// non esiste nessun secondo posto dove riscriverli.</summary>
+    private IReadOnlyList<AccSpecialAreaView> _areeScelte = Array.Empty<AccSpecialAreaView>();
+
+    // ---- l'anagrafica dello scalo (frequenze, piste, quote di transizione) ----------------------------
+    //
+    // ⚠️ Non è contenuto del documento: è il dato dell'AEROPORTO, che questo vSOP mostra. Ci sta qui solo
+    // perché su un campo solo militare senza vIPI civile non esiste nessun'altra pagina che lo scriva.
+
+    /// <summary>Quale edizione civile esiste per questo scalo. Serve a decidere DOVE si cambiano i dati
+    /// dell'aeroporto, e va letta anche sui campi misti (la nota di rimando la usa lo stesso).</summary>
+    private CivilEdition _civile = new(false, false, false);
+
+    /// <summary>
+    /// Il campo è solo militare e la vIPI civile <b>non esiste</b>: allora l'editor d'aeroporto non è
+    /// raggiungibile e i suoi dati si scrivono qui.
+    ///
+    /// <para>⚠️ <c>SoloMilitare</c> da solo <b>non basta</b>, ed è l'errore facile: un campo marcato solo
+    /// militare <i>dopo</i> che la sua vIPI civile era nata continua ad aprirla — la guardia blocca la
+    /// nascita, non l'apertura. Là il rimando funziona e va lasciato, o gli editor diventerebbero due.</para>
+    /// </summary>
+    private bool ScaloSenzaCivile => _civile is { SoloMilitare: true, Esiste: false };
+
+    /// <summary>Chi guarda può scrivere sull'anagrafica di questo scalo: è il RUOLO sulla sua ACC, non il
+    /// lock del documento.</summary>
+    private bool _canEditScalo;
+
+    /// <summary>Un salvataggio dell'anagrafica è in corso: i tasti di quei tre editor si spengono.</summary>
+    private bool _busyScalo;
+
+    private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
+    private int? _ta;
+    private List<TlEdit> _tls = new();
+    private List<RwEdit> _rwys = new();
+    private List<int> _linkIds = new();
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+    private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
+
+    /// <summary>Le sezioni dell'anagrafica con modifiche non salvate: sono a salvataggio ESPLICITO, al
+    /// contrario dei blocchi del documento, quindi senza la guardia si perderebbero uscendo dalla pagina.</summary>
+    private readonly HashSet<string> _scaloDaSalvare = new(StringComparer.OrdinalIgnoreCase);
+
+    // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
+    // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
+    /// ⚠️ Solo col chrome: in un editor unito il pannello di pubblicazione e' UNO, dell'ospite, e una
+    /// voce per membro prometterebbe N pannelli che non ci sono.
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
+        ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
+        : Array.Empty<EditorTocItem>())
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
+
+    /// <summary>
+    /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
+    /// contesto isolato da quello del circuito.
+    ///
+    /// <para>⚠️ <b>Iniettarlo con <c>@@inject</c> lo prendeva dal circuito</b>, cioè dal <c>DbContext</c> che
+    /// la sessione condivide con tutto il resto — barra, isole, pannelli, e il <c>LoadAsync</c> di questa
+    /// pagina. «Fine modifica» fa due operazioni di fila (rilascia il lock, rileggilo) proprio mentre il
+    /// campo di testo che stavi scrivendo perde il fuoco e fa partire il salvataggio del blocco, che a sua
+    /// volta richiama <c>LoadAsync</c>: due operazioni sullo stesso contesto, cioè
+    /// «<c>A second operation was started on this context</c>» — e il circuito muore. È il guasto già pagato
+    /// sei volte su questo prodotto, ed è il motivo per cui <c>DocumentSectionsEditor</c> e
+    /// <c>VloaEditor</c> lo scope se lo possedevano già.</para>
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    /// <summary>
+    /// L'anagrafica dello scalo, dallo <b>stesso scope proprio</b> di <see cref="Editing"/>.
+    ///
+    /// <para>⚠️ Scrive sul database (TA, livelli, piste, collegamenti di frequenza), quindi vale parola per
+    /// parola il blocco qui sopra: con <c>@@inject</c> arriverebbe dallo scope del CIRCUITO, cioè dal
+    /// <c>DbContext</c> che la sessione condivide con barra, isole e pannelli — e il salvataggio di una
+    /// pista finirebbe per correre contro il <c>LoadAsync</c> di questa stessa pagina.</para>
+    /// </summary>
+    private IAirportEditingService Scalo = default!;
+
+    /// <summary>Il catalogo settori dello scalo: la tabella (in sola lettura) della sezione «Frequenze».
+    /// Stesso scope, perché si legge nello stesso giro in cui l'altro scrive.</summary>
+    private IAirportSectorService Settori = default!;
+
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Scalo = ScopedServices.GetRequiredService<IAirportEditingService>();
+        Settori = ScopedServices.GetRequiredService<IAirportSectorService>();
+        _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
+            // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
+            () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
+    }
+
+    /// <summary>⚠️ Il guscio tiene un timer (il badge «Salvato» che si spegne da solo): senza questo resta un
+    /// ridisegno programmato su una pagina che non c'è più. Le altre tre pagine lo facevano già.</summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _shell?.Dispose();
+        base.Dispose(disposing);
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender) _shell.JsReady = true;
+    }
+
+    // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA SOLA,
+    // e questa pagina cambia aeroporto dalla stringa di query.
+    /// <summary>
+    /// ⚠️ Anche questo passa dal <b>tornello</b>: qui si legge dal database <i>prima</i> di arrivare al
+    /// caricamento, e <c>OnParametersSetAsync</c> scatta a ogni ridisegno — compreso quello che un gesto
+    /// provoca mentre il suo ricarico è ancora in volo. Erano le due catene che si sovrapponevano.
+    /// </summary>
+    protected override Task OnParametersSetAsync() => _shell.InFilaAsync(ParametriAsync);
+
+    private async Task ParametriAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _icao = (Icao ?? "").Trim().ToUpperInvariant();
+        if (_icao.Length == 0) { _notFound = true; return; }
+        if (_loaded == _icao) return;
+
+        _loaded = _icao;
+        _notFound = _denied = false;
+        try
+        {
+            // ⚠️ Ensure e non «se manca crealo» scritto qui: è ACC-gated e idempotente, quindi solo chi può
+            // editare lo fa nascere. A chi guarda in sola lettura serve già esistente, e se non c'è lo si dice.
+            _shell.DocumentId = Authz.IsEditor
+                ? await Militari.CreaAsync(_icao)
+                : await Militari.GetDocumentIdAsync(_icao);
+        }
+        catch (EditNotAllowedException) { _denied = true; return; }
+        catch (Vipi.Application.Aor.ValidationException) { _notFound = true; return; }
+
+        if (_shell.DocumentId is null) { _notFound = true; return; }
+
+        _areaPicks = await Militari.ListSpecialAreasAsync(_icao);
+        _otherAreaPicks = await Militari.ListOtherAccSpecialAreasAsync(_icao);
+        await CaricaDatiScaloAsync();
+        await LoadAsync();
+    }
+
+    /// <summary>
+    /// I dati dell'anagrafica dello scalo, letti UNA VOLTA per aeroporto.
+    ///
+    /// <para>⚠️ Deliberatamente <b>fuori</b> da <see cref="LoadAsync"/>, che rigira a ogni salvataggio di
+    /// blocco (<c>OnChanged</c> di <c>DocumentSectionsEditor</c>): questi tre editor hanno buffer a
+    /// salvataggio esplicito, e rileggerli lì butterebbe via quel che si stava scrivendo perché <i>un'altra
+    /// sezione</i> si è salvata da sé. Dopo i salvataggi di qui non serve rileggere: il repository fa
+    /// sostituzione totale, quindi i buffer sono già lo stato salvato.</para>
+    /// </summary>
+    private async Task CaricaDatiScaloAsync()
+    {
+        _civile = await Militari.GetCivilEditionAsync(_icao);
+        _scaloDaSalvare.Clear();
+        await AggiornaGuardiaScaloAsync();
+
+        // Su un campo che una vIPI civile ce l'ha (o deve averla) quei dati si scrivono nell'altro editor:
+        // qui non si disegnano, e leggerli sarebbe lavoro per niente.
+        if (!ScaloSenzaCivile) return;
+
+        AirportData? dati;
+        try
+        {
+            dati = await Scalo.LoadForEditAsync(_icao);
+            _canEditScalo = dati is not null;
+        }
+        catch (EditNotAllowedException)
+        {
+            dati = await Scalo.LoadForViewAsync(_icao);
+            _canEditScalo = false;
+        }
+        if (dati is null) return;
+
+        _policy = await Scalo.GetImportPolicyAsync();
+        _linkable = await Scalo.ListLinkableFrequenciesAsync();
+        _sectors = await Settori.ListByAirportAsync(_icao);
+
+        _ta = dati.TransitionAltitudeFt;
+        _tls = dati.TransitionLevels
+            .Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
+        _rwys = dati.Runways.Select(r => new RwEdit
+        {
+            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
+            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
+        }).ToList();
+        _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
+    }
+
+    /// <summary>
+    /// ⚠️ Il caricamento passa dal <b>tornello</b> del guscio (<c>InFilaAsync</c>): su questo contesto ci sta
+    /// una operazione per volta. Senza, un gesto che ricarica e il <c>OnParametersSetAsync</c> che segue il
+    /// suo ridisegno diventano DUE catene sullo stesso <c>DbContext</c> — «A second operation was started»,
+    /// e il circuito muore. Visto il 2 settembre 2026 aggiungendo una sotto-sezione.
+    /// </summary>
+    private Task LoadAsync() => _shell.InFilaAsync(LoadAsyncCore);
+
+    private async Task LoadAsyncCore()
+    {
+        if (_shell.DocumentId is not int id) return;
+        try
+        {
+            _shell.Doc = await Editing.LoadForEditAsync(id);
+            _shell.Lock = await Editing.InspectLockAsync(id);
+            if (_shell.Doc is null) { _notFound = true; return; }
+            _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
+            _regulated = await Militari.GetRegulatedAsync(_icao);
+            await CaricaRadioassistenzeAsync();
+            await CaricaAlternatiAsync();
+            await CaricaTabelleAsync();
+            await CaricaAltriSopAsync();
+            _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
+        }
+        catch (EditNotAllowedException) { _denied = true; }
+    }
+
+    // Espandi/comprimi tutto, in coda al menu-sezioni: con 26 sezioni è l'unico modo per non scorrere.
+    private RenderFragment TocCommands => __builder =>
+    {
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+    };
+
+    // ---- sezioni il cui corpo lo rende questa pagina ---------------------------------------------------
+    // L'insieme lo dice il CATALOGO, per profilo (doc 13 §3a): qui stava una delle sei copie.
+    // ⚠️ `Depth == 0` no: nell'`AirportMil` le derivate sono ANNIDATE (frequenze e piste stanno sotto «Dati
+    // generali»), ed è la prima famiglia in cui succede.
+    private static bool IsDerived(EditableSection s) =>
+        SectionCatalog.IsHostRendered(SectionProfile.AirportMil, s.SectionKey);
+
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.AirportMil, s.SectionKey);
+
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+
+    /// <summary>
+    /// Il corpo delle sezioni rese dalla pagina. ⚠️ Cinque delle sei sono <b>di sola lettura anche in
+    /// modifica</b>: i loro dati sono dell'aeroporto civile e si scrivono nel suo editor. Dirlo è
+    /// necessario — chi vede una tabella che non risponde al clic pensa a un guasto.
+    /// </summary>
+    private RenderFragment<EditableSection> DerivedSection => s => __builder =>
+    {
+        @switch (s.SectionKey)
+        {
+            case "navaids":
+                <MilNavaidsEditor Rows="_radioassistenze" Anagrafica="_anagrafica" Editing="_shell.IsEditing"
+                                  OnAdd="AggiungiRadioassistenza" OnRemove="TogliRadioassistenza"
+                                  OnMove="SpostaRadioassistenza" OnSet="ScriviRadioassistenza" />
+                break;
+            case "diversion":
+                <MilDiversionsEditor Rows="_alternati" Aeroporti="_aeroportiNoti" Anagrafica="_anagrafica"
+                                     Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiAlternato" OnRemove="TogliAlternato" OnMove="SpostaAlternato"
+                                     OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
+                                     OnSetRilevamento="ScriviRilevamentoAlternato"
+                                     OnSetDistanza="ScriviDistanzaAlternato"
+                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati"
+                                     Sorgenti="_altriSop" CaricaSorgente="AlternatiDiUnAltroSop" />
+                break;
+            case "regulated":
+                @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
+                   limiti vengono dalle aree scelte, l'attività si compila coi gettoni. *@
+                <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
+                                      SelectionChanged="SaveRegulated" />
+                <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Editing="_shell.IsEditing"
+                                 OnSet="ScriviAttivitaArea" />
+                break;
+            case "callsigns":
+                <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"
+                                     Chiave="milcallsigns" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiNominativo" OnRemove="TogliNominativo"
+                                     OnMove="SpostaNominativo" OnSet="ScriviNominativo"
+                                     OnImporta="ImportaNominativi"
+                                     Sorgenti="_altriSop" CaricaSorgente="NominativiDiUnAltroSop" />
+                break;
+            case "parkings":
+                <MilFixedTableEditor Colonne="MilProfiloTabelle.Parcheggi(L)" Righe="_parcheggi"
+                                     Chiave="milparkings" Editing="_shell.IsEditing"
+                                     OnAdd="AggiungiParcheggio" OnRemove="TogliParcheggio"
+                                     OnMove="SpostaParcheggio" OnSet="ScriviParcheggio"
+                                     OnImporta="ImportaParcheggi"
+                                     Sorgenti="_altriSop" CaricaSorgente="ParcheggiDiUnAltroSop" />
+                break;
+            case "validity":
+                <div class="callout info" style="margin:0 0 10px">
+                    <span class="cic"><Icon Name="clock" Size="18" /></span>
+                    <div>@L["Val_EditNote"]</div>
+                </div>
+                <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@_icao" />
+                break;
+            @* ⚠️ Il meteo NON è un dato dell'aeroporto: è il METAR/TAF live dal NOAA, e non si compila in
+               nessun editor — nemmeno in quello dell'aeroporto, dove infatti c'è questa stessa nota. Fino
+               al 2 settembre 2026 cadeva nel `default:` e mandava la gente a cambiarlo in una pagina che
+               non può cambiarlo: su TUTTI i campi, non solo sui solo militari. *@
+            case "weather":
+                <div class="callout info" style="margin:0">
+                    <span class="cic"><Icon Name="cloud" Size="18" /></span>
+                    <div><p class="ct">@L["Ape_WeatherTitle"]</p>@L["Ape_WeatherBody"]</div>
+                </div>
+                break;
+            default:
+                @* frequencies, runways, transition: la scheda la disegna il VIEWER dai dati
+                   dell'anagrafica dello scalo. Qui si dice dove si cambiano — o si cambiano, quando non
+                   c'è nessun altro posto dove farlo — e sotto si scrivono i blocchi, che su un campo
+                   militare pesano più della scheda (misurato su LIPI). *@
+                @DatiDelloScalo(s)
+                break;
+        }
+    };
+
+    /// <summary>
+    /// Le tre sezioni il cui dato è dell'<b>anagrafica dello scalo</b> e non del documento: frequenze,
+    /// piste, quote di transizione.
+    ///
+    /// <para>⚠️ <b>Dove si scrivono dipende da quale altra edizione esiste, e le due risposte sono
+    /// opposte.</b> Campo con una vIPI civile (o che deve averne una): l'editor di quei dati è il suo, e un
+    /// secondo editor sullo stesso dato sarebbe la seconda verità che diverge — qui si rimanda e basta.
+    /// Campo <b>solo militare senza vIPI civile</b>: quell'editor <b>non è raggiungibile</b>, perché
+    /// <c>AirportEditingService.EnsureDocumentAsync</c> rifiuta di far nascere il documento e
+    /// <c>AeroportoEditorPage</c> rimanda indietro qui — il rimando era un giro chiuso, e quei dati non
+    /// avevano <b>nessuna</b> porta di scrittura in tutto il sito. Allora si scrivono qui.</para>
+    ///
+    /// <para>⚠️ La domanda è la <b>stessa</b> che fa la pagina che rimanda indietro — «solo militare E
+    /// nessun documento civile» — e non una che le somiglia: due porte che decidono la stessa cosa devono
+    /// chiedere la stessa cosa, o una manda dove l'altra non lascia entrare.</para>
+    ///
+    /// <para>⚠️ Il dato resta <b>dell'aeroporto</b> anche quando si scrive di qui: le stesse piste e la
+    /// stessa TA le legge chiunque altro citi lo scalo. Non è una copia dentro il vSOP.</para>
+    /// </summary>
+    private RenderFragment DatiDelloScalo(EditableSection s) =>
+        ScaloSenzaCivile ? EditorDelloScalo(s) : NotaEditorCivile;
+
+    /// <summary>Dove si cambiano: il rimando all'editor della vIPI civile dello stesso scalo.</summary>
+    private RenderFragment NotaEditorCivile => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="info" Size="18" /></span>
+            <div>
+                @L["Mil_DerivedNote"]
+                <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports/editor?icao={_icao}")">@L["Mil_DerivedLink"]</a>
+            </div>
+        </div>
+    };
+
+    /// <summary>
+    /// I dati dello scalo scritti <b>qui</b>, con gli stessi tre componenti dell'editor d'aeroporto: quelli
+    /// sono già estratti e non sanno da quale pagina sono montati (doc 14 §3g), quindi non c'è nessuna
+    /// seconda stesura dell'editor — solo un secondo ospite.
+    ///
+    /// <para>⚠️ La scrittura segue <c>_canEditScalo</c> — il <b>ruolo</b> sulla ACC dello scalo — e non
+    /// <c>_shell.IsEditing</c>, che è il lock del <b>documento</b>: quel lock governa il vSOP, non
+    /// l'anagrafica dell'aeroporto, e sono due cose che si possiedono separatamente.</para>
+    /// </summary>
+    private RenderFragment EditorDelloScalo(EditableSection s) => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="info" Size="18" /></span>
+            <div>@L["Mil_OwnDataNote"]</div>
+        </div>
+        @switch (s.SectionKey)
+        {
+            case "transition":
+                <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="v => _ta = v"
+                                         SourceLocked="_policy.TransitionAltitude" Busy="_busyScalo" CanEdit="_canEditScalo"
+                                         OnChanged='() => SegnaScaloDaSalvare("transition")'
+                                         OnSaveTa="SalvaTa" OnSaveRows="SalvaLivelli"
+                                         ConfirmRemove="ConfermaRimozioneRiga" />
+                break;
+            case "runways":
+                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busyScalo" CanEdit="_canEditScalo"
+                                      OnChanged='() => SegnaScaloDaSalvare("runways")' OnSaveRows="SalvaPiste"
+                                      ConfirmRemove="ConfermaRimozionePista" />
+                break;
+            case "frequencies":
+                <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
+                                          Busy="_busyScalo" CanEdit="_canEditScalo"
+                                          OnChanged='() => SegnaScaloDaSalvare("frequencies")' OnSaveLinks="SalvaLink" />
+                break;
+        }
+    };
+
+    // ---- l'anagrafica dello scalo: letture d'appoggio, guardia e salvataggi ---------------------------
+
+    /// <summary>Le frequenze del catalogo settori, nell'ordine ATIS·DEL·GND·TWR·APP/DEP: solo quelle che
+    /// hanno una frequenza e non sono nascoste. Sola lettura — il catalogo si scrive in «Struttura».</summary>
+    private IEnumerable<AirportSectorRow> FreqRows()
+    {
+        string[] ordine = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+        return _sectors
+            .Where(s => !s.IsHidden && !string.IsNullOrWhiteSpace(s.Frequency))
+            .OrderBy(s => { var i = Array.IndexOf(ordine, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
+            .ThenByDescending(s => s.IsPrimary)
+            .ThenBy(s => s.ComposePosition);
+    }
+
+    private Task<bool> Conferma(string messaggio) => JS.InvokeAsync<bool>("confirm", messaggio).AsTask();
+    private Task<bool> ConfermaRimozioneRiga() => Conferma(L["Ape_RemoveRowConfirm"].Value);
+    private Task<bool> ConfermaRimozionePista() => Conferma(L["Ape_RemoveRwConfirm"].Value);
+
+    /// <summary>
+    /// La guardia «hai modifiche non salvate» del browser.
+    ///
+    /// <para>⚠️ Serve <b>solo</b> a questi tre editor: i blocchi del documento si salvano da sé a ogni
+    /// gesto, quelli dell'anagrafica no — hanno il loro tasto «salva», e chi esce senza premerlo perde
+    /// quel che ha scritto.</para>
+    /// </summary>
+    private async Task AggiornaGuardiaScaloAsync()
+    {
+        if (!_shell.JsReady) return;
+        try { await JS.InvokeVoidAsync("vipiSetDirty", _scaloDaSalvare.Count > 0); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    private async Task SegnaScaloDaSalvare(string sezione)
+    {
+        _scaloDaSalvare.Add(sezione);
+        await AggiornaGuardiaScaloAsync();
+    }
+
+    /// <summary>Esegue un salvataggio dell'anagrafica col badge e gli errori tradotti del guscio comune, e
+    /// a buon fine pulisce il «da salvare» della sola sezione toccata.</summary>
+    private async Task SalvaScalo(string sezione, Func<Task> azione)
+    {
+        _busyScalo = true;
+        bool fatto;
+        try { fatto = await _shell.GuardedAsync(azione); }
+        finally { _busyScalo = false; }
+
+        // ⚠️ Nessuna rilettura: il repository sostituisce in blocco, quindi i buffer SONO già lo stato
+        // salvato — e una rilettura totale butterebbe via le modifiche non salvate delle ALTRE sezioni.
+        if (!fatto) return;
+        _scaloDaSalvare.Remove(sezione);
+        await AggiornaGuardiaScaloAsync();
+    }
+
+    private Task SalvaTa() => SalvaScalo("transition", () => Scalo.SetTransitionAltitudeAsync(_icao, _ta));
+
+    private Task SalvaLivelli() => SalvaScalo("transition", () => Scalo.SaveTransitionLevelsAsync(_icao,
+        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+
+    private Task SalvaPiste() => SalvaScalo("runways", () => Scalo.SaveRunwaysAsync(_icao,
+        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,
+            r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
+
+    private Task SalvaLink() => SalvaScalo("frequencies", () => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+
+    // ---- Radioassistenze ------------------------------------------------------------------------------
+    //
+    // ⚠️ Due archivi, e la differenza è il punto della sezione: l'ORDINE e QUALI righe compaiono sono del
+    // DOCUMENTO (payload della sezione, versionato, congelato alla release); i VALORI sono dell'ANAGRAFICA di
+    // divisione, e scriverli qui cambia la stessa radioassistenza in ogni altro SOP che la cita.
+
+    private async Task CaricaRadioassistenzeAsync()
+    {
+        _radioassistenze = await Militari.GetNavaidsAsync(_icao);
+        _anagrafica = await Radioassistenze.ListAsync();
+    }
+
+    /// <summary>Le identità citate dal documento, nell'ordine: è la forma in cui si risalva il payload dopo
+    /// un'aggiunta, una rimozione o uno spostamento.</summary>
+    private List<NavaidKey> ChiaviCorrenti() => _radioassistenze.Select(r => r.Key).ToList();
+
+    /// <summary>
+    /// Aggiunge una radioassistenza al documento.
+    ///
+    /// <para>⚠️ Le tre risposte possibili, e nessuna si indovina: il codice è già in anagrafica <b>una</b>
+    /// volta e si cita quella; ci sta <b>più</b> volte — <c>DEC</c> è un VOR e un NDB, <c>GRO</c> un VOR e un
+    /// TACAN — e allora bisogna dire quale, perché sceglierne una a caso metterebbe su un SOP la frequenza
+    /// dell'impianto sbagliato; <b>non</b> c'è, e allora si crea con la famiglia scelta.</para>
+    /// <para>⚠️ La seconda risposta arriva <b>già data</b>: la sceglie una persona nell'editor, che le
+    /// candidate le ha in mano, e qui torna come identità intera. Fino al 1° settembre 2026 non arrivava
+    /// affatto — il messaggio diceva «scegli quale dall'elenco a discesa» e la tendina della banda non
+    /// veniva letta, così il codice ambiguo restava fuori da ogni tabella.</para>
+    /// <para>⚠️ Fino al 30 agosto 2026 non c'era la seconda risposta per niente: scrivendo un codice con un
+    /// tipo diverso nasceva un <b>gemello vuoto</b>, che l'import non avrebbe mai riempito.</para>
+    /// </summary>
+    private Task AggiungiRadioassistenza((string Codice, string Famiglia, NavaidKey? Scelta) x) =>
+        _shell.GuardAsync(async () =>
+    {
+        NavaidRow riga;
+        if (x.Scelta is { } chiave)
+        {
+            // La scelta si ricontrolla sull'anagrafica: quel che arriva dal browser è una proposta, non un fatto.
+            if (_anagrafica.FirstOrDefault(n => n.Key == chiave) is not { } scelta)
+            {
+                _shell.Error = L["Nav_Gone"].Value;
+                return;
+            }
+            riga = scelta;
+        }
+        else
+        {
+            var candidate = _anagrafica.Where(n => n.Code == x.Codice).ToList();
+
+            // ⚠️ Qui non ci si arriva dall'editor, che la scelta la chiede prima: è la rete sotto, per un
+            // chiamante che non l'avesse chiesta. Rifiutare senza offrire una via d'uscita è quello che si
+            // faceva fino al 1° settembre 2026, e teneva fuori GRO e i sedici omonimi di banda.
+            if (candidate.Count > 1)
+            {
+                _shell.Error = string.Format(L["Nav_Ambiguous"].Value, x.Codice,
+                    string.Join(", ", candidate.Select(n => Descrivi(n))));
+                return;
+            }
+
+            // ⚠️ Prima l'anagrafica, poi il documento: citare un codice che non esiste darebbe una riga
+            // fantasma. ⚠️ E con UNA sola candidata vince quella anche se è di un'altra banda: creare il
+            // gemello della banda chiesta darebbe una riga vuota che l'import non riempirebbe mai
+            // (lezione del 30 agosto).
+            riga = candidate.Count == 1
+                ? candidate[0]
+                : await Radioassistenze.CreateAsync(x.Codice, x.Famiglia, Authz.CurrentUserId ?? 0);
+        }
+
+        var chiavi = ChiaviCorrenti();
+        if (chiavi.Contains(riga.Key)) { _shell.Error = L["Nav_Duplicate"].Value; return; }
+        chiavi.Add(riga.Key);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    /// <summary>Come si nomina una riga quando bisogna sceglierne una fra omonime.</summary>
+    private static string Descrivi(NavaidRow n) => string.Join(" ", new[]
+    {
+        n.Kind, n.Type, n.Channel is { Length: > 0 } c ? "ch " + c : null, n.Frequency,
+    }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+    /// <summary>Toglie la riga dal DOCUMENTO. ⚠️ Non dall'anagrafica: quella radioassistenza la citano altri
+    /// SOP, e cancellarla davvero sarebbe un atto su un dato di tutti preso dalla tabella di uno.</summary>
+    private Task TogliRadioassistenza(int indice) => _shell.GuardAsync(async () =>
+    {
+        var chiavi = ChiaviCorrenti();
+        if (indice < 0 || indice >= chiavi.Count) return;
+        chiavi.RemoveAt(indice);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    private Task SpostaRadioassistenza((int Indice, int Delta) m) => _shell.GuardAsync(async () =>
+    {
+        var chiavi = ChiaviCorrenti();
+        var a = m.Indice;
+        var b = a + m.Delta;
+        if (a < 0 || a >= chiavi.Count || b < 0 || b >= chiavi.Count) return;
+        (chiavi[a], chiavi[b]) = (chiavi[b], chiavi[a]);
+        await Militari.SaveNavaidsAsync(_icao, chiavi);
+        await CaricaRadioassistenzeAsync();
+    });
+
+    /// <summary>
+    /// Scrive UN campo nell'anagrafica e torna l'esito a chi l'ha chiesto. ⚠️ L'esito serve: «la fonte vince»
+    /// si racconta a chi ha appena provato a scrivere, e un salvataggio muto lascerebbe credere che il valore
+    /// sia passato.
+    /// </summary>
+    private async Task<NavaidWrite> ScriviRadioassistenza(int navaidId, NavaidCampo campo, string? valore)
+    {
+        var utente = Authz.CurrentUserId ?? 0;
+        var esito = campo switch
+        {
+            NavaidCampo.Tipo => await Radioassistenze.SetTypeAsync(navaidId, valore, utente),
+            NavaidCampo.Frequenza => await Radioassistenze.SetFrequencyAsync(navaidId, valore, utente),
+            NavaidCampo.Canale => await Radioassistenze.SetChannelAsync(navaidId, valore, utente),
+            _ => await Radioassistenze.SetCoordinatesAsync(navaidId, valore, utente),
+        };
+        // Si ricarica anche quando la scrittura è stata rifiutata: la casella deve tornare al valore vero,
+        // altrimenti a schermo resta quel che l'utente ha battuto e sembra salvato.
+        await CaricaRadioassistenzeAsync();
+        return esito;
+    }
+
+    // ---- Aeroporti alternati (§12f) --------------------------------------------------------------------
+    //
+    // ⚠️ Qui si scrive SOLO nel documento: rilevamento e distanza sono di questa coppia di campi, non
+    // dell'aeroporto. Le radioassistenze citate vengono dall'anagrafica e da qui si scelgono soltanto.
+
+    private async Task CaricaAlternatiAsync()
+    {
+        _alternati = await Militari.GetDiversionsAsync(_icao);
+        _aeroportiNoti = await Aeroporti.ListAsync();
+    }
+
+    /// <summary>
+    /// Le righe salvate, ricostruite da quelle mostrate. ⚠️ Una radioassistenza citata ma non più in
+    /// anagrafica sparirebbe al primo salvataggio: è una guarigione, non una perdita — quel codice non si
+    /// poteva più stampare comunque, e tenerlo vorrebbe dire un documento che cita qualcosa che non c'è.
+    /// <para>⚠️ Il rimontaggio vero sta in <see cref="MilDiversionPayload.Da"/>, non qui: il canale fa parte
+    /// dell'identità, e una riga rimessa insieme senza faceva sparire in silenzio ogni TACAN al primo gesto
+    /// successivo — questo metodo lo chiamano TUTTI i comandi della sezione, non solo l'aggiunta.</para>
+    /// </summary>
+    private List<MilDiversionPayload.Riga> RigheAlternati() =>
+        _alternati.Select(MilDiversionPayload.Da).ToList();
+
+    private Task SalvaAlternati(List<MilDiversionPayload.Riga> righe) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveDiversionsAsync(_icao, righe);
+        await CaricaAlternatiAsync();
+    });
+
+    private async Task AggiungiAlternato(string icao)
+    {
+        // ⚠️ L'unica chiamata alla SORGENTE di tutta la sezione, e la fa una persona premendo un tasto: il
+        // nome si salva nel documento, così la pagina pubblica non dipenderà mai da IVAO per stampare una cella.
+        var trovato = await Aeroporti.FindAsync(icao);
+        if (trovato is null) _shell.Error = L["Div_UnknownIcao"].Value;
+
+        var righe = RigheAlternati();
+        righe.Add(new MilDiversionPayload.Riga { Icao = icao, Name = trovato?.Name });
+        await SalvaAlternati(righe);
+    }
+
+    private Task TogliAlternato(int i)
+    {
+        var righe = RigheAlternati();
+        if (i < 0 || i >= righe.Count) return Task.CompletedTask;
+        righe.RemoveAt(i);
+        return SalvaAlternati(righe);
+    }
+
+    private Task SpostaAlternato((int Indice, int Delta) m)
+    {
+        var righe = RigheAlternati();
+        var (a, b) = (m.Indice, m.Indice + m.Delta);
+        if (a < 0 || a >= righe.Count || b < 0 || b >= righe.Count) return Task.CompletedTask;
+        (righe[a], righe[b]) = (righe[b], righe[a]);
+        return SalvaAlternati(righe);
+    }
+
+    /// <summary>
+    /// Cita una radioassistenza su una riga. ⚠️ Arriva l'<b>identità intera</b>, non il codice: quando il
+    /// codice è di un impianto solo la sceglie l'editor senza chiedere niente, e quando è di più — i
+    /// diciassette che stanno sia fra i VHF sia fra gli NDB, e <c>GRO</c> che sta due volte fra i VHF — la
+    /// domanda la fa lì, in tabella, dove si vedono tutt'e due.
+    /// <para>⚠️ Fino al 1° settembre 2026 il codice ambiguo si rifiutava e basta, mandando chi scriveva
+    /// «nella sezione Radioassistenze» — che lo rifiutava allo stesso modo. Su un campo militare, dove
+    /// VORTAC e NDB condividono l'ident, restavano citabili quasi solo i codici unici in tutta l'anagrafica:
+    /// due o tre per aeroporto.</para>
+    /// </summary>
+    private async Task AggiungiNavaidAlternato((int Indice, NavaidKey Chiave) x)
+    {
+        // La scelta si ricontrolla sull'anagrafica: quel che arriva dal browser è una proposta, non un fatto.
+        if (_anagrafica.FirstOrDefault(n => n.Key == x.Chiave) is not { } scelta)
+        {
+            _shell.Error = L["Div_UnknownNavaid"].Value;
+            return;
+        }
+
+        var righe = RigheAlternati();
+        if (x.Indice < 0 || x.Indice >= righe.Count) return;
+        var riga = righe[x.Indice];
+        if (riga.Navaids.Any(n => n.Code == scelta.Code && n.Kind == scelta.Kind
+                                  && n.Channel == scelta.Channel)) return;
+
+        righe[x.Indice] = new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+            Navaids = riga.Navaids.Append(new MilDiversionPayload.Nav
+            {
+                Code = scelta.Code, Kind = scelta.Kind, Channel = scelta.Channel,
+            }).ToList(),
+        };
+        await SalvaAlternati(righe);
+    }
+
+    private Task TogliNavaidAlternato((int Indice, NavaidKey Chiave) x)
+    {
+        var righe = RigheAlternati();
+        if (x.Indice < 0 || x.Indice >= righe.Count) return Task.CompletedTask;
+        var riga = righe[x.Indice];
+        righe[x.Indice] = new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Bearing = riga.Bearing, Distance = riga.Distance,
+            Navaids = riga.Navaids
+                .Where(n => n.Code != x.Chiave.Code || n.Kind != x.Chiave.Kind || n.Channel != x.Chiave.Channel)
+                .ToList(),
+        };
+        return SalvaAlternati(righe);
+    }
+
+    private Task ScriviRilevamentoAlternato((int Indice, int? Gradi) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
+            Bearing = x.Gradi, Distance = riga.Distance,
+        });
+
+    private Task ScriviDistanzaAlternato((int Indice, decimal? Nm) x) =>
+        ScriviNumeroAlternato(x.Indice, riga => new MilDiversionPayload.Riga
+        {
+            Icao = riga.Icao, Name = riga.Name, Navaids = riga.Navaids,
+            Bearing = riga.Bearing, Distance = x.Nm,
+        });
+
+    /// <summary>
+    /// Scrive le righe approvate nell'anteprima d'import.
+    ///
+    /// <para>⚠️ L'ICAO e l'identita' della radioassistenza <b>non si ricercano una seconda volta</b>: la
+    /// proposta le porta gia' (<c>CellaProposta.Chiave</c>), risolte sui cataloghi mentre l'anteprima le
+    /// mostrava. Rifare la ricerca qui vorrebbe dire poter scrivere qualcosa di diverso da cio' che chi
+    /// importa ha approvato.</para>
+    /// <para>⚠️ Il <b>nome</b> dello scalo si porta dietro solo per gli alternati esteri, che in archivio non
+    /// ci sono: e' il ripiego previsto dal payload, e quando lo scalo c'e' vince comunque l'archivio.</para>
+    /// </summary>
+    private Task ImportaAlternati(RichiestaImport r)
+    {
+        var nuove = new List<MilDiversionPayload.Riga>();
+        foreach (var riga in r.Proposta.Buone)
+        {
+            var scalo = riga.Celle.Count > 0 ? riga.Celle[0] : null;
+            if (scalo?.Chiave is not { Length: 4 } icao) continue;
+
+            var nav = riga.Celle.Count > 1 ? riga.Celle[1] : null;
+            var impianti = new List<MilDiversionPayload.Nav>();
+            if (nav?.Chiave is { Length: > 0 } chiave)
+            {
+                var parti = chiave.Split('|');
+                if (parti.Length >= 2 && parti[0].Length > 0 && parti[1].Length > 0)
+                    impianti.Add(new MilDiversionPayload.Nav
+                    {
+                        Code = parti[0],
+                        Kind = parti[1],
+                        Channel = parti.Length > 2 && parti[2].Length > 0 ? parti[2] : null,
+                    });
+            }
+
+            nuove.Add(new MilDiversionPayload.Riga
+            {
+                Icao = icao,
+                Name = NomeIncollato(scalo.Valore, icao),
+                Navaids = impianti,
+                Bearing = riga.Celle.Count > 2 ? MilDiversionText.LeggiRilevamento(riga.Celle[2].Valore) : null,
+                Distance = riga.Celle.Count > 3 ? MilDiversionText.LeggiDistanza(riga.Celle[3].Valore) : null,
+            });
+        }
+
+        var righe = r.Sostituisci ? nuove : RigheAlternati().Concat(nuove).ToList();
+        return SalvaAlternati(righe);
+    }
+
+    /// <summary>Il nome dentro «LIBA Amendola», senza il codice. Vuoto = nessun nome da tenere.</summary>
+    private static string? NomeIncollato(string valore, string icao)
+    {
+        var resto = valore.Length > icao.Length && valore.StartsWith(icao, StringComparison.OrdinalIgnoreCase)
+            ? valore.Substring(icao.Length).Trim()
+            : valore.Trim();
+        return resto.Length > 0 ? resto : null;
+    }
+
+    private Task ScriviNumeroAlternato(int indice, Func<MilDiversionPayload.Riga, MilDiversionPayload.Riga> cambia)
+    {
+        var righe = RigheAlternati();
+        if (indice < 0 || indice >= righe.Count) return Task.CompletedTask;
+        righe[indice] = cambia(righe[indice]);
+        return SalvaAlternati(righe);
+    }
+
+    // ---- Nominativi e Parcheggi: tabelle a colonne fisse, tutto a mano (§12g) ---------------------------
+    //
+    // ⚠️ Qui non si scrive in nessun catalogo condiviso: il contenuto è del documento, e per questo non c'è
+    // nessun avviso da dare — a differenza delle Radioassistenze, dove quel che si scrive cambia gli altri SOP.
+
+    private const int ColNominativi = 4;
+    private const int ColParcheggi = 3;
+
+    private async Task CaricaTabelleAsync()
+    {
+        _nominativi = await Militari.GetFixedTableAsync(_icao, "callsigns", ColNominativi);
+        _parcheggi = await Militari.GetFixedTableAsync(_icao, "parkings", ColParcheggi);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+    }
+
+    /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
+    /// chiamante. Due copie divergerebbero al primo ritocco.</summary>
+    private Task SalvaTabella(string chiave, string variante, int colonne,
+        IReadOnlyList<IReadOnlyList<string>> righe) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveFixedTableAsync(_icao, chiave, variante, righe, colonne);
+        await CaricaTabelleAsync();
+    });
+
+    private static List<IReadOnlyList<string>> Copia(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        righe.Select(r => (IReadOnlyList<string>)r.ToList()).ToList();
+
+    private static List<IReadOnlyList<string>> ConCella(IReadOnlyList<IReadOnlyList<string>> righe,
+        int riga, int colonna, string testo)
+    {
+        var copia = Copia(righe);
+        if (riga < 0 || riga >= copia.Count) return copia;
+        var celle = copia[riga].ToList();
+        while (celle.Count <= colonna) celle.Add("");
+        celle[colonna] = testo;
+        copia[riga] = celle;
+        return copia;
+    }
+
+    private static List<IReadOnlyList<string>> Spostata(IReadOnlyList<IReadOnlyList<string>> righe, int i, int delta)
+    {
+        var copia = Copia(righe);
+        var b = i + delta;
+        if (i < 0 || i >= copia.Count || b < 0 || b >= copia.Count) return copia;
+        (copia[i], copia[b]) = (copia[b], copia[i]);
+        return copia;
+    }
+
+    private static List<IReadOnlyList<string>> Senza(IReadOnlyList<IReadOnlyList<string>> righe, int i)
+    {
+        var copia = Copia(righe);
+        if (i >= 0 && i < copia.Count) copia.RemoveAt(i);
+        return copia;
+    }
+
+    /// <summary>Una riga nuova nasce con le celle vuote e si salva subito: una riga che esiste solo a
+    /// schermo finché non ci si scrive dentro sparisce al primo ricarico, e sembra un guasto.</summary>
+    private static List<IReadOnlyList<string>> ConRigaVuota(IReadOnlyList<IReadOnlyList<string>> righe, int colonne)
+    {
+        var copia = Copia(righe);
+        copia.Add(Enumerable.Repeat("", colonne).ToList());
+        return copia;
+    }
+
+    private Task AggiungiNominativo() =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConRigaVuota(_nominativi, ColNominativi));
+    private Task TogliNominativo(int i) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Senza(_nominativi, i));
+    private Task SpostaNominativo((int Indice, int Delta) m) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, Spostata(_nominativi, m.Indice, m.Delta));
+    private Task ScriviNominativo((int Riga, int Colonna, string Testo) c) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, ConCella(_nominativi, c.Riga, c.Colonna, c.Testo));
+
+    private Task AggiungiParcheggio() =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConRigaVuota(_parcheggi, ColParcheggi));
+    private Task TogliParcheggio(int i) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Senza(_parcheggi, i));
+    private Task SpostaParcheggio((int Indice, int Delta) m) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, Spostata(_parcheggi, m.Indice, m.Delta));
+    private Task ScriviParcheggio((int Riga, int Colonna, string Testo) c) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, ConCella(_parcheggi, c.Riga, c.Colonna, c.Testo));
+
+    // ---- prendere una tabella da un ALTRO vSOP ---------------------------------------------------------
+    //
+    // ⚠️ Quindici SOP militari hanno le stesse sezioni, e meta' delle righe di uno somiglia a quelle di un
+    // altro: e' il guadagno piu' grosso dell'import su questo corpus, e non ha niente da riconoscere. Passa
+    // comunque dall'anteprima, perche' la domanda che l'anteprima fa non e' «ho letto bene?» ma «e' questo
+    // che volevi?» — e copiando da un altro campo quella domanda pesa di piu'.
+
+    private IReadOnlyList<SorgenteTabella> _altriSop = Array.Empty<SorgenteTabella>();
+
+    /// <summary>Gli altri campi che HANNO un documento: da uno senza documento non c'e' niente da prendere.</summary>
+    private async Task CaricaAltriSopAsync()
+    {
+        var tutti = await Militari.ListAsync(perStaff: true);
+        _altriSop = tutti
+            .Where(a => a.DocumentId is not null
+                        && !string.Equals(a.Icao, _icao, StringComparison.OrdinalIgnoreCase))
+            .Select(a => new SorgenteTabella(a.Icao, $"{a.Icao} {a.Name}"))
+            .ToList();
+    }
+
+    /// <summary>Gli alternati di un altro SOP, rimessi in forma di griglia: quattro colonne come la tabella.</summary>
+    private async Task<Griglia> AlternatiDiUnAltroSop(string icao)
+    {
+        var righe = await Militari.GetDiversionsAsync(icao);
+        return new Griglia(
+            righe.Select(r => (IReadOnlyList<string>)new[]
+            {
+                $"{r.Icao} {r.Name}".Trim(),
+                r.Navaids.Count > 0
+                    ? NavaidText.ConTipo(r.Navaids[0].Code, r.Navaids[0].Type, r.Navaids[0].Channel, r.Navaids[0].Frequency)
+                    : "",
+                MilDiversionText.Rilevamento(r.Bearing),
+                MilDiversionText.Distanza(r.DistanceNm),
+            }).ToList(),
+            FormaGriglia.RigaIntera);
+    }
+
+    private Task<Griglia> NominativiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "callsigns", ColNominativi);
+
+    private Task<Griglia> ParcheggiDiUnAltroSop(string icao) =>
+        TabellaFissaDiUnAltroSop(icao, "parkings", ColParcheggi);
+
+    private async Task<Griglia> TabellaFissaDiUnAltroSop(string icao, string chiave, int colonne)
+    {
+        var righe = await Militari.GetFixedTableAsync(icao, chiave, colonne);
+        return new Griglia(righe.ToList(), FormaGriglia.RigaIntera);
+    }
+
+    // ⚠️ L'import consegna la tabella INTERA (le vecchie piu' le nuove, o solo le nuove se si e' scelto
+    // «sostituisci»): la fusione l'ha gia' fatta l'anteprima, che e' l'unico posto dove chi importa ha visto
+    // che cosa stava per succedere.
+    private Task ImportaNominativi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("callsigns", MilTablePayload.Nominativi, ColNominativi, righe);
+
+    private Task ImportaParcheggi(IReadOnlyList<IReadOnlyList<string>> righe) =>
+        SalvaTabella("parkings", MilTablePayload.Parcheggi, ColParcheggi, righe);
+
+    /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
+    private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveAreaActivityAsync(_icao, x.AreaId, x.Attivita);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+    });
+
+    private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveRegulatedAsync(_icao, sel);
+        _regulated = await Militari.GetRegulatedAsync(_icao);
+
+        // ⚠️ E le aree RISOLTE, o la tabella sotto la mappa resta indietro di una scelta. Trovato a schermo il
+        // 30 agosto 2026: la chip si accendeva, la selezione si salvava — e la tabella continuava a dire
+        // «nessuna area scelta» fino al ricarico della pagina. Chi sceglie e chi legge la tabella sono la
+        // stessa persona, nello stesso istante.
+        _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
+    });
+
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome: con
+    /// il chrome e' una pagina a se', e non c'e' nessun ospite da avvisare.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
+
+}

@@ -271,6 +271,10 @@ public class ImpactDriftTests : IAsyncLifetime
         public FakeAdmin(params ManagedDoc[] docs) => _docs = docs;
         public Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ManagedDoc>>(_docs);
+        public Task<IReadOnlyDictionary<int, ManagedDoc>> DescribeAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, ManagedDoc>>(
+                _docs.Where(d => d.DocumentId is not null && documentIds.Contains(d.DocumentId.Value))
+                     .ToDictionary(d => d.DocumentId!.Value));
         public Task<ManagedDocRef?> FindAsync(ReleaseTargetType kind, string key, CancellationToken ct = default) =>
             Task.FromResult<ManagedDocRef?>(null);
         public Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
@@ -351,6 +355,15 @@ public class ImpactDriftTests : IAsyncLifetime
 
         public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ReleaseInfo>>(Array.Empty<ReleaseInfo>());
+        // Le porte dell'unione: questi doppi non pubblicano niente, e senza unione sono le stesse di sopra.
+        public Task<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>> BersagliUnitiAsync(
+            ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Array.Empty<Vipi.Application.Content.BersaglioUnito>());
+        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
+            PublishAsync(type, key, releaseCycle, note, ct);
+        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
+            PublishNowAsync(type, key, note, ct);
+
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => Task.CompletedTask;
         public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);

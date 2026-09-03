@@ -1,0 +1,1339 @@
+﻿@* Il CORPO EDITORIALE di una vIPI d'aeroporto: sezioni, i sei editor strutturati, i dati dello scalo, il
+   catalogo dei settori ATC, lock e salvataggi.
+
+   Sta fuori da `AeroportoEditorPage` perche' lo stesso editor va montato in due posti — la sua pagina, e
+   l'editor UNITO che redige piu' documenti insieme (carta 2026-09-03-documenti-uniti.md §5b).
+
+   ⚠️ `Chrome` spegne testata, indice e rail quando questo componente e' un MEMBRO di un'unione. Vedi
+   <AppSectionsEditor>. ⚠️ Il pannello dei SETTORI ATC resta qui e non passa all'ospite: non e' contenuto
+   del documento, ma e' amministrazione di QUESTO scalo — e in un'unione gli scali possono essere due.
+@* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
+   circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`. *@
+@inherits OwningComponentBase
+@implements IMembroEditor
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Content
+@using Vipi.Application.Aor
+@using Vipi.Application.Weather
+@using Microsoft.AspNetCore.Components.Web
+@using Vipi.Application.Auth
+@using Vipi.Application.Abstractions
+@using Vipi.Domain
+@using RenderMode = Vipi.Domain.RenderMode
+@inject IAirportEditingService Profile
+@inject IAirportSectorService Sectors
+@inject IEditAuthorizationService Authz
+@inject IStationResolver Stations
+@inject ISidImporter SidImporter
+@inject ISidFixAliasRepository SidAliases
+@inject INavaidSource Navaids
+@inject Vipi.Domain.Services.IAiracService Airac
+@inject IJSRuntime JS
+@inject ILogger<AirportSectionsEditor> Logger
+@implements IAsyncDisposable
+@inject IDocRoutesRegistry DocRoutes
+@inject IMilitaryDocumentService Militari
+@inject NavigationManager Nav
+@inject IStringLocalizer<SharedResource> L
+@inject Vipi.Application.Airspace.ISectorShapeResolver Forme
+@inject EnglishStrings En
+
+@if (_acc is null)
+{
+    <div class="wrap"><div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Vle_UnknownAcc"]</p>@Acc</div></div></div>
+}
+else
+{
+    @if (Chrome)
+    {
+        <PageTitle>@L["Ape_EditorTitle"] @_icao · vIPI</PageTitle>
+    }
+    @* Qui e non dentro una sezione: lo stesso elenco serve alla tabella delle SID importate e a quella delle
+       manuali, e una sezione chiusa non renderebbe il suo contenuto. *@
+    <NavaidDatalist Entries="_navaids.Entries" />
+    <div class="@(Chrome ? "wrap struct" : null)">
+        @if (Chrome)
+        {
+        <div class="breadcrumb">
+                <a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Name</a> ›
+                <a href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@_icao">@_icao</a> › <b>@En["Common_Editor"]</b>
+            </div>
+        }
+
+        @* ---- Testata in UNA riga: titolo · «?» · stato · lock · larghezza piena ----
+           La STESSA degli altri tre editor (regola 8 e regola 1): la pill dice bozza/pubblicata con il numero
+           di versione, il lock è uno STATO in riga e non una voce in fondo al rail. Il sottotitolo col nome
+           dell'ACC non c'è: lo dice il pangrattato due righe sopra. *@
+        @if (Chrome)
+        {
+        <div class="editor-bar">
+                <div class="doc-head st-head" style="margin:0">
+                    <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
+                        @((MarkupString)L["Ape_HelpBody"].Value)
+                    </HelpHint>
+                    @if (_shell.Doc is not null)
+                    {
+                        <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">
+                            @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? L["Ed_DraftVN", _shell.Doc.VersionNumber] : L["Ed_PublishedVN", _shell.Doc.VersionNumber])
+                        </span>
+                    }
+                    @if (_shell.IsEditing)
+                    {
+                        @* Il chip dice l'ORA, la frase intera sta nel `title`: a 1024 la testata andava a capo. *@
+                        <span class="sh-chip ok" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(L["Lock_Editing"].Value + (_shell.Lock.ExpiresUtc is { } mt ? L["Lock_UntilSuffix", VipiTime.Z(mt)].Value : ""))">
+                            🔒 @(_shell.Lock.ExpiresUtc is { } me ? L["Lock_EditingShort", VipiTime.Z(me)].Value : L["Lock_EditingNoTime"].Value)
+                        </span>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <span class="sh-chip warn" data-utc-title="@VipiTime.Iso(_shell.Lock.ExpiresUtc)" title="@(string.Format(L["Ed_LockedByOtherBody"].Value, _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value, _shell.Lock.ExpiresUtc is { } ot ? L["Lock_UntilSuffix", VipiTime.Z(ot)].Value : ""))">
+                            🔒 @(_shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value)@(_shell.Lock.ExpiresUtc is { } oe ? L["Lock_UntilSuffix", VipiTime.Z(oe)].Value : "")
+                        </span>
+                    }
+                    @* ⤢ Larghezza piena: serve alle tabelle larghe (SID, settori). Stesse classi e chiavi degli altri. *@
+                    <button type="button" class="btn ghost st-head-end" @onclick="() => _wide = !_wide"
+                            aria-pressed="@_wide.ToString().ToLowerInvariant()"
+                            title="@(_wide ? L["Ed_NarrowTitle"] : L["Ed_WideTitle"])">@(_wide ? "⤡" : "⤢") @(_wide ? L["Ed_Narrow"] : L["Ed_Wide"])</button>
+                </div>
+            </div>
+    
+            @if (_data is not null)
+            {
+                <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+    
+                @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
+                   apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
+                @if (_shell.DocumentId is int docIdTraduzione)
+                {
+                    <TranslationReviewPanel DocumentId="docIdTraduzione" />
+                }
+    
+            }
+        }
+
+        @if (_shell.Error is not null)
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div>
+        }
+
+        @if (_data is null)
+        {
+            <div class="callout warning"><span class="cic">⚠️</span><div>@L["Ape_NotFound"]</div></div>
+        }
+        else if (_shell.Doc is null)
+        {
+            @* Documento non ancora nato e chi guarda non può farlo nascere: l'Ensure è ACC-gated. *@
+            <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
+        }
+        else
+        {
+            @if (!_canEdit)
+            {
+                <div class="callout warning"><span class="cic">🔒</span><div>@(string.Format(L["Ape_ReadOnly"].Value, _data.AccCode))</div></div>
+            }
+
+            @* ---- Le sezioni, dal DOCUMENTO ----
+               Fino alla carta 2026-08-26 questo editor montava otto <details> scritti a mano, elencati in un
+               array di stringhe italiane (`_panels`). Non era una scelta di stile: il documento d'aeroporto non
+               AVEVA sezioni proprie — le cuoceva e le riconosceva per titolo — quindi non c'era niente da
+               iterare. Ora c'è, ed è lo stesso motore condiviso degli altri tre editor: riordino con le frecce
+               e col trascinamento nel menu, nascondi, sotto-sezioni, Live/Frozen, sezioni libere ovunque.
+
+               ⚠️ Il corpo delle sezioni FISSE lo rende questa pagina (DerivedContent): sono i sei editor
+               strutturati di sotto. Le sezioni libere passano dai blocchi, come nelle altre famiglie. *@
+            <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
+                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    IsMandatory="IsMandatory" Profile="SectionProfile.Airport"
+                                    IsRenderModeToggleable="IsRenderModeToggleable"
+                                    IsSectionDirty="IsSectionDirty"
+                                    ShowToc="Chrome" ExtraTocItems="_tocExtra" Wide="_wide"
+                                    TocFooter="@TocCommands">
+                <RightRail>
+                    @* ⚠️ Solo col chrome: in un editor unito il rail e' dell'OSPITE, e il lock si prende su
+                       TUTTI i membri in un gesto. *@
+                    @if (Chrome)
+                    {
+                    @if (_shell.Save == SaveState.Saving) { <span class="save-badge saving"><span class="spin"></span> @L["Ed_Saving"]</span> }
+                    else if (_shell.Save == SaveState.Saved) { <span class="save-badge saved"><Icon Name="check-circle" Size="13" /> @L["Ed_Saved"]</span> }
+                    @if (_canEdit)
+                    {
+                        @* Presente sempre, spento a zero: comparendo col contatore spostava in giù tutti i
+                           comandi del rail proprio mentre ci si mirava. *@
+                        <button class="btn primary" data-tour="save" disabled="@(_busy || _dirtySections.Count == 0)" @onclick="SaveAllClicked" title="@L["Ape_SaveAllTitle"]">
+                            <Icon Name="check-circle" Size="14" /> @L["Ape_SaveAllN", _dirtySections.Count]
+                        </button>
+                        <HelpHint Href="/services/vsop/guide#editor-salva" AriaLabel="@L["Ape_SaveHelpAria"]">
+                            @((MarkupString)L["Ape_SaveHelpBody"].Value)
+                        </HelpHint>
+                    }
+                    <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Airport).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
+                    @* ---- Il ponte verso l'ALTRA edizione dello stesso scalo (carta vSOP militari §5-bis) ----
+                       Su un campo con presenza militare il vSOP militare si crea DA QUI, dopo la vIPI civile:
+                       è il punto in cui si è già, e l'unica alternativa era ricordarsi che esiste
+                       /services/vsop/mil e cercarci dentro il proprio scalo.
+                       ⚠️ Il tasto compare solo dove ha senso: niente presenza militare, niente tasto. E
+                       «crea» solo a chi può editare — a chi guarda resta il collegamento, se il documento
+                       c'è. *@
+                    @if (_milState?.HasMilitaryPresence == true)
+                    {
+                        @if (_milState.MilDocumentId is not null)
+                        {
+                            <a class="btn ghost" href="@MilEditorUrl()"><Icon Name="book-open" Size="14" /> @L["Mil_OpenFromCivil"]</a>
+                        }
+                        else if (_canEdit)
+                        {
+                            <button class="btn ghost" disabled="@_busy" @onclick="CreaVsopMilitare" title="@L["Mil_CreateFromCivil"]">
+                                <Icon Name="plus" Size="14" /> @L["Mil_CreateFromCivil"]
+                            </button>
+                        }
+                    }
+                    @* ✎ Modifica / ✓ Fine modifica: lo stesso gesto degli altri tre editor. Prende il lock e,
+                       se la versione di lavoro è pubblicata, apre una bozza. *@
+                    @if (_shell.IsEditing)
+                    {
+                        @* ⚠️ Non `FinishEditingAsync` diretto: prima si salva quel che è in sospeso.
+                           Vedi FineModificaAsync. *@
+                        <button class="btn ghost" disabled="@_busy" @onclick="FineModifica">✓ @L["Lock_FinishEdit"]</button>
+                    }
+                    else if (_shell.Lock is { Locked: true, IsMine: false })
+                    {
+                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    }
+                    else
+                    {
+                        <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
+                    }
+                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
+                    @if (LastImport() is DateTime li)
+                    {
+                        <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
+                    }
+                    }
+                </RightRail>
+                @* ⚠️ Dentro la colonna centrale, non dopo il componente: qui sotto ci sono i due pannelli
+                   che NON sono contenuto del documento — il catalogo dei settori e le release — e devono
+                   essere larghi quanto le sezioni. Resi fuori da <DocumentSectionsEditor> finivano fuori
+                   dalla griglia, quindi larghi quanto la pagina. *@
+                <AfterSections>
+                    @* ===================== SETTORI ATC =====================
+                       ⚠️ NON è una sezione del documento: è amministrazione della struttura, non testo pubblicato.
+                       Non passa quindi da `DocumentSectionsEditor` — non si riordina, non si nasconde, non finisce
+                       nella vIPI pubblicata — ma sta nella sua STESSA colonna, e si aggancia all'indice come voce
+                       extra, la strada che l'editor APP usa già per il pannello Release. *@
+                    <div id="sec-settori" class="block">
+                            <div class="section-title" style="margin-top:0">
+                                <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
+                                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
+                                @if (LastImport() is DateTime lastImp)
+                                {
+                                    @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
+                                       che il bottone non abbia fatto nulla — è esattamente l'equivoco da cui è nata
+                                       questa modifica. Stessa convenzione della vista live (orari in Z). *@
+                                    <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
+                                }
+                                <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
+                                @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
+                                {
+                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
+                                }
+                            </div>
+                            @if (_sectors.Count == 0)
+                            {
+                                <p class="help">@L["Ape_NoSectors"]</p>
+                            }
+                            else
+                            {
+                                <table class="res-table">
+                                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
+                                    <tbody>
+                                        @foreach (var s in _sectors)
+                                        {
+                                            var hasLimits = SupportsLimits(s.Position);
+                                            <tr style="@(s.IsHidden ? "opacity:.5" : "")">
+                                                <td><b>@s.ComposePosition</b></td>
+                                                <td><span class="pill blue">@s.AccCode</span></td>
+                                                <td>@(s.Position ?? "—")</td>
+                                                <td>@(s.MiddleIdentifier ?? "—")</td>
+                                                <td style="text-align:center">
+                                                    @if (IsApp(s.Position))
+                                                    {
+                                                        <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_canEdit)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
+                                                    }
+                                                    else { <span class="muted">—</span> }
+                                                </td>
+                                                <td>@(s.Frequency ?? "—")</td>
+                                                <td style="text-align:center">
+                                                    @if (CanBePrimary(s.Position))
+                                                    {
+                                                        <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_canEdit)" @onchange="() => SetSectorPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
+                                                    }
+                                                    else { <span class="muted">—</span> }
+                                                </td>
+                                                <td>@if (hasLimits) { <ShapeSourcePill Shape="@FormaDi(s.ComposePosition)" /> } else { <span class="muted">—</span> }</td>
+                                                @if (hasLimits)
+                                                {
+                                                    @* ⚠️ Con la forma agganciata all'AIP le quote le portano i PEZZI: queste due caselle
+                                                       restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. *@
+                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                                        <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secLower[s.Id] = ParseLower(e.Value))" title="@L["AccAdmin_LowerHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" />
+                                                        @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
+                                                    </td>
+                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                                        <input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secUpper[s.Id] = ParseUpper(e.Value))" title="@L["AccAdmin_UpperHint"]" disabled="@(!_canEdit || s.LimitsFromSource)" /></td>
+                                                }
+                                                else
+                                                {
+                                                    <td class="muted">—</td>
+                                                    <td class="muted">—</td>
+                                                }
+                                                <td>
+                                                    @if (s.IsHidden)
+                                                    {
+                                                        <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="pill green">@L["AccAdmin_Active"]</span>
+                                                    }
+                                                </td>
+                                                <td style="white-space:nowrap">
+                                                    @if (hasLimits && !s.LimitsFromSource)
+                                                    {
+                                                        <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => SaveSectorLimits(s.Id)" title="@L["AccAdmin_SaveLimits"]" aria-label="@L["AccAdmin_SaveLimits"]"><Icon Name="check-circle" /></button>
+                                                    }
+                                                    <button class="btn ghost" disabled="@(_busy || !_canEdit)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                    </div>
+                    @* Il pannello dell'unione e quello di pubblicazione li porta chi monta questo
+                       componente: in un editor unito sono UNO per tutti i membri, non uno per ciascuno. *@
+                    @AfterSections
+                </AfterSections>
+            </DocumentSectionsEditor>
+        }
+    </div>
+
+    @* Toast d'errore fisso: sempre visibile anche in fondo a tabelle lunghe (SID/Settori). Il successo è nel badge header. *@
+    <div class="editor-toast">
+        @if (_shell.Error is not null)
+        {
+            <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null" title="@L["Common_Close"]">✕</button></div>
+        }
+        @if (_saveInfo is not null)
+        {
+            <div class="callout @(_saveInfoWarn ? "warning" : "success")"><span class="cic">@(_saveInfoWarn ? "⚠️" : "✓")</span><div style="flex:1">@_saveInfo</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _saveInfo = null" title="@L["Common_Close"]">✕</button></div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Acc { get; set; } = default!;
+
+    /// <summary>L'ICAO dello scalo.</summary>
+    [Parameter, EditorRequired] public string? Icao { get; set; }
+
+    /// <inheritdoc cref="AppSectionsEditor.Chrome"/>
+    [Parameter] public bool Chrome { get; set; } = true;
+
+    /// <inheritdoc cref="AppSectionsEditor.AfterSections"/>
+    [Parameter] public RenderFragment? AfterSections { get; set; }
+
+    /// <inheritdoc cref="AppSectionsEditor.StatoCambiato"/>
+    [Parameter] public EventCallback StatoCambiato { get; set; }
+
+    // ---- quel che l'OSPITE di un editor unito ha bisogno di sapere e di comandare -------------------
+
+    /// <inheritdoc cref="AppSectionsEditor.Guscio"/>
+    public DocumentEditorShell Guscio => _shell;
+
+    /// <inheritdoc cref="AppSectionsEditor.Titolo"/>
+    public string Titolo => _shell.Doc?.Title ?? _icao;
+
+    /// <inheritdoc cref="AppSectionsEditor.Sezioni"/>
+    public IReadOnlyList<EditableSection> Sezioni => _shell.Doc?.Sections ?? Array.Empty<EditableSection>();
+
+    /// <inheritdoc cref="AppSectionsEditor.PrendiLockAsync"/>
+    public async Task<string?> PrendiLockAsync()
+    {
+        if (_shell.Doc is null) return null;
+        if (_shell.Lock is { Locked: true, IsMine: false })
+            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
+        await _shell.StartEditingAsync(LoadAsync);
+        return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
+    }
+
+    /// <inheritdoc cref="AppSectionsEditor.RilasciaLockAsync"/>
+    /// ⚠️ Passa da <c>FineModificaAsync</c> e non dal guscio: su questo editor uscire SALVA quel che e'
+    /// in sospeso (i tre editor dei dati dello scalo hanno buffer a salvataggio esplicito), e mollare il
+    /// lock senza quel passo butterebbe via quello che si stava scrivendo.
+    public Task RilasciaLockAsync() => _shell.IsEditing ? FineModificaAsync() : Task.CompletedTask;
+
+    /// <inheritdoc cref="AppSectionsEditor.RicaricaAsync"/>
+    public Task RicaricaAsync() => LoadAsync();
+
+    /// <summary>Vero se chi guarda puo' pubblicare questo scalo: lo chiede l'ospite per decidere se
+    /// mostrare i pannelli dell'unione e della pubblicazione.</summary>
+    public bool PuoPubblicare => _canEdit;
+    private AccInfo? _acc;
+    private string _icao = "LIRF";
+    // Anagrafica militare dello scalo, per l'etichetta in testata. Dal resolver, la cui mappa è già in cache
+    // e scaldata dal layout: una testata non deve interrogare il database mentre si disegna.
+    private Vipi.Application.Content.AirportStation? _mil;
+
+    /// <summary>Anagrafica militare LETTA DAL DATABASE (non dalla cache delle stazioni): decide se questa
+    /// pagina deve esistere per questo scalo, e se offre il ponte verso il vSOP militare.</summary>
+    private AirportMilitaryState? _milState;
+    private string? _loadedIcao;
+    /// <summary>Chiavi di SEZIONE con modifiche non salvate (la pagina è a scroll unico e ogni sezione ha il suo
+    /// «Salva»). Erano nomi italiani di pannello — «Regole piste», «Quote transizione» —: un secondo vocabolario
+    /// accanto a quello del catalogo, per indicare le stesse cose.</summary>
+    private readonly HashSet<string> _dirtySections = new();
+
+    /// <summary>
+    /// I settori di cui sono stati digitati dei limiti e non ancora salvati (il ✓ è per RIGA).
+    ///
+    /// <para>⚠️ Prima il pannello si marcava sporco con un <c>@onchange</c> sul contenitore, e <b>nessuno lo
+    /// puliva mai</b>: bastava toccare un interruttore che salva da sé — nascondi, primario — perché la
+    /// guardia del browser restasse accesa per il resto della sessione, e la pagina chiedesse «vuoi
+    /// davvero uscire?» con tutto salvato. Un avviso che si accende sempre è un avviso che si impara a
+    /// ignorare. Ora la marcatura è sui DUE campi che si compilano, e si spegne quando la riga si salva.</para>
+    /// </summary>
+    private readonly HashSet<int> _dirtyLimiti = new();
+
+    private DotNetObjectReference<AirportSectionsEditor>? _selfRef;
+    private AirportData? _data;
+    private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
+
+    // ---- documento, lock, bozza: lo stesso workflow degli altri tre editor (carta 2026-08-26 §1b) ----
+    // Non è una scelta di stile: le mutazioni del motore condiviso passano da IEditingService, che pretende il
+    // lock. ⚠️ Sotto lock c'è il DOCUMENTO — sezioni, ordine, nascondi, Live/Frozen, blocchi. I dati
+    // strutturati (regole, TA/TL, piste, SID, link, limiti settori) restano a salvataggio diretto ACC-gated:
+    // li scrivono anche i servizi d'import che girano in background, e quelli un lock non possono prenderlo.
+    private bool _canEdit;
+    private bool _busy;
+
+    /// <summary>Il guscio comune dei quattro editor (doc 14 §3d): documento, modifica, errore, lock, badge di
+    /// salvataggio, e i gesti che li muovono. Qui resta ciò che è solo dell'aeroporto — in particolare il
+    /// «Salva tutto» sulle sezioni sporche, che è l'unico modello di salvataggio diverso dei quattro.</summary>
+    private DocumentEditorShell _shell = default!;
+
+    /// <summary>
+    /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
+    /// contesto isolato da quello del circuito.
+    ///
+    /// <para>⚠️ <b>Con <c>@@inject</c> veniva dal circuito</b>, cioè dal <c>DbContext</c> che la sessione
+    /// condivide con tutto il resto — barra, isole, pannelli, e il <c>LoadAsync</c> di questa pagina. Basta
+    /// che due di quelle operazioni si sovrappongano perché esca
+    /// «<c>A second operation was started on this context</c>» e il circuito muoia: a schermo una pagina che
+    /// non risponde più, da ricaricare. Vedi <c>DocumentEditorShell.FinishEditingAsync</c>.</para>
+    /// </summary>
+    private IEditingService Editing = default!;
+
+    protected override void OnInitialized()
+    {
+        Editing = ScopedServices.GetRequiredService<IEditingService>();
+        _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
+            // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
+            () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
+        // ⚠️ Ci si presenta all'ospite SOLO senza chrome: col chrome questa e' una pagina a se', e non c'e'
+        // nessun ospite da avvisare. `InvokeAsync` su un gestore sincrono finisce subito, e `Registra` e'
+        // idempotente — registrarsi due volte vorrebbe dire prendere due volte lo stesso lock.
+        if (!Chrome) _ = Registrati.InvokeAsync(this);
+
+    }
+
+    private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
+    private int? _ta;
+    private List<TlEdit> _tls = new();
+    private List<RwEdit> _rwys = new();
+    private List<RuleEdit> _rules = new();
+    /// <summary>
+    /// Il catalogo dei punti della divisione: suggerisce i nomi nei campi FIX/Transition e dice quali non
+    /// esistono. Vuoto finché non arriva (e per sempre, se la sorgente non risponde): in quel caso i campi
+    /// restano scrivibili come prima e non si segnala nulla — vedi <see cref="NavaidCheck"/>.
+    /// </summary>
+    private NavaidCatalog _navaids = NavaidCatalog.Empty;
+
+    private List<SidEdit> _sids = new();
+    private List<ImportedSidEdit> _imported = new();
+// filtro tabella importate (fix/pista)
+// mostra solo le importate col fix da verificare
+// filtro tabella manuali
+// id delle importate SCELTE (per pubblicarle in blocco)
+    // ⚠️ «Toccata» e «scelta» erano lo stesso insieme: modificare una cella metteva la riga fra le selezionate,
+    // e chi trascinava per scegliere cinquanta righe le vedeva identiche a cinquanta righe modificate. Ora la
+    // riga toccata sta qui, si vede col suo colore, e «Salva modificate» conta questo — non la selezione.
+// chip pista nella barra delle importate (null = tutte)
+    // Le manuali hanno la loro selezione: stessi gesti delle importate, così non esistono cose che «di qua si
+    // possono fare e di là no». La chiave è l'oggetto stesso (le righe a mano non hanno un id finché non sono
+    // salvate); il ricarico ricostruisce la lista e la selezione si azzera da sé.
+    private bool _wide;          // ⤢ larghezza piena: TOC e rail nascosti mentre si lavora nelle SID
+// ancora per la selezione a intervallo (Shift/Ctrl+click)
+    private const StringComparison OIC = StringComparison.OrdinalIgnoreCase;
+    private List<int> _linkIds = new();
+
+    // Feedback del salvataggio-in-blocco (Ctrl+S / "Salva tutto"): riepilogo sezioni salvate vs saltate.
+    private string? _saveInfo;
+    private bool _saveInfoWarn;
+    private readonly DelayedUiAction _dismissInfo = new();
+
+    /// <summary>Il callout informativo («Salvate: …», «SID LIBC: 16 estratti») si chiude da solo dopo 5s.</summary>
+    private void ProgrammaChiusuraInformativa() => _dismissInfo.Schedule(TimeSpan.FromSeconds(5), () =>
+    {
+        _saveInfo = null;
+        return InvokeAsync(StateHasChanged);
+    });
+
+    // Tester regole piste ("Prova vento"): non salva nulla, valuta i buffer correnti.
+
+    // Drag-and-drop riordino regole.
+
+    // Settori ATC importati (catalogo): righe + buffer limiti editabili per id.
+    private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
+    private readonly Dictionary<int, int?> _secLower = new();
+    private readonly Dictionary<int, int?> _secUpper = new();
+
+    // ---- il motore condiviso: chi rende cosa, cosa è fisso, cosa si può congelare ----
+    // Le tre risposte le dà il CATALOGO, per profilo (doc 13 §3a/§3b): qui non c'è nessun insieme scritto a mano.
+    private static bool IsDerived(EditableSection s) =>
+        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey);
+
+    private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Airport, s.SectionKey);
+
+    private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
+
+    /// <summary>Il pallino «non salvato» accanto alla voce d'indice. È dell'aeroporto soltanto: gli altri tre
+    /// editor salvano a ogni gesto e non hanno nulla di sospeso da segnalare.</summary>
+    private bool IsSectionDirty(EditableSection s) => _dirtySections.Contains(s.SectionKey);
+
+    /// <summary>Etichetta leggibile di una chiave sporca, per il riepilogo del salvataggio in blocco.</summary>
+    private string DirtyLabel(string key) =>
+        SectionCatalog.Find(SectionProfile.Airport, key)?.Title ?? key;
+
+    // Voci d'indice per i due pannelli che NON sono contenuto del documento: il catalogo dei settori ATC e il
+    // pannello Release. L'editor APP fa lo stesso col solo Release.
+    /// ⚠️ La voce del pannello Release esce solo col chrome: in un editor unito quel pannello e' UNO,
+    /// dell'ospite, e una voce per membro prometterebbe N pannelli che non ci sono. Quella dei SETTORI resta
+    /// sempre - il catalogo e' di QUESTO scalo, e in un'unione gli scali possono essere due.
+    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
+        ? new[]
+        {
+            new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0),
+            new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]),
+        }
+        : new[] { new EditorTocItem("sec-settori", L["Ape_PanelSectors"], _dirtyLimiti.Count > 0) })
+        // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
+        //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
+        .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
+
+    // Espandi/comprimi tutto, in coda al menu-sezioni: stesse chiavi e stesso gesto degli altri tre editor.
+    private RenderFragment TocCommands => __builder =>
+    {
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(true)" title="@L["Ed_ExpandAllTitle"]">@L["Common_ExpandAll"]</button>
+        <button type="button" class="btn ghost" @onclick="() => _shell.ToggleAllSectionsAsync(false)" title="@L["Ed_CollapseAllTitle"]">@L["Common_CollapseAll"]</button>
+    };
+
+    // Espande/comprime tutte le sezioni <details> (lato JS: niente stato C# da sincronizzare col toggle del browser).
+        /// <summary>
+        /// ⚠️ Anche questo passa dal <b>tornello</b>: qui si legge dal database <i>prima</i> di arrivare al
+        /// caricamento, e <c>OnParametersSetAsync</c> scatta a ogni ridisegno — compreso quello che un gesto
+        /// provoca mentre il suo ricarico è ancora in volo. Erano le due catene che si sovrapponevano.
+        /// </summary>
+        protected override Task OnParametersSetAsync() => _shell.InFilaAsync(ParametriAsync);
+
+        private async Task ParametriAsync()
+    {
+        _acc = Stations.Resolve(Acc);
+        if (_acc is null) return;
+        _icao = string.IsNullOrWhiteSpace(Icao) ? "LIRF" : Icao.ToUpperInvariant();
+        _mil = Stations.Airport(_icao);
+
+        // Ricarica i buffer solo quando cambia l'aeroporto.
+        if (_loadedIcao != _icao)
+        {
+            _dirtySections.Clear();
+            _dirtyLimiti.Clear();
+            _loadedIcao = _icao;
+            await LoadAsync();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _selfRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("vipiAirportEditorInit", _selfRef);
+            _shell.JsReady = true;
+            await LoadNavaidsAsync();
+        }
+    }
+
+    /// <summary>
+    /// Carica il catalogo dei punti DOPO il primo disegno, non prima: è una discesa da GitHub con quindici
+    /// secondi di timeout, e metterla in apertura significherebbe una pagina bianca quando la sorgente è lenta.
+    /// Dal secondo aeroporto in poi la risposta è già in cache di processo.
+    /// </summary>
+    private async Task LoadNavaidsAsync()
+    {
+        try
+        {
+            _navaids = await Navaids.GetAsync();
+            if (_navaids.Entries.Count > 0) StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // La sorgente muta non è un errore dell'editor: si perdono i suggerimenti, non si blocca la modifica.
+            Logger.LogWarning(ex, "Catalogo punti non disponibile: i campi punto restano senza suggerimenti.");
+        }
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Questa pagina è <c>IAsyncDisposable</c>, e per una pagina con uno scope proprio è una trappola:</b>
+    /// il renderer, se il componente è <c>IAsyncDisposable</c>, chiama <b>solo</b> <c>DisposeAsync</c> — mai il
+    /// <c>Dispose</c> sincrono, che è quello con cui <c>OwningComponentBase</c> chiude il proprio scope di DI.
+    /// Senza la riga in fondo, ogni visita all'editor lascerebbe in piedi uno scope con dentro un
+    /// <c>DbContext</c>: un guasto che non si vede il primo giorno e si vede il quindicesimo.
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            // I due badge che si spengono da soli: fermarli PRIMA di tutto il resto, o restano in volo su un
+            // renderer che sta sparendo.
+            _shell.Dispose();
+            _dismissInfo.Dispose();
+            _selfRef?.Dispose();
+            // Rilascia la guardia beforeunload lasciando la pagina. Salta se il render interattivo non è mai avvenuto
+            // (dispose durante il prerender statico → JS interop illecito, InvalidOperationException). Il circuito può
+            // anche essere già chiuso (navigazione/refresh): ignora JSDisconnectedException.
+            if (!_shell.JsReady) return;
+            try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
+            catch (JSDisconnectedException) { }
+            catch (InvalidOperationException) { }
+        }
+        finally
+        {
+            // Lo scope di DI di questa pagina: lo chiude il Dispose sincrono di OwningComponentBase, che qui
+            // nessuno chiamerebbe. `finally` perché valga anche sul `return` qui sopra.
+            ((IDisposable)this).Dispose();
+        }
+    }
+
+    // --- Stato "sporco" per sezione (scroll unico): la guardia beforeunload è attiva se c'è qualcosa da salvare ---
+
+    /// <summary>
+    /// C'è qualcosa che il server non ha ancora: una sezione in blocco, dei limiti di settore digitati, o delle
+    /// righe SID importate e non salvate.
+    ///
+    /// <para>⚠️ <b>I buffer sono TRE, non uno.</b> Fino al 30 agosto 2026 la guardia guardava le sole sezioni:
+    /// chi correggeva delle SID importate e chiudeva la scheda le perdeva <b>senza il prompt del browser</b> —
+    /// il conteggio c'era (<c>_sidNonSalvate</c>) ma non accendeva niente. Una guardia che copre due terzi di
+    /// quel che protegge è peggio di nessuna guardia, perché la si crede accesa.</para>
+    /// </summary>
+    private bool CeQualcosaDaSalvare => _dirtySections.Count > 0 || _dirtyLimiti.Count > 0 || _sidNonSalvate > 0;
+
+    /// <summary>Accende o spegne la guardia del browser secondo <see cref="CeQualcosaDaSalvare"/>. È l'UNICA
+    /// porta: chi cambia uno dei tre buffer chiama questa, e non decide da sé.</summary>
+    private async Task AggiornaGuardiaAsync()
+    {
+        if (!_shell.JsReady) return;
+        try { await JS.InvokeVoidAsync("vipiSetDirty", CeQualcosaDaSalvare); }
+        catch (JSDisconnectedException) { }
+        catch (InvalidOperationException) { }
+    }
+
+    private async Task MarkDirty(string section)
+    {
+        _dirtySections.Add(section);
+        await AggiornaGuardiaAsync();
+    }
+
+    private async Task ClearDirty(string section)
+    {
+        _dirtySections.Remove(section);
+        await AggiornaGuardiaAsync();
+    }
+
+    /// <summary>Il conteggio delle SID importate non salvate, che lo tiene <c>AirportSidsEditor</c>.</summary>
+    private async Task SidNonSalvateAsync(int quante)
+    {
+        _sidNonSalvate = quante;
+        await AggiornaGuardiaAsync();
+    }
+
+    private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);
+
+    // --- Aggiunte/rimozioni con marcatura dirty per-sezione (rimozioni con conferma) ---
+                // Il segno di «punto che il catalogo non conosce»: tinge il CAMPO invece di aggiungergli accanto un'icona.
+    // La colonna del fix è larga 76px misurati e un'icona ne prenderebbe quattordici — cioè la quinta lettera
+    // dei nomi, che è dove stanno i 5/6 dei fix veri. Sul tabellone delle importate questo segno NON c'è: là il
+    // ⚠ di `NeedsFixReview` dice già la stessa cosa, e misurando l'archivio le due condizioni coincidono riga
+    // per riga (332 su 332). Due segni per un fatto solo sono un segno di troppo.
+        // Ctrl/Cmd+S da JS o bottone «Salva tutto»: salva TUTTE le sezioni sporche valide (scroll unico).
+    // «Settori» salva per riga (fuori dal blocco). Al termine mostra il riepilogo salvate/saltate.
+    [JSInvokable]
+    public async Task SaveAllDirty() => await SaveAllClicked();
+
+    private async Task SaveAllClicked()
+    {
+        if (_busy || !_canEdit) return;
+        var saved = new List<string>();
+        var skipped = new List<string>();
+        foreach (var s in _dirtySections.ToList())
+        {
+            // Blocchi di validazione: non salvare e segnalare come saltata.
+            // ⚠️ Stessa regola del tasto dentro la sezione: con un errore aperto non si salva. La domanda la
+                // fa il cuore condiviso, non una copia (doc 14 §3g).
+                if (s == "runwayrules" && AirportRuleValidation.Issues(_rules, RwIdents()).Errors.Count > 0) { skipped.Add(s); continue; }
+
+            Func<Task>? save = s switch
+            {
+                "runwayrules" => SaveRules,
+                "transition" => SaveTls,
+                "frequencies" => SaveLinks,
+                "runways" => SaveRwys,
+                "sids" => SaveSids,
+                _ => null,
+            };
+            if (save is null) continue;
+            await save();
+            // SaveSection pulisce il dirty solo a successo: se è ancora sporca, il salvataggio è fallito (errore già a video).
+            if (_dirtySections.Contains(s)) skipped.Add(s); else saved.Add(s);
+        }
+        ShowSaveSummary(saved, skipped);
+    }
+
+    /// <summary>
+    /// «Fine modifica»: <b>salva quel che è in sospeso</b>, e solo dopo molla il lock.
+    ///
+    /// <para>⚠️ Prima usciva e basta. Il lock se ne andava, i pannelli tornavano in sola lettura e i valori
+    /// digitati restavano <b>a schermo, non salvabili</b> — «Salva tutto» spento perché non si tiene più il
+    /// lock — per sparire al primo ricarico. Non dava nessun errore: dava una pagina che tornava com'era.</para>
+    ///
+    /// <para>⚠️ <b>I buffer sono tre</b> e vanno tutti e tre: le sezioni in blocco, i limiti di settore (che si
+    /// salvano per RIGA) e le SID importate (che le possiede il loro editor). Salvarne due su tre lascerebbe
+    /// il terzo a perdersi, con l'aggravante che adesso l'utente si fida.</para>
+    ///
+    /// <para>⚠️ <b>Se qualcosa non passa, NON si esce.</b> Una sezione con un errore di validazione non si
+    /// salva — è la regola del tasto «Salva tutto», non un'invenzione di qui — e uscire lo stesso vorrebbe dire
+    /// buttarla via dopo aver detto che si salvava. Il riepilogo dice già che cosa è rimasto indietro.</para>
+    /// </summary>
+    private async Task FineModificaAsync()
+    {
+        if (_busy) return;
+
+        if (_dirtySections.Count > 0) await SaveAllClicked();
+        foreach (var id in _dirtyLimiti.ToList()) await SaveSectorLimits(id);
+        if (_editorSid is not null) await _editorSid.SalvaSporcheAsync();
+
+        if (CeQualcosaDaSalvare)
+        {
+            // Il perché sta già nel riepilogo di SaveAllClicked quando è lui ad aver saltato qualcosa; se il
+            // resto è altrove (limiti o SID) lo si dice qui, o la pressione sul tasto sembrerebbe non aver
+            // fatto niente.
+            if (_saveInfo is null)
+            {
+                _saveInfo = L["Ape_ExitBlocked"].Value;
+                _saveInfoWarn = true;
+                ProgrammaChiusuraInformativa();
+            }
+            return;
+        }
+
+        await _shell.FinishEditingAsync();
+    }
+
+    private void ShowSaveSummary(List<string> saved, List<string> skipped)
+    {
+        if (saved.Count == 0 && skipped.Count == 0) return;
+        var parts = new List<string>();
+        if (saved.Count > 0) parts.Add($"Salvate: {string.Join(", ", saved.Select(DirtyLabel))}");
+        if (skipped.Count > 0) parts.Add($"non salvate (errori): {string.Join(", ", skipped.Select(DirtyLabel))}");
+        _saveInfo = string.Join(" · ", parts);
+        _saveInfoWarn = skipped.Count > 0;
+        ProgrammaChiusuraInformativa();
+    }
+
+
+    // Ultimo import dei settori da IVAO (il più recente del catalogo); null se mai importati.
+    private DateTime? LastImport() => _sectors.Count == 0 ? null : _sectors.Max(s => s.ImportedAtUtc);
+
+    // --- Tester regole (Prova vento): mappa i buffer correnti in DTO e valuta senza salvare ---
+            // --- DnD riordino regole: enter riordina live, drop marca dirty ---
+        /// <summary>
+        /// ⚠️ Il caricamento passa dal <b>tornello</b> del guscio (<c>InFilaAsync</c>): su questo contesto ci sta
+        /// una operazione per volta. Senza, un gesto che ricarica e il <c>OnParametersSetAsync</c> che segue il
+        /// suo ridisegno diventano DUE catene sullo stesso <c>DbContext</c> — «A second operation was started»,
+        /// e il circuito muore. Visto il 2 settembre 2026 aggiungendo una sotto-sezione.
+        /// </summary>
+            private Task LoadAsync() => _shell.InFilaAsync(LoadAsyncCore);
+
+            private async Task LoadAsyncCore()
+    {
+        _shell.Error = null;
+        // Reload totale = i buffer tornano allo stato server: non c'è più niente di "sporco".
+        _dirtySections.Clear();
+        _dirtyLimiti.Clear();
+        _sidNonSalvate = 0;
+        await AggiornaGuardiaAsync();
+        try
+        {
+            _data = await Profile.LoadForEditAsync(_icao);
+            _canEdit = _data is not null;
+        }
+        catch (EditNotAllowedException)
+        {
+            _data = await Profile.LoadForViewAsync(_icao);
+            _canEdit = false;
+        }
+        if (_data is null) return;
+
+        _linkable = await Profile.ListLinkableFrequenciesAsync();
+        _policy = await Profile.GetImportPolicyAsync();
+        _ta = _data.TransitionAltitudeFt;
+        _tls = _data.TransitionLevels.Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
+        _rwys = _data.Runways.Select(r => new RwEdit
+        {
+            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
+            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
+        }).ToList();
+        _rules = _data.Rules.Select(r => new RuleEdit
+        {
+            Name = r.Name,
+            Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
+            MaxTail = r.MaxTailwindKt, MaxCross = r.MaxCrosswindKt,
+            Surface = r.Surface switch { RunwaySurface.Dry => "dry", RunwaySurface.Wet => "wet", _ => "any" },
+            TimeFrom = MinToTime(r.TimeFromLocalMin), TimeTo = MinToTime(r.TimeToLocalMin),
+            DaysMask = r.DaysOfWeekMask ?? 0,
+            Parity = r.DateParity switch { DateParity.Even => "even", DateParity.Odd => "odd", _ => "" },
+            DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
+            DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
+        }).ToList();
+        var cyc = Airac.GetCycle(DateTime.UtcNow);
+        _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
+        {
+            Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
+            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
+        }).ToList();
+        _imported = _data.Sids.Where(s => s.IsImported)
+            .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
+            .Select(s => new ImportedSidEdit
+            {
+                Id = s.Id, Fix = s.Fix, Name = s.Name, Runway = s.Runway, Transition = s.Transition, Type = s.Type,
+                Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
+                IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
+                InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+            }).ToList();
+        // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che
+        // se ne accorge da sé quando i buffer cambiano (doc 14 §3g).
+        _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
+
+        _sectors = await Sectors.ListByAirportAsync(_icao);
+        _secLower.Clear(); _secUpper.Clear();
+        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
+        // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
+        // caricamento (il DbContext del circuito è uno solo).
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
+
+        // ---- l'edizione giusta per questo scalo (carta vSOP militari §5-bis) ----
+        // ⚠️ Si legge dal DATABASE e non da `Stations.Airport` (che è la cache di circuito usata per
+        // l'etichetta in testata): qui la risposta decide se restare o andarsene, e una risposta vecchia di
+        // ore manderebbe qualcuno a scrivere nel documento sbagliato.
+        _milState = await Profile.GetMilitaryStateAsync(_icao);
+
+        // Campo SOLO militare e nessuna vIPI civile: l'edizione è un'altra. Si va lì invece di aprire un
+        // editor che non potrebbe far nascere niente (`EnsureDocumentAsync` lo rifiuterebbe), lasciando a
+        // schermo un errore che non spiega dove andare.
+        if (_milState is { IsMilitaryOnly: true, DocumentId: null } && MilEditorUrl() is { } milUrl)
+        {
+            Nav.NavigateTo(milUrl, forceLoad: true);
+            return;
+        }
+
+        // ---- il documento ----
+        // ⚠️ Ensure e NON «se manca crealo» scritto qui: garantisce il documento e le sue sezioni di catalogo in
+        // un colpo solo, ed è idempotente. È ACC-gated, quindi solo chi può editare lo fa nascere; a chi guarda
+        // in sola lettura il documento serve già esistente, e se non c'è la pagina lo dice.
+        if (_canEdit) _shell.DocumentId = await Profile.EnsureDocumentAsync(_icao);
+        else _shell.DocumentId = await Profile.GetDocumentIdAsync(_icao);
+
+        if (_shell.DocumentId is int docId)
+        {
+            try
+            {
+                _shell.Doc = await Editing.LoadForEditAsync(docId);
+                _shell.Lock = await Editing.InspectLockAsync(docId);
+            }
+            catch (EditNotAllowedException) { _shell.Doc = null; }
+            // Il lock può essere scaduto o preso da un altro mentre si stava qui: la modifica finisce con lui.
+            _shell.IsEditing = _shell.IsEditing && _shell.Doc?.IsEditable == true && _shell.Lock.IsMine;
+        }
+    }
+
+    /// <summary>L'indirizzo dell'editor del vSOP militare di questo scalo. Dal registry, non scritto a mano:
+    /// è la stessa rotta che usano l'elenco militare e «Nuovo documento».</summary>
+    private string? MilEditorUrl() =>
+        DocRoutes.For(ReleaseTargetType.AirportMil).EditorUrl(Acc.ToLowerInvariant(), _icao, null, null);
+
+    /// <summary>
+    /// Crea il vSOP militare di questo scalo e ci porta. ⚠️ La guardia («prima la vIPI civile») sta nel
+    /// SERVIZIO: qui si mostra soltanto il suo rifiuto, che è già scritto per essere letto da una persona.
+    /// </summary>
+    private async Task CreaVsopMilitare()
+    {
+        _busy = true;
+        _shell.Error = null;
+        try
+        {
+            await Militari.CreaAsync(_icao);
+            if (MilEditorUrl() is { } url) Nav.NavigateTo(url, forceLoad: true);
+        }
+        catch (ValidationException ex) { _shell.Error = ex.Message; }
+        catch (EditNotAllowedException ex) { _shell.Error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    // ---- bozza e lock: lo stesso gesto degli altri tre editor ----
+        /// <summary>Rilascia il lock subito, così il documento è libero per gli altri senza aspettare il TTL.</summary>
+        /// <summary>Guardia passata come <c>Run=</c> al motore condiviso: mostra il badge di salvataggio e cattura
+    /// gli errori. Firma a un parametro perché è quella che <c>DocumentSectionsEditor</c> si aspetta.</summary>
+
+            // Combobox enti: click su una voce = aggiunge il link; il campo di ricerca resta pronto per il prossimo.
+        private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
+    private Task SaveTls() => SaveSection("transition", () => Profile.SaveTransitionLevelsAsync(_icao,
+        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+    private Task SaveRwys() => SaveSection("runways", () => Profile.SaveRunwaysAsync(_icao,
+        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
+    private Task SaveRules() => SaveSection("runwayrules", () => Profile.SaveRunwayRulesAsync(_icao,
+        _rules.Select(AirportRuleMapping.ToRow).ToList()));
+    private Task SaveSids() => SaveSection("sids", () => Profile.SaveSidsAsync(_icao,
+        _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
+            s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()));
+    private Task SaveLinks() => SaveSection("frequencies", () => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+
+    /// <summary>«Re-import from IVAO»: tutto quello che l'aeroporto prende dalla sorgente, in un colpo —
+    /// piste + Transition Altitude (secondo la policy «Sorgenti dati») E catalogo settori. Prima faceva solo
+    /// le prime due e non lasciava traccia: il ↧ accanto al bottone è la data d'import dei SETTORI, quindi
+    /// non si muoveva mai e sembrava che il bottone non facesse niente. L'esito ora è scritto nel callout.</summary>
+    private async Task Reimport()
+    {
+        // ⚠️ Il reimport riscrive anche le SID: chi ha righe importate non salvate le perderebbe. Il
+        // conteggio lo tiene <AirportSidsEditor>, che è chi possiede quello stato, e ce lo comunica.
+        if (_sidNonSalvate > 0
+            && !await Confirm(Plural(_sidNonSalvate, "Ape_SidDiscardConfirm", _sidNonSalvate)))
+            return;
+        if (!await Confirm(L["Ape_ReimportConfirm"].Value))
+            return;
+
+        AirportSectorImportResult? sectors = null;
+        var ok = await Guarded(async () =>
+        {
+            await Profile.ReimportFromSourceAsync(_icao);
+            sectors = await Sectors.ImportFromSourceAsync(_icao);
+        });
+        if (!ok) return;
+
+        await LoadAsync();
+        _saveInfo = L["Ape_ReimportDone", _rwys.Count, sectors?.Created ?? 0, sectors?.Updated ?? 0].Value;
+        _saveInfoWarn = false;
+        ProgrammaChiusuraInformativa();
+    }
+
+    // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
+    // ImportForCurrentUserAsync e non ImportAsync: quest'ultimo è l'ingresso del job periodico, che gira
+    // senza utente e quindi senza controllo di autorizzazione. Vedi ISidImporter.
+    // ⚠️ Ricarica i buffer dal DB: le righe toccate e non salvate sparirebbero in silenzio. Prima si chiede.
+    private async Task ReimportSids()
+    {
+        if (await Guarded(() => SidImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync();
+    }
+
+    // «Salvate 1 SID» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno: le chiavi con un
+    // contatore hanno la loro forma singolare, con lo stesso nome più «One».
+    private string Plural(int n, string key, params object[] args) => L[n == 1 ? key + "One" : key, args].Value;
+
+    private async Task PersistImported(ImportedSidEdit e)
+    {
+        string? resolvedFix = null;
+        if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
+        {
+            resolvedFix = e.FixOverride!.Trim();
+            if (e.CreateAlias) await SidAliases.UpsertAsync(e.Fix, resolvedFix);   // e.Fix = prefisso grezzo
+        }
+        await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix,
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+        e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
+    }
+
+    // --- Arricchimenti multi-select su SID importate: CAT per VREF, WTC per scia; salvati come CSV nell'ordine canonico ---
+        // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
+    // Ogni modifica a una riga importata la auto-seleziona: così "Salva selezionate" raccoglie tutte le righe toccate.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Chip Cat./WTC: clic = solo questo, doppio clic o Shift+clic = anche i precedenti
+    //
+    // Una procedura per categoria E vale anche per le più piccole, e quasi sempre si accendono a scala.
+    // ⚠️ Il doppio clic del browser arriva DOPO due clic singoli: i due toggle si annullano fra loro, quindi
+    // quando `TokScale` parte lo stato è quello di partenza e la regola si applica su quello giusto. Si vede
+    // un lampeggio del chip: toglierlo vorrebbe dire ritardare ogni clic singolo di un quarto di secondo, e
+    // qui di clic se ne fanno a centinaia.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Shift+clic (e Shift+Invio, che il browser consegna come clic con lo shift premuto) fa quello che fa il
+    // doppio clic: è la via da tastiera, e i chip sono già bottoni raggiungibili con Tab.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Scelta di gruppo: tutte le righe con lo stesso punto o la stessa transition
+    //
+    // Le varianti per pista e transizione della stessa procedura sono un gruppo naturale (su LIRF «NENIG»
+    // sono nove righe): sceglierle una per una prima di «Pubblica scelte» è lavoro inutile. Agisce su ciò che
+    // è A SCHERMO: scegliere righe nascoste da un filtro sarebbe una sorpresa, non una comodità.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // I due gesti valgono anche dai tasti della barra, che agiscono sulla riga del campo toccato per ultimo:
+    // il doppio clic è una scorciatoia, non l'unico modo di arrivarci.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // «Applica alle scelte»: copia il valore della cella toccata per ultimo nelle righe scelte
+    //
+    // L'unità è la CELLA, non il campo: la quota porta con sé il tasto APP (sono la stessa informazione), e
+    // Cat./WTC copiano il gruppo intero di chip. Fix, nome, pista e transition non si propagano mai: sono
+    // l'identità della riga. Si scrive nei buffer, quindi le righe restano «modificate» e un errore si annulla
+    // ricaricando la pagina senza salvare.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+
+    // --- Tabella manuali: filtro + clona riga ---
+    // Il ciclo dal quale la riga entra in pubblico. ⚠️ E' `SourceAiracCycle` COM'E', non il suo successivo:
+    // dal 2 settembre 2026 quella colonna dice «da quale ciclo la riga vale» e non piu' «in quale l'ho
+    // presa» (carta §AW2, SidStampCycle). Sommarci 28 giorni mostrava un ciclo in piu' di quello vero.
+    private string PublishFromOf(string? inForceFromCycle)
+    {
+        if (string.IsNullOrWhiteSpace(inForceFromCycle)) return "—";
+        try { _ = Airac.EffectiveUtcForCycle(inForceFromCycle); return inForceFromCycle.Trim(); }
+        catch (ArgumentException) { return "—"; }
+    }
+
+    // --- Release AIRAC (pannello «Versioni»). Callback di ReleasePanel: false = annulla il publish. ---
+    /// <summary>Avvisa sulle sezioni non salvate prima di pubblicare. ⚠️ PUBBLICA: il pannello di
+    /// pubblicazione sta sulla PAGINA (o sull'ospite dell'unione), ma le sezioni sporche le conosce
+    /// solo questo componente - chiederle altrove vorrebbe dire tenerne una seconda copia.</summary>
+    public async Task<bool> BeforePublishAsync()
+    {
+        // ⚠️ Resta solo l'avviso sulle sezioni non salvate. La conferma «rigenero il documento?» è caduta con
+        // la cosa che annunciava: non c'è più niente da rigenerare — le sezioni fisse non hanno un corpo cotto
+        // da riscrivere, e la pubblicazione congela la derivazione di adesso.
+        return _dirtySections.Count == 0
+            || await Confirm(string.Format(L["Ape_UnsavedPublishConfirm"].Value, string.Join(", ", _dirtySections.Select(DirtyLabel))));
+    }
+
+
+    // --- Settori ATC importati (catalogo): import + limiti + mostra/nascondi ---
+    private Task ImportSectors() => Guarded(async () =>
+    {
+        await Sectors.ImportFromSourceAsync(_icao);
+        await ReloadSectorsAsync();   // rinfresca solo il catalogo settori (conteggio nella pill)
+    });
+    // Shape TWR reali da GitHub (twrs.tfl) per questo aeroporto: riempie le TWR senza poligono IVAO, non tocca le reali.
+    private Task ImportTwrShapes() => Guarded(async () =>
+    {
+        var n = await Sectors.ApplyGithubTwrShapesAsync(_icao);
+        await ReloadSectorsAsync();
+        _saveInfo = n > 0
+            ? string.Format(L["Ape_ImportTwrShapesDone"].Value, n)
+            : L["Ape_ImportTwrShapesNone"].Value;
+        _saveInfoWarn = n == 0;
+    });
+    /// <summary>Un limite digitato: nel buffer, e la riga diventa pendente finché non la si salva.</summary>
+    private Task LimiteDigitato(int sectorId, Action scrivi)
+    {
+        scrivi();
+        _dirtyLimiti.Add(sectorId);
+        return AggiornaGuardiaAsync();
+    }
+
+    private async Task SaveSectorLimits(int id)
+    {
+        // ⚠️ Si spegne SOLO a salvataggio riuscito, come per le sezioni: `Guarded` torna false se il servizio
+        // ha rifiutato, e una riga che il server non ha preso deve restare pendente — o l'avviso mentirebbe.
+        if (!await Guarded(() => Sectors.SetLimitsAsync(id, _secLower.GetValueOrDefault(id), _secUpper.GetValueOrDefault(id))))
+            return;
+        _dirtyLimiti.Remove(id);
+        await AggiornaGuardiaAsync();
+    }
+    private Task ToggleSectorHidden(int id, bool hidden) => Guarded(async () => { await Sectors.SetHiddenAsync(id, hidden); await ReloadSectorsAsync(); });
+    private Task SetSectorPrimary(int id) => Guarded(async () => { await Sectors.SetPrimaryAsync(id); await ReloadSectorsAsync(); });
+    private Task SetSectorAccApp(int id, bool v) => Guarded(async () => { await Sectors.SetAccAppAsync(id, v); await ReloadSectorsAsync(); });
+
+    // Solo le posizioni APP/DEP hanno il flag "di ACC".
+    private static bool IsApp(string? position) => (position ?? "").Trim().ToUpperInvariant() is "APP" or "DEP";
+
+    // Frequenze dal catalogo settori, ordine ATIS·DEL·GND·TWR·APP/DEP (solo con frequenza, non nascosti).
+    private IEnumerable<AirportSectorRow> FreqRows()
+    {
+        string[] order = { "ATIS", "DEL", "GND", "TWR", "APP", "DEP" };
+        return _sectors
+            .Where(s => !s.IsHidden && !string.IsNullOrWhiteSpace(s.Frequency))
+            .OrderBy(s => { var i = Array.IndexOf(order, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
+            .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
+            .ThenBy(s => s.ComposePosition);
+    }
+
+    /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO; fallback al nome-posizione (come nel documento).</summary>
+
+        // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
+    private static bool CanBePrimary(string? position)
+    {
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        return p is "DEL" or "GND" or "TWR" or "APP" or "DEP";
+    }
+
+    // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
+    private static int ParseLower(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("GND", StringComparison.OrdinalIgnoreCase)) return 0;
+        return int.TryParse(s, out var n) ? Math.Max(0, n) : 0;
+    }
+    // Limite superiore: "UNL"/vuoto = null (illimitato); altrimenti la quota in ft.
+    private static int? ParseUpper(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("UNL", StringComparison.OrdinalIgnoreCase)) return null;
+        return int.TryParse(s, out var n) ? n : (int?)null;
+    }
+    private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
+    private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
+
+    // Solo TWR/APP/DEP/CTR/FSS hanno un volume (limiti + shape); GND/DEL/ATIS no.
+    private static bool SupportsLimits(string? position)
+    {
+        var p = (position ?? "").Trim().ToUpperInvariant();
+        return p is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
+    }
+
+    // Esegue un'azione con badge Salvataggio/Salvato + gestione errori. NON ricarica i buffer (in scroll-unico un reload
+    // totale cancellerebbe le modifiche non salvate di ALTRE sezioni): chi ha bisogno di refresh lo fa in modo mirato.
+    // Ritorna true = azione riuscita.
+    private async Task<bool> Guarded(Func<Task> action)
+    {
+        // ⚠️ Il `_busy` resta qui: e' dell'aeroporto, e serve a spegnere i tasti mentre un salvataggio corre.
+        // Il resto — badge, errori tradotti, rete di sicurezza — lo fa il guscio comune (doc 14 §3d): questa
+        // era la QUINTA copia della stessa idea, la sola che ritornasse l'esito.
+        // NON ricarica i buffer: in scroll-unico un reload totale cancellerebbe le modifiche non salvate di
+        // ALTRE sezioni. Chi ha bisogno di refresh lo fa in modo mirato.
+        _busy = true;
+        try { return await _shell.GuardedAsync(action); }
+        finally { _busy = false; }
+    }
+
+    // Salvataggio in blocco di una sezione: i buffer locali già riflettono lo stato salvato (repo = replace totale),
+    // quindi niente reload; a successo si pulisce solo il dirty della sezione.
+    private async Task SaveSection(string section, Func<Task> action)
+    {
+        if (await Guarded(action)) await ClearDirty(section);
+    }
+
+
+    // Ricarica il solo catalogo settori + i buffer limiti (non tocca gli altri buffer di sezione).
+    private async Task ReloadSectorsAsync()
+    {
+        _sectors = await Sectors.ListByAirportAsync(_icao);
+        _secLower.Clear(); _secUpper.Clear();
+        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
+        // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
+        // caricamento (il DbContext del circuito è uno solo).
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
+    }
+
+    // --- Configurazioni: piste reali + toggle CSV/giorni, riordino, conversioni tempo ---
+    private string[] DayNames => new[] { L["Ape_Mon"].Value, L["Ape_Tue"].Value, L["Ape_Wed"].Value, L["Ape_Thu"].Value, L["Ape_Fri"].Value, L["Ape_Sat"].Value, L["Ape_Sun"].Value };
+
+    private IReadOnlyList<string> RwIdents() =>
+        _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
+
+        private static string RwChip(HashSet<string> set, string id) => set.Contains(id)
+        ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
+
+        private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
+        ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
+
+        private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+    private static string JoinCsv(HashSet<string> set) => string.Join(",", set);
+
+    private static TimeOnly? MinToTime(int? min) => min is int m ? new TimeOnly(m / 60, m % 60) : null;
+    private static int? TimeToMin(TimeOnly? t) => t is TimeOnly v ? v.Hour * 60 + v.Minute : null;
+
+    // Finestra stagionale ricorrente: in DB è MMDD (mese*100+giorno); nell'editor giorno e mese separati (nessun anno).
+    private static int? MdDay(int? mmdd) => mmdd is int md and >= 101 ? md % 100 : null;
+    private static int? MdMonth(int? mmdd) => mmdd is int md and >= 101 ? md / 100 : null;
+    // Valida solo se ENTRAMBI valorizzati; altrimenti null (nessun estremo per quel lato).
+    private static int? CombineMd(int? month, int? day) =>
+        month is int m && day is int d ? m * 100 + d : null;
+
+    private string[] MonthNames => new[]
+    {
+        L["Ape_Jan"].Value, L["Ape_Feb"].Value, L["Ape_Mar"].Value, L["Ape_Apr"].Value, L["Ape_May"].Value, L["Ape_Jun"].Value,
+        L["Ape_Jul"].Value, L["Ape_Aug"].Value, L["Ape_Sep"].Value, L["Ape_Oct"].Value, L["Ape_Nov"].Value, L["Ape_Dec"].Value,
+    };
+
+            /// <summary>Avvisi sulla tabella TL: fasce QNH sovrapposte e livello mancante.</summary>
+        /// <summary>Avvisi sulle piste: ident duplicati (rompono i chip DEP/ARR delle regole).</summary>
+        /// <summary>Avvisi sulle SID manuali: FIX/nome mancante, pista non tra quelle definite, righe duplicate.</summary>
+        // ---- il corpo delle sezioni FISSE, reso da questa pagina ----
+    // ⚠️ Un frammento per sezione, e il dispatch è una `switch` di sola ESPRESSIONE. Mettere la marcatura
+    // dentro i rami di una `switch` non compila: il parser Razor conta le graffe del blocco e un `@{ … }`
+    // dentro un `case` gliele sbilancia («RZ1006: the switch block is missing a closing "}"»). Ogni
+    // frammento comincia invece con un elemento, quindi si legge come marcatura dal primo carattere.
+    private RenderFragment DerivedSection(EditableSection s) => s.SectionKey switch
+    {
+        "weather" => WeatherNote,
+        "runwayrules" => RulesEditor,
+        "transition" => TransitionEditor,
+        "frequencies" => FrequenciesEditor,
+        "runways" => RunwaysEditor,
+        "sids" => SidsEditor,
+        "validity" => ValidityEditor,
+        _ => _ => { },
+    };
+
+    /// <summary>«Validità e revisione»: la scheda dei tre campi generati, e la nota che spiega che non si
+    /// compilano. I blocchi editoriali sotto li rende il motore condiviso (`KeepsOwnBlocks`).</summary>
+    /// <summary>La conferma prima di togliere una riga da una tabella d'editor. Passata ai componenti come
+    /// funzione: così restano montabili in una prova, dove un dialogo del browser non c'è.</summary>
+    private Task<bool> ConfermaRimozioneRiga() => Confirm(L["Ape_RemoveRowConfirm"].Value);
+    private Task<bool> ConfermaRimozionePista() => Confirm(L["Ape_RemoveRwConfirm"].Value);
+    private Task<bool> ConfermaRimozioneRegola() => Confirm(L["Ape_RemoveRuleConfirm"].Value);
+
+    /// <summary>La sezione «Quote di transizione» in scrittura: la disegna un componente, non più 41 righe
+    /// di marcatura dentro questa pagina (doc 14 §3g).</summary>
+    private RenderFragment TransitionEditor => __builder =>
+    {
+        <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="v => _ta = v"
+                                 SourceLocked="_policy.TransitionAltitude" Busy="_busy" CanEdit="_canEdit"
+                                 OnChanged='() => MarkDirty("transition")'
+                                 OnSaveTa="SaveTa" OnSaveRows="SaveTls"
+                                 ConfirmRemove="ConfermaRimozioneRiga" />
+    };
+
+    /// <summary>La sezione «Piste» in scrittura: un componente, non 41 righe dentro questa pagina.</summary>
+    private RenderFragment RunwaysEditor => __builder =>
+    {
+        <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busy" CanEdit="_canEdit"
+                              OnChanged='() => MarkDirty("runways")' OnSaveRows="SaveRwys"
+                              ConfirmRemove="ConfermaRimozionePista" />
+    };
+
+    /// <summary>La sezione «Frequenze» in scrittura: un componente, non 51 righe dentro questa pagina.
+    /// ⚠️ Lo stato della casella di ricerca se l'è preso lui — era stato di vista, non del documento.</summary>
+    private RenderFragment FrequenciesEditor => __builder =>
+    {
+        <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
+                                  Busy="_busy" CanEdit="_canEdit"
+                                  OnChanged='() => MarkDirty("frequencies")' OnSaveLinks="SaveLinks" />
+    };
+
+    /// <summary>La sezione «Regole piste» in scrittura: un componente, non 128 righe dentro questa pagina —
+    /// e col banco di prova, che è suo (doc 14 §3g).</summary>
+    private RenderFragment RulesEditor => __builder =>
+    {
+        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Busy="_busy" CanEdit="_canEdit"
+                                  OnChanged='() => MarkDirty("runwayrules")' OnSaveRows="SaveRules"
+                                  ConfirmRemove="ConfermaRimozioneRegola" />
+    };
+
+    // ---- SID: i filtri e le regole li dice AirportSidRules (doc 14 §3g) ----
+    /// <summary>Quel che si sta guardando adesso nell'elenco delle importate.</summary>
+    private RenderFragment ValidityEditor => __builder =>
+    {
+        <div class="callout info" style="margin:0 0 10px">
+            <span class="cic"><Icon Name="clock" Size="18" /></span>
+            <div>@L["Val_EditNote"]</div>
+        </div>
+        <ValidityStamp Target="ReleaseTargetType.Airport" Key="@_icao" />
+    };
+
+
+    /// <summary>Meteo: non c'è niente da modificare, e vale la pena dirlo — è anche l'unica sezione che non si
+    /// può congelare alla release, e chi la trova senza comandi si chiederebbe se manca qualcosa.</summary>
+    private RenderFragment WeatherNote => __builder =>
+    {
+        <div class="callout info" style="margin:0">
+            <span class="cic"><Icon Name="cloud" Size="18" /></span>
+            <div><p class="ct">@L["Ape_WeatherTitle"]</p>@L["Ape_WeatherBody"]</div>
+        </div>
+    };
+
+    /// <summary>Regole di scelta pista, con il tester «prova vento» che valuta i buffer correnti senza salvare.</summary>
+        /// <summary>Frequenze del catalogo (sola lettura) più i link a enti esterni, che si scelgono qui.</summary>
+        /// <summary>Piste: i campi di sorgente sono bloccati se la policy d'import le dichiara di sorgente.</summary>
+        /// <summary>SID importate dal sectorfile e SID manuali, con selezione multipla e pubblicazione in blocco.</summary>
+    /// <summary>La sezione «SID» in scrittura: 252 righe di marcatura e trentatré metodi sono usciti in un
+    /// componente (doc 14 §3g). Qui restano le sole cose che toccano il database.</summary>
+    private RenderFragment SidsEditor => __builder =>
+    {
+        <AirportSidsEditor @ref="_editorSid" Imported="_imported" Manual="_sids" RunwayIdents="RwIdents()"
+                           Navaids="_navaids" Icao="@_icao" Busy="_busy" CanEdit="_canEdit"
+                           Wide="_wide" WideChanged="v => _wide = v"
+                           OnChanged='() => MarkDirty("sids")' OnSaveManual="SaveSids" OnReimport="ReimportSids"
+                           PersistImported="PersistImported" RunGuarded="Guarded"
+                           ConfirmAsync="Confirm" OnInfo="MostraInformativa"
+                           OnDirtyCountChanged="SidNonSalvateAsync" />
+    };
+
+    /// <summary>Quante SID importate sono modificate e non salvate, come lo dice l'editor SID.</summary>
+    private int _sidNonSalvate;
+
+    /// <summary>L'editor SID, per chiedergli di salvare le sue righe quando si esce dalla modifica: quel
+    /// buffer è suo, e la pagina non ha modo di scriverlo da sé.</summary>
+    private AirportSidsEditor? _editorSid;
+
+    /// <summary>Il riquadro informativo in cima («applicato a N righe», «pubblicate N»): lo possiede questa
+    /// pagina, e l'editor SID le chiede di mostrarlo.</summary>
+    private void MostraInformativa((string Testo, bool Avviso) m)
+    {
+        _saveInfo = m.Testo;
+        _saveInfoWarn = m.Avviso;
+        ProgrammaChiusuraInformativa();
+    }
+
+
+    /// <summary>La forma risolta di ogni posizione: da dove viene, e di quanti pezzi è fatta (carta refactor 15).</summary>
+    private IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> _formeSettori =
+        new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
+
+    private Vipi.Application.Airspace.SectorShape? FormaDi(string callsign) =>
+        _formeSettori.TryGetValue(callsign, out var f) ? f : null;
+
+    /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
+    private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
+
+    /// <summary>
+    /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
+    /// documento. Lo valorizza l'ospite di un editor unito: la' il gesto e' UNO e prende i lock di TUTTI i
+    /// membri (o di nessuno).
+    /// </summary>
+    [Parameter] public Func<Task>? SuModifica { get; set; }
+
+    /// <inheritdoc cref="SuModifica"/>
+    [Parameter] public Func<Task>? SuFineModifica { get; set; }
+
+    /// <summary>Voci d'indice che l'OSPITE aggiunge a quelle di questo membro: nell'editor unito l'indice e'
+    /// uno solo, e ci stanno dentro anche le sezioni degli altri.</summary>
+    [Parameter] public IReadOnlyList<EditorTocItem>? VociIndiceExtra { get; set; }
+
+    /// <summary>Come questo membro si presenta all'ospite. ⚠️ Lo chiama solo quando NON ha il chrome.</summary>
+    [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
+
+    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+
+    /// <summary>⚠️ Non `FinishEditingAsync` diretto: qui prima si salva quel che e' in sospeso, ed e' per
+    /// questo che il gancio avvolge <c>FineModificaAsync</c> e non il guscio.</summary>
+    private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : FineModificaAsync();
+
+}

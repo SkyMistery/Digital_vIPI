@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 3 settembre 2026 — ✅ **§AZ: DOCUMENTI UNITI — una pagina, un editor, una pubblicazione.** Un APP non remotizzato si unisce al documento dell'aeroporto o al vSOP militare, indipendentemente dal tipo: ordine deciso dal redattore, **un editor solo**, e la release — fatta o pianificata — con **un clic** su tutti i membri (annullarla li annulla tutti). Provato a schermo su LIBA e su **LIMN Cameri**, misto e pubblicato. Ramo `documenti-uniti`, fuso in `main`.
+
 **Aggiornato:** 3 settembre 2026 — ✅ **§AY: LA SCHEDA DELLA CLAUSOLA DEI TRASFERIMENTI È UNA FINESTRA, e tre classi erano scollegate dal foglio di stile.** Segnalati dal committente due difetti in notturna; cercandoli ne è uscito un terzo, il più caro: markup `xt-panel-f` contro CSS `.xt-panel-foot`, regola **morta da tre settimane**, e senza `display:flex` nel piede **l'elimina stava appiccicato al duplica** — un tasto distruttivo a 8px da uno costruttivo, che non sembrava un guasto ma una scelta. Le barre bianche erano `--on-brand` (bianco di **brand**, che non ha tema) usato per i coperchi dello scroll shadow, e si vedevano **anche senza niente da scorrere**. ⚠️ **La misura ha ribaltato la mia stessa proposta**: «la finestra è larga il doppio quindi ci sta tutto» è **falso** — da 348 a 828px di corpo il contenuto scende da 896 a 860, il **4%**, perché i campi erano impilati in una colonna sola. Quello che paga è la larghezza **spesa in due colonne** (896 → 666), e oltre i 920px non paga più niente (a 1040/1160/1280 il contenuto non si muove). Esito misurato: come la scheda si apre davvero **non scorre** (378 in 378); con tutte e tre le sezioni forzate aperte, **30px fuori invece di 394**. 🔴 **Non è in produzione** e tocca `vipi-theme.css` **e** `vipi-print.css`. Carta: [`docs/feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
 
 **Aggiornato:** 3 settembre 2026 — 🟡 **§AX: IMPORTARE I TRASFERIMENTI, carta scritta e non ancora eseguita** (ramo `import-trasferimenti`). Richiesta del committente: «voglio importare i trasferimenti copiando le tabelle dagli attuali documenti, anche in forma mista». **Misurato sui tre documenti veri** in `vIPI word/` (estraendo le tabelle dai `.docx`): **~450 righe di trasferimento**, e nel solo IPI di Roma **33 forme d'intestazione distinte** — che è la ragione per cui il pezzo che regge tutto è la **rimappatura a mano** già dentro `ImportaTabella`, non una spec per forma. Seconda misura, quella che decide la prima fetta: delle **494 celle FL** la grammatica di oggi ne legge **324 (66%)** come livello vero, e **170** finiscono in testo libero — ma sono tre famiglie sole (`FL130 o` ×72, la parità fuori parentesi ×20, i marcatori di nota ×10), e tre regole di normalizzazione portano a **~87%**. 🔴 **Il salto vero non è leggere le celle: è che una riga porta ente, DEST/DEP e tipo, cioè dati che nel modello stanno SOPRA la riga** — una tabella di Roma da dodici righe è **tre accordi e cinque sezioni**, non dodici clausole in una sezione. Quindi un ingresso **a livello di controparte** (quello di oggi è in fondo a quattro clic dentro una sezione sola) che costruisce un **piano** da spuntare. **Decisioni del committente**: la `ROTTA ATS` si **ignora**; della lista enti `US/TS/NE/US0` si tiene **solo il primo** e il resto non si scrive da nessuna parte (la catena di ripiego è già la gerarchia di copertura: copiarla sarebbe una seconda verità); l'import **propone e basta**, l'albero nasce tutto non spuntato; **niente `.docx`** — si copia una tabella per volta, e il rumore del documento non entra invece di dover essere filtrato. ⚠️ **La carta è in due parti, e la seconda ha una data**: la **A** (l'import) non tocca lo schema e si può fare subito; la **B** — agganciare `EKMUR 3C` alla **procedura** invece di copiarla — vuole un **catalogo STAR che non esiste** (`AirportSid` c'è, 1.269 procedure; di STAR nel modello **zero occorrenze**) e **aspetta il 16 settembre**, perché è una tabella nuova più tre colonne su una tabella viva dentro una finestra senza ripristino. 🟢 Ad aspettare non si perde niente: l'aggancio è un confronto testo→catalogo e può girare **dopo** sulle clausole già importate. Le STAR la sorgente le ha (`.str`, **90 file / 1.511 righe / 89 aeroporti**) ⚠️ ma **339 di quelle righe non sono STAR**: sono l'hack `MAPS`, e dentro i file «STAR» vivono le shape di CTR e ATZ. E il legame va per **`StableKey`, mai per Id** (la strada per Id è già stata pagata: `ConditionRefId` 215/216) ⚠️ sapendo che la `StableKey` **non è unica** e l'indice unico fa fallire la migrazione su dati veri. ⚠️ **E «si aggiorna da solo» è vero solo nell'editor**: le release sono fotografie, il documento pubblicato cambia alla **prossima release** — quindi il pezzo che rende utile il meccanismo non è il link, sono gli **impatti**. Carta: [`docs/design/piano-import-trasferimenti.md`](design/piano-import-trasferimenti.md). 🔴 **Nessuna riga di codice scritta**: si parte dalla fetta A1 (letture pure, test-first).
@@ -7286,3 +7288,72 @@ le sezioni, 666 in 636: **30px fuori invece di 394**.
   ciò che deve dire.
 - 🟡 `StructureAccessibilityTests.Nessun_comando_raggiungibile_col_solo_mouse` è diventato rosso sul velo
   della finestra e **aveva ragione**: sta in whitelist con la ragione scritta, come quello di `DeleteDialog`.
+
+## AZ. Documenti uniti: una pagina, un editor, una pubblicazione — 3 settembre 2026
+
+Chiesto dal committente: unire il documento di un APP non remotizzato con quello dell'aeroporto (o col vSOP
+militare), **indipendentemente dal tipo di documento**; e poter scegliere di unire vIPI e vSOP anche sui campi
+con *presenza militare*. Precisato dopo: unire vuol dire **una pagina sola**, con l'**ordine** deciso dal
+redattore, **un editor solo**, e la pubblicazione — fatta o **pianificata** — con **un clic**.
+
+Carta `docs/feature/2026-09-03-documenti-uniti.md`, schema `docs/spec/modello-dati.md` §9.33.
+Ramo **`documenti-uniti`**, da `main` (`cd1bc5c7`), spinto. §1-§9 chiuse.
+
+### ⚠️ Il fatto misurato che ha deciso il modello
+
+**LIBV Gioia del Colle ha DUE APP non remotizzati** — `LIBV_APP` e `LIBV_G_APP` — e così LIBN, LIPE, LIRM,
+LIRS. **L'unione è un elenco ORDINATO, non una coppia**: due colonne su `Document` non reggevano un caso che
+era già in archivio. Cinque minuti di query prima di disegnare, e il modello è cambiato.
+
+### Che cosa c'è
+
+`DocumentUnion` + `DocumentUnionMember` (indice **unico** su `DocumentId`), e **nessun tipo nuovo**: l'unione
+è una *relazione*, ed è ciò che la rende indipendente dalla famiglia senza toccare i sei descrittori di
+release, le sei rotte e i cinque provider di congelamento. Il legame è verso `Document.Id` e **non** verso
+`TargetKey`, che è un puntatore e viene riscritto dalla rinomina di un callsign.
+
+Lettura: un indice per membro impilato, i corpi in ordine sotto l'intestazione del loro documento, un solo
+`PrintMeta`. La vista pubblica di un membro non-ospite **reindirizza** alla pagina unita.
+Editor: il corpo delle tre famiglie è uscito dalle pagine in `Components/Doc/*SectionsEditor.razor`, e
+l'ospite li monta con `Chrome="false"` dentro la sua griglia — il pattern della vIPI ACC.
+Pubblicazione: `PublishUnionAsync`/`PublishUnionNowAsync` in **una transazione**, catture **in sequenza**, un
+solo `now`; annullamento accoppiato.
+
+### ⚠️ Le cose che non si deducono dal codice
+
+- **L'ospite si riconosce da famiglia E chiave insieme**: un aeroporto e il suo vSOP militare hanno la
+  **stessa** chiave di release (l'ICAO). Sulla sola chiave, la pagina civile disegnerebbe l'unione del militare.
+- **`AppMil` è fuori dalle famiglie ammesse perché non ha un `IFrozenSectionProvider`**: un membro senza
+  provider si pubblicherebbe senza congelare niente **e senza protestare**.
+- **Il lock si prende su tutti in un gesto, o su nessuno**, e il rifiuto dice **chi** lo tiene.
+- **Ricerca, «Novità» e impatti non sono stati toccati**, ed è una decisione: il redirect li copre tutti. Un
+  rimando al posto di N chiamanti da tenere d'accordo.
+- ⚠️ **Il commento di `MilDocRoutes` — «non è la stessa pagina con un parametro» — resta vero**, ed è stato
+  aggiornato: l'unione non è un parametro, è un atto editoriale esplicito e reversibile.
+
+### ⚠️ Quel che ha trovato la verifica dal vivo, e i test non vedevano
+
+1. **La domanda prima di annullare mentiva**: diceva «il pubblico torna alla precedente» al singolare mentre
+   ne toglieva due.
+2. **Il pannello di release non rileggeva l'unione nata nella stessa pagina**: memoizza su `(bersaglio,
+   chiave)`, e quelle non cambiano quando si unisce. ⚠️ *Quando un componente memoizza su una chiave,
+   chiedersi che cosa può cambiare SENZA cambiare quella chiave.*
+3. **L'indice unito restava con le sole voci dell'ospite**, per TRE cause in fila: le voci si *tiravano* con
+   un `@ref` (assegnato dopo il render, mentre i membri si registrano durante); si spingevano *una volta
+   sola*, quando il documento del membro non è ancora caricato; e la `.Concat` che le univa **non era mai
+   stata applicata**. ⚠️ *Un `[Parameter]` dichiarato e mai letto non dà nessun segnale.*
+4. ⚠️ `string.Format(L[chiave].Value, n)` **non interpola**: l'unico indexer che formatta è `L[chiave, n]`.
+   In produzione l'argomento sarebbe sparito in silenzio.
+
+### Quel che resta
+
+- 🔴 **Non è in produzione**: il ramo non è fuso. Va in un pacchetto suo, e ⚠️ porta **due migrazioni** (una
+  per serie) — vedi la finestra cieca al 16 settembre prima di consegnarne una che tocca lo schema.
+- ✅ **Provato a schermo su tutti e due gli assi**: LIBA (aeroporto + APP) e **LIMN Cameri** (misto e
+  **pubblicato**, che è la seconda richiesta). Su LIMN: release 57 e 58 allo stesso ciclo e alla stessa data
+  efficace, **entrambi** i documenti promossi a `Published`, 34 voci d'indice con **zero** ancore senza
+  bersaglio, il redirect dalla pagina civile alla vSOP unita, e l'anteprima a un ciclo in cui il membro non
+  aveva pubblicato che ricade sulla pubblica. ⚠️ La migrazione è stata applicata su una **copia del
+  `vipi.db` reale**, non su un database vuoto.
+- 🟡 **La vIPI ACC e la vLOA restano fuori** dalle famiglie unibili, dichiarato: la prima è a blocchi e non
+  passa da `DocumentSectionsView`, la seconda disegna da sé le direzioni dei coordinamenti.

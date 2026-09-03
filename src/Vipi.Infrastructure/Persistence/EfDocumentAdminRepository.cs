@@ -24,9 +24,46 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
 
     public async Task<IReadOnlyList<ManagedDoc>> ListAsync(CancellationToken ct = default)
     {
+        var result = await DescriviAsync(null, ct);
+
+        // Stato release del bersaglio (doc 10 §3f): una sola query batch. Porta i cicli, non un bool —
+        // HasEffectiveRelease è calcolato da EffectiveCycle, e /services/vsop/versions mostra gli stessi cicli senza
+        // rifare la query per conto proprio (fino al 21 agosto 2026 la faceva due volte).
+        var summaries = await _releases.SummariesAsync(
+            result.Select(m => (m.ReleaseTarget, m.ReleaseKey)).Distinct().ToList(), ct);
+        var conCicli = result.Select(m => summaries.TryGetValue((m.ReleaseTarget, m.ReleaseKey), out var s)
+            ? m with { EffectiveCycle = s.EffectiveCycle, NextScheduledCycle = s.NextScheduledCycle, HasAnyRelease = s.HasAnyRelease }
+            : m).ToList();
+
+        return conCicli.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyDictionary<int, ManagedDoc>> DescribeAsync(
+        IReadOnlyCollection<int> documentIds, CancellationToken ct = default)
+    {
+        if (documentIds.Count == 0) return new Dictionary<int, ManagedDoc>();
+        var righe = await DescriviAsync(documentIds.Distinct().ToList(), ct);
+        // Un documento non descritto non torna: la chiave manca, e chi ha chiesto proprio quell'id se ne accorge.
+        return righe.Where(m => m.DocumentId is not null).ToDictionary(m => m.DocumentId!.Value);
+    }
+
+    /// <summary>
+    /// La risoluzione <c>Document</c> → <see cref="ManagedDoc"/>: <b>una sola</b>, per l'elenco intero
+    /// (<paramref name="soloQuestiId"/> null) e per una manciata di id.
+    ///
+    /// <para>⚠️ Esiste perché l'insieme di <c>Include</c> qui sotto <b>è</b> la correttezza del risultato: un
+    /// <c>Include</c> mancante non dà errore, fa rispondere <c>false</c> al descrittore e il documento sparisce
+    /// in silenzio (è successo con <c>MilAirport</c>). Due copie di questa query sono due posti in cui
+    /// l'insieme può divergere, e il secondo se ne accorgerebbe solo a schermo.</para>
+    /// </summary>
+    private async Task<List<ManagedDoc>> DescriviAsync(IReadOnlyList<int>? soloQuestiId, CancellationToken ct)
+    {
         // Post-08 tutti e 4 i tipi sono su Document: una query, poi ogni Document è attribuito al primo descrittore
         // che lo riconosce (doc 09 §3a). Aggiungere un tipo = registrare un IReleaseTarget, niente switch qui.
-        var docs = await _db.Documents.AsNoTracking()
+        var q = _db.Documents.AsNoTracking().AsQueryable();
+        if (soloQuestiId is not null) q = q.Where(d => soloQuestiId.Contains(d.Id));
+        var docs = await q
             .Include(d => d.Sectors).ThenInclude(s => s.Acc)
             // L'aeroporto descritto: da qui il descrittore prende ICAO e ACC (vedi AirportReleaseTarget).
             .Include(d => d.Airport).ThenInclude(a => a!.Acc)
@@ -67,16 +104,7 @@ public sealed class EfDocumentAdminRepository : IDocumentAdminRepository
                     break;
                 }
 
-        // Stato release del bersaglio (doc 10 §3f): una sola query batch. Porta i cicli, non un bool —
-        // HasEffectiveRelease è calcolato da EffectiveCycle, e /services/vsop/versions mostra gli stessi cicli senza
-        // rifare la query per conto proprio (fino al 21 agosto 2026 la faceva due volte).
-        var summaries = await _releases.SummariesAsync(
-            result.Select(m => (m.ReleaseTarget, m.ReleaseKey)).Distinct().ToList(), ct);
-        result = result.Select(m => summaries.TryGetValue((m.ReleaseTarget, m.ReleaseKey), out var s)
-            ? m with { EffectiveCycle = s.EffectiveCycle, NextScheduledCycle = s.NextScheduledCycle, HasAnyRelease = s.HasAnyRelease }
-            : m).ToList();
-
-        return result.OrderBy(r => r.Kind).ThenBy(r => r.Title).ToList();
+        return result;
     }
 
     public async Task<IReadOnlyDictionary<int, string>> GetTitlesAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default)

@@ -1,0 +1,79 @@
+﻿@* Il CORPO di un vSOP militare d'aeroporto: le sezioni, con il corpo derivato che questa famiglia disegna
+   per chiave.
+
+   Sta fuori da `MilDocumentPage` perché lo stesso documento va reso in due posti — la sua pagina, e la
+   pagina UNITA che lo mostra insieme ad altri (carta 2026-09-03-documenti-uniti.md).
+
+   ⚠️ Qui c'è SOLO il corpo, non l'indice: `DocumentToc` vive nella cella SORELLA della griglia `doc-layout`,
+   e su questo documento porta anche le SOTTO-sezioni — sono venti su ventisei, e senza di loro l'indice ne
+   elencava sei. Chi monta questo componente monta anche l'indice, con lo STESSO `AnchorOf`.
+
+   ⚠️ `lang` sul CONTENITORE e non sulla pagina: il chrome parla la lingua del sito, il documento la sua. È
+   la verità, ed è quel che serve a un lettore di schermo per non pronunciare l'inglese con le regole
+   dell'italiano. In una pagina unita vale per membro. *@
+@using Vipi.Domain
+@using Vipi.Ui.Components.App
+@inject IStringLocalizer<SharedResource> L
+
+<div lang="@Doc.Bloccata">
+    <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.AirportMil"
+                          IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
+                          AnchorOf="AnchorOf"
+                          DerivedContent="CorpoDerivato" />
+</div>
+
+@code {
+    /// <summary>Il documento già caricato: lo prepara <see cref="MilMemberLoader"/>.</summary>
+    [Parameter, EditorRequired] public MilMemberDocument Doc { get; set; } = default!;
+
+    /// <summary>L'ancora di una sezione: <c>s-{Id}</c> come in tutte le famiglie (doc 13 §3e).
+    /// <para>⚠️ Deve restare uguale a quella che riceve <c>DocumentToc</c>, o l'indice punterebbe a un id che
+    /// non esiste e i suoi link non farebbero niente — senza errori.</para></summary>
+    public static string AnchorOf(SectionView s) => s.Id;
+
+    /// <summary>
+    /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano dello
+    /// stesso scalo: meteo, piste, quote di transizione e frequenze di LIPI sono quelle, qualunque documento
+    /// le mostri. Riusare la derivazione invece di rifarla è ciò che rende «sei chiavi riusate» un fatto e
+    /// non una dichiarazione.
+    ///
+    /// <para>⚠️ Quel che il PDF ha in più — le coordinate delle soglie, i CRC/AEW — non si deriva: sta nei
+    /// blocchi editoriali sotto la scheda, ed è per questo che quelle due sezioni sono <c>HostAndBlocks</c>.</para>
+    /// </summary>
+    private RenderFragment<SectionView> CorpoDerivato => sec => __builder =>
+    {
+        @switch (sec.SectionKey)
+        {
+            case "weather": <AirportWeather Icao="@Doc.Icao" Report="Doc.Wx" Metar="Doc.Metar" Taf="Doc.Taf" Lingua="@Doc.Bloccata" />; break;
+            case "transition":
+                <AirportTransition View="Doc.Derivate.Transition" CurrentQnh="Doc.Metar?.QnhHpa"
+                                   MetarTimeRaw="@Doc.Metar?.TimeRaw" Station="Doc.Station" />;
+                break;
+            case "frequencies": <AirportFrequencies View="Doc.Derivate.Frequencies" />; break;
+            @* Le righe le porta il DOCUMENTO, i valori l'anagrafica di divisione — e alla release si
+               congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
+            case "navaids": <MilNavaids Rows="Doc.Radioassistenze" />; break;
+            case "diversion": <MilDiversions Rows="Doc.Alternati" />; break;
+            @* ⚠️ Due tabelle, e la seconda è SOLO militare: le soglie stanno nei SOP e non nella vIPI
+               civile, e otto colonne più due coordinate non ci starebbero in una riga sola. *@
+            case "runways":
+                <AirportRunways View="Doc.Derivate.Runways" />
+                <MilRunwayThresholds View="Doc.Derivate.Runways" />
+                break;
+            @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
+               mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. E SOTTO la tabella: nome e
+               limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività. *@
+            case "regulated":
+                <RegulatedAreas Areas="Doc.Aree" />
+                <MilWorkingAreas Areas="Doc.Aree" Activities="Doc.AttivitaAree" />
+                break;
+            case "callsigns":
+                <MilFixedTable Colonne="MilProfiloTabelle.Nominativi(L)" Righe="Doc.Nominativi" />
+                break;
+            case "parkings":
+                <MilFixedTable Colonne="MilProfiloTabelle.Parcheggi(L)" Righe="Doc.Parcheggi" />
+                break;
+            case "validity": <ValidityStamp Target="ReleaseTargetType.AirportMil" Key="@Doc.Icao" ReleaseId="@Doc.ReleaseIdShown" />; break;
+        }
+    };
+}
