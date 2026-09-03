@@ -47,6 +47,13 @@ public static class StartupDiagnostics
     public static void SegnaAvvioRiuscito() => _avvioRiuscito = true;
 
     /// <summary>
+    /// Se l'host è arrivato a <c>ApplicationStarted</c>. Esposta perché è l'unica cosa che un test può
+    /// guardare per sapere che la registrazione in <c>VipiStartup</c> <b>esiste davvero</b>: la funzione
+    /// pura si prova senza host, ma una riga <c>Register</c> dimenticata lascerebbe verde tutto il resto.
+    /// </summary>
+    public static bool AvvioRiuscito => _avvioRiuscito;
+
+    /// <summary>
     /// Il file su cui scrivere l'eccezione fatale, secondo il momento in cui arriva. Pubblico e con il
     /// parametro esplicito perché è la sola riga che decide, e un test la deve poter chiamare nei due stati
     /// senza far partire un host.

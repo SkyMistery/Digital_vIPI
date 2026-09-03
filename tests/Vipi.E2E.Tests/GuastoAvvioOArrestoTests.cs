@@ -67,3 +67,36 @@ public sealed class GuastoAvvioOArrestoTests
         Assert.Contains("Lo_stack_trace_c_e_in_tutti_e_due_i_casi", testo, StringComparison.Ordinal);
     }
 }
+
+/// <summary>
+/// ⚠️ Il pezzo che i test qui sopra NON coprono: che la sentinella sia <b>cablata</b>.
+///
+/// <para>Quelli provano la funzione pura; se la riga
+/// <c>app.Lifetime.ApplicationStarted.Register(StartupDiagnostics.SegnaAvvioRiuscito)</c> sparisse da
+/// <c>VipiStartup</c>, resterebbero tutti verdi e il comportamento tornerebbe esattamente quello del
+/// difetto — ogni guasto in <c>avvio-errore.txt</c>. È la stessa famiglia del <c>[Parameter]</c> dichiarato
+/// e mai letto: nessun segnale.</para>
+///
+/// <para>Qui l'host parte davvero. ℹ️ Si asserisce solo il verso <b>dopo l'avvio</b>: la sentinella è
+/// statica di processo e monotona, quindi «prima è falsa» dipenderebbe da chi ha girato prima.</para>
+/// </summary>
+public sealed class SentinellaDellAvvioTests : IClassFixture<SmokeTests.VipiAppFactory>
+{
+    private readonly SmokeTests.VipiAppFactory _factory;
+    public SentinellaDellAvvioTests(SmokeTests.VipiAppFactory factory) => _factory = factory;
+
+    [Fact]
+    public async Task Con_l_host_avviato_il_guasto_va_sul_file_dell_arresto()
+    {
+        // Una richiesta vera: garantisce che l'host sia partito, non solo costruito.
+        var res = await _factory.CreateClient().GetAsync("/vsop/health/ready");
+        Assert.Equal(System.Net.HttpStatusCode.OK, res.StatusCode);
+
+        Assert.True(StartupDiagnostics.AvvioRiuscito,
+            "ApplicationStarted non ha alzato la sentinella: la registrazione in VipiStartup non c'è, e un "
+            + "guasto allo SPEGNIMENTO tornerebbe a scriversi come «l'avvio è FALLITO».");
+
+        Assert.Equal(StartupDiagnostics.ShutdownFileName,
+                     StartupDiagnostics.FileDelGuasto(StartupDiagnostics.AvvioRiuscito));
+    }
+}
