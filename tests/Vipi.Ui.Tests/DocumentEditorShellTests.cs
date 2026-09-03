@@ -91,6 +91,7 @@ public class DocumentEditorShellTests
         public Task DeleteSectionAsync(int sectionId, CancellationToken ct = default) => throw NonUsato();
         public Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default) => throw NonUsato();
         public Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default) => throw NonUsato();
+        public Task MoveSectionToParentAsync(int sectionId, int? newParentSectionId, int? beforeSectionId, CancellationToken ct = default) => throw NonUsato();
         public Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default) => throw NonUsato();
         public Task PublishAsync(int versionId, string? note, CancellationToken ct = default) => throw NonUsato();
         public Task<int> DiscardDraftAsync(int versionId, CancellationToken ct = default) => throw NonUsato();

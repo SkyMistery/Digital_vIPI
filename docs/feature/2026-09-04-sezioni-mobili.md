@@ -135,3 +135,17 @@ appartiene, invece di ricopiarlo.
   documento in bozza, e il default `false` è la risposta giusta lì.
   Tre test bUnit (`AccDraftHiddenChildTests`), provati per mutazione: tolto il passaggio del parametro — non
   il parametro — il test della bozza diventa **rosso**. Suite UI 1227 verde.
+- **S3** ✅ `MoveSectionToParentAsync` su `IEditingRepository`/`IEditingService`, con le cinque guardie e la
+  doppia rinumerazione. Dieci test (`SezioniRiparentateTests`) su SQLite in memoria, uno per guardia più il
+  gesto intero, la profondità riscritta sul sottoalbero e il ritorno alla radice.
+  Note di esecuzione:
+  · **«libera» si chiede alla CHIAVE**, non al profilo (`SectionKeys.IsCustom`): il repository non conosce il
+    profilo del documento, e la UI userà la stessa funzione — una porta sola.
+  · **Il riferimento fuori gruppo si RIFIUTA**, non si accoda: `MoveSectionBeforeAsync` in quel caso tace, ma
+    lì tacere vuol dire «non ti muovo», qui vorrebbe dire «ti metto dove non hai chiesto».
+  · `RowVersion` si rigenera sulle righe toccate — su `DocumentSection` è un token di concorrenza dichiarato,
+    e la riparentazione di §BC faceva già così.
+  · ⚠️ Il motore **non sa** che cosa sia una radice per una famiglia: nella vIPI ACC le radici sono i blocchi.
+    Che quella destinazione non venga offerta lo garantisce la UI (S4), ed è scritto sull'interfaccia.
+  Build Release dell'intera soluzione verde, 0 avvisi.
+

@@ -192,6 +192,16 @@ public sealed class EditingService : IEditingService
         await _repo.MoveSectionBeforeAsync(sectionId, beforeSectionId, ct);
     }
 
+    public async Task MoveSectionToParentAsync(int sectionId, int? newParentSectionId, int? beforeSectionId, CancellationToken ct = default)
+    {
+        var docId = await AuthorizeSectionAsync(sectionId, ct);
+        await EnsureLockAsync(docId, ct);
+        // ⚠️ Il padre nuovo si autorizza anche lui: sta nella stessa versione (lo pretende il repository), ma
+        // il lock e i permessi si chiedono sul DOCUMENTO, ed è quello di prima. Chiederli due volte sarebbe
+        // chiederli allo stesso documento.
+        await _repo.MoveSectionToParentAsync(sectionId, newParentSectionId, beforeSectionId, ct);
+    }
+
     public async Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default)
     {
         var docId = await AuthorizeBlockAsync(blockId, ct);

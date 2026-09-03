@@ -62,8 +62,12 @@ public interface IEditingService : IDocumentForReview
     Task MoveSectionAsync(int sectionId, int direction, CancellationToken ct = default);
 
     /// <summary>Sposta una sezione PRIMA del fratello indicato (null = in coda): il trascinamento nel
-    /// menu-sezioni. Non riparenta — vedi <c>IEditingRepository.MoveSectionBeforeAsync</c>.</summary>
+    /// menu-sezioni. Non riparenta — per cambiare gruppo c'è <see cref="MoveSectionToParentAsync"/>.</summary>
     Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default);
+
+    /// <summary>Sposta una sezione LIBERA in un altro gruppo: nuovo padre (null = radice) e posizione dentro
+    /// quel gruppo. Le guardie stanno nel repository — vedi <c>IEditingRepository.MoveSectionToParentAsync</c>.</summary>
+    Task MoveSectionToParentAsync(int sectionId, int? newParentSectionId, int? beforeSectionId, CancellationToken ct = default);
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);
     Task PublishAsync(int versionId, string? note, CancellationToken ct = default);
 

@@ -140,9 +140,28 @@ public interface IEditingRepository
     /// Sposta una sezione PRIMA del fratello indicato (null = in coda ai fratelli), rinumerando il gruppo.
     /// È la stessa mossa delle frecce generalizzata a N posti: serve al trascinamento nel menu-sezioni.
     /// <para>⚠️ Non riparenta: se <paramref name="beforeSectionId"/> non è un FRATELLO della sezione, la mossa
-    /// non avviene. Il vincolo «solo dentro il suo gruppo» sta qui, non nella UI che lo disegna.</para>
+    /// non avviene. Il vincolo «solo dentro il suo gruppo» sta qui, non nella UI che lo disegna — e chi vuole
+    /// cambiare gruppo lo chiede a <see cref="MoveSectionToParentAsync"/>, che è un'altra mossa apposta.</para>
     /// </summary>
     Task MoveSectionBeforeAsync(int sectionId, int? beforeSectionId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Sposta una sezione <b>in un altro gruppo</b>: nuovo padre (<c>null</c> = radice del documento) e, dentro
+    /// quel gruppo, prima del fratello indicato (<c>null</c> = in coda). Carta 2026-09-04.
+    ///
+    /// <para>⚠️ È l'unica mossa che riparenta, e porta con sé cinque guardie — bozza, sezione <b>libera</b>
+    /// (una di catalogo ha un posto standard), stessa versione, niente cicli, profondità del <b>sottoalbero</b>
+    /// entro <see cref="Vipi.Domain.Entities.DocumentSection.MaxDepth"/>. Stanno qui e non nella UI: l'elenco
+    /// delle destinazioni che disegna il menu può essere vecchio, questa risposta no.</para>
+    ///
+    /// <para>⚠️ Riscrive <c>Depth</c> su tutto il sottoalbero e rinumera <b>tutt'e due</b> i gruppi, quello che
+    /// la riceve e quello che la perde: <c>Order</c> è una posizione fra fratelli, non un identificativo.</para>
+    ///
+    /// <para>⚠️ Quel che questa mossa NON sa è che cosa sia una radice per una FAMIGLIA: nella vIPI ACC le
+    /// radici sono i blocchi, e portare una sezione alla radice vorrebbe dire farne un blocco. È la UI a non
+    /// offrire quella destinazione (l'editor ACC lavora su un solo blocco per volta), e qui non si può sapere.</para>
+    /// </summary>
+    Task MoveSectionToParentAsync(int sectionId, int? newParentSectionId, int? beforeSectionId, CancellationToken ct = default);
 
     /// <summary>Sposta un blocco di un posto nella sua sezione (direction -1 = su, +1 = giù).</summary>
     Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default);

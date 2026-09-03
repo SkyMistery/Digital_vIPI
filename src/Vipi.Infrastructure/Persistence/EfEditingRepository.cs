@@ -874,6 +874,145 @@ public sealed class EfEditingRepository : IEditingRepository
         if (changed) await _db.SaveChangesAsync(ct);
     }
 
+    public async Task MoveSectionToParentAsync(
+        int sectionId, int? newParentSectionId, int? beforeSectionId, CancellationToken ct = default)
+    {
+        var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
+            ?? throw new InvalidOperationException(Lingua($"Sezione {sectionId} inesistente.", $"Section {sectionId} does not exist."));
+        await RequireDraftAsync(section.DocumentVersionId, ct);
+
+        // ⚠️ Guardia 1 — solo le sezioni LIBERE. Una sezione di catalogo ha una posizione standard (è quella
+        // che conta `SectionOrdering.OffsetsFromStandard`), e portarla in un altro gruppo la renderebbe muta.
+        // La domanda si fa sulla CHIAVE e non sul profilo: `SectionKeys.IsCustom` è la stessa risposta che dà
+        // la UI quando decide se offrire il comando — una porta sola, non una accanto.
+        if (!SectionKeys.IsCustom(section.SectionKey))
+            throw new InvalidOperationException(Lingua(
+                "Una sezione di catalogo non si sposta in un altro gruppo: il catalogo le assegna un posto.",
+                "A catalog section cannot be moved to another group: the catalog assigns its place."));
+
+        // Tutta la versione: servono il sottoalbero (ciclo e profondità) e i due gruppi (quello che la perde e
+        // quello che la riceve).
+        var tutte = await _db.DocumentSections
+            .Where(s => s.DocumentVersionId == section.DocumentVersionId).ToListAsync(ct);
+        var figlieDi = tutte.Where(s => s.ParentSectionId != null)
+            .GroupBy(s => s.ParentSectionId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(s => s.Order).ThenBy(s => s.Id).ToList());
+
+        // ⚠️ Guardia 2 — il padre nuovo deve stare nella STESSA versione. Una sezione non cambia mai documento,
+        // e fra i membri di un documento unito nemmeno: cercandolo dentro `tutte` la domanda è già risposta.
+        DocumentSection? nuovoPadre = null;
+        if (newParentSectionId is int pid)
+        {
+            nuovoPadre = tutte.FirstOrDefault(s => s.Id == pid)
+                ?? throw new InvalidOperationException(Lingua(
+                    $"Sezione padre {pid} inesistente in questa versione.",
+                    $"Parent section {pid} does not exist in this version."));
+        }
+
+        // ⚠️ Guardia 3 — il ciclo. Un padre che finisce dentro il proprio sottoalbero sparisce dall'albero e
+        // non torna: nessun ciclo esterno lo raggiungerebbe più, e il documento perderebbe quel ramo in silenzio.
+        if (nuovoPadre is not null && (nuovoPadre.Id == section.Id || NelSottoalbero(section.Id, nuovoPadre.Id, figlieDi)))
+            throw new InvalidOperationException(Lingua(
+                "Una sezione non può diventare figlia di sé stessa o di una propria sotto-sezione.",
+                "A section cannot become a child of itself or of one of its own subsections."));
+
+        // ⚠️ Guardia 4 — la profondità si misura sul SOTTOALBERO, non sulla sola sezione mossa: una figlia con
+        // figlie ne porta due, e il vincolo è applicativo (`DocumentSection.MaxDepth`), come alla nascita.
+        var nuovaProfondita = (nuovoPadre?.Depth ?? -1) + 1;
+        var altezza = AltezzaSottoalbero(section.Id, figlieDi);
+        if (nuovaProfondita + altezza > DocumentSection.MaxDepth)
+            throw new InvalidOperationException(Lingua(
+                $"Profondità massima superata (max {DocumentSection.MaxDepth} livelli): la sezione porta con sé le proprie sotto-sezioni.",
+                $"Maximum depth exceeded (max {DocumentSection.MaxDepth} levels): the section carries its own subsections."));
+
+        var vecchioPadreId = section.ParentSectionId;
+
+        // Il gruppo che la RICEVE, senza di lei (se è già lì, è un riordino dentro lo stesso gruppo).
+        var destinazione = (newParentSectionId is int np
+                ? (figlieDi.TryGetValue(np, out var f) ? f : new List<DocumentSection>())
+                : tutte.Where(s => s.ParentSectionId is null).OrderBy(s => s.Order).ThenBy(s => s.Id).ToList())
+            .Where(s => s.Id != section.Id).ToList();
+
+        // ⚠️ Il riferimento, se c'è, dev'essere un fratello della DESTINAZIONE. Un riferimento che non c'è vuol
+        // dire che chi ha chiesto la mossa aveva in mano un albero vecchio: si rifiuta, non si accoda in
+        // silenzio — mettere la sezione in un posto che nessuno ha chiesto è peggio che non muoverla.
+        var at = destinazione.Count;
+        if (beforeSectionId is int bid)
+        {
+            at = destinazione.FindIndex(s => s.Id == bid);
+            if (at < 0)
+                throw new InvalidOperationException(Lingua(
+                    $"La sezione {bid} non è nel gruppo di destinazione.",
+                    $"Section {bid} is not in the destination group."));
+        }
+
+        section.ParentSectionId = nuovoPadre?.Id;
+        section.ParentSection = nuovoPadre;
+        // ⚠️ `Depth` è una COLONNA, non un calcolo: va riscritta su tutto il sottoalbero. Chi la lascia indietro
+        // ottiene sotto-sezioni che si rendono al livello sbagliato (SectionNode sceglie il markup dalla
+        // profondità) e un indice che non rientra.
+        RiscriviProfondita(section, nuovaProfondita, figlieDi);
+        section.RowVersion = Guid.NewGuid().ToByteArray();
+
+        destinazione.Insert(at, section);
+        Rinumera(destinazione);
+
+        // Il gruppo che l'ha persa si richiude: `Order` è una posizione, e lasciare il buco farebbe partire il
+        // gruppo dal numero due (stesso gesto di `ReparentMilParkingsAsync`).
+        if (vecchioPadreId != section.ParentSectionId)
+        {
+            var rimasti = (vecchioPadreId is int vp
+                    ? (figlieDi.TryGetValue(vp, out var g) ? g : new List<DocumentSection>())
+                    : tutte.Where(s => s.ParentSectionId is null).ToList())
+                .Where(s => s.Id != section.Id).OrderBy(s => s.Order).ThenBy(s => s.Id).ToList();
+            Rinumera(rimasti);
+        }
+
+        await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>Rinumerazione densa di un gruppo di fratelli, da 1: <c>Order</c> è una posizione.</summary>
+    private static void Rinumera(IReadOnlyList<DocumentSection> gruppo)
+    {
+        for (var i = 0; i < gruppo.Count; i++)
+        {
+            if (gruppo[i].Order == i + 1) continue;
+            gruppo[i].Order = i + 1;
+            gruppo[i].RowVersion = Guid.NewGuid().ToByteArray();
+        }
+    }
+
+    /// <summary>Vero se <paramref name="candidatoId"/> discende da <paramref name="radiceId"/>.</summary>
+    private static bool NelSottoalbero(int radiceId, int candidatoId,
+        IReadOnlyDictionary<int, List<DocumentSection>> figlieDi)
+    {
+        if (!figlieDi.TryGetValue(radiceId, out var figlie)) return false;
+        foreach (var f in figlie)
+            if (f.Id == candidatoId || NelSottoalbero(f.Id, candidatoId, figlieDi)) return true;
+        return false;
+    }
+
+    /// <summary>Quanti livelli scende il sottoalbero: 0 per una sezione senza figlie.</summary>
+    private static int AltezzaSottoalbero(int radiceId, IReadOnlyDictionary<int, List<DocumentSection>> figlieDi)
+    {
+        if (!figlieDi.TryGetValue(radiceId, out var figlie) || figlie.Count == 0) return 0;
+        var max = 0;
+        foreach (var f in figlie) max = Math.Max(max, AltezzaSottoalbero(f.Id, figlieDi));
+        return max + 1;
+    }
+
+    private static void RiscriviProfondita(DocumentSection s, int profondita,
+        IReadOnlyDictionary<int, List<DocumentSection>> figlieDi)
+    {
+        if (s.Depth != profondita)
+        {
+            s.Depth = profondita;
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+        }
+        if (!figlieDi.TryGetValue(s.Id, out var figlie)) return;
+        foreach (var f in figlie) RiscriviProfondita(f, profondita + 1, figlieDi);
+    }
+
     public async Task MoveBlockAsync(int blockId, int direction, CancellationToken ct = default)
     {
         var block = await _db.ContentBlocks.FirstOrDefaultAsync(b => b.Id == blockId, ct)
