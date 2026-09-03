@@ -85,25 +85,23 @@
 
     private bool Draggable => OnReorder.HasDelegate;
 
-    private int? _dragId;
-    private string? _dragGroup;
+    private EditorTocItem? _dragged;
     private int? _overId;
 
     private bool CanDrag(EditorTocItem it) => Draggable && it.SectionId is not null;
 
-    private bool IsDragging(EditorTocItem it) => _dragId is int d && it.SectionId == d;
+    private bool IsDragging(EditorTocItem it) => _dragged is EditorTocItem m && it.SectionId == m.SectionId;
 
     private bool IsDropTarget(EditorTocItem it) => _overId is int o && it.SectionId == o;
 
     private void DragStart(EditorTocItem it)
     {
         if (!CanDrag(it)) return;
-        _dragId = it.SectionId;
-        _dragGroup = it.DragGroup;
+        _dragged = it;
         _overId = null;
     }
 
-    private void DragEnd() { _dragId = null; _dragGroup = null; _overId = null; }
+    private void DragEnd() { _dragged = null; _overId = null; }
 
     private void DragEnter(EditorTocItem it)
     {
@@ -115,26 +113,18 @@
         if (_overId == it.SectionId) _overId = null;
     }
 
-    /// <summary>Bersaglio valido: una sezione del MEDESIMO gruppo, diversa da quella trascinata.</summary>
+    /// <summary>Bersaglio valido: lo dice <see cref="TocDropRules.Accetta"/>, che è dove stanno le regole —
+    /// qui resta solo il pennello che illumina la voce.</summary>
     private bool Accepts(EditorTocItem it)
-        => _dragId is int d && it.SectionId is int t && t != d
-           && string.Equals(it.DragGroup, _dragGroup, StringComparison.Ordinal);
+        => _dragged is EditorTocItem mossa && TocDropRules.Accetta(Items, mossa, it);
 
     private async Task Drop(EditorTocItem it)
     {
-        var moved = _dragId;
-        var accepted = Accepts(it);
+        var mossa = _dragged;
         DragEnd();
-        if (!accepted || moved is not int m || it.SectionId is not int target) return;
+        if (mossa is not EditorTocItem v) return;
 
-        // Fratelli nell'ordine attuale = le voci-sezione dello stesso gruppo, nell'ordine in cui sono rese:
-        // il TOC è la proiezione del documento, non un secondo elenco.
-        var siblings = Items
-            .Where(x => x.SectionId is not null && string.Equals(x.DragGroup, it.DragGroup, StringComparison.Ordinal))
-            .Select(x => x.SectionId!.Value)
-            .ToList();
-
-        if (SectionOrdering.TryDropOnto(siblings, m, target, out var beforeId))
-            await OnReorder.InvokeAsync(new TocReorder(m, beforeId));
+        // La traduzione del gesto in mossa sta in TocDropRules: riordino fra fratelli o cambio di padre.
+        if (TocDropRules.Mossa(Items, v, it) is { } esito) await OnReorder.InvokeAsync(esito);
     }
 }

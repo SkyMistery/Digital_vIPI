@@ -7753,6 +7753,6 @@ codice per dirlo sono usciti due difetti, e sono quelli che facevano sembrare ro
 | S2 | `IsDraft` scende in ACC | ✅ |
 | S3 | Motore `MoveSectionToParentAsync` + cinque guardie | ✅ |
 | S4 | `SectionMoveTargets` + menu «Sposta in…» | ✅ |
-| S5 | Figlie trascinabili nel menu-sezioni | 🟡 |
+| S5 | Figlie trascinabili nel menu-sezioni | ✅ |
 | S6 | Spareggio stabile nell'ordinamento | 🟡 |
 | S7 | Propagazione e verifica live sulle cinque famiglie | 🟡 |

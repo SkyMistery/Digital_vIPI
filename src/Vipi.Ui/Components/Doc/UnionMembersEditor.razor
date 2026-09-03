@@ -168,8 +168,10 @@
         _editor.SelectMany(e => EditorTocProjection
             // ⚠️ `dragGroup` col DOCUMENTO dentro: il trascinamento non deve poter spostare una sezione
             //    da un membro all'altro. Una sezione non cambia mai documento — e il repository lo rifiuta
-            //    comunque (MoveSectionBeforeAsync pretende un FRATELLO), ma un tasto che a volte non fa
+            //    comunque (nessuna delle due mosse esce dalla versione), ma un tasto che a volte non fa
             //    niente è peggio di un gesto che non si puo' fare.
+            //    ⚠️ E dal 4 settembre 2026 conta il doppio: dentro l'albero un drop fuori gruppo RIPARENTA,
+            //    quindi è questo valore — diverso per membro — l'unica cosa che tiene separati i documenti.
             // ⚠️ E sull'ID DEL DOCUMENTO, non sul titolo: due membri OMONIMI avrebbero condiviso il gruppo.
             .DaSezioni(e.Sezioni, dirty: null, dragGroup: $"membro-{e.DocumentId}")
             .Select(v => v with { GroupLabel = e.Titolo }))

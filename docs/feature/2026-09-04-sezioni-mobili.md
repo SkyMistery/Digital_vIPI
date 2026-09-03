@@ -162,4 +162,20 @@ appartiene, invece di ricopiarlo.
     che chiamasse quel che non deve fa cadere il test invece di passare in silenzio.
   · Tre chiavi i18n nuove, IT+EN (`Dse_MoveTo`, `Dse_MoveToTitle`, `Dse_MoveToTop`).
   Suite UI 1231 verde, build Release intera verde.
+- **S5** ✅ Le figlie si trascinano nel menu-sezioni, e un drop **fuori gruppo riparenta**.
+  · Ogni voce ora porta il **padre**, se la sezione è **libera**, la sua **profondità** e l'**altezza** del
+    suo sottoalbero: è quel che serve per distinguere un riordino da un cambio di gruppo e per non
+    illuminare un bersaglio che il motore rifiuterebbe.
+  · ⚠️ `DragGroup` non è più «il gruppo di fratelli» ma **l'albero**: i fratelli si riconoscono dal padre.
+    Conta il doppio in un editor unito — ora che un drop fuori gruppo riparenta, è quel valore, diverso per
+    membro, l'unica cosa che tiene separati i documenti.
+  · Le regole sono uscite dal pannello: `TocDropRules` (funzione pura) dice chi accetta chi e in quale mossa
+    si traduce il gesto. ⚠️ Così si provano **senza fabbricare eventi di trascinamento**, che è esattamente
+    ciò che una volta ha tenuto verdi otto test su un gesto rotto. La prova del gesto vero resta la verifica
+    col browser headful (S7).
+  · Otto test su `TocDropRules` + tre nuovi sulla proiezione. ⚠️ Uno vecchio è stato **riscritto**: diceva
+    «una figlia non si trascina» ed era la regola che questa fetta cambia.
+  · La vIPI ACC **non cambia**: costruisce il proprio indice, con le sole sezioni di primo livello per blocco,
+    e fra blocchi non si passa (decisione 2).
+  Suite UI 1241 verde, build Release intera verde.
 

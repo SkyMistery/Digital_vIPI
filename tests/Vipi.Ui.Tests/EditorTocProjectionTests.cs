@@ -70,19 +70,50 @@ public class EditorTocProjectionTests
     }
 
     /// <summary>
-    /// ⚠️ Una figlia <b>non si trascina</b>: il riordino lavora per gruppo di fratelli, e aprirlo ai figli è
-    /// un lavoro suo. Una voce che si lascia prendere e poi non va da nessuna parte è il difetto già pagato
-    /// con la voce del pannello Release.
+    /// ⚠️ Dal 4 settembre 2026 <b>anche una figlia si trascina</b>, e porta con sé il proprio padre: è quello
+    /// a dire chi sono i suoi fratelli. Qui c'era scritto il contrario — «aprirlo ai figli è un lavoro suo» —
+    /// ed è questo.
     /// </summary>
     [Fact]
-    public void Una_figlia_non_si_trascina_e_una_radice_si()
+    public void Anche_una_figlia_si_trascina_e_porta_il_proprio_padre()
     {
         var voci = Voci(Sez(1, "Dati generali", 0, Sez(2, "Radioassistenze", 1)));
 
         Assert.Equal(1, voci[0].SectionId);
         Assert.Equal("root", voci[0].DragGroup);
-        Assert.Null(voci[1].SectionId);
-        Assert.Null(voci[1].DragGroup);
+        Assert.Null(voci[0].ParentSectionId);      // radice dell'albero mostrato
+
+        Assert.Equal(2, voci[1].SectionId);
+        Assert.Equal("root", voci[1].DragGroup);   // stesso ALBERO della radice…
+        Assert.Equal(1, voci[1].ParentSectionId);  // …ma un altro gruppo di fratelli
+    }
+
+    /// <summary>Le radici dell'albero mostrato portano il padre che l'host ha dichiarato: per la vIPI ACC è la
+    /// sezione-blocco, e senza di lui il pannello crederebbe che siano radici del documento.</summary>
+    [Fact]
+    public void Le_radici_portano_il_padre_dichiarato_dall_host()
+    {
+        var voci = EditorTocProjection.DaSezioni(
+            new[] { Sez(1, "A", 1, Sez(2, "A1", 2)) }, dirty: null, dragGroup: "root", titolo: null, radiceId: 99);
+
+        Assert.Equal(99, voci[0].ParentSectionId);
+        Assert.Equal(1, voci[1].ParentSectionId);
+    }
+
+    /// <summary>Ogni voce dice se la sezione può cambiare gruppo e quanto si porta dietro: è quel che serve al
+    /// pannello per non illuminare un bersaglio che il motore rifiuterebbe.</summary>
+    [Fact]
+    public void Ogni_voce_dice_se_e_libera_e_quanto_e_alto_il_suo_sottoalbero()
+    {
+        var libera = ConChiave(2, "Nota", SectionKeys.NewCustom(), depth: 1);
+        var voci = Voci(ConChiave(1, "Frequenze", "frequencies", 0, libera));
+
+        Assert.False(voci[0].Movable);   // di catalogo: si riordina, non cambia padre
+        Assert.True(voci[1].Movable);
+
+        Assert.Equal(1, voci[0].SubtreeHeight);   // porta con sé una figlia
+        Assert.Equal(0, voci[1].SubtreeHeight);
+        Assert.Equal(new[] { 0, 1 }, voci.Select(v => v.SectionDepth));
     }
 
     /// <summary>Il pallino delle modifiche non salvate vale anche per le figlie: è lì che si sta scrivendo.</summary>

@@ -100,10 +100,11 @@ else
     /// (stessa classe `.sid-wide` dell'editor aeroporto e di quello ACC).</summary>
     [Parameter] public bool Wide { get; set; }
 
-    // Voci TOC = sezioni di primo livello (anchor s-{Id}, già usato da CollapsibleBlock) + eventuali extra dell'host.
-    // Le voci-sezione portano il proprio Id e il gruppo di riordino: qui il gruppo è UNO SOLO (le radici rese da
-    // questa istanza), perché è dentro quello che si scambiano l'ordine. Le voci extra dell'host (il pannello
-    // Release) restano senza Id: non sono sezioni, e non si trascinano.
+    // Voci TOC = le sezioni rese da questa istanza, radici e figlie (anchor s-{Id}, già usato da
+    // CollapsibleBlock) + eventuali extra dell'host. Il gruppo di trascinamento è l'ALBERO — uno solo, quello
+    // di questa istanza — e i FRATELLI dentro l'albero si riconoscono dal padre che ogni voce si porta
+    // (carta 2026-09-04): fra fratelli si riordina, su un altro gruppo si cambia padre. Le voci extra
+    // dell'host (il pannello Release) restano senza Id: non sono sezioni, e non si trascinano.
     private const string TocGroup = "root";
 
     /// <summary>
@@ -136,7 +137,8 @@ else
         // Le voci-sezione, radici e figlie, le costruisce una funzione pura (EditorTocProjection): è la parte
         // che si può sbagliare in silenzio, e provarla di qui vorrebbe dire montare l'editor intero.
         var items = EditorTocProjection.DaSezioni(
-            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup, Titolo).ToList();
+            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup, Titolo,
+            radiceId: AddParentId).ToList();
         if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
         return items;
     }
@@ -192,10 +194,14 @@ else
         await OnChanged.InvokeAsync();
     });
 
-    // Trascinamento nel menu-sezioni: il TOC ha già tradotto il gesto in «prima di questa» (SectionOrdering).
+    // Trascinamento nel menu-sezioni: il TOC ha già tradotto il gesto — «prima di questa» fra fratelli
+    // (SectionOrdering), oppure «diventa sorella di questa» quando la voce lasciata sta in un altro gruppo.
+    // ⚠️ Due mosse diverse e non una sola con un parametro in più: la seconda riparenta, e riparentare ha
+    // guardie che il riordino non ha (carta 2026-09-04 §3).
     private Task ReorderFromToc(TocReorder r) => Run(async () =>
     {
-        await Editing.MoveSectionBeforeAsync(r.SectionId, r.BeforeSectionId);
+        if (r.CambiaPadre) await Editing.MoveSectionToParentAsync(r.SectionId, r.NuovoPadreId, r.BeforeSectionId);
+        else await Editing.MoveSectionBeforeAsync(r.SectionId, r.BeforeSectionId);
         await OnChanged.InvokeAsync();
     });
 
