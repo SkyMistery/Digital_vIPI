@@ -148,4 +148,18 @@ appartiene, invece di ricopiarlo.
   · ⚠️ Il motore **non sa** che cosa sia una radice per una famiglia: nella vIPI ACC le radici sono i blocchi.
     Che quella destinazione non venga offerta lo garantisce la UI (S4), ed è scritto sull'interfaccia.
   Build Release dell'intera soluzione verde, 0 avvisi.
+- **S4** ✅ `SectionMoveTargets` (funzione pura, `Vipi.Application.Content`) + il menu «⇵ Sposta in…»
+  nell'intestazione di sezione, a ogni profondità, su tutti e cinque gli editor — montano lo stesso componente.
+  · L'elenco esclude sé stessa, il **proprio sottoalbero**, il **padre attuale** (là dentro ci si muove con le
+    frecce) e ogni destinazione senza profondità residua per il sottoalbero che la sezione porta con sé.
+  · **«Primo livello» non è la radice del documento**: è il padre delle radici mostrate — per la vIPI ACC il
+    **blocco** (`AddParentId`). Portare una sezione alla radice del documento, là, vorrebbe dire farne un blocco.
+  · Il clic sposta **in coda** al gruppo nuovo: dove sta è una domanda, in che ordine è un'altra, e la seconda
+    ha già le frecce e il trascinamento.
+  · Otto test sulla funzione pura (`SectionMoveTargetsTests`) e quattro sul menu montato
+    (`MenuSpostaInTests`), che provano la catena intera fino alla chiamata al servizio.
+  · Nato qui `EditingServiceStub` nei test UI: base con tutti i metodi che **sollevano**, così un componente
+    che chiamasse quel che non deve fa cadere il test invece di passare in silenzio.
+  · Tre chiavi i18n nuove, IT+EN (`Dse_MoveTo`, `Dse_MoveToTitle`, `Dse_MoveToTop`).
+  Suite UI 1231 verde, build Release intera verde.
 

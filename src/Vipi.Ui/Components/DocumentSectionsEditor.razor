@@ -199,6 +199,15 @@ else
         await OnChanged.InvokeAsync();
     });
 
+    /// <summary>Sposta una sezione libera in un altro gruppo, IN CODA: la posizione dentro il gruppo nuovo si
+    /// sceglie dopo, con le frecce o trascinando — questo comando risponde alla domanda «dove sta», non
+    /// «in che ordine».</summary>
+    private Task MoveToParent(int sectionId, int? parentId) => Run(async () =>
+    {
+        await Editing.MoveSectionToParentAsync(sectionId, parentId, null);
+        await OnChanged.InvokeAsync();
+    });
+
     private Task SetRenderMode(int sectionId, RenderMode mode) => Run(async () =>
     {
         await Editing.SetSectionRenderModeAsync(sectionId, mode);
@@ -413,6 +422,33 @@ else
                         @onclick="() => ToggleBeforeParentBody(s)">
                     @(s.BeforeParentBody ? "⤓ " + L["Dse_AfterBody"] : "⤒ " + L["Dse_BeforeBody"])
                 </button>
+            }
+            @* «Sposta in…»: cambia GRUPPO, che è l'altra metà del movimento — le frecce e il trascinamento
+               spostano solo fra fratelli, apposta (carta 2026-09-04).
+
+               ⚠️ Solo per le sezioni LIBERE: una di catalogo ha una posizione standard, ed è quella che conta
+               la pill dello scostamento. La domanda la fa `SectionMoveTargets.Spostabile`, la stessa che rifà
+               il repository — l'elenco qui dice che cosa mostrare, il motore che cosa si può fare.
+
+               ⚠️ `<details>` in linea come «+ Blocco», per la stessa ragione scritta là sotto: un menu assoluto
+               che cade verso il basso viene RITAGLIATO da `.coord-sub{overflow:hidden}`. *@
+            @if (IsEditing && SectionMoveTargets.Spostabile(s))
+            {
+                var destinazioni = SectionMoveTargets.Per(
+                    RootSections ?? Doc.Sections, s, AddParentId, L["Dse_MoveToTop"].Value, Titolo);
+                @if (destinazioni.Count > 0)
+                {
+                    <details class="blk-add" @key="@($"mv-{s.Id}")">
+                        <summary class="btn ghost" title="@L["Dse_MoveToTitle"]">⇵ @L["Dse_MoveTo"]</summary>
+                        <div class="blk-add-menu">
+                            @foreach (var d in destinazioni)
+                            {
+                                <button class="btn ghost" style="@(d.Indent > 0 ? $"padding-left:{8 + d.Indent * 10}px" : null)"
+                                        @onclick="() => MoveToParent(s.Id, d.ParentId)">@d.Label</button>
+                            }
+                        </div>
+                    </details>
+                }
             }
         </div>
     };

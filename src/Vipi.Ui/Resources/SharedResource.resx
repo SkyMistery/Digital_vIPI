@@ -1861,6 +1861,9 @@
   <data name="Dse_AfterBody" xml:space="preserve"><value>Dopo il contenuto</value></data>
   <data name="Dse_MoveBeforeBodyTitle" xml:space="preserve"><value>Sposta questa sotto-sezione PRIMA del contenuto della sezione (ora è dopo)</value></data>
   <data name="Dse_MoveAfterBodyTitle" xml:space="preserve"><value>Sposta questa sotto-sezione DOPO il contenuto della sezione (ora è prima)</value></data>
+  <data name="Dse_MoveTo" xml:space="preserve"><value>Sposta in…</value></data>
+  <data name="Dse_MoveToTitle" xml:space="preserve"><value>Sposta questa sezione dentro un'altra sezione del documento</value></data>
+  <data name="Dse_MoveToTop" xml:space="preserve"><value>Primo livello</value></data>
   <data name="Dse_Hide" xml:space="preserve"><value>Nascondi</value></data>
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Mostra nel documento pubblicato</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Nascondi dal documento pubblicato</value></data>

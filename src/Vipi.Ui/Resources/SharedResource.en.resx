@@ -1856,6 +1856,9 @@
   <data name="Dse_AfterBody" xml:space="preserve"><value>After the content</value></data>
   <data name="Dse_MoveBeforeBodyTitle" xml:space="preserve"><value>Move this subsection BEFORE the section content (currently after)</value></data>
   <data name="Dse_MoveAfterBodyTitle" xml:space="preserve"><value>Move this subsection AFTER the section content (currently before)</value></data>
+  <data name="Dse_MoveTo" xml:space="preserve"><value>Move to…</value></data>
+  <data name="Dse_MoveToTitle" xml:space="preserve"><value>Move this section into another section of the document</value></data>
+  <data name="Dse_MoveToTop" xml:space="preserve"><value>Top level</value></data>
   <data name="Dse_Hide" xml:space="preserve"><value>Hide</value></data>
   <data name="Dse_ShowInDocTitle" xml:space="preserve"><value>Show in the published document</value></data>
   <data name="Dse_HideFromDocTitle" xml:space="preserve"><value>Hide from the published document</value></data>
