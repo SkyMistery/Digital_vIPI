@@ -101,8 +101,11 @@ public sealed class AirportMemberLoader
     /// scope proprio. ⚠️ Sono DUE istanze, e non è un di più: i servizi presi dallo scope della pagina
     /// vedono un <c>ReadingLanguageContext</c> diverso da quello iniettato nella pagina, e la lingua del
     /// documento va scritta in tutti e due o metà catena legge l'altra.</param>
+    /// <param name="fissaLaPagina">Falso quando questo documento e' un MEMBRO di un'unione: la lingua
+    /// della pagina la decide l'OSPITE. Vedi <see cref="LinguaDelDocumento.Prepara"/>.</param>
     public async Task<AirportMemberDocument?> LoadAsync(string icao, PreviewMode mode, string? vista,
                                                         ReadingLanguageContext? linguaDelCircuito = null,
+                                                        bool fissaLaPagina = true,
                                                         CancellationToken ct = default)
     {
         var code = (icao ?? "").Trim().ToUpperInvariant();
@@ -139,7 +142,7 @@ public sealed class AirportMemberLoader
         // compongono prosa ed etichette. Deciderla in fondo vorrebbe dire derivare nella lingua di chi guarda
         // e tradurre il resto nell'altra — mezza schermata per lingua, e nessun errore da nessuna parte.
         var lettore = LinguaDelDocumento.Prepara(_lingua, view.LanguageLocked, view.Language, Language.It,
-                                                 linguaDelCircuito);
+                                                 linguaDelCircuito, fissaLaPagina);
         var bloccata = view.LanguageLocked ? lettore : null;
 
         var wx = await _weather.GetAsync(code, ct);

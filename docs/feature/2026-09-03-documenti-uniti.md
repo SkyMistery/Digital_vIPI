@@ -141,6 +141,16 @@ cui poggiano le due edizioni con cicli indipendenti. Confrontare la sola chiave 
 pagina civile l'unione del militare.
 ⚠️ Le sezioni con la **stessa chiave** nei due documenti restano **tutte e due**, distinte dal gruppo: chi non
 le vuole le nasconde (`DocumentSection.IsHidden` esiste già). Decisione del committente.
+🔴 **La lingua della PAGINA è dell'ospite; quella del CONTENUTO è di ogni membro.** Un documento a
+lingua bloccata chiama `ReadingLanguageContext.Fissa`, che non ha un blocco che lo chiuda e vale per il
+**resto della richiesta**: la sua stessa documentazione dice che regge perché una pagina documentale mostra
+**un documento solo**, e l'unione ha rotto quella premessa senza che nessuno rileggesse quella riga. Trovato
+in supervisione: con N membri, l'**ultimo caricato** con la lingua bloccata decideva la lingua delle
+etichette e della prosa generata di **tutta** la pagina — ospite compreso — in base all'**ordine di
+caricamento**, e nessun errore lo diceva. Ora i membri si caricano con `fissaLaPagina: false`; il loro
+contenuto resta nella loro lingua perché traduzione, titoli di catalogo e derivate ricevono il codice come
+**argomento**, non dal contesto. Rete: `LinguaDellaPaginaUnitaTests`.
+
 ⚠️ `?as=rel:{id}` nomina **una** release, quella dell'ospite: gli altri membri mostrano la **propria** release
 dello **stesso ciclo**. E il degrado di un'anteprima non autorizzata deve restare quello di oggi — pubblica
 **con `_useFrozen = true`**, o il congelamento AIRAC si aggira dall'indirizzo.

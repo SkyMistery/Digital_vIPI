@@ -119,6 +119,17 @@ public sealed class UnionLoader
         return caricati;
     }
 
+    /// <summary>
+    /// Carica un membro. 🔴 <c>fissaLaPagina: false</c> su tutti e tre, ed è la riga che tiene insieme una
+    /// pagina con DUE documenti: un documento a lingua <b>bloccata</b> chiama
+    /// <c>ReadingLanguageContext.Fissa</c>, che non ha un blocco che lo chiuda e vale per il resto della
+    /// richiesta. Con N membri, l'ULTIMO caricato che avesse la lingua bloccata deciderebbe la lingua delle
+    /// etichette e della prosa generata di <b>tutta</b> la pagina — ospite compreso — e la deciderebbe in
+    /// base all'ordine di caricamento. Nell'unione la lingua della pagina è quella dell'OSPITE.
+    ///
+    /// <para>⚠️ Il <i>contenuto</i> del membro resta nella sua lingua: traduzione, titoli di catalogo e
+    /// derivate ricevono il codice come argomento, non dal contesto.</para>
+    /// </summary>
     private async Task<MembroUnito?> CaricaAsync(UnionMemberView m, PreviewMode mode, string? vista,
                                                  ReadingLanguageContext? linguaDelCircuito, CancellationToken ct)
     {
@@ -126,7 +137,8 @@ public sealed class UnionLoader
         {
             case ReleaseTargetType.App:
             {
-                var doc = await _sp.GetRequiredService<AppMemberLoader>().LoadAsync(m.Doc.ReleaseKey, mode, vista, ct)
+                var doc = await _sp.GetRequiredService<AppMemberLoader>()
+                                   .LoadAsync(m.Doc.ReleaseKey, mode, vista, fissaLaPagina: false, ct)
                                    .ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.DisplayName, doc.View.Sections,
                     b => { b.OpenComponent<AppDocumentBody>(0); b.AddComponentParameter(1, nameof(AppDocumentBody.Doc), doc); b.CloseComponent(); });
@@ -134,14 +146,16 @@ public sealed class UnionLoader
             case ReleaseTargetType.Airport:
             {
                 var loader = ActivatorUtilities.CreateInstance<AirportMemberLoader>(_sp);
-                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito, ct).ConfigureAwait(false);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
+                                                 fissaLaPagina: false, ct).ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.Sezioni,
                     b => { b.OpenComponent<AirportDocumentBody>(0); b.AddComponentParameter(1, nameof(AirportDocumentBody.Doc), doc); b.CloseComponent(); });
             }
             case ReleaseTargetType.AirportMil:
             {
                 var loader = ActivatorUtilities.CreateInstance<MilMemberLoader>(_sp);
-                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito, ct).ConfigureAwait(false);
+                var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
+                                                 fissaLaPagina: false, ct).ConfigureAwait(false);
                 return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.View.Sections,
                     b => { b.OpenComponent<MilDocumentBody>(0); b.AddComponentParameter(1, nameof(MilDocumentBody.Doc), doc); b.CloseComponent(); });
             }
