@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 3 settembre 2026 — ✅ **§AY: LA SCHEDA DELLA CLAUSOLA DEI TRASFERIMENTI È UNA FINESTRA, e tre classi erano scollegate dal foglio di stile.** Segnalati dal committente due difetti in notturna; cercandoli ne è uscito un terzo, il più caro: markup `xt-panel-f` contro CSS `.xt-panel-foot`, regola **morta da tre settimane**, e senza `display:flex` nel piede **l'elimina stava appiccicato al duplica** — un tasto distruttivo a 8px da uno costruttivo, che non sembrava un guasto ma una scelta. Le barre bianche erano `--on-brand` (bianco di **brand**, che non ha tema) usato per i coperchi dello scroll shadow, e si vedevano **anche senza niente da scorrere**. ⚠️ **La misura ha ribaltato la mia stessa proposta**: «la finestra è larga il doppio quindi ci sta tutto» è **falso** — da 348 a 828px di corpo il contenuto scende da 896 a 860, il **4%**, perché i campi erano impilati in una colonna sola. Quello che paga è la larghezza **spesa in due colonne** (896 → 666), e oltre i 920px non paga più niente (a 1040/1160/1280 il contenuto non si muove). Esito misurato: come la scheda si apre davvero **non scorre** (378 in 378); con tutte e tre le sezioni forzate aperte, **30px fuori invece di 394**. 🔴 **Non è in produzione** e tocca `vipi-theme.css` **e** `vipi-print.css`. Carta: [`docs/feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
+
 **Aggiornato:** 3 settembre 2026 — 🟡 **§AX: IMPORTARE I TRASFERIMENTI, carta scritta e non ancora eseguita** (ramo `import-trasferimenti`). Richiesta del committente: «voglio importare i trasferimenti copiando le tabelle dagli attuali documenti, anche in forma mista». **Misurato sui tre documenti veri** in `vIPI word/` (estraendo le tabelle dai `.docx`): **~450 righe di trasferimento**, e nel solo IPI di Roma **33 forme d'intestazione distinte** — che è la ragione per cui il pezzo che regge tutto è la **rimappatura a mano** già dentro `ImportaTabella`, non una spec per forma. Seconda misura, quella che decide la prima fetta: delle **494 celle FL** la grammatica di oggi ne legge **324 (66%)** come livello vero, e **170** finiscono in testo libero — ma sono tre famiglie sole (`FL130 o` ×72, la parità fuori parentesi ×20, i marcatori di nota ×10), e tre regole di normalizzazione portano a **~87%**. 🔴 **Il salto vero non è leggere le celle: è che una riga porta ente, DEST/DEP e tipo, cioè dati che nel modello stanno SOPRA la riga** — una tabella di Roma da dodici righe è **tre accordi e cinque sezioni**, non dodici clausole in una sezione. Quindi un ingresso **a livello di controparte** (quello di oggi è in fondo a quattro clic dentro una sezione sola) che costruisce un **piano** da spuntare. **Decisioni del committente**: la `ROTTA ATS` si **ignora**; della lista enti `US/TS/NE/US0` si tiene **solo il primo** e il resto non si scrive da nessuna parte (la catena di ripiego è già la gerarchia di copertura: copiarla sarebbe una seconda verità); l'import **propone e basta**, l'albero nasce tutto non spuntato; **niente `.docx`** — si copia una tabella per volta, e il rumore del documento non entra invece di dover essere filtrato. ⚠️ **La carta è in due parti, e la seconda ha una data**: la **A** (l'import) non tocca lo schema e si può fare subito; la **B** — agganciare `EKMUR 3C` alla **procedura** invece di copiarla — vuole un **catalogo STAR che non esiste** (`AirportSid` c'è, 1.269 procedure; di STAR nel modello **zero occorrenze**) e **aspetta il 16 settembre**, perché è una tabella nuova più tre colonne su una tabella viva dentro una finestra senza ripristino. 🟢 Ad aspettare non si perde niente: l'aggancio è un confronto testo→catalogo e può girare **dopo** sulle clausole già importate. Le STAR la sorgente le ha (`.str`, **90 file / 1.511 righe / 89 aeroporti**) ⚠️ ma **339 di quelle righe non sono STAR**: sono l'hack `MAPS`, e dentro i file «STAR» vivono le shape di CTR e ATZ. E il legame va per **`StableKey`, mai per Id** (la strada per Id è già stata pagata: `ConditionRefId` 215/216) ⚠️ sapendo che la `StableKey` **non è unica** e l'indice unico fa fallire la migrazione su dati veri. ⚠️ **E «si aggiorna da solo» è vero solo nell'editor**: le release sono fotografie, il documento pubblicato cambia alla **prossima release** — quindi il pezzo che rende utile il meccanismo non è il link, sono gli **impatti**. Carta: [`docs/design/piano-import-trasferimenti.md`](design/piano-import-trasferimenti.md). 🔴 **Nessuna riga di codice scritta**: si parte dalla fetta A1 (letture pure, test-first).
 
 **Aggiornato:** 3 settembre 2026 — ✅ **MISURATO: I GIRI PERIODICI PARTONO, E LA DEDUZIONE DI UN'ORA FA ERA SBAGLIATA.** Il committente ha aperto **Sorgenti** e **Diagnostica**, ed è il dato che serviva. Ultimo esito riuscito, tutto del 2 settembre: ACC e anagrafica aeroporti **17:56**, TA / piste / settori / **SID** / navaid / aree regolamentate **18:46**, statistiche ATC **21:23**, e la **deriva 18:46Z**. 🔴 **Quindi la deriva (100 s), i navaid (60 s) e le aree (45 s) partono davvero**: la tesi «oltre il minuto non parte mai», dedotta da tre avvii presi in dieci minuti, **è falsa**. Su una giornata gli avvii lunghi capitano, e il gate delle 24 ore ha bisogno che ne capiti **uno solo**. ⚠️ Tre campioni in dieci minuti non sono una giornata: era la misura sbagliata, ed è stata corretta nel codice e qui. ✅ **Lo sweep resta a 45 s**, ma per la ragione buona: quella potatura prima girava a **ogni avvio** (sincrona), e spostandola in un giro l'avevo messa nel posto più facile da mancare della scaletta — non c'è niente da guadagnare a stare a 130 s. 🟢 **E il resto della scaletta non si tocca**: non c'è niente da riparare. 🟢 **Diagnostica: 30 rilievi, 0 gravi**, e tutti nella sola categoria **Sorgente** — settori senza poligono, cerchi TWR sintetici, un anello ripetuto su `LIRR_TS_CTR`: dati della sorgente, non nostri, e preesistenti. **Dati 0 · Schema 0 · Server 0 · Avvio 0 · Configurazione 0 · Sectorfile 0**: ⚠️ **Avvio 0** vuol dire che nessuna manutenzione d'avvio è fallita, che era l'altra domanda aperta. ℹ️ **Un documento** risulta «copia pubblicata indietro» (deriva del 18:46Z, ancora sotto 1.4.1): è la riga che ora §AW sa aprire anche **in anticipo** sul ciclo entrante.
@@ -7230,3 +7232,57 @@ fatti sul risultato della fusione — non sul ramo.
 - 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AS — sei in tutto.
 - ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`**, cioè gli stessi due fogli di §AO: impronte nuove, e
   `wwwroot` viaggia insieme all'indice `staticwebassets`.
+
+## AY. La scheda della clausola diventa una finestra, e tre classi scollegate — 3 settembre 2026
+
+✅ **Fatto.** Nessun ramo dedicato. Carta:
+[trasferimenti, la scheda della clausola diventa una finestra](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
+Richiesta del committente su `/services/vsop/admin/transfers`: *«nella night mode ci sono delle barre bianche
+in Edit row, poi nelle chip di aeroporto le X hanno sfondo grigio … la sezione edit row, com'è ora messa lì
+è scomoda. Si potrebbe pensare a farla tipo pop-up?»*
+
+### I tre difetti erano lo stesso difetto
+
+Non erano tre problemi di stile: erano tre **collegamenti** rotti fra markup e foglio.
+
+- Le barre bianche: le due falde-**coperchio** dello scroll shadow dipinte con `--on-brand`, che è `#fff` di
+  brand e non ha un tema (definito una volta sola, mai ribaltato nei blocchi scuri). ⚠️ E si vedevano **anche
+  senza niente da scorrere**, perché è proprio il coperchio a doverle nascondere agli estremi: del colore
+  sbagliato non copre, si mostra.
+- La ✕ dei chip: `.xt-chipx` era nel markup in **tre** punti e nel foglio in **zero**. Usciva il bottone di
+  sistema — fondo grigio, bordo `outset`, 27×23px dentro una pastiglia alta 20.
+- 🔴 Il più caro dei tre, e nessuno l'aveva visto: markup `xt-panel-f`, CSS `.xt-panel-foot`. Regola morta da
+  tre settimane, quindi niente `display:flex` nel piede, quindi lo spaziatore non spingeva e **l'elimina
+  stava appiccicato al duplica**. Un tasto distruttivo a 8px da uno costruttivo non sembrava un guasto:
+  sembrava una scelta.
+
+### La misura che ha ribaltato la proposta
+
+Nella colonna da 380px il corpo aveva **348** per **896** di contenuto in 502 visibili. La prima proposta
+diceva «la finestra è larga il doppio, quindi ci sta tutto». ⚠️ **Falso, e misurato**: a 828px il contenuto
+scende a **860**, il 4%. I campi erano impilati in una colonna sola, e le righe a tre campi ci stavano già.
+
+Quello che paga è la larghezza **spesa in colonne**: 896 → **666** a due colonne, e oltre i 920px non paga
+più nulla (a 1040, 1160 e 1280 il contenuto non si muove). Da lì la scelta fra finestra e cassetto è
+diventata aritmetica, e il committente ha chiesto se il cassetto si salvasse recuperando il cromo: no — i
+~150px recuperabili vanno a tutte e due, ma il cassetto li deve **dividere in due** e la finestra no.
+
+**Esito misurato**: come la scheda si apre davvero, 378 in 378 — **non scorre**. Forzando aperte tutte e tre
+le sezioni, 666 in 636: **30px fuori invece di 394**.
+
+### Quel che resta
+
+- 🔴 **Non è in produzione**: va nel prossimo pacchetto. ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`** —
+  impronte nuove, e `wwwroot` viaggia insieme all'indice `staticwebassets`.
+- ✅ Il lock **è rimasto dov'era**, per decisione del committente — ma la fascia «lock in scadenza» che lo
+  accompagnava, e che spingeva giù tutto di 76px mentre si scrive, **era un falso allarme**. La domanda del
+  committente («ma il lock non si rinnova da solo?») ha aperto il difetto: `EditLockBar` pubblicava
+  `ExpiresChanged` **solo quando cambiava il proprietario**, quindi la pagina teneva la scadenza della PRESA
+  e dopo ~2 minuti credeva che il lock stesse scadendo. 🔴 Il conto dice che l'avviso non può scattare per
+  davvero se non a battito rotto: TTL **3 minuti**, battito **60 s**, residuo sempre fra 180 e 120, soglia
+  **60**. Ora la scadenza si pubblica a ogni rinnovo — come la `<summary>` del parametro già prometteva.
+  Provato dal vivo: **3 minuti e mezzo, tre rinnovi** (01:05:59 → 06:59 → 07:59 → 08:59) e la fascia non è
+  mai comparsa. ⚠️ Quando comparirà vorrà dire che **due battiti di fila sono falliti**, che è esattamente
+  ciò che deve dire.
+- 🟡 `StructureAccessibilityTests.Nessun_comando_raggiungibile_col_solo_mouse` è diventato rosso sul velo
+  della finestra e **aveva ragione**: sta in whitelist con la ragione scritta, come quello di `DeleteDialog`.

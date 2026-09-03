@@ -18,8 +18,13 @@
            un'espressione e un tag Razor lo spazio lo mangia, e a schermo usciva «RICEVENTE(vuoto = UNICOM)». *@
         <label>@Label@if (!string.IsNullOrWhiteSpace(Hint)) { <span class="muted xt-hint xt-pickhint">@Hint</span> }</label>
     }
+    @* ⚠️ Finché la tendina è GIÙ i tasti sono miei e non risalgono. Serve a Esc: dentro una finestra
+       modale — il pannello di una clausola — la risalita lo farebbe arrivare anche alla finestra, che
+       chiuderebbe buttando via quello che si sta scrivendo. Qui Esc vuol dire «chiudi la tendina»; al secondo
+       Esc la tendina non c'è più, il tasto risale, e allora sì che chiude la finestra. *@
     <input placeholder="@Placeholder" title="@Title" autocomplete="off" disabled="@Disabled"
-           value="@Text" @oninput="OnInput" @onfocus="() => Open(true)" @onblur="OnBlur" @onkeydown="OnKey" />
+           value="@Text" @oninput="OnInput" @onfocus="() => Open(true)" @onblur="OnBlur"
+           @onkeydown="OnKey" @onkeydown:stopPropagation="_open" />
     @if (_open && !Disabled)
     {
         <div class="sector-pick">
