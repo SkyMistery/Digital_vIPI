@@ -31,7 +31,7 @@ public class CatalogoBilingueTests
     /// </summary>
     private static readonly HashSet<string> Sigle = new(StringComparer.Ordinal)
     {
-        "AOR", "MRVA", "VFR", "SID", "METAR & TAF", "QRA / Scramble",
+        "AOR", "MRVA", "VFR", "SID", "STAR", "METAR & TAF", "QRA / Scramble",
     };
 
     /// <summary>

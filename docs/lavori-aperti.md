@@ -7647,3 +7647,62 @@ release. È esattamente il patto scritto sopra.
 
 I vSOP militari già **pubblicati** (nel database di sviluppo: LIBG, LIML, LIMN) mostreranno la posizione nuova
 solo dopo una **ripubblicazione**.
+
+## BD. Le carte dello scalo entrano nel catalogo — 3 settembre 2026
+
+🟡 **In lavorazione**, ramo `carte-aeroportuali`, **impilato** su `parcheggi-dati-generali` (§BC). Nessuna
+carta: richiesta del committente — *«aggiungere la sezione Airport charts prima di validity & revision nelle
+vSOP e nelle vIPI. Al suo interno deve contenere Aerodrome, Instrumental approach charts, SID, STAR, VFR»*.
+
+### Che cosa nasce
+
+Un contenitore, **«Carte aeroportuali» / «Airport charts»**, con cinque raccolte — Aerodromo, Carte di
+avvicinamento strumentale, SID, STAR, VFR — **appena prima** di «Validità e revisione», che resta l'ultima:
+è il timbro che chiude il documento, non una sezione fra le altre.
+
+Su **due** profili: la vIPI d'aeroporto e il vSOP militare, cioè i due documenti che descrivono uno **scalo**.
+⚠️ L'elenco è scritto **una volta sola** (`CarteAeroportuali(ordine)`): due copie sarebbero due elenchi
+diversi al primo ritocco — è il difetto che `AppMil` evita rimandando al profilo civile invece di ricopiarlo.
+
+Sezioni **editoriali**: il contenuto sono immagini e allegati PDF, che i blocchi sanno già portare. Non c'è
+niente da derivare — le carte non stanno in nessun catalogo nostro.
+
+⚠️ **Le chiavi sono `charts:*`, non `sids` e `vfr`.** Quelle due hanno già un mestiere — le SID **importate**
+della vIPI d'aeroporto (corpo reso dalla pagina) e la sezione VFR di un profilo di posizione — e dentro un
+profilo una chiave compare **una volta sola** (l'invariante scritta ieri in §BC). Riusare il nome avrebbe
+messo la tabella delle SID importate dentro una raccolta di carte.
+
+⚠️ **SID, STAR e VFR sono SIGLE**: uguali nelle due lingue, come AOR e MRVA. Stanno in `CatalogoBilingueTests.Sigle`
+e in `TitoliUfficiali`, che semina la memoria di traduzione con la **nostra** parola — senza, la macchina
+tradurrebbe «STAR» da sé. Nella stessa tabella entrano «Carte aeroportuali → Airport Charts», «Aerodromo →
+Aerodrome» e «Carte di avvicinamento strumentale → Instrument Approach Charts».
+
+### La prova del modulo di ieri
+
+È anche il collaudo di `AddMissingCatalogSectionsAsync` esteso in §BC. Su una copia fresca del `vipi.db`, al
+primo avvio: *«Aggiunte **84** sezioni di catalogo mancanti»* — **14 documenti** (9 vIPI d'aeroporto + 5 vSOP
+militari) × 6 sezioni, e **nient'altro**: quei documenti non avevano altri buchi. Le raccolte arrivano
+**dentro** il contenitore appena creato, con l'ordine che riparte da uno, e il contenitore si infila **prima**
+di «Validità e revisione», non in coda al documento.
+
+⚠️ E i titoli nascono **nella lingua del documento**: il vSOP di LIBG è redatto in inglese, e infatti le sue
+sezioni sono nate «Airport charts / Aerodrome / Instrument approach charts»; sulla vIPI di Aviano, italiana,
+«Carte aeroportuali / Aerodromo / Carte di avvicinamento strumentale».
+
+### ⚠️ Quel che è cambiato per chi legge i test
+
+Il profilo dell'**aeroporto** ora ha un descrittore **con figli**: erano annidati solo i militari. Tre test
+confrontavano l'elenco **piatto** delle sezioni di un documento con le **radici** del catalogo, e con
+`Order` che è una posizione fra **fratelli** quell'elenco mescolava padri e figlie (`weather`,
+`charts:aerodrome`, `runwayrules`, `charts:iac`, …). Ora confrontano le radici e chiedono a parte che le
+raccolte stiano dentro il loro contenitore. ⚠️ I conteggi scritti a mano — «ventisei sezioni» — sono
+diventati conteggi **sul catalogo**: un numero scritto a mano invecchia, ed era già successo.
+
+### Verifica
+
+Build Release 0 warning, suite intera verde (net8 + net10), test nuovi sul profilo e sulla riconciliazione.
+
+A schermo, su copia fresca: **vIPI d'aeroporto (LIPA)** e **vSOP militare (LIBG)**, in bozza e in editor —
+«Airport charts» con le cinque raccolte, subito prima di «Validity and revision», che resta l'ultima. In
+modifica ogni raccolta offre quel che serve a riempirla: **+ Blocco**, sotto-sezioni, «nascondi», destinatari
+pilota/ATC e le frecce di riordino. Zero errori di console.

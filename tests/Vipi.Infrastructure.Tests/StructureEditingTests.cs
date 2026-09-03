@@ -149,13 +149,26 @@ public class StructureEditingTests : IAsyncLifetime
         // Documento in BOZZA (lo staff pubblica a mano) con le sezioni del CATALOGO, nel loro ordine.
         var doc = await _db.Documents.FirstAsync();
         Assert.Equal(DocumentStatus.Draft, doc.Status);
-        var sections = await _db.DocumentSections.OrderBy(s => s.Order).ToListAsync();
+        // ⚠️ Le RADICI, non tutte le sezioni: dal 3 settembre 2026 il profilo dell'aeroporto ha un
+        // contenitore con figli («Carte aeroportuali»), e `Order` è una posizione fra FRATELLI — un elenco
+        // piatto ordinato per `Order` mescolerebbe le raccolte di carte con le sezioni di primo livello.
+        var sections = await _db.DocumentSections.Where(s => s.ParentSectionId == null)
+            .OrderBy(s => s.Order).ToListAsync();
         Assert.Equal(
             SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Key),
             sections.Select(s => s.SectionKey));
         Assert.Equal(
             SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Title),
             sections.Select(s => s.Title));
+
+        // E le figlie nascono DENTRO il loro contenitore, con l'ordine che riparte da uno.
+        var carte = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "charts");
+        var raccolte = await _db.DocumentSections.Where(s => s.ParentSectionId == carte.Id)
+            .OrderBy(s => s.Order).ToListAsync();
+        Assert.Equal(
+            new[] { "charts:aerodrome", "charts:iac", "charts:sid", "charts:star", "charts:vfr" },
+            raccolte.Select(s => s.SectionKey));
+        Assert.Equal(Enumerable.Range(1, 5), raccolte.Select(s => s.Order));
 
         // ⚠️ Nessuna sezione porta blocchi: il corpo delle fisse lo produce la pagina, derivandolo dalle
         // tabelle del profilo (carta 2026-08-26 §2). Prima erano tabelle Markdown COTTE qui dentro, ed è per

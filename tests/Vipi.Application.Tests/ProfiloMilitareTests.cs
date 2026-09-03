@@ -28,14 +28,16 @@ public class ProfiloMilitareTests
         // ⚠️ Ventisei, e questo test l'ha già guadagnato: la carta diceva ventiquattro perché il conto era
         // rimasto indietro di due quando si sono aggiunte «qra» e «lowlevel». Un numero scritto a mano in
         // tre documenti invecchia; uno contato sul profilo no.
-        Assert.Equal(26, Tutte(Mil).Count());
+        // ⚠️ Trentadue dal 3 settembre 2026: ventisei più le sei di «Carte aeroportuali» (il contenitore e le
+        // sue cinque raccolte), che il committente ha chiesto su questo profilo e sulla vIPI d'aeroporto.
+        Assert.Equal(32, Tutte(Mil).Count());
     }
 
     [Fact]
     public void I_contenitori_di_primo_livello_sono_sei_e_nell_ordine_del_PDF()
     {
         Assert.Equal(
-            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "validity" },
+            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "charts", "validity" },
             Mil.OrderBy(d => d.Order).Select(d => d.Key));
     }
 
@@ -44,8 +46,9 @@ public class ProfiloMilitareTests
     {
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
-        Assert.Equal(6, Mil.Count);
+        Assert.Equal(7, Mil.Count);
         Assert.Equal(7, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(8, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
         Assert.Equal(2, Mil.Single(d => d.Key == "regulated").Children!.Count);
@@ -156,7 +159,7 @@ public class ProfiloMilitareTests
 
         var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
 
-        Assert.Equal(26, chiavi.Count);
+        Assert.Equal(32, chiavi.Count);
         Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
     }
 
@@ -170,10 +173,15 @@ public class ProfiloMilitareTests
             d.Any(x => x.Children is { Count: > 0 } || HaFigli(x.Children ?? Array.Empty<SectionDescriptor>()));
 
         foreach (var p in new[] { SectionProfile.App, SectionProfile.AccAerovia, SectionProfile.AccAppBlock,
-                                  SectionProfile.Vloa, SectionProfile.Airport, SectionProfile.AppMil })
+                                  SectionProfile.Vloa, SectionProfile.AppMil })
             Assert.False(HaFigli(SectionCatalog.For(p)), p.ToString());
 
+        // ⚠️ Dal 3 settembre 2026 i profili annidati sono DUE: il militare e la vIPI d'aeroporto, che ha preso
+        // «Carte aeroportuali» con le sue cinque raccolte. È la riga che dice a chi ne aggiungesse un terzo di
+        // rileggere che cosa cambia per `IsFixed` e `IsHostRendered` — e che la nascita del documento deve
+        // ricorrere (DocumentBirth.Semina).
         Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AirportMil)));
+        Assert.True(HaFigli(SectionCatalog.For(SectionProfile.Airport)));
     }
 
     [Fact]
@@ -235,6 +243,58 @@ public class ProfiloMilitareTests
         Assert.Equal(SectionCatalog.KindOf("parkings"), parcheggi.Kind);
         Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, "parkings"));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "parkings"));
+    }
+
+    // ---- Le carte dello scalo (3 settembre 2026) ------------------------------------------------------
+
+    /// <summary>
+    /// «Carte aeroportuali» sta <b>prima</b> di «Validità e revisione», e la validità resta l'ultima: è il
+    /// timbro che chiude il documento, non una sezione fra le altre.
+    /// </summary>
+    [Theory]
+    [InlineData(SectionProfile.AirportMil)]
+    [InlineData(SectionProfile.Airport)]
+    public void Le_carte_stanno_appena_prima_della_validita(SectionProfile profilo)
+    {
+        var radici = SectionCatalog.For(profilo).OrderBy(d => d.Order).Select(d => d.Key).ToList();
+
+        Assert.Equal("validity", radici[^1]);
+        Assert.Equal("charts", radici[^2]);
+    }
+
+    /// <summary>
+    /// Le cinque raccolte, nell'ordine chiesto. ⚠️ <b>Scritte una volta sola</b> per le due famiglie: la vIPI
+    /// d'aeroporto e il vSOP militare descrivono lo stesso luogo, e due elenchi copiati sarebbero due elenchi
+    /// diversi al primo ritocco.
+    /// </summary>
+    [Theory]
+    [InlineData(SectionProfile.AirportMil)]
+    [InlineData(SectionProfile.Airport)]
+    public void Le_carte_hanno_le_cinque_raccolte_nello_stesso_ordine(SectionProfile profilo)
+    {
+        var carte = SectionCatalog.For(profilo).Single(d => d.Key == "charts").Children!;
+
+        Assert.Equal(
+            new[] { "charts:aerodrome", "charts:iac", "charts:sid", "charts:star", "charts:vfr" },
+            carte.OrderBy(d => d.Order).Select(d => d.Key));
+        Assert.All(carte, c => Assert.True(SectionCatalog.IsFixed(profilo, c.Key), c.Key));
+    }
+
+    /// <summary>
+    /// ⚠️ Le carte NON riusano le chiavi <c>sids</c> e <c>vfr</c>, che pure direbbero la stessa parola: quelle
+    /// hanno già un mestiere — le SID <b>importate</b> della vIPI d'aeroporto e la sezione VFR di un profilo di
+    /// posizione — e la pagina rende il loro corpo da sé. Riusarle avrebbe messo la tabella delle SID importate
+    /// dentro una raccolta di carte, e avrebbe rotto l'unicità della chiave dentro il profilo.
+    /// </summary>
+    [Fact]
+    public void Le_carte_non_rubano_le_chiavi_delle_SID_importate()
+    {
+        var aeroporto = SectionCatalog.For(SectionProfile.Airport);
+        Assert.Contains("sids", aeroporto.Select(d => d.Key));               // le SID importate restano dove sono
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "sids"));
+        // Le raccolte di carte sono editoriali: il corpo sono immagini e allegati nei blocchi.
+        Assert.False(SectionCatalog.IsHostRendered(SectionProfile.Airport, "charts:sid"));
+        Assert.Equal(SectionKind.Editorial, SectionCatalog.KindOf("charts:sid"));
     }
 }
 

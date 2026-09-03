@@ -61,6 +61,16 @@ public static class TitoliUfficiali
         ("Aree di lavoro", "Working Areas"),
         ("Procedure generali", "General Procedures"),
         ("Bassa quota (BOAT)", "Low Level (BOAT)"),
+        // Le carte dello scalo (3 settembre 2026): non vengono dai quindici PDF — sono una sezione nostra,
+        // quindi l'inglese lo scriviamo noi, che è la ragione per cui questa tabella esiste. ⚠️ SID, STAR e
+        // VFR sono SIGLE: si scrivono uguali nelle due lingue, e senza questa riga la macchina proverebbe a
+        // tradurle.
+        ("Carte aeroportuali", "Airport Charts"),
+        ("Aerodromo", "Aerodrome"),
+        ("Carte di avvicinamento strumentale", "Instrument Approach Charts"),
+        ("SID", "SID"),
+        ("STAR", "STAR"),
+        ("VFR", "VFR"),
         ("Validità e revisione", "Validity and Revision"),
     };
 

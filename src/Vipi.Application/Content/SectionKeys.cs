@@ -42,4 +42,28 @@ public static class SectionKeys
 
     /// <summary>Direzione vicino → Home.</summary>
     public const string CoordinationIn = "coordination:in";
+
+    // ---- carte aeroportuali (3 settembre 2026) ----
+    // ⚠️ CHIAVI PROPRIE, e non «sids»/«vfr» che pure direbbero la stessa parola: quelle due chiavi hanno già un
+    // mestiere — le SID IMPORTATE della vIPI d'aeroporto e la sezione VFR di un profilo di posizione — e dentro
+    // un profilo una chiave compare UNA volta sola (lo pretende SectionCatalogTests). Riusare il nome avrebbe
+    // fatto rendere alla pagina la tabella delle SID importate dentro una raccolta di carte.
+
+    /// <summary>Contenitore delle carte dello scalo.</summary>
+    public const string Charts = "charts";
+
+    /// <summary>Carta d'aerodromo.</summary>
+    public const string ChartsAerodrome = "charts:aerodrome";
+
+    /// <summary>Carte di avvicinamento strumentale.</summary>
+    public const string ChartsIac = "charts:iac";
+
+    /// <summary>Carte delle partenze strumentali.</summary>
+    public const string ChartsSid = "charts:sid";
+
+    /// <summary>Carte degli arrivi strumentali.</summary>
+    public const string ChartsStar = "charts:star";
+
+    /// <summary>Carte VFR.</summary>
+    public const string ChartsVfr = "charts:vfr";
 }

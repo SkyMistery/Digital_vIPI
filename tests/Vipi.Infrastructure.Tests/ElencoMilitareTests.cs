@@ -145,10 +145,20 @@ public class ElencoMilitareTests : IAsyncLifetime
         var sezioni = await _db.DocumentSections.AsNoTracking()
             .Where(s => s.DocumentVersion!.DocumentId == id).ToListAsync();
 
-        Assert.Equal(26, sezioni.Count);
-        Assert.Equal(6, sezioni.Count(s => s.Depth == 0));
-        Assert.Equal(20, sezioni.Count(s => s.Depth == 1));
+        // ⚠️ I numeri li dice il CATALOGO, non questa riga: scritti a mano invecchiano — è già successo col
+        // commento «ventiquattro sezioni» rimasto indietro di due. Dal 3 settembre 2026 sono trentadue, con
+        // «Carte aeroportuali» e le sue cinque raccolte.
+        static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
+            d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
+        var profilo = SectionCatalog.For(SectionProfile.AirportMil);
+
+        Assert.Equal(Tutte(profilo).Count(), sezioni.Count);
+        Assert.Equal(profilo.Count, sezioni.Count(s => s.Depth == 0));
+        Assert.Equal(Tutte(profilo).Count() - profilo.Count, sezioni.Count(s => s.Depth == 1));
         Assert.Contains(sezioni, s => s.SectionKey == "qra");
+        // Le carte nascono ANNIDATE: il contenitore in cima e le cinque raccolte dentro.
+        var carte = sezioni.Single(s => s.SectionKey == "charts");
+        Assert.Equal(5, sezioni.Count(s => s.ParentSectionId == carte.Id));
     }
 
     [Fact]

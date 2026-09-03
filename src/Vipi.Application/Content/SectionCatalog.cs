@@ -78,6 +78,16 @@ public static class SectionCatalog
             ["gat"] = SectionKind.Editorial,
             ["qra"] = SectionKind.Editorial,
             ["lowlevel"] = SectionKind.Editorial,
+
+            // --- Carte aeroportuali (3 settembre 2026), su vIPI d'aeroporto e vSOP militare -----------
+            // Editoriali: il contenuto sono immagini e allegati PDF, che i blocchi sanno già portare. Non
+            // c'è niente da derivare — le carte non stanno in nessun catalogo nostro.
+            ["charts"] = SectionKind.Editorial,
+            ["charts:aerodrome"] = SectionKind.Editorial,
+            ["charts:iac"] = SectionKind.Editorial,
+            ["charts:sid"] = SectionKind.Editorial,
+            ["charts:star"] = SectionKind.Editorial,
+            ["charts:vfr"] = SectionKind.Editorial,
         };
 
     /// <summary>Natura della sezione con questa chiave (Editorial se sconosciuta = custom).</summary>
@@ -158,6 +168,33 @@ public static class SectionCatalog
         HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
     };
 
+    /// <summary>
+    /// Le carte dello scalo (3 settembre 2026, richiesta del committente): un contenitore e cinque raccolte,
+    /// <b>prima</b> di «Validità e revisione».
+    ///
+    /// <para>⚠️ Scritte QUI e non due volte: la vIPI d'aeroporto e il vSOP militare descrivono lo stesso
+    /// luogo, e due elenchi copiati sarebbero due elenchi diversi al primo ritocco — è il difetto già pagato
+    /// dal profilo <c>AppMil</c>, che infatti <b>rimanda</b> a quello civile invece di ricopiarlo.</para>
+    ///
+    /// <para>⚠️ Le chiavi sono <c>charts:*</c> e non <c>sids</c>/<c>vfr</c>: quelle due hanno già un mestiere
+    /// (le SID importate, la sezione VFR di un profilo di posizione), e dentro un profilo una chiave compare
+    /// una volta sola.</para>
+    /// </summary>
+    private static IReadOnlyList<SectionDescriptor> CarteAeroportuali(int ordine) =>
+        new[]
+        {
+            D(SectionKeys.Charts, "Carte aeroportuali", ordine, en: "Airport charts", children: new[]
+            {
+                D(SectionKeys.ChartsAerodrome, "Aerodromo", 1, en: "Aerodrome"),
+                D(SectionKeys.ChartsIac, "Carte di avvicinamento strumentale", 2, en: "Instrument approach charts"),
+                // Sigle: uguali nelle due lingue, come AOR e MRVA — tradurle sarebbe un errore, non una
+                // gentilezza (docs/design/regole-lingua.md).
+                D(SectionKeys.ChartsSid, "SID", 3),
+                D(SectionKeys.ChartsStar, "STAR", 4),
+                D(SectionKeys.ChartsVfr, "VFR", 5),
+            }),
+        };
+
     private static readonly IReadOnlyDictionary<SectionProfile, IReadOnlyList<SectionDescriptor>> Registry =
         new Dictionary<SectionProfile, IReadOnlyList<SectionDescriptor>>
         {
@@ -214,8 +251,8 @@ public static class SectionCatalog
                 H("runways", "Piste", 5, en: "Runways"),
                 H("sids", "SID", 6),
                 D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
-                HB("validity", "Validità e revisione", 8, en: "Validity and revision"),
-            },
+            }.Concat(CarteAeroportuali(8)).Append(
+                HB("validity", "Validità e revisione", 9, en: "Validity and revision")).ToArray(),
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
@@ -293,9 +330,8 @@ public static class SectionCatalog
                     // disegna. Presente in 9 SOP su 15.
                     D("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)"),
                 }),
-
-                HB("validity", "Validità e revisione", 6, en: "Validity and revision"),
-            },
+            }.Concat(CarteAeroportuali(6)).Append(
+                HB("validity", "Validità e revisione", 7, en: "Validity and revision")).ToArray(),
 
             // vSOP militare di un APP non remotizzato: PER ORA le stesse sezioni del civile. Vedi sotto il
             // perche' si rimanda invece di ricopiare.

@@ -199,8 +199,10 @@ public class SectionCatalogTests
         // Le stesse sezioni che l'aeroporto aveva già, nell'ordine in cui la pagina le mostrava quando quella
         // sequenza era cablata nel viewer. Da qui in poi è solo l'ordine di NASCITA: si riordina in editor.
         var keys = SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
+        // ⚠️ «charts» è arrivata il 3 settembre 2026, PRIMA di «validity»: le carte sono contenuto del
+        // documento, e la validità è il timbro che lo chiude — deve restare l'ultima.
         Assert.Equal(
-            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "validity" },
+            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
             keys);
     }
 

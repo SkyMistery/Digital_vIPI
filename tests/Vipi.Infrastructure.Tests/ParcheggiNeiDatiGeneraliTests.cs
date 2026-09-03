@@ -252,7 +252,9 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         // Le quattro radici che mancavano ci sono, nell'ordine del catalogo.
         var radici = _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id && x.ParentSectionId == null)
             .OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
-        Assert.Equal(new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "validity" }, radici);
+        Assert.Equal(
+            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "charts", "validity" },
+            radici);
         // E le figlie: le otto delle procedure di volo, che nessun passo aveva mai portato.
         Assert.Equal(8, Figli(ver, "flightprocedures").Count);
         Assert.Equal(2, Figli(ver, "regulated").Count);
@@ -296,7 +298,11 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
             new[] { "navaids", "frequencies", "diversion", "runways", "transition", "callsigns", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));
-        // Ventisei sezioni: quelle del profilo, né una di più.
-        Assert.Equal(26, _db.DocumentSections.Count(x => x.DocumentVersionId == ver.Id));
+        // Le sezioni del profilo, né una di più — il numero lo conta il CATALOGO, non questa riga.
+        static IEnumerable<SectionDescriptor> Tutte(IEnumerable<SectionDescriptor> d) =>
+            d.SelectMany(x => new[] { x }.Concat(Tutte(x.Children ?? Array.Empty<SectionDescriptor>())));
+        Assert.Equal(
+            Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Count(),
+            _db.DocumentSections.Count(x => x.DocumentVersionId == ver.Id));
     }
 }

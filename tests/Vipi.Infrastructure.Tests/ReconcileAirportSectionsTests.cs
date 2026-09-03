@@ -225,11 +225,22 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         await _manutenzione.ReconcileAirportSectionKeysAsync();
         var aggiunte = await _manutenzione.AddMissingCatalogSectionsAsync();
 
-        var chiavi = (await _db.DocumentSections.OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
-        Assert.Equal(4, aggiunte);   // weather, runwayrules, operationaltechnique, validity
+        // ⚠️ Le RADICI, non tutte le sezioni: dal 3 settembre 2026 la vIPI d'aeroporto ha un contenitore con
+        // figli («Carte aeroportuali»), e un elenco piatto mescolerebbe padri e figlie — l'ordine è una
+        // posizione fra FRATELLI, non una posizione assoluta nel documento.
+        var chiavi = (await _db.DocumentSections.Where(s => s.ParentSectionId == null)
+            .OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
+        // weather, runwayrules, operationaltechnique, validity, charts + le cinque raccolte di charts
+        Assert.Equal(10, aggiunte);
         Assert.Equal(
-            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "validity" },
+            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
             chiavi);
+        // Le figlie arrivano DENTRO il contenitore appena creato, non accanto a lui.
+        var carte = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "charts");
+        Assert.Equal(
+            new[] { "charts:aerodrome", "charts:iac", "charts:sid", "charts:star", "charts:vfr" },
+            (await _db.DocumentSections.Where(s => s.ParentSectionId == carte.Id).OrderBy(s => s.Order).ToListAsync())
+                .Select(s => s.SectionKey));
 
         // Il meteo non deve nascere Frozen nemmeno arrivando da qui: un METAR congelato è meteo scaduto.
         var meteo = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "weather");
