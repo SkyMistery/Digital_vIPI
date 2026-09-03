@@ -66,25 +66,19 @@ public class ScopeDellEditingTests
     /// Chi è ancora sul contesto del circuito, con la ragione. ⚠️ <b>Non sono assolti</b>: sono noti e non
     /// ancora decisi, e stanno qui perché la rete valga da subito su tutto il resto. Chi ne sistema uno
     /// toglie anche la riga.
+    ///
+    /// <para>✅ <b>Vuoto dal 3 settembre 2026 (sera).</b> Ci sono stati dentro sette casi per poche ore —
+    /// i tre di <c>AirportSectionsEditor</c>, quello di <c>NewDocumentPage</c> e i tre di
+    /// <c>VersioniPage</c> — e sono stati spostati tutti. ⚠️ Su <c>VersioniPage</c> la domanda vera era se
+    /// valesse anche qui la scelta <b>opposta</b> di <c>ReleasePanel</c> (che <c>IReleaseService</c> lo
+    /// prende apposta dal circuito, perché il publish è composto col <c>BeforePublishAsync</c> della pagina
+    /// ospite): no, perché quella pagina <b>non monta <c>ReleasePanel</c></b>. Verificato col <c>grep</c>,
+    /// non dedotto.</para>
+    ///
+    /// <para>ℹ️ Resta qui, vuoto, perché è il posto giusto in cui scrivere il prossimo caso invece di
+    /// spegnere la guardia — e perché il test qui sotto lo tiene onesto.</para>
     /// </summary>
-    private static readonly HashSet<string> Tollerati = new(StringComparer.Ordinal)
-    {
-        // Tutti e tre HANNO gia' lo scope proprio (`OwningComponentBase`) ma ne usano un servizio solo:
-        // stesso difetto dei due corretti, stessa cura. Non fatti nello stesso giro per non allargare una
-        // correzione mirata a tre pagine di produzione in una sera.
-        "Components/Doc/AirportSectionsEditor.razor|IAirportEditingService",
-        "Components/Doc/AirportSectionsEditor.razor|IAirportSectorService",
-        "Components/Doc/AirportSectionsEditor.razor|IMilitaryDocumentService",
-        "Pages/NewDocumentPage.razor|IMilitaryDocumentService",
-        // ⚠️ VersioniPage e' il caso da guardare con piu' attenzione, non il piu' semplice: sta sul
-        // percorso della PUBBLICAZIONE, e accanto c'e' una scelta documentata di segno opposto
-        // (`ReleasePanel` NON isola il contesto apposta, perche' il publish e' un'operazione sola composta
-        // col `BeforePublishAsync` della pagina, e spezzarla su due context la manda in stallo). Prima di
-        // spostarli va deciso se quella ragione valga anche qui.
-        "Pages/VersioniPage.razor|IReleaseService",
-        "Pages/VersioniPage.razor|IDocumentAdminService",
-        "Pages/VersioniPage.razor|IDocumentUnionService",
-    };
+    private static readonly HashSet<string> Tollerati = new(StringComparer.Ordinal);
 
     /// <summary>
     /// 🔴 La regola vale per <b>ogni</b> servizio che tocca il database, non per un nome solo.
@@ -123,6 +117,11 @@ public class ScopeDellEditingTests
         Assert.True(ancora.Length == Tollerati.Count,
             "Qualcuno dei tollerati NON e' piu' sul circuito: togli la sua riga dalla tolleranza. Restano: "
             + string.Join(", ", ancora));
+
+        // ⚠️ Con l'elenco vuoto l'asserzione qui sopra e' VERA per costruzione (0 == 0), cioe' vacua. Questa
+        // riga dice che essere vuoto e' lo stato ATTESO e non un elenco che si e' perso per strada: il
+        // giorno in cui qualcuno ne aggiunge uno, va tolta insieme al suo commento.
+        Assert.Empty(Tollerati);
     }
 
     [Theory]

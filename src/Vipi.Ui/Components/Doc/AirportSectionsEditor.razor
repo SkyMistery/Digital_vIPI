@@ -20,8 +20,6 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
 @using RenderMode = Vipi.Domain.RenderMode
-@inject IAirportEditingService Profile
-@inject IAirportSectorService Sectors
 @inject IEditAuthorizationService Authz
 @inject IStationResolver Stations
 @inject ISidImporter SidImporter
@@ -32,7 +30,6 @@
 @inject ILogger<AirportSectionsEditor> Logger
 @implements IAsyncDisposable
 @inject IDocRoutesRegistry DocRoutes
-@inject IMilitaryDocumentService Militari
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @inject Vipi.Application.Airspace.ISectorShapeResolver Forme
@@ -425,6 +422,27 @@ else
     private DocumentEditorShell _shell = default!;
 
     /// <summary>
+    /// Il profilo dell'aeroporto: <b>scrive</b> (piste, SID, frequenze, quote).
+    ///
+    /// <para>⚠️ Questo e i due che seguono, come <c>Editing</c> qui sotto, si prendono dallo scope
+    /// <b>proprio</b>: con <c>@@inject</c> verrebbero dal <c>DbContext</c> del <b>circuito</b>, condiviso
+    /// con barra, isole e pannelli. È il difetto che il 3 settembre 2026 ha prodotto in produzione nove
+    /// pagine d'errore da due componenti gemelli di questo — e la guardia che avrebbe dovuto vederli
+    /// guardava un nome solo.</para>
+    /// </summary>
+    private IAirportEditingService Profile = default!;
+
+    /// <summary>
+    /// I settori legati allo scalo: legge e <b>scrive</b> gli agganci.
+    /// </summary>
+    private IAirportSectorService Sectors = default!;
+
+    /// <summary>
+    /// L'edizione militare: <c>CreaAsync</c> <b>crea il documento</b> se manca.
+    /// </summary>
+    private IMilitaryDocumentService Militari = default!;
+
+    /// <summary>
     /// Il servizio di editing, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>):
     /// contesto isolato da quello del circuito.
     ///
@@ -439,6 +457,9 @@ else
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
+        Sectors = ScopedServices.GetRequiredService<IAirportSectorService>();
+        Profile = ScopedServices.GetRequiredService<IAirportEditingService>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));

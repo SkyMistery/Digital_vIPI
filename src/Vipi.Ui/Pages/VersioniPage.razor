@@ -5,10 +5,7 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
-@inject IReleaseService Releases
 @inject IProssimoAiracService ProssimoAirac
-@inject IDocumentAdminService DocAdmin
-@inject IDocumentUnionService Unioni
 @inject IDocumentImpactService Impacts
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
@@ -484,9 +481,31 @@
     /// </summary>
     private IEditingService Editing = default!;
 
+    /// <summary>
+    /// Release, governo dell'elenco e unioni: <b>scrivono tutti e tre</b> (pubblica, pianifica, annulla,
+    /// nascondi, elimina, sciogli), e questa pagina li chiama in serie su decine di documenti.
+    ///
+    /// <para>⚠️ Stesso scope proprio di <c>Editing</c>, per la stessa ragione. E la scelta <b>opposta</b> di
+    /// <c>ReleasePanel</c> — che <c>IReleaseService</c> lo prende apposta dal circuito — <b>qui non si
+    /// applica</b>: là il publish è un'operazione sola composta col <c>BeforePublishAsync</c> della pagina
+    /// ospite, e spezzarla su due contesti la manderebbe in stallo. Questa pagina <b>non monta
+    /// <c>ReleasePanel</c></b> e non compone niente con esso: verificato prima di spostarli, non
+    /// dedotto.</para>
+    /// </summary>
+    private IReleaseService Releases = default!;
+
+    /// <inheritdoc cref="Releases" />
+    private IDocumentAdminService DocAdmin = default!;
+
+    /// <inheritdoc cref="Releases" />
+    private IDocumentUnionService Unioni = default!;
+
     protected override async Task OnInitializedAsync()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Releases = ScopedServices.GetRequiredService<IReleaseService>();
+        DocAdmin = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
 
         // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
         // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più

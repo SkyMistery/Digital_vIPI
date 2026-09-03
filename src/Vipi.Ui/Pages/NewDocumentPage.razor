@@ -7,7 +7,6 @@
 @inject INewDocumentOptionsService Options
 @inject IEditAuthorizationService Authz
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
-@inject IMilitaryDocumentService Militari
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -255,9 +254,18 @@
     /// </summary>
     private IEditingService Editing = default!;
 
+    /// <summary>
+    /// L'edizione militare. ⚠️ Stesso scope proprio di <c>Editing</c>, e per lo stesso motivo: qui si passa
+    /// da <c>CreaAsync</c>, che <b>crea il documento</b>. Con <c>@@inject</c> quella scrittura andava sul
+    /// <c>DbContext</c> del circuito — è il difetto che il 3 settembre 2026 ha prodotto in produzione nove
+    /// pagine d'errore, da un componente che chiamava esattamente questo metodo.
+    /// </summary>
+    private IMilitaryDocumentService Militari = default!;
+
     protected override async Task OnInitializedAsync()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
+        Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         _opts = await Options.LoadAsync();
     }
 
