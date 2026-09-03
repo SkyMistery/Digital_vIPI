@@ -3184,4 +3184,5 @@
   <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>
   <data name="Rel_UnionTitle" xml:space="preserve"><value>This document is joined to others: publishing publishes all {0}, at the same cycle.</value></data>
   <data name="Rel_UnionLocked" xml:space="preserve"><value>being edited by {0}</value></data>
+  <data name="Rel_CancelPromptUnion" xml:space="preserve"><value>This document is joined to others: all {0} releases of that cycle are cancelled.</value></data>
 </root>

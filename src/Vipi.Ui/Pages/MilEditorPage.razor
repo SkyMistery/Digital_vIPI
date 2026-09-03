@@ -139,10 +139,10 @@ else
                     @* L'unione dei documenti (carta 2026-09-03): sopra il pannello di pubblicazione,
                        perché e' cio' che decide QUANTI documenti quel tasto pubblichera'. *@
                     <UnionPanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
-                                IsEditing="_shell.IsEditing" Changed="LoadAsync" />
+                                IsEditing="_shell.IsEditing" Changed="UnioneCambiata" />
 
                     <div id="sec-versioni">
-                        <ReleasePanel Target="ReleaseTargetType.AirportMil" Key="@_icao"
+                        <ReleasePanel Revisione="_unioneRev" Target="ReleaseTargetType.AirportMil" Key="@_icao"
                                       ShowDiff="true" AllowCancel="Authz.IsEditor"
                                       PreviewUrlFactory="ReleasePreviewUrl"
                                       Published="LoadAsync" />
@@ -1094,4 +1094,15 @@ else
 
     private string? ReleasePreviewUrl(int releaseId) =>
         DocRoutes.For(ReleaseTargetType.AirportMil).ViewerUrl(Acc.ToLowerInvariant(), _icao, null, releaseId);
+    /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina. Alzarla e' cio' che
+    /// costringe <c>ReleasePanel</c> a rileggere i suoi bersagli: la sua memoizzazione e' su bersaglio e
+    /// chiave, e quelle non cambiano quando si unisce un documento.</summary>
+    private int _unioneRev;
+
+    private async Task UnioneCambiata()
+    {
+        _unioneRev++;
+        await LoadAsync();
+    }
+
 }

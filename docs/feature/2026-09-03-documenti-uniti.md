@@ -220,6 +220,46 @@ di quel campo è l'unico documento. Su LIMN e LIMS i due documenti esistono già
 campo solo militare la civile non nasce. L'unione **presuppone** che i documenti esistano; non è il posto da
 cui cambiare chi può nascere.
 
+## §9 — La verifica dal vivo, e le due cose che ha trovato (3 settembre 2026) ✅
+
+Guidata su **LIBA Amendola** (ACC LIRR) con la skill `verifica-live`: copia del `vipi.db`, porta 5034, Edge
+via `puppeteer-core`. Il DB del progetto e' rimasto intatto (`git status` muto).
+
+**Quel che ha confermato**
+
+| Passo | Esito |
+|---|---|
+| Pannello nell'editor, documento non unito | «This document is read on its own» |
+| Candidati | `Amendola Approach — LIBA_APP (same airfield)` **in cima**, gli altri dopo, senza recinti per ACC |
+| Unione | due membri, l'ospite marcato |
+| Pagina unita | **due indici impilati** intestati coi titoli dei documenti; gruppo `doc-3` con dieci sezioni; **tre colonne** (`248px 857px 308px`); **un solo** `.print-meta` |
+| Ancore | indice `#s-706` ↔ corpo `s-706`: combaciano |
+| Redirect | `/apps/vipi?app=LIBA_APP` → `/airports?icao=LIBA#doc-3` |
+| Anteprima del membro | `?as=draft` dell'APP **resta dov'e'** |
+| «Pubblica ora» | due release, ciclo **2609**, `ReleaseEffectiveUtc` **identico**: `2026-09-03 10:28:00.9619002` su tutte e due |
+| Pianificata | due release, ciclo **2610**, stessa data efficace, tutte e due `Scheduled` |
+| Annullamento | un clic, e la coppia del 2610 sparisce **tutta** |
+| Scioglimento | unione via, la pagina dell'APP smette di reindirizzare, l'aeroporto torna a un indice solo |
+
+**⚠️ E le DUE cose che ha trovato**, che i test verdi non vedevano — tutt'e due nel pannello di release:
+
+1. **La domanda prima di annullare MENTIVA.** Diceva «il pubblico torna alla precedente», al singolare,
+   mentre ne toglieva due. Chiedere «annullo questa?» per poi toglierne due e' la stessa categoria
+   dell'esito che tace meta' del lavoro, **ma peggiore**: qui la meta' taciuta e' una pubblicazione che
+   sparisce. Ora la domanda conta.
+2. **Il pannello non rileggeva l'unione nata nella stessa pagina.** La sua memoizzazione e' su
+   `(bersaglio, chiave)`, e quelle non cambiano quando si unisce un documento: subito dopo aver unito
+   continuava a dire «questo documento e' solo». Ora l'host alza una `Revisione` che entra nella chiave.
+
+⚠️ **E una terza, di convenzione**: avevo scritto `string.Format(L[chiave].Value, n)`, che **non**
+interpola — il secondo indexer, `L[chiave, n]`, e' l'unico che formatta. E' la stessa lezione che il test
+del numero di versione (`Rel_VersionLabel`) aveva gia' messo per iscritto. Il localizzatore finto dei test
+la rende visibile; in produzione l'argomento sarebbe sparito **in silenzio**.
+
+⚠️ **Trappola dell'attrezzo, per il prossimo**: l'interfaccia dell'app in questa verifica era in
+**INGLESE**, e il primo giro di script cercava il tasto «Unisci» — non lo trovava, il tasto restava spento e
+sembrava che l'unione non nascesse. Quando un gesto «non fa niente», il primo sospetto va al **selettore**.
+
 ## Verifica
 
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde sui **due TFM**, 0 avvisi.

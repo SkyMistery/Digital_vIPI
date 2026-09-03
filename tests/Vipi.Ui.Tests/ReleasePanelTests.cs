@@ -150,11 +150,13 @@ public class ReleasePanelTests : TestContext
     }
 
     private IRenderedComponent<ReleasePanel> Render(bool showDiff = false, bool allowCancel = false,
-        Func<int, string?>? previewUrl = null, Func<Task<bool>>? beforePublish = null, Action? onPublished = null) =>
+        Func<int, string?>? previewUrl = null, Func<Task<bool>>? beforePublish = null, Action? onPublished = null,
+        int revisione = 0) =>
         RenderComponent<ReleasePanel>(p =>
         {
             p.Add(x => x.Target, ReleaseTargetType.App);
             p.Add(x => x.Key, "LIRP_APP");
+            p.Add(x => x.Revisione, revisione);
             p.Add(x => x.ShowDiff, showDiff);
             p.Add(x => x.AllowCancel, allowCancel);
             if (previewUrl is not null) p.Add(x => x.PreviewUrlFactory, previewUrl);
@@ -463,4 +465,53 @@ public class ReleasePanelTests : TestContext
         Assert.Contains("Rel_ShapeForcedN 1", cut.Markup);       // il messaggio dice quante
         Assert.DoesNotContain("Rel_ShapeDeferredTitle", cut.Markup);
     }
+    /// <summary>
+    /// I due difetti trovati <b>guidando l'app</b> il 3 settembre 2026, che i test verdi non vedevano.
+    /// </summary>
+    [Fact]
+    public void Su_un_documento_UNITO_il_pannello_lo_dice_e_la_domanda_conta_le_release()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.Airport, "LIBA", 26, "vIPI — LIBA Amendola", null, null));
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.App, "LIBA_APP", 3, "Amendola Approach", 999, "un altro editor"));
+
+        var cut = Render(allowCancel: true);
+
+        // Dire PRIMA quanti documenti quel tasto tocchera', e chi ne tiene il lock: un esito che tace meta'
+        // del lavoro e' peggio di nessun esito, e qui la meta' taciuta sarebbe un ALTRO documento pubblicato.
+        Assert.Contains("Rel_UnionTitle", cut.Markup);
+        Assert.Contains("Amendola Approach", cut.Markup);
+        Assert.Contains("un altro editor", cut.Markup);
+
+        // ⚠️ E la DOMANDA prima di annullare deve dire che ne toglie due. Chiedere «annullo questa?» per poi
+        // toglierne due e' la stessa categoria di difetto, ma peggiore: la meta' taciuta e' una
+        // pubblicazione che sparisce. Misurato dal vivo, dove la domanda mentiva davvero.
+        // Il primo clic APRE la domanda: prima di quello, nel markup non c'e' (InlineConfirm la rende solo
+        // quando e' aperta).
+        cut.FindAll("button").First(b => b.TextContent.Contains("✕")).Click();
+        Assert.Contains("Rel_CancelPromptUnion", cut.Markup);
+    }
+
+    [Fact]
+    public void La_REVISIONE_costringe_il_pannello_a_rileggere_i_bersagli()
+    {
+        var fake = Arrange(Rel(1, effective: true, status: ReleaseStatus.Effective));
+        var cut = Render();
+        Assert.DoesNotContain("Rel_UnionTitle", cut.Markup);
+
+        // L'unione nasce DOPO che il pannello si e' caricato: la sua memoizzazione e' su (bersaglio, chiave),
+        // e quelle due non cambiano quando si unisce un documento. Senza la revisione il pannello resterebbe
+        // a dire «questo documento e' solo», e la domanda dell'annullamento parlerebbe di UNA release.
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.Airport, "LIBA", 26, "vIPI — LIBA Amendola", null, null));
+        fake.Uniti.Add(new Vipi.Application.Content.BersaglioUnito(
+            ReleaseTargetType.App, "LIBA_APP", 3, "Amendola Approach", null, null));
+
+        cut.SetParametersAndRender(p => p.Add(x => x.Revisione, 1));
+
+        Assert.Contains("Rel_UnionTitle", cut.Markup);
+    }
+
 }

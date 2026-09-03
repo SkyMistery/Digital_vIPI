@@ -301,7 +301,7 @@ else
                     @if (_canEdit)
                     {
                         <UnionPanel Target="ReleaseTargetType.Airport" Key="@_icao"
-                                    IsEditing="_shell.IsEditing" Changed="LoadAsync" />
+                                    IsEditing="_shell.IsEditing" Changed="UnioneCambiata" />
                     }
 
                     <div id="sec-versioni">
@@ -315,7 +315,7 @@ else
                                (doc 13 §3i): prima questa pagina si costruiva il proprio contorno, ed era per questo
                                che la sezione «Versioni» dell'aeroporto non somigliava a quella degli altri tre.
                                Published ricarica tutto: BeforePublishAsync ha già avvisato sulle sezioni non salvate. *@
-                            <ReleasePanel Target="ReleaseTargetType.Airport" Key="@_icao"
+                            <ReleasePanel Revisione="_unioneRev" Target="ReleaseTargetType.Airport" Key="@_icao"
                                           ShowDiff="true" AllowCancel="Authz.IsEditor"
                                           BeforePublishAsync="BeforePublishAsync"
                                           PreviewUrlFactory="ReleasePreviewUrl"
@@ -1259,4 +1259,15 @@ else
 
     /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
     private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
+    /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina. Alzarla e' cio' che
+    /// costringe <c>ReleasePanel</c> a rileggere i suoi bersagli: la sua memoizzazione e' su bersaglio e
+    /// chiave, e quelle non cambiano quando si unisce un documento.</summary>
+    private int _unioneRev;
+
+    private async Task UnioneCambiata()
+    {
+        _unioneRev++;
+        await LoadAsync();
+    }
+
 }

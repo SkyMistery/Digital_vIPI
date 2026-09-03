@@ -125,7 +125,7 @@
         <div class="callout info" style="margin:10px 0 0">
             <span class="cic"><Icon Name="link" Size="18" /></span>
             <div>
-                <p class="ct">@string.Format(L["Rel_UnionTitle"].Value, _uniti.Count)</p>
+                <p class="ct">@L["Rel_UnionTitle", _uniti.Count]</p>
                 <ul class="union-list" style="margin:4px 0 0">
                     @foreach (var m in _uniti)
                     {
@@ -133,7 +133,7 @@
                             <b>@m.Titolo</b> <span class="muted">@m.Key</span>
                             @if (m.LockedByUserId is not null)
                             {
-                                <span class="pill amber">@string.Format(L["Rel_UnionLocked"].Value, m.LockedByName ?? m.LockedByUserId.ToString())</span>
+                                <span class="pill amber">@L["Rel_UnionLocked", m.LockedByName ?? m.LockedByUserId.ToString()!]</span>
                             }
                         </li>
                     }
@@ -248,8 +248,22 @@
 
     /// <summary>Superata = né in vigore né programmata: annullarla è cancellare storia, non cambiare il pubblico.</summary>
     private static bool Superata(ReleaseInfo r) => !r.IsEffectiveNow && r.Status != ReleaseStatus.Scheduled;
-    private string CancelPrompt(ReleaseInfo r) =>
-        Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle] : L["Rel_CancelPrompt", r.ReleaseAiracCycle];
+    /// <summary>
+    /// La domanda prima di annullare. ⚠️ Su un documento UNITO l'annullamento porta via anche le sorelle
+    /// dello stesso ciclo, e la domanda deve dirlo: chiedere «annullo questa?» per poi toglierne due è la
+    /// stessa categoria di difetto dell'esito che tace metà del lavoro, ma peggiore — qui la metà taciuta
+    /// è una pubblicazione che sparisce.
+    /// </summary>
+    private string CancelPrompt(ReleaseInfo r)
+    {
+        var sola = Superata(r) ? L["Rel_CancelPromptOld", r.ReleaseAiracCycle].Value
+                               : L["Rel_CancelPrompt", r.ReleaseAiracCycle].Value;
+        return _uniti.Count > 1
+            // ⚠️ L[chiave, argomenti] e NON string.Format(L[chiave].Value, ...): quel secondo indexer e'
+            // l'unico che INTERPOLA, ed e' la stessa lezione del numero di versione (Rel_VersionLabel).
+            ? sola + " " + L["Rel_CancelPromptUnion", _uniti.Count]
+            : sola;
+    }
     private string CancelTitle(ReleaseInfo r) =>
         Superata(r) ? L["Rel_CancelTitleOld"] : L["Rel_CancelTitle"];
 
@@ -309,7 +323,19 @@
     // sullo stesso context. Su Postgres/Neon, con la latenza di rete, le due si sovrappongono davvero:
     // eccezione nel ciclo di vita del componente → renderer in errore → CIRCUITO TERMINATO (l'editor APP su
     // Render moriva al primo click su «Modifica»). In locale su SQLite le query finiscono prima e non collidono.
-    private (ReleaseTargetType Target, string Key)? _loaded;
+    private (ReleaseTargetType Target, string Key, int Revisione)? _loaded;
+
+    /// <summary>
+    /// Un contatore che l'host alza quando cambia qualcosa che questo pannello ha gia' letto e non
+    /// rileggerebbe: oggi l'UNIONE, che decide quanti documenti il tasto «pubblica» tocchera' e che cosa
+    /// dice la domanda prima di annullare.
+    ///
+    /// <para>⚠️ Serve perche' la memoizzazione qui sopra e' su (bersaglio, chiave), e quelle due non
+    /// cambiano quando si unisce un documento: senza, subito dopo aver unito il pannello continuerebbe a
+    /// dire «questo documento e' solo» e la domanda dell'annullamento parlerebbe di UNA release mentre ne
+    /// toglie due. Misurato dal vivo il 3 settembre 2026 — la domanda mentiva davvero.</para>
+    /// </summary>
+    [Parameter] public int Revisione { get; set; }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -317,8 +343,9 @@
         _upcoming = Releases.UpcomingCycles(14);
         _cycle ??= _upcoming.FirstOrDefault()?.Cycle;
 
-        if (_loaded is { } l && l.Target == Target && string.Equals(l.Key, Key, StringComparison.Ordinal)) return;
-        _loaded = (Target, Key);
+        if (_loaded is { } l && l.Target == Target && string.Equals(l.Key, Key, StringComparison.Ordinal)
+            && l.Revisione == Revisione) return;
+        _loaded = (Target, Key, Revisione);
         // Rete di sicurezza: un'eccezione qui NON è catturabile dall'host (è ciclo di vita, non evento) e
         // abbatterebbe il circuito. Meglio il pannello con un errore visibile che la pagina morta.
         try { await Reload(); }
