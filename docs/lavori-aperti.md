@@ -12,11 +12,13 @@
 
 **Aggiornato:** 3 settembre 2026 — 📦 **PACCHETTO 1.6.0 PRONTO** (`vipi-1.6.0-solo-file-cambiati.zip`, sha256 `7b153d40cfcc25fe8e7cc1b1f1172a11190dad4bbd61ec10438cf20546f4b417`, **4,73 MB**, **25 file**). Timbro **`1.6.0 · 2a7d86fd`**. 🟠 **PORTA UNA MIGRAZIONE**, la prima da 1.3.0: `20260903092755_DocumentiUniti`, **quattro operazioni tutte additive** (2 `CreateTable` + 2 `CreateIndex`). Gira da sola all'avvio. 🔴 **E preparandolo il runbook si e' smentito**: diceva che dentro la finestra cieca «una migrazione nuova nemmeno», nominando `MigrazioniDellaFinestraCiecaTests` come presidio — ma quel test vieta le sole operazioni **distruttive**, e in produzione ci sono **gia' due migrazioni della finestra** (`CatenaDiRipiego`, `LinguaBloccata`) uscite con 1.3.0 il 31 agosto. Non dedotto: **guardato dentro** il `MySqlMigrations.dll` di quel pacchetto. La riga e' stata corretta. ⚠️ **`Vipi.Infrastructure.MySqlMigrations.dll` entra** ed è la prima volta da 1.3.0: e' l'unico assieme che porta le migrazioni di produzione. ⚠️ **E `Vipi.Host.dll` entra pur senza un sorgente cambiato**: il timbro e' un `AssemblyMetadata` del suo csproj, e senza quel file la barra direbbe ancora «1.5.0 · a071575» su binari 1.6.0. ⚠️ **C'e' `wwwroot`** (tre file coi loro `.br`/`.gz`) e con lui l'indice degli asset: viaggiano **insieme**, o le pagine escono senza stili — la trappola del 24 agosto. Impronte confrontate con **l'ultimo pacchetto che conteneva davvero ogni file** (1.5.0 per la maggior parte, **1.3.0** per le migrazioni, 1.4.x per gli asset): nessuno dei 25 identico, niente da scartare. **Provato sul pacchetto pubblicato**: timbro giusto in `avvio-diagnostica.txt` e **nessun** `avvio-errore.txt`, circuito aperto col JS **minificato** (2 400 byte su una riga), **Ricerca 162 → 6 351 caratteri** («50 results for LI»), la Guida con la sezione nuova nelle due lingue, la pagina unita di LIMN con 34 voci e **zero ancore cieche**, e il **riavvio**: processo ucciso → la pagina se ne accorge, riavviato → torna viva da sola. Zero errori, zero 4xx. ⚠️ **Il controllo B era fallito al primo giro**, e non era il pacchetto: la pagina della Ricerca ha **due** campi con lo stesso segnaposto e avevo scritto in quello della barra. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.6.0.md`. 🔴 Resta da **caricare via FTP**.
 
+**Aggiornato:** 3 settembre 2026 (sera) — ✅ **§BA: DUE FILE PER DUE GUASTI, e gli ultimi sette servizi fuori dal contesto del circuito.** Dalla diagnostica di produzione di 1.6.1, non da una richiesta. 🔴 `avvio-errore.txt` diceva «l'avvio è FALLITO» di uno **spegnimento**: `app.Run()` blocca fino alla chiusura, quindi il guasto all'arresto usciva dal medesimo `catch` — e il foglio appena spedito diceva «se compare, fermatevi». Ora c'è **`arresto-errore.txt`**, che non ferma niente. E la guardia sugli `@inject` che toccano il database, nata guardando **un nome solo**, ha chiuso i sette casi tollerati: `AirportSectionsEditor` ×3, `NewDocumentPage`, `VersioniPage` ×3 — ⚠️ quest'ultima da guardare, perché accanto c'è la scelta **opposta** di `ReleasePanel`, che qui non vale (quella pagina non lo monta). Ogni servizio spostato è stato **fatto scrivere** a schermo e la scrittura verificata **in archivio**. 🔴 **Non è in produzione**: vuole un pacchetto 1.6.2.
+
 **Aggiornato:** 3 settembre 2026 — 🔴 **§AZ RIVISTO IN SUPERVISIONE: quindici difetti, tre seri, tutti corretti.** Il peggiore: l'elenco di governo mostrava «uniti: 2» e pubblicava **un** documento, perché l'accoppiamento era una **seconda** porta che quella pagina non chiamava. La cura non era il chiamante — le porte separate non esistono più. Poi: una lingua bloccata in un membro tingeva tutta la pagina unita, e un membro pubblicato sotto un ospite in bozza spariva dal web. Sei commit, suite verde su 8 progetti su 8.
 
 **Aggiornato:** 3 settembre 2026 — ✅ **§AZ: DOCUMENTI UNITI — una pagina, un editor, una pubblicazione.** Un APP non remotizzato si unisce al documento dell'aeroporto o al vSOP militare, indipendentemente dal tipo: ordine deciso dal redattore, **un editor solo**, e la release — fatta o pianificata — con **un clic** su tutti i membri (annullarla li annulla tutti). Provato a schermo su LIBA e su **LIMN Cameri**, misto e pubblicato. Ramo `documenti-uniti`, fuso in `main`.
 
-**Aggiornato:** 3 settembre 2026 — ✅ **§AY: LA SCHEDA DELLA CLAUSOLA DEI TRASFERIMENTI È UNA FINESTRA, e tre classi erano scollegate dal foglio di stile.** Segnalati dal committente due difetti in notturna; cercandoli ne è uscito un terzo, il più caro: markup `xt-panel-f` contro CSS `.xt-panel-foot`, regola **morta da tre settimane**, e senza `display:flex` nel piede **l'elimina stava appiccicato al duplica** — un tasto distruttivo a 8px da uno costruttivo, che non sembrava un guasto ma una scelta. Le barre bianche erano `--on-brand` (bianco di **brand**, che non ha tema) usato per i coperchi dello scroll shadow, e si vedevano **anche senza niente da scorrere**. ⚠️ **La misura ha ribaltato la mia stessa proposta**: «la finestra è larga il doppio quindi ci sta tutto» è **falso** — da 348 a 828px di corpo il contenuto scende da 896 a 860, il **4%**, perché i campi erano impilati in una colonna sola. Quello che paga è la larghezza **spesa in due colonne** (896 → 666), e oltre i 920px non paga più niente (a 1040/1160/1280 il contenuto non si muove). Esito misurato: come la scheda si apre davvero **non scorre** (378 in 378); con tutte e tre le sezioni forzate aperte, **30px fuori invece di 394**. 🔴 **Non è in produzione** e tocca `vipi-theme.css` **e** `vipi-print.css`. Carta: [`docs/feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
+**Aggiornato:** 3 settembre 2026 — ✅ **§AY: LA SCHEDA DELLA CLAUSOLA DEI TRASFERIMENTI È UNA FINESTRA, e tre classi erano scollegate dal foglio di stile.** Segnalati dal committente due difetti in notturna; cercandoli ne è uscito un terzo, il più caro: markup `xt-panel-f` contro CSS `.xt-panel-foot`, regola **morta da tre settimane**, e senza `display:flex` nel piede **l'elimina stava appiccicato al duplica** — un tasto distruttivo a 8px da uno costruttivo, che non sembrava un guasto ma una scelta. Le barre bianche erano `--on-brand` (bianco di **brand**, che non ha tema) usato per i coperchi dello scroll shadow, e si vedevano **anche senza niente da scorrere**. ⚠️ **La misura ha ribaltato la mia stessa proposta**: «la finestra è larga il doppio quindi ci sta tutto» è **falso** — da 348 a 828px di corpo il contenuto scende da 896 a 860, il **4%**, perché i campi erano impilati in una colonna sola. Quello che paga è la larghezza **spesa in due colonne** (896 → 666), e oltre i 920px non paga più niente (a 1040/1160/1280 il contenuto non si muove). Esito misurato: come la scheda si apre davvero **non scorre** (378 in 378); con tutte e tre le sezioni forzate aperte, **30px fuori invece di 394**. ✅ **In produzione dal 3 settembre 2026** (pacchetto 1.6.0), coi due fogli `vipi-theme.css` e `vipi-print.css`. Carta: [`docs/feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md).
 
 **Aggiornato:** 3 settembre 2026 — 🟡 **§AX: IMPORTARE I TRASFERIMENTI, carta scritta e non ancora eseguita** (ramo `import-trasferimenti`). Richiesta del committente: «voglio importare i trasferimenti copiando le tabelle dagli attuali documenti, anche in forma mista». **Misurato sui tre documenti veri** in `vIPI word/` (estraendo le tabelle dai `.docx`): **~450 righe di trasferimento**, e nel solo IPI di Roma **33 forme d'intestazione distinte** — che è la ragione per cui il pezzo che regge tutto è la **rimappatura a mano** già dentro `ImportaTabella`, non una spec per forma. Seconda misura, quella che decide la prima fetta: delle **494 celle FL** la grammatica di oggi ne legge **324 (66%)** come livello vero, e **170** finiscono in testo libero — ma sono tre famiglie sole (`FL130 o` ×72, la parità fuori parentesi ×20, i marcatori di nota ×10), e tre regole di normalizzazione portano a **~87%**. 🔴 **Il salto vero non è leggere le celle: è che una riga porta ente, DEST/DEP e tipo, cioè dati che nel modello stanno SOPRA la riga** — una tabella di Roma da dodici righe è **tre accordi e cinque sezioni**, non dodici clausole in una sezione. Quindi un ingresso **a livello di controparte** (quello di oggi è in fondo a quattro clic dentro una sezione sola) che costruisce un **piano** da spuntare. **Decisioni del committente**: la `ROTTA ATS` si **ignora**; della lista enti `US/TS/NE/US0` si tiene **solo il primo** e il resto non si scrive da nessuna parte (la catena di ripiego è già la gerarchia di copertura: copiarla sarebbe una seconda verità); l'import **propone e basta**, l'albero nasce tutto non spuntato; **niente `.docx`** — si copia una tabella per volta, e il rumore del documento non entra invece di dover essere filtrato. ⚠️ **La carta è in due parti, e la seconda ha una data**: la **A** (l'import) non tocca lo schema e si può fare subito; la **B** — agganciare `EKMUR 3C` alla **procedura** invece di copiarla — vuole un **catalogo STAR che non esiste** (`AirportSid` c'è, 1.269 procedure; di STAR nel modello **zero occorrenze**) e **aspetta il 16 settembre**, perché è una tabella nuova più tre colonne su una tabella viva dentro una finestra senza ripristino. 🟢 Ad aspettare non si perde niente: l'aggancio è un confronto testo→catalogo e può girare **dopo** sulle clausole già importate. Le STAR la sorgente le ha (`.str`, **90 file / 1.511 righe / 89 aeroporti**) ⚠️ ma **339 di quelle righe non sono STAR**: sono l'hack `MAPS`, e dentro i file «STAR» vivono le shape di CTR e ATZ. E il legame va per **`StableKey`, mai per Id** (la strada per Id è già stata pagata: `ConditionRefId` 215/216) ⚠️ sapendo che la `StableKey` **non è unica** e l'indice unico fa fallire la migrazione su dati veri. ⚠️ **E «si aggiorna da solo» è vero solo nell'editor**: le release sono fotografie, il documento pubblicato cambia alla **prossima release** — quindi il pezzo che rende utile il meccanismo non è il link, sono gli **impatti**. Carta: [`docs/design/piano-import-trasferimenti.md`](design/piano-import-trasferimenti.md). 🔴 **Nessuna riga di codice scritta**: si parte dalla fetta A1 (letture pure, test-first).
 
@@ -7040,8 +7042,9 @@ Suite intera verde, E2E compresi (276/276), Release pulita sui due TFM.
 - 🟡 Trovato per strada e **non riparato**: `/services/vsop/admin/versions` mostra «Nessun documento
   corrisponde ai filtri» con tutti i conteggi a zero. **Identico su `main`**, quindi preesistente e fuori da
   questo giro.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AS e §AT — SEI lavori in un
-  solo pacchetto, ed è il prossimo passo.
+- ✅ **In produzione dal 2 settembre 2026**, nel pacchetto **1.4.0** con §AO, §AP, §AQ, §AS e §AT. ⚠️ Il
+  pacchetto si è chiamato 1.3.1 finché conteneva i soli §AO–§AR: il numero segue il **contenuto**, e con §AS
+  e §AT dentro non era più una patch.
 
 ### ⚠️ Un lavoro che ha viaggiato dentro alla fusione, e non doveva
 
@@ -7145,7 +7148,7 @@ resta in piedi, e i `bin/` restano suoi).
   dell'edizione vorrebbe dire credere risolto un blocco che sta altrove. Il test lo pretende per iscritto.
 - 🟡 **`SaveFrequencyLinksAsync` non è provata** nel test di scrittura (vuole un catalogo settori): è lo
   stesso servizio con la stessa chiave, ma è l'unica delle tre a fidarsi.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AT — sei in tutto.
+- ✅ **In produzione dal 2 settembre 2026**, nel pacchetto **1.4.0** con §AO, §AP, §AQ, §AR e §AT.
 
 ## AT. L'avviso di traduzione automatica diventa un gettone — 2 settembre 2026
 
@@ -7245,9 +7248,9 @@ fatti sul risultato della fusione — non sul ramo.
 - 🟡 **Non provato a schermo su vLOA, APP e vSOP militare**: nel `vipi.db` di sviluppo nessuno dei tre ha
   segmenti tradotti, quindi l'avviso non compare — né prima né dopo. Il markup è pinnato dal test
   strutturale, ma una prova a schermo su quelle tre resta da fare quando ci sarà un documento tradotto.
-- 🔴 **Non è in produzione**: va nel pacchetto **1.3.1** con §AO, §AP, §AQ, §AR e §AS — sei in tutto.
-- ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`**, cioè gli stessi due fogli di §AO: impronte nuove, e
-  `wwwroot` viaggia insieme all'indice `staticwebassets`.
+- ✅ **In produzione dal 2 settembre 2026**, nel pacchetto **1.4.0** con §AO, §AP, §AQ, §AR e §AS.
+- ℹ️ Toccava `vipi-theme.css` **e** `vipi-print.css`, cioè gli stessi due fogli di §AO: sono partiti insieme,
+  con l'indice `staticwebassets`.
 
 ## AY. La scheda della clausola diventa una finestra, e tre classi scollegate — 3 settembre 2026
 
@@ -7288,8 +7291,9 @@ le sezioni, 666 in 636: **30px fuori invece di 394**.
 
 ### Quel che resta
 
-- 🔴 **Non è in produzione**: va nel prossimo pacchetto. ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`** —
-  impronte nuove, e `wwwroot` viaggia insieme all'indice `staticwebassets`.
+- ✅ **In produzione dal 3 settembre 2026**, nel pacchetto **1.6.0** (è entrato nella fusione che l'ha
+  preceduto). ℹ️ Toccava `vipi-theme.css` **e** `vipi-print.css`: sono partiti con l'indice
+  `staticwebassets`.
 - ✅ Il lock **è rimasto dov'era**, per decisione del committente — ma la fascia «lock in scadenza» che lo
   accompagnava, e che spingeva giù tutto di 76px mentre si scrive, **era un falso allarme**. La domanda del
   committente («ma il lock non si rinnova da solo?») ha aperto il difetto: `EditLockBar` pubblicava
@@ -7395,8 +7399,10 @@ l'autorizzazione per ACC non è un buco, è morta il 28 agosto — `EnsureAtLeas
 
 ### Quel che resta
 
-- 🔴 **Non è in produzione**: il ramo non è fuso. Va in un pacchetto suo, e ⚠️ porta **due migrazioni** (una
-  per serie) — vedi la finestra cieca al 16 settembre prima di consegnarne una che tocca lo schema.
+- ✅ **In produzione dal 3 settembre 2026**, pacchetto **1.6.0** (25 file), e le **due migrazioni** — una per
+  serie, SQLite e MySQL — sono **applicate sul database vero**. È la prima consegna con una migrazione da
+  1.3.0. ⚠️ Non era una violazione della [finestra cieca al 16 settembre]: quella riguarda i **dati**, non
+  lo schema, e il runbook diceva il falso su questo punto — corretto nello stesso giro.
 - ✅ **Provato a schermo su tutti e due gli assi**: LIBA (aeroporto + APP) e **LIMN Cameri** (misto e
   **pubblicato**, che è la seconda richiesta). Su LIMN: release 57 e 58 allo stesso ciclo e alla stessa data
   efficace, **entrambi** i documenti promossi a `Published`, 34 voci d'indice con **zero** ancore senza

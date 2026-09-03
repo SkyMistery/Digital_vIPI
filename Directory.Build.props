@@ -182,8 +182,22 @@
 
       ⚠️ Due progetti (`Application`, `Ui`) e le frasi. NIENTE `wwwroot`, quindi niente indice degli
       asset e niente della trappola del 24 agosto.
+
+      1.6.2 — PATCH. Di nuovo dalla diagnostica di produzione, e di nuovo due cose:
+
+        · un guasto all'ARRESTO non viene più raccontato come «l'avvio è FALLITO». `app.Run()` blocca fino
+          allo spegnimento, quindi l'eccezione della chiusura usciva dal medesimo `catch` di Program.cs e
+          finiva in `avvio-errore.txt` — mentre il foglio di 1.6.1 diceva «se compare, fermatevi». Ora una
+          sentinella su ApplicationStarted la manda in `arresto-errore.txt`, che NON ferma il caricamento;
+
+        · gli ultimi SETTE servizi che toccano il database escono dal contesto del circuito
+          (AirportSectionsEditor ×3, NewDocumentPage, VersioniPage ×3). È la coda di 1.6.1: là ne erano
+          usciti due, questi erano tollerati per non allargare la correzione in una sera.
+
+      ⚠️ Due progetti (`Host`, `Ui`). NIENTE `wwwroot`, NIENTE frasi (nessun .resx toccato, quindi il
+      satellite inglese resta fuori), NESSUNA migrazione.
     -->
-    <VipiVersione>1.6.1</VipiVersione>
+    <VipiVersione>1.6.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
