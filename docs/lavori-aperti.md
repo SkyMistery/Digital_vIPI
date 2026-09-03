@@ -7502,7 +7502,9 @@ da `NewDocumentPage`, con la stessa riga di risoluzione.
 
 ## BB. La testata si compatta: la chip nel sottotitolo, la lingua a gettone — 3 settembre 2026
 
-🟡 **In lavorazione**, ramo `testata-compatta`. Nessuna carta: richiesta del committente, partita dal vSOP
+✅ **FUSA IN MAIN** il 3 settembre 2026 (`e0f27a2b`, spinta; il ramo `testata-compatta` è stato cancellato).
+🔴 Cambia due fogli di stile → impronte nuove → serve un **pacchetto** prima che si veda in produzione.
+Nessuna carta: richiesta del committente, partita dal vSOP
 militare — *«nelle vsop militari non abbiamo compattato questa sezione come negli altri documenti … Voglio
 che appaia: Military Airport · &lt;ACC&gt; e i tasti everyone, pilot, atc; ONLY FOR SIMULATION … e accanto
 l'informazione sulla lingua»*. Estesa a **tutte e cinque** le famiglie su sua scelta esplicita.
