@@ -16,7 +16,10 @@ Se il TypeScript salta fuori, le modifiche da riportare sono **due**, e sono la 
 1. `pingVipi()` chiamata **per prima** nel `scheduled`, prima di qualunque accesso a D1;
 2. i **ping extra** dentro lo stesso giro — `PING_EXTRA_MS` + `pingVipiTraUnPo()`, lanciati con
    `ctx.waitUntil` e **mai attesi in linea** — perché un ping al minuto sveglia il processo e non lo tiene
-   su (58 avvii in un'ora, misurati).
+   su (58 avvii in un'ora, misurati). ⚠️ E **nemmeno due al minuto bastano**: col ping a +30 s la vita
+   mediana sale da 15 s a 44 s e il processo passa dal 43% al 72% acceso, ma gli avvii restano **60
+   l'ora**. Ogni ping vale circa **30 s** di vita: dal 4 settembre 2026 la lista è `[1e4 … 5e4]`, un ping
+   ogni 10 secondi.
 
 Il perché di tutt'e due sta in [`../LEGGIMI-ATC-ARCHIVER.md`](../LEGGIMI-ATC-ARCHIVER.md).
 

@@ -7,9 +7,19 @@ var FETCH_TIMEOUT_MS = 1e4;
 var CLEANUP_DAYS = 90;
 // Keep-alive: ritardi (ms) dei ping EXTRA dentro lo stesso giro di cron, oltre a quello a t=0.
 // Il cron non scende sotto il minuto, quindi la frequenza vera la fa questa lista.
-// 3-set-2026: si prova [30 s]. Se `avvii.txt` continua a contare un avvio al minuto, il processo
-// muore prima dei 30 s e la lista va infittita (p.es. [1e4, 2e4, 3e4, 4e4, 5e4]).
-var PING_EXTRA_MS = [3e4];
+//
+// 3-set-2026, primo tentativo [3e4] — MISURATO su `diagnostica/avvii.txt` e NON basta, ma ha detto
+// quanto manca:
+//   ping solo a +0 : 53 avvii/ora, vita mediana 15 s, processo acceso il 43% del tempo;
+//   ping +0 e +30  : 60 avvii/ora, vita mediana 44 s, acceso il 72%, spento al massimo 31 s.
+// Cioe': ogni ping tiene su il processo circa 30 s e poi Passenger lo spegne per inattivita'. Con due
+// ping al minuto restano ~15 s di buco, e nessuna vita arriva a 150 s (0 su 60) — il giro periodico
+// piu' lungo non parte ancora.
+//
+// 4-set-2026: un ping ogni 10 s. Sotto la finestra d'inattivita' misurata (~30 s) di tre volte, quindi
+// il processo non dovrebbe piu' spegnersi. ⚠️ La prova resta `avvii.txt`, non una `curl`: se le righe
+// di AVVIO smettono di comparire, il processo non muore piu'.
+var PING_EXTRA_MS = [1e4, 2e4, 3e4, 4e4, 5e4];
 var index_default = {
   // HTTP handler
   async fetch(request, env) {
@@ -49,6 +59,9 @@ var index_default = {
  *    e al minuto dopo ricomincia. Il ping SVEGLIA e non TIENE SU, e con vite cosi' corte nessun giro
  *    periodico (bootDelay da 15 s a 150 s) arriva in fondo. Per questo il cron pinga piu' volte per
  *    giro: vedi `PING_EXTRA_MS`.
+ * 🔴 E DUE al minuto non bastano lo stesso (misura del 3-set, sera): la vita mediana sale da 15 s a
+ *    44 s e il processo passa dal 43% al 72% acceso, ma gli avvii restano 60 l'ora. Ogni ping vale
+ *    circa 30 s di vita: la distanza fra i ping deve stare SOTTO quella finestra, non sopra.
  *
  * ⚠️ Sonda ECONOMICA: `/vsop/health/ready` guarda le sole condizioni critiche. `/vsop/health` include
  *    il report di consistenza, che costa e fa I/O di rete — 1440 volte al giorno sarebbe uno spreco.

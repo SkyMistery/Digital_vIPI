@@ -120,7 +120,7 @@ manutenzioni d'avvio**, contro MariaDB, 58 volte l'ora.
 quindi la frequenza vera la fa una lista di ritardi **dentro** la stessa invocazione:
 
 ```js
-var PING_EXTRA_MS = [3e4];   // un ping extra a +30 s, oltre a quello a t=0
+var PING_EXTRA_MS = [1e4, 2e4, 3e4, 4e4, 5e4];   // un ping ogni 10 s, oltre a quello a t=0
 ```
 
 ⚠️ **I ping extra vanno in `ctx.waitUntil` e non si aspettano in linea**: aspettarli sposterebbe di mezzo
@@ -128,11 +128,33 @@ minuto il campionamento ATC, che è il lavoro vero di questo cron. Verificato co
 `fetch` e D1 stubbati: ping a `+1 ms`, poller a `+17 ms`, `scheduled` ritornato a `+18 ms`, secondo ping a
 `+30 026 ms`.
 
-⚠️ **Trenta secondi è un TENTATIVO, non una cura dimostrata**: le vite misurate stanno fra 7 e 15 secondi,
-quindi può non bastare. **La prova è `avvii.txt`, non una `curl`** — anche quella è traffico. Se continua a
-contare un avvio al minuto, il processo muore prima dei 30 s e la lista va infittita, p.es.
-`[1e4, 2e4, 3e4, 4e4, 5e4]`. La strada pulita resta l'altra: alzare l'inattività di Passenger dal pannello
-Plesk, a cui però il committente non ha accesso.
+### 🔴 E DUE ping al minuto non bastano lo stesso — misurato il 3 settembre 2026, notte
+
+`diagnostica/avvii.txt`, le due ore a confronto:
+
+| | avvii/ora | vita mediana | acceso | spento fra un giro e l'altro | vite ≥ 150 s |
+|---|---|---|---|---|---|
+| ping a **+0** (19:21→20:25Z) | **53** | 15 s | **43%** | 45 s (max 72) | 1 su 57 |
+| ping a **+0 e +30** (21:05→22:06Z) | **60** | 44 s | **72%** | 14 s (max 31) | **0 su 60** |
+
+Il secondo ping ha fatto **qualcosa** — vita mediana quasi tripla, processo acceso dal 43% al 72%, buchi da
+72 s scesi a 31 — ma **gli avvii restano sessanta l'ora**: il processo muore lo stesso, solo un po' più
+tardi. E il numero che conta è l'ultima colonna: **nessuna vita arriva a 150 s**, quindi il giro periodico
+più lungo continua a non partire mai.
+
+⚠️ **Il dato che la misura regala**: ogni ping tiene su il processo **circa 30 secondi** (parte a `:20`,
+muore fra `:48` e `:57`; il ping successivo a `:50` lo ritrova morto e ne sveglia un altro). La finestra
+d'inattività di Passenger è quella — quindi **la distanza fra i ping deve stare sotto i 30 secondi, non
+sopra**.
+
+**4 settembre 2026: un ping ogni 10 secondi** (`[1e4, 2e4, 3e4, 4e4, 5e4]`), cioè un terzo della finestra
+misurata. Verificato in locale a `fetch` e D1 stubbati: **sei ping a 0, 10, 20, 30, 40, 50 s**, distanze di
+10 000 ms ± 30, e `scheduled()` che ritorna dopo **18 ms** — il campionamento ATC non si sposta di niente.
+
+⚠️ **La prova resta `avvii.txt`, non una `curl`** — anche quella è traffico. Se le righe di AVVIO smettono
+di comparire, il processo non muore più. Se ne resta ancora una al minuto, l'inattività è più corta di
+10 s e la strada dei ping è finita: resta l'altra, **alzare l'inattività di Passenger dal pannello Plesk**,
+a cui però il committente non ha accesso — serve Ivao.It.
 
 Le tre scelte, e il perché di ognuna:
 
