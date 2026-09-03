@@ -44,6 +44,9 @@ public sealed class StructureAccessibilityTests
             ("DeleteDialog.razor", "del-backdrop",
              "il velo chiude la finestra come il tasto Annulla che le sta dentro, raggiungibile da tastiera: "
              + "dargli il fuoco aggiungerebbe una fermata di tabulazione muta prima del contenuto del dialogo"),
+            ("AdminTrasferimentiPage.razor", "xt-backdrop",
+             "stessa ragione del velo di DeleteDialog: la scheda della clausola si chiude con la sua ✕, che "
+             + "è un <button>, e con Esc (PanelEscape). Il velo è la terza via, per il mouse"),
         };
 
         var radice = RadiceDelRepo();

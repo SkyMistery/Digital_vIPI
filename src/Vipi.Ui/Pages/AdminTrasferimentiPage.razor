@@ -323,13 +323,17 @@
                 </div>
             }
 
-            @* ---- Tre colonne: si sceglie · si lavora · si scrive ----
+            @* ---- Due colonne: si sceglie · si lavora ----
                Ognuna scorre per conto proprio dentro l'altezza dello schermo. È la differenza che toglie
                l'attrito più caro della pagina vecchia: il pannello non finisce mai «dopo la lista», perché
-               sopra di lui non c'è più una lista. *@
-            @* Il pannello vuoto si ritira SOLO in elenco, dove la tabella ha dieci colonne e ha bisogno della
-               larghezza. In albero resta: lì lo spazio c'è, e una colonna che dice cosa fare vale più di 380 px. *@
-            <div class="xfe-layout3 @(_view == XferView.Flat ? "xt-noNav" : "") @(_view == XferView.Flat && _clauseForm is null ? "xt-noPanel" : "")">
+               sopra di lui non c'è più una lista.
+               ⚠️ Erano TRE. La scheda della clausola era la colonna di destra, 380px: misurato a schermo, il
+               suo corpo ne aveva 348 per 896px di contenuto in 502 visibili — due schermate di scorrimento per
+               scrivere UNA riga. E allargare la colonna non bastava: a 828px il contenuto scendeva solo a 860,
+               perché i campi sono impilati in una colonna sola. Adesso la scheda è una finestra (qui sotto) e
+               quei 380px sono della tabella in TUTTE E DUE le viste — anche in elenco, dove le colonne sono
+               dieci. Con la colonna se n'è andata anche `xt-noPanel`, che serviva solo a restituirglieli. *@
+            <div class="xfe-layout3 @(_view == XferView.Flat ? "xt-noNav" : "")">
                 @if (_view == XferView.Tree)
                 {
                     <XferNavigator Counterparts="BuildNav(shown)" SelectedId="_selectedId"
@@ -342,13 +346,25 @@
                     @WorkPane(shown, tableRows)
                 </section>
 
-                @if (_view == XferView.Tree || _clauseForm is not null)
-                {
-                    <aside id="xt-panel" class="xt-panel">
-                        @ClausePanel()
-                    </aside>
-                }
             </div>
+
+            @* ---- La scheda della clausola ----
+               Sta FUORI dalla griglia: là dentro occuperebbe una traccia, ed è proprio la traccia che le
+               abbiamo tolto.
+               Il velo chiude come la ✕. È la via d'uscita che si trova per prima quando non si sa cosa fare, e
+               una finestra che si chiude solo da un tasto piccolo in alto a destra si prende per bloccata.
+               ⚠️ Il pannello VUOTO non c'è più fra i casi normali: esisteva per non lasciare vuota una colonna
+               che ora non c'è. Il ramo dentro ClausePanel resta come guardia — la clausola può sparire sotto
+               le mani se l'elenco si ricarica — e in quel caso porta il suo tasto per uscire. *@
+            @if (_clauseForm is not null)
+            {
+                <div class="xt-backdrop" @onclick="ClosePanel"></div>
+                <div class="xt-panel" role="dialog" aria-modal="true" tabindex="-1" @ref="_panelCard"
+                     aria-label="@(_editClauseId is not null ? L["Xfer_PanelEdit"] : L["Xfer_PanelNew"])"
+                     @onkeydown="PanelEscape">
+                    @ClausePanel()
+                </div>
+            }
         }
     }
 </div>
@@ -1851,8 +1867,11 @@
     // ---- Colonna 3: il pannello della clausola ------------------------------------------------------
 
     /// <summary>
-    /// Il pannello di destra: è l'unico posto dove si scrive una clausola <b>per intero</b>. Vuoto mostra cosa
-    /// fare, come il pannello dettaglio di Struttura — una colonna che non dice niente sembra rotta.
+    /// La scheda della clausola: è l'unico posto dove si scrive una clausola <b>per intero</b>.
+    /// <para>Dal 3 settembre 2026 è una <b>finestra</b> e non più la colonna di destra. Nella colonna il corpo
+    /// aveva 348px di larghezza per 896px di contenuto, e allargarla da sola non serviva (a 828px si scendeva
+    /// a 860): quello che paga è spendere la larghezza in <b>due colonne di campi</b>. Le misure e il perché
+    /// stanno accanto a <c>.xt-panel</c> in vipi-theme.css.</para>
     /// </summary>
     private RenderFragment ClausePanel() => __builder =>
     {
@@ -1862,14 +1881,19 @@
 
         if (form is null || ag is null || sec is null)
         {
+            @* Guardia, non più uno stato normale: ci si arriva solo se la clausola è sparita sotto le mani
+               (l'elenco si ricarica). Il tasto per uscire ci vuole — dentro una finestra, senza, resterebbe
+               solo il velo. *@
             <div class="xt-panel-empty">
                 <p class="ct">@L["Xfer_PanelEmptyTitle"]</p>
                 <p class="muted">@L["Xfer_PanelEmptyBody"]</p>
+                <button class="btn ghost" @onclick="ClosePanel">@L["Common_Close"]</button>
             </div>
             return;
         }
 
         var editing = _editClauseId is not null;
+        var (walk, walkAt) = PanelWalk();
 
         @* Testata · corpo · piede. Il corpo è l'unica parte che scorre: le azioni stavano in fondo a 1426 px di
            contenuto in 904 disponibili, e il Salva non compariva in NESSUNA posizione di scorrimento della
@@ -1879,6 +1903,21 @@
             <span class="muted">@SenderOf(ag, sec) → @ReceiverOf(ag, sec) · @XferLabels.Section(L, sec)</span>
             @* L'avviso vive dove vivono le modifiche: in cima alla pagina stava a migliaia di pixel da qui. *@
             @if (HasOpenEdit) { <span class="pill xt-elsepill" title="@L["Xfer_UnsavedBody"]">✎ @L["Xfer_UnsavedTitle"]</span> }
+            @* ‹ › : si cammina fra le clausole della SEZIONE senza chiudere la finestra. La colonna lo dava per
+               costruzione — bastava cliccare la ✎ della riga accanto, che era lì — e una finestra lo toglierebbe.
+               ⚠️ Non ↑↓: quelle nel piede SPOSTANO la clausola. Due gesti opposti con la stessa freccia sono un
+               errore che si scopre solo dopo averlo commesso.
+               Il gruppo si rende sempre, anche senza tasti: è lui a spingere la ✕ a destra (vedi il CSS). *@
+            <span class="xt-panel-walk">
+                @if (walk.Count > 1)
+                {
+                    <button class="btn ghost" disabled="@(_busy || walkAt <= 0)" title="@L["Xfer_WalkPrev"]"
+                            @onclick="() => StepClause(-1)">‹</button>
+                    <span class="muted xt-hint">@(walkAt + 1)/@walk.Count</span>
+                    <button class="btn ghost" disabled="@(_busy || walkAt < 0 || walkAt >= walk.Count - 1)"
+                            title="@L["Xfer_WalkNext"]" @onclick="() => StepClause(1)">›</button>
+                }
+            </span>
             <button class="btn ghost xt-panel-x" title="@L["Common_Cancel"]" @onclick="ClosePanel">✕</button>
         </div>
 
@@ -1893,7 +1932,10 @@
            completare e' «EL». Qui il picker della pagina e non l'elenco nativo del browser (che invece serve
            alle tabelle SID): l'elenco nativo filtra sul valore INTERO del campo, e su una riga con la virgola
            non troverebbe mai niente. *@
-        <TypeaheadPicker Label="@L["Xfer_ColPoints"]" Hint="@L["Xfer_CopListHint"]"
+        @* `xt-wide`: i punti sono un ELENCO e attraversano le due colonne della scheda. Gli altri elenchi
+           a digitazione — l'area della condizione — portano un valore solo e stanno in mezza riga: a
+           tutta larghezza lasciavano un buco alla destra della casella delle piste. *@
+        <TypeaheadPicker Class="xt-wide" Label="@L["Xfer_ColPoints"]" Hint="@L["Xfer_CopListHint"]"
                          Placeholder="VALMA / VALMA, ELB, TOP" TokenList="true" Max="12"
                          Items="PointItems(form.Points)" @bind-Text="form.Points"
                          NoMatch="@L["Xfer_NoPoint"]" OnUnhandledKey="PanelKey" />
@@ -2033,7 +2075,10 @@
         @if (SectionOpen("condition"))
         {
         <div class="field">
-            <label>@L["Xfer_CondRunway"] @if (_condRunways.Count == 0) { <span class="muted xt-hint">@L["Xfer_NoRunways"]</span> }</label>
+            @* Lo spazio prima del suggerimento lo mangia Razor — sta accanto a un blocco condizionale, non a un tag — e a
+               schermo usciva «RUNWAY IN USE(NO RUNWAY IMPORTED)». La cura è `.xt-pickhint`, la classe che
+               esiste apposta, non uno spazio nel markup: la spaziatura è presentazione. *@
+            <label>@L["Xfer_CondRunway"] @if (_condRunways.Count == 0) { <span class="muted xt-hint xt-pickhint">@L["Xfer_NoRunways"]</span> }</label>
             <select multiple size="4" @onchange="e => PickRunways(form, e)">
                 @foreach (var r in _condRunways)
                 {
@@ -2069,7 +2114,7 @@
         @* Il PIEDE: tutto ciò che si deve raggiungere sta fuori dal corpo che scorre. Nel corpo restano i dati,
            che si leggono; chi non lo sa scorre la pagina all'infinito e i tasti non compaiono mai — è stato
            segnalato due volte, con misure diverse. *@
-        <div class="xt-panel-f">
+        <div class="xt-panel-foot">
             <button class="btn primary" disabled="@(_busy || !_canEdit)" @onclick="SavePanel">💾 @L["Common_Save"]</button>
             @if (editing)
             {
@@ -2652,7 +2697,13 @@
     }
 
     private bool _prefsRestored;
-    private bool _revealPanel;
+    /// <summary>La finestra appena aperta si prende il fuoco. Senza, la tastiera resta sulla riga dietro il
+    /// velo: Esc non chiude, e chi scrive da tastiera si ritrova a digitare in una pagina che non vede più.
+    /// <para>Ha preso il posto di <c>_revealPanel</c>, che scorreva la pagina fino al pannello quando quello
+    /// era una colonna. Una finestra in mezzo allo schermo non ha niente da rivelare.</para></summary>
+    private bool _focusPanel;
+
+    private ElementReference _panelCard;
 
     /// <summary>
     /// Il catalogo dei punti della divisione: propone i CoP mentre si scrivono e dice quali non risultano.
@@ -2680,10 +2731,10 @@
 
         // ⚠️ Chiamare il JS dal gestore del clic è troppo presto: il DOM è ancora quello di prima (pannello
         // vuoto, senza piede) e la misura cadrebbe sul contenuto sbagliato. Si alza un flag e si chiama qui.
-        if (_revealPanel)
+        if (_focusPanel)
         {
-            _revealPanel = false;
-            try { await JS.InvokeVoidAsync("vipiRevealPanel", "xt-panel"); } catch (Exception) { }
+            _focusPanel = false;
+            try { await _panelCard.FocusAsync(); } catch (Exception) { }
         }
 
         // ⚠️ L'altezza «schermo meno chrome» non è esprimibile in CSS: N è proprio ciò che non si sa. Si misura,
@@ -3038,7 +3089,7 @@
         ResetPanelSections(_addClause);
         _formOpenedAs = _addClause.Signature();
         await LoadRunwaysAsync(sec);
-        _revealPanel = true;
+        _focusPanel = true;
     }
 
     private async Task EditClause(AgreementRow a, AgreementSectionRow sec, AgreementClauseRow c)
@@ -3052,10 +3103,51 @@
         ResetPanelSections(_editClause);
         _formOpenedAs = _editClause.Signature();
         await LoadRunwaysAsync(sec);
-        _revealPanel = true;
+        _focusPanel = true;
     }
 
     private void ClosePanel() { _editClauseId = null; _addClauseSectionId = null; }
+
+    /// <summary>Esc chiude la finestra.
+    /// <para>⚠️ Arriva qui per RISALITA dai campi, e va bene così. L'unico che se lo tiene è l'elenco a
+    /// digitazione mentre la tendina è giù (<c>TypeaheadPicker</c> ferma la risalita in quel caso): lì Esc vuol
+    /// dire «chiudi la tendina», e non «butta via quello che sto scrivendo».</para></summary>
+    private void PanelEscape(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") ClosePanel();
+    }
+
+    /// <summary>
+    /// Le clausole della sezione aperta, nell'ordine della vista, e dove ci si trova dentro. È quello che
+    /// percorrono ‹ › nella testata della finestra.
+    /// <para>Il perimetro è la <b>sezione</b> e non l'accordo: un passo che scavalca il verso cambierebbe
+    /// mittente e ricevente sotto le mani di chi sta scrivendo, e non sarebbe più un passo.</para>
+    /// <para>Si ordina con <see cref="SortedClauses"/> e non con <c>RowsFor</c>: qui serve l'ordine, non le
+    /// anteprime — e quelle costano una frase composta per riga, a ogni render della finestra.</para>
+    /// </summary>
+    private (IReadOnlyList<AgreementClauseRow> Rows, int At) PanelWalk()
+    {
+        var sec = CurrentSection();
+        if (sec is null || _editClauseId is not int id) return (Array.Empty<AgreementClauseRow>(), -1);
+
+        var rows = SortedClauses(sec.Clauses);
+        for (var i = 0; i < rows.Count; i++)
+            if (rows[i].Id == id) return (rows, i);
+        return (rows, -1);
+    }
+
+    /// <summary>Un passo avanti o indietro fra le clausole della sezione, senza chiudere la finestra.</summary>
+    private Task StepClause(int delta)
+    {
+        var (rows, at) = PanelWalk();
+        var ag = CurrentAgreement();
+        var sec = CurrentSection();
+        if (at < 0 || ag is null || sec is null) return Task.CompletedTask;
+
+        var next = at + delta;
+        if (next < 0 || next >= rows.Count) return Task.CompletedTask;
+        return EditClause(ag, sec, rows[next]);
+    }
 
     private AgreementRow? CurrentAgreement() =>
         _editClauseId is int id ? AgreementOf(id)

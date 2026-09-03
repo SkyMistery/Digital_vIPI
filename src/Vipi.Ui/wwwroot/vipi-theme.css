@@ -1624,31 +1624,27 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
    solo il browser, e sopra ci sono barra dell'applicazione, briciole, testata, barra ACC, barra dei filtri e —
    a volte — l'avviso del lock. Il calc qui è il valore di partenza prima che il JS misuri, non la verità: con
    una stima fissa (era 250 px, il vero era 398) la pagina scorreva di 148. */
-.xfe-layout3{display:grid;grid-template-columns:260px minmax(0,1fr) 380px;gap:16px;align-items:stretch;
+.xfe-layout3{display:grid;grid-template-columns:260px minmax(0,1fr);gap:16px;align-items:stretch;
   height:calc(100vh - 400px);min-height:420px}
 /* I 70px di respiro in fondo alla pagina servono a un contenuto che finisce; qui il contenuto arriva al bordo
    dello schermo per costruzione, e diventerebbero 70px di scorrimento su una pagina che non deve scorrere. */
 .wrap.struct:has(.xfe-layout3){padding-bottom:18px}
 /* Vista a elenco: il navigatore non c'è, e la tabella si prende lo spazio che avanza. */
-.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px}
-/* …e se non c'è nemmeno una riga aperta, si prende anche i 380 px del pannello: in elenco la tabella ha dieci
-   colonne, e una colonna vuota che dice «scegli una riga» è la cosa meno utile a cui darli. In albero il
-   pannello vuoto RESTA — lì lo spazio c'è, e dire cosa fare vale più della larghezza. */
-.xfe-layout3.xt-noNav.xt-noPanel{grid-template-columns:minmax(0,1fr)}
-/* Sotto i 1200 il pannello scende sotto le altre due; sotto i 900 resta una colonna sola. In entrambi i casi
-   l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro una pagina che scorre è una trappola —
-   ci si trova dentro due barre di scorrimento annidate, ed è il difetto che questa pagina ha già avuto. */
-/* align-items:start e non stretch: senza, il riquadro di lavoro si allineava all'altezza del navigatore —
-   che qui è incastonato — e si ritrovava incastonato anche lui, con una barra di scorrimento interna dentro
-   una pagina che già scorre. Misurato: pane alto 378 px per una tabella da 2082. */
-.wrap.pw-1200 .xfe-layout3,.wrap.pw-1200 .xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr) 380px;height:auto;align-items:start}
-.wrap.pw-1200 .xfe-layout3 .xt-panel{grid-column:1/-1;max-height:80vh}
-/* Il navigatore tiene il tetto anche qui, e da solo: senza, l'albero si srotolava per intero — misurato,
-   2174 px — e per arrivare al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere.
-   Il riquadro di lavoro invece resta libero di crescere: lì il contenuto È la pagina, e incastonarlo
-   vorrebbe dire due barre di scorrimento annidate. */
-.wrap.pw-1200 .xfe-layout3 .xt-nav{max-height:42vh}
-.wrap.pw-900 .xfe-layout3,.wrap.pw-900 .xfe-layout3.xt-noNav{grid-template-columns:1fr}
+.xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr)}
+/* ⚠️ La terza colonna NON c'è più: la scheda della clausola è una finestra (vedi `.xt-panel` più sotto).
+   Con lei se ne sono andate le due regole che le facevano posto — `.xt-noPanel`, che restituiva i 380px alla
+   tabella quando nessuna riga era aperta, e il salto della scheda sotto le altre colonne allo scaglione 1200.
+   Adesso quei 380px la tabella ce li ha SEMPRE, in tutte e due le viste. */
+/* Sotto i 900 le due colonne si impilano e l'altezza fissa SPARISCE: un riquadro alto quanto lo schermo dentro
+   una pagina che scorre è una trappola — due barre di scorrimento annidate, ed è il difetto che questa
+   pagina ha già avuto. `align-items:start` e non `stretch`: senza, il riquadro di lavoro si allineava
+   all'altezza del navigatore — che è incastonato — e si ritrovava incastonato anche lui (misurato: riquadro
+   alto 378px per una tabella da 2082).
+   Il navigatore invece un tetto lo tiene anche impilato: srotolato per intero misurava 2174px, e per arrivare
+   al lavoro bisognava scorrere tutto l'elenco di ciò che si poteva scegliere. */
+.wrap.pw-900 .xfe-layout3,.wrap.pw-900 .xfe-layout3.xt-noNav{grid-template-columns:minmax(0,1fr);
+  height:auto;align-items:start}
+.wrap.pw-900 .xfe-layout3 .xt-nav{max-height:42vh}
 .xfe-filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
 .xfe-filters select{border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface)}
 /* ---- Colonne FISSE ----
@@ -2625,37 +2621,72 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    fra un'espressione e un tag Razor lo spazio viene mangiato, e a schermo uscivano «RICEVENTE(vuoto = UNICOM)»
    e «LIBB_ES_CTRLIBB». La spaziatura è presentazione, e in CSS è deterministica. */
 .xt-pickhint{margin-left:6px}
-/* Testata · corpo · piede. Scorre SOLO il corpo: con lo scorrimento sul riquadro intero le azioni finivano in
-   fondo a 1426 px di contenuto in 904 disponibili, e il Salva non compariva in nessuna posizione di
-   scorrimento della pagina (misurato: 1918 in cima, 1239 a metà, 1185 in fondo, viewport 1000). Si raggiungeva
-   solo con la seconda barra di scorrimento, dentro il riquadro, che non si vede finché non ci passi sopra.
-   L'overflow qui annulla quello di .detail-sticky, che resta il contenitore agganciato. */
-.xt-panel{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:14px 15px;
+/* ── La scheda della clausola: una MODALE, non più la terza colonna ──────────────────────────
+   Misurato prima di decidere. Nella colonna il corpo aveva 348px di larghezza per 896px di contenuto (tutte e
+   tre le sezioni aperte) in 502 visibili: due schermate di scorrimento per scrivere una riga.
+   ⚠️ Allargare il contenitore DA SOLO non serviva: a 828px il contenuto scendeva a 860, il 4%. I campi sono
+   impilati in una colonna sola e le righe a tre campi ci stavano già a 348 — la larghezza in più finiva in
+   campi più larghi, non in righe in meno. Quello che paga è la larghezza SPESA IN DUE COLONNE.
+   ⚠️ I numeri qui sotto sono misurati DOPO, sulla pagina vera, perché la prima stima era ottimista.
+   Nello stato in cui la scheda si APRE davvero — faccetta e condizione partono chiuse quando sono vuote —
+   il contenuto è 378px in 378 visibili: non scorre. Forzando aperte tutte e tre le sezioni è 666 in 636,
+   cioè 30px fuori invece dei 394 della colonna.
+   Allargare oltre i 920 non serve, ed è misurato: a 1040, 1160 e 1280 il contenuto non si muove. Le righe
+   sono già appaiate, e una TERZA colonna peggiorerebbe — le righe a tre campi scendono sotto i ~90px per
+   campo e vanno a capo da sole. Il tetto è 88vh: più in alto la finestra perde il margine che la fa
+   leggere come finestra.
+   Velo, z-index e ombra sono quelli di DeleteDialog — in questa casa una finestra si fa così. Lo z-index sta
+   sopra la barra di modifica (1200) e sotto il tour guidato (2000), che non convive con questa. */
+.vipi-root .xt-backdrop{position:fixed;inset:0;z-index:1500;background:color-mix(in srgb,var(--ink) 45%,transparent)}
+/* Testata · corpo · piede. Scorre SOLO il corpo, e la ragione vale ancora: le azioni stavano in fondo a
+   1426px di contenuto in 904 disponibili, e il Salva non compariva in NESSUNA posizione di scorrimento della
+   pagina. Una finestra alta 84vh può comunque non bastare — il piede resta fuori dal corpo che scorre. */
+.vipi-root .xt-panel{position:fixed;z-index:1501;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(920px,94vw);max-height:88vh;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.28);
   display:flex;flex-direction:column;overflow:hidden}
-/* L'ombra in fondo al corpo dice che sotto c'è dell'altro: la barra di scorrimento interna non si vede finché
-   non ci passi sopra, e senza un segno la scheda sembrava finire dove finiva lo schermo. Sparisce da sola
-   quando si arriva in fondo (background-attachment:local sul gradiente). */
+/* Due colonne: è QUESTO che toglie lo scorrimento, non la larghezza in sé.
+   Attraversano tutta la riga le cose che parlano del blocco intero — intestazioni di gruppo, avvisi,
+   anteprima della frase, e i campi a elenco di gettoni: a mezza larghezza un'intestazione si leggerebbe come
+   il titolo della sola colonna di sinistra. */
 .xt-panel-body{flex:1;min-height:0;overflow:auto;
-  background:linear-gradient(var(--on-brand) 30%,rgba(255,255,255,0)) top/100% 24px no-repeat local,
-             linear-gradient(rgba(255,255,255,0),var(--on-brand) 70%) bottom/100% 24px no-repeat local,
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;align-content:start;
+  /* L'ombra in fondo al corpo dice che sotto c'è dell'altro: la barra di scorrimento interna non si vede
+     finché non ci passi sopra. Le prime due falde sono i COPERCHI, e vanno del colore della SUPERFICIE:
+     erano `--on-brand`, che è il bianco di brand e non ha tema (definito una volta sola, mai ribaltato nei
+     blocchi scuri). In notturna diventavano due lastre bianche da 24px, una addosso alla prima intestazione.
+     E si vedevano SEMPRE, anche senza niente da scorrere: è proprio il coperchio a doverle nascondere agli
+     estremi, e un coperchio del colore sbagliato non copre — si mostra. */
+  background:linear-gradient(var(--surface) 30%,transparent) top/100% 24px no-repeat local,
+             linear-gradient(transparent,var(--surface) 70%) bottom/100% 24px no-repeat local,
              radial-gradient(farthest-side at 50% 0,color-mix(in srgb,var(--ivao-blue-deep) 14%,transparent),rgba(0,0,0,0)) top/100% 10px no-repeat scroll,
              radial-gradient(farthest-side at 50% 100%,color-mix(in srgb,var(--ivao-blue-deep) 14%,transparent),rgba(0,0,0,0)) bottom/100% 10px no-repeat scroll}
+.xt-panel-body>.xt-grp,.xt-panel-body>.callout,.xt-panel-body>.xt-prev,
+.xt-panel-body>.xt-wide{grid-column:1/-1}
+/* Stretta, la finestra torna a una colonna: a 94vw di uno schermo da telefono due colonne sono due campi da
+   150px, e un campo da 150px non è un campo. */
+.wrap.pw-900 .xt-panel-body{grid-template-columns:minmax(0,1fr)}
 .xt-panel-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding-top:10px;margin-top:10px;
   border-top:1px solid var(--line);background:var(--surface)}
-/* «Azioni sulla riga» come menù del piede: in fondo al corpo restavano fuori dallo schermo su ogni schermo
-   (corpo 1324 px, visibili 781 · 501 · 401), perché una riga vera apre il pannello con faccetta e condizione
-   già piene. Il menù si apre VERSO L'ALTO e resta dentro il riquadro, che ha overflow:hidden. */
-/* A schermo largo il tetto lo dà la griglia (le tre colonne hanno un'altezza definita e il pannello la
-   riempie). Sotto le soglie la griglia lascia perdere l'altezza fissa e il pannello scende: lì il tetto lo
-   rimette .xfe-layout3 nelle sue media query, così il piede resta agganciato; ad arrivarci ci pensa
-   vipiRevealPanel, chiamato all'apertura di una riga. */
-.xfe-layout3 .xt-panel{min-height:0}
 .xt-panel-empty{color:var(--ink-soft);font-size:13px}
 .xt-panel-empty .ct{font-family:var(--font-head);font-weight:700;color:var(--brand-ink);margin:0 0 4px}
-.xt-panel-h{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:10px}
-.xt-panel-h b{font-family:var(--font-head);color:var(--brand-ink)}
-.xt-panel-h .muted{font-size:12px}
-.xt-panel-x{margin-left:auto;padding:2px 8px}
+/* ⚠️ Niente `flex-wrap`: con il sottotitolo lungo («LIBB_ES_CTR → LGGG_W_CTR · Arrivals · LGKF») la
+   testata andava a due righe — 57px misurati — e la ✕ finiva da sola sulla seconda. L'unico elastico è il
+   sottotitolo, che si accorcia con i puntini; titolo, passo e ✕ non si comprimono. */
+.xt-panel-h{display:flex;align-items:baseline;gap:8px;margin-bottom:10px}
+.xt-panel-h b{font-family:var(--font-head);color:var(--brand-ink);white-space:nowrap}
+.xt-panel-h .muted{font-size:12px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.xt-panel-h .pill{flex:none}
+/* ‹ › cammina fra le clausole della sezione senza chiudere la finestra: è ciò che la colonna dava per
+   costruzione — si cliccava la ✎ della riga accanto — e che una finestra toglierebbe.
+   ⚠️ È il gruppo a portare il `margin-left:auto`, e la ✕ qui lo perde: sono due margini automatici sulla
+   stessa riga, e lo spazio libero si dividerebbe in due lasciando il passo a metà testata. Il gruppo si rende
+   SEMPRE, anche vuoto, proprio per essere lui a spingere. Altrove (`.xt-pane-h`) la ✕ il suo auto ce l'ha
+   ancora, ed è il motivo per cui la regola generale resta com'era. */
+.xt-panel-walk{display:inline-flex;align-items:center;gap:4px;flex:none;margin-left:auto}
+.xt-panel-walk .btn{padding:2px 9px}
+.xt-panel-h .xt-panel-x{margin-left:0}
+.xt-panel-x{margin-left:auto;padding:2px 8px;flex:none}
 /* Intestazione di gruppo dentro il pannello: dice a cosa serve il blocco di campi che segue, e — quando la
    sezione è richiudibile — apre e chiude. Il riassunto accanto al titolo è la ragione per cui una sezione può
    partire chiusa senza nascondere niente. */
@@ -2875,6 +2906,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    entrando nel form di sei campi, e per i sorvoli non si toccava affatto perché il campo non c'era. */
 .xt-hdr-apts{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
 .xt-hdr-apts .xt-apt{font-variant-numeric:tabular-nums}
+/* La ✕ dentro un chip non è un bottone, è un gesto SUL chip. Senza regola usciva il bottone di sistema —
+   fondo grigio, bordo `outset`, 27x23px — dentro una pastiglia alta 20: la classe c'era in tre punti del
+   markup e in nessuno del foglio di stile. */
+.xt-chipx{appearance:none;border:0;background:transparent;color:inherit;cursor:pointer;
+  margin:0 -3px 0 3px;padding:0 3px;font-size:11px;line-height:1;opacity:.55;border-radius:4px}
+.xt-chipx:hover:not(:disabled),.xt-chipx:focus-visible{opacity:1;background:color-mix(in srgb,var(--ink) 16%,transparent)}
+.xt-chipx:disabled{opacity:.25;cursor:default}
 .xt-aptadd{padding:1px 7px;font-size:11px}
 .xt-aptpick{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
 .xt-aptpick input{margin-bottom:0}

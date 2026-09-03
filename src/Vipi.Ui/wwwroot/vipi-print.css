@@ -175,6 +175,12 @@
   .vipi-root .xt-nav,
   .vipi-root .xt-pane,
   .vipi-root .xt-panel { height: auto !important; max-height: none !important; overflow: visible !important; }
+  /* La scheda della clausola è una finestra sospesa in mezzo allo schermo: sulla carta il velo non esiste e
+     il `position:fixed` stamperebbe un riquadro a metà foglio, sopra il resto. Torna un blocco come gli altri. */
+  .vipi-root .xt-backdrop { display: none !important; }
+  .vipi-root .xt-panel { position: static !important; transform: none !important; width: auto !important;
+                         box-shadow: none !important; }
+  .vipi-root .xt-panel-body { display: block !important; }
   .vipi-root .xt-nav-body,
   .vipi-root .xt-pane-body,
   .vipi-root .xt-panel-body { max-height: none !important; overflow: visible !important; }
