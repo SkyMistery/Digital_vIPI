@@ -18,7 +18,17 @@ public interface IReleaseService
     Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
     /// <summary>Pubblica lo snapshot corrente al ciclo AIRAC indicato (entra in vigore alla sua data efficace).
-    /// Rifiuta se il documento è lockato da un altro editor: lo snapshot fotografa la sua bozza in lavorazione.</summary>
+    /// Rifiuta se il documento è lockato da un altro editor: lo snapshot fotografa la sua bozza in lavorazione.
+    ///
+    /// <para>⚠️ <b>Su un documento UNITO pubblica TUTTI i membri</b>, allo stesso ciclo e in una transazione
+    /// sola (carta <c>docs/feature/2026-09-03-documenti-uniti.md</c> §6). Non è un di più opzionale: è il
+    /// comportamento di questa porta, esattamente come <see cref="CancelReleaseAsync"/> annulla già le sorelle.</para>
+    ///
+    /// <para>⚠️ <b>Perché non c'è una porta separata.</b> C'era — <c>PublishUnionAsync</c> — ed è durata
+    /// mezza giornata: l'elenco di governo continuava a chiamare <i>questa</i>, mostrava la pastiglia
+    /// «uniti: 2» e ne pubblicava <b>uno</b>. Due porte per lo stesso gesto, di cui una sola sicura, sono un
+    /// invito a chiamare quella sbagliata — e chi la chiama non vede niente di storto, perché il documento
+    /// che aveva in mano esce pubblicato davvero. La sicurezza sta nella porta, non nella memoria di chi passa.</para></summary>
     Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default);
 
     /// <summary>
@@ -33,31 +43,11 @@ public interface IReleaseService
     Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(ReleaseTargetType type, string key,
                                                            CancellationToken ct = default);
 
-    /// <summary>
-    /// <inheritdoc cref="PublishAsync" path="/summary"/> Per <b>tutti</b> i membri dell'unione, se questo
-    /// documento è unito; altrimenti è esattamente <see cref="PublishAsync"/>.
-    ///
-    /// <para>⚠️ <b>Tutto o niente, in una transazione sola.</b> <c>SaveReleaseAsync</c> fa un
-    /// <c>SaveChanges</c> per chiamata e <c>VersionNumber</c> è <c>max+1</c> letto in memoria sotto un
-    /// indice UNICO: due salvataggi in fila non sono atomici, e un secondo membro che collide lascerebbe il
-    /// primo pubblicato da solo — metà unione a un ciclo e metà a un altro.</para>
-    ///
-    /// <para>⚠️ Il ciclo è lo stesso per costruzione: la data efficace la calcola
-    /// <c>AiracService.EffectiveUtcForCycle</c> dal ciclo passato, quindi i membri escono con la stessa
-    /// senza doverla copiare a mano. È questo che fa funzionare anche la pianificata.</para>
-    /// </summary>
-    Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note,
-                           CancellationToken ct = default);
-
-    /// <summary><inheritdoc cref="PublishNowAsync" path="/summary/para[1]"/> Per <b>tutti</b> i membri
-    /// dell'unione, se questo documento è unito; altrimenti è esattamente <see cref="PublishNowAsync"/>.
-    /// <para>⚠️ Le due semantiche restano diverse anche unite: la pianificata <b>non</b> promuove la bozza,
-    /// la «pubblica ora» sì — per ogni membro.</para></summary>
-    Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
-
     /// <summary>Forza la pubblicazione immediata (review): ciclo corrente, effettiva adesso. Rifiuta se il documento
     /// è lockato da un altro editor (promuoverebbe la sua bozza a metà); a pubblicazione avvenuta rilascia
-    /// l'eventuale lock del chiamante, come il publish-versione dell'editor.</summary>
+    /// l'eventuale lock del chiamante, come il publish-versione dell'editor.
+    /// <para><inheritdoc cref="PublishAsync" path="/summary/para[1]"/> ⚠️ E promuove la bozza di <b>ogni</b>
+    /// membro: le due semantiche restano diverse anche unite — la pianificata non promuove, questa sì.</para></summary>
     Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default);
 
     /// <summary>Migrazione A (doc 10 §3f): per ogni documento <c>Published</c> e non nascosto SENZA release effettiva,
@@ -224,12 +214,41 @@ public sealed class ReleaseService : IReleaseService
     public IReadOnlyList<AiracCycleInfo> UpcomingCycles(int count) =>
         _airac.NextCycles(DateTime.UtcNow, count + 1).Skip(1).ToList();
 
-    public async Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default)
+    public async Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note,
+                                   CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(type, key, ct);
-        await EnsureNotLockedByOthersAsync(type, key, ct);
+        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
+        if (membri.Count == 0)
+        {
+            await EnsureCanEditAsync(type, key, ct);
+            await EnsureNotLockedByOthersAsync(type, key, ct);
+            await SnapshotAndSaveAsync(type, key, releaseCycle, _airac.EffectiveUtcForCycle(releaseCycle), note, ct);
+            return;
+        }
+
+        // ⚠️ I cancelli PRIMA, TUTTI, e fuori dalla transazione: un permesso negato o un lock altrui non sono
+        // scritture da annullare, e scoprirli a metà elenco vorrebbe dire aver già fotografato qualcuno.
+        foreach (var m in membri)
+        {
+            await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+            await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+        }
+
+        // ⚠️ Tutto o niente, in UNA transazione. `SaveReleaseAsync` fa un SaveChanges per chiamata e
+        // `VersionNumber` è max+1 letto in memoria sotto un indice UNICO: due salvataggi in fila non sono
+        // atomici, e un secondo membro che collide lascerebbe il primo pubblicato da solo — metà unione a un
+        // ciclo e metà a un altro, cioè la desincronizzazione che l'accoppiamento esiste per togliere.
+        // ⚠️ La data efficace si calcola UNA VOLTA dal ciclo: passandola a tutti, i membri escono con la
+        // stessa senza copiarla a mano. È questo che fa funzionare anche la pianificata.
         var effectiveUtc = _airac.EffectiveUtcForCycle(releaseCycle);
-        await SnapshotAndSaveAsync(type, key, releaseCycle, effectiveUtc, note, ct);
+        await _uow.ExecuteInTransactionAsync(async token =>
+        {
+            // ⚠️ IN SEQUENZA, mai in parallelo: la cattura apre `ShapeReleaseContext.Capturing`, che NON è
+            // annidabile (il suo Dispose azzera), e `ReadingLanguageContext.Rendering` con la lingua sorgente
+            // di QUEL membro. Due catture sovrapposte congelerebbero l'una nel contesto dell'altra.
+            foreach (var m in membri)
+                await SnapshotAndSaveAsync(m.Type, m.Key, releaseCycle, effectiveUtc, note, token).ConfigureAwait(false);
+        }, ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -249,29 +268,53 @@ public sealed class ReleaseService : IReleaseService
     /// </summary>
     public async Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(type, key, ct);
-        var docId = await EnsureNotLockedByOthersAsync(type, key, ct);
+        // I bersagli: i membri dell'unione, o questo documento solo. ⚠️ `DocumentId` serve dopo, per mollare
+        // il lock: sui membri arriva dai descrittori, sul singolo dal controllo del lock.
+        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
+        (ReleaseTargetType Type, string Key, int DocumentId)[] bersagli;
+        if (membri.Count == 0)
+        {
+            await EnsureCanEditAsync(type, key, ct);
+            var docId = await EnsureNotLockedByOthersAsync(type, key, ct);
+            bersagli = new[] { (type, key, docId ?? 0) };
+        }
+        else
+        {
+            foreach (var m in membri)
+            {
+                await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+                await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
+            }
+            bersagli = membri.Select(m => (m.Type, m.Key, m.DocumentId)).ToArray();
+        }
+
+        // ⚠️ UN solo `now` per tutti: chiederlo dentro il ciclo darebbe ai bersagli date efficaci diverse di
+        // qualche millisecondo, e la selezione della release effettiva ordina proprio per quella.
         var now = DateTime.UtcNow;
         var cycle = _airac.GetCycle(now);
 
         await _uow.ExecuteInTransactionAsync(async token =>
         {
-            await SnapshotAndSaveAsync(type, key, cycle, now, note, token);
-            // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
-            // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
-            // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
-            // il fallback live del viewer non c'è più — questo commento diceva ancora il contrario.
-            // Le release SCHEDULATE (PublishAsync, ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
-            await _repo.PublishWorkingVersionAsync(type, key, _authz.CurrentUserId ?? 0, cycle, token);
-            // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
-            // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
-            await PruneArchivedVersionsForTargetAsync(type, key, token);
+            foreach (var t in bersagli)
+            {
+                await SnapshotAndSaveAsync(t.Type, t.Key, cycle, now, note, token);
+                // Pubblicazione IMMEDIATA (review): promuove anche la bozza a versione pubblicata, così lo stato del
+                // documento e quello della release restano allineati (la pill dell'editor, la storia versioni, il diff).
+                // La VISIBILITÀ pubblica non dipende più da questo: dal doc 10 §S6b è la release effettiva a decidere, e
+                // il fallback live del viewer non c'è più — questo commento diceva ancora il contrario.
+                // Le release SCHEDULATE (PublishAsync a ciclo futuro) NON promuovono: restano solo snapshot per il ciclo.
+                await _repo.PublishWorkingVersionAsync(t.Type, t.Key, _authz.CurrentUserId ?? 0, cycle, token);
+                // Retention versioni: DOPO la promozione (che archivia la precedente), così il conteggio Archived include la
+                // versione appena archiviata → cap esatto, non N+1. Lo scheduled non promuove/archivia → non serve qui.
+                await PruneArchivedVersionsForTargetAsync(t.Type, t.Key, token);
+            }
         }, ct);
 
-        // Pubblicato → il documento resta libero, come dopo il publish-versione dell'editor
+        // Pubblicato → i documenti restano liberi, come dopo il publish-versione dell'editor
         // (EditingService.PublishAsync). ReleaseLockAsync è no-op se il lock non è del chiamante.
-        if (docId is int id)
-            await _editing.ReleaseLockAsync(id, _authz.CurrentUserId ?? 0, ct);
+        foreach (var t in bersagli)
+            if (t.DocumentId > 0)
+                await _editing.ReleaseLockAsync(t.DocumentId, _authz.CurrentUserId ?? 0, ct);
     }
 
     // ---- L'unione: piu' documenti, un gesto solo (carta 2026-09-03) -----------------------------------
@@ -301,65 +344,6 @@ public sealed class ReleaseService : IReleaseService
                                             d.LockedByUserId, d.LockedByName))
             .ToList();
     }
-
-    public async Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note,
-                                        CancellationToken ct = default)
-    {
-        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
-        if (membri.Count == 0) { await PublishAsync(type, key, releaseCycle, note, ct).ConfigureAwait(false); return; }
-
-        // ⚠️ I cancelli PRIMA, TUTTI, e fuori dalla transazione: un permesso negato o un lock altrui non
-        // sono scritture da annullare, e scoprirli a meta' elenco vorrebbe dire aver gia' fotografato qualcuno.
-        foreach (var m in membri)
-        {
-            await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
-            await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
-        }
-
-        var effectiveUtc = _airac.EffectiveUtcForCycle(releaseCycle);
-        await _uow.ExecuteInTransactionAsync(async token =>
-        {
-            // ⚠️ IN SEQUENZA, mai in parallelo: la cattura apre `ShapeReleaseContext.Capturing`, che NON e'
-            // annidabile (il suo Dispose azzera), e `ReadingLanguageContext.Rendering` con la lingua sorgente
-            // di QUEL membro. Due catture sovrapposte congelerebbero l'una nel contesto dell'altra.
-            foreach (var m in membri)
-                await SnapshotAndSaveAsync(m.Type, m.Key, releaseCycle, effectiveUtc, note, token).ConfigureAwait(false);
-        }, ct).ConfigureAwait(false);
-    }
-
-    public async Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note,
-                                           CancellationToken ct = default)
-    {
-        var membri = await BersagliUnitiAsync(type, key, ct).ConfigureAwait(false);
-        if (membri.Count == 0) { await PublishNowAsync(type, key, note, ct).ConfigureAwait(false); return; }
-
-        foreach (var m in membri)
-        {
-            await EnsureCanEditAsync(m.Type, m.Key, ct).ConfigureAwait(false);
-            await EnsureNotLockedByOthersAsync(m.Type, m.Key, ct).ConfigureAwait(false);
-        }
-
-        // ⚠️ UN solo `now` per tutti: chiederlo dentro il ciclo darebbe ai membri date efficaci diverse di
-        // qualche millisecondo, e la selezione della release effettiva ordina proprio per quella.
-        var now = DateTime.UtcNow;
-        var cycle = _airac.GetCycle(now);
-
-        await _uow.ExecuteInTransactionAsync(async token =>
-        {
-            foreach (var m in membri)
-            {
-                await SnapshotAndSaveAsync(m.Type, m.Key, cycle, now, note, token).ConfigureAwait(false);
-                await _repo.PublishWorkingVersionAsync(m.Type, m.Key, _authz.CurrentUserId ?? 0, cycle, token)
-                           .ConfigureAwait(false);
-                await PruneArchivedVersionsForTargetAsync(m.Type, m.Key, token).ConfigureAwait(false);
-            }
-        }, ct).ConfigureAwait(false);
-
-        // Pubblicato -> i documenti restano liberi. ReleaseLockAsync e' no-op se il lock non e' del chiamante.
-        foreach (var m in membri)
-            await _editing.ReleaseLockAsync(m.DocumentId, _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
-    }
-
     public async Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;

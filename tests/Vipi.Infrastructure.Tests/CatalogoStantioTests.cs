@@ -254,11 +254,6 @@ public class CatalogoStantioTests : IAsyncLifetime
         public Task<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>> BersagliUnitiAsync(
             ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<Vipi.Application.Content.BersaglioUnito>>(Array.Empty<Vipi.Application.Content.BersaglioUnito>());
-        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
-            PublishAsync(type, key, releaseCycle, note, ct);
-        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
-            PublishNowAsync(type, key, note, ct);
-
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => Task.CompletedTask;
         public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => Task.FromResult(0);

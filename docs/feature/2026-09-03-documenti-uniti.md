@@ -221,9 +221,19 @@ a millisecondi di distanza), e il rifiuto pulito quando uno e' occupato.
 
 ## §6 — La pubblicazione accoppiata ✅
 
-`PublishUnionAsync` / `PublishUnionNowAsync`: **un giro sopra** le porte che ci sono, non un secondo motore.
-⚠️ Su un documento **non unito sono esattamente** `PublishAsync`/`PublishNowAsync` — ed e' per questo che
-`ReleasePanel` passa **sempre** di li': un `if` nella pagina e' il posto in cui ci si dimentica.
+L'accoppiamento sta **dentro** `PublishAsync` / `PublishNowAsync`: chi pubblica un documento unito pubblica
+tutti i membri, e non c'e' una seconda porta da ricordarsi di chiamare.
+
+🔴 **C'era, ed e' durata mezza giornata.** La prima stesura aggiungeva `PublishUnionAsync` /
+`PublishUnionNowAsync` accanto a quelle normali, e faceva passare `ReleasePanel` di li'. La supervisione del
+3 settembre ha trovato che **l'elenco di governo continuava a chiamare quelle normali**: mostrava la
+pastiglia «uniti: 2» e ne pubblicava **uno**. Nessun errore, nessun rosso — il documento che si aveva in
+mano usciva pubblicato davvero, e l'altro restava indietro di un ciclo.
+
+⚠️ **La lezione non e' «aggiornare il chiamante»**, e' che due porte per lo stesso gesto, di cui una
+sola sicura, sono un invito a chiamare quella sbagliata. `CancelReleaseAsync` era gia' accoppiata dentro
+di se' e infatti da quella pagina funzionava: l'asimmetria fra le due era il difetto. Oggi sono tre porte
+con la stessa sicurezza, e il chiamante non ha una scelta da azzeccare.
 
 `BersagliUnitiAsync` dice **prima** quanti documenti quel tasto tocchera' e **chi ne tiene il lock**, e il
 pannello lo mostra. ⚠️ Un esito che tace meta' del lavoro e' peggio di nessun esito, e qui la meta' taciuta
@@ -254,7 +264,9 @@ di **governo***. Qui la stessa domanda ha avuto **tre** risposte, e due sono «n
 
 1. **L'elenco unificato** (`/services/vsop/versions`) mostra una pastiglia 🔗 «uniti: N» sulle righe dei
    documenti in un'unione. ⚠️ Da li' si **pubblica**, e chi preme deve sapere PRIMA quanti documenti sta per
-   mandare fuori. Le appartenenze si leggono in **una** query (`IDocumentUnionService.TutteAsync`), non una
+   mandare fuori — e da li' si pubblicano davvero **tutti**, perche' l'accoppiamento sta nella porta (§6) e
+   non in questa pagina. 🔴 Per mezza giornata non e' stato vero: la pastiglia diceva 2 e il tasto ne
+   mandava fuori 1. Le appartenenze si leggono in **una** query (`IDocumentUnionService.TutteAsync`), non una
    per riga: quell'elenco ha già pagato due volte il difetto N+1.
 2. **L'eliminazione** scioglie l'unione **subito**, non al prossimo avvio: la cascata della FK toglie già la
    riga di appartenenza, ma l'unione rimasta con un membro solo è una pagina che unisce sé stessa e un

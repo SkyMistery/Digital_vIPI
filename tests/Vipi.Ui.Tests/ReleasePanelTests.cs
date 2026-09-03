@@ -64,12 +64,6 @@ public class ReleasePanelTests : TestContext
         /// <summary>I membri che il pannello deve annunciare. Vuoto = documento solo.</summary>
         public List<Vipi.Application.Content.BersaglioUnito> Uniti { get; } = new();
 
-        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
-            PublishAsync(type, key, releaseCycle, note, ct);
-
-        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
-            PublishNowAsync(type, key, note, ct);
-
         public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default)
         {
             Canceled++;

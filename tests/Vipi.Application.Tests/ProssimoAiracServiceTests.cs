@@ -124,6 +124,29 @@ public class ProssimoAiracServiceTests
     }
 
     /// <summary>
+    /// ⚠️ <b>Un'unione si programma UNA volta sola.</b> <c>PublishAsync</c> pubblica tutti i membri
+    /// insieme (carta 2026-09-03 §6), quindi il giro che cicla sui documenti mancanti troverebbe il secondo
+    /// membro e ripubblicherebbe l'unione intera: due release allo stesso ciclo per ogni membro. Non è
+    /// corruzione — vince quella col <c>VersionNumber</c> più alto — ma è lavoro doppio e storia gonfiata,
+    /// e il conto detto all'utente sarebbe il doppio del vero.
+    /// </summary>
+    [Fact]
+    public async Task Un_unione_si_programma_UNA_VOLTA_SOLA_e_conta_i_suoi_membri()
+    {
+        var admin = new FakeAdmin(Doc("LIMN civile", "LIMN"), Doc("LIMN militare", "LIMN_MIL"), Doc("LIMC", "LIMC"));
+        var rel = new FakeReleases { Unione = new[] { "LIMN", "LIMN_MIL" } };
+
+        var esito = await Sut(admin, rel).ProgrammaMancantiAsync();
+
+        // Una chiamata per l'unione (che ne copre due) + una per il documento solo.
+        Assert.Equal(new[] { "LIMC", "LIMN" }, rel.Pubblicate.Select(p => p.Chiave).OrderBy(k => k).ToArray());
+        // ⚠️ Il conto è dei DOCUMENTI usciti, non delle chiamate fatte: chi legge «programmati: 3»
+        // conta documenti, e dirgliene 2 taccerebbe metà del lavoro.
+        Assert.Equal(3, esito.Programmati);
+        Assert.Empty(esito.Saltati);
+    }
+
+    /// <summary>
     /// ⚠️ <b>Un documento occupato non ferma gli altri.</b> Il permesso negato e il lock di un altro editor
     /// sono i casi normali di un giro su decine di documenti: si saltano, si <b>dicono</b>, e il giro
     /// prosegue. Un giro che riesce a metà in silenzio è peggio di uno che fallisce.
@@ -178,15 +201,16 @@ public class ProssimoAiracServiceTests
 
         public AiracCycleInfo NextCycle() => new(Entrante, EfficaceEntrante);
 
-        // Le porte dell'unione: questi doppi non pubblicano niente, e senza unione sono le stesse di sotto.
+        /// <summary>Le chiavi che stanno in un'unione fra loro: <c>PublishAsync</c> le pubblica tutte
+        /// insieme, e il giro dell'AIRAC entrante non deve ripassarci una volta per membro.</summary>
+        public string[] Unione { get; set; } = Array.Empty<string>();
+
         public Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(
             ReleaseTargetType type, string key, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<BersaglioUnito>>(Array.Empty<BersaglioUnito>());
-        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
-            PublishAsync(type, key, releaseCycle, note, ct);
-        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
-            PublishNowAsync(type, key, note, ct);
-
+            Task.FromResult<IReadOnlyList<BersaglioUnito>>(
+                Unione.Contains(key, StringComparer.OrdinalIgnoreCase)
+                    ? Unione.Select((k, i) => new BersaglioUnito(ReleaseTargetType.Airport, k, i + 1, k, null, null)).ToList()
+                    : Array.Empty<BersaglioUnito>());
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default)
         {
             if (string.Equals(key, RifiutaChiave, StringComparison.Ordinal)) throw new InvalidOperationException(Motivo);

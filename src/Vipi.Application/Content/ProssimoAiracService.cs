@@ -101,13 +101,25 @@ public sealed class ProssimoAiracService : IProssimoAiracService
         var saltati = new List<(string, string)>();
         var fatti = 0;
 
+        // ⚠️ I bersagli già usciti con l'unione di un altro. `PublishAsync` pubblica TUTTI i membri di
+        // un'unione (carta 2026-09-03 §6): senza questo insieme, un'unione di due documenti verrebbe
+        // pubblicata due volte — una per membro — e ogni membro uscirebbe con due release allo stesso ciclo.
+        // Non è corruzione (vince quella con VersionNumber più alto) ma è lavoro doppio e storia gonfiata.
+        var coperti = new HashSet<(ReleaseTargetType, string)>();
+
         foreach (var d in quadro.Documenti.Where(x => !x.GiaProgrammato))
         {
             ct.ThrowIfCancellationRequested();
+            if (coperti.Contains(Bersaglio(d.Tipo, d.Chiave))) continue;
             try
             {
+                // ⚠️ I membri si chiedono PRIMA di pubblicare: dopo, la domanda è la stessa ma il giro
+                // successivo l'avrebbe già saltato. E si segnano TUTTI, anche quelli già programmati: un
+                // membro già a posto esce comunque con l'unione, ed è giusto — devono uscire insieme.
+                var membri = await _releases.BersagliUnitiAsync(d.Tipo, d.Chiave, ct);
                 await _releases.PublishAsync(d.Tipo, d.Chiave, quadro.CicloEntrante, nota, ct);
-                fatti++;
+                foreach (var m in membri) coperti.Add(Bersaglio(m.Type, m.Key));
+                fatti += Math.Max(1, membri.Count);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
             catch (Exception ex)
@@ -121,4 +133,9 @@ public sealed class ProssimoAiracService : IProssimoAiracService
 
         return new EsitoProgrammazione(fatti, saltati);
     }
+
+    /// <summary>Un bersaglio come chiave d'insieme. ⚠️ La chiave di release si confronta SENZA maiuscole:
+    /// i descrittori la restituiscono come sta in archivio, e «LIMN» e «limn» sono lo stesso documento.</summary>
+    private static (ReleaseTargetType, string) Bersaglio(ReleaseTargetType tipo, string chiave) =>
+        (tipo, (chiave ?? "").ToUpperInvariant());
 }

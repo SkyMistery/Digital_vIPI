@@ -7316,8 +7316,10 @@ Lettura: un indice per membro impilato, i corpi in ordine sotto l'intestazione d
 `PrintMeta`. La vista pubblica di un membro non-ospite **reindirizza** alla pagina unita.
 Editor: il corpo delle tre famiglie è uscito dalle pagine in `Components/Doc/*SectionsEditor.razor`, e
 l'ospite li monta con `Chrome="false"` dentro la sua griglia — il pattern della vIPI ACC.
-Pubblicazione: `PublishUnionAsync`/`PublishUnionNowAsync` in **una transazione**, catture **in sequenza**, un
-solo `now`; annullamento accoppiato.
+Pubblicazione: **dentro** `PublishAsync`/`PublishNowAsync` — una transazione, catture **in sequenza**, un
+solo `now`; annullamento accoppiato. 🔴 Le porte separate `PublishUnion*` sono esistite mezza giornata e
+sono state tolte in supervisione: l'elenco di governo chiamava quelle normali e pubblicava **un** documento
+mostrando «uniti: 2».
 
 ### ⚠️ Le cose che non si deducono dal codice
 

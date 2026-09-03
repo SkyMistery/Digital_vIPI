@@ -102,7 +102,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
     {
         // La porta dell'unione è la stessa che usano i pannelli SEMPRE: su un documento non unito deve essere
         // esattamente PublishAsync, o passare di lì cambierebbe il comportamento di ogni editor del sito.
-        await Servizio(Unioni()).PublishUnionAsync(ReleaseTargetType.Airport, "LIMN", "2610", null);
+        await Servizio(Unioni()).PublishAsync(ReleaseTargetType.Airport, "LIMN", "2610", null);
 
         var rel = await ReleaseAsync();
         Assert.Single(rel);
@@ -114,7 +114,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
     {
         await Unioni().CreateAsync(_militareId, _civileId, createdByUserId: 42);
 
-        await Servizio(Unioni()).PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", "insieme");
+        await Servizio(Unioni()).PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", "insieme");
 
         var rel = await ReleaseAsync();
         Assert.Equal(2, rel.Count);
@@ -134,7 +134,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
 
         // Chi preme sta guardando la pagina unita, ma il pannello è keyed sul documento che ha in mano —
         // e quale dei due sia non deve cambiare l'esito.
-        await Servizio(Unioni()).PublishUnionNowAsync(ReleaseTargetType.Airport, "LIMN", null);
+        await Servizio(Unioni()).PublishNowAsync(ReleaseTargetType.Airport, "LIMN", null);
 
         Assert.Equal(2, (await ReleaseAsync()).Count);
     }
@@ -146,7 +146,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
         await BozzaAsync(_civileId);
         await BozzaAsync(_militareId);
 
-        await Servizio(Unioni()).PublishUnionNowAsync(ReleaseTargetType.AirportMil, "LIMN", null);
+        await Servizio(Unioni()).PublishNowAsync(ReleaseTargetType.AirportMil, "LIMN", null);
 
         // ⚠️ Le due semantiche restano diverse anche unite: la «pubblica ora» promuove, la pianificata no.
         Assert.Empty(await _db.DocumentVersions.Where(v => v.Status == DocumentStatus.Draft).ToListAsync());
@@ -159,7 +159,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
         await BozzaAsync(_civileId);
         await BozzaAsync(_militareId);
 
-        await Servizio(Unioni()).PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2612", null);
+        await Servizio(Unioni()).PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2612", null);
 
         Assert.Equal(2, await _db.DocumentVersions.CountAsync(v => v.Status == DocumentStatus.Draft));
         Assert.Equal(2, (await ReleaseAsync()).Count);
@@ -177,7 +177,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => Servizio(Unioni()).PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null));
+            () => Servizio(Unioni()).PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null));
 
         // ⚠️ E NIENTE è stato scritto: mezza unione pubblicata è peggio di nessuna, e i cancelli girano tutti
         // PRIMA di qualunque scrittura proprio per questo.
@@ -188,7 +188,7 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
     public async Task Annullare_una_release_annulla_le_SORELLE_dello_stesso_ciclo()
     {
         await Unioni().CreateAsync(_militareId, _civileId, 0);
-        await Servizio(Unioni()).PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null);
+        await Servizio(Unioni()).PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null);
         var militare = (await ReleaseAsync()).First(r => r.TargetType == ReleaseTargetType.AirportMil);
 
         await Servizio(Unioni()).CancelReleaseAsync(militare.Id);
@@ -203,8 +203,8 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
     {
         await Unioni().CreateAsync(_militareId, _civileId, 0);
         var svc = Servizio(Unioni());
-        await svc.PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null);
-        await svc.PublishUnionAsync(ReleaseTargetType.AirportMil, "LIMN", "2611", null);
+        await svc.PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", null);
+        await svc.PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2611", null);
         var da2610 = (await ReleaseAsync()).First(r => r.ReleaseAiracCycle == "2610");
 
         await svc.CancelReleaseAsync(da2610.Id);

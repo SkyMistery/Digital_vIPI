@@ -449,16 +449,16 @@
     private Task PublishAtCycle() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        // Se il documento non e' unito queste due porte SONO PublishAsync/PublishNowAsync: passare sempre
-        // di qui evita un `if` nella pagina, che e' il posto in cui si dimentica.
-        await Releases.PublishUnionAsync(Target, Key, _cycle ?? _currentCycle, _note);
+        // ⚠️ Queste due porte pubblicano DA SOLE tutta l'unione: non c'e' una variante "unita" da ricordarsi
+        // di chiamare, ed e' voluto — la porta separata e' durata mezza giornata (vedi IReleaseService.PublishAsync).
+        await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
         return true;
     }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
     private Task PublishNow() => Run(async () =>
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
-        await Releases.PublishUnionNowAsync(Target, Key, _note);
+        await Releases.PublishNowAsync(Target, Key, _note);
         return true;
     }, L["Rel_PublishedNow"], notify: true);
 

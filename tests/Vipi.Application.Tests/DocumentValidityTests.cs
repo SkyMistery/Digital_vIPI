@@ -156,11 +156,6 @@ public class DocumentValidityTests
         public Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(
             ReleaseTargetType type, string key, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<BersaglioUnito>>(Array.Empty<BersaglioUnito>());
-        public Task PublishUnionAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) =>
-            PublishAsync(type, key, releaseCycle, note, ct);
-        public Task PublishUnionNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) =>
-            PublishNowAsync(type, key, note, ct);
-
         public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => throw new NotSupportedException();
         public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => throw new NotSupportedException();
