@@ -7272,8 +7272,15 @@ le sezioni, 666 in 636: **30px fuori invece di 394**.
 
 - 🔴 **Non è in produzione**: va nel prossimo pacchetto. ⚠️ **Tocca `vipi-theme.css` E `vipi-print.css`** —
   impronte nuove, e `wwwroot` viaggia insieme all'indice `staticwebassets`.
-- ⚠️ Il lock **è rimasto dov'era**, per decisione del committente. Resta aperta la cosa vista mentre si
-  misurava: l'avviso «lock in scadenza» entra nel flusso e **spinge giù tutto di 76px** mentre si scrive.
-  Andrebbe un colore sul posto più un toast, non una fascia che sposta la pagina.
+- ✅ Il lock **è rimasto dov'era**, per decisione del committente — ma la fascia «lock in scadenza» che lo
+  accompagnava, e che spingeva giù tutto di 76px mentre si scrive, **era un falso allarme**. La domanda del
+  committente («ma il lock non si rinnova da solo?») ha aperto il difetto: `EditLockBar` pubblicava
+  `ExpiresChanged` **solo quando cambiava il proprietario**, quindi la pagina teneva la scadenza della PRESA
+  e dopo ~2 minuti credeva che il lock stesse scadendo. 🔴 Il conto dice che l'avviso non può scattare per
+  davvero se non a battito rotto: TTL **3 minuti**, battito **60 s**, residuo sempre fra 180 e 120, soglia
+  **60**. Ora la scadenza si pubblica a ogni rinnovo — come la `<summary>` del parametro già prometteva.
+  Provato dal vivo: **3 minuti e mezzo, tre rinnovi** (01:05:59 → 06:59 → 07:59 → 08:59) e la fascia non è
+  mai comparsa. ⚠️ Quando comparirà vorrà dire che **due battiti di fila sono falliti**, che è esattamente
+  ciò che deve dire.
 - 🟡 `StructureAccessibilityTests.Nessun_comando_raggiungibile_col_solo_mouse` è diventato rosso sul velo
   della finestra e **aveva ragione**: sta in whitelist con la ragione scritta, come quello di `DeleteDialog`.

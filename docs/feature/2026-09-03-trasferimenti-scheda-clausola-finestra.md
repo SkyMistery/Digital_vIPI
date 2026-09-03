@@ -142,3 +142,30 @@ Guidata su `localhost:5034`, accordo `LIBB_ES_CTR ⇄ LGGG_W_CTR` e sezione sorv
 ⚠️ Il test `StructureAccessibilityTests.Nessun_comando_raggiungibile_col_solo_mouse` è diventato **rosso**, e
 aveva ragione: il velo è un `<div @onclick>`. Sta in whitelist con la ragione scritta accanto, come quello di
 `DeleteDialog` — non perché sia tollerabile, ma perché **duplica** due comandi che la tastiera raggiunge già.
+
+## Coda: la fascia «lock in scadenza» era un falso allarme
+
+Misurando avevo visto quella fascia entrare nel flusso e spingere giù tutto di **76px** mentre si scrive, e
+l'avevo segnalata come cosa da rifare. La domanda del committente — *«ma il lock non si rinnova da solo?»* —
+ha trovato la causa vera, che non era la forma dell'avviso ma il fatto che **non doveva esserci**.
+
+Il conto: `ResourceLockService.LockTtlMinutes = 3`, `EditLockBar` batte ogni **60 s**. Il residuo oscilla fra
+**180 e 120 secondi**, e la soglia dell'avviso è **60**: irraggiungibile finché il battito è vivo.
+
+Il difetto stava in `HeartbeatLoop`: `NotifyAsync()` — l'unica cosa che pubblica `ExpiresChanged` verso la
+pagina — era **dentro** l'`if (_lock.IsMine != was)`. Cioè la scadenza si comunicava solo quando cambiava il
+**proprietario** del lock; il rinnovo la aggiornava nel campo del componente e non la diceva a nessuno. La
+pagina restava con la scadenza della presa, e dopo ~2 minuti si credeva in scadenza.
+
+⚠️ La `<summary>` del parametro **prometteva già** «a ogni battito»: il documento era giusto e il codice no.
+E la prova stava negli screenshot della verifica precedente — barra *«until 23:41Z»*, avviso *«expires at
+23:38Z»*: tre minuti esatti di scarto, cioè un rinnovo avvenuto e mai detto.
+
+Ora la scadenza si pubblica quando **si muove**, e il ri-render serve anche alla barra: su una pagina
+tranquilla — dove il genitore non ridisegna da sé — l'ora che mostra restava indietro quanto l'avviso.
+
+**Verifica live**: preso il lock e guardato per **3 minuti e mezzo**. Tre rinnovi pubblicati (01:05:59 →
+01:06:59 → 01:07:59 → 01:08:59) e la fascia **mai comparsa**, anche oltre i 120 secondi, che è il punto in
+cui prima scattava. ⚠️ Non è coperto da un test: il difetto vive dentro un `PeriodicTimer` da 60 secondi, e
+metterlo alla prova vorrebbe dire o aspettare un minuto per asserto, o iniettare un orologio finto in un
+componente che oggi non ce l'ha. Per questo la traccia è la misura qui sopra.
