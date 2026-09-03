@@ -35,13 +35,15 @@ public class GerarchiaTitoliTests
         // (carta 2026-09-03-documenti-uniti.md §5b), e con lui la sua testata. Il titolo per chi naviga per
         // intestazioni non è sparito — ha cambiato file.
         ["AppEditorPage.razor"] = "la testata la porta <AppSectionsEditor>, che questa pagina monta",
+        ["MilEditorPage.razor"] = "la testata la porta <MilSectionsEditor>, che questa pagina monta",
+        ["AeroportoEditorPage.razor"] = "la testata la porta <AirportSectionsEditor>, che questa pagina monta",
     };
 
     /// <summary>
     /// I componenti-corpo degli editor: hanno la testata che le loro pagine hanno ceduto, e va tenuta ferma
     /// lì con lo stesso rigore.
     /// </summary>
-    public static TheoryData<string> CorpiDiEditor() => new() { "Doc/AppSectionsEditor.razor" };
+    public static TheoryData<string> CorpiDiEditor() => new() { "Doc/AppSectionsEditor.razor", "Doc/MilSectionsEditor.razor", "Doc/AirportSectionsEditor.razor" };
 
     [Theory]
     [MemberData(nameof(CorpiDiEditor))]

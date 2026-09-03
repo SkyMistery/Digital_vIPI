@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -25,8 +25,15 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class DatiDelloScaloMilitareTests
 {
-    private static string Militare() => Sorgente("Pages/MilEditorPage.razor");
-    private static string Aeroporto() => Sorgente("Pages/AeroportoEditorPage.razor");
+    /// <summary>
+    /// ⚠️ Il corpo dell'editor militare e' passato dalla PAGINA al COMPONENTE il 3 settembre 2026
+    /// (carta 2026-09-03-documenti-uniti.md §5b): lo stesso editor va montato anche nell'editor UNITO.
+    /// Le invarianti di §AS — i rimandi, la guardia, il ramo del meteo, i tre editor dello scalo — sono
+    /// andate con lui, e questo test le segue. La pagina ora e' un guscio sottile.
+    /// </summary>
+    private static string Militare() => Sorgente("Components/Doc/MilSectionsEditor.razor");
+    /// <inheritdoc cref="Militare"/>
+    private static string Aeroporto() => Sorgente("Components/Doc/AirportSectionsEditor.razor");
 
     /// <summary>
     /// ⚠️ <b>Le due pagine devono fare la STESSA domanda.</b> Chi rimanda («qui non si scrive, vai di là»)
