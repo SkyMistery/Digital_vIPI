@@ -42,9 +42,12 @@
            SOP con le stesse sezioni) e' il guadagno piu' grosso dell'import, e non ha niente da riconoscere. *@
         @if (Sorgenti is { Count: > 0 } sorgenti)
         {
-            <select class="app-in imp-sheet" aria-label="@L["Imp_FromDoc"]"
+            @* ⚠️ `value` legato a un campo che si RIAZZERA dopo il carico: la tendina è un comando, non uno
+               stato. Lasciata sul documento scelto, sceglierlo una seconda volta non emette nessun `change`
+               — e chi l'ha appena visto non produrre niente prova proprio quello. *@
+            <select class="app-in imp-sheet" aria-label="@L["Imp_FromDoc"]" value="@_sorgente"
                     @onchange="e => DaDocumento(e.Value?.ToString())">
-                <option value="" selected>@L["Imp_FromDoc"]</option>
+                <option value="" selected="@(_sorgente.Length == 0)">@L["Imp_FromDoc"]</option>
                 @foreach (var so in sorgenti)
                 {
                     <option value="@so.Chiave">@so.Etichetta</option>
@@ -106,6 +109,14 @@
         @if (_guasto is { Length: > 0 })
         {
             <span class="pill red">@_guasto</span>
+        }
+        @* ⚠️ Non è un guasto — niente rosso: quel documento esiste e si è letto benissimo, semplicemente in
+           questa tabella non ha righe. Ma va DETTO: senza, scegliere un documento vuoto non cambia niente a
+           schermo, e un comando che non fa niente e non dice niente si legge come rotto. Ed è il caso
+           NORMALE finché i vSOP sono da riempire — misurato guidando l'app il 4 settembre 2026. *@
+        @if (_avviso is { Length: > 0 })
+        {
+            <span class="pill neutral">@_avviso</span>
         }
     </div>
 
@@ -173,6 +184,12 @@
 
     private string _testo = "";
     private string? _guasto;
+
+    /// <summary>Quel che c'è da dire senza che sia un guasto: oggi «quel documento qui non ha righe».</summary>
+    private string? _avviso;
+
+    /// <summary>La voce scelta nella tendina delle sorgenti. Si riazzera dopo ogni carico: vedi il markup.</summary>
+    private string _sorgente = "";
     private bool _intestazione;
     private bool _larghezzaFissa;
 
@@ -199,6 +216,7 @@
         _xlsx = null;
         _fogli = new();
         _guasto = null;
+        _avviso = null;
         await Rileggi();
     }
 
@@ -245,6 +263,7 @@
         if (file is null) return;
 
         _guasto = null;
+        _avviso = null;
         _xlsx = null;
         _fogli = new();
         _foglio = 0;
@@ -282,13 +301,20 @@
         if (string.IsNullOrWhiteSpace(chiave) || CaricaSorgente is null) return;
 
         _guasto = null;
+        _avviso = null;
         _xlsx = null;
         _fogli = new();
         _testo = "";
         _larghezzaFissa = false;
+        _sorgente = chiave!;
         _griglia = await CaricaSorgente(chiave!);
         _proposta = null;                       // la mappatura si riparte da zero: colonne diverse, ordine diverso
         await Ricostruisci();
+
+        // Il documento c'è ma in questa tabella è vuoto: si dice, e la tendina torna al segnaposto perché il
+        // gesto è finito — non c'è nessuno stato «sto guardando quel documento» da mostrare.
+        if (!_griglia.Piena) _avviso = L["Imp_FromDocEmpty"];
+        _sorgente = "";
     }
 
     private async Task LeggiXlsx()
@@ -556,6 +582,7 @@
         FormaGriglia.Html => L["Imp_FormHtml"],
         FormaGriglia.Xlsx => L["Imp_FormXlsx"],
         FormaGriglia.LarghezzaFissa => L["Imp_FormFixed"],
+        FormaGriglia.AltroDocumento => L["Imp_FormFromDoc"],
         _ => L["Imp_FormLines"],
     };
 }

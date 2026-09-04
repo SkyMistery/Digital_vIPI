@@ -1120,7 +1120,7 @@ else
                 MilDiversionText.Rilevamento(r.Bearing),
                 MilDiversionText.Distanza(r.DistanceNm),
             }).ToList(),
-            FormaGriglia.RigaIntera);
+            FormaGriglia.AltroDocumento);
     }
 
     private Task<Griglia> NominativiDiUnAltroSop(string icao) =>
@@ -1132,7 +1132,7 @@ else
     private async Task<Griglia> TabellaFissaDiUnAltroSop(string icao, string chiave, int colonne)
     {
         var righe = await Militari.GetFixedTableAsync(icao, chiave, colonne);
-        return new Griglia(righe.ToList(), FormaGriglia.RigaIntera);
+        return new Griglia(righe.ToList(), FormaGriglia.AltroDocumento);
     }
 
     // ⚠️ L'import consegna la tabella INTERA (le vecchie piu' le nuove, o solo le nuove se si e' scelto

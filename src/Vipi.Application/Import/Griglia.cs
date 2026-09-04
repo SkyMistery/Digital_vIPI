@@ -32,6 +32,16 @@ public enum FormaGriglia
     /// <summary>Nessun separatore riconosciuto: ogni riga e' una cella sola, e chi importa decide come
     /// spezzarla (le ancore della sua specifica, oppure i tagli a larghezza fissa).</summary>
     RigaIntera,
+
+    /// <summary>
+    /// La stessa tabella presa da un ALTRO documento: le celle sono gia' quelle, non c'e' niente da leggere.
+    ///
+    /// <para>⚠️ Prima queste griglie si dichiaravano <see cref="RigaIntera"/>, che vuol dire l'opposto —
+    /// «una cella sola per riga, spezzala tu». Il pannello lo scrive in una pastiglia, e diceva «righe
+    /// intere» su una tabella che di celle ne aveva quattro. La forma serve a <b>dirlo</b> a chi importa, e
+    /// dirlo sbagliato e' peggio che non dirlo (4 settembre 2026).</para>
+    /// </summary>
+    AltroDocumento,
 }
 
 /// <summary>

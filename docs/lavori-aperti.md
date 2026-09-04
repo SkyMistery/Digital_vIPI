@@ -7790,3 +7790,42 @@ durevole: `.claude/skills/verifica-live/sposta-verifica.js`.
 
 ⚠️ **Niente migrazione**: nessuna colonna nuova, quindi è spedibile dentro la finestra cieca. ⚠️ E i documenti
 **già pubblicati** non cambiano forma finché non si **ripubblicano**: le release non si toccano mai.
+
+## BF. «Da un altro documento…» non era rotto: taceva — 4 settembre 2026
+
+✅ **FATTA**, in `main`. Segnalazione del committente: *«il tasto move to another document non funziona»*.
+
+### Che cosa succedeva davvero
+
+Il tasto è la **tendina delle sorgenti** del pannello di import (`ImportaTabella`), quella che prende la
+stessa tabella da un altro vSOP militare: Nominativi, Parcheggi, Aeroporti alternati.
+
+Guidando l'app su una copia del DB: la tendina c'è, elenca i quattro altri campi, e scegliendone uno **non
+succede niente**. Nessun errore, nessuna riga, nessun messaggio. Il motivo, misurato sul `vipi.db`: di quelle
+tre tabelle **nessun vSOP ha righe** — cinque campi, tre tabelle, zero payload. Il documento si legge
+benissimo, semplicemente non ha niente da dare.
+
+⚠️ **Il difetto non è il caricamento, è il silenzio.** Un comando che non fa niente e non lo dice si legge
+come rotto — ed è il caso NORMALE finché i vSOP sono da riempire, quindi si leggeva come rotto sempre. È la
+stessa lezione di «Aggiungi riga non aggiungeva niente» (30 agosto): nessun errore da nessuna parte.
+
+### Le tre correzioni
+
+1. **Lo dice**: pastiglia neutra «Quel documento non ha righe in questa tabella» / *«That document has no
+   rows in this table»*. Neutra e non rossa: non è un guasto, è una risposta.
+2. **La tendina torna al segnaposto** dopo ogni scelta: è un **comando**, non uno stato. Lasciata sul
+   documento scelto, sceglierlo una seconda volta non emette nessun `change` — e chi ha appena visto un
+   comando non produrre niente prova esattamente quello, e lo trova morto una seconda volta.
+3. ⚠️ **La pastiglia della forma diceva il falso**: su una tabella presa da un altro documento — celle già
+   separate — dichiarava `RigaIntera`, che vuol dire l'opposto («una cella sola per riga, spezzala tu»), e a
+   schermo si leggeva «righe intere». Ora c'è `FormaGriglia.AltroDocumento` e la pastiglia dice «da un altro
+   documento». La forma serve a **dirlo** a chi importa: dirlo sbagliato è peggio che non dirlo.
+
+### Verifica
+
+Cinque test bUnit (`ImportDaAltroDocumentoTests`), provati per mutazione: rimesso il componente di prima,
+tre diventano rossi. Guidato a schermo su copia del DB (LIBG, sezione Nominativi): con una sorgente
+**seminata** l'anteprima mostra le tre righe e la pastiglia dice «from another document»; con una sorgente
+**vuota** compare «That document has no rows in this table». Zero errori di console. Build Release verde,
+suite UI 1246 e Application 2145 verdi.
+

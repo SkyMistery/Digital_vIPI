@@ -3148,6 +3148,8 @@
   <data name="Imp_ImportReplaceOne" xml:space="preserve"><value>Sostituisci con 1 riga</value></data>
   <data name="Imp_SkippedOne" xml:space="preserve"><value>1 riga resta fuori</value></data>
   <data name="Imp_FromDoc" xml:space="preserve"><value>Da un altro documento…</value></data>
+  <data name="Imp_FromDocEmpty" xml:space="preserve"><value>Quel documento non ha righe in questa tabella.</value></data>
+  <data name="Imp_FormFromDoc" xml:space="preserve"><value>da un altro documento</value></data>
   <data name="Imp_TabHint" xml:space="preserve"><value>Dentro questa casella il tasto Tab scrive una tabulazione. Per uscire dal campo: Maiusc+Tab indietro, oppure Esc e poi Tab.</value></data>
   <data name="Imp_FoldUnit" xml:space="preserve"><value>colonne</value></data>
   <data name="Imp_Fold" xml:space="preserve"><value>Piega in</value></data>
