@@ -245,3 +245,9 @@ destinazioni sono raggiungibili. La testata passa da 38 a 72px **solo quando non
 legge, un tasto fuori dalla card non si preme. Mossa vera dalla tendina — «└ Ground procedures» — e al
 ricarico la sezione è là. Sei test bUnit aggiornati, suite UI 1248 verde, build Release verde.
 
+## 9. Dove è finita
+
+📦 Spedita nel pacchetto **1.7.0** (`docs/lavori-aperti.md` §BH), pronto il 4 settembre 2026 e **non ancora
+caricato**. ⚠️ I documenti **già pubblicati** mostreranno le correzioni di §1 e §2 **solo dopo una nuova
+pubblicazione**: una release è una fotografia e non si riscrive.
+
