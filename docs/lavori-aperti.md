@@ -8406,3 +8406,17 @@ dicendo **chi**, col mio passa, un lock **scaduto** non vale, tutte e sette le s
 il lock, e il re-import passa senza lock ma non sopra a quello di un altro. Le prove strutturali che
 presidiavano il modello vecchio sono state **riscritte sul nuovo**, non tolte.
 
+### Verifica live (LIBD, copia del DB)
+
+Guidata in Edge, con lock preso davvero. Senza lock: **zero** campi nelle piste, nelle SID manuali e nelle
+importate, **zero** tasti «Salva», i valori si leggono. Col lock: 4 campi piste, 39 SID importate, ancora
+zero tasti «Salva». Un TORA digitato → badge **Salvato** → **regge al ricarico**. «+ SID» → riga con campi e
+la riga «incompleta: non ancora salvata»; col solo nome resta incompleta; aggiunto il punto, in archivio
+(`ALAXI/PROVA1A` riletto dal database). Limite di settore digitato → in archivio **3433** su `LIBD_CS0_APP`,
+senza nessun ✓. Ctrl+S non fa niente, uscire non chiede conferma, console pulita.
+
+⚠️ **Due «KO» erano della SONDA, non del prodotto**, e valgono come promemoria: contare gli `<input>` non
+dice se sono **spenti** (i limiti di settore ci sono sempre, `disabled` senza lock), e `innerText` non
+contiene il `value` di un campo — cercarci dentro un numero appena digitato dà sempre «non c'è». *Quando la
+misura accusa qualcosa che il database smentisce, il sospetto va prima allo strumento.*
+
