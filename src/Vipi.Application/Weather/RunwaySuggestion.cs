@@ -98,6 +98,9 @@ public static partial class RunwaySuggestion
     /// sulle sue piste, il vento in coda è ≤ <c>MaxTailwindKt</c> e il traverso ≤ <c>MaxCrosswindKt</c> (se valorizzato)
     /// e la superficie corrisponde (<paramref name="wet"/> = pioggia/neve) e l'eventuale filtro temporale è soddisfatto.
     /// null = nessuna regola si applica (il chiamante usa <see cref="Suggest"/> come fallback — "altrimenti l'altra").
+    ///
+    /// <para><paramref name="nowUtc"/> è l'istante da cui si ricavano ora, giorno e stagione: null = adesso. Lo
+    /// passa il banco di prova dell'editor, che serve a provare una regola in un momento che non è questo.</para>
     /// </summary>
     public static RunwayRuleResult? EvaluateRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir, int windKt, bool wet,
         DateTime? nowUtc = null)
@@ -111,9 +114,11 @@ public static partial class RunwaySuggestion
             var r = rules[i];
             if (!SurfaceMatches(r.Surface, wet)) continue;
             if (!TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay)) continue;
-            if (!DayOfWeekMatches(r.DaysOfWeekMask, now)) continue;
-            if (!ParityMatches(r.DateParity, now)) continue;
-            if (!DateInWindow(r.DateFromMonthDay, r.DateToMonthDay, now)) continue;
+            // ⚠️ Il giorno da confrontare è quello OPERATIVO, non quello del calendario: vedi GiornoOperativo.
+            var giorno = GiornoOperativo(now, minOfDay, r.TimeFromLocalMin, r.TimeToLocalMin);
+            if (!DayOfWeekMatches(r.DaysOfWeekMask, giorno)) continue;
+            if (!ParityMatches(r.DateParity, giorno)) continue;
+            if (!DateInWindow(r.DateFromMonthDay, r.DateToMonthDay, giorno)) continue;
 
             var (tail, cross) = WorstComponents(r, windDir, windKt);
             if (tail > r.MaxTailwindKt) continue;
@@ -126,6 +131,28 @@ public static partial class RunwaySuggestion
                 string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim());
         }
         return null;
+    }
+
+    /// <summary>
+    /// Il <b>giorno operativo</b> di una regola: quello a cui appartiene la finestra oraria in corso, che dopo
+    /// mezzanotte <b>non</b> è il giorno del calendario.
+    ///
+    /// <para>Una finestra che scavalca — «lunedì 22:00→05:00» — dura fino alle cinque di <b>martedì</b>, e chi
+    /// la scrive intende un solo turno di notte, non due monconi. Confrontando il giorno del calendario la
+    /// regola si spegneva a mezzanotte: alle 03:00 il giorno è martedì, la maschera dice lunedì, e la regola
+    /// smetteva di applicarsi a metà della notte che descrive. Misurato il 4 settembre 2026.</para>
+    ///
+    /// <para>⚠️ Lo scalino vale per <b>tutti e tre</b> i filtri di calendario — giorno della settimana, parità
+    /// e finestra stagionale — e non per il solo giorno della settimana: «le notti dei giorni dispari» e «le
+    /// notti di novembre» si spezzerebbero a mezzanotte nello stesso identico modo.</para>
+    ///
+    /// <para>Senza scavalco (o senza finestra oraria) il giorno operativo <b>è</b> quello del calendario:
+    /// nessuna regola già scritta cambia significato.</para>
+    /// </summary>
+    private static DateTime GiornoOperativo(DateTime now, int minOfDay, int? from, int? to)
+    {
+        if (from is not int f || to is not int t || f <= t) return now;   // nessuno scavalco: giorno di calendario
+        return minOfDay <= t ? now.AddDays(-1) : now;                     // coda dopo mezzanotte → il giorno prima
     }
 
     private static bool SurfaceMatches(RunwaySurface s, bool wet) => s switch
@@ -170,30 +197,32 @@ public static partial class RunwaySuggestion
         return f <= t ? minOfDay >= f && minOfDay <= t : minOfDay >= f || minOfDay <= t;
     }
 
-    /// <summary>Vero se il giorno corrente è nel bitmask (bit0=Lun … bit6=Dom). null/0 = tutti i giorni.</summary>
-    private static bool DayOfWeekMatches(int? mask, DateTime now)
+    /// <summary>Vero se il giorno OPERATIVO (<see cref="GiornoOperativo"/>) è nel bitmask (bit0=Lun … bit6=Dom).
+    /// null/0 = tutti i giorni.</summary>
+    private static bool DayOfWeekMatches(int? mask, DateTime giorno)
     {
         if (mask is not int m || m == 0) return true;
-        var bit = ((int)now.DayOfWeek + 6) % 7;            // .NET: Dom=0 → rimappa a Lun=0..Dom=6
+        var bit = ((int)giorno.DayOfWeek + 6) % 7;         // .NET: Dom=0 → rimappa a Lun=0..Dom=6
         return (m & (1 << bit)) != 0;
     }
 
-    /// <summary>Vero se la data corrente (mese/giorno) ricade nella finestra stagionale ricorrente [from,to] in MMDD
-    /// (estremi inclusi, gestisce il wrap di fine anno, es. 1101→0228). Entrambi null = nessun vincolo.</summary>
-    private static bool DateInWindow(int? from, int? to, DateTime now)
+    /// <summary>Vero se la data del giorno OPERATIVO (mese/giorno) ricade nella finestra stagionale ricorrente
+    /// [from,to] in MMDD (estremi inclusi, gestisce il wrap di fine anno, es. 1101→0228). Entrambi null = nessun
+    /// vincolo.</summary>
+    private static bool DateInWindow(int? from, int? to, DateTime giorno)
     {
         if (from is null && to is null) return true;
-        var md = now.Month * 100 + now.Day;
+        var md = giorno.Month * 100 + giorno.Day;
         var f = from ?? 101;        // default: inizio anno
         var t = to ?? 1231;         // default: fine anno
         return f <= t ? md >= f && md <= t : md >= f || md <= t;
     }
 
-    /// <summary>Vero se la parità del giorno del mese soddisfa il vincolo. Any = sempre vero.</summary>
-    private static bool ParityMatches(DateParity parity, DateTime now) => parity switch
+    /// <summary>Vero se la parità del giorno OPERATIVO del mese soddisfa il vincolo. Any = sempre vero.</summary>
+    private static bool ParityMatches(DateParity parity, DateTime giorno) => parity switch
     {
-        DateParity.Even => now.Day % 2 == 0,
-        DateParity.Odd => now.Day % 2 != 0,
+        DateParity.Even => giorno.Day % 2 == 0,
+        DateParity.Odd => giorno.Day % 2 != 0,
         _ => true,
     };
 
