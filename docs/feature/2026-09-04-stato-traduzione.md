@@ -6,7 +6,8 @@
 > nella lingua di lettura; questo meccanismo lo calcola per **tutti** i documenti in una passata sola
 > (misurata: **45 ms** sull'intero `vipi.db`), e lo dice con **due percentuali, non una** — quel che vede
 > chi scrive (bozza contro memoria viva) e quel che vede **chi legge** (release efficace contro il
-> congelato). Nessuna tabella nuova.
+> congelato). E a chi ha appena finito di scrivere dice **quanto deve aspettare**: ≤ 15 minuti, all'orologio
+> e non a stima (§4-bis). Nessuna tabella nuova.
 
 ## 1. Che cosa si sa oggi, e da dove
 
@@ -119,12 +120,52 @@ editoriale, e sta fuori dal corpus per la stessa ragione.
    economico di tutta la carta, ed è quello che risponde a «sta andando avanti?».
 3. **`/services/vsop/versions`** — una pastiglia per riga, **dalla stessa passata** (una query per tutte le
    righe, mai una per riga).
-4. **Il pannello Traduzione dell'editor** — la barra dei totali in cima all'elenco che già c'è; e la
-   **pubblicazione**, che oggi «avvisa e non blocca», dice finalmente il numero: «pubblicando adesso
-   congeli **12 frasi su 40** non tradotte».
+4. **Il pannello Traduzione dell'editor** — la barra dei totali in cima all'elenco che già c'è, con
+   **l'attesa** (§4-bis); e la **pubblicazione**, che oggi «avvisa e non blocca», dice finalmente il
+   numero: «pubblicando adesso congeli **12 frasi su 40** non tradotte».
 
 ⚠️ **Per il lettore pubblico non cambia niente**: il gettone sotto il titolo dice già quel che deve dire.
 Questa è una pagina di **chi cura** i documenti.
+
+## 4-bis. «Ho appena finito di scrivere: quanto ci vuole?»
+
+Domanda del committente, 4 settembre. È **la** domanda di chi scrive, e la prima stesura di questa carta
+rispondeva male («nessuna stima di tempo»). Letto il giro, quella cautela non era giustificata.
+
+- ⚠️ **Il giro non ha un tetto di lotto**: `TranslationFillUseCase` spedisce in **una** chiamata *tutti* i
+  segmenti mancanti. Non c'è nessuna coda che si smaltisce a pezzi, quindi il numero di frasi appena
+  scritte **non allunga l'attesa**.
+- Il periodo è fisso, **15 minuti** (`TranslationFillHostedService.Periodo`); la chiamata al motore sono
+  secondi. Dopo un riavvio dell'host il primo giro parte con **bootDelay 120 s**, e il gate di
+  `GatedImportLoop` non lo rifà se la categoria è ancora fresca.
+- ⚠️ **L'ora dell'ultimo giro è già salvata** — `IImportStateStore`, chiave `ImportCategories.Translation` —
+  e **non la mostra nessuna pagina**: quella riga sta fuori dall'elenco Sorgenti per scelta dichiarata
+  («non è un import»). Quindi «prossimo giro fra ~N minuti» è `ultimo + 15 min`: **una query, zero schema**,
+  ed è un orologio, non una stima.
+
+Da cui la risposta, che è una tabella e non un numero:
+
+| Caso | Quanto ci vuole | Come si riconosce |
+|---|---|---|
+| frase normale | **≤ 15 min** (in media ~7) | non in memoria, e il protettore la lascia passare |
+| il **protettore** la rifiuta (dato personale dentro) | 🔴 **mai**: nessuna macchina la vedrà | `Protect(...).Safe == false` |
+| torna **rotta** dal motore | 🔴 **mai**: ripagata e ributtata ogni 15 min | oggi non è calcolabile (§7) |
+| tetto di spesa finito, motore giù, interruttore spento | **ferma**, e oggi lo dice solo il log | l'esito dell'ultimo giro (sede 2) |
+
+🔴 **È per questo che il mancante si divide** (§3.2): «mancano 8» senza dire quali sono in attesa e quali
+vogliono una persona è un numero che non fa fare niente a nessuno. In cima al pannello dell'editor la frase
+è una sola: «**8 frasi nuove · il giro passa fra ~6 min · 1 vuole te**».
+
+⚠️ **E non bisogna aspettare per pubblicare**, che è l'altra metà della domanda. Dal §Q18 il congelato si
+sovrappone alla memoria **«dove», non «se»**: le frasi che la release non porta le riempie la memoria viva.
+Si pubblica, il giro passa, il lettore le vede. (Oggi a maggior ragione: le 17 release efficaci non
+congelano niente affatto — §2.)
+
+🟡 **Deciso a metà, e la decisione è del committente**: un tasto **«traduci ora»** sul documento. Si può
+fare senza rompere la regola «non si traduce al salvataggio» — quella regola esiste perché un disservizio
+di rete non deve impedire di **salvare**, e un tasto premuto da una persona non è una dipendenza del
+salvataggio; e i trigger manuali sono **già** indipendenti dal gate (commento di `GatedImportLoop`). Ma
+**spende**, quindi va deciso a chi si dà e con quale tetto. Finché non è deciso, resta fuori dalle slice.
 
 ## 5. Pre-flight
 
@@ -151,17 +192,23 @@ Questa è una pagina di **chi cura** i documenti.
 | 3 | La divisione del mancante (**in attesa** / **a mano**) col protettore | l'allarme che può arrivare a zero |
 | 4 | La sezione «Documenti» del Registro | la sede |
 | 5 | L'**ultimo giro** a schermo (`TranslationFillReport` fuori dal log) | «sta andando avanti?» |
-| 6 | Pastiglia su `/versions` + totali nel pannello editor + numero nella pubblicazione | le altre tre sedi |
+| 5-bis | **L'attesa nel pannello dell'editor** (§4-bis): «N frasi nuove · il giro passa fra ~M min · K vogliono te», da `IImportStateStore` + `Periodo` | «quanto ci vuole per quel che ho appena scritto» |
+| 6 | Pastiglia su `/versions` + numero nella pubblicazione | le altre due sedi |
 | 7 | Verifica live su LIBC, con traccia | la prova |
+
+⚠️ La **5-bis** è la slice che risponde alla domanda di chi scrive, e non dipende dalle altre: `Periodo` è
+una costante e l'ultimo giro è già in `IImportStateStore`. Si può anticipare se serve prima.
 
 ## 7. Quel che resta fuori, dichiarato
 
 - **«rifiutato»** come classe propria: vuole un contatore, cioè schema → **dopo il 16 settembre** (§Q16).
-- **Nessuna stima di tempo** («mancano ~2 giri»): il giro è a intervallo fisso ma il tetto di spesa e la
-  catena dei motori la renderebbero una promessa. Si dice **quando è passato l'ultimo giro**, che è un
-  fatto.
-- **Nessuna azione da questa pagina** (niente «traduci ora»): è una pagina che **dice**, e la correzione ha
-  già la sua sede nel pannello del documento e nel Registro.
+  Fino ad allora quei segmenti si vedono come «in attesa».
+- **Nessuna previsione oltre il prossimo giro** («mancano ~2 giri»): il quando del **prossimo** è un
+  orologio (§4-bis), il quando del secondo sarebbe una promessa — dipende dal tetto di spesa e dalla catena
+  dei motori. Si dice il fatto, non l'oroscopo.
+- **Nessuna azione dalla pagina di stato** (niente «traduci ora» **lì**): è una pagina che **dice**, e la
+  correzione ha già la sua sede nel pannello del documento e nel Registro. Il tasto sul **documento** è
+  un'altra cosa e resta 🟡 da decidere (§4-bis).
 
 Vedi [[documenti-bilingue]], [[lingua-bloccata]], [[spesa-di-traduzione]],
 [[fraseologia-e-traduzioni-una-pagina]], [[titoli-di-catalogo-bilingui]].
