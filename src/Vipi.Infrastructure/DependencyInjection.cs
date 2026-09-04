@@ -266,6 +266,9 @@ public static class DependencyInjection
             sp.GetRequiredService<Vipi.Application.Content.IEditingService>());
         services.AddScoped<Vipi.Application.Translation.IDocumentTranslationReview,
                            Vipi.Application.Translation.DocumentTranslationReview>();
+        // A che punto e' la traduzione (carta 2026-09-04-stato-traduzione). Si CALCOLA: nessuna tabella di
+        // stato, nessuna coda — la differenza fra i segmenti e la memoria, in una passata da 45 ms.
+        services.AddScoped<Vipi.Application.Translation.IStatoTraduzione, EfStatoTraduzione>();
         services.AddScoped<Vipi.Application.Content.IMilitaryDocumentService, EfMilitaryDocumentService>();
 
 

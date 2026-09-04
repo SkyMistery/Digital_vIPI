@@ -157,7 +157,8 @@ public sealed class TranslationFillHostedService : BackgroundService
         // ⚠️ I nomi si leggono UNA volta per giro; il glossario, invece, una per COPPIA DI LINGUE — vedi il
         // ciclo qui sotto. Sono due cose diverse: un nome di persona non si traduce in nessun verso, una
         // formula sì e in un verso solo.
-        var nomi = await NomiDelloStaffAsync(sp, ct).ConfigureAwait(false);
+        var nomi = await Translation.ArnesiDelGiro
+            .NomiDelloStaffAsync(sp.GetRequiredService<Persistence.VipiDbContext>(), ct).ConfigureAwait(false);
 
         var tutteRiuscite = true;
 
@@ -172,14 +173,14 @@ public sealed class TranslationFillHostedService : BackgroundService
                 // Con un protettore solo, le formule it→en verrebbero cercate anche nel testo inglese delle
                 // vLOA — dove non compaiono mai, quindi nessun danno — ma soprattutto il verso en→it
                 // resterebbe senza glossario per sempre, e non lo direbbe nessun errore.
-                var glossario = await GlossarioFraseologia
-                    .CaricaAsync(glossarioStore, sorgente, bersaglio, ct).ConfigureAwait(false);
+                var protettore = await Translation.ArnesiDelGiro
+                    .ProtettoreAsync(glossarioStore, nomi, sorgente, bersaglio, ct).ConfigureAwait(false);
 
                 var giro = new TranslationFillUseCase(
                     sp.GetRequiredService<ITranslatableCorpus>(),
                     memoria,
                     motori,
-                    new TextProtector(nomi, glossario),
+                    protettore,
                     opzioni);
 
                 var esito = await giro.EseguiAsync(sorgente, bersaglio, ct).ConfigureAwait(false);
@@ -232,18 +233,4 @@ public sealed class TranslationFillHostedService : BackgroundService
         return tutteRiuscite;
     }
 
-    /// <summary>
-    /// I nomi dello staff, per il protettore. ⚠️ Vanno letti a <b>ogni</b> giro e non una volta all'avvio: il
-    /// roster cresce a ogni login nuovo, e un protettore costruito ieri non conosce lo staffista arrivato
-    /// stamattina — cioè lascerebbe uscire proprio il nome più recente.
-    /// </summary>
-    private static async Task<List<string>> NomiDelloStaffAsync(IServiceProvider sp, CancellationToken ct)
-    {
-        var db = sp.GetRequiredService<Persistence.VipiDbContext>();
-        return await db.StaffMembers.AsNoTracking()
-            .Where(s => s.DisplayName != null)
-            .Select(s => s.DisplayName!)
-            .ToListAsync(ct)
-            .ConfigureAwait(false);
-    }
 }

@@ -341,8 +341,53 @@ public sealed class DocumentTranslator
                 yield return s;
     }
 
+    /// <summary>
+    /// Ogni testo traducibile di uno <b>snapshot</b> di release (carta
+    /// <c>docs/feature/2026-09-04-stato-traduzione.md</c> §3.1).
+    ///
+    /// <para>⚠️ <b>Esiste perché la definizione di «segmento» dev'essere UNA.</b> Lo stato della traduzione
+    /// confronta quel che la release ha pubblicato con quel che la memoria sa: se contasse i segmenti dello
+    /// snapshot con un ciclo suo, basterebbe una virgola di differenza nella segmentazione perché la
+    /// percentuale del pubblicato non fosse più confrontabile con quella della bozza — e nessun test lo
+    /// direbbe, perché tutt'e due sarebbero «un numero».</para>
+    ///
+    /// <para>⚠️ E lo snapshot è <b>uniforme per tutte le famiglie</b> (misurato il 4 settembre 2026 sulle 17
+    /// release efficaci: vLOA, aeroporto, aeroporto militare, APP e vIPI ACC portano tutte un
+    /// <c>Doc.Roots</c>), quindi qui non serve nessun descrittore per-tipo e nessuno
+    /// <c>switch (TargetType)</c>.</para>
+    /// </summary>
+    public static IEnumerable<string> SegmentiGrezzi(RawDocument doc)
+    {
+        foreach (var radice in doc.Roots)
+            foreach (var s in SegmentiSezione(radice))
+                yield return s;
+    }
+
+    /// <inheritdoc cref="SegmentiGrezzi"/>
+    public static IEnumerable<string> SegmentiSezione(RawSection sezione)
+    {
+        foreach (var s in Aggiungi(sezione.Title)) yield return s;
+
+        foreach (var b in sezione.Blocks)
+        {
+            foreach (var p in TextSegmenter.SplitProse(b.Body))
+                if (TranslationText.HasSomethingToTranslate(p)) yield return p;
+
+            foreach (var c in TextSegmenter.SplitJson(b.BodyJson))
+            {
+                var norm = TranslationText.Normalize(c);
+                if (TranslationText.HasSomethingToTranslate(norm)) yield return norm;
+            }
+        }
+
+        foreach (var figlia in sezione.Children)
+            foreach (var s in SegmentiSezione(figlia))
+                yield return s;
+    }
+
     /// <summary>Un titolo, se c'è qualcosa da tradurre. Pubblico per la stessa ragione di
-    /// <see cref="SegmentiSezione"/>: i titoli dei blocchi della vIPI ACC stanno fuori dalle sezioni.</summary>
+    /// <see cref="SegmentiSezione(SectionView)"/>: i titoli dei blocchi della vIPI ACC stanno fuori dalle
+    /// sezioni.</summary>
     public static IEnumerable<string> Aggiungi(string? testo)
     {
         var norm = TranslationText.Normalize(testo);
