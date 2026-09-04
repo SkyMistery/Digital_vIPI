@@ -48,9 +48,12 @@
   in piedi fin quasi a mezz'ora → **senza force-unlock la pagina si autobloccherebbe**. Il force-unlock del
   documento esiste già lato service (`IEditingService.ForceUnlockAsync`, solo admin) e non era esposto da
   nessuna UI: lo si mette in riga, dietro conferma.
-- ⚠️ **L'editor aeroporto non prende il lock del documento** (`AeroportoEditorPage` usa
+- ⚠️ ~~**L'editor aeroporto non prende il lock del documento** (`AeroportoEditorPage` usa
   `IAirportEditingService`, non `IEditingService`): sugli aeroporti il badge non comparirà **mai** e hide/delete
-  non saranno mai inibiti. È un buco **dichiarato**, non chiuso qui: portare l'aeroporto sul lock è un giro suo.
+  non saranno mai inibiti. È un buco **dichiarato**, non chiuso qui: portare l'aeroporto sul lock è un giro suo.~~
+  **Chiuso in due tempi**: il 26 agosto 2026 l'editor ha preso il lock del documento (carta
+  `2026-08-26-aeroporto-a-sezioni.md` §1b), e il 4 settembre 2026 quel lock si è esteso ai dati strutturati
+  dello scalo, con la guardia nel service (carta `2026-09-04-aeroporto-porta-sola.md`).
 - **L'elenco è una fotografia**: un lock preso dopo il caricamento non si vede. Si aggiunge un **ricarico**
   (tasto, e automatico dopo ogni azione). Niente poll continuo: sarebbe una query su tutta la lista ogni pochi
   secondi per un'informazione che cambia due volte al giorno.

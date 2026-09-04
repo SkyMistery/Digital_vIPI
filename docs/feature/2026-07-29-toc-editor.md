@@ -68,7 +68,9 @@ Domande/ritocchi owner sul workflow bozza/lock (`EditingService`, TTL 30 min, sl
    - **tuo** (`IsMine`, in edit) → chip verde `.lock-mine` "🔒 Stai modificando · lock fino alle HH:mm" (chiavi `Lock_Editing`/`Lock_UntilSuffix`, già IT+EN).
    - **di un altro** (`Locked && !IsMine`) → chip rosso `.lock-badge` "🔒 {nome} · → HH:mm" + **Edit disabilitato** + banner in alto (già esistente).
    - libero → solo Edit.
-   Riusate chiavi i18n esistenti, nessun resx nuovo. Aeroporto escluso (edit-diretto, senza lock/bozza).
+   Riusate chiavi i18n esistenti, nessun resx nuovo. ~~Aeroporto escluso (edit-diretto, senza lock/bozza).~~
+   ⚠️ L'aeroporto è entrato nel lock il 26 agosto 2026, e ci è entrato per intero — dati di scalo compresi —
+   il 4 settembre (carte `2026-08-26-aeroporto-a-sezioni.md` §1b e `2026-09-04-aeroporto-porta-sola.md`).
 - **Rail badge a capo**: `.ed-rail .save-badge/.pill{white-space:normal;border-radius:10px}` — i 232px stretti tagliavano
   "Stai modificando · lock fino alle HH:mm".
 
