@@ -81,6 +81,44 @@ public class AirportRunwaysEditorTests : TestContext
         Assert.Equal(1, avvisi);
     }
 
+    /// <summary>
+    /// ⚠️ <b>Scrivere in una cella deve avvisare la pagina.</b> È l'avviso che fa scattare
+    /// l'auto-salvataggio, quindi se muore muoiono i dati — ed era morto: fino al 4 settembre 2026 il
+    /// gestore stava su un <c>@onchange</c> del <c>div</c> che avvolge la tabella, e non veniva <b>mai</b>
+    /// chiamato. Misurato sul pacchetto pubblicato: il valore entrava nel modello (quindi il <c>change</c>
+    /// del DOM era partito e Blazor l'aveva gestito sull'input), ma «Salva tutto» restava a (0) e nel
+    /// registro del database non compariva nessuna scrittura. Ora l'aggancio è su ogni input
+    /// (<c>@bind:after</c>).
+    /// </summary>
+    [Theory]
+    [InlineData(1)]   // TORA
+    [InlineData(2)]   // LDA
+    [InlineData(3)]   // APP procedures
+    [InlineData(4)]   // Patterns
+    [InlineData(5)]   // Circling
+    public void Scrivere_in_una_cella_editoriale_avvisa_la_pagina(int colonna)
+    {
+        var righe = new List<RwEdit> { Rw("12") };
+        var avvisi = 0;
+        var c = Rendi(righe, suCambio: () => avvisi++);
+
+        c.FindAll("tbody tr td input").ToList()[colonna].Change("1700");
+
+        Assert.Equal(1, avvisi);
+    }
+
+    /// <summary>E il valore arriva davvero nel modello: l'avviso senza il dato non salverebbe niente.</summary>
+    [Fact]
+    public void Scrivere_in_TORA_porta_il_valore_nel_modello()
+    {
+        var righe = new List<RwEdit> { Rw("12") };
+        var c = Rendi(righe);
+
+        c.FindAll("tbody tr td input").ToList()[1].Change("1700");
+
+        Assert.Equal("1700", righe[0].Tora);
+    }
+
     /// <summary>L'ident resta in sola lettura a sorgente bloccata: la ✕ non ha allentato quello.</summary>
     [Fact]
     public void L_ident_resta_in_sola_lettura_a_sorgente_bloccata()

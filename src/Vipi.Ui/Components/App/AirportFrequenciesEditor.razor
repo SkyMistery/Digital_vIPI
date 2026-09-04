@@ -1,4 +1,4 @@
-@* L'editor della sezione «Frequenze»: il catalogo dei settori dello scalo (sola lettura, lo riempie
+﻿@* L'editor della sezione «Frequenze»: il catalogo dei settori dello scalo (sola lettura, lo riempie
    l'anagrafica) più i LINK a frequenze di altri enti, che si scelgono qui.
 
    ⚠️ Componente a parte da <AirportFrequencies>, la lettura, come gli altri editor dell'aeroporto: qui la
@@ -9,7 +9,10 @@
    della vista, non del documento, e nella pagina restava vivo anche cambiando sezione. *@
 @inject IStringLocalizer<SharedResource> L
 
-<div @onchange="() => OnChanged.InvokeAsync()">
+@* ⚠️ Niente `@onchange` sul contenitore: non funzionava (vedi AirportRunwaysEditor), e qui non servirebbe
+   comunque — l'unico campo che avvolgeva e' la casella di RICERCA, che e' stato locale e non va salvata.
+   Collegare e scollegare una frequenza avvisano gia' l'host per conto loro. *@
+<div>
     <div class="ed-h3 ed-h3-mini">
         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
     </div>

@@ -1,4 +1,4 @@
-@* L'editor della sezione «Quote di transizione»: la TA e la tabella dei livelli per fascia QNH.
+﻿@* L'editor della sezione «Quote di transizione»: la TA e la tabella dei livelli per fascia QNH.
 
    ⚠️ È un componente A PARTE da <AirportTransition>, che è la lettura, e non è una svista (doc 14 §3g).
    Le due forme dei dati sono davvero diverse: in lettura la fascia è la stringa già composta «1014 – 1030»,
@@ -10,7 +10,11 @@
    AeroportoEditorPage, dove nessun test poteva montarlo. *@
 @inject IStringLocalizer<SharedResource> L
 
-<div @onchange="() => OnChanged.InvokeAsync()">
+@* ⚠️ Niente `@onchange` sul contenitore: c'era e NON funzionava. Misurato il 4 settembre 2026 — il valore
+   entrava nel modello (quindi il `change` del DOM partiva e Blazor lo gestiva sull'input) ma il gestore del
+   `div` non veniva mai chiamato, quindi la pagina non sapeva che c'era qualcosa da salvare. L'aggancio sta
+   ora su ogni campo EDITORIALE con `@bind:after`. *@
+<div>
     <div class="ed-h3 ed-h3-mini">
         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_TlHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_TlHelp"].Value)</HelpHint>
         @if (SourceLocked)
@@ -29,7 +33,7 @@
     <div class="se-row">
         <label><b>@L["Ape_TaLabel"]</b></label>
         <input type="number" style="width:100px" value="@TransitionAltitudeFt"
-               @onchange="e => TransitionAltitudeFtChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var v) ? v : null)"
+               @onchange="AltitudineCambiata"
                disabled="@SourceLocked" />
         <button class="btn primary" disabled="@(Busy || !CanEdit || SourceLocked)" @onclick="() => OnSaveTa.InvokeAsync()">@L["Ape_SaveTa"]</button>
     </div>
@@ -39,9 +43,9 @@
             @foreach (var t in Rows)
             {
                 <tr @key="t">
-                    <td><input type="number" style="width:90px" @bind="t.From" placeholder="@L["Ape_Open"]" /></td>
-                    <td><input type="number" style="width:90px" @bind="t.To" placeholder="@L["Ape_Open"]" /></td>
-                    <td><input style="width:90px" @bind="t.Level" placeholder="FL75" /></td>
+                    <td><input type="number" style="width:90px" @bind="t.From" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
+                    <td><input type="number" style="width:90px" @bind="t.To" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
+                    <td><input style="width:90px" @bind="t.Level" @bind:after="Cambiato" placeholder="FL75" /></td>
                     <td><button class="btn ghost" @onclick="() => Rimuovi(t)">✕</button></td>
                 </tr>
             }
@@ -81,6 +85,17 @@
     /// si chiede. È un parametro e non una chiamata JS diretta perché così il componente resta montabile in
     /// una prova, dove un dialogo del browser non c'è.</summary>
     [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
+
+    /// <summary>Un campo editoriale ha cambiato valore: unico punto d'uscita verso l'host.</summary>
+    private Task Cambiato() => OnChanged.InvokeAsync();
+
+    /// <summary>La Transition Altitude: si passa all'host il valore E l'avviso che c'e' da salvare. Prima
+    /// l'avviso mancava, perche' contava sul gestore del contenitore che non scattava mai.</summary>
+    private async Task AltitudineCambiata(ChangeEventArgs e)
+    {
+        await TransitionAltitudeFtChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var v) ? v : null);
+        await OnChanged.InvokeAsync();
+    }
 
     private async Task Aggiungi()
     {

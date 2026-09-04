@@ -8057,16 +8057,50 @@ sarebbe stata più precisa ma è una **migrazione dentro la finestra cieca** —
 transazionale, senza nessuno che possa ripristinare. Il prezzo è che le orfane si segnalano **subito dopo il
 re-import** e non a freddo. Dopo il 16 settembre, se serve il contrassegno permanente, è una colonna.
 
+### 🔴 Difetto 3 — e questo l'ha trovato la PROVA DEL PACCHETTO, non il ragionamento
+
+Provando 1.7.1 pubblicato, l'auto-salvataggio **non salvava**. Scavando: in **tutti e quattro** gli editor
+dello scalo — piste, quote di transizione, regole piste, frequenze — l'avviso «c'è qualcosa da salvare» era
+appeso a un `@onchange` sul `<div>` che avvolge la tabella, e **non veniva mai chiamato**.
+
+La misura, sul pacchetto pubblicato: scritto `1700` in una casella TORA, il valore **entrava nel modello**
+(`riga05` = `1700`, quindi il `change` del DOM era partito e Blazor l'aveva gestito sull'input), ma
+«Salva tutto» restava a **(0)** e nel registro del database non compariva **nessuna** scrittura. Zero, né
+prima né dopo aver premuto «Salva piste» — perché anche quel bottone non era mai stato il problema: era
+l'avviso a monte a non arrivare.
+
+Conseguenze, tutte già in produzione da mesi:
+
+- il contatore «Salva tutto» **mentiva**, e restava a zero su lavoro non salvato;
+- la **guardia del browser** («ci sono modifiche non salvate») non suonava **mai** per quei quattro pannelli;
+- e l'auto-salvataggio di §BI sarebbe **nato morto**, cioè avrei consegnato una correzione che non correggeva.
+
+Ora l'aggancio sta su ogni campo **editoriale** con `@bind:after`. ⚠️ Restano fuori di proposito i campi del
+pannello di **prova** delle regole (direzione del vento, nodi, pista bagnata): sono una simulazione locale, e
+marcarli «da salvare» farebbe suonare la guardia su un documento che nessuno ha toccato — una guardia che
+suona a vuoto è una guardia che si ignora.
+
+⚠️ **La lezione vera.** Un banco di prova l'avrebbe preso subito: `EditorAvvisanoQuandoSiScriveTests`, con
+l'aggancio vecchio, è **rosso**. Non era mai stato scritto perché quella riga **sembrava marcatura e non
+comportamento** — ed è esattamente il confine dove i test si smettono di scrivere. E si è visto solo perché
+il runbook obbliga a provare il **pacchetto** e non il sorgente.
+
 ### Le prove
 
-17 test nuovi, tutte le suite verdi (4 898). Quelle che contano:
+23 test nuovi, tutte le suite verdi. Quelle che contano:
 
 - `Una_sorgente_muta_non_cancella_niente` — la fetch a vuoto non deve svuotare la tabella;
 - `Una_pista_orfana_con_tora_resta_e_viene_nominata` — il merge non distrugge lavoro umano;
 - `Runways_Locked_Allows_Removal_But_Not_Addition` — l'asimmetria della guardia;
 - `Il_reimport_chiede_prima_di_scartare_le_sezioni_non_salvate` — guardia **strutturale** sul sorgente. Quel
   che va difeso è un **ordine fra tre cose** (si chiede, si importa, si ricarica): montare il componente da
-  solo direbbe che fa quel che il suo codice dice, che era vero anche col difetto dentro.
+  solo direbbe che fa quel che il suo codice dice, che era vero anche col difetto dentro;
+- `EditorAvvisanoQuandoSiScriveTests` — scrivere in una cella avvisa la pagina, in tutti e quattro gli
+  editor, e il pannello di prova **non** avvisa.
+
+E la prova dal vivo, sul pacchetto pubblicato avviato dalla sua cartella: scritto `1700` in una casella TORA
+di LIBR e **uscito dalla casella senza premere niente**, il registro del database mostra **8 scritture** e la
+riga `05` porta `ToraM = '1700'`. È la misura che prima diceva zero.
 
 ### ⚠️ Quel che non si ripara da qui
 

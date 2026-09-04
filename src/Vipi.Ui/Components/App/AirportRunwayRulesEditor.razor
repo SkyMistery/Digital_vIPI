@@ -1,4 +1,4 @@
-@* L'editor della sezione «Regole piste»: si applica la PRIMA regola le cui condizioni sono soddisfatte,
+﻿@* L'editor della sezione «Regole piste»: si applica la PRIMA regola le cui condizioni sono soddisfatte,
    quindi l'ordine è la regola stessa — e per questo si trascina e si sposta con le frecce.
 
    ⚠️ Componente a parte da <AirportRunwayRules>, che è la lettura, e qui la ragione è più forte che altrove:
@@ -10,7 +10,11 @@
 @using Vipi.Application.Weather
 @inject IStringLocalizer<SharedResource> L
 
-<div @onchange="() => OnChanged.InvokeAsync()">
+@* ⚠️ Niente `@onchange` sul contenitore: c'era e NON funzionava. Misurato il 4 settembre 2026 — il valore
+   entrava nel modello (quindi il `change` del DOM partiva e Blazor lo gestiva sull'input) ma il gestore del
+   `div` non veniva mai chiamato, quindi la pagina non sapeva che c'era qualcosa da salvare. L'aggancio sta
+   ora su ogni campo EDITORIALE con `@bind:after`. *@
+<div>
     @* ⚠️ Niente titolo qui dentro: lo dice l'intestazione della SEZIONE. Ripeterlo faceva leggere due volte
        la stessa cosa a due righe di distanza — «Regole piste» e poi «Runway selection rules». *@
     <div class="ed-h3 ed-h3-mini">
@@ -62,28 +66,28 @@
                 </div>
             </div>
             <div class="rule-grid">
-                <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" /></label>
-                <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" /></label>
-                <label>@L["Ape_Surface"]<select @bind="r.Surface"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
-                <label>@L["Airport_Name"]<input @bind="r.Name" placeholder="@L["Ape_RuleNamePh"]" /></label>
-                <label>@L["Ape_Notes"]<input @bind="r.Note" placeholder="@L["Ape_FreeText"]" /></label>
+                <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" @bind:after="Cambiato" /></label>
+                <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" @bind:after="Cambiato" /></label>
+                <label>@L["Ape_Surface"]<select @bind="r.Surface" @bind:after="Cambiato"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
+                <label>@L["Airport_Name"]<input @bind="r.Name" @bind:after="Cambiato" placeholder="@L["Ape_RuleNamePh"]" /></label>
+                <label>@L["Ape_Notes"]<input @bind="r.Note" @bind:after="Cambiato" placeholder="@L["Ape_FreeText"]" /></label>
             </div>
             <details class="rule-adv">
                 <summary>@L["Ape_Advanced"]</summary>
                 <div class="rule-grid" style="margin-top:8px">
-                    <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" /></label>
-                    <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" /></label>
-                    <label>@L["Ape_DayParity"]<select @bind="r.Parity"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
+                    <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" @bind:after="Cambiato" /></label>
+                    <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" @bind:after="Cambiato" /></label>
+                    <label>@L["Ape_DayParity"]<select @bind="r.Parity" @bind:after="Cambiato"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
                     <label>@L["Ape_ValidFrom"]
                         <span style="display:flex;gap:4px">
-                            <select @bind="r.DateFromDay" style="flex:1">@Giorni()</select>
-                            <select @bind="r.DateFromMonth" style="flex:2">@Mesi()</select>
+                            <select @bind="r.DateFromDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
+                            <select @bind="r.DateFromMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
                         </span>
                     </label>
                     <label>@L["Ape_ValidTo"]
                         <span style="display:flex;gap:4px">
-                            <select @bind="r.DateToDay" style="flex:1">@Giorni()</select>
-                            <select @bind="r.DateToMonth" style="flex:2">@Mesi()</select>
+                            <select @bind="r.DateToDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
+                            <select @bind="r.DateToMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
                         </span>
                     </label>
                 </div>
@@ -195,6 +199,11 @@
         for (var m = 1; m <= 12; m++)
             builder.AddMarkupContent(m, $"<option value=\"{m}\">{NomiMesi[m - 1]}</option>");
     };
+
+    /// <summary>Un campo EDITORIALE ha cambiato valore: unico punto d'uscita verso l'host.
+    /// ⚠️ I campi del pannello di prova (`_provaDir`, `_provaKt`, `_provaBagnata`) NON passano di qui: sono
+    /// stato locale di una simulazione, non contenuto da salvare.</summary>
+    private Task Cambiato() => OnChanged.InvokeAsync();
 
     private async Task Aggiungi()
     {

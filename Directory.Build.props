@@ -264,6 +264,22 @@
           ⚠️ Conta doppio su questo hosting: Passenger rigenera il processo ogni ~50 secondi, e un circuito
           che muore mentre si scrive porta via tutto quel che non è ancora in tabella.
 
+        · §BI, terza parte — 🔴 e provando il pacchetto e' saltato fuori il difetto PIU' GRAVE dei tre, che
+          nessuno cercava. In TUTTI E QUATTRO gli editor dello scalo (piste, quote di transizione, regole
+          piste, frequenze) l'avviso «c'e' qualcosa da salvare» era appeso a un `@onchange` sul `div` che
+          avvolge la tabella, e non veniva MAI chiamato. Misurato sul pacchetto pubblicato: il valore entrava
+          nel modello — quindi il `change` del DOM partiva e Blazor lo gestiva sull'input — ma «Salva tutto»
+          restava a (0) e nel registro del database non compariva NESSUNA scrittura.
+          Conseguenze: il contatore mentiva, la guardia del browser non suonava mai quando si lasciava la
+          pagina con del lavoro dentro, e l'auto-salvataggio nuovo sarebbe nato morto. Ora l'aggancio sta su
+          ogni campo EDITORIALE con `@bind:after`.
+          ⚠️ Restano fuori di proposito i campi del pannello di PROVA delle regole (direzione del vento, nodi,
+          pista bagnata): sono una simulazione locale, e marcarli «da salvare» farebbe suonare la guardia su
+          un documento che nessuno ha toccato.
+          ⚠️ E' un difetto che un banco di prova avrebbe preso subito: `EditorAvvisanoQuandoSiScriveTests` con
+          l'aggancio vecchio e' rosso. Non era mai stato scritto perche' sembrava marcatura, non
+          comportamento.
+
       Tre progetti (`Application`, `Infrastructure`, `Ui`) e le FRASI (due `.resx` toccati, quindi il
       satellite inglese entra). NIENTE `wwwroot`: nessun CSS e nessun JS toccati, quindi nemmeno l'indice
       degli asset.

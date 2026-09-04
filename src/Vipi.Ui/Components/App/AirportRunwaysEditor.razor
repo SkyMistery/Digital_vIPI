@@ -16,7 +16,12 @@
    per questo che «+ Pista» resta sotto chiave. *@
 @inject IStringLocalizer<SharedResource> L
 
-<div @onchange="() => OnChanged.InvokeAsync()">
+@* ⚠️ L'aggancio sta su OGNI input (`@bind:after`), NON su un `@onchange` del contenitore. Il contenitore
+   c'era, e non funzionava: misurato il 4 settembre 2026 sul pacchetto pubblicato, scrivendo in una casella
+   TORA. Il valore entrava nel modello — quindi il `change` del DOM era partito e Blazor l'aveva gestito
+   sull'input — ma il gestore del `div` non veniva mai chiamato: «Salva tutto» restava a (0) e nel registro
+   del database non compariva nessuna scrittura. Con l'auto-salvataggio appeso lì, non salvava niente. *@
+<div>
     <div class="ed-h3 ed-h3-mini">
         @if (SourceLocked)
         {
@@ -46,15 +51,15 @@
             {
                 <tr @key="r">
                     <td>
-                        <input style="width:64px" @bind="r.Ident" disabled="@SourceLocked" />
+                        <input style="width:64px" @bind="r.Ident" @bind:after="Cambiato" disabled="@SourceLocked" />
                         @if (Orfana(r)) { <span class="pill warn" title="@L["Ape_RwMissingRowTitle"]">@L["Ape_RwMissingRow"]</span> }
                     </td>
                     <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
-                    <td><input style="width:80px" @bind="r.Tora" /></td>
-                    <td><input style="width:80px" @bind="r.Lda" /></td>
-                    <td><input style="width:150px" @bind="r.App" /></td>
-                    <td><input style="width:70px" @bind="r.Patterns" /></td>
-                    <td><input style="width:70px" @bind="r.Circling" /></td>
+                    <td><input style="width:80px" @bind="r.Tora" @bind:after="Cambiato" /></td>
+                    <td><input style="width:80px" @bind="r.Lda" @bind:after="Cambiato" /></td>
+                    <td><input style="width:150px" @bind="r.App" @bind:after="Cambiato" /></td>
+                    <td><input style="width:70px" @bind="r.Patterns" @bind:after="Cambiato" /></td>
+                    <td><input style="width:70px" @bind="r.Circling" @bind:after="Cambiato" /></td>
                     <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
                 </tr>
             }
@@ -87,6 +92,10 @@
 
     /// <summary>Conferma prima di togliere una pista; null = non si chiede.</summary>
     [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
+
+    /// <summary>Una casella ha cambiato valore. Unico punto d'uscita del componente: ci arrivano sia le
+    /// modifiche alle celle sia l'aggiunta e la rimozione di una riga.</summary>
+    private Task Cambiato() => OnChanged.InvokeAsync();
 
     private async Task Aggiungi()
     {
