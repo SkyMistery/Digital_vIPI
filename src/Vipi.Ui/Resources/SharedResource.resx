@@ -3273,4 +3273,8 @@
   <data name="TrDoc_RoundManual" xml:space="preserve"><value>chiesto a mano</value></data>
   <data name="TrDoc_RoundAuto" xml:space="preserve"><value>automatico</value></data>
   <data name="Rel_TrFreeze" xml:space="preserve"><value>{0} frasi di questo documento non sono ancora tradotte. La release NON le congela: si leggeranno tradotte appena passa il giro, senza ripubblicare.</value></data>
+  <data name="TrEd_Now_DoneOne" xml:space="preserve"><value>Fatto: una frase tradotta da {0}.</value></data>
+  <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ Una è tornata rotta e non è stata salvata: la rispedisce il prossimo giro.</value></data>
+  <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
+  <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
 </root>

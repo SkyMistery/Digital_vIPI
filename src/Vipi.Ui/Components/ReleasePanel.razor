@@ -154,7 +154,11 @@
         giro sta aspettando per niente. *@
     @if (_traduzione is { } tr && tr.Bozza.Mancanti > 0)
     {
-        <p class="help">@string.Format(L["Rel_TrFreeze"].Value, tr.Bozza.Mancanti)</p>
+        <p class="help">
+            @(tr.Bozza.Mancanti == 1
+                ? L["Rel_TrFreezeOne"].Value
+                : string.Format(L["Rel_TrFreeze"].Value, tr.Bozza.Mancanti))
+        </p>
     }
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">

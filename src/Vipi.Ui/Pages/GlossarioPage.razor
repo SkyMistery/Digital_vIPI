@@ -493,7 +493,10 @@
                 server: in produzione voleva dire aprire i file di diagnostica per sapere se la traduzione
                 stesse andando avanti. E' il pezzo piu' economico di tutta la carta. *@
             <p class="help">
-                <b>@L["TrDoc_RoundTitle"]:</b>
+                @* ⚠️ Lo spazio fra un'espressione e un `@@if` lo mangia il compilatore Razor: serve un
+                   carattere vero, o a schermo si legge «Il giro:Ultimo giro…». Stessa riga già pagata
+                   nella testata di /versions. *@
+                <b>@L["TrDoc_RoundTitle"]:</b>&nbsp;
                 @if (_attesa is null)
                 {
                     <span>…</span>

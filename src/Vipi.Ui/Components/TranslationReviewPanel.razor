@@ -320,6 +320,11 @@
         var esiti = Vipi.Application.Translation.EsitoDellaPressione.Fatto;
         var testo = r.Esito switch
         {
+            // ⚠️ Singolare e plurale, e non e' pignoleria: «1 frasi tradotte» e' il segno che il numero non
+            // lo guarda nessuno — la stessa lezione di «vale per 1 documenti» (§Q19). E una traduzione sola
+            // e' il caso NORMALE del tasto: si preme dopo aver scritto una frase.
+            var e when e == esiti && r.Tradotti == 1 =>
+                string.Format(L["TrEd_Now_DoneOne"].Value, r.Motore ?? "?"),
             var e when e == esiti => string.Format(L["TrEd_Now_Done"].Value, r.Tradotti, r.Motore ?? "?"),
             Vipi.Application.Translation.EsitoDellaPressione.NienteDaFare => L["TrEd_Now_Nothing"].Value,
             Vipi.Application.Translation.EsitoDellaPressione.Bloccata => L["TrEd_Now_Locked"].Value,
@@ -331,9 +336,20 @@
             _ => string.Format(L["TrEd_Now_Down"].Value, r.Dettaglio ?? ""),
         };
 
-        return r.Scartati > 0
-            ? testo + " " + string.Format(L["TrEd_Now_Broken"].Value, r.Scartati)
-            : testo;
+        // ⚠️ E quel che il protettore ha rifiutato si dice QUI, dove serve: se il giro non ha tradotto niente
+        // e qualcosa e' stato rifiutato, senza questa riga chi preme rivedrebbe «fatto: 0» e ripremerebbe
+        // all'infinito su frasi che nessuna macchina prendera' mai.
+        if (r.AMano > 0)
+            testo += " " + (r.AMano == 1
+                ? L["TrEd_Wait_ByHandOne"].Value
+                : string.Format(L["TrEd_Wait_ByHand"].Value, r.AMano));
+
+        return r.Scartati switch
+        {
+            0 => testo,
+            1 => testo + " " + L["TrEd_Now_BrokenOne"].Value,
+            _ => testo + " " + string.Format(L["TrEd_Now_Broken"].Value, r.Scartati),
+        };
     }
 
     private async Task SalvaAsync(RigaDaRivedere r)
