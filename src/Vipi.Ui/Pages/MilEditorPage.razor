@@ -1,9 +1,10 @@
 ﻿@page "/services/vsop/{Acc}/mil/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz
 @inject IDocRoutesRegistry DocRoutes
-@inject IDocumentUnionService Unioni
 @inject IStringLocalizer<SharedResource> L
 
 @* La pagina dell'editor di un vSOP militare: qui restano l'indirizzo, i MEMBRI dell'unione (se questo
@@ -59,6 +60,12 @@
     /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina: alzarla costringe
     /// <c>ReleasePanel</c> a rileggere i suoi bersagli.</summary>
     private int _unioneRev;
+
+    /// <inheritdoc cref="AeroportoEditorPage.Unioni"/>
+    private IDocumentUnionService Unioni = default!;
+
+    protected override void OnInitialized() =>
+        Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
 
     protected override async Task OnParametersSetAsync() => await LeggiUnioneAsync();
 

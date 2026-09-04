@@ -1,9 +1,10 @@
 ﻿@page "/services/vsop/{Acc}/airports/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz
 @inject IDocRoutesRegistry DocRoutes
-@inject IDocumentUnionService Unioni
 @inject IStringLocalizer<SharedResource> L
 
 @* La pagina dell'editor di una vIPI d'aeroporto: qui restano l'indirizzo, i MEMBRI dell'unione (se questo
@@ -60,6 +61,26 @@
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? Icao { get; set; }
+
+    /// <summary>
+    /// Il servizio dell'unione, risolto dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>) e
+    /// <b>non</b> da quello del circuito.
+    ///
+    /// <para>🔴 Preso dal circuito correva contro il caricamento dell'editor figlio: sono due flussi
+    /// asincroni che partono insieme — <c>OnParametersSetAsync</c> della pagina e
+    /// <c>ParametriAsync → LoadAsyncCore</c> del componente — e il <c>DbContext</c> del circuito è
+    /// <b>uno solo</b>. Misurato in produzione il 4 settembre 2026: tre gruppi di
+    /// «A second operation was started on this context instance» (08:15, 10:16, 12:06), con la diagnostica
+    /// che nominava per esteso l'altro flusso.</para>
+    ///
+    /// <para>⚠️ La coda dell'editor (<c>DocumentEditorShell.InFilaAsync</c>) qui non serviva a niente: sta
+    /// sul COMPONENTE, e quando la pagina legge, <c>_editor</c> è ancora <c>null</c> — il riferimento lo
+    /// scrive il primo render, che deve ancora avvenire.</para>
+    /// </summary>
+    private IDocumentUnionService Unioni = default!;
+
+    protected override void OnInitialized() =>
+        Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
 
     private AirportSectionsEditor? _editor;
     private UnionMembersEditor? _membri;

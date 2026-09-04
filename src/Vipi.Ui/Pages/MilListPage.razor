@@ -1,7 +1,8 @@
 ﻿@page "/services/vsop/mil"
 @layout SopLayout
 @rendermode InteractiveServer
-@inject IMilitaryDocumentService Militari
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
@@ -152,6 +153,21 @@
     private bool _busy;
     private string? _msg;
     private string? _errore;
+
+    /// <summary>
+    /// L'elenco dei vSOP militari, dallo scope PROPRIO di questa pagina e <b>non</b> da quello del circuito.
+    ///
+    /// <para>🔴 Dal circuito correva contro quel che era rimasto in volo: misurato in produzione il
+    /// 4 settembre 2026 alle 07:22, «A second operation was started on this context instance» dentro
+    /// <c>CaricaAsync</c>, con una query su <c>AirportSectors</c> ancora aperta sullo stesso
+    /// <c>DbContext</c> — cioè il lavoro della pagina PRECEDENTE, che non era ancora finito quando questa
+    /// ha cominciato a caricare. Su un circuito Blazor lo scope vive quanto la sessione, non quanto la
+    /// pagina, e cambiare pagina non aspetta nessuno.</para>
+    /// </summary>
+    private IMilitaryDocumentService Militari = default!;
+
+    protected override void OnInitialized() =>
+        Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA
     // SOLA, e questa pagina si ricarica dopo aver creato un documento.
