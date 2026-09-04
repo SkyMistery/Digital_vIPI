@@ -1,3 +1,4 @@
+using AngleSharp.Dom;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -9,12 +10,16 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
-/// Il menu «Sposta in…» nell'intestazione di sezione (carta 2026-09-04): c'è per le sezioni <b>libere</b>, non
-/// per quelle di catalogo, e quel che chiede al servizio è esattamente la destinazione scelta.
+/// La tendina «Sposta in…» nell'intestazione di sezione (carta 2026-09-04): c'è per le sezioni <b>libere</b>,
+/// non per quelle di catalogo, e quel che chiede al servizio è esattamente la destinazione scelta.
 ///
 /// <para>⚠️ Un comando che si vede e non fa niente è peggio di un comando che non c'è: qui si prova la
-/// catena intera — il tasto compare, il clic chiama <c>MoveSectionToParentAsync</c> con quel padre, e la
+/// catena intera — il comando compare, la scelta chiama <c>MoveSectionToParentAsync</c> con quel padre, e la
 /// mossa passa dal <c>Run</c> dell'host (che è chi mostra errori e stato di salvataggio).</para>
+///
+/// <para>⚠️ Era un menu in linea, ed è diventato una TENDINA il 4 settembre 2026: nella riga dei comandi —
+/// che è `nowrap` — il menu disegnato da noi usciva dalla card, e aperto ci finivano fuori tutte e trenta le
+/// destinazioni. Il pannello di una tendina di sistema non lo ritaglia nessun `overflow`.</para>
 /// </summary>
 public class MenuSpostaInTests : TestContext
 {
@@ -82,32 +87,36 @@ public class MenuSpostaInTests : TestContext
             .Add(x => x.IsMandatory, (Func<EditableSection, bool>)(s => !SectionKeys.IsCustom(s.SectionKey)))
             .Add(x => x.Run, (Func<Func<Task>, Task>)(azione => azione())));
 
+    /// <summary>La tendina della FIGLIA (id 21): le sue destinazioni sono il primo livello e la sezione di
+    /// catalogo — è l'unica che offre «primo livello», perché la radice libera lì ci sta già.</summary>
+    private static IElement TendinaDellaFiglia(IRenderedComponent<DocumentSectionsEditor> cut) =>
+        cut.FindAll("select.dse-move").First(s => s.TextContent.Contains("Dse_MoveToTop"));
+
     [Fact]
-    public void Il_menu_c_e_per_una_sezione_libera_e_non_per_una_di_catalogo()
+    public void La_tendina_c_e_per_una_sezione_libera_e_non_per_una_di_catalogo()
     {
         var cut = Editor();
 
-        // Un menu per la radice libera e uno per la sua figlia: due, non tre — la sezione di catalogo non l'ha.
-        Assert.Equal(2, cut.FindAll("details.blk-add > summary[title='Dse_MoveToTitle']").Count);
+        // Una per la radice libera e una per la sua figlia: due, non tre — la sezione di catalogo non l'ha.
+        Assert.Equal(2, cut.FindAll("select.dse-move").Count);
     }
 
     [Fact]
-    public void Fuori_dalla_modifica_il_menu_non_c_e()
+    public void Fuori_dalla_modifica_la_tendina_non_c_e()
     {
-        Assert.Empty(Editor(inModifica: false).FindAll("summary[title='Dse_MoveToTitle']"));
+        Assert.Empty(Editor(inModifica: false).FindAll("select.dse-move"));
     }
 
-    /// <summary>Il clic chiede ESATTAMENTE la destinazione scelta, e in coda al gruppo nuovo.</summary>
+    /// <summary>La scelta chiede ESATTAMENTE la destinazione, e in coda al gruppo nuovo.</summary>
     [Fact]
-    public void Il_clic_chiede_la_destinazione_scelta()
+    public void La_scelta_chiede_la_destinazione()
     {
         var cut = Editor();
+        var tendina = TendinaDellaFiglia(cut);
+        var primoLivello = tendina.QuerySelectorAll("option")
+            .First(o => o.TextContent.Contains("Dse_MoveToTop")).GetAttribute("value");
 
-        // Il menu della FIGLIA (id 21): le sue destinazioni sono il primo livello e la sezione di catalogo.
-        var menu = cut.FindAll("details.blk-add").First(d => d.QuerySelector("summary[title='Dse_MoveToTitle']") is not null
-                                                             && d.TextContent.Contains("Dse_MoveToTop"));
-        var voce = menu.QuerySelectorAll("button").First(b => b.TextContent.Trim() == "Dse_MoveToTop");
-        voce.Click();
+        tendina.Change(primoLivello);
 
         var mossa = Assert.Single(_spia.Mosse);
         Assert.Equal(21, mossa.Section);
@@ -115,16 +124,33 @@ public class MenuSpostaInTests : TestContext
         Assert.Null(mossa.Before);    // in coda: la posizione si sceglie dopo, con le frecce
     }
 
-    /// <summary>Una sezione non offre sé stessa né il proprio padre: sarebbero due comandi che non fanno nulla.</summary>
+    /// <summary>⚠️ Il segnaposto non è una destinazione: sceglierlo non deve chiedere niente.</summary>
     [Fact]
-    public void Il_menu_non_offre_il_padre_attuale()
+    public void Il_segnaposto_non_muove_niente()
     {
         var cut = Editor();
-        var menuFiglia = cut.FindAll("details.blk-add")
-            .First(d => d.QuerySelector("summary[title='Dse_MoveToTitle']") is not null
-                        && d.TextContent.Contains("Dse_MoveToTop"));
 
-        Assert.DoesNotContain("Sezione libera", menuFiglia.TextContent);
-        Assert.Contains("Frequenze", menuFiglia.TextContent);
+        TendinaDellaFiglia(cut).Change("");
+
+        Assert.Empty(_spia.Mosse);
+    }
+
+    /// <summary>Una sezione non offre sé stessa né il proprio padre: sarebbero due comandi che non fanno nulla.</summary>
+    [Fact]
+    public void La_tendina_non_offre_il_padre_attuale()
+    {
+        var tendina = TendinaDellaFiglia(Editor());
+
+        Assert.DoesNotContain("Sezione libera", tendina.TextContent);
+        Assert.Contains("Frequenze", tendina.TextContent);
+    }
+
+    /// <summary>⚠️ In modifica la riga dei comandi va a capo: senza, a 1280 il comando in coda esce dalla
+    /// card e non si può premere. È una classe, e la classe si vede.</summary>
+    [Fact]
+    public void In_modifica_la_riga_dei_comandi_va_a_capo()
+    {
+        Assert.All(Editor().FindAll(".dse-head"), h => Assert.Contains("editing", h.ClassName ?? ""));
+        Assert.All(Editor(inModifica: false).FindAll(".dse-head"), h => Assert.DoesNotContain("editing", h.ClassName ?? ""));
     }
 }

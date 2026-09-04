@@ -212,3 +212,36 @@ appartiene, invece di ricopiarlo.
 
 Zero errori di console in tutte le prove.
 
+## 8. Seguito, stessa sera: il comando c'era e non si poteva premere
+
+Segnalazione del committente: *«move to another section: o non va, oppure il fatto che su questo schermo non
+si vede tutto il tasto dà problemi»*. **Aveva ragione, ed era la resa, non il motore.**
+
+Misurato a schermo sull'editor militare (32-33 destinazioni, il caso peggiore):
+
+| | 1500px | 1280px |
+|---|---|---|
+| la riga dei comandi sfora di | 0 / 0 | **68px** (radice) e **197px** (sotto-sezione) |
+| il tasto sta dentro la card | sì | **no** |
+| destinazioni fuori dalla card, a menu aperto | 0 su una radice, **27 su 33** su una sotto-sezione | **32 su 32** e **33 su 33** |
+
+Due difetti, uno mio e uno che il mio ha portato a galla:
+
+1. 🔴 **Il menu in linea copiato da «+ Blocco» non regge nella riga dei comandi.** Là funziona perché sta nel
+   **corpo** della sezione, che va a capo; la riga dei comandi è `flex-wrap:nowrap`, quindi il menu la
+   allungava e usciva — e su una sotto-sezione lo tagliava `.coord-sub{overflow:hidden}`, esattamente la
+   trappola scritta accanto a «+ Blocco». ⚠️ **Un commento che spiega perché una scelta funziona LÌ non è il
+   permesso di rifarla altrove**: le condizioni erano l'altra metà della frase, e non le ho rilette.
+   **Cura**: una **tendina** di sistema. L'elenco arriva a trenta voci, e il pannello di una `<select>` non lo
+   ritaglia nessun `overflow` — sul telefono diventa la rotella nativa. Il rientro nelle voci si fa con spazi
+   unificatori (una tendina comprime quelli normali). ⚠️ E `value=""` con riazzeramento: è un **comando**, non
+   uno stato — la stessa lezione di §BF, pagata lo stesso giorno.
+2. **La riga dei comandi non ci stava già da prima**, a 1280: sette-otto comandi in `nowrap` senza scorrimento.
+   Ora va a capo **solo in modifica** (`.dse-head.editing`): fuori dalla modifica resta `nowrap`, ed è lì che
+   vale la ragione per cui fu scelto — una sezione chiusa alta 92px invece di 50, per dieci sezioni.
+
+**Dopo**: a 1280 e a 1500 la riga non sfora più (0 e 0), la tendina sta dentro la card, e tutte le 32-33
+destinazioni sono raggiungibili. La testata passa da 38 a 72px **solo quando non ci sta**: una riga in più si
+legge, un tasto fuori dalla card non si preme. Mossa vera dalla tendina — «└ Ground procedures» — e al
+ricarico la sezione è là. Sei test bUnit aggiornati, suite UI 1248 verde, build Release verde.
+

@@ -3653,6 +3653,16 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
    tutto», cioe' proprio quando si e' chiesto di non vederle.
    Il titolo si stringe (e tronca) prima dei comandi: e' lui l'elemento elastico, gli altri sono nomi. */
 .ed-layout .dse-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap;min-width:0}
+/* ⚠️ In MODIFICA la riga va a capo. Fuori dalla modifica resta `nowrap`, ed e' li' che vale la ragione per
+   cui fu scelto: una sezione CHIUSA alta 92px invece di 50, moltiplicata per dieci sezioni. In modifica i
+   comandi sono sette-otto e a 1280 non ci stanno — misurato il 4 settembre 2026: la riga sforava di 68px su
+   una radice e di 197 su una sotto-sezione, e il tasto in coda USCIVA dalla card. Una riga in piu' si legge;
+   un tasto fuori dalla card non si preme. */
+.ed-layout .dse-head.editing{flex-wrap:wrap}
+/* La tendina «Sposta in…»: larga quanto basta a leggersi, non quanto il titolo piu' lungo del documento.
+   ⚠️ E' una TENDINA e non un menu disegnato da noi perche' l'elenco arriva a trenta voci e il pannello di
+   sistema non lo ritaglia nessun `overflow` (vedi il commento accanto in DocumentSectionsEditor). */
+.ed-layout .dse-head>.dse-move{flex:none;max-width:210px;font-size:12.5px;padding:3px 6px}
 .ed-layout .dse-head>h3,.ed-layout .dse-head>h4{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;font-size:19px}
 .ed-layout .dse-head>h4{font-size:16px}

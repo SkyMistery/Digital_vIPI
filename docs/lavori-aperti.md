@@ -7829,3 +7829,20 @@ tre diventano rossi. Guidato a schermo su copia del DB (LIBG, sezione Nominativi
 **vuota** compare «That document has no rows in this table». Zero errori di console. Build Release verde,
 suite UI 1246 e Application 2145 verdi.
 
+### ⚠️ Seguito di §BE (stessa sera): «Sposta in…» c'era e non si poteva premere
+
+Il committente: *«o non va, oppure il fatto che su questo schermo non si vede tutto il tasto dà problemi»*.
+Misurato: a **1280** la riga dei comandi sforava di 68px (197 su una sotto-sezione), il tasto **usciva dalla
+card**, e a menu aperto finivano fuori **tutte** le 32-33 destinazioni; a 1500 una sotto-sezione ne perdeva
+27 su 33, tagliate da `.coord-sub{overflow:hidden}`.
+
+🔴 **Il menu in linea di «+ Blocco» funziona LÌ perché sta nel corpo della sezione, che va a capo.** La riga
+dei comandi è `nowrap`: un commento che spiega perché una scelta regge in un posto non è il permesso di
+rifarla altrove. Ora è una **tendina** di sistema — trenta voci, e nessun `overflow` ritaglia il pannello di
+una `<select>` — con `value=""` riazzerato dopo la mossa (è un comando, non uno stato: la stessa lezione di
+§BF). E la riga dei comandi va a capo **solo in modifica**, dove i comandi sono otto; in lettura resta
+`nowrap`, che è dove valeva la ragione originale (una sezione chiusa alta 92px invece di 50).
+
+Dopo: sforo 0 a 1280 e a 1500, tendina dentro la card, tutte le destinazioni raggiungibili, mossa vera
+provata a schermo. Suite UI 1248 verde, build Release verde.
+

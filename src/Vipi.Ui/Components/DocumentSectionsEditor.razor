@@ -205,9 +205,26 @@ else
         await OnChanged.InvokeAsync();
     });
 
+    /// <summary>Il valore della tendina che significa «al primo livello dell'albero mostrato»: per la vIPI
+    /// ACC è il blocco, non la radice del documento. Una parola e non la stringa vuota, che è il segnaposto.</summary>
+    private const string RadiceScelta = "radice";
+
+    /// <summary>La voce della tendina: il titolo rientrato di quanto è profonda la destinazione.
+    /// <para>⚠️ Con spazi UNIFICATORI: una tendina di sistema comprime gli spazi normali, e senza rientro
+    /// trenta destinazioni sono un elenco piatto in cui non si vede chi sta dentro chi.</para></summary>
+    private static string Rientro(SectionMoveTarget d) =>
+        d.Indent <= 0 ? d.Label : new string(' ', d.Indent * 3) + "└ " + d.Label;
+
     /// <summary>Sposta una sezione libera in un altro gruppo, IN CODA: la posizione dentro il gruppo nuovo si
     /// sceglie dopo, con le frecce o trascinando — questo comando risponde alla domanda «dove sta», non
     /// «in che ordine».</summary>
+    private Task MoveToParent(int sectionId, string? scelta)
+    {
+        if (string.IsNullOrEmpty(scelta)) return Task.CompletedTask;   // il segnaposto non è una destinazione
+        var padre = scelta == RadiceScelta ? (int?)null : int.Parse(scelta, System.Globalization.CultureInfo.InvariantCulture);
+        return MoveToParent(sectionId, padre);
+    }
+
     private Task MoveToParent(int sectionId, int? parentId) => Run(async () =>
     {
         await Editing.MoveSectionToParentAsync(sectionId, parentId, null);
@@ -348,7 +365,11 @@ else
         @* ⚠️ `.dse-head` e non uno stile in linea: la riga andava a capo (titolo + fino a cinque comandi) e
            una sezione CHIUSA era alta 92px invece di ~50 — su un documento da dieci sezioni sono 900px di
            sole intestazioni, che si pagano anche quando si e' compresso tutto per non vederle. *@
-        <div class="dse-head" @onclick:preventDefault="true" @onclick:stopPropagation="true">
+        @* ⚠️ `editing`: solo in modifica la riga può andare a capo. Fuori dalla modifica resta `nowrap` — è
+           lì che vale la ragione per cui fu scelto (una sezione CHIUSA alta 92px invece di 50, moltiplicata
+           per dieci sezioni). In modifica i comandi sono sette-otto e a 1280 non ci stanno: meglio una riga
+           in più che un tasto che esce dalla card e non si può premere. *@
+        <div class="dse-head @(IsEditing ? "editing" : null)" @onclick:preventDefault="true" @onclick:stopPropagation="true">
             @if (IsEditing && !mand)
             {
                 <input class="app-in" style="font-weight:700;flex:1;max-width:420px" value="@s.Title"
@@ -444,16 +465,27 @@ else
                     RootSections ?? Doc.Sections, s, AddParentId, L["Dse_MoveToTop"].Value, Titolo);
                 @if (destinazioni.Count > 0)
                 {
-                    <details class="blk-add" @key="@($"mv-{s.Id}")">
-                        <summary class="btn ghost" title="@L["Dse_MoveToTitle"]">⇵ @L["Dse_MoveTo"]</summary>
-                        <div class="blk-add-menu">
-                            @foreach (var d in destinazioni)
-                            {
-                                <button class="btn ghost" style="@(d.Indent > 0 ? $"padding-left:{8 + d.Indent * 10}px" : null)"
-                                        @onclick="() => MoveToParent(s.Id, d.ParentId)">@d.Label</button>
-                            }
-                        </div>
-                    </details>
+                    @* ⚠️ Una TENDINA, e non il menu in linea di «+ Blocco». Quel menu funziona là perché sta nel
+                       CORPO della sezione, che va a capo; qui sta nella riga dei comandi, che è `nowrap` — e
+                       misurato a 1280 il risultato era: la riga sfora di 68px (197 su una sotto-sezione), il
+                       tasto esce dalla card, e aperto finivano fuori TUTTE le 32 destinazioni. Su una
+                       sotto-sezione le perdeva anche a 1500, 27 su 33, tagliate da `.coord-sub{overflow:hidden}`
+                       — la stessa trappola già scritta accanto a «+ Blocco». (4 settembre 2026)
+
+                       L'elenco delle destinazioni può essere lungo trenta voci: un menu che le disegna tutte
+                       dentro il documento è un muro, la tendina di sistema le porta in un pannello del BROWSER
+                       che nessun `overflow` ritaglia — e che sul telefono diventa la sua rotella nativa.
+
+                       ⚠️ `value=""` e riazzeramento dopo la mossa: è un COMANDO, non uno stato. La stessa
+                       lezione della tendina «Da un altro documento…» (§BF), pagata lo stesso giorno. *@
+                    <select class="app-in dse-move" value="" aria-label="@L["Dse_MoveTo"]"
+                            title="@L["Dse_MoveToTitle"]" @onchange="e => MoveToParent(s.Id, e.Value?.ToString())">
+                        <option value="" selected>⇵ @L["Dse_MoveTo"]</option>
+                        @foreach (var d in destinazioni)
+                        {
+                            <option value="@(d.ParentId?.ToString() ?? RadiceScelta)">@Rientro(d)</option>
+                        }
+                    </select>
                 }
             }
         </div>
