@@ -155,6 +155,7 @@ public static class DependencyInjection
         // L'avviso a chi pubblica un'area non ancora in vigore, e l'interruttore che la forza.
         services.AddScoped<IShapeGateNoticeService, ShapeGateNoticeService>();
         services.AddScoped<IAirportSectorService, AirportSectorService>();
+        services.AddScoped<IAirportLockGuard, AirportLockGuard>();
         services.AddScoped<IAgreementService, AgreementService>();
         services.AddScoped<ISearchService, SearchService>();
         services.AddScoped<IChangesService, ChangesService>();

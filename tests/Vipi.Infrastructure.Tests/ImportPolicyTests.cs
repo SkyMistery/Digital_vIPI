@@ -70,7 +70,7 @@ public class ImportPolicyTests : IAsyncLifetime
         var authz = new EditAuthorizationService(provider,
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         return new AirportEditingService(new EfAirportRepository(_db, new EfMediaMaintenance(_db)), authz,
-            dir ?? new FakeDirectory(), det ?? new FakeDetails(), _store);
+            dir ?? new FakeDirectory(), det ?? new FakeDetails(), _store, LockAperto.Instance);
     }
 
     [Fact]

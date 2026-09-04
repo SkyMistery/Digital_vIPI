@@ -49,7 +49,8 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
     private EfAirportRepository Repo() => new(_db, new EfMediaMaintenance(_db));
 
     private AirportEditingService Civile() =>
-        new(Repo(), new AllowAuthz(), new NienteDirectory(), new NienteDetails(), new EfImportPolicyStore(_db));
+        new(Repo(), new AllowAuthz(), new NienteDirectory(), new NienteDetails(), new EfImportPolicyStore(_db),
+            LockAperto.Instance);
 
     /// <summary>La sorgente esterna non serve a queste regole: EnsureDocumentAsync non la interroga. Due
     /// finti vuoti valgono più di un mock, che qui direbbe soltanto che non è stato chiamato.</summary>
