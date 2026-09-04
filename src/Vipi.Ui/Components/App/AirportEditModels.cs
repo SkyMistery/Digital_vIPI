@@ -36,7 +36,9 @@ public sealed class RuleEdit
     public int? MaxCross;                                      // vento al traverso massimo (kt); null = nessun vincolo
     public string Surface = "any";                             // "any"|"dry"|"wet"
     public string? Note;
-    public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria UTC (avanzate)
+    // ⚠️ LOCALE, non UTC: gli orari AIP si scrivono in ora italiana (migrazione RenameRunwayRuleTimeToLocal).
+    // Se TimeTo <= TimeFrom la finestra scavalca la mezzanotte e appartiene al giorno in cui è cominciata.
+    public TimeOnly? TimeFrom; public TimeOnly? TimeTo;        // finestra oraria locale (avanzate)
     public int DaysMask;                                       // bit0=Lun … bit6=Dom; 0 = tutti (avanzate)
     public string Parity = "";                                 // ""|"even"|"odd" (avanzate)
     public int? DateFromDay; public int? DateFromMonth;        // finestra stagionale ricorrente: giorno+mese, nessun anno (avanzate)

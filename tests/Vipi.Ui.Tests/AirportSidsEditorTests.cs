@@ -134,6 +134,45 @@ public class AirportSidsEditorTests : TestContext
     // Lo stato di vista è del componente, e si azzera quando i dati cambiano
     // ---------------------------------------------------------------------------------------------------
 
+    [Fact] // cambiare pista cambia le righe a schermo: la selezione non puo' restare quella di prima
+    public void Cambiare_il_chip_della_pista_lascia_cadere_la_selezione()
+    {
+        var cut = Rendi(importate: new List<ImportedSidEdit>
+        {
+            Imp(1, "ALAXI", "ALAXI 5A", "16L"),
+            Imp(2, "TAQ", "TAQ 1X", "16L"),
+            Imp(3, "ELKAP", "ELKAP 3B", "34R"),
+        });
+
+        // Scelgo tutto: tre righe accese.
+        cut.FindAll("button.btn.ghost").First(b => b.TextContent.Contains("Ape_SidSelectAll")).Click();
+        Assert.Equal(3, cut.FindAll("tr.row-sel").Count);
+
+        // Un clic sul chip «34R» e la vista diventa un'altra: la selezione non la segue.
+        cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("34R")).Click();
+        Assert.Single(cut.FindAll("table.sid-imported tbody tr"));
+        Assert.Empty(cut.FindAll("tr.row-sel"));
+    }
+
+    [Fact] // ⚠️ il lavoro NON salvato invece resta: buttarlo via cambiando vista e' il difetto pagato su LIPR
+    public void Cambiare_il_chip_della_pista_non_butta_via_le_righe_toccate()
+    {
+        var conteggi = new List<int>();
+        var cut = Rendi(importate: new List<ImportedSidEdit>
+        {
+            Imp(1, "ALAXI", "ALAXI 5A", "16L"),
+            Imp(2, "ELKAP", "ELKAP 3B", "34R"),
+        }, suNonSalvate: conteggi.Add);
+
+        // Tocco la condizione della prima riga: da qui in poi e' una riga non salvata.
+        cut.FindAll("input.in-cond").First().Change("solo H24");
+        Assert.Equal(1, conteggi.Last());
+
+        cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("34R")).Click();
+        Assert.Equal(1, conteggi.Last());
+        Assert.Empty(cut.FindAll("tr.row-sel"));
+    }
+
     [Fact]
     public void Quando_la_pagina_ricarica_la_selezione_si_azzera()
     {

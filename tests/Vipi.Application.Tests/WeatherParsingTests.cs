@@ -268,6 +268,66 @@ public class WeatherParsingTests
         Assert.Null(RunwaySuggestion.EvaluateRules(rules, 160, 12, false, new DateTime(2026, 6, 1, 12, 0, 0, DateTimeKind.Utc)));
     }
 
+    // --- Il GIORNO OPERATIVO: una finestra che scavalca mezzanotte appartiene al giorno in cui è COMINCIATA ---
+    // ⚠️ 22 giugno 2026 è un lunedì, e in giugno l'Italia è CEST (UTC+2): l'ora locale è l'UTC più due.
+    private static DateTime Utc(int giorno, int oraLocale, int minuti = 0) =>
+        new DateTime(2026, 6, giorno, oraLocale - 2, minuti, 0, DateTimeKind.Utc);
+
+    private static RunwayRuleEval Notturna(int giorniMask, DateParity parity = DateParity.Any) =>
+        new("16", "16", "notte", null, 5, null, RunwaySurface.Any,
+            TimeFromLocalMin: 22 * 60, TimeToLocalMin: 5 * 60,
+            DaysOfWeekMask: giorniMask, DateParity: parity);
+
+    [Fact] // «lunedì 22:00→05:00» vale fino alle 05:00 di MARTEDÌ: la coda dopo mezzanotte è ancora lunedì
+    public void Rule_Overnight_Window_Keeps_The_Starting_Day()
+    {
+        var lunedi = new[] { Notturna(1 << 0) };   // bit0 = lunedì
+
+        // Lunedì 23:00 e martedì 03:00 sono lo STESSO turno di notte: si applica in tutti e due.
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(lunedi, 160, 12, false, Utc(22, 23)));
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(lunedi, 160, 12, false, Utc(23, 3)));
+
+        // Fuori dal turno non si applica: lunedì mattina è prima, martedì sera è la notte DOPO.
+        Assert.Null(RunwaySuggestion.EvaluateRules(lunedi, 160, 12, false, Utc(22, 6)));
+        Assert.Null(RunwaySuggestion.EvaluateRules(lunedi, 160, 12, false, Utc(23, 23)));
+    }
+
+    [Fact] // il rovescio: la notte di martedì NON comincia alle 00:00 di martedì
+    public void Rule_Overnight_Window_Does_Not_Start_At_Midnight()
+    {
+        var martedi = new[] { Notturna(1 << 1) };   // bit1 = martedì
+
+        Assert.Null(RunwaySuggestion.EvaluateRules(martedi, 160, 12, false, Utc(23, 3)));      // è la notte di lunedì
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(martedi, 160, 12, false, Utc(23, 23)));  // questa sì
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(martedi, 160, 12, false, Utc(24, 3)));   // e la sua coda
+    }
+
+    [Fact] // lo scalino vale anche per la PARITÀ: «le notti dei giorni dispari» non si spezza a mezzanotte
+    public void Rule_Overnight_Window_Shifts_Parity_Too()
+    {
+        var dispari = new[] { Notturna(0, DateParity.Odd) };
+
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(dispari, 160, 12, false, Utc(23, 23)));  // 23 = dispari
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(dispari, 160, 12, false, Utc(24, 3)));   // ancora la notte del 23
+        Assert.Null(RunwaySuggestion.EvaluateRules(dispari, 160, 12, false, Utc(24, 23)));     // 24 = pari
+    }
+
+    [Fact] // ⚠️ senza scavalco NIENTE cambia: il giorno operativo è quello del calendario
+    public void Rule_Non_Overnight_Window_Uses_The_Calendar_Day()
+    {
+        var diurna = new[]
+        {
+            new RunwayRuleEval("16", "16", "giorno", null, 5, null, RunwaySurface.Any,
+                TimeFromLocalMin: 6 * 60, TimeToLocalMin: 22 * 60, DaysOfWeekMask: 1 << 0),
+        };
+        Assert.NotNull(RunwaySuggestion.EvaluateRules(diurna, 160, 12, false, Utc(22, 12)));   // lunedì mezzogiorno
+        Assert.Null(RunwaySuggestion.EvaluateRules(diurna, 160, 12, false, Utc(23, 12)));      // martedì: no
+
+        // E una regola SENZA finestra oraria resta legata al giorno di calendario, anche a notte fonda.
+        var senzaOrario = new[] { Rule("16", "16") with { DaysOfWeekMask = 1 << 0 } };
+        Assert.Null(RunwaySuggestion.EvaluateRules(senzaOrario, 160, 12, false, Utc(23, 3)));
+    }
+
     [Fact] // fallback headwind: piste parallele → arrivi/partenze su estremità distinte
     public void Suggest_Splits_Parallel_Dep_Arr()
     {

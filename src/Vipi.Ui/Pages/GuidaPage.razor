@@ -641,7 +641,12 @@
               <ul>
                 <li><b>METAR e TAF</b> — meteo dal vivo: non c'è nulla da compilare, e non si può congelare a una
                     release (un METAR di un ciclo fa sarebbe meteo scaduto). Si può però nascondere o spostare.</li>
-                <li><b>Regole piste</b> — scelta della pista da vento e superficie, col tester «prova vento».</li>
+                <li><b>Regole piste</b> — scelta della pista da vento e superficie, col <b>banco di prova</b>: si
+                    dà un vento <b>e un momento</b> (data e ora locale) e dice quale regola vince, così orario,
+                    giorni, parità e stagione si provano prima di pubblicare invece di aspettare lunedì notte.
+                    ⚠️ Se l'orario di fine è <b>prima</b> di quello d'inizio la finestra scavalca la mezzanotte —
+                    il campo lo dice con «giorno dopo» — e la regola resta legata al giorno in cui è
+                    <b>cominciata</b>: «lunedì 22:00–05:00» vale fino alle 05:00 di martedì.</li>
                 <li><b>Quote di transizione</b> — Transition Altitude e livelli per fascia QNH.</li>
                 <li><b>Piste</b> — importate da IVAO per singolo aeroporto; le regole pista/area guidano le condizioni
                     di trasferimento.</li>
@@ -662,7 +667,9 @@
                     <b>Invio</b> o <b>Spazio</b> da tastiera.</li>
                 <li>I chip filtrano: <b>da verificare</b> mostra le SID il cui punto va confermato a mano, i chip
                     <b>pista</b> lasciano solo quella pista. Il numero accanto al titolo dice quante ne stai vedendo
-                    sul totale.</li>
+                    sul totale. ⚠️ Cambiare un chip <b>lascia cadere le righe scelte</b>: i tasti della barra
+                    agiscono sulle scelte, e dopo un cambio di pista quelle righe non sono più a schermo. Le
+                    righe <b>modificate e non salvate</b> restano: quelle non si buttano via.</li>
                 <li><b>Larghezza piena</b> (⤢) nasconde indice e rail: su una tabella a dodici colonne è la
                     differenza fra vederle tutte e scorrere di lato.</li>
                 <li>I chip <b>Cat.</b> e <b>WTC</b> si accendono a scala: un <b>doppio clic</b> (o <b>Shift+clic</b>,
@@ -700,7 +707,9 @@
                     <b>Space</b> from the keyboard.</li>
                 <li>The chips filter: <b>to verify</b> shows the SIDs whose point must be confirmed by hand, the
                     <b>runway</b> chips leave only that runway. The number next to the title says how many you are
-                    seeing out of the total.</li>
+                    seeing out of the total. ⚠️ Changing a chip <b>drops the picked rows</b>: the bar's buttons
+                    act on the picked ones, and after a runway change those rows are no longer on screen. Rows
+                    that are <b>changed and unsaved</b> stay: those are never thrown away.</li>
                 <li><b>Full width</b> (⤢) hides the index and the rail: on a twelve-column table that is the
                     difference between seeing them all and scrolling sideways.</li>
                 <li>The <b>Cat.</b> and <b>WTC</b> chips light up as a scale: a <b>double click</b> (or
@@ -1278,9 +1287,11 @@
                 <li>Lo <b>slug</b> (<code>loa-lirr-lfmm</code>) è l'identità e <b>non si cambia mai</b>: è quello
                     che i documenti citano, e cambiarlo spegnerebbe ogni citazione già scritta. Si propone dal
                     titolo, ma chi lo scrive comanda.</li>
-                <li>La biblioteca si sfoglia per <b>due assi</b>, tipo e ambito, non per cartelle: «le LoA di
-                    Roma» sono due filtri. L'elenco mostra <b>tutto</b>, comprese le voci che non cita ancora
-                    nessuno.</li>
+                <li>La biblioteca si sfoglia per <b>tre assi</b> — tipo, ambito e <b>chiave del perimetro</b>
+                    (LIRR, LIMC…) — non per cartelle da riempire: «le LoA di Milano» sono tre filtri. L'elenco
+                    esce <b>raccolto per perimetro</b>, e ogni testata si clicca per richiuderla: sono cartelle
+                    <b>ricavate</b> dai campi della voce, quindi non si può archiviare male. L'elenco mostra
+                    <b>tutto</b>, comprese le voci che non cita ancora nessuno.</li>
                 <li><b>Sostituire il PDF</b>: il link segue <b>sempre</b> la versione corrente, release
                     pubblicate comprese — una scansione sbagliata si corregge una volta sola, senza riaprire i
                     documenti che la citano. Prima di confermare si vede l'elenco dei documenti che cambiano,
@@ -1304,8 +1315,11 @@
                 <li>The <b>slug</b> (<code>loa-lirr-lfmm</code>) is the identity and <b>never changes</b>: it is
                     what documents cite, and changing it would silence every citation already written. It is
                     proposed from the title, but whoever types it wins.</li>
-                <li>The library is browsed along <b>two axes</b>, kind and scope, not folders: «Rome's LoAs» is
-                    two filters. The list shows <b>everything</b>, including entries nobody cites yet.</li>
+                <li>The library is browsed along <b>three axes</b> — kind, scope and <b>scope key</b> (LIRR,
+                    LIMC…) — not folders you fill in: «Milan's LoAs» is three filters. The list comes out
+                    <b>grouped by scope</b>, and each header collapses on click: these are folders
+                    <b>derived</b> from the entry's own fields, so nothing can be filed in the wrong one. The
+                    list shows <b>everything</b>, including entries nobody cites yet.</li>
                 <li><b>Replacing the PDF</b>: the link <b>always</b> follows the current version, published
                     releases included — a bad scan is fixed once, without reopening the documents that cite
                     it. Before confirming you see the list of documents that change, and those documents are

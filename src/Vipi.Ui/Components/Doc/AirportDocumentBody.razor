@@ -17,7 +17,9 @@
    nascondere o infilare una sezione libera in mezzo non aveva alcun effetto — il documento poteva dire
    quello che voleva, la pagina disegnava sempre la stessa cosa. *@
 @using Vipi.Domain
+@using Vipi.Application.Auth
 @inject IStringLocalizer<SharedResource> L
+@inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">
     <DocumentSectionsView Sections="Doc.Sezioni" Profile="SectionProfile.Airport"
@@ -30,6 +32,20 @@
 @code {
     /// <summary>Il documento già caricato: lo prepara <see cref="AirportMemberLoader"/>.</summary>
     [Parameter, EditorRequired] public AirportMemberDocument Doc { get; set; } = default!;
+
+    /// <summary>
+    /// Se mostrare la <b>meccanica</b> delle regole piste: quale regola sta vincendo adesso, il suo numero e la
+    /// sua nota. Da <c>DivisionStaff</c> in su (decisione del committente, 4 settembre 2026).
+    ///
+    /// <para>⚠️ Non è il contenuto a essere riservato — la tabella delle regole resta pubblica, è documento
+    /// pubblicato. È il <b>collegamento col momento</b>: «sta vincendo la #2» è un numero che, letto da chi non
+    /// scrive le regole, non dice niente e sembra un codice.</para>
+    ///
+    /// <para>⚠️ Questa pagina è SSR STATICA e senza cache d'uscita, quindi il livello si può chiedere qui:
+    /// ogni richiesta ha il suo scope di DI e la sua risposta. Se un giorno la pagina finisse dietro una cache,
+    /// questo cancello andrebbe rifatto, perché la prima risposta servita sarebbe quella di chiunque.</para>
+    /// </summary>
+    private bool MeccanicaVisibile => Authz.IsDivisionStaff;
 
     /// <summary>
     /// Ancora di sezione: «s-{Id}» per TUTTE, anche per quelle rese dalla pagina (doc 13 §3e), così i
@@ -45,7 +61,11 @@
         {
             case "weather": <AirportWeather Icao="@Doc.Icao" Report="Doc.Wx" Metar="Doc.Metar" Taf="Doc.Taf" Lingua="@Doc.Bloccata" />; break;
             case "runwayrules":
-                <AirportRunwayRules View="Doc.Derived.Rules" ActivePosition="@(Doc.RuleResult is null ? null : Doc.RuleResult.RuleIndex + 1)" />;
+                @* ⚠️ Il segno «adesso» è la stessa informazione della provenienza vista da un'altra colonna:
+                   dice QUALE regola sta vincendo. Sotto lo staff di divisione la tabella resta — è contenuto
+                   pubblicato — ma senza il segno che la lega al momento. *@
+                <AirportRunwayRules View="Doc.Derived.Rules"
+                                    ActivePosition="@(MeccanicaVisibile && Doc.RuleResult is not null ? Doc.RuleResult.RuleIndex + 1 : null)" />;
                 break;
             case "transition":
                 <AirportTransition View="Doc.Derived.Transition" CurrentQnh="Doc.Metar?.QnhHpa"
@@ -54,6 +74,7 @@
             case "frequencies": <AirportFrequencies View="Doc.Derived.Frequencies" />; break;
             case "runways":
                 <AirportRunways View="Doc.Derived.Runways" DepIdents="Doc.DepIdents" ArrIdents="Doc.ArrIdents"
+                                MostraProvenienza="MeccanicaVisibile"
                                 RuleName="@(Doc.RuleResult is null ? null : Doc.RuleResult.RuleName ?? $"#{Doc.RuleResult.RuleIndex + 1}")"
                                 RuleNote="@Doc.RuleResult?.Note" WindDir="Doc.WindDir" WindKt="Doc.WindKt"
                                 HasRain="@(Doc.Metar?.HasRain == true)" HasSnow="@(Doc.Metar?.HasSnow == true)" />;

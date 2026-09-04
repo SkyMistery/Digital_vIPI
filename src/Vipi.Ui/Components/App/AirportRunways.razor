@@ -8,12 +8,23 @@
     <p class="muted" style="font-size:12.5px;margin:0 0 8px">
         @* Lo spazio è scritto come entità: Razor scarta il testo di sola spaziatura che precede un blocco di
            codice (anche dentro <text>), e usciva «consigliatidal vento METAR». *@
-        @((MarkupString)L["Airport_RwyLegend"].Value)&#32;
-        @if (RuleName is not null) { <text>@string.Format(L["Airport_RwyByRule"], RuleName)</text> } else { <text>@L["Airport_RwyByWind"]</text> }.
-        @if (WindDir is int wd) { <text> @string.Format(L["Airport_WindVal"], wd, WindKt)</text> }
+        @((MarkupString)L["Airport_RwyLegend"].Value)@if (MostraProvenienza)
+        {
+            <text>&#32;</text>
+            @(RuleName is not null ? string.Format(L["Airport_RwyByRule"], RuleName) : L["Airport_RwyByWind"].Value)
+        }@* ⚠️ Il punto è marcatura NUDA, non un <text>: fuori da un blocco di codice `<text>` non è un
+             comando di Razor ma un elemento HTML sconosciuto, e finisce nel DOM alla lettera. Visto nel
+             prerender di LIBD il 4 settembre 2026 — a schermo si leggeva giusto, nel documento no. *@.
+        @* Il vento si legge col carattere della TABELLA — stesso corpo, stesso inchiostro, stesso peso del
+           numero di pista — e non col grigio della legenda: è un dato, non una didascalia, ed è il dato che
+           chi apre la pagina cerca per primo. *@
+        @if (WindDir is int wd)
+        {
+            <text>&#32;</text><span class="rwy-wind">@string.Format(L["Airport_WindVal"], wd, WindKt)</span>
+        }
         @if (HasRain) { <span class="pill">🌧️ @L["Airport_Rain"]</span> }
         @if (HasSnow) { <span class="pill">❄️ @L["Airport_Snow"]</span> }
-        @if (RuleNote is not null) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink)">@RuleNote</span> }
+        @if (MostraProvenienza && RuleNote is not null) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink)">@RuleNote</span> }
     </p>
 }
 <table class="rwy-table">
@@ -54,6 +65,20 @@
 
     /// <summary>Mostra la riga che spiega da dove viene la pista consigliata. Fuori dalla vista pubblica non serve.</summary>
     [Parameter] public bool Legend { get; set; } = true;
+
+    /// <summary>
+    /// Se dire <b>da dove</b> viene la pista consigliata: «by the active rule «#2»» / «from the METAR wind», e la
+    /// nota della regola. Il vento e i colori si vedono comunque.
+    ///
+    /// <para>⚠️ La meccanica delle regole è roba da staff (decisione del committente, 4 settembre 2026): a chi
+    /// legge la vIPI serve sapere quali piste sono in uso e con che vento, non quale delle nove regole sta
+    /// vincendo — un numero che senza la tabella delle regole non vuol dire niente.</para>
+    ///
+    /// <para>⚠️ Il valore predefinito è <b>falso</b>, come ogni cancello del prodotto: chi la vuole aperta lo
+    /// scrive. Il contrario è il modo in cui un dettaglio riservato ricompare in una pagina nuova senza che
+    /// nessuno l'abbia deciso.</para>
+    /// </summary>
+    [Parameter] public bool MostraProvenienza { get; set; }
     [Parameter] public string? RuleName { get; set; }
     [Parameter] public string? RuleNote { get; set; }
     [Parameter] public int? WindDir { get; set; }

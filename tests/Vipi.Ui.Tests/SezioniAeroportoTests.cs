@@ -252,6 +252,64 @@ public class SezioniAeroportoTests : TestContext
         Assert.Contains("34R", cut.Markup);
     }
 
+    private static AirportRunwaysView DuePiste() => new(new[]
+    {
+        new AirportRunwayRowView("16L", 3900, "3900", "3900", "ILS", "—", "—"),
+        new AirportRunwayRowView("34R", 3900, "3900", "3900", "ILS", "—", "—"),
+    });
+
+    [Fact] // la meccanica delle regole è roba da staff: sotto DivisionStaff resta il vento, non il numero
+    public void La_provenienza_della_pista_consigliata_non_si_mostra_a_chi_legge_e_basta()
+    {
+        var cut = RenderComponent<AirportRunways>(p => p
+            .Add(x => x.View, DuePiste())
+            .Add(x => x.RuleName, "#2")
+            .Add(x => x.RuleNote, "pista preferenziale notturna")
+            .Add(x => x.WindDir, 10).Add(x => x.WindKt, 4));
+
+        // ⚠️ Il valore predefinito è «chiusa»: chi non lo scrive non mostra niente.
+        Assert.DoesNotContain("Airport_RwyByRule", cut.Markup);
+        Assert.DoesNotContain("Airport_RwyByWind", cut.Markup);
+        Assert.DoesNotContain("pista preferenziale notturna", cut.Markup);
+
+        // Il vento invece si vede sempre, e col carattere della tabella.
+        Assert.Contains("Airport_WindVal", cut.Markup);
+        Assert.Contains("rwy-wind", cut.Markup);
+
+        // ⚠️ Nessun <text> nel documento: fuori da un blocco di codice non è un comando di Razor ma un
+        // elemento HTML sconosciuto, e ci è finito davvero — visto nel prerender di LIBD, non dai test.
+        Assert.DoesNotContain("<text>", cut.Markup);
+    }
+
+    [Fact] // aperta: si vede da dove viene la pista consigliata, e la nota della regola
+    public void La_provenienza_si_mostra_a_chi_le_regole_le_scrive()
+    {
+        var cut = RenderComponent<AirportRunways>(p => p
+            .Add(x => x.View, DuePiste())
+            .Add(x => x.MostraProvenienza, true)
+            .Add(x => x.RuleName, "#2")
+            .Add(x => x.RuleNote, "pista preferenziale notturna")
+            .Add(x => x.WindDir, 10).Add(x => x.WindKt, 4));
+
+        Assert.Contains("Airport_RwyByRule", cut.Markup);
+        Assert.Contains("pista preferenziale notturna", cut.Markup);
+        Assert.Contains("Airport_WindVal", cut.Markup);
+        Assert.DoesNotContain("<text>", cut.Markup);
+    }
+
+    [Fact] // senza regola attiva la provenienza è il vento del METAR, e resta comunque roba da staff
+    public void Senza_regola_la_provenienza_e_il_vento_METAR_ma_solo_per_lo_staff()
+    {
+        var chiusa = RenderComponent<AirportRunways>(p => p
+            .Add(x => x.View, DuePiste()).Add(x => x.WindDir, 10).Add(x => x.WindKt, 4));
+        Assert.DoesNotContain("Airport_RwyByWind", chiusa.Markup);
+
+        var aperta = RenderComponent<AirportRunways>(p => p
+            .Add(x => x.View, DuePiste()).Add(x => x.MostraProvenienza, true)
+            .Add(x => x.WindDir, 10).Add(x => x.WindKt, 4));
+        Assert.Contains("Airport_RwyByWind", aperta.Markup);
+    }
+
     // ---------------------------------------------------------------------------------------------------
     // SID — il filtro per pista è una scelta di LETTURA, e decide che cosa un pilota legge come autorizzato.
     // ---------------------------------------------------------------------------------------------------
