@@ -524,7 +524,7 @@
         }
       }
     },
-    "net8.0/win-x64": {
+    "net8.0/linux-x64": {
       "SQLitePCLRaw.lib.e_sqlite3": {
         "type": "Transitive",
         "resolved": "2.1.12",
