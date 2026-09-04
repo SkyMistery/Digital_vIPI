@@ -1876,33 +1876,39 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 /* Viewer aeroporto: tabella SID a 9 colonne. Larghezze FISSE, altrimenti cambiando pista cambia il disegno
    della tabella: con table-layout:auto una colonna tutta «—» (Condition su una pista, piena sull'altra)
    collassa e regala il suo spazio alle vicine. Per CLASSE semantica, non per nth-child, come in .sid-quick.
-   Le percentuali sono MISURATE: per ogni colonna la larghezza minima che non spezza nessuna parola —
-   intestazione compresa — su LIBD/LIBC/LIBR/LIRN, tutte le piste. Somma 76%: il resto va quasi tutto a
-   Condition, l'unica colonna con testo in prosa. Attenzione a quali colonne sono davvero larghe per il
-   dato: RWY contiene 2-3 caratteri e Type solo CONV/RNAV, il minimo lì lo detta l'INTESTAZIONE (per
+
+   Le percentuali sono PROPORZIONALI AL BISOGNO MISURATO, non scelte a occhio: per ogni colonna si misura la
+   larghezza che non manda a capo nessuna parola — il massimo fra intestazione e contenuto, con i font veri
+   (Poppins 11 maiuscolo per il th, Nunito Sans 13 per il td) più le due gronde da 8 — e la percentuale è
+   quella quota sul totale. Così l'avanzo di uno schermo largo si spalma su tutte, invece di gonfiare una
+   colonna sola. Misure del 4 settembre 2026 (px): RWY 43,5 · FIX 61 · SID 104 · Transition 87 · Type 53 ·
+   Cat. 85,3 · WTC 81,5 · Condition 273. Somma 913: il min-width qui sotto è quella somma, arrotondata.
+
+   ⚠️ Il minimo va misurato sul caso PIENO E COME LO SCRIVE IL DATO, non sulla stringa che uno immagina:
+   Cat. e WTC sono testo libero e in produzione arrivano con gli spazi — «A, B, C, D, E» (85px) e non
+   «A,B,C,D,E» (55px), «L, M, H, J, S» (82px) e non «L,M,H,S» (46px). Tarate sulla forma senza spazi,
+   andavano a capo entrambe su LIPY. E per RWY e Type il minimo lo detta l'INTESTAZIONE, non il dato (per
    questo la colonna pista si intitola RWY e non «Runway»/«Pista»: per esteso costava il doppio).
-   Il min-width serve allo stesso vincolo: sotto ~810px FIX, SID e Cat. andrebbero a capo a metà parola,
-   quindi la tabella scorre nel suo contenitore invece di stringersi.
-   ⚠️ WTC è stata riportata da 5,5% a 10,5% il 4 settembre 2026, e i 5 punti li ha ridati Condition. Il
-   minimo misurato guardava il DATO («M» da solo, o «M,H»), non il caso pieno: una riga con tutte e quattro
-   le categorie di scia scrive «L,M,H,S», che a 5,5% non ci sta e andava a capo — anche su uno schermo da
-   1920, perché a quella larghezza la colonna centrale del documento è ancora sotto il min-width qui sotto e
-   le percentuali si calcolano su quello, non sulla finestra. Condition resta la più larga di tutte, ed è
-   l'unica che il taglio non lo subisce mai (prosa, e il valore intero sta nel `title`). */
-.sid-view{table-layout:fixed;min-width:820px}
+
+   Due colonne NON entrano nel conto del «non va a capo», ed è voluto: Initial climb, che con la nota
+   «5000 ft (to be coordinated with APP)» vorrebbe 231px, e Condition, che è prosa. Per loro la quota vale
+   quante RIGHE si accetta: Initial climb tiene la nota in due righe, Condition resta la più larga.
+   Il min-width serve allo stesso vincolo: sotto quella soglia la tabella scorre nel suo contenitore
+   invece di stringersi e spezzare le parole. */
+.sid-view{table-layout:fixed;min-width:930px}
 /* Gronde più strette delle altre tabelle: qui i 10-12px per lato sono un quinto di una colonna stretta
    come RWY o Type, e vanno via a Condition. La doppia classe serve a battere `.res-table td{padding:…}`,
    che sta più in basso nel foglio e a parità di specificità vincerebbe (per giunta con lo shorthand). */
 .res-table.sid-view th,.res-table.sid-view td{padding-left:8px;padding-right:8px;overflow-wrap:anywhere}
-.sid-view .col-rwy{width:5.5%}
-.sid-view .col-fix{width:7.9%}
-.sid-view .col-sid{width:8.9%}
-.sid-view .col-trans{width:10.8%}
-.sid-view .col-climb{width:14.5%}
-.sid-view .col-type{width:6.8%}
-.sid-view .col-cat{width:7%}
-.sid-view .col-wtc{width:10.5%}
-.sid-view .col-cond{width:28.1%}
+.sid-view .col-rwy{width:4.8%}
+.sid-view .col-fix{width:6.7%}
+.sid-view .col-sid{width:11.4%}
+.sid-view .col-trans{width:9.5%}
+.sid-view .col-climb{width:13.6%}
+.sid-view .col-type{width:5.8%}
+.sid-view .col-cat{width:9.3%}
+.sid-view .col-wtc{width:9%}
+.sid-view .col-cond{width:29.9%}
 /* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
    come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
    Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.
