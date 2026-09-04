@@ -3264,5 +3264,5 @@
   <data name="TrDoc_RoundLine" xml:space="preserve"><value>{0}→{1}: {2} new, {3} already in memory, {4} broken — {5}</value></data>
   <data name="TrDoc_RoundManual" xml:space="preserve"><value>asked by hand</value></data>
   <data name="TrDoc_RoundAuto" xml:space="preserve"><value>automatic</value></data>
-  <data name="Rel_TrFreeze" xml:space="preserve"><value>Publishing now freezes {0} of {1} sentences untranslated.</value></data>
+  <data name="Rel_TrFreeze" xml:space="preserve"><value>{0} sentences of this document are not translated yet. The release does NOT freeze them: they will read translated as soon as the round has been through, without republishing.</value></data>
 </root>

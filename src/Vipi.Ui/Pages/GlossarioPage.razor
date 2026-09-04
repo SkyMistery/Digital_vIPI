@@ -7,6 +7,8 @@
 @inject Vipi.Application.Abstractions.IGlossaryStore Glossario
 @inject Vipi.Application.Abstractions.ITranslationMemory Memoria
 @inject IDocumentAdminService Documenti
+@inject Vipi.Application.Translation.IStatoTraduzione Stato
+@inject Vipi.Application.Translation.IAttesaTraduzione Attese
 @inject IDocRoutesRegistry Rotte
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -463,6 +465,156 @@
                 </div>
             }
         </div>
+
+        @* ================= DOCUMENTI: a che punto e' la traduzione =================================
+           Carta `docs/feature/2026-09-04-stato-traduzione.md`. Sta QUI e non in una dodicesima voce di
+           barra perche' questa pagina e' gia' la casa di chi cura la traduzione: il glossario dice come si
+           rende una formula, il registro come e' stata resa una frase, e questa sezione dove siamo. *@
+        <div class="section-title">
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@_documentiAperti.ToString().ToLowerInvariant()"
+                        aria-label="@L["Struct_ToggleSection", L["TrDoc_Title"].Value]"
+                        @onclick="ApriDocumentiAsync">
+                    <span class="grp-chev">@(_documentiAperti ? "▾" : "▸")</span>@L["TrDoc_Title"]
+                </button>
+                @if (_quadro is { } q0)
+                {
+                    <span class="pill @(q0.DocumentiInAttesa > 0 ? "amber" : "blue")">@q0.Righe.Count</span>
+                }
+            </h2>
+            <span class="ln"></span>
+        </div>
+
+        <div hidden="@(!_documentiAperti)">
+            <p class="help">@L["TrDoc_Intro"]</p>
+
+            @*  ---- Il giro, in chiaro ----------------------------------------------------------------
+                Questo rapporto esiste gia' intero (`TranslationFillReport`) e finiva SOLO nel log del
+                server: in produzione voleva dire aprire i file di diagnostica per sapere se la traduzione
+                stesse andando avanti. E' il pezzo piu' economico di tutta la carta. *@
+            <p class="help">
+                <b>@L["TrDoc_RoundTitle"]:</b>
+                @if (_attesa is null)
+                {
+                    <span>…</span>
+                }
+                else if (_attesa.UltimoUtc is not { } ultimo)
+                {
+                    <span>@L["TrDoc_RoundNever"]</span>
+                }
+                else
+                {
+                    <span>@string.Format(L["TrDoc_RoundLast"].Value, ultimo.ToString("yyyy-MM-dd HH:mm") + "Z")</span>
+                    <span> · </span>
+                    @if (_attesa.InCorso)
+                    {
+                        <span>@L["TrDoc_RoundRunning"]</span>
+                    }
+                    else
+                    {
+                        <span>@string.Format(L["TrDoc_RoundNext"].Value, MinutiAlProssimo())</span>
+                    }
+                }
+            </p>
+
+            @if (_attesa is { Ultimi.Count: > 0 })
+            {
+                <ul class="help">
+                    @foreach (var e in _attesa.Ultimi)
+                    {
+                        <li>
+                            @string.Format(L["TrDoc_RoundLine"].Value, e.Da, e.A,
+                                e.Rapporto.Tradotti, e.Rapporto.GiaInMemoria, e.Rapporto.Scartati,
+                                e.Manuale ? L["TrDoc_RoundManual"].Value : L["TrDoc_RoundAuto"].Value)
+                        </li>
+                    }
+                </ul>
+            }
+
+            @if (_quadro is { } q)
+            {
+                <p class="help">@string.Format(L["TrDoc_Summary"].Value,
+                    q.Righe.Count, q.DocumentiInAttesa, q.ReleaseSenzaCongelato)</p>
+
+                <div class="panel">
+                    <table class="res-table">
+                        <thead>
+                            <tr>
+                                <th>@L["TrDoc_ColDoc"]</th>
+                                <th>@L["TrDoc_ColDraft"]</th>
+                                <th>@L["TrDoc_ColPublished"]</th>
+                                <th>@L["TrDoc_ColReview"]</th>
+                                @if (q.DocumentiAMano > 0)
+                                {
+                                    @* La colonna compare SOLO se qualcosa la riempie: sul corpus vero e' zero
+                                       (0 non sicuri su 104 segmenti), e una colonna sempre vuota e' rumore. *@
+                                    <th>@L["TrDoc_ColByHand"]</th>
+                                }
+                                <th>@L["TrDoc_ColState"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var r in Ordinate(q.Righe))
+                            {
+                                <tr>
+                                    <td>
+                                        @if (Apri(r.DocumentId) is { } url)
+                                        {
+                                            <a href="@url">@r.Titolo</a>
+                                        }
+                                        else
+                                        {
+                                            @r.Titolo
+                                        }
+                                        <span class="muted">&nbsp;@r.LinguaSorgente.ToUpperInvariant()→@r.LinguaLettura.ToUpperInvariant()</span>
+                                    </td>
+                                    <td>@Copertura(r.Bozza, r.Bloccata)</td>
+                                    <td>
+                                        @if (r.Bloccata)
+                                        {
+                                            <span class="muted">—</span>
+                                        }
+                                        else if (!r.HaReleaseEfficace)
+                                        {
+                                            @* «Nessuna release» NON e' «0% tradotto»: sono due vuoti diversi, e
+                                               detti con le stesse parole mandano a cercare un lavoro che non
+                                               esiste. *@
+                                            <span class="muted" title="@L["TrDoc_NoReleaseTitle"]">@L["TrDoc_NoRelease"]</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@Copertura(r.Pubblicato, false)</span>
+                                            @if (!r.ReleaseCongela)
+                                            {
+                                                <span>&nbsp;</span>
+                                                <span class="pill amber" title="@L["TrDoc_NotFrozenTitle"]">@L["TrDoc_NotFrozen"]</span>
+                                            }
+                                        }
+                                    </td>
+                                    <td>@DaRileggereDi(r.Bozza, r.Bloccata)</td>
+                                    @if (q.DocumentiAMano > 0)
+                                    {
+                                        <td>@(r.AMano == 0 ? "—" : r.AMano.ToString())</td>
+                                    }
+                                    <td><span class="pill @ColoreStato(r.Stato)">@Etichetta(r.Stato)</span></td>
+                                </tr>
+                            }
+                            <tr>
+                                <td title="@L["TrDoc_OutsideTitle"]"><i>@L["TrDoc_Outside"]</i></td>
+                                <td>@Copertura(q.FuoriDaiDocumenti, false)</td>
+                                <td><span class="muted">—</span></td>
+                                <td>@DaRileggereDi(q.FuoriDaiDocumenti, false)</td>
+                                @if (q.DocumentiAMano > 0)
+                                {
+                                    <td>—</td>
+                                }
+                                <td></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
     }
 </div>
 
@@ -529,6 +681,99 @@
     /// <summary>I documenti gestiti, per costruire il collegamento «apri». Si caricano una volta sola.</summary>
     private IReadOnlyList<ManagedDoc>? _documenti;
 
+    // ---- A che punto e' la traduzione (carta 2026-09-04-stato-traduzione) --------------------------
+
+    /// <summary>La terza sezione. Nasce CHIUSA: e' un quadro che si guarda quando lo si cerca, e la sua
+    /// passata — per quanto breve — non deve pesare su chi apre la pagina per correggere una frase.</summary>
+    private bool _documentiAperti;
+
+    /// <summary>Il quadro, da una passata sola. null = non ancora chiesto.</summary>
+    private QuadroStatoTraduzione? _quadro;
+
+    /// <summary>Quando e' passato l'ultimo giro e com'e' andato.</summary>
+    private AttesaDelGiro? _attesa;
+
+    /// <summary>
+    /// Alla prima apertura si carica; alle successive no.
+    /// <para>⚠️ La passata costa 45 ms misurati, ma il payload delle release efficaci sono mezzo megabyte di
+    /// JSON da deserializzare: farla a ogni ridisegno della pagina — cioe' a ogni tasto di questa sezione —
+    /// vorrebbe dire pagarla per chi la sezione l'ha solo richiusa. «Aggiorna» la rilegge.</para>
+    /// </summary>
+    private async Task ApriDocumentiAsync()
+    {
+        _documentiAperti = !_documentiAperti;
+        if (!_documentiAperti || _quadro is not null) return;
+        await CaricaStatoAsync();
+    }
+
+    private async Task CaricaStatoAsync()
+    {
+        _busy = true;
+        try
+        {
+            _quadro = await Stato.QuadroAsync();
+            _attesa = await Attese.AttesaAsync();
+            // I collegamenti «apri» vogliono l'elenco dei documenti gestiti: e' lo stesso che serve a «dove
+            // si usa», e si carica una volta sola per tutt'e due.
+            _documenti ??= await Documenti.ListAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// L'ordine e' «quanto manca», dal peggio: e' l'ordine con cui si lavora. A parita', chi ha piu' frasi
+    /// da rileggere; poi il titolo, che rende l'elenco stabile fra due caricamenti.
+    /// </summary>
+    private static IEnumerable<RigaStatoTraduzione> Ordinate(IReadOnlyList<RigaStatoTraduzione> righe) =>
+        righe.OrderByDescending(r => r.Bozza.Mancanti)
+             .ThenByDescending(r => r.Bozza.Tradotti - r.Bozza.Riletti)
+             .ThenBy(r => r.Titolo, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Una copertura in una cella: «12/12» e la percentuale. ⚠️ Zero segmenti NON e' «0%» — e' «niente da
+    /// contare», e si scrive con un trattino: una percentuale su un insieme vuoto e' un numero inventato.
+    /// </summary>
+    private static string Copertura(TranslationCoverage c, bool bloccata)
+    {
+        if (bloccata || c.Segmenti == 0) return "—";
+        return $"{c.Tradotti}/{c.Segmenti} · {RigaStatoTraduzione.PercentualeDi(c)}%";
+    }
+
+    private static string DaRileggereDi(TranslationCoverage c, bool bloccata) =>
+        bloccata || c.Segmenti == 0 ? "—" : (c.Tradotti - c.Riletti).ToString();
+
+    /// <summary>Quanto manca al prossimo giro, arrotondato per eccesso e mai negativo.</summary>
+    private int MinutiAlProssimo() =>
+        Math.Max(0, (int)Math.Ceiling((_attesa?.Mancano(DateTime.UtcNow) ?? TimeSpan.Zero).TotalMinutes));
+
+    /// <summary>
+    /// Il colore dello stato. ⚠️ «Lingua bloccata» e «niente da tradurre» NON sono gialli: non c'e' niente
+    /// da fare, e un giallo manda a cercare un lavoro che non esiste — e' la stessa ragione per cui i tre
+    /// vuoti si dicono con tre parole diverse.
+    /// </summary>
+    private static string ColoreStato(StatoTraduzione stato) => stato switch
+    {
+        StatoTraduzione.Completa => "blue",
+        StatoTraduzione.DaRileggere => "amber",
+        StatoTraduzione.AChiazze => "amber",
+        StatoTraduzione.NonCominciata => "amber",
+        _ => "grey",
+    };
+
+    private string Etichetta(StatoTraduzione stato) => stato switch
+    {
+        StatoTraduzione.Bloccata => L["TrDoc_St_Locked"],
+        StatoTraduzione.NienteDaTradurre => L["TrDoc_St_Nothing"],
+        StatoTraduzione.NonCominciata => L["TrDoc_St_NotStarted"],
+        StatoTraduzione.AChiazze => L["TrDoc_St_Patchy"],
+        StatoTraduzione.DaRileggere => L["TrDoc_St_ToReview"],
+        _ => L["TrDoc_St_Complete"],
+    };
+
+
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su @rendermode InteractiveServer il secondo gira UNA
     // VOLTA SOLA, e questa pagina si ricarica cambiando coppia di lingue, filtro e ricerca.
     protected override Task OnParametersSetAsync() => CaricaAsync();
@@ -570,6 +815,15 @@
         _usi.Clear();
         _documenti = null;
         await CaricaAsync();
+
+        // ⚠️ E lo stato dei documenti, ma SOLO se la sezione è aperta: «Aggiorna» dichiara di voler rileggere
+        // il mondo, e nel frattempo può essere passato un giro o essere stato pubblicato un documento. Farlo
+        // a sezione chiusa vorrebbe dire pagare mezzo megabyte di JSON per una tabella che nessuno guarda.
+        if (_documentiAperti)
+        {
+            _quadro = null;
+            await CaricaStatoAsync();
+        }
     }
 
     /// <summary>

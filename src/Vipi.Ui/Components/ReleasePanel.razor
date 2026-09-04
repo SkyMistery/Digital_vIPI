@@ -147,6 +147,16 @@
         </div>
     }
 
+    @*  ---- Quante frasi non sono ancora tradotte (carta stato-traduzione §4) ----------------------
+        ⚠️ E si dice quel che e' VERO dal 28 agosto 2026: la release NON congela le frasi che non ha —
+        dove lo snapshot non porta niente il lettore ricade sulla memoria viva — quindi pubblicare adesso
+        non e' un errore e non va detto come tale. Prima di §Q18 lo era, e chi ha imparato ad aspettare il
+        giro sta aspettando per niente. *@
+    @if (_traduzione is { } tr && tr.Bozza.Mancanti > 0)
+    {
+        <p class="help">@string.Format(L["Rel_TrFreeze"].Value, tr.Bozza.Mancanti)</p>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
@@ -387,6 +397,7 @@
 
     private async Task Reload()
     {
+        await RicaricaTraduzione();
         _rels = await Releases.ListAsync(Target, Key);
         _uniti = await Releases.BersagliUnitiAsync(Target, Key);
         _cicliDeiMembri = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -454,6 +465,39 @@
         }
         catch (Exception ex) { _error = ex.Message; }
         finally { _busy = false; }
+    }
+
+    /// <summary>Quante frasi di questo documento non sono ancora tradotte. null = non si sa (o non serve).</summary>
+    private Vipi.Application.Translation.RigaStatoTraduzione? _traduzione;
+
+    /// <summary>
+    /// Lo stato della traduzione di questo bersaglio.
+    ///
+    /// <para>⚠️ L'id del documento non ce l'ha il pannello — conosce bersaglio e chiave — e non se lo
+    /// ricostruisce: lo chiede al <b>descrittore della famiglia</b>, che è l'unico posto in cui quella
+    /// corrispondenza è scritta. Un secondo modo di risolverla sarebbe un secondo racconto.</para>
+    ///
+    /// <para>⚠️ Come l'avviso delle shape, è un <b>di più</b>: se non si carica, la pubblicazione fa
+    /// comunque la cosa giusta. Un'eccezione qui abbatterebbe il circuito per una riga di prosa.</para>
+    /// </summary>
+    private async Task RicaricaTraduzione()
+    {
+        // ⚠️ I due servizi si RISOLVONO, non si iniettano, per la stessa ragione già scritta qui sotto per il
+        // roster: questo pannello lo montano cinque editor più i test, e una dipendenza obbligatoria in più
+        // lo renderebbe non montabile per chiunque non l'abbia registrata — facendo fallire test che con la
+        // traduzione non c'entrano niente.
+        var bersagli = Servizi.GetService(typeof(Vipi.Application.Abstractions.IReleaseTargetRegistry))
+            as Vipi.Application.Abstractions.IReleaseTargetRegistry;
+        var stato = Servizi.GetService(typeof(Vipi.Application.Translation.IStatoTraduzione))
+            as Vipi.Application.Translation.IStatoTraduzione;
+        if (bersagli is null || stato is null) { _traduzione = null; return; }
+
+        try
+        {
+            var id = await bersagli.For(Target).ResolveDocumentIdAsync(Key);
+            _traduzione = id is int i ? await stato.DocumentoAsync(i) : null;
+        }
+        catch (Exception) { _traduzione = null; }
     }
 
     private async Task RicaricaAvviso()

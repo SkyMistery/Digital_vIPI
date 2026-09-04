@@ -12,6 +12,7 @@
 @inject Vipi.Application.Abstractions.IAuditLogReader Audit
 @inject NavigationManager Nav
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
+@inject Vipi.Application.Translation.IStatoTraduzione StatoTraduzione
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 
@@ -269,6 +270,16 @@
                                 {
                                     <span class="pill grey" title="@L["Ver_NoReleaseTitle"]">⚠️ @L["Ver_NoReleaseBadge"]</span>
                                 }
+                                @*  A che punto è la traduzione, e SOLO quando c'è qualcosa da dire.
+                                    ⚠️ Una pastiglia su ogni riga sarebbe rumore: qui ce ne sono già sette, e
+                                    l'ottava che dice «tutto a posto» su venti righe su ventisei si smette di
+                                    leggere — insieme alle altre. Il quadro intero sta nel Registro. *@
+                                @if (Traduzione(d) is { } tr && tr.Bozza.Mancanti > 0)
+                                {
+                                    <span class="pill amber" title="@L["TrDoc_Intro"]">
+                                        @string.Format(L["TrEd_Wait_Missing"].Value, tr.Bozza.Mancanti)
+                                    </span>
+                                }
                                 @* La casella degli impatti, riassunta in una pill. L'ordine delle tre non è
                                    alfabetico: dice quel che è più urgente. «Già in pubblico» batte tutto — il
                                    cambio è sotto gli occhi dei lettori senza che nessuno l'abbia approvato. *@
@@ -396,6 +407,10 @@
 
     private IReadOnlyList<ManagedDoc>? _docs;
     private IReadOnlyDictionary<int, ImpactBadge> _impatti = new Dictionary<int, ImpactBadge>();
+
+    /// <summary>Lo stato della traduzione per documento, dalla stessa passata dell'elenco.</summary>
+    private IReadOnlyDictionary<int, Vipi.Application.Translation.RigaStatoTraduzione> _traduzione =
+        new Dictionary<int, Vipi.Application.Translation.RigaStatoTraduzione>();
     // La riga scelta (chiave RowKey), e le chiavi il cui dettaglio si sta caricando.
     private string? _selKey;
     private readonly HashSet<string> _loadingKeys = new();
@@ -606,9 +621,17 @@
             // documento a ogni caricamento della pagina.
             _impatti = await Impacts.CountOpenAsync(_docs.Where(x => x.DocumentId is not null)
                 .Select(x => x.DocumentId!.Value).ToList());
+            // A che punto è la traduzione, in UNA passata per tutto l'elenco (misurata: 45 ms). ⚠️ Una
+            // domanda per riga sarebbe lo stesso N+1 che questo elenco ha già pagato due volte — e su un
+            // circuito Blazor sarebbe anche una corsa sul DbContext.
+            _traduzione = (await StatoTraduzione.QuadroAsync()).Righe.ToDictionary(r => r.DocumentId);
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }
+
+    /// <summary>A che punto è la traduzione di questa riga, se il documento si risolve.</summary>
+    private Vipi.Application.Translation.RigaStatoTraduzione? Traduzione(ManagedDoc d) =>
+        d.DocumentId is int id && _traduzione.TryGetValue(id, out var r) ? r : null;
 
     /// <summary>Il riassunto delle segnalazioni aperte del documento, se ne ha.</summary>
     private ImpactBadge? Badge(ManagedDoc d) =>

@@ -91,6 +91,11 @@ public sealed record RigaStatoTraduzione(
     /// <inheritdoc cref="PercentualeBozza"/>
     public int PercentualePubblicato => Percento(Pubblicato);
 
+    /// <summary>La percentuale di una copertura qualunque — anche di quella «fuori dai documenti», che non
+    /// appartiene a nessuna riga. ⚠️ Pubblica perché la pagina non deve rifarsi il conto: un secondo
+    /// arrotondamento è un secondo «100%» che vuol dire un'altra cosa.</summary>
+    public static int PercentualeDi(TranslationCoverage c) => Percento(c);
+
     internal static int Percento(TranslationCoverage c)
     {
         if (c.Segmenti == 0) return 0;

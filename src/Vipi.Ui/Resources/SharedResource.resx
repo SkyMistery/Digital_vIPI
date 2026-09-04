@@ -3272,5 +3272,5 @@
   <data name="TrDoc_RoundLine" xml:space="preserve"><value>{0}→{1}: {2} nuove, {3} già in memoria, {4} rotte — {5}</value></data>
   <data name="TrDoc_RoundManual" xml:space="preserve"><value>chiesto a mano</value></data>
   <data name="TrDoc_RoundAuto" xml:space="preserve"><value>automatico</value></data>
-  <data name="Rel_TrFreeze" xml:space="preserve"><value>Pubblicando adesso congeli {0} frasi su {1} non ancora tradotte.</value></data>
+  <data name="Rel_TrFreeze" xml:space="preserve"><value>{0} frasi di questo documento non sono ancora tradotte. La release NON le congela: si leggeranno tradotte appena passa il giro, senza ripubblicare.</value></data>
 </root>
