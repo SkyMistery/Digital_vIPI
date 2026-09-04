@@ -1,4 +1,4 @@
-@* L'editor della tabella «Aeroporti alternati» (carta vSOP militari §12f).
+﻿@* L'editor della tabella «Aeroporti alternati» (carta vSOP militari §12f).
 
    ⚠️ Qui, a differenza delle Radioassistenze, si scrive SOLO nel documento: rilevamento e distanza sono di
    questo SOP — il rilevamento di Grottaglie da Amendola non è un fatto dell'aeroporto, è un fatto della
@@ -139,7 +139,7 @@
 
     @if (_import)
     {
-        <ImportaTabella Spec="@Spec" Risolutore="@Risolutore" Sorgenti="@Sorgenti"
+        <ImportaTabella Spec="@Spec" Sorgenti="@Sorgenti"
                         CaricaSorgente="@CaricaSorgente" OnImporta="Importa"
                         OnAnnulla="() => { _import = false; return Task.CompletedTask; }" />
     }
@@ -173,7 +173,9 @@
     [Parameter] public bool Editing { get; set; }
 
     /// <summary>Chi cerca scali e radioassistenze sui cataloghi, per l'import. Null = niente import.</summary>
-    [Parameter] public IRisolutoreCelle? Risolutore { get; set; }
+    // ⚠️ Il risolutore NON si passa piu' dall'alto: <ImportaTabella> se lo prende dal proprio scope, cioe'
+    // con un DbContext suo. Passandolo dal circuito si scontrava col caricamento della pagina — quattro
+    // errori in produzione il 4 settembre 2026.
 
     /// <summary>Le righe approvate nell'anteprima, con la scelta fra «in coda» e «sostituisci». La
     /// costruzione delle righe del payload la fa la pagina, che e' quella che sa salvarle.</summary>

@@ -13,7 +13,6 @@
 @inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
 @inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
 @using Vipi.Application.Import
-@inject Vipi.Application.Import.IRisolutoreCelle RisolutoreCelle
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject IJSRuntime JS
@@ -504,7 +503,7 @@ else
                                      OnAddNavaid="AggiungiNavaidAlternato" OnRemoveNavaid="TogliNavaidAlternato"
                                      OnSetRilevamento="ScriviRilevamentoAlternato"
                                      OnSetDistanza="ScriviDistanzaAlternato"
-                                     Risolutore="RisolutoreCelle" OnImporta="ImportaAlternati"
+                                     OnImporta="ImportaAlternati"
                                      Sorgenti="_altriSop" CaricaSorgente="AlternatiDiUnAltroSop" />
                 break;
             case "regulated":

@@ -1,4 +1,4 @@
-@* Importare una tabella: incolla, CSV, XLSX, e l'anteprima che si guarda PRIMA di scrivere.
+﻿@* Importare una tabella: incolla, CSV, XLSX, e l'anteprima che si guarda PRIMA di scrivere.
 
    ⚠️ Questo componente non scrive niente e non sa dove si scriverebbe. Costruisce una proposta e la
    consegna a chi l'ha aperto (`OnImporta`), che e' l'editor che sa gia' salvare le proprie righe. Un
@@ -9,6 +9,8 @@
    delle celle interroga i cataloghi, e farlo a ogni carattere digitato vorrebbe dire una interrogazione
    per battuta. *@
 @using Vipi.Application.Import
+@using Microsoft.Extensions.DependencyInjection
+@inherits OwningComponentBase
 @inject IStringLocalizer<SharedResource> L
 
 <div class="imp-box">
@@ -162,7 +164,33 @@
     [Parameter, EditorRequired] public SpecImport Spec { get; set; } = SpecImport.Generica();
 
     /// <summary>Chi cerca sui cataloghi. Null = nessuna colonna si risolve (tabella tutta testuale).</summary>
+    /// <summary>⚠️ Normalmente si <b>lascia vuoto</b>: il componente se lo prende dal PROPRIO scope, cioe'
+    /// con un DbContext tutto suo. Si passa solo per sostituirlo in un banco di prova.</summary>
     [Parameter] public IRisolutoreCelle? Risolutore { get; set; }
+
+    /// <summary>
+    /// 🔴 Il risolutore che si usa davvero, e sta nello scope di QUESTO componente
+    /// (<c>OwningComponentBase</c>).
+    ///
+    /// <para>Con <c>@@inject</c> — come faceva <c>MilSectionsEditor</c>, che se lo passava — veniva dal
+    /// <b>circuito</b>, cioe' dal <c>DbContext</c> che la sessione condivide con tutto il resto: barra,
+    /// isole, pannelli e il caricamento della pagina che ospita l'import. Risolvere le celle interroga
+    /// l'archivio degli scali, e basta che quel caricamento sia ancora in volo perche' escano insieme sullo
+    /// stesso contesto: «<c>A second operation was started on this context instance</c>», il circuito muore
+    /// e chi stava importando si ritrova la pagina da ricaricare.</para>
+    ///
+    /// <para>⚠️ Misurato in produzione il 4 settembre 2026, quattro errori su nove: lo stack era
+    /// <c>ScriviTesto</c> → <c>Ricostruisci</c> → <c>RisolutoreCelle.ScaliAsync</c>, e la diagnostica diceva
+    /// che cosa c'era aperto <b>accanto</b> — <c>SELECT … FROM Airports</c> e
+    /// <c>SELECT … FROM AirportSectors</c>, cioe' il caricamento della pagina. <b>Non</b> due import
+    /// sovrapposti: l'import contro la pagina che lo contiene.</para>
+    ///
+    /// <para>Stesso rimedio di 1.6.1, stessa ragione scritta in <c>AirportSectionsEditor</c>.</para>
+    /// </summary>
+    private IRisolutoreCelle? _risolutore;
+
+    protected override void OnInitialized() =>
+        _risolutore = Risolutore ?? ScopedServices.GetService<IRisolutoreCelle>();
 
     /// <summary>La proposta approvata, con la scelta fra «in coda» e «sostituisci».</summary>
     [Parameter] public EventCallback<RichiestaImport> OnImporta { get; set; }
@@ -364,7 +392,26 @@
         return new Griglia(righe, FormaGriglia.RigaIntera);
     }
 
-    private async Task Ricostruisci(bool forzaIntestazione = false)
+    // ---- una ricostruzione alla volta ------------------------------------------------------------------
+    //
+    // 🔴 Nove errori in produzione il 4 settembre 2026, quattro dei quali qui: «A second operation was
+    // started on this context instance». La ricostruzione interroga i cataloghi, e in Blazor il DbContext e'
+    // UNO SOLO per circuito (non per richiesta): due ricostruzioni che si sovrappongono lo usano insieme, e
+    // il circuito muore portandosi via la pagina di chi stava importando.
+    //
+    // ⚠️ Non e' parallelismo — il renderer serializza — ma INTERLEAVING: la prima ricostruzione cede il
+    // controllo su un `await` verso il database, e nel frattempo parte la seconda. Bastano due gesti vicini:
+    // si incolla il testo (parte la risoluzione degli scali, che su MySQL sono centinaia di millisecondi) e
+    // subito dopo si spunta «la prima riga e' l'intestazione». Gli ingressi visti nei log sono esattamente
+    // `ScriviTesto` e `CambiaIntestazione`.
+    //
+    // ⚠️ E vince la PIU' RECENTE, non la prima: chi arriva annulla quella in corso e prende il suo posto.
+    // Metterle semplicemente in coda vorrebbe dire far aspettare l'anteprima buona dietro a una che nessuno
+    // guardera' piu' — e su una tabella lunga sono secondi.
+    private readonly SemaphoreSlim _unaAllaVolta = new(1, 1);
+    private CancellationTokenSource? _ricostruzione;
+
+    private Task Ricostruisci(bool forzaIntestazione = false) => InFila(async ct =>
     {
         if (!_griglia.Piena) { _proposta = null; return; }
 
@@ -374,15 +421,59 @@
         else
             _intestazione = mappatura.Intestazione;
 
-        _proposta = await CostruttoreProposta.CostruisciAsync(_griglia, Spec, mappatura, Risolutore);
-    }
+        _proposta = await CostruttoreProposta.CostruisciAsync(_griglia, Spec, mappatura, _risolutore, ct);
+    });
 
     /// <summary>L'utente rimappa una colonna a mano: si ricostruisce senza rileggere il testo.</summary>
-    private async Task Rimappa(int colonnaSpec, string? valore)
+    private Task Rimappa(int colonnaSpec, string? valore) => InFila(async ct =>
     {
         if (_proposta is null || !int.TryParse(valore, out var g)) return;
         _proposta = await CostruttoreProposta.CostruisciAsync(
-            _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), Risolutore);
+            _griglia, Spec, _proposta.Mappatura.Con(colonnaSpec, g), _risolutore, ct);
+    });
+
+    /// <summary>
+    /// Esegue <paramref name="lavoro"/> da solo: chi arriva ANNULLA quella in corso, poi aspetta il suo
+    /// turno. Chi viene sorpassato mentre aspetta si ritira senza toccare <c>_proposta</c>: scriverla
+    /// vorrebbe dire far comparire per un istante l'anteprima vecchia sopra la nuova.
+    /// </summary>
+    private async Task InFila(Func<CancellationToken, Task> lavoro)
+    {
+        try { _ricostruzione?.Cancel(); } catch (ObjectDisposedException) { }
+        var mio = new CancellationTokenSource();
+        _ricostruzione = mio;
+
+        await _unaAllaVolta.WaitAsync();
+        try
+        {
+            // Sorpassato mentre si aspettava il turno: il risultato non interessa piu' a nessuno.
+            if (mio.IsCancellationRequested) return;
+            await lavoro(mio.Token);
+        }
+        catch (OperationCanceledException) when (mio.IsCancellationRequested)
+        {
+            // Annullata da una piu' recente: non e' un errore, e non deve arrivare al circuito.
+        }
+        finally
+        {
+            _unaAllaVolta.Release();
+            if (ReferenceEquals(_ricostruzione, mio)) _ricostruzione = null;
+            mio.Dispose();
+        }
+    }
+
+    /// <summary>⚠️ Il semaforo e la ricostruzione in corso vivono quanto il componente: senza questo, chi
+    /// chiude il pannello mentre una risoluzione e' in volo lascia in giro una `CancellationTokenSource` e
+    /// un `SemaphoreSlim` per ogni apertura.</summary>
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            try { _ricostruzione?.Cancel(); } catch (ObjectDisposedException) { }
+            _ricostruzione = null;
+            _unaAllaVolta.Dispose();
+        }
+        base.Dispose(disposing);   // chiude lo scope, e con lui il DbContext del pannello
     }
 
     /// <summary>Applica la scelta fatta in una cella ambigua. Non si rilegge e non si ricostruisce niente:

@@ -1,6 +1,10 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 4 settembre 2026 (tarda mattina) — ✅ **1.7.0 È IN PRODUZIONE**, caricata dal committente e verificata dal vivo: la barra dice **`1.7.0 · bf24915`**. 📦 **E il pacchetto 1.7.1 è PRONTO e non caricato** (`vipi-1.7.1-solo-file-cambiati.zip`, sha256 `930284473d9e998464d4a04c05387b52d40938fa1d7044a32eeb2d7222e82912`, 4,29 MB, **9 file**, timbro **`1.7.1 · f4d7347c`**). 🟢 **PATCH**: solo correzioni, nessuna pagina né sezione nuova, **nessuna migrazione**, **niente `wwwroot`** (nessun CSS né JS toccati) e quindi nemmeno l'indice degli asset. Dentro c'è **§BI**: due difetti trovati sullo stesso aeroporto — le piste che si **accumulavano** invece di sostituirsi, e i TORA/LDA che **sparivano** dall'editor — più 🔴 **un terzo trovato PROVANDO IL PACCHETTO**: in tutti e quattro gli editor dello scalo l'avviso «c'è qualcosa da salvare» non scattava **mai**, quindi il contatore mentiva, la guardia del browser taceva e l'auto-salvataggio appena scritto sarebbe **nato morto**. Foglio in `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.7.1.md`.
+**Aggiornato:** 4 settembre 2026 (sera) - ✅ **1.7.1 È IN PRODUZIONE** dalle 10:03:04Z (timbro `1.7.1 · f4d7347`, avvio 15 103 ms, configurazione sana). 🔴 **E la misura di §BG ha dato il VERDETTO sul keep-alive: i ping ARRIVANO al processo e non bastano.** 33 processi corti misurati, vita media **46 s**, **5-7 richieste ciascuno** (una ogni 7,8 s, cioè esattamente i sei ping del Worker), svegliati da `/vsop/health/ready` e fermati **sempre da SIGTERM**, con l'ultima richiesta arrivata **0-9 s prima di morire**: non è mai inattività, lo uccide qualcuno da fuori. ⚠️ **E un processo è vissuto 1h 29m con 609 richieste** - l'unico del file `svegliato da /_blazor/negotiate`, cioè da un browser vero con un circuito aperto: **non esiste nessun tetto d'età**, e nessuna frequenza di ping potrà mai bastare, perché una connessione lunga tiene su il processo e una richiesta corta no. **→ La strada è il pannello dell'hosting** (`passenger_min_instances`, tempo di inattività del pool), e serve Ivao.It. In `main` c'è poi **§BJ**, non ancora in nessun pacchetto.
+
+⚠️ **Nove richieste in errore nella stessa diagnostica**, tutte **prima** di 1.7.1 (07:22-08:15Z, su 1.6.2), tutte `CircuitUnhandledException` della famiglia DbContext condiviso. Quattro venivano dall'**import tabelle** e sono chiuse in §BJ; le altre sono `ObjectDisposedException` su lavoro che continuava dopo la morte del circuito, cioè collaterale dei cinquanta secondi.
+
+ℹ️ **L'avvio costa 15 103 ms**, di cui **9 808 di migrazione** e 3 857 di manutenzioni. Su un processo che rinasce ogni cinquanta secondi è un quarto abbondante del tempo speso a partire.
 
 ⏳ **QUEL CHE SERVE ANCORA INDIETRO**: `diagnostica/avvii.txt` riscaricato **qualche ora dopo** il caricamento di 1.7.0 — ora quel file **ha** il contatore `richieste N`, che è la misura di §BG. ⚠️ Il file guardato il 4 settembre di mattina era ancora **1.6.2** e non ce l'aveva, quindi la misura non c'è tuttora. Quel che si è già potuto leggere lì: **489 avvii in ~9,7 h** (uno ogni ~70 s) e **484 arresti ORDINATI su 489** — Passenger lo spegne **apposta**, non crasha, quindi la strada che mi aspetto è il **pannello dell'hosting**. `richieste 6/12/20…` ⇒ pannello; `richieste 1` o `0` ⇒ il keep-alive non parla con l'applicazione.
 
@@ -8107,4 +8111,56 @@ riga `05` porta `ToraM = '1700'`. È la misura che prima diceva zero.
 I TORA/LDA di LIPR **sono persi**. LIPR non ha un vIPI pubblicato, quindi non c'è nemmeno uno snapshot di
 release da cui ripescarli: vanno riscritti a mano. Meglio **dopo** aver caricato 1.7.1, o l'auto-salvataggio
 non c'è ancora a proteggerli.
+
+---
+
+## BJ. L'import tabelle contro la pagina che lo contiene - 4 settembre 2026
+
+Quattro delle nove richieste in errore lette nella diagnostica di stamattina: `A second operation was started
+on this context instance`, con lo stack `ScriviTesto`/`CambiaIntestazione` -> `Ricostruisci` ->
+`CostruttoreProposta` -> `RisolutoreCelle.ScaliAsync` -> `EfAirportNameLookup`.
+
+### ⚠️ La diagnosi giusta è la SECONDA, e a correggerla è stata la diagnostica
+
+La prima lettura - la mia - era «due ricostruzioni che si sovrappongono»: si incolla il testo, parte la
+risoluzione degli scali, e intanto si spunta «la prima riga è l'intestazione». Plausibile, e **sbagliata**.
+
+A dirlo è il riquadro **«che cosa era aperto sul DbContext»**, che il file d'errore stampa accanto allo
+stack: non c'era un'altra ricostruzione, c'erano `SELECT ... FROM Airports` e `SELECT ... FROM AirportSectors`
+- **il caricamento della pagina che ospita l'import**. Non l'import contro sé stesso: l'import contro la
+pagina.
+
+🔴 **E il filo che li legava era una riga sola**: `MilSectionsEditor.razor:16`,
+`@inject Vipi.Application.Import.IRisolutoreCelle` - il risolutore preso dal **circuito**, cioè dal
+`DbContext` che la sessione condivide con tutto il resto, e passato al pannello. È **esattamente**
+l'anti-pattern chiuso in 1.6.1 per altri due servizi, con la ragione già scritta dieci righe sotto in
+`AirportSectionsEditor`.
+
+### Il rimedio, in due pezzi che servono tutti e due
+
+1. **`ImportaTabella` deriva da `OwningComponentBase`**: ha uno scope suo, quindi un `DbContext` suo, e non
+   può più scontrarsi con la pagina. Il parametro `Risolutore` resta, ma solo per sostituirlo in un banco di
+   prova; `MilSectionsEditor` e `MilDiversionsEditor` non lo passano più.
+2. **Una ricostruzione alla volta, e vince la più recente.** Ora che il contesto è privato, l'unica
+   collisione che resta possibile è del pannello contro sé stesso: `InFila` mette in fila e **annulla**
+   quella in corso quando ne arriva una nuova. ⚠️ Non è solo prudenza: senza l'annullamento, l'anteprima
+   buona aspetterebbe dietro a una che nessuno guarderà più, e su una tabella lunga sono secondi.
+
+### E una spesa tolta per strada
+
+`RisolutoreCelle.ScaliAsync` chiedeva alla sorgente **per cella**, non per codice: «LGKR» e «LGKR Kerkyra»
+sono due celle con lo stesso scalo, e ognuna spendeva una chiamata di rete **e un colpo del tetto** dei
+venticinque. Su una tabella di alternati, dove lo stesso campo ricorre, si arrivava a «troppi scali da
+verificare» avendone verificati molti meno. Ora il conto si tiene per codice.
+
+### ⚠️ Che cosa i test possono difendere, e che cosa no
+
+La collisione vera - pannello contro caricamento della pagina - **non si riproduce in un banco di prova**:
+si monta un componente per volta, e il dispatcher di Blazor serializza i gestori d'evento. Misurato: con due
+gesti di fila la traccia dice `entra 1 · esce 1 · entra 2 · esce 2`, mai sovrapposti. Quindi le prove qui
+sono **strutturali** e lo dicono: che il pannello derivi da `OwningComponentBase`, e che nessuno gli passi
+più un risolutore dall'alto. Diventano rosse se qualcuno disfa il rimedio, ed è tutto quel che possono fare.
+La deduplica per codice invece si prova per davvero (`RisolutoreScaliAllaSorgenteTests`, 4).
+
+10 303 test verdi su quindici assiemi. Nessuna migrazione, nessun `wwwroot`.
 

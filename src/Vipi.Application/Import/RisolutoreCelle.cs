@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -66,6 +66,12 @@ public sealed class RisolutoreCelle : IRisolutoreCelle
             .ConfigureAwait(false);
 
         var esiti = new Dictionary<string, EsitoRisoluzione>(StringComparer.OrdinalIgnoreCase);
+
+        // ⚠️ Si chiede alla sorgente per ICAO, non per CELLA. La deduplica per cella non bastava: «LGKR» e
+        // «LGKR Kerkyra» sono due celle diverse con lo stesso codice, e ognuna spendeva una chiamata di rete
+        // E un colpo del tetto — su una tabella di alternati, dove lo stesso scalo compare piu' volte, si
+        // arrivava a «troppi scali da verificare» avendone verificati molti meno di venticinque.
+        var perCodice = new Dictionary<string, AirportName?>(StringComparer.OrdinalIgnoreCase);
         var allaSorgente = 0;
 
         foreach (var (cella, icao) in perIcao)
@@ -78,14 +84,19 @@ public sealed class RisolutoreCelle : IRisolutoreCelle
                 continue;
             }
 
-            if (allaSorgente >= MaxAllaSorgente)
+            if (!perCodice.TryGetValue(icao, out var trovato))
             {
-                esiti[cella] = new EsitoRisoluzione("", EsitoCella.NonLetta, null, "troppi scali da verificare");
-                continue;
+                if (allaSorgente >= MaxAllaSorgente)
+                {
+                    esiti[cella] = new EsitoRisoluzione("", EsitoCella.NonLetta, null, "troppi scali da verificare");
+                    continue;
+                }
+
+                allaSorgente++;
+                trovato = await _scali.FindAsync(icao, ct).ConfigureAwait(false);
+                perCodice[icao] = trovato;
             }
 
-            allaSorgente++;
-            var trovato = await _scali.FindAsync(icao, ct).ConfigureAwait(false);
             esiti[cella] = trovato is null
                 ? new EsitoRisoluzione("", EsitoCella.NonLetta, null, "scalo sconosciuto")
                 : new EsitoRisoluzione($"{trovato.Icao} {trovato.Name}", EsitoCella.Risolta, trovato.Icao);
