@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 4 settembre 2026, sera tardi — ✅ **§BM: A CHE PUNTO È LA TRADUZIONE, e sono DUE percentuali.** Richiesta del committente. Nessuna entità, nessuna tabella, **nessuna migrazione**: lo stato è la differenza fra i segmenti di un documento e le impronte in memoria, e **si calcola** — misurato, **45 ms** su tutto il `vipi.db` (26 documenti, 696 titoli, 218 blocchi, 313 voci di memoria). 🔴 **E la misura ha detto la cosa che nessuna pagina mostrava: tutte e 17 le release EFFICACI hanno `Doc.Translations` nullo** — il congelamento riparato il 31 agosto vale dalla **prossima** pubblicazione, e quel che il pubblico legge oggi viene **al 100% dalla memoria viva**. Ora si vede, con la pastiglia «non congelata» su ogni riga in vigore. **Due coperture e mai una media**: *bozza* (memoria viva) e *pubblicato* (snapshot ∪ memoria, con la stessa preferenza di `NoteAsync`) — «bozza 100%, pubblicato 40%» è il guasto §Q18 in persona, e «70%» non farebbe agire nessuno. **Quattro sedi, una fonte**: la sezione «Documenti» del Registro, l'**esito dell'ultimo giro** (che esisteva intero e finiva **solo nel log del server**), la pastiglia su `/versions` e la riga nella pubblicazione. ➕ **E la domanda di chi scrive ha una risposta a orologio**: il giro **non ha tetto di lotto** — spedisce tutti i mancanti in una chiamata — quindi «≤ 15 minuti» non è una stima; l'ora dell'ultimo giro era **già** in `IImportStateStore` e non la mostrava nessuno. ➕ **Tasto «traduci ora»** sul documento (permesso dell'Editor, raggio del solo documento, scope proprio per la rete, lucchetto in-processo col giro automatico, `TranslationSpendKind.ManualDispatch` + riga di audit — **zero schema**). ⚠️ **Nessun tetto per pressione, per decisione del committente**: Azure non ne ha uno e il dedup rende innocua la ripetizione. ⚠️ **Una parte della carta l'ha corretta la misura**: «a mano» — i segmenti che il protettore rifiuta — è **zero sul corpus vero** (0 non sicuri su 104 distinti), quindi la colonna compare solo se qualcosa la riempie. ✅ **Verifica live fatta** su copia del DB, e ha trovato **tre** difetti che i test non vedevano (plurale «1 sentences», spazio mangiato da Razor prima di un `@if`, e il rifiuto del protettore che non si diceva a chi preme). 10 lezioni in carta: `docs/feature/2026-09-04-stato-traduzione.md`. ⚠️ **Serve un pacchetto**: tocca `Vipi.Ui` (frasi comprese) e `Vipi.Application`/`Vipi.Infrastructure`.
+
 **Aggiornato:** 4 settembre 2026, sera tardi — 📦 **PACCHETTO 1.8.1 PRONTO** (`vipi-1.8.1-solo-file-cambiati.zip`, sha256 `b8ff85385a604903d687e34f84b8251ab4804d5f8efb58108fa79d42f5e72836`, **2,21 MB**, **4 file**). Timbro **`1.8.1 · fa1685f`**. 🟢 **PATCH e la tabella regge**: solo correzioni, nessuna pagina né sezione nuova, **nessuna migrazione**, **niente `wwwroot`** e **niente frasi**. Dentro c'è **§BL** e basta. ⚠️ Il contrario di 1.8.0: là la trappola erano i quattro file di `wwwroot` che dovevano viaggiare insieme, qui non ce n'è nessuna — quattro file, quattro rinomine. **Le impronte lo CONFERMANO invece di dedurlo**: `vipi-theme.css` e `Vipi.Host.staticwebassets.endpoints.json` sono **identici** alla copia dentro il publish di 1.8.0, e nessun `.resx` è cambiato (verificato col diff), quindi il satellite inglese resta fuori. ⚠️ Le tre pagine sono **foglie**: nessun altro assieme le chiama, e i cambi sono un `@inherits` più un campo privato — niente firme pubbliche toccate. **Provato sul pacchetto pubblicato**: dieci controlli verdi, le tre pagine aperte una per una con circuito su e console pulita, e i **quattro andirivieni** fra editor ed elenco senza un circuito caduto. ⚠️ E il file provato è **esattamente** quello che si spedisce: `Vipi.Ui.dll` è un assieme portabile, e l'impronta del publish win-x64 di prova e quella dentro lo zip **coincidono**. Le 4 impronte **riverificate dentro lo zip** dopo averlo costruito. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.8.1.md`. 🔴 Resta da **caricare via FTP**, e poi serve indietro `errori-richieste.txt` fra qualche giorno: la corsa **non si riproduce qui**, quindi la prova che sia sparita è loro.
 
 
@@ -8188,3 +8190,123 @@ La deduplica per codice invece si prova per davvero (`RisolutoreScaliAllaSorgent
 
 10 303 test verdi su quindici assiemi. Nessuna migrazione, nessun `wwwroot`.
 
+
+## BM. A che punto è la traduzione — 4 settembre 2026
+
+Carta `docs/feature/2026-09-04-stato-traduzione.md`. Richiesta del committente: «un meccanismo che permetta
+di capire a che punto è la traduzione nei documenti».
+
+### BM1 ✅ Quel che si sapeva prima, e da dove
+
+| Domanda | Chi rispondeva | Limite |
+|---|---|---|
+| «Questo documento è tradotto?» | il gettone sotto il titolo | un documento per volta, e solo **aprendolo nella lingua di lettura** |
+| «Quali frasi mancano?» | il pannello Traduzione dell'editor | un documento per volta, e il totale si contava a occhio |
+| «Come è stata resa questa frase?» | il Registro | è orientato alla **frase**: da lì non si risale a «quali documenti sono indietro» |
+| «Il giro sta andando avanti?» | **solo il log del server** | in produzione vuol dire aprire i file di diagnostica |
+| «Quanto manca in tutto?» | **nessuno** | — |
+
+### BM2 🔴 Quel che ha detto la misura, e che nessuno poteva vedere
+
+Sonda temporanea sul `vipi.db` di sviluppo, con i **veri** `TextSegmenter`/`TranslationText`/`TextProtector`:
+
+- una passata su **tutto** costa **45 ms** → il read-model si **calcola**, non si registra (stessa scelta, e
+  stesso motivo, di `EfTranslatableCorpus`: «nessuna coda, per scelta»);
+- **tutte e 17 le release efficaci** portano `Doc.Language: null` **e** `Doc.Translations: null`. Il
+  congelamento riparato il 31 agosto ([[lingua-bloccata]]) vale dalla **prossima** pubblicazione: oggi il
+  pubblico legge **tutto** dalla memoria viva, e una correzione fatta su un altro documento gli cambia la
+  frase sotto gli occhi. Non era un'ipotesi e non era visibile da nessuna parte;
+- **0 segmenti non sicuri su 104 distinti**: il cancello del protettore è *fail closed* e scatta solo su ciò
+  che non sa chiudere — un VID **non** rende un segmento «da fare a mano», perché lo chiude e la frase parte.
+
+### BM3 ✅ La forma: due coperture, tre vuoti, il mancante diviso
+
+`IStatoTraduzione` → una riga per documento con **bozza** (versione di lavoro contro memoria viva) e
+**pubblicato** (snapshot della release efficace contro congelato ∪ memoria, con la stessa preferenza di
+`DocumentTranslator.NoteAsync`).
+
+🔴 **Mai una media.** «Bozza 100%, pubblicato 40%» è §Q18 in persona; «70%» è un numero che non descrive
+niente e non fa agire nessuno.
+
+⚠️ **I tre vuoti restano tre**: «lingua bloccata», «nessuna release», «niente da tradurre». Un documento
+bloccato **non è allo 0%**, e «nessuna release» non è «0% tradotto» — detti con le stesse parole mandano a
+cercare un lavoro che non esiste.
+
+⚠️ **Non contano come mancanti**: i titoli di **catalogo** (si risolvono dove si legge — contarli manderebbe
+ogni vIPI d'aeroporto in un rosso falso e permanente), il titolo del documento (R4), e i testi **fuori dai
+documenti**, che stanno in una riga a parte perché in ogni riga comparirebbero N volte.
+
+⚠️ **Lo snapshot è uniforme per tutte le famiglie** (misurato sulle 17 release): niente descrittore per-tipo
+e nessuno `switch (TargetType)` nuovo. La definizione di «segmento» resta **una**
+(`DocumentTranslator.SegmentiGrezzi`).
+
+### BM4 ✅ «Ho appena finito di scrivere, quanto ci vuole?»
+
+Domanda del committente, e la prima stesura della carta rispondeva male («nessuna stima di tempo»). Letto il
+giro, quella cautela non era giustificata:
+
+- ⚠️ il giro **non ha un tetto di lotto**: spedisce in **una** chiamata tutti i mancanti, quindi il numero
+  di frasi appena scritte **non allunga l'attesa**;
+- periodo fisso **15 minuti** (ora in `GiroDiTraduzione.Periodo`, un posto solo: lo legge anche l'editor);
+- ⚠️ l'ora dell'ultimo giro era **già salvata** (`IImportStateStore`, chiave `Translation`) e **non la
+  mostrava nessuna pagina** — quella riga sta fuori dall'elenco Sorgenti per scelta dichiarata.
+
+Quindi **≤ 15 minuti** per una frase normale, ma **mai, senza una persona** se il protettore rifiuta o se la
+frase torna rotta dal motore, e **ferma** a tetto finito o interruttore spento. È per questo che il mancante
+si divide: «mancano 8» senza dire quali aspettano il giro e quali aspettano *te* non fa fare niente a nessuno.
+
+⚠️ **E non serve aspettare per pubblicare**: dal §Q18 il congelato si sovrappone alla memoria «dove», non
+«se». La riga nel pannello di pubblicazione dice **questo**, non «stai congelando male».
+
+### BM5 ✅ Il tasto «traduci ora»
+
+Ragionato con il committente prima di scriverlo. Non rompe «non si traduce al salvataggio»: quella regola
+protegge il **salvataggio** da un guasto di rete, e un tasto premuto da una persona non è una dipendenza del
+salvataggio.
+
+- **Raggio del documento**: partono i suoi segmenti e nessun altro — col corpus intero la pressione di uno
+  pagherebbe la prosa in attesa di tutti.
+- **Permesso dell'Editor**, la stessa porta della correzione a mano.
+- **Scope proprio** per la chiamata di rete: sul `DbContext` del circuito sarebbe la settima corsa, stavolta
+  lunga quanto una risposta di Azure.
+- **Lucchetto in-processo** col giro automatico: insieme spedirebbero gli stessi segmenti e li pagherebbero
+  due volte. Chi trova occupato **torna indietro e lo dice** — non si mette in fila, perché chi ha premuto sta
+  guardando lo schermo.
+- **Otto esiti e non due**: chi preme deve sapere se riprovare, chiamare un amministratore o non fare niente.
+- **Tracciabilità a costo zero di schema**: `TranslationSpendKind.ManualDispatch` (la colonna è già
+  `TEXT(16)`) e una riga nel registro di audit che c'è già.
+- ⚠️ **Nessun tetto per pressione**, per decisione del committente: Azure non ne ha uno e il dedup rende
+  innocua la ripetizione. La falla di spesa vera resta §Q16 — i segmenti che tornano **rotti** non entrano in
+  memoria, quindi il dedup non li protegge e ogni pressione li ripaga.
+
+### BM6 ✅ Le quattro sedi, una fonte sola
+
+Sezione **«Documenti»** in `/services/vsop/admin/glossary` (già la casa admin della traduzione) ·
+l'**esito dell'ultimo giro** a schermo · pastiglia su `/services/vsop/versions`, **solo quando manca
+qualcosa** (un'ottava pastiglia che dice «tutto a posto» si smette di leggere insieme alle altre sette) ·
+la riga nel pannello di pubblicazione.
+
+### BM7 ✅ Che cosa ha detto la verifica live — tre difetti, nessuno visto dai test
+
+Guidata su copia del `vipi.db` (host su :5034, Edge + puppeteer), togliendo **una** voce di memoria a LIBC.
+
+1. **«1 sentences translated»**: la lezione di «vale per 1 documenti» (§Q19) — un plurale sbagliato è il segno
+   che il numero non lo guarda nessuno. E una frase sola è il caso **normale** del tasto.
+2. **«Il giro:Ultimo giro…»**: il compilatore Razor mangia lo spazio fra un'espressione e un `@if`.
+3. **Il rifiuto del protettore non si diceva a chi preme**: davanti a «fatto: 0» si ripremerebbe all'infinito
+   su frasi che nessuna macchina prenderà mai.
+
+Verificato a schermo: testata «1 to translate», riga «1 to translate · next round in ~8 min» col tasto,
+pressione → «Done: one sentence translated by azure», e nel database la spesa con `Kind=ManualDispatch`
+(38 caratteri) più la riga di audit col VID di chi ha premuto. Zero errori di pagina, zero risposte ≥ 400.
+
+### BM8 🟢 Quel che resta fuori, dichiarato
+
+- **«rifiutato»** come classe propria del mancante: vuole un contatore, cioè **schema** → dopo il 16
+  settembre (§Q16). Fino ad allora quei segmenti si vedono come «in attesa», che è la verità dal punto di
+  vista di chi guarda.
+- **Nessuna previsione oltre il prossimo giro**: il quando del prossimo è un orologio, quello del secondo
+  sarebbe una promessa (tetto di spesa, catena dei motori).
+- **Nessuna azione dalla pagina di stato**: è una pagina che **dice**. Il tasto sta sul documento.
+- 🔴 **E resta il fatto che la tabella ora mostra**: 17 release in vigore senza congelato. Si chiude
+  **ripubblicando** — che è una decisione editoriale, non un lavoro di codice.

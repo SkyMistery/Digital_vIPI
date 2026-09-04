@@ -1,6 +1,7 @@
 ﻿# A che punto è la traduzione: il meccanismo che lo dice
 
-**4 settembre 2026** · richiesta del committente. Carta di progetto — **niente codice ancora scritto**.
+**4 settembre 2026** · richiesta del committente. ✅ **ESEGUITA** la sera stessa (slice 1-8), verifica live
+compresa. Quel che l'esecuzione ha corretto della carta sta in §8.
 
 > **In una riga.** Oggi lo stato della traduzione si conosce **un documento per volta e solo aprendolo**
 > nella lingua di lettura; questo meccanismo lo calcola per **tutti** i documenti in una passata sola
@@ -79,8 +80,9 @@ successo col riquadro d'avviso ([[avviso-di-simulazione]], §AT). Quindi il manc
 | **a mano** | non in memoria, e il protettore lo **rifiuta** (dato personale) | 🔴 **nessuna macchina lo farà mai**: vuole una persona |
 | **rifiutato** | torna rotto dal motore a ogni giro | pagato e buttato, ogni quarto d'ora |
 
-⚠️ **Le prime due sono gratis**: il protettore è deterministico, locale e senza rete — nella sonda il
-verdetto sui 281 segmenti non si è nemmeno misurato.
+⚠️ **Le prime due sono gratis**: il protettore è deterministico, locale e senza rete.
+🔴 **E «a mano» è ZERO sul corpus vero — misurato dopo aver scritto questa tabella: vedi §8.1.** La classe
+resta perché è il cancello, non perché sia un caso comune.
 ⚠️ **La terza NO, e la carta lo dice invece di fingere**: i segmenti tornati rotti non si salvano da nessuna
 parte (§Q16 «Aperto»), quindi «rifiutato» **non è calcolabile** senza un contatore suo, cioè **schema** —
 e lo schema non si consegna prima del 16 settembre ([[finestra-cieca-al-16-settembre]]). Fino ad allora la
@@ -89,8 +91,13 @@ guarda (il giro li riprenderà) e non promette una precisione che non c'è.
 
 ### 3.3 Lo stato in una parola, e i tre vuoti che non si somigliano
 
-`StatoTraduzione` per documento: `Bloccata` · `NellaSuaLingua` · `NonCominciata` · `AChiazze` ·
-`CompletaDaRileggere` · `Completa`.
+`StatoTraduzione` per documento: `Bloccata` · `NienteDaTradurre` · `NonCominciata` · `AChiazze` ·
+`DaRileggere` · `Completa`.
+
+⚠️ **`NellaSuaLingua` non esiste, ed è una semplificazione dell'esecuzione**: le lingue sono due e la
+direzione di un documento è sempre «l'opposta della sua», quindi «lo stai leggendo nella sua lingua» è uno
+stato del **lettore**, non del documento. Nel pannello dell'editor — dove la lingua la sceglie chi guarda —
+quel vuoto resta e si chiama ancora così (`RevisioneDocumento`).
 
 ⚠️ **I tre vuoti restano tre**, come già in `RevisioneDocumento`: «niente da tradurre», «lo stai leggendo
 nella sua lingua» e «lingua **bloccata**» non si dicono con le stesse parole, o chi guarda pensa che la
@@ -187,14 +194,15 @@ salvataggio; e i trigger manuali sono **già** indipendenti dal gate (commento d
 
 | # | Slice | Che cosa chiude |
 |---|---|---|
-| 1 | `IStatoTraduzione` + record, sul **solo** asse bozza, con test sul cuore deterministico | il calcolo, senza UI |
-| 2 | L'asse **pubblicato** (snapshot + congelato ∪ memoria) via descrittore di famiglia | la seconda percentuale, che è il motivo della carta |
-| 3 | La divisione del mancante (**in attesa** / **a mano**) col protettore | l'allarme che può arrivare a zero |
-| 4 | La sezione «Documenti» del Registro | la sede |
-| 5 | L'**ultimo giro** a schermo (`TranslationFillReport` fuori dal log) | «sta andando avanti?» |
+| 1 ✅ | `IStatoTraduzione` + record, sul **solo** asse bozza, con test sul cuore deterministico | il calcolo, senza UI |
+| 2 ✅ | L'asse **pubblicato** (snapshot + congelato ∪ memoria) — ⚠️ **senza** descrittore di famiglia: vedi §8 | la seconda percentuale, che è il motivo della carta |
+| 3 ✅ | La divisione del mancante (**in attesa** / **a mano**) col protettore | l'allarme che può arrivare a zero |
+| 4 ✅ | La sezione «Documenti» del Registro | la sede |
+| 5 ✅ | L'**ultimo giro** a schermo (`TranslationFillReport` fuori dal log) | «sta andando avanti?» |
 | 5-bis | **L'attesa nel pannello dell'editor** (§4-bis): «N frasi nuove · il giro passa fra ~M min · K vogliono te», da `IImportStateStore` + `Periodo` | «quanto ci vuole per quel che ho appena scritto» |
-| 6 | Pastiglia su `/versions` + numero nella pubblicazione | le altre due sedi |
-| 7 | Verifica live su LIBC, con traccia | la prova |
+| 6 ✅ | Pastiglia su `/versions` + numero nella pubblicazione | le altre due sedi |
+| 7 ✅ | Verifica live su LIBC, con traccia | la prova |
+| 8 ✅ | Il tasto **«traduci ora»** (era 🟡 da decidere: il committente l'ha voluto, **senza tetto per pressione**) | il giro di revisione in una seduta sola |
 
 ⚠️ La **5-bis** è la slice che risponde alla domanda di chi scrive, e non dipende dalle altre: `Periodo` è
 una costante e l'ultimo giro è già in `IImportStateStore`. Si può anticipare se serve prima.
@@ -209,6 +217,48 @@ una costante e l'ultimo giro è già in `IImportStateStore`. Si può anticipare 
 - **Nessuna azione dalla pagina di stato** (niente «traduci ora» **lì**): è una pagina che **dice**, e la
   correzione ha già la sua sede nel pannello del documento e nel Registro. Il tasto sul **documento** è
   un'altra cosa e resta 🟡 da decidere (§4-bis).
+
+## 8. Che cosa ha corretto l'esecuzione — e le tre cose che ha detto lo schermo
+
+### 8.1 La misura ha smentito due punti di questa carta
+
+⚠️ **«A mano» è ZERO sul corpus vero** — 0 non sicuri su 104 segmenti distinti. Il §3.2 lo dava come una
+delle tre classi del mancante, e in un certo senso lo è: ma il cancello del protettore è *fail closed* e
+scatta solo su ciò che **non sa chiudere**, mentre un VID o un nome del roster li chiude e la frase parte
+lo stesso. 🔴 **Un VID non rende un segmento «da fare a mano»**, ed è la cosa che si sbaglia per prima.
+Conseguenze: la colonna compare **solo se qualcosa la riempie**, e il test che presidia il numero asserisce
+lo **zero** invece di un caso che non esiste.
+
+⚠️ **Nessun descrittore per-tipo, e il pre-flight 2 era pessimista**: gli snapshot delle cinque famiglie
+sono **uniformi** — tutti portano un `Doc.Roots` (misurato sulle 17 release efficaci: AccVipi, Airport,
+AirportMil, App, Vloa). La domanda «dammi i segmenti di questo snapshot» è quindi **una sola funzione**
+(`DocumentTranslator.SegmentiGrezzi`), non un metodo sul descrittore di famiglia. Il descrittore serve
+soltanto per la corrispondenza (famiglia, chiave) → documento, che è dove quella conoscenza già vive.
+
+### 8.2 I tre difetti che ha trovato la verifica live, e nessun test
+
+1. **«1 sentences translated»** — la lezione di «vale per 1 documenti» (§Q19): un plurale sbagliato è il
+   segno che il numero non lo guarda nessuno. E una frase sola è il caso **normale** di questo tasto.
+2. **«Il giro:Ultimo giro…»** — il compilatore Razor mangia lo spazio fra un'espressione e un `@if`: serve
+   un carattere vero.
+3. **Il rifiuto del protettore non si diceva a chi preme** — davanti a «fatto: 0» si ripremerebbe
+   all'infinito su frasi che nessuna macchina prenderà mai.
+
+### 8.3 La prova, per esteso
+
+Su copia del `vipi.db`, togliendo **una** voce di memoria a LIBC: testata del pannello «1 to translate»,
+riga «1 to translate · next round in ~8 min» col tasto a destra, la frase marcata «not translated»;
+pressione → «Done: one sentence translated by azure», riga → «nothing missing»; e **nel database**
+`TranslationSpends` con `Kind = ManualDispatch` (38 caratteri) più la riga di audit `TranslationRun` col VID
+di chi ha premuto. Sezione «Documenti»: 26 righe più «fuori dai documenti», e in cima
+*«26 documents · 1 waiting for the round · 17 in force without frozen translations»*. Zero errori di pagina,
+zero risposte ≥ 400.
+
+### 8.4 Quel che la tabella adesso mostra, e che nessuno può correggere col codice
+
+🔴 **17 release in vigore su 17 non congelano niente.** Si chiude **ripubblicando** quei documenti — una
+decisione editoriale. Fino ad allora ogni correzione fatta su una frase condivisa cambia il testo pubblicato
+di ogni documento che la contiene, sotto gli occhi di chi lo sta leggendo.
 
 Vedi [[documenti-bilingue]], [[lingua-bloccata]], [[spesa-di-traduzione]],
 [[fraseologia-e-traduzioni-una-pagina]], [[titoli-di-catalogo-bilingui]].
