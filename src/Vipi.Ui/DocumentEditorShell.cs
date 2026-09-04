@@ -281,10 +281,22 @@ public sealed class DocumentEditorShell : IDisposable
         await _js.InvokeVoidAsync("vipiEditorSections", aperte);
     }
 
-    /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.</summary>
-    public void Dispose()
-    {
-        _spegniSalvato.Dispose();
-        _tornello.Dispose();
-    }
+    /// <summary>
+    /// Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
+    ///
+    /// <para>🔴 <b>Il tornello NON si smaltisce, ed è una correzione pagata in produzione</b> (4 settembre
+    /// 2026, cinque `CircuitUnhandledException` in un'ora). Chi lascia la pagina mentre un caricamento è in
+    /// volo fa arrivare quel caricamento al suo <c>finally</c> — che chiama <c>Release()</c> — <b>dopo</b>
+    /// questo <c>Dispose</c>: <c>ObjectDisposedException: SemaphoreSlim</c>, sollevata dalla continuazione di
+    /// un <c>Task</c> che nessuno aspetta più. Non la cattura nessuno, e Blazor risponde nel solo modo che
+    /// conosce: <b>abbatte il circuito</b>. A schermo è il riquadro «ricarica la pagina», e da lì in poi non
+    /// funziona più niente finché non si ricarica davvero.</para>
+    ///
+    /// <para>⚠️ <b>Non smaltirlo non perde niente</b>: <see cref="SemaphoreSlim.Dispose()"/> serve solo a chi
+    /// ha chiesto <c>AvailableWaitHandle</c>, che qui non tocca nessuno — senza quello il tipo non tiene
+    /// risorse non gestite, e il GC lo raccoglie con la pagina. Il rimedio giusto è togliere la riga, non
+    /// avvolgere il <c>Release</c> in un <c>try</c>: una <c>Release</c> che fallisce in silenzio lascerebbe
+    /// il tornello chiuso, e la pagina dopo si pianterebbe invece di cadere.</para>
+    /// </summary>
+    public void Dispose() => _spegniSalvato.Dispose();
 }

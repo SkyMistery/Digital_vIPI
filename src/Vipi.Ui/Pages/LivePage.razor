@@ -355,7 +355,9 @@
         }
 
         // A ogni render: i <details> ricreati a un tick live perderebbero la persistenza del collasso.
-        try { await JS.InvokeVoidAsync("vipiWireCollapse"); } catch (JSDisconnectedException) { /* circuito chiuso */ }
+        try { await JS.InvokeVoidAsync("vipiWireCollapse"); }
+        catch (JSDisconnectedException) { /* circuito chiuso */ }
+        catch (OperationCanceledException) { /* circuito che si sta chiudendo */ }
 
     }
 

@@ -136,6 +136,40 @@ public class DocumentEditorShellTests
         Assert.False(guscio.IsEditing);
     }
 
+    /// <summary>
+    /// 🔴 <b>Lasciare la pagina mentre un caricamento è in volo non deve abbattere il circuito.</b>
+    ///
+    /// <para>Segnalazione dal campo del 4 settembre 2026 — «mi compare un pop-up che chiede di ricaricare, e
+    /// poi non funziona più niente» — e nel file degli errori di produzione cinque
+    /// <c>CircuitUnhandledException</c> in un'ora, tutte
+    /// <c>ObjectDisposedException: SemaphoreSlim</c> alla <c>Release</c> dentro <c>InFilaAsync</c>. La
+    /// sequenza è questa: la pagina si smonta e smaltisce il guscio, ma l'azione già in coda arriva al suo
+    /// <c>finally</c> dopo — e quell'eccezione, sollevata dalla continuazione di un <c>Task</c> che nessuno
+    /// aspetta più, non la cattura nessuno.</para>
+    ///
+    /// <para>⚠️ Il test smaltisce <b>mentre</b> l'azione è in volo, che è l'unico ordine in cui il difetto
+    /// esiste: smaltire prima o dopo non lo riproduce.</para>
+    /// </summary>
+    [Fact]
+    public async Task Smaltire_il_guscio_mentre_un_azione_e_in_volo_non_solleva()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var dentro = new TaskCompletionSource();
+        var libera = new TaskCompletionSource();
+
+        var inVolo = guscio.InFilaAsync(async () =>
+        {
+            dentro.SetResult();
+            await libera.Task;
+        });
+
+        await dentro.Task;          // l'azione è dentro il tornello
+        guscio.Dispose();           // la pagina se ne va
+        libera.SetResult();         // e solo adesso l'azione finisce, sul guscio smaltito
+
+        await inVolo;               // senza la correzione: ObjectDisposedException, e il circuito muore
+    }
+
     /// <summary>Il caso normale non cambia: lock rilasciato, stato riletto, fuori dalla modifica.</summary>
     [Fact]
     public async Task Uscire_dalla_modifica_rilascia_il_lock_e_chiude()

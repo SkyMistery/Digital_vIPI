@@ -94,6 +94,7 @@
         var o = MediaOptions.Value;
         try { await JS.InvokeVoidAsync("vipiMedia.osserva", element, o.ClientDownscaleLongestSidePx, o.JpegQuality, o.MaxUploadBytes); }
         catch (JSDisconnectedException) { /* circuito chiuso */ }
+        catch (OperationCanceledException) { /* circuito che si sta chiudendo */ }
         catch (JSException) { /* script non caricato: si carica il file originale, e il limite lo fa il server */ }
     }
 

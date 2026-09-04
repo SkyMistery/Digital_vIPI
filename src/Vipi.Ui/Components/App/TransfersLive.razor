@@ -170,6 +170,7 @@ else
     {
         try { await JS.InvokeVoidAsync("vipiCapInner", "#xl-cols", 900); }
         catch (JSDisconnectedException) { /* circuito chiuso */ }
+        catch (OperationCanceledException) { /* circuito che si sta chiudendo: la chiamata muore con lui */ }
     }
 
     private static bool IsUnicom(ResolvedTransferPoint p) =>

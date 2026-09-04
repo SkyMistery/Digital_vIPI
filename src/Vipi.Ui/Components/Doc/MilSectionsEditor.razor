@@ -10,8 +10,14 @@
 @inherits OwningComponentBase
 @implements IMembroEditor
 @using Microsoft.Extensions.DependencyInjection
-@inject Vipi.Application.Abstractions.INavaidCatalog Radioassistenze
-@inject Vipi.Application.Abstractions.IAirportNameLookup Aeroporti
+@* ⚠️ `INavaidCatalog` e `IAirportNameLookup` NON stanno qui: leggono il database dentro il CARICAMENTO
+   (`CaricaRadioassistenzeAsync`, `CaricaAlternatiAsync`), e dal circuito correvano contro le query della
+   pagina che li ospita. Misurato in produzione il 4 settembre 2026, due volte in quattro secondi:
+   «A second operation was started on this context instance» con lo stack
+   `EfNavaidCatalog.ListAsync <- MilSectionsEditor.CaricaRadioassistenzeAsync` — e un'eccezione nel ciclo di
+   vita abbatte il circuito. Si risolvono dallo scope PROPRIO, in `OnInitialized`, come gli altri quattro.
+   ⚠️ Restano scritture che li usano (`CreateAsync`, `SetTypeAsync`): non è un problema, perché il VID di chi
+   scrive glielo passa il chiamante — non lo leggono dai claim, che nello scope proprio non ci sarebbero. *@
 @using Vipi.Application.Import
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
@@ -323,12 +329,28 @@ else
     /// </summary>
     private IMilitaryDocumentService Militari = default!;
 
+    /// <summary>
+    /// L'anagrafica delle radioassistenze, dallo <b>stesso scope proprio</b> degli altri quattro.
+    ///
+    /// <para>🔴 <b>Fino al 4 settembre 2026 arrivava da <c>@@inject</c></b>, e in produzione è costato due
+    /// circuiti in quattro secondi (13:27:15 e 13:27:19 UTC): <c>A second operation was started on this
+    /// context instance</c>, stack <c>EfNavaidCatalog.ListAsync &lt;- CaricaRadioassistenzeAsync</c>. Chi
+    /// guardava vedeva il riquadro «ricarica la pagina» e da lì in poi nessun clic funzionava.</para>
+    /// </summary>
+    private Vipi.Application.Abstractions.INavaidCatalog Radioassistenze = default!;
+
+    /// <summary>Gli aeroporti noti, per gli alternati: <b>stesso scope</b>, e per la stessa ragione — si
+    /// legge dentro <c>CaricaAlternatiAsync</c>, cioè nel caricamento della pagina.</summary>
+    private Vipi.Application.Abstractions.IAirportNameLookup Aeroporti = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         Scalo = ScopedServices.GetRequiredService<IAirportEditingService>();
         Settori = ScopedServices.GetRequiredService<IAirportSectorService>();
         Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
+        Radioassistenze = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.INavaidCatalog>();
+        Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
@@ -659,6 +681,7 @@ else
         if (!_shell.JsReady) return;
         try { await JS.InvokeVoidAsync("vipiSetDirty", _scaloDaSalvare.Count > 0); }
         catch (JSDisconnectedException) { }
+        catch (OperationCanceledException) { }
         catch (InvalidOperationException) { }
     }
 

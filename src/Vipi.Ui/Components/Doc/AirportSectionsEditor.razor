@@ -644,6 +644,12 @@ else
             try { await JS.InvokeVoidAsync("vipiSetDirty", false); }
             catch (JSDisconnectedException) { }
             catch (InvalidOperationException) { }
+            // 🔴 E la CANCELLAZIONE, che è la forma in cui lo stesso fatto si è presentato in produzione:
+            // dieci `CircuitUnhandledException` il 4 settembre 2026, tutte `TaskCanceledException` qui,
+            // e tutte esattamente 60 secondi dopo la morte del circuito — cioè il timeout della chiamata
+            // JS rimasta appesa. Non è un guasto: è la pagina che se ne va. Senza questa riga la
+            // segnalazione ne riempie il file e nasconde quelle vere.
+            catch (OperationCanceledException) { }
         }
         finally
         {
@@ -674,6 +680,7 @@ else
         try { await JS.InvokeVoidAsync("vipiSetDirty", CeQualcosaDaSalvare); }
         catch (JSDisconnectedException) { }
         catch (InvalidOperationException) { }
+        catch (OperationCanceledException) { }
     }
 
     private async Task MarkDirty(string section)
