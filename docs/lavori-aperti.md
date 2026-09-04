@@ -7846,3 +7846,72 @@ una `<select>` — con `value=""` riazzerato dopo la mossa (è un comando, non u
 Dopo: sforo 0 a 1280 e a 1500, tendina dentro la card, tutte le destinazioni raggiungibili, mossa vera
 provata a schermo. Suite UI 1248 verde, build Release verde.
 
+## BG. Il keep-alive non c'entra: il processo muore di ETÀ, non di inattività — 4 settembre 2026
+
+Il committente: *«mi sa che il polling non risolve il nostro problema; però le sessioni durano più di 20
+secondi, quindi dovrebbero arrivare 2 o più richieste che dovrebbero tenere su il sistema»*.
+
+### Che cosa dice `avvii.txt` (1 130 righe, 561 avvii, 2-set 21:57Z → 4-set 06:06Z)
+
+Con la cura da un ping ogni 10 s (dalle 23:00Z del 3-set): **369 avvii in otto ore, 46/h**, vita mediana
+**51 s**, e **260 processi su 367 vivono fra 45 e 60 secondi**.
+
+⚠️ **La prima lettura era sbagliata, e il dato l'ha corretta.** Gli arresti si ammucchiano fra il secondo
+:47 e il :55 del minuto, e sembrava un killer agganciato all'orologio. Non lo è: incrociando **il secondo in
+cui il processo parte** con quello in cui muore, la morte segue l'avvio.
+
+| parte a | muore a | vita |
+|---|---|---|
+| :10-19 | :08 | ~50 s |
+| :20-29 | :13 | ~48 s |
+| :30-39 | :21 | ~47 s |
+| :40-49 | :32 | ~48 s |
+
+L'ammucchiamento a :47-:55 è solo l'ombra di **quando partono**: il ping li fa nascere a :50-:09, e da lì
+tutti muoiono cinquanta secondi dopo. **Il processo muore di età, non di orologio e non di inattività.**
+
+### Perché nessun ping può bastare
+
+Se muore a **50 secondi di vita comunque**, aggiungere ping non allunga niente: infatti fra il ping a 30 s e
+quello a 10 s la vita mediana è passata da 46 a 51 s, cioè **non è cambiata**. Il keep-alive fa una cosa sola,
+e la fa: **riaccende** (il buco fra un arresto e l'avvio dopo è di 3-11 s). Non tiene su.
+
+### La domanda che il registro non sapeva rispondere, e ora sì
+
+Le due possibilità portano in direzioni opposte, e da fuori si vede un `200` in tutt'e due i casi:
+
+- **i ping arrivano** (≈6 al minuto) e muore lo stesso ⇒ non è inattività: è un limite dell'hosting —
+  memoria, ricambio del processo, numero di richieste — e si guarda nel **pannello Plesk**, non nel codice;
+- **arriva una richiesta sola**, quella che l'ha svegliato ⇒ i ping **non passano** (cache, o li serve il web
+  server, o un'altra istanza), e tenere sveglio un processo che non li vede è impossibile per costruzione.
+
+Perciò la riga `ARRESTO` adesso porta **due misure nuove**: quante richieste ha servito quel processo (con
+quanto tempo fa è arrivata l'ultima e quale indirizzo l'ha svegliato) e **chi** ha chiesto lo spegnimento —
+`SIGTERM` (l'ordine viene da fuori) oppure «fermato DA DENTRO», che manderebbe a cercare nel **nostro**
+codice, non nell'hosting.
+
+```
+2026-09-04 06:06:07Z  ARRESTO  acceso per 00:02:44   richieste 17, ultima 7s fa, svegliato da /vsop/health · fermato da SIGTERM
+```
+
+⚠️ Escluso leggendo, prima di scrivere: **non è un lavoro in background che abbatte l'host**. Otto servizi su
+diciassette non hanno un `catch` proprio, ma passano tutti da `GatedImportLoop`, che prende ogni eccezione —
+quindi il comportamento predefinito di .NET (un `BackgroundService` che esplode ferma l'host) qui non scatta.
+Lo dirà comunque la riga nuova: se fosse quello, direbbe «fermato DA DENTRO».
+
+### Verifica
+
+Sei test (`RegistroAvviiTests`), di cui uno accende **l'host vero**, gli manda una richiesta e rilegge la riga
+che ha scritto lui — ⚠️ le prove sulla sola stringa lascerebbero verde un middleware attaccato nel posto
+sbagliato, cioè proprio il modo in cui questa misura potrebbe arrivare a zero in produzione senza che nessuno
+se ne accorga. Provato per mutazione: tolto il conteggio dalla pipeline, quel test diventa rosso. Build
+Release verde.
+
+### ▶ Che cosa fare adesso
+
+1. Spedire questa misura (entra nel prossimo pacchetto; **nessuna migrazione**).
+2. Riscaricare `avvii.txt` dopo qualche ora e **leggere il numero di richieste** su una decina di righe
+   `ARRESTO`.
+3. Solo allora scegliere la strada: pannello Plesk (se i ping arrivano) o indirizzo del keep-alive (se non
+   arrivano). ⚠️ Fino a quel numero, ogni altra mossa è un'ipotesi.
+

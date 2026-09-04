@@ -156,4 +156,111 @@ public sealed class RegistroAvviiTests
         Assert.NotNull(RegistroAvvii.UltimoEvento(righe));
         Assert.Contains(righe, r => r.Contains("AVVIO", StringComparison.Ordinal));
     }
+
+    // ---- le due misure che il solo uptime non dava (4 settembre 2026) ----------------------------------
+    // ⚠️ Stanno in QUESTA classe e non in una nuova apposta: leggono uno stato statico, e due classi di test
+    // girano in parallelo. Dentro una classe i test sono in fila, e la fila è ciò che le rende leggibili.
+
+    /// <summary>
+    /// «Richieste 0» è il risultato più interessante di tutti, e si scrive a lettere: dice che al processo
+    /// non ha bussato nessuno — cioè che il keep-alive non gli parla.
+    /// </summary>
+    [Fact]
+    public void La_riga_darresto_dice_quando_nessuno_ha_bussato()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+
+        var riga = RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), Adesso);
+
+        Assert.Contains("richieste 0", riga, StringComparison.Ordinal);
+        Assert.Contains("nessuna", riga, StringComparison.Ordinal);
+    }
+
+    /// <summary>Con le richieste: quante, quanto fa l'ultima, e chi ha svegliato il processo.</summary>
+    [Fact]
+    public void La_riga_darresto_conta_le_richieste_e_dice_chi_ha_svegliato()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+        TracciaRichieste.Segna("/vsop/health");
+        TracciaRichieste.Segna("/services/vsop/libb/vipi");
+
+        var riga = RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), DateTime.UtcNow);
+
+        Assert.Contains("richieste 2", riga, StringComparison.Ordinal);
+        Assert.Contains("svegliato da /vsop/health", riga, StringComparison.Ordinal);
+        Assert.DoesNotContain("/services/vsop/libb/vipi", riga, StringComparison.Ordinal);   // la PRIMA, non l'ultima
+    }
+
+    /// <summary>
+    /// E dice chi ha chiesto lo spegnimento. Senza segnale la risposta è «da dentro», ed è quella che manda
+    /// a cercare nel codice invece che nel pannello dell'hosting.
+    /// </summary>
+    [Fact]
+    public void La_riga_darresto_dice_chi_ha_chiesto_lo_spegnimento()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+
+        Assert.Contains("DA DENTRO", RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), Adesso), StringComparison.Ordinal);
+    }
+
+    /// <summary>⚠️ La riga resta LEGGIBILE dal lettore del file: è più lunga, e il verdetto sul processo
+    /// precedente si costruisce rileggendola.</summary>
+    [Fact]
+    public void La_riga_piu_lunga_si_rilegge_lo_stesso()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+        TracciaRichieste.Segna("/vsop/health");
+
+        var righe = new[] { RegistroAvvii.RigaArresto(TimeSpan.FromMinutes(90), Adesso.AddMinutes(-30)) };
+        var evento = RegistroAvvii.UltimoEvento(righe);
+
+        Assert.NotNull(evento);
+        Assert.True(evento!.Value.Arresto);
+        Assert.Equal(Adesso.AddMinutes(-30), evento.Value.Quando);
+    }
+
+    /// <summary>Il conto è di QUESTO processo: azzerarlo lo riporta a zero, come un avvio nuovo.</summary>
+    [Fact]
+    public void Il_conto_delle_richieste_si_azzera()
+    {
+        TracciaRichieste.Segna("/x");
+        TracciaRichieste.Azzera();
+
+        Assert.Equal(0, TracciaRichieste.Servite);
+        Assert.Null(TracciaRichieste.UltimaUtc);
+        Assert.Null(TracciaRichieste.Prima);
+    }
+
+    /// <summary>
+    /// La prova che conta: <b>l'host vero</b>, una richiesta vera, e la riga d'ARRESTO che la conta.
+    ///
+    /// <para>⚠️ Le prove sulla stringa qui sopra non dicono se il contatore è ATTACCATO alla pipeline: un
+    /// middleware registrato nel posto sbagliato — dopo qualcosa che risponde per conto suo — lascerebbe
+    /// tutti quei test verdi e il registro a «richieste 0» in produzione, cioè proprio la misura che si sta
+    /// andando a leggere. Qui l'host si accende, si bussa, e si rilegge il file che ha scritto lui.</para>
+    /// </summary>
+    [Fact]
+    public async Task Lhost_vero_conta_la_richiesta_e_la_scrive_nella_riga_darresto()
+    {
+        var percorso = Path.Combine(AppContext.BaseDirectory,
+            StartupDiagnostics.CartellaDiagnostica, RegistroAvvii.FileName);
+        var primaDelGiro = File.Exists(percorso) ? File.ReadAllLines(percorso).Length : 0;
+
+        using (var fabbrica = new SmokeTests.VipiAppFactory())
+        {
+            var cliente = fabbrica.CreateClient();
+            await cliente.GetAsync("/vsop/health");
+        }   // il Dispose ferma l'host: è qui che si scrive l'ARRESTO
+
+        var righe = File.ReadAllLines(percorso).Skip(primaDelGiro).ToArray();
+        var arresto = righe.LastOrDefault(r => r.Contains("ARRESTO", StringComparison.Ordinal));
+
+        Assert.NotNull(arresto);
+        Assert.DoesNotContain("richieste 0", arresto!, StringComparison.Ordinal);
+        Assert.Contains("svegliato da /vsop/health", arresto!, StringComparison.Ordinal);
+    }
 }

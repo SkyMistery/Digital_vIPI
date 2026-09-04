@@ -115,9 +115,19 @@ public static class RegistroAvvii
     public static string RigaAvvio(string versione, (DateTime Quando, bool Arresto)? precedente, DateTime adesso) =>
         $"{Timbro(adesso)}  AVVIO    {versione,-24}  {Verdetto(precedente, adesso)}";
 
-    /// <summary>La riga di arresto. Vedi <see cref="RigaAvvio"/> per il perché sia separata.</summary>
+    /// <summary>
+    /// La riga di arresto. Vedi <see cref="RigaAvvio"/> per il perché sia separata.
+    ///
+    /// <para>⚠️ Porta due misure che il solo uptime non dà, e senza le quali il file non risponde alla
+    /// domanda per cui è stato scritto — «perché muore?»: <b>quante richieste</b> ha servito il processo
+    /// (<see cref="TracciaRichieste"/>) e <b>chi</b> gli ha chiesto di spegnersi
+    /// (<see cref="SegnaleDiArresto"/>). Una vita di cinquanta secondi con sei richieste dentro e un
+    /// <c>SIGTERM</c> alla fine racconta una storia; la stessa vita con <b>una</b> richiesta ne racconta
+    /// un'altra, e le due cure non si somigliano per niente.</para>
+    /// </summary>
     public static string RigaArresto(TimeSpan uptime, DateTime adesso) =>
-        $"{Timbro(adesso)}  ARRESTO  acceso per {Durata(uptime)}";
+        $"{Timbro(adesso)}  ARRESTO  acceso per {Durata(uptime)}   " +
+        $"{TracciaRichieste.Riassunto(adesso)} · {SegnaleDiArresto.Riassunto()}";
 
     /// <summary>
     /// L'ultima riga che descrive un evento: le righe di commento (<c>#</c>) e quelle vuote non contano.

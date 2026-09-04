@@ -234,6 +234,10 @@ internal static class VipiStartup
         // dopo la chiusura dei servizi, e su un host che tronca lo spegnimento può non arrivare affatto.
         app.Lifetime.ApplicationStopping.Register(RegistroAvvii.RegistraArresto);
 
+        // Chi chiede lo spegnimento: un segnale del sistema (l'hosting) o nessuno (ci siamo fermati da soli).
+        // Va acceso PRIMA che il segnale possa arrivare, cioè prima di servire la prima richiesta.
+        SegnaleDiArresto.Ascolta();
+
         // Da qui in poi un'eccezione fatale NON è più «l'avvio è fallito»: app.Run() blocca fino allo
         // spegnimento, quindi un guasto all'ARRESTO esce dallo stesso catch di Program.cs. Senza questa
         // riga finiva in avvio-errore.txt col titolo sbagliato — ed è successo davvero il 3 settembre
@@ -265,6 +269,15 @@ internal static class VipiStartup
             forwardedOptions.KnownProxies.Add(System.Net.IPAddress.IPv6Loopback);   // ::1
         }
         app.UseForwardedHeaders(forwardedOptions);
+
+        // ⚠️ PRIMO della pipeline, prima di qualunque cosa possa rispondere o rifiutare: qui non si chiede
+        // se la richiesta è buona, si chiede SE È ARRIVATA. È la misura che dice se il keep-alive parla
+        // davvero con questo processo — e dal lato di chi bussa un 200 si vede in entrambi i casi.
+        app.Use(async (context, next) =>
+        {
+            TracciaRichieste.Segna(context.Request.Path.Value ?? "/");
+            await next();
+        });
 
         // Intestazioni di sicurezza. Non chiudono una falla nota — le due funzioni che costruiscono HTML a mano
         // (MarkdownLite, AorBlock.BuildSvg) encodano prima e costruiscono dopo — ma rendono innocuo l'errore di
