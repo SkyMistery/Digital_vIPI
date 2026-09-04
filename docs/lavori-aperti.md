@@ -7915,3 +7915,51 @@ Release verde.
 3. Solo allora scegliere la strada: pannello Plesk (se i ping arrivano) o indirizzo del keep-alive (se non
    arrivano). ⚠️ Fino a quel numero, ogni altra mossa è un'ipotesi.
 
+## BH. Pacchetto 1.7.0 — 18 file, e la misura che aspettiamo — 4 settembre 2026
+
+📦 **PRONTO, non ancora caricato.** `artifacts/publish/vipi-1.7.0-solo-file-cambiati.zip`,
+sha256 `88bf3a4629bcc327f7dfc413f061fec065ed15f58a3aad237bc467328cf6dc13`, 4,43 MB.
+Timbro **`1.7.0 · bf249155`**. Foglio per chi carica: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.7.0.md`.
+
+### Perché MINOR e non PATCH
+
+Il numero segue il **contenuto**: §BD semina **sezioni nuove** nei documenti e §BE aggiunge un **comando**
+agli editor. Una PATCH è «solo correzioni, nessuna pagina o sezione nuova»: non regge. **Nessuna migrazione**
+(nessuna cartella `Migrations` toccata dal commit online), quindi si consegna da sola via FTP anche dentro la
+finestra cieca.
+
+### Che cosa porta
+
+§BB testata compatta · §BC parcheggi ai Dati generali · §BD carte aeroportuali · §BE le sezioni si muovono
+(più i due difetti vecchi: «sopra il corpo» sulle derivate, e la sotto-sezione nascosta invisibile in bozza)
+· §BF «Da un altro documento…» che taceva · §BG **la misura del keep-alive**.
+
+### I file: 18, scelti col diff e verificati con le impronte
+
+Cinque progetti (`Ui`, `Application`, `Host`, `Infrastructure`, `Hosting`) coi loro `.pdb`, il satellite
+inglese (i due `.resx` sono cambiati), l'indice degli asset e **due CSS** coi loro `.br`/`.gz`.
+
+⚠️ **Il JavaScript è rimasto FUORI**: `vipi-ui.js`, i suoi compressi e `vipi-boot.js` sono risultati
+**identici** a quelli di 1.6.2 — confrontati per `sha256` col publish precedente, non dedotti. Fuori anche
+`Vipi.Infrastructure.MySqlMigrations.dll`: nessuna migrazione.
+
+### Provato sul pacchetto, non sul sorgente
+
+- suite intera in Release: **15 assiemi**, tutti verdi (E2E compresi);
+- `pacchetto-verifica.js` sul publish win-x64 avviato dalla sua cartella: **10 controlli su 10**;
+- le **novità** sullo stesso pacchetto a **1280 px**: tendina «Sposta in…» con **32 destinazioni**, dentro la
+  card, riga dei comandi che **non sfora** (0 px), e «Airport charts» con le sue raccolte già nell'indice —
+  cioè la riconciliazione ha fatto il suo lavoro al primo avvio;
+- timbro letto nel file di diagnostica del pacchetto: `1.7.0 · bf24915`.
+
+⚠️ **Un rosso, ed era lo strumento**: il primo giro dava «pannello traduzioni assente». Era la prova a
+essere montata male — avviata in `Production` con l'autenticazione spenta si è **anonimi**, e l'editor da
+anonimo non mostra quel pannello. Rifatta in `Development`: dieci su dieci. *Prima di accusare il pacchetto,
+guardare come si è misurato.*
+
+### ▶ Che cosa aspettiamo dopo il caricamento
+
+**`diagnostica/avvii.txt` riscaricato qualche ora dopo.** È la misura di §BG e decide la mossa successiva sul
+processo che si spegne ogni cinquanta secondi: `richieste 6/12/20…` ⇒ si guarda nel pannello dell'hosting;
+`richieste 1` o `0` ⇒ il keep-alive non parla con l'applicazione e va cambiato l'indirizzo che interroga.
+
