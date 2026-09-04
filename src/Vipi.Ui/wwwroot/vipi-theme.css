@@ -1873,7 +1873,13 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    dato: RWY contiene 2-3 caratteri e Type solo CONV/RNAV, il minimo lì lo detta l'INTESTAZIONE (per
    questo la colonna pista si intitola RWY e non «Runway»/«Pista»: per esteso costava il doppio).
    Il min-width serve allo stesso vincolo: sotto ~810px FIX, SID e Cat. andrebbero a capo a metà parola,
-   quindi la tabella scorre nel suo contenitore invece di stringersi. */
+   quindi la tabella scorre nel suo contenitore invece di stringersi.
+   ⚠️ WTC è stata riportata da 5,5% a 10,5% il 4 settembre 2026, e i 5 punti li ha ridati Condition. Il
+   minimo misurato guardava il DATO («M» da solo, o «M,H»), non il caso pieno: una riga con tutte e quattro
+   le categorie di scia scrive «L,M,H,S», che a 5,5% non ci sta e andava a capo — anche su uno schermo da
+   1920, perché a quella larghezza la colonna centrale del documento è ancora sotto il min-width qui sotto e
+   le percentuali si calcolano su quello, non sulla finestra. Condition resta la più larga di tutte, ed è
+   l'unica che il taglio non lo subisce mai (prosa, e il valore intero sta nel `title`). */
 .sid-view{table-layout:fixed;min-width:820px}
 /* Gronde più strette delle altre tabelle: qui i 10-12px per lato sono un quinto di una colonna stretta
    come RWY o Type, e vanno via a Condition. La doppia classe serve a battere `.res-table td{padding:…}`,
@@ -1886,8 +1892,8 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .sid-view .col-climb{width:14.5%}
 .sid-view .col-type{width:6.8%}
 .sid-view .col-cat{width:7%}
-.sid-view .col-wtc{width:5.5%}
-.sid-view .col-cond{width:33.1%}
+.sid-view .col-wtc{width:10.5%}
+.sid-view .col-cond{width:28.1%}
 /* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
    come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
    Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.

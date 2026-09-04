@@ -47,12 +47,12 @@
                     <input class="htree-search" placeholder="@L["Ape_SidSearchPh"]" @bind="_sidSearch" @bind:event="oninput" />
                     <span class="sb-chips">
                         <button class="sh-chip @(nReview > 0 ? "warn" : "") @(_sidOnlyReview ? "on" : "")" disabled="@(nReview == 0)"
-                                title="@L["Ape_SidReviewChipTitle"]" @onclick="() => _sidOnlyReview = !_sidOnlyReview">@L["Ape_SidReviewChip", nReview]</button>
+                                title="@L["Ape_SidReviewChipTitle"]" @onclick="() => CambiaFiltro(() => _sidOnlyReview = !_sidOnlyReview)">@L["Ape_SidReviewChip", nReview]</button>
                         @foreach (var rw in ImportedRunways())
                         {
                             var id = rw.Ident;
                             <button class="sh-chip @(_sidRwFilter == id ? "on" : "")" title="@L["Ape_SidRwChipTitle"]"
-                                    @onclick="() => _sidRwFilter = _sidRwFilter == id ? null : id">@id <span class="chip-n">@rw.Count</span></button>
+                                    @onclick="() => CambiaFiltro(() => _sidRwFilter = _sidRwFilter == id ? null : id)">@id <span class="chip-n">@rw.Count</span></button>
                         }
                     </span>
                 </div>
@@ -437,6 +437,25 @@
     private Task CellKey(KeyboardEventArgs ev, bool imported) =>
         ev.CtrlKey && ev.Key == "Enter" ? ApplyToSelected(imported) : Task.CompletedTask;
     private void ClearSidSelection() { _selSid.Clear(); _lastSelIdx = null; }
+
+    /// <summary>
+    /// Cambia un CHIP di filtro e <b>lascia cadere la selezione</b>.
+    ///
+    /// <para>⚠️ Non è pulizia: la selezione sopravviveva al filtro, ma la barra sopra la tabella agisce sulle
+    /// righe scelte — «pubblica le scelte», «applica alle scelte» — e dopo un cambio di pista quelle righe non
+    /// sono più a schermo. Si pubblicava al buio, con un contatore che diceva 12 mentre a video ce n'erano 3.</para>
+    ///
+    /// <para>⚠️ Vale per i chip, <b>non</b> per la ricerca: quella si scrive a un carattere per volta e
+    /// azzererebbe la selezione a ogni tasto.</para>
+    ///
+    /// <para>⚠️ Le righe TOCCATE (<c>_dirtySid</c>) non si toccano: sono lavoro non salvato, e buttarlo via
+    /// cambiando vista è il difetto già pagato su LIPR con TORA e LDA.</para>
+    /// </summary>
+    private void CambiaFiltro(Action cambia)
+    {
+        cambia();
+        ClearSidSelection();
+    }
         private async Task CloneSid(SidEdit s)
     {
         var i = Manual.IndexOf(s);
