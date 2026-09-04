@@ -42,8 +42,8 @@ public class AirportRunwaysEditorTests : TestContext
             .Add(x => x.Rows, righe)
             .Add(x => x.SourceLocked, bloccate)
             .Add(x => x.MissingFromSource, orfane ?? Array.Empty<string>())
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.OnChanged, () => suCambio?.Invoke()));
+            .Add(x => x.Editing, true)
+            .Add(x => x.RowsChanged, () => suCambio?.Invoke()));
 
     /// <summary>⚠️ Il caso LIPR: a sorgente bloccata la ✕ c'è comunque, una per riga.</summary>
     [Fact]
@@ -62,9 +62,10 @@ public class AirportRunwaysEditorTests : TestContext
         var bloccato = Rendi(new List<RwEdit> { Rw("12") });
         var libero = Rendi(new List<RwEdit> { Rw("12") }, bloccate: false);
 
-        // A sorgente bloccata: la ✕ della riga + «Salva piste». A sorgente libera si aggiunge «+ Pista».
-        Assert.Equal(2, bloccato.FindAll("button").Count);
-        Assert.Equal(3, libero.FindAll("button").Count);
+        // A sorgente bloccata c'è la sola ✕ della riga; a sorgente libera si aggiunge «+ Pista».
+        // ⚠️ Il tasto «Salva piste» non c'è più da nessuna delle due parti: ogni gesto scrive.
+        Assert.Single(bloccato.FindAll("button"));
+        Assert.Equal(2, libero.FindAll("button").Count);
     }
 
     /// <summary>La ✕ toglie la riga e avvisa la pagina: è l'avviso che fa scattare il salvataggio.</summary>
@@ -91,11 +92,11 @@ public class AirportRunwaysEditorTests : TestContext
     /// (<c>@bind:after</c>).
     /// </summary>
     [Theory]
-    [InlineData(1)]   // TORA
-    [InlineData(2)]   // LDA
-    [InlineData(3)]   // APP procedures
-    [InlineData(4)]   // Patterns
-    [InlineData(5)]   // Circling
+    [InlineData(0)]   // TORA
+    [InlineData(1)]   // LDA
+    [InlineData(2)]   // APP procedures
+    [InlineData(3)]   // Patterns
+    [InlineData(4)]   // Circling
     public void Scrivere_in_una_cella_editoriale_avvisa_la_pagina(int colonna)
     {
         var righe = new List<RwEdit> { Rw("12") };
@@ -114,18 +115,36 @@ public class AirportRunwaysEditorTests : TestContext
         var righe = new List<RwEdit> { Rw("12") };
         var c = Rendi(righe);
 
-        c.FindAll("tbody tr td input").ToList()[1].Change("1700");
+        c.FindAll("tbody tr td input").ToList()[0].Change("1700");
 
         Assert.Equal("1700", righe[0].Tora);
     }
 
-    /// <summary>L'ident resta in sola lettura a sorgente bloccata: la ✕ non ha allentato quello.</summary>
+    /// <summary>L'ident resta in sola lettura a sorgente bloccata: la ✕ non ha allentato quello. ⚠️ Non è
+    /// più un campo spento ma un campo che non c'è: dal 4 settembre 2026 il cancello è un RAMO di render, come
+    /// negli altri editor, e quel che non si può scrivere si legge e basta.</summary>
     [Fact]
     public void L_ident_resta_in_sola_lettura_a_sorgente_bloccata()
     {
         var c = Rendi(new List<RwEdit> { Rw("12") });
 
-        Assert.True(c.Find("tbody tr td input").HasAttribute("disabled"));
+        var prima = c.FindAll("tbody tr td").First();
+        Assert.Empty(prima.QuerySelectorAll("input"));
+        Assert.Contains("12", prima.TextContent);
+    }
+
+    /// <summary>E senza il lock non si scrive proprio niente: nessun campo, nessun tasto.</summary>
+    [Fact]
+    public void Senza_lock_la_tabella_e_sola_lettura()
+    {
+        var c = RenderComponent<AirportRunwaysEditor>(p => p
+            .Add(x => x.Rows, new List<RwEdit> { Rw("12", "2800") })
+            .Add(x => x.SourceLocked, false)
+            .Add(x => x.Editing, false));
+
+        Assert.Empty(c.FindAll("input"));
+        Assert.Empty(c.FindAll("button"));
+        Assert.Contains("2800", c.Markup);
     }
 
     /// <summary>Le orfane si dichiarano: un callout in cima e un contrassegno sulla riga giusta, così chi

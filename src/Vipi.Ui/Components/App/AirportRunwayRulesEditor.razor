@@ -8,7 +8,12 @@
    Il BANCO DI PROVA — dai un vento E UN MOMENTO, ti dice quale regola vince — vive qui dentro e non salva
    niente: è il modo in cui chi scrive le regole verifica di averle messe nell'ordine giusto prima di
    pubblicarle. ⚠️ Il momento serve quanto il vento: senza, orari, giorni, parità e stagione erano gli unici
-   campi della regola che non si potevano provare, perché la prova girava sempre sull'istante reale. *@
+   campi della regola che non si potevano provare, perché la prova girava sempre sull'istante reale.
+
+   ⚠️ Niente tasto «Salva» e niente `CanEdit` dal 4 settembre 2026 (carta 2026-09-04-aeroporto-porta-sola):
+   ogni gesto avvisa l'host, che salva subito. Il cancello è `Editing` — il lock del documento — e senza non
+   ci sono né campi né trascinamento. Il BANCO DI PROVA resta acceso comunque: non scrive niente, e serve
+   anche a chi sta solo leggendo le regole di uno scalo. *@
 @using Vipi.Application.Weather
 @inject IStringLocalizer<SharedResource> L
 
@@ -42,13 +47,17 @@
              style="@(_provaFatta && _vincente?.RuleIndex == idx ? "outline:2px solid var(--ivao-blue);outline-offset:2px" : null)"
              @ondragover:preventDefault="true" @ondragenter="() => TrascinaSopra(idx)" @ondrop="Rilascia" @ondragend="() => _trascinata = null">
             <div class="rule-head">
-                <span class="app-drag" draggable="true" @ondragstart="() => _trascinata = idx" title="@L["Ape_DragToReorder"]">⠿</span>
+                @if (Editing) { <span class="app-drag" draggable="true" @ondragstart="() => _trascinata = idx" title="@L["Ape_DragToReorder"]">⠿</span> }
                 <span class="rule-ord">#@(idx + 1)@if (_provaFatta && _vincente?.RuleIndex == idx) { <span title="@L["Ape_TestWinner"]"> ✓</span> }</span>
-                <div style="display:flex;gap:6px">
-                    <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Sposta(idx, -1)" title="@L["Common_Up"]">↑</button>
-                    <button class="btn ghost" disabled="@(idx == Rows.Count - 1)" @onclick="() => Sposta(idx, 1)" title="@L["Common_Down"]">↓</button>
-                    <button class="btn ghost" @onclick="() => Rimuovi(r)">✕ @L["Common_Remove"]</button>
-                </div>
+                @if (!Editing && !string.IsNullOrWhiteSpace(r.Name)) { <b>@r.Name</b> }
+                @if (Editing)
+                {
+                    <div style="display:flex;gap:6px">
+                        <button class="btn ghost" disabled="@(idx == 0)" @onclick="() => Sposta(idx, -1)" title="@L["Common_Up"]">↑</button>
+                        <button class="btn ghost" disabled="@(idx == Rows.Count - 1)" @onclick="() => Sposta(idx, 1)" title="@L["Common_Down"]">↓</button>
+                        <button class="btn ghost" @onclick="() => Rimuovi(r)">✕ @L["Common_Remove"]</button>
+                    </div>
+                }
             </div>
             <div class="rule-rwys">
                 <div><span class="muted">DEP:</span>
@@ -56,73 +65,99 @@
                     @foreach (var ident in RunwayIdents)
                     {
                         var id = ident;
-                        <button type="button" class="pill" style="@Chip(r.Dep, id)" @onclick="() => Commuta(r.Dep, id)">@id</button>
+                        @if (Editing)
+                        {
+                            <button type="button" class="pill" style="@Chip(r.Dep, id)" @onclick="() => Commuta(r.Dep, id)">@id</button>
+                        }
+                        else if (r.Dep.Contains(id))
+                        {
+                            <span class="pill" style="@Chip(r.Dep, id)">@id</span>
+                        }
                     }
                 </div>
                 <div><span class="muted">ARR:</span>
                     @foreach (var ident in RunwayIdents)
                     {
                         var id = ident;
-                        <button type="button" class="pill" style="@Chip(r.Arr, id)" @onclick="() => Commuta(r.Arr, id)">@id</button>
+                        @if (Editing)
+                        {
+                            <button type="button" class="pill" style="@Chip(r.Arr, id)" @onclick="() => Commuta(r.Arr, id)">@id</button>
+                        }
+                        else if (r.Arr.Contains(id))
+                        {
+                            <span class="pill" style="@Chip(r.Arr, id)">@id</span>
+                        }
                     }
                 </div>
             </div>
-            <div class="rule-grid">
-                <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" @bind:after="Cambiato" /></label>
-                <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" @bind:after="Cambiato" /></label>
-                <label>@L["Ape_Surface"]<select @bind="r.Surface" @bind:after="Cambiato"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
-                <label>@L["Airport_Name"]<input @bind="r.Name" @bind:after="Cambiato" placeholder="@L["Ape_RuleNamePh"]" /></label>
-                <label>@L["Ape_Notes"]<input @bind="r.Note" @bind:after="Cambiato" placeholder="@L["Ape_FreeText"]" /></label>
-            </div>
-            <details class="rule-adv">
-                <summary>@L["Ape_Advanced"]</summary>
-                <div class="rule-grid" style="margin-top:8px">
-                    <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" @bind:after="Cambiato" /></label>
-                    @* ⚠️ Il gettone non è decorazione: 22:00→05:00 è una finestra che SCAVALCA, e senza dirlo
-                       nessuno sa se le 05:00 sono di stamattina o di domani. Il motore la legge come «la notte
-                       di quel giorno» (RunwaySuggestion.GiornoOperativo), e qui lo si vede scrivendola. *@
-                    <label>@L["Ape_TimeTo"]
-                        <span style="display:flex;gap:6px;align-items:center">
-                            <input type="time" @bind="r.TimeTo" @bind:after="Cambiato" style="flex:1;min-width:0" />
-                            @if (Scavalca(r)) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink);white-space:nowrap" title="@L["Ape_NextDayTitle"]">@L["Ape_NextDay"]</span> }
-                        </span>
-                    </label>
-                    <label>@L["Ape_DayParity"]<select @bind="r.Parity" @bind:after="Cambiato"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
-                    <label>@L["Ape_ValidFrom"]
-                        <span style="display:flex;gap:4px">
-                            <select @bind="r.DateFromDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
-                            <select @bind="r.DateFromMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
-                        </span>
-                    </label>
-                    <label>@L["Ape_ValidTo"]
-                        <span style="display:flex;gap:4px">
-                            <select @bind="r.DateToDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
-                            <select @bind="r.DateToMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
-                        </span>
-                    </label>
+            @if (Editing)
+            {
+                <div class="rule-grid">
+                    <label>@L["Ape_MaxTail"]<input type="number" min="0" max="40" @bind="r.MaxTail" @bind:after="Cambiato" /></label>
+                    <label>@L["Ape_MaxCross"]<input type="number" min="0" max="60" placeholder="—" @bind="r.MaxCross" @bind:after="Cambiato" /></label>
+                    <label>@L["Ape_Surface"]<select @bind="r.Surface" @bind:after="Cambiato"><option value="any">@L["Ape_SurfAny"]</option><option value="dry">@L["Ape_SurfDry"]</option><option value="wet">@L["Ape_SurfWet"]</option></select></label>
+                    <label>@L["Airport_Name"]<input @bind="r.Name" @bind:after="Cambiato" placeholder="@L["Ape_RuleNamePh"]" /></label>
+                    <label>@L["Ape_Notes"]<input @bind="r.Note" @bind:after="Cambiato" placeholder="@L["Ape_FreeText"]" /></label>
                 </div>
-                <div class="ed-h3 ed-h3-mini">
-                    <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
-                    <span class="muted">@L["Ape_SeasonalShort"]</span>
-                </div>
-                <div class="rule-days">
-                    <span class="muted">@L["Ape_Days"]</span>
-                    @for (var b = 0; b < 7; b++)
-                    {
-                        var bit = b;
-                        <button type="button" class="pill" style="@ChipGiorno(r, bit)" @onclick="() => CommutaGiorno(r, bit)">@NomiGiorni[bit]</button>
-                    }
-                </div>
-            </details>
+                <details class="rule-adv">
+                    <summary>@L["Ape_Advanced"]</summary>
+                    <div class="rule-grid" style="margin-top:8px">
+                        <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" @bind:after="Cambiato" /></label>
+                        @* ⚠️ Il gettone non è decorazione: 22:00→05:00 è una finestra che SCAVALCA, e senza dirlo
+                           nessuno sa se le 05:00 sono di stamattina o di domani. Il motore la legge come «la notte
+                           di quel giorno» (RunwaySuggestion.GiornoOperativo), e qui lo si vede scrivendola. *@
+                        <label>@L["Ape_TimeTo"]
+                            <span style="display:flex;gap:6px;align-items:center">
+                                <input type="time" @bind="r.TimeTo" @bind:after="Cambiato" style="flex:1;min-width:0" />
+                                @if (Scavalca(r)) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink);white-space:nowrap" title="@L["Ape_NextDayTitle"]">@L["Ape_NextDay"]</span> }
+                            </span>
+                        </label>
+                        <label>@L["Ape_DayParity"]<select @bind="r.Parity" @bind:after="Cambiato"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
+                        <label>@L["Ape_ValidFrom"]
+                            <span style="display:flex;gap:4px">
+                                <select @bind="r.DateFromDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
+                                <select @bind="r.DateFromMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
+                            </span>
+                        </label>
+                        <label>@L["Ape_ValidTo"]
+                            <span style="display:flex;gap:4px">
+                                <select @bind="r.DateToDay" @bind:after="Cambiato" style="flex:1">@Giorni()</select>
+                                <select @bind="r.DateToMonth" @bind:after="Cambiato" style="flex:2">@Mesi()</select>
+                            </span>
+                        </label>
+                    </div>
+                    <div class="ed-h3 ed-h3-mini">
+                        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SeasonalHelpAria"]" ExtraClass="wide">@((MarkupString)L["Ape_SeasonalHelp"].Value)</HelpHint>
+                        <span class="muted">@L["Ape_SeasonalShort"]</span>
+                    </div>
+                    <div class="rule-days">
+                        <span class="muted">@L["Ape_Days"]</span>
+                        @for (var b = 0; b < 7; b++)
+                        {
+                            var bit = b;
+                            <button type="button" class="pill" style="@ChipGiorno(r, bit)" @onclick="() => CommutaGiorno(r, bit)">@NomiGiorni[bit]</button>
+                        }
+                    </div>
+                </details>
+            }
+            else
+            {
+                <div class="muted" style="font-size:12.5px">@Riassunto(r)</div>
+                @if (!string.IsNullOrWhiteSpace(r.Note)) { <div style="font-size:12.5px">@r.Note</div> }
+            }
         </div>
     }
 
-    <div style="margin-top:10px;display:flex;gap:8px">
-        <button class="btn ghost" @onclick="Aggiungi">+ @L["Ape_Rule"]</button>
-        @* ⚠️ Con un ERRORE aperto il salvataggio è spento: una regola che non nomina nessuna pista non
-           sceglie niente, e salvarla metterebbe in archivio una riga che non può mai vincere. *@
-        <button class="btn primary" disabled="@(Busy || !CanEdit || problemi.Errors.Count > 0)" @onclick="() => OnSaveRows.InvokeAsync()">@L["Ape_SaveRules"]</button>
-    </div>
+    @if (Editing)
+    {
+        @* ⚠️ Una regola che non nomina nessuna pista non sceglie niente, e in archivio non ci va. Prima era
+           un tasto «Salva» spento; ora è il GESTO che non scrive (AirportSaveGate.Rules), e la riga qui
+           accanto lo dice. Il service la rifiuterebbe comunque: questo evita solo di provarci a ogni tasto. *@
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <button class="btn ghost" @onclick="Aggiungi">+ @L["Ape_Rule"]</button>
+            @if (!AirportSaveGate.Rules(Rows)) { <span class="muted">@L["Ape_RowIncomplete"]</span> }
+        </div>
+    }
 
     @* --- Il banco di prova: prova le regole con un vento arbitrario. Non salva nulla. --- *@
     <div class="block" style="margin-top:12px;background:var(--surface-soft)">
@@ -168,10 +203,11 @@
     /// <summary>Le piste dello scalo: sono i chip che si accendono in DEP e ARR.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<string> RunwayIdents { get; set; } = Array.Empty<string>();
 
-    [Parameter] public bool Busy { get; set; }
-    [Parameter] public bool CanEdit { get; set; }
-    [Parameter] public EventCallback OnChanged { get; set; }
-    [Parameter] public EventCallback OnSaveRows { get; set; }
+    /// <summary>Il documento è in modifica e il lock è nostro: solo allora ci sono i campi.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Le regole sono cambiate — un campo, un chip, l'ordine: l'host le salva subito.</summary>
+    [Parameter] public EventCallback RowsChanged { get; set; }
 
     /// <summary>Conferma prima di togliere una regola; null = non si chiede.</summary>
     [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
@@ -234,19 +270,40 @@
     /// <summary>Un campo EDITORIALE ha cambiato valore: unico punto d'uscita verso l'host.
     /// ⚠️ I campi del pannello di prova (`_provaDir`, `_provaKt`, `_provaBagnata`, `_provaQuando`) NON passano
     /// di qui: sono stato locale di una simulazione, non contenuto da salvare.</summary>
-    private Task Cambiato() => OnChanged.InvokeAsync();
+    private Task Cambiato() => RowsChanged.InvokeAsync();
+
+    /// <summary>La regola in una riga sola, per quando non si sta modificando: i vincoli che ha davvero.
+    /// Il nome sta nell'intestazione e la nota va a capo da sé, quindi non entrano qui.</summary>
+    private string Riassunto(RuleEdit r)
+    {
+        // ⚠️ Le etichette si prendono PRIMA: un localizzatore dentro un $"..." rompe il parse (virgolette annidate).
+        var etTail = L["Ape_MaxTail"].Value;
+        var etCross = L["Ape_MaxCross"].Value;
+        var pezzi = new List<string> { $"{etTail} {r.MaxTail} kt" };
+        if (r.MaxCross is int c) pezzi.Add($"{etCross} {c} kt");
+        if (r.Surface == "dry") pezzi.Add(L["Ape_SurfDry"].Value);
+        if (r.Surface == "wet") pezzi.Add(L["Ape_SurfWet"].Value);
+        if (r.TimeFrom is { } tf && r.TimeTo is { } tt) pezzi.Add($"{tf:HH\\:mm}\u2013{tt:HH\\:mm}");
+        if (r.DaysMask != 0)
+            pezzi.Add(string.Join(" ", Enumerable.Range(0, 7).Where(b => (r.DaysMask & (1 << b)) != 0).Select(b => NomiGiorni[b])));
+        if (r.Parity == "even") pezzi.Add(L["Ape_Even"].Value);
+        if (r.Parity == "odd") pezzi.Add(L["Ape_Odd"].Value);
+        if (r.DateFromDay is int fd && r.DateFromMonth is int fm && r.DateToDay is int td && r.DateToMonth is int tm)
+            pezzi.Add($"{fd} {NomiMesi[fm - 1]} \u2013 {td} {NomiMesi[tm - 1]}");
+        return string.Join(" \u00b7 ", pezzi);
+    }
 
     private async Task Aggiungi()
     {
         Rows.Add(new RuleEdit());
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task Rimuovi(RuleEdit r)
     {
         if (ConfirmRemove is not null && !await ConfirmRemove()) return;
         Rows.Remove(r);
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task Sposta(int idx, int dir)
@@ -254,7 +311,7 @@
         var j = idx + dir;
         if (j < 0 || j >= Rows.Count) return;
         (Rows[idx], Rows[j]) = (Rows[j], Rows[idx]);
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     /// <summary>Trascinamento: la riga si sposta mentre la si porta sopra le altre, così l'ordine si vede
@@ -272,19 +329,19 @@
     {
         if (_trascinata is null) return;
         _trascinata = null;
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task Commuta(HashSet<string> set, string id)
     {
         if (!set.Remove(id)) set.Add(id);
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task CommutaGiorno(RuleEdit r, int bit)
     {
         r.DaysMask ^= 1 << bit;
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     /// <summary>

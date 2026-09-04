@@ -7,7 +7,12 @@
    ne usa una alla volta: due componenti in un cappotto solo.
 
    Quel che invece era un difetto — e che questo componente chiude — è che tutto questo stava scritto DENTRO
-   AeroportoEditorPage, dove nessun test poteva montarlo. *@
+   AeroportoEditorPage, dove nessun test poteva montarlo.
+
+   ⚠️ Niente tasto «Salva» e niente `CanEdit` dal 4 settembre 2026 (carta 2026-09-04-aeroporto-porta-sola):
+   ogni gesto avvisa l'host, che salva subito passando dalla sua porta unica. Il cancello è `Editing` — il
+   lock del documento — e si legge come RAMO DI RENDER, non come `disabled`: senza lock qui non ci sono
+   proprio input, come in tutti gli altri editor. *@
 @inject IStringLocalizer<SharedResource> L
 
 @* ⚠️ Niente `@onchange` sul contenitore: c'era e NON funzionava. Misurato il 4 settembre 2026 — il valore
@@ -32,81 +37,90 @@
     }
     <div class="se-row">
         <label><b>@L["Ape_TaLabel"]</b></label>
-        <input type="number" style="width:100px" value="@TransitionAltitudeFt"
-               @onchange="AltitudineCambiata"
-               disabled="@SourceLocked" />
-        <button class="btn primary" disabled="@(Busy || !CanEdit || SourceLocked)" @onclick="() => OnSaveTa.InvokeAsync()">@L["Ape_SaveTa"]</button>
+        @if (Editing && !SourceLocked)
+        {
+            <input type="number" style="width:100px" value="@TransitionAltitudeFt" @onchange="AltitudineCambiata" />
+        }
+        else
+        {
+            <b>@(TransitionAltitudeFt is int ta ? $"{ta} ft" : "—")</b>
+        }
     </div>
     <table class="res-table" style="max-width:460px">
-        <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th><th></th></tr></thead>
+        <thead><tr><th>@L["Ape_QnhFrom"]</th><th>@L["Ape_QnhTo"]</th><th>Transition Level</th>@if (Editing) { <th></th> }</tr></thead>
         <tbody>
             @foreach (var t in Rows)
             {
                 <tr @key="t">
-                    <td><input type="number" style="width:90px" @bind="t.From" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
-                    <td><input type="number" style="width:90px" @bind="t.To" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
-                    <td><input style="width:90px" @bind="t.Level" @bind:after="Cambiato" placeholder="FL75" /></td>
-                    <td><button class="btn ghost" @onclick="() => Rimuovi(t)">✕</button></td>
+                    @if (Editing)
+                    {
+                        <td><input type="number" style="width:90px" @bind="t.From" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
+                        <td><input type="number" style="width:90px" @bind="t.To" @bind:after="Cambiato" placeholder="@L["Ape_Open"]" /></td>
+                        <td><input style="width:90px" @bind="t.Level" @bind:after="Cambiato" placeholder="FL75" /></td>
+                        <td><button class="btn ghost" @onclick="() => Rimuovi(t)">✕</button></td>
+                    }
+                    else
+                    {
+                        <td>@(t.From?.ToString() ?? "—")</td>
+                        <td>@(t.To?.ToString() ?? "—")</td>
+                        <td>@(string.IsNullOrWhiteSpace(t.Level) ? "—" : t.Level)</td>
+                    }
                 </tr>
             }
         </tbody>
     </table>
-    <div style="margin-top:10px;display:flex;gap:8px">
-        <button class="btn ghost" @onclick="Aggiungi">+ @L["Dse_Row"]</button>
-        <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="() => OnSaveRows.InvokeAsync()">@L["Ape_SaveTable"]</button>
-    </div>
+    @if (Editing)
+    {
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            <button class="btn ghost" @onclick="Aggiungi">+ @L["Dse_Row"]</button>
+            @if (!AirportSaveGate.Tls(Rows)) { <span class="muted">@L["Ape_RowIncomplete"]</span> }
+        </div>
+    }
 </div>
 
 @code {
     /// <summary>Le righe in lavorazione. Il componente le muta in posto (è ciò che <c>@@bind</c> fa) e avvisa
-    /// l'host con <see cref="OnChanged"/>: l'host decide quando salvarle.</summary>
+    /// l'host con <see cref="RowsChanged"/>: l'host salva subito.</summary>
     [Parameter, EditorRequired] public List<TlEdit> Rows { get; set; } = new();
 
     /// <summary>La quota di transizione dello scalo.</summary>
     [Parameter] public int? TransitionAltitudeFt { get; set; }
+
+    /// <summary>La TA è cambiata: l'host prende il valore e lo salva. È una scrittura a sé — un'altra
+    /// colonna, un altro metodo di service — e per questo non passa da <see cref="RowsChanged"/>.</summary>
     [Parameter] public EventCallback<int?> TransitionAltitudeFtChanged { get; set; }
 
     /// <summary>La TA arriva dalla sorgente IVAO: non si tocca, e il chip lo dice.</summary>
     [Parameter] public bool SourceLocked { get; set; }
 
-    /// <summary>Un salvataggio è in corso: i tasti si spengono.</summary>
-    [Parameter] public bool Busy { get; set; }
+    /// <summary>Il documento è in modifica e il lock è nostro: solo allora ci sono gli input.</summary>
+    [Parameter] public bool Editing { get; set; }
 
-    /// <summary>Chi guarda ha il permesso di scrivere su questo scalo.</summary>
-    [Parameter] public bool CanEdit { get; set; }
-
-    /// <summary>Qualcosa è cambiato: l'host segna la sezione fra quelle non salvate.</summary>
-    [Parameter] public EventCallback OnChanged { get; set; }
-
-    [Parameter] public EventCallback OnSaveTa { get; set; }
-    [Parameter] public EventCallback OnSaveRows { get; set; }
+    /// <summary>La tabella dei livelli è cambiata: l'host la salva.</summary>
+    [Parameter] public EventCallback RowsChanged { get; set; }
 
     /// <summary>Chiede conferma prima di togliere una riga. L'host la fa col dialogo del browser; null = non
     /// si chiede. È un parametro e non una chiamata JS diretta perché così il componente resta montabile in
     /// una prova, dove un dialogo del browser non c'è.</summary>
     [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
 
-    /// <summary>Un campo editoriale ha cambiato valore: unico punto d'uscita verso l'host.</summary>
-    private Task Cambiato() => OnChanged.InvokeAsync();
+    /// <summary>Un campo della tabella ha cambiato valore: unico punto d'uscita verso l'host.</summary>
+    private Task Cambiato() => RowsChanged.InvokeAsync();
 
-    /// <summary>La Transition Altitude: si passa all'host il valore E l'avviso che c'e' da salvare. Prima
-    /// l'avviso mancava, perche' contava sul gestore del contenitore che non scattava mai.</summary>
-    private async Task AltitudineCambiata(ChangeEventArgs e)
-    {
-        await TransitionAltitudeFtChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var v) ? v : null);
-        await OnChanged.InvokeAsync();
-    }
+    /// <summary>La Transition Altitude: si passa all'host il valore, e l'host lo salva.</summary>
+    private Task AltitudineCambiata(ChangeEventArgs e) =>
+        TransitionAltitudeFtChanged.InvokeAsync(int.TryParse(e.Value?.ToString(), out var v) ? v : null);
 
     private async Task Aggiungi()
     {
         Rows.Add(new TlEdit());
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task Rimuovi(TlEdit t)
     {
         if (ConfirmRemove is not null && !await ConfirmRemove()) return;
         Rows.Remove(t);
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 }

@@ -254,12 +254,9 @@ else
     /// </summary>
     private bool ScaloSenzaCivile => _civile is { SoloMilitare: true, Esiste: false };
 
-    /// <summary>Chi guarda può scrivere sull'anagrafica di questo scalo: è il RUOLO sulla sua ACC, non il
-    /// lock del documento.</summary>
+    /// <summary>Chi guarda ha il RUOLO per scrivere sull'anagrafica di questo scalo. Non basta più a
+    /// scrivere — per quello serve il lock — ma dice se i dati si sono potuti leggere in modifica.</summary>
     private bool _canEditScalo;
-
-    /// <summary>Un salvataggio dell'anagrafica è in corso: i tasti di quei tre editor si spengono.</summary>
-    private bool _busyScalo;
 
     private ImportPolicySnapshot _policy = ImportPolicySnapshot.AllImported;
     private int? _ta;
@@ -268,10 +265,6 @@ else
     private List<int> _linkIds = new();
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
-
-    /// <summary>Le sezioni dell'anagrafica con modifiche non salvate: sono a salvataggio ESPLICITO, al
-    /// contrario dei blocchi del documento, quindi senza la guardia si perderebbero uscendo dalla pagina.</summary>
-    private readonly HashSet<string> _scaloDaSalvare = new(StringComparer.OrdinalIgnoreCase);
 
     // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
@@ -424,8 +417,6 @@ else
     private async Task CaricaDatiScaloAsync()
     {
         _civile = await Militari.GetCivilEditionAsync(_icao);
-        _scaloDaSalvare.Clear();
-        await AggiornaGuardiaScaloAsync();
 
         // Su un campo che una vIPI civile ce l'ha (o deve averla) quei dati si scrivono nell'altro editor:
         // qui non si disegnano, e leggerli sarebbe lavoro per niente.
@@ -619,9 +610,13 @@ else
     /// sono già estratti e non sanno da quale pagina sono montati (doc 14 §3g), quindi non c'è nessuna
     /// seconda stesura dell'editor — solo un secondo ospite.
     ///
-    /// <para>⚠️ La scrittura segue <c>_canEditScalo</c> — il <b>ruolo</b> sulla ACC dello scalo — e non
-    /// <c>_shell.IsEditing</c>, che è il lock del <b>documento</b>: quel lock governa il vSOP, non
-    /// l'anagrafica dell'aeroporto, e sono due cose che si possiedono separatamente.</para>
+    /// <para>⚠️ <b>La scrittura segue il LOCK</b> (<c>_shell.IsEditing</c>) dal 4 settembre 2026, carta
+    /// 2026-09-04-aeroporto-porta-sola. Prima seguiva il solo RUOLO sulla ACC, con questa motivazione: «quel
+    /// lock governa il vSOP, non l'anagrafica dell'aeroporto». Non regge più, per due ragioni. La prima: qui
+    /// si scrive l'anagrafica solo su un campo <b>senza vIPI civile</b> (<see cref="ScaloSenzaCivile"/>), e
+    /// per quel campo il documento militare <i>è</i> il documento dello scalo. La seconda: la guardia adesso
+    /// sta nel service, che il lock lo pretende — un campo scrivibile senza lock darebbe solo un errore più
+    /// tardi.</para>
     /// </summary>
     private RenderFragment EditorDelloScalo(EditableSection s) => __builder =>
     {
@@ -632,21 +627,19 @@ else
         @switch (s.SectionKey)
         {
             case "transition":
-                <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="v => _ta = v"
-                                         SourceLocked="_policy.TransitionAltitude" Busy="_busyScalo" CanEdit="_canEditScalo"
-                                         OnChanged='() => SegnaScaloDaSalvare("transition")'
-                                         OnSaveTa="SalvaTa" OnSaveRows="SalvaLivelli"
+                <AirportTransitionEditor Rows="_tls" TransitionAltitudeFt="_ta" TransitionAltitudeFtChanged="TaCambiata"
+                                         SourceLocked="_policy.TransitionAltitude" Editing="_shell.IsEditing"
+                                         RowsChanged="SalvaLivelli"
                                          ConfirmRemove="ConfermaRimozioneRiga" />
                 break;
             case "runways":
-                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busyScalo" CanEdit="_canEditScalo"
-                                      OnChanged="PisteCambiate" OnSaveRows="SalvaPiste"
+                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways"
+                                      Editing="_shell.IsEditing" RowsChanged="SalvaPiste"
                                       ConfirmRemove="ConfermaRimozionePista" />
                 break;
             case "frequencies":
                 <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
-                                          Busy="_busyScalo" CanEdit="_canEditScalo"
-                                          OnChanged='() => SegnaScaloDaSalvare("frequencies")' OnSaveLinks="SalvaLink" />
+                                          Editing="_shell.IsEditing" LinksChanged="SalvaLink" />
                 break;
         }
     };
@@ -670,63 +663,40 @@ else
     private Task<bool> ConfermaRimozionePista() => Conferma(L["Ape_RemoveRwConfirm"].Value);
 
     /// <summary>
-    /// La guardia «hai modifiche non salvate» del browser.
+    /// I salvataggi dell'anagrafica: ogni gesto scrive, dalla stessa porta dei blocchi del documento
+    /// (<c>_shell.GuardedAsync</c>).
     ///
-    /// <para>⚠️ Serve <b>solo</b> a questi tre editor: i blocchi del documento si salvano da sé a ogni
-    /// gesto, quelli dell'anagrafica no — hanno il loro tasto «salva», e chi esce senza premerlo perde
-    /// quel che ha scritto.</para>
+    /// <para>⚠️ Qui c'erano tre tasti «Salva», un insieme di sezioni «da salvare» e la guardia
+    /// <c>beforeunload</c> che le proteggeva. Sono caduti il 4 settembre 2026 insieme a quelli dell'editor
+    /// d'aeroporto: gli stessi tre componenti, lo stesso modello (carta 2026-09-04-aeroporto-porta-sola).</para>
+    ///
+    /// <para>⚠️ Nessuna rilettura dopo la scrittura: il repository sostituisce in blocco, quindi i buffer
+    /// SONO già lo stato salvato.</para>
+    ///
+    /// <para>⚠️ <c>AirportSaveGate</c> prima di scrivere: i service pretendono righe complete, e una tabella
+    /// si riempie una casella per volta. È il cancello, non la guardia — quella sta nel service.</para>
     /// </summary>
-    private async Task AggiornaGuardiaScaloAsync()
+    private async Task TaCambiata(int? ta)
     {
-        if (!_shell.JsReady) return;
-        try { await JS.InvokeVoidAsync("vipiSetDirty", _scaloDaSalvare.Count > 0); }
-        catch (JSDisconnectedException) { }
-        catch (OperationCanceledException) { }
-        catch (InvalidOperationException) { }
+        _ta = ta;
+        await _shell.GuardedAsync(() => Scalo.SetTransitionAltitudeAsync(_icao, _ta));
     }
 
-    private async Task SegnaScaloDaSalvare(string sezione)
-    {
-        _scaloDaSalvare.Add(sezione);
-        await AggiornaGuardiaScaloAsync();
-    }
+    private Task SalvaLivelli() => AirportSaveGate.Tls(_tls)
+        ? _shell.GuardedAsync(() => Scalo.SaveTransitionLevelsAsync(_icao,
+            _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()))
+        : Task.CompletedTask;
 
-    /// <summary>Esegue un salvataggio dell'anagrafica col badge e gli errori tradotti del guscio comune, e
-    /// a buon fine pulisce il «da salvare» della sola sezione toccata.</summary>
-    private async Task SalvaScalo(string sezione, Func<Task> azione)
-    {
-        _busyScalo = true;
-        bool fatto;
-        try { fatto = await _shell.GuardedAsync(azione); }
-        finally { _busyScalo = false; }
+    /// <summary>Un gesto sulla tabella piste scrive subito. ⚠️ Le celle TORA/LDA vivevano in un buffer che un
+    /// ricaricamento butta via senza chiedere, e in produzione il processo si rigenera ogni ~50 secondi: su
+    /// LIPR quel lavoro è andato perso davvero.</summary>
+    private Task SalvaPiste() => AirportSaveGate.Runways(_rwys)
+        ? _shell.GuardedAsync(() => Scalo.SaveRunwaysAsync(_icao,
+            _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,
+                r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()))
+        : Task.CompletedTask;
 
-        // ⚠️ Nessuna rilettura: il repository sostituisce in blocco, quindi i buffer SONO già lo stato
-        // salvato — e una rilettura totale butterebbe via le modifiche non salvate delle ALTRE sezioni.
-        if (!fatto) return;
-        _scaloDaSalvare.Remove(sezione);
-        await AggiornaGuardiaScaloAsync();
-    }
-
-    private Task SalvaTa() => SalvaScalo("transition", () => Scalo.SetTransitionAltitudeAsync(_icao, _ta));
-
-    private Task SalvaLivelli() => SalvaScalo("transition", () => Scalo.SaveTransitionLevelsAsync(_icao,
-        _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
-
-    /// <summary>Un gesto sulla tabella piste: segna da salvare e, a piste di sorgente, <b>salva subito</b>.
-    /// Stessa ragione dell'editor d'aeroporto — le celle TORA/LDA vivevano in un buffer che un ricaricamento
-    /// butta via senza chiedere, e in produzione il processo si rigenera ogni ~50 secondi. Solo a policy
-    /// accesa: là le uniche colonne scrivibili sono editoriali e ogni riga è già valida.</summary>
-    private async Task PisteCambiate()
-    {
-        await SegnaScaloDaSalvare("runways");
-        if (_policy.Runways) await SalvaPiste();
-    }
-
-    private Task SalvaPiste() => SalvaScalo("runways", () => Scalo.SaveRunwaysAsync(_icao,
-        _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,
-            r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
-
-    private Task SalvaLink() => SalvaScalo("frequencies", () => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+    private Task SalvaLink() => _shell.GuardedAsync(() => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
 
     // ---- Radioassistenze ------------------------------------------------------------------------------
     //
