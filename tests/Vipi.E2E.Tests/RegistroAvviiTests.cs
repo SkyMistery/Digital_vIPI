@@ -250,6 +250,12 @@ public sealed class RegistroAvviiTests
             StartupDiagnostics.CartellaDiagnostica, RegistroAvvii.FileName);
         var primaDelGiro = File.Exists(percorso) ? File.ReadAllLines(percorso).Length : 0;
 
+        // ⚠️ Il conto è del PROCESSO, e in produzione un processo ospita un'applicazione sola — ma qui gli
+        // host sono decine, nello stesso processo, e le richieste degli altri test sono arrivate prima.
+        // Senza questo azzeramento «chi ha svegliato» sarebbe la prima richiesta di un altro test: il test
+        // passava da solo e cadeva in fila, che è il modo peggiore di sbagliarsi.
+        TracciaRichieste.Azzera();
+
         using (var fabbrica = new SmokeTests.VipiAppFactory())
         {
             var cliente = fabbrica.CreateClient();

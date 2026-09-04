@@ -197,7 +197,49 @@
       ⚠️ Due progetti (`Host`, `Ui`). NIENTE `wwwroot`, NIENTE frasi (nessun .resx toccato, quindi il
       satellite inglese resta fuori), NESSUNA migrazione.
     -->
-    <VipiVersione>1.6.2</VipiVersione>
+    <!--
+      1.7.0 — 4 settembre 2026. **MINOR**, e la tabella si applica alla lettera: non sono solo correzioni.
+      Nessuna migrazione (verificato col diff dei sorgenti dal commit online: nessuna cartella Migrations toccata), quindi
+      si consegna da sola via FTP anche dentro la finestra cieca.
+
+      Perché MINOR e non PATCH: §BD semina SEZIONI NUOVE nei documenti («Carte aeroportuali» e le sue cinque
+      raccolte, su vIPI d'aeroporto e vSOP militare) e §BE aggiunge un COMANDO nuovo agli editor. Una PATCH è
+      «solo correzioni, nessuna pagina o sezione nuova»: qui non regge.
+
+      Dentro ci sono sei voci di `lavori-aperti.md`:
+
+        · §BB — la TESTATA dei documenti si compatta: due righe invece di tre, su tutte e cinque le famiglie.
+          ⚠️ Tocca `vipi-theme.css` e `vipi-print.css`, quindi il pacchetto porta `wwwroot` — e con esso
+          l'indice degli asset (`staticwebassets.endpoints.json`), che viaggia SEMPRE insieme.
+
+        · §BC — i PARCHEGGI passano da «Procedure di terra» a «Dati generali». È una riconciliazione al
+          primo avvio (`ReparentMilParkingsAsync`), non un cambio di catalogo: sposta e basta, ed è
+          idempotente (al secondo avvio il padre è già quello giusto e non fa niente).
+
+        · §BD — «Carte aeroportuali» con Aerodromo, IAC, SID, STAR, VFR, prima di «Validità e revisione».
+          Anche questa arriva da una riconciliazione al primo avvio: su copia del DB ha aggiunto 84 sezioni
+          (14 documenti × 6) e nient'altro.
+
+        · §BE — le sezioni si MUOVONO: le libere cambiano gruppo (tendina «Sposta in…» e trascinamento delle
+          figlie nel menu-sezioni), con cinque guardie nel motore. Dentro ci sono anche due difetti VECCHI:
+          una sotto-sezione resa dalla pagina ignorava «sopra il corpo» (l'editor diceva una cosa e il
+          pubblicato un'altra) e la vIPI ACC non mostrava le sotto-sezioni nascoste nemmeno in bozza.
+          ⚠️ I documenti GIÀ PUBBLICATI mostrano le due correzioni solo dopo una ripubblicazione: le release
+          sono fotografie e non si riscrivono.
+
+        · §BF — «Da un altro documento…» nell'import tabelle non era rotto: TACEVA. Ora dice quando quel
+          documento non ha righe, la tendina torna al segnaposto (è un comando, non uno stato) e la pastiglia
+          della forma smette di dire «righe intere» su celle già separate.
+
+        · §BG — 🔴 la misura che serve per il keep-alive. Il registro degli avvii dice ora QUANTE richieste ha
+          servito il processo (con l'ultima e chi l'ha svegliato) e CHI ha chiesto lo spegnimento (`SIGTERM`
+          o «da dentro»). Serve a decidere la prossima mossa sul processo che muore ogni cinquanta secondi:
+          senza quel numero, ogni ipotesi vale l'altra.
+
+      Cinque progetti (`Ui`, `Application`, `Host`, `Infrastructure`, `Hosting`), le FRASI (due `.resx`
+      toccati, quindi il satellite inglese entra) e `wwwroot` (due CSS, con i loro `.br`/`.gz` e l'indice).
+    -->
+    <VipiVersione>1.7.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
