@@ -515,7 +515,12 @@
                     }
                     else
                     {
-                        <span>@string.Format(L["TrDoc_RoundNext"].Value, MinutiAlProssimo())</span>
+                        @*  ⚠️ Zero minuti si dice a parole, e in produzione è il caso NORMALE: il processo
+                            riparte spesso, e appena riparte l'ultimo giro è già più vecchio di un quarto
+                            d'ora. «fra ~0 min» sembra un segnaposto rimasto lì. *@
+                        <span>@(MinutiAlProssimo() <= 0
+                            ? L["TrEd_Wait_Soon"].Value
+                            : string.Format(L["TrDoc_RoundNext"].Value, MinutiAlProssimo()))</span>
                     }
                 }
             </p>
