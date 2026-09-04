@@ -1,6 +1,6 @@
 # Pacchetto 1.7.1 — solo i file cambiati
 
-> **Timbro:** `1.7.1 · 98a17d01` (4 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.7.1 · f4d7347c` (4 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.7.0**, che è quello attualmente sul server. **9 file** — la metà di 1.7.0.
@@ -181,7 +181,7 @@ cartella del pacchetto.
 > ### A · È partita la versione nuova
 >
 > `diagnostica/avvio-diagnostica.txt`: prima riga con **l'ora di adesso**, riga `Versione` con
-> **`1.7.1 · 98a17d0`**.
+> **`1.7.1 · f4d7347`**.
 >
 > ℹ️ Se trovate `diagnostica/avvio-errore.txt`, fermatevi e mandatecelo. Se trovate
 > `diagnostica/arresto-errore.txt`, **andate avanti**: quello dice che è morto un processo *precedente*
