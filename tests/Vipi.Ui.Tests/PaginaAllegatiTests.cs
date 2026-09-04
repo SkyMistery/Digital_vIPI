@@ -137,6 +137,10 @@ public class PaginaAllegatiTests : TestContext
         }
     }
 
+    /// <summary>Le righe di DATO dell'elenco: le righe di testa dei perimetri sono righe di tabella anche
+    /// loro, e contarle direbbe «sei voci» dove ce ne sono tre.</summary>
+    private const string RigheDati = "table.res-table tbody tr:not(.att-grp)";
+
     private static AttachmentRow Riga(int id, string slug, string titolo,
         AttachmentKind tipo = AttachmentKind.Loa, AttachmentScope ambito = AttachmentScope.Division,
         string? chiave = null, int versione = 1) =>
@@ -158,6 +162,68 @@ public class PaginaAllegatiTests : TestContext
         return RenderComponent<AdminAttachmentsPage>();
     }
 
+    // ---------------------------------------------------------------------------------------------------
+    // Le «cartelle»: perimetri ricavati, non scelti (4 settembre 2026, a 121 voci in produzione)
+    // ---------------------------------------------------------------------------------------------------
+
+    private BibliotecaFinta ArchivioSparso() => new(AttachmentCreate.Ok,
+        Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille", AttachmentKind.Loa, AttachmentScope.Acc, "LIRR"),
+        Riga(2, "loa-limm-lsaz", "LoA Milano–Zurigo", AttachmentKind.Loa, AttachmentScope.Acc, "LIMM"),
+        Riga(3, "circ-limm-01", "Circolare Milano 01", AttachmentKind.Circular, AttachmentScope.Acc, "LIMM"),
+        Riga(4, "piv-it", "PIV Italia", AttachmentKind.Piv));
+
+    [Fact] // tre perimetri, tre righe di testa, e le voci dentro il loro
+    public void Lelenco_esce_raccolto_per_perimetro()
+    {
+        var cut = Render(ArchivioSparso());
+
+        var teste = cut.FindAll("tr.att-grp").ToArray();
+        Assert.Equal(3, teste.Length);
+        Assert.Contains("AttScope_Division", teste[0].TextContent);
+        Assert.Contains("LIMM", teste[1].TextContent);
+        Assert.Contains("LIRR", teste[2].TextContent);
+        Assert.Equal(4, cut.FindAll(RigheDati).Count);
+    }
+
+    [Fact] // la riga di testa si clicca e il perimetro si richiude: le altre restano dove sono
+    public void Un_perimetro_si_richiude()
+    {
+        var cut = Render(ArchivioSparso());
+
+        cut.FindAll("tr.att-grp button").ToArray()[1].Click();   // Milano, due voci
+
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
+        Assert.Equal(3, cut.FindAll("tr.att-grp").Count);        // le cartelle restano tutte a schermo
+        Assert.DoesNotContain("Circolare Milano 01", cut.Markup);
+    }
+
+    [Fact] // il terzo asse a schermo: un chip per chiave presente, e filtra
+    public void Il_chip_della_chiave_filtra_il_perimetro()
+    {
+        var cut = Render(ArchivioSparso());
+
+        var chip = cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("LIMM"));
+        chip.Click();
+
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
+        Assert.Single(cut.FindAll("tr.att-grp"));
+        Assert.DoesNotContain("LoA Roma–Marseille", cut.Markup);
+    }
+
+    [Fact] // ⚠️ i chip si contano SENZA il filtro chiave, o non si potrebbe piu' cambiarlo
+    public void I_chip_delle_chiavi_restano_tutti_dopo_averne_scelta_una()
+    {
+        var cut = Render(ArchivioSparso());
+        var quanti = cut.FindAll("button.sh-chip").Count;
+
+        cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("LIMM")).Click();
+
+        Assert.Equal(quanti, cut.FindAll("button.sh-chip").Count);
+        // E si spegne al secondo clic, come gli altri assi.
+        cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("LIMM")).Click();
+        Assert.Equal(4, cut.FindAll(RigheDati).Count);
+    }
+
     /// <summary>
     /// ⚠️ L'elenco mostra anche la voce che non cita nessuno. Un elenco delle sole voci citate renderebbe
     /// irraggiungibile la <b>prima</b> voce caricata: è il catch-22 già pagato con l'elenco degli APP.
@@ -168,7 +234,7 @@ public class PaginaAllegatiTests : TestContext
         var cut = Render(new BibliotecaFinta(AttachmentCreate.Ok, Riga(1, "loa-lirr-lfmm", "LoA Roma–Marseille")));
 
         Assert.Contains("LoA Roma–Marseille", cut.Markup);
-        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+        Assert.Single(cut.FindAll(RigheDati));
     }
 
     /// <summary>
@@ -237,16 +303,16 @@ public class PaginaAllegatiTests : TestContext
             Riga(2, "loa-limm-lsas", "LoA Milano–Svizzera", AttachmentKind.Loa, AttachmentScope.Acc, "LIMM"),
             Riga(3, "circolare-01", "Circolare 01", AttachmentKind.Circular, AttachmentScope.Division)));
 
-        Assert.Equal(3, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.Equal(3, cut.FindAll(RigheDati).Count);
 
         // Tipo «LoA»: la circolare esce.
         cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
-        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
 
         // …più l'ambito «ACC»: restano le due LoA, che sono entrambe d'ACC.
         var chipAmbito = cut.FindAll("button.sh-chip").ToArray();
         chipAmbito[Enum.GetValues<AttachmentKind>().Length + (int)AttachmentScope.Acc].Click();
-        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
         Assert.DoesNotContain("Circolare 01", cut.Markup);
     }
 
@@ -260,10 +326,10 @@ public class PaginaAllegatiTests : TestContext
             Riga(2, "circolare-01", "Circolare 01", AttachmentKind.Circular)));
 
         cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
-        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+        Assert.Single(cut.FindAll(RigheDati));
 
         cut.FindAll("button.sh-chip").ToArray()[(int)AttachmentKind.Loa].Click();
-        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
     }
 
     /// <summary>La ricerca guarda tutto quel che si legge: «Marseille» trova la LoA tanto quanto «loa-lirr».</summary>
@@ -275,10 +341,10 @@ public class PaginaAllegatiTests : TestContext
             Riga(2, "circolare-01", "Circolare 01", AttachmentKind.Circular)));
 
         cut.Find("input.htree-search").Input("marseille");
-        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+        Assert.Single(cut.FindAll(RigheDati));
 
         cut.Find("input.htree-search").Input("circolare-01");
-        Assert.Single(cut.FindAll("table.res-table tbody tr"));
+        Assert.Single(cut.FindAll(RigheDati));
     }
 
     /// <summary>Lo slug si propone dal titolo: chi carica non deve inventarsi una forma che poi la pagina rifiuta.</summary>
@@ -373,7 +439,9 @@ public class PaginaAllegatiTests : TestContext
 
         Assert.Empty(cut.FindAll("ul.att-cited"));
 
-        cut.Find("table.res-table tbody button").Click();
+        // ⚠️ Il primo <button> del corpo tabella è quello della riga di TESTA del perimetro: qui serve quello
+        // della riga di dato, cioè il conteggio delle citazioni.
+        cut.Find(RigheDati + " button").Click();
 
         var voce = cut.Find("ul.att-cited li");
         Assert.Contains("vIPI Fiumicino", voce.TextContent);
@@ -396,14 +464,14 @@ public class PaginaAllegatiTests : TestContext
                 new AttachmentCitation(AttachmentCitationSource.Document, "vIPI Fiumicino"),
             })));
 
-        Assert.Equal(2, cut.FindAll("table.res-table tbody tr").Count);
+        Assert.Equal(2, cut.FindAll(RigheDati).Count);
 
         cut.FindAll("button.sh-chip").ToArray()[^1].Click();
 
         // ⚠️ Si materializza prima di indicizzare: con questa coppia bUnit/AngleSharp l'indicizzatore della
         // collezione aggiornabile non esiste a runtime, e il test morirebbe con un MissingMethodException
         // che non dice niente di quel che sta provando.
-        var righe = cut.FindAll("table.res-table tbody tr").ToArray();
+        var righe = cut.FindAll(RigheDati).ToArray();
         Assert.Single(righe);
         Assert.Contains("Circolare 01", righe[0].TextContent);
     }

@@ -2100,8 +2100,10 @@
   <data name="Ape_Notes" xml:space="preserve"><value>Note</value></data>
   <data name="Ape_FreeText" xml:space="preserve"><value>testo libero</value></data>
   <data name="Ape_Advanced" xml:space="preserve"><value>Avanzate — orario · giorni · parità · validità (opzionali)</value></data>
-  <data name="Ape_NextDay" xml:space="preserve"><value>giorno dopo</value></data>
-  <data name="Ape_NextDayTitle" xml:space="preserve"><value>L’orario di fine è prima di quello d’inizio: la finestra scavalca la mezzanotte. La regola resta legata al giorno in cui è cominciata — «lunedì 22:00–05:00» vale fino alle 05:00 di martedì.</value></data>
+  <data name="Ape_NextDay" xml:space="preserve"><value>giorno dopo</value></data>
+
+  <data name="Ape_NextDayTitle" xml:space="preserve"><value>L’orario di fine è prima di quello d’inizio: la finestra scavalca la mezzanotte. La regola resta legata al giorno in cui è cominciata — «lunedì 22:00–05:00» vale fino alle 05:00 di martedì.</value></data>
+
   <data name="Ape_TimeFrom" xml:space="preserve"><value>Orario da (LT)</value></data>
   <data name="Ape_TimeTo" xml:space="preserve"><value>a (LT)</value></data>
   <data name="Ape_DayParity" xml:space="preserve"><value>Parità giorno</value></data>
@@ -2984,6 +2986,8 @@
   <data name="Att_UsedBy" xml:space="preserve"><value>{0} documenti</value></data>
   <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
   <data name="Att_Unused" xml:space="preserve"><value>Mai usate</value></data>
+  <data name="Att_KeyChipTitle" xml:space="preserve"><value>Solo gli allegati di questo perimetro</value></data>
+  <data name="Att_ToggleAll" xml:space="preserve"><value>Apri / chiudi tutto</value></data>
   <data name="Att_UnusedTitle" xml:space="preserve"><value>Le voci che non cita nessun documento: è da qui che si tiene pulita la biblioteca.</value></data>
   <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
   <data name="Att_CitedPublished" xml:space="preserve"><value>pubblicato</value></data>

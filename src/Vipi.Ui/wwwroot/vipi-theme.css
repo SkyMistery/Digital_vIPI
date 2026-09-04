@@ -1859,6 +1859,15 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    didascalia; il vento no, è il dato che si va a cercare, e a 12.5px grigio si leggeva peggio della tabella
    che spiega. Vale per tutti: chi vede la provenienza della regola e chi no. */
 .rwy-wind{font-size:13px;color:var(--ink);font-weight:600}
+/* Biblioteca allegati: la riga di testa di un PERIMETRO dentro la tabella. Una riga di tabella e non un
+   <details>, perche' le otto colonne devono restare allineate fra una cartella e l'altra: con un <details>
+   per gruppo ogni cartella avrebbe la sua tabella e le sue larghezze. Il comando e' un <button> a tutta riga
+   (non un <td> cliccabile) perche' cosi' lo raggiunge anche chi va da tastiera. */
+.att-grp>td{background:var(--surface-soft);padding:0!important;border-bottom:1px solid var(--line)}
+.att-grp-b{display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;background:none;border:0;
+  cursor:pointer;text-align:left;font:inherit;color:inherit}
+.att-grp-b:hover{background:var(--line-atmos-soft)}
+.att-grp-c{width:12px;color:var(--ink-soft)}
 .rwy-table .yes{color:var(--ok-ink);font-weight:600}
 .rwy-table .no{color:var(--danger-ink)}
 /* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */

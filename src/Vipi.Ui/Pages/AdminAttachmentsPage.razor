@@ -77,9 +77,13 @@
     else
     {
         <div class="block">
-            @* I due assi della biblioteca sono DUE FILTRI, non una cartella: «le LoA di Roma» si ottengono
-               scegliendo un tipo e un ambito. Un albero di cartelle a 50+ file si riempie di roba archiviata
-               male e nessuno la ritrova. *@
+            @* Gli assi della biblioteca sono FILTRI, non cartelle da riempire: «le LoA di Roma» si ottengono
+               scegliendo tipo, ambito e chiave. Un albero di cartelle vere si riempie di roba archiviata male
+               e nessuno la ritrova — quindi la cartella si RICAVA dai campi che ci sono già, e nessuno la può
+               sbagliare perché nessuno la sceglie.
+               ⚠️ 4 settembre 2026, a centoventuno voci in produzione: gli assi erano due e mancava quello che
+               conta, la CHIAVE del perimetro. «Gli allegati di un ACC» si poteva chiedere, «quelli di Milano»
+               no — e gli ACC sono quattro. *@
             <div class="struct-bar">
                 <input class="htree-search" placeholder="@L["Att_SearchPh"]" aria-label="@L["Att_Search"]"
                        @bind="_cerca" @bind:event="oninput" />
@@ -110,6 +114,26 @@
                     </button>
                 </span>
             </div>
+            @* Il terzo asse su una riga sua: le chiavi sono molte più dei tipi e degli ambiti, e infilarle
+               nella stessa riga la faceva andare a capo in mezzo a un gruppo. *@
+            @if (ChiaviPresenti.Count > 0)
+            {
+                <div class="struct-bar">
+                    <span class="sb-chips">
+                        @foreach (var (chiave, quante) in ChiaviPresenti)
+                        {
+                            var c = chiave;
+                            <button type="button" class="sh-chip @(_chiave == c ? "on" : "")"
+                                    title="@L["Att_KeyChipTitle"]"
+                                    @onclick="() => _chiave = _chiave == c ? null : c">
+                                @c <span class="chip-n">@quante</span>
+                            </button>
+                        }
+                    </span>
+                    <span class="ln"></span>
+                    <button type="button" class="btn ghost" @onclick="CommutaTutti">@L["Att_ToggleAll"]</button>
+                </div>
+            }
 
             <table class="res-table">
                 <thead>
@@ -125,7 +149,25 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var r in Filtrate)
+                    @* Le righe escono raccolte per PERIMETRO, con una riga di testa che si clicca per
+                       richiudere. Un gruppo dentro la stessa tabella e non una tabella per gruppo: con otto
+                       colonne, tabelle distinte vorrebbero dire otto larghezze diverse per ogni cartella. *@
+                    @foreach (var g in Gruppi)
+                    {
+                        var chiuso = _chiusi.Contains(g.Key);
+                        <tr class="att-grp" @key="g.Key">
+                            <td colspan="8">
+                                <button type="button" class="att-grp-b" aria-expanded="@((!chiuso).ToString().ToLowerInvariant())"
+                                        @onclick="() => CommutaGruppo(g.Key)">
+                                    <span class="att-grp-c">@(chiuso ? "▸" : "▾")</span>
+                                    <b>@NomeGruppo(g)</b>
+                                    <span class="pill blue">@g.Rows.Count</span>
+                                </button>
+                            </td>
+                        </tr>
+                    @if (!chiuso)
+                    {
+                    @foreach (var r in g.Rows)
                     {
                         <tr>
                             <td><b>@r.Title</b></td>
@@ -304,6 +346,8 @@
                             </tr>
                         }
                     }
+                    }
+                    }
                     @if (Filtrate.Count == 0)
                     {
                         <tr><td colspan="8" class="muted">@L["Att_Empty"]</td></tr>
@@ -362,7 +406,13 @@
     private string _cerca = "";
     private AttachmentKind? _tipo;
     private AttachmentScope? _ambito;
+    /// <summary>Il terzo asse: LIRR, LIMC… È la «cartella» che mancava.</summary>
+    private string? _chiave;
     private bool _soloMaiUsate;
+    /// <summary>I perimetri richiusi. ⚠️ Si ricorda chi è CHIUSO e non chi è aperto: così un perimetro nuovo
+    /// nasce aperto, e chi carica una LoA per un ACC che non ne aveva la vede subito invece di doverla cercare
+    /// dentro una cartella che non sapeva di dover aprire.</summary>
+    private readonly HashSet<string> _chiusi = new(StringComparer.Ordinal);
     private string? _aperta;
     private string? _sostituisce;
     private string? _elimina;
@@ -384,23 +434,39 @@
     /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
     private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
 
-    /// <summary>Le righe da mostrare: i due assi in AND, più una ricerca che guarda tutto quel che si legge —
-    /// così «Marseille» trova la LoA tanto quanto «loa-lirr».</summary>
-    private IReadOnlyList<AttachmentRow> Filtrate
-    {
-        get
-        {
-            var q = _righe.AsEnumerable();
-            if (_tipo is { } k) q = q.Where(r => r.Kind == k);
-            if (_ambito is { } s) q = q.Where(r => r.Scope == s);
-            if (_soloMaiUsate) q = q.Where(r => Citazioni(r.Slug).Count == 0);
+    /// <summary>Le righe da mostrare: i tre assi in AND, più una ricerca che guarda tutto quel che si legge —
+    /// così «Marseille» trova la LoA tanto quanto «loa-lirr». La regola sta in <see cref="AttachmentBrowsing"/>,
+    /// che si prova senza montare una pagina.</summary>
+    private IReadOnlyList<AttachmentRow> Filtrate => AttachmentBrowsing.Filtra(
+        _righe, new AttachmentFilter(_tipo, _ambito, _chiave, _cerca, _soloMaiUsate),
+        slug => Citazioni(slug).Count > 0);
 
-            var testo = _cerca.Trim();
-            if (testo.Length > 0)
-                q = q.Where(r => new[] { r.Title, r.Slug, r.ScopeKey, r.Notes }
-                    .Any(c => c is not null && c.Contains(testo, StringComparison.OrdinalIgnoreCase)));
-            return q.ToList();
-        }
+    /// <summary>Le righe filtrate, raccolte per perimetro: le «cartelle» che si vedono a schermo.</summary>
+    private IReadOnlyList<AttachmentGroup> Gruppi => AttachmentBrowsing.Raggruppa(Filtrate);
+
+    /// <summary>I chip del terzo asse. ⚠️ Contati SENZA il filtro chiave, o resterebbe solo quella scelta.</summary>
+    private IReadOnlyList<(string Chiave, int Quante)> ChiaviPresenti => AttachmentBrowsing.Chiavi(
+        AttachmentBrowsing.Filtra(_righe, new AttachmentFilter(_tipo, _ambito, null, _cerca, _soloMaiUsate),
+            slug => Citazioni(slug).Count > 0));
+
+    /// <summary>Il nome del perimetro come si legge in testa al gruppo: «Divisione», «ACC · LIRR».</summary>
+    private string NomeGruppo(AttachmentGroup g) =>
+        g.Scope == AttachmentScope.Division || g.ScopeKey is null
+            ? L["AttScope_" + g.Scope].Value
+            : $"{L["AttScope_" + g.Scope].Value} · {g.ScopeKey}";
+
+    private void CommutaGruppo(string key)
+    {
+        if (!_chiusi.Remove(key)) _chiusi.Add(key);
+    }
+
+    /// <summary>Apre o chiude TUTTI i perimetri in elenco. Con centoventuno voci è la differenza fra vedere la
+    /// mappa dell'archivio e scorrerlo tutto.</summary>
+    private void CommutaTutti()
+    {
+        var chiavi = Gruppi.Select(g => g.Key).ToList();
+        if (chiavi.All(_chiusi.Contains)) _chiusi.Clear();
+        else foreach (var k in chiavi) _chiusi.Add(k);
     }
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
