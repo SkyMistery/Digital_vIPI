@@ -1854,6 +1854,11 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .validity-stamp{width:100%;max-width:none;table-layout:fixed}
 .validity-stamp td:first-child{width:26ch;color:var(--ink-soft)}
 @media(max-width:560px){.validity-stamp{table-layout:auto}.validity-stamp td:first-child{width:auto}}
+/* Il vento nella legenda delle piste: stesso corpo, stesso inchiostro e stesso peso del numero di pista nella
+   tabella qui sotto (.rwy-table th,td = 13px; l'ident è in <b>). La legenda è grigia a 12.5px perché è una
+   didascalia; il vento no, è il dato che si va a cercare, e a 12.5px grigio si leggeva peggio della tabella
+   che spiega. Vale per tutti: chi vede la provenienza della regola e chi no. */
+.rwy-wind{font-size:13px;color:var(--ink);font-weight:600}
 .rwy-table .yes{color:var(--ok-ink);font-weight:600}
 .rwy-table .no{color:var(--danger-ink)}
 /* Tabella più larga del suo contenitore: scorre da sé, la pagina no. */
