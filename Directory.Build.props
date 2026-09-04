@@ -341,7 +341,37 @@
       satellite inglese entra). NIENTE `wwwroot`: nessun CSS e nessun JS toccati, quindi nemmeno l'indice
       degli asset.
     -->
-    <VipiVersione>1.8.1</VipiVersione>
+    <!--
+      1.9.0 — 4 settembre 2026, notte. **MINOR**, e il numero lo decide il CONTENUTO: §BM porta una
+      SEZIONE nuova al Registro, un tasto nuovo nell'editor e due righe che prima non c'erano. Una PATCH è
+      «solo correzioni»: questa non lo è. NESSUNA migrazione (nessuna cartella Migrations toccata dal
+      commit online `fa1685f`), quindi si consegna da sola via FTP anche dentro la finestra cieca.
+
+      §BM — a che punto è la traduzione. Lo stato è la differenza fra i segmenti di un documento e le
+      impronte in memoria, e si CALCOLA: nessuna entità, nessuna tabella, misurato 45 ms su tutto il
+      `vipi.db`. Due coperture per riga e mai una media — bozza (memoria viva) e pubblicato (snapshot
+      della release ∪ memoria) — perché «bozza 100%, pubblicato 40%» è il guasto §Q18 in persona.
+      Quattro sedi, una fonte: la sezione «Documenti» del Registro, l'esito dell'ultimo giro (che
+      esisteva intero e finiva SOLO nel log del server), la pastiglia su /versions e la riga nella
+      pubblicazione. Più l'attesa a orologio nell'editor (≤ 15 min: il giro non ha tetto di lotto) e il
+      tasto «traduci ora», col lucchetto in-processo contro il giro automatico.
+      ⚠️ Misurato mentre si costruiva: TUTTE e 17 le release efficaci hanno `Doc.Translations` nullo —
+      quel che il pubblico legge viene dalla memoria viva, e si chiude solo RIPUBBLICANDO.
+
+      §BM-bis — il riquadro «ricarica la pagina» segnalato dal committente. NON era l'host che muore:
+      nella finestra della segnalazione un processo è vissuto 26 minuti e un altro 86. Morivano i
+      CIRCUITI, e li abbatteva codice nostro:
+        · `DocumentEditorShell.Dispose` smaltiva il tornello con un caricamento ancora in volo →
+          `Release()` su un `SemaphoreSlim` smaltito → eccezione che nessuno prende → circuito giù.
+          Cinque volte in un'ora. Il tornello non va smaltito affatto.
+        · `MilSectionsEditor` prendeva `INavaidCatalog`/`IAirportNameLookup` dal CIRCUITO pur essendo già
+          `OwningComponentBase`, e li legge dentro il caricamento → due «second operation» in 4 secondi.
+        · Le `TaskCanceledException` di `DisposeAsync` erano rumore che nascondeva le vere.
+
+      Quattro progetti (`Domain`, `Application`, `Infrastructure`, `Ui`), le FRASI (due `.resx` toccati,
+      quindi il satellite inglese entra) e `wwwroot` (un CSS, con i suoi `.br`/`.gz` e l'indice).
+    -->
+    <VipiVersione>1.9.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
