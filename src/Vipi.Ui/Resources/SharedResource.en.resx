@@ -2054,11 +2054,8 @@
   <data name="Ape_IssueSidUnknownRw" xml:space="preserve"><value>SID #{0}: runway “{1}” is not among those defined.</value></data>
   <data name="Ape_IssueSidDup" xml:space="preserve"><value>SID #{0}: duplicate ({1}/{2} {3}).</value></data>
   <data name="Ape_TestWhen" xml:space="preserve"><value>Moment (LT)</value></data>
-
   <data name="Ape_TestNow" xml:space="preserve"><value>Now</value></data>
-
   <data name="Ape_TestNowTitle" xml:space="preserve"><value>Bring the test back to the current instant</value></data>
-
   <data name="Ape_TestWindFrom" xml:space="preserve"><value>Wind from (°)</value></data>
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Speed (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Rule #{0}</value></data>
@@ -2093,9 +2090,7 @@
   <data name="Ape_FreeText" xml:space="preserve"><value>free text</value></data>
   <data name="Ape_Advanced" xml:space="preserve"><value>Advanced — time · days · parity · validity (optional)</value></data>
   <data name="Ape_NextDay" xml:space="preserve"><value>next day</value></data>
-
   <data name="Ape_NextDayTitle" xml:space="preserve"><value>The end time is before the start time: the window crosses midnight. The rule stays tied to the day it started on — «Monday 22:00–05:00» runs until 05:00 on Tuesday.</value></data>
-
   <data name="Ape_TimeFrom" xml:space="preserve"><value>Time from (LT)</value></data>
   <data name="Ape_TimeTo" xml:space="preserve"><value>to (LT)</value></data>
   <data name="Ape_DayParity" xml:space="preserve"><value>Day parity</value></data>
@@ -2978,8 +2973,8 @@
   <data name="Att_UsedBy" xml:space="preserve"><value>{0} documents</value></data>
   <data name="Att_NeverUsed" xml:space="preserve"><value>—</value></data>
   <data name="Att_Unused" xml:space="preserve"><value>Never used</value></data>
-  <data name="Att_KeyChipTitle" xml:space="preserve"><value>Only the attachments of this scope</value></data>
-  <data name="Att_ToggleAll" xml:space="preserve"><value>Expand / collapse all</value></data>
+  <data name="Att_KeyChipTitle" xml:space="preserve"><value>Only the attachments of this scope</value></data>
+  <data name="Att_ToggleAll" xml:space="preserve"><value>Expand / collapse all</value></data>
   <data name="Att_UnusedTitle" xml:space="preserve"><value>The entries no document cites: this is how the library is kept clean.</value></data>
   <data name="Att_CitedAirac" xml:space="preserve"><value>AIRAC {0}</value></data>
   <data name="Att_CitedPublished" xml:space="preserve"><value>published</value></data>
