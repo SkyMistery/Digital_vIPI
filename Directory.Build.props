@@ -240,6 +240,38 @@
       toccati, quindi il satellite inglese entra) e `wwwroot` (due CSS, con i loro `.br`/`.gz` e l'indice).
     -->
     <!--
+      1.8.0 — 4 settembre 2026, sera. **MINOR**: non sono solo correzioni. NESSUNA migrazione (nessuna
+      cartella Migrations toccata dal commit online `f4d7347c`), quindi si consegna da sola via FTP anche
+      dentro la finestra cieca fino al 16 settembre.
+
+      ⚠️ Il numero è MINOR e non PATCH per il CONTENUTO, non per la dimensione: la biblioteca degli
+      allegati prende un asse di ricerca nuovo e un elenco raccolto in cartelle, il banco di prova delle
+      regole piste prende un campo che prima non c'era, e la vIPI d'aeroporto **mostra meno** a chi non è
+      staff di divisione. Chi legge il numero deve sapere che a schermo cambia qualcosa.
+
+      Porta in produzione DUE giri di lavoro, tutt'e due già in `main` e nessuno dei due ancora online:
+
+        · §BJ — l'import tabelle non chiede più il DbContext al CIRCUITO (scope proprio) e ricostruisce
+          una tabella alla volta. Nasce da quattro richieste in errore lette nella diagnostica di 1.6.2.
+
+        · §BK — cinque rifiniture chieste dal committente, più due difetti trovati facendole:
+          🔴 una regola pista con finestra che SCAVALCA la mezzanotte si spegneva a mezzanotte (il filtro
+          guardava il giorno di calendario). Ora c'è il giorno OPERATIVO, e lo scalino vale per giorno
+          della settimana, parità e stagione. ⚠️ Cambia il comportamento di regole già pubblicate, ma solo
+          di quelle che scavalcano.
+          🔴 e il punto in coda alla legenda delle piste era scritto `<text>.</text>` fuori da un blocco di
+          codice: lì `<text>` non è un comando di Razor ma un elemento HTML sconosciuto, e finiva nel DOM
+          alla lettera. A schermo si leggeva giusto, quindi l'ha trovato solo il prerender.
+          Il resto: il banco di prova prende un istante (data e ora locale) e il gettone «giorno dopo»;
+          la meccanica delle regole scende a DivisionStaff mentre il vento resta a tutti, col carattere
+          della tabella; la colonna WTC del viewer passa da 5,5% a 10,5%; i chip del filtro SID lasciano
+          cadere la selezione; la biblioteca allegati prende il terzo asse e le cartelle ricavate.
+
+      Due progetti (`Ui`, `Application`), le FRASI (due `.resx` toccati, quindi il satellite inglese entra)
+      e `wwwroot` (un solo CSS, `vipi-theme.css`, con i suoi `.br`/`.gz` e l'INDICE degli asset: viaggiano
+      insieme). ⚠️ Niente `Host`, `Hosting`, `Infrastructure`: non li ha toccati nessuno dei due giri.
+    -->
+    <!--
       1.7.1 — 4 settembre 2026. **PATCH**, e stavolta la tabella regge: solo correzioni, nessuna pagina né
       sezione nuova, NESSUNA migrazione (nessuna cartella Migrations toccata dal commit online `bf249155`).
       Si consegna da sola via FTP anche dentro la finestra cieca.
@@ -284,7 +316,7 @@
       satellite inglese entra). NIENTE `wwwroot`: nessun CSS e nessun JS toccati, quindi nemmeno l'indice
       degli asset.
     -->
-    <VipiVersione>1.7.1</VipiVersione>
+    <VipiVersione>1.8.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
