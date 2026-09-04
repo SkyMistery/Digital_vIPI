@@ -120,6 +120,33 @@ public class ImportPolicyTests : IAsyncLifetime
         Assert.Equal("3000", (await profile.LoadAsync("LIRF"))!.Runways.Single().ToraM);
     }
 
+    /// <summary>
+    /// ⚠️ A piste bloccate una pista NUOVA non si inventa, ma una si può TOGLIERE. Sembra un'incoerenza e non
+    /// lo è: quando IVAO ri-denomina uno scalo (Rimini 13/31 → 12/30) le piste morte che portano TORA/LDA
+    /// restano in archivio apposta — il merge non distrugge lavoro editoriale — e qualcuno deve poterle
+    /// togliere. Vietarlo qui chiudeva l'amministratore fuori dal suo archivio: la ✕ compariva solo a policy
+    /// spenta, e la policy è GLOBALE, quindi per ripulire un aeroporto si sbloccavano tutti gli altri.
+    /// <para>L'asimmetria sta nel rimedio: togliere per sbaglio una pista viva dura fino al re-import
+    /// successivo, che la rimette. Un'aggiunta a mano invece non si ripara da sé.</para>
+    /// </summary>
+    [Fact]
+    public async Task Runways_Locked_Allows_Removal_But_Not_Addition()
+    {
+        var profile = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
+        await profile.MergeFromSourceAsync("LIRF", null,
+            new[] { new SourceRunway("16L", 3902, 160), new SourceRunway("34R", 3902, 340) });
+        var svc = BuildService();
+        var stored = (await profile.LoadAsync("LIRF"))!.Runways;
+
+        // Aggiungere una pista → rifiutato.
+        await Assert.ThrowsAsync<ValidationException>(() => svc.SaveRunwaysAsync("LIRF",
+            stored.Append(new RunwayRow(0, "07", 1500, 70, null, null, null, null, null)).ToList()));
+
+        // Toglierne una → consentito.
+        await svc.SaveRunwaysAsync("LIRF", new[] { stored.Single(r => r.Ident == "16L") });
+        Assert.Equal(new[] { "16L" }, (await profile.LoadAsync("LIRF"))!.Runways.Select(r => r.Ident).ToArray());
+    }
+
     [Fact]
     public async Task Reimport_Skips_Excluded_Categories()
     {

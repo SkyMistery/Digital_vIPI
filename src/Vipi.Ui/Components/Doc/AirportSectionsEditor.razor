@@ -404,6 +404,11 @@ else
     /// </summary>
     private readonly HashSet<int> _dirtyLimiti = new();
 
+    /// <summary>Le piste che l'ultimo re-import ha trovato in archivio ma non più nella sorgente, e ha
+    /// lasciato lì perché portano TORA/LDA. Vive quanto la visita: senza una colonna in tabella non c'è
+    /// modo di riconoscerle a freddo, e il momento in cui serve saperlo è appena dopo il re-import.</summary>
+    private IReadOnlyList<string> _rwyOrfane = Array.Empty<string>();
+
     private DotNetObjectReference<AirportSectionsEditor>? _selfRef;
     private AirportData? _data;
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
@@ -932,6 +937,22 @@ else
         private Task SaveTa() => Guarded(() => Profile.SetTransitionAltitudeAsync(_icao, _ta));
     private Task SaveTls() => SaveSection("transition", () => Profile.SaveTransitionLevelsAsync(_icao,
         _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+    /// <summary>
+    /// Un gesto sulla tabella piste: segna sporco e, a piste di sorgente, <b>salva subito</b>.
+    /// <para>⚠️ L'auto-salvataggio non è una comodità: è la chiusura di una perdita di dati vera. Le celle
+    /// TORA/LDA vivevano in un buffer che <c>LoadAsync</c> butta via senza chiedere, e in produzione
+    /// Passenger rigenera il processo ogni ~50 secondi — bastava un circuito morto, o un «Re-import», per
+    /// perdere quel che si era appena scritto. Su LIPR è successo.</para>
+    /// <para>⚠️ Solo a <c>_policy.Runways</c> acceso: lì le uniche colonne scrivibili sono editoriali e ogni
+    /// riga è già valida. A policy spenta si aggiungono righe a mano, e una riga a metà (ident ancora vuoto)
+    /// non deve tentare di salvarsi a ogni tasto — là il bottone resta il gesto giusto.</para>
+    /// </summary>
+    private async Task PisteCambiate()
+    {
+        await MarkDirty("runways");
+        if (_policy.Runways) await SaveRwys();
+    }
+
     private Task SaveRwys() => SaveSection("runways", () => Profile.SaveRunwaysAsync(_icao,
         _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()));
     private Task SaveRules() => SaveSection("runwayrules", () => Profile.SaveRunwayRulesAsync(_icao,
@@ -952,20 +973,35 @@ else
         if (_sidNonSalvate > 0
             && !await Confirm(Plural(_sidNonSalvate, "Ape_SidDiscardConfirm", _sidNonSalvate)))
             return;
+        // ⚠️ Non solo le SID: `LoadAsync()` qui sotto ricarica OGNI buffer dal database, quindi qualunque
+        // sezione toccata e non salvata sparisce. Chiederlo per le SID e non per le altre è il difetto che ha
+        // fatto perdere TORA/LDA su LIPR: si erano scritti nella tabella piste, si è premuto «Re-import», e
+        // il ricaricamento se li è portati via insieme al flag che diceva che c'erano.
+        if (_dirtySections.Count > 0
+            && !await Confirm(string.Format(L["Ape_ReimportDiscardConfirm"].Value,
+                string.Join(", ", _dirtySections.Select(DirtyLabel)))))
+            return;
+
         if (!await Confirm(L["Ape_ReimportConfirm"].Value))
             return;
 
         AirportSectorImportResult? sectors = null;
+        RunwayMergeOutcome? piste = null;
         var ok = await Guarded(async () =>
         {
-            await Profile.ReimportFromSourceAsync(_icao);
+            piste = await Profile.ReimportFromSourceAsync(_icao);
             sectors = await Sectors.ImportFromSourceAsync(_icao);
         });
         if (!ok) return;
 
         await LoadAsync();
+        // Dopo LoadAsync, che azzera i buffer: l'esito del merge è l'unica cosa che sa quali piste la
+        // sorgente non nomina più, e va riposato sopra il caricamento, non prima.
+        _rwyOrfane = piste?.OrphansWithData ?? Array.Empty<string>();
         _saveInfo = L["Ape_ReimportDone", _rwys.Count, sectors?.Created ?? 0, sectors?.Updated ?? 0].Value;
-        _saveInfoWarn = false;
+        if (_rwyOrfane.Count > 0)
+            _saveInfo += " " + L["Ape_ReimportOrphans", string.Join(", ", _rwyOrfane)].Value;
+        _saveInfoWarn = _rwyOrfane.Count > 0;
         ProgrammaChiusuraInformativa();
     }
 
@@ -1245,8 +1281,8 @@ else
     /// <summary>La sezione «Piste» in scrittura: un componente, non 41 righe dentro questa pagina.</summary>
     private RenderFragment RunwaysEditor => __builder =>
     {
-        <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busy" CanEdit="_canEdit"
-                              OnChanged='() => MarkDirty("runways")' OnSaveRows="SaveRwys"
+        <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" MissingFromSource="_rwyOrfane" Busy="_busy" CanEdit="_canEdit"
+                              OnChanged="PisteCambiate" OnSaveRows="SaveRwys"
                               ConfirmRemove="ConfermaRimozionePista" />
     };
 

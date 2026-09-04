@@ -619,7 +619,7 @@ else
                 break;
             case "runways":
                 <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" Busy="_busyScalo" CanEdit="_canEditScalo"
-                                      OnChanged='() => SegnaScaloDaSalvare("runways")' OnSaveRows="SalvaPiste"
+                                      OnChanged="PisteCambiate" OnSaveRows="SalvaPiste"
                                       ConfirmRemove="ConfermaRimozionePista" />
                 break;
             case "frequencies":
@@ -689,6 +689,16 @@ else
 
     private Task SalvaLivelli() => SalvaScalo("transition", () => Scalo.SaveTransitionLevelsAsync(_icao,
         _tls.Select(t => new TlRow(t.Id, t.From, t.To, t.Level ?? "")).ToList()));
+
+    /// <summary>Un gesto sulla tabella piste: segna da salvare e, a piste di sorgente, <b>salva subito</b>.
+    /// Stessa ragione dell'editor d'aeroporto — le celle TORA/LDA vivevano in un buffer che un ricaricamento
+    /// butta via senza chiedere, e in produzione il processo si rigenera ogni ~50 secondi. Solo a policy
+    /// accesa: là le uniche colonne scrivibili sono editoriali e ogni riga è già valida.</summary>
+    private async Task PisteCambiate()
+    {
+        await SegnaScaloDaSalvare("runways");
+        if (_policy.Runways) await SalvaPiste();
+    }
 
     private Task SalvaPiste() => SalvaScalo("runways", () => Scalo.SaveRunwaysAsync(_icao,
         _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,

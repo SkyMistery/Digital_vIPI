@@ -357,7 +357,7 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task MergeFromSourceAsync(string icao, int? transitionAltitude,
+    public async Task<RunwayMergeOutcome> MergeFromSourceAsync(string icao, int? transitionAltitude,
         IReadOnlyList<SourceRunway> runways, CancellationToken ct = default)
     {
         var airport = await _db.Airports.Include(a => a.Runways).Include(a => a.TransitionLevels)
@@ -365,28 +365,11 @@ public sealed class EfAirportRepository : IAirportRepository
 
         if (transitionAltitude is int ta) airport.TransitionAltitudeFt = ta;
 
-        var nextOrder = airport.Runways.Count == 0 ? 0 : airport.Runways.Max(r => r.Order) + 1;
-        foreach (var rw in runways)
-        {
-            var ident = rw.Ident.Trim().ToUpperInvariant();
-            var ex = airport.Runways.FirstOrDefault(r => string.Equals(r.Ident, ident, StringComparison.OrdinalIgnoreCase));
-            if (ex is not null)
-            {
-                ex.LengthM = rw.LengthM;            // sovrascrive solo i campi IVAO
-                ex.Bearing = rw.Bearing ?? BearingFromIdent(ident) ?? ex.Bearing;
-                Soglia(ex, rw);
-            }
-            else
-            {
-                var nuova = new AirportRunway
-                {
-                    AirportId = airport.Id, Order = nextOrder++, Ident = ident,
-                    LengthM = rw.LengthM, Bearing = rw.Bearing ?? BearingFromIdent(ident),
-                };
-                Soglia(nuova, rw);
-                airport.Runways.Add(nuova);
-            }
-        }
+        // ⚠️ Lista vuota = «nessun cambio». NON è «l'aeroporto non ha più piste»: è come SourceMergeInputs
+        // esprime la categoria esclusa dalla policy, ed è anche quel che resta di una fetch a vuoto, perché
+        // l'import piste è best-effort silenzioso (IVAO 4xx → zero piste, nessun errore). Senza questa
+        // guardia la riconciliazione qui sotto svuoterebbe la tabella a ogni sorgente muta.
+        var esito = runways.Count == 0 ? RunwayMergeOutcome.None : RiconciliaPiste(airport, runways);
 
         // Tabella Transition Level standard (TL = TA + margine per fascia QNH) se non ancora impostata.
         EnsureDefaultTransitionLevels(airport);
@@ -395,7 +378,71 @@ public sealed class EfAirportRepository : IAirportRepository
         RecomputeDefaultBandLevels(airport);
 
         await _db.SaveChangesAsync(ct);
+        return esito;
     }
+
+    /// <summary>
+    /// Le piste dell'aeroporto riportate a quel che la sorgente dice ADESSO: aggiorna quelle che ci sono,
+    /// aggiunge quelle nuove, e affronta le <b>orfane</b> — in archivio ma non più nominate dalla sorgente.
+    /// <para>Un'orfana <b>vuota</b> se ne va in silenzio: non c'è niente da perdere. Un'orfana con lavoro
+    /// editoriale <b>resta</b> e viene nominata nell'esito: la toglierà una persona, dopo aver spostato
+    /// TORA/LDA sulla pista nuova. Il merge non deve poter distruggere lavoro umano senza dirlo.</para>
+    /// <para>L'<c>Order</c> si rinumera nell'ordine della sorgente, con le orfane in coda: prima le nuove
+    /// venivano accodate e basta, e dopo la ri-denominazione di Rimini l'editor mostrava 13, 31, 12, 30 —
+    /// le due morte davanti alle due vive.</para>
+    /// </summary>
+    private static RunwayMergeOutcome RiconciliaPiste(Airport airport, IReadOnlyList<SourceRunway> runways)
+    {
+        int aggiunte = 0, aggiornate = 0, ordine = 0;
+        var vive = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var rw in runways)
+        {
+            var ident = rw.Ident.Trim().ToUpperInvariant();
+            // La stessa testata due volte nella risposta: la prima vince, la seconda non genera un doppione.
+            if (!vive.Add(ident)) continue;
+
+            var ex = airport.Runways.FirstOrDefault(
+                r => string.Equals(r.Ident.Trim(), ident, StringComparison.OrdinalIgnoreCase));
+            if (ex is not null)
+            {
+                ex.Ident = ident;                   // normalizza le righe scritte da codice più vecchio
+                ex.Order = ordine++;
+                ex.LengthM = rw.LengthM;            // sovrascrive solo i campi IVAO
+                ex.Bearing = rw.Bearing ?? BearingFromIdent(ident) ?? ex.Bearing;
+                Soglia(ex, rw);
+                aggiornate++;
+            }
+            else
+            {
+                var nuova = new AirportRunway
+                {
+                    AirportId = airport.Id, Order = ordine++, Ident = ident,
+                    LengthM = rw.LengthM, Bearing = rw.Bearing ?? BearingFromIdent(ident),
+                };
+                Soglia(nuova, rw);
+                airport.Runways.Add(nuova);
+                aggiunte++;
+            }
+        }
+
+        var orfane = airport.Runways.Where(r => !vive.Contains(r.Ident.Trim())).ToList();
+        var conLavoro = new List<string>();
+        foreach (var o in orfane)
+        {
+            if (SenzaLavoroEditoriale(o)) airport.Runways.Remove(o);
+            else { o.Order = ordine++; conLavoro.Add(o.Ident); }
+        }
+
+        return new RunwayMergeOutcome(aggiunte, aggiornate, orfane.Count - conLavoro.Count, conLavoro);
+    }
+
+    /// <summary>Vero se sulla pista non c'è nulla che una persona abbia scritto: le cinque colonne editoriali
+    /// sono tutte vuote. È l'unica condizione che autorizza il merge a togliere una riga.</summary>
+    private static bool SenzaLavoroEditoriale(AirportRunway r) =>
+        string.IsNullOrWhiteSpace(r.ToraM) && string.IsNullOrWhiteSpace(r.LdaM)
+        && string.IsNullOrWhiteSpace(r.AppProcedures) && string.IsNullOrWhiteSpace(r.Patterns)
+        && string.IsNullOrWhiteSpace(r.Circling);
 
     public async Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default)
     {

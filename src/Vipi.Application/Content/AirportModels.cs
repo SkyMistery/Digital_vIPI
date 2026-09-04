@@ -19,6 +19,24 @@ public sealed record RunwayRow(int Id, string Ident, int? LengthM, int? Bearing,
     string? ToraM, string? LdaM, string? AppProcedures, string? Patterns, string? Circling,
     double? ThresholdLat = null, double? ThresholdLon = null, int? ThresholdElevationFt = null);
 
+/// <summary>
+/// Che cosa ha fatto il merge da IVAO alle piste di UN aeroporto.
+/// </summary>
+/// <param name="OrphansWithData">
+/// Le piste che l'archivio ha e la sorgente non nomina più, e che portano lavoro editoriale (TORA, LDA,
+/// procedure, circuiti, circling).
+/// <para>⚠️ Il merge <b>non le tocca</b>. Una pista scritta a mano è lavoro di una persona, e l'assenza
+/// dalla sorgente è un'informazione, non un permesso di cancellare: le orfane VUOTE se ne vanno da sole,
+/// queste restano e si nominano, perché le tolga chi sa dove spostare i dati. È la stessa regola per cui gli
+/// upsert «puliti» delle aree regolamentate azzerarono 83 poligoni.</para>
+/// </param>
+public sealed record RunwayMergeOutcome(
+    int Added, int Updated, int RemovedEmpty, IReadOnlyList<string> OrphansWithData)
+{
+    /// <summary>Nessun cambio: la sorgente non ha mandato piste (esclusa dalla policy, o non ha risposto).</summary>
+    public static RunwayMergeOutcome None { get; } = new(0, 0, 0, Array.Empty<string>());
+}
+
 /// <summary>Regola di scelta pista: piste DEP/ARR preferenziali + soglie (coda/traverso/superficie) + filtro temporale opzionale.</summary>
 public sealed record RunwayRuleRow(int Id, string DepRunways, string ArrRunways, string? Name,
     int MaxTailwindKt, int? MaxCrosswindKt, RunwaySurface Surface, string? Note,

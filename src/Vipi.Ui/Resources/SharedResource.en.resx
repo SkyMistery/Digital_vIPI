@@ -3203,4 +3203,10 @@
   <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>periodic runs</value></data>
   <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Periodic run stalled</value></data>
   <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>The last successful run was {0}, more than twice its period. No error was recorded: when that happens without an error, the process usually shut down before the run reached its start delay.</value></data>
+  <data name="Ape_RwMissingFromSource" xml:space="preserve"><value>Runways no longer in the IVAO database: {0}. We keep them because they hold hand-written data (TORA/LDA/procedures): move it onto the new runways, then remove the rows with ✕.</value></data>
+  <data name="Ape_RwMissingRow" xml:space="preserve"><value>gone from source</value></data>
+  <data name="Ape_RwMissingRowTitle" xml:space="preserve"><value>The IVAO database no longer lists this runway. Move the editorial data and remove the row.</value></data>
+  <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Remove the runway. If the source still has it, the next re-import brings it back.</value></data>
+  <data name="Ape_ReimportDiscardConfirm" xml:space="preserve"><value>There are unsaved changes ({0}): the re-import reloads everything from the database and discards them. Continue?</value></data>
+  <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Gone from the source, but kept because they hold hand-written data: {0}.</value></data>
 </root>

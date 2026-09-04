@@ -1,12 +1,19 @@
-@* L'editor della sezione «Piste»: i campi di sorgente IVAO più le colonne editoriali.
+﻿@* L'editor della sezione «Piste»: i campi di sorgente IVAO più le colonne editoriali.
 
    ⚠️ Componente a parte da <AirportRunways>, che è la lettura, per la stessa ragione detta in
    <AirportTransitionEditor>: le due forme dei dati sono diverse, e il difetto da chiudere era che questo
    stava scritto dentro la pagina.
 
    ⚠️ `SourceLocked`: quando le piste vengono dall'anagrafica IVAO, l'identificativo non si tocca e le righe
-   non si aggiungono né si tolgono — le colonne EDITORIALI (TORA, LDA, procedure, circuiti, circling) restano
-   scrivibili comunque. È il motivo per cui non basta un `disabled` sull'intera tabella. *@
+   non si AGGIUNGONO — le colonne EDITORIALI (TORA, LDA, procedure, circuiti, circling) restano scrivibili
+   comunque. È il motivo per cui non basta un `disabled` sull'intera tabella.
+
+   ⚠️ La ✕ invece c'è SEMPRE, anche a sorgente bloccata, e non è una svista. Quando IVAO ri-denomina uno
+   scalo (Rimini 13/31 → 12/30) le piste morte che portano TORA/LDA restano in archivio apposta, perché il
+   merge non distrugge lavoro editoriale: qualcuno deve poterle togliere. Prima la ✕ compariva solo a policy
+   spenta, e la policy è globale — per ripulire un aeroporto si sbloccavano tutti gli altri. Togliere per
+   sbaglio una pista viva dura fino al re-import successivo, che la rimette; aggiungerne una a mano no, ed è
+   per questo che «+ Pista» resta sotto chiave. *@
 @inject IStringLocalizer<SharedResource> L
 
 <div @onchange="() => OnChanged.InvokeAsync()">
@@ -21,6 +28,12 @@
             <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_RwEditorialAria"]" ExtraClass="wide">@L["Ape_RwEditorial"]</HelpHint>
         }
     </div>
+    @if (MissingFromSource.Count > 0)
+    {
+        <div class="callout warning"><span class="cic">⚠️</span><div>
+            @L["Ape_RwMissingFromSource", string.Join(", ", MissingFromSource)]
+        </div></div>
+    }
     @{ var problemi = AirportRunwayValidation.Issues(Rows); }
     @if (problemi.Count > 0)
     {
@@ -32,14 +45,17 @@
             @foreach (var r in Rows)
             {
                 <tr @key="r">
-                    <td><input style="width:64px" @bind="r.Ident" disabled="@SourceLocked" /></td>
+                    <td>
+                        <input style="width:64px" @bind="r.Ident" disabled="@SourceLocked" />
+                        @if (Orfana(r)) { <span class="pill warn" title="@L["Ape_RwMissingRowTitle"]">@L["Ape_RwMissingRow"]</span> }
+                    </td>
                     <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
                     <td><input style="width:80px" @bind="r.Tora" /></td>
                     <td><input style="width:80px" @bind="r.Lda" /></td>
                     <td><input style="width:150px" @bind="r.App" /></td>
                     <td><input style="width:70px" @bind="r.Patterns" /></td>
                     <td><input style="width:70px" @bind="r.Circling" /></td>
-                    <td>@if (!SourceLocked) { <button class="btn ghost" @onclick="() => Rimuovi(r)">✕</button> }</td>
+                    <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
                 </tr>
             }
         </tbody>
@@ -56,6 +72,13 @@
 
     /// <summary>Le piste arrivano dall'anagrafica IVAO: identificativo bloccato, righe non aggiungibili.</summary>
     [Parameter] public bool SourceLocked { get; set; }
+
+    /// <summary>Gli ident che l'ultimo re-import ha trovato in archivio ma NON nella sorgente, e ha lasciato
+    /// lì perché portano lavoro editoriale. Vuoto = niente da segnalare.</summary>
+    [Parameter] public IReadOnlyList<string> MissingFromSource { get; set; } = Array.Empty<string>();
+
+    private bool Orfana(RwEdit r) =>
+        MissingFromSource.Contains((r.Ident ?? "").Trim(), StringComparer.OrdinalIgnoreCase);
 
     [Parameter] public bool Busy { get; set; }
     [Parameter] public bool CanEdit { get; set; }

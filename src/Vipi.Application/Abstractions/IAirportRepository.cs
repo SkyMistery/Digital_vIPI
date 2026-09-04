@@ -68,11 +68,22 @@ public interface IAirportRepository : IAirportProfileReader
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
 
     /// <summary>
-    /// Merge da IVAO: imposta TA, upsert piste per ident (sovrascrive Length/Bearing, preserva le colonne
-    /// editoriali), e se non ci sono TL le inizializza con la tabella standard. Non tocca regole/SID/link.
-    /// L'ATIS non è più qui: è una frequenza del catalogo AirportSector.
+    /// Merge da IVAO: imposta TA, riconcilia le piste per ident (sovrascrive Length/Bearing/soglia, preserva
+    /// le colonne editoriali), e se non ci sono TL le inizializza con la tabella standard. Non tocca
+    /// regole/SID/link. L'ATIS non è più qui: è una frequenza del catalogo AirportSector.
+    ///
+    /// <para><b>Riconciliare, non solo aggiungere.</b> Fino al 4 settembre 2026 questo era un add-or-update:
+    /// le piste che la sorgente smetteva di nominare restavano in archivio per sempre. Quando IVAO ha
+    /// ri-denominato Rimini (13/31 → 12/30, deriva magnetica) LIPR si è ritrovato QUATTRO piste, le due
+    /// morte davanti alle due vive. Ora le orfane senza lavoro editoriale si tolgono; quelle con TORA/LDA
+    /// restano e tornano indietro in <see cref="RunwayMergeOutcome.OrphansWithData"/>.</para>
+    ///
+    /// <para>⚠️ <paramref name="runways"/> <b>vuoto vuol dire «nessun cambio»</b>, mai «l'aeroporto non ha
+    /// più piste»: è così che <c>SourceMergeInputs</c> esprime la categoria esclusa dalla policy, ed è anche
+    /// ciò che resta di una fetch andata a vuoto (l'import piste è best-effort silenzioso: IVAO 4xx → lista
+    /// vuota, nessun errore). Con la lista vuota le piste non si toccano.</para>
     /// </summary>
-    Task MergeFromSourceAsync(string icao, int? transitionAltitude,
+    Task<RunwayMergeOutcome> MergeFromSourceAsync(string icao, int? transitionAltitude,
         IReadOnlyList<SourceRunway> runways, CancellationToken ct = default);
 
     /// <summary>

@@ -3211,4 +3211,10 @@
   <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>giri periodici</value></data>
   <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Giro periodico fermo</value></data>
   <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>L'ultimo giro riuscito è {0}, oltre il doppio della sua cadenza. Non c'è un errore registrato: quando succede senza errore, di solito il processo si è spento prima che il giro arrivasse al suo ritardo d'avvio.</value></data>
+  <data name="Ape_RwMissingFromSource" xml:space="preserve"><value>Piste non più presenti nell'anagrafica IVAO: {0}. Le teniamo perché contengono dati scritti a mano (TORA/LDA/procedure): riportali sulle piste nuove, poi togli le righe con la ✕.</value></data>
+  <data name="Ape_RwMissingRow" xml:space="preserve"><value>non più in sorgente</value></data>
+  <data name="Ape_RwMissingRowTitle" xml:space="preserve"><value>L'anagrafica IVAO non nomina più questa pista. Sposta i dati editoriali e togli la riga.</value></data>
+  <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Togli la pista. Se la sorgente ce l'ha ancora, il prossimo re-import la rimette.</value></data>
+  <data name="Ape_ReimportDiscardConfirm" xml:space="preserve"><value>Ci sono modifiche non salvate ({0}): il ri-prelievo ricarica tutto dal database e le scarta. Continuare?</value></data>
+  <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Non più in sorgente, ma tenute perché hanno dati scritti a mano: {0}.</value></data>
 </root>

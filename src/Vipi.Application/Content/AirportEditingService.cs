@@ -57,7 +57,9 @@ public interface IAirportEditingService
 
 
     /// <summary>Re-importa da IVAO (merge mirato): aggiorna TA/ATIS/piste, preserva il lavoro editoriale.</summary>
-    Task ReimportFromSourceAsync(string icao, CancellationToken ct = default);
+    /// <summary>Re-importa dalla sorgente e dice che cosa ha fatto alle piste — in particolare quali orfane
+    /// con lavoro editoriale ha lasciato lì perché le tolga una persona.</summary>
+    Task<RunwayMergeOutcome> ReimportFromSourceAsync(string icao, CancellationToken ct = default);
     /// <summary>Idempotente: garantisce il documento dell'aeroporto e le sue sezioni di catalogo. Ritorna l'id
     /// documento. Non cuoce più il contenuto: le sezioni fisse si derivano a view-time (carta 2026-08-26).</summary>
     Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default);
@@ -128,17 +130,23 @@ public sealed class AirportEditingService : IAirportEditingService
         foreach (var r in rows)
             if (string.IsNullOrWhiteSpace(r.Ident)) throw new ValidationException(Lingua("Ident pista obbligatorio.", "The runway ident is required."));
 
-        // Se le piste sono di sorgente (bloccate), le colonne ident/lunghezza/bearing e l'insieme delle piste
-        // non sono modificabili: si possono salvare solo le colonne editoriali (TORA/LDA/APP/Patterns/Circling).
+        // Se le piste sono di sorgente (bloccate), ident/lunghezza/bearing non si toccano e piste NUOVE non
+        // si inventano: restano scrivibili le sole colonne editoriali (TORA/LDA/APP/Patterns/Circling).
+        //
+        // ⚠️ Le RIMOZIONI invece passano, ed è deliberato. Quando IVAO ri-denomina uno scalo (Rimini 13/31 →
+        // 12/30) le piste morte con TORA/LDA restano in archivio apposta — il merge non distrugge lavoro
+        // editoriale — e qualcuno deve poterle togliere. Vietarlo qui chiudeva l'amministratore fuori dal
+        // suo stesso archivio: la ✕ c'era nell'editor solo a policy spenta, e spegnerla è globale.
+        // Il rischio è piccolo e si ripara da sé: togliere per sbaglio una pista che la sorgente ha ancora
+        // dura fino al re-import successivo, che la rimette. Un'AGGIUNTA a mano no — e infatti resta vietata.
         if ((await _policy.GetAsync(ct)).Runways)
         {
             var stored = (await _repo.LoadAsync(Norm(icao), ct))?.Runways ?? Array.Empty<RunwayRow>();
             var storedByIdent = stored.ToDictionary(r => r.Ident.Trim().ToUpperInvariant());
-            var locked = rows.Count != stored.Count
-                || rows.Any(r => !storedByIdent.TryGetValue(r.Ident.Trim().ToUpperInvariant(), out var s)
-                    || s.LengthM != r.LengthM || s.Bearing != r.Bearing);
+            var locked = rows.Any(r => !storedByIdent.TryGetValue(r.Ident.Trim().ToUpperInvariant(), out var s)
+                || s.LengthM != r.LengthM || s.Bearing != r.Bearing);
             if (locked)
-                throw new ValidationException(Lingua("Le piste sono gestite dalla sorgente (sola lettura): non puoi aggiungere/rimuovere piste né cambiarne ident, lunghezza o bearing. Per modificarle, escludi «Piste» in «Sorgenti dati».", "Runways come from the source (read-only): you cannot add or remove runways, nor change their ident, length or bearing. To change them, exclude «Runways» under «Data sources»."));
+                throw new ValidationException(Lingua("Le piste sono gestite dalla sorgente (sola lettura): non puoi aggiungere piste né cambiarne ident, lunghezza o bearing. Toglierne una è permesso: se la sorgente ce l'ha ancora, il prossimo re-import la rimette. Per il resto, escludi «Piste» in «Sorgenti dati».", "Runways come from the source (read-only): you cannot add runways, nor change their ident, length or bearing. Removing one is allowed: if the source still has it, the next re-import brings it back. For anything else, exclude «Runways» under «Data sources»."));
         }
         await _repo.SaveRunwaysAsync(Norm(icao), rows, ct);
     }
@@ -180,7 +188,7 @@ public sealed class AirportEditingService : IAirportEditingService
         await _repo.SaveFrequencyLinksAsync(Norm(icao), sourceFrequencyIds, ct);
     }
 
-            public async Task ReimportFromSourceAsync(string icao, CancellationToken ct = default)
+            public async Task<RunwayMergeOutcome> ReimportFromSourceAsync(string icao, CancellationToken ct = default)
     {
         await EnsureCanEditAsync(icao, ct);
         icao = Norm(icao);
@@ -190,7 +198,7 @@ public sealed class AirportEditingService : IAirportEditingService
         // editoriali dell'utente (null TA / lista piste vuota = "nessun cambio"). L'ATIS è nel catalogo settori.
         var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct);
 
-        await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
+        return await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
     }
 
     public Task<AirportMilitaryState?> GetMilitaryStateAsync(string icao, CancellationToken ct = default) =>
