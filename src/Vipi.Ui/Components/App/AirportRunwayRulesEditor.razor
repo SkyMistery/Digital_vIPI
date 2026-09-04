@@ -5,8 +5,10 @@
    la lettura è una tabella di 35 righe, questo è un attrezzo da 128 con trascinamento, campi avanzati e un
    banco di prova. Fonderli col flag `Editing` darebbe un componente peggiore di entrambi (doc 14 §3g).
 
-   Il BANCO DI PROVA — dai un vento, ti dice quale regola vince — vive qui dentro e non salva niente: è il
-   modo in cui chi scrive le regole verifica di averle messe nell'ordine giusto prima di pubblicarle. *@
+   Il BANCO DI PROVA — dai un vento E UN MOMENTO, ti dice quale regola vince — vive qui dentro e non salva
+   niente: è il modo in cui chi scrive le regole verifica di averle messe nell'ordine giusto prima di
+   pubblicarle. ⚠️ Il momento serve quanto il vento: senza, orari, giorni, parità e stagione erano gli unici
+   campi della regola che non si potevano provare, perché la prova girava sempre sull'istante reale. *@
 @using Vipi.Application.Weather
 @inject IStringLocalizer<SharedResource> L
 
@@ -76,7 +78,15 @@
                 <summary>@L["Ape_Advanced"]</summary>
                 <div class="rule-grid" style="margin-top:8px">
                     <label>@L["Ape_TimeFrom"]<input type="time" @bind="r.TimeFrom" @bind:after="Cambiato" /></label>
-                    <label>@L["Ape_TimeTo"]<input type="time" @bind="r.TimeTo" @bind:after="Cambiato" /></label>
+                    @* ⚠️ Il gettone non è decorazione: 22:00→05:00 è una finestra che SCAVALCA, e senza dirlo
+                       nessuno sa se le 05:00 sono di stamattina o di domani. Il motore la legge come «la notte
+                       di quel giorno» (RunwaySuggestion.GiornoOperativo), e qui lo si vede scrivendola. *@
+                    <label>@L["Ape_TimeTo"]
+                        <span style="display:flex;gap:6px;align-items:center">
+                            <input type="time" @bind="r.TimeTo" @bind:after="Cambiato" style="flex:1;min-width:0" />
+                            @if (Scavalca(r)) { <span class="pill" style="background:var(--tint-yellow-soft);color:var(--warn-ink);white-space:nowrap" title="@L["Ape_NextDayTitle"]">@L["Ape_NextDay"]</span> }
+                        </span>
+                    </label>
                     <label>@L["Ape_DayParity"]<select @bind="r.Parity" @bind:after="Cambiato"><option value="">@L["Ape_SurfAny"]</option><option value="even">@L["Ape_Even"]</option><option value="odd">@L["Ape_Odd"]</option></select></label>
                     <label>@L["Ape_ValidFrom"]
                         <span style="display:flex;gap:4px">
@@ -122,6 +132,13 @@
             <label style="display:flex;flex-direction:column;font-size:12px">@L["Ape_TestWindKt"]
                 <input type="number" min="0" max="99" style="width:80px" @bind="_provaKt" /></label>
             <label style="display:flex;align-items:center;gap:4px;font-size:12px"><input type="checkbox" @bind="_provaBagnata" /> @L["Ape_SurfWet"]</label>
+            @* ⚠️ UN campo solo, e non una tendina «giorno della settimana» accanto a un orario: da un istante
+               si ricavano giorno, ora, parità e stagione TUTTI E QUATTRO, e sono per forza coerenti fra loro.
+               Con quattro campi separati si potevano provare condizioni che nella realtà non capitano mai. *@
+            <label style="display:flex;flex-direction:column;font-size:12px">@L["Ape_TestWhen"]
+                <input type="datetime-local" style="width:200px" @bind="_provaQuando" /></label>
+            <button type="button" class="btn ghost" @onclick="() => _provaQuando = Adesso()" title="@L["Ape_TestNowTitle"]">@L["Ape_TestNow"]</button>
+            <span class="muted" style="font-size:12px;align-self:center">@GiornoScelto()</span>
             <button type="button" class="btn ghost" @onclick="Prova">▷ @L["Ape_TestRun"]</button>
             @if (_provaFatta) { <button type="button" class="btn ghost" @onclick="() => _provaFatta = false">✕ @L["Ape_TestClear"]</button> }
         </div>
@@ -164,6 +181,9 @@
     private int? _provaDir = 200;
     private int _provaKt = 10;
     private bool _provaBagnata;
+    /// <summary>Il momento da provare, in ora LOCALE italiana — la stessa in cui si scrivono orari, giorni e
+    /// stagioni delle regole. Parte da adesso.</summary>
+    private DateTime _provaQuando = Adesso();
     private bool _provaFatta;
     private RunwayRuleResult? _vincente;
     private RunwaySuggestionResult? _ripiego;
@@ -179,6 +199,17 @@
         L["Ape_Jan"].Value, L["Ape_Feb"].Value, L["Ape_Mar"].Value, L["Ape_Apr"].Value, L["Ape_May"].Value, L["Ape_Jun"].Value,
         L["Ape_Jul"].Value, L["Ape_Aug"].Value, L["Ape_Sep"].Value, L["Ape_Oct"].Value, L["Ape_Nov"].Value, L["Ape_Dec"].Value,
     };
+
+    /// <summary>Adesso, in ora italiana: il fuso lo risolve il motore, non questo componente.</summary>
+    private static DateTime Adesso() => RunwaySuggestion.OraLocale(DateTime.UtcNow);
+
+    /// <summary>Vero se la finestra oraria della regola scavalca la mezzanotte (22:00 → 05:00).</summary>
+    private static bool Scavalca(RuleEdit r) => r is { TimeFrom: { } f, TimeTo: { } t } && f > t;
+
+    /// <summary>Il giorno del momento scelto, scritto per esteso: è la risposta alla domanda «che giorno sto
+    /// provando?», che da un campo <c>datetime-local</c> non si legge a colpo d'occhio.</summary>
+    private string GiornoScelto() =>
+        _provaQuando.ToString("dddd d MMMM", System.Globalization.CultureInfo.CurrentUICulture);
 
     private static string Chip(HashSet<string> set, string id) => set.Contains(id)
         ? "background:var(--ivao-blue);color:#fff;border-color:var(--ivao-blue)" : "";
@@ -201,8 +232,8 @@
     };
 
     /// <summary>Un campo EDITORIALE ha cambiato valore: unico punto d'uscita verso l'host.
-    /// ⚠️ I campi del pannello di prova (`_provaDir`, `_provaKt`, `_provaBagnata`) NON passano di qui: sono
-    /// stato locale di una simulazione, non contenuto da salvare.</summary>
+    /// ⚠️ I campi del pannello di prova (`_provaDir`, `_provaKt`, `_provaBagnata`, `_provaQuando`) NON passano
+    /// di qui: sono stato locale di una simulazione, non contenuto da salvare.</summary>
     private Task Cambiato() => OnChanged.InvokeAsync();
 
     private async Task Aggiungi()
@@ -264,7 +295,10 @@
     private void Prova()
     {
         var regole = Rows.Select(AirportRuleMapping.ToEval).ToList();
-        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata);
+        // ⚠️ Il momento si passa in UTC perché è così che il motore lo vuole, e la conversione la fa LUI:
+        // rifarla qui vorrebbe dire due fusi orari nel prodotto, e uno dei due sbagliato prima o poi.
+        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata,
+            RunwaySuggestion.AUtc(_provaQuando));
         _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt) : null;
         _provaFatta = true;
     }

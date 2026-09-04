@@ -2053,6 +2053,12 @@
   <data name="Ape_IssueSidMissing" xml:space="preserve"><value>SID #{0}: FIX or name missing.</value></data>
   <data name="Ape_IssueSidUnknownRw" xml:space="preserve"><value>SID #{0}: runway “{1}” is not among those defined.</value></data>
   <data name="Ape_IssueSidDup" xml:space="preserve"><value>SID #{0}: duplicate ({1}/{2} {3}).</value></data>
+  <data name="Ape_TestWhen" xml:space="preserve"><value>Moment (LT)</value></data>
+
+  <data name="Ape_TestNow" xml:space="preserve"><value>Now</value></data>
+
+  <data name="Ape_TestNowTitle" xml:space="preserve"><value>Bring the test back to the current instant</value></data>
+
   <data name="Ape_TestWindFrom" xml:space="preserve"><value>Wind from (°)</value></data>
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Speed (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Rule #{0}</value></data>
@@ -2086,6 +2092,8 @@
   <data name="Ape_Notes" xml:space="preserve"><value>Notes</value></data>
   <data name="Ape_FreeText" xml:space="preserve"><value>free text</value></data>
   <data name="Ape_Advanced" xml:space="preserve"><value>Advanced — time · days · parity · validity (optional)</value></data>
+  <data name="Ape_NextDay" xml:space="preserve"><value>next day</value></data>
+  <data name="Ape_NextDayTitle" xml:space="preserve"><value>The end time is before the start time: the window crosses midnight. The rule stays tied to the day it started on — «Monday 22:00–05:00» runs until 05:00 on Tuesday.</value></data>
   <data name="Ape_TimeFrom" xml:space="preserve"><value>Time from (LT)</value></data>
   <data name="Ape_TimeTo" xml:space="preserve"><value>to (LT)</value></data>
   <data name="Ape_DayParity" xml:space="preserve"><value>Day parity</value></data>

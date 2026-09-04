@@ -49,6 +49,29 @@ public static partial class RunwaySuggestion
         return TimeZoneInfo.Utc;   // fallback estremo: nessun fuso disponibile
     }
 
+    /// <summary>
+    /// L'ora locale italiana di un istante UTC — la <b>stessa</b> conversione che fa <see cref="EvaluateRules"/>.
+    ///
+    /// <para>⚠️ Esiste perché il banco di prova dell'editor deve mostrare e leggere un'ora locale, e una seconda
+    /// conversione scritta lassù direbbe una cosa mentre il motore ne calcola un'altra: il fuso è uno solo, e la
+    /// porta per attraversarlo è questa.</para>
+    /// </summary>
+    public static DateTime OraLocale(DateTime utc) =>
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), ItalyTimeZone);
+
+    /// <summary>
+    /// L'istante UTC di un'ora locale italiana. Inverso di <see cref="OraLocale"/>.
+    ///
+    /// <para>⚠️ L'ora che <b>non esiste</b> non alza un'eccezione: nel salto di primavera le 02:30 non esistono, e
+    /// un banco di prova che esplodesse su una data battuta a mano sarebbe peggio di uno che prova le 03:30.</para>
+    /// </summary>
+    public static DateTime AUtc(DateTime locale)
+    {
+        var l = DateTime.SpecifyKind(locale, DateTimeKind.Unspecified);
+        if (ItalyTimeZone.IsInvalidTime(l)) l = l.AddHours(1);
+        return TimeZoneInfo.ConvertTimeToUtc(l, ItalyTimeZone);
+    }
+
     public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt)
     {
         var ends = runwayIdents
