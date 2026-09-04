@@ -61,7 +61,12 @@
     /// <c>ReleasePanel</c> a rileggere i suoi bersagli.</summary>
     private int _unioneRev;
 
-    /// <inheritdoc cref="AeroportoEditorPage.Unioni"/>
+    /// <summary>
+    /// Il servizio dell'unione, dallo scope PROPRIO di questa pagina (<c>OwningComponentBase</c>) e non da
+    /// quello del circuito: preso dal circuito correva contro il caricamento di <c>MilSectionsEditor</c>,
+    /// che parte nello stesso momento e usa lo stesso <c>DbContext</c>. Il ragionamento per esteso sta su
+    /// <c>AeroportoEditorPage</c>, che ha la stessa riga per la stessa ragione.
+    /// </summary>
     private IDocumentUnionService Unioni = default!;
 
     protected override void OnInitialized() =>
