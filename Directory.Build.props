@@ -240,6 +240,31 @@
       toccati, quindi il satellite inglese entra) e `wwwroot` (due CSS, con i loro `.br`/`.gz` e l'indice).
     -->
     <!--
+      1.8.1 — 4 settembre 2026, sera tardi. **PATCH**, e la tabella regge: solo correzioni, nessuna pagina
+      né sezione nuova, NESSUNA migrazione. Si consegna da sola via FTP anche dentro la finestra cieca.
+
+      §BL — le tre corse lette nella diagnostica di 1.7.1 e chiuse la sera stessa. Non erano tre difetti:
+      è uno solo, in tre posti. Su una pagina interattiva lo `scoped` vive quanto il CIRCUITO, e due flussi
+      che partono insieme su quell'unico `DbContext` sono «A second operation was started on this context
+      instance», con a ruota tante `ObjectDisposedException` quante sono le cose ancora in volo:
+
+        · `AeroportoEditorPage` e `MilEditorPage` leggono l'unione in `OnParametersSetAsync` mentre il
+          componente figlio fa il suo `LoadAsyncCore` (errori delle 08:15, 10:16, 12:06 del 4 settembre);
+        · `MilListPage` carica mentre una query della pagina PRECEDENTE è ancora in volo (07:22).
+
+      🔴 La coda dell'editor NON era la risposta, benché esista apposta: `DocumentEditorShell.InFilaAsync`
+      sta sul COMPONENTE, e quando la pagina legge il riferimento al componente è ancora `null` — lo scrive
+      il primo render, che deve ancora avvenire. La cura è quella già usata due volte nel prodotto:
+      `OwningComponentBase`, cioè uno SCOPE PROPRIO, come §BJ per l'import tabelle.
+
+      🟡 E il debito è più largo: 26 pagine interattive prendono ancora un servizio dal circuito, per 74
+      iniezioni. Le elenca per nome `ScopeProprioDellePagineTests`, che fallisce solo sulle AGGIUNTE.
+      Convertirle non è in questo pacchetto: è una decisione, non un seguito ovvio.
+
+      Un progetto solo (`Ui`), più `Host` per il timbro. NIENTE frasi (nessun `.resx` toccato, quindi il
+      satellite inglese resta fuori) e NIENTE `wwwroot`, quindi nemmeno l'indice degli asset.
+    -->
+    <!--
       1.8.0 — 4 settembre 2026, sera. **MINOR**: non sono solo correzioni. NESSUNA migrazione (nessuna
       cartella Migrations toccata dal commit online `f4d7347c`), quindi si consegna da sola via FTP anche
       dentro la finestra cieca fino al 16 settembre.
@@ -316,7 +341,7 @@
       satellite inglese entra). NIENTE `wwwroot`: nessun CSS e nessun JS toccati, quindi nemmeno l'indice
       degli asset.
     -->
-    <VipiVersione>1.8.0</VipiVersione>
+    <VipiVersione>1.8.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
