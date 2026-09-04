@@ -269,6 +269,17 @@ public static class DependencyInjection
         // A che punto e' la traduzione (carta 2026-09-04-stato-traduzione). Si CALCOLA: nessuna tabella di
         // stato, nessuna coda — la differenza fra i segmenti e la memoria, in una passata da 45 ms.
         services.AddScoped<Vipi.Application.Translation.IStatoTraduzione, EfStatoTraduzione>();
+        // Chi ha girato per ultimo e chi sta girando adesso. SINGLETON: il lucchetto che tiene separati il
+        // giro automatico e il tasto «traduci ora» non sincronizza niente se ce n'e' uno per richiesta.
+        services.AddSingleton<Vipi.Application.Translation.IRegistroDeiGiri,
+                              Vipi.Application.Translation.RegistroDeiGiri>();
+        // Quanto manca al prossimo giro: l'ultimo lo dice il database (sopravvive ai riavvii), il dettaglio
+        // il registro in memoria.
+        services.AddScoped<Vipi.Application.Translation.IAttesaTraduzione,
+                           Vipi.Application.Translation.AttesaTraduzione>();
+        // ⚠️ Scoped e non singleton: legge l'identita' di chi preme da `IEditAuthorizationService`, che vive
+        // nella richiesta. Il lavoro pesante se lo fa in uno scope suo (vedi la classe).
+        services.AddScoped<Vipi.Application.Translation.ITraduciOra, Translation.TraduciOraService>();
         services.AddScoped<Vipi.Application.Content.IMilitaryDocumentService, EfMilitaryDocumentService>();
 
 

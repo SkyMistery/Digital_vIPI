@@ -43,8 +43,13 @@ namespace Vipi.Infrastructure;
 /// </summary>
 public sealed class TranslationFillHostedService : BackgroundService
 {
-    /// <summary>Vedi il commento di classe: qui il metro è l'attesa del lettore, non il ritmo di una sorgente.</summary>
-    private static readonly TimeSpan Periodo = TimeSpan.FromMinutes(15);
+    /// <summary>
+    /// Vedi il commento di classe: qui il metro è l'attesa del lettore, non il ritmo di una sorgente.
+    /// <para>⚠️ Il valore sta in <see cref="GiroDiTraduzione.Periodo"/> e non qui: lo legge anche l'editor,
+    /// per dire a chi ha appena scritto quanto manca. Due costanti da un quarto d'ora in due file sono il
+    /// modo in cui un giorno la pagina promette sei minuti e il giro ne impiega trenta.</para>
+    /// </summary>
+    private static TimeSpan Periodo => GiroDiTraduzione.Periodo;
 
     /// <summary>Quanto di un segmento rotto si scrive nel registro: quel che basta a riconoscerlo.</summary>
     private const int TagliaSegmento = 120;
@@ -85,6 +90,18 @@ public sealed class TranslationFillHostedService : BackgroundService
 
     private async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
+        // 🔴 Il lucchetto, condiviso col tasto «traduci ora»: due giri insieme spedirebbero gli STESSI
+        // segmenti — la memoria si legge all'inizio e si scrive alla fine — e quei caratteri si
+        // pagherebbero due volte. Qui chi trova occupato salta il giro: fra un quarto d'ora si riprova, e
+        // nel frattempo il lavoro l'ha fatto l'altro.
+        var registro = sp.GetRequiredService<IRegistroDeiGiri>();
+        using var lucchetto = registro.ProvaAEntrare();
+        if (lucchetto is null)
+        {
+            _log.LogDebug("Traduzione: un giro sta già girando (tasto «traduci ora»), questo si salta.");
+            return true;
+        }
+
         var opzioni = sp.GetRequiredService<IOptions<TranslationOptions>>().Value;
         if (!opzioni.Enabled)
         {
@@ -184,6 +201,10 @@ public sealed class TranslationFillHostedService : BackgroundService
                     opzioni);
 
                 var esito = await giro.EseguiAsync(sorgente, bersaglio, ct).ConfigureAwait(false);
+
+                // Com'è andata si tiene da parte: è quel che la pagina admin mostra al posto del log del
+                // server, ed è l'unica risposta possibile a «sta andando avanti?».
+                registro.Registra(new EsitoDelGiro(DateTime.UtcNow, sorgente, bersaglio, Manuale: false, esito));
 
                 if (esito.Esito == TranslationOutcome.Ok)
                 {

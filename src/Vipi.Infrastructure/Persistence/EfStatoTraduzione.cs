@@ -48,26 +48,34 @@ public sealed class EfStatoTraduzione : IStatoTraduzione
 
     public async Task<QuadroStatoTraduzione> QuadroAsync(CancellationToken ct = default)
     {
-        var righe = await RigheAsync(null, ct).ConfigureAwait(false);
+        var (righe, _) = await CalcolaAsync(null, ct).ConfigureAwait(false);
         var fuori = await FuoriDaiDocumentiAsync(ct).ConfigureAwait(false);
         return new QuadroStatoTraduzione(righe, fuori);
     }
 
     public async Task<RigaStatoTraduzione?> DocumentoAsync(int documentId, CancellationToken ct = default)
     {
-        var righe = await RigheAsync(documentId, ct).ConfigureAwait(false);
+        var (righe, _) = await CalcolaAsync(documentId, ct).ConfigureAwait(false);
         return righe.Count == 0 ? null : righe[0];
+    }
+
+    public async Task<MancantiDelDocumento?> MancantiAsync(int documentId, CancellationToken ct = default)
+    {
+        var (_, mancanti) = await CalcolaAsync(documentId, ct).ConfigureAwait(false);
+        return mancanti.TryGetValue(documentId, out var m) ? m : null;
     }
 
     // ---- Il cuore: una passata, che serve tutti e due gli ingressi -------------------------------------
 
-    private async Task<IReadOnlyList<RigaStatoTraduzione>> RigheAsync(int? soloQuesto, CancellationToken ct)
+    private async Task<(IReadOnlyList<RigaStatoTraduzione> Righe, Dictionary<int, MancantiDelDocumento> Mancanti)>
+        CalcolaAsync(int? soloQuesto, CancellationToken ct)
     {
         var documenti = await _db.Documents.AsNoTracking()
             .Where(d => soloQuesto == null || d.Id == soloQuesto)
             .Select(d => new { d.Id, d.Title, d.Language, d.LanguageLocked, d.CurrentVersionId })
             .ToListAsync(ct).ConfigureAwait(false);
-        if (documenti.Count == 0) return Array.Empty<RigaStatoTraduzione>();
+        if (documenti.Count == 0)
+            return (Array.Empty<RigaStatoTraduzione>(), new Dictionary<int, MancantiDelDocumento>());
 
         var ids = documenti.Select(d => d.Id).ToList();
 
@@ -166,9 +174,20 @@ public sealed class EfStatoTraduzione : IStatoTraduzione
             : new Dictionary<(string, string), TextProtector>();
 
         var righe = new List<RigaStatoTraduzione>(perDocumento.Count);
+        var mancantiPerDoc = new Dictionary<int, MancantiDelDocumento>();
         foreach (var d in perDocumento)
         {
             var memoriaViva = note[(d.Da, d.A)];
+
+            var segmenti = d.Bozza.ToList();
+            mancantiPerDoc[d.Id] = new MancantiDelDocumento(d.Id, d.Da, d.A, segmenti,
+                d.Bloccata
+                    // ⚠️ Bloccata: nessun segmento «manca», perché nessuno andrà mai tradotto. Dire il
+                    // contrario metterebbe un tasto «traduci ora» acceso su un documento che il traduttore
+                    // non guarda nemmeno.
+                    ? Array.Empty<string>()
+                    : segmenti.Where(x => !memoriaViva.ContainsKey(TranslationText.Hash(x))).ToList(),
+                d.Bloccata);
 
             var bozza = Copri(d.Bozza, h => memoriaViva.TryGetValue(h, out var t) ? t : null);
 
@@ -213,7 +232,7 @@ public sealed class EfStatoTraduzione : IStatoTraduzione
                 ReleaseCongela: congela));
         }
 
-        return righe;
+        return (righe, mancantiPerDoc);
     }
 
     /// <summary>Quanti di questi segmenti hanno una resa, e quanti l'ha guardata una persona.</summary>

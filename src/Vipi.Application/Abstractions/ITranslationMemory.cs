@@ -253,9 +253,13 @@ public interface ITranslationMemory
     /// tornati rotti. ⚠️ Si registra quel che è partito, non quel che è tornato buono: è l'unica misura che
     /// corrisponde a ciò che il fornitore fattura.
     /// </summary>
+    /// <param name="kind">Chi ha chiesto l'invio: il giro automatico (<see cref="TranslationSpendKind.Dispatch"/>)
+    /// o una persona col tasto «traduci ora» (<see cref="TranslationSpendKind.ManualDispatch"/>). ⚠️ Per il
+    /// tetto valgono uguale: i caratteri partono e si pagano allo stesso modo.</param>
     Task RegistraSpesaAsync(
         string engine, string sourceLang, string targetLang, long caratteri, int segmenti,
-        int scartati, long caratteriScartati, DateTime nowUtc, CancellationToken ct = default);
+        int scartati, long caratteriScartati, DateTime nowUtc,
+        TranslationSpendKind kind = TranslationSpendKind.Dispatch, CancellationToken ct = default);
 
     /// <summary>
     /// Scrive, <b>una volta sola per motore</b>, la fotografia di quel che era già stato speso prima che il

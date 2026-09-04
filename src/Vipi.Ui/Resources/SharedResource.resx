@@ -3224,4 +3224,53 @@
   <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Togli la pista. Se la sorgente ce l'ha ancora, il prossimo re-import la rimette.</value></data>
   <data name="Ape_ReimportDiscardConfirm" xml:space="preserve"><value>Ci sono modifiche non salvate ({0}): il ri-prelievo ricarica tutto dal database e le scarta. Continuare?</value></data>
   <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Non più in sorgente, ma tenute perché hanno dati scritti a mano: {0}.</value></data>
+  <data name="TrEd_Wait_Missing" xml:space="preserve"><value>{0} da tradurre</value></data>
+  <data name="TrEd_Wait_Next" xml:space="preserve"><value>il giro passa fra ~{0} min</value></data>
+  <data name="TrEd_Wait_Soon" xml:space="preserve"><value>il giro passa da un momento all'altro</value></data>
+  <data name="TrEd_Wait_Never" xml:space="preserve"><value>il giro non è ancora passato</value></data>
+  <data name="TrEd_Wait_Running" xml:space="preserve"><value>un giro sta girando adesso</value></data>
+  <data name="TrEd_Wait_ByHand" xml:space="preserve"><value>{0} vogliono una persona</value></data>
+  <data name="TrEd_Wait_None" xml:space="preserve"><value>non manca niente</value></data>
+  <data name="TrEd_Now" xml:space="preserve"><value>Traduci ora</value></data>
+  <data name="TrEd_NowTitle" xml:space="preserve"><value>Chiede al motore le frasi che mancano di QUESTO documento, senza aspettare il giro. I caratteri si pagano.</value></data>
+  <data name="TrEd_Now_Done" xml:space="preserve"><value>Fatto: {0} frasi tradotte da {1}.</value></data>
+  <data name="TrEd_Now_Broken" xml:space="preserve"><value>⚠️ {0} tornate rotte e non salvate: le rispedisce il prossimo giro.</value></data>
+  <data name="TrEd_Now_Nothing" xml:space="preserve"><value>Non mancava niente: il giro era già passato.</value></data>
+  <data name="TrEd_Now_Busy" xml:space="preserve"><value>Un giro sta già girando: riprova fra poco.</value></data>
+  <data name="TrEd_Now_Off" xml:space="preserve"><value>La traduzione è spenta.</value></data>
+  <data name="TrEd_Now_NoEngine" xml:space="preserve"><value>Nessun motore ha una chiave: non si traduce niente.</value></data>
+  <data name="TrEd_Now_Quota" xml:space="preserve"><value>Il tetto di spesa è finito. {0}</value></data>
+  <data name="TrEd_Now_Down" xml:space="preserve"><value>Il motore non ha risposto. {0}</value></data>
+  <data name="TrEd_Now_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola.</value></data>
+  <data name="TrDoc_Title" xml:space="preserve"><value>Documenti</value></data>
+  <data name="TrDoc_Intro" xml:space="preserve"><value>A che punto è la traduzione, documento per documento. «Bozza» è quel che stai per pubblicare; «pubblicato» è quel che un lettore vede adesso.</value></data>
+  <data name="TrDoc_ColDoc" xml:space="preserve"><value>Documento</value></data>
+  <data name="TrDoc_ColDraft" xml:space="preserve"><value>Bozza</value></data>
+  <data name="TrDoc_ColPublished" xml:space="preserve"><value>Pubblicato</value></data>
+  <data name="TrDoc_ColReview" xml:space="preserve"><value>Da rileggere</value></data>
+  <data name="TrDoc_ColByHand" xml:space="preserve"><value>A mano</value></data>
+  <data name="TrDoc_ColState" xml:space="preserve"><value>Stato</value></data>
+  <data name="TrDoc_NoRelease" xml:space="preserve"><value>nessuna release</value></data>
+  <data name="TrDoc_NoReleaseTitle" xml:space="preserve"><value>Questo documento non è in vigore: non c'è niente di pubblicato da contare. Non è «0% tradotto».</value></data>
+  <data name="TrDoc_NotFrozen" xml:space="preserve"><value>non congelata</value></data>
+  <data name="TrDoc_NotFrozenTitle" xml:space="preserve"><value>La release in vigore non porta traduzioni congelate: quel che il pubblico legge viene dalla memoria viva, e cambierà alla prima correzione fatta su un altro documento che contiene la stessa frase. Si chiude ripubblicando.</value></data>
+  <data name="TrDoc_St_Locked" xml:space="preserve"><value>lingua bloccata</value></data>
+  <data name="TrDoc_St_Nothing" xml:space="preserve"><value>niente da tradurre</value></data>
+  <data name="TrDoc_St_NotStarted" xml:space="preserve"><value>non cominciata</value></data>
+  <data name="TrDoc_St_Patchy" xml:space="preserve"><value>a chiazze</value></data>
+  <data name="TrDoc_St_ToReview" xml:space="preserve"><value>da rileggere</value></data>
+  <data name="TrDoc_St_Complete" xml:space="preserve"><value>completa</value></data>
+  <data name="TrDoc_Outside" xml:space="preserve"><value>Fuori dai documenti</value></data>
+  <data name="TrDoc_OutsideTitle" xml:space="preserve"><value>Aree regolamentate e intro di pagina: non appartengono a nessun documento, e contarle in ogni riga le mostrerebbe N volte.</value></data>
+  <data name="TrDoc_Open" xml:space="preserve"><value>apri</value></data>
+  <data name="TrDoc_Summary" xml:space="preserve"><value>{0} documenti · {1} aspettano il giro · {2} in vigore senza congelato</value></data>
+  <data name="TrDoc_RoundTitle" xml:space="preserve"><value>Il giro</value></data>
+  <data name="TrDoc_RoundNever" xml:space="preserve"><value>In questa installazione il giro non è ancora passato.</value></data>
+  <data name="TrDoc_RoundLast" xml:space="preserve"><value>Ultimo giro: {0}</value></data>
+  <data name="TrDoc_RoundNext" xml:space="preserve"><value>prossimo fra ~{0} min</value></data>
+  <data name="TrDoc_RoundRunning" xml:space="preserve"><value>sta girando adesso</value></data>
+  <data name="TrDoc_RoundLine" xml:space="preserve"><value>{0}→{1}: {2} nuove, {3} già in memoria, {4} rotte — {5}</value></data>
+  <data name="TrDoc_RoundManual" xml:space="preserve"><value>chiesto a mano</value></data>
+  <data name="TrDoc_RoundAuto" xml:space="preserve"><value>automatico</value></data>
+  <data name="Rel_TrFreeze" xml:space="preserve"><value>Pubblicando adesso congeli {0} frasi su {1} non ancora tradotte.</value></data>
 </root>

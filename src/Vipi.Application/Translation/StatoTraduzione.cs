@@ -137,6 +137,23 @@ public sealed record QuadroStatoTraduzione(
 }
 
 /// <summary>
+/// I segmenti di un documento e quali di quelli la memoria non ha: quel che serve a chiedere una traduzione
+/// <b>adesso</b>, per quel documento e per nessun altro.
+/// </summary>
+/// <param name="Da">Lingua in cui il documento è scritto.</param>
+/// <param name="A">L'altra.</param>
+/// <param name="Segmenti">Tutti i segmenti della versione di lavoro. ⚠️ Si passano <b>tutti</b> al giro:
+/// il confronto con la memoria lo fa lui, ed è lo stesso confronto del giro automatico. Sceglierli qui
+/// sarebbe un secondo posto in cui si decide che cosa manca.</param>
+/// <param name="Mancanti">Quelli che la memoria non ha: servono a <b>dirlo</b>, non a spedirli.</param>
+/// <param name="Bloccata">Il documento si legge in una lingua sola. ⚠️ Viaggia qui perché senza di lei
+/// «bloccata» e «non manca niente» arrivano a chi chiede con la stessa faccia — zero mancanti — e il tasto
+/// «traduci ora» direbbe «fatto» di un documento che non si tradurrà mai.</param>
+public sealed record MancantiDelDocumento(
+    int DocumentId, string Da, string A, IReadOnlyList<string> Segmenti, IReadOnlyList<string> Mancanti,
+    bool Bloccata = false);
+
+/// <summary>
 /// A che punto è la traduzione (carta <c>docs/feature/2026-09-04-stato-traduzione.md</c>).
 ///
 /// <para>
@@ -156,4 +173,10 @@ public interface IStatoTraduzione
     /// non esiste o non ha una versione di lavoro.
     /// </summary>
     Task<RigaStatoTraduzione?> DocumentoAsync(int documentId, CancellationToken ct = default);
+
+    /// <summary>
+    /// I segmenti di un documento e quali mancano. È la porta del tasto «traduci ora»: chi traduce non deve
+    /// rifarsi un'idea sua di che cosa sia un segmento di quel documento — ce n'è già una, ed è questa.
+    /// </summary>
+    Task<MancantiDelDocumento?> MancantiAsync(int documentId, CancellationToken ct = default);
 }

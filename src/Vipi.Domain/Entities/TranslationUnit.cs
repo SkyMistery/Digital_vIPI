@@ -103,6 +103,17 @@ public enum TranslationSpendKind
 
     /// <summary>Un invio vero al motore: i caratteri sono partiti, e sono stati pagati.</summary>
     Dispatch,
+
+    /// <summary>
+    /// Un invio chiesto da una <b>persona</b> col tasto «traduci ora» dell'editor, invece che dal giro
+    /// automatico (carta <c>docs/feature/2026-09-04-stato-traduzione.md</c> §4-bis).
+    ///
+    /// <para>⚠️ <b>Vale come <see cref="Dispatch"/> per il tetto di spesa</b> — i caratteri partono e si
+    /// pagano allo stesso modo — e si distingue solo per chi legge il registro: davanti a una spesa che
+    /// cresce, «chi ha speso» è la prima domanda, e senza questo valore le due sorgenti sarebbero
+    /// indistinguibili. Costa zero di schema: la colonna è già un <c>TEXT(16)</c>.</para>
+    /// </summary>
+    ManualDispatch,
 }
 
 /// <summary>

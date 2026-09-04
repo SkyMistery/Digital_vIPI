@@ -127,7 +127,8 @@ public class IntroDiPaginaTests : TestContext
         public Task<int> DocumentiToccatiAsync(string s, CancellationToken ct = default) => Task.FromResult(0);
         public Task<long> CaratteriSpesiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
         public Task RegistraSpesaAsync(string e, string s, string t, long c, int seg, int sc, long csc,
-            DateTime now, CancellationToken ct = default) => Task.CompletedTask;
+            DateTime now, TranslationSpendKind kind = TranslationSpendKind.Dispatch,
+            CancellationToken ct = default) => Task.CompletedTask;
         public Task<int> FotografaSpesaPregressaAsync(
             IReadOnlyList<string> engines, DateTime now, CancellationToken ct = default) => Task.FromResult(0);
         public Task<int> ContaConLaFormulaAsync(string s, string t, string f, CancellationToken ct = default) =>

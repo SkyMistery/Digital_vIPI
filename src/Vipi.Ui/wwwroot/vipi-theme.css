@@ -3821,6 +3821,12 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
 .tr-cmds{display:flex;gap:6px}
 @container (max-width: 720px){ .tr-row{grid-template-columns:1fr} }
 
+/* ---- «Quanto ci vuole», sopra l'elenco delle frasi (carta stato-traduzione §4-bis) ----
+   La riga e il tasto stanno insieme: il tasto e' la risposta all'attesa che la riga dichiara, e separarli
+   vorrebbe dire far cercare a chi legge dove sia il rimedio. `flex-wrap`, perche' a schermo stretto la
+   frase e' lunga e il tasto deve scendere sotto invece di stringere la frase in una colonna. */
+.tr-wait{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+
 /* ---- Pannello release: la riga sta in UNA riga ----
    Erano due — titolo sopra, meta sotto — cioe' 68px l'una: su dieci release 680px per una storia che si
    scorre, non si legge riga per riga. L'ora esatta e la nota stanno nel `title` della riga: sono la verita'

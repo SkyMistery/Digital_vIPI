@@ -87,7 +87,8 @@ public class TestiFuoriDaiDocumentiTests
         public Task<long> CaratteriSpesiAsync(string e, CancellationToken ct = default) => Task.FromResult(0L);
 
         public Task RegistraSpesaAsync(string e, string s, string t, long c, int seg, int sc, long csc,
-            DateTime now, CancellationToken ct = default) => Task.CompletedTask;
+            DateTime now, TranslationSpendKind kind = TranslationSpendKind.Dispatch,
+            CancellationToken ct = default) => Task.CompletedTask;
 
         public Task<int> FotografaSpesaPregressaAsync(
             IReadOnlyList<string> engines, DateTime now, CancellationToken ct = default) => Task.FromResult(0);

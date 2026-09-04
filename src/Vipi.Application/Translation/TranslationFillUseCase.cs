@@ -1,4 +1,5 @@
 ﻿using Vipi.Application.Abstractions;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Translation;
 
@@ -72,10 +73,34 @@ public sealed class TranslationFillUseCase
             .ToList();
     }
 
+    /// <summary>
+    /// Il giro su <b>tutto il corpus</b>: quel che fa il servizio ogni quarto d'ora.
+    /// </summary>
     public async Task<TranslationFillReport> EseguiAsync(
-        string sourceLang, string targetLang, CancellationToken ct = default)
+        string sourceLang, string targetLang, CancellationToken ct = default) =>
+        await EseguiSuAsync(await _corpus.SegmentiAsync(sourceLang, ct).ConfigureAwait(false),
+            sourceLang, targetLang, TranslationSpendKind.Dispatch, ct).ConfigureAwait(false);
+
+    /// <summary>
+    /// Lo stesso giro, ma su <b>questi</b> segmenti soltanto: il tasto «traduci ora» di chi ha appena
+    /// scritto un documento (carta <c>docs/feature/2026-09-04-stato-traduzione.md</c> §4-bis).
+    ///
+    /// <para>🔴 <b>Il raggio è la ragione per cui questo ingresso esiste.</b> Chiamare il giro intero da un
+    /// tasto vorrebbe dire che la pressione di una persona paga la prosa in attesa di <b>tutti</b> gli altri
+    /// documenti — compresa quella che il suo autore non ha ancora finito di scrivere. Qui passano i
+    /// segmenti di quel documento e basta.</para>
+    ///
+    /// <para>⚠️ Si passano <b>tutti</b> i segmenti del documento, non i soli mancanti: il confronto con la
+    /// memoria lo fa questo metodo, ed è lo stesso confronto del giro automatico. Una selezione fatta fuori
+    /// sarebbe un secondo posto in cui si decide che cosa manca.</para>
+    /// </summary>
+    /// <param name="kind">Come si registra la spesa: <see cref="TranslationSpendKind.ManualDispatch"/> per
+    /// una pressione, così nel registro le due sorgenti restano distinguibili.</param>
+    public async Task<TranslationFillReport> EseguiSuAsync(
+        IEnumerable<string> daTradurre, string sourceLang, string targetLang,
+        TranslationSpendKind kind = TranslationSpendKind.Dispatch, CancellationToken ct = default)
     {
-        var segmenti = (await _corpus.SegmentiAsync(sourceLang, ct).ConfigureAwait(false))
+        var segmenti = daTradurre
             .Where(TranslationText.HasSomethingToTranslate)
             .Distinct(StringComparer.Ordinal)
             .ToList();
@@ -215,7 +240,7 @@ public sealed class TranslationFillUseCase
         // quel che è rimasto in memoria — le rotte in memoria non ci arrivano mai.
         await _memoria.RegistraSpesaAsync(
             motoreUsato, sourceLang, targetLang, caratteri, daSpedire.Count, scartati, caratteriScartati,
-            DateTime.UtcNow, ct).ConfigureAwait(false);
+            DateTime.UtcNow, kind, ct).ConfigureAwait(false);
 
         var scritte = buone.Count == 0
             ? 0

@@ -103,7 +103,8 @@ public class TranslationFillUseCaseTests
         { get; private set; }
 
         public Task RegistraSpesaAsync(string e, string s, string t, long c, int seg, int sc, long csc,
-            DateTime now, CancellationToken ct = default)
+            DateTime now, TranslationSpendKind kind = TranslationSpendKind.Dispatch,
+            CancellationToken ct = default)
         {
             Spesa = (e, c, seg, sc, csc);
             return Task.CompletedTask;

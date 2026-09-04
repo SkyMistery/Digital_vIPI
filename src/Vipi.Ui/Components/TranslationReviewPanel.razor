@@ -1,5 +1,9 @@
 ﻿@inherits OwningComponentBase
 @inject Vipi.Application.Translation.IDocumentTranslationReview Revisione
+@* ⚠️ Dal circuito, come `Revisione` e per la stessa ragione: legge chi sta premendo da
+   `IEditAuthorizationService`, che risolve l'identità dall'HttpContext. Il lavoro pesante — e la chiamata di
+   rete — se lo fa in uno scope suo, dentro il servizio. *@
+@inject Vipi.Application.Translation.ITraduciOra TraduciOra
 @inject IStringLocalizer<SharedResource> L
 @using System.Globalization
 @using Microsoft.Extensions.DependencyInjection
@@ -51,6 +55,14 @@
             {
                 <span>&nbsp;</span>
                 <span class="pill @(DaRileggere > 0 ? "amber" : "blue")">@DaRileggere / @_righe.Count</span>
+                @*  ⚠️ «Quante mancano» sta in TESTATA e non solo dentro, perché il pannello nasce chiuso:
+                    chi ha appena finito di scrivere deve vedere che qualcosa manca senza aprirlo — è tutta
+                    la ragione per cui questa riga esiste (carta §4-bis). *@
+                @if (Mancanti > 0)
+                {
+                    <span>&nbsp;</span>
+                    <span class="pill amber">@string.Format(L["TrEd_Wait_Missing"].Value, Mancanti)</span>
+                }
             }
         </h3>
     </Header>
@@ -74,6 +86,21 @@
         else
         {
             <p class="help">@L["TrEd_Intro", _lettore.ToUpperInvariant()]</p>
+
+            @*  ---- «Ho appena finito di scrivere: quanto ci vuole?» (carta §4-bis) -------------------
+                ⚠️ È un OROLOGIO, non una stima: il giro non ha tetto di lotto — spedisce in una chiamata
+                tutti i mancanti — quindi il numero di frasi appena scritte non allunga l'attesa. Quel che
+                resta da sapere è quando è passato l'ultimo giro, e quello è un fatto scritto nel database. *@
+            <p class="help tr-wait">
+                <span>@Attesa()</span>
+                @if (Mancanti > 0)
+                {
+                    <button type="button" class="btn ghost" disabled="@_busy" title="@L["TrEd_NowTitle"]"
+                            @onclick="TraduciOraAsync">
+                        <Icon Name="refresh" Size="14" /> @L["TrEd_Now"]
+                    </button>
+                }
+            </p>
 
             @foreach (var r in _righe)
             {
@@ -146,8 +173,49 @@
 
     private int DaRileggere => _righe?.Count(r => r.Origine != TranslationOrigin.Human) ?? 0;
 
+    /// <summary>
+    /// Quante frasi di questo documento la memoria non ha ancora. ⚠️ Si conta sulle righe che ci sono già —
+    /// una riga senza resa È una frase mancante — e non con una seconda domanda al database: il pannello
+    /// carica il documento a ogni cambio di lingua, e una query in più qui sarebbe una lettura per ogni
+    /// ridisegno dell'editor.
+    /// </summary>
+    private int Mancanti => _righe?.Count(r => string.IsNullOrWhiteSpace(r.Tradotto)) ?? 0;
+
+    /// <summary>Quanto manca al prossimo giro. Si legge una volta col documento, non a ogni secondo.</summary>
+    private Vipi.Application.Translation.AttesaDelGiro? _attesa;
+
+    /// <summary>L'attesa, in una riga sola (carta §4-bis).</summary>
+    private string Attesa()
+    {
+        if (Mancanti == 0) return L["TrEd_Wait_None"];
+
+        var pezzi = new List<string> { string.Format(L["TrEd_Wait_Missing"].Value, Mancanti) };
+
+        if (_attesa is { InCorso: true })
+        {
+            pezzi.Add(L["TrEd_Wait_Running"]);
+        }
+        else if (_attesa?.Mancano(DateTime.UtcNow) is { } quanto)
+        {
+            // ⚠️ Zero è una risposta vera e non si scrive «fra 0 min»: il giro parte al suo scadere, non
+            // nell'istante in cui questa pagina si disegna. Si arrotonda PER ECCESSO — promettere meno di
+            // quanto ci vuole è il verso in cui chi aspetta torna a guardare e non trova niente.
+            var minuti = (int)Math.Ceiling(quanto.TotalMinutes);
+            pezzi.Add(minuti <= 0 ? L["TrEd_Wait_Soon"].Value : string.Format(L["TrEd_Wait_Next"].Value, minuti));
+        }
+        else
+        {
+            pezzi.Add(L["TrEd_Wait_Never"]);
+        }
+
+        return string.Join(" · ", pezzi);
+    }
+
     /// <summary>Il servizio della LETTURA, su un contesto tutto suo. Vedi il riquadro in cima al file.</summary>
     private IDocumentTranslationReview _lettura = default!;
+
+    /// <summary>Anche l'attesa si legge dal contesto isolato: parte dal ciclo di vita, come le righe.</summary>
+    private Vipi.Application.Translation.IAttesaTraduzione _attese = default!;
 
     /// <summary>Il documento si legge in una lingua sola: niente da rivedere, e va detto con parole sue.</summary>
     private bool _bloccata;
@@ -156,7 +224,10 @@
     private (int Doc, string Lingua)? _caricatoPer;
 
     protected override void OnInitialized()
-        => _lettura = ScopedServices.GetRequiredService<IDocumentTranslationReview>();
+    {
+        _lettura = ScopedServices.GetRequiredService<IDocumentTranslationReview>();
+        _attese = ScopedServices.GetRequiredService<Vipi.Application.Translation.IAttesaTraduzione>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -185,6 +256,9 @@
         _stessaLingua = revisione.StessaLingua(_lettore);
         _bloccata = revisione.Bloccata;
         _righe = revisione.Righe;
+
+        // L'attesa si chiede solo se serve dirla: su un documento a posto non c'è niente da aspettare.
+        _attesa = Mancanti > 0 ? await _attese.AttesaAsync() : null;
     }
 
     private async Task ApriAsync(RigaDaRivedere r)
@@ -199,6 +273,67 @@
     {
         _aperta = null;
         _bozza = "";
+    }
+
+    /// <summary>
+    /// Chiede al motore le frasi mancanti di questo documento, adesso (carta §4-bis).
+    ///
+    /// <para>⚠️ Il servizio viene dal circuito perché legge chi sta premendo, ma il lavoro — che è una
+    /// chiamata di rete di qualche secondo — lo fa in uno scope suo: sul <c>DbContext</c> del circuito
+    /// sarebbe una corsa con l'editor che nel frattempo continua a disegnarsi.</para>
+    /// </summary>
+    private async Task TraduciOraAsync()
+    {
+        _busy = true;
+        _esito = null;
+        try
+        {
+            var r = await TraduciOra.EseguiAsync(DocumentId);
+            _esito = Racconta(r);
+
+            if (r.Esito == Vipi.Application.Translation.EsitoDellaPressione.Fatto)
+            {
+                // Rilettura dal contesto isolato, come dopo un salvataggio: la scrittura è appena finita
+                // altrove e il genitore si sta ridisegnando per lo `StateHasChanged` di questo gestore.
+                _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
+                _attesa = Mancanti > 0 ? await _attese.AttesaAsync() : null;
+            }
+        }
+        catch (Vipi.Application.Content.EditNotAllowedException)
+        {
+            _esito = L["Common_AccessReserved"];
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>
+    /// Com'è andata, in una frase. ⚠️ Gli esiti sono <b>otto</b> e non due: «fatto» e «non fatto» lascerebbero
+    /// chi preme senza sapere se deve riprovare (giro in corso), chiamare un amministratore (tetto, chiave) o
+    /// non fare niente (non mancava nulla). E le frasi tornate <b>rotte</b> si dicono sempre: sono pagate,
+    /// buttate, e il prossimo giro le rispedisce.
+    /// </summary>
+    private string Racconta(Vipi.Application.Translation.RispostaTraduciOra r)
+    {
+        var esiti = Vipi.Application.Translation.EsitoDellaPressione.Fatto;
+        var testo = r.Esito switch
+        {
+            var e when e == esiti => string.Format(L["TrEd_Now_Done"].Value, r.Tradotti, r.Motore ?? "?"),
+            Vipi.Application.Translation.EsitoDellaPressione.NienteDaFare => L["TrEd_Now_Nothing"].Value,
+            Vipi.Application.Translation.EsitoDellaPressione.Bloccata => L["TrEd_Now_Locked"].Value,
+            Vipi.Application.Translation.EsitoDellaPressione.GiroInCorso => L["TrEd_Now_Busy"].Value,
+            Vipi.Application.Translation.EsitoDellaPressione.Spenta => L["TrEd_Now_Off"].Value,
+            Vipi.Application.Translation.EsitoDellaPressione.SenzaMotore => L["TrEd_Now_NoEngine"].Value,
+            Vipi.Application.Translation.EsitoDellaPressione.TettoFinito =>
+                string.Format(L["TrEd_Now_Quota"].Value, r.Dettaglio ?? ""),
+            _ => string.Format(L["TrEd_Now_Down"].Value, r.Dettaglio ?? ""),
+        };
+
+        return r.Scartati > 0
+            ? testo + " " + string.Format(L["TrEd_Now_Broken"].Value, r.Scartati)
+            : testo;
     }
 
     private async Task SalvaAsync(RigaDaRivedere r)

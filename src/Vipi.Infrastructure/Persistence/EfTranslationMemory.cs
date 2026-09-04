@@ -470,12 +470,13 @@ public sealed class EfTranslationMemory : ITranslationMemory
 
     public async Task RegistraSpesaAsync(
         string engine, string sourceLang, string targetLang, long caratteri, int segmenti,
-        int scartati, long caratteriScartati, DateTime nowUtc, CancellationToken ct = default)
+        int scartati, long caratteriScartati, DateTime nowUtc,
+        TranslationSpendKind kind = TranslationSpendKind.Dispatch, CancellationToken ct = default)
     {
         _db.TranslationSpends.Add(new TranslationSpend
         {
             Engine = engine,
-            Kind = TranslationSpendKind.Dispatch,
+            Kind = kind,
             SourceLang = sourceLang,
             TargetLang = targetLang,
             Characters = caratteri,
