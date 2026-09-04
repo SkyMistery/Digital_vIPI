@@ -239,7 +239,36 @@
       Cinque progetti (`Ui`, `Application`, `Host`, `Infrastructure`, `Hosting`), le FRASI (due `.resx`
       toccati, quindi il satellite inglese entra) e `wwwroot` (due CSS, con i loro `.br`/`.gz` e l'indice).
     -->
-    <VipiVersione>1.7.0</VipiVersione>
+    <!--
+      1.7.1 — 4 settembre 2026. **PATCH**, e stavolta la tabella regge: solo correzioni, nessuna pagina né
+      sezione nuova, NESSUNA migrazione (nessuna cartella Migrations toccata dal commit online `bf249155`).
+      Si consegna da sola via FTP anche dentro la finestra cieca.
+
+      Una voce sola di `lavori-aperti.md`, ma sono due difetti distinti, trovati sullo stesso aeroporto:
+
+        · §BH — IVAO ha ri-denominato Rimini per deriva magnetica (13/31 → 12/30) e LIPR mostrava QUATTRO
+          piste, le due morte davanti alle due vive. Il merge era un add-or-update per ident: non toglieva
+          mai le piste che la sorgente smette di nominare. Ora riconcilia — le orfane VUOTE se ne vanno,
+          quelle con TORA/LDA restano, si nominano nell'editor e si tolgono con la ✕.
+          ⚠️ La ✕ ora c'è anche a sorgente bloccata, e la guardia lascia passare le RIMOZIONI (non le
+          aggiunte): prima compariva solo a policy di import spenta, e quella policy è GLOBALE — per
+          ripulire un aeroporto si sbloccavano tutti gli altri.
+          ⚠️ Guardia sulla lista vuota: zero piste dalla sorgente vuol dire «nessun cambio», mai «niente
+          piste». L'import è best-effort silenzioso, e senza quella riga una sorgente muta svuoterebbe la
+          tabella da sola.
+
+        · §BH — e i TORA/LDA erano spariti dal BUFFER, non dal database. La tabella piste si salvava solo
+          col bottone, `Reimport()` chiedeva conferma solo per le SID non salvate, e `LoadAsync()` subito
+          dopo ricarica ogni buffer azzerando anche il flag che diceva che c'era roba da salvare. Ora il
+          re-import chiede per QUALUNQUE sezione toccata, e a piste di sorgente ogni gesto si salva da solo.
+          ⚠️ Conta doppio su questo hosting: Passenger rigenera il processo ogni ~50 secondi, e un circuito
+          che muore mentre si scrive porta via tutto quel che non è ancora in tabella.
+
+      Tre progetti (`Application`, `Infrastructure`, `Ui`) e le FRASI (due `.resx` toccati, quindi il
+      satellite inglese entra). NIENTE `wwwroot`: nessun CSS e nessun JS toccati, quindi nemmeno l'indice
+      degli asset.
+    -->
+    <VipiVersione>1.7.1</VipiVersione>
   </PropertyGroup>
 
 </Project>

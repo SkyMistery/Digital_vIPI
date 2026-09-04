@@ -1,10 +1,12 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 4 settembre 2026 (mattina) — 📦 **IL PACCHETTO 1.7.0 È PRONTO E NON È CARICATO** (`vipi-1.7.0-solo-file-cambiati.zip`, sha256 `88bf3a46…`, 4,43 MB, **18 file**, timbro **`1.7.0 · bf249155`**). In produzione gira ancora **1.6.2** (`84b0f4c7`). `main` = `815e96a3`, spinto, **nessun ramo aperto**. 🔴 **MINOR e non PATCH**: il numero segue il **contenuto** — §BD semina sezioni nuove nei documenti e §BE aggiunge un comando agli editor. **Nessuna migrazione**, quindi si consegna da sola via FTP anche dentro la finestra cieca. Dentro: §BB testata compatta · §BC parcheggi ai «Dati generali» · §BD carte aeroportuali · §BE le sezioni si muovono · §BF l'import che taceva · §BG la misura del keep-alive. Cronaca del pacchetto in §BH, foglio in `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.7.0.md`.
+**Aggiornato:** 4 settembre 2026 (tarda mattina) — ✅ **1.7.0 È IN PRODUZIONE**, caricata dal committente e verificata dal vivo: la barra dice **`1.7.0 · bf24915`**. 📦 **E il pacchetto 1.7.1 è PRONTO e non caricato** (`vipi-1.7.1-solo-file-cambiati.zip`, timbro **`1.7.1 · <commit>`**). 🟢 **PATCH**: solo correzioni, nessuna pagina né sezione nuova, **nessuna migrazione**, **niente `wwwroot`** (nessun CSS né JS toccati) e quindi nemmeno l'indice degli asset. Dentro c'è **§BI**, che sono due difetti trovati sullo stesso aeroporto: le piste che si **accumulavano** invece di sostituirsi, e i TORA/LDA che **sparivano** dall'editor. Foglio in `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.7.1.md`.
 
-⏳ **QUEL CHE SERVE INDIETRO, ed è il motivo per cui va caricato presto**: `diagnostica/avvii.txt` riscaricato **qualche ora dopo**. §BG ha misurato che il processo muore **di età** (vita mediana **51 s**, 260 su 367 fra 45 e 60 secondi) e **non** di inattività — incrociando il secondo di avvio con quello di morte, la morte segue l'**avvio**, quindi nessun ping può allungarla: il keep-alive **riaccende** e basta. La domanda che decide la mossa dopo — *quei ping arrivano davvero al processo?* — da fuori non si vede (in tutt'e due i casi chi bussa riceve un `200`), e ora la riga `ARRESTO` la risponde: `richieste 6/12/20…` ⇒ si guarda nel **pannello** dell'hosting; `richieste 1` o `0` ⇒ il keep-alive parla con la cache o col web server e va cambiato l'**indirizzo**.
+⏳ **QUEL CHE SERVE ANCORA INDIETRO**: `diagnostica/avvii.txt` riscaricato **qualche ora dopo** il caricamento di 1.7.0 — ora quel file **ha** il contatore `richieste N`, che è la misura di §BG. ⚠️ Il file guardato il 4 settembre di mattina era ancora **1.6.2** e non ce l'aveva, quindi la misura non c'è tuttora. Quel che si è già potuto leggere lì: **489 avvii in ~9,7 h** (uno ogni ~70 s) e **484 arresti ORDINATI su 489** — Passenger lo spegne **apposta**, non crasha, quindi la strada che mi aspetto è il **pannello dell'hosting**. `richieste 6/12/20…` ⇒ pannello; `richieste 1` o `0` ⇒ il keep-alive non parla con l'applicazione.
 
-⚠️ **Due cose da dire a chi carica, e stanno nel foglio**: `wwwroot` e l'indice degli asset viaggiano **insieme** (o le pagine escono senza stili — il difetto del 24 agosto), e i documenti **già pubblicati** mostrano le correzioni di §BE e §BF **solo dopo una ripubblicazione**, perché una release è una fotografia e non si riscrive mai.
+ℹ️ **E una misura che quel file ha già dato**: l'avvio costa **11 825 ms**, di cui **10 062 di database** (migrazione 5 537 + manutenzioni d'avvio 4 525). Girando ogni ~50 secondi vuol dire che il sito serve un'applicazione **fredda circa un quarto del tempo**. Vale la pena guardarci dentro, a prescindere da come finisce la storia del riavvio.
+
+⚠️ **Da dire al committente**: i TORA/LDA di **LIPR sono persi** e vanno riscritti — LIPR non ha un vIPI pubblicato, quindi non c'è nemmeno uno snapshot da cui ripescarli. Meglio **dopo** aver caricato 1.7.1, così l'auto-salvataggio li protegge.
 
 **§BF — «Da un altro documento…» non era rotto: taceva.** Segnalazione del committente. La tendina dell'import prende la stessa tabella da un altro vSOP; scegliendone uno non succedeva niente, perché di Nominativi/Parcheggi/Aeroporti alternati **nessun vSOP ha righe** — cioè il caso normale. Ora lo dice, la tendina torna al segnaposto (è un comando, non uno stato) e la pastiglia della forma smette di dire «righe intere» su celle già separate.
 
@@ -7975,4 +7977,100 @@ guardare come si è misurato.*
 **`diagnostica/avvii.txt` riscaricato qualche ora dopo.** È la misura di §BG e decide la mossa successiva sul
 processo che si spegne ogni cinquanta secondi: `richieste 6/12/20…` ⇒ si guarda nel pannello dell'hosting;
 `richieste 1` o `0` ⇒ il keep-alive non parla con l'applicazione e va cambiato l'indirizzo che interroga.
+
+---
+
+## BI. Le piste che si accumulavano, e i TORA/LDA che sparivano — 4 settembre 2026
+
+**Segnalazione del committente**, e in una riga sola: «ho aggiunto TORA e LDA alle piste, poi sono cambiate
+sul DB di IVAO; quando ho importato quelle nuove non sono state sovrascritte ma si sono **aggiunte** a quelle
+esistenti». Due difetti distinti, che si erano solo incontrati sullo stesso aeroporto.
+
+### Che cosa si vedeva
+
+`https://atc.it.ivao.aero/services/vsop/lipp/airports/editor?icao=LIPR` — guardato dal vivo:
+
+| Runway | Length | TORA | LDA |
+|---|---|---|---|
+| 13 | 2962 | vuoto | vuoto |
+| 31 | 2962 | vuoto | vuoto |
+| 12 | 2962 | vuoto | vuoto |
+| 30 | 2962 | vuoto | vuoto |
+
+Rimini è stata **ri-denominata** per deriva magnetica: 13/31 → 12/30. Non sono ident doppi — sono quattro
+ident distinti, due morti e due vivi, con le due morte **davanti** alle due vive.
+
+### Difetto 1 — il merge aggiungeva e non toglieva mai
+
+`EfAirportRepository.MergeFromSourceAsync` agganciava per ident: trovato ⇒ aggiorna, non trovato ⇒
+`airport.Runways.Add`. **Nessun ramo** toglieva le piste che la sorgente smette di nominare, e le nuove
+venivano accodate con `Order = nextOrder++`. Ne bastava una ri-denominazione perché l'archivio crescesse per
+sempre.
+
+⚠️ **L'indice unico su `(AirportId, Ident)` non c'entrava**, e all'inizio l'avevo detto: i quattro ident sono
+diversi, l'avrebbe passato. Il doppione era **fisico**, non di chiave.
+
+Ora `RiconciliaPiste`: aggiorna, aggiunge, e affronta le **orfane**. Un'orfana **vuota** se ne va in silenzio;
+un'orfana con lavoro editoriale **resta**, torna in `RunwayMergeOutcome.OrphansWithData` e l'editor la nomina.
+L'`Order` si rinumera nell'ordine della sorgente, con le orfane in coda.
+
+🔴 **La guardia che conta è quella sulla lista vuota.** L'import piste è **best-effort silenzioso** (IVAO 4xx
+o vuoto ⇒ zero piste, nessun errore), e la stessa lista vuota è come `SourceMergeInputs` esprime la categoria
+**esclusa dalla policy**. Una riconciliazione che leggesse quello zero come «l'aeroporto non ha più piste»
+svuoterebbe la tabella a ogni sorgente muta: è **letteralmente** il difetto che azzerò 83 poligoni su 83 nelle
+aree regolamentate.
+
+### Difetto 2 — i TORA/LDA erano spariti dal BUFFER, non dal database
+
+Un solo punto in tutto il codice scrive `ToraM`: `SaveRunwaysAsync`. Il merge non li tocca. Quindi non li
+aveva cancellati l'import — li aveva buttati l'**editor**:
+
+1. la tabella piste **non** si auto-salvava: aveva un bottone «Save runways»;
+2. `Reimport()` chiedeva conferma **solo** per `_sidNonSalvate`;
+3. subito dopo, `LoadAsync()` ricarica **ogni** buffer dal database **e** fa `_dirtySections.Clear()`.
+
+Sparisce il dato **e** la traccia che diceva che c'era. ⚠️ La cura esisteva **a due righe di distanza**: il
+commento di `ReimportSids()` la enuncia — «Ricarica i buffer dal DB: le righe toccate e non salvate
+sparirebbero in silenzio. Prima si chiede» — ma era stata applicata a una sezione sola.
+
+🔴 **E su questo hosting conta doppio**: Passenger rigenera il processo ogni **~50 secondi**. Non serve nessun
+bottone — basta un circuito che muore mentre si digita. La pagina di LIPR me l'ha mostrato mentre la
+guardavo: «Something went wrong this page no longer responds».
+
+Ora il re-import chiede per **qualunque** sezione toccata, e a piste di sorgente **ogni gesto si salva da
+solo**. ⚠️ Solo lì: a policy spenta si aggiungono righe a mano, e una riga a metà — ident ancora vuoto — non
+deve tentare di salvarsi a ogni tasto.
+
+### La ✕, e perché la guardia ora lascia passare le rimozioni
+
+Domanda del committente, ed è quella giusta: *le piste con dati editoriali come si eliminano, quando smettono
+di essere presenti?* Risposta: **a mano, mai da sole**. Ma la ✕ compariva solo a policy di import **spenta**, e
+quella policy è **globale** — per ripulire un aeroporto si sbloccavano tutti gli altri. L'amministratore era
+chiuso fuori dal suo stesso archivio.
+
+Ora la ✕ c'è sempre, e `AirportEditingService.SaveRunwaysAsync` lascia passare le **rimozioni** ma non le
+aggiunte. ⚠️ **L'asimmetria sta nel rimedio, non nella gravità**: togliere per sbaglio una pista che la
+sorgente ha ancora dura fino al re-import successivo, che la rimette; un'aggiunta a mano non si ripara da sé.
+
+⚠️ **Scelta consapevole (opzione A, approvata dal committente)**: niente colonna `MissingFromSourceAtUtc`, che
+sarebbe stata più precisa ma è una **migrazione dentro la finestra cieca** — dove gira da sola, su DDL non
+transazionale, senza nessuno che possa ripristinare. Il prezzo è che le orfane si segnalano **subito dopo il
+re-import** e non a freddo. Dopo il 16 settembre, se serve il contrassegno permanente, è una colonna.
+
+### Le prove
+
+17 test nuovi, tutte le suite verdi (4 898). Quelle che contano:
+
+- `Una_sorgente_muta_non_cancella_niente` — la fetch a vuoto non deve svuotare la tabella;
+- `Una_pista_orfana_con_tora_resta_e_viene_nominata` — il merge non distrugge lavoro umano;
+- `Runways_Locked_Allows_Removal_But_Not_Addition` — l'asimmetria della guardia;
+- `Il_reimport_chiede_prima_di_scartare_le_sezioni_non_salvate` — guardia **strutturale** sul sorgente. Quel
+  che va difeso è un **ordine fra tre cose** (si chiede, si importa, si ricarica): montare il componente da
+  solo direbbe che fa quel che il suo codice dice, che era vero anche col difetto dentro.
+
+### ⚠️ Quel che non si ripara da qui
+
+I TORA/LDA di LIPR **sono persi**. LIPR non ha un vIPI pubblicato, quindi non c'è nemmeno uno snapshot di
+release da cui ripescarli: vanno riscritti a mano. Meglio **dopo** aver caricato 1.7.1, o l'auto-salvataggio
+non c'è ancora a proteggerli.
 
