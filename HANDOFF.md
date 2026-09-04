@@ -1,5 +1,21 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 4 settembre 2026, notte — ✅ **1.9.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.9.0-solo-file-cambiati.zip`, sha256 `3045b044…`, 4,50 MB, **15 file**, timbro **`1.9.0 · f75e2e0`**). ✅ **Verificata da fuori, da anonimo, due giri su due verdi**: il JS che avvia Blazor arriva ed è minificato, il circuito si apre, la **Ricerca risponde** (è il controllo che conta, perché passa dal server), il foglio di stile è in vigore — quindi i quattro file di `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto — e la console del browser è pulita. ⚠️ Il **timbro** non si vede da fuori (la barra lo mostra ai soli amministratori): lo confermerà `diagnostica/avvio-diagnostica.txt` al prossimo giro di diagnostica.
+
+**Che cosa porta.**
+
+**§BM — «a che punto è la traduzione».** Richiesta del committente. Lo stato è la differenza fra i segmenti di un documento e le impronte in memoria, e **si calcola**: nessuna entità, nessuna tabella, misurato **45 ms** su tutto il `vipi.db`. 🔴 **Due percentuali per riga e mai una media** — *bozza* (quel che state per pubblicare) e *pubblicato* (quel che un lettore vede adesso) — perché «bozza 100%, pubblicato 40%» è il guasto §Q18 in persona e «70%» non descrive nessuno dei due. Quattro sedi, una fonte sola: la sezione **Documenti** del Registro, l'**esito dell'ultimo giro** (che esisteva intero e finiva **solo nel log del server**), la pastiglia su `/services/vsop/versions` e la riga nella pubblicazione. Più l'**attesa a orologio** nell'editor (≤ 15 min: il giro non ha tetto di lotto, quindi non è una stima) e il tasto **«traduci ora»**, col lucchetto in-processo contro il giro automatico.
+
+**§BM-bis — il riquadro «ricarica la pagina» nell'area riservata.** Segnalato dal committente. 🔴 **Non era l'host che muore**: nella finestra della segnalazione un processo è vissuto **26 minuti** e un altro **86**. Morivano i **circuiti**, uno per visita, e li abbatteva codice nostro — il tornello dell'editor smaltito con un caricamento in volo (cinque volte in un'ora), due servizi presi dal circuito in `MilSectionsEditor`, e una terza famiglia che era solo **rumore** nel file degli errori.
+
+🔴 **Una cosa che la tabella nuova mostra e che decide il committente**: **17 release in vigore su 17 non congelano la traduzione**. Non è un guasto: è una fotografia. Vuol dire che quel che il pubblico legge viene dalla memoria **viva**, e una correzione fatta su un documento cambia la stessa frase negli altri, sotto gli occhi di chi li sta leggendo. **Si chiude ripubblicando**, quando torna comodo.
+
+⚠️ **Quel che serve indietro resta UN FILE**: `diagnostica/errori-richieste.txt` fra qualche giorno. Quello di oggi si fermava un minuto prima che 1.8.1 partisse, quindi **né di 1.8.1 né di 1.9.0 abbiamo ancora un dato**.
+
+ℹ️ **Il processo che si spegne ogni ~50 secondi non lo tocca questo pacchetto**: resta la strada del pannello dell'hosting, dopo il 16 settembre.
+
+---
+
 **Ultimo aggiornamento:** 4 settembre 2026, sera tardi — ✅ **1.8.0 È IN PRODUZIONE** (caricata dal committente alle 12:48Z, timbro `1.8.0 · 8dc05f4`, verificata da fuori tre giri su tre) e 📦 **IL PACCHETTO 1.8.1 È PRONTO E NON È ANCORA CARICATO** (`vipi-1.8.1-solo-file-cambiati.zip`, sha256 `b8ff8538…`, 2,21 MB, timbro **`1.8.1 · fa1685f`**). **4 file** — i soli `.dll`/`.pdb` di `Vipi.Host` e `Vipi.Ui`: il pacchetto più piccolo da mesi. 🟢 Niente database, niente `wwwroot`, niente frasi.
 
 **Che cosa porta.** **§BL** — le tre corse sul `DbContext` che la **vostra diagnostica** ha nominato per esteso, non un'idea nostra. Non erano tre difetti: è uno solo in tre posti. Su una pagina interattiva lo `scoped` vive quanto il **circuito**, e la PAGINA leggeva il database mentre il componente figlio caricava — `AeroportoEditorPage` e `MilEditorPage` con `LeggiUnioneAsync`, `MilListPage` con una query della pagina precedente ancora in volo. 🔴 **La coda dell'editor non era la risposta, benché esista apposta**: `InFilaAsync` sta sul COMPONENTE, e quando la pagina legge il riferimento al componente è ancora `null`. La cura è `OwningComponentBase`, cioè uno scope proprio — la stessa di §BJ.
