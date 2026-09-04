@@ -275,6 +275,10 @@ public class SezioniAeroportoTests : TestContext
         // Il vento invece si vede sempre, e col carattere della tabella.
         Assert.Contains("Airport_WindVal", cut.Markup);
         Assert.Contains("rwy-wind", cut.Markup);
+
+        // ⚠️ Nessun <text> nel documento: fuori da un blocco di codice non è un comando di Razor ma un
+        // elemento HTML sconosciuto, e ci è finito davvero — visto nel prerender di LIBD, non dai test.
+        Assert.DoesNotContain("<text>", cut.Markup);
     }
 
     [Fact] // aperta: si vede da dove viene la pista consigliata, e la nota della regola
@@ -290,6 +294,7 @@ public class SezioniAeroportoTests : TestContext
         Assert.Contains("Airport_RwyByRule", cut.Markup);
         Assert.Contains("pista preferenziale notturna", cut.Markup);
         Assert.Contains("Airport_WindVal", cut.Markup);
+        Assert.DoesNotContain("<text>", cut.Markup);
     }
 
     [Fact] // senza regola attiva la provenienza è il vento del METAR, e resta comunque roba da staff

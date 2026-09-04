@@ -12,7 +12,9 @@
         {
             <text>&#32;</text>
             @(RuleName is not null ? string.Format(L["Airport_RwyByRule"], RuleName) : L["Airport_RwyByWind"].Value)
-        }<text>.</text>
+        }@* ⚠️ Il punto è marcatura NUDA, non un <text>: fuori da un blocco di codice `<text>` non è un
+             comando di Razor ma un elemento HTML sconosciuto, e finisce nel DOM alla lettera. Visto nel
+             prerender di LIBD il 4 settembre 2026 — a schermo si leggeva giusto, nel documento no. *@.
         @* Il vento si legge col carattere della TABELLA — stesso corpo, stesso inchiostro, stesso peso del
            numero di pista — e non col grigio della legenda: è un dato, non una didascalia, ed è il dato che
            chi apre la pagina cerca per primo. *@
