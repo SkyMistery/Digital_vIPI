@@ -57,3 +57,11 @@ public static class AirportAccDivergences
             .ToList();
     }
 }
+
+
+/// <summary>
+/// Che cosa si è mosso spostando un aeroporto di ACC: serve a chi deve segnalarne l'impatto sui documenti —
+/// il centro che lo perde e quello che lo prende raccontano tutt'e due una copertura che è cambiata.
+/// </summary>
+/// <param name="Callsigns">Le posizioni dell'aeroporto, come si chiamano: sono loro il legame coi documenti.</param>
+public sealed record AirportMoved(string Icao, string Nome, string DaAcc, string AAcc, IReadOnlyList<string> Callsigns);

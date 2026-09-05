@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Persistence;
@@ -92,6 +92,39 @@ public class AeroportoCambiaAccTests : IAsyncLifetime
 
         Assert.Equal("LIRR", await AccDelSettore("LIBD_TWR"));
         Assert.Equal("LIRR", await AccDelSettore("LIBD_CS0_APP"));
+    }
+
+    /// <summary>
+    /// «In evidenza» e' una scelta di UN centro — quali scali mette in prima pagina la sua landing — e non
+    /// segue lo scalo che se ne va: a Roma comparirebbe in evidenza uno scalo che nessuno di Roma ha scelto.
+    /// </summary>
+    [Fact]
+    public async Task L_evidenza_non_segue_l_aeroporto()
+    {
+        var apt = await _db.Airports.FirstAsync(a => a.Icao == "LIBD");
+        apt.FeaturedRank = 1;
+        await _db.SaveChangesAsync();
+
+        await _repo.MoveAirportAsync(await AirportId(), "LIRR");
+
+        Assert.Null((await _db.Airports.AsNoTracking().FirstAsync(a => a.Icao == "LIBD")).FeaturedRank);
+    }
+
+    /// <summary>Lo spostamento dice che cosa si e' mosso: senza, chi deve segnalarne l'impatto sui documenti
+    /// dei due centri dovrebbe ricostruire un legame che dopo lo spostamento non c'e' piu' da nessuna parte.</summary>
+    [Fact]
+    public async Task Lo_spostamento_racconta_che_cosa_ha_mosso()
+    {
+        var esito = await _repo.MoveAirportAsync(await AirportId(), "LIRR");
+
+        Assert.NotNull(esito);
+        Assert.Equal("LIBD", esito!.Icao);
+        Assert.Equal("LIBB", esito.DaAcc);
+        Assert.Equal("LIRR", esito.AAcc);
+        Assert.Equal(new[] { "LIBD_CS0_APP", "LIBD_TWR" }, esito.Callsigns.OrderBy(x => x));
+
+        // Spostarlo dove gia' sta non e' un evento: niente esito, e quindi niente segnalazione.
+        Assert.Null(await _repo.MoveAirportAsync(await AirportId(), "LIRR"));
     }
 
     /// <summary>

@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -88,6 +88,8 @@ public class AttachmentCurationServiceTests
         }
 
         public Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
         public Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition, string accCode, IReadOnlyList<string> args, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> ClearBySourceAsync(IReadOnlyCollection<ImpactKind> kinds, string sourceKey, CancellationToken ct = default) => throw new NotSupportedException();

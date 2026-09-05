@@ -201,13 +201,20 @@
         builder.CloseElement();
     };
 
+    /// <summary>
+    /// La frase della riga: chiave + argomenti, mai testo salvato (una riga scritta in italiano si
+    /// ripresenterebbe in italiano a chi legge in inglese).
+    ///
+    /// <para>⚠️ Gli argomenti si passano <b>tutti</b>. Il <c>switch</c> che stava qui si fermava a due e
+    /// l'ultimo ramo buttava via il resto: una frase con tre segnaposto — «l'aeroporto {0} è passato da {1} a
+    /// {2}» — alzava <c>FormatException</c> e, siccome questa riga si disegna dentro il banner dell'editor,
+    /// non rompeva la riga: <b>non faceva partire la pagina</b>. Preso guidando l'editor d'aeroporto il
+    /// 5 settembre 2026, con la suite verde.</para>
+    /// </summary>
     private string Frase() =>
         Item.FraseKey == WorkPhrases.Raw
             ? (Item.FraseArgs.Count > 0 ? Item.FraseArgs[0] : "")
-            : Item.FraseArgs.Count switch
-            {
-                0 => L[Item.FraseKey].Value,
-                1 => L[Item.FraseKey, Item.FraseArgs[0]].Value,
-                _ => L[Item.FraseKey, Item.FraseArgs[0], Item.FraseArgs[1]].Value,
-            };
+            : Item.FraseArgs.Count == 0
+                ? L[Item.FraseKey].Value
+                : L[Item.FraseKey, Item.FraseArgs.Cast<object>().ToArray()].Value;
 }

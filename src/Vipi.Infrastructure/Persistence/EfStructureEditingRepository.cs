@@ -179,12 +179,14 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
     /// APP che continua a pendere dal CTR del centro che l'aeroporto ha appena lasciato non è una scelta, è
     /// un residuo.</para>
     /// </summary>
-    public async Task MoveAirportAsync(int airportId, string targetAccCode, CancellationToken ct = default)
+    public async Task<AirportMoved?> MoveAirportAsync(int airportId, string targetAccCode, CancellationToken ct = default)
     {
         var targetFid = await AccIdAsync(targetAccCode, ct) ?? throw new InvalidOperationException($"ACC {targetAccCode} inesistente.");
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId, ct)
             ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente.", "The airport does not exist."));
-        if (airport.AccId == targetFid) return;
+        if (airport.AccId == targetFid) return null;   // già lì: niente da spostare e niente da segnalare
+
+        var daAcc = await _db.Accs.AsNoTracking().Where(a => a.Id == airport.AccId).Select(a => a.Code).FirstAsync(ct);
 
         // Il codice come lo scrive l'anagrafica: le righe di catalogo lo portano come stringa, e un «lirr»
         // scritto a mano nell'indirizzo si riconoscerebbe solo per caso.
@@ -211,6 +213,11 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             if (r.ParentCallsign is { } p && !dentro.Contains(p)) r.ParentCallsign = null;
         if (airport.ParentCallsign is { } ap && !dentro.Contains(ap)) airport.ParentCallsign = null;
 
+        // 2-bis. «In evidenza» è una scelta di UN centro: dice quali scali mette in prima pagina la landing
+        //        di QUELLA ACC. Portandosela dietro, uno scalo appena arrivato si presenterebbe in evidenza a
+        //        Roma perché lo era a Brindisi — una decisione che nessuno di Roma ha preso.
+        airport.FeaturedRank = null;
+
         // 3. La proiezione, subito: chi guarda l'elenco dopo lo spostamento non deve vedere il vecchio ACC
         //    finché non passa il giro notturno. La riproiezione vera la rifarà dai cataloghi, che ora dicono
         //    la stessa cosa.
@@ -222,6 +229,9 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             if (s.ParentSectorId is int pid && !movedIds.Contains(pid)) s.ParentSectorId = null;
         }
         await _db.SaveChangesAsync(ct);
+
+        return new AirportMoved(airport.Icao, airport.Name, daAcc, targetCode,
+            righe.Select(r => r.ComposePosition).ToList());
     }
 
     public async Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default) =>

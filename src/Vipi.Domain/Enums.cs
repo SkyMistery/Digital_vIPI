@@ -331,6 +331,20 @@ public enum ImpactKind
     /// indietro anche domani» sarebbe rumore su una lista che vive di essere corta.</para>
     /// </summary>
     ReleaseDriftNextCycle,
+
+    /// <summary>
+    /// Un <b>aeroporto è passato a un altro ACC</b>: le posizioni che descrive hanno cambiato centro di
+    /// competenza, e i due documenti che le raccontavano — quello del centro che lo perde e quello che lo
+    /// prende — parlano di una copertura che non è più quella.
+    ///
+    /// <para>⚠️ Niente si è rotto e non c'è niente da ricalcolare: quel che cambia è una <b>frase</b> —
+    /// «Bari è dentro il settore ES» — e nessun calcolo la sa riscrivere. Per questo è un evento, e lo
+    /// chiude una persona quando ha riletto.</para>
+    ///
+    /// <para>⚠️ In fondo all'enum come <see cref="ReleaseDriftNextCycle"/>, e per la stessa ragione: gli
+    /// ordinali sono già scritti in archivio.</para>
+    /// </summary>
+    AirportAccChanged,
 }
 
 /// <summary>Regole trasversali su <see cref="ImpactKind"/>: stanno qui e non in tre <c>switch</c> sparsi.</summary>

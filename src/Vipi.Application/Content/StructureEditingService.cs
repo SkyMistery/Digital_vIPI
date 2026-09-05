@@ -84,6 +84,7 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly ISectorProjectionService _projection;
 
     private readonly IAirportImportUseCase _airportImport;
+    private readonly IDocumentImpactService _impatti;
 
     /// <summary>Dice a TUTTE le sessioni che la mappa degli aeroporti è cambiata: la loro cache è scoped al
     /// circuito e senza una spinta invecchierebbe per ore. Vedi <see cref="SetAirportMilitaryOnlyAsync"/>.</summary>
@@ -92,7 +93,8 @@ public sealed class StructureEditingService : IStructureEditingService
         IStructureEditingRepository repo, IAirportRepository profile, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
         IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
-        ISectorProjectionService projection, IAirportImportUseCase airportImport)
+        ISectorProjectionService projection, IAirportImportUseCase airportImport,
+        IDocumentImpactService impatti)
     {
         _repo = repo;
         _profile = profile;
@@ -104,6 +106,7 @@ public sealed class StructureEditingService : IStructureEditingService
         _sectorImporter = sectorImporter;
         _projection = projection;
         _airportImport = airportImport;
+        _impatti = impatti;
     }
 
     public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -145,12 +148,35 @@ public sealed class StructureEditingService : IStructureEditingService
         await _repo.DeleteAirportAsync(accCode, airportId, ct);
     }
 
+    /// <summary>
+    /// Sposta un aeroporto in un altro ACC e <b>segnala i documenti da rileggere</b>.
+    ///
+    /// <para>⚠️ Non c'è niente da ricalcolare: la vIPI del centro che lo perde e quella del centro che lo
+    /// prende restano valide come file, ma raccontano una copertura che non è più quella — «Bari è dentro il
+    /// settore ES» è una frase, e nessun calcolo la sa riscrivere. Perciò si apre un impatto, che chiude una
+    /// persona quando ha riletto. La copia già pubblicata resta com'è, ed è giusto: è congelata.</para>
+    ///
+    /// <para>⚠️ I documenti si cercano <b>due volte</b>, sotto il vecchio codice e sotto il nuovo: il
+    /// reverse-lookup risale alla vIPI ACC passando per il codice del centro, e dopo lo spostamento quello di
+    /// prima non lo porta più nessuna riga.</para>
+    /// </summary>
     public async Task MoveAirportAsync(int airportId, string fromAccCode, string targetAccCode, CancellationToken ct = default)
     {
         // Spostamento cross-ACC: serve poter editare sia origine sia destinazione.
         _authz.EnsureAtLeast(VipiRole.Editor);
-        _authz.EnsureAtLeast(VipiRole.Editor);
-        await _repo.MoveAirportAsync(airportId, targetAccCode, ct);
+        var esito = await _repo.MoveAirportAsync(airportId, targetAccCode, ct);
+        if (esito is null) return;   // era già in quell'ACC
+
+        var documenti = new HashSet<int>();
+        foreach (var callsign in esito.Callsigns)
+        {
+            foreach (var id in await _impatti.FindDocumentsForSectorAsync(callsign, esito.DaAcc, ct)) documenti.Add(id);
+            foreach (var id in await _impatti.FindDocumentsForSectorAsync(callsign, esito.AAcc, ct)) documenti.Add(id);
+        }
+        if (documenti.Count == 0) return;
+
+        await _impatti.RaiseForDocumentsAsync(ImpactKind.AirportAccChanged, documenti, sourceKey: esito.Icao,
+            args: new[] { esito.Icao, esito.DaAcc, esito.AAcc }, ct);
     }
 
     public Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default)

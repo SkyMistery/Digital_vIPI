@@ -314,6 +314,8 @@ public class DeletionProbeTests : IDisposable
             Task.FromResult(0);
         public Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode,
             CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
         public Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition,
             string accCode, IReadOnlyList<string> args, CancellationToken ct = default) =>
             throw new NotSupportedException();

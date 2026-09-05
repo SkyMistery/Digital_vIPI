@@ -215,6 +215,20 @@ else
         if (_listMode) return;
 
         _icao = Icao!.ToUpperInvariant();
+
+    /// <summary>
+    /// L'indirizzo porta un ACC che non è più quello dello scalo (un aeroporto passato a un altro centro):
+    /// si rimanda all'indirizzo giusto, sostituendo la voce nella cronologia. Il link vecchio continua a
+    /// funzionare — cambia solo che smette di dire il falso. La domanda la fa il catalogo in cache, non il
+    /// database: vedi <see cref="RottaAeroporto"/>.
+    /// </summary>
+        if (RottaAeroporto.AccDaCorreggere(Stations, Acc, _icao) is { } giusto)
+        {
+            Nav.NavigateTo($"/services/vsop/{giusto.ToLowerInvariant()}/airports?icao={_icao}"
+                           + (string.IsNullOrEmpty(As) ? "" : $"&as={As}"), replace: true);
+            return;
+        }
+
         _canEdit = Authz.IsEditor;   // tasto Editor solo a chi può editare l'ACC
         _presidency = await Presidency.ResolveAsync(_icao);
 

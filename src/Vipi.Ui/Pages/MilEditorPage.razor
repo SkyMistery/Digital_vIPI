@@ -6,6 +6,8 @@
 @inject IEditAuthorizationService Authz
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
+@inject NavigationManager Nav
+@inject IStationResolver Stations
 
 @* La pagina dell'editor di un vSOP militare: qui restano l'indirizzo, i MEMBRI dell'unione (se questo
    documento ne è l'ospite), il pannello dell'unione e quello di pubblicazione. Il CORPO editoriale sta in
@@ -72,7 +74,21 @@
     protected override void OnInitialized() =>
         Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
 
-    protected override async Task OnParametersSetAsync() => await LeggiUnioneAsync();
+    /// <summary>
+    /// L'indirizzo porta un ACC che non è più quello dello scalo: si rimanda a quello giusto, sostituendo la
+    /// voce nella cronologia. La domanda la fa il catalogo in cache (<see cref="RottaAeroporto"/>), non il
+    /// database.
+    /// </summary>
+    protected override async Task OnParametersSetAsync()
+    {
+        var icao = (Icao ?? "").Trim().ToUpperInvariant();
+        if (RottaAeroporto.AccDaCorreggere(Stations, Acc, icao) is { } giusto)
+        {
+            Nav.NavigateTo($"/services/vsop/{giusto.ToLowerInvariant()}/mil/editor?icao={icao}", replace: true);
+            return;
+        }
+        await LeggiUnioneAsync();
+    }
 
     private async Task LeggiUnioneAsync()
     {

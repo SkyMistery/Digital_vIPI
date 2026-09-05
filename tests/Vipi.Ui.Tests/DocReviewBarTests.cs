@@ -51,6 +51,8 @@ public class DocReviewBarTests : TestContext
         }
 
         public Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode,
+            CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
         public Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default) => Task.FromResult(0);
         public Task<int> RaiseForDocumentsAsync(ImpactKind kind, IReadOnlyCollection<int> documentIds, string sourceKey, IReadOnlyList<string> args, CancellationToken ct = default) => Task.FromResult(0);
         public Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition, string accCode, IReadOnlyList<string> args, CancellationToken ct = default) =>
@@ -104,6 +106,23 @@ public class DocReviewBarTests : TestContext
         // La frase è composta da chiave + argomenti: il localizzatore di prova restituisce «chiave arg».
         Assert.Contains("Impact_SectorGone LIRR_TS_CTR", cut.Markup);
         Assert.Contains("Impact_AreaChanged LI D20", cut.Markup);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Una frase con TRE segnaposto.</b> La composizione si fermava a due argomenti e buttava via il
+    /// resto: «l'aeroporto {0} è passato da {1} a {2}» alzava <c>FormatException</c> e — siccome questa riga
+    /// vive dentro il banner dell'editor — non rompeva la riga, <b>non faceva partire la pagina</b>. Trovato
+    /// guidando l'editor d'aeroporto il 5 settembre 2026, con la suite verde.
+    /// </summary>
+    [Fact]
+    public void Una_frase_con_tre_argomenti_li_prende_tutti()
+    {
+        Predisponi(new DocumentImpactRow(9, 7, "vIPI Roma ACC", ImpactKind.AirportAccChanged, "LIBD",
+            "Impact_AirportAccChanged", new[] { "LIBD", "LIBB", "LIRR" }, false, DateTime.UtcNow));
+
+        var cut = RenderComponent<DocReviewBar>(p => p.Add(x => x.DocumentId, 7));
+
+        Assert.Contains("Impact_AirportAccChanged LIBD LIBB LIRR", cut.Markup);
     }
 
     /// <summary>⚠️ Il ✓ su una riga calcolata sarebbe un ping-pong con il giro notturno: l'utente la chiude,

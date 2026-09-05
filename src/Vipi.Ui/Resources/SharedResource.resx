@@ -3021,7 +3021,9 @@
   <data name="Att_DeleteConfirm" xml:space="preserve"><value>Elimina la voce</value></data>
   <data name="Att_Deleted" xml:space="preserve"><value>«{0}» eliminata; {1} documenti da correggere, segnalati.</value></data>
   <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>L'allegato «{0}» è stato eliminato dalla biblioteca: la citazione nel documento non porta più da nessuna parte.</value></data>
+  <data name="Impact_AirportAccChanged" xml:space="preserve"><value>L'aeroporto {0} è passato da {1} a {2}: la copertura raccontata qui non è più quella. Rileggi le parti che lo nominano.</value></data>
   <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Allegato eliminato</value></data>
+  <data name="ImpactKind_AirportAccChanged" xml:space="preserve"><value>Aeroporto passato a un altro ACC</value></data>
   <data name="Asp_AdminTitle" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminNav" xml:space="preserve"><value>Spazi aerei</value></data>
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>Gli spazi aerei dell'AIP, dal file caricato a mano.</value></data>

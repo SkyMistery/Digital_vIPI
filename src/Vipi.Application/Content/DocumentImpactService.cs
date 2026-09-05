@@ -63,6 +63,13 @@ public interface IDocumentImpactService
     Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition,
         string accCode, IReadOnlyList<string> args, CancellationToken ct = default);
 
+    /// <summary>
+    /// I documenti che raccontano una posizione, <b>senza aprire niente</b>: serve a chi deve aprire con
+    /// argomenti propri (lo spostamento di un aeroporto nomina i due centri, non il callsign).
+    /// </summary>
+    Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode,
+        CancellationToken ct = default);
+
     /// <summary>Apre l'impatto su tutti i documenti che citano l'area regolamentata.</summary>
     Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default);
 
@@ -135,6 +142,7 @@ public sealed class DocumentImpactService : IDocumentImpactService
         public const string BrokenTarget = "Impact_BrokenTarget";
         public const string AttachmentReplaced = "Impact_AttachmentReplaced";
         public const string AttachmentDeleted = "Impact_AttachmentDeleted";
+        public const string AirportAccChanged = "Impact_AirportAccChanged";
 
         public static string For(ImpactKind kind) => kind switch
         {
@@ -149,10 +157,19 @@ public sealed class DocumentImpactService : IDocumentImpactService
             ImpactKind.ReleaseDrift => ReleaseDrift,
             ImpactKind.ReleaseDriftNextCycle => ReleaseDriftNextCycle,
             ImpactKind.ReleaseKeyMoved => ReleaseKeyMoved,
+            ImpactKind.AirportAccChanged => AirportAccChanged,
             ImpactKind.AttachmentReplaced => AttachmentReplaced,
             ImpactKind.AttachmentDeleted => AttachmentDeleted,
             _ => BrokenTarget,
         };
+    }
+
+    public async Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode,
+        CancellationToken ct = default)
+    {
+        var cs = (composePosition ?? "").Trim();
+        if (cs.Length == 0) return Array.Empty<int>();
+        return (await _repo.FindDocumentsForSectorAsync(cs, accCode ?? "", ct)).Select(d => d.Id).ToList();
     }
 
     public async Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode,

@@ -24,7 +24,12 @@ public interface IStructureEditingRepository
     /// <summary>Elimina un aeroporto solo se nessun settore vi punta. Lancia se referenziato.</summary>
     Task DeleteAirportAsync(string accCode, int airportId, CancellationToken ct = default);
     /// <summary>Sposta un aeroporto (e i suoi settori) sotto un'altra ACC. Stacca il padre dei settori spostati se fuori ACC.</summary>
-    Task MoveAirportAsync(int airportId, string targetAccCode, CancellationToken ct = default);
+    /// <summary>
+    /// Sposta l'aeroporto: anagrafica, <b>catalogo</b> delle posizioni e proiezione. Ritorna che cosa si è
+    /// mosso, perché il chiamante deve poterne segnalare l'impatto sui documenti dei due centri — e dopo lo
+    /// spostamento il legame col centro di prima non esiste più da nessuna parte.
+    /// </summary>
+    Task<AirportMoved?> MoveAirportAsync(int airportId, string targetAccCode, CancellationToken ct = default);
 
     /// <summary>Tutti gli aeroporti assegnati a una ACC (cross-ACC), per la pagina di gestione.</summary>
     Task<IReadOnlyList<AirportAdminRow>> ListAllAirportsAsync(CancellationToken ct = default);

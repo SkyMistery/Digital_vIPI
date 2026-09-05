@@ -3013,7 +3013,9 @@
   <data name="Att_DeleteConfirm" xml:space="preserve"><value>Delete the entry</value></data>
   <data name="Att_Deleted" xml:space="preserve"><value>«{0}» deleted; {1} documents to fix, flagged.</value></data>
   <data name="Impact_AttachmentDeleted" xml:space="preserve"><value>The attachment «{0}» was deleted from the library: the citation in the document no longer leads anywhere.</value></data>
+  <data name="Impact_AirportAccChanged" xml:space="preserve"><value>Airport {0} moved from {1} to {2}: the coverage described here is no longer the one in force. Re-read the parts that mention it.</value></data>
   <data name="ImpactKind_AttachmentDeleted" xml:space="preserve"><value>Attachment deleted</value></data>
+  <data name="ImpactKind_AirportAccChanged" xml:space="preserve"><value>Airport moved to another ACC</value></data>
   <data name="Asp_AdminTitle" xml:space="preserve"><value>Airspaces</value></data>
   <data name="Asp_AdminNav" xml:space="preserve"><value>Airspaces</value></data>
   <data name="Asp_AdminSubtitle" xml:space="preserve"><value>AIP airspaces, from the file uploaded by hand.</value></data>

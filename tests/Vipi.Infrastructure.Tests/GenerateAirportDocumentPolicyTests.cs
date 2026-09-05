@@ -111,7 +111,8 @@ public class GenerateAirportDocumentPolicyTests : IAsyncLifetime
         return new StructureEditingService(
             new EfStructureEditingRepository(_db), _profile, authz, dir, det, _policy,
             sectors, importer, new EfSectorProjectionService(_db),
-            new AirportImportUseCase(dir, new EfStructureEditingRepository(_db), importer, new EfSectorProjectionService(_db)));
+            new AirportImportUseCase(dir, new EfStructureEditingRepository(_db), importer, new EfSectorProjectionService(_db)),
+            new DocumentImpactService(new EfDocumentImpactRepository(_db), authz));
     }
 
     private sealed class FakeUser : ICurrentUserProvider

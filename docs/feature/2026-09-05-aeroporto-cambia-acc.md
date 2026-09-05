@@ -52,16 +52,51 @@ dal CTR del centro appena lasciato è un residuo, non una scelta.
 - **Gli elenchi seguono**: LIBD sparisce da quello di Brindisi e compare in quello di Roma.
 - **Gli editor funzionano** da entrambi gli indirizzi.
 - **I permessi non c'entrano**: dal 28 agosto l'Editor edita tutto, quindi nessuno resta fuori.
-- ⚠️ **I link vecchi restano vivi ma mentono**: `/services/vsop/libb/airports?icao=LIBD` carica lo stesso (la
-  pagina risolve per ICAO) e mostra la briciola di pane dell'ACC sbagliato. Nessun redirect — annotato, non
-  corretto in questo giro.
-- ⚠️ **La vIPI ACC già pubblicata continua a citarlo** finché non si ripubblica: è una release **congelata**,
-  ed è giusto così.
-- ⚠️ `FeaturedRank` viaggia con l'aeroporto: se era in evidenza su Brindisi, si presenta in evidenza su Roma.
+## 4. Le tre code, chiuse
+
+Le tre cose annotate qui sopra sono state corrette nello stesso giro.
+
+**a) I link vecchi non mentono più.** Le pagine d'aeroporto e di vSOP militare stanno sotto
+`/services/vsop/{acc}/…` ma risolvono il documento per **ICAO**: l'ACC nella rotta è chrome. Un link scritto
+prima dello spostamento continuava quindi a funzionare mostrando l'ACC sbagliato — una pagina che dice il
+falso senza rompersi, che è il modo peggiore di sbagliare. Ora le quattro pagine (documento ed editor, civile e
+militare) rimandano all'indirizzo giusto sostituendo la voce nella cronologia. La domanda la fa
+`RottaAeroporto` al **catalogo delle stazioni**, che è già in cache di processo e si aggiorna da sé quando una
+riga `Airport` viene salvata: nessuna query mentre la pagina si disegna. Un ICAO che il catalogo non conosce
+non manda da nessuna parte — la pagina sa già dire «non trovato».
+
+**b) I documenti dei due centri si segnalano.** Lo spostamento apre un impatto `AirportAccChanged` su tutto
+ciò che raccontava quelle posizioni: la vIPI del centro che perde lo scalo, quella del centro che lo prende, il
+documento dello scalo e i vicini nella catena di copertura. ⚠️ I documenti si cercano **due volte**, sotto il
+vecchio codice e sotto il nuovo: il reverse-lookup risale alla vIPI ACC passando per il codice del centro, e
+dopo lo spostamento quello di prima non lo porta più nessuna riga. È un **evento**, non un calcolo: non c'è
+niente da ricalcolare, c'è una frase — «Bari è dentro il settore ES» — che nessun calcolo sa riscrivere. La
+chiude una persona quando ha riletto. La copia già pubblicata resta com'è: è congelata, ed è giusto.
+
+**c) «In evidenza» non segue lo scalo.** `FeaturedRank` dice quali aeroporti mette in prima pagina la landing
+di **un** centro. Portandoselo dietro, uno scalo appena arrivato si presentava in evidenza a Roma perché lo era
+a Brindisi — una decisione che nessuno di Roma aveva preso. Ora lo spostamento lo azzera.
+
+### 🔴 Il difetto che la verifica live ha preso, e i test no
+
+La frase del punto (b) ha **tre** segnaposto. La riga del banner ne componeva al massimo **due** e buttava via
+il resto: `L[chiave, args[0], args[1]]`. Risultato: `FormatException` durante il render — e siccome quella riga
+vive dentro il banner dell'editor, non si rompeva la riga, **non partiva la pagina**. Suite verde, editor
+d'aeroporto morto. Ora gli argomenti si passano tutti, e c'è una prova con tre.
+
+⚠️ **La vIPI ACC già pubblicata continua a citarlo** finché non si ripubblica: è una release **congelata**, ed
+è giusto così — ma adesso chi la cura ha la riga che glielo dice.
 
 ## Verifiche
 
 - Suite verde su due TFM, `dotnet build Vipi.slnx -c Release --no-incremental` 0 avvisi.
+- Prove delle tre code: `RottaAeroportoTests` (si corregge / si lascia stare / ICAO sconosciuto),
+  `AeroportoCambiaAccTests` (l'evidenza non segue, lo spostamento racconta che cosa ha mosso, e spostarlo dove
+  già sta non è un evento), `DocReviewBarTests` (una frase con **tre** argomenti li prende tutti).
+- **Live, dopo le correzioni**: `/services/vsop/libb/airports?icao=LIBD` finisce su `/lirr/…` con la briciola
+  giusta (e l'editor pure); gli indirizzi già giusti non si muovono; quattro impatti aperti — vIPI Brindisi,
+  vIPI Roma, vIPI LIBD e vIPI LIBR — con la frase «Airport LIBD moved from LIBB to LIRR…» a schermo nel banner;
+  `FeaturedRank` azzerato.
 - Prove nuove: `AeroportoCambiaAccTests` (anagrafica + catalogo + proiezione; **la riproiezione non riporta
   indietro i settori**; il padre fuori ACC resta staccato) e `AirportAccDivergencesTests` (il disaccordo, le
   maiuscole, l'ACC assente, l'aeroporto che la sorgente non nomina, l'ordine).
