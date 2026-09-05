@@ -7,6 +7,7 @@
 @inject UnionLoader Membri
 @inject NavigationManager Nav
 @inject IOnlineAtcProvider Online
+@inject Vipi.Application.Live.ILiveViewService VistaLive
 @inject IAiracService Airac
 @inject StringheDelSito Sito
 @inject EnglishStrings En
@@ -58,7 +59,13 @@ else
                     </div>
                     <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
-                        <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@Sito["Common_Operational"]</a>
+                        @* La vista live di una postazione altrui non e' pubblica (carta
+                           2026-09-05-vista-live-selettore-e-cancello): a chi non la puo' aprire il tasto non
+                           si mostra, o sarebbe un gesto che rimbalza indietro. *@
+                        @if (Authz.IsDivisionStaff || string.Equals(_app, VistaLive.MyCallsign(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a class="btn ghost" href="/services/vsop/live/@_app.ToLowerInvariant()">@Sito["Common_Operational"]</a>
+                        }
                         @if (_canEdit)
                         {
                             <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/apps/editor?app=@_app">@Sito["Common_Editor"]</a>

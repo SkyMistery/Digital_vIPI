@@ -276,6 +276,10 @@
   <data name="Live_ExtendedDoc" xml:space="preserve"><value>← Documento esteso</value></data>
   <data name="Live_QuickView" xml:space="preserve"><value>Vista rapida — il mio settore o un aeroporto sotto controllo diretto</value></data>
   <data name="Live_MySector" xml:space="preserve"><value>Il mio settore</value></data>
+  <data name="Live_PickPlaceholder" xml:space="preserve"><value>Apri un'altra postazione…</value></data>
+  <data name="Live_PickTitle" xml:space="preserve"><value>Staff di divisione: apre la vista live di una qualsiasi postazione, anche spenta</value></data>
+  <data name="Live_PickNoMatch" xml:space="preserve"><value>Nessuna postazione</value></data>
+  <data name="Live_PickOpen" xml:space="preserve"><value>aperta</value></data>
   <data name="Live_AptDelegatedTip" xml:space="preserve"><value>controllato da un'altra posizione online</value></data>
   <data name="Live_AptQuickTip" xml:space="preserve"><value>vista rapida aeroporto</value></data>
   <data name="Live_AptPresidedBy" xml:space="preserve"><value>Adesso: {0}</value></data>
