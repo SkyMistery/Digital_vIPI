@@ -4,6 +4,13 @@
     <!-- net8.0 serve SOLO per l'embedding nel sito Ivao.It (host net8). Il ramo net10.0 resta quello
          consumato da Vipi.Host e dai test. Vedi docs/guide/integration.md §TFM. -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- ⚠️ IL RID SI DICHIARA QUI, e non è cosmesi: senza, il `packages.lock.json` di questa libreria CAMBIA
+         FORMA a seconda di chi lo restora. Il publish del pacchetto (linux-x64, self-contained) risolve il
+         grafo di quel RID anche per le librerie e scrive le sezioni `net8.0/linux-x64` e `net10.0/linux-x64`;
+         un `dotnet build` normale non le produce, e il file balla a ogni giro mostrandosi modificato in git
+         senza che nessuna dipendenza sia cambiata. Dichiarandolo, ogni restore produce lo stesso file. La CI
+         restora in «locked mode» e si fermerebbe su un lock di forma diversa da quella committata. -->
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

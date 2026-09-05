@@ -46,6 +46,13 @@
 
   <PropertyGroup>
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- ⚠️ IL RID SI DICHIARA QUI, e non è cosmesi: senza, il `packages.lock.json` di questo progetto CAMBIA
+         FORMA a seconda di chi lo restora. Un `dotnet build` normale (Windows, nessun RID) non produce la
+         sezione `net8.0/linux-x64`, il publish del pacchetto la produce, e il file balla a ogni giro —
+         mostrandosi modificato in git senza che nessuna dipendenza sia cambiata. Dichiarandolo, ogni restore
+         risolve anche il grafo linux-x64 e il lock è lo stesso per tutti. La CI restora in «locked mode» e si
+         fermerebbe su un lock di forma diversa da quella committata. -->
+    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>

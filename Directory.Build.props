@@ -48,6 +48,17 @@
       Perché non la gestione centralizzata dei pacchetti (Directory.Packages.props): darebbe un posto solo per
       le versioni, ma la riproducibilità — che è il problema vero — la dà il lock file, e toccare venti csproj
       con versioni già condizionate al TFM è rischio senza il guadagno che conta.
+
+      ⚠️ E IL LOCK DEVE AVERE UNA FORMA SOLA, o smette di misurare. Fino al 5 settembre 2026 i nove
+      `packages.lock.json` di `src/` ballavano a ogni giro: un `dotnet build` normale (nessun RID) li
+      scriveva senza le sezioni `*/linux-x64`, il publish del pacchetto (linux-x64, self-contained) gliele
+      rimetteva, e il file risultava modificato in git senza che nessuna dipendenza fosse cambiata. Due
+      volte lo si è «corretto» a mano rimettendolo com'era: il sintomo di una regola che manca.
+
+      La regola che mancava: IL RID VA DICHIARATO — `<RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>` nei
+      nove progetti di `src/`. Così ogni restore risolve anche quel grafo e produce lo STESSO file, da
+      qualunque comando si passi. Misurato il 5 settembre 2026: restore normale e publish linux-x64 lasciano
+      file identici byte per byte, e il restore in «locked mode» resta verde.
     -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
