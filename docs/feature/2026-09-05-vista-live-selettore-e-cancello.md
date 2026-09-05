@@ -1,4 +1,4 @@
-# La vista live si sceglie — ma solo da chi può — 5 settembre 2026
+﻿# La vista live si sceglie — ma solo da chi può — 5 settembre 2026
 
 > Richiesta del committente: *«Per chi è almeno division staff vorrei che nella visuale live fosse
 > possibile selezionare una qualsiasi postazione per vedere l'interfaccia come se fosse live quella
@@ -88,7 +88,13 @@ mandare a qualcuno.
 | 3 | Selettore per DivisionStaff+ (`ListStationsAsync` + `TypeaheadPicker`) | ✅ |
 | 4 | Propagazione: memoria, commenti, doc 12, lavori aperti | ✅ |
 
-## 7. ✅ Verificato live, e le due cose che i test non vedevano
+## 7. ✅ In produzione dal 5 settembre 2026
+
+Con il pacchetto **1.10.0** (`1.10.0 · 99f33f0`), e la prova che gira **questo** codice è proprio il
+cancello di questa carta: da anonimo `/services/vsop/live/lirr_ctr` risponde **302** verso
+`/services/vsop/live`, dove 1.9.0 rispondeva **200**.
+
+## 8. ✅ Verificato live, e le due cose che i test non vedevano
 
 Guidando `dotnet run` su copia del `vipi.db` a **tre identità** (`DevIdentity`), con `curl` per il cancello —
 che scatta al **prerender**, quindi si legge come un 302 vero — e Edge+puppeteer per il selettore.

@@ -1,5 +1,29 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 5 settembre 2026, pomeriggio — ✅ **1.10.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.10.0-solo-file-cambiati.zip`, sha256 `bdd10cb8…`, 4,44 MB, **16 file**, timbro **`1.10.0 · 99f33f0`**), **verificata da fuori**.
+
+⚠️ **E la verifica da fuori non è il timbro**: da anonimo il timbro non si vede (la barra lo mostra ai soli amministratori), e i dieci controlli pubblici — JS minificato servito, circuito aperto, **Ricerca che risponde**, foglio di stile in vigore, console pulita — sarebbero verdi **anche su 1.9.0**. Le due prove che gira il codice **nuovo** sono altre, e sono pubbliche: (1) il **cancello di §BQ**, `/services/vsop/live/lirr_ctr` da anonimo dà **302** verso `/services/vsop/live` dove 1.9.0 dava **200** — ed è codice del **server**, non un file statico; (2) le **impronte sha256** dei due asset di `wwwroot` serviti dal sito, identiche a quelle del pacchetto, con l'indice che li chiede col nome giusto. Cioè binari **e** `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto.
+
+**Che cosa porta — tre lavori, e due cambiano comportamento a schermo.**
+
+**§BN — l'editor d'aeroporto ha UNA porta sola.** Erano **nove** tasti «Salva» più «Salva tutto (N)» e Ctrl+S, **tre** buffer che si potevano perdere, e un cancello che non era il lock ma il **ruolo** sulla ACC: si digitava in tutta la pagina senza aver premuto «Modifica». Ora ogni gesto scrive, i campi vivono **solo col lock**, e la guardia sta **nel service** e non nel bottone. ⚠️ Chi cerca il tasto «Salva» penserà che sia rotto: va detto.
+
+**§BQ — la vista live non è più pubblica.** 🔴 `/services/vsop/live/{callsign}` non aveva **nessun** cancello: bastava scrivere un callsign nell'indirizzo, da anonimo. Ora l'utente normale apre **solo la propria** postazione (qualunque altra rimanda in silenzio a `/services/vsop/live`) e da **DivisionStaff** in su c'è un **selettore** su tutte le postazioni dei cataloghi, spente comprese. ⚠️ La regola è «la mia», **non** «non è aperta da altri»: un cancello che guardasse l'online cambierebbe risposta a ogni tick e butterebbe fuori chi sta guardando.
+
+**§BR — la vista rapida d'aeroporto cerca le SID** (punto, codice o transition) e porta **Transition e Condition** come il documento completo. 🔴 Ma la cosa vera è che quella tabella era una **seconda derivazione** scritta a mano e divergeva: la nota «to coord with APP» sull'initial climb **non compariva mai** — su LIBD sono **7 righe su 20**. Ora passa dalla derivazione del documento.
+
+🔴 **E provare il PACCHETTO invece del sorgente ha pagato due volte in un giro solo.** (1) A processo appena acceso il selettore diceva «Nessuna postazione» invece di «Caricamento…» — su Plesk, dove il processo rinasce ogni ~50 s, quel momento lo vede la **prima visita di ognuno**. (2) 🔴 La **correzione**, alla prima stesura, ha aggiunto un difetto **peggiore**: il commento che la spiegava stava **fra gli attributi** del componente, e un commento Razor scritto lì dentro diventa il **nome di un attributo** — build a **zero avvisi** e la vista live in **500 per tutto lo staff**. L'ha preso lo smoke `Live_page_renders`.
+
+➕ **Due code**: i `packages.lock.json` hanno smesso di ballare (il RID si **dichiara**, e sono **due** — anche `win-x64`, perché il runbook prescrive quel publish a ogni pacchetto), e la nota della quota da concordare è corta ovunque, in **una costante sola**.
+
+⚠️ **Quel che serve indietro resta UN FILE**: `diagnostica/errori-richieste.txt` fra qualche giorno. Di 1.8.1, 1.9.0 e ora 1.10.0 non abbiamo ancora un dato.
+
+ℹ️ **Il processo che si spegne ogni ~50 secondi non lo tocca questo pacchetto**: resta la strada del pannello dell'hosting, dopo il 16 settembre.
+
+🔴 **E resta la decisione editoriale**: **17 release in vigore su 17 non congelano la traduzione**. Si chiude **ripubblicando**, non è codice.
+
+---
+
 **Ultimo aggiornamento:** 4 settembre 2026, notte — ✅ **1.9.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.9.0-solo-file-cambiati.zip`, sha256 `3045b044…`, 4,50 MB, **15 file**, timbro **`1.9.0 · f75e2e0`**). ✅ **Verificata da fuori, da anonimo, due giri su due verdi**: il JS che avvia Blazor arriva ed è minificato, il circuito si apre, la **Ricerca risponde** (è il controllo che conta, perché passa dal server), il foglio di stile è in vigore — quindi i quattro file di `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto — e la console del browser è pulita. ⚠️ Il **timbro** non si vede da fuori (la barra lo mostra ai soli amministratori): lo confermerà `diagnostica/avvio-diagnostica.txt` al prossimo giro di diagnostica.
 
 **Che cosa porta.**

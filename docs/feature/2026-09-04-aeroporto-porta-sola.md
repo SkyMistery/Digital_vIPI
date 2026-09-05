@@ -1,4 +1,4 @@
-# L'aeroporto entra nella regola: una porta sola per salvare, e i campi vivi solo col lock — 4 settembre 2026
+﻿# L'aeroporto entra nella regola: una porta sola per salvare, e i campi vivi solo col lock — 4 settembre 2026
 
 > Richiesta del committente: *«vorrei che il punto di salvataggio dei documenti di aeroporto sia uno, come
 > negli altri documenti. E voglio poter scrivere nei campi solo se il documento è in editing e quindi con
@@ -129,7 +129,7 @@ caso in cui oggi si perde lavoro **valido e già digitato** — che è il difett
 ## 8. Le code del 5 settembre
 
 ✅ **Fuso in `main`** (`8b3130ad`), ramo cancellato. Build Release `no-incremental` e 5.423 test verdi sul
-merge. Fuori produzione: serve un pacchetto.
+merge. ✅ **In produzione dal 5 settembre 2026** con il pacchetto **1.10.0** (`1.10.0 · 99f33f0`).
 
 **La verifica live è stata fatta** (LIBD, copia del DB): senza lock zero campi e zero tasti «Salva»; col lock
 TORA, una SID manuale nuova e un limite di settore **riletti dal database** dopo il ricarico; Ctrl+S inerte,
