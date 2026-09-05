@@ -1890,9 +1890,12 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
    andavano a capo entrambe su LIPY. E per RWY e Type il minimo lo detta l'INTESTAZIONE, non il dato (per
    questo la colonna pista si intitola RWY e non «Runway»/«Pista»: per esteso costava il doppio).
 
-   Due colonne NON entrano nel conto del «non va a capo», ed è voluto: Initial climb, che con la nota
-   «5000 ft (to be coordinated with APP)» vorrebbe 231px, e Condition, che è prosa. Per loro la quota vale
-   quante RIGHE si accetta: Initial climb tiene la nota in due righe, Condition resta la più larga.
+   Due colonne NON entrano nel conto del «non va a capo», ed è voluto: Initial climb, che con la quota PIÙ la
+   nota («5000 ft (to coord with APP)») vorrebbe più di quanto le si dà, e Condition, che è prosa. Per loro la
+   quota vale quante RIGHE si accetta: Condition resta la più larga.
+   ⚠️ La nota da sola ci sta su UNA riga dal 5 settembre 2026, da quando è abbreviata («to coord with APP»,
+   106px misurati in una colonna di 126). Prima era «to be coordinated with APP», ne voleva 162 da sola e 231
+   con la quota davanti, e andava a capo sempre: la larghezza di questa colonna era tarata su quello.
    Il min-width serve allo stesso vincolo: sotto quella soglia la tabella scorre nel suo contenitore
    invece di stringersi e spezzare le parole. */
 .sid-view{table-layout:fixed;min-width:930px}

@@ -46,6 +46,23 @@ public interface IAirportSidDerivationService
 /// <inheritdoc cref="IAirportSidDerivationService"/>
 public sealed class AirportSidDerivationService : IAirportSidDerivationService
 {
+    /// <summary>
+    /// La nota «la quota si concorda con l'APP», <b>come la scrive il documento</b>.
+    ///
+    /// <para>In inglese come il resto del documento (Transition Altitude/Level, Initial climb, …), e
+    /// ABBREVIATA dal 5 settembre 2026: per esteso — «to be coordinated with APP» — non ci stava nella
+    /// colonna Initial climb dell'editor e scavalcava Cat., e allargare quella colonna vuol dire stringerne
+    /// un'altra fra dodici.</para>
+    ///
+    /// <para>⚠️ È <c>public</c> perché l'EDITOR la mostra a schermo prima che il documento esista, e due
+    /// stesure della stessa frase sono due stesure che divergono: la prima volta che qualcuno accorcia solo
+    /// una delle due, l'editor promette una cosa e il documento ne pubblica un'altra. Un posto solo.</para>
+    ///
+    /// <para>⚠️ Le release già congelate conservano la frase con cui furono pubblicate: uno snapshot è la
+    /// verità di allora, e non si riscrive. Cambiare qui cambia la vista LIVE e le release future.</para>
+    /// </summary>
+    public const string NotaClimbApp = "to coord with APP";
+
     private readonly IAirportRepository _repo;
     private readonly IAiracService _airac;
 
@@ -78,11 +95,10 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
     private static string Dash(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!.Trim();
 
     // Initial climb: se la quota è "da concordare con APP" lo si annota accanto al valore (o al posto del "—").
-    // Testo in inglese come il resto del documento (Transition Altitude/Level, Initial climb, ...).
     private static string Climb(string? v, bool byApp)
     {
         var q = (v ?? "").Trim();
         if (!byApp) return q.Length == 0 ? "—" : q;
-        return q.Length == 0 ? "to be coordinated with APP" : $"{q} (to be coordinated with APP)";
+        return q.Length == 0 ? NotaClimbApp : $"{q} ({NotaClimbApp})";
     }
 }

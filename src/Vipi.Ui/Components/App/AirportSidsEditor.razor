@@ -131,7 +131,7 @@
                                                @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
                                         <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
                                     }
-                                    else { <span title="@ClimbEsteso(e.InitialClimb, e.InitialClimbByApp)">@ClimbManuale(e.InitialClimb, e.InitialClimbByApp)</span> }
+                                    else { <span title="@Climb(e.InitialClimb, e.InitialClimbByApp)">@Climb(e.InitialClimb, e.InitialClimbByApp)</span> }
                                 </td>
                                 <td class="col-cat">
                                     @if (Editing)
@@ -265,7 +265,7 @@
                                            @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
                                     <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @bind:after="Sporca" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
                                 }
-                                else { <span title="@ClimbEsteso(s.InitialClimb, s.InitialClimbByApp)">@ClimbManuale(s.InitialClimb, s.InitialClimbByApp)</span> }
+                                else { <span title="@Climb(s.InitialClimb, s.InitialClimbByApp)">@Climb(s.InitialClimb, s.InitialClimbByApp)</span> }
                             </td>
                             <td class="col-cat">
                                 @if (Editing)
@@ -403,25 +403,18 @@
     private static string Testo(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!;
 
     /// <summary>
-    /// L'initial climb in sola lettura: la quota e, se c'è, la nota «da concordare con l'APP».
+    /// L'initial climb in sola lettura: la quota e, se c'è, la nota della quota da concordare con l'APP.
     ///
-    /// <para>⚠️ La nota è ABBREVIATA qui («to coord with APP») e per esteso nel DOCUMENTO. Non è una svista:
-    /// la colonna di questa tabella è larga 132px fra dodici colonne, e la frase intera ci scavalcava sopra
-    /// Cat. — visto a schermo su LIBD il 5 settembre 2026. Nel documento pubblicato, dove la colonna è larga
-    /// il triplo e si legge come prosa, resta «to be coordinated with APP» (AirportEditingService.Climb).</para>
-    ///
-    /// <para>Il valore per esteso resta raggiungibile col puntatore: <see cref="ClimbEsteso"/> nel `title`,
-    /// come già fa Condition.</para>
+    /// <para>⚠️ La frase è quella del DOCUMENTO, presa dalla sua costante
+    /// (<see cref="AirportSidDerivationService.NotaClimbApp"/>) e non ricopiata: qui si vede prima di
+    /// pubblicare, e due stesure della stessa frase prima o poi divergono. La cella si taglia coi puntini,
+    /// quindi il valore intero sta anche nel <c>title</c>, come già fa Condition.</para>
     /// </summary>
-    private string ClimbManuale(string? valore, bool byApp) => Climb(valore, byApp, L["Ape_ClimbByApp"].Value);
-
-    /// <summary>Lo stesso valore con la nota per esteso: quello che il documento pubblicherà.</summary>
-    private string ClimbEsteso(string? valore, bool byApp) => Climb(valore, byApp, L["Ape_ClimbByAppFull"].Value);
-
-    private static string Climb(string? valore, bool byApp, string nota)
+    private static string Climb(string? valore, bool byApp)
     {
         var q = (valore ?? "").Trim();
         if (!byApp) return q.Length == 0 ? "—" : q;
+        var nota = AirportSidDerivationService.NotaClimbApp;
         return q.Length == 0 ? nota : q + " (" + nota + ")";
     }
 

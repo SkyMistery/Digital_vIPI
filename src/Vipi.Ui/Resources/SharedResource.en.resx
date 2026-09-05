@@ -3251,6 +3251,4 @@
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>one needs a person</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>One sentence of this document is not translated yet. The release does NOT freeze it: it will read translated as soon as the round has been through, without republishing.</value></data>
   <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: not saved yet</value></data>
-  <data name="Ape_ClimbByApp" xml:space="preserve"><value>to coord with APP</value></data>
-  <data name="Ape_ClimbByAppFull" xml:space="preserve"><value>to be coordinated with APP</value></data>
 </root>

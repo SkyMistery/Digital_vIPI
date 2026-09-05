@@ -41,8 +41,8 @@ public class AirportViewFormatTests
     [Fact]
     public void InitialClimb_Preserva_La_Nota_Dopo_La_Quota()
     {
-        Assert.Equal("FL90 (to be coordinated with APP)",
-            AirportViewFormat.InitialClimb("9000 (to be coordinated with APP)", 6000));
+        Assert.Equal("FL90 (to coord with APP)",
+            AirportViewFormat.InitialClimb("9000 (to coord with APP)", 6000));
         Assert.Equal("5000 ft or as assigned",
             AirportViewFormat.InitialClimb("5000 or as assigned", 6000));
     }
@@ -51,8 +51,8 @@ public class AirportViewFormatTests
     public void InitialClimb_Senza_Quota_Numerica_Torna_Invariato()
     {
         // Valore puramente testuale: si mostra così com'è, non si forza un formato.
-        Assert.Equal("to be coordinated with APP",
-            AirportViewFormat.InitialClimb("to be coordinated with APP", 6000));
+        Assert.Equal("to coord with APP",
+            AirportViewFormat.InitialClimb("to coord with APP", 6000));
     }
 
     [Fact]

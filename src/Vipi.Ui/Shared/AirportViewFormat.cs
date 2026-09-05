@@ -16,13 +16,13 @@ public static class AirportViewFormat
 {
     private const string Dash = "—";
 
-    // Quota iniziale + eventuale nota: "5000", "5,000 ft", "9000 (to be coordinated with APP)".
+    // Quota iniziale + eventuale nota: "5000", "5,000 ft", "9000 (to coord with APP)".
     private static readonly Regex ClimbPattern = new(@"^([\d,]+)\s*(.*)$", RegexOptions.Compiled);
 
     /// <summary>
     /// Initial climb reso in piedi se la quota è a/sotto la transition altitude, in livello di volo se sopra
     /// (es. TA 6000: 5000 → «5000 ft», 9000 → «FL90»). Le note testuali sono preservate, e un valore senza
-    /// quota numerica (es. «to be coordinated with APP») torna invariato. TA sconosciuta ⇒ sempre in piedi.
+    /// quota numerica (es. «to coord with APP») torna invariato. TA sconosciuta ⇒ sempre in piedi.
     /// </summary>
     public static string InitialClimb(string? raw, int? transitionAltitudeFt)
     {
