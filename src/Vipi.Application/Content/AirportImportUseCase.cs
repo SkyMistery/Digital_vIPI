@@ -43,6 +43,12 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
         // archivio), quindi senza questo passo i campi anagrafici resterebbero al loro default su tutti gli
         // aeroporti gia' presenti — e su nessuno di quelli il giro passerebbe mai piu'.
         var refreshed = await _repo.SyncAirportSourceFieldsAsync(ivao, ct);
+
+        // ⚠️ L'ACC di un aeroporto già in archivio non lo tocca nessuno — l'assegnazione è additiva e il
+        // riallineamento anagrafico non lo riguarda. Quindi se IVAO lo sposta da un centro all'altro, da noi
+        // NON succede niente: senza questa lettura la divergenza resterebbe muta per sempre. Si segnala, non
+        // si esegue: spostare un aeroporto stacca i padri fuori ACC e cambia gli elenchi di due centri.
+        var divergenze = await _repo.ListAccDivergencesAsync(ivao, ct);
         // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
         // BumpCatalogoStazioniInterceptor, sul salvataggio, per chiunque scriva un Acc o un Airport.
         // Il motivo del trasloco e' un conto: al 31 agosto 2026 le chiamate a mano erano QUATTRO e i
@@ -64,6 +70,6 @@ public sealed class AirportImportUseCase : IAirportImportUseCase
         if (_stati is not null)
             await _stati.MarkSuccessAsync(ImportCategories.AirportDirectory, DateTime.UtcNow, ct);
 
-        return new AirportImportResult(assigned.Count, failures, refreshed);
+        return new AirportImportResult(assigned.Count, failures, refreshed, divergenze);
     }
 }

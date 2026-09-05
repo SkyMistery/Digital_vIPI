@@ -52,6 +52,13 @@ public interface IStructureEditingRepository
         IReadOnlyList<(string AccCode, string Icao, string Name)> candidates, CancellationToken ct = default);
 
     /// <summary>
+    /// Gli aeroporti che la sorgente mette sotto un centro <b>diverso</b> dal nostro. Solo lettura: nessuno
+    /// sposta niente da sé (vedi <see cref="Vipi.Application.Content.AirportAccDivergence"/>).
+    /// </summary>
+    Task<IReadOnlyList<Vipi.Application.Content.AirportAccDivergence>> ListAccDivergencesAsync(
+        IReadOnlyList<SourceAirport> source, CancellationToken ct = default);
+
+    /// <summary>
     /// Riallinea alla sorgente i campi <b>anagrafici</b> degli aeroporti gia' in archivio: presenza militare, IATA,
     /// quota, variazione magnetica. Ritorna quanti ne ha cambiati.
     ///

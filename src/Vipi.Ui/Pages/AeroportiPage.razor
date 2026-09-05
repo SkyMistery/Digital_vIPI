@@ -48,6 +48,26 @@
                     <Icon Name="refresh" Size="14" /> @L["Apt_ReimportBtn"]
                 </button>
             </nav>
+            @* ⚠️ Un aeroporto che cambia centro da IVAO: qui NON succede niente da sé — l'assegnazione è
+               additiva e l'ACC di uno già in archivio non lo tocca nessuno. Quindi la divergenza va DETTA, e
+               va detta entrando nella pagina: se comparisse solo dopo aver premuto «Assegna aeroporti noti»,
+               la vedrebbe solo chi già sospetta qualcosa. Lo spostamento resta un gesto di chi amministra —
+               la tendina della riga, qui sotto — perché stacca i padri fuori ACC e cambia due elenchi. *@
+            @if (_divergenze.Count > 0)
+            {
+                <div class="callout warning" style="margin-top:8px">
+                    <span class="cic"><Icon Name="warning" Size="18" /></span>
+                    <div>
+                        <p class="ct">@L["Apt_AccDivergenceTitle"]</p>
+                        <ul style="margin:6px 0 0;padding-left:18px">
+                            @foreach (var d in _divergenze)
+                            {
+                                <li>@L["Apt_AccDivergenceRow", d.Icao, d.Nome, d.Nostro, d.Sorgente]</li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
             @* Avanzamento VERO delle azioni lunghe: «Re-importa tutti» sono 92 chiamate alla sorgente in fila
                e prima si vedeva solo girare lo spinner. Il chip dice a che punto è, quanti sono falliti, e
                porta l'interruzione — chi si accorge che la sorgente risponde male non aspetta le altre
@@ -461,12 +481,16 @@
         _assignedByIcao = _assigned
             .GroupBy(a => a.Icao, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First().AccCode, StringComparer.OrdinalIgnoreCase);
+        // ⚠️ Anche dopo uno spostamento: chi ha appena mosso un aeroporto deve vedere sparire la sua riga
+        // d'avviso, o non saprebbe di aver finito.
+        RicalcolaDivergenze();
     }
 
     private async Task LoadIvaoAsync()
     {
         try { _ivao = await AirportDir.GetAirportsAsync(); }
         catch (Exception ex) { _ivaoErr = ex.Message.Split('—')[0].Trim(); }
+        RicalcolaDivergenze();
         await InvokeAsync(StateHasChanged);
     }
 
@@ -488,6 +512,18 @@
         || name.Contains(q, StringComparison.OrdinalIgnoreCase);
 
     private string? AssignedAccOf(string icao) => _assignedByIcao.GetValueOrDefault(icao);
+
+    /// <summary>
+    /// Gli aeroporti che la sorgente mette sotto un altro centro. Nessuna query in più: i due elenchi la
+    /// pagina ce li ha già, e il confronto è quello di <see cref="AirportAccDivergences"/> — lo stesso che
+    /// scrive la riga nel registro del giro notturno, o le due risposte finirebbero per divergere.
+    /// </summary>
+    private IReadOnlyList<AirportAccDivergence> _divergenze = Array.Empty<AirportAccDivergence>();
+
+    private void RicalcolaDivergenze() =>
+        _divergenze = _ivao is null
+            ? Array.Empty<AirportAccDivergence>()
+            : AirportAccDivergences.Trova(_assigned.Select(a => (a.Icao, a.Name, a.AccCode)), _ivao);
 
     private async Task Guarded(Func<Task> action)
     {

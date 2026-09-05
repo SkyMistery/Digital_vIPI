@@ -62,10 +62,18 @@ public sealed class AirportDirectoryImportHostedService : BackgroundService
             foreach (var f in r.Failures)
                 _log.LogWarning(f.Error, "Import settori dell'aeroporto {Icao} appena assegnato fallito; l'aeroporto resta senza catalogo fino al giro dei settori.", f.Icao);
 
+            // ⚠️ L'ACC di un aeroporto già dentro NON si tocca (vedi sopra: additivo). Quindi se la sorgente
+            // lo sposta da un centro all'altro, qui non succede niente — e senza questa riga non lo saprebbe
+            // nessuno. Si segnala e basta: spostarlo stacca i padri fuori ACC e cambia gli elenchi di due
+            // centri, ed è una decisione di chi amministra, non di un giro notturno.
+            foreach (var d in r.Divergenze)
+                _log.LogWarning("Aeroporto {Icao} ({Nome}): qui sta sotto {Nostro}, la sorgente lo mette sotto {Sorgente}. Nessuno sposta niente da sé: si decide in /services/vsop/admin/airports.",
+                    d.Icao, d.Nome, d.Nostro, d.Sorgente);
+
             // Il conteggio si logga SEMPRE, anche a zero: «nessun aeroporto nuovo» è la risposta normale di
             // questo giro, e distinguerla da «non è girato» serve a chi legge i log dopo un'assenza.
-            _log.LogInformation("Anagrafica aeroporti automatica: {Assigned} aeroporti assegnati, {Refreshed} aggiornati dalla sorgente, {Failed} senza catalogo settori.",
-                r.Assigned, r.Refreshed, r.Failures.Count);
+            _log.LogInformation("Anagrafica aeroporti automatica: {Assigned} aeroporti assegnati, {Refreshed} aggiornati dalla sorgente, {Failed} senza catalogo settori, {Divergenti} sotto un ACC diverso nella sorgente.",
+                r.Assigned, r.Refreshed, r.Failures.Count, r.Divergenze.Count);
             return true;
         }
         catch (InvalidOperationException ex)

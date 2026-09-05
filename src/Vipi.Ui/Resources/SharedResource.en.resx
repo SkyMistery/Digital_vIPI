@@ -1334,6 +1334,8 @@
   <data name="Apt_RefreshedOk" xml:space="preserve"><value>Refreshed {0} airports already in the archive from the source.</value></data>
   <data name="Apt_RefreshedOkOne" xml:space="preserve"><value>Refreshed 1 airport already in the archive from the source.</value></data>
   <data name="Apt_AutoAssignNothing" xml:space="preserve"><value>Nothing new from the source: no airport to assign and no data to refresh.</value></data>
+  <data name="Apt_AccDivergenceTitle" xml:space="preserve"><value>The source puts these airports under a different ACC. Nothing is moved here on its own: it is your call, using the ACC dropdown in the row.</value></data>
+  <data name="Apt_AccDivergenceRow" xml:space="preserve"><value>{0} {1}: here under {2}, in the source under {3}</value></data>
   <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Choose the target ACC.</value></data>
   <data name="Apt_MovedOk" xml:space="preserve"><value>Moved {0} airports to {1}</value></data>
   <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} not moved.</value></data>

@@ -1339,6 +1339,8 @@
   <data name="Apt_RefreshedOk" xml:space="preserve"><value>Riallineati alla sorgente {0} aeroporti già in archivio.</value></data>
   <data name="Apt_RefreshedOkOne" xml:space="preserve"><value>Riallineato alla sorgente 1 aeroporto già in archivio.</value></data>
   <data name="Apt_AutoAssignNothing" xml:space="preserve"><value>Nessuna novità dalla sorgente: nessun aeroporto da assegnare e nessun dato da aggiornare.</value></data>
+  <data name="Apt_AccDivergenceTitle" xml:space="preserve"><value>La sorgente mette questi aeroporti sotto un altro ACC. Qui non si sposta niente da sé: decidi tu, con la tendina dell'ACC nella riga.</value></data>
+  <data name="Apt_AccDivergenceRow" xml:space="preserve"><value>{0} {1}: qui sotto {2}, nella sorgente sotto {3}</value></data>
   <data name="Apt_ChooseTargetAcc" xml:space="preserve"><value>Scegli la ACC di destinazione.</value></data>
   <data name="Apt_MovedOk" xml:space="preserve"><value>Spostati {0} aeroporti in {1}</value></data>
   <data name="Apt_MovedFail" xml:space="preserve"><value>, {0} non spostati.</value></data>

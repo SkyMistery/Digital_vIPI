@@ -164,6 +164,21 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
+    /// <summary>
+    /// Sposta un aeroporto in un altro ACC — anagrafica, <b>catalogo</b> delle posizioni e proiezione.
+    ///
+    /// <para>⚠️ <b>Il catalogo è la parte che conta</b>, ed è quella che mancava. I <c>Sector</c> sono una
+    /// proiezione: la fonte è <c>AirportSector</c>. Scrivendo solo l'anagrafica e la proiezione, la prima
+    /// riproiezione — il giro notturno, o un qualunque salvataggio che la scatena — <b>riportava indietro</b>
+    /// i settori, e con loro il padre. Misurato il 5 settembre 2026 su LIBD spostato da LIBB a LIRR:
+    /// aeroporto su LIRR, righe di catalogo su LIBB, e alla riproiezione settori di nuovo su LIBB appesi al
+    /// CTR di Brindisi.</para>
+    ///
+    /// <para>Il padre che resta fuori dal nuovo ACC si stacca — in catalogo, non solo nella proiezione, o
+    /// tornerebbe anche lui. Un padre cross-ACC resta possibile, ma dev'essere una scelta di chi edita: un
+    /// APP che continua a pendere dal CTR del centro che l'aeroporto ha appena lasciato non è una scelta, è
+    /// un residuo.</para>
+    /// </summary>
     public async Task MoveAirportAsync(int airportId, string targetAccCode, CancellationToken ct = default)
     {
         var targetFid = await AccIdAsync(targetAccCode, ct) ?? throw new InvalidOperationException($"ACC {targetAccCode} inesistente.");
@@ -171,8 +186,34 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente.", "The airport does not exist."));
         if (airport.AccId == targetFid) return;
 
+        // Il codice come lo scrive l'anagrafica: le righe di catalogo lo portano come stringa, e un «lirr»
+        // scritto a mano nell'indirizzo si riconoscerebbe solo per caso.
+        var targetCode = (await _db.Accs.AsNoTracking().Where(a => a.Id == targetFid).Select(a => a.Code).FirstAsync(ct));
+
         airport.AccId = targetFid;
-        // Sposta anche i settori dell'aeroporto nella ACC di destinazione; stacca il padre se resta fuori ACC.
+
+        // 1. Il CATALOGO delle posizioni: è la fonte, e senza questo passo tutto il resto è provvisorio.
+        var righe = await _db.AirportSectors.Where(x => x.AirportIcao == airport.Icao).ToListAsync(ct);
+        foreach (var r in righe) r.AccCode = targetCode;
+
+        // 2. I padri. Sta dentro il nuovo ACC chi è una posizione di questo aeroporto, un settore del centro
+        //    di destinazione, o una posizione di un altro suo aeroporto.
+        var dentro = righe.Select(r => r.ComposePosition).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var cs in await _db.AccSectors.AsNoTracking().Where(x => x.CenterId == targetCode)
+                     .Select(x => x.ComposePosition).ToListAsync(ct))
+            dentro.Add(cs);
+        foreach (var cs in await _db.AirportSectors.AsNoTracking()
+                     .Where(x => x.AccCode == targetCode && x.AirportIcao != airport.Icao)
+                     .Select(x => x.ComposePosition).ToListAsync(ct))
+            dentro.Add(cs);
+
+        foreach (var r in righe)
+            if (r.ParentCallsign is { } p && !dentro.Contains(p)) r.ParentCallsign = null;
+        if (airport.ParentCallsign is { } ap && !dentro.Contains(ap)) airport.ParentCallsign = null;
+
+        // 3. La proiezione, subito: chi guarda l'elenco dopo lo spostamento non deve vedere il vecchio ACC
+        //    finché non passa il giro notturno. La riproiezione vera la rifarà dai cataloghi, che ora dicono
+        //    la stessa cosa.
         var sectors = await _db.Sectors.Where(s => s.AirportId == airportId).ToListAsync(ct);
         var movedIds = sectors.Select(s => s.Id).ToHashSet();
         foreach (var s in sectors)
@@ -260,6 +301,19 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
 
         if (created.Count > 0) await _db.SaveChangesAsync(ct);
         return created;
+    }
+
+    public async Task<IReadOnlyList<AirportAccDivergence>> ListAccDivergencesAsync(
+        IReadOnlyList<SourceAirport> source, CancellationToken ct = default)
+    {
+        if (source.Count == 0) return Array.Empty<AirportAccDivergence>();
+
+        var nostri = await _db.Airports.AsNoTracking()
+            .Select(a => new { a.Icao, a.Name, Acc = a.Acc!.Code })
+            .ToListAsync(ct);
+
+        // Il confronto NON si riscrive qui: la stessa domanda la fa la pagina di gestione aeroporti.
+        return AirportAccDivergences.Trova(nostri.Select(a => (a.Icao, a.Name, a.Acc)), source);
     }
 
     public async Task<int> SyncAirportSourceFieldsAsync(IReadOnlyList<SourceAirport> source, CancellationToken ct = default)
