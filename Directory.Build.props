@@ -382,7 +382,40 @@
       Quattro progetti (`Domain`, `Application`, `Infrastructure`, `Ui`), le FRASI (due `.resx` toccati,
       quindi il satellite inglese entra) e `wwwroot` (un CSS, con i suoi `.br`/`.gz` e l'indice).
     -->
-    <VipiVersione>1.9.0</VipiVersione>
+    <!--
+      1.10.0 — 5 settembre 2026. **MINOR**, e il numero lo decide il CONTENUTO: tre lavori, e due di loro
+      CAMBIANO COMPORTAMENTO a schermo. NESSUNA migrazione (nessuna cartella Migrations toccata dal commit
+      online `f75e2e05`; l'unico file di quel progetto e' il `.csproj`, che dichiara il RID), quindi si
+      consegna da sola via FTP anche dentro la finestra cieca.
+
+        · §BN — l'editor d'aeroporto ha UNA PORTA SOLA. Erano nove tasti «Salva» piu' «Salva tutto (N)» e
+          Ctrl+S, tre buffer che si potevano perdere, e un cancello che non era il lock ma il RUOLO sulla
+          ACC: si digitava in tutta la pagina senza aver premuto «Modifica». Ora ogni gesto scrive, i campi
+          vivono solo col lock, e la guardia sta NEL SERVICE e non nel bottone.
+          ⚠️ Nel foglio va detto che i tasti «Salva» non ci sono piu', o chi apre l'editor lo credera' rotto.
+
+        · §BQ — la vista live non e' piu' pubblica. `/services/vsop/live/{callsign}` non aveva NESSUN
+          cancello: bastava scrivere un callsign nell'indirizzo, da anonimo. Ora l'utente normale apre solo
+          la PROPRIA postazione (qualunque altra rimanda in silenzio a `/services/vsop/live`) e da
+          DivisionStaff in su c'e' un selettore su tutte le postazioni dei cataloghi, spente comprese.
+          ⚠️ Anche questo va nel foglio: chi arriva al live di un collega da un preferito viene rimandato
+          alla propria, e senza una riga sembrera' un guasto.
+
+        · §BR — la vista rapida d'aeroporto cerca le SID per punto/codice/transition e porta Transition e
+          Condition come il documento completo. 🔴 Ma la cosa vera e' che quella tabella era una SECONDA
+          derivazione scritta a mano, e divergeva: la nota «to coord with APP» sull'initial climb non
+          compariva MAI (su LIBD sono 7 righe su 20). Ora passa dalla derivazione del documento.
+          🔴 E il campo di ricerca ha dovuto cambiare forma: con `value="@_q"` rimandato indietro a ogni
+          tasto i caratteri cancellati RICOMPAIONO (otto Backspace, tre sopravvissuti, a ritmo umano).
+
+      Piu' due code del 5 settembre: i `packages.lock.json` che smettono di ballare (il RID si DICHIARA, e
+      la CI restora in «locked mode») e la nota della quota da concordare corta ovunque, in UNA costante.
+
+      Tre progetti (`Application`, `Infrastructure`, `Ui`), le FRASI (due `.resx` toccati, quindi il
+      satellite inglese entra) e `wwwroot` (`vipi-theme.css` e `vipi-editor.js`, con i loro `.br`/`.gz` e
+      l'INDICE degli asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
+    -->
+    <VipiVersione>1.10.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
