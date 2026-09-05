@@ -1917,18 +1917,28 @@ details.ed-sec > summary:hover{color:var(--brand-ink-2)}
 .sid-view .col-cat{width:9.3%}
 .sid-view .col-wtc{width:9%}
 .sid-view .col-cond{width:29.9%}
-/* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 6 colonne (non 9
-   come su /airports), quindi min-width più basso. Larghezze per CLASSE semantica e non per nth-child:
-   Transition/Cat./WTC si nascondono quando sono vuote su tutte le righe, quindi la posizione non è stabile.
-   (Prima ereditava .cfg-table, che ha larghezze cablate su 4 colonne: Cat. e WTC finivano a larghezza ~0.) */
-.sid-quick{width:100%;min-width:440px;table-layout:fixed}
+/* Vista rapida aeroporto: la tabella SID vive in un pannello stretto e ha al massimo 7 colonne (non 9
+   come su /airports: qui non c'e' ne' la pista, che la sceglie il chip, ne' il Type), quindi min-width
+   più basso. Larghezze per CLASSE semantica e non per nth-child: Cat./WTC si nascondono quando sono
+   vuote su tutte le righe, quindi la posizione non è stabile.
+   (Prima ereditava .cfg-table, che ha larghezze cablate su 4 colonne: Cat. e WTC finivano a larghezza ~0.)
+   ⚠️ Le percentuali sommano 100 con TUTTE le colonne: quando Cat./WTC non escono il browser riscala il
+   resto in proporzione, che e' esattamente quel che serve. */
+.sid-quick{width:100%;min-width:520px;table-layout:fixed}
 .sid-quick th,.sid-quick td{overflow-wrap:anywhere}
-.sid-quick .col-fix{width:20%}
-.sid-quick .col-sid{width:26%}
-.sid-quick .col-trans{width:18%}
-.sid-quick .col-climb{width:20%}
-.sid-quick .col-cat{width:8%}
-.sid-quick .col-wtc{width:8%}
+.sid-quick .col-fix{width:16%}
+.sid-quick .col-sid{width:22%}
+.sid-quick .col-trans{width:15%}
+.sid-quick .col-climb{width:18%}
+.sid-quick .col-cat{width:7%}
+.sid-quick .col-wtc{width:7%}
+.sid-quick .col-cond{width:15%}
+
+/* Ricerca punto/SID sopra la tabella rapida: una riga sola, il campo prende lo spazio che resta. */
+.sid-find{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+.sid-find input{flex:1 1 auto;min-width:0;margin-bottom:0;padding:4px 10px;font-size:13px}
+.sid-find-x{flex:0 0 auto;padding:3px 9px;font-size:12.5px;line-height:1.2}
+.sid-find-n{flex:0 0 auto;font-size:12.5px;font-variant-numeric:tabular-nums}
 .sid-table .star{color:var(--ivao-yellow);font-size:14px}
 .sid-pill{border:1px solid var(--line);background:var(--surface);border-radius:20px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600;color:var(--ink-soft);transition:.12s}
 .sid-pill:hover{border-color:var(--ivao-lightblue)}

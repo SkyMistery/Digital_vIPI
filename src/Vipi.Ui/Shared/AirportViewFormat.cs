@@ -111,6 +111,25 @@ public static class AirportViewFormat
         }
     }
 
+    /// <summary>
+    /// La riga SID combacia col testo cercato? Punto, codice della SID <b>o transition</b>.
+    ///
+    /// <para>⚠️ La transition entra nella ricerca perché <b>è un punto anche lei</b>: chi cerca un punto lo
+    /// cerca da qualunque colonna esca, e una riga mancante si legge come «quella SID non c'è», che è la
+    /// risposta sbagliata alla domanda giusta.</para>
+    ///
+    /// <para>Testo vuoto ⇒ vero: «non sto cercando niente» non è un filtro.</para>
+    /// </summary>
+    public static bool SidMatches(AirportSidRowView row, string? query)
+    {
+        var q = (query ?? "").Trim();
+        if (q.Length == 0) return true;
+
+        return row.Fix.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || row.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
+            || row.Transition.Contains(q, StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Regola pista dal DTO editoriale al modello del motore di valutazione (<see cref="RunwaySuggestion"/>).</summary>
     public static RunwayRuleEval MapRule(RunwayRuleRow r) =>
         new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,

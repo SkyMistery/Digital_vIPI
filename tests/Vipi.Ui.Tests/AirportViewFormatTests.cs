@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Ui.Shared;
 
@@ -184,4 +184,33 @@ public class AirportViewFormatTests
         Assert.Equal(401, eval.DateFromMonthDay);
         Assert.Equal(1031, eval.DateToMonthDay);
     }
+    // ---- SidMatches: la ricerca del pannello rapido ----
+
+    private static AirportSidRowView Riga(string fix, string nome, string trans) =>
+        new("16L", fix, nome, trans, "5000 ft", "RNAV", "A", "M", "--");
+
+    [Theory]
+    [InlineData("ELB")]        // il punto
+    [InlineData("elb")]        // e non guarda le maiuscole
+    [InlineData("ELB5A")]      // il codice della SID
+    [InlineData("5A")]         // anche un pezzo di codice
+    public void SidMatches_Trova_Per_Punto_E_Per_Codice(string cercato) =>
+        Assert.True(AirportViewFormat.SidMatches(Riga("ELB", "ELB5A", "--"), cercato));
+
+    /// <summary>La transition e' un punto anche lei: chi lo cerca deve trovarlo da li'.</summary>
+    [Fact]
+    public void SidMatches_Trova_Anche_Nella_Transition() =>
+        Assert.True(AirportViewFormat.SidMatches(Riga("ELB", "ELB5A", "GITAN"), "GITAN"));
+
+    [Fact]
+    public void SidMatches_Non_Trova_Quel_Che_Non_Ce() =>
+        Assert.False(AirportViewFormat.SidMatches(Riga("ELB", "ELB5A", "GITAN"), "OSMEK"));
+
+    /// <summary>Testo vuoto o solo spazi non e' un filtro: passano tutte.</summary>
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void SidMatches_Senza_Testo_Passano_Tutte(string? vuoto) =>
+        Assert.True(AirportViewFormat.SidMatches(Riga("ELB", "ELB5A", "--"), vuoto));
 }
