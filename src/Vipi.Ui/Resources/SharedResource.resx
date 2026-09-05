@@ -3259,5 +3259,6 @@
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
   <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: non ancora salvata</value></data>
-  <data name="Ape_ClimbByApp" xml:space="preserve"><value>to be coordinated with APP</value></data>
+  <data name="Ape_ClimbByApp" xml:space="preserve"><value>to coord with APP</value></data>
+  <data name="Ape_ClimbByAppFull" xml:space="preserve"><value>to be coordinated with APP</value></data>
 </root>

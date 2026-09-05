@@ -3027,8 +3027,13 @@ a.btn{text-decoration:none;display:inline-block;line-height:1.1}
    «CONDITIONPRIORITÀ». Il nome per esteso resta nel `title` della cella. */
 .struct .res-table.sid-edit th{overflow:hidden;text-overflow:ellipsis}
 /* Nessuna cella va a capo: una riga a capo qui sono 50px moltiplicati per duecento righe. Chi non ci sta
-   taglia con i puntini (il valore intero resta nel dato, non è un campo). */
-.struct .res-table.sid-edit td.col-sid,.struct .res-table.sid-edit td.col-rwy,.struct .res-table.sid-edit td.col-trans,.struct .res-table.sid-edit td.col-type,.struct .res-table.sid-edit td.col-pub{overflow:hidden;text-overflow:ellipsis}
+   taglia con i puntini (il valore intero resta nel dato, non è un campo).
+   ⚠️ `col-climb` e `col-cond` sono entrate in questo elenco il 5 settembre 2026, e la ragione dice quando
+   serve rileggere una regola come questa: fino al 4 quelle due celle contenevano SOLO un campo, largo per
+   costruzione, e tagliarle non serviva a niente. Da quando l'editor ha un modo di SOLA LETTURA ci arriva
+   testo libero — «to coord with APP», una condizione in prosa — e senza taglio, con `nowrap` acceso, quel
+   testo scavalcava la colonna accanto e si leggeva sopra Cat. (visto a schermo su LIBD). */
+.struct .res-table.sid-edit td.col-sid,.struct .res-table.sid-edit td.col-rwy,.struct .res-table.sid-edit td.col-trans,.struct .res-table.sid-edit td.col-type,.struct .res-table.sid-edit td.col-pub,.struct .res-table.sid-edit td.col-climb,.struct .res-table.sid-edit td.col-cond{overflow:hidden;text-overflow:ellipsis}
 /* I chip stanno in RIGA: è la ragione per cui la riga è alta 45px e non 128. */
 .sid-edit .tok-set{flex-wrap:nowrap}
 .sid-edit .tok{min-width:15px;padding:1px 3px}
