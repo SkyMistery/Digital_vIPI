@@ -73,9 +73,24 @@ public sealed record LiveView
     public bool NoDocument { get; init; }
 }
 
-/// <summary>Esito della composizione: la postazione può non esistere in nessuna struttura.</summary>
-public sealed record LiveViewResult(LiveView? View, string RequestedCallsign)
+/// <summary>
+/// Esito della composizione: la postazione può non esistere in nessuna struttura, oppure esistere e non
+/// essere tua — e allora non si compone affatto (carta
+/// <c>docs/feature/2026-09-05-vista-live-selettore-e-cancello.md</c>).
+/// <para>⚠️ I due esiti vuoti sono <b>distinti</b> apposta: «non esiste» si dice all'utente, «non è tua»
+/// no — il rimando è silenzioso, o confermerebbe l'esistenza del callsign a chi non la può sapere.</para>
+/// </summary>
+public sealed record LiveViewResult(LiveView? View, string RequestedCallsign, bool Denied = false)
 {
     public bool Found => View is not null;
     public static LiveViewResult NotFound(string callsign) => new(null, callsign);
+
+    /// <summary>Postazione altrui chiesta da chi non è almeno DivisionStaff.</summary>
+    public static LiveViewResult NotAllowed(string callsign) => new(null, callsign, Denied: true);
 }
+
+/// <summary>
+/// Una riga del selettore di postazione (solo DivisionStaff in su). Non è un'entità: è ciò che serve a
+/// scegliere — il callsign, la ACC che lo spiega, e se in questo momento è aperto.
+/// </summary>
+public sealed record LiveStationOption(string Callsign, string AccCode, bool Online);

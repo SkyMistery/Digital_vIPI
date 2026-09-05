@@ -78,6 +78,14 @@ UNICOM) e il punto resta.
 
 ## 3. La postazione: nessun selettore
 
+> ⚠️ **Aggiornato il 5 settembre 2026** — carta `feature/2026-09-05-vista-live-selettore-e-cancello.md`.
+> Questo paragrafo resta vero per l'**utente normale**, e anzi lo diventa davvero: la consultazione di una
+> postazione altrui **non è più pubblica** — bastava scrivere un callsign nell'indirizzo — e chi non è almeno
+> DivisionStaff apre soltanto la propria, con rimando silenzioso a `/services/vsop/live` per tutto il resto.
+> Da **DivisionStaff in su** il selettore invece **c'è**, ed è nuovo: apre una qualsiasi postazione dei
+> cataloghi, spenta compresa. Di conseguenza l'elenco degli ATC online e le pastiglie della catena di
+> copertura sono **cliccabili solo per chi quel live lo può aprire**.
+
 Il selettore in alto a destra è **rimosso**. La pagina dipende dalla postazione che l'utente ha aperto su IVAO,
 risolta a ogni tick SSE.
 

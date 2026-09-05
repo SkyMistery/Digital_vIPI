@@ -1597,6 +1597,11 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
   position:sticky;top:62px;z-index:30;background:var(--bg);padding:10px 0;border-bottom:1px solid var(--line)}
 .reduced-top .utc-clock{font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand-ink)}
 
+/* Selettore di postazione (solo staff di divisione): sta nella riga della testata, quindi non deve portarsi
+   dietro i margini del `.field` ne' allargarsi. La tendina la posiziona gia' `.sector-pick-wrap`. */
+.reduced-top .live-pick{flex:0 0 auto;width:190px;margin:0}
+.reduced-top .live-pick input{margin-bottom:0;padding:4px 10px;font-size:12.5px}
+
 /* Modalità compatta (persistita): la vista live vive spesso su un secondo monitor piccolo, dove servono
    più righe a schermo che aria. Tocca solo densità, mai contenuto. */
 .vipi-dense .vipi-root{font-size:14px}

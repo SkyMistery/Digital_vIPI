@@ -2,6 +2,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
+using Vipi.Domain;
 using Vipi.Application.Live;
 using Vipi.Ui.Pages;
 using Vipi.Application.Routing;
@@ -47,12 +49,26 @@ public class LivePageConcurrencyTests : TestContext
             return LiveViewResult.NotFound(callsign);
         }
 
+        /// <summary>Il selettore e' roba da staff di divisione: questa pagina lo rende con un utente normale,
+        /// quindi l'elenco non si chiede mai. Se qualcuno lo chiedesse, il test deve accorgersene.</summary>
+        public Task<IReadOnlyList<LiveStationOption>> ListStationsAsync(CancellationToken ct = default) =>
+            throw new InvalidOperationException("Un utente normale non ha selettore: l'elenco non si deve chiedere.");
+
         private static void InterlockedMax(ref int bersaglio, int valore)
         {
             int visto;
             while ((visto = Volatile.Read(ref bersaglio)) < valore &&
                    Interlocked.CompareExchange(ref bersaglio, valore, visto) != visto) { }
         }
+    }
+
+    /// <summary>Utente normale: nessun selettore, e la propria postazione si apre lo stesso.</summary>
+    private sealed class UtenteNormale : IEditAuthorizationService
+    {
+        public VipiRole Role => VipiRole.User;
+        public bool IsAdmin => false;
+        public int? CurrentUserId => null;
+        public string? CurrentName => null;
     }
 
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
@@ -70,6 +86,7 @@ public class LivePageConcurrencyTests : TestContext
         Services.AddSingleton<ILiveViewService>(servizio);
         Services.AddSingleton<IDocRoutesRegistry>(new DocRoutesRegistry(Array.Empty<IDocKindRoutes>()));
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IEditAuthorizationService>(new UtenteNormale());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         // La briciola di pane legge le stringhe in INGLESE FISSO (regole-lingua R3): senza questo
         // servizio la pagina non si costruisce nemmeno.

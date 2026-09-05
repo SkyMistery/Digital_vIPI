@@ -1,7 +1,13 @@
 @* Vista live UNICA (doc refactor 12). Rende il modello uniforme LiveView: la pagina non sa se sta mostrando
    un CTR, un APP o una torre — lo decide il descrittore per tipo (ILiveStationKind).
-   /services/vsop/live           = la postazione con cui sei connesso su IVAO (nessun selettore: la vista segue te)
-   /services/vsop/live/{callsign} = quella postazione, in consultazione *@
+   /services/vsop/live           = la postazione con cui sei connesso su IVAO (la vista segue te)
+   /services/vsop/live/{callsign} = quella postazione, in consultazione
+
+   ⚠️ La consultazione NON e' pubblica (carta 2026-09-05-vista-live-selettore-e-cancello): per un utente
+   normale la vista live e' la PROPRIA postazione e basta — qualunque altro callsign porta al rimando a
+   /services/vsop/live. Da DivisionStaff in su c'e' un selettore che apre una qualsiasi postazione dei
+   cataloghi, spenta compresa: il modello si compone dai cataloghi, quindi «come se fosse live» e' gia'
+   quello che questa pagina sa fare. *@
 @page "/services/vsop/live"
 @page "/services/vsop/live/{Callsign}"
 @layout SopLayout
@@ -9,6 +15,8 @@
 @using Vipi.Application.Live
 @using Vipi.Application.Routing
 @inject ILiveViewService Live
+@inject IEditAuthorizationService Authz
+@inject NavigationManager Nav
 @inject IDocRoutesRegistry DocRoutes
 @inject Microsoft.JSInterop.IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
@@ -31,7 +39,16 @@
         <h1 class="page-h1" style="margin:0">@(_view?.Title ?? L["Live_Tab"].Value)</h1>
         @if (_view is not null)
         {
-            <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)"><span class="dot"></span> Live · @_view.Callsign</span>
+            @* ⚠️ Verde solo se quella postazione è DAVVERO aperta adesso. Da quando lo staff di divisione può
+               guardare una postazione spenta, un «Live ·» verde fisso direbbe il falso proprio nel caso nuovo. *@
+            @if (_snapshot.Callsigns.Contains(_view.Callsign))
+            {
+                <span class="live-badge" style="background:var(--tint-green);color:var(--ok-ink);border-color:var(--line-green)"><span class="dot"></span> Live · @_view.Callsign</span>
+            }
+            else
+            {
+                <span class="live-badge off"><span class="dot"></span> @_view.Callsign · @L["Live_Offline"]</span>
+            }
         }
         <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
         <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
@@ -40,6 +57,15 @@
         @if (ExtendedDocHref() is { } href)
         {
             <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
+        }
+        @* Il selettore di postazione esiste solo da DivisionStaff in su: per tutti gli altri la vista live
+           è la propria postazione, quindi non c'è niente da scegliere. Riusa TypeaheadPicker — il campo a
+           digitazione del prodotto, tastiera compresa — invece di scriverne un settimo. *@
+        @if (Authz.IsDivisionStaff)
+        {
+            <TypeaheadPicker Class="live-pick" Items="OpzioniPostazione()" Text="@_pick" TextChanged="v => _pick = v"
+                             Placeholder="@L["Live_PickPlaceholder"].Value" Title="@L["Live_PickTitle"].Value"
+                             NoMatch="@L["Live_PickNoMatch"].Value" OnPick="VaiAllaPostazione" />
         }
         @* La testata della vista live e' una riga sola in flex: `.sim-line` porta `flex-basis:100%` e
            l'avviso scende sotto invece di stringere il titolo. *@
@@ -65,9 +91,19 @@
             }
             else
             {
+                @* Chi non può aprire il live altrui vede lo stesso elenco, senza link: dice che il feed è
+                   vivo e chi c'è — ed è l'unica cosa per cui lo si guarda da disconnessi. Un link che
+                   rimbalzasse indietro sarebbe un gesto che non fa niente. *@
                 @foreach (var cs in _snapshot.Callsigns.OrderBy(c => c, StringComparer.OrdinalIgnoreCase))
                 {
-                    <a class="ch sw" href="/services/vsop/live/@cs.ToLowerInvariant()">@cs</a>
+                    @if (PuoAprire(cs))
+                    {
+                        <a class="ch sw" href="/services/vsop/live/@cs.ToLowerInvariant()">@cs</a>
+                    }
+                    else
+                    {
+                        <span class="ch sw">@cs</span>
+                    }
                 }
             }
         </div>
@@ -112,7 +148,16 @@
                 @foreach (var cs in _view.CoverageChain)
                 {
                     var online = _snapshot.Callsigns.Contains(cs);
-                    <a class="xo-chip @(online ? "on" : "")" href="/services/vsop/live/@cs.ToLowerInvariant()">@cs@(online ? "" : " ·" + L["Live_Offline"].Value)</a>
+                    var eti = cs + (online ? "" : " ·" + L["Live_Offline"].Value);
+                    @* Il *chi* ti copre resta intero per tutti; il link al suo live no. *@
+                    @if (PuoAprire(cs))
+                    {
+                        <a class="xo-chip @(online ? "on" : "")" href="/services/vsop/live/@cs.ToLowerInvariant()">@eti</a>
+                    }
+                    else
+                    {
+                        <span class="xo-chip @(online ? "on" : "")">@eti</span>
+                    }
                 }
                 <span class="muted xo-hint">@L["Live_CoveredByHint"]</span>
             </div>
@@ -209,6 +254,11 @@
     private string? _selectedApt;
     private OnlineAtcSnapshot _snapshot = OnlineAtcSnapshot.Empty;
 
+    /// <summary>Testo digitato nel selettore, e l'elenco da cui sceglie. Null = non ancora chiesto: si legge
+    /// una volta sola, e solo per chi il selettore ce l'ha.</summary>
+    private string _pick = "";
+    private IReadOnlyList<LiveStationOption>? _postazioni;
+
     private sealed record LiveChange(string Callsign, bool Online, DateTimeOffset At);
     private const int MaxChanges = 6;
     private readonly List<LiveChange> _changes = new();
@@ -245,11 +295,18 @@
         _snapshot = Live.Snapshot();
         _myCallsign = Live.MyCallsign();
 
-        // Senza callsign nell'URL la pagina È la tua postazione: nessun selettore, nessun default arbitrario.
+        // Senza callsign nell'URL la pagina È la tua postazione: nessun default arbitrario. Il selettore
+        // (DivisionStaff in su) non sceglie qui — porta a /services/vsop/live/{callsign}, cioè a questo
+        // stesso ramo con la rotta cambiata.
         var wanted = string.IsNullOrWhiteSpace(Callsign) ? _myCallsign : Callsign.Trim().ToUpperInvariant();
         if (wanted is null) { _view = null; _requested = null; TrackChanges(); return; }
 
         var result = await Live.BuildAsync(wanted);
+
+        // Postazione altrui e livello insufficiente: si torna alla propria, in silenzio. `replace` perché
+        // altrimenti il tasto «indietro» rimanda sull'indirizzo negato e il rimando riparte all'infinito.
+        if (result.Denied) { Nav.NavigateTo("/services/vsop/live", replace: true); return; }
+
         _view = result.View;
         _requested = result.Found ? null : wanted;
 
@@ -260,6 +317,64 @@
             _selectedApt = null;
 
         TrackChanges();
+    }
+
+    /// <summary>
+    /// Chi può aprire il live di quel callsign: da DivisionStaff in su chiunque, altrimenti solo la propria
+    /// postazione. La stessa regola del servizio — qui serve a <b>non disegnare</b> i link che rimbalzerebbero
+    /// indietro: un gesto che non fa niente è peggio di un gesto che non c'è.
+    /// </summary>
+    private bool PuoAprire(string callsign) =>
+        Authz.IsDivisionStaff || string.Equals(callsign, _myCallsign, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Le postazioni del selettore, filtrate su callsign o ACC.
+    ///
+    /// <para>⚠️ <b>Prima chi combacia nel CALLSIGN, poi chi combacia solo nella ACC</b> — e le aperte in cima
+    /// dentro ciascuno dei due gruppi. L'ordine «aperte per prime e basta» sembrava giusto e a schermo non lo
+    /// era: digitando <c>LIRR</c> le prime otto voci erano torri d'aeroporto della ACC di Roma perché aperte,
+    /// e <c>LIRR_CTR</c> non si vedeva. Le aperte contano, ma dopo quello che si sta scrivendo.</para>
+    /// </summary>
+    private IReadOnlyList<TypeaheadPicker.Item> OpzioniPostazione()
+    {
+        if (_postazioni is null) return Array.Empty<TypeaheadPicker.Item>();
+
+        var q = _pick.Trim();
+        return _postazioni
+            .Where(s => q.Length == 0
+                        || s.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase)
+                        || s.AccCode.Contains(q, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(s => q.Length > 0 && s.Callsign.Contains(q, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenByDescending(s => s.Online)
+            .ThenBy(s => s.Callsign, StringComparer.OrdinalIgnoreCase)
+            .Select(s => new TypeaheadPicker.Item(
+                s.Callsign,
+                s.Online ? s.AccCode + " · " + L["Live_PickOpen"].Value : s.AccCode,
+                Strong: s.Online))
+            .ToList();
+    }
+
+    /// <summary>Scelta fatta: cambia la ROTTA, non lo stato. Così la pagina si ricompone da
+    /// <c>OnParametersSetAsync</c> come per qualunque altro arrivo, e l'indirizzo si può condividere.</summary>
+    private void VaiAllaPostazione(TypeaheadPicker.Item? item)
+    {
+        if (item is null) return;
+        _pick = "";
+        Nav.NavigateTo("/services/vsop/live/" + item.Value.ToLowerInvariant());
+    }
+
+    /// <summary>
+    /// L'elenco del selettore, una volta sola e <b>sotto lo stesso semaforo</b> delle letture della pagina:
+    /// è una query sul <c>DbContext</c> di circuito, e un tick live che le atterrasse addosso darebbe la
+    /// corsa «A second operation was started» che questa pagina ha già pagato.
+    /// </summary>
+    private async Task CaricaPostazioniAsync()
+    {
+        if (!Authz.IsDivisionStaff || _postazioni is not null) return;
+
+        await _caricamento.WaitAsync();
+        try { _postazioni = await Live.ListStationsAsync(); }
+        finally { _caricamento.Release(); }
     }
 
     /// <summary>
@@ -352,6 +467,13 @@
         {
             _ref = DotNetObjectReference.Create(this);
             _liveSubId = await JS.InvokeAsync<int>("vipiLive.subscribe", _ref);
+
+            // Dopo il primo render, non dentro: l'elenco delle postazioni non deve far aspettare la pagina.
+            if (Authz.IsDivisionStaff)
+            {
+                await CaricaPostazioniAsync();
+                StateHasChanged();
+            }
         }
 
         // A ogni render: i <details> ricreati a un tick live perderebbero la persistenza del collasso.
