@@ -140,7 +140,7 @@ else
                ⚠️ Il corpo delle sezioni FISSE lo rende questa pagina (DerivedContent): sono i sei editor
                strutturati di sotto. Le sezioni libere passano dai blocchi, come nelle altre famiglie. *@
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.Airport"
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" Wide="_wide"
@@ -500,9 +500,6 @@ else
 
     // ---- il motore condiviso: chi rende cosa, cosa è fisso, cosa si può congelare ----
     // Le tre risposte le dà il CATALOGO, per profilo (doc 13 §3a/§3b): qui non c'è nessun insieme scritto a mano.
-    private static bool IsDerived(EditableSection s) =>
-        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.Airport, s.SectionKey);
-
     private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.Airport, s.SectionKey);
 
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);

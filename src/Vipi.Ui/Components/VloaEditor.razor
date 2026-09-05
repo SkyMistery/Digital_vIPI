@@ -85,7 +85,7 @@ else
     }
 
     <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                            IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                            DerivedContent="DerivedSection"
                             IsMandatory="IsMandatory" Profile="SectionProfile.Vloa"
                             IsRenderModeToggleable="IsRenderModeToggleable"
                             ShowToc="true" ExtraTocItems="_tocExtra" Wide="_wide"
@@ -248,9 +248,6 @@ else
     // Sezione il cui corpo lo produce l'editor dai dati, non i blocchi. Lo dice il catalogo per il profilo vLOA
     // (doc 13 §3a). La sezione PADRE dei coordinamenti lo è quanto le due figlie (doc 11 §3f): l'editor offriva
     // blocchi lì, ma il viewer li sostituisce con le due direzioni e non li mostra mai.
-    private static bool IsDerived(EditableSection s) =>
-        SectionCatalog.IsHostRendered(SectionProfile.Vloa, s.SectionKey);
-
                 /// <summary>Ferma il badge che si spegne da solo: dopo lo smontaggio non c'è più un renderer da avvisare.
     /// Override e non IDisposable a parte: OwningComponentBase possiede già il proprio scope DI da liberare.</summary>
     protected override void Dispose(bool disposing)

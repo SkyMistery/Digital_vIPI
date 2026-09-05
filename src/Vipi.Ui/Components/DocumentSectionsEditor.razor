@@ -46,8 +46,7 @@ else
     /// <summary>Notifica l'host dopo ogni mutazione: ricarica il documento e ri-renderizza.</summary>
     [Parameter] public EventCallback OnChanged { get; set; }
 
-    /// <summary>Sezione data-driven (contenuto calcolato live): l'host la renderizza via <see cref="DerivedContent"/>.</summary>
-    [Parameter] public Func<EditableSection, bool>? IsDerivedSection { get; set; }
+    /// <summary>Corpo che la pagina disegna per le sezioni rese da lei (contenuto calcolato live).</summary>
     [Parameter] public RenderFragment<EditableSection>? DerivedContent { get; set; }
 
     /// <summary>Sezione obbligatoria: titolo bloccato (no rinomina/sposta/elimina), ma sotto-sezioni extra permesse.</summary>
@@ -286,6 +285,21 @@ else
         await Editing.SetSectionBeforeParentBodyAsync(s.Id, !s.BeforeParentBody);
         await OnChanged.InvokeAsync();
     });
+
+    /// <summary>
+    /// Vero se il corpo di questa sezione lo produce la PAGINA. È la stessa domanda di <c>SectionNode</c> nel
+    /// viewer — stessa funzione, <see cref="SectionCatalog.IsHostRendered"/> — e deve restarlo: l'editor che
+    /// accetta contenuto in una sezione da cui il documento non lo stampa è una promessa non mantenuta.
+    /// <para>
+    /// ⚠️ Prima la domanda la faceva ogni host per conto suo, con un <c>IsDerivedSection</c> passato come
+    /// parametro: cinque copie, e due (aeroporto e APP) chiedevano in più <c>Depth == 0</c> — quindi una
+    /// SOTTO-sezione con una chiave di catalogo prendeva i blocchi nell'editor e li perdeva nel documento.
+    /// Oggi nessun documento ha una sezione così, ma la divergenza era già scritta: la domanda ora è una sola,
+    /// e il profilo per farla la pagina lo passa già.
+    /// </para>
+    /// </summary>
+    private bool RendeLaPagina(EditableSection s) =>
+        Profile is { } p && SectionCatalog.IsHostRendered(p, s.SectionKey);
 
     // ---- blocchi ----
     private Task AddBlock(int sectionId, BlockFormat format) => Run(async () =>
@@ -534,7 +548,7 @@ else
             @SectionEditor(c, relDepth + 1, Offset(childOffsets, c))
         }
 
-        @if (IsDerivedSection?.Invoke(s) == true)
+        @if (RendeLaPagina(s))
         {
             @DerivedContent?.Invoke(s)
         }
@@ -542,7 +556,7 @@ else
         @* ⚠️ Una sezione può avere TUTTI E DUE: la scheda che le disegna la pagina e i propri blocchi
            editoriali («Validità e revisione»: il timbro lo scrive il documento, il resto lo scrive chi
            redige). Il ramo `else` non basta — dovrebbero convivere, non escludersi. *@
-        @if (IsDerivedSection?.Invoke(s) != true || (Profile is { } prof && SectionCatalog.KeepsOwnBlocks(prof, s.SectionKey)))
+        @if (!RendeLaPagina(s) || (Profile is { } prof && SectionCatalog.KeepsOwnBlocks(prof, s.SectionKey)))
         {
             @* ⚠️ Il PAYLOAD di una sezione resa dalla pagina si salta: non e' contenuto, e mostrarlo qui
                vuol dire darlo in pasto all'anteprima della tabella generica — che su righe fatte di stringhe

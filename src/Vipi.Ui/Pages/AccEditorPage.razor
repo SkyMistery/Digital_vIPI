@@ -162,7 +162,7 @@ else
                     @{ var profile = SectionCatalog.ProfileOfAccBlock(blk.Block.Kind); }
                     <DocumentSectionsEditor Doc="_shell.Doc" RootSections="blockSection.Children" AddParentId="blockSection.Id"
                                             AddLabel="@("+ " + L["Acc_AddCustomSection"].Value)" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                                            IsDerivedSection="s => SectionCatalog.IsHostRendered(profile, s.SectionKey)" DerivedContent="DerivedFor(blk)"
+                                            DerivedContent="DerivedFor(blk)"
                                             IsMandatory="s => SectionCatalog.IsFixed(profile, s.SectionKey)" Profile="profile"
                                             IsRenderModeToggleable="IsRenderModeToggleable" />
                 </details>

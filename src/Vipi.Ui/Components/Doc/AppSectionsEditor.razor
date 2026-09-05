@@ -112,7 +112,7 @@ else
             @if (_shell.Error is not null) { <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div> }
 
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.App"
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" Wide="_wide"
@@ -404,9 +404,6 @@ else
         // Fine modifica: rilascia il lock così il documento è subito libero per gli altri (non aspetta i 30 min di TTL).
         // ---- sezioni il cui corpo lo rende questa pagina (derivate + editoriali-strutturate) ----
     // L'insieme lo dice il catalogo, per profilo (doc 13 §3a): qui stava una delle sei copie.
-    private static bool IsDerived(EditableSection s) =>
-        s.Depth == 0 && SectionCatalog.IsHostRendered(SectionProfile.App, s.SectionKey);
-
     // Sezioni fisse del catalogo (non custom): bloccate a rinomina/sposta/elimina.
     private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.App, s.SectionKey);
     // Solo le sezioni DERIVATE (aor/frequencies/coordination/minima) espongono il toggle Live/Frozen (doc 10 §3a).

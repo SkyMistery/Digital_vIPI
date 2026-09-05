@@ -67,10 +67,23 @@ resta intatta.
   va in un blocco nuovo in coda (543), e a schermo si vedono **tutte e due** — la tabella di chi redige e la
   radioassistenza della scheda — sia in lettura sia in modifica.
 
-## Che cosa NON copre
+## E la seconda metà: una domanda sola, non cinque
 
-Resta aperta l'asimmetria fra editor e viewer sulle sezioni rese dalla pagina che **non** tengono i blocchi
-(`Host` puro): lì l'editor di aeroporto e APP considera «derivata» solo la sezione a `Depth == 0`, mentre il
-viewer non guarda la profondità — quindi su una sotto-sezione con chiave di catalogo si possono ancora
-aggiungere blocchi che il documento non stampa. Non è una perdita di dati (il blocco resta), ma è una promessa
-non mantenuta: da guardare in un giro suo.
+Chiusa nello stesso giro. «Il corpo di questa sezione lo produce la pagina?» era scritta **cinque volte**: una
+per host, passata a `DocumentSectionsEditor` come parametro `IsDerivedSection`. Quattro copie dicevano la stessa
+cosa del viewer; due — aeroporto e APP — chiedevano in più `Depth == 0`, quindi su una **sotto-sezione** con
+chiave di catalogo l'editor offriva «+ blocco» e il documento non stampava niente.
+
+Il parametro non c'è più: il profilo l'editor ce l'ha già, e la domanda la fa a `SectionCatalog.IsHostRendered`
+— la stessa funzione che chiama `SectionNode` nel viewer. È la «regola del 2» del runbook: la stessa domanda in
+≥2 posti diventa un'implementazione sola.
+
+⚠️ **Nessun documento in archivio ha una sezione così** (misurato sul `vipi.db` reale: le uniche sezioni di
+catalogo a profondità 1 sono le figlie della sezione-blocco ACC e quelle del profilo militare, e i loro editor
+la profondità non la chiedevano). Quindi qui non si perde né si nasconde niente di esistente: si toglie una
+divergenza già scritta.
+
+**Verificato dal vivo che non cambia nulla**: i quattro editor mostrano lo stesso numero di menu «+ blocco» di
+prima — ACC 6, aeroporto 9, militare 31, vLOA 4 — le schede disegnate dalla pagina ci sono tutte, e nessuna
+pagina alza errori. La prova nuova è `SezioniReseDallaPaginaTests`, che tiene la domanda su quattro casi in un
+documento solo: libera, resa dalla pagina, resa dalla pagina **ma figlia**, e «scheda + blocchi».

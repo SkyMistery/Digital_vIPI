@@ -130,7 +130,7 @@ else
             }
 
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
-                                    IsDerivedSection="IsDerived" DerivedContent="DerivedSection"
+                                    DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
                                     IsRenderModeToggleable="IsRenderModeToggleable"
                                     ShowToc="Chrome" ExtraTocItems="_tocExtra" TocFooter="@TocCommands">
@@ -488,9 +488,6 @@ else
     // L'insieme lo dice il CATALOGO, per profilo (doc 13 §3a): qui stava una delle sei copie.
     // ⚠️ `Depth == 0` no: nell'`AirportMil` le derivate sono ANNIDATE (frequenze e piste stanno sotto «Dati
     // generali»), ed è la prima famiglia in cui succede.
-    private static bool IsDerived(EditableSection s) =>
-        SectionCatalog.IsHostRendered(SectionProfile.AirportMil, s.SectionKey);
-
     private static bool IsMandatory(EditableSection s) => SectionCatalog.IsFixed(SectionProfile.AirportMil, s.SectionKey);
 
     private static bool IsRenderModeToggleable(EditableSection s) => SectionCatalog.IsRenderModeToggleable(s.SectionKey);
