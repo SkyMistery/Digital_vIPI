@@ -94,17 +94,25 @@ public class DatiDelloScaloMilitareTests
     }
 
     /// <summary>
-    /// ⚠️ La scrittura di questi dati segue il <b>ruolo</b> sulla ACC dello scalo, non il lock del
-    /// documento: quel lock governa il vSOP, e l'anagrafica dell'aeroporto è un'altra cosa, che si possiede
-    /// separatamente. Legarli darebbe un editor spento a chi ha il permesso di scrivere.
+    /// ⚠️ <b>La scrittura di questi dati segue il LOCK</b> dal 4 settembre 2026 (carta
+    /// 2026-09-04-aeroporto-porta-sola). Prima seguiva il solo ruolo sulla ACC, con la motivazione che «il
+    /// lock del vSOP non governa l'anagrafica dell'aeroporto». Non regge: qui l'anagrafica si scrive solo su
+    /// un campo <b>senza vIPI civile</b>, e per quel campo il documento militare È il documento dello scalo —
+    /// tant'è che la guardia lato service, che ora il lock lo pretende, va a cercarlo proprio lì.
     /// </summary>
     [Fact]
-    public void I_dati_dello_scalo_seguono_il_ruolo_e_non_il_lock_del_documento()
+    public void I_dati_dello_scalo_seguono_il_lock_del_documento()
     {
         var sorgente = Militare();
 
-        Assert.DoesNotContain(@"CanEdit=""_shell.IsEditing""", sorgente);
-        Assert.Equal(3, Regex.Matches(sorgente, @"CanEdit=""_canEditScalo""").Count);
+        Assert.DoesNotContain(@"CanEdit=", sorgente);
+        foreach (var componente in new[] { "AirportTransitionEditor", "AirportRunwaysEditor", "AirportFrequenciesEditor" })
+        {
+            // Il montaggio del componente, fino alla sua chiusura: dentro ci dev'essere il lock.
+            var montaggio = sorgente[sorgente.IndexOf($"<{componente} ", StringComparison.Ordinal)..];
+            montaggio = montaggio[..montaggio.IndexOf("/>", StringComparison.Ordinal)];
+            Assert.Contains(@"Editing=""_shell.IsEditing""", montaggio);
+        }
     }
 
     private static string Sorgente(string relativo) => File.ReadAllText(Path.Combine(Radice(), relativo));

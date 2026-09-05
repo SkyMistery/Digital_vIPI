@@ -1997,9 +1997,7 @@
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>to verify {0}</value></data>
   <data name="Ape_SidReviewChipTitle" xml:space="preserve"><value>Show only the SIDs whose point must be confirmed by hand</value></data>
   <data name="Ape_SidRwChipTitle" xml:space="preserve"><value>Show only the SIDs of this runway</value></data>
-  <data name="Ape_SidDirtyN" xml:space="preserve"><value>{0} changed</value></data>
   <data name="Ape_SidDirtyNOne" xml:space="preserve"><value>1 changed</value></data>
-  <data name="Ape_SidSaveDirty" xml:space="preserve"><value>Save changed</value></data>
   <data name="Ape_SidSelectAll" xml:space="preserve"><value>Pick all</value></data>
   <data name="Ape_SidUnselectAll" xml:space="preserve"><value>Unpick all</value></data>
   <data name="Ape_SidPublishSel" xml:space="preserve"><value>Publish picked</value></data>
@@ -2031,19 +2029,10 @@
   <data name="Ape_PriorityTitle" xml:space="preserve"><value>Order of preference among the SIDs of the same point: the lowest number comes first</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
   <data name="Ape_CloneRow" xml:space="preserve"><value>Duplicate row</value></data>
-  <data name="Ape_SidSavedN" xml:space="preserve"><value>Saved {0} SIDs.</value></data>
-  <data name="Ape_SidSavedNOne" xml:space="preserve"><value>Saved 1 SID.</value></data>
   <data name="Ape_SidSaveFailedN" xml:space="preserve"><value> {0} not saved (details in logs).</value></data>
   <data name="Ape_SidSaveFailedNOne" xml:space="preserve"><value> 1 not saved (details in logs).</value></data>
   <data name="Ape_SidPublishedN" xml:space="preserve"><value>Published {0} SIDs.</value></data>
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Published 1 SID.</value></data>
-  <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>There are {0} changed and unsaved SIDs: re-importing discards them. Continue?</value></data>
-  <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>There is 1 changed and unsaved SID: re-importing discards it. Continue?</value></data>
-  <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Save every changed section to the draft — Ctrl+S</value></data>
-  <data name="Ape_ExitBlocked" xml:space="preserve"><value>Some changes are still unsaved: fix or save them, then finish editing.</value></data>
-  <data name="Ape_SaveAllN" xml:space="preserve"><value>Save all ({0})</value></data>
-  <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Help on saving</value></data>
-  <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Saves every changed section to the &lt;b&gt;draft&lt;/b&gt; (also with &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). The public sees them only after &lt;b&gt;publishing&lt;/b&gt;.</value></data>
   <data name="Ape_PreviewHelpAria" xml:space="preserve"><value>Help on the draft preview</value></data>
   <data name="Ape_PreviewHelpBody" xml:space="preserve"><value>Opens the &lt;b&gt;draft&lt;/b&gt; in a new tab (&lt;code&gt;?as=draft&lt;/code&gt;): you see it as it will look, but it is &lt;b&gt;not&lt;/b&gt; public yet. Always check here before &lt;b&gt;publishing&lt;/b&gt;.</value></data>
   <data name="Ape_DragToReorder" xml:space="preserve"><value>Drag to reorder</value></data>
@@ -2101,30 +2090,25 @@
   <data name="Ape_SeasonalHelp" xml:space="preserve"><value>&lt;b&gt;Recurring seasonal&lt;/b&gt; validity window: only day and month (no year, repeats every year). E.g. from 1 Jan to 31 Mar. Leave empty = always valid.</value></data>
   <data name="Ape_Days" xml:space="preserve"><value>Days:</value></data>
   <data name="Ape_Rule" xml:space="preserve"><value>Rule</value></data>
-  <data name="Ape_SaveRules" xml:space="preserve"><value>Save rules</value></data>
   <data name="Ape_TlTitle" xml:space="preserve"><value>Transition levels</value></data>
   <data name="Ape_TlHelp" xml:space="preserve"><value>Default table &lt;b&gt;TL = TA + margin&lt;/b&gt; per QNH band (QNH&amp;lt;977 → +2500 ft; 977–994 → +2000; 995–1012 → +1500; QNH≥1013 → +1000), rounded to the upper FL. Saving the TA recomputes the default rows; you can still edit bands and levels by hand.</value></data>
   <data name="Ape_TaFromSourceTitle" xml:space="preserve"><value>Field imported from the source: read-only. Editable only if an administrator excludes «TA» in /vsop/admin/sorgenti</value></data>
   <data name="Ape_FromSource" xml:space="preserve"><value>from source</value></data>
   <data name="Ape_TaFromSource" xml:space="preserve"><value>The Transition Altitude is imported from the source (read-only).</value></data>
   <data name="Ape_TaLabel" xml:space="preserve"><value>Transition Altitude (ft)</value></data>
-  <data name="Ape_SaveTa" xml:space="preserve"><value>Save TA</value></data>
   <data name="Ape_QnhFrom" xml:space="preserve"><value>QNH from (hPa)</value></data>
   <data name="Ape_QnhTo" xml:space="preserve"><value>QNH to (hPa)</value></data>
   <data name="Ape_Open" xml:space="preserve"><value>open</value></data>
-  <data name="Ape_SaveTable" xml:space="preserve"><value>Save table</value></data>
   <data name="Ape_FreqHelp" xml:space="preserve"><value>Own frequencies come from the sector catalog («Sectors» panel): ATIS · Delivery · Ground · TWR · APP. The primary (★) is chosen there. Here you can add links to frequencies already in the DB (live reference).</value></data>
   <data name="Ape_Origin" xml:space="preserve"><value>Origin</value></data>
   <data name="Ape_Catalog" xml:space="preserve"><value>catalog</value></data>
   <data name="Ape_SearchCallsignFreq" xml:space="preserve"><value>search callsign/freq…</value></data>
   <data name="Ape_PickFreq" xml:space="preserve"><value>— choose frequency —</value></data>
-  <data name="Ape_SaveLinks" xml:space="preserve"><value>Save links</value></data>
   <data name="Ape_RwFromSourceTitle" xml:space="preserve"><value>Imported from the source: ident/length/bearing and the set of runways are read-only. Editable only by excluding «Runways» in /vsop/admin/sorgenti</value></data>
   <data name="Ape_RwFromSource" xml:space="preserve"><value>Runway, length and bearing are imported from the source (read-only). Only the TORA/LDA/APP/Patterns/Circling columns stay editable.</value></data>
   <data name="Ape_RwEditorial" xml:space="preserve"><value>Ident / length / bearing come from the source (re-import overwrites them). The other columns are editorial.</value></data>
   <data name="Ape_Runway" xml:space="preserve"><value>Runway</value></data>
   <data name="Ape_LengthM" xml:space="preserve"><value>Length (m)</value></data>
-  <data name="Ape_SaveRunways" xml:space="preserve"><value>Save runways</value></data>
   <data name="Ape_SidRenderTitle" xml:space="preserve"><value>Public rendering of the SID section</value></data>
   <data name="Ape_FreezeAtPublish" xml:space="preserve"><value>Freeze at publish</value></data>
   <data name="Ape_MakeAlwaysLive" xml:space="preserve"><value>Make always live</value></data>
@@ -2144,7 +2128,6 @@
   <data name="Ape_Now" xml:space="preserve"><value>now</value></data>
   <data name="Ape_SidManualTitle" xml:space="preserve"><value>Manual SIDs</value></data>
   <data name="Ape_SidManualHelp" xml:space="preserve"><value>Rows added by hand by the staff: preserved from imports. Fields not present in the sectorfile (Initial climb / Cat / WTC / Condition) go here.</value></data>
-  <data name="Ape_SaveManualSids" xml:space="preserve"><value>Save manual SIDs</value></data>
   <data name="Ape_ExtraTitle" xml:space="preserve"><value>Extra sections</value></data>
   <data name="Ape_ExtraHelp" xml:space="preserve"><value>Free editorial sections (title + text). In the document they appear in the &lt;b&gt;free right column&lt;/b&gt; on desktop and &lt;b&gt;below the SIDs&lt;/b&gt; on narrow/mobile screens. They are evaluated in the order you put them.</value></data>
   <data name="Ape_ExtraTitlePh" xml:space="preserve"><value>e.g. Operational notes</value></data>
@@ -2175,7 +2158,6 @@
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Remove this SID?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude and sectors from IVAO? The fields imported from the source will be overwritten.</value></data>
-  <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Unsaved changes in: {0}. They will not enter the release. Continue?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>month</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Mon</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Tue</value></data>
@@ -3214,7 +3196,6 @@
   <data name="Ape_RwMissingRow" xml:space="preserve"><value>gone from source</value></data>
   <data name="Ape_RwMissingRowTitle" xml:space="preserve"><value>The IVAO database no longer lists this runway. Move the editorial data and remove the row.</value></data>
   <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Remove the runway. If the source still has it, the next re-import brings it back.</value></data>
-  <data name="Ape_ReimportDiscardConfirm" xml:space="preserve"><value>There are unsaved changes ({0}): the re-import reloads everything from the database and discards them. Continue?</value></data>
   <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Gone from the source, but kept because they hold hand-written data: {0}.</value></data>
   <data name="TrEd_Wait_Missing" xml:space="preserve"><value>{0} to translate</value></data>
   <data name="TrEd_Wait_Next" xml:space="preserve"><value>next round in ~{0} min</value></data>
@@ -3269,4 +3250,6 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ One came back broken and was not saved: the next round will send it again.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>one needs a person</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>One sentence of this document is not translated yet. The release does NOT freeze it: it will read translated as soon as the round has been through, without republishing.</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: not saved yet</value></data>
+  <data name="Ape_ClimbByApp" xml:space="preserve"><value>to be coordinated with APP</value></data>
 </root>

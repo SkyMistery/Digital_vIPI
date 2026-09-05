@@ -13,7 +13,11 @@
    merge non distrugge lavoro editoriale: qualcuno deve poterle togliere. Prima la ✕ compariva solo a policy
    spenta, e la policy è globale — per ripulire un aeroporto si sbloccavano tutti gli altri. Togliere per
    sbaglio una pista viva dura fino al re-import successivo, che la rimette; aggiungerne una a mano no, ed è
-   per questo che «+ Pista» resta sotto chiave. *@
+   per questo che «+ Pista» resta sotto chiave.
+
+   ⚠️ Niente tasto «Salva» e niente `CanEdit` dal 4 settembre 2026 (carta 2026-09-04-aeroporto-porta-sola):
+   ogni gesto avvisa l'host, che salva subito passando dalla sua porta unica. Il cancello è `Editing` — il
+   lock del documento — e si legge come RAMO DI RENDER, non come `disabled`. *@
 @inject IStringLocalizer<SharedResource> L
 
 @* ⚠️ L'aggancio sta su OGNI input (`@bind:after`), NON su un `@onchange` del contenitore. Il contenitore
@@ -45,34 +49,55 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var p in problemi) { <div>@L[p.Key, p.Args]</div> }</div></div>
     }
     <table class="res-table">
-        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th><th></th></tr></thead>
+        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th>@if (Editing) { <th></th> }</tr></thead>
         <tbody>
             @foreach (var r in Rows)
             {
                 <tr @key="r">
                     <td>
-                        <input style="width:64px" @bind="r.Ident" @bind:after="Cambiato" disabled="@SourceLocked" />
+                        @if (Editing && !SourceLocked)
+                        {
+                            <input style="width:64px" @bind="r.Ident" @bind:after="Cambiato" />
+                        }
+                        else
+                        {
+                            <b>@Testo(r.Ident)</b>
+                        }
                         @if (Orfana(r)) { <span class="pill warn" title="@L["Ape_RwMissingRowTitle"]">@L["Ape_RwMissingRow"]</span> }
                     </td>
                     <td class="muted">@(r.LengthM?.ToString() ?? "—")</td>
-                    <td><input style="width:80px" @bind="r.Tora" @bind:after="Cambiato" /></td>
-                    <td><input style="width:80px" @bind="r.Lda" @bind:after="Cambiato" /></td>
-                    <td><input style="width:150px" @bind="r.App" @bind:after="Cambiato" /></td>
-                    <td><input style="width:70px" @bind="r.Patterns" @bind:after="Cambiato" /></td>
-                    <td><input style="width:70px" @bind="r.Circling" @bind:after="Cambiato" /></td>
-                    <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
+                    @if (Editing)
+                    {
+                        <td><input style="width:80px" @bind="r.Tora" @bind:after="Cambiato" /></td>
+                        <td><input style="width:80px" @bind="r.Lda" @bind:after="Cambiato" /></td>
+                        <td><input style="width:150px" @bind="r.App" @bind:after="Cambiato" /></td>
+                        <td><input style="width:70px" @bind="r.Patterns" @bind:after="Cambiato" /></td>
+                        <td><input style="width:70px" @bind="r.Circling" @bind:after="Cambiato" /></td>
+                        <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
+                    }
+                    else
+                    {
+                        <td>@Testo(r.Tora)</td>
+                        <td>@Testo(r.Lda)</td>
+                        <td>@Testo(r.App)</td>
+                        <td>@Testo(r.Patterns)</td>
+                        <td>@Testo(r.Circling)</td>
+                    }
                 </tr>
             }
         </tbody>
     </table>
-    <div style="margin-top:10px;display:flex;gap:8px">
-        @if (!SourceLocked) { <button class="btn ghost" @onclick="Aggiungi">+ @L["Ape_Runway"]</button> }
-        <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="() => OnSaveRows.InvokeAsync()">@L["Ape_SaveRunways"]</button>
-    </div>
+    @if (Editing)
+    {
+        <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
+            @if (!SourceLocked) { <button class="btn ghost" @onclick="Aggiungi">+ @L["Ape_Runway"]</button> }
+            @if (!AirportSaveGate.Runways(Rows)) { <span class="muted">@L["Ape_RowIncomplete"]</span> }
+        </div>
+    }
 </div>
 
 @code {
-    /// <summary>Le piste in lavorazione: il componente le muta in posto e avvisa con <see cref="OnChanged"/>.</summary>
+    /// <summary>Le piste in lavorazione: il componente le muta in posto e avvisa con <see cref="RowsChanged"/>.</summary>
     [Parameter, EditorRequired] public List<RwEdit> Rows { get; set; } = new();
 
     /// <summary>Le piste arrivano dall'anagrafica IVAO: identificativo bloccato, righe non aggiungibili.</summary>
@@ -85,28 +110,32 @@
     private bool Orfana(RwEdit r) =>
         MissingFromSource.Contains((r.Ident ?? "").Trim(), StringComparer.OrdinalIgnoreCase);
 
-    [Parameter] public bool Busy { get; set; }
-    [Parameter] public bool CanEdit { get; set; }
-    [Parameter] public EventCallback OnChanged { get; set; }
-    [Parameter] public EventCallback OnSaveRows { get; set; }
+    /// <summary>Il documento è in modifica e il lock è nostro: solo allora ci sono gli input.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Le piste sono cambiate: l'host le salva subito.</summary>
+    [Parameter] public EventCallback RowsChanged { get; set; }
 
     /// <summary>Conferma prima di togliere una pista; null = non si chiede.</summary>
     [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
 
     /// <summary>Una casella ha cambiato valore. Unico punto d'uscita del componente: ci arrivano sia le
     /// modifiche alle celle sia l'aggiunta e la rimozione di una riga.</summary>
-    private Task Cambiato() => OnChanged.InvokeAsync();
+    private Task Cambiato() => RowsChanged.InvokeAsync();
+
+    /// <summary>Il valore di una colonna editoriale in sola lettura.</summary>
+    private static string Testo(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!;
 
     private async Task Aggiungi()
     {
         Rows.Add(new RwEdit());
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 
     private async Task Rimuovi(RwEdit r)
     {
         if (ConfirmRemove is not null && !await ConfirmRemove()) return;
         Rows.Remove(r);
-        await OnChanged.InvokeAsync();
+        await RowsChanged.InvokeAsync();
     }
 }

@@ -331,3 +331,40 @@ public static class AirportSidRules
         return w;
     }
 }
+
+/// <summary>
+/// Il cancello del salvataggio a ogni gesto (carta 2026-09-04-aeroporto-porta-sola): <b>questa collezione si
+/// può scrivere adesso?</b>
+///
+/// <para>⚠️ Serve perché «salva a ogni gesto» incontra un caso che gli altri editor non hanno: le tabelle
+/// dell'aeroporto si riempiono una casella per volta, e i service alzano <c>ValidationException</c> su una
+/// riga incompleta (Transition Level obbligatorio, ident pista obbligatorio, almeno una pista DEP o ARR per
+/// la regola, nome e FIX per la SID). Salvare a ogni tasto significherebbe un avviso rosso in faccia a chi
+/// ha appena premuto «+ riga» e non ha ancora finito di scriverla.</para>
+///
+/// <para>Con questo cancello il gesto su una riga incompleta <b>non scrive</b>, e l'editor lo dice in una
+/// riga di testo; appena la riga è completa il gesto successivo salva tutto. È lo stesso criterio già scritto
+/// in <see cref="AirportRunwayValidation"/>: <i>una riga senza identificativo non è un errore, è una riga che
+/// non si è ancora finito di scrivere.</i></para>
+///
+/// <para>⚠️ Non è la guardia: la guardia resta nei service, che rifiutano comunque. Qui si decide solo
+/// <b>quando ha senso provarci</b>, e per questo le due regole devono restare allineate — se un service
+/// cambia una condizione obbligatoria, cambia anche qui.</para>
+///
+/// <para>Cuore deterministico: righe che entrano, sì/no che esce. Nessuna UI, nessun I/O.</para>
+/// </summary>
+public static class AirportSaveGate
+{
+    /// <summary>Ogni livello di transizione ha il suo FL.</summary>
+    public static bool Tls(IReadOnlyList<TlEdit> rows) => rows.All(r => !string.IsNullOrWhiteSpace(r.Level));
+
+    /// <summary>Ogni pista ha un identificativo.</summary>
+    public static bool Runways(IReadOnlyList<RwEdit> rows) => rows.All(r => !string.IsNullOrWhiteSpace(r.Ident));
+
+    /// <summary>Ogni regola dice almeno una pista, in partenza o in arrivo.</summary>
+    public static bool Rules(IReadOnlyList<RuleEdit> rows) => rows.All(r => r.Dep.Count > 0 || r.Arr.Count > 0);
+
+    /// <summary>Ogni SID manuale ha nome e punto.</summary>
+    public static bool Sids(IReadOnlyList<SidEdit> rows) =>
+        rows.All(r => !string.IsNullOrWhiteSpace(r.Name) && !string.IsNullOrWhiteSpace(r.Fix));
+}

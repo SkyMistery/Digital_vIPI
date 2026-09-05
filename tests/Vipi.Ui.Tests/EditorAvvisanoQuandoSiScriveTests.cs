@@ -7,9 +7,10 @@ using Xunit;
 namespace Vipi.Ui.Tests;
 
 /// <summary>
-/// <b>Scrivere in una cella deve dire alla pagina che c'è qualcosa da salvare.</b> È l'avviso su cui
-/// poggiano tre cose: il contatore «Salva tutto», la guardia del browser quando si lascia la pagina, e —
-/// da 1.7.1 — l'auto-salvataggio delle piste e la conferma prima di un re-import.
+/// <b>Scrivere in una cella deve dire all'ospite che c'è da salvare.</b> Dal 4 settembre 2026 quell'avviso
+/// È il salvataggio: non c'è più un «Salva tutto» da aggiornare né una guardia del browser da accendere —
+/// l'ospite, ricevuto l'avviso, scrive (carta 2026-09-04-aeroporto-porta-sola). Il che rende queste prove
+/// più importanti di prima, non meno: un campo che non avvisa è un campo che non si salva.
 ///
 /// <para>🔴 <b>Era morto in tutti e quattro gli editor dello scalo.</b> L'aggancio stava su un
 /// <c>@onchange</c> del <c>div</c> che avvolge la tabella, e non veniva <b>mai</b> chiamato. Misurato il
@@ -47,24 +48,25 @@ public class EditorAvvisanoQuandoSiScriveTests : TestContext
         var n = 0;
         var c = RenderComponent<AirportTransitionEditor>(p => p
             .Add(x => x.Rows, new List<TlEdit> { new() { From = 1013, To = 1030, Level = "FL70" } })
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.OnChanged, () => n++));
+            .Add(x => x.Editing, true)
+            .Add(x => x.RowsChanged, () => n++));
 
         c.FindAll("tbody tr td input").ToList()[colonna].Change("999");
 
         Assert.Equal(1, n);
     }
 
-    /// <summary>E la Transition Altitude, che ha un gestore suo e prima non avvisava nessuno.</summary>
+    /// <summary>E la Transition Altitude, che ha una porta sua: è un'altra colonna e un altro metodo di
+    /// service, quindi non passa da <c>RowsChanged</c>. ⚠️ Il valore va passato INSIEME all'avviso — chi lo
+    /// riceve salva subito, e senza il valore salverebbe quello di prima.</summary>
     [Fact]
     public void La_transition_altitude_avvisa_e_passa_il_valore()
     {
         int n = 0, ta = 0;
         var c = RenderComponent<AirportTransitionEditor>(p => p
             .Add(x => x.Rows, new List<TlEdit>())
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.TransitionAltitudeFtChanged, (int? v) => ta = v ?? 0)
-            .Add(x => x.OnChanged, () => n++));
+            .Add(x => x.Editing, true)
+            .Add(x => x.TransitionAltitudeFtChanged, (int? v) => { ta = v ?? 0; n++; }));
 
         c.Find("input[type=number]").Change("6000");
 
@@ -80,8 +82,8 @@ public class EditorAvvisanoQuandoSiScriveTests : TestContext
         var c = RenderComponent<AirportRunwayRulesEditor>(p => p
             .Add(x => x.Rows, new List<RuleEdit> { new() { Name = "prova" } })
             .Add(x => x.RunwayIdents, new[] { "16L" })
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.OnChanged, () => n++));
+            .Add(x => x.Editing, true)
+            .Add(x => x.RowsChanged, () => n++));
 
         c.FindAll("input").ToList().First(i => i.GetAttribute("placeholder") == "Ape_RuleNamePh").Change("nuova");
 
@@ -100,8 +102,8 @@ public class EditorAvvisanoQuandoSiScriveTests : TestContext
         var c = RenderComponent<AirportRunwayRulesEditor>(p => p
             .Add(x => x.Rows, new List<RuleEdit> { new() { Name = "prova" } })
             .Add(x => x.RunwayIdents, new[] { "16L" })
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.OnChanged, () => n++));
+            .Add(x => x.Editing, true)
+            .Add(x => x.RowsChanged, () => n++));
 
         c.FindAll("input").ToList().First(i => i.GetAttribute("placeholder") == "Ape_WindCalm").Change("270");
 

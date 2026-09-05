@@ -11,7 +11,10 @@
 
 @* ⚠️ Niente `@onchange` sul contenitore: non funzionava (vedi AirportRunwaysEditor), e qui non servirebbe
    comunque — l'unico campo che avvolgeva e' la casella di RICERCA, che e' stato locale e non va salvata.
-   Collegare e scollegare una frequenza avvisano gia' l'host per conto loro. *@
+   Collegare e scollegare una frequenza avvisano gia' l'host per conto loro.
+
+   ⚠️ Niente tasto «Salva» e niente `CanEdit` dal 4 settembre 2026 (carta 2026-09-04-aeroporto-porta-sola):
+   collegare o scollegare SALVA, e senza `Editing` — il lock del documento — non c'è né la ✕ né il picker. *@
 <div>
     <div class="ed-h3 ed-h3-mini">
         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
@@ -29,11 +32,13 @@
                 <tr @key="id">
                     <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
                     <td class="muted">@L["Ape_Linked"]</td>
-                    <td><button class="btn ghost" @onclick="() => Scollega(id)">✕</button></td>
+                    <td>@if (Editing) { <button class="btn ghost" @onclick="() => Scollega(id)">✕</button> }</td>
                 </tr>
             }
         </tbody>
     </table>
+    @if (Editing)
+    {
     <div class="se-row" style="margin-top:10px;align-items:flex-start">
         <div style="position:relative;width:320px">
             <input style="width:100%" placeholder="@L["Ape_SearchCallsignFreq"]"
@@ -59,8 +64,8 @@
                 </div>
             }
         </div>
-        <button class="btn primary" disabled="@(Busy || !CanEdit)" @onclick="() => OnSaveLinks.InvokeAsync()">@L["Ape_SaveLinks"]</button>
     </div>
+    }
 </div>
 
 @code {
@@ -73,10 +78,11 @@
     /// <summary>Il catalogo da cui si sceglie: tutte le frequenze collegabili.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<LinkableFrequencyRow> Linkable { get; set; } = Array.Empty<LinkableFrequencyRow>();
 
-    [Parameter] public bool Busy { get; set; }
-    [Parameter] public bool CanEdit { get; set; }
-    [Parameter] public EventCallback OnChanged { get; set; }
-    [Parameter] public EventCallback OnSaveLinks { get; set; }
+    /// <summary>Il documento è in modifica e il lock è nostro: solo allora si collega e si scollega.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>I link sono cambiati: l'host li salva subito.</summary>
+    [Parameter] public EventCallback LinksChanged { get; set; }
 
     private string _cerca = "";
     private bool _aperta;
@@ -90,7 +96,7 @@
         if (!LinkIds.Contains(id))
         {
             LinkIds.Add(id);
-            await OnChanged.InvokeAsync();
+            await LinksChanged.InvokeAsync();
         }
         _cerca = "";
     }
@@ -98,6 +104,6 @@
     private async Task Scollega(int id)
     {
         LinkIds.Remove(id);
-        await OnChanged.InvokeAsync();
+        await LinksChanged.InvokeAsync();
     }
 }

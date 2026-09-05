@@ -73,15 +73,18 @@ public sealed class AirportEditingService : IAirportEditingService
     private readonly IAirportDirectory _directory;
     private readonly IAirportDetailProvider _details;
     private readonly IImportPolicyStore _policy;
+    private readonly IAirportLockGuard _lock;
 
     public AirportEditingService(IAirportRepository repo, IEditAuthorizationService authz,
-        IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy)
+        IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
+        IAirportLockGuard @lock)
     {
         _repo = repo;
         _authz = authz;
         _directory = directory;
         _details = details;
         _policy = policy;
+        _lock = @lock;
     }
 
     public Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default) => _policy.GetAsync(ct);
@@ -106,7 +109,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public async Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         if ((await _policy.GetAsync(ct)).TransitionAltitude)
             throw new ValidationException(Lingua("Transition Altitude è gestita dalla sorgente (sola lettura). Per modificarla, escludila in «Sorgenti dati».", "The Transition Altitude comes from the source (read-only). To change it, exclude it under «Data sources»."));
         if (ta is < 0 or > 60000) throw new ValidationException(Lingua("Transition Altitude non valida.", "Invalid Transition Altitude."));
@@ -115,7 +118,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public async Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.Level)) throw new ValidationException(Lingua("Transition Level obbligatorio per ogni riga.", "A Transition Level is required on every row."));
@@ -126,7 +129,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public async Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         foreach (var r in rows)
             if (string.IsNullOrWhiteSpace(r.Ident)) throw new ValidationException(Lingua("Ident pista obbligatorio.", "The runway ident is required."));
 
@@ -153,7 +156,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public async Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.DepRunways) && string.IsNullOrWhiteSpace(r.ArrRunways))
@@ -166,7 +169,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public async Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         foreach (var r in rows)
         {
             if (string.IsNullOrWhiteSpace(r.Name)) throw new ValidationException(Lingua("Nome SID obbligatorio.", "The SID name is required."));
@@ -178,19 +181,19 @@ public sealed class AirportEditingService : IAirportEditingService
     public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, initialClimb, initialClimbByApp, cat, wtc, condition, ct);
     }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureLockMineAsync(icao, ct);
         await _repo.SaveFrequencyLinksAsync(Norm(icao), sourceFrequencyIds, ct);
     }
 
             public async Task<RunwayMergeOutcome> ReimportFromSourceAsync(string icao, CancellationToken ct = default)
     {
-        await EnsureCanEditAsync(icao, ct);
+        await EnsureNotLockedByOtherAsync(icao, ct);
         icao = Norm(icao);
         var policy = await _policy.GetAsync(ct);
 
@@ -238,6 +241,23 @@ public sealed class AirportEditingService : IAirportEditingService
         var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
             ?? throw new ValidationException(Lingua($"Aeroporto {Norm(icao)} inesistente.", $"Airport {Norm(icao)} does not exist."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+    }
+
+
+    /// <summary>Ruolo <b>e</b> lock: la guardia delle scritture editoriali (carta
+    /// 2026-09-04-aeroporto-porta-sola). Il lock lo chiede a <see cref="IAirportLockGuard"/>, che è la porta
+    /// sola: la stessa la usa <see cref="IAirportSectorService"/> per i settori dello scalo.</summary>
+    private async Task EnsureLockMineAsync(string icao, CancellationToken ct)
+    {
+        await EnsureCanEditAsync(icao, ct);
+        await _lock.EnsureMineAsync(icao, ct);
+    }
+
+    /// <summary>Ruolo, e il lock <b>non di un altro</b>: la guardia dei comandi in blocco (re-import).</summary>
+    private async Task EnsureNotLockedByOtherAsync(string icao, CancellationToken ct)
+    {
+        await EnsureCanEditAsync(icao, ct);
+        await _lock.EnsureNotOtherAsync(icao, ct);
     }
 
     private static string Norm(string icao) => (icao ?? "").Trim().ToUpperInvariant();

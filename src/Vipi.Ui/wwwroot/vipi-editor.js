@@ -25,14 +25,11 @@
     // Chiamato da OnAfterRenderAsync: l'ultima pagina montata diventa la destinataria.
     window.vipiEditorInit = function (dotRef) { current = dotRef; };
 
-    // --- Editor aeroporto: Ctrl/Cmd+S salva le sezioni modificate; guardia beforeunload se ci sono modifiche non salvate. ---
-    var airportRef = null;   // DotNetObjectReference dell'editor aeroporto
-    var airportDirty = false;
-
-    // Chiamato da OnAfterRenderAsync dell'editor aeroporto.
-    window.vipiAirportEditorInit = function (dotRef) { airportRef = dotRef; };
-    // Chiamato dalla pagina quando lo stato "sporco" cambia.
-    window.vipiSetDirty = function (v) { airportDirty = !!v; };
+    // ⚠️ Qui stavano il Ctrl/Cmd+S dell'editor aeroporto («salva le sezioni modificate»), la guardia
+    // `beforeunload` e i due ganci che le servivano (`vipiAirportEditorInit`, `vipiSetDirty`). Sono caduti
+    // il 4 settembre 2026 con la cosa che proteggevano: quell'editor non accumula più niente, ogni gesto
+    // scrive (carta 2026-09-04-aeroporto-porta-sola). Una guardia che non ha niente da guardare insegna
+    // solo a ignorare gli avvisi.
     // Fisarmonica dei BLOCCHI dell'editor ACC: aprendone uno gli altri si chiudono. Senza, la pagina torna
     // subito ai 9 690px misurati — e con due o tre gruppi APP aperti l'indice non basta più a orientarsi.
     // `toggle` NON fa bubbling: va ascoltato in cattura (stessa ragione di vipi-aor.js).
@@ -75,18 +72,8 @@
         });
     };
 
-    if (!window.__vipiAirportKeys) {
-        window.__vipiAirportKeys = true;
-        // Ctrl/Cmd+S → salva tutte le sezioni modificate (anche col focus in un campo).
-        document.addEventListener('keydown', function (e) {
-            if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
-                if (airportRef) { e.preventDefault(); airportRef.invokeMethodAsync('SaveAllDirty'); }
-            }
-        });
-        // Avviso del browser su chiusura/refresh/navigazione con modifiche pendenti.
-        window.addEventListener('beforeunload', function (e) {
-            if (airportDirty) { e.preventDefault(); e.returnValue = ''; }
-        });
+    if (!window.__vipiEditorAnchors) {
+        window.__vipiEditorAnchors = true;
         // Saltando a una sezione dalla mini-nav (#sec-…), se è collassata la apre.
         window.addEventListener('hashchange', function () {
             if (!location.hash) return;

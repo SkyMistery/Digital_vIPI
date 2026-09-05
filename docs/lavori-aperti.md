@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 4 settembre 2026, notte fonda — ✅ **§BN: L'AEROPORTO HA UNA PORTA SOLA, E I CAMPI VIVONO SOLO COL LOCK.** Richiesta del committente: «vorrei che il punto di salvataggio dei documenti di aeroporto sia uno, come negli altri documenti, e voglio poter scrivere nei campi solo se il documento è in editing». Erano **nove** tasti «Salva» più «Salva tutto (N)» e Ctrl+S, **tre** buffer che si potevano perdere e un cancello che non era il lock ma il **ruolo** sulla ACC — si digitava in tutta la pagina senza aver premuto «Modifica». Ora ogni gesto scrive, e il lock è una guardia **nel service**, non un tasto spento. Sul ramo **`aeroporto-porta-sola`**, spinto e **NON fuso** in `main`, quindi fuori produzione. ⚠️ **Serve un pacchetto**: tocca `Vipi.Ui` (frasi comprese), `Vipi.Application` e `Vipi.Infrastructure`. Carta: `docs/feature/2026-09-04-aeroporto-porta-sola.md`.
+
 **Aggiornato:** 4 settembre 2026, notte — ✅ **1.9.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.9.0-solo-file-cambiati.zip`, sha256 `3045b044acf77bdd2deefd2c1ed911e2d2a2ec6cce3995cfffede0c9143d73ee`, **15 file**, timbro **`1.9.0 · f75e2e0`**). ✅ **Verificata da fuori, da anonimo, due giri su due verdi**: il JS che avvia Blazor arriva ed è minificato, il **circuito si apre**, la **Ricerca risponde** (è il controllo che conta, perché passa dal server), il foglio di stile è in vigore — quindi i quattro file di `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto — e la console del browser è pulita. ⚠️ **Il timbro non si vede da fuori**: la barra lo mostra ai soli amministratori, quindi la conferma «1.9.0 · f75e2e0» la dà `diagnostica/avvio-diagnostica.txt` al prossimo caricamento della diagnostica. Dentro ci sono **§BM** (a che punto è la traduzione: due percentuali, l'attesa a orologio, il tasto «traduci ora») e **§BM-bis** (il riquadro «ricarica la pagina», che **non** era l'host). 🔴 **E resta quel che serve da loro**: `diagnostica/errori-richieste.txt` fra qualche giorno — quello di oggi si fermava un minuto prima che 1.8.1 partisse, quindi né di 1.8.1 né di 1.9.0 abbiamo ancora un dato. 🔴 **E una decisione editoriale, adesso visibile**: 17 release in vigore su 17 non congelano la traduzione, e si chiude **ripubblicando**.
 
 **Aggiornato:** 4 settembre 2026, sera tardi — ✅ **§BM: A CHE PUNTO È LA TRADUZIONE, e sono DUE percentuali.** Richiesta del committente. Nessuna entità, nessuna tabella, **nessuna migrazione**: lo stato è la differenza fra i segmenti di un documento e le impronte in memoria, e **si calcola** — misurato, **45 ms** su tutto il `vipi.db` (26 documenti, 696 titoli, 218 blocchi, 313 voci di memoria). 🔴 **E la misura ha detto la cosa che nessuna pagina mostrava: tutte e 17 le release EFFICACI hanno `Doc.Translations` nullo** — il congelamento riparato il 31 agosto vale dalla **prossima** pubblicazione, e quel che il pubblico legge oggi viene **al 100% dalla memoria viva**. Ora si vede, con la pastiglia «non congelata» su ogni riga in vigore. **Due coperture e mai una media**: *bozza* (memoria viva) e *pubblicato* (snapshot ∪ memoria, con la stessa preferenza di `NoteAsync`) — «bozza 100%, pubblicato 40%» è il guasto §Q18 in persona, e «70%» non farebbe agire nessuno. **Quattro sedi, una fonte**: la sezione «Documenti» del Registro, l'**esito dell'ultimo giro** (che esisteva intero e finiva **solo nel log del server**), la pastiglia su `/versions` e la riga nella pubblicazione. ➕ **E la domanda di chi scrive ha una risposta a orologio**: il giro **non ha tetto di lotto** — spedisce tutti i mancanti in una chiamata — quindi «≤ 15 minuti» non è una stima; l'ora dell'ultimo giro era **già** in `IImportStateStore` e non la mostrava nessuno. ➕ **Tasto «traduci ora»** sul documento (permesso dell'Editor, raggio del solo documento, scope proprio per la rete, lucchetto in-processo col giro automatico, `TranslationSpendKind.ManualDispatch` + riga di audit — **zero schema**). ⚠️ **Nessun tetto per pressione, per decisione del committente**: Azure non ne ha uno e il dedup rende innocua la ripetizione. ⚠️ **Una parte della carta l'ha corretta la misura**: «a mano» — i segmenti che il protettore rifiuta — è **zero sul corpus vero** (0 non sicuri su 104 distinti), quindi la colonna compare solo se qualcosa la riempie. ✅ **Verifica live fatta** su copia del DB, e ha trovato **tre** difetti che i test non vedevano (plurale «1 sentences», spazio mangiato da Razor prima di un `@if`, e il rifiuto del protettore che non si diceva a chi preme). 10 lezioni in carta: `docs/feature/2026-09-04-stato-traduzione.md`. ⚠️ **Serve un pacchetto**: tocca `Vipi.Ui` (frasi comprese) e `Vipi.Application`/`Vipi.Infrastructure`.
@@ -8339,3 +8341,82 @@ dipendenze giustificava. La CI restora in **locked mode** e si sarebbe fermata l
 aperto, Ricerca che risponde, foglio di stile in vigore (cioè i quattro file di `wwwroot` arrivati insieme),
 console pulita. ⚠️ Il **timbro** non è verificabile da anonimo — la barra lo mostra ai soli amministratori —
 e lo confermerà `avvio-diagnostica.txt` al prossimo giro di diagnostica.
+
+
+## BN. L'aeroporto entra nella regola: una porta sola, e il lock che vale davvero — 4 settembre 2026
+
+> Richiesta del committente: *«vorrei che il punto di salvataggio dei documenti di aeroporto sia uno, come
+> negli altri documenti. E voglio poter scrivere nei campi solo se il documento è in editing e quindi con
+> lock attivo. (Ora tipo le SID si possono editare senza prendere il lock, oppure le frequenze hanno un loro
+> tasto a parte.)»*
+
+### Il confine di agosto, e perché è caduto
+
+Il 26 agosto l'editor d'aeroporto aveva preso bozza+lock, ma **solo per il documento**. I dati strutturati —
+TA/TL, piste, regole, frequenze, SID, limiti di settore — restavano a salvataggio diretto, e la ragione
+scritta nel codice era questa: *«li scrivono anche i servizi d'import che girano in background, e quelli un
+lock non possono prenderlo»*.
+
+🔴 **La premessa è vera, la conclusione no.** Che un job non possa prendere un lock non dice niente su che
+cosa debba fare una persona — e i job **non passano dal service dell'editor**: scrivono per il repository e
+per il loro importatore. Il confine separava due cose che non erano dalla stessa parte.
+
+### Che cosa c'era, contato
+
+| | Prima | Adesso |
+|---|---|---|
+| Tasti «Salva» | 9 (TA, tabella livelli, piste, regole, link, SID manuali, SID modificate, ✓ dei limiti per riga) + «Salva tutto (N)» + Ctrl+S | **nessuno** |
+| Buffer non salvati | 3 (`_dirtySections`, `_dirtyLimiti`, `_sidNonSalvate`) + guardia `beforeunload` | **nessuno** |
+| Cancello dei campi | `_canEdit` = ruolo sulla ACC; il lock spegneva **solo** il tasto Salva | `_shell.IsEditing` = il lock, come ramo di render |
+| Guardia lato server | ruolo soltanto | ruolo **e** lock (`IAirportLockGuard`) |
+
+### Le tre cose che il giro ha dovuto risolvere
+
+1. **La riga incompleta.** I service pretendono righe complete (un FL per livello, un ident per pista, una
+   pista per regola, nome e punto per SID) e una tabella si riempie una casella per volta: salvare a ogni
+   tasto sputerebbe un avviso rosso in faccia a chi ha appena premuto «+ riga». Lo tiene `AirportSaveGate`,
+   un cuore deterministico che dice **quando ha senso provarci**. ⚠️ Non è la guardia: quella resta nel
+   service, e le due regole vanno tenute allineate.
+2. **I tre `@onchange` di CONTENITORE** dell'editor SID. Non scattano **mai** — era già stato misurato sugli
+   altri due editor dello stesso scalo. Con l'auto-salvataggio appeso lì non si sarebbe salvato niente:
+   l'aggancio è ora su ogni campo (`@bind:after`), e una prova per campo lo presidia.
+3. **Il campo solo militare senza vIPI civile.** Lì i dati di scalo si scrivono dall'editor vSOP, che tiene
+   il lock del **suo** documento. La guardia cerca quindi il documento **civile se c'è, altrimenti quello
+   militare**: senza quel secondo caso l'editor militare si sarebbe rotto in silenzio.
+
+### I due livelli della guardia, che non sono una distrazione
+
+- **Scritture editoriali** → il lock dev'essere **mio**.
+- **Comandi in blocco** (re-import) → basta che **non sia di un altro**: li lancia anche la pagina degli
+  aeroporti su N scali, e quel lock lei non ce l'ha. Pretenderlo chiuderebbe l'amministratore fuori dal suo
+  strumento; quel che deve non fare è passare sopra a chi sta lavorando.
+- **I job** → niente: non passano di qui.
+
+### Il compromesso, dichiarato
+
+Una riga **incompleta non si salva**, e chi esce lasciandola a metà la perde. È il prezzo della porta unica,
+ed è ciò che fanno già gli altri quattro editor. In cambio sparisce l'unico caso in cui si perdeva lavoro
+**valido e già digitato** — quello pagato su LIPR con TORA e LDA.
+
+### Prove
+
+Build Release `--no-incremental` verde, **5.423 test** verdi. Sette prove nuove sul lock
+(`AirportLockGuardTests`, repo veri su SQLite): senza lock si rifiuta, col lock di un altro si rifiuta
+dicendo **chi**, col mio passa, un lock **scaduto** non vale, tutte e sette le scritture editoriali chiedono
+il lock, e il re-import passa senza lock ma non sopra a quello di un altro. Le prove strutturali che
+presidiavano il modello vecchio sono state **riscritte sul nuovo**, non tolte.
+
+### Verifica live (LIBD, copia del DB)
+
+Guidata in Edge, con lock preso davvero. Senza lock: **zero** campi nelle piste, nelle SID manuali e nelle
+importate, **zero** tasti «Salva», i valori si leggono. Col lock: 4 campi piste, 39 SID importate, ancora
+zero tasti «Salva». Un TORA digitato → badge **Salvato** → **regge al ricarico**. «+ SID» → riga con campi e
+la riga «incompleta: non ancora salvata»; col solo nome resta incompleta; aggiunto il punto, in archivio
+(`ALAXI/PROVA1A` riletto dal database). Limite di settore digitato → in archivio **3433** su `LIBD_CS0_APP`,
+senza nessun ✓. Ctrl+S non fa niente, uscire non chiede conferma, console pulita.
+
+⚠️ **Due «KO» erano della SONDA, non del prodotto**, e valgono come promemoria: contare gli `<input>` non
+dice se sono **spenti** (i limiti di settore ci sono sempre, `disabled` senza lock), e `innerText` non
+contiene il `value` di un campo — cercarci dentro un numero appena digitato dà sempre «non c'è». *Quando la
+misura accusa qualcosa che il database smentisce, il sospetto va prima allo strumento.*
+

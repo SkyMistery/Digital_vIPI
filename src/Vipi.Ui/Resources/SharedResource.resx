@@ -2002,9 +2002,7 @@
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>da verificare {0}</value></data>
   <data name="Ape_SidReviewChipTitle" xml:space="preserve"><value>Mostra solo le SID il cui punto va confermato a mano</value></data>
   <data name="Ape_SidRwChipTitle" xml:space="preserve"><value>Mostra solo le SID di questa pista</value></data>
-  <data name="Ape_SidDirtyN" xml:space="preserve"><value>{0} modificate</value></data>
   <data name="Ape_SidDirtyNOne" xml:space="preserve"><value>1 modificata</value></data>
-  <data name="Ape_SidSaveDirty" xml:space="preserve"><value>Salva modificate</value></data>
   <data name="Ape_SidSelectAll" xml:space="preserve"><value>Scegli tutte</value></data>
   <data name="Ape_SidUnselectAll" xml:space="preserve"><value>Togli tutte</value></data>
   <data name="Ape_SidPublishSel" xml:space="preserve"><value>Pubblica scelte</value></data>
@@ -2036,19 +2034,10 @@
   <data name="Ape_PriorityTitle" xml:space="preserve"><value>Ordine di preferenza fra le SID dello stesso punto: il numero più basso viene prima</value></data>
   <data name="Ape_WtcTitle" xml:space="preserve"><value>Wake Turbulence Category</value></data>
   <data name="Ape_CloneRow" xml:space="preserve"><value>Duplica riga</value></data>
-  <data name="Ape_SidSavedN" xml:space="preserve"><value>Salvate {0} SID.</value></data>
-  <data name="Ape_SidSavedNOne" xml:space="preserve"><value>Salvata 1 SID.</value></data>
   <data name="Ape_SidSaveFailedN" xml:space="preserve"><value> {0} non salvate (dettaglio nei log).</value></data>
   <data name="Ape_SidSaveFailedNOne" xml:space="preserve"><value> 1 non salvata (dettaglio nei log).</value></data>
   <data name="Ape_SidPublishedN" xml:space="preserve"><value>Pubblicate {0} SID.</value></data>
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Pubblicata 1 SID.</value></data>
-  <data name="Ape_SidDiscardConfirm" xml:space="preserve"><value>Ci sono {0} SID modificate e non salvate: il ri-prelievo le scarta. Continuare?</value></data>
-  <data name="Ape_SidDiscardConfirmOne" xml:space="preserve"><value>C'è 1 SID modificata e non salvata: il ri-prelievo la scarta. Continuare?</value></data>
-  <data name="Ape_SaveAllTitle" xml:space="preserve"><value>Salva tutte le sezioni modificate nella bozza — Ctrl+S</value></data>
-  <data name="Ape_ExitBlocked" xml:space="preserve"><value>Restano modifiche non salvate: correggile o salvale, poi esci dalla modifica.</value></data>
-  <data name="Ape_SaveAllN" xml:space="preserve"><value>Salva tutto ({0})</value></data>
-  <data name="Ape_SaveHelpAria" xml:space="preserve"><value>Aiuto sul salvataggio</value></data>
-  <data name="Ape_SaveHelpBody" xml:space="preserve"><value>Salva tutte le sezioni modificate nella &lt;b&gt;bozza&lt;/b&gt; (anche con &lt;span class="guida-kbd"&gt;Ctrl&lt;/span&gt;+&lt;span class="guida-kbd"&gt;S&lt;/span&gt;). Il pubblico le vede solo dopo la &lt;b&gt;pubblicazione&lt;/b&gt;.</value></data>
   <data name="Ape_PreviewHelpAria" xml:space="preserve"><value>Aiuto sull'anteprima bozza</value></data>
   <data name="Ape_PreviewHelpBody" xml:space="preserve"><value>Apre la &lt;b&gt;bozza&lt;/b&gt; in una nuova scheda (&lt;code&gt;?as=draft&lt;/code&gt;): la vedi come sarà, ma &lt;b&gt;non&lt;/b&gt; è ancora pubblica. Controlla sempre qui prima di &lt;b&gt;pubblicare&lt;/b&gt;.</value></data>
   <data name="Ape_DragToReorder" xml:space="preserve"><value>Trascina per riordinare</value></data>
@@ -2109,30 +2098,25 @@
   <data name="Ape_SeasonalHelp" xml:space="preserve"><value>Finestra di validità &lt;b&gt;stagionale ricorrente&lt;/b&gt;: solo giorno e mese (nessun anno, si ripete ogni anno). Es. dal 1 gen al 31 mar. Lasciare vuoto = sempre valida.</value></data>
   <data name="Ape_Days" xml:space="preserve"><value>Giorni:</value></data>
   <data name="Ape_Rule" xml:space="preserve"><value>Regola</value></data>
-  <data name="Ape_SaveRules" xml:space="preserve"><value>Salva regole</value></data>
   <data name="Ape_TlTitle" xml:space="preserve"><value>Quote di transizione</value></data>
   <data name="Ape_TlHelp" xml:space="preserve"><value>Tabella di default &lt;b&gt;TL = TA + margine&lt;/b&gt; per fascia QNH (QNH&amp;lt;977 → +2500 ft; 977–994 → +2000; 995–1012 → +1500; QNH≥1013 → +1000), arrotondata al FL superiore. Salvando la TA le righe di default si ricalcolano; puoi comunque modificare fasce e livelli a mano.</value></data>
   <data name="Ape_TaFromSourceTitle" xml:space="preserve"><value>Campo importato dalla sorgente: sola lettura. Modificabile solo se un amministratore esclude «TA» in /vsop/admin/sorgenti</value></data>
   <data name="Ape_FromSource" xml:space="preserve"><value>da sorgente</value></data>
   <data name="Ape_TaFromSource" xml:space="preserve"><value>La Transition Altitude è importata dalla sorgente (sola lettura).</value></data>
   <data name="Ape_TaLabel" xml:space="preserve"><value>Transition Altitude (ft)</value></data>
-  <data name="Ape_SaveTa" xml:space="preserve"><value>Salva TA</value></data>
   <data name="Ape_QnhFrom" xml:space="preserve"><value>QNH da (hPa)</value></data>
   <data name="Ape_QnhTo" xml:space="preserve"><value>QNH a (hPa)</value></data>
   <data name="Ape_Open" xml:space="preserve"><value>aperto</value></data>
-  <data name="Ape_SaveTable" xml:space="preserve"><value>Salva tabella</value></data>
   <data name="Ape_FreqHelp" xml:space="preserve"><value>Le frequenze proprie vengono dal catalogo settori (pannello «Settori»): ATIS · Delivery · Ground · TWR · APP. La principale (★) si sceglie lì. Qui puoi aggiungere link a frequenze già nel DB (riferimento vivo).</value></data>
   <data name="Ape_Origin" xml:space="preserve"><value>Origine</value></data>
   <data name="Ape_Catalog" xml:space="preserve"><value>catalogo</value></data>
   <data name="Ape_SearchCallsignFreq" xml:space="preserve"><value>cerca callsign/freq…</value></data>
   <data name="Ape_PickFreq" xml:space="preserve"><value>— scegli frequenza —</value></data>
-  <data name="Ape_SaveLinks" xml:space="preserve"><value>Salva link</value></data>
   <data name="Ape_RwFromSourceTitle" xml:space="preserve"><value>Importate dalla sorgente: ident/lunghezza/bearing e l'insieme delle piste sono in sola lettura. Modificabili solo escludendo «Piste» in /vsop/admin/sorgenti</value></data>
   <data name="Ape_RwFromSource" xml:space="preserve"><value>Pista, lunghezza e bearing sono importati dalla sorgente (sola lettura). Restano editabili solo le colonne TORA/LDA/APP/Patterns/Circling.</value></data>
   <data name="Ape_RwEditorial" xml:space="preserve"><value>Ident / lunghezza / bearing arrivano dalla sorgente (re-import li sovrascrive). Le altre colonne sono editoriali.</value></data>
   <data name="Ape_Runway" xml:space="preserve"><value>Pista</value></data>
   <data name="Ape_LengthM" xml:space="preserve"><value>Lung. (m)</value></data>
-  <data name="Ape_SaveRunways" xml:space="preserve"><value>Salva piste</value></data>
   <data name="Ape_SidRenderTitle" xml:space="preserve"><value>Resa pubblica della sezione SID</value></data>
   <data name="Ape_FreezeAtPublish" xml:space="preserve"><value>Congela al publish</value></data>
   <data name="Ape_MakeAlwaysLive" xml:space="preserve"><value>Rendi sempre live</value></data>
@@ -2152,7 +2136,6 @@
   <data name="Ape_Now" xml:space="preserve"><value>ora</value></data>
   <data name="Ape_SidManualTitle" xml:space="preserve"><value>SID manuali</value></data>
   <data name="Ape_SidManualHelp" xml:space="preserve"><value>Righe aggiunte a mano dallo staff: preservate dagli import. Campi non presenti nel sectorfile (Initial climb / Cat / WTC / Condition) vanno qui.</value></data>
-  <data name="Ape_SaveManualSids" xml:space="preserve"><value>Salva SID manuali</value></data>
   <data name="Ape_ExtraTitle" xml:space="preserve"><value>Sezioni extra</value></data>
   <data name="Ape_ExtraHelp" xml:space="preserve"><value>Sezioni editoriali libere (titolo + testo). Nel documento compaiono nella &lt;b&gt;colonna libera di destra&lt;/b&gt; su schermo desktop e &lt;b&gt;sotto le SID&lt;/b&gt; su schermi stretti/cellulare. Si valutano nell'ordine in cui le metti.</value></data>
   <data name="Ape_ExtraTitlePh" xml:space="preserve"><value>es. Note operative</value></data>
@@ -2183,7 +2166,6 @@
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Rimuovere questa SID?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Rimuovere questa sezione?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude e settori? I campi importati dalla sorgente verranno sovrascritti.</value></data>
-  <data name="Ape_UnsavedPublishConfirm" xml:space="preserve"><value>Modifiche non salvate in: {0}. Non entreranno nella release. Continuare?</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>mese</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Lun</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Mar</value></data>
@@ -3222,7 +3204,6 @@
   <data name="Ape_RwMissingRow" xml:space="preserve"><value>non più in sorgente</value></data>
   <data name="Ape_RwMissingRowTitle" xml:space="preserve"><value>L'anagrafica IVAO non nomina più questa pista. Sposta i dati editoriali e togli la riga.</value></data>
   <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Togli la pista. Se la sorgente ce l'ha ancora, il prossimo re-import la rimette.</value></data>
-  <data name="Ape_ReimportDiscardConfirm" xml:space="preserve"><value>Ci sono modifiche non salvate ({0}): il ri-prelievo ricarica tutto dal database e le scarta. Continuare?</value></data>
   <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Non più in sorgente, ma tenute perché hanno dati scritti a mano: {0}.</value></data>
   <data name="TrEd_Wait_Missing" xml:space="preserve"><value>{0} da tradurre</value></data>
   <data name="TrEd_Wait_Next" xml:space="preserve"><value>il giro passa fra ~{0} min</value></data>
@@ -3277,4 +3258,6 @@
   <data name="TrEd_Now_BrokenOne" xml:space="preserve"><value>⚠️ Una è tornata rotta e non è stata salvata: la rispedisce il prossimo giro.</value></data>
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
+  <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: non ancora salvata</value></data>
+  <data name="Ape_ClimbByApp" xml:space="preserve"><value>to be coordinated with APP</value></data>
 </root>

@@ -85,10 +85,16 @@ Montare `DocumentSectionsEditor` **obbliga** al workflow bozza+lock: ogni sua mu
 `IEditingService`, che chiama `EnsureLockAsync`. La scelta di luglio («l'aeroporto resta a modifica diretta»)
 cade: l'editor prende ✎Modifica / 🔒lock / pill «Bozza vN» / «Fine modifica», identici ad APP e vLOA.
 
-**Il confine resta netto**: sotto lock c'è il **documento** (sezioni, ordine, nascondi, Live/Frozen, blocchi
+~~**Il confine resta netto**: sotto lock c'è il **documento** (sezioni, ordine, nascondi, Live/Frozen, blocchi
 editoriali). I **dati strutturati** — regole piste, TA/TL, piste, SID, link frequenze, limiti settori —
 restano a salvataggio diretto ACC-gated com'erano, perché li scrivono anche i servizi d'import IVAO che
-girano in background e non possono prendere un lock.
+girano in background e non possono prendere un lock.~~
+
+⚠️ **Quel confine è caduto il 4 settembre 2026** (carta `2026-09-04-aeroporto-porta-sola.md`): la premessa era
+vera — un job un lock non lo prende — ma la conclusione no, perché **i job non passano dal service
+dell'editor**, passano dal repository. Ora il lock copre tutto l'editor, dati strutturati compresi, e la
+guardia sta nel service (`IAirportLockGuard`), non nel bottone. Nello stesso giro sono spariti i nove tasti
+«Salva»: ogni gesto scrive.
 
 ### §1c — Cosa NON è una sezione
 

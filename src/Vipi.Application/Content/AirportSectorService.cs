@@ -14,15 +14,18 @@ public sealed class AirportSectorService : IAirportSectorService
     private readonly IEditAuthorizationService _authz;
     private readonly ISectorProjectionService _projection;
     private readonly IGithubTowerShapeService _githubShapes;
+    private readonly IAirportLockGuard _lock;
 
     public AirportSectorService(IAirportSectorRepository repo, IAirportSectorImporter importer,
-        IEditAuthorizationService authz, ISectorProjectionService projection, IGithubTowerShapeService githubShapes)
+        IEditAuthorizationService authz, ISectorProjectionService projection,
+        IGithubTowerShapeService githubShapes, IAirportLockGuard @lock)
     {
         _repo = repo;
         _importer = importer;
         _authz = authz;
         _projection = projection;
         _githubShapes = githubShapes;
+        _lock = @lock;
     }
 
     public Task<IReadOnlyList<AirportSectorRow>> ListByAirportAsync(string icao, CancellationToken ct = default) =>
@@ -79,18 +82,24 @@ public sealed class AirportSectorService : IAirportSectorService
         await _projection.SyncFromCatalogsAsync(ct);   // cambia l'ApproachKind del Sector proiettato
     }
 
+    /// <summary>Ruolo sulla ACC <b>e</b> lock del documento dello scalo (carta 2026-09-04-aeroporto-porta-sola).
+    /// ⚠️ Il catalogo dei settori si scrive dal solo editor d'aeroporto, che quel lock ce l'ha: prima queste
+    /// quattro scritture — limiti, nascondi, principale, «di ACC» — non lo chiedevano a nessuno.</summary>
     private async Task EnsureCanEditAsync(string icao, CancellationToken ct)
     {
         var acc = await _repo.GetAccCodeByIcaoAsync(Norm(icao), ct)
             ?? throw new ValidationException(Lingua($"Aeroporto {Norm(icao)} inesistente o senza ACC.", $"Airport {Norm(icao)} does not exist, or has no ACC."));
         _authz.EnsureAtLeast(VipiRole.Editor);
+        await _lock.EnsureMineAsync(icao, ct);
     }
 
+    /// <summary>La stessa guardia, per le scritture che nominano il SETTORE e non lo scalo: l'ICAO lo dice il
+    /// settore stesso — è la sua chiave esterna, non una seconda verità.</summary>
     private async Task EnsureCanEditSectorAsync(int id, CancellationToken ct)
     {
-        var acc = await _repo.GetAccCodeBySectorIdAsync(id, ct)
+        var icao = await _repo.GetIcaoBySectorIdAsync(id, ct)
             ?? throw new ValidationException(Lingua($"Settore d'aeroporto id {id} inesistente.", $"Airport sector id {id} does not exist."));
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await EnsureCanEditAsync(icao, ct);
     }
 
     private static string Norm(string icao) => (icao ?? "").Trim().ToUpperInvariant();

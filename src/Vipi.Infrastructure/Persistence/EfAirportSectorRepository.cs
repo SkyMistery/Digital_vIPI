@@ -116,6 +116,12 @@ public sealed class EfAirportSectorRepository : IAirportSectorRepository
             .Select(s => s.AccCode)
             .FirstOrDefaultAsync(ct);
 
+    public async Task<string?> GetIcaoBySectorIdAsync(int id, CancellationToken ct = default) =>
+        await _db.AirportSectors.AsNoTracking()
+            .Where(s => s.Id == id)
+            .Select(s => s.AirportIcao)
+            .FirstOrDefaultAsync(ct);
+
     public async Task<IReadOnlyList<string>> ListAirportIcaosAsync(CancellationToken ct = default) =>
         await _db.Airports.AsNoTracking().OrderBy(a => a.Icao).Select(a => a.Icao).ToListAsync(ct);
 

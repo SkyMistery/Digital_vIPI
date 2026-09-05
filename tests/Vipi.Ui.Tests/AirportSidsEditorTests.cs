@@ -42,36 +42,43 @@ public class AirportSidsEditorTests : TestContext
 
     private IRenderedComponent<AirportSidsEditor> Rendi(
         List<ImportedSidEdit>? importate = null, List<SidEdit>? manuali = null,
-        Action? suCambio = null, Action<int>? suNonSalvate = null) =>
+        Action? suCambio = null, Action<ImportedSidEdit>? scritte = null) =>
         RenderComponent<AirportSidsEditor>(p => p
             .Add(x => x.Imported, importate ?? new List<ImportedSidEdit>())
             .Add(x => x.Manual, manuali ?? new List<SidEdit>())
             .Add(x => x.RunwayIdents, new[] { "16L", "16R", "34L", "34R" })
-            .Add(x => x.CanEdit, true)
-            .Add(x => x.PersistImported, _ => Task.CompletedTask)
+            .Add(x => x.Editing, true)
+            .Add(x => x.PersistImported, riga => { scritte?.Invoke(riga); return Task.CompletedTask; })
             .Add(x => x.RunGuarded, async (Func<Task> a) => { await a(); return true; })
-            .Add(x => x.OnChanged, () => suCambio?.Invoke())
-            .Add(x => x.OnDirtyCountChanged, (int n) => suNonSalvate?.Invoke(n)));
+            .Add(x => x.ManualChanged, () => suCambio?.Invoke()));
 
     // ---------------------------------------------------------------------------------------------------
     // Il difetto trovato spostando il codice
     // ---------------------------------------------------------------------------------------------------
 
-    [Fact]
-    public void Modificare_una_SID_manuale_dice_alla_pagina_che_c_e_da_salvare()
+    /// <summary>
+    /// ⚠️ <b>Ogni campo delle manuali deve avvisare l'ospite</b>, perché è quell'avviso a salvarle.
+    ///
+    /// <para>Prima l'aggancio stava su un <c>@onchange</c> del <c>div</c> che avvolge la tabella, e questa
+    /// prova lo scatenava sul blocco perché bUnit il rimbalzo non lo simula. Ma quel gestore, in un browser
+    /// vero, <b>non scattava mai</b> — misurato il 4 settembre 2026 sugli altri due editor dello scalo. Ora
+    /// l'aggancio è su ogni campo (<c>@bind:after</c>), e la prova lo scatena dove lo scatena una persona:
+    /// dentro la cella.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("FIX")]
+    [InlineData("SID")]
+    [InlineData("Transition")]
+    [InlineData("Type")]
+    public void Modificare_una_SID_manuale_dice_alla_pagina_che_c_e_da_salvare(string campo)
     {
-        var avvisata = false;
+        var avvisata = 0;
         var cut = Rendi(manuali: new List<SidEdit> { Man("ALAXI", "ALAXI 5A", "16L") },
-                        suCambio: () => avvisata = true);
+                        suCambio: () => avvisata++);
 
-        // ⚠️ Si scatena il cambio sul BLOCCO, che è l'elemento che porta il gestore: in un browser vero
-        // l'evento della cella ci rimbalza sopra, ma bUnit il rimbalzo non lo simula. Quel che questa prova
-        // deve guardare è il COLLEGAMENTO — che il blocco delle manuali chiami la stessa notifica di tutto il
-        // resto — ed è esattamente ciò che era rotto.
-        var blocchi = cut.FindAll("div.block").ToList();
-        blocchi.Last().Change("ELKAP");
+        cut.Find($"table.sid-manual tbody input[aria-label={campo}]").Change("X");
 
-        Assert.True(avvisata, "una modifica alle SID manuali non ha segnalato la sezione da salvare");
+        Assert.Equal(1, avvisata);
     }
 
     [Fact]
@@ -154,22 +161,29 @@ public class AirportSidsEditorTests : TestContext
         Assert.Empty(cut.FindAll("tr.row-sel"));
     }
 
-    [Fact] // ⚠️ il lavoro NON salvato invece resta: buttarlo via cambiando vista e' il difetto pagato su LIPR
-    public void Cambiare_il_chip_della_pista_non_butta_via_le_righe_toccate()
+    /// <summary>⚠️ Toccare una riga importata la SCRIVE, da sola e subito. Prima la marcava soltanto, e il
+    /// lavoro restava in un buffer fino a un tasto «Salva modificate»: è il difetto pagato su LIPR — quel che
+    /// non è ancora sul server si perde a ogni ricaricamento, e in produzione il processo si rigenera ogni
+    /// ~50 secondi.</summary>
+    [Fact]
+    public void Toccare_una_riga_importata_la_salva_subito()
     {
-        var conteggi = new List<int>();
+        var scritte = new List<ImportedSidEdit>();
         var cut = Rendi(importate: new List<ImportedSidEdit>
         {
             Imp(1, "ALAXI", "ALAXI 5A", "16L"),
             Imp(2, "ELKAP", "ELKAP 3B", "34R"),
-        }, suNonSalvate: conteggi.Add);
+        }, scritte: scritte.Add);
 
-        // Tocco la condizione della prima riga: da qui in poi e' una riga non salvata.
         cut.FindAll("input.in-cond").First().Change("solo H24");
-        Assert.Equal(1, conteggi.Last());
 
+        Assert.Single(scritte);
+        Assert.Equal(1, scritte[0].Id);
+        Assert.Equal("solo H24", scritte[0].Condition);
+
+        // E cambiare vista non ha niente da portarsi via: quel che si vedeva è già in archivio.
         cut.FindAll("button.sh-chip").First(b => b.TextContent.Contains("34R")).Click();
-        Assert.Equal(1, conteggi.Last());
+        Assert.Single(scritte);
         Assert.Empty(cut.FindAll("tr.row-sel"));
     }
 
@@ -178,15 +192,15 @@ public class AirportSidsEditorTests : TestContext
     {
         // ⚠️ Lo faceva LoadAsync della pagina, che quello stato lo possedeva. Ora lo possiede il componente,
         // e se ne accorge da sé: senza, la selezione parlerebbe di righe che non esistono più.
-        var conteggi = new List<int>();
-        var prime = new List<ImportedSidEdit> { Imp(1, "ALAXI", "ALAXI 5A", "16L") };
-        var cut = Rendi(importate: prime, suNonSalvate: conteggi.Add);
+        var cut = Rendi(importate: new List<ImportedSidEdit> { Imp(1, "ALAXI", "ALAXI 5A", "16L") });
+
+        cut.FindAll("button.btn.ghost").First(b => b.TextContent.Contains("Ape_SidSelectAll")).Click();
+        Assert.Single(cut.FindAll("tr.row-sel"));
 
         // Nuovi buffer = ricaricamento della pagina.
         cut.SetParametersAndRender(p => p
             .Add(x => x.Imported, new List<ImportedSidEdit> { Imp(9, "OST", "OST 2C", "34R") }));
 
-        // L'ultimo conteggio comunicato è zero: non restano righe «non salvate» di un elenco che non c'è più.
-        Assert.Equal(0, conteggi.Last());
+        Assert.Empty(cut.FindAll("tr.row-sel"));
     }
 }

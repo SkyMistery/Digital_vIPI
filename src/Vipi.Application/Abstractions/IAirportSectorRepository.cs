@@ -40,6 +40,10 @@ public interface IAirportSectorRepository
     /// <summary>Codice ACC del settore d'aeroporto indicato (per la guardia di autorizzazione); null se inesistente.</summary>
     Task<string?> GetAccCodeBySectorIdAsync(int id, CancellationToken ct = default);
 
+    /// <summary>ICAO dello scalo a cui appartiene il settore; null se il settore non esiste. Serve alla
+    /// guardia del lock, che ragiona per DOCUMENTO e quindi per aeroporto.</summary>
+    Task<string?> GetIcaoBySectorIdAsync(int id, CancellationToken ct = default);
+
     /// <summary>ICAO di tutti gli aeroporti nel DB (per l'import automatico).</summary>
     Task<IReadOnlyList<string>> ListAirportIcaosAsync(CancellationToken ct = default);
 
