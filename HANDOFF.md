@@ -1,5 +1,49 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 5 settembre 2026, sera — 📦 **1.11.0 È PRONTO, NON ANCORA CARICATO**
+
+`artifacts/publish/vipi-1.11.0-solo-file-cambiati.zip` · sha256 `91b158a6…` · 4,52 MB · **18 file** ·
+timbro **`1.11.0 · 072cb13e`**. **MINOR** — c'è un gesto nuovo nell'editor e una segnalazione nuova nella
+casella degli impatti. **NESSUNA migrazione**: si consegna da sola via FTP anche dentro la finestra cieca
+fino al 16. Il foglio per il committente è `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.11.0.md`.
+
+**§BS — le immagini si ridimensionano.** Ogni foto si rendeva a tutta colonna. Ora si trascina la maniglia
+nell'angolo; la misura è una **percentuale della colonna** dentro il riferimento che c'era già
+(`MediaRef.Scale`) — nessuna migrazione, e le release congelate si rendono identiche a prima. Un salvataggio
+**per gesto**, non per pixel. 🔴 La verifica live ha preso il difetto che i test non vedevano: si passava al
+JS la maniglia **anche come figura**, e si stringeva il bottone.
+
+**§BT — 🔴 il payload della scheda sovrascriveva il contenuto di chi redige.** Segnalato dal committente come
+«la tabella sparisce quando chiudo l'editing»: era una **perdita di dati**, riprodotta a comando sul vSOP
+militare di Grottaglie. Il payload era «il primo blocco che ha un `BodyJson`», e un `BodyJson` ce l'hanno
+anche la tabella a mano, l'immagine e l'allegato. Ora è «il primo blocco di **struttura**», in un posto solo
+per lettura e scrittura. ⚠️ **Quel che è già stato sovrascritto non torna**, e nel foglio è detto.
+Nello stesso giro: «il corpo lo produce la pagina?» era scritta in **cinque** copie, due delle quali
+chiedevano in più `Depth == 0` — ora è una domanda sola, la stessa del viewer.
+
+**§BU — l'aeroporto che cambia ACC.** Se IVAO lo sposta, da noi non succede niente (l'assegnazione è
+additiva) e **nessuno lo diceva**: ora il disaccordo si segnala nella pagina Gestione aeroporti e nel
+registro del giro notturno. E lo spostamento a mano **non teneva** — scriveva la proiezione ma non il
+**catalogo**, quindi la prima riproiezione riportava tutto indietro, padre compreso. Con le tre code: i link
+vecchi rimandano all'ACC giusto, i documenti dei due centri ricevono un impatto da rileggere, «in evidenza»
+non segue lo scalo. 🔴 Provandolo è uscito un difetto che i test non vedevano: quella frase ha **tre**
+segnaposto e la riga del banner ne componeva **due** → `FormatException` nel render, e siccome quella riga
+vive nel banner dell'editor **non partiva la pagina**.
+
+**La prova del pacchetto** (publish win-x64, avviato dalla sua cartella, guidato con Edge): timbro giusto in
+`diagnostica/avvio-diagnostica.txt`, circuito aperto con lo stile, **Ricerca che risponde** (è una form: serve
+Invio, e torna `?q=…` coi risultati), la maniglia dell'immagine che stringe la figura al **79%** sul
+JavaScript **minificato**, e la pagina Gestione aeroporti senza falsi allarmi su un archivio allineato.
+
+ℹ️ **Osservazione, non un difetto di questo pacchetto**: nei risultati di ricerca compare il **JSON grezzo**
+del payload di una sezione AoR (`{"Callsigns":[…]}`). È l'indice costruito prima, e vale la pena guardarlo in
+un giro suo.
+
+⚠️ **Resta indietro**: `diagnostica/errori-richieste.txt` da riprendere, e le **17 release in vigore senza
+traduzione congelata**.
+
+---
+
 **Ultimo aggiornamento:** 5 settembre 2026, pomeriggio — ✅ **1.10.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.10.0-solo-file-cambiati.zip`, sha256 `bdd10cb8…`, 4,44 MB, **16 file**, timbro **`1.10.0 · 99f33f0`**), **verificata da fuori**.
 
 ⚠️ **E la verifica da fuori non è il timbro**: da anonimo il timbro non si vede (la barra lo mostra ai soli amministratori), e i dieci controlli pubblici — JS minificato servito, circuito aperto, **Ricerca che risponde**, foglio di stile in vigore, console pulita — sarebbero verdi **anche su 1.9.0**. Le due prove che gira il codice **nuovo** sono altre, e sono pubbliche: (1) il **cancello di §BQ**, `/services/vsop/live/lirr_ctr` da anonimo dà **302** verso `/services/vsop/live` dove 1.9.0 dava **200** — ed è codice del **server**, non un file statico; (2) le **impronte sha256** dei due asset di `wwwroot` serviti dal sito, identiche a quelle del pacchetto, con l'indice che li chiede col nome giusto. Cioè binari **e** `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto.

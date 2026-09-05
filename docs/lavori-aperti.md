@@ -8610,3 +8610,45 @@ Carta: `docs/feature/2026-09-05-aeroporto-cambia-acc.md`.
 
 ⚠️ **Resta vero, ed è giusto**: la vIPI ACC già pubblicata continua a citare lo scalo finché non si
 ripubblica — è una release congelata. Ma adesso chi la cura ha la riga che glielo dice.
+
+## 📦 Pacchetto 1.11.0 — 18 file, pronto il 5 settembre 2026 (non ancora caricato)
+
+`vipi-1.11.0-solo-file-cambiati.zip` · sha256 `91b158a68e64d31bebcf867e356909ae046808574578b89c98c5302a42adf7cb`
+· 4,52 MB · timbro **`1.11.0 · 072cb13e`** · publish `linux-x64-20260905-2256`.
+
+**MINOR**, e il numero lo decide il contenuto: §BS è un **gesto nuovo** nell'editor e §BU aggiunge una
+**segnalazione** nuova alla casella degli impatti. Una PATCH è «solo correzioni, nessuna pagina o sezione
+nuova»: non lo è.
+
+**NESSUNA migrazione** ⇒ si consegna da sola via FTP anche dentro la finestra cieca fino al 16. ⚠️ E il tipo
+d'impatto nuovo **non è uno schema**: `ImpactKind` si salva per **nome**, e il valore sta in **coda**
+all'enum — gli ordinali già scritti in archivio non si spostano.
+
+**I 18 file**: `Host`/`Ui`/`Application`/`Infrastructure`/**`Domain`** (dll+pdb), il satellite
+`en/Vipi.Ui.resources.dll`, l'indice degli asset e **sei** file di `wwwroot` — `vipi-theme.css` e
+`vipi-media.js` coi loro `.br`/`.gz`. ⚠️ Viaggiano **insieme** all'indice. `Domain` entra per davvero
+(`Enums.cs`, il valore d'impatto nuovo) e non per l'MVID; restano fuori `Hosting`, `Assets`,
+`AuroraProfiles`, `AuroraBridge.Contracts` e `MySqlMigrations`.
+
+⚠️ **La domanda del ROVESCIO**: qualche assieme rimasto indietro chiama una firma cambiata?
+`MoveAirportAsync` (ritorno nuovo), `ListAccDivergencesAsync`, `FindDocumentsForSectorAsync`, il costruttore
+di `StructureEditingService`, `AirportImportResult`, `SectionPayload` e il record **`MediaRef`** (un
+parametro in più = **costruttore nuovo**). Cercati in Host, Hosting, Assets, MySqlMigrations, AuroraProfiles
+e AuroraBridge.Contracts: **nessun riferimento**. L'unico contatto è `Vipi.Hosting` che usa
+`MediaRef.UrlPrefix` — un `const` **inlineato** al compile, e il cui valore non è cambiato.
+
+### La prova del PACCHETTO (non del sorgente)
+
+Publish `win-x64`, avviato **dalla sua cartella**, guidato con Edge:
+
+- `diagnostica/avvio-diagnostica.txt` → «Versione 1.11.0 · commit 072cb13 del 2026-09-05»;
+- circuito aperto e **stile presente** sul JavaScript minificato;
+- **Ricerca**: risponde — ⚠️ è una **form**, serve **Invio**, e torna `?q=libd` coi risultati (il primo giro
+  diceva «muta» perché avevo digitato senza premere Invio: *la sonda sbagliata dice «rotto» su ciò che
+  funziona*);
+- **§BS sul pacchetto**: maniglia trascinata, figura al **79%**, zero errori in console;
+- **§BU sul pacchetto**: Gestione aeroporti su un archivio allineato → **nessun falso allarme**.
+
+ℹ️ **Un'osservazione emersa dalla prova, e NON è di questo pacchetto**: fra i risultati di ricerca compare il
+**JSON grezzo** del payload di una sezione AoR (`{"Callsigns":[…]}`). L'indice è stato costruito prima; vale
+un giro suo.
