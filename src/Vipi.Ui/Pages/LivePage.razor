@@ -60,12 +60,21 @@
         }
         @* Il selettore di postazione esiste solo da DivisionStaff in su: per tutti gli altri la vista live
            è la propria postazione, quindi non c'è niente da scegliere. Riusa TypeaheadPicker — il campo a
-           digitazione del prodotto, tastiera compresa — invece di scriverne un settimo. *@
+           digitazione del prodotto, tastiera compresa — invece di scriverne un settimo.
+
+           ⚠️ Finché l'elenco non è arrivato la tendina NON deve dire «nessuna postazione», che è falso: dice
+           «Caricamento…». Si vede davvero — su Plesk il processo rinasce ogni ~50 s, quindi la prima visita
+           paga l'avvio a freddo, e sul pacchetto pubblicato a processo appena acceso la tendina usciva vuota.
+
+           🔴 E questo commento sta QUI, sopra, e NON fra gli attributi del componente: un commento Razor
+           scritto dentro il tag diventa il NOME DI UN ATTRIBUTO, e lo si scopre solo a runtime — build a
+           zero avvisi, pagina in 500, «does not have a property matching the name». *@
         @if (Authz.IsDivisionStaff)
         {
             <TypeaheadPicker Class="live-pick" Items="OpzioniPostazione()" Text="@_pick" TextChanged="v => _pick = v"
                              Placeholder="@L["Live_PickPlaceholder"].Value" Title="@L["Live_PickTitle"].Value"
-                             NoMatch="@L["Live_PickNoMatch"].Value" OnPick="VaiAllaPostazione" />
+                             NoMatch="@(_postazioni is null ? L["Common_Loading"].Value : L["Live_PickNoMatch"].Value)"
+                             OnPick="VaiAllaPostazione" />
         }
         @* La testata della vista live e' una riga sola in flex: `.sim-line` porta `flex-basis:100%` e
            l'avviso scende sotto invece di stringere il titolo. *@
