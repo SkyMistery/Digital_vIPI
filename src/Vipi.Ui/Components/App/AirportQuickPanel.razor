@@ -1,7 +1,10 @@
 @* Vista rapida aeroporto (inline nella vista live ACC/APP). Mostra ESATTAMENTE ciò che è nel
    documento pubblico dell'aeroporto (release-aware), coerente con /services/vsop/{acc}/airports?icao=:
    - TA / TL·QNH → dal DocumentView pubblico (BuildAirportVipiAsync live:false, rispetta la release del ciclo)
-   - Piste suggerite + SID → dal profilo strutturato (come /airports)
+   - Piste suggerite → dal profilo strutturato (come /airports)
+   - SID → dalla STESSA derivazione del documento completo (IAirportSidDerivationService): stesse colonne,
+     stesso filtro AIRAC, stesse note. Qui c'era una seconda derivazione scritta a mano, e diceva una cosa
+     diversa — la nota «to coord with APP» sull'initial climb non usciva mai.
    METAR live solo per la pista consigliata e l'evidenza della riga TL col QNH corrente. *@
 @using System.Text.Json
 @using System.Text.RegularExpressions
@@ -11,7 +14,6 @@
 @using Microsoft.Extensions.DependencyInjection
 @inherits OwningComponentBase
 @inject Vipi.Application.Abstractions.IWeatherProvider Weather
-@inject Vipi.Domain.Services.IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @* ViewService e AirportProfile risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
@@ -63,11 +65,40 @@ else
 
         @{
             var sids = FilteredSids().ToList();
-            // Nel pannello rapido lo spazio è poco: una colonna vuota su TUTTE le righe mostrate ruba
-            // larghezza a Punto/SID senza dire nulla. Fix/SID/Salita restano sempre (sono il motivo della tabella).
-            var showTrans = sids.Any(s => !string.IsNullOrWhiteSpace(s.Transition));
-            var showCat = sids.Any(s => !string.IsNullOrWhiteSpace(s.Cat));
-            var showWtc = sids.Any(s => !string.IsNullOrWhiteSpace(s.Wtc));
+            // Cat. e WTC restano opzionali: sono decorazioni, e una colonna vuota su TUTTE le righe dello
+            // scalo ruba larghezza senza dire niente. Transition e Condition NO — ci sono sempre, come nel
+            // documento completo (richiesta del committente, 5 settembre 2026).
+            //
+            // 🔴 Si guarda `_sids`, cioe' TUTTE le SID dello scalo, NON le righe filtrate: legandole al
+            // filtro la tabella cambiava numero di colonne mentre si digitava (visto a schermo su LIRN —
+            // cercando «AGNIS» la riga passava da sette celle a cinque). Una colonna che va e viene non si
+            // legge come «qui non c'e' il dato», si legge come un guasto.
+            var showCat = _sids.Any(s => s.Cat != "—");
+            var showWtc = _sids.Any(s => s.Wtc != "—");
+        }
+        @if (_sids.Count > 0)
+        {
+            @* Cercare per PUNTO o per CODICE: in una lista di ottanta SID il filtro per pista non basta, e
+               chi controlla cerca il punto che gli ha detto il pilota. La ricerca guarda anche la
+               transition, che e' un punto anche lei. *@
+            @* 🔴 NIENTE `value="@_q"` su questo campo, ed è misurato, non una preferenza. Riscrivendo il
+               `value` a ogni tasto il server rimanda indietro il testo di UN GIRO PRIMA: tenendo premuto
+               Backspace i caratteri cancellati ricompaiono (otto Backspace, tre caratteri sopravvissuti su
+               «AGNI7G» — visto a schermo su LIRN il 5 settembre 2026, a ritmo umano di 120 ms).
+               Senza `value` il testo lo tiene il browser, che è l'unico che sa dove sta il cursore, e `_q`
+               ne è lo specchio. Quando invece siamo NOI a doverlo svuotare — la ✕, o un aeroporto diverso —
+               si cambia `@key`: l'elemento viene ricreato, ed è l'unico modo di scriverci dentro dal server
+               senza rimettersi in mezzo mentre uno digita. *@
+            <div class="sid-find">
+                <input @key="_gen" type="search" @oninput="OnQuery" autocomplete="off"
+                       placeholder="@L["Aqp_SearchSid"]" aria-label="@L["Aqp_SearchSid"]" />
+                @if (_q.Length > 0)
+                {
+                    <button type="button" class="btn ghost sid-find-x" @onclick="Azzera"
+                            title="@L["Aqp_ClearSearch"]">✕</button>
+                    <span class="muted sid-find-n">@L["Aqp_SidCount", sids.Count]</span>
+                }
+            </div>
         }
         @if (sids.Count > 0)
         {
@@ -77,10 +108,11 @@ else
                     <tr>
                         <th class="col-fix">Punto</th>
                         <th class="col-sid">SID</th>
-                        @if (showTrans) { <th class="col-trans">Transition</th> }
+                        <th class="col-trans">Transition</th>
                         <th class="col-climb">Salita iniz.</th>
                         @if (showCat) { <th class="col-cat">Cat.</th> }
                         @if (showWtc) { <th class="col-wtc">WTC</th> }
+                        <th class="col-cond">Condition</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -89,15 +121,20 @@ else
                         <tr>
                             <td class="col-fix"><b>@s.Fix</b></td>
                             <td class="col-sid">@s.Name</td>
-                            @if (showTrans) { <td class="col-trans">@(string.IsNullOrWhiteSpace(s.Transition) ? "—" : s.Transition)</td> }
+                            <td class="col-trans">@s.Transition</td>
                             <td class="col-climb">@FormatInitialClimb(s.InitialClimb)</td>
-                            @if (showCat) { <td class="col-cat">@(string.IsNullOrWhiteSpace(s.Cat) ? "—" : s.Cat)</td> }
-                            @if (showWtc) { <td class="col-wtc">@(string.IsNullOrWhiteSpace(s.Wtc) ? "—" : s.Wtc)</td> }
+                            @if (showCat) { <td class="col-cat">@s.Cat</td> }
+                            @if (showWtc) { <td class="col-wtc">@s.Wtc</td> }
+                            <td class="col-cond">@s.Condition</td>
                         </tr>
                     }
                 </tbody>
             </table>
             </div>
+        }
+        else if (_q.Length > 0)
+        {
+            <p class="muted" style="font-size:13px;margin:0">@L["Aqp_NoSidMatch", _q]</p>
         }
         else if (_runways.Count > 0)
         {
@@ -129,13 +166,30 @@ else
     private string _selRwy = "all";
     private string? _loadedIcao;
 
+    /// <summary>
+    /// Le SID <b>già derivate</b>, le stesse righe del documento completo. Prima questo pannello partiva
+    /// dalle <c>SidRow</c> grezze e rifaceva a mano filtro AIRAC, ordine e trattini: due derivazioni della
+    /// stessa tabella, e infatti divergevano — qui la nota «to coord with APP» sull'initial climb non
+    /// compariva, perché la aggiunge la derivazione (<c>AirportSidDerivationService.Climb</c>).
+    /// </summary>
+    private IReadOnlyList<AirportSidRowView> _sids = Array.Empty<AirportSidRowView>();
+
+    /// <summary>Testo cercato: punto, codice SID o transition. Vuoto = tutte.</summary>
+    private string _q = "";
+
+    /// <summary>Generazione del campo di ricerca: cambiarla lo fa RICREARE, ed è così che il server lo
+    /// svuota senza riscrivergli dentro mentre si digita (vedi il commento accanto all'input).</summary>
+    private int _gen;
+
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IVipiViewService ViewService = default!;
     private IAirportEditingService AirportProfile = default!;
+    private IAirportSidDerivationService SidView = default!;
     protected override void OnInitialized()
     {
         ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
         AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
+        SidView = ScopedServices.GetRequiredService<IAirportSidDerivationService>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -145,6 +199,7 @@ else
 
         _view = null; _profile = null; _ta = null; _tlRows = new();
         _qnh = null; _wind = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
+        _sids = Array.Empty<AirportSidRowView>(); Azzera();   // aeroporto diverso: il campo si svuota davvero
 
         // Documento pubblico dell'aeroporto (rispetta la release effettiva del ciclo, come /airports).
         _view = await ViewService.BuildAirportVipiAsync(Icao, BlockTier.Extended, live: false);
@@ -154,6 +209,10 @@ else
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
         _runways = _profile?.Runways.Select(r => r.Ident.Trim()).Where(s => s.Length > 0).Distinct().ToList() ?? new();
+
+        // La tabella SID è la STESSA del documento completo: stesse colonne, stesso filtro AIRAC, stesso
+        // ordine. Al ciclo corrente, che qui è sempre «adesso»: il pannello rapido non ha anteprime.
+        _sids = (await SidView.DeriveAsync(Icao)).Rows;
 
         var wx = await Weather.GetAsync(Icao);
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
@@ -239,15 +298,26 @@ else
         return $"{_sugg.Dep ?? "—"} dep · {_sugg.Arr ?? "—"} arr";
     }
 
-    private IEnumerable<SidRow> FilteredSids()
+    /// <summary>
+    /// Le righe da mostrare: pista scelta (le SID senza pista valgono per tutte) più il testo cercato.
+    /// L'ordine e il filtro AIRAC li ha già fatti la derivazione.
+    /// </summary>
+    private IEnumerable<AirportSidRowView> FilteredSids()
     {
-        if (_profile is null) return Array.Empty<SidRow>();
-        var cycle = Airac.GetCycle(DateTime.UtcNow);
-        return _profile.Sids
-            .Where(s => s.IsPublicAt(cycle, Airac))   // importate solo se pubbliche (ciclo N+1 o forzate)
-            .Where(s => _selRwy == "all" || string.IsNullOrWhiteSpace(s.Runway)
-                        || s.Runway!.Trim().Equals(_selRwy, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name);
+        var q = _q.Trim();
+        return _sids
+            .Where(s => _selRwy == "all" || s.Runway == "—"
+                        || s.Runway.Equals(_selRwy, StringComparison.OrdinalIgnoreCase))
+            .Where(s => AirportViewFormat.SidMatches(s, q));
+    }
+
+    private void OnQuery(ChangeEventArgs e) => _q = e.Value?.ToString() ?? "";
+
+    /// <summary>Svuota la ricerca: il testo E l'elemento, o il campo resterebbe scritto a schermo.</summary>
+    private void Azzera()
+    {
+        _q = "";
+        _gen++;
     }
 
     private static string? Norm(string? r) => string.IsNullOrWhiteSpace(r) ? null : r.Trim();
