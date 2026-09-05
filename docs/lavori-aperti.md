@@ -8505,3 +8505,108 @@ così, ed è stato riscritto insieme al resto.
 riscrive. Cambia la vista live e cambiano le release future — un'altra ragione per ripubblicare i documenti
 che §BM ha trovato senza traduzione congelata.
 
+
+## BS. Le immagini si ridimensionano: si trascina l'angolo — 5 settembre 2026
+
+> Richiesta del committente: *«vorrei permettere che, una volta messe nel documento, le immagini si possano
+> ridimensionare, in modo che un'immagine non occupi tutta la pagina.»*
+
+Ogni foto si rendeva **a tutta colonna**: uno schema piccolo veniva ingrandito fino al bordo, una foto
+verticale spingeva il testo di una pagina intera. Ora nell'editor l'immagine ha una **maniglia** nell'angolo
+in basso a destra: si trascina e la figura si stringe, con una pastiglia che dice la percentuale in cifre.
+Le frecce muovono di 5 punti — la maniglia è un `<button>`, quindi ci si arriva col tab.
+
+**Le tre decisioni che contano** (carta: `docs/feature/2026-09-05-larghezza-delle-immagini.md`):
+
+1. **Una percentuale della colonna, non dei pixel.** La stessa immagine si legge su un monitor, su un
+   telefono e su un A4: solo un rapporto vale in tutti e tre.
+2. **Dentro il riferimento che c'era già** (`MediaRef.Scale`, nel `BodyJson`): nessuna migrazione, nessuna
+   colonna nuova, e le release **congelate** — che quel campo non ce l'hanno — si rendono identiche a prima.
+3. **Un salvataggio per gesto, non per pixel.** Durante il trascinamento la larghezza la scrive il browser;
+   .NET la sente una volta sola, a dito alzato. E se la misura non è cambiata non salva affatto: un clic
+   fermo non deve sporcare il documento né far ripartire una traduzione.
+
+### 🔴 Il difetto che i test non vedevano
+
+Il primo tentativo passava al JS **la maniglia anche come figura**: stringeva il bottone, non l'immagine. A
+schermo sembrava funzionare — la larghezza finale arrivava lo stesso, la scriveva il render dopo il
+salvataggio — e si vedeva **solo misurando durante il gesto** (pastiglia ferma a «100%», niente classe
+`sizing`). Rimedio: da .NET si passa **un elemento solo**, la figura la trova il DOM
+(`closest('figure.doc-img')`); di un elemento reso da un altro componente non si può prendere un `@ref`.
+
+## BT. Il payload della scheda mangiava il contenuto di chi redige — 5 settembre 2026
+
+> Segnalazione del committente: *«in una sezione ho fatto una tabella e subito sotto un blocco immagine.
+> Sembrava tutto ok; una volta chiuso l'editing la tabella spariva. Ho creato una sotto-sezione per
+> l'immagine e ora si vedono entrambi.»*
+
+Non era momentaneo: era una **perdita di dati**, riprodotta a comando sul vSOP militare di Grottaglie.
+
+Le sezioni «scheda + blocchi» tengono **due** cose: il payload della scheda e i blocchi editoriali. Dove
+stesse il payload lo diceva **«il primo blocco che ha un `BodyJson`»** — ma un `BodyJson` ce l'hanno anche la
+**tabella scritta a mano**, l'**immagine** e l'**allegato**, e i vSOP militari nascono **senza segnaposto**.
+Così, in una sezione ancora vergine, il primo blocco con JSON era quello di chi redige: la scheda lo leggeva
+come propria struttura e al primo salvataggio **ci scriveva sopra**.
+
+```
+prima:  {"columns":["Colonna 1","Colonna 2"],"rows":[{"cells":["CELLA-MIA",""]}]}
+dopo:   {"variant":"milnavaids","rows":[{"code":"TAR",...}]}      ← stessa riga, id 542
+```
+
+E siccome il JSON riscritto porta una `variant`, il blocco spariva **anche dall'editor**. L'immagine si
+salvava perché era arrivata **dopo**: ne mangia solo uno, il primo. La sotto-sezione libera non ha nessuna
+scheda, ed è per questo che spostarci dentro il contenuto lo faceva ricomparire.
+
+**La regola diventa «il primo blocco di STRUTTURA»**, e un blocco editoriale non è mai un payload: lo dice
+`SectionPayload.EEditoriale` riconoscendo la **forma** del JSON — non il formato del blocco, perché il
+payload militare è anch'esso un `Table`. `mediaId` → immagine, `ref` → allegato, `columns` **senza**
+`variant` → tabella a mano; tutto il resto è payload. La stessa domanda la fanno adesso **tutti e cinque** i
+posti che prima la facevano a modo loro. In scrittura: struttura esistente → blocco **vuoto** → uno nuovo
+**in coda**; e «vuoto» ora vuol dire senza prosa **e** senza JSON, o un'immagine (didascalia vuota) sarebbe
+stata scelta.
+
+Carta: `docs/feature/2026-09-05-payload-non-mangia-il-contenuto.md`.
+
+### E il gemello: «il corpo lo produce la pagina?» era scritta cinque volte
+
+Un `IsDerivedSection` per host, passato all'editor condiviso. Quattro copie dicevano quel che dice il
+viewer; **due — aeroporto e APP — chiedevano in più `Depth == 0`**, quindi su una **sotto-sezione** con
+chiave di catalogo l'editor offriva «+ blocco» e il documento non stampava niente. Il parametro non c'è più:
+l'editor il profilo ce l'aveva già e chiede a `SectionCatalog.IsHostRendered`, la stessa funzione di
+`SectionNode`. ⚠️ **Misurato prima di toccare**: nessun documento in archivio ha una sezione così, e dal
+vivo i quattro editor non cambiano di un menu (ACC 6, aeroporto 9, militare 31, vLOA 4).
+
+## BU. L'aeroporto che cambia ACC — 5 settembre 2026
+
+> Domanda del committente: *«se un aeroporto nel DB di IVAO cambia ACC, cioè passa da LIBB a LIRR, che
+> succede?»* Risposta misurata: **non succede niente, e nessuno lo dice**. E se poi lo si sposta a mano, lo
+> spostamento **non teneva**.
+
+L'ACC di un aeroporto già in archivio non lo tocca nessuno: `AutoAssignAirportsAsync` è **additiva** e il
+riallineamento anagrafico non lo riguarda. Che non si muova da sé è giusto — spostarlo stacca i padri fuori
+ACC e cambia gli elenchi di due centri — ma il **silenzio** no. Ora il disaccordo con la sorgente si segnala
+nella pagina **Gestione aeroporti** (entrando, non dopo aver premuto un tasto) e nel **registro** del giro
+notturno, con una regola sola condivisa dai due.
+
+🔴 **E lo spostamento a mano non teneva.** Scriveva l'anagrafica e i `Sector` **proiettati**, ma la fonte è
+`AirportSector`: alla prima riproiezione i settori **tornavano** all'ACC vecchio e il padre si
+**riattaccava** al CTR di prima. Misurato guidando l'app su LIBD (LIBB → LIRR). Ora lo spostamento porta con
+sé il **catalogo**, e stacca lì i padri rimasti fuori dal nuovo ACC.
+
+**Le tre code, chiuse lo stesso giorno**: (a) i link vecchi non mentono più — le quattro pagine rimandano
+all'ACC giusto, e la domanda la fa `RottaAeroporto` al catalogo **in cache**, non al database; (b) lo
+spostamento apre un impatto `AirportAccChanged` sui documenti dei due centri (più lo scalo e i vicini di
+copertura), cercandoli **due volte**, sotto il vecchio codice e sotto il nuovo, perché dopo lo spostamento il
+primo non lo porta più nessuna riga; (c) `FeaturedRank` si azzera — «in evidenza» è una scelta di **un**
+centro.
+
+### 🔴 Il difetto che la verifica live ha preso, e i test no
+
+La frase dell'impatto ha **tre** segnaposto. La riga del banner ne componeva al massimo **due** e buttava via
+il resto. `FormatException` durante il render — e siccome quella riga vive dentro il banner dell'editor, non
+si rompeva la riga: **non partiva la pagina**. Suite verde, editor d'aeroporto morto.
+
+Carta: `docs/feature/2026-09-05-aeroporto-cambia-acc.md`.
+
+⚠️ **Resta vero, ed è giusto**: la vIPI ACC già pubblicata continua a citare lo scalo finché non si
+ripubblica — è una release congelata. Ma adesso chi la cura ha la riga che glielo dice.

@@ -421,7 +421,42 @@
       satellite inglese entra) e `wwwroot` (`vipi-theme.css` e `vipi-editor.js`, con i loro `.br`/`.gz` e
       l'INDICE degli asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
     -->
-    <VipiVersione>1.10.0</VipiVersione>
+    <!--
+      1.11.0 — 5 settembre 2026. **MINOR**, e il numero lo decide il CONTENUTO: c'e' un gesto NUOVO
+      nell'editor (la larghezza delle immagini) e una segnalazione nuova nella casella degli impatti.
+      NESSUNA migrazione: l'unico file toccato in `MySqlMigrations` e' il `.csproj`, e il tipo d'impatto
+      nuovo e' un valore in CODA a un enum salvato per NOME. Si consegna da sola via FTP, anche dentro la
+      finestra cieca fino al 16.
+
+        · §BS — le immagini si RIDIMENSIONANO. Ogni foto si rendeva a tutta colonna: uno schema piccolo
+          veniva ingrandito fino al bordo e una foto verticale spingeva il testo di una pagina. Ora si
+          trascina la maniglia nell'angolo. La misura e' una PERCENTUALE della colonna dentro il riferimento
+          che c'era gia' (`MediaRef.Scale`): nessuna migrazione, e le release congelate — che quel campo non
+          ce l'hanno — si rendono identiche a prima.
+
+        · §BT — 🔴 il payload della scheda SOVRASCRIVEVA il contenuto di chi redige. Nelle sezioni
+          «scheda + blocchi» il payload era «il primo blocco che ha un `BodyJson`» — e un `BodyJson` ce
+          l'hanno anche la tabella scritta a mano, l'immagine e l'allegato. Segnalato dal committente come
+          «la tabella sparisce quando chiudo l'editing»: era una PERDITA DI DATI, riprodotta a comando.
+          Ora la regola e' «il primo blocco di STRUTTURA», in un posto solo per lettura e scrittura.
+          Nello stesso giro: «il corpo lo produce la pagina?» era scritta in CINQUE copie, due delle quali
+          chiedevano in piu' `Depth == 0` — ora e' una domanda sola, la stessa del viewer.
+
+        · §BU — l'aeroporto che cambia ACC. Se IVAO lo sposta, da noi non succede niente (l'assegnazione e'
+          additiva) e nessuno lo diceva: ora il disaccordo si segnala nella pagina Gestione aeroporti e nel
+          registro del giro notturno. E lo spostamento a mano NON TENEVA — scriveva l'anagrafica e i settori
+          proiettati ma non il CATALOGO, quindi la prima riproiezione riportava tutto indietro. Con le tre
+          code: i link vecchi rimandano all'ACC giusto invece di mostrare quello sbagliato, i documenti dei
+          due centri ricevono un impatto da rileggere, e «in evidenza» non segue lo scalo.
+          🔴 Provandolo e' uscito un difetto che i test non vedevano: quella frase ha TRE segnaposto e la
+          riga del banner ne componeva DUE → `FormatException` nel render, e siccome quella riga vive nel
+          banner dell'editor non si rompeva la riga: NON PARTIVA LA PAGINA.
+
+      Quattro progetti (`Domain`, `Application`, `Infrastructure`, `Ui`), le FRASI (due `.resx` toccati,
+      quindi il satellite inglese entra) e `wwwroot` (`vipi-media.js` e `vipi-theme.css`, coi loro `.br`/`.gz`
+      e l'INDICE degli asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
+    -->
+    <VipiVersione>1.11.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
