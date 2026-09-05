@@ -1435,9 +1435,11 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .tip .tip-title{font-family:var(--font-head);font-weight:800;font-style:normal;color:var(--on-brand);font-size:16px;margin:0 0 10px;letter-spacing:.02em}
 /* placeholder immagine (blocco immagine senza foto: nell'editor prima del caricamento) */
 .img-ph{margin:14px 0 4px;border:1.5px dashed var(--line-ocean);border-radius:10px;background:var(--surface-soft);display:grid;place-items:center;min-height:96px;color:var(--ink-soft);font-size:13px}
-/* immagine editoriale: l'img porta width/height nativi, qui si limita solo la larghezza reale disponibile */
-.doc-img{margin:14px 0 4px}
-.doc-img img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block}
+/* immagine editoriale: l'img porta width/height nativi, qui si limita solo la larghezza reale disponibile.
+   La larghezza scelta dall'editore arriva come `style="width:N%"` scritto da ImageFigure (percentuale della
+   colonna): i margini automatici la tengono CENTRATA, e l'immagine dentro non supera mai la figura. */
+.doc-img{margin:14px auto 4px}
+.doc-img img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block;margin-inline:auto}
 .doc-img figcaption{margin-top:6px;color:var(--ink-soft);font-size:12.5px}
 .doc-img figcaption p{margin:0}
 /* editor del blocco immagine: l'area è un <label> e il file input ci sta sopra trasparente, così CLICK e DROP
@@ -1448,6 +1450,22 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .img-drop-input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
 .img-drop .img-ph{border:0;background:transparent;margin:0}
 .img-drop-hint{display:block;margin-top:6px;text-align:center;color:var(--ink-soft);font-size:12.5px}
+/* Maniglia di ridimensionamento: esiste SOLO nell'editor, e vive dentro la figura. Perche' la figura qui si
+   stringe sull'immagine (`fit-content`): senza, un'immagine piu' piccola della colonna lascerebbe la maniglia
+   staccata, a meta' del vuoto a destra. La percentuale la calcola e la scrive il browser durante il trascinamento
+   (vipi-media.js); il C# la riceve una volta sola, quando si lascia. */
+.img-edit .doc-img{position:relative;width:fit-content;max-width:100%}
+.img-handle{position:absolute;right:-7px;bottom:-7px;width:22px;height:22px;padding:0;border:1px solid var(--line);
+  border-radius:7px;background:var(--surface);color:var(--ink-soft);display:grid;place-items:center;cursor:nwse-resize;
+  touch-action:none;box-shadow:0 1px 4px rgb(0 0 0 / .18);z-index:2}
+.img-handle:hover,.img-handle:focus-visible{border-color:var(--ivao-blue);color:var(--ivao-blue)}
+.img-handle svg{pointer-events:none}
+/* Etichetta della misura: compare mentre si trascina (la accende il JS) e dice la percentuale in cifre, perche'
+   «a occhio» non si torna piu' a un valore preciso. */
+.img-size{position:absolute;right:6px;top:6px;padding:2px 7px;border-radius:999px;background:rgb(0 0 0 / .62);
+  color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.02em;opacity:0;transition:opacity .12s;pointer-events:none;z-index:2}
+.doc-img.sizing .img-size{opacity:1}
+.doc-img.sizing img{user-select:none}
 .img-fields{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}
 .img-field{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px;font-size:12px}
 /* blocco allegato: un link a un file che sta FUORI dal sito, e lo dice prima del clic. Vive accanto alle

@@ -2211,6 +2211,8 @@
   <data name="Img_CaptionLabel" xml:space="preserve"><value>Didascalia</value></data>
   <data name="Img_CaptionPh" xml:space="preserve"><value>Testo sotto l'immagine (facoltativo)</value></data>
   <data name="Img_Remove" xml:space="preserve"><value>Rimuovi immagine</value></data>
+  <data name="Img_ResizeTitle" xml:space="preserve"><value>Trascina per cambiare la larghezza (frecce: 5% per volta)</value></data>
+  <data name="Img_ResizeAria" xml:space="preserve"><value>Ridimensiona l'immagine</value></data>
   <data name="MediaClean_Title" xml:space="preserve"><value>Immagini dei documenti</value></data>
   <data name="MediaClean_Intro" xml:space="preserve"><value>Le immagini restano nel database anche quando togli il blocco che le mostrava: una versione pubblicata potrebbe ancora citarle. Qui vedi quelle che non serve più tenere e puoi liberarne lo spazio.</value></data>
   <data name="MediaClean_Analyze" xml:space="preserve"><value>Analizza</value></data>

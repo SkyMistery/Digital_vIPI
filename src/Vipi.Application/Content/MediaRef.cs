@@ -11,8 +11,30 @@ namespace Vipi.Application.Content;
 /// l'indice di ricerca. Se il formato cambia, cambia qui e basta.
 /// </para>
 /// </summary>
-public sealed record MediaRef(string MediaId, string? Alt = null, int Width = 0, int Height = 0)
+/// <param name="MediaId">Sha256 dei byte: e' l'identita' dell'immagine e la sua rotta pubblica.</param>
+/// <param name="Alt">Testo alternativo per chi non vede l'immagine.</param>
+/// <param name="Width">Larghezza NATIVA in pixel (la dice l'<c>ImageProbe</c>): riserva il posto prima che l'immagine arrivi.</param>
+/// <param name="Height">Altezza nativa in pixel, stesso mestiere.</param>
+/// <param name="Scale">
+/// Larghezza di RESA in percentuale della colonna, 0 = piena (com'era prima che questo campo esistesse, quindi ogni
+/// release gia' congelata continua a rendersi identica). Si conserva una percentuale e non dei pixel perche' la
+/// stessa immagine si legge su un monitor, su un telefono e su un A4: solo un rapporto vale in tutti e tre.
+/// </param>
+public sealed record MediaRef(string MediaId, string? Alt = null, int Width = 0, int Height = 0, int Scale = 0)
 {
+    /// <summary>Sotto questa quota l'immagine non e' piu' guardabile: la maniglia si ferma qui.</summary>
+    public const int MinScale = 10;
+
+    /// <summary>Piena larghezza della colonna. Oltre non si va: ingrandire un raster lo sgrana.</summary>
+    public const int MaxScale = 100;
+
+    /// <summary>Riporta una percentuale dentro i limiti; 0 (o 100) = piena larghezza, cioe' nessuno stile da scrivere.</summary>
+    public static int ClampScale(int scale) =>
+        scale <= 0 || scale >= MaxScale ? 0 : Math.Max(MinScale, scale);
+
+    /// <summary>Percentuale da mostrare all'editore: la piena larghezza si legge <c>100</c>, non <c>0</c>.</summary>
+    public int ScaleOrFull => Scale > 0 ? Scale : MaxScale;
+
     /// <summary>Prefisso della rotta pubblica che serve i byte (vedi <c>MapVipiModule</c>).</summary>
     public const string UrlPrefix = "/vsop/media/";
 
@@ -25,6 +47,7 @@ public sealed record MediaRef(string MediaId, string? Alt = null, int Width = 0,
         public string? alt { get; set; }
         public int width { get; set; }
         public int height { get; set; }
+        public int scale { get; set; }
     }
 
     /// <summary>Legge il riferimento dal JSON del blocco; null se manca, è illeggibile o non porta uno sha.</summary>
@@ -36,7 +59,8 @@ public sealed record MediaRef(string MediaId, string? Alt = null, int Width = 0,
             var dto = JsonSerializer.Deserialize<Dto>(json);
             var id = dto?.mediaId?.Trim();
             if (string.IsNullOrEmpty(id)) return null;
-            return new MediaRef(id, string.IsNullOrWhiteSpace(dto!.alt) ? null : dto.alt!.Trim(), dto.width, dto.height);
+            return new MediaRef(id, string.IsNullOrWhiteSpace(dto!.alt) ? null : dto.alt!.Trim(), dto.width, dto.height,
+                ClampScale(dto.scale));
         }
         catch (JsonException)
         {
@@ -53,6 +77,7 @@ public sealed record MediaRef(string MediaId, string? Alt = null, int Width = 0,
             alt = media.Alt,
             width = media.Width,
             height = media.Height,
+            scale = ClampScale(media.Scale),
         });
 
     /// <summary>Testo indicizzabile/leggibile di un blocco immagine: alternativo e didascalia, mai il JSON.</summary>

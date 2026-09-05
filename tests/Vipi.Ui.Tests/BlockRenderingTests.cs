@@ -114,6 +114,26 @@ public class BlockRenderingTests : TestContext
     }
 
     [Fact]
+    public void La_larghezza_scelta_arriva_al_documento_come_percentuale_della_colonna()
+    {
+        // Una percentuale e non dei pixel: la stessa immagine si legge su un monitor, su un telefono e su un A4.
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Image, bodyJson: MediaRef.Serialize(new MediaRef(Sha, null, 1600, 900, 40)))));
+
+        Assert.Contains("width:40%", cut.Find("figure.doc-img").GetAttribute("style"));
+    }
+
+    [Fact]
+    public void Senza_larghezza_scelta_la_figura_non_porta_nessuno_stile()
+    {
+        // Le release congelate prima di questo campo devono rendersi ESATTAMENTE come prima.
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Image, bodyJson: MediaRef.Serialize(new MediaRef(Sha, null, 1600, 900)))));
+
+        Assert.True(string.IsNullOrEmpty(cut.Find("figure.doc-img").GetAttribute("style")));
+    }
+
+    [Fact]
     public void Image_block_without_reference_shows_the_placeholder_not_a_broken_image()
     {
         // Blocco appena creato (o JSON rotto): esiste prima della sua foto.

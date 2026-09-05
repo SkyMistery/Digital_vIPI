@@ -19,7 +19,19 @@
            @ondragenter="() => _dragging = true" @ondragleave="() => _dragging = false" @ondrop="() => _dragging = false">
         <InputFile @ref="_input" OnChange="OnFileAsync" accept="@ImageProbe.AcceptAttribute" class="img-drop-input"
                    disabled="@_busy" aria-label="@L["Img_ChooseAria"]" />
-        <ImageFigure Media="Media" Caption="@Caption" EmptyLabel="@L["Img_DropHere"]" />
+        <ImageFigure Media="Media" Caption="@Caption" EmptyLabel="@L["Img_DropHere"]">
+            <Overlay>
+                @* Maniglia dentro la figura: si trascina l'angolo e l'immagine si stringe. Il clic va fermato QUI —
+                   la figura sta dentro il <label> del file input, e senza freno un trascinamento finirebbe per
+                   aprire anche la finestra «scegli un file». *@
+                <span class="img-size">@(Media!.ScaleOrFull)%</span>
+                <button @ref="_handle" type="button" class="img-handle" title="@L["Img_ResizeTitle"]"
+                        aria-label="@L["Img_ResizeAria"]"
+                        @onclick="() => { }" @onclick:preventDefault @onclick:stopPropagation>
+                    <Icon Name="resize" Size="12" />
+                </button>
+            </Overlay>
+        </ImageFigure>
         <span class="img-drop-hint">
             @(Media is null ? L["Img_DropHere"] : L["Img_Replace"]) · @L["Img_MaxSize", MediaOptions.Value.MaxUploadLabel]
         </span>
@@ -72,6 +84,9 @@
     [Parameter] public EventCallback<string?> CaptionChanged { get; set; }
 
     private InputFile? _input;
+    private ElementReference _handle;
+    private DotNetObjectReference<ImageBlockEditor>? _self;
+    private string? _handleFor;
     private bool _busy;
     private bool _dragging;
     private string? _error;
@@ -92,10 +107,48 @@
     {
         if (_input?.Element is not { } element) return;
         var o = MediaOptions.Value;
-        try { await JS.InvokeVoidAsync("vipiMedia.osserva", element, o.ClientDownscaleLongestSidePx, o.JpegQuality, o.MaxUploadBytes); }
+        try
+        {
+            await JS.InvokeVoidAsync("vipiMedia.osserva", element, o.ClientDownscaleLongestSidePx, o.JpegQuality, o.MaxUploadBytes);
+            await AggangiaManigliaAsync();
+        }
         catch (JSDisconnectedException) { /* circuito chiuso */ }
         catch (OperationCanceledException) { /* circuito che si sta chiudendo */ }
         catch (JSException) { /* script non caricato: si carica il file originale, e il limite lo fa il server */ }
+    }
+
+    // La maniglia esiste solo quando c'è un'immagine, e quando l'immagine cambia il bottone è un altro elemento:
+    // si riaggancia al cambio di sha. Il JS è comunque idempotente (marca l'elemento), quindi un giro in più non fa
+    // danno — questo controllo evita solo la chiamata inutile a ogni render.
+    private async Task AggangiaManigliaAsync()
+    {
+        var id = Media?.MediaId;
+        if (id is null || id == _handleFor) return;
+        _handleFor = id;
+        _self ??= DotNetObjectReference.Create(this);
+        // Si passa la sola maniglia: la figura da stringere è quella che la contiene, e la trova il JS risalendo il
+        // DOM — è resa da ImageFigure, quindi da qui non se ne può prendere un @ref.
+        await JS.InvokeVoidAsync("vipiMedia.ridimensionabile", _handle, MediaRef.MinScale, _self, nameof(ImpostaScalaAsync));
+    }
+
+    /// <summary>
+    /// La chiama il browser UNA volta, a trascinamento finito (o a ogni freccia): la larghezza si misura a schermo e
+    /// si salva come percentuale. Il resto del riferimento non si tocca — è lo stesso JSON che porta sha, alt e
+    /// misure native, quindi non serve nessuna migrazione né nessun campo nuovo in tabella.
+    /// </summary>
+    [JSInvokable]
+    public async Task ImpostaScalaAsync(int scale)
+    {
+        if (Media is not { } media) return;
+        var pulita = MediaRef.ClampScale(scale);
+        if (pulita == media.Scale) return;
+        await ImageJsonChanged.InvokeAsync(MediaRef.Serialize(media with { Scale = pulita }));
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) _self?.Dispose();
+        base.Dispose(disposing);
     }
 
     private MediaRef? Media => MediaRef.Parse(ImageJson);

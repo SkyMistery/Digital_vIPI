@@ -167,6 +167,55 @@ public class ImageBlockEditorTests : TestContext
         Assert.Null(MediaRef.Parse(json)!.Alt);
     }
 
+    // --- larghezza (maniglia di ridimensionamento) ---
+
+    [Fact]
+    public void La_maniglia_c_e_solo_quando_c_e_un_immagine()
+    {
+        Assert.Empty(Render(null).FindAll("button.img-handle"));
+        Assert.Single(Render(MediaRef.Serialize(new MediaRef(Sha))).FindAll("button.img-handle"));
+    }
+
+    [Fact]
+    public async Task La_larghezza_trascinata_torna_all_host_nello_stesso_riferimento()
+    {
+        // Il browser misura a schermo e chiama UNA volta, a trascinamento finito: qui si simula quella chiamata.
+        // Nessun campo nuovo in tabella — la percentuale viaggia nello stesso JSON di sha, alt e misure native.
+        string? json = null;
+        var cut = Render(MediaRef.Serialize(new MediaRef(Sha, "Torre", 1600, 900)), onJson: j => json = j);
+
+        await cut.InvokeAsync(() => cut.Instance.ImpostaScalaAsync(45));
+
+        var media = MediaRef.Parse(json)!;
+        Assert.Equal(45, media.Scale);
+        Assert.Equal(Sha, media.MediaId);
+        Assert.Equal("Torre", media.Alt);
+        Assert.Equal(1600, media.Width);      // la misura nativa non si tocca: serve a riservare il posto
+    }
+
+    [Fact]
+    public async Task Tornare_a_piena_larghezza_cancella_la_scelta()
+    {
+        string? json = null;
+        var cut = Render(MediaRef.Serialize(new MediaRef(Sha, null, 1600, 900, 40)), onJson: j => json = j);
+
+        await cut.InvokeAsync(() => cut.Instance.ImpostaScalaAsync(100));
+
+        Assert.Equal(0, MediaRef.Parse(json)!.Scale);   // 0 = piena, lo stesso stato di chi non ha mai scelto
+    }
+
+    [Fact]
+    public async Task Una_larghezza_uguale_a_quella_gia_scritta_non_salva_niente()
+    {
+        // Un clic sulla maniglia senza spostarla non deve sporcare il documento (ne' far ripartire una traduzione).
+        string? json = "non toccato";
+        var cut = Render(MediaRef.Serialize(new MediaRef(Sha, null, 1600, 900, 60)), onJson: j => json = j);
+
+        await cut.InvokeAsync(() => cut.Instance.ImpostaScalaAsync(60));
+
+        Assert.Equal("non toccato", json);
+    }
+
     // --- quota per documento ---
 
     [Fact]

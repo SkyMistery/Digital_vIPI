@@ -96,5 +96,103 @@ window.vipiMedia = (() => {
     }, true);
   }
 
-  return { osserva };
+  // ── Maniglia di ridimensionamento ────────────────────────────────────────────────────────────────────────
+  //
+  // Che cosa si conserva: una PERCENTUALE della colonna, non dei pixel (la stessa immagine si legge su un monitor,
+  // su un telefono e su un A4). Quindi il trascinamento si misura in pixel ma si chiude in percentuale.
+  //
+  // Perché il .NET lo sente una volta sola: durante il trascinamento la larghezza la scrive il browser sull'elemento
+  // (nessun round-trip sul circuito, nessun salvataggio per pixel mosso); a dito alzato parte UNA chiamata e il C#
+  // salva. Se il render che segue riscrive lo stesso `style="width:N%"`, riscrive esattamente ciò che c'è già.
+  //
+  // La figura NON arriva da .NET: la trova la maniglia risalendo il DOM. Passarle tutt'e due da Blazor vuol dire
+  // un `@ref` sull'elemento reso da un ALTRO componente (ImageFigure), che il chiamante non ha; il 5 settembre 2026
+  // il primo tentativo passava la maniglia due volte e la verifica live ha mostrato il bottone che si stringeva
+  // mentre l'immagine restava intera. Un elemento solo, e la parentela la dice il DOM.
+  function ridimensionabile(maniglia, minimo, dotNet, metodo) {
+    if (!maniglia || maniglia.__vipiManiglia) return;
+    const figura = maniglia.closest('figure.doc-img');
+    if (!figura) return;
+    maniglia.__vipiManiglia = true;
+
+    const etichetta = figura.querySelector('.img-size');
+    const min = minimo > 0 ? minimo : 10;
+    let trascinando = null;
+
+    // Larghezza UTILE della colonna: `clientWidth` comprende il padding, e nell'editor la figura sta dentro un
+    // riquadro imbottito — contarlo darebbe una percentuale piu' piccola del vero, e a schermo l'immagine
+    // sembrerebbe rimpicciolirsi da sola passando dall'editor al documento.
+    const colonnaUtile = (colonna) => {
+      const cs = getComputedStyle(colonna);
+      return colonna.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    };
+
+    const percentuale = (px, larghezzaColonna) =>
+      Math.min(100, Math.max(min, Math.round((px / larghezzaColonna) * 100)));
+
+    const mostra = (pct) => { if (etichetta) etichetta.textContent = pct + '%'; };
+
+    const applica = (pct) => {
+      figura.style.width = pct === 100 ? '' : pct + '%';
+      mostra(pct);
+    };
+
+    maniglia.addEventListener('pointerdown', (e) => {
+      // La colonna è il genitore della figura: è lo spazio di cui la percentuale è una frazione, ed è lo stesso
+      // rapporto che il viewer applicherà nella SUA colonna, di qualunque larghezza sia.
+      const colonna = figura.parentElement;
+      if (!colonna) return;
+      const larghezza = colonnaUtile(colonna);
+      if (larghezza <= 0) return;
+
+      e.preventDefault();
+      e.stopPropagation();          // la figura sta dentro un <label> con sopra il file input: senza questo, il
+                                    // trascinamento aprirebbe anche la finestra «scegli un file».
+      trascinando = { x: e.clientX, w: figura.getBoundingClientRect().width, colonna: larghezza, pct: null };
+      figura.classList.add('sizing');
+      mostra(percentuale(trascinando.w, larghezza));
+      maniglia.setPointerCapture(e.pointerId);
+    });
+
+    maniglia.addEventListener('pointermove', (e) => {
+      if (!trascinando) return;
+      trascinando.pct = percentuale(trascinando.w + (e.clientX - trascinando.x), trascinando.colonna);
+      applica(trascinando.pct);
+    });
+
+    const chiudi = (e) => {
+      if (!trascinando) return;
+      const pct = trascinando.pct;
+      trascinando = null;
+      figura.classList.remove('sizing');
+      if (maniglia.hasPointerCapture(e.pointerId)) maniglia.releasePointerCapture(e.pointerId);
+      // Nessun movimento = nessun salvataggio: un clic sulla maniglia non deve sporcare il documento.
+      if (pct !== null) dotNet.invokeMethodAsync(metodo, pct);
+    };
+
+    maniglia.addEventListener('pointerup', chiudi);
+    // Trascinamento interrotto (Esc, dito uscito dallo schermo, browser che revoca la cattura): si chiude come
+    // sopra — la misura che si vede è quella che si salva, o resterebbe a schermo una larghezza che nessuno ha.
+    maniglia.addEventListener('pointercancel', chiudi);
+
+    // Tastiera: la maniglia è un <button>, quindi ci si arriva col tab. Frecce = 5 punti per volta, perché una
+    // funzione che si può usare SOLO trascinando non è usabile da chi non usa il mouse.
+    maniglia.addEventListener('keydown', (e) => {
+      const passo = e.key === 'ArrowRight' || e.key === 'ArrowUp' ? 5
+                  : e.key === 'ArrowLeft' || e.key === 'ArrowDown' ? -5 : 0;
+      if (passo === 0) return;
+      e.preventDefault();
+      const colonna = figura.parentElement;
+      const larghezza = colonna ? colonnaUtile(colonna) : 0;
+      if (larghezza <= 0) return;
+      const attuale = percentuale(figura.getBoundingClientRect().width, larghezza);
+      const pct = Math.min(100, Math.max(min, attuale + passo));
+      applica(pct);
+      figura.classList.add('sizing');
+      dotNet.invokeMethodAsync(metodo, pct);
+    });
+    maniglia.addEventListener('blur', () => figura.classList.remove('sizing'));
+  }
+
+  return { osserva, ridimensionabile };
 })();

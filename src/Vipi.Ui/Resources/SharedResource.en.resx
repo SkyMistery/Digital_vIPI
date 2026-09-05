@@ -2203,6 +2203,8 @@
   <data name="Img_CaptionLabel" xml:space="preserve"><value>Caption</value></data>
   <data name="Img_CaptionPh" xml:space="preserve"><value>Text below the image (optional)</value></data>
   <data name="Img_Remove" xml:space="preserve"><value>Remove image</value></data>
+  <data name="Img_ResizeTitle" xml:space="preserve"><value>Drag to change the width (arrow keys: 5% at a time)</value></data>
+  <data name="Img_ResizeAria" xml:space="preserve"><value>Resize image</value></data>
   <data name="MediaClean_Title" xml:space="preserve"><value>Document images</value></data>
   <data name="MediaClean_Intro" xml:space="preserve"><value>Images stay in the database even after you remove the block that showed them: a published version may still refer to them. Here you can see the ones no longer needed and free up their space.</value></data>
   <data name="MediaClean_Analyze" xml:space="preserve"><value>Analyse</value></data>
