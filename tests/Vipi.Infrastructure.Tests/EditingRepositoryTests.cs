@@ -348,11 +348,86 @@ public class EditingRepositoryTests : IAsyncLifetime
             .OrderBy(b => b.Order).Select(b => b.Body).FirstAsync());
     }
 
+    /// <summary>
+    /// ⚠️ <b>Il difetto pagato dal vivo il 5 settembre 2026 (vSOP militare di Grottaglie).</b> Una tabella
+    /// scritta a mano in «Radioassistenze» — sezione «scheda + blocchi», che nasce SENZA segnaposto — era il
+    /// primo blocco con un <c>BodyJson</c>. Alla prima radioassistenza aggiunta nella scheda, il payload le
+    /// è stato scritto <b>sopra</b>: contenuto perso, non nascosto, e il blocco sparito anche dall'editor
+    /// perché il JSON riscritto porta una <c>variant</c>.
+    /// <para>Un blocco editoriale — tabella a mano, immagine, allegato — non è mai un payload: non si legge
+    /// come tale e non si riscrive.</para>
+    /// </summary>
+    [Fact]
+    public async Task Il_payload_non_mangia_la_tabella_scritta_a_mano()
+    {
+        var docId = await MilDocIdAsync(conSegnaposto: false);   // come nasce davvero un vSOP militare
+        var (versionId, sectionId) = await SezioneAsync(docId, "navaids");
+
+        // La tabella di chi redige, come la scrive l'editor di blocco: colonne, righe, nessuna variante.
+        const string mia = "{\"columns\":[\"Colonna 1\"],\"rows\":[{\"cells\":[\"CELLA-MIA\"]}]}";
+        _db.ContentBlocks.Add(BloccoJson(versionId, sectionId, order: 1, json: mia, BlockFormat.Table));
+        await _db.SaveChangesAsync();
+
+        // Letta come payload della scheda sarebbe un pasticcio: la scheda non ha ancora niente di suo.
+        Assert.Null(await _repo.GetSectionBlockJsonAsync(docId, "navaids"));
+
+        // La scheda salva: il payload va IN CODA, la tabella resta intatta.
+        const string payload = "{\"variant\":\"milnavaids\",\"rows\":[{\"code\":\"TAR\"}]}";
+        await _repo.SaveSectionBlockJsonAsync(docId, "navaids", payload, authorUserId: 7);
+
+        var blocchi = await _db.ContentBlocks.AsNoTracking()
+            .Where(b => b.SectionId == sectionId).OrderBy(b => b.Order).ToListAsync();
+        Assert.Equal(2, blocchi.Count);
+        Assert.Equal(mia, blocchi[0].BodyJson);                 // ⚠️ la riga che prima veniva sovrascritta
+        Assert.Equal(payload, blocchi[1].BodyJson);
+        Assert.Equal(payload, await _repo.GetSectionBlockJsonAsync(docId, "navaids"));
+
+        // E il secondo salvataggio riscrive il payload, non la tabella (nessun terzo blocco).
+        const string secondo = "{\"variant\":\"milnavaids\",\"rows\":[{\"code\":\"AEA\"}]}";
+        await _repo.SaveSectionBlockJsonAsync(docId, "navaids", secondo, authorUserId: 7);
+        blocchi = await _db.ContentBlocks.AsNoTracking()
+            .Where(b => b.SectionId == sectionId).OrderBy(b => b.Order).ToListAsync();
+        Assert.Equal(2, blocchi.Count);
+        Assert.Equal(mia, blocchi[0].BodyJson);
+        Assert.Equal(secondo, blocchi[1].BodyJson);
+    }
+
+    /// <summary>Stessa storia con un'IMMAGINE: anche lei porta un <c>BodyJson</c>, e non è un payload.</summary>
+    [Fact]
+    public async Task Il_payload_non_mangia_un_immagine()
+    {
+        var docId = await MilDocIdAsync(conSegnaposto: false);
+        var (versionId, sectionId) = await SezioneAsync(docId, "callsigns");
+        const string foto = "{\"mediaId\":\"" + "ab" + "\",\"width\":800,\"height\":600}";
+        _db.ContentBlocks.Add(BloccoJson(versionId, sectionId, order: 1, json: foto, BlockFormat.Image));
+        await _db.SaveChangesAsync();
+
+        await _repo.SaveSectionBlockJsonAsync(docId, "callsigns", "{\"variant\":\"milcallsigns\",\"rows\":[]}", authorUserId: 7);
+
+        var blocchi = await _db.ContentBlocks.AsNoTracking()
+            .Where(b => b.SectionId == sectionId).OrderBy(b => b.Order).ToListAsync();
+        Assert.Equal(2, blocchi.Count);
+        Assert.Equal(foto, blocchi[0].BodyJson);
+    }
+
+    private static Vipi.Domain.Entities.ContentBlock BloccoJson(int versionId, int sectionId, int order, string json, BlockFormat format) =>
+        new()
+        {
+            DocumentVersionId = versionId,
+            SectionId = sectionId,
+            Order = order,
+            Format = format,
+            Tier = BlockTier.Extended,
+            Visibility = BlockVisibility.Always,
+            BodyJson = json,
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        };
+
     /// <summary>Un vSOP militare appena nato: è l'unico profilo con sezioni annidate.</summary>
-    private async Task<int> MilDocIdAsync()
+    private async Task<int> MilDocIdAsync(bool conSegnaposto = true)
     {
         var (doc, _) = DocumentBirth.Crea(_db, new AiracService(), "vSOP militare di test",
-            Language.It, SectionProfile.AirportMil, authorUserId: 7);
+            Language.It, SectionProfile.AirportMil, authorUserId: 7, conSegnaposto: conSegnaposto);
         await _db.SaveChangesAsync();
         return doc.Id;
     }

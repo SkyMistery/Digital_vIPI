@@ -509,10 +509,12 @@ public sealed class EfEditingRepository : IEditingRepository
         return blockSection.Id;
     }
 
+    // ⚠️ Stessa domanda del gemello per chiave e di `SectionPayload`: il primo blocco di STRUTTURA. «Il primo
+    // e basta» qui prendeva perfino un blocco di prosa (che un JSON non ce l'ha) e tornava indietro un null.
     public async Task<string?> GetSectionBlockJsonBySectionAsync(int sectionId, CancellationToken ct = default) =>
-        await _db.ContentBlocks
+        SectionPayload.Scegli(await _db.ContentBlocks
             .Where(b => b.SectionId == sectionId)
-            .OrderBy(b => b.Order).Select(b => b.BodyJson).FirstOrDefaultAsync(ct);
+            .OrderBy(b => b.Order).Select(b => b.BodyJson).ToListAsync(ct));
 
     public async Task SaveSectionBlockJsonBySectionAsync(int sectionId, string? json, int authorUserId, CancellationToken ct = default)
     {
@@ -521,8 +523,14 @@ public sealed class EfEditingRepository : IEditingRepository
         await RequireDraftAsync(section.DocumentVersionId, ct);
 
         var normalized = string.IsNullOrWhiteSpace(json) ? null : json;
-        var block = await _db.ContentBlocks
-            .Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).FirstOrDefaultAsync(ct);
+        var blocchi = await _db.ContentBlocks
+            .Where(b => b.SectionId == section.Id).OrderBy(b => b.Order).ToListAsync(ct);
+
+        // Le stesse tre domande del gemello per chiave: struttura → segnaposto vuoto → in coda. Prendere «il
+        // primo e basta» qui voleva dire riscrivere il primo blocco QUALUNQUE fosse — prosa, tabella scritta
+        // a mano, immagine.
+        var block = blocchi.FirstOrDefault(b => !string.IsNullOrWhiteSpace(b.BodyJson) && !SectionPayload.EEditoriale(b.BodyJson))
+                    ?? blocchi.FirstOrDefault(b => string.IsNullOrWhiteSpace(b.Body) && string.IsNullOrWhiteSpace(b.BodyJson));
 
         if (block is null)
         {
@@ -530,7 +538,7 @@ public sealed class EfEditingRepository : IEditingRepository
             {
                 DocumentVersionId = section.DocumentVersionId,
                 SectionId = section.Id,
-                Order = 1,
+                Order = blocchi.Count == 0 ? 1 : blocchi.Max(b => b.Order) + 1,
                 Format = BlockFormat.Table,
                 Tier = BlockTier.Extended,
                 Visibility = BlockVisibility.Always,
@@ -554,10 +562,11 @@ public sealed class EfEditingRepository : IEditingRepository
         var sectionId = await SezionePerChiaveAsync(versionId.Value, sectionKey, ct);
         if (sectionId is null) return null;
 
-        return await BlocchiDi(sectionId.Value).Select(b => b.BodyJson)
-            // La stessa domanda di SectionPayload.Read: il primo blocco che un payload ce l'ha. Un blocco di
-            // prosa qui c'è e non ne ha, e prendendo «il primo» si tornerebbe indietro con un null.
-            .FirstOrDefaultAsync(j => j != null, ct);
+        // La stessa domanda di SectionPayload.Read, e si chiede A LEI: il primo blocco di STRUTTURA. Non «il
+        // primo che un JSON ce l'ha» — una tabella scritta a mano o un'immagine un JSON ce l'hanno, e sono
+        // contenuto di chi redige. La scelta si fa in memoria perché la forma del JSON il database non la sa.
+        var jsons = await BlocchiDi(sectionId.Value).Select(b => b.BodyJson).ToListAsync(ct);
+        return SectionPayload.Scegli(jsons);
     }
 
     public async Task SaveSectionBlockJsonAsync(int documentId, string sectionKey, string? json, int authorUserId, CancellationToken ct = default)
@@ -573,15 +582,18 @@ public sealed class EfEditingRepository : IEditingRepository
         var blocchi = await BlocchiDi(sectionId).ToListAsync(ct);
         // Dove va il payload, in tre domande in ordine:
         //   1. il blocco che un payload ce l'ha già — è lui, e si riscrive;
-        //   2. altrimenti un blocco SENZA prosa: è il segnaposto che `AggiungiPlaceholderSeServe` mette alla
-        //      nascita sulle sezioni rese dalla pagina, e riusarlo è ciò che tiene il conto dei blocchi
-        //      identico a prima su tutte le famiglie;
-        //   3. altrimenti se ne crea uno.
-        // ⚠️ Un blocco di PROSA non si tocca mai. Prendere «il primo e basta» — la regola di prima —
-        // significava, su una sezione riempita dal caricatore dei SOP, scrivere il JSON sul blocco di prosa:
-        // funzionava per caso finché quello restava in cima, e si rompeva al primo paragrafo aggiunto sopra.
-        var block = blocchi.FirstOrDefault(b => b.BodyJson != null)
-                    ?? blocchi.FirstOrDefault(b => string.IsNullOrWhiteSpace(b.Body));
+        //   2. altrimenti un blocco VUOTO (né prosa né JSON): è il segnaposto che `AggiungiPlaceholderSeServe`
+        //      mette alla nascita sulle sezioni rese dalla pagina, e riusarlo è ciò che tiene il conto dei
+        //      blocchi identico a prima su tutte le famiglie;
+        //   3. altrimenti se ne crea uno in coda.
+        // ⚠️ Un blocco di PROSA non si tocca mai. Prendere «il primo e basta» — la regola di due giri fa —
+        // significava, su una sezione riempita dal caricatore dei SOP, scrivere il JSON sul blocco di prosa.
+        // ⚠️ E un blocco EDITORIALE nemmeno: tabella scritta a mano, immagine, allegato. «Il primo che un
+        // JSON ce l'ha» li prendeva, e il 5 settembre 2026 la verifica live ha visto una tabella di
+        // «Radioassistenze» sovrascritta dal payload della scheda — contenuto perso, non nascosto. La
+        // domanda giusta la fa `SectionPayload`, una volta sola per lettura e scrittura.
+        var block = blocchi.FirstOrDefault(b => !string.IsNullOrWhiteSpace(b.BodyJson) && !SectionPayload.EEditoriale(b.BodyJson))
+                    ?? blocchi.FirstOrDefault(b => string.IsNullOrWhiteSpace(b.Body) && string.IsNullOrWhiteSpace(b.BodyJson));
 
         if (block is null)
         {

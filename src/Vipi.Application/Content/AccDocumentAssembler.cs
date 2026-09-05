@@ -135,16 +135,19 @@ public static class AccDocumentAssembler
         Children = s.Children.OrderBy(c => c.Order).ThenBy(c => c.Id).Select(ToSectionView).ToList(),
     };
 
-    // BodyJson del blocco proprio della sezione (blockmeta): primo blocco della sezione-blocco stessa.
-    private static string? OwnBodyJson(EditableSection s) => s.Blocks.OrderBy(b => b.Order).FirstOrDefault()?.BodyJson;
+    // BodyJson di STRUTTURA della sezione (blockmeta). La domanda la fa `SectionPayload`, la stessa del
+    // viewer e della scrittura: «il primo e basta» prendeva anche una tabella o un'immagine scritte da chi
+    // redige, che payload non sono.
+    private static string? OwnBodyJson(EditableSection s) =>
+        SectionPayload.Read(s.Blocks.OrderBy(b => b.Order).ToList());
 
-    // BodyJson del primo blocco della sezione figlia con la chiave data.
+    // Come sopra, sui blocchi della sezione figlia con la chiave data.
     private static string? ChildBodyJson(EditableSection parent, string key) =>
-        parent.Children.Where(c => string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase))
+        SectionPayload.Scegli(parent.Children
+            .Where(c => string.Equals(c.SectionKey, key, StringComparison.OrdinalIgnoreCase))
             .OrderBy(c => c.Order)
             .SelectMany(c => c.Blocks.OrderBy(b => b.Order))
-            .Select(b => b.BodyJson)
-            .FirstOrDefault();
+            .Select(b => b.BodyJson));
 
     private static T? Deserialize<T>(string? json) where T : class
     {
