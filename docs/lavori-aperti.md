@@ -1,6 +1,8 @@
 ﻿# Lavori aperti — elenco unico
 
-**Aggiornato:** 4 settembre 2026, notte fonda — ✅ **§BN: L'AEROPORTO HA UNA PORTA SOLA, E I CAMPI VIVONO SOLO COL LOCK.** Richiesta del committente: «vorrei che il punto di salvataggio dei documenti di aeroporto sia uno, come negli altri documenti, e voglio poter scrivere nei campi solo se il documento è in editing». Erano **nove** tasti «Salva» più «Salva tutto (N)» e Ctrl+S, **tre** buffer che si potevano perdere e un cancello che non era il lock ma il **ruolo** sulla ACC — si digitava in tutta la pagina senza aver premuto «Modifica». Ora ogni gesto scrive, e il lock è una guardia **nel service**, non un tasto spento. Sul ramo **`aeroporto-porta-sola`**, spinto e **NON fuso** in `main`, quindi fuori produzione. ⚠️ **Serve un pacchetto**: tocca `Vipi.Ui` (frasi comprese), `Vipi.Application` e `Vipi.Infrastructure`. Carta: `docs/feature/2026-09-04-aeroporto-porta-sola.md`.
+**Aggiornato:** 5 settembre 2026 — ✅ **§BN È IN `main`** (fuso, ramo cancellato: build Release `no-incremental` e 5.423 test verdi sul merge). ➕ Due code dello stesso giorno, tutt'e due in `main`: **§BO — i `packages.lock.json` hanno smesso di ballare** (il RID si DICHIARA, e non era rumore: la CI restora in «locked mode»), e **§BP — la nota della quota da concordare è corta ovunque** «to coord with APP», in **una costante sola**, dopo che nell'editor scavalcava la colonna Cat. 🔴 **Serve un pacchetto**: §BN tocca `Vipi.Ui` (frasi comprese), `Vipi.Application` e `Vipi.Infrastructure`; nessuna migrazione, quindi spedibile dentro la finestra cieca. ⚠️ Nel foglio va scritto che l'editor d'aeroporto **non ha più tasti «Salva»**, o chi lo apre penserà che sia rotto.
+
+**Aggiornato:** 4 settembre 2026, notte fonda — ✅ **§BN: L'AEROPORTO HA UNA PORTA SOLA, E I CAMPI VIVONO SOLO COL LOCK.** Richiesta del committente: «vorrei che il punto di salvataggio dei documenti di aeroporto sia uno, come negli altri documenti, e voglio poter scrivere nei campi solo se il documento è in editing». Erano **nove** tasti «Salva» più «Salva tutto (N)» e Ctrl+S, **tre** buffer che si potevano perdere e un cancello che non era il lock ma il **ruolo** sulla ACC — si digitava in tutta la pagina senza aver premuto «Modifica». Ora ogni gesto scrive, e il lock è una guardia **nel service**, non un tasto spento. ✅ **Fuso in `main`** il 5 settembre (`8b3130ad`, ramo cancellato), **fuori produzione**. ⚠️ **Serve un pacchetto**: tocca `Vipi.Ui` (frasi comprese), `Vipi.Application` e `Vipi.Infrastructure`. Carta: `docs/feature/2026-09-04-aeroporto-porta-sola.md`.
 
 **Aggiornato:** 4 settembre 2026, notte — ✅ **1.9.0 È IN PRODUZIONE**, caricata dal committente (`vipi-1.9.0-solo-file-cambiati.zip`, sha256 `3045b044acf77bdd2deefd2c1ed911e2d2a2ec6cce3995cfffede0c9143d73ee`, **15 file**, timbro **`1.9.0 · f75e2e0`**). ✅ **Verificata da fuori, da anonimo, due giri su due verdi**: il JS che avvia Blazor arriva ed è minificato, il **circuito si apre**, la **Ricerca risponde** (è il controllo che conta, perché passa dal server), il foglio di stile è in vigore — quindi i quattro file di `wwwroot` sono arrivati **insieme**, che era l'unica trappola del pacchetto — e la console del browser è pulita. ⚠️ **Il timbro non si vede da fuori**: la barra lo mostra ai soli amministratori, quindi la conferma «1.9.0 · f75e2e0» la dà `diagnostica/avvio-diagnostica.txt` al prossimo caricamento della diagnostica. Dentro ci sono **§BM** (a che punto è la traduzione: due percentuali, l'attesa a orologio, il tasto «traduci ora») e **§BM-bis** (il riquadro «ricarica la pagina», che **non** era l'host). 🔴 **E resta quel che serve da loro**: `diagnostica/errori-richieste.txt` fra qualche giorno — quello di oggi si fermava un minuto prima che 1.8.1 partisse, quindi né di 1.8.1 né di 1.9.0 abbiamo ancora un dato. 🔴 **E una decisione editoriale, adesso visibile**: 17 release in vigore su 17 non congelano la traduzione, e si chiude **ripubblicando**.
 
@@ -8419,4 +8421,75 @@ senza nessun ✓. Ctrl+S non fa niente, uscire non chiede conferma, console puli
 dice se sono **spenti** (i limiti di settore ci sono sempre, `disabled` senza lock), e `innerText` non
 contiene il `value` di un campo — cercarci dentro un numero appena digitato dà sempre «non c'è». *Quando la
 misura accusa qualcosa che il database smentisce, il sospetto va prima allo strumento.*
+
+
+## BO. I packages.lock.json smettono di ballare: il RID si DICHIARA — 5 settembre 2026
+
+Nove file che risultavano modificati in `git status` senza che nessun `PackageReference` fosse cambiato, e
+**due volte li si è «rimessi com'erano» a mano** (l'ultima nel pacchetto 1.9.0). Il sintomo di una regola
+che manca, non una svista da ripetere.
+
+### Il meccanismo, misurato
+
+| chi | che cosa scriveva |
+|---|---|
+| `dotnet build`/`test`/`restore` normale (nessun RID) | i lock **senza** le sezioni `*/linux-x64` |
+| `dotnet publish -r linux-x64 --self-contained` (il pacchetto) | risolve quel grafo **anche per le librerie** e gliele **rimette** |
+
+Due comandi, due forme, un file solo. 🔴 **E non è cosmetico**: la CI restora in «locked mode» e si ferma su
+una forma che il suo restore non produce.
+
+### La cura, che la dice lo stesso SDK
+
+`<RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>` nei nove progetti di `src/` — è quel che suggerisce
+l'errore `NETSDK1047`, saltato fuori durante la prova. Così **ogni** restore risolve anche quel grafo e
+produce lo stesso file, da qualunque comando si passi. Il perché sta in `Directory.Build.props`, accanto a
+`RestorePackagesWithLockFile`.
+
+### Prove
+
+Restore normale e publish linux-x64 lasciano file **identici byte per byte** (prima il primo li spogliava e
+il secondo li rivestiva); restore in «locked mode» verde su tutta la soluzione; build Release
+`no-incremental` verde; 9 progetti di test su 9 verdi; e dopo una build normale `git status` è **vuoto**.
+⚠️ I cinque lock delle librerie cambiano **una volta**, in quel commit: prendono le sezioni che finora
+scriveva solo il publish.
+
+⚠️ **Quel che resta da verificare non è verificabile da qui**: il restore della CI su ubuntu. Il grafo RID
+non dipende dal sistema che lo risolve, quindi la forma dovrebbe essere la stessa, ma la conferma la dà il
+primo giro verde. Se si fermasse: `git revert e3d2db61` e non si perde altro.
+
+## BP. «to be coordinated with APP» scavalcava Cat., e la frase stava in due posti — 5 settembre 2026
+
+> Segnalazione del committente, con lo scatto: nell'editor la nota usciva dalla sua cella e si leggeva
+> **sopra** «A, B, C, D, E». *«Per non ridimensionare tutto possiamo riscrivere quella frase.»*
+
+### Due cose, e la prima era un difetto di §BN
+
+1. 🔴 **`td.col-climb` e `td.col-cond` non erano nell'elenco delle celle che si TAGLIANO.** Non era una
+   dimenticanza di chi scrisse quella regola: fino al 4 settembre quelle due celle contenevano **solo un
+   campo**, largo per costruzione, e tagliarle non serviva a niente. Da quando l'editor ha un modo di **sola
+   lettura** ci arriva testo libero, e con `white-space:nowrap` acceso e nessun taglio quel testo scavalca la
+   colonna accanto. ⚠️ *Quando una cella comincia a portare testo dove prima portava un campo, le regole
+   scritte per il campo vanno rilette.*
+2. **La frase è stata abbreviata** — «to coord with APP» — su richiesta del committente. Prima nel solo
+   editor; poi, sempre su sua richiesta, **anche nel lettore**.
+
+### E la ragione per cui la prima volta ne cambiai una sola
+
+🔴 **La frase viveva in due posti**: un letterale nel service di derivazione (il documento) e una chiave di
+risorsa nell'editor. Ora è **una costante sola**, `AirportSidDerivationService.NotaClimbApp`, che l'editor
+mostra e il documento pubblica — le due chiavi `Ape_ClimbByApp*` sono cadute con la seconda stesura.
+*Due stesure della stessa frase prima o poi divergono, e chi ne cambia una fa promettere a schermo quel che
+il documento non dice.*
+
+### Misure
+
+Editor (LIBC): testo **106px** in una cella di **132**, 19px di margine, «A, B, C, D, E» leggibile per
+intero. Lettore: la nota sta ora su **UNA riga** (106px in 126) — per esteso ne voleva 162 da sola e 231 con
+la quota davanti, e andava a capo sempre. Il commento del CSS che spiegava quella larghezza diceva ancora
+così, ed è stato riscritto insieme al resto.
+
+⚠️ **Le release già CONGELATE conservano la frase vecchia**: uno snapshot è la verità di allora e non si
+riscrive. Cambia la vista live e cambiano le release future — un'altra ragione per ripubblicare i documenti
+che §BM ha trovato senza traduzione congelata.
 

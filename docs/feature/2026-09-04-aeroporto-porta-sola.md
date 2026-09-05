@@ -125,3 +125,21 @@ caso in cui oggi si perde lavoro **valido e già digitato** — che è il difett
   valori reggono al ricarico; seconda sessione → chip rosso col nome; «Fine modifica» esce senza chiedere
   niente; Ctrl+S non fa più niente e chiudere la scheda non chiede conferma.
 - Un campo solo militare senza vIPI civile, dall'editor vSOP: stessi gesti, stesso esito.
+
+## 8. Le code del 5 settembre
+
+✅ **Fuso in `main`** (`8b3130ad`), ramo cancellato. Build Release `no-incremental` e 5.423 test verdi sul
+merge. Fuori produzione: serve un pacchetto.
+
+**La verifica live è stata fatta** (LIBD, copia del DB): senza lock zero campi e zero tasti «Salva»; col lock
+TORA, una SID manuale nuova e un limite di settore **riletti dal database** dopo il ricarico; Ctrl+S inerte,
+uscire non chiede niente. ⚠️ Due «KO» erano della **sonda**: contare gli `<input>` non dice se sono spenti, e
+`innerText` non contiene il `value` di un campo.
+
+⚠️ **E un difetto che questa carta ha prodotto**, corretto il giorno dopo (`lavori-aperti.md` §BP): la nota
+«quota da concordare con l'APP» **scavalcava la colonna Cat.** nella tabella delle SID importate.
+`td.col-climb` e `td.col-cond` non erano fra le celle che si tagliano — fino a ieri contenevano **solo un
+campo**, largo per costruzione. *Quando una cella comincia a portare testo dove prima portava un campo, le
+regole scritte per il campo vanno rilette.* Nello stesso giro la frase è stata abbreviata («to coord with
+APP») in editor **e** lettore, e messa in **una costante sola**
+(`AirportSidDerivationService.NotaClimbApp`): prima erano due stesure, e infatti se ne accorciò una sola.
