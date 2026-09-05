@@ -1,6 +1,6 @@
 # Pacchetto 1.10.0 — solo i file cambiati
 
-> **Timbro:** `1.10.0 · bdd81e9` (5 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.10.0 · 99f33f0` (5 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.9.0.** **16 file.**
@@ -155,13 +155,16 @@ pacchetto non tocca.
 
 Sul **pacchetto pubblicato**, non sul codice sorgente.
 
-- build in Release, **0 avvisi**, sui due runtime; **5 438 test** verdi su **quattordici** assiemi, **E2E
+- build in Release, **0 avvisi**, sui due runtime; **10 433 test** verdi su **quindici** assiemi, **E2E
   compresi** (300);
 - le due parti nuove **guidate in un browser** su una copia del vostro database, a **tre identità diverse**
   (un utente qualsiasi scollegato, un utente collegato a una postazione, uno staff di divisione): il
   rimando funziona, il selettore apre le postazioni, la ricerca SID stringe la tabella;
 - e la ricerca è stata provata anche **cancellando in fretta**, che è il modo in cui si è scoperto che il
-  campo perdeva i tasti.
+  campo perdeva i tasti;
+- ⚠️ e provare il **pacchetto** invece del sorgente ha pagato anche stavolta: a processo appena acceso il
+  selettore diceva «Nessuna postazione» invece di «Caricamento…». Corretto, e il controllo che ha preso
+  la correzione sbagliata è lo smoke della vista live.
 
 🔴 **Quel che NON è stato provato, e va detto chiaro.**
 

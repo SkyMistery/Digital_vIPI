@@ -55,10 +55,16 @@
       rimetteva, e il file risultava modificato in git senza che nessuna dipendenza fosse cambiata. Due
       volte lo si è «corretto» a mano rimettendolo com'era: il sintomo di una regola che manca.
 
-      La regola che mancava: IL RID VA DICHIARATO — `<RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>` nei
-      nove progetti di `src/`. Così ogni restore risolve anche quel grafo e produce lo STESSO file, da
+      La regola che mancava: IL RID VA DICHIARATO — `<RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>`
+      nei nove progetti di `src/`. Così ogni restore risolve anche quel grafo e produce lo STESSO file, da
       qualunque comando si passi. Misurato il 5 settembre 2026: restore normale e publish linux-x64 lasciano
       file identici byte per byte, e il restore in «locked mode» resta verde.
+
+      ⚠️ E i RID dichiarati sono DUE, dalla sera del 5 settembre. Col solo `linux-x64` i lock hanno
+      ricominciato a ballare alla prima consegna, e stavolta li rivestiva il publish **win-x64** — che non è
+      un capriccio: il runbook lo PRESCRIVE a ogni pacchetto (§6, «provare il pacchetto e non il sorgente»,
+      e questa macchina è Windows). Un RID che il progetto usa a ogni consegna è un RID del progetto: si
+      dichiara, non si ripulisce dopo.
     -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>

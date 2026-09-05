@@ -52,7 +52,7 @@
          mostrandosi modificato in git senza che nessuna dipendenza sia cambiata. Dichiarandolo, ogni restore
          risolve anche il grafo linux-x64 e il lock è lo stesso per tutti. La CI restora in «locked mode» e si
          fermerebbe su un lock di forma diversa da quella committata. -->
-    <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
