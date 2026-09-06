@@ -51,6 +51,11 @@ public class TranslationReviewPanelTests : TestContext
         {
             Letture++;
             Lingue.Add(targetLang);
+            // ⚠️ Come il servizio vero: chiesto nella lingua in cui il documento è scritto non torna nessuna
+            // riga — le righe sono la resa nell'ALTRA lingua. È il caso di chi redige in italiano.
+            if (string.Equals(targetLang, "it", StringComparison.OrdinalIgnoreCase))
+                return Task.FromResult(new RevisioneDocumento("it", Array.Empty<RigaDaRivedere>()));
+
             return Task.FromResult(new RevisioneDocumento("it", new[]
             {
                 new RigaDaRivedere("Contatta la torre.", Resa,
@@ -93,6 +98,34 @@ public class TranslationReviewPanelTests : TestContext
         }
     }
 
+    /// <summary>
+    /// «A che punto è» questo documento. ⚠️ È la lettura che rende il pannello utile a chi scrive in
+    /// italiano: le righe lì non ci sono, la percentuale sì.
+    /// </summary>
+    private sealed class StatoFinto : Vipi.Application.Translation.IStatoTraduzione
+    {
+        public int Letture { get; private set; }
+        public RigaStatoTraduzione? Riga { get; set; } = new(
+            7, "LIBD", "it", "en", Bloccata: false,
+            Bozza: new TranslationCoverage(10, 8, 3),
+            AMano: 0,
+            Pubblicato: new TranslationCoverage(10, 4, 2),
+            HaReleaseEfficace: true,
+            ReleaseCongela: true);
+
+        public Task<QuadroStatoTraduzione> QuadroAsync(CancellationToken ct = default) =>
+            Task.FromResult(QuadroStatoTraduzione.Vuoto);
+
+        public Task<RigaStatoTraduzione?> DocumentoAsync(int documentId, CancellationToken ct = default)
+        {
+            Letture++;
+            return Task.FromResult(Riga);
+        }
+
+        public Task<MancantiDelDocumento?> MancantiAsync(int documentId, CancellationToken ct = default) =>
+            Task.FromResult<MancantiDelDocumento?>(null);
+    }
+
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
     {
         public LocalizedString this[string name] => new(name, name, resourceNotFound: false);
@@ -104,6 +137,7 @@ public class TranslationReviewPanelTests : TestContext
 
     private AttesaFinta _attesa = new();
     private TraduciOraFinto _traduciOra = new();
+    private StatoFinto _stato = new();
 
     private RevisioneFinta Arrangia()
     {
@@ -118,6 +152,9 @@ public class TranslationReviewPanelTests : TestContext
         // servizio che non fosse risolvibile da uno scope figlio farebbe fallire il test per il motivo
         // sbagliato. Registrando l'istanza come scoped si copre entrambe le strade.
         Services.AddScoped<IDocumentTranslationReview>(_ => revisione);
+        // Anche lo stato parte dal ciclo di vita, quindi dallo scope proprio: scoped come gli altri.
+        _stato = new StatoFinto();
+        Services.AddScoped<Vipi.Application.Translation.IStatoTraduzione>(_ => _stato);
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         JSInterop.Mode = JSRuntimeMode.Loose;
@@ -172,18 +209,89 @@ public class TranslationReviewPanelTests : TestContext
     // ---- «Quanto ci vuole», e il tasto (carta §4-bis) --------------------------------------------------
 
     /// <summary>
-    /// ⚠️ <b>Su un documento a posto l'attesa non si chiede nemmeno.</b> Non è un'ottimizzazione: la riga
-    /// «il giro passa fra ~6 min» su un documento che non aspetta niente è un'informazione falsa —
-    /// suggerisce che stia per succedere qualcosa che non succederà.
+    /// 🔴 <b>Anche a zero mancanti lo stato si dice, e il tasto c'è.</b> Fino al 6 settembre 2026 era il
+    /// contrario — l'attesa non si chiedeva nemmeno e il tasto spariva — e il risultato è che il cruscotto
+    /// si spegneva proprio quando il lavoro era a posto: chi guardava non poteva distinguere «tutto
+    /// tradotto» da «il pannello non sa niente», e infatti l'ha letto come un guasto.
     /// </summary>
     [Fact]
-    public void Se_non_manca_niente_non_si_chiede_nemmeno_quanto_manca()
+    public void Anche_a_zero_mancanti_lo_stato_si_legge_e_il_tasto_resta()
     {
         Arrangia();
 
-        RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
 
-        Assert.Equal(0, _attesa.Letture);
+        Assert.Equal(1, _attesa.Letture);
+        Assert.Equal(1, _stato.Letture);
+        Assert.Single(cut.FindAll("button"), b => b.TextContent.Contains("TrEd_Now"));
+        // Le due coperture, non una media: sono la risposta a «a che punto sono».
+        var riga = cut.Find(".tr-wait").TextContent;
+        Assert.Contains("TrEd_State_Draft", riga);
+        Assert.Contains("TrEd_State_Published", riga);
+    }
+
+    /// <summary>
+    /// 🔴 <b>E si dice anche a chi legge nella lingua del documento</b>, cioè a chi lo sta scrivendo: là le
+    /// righe da rivedere non esistono — sono la resa nell'ALTRA lingua — e il pannello si fermava alla frase
+    /// «passa all'altra lingua», senza percentuale, senza orologio e senza tasto. Il conto del documento
+    /// contro la memoria non dipende dalla lingua in cui lo si guarda.
+    /// </summary>
+    [Fact]
+    public void In_italiano_niente_righe_ma_lo_stato_e_il_tasto_ci_sono()
+    {
+        Arrangia();
+        var prima = System.Globalization.CultureInfo.CurrentUICulture;
+        System.Globalization.CultureInfo.CurrentUICulture = new System.Globalization.CultureInfo("it");
+        try
+        {
+            var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+
+            Assert.Contains("TrEd_SameLanguage", cut.Markup);
+            Assert.Contains("TrEd_State_Draft", cut.Find(".tr-wait").TextContent);
+            Assert.Single(cut.FindAll("button"), b => b.TextContent.Contains("TrEd_Now"));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentUICulture = prima;
+        }
+    }
+
+    /// <summary>
+    /// ⚠️ I mancanti si contano sul DOCUMENTO, non sulle righe mostrate: in italiano le righe sono zero, e
+    /// contare lì diceva «non manca niente» di un documento tradotto a metà.
+    /// </summary>
+    [Fact]
+    public void I_mancanti_vengono_dallo_stato_del_documento()
+    {
+        Arrangia();
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+
+        // La finta dice 10 segmenti e 8 tradotti: due mancanti, e la pastiglia in testata lo deve dire
+        // anche se le righe mostrate hanno tutte una resa. (Il localizzatore dei test rende la chiave, non
+        // la frase: quel che si prova è QUALE frase si è scelta, non come suona.)
+        Assert.Contains("TrEd_Wait_Missing", cut.Find("summary").TextContent);
+        Assert.DoesNotContain("TrEd_Wait_None", cut.Find(".tr-wait").TextContent);
+    }
+
+    /// <summary>Senza il servizio dello stato il pannello si monta lo stesso: è un di più, non una dipendenza.</summary>
+    [Fact]
+    public void Senza_il_servizio_dello_stato_il_pannello_si_monta()
+    {
+        var revisione = new RevisioneFinta();
+        _attesa = new AttesaFinta();
+        _traduciOra = new TraduciOraFinto();
+        Services.AddScoped<IAttesaTraduzione>(_ => _attesa);
+        Services.AddScoped<ITraduciOra>(_ => _traduciOra);
+        Services.AddScoped<IDocumentTranslationReview>(_ => revisione);
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        JSInterop.Mode = JSRuntimeMode.Loose;
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+
+        Assert.Contains("TrEd_Title", cut.Markup);
+        Assert.Single(cut.FindAll("button"), b => b.TextContent.Contains("TrEd_Now"));
     }
 
     /// <summary>Se qualcosa manca, l'attesa si legge e il tasto compare.</summary>

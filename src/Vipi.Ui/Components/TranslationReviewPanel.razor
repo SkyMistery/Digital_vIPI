@@ -47,22 +47,35 @@
    ⚠️ E LA CORREZIONE TOCCA LA FRASE, NON IL DOCUMENTO: la memoria e' indicizzata sull'impronta, quindi vale
    per ogni documento che contiene quella frase. Il conto si mostra PRIMA di salvare, non dopo. *@
 
-<CollapsibleBlock Id="tr-review" InitiallyOpen="false">
+@*  ⚠️ L'id porta il DOCUMENTO e non è un vezzo: dal 6 settembre 2026 il pannello si monta anche sui MEMBRI
+    di un'unione, e in quella pagina i pannelli sono tre o quattro. Un `id` ripetuto è un DOM non valido, e
+    `data-persist` — che è l'id — farebbe aprire e chiudere insieme pannelli di documenti diversi. *@
+<CollapsibleBlock Id="@($"tr-review-{DocumentId}")" InitiallyOpen="false">
     <Header>
         <h3>
             @L["TrEd_Title"]
+            @*  ⚠️ La percentuale sta in TESTATA e NON dipende dalla lingua di lettura: è il conto del
+                documento contro la memoria, non delle righe che questo pannello mostra. Chi scrive in
+                italiano non ha righe da rivedere — le righe sono la resa nell'ALTRA lingua — e fino al
+                6 settembre 2026 vedeva per questo una testata muta: «a che punto è» spariva proprio a chi
+                sta scrivendo, cioè all'unico che se lo stava chiedendo. *@
+            @if (_stato is { Bloccata: false } st)
+            {
+                <span>&nbsp;</span>
+                <span class="pill @ColoreStato(st.Stato)" title="@Etichetta(st.Stato)">@st.PercentualeBozza%</span>
+            }
             @if (_righe is { Count: > 0 })
             {
                 <span>&nbsp;</span>
                 <span class="pill @(DaRileggere > 0 ? "amber" : "blue")">@DaRileggere / @_righe.Count</span>
-                @*  ⚠️ «Quante mancano» sta in TESTATA e non solo dentro, perché il pannello nasce chiuso:
-                    chi ha appena finito di scrivere deve vedere che qualcosa manca senza aprirlo — è tutta
-                    la ragione per cui questa riga esiste (carta §4-bis). *@
-                @if (Mancanti > 0)
-                {
-                    <span>&nbsp;</span>
-                    <span class="pill amber">@string.Format(L["TrEd_Wait_Missing"].Value, Mancanti)</span>
-                }
+            }
+            @*  ⚠️ «Quante mancano» sta in TESTATA e non solo dentro, perché il pannello nasce chiuso:
+                chi ha appena finito di scrivere deve vedere che qualcosa manca senza aprirlo — è tutta
+                la ragione per cui questa riga esiste (carta §4-bis). *@
+            @if (MancantiDelDocumento > 0)
+            {
+                <span>&nbsp;</span>
+                <span class="pill amber">@Frase(MancantiDelDocumento, "TrEd_Wait_MissingOne", "TrEd_Wait_Missing")</span>
             }
         </h3>
     </Header>
@@ -71,88 +84,99 @@
         {
             <p class="help">@L["TrEd_Locked"]</p>
         }
-        else if (_stessaLingua)
-        {
-            <p class="help">@L["TrEd_SameLanguage"]</p>
-        }
-        else if (_righe is null)
-        {
-            <p class="help">…</p>
-        }
-        else if (_righe.Count == 0)
-        {
-            <p class="help">@L["TrEd_Empty"]</p>
-        }
         else
         {
-            <p class="help">@L["TrEd_Intro", _lettore.ToUpperInvariant()]</p>
+            @*  ---- «A che punto sono, e quanto ci vuole?» (carta §4-bis, rivista il 6 settembre 2026) ---
+                🔴 QUESTA RIGA SI STAMPA SEMPRE, e prima no. Stava dentro l'elenco delle righe da rivedere,
+                cioè compariva solo a chi leggeva nell'ALTRA lingua e solo finché mancava qualcosa: appena il
+                giro aveva fatto il suo lavoro, «a che punto è la traduzione» spariva insieme al tasto — e
+                spariva del tutto a chi lavora in italiano, che è chi scrive. Un cruscotto che si spegne
+                quando le cose vanno bene non dice «va bene»: sembra rotto.
 
-            @*  ---- «Ho appena finito di scrivere: quanto ci vuole?» (carta §4-bis) -------------------
                 ⚠️ È un OROLOGIO, non una stima: il giro non ha tetto di lotto — spedisce in una chiamata
                 tutti i mancanti — quindi il numero di frasi appena scritte non allunga l'attesa. Quel che
                 resta da sapere è quando è passato l'ultimo giro, e quello è un fatto scritto nel database. *@
             <p class="help tr-wait">
                 <span>@Attesa()</span>
-                @if (Mancanti > 0)
-                {
-                    <button type="button" class="btn ghost" disabled="@_busy" title="@L["TrEd_NowTitle"]"
-                            @onclick="TraduciOraAsync">
-                        <Icon Name="refresh" Size="14" /> @L["TrEd_Now"]
-                    </button>
-                }
+                @*  ⚠️ Il tasto c'è SEMPRE (fuorché a lingua bloccata, dove non tradurrebbe mai niente): a
+                    zero mancanti non spende un carattere — `TraduciOraService` risponde «niente da fare»
+                    prima di aprire la rete — e serve a chi ha appena corretto una frase e vuole rivederla
+                    resa adesso. Legarlo ai mancanti lo faceva sparire per sempre dopo il primo giro. *@
+                <button type="button" class="btn ghost" disabled="@_busy" title="@L["TrEd_NowTitle"]"
+                        @onclick="TraduciOraAsync">
+                    <Icon Name="refresh" Size="14" /> @L["TrEd_Now"]
+                </button>
             </p>
-
-            @foreach (var r in _righe)
-            {
-                <div class="tr-row">
-                    <div class="tr-src">
-                        <span class="muted tr-where">@L["TrEd_Where"] @r.Dove</span>
-                        <div>@r.Sorgente</div>
-                    </div>
-                    <div class="tr-dst">
-                        @if (_aperta == r.Sorgente)
-                        {
-                            <textarea class="tr-edit" rows="3" @bind="_bozza" @bind:event="oninput"></textarea>
-                            @if (_toccati > 1)
-                            {
-                                <p class="help">@L["Tr_TouchesDocs", _toccati]</p>
-                            }
-                            <div class="tr-cmds">
-                                <button class="btn" disabled="@(_busy || string.IsNullOrWhiteSpace(_bozza))"
-                                        @onclick="() => SalvaAsync(r)">
-                                    <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
-                                </button>
-                                <button class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
-                            </div>
-                        }
-                        else
-                        {
-                            <button class="btn ghost tr-open" disabled="@_busy" @onclick="() => ApriAsync(r)">
-                                @if (string.IsNullOrWhiteSpace(r.Tradotto))
-                                {
-                                    <span class="muted">@L["TrEd_Missing"]</span>
-                                }
-                                else
-                                {
-                                    @r.Tradotto
-                                }
-                            </button>
-                            @if (r.Origine == TranslationOrigin.Human)
-                            {
-                                <span class="pill blue">@L["Tr_OriginHuman"]</span>
-                            }
-                            else if (!string.IsNullOrWhiteSpace(r.Tradotto))
-                            {
-                                <span class="pill amber">@L["TrEd_ToReview"]</span>
-                            }
-                        }
-                    </div>
-                </div>
-            }
 
             @if (_esito is { Length: > 0 })
             {
                 <p class="help">@_esito</p>
+            }
+
+            @if (_stessaLingua)
+            {
+                <p class="help">@L["TrEd_SameLanguage"]</p>
+            }
+            else if (_righe is null)
+            {
+                <p class="help">…</p>
+            }
+            else if (_righe.Count == 0)
+            {
+                <p class="help">@L["TrEd_Empty"]</p>
+            }
+            else
+            {
+                <p class="help">@L["TrEd_Intro", _lettore.ToUpperInvariant()]</p>
+
+                @foreach (var r in _righe)
+                {
+                    <div class="tr-row">
+                        <div class="tr-src">
+                            <span class="muted tr-where">@L["TrEd_Where"] @r.Dove</span>
+                            <div>@r.Sorgente</div>
+                        </div>
+                        <div class="tr-dst">
+                            @if (_aperta == r.Sorgente)
+                            {
+                                <textarea class="tr-edit" rows="3" @bind="_bozza" @bind:event="oninput"></textarea>
+                                @if (_toccati > 1)
+                                {
+                                    <p class="help">@L["Tr_TouchesDocs", _toccati]</p>
+                                }
+                                <div class="tr-cmds">
+                                    <button class="btn" disabled="@(_busy || string.IsNullOrWhiteSpace(_bozza))"
+                                            @onclick="() => SalvaAsync(r)">
+                                        <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
+                                    </button>
+                                    <button class="btn ghost" disabled="@_busy" @onclick="Chiudi">@L["Common_Cancel"]</button>
+                                </div>
+                            }
+                            else
+                            {
+                                <button class="btn ghost tr-open" disabled="@_busy" @onclick="() => ApriAsync(r)">
+                                    @if (string.IsNullOrWhiteSpace(r.Tradotto))
+                                    {
+                                        <span class="muted">@L["TrEd_Missing"]</span>
+                                    }
+                                    else
+                                    {
+                                        @r.Tradotto
+                                    }
+                                </button>
+                                @if (r.Origine == TranslationOrigin.Human)
+                                {
+                                    <span class="pill blue">@L["Tr_OriginHuman"]</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(r.Tradotto))
+                                {
+                                    <span class="pill amber">@L["TrEd_ToReview"]</span>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+
             }
         }
     </ChildContent>
@@ -181,15 +205,65 @@
     /// </summary>
     private int Mancanti => _righe?.Count(r => string.IsNullOrWhiteSpace(r.Tradotto)) ?? 0;
 
+    /// <summary>
+    /// A che punto è la traduzione di QUESTO documento: due coperture, come nel Registro e con lo stesso
+    /// conto (<see cref="RigaStatoTraduzione"/>). null = il servizio non c'è o il documento non ha una
+    /// versione di lavoro.
+    ///
+    /// <para>⚠️ Non è la stessa cosa delle righe qui sotto, e per questo si chiede: le righe sono la resa
+    /// nella lingua di LETTURA — in italiano non ce n'è nessuna — mentre lo stato è il documento contro la
+    /// memoria, e vale in tutt'e due le lingue. È la lettura che rende il pannello utile a chi scrive.</para>
+    /// </summary>
+    private RigaStatoTraduzione? _stato;
+
+    /// <summary>
+    /// Quante frasi del documento la memoria non ha. ⚠️ Viene dallo STATO quando c'è, non dalle righe: le
+    /// righe esistono solo nell'altra lingua, e contarle lì voleva dire «non manca niente» a chi lavora in
+    /// italiano — su un documento che magari non è tradotto per niente.
+    /// </summary>
+    private int MancantiDelDocumento => _stato is { Bloccata: false } s ? s.Bozza.Mancanti : Mancanti;
+
     /// <summary>Quanto manca al prossimo giro. Si legge una volta col documento, non a ogni secondo.</summary>
     private Vipi.Application.Translation.AttesaDelGiro? _attesa;
 
-    /// <summary>L'attesa, in una riga sola (carta §4-bis).</summary>
+    /// <summary>Singolare e plurale: «1 frasi» è il segno che il numero non lo guarda nessuno (§Q19).</summary>
+    private string Frase(int quante, string chiaveUno, string chiaveTanti) =>
+        quante == 1 ? L[chiaveUno].Value : string.Format(L[chiaveTanti].Value, quante);
+
+    /// <summary>
+    /// Lo stato e l'attesa, in una riga sola (carta §4-bis).
+    ///
+    /// <para>🔴 Si stampa SEMPRE, anche quando non manca niente: prima, a zero mancanti, tornava «non manca
+    /// niente» e basta — nessuna percentuale, nessun orologio — e chi guardava non poteva distinguere «tutto
+    /// tradotto» da «il pannello non sa niente». Le due coperture stanno per prime perché sono la risposta
+    /// alla domanda che si fa chi scrive; il giro viene dopo, perché è la risposta al «quando».</para>
+    /// </summary>
     private string Attesa()
     {
-        if (Mancanti == 0) return L["TrEd_Wait_None"];
+        var pezzi = new List<string>();
 
-        var pezzi = new List<string> { string.Format(L["TrEd_Wait_Missing"].Value, Mancanti) };
+        // ⚠️ DUE percentuali, mai una media: «bozza 100%, pubblicato 40%» è il guasto §Q18 in persona, e
+        // «70%» non fa agire nessuno. E «nessuna release» NON è «0% pubblicato»: sono due vuoti diversi.
+        if (_stato is { Bloccata: false } st)
+        {
+            pezzi.Add(st.Bozza.Segmenti == 0
+                ? L["TrDoc_St_Nothing"].Value
+                : string.Format(L["TrEd_State_Draft"].Value, st.PercentualeBozza));
+
+            if (st.Bozza.Segmenti > 0)
+                pezzi.Add(!st.HaReleaseEfficace
+                    ? L["TrDoc_NoRelease"].Value
+                    : string.Format(L["TrEd_State_Published"].Value, st.PercentualePubblicato));
+        }
+
+        var mancanti = MancantiDelDocumento;
+        pezzi.Add(mancanti == 0
+            ? L["TrEd_Wait_None"].Value
+            : Frase(mancanti, "TrEd_Wait_MissingOne", "TrEd_Wait_Missing"));
+
+        // ⚠️ Quel che il protettore non manderà mai al motore si dice qui, e non si somma ai mancanti: un
+        // contatore che non può arrivare a zero è un allarme che si impara a saltare.
+        if (_stato is { AMano: > 0 } m) pezzi.Add(Frase(m.AMano, "TrEd_Wait_ByHandOne", "TrEd_Wait_ByHand"));
 
         if (_attesa is { InCorso: true })
         {
@@ -211,11 +285,42 @@
         return string.Join(" · ", pezzi);
     }
 
+    /// <summary>Il colore dello stato, lo stesso del Registro: una parola sola non deve avere due vestiti.</summary>
+    private static string ColoreStato(StatoTraduzione stato) => stato switch
+    {
+        StatoTraduzione.Completa => "blue",
+        StatoTraduzione.DaRileggere => "amber",
+        StatoTraduzione.AChiazze => "amber",
+        StatoTraduzione.NonCominciata => "amber",
+        _ => "grey",
+    };
+
+    /// <inheritdoc cref="ColoreStato"/>
+    private string Etichetta(StatoTraduzione stato) => stato switch
+    {
+        StatoTraduzione.Bloccata => L["TrDoc_St_Locked"],
+        StatoTraduzione.NienteDaTradurre => L["TrDoc_St_Nothing"],
+        StatoTraduzione.NonCominciata => L["TrDoc_St_NotStarted"],
+        StatoTraduzione.AChiazze => L["TrDoc_St_Patchy"],
+        StatoTraduzione.DaRileggere => L["TrDoc_St_ToReview"],
+        _ => L["TrDoc_St_Complete"],
+    };
+
     /// <summary>Il servizio della LETTURA, su un contesto tutto suo. Vedi il riquadro in cima al file.</summary>
     private IDocumentTranslationReview _lettura = default!;
 
     /// <summary>Anche l'attesa si legge dal contesto isolato: parte dal ciclo di vita, come le righe.</summary>
     private Vipi.Application.Translation.IAttesaTraduzione _attese = default!;
+
+    /// <summary>
+    /// Lo stato del documento, dallo stesso scope isolato e per la stessa ragione: parte dal ciclo di vita,
+    /// e sul contesto del circuito correrebbe contro le query dell'editor che lo ospita.
+    ///
+    /// <para>⚠️ Si RISOLVE e non si inietta, come il roster in <c>ReleasePanel</c>: assente ⇒ niente
+    /// percentuali, non un pannello che non si monta. Questo componente lo montano cinque editor più i
+    /// test.</para>
+    /// </summary>
+    private Vipi.Application.Translation.IStatoTraduzione? _statoDocumenti;
 
     /// <summary>Il documento si legge in una lingua sola: niente da rivedere, e va detto con parole sue.</summary>
     private bool _bloccata;
@@ -227,6 +332,7 @@
     {
         _lettura = ScopedServices.GetRequiredService<IDocumentTranslationReview>();
         _attese = ScopedServices.GetRequiredService<Vipi.Application.Translation.IAttesaTraduzione>();
+        _statoDocumenti = ScopedServices.GetService<Vipi.Application.Translation.IStatoTraduzione>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -257,8 +363,28 @@
         _bloccata = revisione.Bloccata;
         _righe = revisione.Righe;
 
-        // L'attesa si chiede solo se serve dirla: su un documento a posto non c'è niente da aspettare.
-        _attesa = Mancanti > 0 ? await _attese.AttesaAsync() : null;
+        await StatoEAttesaAsync();
+    }
+
+    /// <summary>
+    /// Le due letture che fanno la riga di stato: a che punto è il documento, e quando passa il giro.
+    ///
+    /// <para>🔴 Si chiedono SEMPRE, e prima si chiedevano solo con qualcosa di mancante. Il risparmio era
+    /// vero e la perdita più grossa: senza, il pannello non sa distinguere «tutto tradotto» da «non so
+    /// niente», e a chi legge in italiano — che non ha righe — non resta niente da guardare. Sono due
+    /// letture per documento CARICATO, non per ridisegno: le protegge la stessa guardia delle righe.</para>
+    ///
+    /// <para>⚠️ Un guasto qui non deve abbattere il pannello: lo stato è un di più, la revisione no.</para>
+    /// </summary>
+    private async Task StatoEAttesaAsync()
+    {
+        if (_statoDocumenti is { } servizio)
+        {
+            try { _stato = await servizio.DocumentoAsync(DocumentId); }
+            catch (Exception) { _stato = null; }
+        }
+
+        _attesa = await _attese.AttesaAsync();
     }
 
     private async Task ApriAsync(RigaDaRivedere r)
@@ -296,7 +422,7 @@
                 // Rilettura dal contesto isolato, come dopo un salvataggio: la scrittura è appena finita
                 // altrove e il genitore si sta ridisegnando per lo `StateHasChanged` di questo gestore.
                 _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
-                _attesa = Mancanti > 0 ? await _attese.AttesaAsync() : null;
+                await StatoEAttesaAsync();
             }
         }
         catch (Vipi.Application.Content.EditNotAllowedException)
@@ -372,6 +498,9 @@
             // circuito, e riprendere da lì significherebbe rimetterci sopra una query mentre il genitore si
             // ridisegna per il `StateHasChanged` di questo stesso gestore.
             _righe = (await _lettura.RevisioneAsync(DocumentId, _lettore)).Righe;
+            // Una correzione a mano cambia anche lo STATO — una frase in meno da rileggere — e la riga in
+            // cima lo deve dire subito: è quella che dice se il lavoro è finito.
+            await StatoEAttesaAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex)
         {

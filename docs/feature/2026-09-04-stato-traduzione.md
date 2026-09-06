@@ -260,5 +260,51 @@ zero risposte ≥ 400.
 decisione editoriale. Fino ad allora ogni correzione fatta su una frase condivisa cambia il testo pubblicato
 di ogni documento che la contiene, sotto gli occhi di chi lo sta leggendo.
 
+## 9. La revisione del 6 settembre 2026: il cruscotto si spegneva da solo
+
+Segnalazione del committente: «vedere a che punto è la traduzione nell'editor, quanto manca alla prossima e
+tradurre qualcosa subito — non funziona». La verifica live ha detto che non era rotto **niente**: era tutto
+condizionato a uno stato che sul corpus vero quasi non capita.
+
+🔴 **Tre cancelli, e ognuno spegneva il pannello nel caso NORMALE.**
+
+1. `Attesa()` usciva con «non manca niente» quando i mancanti erano zero: niente percentuali, niente
+   orologio. Cioè **il cruscotto si spegneva appena il lavoro era a posto**, e chi guardava non poteva
+   distinguere «tutto tradotto» da «questo pannello non sa niente». Un indicatore che sparisce quando le
+   cose vanno bene non dice «vanno bene»: sembra guasto — ed è esattamente come è stato letto.
+2. Il tasto «traduci ora» stava dentro `@if (Mancanti > 0)`. Il giro passa ogni quarto d'ora e i mancanti
+   tornano a zero da soli: il tasto **spariva per sempre** dopo il primo giro. E chi corregge una frase a
+   mano e vuole rivederla resa adesso non aveva più niente da premere.
+3. `Mancanti` si contava sulle **righe mostrate**, che esistono solo nella lingua di lettura. Chi redige in
+   italiano non ne ha nessuna: per lui il pannello diceva «passa all'altra lingua» e **finiva lì** — nessuna
+   percentuale, nessuna attesa, nessun tasto. Cioè il cruscotto mancava proprio a chi scrive.
+
+🔴 **E un quarto, fuori dal pannello: l'editor UNITO.** Il blocco stava dentro `@if (Chrome)` in tutti e tre
+gli editor di sezioni, e i membri di un'unione si montano `Chrome="false"`. Sui documenti redatti da lì il
+pannello **non c'era proprio**. Lo stato della traduzione è del DOCUMENTO, non della testata di chi lo
+ospita. ⚠️ Conseguenza obbligata: l'id del `<details>` porta ora il documento (`tr-review-<id>`), perché in
+quella pagina i pannelli sono due o più e un id ripetuto non è un DOM valido — e `data-persist`, che è l'id,
+aprirebbe e chiuderebbe insieme pannelli di documenti diversi.
+
+**Che cosa mostra adesso, sempre e in tutt'e due le lingue**: `bozza tradotta al N% · pubblicato al M%
+(oppure «nessuna release») · X da tradurre (oppure «non manca niente») · [Y vogliono una persona] · il giro
+passa fra ~K min`, più il tasto. Le due percentuali vengono da `IStatoTraduzione.DocumentoAsync` — la stessa
+fonte e lo stesso arrotondamento del Registro, risolta dallo scope PROPRIO del componente come le righe — e
+in testata c'è la pastiglia della percentuale col nome dello stato nel `title`.
+
+⚠️ **Il tasto sempre presente non è una spesa in più**: a zero mancanti `TraduciOraService` risponde
+«niente da fare» **prima** di aprire la rete. Resta nascosto solo a lingua bloccata, dove non tradurrebbe
+mai niente.
+
+### 9.1 La prova, per esteso
+
+Su copia del `vipi.db`, editor aeroporto LIBD **in italiano**: testata «Traduzione 100%», riga «bozza
+tradotta al 100% · pubblicato al 100% · non manca niente · il giro passa fra ~1 min» col tasto — dove prima
+c'era solo la frase «passa all'altra lingua». Togliendo tre voci di memoria: testata «Traduzione 84% ·
+3 da tradurre», riga «bozza tradotta al 84% · pubblicato al 78% · 3 da tradurre»; pressione → «Fatto: 3
+frasi tradotte da azure» e la riga torna a 100% senza ricaricare la pagina. Unione LIMN (vIPI + vSOP MIL
+uniti nel database di prova): **due** pannelli, `tr-review-28` e `tr-review-29`, e il membro senza release
+in vigore dice «nessuna release» invece di «pubblicato al 0%». Zero errori di pagina, zero risposte ≥ 400.
+
 Vedi [[documenti-bilingue]], [[lingua-bloccata]], [[spesa-di-traduzione]],
 [[fraseologia-e-traduzioni-una-pagina]], [[titoli-di-catalogo-bilingui]].
