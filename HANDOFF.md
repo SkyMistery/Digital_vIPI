@@ -1,11 +1,29 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026, sera — 📦 **1.13.0 È PRONTO, NON ANCORA CARICATO**
+**Ultimo aggiornamento:** 6 settembre 2026, sera — ✅ **1.13.0 È IN PRODUZIONE**, caricata dal committente.
 
 `artifacts/publish/vipi-1.13.0-solo-file-cambiati.zip` · sha256 `7a2042d5…` · 4,42 MB · **11 file** ·
 timbro **`1.13.0 · 708257ed`**. **MINOR** — ci sono **sezioni nuove**, che è ciò che una PATCH esclude.
 **NESSUNA migrazione**: si consegna da sola via FTP anche dentro la finestra cieca fino al 16. Foglio:
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.13.0.md`.
+
+> ### 🔴 Questa volta da fuori NON si può provare la versione, e non è una scorciatoia
+>
+> Il sito risponde: **otto controlli su otto** da anonimo (`pacchetto-verifica.js`, **Ricerca** compresa),
+> quindi il caricamento è completo e non è uno di quei mezzi caricamenti che si vedono interi e non
+> rispondono. Ma **la prova che c'è dentro 1.13.0 da fuori non esiste**, e il motivo è la natura della
+> consegna:
+>
+> - `wwwroot` **non è cambiato** → niente impronte da confrontare, che è la prova usata da 1.10.0 in poi;
+> - le sezioni nuove vivono nelle versioni **di lavoro**, e le pagine pubbliche leggono lo **snapshot**
+>   congelato della release: cambieranno solo alla prossima **ripubblicazione**;
+> - e comunque **in produzione non c'è nessun vSOP militare pubblicato** — verificato su tutti e quattro
+>   gli ACC: «Nessun vSOP militare pubblicato». Questa release non tocca **niente** di ciò che vede il
+>   pubblico.
+>
+> **La prova sta dalla parte di chi entra**, e sono due gesti: il timbro `1.13.0 · 708257ed` nella barra
+> in alto, e un **editor** di vSOP militare aperto — se le sezioni nuove ci sono, i tre passi d'avvio
+> hanno girato sul database di produzione.
 
 **L'indice dei vSOP militari è quello chiesto dal SOD.** Confrontato con quello che avevamo, **non mancava
 niente** — quindi non si è tolto nulla per allinearsi. Dodici sezioni nuove, «QRA / Scramble» fuori (era

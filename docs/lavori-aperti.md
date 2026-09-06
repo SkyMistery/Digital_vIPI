@@ -9184,7 +9184,13 @@ annotato col **nome** — che è la sola cosa da cui si può partire — e non i
 
 `artifacts/publish/vipi-1.13.0-solo-file-cambiati.zip` · sha256 **`7a2042d5…`** · 4,42 MB · **11 file** ·
 timbro **`1.13.0 · 708257ed`** · publish `linux-x64-20260906-2130`. Foglio:
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.13.0.md`. 🟡 **Da caricare.**
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.13.0.md`. ✅ **Caricata dal committente il 6 settembre, sera.**
+
+⚠️ **Da fuori si è potuto provare solo che il sito risponde** — otto controlli su otto da anonimo, Ricerca
+compresa. La versione **non** è dimostrabile da fuori questa volta: `wwwroot` non è cambiato (niente
+impronte), le sezioni nuove vivono nelle versioni di lavoro mentre il pubblico legge lo snapshot congelato,
+e **in produzione non c'è nessun vSOP militare pubblicato** (verificato su tutti e quattro gli ACC). La
+prova sta dalla parte di chi entra: il timbro nella barra e un editor militare aperto.
 
 **MINOR, e il numero lo decide il contenuto**: ci sono **sezioni nuove**, che è esattamente ciò che una
 PATCH esclude. **Nessuna migrazione** — tutto è catalogo, viste e passi di manutenzione all'avvio, e la
