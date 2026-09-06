@@ -1,4 +1,6 @@
-﻿namespace Vipi.Application.Content;
+﻿using Vipi.Domain;
+
+namespace Vipi.Application.Content;
 
 /// <summary>
 /// Da chi è prodotto il corpo di una sezione (doc refactor 13 §3a). Ortogonale a <see cref="SectionKind"/>: la
@@ -51,9 +53,23 @@ public enum SectionBodySource
 /// «MRVA», «METAR &amp; TAF» sono sigle, e una sigla non si traduce (decisione del committente,
 /// <c>docs/design/regole-lingua.md</c>). Vale anche per il profilo vLOA, che nasce già in inglese.</para>
 /// </param>
+/// <param name="Audience">
+/// Il pubblico con cui la sezione <b>nasce</b> (6 settembre 2026, indice del SOD).
+///
+/// <para>⚠️ È un <b>default</b>, non una regola: chi scrive lo cambia dall'editor come sempre, e da quel
+/// momento è il documento a decidere. Il catalogo non ripassa mai sopra una scelta fatta a mano — la
+/// struttura la decide alla nascita, e questo campo vive dentro quella stessa frase.</para>
+///
+/// <para>⚠️ <b><c>Pilots</c> NASCONDE alla vista ATC</b>, e si porta dietro i figli
+/// (<see cref="AudienceFilter"/>). Non è «evidenzia al pilota»: è «togli al controllore quando il
+/// controllore chiede la sua vista». Con i default del SOD un controllore che apre <c>?vista=atc</c> non
+/// vede più parcheggi, nominativi e alternati — deciso sapendolo, perché la vista di default è «tutto» e
+/// nel filtro non ci si finisce per caso.</para>
+/// </param>
 public sealed record SectionDescriptor(
     string Key, string Title, int Order, SectionKind Kind, SectionBodySource BodySource,
-    IReadOnlyList<SectionDescriptor>? Children = null, string? TitleEn = null)
+    IReadOnlyList<SectionDescriptor>? Children = null, string? TitleEn = null,
+    SectionAudience Audience = SectionAudience.Both)
 {
     /// <summary>
     /// Il titolo nella lingua in cui si sta leggendo. Sconosciuta o senza traduzione ⇒ quello italiano: un

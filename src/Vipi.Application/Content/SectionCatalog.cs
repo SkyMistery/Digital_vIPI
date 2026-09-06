@@ -1,4 +1,6 @@
-﻿namespace Vipi.Application.Content;
+﻿using Vipi.Domain;
+
+namespace Vipi.Application.Content;
 
 /// <summary>
 /// Catalogo UNIFICATO delle sezioni documentali (doc refactor 08a). Fonte unica per: la natura di ogni sezione
@@ -76,8 +78,30 @@ public static class SectionCatalog
             ["vfrjet"] = SectionKind.Editorial,
             ["ifrsignificant"] = SectionKind.Editorial,
             ["gat"] = SectionKind.Editorial,
-            ["qra"] = SectionKind.Editorial,
             ["lowlevel"] = SectionKind.Editorial,
+
+            // --- l'indice chiesto dal SOD (6 settembre 2026) ------------------------------------------
+            // Editoriali: sono prosa, immagini e tabelle scritte a mano — nessun catalogo nostro sa dire
+            // dove passa il rullaggio su un piazzale o che cosa restringe un circuito.
+            [SectionKeys.AirportLayout] = SectionKind.Editorial,
+            [SectionKeys.ApronFlow] = SectionKind.Editorial,
+            [SectionKeys.ArrivalRestrictions] = SectionKind.Editorial,
+            [SectionKeys.CircuitRestrictions] = SectionKind.Editorial,
+            [SectionKeys.VfrJetPoints] = SectionKind.Editorial,
+            [SectionKeys.DepartureProcedures] = SectionKind.Editorial,
+            [SectionKeys.DepartureProceduresVfr] = SectionKind.Editorial,
+            [SectionKeys.DepartureProceduresIfr] = SectionKind.Editorial,
+            [SectionKeys.ArrivalProcedures] = SectionKind.Editorial,
+            [SectionKeys.ArrivalProceduresVfr] = SectionKind.Editorial,
+            [SectionKeys.ArrivalProceduresIfr] = SectionKind.Editorial,
+            // ⚠️ EDITORIALE benche' la tabella sia palesemente derivata, e non e' una svista: la
+            // derivazione e' quella di «runways» (AirportSectionProjection.Runways), e la release la
+            // congela LI', sotto quella chiave (AirportViewDerivationService: frozen.Get("runways")).
+            // Dichiararla Derived prometterebbe un secondo congelamento che nessuno esegue -- e darebbe
+            // DUE interruttori Live/Frozen sulla stessa tabella, che possono contraddirsi: la stessa
+            // pista fotografata a due cicli diversi, una sopra l'altra. Il corpo lo disegna comunque la
+            // pagina: quello lo dice `SectionBodySource`, non `SectionKind`.
+            [SectionKeys.RunwayThresholds] = SectionKind.Editorial,
 
             // --- Carte aeroportuali (3 settembre 2026), su vIPI d'aeroporto e vSOP militare -----------
             // Editoriali: il contenuto sono immagini e allegati PDF, che i blocchi sanno già portare. Non
@@ -132,18 +156,26 @@ public static class SectionCatalog
     // in inglese da nessuna parte — e una vIPI d'aeroporto letta in inglese torna ad avere le testate in
     // italiano a copertura dichiarata completa. `en: null` vuol dire «uguale nelle due lingue» ed è una
     // risposta legittima solo per le SIGLE (AOR, SID, MRVA); ProfiloBilingueTests non accetta altro.
+    // ⚠️ `aud:` e' il pubblico con cui la sezione NASCE (indice del SOD, 6 settembre 2026), non un permesso:
+    // chi scrive lo cambia dall'editor e da li' in poi decide il documento. Assente = «per tutti».
     private static SectionDescriptor D(string key, string title, int order,
-                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Blocks, children, en);
+                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null,
+                                       SectionAudience aud = SectionAudience.Both) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Blocks, children, en, aud);
 
     private static SectionDescriptor H(string key, string title, int order,
-                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Host, children, en);
+                                       IReadOnlyList<SectionDescriptor>? children = null, string? en = null,
+                                       SectionAudience aud = SectionAudience.Both) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Host, children, en, aud);
 
     /// <summary>Scheda dalla pagina IN TESTA, e sotto i blocchi editoriali della sezione.</summary>
     private static SectionDescriptor HB(string key, string title, int order,
-                                        IReadOnlyList<SectionDescriptor>? children = null, string? en = null) =>
-        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks, children, en);
+                                        IReadOnlyList<SectionDescriptor>? children = null, string? en = null,
+                                        SectionAudience aud = SectionAudience.Both) =>
+        new(key, title, order, KindOf(key), SectionBodySource.HostAndBlocks, children, en, aud);
+
+    /// <summary>Scorciatoia di lettura per le sezioni che il SOD marca «[PILOTS]».</summary>
+    private const SectionAudience Piloti = SectionAudience.Pilots;
 
     // Membership per profilo (key, titolo, ordine). Universali a tutti: aor/frequencies/coordination/regulated/
     // operationaltechnique/validity. ACC/APP in italiano, vLOA in inglese (lettera di accordo bilaterale).
@@ -256,10 +288,11 @@ public static class SectionCatalog
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
-            // VENTISEI sezioni tratte dai quindici SOP reali, che hanno TUTTI lo stesso indice: non e'
-            // contenuto libero, e' un profilo. (Diceva «ventiquattro»: il conto era rimasto indietro di due
-            // quando si sono aggiunte `qra` e `lowlevel`. Il numero vero lo conta
-            // `ProfiloMilitareTests.Le_sezioni_sono_ventisei`, non questo commento.) Titoli in ITALIANO (§1d): la lingua sorgente e' quella in
+            // Le sezioni sono tratte dai quindici SOP reali, che hanno TUTTI lo stesso indice: non e'
+            // contenuto libero, e' un profilo. Dal 6 settembre 2026 l'indice e' quello chiesto dal SOD
+            // (carta 2026-09-06-vsop-sezioni-sod.md): dodici sezioni in piu' e QRA fuori.
+            // ⚠️ Il numero vero lo conta `ProfiloMilitareTests`, non questo commento -- che ha gia'
+            // detto «ventiquattro» quando erano ventisei. Titoli in ITALIANO (§1d): la lingua sorgente e' quella in
             // cui si REDIGE, non quella dei PDF di partenza, e un lettore inglese lo ottiene tradotto.
             //
             // ⚠️ Le code per campo -- LVP di Pratica, SAR alert di Cervia, Combat departure di Gioia, il
@@ -279,15 +312,24 @@ public static class SectionCatalog
                     // campo, che il catalogo settori non ha. Sui campi militari i blocchi pesano PIU' della
                     // scheda -- misurato su LIPI Rivolto.
                     HB("frequencies", "Frequenze ATC/CRC", 2, en: "ATC/CRC frequencies"),
-                    HB("diversion", "Aeroporti alternati", 3, en: "Diversion airfields"),
-                    // Derivata: ident, lunghezza e QFU dall'anagrafica. Blocchi: le coordinate delle
-                    // soglie, che AirportRunway non ha.
-                    HB("runways", "Piste", 4, en: "Runways"),
+                    HB("diversion", "Aeroporti alternati", 3, en: "Diversion airfields", aud: Piloti),
+                    // Derivata: ident, lunghezza e QFU dall'anagrafica. Le coordinate delle SOGLIE
+                    // stavano qui dentro, come seconda tabella; dal 6 settembre 2026 sono una
+                    // sotto-sezione loro (indice del SOD).
+                    // La riga diceva «le coordinate delle soglie, che AirportRunway non ha»: non e' piu'
+                    // vero dal 30 agosto 2026 -- ThresholdLat/Lon/ElevationFt arrivano da IVAO insieme
+                    // alle piste, ed e' per questo che la sotto-sezione e' resa dalla PAGINA e non scritta
+                    // a mano.
+                    HB("runways", "Piste", 4, en: "Runways", children: new[]
+                    {
+                        H(SectionKeys.RunwayThresholds, "Coordinate delle soglie", 1,
+                          en: "Threshold coordinates", aud: Piloti),
+                    }),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
                     H("transition", "Quote di transizione", 5, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 6, en: "Callsigns"),
+                    HB("callsigns", "Nominativi", 6, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -295,40 +337,82 @@ public static class SectionCatalog
                     // ⚠️ Il catalogo decide la struttura solo alla NASCITA: i vSOP già scritti li sposta
                     // `IDocumentMaintenance.ReparentMilParkingsAsync`, perché a mano nessuno potrebbe — il
                     // motore di riordino sposta solo fra FRATELLI, apposta.
-                    HB("parkings", "Parcheggi", 7, en: "Parking"),
+                    HB("parkings", "Parcheggi", 7, en: "Parking", aud: Piloti, children: new[]
+                    {
+                        D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
+                          en: "Aprons taxi flow", aud: Piloti),
+                    }),
+                    // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
+                    // questa e' la descrizione dello scalo che i SOP scrivono a parole.
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 8, en: "Airport layout"),
                 }),
 
                 D("groundprocedures", "Procedure di terra", 3, en: "Ground procedures", children: new[]
                 {
-                    D("enginestart", "Messa in moto", 1, en: "Engine start"),
+                    D("enginestart", "Messa in moto", 1, en: "Engine start", aud: Piloti),
                     D("taxiing", "Rullaggio", 2, en: "Taxiing"),
-                    D("arming", "Armamento/disarmo", 3, en: "Arming/de-arming"),
+                    D("arming", "Armamento/disarmo", 3, en: "Arming/de-arming", aud: Piloti),
                 }),
 
+                // ⚠️ L'ORDINE e' quello del SOD (6 settembre 2026) e non quello dei PDF: le
+                // restrizioni stanno insieme in testa -- decollo, arrivo, circuito -- e dopo vengono i
+                // circuiti particolari e i punti.
+                // ⚠️ Qui c'era «QRA / Scramble», l'unica sezione che avevamo INVENTATO noi: non sta in
+                // nessuno dei quindici PDF e il SOD non la vuole. Dai documenti gia' scritti la toglie
+                // `IDocumentMaintenance.RemoveMilQraSectionsAsync`, che se dentro c'e' del testo la
+                // trasforma in sezione libera invece di buttarla via.
                 D("flightprocedures", "Procedure di volo", 4, en: "Flight procedures", children: new[]
                 {
-                    D("takeoff", "Restrizioni al decollo", 1, en: "Take-off restrictions"),
-                    D("sfo", "Circuito SFO/precauzionale", 2, en: "SFO/precautionary pattern"),
-                    D("commfail", "Avaria comunicazioni", 3, en: "Radio failure"),
-                    D("gca", "Circuito GCA", 4, en: "GCA pattern"),
-                    D("vfrjet", "Porte e circuiti VFR jet", 5, en: "VFR jet gates and patterns"),
-                    D("ifrsignificant", "Punti significativi strumentali", 6, en: "IFR significant points"),
-                    D("gat", "Partenze/arrivi IFR GAT", 7, en: "GAT IFR departures/arrivals"),
-                    // ⚠️ CONTENUTO NUOVO, non trascrizione: una sezione QRA/Scramble non esiste in nessuno
-                    // dei quindici PDF -- QRA compare solo come colonna, e solo sulle quattro basi di
-                    // difesa aerea (Amendola, Gioia, Istrana, Grosseto). Si semina su tutti perche'
-                    // nascondere e' un clic; sugli altri undici campi nasce e si nasconde.
-                    D("qra", "QRA / Scramble", 8),
+                    D("takeoff", "Restrizioni al decollo", 1, en: "Take-off restrictions", aud: Piloti),
+                    D(SectionKeys.ArrivalRestrictions, "Restrizioni all'arrivo", 2,
+                      en: "Arrival restrictions", aud: Piloti),
+                    D(SectionKeys.CircuitRestrictions, "Restrizioni di circuito", 3,
+                      en: "Circuit restrictions"),
+                    D("sfo", "Circuito SFO/precauzionale", 4, en: "SFO/precautionary pattern"),
+                    D("commfail", "Avaria comunicazioni", 5, en: "Radio failure"),
+                    D("gca", "Circuito GCA", 6, en: "GCA pattern"),
+                    // ⚠️ I punti VFR stanno SOTTO le porte VFR jet, i punti IFR restano una sezione a
+                    // se': e' l'asimmetria che il SOD ha chiesto, non una svista da «uniformare».
+                    D("vfrjet", "Porte e circuiti VFR jet", 7, en: "VFR jet gates and patterns", children: new[]
+                    {
+                        D(SectionKeys.VfrJetPoints, "Punti significativi VFR", 1,
+                          en: "VFR significant points", aud: Piloti),
+                    }),
+                    D("ifrsignificant", "Punti significativi strumentali", 8,
+                      en: "IFR significant points", aud: Piloti),
+                    D("gat", "Partenze/arrivi IFR GAT", 9, en: "GAT IFR departures/arrivals"),
                 }),
 
                 // La mappa AoR con le chip per area E' GIA' quello che il PDF disegna a mano, una figura
                 // per volta: qui il riuso porta il motore, non solo la chiave.
                 HB("regulated", "Aree di lavoro", 5, en: "Working areas", children: new[]
                 {
-                    D("operationaltechnique", "Procedure generali", 1, en: "General procedures"),
+                    // ⚠️ «operationaltechnique» e' una chiave UNIVERSALE (sta in ACC, APP, vLOA e
+                    // aeroporto): questi quattro discendenti vivono nel SOLO registro militare, perche'
+                    // `Children` e' per profilo. Lo pretende un test -- gli altri quattro documenti non
+                    // devono vedersi comparire delle procedure di partenza.
+                    // ⚠️ PROFONDITA' 3, cioe' il LIMITE (DocumentSection.MaxDepth):
+                    // «arrivalprocedures:vfr» sta esatto sul bordo. Chi volesse annidare sotto queste non
+                    // puo', e deve saperlo prima di provarci -- alla nascita sarebbe un'eccezione, non un
+                    // documento storto.
+                    D("operationaltechnique", "Procedure generali", 1, en: "General procedures", children: new[]
+                    {
+                        D(SectionKeys.DepartureProcedures, "Procedure di partenza", 1,
+                          en: "Departure procedures", children: new[]
+                        {
+                            D(SectionKeys.DepartureProceduresVfr, "VFR", 1),
+                            D(SectionKeys.DepartureProceduresIfr, "IFR", 2),
+                        }),
+                        D(SectionKeys.ArrivalProcedures, "Procedure di arrivo", 2,
+                          en: "Arrival procedures", children: new[]
+                        {
+                            D(SectionKeys.ArrivalProceduresVfr, "VFR", 1),
+                            D(SectionKeys.ArrivalProceduresIfr, "IFR", 2),
+                        }),
+                    }),
                     // Aree tattiche dove si vola il BOAT: parla di AREE, quindi sta sotto la sezione che le
                     // disegna. Presente in 9 SOP su 15.
-                    D("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)"),
+                    D("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)", aud: Piloti),
                 }),
             }.Concat(CarteAeroportuali(6)).Append(
                 HB("validity", "Validità e revisione", 7, en: "Validity and revision")).ToArray(),

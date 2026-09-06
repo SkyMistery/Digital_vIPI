@@ -460,6 +460,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 // Una sezione «sempre live» non deve nascere Frozen nemmeno quando arriva da qui: il default
                 // della colonna e' Frozen, e il meteo congelato e' meteo scaduto (carta 2026-08-26 §1a).
                 RenderMode = SectionCatalog.IsAlwaysLive(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
+                // Come alla nascita: una sezione che arriva dopo deve nascere col pubblico che il catalogo
+                // le da', o le dodici marcate dal SOD sarebbero marcate solo sui documenti nuovi.
+                Audience = desc.Audience,
             };
             // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
             // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.
