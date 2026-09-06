@@ -8768,3 +8768,66 @@ almeno una sezione che non sia `Both`.
 ⚠️ `sweep.js` segnala 17 «sospetti» con `class="on"` e fondo bianco nel tema scuro: è la **pastiglia della
 lingua** (`.lang-ctrl a.on`), che sta lì da mesi ed è voluta. È il falso positivo noto scritto in testa allo
 script — non la chip, che nel tema scuro ha il suo blu.
+
+### 📦 6 settembre 2026 — il pacchetto 1.11.0 RIFATTO, con §BV dentro
+
+La correzione che teneva a terra il pacchetto era **§BV**, e tocca il codice: quindi il pacchetto **si è
+rifatto dal passo 1**, non ritoccato. `artifacts/publish/vipi-1.11.0-solo-file-cambiati.zip` · sha256
+**`4b690bc4…`** · 4,52 MB · **18 file** · timbro **`1.11.0 · 4b35946`** · publish
+`linux-x64-20260906-1124`.
+
+**Il numero resta 1.11.0**, e non per inerzia: era già **MINOR** per §BS (gesto nuovo) e §BU (segnalazione
+nuova), §BV non porta né pagine né sezioni né migrazioni, e 1.11.0 **non è mai uscito** — non ha ancora
+promesso niente a nessuno. **Nessuna migrazione**: si consegna da solo via FTP anche dentro la finestra cieca.
+
+**La consegna NON è stata ruotata.** `-Azione Ruota` avrebbe spostato in `publish_old` un pacchetto **mai
+andato in produzione**, e il confronto per impronte del giro dopo sarebbe partito da quello sbagliato:
+`solo-18-file-1.11.0` è stato **rifatto sul posto** (cartella svuotata e ricopiata dall'elenco dichiarato, non
+sovrascritta a pezzi). Il paragone resta con **1.10.0 (`99f33f0`)**, che è quel che gira.
+
+**§BV non cambia l'elenco**, ed è stato **verificato** e non dedotto: tocca cinque `.razor` più
+`AudienceChip.razor` (dentro `Vipi.Ui.dll`, già in elenco) e `vipi-theme.css` (già in elenco coi suoi
+`.br`/`.gz`). Nessuna frase nuova: le etichette dei tre tasti la chip le usava già. Confrontando file per
+file il publish nuovo con quello che **gira** (`linux-x64-20260905-1305`), i file di `wwwroot` diversi sono
+esattamente gli stessi **sei** più `Vipi.Host.staticwebassets.endpoints.json`. E il `git diff` da `99f33f0`
+dà gli stessi quattro progetti con codice cambiato — Ui, Application, Infrastructure, Domain — più Host, che
+entra per il **timbro**: negli altri cinque progetti il diff sono solo `.csproj` e `packages.lock.json`.
+
+### ⚠️ Il timbro si scrive con SETTE caratteri, non otto
+
+`Vipi.Host.csproj` lo prende con `git rev-parse --short=7`: quel che si legge nella barra e in
+`avvio-diagnostica.txt` è **`1.11.0 · 4b35946`**. Nei fogli di ieri era scritto a otto (`072cb13e`), e chi
+controlla confronta una stringa con un'altra: se non combaciano si ferma. I fogli di 1.11.0 dicono ora
+**sette**.
+
+### La prova, sul PACCHETTO e non sul sorgente
+
+`dotnet publish -r win-x64`, exe avviato **dalla sua cartella** su :5199, `pacchetto-verifica.js`:
+**dieci controlli su dieci verdi** — `vipi-riconnessione.js` servito e minificato (1 riga per 2400
+caratteri), circuito Blazor avviato, quattro schede ACC in home, **la Ricerca risponde** (è il controllo che
+passa dal server), editor ACC che si apre, pannello traduzioni presente, foglio di stile in vigore, console
+pulita.
+
+E §BV provato **sul pacchetto minificato**, non solo sul sorgente: su tutte e cinque le famiglie la chip è a
+filo destro (x+larghezza = bordo della testata) e alta quanto il blocco accanto; `?vista=pilota` accende
+**Pilot** e `?vista=atc` accende **ATC**; sul militare il ponte al civile sta fra i tasti; a 430px la testata
+è una colonna sola. Zero errori in console.
+
+ℹ️ **Non rifatto**: il controllo «processo ucciso e riavviato → la pagina si ricarica da sola».
+`vipi-riconnessione.js` è **byte per byte quello di 1.10.0** (non è fra i file cambiati) e il pacchetto lo
+serve minificato — verificato. Chi vuole la prova completa la rifaccia; qui sarebbe stata la prova di un file
+che non è cambiato.
+
+### Il foglio per chi carica
+
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.11.0.md`, aggiornato: timbro nuovo, un paragrafo su §BV (compresa la
+frase che serve a chi controlla — i tre tasti **a destra**, alti quanto le due righe, quello scelto **blu
+pieno**: se sono piccoli e in coda al sottotitolo, `wwwroot` è arrivato a metà), e la riga che dice di
+**buttare** lo zip scaricato il 5 settembre. La verifica finale è passata da tre righe a **quattro**: la
+Ricerca **con Invio** è diventata esplicita, perché un sito caricato a metà si vede intero e ha il timbro
+giusto.
+
+⚠️ In `artifacts/publish/` restano **due** cartelle di publish: `linux-x64-20260905-2256` (quella del
+pacchetto mai uscito) e `linux-x64-20260906-1124` (questa). Non è disordine da pulire a mano: alla prossima
+`-Azione Ruota` finiscono tutt'e due in `publish_old`, ed è la fotografia giusta — di pacchetti costruiti
+quel giorno ce n'erano due, e uno non è mai partito. Il pacchetto vale quello nominato nell'elenco.

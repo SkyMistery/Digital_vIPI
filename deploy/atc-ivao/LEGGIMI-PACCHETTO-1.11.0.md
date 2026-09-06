@@ -1,7 +1,11 @@
 # Pacchetto 1.11.0 — solo i file cambiati
 
-> **Timbro:** `1.11.0 · 072cb13e` (5 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.11.0 · 4b35946` (6 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
+>
+> ⚠️ **Se avevate già scaricato uno zip 1.11.0 il 5 settembre, buttatelo**: quello diceva
+> `1.11.0 · 072cb13` e non conteneva la correzione della testata (qui sotto). Vale questo, con questo
+> timbro.
 
 > **Sostituisce 1.10.0.** **18 file.**
 >
@@ -100,6 +104,33 @@ rimette il centro nuovo, se lo vuole.
 
 ---
 
+## ✨ LA TESTATA DEI DOCUMENTI: i tre tasti a destra, e si vede quale è scelto
+
+Sopra ogni documento ci sono tre tasti che scelgono **che cosa leggere**: `Everything`, `Pilot`, `ATC`.
+
+**Erano tutti e tre uguali.** Il tasto scelto veniva marcato nel codice della pagina, ma nel foglio di stile
+non c'era **nessuna regola** che gli desse un aspetto diverso: aprendo il filtro «piloti», il documento si
+filtrava davvero, ma niente diceva **quale dei tre** fosse attivo. Adesso il tasto scelto è **blu pieno con
+la scritta bianca**, in tema chiaro e in tema scuro.
+
+E la fila dei tre è stata spostata: sta **a destra** della testata, sotto i tasti «Stampa» ed «Editor», ed è
+**alta quanto le due righe** che le stanno accanto — il sottotitolo e l'avviso rosso. Prima era appesa in
+coda al sottotitolo, piccola, in mezzo al testo. Su telefono la testata torna a una colonna sola e i tre
+tasti vanno a capo interi.
+
+⚠️ **Cambia in tutti e cinque i tipi di documento**: vIPI di centro, vIPI d'aeroporto, vIPI di APP, vLOA e
+vSOP militare. Non cambia **niente** di ciò che i documenti dicono: è solo il comando che si vede meglio.
+
+⚠️ **Sulla carta stampata non cambia nulla**: quei tasti sul foglio non ci sono mai stati (sono un comando,
+non contenuto) e la pastiglia «pilota»/«ATC» accanto ai titoli di sezione continua a stamparsi come prima.
+
+### E sul vSOP militare: il collegamento alla vIPI civile si è spostato
+
+Era una riga di testo **sotto** l'avviso rosso, e si leggeva come una nota. Ora è un **tasto**, in cima a
+destra, **a sinistra di «Stampa»**. Compare come prima **solo** dove la vIPI civile esiste davvero.
+
+---
+
 ## I 18 file
 
 | Dove | File |
@@ -113,9 +144,14 @@ Le impronte `sha256` di tutti e 18 sono in `IMPRONTE.txt`, dentro la cartella de
 
 ---
 
-## Dopo il caricamento, la verifica in tre righe
+## Dopo il caricamento, la verifica in quattro righe
 
-1. La barra in alto (da amministratore) dice **`1.11.0 · 072cb13e`**.
+1. La barra in alto (da amministratore) dice **`1.11.0 · 4b35946`**.
 2. `diagnostica/avvio-diagnostica.txt` dice la stessa versione.
-3. Una pagina qualsiasi con grafica e un editor che risponde: se `wwwroot` è arrivato a metà, il sito esce
-   senza stile e l'editor non reagisce.
+3. 🔴 **La Ricerca risponde** — `/services/vsop/search`, si scrivono due lettere e si preme **Invio**: la
+   pagina deve tornare con i risultati. È il controllo che conta, perché passa dal **server**: un sito
+   caricato a metà si vede intero, ha il timbro giusto e non risponde a niente. Il selettore della lingua,
+   il tema e lo zoom **non** servono a provarlo: funzionano anche a sito morto.
+4. Aprite un documento qualsiasi: i tre tasti `Everything / Pilot / ATC` devono stare **a destra**, alti
+   quanto le due righe accanto, e quello scelto **blu pieno**. Se sono piccoli e in coda al sottotitolo,
+   `wwwroot` è arrivato a metà — il foglio di stile nuovo non c'è.
