@@ -1,6 +1,9 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026, sera — ✅ **1.13.0 È IN PRODUZIONE**, caricata dal committente.
+**Ultimo aggiornamento:** 6 settembre 2026, sera — ✅ **1.13.0 È IN PRODUZIONE E VERIFICATA**, caricata
+dal committente, che ha confermato **da dentro** le due cose che da fuori non si vedono: il timbro dice
+`1.13.0`, e i vSOP militari hanno la struttura decisa — cioè i tre passi d'avvio hanno girato sul
+database di produzione.
 
 `artifacts/publish/vipi-1.13.0-solo-file-cambiati.zip` · sha256 `7a2042d5…` · 4,42 MB · **11 file** ·
 timbro **`1.13.0 · 708257ed`**. **MINOR** — ci sono **sezioni nuove**, che è ciò che una PATCH esclude.
@@ -21,7 +24,7 @@ timbro **`1.13.0 · 708257ed`**. **MINOR** — ci sono **sezioni nuove**, che è
 >   gli ACC: «Nessun vSOP militare pubblicato». Questa release non tocca **niente** di ciò che vede il
 >   pubblico.
 >
-> **La prova sta dalla parte di chi entra**, e sono due gesti: il timbro `1.13.0 · 708257ed` nella barra
+> ✅ **Fatto il 6 settembre, sera**: il committente ha guardato il timbro `1.13.0` nella barra
 > in alto, e un **editor** di vSOP militare aperto — se le sezioni nuove ci sono, i tre passi d'avvio
 > hanno girato sul database di produzione.
 

@@ -9190,7 +9190,9 @@ timbro **`1.13.0 · 708257ed`** · publish `linux-x64-20260906-2130`. Foglio:
 compresa. La versione **non** è dimostrabile da fuori questa volta: `wwwroot` non è cambiato (niente
 impronte), le sezioni nuove vivono nelle versioni di lavoro mentre il pubblico legge lo snapshot congelato,
 e **in produzione non c'è nessun vSOP militare pubblicato** (verificato su tutti e quattro gli ACC). La
-prova sta dalla parte di chi entra: il timbro nella barra e un editor militare aperto.
+prova sta dalla parte di chi entra, ed è stata fatta: ✅ il committente ha confermato il **timbro
+`1.13.0`** e che i **vSOP militari hanno la struttura decisa** — cioè i tre passi d'avvio hanno girato
+sul database di produzione.
 
 **MINOR, e il numero lo decide il contenuto**: ci sono **sezioni nuove**, che è esattamente ciò che una
 PATCH esclude. **Nessuna migrazione** — tutto è catalogo, viste e passi di manutenzione all'avvio, e la
