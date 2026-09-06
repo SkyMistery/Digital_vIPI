@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Ui.Components;
 
@@ -47,6 +47,16 @@ public sealed record TocVoce(string Titolo, string Ancora, IReadOnlyList<TocVoce
                 Da((figlieDi?.Invoke(s) ?? s).Children, bozza, ancoraDi, figlieDi)))
             .ToList();
 }
+
+/// <summary>
+/// Una voce pronta da disegnare: la voce, a che livello sta e con che classe di rientro. È quel che riceve
+/// il modello <c>Link</c> di <c>DocumentToc</c>.
+///
+/// <para>⚠️ Il livello e la classe li calcola il sommario, non il chiamante: sono la parte che deve
+/// restare <b>uguale</b> fra documenti ed editor, ed è esattamente quella che divergeva quando le
+/// implementazioni erano tre.</para>
+/// </summary>
+public sealed record TocLink(TocVoce Voce, int Livello, string? Classe);
 
 /// <summary>
 /// Un gruppo di voci con un'intestazione facoltativa. Un documento normale è <b>un</b> gruppo senza titolo;

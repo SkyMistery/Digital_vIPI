@@ -1139,11 +1139,13 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc a.active{background:var(--tint-atmos);color:var(--brand-ink);font-weight:600;border-left-color:var(--ivao-blue)}
 /* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`class="lvl@(it.Level)"` in `EditorToc.razor`).
    Una passata «classi mai citate» la dà per morta: non lo è. */
-/* Rientri del sommario. ⚠️ `.lvl2` la scrive `EditorToc` (`class="lvl@(it.Level)"`, nome composto:
-   una passata sul testo non lo vede). Il sommario dei documenti usa `.lvl3` per le sotto-sezioni e
-   `.lvl4` per il terzo livello, che il modello ammette (`DocumentSection.MaxDepth = 3`) e che senza una
-   regola propria si leggerebbe alla stessa altezza del secondo. */
-.toc .lvl2{padding-left:14px}.toc .lvl3{padding-left:26px;font-size:12.5px}
+/* Rientri del sommario: `.lvl3` per le sotto-sezioni, `.lvl4` per il terzo livello, che il modello
+   ammette (`DocumentSection.MaxDepth = 3`) e che senza una regola propria si leggerebbe alla stessa altezza
+   del secondo.
+   ⚠️ `.lvl2` è sparita col rientro delle voci d'editor: la scriveva `EditorToc` come nome COMPOSTO
+   (`class="lvl@(it.Level)"`), che nessuna passata sul testo trova — e dal 6 settembre 2026 quel rientro lo
+   decide il sommario condiviso, uguale per documenti ed editor. */
+.toc .lvl3{padding-left:26px;font-size:12.5px}
 .toc .lvl4{padding-left:38px;font-size:12.5px}
 /* Sotto-elenco dell'indice di un documento (DocumentToc): il chevron apre, il titolo porta alla sezione.
    ⚠️ Che il clic sul titolo NON chiuda l'elenco non e' merito di questo CSS: e' `wireAnchors` in vipi-ui.js,

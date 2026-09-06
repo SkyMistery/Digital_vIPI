@@ -1,14 +1,18 @@
-@* Il SOMMARIO di un documento: uno solo, per tutte e cinque le famiglie.
+@* Il SOMMARIO: uno solo, per i cinque documenti E per gli editor.
 
-   Fino al 6 settembre 2026 erano due implementazioni. Questa serviva quattro famiglie (aeroporto, APP,
-   vLOA, vSOP militare); la vIPI ACC ne aveva una **tutta sua**, scritta nella pagina, perché le sue sezioni
-   stanno dentro dei BLOCCHI e non in un albero di `SectionView`. Le due divergevano in tutto quel che
-   conta — nome della testata, sotto-sezioni, comportamento — e la prova era misurabile: sulla ACC la
-   sotto-sezione «Nuova sezione» non compariva in nessun indice.
+   Fino al 6 settembre 2026 erano TRE implementazioni. Questa serviva quattro famiglie (aeroporto, APP,
+   vLOA, vSOP militare); la vIPI ACC ne aveva una tutta sua, scritta nella pagina, perché le sue sezioni
+   stanno dentro dei BLOCCHI; e gli editor ne avevano una terza (`EditorToc`), a elenco piatto. Le tre
+   divergevano in tutto quel che conta — nome della testata, sotto-sezioni, comportamento — e la prova era
+   misurabile: sulla ACC la sotto-sezione «Nuova sezione» non compariva in nessun indice.
 
-   ⚠️ Ora il sommario non conosce `SectionView`: prende `TocGruppo`/`TocVoce`, cioè titolo + ancora +
-   figlie, e ogni famiglia mappa il proprio modello. È l'unica forma in cui la ACC ci sta dentro senza
-   torcere né lei né gli altri quattro.
+   ⚠️ Il sommario non conosce `SectionView` né le voci degli editor: prende `TocGruppo`/`TocVoce`, cioè
+   titolo + ancora + figlie, e ogni famiglia mappa il proprio modello. È l'unica forma in cui ci stanno
+   dentro tutti senza torcere nessuno.
+
+   ⚠️ Quel che cambia da un chiamante all'altro è COME SI DISEGNA UN LINK, non la struttura: gli editor
+   ci appendono il trascinamento e il pallino delle modifiche non salvate. Per questo c'è `Link`, e non una
+   seconda copia di <aside>/<ul>/<details>.
 
    ⚠️ I GRUPPI stanno dentro lo STESSO <aside>. Non è estetica: `position:sticky` si appende al genitore, e
    impilare un indice per membro (com'era `UnionToc`) obbligava ad avvolgerli in un <div> alto quanto loro —
@@ -26,29 +30,56 @@
    *default* del clic su un summary. Vale già, senza una riga in più, ma è un appoggio da sapere. *@
 @inject StringheDelSito Sito
 
-<aside class="toc" aria-label="@Sito["Doc_TocAria"]">
-    <p class="toc-h">@Sito["Common_Contents"]</p>
-    @foreach (var g in Gruppi)
-    {
-        @if (g.Titolo is { Length: > 0 })
+@if (Gruppi.Any(g => g.Voci.Count > 0))
+{
+    <aside class="toc @ExtraClass" aria-label="@Sito["Doc_TocAria"]" @attributes="Extra">
+        <p class="toc-h">@Sito["Common_Contents"]</p>
+        @Sotto
+        @foreach (var g in Gruppi)
         {
-            <p class="toc-grp">@g.Titolo</p>
-        }
-        <ul>
-            @foreach (var v in g.Voci)
+            @if (g.Titolo is { Length: > 0 })
             {
-                @Voce(v, 0)
+                <p class="toc-grp">@g.Titolo</p>
             }
-        </ul>
-    }
-</aside>
+            <ul>
+                @foreach (var v in g.Voci)
+                {
+                    @Voce(v, 0)
+                }
+            </ul>
+        }
+        @if (Footer is not null)
+        {
+            <div class="toc-foot">@Footer</div>
+        }
+    </aside>
+}
 
 @code {
     /// <summary>
     /// I gruppi da mostrare. Un documento normale ne ha <b>uno</b>, senza titolo
     /// (<see cref="TocGruppo.Uno"/>); la vIPI ACC uno per blocco; una pagina unita uno per documento.
+    /// <para>⚠️ Nessuna voce = <b>niente</b>, nemmeno il riquadro: un editor che non ha sezioni non deve
+    /// lasciare una colonna vuota accanto al corpo.</para>
     /// </summary>
     [Parameter, EditorRequired] public IReadOnlyList<TocGruppo> Gruppi { get; set; } = Array.Empty<TocGruppo>();
+
+    /// <summary>Come si disegna il link di una voce. Null = un <c>&lt;a&gt;</c> al suo ancoraggio, che è
+    /// quel che vogliono i documenti. Gli editor lo rimpiazzano per appenderci il trascinamento e il
+    /// pallino delle modifiche non salvate.</summary>
+    [Parameter] public RenderFragment<TocLink>? Link { get; set; }
+
+    /// <summary>Classi extra sull'<c>&lt;aside&gt;</c> (l'editor ci mette <c>toc-drag</c>).</summary>
+    [Parameter] public string? ExtraClass { get; set; }
+
+    /// <summary>Contenuto subito sotto la testata: la riga che spiega il trascinamento, negli editor.</summary>
+    [Parameter] public RenderFragment? Sotto { get; set; }
+
+    /// <summary>Contenuto in fondo: i tasti «espandi/comprimi tutto» degli editor.</summary>
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    /// <summary>Attributi extra sull'<c>&lt;aside&gt;</c> (es. <c>data-tour</c>).</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? Extra { get; set; }
 
     /// <summary>
     /// Una voce e, sotto, le sue figlie. Ricorsiva: le sezioni arrivano a tre livelli
@@ -56,15 +87,16 @@
     /// </summary>
     private RenderFragment Voce(TocVoce v, int livello) => __builder =>
     {
+        var link = new TocLink(v, livello, Rientro(livello));
         <li>
             @if (v.Figlie.Count == 0)
             {
-                <a class="@Rientro(livello)" href="#@v.Ancora">@v.Titolo</a>
+                @Disegna(link)
             }
             else
             {
                 <details class="toc-sub">
-                    <summary><a class="@Rientro(livello)" href="#@v.Ancora">@v.Titolo</a></summary>
+                    <summary>@Disegna(link)</summary>
                     <ul>
                         @foreach (var f in v.Figlie)
                         {
@@ -75,6 +107,10 @@
             }
         </li>
     };
+
+    private RenderFragment Disegna(TocLink l) => Link is not null
+        ? Link(l)
+        : @<a class="@l.Classe" href="#@l.Voce.Ancora">@l.Voce.Titolo</a>;
 
     /// <summary>Il rientro per livello. Il primo non ne ha: sotto l'intestazione di un gruppo una voce di
     /// primo livello è già al suo posto, e rientrarla la farebbe sembrare figlia di qualcosa.</summary>

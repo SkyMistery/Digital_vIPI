@@ -278,13 +278,35 @@ else
                 // Il gruppo di riordino è il BLOCCO: una sezione si sposta fra le sorelle del suo blocco, mai
                 // in un altro (sarebbe una riparentazione, e MoveSectionBeforeAsync non la fa).
                 foreach (var c in bs.Children)
+                {
                     items.Add(new EditorTocItem($"s-{c.Id}", c.Title, GroupLabel: group,
                                                 SectionId: c.Id, DragGroup: $"blk-{bs.Id}"));
+                    Nipoti(items, c, group);
+                }
             }
         }
         // Il blocco Release è reso fuori dall'editor di sezioni: la sua voce si accoda a mano, come in APP/vLOA.
         items.Add(new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]));
         return items;
+    }
+
+    // Le SOTTO-sezioni di una sezione di blocco. Fino al 6 settembre 2026 il menu si fermava alle figlie
+    // dirette del blocco, e una nipote non era raggiungibile da nessuna voce -- lo stesso buco che aveva il
+    // sommario del documento pubblicato.
+    //
+    // ⚠️ NON trascinabili, e si vede da `DragGroup` lasciato NULLO: il riordino di questo editor lavora
+    // fra le sorelle di un blocco, e aprirlo alle nipoti vorrebbe dire una riparentazione, che qui il motore
+    // non fa. Si naviga, non si sposta -- la richiesta era sul sommario, non sul trascinamento.
+    // ⚠️ Il `SectionId` invece ce l'hanno, e serve: è la chiave con cui una figlia si appende a sua madre
+    // nel sommario. Senza, una nipote di terzo livello si ritroverebbe in cima al gruppo.
+    private static void Nipoti(List<EditorTocItem> items, EditableSection padre, string group)
+    {
+        foreach (var n in padre.Children)
+        {
+            items.Add(new EditorTocItem($"s-{n.Id}", n.Title, GroupLabel: group,
+                                        SectionId: n.Id, ParentSectionId: padre.Id));
+            Nipoti(items, n, group);
+        }
     }
 
     // Trascinamento nel menu-sezioni: il TOC ha già tradotto il gesto in «prima di questa» restando dentro il

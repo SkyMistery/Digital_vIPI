@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Ui.Components;
 using Xunit;
 
@@ -58,15 +58,25 @@ public class EditorTocProjectionTests
         Assert.Equal(new[] { "s-1", "s-2", "s-3", "s-4", "s-5" }, voci.Select(v => v.AnchorId));
     }
 
-    /// <summary>Le figlie rientrano; le radici restano al livello di prima — nessun documento cambia aspetto
-    /// per il fatto che ora si scende.</summary>
+    /// <summary>
+    /// Una figlia finisce <b>dentro</b> sua madre.
+    ///
+    /// <para>⚠️ Fino al 6 settembre 2026 il rientro era un NUMERO scritto sulla voce (<c>Level</c>) e
+    /// l'elenco restava piatto. Ora l'elenco si trasforma in gruppi annidati, e il rientro lo decide il
+    /// sommario condiviso — lo stesso dei cinque documenti. La gerarchia si ricostruisce da
+    /// <c>ParentSectionId</c>, non dal rientro: il rientro è una conseguenza, ricavarne l'albero sarebbe
+    /// indovinarlo.</para>
+    /// </summary>
     [Fact]
-    public void Le_figlie_rientrano_e_le_radici_restano_dov_erano()
+    public void Una_figlia_finisce_dentro_sua_madre()
     {
-        var voci = Voci(Sez(1, "Dati generali", 0, Sez(2, "Radioassistenze", 1)));
+        var gruppi = EditorTocProjection.Gruppi(Voci(Sez(1, "Dati generali", 0, Sez(2, "Radioassistenze", 1))));
 
-        Assert.Equal(2, voci[0].Level);
-        Assert.Equal(3, voci[1].Level);
+        var gruppo = Assert.Single(gruppi);
+        Assert.Null(gruppo.Titolo);
+        var madre = Assert.Single(gruppo.Voci);
+        Assert.Equal("Dati generali", madre.Titolo);
+        Assert.Equal("Radioassistenze", Assert.Single(madre.Figlie).Titolo);
     }
 
     /// <summary>
@@ -128,14 +138,17 @@ public class EditorTocProjectionTests
         Assert.True(voci[1].Dirty);
     }
 
-    /// <summary>Il modello consente tre livelli, l'indice ne disegna due: più giù non si rientra oltre, o in
-    /// una colonna da 200px il titolo finirebbe fuori.</summary>
+    /// <summary>I tre livelli che il modello consente (<c>DocumentSection.MaxDepth</c>) si annidano tutti:
+    /// una nipote sta dentro sua madre, non accanto a lei.</summary>
     [Fact]
-    public void Sotto_il_terzo_livello_il_rientro_non_cresce_piu()
+    public void I_tre_livelli_si_annidano_tutti()
     {
-        var voci = Voci(Sez(1, "A", 0, Sez(2, "B", 1, Sez(3, "C", 2))));
+        var gruppi = EditorTocProjection.Gruppi(Voci(Sez(1, "A", 0, Sez(2, "B", 1, Sez(3, "C", 2)))));
 
-        Assert.Equal(new[] { 2, 3, 3 }, voci.Select(v => v.Level));
+        var a = Assert.Single(Assert.Single(gruppi).Voci);
+        var b = Assert.Single(a.Figlie);
+        Assert.Equal("B", b.Titolo);
+        Assert.Equal("C", Assert.Single(b.Figlie).Titolo);
     }
 
     /// <summary>Un documento senza annidamenti — le altre quattro famiglie — resta identico a prima.</summary>
@@ -145,8 +158,32 @@ public class EditorTocProjectionTests
         var voci = Voci(Sez(1, "Separazioni"), Sez(2, "AOR"));
 
         Assert.Equal(2, voci.Count);
-        Assert.All(voci, v => Assert.Equal(2, v.Level));
         Assert.All(voci, v => Assert.NotNull(v.SectionId));
+        // Nessun annidamento: due voci di primo livello, come prima.
+        Assert.All(Assert.Single(EditorTocProjection.Gruppi(voci)).Voci, v => Assert.Empty(v.Figlie));
+    }
+
+    /// <summary>
+    /// I gruppi si chiudono per etichetta <b>consecutiva</b>, e una voce <b>senza</b> etichetta ne apre uno
+    /// suo, senza intestazione.
+    ///
+    /// <para>⚠️ Prima finiva sotto l'ultima intestazione emessa, cioè sotto un titolo che non era il suo:
+    /// nella vIPI ACC è il caso del pannello Release, in coda a tutti, che si leggeva come se appartenesse
+    /// all'ultimo blocco.</para>
+    /// </summary>
+    [Fact]
+    public void I_gruppi_si_chiudono_per_etichetta_e_una_voce_senza_ne_apre_uno_suo()
+    {
+        var gruppi = EditorTocProjection.Gruppi(new[]
+        {
+            new EditorTocItem("s-1", "Frequenze", GroupLabel: "Aerovia", SectionId: 1, DragGroup: "blk-1"),
+            new EditorTocItem("s-2", "AOR", GroupLabel: "Aerovia", SectionId: 2, DragGroup: "blk-1"),
+            new EditorTocItem("s-3", "Separazioni", GroupLabel: "Brindisi CS0", SectionId: 3, DragGroup: "blk-2"),
+            new EditorTocItem("p-release", "Rilascio"),
+        });
+
+        Assert.Equal(new string?[] { "Aerovia", "Brindisi CS0", null }, gruppi.Select(g => g.Titolo));
+        Assert.Equal(new[] { 2, 1, 1 }, gruppi.Select(g => g.Voci.Count));
     }
 
     /// <summary>

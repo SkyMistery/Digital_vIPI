@@ -1,4 +1,4 @@
-// Verifica live della carta 2026-09-04 (sezioni mobili), sul vSOP militare di LIBG.
+﻿// Verifica live della carta 2026-09-04 (sezioni mobili), sul vSOP militare di LIBG.
 //   A. il menu «Sposta in…» porta una sezione libera dentro un'altra sezione, e persiste al ricarico
 //   B. una FIGLIA si trascina nel menu-sezioni e, lasciata su un altro gruppo, cambia padre (drag VERO via CDP)
 //   C. la stessa figlia, marcata «sopra il corpo» sotto una sezione resa dalla PAGINA (Frequenze ATC/CRC),
@@ -27,9 +27,18 @@ async function inModifica(page) {
   return ok;
 }
 
-// L'indice come lo si legge: etichetta + livello (lvl2 = radice, lvl3 = figlia).
+// ⚠️ Dal 6 settembre 2026 le voci con figlie nel sommario nascono CHIUSE, e il testo di un <details>
+// chiuso non si legge: `innerText` torna STRINGA VUOTA. Chi cerca una voce per nome non la trova, e sembra
+// che il prodotto abbia perso il trascinamento -- e' successo. Si aprono prima, come farebbe chi legge.
+// (E' la stessa trappola gia' scritta in SKILL.md a proposito delle sezioni collassate.)
+async function apriIlSommario(page) {
+  await page.evaluate(() => document.querySelectorAll('.toc details.toc-sub').forEach((d) => (d.open = true)));
+  await sleep(300);
+}
+
+// L'indice come lo si legge: etichetta + classe di rientro (nessuna = primo livello, lvl3 = figlia).
 const indice = (page) => page.evaluate(() =>
-  [...document.querySelectorAll('.toc a')].map((a) => a.className.trim() + ' | ' + a.innerText.trim()));
+  [...document.querySelectorAll('.toc a')].map((a) => a.className.trim() + ' | ' + a.textContent.trim()));
 
 async function aggiungiSezione(page) {
   await page.evaluate(() => {
@@ -63,14 +72,19 @@ async function spostaIn(page, titolo, destinazione) {
       return t.trim() === titolo;
     });
     if (!testa) return { ok: false, perche: 'sezione non trovata' };
-    const menu = [...testa.querySelectorAll('details.blk-add')]
-      .find((d) => /Sposta in|Move to/i.test(d.querySelector('summary')?.innerText ?? ''));
-    if (!menu) return { ok: false, perche: 'menu «Sposta in…» assente' };
-    menu.open = true;
-    const voci = [...menu.querySelectorAll('.blk-add-menu button')].map((b) => b.innerText.trim());
-    const b = [...menu.querySelectorAll('.blk-add-menu button')].find((x) => x.innerText.trim() === destinazione);
-    if (!b) return { ok: false, perche: 'destinazione assente', voci };
-    b.click();
+    // ⚠️ È una TENDINA (`select.dse-move`), non più un menu `details.blk-add`: è cambiato il 4 settembre
+    // 2026 perché il menu disegnato da noi usciva dalla card. Il banco ha continuato a cercare la forma
+    // vecchia e diceva «menu assente» da allora — due passi su tre rossi senza che nulla fosse rotto.
+    const menu = testa.querySelector('select.dse-move');
+    if (!menu) return { ok: false, perche: 'tendina «Sposta in…» assente' };
+    // ⚠️ Le destinazioni portano un prefisso di ALBERO («└ ») che dice l'annidamento: si confronta il
+    // nome, non la decorazione.
+    const nudo = (t) => t.replace(/^[\s└├│─↳]+/, '').trim();
+    const voci = [...menu.options].map((o) => o.text.trim());
+    const o = [...menu.options].find((x) => nudo(x.text) === destinazione);
+    if (!o) return { ok: false, perche: 'destinazione assente', voci };
+    menu.value = o.value;
+    menu.dispatchEvent(new Event('change', { bubbles: true }));
     return { ok: true, voci };
   }, titolo, destinazione);
   await sleep(4500);
@@ -97,6 +111,7 @@ async function sopraIlCorpo(page, titolo) {
 
 // Trascinamento VERO: il browser avvia il drag, noi consegniamo enter/over/drop.
 async function trascina(page, etichettaDa, etichettaSu) {
+  await apriIlSommario(page);
   const box = await page.evaluate((a, b) => {
     const n = [...document.querySelectorAll('.toc a[draggable="true"]')];
     const s = n.find((x) => x.innerText.trim() === a);
@@ -145,8 +160,11 @@ async function trascina(page, etichettaDa, etichettaSu) {
     console.log('rinomina :', await rinomina(page, 'Nuova sezione', NOME) ? 'ok' : 'NON riuscita');
   } else console.log('sezione di prova: gia presente, riuso');
 
-  const a1 = await spostaIn(page, NOME, 'General data');
-  console.log('A. sposta in «General data»:', JSON.stringify(a1).slice(0, 300));
+  // ⚠️ NON «General data»: la sezione di prova nasce dentro di lei, e il PROPRIO PADRE non compare fra
+  // le destinazioni — giustamente. Il banco lo chiedeva lo stesso e restava rosso da sempre, dicendo
+  // «destinazione assente»: un rosso che non parlava di un difetto del prodotto.
+  const a1 = await spostaIn(page, NOME, 'Ground procedures');
+  console.log('A. sposta in «Ground procedures»:', JSON.stringify(a1).slice(0, 300));
   const dopoA = await indice(page);
   console.log('   indice   :', dopoA.filter((x) => x.includes(NOME)).join(' / ') || '(non in indice)');
 
@@ -171,10 +189,14 @@ async function trascina(page, etichettaDa, etichettaSu) {
 
   await apri(page, BOZZA, '.doc-layout, .wrap');
   const ordine = await page.evaluate((nome) => {
-    const testo = document.body.innerText;
+    // ⚠️ Il CORPO, non la pagina intera: nella pagina c'è anche il sommario, e il nome della sezione
+    // ci compare PRIMA di qualunque cosa del documento. Finché le voci nascevano aperte questo controllo
+    // passava misurando il sommario invece del corpo — verde per la ragione sbagliata.
+    const corpo = document.querySelector('.doc-layout > div:last-child') ?? document.body;
+    const testo = corpo.innerText;
     const iSez = testo.indexOf(nome);
     // La scheda delle frequenze è una tabella: la prima intestazione di colonna che la pagina disegna.
-    const tab = [...document.querySelectorAll('table')].find((t) => /MHz|Frequen/i.test(t.innerText));
+    const tab = [...corpo.querySelectorAll('table')].find((t) => /MHz|Frequen/i.test(t.innerText));
     const iTab = tab ? testo.indexOf(tab.innerText.trim().split('\\n')[0]) : -1;
     return { iSez, iTab, tabella: !!tab };
   }, NOME);

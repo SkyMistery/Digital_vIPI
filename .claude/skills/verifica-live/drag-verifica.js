@@ -1,4 +1,4 @@
-// Verifica live del riordino trascinando, con il drag del BROWSER (CDP Input.setInterceptDrags) e
+﻿// Verifica live del riordino trascinando, con il drag del BROWSER (CDP Input.setInterceptDrags) e
 // NESSUN preventDefault iniettato: se il drop arriva, arriva perché lo consente wireTocDrop.
 // Copre le tre famiglie + il rifiuto fra gruppi + la persistenza al ricarico.
 const puppeteer = require('puppeteer-core');
@@ -29,17 +29,25 @@ async function inModifica(page) {
   return ok;
 }
 
-const voci = (page) => page.evaluate(() => [...document.querySelectorAll('.toc a')].map((x) => x.innerText.trim()));
+const voci = (page) => page.evaluate(() => [...document.querySelectorAll('.toc a')].map((x) => x.textContent.trim()));
 
 // Un trascinamento vero: il browser avvia il drag, noi consegniamo enter/over/drop alle coordinate.
+// ⚠️ Le voci con figlie nascono CHIUSE (6 settembre 2026), e di un <details> chiuso `innerText` torna
+// vuoto: si aprono prima, o il banco non trova le voci e sembra che il prodotto sia rotto.
+async function apriIlSommario(page) {
+  await page.evaluate(() => document.querySelectorAll('.toc details.toc-sub').forEach((d) => (d.open = true)));
+  await new Promise((r) => setTimeout(r, 300));
+}
+
 async function trascina(page, iDa, iSu) {
+  await apriIlSommario(page);
   const box = await page.evaluate((a, b) => {
     const n = [...document.querySelectorAll('.toc a[draggable="true"]')];
     if (n.length <= Math.max(a, b)) return null;
     n[a].scrollIntoView({ block: 'center' });
     const s = n[a].getBoundingClientRect(), d = n[b].getBoundingClientRect();
     return { sx: s.x + s.width / 2, sy: s.y + s.height / 2, dx: d.x + d.width / 2, dy: d.y + d.height / 2,
-             st: n[a].innerText.trim(), dt: n[b].innerText.trim() };
+             st: n[a].textContent.trim(), dt: n[b].textContent.trim() };
   }, iDa, iSu);
   if (!box) return { ok: false, perche: 'meno voci trascinabili del previsto' };
 
@@ -103,11 +111,10 @@ async function main() {
   await apri(page, CASI[0].path);
   await inModifica(page);
   const gruppi = await page.evaluate(() => {
-    // le voci sono raggruppate: prendo la prima del primo gruppo e la prima del secondo
-    const li = [...document.querySelectorAll('.toc li')];
-    const idx = []; let visto = 0;
-    li.forEach((l, i) => { if (l.classList.contains('toc-grp-li')) { visto++; idx.push(i); } });
-    return visto;
+    // Quante INTESTAZIONI di gruppo ci sono. ⚠️ Erano <li class="toc-grp-li"> dentro l'elenco; dal
+    // 6 settembre 2026 il sommario e' uno solo per documenti ed editor, e le intestazioni sono
+    // <p class="toc-grp"> FUORI dall'<ul>. Contare la classe vecchia dava 0 e sembrava un guasto.
+    return document.querySelectorAll('.toc .toc-grp').length;
   });
   const prima2 = await voci(page);
   // l'ultima voce-sezione appartiene per forza all'ultimo blocco: trascino la prima sull'ultima

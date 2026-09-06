@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Ui.Components;
 
@@ -10,7 +10,6 @@ namespace Vipi.Ui.Components;
 /// <param name="AnchorId">Id dell'elemento target (senza '#').</param>
 /// <param name="Label">Etichetta mostrata nel TOC.</param>
 /// <param name="Dirty">Se la sezione ha modifiche non salvate (mostra un pallino).</param>
-/// <param name="Level">Livello di indentazione (2 = primo livello, 3 = sotto-voce).</param>
 /// <param name="GroupLabel">Intestazione di gruppo opzionale (es. nome blocco ACC); voci con lo stesso
 /// gruppo consecutivo condividono un'unica intestazione.</param>
 /// <param name="SectionId">Id della sezione rappresentata, quando la voce ne è una: è ciò che rende la voce
@@ -31,7 +30,6 @@ public readonly record struct EditorTocItem(
     string AnchorId,
     string Label,
     bool Dirty = false,
-    int Level = 2,
     string? GroupLabel = null,
     int? SectionId = null,
     string? DragGroup = null,
@@ -72,10 +70,6 @@ public readonly record struct TocReorder(
 /// </summary>
 public static class EditorTocProjection
 {
-    /// <summary>Livello di indentazione delle sotto-sezioni. Il modello ne consente tre, l'indice ne disegna
-    /// due: da qui in giù si resta a 3, invece di rientrare all'infinito in una colonna larga 200px.</summary>
-    private const int LivelloFiglie = 3;
-
     /// <param name="radici">Le sezioni di primo livello dell'albero mostrato.</param>
     /// <param name="dirty">Quali sezioni hanno modifiche non salvate.</param>
     /// <param name="dragGroup">L'albero: due voci con questo valore diverso non si accettano mai.</param>
@@ -92,7 +86,7 @@ public static class EditorTocProjection
         var items = new List<EditorTocItem>();
         foreach (var s in radici)
         {
-            items.Add(Voce(s, titolo, dirty, dragGroup, radiceId, livello: 2));
+            items.Add(Voce(s, titolo, dirty, dragGroup, radiceId));
             Figlie(items, s, dirty, dragGroup, titolo);
         }
         return items;
@@ -103,15 +97,65 @@ public static class EditorTocProjection
     {
         foreach (var c in padre.Children)
         {
-            items.Add(Voce(c, titolo, dirty, dragGroup, padre.Id, LivelloFiglie));
+            items.Add(Voce(c, titolo, dirty, dragGroup, padre.Id));
             Figlie(items, c, dirty, dragGroup, titolo);
         }
     }
 
     private static EditorTocItem Voce(EditableSection s, Func<EditableSection, string>? titolo,
-        Func<EditableSection, bool>? dirty, string dragGroup, int? padreId, int livello) =>
-        new($"s-{s.Id}", titolo?.Invoke(s) ?? s.Title, dirty?.Invoke(s) == true, livello,
+        Func<EditableSection, bool>? dirty, string dragGroup, int? padreId) =>
+        new($"s-{s.Id}", titolo?.Invoke(s) ?? s.Title, dirty?.Invoke(s) == true,
             SectionId: s.Id, DragGroup: dragGroup, ParentSectionId: padreId,
             Movable: SectionMoveTargets.Spostabile(s), SectionDepth: s.Depth,
             SubtreeHeight: SectionMoveTargets.Altezza(s));
+
+    /// <summary>
+    /// Dall'elenco <b>piatto</b> del menu ai <b>gruppi</b> del sommario condiviso. È il passo che rende la
+    /// barra degli editor uguale a quella dei documenti, e sta qui — in una funzione <b>pura</b> — per la
+    /// stessa ragione di <see cref="DaSezioni"/>: è la parte che si può sbagliare senza che nulla protesti.
+    ///
+    /// <para>⚠️ L'albero si ricostruisce da <see cref="EditorTocItem.ParentSectionId"/>, <b>non</b> dal
+    /// rientro: il rientro è una conseguenza, e ricavarne la gerarchia vorrebbe dire indovinarla. La
+    /// proiezione emette il padre <b>subito prima</b> delle sue figlie (visita in profondità), quindi basta
+    /// ricordare dove mettere le figlie di ogni sezione già vista.</para>
+    ///
+    /// <para>⚠️ Una voce il cui padre <b>non è in elenco</b> è una radice: è il caso della vIPI ACC, dove
+    /// il padre delle voci di primo livello è la sezione-BLOCCO, che nel menu non compare come voce.</para>
+    ///
+    /// <para>⚠️ I gruppi si chiudono per etichetta <b>consecutiva</b>: due blocchi omonimi restano due
+    /// gruppi e non si fondono per via del nome. E una voce <b>senza</b> etichetta apre un gruppo suo, senza
+    /// intestazione — prima finiva sotto l'ultima intestazione emessa, cioè sotto un titolo che non era il
+    /// suo (nella vIPI ACC è il caso del pannello Release, in coda a tutti).</para>
+    /// </summary>
+    public static IReadOnlyList<TocGruppo> Gruppi(IReadOnlyList<EditorTocItem> items)
+    {
+        var gruppi = new List<TocGruppo>();
+        List<TocVoce>? voci = null;
+        Dictionary<int, List<TocVoce>> perSezione = new();
+        string? etichetta = null;
+
+        foreach (var it in items)
+        {
+            var sua = it.GroupLabel is { Length: > 0 } g ? g : null;
+            if (voci is null || !string.Equals(sua, etichetta, StringComparison.Ordinal))
+            {
+                if (voci is not null) gruppi.Add(new TocGruppo(etichetta, voci));
+                voci = new List<TocVoce>();
+                // Il padre di una voce sta sempre nel SUO gruppo: azzerare qui evita che una figlia si
+                // appenda a una sezione omonima del gruppo precedente.
+                perSezione = new Dictionary<int, List<TocVoce>>();
+                etichetta = sua;
+            }
+
+            var figlie = new List<TocVoce>();
+            var voce = new TocVoce(it.Label, it.AnchorId, figlie);
+            if (it.SectionId is int id) perSezione[id] = figlie;
+
+            if (it.ParentSectionId is int padre && perSezione.TryGetValue(padre, out var sorelle)) sorelle.Add(voce);
+            else voci.Add(voce);
+        }
+
+        if (voci is not null) gruppi.Add(new TocGruppo(etichetta, voci));
+        return gruppi;
+    }
 }

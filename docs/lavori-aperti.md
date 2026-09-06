@@ -9089,7 +9089,10 @@ sezioni di catalogo assenti dal documento su `p-{blocco}-{chiave}`, non su `s-{i
 ### Che cosa NON è stato toccato
 
 La barra degli **editor** (`EditorToc`) dice ancora «Navigazione»: la richiesta era sui **documenti**, e un
-editor non è un documento. `Common_Navigation` resta viva per lei.
+editor non è un documento.
+
+⚠️ **Superato il giorno stesso**: il committente ha chiesto la stessa barra anche negli editor (§BZ), e
+`Common_Navigation` è stata **rimossa** — non la citava più nessuno.
 
 ### Come è stata provata
 
