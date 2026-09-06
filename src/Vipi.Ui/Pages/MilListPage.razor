@@ -175,8 +175,19 @@
 
     private async Task CaricaAsync() => _righe = await Militari.ListAsync(perStaff: Authz.IsEditor);
 
+    /// <summary>
+    /// Il documento, aperto in vista PILOTA.
+    ///
+    /// <para>⚠️ La vista è nell'indirizzo apposta, e non è un default nascosto della pagina del documento:
+    /// chi arriva da qui cerca un campo militare come lo cerca un pilota, mentre chi arriva dall'ACC, dalla
+    /// vIPI civile o da un collegamento salvato deve continuare a vedere il documento intero. Metterla nel
+    /// link la tiene condivisibile e reversibile — la chip in testata riporta a «Tutto» con un clic.</para>
+    ///
+    /// <para>⚠️ Su un documento SENZA sezioni marcate non filtra niente (<c>AudienceFilter</c> tocca solo ciò
+    /// che qualcuno ha marcato per l'altro): l'indirizzo resta onesto e la pagina è la stessa.</para>
+    /// </summary>
     private static string Indirizzo(MilAirportRow r) =>
-        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil?icao={r.Icao}";
+        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil?icao={r.Icao}&vista={AudienceFilter.QueryPilota}";
 
     private static string Editor(MilAirportRow r) =>
         $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil/editor?icao={r.Icao}";
