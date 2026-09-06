@@ -9104,3 +9104,76 @@ alla partenza.
 
 ⚠️ **Sul pacchetto**: tocca `vipi-theme.css` **e** le frasi (`SharedResource.en.resx`). Impronte nuove: i
 file di `wwwroot` e l'indice degli asset viaggiano **insieme**. Nessuna migrazione.
+
+---
+
+## §BZ — Il sommario è lo stesso anche negli EDITOR (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW–§BY (`feat/allegato-ricerca-e-rotazione`), **non fuso**.
+
+Seguito immediato di §BY: «voglio che sia la stessa anche in editor per tutti».
+
+### Erano TRE, non due
+
+`DocumentToc` per quattro documenti; una implementazione tutta sua per la vIPI ACC; e **`EditorToc`** per
+gli editor — un elenco **piatto** intitolato «Navigazione», mentre i documenti mostravano un albero
+intitolato «Sommario». Ora `EditorToc` non disegna più un indice suo: passa dal sommario condiviso.
+
+⚠️ **Quel che cambia da un chiamante all'altro è come si disegna un LINK**, non la struttura: gli editor
+ci appendono il trascinamento e il pallino delle modifiche non salvate. Per questo c'è il modello `Link`, e
+non una seconda copia di `<aside>`/`<ul>`/`<details>`.
+
+### Misurato sui cinque editor
+
+Testata «Summary», `sticky` che regge (genitore `ed-layout`, alto 4697–7010 px contro barre di 448–901),
+voci annidate, **0 aperte** alla partenza, trascinamento ancora armato (19/11/15/32/9 voci), **zero ancore
+morte**, piede dei tasti al suo posto.
+
+### Nello stesso giro
+
+- **`EditorTocItem.Level` non esiste più**: la gerarchia la dice `ParentSectionId` e il rientro lo decide il
+  sommario. Era un numero che nessuno leggeva più — dato morto che mente a chi legge.
+- **L'editor della vIPI ACC mostra ora anche le NIPOTI**: si fermava alle figlie dirette del blocco, lo
+  stesso buco che aveva il documento pubblicato. ⚠️ **Non trascinabili**, e si vede da `DragGroup` nullo: il
+  riordino di quell'editor lavora fra le sorelle di un blocco, e aprirlo alle nipoti sarebbe una
+  riparentazione, che lì il motore non fa.
+- **`TocDropRules.Accetta` pretende ora un albero su tutt'e due i lati**: il solo confronto non bastava,
+  perché `null == null` è vero e due voci senza albero si sarebbero accettate a vicenda.
+- **`Common_Navigation` rimossa**: non la citava più nessuno. Con lei si chiude la voce **F6** dell'audit
+  del doc 13, che quella divergenza l'aveva segnalata.
+- **`.lvl2` tolta dal foglio**: la scriveva `EditorToc` come nome **composto** (`lvl@(it.Level)`), che
+  nessuna passata sul testo trova.
+
+⚠️ **Conseguenza da sapere**: con le voci chiuse, per lasciare una sezione **fra** due figlie di un'altra
+bisogna prima aprire quella voce. Il bersaglio «la voce padre» resta sempre disponibile: nessun gesto è
+sparito, qualcuno costa un clic in più.
+
+### 🔴 I banchi del runbook erano rossi, e non per colpa del prodotto
+
+I due script di trascinamento (`drag-verifica.js`, `sposta-verifica.js`) sono il gate di questa modifica.
+Portarli al verde ha richiesto di correggere **tre** difetti, tutti loro:
+
+1. leggevano le voci con **`innerText`**, che di un `<details>` **chiuso** torna **stringa vuota**: «voci
+   non trascinabili o non trovate» sembrava una regressione del trascinamento e non lo era. ⚠️ È la stessa
+   trappola già scritta in `SKILL.md` a proposito delle sezioni collassate — scritta, e ripagata.
+2. cercavano il menu «Sposta in…» come `details.blk-add`, mentre dal **4 settembre 2026** è una **tendina**:
+   due passi su tre erano rossi da allora, e nessuno se n'era accorto perché il rosso non parlava di un
+   difetto.
+3. l'ultimo controllo misurava la posizione nella **pagina** invece che nel **corpo**, e trovava per prima
+   la voce nel **sommario**: finché le voci nascevano aperte **passava per la ragione sbagliata**. Con le
+   voci chiuse è diventato rosso, ed è così che si è scoperto che non aveva mai provato niente.
+
+⚠️ **La linea di partenza è stata misurata, non dedotta**: build del commit precedente (`a81318c8`),
+stesso DB, stessi script. A e C erano rossi **anche lì**; B era verde lì e qui — dopo la correzione degli
+script — è verde di nuovo.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde. Verifica live sui cinque
+editor più i due banchi di trascinamento.
+
+⚠️ **Un rosso intermittente e NON correlato**, visto una volta su due giri interi:
+`Vipi.AuroraBridge.Tests.AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`. Non tocca la UI:
+annotato col **nome** — che è la sola cosa da cui si può partire — e non inseguito qui.
+
+⚠️ **Sul pacchetto**: come §BY, tocca `vipi-theme.css` e le frasi. Nessuna migrazione.
