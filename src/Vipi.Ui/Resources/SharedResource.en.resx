@@ -3229,6 +3229,9 @@
   <data name="TrEd_Wait_Running" xml:space="preserve"><value>a round is running now</value></data>
   <data name="TrEd_Wait_ByHand" xml:space="preserve"><value>{0} need a person</value></data>
   <data name="TrEd_Wait_None" xml:space="preserve"><value>nothing missing</value></data>
+  <data name="TrEd_Wait_MissingOne" xml:space="preserve"><value>one to translate</value></data>
+  <data name="TrEd_State_Draft" xml:space="preserve"><value>draft {0}% translated</value></data>
+  <data name="TrEd_State_Published" xml:space="preserve"><value>published {0}% translated</value></data>
   <data name="TrEd_Now" xml:space="preserve"><value>Translate now</value></data>
   <data name="TrEd_NowTitle" xml:space="preserve"><value>Asks the engine for the missing sentences of THIS document, without waiting for the round. Characters are paid for.</value></data>
   <data name="TrEd_Now_Done" xml:space="preserve"><value>Done: {0} sentences translated by {1}.</value></data>

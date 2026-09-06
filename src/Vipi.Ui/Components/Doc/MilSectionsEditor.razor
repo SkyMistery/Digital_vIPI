@@ -116,12 +116,16 @@ else
     
                 <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
     
-                @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
-                   apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
-                @if (_shell.DocumentId is int docIdTraduzione)
-                {
-                    <TranslationReviewPanel DocumentId="docIdTraduzione" />
-                }
+            }
+
+            @* Come si legge questo documento nell'altra lingua, la correzione sul posto e «a che punto e'».
+               Chiuso di suo: si apre quando serve.
+               🔴 FUORI dal blocco `Chrome`, e prima era dentro: in un editor UNITO i membri si montano senza
+               chrome, e il pannello spariva proprio dai documenti che si redigono da li' — cioe' da meta' dei
+               documenti veri. Lo stato della traduzione e' del DOCUMENTO, non della testata di chi lo ospita. *@
+            @if (_shell.DocumentId is int docIdTraduzione)
+            {
+                <TranslationReviewPanel DocumentId="docIdTraduzione" />
             }
 
             @if (_shell.Error is not null)

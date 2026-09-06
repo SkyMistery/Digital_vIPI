@@ -1,4 +1,4 @@
-// Verifica del PACCHETTO (non del sorgente): nel publish il JavaScript e' minificato, e da 1.1.0 uno di
+﻿// Verifica del PACCHETTO (non del sorgente): nel publish il JavaScript e' minificato, e da 1.1.0 uno di
 // quei file e' l'unico che avvia Blazor. Vedi docs/guide/preparare-un-pacchetto.md §6.
 //
 // Due modi, tutti e due usati per 1.2.0 il 31 agosto 2026:
@@ -115,9 +115,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       !document.body.innerText.includes('second operation') &&
       !document.body.innerText.includes('This page did not open') &&
       document.querySelectorAll('.wrap').length > 0);
-    const pannelloTr = await page.evaluate(() => !!document.querySelector('#tr-review'));
+    // ⚠️ Per PREFISSO: dal 6 settembre 2026 l'id porta il documento (`tr-review-<id>`), perche' in un
+    // editor unito i pannelli sono uno per membro e un id ripetuto non e' un DOM valido.
+    const pannelloTr = await page.evaluate(() => !!document.querySelector('[id^="tr-review"]'));
     nota('editor ACC LIBB si apre', editorVivo, editorVivo ? 'nessuna pagina d\'errore' : 'PAGINA D\'ERRORE');
-    nota('pannello traduzioni presente', pannelloTr, pannelloTr ? '#tr-review nel DOM' : '#tr-review assente');
+    nota('pannello traduzioni presente', pannelloTr, pannelloTr ? '[id^=tr-review] nel DOM' : 'pannello traduzioni assente');
     }
 
     // 5. Il tema (che l'asset cambiato tocca) e' arrivato: il CSS deve avere effetto.

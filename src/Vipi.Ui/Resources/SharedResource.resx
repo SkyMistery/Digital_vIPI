@@ -3237,6 +3237,9 @@
   <data name="TrEd_Wait_Running" xml:space="preserve"><value>un giro sta girando adesso</value></data>
   <data name="TrEd_Wait_ByHand" xml:space="preserve"><value>{0} vogliono una persona</value></data>
   <data name="TrEd_Wait_None" xml:space="preserve"><value>non manca niente</value></data>
+  <data name="TrEd_Wait_MissingOne" xml:space="preserve"><value>una da tradurre</value></data>
+  <data name="TrEd_State_Draft" xml:space="preserve"><value>bozza tradotta al {0}%</value></data>
+  <data name="TrEd_State_Published" xml:space="preserve"><value>pubblicato al {0}%</value></data>
   <data name="TrEd_Now" xml:space="preserve"><value>Traduci ora</value></data>
   <data name="TrEd_NowTitle" xml:space="preserve"><value>Chiede al motore le frasi che mancano di QUESTO documento, senza aspettare il giro. I caratteri si pagano.</value></data>
   <data name="TrEd_Now_Done" xml:space="preserve"><value>Fatto: {0} frasi tradotte da {1}.</value></data>
