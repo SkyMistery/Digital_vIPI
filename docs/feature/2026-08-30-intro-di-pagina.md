@@ -1,4 +1,4 @@
-# L'intro di pagina: sezioni editabili in cima a un elenco — 30 agosto 2026
+﻿# L'intro di pagina: sezioni editabili in cima a un elenco — 30 agosto 2026
 
 > **Da dove nasce:** richiesta del committente sull'elenco dei vSOP militari (`/services/vsop/mil`) —
 > «in alto una sezione intro dove mettere alcuni PDF, come se fosse un documento, usando la funzione link
@@ -108,6 +108,13 @@ di una virgola.
   **staff** (`IsEditor`) la zona si mostra sempre, anche vuota, con «Aggiungi sezione».
 - **Lock**: `EditResourceLock` con chiave `page-intro:mil`, come `structure` e `newdoc` — due editori sulla
   stessa intro sono l'ultimo che salva che vince, e qui vincerebbe in silenzio.
+
+⚠️ **Riconfermato il 6 settembre 2026**, su domanda del committente («l'intro vuota non deve vedersi»). Non
+è cambiato niente perché non c'era niente da cambiare, e vale la pena scrivere **dove** sta la regola, che è
+in due punti e non in uno: `PageIntroZone.razor` non rende nulla se le sezioni sono zero e chi guarda non è
+Editor, ed `EfPageIntroStore.SalvaAsync` **cancella la riga** di `SharedBlocks` quando l'intro resta senza
+sezioni — così «vuota» è uno stato solo. Il riquadro con «Sola lettura · Inizia modifica» lo vede **solo lo
+staff**, ed è l'unica porta da cui la prima intro può nascere.
 
 ## 6. Verifica
 

@@ -251,6 +251,13 @@ navigazione ridisegna, e basta.
 **Regola sui figli**: una sezione filtrata via porta via i suoi figli. Un figlio `ATC` sotto un padre
 `Both` sparisce da solo in vista pilota.
 
+**L'ingresso nazionale entra in vista pilota** (6 settembre 2026). I link dell'elenco
+`/services/vsop/mil` portano `&vista=pilota`: chi cerca un campo militare da lì lo cerca come lo cerca un
+pilota. La vista sta **nell'indirizzo** e non è un default nascosto della pagina del documento — chi arriva
+dall'ACC, dalla vIPI civile o da un collegamento salvato continua a vedere il documento intero, e la chip
+riporta a «Tutto» con un clic. Su un documento senza sezioni marcate non filtra niente e la pagina è la
+stessa: `AudienceFilter` tocca solo ciò che qualcuno ha marcato per l'altro.
+
 ⚠️ **Non è controllo d'accesso.** Il documento è pubblico e la vista ATC la apre chiunque cambi l'URL.
 È un filtro di lettura, e va scritto nella guida perché nessuno ci metta dentro cose che non deve.
 
