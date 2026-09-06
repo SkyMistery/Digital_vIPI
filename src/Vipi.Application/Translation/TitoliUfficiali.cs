@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 
 namespace Vipi.Application.Translation;
 
@@ -30,9 +30,10 @@ public static class TitoliUfficiali
 {
     /// <summary>
     /// Italiano → inglese, dai quindici SOP militari (carta <c>2026-08-27-vsop-militari.md</c> §2).
-    /// ⚠️ Solo i titoli che nel PDF ci sono davvero: <c>weather</c>, <c>transition</c> e <c>qra</c> sono
-    /// aggiunte nostre e il loro inglese lo scriviamo noi, quindi stanno qui per lo stesso motivo — è la
-    /// nostra parola, non una resa automatica.
+    /// ⚠️ Solo i titoli che nel PDF ci sono davvero: <c>weather</c> e <c>transition</c> sono aggiunte
+    /// nostre e il loro inglese lo scriviamo noi, quindi stanno qui per lo stesso motivo — è la nostra
+    /// parola, non una resa automatica. Dal 6 settembre 2026 valgono anche le dodici sezioni dell'indice
+    /// chiesto dal SOD: lì l'inglese è il SUO, ed è quello che va in memoria.
     /// </summary>
     public static readonly IReadOnlyList<(string It, string En)> Sezioni = new[]
     {
@@ -57,10 +58,21 @@ public static class TitoliUfficiali
         ("Porte e circuiti VFR jet", "VFR Jet Entry/Exit Gates and Circuits"),
         ("Punti significativi strumentali", "Instrumental Procedures Significant Points"),
         ("Partenze/arrivi IFR GAT", "IFR GAT Dep/Arr"),
-        ("QRA / Scramble", "QRA / Scramble"),
         ("Aree di lavoro", "Working Areas"),
         ("Procedure generali", "General Procedures"),
         ("Bassa quota (BOAT)", "Low Level (BOAT)"),
+        // L'indice chiesto dal SOD (6 settembre 2026): l'inglese e' quello della SUA lista, parola per
+        // parola. ⚠️ «VFR» e «IFR» sono SIGLE e si scrivono uguali: senza queste due righe la macchina
+        // proverebbe a tradurle, ed e' esattamente il difetto per cui questa tabella esiste.
+        ("Coordinate delle soglie", "Threshold coordinates"),
+        ("Planimetria dell'aeroporto", "Airport layout"),
+        ("Flusso di rullaggio sui piazzali", "Aprons taxi flow"),
+        ("Restrizioni all'arrivo", "Arrival restrictions"),
+        ("Restrizioni di circuito", "Circuit restrictions"),
+        ("Punti significativi VFR", "VFR significant points"),
+        ("Procedure di partenza", "Departure procedures"),
+        ("Procedure di arrivo", "Arrival procedures"),
+        ("IFR", "IFR"),
         // Le carte dello scalo (3 settembre 2026): non vengono dai quindici PDF — sono una sezione nostra,
         // quindi l'inglese lo scriviamo noi, che è la ragione per cui questa tabella esiste. ⚠️ SID, STAR e
         // VFR sono SIGLE: si scrivono uguali nelle due lingue, e senza questa riga la macchina proverebbe a

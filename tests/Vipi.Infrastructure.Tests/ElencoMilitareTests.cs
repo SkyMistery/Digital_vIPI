@@ -154,11 +154,52 @@ public class ElencoMilitareTests : IAsyncLifetime
 
         Assert.Equal(Tutte(profilo).Count(), sezioni.Count);
         Assert.Equal(profilo.Count, sezioni.Count(s => s.Depth == 0));
-        Assert.Equal(Tutte(profilo).Count() - profilo.Count, sezioni.Count(s => s.Depth == 1));
-        Assert.Contains(sezioni, s => s.SectionKey == "qra");
+        Assert.DoesNotContain(sezioni, s => s.SectionKey == "qra");
         // Le carte nascono ANNIDATE: il contenitore in cima e le cinque raccolte dentro.
         var carte = sezioni.Single(s => s.SectionKey == "charts");
         Assert.Equal(5, sezioni.Count(s => s.ParentSectionId == carte.Id));
+    }
+
+    [Fact]
+    public async Task Il_documento_nasce_FONDO_TRE_e_non_si_ferma_al_secondo_livello()
+    {
+        // ⚠️ Dal 6 settembre 2026 il profilo arriva a profondità 3 — «Aree di lavoro» → «Procedure
+        // generali» → «Procedure di partenza» → «VFR» — e prima non ci era mai arrivato: il ramo più fondo
+        // era il 2. `DocumentBirth.Semina` ricorre da sempre, ma «ricorre» e «ricorre fino in fondo» sono
+        // due fatti diversi, e questo è il primo profilo che li distingue.
+        var id = await Servizio().CreaAsync("LIPI");
+        var sezioni = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.DocumentVersion!.DocumentId == id).ToListAsync();
+
+        var aree = sezioni.Single(s => s.SectionKey == "regulated");
+        var generali = sezioni.Single(s => s.SectionKey == "operationaltechnique");
+        var partenze = sezioni.Single(s => s.SectionKey == "departureprocedures");
+        var vfr = sezioni.Single(s => s.SectionKey == "departureprocedures:vfr");
+
+        Assert.Equal(aree.Id, generali.ParentSectionId);
+        Assert.Equal(generali.Id, partenze.ParentSectionId);
+        Assert.Equal(partenze.Id, vfr.ParentSectionId);
+        Assert.Equal(3, vfr.Depth);
+        Assert.Equal(4, sezioni.Count(s => s.Depth == 3));
+    }
+
+    [Fact]
+    public async Task Il_documento_nasce_con_le_dodici_sezioni_marcate_per_i_PILOTI()
+    {
+        // ⚠️ Nessuna sezione era mai NATA con un pubblico: il campo prendeva il default della colonna, e le
+        // marcature del SOP si mettevano a mano su dodici sezioni, un documento per volta.
+        var id = await Servizio().CreaAsync("LIPI");
+        var sezioni = await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.DocumentVersion!.DocumentId == id).ToListAsync();
+
+        Assert.Equal(12, sezioni.Count(s => s.Audience == SectionAudience.Pilots));
+        Assert.DoesNotContain(sezioni, s => s.Audience == SectionAudience.Controllers);
+        // ⚠️ Le due che il dato ce l'hanno DENTRO il padre: le soglie sotto «Piste» e il flusso di
+        // rullaggio sotto i «Parcheggi». Il filtro si porta dietro i figli, e sotto un padre «per tutti»
+        // solo la figlia sparisce dalla vista ATC — che è quel che il SOD ha chiesto.
+        Assert.Equal(SectionAudience.Pilots,
+                     sezioni.Single(s => s.SectionKey == "runways:thresholds").Audience);
+        Assert.Equal(SectionAudience.Both, sezioni.Single(s => s.SectionKey == "runways").Audience);
     }
 
     [Fact]

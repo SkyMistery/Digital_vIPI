@@ -337,14 +337,17 @@ public static class SectionCatalog
                     // ⚠️ Il catalogo decide la struttura solo alla NASCITA: i vSOP già scritti li sposta
                     // `IDocumentMaintenance.ReparentMilParkingsAsync`, perché a mano nessuno potrebbe — il
                     // motore di riordino sposta solo fra FRATELLI, apposta.
-                    HB("parkings", "Parcheggi", 7, en: "Parking", aud: Piloti, children: new[]
+                    // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
+                    // questa e' la descrizione dello scalo che i SOP scrivono a parole.
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 7, en: "Airport layout"),
+                    // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
+                    // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
+                    // fermato questa modifica una volta, quando la planimetria era finita in coda.
+                    HB("parkings", "Parcheggi", 8, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),
                     }),
-                    // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
-                    // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 8, en: "Airport layout"),
                 }),
 
                 D("groundprocedures", "Procedure di terra", 3, en: "Ground procedures", children: new[]

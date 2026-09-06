@@ -1,4 +1,5 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
+using Vipi.Domain;
 
 namespace Vipi.Application.Tests;
 
@@ -21,16 +22,16 @@ public class ProfiloMilitareTests
     // ---- La forma del profilo -------------------------------------------------------------------------
 
     [Fact]
-    public void Le_sezioni_sono_ventisei()
+    public void Le_sezioni_sono_quarantatre()
     {
         // Il numero è nella carta e nell'indice della documentazione: se cambia, cambia in tre posti o in
         // nessuno.
-        // ⚠️ Ventisei, e questo test l'ha già guadagnato: la carta diceva ventiquattro perché il conto era
-        // rimasto indietro di due quando si sono aggiunte «qra» e «lowlevel». Un numero scritto a mano in
-        // tre documenti invecchia; uno contato sul profilo no.
-        // ⚠️ Trentadue dal 3 settembre 2026: ventisei più le sei di «Carte aeroportuali» (il contenitore e le
-        // sue cinque raccolte), che il committente ha chiesto su questo profilo e sulla vIPI d'aeroporto.
-        Assert.Equal(32, Tutte(Mil).Count());
+        // ⚠️ Questo test l'ha già guadagnato due volte: la carta diceva ventiquattro quando erano ventisei,
+        // e il commento del catalogo diceva ventisei quando erano trentadue. Un numero scritto a mano in tre
+        // documenti invecchia; uno contato sul profilo no.
+        // ⚠️ Quarantatré dal 6 settembre 2026: trentadue meno «qra» (fuori: non sta in nessuno dei quindici
+        // PDF) più le dodici dell'indice chiesto dal SOD.
+        Assert.Equal(43, Tutte(Mil).Count());
     }
 
     [Fact]
@@ -47,10 +48,10 @@ public class ProfiloMilitareTests
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
         Assert.Equal(7, Mil.Count);
-        Assert.Equal(7, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(8, Mil.Single(d => d.Key == "generaldata").Children!.Count);
         Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
-        Assert.Equal(8, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
+        Assert.Equal(9, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
         Assert.Equal(2, Mil.Single(d => d.Key == "regulated").Children!.Count);
     }
 
@@ -61,7 +62,29 @@ public class ProfiloMilitareTests
         // difetto si vedrebbe solo a schermo in una TOC che non rientra.
         static int Prof(SectionDescriptor d) =>
             d.Children is { Count: > 0 } f ? 1 + f.Max(Prof) : 0;
-        Assert.True(Mil.Max(Prof) < Vipi.Domain.Entities.DocumentSection.MaxDepth);
+        Assert.True(Mil.Max(Prof) <= Vipi.Domain.Entities.DocumentSection.MaxDepth);
+    }
+
+    [Fact]
+    public void Il_profilo_TOCCA_il_limite_di_profondita_e_non_e_un_caso()
+    {
+        // ⚠️ Dal 6 settembre 2026 il profilo sta ESATTO sul bordo: «Aree di lavoro» → «Procedure generali» →
+        // «Procedure di partenza» → «VFR» è profondità 3, e 3 è il massimo. Non c'è margine, e chi volesse
+        // annidare sotto quelle quattro foglie non può — `DocumentBirth.Semina` alza un'eccezione alla
+        // NASCITA del documento, che è il posto giusto per accorgersene.
+        // Il test di sopra dice «non sfora»; questo dice «ci sta appoggiato». Sono due fatti diversi: il
+        // primo resterebbe verde anche se un domani il ramo si accorciasse per sbaglio, e allora nessuno
+        // saprebbe più che quel limite era una decisione.
+        static int Prof(SectionDescriptor d) =>
+            d.Children is { Count: > 0 } f ? 1 + f.Max(Prof) : 0;
+        Assert.Equal(Vipi.Domain.Entities.DocumentSection.MaxDepth, Mil.Max(Prof));
+
+        var aree = Mil.Single(d => d.Key == "regulated").Children!.Single(d => d.Key == "operationaltechnique");
+        Assert.Equal(
+            new[] { SectionKeys.DepartureProcedures, SectionKeys.ArrivalProcedures },
+            aree.Children!.OrderBy(d => d.Order).Select(d => d.Key));
+        foreach (var gruppo in aree.Children!)
+            Assert.Equal(new[] { "VFR", "IFR" }, gruppo.Children!.OrderBy(d => d.Order).Select(d => d.Title));
     }
 
     // ---- Il riuso ------------------------------------------------------------------------------------
@@ -100,16 +123,21 @@ public class ProfiloMilitareTests
     [InlineData("aor")]           // un aeroporto è un LUOGO: l'AoR è della torre
     [InlineData("coordination")]  // idem
     [InlineData("sids")]          // l'import SID Aurora non copre i campi militari
+    [InlineData("qra")]           // vedi sotto: l'unica che avevamo inventato noi
     public void Cio_che_e_stato_lasciato_fuori_resta_fuori(string chiave) =>
         Assert.DoesNotContain(chiave, Tutte(Mil).Select(d => d.Key));
 
     [Fact]
-    public void QRA_c_e_anche_se_nei_PDF_non_esiste_come_sezione()
+    public void QRA_e_uscita_perche_non_sta_in_nessuno_dei_quindici_PDF()
     {
-        // ⚠️ Contenuto NUOVO, non trascrizione: nei quindici PDF «QRA» compare solo come colonna, e solo
-        // sulle quattro basi di difesa aerea. Si semina su tutti perché nascondere è un clic, mentre
-        // aggiungere una sezione di catalogo non seminata non lo è.
-        Assert.Contains("qra", Tutte(Mil).Select(d => d.Key));
+        // ⚠️ Era l'unica sezione INVENTATA da noi (27 agosto 2026): nei quindici PDF «QRA» compare solo
+        // come colonna, e solo sulle quattro basi di difesa aerea. L'indice chiesto dal SOD il 6 settembre
+        // non la prevede, e una sezione che nasce su quindici campi per essere nascosta su undici non la
+        // vuole nessuno.
+        // ⚠️ Il catalogo decide la struttura solo alla NASCITA: questo test dice che i vSOP NUOVI non ce
+        // l'hanno. Dai vecchi la toglie `IDocumentMaintenance.RemoveMilQraSectionsAsync`, e a quello serve
+        // il suo test — che non può stare qui, perché tocca il database.
+        Assert.DoesNotContain("qra", Tutte(Mil).Select(d => d.Key));
     }
 
     [Fact]
@@ -150,7 +178,7 @@ public class ProfiloMilitareTests
     }
 
     [Fact]
-    public void TUTTE_le_ventisei_sezioni_sono_di_CATALOGO_anche_le_figlie()
+    public void TUTTE_le_sezioni_sono_di_CATALOGO_anche_le_figlie()
     {
         // `IsFixed` decide se una sezione si può cancellare o rinominare nell'editor. Con la ricerca ferma al
         // primo livello, VENTI sezioni di catalogo su ventisei passavano per sezioni libere.
@@ -159,7 +187,7 @@ public class ProfiloMilitareTests
 
         var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
 
-        Assert.Equal(32, chiavi.Count);
+        Assert.Equal(43, chiavi.Count);
         Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
     }
 
@@ -296,5 +324,85 @@ public class ProfiloMilitareTests
         Assert.False(SectionCatalog.IsHostRendered(SectionProfile.Airport, "charts:sid"));
         Assert.Equal(SectionKind.Editorial, SectionCatalog.KindOf("charts:sid"));
     }
-}
 
+    // ---- L'indice chiesto dal SOD (6 settembre 2026) --------------------------------------------------
+
+    /// <summary>
+    /// Le dodici sezioni che il SOD marca «[PILOTS]». ⚠️ Scritte QUI a mano, e di proposito: è l'unico
+    /// posto del progetto dove quell'elenco esiste due volte, e la seconda copia serve — un default che
+    /// cambia senza che nessuno lo voglia è esattamente la classe di modifica che un test deve fermare.
+    /// </summary>
+    public static TheoryData<string> MarcatePiloti => new(
+        "diversion", SectionKeys.RunwayThresholds, "callsigns", "parkings", SectionKeys.ApronFlow,
+        "enginestart", "arming", "takeoff", SectionKeys.ArrivalRestrictions, SectionKeys.VfrJetPoints,
+        "ifrsignificant", "lowlevel");
+
+    [Theory]
+    [MemberData(nameof(MarcatePiloti))]
+    public void Le_sezioni_marcate_dal_SOD_nascono_per_i_PILOTI(string chiave) =>
+        Assert.Equal(SectionAudience.Pilots, Tutte(Mil).Single(d => d.Key == chiave).Audience);
+
+    [Fact]
+    public void E_nessun_altra_nasce_marcata()
+    {
+        // Il contrario del test di sopra, e non è la stessa cosa detta due volte: quello pretende che le
+        // dodici ci siano, questo che non ce ne sia una tredicesima.
+        // ⚠️ Marcare `Pilots` NASCONDE alla vista ATC, e si porta dietro i figli (`AudienceFilter`). Una
+        // marcatura di troppo non si vede da nessuna parte finché un controllore non apre la sua vista e
+        // trova un buco.
+        var marcate = Tutte(Mil).Where(d => d.Audience != SectionAudience.Both).Select(d => d.Key).ToList();
+        Assert.Equal(12, marcate.Count);
+        Assert.All(marcate, k => Assert.Equal(SectionAudience.Pilots,
+                                              Tutte(Mil).Single(d => d.Key == k).Audience));
+    }
+
+    [Fact]
+    public void Gli_altri_profili_non_hanno_sezioni_marcate()
+    {
+        // Il pubblico di default è per ora una faccenda dei soli vSOP militari: nessuno ha chiesto che una
+        // vIPI ACC nasconda qualcosa a qualcuno. Se un giorno succede, questo test lo dice a chi legge — e
+        // `ApplyCatalogAudienceDefaultsAsync` andrà riletto, perché guarda TUTTI i profili.
+        foreach (var p in Enum.GetValues<SectionProfile>().Where(p => p != SectionProfile.AirportMil))
+            Assert.All(Tutte(SectionCatalog.For(p)), d => Assert.Equal(SectionAudience.Both, d.Audience));
+    }
+
+    [Fact]
+    public void Le_procedure_di_partenza_e_arrivo_stanno_SOLO_nel_militare()
+    {
+        // ⚠️ «operationaltechnique» è una chiave UNIVERSALE: sta in ACC, APP, vLOA e vIPI d'aeroporto. I
+        // suoi quattro discendenti vivono nel solo registro militare perché `Children` è per profilo — se
+        // un giorno finissero nel descrittore condiviso, quattro documenti si troverebbero delle procedure
+        // di partenza che nessuno ha chiesto, e ci si accorgerebbe solo aprendoli.
+        foreach (var p in Enum.GetValues<SectionProfile>().Where(p => p != SectionProfile.AirportMil))
+        {
+            var op = Tutte(SectionCatalog.For(p)).FirstOrDefault(d => d.Key == "operationaltechnique");
+            if (op is not null) Assert.True(op.Children is null or { Count: 0 }, p.ToString());
+        }
+
+        var mil = Tutte(Mil).Single(d => d.Key == "operationaltechnique");
+        Assert.Equal(2, mil.Children!.Count);
+    }
+
+    [Fact]
+    public void Le_soglie_sono_una_sotto_sezione_di_Piste_resa_dalla_PAGINA()
+    {
+        // Erano la SECONDA TABELLA dentro «Piste» (`MilRunwayThresholds`, montata dal `case "runways"`);
+        // dal 6 settembre 2026 sono una sezione, come le vuole il SOD. Stesso dato, stesso componente.
+        var piste = Tutte(Mil).Single(d => d.Key == "runways");
+        Assert.Equal(new[] { SectionKeys.RunwayThresholds }, piste.Children!.Select(d => d.Key));
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, SectionKeys.RunwayThresholds));
+    }
+
+    [Fact]
+    public void Le_soglie_NON_dichiarano_una_derivazione_propria()
+    {
+        // ⚠️ Il test che protegge la decisione meno ovvia della carta. La tabella è palesemente derivata —
+        // ThresholdLat/Lon arrivano da IVAO — eppure la chiave è EDITORIALE, perché la derivazione è quella
+        // di «runways» e la release la congela lì sotto (`frozen.Get<AirportRunwaysView>("runways")`).
+        // Dichiararla `Derived` darebbe DUE interruttori Live/Frozen sulla stessa tabella, che possono
+        // contraddirsi: la stessa pista fotografata a due cicli diversi, una sotto l'altra.
+        Assert.Equal(SectionKind.Editorial, SectionCatalog.KindOf(SectionKeys.RunwayThresholds));
+        Assert.False(SectionCatalog.IsRenderModeToggleable(SectionKeys.RunwayThresholds));
+        Assert.Equal(SectionKind.Derived, SectionCatalog.KindOf("runways"));
+    }
+}
