@@ -1,6 +1,30 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026, sera — ✅ **1.13.0 È IN PRODUZIONE E VERIFICATA**, caricata
+**Ultimo aggiornamento:** 6 settembre 2026, notte — 📦 **1.14.0 È PRONTA DA CARICARE**.
+
+`artifacts/publish/vipi-1.14.0-solo-file-cambiati.zip` · sha256 `477eeed0…` · 2,34 MB · **5 file** ·
+timbro **`1.14.0 · a9979306`**. **MINOR**, **NESSUNA migrazione** → si consegna da sola via FTP anche
+dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.0.md`.
+
+**Dentro**: lo **stato della traduzione nell'editor**, che prima si spegneva da solo (§CB), e **§CA**, i
+link dell'elenco dei vSOP militari che aprono in vista pilota.
+
+> ### ▶ Da dire a chi carica, e da controllare mentre è ancora al telefono
+>
+> Il controllo che il timbro non dà: si apre un documento qualsiasi **in modifica**, barra della lingua su
+> **IT**, e si apre il blocco «Traduzione». Deve comparire una riga con **due percentuali** (bozza e
+> pubblicato) e il tasto **«Traduci ora»**. Se dice solo «stai leggendo nella lingua in cui questo documento
+> è scritto», sta girando ancora la versione vecchia.
+>
+> ⚠️ §CA **non si vedrà**: non c'è nessun vSOP militare pubblicato, su nessuno dei quattro ACC.
+
+**Provata sul pacchetto pubblicato** (win-x64 dalla sua cartella, copia del `vipi.db`):
+`pacchetto-verifica.js` **10/10** — Ricerca compresa — timbro `1.14.0 · a997930` nella diagnostica, e la
+riga nuova presente sui tre editor nelle due lingue.
+
+---
+
+**Prima di questo — 6 settembre 2026, sera:** ✅ **1.13.0 È IN PRODUZIONE E VERIFICATA**, caricata
 dal committente, che ha confermato **da dentro** le due cose che da fuori non si vedono: il timbro dice
 `1.13.0`, e i vSOP militari hanno la struttura decisa — cioè i tre passi d'avvio hanno girato sul
 database di produzione.

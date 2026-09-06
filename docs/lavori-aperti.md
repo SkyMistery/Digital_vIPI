@@ -9412,3 +9412,81 @@ l'intro resta senza sezioni — «vuota» è uno stato solo, non due. Il riquadr
 modifica» lo vede **solo lo staff**, ed è l'unica porta da cui la prima intro può nascere: toglierlo
 sarebbe il catch-22 già pagato sull'elenco APP. Nota aggiunta alla carta
 [`feature/2026-08-30-intro-di-pagina.md`](feature/2026-08-30-intro-di-pagina.md) §5.
+
+
+## §CB — Lo stato della traduzione nell'editor non si spegne più da solo — 6 settembre 2026 (notte)
+
+✅ **Fuso in `main`** (`7756c80b`; ramo `traduzione-cruscotto-sempre-acceso`, eliminato dopo il merge).
+Carta: [`feature/2026-09-04-stato-traduzione.md`](feature/2026-09-04-stato-traduzione.md) **§9**.
+
+**La segnalazione**: «avevamo il meccanismo che dice a che punto è la traduzione, quanto manca al giro e
+permette di tradurre subito — non funziona». **Non era rotto niente**: era spento da tre condizioni, più
+una quarta fuori dal pannello. Tutte scattavano nel caso *normale*.
+
+1. `Attesa()` usciva con «non manca niente» a zero mancanti: **niente percentuali, niente orologio proprio
+   quando il lavoro è a posto**. Un indicatore che sparisce quando le cose vanno bene non dice «vanno
+   bene» — sembra guasto, ed è così che è stato letto.
+2. Il tasto stava dentro `@if (Mancanti > 0)`. Il giro passa ogni quarto d'ora e riporta i mancanti a zero
+   da sé: **il tasto spariva per sempre dopo il primo giro**.
+3. `Mancanti` si contava sulle **righe mostrate**, che esistono solo nella lingua di lettura. Chi redige in
+   italiano non ne ha nessuna: per lui il pannello finiva alla frase «passa all'altra lingua». Cioè il
+   cruscotto mancava **a chi scrive**.
+4. Il blocco stava dentro `@if (Chrome)` nei tre editor di sezioni, e i membri di un'unione si montano
+   `Chrome="false"`: sui documenti redatti dall'**editor unito** il pannello non c'era proprio.
+
+**Adesso**, sempre e in tutt'e due le lingue: `bozza tradotta al N% · pubblicato al M% (o «nessuna
+release») · X da tradurre (o «non manca niente») · [Y vogliono una persona] · il giro passa fra ~K min`,
+più il tasto. Le due percentuali vengono da `IStatoTraduzione.DocumentoAsync` — stessa fonte e stesso
+arrotondamento del Registro — risolto dallo **scope proprio** del componente come le righe; in testata la
+pastiglia della percentuale, con il nome dello stato nel `title`.
+
+⚠️ **Il tasto sempre presente non è una spesa in più**: a zero mancanti `TraduciOraService` risponde
+«niente da fare» **prima** di aprire la rete. Resta nascosto solo a lingua bloccata, dove non tradurrebbe
+mai niente.
+
+⚠️ **Conseguenza obbligata dell'unione**: l'id del `<details>` porta ora il documento (`tr-review-<id>`).
+In quella pagina i pannelli sono due o più, e un id ripetuto non è un DOM valido — `data-persist`, che è
+l'id, aprirebbe e chiuderebbe insieme pannelli di documenti diversi. Aggiornato di conseguenza il selettore
+in `.claude/skills/verifica-live/pacchetto-verifica.js`.
+
+**Come è stata provata** (a schermo, su copia del `vipi.db`): LIBD **in italiano** mostra stato e tasto
+dove prima c'era solo «passa all'altra lingua»; tolte tre voci di memoria la testata dice «84% ·
+3 da tradurre» e la pressione le traduce, con la riga che torna a 100% senza ricaricare; l'unione LIMN
+(vIPI + vSOP MIL uniti nel database di prova) mostra **due** pannelli, `tr-review-28` e `tr-review-29`, e il
+membro senza release dice «nessuna release» invece di «pubblicato al 0%». Suite intera verde (15 assiemi),
+zero errori di pagina.
+
+⚠️ **In sviluppo la traduzione è ACCESA** (`Translation:Enabled` sta negli user-secrets con la chiave
+Azure, non in `appsettings.json`): premere «traduci ora» in locale spende davvero.
+
+### 📦 6 settembre 2026, notte — il pacchetto 1.14.0
+
+`artifacts/publish/vipi-1.14.0-solo-file-cambiati.zip` · sha256
+**`477eeed00283b52a3f027acbe4b59c15e9566ada5d1fa0e7aa1cbf5524c80781`** · 2,34 MB · **5 file** ·
+timbro **`1.14.0 · a9979306`** · publish `linux-x64-20260906-2330`. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.0.md`. ⏳ **Da caricare.**
+
+**MINOR, e il numero lo decide il contenuto**: non ci sono sezioni nuove, ma l'editor guadagna un cruscotto
+che prima non c'era e un pannello dove non ne compariva nessuno. Non è «solo correzioni», che è ciò che una
+PATCH promette. **Nessuna migrazione** → si consegna da sola via FTP, anche dentro la finestra cieca al 16.
+
+**Dentro**: §CB (questo) e **§CA** (i link dell'elenco militare aprono in vista pilota) — che là non si
+vedrà finché non c'è un vSOP militare **pubblicato**, e oggi non ce n'è nessuno.
+
+**I file.** Un progetto solo — `Vipi.Ui` col suo `.pdb` — più `Host` (il timbro) e il satellite inglese
+(due `.resx` toccati). ⚠️ `Application`, `Infrastructure` e `Hosting` **restano fuori**: le loro impronte
+cambiano a ogni ricompilazione (MVID), ma `git diff 708257ed HEAD -- src` dice che il loro codice non è
+cambiato. ⚠️ **Nessun file di `wwwroot`**, verificato con le impronte: `vipi-theme.css`, `vipi-print.css`,
+`vipi-ui.js`, `vipi-boot.js` e l'indice degli asset hanno lo `sha256` **identico** a 1.13.0.
+
+**La prova sul pacchetto pubblicato** (non sul sorgente): `Vipi.Host.exe` win-x64 dalla sua cartella su
+`:5199`, copia del `vipi.db`. `pacchetto-verifica.js` **10/10** — JS minificato servito, circuito Blazor
+aperto, **Ricerca che risponde**, foglio di stile in vigore, console pulita — e
+`diagnostica/avvio-diagnostica.txt` con **`Versione 1.14.0 · commit a997930`**. Poi la cosa nuova, sui tre
+editor e nelle due lingue: riga di stato con le due percentuali e tasto «Traduci ora» presenti anche in
+italiano e anche a zero mancanti.
+
+⚠️ **Che cosa si potrà provare da fuori, e che cosa no**: come per 1.13.0, `wwwroot` non cambia → niente
+impronte da confrontare da anonimo, e l'editor da fuori non si raggiunge. Da fuori si prova che il sito
+**risponde** e il **timbro**; che il cruscotto c'è lo vede chi entra, in tre secondi, aprendo il blocco
+«Traduzione» di un documento qualsiasi con la barra su IT.
