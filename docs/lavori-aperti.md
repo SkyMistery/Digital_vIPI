@@ -9184,7 +9184,7 @@ annotato col **nome** — che è la sola cosa da cui si può partire — e non i
 
 `artifacts/publish/vipi-1.12.0-solo-file-cambiati.zip` · sha256 **`0cafe793…`** · 3,40 MB · **17 file** ·
 timbro **`1.12.0 · e5077ab9`** · publish `linux-x64-20260906-1439`. Foglio:
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.12.0.md`.
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.12.0.md`. ✅ **Caricato e verificato da fuori**: vedi in fondo.
 
 **MINOR, e il numero lo decide il contenuto**: due gesti nuovi (l'orientamento di un allegato incorporato e
 la ricerca nella sua tendina) e un comportamento nuovo del sommario. **Nessuna migrazione** — la chiave
@@ -9236,3 +9236,47 @@ Console pulita: l'unico messaggio è la CSP **interna di Google** dentro il prop
 ⚠️ **Il timbro dice `e5077ab9` e la punta è più avanti**: i commit successivi sono **solo documenti**
 (`deploy/`, `docs/`), quindi il codice dentro il pacchetto è esattamente quello di `e5077ab9`. Stessa forma
 di 1.11.0.
+
+---
+
+### ✅ 6 settembre 2026 — 1.12.0 È IN PRODUZIONE, e le prove che lo dicono
+
+Caricata dal committente e **verificata da fuori**, da anonimo. ⚠️ **Il timbro non si vede da fuori** (la
+barra è dei soli admin): la prova sono le **impronte** degli asset e, soprattutto, **HTML che 1.11.0 non
+sapeva produrre**.
+
+**1. I tre file di `wwwroot` serviti dal sito sono byte per byte quelli del pacchetto.**
+
+| file | sha256 (16) |
+|---|---|
+| `vipi-theme.css` | `82afe616482f9f88` |
+| `vipi-print.css` | `49b5dec2fc76cd77` |
+| `vipi-ui.js` | `8d9a56cb71c932f9` |
+
+**2. 🔴 E la prova che sono arrivate anche le DLL, che le impronte non danno.** Un foglio di stile non
+genera marcatura: questa sì, e viene da `Vipi.Ui.dll`. Sulla **vIPI ACC di LIBB**, pubblica:
+
+| che cosa | 1.11.0 | adesso |
+|---|---|---|
+| testata del sommario | «Navigazione» / «Navigation» | **«Sommario» / «Summary»** (controllate tutt'e due) |
+| voci espandibili (`details.toc-sub`) | **0** — l'indice ACC si fermava al primo livello | **4** |
+| di cui **aperte** | — | **0** |
+| sotto-voci (`a.lvl3`) | **0** | **8** |
+| vecchia classe `lvl2` | su ogni voce | **0** |
+
+**3. E il difetto dello scorrimento è chiuso dove c'era.** Sul vSOP d'aeroporto **LIBD**, che era una delle
+tre famiglie col sommario avvolto in un `<div>`:
+
+```
+primo figlio di .doc-layout  ->  <aside class="toc " aria-label="Indice del documento"…
+```
+
+In 1.11.0 lì c'era un `<div>` alto quanto la barra, ed è la ragione per cui `position:sticky` non aveva dove
+scorrere. Ora l'`<aside>` è **figlio diretto** della griglia.
+
+⚠️ **Da dire a chi controlla** — due cose che si vedono e che senza una riga sembrano guasti (stanno nel
+foglio, ma il foglio lo legge chi carica, non chi usa):
+
+1. le voci del sommario con sotto-sezioni **nascono chiuse**: non manca niente, è più corto apposta;
+2. girando un allegato incorporato **gira anche la barra di Google**: è il prezzo del fatto che il PDF lo
+   mostra il loro visualizzatore, non un difetto.
