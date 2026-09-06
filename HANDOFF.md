@@ -1,5 +1,34 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+**Ultimo aggiornamento:** 6 settembre 2026 — ⏸️ **1.11.0 NON È ANCORA CARICATO: c'è una correzione da
+fare prima.**
+
+Il pacchetto è **costruito e provato** (18 file, sha256 `91b158a6…`, timbro `1.11.0 · 072cb13e`, commit
+`5f98cdc7`) ma **resta a terra**: il committente vuole sistemare una cosa prima di spedirlo. Quale, non è
+ancora detto — chi riprende **lo chieda**, non lo indovini.
+
+> ### 🔴 Se la correzione tocca il CODICE, il pacchetto va RIFATTO — non ritoccato
+>
+> Lo zip che sta in `artifacts/publish/` diventa **vecchio** nell'istante in cui entra un commit nuovo, e
+> non si aggiorna «aggiungendo il file cambiato»: il **timbro nasce dal commit**, quindi cambia; cambiano le
+> **impronte**; e può cambiare l'**elenco** dei file (un progetto in più, o `wwwroot` che entra o esce).
+> Si rifà la catena del runbook — `docs/guide/preparare-un-pacchetto.md` — dal passo 1:
+> verde su tutto → ruota → publish → elenco col `git diff` **da `99f33f0`** → impronte → zip → prova del
+> pacchetto. ⚠️ **E si ridecide il numero**: se la correzione è «solo una correzione» resta 1.11.0 (non è
+> ancora uscito, quindi non c'è niente da rispettare); se porta dentro altro, il numero segue il CONTENUTO.
+>
+> ⚠️ **Non ruotare la consegna** (`-Azione Ruota`) finché 1.11.0 non è uscito: ruotare sposta in
+> `publish_old` un pacchetto che non è mai stato in produzione, e il confronto per impronte del giro dopo
+> partirebbe dal pacchetto sbagliato. Si rifà **sopra**, sostituendo `solo-18-file-1.11.0` e il suo zip.
+
+Se invece la correzione è **solo documentale**, il pacchetto resta valido così com'è: i `.md` non stanno fra
+i file da caricare — nello zip sono un ramo a parte, e si rigenera con il solo passo `Zip`.
+
+**Che cosa contiene 1.11.0** è scritto qui sotto, nel blocco del 5 settembre: §BS immagini ridimensionabili,
+§BT il payload che non mangia più il contenuto (era **perdita di dati**), §BU l'aeroporto che cambia ACC.
+
+---
+
 **Ultimo aggiornamento:** 5 settembre 2026, sera — 📦 **1.11.0 È PRONTO, NON ANCORA CARICATO**
 
 `artifacts/publish/vipi-1.11.0-solo-file-cambiati.zip` · sha256 `91b158a6…` · 4,52 MB · **18 file** ·

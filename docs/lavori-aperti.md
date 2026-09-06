@@ -8652,3 +8652,23 @@ Publish `win-x64`, avviato **dalla sua cartella**, guidato con Edge:
 ℹ️ **Un'osservazione emersa dalla prova, e NON è di questo pacchetto**: fra i risultati di ricerca compare il
 **JSON grezzo** del payload di una sezione AoR (`{"Callsigns":[…]}`). L'indice è stato costruito prima; vale
 un giro suo.
+
+### ⏸️ 6 settembre 2026 — il pacchetto resta a terra: una correzione prima
+
+Il committente ha fermato la consegna: **prima c'è una cosa da correggere**, e quale non è ancora detto.
+Il pacchetto è costruito e provato, ma **non è stato caricato**.
+
+🔴 **Se la correzione tocca il codice, il pacchetto si RIFÀ — non si ritocca.** Lo zip diventa vecchio
+nell'istante in cui entra un commit: il **timbro nasce dal commit**, le **impronte** cambiano, e può cambiare
+l'**elenco** dei file. Si rifà la catena del runbook dal passo 1, col `git diff` sempre **da `99f33f0`** (il
+commit di 1.10.0, che è quel che gira davvero).
+
+⚠️ **E non si ruota la consegna** finché 1.11.0 non è uscito: `-Azione Ruota` sposterebbe in `publish_old` un
+pacchetto mai andato in produzione, e il confronto per impronte del giro dopo partirebbe da quello sbagliato.
+Si sostituisce `solo-18-file-1.11.0` **sul posto**.
+
+⚠️ **E si ridecide il numero**: 1.11.0 non è mai uscito, quindi non promette ancora niente a nessuno — se la
+correzione porta dentro altro contenuto, il numero segue il CONTENUTO come sempre.
+
+Se invece la correzione è **solo documentale**, il pacchetto resta valido: i `.md` non sono fra i file da
+caricare, e basta rigenerare lo zip (passo `Zip`) perché il ramo `docs/` riprenda i fogli aggiornati.
