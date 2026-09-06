@@ -9180,6 +9180,84 @@ annotato col **nome** — che è la sola cosa da cui si può partire — e non i
 
 ---
 
+### 📦 6 settembre 2026, sera — il pacchetto 1.13.0
+
+`artifacts/publish/vipi-1.13.0-solo-file-cambiati.zip` · sha256 **`7a2042d5…`** · 4,42 MB · **11 file** ·
+timbro **`1.13.0 · 708257ed`** · publish `linux-x64-20260906-2130`. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.13.0.md`. 🟡 **Da caricare.**
+
+**MINOR, e il numero lo decide il contenuto**: ci sono **sezioni nuove**, che è esattamente ciò che una
+PATCH esclude. **Nessuna migrazione** — tutto è catalogo, viste e passi di manutenzione all'avvio, e la
+colonna `DocumentSection.Audience` è in produzione dal dump del 30 agosto. Si consegna da sola via FTP,
+anche dentro la [finestra cieca](#) fino al 16.
+
+**Dentro**: l'indice dei vSOP militari chiesto dal SOD — carta
+[`feature/2026-09-06-vsop-sezioni-sod.md`](feature/2026-09-06-vsop-sezioni-sod.md).
+
+**I file.** Quattro progetti (`Application`, `Infrastructure`, `Ui`, `Hosting`) coi loro `.pdb`, più `Host`
+(il timbro) e il satellite inglese (due `.resx` toccati). ⚠️ **Nessun file di `wwwroot`**, e non è una
+dimenticanza: verificato con le impronte — `vipi-theme.css`, `vipi-print.css`, `vipi-ui.js` e l'indice degli
+asset hanno lo `sha256` **identico** a 1.12.0.
+
+⚠️ **`Vipi.Hosting.dll` c'è, e non è in tutti i pacchetti.** Ci vive il cablaggio dei passi che girano
+all'avvio, e questa volta ce ne sono due nuovi: senza quel file i vSOP già scritti resterebbero nella forma
+vecchia **in silenzio**.
+
+## 🔴 Due cose imparate preparandolo
+
+**1. In `publish/` c'erano DUE cartelle `linux-x64-*`, e `Ruota` prendeva quella sbagliata.** Il rifacimento
+di 1.11.0 (`20260906-1124`) era rimasto lì accanto alla consegna vera (`20260906-1439`), e
+`Get-ChildItem … | Select-Object -First 1` prende la **prima in ordine alfabetico**: avrebbe archiviato la
+consegna online sotto la data sbagliata, lasciando in `publish/` proprio la cartella da cui poi si
+confrontano le impronte. È la stessa trappola che 1.12.0 aveva già pagato **dall'altro capo** — prendere «la
+cartella che si ha sotto mano» invece di quella della consegna.
+✅ Chiuso: lo script ora **si ferma** se ne trova più di una e le elenca. Non può indovinare, e allora lo
+dice invece di scegliere.
+
+**2. Una verifica dal vivo che accusa il prodotto, e il colpevole era la LINGUA del browser.** Il primo giro
+del driver dava **cinque rossi** — «le sezioni nuove non ci sono», «le marcate non si vedono». Erano tutti
+falsi: Edge parte in inglese, i titoli di catalogo si risolvono **nella lingua di lettura**, e il driver
+cercava i titoli **italiani**. ⚠️ Un secondo falso allarme nello stesso giro: «Working areas» sembrava
+senza figli, ma quella sezione nasce **collassata** (`InitiallyCollapsedKeys`) e `innerText` di un
+`<details>` chiuso non contiene i figli. Il driver ora apre tutti i `<details>` prima di misurare.
+**Quando una misura accusa qualcosa che i test coprono, il sospetto va prima allo strumento.**
+
+## La verifica dal vivo, sul pacchetto pubblicato
+
+`Vipi.Host.exe` del publish `win-x64`, avviato dalla sua cartella su `:5199`, su una **copia** del `vipi.db`
+di sviluppo.
+
+I tre passi di manutenzione hanno girato sul database vero e hanno detto quanto:
+
+```
+Aggiunte 60 sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari.
+Tolta la sezione «QRA / Scramble» da 9 vSOP militari.
+Marcate «per i piloti» 72 sezioni che il catalogo vuole tali e che stavano ancora «per tutti».
+```
+
+⚠️ **Tutte e nove le QRA erano vuote** e sono state eliminate: nessuna è diventata sezione libera. La strada
+«con del testo dentro» resta coperta dai soli test — ed è quella che conta sulle quattro basi di difesa
+aerea, dove quel testo può esserci davvero.
+
+Poi `pacchetto-verifica.js` (dieci controlli, tutti verdi: JS minificato servito, circuito Blazor avviato,
+**la Ricerca risponde**, editor ACC, console pulita) e un driver nuovo sull'indice del SOD, su **LIBG
+Grottaglie**, otto controlli verdi:
+
+| controllo | esito |
+|---|---|
+| le otto sezioni nuove nell'editor | ✅ 8/8 |
+| profondità 3 — `VFR`/`IFR` sotto «Departure procedures» | ✅ |
+| «QRA / Scramble» sparita | ✅ |
+| vista **Tutti**: le dodici marcate si vedono | ✅ 12/12 |
+| vista **ATC**: spariscono tutte | ✅ |
+| vista **Pilota**: restano | ✅ 12/12 |
+| vista ATC: «Runways» resta, «Threshold coordinates» no | ✅ il filtro prende la figlia, non il padre |
+| vista ATC: «Airport layout» resta (non è marcata) | ✅ |
+
+**Suite**: 15 assiemi verdi su entrambi i TFM, `dotnet build -c Release --no-incremental` a zero avvisi.
+
+---
+
 ### 📦 6 settembre 2026 — il pacchetto 1.12.0
 
 `artifacts/publish/vipi-1.12.0-solo-file-cambiati.zip` · sha256 **`0cafe793…`** · 3,40 MB · **17 file** ·

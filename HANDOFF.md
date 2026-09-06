@@ -1,6 +1,35 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026 — ✅ **1.11.0 È IN PRODUZIONE**, caricata dal committente e
+**Ultimo aggiornamento:** 6 settembre 2026, sera — 📦 **1.13.0 È PRONTO, NON ANCORA CARICATO**
+
+`artifacts/publish/vipi-1.13.0-solo-file-cambiati.zip` · sha256 `7a2042d5…` · 4,42 MB · **11 file** ·
+timbro **`1.13.0 · 708257ed`**. **MINOR** — ci sono **sezioni nuove**, che è ciò che una PATCH esclude.
+**NESSUNA migrazione**: si consegna da sola via FTP anche dentro la finestra cieca fino al 16. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.13.0.md`.
+
+**L'indice dei vSOP militari è quello chiesto dal SOD.** Confrontato con quello che avevamo, **non mancava
+niente** — quindi non si è tolto nulla per allinearsi. Dodici sezioni nuove, «QRA / Scramble» fuori (era
+l'unica inventata da noi), le coordinate delle soglie promosse da seconda tabella di «Piste» a
+sotto-sezione. Il profilo va da **32 a 43**. Carta: `docs/feature/2026-09-06-vsop-sezioni-sod.md`.
+
+⚠️ **Il profilo TOCCA il limite di profondità**: «Aree di lavoro › Procedure generali › Procedure di
+partenza › VFR» sta a `Depth == 3`, e `MaxDepth` vale 3. Zero margine, e un test lo dice a chi provasse ad
+annidare ancora.
+
+⚠️ **`[PILOTS]` è diventato un default di CATALOGO**, non più una marcatura a mano: dodici sezioni
+**nascono** «per i piloti». Nella vista ATC quelle dodici **non si vedono** — è la decisione del
+committente, presa sapendolo, e nel foglio è detto.
+
+▶ **Da dire a chi controlla**: nei vSOP militari compaiono dodici sezioni nuove (vuote, da scrivere), «QRA
+/ Scramble» sparisce — se conteneva del testo **resta come sezione libera**, non si perde niente — e le
+dodici marcate non si vedono nella vista ATC: chi le vuole leggere apre **«Tutti»**, che è la vista di
+partenza.
+
+⚠️ **La consegna dopo**: il `git diff` del prossimo pacchetto parte da **`708257ed`**, non più da
+`e5077ab9`.
+
+---
+**Aggiornamento precedente:** 6 settembre 2026 — ✅ **1.11.0 È IN PRODUZIONE**, caricata dal committente e
 **verificata da fuori**.
 
 `vipi-1.11.0-solo-file-cambiati.zip` · sha256 `4b690bc4…` · 4,52 MB · **18 file** · timbro

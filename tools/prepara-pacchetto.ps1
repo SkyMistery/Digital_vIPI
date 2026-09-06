@@ -1,4 +1,4 @@
-#Requires -Version 5.1
+﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
     Prepara un pacchetto di consegna per atc.it.ivao.aero: ruota la consegna vecchia, scrive le impronte,
@@ -83,8 +83,21 @@ switch ($Azione) {
     # La consegna corrente diventa storia. Si porta via i SUOI docs: quelli di allora, che non si
     # aggiornano mai — è l'unico modo di rispondere fra sei mesi a «cosa gli avevamo detto di fare?».
     'Ruota' {
-        $pubDir = Get-ChildItem $publish -Directory -Filter 'linux-x64-*' | Select-Object -First 1
-        if (-not $pubDir) { Fermati "in ${publish} non c'è nessuna cartella linux-x64-*: niente da ruotare." }
+        # ⚠️ UNA SOLA, o non si ruota. Il 6 settembre 2026 in publish/ ce n'erano DUE — il rifacimento di
+        # 1.11.0 e la consegna 1.12.0 — e questo `Select-Object -First 1` prendeva la PRIMA in ordine
+        # alfabetico, cioè quella vecchia: avrebbe archiviato la consegna online sotto la data sbagliata,
+        # e lasciato in publish/ la cartella da cui poi si confrontano le impronte. È la stessa trappola
+        # che il pacchetto 1.12.0 aveva già pagato una volta, dall'altro capo: prendere «la cartella che
+        # si ha sotto mano» invece di quella della consegna. Qui lo script non può indovinare — e allora
+        # lo dice invece di scegliere.
+        $tutte = @(Get-ChildItem $publish -Directory -Filter 'linux-x64-*')
+        if ($tutte.Count -eq 0) { Fermati "in ${publish} non c'è nessuna cartella linux-x64-*: niente da ruotare." }
+        if ($tutte.Count -gt 1) {
+            Fermati ("in ${publish} ci sono $($tutte.Count) cartelle linux-x64-*: " +
+                     ($tutte.Name -join ', ') + ". Non so quale sia la consegna: spostane a mano quelle " +
+                     'che non lo sono, poi rilancia.')
+        }
+        $pubDir = $tutte[0]
 
         $data = $pubDir.Name -replace '^linux-x64-', ''
         $dest = Join-Path $vecchi $data
