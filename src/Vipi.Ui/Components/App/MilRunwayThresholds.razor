@@ -1,19 +1,18 @@
-@* La SECONDA tabella della sezione «Piste», e sta <b>solo</b> nel vSOP militare (carta §12c): le coordinate
-   delle soglie.
+﻿@* Il corpo della sotto-sezione «Coordinate delle soglie», che sta <b>solo</b> nel vSOP militare (carta
+   §12c, promossa a sezione dall'indice del SOD il 6 settembre 2026).
 
    ⚠️ È una tabella a parte e non due colonne in più su quella delle piste, e non è una scelta di gusto: la
    tabella delle piste ha già otto colonne — su un portatile è al limite — e una coordinata sessagesimale è
    larga il doppio di una cella normale. Due tabelle si leggono; una tabella da dieci colonne si scorre.
+
+   ⚠️ <b>Niente titolo qui dentro.</b> Finché era la seconda tabella di «Piste» se lo disegnava da sé con un
+   `h4`; adesso il titolo è quello della sezione, e scriverlo di nuovo lo direbbe due volte di fila.
 
    ⚠️ Nasce VUOTA su tutti i campi finché l'aeroporto non si ri-importa da IVAO: l'import delle piste è
    per-aeroporto e non automatico. Per questo, quando non c'è niente, lo dice invece di non comparire — una
    tabella che manca si scambia per una funzione che non c'è. *@
 @inject IStringLocalizer<SharedResource> L
 @using Vipi.Application.Content
-
-@* ⚠️ Il tag dice la struttura (e' una sotto-tabella della sezione «Piste»), la classe porta la misura:
-   un `h4` nudo qui e' piu' grande del titolo di sezione che gli sta sopra. *@
-<h4 class="mil-h4">@L["Rwy_ThresholdsTitle"]</h4>
 
 @if (Righe.Count == 0)
 {

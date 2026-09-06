@@ -541,6 +541,16 @@ else
                                      OnImporta="ImportaParcheggi"
                                      Sorgenti="_altriSop" CaricaSorgente="ParcheggiDiUnAltroSop" />
                 break;
+            @* ⚠️ Le soglie NON si scrivono: arrivano dall'import piste di IVAO, che è per-aeroporto e non
+               automatico. Non cadono nel `default:` — quello manda all'editor dell'aeroporto, dove le
+               coordinate non si toccano lo stesso, ed è il giro a vuoto che il meteo ha già pagato il 2
+               settembre 2026. *@
+            case SectionKeys.RunwayThresholds:
+                <div class="callout info" style="margin:0">
+                    <span class="cic"><Icon Name="info" Size="18" /></span>
+                    <div><p class="ct">@L["Mil_ThresholdsTitle"]</p>@L["Mil_ThresholdsBody"]</div>
+                </div>
+                break;
             case "validity":
                 <div class="callout info" style="margin:0 0 10px">
                     <span class="cic"><Icon Name="clock" Size="18" /></span>

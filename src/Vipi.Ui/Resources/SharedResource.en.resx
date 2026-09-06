@@ -1112,8 +1112,9 @@
   <data name="Div_UnknownNavaid" xml:space="preserve"><value>That code is not in the catalogue: add it in the Navaids section first.</value></data>
   <data name="Nav_Pick" xml:space="preserve"><value>Pick the station…</value></data>
   <data name="Nav_PickWhich" xml:space="preserve"><value>«{0}» is more than one station: pick which one.</value></data>
-  <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Threshold coordinates</value></data>
   <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Threshold coordinates have not arrived from the source yet: they come with a re-import of the airport from IVAO.</value></data>
+  <data name="Mil_ThresholdsTitle" xml:space="preserve"><value>Threshold coordinates</value></data>
+  <data name="Mil_ThresholdsBody" xml:space="preserve"><value>They are not written here or anywhere else: threshold coordinates come from IVAO together with the runways. To get them on an airport that has none yet, re-import it from the sources page.</value></data>
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevation</value></data>
   <data name="Area_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Area_Limits" xml:space="preserve"><value>Limits</value></data>
