@@ -564,6 +564,120 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return mosse;
     }
 
+    /// <inheritdoc cref="IDocumentMaintenance.RemoveMilQraSectionsAsync"/>
+    public async Task<int> RemoveMilQraSectionsAsync(CancellationToken ct = default)
+    {
+        const string qra = "qra";
+
+        var milDocIds = await _db.Airports.Where(a => a.MilDocumentId != null)
+            .Select(a => a.MilDocumentId!.Value).ToListAsync(ct);
+        if (milDocIds.Count == 0) return 0;
+
+        // ⚠️ TUTTE le versioni, non la sola piu' recente: una bozza in lavorazione e la versione da cui e'
+        // nata portano la stessa sezione, e lasciarla in una delle due rimetterebbe in piedi la chiave che
+        // il catalogo non conosce piu' -- al primo salvataggio, e senza che nessuno la veda arrivare.
+        var versionIds = await _db.DocumentVersions
+            .Where(v => milDocIds.Contains(v.DocumentId)).Select(v => v.Id).ToListAsync(ct);
+        if (versionIds.Count == 0) return 0;
+
+        var sezioni = await _db.DocumentSections
+            .Where(x => versionIds.Contains(x.DocumentVersionId) && x.SectionKey == qra)
+            .ToListAsync(ct);
+        if (sezioni.Count == 0) return 0;
+
+        var ids = sezioni.Select(x => x.Id).ToList();
+
+        // Che cosa c'e' dentro: blocchi con qualcosa scritto, e sotto-sezioni. Le due domande si fanno in
+        // due letture sole -- una per chiave, non una per sezione (il difetto che ha ucciso il processo due
+        // volte con una WeakReference per query).
+        var conTesto = await _db.ContentBlocks
+            .Where(b => ids.Contains(b.SectionId)
+                        && ((b.Body != null && b.Body != "") || (b.BodyJson != null && b.BodyJson != "")))
+            .Select(b => b.SectionId).Distinct().ToListAsync(ct);
+        var conFigli = await _db.DocumentSections
+            .Where(x => x.ParentSectionId != null && ids.Contains(x.ParentSectionId.Value))
+            .Select(x => x.ParentSectionId!.Value).Distinct().ToListAsync(ct);
+        var abitate = conTesto.Concat(conFigli).ToHashSet();
+
+        foreach (var sezione in sezioni)
+        {
+            if (abitate.Contains(sezione.Id))
+            {
+                // Sezione libera: stesso titolo, stessi blocchi, stesso posto. Cambia solo che il catalogo
+                // non la riconosce piu' -- che e' esattamente cio' che e' successo.
+                sezione.SectionKey = SectionKeys.NewCustom();
+                sezione.RowVersion = Guid.NewGuid().ToByteArray();
+            }
+            else
+            {
+                // ⚠️ I blocchi placeholder vanno via con lei: sono vuoti per definizione (li ha messi la
+                // nascita), ma restare senza sezione li lascerebbe orfani.
+                var segnaposto = await _db.ContentBlocks
+                    .Where(b => b.SectionId == sezione.Id).ToListAsync(ct);
+                if (segnaposto.Count > 0) _db.ContentBlocks.RemoveRange(segnaposto);
+                _db.DocumentSections.Remove(sezione);
+            }
+        }
+
+        // Il gruppo che l'ha persa si richiude: Order e' una posizione fra fratelli, e il buco farebbe
+        // partire la sezione dopo dal numero sbagliato.
+        var padri = sezioni.Where(x => x.ParentSectionId is not null && !abitate.Contains(x.Id))
+            .Select(x => x.ParentSectionId!.Value).Distinct().ToList();
+        if (padri.Count > 0)
+        {
+            var tolte = sezioni.Where(x => !abitate.Contains(x.Id)).Select(x => x.Id).ToHashSet();
+            var fratelli = await _db.DocumentSections
+                .Where(x => x.ParentSectionId != null && padri.Contains(x.ParentSectionId.Value))
+                .ToListAsync(ct);
+            foreach (var gruppo in fratelli.Where(x => !tolte.Contains(x.Id)).GroupBy(x => x.ParentSectionId))
+            {
+                var ordinati = gruppo.OrderBy(x => x.Order).ToList();
+                for (var i = 0; i < ordinati.Count; i++)
+                {
+                    if (ordinati[i].Order == i + 1) continue;
+                    ordinati[i].Order = i + 1;
+                    ordinati[i].RowVersion = Guid.NewGuid().ToByteArray();
+                }
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return sezioni.Count;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.ApplyCatalogAudienceDefaultsAsync"/>
+    public async Task<int> ApplyCatalogAudienceDefaultsAsync(CancellationToken ct = default)
+    {
+        // Le chiavi che il catalogo vuole marcate, per profilo. ⚠️ Si chiede al CATALOGO invece di
+        // riscrivere qui l'elenco del SOD: due elenchi che devono restare uguali divergono al primo
+        // ritocco, ed e' gia' successo fra VloaSections e il registro.
+        var voluto = new Dictionary<string, SectionAudience>(StringComparer.OrdinalIgnoreCase);
+        foreach (var profilo in Enum.GetValues<SectionProfile>())
+            foreach (var d in Discendenti(SectionCatalog.For(profilo)))
+                if (d.Audience != SectionAudience.Both) voluto[d.Key] = d.Audience;
+        if (voluto.Count == 0) return 0;
+
+        var chiavi = voluto.Keys.ToList();
+
+        // ⚠️ Solo chi sta ancora a `Both`: `Pilots`/`Controllers` li puo' aver scritti solo una persona.
+        var sezioni = await _db.DocumentSections
+            .Where(x => chiavi.Contains(x.SectionKey) && x.Audience == SectionAudience.Both)
+            .ToListAsync(ct);
+        if (sezioni.Count == 0) return 0;
+
+        foreach (var sezione in sezioni)
+        {
+            sezione.Audience = voluto[sezione.SectionKey];
+            sezione.RowVersion = Guid.NewGuid().ToByteArray();
+        }
+        await _db.SaveChangesAsync(ct);
+        return sezioni.Count;
+    }
+
+    /// <summary>Un descrittore e tutti i suoi discendenti, a qualunque profondita'.</summary>
+    private static IEnumerable<SectionDescriptor> Discendenti(IEnumerable<SectionDescriptor> descrittori) =>
+        descrittori.SelectMany(d => new[] { d }.Concat(Discendenti(d.Children ?? Array.Empty<SectionDescriptor>())));
+
     // ---- carta 2026-08-26: i documenti d'aeroporto gia' scritti ----
     // ⚠️ La mappa titolo→chiave NON sta qui: sta in AirportLegacySections, perche' ha DUE lettori. Questo passo
     // riscrive i documenti di LAVORO una volta per tutte; il viewer deve leggere anche gli snapshot di release,

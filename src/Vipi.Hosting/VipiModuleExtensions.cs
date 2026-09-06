@@ -676,6 +676,25 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari.", catalog);
 
+        // QRA/Scramble fuori dai vSOP militari (indice del SOD, 6 settembre 2026). ⚠️ DOPO
+        // AddMissingCatalogSections: quel passo misura la presenza per CHIAVE su tutta la versione, e con la
+        // sezione ancora al suo posto non c'è niente da confondere — ma togliere prima di aggiungere
+        // lascerebbe per un istante un documento con un buco in mezzo alle procedure di volo, e l'ordine di
+        // questi passi è la sola cosa che dice quale stato è quello vero.
+        var qra = maintenance.RemoveMilQraSectionsAsync().GetAwaiter().GetResult();
+        if (qra > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Tolta la sezione «QRA / Scramble» da {Count} vSOP militari: quelle con del testo dentro sono diventate sezioni libere.", qra);
+
+        // Il pubblico di default delle sezioni marcate dal SOD (6 settembre 2026). ⚠️ DOPO
+        // AddMissingCatalogSections, e non è indifferente: le sezioni appena aggiunte nascono già col loro
+        // pubblico, ma le otto che c'erano prima — parcheggi, nominativi, alternati… — no, e sono proprio
+        // quelle che questo passo deve raggiungere.
+        var pubblico = maintenance.ApplyCatalogAudienceDefaultsAsync().GetAwaiter().GetResult();
+        if (pubblico > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Marcate «per i piloti» {Count} sezioni che il catalogo vuole tali e che stavano ancora «per tutti».", pubblico);
+
         // vLOA: via la riga «Effective from — AIRAC ####» seminata a mano (doc 14 §3b). ⚠️ DOPO
         // AddMissingCatalogSections: se la sezione «validity» mancasse ancora, non ci sarebbe la tabella da
         // ripulire e il passo girerebbe a vuoto proprio sui documenti che ne hanno bisogno.
