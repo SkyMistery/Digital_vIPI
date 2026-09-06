@@ -9177,3 +9177,62 @@ editor più i due banchi di trascinamento.
 annotato col **nome** — che è la sola cosa da cui si può partire — e non inseguito qui.
 
 ⚠️ **Sul pacchetto**: come §BY, tocca `vipi-theme.css` e le frasi. Nessuna migrazione.
+
+---
+
+### 📦 6 settembre 2026 — il pacchetto 1.12.0
+
+`artifacts/publish/vipi-1.12.0-solo-file-cambiati.zip` · sha256 **`0cafe793…`** · 3,40 MB · **17 file** ·
+timbro **`1.12.0 · e5077ab9`** · publish `linux-x64-20260906-1439`. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.12.0.md`.
+
+**MINOR, e il numero lo decide il contenuto**: due gesti nuovi (l'orientamento di un allegato incorporato e
+la ricerca nella sua tendina) e un comportamento nuovo del sommario. **Nessuna migrazione** — la chiave
+`rotazione` è nuova nel JSON di un blocco e i blocchi già scritti tornano al valore di riposo: si consegna
+da sola via FTP, anche dentro la finestra cieca fino al 16.
+
+Dentro: **§BW** (allegato: ricerca + rotazione), **§BX** (sotto-sezioni collassabili nell'editor), **§BY** e
+**§BZ** (il sommario unico, documenti ed editor).
+
+### I 17 file, e perché sono 17
+
+Due soli progetti cambiati (`git diff --name-only 4b35946 HEAD -- src`): **`Vipi.Application`** e
+**`Vipi.Ui`**. Più `Host`, che porta sempre il timbro; il satellite inglese, perché i due `.resx` sono
+cambiati; e **tre** file di `wwwroot` coi loro `.br`/`.gz` **e** l'indice degli asset.
+
+⚠️ **Le impronte hanno verificato, e la verifica è stata fatta contro la BASE GIUSTA.** Il primo confronto
+era col publish `linux-x64-20260905-2256`, che **non è** quello online: 1.11.0 è stata **rifatta** il 6
+settembre e il suo publish è `linux-x64-20260906-1124`. Rifatto contro la copia **dentro il pacchetto
+1.11.0** (e, per i due file che quel pacchetto non conteneva, contro il publish online): **tutti e
+diciassette** differiscono davvero. Nessun file spedito per niente.
+
+### 🔴 La rete dei file non dichiarati ha parlato, e aveva ragione a modo suo
+
+Il primo `-Azione Zip` ha elencato **dieci** file come «non dichiarati» pur essendo in `IMPRONTE.txt`:
+l'elenco era stato scritto col separatore di Windows (`en\Vipi.Ui.resources.dll`) mentre lo script cammina
+la cartella con la **barra in avanti**. Lo zip conteneva comunque tutti e 17 — li prende dall'elenco — ma
+la rete avrebbe **gridato al lupo a ogni consegna**, che è il modo esatto in cui si smette di leggere gli
+allarmi (è scritto nel runbook, a proposito di un'altra rete). Elenco riscritto con `/`, pacchetto
+ricostruito, **rete muta**.
+
+### La prova sul PACCHETTO, non sul sorgente
+
+Publish `win-x64` nello scratchpad, avviato **dalla sua cartella**, guidato con Edge. ⚠️ I tre file di
+`wwwroot` del publish Windows hanno le impronte **identiche** a quelli del pacchetto Linux: provare quello
+è provare questo.
+
+| controllo | esito |
+|---|---|
+| il foglio minificato arriva, il circuito si apre | ✅ `Blazor` e `vipiWireUi` in piedi, fondo del tema dipinto |
+| la **Ricerca** risponde | ✅ due lettere → 74 risultati |
+| processo **ucciso e riavviato** | ✅ la pagina si è ricaricata **da sola** e il circuito si è riaperto |
+| `avvio-diagnostica.txt` | ✅ `Versione 1.12.0` |
+| il **sommario** | ✅ «Summary», `sticky`, figlio diretto della griglia, 5 voci espandibili, **0 aperte** |
+| lo **scorrimento** | ✅ la barra resta a vista dopo 1200 px |
+| il **giro** del riquadro | ✅ 90° → 180° col JS **minificato** |
+
+Console pulita: l'unico messaggio è la CSP **interna di Google** dentro il proprio visualizzatore.
+
+⚠️ **Il timbro dice `e5077ab9` e la punta è più avanti**: i commit successivi sono **solo documenti**
+(`deploy/`, `docs/`), quindi il codice dentro il pacchetto è esattamente quello di `e5077ab9`. Stessa forma
+di 1.11.0.
