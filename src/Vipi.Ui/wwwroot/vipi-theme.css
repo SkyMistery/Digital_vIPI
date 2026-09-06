@@ -1211,6 +1211,31 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .block.cb>.cb-head:hover .cb-chev{background:var(--tint-atmos)}
 .block.cb[open]>.cb-head .cb-chev{transform:rotate(90deg)}
 .block.cb .cb-body{margin-top:2px}
+
+/* SOTTO-sezioni collassabili: stesso componente e stesso gesto delle radici, aspetto di .coord-sub /
+   .coord-sub2 -- che e' quello che il VIEWER usa gia' per le stesse sezioni. Le regole non si possono
+   ereditare da `.block.cb` perche' quelle sono ancorate a `.block`, che qui non c'e' apposta: una
+   sotto-sezione non deve avere la cornice di una card di primo livello. */
+.cb-sub,.cb-sub2{border:1px solid var(--line);border-radius:11px;margin:14px 0;background:var(--surface)}
+.cb-sub2{border-radius:9px;margin:10px 0;background:var(--surface-soft)}
+/* ⚠️ NIENTE `overflow:hidden`, che sarebbe la via corta per far rispettare gli angoli al fondo
+   dell'intestazione: dentro l'intestazione di una sezione ci sono il «?» e la conferma in linea, e tutti
+   e due aprono un riquadro `position:absolute`. Un antenato che ritaglia li taglia -- misurato il 6
+   settembre 2026: con `overflow:hidden` l'unico antenato che tagliava era proprio questo. Gli angoli li
+   arrotonda l'intestazione da sé: tutti e quattro da chiusa, i due di sopra da aperta. */
+.cb-sub>.cb-head{border-radius:10px}
+.cb-sub[open]>.cb-head{border-radius:10px 10px 0 0}
+.cb-sub2>.cb-head{border-radius:8px}
+.cb-sub2[open]>.cb-head{border-radius:8px 8px 0 0}
+.cb-sub>.cb-head,.cb-sub2>.cb-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer;list-style:none;padding:10px 14px;background:var(--tint-atmos)}
+.cb-sub2>.cb-head{padding:8px 12px;background:var(--tint-atmos-soft)}
+.cb-sub>.cb-head::-webkit-details-marker,.cb-sub2>.cb-head::-webkit-details-marker{display:none}
+.cb-sub>.cb-head:hover .cb-chev,.cb-sub2>.cb-head:hover .cb-chev{background:var(--tint-atmos)}
+.cb-sub .cb-title,.cb-sub2 .cb-title{flex:1;min-width:0}
+.cb-sub .cb-title>h4,.cb-sub2 .cb-title>h4{margin-top:0}
+.cb-sub .cb-chev,.cb-sub2 .cb-chev{flex:none;color:var(--brand-ink);font-size:14px;line-height:1;padding:2px 4px;margin-top:1px;transition:transform .18s;border-radius:6px}
+.cb-sub[open]>.cb-head .cb-chev,.cb-sub2[open]>.cb-head .cb-chev{transform:rotate(90deg)}
+.cb-sub>.cb-body,.cb-sub2>.cb-body{padding:12px 14px}
 .block>h3{margin-top:0;scroll-margin-top:84px}
 .block>h4{scroll-margin-top:84px}
 /* Casella degli impatti: una riga per fatto, dentro il callout. Il pulsante di chiusura sta sulla riga

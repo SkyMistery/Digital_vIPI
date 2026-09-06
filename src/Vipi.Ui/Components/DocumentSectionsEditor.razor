@@ -363,11 +363,28 @@ else
         }
         else
         {
-            var baseStyle = "padding:10px;margin:8px 0";
-            <div class="coord-sub" id="@($"s-{s.Id}")" style="@(hid ? baseStyle + ";opacity:.5" : baseStyle)">
-                @SectionHeader(s, mand, hid, false, offset)
-                @SectionBody(s, relDepth)
-            </div>
+            @* Sotto-sezione COLLASSABILE, dallo stesso componente delle radici (6 settembre 2026).
+               ⚠️ Prima era un `<div>` fisso, e il documento e l'editor dicevano due cose diverse: nel
+               viewer una sotto-sezione si è sempre chiusa (`SectionNode` la rende `<details>`), qui no. Su
+               un vSOP militare le figlie sono VENTI su ventisei: arrivare all'ultima voleva dire scorrere
+               tutte le altre, aperte.
+               ⚠️ E si passa dal componente condiviso invece di scrivere un secondo `<details>`: chevron,
+               `data-persist` e «espandi/comprimi tutti» valgono così anche qui, senza che nessuno se li
+               debba ricordare. Misurato: «comprimi tutti» chiude 32 sezioni su 32 sul vSOP di LIMS.
+               ⚠️ Ma `data-persist` qui NON ricorda niente fra un ricarico e l'altro, e non e' colpa di
+               questa modifica: non ricorda nemmeno per le RADICI, che l'attributo ce l'hanno da sempre.
+               Su una pagina InteractiveServer i `<details>` nascono DOPO che `vipiWireUi` e' girato, e
+               `wireCollapse` aggancia solo quel che trova in quel momento (c'e' gia' `vipiWireCollapse`
+               esportato per le pagine che si ricostruiscono, e questa non lo chiama). Dentro la pagina
+               una sezione chiusa regge il ridisegno: e' il ricarico che la riapre. Difetto separato.
+               ⚠️ Una sotto-sezione NASCOSTA nasce chiusa, come le radici: è fuori dal documento, quindi non
+               è lì che si lavora. *@
+            <CollapsibleBlock @key="s.Id" Level="@(relDepth == 1 ? 1 : 2)" Id="@($"s-{s.Id}")"
+                              Style="@(hid ? "opacity:.5" : null)"
+                              InitiallyOpen="@(!hid && !SectionCatalog.IsInitiallyCollapsed(s.SectionKey))">
+                <Header>@SectionHeader(s, mand, hid, false, offset)</Header>
+                <ChildContent>@SectionBody(s, relDepth)</ChildContent>
+            </CollapsibleBlock>
         }
     };
 
