@@ -492,7 +492,29 @@
       e `wwwroot` (`vipi-theme.css`, `vipi-print.css` e `vipi-ui.js`, coi loro `.br`/`.gz` e l'INDICE degli
       asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
     -->
-    <VipiVersione>1.12.0</VipiVersione>
+    <!--
+      1.13.0 — 6 settembre 2026. **MINOR**, e il numero lo decide il CONTENUTO: ci sono SEZIONI NUOVE, che
+      e' esattamente cio' che una PATCH esclude. Nessuna migrazione: si consegna da sola via FTP, anche
+      dentro la finestra cieca al 16 settembre.
+
+        · L'INDICE dei vSOP militari e' quello chiesto dal SOD: dodici sezioni nuove, «QRA / Scramble»
+          fuori (era l'unica inventata da noi), le coordinate delle soglie promosse da seconda tabella di
+          «Piste» a sotto-sezione. Il profilo va da 32 a 43 sezioni.
+
+        · Il pubblico pilota/ATC diventa un DEFAULT DI CATALOGO: dodici sezioni nascono «per i piloti».
+          ⚠️ Nel foglio va detto che quelle dodici NON si vedono nella vista ATC, e che chi le vuole
+          leggere apre «Tutti» -- o si scambiera' una scelta per una perdita.
+
+        · Tre passi di manutenzione all'avvio portano i vSOP GIA' SCRITTI sulla forma nuova. ⚠️ Uno di
+          questi (`ApplyCatalogAudienceDefaults`) RIBALTA una volta sola le marcature pilota/ATC messe a
+          mano prima di oggi: va nel foglio, non lasciato scoprire.
+
+      Quattro progetti (`Application`, `Infrastructure`, `Ui` e `Hosting` -- che E' un assieme a se',
+      `Vipi.Hosting.dll`, e ci vive il cablaggio dei passi di manutenzione all'avvio) e le FRASI (due
+      `.resx` toccati, quindi il satellite inglese entra). Piu' `Host`, che porta sempre il timbro.
+      ⚠️ Nessun file di `wwwroot` toccato -- da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.13.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

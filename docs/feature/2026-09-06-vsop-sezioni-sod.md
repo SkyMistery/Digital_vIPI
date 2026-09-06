@@ -1,6 +1,6 @@
-# vSOP militari — l'indice che chiede il SOD (6 settembre 2026)
+﻿# vSOP militari — l'indice che chiede il SOD (6 settembre 2026)
 
-> Stato: 🟡 in lavorazione. Ramo `vsop-sezioni-sod`.
+> Stato: ✅ **ESEGUITA il 6 settembre 2026**, ramo `vsop-sezioni-sod`. Consegnata con **1.13.0**.
 > Gemella di [2026-08-27-vsop-militari.md](2026-08-27-vsop-militari.md), che ha creato il profilo.
 
 Il SOD ha mandato l'indice che i vSOP devono avere. Confrontato con il profilo `AirportMil` di oggi:
@@ -115,9 +115,13 @@ compresa — finché quel vSOP non viene ripubblicato.
 resto è catalogo, viste e manutenzione all'avvio. La finestra cieca al 16 settembre
 (`MigrazioniDellaFinestraCiecaTests`) non ha niente da dire su questo lavoro.
 
-## 5. Che cosa resta fuori — e va chiesto al SOD
+## 5. Le due domande al SOD — chiuse il 6 settembre 2026
 
-- **«Airport layout» e la carta d'aerodromo** (`charts:aerodrome`) sono due sezioni distinte nella sua
-  proposta. Nasce come sezione editoriale a blocchi: se voleva la carta, è un doppione da chiudere.
+- ✅ **«Airport layout» e la carta d'aerodromo sono DUE sezioni distinte, e le vuole tutte e due.** Non è
+  un doppione: `charts:aerodrome` è l'**allegato** — la carta AIP dello scalo — e `airportlayout` è la
+  **descrizione a parole** che i SOP scrivono. Restano dove sono, una nei dati generali e una fra le carte.
+- ✅ **Le marcature `[PILOTS]` sono sue**, e le vuole con l'effetto che hanno: nella vista ATC quelle
+  dodici sezioni **non si vedono**. Chi controlla e le vuole leggere apre «Tutti», che è la vista di
+  default.
 - L'ordine delle procedure di volo è **il suo**: `takeoff` → `arrivalrestrictions` → `circuitrestrictions`
   → `sfo` → `commfail` → `gca` → `vfrjet` → `ifrsignificant` → `gat`.
