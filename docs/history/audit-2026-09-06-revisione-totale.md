@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fase 0 chiusa, 5 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-1 chiuse, 10 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -80,7 +80,7 @@ parte da `2b33791a` e non lo tocca.
 | Fase | Perimetro | Stato |
 |---|---|---|
 | **0** | Baseline misurabile: build, test, analizzatori, pacchetti, grafo, file mai citati | ✅ **chiusa** — 5 findings |
-| **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ⏳ |
+| **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ⏳ |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ⏳ |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | ⏳ |
@@ -127,6 +127,11 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-003** | 0 | S4 | 🟢 | CONFERMATO | **156 file su 2 983 non sono formattati** e nessun passo di CI se ne accorge | 156 file · vedi sotto |
 | **R-004** | 0 | S4 | 🟢 | CONFERMATO | `xunit 2.9.3` è marcato **deprecato (Legacy)** dal feed: alternativa `xunit.v3`. Tocca tutti e 9 i progetti di test | 9 `.csproj` in `tests/` |
 | **R-005** | 0 | S3 | 🟢 | CONFERMATO | **Tre strumenti su sette stanno fuori dalla soluzione**: la CI non li compila mai, quindi possono marcire senza che nessuno lo sappia | `tools/Vipi.AuroraBridge.Cli` · `Vipi.AuroraProbe` · `Vipi.DbSeed` |
+| **R-006** | 1 | S3 | 🟢 | CONFERMATO | La guida di configurazione manda a **`/sop/health`** e **`/sop/live/atc`**, che oggi rispondono **404**: sono segmenti macchina, e `LegacyRoutes` li rifiuta apposta | `docs/guide/config.md:351,421` |
+| **R-007** | 1 | **S2** | 🟢 | CONFERMATO | **La patch che si consegna a ivao.it non aggancia `RunVipiStartupMaintenance()`**: cinque passi d'avvio non girerebbero mai, e la sonda di salute resterebbe verde | `docs/guide/ivao-it-wiring.patch:317-348` |
+| **R-008** | 1 | **S2** | 🟢 | CONFERMATO | **1 983 regole CSS su 2 031 non sono confinate sotto `.vipi-root`**, mentre ADR-0005 D3 e la guida dichiarano il contrario. Fra i selettori c'è `details` | `src/Vipi.Ui/wwwroot/vipi-theme.css` |
+| **R-009** | 1 | S4 | 🟢 | CONFERMATO | **179 tipi `public` su 1 381** non sono nominati fuori dal proprio progetto: superficie che vincola senza servire, in un modulo la cui superficie è un ADR | 179 tipi · vedi sotto |
+| **R-010** | 1 | S4 | 🟢 | CONFERMATO | Due commenti che **giustificano una scelta con un numero sbagliato**: «le 60 migrazioni», «le 68 migrazioni». Sono **114** | `DependencyInjection.cs:46` · `VipiModuleExtensions.cs:493` |
 
 ---
 
@@ -144,6 +149,9 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | s-05 | 30 tipi `internal` mai istanziati in `src/` (`CA1812`) — altri candidati morti oltre a R-002 | Fase 4 |
 | s-06 | 63 proprietà di raccolta scrivibili (`CA2227`) nel modello | Fase 2 |
 | s-07 | 4 punti in `AppMemberLoader.cs` non propagano il `CancellationToken` (`CA2016`) | Fase 6 |
+| s-08 | **196 registrazioni `AddScoped`** e un `AddDbContext` (che è Scoped): in Blazor Server «scoped» vuol dire *per circuito*, cioè ore. Solo **29 componenti su ~140** che iniettano hanno uno scope proprio (`OwningComponentBase`) | Fase 3 |
+| s-09 | La prova «migrazioni EF10 applicabili sotto EF8» è stata fatta su **65 migrazioni** il 1° agosto. Oggi sono **114**: 49 non sono mai passate da quella sonda, e l'host da incorporare è net8/EF8 | Fase 2 |
+| s-10 | Il ramo **Postgres** crea lo schema con `EnsureCreated` (nessuna cronologia di migrazioni), il ramo SQLite/MySQL con `Migrate()`. Due storie diverse dello stesso schema | Fase 2 |
 
 ---
 
@@ -278,4 +286,164 @@ senza accorgersene.
 Da solo è S4. Conta per due ragioni: la CI **non ha un passo di formattazione**, quindi il numero può
 soltanto crescere; e la formattazione è il posto dove si nasconde il codice arrivato per copia-incolla —
 che è esattamente ciò che questa revisione deve trovare.
+
+---
+
+# Fase 1 — Architettura e contratti
+
+**Stato:** ✅ **chiusa** il 6 settembre 2026 · 5 findings (2 × S2), 3 sospetti nuovi
+
+Perimetro: `Vipi.slnx`, i 26 `.csproj`, `Directory.Build.props`, i 7 ADR, `docs/refactor/00-overview.md`,
+`docs/design/regole-*.md`, `docs/guide/integration.md` e `ivao-it-wiring.patch`.
+
+## Esito in una riga
+
+**La struttura tiene; è il contratto scritto verso l'esterno che non tiene.** Il grafo dei progetti è
+pulito, le regole di perimetro sono rispettate alla lettera, il namespacing JS regge. Ma le **tre cose che
+l'ADR-0005 promette a un sito ospitante** — superficie minima, isolamento CSS, aggancio in poche righe —
+sono tutte e tre disallineate dal codice, e l'unico posto dove il disallineamento costa qualcosa è
+**esattamente l'integrazione in Ivao.It, che è lavoro aperto**.
+
+## Quel che è stato verificato e regge
+
+| Contratto | Verifica | Esito |
+|---|---|---|
+| ADR-0001 D2 — dipendenze verso l'interno | grafo dei `ProjectReference` | ✅ `Domain` non dipende da nessuno · `Application → Domain` · `Infrastructure → Application+Domain` · `Ui → Application+Domain+AuroraProfiles` · nessun ciclo, nessuna inversione |
+| Multi-target `net8.0;net10.0` senza API .NET 9+ | non serve grep: **lo prova la build** di Fase 0, che compila ogni libreria su entrambi i target con `TreatWarningsAsErrors` | ✅ |
+| ADR-0005 D1 — la superficie del modulo esiste | `AddVipiModule` · `UseVipiModule` · `MapVipiModule` · `MigrateVipiDatabase` · `UiAssembly` | ✅ tutte presenti, più `RunVipiStartupMaintenance` (vedi R-007) |
+| ADR-0005 D4 — topbar disattivabile | `VipiChromeOptions.RenderTopbar` → `SopLayout.razor:13` | ✅ |
+| ADR-0005 D5 — JS sotto `vipi*` | i soli globali sono `__vipiAccAccordion`, `__vipiEditorAnchors`, `__vipiEditorKeys`, `__vipiZoom` + API del browser | ✅ (restano i globali dei vendor `L` di Leaflet e `THREE`, inerenti alla vendorizzazione) |
+| `regole-perimetro-servizi` P5 — un servizio è figlio diretto di `/services` | 4 `@page` figlie dirette (`vsop`, `stats`, `profile-swapper`, `coordinates`); le altre 3 schede dell'hub sono marcate `shortcut` | ✅ alla lettera |
+
+## R-006 — La guida manda a due indirizzi che rispondono 404
+
+`docs/guide/config.md:351,421` · **S3** · 🟢 · CONFERMATO
+
+Oggi convivono **tre prefissi**: `/services/vsop/…` per le pagine, **`/vsop/…` per gli endpoint macchina**
+(`health`, `health/ready`, `live/atc`, `api/v1/*`, media, files) e `/sop` + `/vsop` come rotte storiche che
+rispondono 301.
+
+`config.md` — che si presenta come «riferimento di **tutte** le impostazioni runtime dell'host» — cita
+sei indirizzi col prefisso `/sop`. Quattro di essi (`/sop/admin/audit`, `/sop/admin/sorgenti`,
+`/sop/admin/permessi`) funzionano ancora, perché la catch-all storica li reindirizza. **Due no**:
+
+```
+GET /sop/health      → /sop/{*rest} → LegacyRoutes.Resolve() → null → 404
+GET /sop/live/atc    → idem                                          → 404
+```
+
+`LegacyRoutes.cs:40,105` rifiuta di proposito i primi segmenti macchina (`health`, `ping`, `api`, `media`,
+`files`) e la coppia `live/atc`, perché quegli endpoint «non si spostano». La scelta è giusta; è la guida
+che non l'ha seguita. **Scenario di rottura:** chi configura la sorveglianza del sito leggendo la guida
+punta il monitor su `/sop/health` e sorveglia un 404 — cioè o allarma sempre, o (se il monitor accetta
+qualunque risposta) **non sorveglia niente**.
+
+## R-007 — La patch per ivao.it non fa girare cinque passi d'avvio
+
+`docs/guide/ivao-it-wiring.patch:317-348` · **S2** · 🟢 · CONFERMATO
+
+`ivao-it-wiring.patch` è **l'artefatto che si consegna**: il sito ospitante lo applica con `git am`. È
+datato **1 agosto 2026** e aggancia quattro chiamate:
+
+```
+AddVipiModule → MigrateVipiDatabase → UseVipiModule → MapVipiModule
+```
+
+Manca **`app.RunVipiStartupMaintenance()`**, che il nostro host chiama (`VipiStartup.cs`) e che la guida
+`integration.md:75` documenta. Non è un dettaglio: è l'**ombrello di cinque passi**
+(`VipiModuleExtensions.cs:559`):
+
+| Passo | Che cosa succede se non gira |
+|---|---|
+| `LoadVipiRoleOverrides` | Chi è stato **promosso a mano** vale quanto dice la sua posizione staff: i permessi concessi a mano non esistono |
+| `ReconcileVipiDocuments` | Le riconciliazioni documentali non avvengono |
+| `ProjectVipiSectors` | I settori **non sono proiettati** dai cataloghi |
+| `BackfillVipiReleases` | Le release effettive non sono riempite |
+| `TidyVipiDocumentUnions` | Le unioni di documenti restano sporche |
+
+**Scenario di rottura, e il dettaglio che lo rende cattivo.** Il commento del codice spiega che un guasto di
+questi passi passa da `IStartupMaintenanceReport` alla diagnostica e manda `/vsop/health` in **Degraded** —
+«un *logga e prosegui* che si ferma al log è un modo per non accorgersene mai». Ma quella rete scatta solo
+se il passo **gira e fallisce**. Se non viene mai chiamato, non fallisce: la salute resta **verde** e il
+sito parte con le promozioni a mano ignorate e i settori non proiettati.
+
+**Secondo scarto della stessa patch:** descrive le pagine sotto **`/vsop`** (12 occorrenze, zero
+`/services/vsop`), prefisso spostato il 22 agosto.
+
+> ⚠️ `integrazione-ivao-it-da-fare.md:164` **sa** che la patch è congelata, ma dichiara scaduto **un solo
+> punto** («su questo punto dice ancora *unpkg*»). Il difetto non è la patch congelata: è che l'elenco di
+> ciò che è scaduto sia incompleto, perché è quell'elenco che qualcuno userà per correggerla.
+
+## R-008 — L'isolamento CSS promesso non esiste
+
+`src/Vipi.Ui/wwwroot/vipi-theme.css` · **S2** · 🟢 · CONFERMATO
+
+ADR-0005 D3: *«Tutte le regole del tema sono confinate sotto il contenitore `.vipi-root`»*, con
+conseguenza dichiarata *«Nessun side-effect CSS sul sito ospitante»*. `integration.md:126` lo ripete al
+sito ospitante come garanzia.
+
+Misurato analizzando le graffe (non a grep), contando come «primo livello» ciò che sta a profondità zero
+al netto dei blocchi `@media`/`@supports`:
+
+| | Regole |
+|---|---|
+| Totali in `vipi-theme.css` | **2 031** |
+| Confinate sotto `.vipi-root` (o `:root`, che definisce le variabili) | **48** |
+| **Non confinate** | **1 983** (97,6%) |
+
+I selettori-radice non confinati più frequenti sono nomi da collisione garantita:
+
+```
+.struct(394) .res-table(116) .wrap(56) .topbar(46) .st-head(25) .ed-layout(24)
+.cfg-table(17) .coord-table(17) .doc-head(16) .toc(16) .pill(15) .block(14)
+.callout(11) .help-hint(11)   …e details(11), che è un selettore d'ELEMENTO
+```
+
+**Scenario di rottura.** `integration.md:140-143` dice all'host di caricare `vipi-theme.css` con un `<link>`
+globale. Applicato a `Ivao.It.Website`: ogni `<details>` del sito ospitante — non del modulo — cambia
+aspetto, e `.wrap`, `.block`, `.pill`, `.toc`, `.topbar`, `.card` collidono **nei due versi** (le loro
+regole entrano nel modulo, le nostre escono). È esattamente il danno che ADR-0005 dichiara evitato, su
+un'integrazione che è lavoro aperto e che nessuno ha ancora eseguito (`integrazione-ivao-it-da-fare.md`
+§2.1: *«Nessuno ha mai eseguito il modulo dentro un host net8»*).
+
+> Il rimedio non è piccolo (1 983 regole da prefissare), ma è **meccanico e senza rischio a runtime** per
+> l'host autonomo, dove `.vipi-root` avvolge già tutto il contenuto. Va misurato prima di prometterlo:
+> `SopLayout` avvolge la pagina, ma la **topbar** e alcuni contenitori potrebbero stare fuori dal wrapper.
+> Va deciso in fase di rimedio, non qui.
+
+## R-009 — Superficie pubblica più larga del necessario
+
+**S4** · 🟢 · CONFERMATO
+
+**179 tipi `public` su 1 381** non sono nominati da nessun file fuori dal proprio progetto (test compresi).
+
+| Progetto | Tipi |
+|---|---|
+| `Vipi.Application` | 98 |
+| `Vipi.Infrastructure` | 38 |
+| `Vipi.Ui` | 22 |
+| `Vipi.Hosting` | 8 |
+| `Vipi.AuroraBridge.Core` | 6 |
+| `Vipi.Host` | 3 · `Vipi.AuroraBridge` 2 · `Vipi.Domain` 2 |
+
+Conta perché la superficie di questo modulo **è un ADR**: ogni tipo pubblico è una promessa verso un host
+che lo incorpora. In `Vipi.Infrastructure` la maggioranza sono `…HostedService`, che `AddHostedService<T>`
+sa registrare anche se `internal`.
+
+> ⚠️ **Da non applicare in blocco.** La scansione non legge i `.xaml` (quindi `MainWindow` è un falso
+> positivo), e un tipo può essere pubblico per una ragione che il nome non dice. È un **censimento**, non
+> una lista di cancellazioni: si decide tipo per tipo nella fase di rimedio.
+
+## R-010 — Due numeri sbagliati che giustificano una scelta
+
+**S4** · 🟢 · CONFERMATO
+
+```
+DependencyInjection.cs:46      «le 60 migrazioni sono SQLite-flavored e non girano su Postgres»
+VipiModuleExtensions.cs:493    «avrebbe applicato le 68 migrazioni SQLite-flavored a MariaDB»
+```
+
+Le migrazioni SQLite oggi sono **114**. I due numeri non cambiano la decisione — che resta giusta — ma in
+un repository dove le prove sono numeri, un numero fermo dentro un commento è un numero che qualcuno
+riuserà.
 
