@@ -72,41 +72,54 @@
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
                            Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
-                <div class="doc-head">
-                    <div>
-                        <h1 class="page-h1" style="margin-bottom:2px">@_doc.View.Title</h1>
-                        @* ⚠️ Il sottotitolo e' arrivato il 3 settembre 2026: fino a quel giorno questa era
-                           l'UNICA delle cinque testate senza, e sopra il documento restavano una riga di
-                           titolo nuda, un blocco di tre bottoni e un riquadro pieno per dire in che lingua
-                           e' scritto. La chip di lettura sta ora in coda al sottotitolo e il riquadro e'
-                           diventato un gettone: tre righe sopra il documento sono tornate due. *@
+                <div class="doc-head with-aud">
+                    <h1 class="page-h1" style="margin-bottom:2px">@_doc.View.Title</h1>
+                    @* ⚠️ Il sottotitolo e' arrivato il 3 settembre 2026: fino a quel giorno questa era
+                       l'UNICA delle cinque testate senza, e sopra il documento restavano una riga di
+                       titolo nuda, un blocco di tre bottoni e un riquadro pieno per dire in che lingua
+                       e' scritto. Il riquadro e' diventato un gettone e la chip e' entrata in testata: tre righe
+                       sopra il documento sono tornate due. *@
+                    @* La CHIP di lettura sta a DESTRA delle due righe e le occupa tutte e due in altezza
+                       (6 settembre 2026): appesa in coda al sottotitolo era un dettaglio in mezzo al testo,
+                       e i tre link erano piu' piccoli della riga che dovevano governare.
+                       ⚠️ La testata e' una GRIGLIA 2×2 (`.doc-head.with-aud`): titolo e tasti in riga 1,
+                       queste due righe e la chip in riga 2. La chip sta nella colonna dei TASTI e non in
+                       quella del testo, o si porterebbe via la larghezza dell'avviso — misurato: 379px, e
+                       la frase tornava a capo. Sul telefono la griglia torna a una colonna sola. *@
+                    <div class="hl-text">
                         <div class="sub-line">
                             <span class="muted">@Sottotitolo()</span>
-                            <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
-                                          BaseHref="@AudienceHref()" />
                         </div>
                         @* ⚠️ Dal 2 settembre 2026 la riga propria dell'avviso ce l'hanno TUTTE E CINQUE:
                            appesa al sottotitolo, la riga andava a capo in mezzo alla frase dove il
                            sottotitolo era lungo. *@
                         <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_doc.Bloccata" Compatto="true" /></div>
+                    </div>
+                    <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                                  BaseHref="@AudienceHref()" />
+                    <div class="dh-actions">
                         @* Il ponte verso l'altra edizione dello stesso scalo: chi apre il militare deve poter
                            arrivare al civile senza tornare indietro di due pagine.
+
+                           Dal 6 settembre 2026 sta QUI, fra i tasti e a sinistra di «Stampa», e non più sotto
+                           l'avviso di simulazione: appeso in coda alla testata era una riga di prosa in mezzo ai
+                           cartelli, e si leggeva come una nota invece che come il gesto che è.
 
                            ⚠️ SOLO SE la vIPI civile esiste davvero, come fa la pagina civile verso di qui. Fino al
                            29 agosto 2026 il collegamento c'era sempre, e sui campi SOLO militari — Aviano, Ghedi,
                            Decimomannu, Rivolto, cioè proprio quelli che un vSOP ce l'hanno — portava al callout
                            «documento non disponibile». Un ponte che a volte non porta da nessuna parte è peggio di
-                           un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona. *@
+                           un ponte che non c'è: la seconda volta non ci si clicca più nemmeno quando funziona.
+
+                           ⚠️ Sul foglio non si perde niente: `.doc-head` in stampa è nascosta, e nascosta lo era
+                           anche prima — il ponte stava già dentro la testata. Chi stampa ha la voce nella colonna
+                           di destra, che sul foglio non c'è nemmeno lei: un collegamento non si clicca su carta. *@
                         @if (MostraPonteCivile)
                         {
-                            <p class="muted">
-                                <a href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
-                                    <Icon Name="book-open" Size="14" /> @Sito["Mil_LinkToCivil"]
-                                </a>
-                            </p>
+                            <a class="btn ghost" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}")">
+                                <Icon Name="book-open" Size="14" /> @Sito["Mil_LinkToCivil"]
+                            </a>
                         }
-                    </div>
-                    <div style="display:flex;align-items:center;gap:10px">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         @if (_canEdit)
                         {
@@ -142,7 +155,7 @@
                 }
 
                 @* ⚠️ Chip di lettura e gettone della lingua stanno nella TESTATA, non qui: vedi la
-                   `.sub-line` e la `.sim-line` piu' sopra. *@
+                   `.doc-head.with-aud` piu' sopra. *@
                 @* Il corpo — sezioni e derivate — sta in un componente, perché lo stesso documento va reso
                    anche nella pagina UNITA (carta 2026-09-03-documenti-uniti.md). Qui resta il chrome. *@
                 <MilDocumentBody Doc="_doc" />

@@ -14,7 +14,12 @@
    3. Sopravvive al ricaricamento e al tasto «indietro» del browser, che è come la gente legge davvero.
 
    ⚠️ La chip compare SOLO se il documento ha almeno una sezione marcata: altrimenti sarebbe un selettore
-   che non filtra niente, rumore su ogni pagina italiana per una funzione che ne riguarda poche. *@
+   che non filtra niente, rumore su ogni pagina italiana per una funzione che ne riguarda poche.
+
+   ⚠️ `on` NON e' decorazione ed e' l'unico segno di quale vista si sta leggendo: `aria-current` lo dice a
+   chi non vede, `on` a chi vede. Fino al 6 settembre 2026 quella classe non aveva NESSUNA regola nel foglio
+   di stile e i tre link erano identici -- il difetto non si vedeva leggendo questo file, che la classe la
+   scriveva, ma solo aprendo la pagina. *@
 
 @if (Visibile)
 {
@@ -37,7 +42,8 @@
     [Parameter, EditorRequired] public bool Visibile { get; set; }
 
     /// <summary>
-    /// In coda al sottotitolo invece che in un blocco suo sopra il documento (3 settembre 2026).
+    /// In testata invece che in un blocco suo sopra il documento (3 settembre 2026), e dal 6 settembre 2026
+    /// a DESTRA delle due righe della testata, alta quanto tutte e due (<c>.doc-head.with-aud</c>).
     /// <para>⚠️ Chi la mette in testata la mette DENTRO <c>.doc-head</c>, che sul foglio e' nascosto: qui non
     /// si perde niente, perche' la chip in stampa era gia' nascosta apposta (<c>vipi-print.css</c>) — e' un
     /// comando, non contenuto. Il BADGE sulle singole sezioni, che invece e' contenuto, si stampa.</para>

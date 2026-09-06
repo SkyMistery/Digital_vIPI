@@ -49,22 +49,27 @@ else
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
                            AiracCycle="@Cycle()" Coverage="_copertura" Bloccata="@_bloccata" />
-                <div class="doc-head">
+                <div class="doc-head with-aud">
                     @* ⚠️ L'avviso di simulazione ha una RIGA PROPRIA, non la coda del sottotitolo: qui il
                        sottotitolo è lungo, e sottotitolo + avviso + gettone su una riga sola andavano a capo
                        in mezzo alla frase («…REAL LIFE / NAVIGATION»). Vedi `.sim-line`. *@
-                    <div>
-                        <h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1>
-                        @* La chip di lettura sta in coda al sottotitolo dal 3 settembre 2026: prima era un
-                           blocco di tre bottoni fra la testata e il documento. *@
+                    <h1 class="page-h1" style="margin-bottom:2px">vIPI — @_data.AccName</h1>
+                    @* La CHIP di lettura sta a DESTRA delle due righe e le occupa tutte e due in altezza
+                       (6 settembre 2026): appesa in coda al sottotitolo era un dettaglio in mezzo al testo,
+                       e i tre link erano piu' piccoli della riga che dovevano governare.
+                       ⚠️ La testata e' una GRIGLIA 2×2 (`.doc-head.with-aud`): titolo e tasti in riga 1,
+                       queste due righe e la chip in riga 2. La chip sta nella colonna dei TASTI e non in
+                       quella del testo, o si porterebbe via la larghezza dell'avviso — misurato: 379px, e
+                       la frase tornava a capo. Sul telefono la griglia torna a una colonna sola. *@
+                    <div class="hl-text">
                         <div class="sub-line">
                             <span class="muted">@Sito["AccVipi_Subtitle"]</span>
-                            <AudienceChip Compatto="true" Visibile="_haMarcate" Vista="_vista"
-                                          BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
                         </div>
                         <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_bloccata" Compatto="true" /></div>
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px">
+                    <AudienceChip Compatto="true" Visibile="_haMarcate" Vista="_vista"
+                                  BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vipi" + (_mode.Kind == PreviewKind.Draft ? "?as=draft" : ""))" />
+                    <div class="dh-actions">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>
                         <a class="btn ghost" href="/services/vsop/live">@Sito["Common_Operational"]</a>
                         @if (_canEdit)
@@ -82,7 +87,7 @@ else
                 }
 
                 @* ⚠️ Tre cartelli — «tradotto a macchina», «una lingua sola» e il filtro pilota/ATC —
-                   stanno tutti nella TESTATA: vedi la `.sub-line` e la `.sim-line` piu' sopra. Il filtro
+                   stanno tutti nella TESTATA: vedi la `.doc-head.with-aud` piu' sopra. Il filtro
                    vale su TUTTE le famiglie, non solo sul vSOP militare (il flag e' per-sezione e l'editor
                    lo offre ovunque), e resta invisibile finche' nessuno ha marcato niente. *@
 

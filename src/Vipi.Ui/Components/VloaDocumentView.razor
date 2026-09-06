@@ -16,22 +16,29 @@
     <div>
         <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage"
                    Bloccata="@Bloccata" />
-        <div class="doc-head">
-            <div>
-                <h2 style="margin-bottom:2px">@View.Title</h2>
-                @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
-                @* ⚠️ La chip di lettura e il gettone della lingua arrivano dalla PAGINA e si disegnano qui,
-                   dal 3 settembre 2026: la testata sta in questo componente, e i due cartelli lasciati fuori
-                   restavano due blocchi fra la briciola e il documento. La pagina resta l'unica a sapere
-                   quali parametri della propria rotta vanno conservati nell'indirizzo del filtro. *@
+        <div class="doc-head with-aud">
+            <h2 style="margin-bottom:2px">@View.Title</h2>
+            @* ⚠️ Riga propria per l'avviso, come nelle altre quattro testate: vedi `.sim-line`. *@
+            @* ⚠️ La chip di lettura e il gettone della lingua arrivano dalla PAGINA e si disegnano qui,
+               dal 3 settembre 2026: la testata sta in questo componente, e i due cartelli lasciati fuori
+               restavano due blocchi fra la briciola e il documento. La pagina resta l'unica a sapere
+               quali parametri della propria rotta vanno conservati nell'indirizzo del filtro. *@
+            @* La CHIP di lettura sta a DESTRA delle due righe e le occupa tutte e due in altezza
+               (6 settembre 2026): appesa in coda al sottotitolo era un dettaglio in mezzo al testo,
+               e i tre link erano piu' piccoli della riga che dovevano governare.
+               ⚠️ La testata e' una GRIGLIA 2×2 (`.doc-head.with-aud`): titolo e tasti in riga 1,
+               queste due righe e la chip in riga 2. La chip sta nella colonna dei TASTI e non in
+               quella del testo, o si porterebbe via la larghezza dell'avviso — misurato: 379px, e
+               la frase tornava a capo. Sul telefono la griglia torna a una colonna sola. *@
+            <div class="hl-text">
                 <div class="sub-line">
                     <span class="muted">@SubtitleOrDefault()</span>
-                    <AudienceChip Compatto="true" Visibile="AudienceVisibile" Vista="AudienceVista"
-                                  BaseHref="@(AudienceHref ?? "")" />
                 </div>
                 <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="Coverage" Compatto="true" /> <LinguaBloccataNotice Lingua="@Bloccata" Compatto="true" /></div>
             </div>
-            <div style="display:flex;align-items:center;gap:10px">
+            <AudienceChip Compatto="true" Visibile="AudienceVisibile" Vista="AudienceVista"
+                          BaseHref="@(AudienceHref ?? "")" />
+            <div class="dh-actions">
                 <button type="button" class="btn ghost" onclick="window.print()">@L["Common_Print"]</button>
                 @if (_canEdit && !string.IsNullOrWhiteSpace(HomeAcc) && !string.IsNullOrWhiteSpace(ForeignAcc))
                 {

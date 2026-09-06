@@ -875,17 +875,56 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 /* La CHIP «Tutto · Pilota · ATC» sopra il documento: tre collegamenti, non tre bottoni (vedi il commento
    sul componente). Qui serve solo tenerli in riga e staccarli dal testo che segue. */
 .aud-chip{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px}
-/* La stessa chip IN TESTATA (AudienceChip Compatto="true"), 3 settembre 2026: sta in coda al sottotitolo,
-   non in un blocco suo sopra il documento. Richiesta del committente sul vSOP militare ed estesa a tutte e
-   cinque le famiglie — un filtro di lettura che occupa una riga intera prima del documento e' un'altra
-   riga fra chi legge e cio' che e' venuto a leggere.
-   ⚠️ `inline-flex` e non `flex`: dentro `.doc-head` la riga del sottotitolo e' testo, e un blocco la
-   spezzerebbe in due. `vertical-align:middle` perche' i tre link sono piu' alti del testo muted accanto.
-   ⚠️ Su schermo stretto va a capo INTERA (`.sub-line` avvolge), non tre link uno sotto l'altro. */
-.aud-chip.inline{display:inline-flex;margin:0 0 0 10px;vertical-align:middle;gap:4px}
-.aud-chip.inline .btn{padding:1px 9px;font-size:11.5px;line-height:1.7;font-weight:600}
-/* La riga del sottotitolo quando porta anche la chip: il testo e i tre link stanno insieme, e vanno a capo
-   come un blocco solo. */
+/* QUALE DEI TRE E' SCELTO, 6 settembre 2026. Il componente marcava gia' il link corrente con `.on` (e con
+   `aria-current`, che e' quello che sente chi non vede), ma di quella classe NON esisteva una sola regola:
+   i tre link erano identici, e la chip diceva che si puo' filtrare senza dire come si sta leggendo adesso.
+   Un selettore che non mostra la selezione e' un selettore rotto, e lo era su tutte e cinque le famiglie.
+   ⚠️ Pieno blu di marca, come `.tok.on`: e' l'unico «acceso» gia' in casa, e due grammatiche diverse per
+   la stessa idea si imparano due volte. Il fondo non si gira col tema (vedi il commento su --ivao-blue),
+   quindi il bianco sopra regge chiaro e scuro.
+   ⚠️ `a.btn.on` e non `.btn.on`: deve battere `.btn.ghost`, che porta un fondo suo. */
+.aud-chip a.btn.on{background:var(--ivao-blue);color:var(--on-brand);font-weight:700}
+.aud-chip a.btn:hover{background:var(--line-atmos-soft)}
+.aud-chip a.btn.on:hover{background:var(--ivao-blue)}
+/* La stessa chip IN TESTATA (AudienceChip Compatto="true"), 3 settembre 2026: non in un blocco suo sopra il
+   documento. Richiesta del committente sul vSOP militare ed estesa a tutte e cinque le famiglie — un filtro
+   di lettura che occupa una riga intera prima del documento e' un'altra riga fra chi legge e cio' che e'
+   venuto a leggere.
+   Dal 6 settembre 2026 non sta piu' in coda al sottotitolo ma a DESTRA delle due righe, alta quanto tutte e
+   due: in coda al testo era un dettaglio in mezzo a una frase, e i tre link erano piu' piccoli della riga
+   che governano. Dove stia di preciso lo dice la griglia della testata, qui sotto.
+   ⚠️ `align-self:stretch` sulla chip E `align-items:stretch` dentro: e' l'altezza delle DUE righe accanto
+   a decidere quella dei link, non il loro testo. I `.btn` sono flex a loro volta perche' un `<a>` alto il
+   doppio con testo appoggiato in cima non sembra un bottone, sembra un errore. */
+.aud-chip.inline{display:flex;align-items:stretch;align-self:stretch;flex:0 0 auto;margin:0;gap:4px}
+.aud-chip.inline .btn{display:flex;align-items:center;padding:2px 14px;font-size:13px;line-height:1.3;font-weight:600}
+/* LA TESTATA CHE PORTA LA CHIP e' una GRIGLIA 2×2, e la griglia non e' un vezzo: e' l'unica forma in cui
+   il testo non paga la chip.
+   Il primo tentativo (6 settembre 2026) teneva la `.doc-head` a flex e metteva la chip accanto al testo
+   dentro la colonna sinistra. A schermo — non nei test, che erano verdi — il testo scendeva a 379px e
+   l'avviso tornava a capo in mezzo alla frase: «…DO NOT USE FOR REAL LIFE / NAVIGATION», esattamente il
+   difetto per cui il 2 settembre l'avviso aveva avuto una riga sua. La chip rubava larghezza al testo
+   perche' stava nella STESSA colonna.
+   Con la griglia la chip sta nella colonna dei TASTI, sotto di loro: il testo riprende tutta la larghezza
+   che aveva prima, e la chip resta a destra e alta quanto le due righe.
+        colonna 1        colonna 2
+   riga 1  titolo          tasti
+   riga 2  due righe       chip
+   ⚠️ Posizioni ESPLICITE e non flusso automatico: nel sorgente la chip viene PRIMA dei tasti, ed e' giusto
+   cosi' — chi legge con la tastiera o con lo screen reader incontra titolo, testo, filtro, comandi. Col
+   flusso automatico quell'ordine metterebbe la chip in riga 1.
+   ⚠️ `minmax(0,1fr)` e non `1fr`: un `1fr` nudo ha minimo `auto`, e una riga lunga senza spazi (un
+   sottotitolo con un indirizzo dentro) allargherebbe la colonna oltre la testata. */
+.doc-head.with-aud{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:18px;align-items:start}
+.doc-head.with-aud>h1,.doc-head.with-aud>h2{grid-column:1;grid-row:1;min-width:0}
+.doc-head.with-aud>.hl-text{grid-column:1;grid-row:2;min-width:0}
+.doc-head.with-aud>.dh-actions{grid-column:2;grid-row:1;justify-self:end}
+.doc-head.with-aud>.aud-chip{grid-column:2;grid-row:2;justify-self:end}
+/* I tasti della testata: erano un `style=` ripetuto in cinque file, e ora che la chip è loro vicina di
+   colonna la riga ha anche bisogno di non spezzare le etichette («Civil vIPI» andava a capo in mezzo). */
+.dh-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+.dh-actions .btn{white-space:nowrap}
+/* La riga del sottotitolo: resta una riga a se' perche' il sottotitolo puo' portare altro accanto. */
 .sub-line{display:flex;flex-wrap:wrap;align-items:center;gap:2px}
 
 /* Toggle multi-select compatti (CAT/WTC nelle SID importate): chip on/off cliccabili in cella tabella */
@@ -4068,6 +4107,13 @@ details.acc-block[open] > summary .cb-chev{transform:rotate(90deg)}
      e col titolo superavano lo schermo. Qui a cedere e' la RIGA, che va a capo. */
   .doc-head{flex-wrap:wrap}
   .doc-head>*{min-width:0}
+  /* ⚠️ E la testata a griglia torna a UNA colonna: due colonne su un telefono lasciano al testo un
+     quarto di schermo. Le posizioni esplicite vanno sciolte, o i quattro pezzi si accavallerebbero in due
+     righe; sciolte, l'ordine e' quello del sorgente — titolo, due righe, chip, tasti. */
+  .doc-head.with-aud{grid-template-columns:minmax(0,1fr)}
+  .doc-head.with-aud>h1,.doc-head.with-aud>h2,.doc-head.with-aud>.hl-text,
+  .doc-head.with-aud>.dh-actions,.doc-head.with-aud>.aud-chip{grid-column:1;grid-row:auto;justify-self:start}
+  .doc-head.with-aud>.aud-chip{margin-top:8px}
 
   /* ⚠️ 16px sui campi, e non e' una scelta tipografica: sotto quella soglia i browser mobile ZOOMANO da soli
      quando il campo prende il fuoco, e il layout viewport resta allargato anche dopo. E' cosi' che la pagina

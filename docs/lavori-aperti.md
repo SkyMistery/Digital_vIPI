@@ -8672,3 +8672,99 @@ correzione porta dentro altro contenuto, il numero segue il CONTENUTO come sempr
 
 Se invece la correzione è **solo documentale**, il pacchetto resta valido: i `.md` non sono fra i file da
 caricare, e basta rigenerare lo zip (passo `Zip`) perché il ramo `docs/` riprenda i fogli aggiornati.
+
+## BV. La chip di lettura a destra, e quale dei tre è scelto — 6 settembre 2026
+
+**Richiesta del committente**, guardando la testata di un vSOP militare:
+
+> «I tasti Everything / Pilot / ATC siano messi **a destra** e occupino verticalmente **entrambe le righe**,
+> così da essere più grandi (verificare in tutti i documenti). Il tasto **selezionato** dei tre abbia un
+> **colore diverso**, per capire quale è effettivamente selezionato. E nelle vSOP militari il collegamento
+> alle vIPI civili sia spostato da sotto quella riga **di fianco al titolo**, a sinistra del tasto Print, con
+> uno stile simile.»
+
+Tre cose, tutte e cinque le famiglie documentali (`AccVipiPage`, `AeroportoPage`, `AppnPage`,
+`MilDocumentPage`, `VloaDocumentView`).
+
+### 1. 🔴 Il difetto vero: la selezione non si vedeva
+
+`AudienceChip` marcava già il link corrente con la classe `on` **e** con `aria-current`. Ma di `on` **non
+esisteva una sola regola** in `vipi-theme.css`: i tre link erano **identici**. Un selettore che non mostra la
+selezione è un selettore rotto, e lo era da quando la chip esiste — su tutte e cinque le famiglie.
+
+⚠️ **Non si vedeva leggendo il componente**, che la classe la scrive; si vedeva solo aprendo la pagina. È la
+classe di buchi di `docs/dev-process-gates.md`: il verde dei test non arriva dove arriva l'occhio.
+
+Ora `.aud-chip a.btn.on` è **pieno blu di marca** con testo bianco, come `.tok.on` — l'unico «acceso» già in
+casa, e due grammatiche diverse per la stessa idea si imparerebbero due volte. Il fondo non si gira col tema
+(vedi il commento su `--ivao-blue`), quindi il bianco sopra regge chiaro **e** scuro: misurato in tutti e due.
+`a.btn.on` e non `.btn.on`, perché deve battere `.btn.ghost`, che porta un fondo suo.
+
+### 2. La testata diventa una griglia 2×2 — e il primo tentativo era sbagliato
+
+```
+              colonna 1          colonna 2
+    riga 1    titolo             tasti
+    riga 2    sottotitolo        CHIP (alta quanto le due righe)
+              avviso + gettoni
+```
+
+Le due righe finiscono in un `.hl-text`, i tasti in un `.dh-actions` (era un `style=` ripetuto in cinque
+file), e la chip esce dalla `.sub-line` e diventa **sorella** delle due righe. Le posizioni nella griglia sono
+**esplicite**: nel sorgente la chip viene **prima** dei tasti — chi legge con la tastiera incontra titolo,
+testo, filtro, comandi — e col flusso automatico quell'ordine la metterebbe in riga 1.
+
+🔴 **Il primo tentativo teneva la `.doc-head` a flex** e metteva la chip accanto al testo, **dentro la
+colonna sinistra**. I test erano verdi. A schermo il testo scendeva a **379px** e l'avviso di simulazione
+tornava a capo in mezzo alla frase — «…DO NOT USE FOR REAL LIFE / NAVIGATION», **esattamente** il difetto per
+cui il 2 settembre l'avviso aveva avuto una riga sua (§AT). La chip rubava larghezza al testo perché stava
+nella **stessa colonna**. Misurato al banco: sotto i **605px** quella riga si spezza; con la chip nella
+colonna del testo ne restavano 379.
+
+Con la griglia la chip sta nella colonna dei **tasti**, sotto di loro: il testo riprende la larghezza che
+aveva prima (587px sul militare) e l'avviso torna su **una riga**. La lezione è quella di
+`proposte-si-misurano-dal-vivo`: **il verde dei test non misura una larghezza**.
+
+⚠️ Sotto i 900px la griglia torna a **una colonna** e le posizioni esplicite si sciolgono: titolo, due
+righe, chip, tasti, in quest'ordine. Sciolte, perché lasciate ferme i quattro pezzi si accavallerebbero.
+
+### 3. Il ponte del militare verso il civile
+
+Era un `<p class="muted">` sotto l'avviso di simulazione: una riga di prosa in mezzo ai cartelli, che si
+leggeva come una nota invece che come il gesto che è. Ora è un `.btn ghost` nella riga dei tasti, **a sinistra
+di «Stampa»**, con la sua icona. Resta condizionato a `MostraPonteCivile` (§ del 29 agosto: un ponte che a
+volte non porta da nessuna parte è peggio di un ponte che non c'è).
+
+⚠️ **Sul foglio non si perde niente**, e stavolta la trappola non ha morso: `.print-meta + .doc-head` è
+nascosto in stampa, e il ponte stava **già dentro la testata** — invisibile sul foglio prima e dopo. Chi
+stampa ha la voce nella colonna di destra, che sul foglio non c'è nemmeno lei: un collegamento non si clicca
+su carta.
+
+### Che cosa lo tiene fermo
+
+`TestataCompattaSuOgniSedeTests` pretende ora, su tutte e cinque: la chip **fuori** dalla `.sub-line` e
+**dopo** la `.sim-line`, il `.hl-text`, il `.dh-actions`, la chip **prima** dei tasti nel sorgente, la testata
+marcata `with-aud`. Più due fatti sul foglio di stile: che una regola per `.aud-chip a.btn.on` **esista** (è il
+difetto §1, e senza asserzione torna) e che la chip stia in `grid-column:2` mentre il testo sta in
+`grid-column:1` — la riga che tiene l'avviso su una riga sola, e che nessun altro test difende.
+
+### La prova a schermo
+
+App locale su copia del `vipi.db` (`.claude/skills/verifica-live`), Edge via puppeteer-core, tutte e cinque le
+famiglie più le viste `?vista=pilota` e `?vista=atc`, tema chiaro e scuro, e la larghezza da telefono:
+
+- la chip è **a filo destro** della testata (x+larghezza = bordo destro) e **alta quanto le due righe**
+  (47px sul militare e sulla vLOA, 51 sull'aeroporto, 71 su ACC e APP: cioè l'altezza del blocco accanto);
+- `?vista=pilota` accende **Pilot**, `?vista=atc` accende **ATC**, nient'altro — il colore segue l'indirizzo;
+- l'avviso di simulazione sta su **una riga** dove ci stava prima;
+- a 430px la testata è una colonna sola e la chip torna a capo **intera**;
+- zero errori in console, zero risposte ≥400.
+
+⚠️ **Nel `vipi.db` di sviluppo quasi nessun documento ha sezioni marcate** (`Audience` è `Both` ovunque
+tranne una sezione del vSOP di Cameri): senza marcarne qualcuna **sulla copia**, quattro famiglie su cinque
+mostrano la testata **senza chip** e la verifica non verifica niente. Non è un difetto: `HaMarcate` chiede
+almeno una sezione che non sia `Both`.
+
+⚠️ `sweep.js` segnala 17 «sospetti» con `class="on"` e fondo bianco nel tema scuro: è la **pastiglia della
+lingua** (`.lang-ctrl a.on`), che sta lì da mesi ed è voluta. È il falso positivo noto scritto in testa allo
+script — non la chip, che nel tema scuro ha il suo blu.
