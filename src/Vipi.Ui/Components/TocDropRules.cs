@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Ui.Components;
@@ -28,6 +28,10 @@ public static class TocDropRules
     public static bool Accetta(IReadOnlyList<EditorTocItem> voci, EditorTocItem mossa, EditorTocItem bersaglio)
     {
         if (mossa.SectionId is not int d || bersaglio.SectionId is not int t || t == d) return false;
+        // ⚠️ Senza ALBERO non si trascina, e il confronto da solo non basta a dirlo: `null == null` è vero,
+        // quindi due voci senza albero si accetterebbero a vicenda. Dal 6 settembre 2026 esistono — sono le
+        // nipoti della vIPI ACC, che nel sommario si annidano e nel riordino non entrano.
+        if (mossa.DragGroup is null || bersaglio.DragGroup is null) return false;
         if (!string.Equals(bersaglio.DragGroup, mossa.DragGroup, StringComparison.Ordinal)) return false;
 
         if (bersaglio.ParentSectionId == mossa.ParentSectionId) return true;   // fratelli: riordino

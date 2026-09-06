@@ -8882,3 +8882,298 @@ E restano da dire quelle di 1.10.0, se non è stato fatto: l'editor d'aeroporto 
 Adesso 1.11.0 **è** in produzione, quindi al prossimo giro la consegna **si ruota** normalmente
 (`-Azione Ruota`): il divieto valeva finché in `publish/` c'era un pacchetto mai uscito. Il `git diff` del
 prossimo pacchetto parte da **`4b35946f`**, non più da `99f33f0`.
+
+---
+
+## §BW — Il blocco allegato: cercare nella tendina, e girare il riquadro (6 settembre 2026)
+
+⚠️ **Ramo `feat/allegato-ricerca-e-rotazione` (`a6cbd945`), spinto e NON fuso.** Non è in produzione.
+
+Due richieste del committente sul punto in cui si inseriscono gli allegati:
+
+1. poter **scrivere** per cercare nella tendina della biblioteca, «esattamente com'è ora ma potendo scrivere
+   anche il nome del documento per una ricerca più rapida»;
+2. poter **girare** il PDF incorporato come nei visualizzatori PDF del browser: chi redige sceglie un
+   orientamento di partenza, chi legge lo cambia durante l'uso.
+
+### 1. La ricerca filtra, non sceglie
+
+Casella `type="search"` **sopra** la tendina. Cerca su **titolo, slug, perimetro e tipo**, e i pezzi
+separati da spazio si **sommano**. In produzione la biblioteca ha **121 voci** (contate il 4 settembre):
+l'elenco si percorreva solo a occhio.
+
+- ⚠️ **Non un `<input list>` con `<datalist>`** come nelle tabelle: quel modo lega la **chiave** al testo
+  scritto, e due allegati possono avere lo stesso titolo. Il filtro restringe e basta; l'identità resta lo
+  **slug** scelto in tendina. È la stessa scelta già fatta in `UnionPanel`, e per la stessa ragione.
+- 🔴 **La voce SCELTA resta in elenco anche quando il filtro la escluderebbe.** Senza, due lettere che
+  non c'entrano fanno sparire dalla tendina l'allegato che il blocco cita: a schermo si vede un campo vuoto
+  e la scelta *sembra persa* mentre nel documento c'è ancora. Una casella di ricerca non deve poter dire il
+  falso su ciò che il blocco cita.
+- ⚠️ **Niente `value=`** sul campo, e `@key` per svuotarlo dal server: è la regola già pagata il 5
+  settembre sulla ricerca SID (il server riscrive il testo di un giro prima e i caratteri cancellati
+  ricompaiono). Provato dal vivo con otto Backspace.
+- L'etichetta in tendina è `Titolo · chiave · tipo`, e la **chiave** compare solo se c'è: `ScopeLabel` per
+  la divisione è un **trattino**, e «MIL abbriviation — — · Chart» non si legge. Visto solo a schermo.
+
+### 2. Gira il RIQUADRO, non il PDF
+
+I byte stanno sul Drive e li rende il **visualizzatore di Google**, che non prende nessun parametro di
+rotazione — e renderli noi vorrebbe dire fare da **proxy ai byte**, che il vincolo contrattuale di hosting
+vieta. Quindi è una trasformazione CSS dell'iframe: **gira anche la barra di Google**, ed è il prezzo.
+L'alternativa non è un giro più pulito, è nessun giro.
+
+- `AttachmentRotation`: **quattro scatti**, non un angolo libero — stessa regola dei tre scaglioni
+  d'altezza. Una scansione storta di 3° si ricarica dritta in biblioteca.
+- ⚠️ **Lo scambio larghezza/altezza a un quarto di giro lo fanno le unità di container query**
+  (`100cqw`/`100cqh`), non JS. La prima versione **misurava** il riquadro da JS: funzionava, e aveva un
+  difetto che non si vede a occhio — un riquadro che **nasce dopo** (render interattivo dell'editor,
+  navigazione) si disegna prima della misura, cioè storto, fino al primo ridimensionamento della finestra.
+  Tolta la misura, tolta la classe intera. ⚠️ `container-type:size` pretende un'altezza dichiarata: c'è.
+- ⚠️ **I due tasti sono HTML puro girati da `vipi-ui.js`**, non un `@onclick`: le pagine dei documenti
+  sono **SSR statico** e lì un `@onclick` non scatterebbe mai. Lo stato vive nel `data-att-rot` del
+  riquadro, cioè nel browser di chi legge: non si salva e non sopravvive al ricaricamento. È un'occhiata,
+  non una modifica al documento.
+- **Nessuna migrazione**: la chiave `rotazione` è nuova nel JSON del blocco e i blocchi già scritti tornano
+  `Deg0`. Si consegna anche dentro la finestra cieca.
+
+### 🔴 I due difetti che solo lo SCHERMO ha preso
+
+Il DOM era giusto tutte e due le volte, e nessun test poteva vederli.
+
+1. **I tasti sovrapposti in alto a destra si accavallavano con la barra di Google**, che ha il proprio
+   «apri in una scheda» **esattamente lì**. Spostati **FUORI** dal riquadro, sopra e a destra.
+2. 🔴 E spostandoli fuori, `b.closest('.att-embed')` è tornato **null**: il clic non faceva **niente**.
+   I tasti c'erano, il DOM era giusto, e non giravano. Ora il riquadro si trova **per nome**
+   (`aria-controls` → `getElementById`), con un id **per istanza** — la stessa LoA può comparire due volte
+   nella stessa pagina (un documento e la sua unione).
+
+⚠️ E in stampa i tasti vanno nascosti **a parte**: da quando stanno fuori dal riquadro non se ne vanno più
+insieme a lui (`vipi-print.css` nascondeva il solo `.att-embed`).
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; **5140 test verdi** su otto progetti.
+Verifica live con `.claude/skills/verifica-live` sul **vSOP MIL di LIMS** (documento 31, blocco 527 —
+l'**unico** blocco allegato del `vipi.db` di sviluppo), con un **PDF vero** sul Drive di divisione, nell'editor
+**e** nella pagina statica del documento (`?as=draft`, perché la bozza non è pubblicata). Misurato l'iframe:
+a 90° `518×820` con `matrix(0, 1, -1, 0, 820, 0)` dentro un contenitore `820×518`, e nessuno scorrimento
+orizzontale della pagina.
+
+⚠️ **Sul pacchetto**: tocca `wwwroot` (`vipi-theme.css`, `vipi-print.css`, `vipi-ui.js`) **e** le frasi
+(dieci chiavi nuove per lingua). Impronte nuove: i file di `wwwroot` e l'indice degli asset viaggiano
+**insieme**.
+
+---
+
+## §BX — Anche le sotto-sezioni dell'editor si chiudono (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW (`feat/allegato-ricerca-e-rotazione`), **non fuso**. Non è in produzione.
+
+Richiesta del committente: «vorrei che anche le singole section siano compattabili oltre alle section
+intere».
+
+Nell'editor **solo il primo livello** era collassabile: le sotto-sezioni erano un `<div class="coord-sub">`
+fisso. Il documento e l'editor dicevano **due cose diverse** — nel viewer una sotto-sezione si è sempre
+chiusa (`SectionNode` la rende `<details>`), qui no. Sul vSOP militare di LIMS, misurato dal vivo:
+**25 figlie su 32 sezioni**. Per arrivare all'ultima si scorrevano tutte le altre, aperte.
+
+### Come
+
+Dal componente **condiviso**, non da un secondo `<details>` scritto a mano: `CollapsibleBlock` prende un
+parametro **`Level`** (0 = la card `.block` di sempre, 1 e 2 = sotto-sezione, con l'aspetto di
+`.coord-sub`/`.coord-sub2` che il **viewer usa già per le stesse sezioni**). È quello che fa valere anche
+qui il chevron, `data-persist` e «espandi/comprimi tutti» senza che chi chiama se li debba ricordare.
+
+- **Misurato**: «comprimi tutti» ora chiude **32 sezioni su 32**, non 7.
+- Una sotto-sezione **nascosta nasce chiusa**, come già fanno le radici: è fuori dal documento, quindi non
+  è lì che si lavora.
+- 🔴 **I comandi dell'intestazione non chiudono la sezione**: ora stanno dentro un `<summary>`, dove un
+  clic è il gesto che apre e chiude. Regge perché `.dse-head` porta già `@onclick:preventDefault` — la
+  stessa riga che serviva al primo livello. Provato dal vivo: il clic su «Up» non chiude.
+- Il **trascinamento non c'entra**: sta in `EditorToc`, la colonna laterale, non sulle card.
+
+### Tolto `overflow:hidden` dalle card annidate
+
+`.coord-sub` ce l'ha, ed è la via corta per far rispettare gli angoli al fondo dell'intestazione. Ma
+dentro l'intestazione di una sezione ci sono il «?» e la conferma in linea, e **tutti e due aprono un
+riquadro `position:absolute`**. Misurato: con l'overflow questa card era l'**unico** antenato che tagliava;
+senza, **nessuno taglia**. Gli angoli li arrotonda l'intestazione da sé — tutti e quattro da chiusa, i due
+di sopra da aperta.
+
+### ⚠️ Trovato misurando, NON corretto qui
+
+`data-persist` in questi editor **non ricorda niente fra un ricarico e l'altro** — e non lo ricorda nemmeno
+per le sezioni **radice**, che l'attributo ce l'hanno da sempre. Quindi è **preesistente**, non una
+conseguenza di questa modifica.
+
+La causa: su una pagina `InteractiveServer` i `<details>` nascono **dopo** che `vipiWireUi` è girato, e
+`wireCollapse` aggancia solo quel che trova in quel momento. `window.vipiWireCollapse` è **già esportato**
+proprio «per le pagine InteractiveServer che ricostruiscono i `<details>`», e questi editor **non lo
+chiamano**. Dentro la pagina una sezione chiusa **regge il ridisegno** (prendere il lock non la riapre): è
+il **ricarico** che la riapre.
+
+È fuori dalla richiesta e cambierebbe il comportamento di ogni pagina che usa `data-persist`: va deciso, non
+fatto di nascosto.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde, **cinque test nuovi**
+(`SottosezioniCollassabiliTests`) — compreso il livello 2, che sul documento di prova non esiste e che i
+soli test coprono. Verifica live sull'editor del vSOP militare di **LIMS**: 32 `<details>`, tutti col
+proprio `<summary>` e col `data-persist`, chiusura di una figlia (7501 → 7223 px), clic su un comando che
+**non** chiude, «comprimi tutti» che arriva a 0 aperte su 32.
+
+⚠️ **Sul pacchetto**: tocca `vipi-theme.css`, quindi impronta nuova — va con i file di `wwwroot` e
+l'indice degli asset, **insieme**. Nessuna migrazione, nessuna frase nuova.
+
+---
+
+## §BY — Il sommario: uno solo, uguale su tutti e cinque i documenti (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW e §BX (`feat/allegato-ricerca-e-rotazione`), **non fuso**.
+
+Il committente ha chiesto di **studiare le barre di navigazione dei cinque tipi di documento** e verificare
+quattro cose — nome, scorrimento, sotto-sezioni, voci compatte — e poi: «alla fine del lavoro devono essere
+uguali».
+
+### Che cosa ha trovato la verifica (misurata, non dedotta)
+
+| | nome | scorre | sotto-sezioni | parte compatta |
+|---|---|---|---|---|
+| vIPI ACC | ❌ «Navigazione»/«Navigation» | ✅ | ❌ non le mostra | — |
+| vIPI APP | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ | — |
+| vSOP aeroporto | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ | — |
+| vSOP militare | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ 25 su 25 | ❌ nasce aperta |
+| vLOA | ⚠️ «Sommario»/**«Contents»** | ✅ | ✅ | — |
+
+### La causa vera: erano DUE implementazioni
+
+`DocumentToc` serviva quattro famiglie; la **vIPI ACC ne aveva una tutta sua**, scritta nella pagina, perché
+le sue sezioni stanno dentro dei **blocchi** e non in un albero di `SectionView`. Due implementazioni
+divergono, ed erano divergenti in tutto quel che il committente ha elencato.
+
+Ora il sommario **non conosce più `SectionView`**: prende `TocGruppo`/`TocVoce` — *titolo + ancora + figlie* —
+e ogni famiglia mappa il proprio modello. È l'unica forma in cui la ACC ci sta dentro senza torcere né lei
+né le altre quattro. ⚠️ L'**ancora è una stringa** e non un id di sezione, ed è voluto: la ACC ancora le
+sezioni di catalogo assenti dal documento su `p-{blocco}-{chiave}`, non su `s-{id}`.
+
+### I quattro punti
+
+1. **Nome**: «Sommario»/«Summary» su tutti e cinque. ⚠️ La ACC è stata spostata su `Common_Contents`
+   invece di cambiare il valore di `Common_Navigation` — quella chiave la usano **anche gli editor**.
+2. **Scorrimento**: tutte e cinque avevano `position:sticky`; su **tre non reggeva**, e la causa non si vede
+   leggendo il CSS. Su APP, aeroporto e militare la barra era **avvolta in un `<div>`** per poterci mettere
+   sotto gli indici degli altri membri di un'unione; `sticky` si appende al **genitore**, e quel `<div>` era
+   alto **esattamente quanto la barra** (392, 359 e 890 px, misurati). Ora i membri sono **gruppi** dentro
+   l'unico `<aside>`, che torna **figlio diretto** della griglia.
+3. **Sotto-sezioni**: la ACC scende alle figlie (`Editorial.Children`). Prima la sotto-sezione «Nuova
+   sezione» di LIBB non compariva da nessuna parte. Dopo: **17 voci invece di 16**, zero sezioni fuori
+   dall'indice e zero ancore morte su tutti e cinque.
+4. **Voci compatte**: nascevano **aperte**, con una ragione scritta accanto («un indice che nasce chiuso
+   costringe a due clic») che vale finché le figlie sono poche — sul militare sono **venticinque**. Ora
+   nascono chiuse: **0 aperte su 32**.
+
+### Nello stesso giro
+
+- **`UnionToc` non disegna più un riquadro per membro**: è diventato `TocGruppiUnione`, che **costruisce i
+  gruppi**. Il nome segue il meccanismo, come vuole la regola di propagazione del gate.
+- **Terzo livello** (`DocumentSection.MaxDepth = 3`) con un rientro suo (`.lvl4`): senza, una nipote si
+  leggeva alla stessa altezza di sua madre — l'indice diceva una gerarchia che il documento non ha.
+- ⚠️ **`.toc-grp:first-of-type` non ha mai potuto mordere**: `:first-of-type` guarda il primo `<p>` fra i
+  fratelli, e il primo `<p>` è la testata `.toc-h`. Ora è `.toc-h + .toc-grp`. Una regola morta non rompe
+  niente: si vede solo misurando che cosa applica davvero.
+- ⚠️ `IsDraft` è **sparito** dal componente (il filtro delle nascoste sta ora nella costruzione dei
+  gruppi). Un attributo rimasto sui punti di chiamata sarebbe esploso **a runtime**, non in compilazione:
+  tolto in tutti e quattro.
+
+### Che cosa NON è stato toccato
+
+La barra degli **editor** (`EditorToc`) dice ancora «Navigazione»: la richiesta era sui **documenti**, e un
+editor non è un documento.
+
+⚠️ **Superato il giorno stesso**: il committente ha chiesto la stessa barra anche negli editor (§BZ), e
+`Common_Navigation` è stata **rimossa** — non la citava più nessuno.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde, **tre test nuovi** in
+`DocumentTocTests` (la testata, i gruppi in un riquadro solo, il terzo livello) e i test dell'unione
+riscritti sul costruttore. Verifica live **su tutti e cinque i documenti, IT ed EN**: testata, `sticky` che
+regge uno scorrimento vero, conteggio delle voci contro le sezioni del corpo, ancore morte, voci aperte
+alla partenza.
+
+⚠️ **Sul pacchetto**: tocca `vipi-theme.css` **e** le frasi (`SharedResource.en.resx`). Impronte nuove: i
+file di `wwwroot` e l'indice degli asset viaggiano **insieme**. Nessuna migrazione.
+
+---
+
+## §BZ — Il sommario è lo stesso anche negli EDITOR (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW–§BY (`feat/allegato-ricerca-e-rotazione`), **non fuso**.
+
+Seguito immediato di §BY: «voglio che sia la stessa anche in editor per tutti».
+
+### Erano TRE, non due
+
+`DocumentToc` per quattro documenti; una implementazione tutta sua per la vIPI ACC; e **`EditorToc`** per
+gli editor — un elenco **piatto** intitolato «Navigazione», mentre i documenti mostravano un albero
+intitolato «Sommario». Ora `EditorToc` non disegna più un indice suo: passa dal sommario condiviso.
+
+⚠️ **Quel che cambia da un chiamante all'altro è come si disegna un LINK**, non la struttura: gli editor
+ci appendono il trascinamento e il pallino delle modifiche non salvate. Per questo c'è il modello `Link`, e
+non una seconda copia di `<aside>`/`<ul>`/`<details>`.
+
+### Misurato sui cinque editor
+
+Testata «Summary», `sticky` che regge (genitore `ed-layout`, alto 4697–7010 px contro barre di 448–901),
+voci annidate, **0 aperte** alla partenza, trascinamento ancora armato (19/11/15/32/9 voci), **zero ancore
+morte**, piede dei tasti al suo posto.
+
+### Nello stesso giro
+
+- **`EditorTocItem.Level` non esiste più**: la gerarchia la dice `ParentSectionId` e il rientro lo decide il
+  sommario. Era un numero che nessuno leggeva più — dato morto che mente a chi legge.
+- **L'editor della vIPI ACC mostra ora anche le NIPOTI**: si fermava alle figlie dirette del blocco, lo
+  stesso buco che aveva il documento pubblicato. ⚠️ **Non trascinabili**, e si vede da `DragGroup` nullo: il
+  riordino di quell'editor lavora fra le sorelle di un blocco, e aprirlo alle nipoti sarebbe una
+  riparentazione, che lì il motore non fa.
+- **`TocDropRules.Accetta` pretende ora un albero su tutt'e due i lati**: il solo confronto non bastava,
+  perché `null == null` è vero e due voci senza albero si sarebbero accettate a vicenda.
+- **`Common_Navigation` rimossa**: non la citava più nessuno. Con lei si chiude la voce **F6** dell'audit
+  del doc 13, che quella divergenza l'aveva segnalata.
+- **`.lvl2` tolta dal foglio**: la scriveva `EditorToc` come nome **composto** (`lvl@(it.Level)`), che
+  nessuna passata sul testo trova.
+
+⚠️ **Conseguenza da sapere**: con le voci chiuse, per lasciare una sezione **fra** due figlie di un'altra
+bisogna prima aprire quella voce. Il bersaglio «la voce padre» resta sempre disponibile: nessun gesto è
+sparito, qualcuno costa un clic in più.
+
+### 🔴 I banchi del runbook erano rossi, e non per colpa del prodotto
+
+I due script di trascinamento (`drag-verifica.js`, `sposta-verifica.js`) sono il gate di questa modifica.
+Portarli al verde ha richiesto di correggere **tre** difetti, tutti loro:
+
+1. leggevano le voci con **`innerText`**, che di un `<details>` **chiuso** torna **stringa vuota**: «voci
+   non trascinabili o non trovate» sembrava una regressione del trascinamento e non lo era. ⚠️ È la stessa
+   trappola già scritta in `SKILL.md` a proposito delle sezioni collassate — scritta, e ripagata.
+2. cercavano il menu «Sposta in…» come `details.blk-add`, mentre dal **4 settembre 2026** è una **tendina**:
+   due passi su tre erano rossi da allora, e nessuno se n'era accorto perché il rosso non parlava di un
+   difetto.
+3. l'ultimo controllo misurava la posizione nella **pagina** invece che nel **corpo**, e trovava per prima
+   la voce nel **sommario**: finché le voci nascevano aperte **passava per la ragione sbagliata**. Con le
+   voci chiuse è diventato rosso, ed è così che si è scoperto che non aveva mai provato niente.
+
+⚠️ **La linea di partenza è stata misurata, non dedotta**: build del commit precedente (`a81318c8`),
+stesso DB, stessi script. A e C erano rossi **anche lì**; B era verde lì e qui — dopo la correzione degli
+script — è verde di nuovo.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde. Verifica live sui cinque
+editor più i due banchi di trascinamento.
+
+⚠️ **Un rosso intermittente e NON correlato**, visto una volta su due giri interi:
+`Vipi.AuroraBridge.Tests.AuroraClientTests.Richieste_in_sequenza_non_si_mescolano`. Non tocca la UI:
+annotato col **nome** — che è la sola cosa da cui si può partire — e non inseguito qui.
+
+⚠️ **Sul pacchetto**: come §BY, tocca `vipi-theme.css` e le frasi. Nessuna migrazione.

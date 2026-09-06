@@ -46,13 +46,9 @@ public class DocumentTocTests : TestContext
     };
 
     private IRenderedComponent<DocumentToc> Indice(IReadOnlyList<SectionView> sezioni, bool bozza = false,
-                                                   Func<SectionView, SectionView>? slotsOf = null) =>
+                                                   Func<SectionView, SectionView>? figlieDi = null) =>
         RenderComponent<DocumentToc>(p =>
-        {
-            p.Add(x => x.Sections, sezioni);
-            p.Add(x => x.IsDraft, bozza);
-            if (slotsOf is not null) p.Add(x => x.SlotsOf, slotsOf);
-        });
+            p.Add(x => x.Gruppi, TocGruppo.Uno(sezioni, bozza, figlieDi: figlieDi)));
 
     /// <summary>Una radice senza figlie resta quel che era: un link, senza involucro.</summary>
     [Fact]
@@ -77,8 +73,11 @@ public class DocumentTocTests : TestContext
 
         var sub = cut.FindAll("details.toc-sub").ToList();
         Assert.Single(sub);
-        // ⚠️ Aperto di default: un indice che nasce chiuso costringe a due clic per sapere che c'è dentro.
-        Assert.True(sub[0].HasAttribute("open"));
+        // 🔴 CHIUSO di default, dal 6 settembre 2026 (richiesta del committente). Prima nasceva aperto,
+        // con una ragione scritta accanto — «un indice che nasce chiuso costringe a due clic» — che vale
+        // finché le figlie sono poche: sul vSOP militare sono venticinque, e un sommario lungo quanto il
+        // documento non aiuta più a cercare.
+        Assert.False(sub[0].HasAttribute("open"));
 
         // Il padre resta un LINK: il chevron apre, il titolo porta alla sezione.
         Assert.Equal("#s-1", cut.Find("details.toc-sub > summary > a").GetAttribute("href"));
@@ -126,6 +125,65 @@ public class DocumentTocTests : TestContext
     }
 
     /// <summary>
+    /// La testata è <b>sempre</b> la stessa parola, per tutte e cinque le famiglie. ⚠️ Non era così fino al
+    /// 6 settembre 2026: quattro dicevano «Sommario»/«Contents» e la vIPI ACC «Navigazione»/«Navigation»,
+    /// perché aveva un indice tutto suo e puntava a un'altra chiave — quella che usano gli EDITOR.
+    /// </summary>
+    [Fact]
+    public void La_testata_e_sempre_la_stessa_chiave()
+    {
+        var cut = Indice(new[] { Sez("s-1", "METAR & TAF") });
+
+        // ⚠️ Qui si legge la PAROLA vera e non la chiave: `StringheDelSito` non passa dal localizzatore
+        // finto di questi test, legge le risorse. Che è quel che serve — la richiesta era sulla parola.
+        Assert.Equal("Summary", cut.Find("aside.toc > p.toc-h").TextContent.Trim());
+        Assert.Single(cut.FindAll("p.toc-h"));   // una sola testata, anche coi gruppi
+    }
+
+    /// <summary>
+    /// I GRUPPI stanno dentro lo <b>stesso</b> riquadro, con la loro intestazione. È la forma con cui ci
+    /// stanno sia i blocchi della vIPI ACC sia i membri di una pagina unita.
+    ///
+    /// <para>🔴 Un riquadro solo non è un vezzo: <c>position:sticky</c> si appende al <b>genitore</b>, e
+    /// impilare due riquadri obbligava ad avvolgerli in un <c>&lt;div&gt;</c> alto quanto loro — che è la
+    /// ragione, misurata, per cui su tre documenti su cinque il sommario se ne andava in cima scorrendo.</para>
+    /// </summary>
+    [Fact]
+    public void I_gruppi_stanno_nello_stesso_riquadro_con_la_loro_intestazione()
+    {
+        var cut = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi, new[]
+        {
+            new TocGruppo("Settori di aerovia", TocVoce.Da(new[] { Sez("s-1", "Frequenze") }, bozza: false)),
+            new TocGruppo("Gruppo APP", TocVoce.Da(new[] { Sez("s-2", "Separazioni") }, bozza: false)),
+        }));
+
+        Assert.Single(cut.FindAll("aside.toc"));
+        Assert.Equal(new[] { "Settori di aerovia", "Gruppo APP" },
+                     cut.FindAll("p.toc-grp").Select(e => e.TextContent.Trim()).ToArray());
+        Assert.Equal(2, cut.FindAll("a").Count);
+    }
+
+    /// <summary>
+    /// Il terzo livello ha un rientro suo. ⚠️ Il modello ne ammette tre
+    /// (<c>DocumentSection.MaxDepth</c>), e senza una classe propria una nipote si leggerebbe alla stessa
+    /// altezza di sua madre — cioè l'indice direbbe una gerarchia che il documento non ha.
+    /// </summary>
+    [Fact]
+    public void Il_terzo_livello_rientra_piu_del_secondo()
+    {
+        var cut = Indice(new[]
+        {
+            Sez("s-1", "Aree di lavoro", false,
+                Sez("s-2", "Procedure generali", false,
+                    Sez("s-3", "Bassa quota"))),
+        });
+
+        Assert.Equal(2, cut.FindAll("details.toc-sub").Count);   // madre e figlia
+        Assert.Equal("#s-2", cut.Find("a.lvl3").GetAttribute("href"));
+        Assert.Equal("#s-3", cut.Find("a.lvl4").GetAttribute("href"));
+    }
+
+    /// <summary>
     /// ⚠️ Chi disegna certe figlie da sé le toglie <b>anche</b> dall'indice, con la stessa funzione che passa
     /// a <c>DocumentSectionsView</c>: la vLOA rende le due direzioni dei coordinamenti come intestazioni sue,
     /// e quelle <b>non hanno un id</b>. Elencarle darebbe due voci che non portano da nessuna parte — e un
@@ -145,7 +203,7 @@ public class DocumentTocTests : TestContext
             }
             : s;
 
-        var cut = Indice(new[] { coordinamenti }, slotsOf: senzaDirezioni);
+        var cut = Indice(new[] { coordinamenti }, figlieDi: senzaDirezioni);
 
         Assert.Empty(cut.FindAll("a.lvl3").ToList());
         Assert.Empty(cut.FindAll("details.toc-sub").ToList());

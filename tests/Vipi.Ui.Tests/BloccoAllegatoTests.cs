@@ -297,7 +297,10 @@ public class BloccoAllegatoTests : TestContext
             .Add(x => x.AttachmentJson, AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA Roma-Marseille")))
             .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
 
-        cut.Find("input.app-in").Change("la LoA con Marsiglia");
+        // ⚠️ NON `input.app-in` e basta: dal 6 settembre 2026 la prima casella della scheda è quella di
+        // RICERCA, che filtra la tendina e non tocca il blocco. Un selettore che pesca la prima casella
+        // proverebbe che scrivere nella ricerca non cambia il titolo — cioè niente.
+        cut.Find("input.app-in:not(.att-cerca)").Change("la LoA con Marsiglia");
 
         var r = AttachmentRef.Parse(scritto);
         Assert.Equal("la LoA con Marsiglia", r!.Title);
@@ -368,7 +371,7 @@ public class BloccoAllegatoTests : TestContext
             .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
 
         var tendine = cut.FindAll("select").ToArray();
-        Assert.Equal(3, tendine.Length);   // allegato, modo, altezza
+        Assert.Equal(4, tendine.Length);   // allegato, modo, altezza, rotazione
 
         tendine[2].Change(nameof(AttachmentEmbedHeight.Small));
 
@@ -464,5 +467,179 @@ public class BloccoAllegatoTests : TestContext
         Assert.Contains("database irraggiungibile", cut.Markup);
         Assert.NotEmpty(cut.FindAll("select"));            // la pagina è viva
         Assert.DoesNotContain("Att_BlockEmptyHint", cut.Markup);   // non è «vuota», è rotta
+    }
+
+    // -- La ricerca nella tendina --------------------------------------------------------------------
+    //
+    // In produzione la biblioteca ha 121 voci (contate il 4 settembre 2026): una tendina lunga così si
+    // percorre a occhio, e l'unico modo di arrivare in fondo è scrivere.
+
+    private static AttachmentRow Voce(
+        string slug, string titolo, AttachmentKind tipo, AttachmentScope perimetro, string? chiave) =>
+        new(1, slug, titolo, tipo, perimetro, chiave, null, 1, 1,
+            AttachmentProvider.Drive, "1A2b3C4d5E6f7G8h9I0jKlMnOpQrStUvW",
+            DateTime.UnixEpoch, DateTime.UnixEpoch);
+
+    /// <summary>
+    /// Si cerca su <b>titolo, slug, perimetro e tipo</b>, e i pezzi separati da spazio si sommano: chi
+    /// scrive «LIRR» sta cercando un perimetro, chi scrive «loa» un tipo, e sono tutti e due modi
+    /// legittimi di dire quale allegato si vuole.
+    /// </summary>
+    [Fact]
+    public void La_ricerca_restringe_la_tendina_su_tutti_i_campi()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(
+            Voce("loa-lirr-lfmm", "LoA Roma-Marseille", AttachmentKind.Loa, AttachmentScope.Acc, "LIRR"),
+            Voce("loa-limm-lsas", "LoA Milano-Svizzera", AttachmentKind.Loa, AttachmentScope.Acc, "LIMM"),
+            Voce("carta-lipr", "Carta di Parma", AttachmentKind.Other, AttachmentScope.Airport, "LIPR")));
+
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
+        Assert.Equal(4, cut.FindAll("select option").Count);   // «nessuno» + tre voci
+
+        cut.Find("input.att-cerca").Input("milano");
+        Assert.Equal(2, cut.FindAll("select option").Count);   // «nessuno» + la sola LoA di Milano
+
+        // Il perimetro non compare nel titolo: se la ricerca mordesse solo lì, questa non troverebbe niente.
+        cut.Find("input.att-cerca").Input("LIPR");
+        Assert.Contains("Carta di Parma", cut.Markup);
+        // ⚠️ E l'etichetta porta la chiave del perimetro, non il trattino della divisione: «MIL abbriviation
+        // — — · Chart», visto a schermo il 6 settembre 2026, non si legge.
+        Assert.Contains("Carta di Parma · LIPR · Other", cut.Markup);
+
+        // Due pezzi si SOMMANO: «loa» sul tipo e «lirr» sul perimetro, che stanno in due campi diversi.
+        cut.Find("input.att-cerca").Input("loa lirr");
+        Assert.Equal(2, cut.FindAll("select option").Count);
+        Assert.Contains("LoA Roma-Marseille", cut.Markup);
+    }
+
+    /// <summary>
+    /// ⚠️ La voce <b>scelta</b> resta in tendina anche quando il filtro la escluderebbe. Senza, scrivere
+    /// due lettere che non c'entrano farebbe sparire l'allegato che il blocco cita davvero: a schermo si
+    /// vedrebbe un campo vuoto e la scelta sembrerebbe persa, mentre nel documento c'è ancora. Una casella
+    /// di ricerca non deve poter dire il falso su ciò che il blocco cita.
+    /// </summary>
+    [Fact]
+    public void La_voce_scelta_non_sparisce_dalla_tendina_per_colpa_del_filtro()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(
+            Voce("loa-lirr-lfmm", "LoA Roma-Marseille"),
+            Voce("loa-limm-lsas", "LoA Milano-Svizzera")));
+
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p
+            .Add(x => x.AttachmentJson, AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA"))));
+
+        cut.Find("input.att-cerca").Input("zzz");
+
+        // Nessuna voce passa il filtro, ma quella citata dal blocco è ancora selezionabile.
+        Assert.Contains("loa-lirr-lfmm", cut.Find("select").InnerHtml);
+        Assert.DoesNotContain("loa-limm-lsas", cut.Find("select").InnerHtml);
+    }
+
+    /// <summary>Scritto nella ricerca, la scelta va fatta <b>lo stesso</b> in tendina: filtrare non è
+    /// scegliere, e un filtro che sceglie da sé prenderebbe la prima voce che passa.</summary>
+    [Fact]
+    public void Scrivere_nella_ricerca_non_sceglie_niente()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA")));
+
+        string? scritto = "non toccato";
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p
+            .Add(x => x.AttachmentJson, null)
+            .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
+
+        cut.Find("input.att-cerca").Input("loa");
+
+        Assert.Equal("non toccato", scritto);
+    }
+
+    // -- Il giro del riquadro ------------------------------------------------------------------------
+
+    /// <summary>L'orientamento scelto da chi redige finisce nel blocco, e da lì nell'attributo che il
+    /// foglio di stile guarda.</summary>
+    [Fact]
+    public void La_rotazione_scelta_finisce_nel_blocco_e_nel_riquadro()
+    {
+        Localizzatore();
+        Services.AddSingleton<IAttachmentLibrary>(new BibliotecaFinta(Voce("loa-lirr-lfmm", "LoA")));
+
+        string? scritto = null;
+        var cut = RenderComponent<AttachmentBlockEditor>(p => p
+            .Add(x => x.AttachmentJson, AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA",
+                AttachmentDisplayMode.Embedded)))
+            .Add(x => x.AttachmentJsonChanged, (string? j) => scritto = j));
+
+        cut.FindAll("select").ToArray()[3].Change(nameof(AttachmentRotation.Deg90));
+
+        Assert.Equal(AttachmentRotation.Deg90, AttachmentRef.Parse(scritto)!.Rotation);
+        Assert.Equal(90, AttachmentRef.Parse(scritto)!.RotationDeg);
+    }
+
+    /// <summary>
+    /// Il riquadro porta l'angolo di partenza e i due tasti per girarlo. ⚠️ I tasti sono HTML puro, girati
+    /// da <c>vipi-ui.js</c>: questo componente compare anche nelle pagine pubbliche, che sono <b>SSR
+    /// statico</b>, e lì un <c>@@onclick</c> di Blazor non scatterebbe mai.
+    /// </summary>
+    [Fact]
+    public void Il_riquadro_incorporato_porta_langolo_e_i_due_tasti()
+    {
+        Localizzatore();
+
+        var cut = RenderComponent<AttachmentLink>(p => p.Add(x => x.Reference,
+            new AttachmentRef("loa-lirr-lfmm", "LoA", AttachmentDisplayMode.Embedded,
+                AttachmentEmbedHeight.Medium, AttachmentRotation.Deg270)));
+
+        Assert.Equal("270", cut.Find(".att-embed").GetAttribute("data-att-rot"));
+        Assert.Equal(2, cut.FindAll("[data-att-rot-btn]").Count);
+        // ⚠️ type="button": dentro un modulo un bottone senza tipo lo INVIA, e questo blocco finisce
+        // anche negli editor.
+        Assert.All(cut.FindAll("[data-att-rot-btn]"), b => Assert.Equal("button", b.GetAttribute("type")));
+
+        // ⚠️ I tasti stanno FUORI dal riquadro, non sovrapposti in un angolo: dentro l'iframe c'è la barra
+        // di Google, col suo «apri in una scheda» proprio in alto a destra. Visto solo a schermo il 6
+        // settembre 2026 — il DOM di prima era altrettanto «giusto».
+        Assert.Empty(cut.FindAll(".att-embed [data-att-rot-btn]"));
+        // E puntano al riquadro per nome, o uno screen reader non sa che cosa girano.
+        var id = cut.Find(".att-embed").Id;
+        Assert.False(string.IsNullOrWhiteSpace(id));
+        Assert.All(cut.FindAll("[data-att-rot-btn]"), b => Assert.Equal(id, b.GetAttribute("aria-controls")));
+    }
+
+    /// <summary>Nel modo <b>link</b> non c'è niente da girare, e un tasto che non fa niente si preme
+    /// lo stesso.</summary>
+    [Fact]
+    public void Il_modo_link_non_porta_i_tasti_del_giro()
+    {
+        Localizzatore();
+
+        var cut = RenderComponent<AttachmentLink>(p => p.Add(x => x.Reference,
+            new AttachmentRef("loa-lirr-lfmm", "LoA", AttachmentDisplayMode.Link,
+                AttachmentEmbedHeight.Medium, AttachmentRotation.Deg90)));
+
+        Assert.Empty(cut.FindAll("[data-att-rot-btn]"));
+    }
+
+    /// <summary>⚠️ La chiave <c>rotazione</c> è <b>nuova</b>: i blocchi già scritti non ce l'hanno, e
+    /// devono tornare <c>Deg0</c> — cioè vedersi come si vedevano ieri.</summary>
+    [Fact]
+    public void Un_blocco_scritto_prima_della_rotazione_nasce_dritto()
+    {
+        var r = AttachmentRef.Parse(
+            """{"ref":"allegato:loa-lirr-lfmm","titolo":"LoA","modo":"Embedded"}""");
+
+        Assert.Equal(AttachmentRotation.Deg0, r!.Rotation);
+        Assert.Equal(0, r.RotationDeg);
+    }
+
+    /// <summary>Un angolo che questa versione non conosce torna al valore di riposo invece di far esplodere
+    /// il blocco: stessa regola già scelta per il modo e per l'altezza.</summary>
+    [Fact]
+    public void Una_rotazione_sconosciuta_torna_dritta()
+    {
+        var r = AttachmentRef.Parse("""{"ref":"allegato:loa-lirr-lfmm","rotazione":"Deg45"}""");
+
+        Assert.Equal(AttachmentRotation.Deg0, r!.Rotation);
     }
 }

@@ -1,85 +1,99 @@
-@* Menu-sezioni laterale (TOC) CONDIVISO tra gli editor: aside.toc sticky, riusa lo stile del viewer.
-   Proiezione dato-guidata di sezioni già in memoria (nessuna query DB). Vedi docs/feature/2026-07-29-toc-editor.md.
-   Dal 26 agosto 2026 le voci-sezione si TRASCINANO per riordinare, se l'host passa OnReorder:
-   docs/feature/2026-08-26-riordino-sezioni-trascinando.md. *@
+﻿@* Menu-sezioni laterale degli editor. Dal 6 settembre 2026 NON disegna più un indice suo: passa dal
+   sommario condiviso (`DocumentToc`), lo stesso dei cinque documenti — richiesta del committente, «voglio
+   che sia la stessa anche in editor per tutti».
+
+   Prima era un elenco PIATTO con l'intestazione «Navigazione», mentre i documenti mostravano un albero
+   intitolato «Sommario»: due barre che fanno lo stesso mestiere e si comportano in due modi.
+
+   ⚠️ Qui resta soltanto quel che è DAVVERO dell'editor: il trascinamento per riordinare e il pallino delle
+   modifiche non salvate. Sono un modo di disegnare il LINK, non una struttura diversa — per questo passano
+   dal modello `Link` invece che da una seconda copia di <aside>/<ul>/<details>.
+
+   ⚠️ Le voci con figlie nascono CHIUSE, come nei documenti. Conseguenza da sapere: per lasciare una sezione
+   FRA due figlie di un'altra bisogna prima aprire quella voce. Il bersaglio «la voce padre» resta sempre
+   disponibile, quindi nessun gesto è sparito — ma qualcuno costa un clic in più.
+
+   Vedi docs/feature/2026-07-29-toc-editor.md e docs/feature/2026-08-26-riordino-sezioni-trascinando.md. *@
 @inject IStringLocalizer<SharedResource> L
 
-@if (Items.Count > 0)
-{
-    <aside class="toc editor-toc-side @(Draggable ? "toc-drag" : null)" data-tour="toc">
-        <p class="toc-h">@(HeaderLabel ?? L["Common_Navigation"])</p>
+<DocumentToc Gruppi="@EditorTocProjection.Gruppi(Items)"
+             ExtraClass="@("editor-toc-side " + (Draggable ? "toc-drag" : null))"
+             Link="@Voce" Footer="Footer" data-tour="toc">
+    <Sotto>
         @if (Draggable)
         {
             <p class="toc-drag-hint">@L["Toc_DragHint"]</p>
         }
-        <ul>
-            @{ string? lastGroup = null; }
-            @foreach (var it in Items)
-            {
-                @if (it.GroupLabel is { Length: > 0 } g && !string.Equals(g, lastGroup, StringComparison.Ordinal))
-                {
-                    lastGroup = g;
-                    <li class="toc-grp-li"><p class="toc-grp">@g</p></li>
-                }
-                <li>
-                    @* ⚠️ `draggable` si scrive SEMPRE quando il riordino è acceso: un <a href> nasce
-                       trascinabile per conto suo, e senza il "false" esplicito il pannello Release e i blocchi
-                       ACC senza figli si lascerebbero prendere per poi non andare da nessuna parte.
-                       Fuori dal riordino l'ancora resta quella di prima: nessun gestore di trascinamento
-                       registrato sul circuito per gli editor che non riordinano (l'aeroporto).
-
-                       ⚠️ Il `preventDefault` sul `dragover` — quello che rende la voce un bersaglio che
-                       ACCETTA — NON sta qui: lo fa `wireTocDrop` in vipi-ui.js, dove c'è scritto perché.
-                       Qui c'era scritto il modificatore `:preventDefault` su `ondragover` e non faceva
-                       niente: Blazor ascolta un evento solo se qualcuno vi registra un GESTORE, e per
-                       `dragover` non ce n'è. Il gesto partiva, illuminava la destinazione e spariva senza
-                       drop. Sul `drop` qui sotto invece il modificatore funziona: il gestore c'è. *@
-                    @if (Draggable)
-                    {
-                        <a class="lvl@(it.Level) @(IsDragging(it) ? "toc-dragging" : null) @(IsDropTarget(it) ? "toc-drop" : null)"
-                           href="#@it.AnchorId"
-                           draggable="@(CanDrag(it) ? "true" : "false")"
-                           title="@(CanDrag(it) ? L["Toc_DragTitle"].Value : null)"
-                           @ondragstart="() => DragStart(it)" @ondragend="DragEnd"
-                           @ondragenter="() => DragEnter(it)" @ondragleave="() => DragLeave(it)"
-                           @ondrop="() => Drop(it)" @ondrop:preventDefault="true">
-                            @Label(it)
-                        </a>
-                    }
-                    else
-                    {
-                        <a class="lvl@(it.Level)" href="#@it.AnchorId">@Label(it)</a>
-                    }
-                </li>
-            }
-        </ul>
-        @if (Footer is not null)
-        {
-            <div class="toc-foot">@Footer</div>
-        }
-    </aside>
-}
+    </Sotto>
+</DocumentToc>
 
 @code {
-    private RenderFragment Label(EditorTocItem it) => __builder =>
+    /// <summary>
+    /// Il link di una voce: l'ancora di sempre, più il trascinamento e il pallino.
+    ///
+    /// <para>⚠️ La voce di partenza si ritrova per <b>ancora</b>: <c>TocVoce</c> non porta con sé l'oggetto
+    /// da cui è nata, e non deve — è il modello che tiene uguale il sommario di tutti. Le ancore sono
+    /// univoche nella pagina per costruzione (<c>s-42</c>, <c>blk-7</c>, <c>p-release</c>).</para>
+    /// </summary>
+    private RenderFragment<TocLink> Voce => l => __builder =>
     {
-        @it.Label
-        @if (it.Dirty) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }
+        var it = Item(l.Voce.Ancora);
+
+        @* ⚠️ `draggable` si scrive SEMPRE quando il riordino è acceso: un <a href> nasce trascinabile per
+           conto suo, e senza il "false" esplicito il pannello Release e i blocchi ACC senza figli si
+           lascerebbero prendere per poi non andare da nessuna parte. Fuori dal riordino l'ancora resta
+           quella di prima: nessun gestore di trascinamento registrato sul circuito per gli editor che non
+           riordinano (l'aeroporto).
+
+           ⚠️ Il `preventDefault` sul `dragover` — quello che rende la voce un bersaglio che ACCETTA — NON
+           sta qui: lo fa `wireTocDrop` in vipi-ui.js, dove c'è scritto perché. Qui c'era scritto il
+           modificatore `:preventDefault` su `ondragover` e non faceva niente: Blazor ascolta un evento solo
+           se qualcuno vi registra un GESTORE, e per `dragover` non ce n'è. Il gesto partiva, illuminava la
+           destinazione e spariva senza drop. Sul `drop` qui sotto invece il modificatore funziona. *@
+        @if (Draggable && it is EditorTocItem v)
+        {
+            <a class="@l.Classe @(IsDragging(v) ? "toc-dragging" : null) @(IsDropTarget(v) ? "toc-drop" : null)"
+               href="#@l.Voce.Ancora"
+               draggable="@(CanDrag(v) ? "true" : "false")"
+               title="@(CanDrag(v) ? L["Toc_DragTitle"].Value : null)"
+               @ondragstart="() => DragStart(v)" @ondragend="DragEnd"
+               @ondragenter="() => DragEnter(v)" @ondragleave="() => DragLeave(v)"
+               @ondrop="() => Drop(v)" @ondrop:preventDefault="true">
+                @Etichetta(l.Voce.Titolo, it)
+            </a>
+        }
+        else
+        {
+            <a class="@l.Classe" href="#@l.Voce.Ancora">@Etichetta(l.Voce.Titolo, it)</a>
+        }
     };
 
-    /// <summary>Voci del menu (proiezione delle sezioni). Vuoto = nessun aside renderizzato.</summary>
+    private RenderFragment Etichetta(string titolo, EditorTocItem? it) => __builder =>
+    {
+        @titolo
+        @if (it?.Dirty == true) { <span class="dirt" title="@L["Ape_Unsaved"]"></span> }
+    };
+
+    private EditorTocItem? Item(string ancora)
+    {
+        foreach (var it in Items)
+        {
+            if (string.Equals(it.AnchorId, ancora, StringComparison.Ordinal)) return it;
+        }
+        return null;
+    }
+
+    /// <summary>Voci del menu (proiezione delle sezioni). Vuoto = nessun riquadro renderizzato — lo decide
+    /// <c>DocumentToc</c>, che di un sommario senza voci non disegna niente.</summary>
     [Parameter, EditorRequired] public IReadOnlyList<EditorTocItem> Items { get; set; } = System.Array.Empty<EditorTocItem>();
 
-    /// <summary>Intestazione del pannello (default: "Navigazione" localizzato).</summary>
-    [Parameter] public string? HeaderLabel { get; set; }
-
-    /// <summary>Contenuto extra in fondo al TOC (es. pulsanti Espandi/Comprimi tutto).</summary>
+    /// <summary>Contenuto extra in fondo al sommario (es. pulsanti Espandi/Comprimi tutto).</summary>
     [Parameter] public RenderFragment? Footer { get; set; }
 
     /// <summary>
     /// Riordino per trascinamento: l'host lo passa SOLO quando il documento è in modifica (ed è suo il lock).
-    /// Non passarlo lascia il TOC quello di prima — è così che l'editor aeroporto, che di sezioni-documento non
-    /// ne ha, resta fuori senza una condizione dedicata.
+    /// Non passarlo lascia il sommario quello di prima — è così che l'editor aeroporto, che di sezioni-documento
+    /// non ne ha, resta fuori senza una condizione dedicata.
     /// </summary>
     [Parameter] public EventCallback<TocReorder> OnReorder { get; set; }
 
@@ -88,7 +102,10 @@
     private EditorTocItem? _dragged;
     private int? _overId;
 
-    private bool CanDrag(EditorTocItem it) => Draggable && it.SectionId is not null;
+    /// <summary>⚠️ Anche l'ALBERO, non solo la sezione: una voce senza <c>DragGroup</c> non può essere né
+    /// sorgente né bersaglio (lo dice <see cref="TocDropRules.Accetta"/>), e mostrarla trascinabile sarebbe
+    /// un gesto che si arma e non fa niente.</summary>
+    private bool CanDrag(EditorTocItem it) => Draggable && it.SectionId is not null && it.DragGroup is not null;
 
     private bool IsDragging(EditorTocItem it) => _dragged is EditorTocItem m && it.SectionId == m.SectionId;
 

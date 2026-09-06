@@ -1,4 +1,4 @@
-/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
+﻿/* Foglio di STAMPA del modulo vIPI (RNF-6: consultazione offline in cabina; piano §10 e §22.7 — stampa via
    CSS, nessun endpoint export server-side).
 
    Strategia: NASCONDI IL CHROME e lascia il contenuto nel flusso normale. Il precedente blocco @media print
@@ -300,6 +300,9 @@
      parte. L'indirizzo si stampa accanto al titolo. Senza questa regola una vLOA stampata perde
      l'allegato IN SILENZIO. */
   .vipi-root .att-embed { display: none !important; }
+  /* ⚠️ E i due tasti del giro con lui: da quando stanno FUORI dal riquadro non se ne vanno piu' insieme,
+     e su carta resterebbero due bottoni da premere su un riquadro che non c'e'. */
+  .vipi-root .att-rot { display: none !important; }
   .vipi-root .att-ext { display: none !important; }
   .vipi-root .att-link a::after { content: " (" attr(href) ")"; font-size: 8.5pt; color: var(--ink-soft); }
 

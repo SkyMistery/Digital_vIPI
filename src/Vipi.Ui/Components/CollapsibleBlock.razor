@@ -1,9 +1,9 @@
-@* Card sezione .block COLLASSABILE, condivisa da editor e viewer. Reso come <details>/<summary> NATIVO:
+﻿@* Card sezione .block COLLASSABILE, condivisa da editor e viewer. Reso come <details>/<summary> NATIVO:
    collassa senza circuito Blazor, quindi funziona anche sulle pagine viewer in static SSR (AppnPage, VloaListPage),
    non solo negli editor InteractiveServer. Si aggancia agli helper JS esistenti: wireCollapse (persistenza via
    data-persist) e vipiDetails (espandi/comprimi tutti). Il chevron è fuori da .cb-title, così negli editor il click
    sui controlli dell'header (rinomina/sposta/elimina) NON collassa — quei controlli chiamano preventDefault. *@
-<details class="block cb @ExtraClass" id="@Id" style="@Style" open="@InitiallyOpen" data-persist="@Id" @attributes="Extra">
+<details class="@ClasseRadice @ExtraClass" id="@Id" style="@Style" open="@InitiallyOpen" data-persist="@Id" @attributes="Extra">
     <summary class="cb-head">
         <span class="cb-chev" aria-hidden="true">▸</span>
         <div class="cb-title">@Header</div>
@@ -12,6 +12,24 @@
 </details>
 
 @code {
+    /// <summary>
+    /// A che LIVELLO sta la card: 0 = sezione di primo livello (la card <c>.block</c> di sempre), 1 e 2 =
+    /// <b>sotto-sezione</b>, che ha l'aspetto di <c>.coord-sub</c>/<c>.coord-sub2</c> ma lo stesso gesto.
+    ///
+    /// <para>⚠️ È un livello e non una classe libera perché il gesto dev'essere UNO: chevron,
+    /// <c>data-persist</c> e «espandi/comprimi tutti» valgono a ogni livello senza che chi chiama debba
+    /// ricordarsene. Le sotto-sezioni dell'editor prima erano un <c>&lt;div&gt;</c> fisso: nel viewer si
+    /// chiudevano e nell'editor no.</para>
+    /// </summary>
+    [Parameter] public int Level { get; set; }
+
+    private string ClasseRadice => Level switch
+    {
+        0 => "block cb",
+        1 => "cb cb-sub",
+        _ => "cb cb-sub2",
+    };
+
     [Parameter] public string? Id { get; set; }
     [Parameter] public string? ExtraClass { get; set; }
     [Parameter] public string? Style { get; set; }

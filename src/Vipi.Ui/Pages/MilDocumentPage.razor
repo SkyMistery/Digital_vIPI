@@ -60,14 +60,14 @@
            contenitore, ma la classe restava a dichiarare un limite che non vale più. Due regole che dicono
            cose diverse sullo stesso elemento sono un difetto che aspetta. *@
         <div class="doc-layout">
-            @* L'indice porta anche le SOTTO-sezioni: su questo documento sono venti su ventisei, e senza di
-               loro l'indice ne elencava sei. *@
-            <div>
-                <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                             HeaderLabel="@(_altri.Count > 0 ? _doc.View.Title : null)"
-                             AnchorOf="MilDocumentBody.AnchorOf" />
-                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
-            </div>
+            @* Il sommario porta anche le SOTTO-sezioni: su questo documento sono venti su ventisei, e
+               senza di loro ne elencava sei.
+               ⚠️ FIGLIO DIRETTO della griglia, e non avvolto in un <div> come stava fino al 6 settembre
+               2026 per poterci mettere sotto gli indici degli altri membri: `position:sticky` si appende al
+               genitore, e quel <div> era alto esattamente quanto la barra (890 px, misurati) — quindi il
+               sommario se ne andava in cima appena si scorreva. I membri sono GRUPPI dentro lo stesso
+               riquadro. *@
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
@@ -238,6 +238,28 @@
     /// <summary>Il ciclo AIRAC MOSTRATO: quello dell'anteprima release se è una, altrimenti quello che si
     /// porta dietro lo snapshot del documento.</summary>
     private string Cycle() => _doc?.RelCycle ?? _doc?.View.AiracCycle ?? "";
+
+    /// <summary>
+    /// I gruppi del sommario: il PROPRIO documento, e poi uno per ogni altro membro dell'unione.
+    ///
+    /// <para>\u26a0\ufe0f Il proprio gruppo prende un titolo <b>solo dentro un'unione</b>: da solo sarebbe una riga
+    /// che ripete il titolo del documento sotto la parola \u00abSommario\u00bb, cio\u00e8 due volte la stessa cosa.</para>
+    ///
+    /// <para>\u26a0\ufe0f Un GRUPPO per membro e non un elenco unico: \u00e8 la riga che dice dove finisce un documento
+    /// e comincia l'altro. E tutti dentro lo <b>stesso</b> riquadro, o lo <c>sticky</c> non regge \u2014 vedi
+    /// <see cref="Vipi.Ui.Components.Doc.TocGruppiUnione"/>.</para>
+    /// </summary>
+    private IReadOnlyList<TocGruppo> Sommario()
+    {
+        if (_doc is null) return Array.Empty<TocGruppo>();
+
+        var bozza = _doc.Mode.Kind == PreviewKind.Draft;
+        var proprio = new TocGruppo(
+            _altri.Count > 0 ? _doc.View.Title : null,
+            TocVoce.Da(_doc.View.Sections, bozza, MilDocumentBody.AnchorOf));
+
+        return new[] { proprio }.Concat(TocGruppiUnione.Di(_altri, bozza)).ToList();
+    }
 
     /// <summary>Quanti ATC su questo campo adesso. ⚠️ L'ATIS è escluso, come sull'aeroporto civile: è una
     /// frequenza registrata, non qualcuno che controlla.</summary>

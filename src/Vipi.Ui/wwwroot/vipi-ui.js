@@ -905,6 +905,46 @@ window.vipiScorrimento = function () {
         });
     }
 
+    // ── Il giro dei riquadri allegato ────────────────────────────────────────────────────────────────
+    //
+    // Chi redige sceglie l'orientamento di PARTENZA (sta nel JSON del blocco e arriva qui come
+    // `data-att-rot`); chi legge lo cambia sul momento con i due tasti, come nel visualizzatore PDF del
+    // browser. Il giro di chi legge vive SOLO in questa pagina: non si salva, non torna nel documento e non
+    // sopravvive al ricaricamento -- e' un'occhiata, non una modifica.
+    //
+    // ⚠️ Sta in JS e non in Blazor perche' i documenti pubblici sono SSR STATICO: li' un `@onclick` non
+    // scatterebbe mai. Cosi' i tasti funzionano identici nel documento pubblico e nell'anteprima dell'editor.
+    //
+    // ⚠️ E qui non si misura NIENTE: lo scambio larghezza/altezza a un quarto di giro lo fanno le unita' di
+    // container query nel foglio di stile (`100cqw`/`100cqh`). Una prima versione misurava il riquadro da
+    // qui, e aveva un difetto che non si vede a occhio: un riquadro che NASCE dopo -- un render interattivo
+    // dell'editor, una navigazione -- si sarebbe disegnato prima della misura, cioe' storto, fino al primo
+    // ridimensionamento della finestra. Tolta la misura, e' tolta la classe intera.
+    var rotWired = false;
+    function wireAttRotate() {
+        if (rotWired) return;
+        rotWired = true;
+
+        // Delegato sul documento: i riquadri nascono e muoiono a ogni navigazione «enhanced» e a ogni
+        // render dell'editor, e un handler per elemento andrebbe riagganciato ogni volta -- o, peggio,
+        // agganciato due volte, e allora un clic girerebbe di mezzo giro.
+        document.addEventListener('click', function (e) {
+            var b = e.target && e.target.closest && e.target.closest('[data-att-rot-btn]');
+            if (!b) return;
+            // ⚠️ Il riquadro si trova per NOME (`aria-controls`), non con un `closest`: i tasti stanno
+            // FUORI dal riquadro (dentro c'e' la barra di Google, che ha il proprio tasto in alto a
+            // destra), quindi un `closest('.att-embed')` torna null e il clic non fa NIENTE. Costato un
+            // giro il 6 settembre 2026: il DOM era giusto, i tasti c'erano, e non giravano.
+            var box = document.getElementById(b.getAttribute('aria-controls') || '');
+            if (!box) return;
+
+            var ora = parseInt(box.getAttribute('data-att-rot'), 10) || 0;
+            var passo = parseInt(b.getAttribute('data-att-rot-btn'), 10) || 0;
+            // ⚠️ Il modulo di JS tiene il segno del dividendo: -90 % 360 fa -90, non 270. Il +360 raddrizza.
+            box.setAttribute('data-att-rot', ((ora + passo) % 360 + 360) % 360);
+        });
+    }
+
     window.vipiWireUi = function () {
         document.querySelectorAll('.aor-block').forEach(wireAor);
         wireExpand();
@@ -917,6 +957,7 @@ window.vipiScorrimento = function () {
         wireSearchKey();
         wireTabInCasella();
         wirePrint();
+        wireAttRotate();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
         window.vipiFitTopbar();
         window.vipiFitPanes();

@@ -1,4 +1,4 @@
-/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font: i ruoli stanno qui (--font-head/--font-body/--font-mono), le @font-face in vipi-fonts.css.
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo).
@@ -1139,7 +1139,14 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc a.active{background:var(--tint-atmos);color:var(--brand-ink);font-weight:600;border-left-color:var(--ivao-blue)}
 /* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`class="lvl@(it.Level)"` in `EditorToc.razor`).
    Una passata «classi mai citate» la dà per morta: non lo è. */
-.toc .lvl2{padding-left:14px}.toc .lvl3{padding-left:26px;font-size:12.5px}
+/* Rientri del sommario: `.lvl3` per le sotto-sezioni, `.lvl4` per il terzo livello, che il modello
+   ammette (`DocumentSection.MaxDepth = 3`) e che senza una regola propria si leggerebbe alla stessa altezza
+   del secondo.
+   ⚠️ `.lvl2` è sparita col rientro delle voci d'editor: la scriveva `EditorToc` come nome COMPOSTO
+   (`class="lvl@(it.Level)"`), che nessuna passata sul testo trova — e dal 6 settembre 2026 quel rientro lo
+   decide il sommario condiviso, uguale per documenti ed editor. */
+.toc .lvl3{padding-left:26px;font-size:12.5px}
+.toc .lvl4{padding-left:38px;font-size:12.5px}
 /* Sotto-elenco dell'indice di un documento (DocumentToc): il chevron apre, il titolo porta alla sezione.
    ⚠️ Che il clic sul titolo NON chiuda l'elenco non e' merito di questo CSS: e' `wireAnchors` in vipi-ui.js,
    che su ogni link "#id" chiama preventDefault -- e commutare e' l'azione di default del clic su un
@@ -1150,7 +1157,10 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc .toc-sub[open]>summary::before{transform:rotate(90deg)}
 .toc .toc-sub>summary>a{flex:1 1 auto;padding-left:2px}
 .toc .toc-grp{margin:12px 0 4px;padding-left:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
-.toc .toc-grp:first-of-type{margin-top:2px}
+/* ⚠️ Il PRIMO gruppo si stringe sotto la testata. Era `.toc-grp:first-of-type`, che non ha mai potuto
+   mordere: `:first-of-type` guarda il primo <p> fra i fratelli, e il primo <p> e' la testata `.toc-h`.
+   Una regola morta non si vede perche' non rompe niente -- si vede solo misurando che cosa applica. */
+.toc .toc-h + .toc-grp{margin-top:2px}
 .doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}
 /* L'AVVISO DI SIMULAZIONE (SimDisclaimer). Rosso e grassetto, sotto il titolo di ogni documento pubblico,
    della vista live e della mappa degli spazi aerei.
@@ -1211,6 +1221,31 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .block.cb>.cb-head:hover .cb-chev{background:var(--tint-atmos)}
 .block.cb[open]>.cb-head .cb-chev{transform:rotate(90deg)}
 .block.cb .cb-body{margin-top:2px}
+
+/* SOTTO-sezioni collassabili: stesso componente e stesso gesto delle radici, aspetto di .coord-sub /
+   .coord-sub2 -- che e' quello che il VIEWER usa gia' per le stesse sezioni. Le regole non si possono
+   ereditare da `.block.cb` perche' quelle sono ancorate a `.block`, che qui non c'e' apposta: una
+   sotto-sezione non deve avere la cornice di una card di primo livello. */
+.cb-sub,.cb-sub2{border:1px solid var(--line);border-radius:11px;margin:14px 0;background:var(--surface)}
+.cb-sub2{border-radius:9px;margin:10px 0;background:var(--surface-soft)}
+/* ⚠️ NIENTE `overflow:hidden`, che sarebbe la via corta per far rispettare gli angoli al fondo
+   dell'intestazione: dentro l'intestazione di una sezione ci sono il «?» e la conferma in linea, e tutti
+   e due aprono un riquadro `position:absolute`. Un antenato che ritaglia li taglia -- misurato il 6
+   settembre 2026: con `overflow:hidden` l'unico antenato che tagliava era proprio questo. Gli angoli li
+   arrotonda l'intestazione da sé: tutti e quattro da chiusa, i due di sopra da aperta. */
+.cb-sub>.cb-head{border-radius:10px}
+.cb-sub[open]>.cb-head{border-radius:10px 10px 0 0}
+.cb-sub2>.cb-head{border-radius:8px}
+.cb-sub2[open]>.cb-head{border-radius:8px 8px 0 0}
+.cb-sub>.cb-head,.cb-sub2>.cb-head{display:flex;align-items:flex-start;gap:10px;cursor:pointer;list-style:none;padding:10px 14px;background:var(--tint-atmos)}
+.cb-sub2>.cb-head{padding:8px 12px;background:var(--tint-atmos-soft)}
+.cb-sub>.cb-head::-webkit-details-marker,.cb-sub2>.cb-head::-webkit-details-marker{display:none}
+.cb-sub>.cb-head:hover .cb-chev,.cb-sub2>.cb-head:hover .cb-chev{background:var(--tint-atmos)}
+.cb-sub .cb-title,.cb-sub2 .cb-title{flex:1;min-width:0}
+.cb-sub .cb-title>h4,.cb-sub2 .cb-title>h4{margin-top:0}
+.cb-sub .cb-chev,.cb-sub2 .cb-chev{flex:none;color:var(--brand-ink);font-size:14px;line-height:1;padding:2px 4px;margin-top:1px;transition:transform .18s;border-radius:6px}
+.cb-sub[open]>.cb-head .cb-chev,.cb-sub2[open]>.cb-head .cb-chev{transform:rotate(90deg)}
+.cb-sub>.cb-body,.cb-sub2>.cb-body{padding:12px 14px}
 .block>h3{margin-top:0;scroll-margin-top:84px}
 .block>h4{scroll-margin-top:84px}
 /* Casella degli impatti: una riga per fatto, dentro il callout. Il pulsante di chiusura sta sulla riga
@@ -1518,11 +1553,48 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 
 /* riquadro del modo incorporato: il visualizzatore di Google dentro la pagina. L'altezza la scrive il
    componente (tre scaglioni scelti dall'editore), qui c'e' solo la cornice. */
-.att-embed{margin:12px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-soft)}
+.att-embed{position:relative;margin:12px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-soft)}
 .att-embed iframe{width:100%;height:100%;border:0;display:block}
+
+/* Il giro del riquadro incorporato. Gira il RIQUADRO, non il PDF: i byte li rende il visualizzatore di
+   Google dentro l'iframe, che non prende nessun parametro di rotazione -- e renderli noi vorrebbe dire
+   fare da proxy ai byte, che il vincolo di hosting vieta. Quindi gira anche la barra di Google. E' il
+   prezzo: l'alternativa non e' un giro piu' pulito, e' nessun giro.
+
+   L'angolo sta nell'attributo `data-att-rot`, scritto DAL SERVER con la scelta di chi redige e riscritto
+   DA JS a ogni clic di chi legge. Il CSS non decide, dipinge.
+
+   ⚠️ A un quarto di giro l'iframe vuole larghezza e altezza SCAMBIATE, e la larghezza del riquadro e'
+   fluida: dipende dalla colonna in cui il documento e' finito. Le due unita' di container query lo dicono
+   senza che nessuno misuri -- `100cqh` e' l'altezza del riquadro, `100cqw` la sua larghezza. Misurarlo da
+   JS funzionava ma era fragile per una ragione che non si vede subito: un riquadro puo' NASCERE dopo (un
+   render interattivo dell'editor, una navigazione), e allora la misura sarebbe arrivata dopo il disegno --
+   cioe' si sarebbe visto storto finche' qualcuno non ridimensionava la finestra. Qui non c'e' niente da
+   far arrivare in tempo.
+   ⚠️ `container-type:size` vuole un'altezza dichiarata: c'e' (`style="height:...px"`, la sceglie
+   l'editore fra tre scaglioni). Se un giorno l'altezza diventasse automatica, queste due regole muoiono
+   in silenzio. */
+.att-embed{container-type:size}
+.att-embed[data-att-rot="180"] iframe{transform-origin:50% 50%;transform:rotate(180deg)}
+.att-embed[data-att-rot="90"] iframe{width:100cqh;height:100cqw;transform-origin:0 0;transform:translateX(100cqw) rotate(90deg)}
+.att-embed[data-att-rot="270"] iframe{width:100cqh;height:100cqw;transform-origin:0 0;transform:translateY(100cqh) rotate(-90deg)}
+
+/* I due tasti stanno FUORI dal riquadro, sopra e a destra.
+   ⚠️ NON sovrapposti in un angolo, ed e' un difetto che si e' visto solo A SCHERMO (6 settembre 2026):
+   dentro l'iframe c'e' la barra del visualizzatore di Google, che ha il proprio tasto «apri in una scheda»
+   proprio in alto a destra. Sovrapposti, i due gruppi si accavallano e non si capisce piu' di chi e' quale.
+   Il DOM era giusto: nessun test poteva vederlo. */
+.att-rot{display:flex;justify-content:flex-end;gap:4px;margin:12px 0 -6px}
+.att-rot-btn{padding:5px 7px;line-height:0;background:var(--surface-soft);color:var(--brand-ink);border:1px solid var(--line)}
+.att-rot-btn:hover{background:var(--tint-atmos)}
+/* Il riquadro segue subito sotto: il margine in cima lo mette gia' la barra dei tasti. */
+.att-rot + .att-embed{margin-top:6px}
 
 /* editor del blocco allegato: si SCEGLIE da un elenco, non si incolla un indirizzo. */
 .att-edit{margin:6px 0;display:flex;flex-direction:column;gap:8px}
+/* la casella di ricerca sta SOPRA la tendina, dentro la stessa etichetta: filtra e basta, non sceglie. */
+.att-cerca{margin-bottom:4px}
+.att-conta{font-size:11px;margin-top:2px}
 .att-field{display:flex;flex-direction:column;gap:3px;font-size:12px}
 .att-row{display:flex;gap:10px;flex-wrap:wrap}
 .att-row .att-field{flex:1;min-width:160px}

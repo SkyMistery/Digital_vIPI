@@ -235,8 +235,10 @@ release in vigore)» come stringhe italiane non localizzabili — mostrate anche
 **F5 🔸** Prefisso anteprima nel `<title>`: ACC e APP usano `L["Common_DraftTag"]`/`Common_PreviewTag`,
 `VloaListPage:30` scrive `"[Bozza] "`/`"[Anteprima] "` a mano.
 
-**F6 🔸** Etichetta del sommario laterale: `Common_Navigation` (ACC), `Common_Contents` (APP),
-`"Contents"` cablato (vLOA).
+**F6 ✅ CHIUSA il 6 settembre 2026** (§BZ). Era: etichetta del sommario laterale — `Common_Navigation`
+(ACC), `Common_Contents` (APP), `"Contents"` cablato (vLOA). Ora il sommario è **uno solo** per i cinque
+documenti **e** per gli editor, e la chiave è `Common_Contents` per tutti: «Sommario»/«Summary».
+`Common_Navigation` è stata **rimossa**, perché non la citava più nessuno.
 
 **F7 🔸** Stato «non pubblicato»: la vIPI ACC dice «vIPI non disponibile», la vLOA «vLOA non disponibile»,
 l'APP **«APP non trovato»** — che descrive una cosa diversa (inesistente vs non pubblicato) benché il corpo
