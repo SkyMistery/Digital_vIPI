@@ -9025,3 +9025,79 @@ proprio `<summary>` e col `data-persist`, chiusura di una figlia (7501 → 7223 
 
 ⚠️ **Sul pacchetto**: tocca `vipi-theme.css`, quindi impronta nuova — va con i file di `wwwroot` e
 l'indice degli asset, **insieme**. Nessuna migrazione, nessuna frase nuova.
+
+---
+
+## §BY — Il sommario: uno solo, uguale su tutti e cinque i documenti (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW e §BX (`feat/allegato-ricerca-e-rotazione`), **non fuso**.
+
+Il committente ha chiesto di **studiare le barre di navigazione dei cinque tipi di documento** e verificare
+quattro cose — nome, scorrimento, sotto-sezioni, voci compatte — e poi: «alla fine del lavoro devono essere
+uguali».
+
+### Che cosa ha trovato la verifica (misurata, non dedotta)
+
+| | nome | scorre | sotto-sezioni | parte compatta |
+|---|---|---|---|---|
+| vIPI ACC | ❌ «Navigazione»/«Navigation» | ✅ | ❌ non le mostra | — |
+| vIPI APP | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ | — |
+| vSOP aeroporto | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ | — |
+| vSOP militare | ⚠️ «Sommario»/**«Contents»** | ❌ | ✅ 25 su 25 | ❌ nasce aperta |
+| vLOA | ⚠️ «Sommario»/**«Contents»** | ✅ | ✅ | — |
+
+### La causa vera: erano DUE implementazioni
+
+`DocumentToc` serviva quattro famiglie; la **vIPI ACC ne aveva una tutta sua**, scritta nella pagina, perché
+le sue sezioni stanno dentro dei **blocchi** e non in un albero di `SectionView`. Due implementazioni
+divergono, ed erano divergenti in tutto quel che il committente ha elencato.
+
+Ora il sommario **non conosce più `SectionView`**: prende `TocGruppo`/`TocVoce` — *titolo + ancora + figlie* —
+e ogni famiglia mappa il proprio modello. È l'unica forma in cui la ACC ci sta dentro senza torcere né lei
+né le altre quattro. ⚠️ L'**ancora è una stringa** e non un id di sezione, ed è voluto: la ACC ancora le
+sezioni di catalogo assenti dal documento su `p-{blocco}-{chiave}`, non su `s-{id}`.
+
+### I quattro punti
+
+1. **Nome**: «Sommario»/«Summary» su tutti e cinque. ⚠️ La ACC è stata spostata su `Common_Contents`
+   invece di cambiare il valore di `Common_Navigation` — quella chiave la usano **anche gli editor**.
+2. **Scorrimento**: tutte e cinque avevano `position:sticky`; su **tre non reggeva**, e la causa non si vede
+   leggendo il CSS. Su APP, aeroporto e militare la barra era **avvolta in un `<div>`** per poterci mettere
+   sotto gli indici degli altri membri di un'unione; `sticky` si appende al **genitore**, e quel `<div>` era
+   alto **esattamente quanto la barra** (392, 359 e 890 px, misurati). Ora i membri sono **gruppi** dentro
+   l'unico `<aside>`, che torna **figlio diretto** della griglia.
+3. **Sotto-sezioni**: la ACC scende alle figlie (`Editorial.Children`). Prima la sotto-sezione «Nuova
+   sezione» di LIBB non compariva da nessuna parte. Dopo: **17 voci invece di 16**, zero sezioni fuori
+   dall'indice e zero ancore morte su tutti e cinque.
+4. **Voci compatte**: nascevano **aperte**, con una ragione scritta accanto («un indice che nasce chiuso
+   costringe a due clic») che vale finché le figlie sono poche — sul militare sono **venticinque**. Ora
+   nascono chiuse: **0 aperte su 32**.
+
+### Nello stesso giro
+
+- **`UnionToc` non disegna più un riquadro per membro**: è diventato `TocGruppiUnione`, che **costruisce i
+  gruppi**. Il nome segue il meccanismo, come vuole la regola di propagazione del gate.
+- **Terzo livello** (`DocumentSection.MaxDepth = 3`) con un rientro suo (`.lvl4`): senza, una nipote si
+  leggeva alla stessa altezza di sua madre — l'indice diceva una gerarchia che il documento non ha.
+- ⚠️ **`.toc-grp:first-of-type` non ha mai potuto mordere**: `:first-of-type` guarda il primo `<p>` fra i
+  fratelli, e il primo `<p>` è la testata `.toc-h`. Ora è `.toc-h + .toc-grp`. Una regola morta non rompe
+  niente: si vede solo misurando che cosa applica davvero.
+- ⚠️ `IsDraft` è **sparito** dal componente (il filtro delle nascoste sta ora nella costruzione dei
+  gruppi). Un attributo rimasto sui punti di chiamata sarebbe esploso **a runtime**, non in compilazione:
+  tolto in tutti e quattro.
+
+### Che cosa NON è stato toccato
+
+La barra degli **editor** (`EditorToc`) dice ancora «Navigazione»: la richiesta era sui **documenti**, e un
+editor non è un documento. `Common_Navigation` resta viva per lei.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde, **tre test nuovi** in
+`DocumentTocTests` (la testata, i gruppi in un riquadro solo, il terzo livello) e i test dell'unione
+riscritti sul costruttore. Verifica live **su tutti e cinque i documenti, IT ed EN**: testata, `sticky` che
+regge uno scorrimento vero, conteggio delle voci contro le sezioni del corpo, ancore morte, voci aperte
+alla partenza.
+
+⚠️ **Sul pacchetto**: tocca `vipi-theme.css` **e** le frasi (`SharedResource.en.resx`). Impronte nuove: i
+file di `wwwroot` e l'indice degli asset viaggiano **insieme**. Nessuna migrazione.
