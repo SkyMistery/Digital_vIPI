@@ -9366,3 +9366,47 @@ foglio, ma il foglio lo legge chi carica, non chi usa):
 1. le voci del sommario con sotto-sezioni **nascono chiuse**: non manca niente, è più corto apposta;
 2. girando un allegato incorporato **gira anche la barra di Google**: è il prezzo del fatto che il PDF lo
    mostra il loro visualizzatore, non un difetto.
+
+---
+
+## §CA — L'elenco dei vSOP militari apre in vista PILOTA — 6 settembre 2026 (sera)
+
+Ramo **`vista-pilota-elenco-mil`**, ⚠️ **non fuso**. Una riga di codice e quattro documenti.
+
+**Che cosa cambia.** I link dell'elenco nazionale `/services/vsop/mil` portano ora `&vista=pilota`:
+`…/libb/mil?icao=LIBV&vista=pilota`. Chi cerca un campo militare da lì lo cerca **come lo cerca un pilota**,
+e le sezioni marcate `Controllers` non gli finiscono in mezzo alla lettura.
+
+**Perché nell'INDIRIZZO e non come default della pagina del documento.** La pagina del vSOP ha quattro
+ingressi — l'elenco nazionale, il rail dell'ACC, il ponte dalla vIPI civile, un collegamento salvato — e
+solo il primo è la strada del pilota. Un default dentro la pagina cambierebbe **tutti e quattro** in una
+volta, e chi ha salvato un link se lo vedrebbe filtrare senza aver chiesto niente. Nel link invece la vista
+resta **condivisibile** (è il valore vero della funzione, carta del 27 agosto §3) e **reversibile**: la chip
+in testata riporta a «Tutto» con un clic.
+
+⚠️ **Interferisce con i default `[PILOTS]` del SOD** (carta del 6 settembre §1d), ed è bene saperlo:
+quella carta diceva «il filtro è opt-in, nessuno ci finisce dentro per caso». Da oggi **una** porta ce lo
+mette apposta, e la scelta è quella: da quell'elenco si entra in vista pilota. Ogni altro ingresso parte
+ancora da «Tutti».
+
+⚠️ **Su un documento senza sezioni marcate non filtra niente** e la pagina è identica — `AudienceFilter`
+tocca solo ciò che qualcuno ha marcato per l'altro. L'indirizzo resta onesto anche lì, e la chip (che si
+disegna solo se c'è almeno una sezione marcata) non serve perché non c'è niente da tornare a vedere.
+
+**Toccato**: `MilListPage.Indirizzo`, con la costante `AudienceFilter.QueryPilota` e non una stringa a mano.
+Documenti: la carta del 27 agosto §3, quella del 6 settembre §1d, e la **guida in-app** (voce
+«editor-mil», italiano e inglese) — che è l'unica di queste che legge chi usa il prodotto.
+
+**Come è stata provata**: `dotnet build src/Vipi.Ui` verde sui due TFM, **0 avvisi**. ⚠️ La prova a schermo
+**non è stata fatta**: in produzione non c'è nessun vSOP militare pubblicato, e in locale va guardata su un
+documento che abbia davvero sezioni marcate — è lì che si vede se il filtro toglie quel che deve.
+
+### E nello stesso giro, una domanda che NON ha prodotto codice
+
+«La zona *Intro di pagina* vuota non deve vedersi». Non si è cambiato niente perché **era già così** dal 30
+agosto, e la risposta utile è **dove** sta scritta la regola: `PageIntroZone.razor` non rende nulla se le
+sezioni sono zero e chi guarda non è Editor, ed `EfPageIntroStore.SalvaAsync` **cancella la riga** quando
+l'intro resta senza sezioni — «vuota» è uno stato solo, non due. Il riquadro «Sola lettura · Inizia
+modifica» lo vede **solo lo staff**, ed è l'unica porta da cui la prima intro può nascere: toglierlo
+sarebbe il catch-22 già pagato sull'elenco APP. Nota aggiunta alla carta
+[`feature/2026-08-30-intro-di-pagina.md`](feature/2026-08-30-intro-di-pagina.md) §5.

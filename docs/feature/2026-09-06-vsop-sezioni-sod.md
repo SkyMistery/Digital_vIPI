@@ -69,6 +69,12 @@ default un controllore che apre `?vista=atc` non vede più parcheggi, nominativi
 del committente del 6 settembre 2026, presa sapendolo: chi vuole vederle apre «Tutti», che è la vista di
 default — il filtro è opt-in, e nessuno ci finisce dentro per caso.
 
+⚠️ **Con una sola porta d'ingresso che fa eccezione** (6 settembre 2026, sera): i link dell'elenco
+`/services/vsop/mil` aprono in `?vista=pilota`. Chi entra da lì **non** parte da «Tutti» e non vede le
+sezioni marcate `Controllers`; le dodici `Pilots` di cui sopra le vede tutte. È voluto — quell'elenco è la
+strada del pilota — e resta reversibile con la chip. Ogni altro ingresso (ACC, ponte dalla vIPI civile,
+collegamento salvato, editor) parte ancora da «Tutti».
+
 ## 2. Il conto
 
 Sezioni del profilo `AirportMil`: **32 → 43** (32 − 1 QRA + 12).
