@@ -456,7 +456,43 @@
       quindi il satellite inglese entra) e `wwwroot` (`vipi-media.js` e `vipi-theme.css`, coi loro `.br`/`.gz`
       e l'INDICE degli asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
     -->
-    <VipiVersione>1.11.0</VipiVersione>
+    <!--
+      1.12.0 — 6 settembre 2026. **MINOR**, e il numero lo decide il CONTENUTO: ci sono due gesti NUOVI
+      (l'orientamento di un allegato incorporato e la ricerca nella sua tendina) e un comportamento nuovo
+      del sommario, che ora e' uno solo per tutti. NESSUNA migrazione: la chiave `rotazione` e' nuova nel
+      JSON di un blocco, e i blocchi gia' scritti tornano al valore di riposo. Si consegna da sola via FTP,
+      anche dentro la finestra cieca fino al 16.
+
+        · §BW — il blocco ALLEGATO. Una casella di RICERCA sopra la tendina della biblioteca, che in
+          produzione ha 121 voci e si percorreva solo a occhio: cerca su titolo, sigla, perimetro e tipo, e
+          piu' parole si sommano. 🔴 La voce SCELTA resta in elenco anche quando il filtro la
+          escluderebbe, o il campo apparirebbe vuoto e la scelta sembrerebbe persa mentre nel documento c'e'
+          ancora. E il riquadro incorporato si GIRA: chi redige sceglie l'orientamento di partenza (quattro
+          scatti), chi legge lo cambia con due tasti, come nel visualizzatore PDF del browser — e quel giro
+          resta nel suo browser, non entra nel documento.
+          ⚠️ Gira il RIQUADRO, non il PDF: i byte li rende il visualizzatore di Google, che non prende
+          parametri di rotazione, e renderli noi sarebbe fare da proxy ai byte — il vincolo di hosting lo
+          vieta. Quindi gira anche la barra di Google, ed e' il prezzo.
+
+        · §BX — nell'editor si chiudono anche le SOTTO-sezioni. Prima solo il primo livello: su un vSOP
+          militare le figlie sono venticinque su trentadue, e per arrivare all'ultima si scorrevano tutte le
+          altre, aperte. «Comprimi tutti» ora chiude 32 sezioni su 32, non 7.
+
+        · §BY — il SOMMARIO e' uno solo per i cinque documenti. 🔴 Su TRE su cinque non reggeva lo
+          scorrimento e se ne andava in cima: la barra era avvolta in un `<div>` alto esattamente quanto lei,
+          e `position:sticky` si appende al genitore. La vIPI ACC aveva un indice tutto suo che si fermava al
+          primo livello — una sotto-sezione non compariva da nessuna parte. E la testata dice ora
+          «Sommario»/«Summary» dappertutto: l'inglese diceva «Contents» e la ACC «Navigazione».
+
+        · §BZ — la stessa barra anche negli EDITOR, che ne avevano una terza: un elenco piatto intitolato
+          «Navigazione». ⚠️ Nel foglio va detto che le voci con figlie nascono CHIUSE, o chi apre un editor
+          credera' di aver perso meta' dell'indice.
+
+      Due progetti (`Application` e `Ui`), le FRASI (due `.resx` toccati, quindi il satellite inglese entra)
+      e `wwwroot` (`vipi-theme.css`, `vipi-print.css` e `vipi-ui.js`, coi loro `.br`/`.gz` e l'INDICE degli
+      asset: viaggiano insieme). Piu' `Host`, che porta sempre il timbro.
+    -->
+    <VipiVersione>1.12.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
