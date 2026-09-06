@@ -8962,3 +8962,66 @@ orizzontale della pagina.
 ⚠️ **Sul pacchetto**: tocca `wwwroot` (`vipi-theme.css`, `vipi-print.css`, `vipi-ui.js`) **e** le frasi
 (dieci chiavi nuove per lingua). Impronte nuove: i file di `wwwroot` e l'indice degli asset viaggiano
 **insieme**.
+
+---
+
+## §BX — Anche le sotto-sezioni dell'editor si chiudono (6 settembre 2026)
+
+⚠️ Stesso ramo di §BW (`feat/allegato-ricerca-e-rotazione`), **non fuso**. Non è in produzione.
+
+Richiesta del committente: «vorrei che anche le singole section siano compattabili oltre alle section
+intere».
+
+Nell'editor **solo il primo livello** era collassabile: le sotto-sezioni erano un `<div class="coord-sub">`
+fisso. Il documento e l'editor dicevano **due cose diverse** — nel viewer una sotto-sezione si è sempre
+chiusa (`SectionNode` la rende `<details>`), qui no. Sul vSOP militare di LIMS, misurato dal vivo:
+**25 figlie su 32 sezioni**. Per arrivare all'ultima si scorrevano tutte le altre, aperte.
+
+### Come
+
+Dal componente **condiviso**, non da un secondo `<details>` scritto a mano: `CollapsibleBlock` prende un
+parametro **`Level`** (0 = la card `.block` di sempre, 1 e 2 = sotto-sezione, con l'aspetto di
+`.coord-sub`/`.coord-sub2` che il **viewer usa già per le stesse sezioni**). È quello che fa valere anche
+qui il chevron, `data-persist` e «espandi/comprimi tutti» senza che chi chiama se li debba ricordare.
+
+- **Misurato**: «comprimi tutti» ora chiude **32 sezioni su 32**, non 7.
+- Una sotto-sezione **nascosta nasce chiusa**, come già fanno le radici: è fuori dal documento, quindi non
+  è lì che si lavora.
+- 🔴 **I comandi dell'intestazione non chiudono la sezione**: ora stanno dentro un `<summary>`, dove un
+  clic è il gesto che apre e chiude. Regge perché `.dse-head` porta già `@onclick:preventDefault` — la
+  stessa riga che serviva al primo livello. Provato dal vivo: il clic su «Up» non chiude.
+- Il **trascinamento non c'entra**: sta in `EditorToc`, la colonna laterale, non sulle card.
+
+### Tolto `overflow:hidden` dalle card annidate
+
+`.coord-sub` ce l'ha, ed è la via corta per far rispettare gli angoli al fondo dell'intestazione. Ma
+dentro l'intestazione di una sezione ci sono il «?» e la conferma in linea, e **tutti e due aprono un
+riquadro `position:absolute`**. Misurato: con l'overflow questa card era l'**unico** antenato che tagliava;
+senza, **nessuno taglia**. Gli angoli li arrotonda l'intestazione da sé — tutti e quattro da chiusa, i due
+di sopra da aperta.
+
+### ⚠️ Trovato misurando, NON corretto qui
+
+`data-persist` in questi editor **non ricorda niente fra un ricarico e l'altro** — e non lo ricorda nemmeno
+per le sezioni **radice**, che l'attributo ce l'hanno da sempre. Quindi è **preesistente**, non una
+conseguenza di questa modifica.
+
+La causa: su una pagina `InteractiveServer` i `<details>` nascono **dopo** che `vipiWireUi` è girato, e
+`wireCollapse` aggancia solo quel che trova in quel momento. `window.vipiWireCollapse` è **già esportato**
+proprio «per le pagine InteractiveServer che ricostruiscono i `<details>`», e questi editor **non lo
+chiamano**. Dentro la pagina una sezione chiusa **regge il ridisegno** (prendere il lock non la riapre): è
+il **ricarico** che la riapre.
+
+È fuori dalla richiesta e cambierebbe il comportamento di ogni pagina che usa `data-persist`: va deciso, non
+fatto di nascosto.
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; suite verde, **cinque test nuovi**
+(`SottosezioniCollassabiliTests`) — compreso il livello 2, che sul documento di prova non esiste e che i
+soli test coprono. Verifica live sull'editor del vSOP militare di **LIMS**: 32 `<details>`, tutti col
+proprio `<summary>` e col `data-persist`, chiusura di una figlia (7501 → 7223 px), clic su un comando che
+**non** chiude, «comprimi tutti» che arriva a 0 aperte su 32.
+
+⚠️ **Sul pacchetto**: tocca `vipi-theme.css`, quindi impronta nuova — va con i file di `wwwroot` e
+l'indice degli asset, **insieme**. Nessuna migrazione, nessuna frase nuova.
