@@ -1,13 +1,24 @@
-﻿@* L'indice a sinistra di un documento, CONDIVISO fra i viewer (carta vSOP militari §12, S1).
+@* Il SOMMARIO di un documento: uno solo, per tutte e cinque le famiglie.
 
-   Stava scritto quattro volte con lo stesso corpo — aeroporto, APP, vLOA, vSOP militare — e in tutte e
-   quattro elencava le sole sezioni RADICE. Su un documento a un livello solo è la stessa cosa; sul vSOP
-   militare, dove **venti sezioni su ventisei sono figlie**, voleva dire che l'indice ne mostrava sei e le
-   Radioassistenze si trovavano solo scorrendo.
+   Fino al 6 settembre 2026 erano due implementazioni. Questa serviva quattro famiglie (aeroporto, APP,
+   vLOA, vSOP militare); la vIPI ACC ne aveva una **tutta sua**, scritta nella pagina, perché le sue sezioni
+   stanno dentro dei BLOCCHI e non in un albero di `SectionView`. Le due divergevano in tutto quel che
+   conta — nome della testata, sotto-sezioni, comportamento — e la prova era misurabile: sulla ACC la
+   sotto-sezione «Nuova sezione» non compariva in nessun indice.
 
-   ⚠️ La vIPI ACC non passa di qui, ed è la stessa ragione per cui non passa da `DocumentSectionsView`: il
-   suo indice è raggruppato per BLOCCO (Aerovia, gruppi APP), non per sezione. Portarla qui vorrebbe dire
-   cambiare il modello che la pagina ha in mano.
+   ⚠️ Ora il sommario non conosce `SectionView`: prende `TocGruppo`/`TocVoce`, cioè titolo + ancora +
+   figlie, e ogni famiglia mappa il proprio modello. È l'unica forma in cui la ACC ci sta dentro senza
+   torcere né lei né gli altri quattro.
+
+   ⚠️ I GRUPPI stanno dentro lo STESSO <aside>. Non è estetica: `position:sticky` si appende al genitore, e
+   impilare un indice per membro (com'era `UnionToc`) obbligava ad avvolgerli in un <div> alto quanto loro —
+   ed è precisamente il motivo per cui su tre documenti su cinque il sommario se ne andava in cima appena si
+   scorreva. Un solo <aside>, figlio diretto della griglia, e lo sticky regge.
+
+   ⚠️ Le voci con figlie nascono CHIUSE (richiesta del committente, 6 settembre 2026). Fino a quel giorno
+   nascevano aperte, con una ragione scritta accanto — «un indice che nasce chiuso costringe a due clic» —
+   che vale finché le figlie sono poche: sul vSOP militare sono venticinque, e un indice lungo quanto il
+   documento non aiuta più a cercare, che è il suo unico mestiere.
 
    ⚠️ Una sezione padre resta un LINK, non solo un interruttore: il chevron apre l'elenco, il titolo porta
    alla sezione. Un `<summary>` di suo commuta a ogni clic, anche su un link che ha dentro — e a impedirglielo
@@ -16,64 +27,61 @@
 @inject StringheDelSito Sito
 
 <aside class="toc" aria-label="@Sito["Doc_TocAria"]">
-    <p class="toc-h">@(HeaderLabel ?? Sito["Common_Contents"])</p>
-    <ul>
-        @foreach (var s in Visibili(Sections))
+    <p class="toc-h">@Sito["Common_Contents"]</p>
+    @foreach (var g in Gruppi)
+    {
+        @if (g.Titolo is { Length: > 0 })
         {
-            var figlie = Visibili((SlotsOf?.Invoke(s) ?? s).Children).ToList();
-            <li>
-                @if (figlie.Count == 0)
-                {
-                    <a href="#@Anchor(s)">@s.Title</a>
-                }
-                else
-                {
-                    @* Aperto di default: un indice che nasce chiuso costringe a due clic per sapere
-                       che cosa c'è dentro, e la colonna scorre già per conto suo. *@
-                    <details class="toc-sub" open>
-                        <summary><a href="#@Anchor(s)">@s.Title</a></summary>
-                        <ul>
-                            @foreach (var c in figlie)
-                            {
-                                <li><a class="lvl3" href="#@Anchor(c)">@c.Title</a></li>
-                            }
-                        </ul>
-                    </details>
-                }
-            </li>
+            <p class="toc-grp">@g.Titolo</p>
         }
-    </ul>
+        <ul>
+            @foreach (var v in g.Voci)
+            {
+                @Voce(v, 0)
+            }
+        </ul>
+    }
 </aside>
 
 @code {
-    /// <summary>Le sezioni del documento mostrato, radici comprese di figlie. Il filtro delle nascoste lo fa
-    /// questo componente: è la stessa regola dei viewer, e stava scritta in ognuno di loro.</summary>
-    [Parameter, EditorRequired] public IReadOnlyList<SectionView> Sections { get; set; } = Array.Empty<SectionView>();
-
-    /// <summary>Anteprima BOZZA: le sezioni nascoste compaiono anche nell'indice. Pubblica e anteprima
-    /// release: no. ⚠️ Default <c>false</c>, quello prudente — chi lo dimentica nasconde.</summary>
-    [Parameter] public bool IsDraft { get; set; }
-
-    /// <summary>Ancora di una sezione (default <c>s.Id</c>, come in tutte le famiglie — doc 13 §3e).
-    /// ⚠️ Deve restare uguale a quella di <c>DocumentSectionsView</c>, o le voci punterebbero a un id che non
-    /// esiste e non farebbero niente, senza errori.</summary>
-    [Parameter] public Func<SectionView, string>? AnchorOf { get; set; }
-
-    /// <summary>Intestazione della colonna (default: «Indice» localizzato).</summary>
-    [Parameter] public string? HeaderLabel { get; set; }
+    /// <summary>
+    /// I gruppi da mostrare. Un documento normale ne ha <b>uno</b>, senza titolo
+    /// (<see cref="TocGruppo.Uno"/>); la vIPI ACC uno per blocco; una pagina unita uno per documento.
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<TocGruppo> Gruppi { get; set; } = Array.Empty<TocGruppo>();
 
     /// <summary>
-    /// La sezione da usare per le SOTTO-SEZIONI, quando non è quella stessa — stesso nome e stessa semantica
-    /// del parametro omonimo di <c>DocumentSectionsView</c>, e va passato <b>agli stessi due posti</b>.
-    /// <para>⚠️ Serve a chi disegna certe figlie da sé, dentro il corpo: la vLOA rende le due direzioni dei
-    /// coordinamenti come intestazioni sue, e quelle <b>non hanno un id</b> su cui atterrare. Elencarle qui
-    /// darebbe due voci che non portano da nessuna parte — il difetto che l'ancora condivisa deve evitare per
-    /// mestiere — e ripeterebbe due titoli che il lettore vede già nel corpo.</para>
+    /// Una voce e, sotto, le sue figlie. Ricorsiva: le sezioni arrivano a tre livelli
+    /// (<c>DocumentSection.MaxDepth</c>), e un ciclo scritto a mano per due li perderebbe.
     /// </summary>
-    [Parameter] public Func<SectionView, SectionView>? SlotsOf { get; set; }
+    private RenderFragment Voce(TocVoce v, int livello) => __builder =>
+    {
+        <li>
+            @if (v.Figlie.Count == 0)
+            {
+                <a class="@Rientro(livello)" href="#@v.Ancora">@v.Titolo</a>
+            }
+            else
+            {
+                <details class="toc-sub">
+                    <summary><a class="@Rientro(livello)" href="#@v.Ancora">@v.Titolo</a></summary>
+                    <ul>
+                        @foreach (var f in v.Figlie)
+                        {
+                            @Voce(f, livello + 1)
+                        }
+                    </ul>
+                </details>
+            }
+        </li>
+    };
 
-    private IEnumerable<SectionView> Visibili(IReadOnlyList<SectionView> sezioni) =>
-        sezioni.Where(s => IsDraft || !s.IsHidden);
-
-    private string Anchor(SectionView s) => AnchorOf?.Invoke(s) ?? s.Id;
+    /// <summary>Il rientro per livello. Il primo non ne ha: sotto l'intestazione di un gruppo una voce di
+    /// primo livello è già al suo posto, e rientrarla la farebbe sembrare figlia di qualcosa.</summary>
+    private static string? Rientro(int livello) => livello switch
+    {
+        0 => null,
+        1 => "lvl3",
+        _ => "lvl4",
+    };
 }

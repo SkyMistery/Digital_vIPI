@@ -32,19 +32,13 @@ else
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_data.AccCode</a> › <b>vIPI</b></div>
         <div class="doc-layout">
-            <aside class="toc" aria-label="@Sito["Doc_TocAria"]">
-                <p class="toc-h">@Sito["Common_Navigation"]</p>
-                @foreach (var block in _data.Blocks)
-                {
-                    <p class="toc-grp">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</p>
-                    <ul>
-                        @foreach (var s in VisibleSections(block))
-                        {
-                            <li><a class="lvl2" href="#@AnchorOf(block, s)">@s.Title</a></li>
-                        }
-                    </ul>
-                }
-            </aside>
+            @* ⚠️ Dal 6 settembre 2026 la vIPI ACC passa dallo STESSO sommario delle altre quattro. Prima
+               ne aveva uno tutto suo, scritto qui, perché le sue sezioni stanno dentro dei BLOCCHI e non in
+               un albero di `SectionView`: si chiamava «Navigazione» invece di «Sommario» e si fermava al
+               primo livello — la sotto-sezione «Nuova sezione» non compariva da nessuna parte (misurato).
+               I blocchi sono diventati GRUPPI, che è la stessa forma con cui una pagina unita mostra i
+               propri membri. *@
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
@@ -344,6 +338,33 @@ else
     // hanno Id: là resta la chiave, e nessuno ci fa deep-link perché non hanno contenuto.
     private static string AnchorOf(AccBlock block, AccBlockSection s) =>
         s.SectionId > 0 ? $"s-{s.SectionId}" : $"p-{block.Key}-{s.Key}";
+
+    /// <summary>
+    /// I gruppi del sommario: <b>uno per blocco</b> (Aerovia, gruppi APP), con dentro le sezioni del blocco
+    /// e le loro sotto-sezioni.
+    ///
+    /// <para>⚠️ Le SOTTO-sezioni stanno in <c>Editorial.Children</c>, e fino al 6 settembre 2026 non
+    /// comparivano: l'indice della ACC si fermava al primo livello. La prova non era teorica — sulla LIBB
+    /// c'è una sotto-sezione «Nuova sezione» che non era raggiungibile da nessuna voce.</para>
+    ///
+    /// <para>⚠️ Due ancore diverse, ed è il motivo per cui il sommario prende una <b>stringa</b> e non un
+    /// id di sezione: la sezione del blocco atterra su <c>AnchorOf</c> (che per una sezione di catalogo
+    /// assente dal documento è <c>p-{blocco}-{chiave}</c>, non <c>s-{id}</c>), mentre le figlie le disegna
+    /// <c>SectionNode</c> e atterrano sul loro <c>Id</c> nudo.</para>
+    /// </summary>
+    private IReadOnlyList<TocGruppo> Sommario() =>
+        _data.Blocks
+            .Select(b => new TocGruppo(
+                b.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : b.Title,
+                VisibleSections(b)
+                    .Select(s => new TocVoce(
+                        s.Title,
+                        AnchorOf(b, s),
+                        s.Editorial is null
+                            ? Array.Empty<TocVoce>()
+                            : TocVoce.Da(s.Editorial.Children, _mode.Kind == PreviewKind.Draft)))
+                    .ToList()))
+            .ToList();
 
     // vIPI ACC unica per ACC: nessun ?tree nei link (il root primario è implicito).
     private string TreeQuery() => "";

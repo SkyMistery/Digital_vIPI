@@ -5,6 +5,7 @@ using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Ui;
+using Vipi.Ui.Components;
 using Vipi.Ui.Components.Doc;
 using Xunit;
 
@@ -85,28 +86,44 @@ public class DocumentiUnitiTests : TestContext
         Assert.Equal("doc-3", MembroUnito.AncoraDi(3));
     }
 
+    /// <summary>
+    /// Un GRUPPO per membro, intestato col titolo del suo documento.
+    ///
+    /// <para>⚠️ Erano <b>indici impilati</b>, uno per membro, ognuno col proprio
+    /// <c>&lt;aside class="toc"&gt;</c>. Dal 6 settembre 2026 sono gruppi dentro l'<b>unico</b> sommario, e
+    /// non è estetica: due riquadri impilati vanno avvolti in un <c>&lt;div&gt;</c>, quel <c>&lt;div&gt;</c>
+    /// diventa il genitore del <c>position:sticky</c> ed è alto quanto la barra — quindi il sommario se ne
+    /// andava in cima appena si scorreva. Misurato su tre documenti su cinque.</para>
+    /// </summary>
     [Fact]
-    public void Un_INDICE_per_membro_intestato_col_titolo_del_suo_documento()
+    public void Un_GRUPPO_per_membro_intestato_col_titolo_del_suo_documento()
     {
-        var cut = RenderComponent<UnionToc>(p => p.Add(x => x.Membri, new[]
+        var gruppi = TocGruppiUnione.Di(new[]
         {
             Membro(24, ReleaseTargetType.AirportMil, "LIBV", "vSOP MIL — LIBV", Sez("s-9", "Dati generali")),
             Membro(3, ReleaseTargetType.App, "LIBV_APP", "Avvicinamento", Sez("s-1", "Separazioni")),
-        }));
+        }, bozza: false).ToList();
+
+        var cut = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi, gruppi));
 
         // Un elenco di ventisei voci militari seguito da dieci d'avvicinamento, senza una riga che dica dove
         // finisce l'uno e comincia l'altro, è un indice che non aiuta a cercare — l'unico suo mestiere.
-        var titoli = cut.FindAll("aside.toc p.toc-h").Select(e => e.TextContent.Trim()).ToArray();
+        var titoli = cut.FindAll("p.toc-grp").Select(e => e.TextContent.Trim()).ToArray();
         Assert.Equal(new[] { "vSOP MIL — LIBV", "Avvicinamento" }, titoli);
+
+        // 🔴 E un riquadro SOLO: è la metà che conta.
+        Assert.Single(cut.FindAll("aside.toc"));
     }
 
     [Fact]
     public void L_indice_di_un_membro_punta_all_ancora_che_usa_il_SUO_corpo()
     {
-        var cut = RenderComponent<UnionToc>(p => p.Add(x => x.Membri, new[]
+        var gruppi = TocGruppiUnione.Di(new[]
         {
             Membro(3, ReleaseTargetType.App, "LIBV_APP", "Avvicinamento", Sez("s-7", "Separazioni")),
-        }));
+        }, bozza: false).ToList();
+
+        var cut = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi, gruppi));
 
         // ⚠️ Indice e corpo devono usare la STESSA ancora, o le voci puntano a un id che non esiste e non
         // fanno niente — senza errori. Qui si prova che l'indice la chiede al componente-corpo della sua
@@ -120,10 +137,9 @@ public class DocumentiUnitiTests : TestContext
     {
         // Il caso normale è «documento solo»: la pagina unita non deve lasciare un contenitore vuoto in
         // fondo a ogni documento del sito.
-        var toc = RenderComponent<UnionToc>(p => p.Add(x => x.Membri, Array.Empty<MembroUnito>()));
         var corpi = RenderComponent<UnionBodies>(p => p.Add(x => x.Membri, Array.Empty<MembroUnito>()));
 
-        Assert.Empty(toc.Markup.Trim());
+        Assert.Empty(TocGruppiUnione.Di(Array.Empty<MembroUnito>(), bozza: false));
         Assert.Empty(corpi.Markup.Trim());
     }
 }

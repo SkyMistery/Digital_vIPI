@@ -31,15 +31,12 @@ else
             @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo:
                `AppDocumentBody.AnchorOf`. Un'ancora diversa manda l'indice su un id che non esiste, e i
                suoi link non fanno niente — senza errori. *@
-            <div>
-                @* ⚠️ Un indice per MEMBRO, intestato col titolo del suo documento: un elenco di dieci voci
-                   d'avvicinamento seguito da ventisei voci militari, senza una riga che dica dove finisce
-                   l'uno e comincia l'altro, è un indice che non aiuta a cercare. *@
-                <DocumentToc Sections="_doc.View.Sections" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                             HeaderLabel="@(_altri.Count > 0 ? _doc.DisplayName : null)"
-                             AnchorOf="AppDocumentBody.AnchorOf" />
-                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
-            </div>
+            @* ⚠️ Un GRUPPO per membro, intestato col titolo del suo documento: un elenco di dieci voci
+               d'avvicinamento seguito da ventisei voci militari, senza una riga che dica dove finisce l'uno
+               e comincia l'altro, è un indice che non aiuta a cercare.
+               ⚠️ Un solo <aside>, figlio DIRETTO della griglia: i due indici impilati stavano in un <div>
+               alto quanto loro, e uno `sticky` appeso lì dentro non ha dove scorrere. *@
+            <DocumentToc Gruppi="@Sommario()" />
             <div>
                 <PrintMeta Title="@_doc.DisplayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
@@ -147,6 +144,28 @@ else
     /// <summary>Ciclo AIRAC da mostrare: quello del documento mostrato (lo snapshot lo porta con sé); in mancanza,
     /// quello corrente.</summary>
     private string Cycle() => _doc?.RelCycle ?? _doc?.View.AiracCycle ?? Airac.GetCycle(DateTime.UtcNow);
+
+    /// <summary>
+    /// I gruppi del sommario: il PROPRIO documento, e poi uno per ogni altro membro dell'unione.
+    ///
+    /// <para>\u26a0\ufe0f Il proprio gruppo prende un titolo <b>solo dentro un'unione</b>: da solo sarebbe una riga
+    /// che ripete il titolo del documento sotto la parola \u00abSommario\u00bb, cio\u00e8 due volte la stessa cosa.</para>
+    ///
+    /// <para>\u26a0\ufe0f Un GRUPPO per membro e non un elenco unico: \u00e8 la riga che dice dove finisce un documento
+    /// e comincia l'altro. E tutti dentro lo <b>stesso</b> riquadro, o lo <c>sticky</c> non regge \u2014 vedi
+    /// <see cref="Vipi.Ui.Components.Doc.TocGruppiUnione"/>.</para>
+    /// </summary>
+    private IReadOnlyList<TocGruppo> Sommario()
+    {
+        if (_doc is null) return Array.Empty<TocGruppo>();
+
+        var bozza = _doc.Mode.Kind == PreviewKind.Draft;
+        var proprio = new TocGruppo(
+            _altri.Count > 0 ? _doc.DisplayName : null,
+            TocVoce.Da(_doc.View.Sections, bozza, AppDocumentBody.AnchorOf));
+
+        return new[] { proprio }.Concat(TocGruppiUnione.Di(_altri, bozza)).ToList();
+    }
 
     private string PreviewTitlePrefix() => _doc?.Mode.Kind switch
     {

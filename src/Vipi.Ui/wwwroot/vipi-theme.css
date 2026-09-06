@@ -1139,7 +1139,12 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc a.active{background:var(--tint-atmos);color:var(--brand-ink);font-weight:600;border-left-color:var(--ivao-blue)}
 /* ⚠️ Il nome di questa classe NON compare in nessuna sorgente: si compone a pezzi (`class="lvl@(it.Level)"` in `EditorToc.razor`).
    Una passata «classi mai citate» la dà per morta: non lo è. */
+/* Rientri del sommario. ⚠️ `.lvl2` la scrive `EditorToc` (`class="lvl@(it.Level)"`, nome composto:
+   una passata sul testo non lo vede). Il sommario dei documenti usa `.lvl3` per le sotto-sezioni e
+   `.lvl4` per il terzo livello, che il modello ammette (`DocumentSection.MaxDepth = 3`) e che senza una
+   regola propria si leggerebbe alla stessa altezza del secondo. */
 .toc .lvl2{padding-left:14px}.toc .lvl3{padding-left:26px;font-size:12.5px}
+.toc .lvl4{padding-left:38px;font-size:12.5px}
 /* Sotto-elenco dell'indice di un documento (DocumentToc): il chevron apre, il titolo porta alla sezione.
    ⚠️ Che il clic sul titolo NON chiuda l'elenco non e' merito di questo CSS: e' `wireAnchors` in vipi-ui.js,
    che su ogni link "#id" chiama preventDefault -- e commutare e' l'azione di default del clic su un
@@ -1150,7 +1155,10 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 .toc .toc-sub[open]>summary::before{transform:rotate(90deg)}
 .toc .toc-sub>summary>a{flex:1 1 auto;padding-left:2px}
 .toc .toc-grp{margin:12px 0 4px;padding-left:8px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft)}
-.toc .toc-grp:first-of-type{margin-top:2px}
+/* ⚠️ Il PRIMO gruppo si stringe sotto la testata. Era `.toc-grp:first-of-type`, che non ha mai potuto
+   mordere: `:first-of-type` guarda il primo <p> fra i fratelli, e il primo <p> e' la testata `.toc-h`.
+   Una regola morta non si vede perche' non rompe niente -- si vede solo misurando che cosa applica. */
+.toc .toc-h + .toc-grp{margin-top:2px}
 .doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}
 /* L'AVVISO DI SIMULAZIONE (SimDisclaimer). Rosso e grassetto, sotto il titolo di ogni documento pubblico,
    della vista live e della mappa degli spazi aerei.

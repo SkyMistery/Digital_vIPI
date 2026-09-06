@@ -66,14 +66,13 @@ else
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()/airports">@En["AccLanding_Airports"]</a> › <b>@_doc.View.Title</b></div>
 
         <div class="doc-layout">
-            @* ⚠️ L'indice sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo.
-               Con un'unione ce n'è uno per MEMBRO, intestato col titolo del suo documento. *@
-            <div>
-                <DocumentToc Sections="_doc.Sezioni" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)"
-                             HeaderLabel="@(_altri.Count > 0 ? _doc.View.Title : null)"
-                             AnchorOf="AirportDocumentBody.AnchorOf" />
-                <UnionToc Membri="_altri" IsDraft="@(_doc.Mode.Kind == PreviewKind.Draft)" />
-            </div>
+            @* ⚠️ Il sommario sta QUI, nella cella sorella del corpo, e prende la STESSA ancora del corpo.
+               Con un'unione i membri sono GRUPPI dentro lo stesso riquadro, intestati col titolo del loro
+               documento.
+               ⚠️ E è FIGLIO DIRETTO della griglia: avvolto in un <div> (com'era fino al 6 settembre 2026)
+               lo `sticky` si appende a quel <div>, alto esattamente quanto la barra — e il sommario se ne
+               andava in cima appena si scorreva. *@
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
@@ -174,6 +173,28 @@ else
     /// <summary>Il documento caricato — vista, sezioni, modalità OTTENUTA, derivate, meteo, pista in uso.
     /// null = questo scalo non ha un documento da mostrare.</summary>
     private AirportMemberDocument? _doc;
+
+    /// <summary>
+    /// I gruppi del sommario: il PROPRIO documento, e poi uno per ogni altro membro dell'unione.
+    ///
+    /// <para>\u26a0\ufe0f Il proprio gruppo prende un titolo <b>solo dentro un'unione</b>: da solo sarebbe una riga
+    /// che ripete il titolo del documento sotto la parola \u00abSommario\u00bb, cio\u00e8 due volte la stessa cosa.</para>
+    ///
+    /// <para>\u26a0\ufe0f Un GRUPPO per membro e non un elenco unico: \u00e8 la riga che dice dove finisce un documento
+    /// e comincia l'altro. E tutti dentro lo <b>stesso</b> riquadro, o lo <c>sticky</c> non regge \u2014 vedi
+    /// <see cref="Vipi.Ui.Components.Doc.TocGruppiUnione"/>.</para>
+    /// </summary>
+    private IReadOnlyList<TocGruppo> Sommario()
+    {
+        if (_doc is null) return Array.Empty<TocGruppo>();
+
+        var bozza = _doc.Mode.Kind == PreviewKind.Draft;
+        var proprio = new TocGruppo(
+            _altri.Count > 0 ? _doc.View.Title : null,
+            TocVoce.Da(_doc.Sezioni, bozza, AirportDocumentBody.AnchorOf));
+
+        return new[] { proprio }.Concat(TocGruppiUnione.Di(_altri, bozza)).ToList();
+    }
 
     /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
     private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
