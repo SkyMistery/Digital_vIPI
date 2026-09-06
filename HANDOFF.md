@@ -1,41 +1,33 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026 — 📦 **1.11.0 È RIFATTO E PRONTO. Non è ancora caricato.**
+**Ultimo aggiornamento:** 6 settembre 2026 — ✅ **1.11.0 È IN PRODUZIONE**, caricata dal committente e
+**verificata da fuori**.
 
-`artifacts/publish/vipi-1.11.0-solo-file-cambiati.zip` · sha256 **`4b690bc4…`** · 4,52 MB · **18 file** ·
-timbro **`1.11.0 · 4b35946`** · publish `linux-x64-20260906-1124`. Foglio per chi carica:
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.11.0.md`.
+`vipi-1.11.0-solo-file-cambiati.zip` · sha256 `4b690bc4…` · 4,52 MB · **18 file** · timbro
+**`1.11.0 · 4b35946`**. Dentro: **§BS** immagini ridimensionabili, **§BT** il payload che non mangia più il
+contenuto (era **perdita di dati**), **§BU** l'aeroporto che cambia ACC, **§BV** la testata dei documenti.
 
-⚠️ **Lo zip del 5 settembre (`91b158a6…`, timbro `1.11.0 · 072cb13`) non vale più**: se qualcuno l'ha già
-scaricato, va buttato. Il foglio lo dice in cima.
-
-La correzione che teneva a terra il pacchetto era **§BV** (la testata dei documenti: i tre tasti
-`Everything / Pilot / ATC` a destra e alti due righe, il **selezionato** con un colore suo — non ce l'aveva —
-e sul vSOP militare il ponte alla vIPI civile fra i tasti). Tocca il codice, quindi il pacchetto **si è
-rifatto dal passo 1**: `4b35946` in `main`, publish nuovo, elenco riverificato con le impronte, zip nuovo,
-prova sul pacchetto.
-
-**Dentro 1.11.0**: §BS immagini ridimensionabili, §BT il payload che non mangia più il contenuto (era
-**perdita di dati**), §BU l'aeroporto che cambia ACC, §BV la testata. **MINOR**, **nessuna migrazione** →
-si consegna da solo via FTP anche dentro la finestra cieca fino al 16.
-
-> ### ⚠️ Se entra un altro commit, il pacchetto va RIFATTO un'altra volta
+> ### 🔴 La prova non è il timbro
 >
-> Lo zip diventa **vecchio** nell'istante in cui entra un commit: il **timbro nasce dal commit**, cambiano
-> le **impronte**, può cambiare l'**elenco**. Si rifà la catena di `docs/guide/preparare-un-pacchetto.md`
-> dal passo 1, col `git diff` sempre **da `99f33f0`** (1.10.0, quel che gira).
+> Il timbro dice quale versione è **partita**, non che il sito **risponda**. Le tre prove fatte:
+> otto controlli su otto verdi da anonimo (`pacchetto-verifica.js`, **Ricerca** compresa); le **impronte**
+> di `vipi-theme.css` e `vipi-media.js` scaricati da `atc.it.ivao.aero` **identiche** a quelle nel
+> pacchetto (è così che si vede un `wwwroot` arrivato a metà); e su `/services/vsop/libb/vipi` la testata
+> è `.doc-head.with-aud` con `.hl-text`, `.dh-actions` e `display:grid` — **tre nomi di classe che in
+> 1.10.0 non esistono**.
 >
-> ⚠️ **Non ruotare la consegna** (`-Azione Ruota`) finché 1.11.0 non è uscito: ruotare sposta in
-> `publish_old` un pacchetto mai andato in produzione, e il confronto per impronte del giro dopo partirebbe
-> da quello sbagliato. Si rifà **sopra**, sostituendo `solo-18-file-1.11.0` e il suo zip — svuotando la
-> cartella e ricopiandola dall'elenco dichiarato, non sovrascrivendola a pezzi.
->
-> ⚠️ **Il timbro si legge a SETTE caratteri** (`git rev-parse --short=7`): `1.11.0 · 4b35946`. Chi
-> controlla confronta una stringa con un'altra.
+> ℹ️ La chip «Everything / Pilot / ATC» lì non compare, e va bene: si disegna solo dove il documento ha
+> almeno una sezione marcata pilota/ATC, e la release pubblicata non ne ha.
 
-▶ **Quel che resta da fare** è caricarlo, e poi la verifica da fuori (runbook §6-bis):
-`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node .claude/skills/verifica-live/pacchetto-verifica.js`,
-**mentre chi ha caricato è ancora al telefono**.
+▶ **Da dire a chi controlla** (il foglio lo legge chi carica, non chi usa): la **testata dei documenti è
+cambiata** — i tre tasti a destra, grandi, e quello scelto **blu pieno**; sul vSOP militare il collegamento
+alla vIPI civile è diventato un **tasto** accanto a «Stampa». E che le tabelle già sovrascritte da §BT
+**non tornano**. Più, se non è già stato detto, le due di 1.10.0: editor d'aeroporto **senza tasti
+«Salva»**, e **vista live di un collega** non più apribile da chi non è staff di divisione.
+
+⚠️ **La consegna dopo**: ora si **ruota** normalmente (`-Azione Ruota`) — il divieto valeva finché in
+`publish/` c'era un pacchetto mai uscito. E il `git diff` del prossimo pacchetto parte da **`4b35946f`**,
+non più da `99f33f0`.
 
 ---
 

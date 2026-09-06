@@ -8831,3 +8831,54 @@ giusto.
 pacchetto mai uscito) e `linux-x64-20260906-1124` (questa). Non è disordine da pulire a mano: alla prossima
 `-Azione Ruota` finiscono tutt'e due in `publish_old`, ed è la fotografia giusta — di pacchetti costruiti
 quel giorno ce n'erano due, e uno non è mai partito. Il pacchetto vale quello nominato nell'elenco.
+
+### ✅ 6 settembre 2026 — 1.11.0 È IN PRODUZIONE, e la prova non è il timbro
+
+Caricata dal committente. `vipi-1.11.0-solo-file-cambiati.zip` · sha256 `4b690bc4…` · **18 file** · timbro
+**`1.11.0 · 4b35946`**. Dentro: §BS, §BT, §BU, §BV.
+
+**Verificata da fuori, subito dopo il caricamento** (runbook §6-bis). Tre prove, e nessuna delle tre è il
+timbro — il timbro dice quale versione è **partita**, non che il sito **risponda**, e da 1.1.0 un caricamento
+incompleto dà un sito che si vede intero, col timbro giusto, e non fa niente.
+
+1. **`pacchetto-verifica.js` da anonimo: otto controlli su otto verdi.** `vipi-riconnessione.js` servito e
+   minificato, circuito Blazor avviato, quattro schede ACC in home, nessun avviso «catalogo non
+   disponibile», **la Ricerca risponde** (è quella che passa dal server), foglio di stile in vigore, console
+   pulita.
+2. 🔴 **Le impronte degli asset, prese da fuori e confrontate col pacchetto**: `vipi-theme.css` e
+   `vipi-media.js` scaricati da `atc.it.ivao.aero` hanno lo **stesso sha256** dei file dentro
+   `solo-18-file-1.11.0`. È la prova che `wwwroot` è arrivato **intero** e non a metà — il difetto del 24
+   agosto non si vede aprendo una pagina, si vede confrontando byte.
+3. 🔴 **E una prova di COMPORTAMENTO che 1.10.0 non poteva dare**: su `/services/vsop/libb/vipi` la
+   testata del documento è `.doc-head.with-aud`, ha `.hl-text` e `.dh-actions`, e il suo `display` calcolato
+   è **`grid`**. Quei tre nomi di classe **non esistono** in 1.10.0: se il `.dll` di Vipi.Ui o il foglio di
+   stile fossero rimasti indietro, la pagina non li avrebbe.
+
+ℹ️ **La chip «Everything / Pilot / ATC» in produzione non compare** su quella vIPI, ed è giusto: si disegna
+solo se il documento ha **almeno una sezione marcata** pilota o ATC, e la release pubblicata non ne ha
+(`Audience` è `Both` ovunque). Non è un caricamento a metà — lo dice il punto 3, che guarda la testata e non
+la chip. Comparirà sul primo documento che marca una sezione.
+
+ℹ️ **Le altre tre vIPI di centro** (`lirr`, `limm`, `lipp`) non hanno una testata da guardare: non hanno una
+vIPI pubblicata. Non è un esito del caricamento.
+
+### ⚠️ Da dire a chi controlla
+
+Il foglio lo legge chi **carica**, non chi **usa**. Di 1.11.0 le cose che si vedono e possono sembrare
+guasti sono due:
+
+- **La testata dei documenti è cambiata** (§BV): i tre tasti `Everything / Pilot / ATC` sono **a destra**,
+  grandi quanto le due righe accanto, e quello scelto è **blu pieno**. Prima erano piccoli in coda al
+  sottotitolo e **tutti e tre uguali**. Sul vSOP militare il collegamento alla vIPI civile non è più una
+  riga sotto l'avviso rosso: è un **tasto** in alto a destra, accanto a «Stampa».
+- **Le tabelle sparite non tornano** (§BT): il difetto che le sovrascriveva è chiuso, ma quel che è già
+  stato sovrascritto non c'è più da nessuna parte e va riscritto.
+
+E restano da dire quelle di 1.10.0, se non è stato fatto: l'editor d'aeroporto **senza tasti «Salva»**, e la
+**vista live di un collega** che non si apre più a chi non è staff di divisione.
+
+### La consegna dopo
+
+Adesso 1.11.0 **è** in produzione, quindi al prossimo giro la consegna **si ruota** normalmente
+(`-Azione Ruota`): il divieto valeva finché in `publish/` c'era un pacchetto mai uscito. Il `git diff` del
+prossimo pacchetto parte da **`4b35946f`**, non più da `99f33f0`.
