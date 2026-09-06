@@ -1,4 +1,4 @@
-/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
+﻿/* Tema brand IVAO — vIPI/vLOA. Portato fedelmente dal mockup v2 (CSS prodotto), eliminato dal repo il 2026-08-01
    perché superato dall'app: questo foglio è la fonte, non una copia da risincronizzare.
    Font: i ruoli stanno qui (--font-head/--font-body/--font-mono), le @font-face in vipi-fonts.css.
    Estratto: regole prodotto del mockup (esclusa la barra navigatore del prototipo).
@@ -1518,11 +1518,48 @@ td.cb::before{content:"";position:absolute;left:0;top:2px;bottom:2px;width:var(-
 
 /* riquadro del modo incorporato: il visualizzatore di Google dentro la pagina. L'altezza la scrive il
    componente (tre scaglioni scelti dall'editore), qui c'e' solo la cornice. */
-.att-embed{margin:12px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-soft)}
+.att-embed{position:relative;margin:12px 0 6px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface-soft)}
 .att-embed iframe{width:100%;height:100%;border:0;display:block}
+
+/* Il giro del riquadro incorporato. Gira il RIQUADRO, non il PDF: i byte li rende il visualizzatore di
+   Google dentro l'iframe, che non prende nessun parametro di rotazione -- e renderli noi vorrebbe dire
+   fare da proxy ai byte, che il vincolo di hosting vieta. Quindi gira anche la barra di Google. E' il
+   prezzo: l'alternativa non e' un giro piu' pulito, e' nessun giro.
+
+   L'angolo sta nell'attributo `data-att-rot`, scritto DAL SERVER con la scelta di chi redige e riscritto
+   DA JS a ogni clic di chi legge. Il CSS non decide, dipinge.
+
+   ⚠️ A un quarto di giro l'iframe vuole larghezza e altezza SCAMBIATE, e la larghezza del riquadro e'
+   fluida: dipende dalla colonna in cui il documento e' finito. Le due unita' di container query lo dicono
+   senza che nessuno misuri -- `100cqh` e' l'altezza del riquadro, `100cqw` la sua larghezza. Misurarlo da
+   JS funzionava ma era fragile per una ragione che non si vede subito: un riquadro puo' NASCERE dopo (un
+   render interattivo dell'editor, una navigazione), e allora la misura sarebbe arrivata dopo il disegno --
+   cioe' si sarebbe visto storto finche' qualcuno non ridimensionava la finestra. Qui non c'e' niente da
+   far arrivare in tempo.
+   ⚠️ `container-type:size` vuole un'altezza dichiarata: c'e' (`style="height:...px"`, la sceglie
+   l'editore fra tre scaglioni). Se un giorno l'altezza diventasse automatica, queste due regole muoiono
+   in silenzio. */
+.att-embed{container-type:size}
+.att-embed[data-att-rot="180"] iframe{transform-origin:50% 50%;transform:rotate(180deg)}
+.att-embed[data-att-rot="90"] iframe{width:100cqh;height:100cqw;transform-origin:0 0;transform:translateX(100cqw) rotate(90deg)}
+.att-embed[data-att-rot="270"] iframe{width:100cqh;height:100cqw;transform-origin:0 0;transform:translateY(100cqh) rotate(-90deg)}
+
+/* I due tasti stanno FUORI dal riquadro, sopra e a destra.
+   ⚠️ NON sovrapposti in un angolo, ed e' un difetto che si e' visto solo A SCHERMO (6 settembre 2026):
+   dentro l'iframe c'e' la barra del visualizzatore di Google, che ha il proprio tasto «apri in una scheda»
+   proprio in alto a destra. Sovrapposti, i due gruppi si accavallano e non si capisce piu' di chi e' quale.
+   Il DOM era giusto: nessun test poteva vederlo. */
+.att-rot{display:flex;justify-content:flex-end;gap:4px;margin:12px 0 -6px}
+.att-rot-btn{padding:5px 7px;line-height:0;background:var(--surface-soft);color:var(--brand-ink);border:1px solid var(--line)}
+.att-rot-btn:hover{background:var(--tint-atmos)}
+/* Il riquadro segue subito sotto: il margine in cima lo mette gia' la barra dei tasti. */
+.att-rot + .att-embed{margin-top:6px}
 
 /* editor del blocco allegato: si SCEGLIE da un elenco, non si incolla un indirizzo. */
 .att-edit{margin:6px 0;display:flex;flex-direction:column;gap:8px}
+/* la casella di ricerca sta SOPRA la tendina, dentro la stessa etichetta: filtra e basta, non sceglie. */
+.att-cerca{margin-bottom:4px}
+.att-conta{font-size:11px;margin-top:2px}
 .att-field{display:flex;flex-direction:column;gap:3px;font-size:12px}
 .att-row{display:flex;gap:10px;flex-wrap:wrap}
 .att-row .att-field{flex:1;min-width:160px}

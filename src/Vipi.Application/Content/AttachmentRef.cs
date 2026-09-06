@@ -42,6 +42,35 @@ public enum AttachmentEmbedHeight
 }
 
 /// <summary>
+/// Di quanto è girato il riquadro incorporato.
+///
+/// <para>⚠️ <b>Non gira il PDF: gira il RIQUADRO.</b> I byte stanno sul Drive di divisione e li rende il
+/// visualizzatore di Google, che non prende nessun parametro di rotazione — e proxare i byte per renderli
+/// noi è proprio la cosa che il vincolo contrattuale vieta. Quindi la rotazione è una trasformazione CSS
+/// del riquadro: gira anche la barra di Google che ci sta dentro, ed è il prezzo — l'alternativa non è una
+/// rotazione più pulita, è nessuna rotazione.</para>
+///
+/// <para>⚠️ <b>Quattro scatti e non un angolo libero</b>, per la stessa ragione dei tre scaglioni
+/// d'altezza: una scansione storta di 3° non si raddrizza qui, si ricarica dritta in biblioteca.</para>
+///
+/// <para>Questo è l'orientamento di <b>partenza</b>, scelto da chi redige. Chi legge lo può cambiare sul
+/// momento — nel browser, senza toccare il documento — esattamente come nel visualizzatore PDF del
+/// browser: il giro di chi legge <b>non</b> si salda e non sopravvive al ricaricamento.</para>
+/// </summary>
+public enum AttachmentRotation
+{
+    /// <summary>Come sta nel file. Zero dell'enum, ed è voluto: ogni blocco già scritto nasce così.</summary>
+    Deg0,
+
+    /// <summary>Un quarto di giro orario: la scansione in orizzontale che il PDF tiene in verticale.</summary>
+    Deg90,
+
+    Deg180,
+
+    Deg270,
+}
+
+/// <summary>
 /// Come un blocco <c>Attachment</c> cita il suo allegato: <c>BodyJson</c> porta il <b>token</b> e il titolo
 /// da mostrare, <c>Body</c> resta libero per una nota sotto il link (markdown, come la prosa).
 ///
@@ -60,6 +89,10 @@ public enum AttachmentEmbedHeight
 /// <param name="Slug">L'identità della voce di biblioteca. Senza il prefisso: quello lo mette il token.</param>
 /// <param name="Mode">Link o incorporato. Vedi <see cref="AttachmentDisplayMode"/>.</param>
 /// <param name="Height">Altezza del riquadro, se incorporato. Ignorata nel modo link.</param>
+/// <param name="Rotation">
+/// L'orientamento di <b>partenza</b> del riquadro incorporato. Ignorata nel modo link — non c'è niente da
+/// girare in un link. Vedi <see cref="AttachmentRotation"/> per che cosa gira davvero, e perché.
+/// </param>
 /// <param name="Title">
 /// Quel che si legge nel link, <b>scritto nel blocco</b> e non ripreso dalla biblioteca a ogni resa.
 /// <para>⚠️ È una scelta, non una copia dimenticata: il titolo è una <b>decisione editoriale del documento</b>
@@ -72,7 +105,8 @@ public sealed record AttachmentRef(
     string Slug,
     string? Title = null,
     AttachmentDisplayMode Mode = AttachmentDisplayMode.Link,
-    AttachmentEmbedHeight Height = AttachmentEmbedHeight.Medium)
+    AttachmentEmbedHeight Height = AttachmentEmbedHeight.Medium,
+    AttachmentRotation Rotation = AttachmentRotation.Deg0)
 {
     /// <summary>
     /// L'altezza in pixel del riquadro incorporato. ⚠️ Sta <b>qui</b> e non nel CSS: la sceglie l'editore fra
@@ -83,6 +117,19 @@ public sealed record AttachmentRef(
         AttachmentEmbedHeight.Small => 320,
         AttachmentEmbedHeight.Large => 800,
         _ => 520,
+    };
+
+    /// <summary>
+    /// L'orientamento in gradi, come lo scrive l'attributo del riquadro e come lo legge il CSS.
+    /// ⚠️ Sta <b>qui</b> e non nel foglio di stile per la stessa ragione di <see cref="HeightPx"/>: la
+    /// sceglie chi redige fra quattro valori, e un foglio di stile non legge il JSON di un blocco.
+    /// </summary>
+    public int RotationDeg => Rotation switch
+    {
+        AttachmentRotation.Deg90 => 90,
+        AttachmentRotation.Deg180 => 180,
+        AttachmentRotation.Deg270 => 270,
+        _ => 0,
     };
 
     /// <summary>Il token come si scrive nel JSON e nella prosa: un formato solo per tutte e due le forme.</summary>
@@ -103,6 +150,10 @@ public sealed record AttachmentRef(
         public string? modo { get; set; }
 
         public string? altezza { get; set; }
+
+        /// <summary>⚠️ Col NOME come il modo, e per le stesse due ragioni. ⚠️ E la chiave è NUOVA: i blocchi
+        /// già scritti non ce l'hanno, quindi tornano <c>Deg0</c> — cioè come si vedevano ieri.</summary>
+        public string? rotazione { get; set; }
     }
 
     /// <summary>
@@ -131,9 +182,11 @@ public sealed record AttachmentRef(
                 ? m : AttachmentDisplayMode.Link;
             var altezza = Enum.TryParse<AttachmentEmbedHeight>(dto.altezza, ignoreCase: true, out var h)
                 ? h : AttachmentEmbedHeight.Medium;
+            var giro = Enum.TryParse<AttachmentRotation>(dto.rotazione, ignoreCase: true, out var g)
+                ? g : AttachmentRotation.Deg0;
 
             return new AttachmentRef(
-                slug, string.IsNullOrWhiteSpace(dto.titolo) ? null : dto.titolo!.Trim(), modo, altezza);
+                slug, string.IsNullOrWhiteSpace(dto.titolo) ? null : dto.titolo!.Trim(), modo, altezza, giro);
         }
         catch (JsonException)
         {
@@ -150,6 +203,7 @@ public sealed record AttachmentRef(
             titolo = riferimento.Title,
             modo = riferimento.Mode.ToString(),
             altezza = riferimento.Height.ToString(),
+            rotazione = riferimento.Rotation.ToString(),
         });
 
     /// <summary>

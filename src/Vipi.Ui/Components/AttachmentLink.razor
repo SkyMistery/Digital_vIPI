@@ -1,4 +1,4 @@
-@inject IStringLocalizer<SharedResource> L
+﻿@inject IStringLocalizer<SharedResource> L
 
 @* Il link a un allegato, reso allo stesso modo ovunque: nel blocco del documento, nell'anteprima degli
    editor e nella pagina d'aeroporto.
@@ -23,7 +23,35 @@
            dal documento esattamente come nel link. Nessuna eccezione.
            `title` non è decorativo: per chi naviga a tastiera o con uno screen reader un riquadro senza nome
            è «frame», e basta. *@
-        <div class="att-embed" style="height:@(r.HeightPx)px">
+        @* ⚠️ I due tasti stanno FUORI dal riquadro, sopra, e non sovrapposti in un angolo: dentro c'è la
+           barra del visualizzatore di Google, che ha il proprio tasto «apri in una scheda» <b>proprio in
+           alto a destra</b>. Sovrapposti — come erano il 6 settembre 2026, visto solo a schermo — i due
+           gruppi di tasti si accavallano e non si capisce più di chi è quale. Nessun test lo avrebbe visto:
+           il DOM era giusto.
+
+           ⚠️ Due tasti di HTML puro, girati da JS: NON è pigrizia, è la sola forma che funziona dappertutto.
+           Questo componente compare anche nelle pagine pubbliche, che sono SSR statico (vedi «chrome
+           statico, isole interattive»): un `@onclick` di Blazor lì dentro non scatterebbe mai. Lo stato del
+           giro vive nel `data-att-rot` del riquadro, cioè nel browser di chi legge — dove deve stare: è la
+           sua occhiata, non una modifica al documento.
+
+           ⚠️ `type="button"`: dentro un modulo, un bottone senza tipo lo INVIA. Qui modulo non ce n'è, ma
+           questo blocco finisce anche negli editor.
+
+           ⚠️ `aria-controls` verso il riquadro, che ha un `id` proprio: un gruppo di due tasti senza
+           bersaglio dichiarato non dice a chi usa uno screen reader che cosa gira. *@
+        <div class="att-rot" role="group" aria-label="@L["Att_RotGroup"]">
+            <button type="button" class="btn ghost att-rot-btn" data-att-rot-btn="-90" aria-controls="@IdRiquadro"
+                    title="@L["Att_RotLeft"]" aria-label="@L["Att_RotLeft"]">
+                <Icon Name="rotate-ccw" Size="14" />
+            </button>
+            <button type="button" class="btn ghost att-rot-btn" data-att-rot-btn="90" aria-controls="@IdRiquadro"
+                    title="@L["Att_RotRight"]" aria-label="@L["Att_RotRight"]">
+                <Icon Name="rotate-cw" Size="14" />
+            </button>
+        </div>
+
+        <div class="att-embed" id="@IdRiquadro" data-att-rot="@r.RotationDeg" style="height:@(r.HeightPx)px">
             <iframe src="@r.Url" title="@(r.Title is { Length: > 0 } et ? et : r.Slug)" loading="lazy"></iframe>
         </div>
     }
@@ -50,6 +78,13 @@ else
 
 @code {
     [Parameter] public AttachmentRef? Reference { get; set; }
+
+    /// <summary>
+    /// L'id del riquadro, per l'<c>aria-controls</c> dei due tasti. ⚠️ Uno per ISTANZA e non lo slug: la
+    /// stessa LoA può comparire due volte nella stessa pagina (un documento e la sua unione), e due id
+    /// uguali fanno puntare i tasti della seconda al riquadro della prima.
+    /// </summary>
+    private readonly string IdRiquadro = "att-emb-" + Guid.NewGuid().ToString("N")[..8];
 
     /// <summary>La nota sotto il link: markdown, come la prosa.</summary>
     [Parameter] public string? Note { get; set; }

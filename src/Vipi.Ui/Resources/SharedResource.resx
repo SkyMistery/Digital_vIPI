@@ -3002,6 +3002,17 @@
   <data name="AttHeight_Small" xml:space="preserve"><value>Bassa</value></data>
   <data name="AttHeight_Medium" xml:space="preserve"><value>Media</value></data>
   <data name="AttHeight_Large" xml:space="preserve"><value>Alta</value></data>
+  <data name="Att_BlockSearchPh" xml:space="preserve"><value>Cerca per titolo, sigla, perimetro o tipo…</value></data>
+  <data name="Att_BlockFound" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="Att_BlockRotation" xml:space="preserve"><value>Come sta girato</value></data>
+  <data name="Att_BlockRotationHint" xml:space="preserve"><value>È l'orientamento di partenza: chi legge lo può girare dal riquadro, e quel giro non entra nel documento.</value></data>
+  <data name="AttRot_Deg0" xml:space="preserve"><value>Come nel file</value></data>
+  <data name="AttRot_Deg90" xml:space="preserve"><value>90° a destra</value></data>
+  <data name="AttRot_Deg180" xml:space="preserve"><value>Capovolto</value></data>
+  <data name="AttRot_Deg270" xml:space="preserve"><value>90° a sinistra</value></data>
+  <data name="Att_RotGroup" xml:space="preserve"><value>Gira il riquadro</value></data>
+  <data name="Att_RotLeft" xml:space="preserve"><value>Gira a sinistra</value></data>
+  <data name="Att_RotRight" xml:space="preserve"><value>Gira a destra</value></data>
   <data name="Att_Replace" xml:space="preserve"><value>Sostituisci</value></data>
   <data name="Att_ReplaceTitle" xml:space="preserve"><value>Sostituisci «{0}» (v{1} → v{2})</value></data>
   <data name="Att_ReplaceImpact" xml:space="preserve"><value>Cambia ciò che vedono {0} documenti:</value></data>

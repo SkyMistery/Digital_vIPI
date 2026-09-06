@@ -1,4 +1,4 @@
-@* Editor di UN blocco allegato, condiviso dai due editor di blocchi (DocumentSectionsEditor sul documento,
+﻿@* Editor di UN blocco allegato, condiviso dai due editor di blocchi (DocumentSectionsEditor sul documento,
    DocumentBlocksEditor sulle sezioni extra): il codice nuovo di questa feature vive qui una volta sola.
    L'host possiede la persistenza — riceve il JSON del riferimento e la nota via callback e li salva come sa.
    È la stessa forma di ImageBlockEditor.
@@ -20,15 +20,32 @@
     {
         <p class="help"><b>@L["Common_Error"]</b>@_errore</p>
     }
+    @* ⚠️ Una casella di ricerca SOPRA la tendina, e non un `<input list>` con `<datalist>` come nelle
+       tabelle: quel modo lega la CHIAVE al testo scritto, e due allegati possono avere lo stesso titolo
+       (una LoA e la sua revisione, lo stesso nome su due perimetri). Qui il filtro restringe e basta —
+       l'identità resta lo SLUG scelto in tendina, che è sempre uno solo. Stessa scelta di UnionPanel.
+
+       ⚠️ Niente `value=` sulla casella: in Blazor Server il server la riscriverebbe com'era un giro prima,
+       e i caratteri appena cancellati RICOMPARIREBBERO. Per svuotarla dal server si ricrea l'elemento
+       (`@key="_gen"`). Misurato il 5 settembre 2026 sulla ricerca SID. *@
     <label class="att-field">
         <span class="muted">@L["Att_BlockPick"]</span>
+        <input @key="_gen" class="app-in att-cerca" type="search" autocomplete="off"
+               placeholder="@L["Att_BlockSearchPh"]" aria-label="@L["Att_BlockSearchPh"]"
+               @oninput="SuRicerca" />
         <select class="app-in" value="@Riferimento?.Slug" @onchange="e => ScegliAsync(e.Value as string)">
             <option value="">@L["Att_BlockNone"]</option>
-            @foreach (var v in _voci)
+            @foreach (var v in Filtrate)
             {
-                <option value="@v.Slug">@v.Title</option>
+                <option value="@v.Slug">@Etichetta(v)</option>
             }
         </select>
+        @* Il conteggio non è un vezzo: con 121 voci in biblioteca, «3 di 121» è l'unica cosa che distingue
+           un filtro che ha ristretto da un filtro che ha nascosto tutto. E si dice SOLO mentre si cerca. *@
+        @if (_filtro.Length > 0)
+        {
+            <span class="muted att-conta">@string.Format(L["Att_BlockFound"], Filtrate.Count, _voci.Count)</span>
+        }
     </label>
 
     @if (Riferimento is { } r)
@@ -63,8 +80,27 @@
                         }
                     </select>
                 </label>
+
+                @* Solo qui, e per la stessa ragione dell'altezza: in modo LINK non c'è niente da girare.
+                   ⚠️ È l'orientamento di PARTENZA — chi legge lo cambia dal riquadro, e quel giro non
+                   torna nel documento. Lo dice la riga d'aiuto sotto, o il campo prometterebbe di
+                   decidere una cosa che non decide. *@
+                <label class="att-field">
+                    <span class="muted">@L["Att_BlockRotation"]</span>
+                    <select class="app-in" value="@r.Rotation" @onchange="e => RotazioneAsync(e.Value as string)">
+                        @foreach (var g in Enum.GetValues<AttachmentRotation>())
+                        {
+                            <option value="@g">@L["AttRot_" + g]</option>
+                        }
+                    </select>
+                </label>
             }
         </div>
+
+        @if (r.Mode == AttachmentDisplayMode.Embedded)
+        {
+            <p class="help">@L["Att_BlockRotationHint"]</p>
+        }
 
         @* L'anteprima è il componente vero, non un facsimile: quel che si vede qui è quel che leggerà chi
            apre il documento — riquadro incorporato compreso. *@
@@ -92,7 +128,56 @@
 
     private IReadOnlyList<AttachmentRow> _voci = Array.Empty<AttachmentRow>();
 
+    /// <summary>Quel che si sta scrivendo nella casella di ricerca. Lo specchio C# del testo che il
+    /// BROWSER tiene: qui non si rimanda mai indietro, vedi il commento sul campo.</summary>
+    private string _filtro = "";
+
+    /// <summary>La generazione della casella di ricerca: si incrementa per farla RICREARE vuota dal
+    /// server. È l'unico modo di svuotarla senza mettersi in mezzo mentre uno digita.</summary>
+    private int _gen;
+
     private AttachmentRef? Riferimento => AttachmentRef.Parse(AttachmentJson);
+
+    /// <summary>
+    /// Le voci che il filtro lascia passare.
+    ///
+    /// <para>Si cerca su titolo, slug, perimetro e tipo: chi scrive «LIRR» cerca un perimetro, chi scrive
+    /// «loa» cerca un tipo, e sono tutti e due modi legittimi di dire quale allegato si vuole. I pezzi
+    /// separati da spazio si sommano (<i>tutti</i> devono comparire), che è come si restringe una ricerca
+    /// senza impararne la sintassi.</para>
+    ///
+    /// <para>⚠️ <b>La voce SCELTA resta in elenco anche quando il filtro la escluderebbe.</b> Senza questa
+    /// riga, scrivere due lettere che non c'entrano farebbe sparire dalla tendina l'allegato del blocco:
+    /// a schermo si vedrebbe un campo vuoto, e la scelta sembrerebbe persa mentre nel documento c'è
+    /// ancora. Una casella di ricerca non deve poter dire il falso su ciò che il blocco cita.</para>
+    /// </summary>
+    private IReadOnlyList<AttachmentRow> Filtrate
+    {
+        get
+        {
+            if (_filtro.Length == 0) return _voci;
+
+            var pezzi = _filtro.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var scelto = Riferimento?.Slug;
+
+            return _voci
+                .Where(v => v.Slug == scelto || pezzi.All(p => Cercabile(v).Contains(p, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+    }
+
+    /// <summary>Il testo su cui il filtro morde. Una stringa sola: cercare due pezzi che stanno in due
+    /// campi diversi («lirr loa») deve funzionare, e con un confronto per campo non funzionerebbe.</summary>
+    private static string Cercabile(AttachmentRow v) => $"{v.Title} {v.Slug} {v.ScopeLabel} {v.Kind}";
+
+    /// <summary>
+    /// Come si legge una voce in tendina: il titolo, e accanto il perimetro e il tipo. ⚠️ Con 121 voci il
+    /// solo titolo non basta a distinguere la LoA di Roma da quella di Milano.
+    /// <para>⚠️ Il perimetro compare solo se c'è una CHIAVE: <c>ScopeLabel</c> per la divisione è un
+    /// trattino, e «MIL abbriviation — — · Chart» (visto a schermo il 6 settembre 2026) non si legge.</para>
+    /// </summary>
+    private static string Etichetta(AttachmentRow v) =>
+        string.Join(" · ", new[] { v.Title, v.ScopeKey, v.Kind.ToString() }.Where(p => !string.IsNullOrWhiteSpace(p)));
 
     // ⚠️ La biblioteca si risolve dallo scope PROPRIO (OwningComponentBase): una lettura di questo componente
     // non deve passare per il DbContext condiviso del circuito, o due operazioni concorrenti lo fanno
@@ -174,9 +259,29 @@
         var voce = _voci.FirstOrDefault(v => v.Slug == scelto);
         if (voce is null) return;
 
+        // Scelto: il filtro ha finito il suo lavoro e si toglie di mezzo, così la tendina torna completa
+        // per il ripensamento subito dopo. Si svuota RICREANDO il campo (`_gen`), che è l'unico modo di
+        // scriverci dentro dal server senza far ricomparire caratteri.
+        _filtro = "";
+        _gen++;
+
         // Il titolo nasce da quello della biblioteca: è il punto di partenza sensato, e resta modificabile.
         await AttachmentJsonChanged.InvokeAsync(
             AttachmentRef.Serialize(new AttachmentRef(voce.Slug, voce.Title)));
+    }
+
+    /// <summary>
+    /// Un tasto nella casella di ricerca. ⚠️ Non tocca il blocco e non salva niente: restringe soltanto
+    /// che cosa si vede in tendina. Scegliere resta un gesto a parte, ed è voluto — vedi <c>Filtrate</c>.
+    /// </summary>
+    private void SuRicerca(ChangeEventArgs e) => _filtro = (e.Value as string ?? "").Trim();
+
+    private async Task RotazioneAsync(string? giro)
+    {
+        if (Riferimento is not { } r) return;
+        if (!Enum.TryParse<AttachmentRotation>(giro, out var g)) return;
+
+        await AttachmentJsonChanged.InvokeAsync(AttachmentRef.Serialize(r with { Rotation = g }));
     }
 
     private async Task ModoAsync(string? modo)

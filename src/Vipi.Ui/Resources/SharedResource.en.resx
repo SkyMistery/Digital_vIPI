@@ -2994,6 +2994,17 @@
   <data name="AttHeight_Small" xml:space="preserve"><value>Short</value></data>
   <data name="AttHeight_Medium" xml:space="preserve"><value>Medium</value></data>
   <data name="AttHeight_Large" xml:space="preserve"><value>Tall</value></data>
+  <data name="Att_BlockSearchPh" xml:space="preserve"><value>Search by title, slug, scope or kind…</value></data>
+  <data name="Att_BlockFound" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Att_BlockRotation" xml:space="preserve"><value>Orientation</value></data>
+  <data name="Att_BlockRotationHint" xml:space="preserve"><value>This is the starting orientation: readers can turn the frame themselves, and their turn never enters the document.</value></data>
+  <data name="AttRot_Deg0" xml:space="preserve"><value>As in the file</value></data>
+  <data name="AttRot_Deg90" xml:space="preserve"><value>90° right</value></data>
+  <data name="AttRot_Deg180" xml:space="preserve"><value>Upside down</value></data>
+  <data name="AttRot_Deg270" xml:space="preserve"><value>90° left</value></data>
+  <data name="Att_RotGroup" xml:space="preserve"><value>Turn the frame</value></data>
+  <data name="Att_RotLeft" xml:space="preserve"><value>Turn left</value></data>
+  <data name="Att_RotRight" xml:space="preserve"><value>Turn right</value></data>
   <data name="Att_Replace" xml:space="preserve"><value>Replace</value></data>
   <data name="Att_ReplaceTitle" xml:space="preserve"><value>Replace «{0}» (v{1} → v{2})</value></data>
   <data name="Att_ReplaceImpact" xml:space="preserve"><value>Changes what {0} documents show:</value></data>
