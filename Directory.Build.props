@@ -514,7 +514,29 @@
       `.resx` toccati, quindi il satellite inglese entra). Piu' `Host`, che porta sempre il timbro.
       ⚠️ Nessun file di `wwwroot` toccato — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.13.0</VipiVersione>
+    <!--
+      1.14.0 — 6 settembre 2026, notte. **MINOR**, e il numero lo decide il CONTENUTO: non ci sono sezioni
+      nuove, ma l'editor guadagna una cosa che prima non c'era — un cruscotto della traduzione — e un
+      pannello dove non ne compariva nessuno. Non e' «solo correzioni», che e' cio' che una PATCH promette.
+      Nessuna migrazione: si consegna da sola via FTP, anche dentro la finestra cieca al 16 settembre.
+
+        · Lo STATO DELLA TRADUZIONE nell'editor non si spegne piu' da solo. Riga sempre presente — bozza
+          N%, pubblicato M% (o «nessuna release»), quante mancano, quanto manca al giro — e tasto «traduci
+          ora» sempre premibile, in tutt'e due le lingue. Prima tutto questo era legato a «manca qualcosa»,
+          cioe' spariva appena il giro aveva finito, e in italiano non compariva mai.
+          ⚠️ A zero mancanti il tasto NON spende: il servizio risponde prima di aprire la rete.
+
+        · Il pannello si monta anche sui MEMBRI di un'unione (stava dentro `@if (Chrome)`), e l'id del
+          blocco porta ora il documento: in quella pagina i pannelli sono due o piu'.
+
+        · §CA: i link dell'elenco dei vSOP militari aprono la vista PILOTA. ⚠️ Non si vedra' finche' non
+          c'e' un vSOP militare PUBBLICATO — oggi nessuno, su nessuno dei quattro ACC.
+
+      Un progetto solo (`Ui`) e le FRASI (due `.resx` toccati, quindi il satellite inglese entra). Piu'
+      `Host`, che porta sempre il timbro. ⚠️ Nessun file di `wwwroot` toccato — da verificare con le
+      IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.14.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
