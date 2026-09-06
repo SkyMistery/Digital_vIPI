@@ -8882,3 +8882,83 @@ E restano da dire quelle di 1.10.0, se non è stato fatto: l'editor d'aeroporto 
 Adesso 1.11.0 **è** in produzione, quindi al prossimo giro la consegna **si ruota** normalmente
 (`-Azione Ruota`): il divieto valeva finché in `publish/` c'era un pacchetto mai uscito. Il `git diff` del
 prossimo pacchetto parte da **`4b35946f`**, non più da `99f33f0`.
+
+---
+
+## §BW — Il blocco allegato: cercare nella tendina, e girare il riquadro (6 settembre 2026)
+
+⚠️ **Ramo `feat/allegato-ricerca-e-rotazione` (`a6cbd945`), spinto e NON fuso.** Non è in produzione.
+
+Due richieste del committente sul punto in cui si inseriscono gli allegati:
+
+1. poter **scrivere** per cercare nella tendina della biblioteca, «esattamente com'è ora ma potendo scrivere
+   anche il nome del documento per una ricerca più rapida»;
+2. poter **girare** il PDF incorporato come nei visualizzatori PDF del browser: chi redige sceglie un
+   orientamento di partenza, chi legge lo cambia durante l'uso.
+
+### 1. La ricerca filtra, non sceglie
+
+Casella `type="search"` **sopra** la tendina. Cerca su **titolo, slug, perimetro e tipo**, e i pezzi
+separati da spazio si **sommano**. In produzione la biblioteca ha **121 voci** (contate il 4 settembre):
+l'elenco si percorreva solo a occhio.
+
+- ⚠️ **Non un `<input list>` con `<datalist>`** come nelle tabelle: quel modo lega la **chiave** al testo
+  scritto, e due allegati possono avere lo stesso titolo. Il filtro restringe e basta; l'identità resta lo
+  **slug** scelto in tendina. È la stessa scelta già fatta in `UnionPanel`, e per la stessa ragione.
+- 🔴 **La voce SCELTA resta in elenco anche quando il filtro la escluderebbe.** Senza, due lettere che
+  non c'entrano fanno sparire dalla tendina l'allegato che il blocco cita: a schermo si vede un campo vuoto
+  e la scelta *sembra persa* mentre nel documento c'è ancora. Una casella di ricerca non deve poter dire il
+  falso su ciò che il blocco cita.
+- ⚠️ **Niente `value=`** sul campo, e `@key` per svuotarlo dal server: è la regola già pagata il 5
+  settembre sulla ricerca SID (il server riscrive il testo di un giro prima e i caratteri cancellati
+  ricompaiono). Provato dal vivo con otto Backspace.
+- L'etichetta in tendina è `Titolo · chiave · tipo`, e la **chiave** compare solo se c'è: `ScopeLabel` per
+  la divisione è un **trattino**, e «MIL abbriviation — — · Chart» non si legge. Visto solo a schermo.
+
+### 2. Gira il RIQUADRO, non il PDF
+
+I byte stanno sul Drive e li rende il **visualizzatore di Google**, che non prende nessun parametro di
+rotazione — e renderli noi vorrebbe dire fare da **proxy ai byte**, che il vincolo contrattuale di hosting
+vieta. Quindi è una trasformazione CSS dell'iframe: **gira anche la barra di Google**, ed è il prezzo.
+L'alternativa non è un giro più pulito, è nessun giro.
+
+- `AttachmentRotation`: **quattro scatti**, non un angolo libero — stessa regola dei tre scaglioni
+  d'altezza. Una scansione storta di 3° si ricarica dritta in biblioteca.
+- ⚠️ **Lo scambio larghezza/altezza a un quarto di giro lo fanno le unità di container query**
+  (`100cqw`/`100cqh`), non JS. La prima versione **misurava** il riquadro da JS: funzionava, e aveva un
+  difetto che non si vede a occhio — un riquadro che **nasce dopo** (render interattivo dell'editor,
+  navigazione) si disegna prima della misura, cioè storto, fino al primo ridimensionamento della finestra.
+  Tolta la misura, tolta la classe intera. ⚠️ `container-type:size` pretende un'altezza dichiarata: c'è.
+- ⚠️ **I due tasti sono HTML puro girati da `vipi-ui.js`**, non un `@onclick`: le pagine dei documenti
+  sono **SSR statico** e lì un `@onclick` non scatterebbe mai. Lo stato vive nel `data-att-rot` del
+  riquadro, cioè nel browser di chi legge: non si salva e non sopravvive al ricaricamento. È un'occhiata,
+  non una modifica al documento.
+- **Nessuna migrazione**: la chiave `rotazione` è nuova nel JSON del blocco e i blocchi già scritti tornano
+  `Deg0`. Si consegna anche dentro la finestra cieca.
+
+### 🔴 I due difetti che solo lo SCHERMO ha preso
+
+Il DOM era giusto tutte e due le volte, e nessun test poteva vederli.
+
+1. **I tasti sovrapposti in alto a destra si accavallavano con la barra di Google**, che ha il proprio
+   «apri in una scheda» **esattamente lì**. Spostati **FUORI** dal riquadro, sopra e a destra.
+2. 🔴 E spostandoli fuori, `b.closest('.att-embed')` è tornato **null**: il clic non faceva **niente**.
+   I tasti c'erano, il DOM era giusto, e non giravano. Ora il riquadro si trova **per nome**
+   (`aria-controls` → `getElementById`), con un id **per istanza** — la stessa LoA può comparire due volte
+   nella stessa pagina (un documento e la sua unione).
+
+⚠️ E in stampa i tasti vanno nascosti **a parte**: da quando stanno fuori dal riquadro non se ne vanno più
+insieme a lui (`vipi-print.css` nascondeva il solo `.att-embed`).
+
+### Come è stata provata
+
+Build Release `--no-incremental` verde sui due TFM con **0 avvisi**; **5140 test verdi** su otto progetti.
+Verifica live con `.claude/skills/verifica-live` sul **vSOP MIL di LIMS** (documento 31, blocco 527 —
+l'**unico** blocco allegato del `vipi.db` di sviluppo), con un **PDF vero** sul Drive di divisione, nell'editor
+**e** nella pagina statica del documento (`?as=draft`, perché la bozza non è pubblicata). Misurato l'iframe:
+a 90° `518×820` con `matrix(0, 1, -1, 0, 820, 0)` dentro un contenitore `820×518`, e nessuno scorrimento
+orizzontale della pagina.
+
+⚠️ **Sul pacchetto**: tocca `wwwroot` (`vipi-theme.css`, `vipi-print.css`, `vipi-ui.js`) **e** le frasi
+(dieci chiavi nuove per lingua). Impronte nuove: i file di `wwwroot` e l'indice degli asset viaggiano
+**insieme**.
