@@ -503,16 +503,16 @@
 
         · Il pubblico pilota/ATC diventa un DEFAULT DI CATALOGO: dodici sezioni nascono «per i piloti».
           ⚠️ Nel foglio va detto che quelle dodici NON si vedono nella vista ATC, e che chi le vuole
-          leggere apre «Tutti» -- o si scambiera' una scelta per una perdita.
+          leggere apre «Tutti» — o si scambiera' una scelta per una perdita.
 
         · Tre passi di manutenzione all'avvio portano i vSOP GIA' SCRITTI sulla forma nuova. ⚠️ Uno di
           questi (`ApplyCatalogAudienceDefaults`) RIBALTA una volta sola le marcature pilota/ATC messe a
           mano prima di oggi: va nel foglio, non lasciato scoprire.
 
-      Quattro progetti (`Application`, `Infrastructure`, `Ui` e `Hosting` -- che E' un assieme a se',
+      Quattro progetti (`Application`, `Infrastructure`, `Ui` e `Hosting` — che E' un assieme a se',
       `Vipi.Hosting.dll`, e ci vive il cablaggio dei passi di manutenzione all'avvio) e le FRASI (due
       `.resx` toccati, quindi il satellite inglese entra). Piu' `Host`, che porta sempre il timbro.
-      ⚠️ Nessun file di `wwwroot` toccato -- da verificare con le IMPRONTE, non a memoria.
+      ⚠️ Nessun file di `wwwroot` toccato — da verificare con le IMPRONTE, non a memoria.
     -->
     <VipiVersione>1.13.0</VipiVersione>
   </PropertyGroup>
