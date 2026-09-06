@@ -9371,7 +9371,8 @@ foglio, ma il foglio lo legge chi carica, non chi usa):
 
 ## §CA — L'elenco dei vSOP militari apre in vista PILOTA — 6 settembre 2026 (sera)
 
-Ramo **`vista-pilota-elenco-mil`**, ⚠️ **non fuso**. Una riga di codice e quattro documenti.
+✅ **Fuso in `main`** il 6 settembre 2026 (ramo `vista-pilota-elenco-mil`, punto di ritorno
+`main-prima-del-merge-20260906-vista-pilota`). Una riga di codice e quattro documenti.
 
 **Che cosa cambia.** I link dell'elenco nazionale `/services/vsop/mil` portano ora `&vista=pilota`:
 `…/libb/mil?icao=LIBV&vista=pilota`. Chi cerca un campo militare da lì lo cerca **come lo cerca un pilota**,
@@ -9397,9 +9398,10 @@ disegna solo se c'è almeno una sezione marcata) non serve perché non c'è nien
 Documenti: la carta del 27 agosto §3, quella del 6 settembre §1d, e la **guida in-app** (voce
 «editor-mil», italiano e inglese) — che è l'unica di queste che legge chi usa il prodotto.
 
-**Come è stata provata**: `dotnet build src/Vipi.Ui` verde sui due TFM, **0 avvisi**. ⚠️ La prova a schermo
-**non è stata fatta**: in produzione non c'è nessun vSOP militare pubblicato, e in locale va guardata su un
-documento che abbia davvero sezioni marcate — è lì che si vede se il filtro toglie quel che deve.
+**Come è stata provata**: build Release verde sui due TFM, **0 avvisi**, e ✅ **a schermo dal committente**,
+che ha confermato il 6 settembre. ⚠️ **Non è ancora in produzione**: viaggia col prossimo pacchetto, e là
+non si vedrà finché non c'è un vSOP militare **pubblicato** — oggi non ce n'è nessuno su nessuno dei quattro
+ACC.
 
 ### E nello stesso giro, una domanda che NON ha prodotto codice
 
