@@ -121,6 +121,10 @@ public static class DocumentBirth
             SectionKey = d.Key,
             RowVersion = Guid.NewGuid().ToByteArray(),
             RenderMode = live(d.Key) ? RenderMode.Live : RenderMode.Frozen,
+            // Il pubblico con cui la sezione NASCE (indice del SOD, 6 settembre 2026). Prima nessuna
+            // sezione ne aveva uno e il campo prendeva il default della colonna: chi voleva le marcature
+            // del SOP doveva metterle a mano su dodici sezioni, un documento per volta.
+            Audience = d.Audience,
         };
         version.Sections.Add(section);
         db.DocumentSections.Add(section);

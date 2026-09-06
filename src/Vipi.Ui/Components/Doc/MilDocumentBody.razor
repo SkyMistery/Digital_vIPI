@@ -12,6 +12,7 @@
    la verità, ed è quel che serve a un lettore di schermo per non pronunciare l'inglese con le regole
    dell'italiano. In una pagina unita vale per membro. *@
 @using Vipi.Domain
+@using Vipi.Application.Content
 @using Vipi.Ui.Components.App
 @inject IStringLocalizer<SharedResource> L
 
@@ -37,8 +38,10 @@
     /// le mostri. Riusare la derivazione invece di rifarla è ciò che rende «sei chiavi riusate» un fatto e
     /// non una dichiarazione.
     ///
-    /// <para>⚠️ Quel che il PDF ha in più — le coordinate delle soglie, i CRC/AEW — non si deriva: sta nei
-    /// blocchi editoriali sotto la scheda, ed è per questo che quelle due sezioni sono <c>HostAndBlocks</c>.</para>
+    /// <para>⚠️ Quel che il PDF ha in più — i CRC/AEW, l'APP di un altro campo — non si deriva: sta nei
+    /// blocchi editoriali sotto la scheda, ed è per questo che quelle sezioni sono <c>HostAndBlocks</c>.
+    /// Le coordinate delle soglie invece si derivano da quando IVAO le manda insieme alle piste (30 agosto
+    /// 2026), e dal 6 settembre hanno una sotto-sezione loro.</para>
     /// </summary>
     private RenderFragment<SectionView> CorpoDerivato => sec => __builder =>
     {
@@ -54,12 +57,14 @@
                congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
             case "navaids": <MilNavaids Rows="Doc.Radioassistenze" />; break;
             case "diversion": <MilDiversions Rows="Doc.Alternati" />; break;
-            @* ⚠️ Due tabelle, e la seconda è SOLO militare: le soglie stanno nei SOP e non nella vIPI
-               civile, e otto colonne più due coordinate non ci starebbero in una riga sola. *@
-            case "runways":
-                <AirportRunways View="Doc.Derivate.Runways" />
-                <MilRunwayThresholds View="Doc.Derivate.Runways" />
-                break;
+            case "runways": <AirportRunways View="Doc.Derivate.Runways" />; break;
+            @* ⚠️ Le soglie sono SOLO militari — nella vIPI civile non c'è questa sezione — e dal 6
+               settembre 2026 sono una sotto-sezione di «Piste» invece della sua seconda tabella (indice
+               del SOD).
+               ⚠️ Stessa `AirportRunwaysView` della sezione padre, e non una derivazione seconda: il dato è
+               uno, e la release lo congela una volta sola sotto la chiave «runways». Due derivazioni della
+               stessa tabella potrebbero raccontare due cicli diversi, una sotto l'altra. *@
+            case SectionKeys.RunwayThresholds: <MilRunwayThresholds View="Doc.Derivate.Runways" />; break;
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
                mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. E SOTTO la tabella: nome e
                limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività. *@

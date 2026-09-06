@@ -1008,7 +1008,7 @@ scrivono nei log.
 | ~~Chi cura il glossario di fraseologia~~ — ✅ **CHIUSA il 28-ago**: meccanismo, pagina di cura, e la risposta del committente — **tutti gli admin**, cioè tutto lo staff di divisione | **Q3** |
 | I **termini di ritenzione** del piano gratuito Azure, e la domanda a IVAO HQ sul trattamento esterno | Q1 / Q2 |
 | **Rileggere la trascrizione di LIPI** e le **figure** dei SOP da estrarre dai PDF | R1 / R2 |
-| Gli altri **quattordici SOP** militari, e su quattro campi la sezione QRA da riempire | R3 |
+| Gli altri **quattordici SOP** militari. ⚠️ «e su quattro campi la sezione QRA da riempire» **non vale più**: la sezione è uscita dal catalogo il 6 settembre 2026 su richiesta del SOD ([carta](feature/2026-09-06-vsop-sezioni-sod.md)) | R3 |
 | ~~Avvisare lo staff prima del deploy~~ — ✅ **FATTO il 30-ago**: resta il fatto, non l'annuncio | **U** |
 
 🔵 **Resta deciso**: il database si ripulisce un'ultima volta prima di popolarlo — quindi **I1** (le radici

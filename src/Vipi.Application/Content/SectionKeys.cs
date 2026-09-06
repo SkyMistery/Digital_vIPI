@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Chiavi delle sezioni libere (editoriali, senza corrispondenza nel <see cref="SectionCatalog"/>).
@@ -66,4 +66,48 @@ public static class SectionKeys
 
     /// <summary>Carte VFR.</summary>
     public const string ChartsVfr = "charts:vfr";
+
+    // ---- l'indice chiesto dal SOD (6 settembre 2026) ----
+    // ⚠️ Stesso criterio delle carte: chiavi PROPRIE, mai «vfr»/«ifr» nudi. «vfr» ha già un mestiere — la
+    // sezione VFR di un profilo di posizione — e dentro un profilo una chiave compare UNA volta sola
+    // (SectionCatalogTests.Nessuna_chiave_e_ripetuta). Le quattro foglie sotto le procedure di partenza e
+    // di arrivo si distinguono per il PADRE, che sta nella chiave.
+
+    /// <summary>Le coordinate delle soglie: sotto-sezione di «Piste», resa dalla pagina.</summary>
+    public const string RunwayThresholds = "runways:thresholds";
+
+    /// <summary>Planimetria dell'aeroporto, fra i dati generali.</summary>
+    public const string AirportLayout = "airportlayout";
+
+    /// <summary>Flusso di rullaggio sui piazzali: sotto-sezione dei parcheggi.</summary>
+    public const string ApronFlow = "parkings:apronflow";
+
+    /// <summary>Restrizioni all'arrivo, gemella di «takeoff».</summary>
+    public const string ArrivalRestrictions = "arrivalrestrictions";
+
+    /// <summary>Restrizioni di circuito.</summary>
+    public const string CircuitRestrictions = "circuitrestrictions";
+
+    /// <summary>Punti significativi VFR: sotto-sezione delle porte e circuiti VFR jet.
+    /// <para>⚠️ I punti IFR restano una sezione a sé (<c>ifrsignificant</c>) e non la gemella di questa:
+    /// è l'asimmetria che il SOD ha chiesto, non una svista da «uniformare».</para></summary>
+    public const string VfrJetPoints = "vfrjet:points";
+
+    /// <summary>Procedure di partenza, sotto le procedure generali delle aree di lavoro.</summary>
+    public const string DepartureProcedures = "departureprocedures";
+
+    /// <summary>Procedure di partenza — VFR.</summary>
+    public const string DepartureProceduresVfr = "departureprocedures:vfr";
+
+    /// <summary>Procedure di partenza — IFR.</summary>
+    public const string DepartureProceduresIfr = "departureprocedures:ifr";
+
+    /// <summary>Procedure di arrivo, sotto le procedure generali delle aree di lavoro.</summary>
+    public const string ArrivalProcedures = "arrivalprocedures";
+
+    /// <summary>Procedure di arrivo — VFR.</summary>
+    public const string ArrivalProceduresVfr = "arrivalprocedures:vfr";
+
+    /// <summary>Procedure di arrivo — IFR.</summary>
+    public const string ArrivalProceduresIfr = "arrivalprocedures:ifr";
 }

@@ -1,4 +1,10 @@
-# vSOP militari — carta 🟣
+﻿# vSOP militari — carta 🟣
+
+> ⚠️ **L'indice di questa carta è stato SUPERATO il 6 settembre 2026** da
+> [2026-09-06-vsop-sezioni-sod.md](2026-09-06-vsop-sezioni-sod.md), che porta il profilo alla forma chiesta dal SOD:
+> dodici sezioni in più, **`qra` fuori** (§4.8 qui sotto: era l'unica sezione inventata da noi, e il SOD
+> non la vuole) e le **coordinate delle soglie** promosse da seconda tabella di «Piste» a sotto-sezione.
+> Tutto il resto di questa carta — il perché del profilo, il riuso delle chiavi, il filtro pilota/ATC — regge.
 
 > Portare i SOP militari italiani dentro il sistema come **edizione militare** dei documenti che già
 > esistono, non come silo parallelo. Aeroporti prima, APP non remotizzati subito dopo.

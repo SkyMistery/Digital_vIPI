@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -255,8 +255,9 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         Assert.Equal(
             new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "charts", "validity" },
             radici);
-        // E le figlie: le otto delle procedure di volo, che nessun passo aveva mai portato.
-        Assert.Equal(8, Figli(ver, "flightprocedures").Count);
+        // E le figlie: le nove delle procedure di volo, che nessun passo aveva mai portato. ⚠️ Erano otto
+        // fino all'indice chiesto dal SOD (6 settembre 2026), che ne aggiunge due e ne toglie una.
+        Assert.Equal(9, Figli(ver, "flightprocedures").Count);
         Assert.Equal(2, Figli(ver, "regulated").Count);
     }
 
@@ -294,8 +295,11 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         await _manutenzione.ReparentMilParkingsAsync();
         await _manutenzione.AddMissingCatalogSectionsAsync();
 
+        // ⚠️ «airportlayout» sta PRIMA dei parcheggi: e' l'ordine della lista del SOD, e i parcheggi
+        // chiudono i dati generali come deciso il 3 settembre 2026.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "transition", "callsigns", "parkings" },
+            new[] { "navaids", "frequencies", "diversion", "runways", "transition", "callsigns",
+                    "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));
         // Le sezioni del profilo, né una di più — il numero lo conta il CATALOGO, non questa riga.

@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 
 namespace Vipi.Application.Tests;
 
@@ -31,7 +31,9 @@ public class CatalogoBilingueTests
     /// </summary>
     private static readonly HashSet<string> Sigle = new(StringComparer.Ordinal)
     {
-        "AOR", "MRVA", "VFR", "SID", "STAR", "METAR & TAF", "QRA / Scramble",
+        // ⚠️ «IFR» dal 6 settembre 2026: le procedure di partenza e di arrivo hanno due foglie ciascuna,
+        // «VFR» e «IFR», e una sigla non si traduce. «QRA / Scramble» è uscita con la sua sezione.
+        "AOR", "MRVA", "VFR", "IFR", "SID", "STAR", "METAR & TAF",
     };
 
     /// <summary>

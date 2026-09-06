@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>
 /// Riconciliazioni one-shot sui documenti, eseguite all'avvio dopo la migrazione dello schema (doc 11 §3a/§3c).
@@ -86,6 +86,53 @@ public interface IDocumentMaintenance
     /// </summary>
     /// <returns>Quanti documenti sono stati sistemati.</returns>
     Task<int> ReparentMilParkingsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Toglie dai vSOP militari già scritti la sezione <c>qra</c>, che dal 6 settembre 2026 non è più nel
+    /// catalogo: non sta in nessuno dei quindici SOP reali — l'avevamo aggiunta noi il 27 agosto — e
+    /// l'indice chiesto dal SOD non la prevede (carta <c>2026-09-06-vsop-sezioni-sod.md</c> §1b).
+    ///
+    /// <para>⚠️ <b>Serve un passo apposta.</b> Il catalogo decide la struttura solo alla NASCITA: toglierne
+    /// una chiave non la toglie da nessun documento già scritto. Restava una sezione senza descrittore, cioè
+    /// indistinguibile da una sezione libera per il codice e diversa da tutte le altre per chi legge.</para>
+    ///
+    /// <para>⚠️ <b>Il testo scritto non si butta.</b> Se dentro c'è del contenuto la sezione non si elimina:
+    /// diventa una sezione <b>libera</b> (<c>custom:{guid}</c>), col suo titolo e i suoi blocchi. È il
+    /// precedente di <c>airportextra</c> in <see cref="ReconcileAirportSectionKeysAsync"/> — quando una
+    /// chiave di catalogo sparisce, quel che ci stava dentro diventa una sezione normale, non un buco. Su
+    /// quattro basi di difesa aerea (Amendola, Gioia, Istrana, Grosseto) quel testo può esserci davvero.</para>
+    ///
+    /// <para>⚠️ Solo se è <b>vuota</b> — né testo né JSON in nessun blocco, e nessuna sotto-sezione — si
+    /// elimina. Idempotente: al secondo avvio non esiste più nessuna sezione con quella chiave.</para>
+    ///
+    /// <para>⚠️ Le release già pubblicate non si toccano (doc 13 §9): il pubblico continua a vedere QRA
+    /// finché quel vSOP non viene ripubblicato.</para>
+    /// </summary>
+    /// <returns>Quante sezioni sono state tolte o trasformate.</returns>
+    Task<int> RemoveMilQraSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Porta sui documenti già scritti il <b>pubblico di default</b> che il catalogo dà alle sezioni
+    /// (<c>SectionDescriptor.Audience</c>, indice del SOD del 6 settembre 2026): le sezioni marcate
+    /// «[PILOTS]» diventano <see cref="SectionAudience.Pilots"/>.
+    ///
+    /// <para>⚠️ <b>Solo dove il pubblico è ancora <c>Both</c>.</b> E qui c'è un limite dichiarato, non un
+    /// dettaglio: <c>Both</c> vuol dire due cose che non si distinguono — «nessuno l'ha mai toccata» e
+    /// «qualcuno ha deciso così». Non c'è una colonna che le separi, e aggiungerla vorrebbe dire una
+    /// migrazione dello schema dentro la finestra cieca del 16 settembre 2026, per un caso che forse non
+    /// esiste (la marcatura a mano è di dieci giorni fa). Si accetta: chi avesse scelto <c>Both</c> su una
+    /// di quelle sezioni se lo rivede ribaltato una volta sola, e lo rimette con un clic. Sta nel runbook
+    /// della consegna, perché non lo scopra a schermo.</para>
+    ///
+    /// <para>⚠️ Chi ha già scelto <c>Pilots</c> o <c>Controllers</c> non viene toccato: quello è un valore
+    /// che solo una persona può aver scritto.</para>
+    ///
+    /// <para>⚠️ Vale per <b>tutte</b> le famiglie e non solo per i vSOP militari — è il catalogo a dire
+    /// quali sezioni hanno un pubblico, e oggi sono militari solo perché è l'unico profilo che ne dichiara.
+    /// Un profilo che domani ne dichiarasse trova il passo già scritto.</para>
+    /// </summary>
+    /// <returns>Quante sezioni sono state marcate.</returns>
+    Task<int> ApplyCatalogAudienceDefaultsAsync(CancellationToken ct = default);
 
     /// <summary>
     /// Scrive su ogni aeroporto il documento che lo descrive (<c>Airport.DocumentId</c>), leggendolo dove viveva

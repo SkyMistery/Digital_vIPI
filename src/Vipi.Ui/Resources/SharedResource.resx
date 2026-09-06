@@ -1117,8 +1117,9 @@
   <data name="Div_UnknownNavaid" xml:space="preserve"><value>Quel codice non è in anagrafica: si aggiunge prima nella sezione Radioassistenze.</value></data>
   <data name="Nav_Pick" xml:space="preserve"><value>Scegli l’impianto…</value></data>
   <data name="Nav_PickWhich" xml:space="preserve"><value>«{0}» è più di un impianto: scegli quale.</value></data>
-  <data name="Rwy_ThresholdsTitle" xml:space="preserve"><value>Coordinate delle soglie</value></data>
   <data name="Rwy_ThresholdsEmpty" xml:space="preserve"><value>Le coordinate delle soglie non sono ancora arrivate dalla sorgente: si prendono ri-importando l'aeroporto da IVAO.</value></data>
+  <data name="Mil_ThresholdsTitle" xml:space="preserve"><value>Coordinate delle soglie</value></data>
+  <data name="Mil_ThresholdsBody" xml:space="preserve"><value>Non si scrivono qui né altrove: le coordinate delle soglie arrivano da IVAO insieme alle piste. Per averle su un campo che non le ha ancora, si ri-importa l'aeroporto dalla pagina delle sorgenti.</value></data>
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevazione</value></data>
   <data name="Area_Name" xml:space="preserve"><value>Nome</value></data>
   <data name="Area_Limits" xml:space="preserve"><value>Limiti</value></data>
