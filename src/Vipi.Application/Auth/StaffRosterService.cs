@@ -23,7 +23,7 @@ public interface IStaffRosterService
 }
 
 /// <inheritdoc cref="IStaffRosterService"/>
-public sealed class StaffRosterService : IStaffRosterService
+internal sealed class StaffRosterService : IStaffRosterService
 {
     private readonly IStaffRosterRepository _repo;
     private readonly IUserDirectory _ivao;

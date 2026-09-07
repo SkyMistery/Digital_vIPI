@@ -5,6 +5,9 @@ namespace Vipi.Ui.Components;
 /// sequenza di tre slot: <c>Before</c> → corpo → <c>After</c>. Gli host che producono il corpo da sé (le sezioni
 /// derivate di vIPI ACC / APP / vLOA) invocano <c>SectionBody</c> due volte, una per slot.
 /// </summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public enum SectionSlot
 {
     /// <summary>Tutte, nell'ordine corretto attorno al corpo (usato quando è <c>SectionBody</c> a rendere i blocchi).</summary>

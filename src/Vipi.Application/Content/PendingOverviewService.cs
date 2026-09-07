@@ -7,6 +7,9 @@ namespace Vipi.Application.Content;
 /// <summary>Un aeroporto che la sorgente non conferma più, con il verdetto sull'eliminazione già dato.</summary>
 /// <param name="Eliminabile">Se la regola delle due chiamate lo consente adesso.</param>
 /// <param name="MotivoDelNo">La frase che lo spiega quando non si può. <c>null</c> se si può.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record PendingAirportRow(StaleAirportRow Riga, bool Eliminabile, string? MotivoDelNo);
 
 /// <summary>
@@ -42,7 +45,7 @@ public interface IPendingOverviewService
 }
 
 /// <inheritdoc cref="PendingOverview"/>
-public sealed class PendingOverviewService : IPendingOverviewService
+internal sealed class PendingOverviewService : IPendingOverviewService
 {
     private readonly IOrphanSectorService _orfani;
     private readonly IOrphanSectorRepository _cataloghi;

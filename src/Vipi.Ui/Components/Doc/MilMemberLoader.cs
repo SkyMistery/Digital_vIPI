@@ -15,6 +15,9 @@ namespace Vipi.Ui.Components.Doc;
 /// <para>Esiste perché lo stesso documento va reso in due posti: la sua pagina, e la pagina <b>unita</b> che
 /// lo mostra insieme ad altri (carta <c>docs/feature/2026-09-03-documenti-uniti.md</c>).</para>
 /// </summary>
+// ⚠️ Pubblici perché stanno nella FIRMA dei loader che `Vipi.Hosting` registra: un tipo che compare
+// nella firma di un tipo pubblico è pubblico anche lui, e il compilatore lo dice (CS0050/CS0051).
+// Vedi ADR-0005 D6 (revisione del 6 settembre 2026, R-009).
 public sealed record MilMemberDocument(
     string Icao,
     DocumentView View,

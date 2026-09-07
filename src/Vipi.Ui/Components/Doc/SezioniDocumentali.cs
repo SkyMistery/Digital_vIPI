@@ -11,7 +11,7 @@ namespace Vipi.Ui.Components.Doc;
 /// li fa anche la pagina <b>unita</b>, e la Regola del 2 del <c>FEATURE-PROCESS</c> dice che al secondo
 /// posto si estrae — qui i posti sarebbero diventati cinque.</para>
 /// </summary>
-public static class SezioniDocumentali
+internal static class SezioniDocumentali
 {
     /// <summary>
     /// Lo stesso documento con altre sezioni.

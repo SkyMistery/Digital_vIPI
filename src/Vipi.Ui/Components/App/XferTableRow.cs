@@ -18,6 +18,8 @@ namespace Vipi.Ui.Components.App;
 /// <param name="Count">Quante clausole ha il gruppo nella sezione (non nella vista): è il numero che si annuncia.</param>
 /// <param name="Depth">Profondità nell'outline: 0 = alternativa pari-grado, &gt; 0 = eccezione.</param>
 /// <param name="Parent">La clausola di cui questa è l'eccezione, letta sull'ordine SALVATO.</param>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record XferGroupView(bool InGroup, bool First, bool Last, bool Odd, int Count, int Depth,
                                    AgreementClauseRow? Parent)
 {
@@ -37,6 +39,9 @@ public sealed record XferGroupView(bool InGroup, bool First, bool Last, bool Odd
 /// <param name="Group">Dove sta nel proprio blocco di varianti.</param>
 /// <param name="Preview">La frase che il documento renderà, o <c>null</c> se le anteprime sono spente.</param>
 /// <param name="FacetSummary">Il riassunto della faccetta trasferimento, vuoto se la clausola non la usa.</param>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record XferTableRow(
     AgreementRow Agreement,
     AgreementSectionRow Section,
@@ -55,6 +60,9 @@ public sealed record XferTableRow(
 /// <para>Condizione e faccetta restano nel pannello, dove i campi hanno un nome e lo spazio per starci:
 /// comprimerle in una casella è l'errore che questa pagina ha già fatto una volta.</para>
 /// </summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public enum XferCell
 {
     /// <summary>I punti d'ingresso, in elenco («BIRSU, TOPNO»). Identità dell'accordo dentro il gruppo di
@@ -66,11 +74,14 @@ public enum XferCell
 }
 
 /// <summary>Quale casella di quale clausola: la coordinata di una cella nella tabella.</summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public readonly record struct XferCellRef(int ClauseId, XferCell Cell);
 
 /// <summary>Etichette localizzate condivise fra la pagina e i suoi componenti: un solo <c>switch</c> per tipo di
 /// traffico, invece di uno nella pagina e uno nella tabella che possono divergere.</summary>
-public static class XferLabels
+internal static class XferLabels
 {
     public static string Kind(IStringLocalizer localizer, TransferFlowKind kind) => kind switch
     {

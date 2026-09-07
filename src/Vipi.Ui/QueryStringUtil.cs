@@ -6,7 +6,7 @@ namespace Vipi.Ui;
 /// pagina che ci prova finisce per riscrivere lo stesso ciclo su <c>&amp;</c> e <c>=</c>. Era già in due posti
 /// — <c>VersioniPage</c> e l'editor trasferimenti — ed è il momento in cui diventa uno.</para>
 /// </summary>
-public static class QueryStringUtil
+internal static class QueryStringUtil
 {
     /// <summary>
     /// I parametri di una querystring («?a=1&amp;b=2» o «a=1&amp;b=2»), con i nomi confrontati senza distinzione

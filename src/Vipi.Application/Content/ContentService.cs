@@ -14,13 +14,16 @@ public sealed record BlockInput(
     BlockTier Tier);
 
 /// <summary>Esito di resa di un blocco: stato + etichetta di collasso morbido (PIANO §20.3).</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record BlockRender(int BlockId, RenderState State, string? CollapseLabel);
 
 /// <summary>
 /// Applica la tabella di verità della visibilità (SPEC_Logica_AoR §4) producendo il modello di vista.
 /// Collasso morbido: mai rimozione, sempre riespandibile. ADR-0001 D5.
 /// </summary>
-public interface IContentService
+internal interface IContentService
 {
     /// <summary>
     /// Decide espanso/compresso per ogni blocco dati P, lo stato dei settori (AoR), il tier e la modalità live.

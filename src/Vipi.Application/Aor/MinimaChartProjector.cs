@@ -5,12 +5,21 @@ using Vipi.Application.Abstractions;
 namespace Vipi.Application.Aor;
 
 /// <summary>Un tracciato proiettato: percorso SVG e se è un'area (chiuso) o una linea (aperto).</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record MinimaSvgPath(string Path, bool IsClosed, string Name);
 
 /// <summary>Un'etichetta proiettata: testo verbatim e posizione nel viewBox.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record MinimaSvgLabel(string Text, double X, double Y);
 
 /// <summary>Una carta MRVA proiettata in SVG, tutta nello stesso viewBox.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record MinimaChartSvg(string ViewBox, IReadOnlyList<MinimaSvgPath> Paths, IReadOnlyList<MinimaSvgLabel> Labels);
 
 /// <summary>

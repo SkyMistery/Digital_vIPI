@@ -101,6 +101,9 @@ public sealed record AccSectorPick(string Callsign, string Name);
 /// chiave del contenitore, NON come intestazione: a schermo la carta non porta un nome d'aeroporto, perché il
 /// file copre un'area che spesso va oltre lo scalo che gli dà il nome e la didascalia risultava fuorviante.</param>
 /// <param name="Chart">Tracciati ed etichette verbatim dal sectorfile.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record MinimaChart(string Owner, Abstractions.MvaChart Chart);
 
 /// <summary>
@@ -134,7 +137,7 @@ public sealed class AorExtraShapes
 
 /// <summary>Normalizza la personalizzazione AoR prima del salvataggio: callsign trimmati/dedup, colori solo per
 /// callsign non vuoti con hex non vuoto. Condiviso tra il salvataggio ACC e APP.</summary>
-public static class AorCustomizationCleaner
+internal static class AorCustomizationCleaner
 {
     public static AorExtraShapes Clean(AorExtraShapes? data)
     {

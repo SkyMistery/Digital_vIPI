@@ -10,7 +10,7 @@ namespace Vipi.Application.Content;
 /// Fonte unica condivisa da vIPI ACC (Aerovia CTR + gruppi APP) e vIPI APP standalone (Regola del 2: la derivazione
 /// config compariva in più punti). Nessun I/O: gli input (topologia, radici, pool, nomi) li risolve il chiamante.
 /// </summary>
-public static class ConfigTableProjector
+internal static class ConfigTableProjector
 {
     private static readonly StringComparer OIC = StringComparer.OrdinalIgnoreCase;
 

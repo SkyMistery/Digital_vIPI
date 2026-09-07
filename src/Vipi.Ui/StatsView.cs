@@ -6,9 +6,12 @@ namespace Vipi.Ui;
 /// <param name="Key">Come compare nell'indirizzo (<c>?p=90</c>).</param>
 /// <param name="Days">Quanti giorni indietro guardare.</param>
 /// <param name="LabelKey">Chiave di risorsa dell'etichetta.</param>
-public sealed record StatsPeriod(string Key, int Days, string LabelKey);
+internal sealed record StatsPeriod(string Key, int Days, string LabelKey);
 
 /// <summary>Una barra del grafico per mese.</summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record StatsBar(string Label, double Value, string Title, bool Highlight = false);
 
 /// <summary>
@@ -31,7 +34,7 @@ public sealed record StatsSlice(string Label, double Value, string CssClass, str
 /// diversa. La cultura è sempre quella del lettore per i numeri a schermo, e <b>invariante</b> per quelli
 /// che finiscono dentro un attributo SVG — lì una virgola decimale rompe il disegno.</para>
 /// </summary>
-public static class StatsView
+internal static class StatsView
 {
     /// <summary>
     /// I periodi offerti. ⚠️ «Tutto» è dieci anni e non <c>DateTimeOffset.MinValue</c>: la finestra entra in

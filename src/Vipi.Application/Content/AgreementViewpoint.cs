@@ -11,6 +11,9 @@ namespace Vipi.Application.Content;
 /// <param name="NearSide">Il lato che appartiene alla ACC che sta guardando.</param>
 /// <param name="IsInternal">Entrambi i lati sono in casa (ACC ↔ un suo avvicinamento): non c'è un «loro».</param>
 /// <param name="IsDetached">Nessun lato è in casa — l'accordo è visibile solo perché la ACC ne è responsabile.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AgreementOrientation(AgreementSide NearSide, bool IsInternal, bool IsDetached)
 {
     public AgreementSide FarSide => NearSide == AgreementSide.A ? AgreementSide.B : AgreementSide.A;

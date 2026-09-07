@@ -11,6 +11,9 @@ namespace Vipi.Application.Translation;
 /// <param name="Tokens">Ciò che è stato tolto, nell'ordine dei segnaposto.</param>
 /// <param name="Safe">Falso se dopo la protezione resta qualcosa che <b>somiglia a un dato personale</b>.
 /// Un segmento non sicuro <b>non si spedisce</b>: si marca «da tradurre a mano».</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record ProtectedText(string Text, IReadOnlyList<string> Tokens, bool Safe);
 
 /// <summary>

@@ -36,6 +36,9 @@ public readonly record struct FallbackRow(string TargetCallsign, int? BaseFeet, 
 /// <param name="BaseFeet">Piede della fascia in piedi (incluso). Null = nessun limite.</param>
 /// <param name="TopFeet">Tetto della fascia in piedi (escluso). Null = nessun limite.</param>
 /// <param name="FromParent">Vero se è il padre di copertura, cioè la coda implicita della catena.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public readonly record struct FallbackStep(string TargetCallsign, int? BaseFeet, int? TopFeet, bool FromParent);
 
 /// <summary>

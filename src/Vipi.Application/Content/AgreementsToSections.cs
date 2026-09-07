@@ -21,10 +21,16 @@ public sealed record LegacyClause(int Id, AgreementDirection Direction, int Orde
 // ---- ciò che si scrive: il piano ---------------------------------------------------------------------
 
 /// <summary>Una clausola nella sua nuova casa: stessa riga, altro padre e altra posizione.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record PlannedClause(int ClauseId, int Order, int? VariantGroup, int VariantDepth);
 
 /// <summary>Una sezione da creare, con le clausole che ci finiscono dentro.</summary>
 /// <param name="FromAgreementIds">Da quali accordi vecchi viene: uno solo, o più d'uno se erano <b>gemelle</b>.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record PlannedSection(
     TransferFlowKind Kind, AgreementDirection Direction, string? Description, int Order,
     IReadOnlyList<AgreementAirportRow> Airports, IReadOnlyList<PlannedClause> Clauses,
@@ -34,11 +40,17 @@ public sealed record PlannedSection(
 /// <param name="KeepAgreementId">L'accordo vecchio la cui <b>riga si riusa</b>: gli id sopravvivono alla
 /// conversione, così un link o un segnalibro continuano a puntare a qualcosa.</param>
 /// <param name="AbsorbedAgreementIds">Gli altri accordi della stessa coppia: le loro righe spariscono.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record PlannedAgreement(
     int KeepAgreementId, int OwnerAccId, int SideASectorId, int SideBSectorId, int Order,
     IReadOnlyList<PlannedSection> Sections, IReadOnlyList<int> AbsorbedAgreementIds);
 
 /// <summary>Un accordo che la conversione <b>non</b> sa dove mettere, e perché.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record BlockedAgreement(int AgreementId, string Reason, int Clauses);
 
 /// <summary>Il piano completo, più tutto ciò che serve a raccontarlo prima di eseguirlo.</summary>
@@ -59,6 +71,9 @@ public sealed record ConversionPlan(
 }
 
 /// <summary>Due (o più) vecchi accordi finiti nella stessa sezione perché dicevano la stessa cosa.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record MergedTwin(IReadOnlyList<int> AgreementIds, TransferFlowKind Kind, AgreementDirection Direction,
     string Airports);
 

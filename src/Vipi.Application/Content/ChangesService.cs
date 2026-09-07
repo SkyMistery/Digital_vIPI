@@ -12,7 +12,7 @@ public interface IChangesService
 }
 
 /// <inheritdoc cref="IChangesService"/>
-public sealed class ChangesService : IChangesService
+internal sealed class ChangesService : IChangesService
 {
     private readonly IChangesRepository _repo;
     private readonly IAiracService _airac;

@@ -10,7 +10,7 @@ namespace Vipi.Ui;
 /// </summary>
 /// <param name="Dove">I posti da cui l'import si lancia a mano. Mai vuoto: una riga senza un dove è una
 /// riga che dice «esiste» e non «vai qui».</param>
-public sealed record ImportRowText(string Nome, string Descrizione, IReadOnlyList<(string Testo, string Href)> Dove);
+internal sealed record ImportRowText(string Nome, string Descrizione, IReadOnlyList<(string Testo, string Href)> Dove);
 
 /// <summary>
 /// Come si chiamano, a video, le categorie della policy di import — <b>un solo</b> vocabolario.
@@ -21,7 +21,7 @@ public sealed record ImportRowText(string Nome, string Descrizione, IReadOnlyLis
 /// se lo scriveva per conto proprio. Un formattatore per tipo di dato, non uno per pagina — come
 /// <see cref="AuditNarrator"/> per gli eventi.</para>
 /// </summary>
-public static class ImportCategoryLabels
+internal static class ImportCategoryLabels
 {
     /// <summary>Etichetta della categoria (l'unica che l'utente deve leggere).</summary>
     public static string Etichetta(ImportCategory c, IStringLocalizer L) => L[Chiave(c)].Value;

@@ -104,7 +104,7 @@ public interface ISourcePresenceProbe
 /// nessuno a cui chiedere» non deve costringere il chiamante a un <c>if</c>: il verdetto è lo stesso, e a
 /// schermo la frase pure.</para>
 /// </summary>
-public sealed class SorgenteNonInterrogabile : ISourcePresenceProbe
+internal sealed class SorgenteNonInterrogabile : ISourcePresenceProbe
 {
     public Task<SourceProbeResult> ChiediAsync(SourceProbeTarget bersaglio, CancellationToken ct = default) =>
         Task.FromResult(SourceProbeResult.NonSiSa(

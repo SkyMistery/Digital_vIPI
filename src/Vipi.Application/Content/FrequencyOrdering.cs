@@ -6,7 +6,7 @@ namespace Vipi.Application.Content;
 /// nell'ordine originale (chiave <c>1000 + indice</c>, <c>OrderBy</c> stabile). Dizionario vuoto
 /// = ordine invariato. Usato da <see cref="AccDerivationService"/> e <see cref="AppDocumentService"/>.
 /// </summary>
-public static class FrequencyOrdering
+internal static class FrequencyOrdering
 {
     public static List<AppFreqRow> ApplyOrder(IEnumerable<AppFreqRow> rows, IReadOnlyDictionary<string, int> order) =>
         rows.Select((r, i) => (r, key: order.TryGetValue(r.Callsign, out var ov) ? ov : 1000 + i))

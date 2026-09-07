@@ -15,7 +15,7 @@ public interface IAccImportUseCase
 }
 
 /// <inheritdoc cref="IAccImportUseCase"/>
-public sealed class AccImportUseCase : IAccImportUseCase
+internal sealed class AccImportUseCase : IAccImportUseCase
 {
     private readonly IAccAdminRepository _repo;
     private readonly IAccDirectory _directory;

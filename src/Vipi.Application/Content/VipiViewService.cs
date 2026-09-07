@@ -25,7 +25,7 @@ public interface IVipiViewService
 }
 
 /// <inheritdoc cref="IVipiViewService"/>
-public sealed class VipiViewService : IVipiViewService
+internal sealed class VipiViewService : IVipiViewService
 {
     private readonly IContentRepository _repo;
     private readonly IContentService _content;

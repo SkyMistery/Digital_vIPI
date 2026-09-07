@@ -56,6 +56,9 @@ public sealed record TocVoce(string Titolo, string Ancora, IReadOnlyList<TocVoce
 /// restare <b>uguale</b> fra documenti ed editor, ed è esattamente quella che divergeva quando le
 /// implementazioni erano tre.</para>
 /// </summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record TocLink(TocVoce Voce, int Livello, string? Classe);
 
 /// <summary>

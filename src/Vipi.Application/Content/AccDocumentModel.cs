@@ -36,6 +36,9 @@ public sealed record AccDocumentModel(
 
 /// <summary>Sezioni derivate della vIPI ACC risolte per la vista (frozen o live), indicizzate per <c>AccBlock.Key</c>
 /// (doc 10 §3d). config-table/aree non compaiono: derivano da input già congelati → sempre live nella pagina.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AccDerivedSections(
     IReadOnlyDictionary<string, IReadOnlyList<AppFreqRow>> Freqs,
     IReadOnlyDictionary<string, AccCoordination> Coord,

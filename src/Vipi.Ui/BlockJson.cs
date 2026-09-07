@@ -4,7 +4,7 @@ using Vipi.Domain;
 namespace Vipi.Ui;
 
 /// <summary>Utility per leggere il discriminatore "variant" dei blocchi con BodyJson.</summary>
-public static class BlockJson
+internal static class BlockJson
 {
     /// <summary>
     /// Vero se questo blocco è il <b>payload</b> di una sezione resa dalla pagina, e non contenuto da

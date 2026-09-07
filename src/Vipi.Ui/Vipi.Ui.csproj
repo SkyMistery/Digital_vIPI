@@ -37,6 +37,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ⚠️ Gli aiutanti di questo progetto sono `internal` dal 7 settembre 2026 (revisione del
+         6 settembre, R-009): li usano i suoi componenti e i suoi test, nessun altro. I test li vedono
+         da qui, come già per Vipi.Infrastructure, Vipi.AuroraBridge.Core, Vipi.AuroraProfiles e
+         Vipi.Host — provare un cuore deterministico (le regole delle piste, il diff delle righe) non
+         è una ragione per prometterlo a un host che lo incorpora. -->
+    <InternalsVisibleTo Include="Vipi.Ui.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
     <ProjectReference Include="..\Vipi.AuroraProfiles\Vipi.AuroraProfiles.csproj" />
     <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />

@@ -17,6 +17,9 @@ public sealed record VloaPairMeta(string HomeAcc, string ForeignAcc, string Home
 
 /// <summary>Chip toggle di un settore AoR: identità + colore (due tonalità dello stesso blu per nazione:
 /// scura = ACC home italiano, chiara = ACC estero) + stato nascosto.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record VloaAorSectorToggle(string Callsign, string Name, string Color, bool IsForeign, bool Hidden);
 
 /// <summary>Vista AoR della vLOA: la mappa (settori NON nascosti, riusa <see cref="AccAorView"/>) + i chip di tutti i settori.</summary>
@@ -63,7 +66,7 @@ public interface IVloaDerivationService
 }
 
 /// <inheritdoc cref="IVloaDerivationService"/>
-public sealed class VloaDerivationService : IVloaDerivationService
+internal sealed class VloaDerivationService : IVloaDerivationService
 {
     // Due tonalità dello STESSO colore (blu IVAO) per distinguere le nazioni dei due ACC: scura = home (Italia),
     // chiara = estero. Evita il contrasto blu/rosso mantenendo un'unica famiglia cromatica.

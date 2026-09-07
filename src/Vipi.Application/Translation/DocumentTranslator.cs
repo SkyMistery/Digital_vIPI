@@ -31,6 +31,9 @@ public sealed record TranslationCoverage(int Segmenti, int Tradotti, int Riletti
 }
 
 /// <summary>Un documento tradotto, con quanto se ne può dire al lettore.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record TranslatedDocument(DocumentView View, TranslationCoverage Coverage)
 {
     /// <summary>
@@ -407,6 +410,9 @@ public sealed class DocumentTranslator
 /// </summary>
 /// <param name="Traduci">Il testo nella lingua di lettura, o quello di partenza se la memoria non ce l'ha.</param>
 /// <param name="Coverage">Quanto è tradotto, e quanto l'ha riletto una persona.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record TranslationPass(Func<string?, string?> Traduci, TranslationCoverage Coverage)
 {
     /// <summary>La passata che non traduce niente: stessa lingua, o niente da tradurre.</summary>

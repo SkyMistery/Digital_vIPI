@@ -9,7 +9,7 @@ namespace Vipi.Application.Content;
 /// Le sezioni editoriali (separazioni/configurazioni/vfr) vivono già nei blocchi statici del <c>Doc</c>; il config-table
 /// si deriva dalla config congelata → non va catturato qui.
 /// </summary>
-public sealed class AppFrozenSectionProvider : IFrozenSectionProvider
+internal sealed class AppFrozenSectionProvider : IFrozenSectionProvider
 {
     private readonly IAppDocumentService _app;
     public AppFrozenSectionProvider(IAppDocumentService app) => _app = app;
