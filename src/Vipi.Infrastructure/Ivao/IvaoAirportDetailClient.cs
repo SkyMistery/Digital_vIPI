@@ -87,7 +87,12 @@ public sealed class IvaoAirportDetailClient : IAirportDetailProvider
         return raw
             .Select(r => new SourceRunway(
                 Ident: StripRunwayPrefix(r.Runway),
-                LengthM: r.Length is double l and > 0 ? (int)Math.Round(l * 0.3048) : null,   // length in piedi → metri
+                // ⚠️ `length` arriva in METRI, e si prende com'è. Fino al 7 settembre 2026 la sorgente la
+                // mandava in PIEDI e qui c'era un `* 0.3048`: chi cambia questa riga cambia la misura di ogni
+                // pista d'Italia, quindi la unità sta scritta qui e nel DTO, non lasciata al nome del campo.
+                // Le righe già in archivio restano con la misura vecchia finché non passa un re-import:
+                // `EfAirportRepository` sovrascrive `LengthM` sulle piste che la sorgente manda ancora.
+                LengthM: r.Length is double l and > 0 ? (int)Math.Round(l) : null,
                 Bearing: r.Bearing is double b ? (int)Math.Round(b) : null,
                 // ⚠️ La coppia si prende INTERA o non si prende: una latitudine senza la sua longitudine non
                 // è una posizione, e mezza coordinata in archivio è peggio di nessuna.
