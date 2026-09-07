@@ -7,7 +7,6 @@
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
-@inject IStationResolver Stations
 
 @* La pagina dell'editor di un vSOP militare: qui restano l'indirizzo, i MEMBRI dell'unione (se questo
    documento ne è l'ospite), il pannello dell'unione e quello di pubblicazione. Il CORPO editoriale sta in
@@ -72,8 +71,23 @@
     /// </summary>
     private IDocumentUnionService Unioni = default!;
 
-    protected override void OnInitialized() =>
+
+    /// <summary>
+    /// ⚠️ <b>Dallo scope PROPRIO, non da <c>@@inject</c></b>: questi servizi leggono dal database, e con
+    /// <c>@@inject</c> il loro <c>DbContext</c> sarebbe quello del <b>circuito</b> — condiviso con la barra,
+    /// le isole, i pannelli e quel che la pagina precedente ha lasciato in volo. Dichiarare lo scope proprio
+    /// sopra e poi iniettare qui sotto è la forma peggiore del difetto: la difesa c'è, scritta, e non copre.
+    ///
+    /// <para>🔴 Non è una precauzione: il registro di produzione del 4-7 settembre 2026 porta dodici
+    /// «<c>A second operation was started on this context instance</c>», e due delle ultime nascono proprio
+    /// dentro un componente che lo scope proprio ce l'aveva. Vedi <c>docs/lavori-aperti.md</c> §CD.</para>
+    /// </summary>
+    private IStationResolver Stations = default!;
+    protected override void OnInitialized()
+    {
         Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
+        Stations = ScopedServices.GetRequiredService<IStationResolver>();
+    }
 
     /// <summary>
     /// L'indirizzo porta un ACC che non è più quello dello scalo: si rimanda a quello giusto, sostituendo la

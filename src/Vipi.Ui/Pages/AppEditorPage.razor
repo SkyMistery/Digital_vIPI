@@ -1,9 +1,15 @@
 ﻿@page "/services/vsop/{Acc}/apps/editor"
 @layout SopLayout
 @rendermode InteractiveServer
+@* ⚠️ SCOPE PROPRIO, come AeroportoEditorPage e MilEditorPage dal 4 settembre 2026: `LeggiUnioneAsync`
+   legge dal database in `OnParametersSetAsync`, cioe' MENTRE il componente figlio fa il suo caricamento.
+   Con `@@inject` erano due flussi sullo stesso `DbContext` di circuito — «A second operation was started on
+   this context instance», e a ruota le `ObjectDisposedException` di quel che stava ancora girando.
+   🔴 Questa pagina era rimasta indietro: le altre due sorelle furono convertite, questa no. *@
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @inject IEditAuthorizationService Authz
 @inject IDocRoutesRegistry DocRoutes
-@inject IDocumentUnionService Unioni
 @inject IStringLocalizer<SharedResource> L
 
 @* La pagina dell'editor di un APP non remotizzato: qui restano l'indirizzo, i MEMBRI dell'unione (se
@@ -50,6 +56,13 @@
 @code {
     [Parameter] public string Acc { get; set; } = default!;
     [SupplyParameterFromQuery] public string? App { get; set; }
+
+    /// <summary>⚠️ Dallo scope PROPRIO: vedi il commento in testa al file. Con <c>@@inject</c> verrebbe dal
+    /// circuito, e correrebbe contro il caricamento del componente figlio.</summary>
+    private IDocumentUnionService Unioni = default!;
+
+    protected override void OnInitialized() =>
+        Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
 
     private AppSectionsEditor? _editor;
     private UnionMembersEditor? _membri;

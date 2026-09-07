@@ -15,7 +15,6 @@
    layout l'ha già scaldato (`Prewarm`): riprendendolo dallo scope nuovo si ripagherebbe la stessa query,
    a freddo. Restano fuori anche le cose che il database non lo toccano: localizzazione, AIRAC, meteo,
    cache degli ATC online. *@
-@inject IStationResolver Stations
 @inject IAiracService Airac
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
@@ -194,11 +193,21 @@ else
     private IStructureEditingService Structure = default!;
     private IDocumentAdminService Docs = default!;
 
+
+    /// <summary>
+    /// ⚠️ <b>Dallo scope PROPRIO, non da <c>@@inject</c></b>: legge dal database (il catalogo delle stazioni,
+    /// quando la copia manca o è vecchia) e con <c>@@inject</c> quel <c>DbContext</c> sarebbe quello del
+    /// <b>circuito</b>, condiviso con la barra, le isole e quel che la pagina precedente ha lasciato in volo.
+    /// Dichiarare lo scope proprio sopra e poi iniettare qui è la forma peggiore del difetto: la difesa c'è,
+    /// scritta, e non copre. Vedi <c>docs/lavori-aperti.md</c> §CD.
+    /// </summary>
+    private IStationResolver Stations = default!;
     protected override void OnInitialized()
     {
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
         Structure = ScopedServices.GetRequiredService<IStructureEditingService>();
         Docs = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Stations = ScopedServices.GetRequiredService<IStationResolver>();
     }
 
     protected override async Task OnParametersSetAsync()

@@ -14,5 +14,5 @@ Vipi.Hosting.Tests.dll net10.0 66
 Vipi.Hosting.Tests.dll net8.0 66
 Vipi.Infrastructure.Tests.dll net10.0 1316
 Vipi.Infrastructure.Tests.dll net8.0 1330
-Vipi.Ui.Tests.dll net10.0 1367
-Vipi.Ui.Tests.dll net8.0 1367
+Vipi.Ui.Tests.dll net10.0 1370
+Vipi.Ui.Tests.dll net8.0 1370

@@ -10,8 +10,10 @@
    sembrava: **nessuno lo scavalca**. Il tornello serializza lo scope PROPRIO dell'editor, ma dentro lo
    stesso caricamento tre servizi arrivavano da `@inject`, cioè dal **circuito** — un altro `DbContext`, su
    cui il tornello non ha nessuna presa. E il **rumore non era rumore**: era lo scope che moriva con una
-   query ancora aperta. ▶ Resta aperta **una** cosa: l'NRE dell'editor APP, ristretta al primo `L["…"]`
-   della pagina e adesso strumentata perché la prossima volta dica quale.
+   query ancora aperta. La stessa classe di difetto è stata poi cercata **ovunque** (§CD.1c): nove file
+   corretti, il presidio che era cieco adesso guarda anche i componenti, e `AppEditorPage` — il fratello
+   mancato della correzione del 4 settembre — è rientrato. ▶ Resta aperta **una** cosa: l'NRE dell'editor
+   APP, ristretta al primo `L["…"]` della pagina e adesso strumentata perché la prossima volta dica quale.
 3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
@@ -9878,6 +9880,31 @@ Le **7 impronte riverificate dentro lo zip** dopo averlo costruito: 7 giuste, 0 
 > suo stack; dalla seconda in poi vale **una riga** che porta comunque tipo, punto nostro e percorso.
 > ⚠️ E la regola è scritta sull'**oggetto smaltito**, non sul tipo: il difetto del 4 settembre era proprio
 > una `ObjectDisposedException` — su un `SemaphoreSlim` — e una regola sul tipo l'avrebbe nascosta.
+>
+> ### 1c — la stessa classe di difetto, cercata OVUNQUE (8 settembre)
+>
+> 🔴 **Il presidio che doveva prendere questo difetto era cieco proprio lì.**
+> `ScopeProprioDellePagineTests` contava le pagine esposte, ma **saltava** i file che dichiarano lo scope
+> proprio (`if (contiene OwningComponentBase) continue`) e guardava solo `Pages/`. Cioè: la forma peggiore
+> del difetto — la difesa dichiarata e poi tradita da un `@inject` — non era misurata da nessuno, e i tre
+> colpevoli di §CD.1a stavano in `Components/`.
+>
+> ✅ Il presidio adesso guarda **pagine e componenti**, e chiede che chi dichiara lo scope proprio non lo
+> tradisca. Passato da 12 trasgressori a **1**, che è un'eccezione voluta e scritta:
+>
+> | dove | che cosa | esito |
+> |---|---|---|
+> | `AccEditorPage` | `IAccDerivationService`, `IAccDocumentService`, `IStationResolver` | ✅ scope proprio |
+> | `AccLanding`, `AeroportoEditorPage`, `MilEditorPage`, `AeroportoPage` | `IStationResolver` (+ `IMilitaryDocumentService`) | ✅ scope proprio |
+> | `NewDocumentPage` | `INewDocumentOptionsService` | ✅ scope proprio |
+> | `VersioniPage` | `IAuditLogReader`, `IDocumentImpactService`, `IStaffRosterRepository`, `IStatoTraduzione` | ✅ scope proprio |
+> | `AirportListPanel`, `AirportQuickPanel`, `VloaDocumentView`, `AirportSectionsEditor` | `IOnlineAtcProvider`, `IWeatherProvider`, `INavaidSource` | ✅ **sicuri**: due singleton e un client HTTP, non toccano il database |
+> | `TranslationReviewPanel` | `IDocumentTranslationReview`, `ITraduciOra` | ⚠️ **eccezione voluta**: servono alla SCRITTURA, che parte da un clic (nessuna corsa col render) e legge i claim — in uno scope creato dopo la richiesta l'identità non c'è più |
+>
+> 🔴 **E il fratello mancato**: `AppEditorPage` aveva lo **stesso** `LeggiUnioneAsync` sul circuito che il
+> 4 settembre era stato corretto su `AeroportoEditorPage` e `MilEditorPage`. Le sorelle furono convertite,
+> questa no, e nessuno se n'era accorto perché il presidio guarda le **aggiunte**, non i **pari grado di una
+> correzione già fatta**. ✅ Convertita, e messa nella teoria che le presidia tutte e tre.
 >
 > ### Che cosa non è stato fatto
 >

@@ -6,13 +6,9 @@
 @inherits OwningComponentBase
 @using Microsoft.Extensions.DependencyInjection
 @inject IProssimoAiracService ProssimoAirac
-@inject IDocumentImpactService Impacts
 @inject IEditAuthorizationService Authz
-@inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
-@inject Vipi.Application.Abstractions.IAuditLogReader Audit
 @inject NavigationManager Nav
 @inject Vipi.Application.Routing.IDocRoutesRegistry DocRoutes
-@inject Vipi.Application.Translation.IStatoTraduzione StatoTraduzione
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 
@@ -515,12 +511,31 @@
     /// <inheritdoc cref="Releases" />
     private IDocumentUnionService Unioni = default!;
 
+
+    /// <summary>
+    /// ⚠️ <b>Dallo scope PROPRIO, non da <c>@@inject</c></b>: questi servizi leggono dal database, e con
+    /// <c>@@inject</c> il loro <c>DbContext</c> sarebbe quello del <b>circuito</b> — condiviso con la barra,
+    /// le isole, i pannelli e quel che la pagina precedente ha lasciato in volo. Dichiarare lo scope proprio
+    /// sopra e poi iniettare qui sotto è la forma peggiore del difetto: la difesa c'è, scritta, e non copre.
+    ///
+    /// <para>🔴 Non è una precauzione: il registro di produzione del 4-7 settembre 2026 porta dodici
+    /// «<c>A second operation was started on this context instance</c>», e due delle ultime nascono proprio
+    /// dentro un componente che lo scope proprio ce l'aveva. Vedi <c>docs/lavori-aperti.md</c> §CD.</para>
+    /// </summary>
+    private Vipi.Application.Abstractions.IAuditLogReader Audit = default!;
+    private IDocumentImpactService Impacts = default!;
+    private Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster = default!;
+    private Vipi.Application.Translation.IStatoTraduzione StatoTraduzione = default!;
     protected override async Task OnInitializedAsync()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         Releases = ScopedServices.GetRequiredService<IReleaseService>();
         DocAdmin = ScopedServices.GetRequiredService<IDocumentAdminService>();
         Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
+        Audit = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAuditLogReader>();
+        Impacts = ScopedServices.GetRequiredService<IDocumentImpactService>();
+        StaffRoster = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IStaffRosterRepository>();
+        StatoTraduzione = ScopedServices.GetRequiredService<Vipi.Application.Translation.IStatoTraduzione>();
 
         // ⚠️ Fino al 29 agosto 2026 questa pagina non aveva un cancello, ed era una scelta: l'elenco si
         // leggeva e i tasti li abilitava la concessione. Con le concessioni morte quella scelta non ha più
