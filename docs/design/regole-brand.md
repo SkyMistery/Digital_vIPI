@@ -22,11 +22,26 @@ regola è un colore che non segue il brand quando il brand cambia e non si gira 
 
 Le sole eccezioni:
 - `#fff` / `rgba(255,255,255,·)` e `rgba(0,0,0,·)` come **velo** su una superficie già colorata: lì il
-  bianco e il nero non sono colori di brand, sono opacità;
+  bianco e il nero non sono colori di brand, sono opacità. ⚠️ Vale anche nella forma moderna a spazi,
+  `rgb(0 0 0 / .18)`;
 - la **stampa**, dove il bianco è il foglio e il nero è l'inchiostro;
 - i colori **scelti dall'utente** o **cartografici**, che finiscono in un `<input type=color>`, nel DB o in
   un attributo SVG (`AorColorScheme`, `AreaMapBlock._color`): lì un token non sarebbe né selezionabile né
-  disegnabile.
+  disegnabile;
+- **un'etichetta disegnata sopra una tile cartografica** (`.mva-label`): il substrato è chiaro in *tutti e
+  due* i temi — OpenTopoMap, Esri Hillshade e Positron non hanno una variante scura — quindi col token, in
+  tema scuro, l'etichetta girerebbe sopra una superficie che non gira;
+- **un'estensione locale o una correzione di contrasto, col rapporto misurato scritto accanto**
+  (`--nbr-ink`): il viola non esiste nella palette di brand come colore semantico, e il solo viola del
+  brand (`product.creators`) non passa AA né su bianco (4,23:1) né sul fondo scuro (4,09:1). Un token
+  derivato non c'è da derivare: la scala non ha il colore di partenza.
+
+> ⚠️ **«Ed è verificato» è vero dal 7 settembre 2026, e prima non lo era.** La regola lo dichiarava dal
+> giorno in cui è nata e non lo verificava nessuno: in assenza del controllo erano entrati quattro
+> letterali, e due delle eccezioni qui sopra sono nate proprio da quelli — perché avevano una ragione buona
+> che l'elenco non contemplava. A verificarlo ora è `LetteraliDiColoreTests`, che conta i letterali fuori
+> dal primo `:root` e confronta con le eccezioni **nominate**; un'eccezione nuova si scrive in due posti,
+> qui e là, apposta (revisione del 6 settembre 2026, R-027).
 
 ### 2. I font hanno tre ruoli, e non sono negoziabili
 
