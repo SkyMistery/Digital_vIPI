@@ -7,8 +7,10 @@
    paginazione multi-pagina. Qui non c'è opt-in per pagina: ogni pagina /services/vsop è stampabile.
 
    Regole confinate in `.vipi-root` (il modulo non tocca body/html del sito ospitante, vedi App.razor); fanno
-   eccezione `@page` e il reset dello zoom, che per natura sono globali. Le classi `.vt-*` (tour) vivono fuori
-   da `.vipi-root` perché l'overlay è agganciato al body. */
+   eccezione `@page` e il reset di zoom e fondo su `html`/`body`, che per natura sono globali — e che in
+   stampa valgono anche per l'host: è il prezzo dichiarato di un foglio che si carica con `media="print"`.
+   ⚠️ Le classi `.vt-*` (tour) stavano fuori dal contenitore perché i suoi nodi erano appesi al `body`:
+   dal 7 settembre 2026 `vipi-tour.js` li appende dentro `.vipi-root`, e queste regole sono confinate. */
 
 /* ⚠️ Qui NON ci sono regole fuori da `@media print`, ed è la condizione che permette a questo foglio di
    essere caricato con `media="print"`: così il browser lo scarica ma non ci aspetta per disegnare la pagina.
@@ -77,7 +79,7 @@
   /* Vista live: orologio UTC e tasto «Compatta» sono comandi a schermo, non contenuto. */
   .vipi-root .utc-clock,
   .vipi-root [data-dense-toggle],
-  .vt-overlay, .vt-spot, .vt-card { display: none !important; }
+  .vipi-root .vt-overlay, .vipi-root .vt-spot, .vipi-root .vt-card { display: none !important; }
 
   /* La testata della vista live è appiccicata sotto la topbar a schermo: su carta si stampa dov'è. */
   .vipi-root .reduced-top { position: static !important; border-bottom: 0; padding: 0; }
@@ -88,7 +90,7 @@
   /* ── Intestazione di stampa (PrintMeta) ────────────────────────────────────────
      Rimpiazza il chrome nascosto: dà al foglio titolo, ambito, ciclo AIRAC, ora e indirizzo. Il `.doc-head`
      che la segue si nasconde per non ripetere il titolo (PrintMeta va sempre subito prima). */
-  .print-only { display: block !important; }
+  :where(.vipi-root) .print-only { display: block !important; }
   .vipi-root .print-meta + .doc-head { display: none !important; }
   .vipi-root .print-meta { border-bottom: 2px solid var(--ivao-blue); padding-bottom: 5px; margin-bottom: 12px; }
   /* ⚠️ Famiglia e peso sono ESPLICITI: la riga era un <h1> e li prendeva dalla regola dei titoli.
@@ -320,5 +322,5 @@
    In stampa il confine fra un membro e l'altro RESTA: e' cio' che distingue due documenti su un
    foglio solo, e toglierlo li farebbe leggere come uno che cambia argomento a meta'. Si stringe
    soltanto lo spazio, perche' un margine da schermo qui costa una riga di tabella. */
-.union-part{margin-top:18px;padding-top:12px}
-.union-part>.union-part-h{font-size:16px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}
+:where(.vipi-root) .union-part{margin-top:18px;padding-top:12px}
+:where(.vipi-root) .union-part>.union-part-h{font-size:16px;margin-bottom:8px;break-after:avoid;page-break-after:avoid}

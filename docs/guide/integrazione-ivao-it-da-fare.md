@@ -161,9 +161,18 @@ loro CSP e l'obbligo di notice BSD-2-Clause **è già nostro** (`THIRD-PARTY-NOT
 loro CSP le blocca, i poligoni — cioè il dato nostro — si disegnano lo stesso, su sfondo vuoto. È l'unico
 host di terzi che la pagina contatti, e va detto nella `img-src` della loro policy.
 
-ℹ️ `ivao-it-wiring.patch` è un artefatto **congelato al 1° agosto 2026** e su questo punto dice ancora
-«unpkg»: chi lo applica deve sostituire quelle due righe con i riferimenti locali. Non è stato riscritto
-perché è un patch con un hash, non un documento.
+✅ `ivao-it-wiring.patch` è stato **rinfrescato il 7 settembre 2026** e non dice più «unpkg»: le librerie
+vendorizzate arrivano da `vipi-boot.js`, che le carica solo dove servono.
+
+⚠️ **La lezione, che vale più della correzione.** Fino ad allora la patch era dichiarata «congelata al
+1° agosto» con **un solo punto scaduto** — questo. Non era vero: mancava anche
+`app.RunVipiStartupMaintenance()` (cinque passi d'avvio che non giravano, con la salute che restava
+**verde** perché un passo che non gira non fallisce), il prefisso delle pagine era ancora `/vsop` da prima
+del 22 agosto, e l'elenco degli script era quello di prima del caricamento pigro. Il difetto non era la
+patch ferma: era **l'elenco di ciò che è scaduto**, perché è quello che qualcuno userà per correggerla
+(revisione del 6 settembre 2026, R-007).
+
+Adesso a tenerla allineata c'è una prova — `PatchDiConsegnaTests` — invece di una nota.
 
 ---
 

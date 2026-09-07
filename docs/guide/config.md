@@ -333,7 +333,7 @@ Usare solo se servono codici admin non derivabili dal codice divisione. Esempio:
 
 Regole di autorizzazione (`EditAuthorizationService`):
 - **Admin** (match dei pattern sopra) → edita tutto + gestisce i grant.
-- **Grant per-ACC** (`EditGrant`, VID→ACC, da `/sop/admin/permessi`) → edita le ACC concesse.
+- **Grant per-ACC** (`EditGrant`, VID→ACC, da `/services/vsop/admin/permissions`) → edita le ACC concesse.
 - Altri → sola lettura (la sezione editor in `AccLanding` non compare).
 - Verifica **sempre server-side**; la UI nasconde solo gli entry-point.
 
@@ -348,7 +348,7 @@ Regole di autorizzazione (`EditAuthorizationService`):
 | `AllowedHosts` | `*` | Host consentiti. |
 
 > **HTTPS:** `UseHttpsRedirection` è attivo solo fuori da `Development` (l'host di sviluppo ascolta su http;
-> in prod configurare la porta https / il binding). Lo stream SSE `/sop/live/atc` disabilita il buffering
+> in prod configurare la porta https / il binding). Lo stream SSE `/vsop/live/atc` disabilita il buffering
 > per la consegna immediata anche dietro reverse-proxy.
 
 ---
@@ -418,15 +418,15 @@ In sviluppo (`useDevIdentity:true`) si usa l'utente fittizio e questa sezione è
 | `Vipi:RenderTopbar` | bool | `true` | Se mostrare la topbar propria del modulo. Impostare `false` quando l'host ha già la sua header (evita la doppia barra). |
 
 ## 9. Endpoint operativi
-- `GET /sop/health` — health del modulo (`Healthy`/`Degraded` se la cache ATC non è fresca/`Unhealthy` se il DB è giù).
-- `GET /sop/admin/audit` — viewer audit (admin): pubblicazioni e modifiche permessi.
-- `GET /sop/admin/sorgenti` — **policy di import** (admin): decide quali categorie (TA, Piste, Settori) arrivano dalla sorgente (sola lettura) o restano manuali. Vedi §10.
+- `GET /vsop/health` — health del modulo (`Healthy`/`Degraded` se la cache ATC non è fresca/`Unhealthy` se il DB è giù).
+- `GET /services/vsop/admin/audit` — viewer audit (admin): pubblicazioni e modifiche permessi.
+- `GET /services/vsop/admin/sources` — **policy di import** (admin): decide quali categorie (TA, Piste, Settori) arrivano dalla sorgente (sola lettura) o restano manuali. Vedi §10.
 
 ## 10. Policy di import (sorgenti dati) — non da appsettings
 
 La provenienza dei dati che la sorgente può fornire è governata da una **policy globale persistita nel DB**
 (entità `ImportPolicy`, riga singola), **non** da appsettings, ed è editabile dagli admin in
-**`/sop/admin/sorgenti`**. Semantica **opt-out**: per default ogni categoria è **importata e in sola lettura**
+**`/services/vsop/admin/sources`**. Semantica **opt-out**: per default ogni categoria è **importata e in sola lettura**
 (sovrascritta ai re-import, non modificabile negli editor); escludendo una categoria la si rende **manuale**
 (l'import non la tocca più, gli editor la lasciano editabile).
 

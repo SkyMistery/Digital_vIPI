@@ -91,6 +91,54 @@ public sealed class LegacyRoutesTests
         Assert.Null(Resolve(estraneo));
 
     /// <summary>
+    /// ⚠️ <b>La guida non deve mandare a un indirizzo che risponde 404.</b>
+    ///
+    /// <para><c>config.md</c> si presenta come «il riferimento di tutte le impostazioni runtime dell'host», e
+    /// citava <c>/sop/health</c> e <c>/sop/live/atc</c>: due indirizzi che <b>non</b> si redirigono, perché
+    /// gli endpoint macchina non si spostano — e quindi cadono sulla catch-all storica e rispondono 404. Chi
+    /// configura la sorveglianza leggendo la guida punta il monitor su un 404: o allarma sempre, o non
+    /// sorveglia niente (revisione del 6 settembre 2026, R-006).</para>
+    ///
+    /// <para>La regola che il test pretende è quella giusta per una guida: un indirizzo storico si può
+    /// nominare solo se <b>arriva davvero</b> da qualche parte. Se non si redirige, non è un esempio: è un
+    /// errore di battitura vecchio di un anno.</para>
+    /// </summary>
+    [Fact]
+    public void La_guida_non_cita_indirizzi_storici_che_non_arrivano_da_nessuna_parte()
+    {
+        var morti = new List<string>();
+
+        foreach (var file in Directory.GetFiles(Path.Combine(Radice(), "docs", "guide"), "*.md"))
+        {
+            foreach (System.Text.RegularExpressions.Match m in
+                     System.Text.RegularExpressions.Regex.Matches(
+                         File.ReadAllText(file), @"/sop(?:/[A-Za-z0-9\-_/{}]*)?"))
+            {
+                if (Resolve(m.Value) is null)
+                    morti.Add($"{Path.GetFileName(file)}: {m.Value}");
+            }
+        }
+
+        Assert.True(morti.Count == 0,
+            "La guida manda a indirizzi storici che nessuna regola redirige — cioè a 404:\n  " +
+            string.Join("\n  ", morti) +
+            "\n\nGli endpoint macchina (health, ping, api, media, files, live/atc) NON si spostano: nella " +
+            "guida vanno scritti col loro indirizzo di oggi, `/vsop/...`. Le pagine stanno sotto " +
+            "`/services/vsop/...`.");
+    }
+
+    private static string Radice()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            if (Directory.Exists(Path.Combine(dir.FullName, "docs", "guide"))) return dir.FullName;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException($"docs/guide non trovata risalendo da {AppContext.BaseDirectory}");
+    }
+
+    /// <summary>
     /// La proprietà che i casi qui sopra illustrano uno per uno: l'indirizzo d'arrivo non è a sua volta un
     /// indirizzo storico. Se lo fosse, il browser farebbe un secondo salto — ed è esattamente ciò che questa
     /// tabella esiste per evitare.
