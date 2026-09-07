@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-6 CHIUSE · 27 findings** · restano 7-11
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-7 CHIUSE · 28 findings** · restano 8-11
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -86,7 +86,7 @@ parte da `2b33791a` e non lo tocca.
 | **4** | Application — undici ambiti funzionali (vedi sotto) | ✅ **chiusa** — tutti e undici · 6 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ✅ **chiusa** — 2 findings |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ✅ **chiusa** — 3 findings |
-| **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
+| **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ✅ **chiusa** — 1 finding |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ⏳ |
 | **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ⏳ |
@@ -146,6 +146,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-022** | 4i ✅ | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
 | **R-025** | 6 | **S2** | 🟢 | CONFERMATO | **Byte di controllo nel sorgente, secondo caso**: `0x1F`/`0x1E` come separatori della firma dell'indice unito. Perderli riapre un difetto già chiuso, e nessun test cadrebbe | `UnionMembersEditor.razor:136` |
+| **R-028** | 7 | S3 | 🟢 | CONFERMATO | **Niente conta quanti test girano**: `dotnet test` esce zero anche su meno test di ieri, e la differenza si è già pagata una volta — ~1000 test sul runtime sbagliato per settimane | `.github/workflows/ci.yml:31` |
 | **R-027** | 6 | S3 | 🟢 | CONFERMATO | **La regola del brand dichiara «zero letterali, ed è verificato»**: nessun test lo verifica, e quattro letterali sono entrati — uno con una ragione buona che le eccezioni scritte non contemplano | `docs/design/regole-brand.md:9-20` · `vipi-theme.css:2556,4251,4336` |
 | **R-026** | 6 | S4 | 🟢 | CONFERMATO | **13 etichette e 9 segnaposto non seguono la barra della lingua** (regola R6): sette sono `aria-label`, cioè il testo che esiste solo per chi non vede l'icona | 13 file · vedi sotto |
 | **R-024** | 5 | **S2** | 🟢 | CONFERMATO | **L'APP nascosto resta pubblico**: delle quattro porte pubbliche è l'unica che passa da un `Sector` e l'unica che non filtra `IsActive` — contro la premessa scritta nella proiezione | `EfContentRepository.cs:52-61` · `EfSectorProjectionService.cs:229` |
@@ -1372,3 +1373,77 @@ Vuol dire che R-014 non produce soltanto una gerarchia sbagliata: fa **validare 
 albero che non è quello vero**, cioè riapre esattamente la differenza fra due alberi che quella guardia è
 stata scritta per chiudere. La severità resta **S2** e il verdetto **PLAUSIBILE** — le collisioni misurate
 oggi sono zero — ma il rimedio sale di priorità: non è una svista di igiene, è la premessa di una guardia.
+
+---
+
+# Fase 7 — I test
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · 1 finding · s-13 chiuso
+
+Perimetro: 3 992 test su 471 file, il parallelismo, le fragilità, e — la parte che conta — **la copertura
+del rischio**: per ognuno dei findings di questa revisione, quale test l'avrebbe preso.
+
+## Esito in una riga
+
+**La suite è sana e disciplinata; quello che le manca non sono test, è un metro.** Nessun test disattivato,
+nessuno senza asserzione, il parallelismo deciso con una misura e non a sentimento, e un pattern
+d'autorizzazione già in tredici file. Ma **niente conta quanti test girano**, e nove findings su nove sono
+sfuggiti a forme di test che la suite sa già scrivere: non mancava la tecnica, mancava che qualcuno le
+puntasse lì.
+
+## La copertura del rischio — i nove S2 di questa revisione
+
+Per ognuno: quale test l'avrebbe preso, e quanto costa.
+
+| Finding | Il test che l'avrebbe preso | C'è? | Costo |
+|---|---|---|---|
+| **R-001 · R-025** byte di controllo nel sorgente | Un test che rifiuta i byte di controllo nei file di `src/` | ❌ | ~10 righe, e **chiude la famiglia** invece dei due esemplari |
+| **R-014** stesso callsign nei due cataloghi | `ParentMap` con una riga ACC e una aeroporto **dallo stesso callsign**: deve fare rumore, non scegliere | ❌ | Il metodo è **puro**: cinque righe |
+| **R-015** transazione fuori dall'execution strategy | Un `VipiDbContext` montato su una strategy **che ritenta**, e i percorsi transazionali chiamati | ❌ — e oggi **non può** esistere: tutti i test girano su SQLite, che una strategy non ce l'ha | La sonda scritta in Fase 3: ~30 righe. È il finding che nessun test *poteva* prendere |
+| **R-016** sentinella mancante | Una corsa temporale: difficile da scrivere e fragile da tenere | ⚠️ | Meglio una **guardia strutturale**: «ogni handler che tocca un repository EF ha una sentinella o uno scope proprio», sullo stesso stampo delle guardie di forma già presenti |
+| **R-018** vertice malformato che tronca la forma | Il parser è **puro**: gli si dà un file con una coordinata storta e si pretende `irrisolti`, non un anello corto | ❌ | Banale |
+| **R-020** `rowspan` | `TabellaHtml.Leggi` con una tabella che unisce in verticale: tutte le righe devono avere la stessa larghezza | ❌ | Banale, la funzione è pura |
+| **R-023** biblioteca senza cancello | Chiamare il servizio da anonimo e pretendere `EditNotAllowedException` | ❌ **e il pattern esiste**: tredici file lo fanno già per le altre famiglie. `PaginaAllegatiTests` copre ogni *messaggio* di rifiuto e nessun *permesso* | Due righe per porta |
+| **R-024** APP nascosto pubblico | Disattivare il settore e pretendere `null` dalla porta pubblica | ❌ | Facile |
+| **R-027** letterali nel CSS | Il test che `regole-brand` **dichiara già di avere** | ❌ | ~10 righe |
+
+> **Che cosa dice questa tabella.** Sette findings su nove sarebbero stati presi da un test della stessa
+> forma di quelli che la suite scrive già benissimo — un metodo puro, un ingresso storto, un'asserzione. Non
+> è una lacuna di tecnica: è che nessuno aveva puntato la tecnica lì. L'unica eccezione vera è **R-015**, che
+> nessun test *poteva* prendere perché la differenza sta fra i provider e i test ne vedono uno solo.
+
+## R-028 — Nessuno conta i test, e la trappola ha già colpito una volta
+
+`.github/workflows/ci.yml:31` · **S3** · 🟢 · CONFERMATO
+
+`dotnet test` sulla soluzione **non fallisce** quando un progetto sparisce dalla corsa: la riga esce zero e
+la CI diventa verde su meno test di ieri. In CI il caso peggiore — un progetto che non compila — lo prende
+il `dotnet build` che sta prima. **Ma niente controlla il numero**, e la differenza si è già pagata:
+
+> *«Dall'11 agosto 2026 questa riga esegue ENTRAMBI i TFM di ogni progetto multi-target: prima erano net10
+> tutti tranne `Vipi.Infrastructure.Tests`, cioè **~1000 test che non toccavano mai il runtime di
+> produzione**.»* — il commento della riga stessa
+
+Mille test che giravano sul runtime sbagliato per settimane, e a scoprirlo è stato un ragionamento, non un
+cancello. Oggi la stessa cosa può succedere di nuovo in silenzio: basta che un `.csproj` perda un TFM, che
+un filtro escluda una classe, che un progetto esca dalla soluzione — **la CI resta verde e nessuno vede che
+i test sono meno**.
+
+**Scenario di rottura.** Un `TargetFrameworks` che diventa `TargetFramework` in una modifica innocua:
+5 543 test diventano 4 240, tutto verde, e il ramo net8 — cioè **la produzione** — smette di essere provato.
+È esattamente il difetto dell'11 agosto, con la stessa causa e la stessa invisibilità.
+
+**Rimedio:** far scrivere alla CI il conteggio per progetto e per TFM e confrontarlo con un atteso versionato
+(`--logger trx` più tre righe di script, oppure `dotnet test` per progetto come ho fatto in Fase 0). Non
+serve la precisione: serve che **calare** faccia rumore.
+
+## Verificato e corretto
+
+| Cosa | Esito |
+|---|---|
+| **Test disattivati** | **Zero** `Skip=` in tutta la suite |
+| **Test senza asserzione** | 21 su 3 992, e **tutti legittimi**: o passano da un helper che asserisce (`PretendiConflitto`, che regge da solo i tre test della concorrenza ottimistica), o sono «non deve sollevare», che in xUnit *è* l'asserzione |
+| **Parallelismo** | Disattivato in `Vipi.E2E.Tests` e **solo lì**, con la ragione e la misura: il file di diagnostica d'avvio è uno per processo e dieci host in parallelo se lo portavano via a vicenda. Costo dichiarato: 43 s → 78 s, «pagati una volta per corsa in cambio di un cancello di cui ci si può fidare» |
+| **Autorizzazione** | Tredici file pretendono `EditNotAllowedException`: il pattern c'è, ed è per questo che la sua assenza sugli allegati (R-023) è una svista e non una scelta |
+| **Orologio vero** | 186 usi di `UtcNow` in 66 file di test — ma i motori che decidono (`RunwaySuggestion`, `SogliaEliminazione`, `SidStampCycle`, `AiracService`) prendono **l'istante come parametro**, quindi la fragilità resta sul contorno e non sul verdetto |
+| **s-13** | ✅ **chiuso**: la guardia «nessun `<text>` nel markup reso» esiste in `SezioniAeroportoTests` e copre un componente. Non è un difetto: è la **prima** occorrenza del genere di guardia che la tabella qui sopra chiede di estendere |
