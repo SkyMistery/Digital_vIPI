@@ -2,14 +2,19 @@
 
 ## Dove siamo — 7 settembre 2026
 
-1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` = `e8249f13`, albero pulito, nessun ramo
-   di lavoro aperto.
-2. **Il lavoro in corso è il bugfixing della revisione totale** del 6-7 settembre (33 findings, registro sul
-   ramo `revisione-totale`): chiusi e fusi i **lotti 1-5**; restano il **6** (i documenti) e il **7** (igiene).
-3. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
-   è congelato, e tutti i lotti fatti finora sono senza migrazione.
-4. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste in archivio
-   prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting dopo il 16.
+1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` = `725c0c79`, albero pulito, tutto spinto,
+   nessun ramo di lavoro aperto.
+2. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
+   (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
+   `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
+   l'`.editorconfig`, **non** c'è il passo di CI su `dotnet format`, e il perché sta scritto lì dentro.
+3. 📦 **Il prossimo pacchetto NON è ancora preparato, ed è il passo successivo.** Da 1.14.2 (`5ed5a0c4`) a
+   `725c0c79` ci sono **30 commit** e cambiano **tutti e sei** i progetti; **nessuna migrazione**, quindi si
+   consegna anche in finestra cieca. Numero proposto: **1.15.0** — da confermare **prima** di timbrare.
+   ⚠️ Prima dello zip: `tools/conta-test.sh` è entrato in CI col Lotto 5 e **non è mai girato davvero**.
+4. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
+   è congelato. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste
+   in archivio prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting.
 5. **Come si legge questo file**: qui sopra c'è la cronologia — è **storia**, non stato; le sezioni
    dalla **A** in poi sono il lavoro aperto vero, ognuna col suo blocco.
 
@@ -22,6 +27,30 @@
 <details>
 <summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
 com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
+**Aggiornato:** 7 settembre 2026, sera — ✅ **LA REVISIONE TOTALE È CHIUSA: SETTE LOTTI IN UNA GIORNATA.**
+31 findings su 33 lavorati e fusi in `main` (`4f4ccafb`), più **R-009** in due tagli (`6c6ce07f`,
+`725c0c79`). I lotti: **1** — la potatura dell'archivio ATC passa dall'unità di lavoro, l'APP disattivato
+smette di essere pubblico, la biblioteca allegati prende il cancello che le altre avevano già (`5d3d581f`);
+**2** — i parser: coordinata malformata, `rowspan`, i due validatori AIRAC/DMS, il livello di crociera in FL
+(`3501268e`); **3** — le quattro pagine interattive prendono scope proprio *e* sentinella, e i due cataloghi
+smettono di far vincere in silenzio chi arriva secondo (`b7e60c6a`); **4** — ivao.it: la guida e la patch di
+consegna dicono quel che il modulo fa oggi, e l'isolamento CSS promesso adesso **esiste** (`31408b58`);
+**5** — le guardie: byte di controllo fuori dai sorgenti, la premessa del `DbContext`, «zero letterali»
+verificato, e la CI che conta i test (`e8249f13`); **6** — i documenti (`bc9d9ac1`); **7** — igiene
+(`4f4ccafb`). **Nessuna migrazione in tutta la revisione**: tutto caricabile anche in finestra cieca.
+🔴 **Le tre cose che la giornata ha insegnato, e che valgono oltre i findings.** (1) **La prova trova quel
+che la lettura non vede**: nel Lotto 2 due difetti sono usciti solo provando dal vivo, e nel Lotto 5 il test
+dei byte di controllo ha scoperto **due guardie morte** — regex con backspace veri al posto dei `\b`, quindi
+test che passavano a vuoto — che l'audit non aveva visto perché guardava solo `src/`. (2) **Misurare prima e
+dopo, e pretendere zero differenze**: ha bocciato **due versioni su tre** del confino CSS; quella giusta si
+scrive `:where(.vipi-root)` (specificità zero), mai col prefisso nudo, che riordina il foglio. (3) **Una
+garanzia scritta e non verificata è un difetto**: sei findings erano frasi che *autorizzavano* qualcosa e
+non erano più vere — il rimedio non è correggere la frase, è metterci un test accanto. Su **R-009** il
+compilatore ha fatto da arbitro: 122 proposte, 74 accettate, 5 bocciate, e i 75 di `Application` rimasti
+pubblici **non** erano superficie inutile — sono raggiungibili *attraverso la firma* di un tipo pubblico,
+quindi nessun file li nomina e il censimento sopravvalutava il margine (metodo in
+`tools/censimento-pubblici.py`, regola in ADR-0005 **D6**).
 
 **Aggiornato:** 7 settembre 2026 — ✅ **§CC: LA DERIVA RISPONDE A CHI PUBBLICA, NON IL GIORNO DOPO.** Segnalazione del committente: «ci sono documenti in produzione segnalati come da ripubblicare anche se li ho appena ripubblicati (tipo LIBD)», e poi la regola: «chi edita non può aspettare il giorno dopo per sapere che le modifiche sono state pubblicate o programmate con successo». 🔴 **Il calcolo era giusto: mancava chi lo rifacesse.** `PublishNowAsync`/`PublishAsync` non toccavano `IDocumentImpactService`, e a riconciliare c'era il solo `ImpactDriftHostedService` — **ogni 24 ore**, senza modo di rilanciarlo. Cronologia vera di LIBD: riga aperta il **6-set 19:27Z** (le sei sezioni «Carte aeroportuali» mancavano dalla release del 31-ago, giustamente), ripubblicato il **7-set 06:52**, riga **ancora aperta** a metà mattina perché la deriva non era più passata. Tre parti: (1) **`ReconcileForDocumentAsync`**, riconciliazione ristretta a un documento e ai soli tipi che una pubblicazione può cambiare — 🔴 **non** è `ReconcileAsync` con un filtro: quello legge **tutte** le righe aperte del tipo e chiude quelle fuori dall'insieme, quindi riusarlo avrebbe svuotato la lista di ogni altro documento a ogni pubblicazione (un test lo pianta); (2) **`RunForDocumentAsync`**, il corpo del giro estratto in `ValutaAsync` e chiesto dalle due parti — la stessa domanda in due posti è il modo in cui due racconti divergono — agganciato a `PublishNowAsync`, a **tutti e due** i rami di `PublishAsync` e a `CancelReleaseAsync` (l'annullo è il verso opposto: può rendere **vera** una deriva che non c'era), **fuori dalla transazione e a prova di guasto**, con la rete del giro notturno; (3) **`ProgrammataAllineataAsync`** — ⚠️ una release **programmata** non è quella in vigore, quindi chi programmava al ciclo entrante si vedeva chiedere di ripubblicare **fino al rollover**: ora una programmata che porta già la bozza zittisce sia «da ripubblicare» sia «da preparare al ciclo entrante», e se la bozza cambia dopo le firme divergono e la riga torna. 🔴 **E c'era un ciclo vero nel contenitore** (`ReleaseService` ↔ `ImpactDriftUseCase`): non si vede compilando, esplode alla prima **risoluzione** — cioè in produzione, sulla prima pagina che pubblica. Rotto con `Lazy<IImpactDriftUseCase>` e un banco E2E che monta il contenitore vero e risolve entrambi. ➕ **Diagnostica**: pulsante **«Rilancia il controllo»** (prima si poteva solo aspettare) e **avviso oltre le 36 ore** — ⚠️ `GatedImportLoop` all'avvio dorme fino alla scadenza, quindi su un host che ricicla il processo prima il timer riparte da zero e la passata **non arriva mai**. ✅ **Fuso in `main`** (`f3561483`, ramo `deriva-alla-pubblicazione`): build Release pulita e suite intera verde sui due TFM, undici test nuovi di cui due end-to-end sul database vero. **Nessuna migrazione, nessuna entità** → spedibile dentro la finestra cieca al 16.
 
