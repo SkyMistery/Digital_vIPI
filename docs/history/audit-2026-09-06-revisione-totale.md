@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4d chiusi, il resto campionato), 22 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse · Fase 4 (4a-4d chiusi, resto campionato) · Fase 5 aperta, matrice fatta · 23 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -84,7 +84,7 @@ parte da `2b33791a` e non lo tocca.
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a-4d ✅ · 4e/4g/4h/4i/4k campionati · 6 findings |
-| **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
+| **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | 🔵 **in corso** — le due matrici ✅ · 1 finding |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
@@ -144,6 +144,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-020** | 4d | **S2** | 🟢 | CONFERMATO | **Il `rowspan` non produce la cella vuota che il commento promette**: le righe sotto una cella unita scalano a sinistra, e l'anteprima mostra una tabella plausibile e sbagliata | `src/Vipi.Application/Import/TabellaHtml.cs:20-23,64-69` |
 | **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
 | **R-022** | 4i | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
+| **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
 
 ---
 
@@ -1053,3 +1054,104 @@ un'affermazione che un `grep` smentisce in dieci secondi.
 > certi — il giorno operativo, la fusione degli intervalli, l'atomicità del lock. Qui sono corretti **e**
 > commentati con il caso che li ha prodotti. Vale la pena scriverlo, perché è la ragione per cui la resa di
 > questa fase è bassa: non è che si stia cercando male.
+
+---
+
+# Fase 5 — Autorizzazioni e sicurezza (in corso)
+
+**Stato:** 🔵 **aperta** · fatta **la matrice** (pagine e servizi) · 1 finding
+
+Fatto in questo giro: le due matrici — 49 pagine × cancello, 110 metodi di scrittura × cancello — e la
+verifica dei casi che ne escono. Restano: segreti, upload, intestazioni, OIDC, cancelli pubblici.
+
+## Il modello, in una riga
+
+Il livello è **un numero ordinato** (`VipiRole`: User → IvaoStaff → DivisionStaff → Editor → Admin) e ogni
+cancello è un `>=`. Il livello effettivo è `max(posizioni staff IVAO, promozione a mano)`. Il contratto
+scritto su `IEditAuthorizationService` è esplicito:
+
+> *«Verifica sempre server-side: **quello che la pagina nasconde, il servizio deve comunque rifiutarlo**.»*
+
+È quella frase il metro di questa fase.
+
+## Matrice 1 — le 49 pagine
+
+| | Pagine |
+|---|---|
+| Con un marcatore di cancello nel proprio file | **39** |
+| Senza | **10** |
+
+Delle dieci, sette sono **pubbliche per costruzione** (`/`, la Guida, la ricerca, l'anteprima di release che
+è un redirect, l'AoR a schermo intero, il convertitore, il profile swapper). Le altre tre —
+`NewDocumentPage`, `VloaEditorPage`, `ScreensIndex` — la `mappa-pagine` le dichiara riservate ad admin,
+Editor e staff.
+
+**Verificate una per una: reggono, e non per caso.** Il cancello c'è, ma sta **un piano più sotto**:
+`EditingService.LoadForEditAsync` apre con `EnsureAtLeast(VipiRole.Editor)`, e i componenti che lo chiamano
+(`VloaEditor` col suo `DocumentEditorShell`, `AppSectionsEditor`, `AirportSectionsEditor`) catturano il
+rifiuto e mostrano uno stato «non permesso» invece di un errore. È l'ordine giusto: la porta vera è nel
+servizio, la pagina si limita a raccontarlo.
+
+> ⚠️ `NewDocumentPage` inietta `IEditAuthorizationService` **e non lo usa mai**, e il suo commento cita
+> `EnsureCanEditAccAsync` come la garanzia — un metodo **morto il 28 agosto 2026** insieme alle concessioni
+> per ACC. La garanzia oggi la dà `StructureEditingService`, che apre con `EnsureAtLeast(Editor)` in otto
+> metodi. Iniezione morta e commento che nomina un fantasma: da ripulire quando si tocca il file.
+
+## Matrice 2 — i 110 metodi di scrittura dei servizi
+
+Prima passata: 23 senza un cancello **nel proprio corpo**. Seguiti tutti, uno a uno, e **22 sono gatati un
+livello più sotto** — il che è la forma giusta, non un difetto:
+
+| Famiglia | Dove sta davvero il cancello |
+|---|---|
+| `EditingService` (blocchi e sezioni) | `AuthorizeBlockAsync` / `AuthorizeSectionAsync` + `EnsureLockAsync` |
+| `AirportEditingService` (7 metodi) | `EnsureLockMineAsync` → `EnsureCanEditAsync` **+** lock mio |
+| `AccDocumentService`, `AppDocumentService` | `SaveJsonAsync` / `WithDocumentAsync` → `EnsureAsync` |
+| `VloaDerivationService` | `ToggleAsync` apre con `EnsureAtLeast(Editor)` |
+| `DocumentImpactService.ClearBySourceAsync` | non è raggiungibile da un utente: unico chiamante `EfSectorProjectionService`, con `byUserId: 0` |
+| `*ShapeService.ApplyAsync` | percorsi di sistema (giri d'import), non comandi d'utente |
+
+Il ventitreesimo è R-023.
+
+## R-023 — La biblioteca allegati si difende solo dentro una pagina
+
+**S2** · 🟢 **SUBITO** · CONFERMATO
+
+Le tre scritture della biblioteca — creare una voce, sostituirne il file, cancellarla — non hanno **nessun**
+controllo di ruolo lato servizio:
+
+| Strato | Riferimenti a `_authz` / `VipiRole` / `EnsureAtLeast` |
+|---|---|
+| `AttachmentCurationService` (`ReplaceAsync`, `DeleteAsync`) | **0** |
+| `EfAttachmentLibrary` (`CreateAsync`, `DeleteAsync`, …) | **0** |
+| `AdminAttachmentsPage.razor` | 4 — tutti sulla **stessa** proprietà di pagina |
+
+L'unica guardia è `private bool PuoScrivere => Authz.Role >= VipiRole.Editor`, usata due volte: per nascondere
+i comandi nel markup e come `if (!PuoScrivere) return;` in testa ai tre gestori. Due controlli, **ma dentro
+lo stesso componente**. Sotto, il servizio e il repository accettano qualunque chiamante — e l'`userId` per
+il registro di audit arriva come **parametro**, cioè lo dichiara chi chiama.
+
+**Scenario di rottura.** Oggi la catena regge perché in Blazor Server un gestore non si invoca senza che il
+componente sia reso, e la pagina ha una sola porta. Ma è esattamente la condizione che questo repository si è
+scritto contro: *«quello che la pagina nasconde, il servizio deve comunque rifiutarlo»*. Basta una seconda
+porta sugli stessi servizi — un pannello nell'editor documenti che offra «sostituisci l'allegato», un comando
+in blocco, un endpoint — e non c'è niente sotto a fermarla. Le altre quattro famiglie di scrittura
+(documenti, aeroporti, ACC/APP, vLOA) quel piano sotto ce l'hanno tutte: **la biblioteca è l'unica che non
+ce l'ha**, ed è anche quella dove l'atto è più distruttivo, perché cancellare una voce lascia orfani i
+documenti che la citano.
+
+**Rimedio:** `_authz.EnsureAtLeast(VipiRole.Editor)` in testa a `ReplaceAsync`, `DeleteAsync` e `CreateAsync`,
+e l'`userId` letto da `CurrentUserId` invece che ricevuto. Tre righe, nessuna migrazione.
+
+## Verificato e corretto
+
+- **Il servizio degli allegati sul web è pubblico di proposito**, e la ragione è scritta: quel che entra in
+  biblioteca è pubblico per costruzione, perché il file sul Drive è condiviso «chiunque abbia il link». Il
+  redirect è un **302** e non un 301, così il giorno che cambia il deposito nessuno resta mandato a un
+  indirizzo morto.
+- **`MarkdownLite`** — il renderer del contenuto documentale — **encoda prima e arricchisce dopo**, conosce
+  un solo schema di link (`allegato:slug`) con lo slug vincolato alla sua forma, e il testo dell'ancora è già
+  encodato quando la regex gira. Nessuna via per un `javascript:` dentro un `href` che componiamo noi.
+- **`AuditScribe`** usa un encoder JSON rilassato — scelta giusta e motivata (il registro si legge anche in
+  SQL, e un titolo scappato a metà non lo pesca un `LIKE`), e non è un rischio perché il valore torna da un
+  parser JSON e lo rende Blazor, che scappa da sé.
