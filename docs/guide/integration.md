@@ -124,6 +124,11 @@ Segreti IVAO **mai** in appsettings: env var `Ivao__ClientId` / `Ivao__ClientSec
 
 ## Convivenza con la chrome dell'host (CSS/topbar)
 - Tutti gli stili del modulo sono confinati sotto **`.vipi-root`**: non toccano `body`/reset dell'host.
+  ⚠️ Vero dal **7 settembre 2026**, e prima non lo era: 1 983 regole su 2 031 stavano su selettori-radice
+  come `.wrap`, `.block`, `.pill`, `.topbar` e perfino `details` (ADR-0005 D3, revisione R-008). A tenerlo
+  vero adesso c'è una prova, `ConfinoDelTemaTests`, non una promessa.
+  Restano globali di proposito: `:root` (le variabili) e, nel solo foglio di **stampa**, `@page` e il
+  reset di zoom e fondo su `html`/`body` — il prezzo dichiarato di un foglio caricato con `media="print"`.
 - Se l'host ha già una propria header/navigazione, disattivare la topbar del modulo per evitare la
   doppia barra:
   ```json

@@ -54,9 +54,14 @@
               '<button type="button" class="vt-prev btn ghost">Indietro</button>' +
               '<button type="button" class="vt-next btn primary">Avanti</button>' +
             '</div>';
-        document.body.appendChild(overlay);
-        document.body.appendChild(spot);
-        document.body.appendChild(card);
+        // ⚠️ Dentro `.vipi-root`, non nel `body`: dal 7 settembre 2026 le regole del tema sono confinate
+        // sotto quel contenitore (ADR-0005 D3, finalmente vero), e un tour appeso al body si troverebbe
+        // senza stile — comprese le classi che si porta dentro, `btn ghost` e `btn primary`.
+        // I tre nodi sono `position:fixed`, quindi il genitore non cambia dove finiscono a schermo.
+        var casa = document.querySelector('.vipi-root') || document.body;
+        casa.appendChild(overlay);
+        casa.appendChild(spot);
+        casa.appendChild(card);
         return {
             overlay: overlay, spot: spot, card: card,
             step: card.querySelector('.vt-step'), title: card.querySelector('.vt-title'),

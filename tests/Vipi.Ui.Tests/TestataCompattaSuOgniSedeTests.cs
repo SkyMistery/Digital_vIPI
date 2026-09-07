@@ -169,7 +169,11 @@ public sealed class TestataCompattaSuOgniSedeTests
         Assert.Contains(".doc-head.with-aud>.hl-text{grid-column:1", css, StringComparison.Ordinal);
 
         // È l'altezza delle DUE righe accanto a decidere quella dei link, non il loro testo.
-        var inline = System.Text.RegularExpressions.Regex.Match(css, @"(?m)^\.aud-chip\.inline\{[^}]*\}");
+        // ⚠️ `:where(.vipi-root) ` davanti: dal 7 settembre 2026 le regole del tema sono confinate sotto il
+        // contenitore del modulo (ADR-0005 D3, R-008), e il contenitore si scrive dentro `:where()` perché
+        // non alzi la specificità. La regola è la stessa, l'ancora a inizio riga no.
+        var inline = System.Text.RegularExpressions.Regex.Match(
+            css, @"(?m)^:where\(\.vipi-root\) \.aud-chip\.inline\{[^}]*\}");
         Assert.True(inline.Success, "manca la regola `.aud-chip.inline`.");
         Assert.Contains("align-self:stretch", inline.Value, StringComparison.Ordinal);
     }

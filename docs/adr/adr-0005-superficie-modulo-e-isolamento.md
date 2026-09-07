@@ -19,6 +19,21 @@ host (scenari A/B) era documentato ma non implementato.
 - **D3 — Isolamento CSS.** Tutte le regole del tema sono confinate sotto il contenitore `.vipi-root`
   (wrapper in `SopLayout`). Reset e stili base non toccano `body`/`html` dell'host. L'host standalone
   imposta da sé il proprio reset di pagina.
+
+  ⚠️ **Dal 7 settembre 2026 è vero, e prima non lo era.** La revisione del 6 settembre l'ha misurato
+  (R-008): su 2 031 regole di `vipi-theme.css` ne erano confinate **48**, e le altre 1 983 (97,6%) stavano
+  su selettori-radice con nomi da collisione garantita — `.wrap`, `.block`, `.pill`, `.toc`, `.topbar`, e
+  perfino `details`, che è un selettore d'ELEMENTO. Su un host che carica il foglio con un `<link>` globale,
+  come `integration.md` gli dice di fare, ogni `<details>` del **sito** cambiava aspetto.
+
+  ⚠️ **Il confino si scrive `:where(.vipi-root)`**, non `.vipi-root`: `:where()` ha specificità zero,
+  quindi i pesi relativi del foglio restano quelli di prima. Col prefisso nudo ogni regola guadagna una
+  classe e il foglio si riordina da solo — misurato su otto pagine: sei cominciavano a scorrere in
+  orizzontale, un'altezza cambiava di 255px, il carattere di una tabella passava da 14px a 16px.
+
+  Restano **fuori** dal contenitore, e devono: `:root`, che porta le variabili, e `.vipi-rec*`, il riquadro
+  della riconnessione — sta in `App.razor` fuori dal layout, perché Blazor cerca
+  `#components-reconnect-modal` per nome e a circuito morto la pagina potrebbe non esserci.
 - **D4 — Chrome opzionale.** La topbar del modulo è disattivabile via `Vipi:RenderTopbar=false`, per
   convivere con l'header del sito ospitante.
 - **D5 — JS namespacing.** Le funzioni del modulo restano sotto il prefisso `vipi*` (namespace di
