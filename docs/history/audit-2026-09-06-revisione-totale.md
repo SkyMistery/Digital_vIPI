@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4b fatti), 17 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4c fatti), 19 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -83,7 +83,7 @@ parte da `2b33791a` e non lo tocca.
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
-| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 1 finding |
+| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 4c ✅ · 4e parziale · 3 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
@@ -101,9 +101,9 @@ propria documentazione.
 |---|---|---|
 | 4a ✅ | Documento, sezioni, catalogo, blocchi | `refactor/08`, `11`, `14` |
 | 4b ✅ | Release, snapshot, pubblicazione, retention | `refactor/09`, `10` · `audit-2026-08-25-versioni-release` |
-| 4c | Import: SID, piste, settori, confinanti, GitHub | `refactor/01`-`05` |
+| 4c ✅ | Import: SID, piste, settori, confinanti, GitHub | `refactor/01`-`05` |
 | 4d | Import: tabelle, trasferimenti | `design/piano-import-*` |
-| 4e | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
+| 4e 🔵 | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
 | 4f | Trasferimenti e accordi di coordinamento | `refactor/07` · feature accordi |
 | 4g | Aeroporti: dati, posizioni, quote, regole piste | feature aeroporti · vSOP militari |
 | 4h | Traduzioni: catena, stato, spesa, glossario | documenti bilingue |
@@ -139,6 +139,8 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-015** | 3 | **S2** | 🟢 | CONFERMATO | **Una transazione aperta fuori dall'execution strategy**: passa su SQLite (sviluppo e tutti i test) e **solleva su MariaDB**, cioè in produzione. La potatura dell'archivio ATC non avviene mai | `src/Vipi.Infrastructure/Persistence/EfAtcTrafficStore.cs:290` |
 | **R-016** | 3 | **S2** | 🟢 | PLAUSIBILE | **Sei pagine con handler `async` che toccano un repository EF senza sentinella e senza scope proprio**, sul `DbContext` del circuito | `StatsDivisionPage` · `DiagnosticaPage` · `AtcWorldArchivePage` · `StatsHome` · `StatsSessionPage` · `CoordinateConverterPage` |
 | **R-017** | 4b | S4 | 🟢 | CONFERMATO | **La pubblicazione programmata di un documento singolo sta fuori dalla transazione** che il ramo dell'unione, dodici righe sotto, usa. Due scritture senza rete | `src/Vipi.Application/Content/ReleaseService.cs:219-226` |
+| **R-018** | 4c | **S2** | 🟢 | CONFERMATO | **Un vertice malformato non invalida la forma del settore: la tronca**, la salva e non lascia traccia — mentre un punto *nominato* mancante la invalida | `AuroraSectorfileParser.cs:399-437` |
+| **R-019** | 4c | S3 | 🟢 | CONFERMATO | **Tre validatori accettano ciò che il loro contratto dichiara di rifiutare**: `"+261"` come ciclo AIRAC, una latitudine di 91°, un segno dentro un DMS | `AiracService.cs:36` · `DmsCoordinate.cs:36,60` |
 
 ---
 
@@ -160,7 +162,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | ~~s-09~~ | ~~la sonda EF8 ferma a 65 migrazioni~~ → **chiuso in Fase 2, misurato**: le 114 si applicano da vuoto sotto net8 | — |
 | ~~s-10~~ | ~~`EnsureCreated` contro `Migrate()`~~ → **chiuso in Fase 2**: la scelta è esplicita per provider e un provider ignoto solleva | — |
 | ~~s-06~~ | ~~63 raccolte scrivibili~~ → **chiuso in Fase 2**: sono navigazioni EF e binding di opzioni, che i setter li vogliono | — |
-| s-11 | `AiracService.EffectiveUtcForCycle` valida con `int.TryParse`: **`"+261"` e `"-261"` passano** e producono una data sbagliata invece di sollevare — ed è proprio il sollevamento che `SidStampCycle` usa *come* validatore. Oggi lo schermano i chiamanti (regex `\d{4}`), non il validatore | Fase 4c |
+| ~~s-11~~ | → **diventato R-019 in 4c**. `AiracService.EffectiveUtcForCycle` valida con `int.TryParse`: **`"+261"` e `"-261"` passano** e producono una data sbagliata invece di sollevare — ed è proprio il sollevamento che `SidStampCycle` usa *come* validatore. Oggi lo schermano i chiamanti (regex `\d{4}`), non il validatore | — |
 
 ---
 
@@ -827,3 +829,98 @@ mollare un lock, toccare un impatto — quel ramo diventa il buco che oggi non �
 | # | Sospetto | Dove si decide |
 |---|---|---|
 | s-12 | `MySqlCollation` porta MariaDB su `uca1400_as_cs`, che per **maiuscole e accenti** allinea la produzione a SQLite (era il rischio grosso, ed è chiuso). Restano due differenze che nessun test vede: `LOWER()`/`UPPER()` di SQLite sono **solo ASCII** mentre MariaDB piega anche le accentate, e l'**ordinamento** di SQLite è binario mentre quello UCA è alfabetico. **Misurato**: oggi in archivio c'è **una sola** stringa non ASCII (`Zürich ACC`), quindi la differenza esiste e non si vede. Il repository lo sa già e chiede di verificarlo *guidando l'app* | verifica live |
+
+## 4c — Import: SID, piste, settori, confinanti, sectorfile ✅
+
+Perimetro: `AuroraSectorfileParser` (589 righe), `DmsCoordinate`, `GitHubSidSourceRelease`, `SidStampCycle`,
+`AiracService`, `SogliaEliminazione`, i cinque `…ImportHostedService`.
+
+### R-018 — Un vertice malformato non invalida la forma: la tronca, e nessuno lo sa
+
+`src/Vipi.Infrastructure/Sectorfile/AuroraSectorfileParser.cs:399-437` · **S2** · 🟢 · CONFERMATO
+
+`ParseSectorShapes` legge i file di forma del sectorfile. Una riga può essere tre cose: un **vertice in
+coordinate** (due campi DMS), un **vertice per nome** (due campi uguali fra loro), oppure — tutto il resto —
+un'**intestazione**, che chiude il blocco precedente e ne apre uno nuovo.
+
+La chiusura del blocco tratta i due modi di sbagliare in maniera **opposta**:
+
+```csharp
+void Flush()
+{
+    if (callsigns is { Length: > 0 })
+    {
+        if (mancante is not null) irrisolti.Add(…);         // punto NOMINATO che non esiste → INVALIDA tutto
+        else if (ring is { Count: >= 3 })
+            foreach (var cs in callsigns) rings[cs] = ring;  // altrimenti SALVA
+    }
+    …
+}
+```
+
+Un punto **nominato** che il catalogo non conosce invalida l'anello intero, e il commento del codice lo dice:
+*«il PRIMO che manca: basta lui a invalidare»*. Un vertice **in coordinate malformato** non produce nessun
+`mancante`: `TryParseDms` torna semplicemente `false`, la riga non è più riconosciuta come vertice, e cade nel
+ramo dell'intestazione.
+
+**Scenario di rottura.** Nel file di forma di un settore una riga di coordinate è scritta male — un file
+di testo curato a mano su GitHub, e basta un separatore sbagliato. Allora, in quest'ordine:
+
+1. la riga viene presa per un'**intestazione**;
+2. `Flush()` chiude il settore in corso e **ne salva l'anello troncato** ai vertici visti fin lì, se sono
+   almeno tre — e tre vertici sono sempre un poligono valido;
+3. si apre un blocco fantasma il cui «callsign» è la stringa della coordinata malformata;
+4. `irrisolti` resta **vuoto**, quindi la pagina «Coerenza col sectorfile» non ha niente da mostrare.
+
+Il risultato è una **AoR silenziosamente sbagliata**: `PolygonGeometry.Contains` — che decide dal vivo chi
+copre uno spazio — risponde su un poligono tagliato. Non c'è errore, non c'è rilievo, e la forma *sembra*
+buona: è più piccola, non vuota.
+
+**Rimedio:** trattare un vertice non riconosciuto come si tratta un punto nominato mancante — segnarlo e
+invalidare l'anello — invece di lasciarlo scivolare nel ramo dell'intestazione. Il posto dove farlo è quello
+dove già oggi si scrive `mancante`.
+
+### R-019 — Tre validatori accettano ciò che il loro contratto dichiara di rifiutare
+
+**S3** · 🟢 · CONFERMATO
+
+Tre punti in cui la validazione è **più debole della sua stessa documentazione**, e in due casi più debole
+del gemello che fa lo stesso mestiere.
+
+| Dove | Il contratto scritto | Che cosa accetta davvero |
+|---|---|---|
+| `AiracService.EffectiveUtcForCycle` | *«Throws se malformato»* — e `SidStampCycle` usa proprio quel sollevamento **come validatore** del ciclo dichiarato dalla sorgente | La validazione è `Length == 4 && int.TryParse`. **`"+261"` e `"-261"` passano**: `int.Parse("+2")` dà l'anno 2002 e `int.Parse("-2")` il 1998. Nessun sollevamento, una data sbagliata |
+| `DmsCoordinate.TryParse` | «converte una coordinata DMS … false se malformata» | Nessun controllo di **intervallo**: `N091.99.99.999` è accettata. Il gemello `KmlReader` scarta il punto (`Math.Abs(lat) > 90 …`), e `CoordinateParser` — il convertitore che usa l'utente — lo rifiuta con un errore |
+| `DmsCoordinate.TryParse`, forma puntata | idem | `NumberStyles.Integer` ammette il **segno**: `N-41.37.28` dà una latitudine di −40,4° sotto un emisfero Nord |
+
+**Perché conta, e perché non è S2.** Oggi i chiamanti schermano tutti e tre: il ciclo dal changelog passa da
+un `^(\d{4})` prima di arrivare ad `AiracService`, e le coordinate arrivano da file che finora sono ben
+formati. Ma è di nuovo la **premessa che vale per uno solo** — la garanzia sta nel chiamante, non nel
+validatore che la dichiara — e nel caso delle coordinate il difetto si somma a R-018: una minuti-99 non è
+nemmeno «malformata» per il parser, quindi non tronca niente. **Entra e basta**, e disegna un vertice
+plausibile nel posto sbagliato.
+
+### Quel che è stato guardato e regge
+
+- **`SogliaEliminazione`** e la trappola dei due clic (vedi 4b), `SidStampCycle` coi suoi tre gradini di
+  ripiego e il commento sul perché sbagliano *per eccesso di fretta*.
+- **`CicloDalNome`** usa `^(\d{4})(?:[_\-.].*)?\.txt$`: quattro cifre esatte, e ammette le revisioni
+  intermedie (`2304_1.txt`) senza confonderle con un ciclo diverso.
+- **I separatori di callsign nelle intestazioni sono due** (spazio e due punti), e la ragione è misurata sui
+  file veri: leggendo solo lo spazio, quattro settori di Milano restavano senza area *in silenzio*.
+- **Il `PiuRecente` dei changelog** controlla che la radice JSON sia un array prima di iterarla, perché la
+  forma degli errori di GitHub è un **oggetto** e `EnumerateArray` solleverebbe un'eccezione di tipo diverso
+  da quella che si cattura.
+
+## 4e — Gerarchia, AoR, shape, aree 🔵 (parziale)
+
+Guardati in questo giro, perché R-018 ci finisce dentro:
+
+- **`PolygonGeometry.Contains`** — ray casting con riquadro di scarto, il lato di chiusura incluso
+  (`j` parte dall'ultimo) e un solo estremo contato per lato, così un raggio che passa per un vertice non
+  conta due volte. **Corretto.**
+- **Le shape vuote non cancellano**: i servizi di forma escono presto su un insieme vuoto invece di
+  sovrascrivere. La regola pagata il 26 agosto (83 aree azzerate) regge.
+
+Restano da fare: la gerarchia effettiva oltre R-014, le aree regolamentate multi-ACC, il viewer 3D, i
+KMZ degli spazi aerei.
