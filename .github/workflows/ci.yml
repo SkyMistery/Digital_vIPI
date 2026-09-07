@@ -28,7 +28,17 @@ jobs:
       # Dall'11 agosto 2026 questa riga esegue ENTRAMBI i TFM di ogni progetto multi-target: prima erano
       # net10 tutti tranne Vipi.Infrastructure.Tests, cioè ~1000 test che non toccavano mai il runtime di
       # produzione. Vedi il job net8 qui sotto per il perché conti.
-      - run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal
+      # `tee`: la corsa si vede in diretta E finisce in un file, perche' il passo dopo la deve contare.
+      # ATTENZIONE: `shell: bash` NON e' cosmetico. Il guscio di serie di GitHub e' `bash -e`, SENZA
+      # `pipefail`: in una pipe l'esito e' quello dell'ULTIMO comando, cioe' `tee`, che riesce sempre.
+      # Un `dotnet test` rosso passerebbe per verde. `shell: bash` aggiunge `-o pipefail`.
+      - name: dotnet test (tutti i TFM)
+        shell: bash
+        run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal | tee corsa.log
+      # ⚠️ Il numero dei test NON lo controlla `dotnet test`: se un progetto sparisce dalla corsa la
+      # riga esce zero e la CI diventa verde su meno test di ieri. E' successo (vedi il commento sopra:
+      # ~1000 test che non toccavano il runtime di produzione, per settimane). Qui calare fa rumore.
+      - run: bash tools/conta-test.sh corsa.log
 
   # Il ramo net8.0 è la PRODUZIONE: Vipi.Host su atc.it.ivao.aero è net8, perché Pomelo — l'unico provider
   # che regge MariaDB — non esiste per EF Core 10 (ADR-0007 §D4-ter).
@@ -53,7 +63,12 @@ jobs:
       # binario. Se la CI si ferma qui, il rimedio è un `dotnet restore --force-evaluate` locale e un commit
       # dei lock aggiornati — cioè rendere visibile l'aggiornamento invece di subirlo.
       - run: dotnet restore Vipi.slnx --locked-mode
-      - run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal
+      - name: dotnet test (solo net8.0, la produzione)
+        shell: bash
+        run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal | tee corsa-net8.log
+      # Lo stesso cancello sul ramo di PRODUZIONE: qui l'atteso comprende i soli assiemi net8.0,
+      # e un progetto che smette di girare su net8 e' proprio il difetto dell'11 agosto.
+      - run: bash tools/conta-test.sh corsa-net8.log --tfm net8.0
 
   # Lo schema di produzione contro un MariaDB VERO. È la classe di guasti che i test unitari non vedono: la
   # collation risultava presente e corretta nei metadati EF mentre nella DDL non c'era affatto (vedi
