@@ -121,8 +121,18 @@ public class PaginaAllegatiTests : TestContext
         public Task<IReadOnlyList<AttachmentCitation>> ImpactPreviewAsync(string slug, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<AttachmentCitation>>(_impattati);
 
+        /// <summary>La biblioteca a cui girare la creazione: dal 7 settembre 2026 la pagina non chiama più
+        /// la biblioteca per scrivere — tutte e tre le scritture passano dal cancello che sta qui.</summary>
+        public BibliotecaFinta? Biblioteca { get; set; }
+
+        public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+            AttachmentDraft draft, CancellationToken ct = default) =>
+            Biblioteca is null
+                ? throw new InvalidOperationException("Il banco non ha una biblioteca dietro la cura.")
+                : Biblioteca.CreateAsync(draft, 0, ct);
+
         public Task<AttachmentReplacementOutcome> ReplaceAsync(
-            string slug, string link, string? note, int userId, CancellationToken ct = default)
+            string slug, string link, string? note, CancellationToken ct = default)
         {
             Slug = slug; Link = link; Nota = note;
 
@@ -130,7 +140,7 @@ public class PaginaAllegatiTests : TestContext
             return Task.FromResult(new AttachmentReplacementOutcome(_esito, riga, _impattati));
         }
 
-        public Task<AttachmentDeletionOutcome> DeleteAsync(string slug, int userId, CancellationToken ct = default)
+        public Task<AttachmentDeletionOutcome> DeleteAsync(string slug, CancellationToken ct = default)
         {
             Eliminato = slug;
             return Task.FromResult(new AttachmentDeletionOutcome(_esitoDelete, _impattati));
@@ -158,7 +168,10 @@ public class PaginaAllegatiTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
         Services.AddSingleton(biblioteca);
         Services.AddSingleton(uso ?? new UsoFinto());
-        Services.AddSingleton(cura ?? new CuraFinta());
+        var curaVera = cura ?? new CuraFinta();
+        // La creazione passa dalla cura e finisce nella biblioteca del banco: è lì che i test la ritrovano.
+        if (curaVera is CuraFinta cf && biblioteca is BibliotecaFinta bf) cf.Biblioteca = bf;
+        Services.AddSingleton(curaVera);
         return RenderComponent<AdminAttachmentsPage>();
     }
 

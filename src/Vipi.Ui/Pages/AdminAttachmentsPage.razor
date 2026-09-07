@@ -432,6 +432,10 @@
     private bool _busy;
 
     /// <summary>La pagina è degli Editor: chi ha meno vede il rifiuto, non una tabella che non risponde.</summary>
+    /// <summary>La guardia di <b>schermo</b>: nasconde i comandi e ferma i gestori.
+    /// ⚠️ Non è più l'unica: dal 7 settembre 2026 il cancello vero è sotto, in <c>IAttachmentCuration</c>,
+    /// che rifiuta anche se questa dicesse di sì. Questa resta perché mostrare un tasto che poi solleva è
+    /// un modo scortese di dire di no.</summary>
     private bool PuoScrivere => Authz.Role >= VipiRole.Editor;
 
     /// <summary>Le righe da mostrare: i tre assi in AND, più una ricerca che guarda tutto quel che si legge —
@@ -538,7 +542,7 @@
         _busy = true; _messaggio = null;
         try
         {
-            var esito = await Cura.DeleteAsync(r.Slug, Authz.CurrentUserId ?? 0);
+            var esito = await Cura.DeleteAsync(r.Slug);
 
             _ok = esito.Esito == AttachmentDelete.Ok;
             _messaggio = esito.Esito == AttachmentDelete.Ok
@@ -565,7 +569,7 @@
         _busy = true; _messaggio = null;
         try
         {
-            var esito = await Cura.ReplaceAsync(r.Slug, _nuovoLink, _nuovaNota, Authz.CurrentUserId ?? 0);
+            var esito = await Cura.ReplaceAsync(r.Slug, _nuovoLink, _nuovaNota);
 
             _ok = esito.Esito == AttachmentReplace.Ok;
             _messaggio = esito.Esito switch
@@ -596,7 +600,7 @@
         try
         {
             var draft = new AttachmentDraft(_nSlug, _nTitolo, _nTipo, _nAmbito, _nChiave, null, _nLink);
-            var (esito, riga) = await Biblioteca.CreateAsync(draft, Authz.CurrentUserId ?? 0);
+            var (esito, riga) = await Cura.CreateAsync(draft);
 
             _ok = esito == AttachmentCreate.Ok;
             // ⚠️ I rifiuti restano distinti: chi ha incollato un link sbagliato e chi ha scelto uno slug già

@@ -1,4 +1,5 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Domain;
 
 namespace Vipi.Application.Content;
@@ -21,6 +22,13 @@ public sealed record AttachmentReplacementOutcome(
 /// l'elenco non devono pagare. Tenerle insieme vorrebbe dire che la porta più calda del sistema
 /// (<c>/vsop/files/{slug}</c>, chiamata a ogni clic) si porta dietro la lettura più cara.</para>
 ///
+/// <para>⚠️ <b>Qui sta il cancello di tutte le scritture della biblioteca</b>, ed è il motivo per cui
+/// anche la creazione — che non ha niente da segnalare — passa di qui. Fino al 7 settembre 2026 la
+/// biblioteca era l'unica delle cinque famiglie di scrittura a difendersi <i>solo dentro una pagina</i>:
+/// <c>AdminAttachmentsPage</c> nascondeva i comandi e rifiutava in testa ai gestori, e sotto non c'era
+/// niente. Reggeva perché la porta era una sola, che è esattamente la condizione che questo repository si
+/// è scritto contro (revisione del 6 settembre, R-023).</para>
+///
 /// <para>⚠️ Si chiamava <c>IAttachmentReplacement</c> finché faceva una cosa sola. Un nome che descrive
 /// metà di quel che c'è dentro mente a chi legge fra sei mesi, e rinominarlo adesso — prima che qualcuno lo
 /// citi — costa una riga.</para>
@@ -42,7 +50,7 @@ public interface IAttachmentCuration
     /// concludersi con «va bene così», che è perché la riga si chiude a mano.</para>
     /// </summary>
     Task<AttachmentReplacementOutcome> ReplaceAsync(
-        string slug, string link, string? note, int userId, CancellationToken ct = default);
+        string slug, string link, string? note, CancellationToken ct = default);
 
     /// <summary>
     /// Elimina la voce, e apre una riga «da rivedere» su ogni documento che la citava.
@@ -54,7 +62,17 @@ public interface IAttachmentCuration
     ///
     /// <para>⚠️ E il file sul deposito <b>resta dov'è</b>: i byte non sono nostri.</para>
     /// </summary>
-    Task<AttachmentDeletionOutcome> DeleteAsync(string slug, int userId, CancellationToken ct = default);
+    Task<AttachmentDeletionOutcome> DeleteAsync(string slug, CancellationToken ct = default);
+
+    /// <summary>
+    /// Crea una voce e la sua v1.
+    ///
+    /// <para>Non apre nessuna riga «da rivedere», e non è un'omissione: una voce appena nata non è citata
+    /// da nessuno. Passa da qui lo stesso, perché il <b>cancello</b> sta qui — e una scrittura che entra da
+    /// un'altra porta è una scrittura che il cancello non vede.</para>
+    /// </summary>
+    Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+        AttachmentDraft draft, CancellationToken ct = default);
 }
 
 /// <summary>Che cosa è successo eliminando una voce, e quali documenti restano col link morto.</summary>
@@ -67,27 +85,39 @@ public sealed class AttachmentCurationService : IAttachmentCuration
     private readonly IAttachmentLibrary _biblioteca;
     private readonly IAttachmentUsage _uso;
     private readonly IDocumentImpactService _impatti;
+    private readonly IEditAuthorizationService _authz;
 
     public AttachmentCurationService(IAttachmentLibrary biblioteca, IAttachmentUsage uso,
-        IDocumentImpactService impatti)
+        IDocumentImpactService impatti, IEditAuthorizationService authz)
     {
         _biblioteca = biblioteca;
         _uso = uso;
         _impatti = impatti;
+        _authz = authz;
     }
+
+    /// <summary>
+    /// Chi ha scritto, secondo il <b>server</b>. ⚠️ Non un parametro: l'<c>userId</c> ricevuto lo dichiara
+    /// chi chiama, e un registro di audit che crede a chi chiama registra quel che gli viene detto.
+    /// <para>Dopo <c>EnsureAtLeast(Editor)</c> una persona c'è di sicuro — l'anonimo è
+    /// <see cref="VipiRole.User"/> e non arriva fin qui: lo zero è il ramo che non si percorre.</para>
+    /// </summary>
+    private int Chi => _authz.CurrentUserId ?? 0;
 
     public Task<IReadOnlyList<AttachmentCitation>> ImpactPreviewAsync(string slug, CancellationToken ct = default) =>
         _uso.WhereUsedAsync(slug, ct);
 
     public async Task<AttachmentReplacementOutcome> ReplaceAsync(
-        string slug, string link, string? note, int userId, CancellationToken ct = default)
+        string slug, string link, string? note, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
         // ⚠️ Chi cita si legge PRIMA di scrivere, e non è indifferente: la scrittura non cambia le citazioni,
         // ma leggerle dopo vorrebbe dire che un salvataggio contemporaneo in un'altra scheda cambia l'elenco
         // fra la conferma e la segnalazione — e chi ha premuto avrebbe deciso su un elenco diverso.
         var citazioni = await _uso.WhereUsedAsync(slug, ct);
 
-        var (esito, riga) = await _biblioteca.ReplaceAsync(slug, link, note, userId, ct);
+        var (esito, riga) = await _biblioteca.ReplaceAsync(slug, link, note, Chi, ct);
         if (esito != AttachmentReplace.Ok)
             return new AttachmentReplacementOutcome(esito, riga, citazioni);
 
@@ -105,14 +135,16 @@ public sealed class AttachmentCurationService : IAttachmentCuration
         return new AttachmentReplacementOutcome(esito, riga, citazioni);
     }
 
-    public async Task<AttachmentDeletionOutcome> DeleteAsync(string slug, int userId, CancellationToken ct = default)
+    public async Task<AttachmentDeletionOutcome> DeleteAsync(string slug, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
         // Come per la sostituzione: chi cita si legge PRIMA. Qui però è anche l'unico momento in cui si può
         // leggere — dopo la cancellazione la voce non c'è più, e con lei sparirebbe la ragione per cui quei
         // documenti vanno riaperti.
         var citazioni = await _uso.WhereUsedAsync(slug, ct);
 
-        var esito = await _biblioteca.DeleteAsync(slug, userId, ct);
+        var esito = await _biblioteca.DeleteAsync(slug, Chi, ct);
         if (esito != AttachmentDelete.Ok) return new AttachmentDeletionOutcome(esito, citazioni);
 
         var documenti = DocumentiDi(citazioni);
@@ -121,6 +153,13 @@ public sealed class AttachmentCurationService : IAttachmentCuration
                 ImpactKind.AttachmentDeleted, documenti, slug, new[] { slug }, ct);
 
         return new AttachmentDeletionOutcome(esito, citazioni);
+    }
+
+    public Task<(AttachmentCreate Esito, AttachmentRow? Riga)> CreateAsync(
+        AttachmentDraft draft, CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        return _biblioteca.CreateAsync(draft, Chi, ct);
     }
 
     /// <summary>I documenti citanti, senza doppioni: uno che cita in dieci punti è un documento solo.</summary>
