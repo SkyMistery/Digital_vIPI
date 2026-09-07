@@ -9618,3 +9618,60 @@ La catena `ReconcileVipiDocuments` gira a **ogni avvio** e scrive nella versione
 ogni cambio di catalogo rende «da ripubblicare» **tutti** i documenti pubblicati, in blocco: è il
 comportamento voluto, ed è quel che ha prodotto i 15 di ieri sera. Il lavoro resta da fare — solo, adesso,
 farlo si vede subito.
+
+### 📦 7 settembre 2026, pomeriggio — il pacchetto 1.14.2
+
+`artifacts/publish/vipi-1.14.2-solo-file-cambiati.zip` · sha256
+**`7febbe91d747c5f08d3aa256cf0cd3183d7c5ad311a8c0df14fa8d76fc6ebae9`** · 3,30 MB · **7 file** ·
+timbro **`1.14.2 · 94446edf`** · publish `linux-x64-20260907-1420`. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.2.md`. Elenco dichiarato:
+`artifacts/publish/elenco-1.14.2.txt`. ⏳ **Da caricare.**
+
+**PATCH, e la tabella del runbook regge**: nessuna migrazione, nessuna pagina e nessuna sezione nuova. Il
+pulsante e l'avviso in Diagnostica non fanno una MINOR — sono il modo di sapere se il controllo che questa
+consegna ripara sta girando, cioè parte della correzione. **Si consegna da sola via FTP**, anche dentro la
+finestra cieca al 16.
+
+**Si costruisce contro 1.14.1** (`e5cc7661`), che è online dalla mattina dello stesso giorno.
+
+**I file.** Due progetti col codice cambiato — `Vipi.Application` (la riparazione) e `Vipi.Ui` (il pulsante
+e l'avviso) — più `Vipi.Host` (il timbro) e il satellite inglese (tutti e due i `.resx` toccati: tre chiavi
+nuove per lingua). ⚠️ `Domain`, `Hosting`, `Infrastructure`, `MySqlMigrations`, `AuroraProfiles` e
+`AuroraBridge.Contracts` **restano fuori**: le loro impronte cambiano a ogni ricompilazione (MVID), ma
+`git diff e5cc7661 HEAD -- src` dice che il loro codice non è cambiato.
+
+⚠️ **E la domanda che va fatta ogni volta che degli assiemi restano fuori**: qualcuno di loro **implementa**
+una firma cambiata? Questo giro ha aggiunto un membro a **tre** interfacce (`IDocumentImpactService`,
+`IReleaseService`, `IImpactDriftUseCase`), e un assieme che le implementasse senza essere ricompilato
+esploderebbe al **caricamento del tipo**. Verificato: le uniche implementazioni stanno in
+`Vipi.Application`, che è dentro. Fuori di lì quelle interfacce si **chiamano** soltanto — e aggiungere
+membri non tocca chi chiama.
+
+**Nessun file di `wwwroot`, e non è dedotto**: confrontate per impronta le due cartelle pubblicate intere,
+**460 file per parte**, le uniche differenze sono negli assiemi. Nemmeno
+`Vipi.Host.staticwebassets.endpoints.json`. La trappola dei file che «viaggiano insieme» qui non si applica.
+
+**La prova sul pacchetto pubblicato** (non sul sorgente): `Vipi.Host.exe` win-x64 avviato dalla sua cartella
+su `:5199`, copia del `vipi.db`. `pacchetto-verifica.js` **10/10** — JS minificato servito, circuito aperto,
+**Ricerca che risponde**, foglio di stile in vigore, console pulita — e `diagnostica/avvio-diagnostica.txt`
+con **`Versione 1.14.2 · commit 94446ed`**, senza `avvio-errore.txt`.
+
+Poi le **tre** cose nuove, guidate a schermo:
+
+1. **Diagnostica** → il riquadro porta il pulsante «Run the check now» e la riga dell'ultimo giro. Premuto:
+   *«Done: 16 documents checked, 13 items raised, 0 closed»*, e il timbro dell'ultimo giro passa da
+   `10:31Z` a `10:32Z`. Il controllo gira **davvero**, non è un pulsante che sembra fare qualcosa.
+2. **Pubblicare**: «Da fare» aveva **13** righe «da ripubblicare»; premuto «Publish now» su *vIPI Brindisi*
+   dalla sua stessa riga, si torna alla lista e sono **12** — Brindisi **non c'è più**, senza aspettare
+   niente. È il difetto di stamattina, in faccia, riparato.
+3. **Programmare**: da 12 a **11** con «Schedule at cycle» su *Pescara Approach*. La pagina dice
+   «Scheduled» e la riga sparisce lo stesso — che è la metà che prima sarebbe rimasta lì **fino al
+   rollover**.
+
+⚠️ **Una nota sul confronto degli assiemi, perché il runbook dice il contrario per 1.8.1.** Là
+`Vipi.Ui.dll` del publish win-x64 di prova e quello dentro lo zip avevano lo **stesso** sha256; qui **no**,
+e non è un guasto: sono due compilazioni distinte (RID diversi) e l'MVID cambia. Quel che si prova avviando
+il win-x64 non è dunque «il byte identico», è **il comportamento dello stesso codice**. Vale la prova, non
+l'impronta — e va scritto, o alla prossima consegna qualcuno cercherà un'uguaglianza che non c'è.
+
+Le **7 impronte riverificate dentro lo zip** dopo averlo costruito: 7 giuste, 0 sbagliate.

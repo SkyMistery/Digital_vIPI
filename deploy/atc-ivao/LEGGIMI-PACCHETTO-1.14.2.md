@@ -1,9 +1,9 @@
 ﻿# Pacchetto 1.14.2 — solo i file cambiati
 
-> **Timbro:** `1.14.2 · <COMMIT>` (7 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.14.2 · 94446edf` (7 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
-> **Sostituisce 1.14.1**, che è online da stamattina. **<N> file.**
+> **Sostituisce 1.14.1**, che è online da stamattina. **7 file.**
 >
 > ⚠️ **La regola del caricamento è quella di sempre**: si carica col **nome finto** e poi si **rinomina**.
 > Sovrascrivere un `.dll` mentre l'applicazione gira lo tronca sotto il processo, che muore all'istante. La
