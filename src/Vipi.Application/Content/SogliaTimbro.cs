@@ -6,7 +6,7 @@ namespace Vipi.Application.Content;
 /// segnalazioni e la pagina che le mostra — e due letture diverse dello stesso metro sono il modo in cui due
 /// racconti divergono.
 /// </summary>
-public static class SogliaTimbro
+internal static class SogliaTimbro
 {
     /// <summary>
     /// Margine prima di chiamare vecchio un timbro. Un giorno: gli import girano ogni 24 ore e un giro può

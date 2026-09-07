@@ -10,6 +10,9 @@ namespace Vipi.Application.Airspace;
 /// ce l'ha. ⚠️ Confrontare piedi AMSL con piedi AGL resta un confronto fra cose diverse: il riferimento non
 /// si perde per strada proprio perché serve a chi legge.</para>
 /// </summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirspaceLevel(AirspaceDatum Datum, int? Feet, string Raw)
 {
     /// <summary>Il suolo, quando il file non dice niente.</summary>
@@ -56,6 +59,9 @@ public sealed record AirspaceIssue(AirspaceIssueKind Kind, string Volume, string
 /// sempre: <c>CTA ROMA Z9 GOLFO MANFREDONIA</c> è duplicato identico, e il secondo prende
 /// <paramref name="Ordinal"/> = 1.</para>
 /// </summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirspaceVolumeRead(
     AirspaceFamily Family,
     string Name,

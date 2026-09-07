@@ -7,6 +7,9 @@ namespace Vipi.Application.Content;
 
 /// <summary>La posizione di una sezione nell'ordine imposto. È una chiave e non un numero perché l'ordine si
 /// <b>ricava</b> dai dati della sezione: salvarlo vorrebbe dire tenerlo d'accordo a ogni modifica.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public readonly record struct SectionSortKey(int GroupRank, string GroupKey, int KindRank, int DirectionRank,
     int Order, int Id) : IComparable<SectionSortKey>
 {

@@ -1,6 +1,9 @@
 namespace Vipi.Ui.Shared;
 
 /// <summary>Modalità di resa di un viewer documentale.</summary>
+// ⚠️ Pubblici perché stanno nella FIRMA dei loader che `Vipi.Hosting` registra: un tipo che compare
+// nella firma di un tipo pubblico è pubblico anche lui, e il compilatore lo dice (CS0050/CS0051).
+// Vedi ADR-0005 D6 (revisione del 6 settembre 2026, R-009).
 public enum PreviewKind
 {
     /// <summary>Vista pubblica: release effettiva al ciclo corrente, altrimenti stato pubblicato/live.</summary>
@@ -16,6 +19,9 @@ public enum PreviewKind
 /// assente → <see cref="PreviewKind.Public"/>; <c>as=draft</c> → <see cref="PreviewKind.Draft"/>;
 /// <c>as=rel:{id}</c> → <see cref="PreviewKind.Release"/> con <see cref="ReleaseId"/>.
 /// </summary>
+// ⚠️ Pubblici perché stanno nella FIRMA dei loader che `Vipi.Hosting` registra: un tipo che compare
+// nella firma di un tipo pubblico è pubblico anche lui, e il compilatore lo dice (CS0050/CS0051).
+// Vedi ADR-0005 D6 (revisione del 6 settembre 2026, R-009).
 public readonly record struct PreviewMode(PreviewKind Kind, int ReleaseId)
 {
     public bool IsPreview => Kind != PreviewKind.Public;

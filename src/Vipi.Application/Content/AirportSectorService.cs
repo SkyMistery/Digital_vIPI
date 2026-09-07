@@ -7,7 +7,7 @@ using Vipi.Domain;
 namespace Vipi.Application.Content;
 
 /// <inheritdoc cref="IAirportSectorService"/>
-public sealed class AirportSectorService : IAirportSectorService
+internal sealed class AirportSectorService : IAirportSectorService
 {
     private readonly IAirportSectorRepository _repo;
     private readonly IAirportSectorImporter _importer;

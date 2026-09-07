@@ -7,6 +7,9 @@ public sealed record AccRow(int Id, string Code, string Name, string CountryPref
 
 /// <summary>Esito del lookup di un aeroporto sulla sorgente esterna (IVAO), SOLO per riempire il nome di un
 /// aeroporto fuori DB. <paramref name="AccCode"/> = ACC/FIR di competenza (centerId), se noto.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record ExternalAirportInfo(string Icao, string Name, string? City, string? AccCode);
 
 /// <summary>Aeroporto di una ACC per l'editor struttura.
@@ -49,6 +52,9 @@ public sealed record GlobalSectorRow(int Id, string Callsign, string AccCode, st
     SectorType Type, SectorKind Kind, ApproachKind? ApproachKind, int? ParentSectorId, int? DocumentId);
 
 /// <summary>Esito della generazione automatica del documento di aeroporto.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirportDocResult(string Icao, bool Created, int SectorsCreated, int? DocumentId, string? Skipped);
 
 /// <summary>Settore (entità unificata ex Position+Sector) per l'editor struttura.</summary>

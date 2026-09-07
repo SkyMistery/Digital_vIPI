@@ -13,7 +13,7 @@ namespace Vipi.Application.Aor;
 /// anche il catalogo degli spazi aerei, due copie sarebbero due occasioni di invertire l'ordine — e un
 /// poligono con lat e lon scambiati non si lamenta, si disegna ruotato di 90°.</para>
 /// </summary>
-public static class IvaoPolygonJson
+internal static class IvaoPolygonJson
 {
     /// <summary>Sei decimali: circa 10 cm, molto oltre la precisione di qualunque sorgente di confini.</summary>
     private const int Decimali = 6;

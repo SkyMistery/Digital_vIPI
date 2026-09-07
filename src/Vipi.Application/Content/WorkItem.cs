@@ -131,6 +131,9 @@ public sealed record WorkAssignRequest(WorkItem Item, int UserId, string? Nome, 
 /// <b>traduzione</b> di quei fatti in comportamento di lista, e sta di sopra. Non li duplica: li
 /// <b>consulta</b>, così la verità resta una sola e questo file non può divergere.</para>
 /// </summary>
+// ⚠️ Pubblica perché porta METODI DI ESTENSIONE (`kind.Severita()`, `kind.AzioneCheChiude()`) che si
+// usano col nome del metodo, non della classe: un censimento che cerca il nome del TIPO non la vede
+// mai usata. È la terza volta che questa forma inganna il censimento (ADR-0005 D6, R-009).
 public static class WorkMapping
 {
     /// <summary>Quanto urge una segnalazione di sistema.</summary>

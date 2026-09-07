@@ -15,7 +15,7 @@ public interface IAccViewDerivationService
 }
 
 /// <inheritdoc cref="IAccViewDerivationService"/>
-public sealed class AccViewDerivationService : IAccViewDerivationService
+internal sealed class AccViewDerivationService : IAccViewDerivationService
 {
     private readonly IAccDerivationRepository _repo;
     private readonly IAccDerivationService _deriv;

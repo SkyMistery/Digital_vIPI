@@ -15,6 +15,9 @@ namespace Vipi.Application.Import;
 /// <param name="Fogli">I nomi dei fogli, nell'ordine del file: servono a farne scegliere un altro.</param>
 /// <param name="FoglioLetto">L'indice del foglio effettivamente letto.</param>
 /// <param name="Guasto">Perche' non si e' letto niente; <c>null</c> se si e' letto.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record EsitoXlsx(
     Griglia Griglia, IReadOnlyList<string> Fogli, int FoglioLetto, string? Guasto = null);
 

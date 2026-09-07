@@ -17,7 +17,7 @@ namespace Vipi.Ui;
 /// <para>⚠️ La chiave è facoltativa: i punti che non l'hanno ancora mostrano il messaggio grezzo, com'era
 /// prima. Non è un difetto da chiudere in un giro solo — si prende quando si tocca il service.</para>
 /// </summary>
-public static class ServiceErrorNarrator
+internal static class ServiceErrorNarrator
 {
     /// <summary>La frase da mostrare per un rifiuto di validazione.</summary>
     public static string Testo(Application.Aor.ValidationException ex, IStringLocalizer L) =>

@@ -9,7 +9,7 @@ namespace Vipi.Application.Content;
 /// coordinamenti, minime), con RenderMode indipendente. Assembla i blocchi dallo snapshot e, per ogni sotto-sezione Frozen,
 /// deriva col contesto del blocco e serializza il view-model, keyed per Id della sotto-sezione.
 /// </summary>
-public sealed class AccFrozenSectionProvider : IFrozenSectionProvider
+internal sealed class AccFrozenSectionProvider : IFrozenSectionProvider
 {
     private readonly IAccDerivationService _acc;
     public AccFrozenSectionProvider(IAccDerivationService acc) => _acc = acc;

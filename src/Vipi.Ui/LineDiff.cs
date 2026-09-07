@@ -6,14 +6,14 @@ public enum DiffKind { Equal, Added, Removed }
 /// <summary>One line of a diff (its kind and the line text, without trailing newline).</summary>
 /// <param name="Kind">Whether the line is equal, added or removed.</param>
 /// <param name="Text">The line text (line ending already trimmed for display).</param>
-public readonly record struct DiffLine(DiffKind Kind, string Text);
+internal readonly record struct DiffLine(DiffKind Kind, string Text);
 
 /// <summary>
 /// Minimal line-based diff (classic LCS) used only for the preview. Inputs are the verbatim
 /// <c>CprSection.Lines</c>; line endings are stripped in the produced <see cref="DiffLine.Text"/>.
 /// Profiles are small text files, so the O(n*m) table is fine here.
 /// </summary>
-public static class LineDiff
+internal static class LineDiff
 {
     /// <summary>Diff <paramref name="from"/> (source) into <paramref name="to"/> (destination).</summary>
     public static IReadOnlyList<DiffLine> Diff(IEnumerable<string> from, IEnumerable<string> to)

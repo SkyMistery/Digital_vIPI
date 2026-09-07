@@ -13,6 +13,9 @@ namespace Vipi.Application.Content;
 /// <param name="Receiver">Il ricevente scritto sulla riga, se c'era: <b>non</b> entra nella clausola — è del
 /// lato B dell'accordo — ma serve a dire che righe con riceventi diversi sono accordi diversi.</param>
 /// <param name="Error">Perché la riga non si legge; <c>null</c> se si legge.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record PastedClause(int Line, string Raw, AgreementClauseInput? Clause, string? Receiver, string? Error)
 {
     public bool Ok => Clause is not null;

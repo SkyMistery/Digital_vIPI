@@ -56,10 +56,27 @@ host (scenari A/B) era documentato ma non implementato.
      usano col nome del **metodo** (`services.AddVipiIvao(...)`), le altre le costruisce il **binder della
      configurazione** da un altro assieme. Un censimento che cerca il nome del TIPO non le vede mai usate.
 
-  ⚠️ **Restano un censimento, non una lista di cancellazioni**: `Vipi.Application` (98) e `Vipi.Ui` (24).
-  Si guardano con `python tools/censimento-pubblici.py <progetto>`, che **propone e non tocca** — non legge
-  gli `.xaml`, non vede la riflessione, e l'ultima parola è di chi legge. Il compilatore è la rete: due
-  proposte su ventitré, il 7 settembre, erano sbagliate e le ha fermate lui.
+  Nello stesso giorno sono stati stretti anche gli altri due:
+  - **`Vipi.Ui`**: 78 tipi pubblici → **64**. Restano pubblici i modelli che compaiono in un `[Parameter]`
+    di un componente (la classe che Razor genera è pubblica: un tipo nella firma di un componente è
+    superficie quanto il componente) e quelli nella firma dei quattro loader che `Vipi.Hosting` registra.
+  - **`Vipi.Application`**: dei 98 candidati ne sono passati **23**. Gli altri 75 non erano superficie
+    inutile: sono raggiungibili **attraverso la firma** di un tipo pubblico, e il compilatore lo ha
+    dimostrato uno per uno (CS0050/CS0051/CS0053/CS0703). Il numero del censimento sopravvalutava il
+    margine, ed è bene saperlo prima del prossimo giro.
+
+  ⚠️ **Il metodo, che vale più dei numeri.** Si propone in blocco con
+  `python tools/censimento-pubblici.py <progetto>` — che **propone e non tocca** — poi si compila e si
+  accetta il verdetto del compilatore tipo per tipo. Su 122 proposte, **cinque** erano sbagliate e le ha
+  fermate lui, in tre forme che un censimento per NOME non può vedere:
+  1. il tipo che compare nella **firma** di un tipo pubblico (CS0050/CS0051/CS0053/CS0703);
+  2. la classe di **metodi di estensione**, che si usa col nome del metodo (`AddVipiIvao`,
+     `kind.Severita()`) — successo **due** volte;
+  3. il tipo costruito per **riflessione** da un altro assieme: la factory degli strumenti EF, e i tipi di
+     **opzioni**, che li istanzia il binder della configurazione.
+
+  ⚠️ E resta un censimento: quel che il compilatore non vede — gli `.xaml`, la riflessione, un tipo
+  pubblico per una ragione che il nome non dice — lo decide chi legge, non lo strumento.
 
 - **D5 — JS namespacing.** Le funzioni del modulo restano sotto il prefisso `vipi*` (namespace di
   fatto, collision-safe); non si toccano `window`/DOM globali oltre a quello.

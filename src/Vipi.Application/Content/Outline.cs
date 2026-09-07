@@ -9,6 +9,9 @@ namespace Vipi.Application.Content;
 /// libera, e righe che scavalcano tutto. L'implementano sia la clausola di un accordo — che è dove l'outline
 /// si scrive — sia la riga proiettata, che è dove si legge.
 /// </summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public interface IOutlineRow
 {
     int Id { get; }

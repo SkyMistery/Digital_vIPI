@@ -7,7 +7,7 @@ using static Vipi.Application.Messaggio;
 namespace Vipi.Application.Content;
 
 /// <inheritdoc cref="IAccAdminService"/>
-public sealed class AccAdminService : IAccAdminService
+internal sealed class AccAdminService : IAccAdminService
 {
     private readonly IAccAdminRepository _repo;
     private readonly IAccImportUseCase _import;

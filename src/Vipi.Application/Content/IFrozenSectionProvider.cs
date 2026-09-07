@@ -22,6 +22,9 @@ public interface IFrozenSectionProvider
 
 /// <summary>Registry dei provider di cattura, risolti per <see cref="ReleaseTargetType"/> (doc 10 §3b). I motori di
 /// pubblicazione lo consultano; nessuno switch per-tipo.</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public interface IFrozenSectionRegistry
 {
     /// <summary>Cattura le sezioni Frozen del documento per il tipo dato; vuoto se nessun provider è registrato per il tipo.</summary>

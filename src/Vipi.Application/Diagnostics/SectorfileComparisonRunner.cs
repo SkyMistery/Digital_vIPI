@@ -21,7 +21,7 @@ public interface ISectorfileComparisonRunner
 }
 
 /// <inheritdoc />
-public sealed class SectorfileComparisonRunner : ISectorfileComparisonRunner
+internal sealed class SectorfileComparisonRunner : ISectorfileComparisonRunner
 {
     private readonly ISectorfileFactsSource _sorgente;
     private readonly ISectorfileComparisonRepository _repo;

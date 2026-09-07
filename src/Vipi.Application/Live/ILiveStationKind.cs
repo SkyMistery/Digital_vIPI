@@ -19,6 +19,9 @@ public interface ILiveStationKind
 }
 
 /// <summary>Registro dei descrittori, gemello di <c>IReleaseTargetRegistry</c> (doc 09).</summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public interface ILiveStationRegistry
 {
     /// <summary>Descrittore competente per la postazione, o null se nessuno la accetta.</summary>

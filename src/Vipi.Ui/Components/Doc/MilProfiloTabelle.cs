@@ -15,7 +15,7 @@ namespace Vipi.Ui.Components.Doc;
 /// queste intestazioni stanno dentro il vSOP, e su un documento a lingua bloccata seguono lui (carta
 /// <c>2026-08-31-lingua-bloccata.md</c> §4).</para>
 /// </summary>
-public static class MilProfiloTabelle
+internal static class MilProfiloTabelle
 {
     public static IReadOnlyList<string> Nominativi(IStringLocalizer<SharedResource> l) =>
         new[] { l["Mil_Squadron"].Value, l["Mil_OatCallsign"].Value, l["Mil_GatCallsign"].Value, l["Mil_QraCallsign"].Value };

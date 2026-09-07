@@ -18,7 +18,7 @@ public interface IImportPolicyService
 }
 
 /// <inheritdoc cref="IImportPolicyService"/>
-public sealed class ImportPolicyService : IImportPolicyService
+internal sealed class ImportPolicyService : IImportPolicyService
 {
     private readonly IImportPolicyStore _store;
     private readonly IEditAuthorizationService _authz;

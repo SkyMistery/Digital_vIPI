@@ -70,6 +70,9 @@ public sealed class ImportedSidEdit
 /// <summary>Un problema trovato in una tabella d'editor, in forma da tradurre: la chiave di
 /// risorsa e i suoi argomenti. ⚠️ Separato dal testo apposta — così la regola si può provare senza montare un
 /// localizzatore, ed è la parte che vale la pena provare.</summary>
+// ⚠️ Pubblico per FORZA: compare in un `[Parameter]` di un componente Razor, e la classe che Razor
+// genera è pubblica. Un tipo che sta nella firma di un componente è superficie del modulo quanto il
+// componente stesso (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirportTlIssue(string Key, object[] Args);
 
 /// <summary>
@@ -165,11 +168,11 @@ public static class AirportFrequencyPicker
 }
 
 /// <summary>Esito della validazione delle regole piste: gli errori impediscono il salvataggio, gli avvisi no.</summary>
-public sealed record AirportRuleIssues(
+internal sealed record AirportRuleIssues(
     IReadOnlyList<AirportTlIssue> Errors, IReadOnlyList<AirportTlIssue> Warnings);
 
 /// <summary>Le regole della tabella «Regole piste». Cuore deterministico.</summary>
-public static class AirportRuleValidation
+internal static class AirportRuleValidation
 {
     /// <param name="knownIdents">Le piste che lo scalo ha davvero: una regola può nominarne una che non
     /// esiste — un refuso, o una pista tolta dopo — ed è un avviso, non un errore, perché la regola resta

@@ -103,7 +103,7 @@ public static class AirspaceMap
 /// classi di spazio aereo un colore ufficiale non esiste, ed è lo stesso motivo per cui le TSA/TRA non ne
 /// hanno uno.</para>
 /// </summary>
-public static class AirspaceColorScheme
+internal static class AirspaceColorScheme
 {
     /// <summary>Il colore della famiglia; le famiglie non utilizzabili tornano il grigio delle altre aree.</summary>
     public static string For(AirspaceFamily family) => family switch

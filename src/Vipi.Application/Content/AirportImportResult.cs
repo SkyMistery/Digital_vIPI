@@ -15,6 +15,9 @@ namespace Vipi.Application.Content;
 /// di ACC è una decisione — chi lo esegue riaggancia i padri e riguarda i documenti — e un import che
 /// spostasse da sé porterebbe con sé i settori di un aeroporto mentre qualcuno ci sta scrivendo sopra.
 /// </param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirportImportResult(int Assigned, IReadOnlyList<AirportImportFailure> Failures, int Refreshed = 0,
     IReadOnlyList<AirportAccDivergence>? AccDivergences = null)
 {

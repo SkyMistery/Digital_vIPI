@@ -10,6 +10,9 @@ namespace Vipi.Application.Stats;
 /// <param name="Outbound">Partenze.</param>
 /// <param name="Overflight">Sorvoli: <b>non</b> sono movimenti del campo, ma si contano perché il campo li vede.</param>
 /// <param name="Covered">Arrivi e partenze caduti in un minuto in cui una posizione del campo era aperta.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AirportDayTally(int Inbound, int Outbound, int Overflight, int Covered)
 {
     /// <summary>I movimenti veri del campo: arrivi più partenze. I sorvoli restano fuori, come nel §15.2.</summary>

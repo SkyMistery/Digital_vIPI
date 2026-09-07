@@ -8,7 +8,7 @@ namespace Vipi.Application.Content;
 /// il file lo sceglie l'ente. Duplicarla darebbe, prima o poi, due sezioni «minime» che non mostrano le stesse
 /// carte pur descrivendo lo stesso aeroporto.
 /// </summary>
-public static class MinimaCharts
+internal static class MinimaCharts
 {
     /// <summary>
     /// ICAO dell'aeroporto di una posizione, dal prefisso del callsign (<c>LIRN_APP</c> → <c>LIRN</c>).

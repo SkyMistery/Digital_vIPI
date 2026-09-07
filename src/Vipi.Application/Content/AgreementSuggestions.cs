@@ -9,6 +9,9 @@ namespace Vipi.Application.Content;
 /// <param name="Callsign">Il callsign da mettere nella parte.</param>
 /// <param name="Reason">Perché è proposto — si mostra accanto alla voce: chi sceglie deve poter dire di no.</param>
 /// <param name="Rank">Ordine di proposta: più basso = più probabile. Non è una certezza, è una scommessa.</param>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AgreementSuggestion(string Callsign, AgreementSuggestionReason Reason, int Rank);
 
 /// <summary>Perché un ente è proposto. È un enum e non una stringa perché la <b>lingua</b> di questa spiegazione

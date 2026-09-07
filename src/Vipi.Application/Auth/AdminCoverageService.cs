@@ -8,6 +8,9 @@ namespace Vipi.Application.Auth;
 /// Uno staffista visto dal roster: i suoi codici, quali di questi valgono admin, e il <b>livello effettivo</b>
 /// — che può venire da una promozione a mano e non dai codici.
 /// </summary>
+// ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
+// compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
+// espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public sealed record AdminCodeRow(int UserId, string? DisplayName, IReadOnlyList<string> Codes,
     IReadOnlyList<string> Matched, VipiRole Level, bool Promosso);
 
