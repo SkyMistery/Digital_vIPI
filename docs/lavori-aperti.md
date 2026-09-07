@@ -2,16 +2,13 @@
 
 ## Dove siamo — 7 settembre 2026
 
-1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` è pulito e spinto, nessun ramo di lavoro
-   aperto.
-2. 📦 **IL PACCHETTO 1.15.0 È PRONTO E ASPETTA DI ESSERE CARICATO.**
-   `artifacts/publish/vipi-1.15.0-solo-file-cambiati.zip`, sha256
-   `b05da878551458258086fdd7132c571d7ca0c600c3a5a20616fc6185e3140490`, 4,87 MB, **28 file**, timbro
-   **`1.15.0 · 31fd4194`**. **MINOR**: nessuna migrazione — si carica anche in finestra cieca — ma due gesti
-   a schermo non c'erano. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.0.md`.
-   🔴 **Da dire a chi carica**: i 28 file vanno caricati **tutti insieme**. R-009 ha reso `internal` 74 tipi
-   fra gli assiemi, e un assieme vecchio accanto a uno nuovo non dà errore al caricamento — esplode alla
-   prima pagina, a runtime.
+1. ✅ **In produzione c'è 1.15.0**, caricata la sera del 7 settembre e **verificata da fuori**: non solo i
+   controlli pubblici verdi (Ricerca compresa), ma la prova che gira il codice **nuovo** — i quattro asset di
+   `wwwroot` serviti dal sito hanno **sha256 identici** a quelli del pacchetto, il token `?v=` che la pagina
+   chiede (che l'app calcola dal file su disco) combacia, e nel foglio servito ci sono `.union-common` e
+   `.union-keepers`, che 1.14.2 non ha. `main` è pulito e spinto, nessun ramo di lavoro aperto.
+2. ⚠️ **Quel che da fuori NON si vede, e resta da guardare con occhi da admin**: unendo la vIPI e il vSOP di
+   uno scalo deve comparire la scheda **«Sezioni in comune»**. L'editor da anonimo non si raggiunge.
 3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
@@ -33,6 +30,22 @@
 <details>
 <summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
 com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
+**Aggiornato:** 7 settembre 2026, notte — ✅ **1.15.0 È IN PRODUZIONE**, caricata dal committente e
+**verificata da fuori**. Gli otto controlli pubblici verdi (JS minificato servito, circuito aperto,
+**Ricerca che risponde**, foglio di stile in vigore, console pulita) — ⚠️ ma quelli passerebbero anche su
+1.14.2, quindi la prova vera è un'altra: **i quattro asset di `wwwroot` serviti dal sito hanno sha256
+identici a quelli del pacchetto**, il token `?v=` che la pagina chiede — che l'applicazione calcola dallo
+sha del file **che ha su disco** — combacia su tutti e quattro, il `last-modified` dice 7 settembre 20:12, e
+dentro il foglio servito ci sono `.union-common`, `.union-keepers` e `.xt-c-acts{width:176px`, che in 1.14.2
+non esistono. Le varianti `.br`/`.gz` rispondono 200.
+🔴 **E il primo giro di verifica aveva detto NO**, ed è servito: i tre CSS erano ancora quelli di 1.14.2
+**byte per byte**, con `cf-cache-status: MISS` — quindi non era la cache di Cloudflare, era il server. Il
+segnale che l'ha inchiodato è il **token `?v=`**: lo calcola l'app dal file su disco, quindi dice che cosa
+c'è **davvero** lì dentro, e non che cosa un proxy ha in memoria. I 13 file di `wwwroot` + indice erano
+rimasti indietro; ricaricati, tutto combacia.
+▶ **Resta**, e da fuori non si vede: aprire l'editor di uno scalo che ha anche il vSOP militare, unire i due
+documenti e guardare che compaia la scheda **«Sezioni in comune»**.
 
 **Aggiornato:** 7 settembre 2026, sera tardi — 📦 **IL PACCHETTO 1.15.0 È PRONTO.**
 `vipi-1.15.0-solo-file-cambiati.zip`, sha256 `b05da878551458258086fdd7132c571d7ca0c600c3a5a20616fc6185e3140490`,

@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 7 settembre 2026, sera — 📦 **1.15.0 È PRONTA DA CARICARE**, e ✅ **la revisione
+**Ultimo aggiornamento:** 7 settembre 2026, notte — ✅ **1.15.0 È ONLINE** (caricata e verificata da fuori: i quattro asset serviti hanno sha256 identici al pacchetto), e ✅ **la revisione
 totale del codice è chiusa** (31 findings su 33 più R-009, sette lotti: vedi in fondo).
 
 `artifacts/publish/vipi-1.15.0-solo-file-cambiati.zip` · sha256 `b05da878…` · 4,87 MB · **28 file** ·
