@@ -12,6 +12,11 @@ namespace Vipi.Infrastructure.Ivao;
 /// strappata o disallineata dagli elementi. Stesso schema di <c>OnlineAtcCache</c>.
 /// </para>
 /// </summary>
+// ⚠️ Resta PUBBLICO, e non per dimenticanza: `IvaoAirportClient` è pubblico — lo nomina chi sta fuori —
+// e lo prende nel costruttore. Un tipo che compare nella firma di un tipo pubblico è pubblico anche lui,
+// e il compilatore lo dice (CS0051). Restringerlo vorrebbe dire restringere prima il suo cliente
+// (revisione del 6 settembre 2026, R-009: si decide tipo per tipo, ed è questo il caso in cui la
+// decisione la prende la catena, non il nome).
 public sealed class IvaoAirportCache
 {
     private readonly SemaphoreSlim _gate = new(1, 1);

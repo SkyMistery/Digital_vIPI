@@ -41,7 +41,7 @@ namespace Vipi.Infrastructure;
 /// corpus di ieri, e pagare di nuovo domani per le frasi arrivate nel frattempo.
 /// </para>
 /// </summary>
-public sealed class TranslationFillHostedService : BackgroundService
+internal sealed class TranslationFillHostedService : BackgroundService
 {
     /// <summary>
     /// Vedi il commento di classe: qui il metro è l'attesa del lettore, non il ritmo di una sorgente.

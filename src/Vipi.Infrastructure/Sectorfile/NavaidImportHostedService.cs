@@ -22,7 +22,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// stessa cadenza e sugli stessi file. Invalidarla due volte vorrebbe dire scaricare gli otto file due volte
 /// per niente.</para>
 /// </summary>
-public sealed class NavaidImportHostedService : BackgroundService
+internal sealed class NavaidImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly SectorfileOptions _opt;

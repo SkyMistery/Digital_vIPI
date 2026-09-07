@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// l'impostazione predefinita l'arretrato di un anno si recupera in più notti; chi ha fretta alza
 /// <c>Ivao:AirportTrafficBackfillPerRun</c> e paga sulla sorgente nella stessa misura.</para>
 /// </summary>
-public sealed class AirportTrafficBackfillHostedService : BackgroundService
+internal sealed class AirportTrafficBackfillHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// Una sola chiamata al minuto indipendentemente dagli utenti (RNF-1/RNF-4). Resiliente: gli errori di rete
 /// vengono loggati ma non uccidono il loop. ADR-0001 D6 / PIANO §7.2.
 /// </summary>
-public sealed class AtcPollingHostedService : BackgroundService
+internal sealed class AtcPollingHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly AtcTrafficRecorder _traffico;
@@ -271,6 +271,11 @@ public sealed class AtcPollingHostedService : BackgroundService
 }
 
 /// <summary>Registrazione del polling IVAO (client, token, cache, hosted service). Chiamata dall'Host.</summary>
+// ⚠️ Resta PUBBLICA, e il perché vale più della riga: la usa `Vipi.Hosting` — ma la usa col nome del
+// METODO (`services.AddVipiIvao(...)`), non con quello della classe. Un censimento che cerca il nome del
+// TIPO non la vede mai come usata, e la propone da restringere: è successo il 7 settembre 2026, e a
+// dirlo è stato il compilatore. È esattamente il motivo per cui R-009 è un censimento e non una lista di
+// cancellazioni.
 public static class IvaoServiceCollectionExtensions
 {
     public static IServiceCollection AddVipiIvao(

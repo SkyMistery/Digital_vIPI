@@ -22,7 +22,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// Chi ha fretta di vedere l'anno intero alza <c>Ivao:AirportTrafficRollupPerRun</c> e paga sulla sorgente
 /// nella stessa misura.</para>
 /// </summary>
-public sealed class AirportTrafficRollupHostedService : BackgroundService
+internal sealed class AirportTrafficRollupHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

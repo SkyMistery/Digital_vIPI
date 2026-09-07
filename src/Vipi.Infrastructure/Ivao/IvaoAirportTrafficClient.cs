@@ -24,7 +24,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// 100 (misurato: <c>limit=400</c> → <c>400 Should be lower than 100</c>). Al massimo un'ora e mezza di
 /// storia, non un contatore di movimenti.</para>
 /// </summary>
-public sealed class IvaoAirportTrafficClient : IAirportTrafficSource
+internal sealed class IvaoAirportTrafficClient : IAirportTrafficSource
 {
     private readonly IvaoHttp _http;
     private readonly IvaoOptions _opt;

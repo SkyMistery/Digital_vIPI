@@ -16,7 +16,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// <para>⚠️ La lettura non passa da <c>ExecuteSqlRaw</c> ma dalla connessione, come fa la sonda di drift:
 /// <c>@@variabile</c> non è una query su una tabella e non ha bisogno del machinery di EF.</para>
 /// </summary>
-public sealed class MySqlServerSettingsProbe : IServerSettingsProbe
+internal sealed class MySqlServerSettingsProbe : IServerSettingsProbe
 {
     private readonly VipiDbContext _db;
     public MySqlServerSettingsProbe(VipiDbContext db) => _db = db;

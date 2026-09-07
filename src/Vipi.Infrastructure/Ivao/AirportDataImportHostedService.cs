@@ -19,7 +19,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// <para>⚠️ Il documento <b>non</b> viene rigenerato: import e generazione sono scollegati (doc 03 §4.3),
 /// come per Settori e SID. Il dato nuovo entra nel sito al prossimo «Genera documenti».</para>
 /// </summary>
-public sealed class AirportDataImportHostedService : BackgroundService
+internal sealed class AirportDataImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

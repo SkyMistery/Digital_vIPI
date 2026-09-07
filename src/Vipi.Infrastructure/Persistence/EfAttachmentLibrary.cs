@@ -10,7 +10,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// EF: la biblioteca degli allegati. Le regole che fa rispettare stanno scritte su
 /// <see cref="IAttachmentLibrary"/>; qui c'è come si applicano.
 /// </summary>
-public sealed class EfAttachmentLibrary : IAttachmentLibrary
+internal sealed class EfAttachmentLibrary : IAttachmentLibrary
 {
     private readonly VipiDbContext _db;
 

@@ -7,7 +7,7 @@ using Vipi.Domain.Entities;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <inheritdoc cref="IVloaDerivationRepository"/>
-public sealed class EfVloaDerivationRepository : IVloaDerivationRepository
+internal sealed class EfVloaDerivationRepository : IVloaDerivationRepository
 {
     private readonly VipiDbContext _db;
     public EfVloaDerivationRepository(VipiDbContext db) => _db = db;

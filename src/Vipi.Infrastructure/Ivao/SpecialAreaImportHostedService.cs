@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// Job di sistema: porta sorgente + repository (niente authz utente). Upsert per IvaoId.
 /// Resiliente: errori loggati senza uccidere il loop; se le credenziali mancano, salta in silenzio.
 /// </summary>
-public sealed class SpecialAreaImportHostedService : BackgroundService
+internal sealed class SpecialAreaImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

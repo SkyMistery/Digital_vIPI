@@ -8,7 +8,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// <summary>
 /// EF: il lato vIPI del confronto col sectorfile. Sola lettura, quattro query, nessuna scrittura.
 /// </summary>
-public sealed class EfSectorfileComparisonRepository : ISectorfileComparisonRepository
+internal sealed class EfSectorfileComparisonRepository : ISectorfileComparisonRepository
 {
     private readonly VipiDbContext _db;
     public EfSectorfileComparisonRepository(VipiDbContext db) => _db = db;

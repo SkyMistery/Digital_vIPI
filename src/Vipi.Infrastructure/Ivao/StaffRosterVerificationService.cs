@@ -11,7 +11,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// più staff IT. Prima esecuzione dopo un intervallo intero (non all'avvio), così i login appena registrati
 /// restano visibili subito. Resiliente: gli errori vengono loggati ma non uccidono il loop.
 /// </summary>
-public sealed class StaffRosterVerificationService : BackgroundService
+internal sealed class StaffRosterVerificationService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

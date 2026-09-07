@@ -22,7 +22,7 @@ namespace Vipi.Infrastructure;
 /// giro è guardare il mondo <b>dopo</b> che gli import l'hanno aggiornato; partire prima vorrebbe dire
 /// misurare la deriva di ieri.</para>
 /// </summary>
-public sealed class ImpactDriftHostedService : BackgroundService
+internal sealed class ImpactDriftHostedService : BackgroundService
 {
     /// <summary>Ogni quanto. Un giorno: la deriva la producono gli import, che girano una volta al giorno —
     /// guardare più spesso costerebbe senza poter trovare niente di nuovo.</summary>

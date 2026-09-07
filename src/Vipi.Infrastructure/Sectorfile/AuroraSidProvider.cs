@@ -9,7 +9,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// <see cref="INavaidSource"/>, carica gli alias fix, e delega a <see cref="AuroraSectorfileParser"/>. Repo pubblico
 /// raw, nessuna auth. Lifetime transient (registrato con <c>AddHttpClient&lt;,&gt;</c>): nessuno stato condiviso qui.
 /// </summary>
-public sealed class AuroraSidProvider : ISidProvider
+internal sealed class AuroraSidProvider : ISidProvider
 {
     private readonly HttpClient _http;
     private readonly SectorfileOptions _opt;

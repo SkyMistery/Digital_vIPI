@@ -36,6 +36,31 @@ host (scenari A/B) era documentato ma non implementato.
   `#components-reconnect-modal` per nome e a circuito morto la pagina potrebbe non esserci.
 - **D4 — Chrome opzionale.** La topbar del modulo è disattivabile via `Vipi:RenderTopbar=false`, per
   convivere con l'header del sito ospitante.
+- **D6 — La superficie pubblica è una PROMESSA, e si stringe tipo per tipo.** Ogni tipo `public` di questo
+  modulo è una promessa verso l'host che lo incorpora: toglierlo domani è una rottura. La revisione del
+  6 settembre 2026 (R-009) ha contato **179 tipi pubblici che nessun file fuori dal loro progetto nomina**.
+
+  Dal 7 settembre 2026 due progetti sono stati stretti:
+  - **`Vipi.Infrastructure`**: da 38 candidati a **3**. Sono `internal` i diciassette servizi in background
+    (`AddHostedService<T>` non chiede che siano pubblici: la registrazione avviene dentro l'assieme) e venti
+    fra repository EF, client IVAO, provider del sectorfile e sonde — tutti dietro un'interfaccia.
+    `Vipi.Infrastructure.Tests` vede gli `internal` via `InternalsVisibleTo`, come già tre altri progetti.
+  - **`Vipi.Hosting`**: da 5 candidati a **3**.
+
+  ⚠️ **Chi resta pubblico, e perché — sono le tre forme di «pubblico per una ragione che il nome non dice»:**
+  1. `DesignTimeDbContextFactory`: la trovano gli **strumenti EF** per riflessione, e le migrazioni si
+     generano da lì. Non vale il rischio.
+  2. `IvaoAirportCache`, `ConsistencyReportCache`: compaiono nella **firma** di un tipo pubblico. Il
+     compilatore lo dice da sé (CS0051), ed è il modo giusto di scoprirlo.
+  3. `IvaoServiceCollectionExtensions`, `CoordinationSentenceOptions`, `DevIdentityOptions`: le prime si
+     usano col nome del **metodo** (`services.AddVipiIvao(...)`), le altre le costruisce il **binder della
+     configurazione** da un altro assieme. Un censimento che cerca il nome del TIPO non le vede mai usate.
+
+  ⚠️ **Restano un censimento, non una lista di cancellazioni**: `Vipi.Application` (98) e `Vipi.Ui` (24).
+  Si guardano con `python tools/censimento-pubblici.py <progetto>`, che **propone e non tocca** — non legge
+  gli `.xaml`, non vede la riflessione, e l'ultima parola è di chi legge. Il compilatore è la rete: due
+  proposte su ventitré, il 7 settembre, erano sbagliate e le ha fermate lui.
+
 - **D5 — JS namespacing.** Le funzioni del modulo restano sotto il prefisso `vipi*` (namespace di
   fatto, collision-safe); non si toccano `window`/DOM globali oltre a quello.
 - **D6 — Prefisso di rotta.** `/sop` resta fisso nelle `@page` (Blazor richiede letterali a compile-time);

@@ -8,7 +8,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// Adapter IVAO v2 per il profilo del singolo utente (/v2/users/{id}): nickname, rating ATC, staff.
 /// Best-effort (null su 404/transitorio). Implementa la porta <see cref="IUserDirectory"/>. Doc refactor 01 §4.2.
 /// </summary>
-public sealed class IvaoUserClient : IUserDirectory
+internal sealed class IvaoUserClient : IUserDirectory
 {
     private readonly IvaoHttp _http;
 

@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// Questi tre li legge <b>un chiamante solo, una volta ogni 24 ore</b>, e una copia tenuta in memoria
 /// direbbe «confrontato adesso» mostrando file di ieri — cioè la sola cosa che questo giro non deve fare.</para>
 /// </summary>
-public sealed class AuroraSectorfileFactsProvider : ISectorfileFactsSource
+internal sealed class AuroraSectorfileFactsProvider : ISectorfileFactsSource
 {
     /// <summary>I tre file, relativi a <see cref="SectorfileOptions.RawBaseUrl"/>.</summary>
     private const string PathPositions = "OTHER/itfreq.frq";

@@ -57,4 +57,13 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- ⚠️ Serve perché i servizi in background sono `internal` dal 7 settembre 2026 (revisione del
+         6 settembre, R-009): `AddHostedService<T>` non chiede che siano pubblici — la registrazione avviene
+         dentro questo assieme — ma `AtcPollingShutdownTests` ne COSTRUISCE uno a mano, ed è giusto che
+         possa: quel test prova lo spegnimento, che è la cosa che in produzione perde dati.
+         Stessa scelta già presa per Vipi.AuroraBridge.Core, Vipi.AuroraProfiles e Vipi.Host. -->
+    <InternalsVisibleTo Include="Vipi.Infrastructure.Tests" />
+  </ItemGroup>
+
 </Project>

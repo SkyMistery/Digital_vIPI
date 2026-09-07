@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure.Ivao;
 ///
 /// <para>bootDelay 150s: dopo tutti gli import, così una potatura non si accavalla a una scrittura grossa.</para>
 /// </summary>
-public sealed class TrafficRetentionHostedService : BackgroundService
+internal sealed class TrafficRetentionHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

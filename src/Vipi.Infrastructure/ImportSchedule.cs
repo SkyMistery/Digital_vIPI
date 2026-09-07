@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure;
 /// <para>SID senza <c>RawBaseUrl</c>: l'hosted service non parte affatto (sorgente non configurata), quindi
 /// la cadenza è <c>null</c> — «nessun giro automatico», che è la verità.</para>
 /// </summary>
-public sealed class ImportSchedule : IImportSchedule
+internal sealed class ImportSchedule : IImportSchedule
 {
     private readonly IvaoOptions _ivao;
     private readonly SectorfileOptions _sectorfile;

@@ -19,7 +19,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// <para>bootDelay 70s: dopo tutti gli altri giri (ACC 15s, anagrafica 25s, SID 30s, settori 40s, TA/piste
 /// 50s), perché è il più lungo e il meno urgente.</para>
 /// </summary>
-public sealed class AtcHistoryImportHostedService : BackgroundService
+internal sealed class AtcHistoryImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

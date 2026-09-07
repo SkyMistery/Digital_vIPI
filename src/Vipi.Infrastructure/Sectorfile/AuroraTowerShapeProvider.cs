@@ -13,7 +13,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// di processo da <see cref="SectorfileCache"/>. Lifetime transient (registrato con <c>AddHttpClient&lt;,&gt;</c>):
 /// nessuno stato condiviso qui dentro.
 /// </summary>
-public sealed class AuroraTowerShapeProvider : ITowerShapeSource
+internal sealed class AuroraTowerShapeProvider : ITowerShapeSource
 {
     private readonly HttpClient _http;
     private readonly SectorfileOptions _opt;
