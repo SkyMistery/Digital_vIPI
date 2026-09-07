@@ -283,7 +283,14 @@ public static class CoordinateParser
     }
 
     /// <summary>Angolo letto: il valore assoluto in gradi e l'emisfero se dichiarato (null = da dedurre).</summary>
-    private readonly record struct Angolo(double Gradi, char? Emisfero, bool Negativo);
+    /// <summary>
+    /// Un angolo letto da un pezzo di riga.
+    /// <para><paramref name="FuoriIntervallo"/> = il token era scritto bene ma il valore non ci sta
+    /// (<c>N041.<b>99</b>.28.965</c>): entra lo stesso, perché il posto dove dirlo è la segnalazione della
+    /// coppia — scartarlo qui lo farebbe diventare un'etichetta e la risposta sarebbe «angolo spaiato»,
+    /// che manda a cercare un'altra cosa.</para>
+    /// </summary>
+    private readonly record struct Angolo(double Gradi, char? Emisfero, bool Negativo, bool FuoriIntervallo = false);
 
     private static (List<Angolo> Angoli, List<string> Etichette) LeggiRiga(string riga)
     {
@@ -319,7 +326,7 @@ public static class CoordinateParser
             // incollato `N095.00.00.000` si sentirebbe dire «angolo spaiato» — una correzione diversa da
             // quella che serve. Chi importa un file non passa di qui: per lui `TryParse` dice no e basta.
             if (!DmsCoordinate.TryParse(token, out var g, out var fuori) && !fuori) return false;
-            angoli.Add(new Angolo(Math.Abs(g), token[0], g < 0));
+            angoli.Add(new Angolo(Math.Abs(g), token[0], g < 0, fuori));
             return true;
         }
 
@@ -407,6 +414,16 @@ public static class CoordinateParser
     {
         punto = default;
         avviso = null;
+
+        // ⚠️ Un angolo scritto bene ma fuori intervallo si ferma QUI, e non perché la somma sfori: 41°99'
+        // fa 42,6°, cioè una latitudine perfettamente possibile. È il token a non essere una coordinata, e
+        // senza questo controllo entrerebbe come un punto valido spostato di mezzo grado — che è il modo
+        // peggiore di sbagliare (revisione del 6 settembre 2026, R-019).
+        if (a.FuoriIntervallo || b.FuoriIntervallo)
+        {
+            avviso = CoordinateIssueKind.FuoriIntervallo;
+            return false;
+        }
 
         var assA = a.Emisfero is { } ea ? Asse(ea) : (char?)null;
         var assB = b.Emisfero is { } eb ? Asse(eb) : (char?)null;
