@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-10 CHIUSE · 33 findings** · resta la sintesi (11)
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** ✅ **CHIUSA** — dodici fasi su dodici · **33 findings**, tutti 🟢 · **niente deve aspettare il 16 settembre**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -90,7 +90,7 @@ parte da `2b33791a` e non lo tocca.
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ✅ **chiusa** — 3 findings |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ✅ **chiusa** — 2 findings |
 | **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ✅ **chiusa** — 0 findings nuovi, 1 proposta scartata sulla misura |
-| **11** | Sintesi: registro ordinato, le due liste (🟢🟡 subito / 🔴 dopo il 16), lotti di rimedio | ⏳ |
+| **11** | Sintesi: registro ordinato, le due liste (🟢🟡 subito / 🔴 dopo il 16), lotti di rimedio | ✅ **chiusa** — 7 lotti |
 
 ### Fase 4 — gli undici ambiti
 
@@ -1719,3 +1719,187 @@ serve una copia del database e la skill `verifica-live`. Le tre misure che varre
 | Query per pagina sui **quattro viewer pubblici**, col log di EF | L'audit contò 465 → 153 all'**avvio**; nessuno ha contato le query **per pagina** dopo i documenti uniti e le carte d'aeroporto |
 | Peso della **prima visita** oggi, con un browser vero | I 113 KB sono del 27 agosto: da allora sono entrate cinque consegne |
 | Tempo del **primo disegno** di un documento con release congelata contro uno live | La release serve a non ri-derivare: quanto vale, in millisecondi, non l'ha misurato nessuno |
+
+---
+
+# Fase 11 — Sintesi, le due liste, i lotti di rimedio
+
+**Stato:** ✅ **revisione chiusa** il 7 settembre 2026 · **33 findings** · dodici fasi su dodici
+
+## La risposta alla domanda che ha aperto tutto
+
+> *«Dividi in ciò che una volta fixato può essere caricato subito e ciò che per forza richiede di aspettare
+> il 16.»*
+
+**Non c'è niente che debba aspettare il 16 settembre.** Trentatré findings su trentatré sono 🟢: **nessuno
+richiede una migrazione, un cambio di schema o una consegna di database.**
+
+Non è fortuna, ed è il risultato più interessante della revisione: **lo schema è la parte più difesa di
+questo repository**. La Fase 2 l'ha misurato invece di guardarlo — i due insiemi di migrazioni allineati al
+modello, le 114 migrazioni applicate da vuoto anche sotto EF Core 8, sei test che tengono ferme le regole
+MySQL — e non ha trovato un solo difetto di modello. I difetti stanno **intorno**: nei parser che accettano
+troppo, nei contratti scritti che non corrispondono al codice, e in una transazione aperta nel posto
+sbagliato.
+
+## Il registro in una tabella
+
+| | S2 | S3 | S4 | totale |
+|---|---|---|---|---|
+| **CONFERMATO** | 9 | 13 | 9 | **31** |
+| **PLAUSIBILE** | 2 | — | — | **2** |
+| **totale** | **11** | **13** | **9** | **33** |
+
+Zero S1: niente perdita di dati, niente falla di autorizzazione aperta, nessuna pagina che cade.
+
+## I lotti di rimedio, in ordine di esecuzione
+
+Ogni lotto: che cosa tocca · quale test lo chiude · **come si prova da fuori**, che su questo prodotto è
+l'unica prova che conta.
+
+---
+
+### Lotto 1 — I due minuti che valgono di più 🟢
+
+**R-015** · **R-024** · **R-023**
+
+Tre fix piccoli, tre conseguenze grosse, nessuna delle tre visibile oggi.
+
+| | Che cosa si tocca | Test che lo chiude |
+|---|---|---|
+| **R-015** | `EfAtcTrafficStore.RollupAndPruneSessionsAsync`: passare da `IUnitOfWork`, o avvolgere in `CreateExecutionStrategy()` con `ChangeTracker.Clear()` come fa `EfUnitOfWork` | Un `VipiDbContext` montato su una execution strategy **che ritenta** (la sonda di Fase 3, ~30 righe). È il test che oggi **non esiste in nessuna forma**, e senza il quale il difetto torna |
+| **R-024** | `EfContentRepository.LoadAppVipiAsync`: aggiungere `s.IsActive` alla `Any(...)`, con lo stesso schermo per l'anteprima delle altre tre porte | Disattivare il settore e pretendere `null` dalla porta pubblica |
+| **R-023** | `_authz.EnsureAtLeast(VipiRole.Editor)` in testa a `ReplaceAsync`, `DeleteAsync`, `CreateAsync`; l'`userId` letto da `CurrentUserId` invece che ricevuto | Chiamare da anonimo e pretendere `EditNotAllowedException` — **il pattern esiste già in tredici file** |
+
+**Come si prova da fuori.** R-015: dopo il caricamento, `/services/vsop/admin/sources` non deve più mostrare
+la categoria della ritenzione in errore, e il conteggio delle sessioni deve **calare** al primo giro.
+R-024: nascondere un APP dall'admin e chiedere la sua pagina pubblica da anonimo ⇒ **404**, non il documento.
+R-023: nessuna prova da fuori — è una difesa in profondità; la prova è il test.
+
+> ⚠️ **R-015 è il primo della lista e non è un dettaglio di transazioni.** È l'unico difetto della revisione
+> che *sta già facendo danno adesso*, in silenzio: la potatura dell'archivio ATC non è mai avvenuta in
+> produzione, e quell'archivio è l'unica cosa che cresce senza freno (Fase 10).
+
+---
+
+### Lotto 2 — I parser che accettano troppo 🟢
+
+**R-018** · **R-020** · **R-019** · **R-021**
+
+Tutti e quattro su funzioni **pure**: si provano senza database, senza host, senza browser.
+
+| | Che cosa si tocca |
+|---|---|
+| **R-018** | `AuroraSectorfileParser.ParseSectorShapes`: un vertice non riconosciuto segna `mancante` e invalida l'anello, invece di scivolare nel ramo dell'intestazione |
+| **R-020** | `TabellaHtml.Leggi`: tenere le celle in eredità del `rowspan` e inserire la vuota nelle righe coperte — quello che il commento già promette |
+| **R-019** | Tre validatori: `EffectiveUtcForCycle` (quattro **cifre**, non `int.TryParse`), `DmsCoordinate` (intervallo, e niente segno) |
+| **R-021** | Un intervallo plausibile su `CruiseLevel` all'ingresso dell'API, e un avviso quando è fuori |
+
+**Come si prova da fuori.** R-020: incollare nell'import una tabella copiata da una pagina della vIPI (che
+usa `rowspan`) e verificare che le colonne non scalino. R-018: nessuna prova da fuori — serve un sectorfile
+con una coordinata storta, che è il test.
+
+---
+
+### Lotto 3 — Le corse e la gerarchia 🟢
+
+**R-016** · **R-014**
+
+| | Che cosa si tocca | Nota |
+|---|---|---|
+| **R-016** | Una sentinella (`_busy`) o uno scope proprio sulle **sei** pagine dell'elenco | Non serve una guardia per pagina: sei su ottantadue vuol dire che la convenzione regge e a queste è sfuggita |
+| **R-014** | `EffectiveHierarchy.ParentMap`: **fare rumore** su un callsign già presente, invece di sovrascrivere | Sale di priorità per il rinforzo di Fase 4: quella mappa è ciò che la guardia anti-ciclo valida. Un nodo perso lì fa validare l'albero sbagliato |
+
+---
+
+### Lotto 4 — Il contratto verso ivao.it 🟡
+
+**R-007** · **R-008** · **R-006**
+
+🟡 perché **non è codice che cade**: è ciò che qualcun altro applicherà. E perché R-008 tocca 1 983 regole
+CSS, quindi la consegna vuole gli asset rigenerati e i file di `wwwroot` caricati insieme.
+
+| | Che cosa si tocca |
+|---|---|
+| **R-007** | `ivao-it-wiring.patch`: aggiungere `app.RunVipiStartupMaintenance()` e correggere il prefisso di rotta. E **aggiornare l'elenco di ciò che è scaduto** in `integrazione-ivao-it-da-fare.md`, che oggi ne dichiara un punto solo |
+| **R-008** | Confinare le 1 983 regole sotto `.vipi-root` — o dichiarare onestamente nell'ADR che l'isolamento non c'è. **Se si fa, si fa insieme alla divisione admin/pubblico di Fase 10**, che da sola non si paga e in questo giro costa quasi zero |
+| **R-006** | `config.md`: `/vsop/health` e `/vsop/live/atc`, non `/sop/…` |
+
+**Come si prova da fuori.** R-006: `curl` sui due indirizzi corretti ⇒ 200; sui vecchi ⇒ 404, come previsto.
+R-008: la prova vera è **eseguire** il modulo dentro un host, che è §2.1 del loro documento e che nessuno ha
+mai fatto.
+
+---
+
+### Lotto 5 — Le guardie che mancano 🟢
+
+**R-027** · **R-028** · **R-022** · il test dei byte di controllo (**R-001** · **R-025**)
+
+Questo lotto non corregge difetti: **impedisce che tornino**. È il più economico della lista e quello con la
+resa più lunga.
+
+| | Il cancello |
+|---|---|
+| **R-001 · R-025** | Un test che rifiuta i byte di controllo nei sorgenti. Dieci righe, e **chiude la famiglia invece dei due esemplari** — che è la lezione, dato che dopo il primo caso nessuno aveva guardato se ce n'erano altri |
+| **R-027** | Il test che `regole-brand` **dichiara già di avere**: conta i letterali fuori dal primo `:root` contro una lista di eccezioni nominata — e le eccezioni diventano **quattro**, perché una correzione di contrasto misurata è legittima |
+| **R-028** | La CI scrive il conteggio dei test per progetto e per TFM e lo confronta con un atteso versionato. Non serve precisione: serve che **calare** faccia rumore |
+| **R-022** | Correggere la premessa nel `DbContext`: non «nessuna entità versionata usa `ExecuteUpdate`», ma «su `Document` si usa solo per le colonne del lock, che di proposito non ruotano il token» |
+
+---
+
+### Lotto 6 — I documenti che si leggono quando non si sa niente 🟢
+
+**R-029** · **R-030** · **R-011** · **R-012** · **R-013** · **R-031** · **R-032**
+
+Sette findings, **un rimedio solo ripetuto sette volte**: *un elenco che si aggiorna a mano ricade sempre*.
+
+| | Che cosa |
+|---|---|
+| **R-029** | Riscrivere «Dove siamo» — e che siano cinque righe. La cronologia va **sotto**, o dietro un `<details>` |
+| **R-030** | O l'indice lo genera un comando, o smette di dire «di tutti i documenti» |
+| **R-011 · R-012 · R-013** | `modello-dati.md`: **spostare la corona**. La sorgente è `OnModelCreating`; §9.13 prende il 🛑 che le altre tre hanno già; §9.8 diventa il comando che la genera |
+| **R-031** | La 1.12.0 entra in `HANDOFF.md` |
+| **R-032** | Il marcatore ⛔ che il repository usa già, su quattro file. E in `LEGGIMI-DEPLOY.md` invertire il peso: Passenger nel corpo, systemd nel riquadro |
+
+---
+
+### Lotto 7 — Igiene 🟢
+
+**R-002** (DTO morto) · **R-003** (156 file non formattati + il passo in CI) · **R-004** (xunit deprecato) ·
+**R-005** (i tre strumenti fuori dalla soluzione) · **R-009** (179 tipi pubblici, **tipo per tipo**, mai in
+blocco) · **R-010** (tre numeri sbagliati nei commenti) · **R-017** (la transazione asimmetrica) ·
+**R-026** (22 stringhe che non seguono la barra) · **R-033** (`git rm -- --nologo`).
+
+---
+
+## I sospetti, tenuti separati
+
+Dei tredici aperti durante la revisione, **nove sono stati chiusi** — quattro perché la sonda cercava la cosa
+sbagliata (s-01, e i 249 «testi a mano» che erano metà di chiamate bilingui), cinque perché la verifica ha
+dato ragione al codice (s-06, s-09, s-10, s-13, e la parità dei due cataloghi misurata a zero). **Due sono
+diventati findings** (s-11 → R-019, s-08 → R-016). Ne restano **due**, e vogliono l'app guidata:
+
+| # | Che cosa | Dove si decide |
+|---|---|---|
+| s-03 · s-04 · s-05 · s-07 | I residui del radar degli analizzatori: ~248 confronti di cultura, 73 `catch (Exception)`, 30 tipi `internal` mai istanziati, quattro `CancellationToken` non propagati | Da riprendere quando si tocca il file che li contiene, non in blocco |
+| s-12 | `LOWER`/`UPPER` di SQLite sono solo ASCII e l'ordinamento è binario, mentre MariaDB piega gli accenti e ordina alfabeticamente. **Misurato: oggi una sola stringa non ASCII in archivio** (`Zürich ACC`) | `verifica-live` |
+
+---
+
+## Le tre cose che questa revisione ha imparato sul repository
+
+**1. Dove il progetto ha già pagato un difetto, non lo ripaga.** Il giorno operativo delle regole pista, la
+fusione degli intervalli della copertura, l'atomicità dei lock, la soglia dei due clic, l'albero effettivo
+della guardia anti-ciclo: cinque meccanismi che in un repository qualunque sarebbero difetti quasi certi, qui
+sono corretti **e** commentati col caso che li ha prodotti. È la ragione per cui la resa in difetti di logica
+è bassa: non è che si stia cercando male.
+
+**2. I difetti veri stanno dove una garanzia è scritta e non verificata.** Sei findings su trentatré sono
+frasi che *autorizzano* qualcosa e non sono più vere: «l'unica entità che usa `ExecuteUpdate` non ha token»
+(R-022), «chi risolve un documento filtra su `IsActive`» (R-024), «zero letterali, ed è verificato» (R-027),
+«il `rowspan` si legge come cella vuota» (R-020), «la lista migrazioni autoritativa» (R-012), «mappa di
+**tutti** i documenti» (R-030). Nessuna era una bugia quando è stata scritta. Tutte lo sono diventate, e
+nessuna aveva un cancello che se ne accorgesse.
+
+**3. La cucitura cieca è fra i provider.** L'unico difetto che nessun test *poteva* prendere — R-015 — vive
+nella differenza fra SQLite (sviluppo e tutti i test) e MariaDB (produzione). È verde su 5 543 test ed è
+rosso sull'unico ambiente che conta. Finché quella cucitura non ha un test, è lì che passeranno i prossimi.
