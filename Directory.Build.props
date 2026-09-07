@@ -576,7 +576,44 @@
       l'avviso), piu' le FRASI (tre chiavi nuove per lingua) e `Host`, che porta sempre il timbro.
       ⚠️ Nessun file di `wwwroot` toccato — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.14.2</VipiVersione>
+    <!--
+      1.15.0 — 7 settembre 2026. **MINOR**, e il numero non e' un giudizio sull'importanza: e' la risposta
+      a «basta l'FTP?». Nessuna migrazione, quindi si consegna da sola anche dentro la finestra cieca al
+      16 settembre — ma non e' una PATCH, perche' due gesti a schermo non c'erano.
+
+      Si costruisce contro cio' che GIRA, che e' **1.14.2** (`5ed5a0c4`), caricata il pomeriggio del 7.
+
+        · UNIONE DI DOCUMENTI — le SEZIONI IN COMUNE (§11). Unendo la vIPI d'aeroporto e il vSOP militare
+          dello stesso scalo la pagina ripeteva METAR, frequenze, piste, quote di transizione. Adesso
+          all'unione si apre una scheda: si sceglie il documento che le TIENE, e nelle altre si nascondono
+          — con lo stesso flag del tasto «nascondi», reversibile allo stesso modo. Il comando resta nel
+          pannello, perche' le sezioni si aggiungono anche dopo.
+          ⚠️ Porta con se' due correzioni che valgono oltre la scheda: un membro unito a modifica GIA'
+          APERTA nasceva senza lock (ogni scrittura su di lui diceva «bloccato da un altro redattore», che
+          era falso), e un conflitto di lock nel pannello faceva cadere il circuito invece di dirsi.
+
+        · La CHIP «Tutto · Pilota · ATC» e' dell'UNIONE, non del solo ospite: con le sezioni marcate solo
+          sul secondo documento i tre comandi sparivano dal viewer. Il filtro funzionava lo stesso da URL:
+          mancava il modo di chiederlo.
+
+        · ACCORDI DI COORDINAMENTO: il tasto ⧉ COPIA UNA RIGA sta ora sulla riga, non nella finestra di
+          modifica. ⚠️ Non e' il ⧉ del pannello (ora ⧉⑂), che copia l'intero gruppo di varianti e su una
+          riga senza gruppo non faceva niente.
+
+        · La REVISIONE TOTALE del 6-7 settembre, chiusa: 31 findings su 33 piu' R-009. Fra questi, cose
+          che si vedono da fuori — un APP disattivato non e' piu' pubblico, la biblioteca allegati ha il
+          cancello che le altre avevano gia', il convertitore di coordinate non tronca piu' un anello
+          scritto male — e molte che non si vedono ma reggono il resto.
+          🔴 R-009 ha reso `internal` 74 tipi FRA GLI ASSIEMI: gli assiemi si spediscono TUTTI INSIEME, o
+          un assieme vecchio accanto a uno nuovo esplode al caricamento del tipo, a runtime.
+
+      Rispetto a 1.14.2 cambiano TUTTI E SEI i progetti (Application 92 file, Infrastructure 45, Ui 44,
+      Hosting 4, Domain 2, Host 1), le FRASI (due `.resx`, quindi il satellite inglese entra) e QUATTRO
+      file di `wwwroot` (`vipi-theme.css`, `vipi-aor3d.css`, `vipi-print.css`, `vipi-tour.js`), che
+      viaggiano insieme a `Vipi.Host.staticwebassets.endpoints.json`.
+      ⚠️ Da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.15.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
