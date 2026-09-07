@@ -39,6 +39,40 @@ public class DmsCoordinateTests
     public void Rifiuta_Il_Malformato(string? token) =>
         Assert.False(DmsCoordinate.TryParse(token, out _));
 
+    /// <summary>
+    /// ⚠️ <b>Quel che «malformata» non comprendeva.</b> Il contratto diceva «false se malformata» e non
+    /// c'era nessun controllo d'intervallo: <c>N091.99.99.999</c> entrava e disegnava un vertice plausibile
+    /// nel posto sbagliato — e il segno passava, perché <c>NumberStyles.Integer</c> lo ammette, così
+    /// <c>N-41.37.28</c> dava −40,4° sotto un emisfero Nord.
+    ///
+    /// <para>I due gemelli lo facevano già: <c>KmlReader</c> scarta il punto fuori intervallo,
+    /// <c>CoordinateParser</c> — quello che usa l'utente — risponde con un errore. La garanzia stava nei
+    /// chiamanti invece che nel validatore che la dichiara (revisione del 6 settembre 2026, R-019).</para>
+    /// </summary>
+    [Theory]
+    [InlineData("N091.00.00.000")]   // oltre il polo
+    [InlineData("N090.00.00.001")]   // appena oltre
+    [InlineData("E181.00.00.000")]   // oltre il meridiano opposto
+    [InlineData("N041.99.28.965")]   // 99 primi
+    [InlineData("N041.37.99.965")]   // 99 secondi
+    [InlineData("N-41.37.28.965")]   // il segno sotto un emisfero
+    [InlineData("N041.-7.28.965")]
+    [InlineData("N041.37.-8.965")]
+    [InlineData("N0919999999")]      // e la forma compatta ha gli stessi limiti
+    public void Rifiuta_Il_Fuori_Intervallo_E_Il_Segno(string token) =>
+        Assert.False(DmsCoordinate.TryParse(token, out _));
+
+    /// <summary>La controprova: i due estremi validi restano validi.</summary>
+    [Theory]
+    [InlineData("N090.00.00.000", 90.0)]
+    [InlineData("W180.00.00.000", -180.0)]
+    [InlineData("S090.00.00.000", -90.0)]
+    public void Gli_Estremi_Veri_Passano(string token, double atteso)
+    {
+        Assert.True(DmsCoordinate.TryParse(token, out var gradi));
+        Assert.Equal(atteso, gradi, 6);
+    }
+
     [Theory]
     [InlineData(42.00777778, true, "N042.00.28.000")]
     [InlineData(11.96833333, false, "E011.58.06.000")]

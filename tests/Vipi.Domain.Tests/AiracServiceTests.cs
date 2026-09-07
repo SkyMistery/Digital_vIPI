@@ -60,6 +60,29 @@ public class AiracServiceTests
         Assert.Throws<ArgumentException>(() => _sut.EffectiveUtcForCycle("26"));
     }
 
+    /// <summary>
+    /// ⚠️ <b>Il segno passava, e il sollevamento è usato come validatore</b>: `SidStampCycle` chiede proprio
+    /// a questo metodo se il ciclo dichiarato dalla sorgente sia buono. Con `Length == 4 && int.TryParse`,
+    /// «+261» dava l'anno 2002 e «−261» il 1998 — nessun errore, una data sbagliata, e il ciclo di un
+    /// sectorfile datato a ventotto anni fa (revisione del 6 settembre 2026, R-019).
+    /// </summary>
+    [Theory]
+    [InlineData("+261")]
+    [InlineData("-261")]
+    [InlineData("26 6")]
+    [InlineData("2600")]   // il numero del ciclo dentro l'anno parte da 1
+    [InlineData("2615")]   // e non arriva a quindici: in un anno ce ne stanno al massimo quattordici
+    public void EffectiveUtcForCycle_Rejects_SignsAndOutOfRange(string cycle) =>
+        Assert.Throws<ArgumentException>(() => _sut.EffectiveUtcForCycle(cycle));
+
+    /// <summary>La controprova: i cicli veri continuano a passare, quattordicesimo compreso.</summary>
+    [Theory]
+    [InlineData("2601")]
+    [InlineData("2614")]
+    [InlineData(" 2606 ")]
+    public void EffectiveUtcForCycle_Accepts_RealCycles(string cycle) =>
+        Assert.True(_sut.EffectiveUtcForCycle(cycle) > DateTime.MinValue);
+
     [Fact]
     public void NextCycles_AreConsecutive_28DaysApart()
     {

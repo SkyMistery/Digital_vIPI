@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace Vipi.Domain.Services;
 
 /// <summary>
@@ -31,12 +33,25 @@ public sealed class AiracService : IAiracService
         return Epoch.AddDays(periods * CycleDays);
     }
 
-    /// <summary>Data efficace (inizio, UTC) del ciclo AIRAC indicato in formato "YYNN". Throws se malformato.</summary>
+    /// <summary>
+    /// Data efficace (inizio, UTC) del ciclo AIRAC indicato in formato "YYNN". Throws se malformato.
+    ///
+    /// <para>⚠️ <b>Il sollevamento è usato come validatore</b> — <c>SidStampCycle</c> se ne serve per dire se
+    /// il ciclo dichiarato dalla sorgente è buono — quindi il controllo dev'essere all'altezza di quel
+    /// mestiere. Fino al 7 settembre 2026 era <c>Length == 4 &amp;&amp; int.TryParse</c>, e <c>"+261"</c> e
+    /// <c>"-261"</c> passavano: <c>int.Parse("+2")</c> dà il 2002 e <c>int.Parse("-2")</c> il 1998 — nessun
+    /// sollevamento, una data sbagliata (revisione del 6 settembre 2026, R-019).</para>
+    ///
+    /// <para>Ora: quattro <b>cifre</b>, e il numero del ciclo dentro l'anno fra 1 e 14 — quattordici è il
+    /// massimo che ci sta in un anno, e <c>GetCycle</c> non ne produce altri.</para>
+    /// </summary>
     public DateTime EffectiveUtcForCycle(string cycle)
     {
-        if (string.IsNullOrWhiteSpace(cycle) || cycle.Trim().Length != 4 || !int.TryParse(cycle.Trim(), out _))
+        var t = cycle?.Trim();
+        if (t is not { Length: 4 } || !t.All(char.IsAsciiDigit)
+            || int.Parse(t[2..], CultureInfo.InvariantCulture) is < 1 or > 14)
             throw new ArgumentException($"Ciclo AIRAC non valido: '{cycle}' (atteso YYNN).", nameof(cycle));
-        var c = cycle.Trim();
+        var c = t;
         int year = 2000 + int.Parse(c[..2]);
         int n = int.Parse(c[2..]);
         var d = FirstCycleOfYear(year).AddDays((n - 1) * CycleDays);
