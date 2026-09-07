@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-9 CHIUSE · 33 findings** · restano 10-11
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-10 CHIUSE · 33 findings** · resta la sintesi (11)
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -89,7 +89,7 @@ parte da `2b33791a` e non lo tocca.
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ✅ **chiusa** — 1 finding |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ✅ **chiusa** — 3 findings |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ✅ **chiusa** — 2 findings |
-| **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ⏳ |
+| **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ✅ **chiusa** — 0 findings nuovi, 1 proposta scartata sulla misura |
 | **11** | Sintesi: registro ordinato, le due liste (🟢🟡 subito / 🔴 dopo il 16), lotti di rimedio | ⏳ |
 
 ### Fase 4 — gli undici ambiti
@@ -1623,3 +1623,99 @@ genere di cosa che resta per anni proprio in quanto nessuno la guarda.
 | **I fogli di consegna** | 19 fogli di pacchetto e 8 di correzione, ognuno col proprio **timbro** (`1.12.0 · e5077ab9`) e la propria data: un archivio che si identifica da sé, non una pila ambigua |
 | **`Dockerfile`** | Vivo: lo costruisce e lo prova il job `docker` della CI. È l'unico dei quattro artefatti «container» che qualcuno usa |
 | **`deploy/mariadb/README.md`** | 293 righe, ed è la ricetta che serve davvero: MariaDB 11.4.10 identica in locale, «perché il 3306 loro è su localhost del loro server» |
+
+---
+
+# Fase 10 — Prestazioni
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · **0 findings nuovi** · 4 misure, 1 proposta **scartata sulla misura**
+
+L'audit del 27 agosto ha già fatto il lavoro grosso, e l'ha fatto misurando (336 → 113 KB alla prima visita,
+465 → 153 query all'avvio, due interventi su dieci **scartati** perché la misura ha ribaltato l'ipotesi).
+Questa fase non lo rifà: cerca ciò che è rimasto, con la stessa regola — *una proposta senza una misura non
+è una proposta*.
+
+## Le misure
+
+### 1. Il peso degli asset, oggi
+
+| File | grezzo | gzip -9 |
+|---|---|---|
+| `vipi-theme.css` | 377 698 | **109 394** |
+| `vipi-ui.js` | 60 697 | 20 049 |
+| `vipi-aor3d.js` | 36 996 | 12 679 |
+| `vipi-aor.js` | 36 285 | 12 255 |
+| `vipi-print.css` | 23 485 | 8 531 |
+| *(altri 13)* | | |
+| **totale** | **631 881** | **198 111** (31%) |
+
+Il foglio del tema è **il 60% dei byte grezzi e il 55% di quelli compressi**, prima ancora della
+minificazione. Non è un difetto in sé — copre un'interfaccia amministrativa grande — ma è il posto dove
+qualunque guadagno si trova.
+
+### 2. Quanto del foglio è morto: **quasi niente**
+
+Classi definite: **1 129**. Mai viste in un `class="…"` né in una stringa del JS: **63** — e la maggior parte
+sono falsi positivi (`components-reconnect-*` è di Blazor, `leaflet-container` è di Leaflet, `ctr`/`gnd`/`fss`
+si compongono a runtime dal tipo di posizione). **Il 94% delle classi è usato**: non c'è CSS morto da togliere.
+
+### 3. La proposta che sembrava ovvia, e la misura che la scarta
+
+**Ipotesi:** un lettore anonimo di un documento pubblico scarica anche il vestito dell'intera interfaccia di
+editing. Dividere il foglio in «pubblico» e «admin» gli risparmierebbe byte.
+
+**Misura:** delle 2 031 regole, quelle il cui selettore cita **solo** classi che compaiono esclusivamente nei
+41 componenti di editing/admin sono **233**, per **21 839 byte su 192 381** di testo delle regole — **l'11%**.
+Sui 109 KB compressi del foglio fanno **~12 KB** risparmiati a chi legge e basta.
+
+**Verdetto: non vale.** Dodici kilobyte compressi, una volta sola perché poi la cache tiene, in cambio di una
+seconda richiesta, di due file da tenere allineati e del rischio che una regola finisca dal lato sbagliato —
+in un foglio dove il 97,6% delle regole non è nemmeno confinato (R-008). Se un giorno si tocca quel foglio
+per R-008, **allora** la divisione si fa nello stesso giro e costa quasi zero; da sola non si paga.
+
+### 4. Il radar delle allocazioni non punta su nessun percorso caldo
+
+| Regola | In `src` | Dove stanno davvero |
+|---|---|---|
+| `CA1861` — array costante allocato a ogni chiamata | 165 | Migrazioni (girano una volta) e seed. Il primo file non-migrazione è `SpecTabelle` (8), che è un import |
+| `CA1873` — log costoso valutato comunque | 62 | Tutti in servizi ospitati e nell'avvio: 16 in `VipiModuleExtensions`, il resto nei giri d'import. **Nessuno su un percorso di richiesta** |
+| `CA1848` — logging senza delegati | 115 | Stessa distribuzione |
+
+Nessuno di questi costa qualcosa a chi apre una pagina.
+
+## Il vero problema di capacità è un bug, non una scelta
+
+L'unica crescita **senza freno** del sistema non viene da un dimensionamento sbagliato: viene da **R-015**.
+
+Misurato sul database di sviluppo (23,2 MB):
+
+| Tabella | Righe |
+|---|---|
+| `AtcSessions` | **23 816** |
+| `AirportDayTraffic` | 16 650 |
+| `AtcSessionTraffic` | 2 900 |
+| `AtcMonthRollups` | 305 |
+| tutto il resto (documenti, release, audit, traduzioni, media) | poche centinaia |
+
+Le sessioni coprono **esattamente un anno** (5 settembre 2025 → 6 settembre 2026), che è la finestra dei 366
+giorni; e dal 1° settembre ne sono entrate **1 579 in cinque giorni** — circa 316 al giorno, ~115 000 l'anno
+al ritmo attuale, con l'archivio mondiale acceso solo dal 28 agosto.
+
+La potatura che dovrebbe tenere quella finestra ferma a 366 giorni **su MariaDB non gira mai** (R-015), e
+fallisce in un modo che non si vede: la categoria resta in errore in `/services/vsop/admin/sources` e riprova
+ogni ora. Quindi il dimensionamento scritto — ~230 MB a regime **con** la potatura — è il numero di un sistema
+che oggi non esiste.
+
+**Non serve un intervento di prestazioni: serve il fix di R-015.** È la ragione per cui quel finding, che
+sembra un dettaglio di transazioni, sta in cima alla lista delle cose da caricare.
+
+## Che cosa resta da misurare dal vivo (e perché non l'ho fatto qui)
+
+La regola del progetto è che una proposta si misura guidando l'app, non leggendola. Qui non l'ho guidata:
+serve una copia del database e la skill `verifica-live`. Le tre misure che varrebbe la pena prendere:
+
+| Da misurare | Perché |
+|---|---|
+| Query per pagina sui **quattro viewer pubblici**, col log di EF | L'audit contò 465 → 153 all'**avvio**; nessuno ha contato le query **per pagina** dopo i documenti uniti e le carte d'aeroporto |
+| Peso della **prima visita** oggi, con un browser vero | I 113 KB sono del 27 agosto: da allora sono entrate cinque consegne |
+| Tempo del **primo disegno** di un documento con release congelata contro uno live | La release serve a non ri-derivare: quanto vale, in millisecondi, non l'ha misurato nessuno |
