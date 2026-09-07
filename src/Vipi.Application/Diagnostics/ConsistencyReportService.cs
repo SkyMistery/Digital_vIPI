@@ -350,6 +350,26 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 DetailArgs: new object[] { percorso }));
         }
 
+        // 4-ter) Lo stesso callsign in TUTTI E DUE i cataloghi: l'albero effettivo ne tiene uno solo.
+        //
+        // ⚠️ Non è un errore d'ingresso e non lo può diventare: l'unicità di ComposePosition è garantita
+        // dentro ciascuna tabella da un indice, le tabelle sono due, e niente vieta la stessa chiave in
+        // tutte e due. Fino al 7 settembre 2026 la seconda riga sovrascriveva la prima in silenzio: il
+        // settore perdeva il padre vero e la ricaduta finiva su un ente sbagliato o su UNICOM — visibile
+        // solo a valle, come «una gerarchia che non è quella che ho scritto» (R-014).
+        foreach (var d2 in d.HierarchyDuplicates)
+        {
+            var tenuto = d2.PadreTenuto ?? "—";
+            var scartato = d2.PadreScartato ?? "—";
+            findings.Add(new ConsistencyFinding("Callsign in due cataloghi", ConsistencySeverity.Error,
+                d2.Callsign,
+                $"Lo stesso callsign è nel catalogo ACC e in quello d'aeroporto: l'albero di copertura tiene " +
+                $"il padre «{tenuto}» e scarta «{scartato}». Va tolto da uno dei due.",
+                ConsistencyArea.Dati, DoveStruttura,
+                CategoryKey: "Diag_Cat_CallsignDueCataloghi", DetailKey: "Diag_Msg_CallsignDueCataloghi",
+                DetailArgs: new object[] { tenuto, scartato }));
+        }
+
         // 5) Area regolamentata dangling: un id salvato in una sezione «regulated» che non è più nei cataloghi.
         //    Il prune dell'import cancella le aree sparite dalla sorgente, ma la selezione salvata nel documento le
         //    cita ancora: il viewer le salta in silenzio (SpecialAreaProjection) e l'area sparisce senza dirlo.
