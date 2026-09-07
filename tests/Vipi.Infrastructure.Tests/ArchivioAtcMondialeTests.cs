@@ -115,7 +115,7 @@ public class ArchivioAtcMondialeTests : IAsyncLifetime
         await Sessione(1, 704798, "LIRF_TWR", fuori: false, giorniFa: 400, movimenti: 7);
         await Sessione(2, 111111, "EDDF_TWR", fuori: true, giorniFa: 400, movimenti: 99);
 
-        var tolte = await new EfAtcTrafficStore(_db)
+        var tolte = await new EfAtcTrafficStore(_db, new EfUnitOfWork(_db))
             .RollupAndPruneSessionsAsync(T0.AddDays(-366), batch: 100);
 
         Assert.Equal(2, tolte);

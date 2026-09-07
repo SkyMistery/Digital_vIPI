@@ -27,7 +27,7 @@ public class TrafficRetentionTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _store = new EfAtcTrafficStore(_db);
+        _store = new EfAtcTrafficStore(_db, new EfUnitOfWork(_db));
     }
 
     public async Task DisposeAsync()
