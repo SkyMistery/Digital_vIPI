@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 e 5 chiuse · Fase 4 (4a-4d chiusi, resto campionato) · 24 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 e 5 chiuse · Fase 4 e 6 in parte · 26 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -85,7 +85,7 @@ parte da `2b33791a` e non lo tocca.
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a-4d ✅ · 4e/4g/4h/4i/4k campionati · 6 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ✅ **chiusa** — 2 findings |
-| **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
+| **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | 🔵 **parte meccanica ✅** — 2 findings · residuo: CSS a fondo, stampa, i18n del testo, telefono |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ⏳ |
@@ -145,6 +145,8 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
 | **R-022** | 4i | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
+| **R-025** | 6 | **S2** | 🟢 | CONFERMATO | **Byte di controllo nel sorgente, secondo caso**: `0x1F`/`0x1E` come separatori della firma dell'indice unito. Perderli riapre un difetto già chiuso, e nessun test cadrebbe | `UnionMembersEditor.razor:136` |
+| **R-026** | 6 | S4 | 🟢 | CONFERMATO | **13 etichette e 9 segnaposto non seguono la barra della lingua** (regola R6): sette sono `aria-label`, cioè il testo che esiste solo per chi non vede l'icona | 13 file · vedi sotto |
 | **R-024** | 5 | **S2** | 🟢 | CONFERMATO | **L'APP nascosto resta pubblico**: delle quattro porte pubbliche è l'unica che passa da un `Sector` e l'unica che non filtra `IsActive` — contro la premessa scritta nella proiezione | `EfContentRepository.cs:52-61` · `EfSectorProjectionService.cs:229` |
 
 ---
@@ -1211,3 +1213,82 @@ bozza di un APP disattivato mentre il pubblico no. Una riga.
 | **Cookie** | `HttpOnly`, `SameSite=Lax` e `SecurePolicy=Always` fuori da Development — **scritti invece che ereditati**, «perché un default non dichiarato è un default che qualcuno cambia» |
 | **Cancello pubblico delle release** | La visibilità pubblica **è** l'esistenza di una release effettiva: niente release ⇒ invisibile, senza il vecchio ripiego che rendeva pubblica una versione pubblicata senza release |
 | **Allegati serviti sul web** | Pubblici di proposito (il file sul Drive è condiviso «chiunque abbia il link»), redirect **302** e non 301 perché il deposito può cambiare |
+
+---
+
+# Fase 6 — UI Blazor
+
+**Stato:** 🔵 **fatta la parte meccanica** · 2 findings · s-01 chiuso
+
+Perimetro coperto: caratteri di controllo, trappole Razor invisibili al compilatore, render mode e isole,
+fughe di sottoscrizioni, timer e `StateHasChanged`, nomi accessibili, i18n degli attributi, uso reale degli
+asset. **Residuo dichiarato**: CSS in profondità (oltre R-008), foglio di stampa, i18n del contenuto testuale
+degli elementi, comportamento su telefono.
+
+## R-025 — Il byte di controllo non era un caso isolato: è un'abitudine
+
+`src/Vipi.Ui/Components/Doc/UnionMembersEditor.razor:136` · **S2** · 🟢 · CONFERMATO
+
+Stessa specie di **R-001**, e proprio per questo cambia natura: due file, tre byte, due autori diversi dello
+stesso gesto. Qui i separatori sono scritti **come byte veri** dentro il sorgente — `0x1F` (unit separator)
+fra le voci, `0x1E` (record separator) fra i campi:
+
+```csharp
+private static string Firma(IReadOnlyList<EditorTocItem> voci) =>
+    string.Join('', voci.Select(v => $"{v.AnchorId}{v.Label}{v.GroupLabel}"));
+// ↑ nel file quei due non sono escape: sono i BYTE 0x1F e 0x1E scritti dentro il sorgente
+```
+
+**A che cosa serve la firma.** A decidere se l'indice unito è cambiato: `if (Firma(voci) != Firma(_ultime))`.
+Il commento sopra racconta il difetto che l'ha fatta nascere — *«il confronto era sulle sole ancore, quindi
+rinominare una sezione di un membro non rinfrescava l'indice unito: chi rinominava vedeva la card prendere
+il nome nuovo e il menu a sinistra restare col vecchio»*.
+
+**Scenario di rottura.** Il file è binario per ogni strumento testuale: `grep` lo salta, `git diff` non lo
+mostra, e una normalizzazione qualunque può togliere quei byte in silenzio. Senza separatori la firma diventa
+una concatenazione, due elenchi diversi possono produrre la stessa stringa, e il confronto smette di vedere
+un cambiamento — cioè **si riapre esattamente il difetto che quel commento dice di aver chiuso**, e si
+riapre senza che nessun test cada.
+
+**Rimedio:** `''` e `""` come escape. Il file torna testuale, e il comportamento non cambia di un
+bit. Insieme a R-001 sono due righe.
+
+> ⚠️ **La lezione che vale più del fix**: dopo il primo caso nessuno ha guardato se ce n'erano altri. Un
+> controllo che rifiuti i byte di controllo nei sorgenti — dieci righe di test — chiude la famiglia invece
+> dei due esemplari.
+
+## R-026 — Tredici etichette e nove segnaposto non seguono la barra della lingua
+
+**S4** · 🟢 · CONFERMATO
+
+`docs/design/regole-lingua.md` **R6**: *«Tutto il resto segue la lingua scelta nella barra.»*
+
+| | Quante | Esempio |
+|---|---|---|
+| Etichette d'interfaccia scritte a mano | **13** | `AirportSidsEditor` ne ha **sette**: `title="Condition"`, `aria-label="Transition"`, `aria-label="Type"`, `aria-label="Initial climb"` — inglese fisso in un editor usato in italiano |
+| Segnaposto con «es. » | **9** | `placeholder="es. GINEL"`, `"es. 1000 ft"`, `"es. Marseille ACC"` — italiano fisso, che resta italiano quando il sito si legge in inglese |
+
+Le due metà sbagliano in **direzioni opposte** e per lo stesso motivo: la stringa non è passata dai `.resx`.
+Colpisce soprattutto chi usa un lettore di schermo, perché sette delle tredici sono `aria-label` — cioè
+proprio il testo che **esiste solo** per chi non vede l'icona.
+
+> Restano fuori, e correttamente: `aria-label="AoR …"` (sigla che non si traduce, R9) e i segnaposto che sono
+> **formati** e non prosa (`LIBG`, `FL75`, `loa-lirr-lfmm`, `N41°32'05.07''E015°43'42.47''`).
+
+## Verificato e corretto
+
+| Meccanismo | Esito |
+|---|---|
+| **Render mode e isole** | **Zero** pagine con gestori d'evento e senza `@rendermode` interattivo. La regola «chrome statico, pagine isole» non ha eccezioni |
+| **Fughe di sottoscrizioni** | Nessun componente si iscrive a un evento senza staccarsi. Le tre segnalazioni della sonda erano `+=` su variabili locali |
+| **Timer e thread** | Un solo `PeriodicTimer`, nel battito del lock — e legge lo stato **dentro** `InvokeAsync`, «perché è lì che `_lock` viene scritto». Il commento fa anche il conto: TTL 3 minuti, periodo 60 s, soglia d'allarme 60 s ⇒ l'avviso può scattare solo dopo **due** battiti falliti di fila |
+| **Nomi accessibili** | **Zero** bottoni senza testo, `aria-label` o `title` |
+| **Commenti fra gli attributi** | Zero (è la trappola che dà 500) |
+| **`<text>` nel DOM** | 41 usi, e una guardia che lo verifica — ma su **un** componente solo. Vedi s-13 |
+| **Asset «mai citati»** | s-01 **chiuso**: `vipi-live.js` espone `window.vipiLive` e lo chiamano `LiveBadge` e `LivePage` via interop; `vipi-theme-mode.js` è una IIFE che deve girare nel `<head>` *prima* del primo disegno, o chi ha scelto il tema scuro vede un lampo bianco. La sonda di Fase 0 cercava il prefisso sbagliato |
+
+## Sospetto nuovo
+
+| # | Sospetto | Dove si decide |
+|---|---|---|
+| s-13 | La guardia «nessun `<text>` nel markup reso» esiste in `SezioniAeroportoTests` e copre **un** componente. Gli altri 40 usi non hanno nessuno che verifichi che siano dentro un blocco di codice — e fuori da un blocco `<text>` non è un comando Razor, è un tag che finisce nel DOM | Fase 7 |
