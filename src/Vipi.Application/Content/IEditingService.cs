@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -47,6 +47,24 @@ public interface IEditingService : IDocumentForReview
     /// <summary>Nasconde/mostra una sezione nella bozza (doc 11 §3c): l'editor la mostra comunque, la vista pubblica e
     /// le anteprime release la omettono. Stato versionato ⇒ diventa effettivo solo con la pubblicazione.</summary>
     Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le sezioni che questi documenti hanno <b>in comune</b> (stessa chiave di catalogo, a qualunque
+    /// profondità), per la scheda che si apre unendo due documenti dello stesso scalo.
+    /// <para>I documenti si passano nell'ordine dell'unione: l'elenco esce nell'ordine dell'ospite.</para>
+    /// </summary>
+    Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds,
+        CancellationToken ct = default);
+
+    /// <summary>
+    /// Applica la scelta: le sezioni con queste chiavi si <b>vedono</b> in <paramref name="documentoCheTiene"/>
+    /// e si <b>nascondono</b> negli altri. Ritorna quante sezioni ha cambiato davvero.
+    /// <para>⚠️ Scrive lo stesso flag del tasto «nascondi» dell'editor, sulla <b>bozza</b> di ogni documento:
+    /// non è uno stato dell'unione, e sciogliendola resta dov'è. Vuole il <b>lock</b> di ogni documento
+    /// toccato, come ogni altra scrittura.</para>
+    /// </summary>
+    Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds,
+        IReadOnlyList<string> chiavi, CancellationToken ct = default);
     /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
     /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>
     /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). ⚠️ Non è controllo d'accesso: il

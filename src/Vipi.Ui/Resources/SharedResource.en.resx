@@ -3215,6 +3215,16 @@
   <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
+  <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
+  <data name="Union_Common_Title" xml:space="preserve"><value>Shared sections</value></data>
+  <data name="Union_Common_None" xml:space="preserve"><value>These documents have no sections in common: there is nothing to hide.</value></data>
+  <data name="Union_Common_Hint" xml:space="preserve"><value>The sections below appear in more than one document of the union. Pick the one that keeps them: they stay visible there and are hidden in the others — the same flag as the editor's «hide» button, and undone the same way.</value></data>
+  <data name="Union_Common_Keeper" xml:space="preserve"><value>Kept by:</value></data>
+  <data name="Union_Common_Apply" xml:space="preserve"><value>Hide in the others</value></data>
+  <data name="Union_Common_Done" xml:space="preserve"><value>Done: {0} sections changed.</value></data>
+  <data name="Union_Common_Done_One" xml:space="preserve"><value>Done: one section changed.</value></data>
+  <data name="Union_Common_Hidden" xml:space="preserve"><value>already hidden</value></data>
+  <data name="Union_Common_HiddenTitle" xml:space="preserve"><value>In at least one of the documents this section is already hidden.</value></data>
   <data name="Union_DissolvePrompt" xml:space="preserve"><value>The documents go back to their own pages and their own publications. Nothing that is written is lost.</value></data>
   <data name="Union_DissolveYes" xml:space="preserve"><value>Dissolve</value></data>
   <data name="Union_EditToChange" xml:space="preserve"><value>To change the union, start editing.</value></data>

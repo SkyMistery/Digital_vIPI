@@ -59,6 +59,15 @@
     /// </summary>
     [Parameter] public EventCallback<IReadOnlyList<EditorTocItem>> VociCambiate { get; set; }
 
+    /// <summary>
+    /// L'ospite è IN MODIFICA adesso. Serve a chi entra dopo: un membro unito a modifica già aperta deve
+    /// prendere il suo lock <b>alla registrazione</b>, o nasce senza.
+    /// </summary>
+    [Parameter] public bool InModifica { get; set; }
+
+    /// <summary>Il lock di un membro è di un altro: il nome di chi lo tiene, per l'avviso dell'ospite.</summary>
+    [Parameter] public EventCallback<string> LockNegato { get; set; }
+
     private readonly List<IMembroEditor> _editor = new();
 
     /// <summary>Gli editor dei membri, nell'ordine in cui si sono registrati.</summary>
@@ -74,6 +83,37 @@
         StateHasChanged();
         await MembroCambiato();
     }
+
+    /// <summary>
+    /// Il lock dei membri che sono entrati a modifica GIÀ APERTA.
+    ///
+    /// <para>🔴 Unendo un documento mentre l'editor è in modifica, il membro nuovo nasceva <b>senza lock</b>:
+    /// <c>ModificaTutti</c> era passato prima che esistesse. Da lì in poi ogni scrittura su di lui — i suoi
+    /// campi, o la scheda delle sezioni in comune — cadeva con «il documento è bloccato da un altro
+    /// redattore», che è falso e non si capisce. Misurato a schermo il 7 settembre 2026.</para>
+    ///
+    /// <para>⚠️ <b>Quando è PRONTO, non quando si registra</b>, ed è la parte che è costata un giro: alla
+    /// registrazione il documento del membro non è ancora caricato (il carico sta in
+    /// <c>OnParametersSetAsync</c>, che viene dopo) e <c>PrendiLockAsync</c> torna <c>null</c> — cioè
+    /// «preso» — <b>senza prendere niente</b>. Un no-op che si dichiara riuscito è peggio di un errore.</para>
+    /// </summary>
+    private async Task AssicuraLockAsync()
+    {
+        if (!InModifica || _stoPrendendo) return;
+        _stoPrendendo = true;
+        try
+        {
+            foreach (var e in _editor)
+            {
+                // Documento non ancora caricato: si riprova al prossimo giro, che arriva da sé.
+                if (e.Guscio.Doc is null || e.Guscio.IsEditing) continue;
+                if (await e.PrendiLockAsync() is { } chi) await LockNegato.InvokeAsync(chi);
+            }
+        }
+        finally { _stoPrendendo = false; }
+    }
+
+    private bool _stoPrendendo;
 
     /// <summary>
     /// Prende il lock di TUTTI i membri. <c>null</c> = presi tutti; altrimenti il <b>nome</b> di chi ha
@@ -117,6 +157,7 @@
             _ultime = voci;
             await VociCambiate.InvokeAsync(voci);
         }
+        await AssicuraLockAsync();
         await StatoCambiato.InvokeAsync();
     }
 
@@ -185,6 +226,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (_editor.Count == 0) return;
+        await AssicuraLockAsync();
         var voci = VociIndice();
         if (Firma(voci) == Firma(_ultime)) return;
         _ultime = voci;

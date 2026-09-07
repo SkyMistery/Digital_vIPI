@@ -164,6 +164,40 @@ public sealed class EditingService : IEditingService
         await _repo.SetSectionHiddenAsync(sectionId, hidden, ct);
     }
 
+    public async Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds,
+        CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
+        var documenti = new List<(int, IReadOnlyList<EditableSection>)>();
+        // ⚠️ In SEQUENZA: sono letture sullo stesso DbContext, e due catene insieme danno «A second operation
+        // was started on this context instance». È la stessa ragione per cui i membri di un'unione si
+        // caricano uno dopo l'altro nel viewer.
+        foreach (var id in documentIds.Distinct())
+        {
+            // Un documento senza versione di lavoro non ha sezioni da confrontare: si salta, invece di
+            // rispondere «nessuna sezione in comune», che sarebbe una risposta e non è vero.
+            if (await _repo.LoadForEditAsync(id, ct) is { } doc) documenti.Add((id, doc.Sections));
+        }
+
+        return SezioniComuni.Di(documenti);
+    }
+
+    public async Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds,
+        IReadOnlyList<string> chiavi, CancellationToken ct = default)
+    {
+        var comuni = await SezioniComuniAsync(documentIds, ct);
+        var piano = SezioniComuni.Piano(comuni, chiavi, documentoCheTiene);
+
+        // ⚠️ Ognuna passa dalla porta normale: autorizzazione e LOCK per documento, come se il tasto
+        // «nascondi» lo premesse una persona sezione per sezione. Scrivere qui una scorciatoia che salta
+        // quelle due domande vorrebbe dire una seconda porta, e la garanzia entra in quella che c'è già.
+        foreach (var (sectionId, nascondi) in piano)
+            await SetSectionHiddenAsync(sectionId, nascondi, ct);
+
+        return piano.Count;
+    }
+
     public async Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default)
     {
         var docId = await AuthorizeVersionAsync(versionId, ct);

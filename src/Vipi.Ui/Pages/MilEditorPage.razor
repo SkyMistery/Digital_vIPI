@@ -26,7 +26,8 @@
         @if (Ospite)
         {
             <UnionMembersEditor @ref="_membri" Membri="_altri" Acc="@Acc"
-                               StatoCambiato="Ridisegna" VociCambiate="AggiornaVoci" />
+                               StatoCambiato="Ridisegna" VociCambiate="AggiornaVoci"
+                               InModifica="@(_editor?.Guscio.IsEditing == true)" LockNegato="MembroBloccato" />
         }
 
         @* L'unione dei documenti: SOPRA il pannello di pubblicazione, perché e' cio' che decide QUANTI
@@ -123,6 +124,10 @@
         if (_membri is not null) await _membri.RilasciaLockAsync();
         if (_editor is not null) await _editor.RilasciaLockAsync();
     }
+
+    /// <summary>Un membro unito a modifica aperta non ha potuto prendere il suo lock: si dice CHI lo tiene —
+    /// «non puoi modificare» da solo è un muro, il nome è una risposta.</summary>
+    private void MembroBloccato(string chi) => _errore = L["Union_LockedBy", chi];
 
     private async Task UnioneCambiata()
     {

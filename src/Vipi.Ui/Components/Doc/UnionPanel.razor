@@ -72,6 +72,76 @@
 
         @if (IsEditing)
         {
+            @* Le sezioni in comune (7 settembre 2026, committente): unendo la vIPI di uno scalo e il suo vSOP
+               la pagina ripete METAR, frequenze, piste. Si sceglie CHI LE TIENE e le altre si nascondono —
+               col flag del tasto «nascondi», non con una cancellazione.
+               ⚠️ Il comando resta SEMPRE, non solo appena si unisce: le sezioni si aggiungono dopo, e una
+               comune che nasce domani oggi non esiste. *@
+            <button class="btn ghost" disabled="@_busy" @onclick="ApriComuni">@Sito["Union_Common_Open"]</button>
+        }
+
+        @if (_scheda)
+        {
+            <div class="union-common" role="group" aria-label="@Sito["Union_Common_Title"]">
+                <h4 class="h-card" style="margin:10px 0 6px">@Sito["Union_Common_Title"]</h4>
+
+                @if (_comuni.Count == 0)
+                {
+                    <p class="muted">@Sito["Union_Common_None"]</p>
+                }
+                else
+                {
+                    <p class="help" style="margin:0 0 8px">@Sito["Union_Common_Hint"]</p>
+
+                    <p class="muted" style="margin:0 0 4px">@Sito["Union_Common_Keeper"]</p>
+                    <ul class="union-keepers">
+                        @foreach (var m in _unione.Members)
+                        {
+                            var id = m.DocumentId;
+                            <li>
+                                <label>
+                                    <input type="radio" name="union-tiene-@Key" checked="@(_tiene == id)"
+                                           disabled="@_busy" @onchange="() => _tiene = id" />
+                                    @m.Doc.Title <span class="muted">@m.Doc.ReleaseKey</span>
+                                </label>
+                            </li>
+                        }
+                    </ul>
+
+                    <ul class="union-commons">
+                        @foreach (var c in _comuni)
+                        {
+                            var chiave = c.Chiave;
+                            <li>
+                                <label>
+                                    <input type="checkbox" checked="@_spuntate.Contains(chiave)" disabled="@_busy"
+                                           @onchange="e => Spunta(chiave, (bool)(e.Value ?? false))" />
+                                    @c.Titolo
+                                </label>
+                                @if (c.Presenze.Any(p => p.Nascosta))
+                                {
+                                    <span class="pill neutral" title="@Sito["Union_Common_HiddenTitle"]">@Sito["Union_Common_Hidden"]</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+
+                    <div class="union-common-cmds">
+                        <button class="btn primary" disabled="@(_busy || _spuntate.Count == 0)"
+                                @onclick="ApplicaComuni">@Sito["Union_Common_Apply"]</button>
+                        <button class="btn ghost" disabled="@_busy" @onclick="() => _scheda = false">@L["Common_Close"]</button>
+                    </div>
+                }
+            </div>
+        }
+
+        @if (_esito is { Length: > 0 })
+        {
+            <p class="help union-conta">@_esito</p>
+        }
+
+        @if (IsEditing)
+        {
             <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@Sito["Union_Dissolve"]"
                            AriaLabel="@Sito["Union_Dissolve"]" Prompt="@Sito["Union_DissolvePrompt"]"
                            ConfirmLabel="@Sito["Union_DissolveYes"]" CancelLabel="@L["Common_Close"]"
@@ -133,6 +203,15 @@
     [Parameter] public EventCallback Changed { get; set; }
 
     private IDocumentUnionService _unioni = default!;
+    private IEditingService _editing = default!;
+
+    /// <summary>La scheda delle sezioni in comune è aperta.</summary>
+    private bool _scheda;
+    private IReadOnlyList<SezioneComune> _comuni = Array.Empty<SezioneComune>();
+    /// <summary>Il documento che TIENE le sezioni comuni: le sue si vedono, quelle degli altri spariscono.</summary>
+    private int _tiene;
+    private readonly HashSet<string> _spuntate = new(StringComparer.Ordinal);
+    private string? _esito;
     private UnionView? _unione;
     private IReadOnlyList<UnionCandidate> _candidati = Array.Empty<UnionCandidate>();
     private int _scelto;
@@ -186,8 +265,13 @@
     private string? _errore;
     private string _caricato = "";
 
-    protected override void OnInitialized() =>
+    protected override void OnInitialized()
+    {
         _unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
+        // ⚠️ Dallo scope PROPRIO come l'altro: qui si scrive (il flag «nascosta» sulle bozze dei membri), e
+        // un servizio di scrittura preso col circuito è il difetto già pagato tre volte.
+        _editing = ScopedServices.GetRequiredService<IEditingService>();
+    }
 
     protected override async Task OnParametersSetAsync()
     {
@@ -215,12 +299,67 @@
         _cerca = "";
     }
 
+    /// <summary>
+    /// Unisce, e SUBITO DOPO apre la scheda delle sezioni in comune: è il momento in cui la ripetizione
+    /// nasce, ed è lì che si vuole essere chiesti. Se non ce ne sono, la scheda lo dice invece di non
+    /// comparire — «niente da scegliere» è una risposta, il silenzio è un dubbio.
+    /// </summary>
     private Task Unisci() => EseguiAsync(async () =>
     {
         if (_scelto == 0) return;
         var ospite = _unione?.Host.DocumentId ?? await _unioni.DocumentIdAsync(Target, Key) ?? 0;
         if (ospite == 0) return;
         await _unioni.UniscoAsync(ospite, _scelto);
+        _apriComuniDopoIlCarico = true;
+    });
+
+    private bool _apriComuniDopoIlCarico;
+
+    /// <summary>
+    /// Carica le sezioni comuni e apre la scheda. ⚠️ Costa una lettura per membro, quindi si fa quando si
+    /// apre — non a ogni ridisegno del pannello per poterne mostrare il numero in un'etichetta.
+    /// </summary>
+    private Task ApriComuni() => EseguiAsync(async () =>
+    {
+        await CaricaComuniAsync();
+        _scheda = true;
+    });
+
+    private async Task CaricaComuniAsync()
+    {
+        if (_unione is null) { _comuni = Array.Empty<SezioneComune>(); return; }
+
+        var membri = _unione.Members.Select(m => m.DocumentId).ToList();
+        _comuni = await _editing.SezioniComuniAsync(membri);
+        // 🔴 Chi tiene lo dice lo STATO, non il default: riproponendo sempre l'ospite, chi riapre la scheda e
+        // preme senza guardare RIBALTA la scelta di prima. A unione appena nata la risposta è comunque
+        // l'ospite, perché nessuno ha ancora nascosto niente.
+        if (_tiene == 0 || _unione.Members.All(m => m.DocumentId != _tiene))
+            _tiene = SezioniComuni.CheTiene(_comuni, membri);
+        _spuntate.Clear();
+        foreach (var c in _comuni.Where(c => c.Proposta)) _spuntate.Add(c.Chiave);
+    }
+
+    private void Spunta(string chiave, bool spuntata)
+    {
+        if (spuntata) _spuntate.Add(chiave);
+        else _spuntate.Remove(chiave);
+    }
+
+    /// <summary>
+    /// Nasconde. ⚠️ Il conto lo dà il servizio, e conta le sezioni CAMBIATE DAVVERO: dire «sei nascoste»
+    /// quando cinque lo erano già è la stessa bugia del conteggio dei documenti pubblicati, che in
+    /// quest'area ha già sbagliato tre volte.
+    /// </summary>
+    private Task ApplicaComuni() => EseguiAsync(async () =>
+    {
+        if (_unione is null) return;
+        var n = await _editing.ApplicaSezioniComuniAsync(
+            _tiene, _unione.Members.Select(m => m.DocumentId).ToList(), _spuntate.ToList());
+        // ⚠️ Due chiavi, non un plurale solo: «1 sezioni» sbaglia sempre sull'uno, in tutte e due le lingue —
+        // e il progetto non ha ICU. È la stessa regola di `XferLabels`.
+        _esito = n == 1 ? Sito["Union_Common_Done_One"] : Sito.Formatta("Union_Common_Done", n);
+        _scheda = false;
     });
 
     private Task Sposta(UnionMemberView m, int delta) =>
@@ -245,11 +384,24 @@
         _errore = null;
         try
         {
+            _esito = null;
             await gesto();
             await RicaricaAsync();
+            if (_apriComuniDopoIlCarico)
+            {
+                _apriComuniDopoIlCarico = false;
+                await CaricaComuniAsync();
+                _scheda = true;
+            }
+            else if (_scheda) await CaricaComuniAsync();
             await Changed.InvokeAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _errore = ex.Message; }
+        // 🔴 Il conflitto di lock si MOSTRA, non fa cadere il circuito: la scheda delle sezioni in comune
+        // scrive su documenti che non sono quello della pagina, e un lock scaduto su uno di quelli è un caso
+        // normale — non una pagina da riavviare. Senza questa riga il messaggio arrivava a schermo come
+        // «Attempting to reconnect».
+        catch (EditConflictException ex) { _errore = ex.Message; }
         catch (EditNotAllowedException) { _errore = Sito["PageIntro_NotAllowed"]; }
         finally { _busy = false; }
     }

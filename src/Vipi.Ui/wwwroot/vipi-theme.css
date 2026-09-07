@@ -1114,6 +1114,19 @@
    filtro ha ristretto, e chi ha scritto tre lettere resterebbe a guardare lo stesso «—» di prima. */
 :where(.vipi-root) .union-add .union-scelta[size]{padding:4px}
 :where(.vipi-root) .union-conta{margin:4px 0 0}
+/* La scheda delle sezioni in comune (7 settembre 2026): sta DENTRO il riquadro dell'unione, staccata da una
+   riga e da un fondo appena diverso — non e' un secondo pannello, e' la domanda che segue il gesto. Le due
+   liste perdono i pallini: sono comandi con una casella davanti, non un elenco da leggere. */
+:where(.vipi-root) .union-common{margin:8px 0 4px;padding:10px 12px;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface-soft)}
+:where(.vipi-root) .union-keepers,
+:where(.vipi-root) .union-commons{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .union-keepers li,
+:where(.vipi-root) .union-commons li{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+:where(.vipi-root) .union-keepers label,
+:where(.vipi-root) .union-commons label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+:where(.vipi-root) .union-keepers .muted{font-family:var(--font-mono);font-size:12px}
+:where(.vipi-root) .union-common-cmds{display:flex;gap:8px;flex-wrap:wrap}
 /* ---- Documenti UNITI (carta 2026-09-03): piu' documenti in una pagina sola ----------------------
    Ogni membro non-ospite porta la propria intestazione. Non e' decorazione: le sezioni con la STESSA
    chiave restano tutte e due -- «Frequenze ATC/CRC» di un vSOP militare e «Frequenze» di un
