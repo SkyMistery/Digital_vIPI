@@ -2129,6 +2129,12 @@
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-import SIDs</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: not editable in the data, but you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the cycle after the fetch).</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
+  <data name="Ape_Condition" xml:space="preserve"><value>Condition</value></data>
+  <data name="Ape_Transition" xml:space="preserve"><value>Transition</value></data>
+  <data name="Ape_Type" xml:space="preserve"><value>Type</value></data>
+  <data name="Ape_InitialClimb" xml:space="preserve"><value>Initial climb</value></data>
+  <data name="Common_EsempioPh" xml:space="preserve"><value>e.g. {0}</value></data>
+  <data name="Conf_CallsignPh" xml:space="preserve"><value>default {ACC}_CTR</value></data>
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priority</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix to verify</value></data>

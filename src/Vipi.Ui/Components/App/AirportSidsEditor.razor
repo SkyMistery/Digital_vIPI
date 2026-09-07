@@ -88,7 +88,7 @@
                    viewer: con `auto` le colonne dei chip Cat./WTC collassavano e i chip si impilavano
                    in verticale — misurato, 128px di altezza per riga invece di 44. *@
                 <table class="res-table sid-table sid-edit sid-imported sticky-head">
-                    <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
+                    <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@AllSelected(iview)" @onclick:preventDefault="true" @onclick="() => ToggleSelectAll(iview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="@L["Ape_Condition"]">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th></tr></thead>
                     <tbody @onmouseup="SelDragEnd" @onmouseleave="SelDragEnd">
                         @for (var vi = 0; vi < iview.Count; vi++)
                         {
@@ -164,7 +164,7 @@
                                 <td class="col-cond">
                                     @if (Editing)
                                     {
-                                        <input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="Condition" title="@e.Condition"
+                                        <input class="in-cond" @bind="e.Condition" @bind:after="() => TouchImported(e)" placeholder="—" aria-label="@L["Ape_Condition"]" title="@e.Condition"
                                                @onfocus="() => Src(true, e, SidCol.Cond)" @onkeydown="ev => CellKey(ev, true)" />
                                     }
                                     else { <span title="@e.Condition">@Testo(e.Condition)</span> }
@@ -226,7 +226,7 @@
             <table class="res-table sid-table sid-edit sid-manual">
                 @* Stesso ordine e stessi comandi della tabella importate: chi lavora sulle due
                    tabelle non deve reimparare dove sta cosa. *@
-                <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="Condition">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
+                <thead><tr><th class="col-chk"><input type="checkbox" aria-label="@L["Apt_SelectAll"]" checked="@(mview.Count > 0 && mview.All(_selManual.Contains))" @onclick:preventDefault="true" @onclick="() => ToggleSelectAllManual(mview)" /></th><th class="col-fix">@L["Ape_PointFix"]</th><th class="col-sid">SID</th><th class="col-rwy" title="@L["Ape_Runway"]">RWY</th><th class="col-trans">@L["Ape_Trans"]</th><th class="col-type">Type</th><th class="col-climb">Initial climb</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond" title="@L["Ape_Condition"]">Condition</th><th class="col-prio" title="@L["Ape_Priority"]">@L["Ape_Priority"]</th><th class="col-pub">@L["Common_State"]</th><th class="col-act"></th></tr></thead>
                 <tbody>
                     @foreach (var s in mview)
                     {
@@ -244,8 +244,8 @@
                                 <td class="col-fix"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Fix)" title="@UnknownFixTitle(s.Fix)" @bind="s.Fix" @bind:after="Sporca" aria-label="FIX" /></td>
                                 <td class="col-sid"><input @bind="s.Name" @bind:after="Sporca" aria-label="SID" /></td>
                                 <td class="col-rwy"><input list="ape-rwy-idents" @bind="s.Runway" @bind:after="Sporca" aria-label="@L["Ape_Runway"]" /></td>
-                                <td class="col-trans"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Transition)" title="@UnknownFixTitle(s.Transition)" @bind="s.Transition" @bind:after="Sporca" aria-label="Transition" /></td>
-                                <td class="col-type"><input list="ape-sid-types" @bind="s.Type" @bind:after="Sporca" placeholder="CONV" aria-label="Type" title="@L["Ape_TypeTitle"]" /></td>
+                                <td class="col-trans"><input list="@NavaidDatalist.DefaultId" class="@UnknownFixClass(s.Transition)" title="@UnknownFixTitle(s.Transition)" @bind="s.Transition" @bind:after="Sporca" aria-label="@L["Ape_Transition"]" /></td>
+                                <td class="col-type"><input list="ape-sid-types" @bind="s.Type" @bind:after="Sporca" placeholder="CONV" aria-label="@L["Ape_Type"]" title="@L["Ape_TypeTitle"]" /></td>
                             }
                             else
                             {
@@ -261,7 +261,7 @@
                             <td class="col-climb">
                                 @if (Editing)
                                 {
-                                    <input class="in-climb" @bind="s.InitialClimb" @bind:after="Sporca" placeholder="ft" aria-label="Initial climb"
+                                    <input class="in-climb" @bind="s.InitialClimb" @bind:after="Sporca" placeholder="ft" aria-label="@L["Ape_InitialClimb"]"
                                            @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
                                     <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @bind:after="Sporca" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
                                 }
@@ -298,7 +298,7 @@
                             <td class="col-cond">
                                 @if (Editing)
                                 {
-                                    <input class="in-cond" @bind="s.Condition" @bind:after="Sporca" aria-label="Condition" title="@s.Condition"
+                                    <input class="in-cond" @bind="s.Condition" @bind:after="Sporca" aria-label="@L["Ape_Condition"]" title="@s.Condition"
                                            @onfocus="() => Src(false, s, SidCol.Cond)" @onkeydown="ev => CellKey(ev, false)" />
                                 }
                                 else { <span title="@s.Condition">@Testo(s.Condition)</span> }

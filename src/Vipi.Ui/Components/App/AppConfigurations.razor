@@ -37,8 +37,8 @@
                             <tr class="grp-start">
                                 <td class="uni">@open.Callsign</td>
                                 <td class="muted">@(row is null ? "—" : string.Join(", ", row.Absorbed))</td>
-                                <td><input class="app-in" placeholder="es. GINEL" value="@open.CenterPoint" @onchange="e => SetCp(open, AsString(e.Value))" /></td>
-                                <td><input class="app-in" placeholder="es. 140" value="@open.Range" @onchange="e => SetRange(open, AsString(e.Value))" /></td>
+                                <td><input class="app-in" placeholder="@L["Common_EsempioPh", "GINEL"]" value="@open.CenterPoint" @onchange="e => SetCp(open, AsString(e.Value))" /></td>
+                                <td><input class="app-in" placeholder="@L["Common_EsempioPh", "140"]" value="@open.Range" @onchange="e => SetRange(open, AsString(e.Value))" /></td>
                             </tr>
                         }
                     </tbody>

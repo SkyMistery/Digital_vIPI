@@ -2137,6 +2137,12 @@
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-importa SID</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Righe da sorgente: non editabili nei dati, ma imposti &lt;b&gt;priorità per punto&lt;/b&gt;, &lt;b&gt;fix&lt;/b&gt; se «da verificare», e la &lt;b&gt;pubblicazione&lt;/b&gt; (di default dal ciclo successivo al prelievo).</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
+  <data name="Ape_Condition" xml:space="preserve"><value>Condizione</value></data>
+  <data name="Ape_Transition" xml:space="preserve"><value>Transizione</value></data>
+  <data name="Ape_Type" xml:space="preserve"><value>Tipo</value></data>
+  <data name="Ape_InitialClimb" xml:space="preserve"><value>Quota iniziale</value></data>
+  <data name="Common_EsempioPh" xml:space="preserve"><value>es. {0}</value></data>
+  <data name="Conf_CallsignPh" xml:space="preserve"><value>predefinito {ACC}_CTR</value></data>
   <data name="Ape_Trans" xml:space="preserve"><value>Trans.</value></data>
   <data name="Ape_Priority" xml:space="preserve"><value>Priorità</value></data>
   <data name="Ape_FixToVerify" xml:space="preserve"><value>fix da verificare</value></data>

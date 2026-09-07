@@ -1,0 +1,54 @@
+# Le convenzioni che questo repository segue GIÀ, scritte perché uno strumento possa verificarle.
+#
+# Nasce il 7 settembre 2026 (revisione del 6 settembre, R-003): `dotnet format --verify-no-changes` usciva 2
+# su 156 file, e in CI non c'era nessun passo di formattazione — quindi quel numero poteva solo crescere.
+#
+# ⚠️ Le due righe che contano sono `csharp_preserve_single_line_*`: senza, lo strumento spezza in righe
+# separate gli inizializzatori compatti e i corpi di una riga sola, che qui sono una scelta di stile presa e
+# ripetuta migliaia di volte. Uno strumento di formattazione deve far rispettare lo stile del progetto, non
+# sostituirlo: se lo sostituisse, il primo `dotnet format` produrrebbe un diff di 156 file in cui nessuno
+# riuscirebbe più a vedere una modifica vera.
+
+root = true
+
+[*]
+# ⚠️ NIENTE `charset`: il repository ha 767 file con BOM e 937 senza, ed è nato così. Dichiararne
+# uno vorrebbe dire riscrivere il primo byte di metà dei sorgenti per una regola che nessuno ha mai
+# preso: un diff enorme in cui una modifica vera non si vedrebbe più.
+# ⚠️ NIENTE `end_of_line`: git normalizza a LF nel repository e consegna CRLF su Windows
+# (autocrlf), quindi qualunque valore si dichiari fa litigare uno dei due lati. La fine riga la
+# governa `.gitattributes`, non questo file.
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cs,razor}]
+indent_size = 4
+
+[*.{json,js,css,yml,yaml,xml,csproj,slnx,props,targets,resx}]
+indent_size = 2
+
+[*.md]
+# Nel Markdown due spazi in fondo alla riga sono un a-capo: toglierli cambia il testo.
+trim_trailing_whitespace = false
+
+[*.cs]
+# Lo stile compatto di questo repository, dichiarato invece che subìto.
+csharp_preserve_single_line_statements = true
+csharp_preserve_single_line_blocks = true
+
+# ─────────────────────────────────────────────────────────────────────────────────────────────────────
+# ⚠️ QUEL CHE QUESTO FILE NON DICHIARA, E PERCHÉ (revisione del 6 settembre 2026, R-003)
+#
+# `dotnet format --verify-no-changes` non è verde su questo repository, e renderlo verde NON è igiene:
+# 1 933 dei rilievi sono inizializzatori compatti — `Id = s.Id, Title = s.Title, Depth = s.Depth,` su una
+# riga sola — che qui sono una scelta di stile ripetuta migliaia di volte, e `dotnet format` vuole spezzarli
+# uno per riga. `csharp_preserve_single_line_statements` copre gli STATEMENT, non i membri di un
+# inizializzatore: non c'è una chiave che dica «lasciali stare».
+#
+# Sostituire lo stile del progetto per far tacere uno strumento è il contrario del mestiere, quindi il passo
+# di CI su `dotnet format` NON c'è. Questo file resta per la parte che è vera e verificabile — indentazione,
+# a-capo finale, spazi in coda — e perché lo strumento smetta di indovinare le convenzioni.
+#
+# Se un giorno si decide di adottare lo stile di serie, si fa in un commit SOLO, dichiarato, e si aggiunge
+# il passo di CI nello stesso: mescolarlo a una modifica vera è il modo di nascondere quest'ultima.

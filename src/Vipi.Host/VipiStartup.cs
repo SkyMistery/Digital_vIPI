@@ -357,9 +357,10 @@ internal static class VipiStartup
         app.MigrateVipiDatabase();
         crono.Segna("migrazione del database");
 
-        // Le quattro manutenzioni non critiche (riconciliazioni documentali, proiezione settori, backfill e potatura
-        // delle release), ognuna isolata dalle altre: un guasto viene registrato — log + diagnostica, quindi
-        // /vsop/health in Degraded — e l'avvio prosegue. Prima erano quattro chiamate nude, e con Restart=always nel
+        // Le cinque manutenzioni non critiche (promozioni a mano, riconciliazioni documentali, proiezione dei
+        // settori, backfill delle release, pulizia delle unioni), ognuna isolata dalle altre: un guasto viene
+        // registrato — log + diagnostica, quindi /vsop/health in Degraded — e l'avvio prosegue. Prima erano
+        // cinque chiamate nude, e con Restart=always nel
         // servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
         app.RunVipiStartupMaintenance();
         crono.Segna("manutenzioni d'avvio");

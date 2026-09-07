@@ -224,11 +224,11 @@
                         @* ⚠️ `@bind` da solo scrive al BLUR: i due campi che accendono «Aggiungi coppia»
                            scrivono a ogni tasto, altrimenti chi ha appena finito di compilare trova il
                            tasto spento proprio mentre lo punta. *@
-                        <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" @bind:event="oninput" placeholder="es. LIMM" /></div>
-                        <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" @bind:event="oninput" placeholder="es. LFMM" /></div>
-                        <div class="field"><label>@L["Conf_LblForeignName"]</label><input @bind="_mName" placeholder="es. Marseille ACC" /></div>
-                        <div class="field"><label>@L["Conf_LblCountry"]</label><input @bind="_mCountry" placeholder="es. FR" /></div>
-                        <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="default {ACC}_CTR" /></div>
+                        <div class="field"><label>@L["Conf_LblHome"]</label><input @bind="_mHome" @bind:event="oninput" placeholder="@L["Common_EsempioPh", "LIMM"]" /></div>
+                        <div class="field"><label>@L["Conf_LblForeign"]</label><input @bind="_mForeign" @bind:event="oninput" placeholder="@L["Common_EsempioPh", "LFMM"]" /></div>
+                        <div class="field"><label>@L["Conf_LblForeignName"]</label><input @bind="_mName" placeholder="@L["Common_EsempioPh", "Marseille ACC"]" /></div>
+                        <div class="field"><label>@L["Conf_LblCountry"]</label><input @bind="_mCountry" placeholder="@L["Common_EsempioPh", "FR"]" /></div>
+                        <div class="field"><label>@L["Conf_LblRootCallsign"]</label><input @bind="_mCallsign" placeholder="@L["Conf_CallsignPh"]" /></div>
                         <div class="field">
                             <label>@L["Conf_LblPolyOptional"]</label>
                             <textarea rows="3" class="mono-area" value="@_mPoly" @oninput="OnManualPolyInput"></textarea>
@@ -311,7 +311,7 @@
                             <div class="field conf-form">
                                 <label>@((MarkupString)string.Format(L["Conf_SectorLabel"].Value, sel.ForeignAccCode))</label>
                                 <div class="conf-acts">
-                                    <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" @bind:event="oninput" placeholder="es. LGKR_APP" />
+                                    <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" @bind:event="oninput" placeholder="@L["Common_EsempioPh", "LGKR_APP"]" />
                                     <button class="btn primary" disabled="@(_busy || !_canEdit || !SectorReady)" @onclick="() => AddSector(sel.Id)">@L["Conf_AddSector"]</button>
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => _sectorOpen = false">@L["Common_Cancel"]</button>
                                     <HelpHint AriaLabel="@L["Conf_AddSectorTitle"]">@L["Conf_SectorHint"]</HelpHint>
