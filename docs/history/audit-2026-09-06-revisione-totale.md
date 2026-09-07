@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-1 chiuse, 10 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-2 chiuse, 14 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -81,7 +81,7 @@ parte da `2b33791a` e non lo tocca.
 |---|---|---|
 | **0** | Baseline misurabile: build, test, analizzatori, pacchetti, grafo, file mai citati | ✅ **chiusa** — 5 findings |
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
-| **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ⏳ |
+| **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ⏳ |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | ⏳ |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
@@ -131,7 +131,11 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-007** | 1 | **S2** | 🟢 | CONFERMATO | **La patch che si consegna a ivao.it non aggancia `RunVipiStartupMaintenance()`**: cinque passi d'avvio non girerebbero mai, e la sonda di salute resterebbe verde | `docs/guide/ivao-it-wiring.patch:317-348` |
 | **R-008** | 1 | **S2** | 🟢 | CONFERMATO | **1 983 regole CSS su 2 031 non sono confinate sotto `.vipi-root`**, mentre ADR-0005 D3 e la guida dichiarano il contrario. Fra i selettori c'è `details` | `src/Vipi.Ui/wwwroot/vipi-theme.css` |
 | **R-009** | 1 | S4 | 🟢 | CONFERMATO | **179 tipi `public` su 1 381** non sono nominati fuori dal proprio progetto: superficie che vincola senza servire, in un modulo la cui superficie è un ADR | 179 tipi · vedi sotto |
-| **R-010** | 1 | S4 | 🟢 | CONFERMATO | Due commenti che **giustificano una scelta con un numero sbagliato**: «le 60 migrazioni», «le 68 migrazioni». Sono **114** | `DependencyInjection.cs:46` · `VipiModuleExtensions.cs:493` |
+| **R-010** | 1 | S4 | 🟢 | CONFERMATO | Tre commenti che **descrivono il codice con un numero sbagliato**: «le 60 migrazioni», «le 68 migrazioni» (sono **114**) e «le quattro manutenzioni d'avvio» (sono **cinque**) | `DependencyInjection.cs:46` · `VipiModuleExtensions.cs:493,536` |
+| **R-011** | 2 | S3 | 🟢 | CONFERMATO | `modello-dati.md` **§9.13 descrive `AppProfile`, `AppFrequencyLink` e `IAppProfileService`: nessuno dei tre esiste**, e la sezione non porta il 🛑 che lo stesso documento usa altrove | `docs/spec/modello-dati.md:614-620` |
+| **R-012** | 2 | S3 | 🟢 | CONFERMATO | **§9.8, dichiarata «la lista migrazioni autoritativa», si ferma alla 85ª di 114**: mancano 29 migrazioni, cioè sottosistemi interi | `docs/spec/modello-dati.md:577` |
+| **R-013** | 2 | S3 | 🟢 | CONFERMATO | **16 entità su 59 non compaiono da nessuna parte** nella specifica del modello dati | `docs/spec/modello-dati.md` |
+| **R-014** | 2 | **S2** | 🟢 | PLAUSIBILE | `EffectiveHierarchy.ParentMap` **perde in silenzio** un nodo se lo stesso callsign esiste nei due cataloghi: gli indici unici sono per-tabella, non fra tabelle | `src/Vipi.Domain/Services/EffectiveHierarchy.cs:48-64` |
 
 ---
 
@@ -150,8 +154,10 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | s-06 | 63 proprietà di raccolta scrivibili (`CA2227`) nel modello | Fase 2 |
 | s-07 | 4 punti in `AppMemberLoader.cs` non propagano il `CancellationToken` (`CA2016`) | Fase 6 |
 | s-08 | **196 registrazioni `AddScoped`** e un `AddDbContext` (che è Scoped): in Blazor Server «scoped» vuol dire *per circuito*, cioè ore. Solo **29 componenti su ~140** che iniettano hanno uno scope proprio (`OwningComponentBase`) | Fase 3 |
-| s-09 | La prova «migrazioni EF10 applicabili sotto EF8» è stata fatta su **65 migrazioni** il 1° agosto. Oggi sono **114**: 49 non sono mai passate da quella sonda, e l'host da incorporare è net8/EF8 | Fase 2 |
-| s-10 | Il ramo **Postgres** crea lo schema con `EnsureCreated` (nessuna cronologia di migrazioni), il ramo SQLite/MySQL con `Migrate()`. Due storie diverse dello stesso schema | Fase 2 |
+| ~~s-09~~ | ~~la sonda EF8 ferma a 65 migrazioni~~ → **chiuso in Fase 2, misurato**: le 114 si applicano da vuoto sotto net8 | — |
+| ~~s-10~~ | ~~`EnsureCreated` contro `Migrate()`~~ → **chiuso in Fase 2**: la scelta è esplicita per provider e un provider ignoto solleva | — |
+| ~~s-06~~ | ~~63 raccolte scrivibili~~ → **chiuso in Fase 2**: sono navigazioni EF e binding di opzioni, che i setter li vogliono | — |
+| s-11 | `AiracService.EffectiveUtcForCycle` valida con `int.TryParse`: **`"+261"` e `"-261"` passano** e producono una data sbagliata invece di sollevare — ed è proprio il sollevamento che `SidStampCycle` usa *come* validatore. Oggi lo schermano i chiamanti (regex `\d{4}`), non il validatore | Fase 4c |
 
 ---
 
@@ -447,3 +453,140 @@ Le migrazioni SQLite oggi sono **114**. I due numeri non cambiano la decisione �
 un repository dove le prove sono numeri, un numero fermo dentro un commento è un numero che qualcuno
 riuserà.
 
+
+---
+
+# Fase 2 — Dominio e modello dati
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · 4 findings (1 × S2), 3 sospetti chiusi, 1 aperto
+
+Perimetro: `Vipi.Domain` (30 file, 3 955 righe), `VipiDbContext.OnModelCreating` (991 righe), le 114
+migrazioni SQLite, le migrazioni MySQL, `docs/spec/modello-dati.md` (1 269 righe).
+
+## Esito in una riga
+
+**Lo schema è la parte più difesa di questo repository, e la sua specifica è la meno aggiornata.** Nessun
+difetto di modello: i due insiemi di migrazioni sono allineati al modello (misurato, non letto), le 114
+migrazioni SQLite si applicano da vuoto anche sotto EF Core 8, e i vincoli che su MySQL fanno la differenza
+— collation sensibile, lunghezze delle colonne indicizzate, tetto di chiave InnoDB — hanno tutti un test che
+li tiene fermi. Il documento che dovrebbe descrivere tutto questo è invece **fermo al 25 agosto** su tre
+assi diversi.
+
+## Quel che è stato misurato, non letto
+
+| Verifica | Comando / metodo | Esito |
+|---|---|---|
+| Il modello ha modifiche non ancora migrate? (SQLite) | `dotnet ef migrations has-pending-model-changes` su `net8.0` | ✅ **nessuna** |
+| Idem sull'insieme **MySQL**, che è quello di produzione | idem su `Vipi.Infrastructure.MySqlMigrations` | ✅ **nessuna** |
+| Le 114 migrazioni si applicano **da database vuoto sotto EF Core 8**? | `dotnet ef database update --framework net8.0` | ✅ **tutte e 114** — chiude s-09 |
+| Lo stato del database di sviluppo | interrogato in copia, sola lettura | 114 migrazioni applicate, coerente col repository |
+| Callsign presenti in **entrambi** i cataloghi | query sui due cataloghi | **0 oggi** — vedi R-014 |
+
+## Le difese che reggono
+
+- **Il token di concorrenza si ruota nel `DbContext`, non nei repository.** `SaveChanges`/`SaveChangesAsync`
+  riassegnano il token a ogni entità aggiunta o modificata che ne dichiari uno. È la forma giusta della
+  garanzia — «passare dal context basta» invece di «un repository si ricorda di farlo» — e la scelta di
+  *togliere* il token alle quattro entità che lo dichiaravano senza mai scriverlo è più difendibile di
+  averlo lasciato lì a fare finta.
+- **I default degli enum-stringa sono dichiarati nel modello e non solo nella migrazione**, con la ragione
+  scritta accanto: il reconciler Postgres li rilegge di lì, e uno scaffolding lasciato a sé emetterebbe `""`,
+  che non è il nome di nessun valore.
+- **La trappola del `bool` opt-out è conosciuta e contenuta.** Le 39 colonne `bool` aggiunte da migrazione
+  hanno il default giusto per il loro verso: `true` per i flag di policy (opt-out), `false` per gli opt-in.
+  `ImportPolicy.ImportSids` — nato `false` l'8 luglio e corretto il 3 agosto — è citato **per nome** in
+  quattro file come il precedente da non ripetere, e nel database la riga non esiste nemmeno.
+- **Sei test tengono ferme le regole MySQL**: ogni colonna stringa indicizzata ha una lunghezza, nessuna
+  supera il tetto InnoDB, le FK su chiave alternata hanno la stessa misura della principale, ogni enum ha
+  una lunghezza, nessuna colonna resta `longtext` nella DDL, la collation è sensibile a maiuscole e accenti.
+- **La finestra cieca ha una guardia eseguibile**, non una raccomandazione: `MigrazioniDellaFinestraCiecaTests`
+  respinge una migrazione distruttiva emessa dopo l'ultimo dump, e chiede di essere **cancellata** il 16
+  settembre invece di spostare le date in avanti.
+
+## R-011 — La specifica descrive tre cose che non esistono
+
+`docs/spec/modello-dati.md:614-620` · **S3** · 🟢 · CONFERMATO
+
+L'intestazione del documento dice: *«§9 è la parte AUTOREVOLE corrente e prevale dove in conflitto»*. La
+§9.13 descrive per esteso `AppProfile` (campi, FK, cascade, indice unico), `AppFrequencyLink` e il servizio
+`IAppProfileService`. Nel codice **non esiste nessuno dei tre**: lo storage è migrato su
+`Document` + `DocumentProfile`, e lo dice `VipiDbContext` — *«entità AppProfile rimosse»*.
+
+Non è che il documento non sappia marcare ciò che è superato — lo fa altrove, e bene: §9.11 porta
+«⚪ superata da §9.31», §9.15 un banner 🛑 **[SUPERATO — non implementare da qui]**, §9.25 «⚪ storia». La
+§9.13 non porta niente. Di quella sezione sopravvive solo la rotta (`/services/vsop/{acc}/apps/editor`).
+
+## R-012 — La «lista migrazioni autoritativa» si ferma alla 85ª di 114
+
+`docs/spec/modello-dati.md:577` · **S3** · 🟢 · CONFERMATO
+
+§9.8 si chiude su `DocumentoDellAeroporto` (25 agosto), che è la **migrazione numero 85**. Ne mancano **29**,
+e non sono rifiniture: sono le tabelle di sottosistemi interi.
+
+```
+TimbriPerEliminare · RiassuntoMensileAtc · IncaricoDaSegnalazione · IdentitaDeiSettori
+ShapeVuoteANull · GateAiracShape · MemoriaDiTraduzione · DestinatarioSezione · EdizioneMilitare
+ArchivioAtcMondiale · GlossarioFraseologia · PromozioniAMano · ConcessioniPerAccRimosse
+RadioassistenzeAnagrafica · CoordinateSogliaPista · RadioassistenzeFamigliaETipo
+BibliotecaAllegati · CatalogoSpaziAerei · AgganciSpaziAerei · RegistroSpesaTraduzione
+PezziDiForma · FormaCheHaContato · CatenaDiRipiego · LinguaBloccata · DocumentiUniti
+```
+
+Il difetto non è l'elenco incompleto: è che si **dichiari autoritativo**. Un elenco che dice di sé «questo è
+tutto» e non lo è costa più di un elenco che non promette niente.
+
+## R-013 — Un quarto del modello non è nella specifica del modello
+
+**S3** · 🟢 · CONFERMATO
+
+**16 entità su 59** non compaiono in `modello-dati.md`, in nessuna sezione:
+
+```
+Attachment · AttachmentVersion · AirspaceImport · AirspaceVolume · SectorAirspaceBinding
+SectorShapePart · SectorFallback · TranslationUnit · TranslationSpend · GlossaryTerm
+MediaAsset · CallsignAlias · EditResourceLock · AgreementAirport · AirportDayTraffic
+AirportTransitionLevel
+```
+
+Il documento si apre dicendo di essere *«la sorgente da cui derivare le entità di dominio e le configurazioni
+EF Core»*. Oggi la sorgente vera è `VipiDbContext.OnModelCreating`, che infatti spiega ogni scelta — ed è il
+posto giusto perché ci sia. Il difetto è che la specifica continui a presentarsi come la sorgente.
+
+> **I tre findings hanno un rimedio solo, e vale la pena dirlo qui.** Non è riscrivere §9: è **spostare la
+> corona**. `modello-dati.md` dichiara che la sorgente è `OnModelCreating`, marca §9.13 come le altre tre già
+> marcate, e sostituisce §9.8 con il comando che la genera. Un elenco che si aggiorna a mano ricade sempre.
+
+## R-014 — Due cataloghi, un dizionario, e chi arriva secondo vince
+
+`src/Vipi.Domain/Services/EffectiveHierarchy.cs:48-64` · **S2** · 🟢 · **PLAUSIBILE**
+
+`ParentMap` costruisce l'albero di copertura **effettivo** a partire dalle righe dei **due** cataloghi
+(`AccSectors` e `AirportSectors`, uniti dai chiamanti in `EfHierarchyEditingService` e
+`EfConsistencyReportRepository`) e le scrive in un dizionario con l'**indicizzatore**:
+
+```csharp
+mappa[r.Callsign] = r.ParentCallsign;      // e, più sotto, il ramo derivato dalla scaletta
+```
+
+L'unicità di `ComposePosition` è garantita **dentro ciascuna tabella** — due indici unici separati — e
+**niente** vieta lo stesso callsign in tutte e due. Se accade, la seconda riga sovrascrive la prima **in
+silenzio**: nessuna eccezione, nessun rilievo di diagnostica.
+
+**Scenario di rottura.** Lo stesso callsign compare nei due cataloghi con due padri diversi. Nell'albero
+effettivo ne sopravvive uno: il settore perde il padre vero, la catena di copertura si accorcia, e la
+ricaduta dei trasferimenti finisce su un ente sbagliato o su UNICOM. Il difetto non si vede all'ingresso —
+entrambe le righe sono legali — ma a valle, come una gerarchia che «non è quella che ho scritto».
+
+**Perché PLAUSIBILE e non CONFERMATO:** misurato oggi sul database di sviluppo, i callsign comuni ai due
+cataloghi sono **zero**. La regola regge perché al momento la collisione non c'è — che è esattamente la
+domanda che questa revisione si porta dietro. Il rimedio non è un indice (le tabelle sono due): è **fare
+rumore** invece di sovrascrivere, come questo repository fa già altrove con `DocRelease` e `DocumentImpact`
+(«meglio un conflitto rumoroso da ritentare»).
+
+## Sospetti chiusi in questa fase
+
+| # | Perché era un sospetto | Perché si chiude |
+|---|---|---|
+| s-06 | 63 raccolte scrivibili (`CA2227`) | Sono navigazioni EF e binding di `IOptions`: i setter servono. Nessun caso residuo |
+| s-09 | La sonda «EF10 applicabili sotto EF8» ferma a 65 migrazioni | **Eseguita**: 114 su 114 applicate da vuoto sotto `net8.0` |
+| s-10 | `EnsureCreated` (Postgres) contro `Migrate()` (SQLite/MySQL) | La scelta è esplicita per `ProviderName`, con un `throw` per il provider ignoto e la ragione scritta |
