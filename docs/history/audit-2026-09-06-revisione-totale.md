@@ -1235,7 +1235,7 @@ fra le voci, `0x1E` (record separator) fra i campi:
 
 ```csharp
 private static string Firma(IReadOnlyList<EditorTocItem> voci) =>
-    string.Join('', voci.Select(v => $"{v.AnchorId}{v.Label}{v.GroupLabel}"));
+    string.Join('\u001F', voci.Select(v => $"{v.AnchorId}\u001E{v.Label}\u001E{v.GroupLabel}"));
 // ↑ nel file quei due non sono escape: sono i BYTE 0x1F e 0x1E scritti dentro il sorgente
 ```
 
@@ -1250,7 +1250,7 @@ una concatenazione, due elenchi diversi possono produrre la stessa stringa, e il
 un cambiamento — cioè **si riapre esattamente il difetto che quel commento dice di aver chiuso**, e si
 riapre senza che nessun test cada.
 
-**Rimedio:** scriverli come escape (`''`, `""`). Il file torna testuale, e il comportamento non cambia di un
+**Rimedio:** scriverli come escape (`'\u001F'`, `"\u001E"`). Il file torna testuale, e il comportamento non cambia di un
 bit. Insieme a R-001 sono due righe.
 
 > ⚠️ **La lezione che vale più del fix**: dopo il primo caso nessuno ha guardato se ce n'erano altri. Un
