@@ -613,7 +613,34 @@
       viaggiano insieme a `Vipi.Host.staticwebassets.endpoints.json`.
       ⚠️ Da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.15.0</VipiVersione>
+    <!--
+      1.15.1 — 7 settembre 2026, notte. **PATCH**: solo correzioni, nessuna pagina e nessuna sezione nuova,
+      nessuna migrazione. Si costruisce contro cio' che GIRA, che e' **1.15.0** (`31fd4194`), caricata
+      poche ore prima. Tutte e due le cose qui sotto le ha trovate l'USO VERO, non i test.
+
+        · 🔴 La SCHEDA delle sezioni in comune era girata al contrario. Il committente aveva chiesto «se
+          seleziono vIPI nasconde le sezioni della vIPI»; la scheda invece chiedeva chi le TIENE, cioe' la
+          stessa domanda letta al rovescio, e chi la usava nascondeva l'altro documento. Adesso si spuntano
+          i DOCUMENTI da cui le sezioni spariscono — con tre membri se ne spuntano due — e spuntarli tutti
+          si puo', ma la scheda avvisa che quella sezione sparisce dalla pagina unita per intero.
+          ⚠️ Chi non e' spuntato torna VISIBILE: senza, cambiare idea lasciava nascoste tutt'e due le copie.
+
+        · INVERTENDO l'ordine dei membri l'ospite cambia, e con lui si sposta l'editor unito: i corpi degli
+          altri documenti smettono di comparire in quella pagina e ricompaiono nell'altra. Non si perdeva
+          niente — ma non lo diceva nessuno, e sembrava che l'unione fosse sparita. Ora chi non e' l'ospite
+          lo legge in testa al pannello, col LINK all'editor dell'ospite, e in modifica una riga dice che
+          cosa comporta essere primi.
+          ⚠️ La scheda delle sezioni in comune si offre ora SOLO all'ospite: scrive sui documenti degli
+          altri membri, e i loro lock li tiene lui.
+
+      Rispetto a 1.15.0 cambiano DUE progetti: `Application` (`SezioniComuni`, la porta di `IEditingService`)
+      e `Ui` (il pannello), piu' le FRASI (due `.resx`, quindi il satellite inglese entra) e `Host`, che
+      porta sempre il timbro. ⚠️ Nessun file di `wwwroot` toccato — da verificare con le IMPRONTE, non a
+      memoria. ⚠️ E la regola degli assiemi «tutti insieme» di 1.15.0 qui NON si applica: quella nasceva da
+      R-009, che ha cambiato la visibilita' fra assiemi; qui in produzione girano gia' tutti quelli di
+      1.15.0.
+    -->
+    <VipiVersione>1.15.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
