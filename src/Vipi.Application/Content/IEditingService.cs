@@ -57,13 +57,14 @@ public interface IEditingService : IDocumentForReview
         CancellationToken ct = default);
 
     /// <summary>
-    /// Applica la scelta: le sezioni con queste chiavi si <b>vedono</b> in <paramref name="documentoCheTiene"/>
-    /// e si <b>nascondono</b> negli altri. Ritorna quante sezioni ha cambiato davvero.
+    /// Applica la scelta: le sezioni con queste chiavi si <b>nascondono</b> nei documenti di
+    /// <paramref name="nascondiIn"/> e si <b>mostrano</b> negli altri dell'unione. Ritorna quante sezioni ha
+    /// cambiato davvero.
     /// <para>⚠️ Scrive lo stesso flag del tasto «nascondi» dell'editor, sulla <b>bozza</b> di ogni documento:
     /// non è uno stato dell'unione, e sciogliendola resta dov'è. Vuole il <b>lock</b> di ogni documento
     /// toccato, come ogni altra scrittura.</para>
     /// </summary>
-    Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds,
+    Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds,
         IReadOnlyList<string> chiavi, CancellationToken ct = default);
     /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
     /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>

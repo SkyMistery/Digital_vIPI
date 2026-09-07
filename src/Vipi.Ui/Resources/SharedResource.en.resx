@@ -3221,9 +3221,10 @@
   <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Shared sections</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>These documents have no sections in common: there is nothing to hide.</value></data>
-  <data name="Union_Common_Hint" xml:space="preserve"><value>The sections below appear in more than one document of the union. Pick the one that keeps them: they stay visible there and are hidden in the others — the same flag as the editor's «hide» button, and undone the same way.</value></data>
-  <data name="Union_Common_Keeper" xml:space="preserve"><value>Kept by:</value></data>
-  <data name="Union_Common_Apply" xml:space="preserve"><value>Hide in the others</value></data>
+  <data name="Union_Common_Hint" xml:space="preserve"><value>The sections below appear in more than one document of the union. Pick WHICH documents they should disappear from: there they are hidden — the same flag as the editor's «hide» button, and undone the same way — and they stay visible in the others.</value></data>
+  <data name="Union_Common_HideIn" xml:space="preserve"><value>Hide the shared sections of:</value></data>
+  <data name="Union_Common_AllHidden" xml:space="preserve"><value>⚠️ This way at least one section disappears from ALL the documents of the union: the joined page will not show it anywhere. If that is what you want, fine; otherwise leave visible the document that should keep it.</value></data>
+  <data name="Union_Common_Apply" xml:space="preserve"><value>Hide</value></data>
   <data name="Union_Common_Done" xml:space="preserve"><value>Done: {0} sections changed.</value></data>
   <data name="Union_Common_Done_One" xml:space="preserve"><value>Done: one section changed.</value></data>
   <data name="Union_Common_Hidden" xml:space="preserve"><value>already hidden</value></data>

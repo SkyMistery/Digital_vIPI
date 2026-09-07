@@ -30,7 +30,7 @@ public abstract class EditingServiceStub : IEditingService
     public virtual Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionRenderModeAsync));
     public virtual Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionHiddenAsync));
     public virtual Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds, CancellationToken ct = default) => throw NonUsato(nameof(SezioniComuniAsync));
-    public virtual Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato(nameof(ApplicaSezioniComuniAsync));
+    public virtual Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato(nameof(ApplicaSezioniComuniAsync));
     public virtual Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionAudienceAsync));
     public virtual Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionBeforeParentBodyAsync));
     public virtual Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionLeadSentenceAsync));

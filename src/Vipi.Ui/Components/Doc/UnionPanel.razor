@@ -119,15 +119,18 @@
                 {
                     <p class="help" style="margin:0 0 8px">@Sito["Union_Common_Hint"]</p>
 
-                    <p class="muted" style="margin:0 0 4px">@Sito["Union_Common_Keeper"]</p>
+                    @* ⚠️ CASELLE e non un solo bottone: i membri possono essere tre — LIBV ha due APP — e
+                       «da quale nascondere» ha piu' di una risposta. Con due documenti si legge come la
+                       richiesta del committente: spunto la vIPI, spariscono quelle della vIPI. *@
+                    <p class="muted" style="margin:0 0 4px">@Sito["Union_Common_HideIn"]</p>
                     <ul class="union-keepers">
                         @foreach (var m in _unione.Members)
                         {
                             var id = m.DocumentId;
                             <li>
                                 <label>
-                                    <input type="radio" name="union-tiene-@Key" checked="@(_tiene == id)"
-                                           disabled="@_busy" @onchange="() => _tiene = id" />
+                                    <input type="checkbox" checked="@_nascondiIn.Contains(id)" disabled="@_busy"
+                                           @onchange="e => SpuntaDocumento(id, (bool)(e.Value ?? false))" />
                                     @m.Doc.Title <span class="muted">@m.Doc.ReleaseKey</span>
                                 </label>
                             </li>
@@ -152,8 +155,18 @@
                         }
                     </ul>
 
+                    @* 🔴 Spuntare TUTTI i documenti e' legittimo — «quel dato qui non lo vogliamo» — ma la
+                       sezione sparisce dalla pagina unita per intero: si dice, non si vieta. *@
+                    @if (SezioniComuni.SparisceDaTutti(_comuni, _spuntate.ToList(), _nascondiIn))
+                    {
+                        <div class="callout warning">
+                            <span class="cic"><Icon Name="triangle" Size="18" /></span>
+                            <div>@Sito["Union_Common_AllHidden"]</div>
+                        </div>
+                    }
+
                     <div class="union-common-cmds">
-                        <button class="btn primary" disabled="@(_busy || _spuntate.Count == 0)"
+                        <button class="btn primary" disabled="@(_busy || _spuntate.Count == 0 || _nascondiIn.Count == 0)"
                                 @onclick="ApplicaComuni">@Sito["Union_Common_Apply"]</button>
                         <button class="btn ghost" disabled="@_busy" @onclick="() => _scheda = false">@L["Common_Close"]</button>
                     </div>
@@ -246,8 +259,8 @@
     /// <summary>La scheda delle sezioni in comune è aperta.</summary>
     private bool _scheda;
     private IReadOnlyList<SezioneComune> _comuni = Array.Empty<SezioneComune>();
-    /// <summary>Il documento che TIENE le sezioni comuni: le sue si vedono, quelle degli altri spariscono.</summary>
-    private int _tiene;
+    /// <summary>I documenti da cui le sezioni comuni SPARISCONO. Gli altri le tengono visibili.</summary>
+    private readonly HashSet<int> _nascondiIn = new();
     private readonly HashSet<string> _spuntate = new(StringComparer.Ordinal);
     private string? _esito;
     private UnionView? _unione;
@@ -382,11 +395,14 @@
 
         var membri = _unione.Members.Select(m => m.DocumentId).ToList();
         _comuni = await _editing.SezioniComuniAsync(membri);
-        // 🔴 Chi tiene lo dice lo STATO, non il default: riproponendo sempre l'ospite, chi riapre la scheda e
-        // preme senza guardare RIBALTA la scelta di prima. A unione appena nata la risposta è comunque
-        // l'ospite, perché nessuno ha ancora nascosto niente.
-        if (_tiene == 0 || _unione.Members.All(m => m.DocumentId != _tiene))
-            _tiene = SezioniComuni.CheTiene(_comuni, membri);
+        // 🔴 La proposta la fa lo STATO, non un default fisso: riproponendo sempre lo stesso insieme, chi
+        // riapre la scheda e preme senza guardare RIBALTA la scelta di prima. A unione appena nata nessuno
+        // ha nascosto niente, e allora si propongono tutti tranne l'ospite.
+        if (_nascondiIn.Count == 0 || _nascondiIn.Any(id => membri.All(m => m != id)))
+        {
+            _nascondiIn.Clear();
+            foreach (var id in SezioniComuni.DoveNascondere(_comuni, membri)) _nascondiIn.Add(id);
+        }
         _spuntate.Clear();
         foreach (var c in _comuni.Where(c => c.Proposta)) _spuntate.Add(c.Chiave);
     }
@@ -395,6 +411,12 @@
     {
         if (spuntata) _spuntate.Add(chiave);
         else _spuntate.Remove(chiave);
+    }
+
+    private void SpuntaDocumento(int documentId, bool spuntato)
+    {
+        if (spuntato) _nascondiIn.Add(documentId);
+        else _nascondiIn.Remove(documentId);
     }
 
     /// <summary>
@@ -406,7 +428,7 @@
     {
         if (_unione is null) return;
         var n = await _editing.ApplicaSezioniComuniAsync(
-            _tiene, _unione.Members.Select(m => m.DocumentId).ToList(), _spuntate.ToList());
+            _nascondiIn.ToList(), _unione.Members.Select(m => m.DocumentId).ToList(), _spuntate.ToList());
         // ⚠️ Due chiavi, non un plurale solo: «1 sezioni» sbaglia sempre sull'uno, in tutte e due le lingue —
         // e il progetto non ha ICU. È la stessa regola di `XferLabels`.
         _esito = n == 1 ? Sito["Union_Common_Done_One"] : Sito.Formatta("Union_Common_Done", n);

@@ -3229,9 +3229,10 @@
   <data name="Union_Common_Open" xml:space="preserve"><value>Sezioni in comune…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Sezioni in comune</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>Questi documenti non hanno sezioni in comune: non c'è niente da nascondere.</value></data>
-  <data name="Union_Common_Hint" xml:space="preserve"><value>Le sezioni qui sotto stanno in più di un documento dell'unione. Scegli chi le tiene: nel documento scelto restano visibili, negli altri vengono nascoste — come col tasto «nascondi» dell'editor, e si rimettono allo stesso modo.</value></data>
-  <data name="Union_Common_Keeper" xml:space="preserve"><value>Le tiene:</value></data>
-  <data name="Union_Common_Apply" xml:space="preserve"><value>Nascondi negli altri</value></data>
+  <data name="Union_Common_Hint" xml:space="preserve"><value>Le sezioni qui sotto stanno in più di un documento dell'unione. Scegli da QUALI documenti farle sparire: lì vengono nascoste — come col tasto «nascondi» dell'editor, e si rimettono allo stesso modo — e restano visibili negli altri.</value></data>
+  <data name="Union_Common_HideIn" xml:space="preserve"><value>Nascondi le sezioni comuni di:</value></data>
+  <data name="Union_Common_AllHidden" xml:space="preserve"><value>⚠️ Così almeno una sezione sparisce da TUTTI i documenti dell'unione: la pagina unita non la mostrerà più da nessuna parte. Se è quello che vuoi, va bene; altrimenti lascia visibile il documento che deve tenerla.</value></data>
+  <data name="Union_Common_Apply" xml:space="preserve"><value>Nascondi</value></data>
   <data name="Union_Common_Done" xml:space="preserve"><value>Fatto: {0} sezioni cambiate.</value></data>
   <data name="Union_Common_Done_One" xml:space="preserve"><value>Fatto: una sezione cambiata.</value></data>
   <data name="Union_Common_Hidden" xml:space="preserve"><value>già nascosta</value></data>

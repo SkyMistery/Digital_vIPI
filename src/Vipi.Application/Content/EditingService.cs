@@ -183,11 +183,11 @@ public sealed class EditingService : IEditingService
         return SezioniComuni.Di(documenti);
     }
 
-    public async Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds,
+    public async Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds,
         IReadOnlyList<string> chiavi, CancellationToken ct = default)
     {
         var comuni = await SezioniComuniAsync(documentIds, ct);
-        var piano = SezioniComuni.Piano(comuni, chiavi, documentoCheTiene);
+        var piano = SezioniComuni.Piano(comuni, chiavi, nascondiIn);
 
         // ⚠️ Ognuna passa dalla porta normale: autorizzazione e LOCK per documento, come se il tasto
         // «nascondi» lo premesse una persona sezione per sezione. Scrivere qui una scorciatoia che salta

@@ -81,50 +81,68 @@ public static class SezioniComuni
     }
 
     /// <summary>
-    /// Che cosa scrivere davvero, scelte le chiavi e il documento che le <b>tiene</b>: le sue tornano
-    /// visibili, quelle degli altri si nascondono. Le sezioni già a posto non compaiono — un piano vuoto
-    /// vuol dire «non c'è niente da fare», ed è una risposta.
+    /// Che cosa scrivere davvero: le sezioni con queste chiavi si <b>nascondono</b> nei documenti scelti e
+    /// si <b>mostrano</b> in tutti gli altri. Le sezioni già a posto non compaiono nel piano — un piano
+    /// vuoto vuol dire «non c'è niente da fare», ed è una risposta.
     ///
-    /// <para>⚠️ Il documento che tiene si <b>mostra</b>, non si lascia com'è: senza, cambiare idea sul
-    /// vincitore lascerebbe nascoste tutt'e due le copie — la seconda scelta nasconderebbe le sezioni
-    /// dell'altro senza rimettere le proprie, e la pagina unita resterebbe senza METAR. Chi sceglie «le
-    /// tiene la vIPI» sta dicendo che nella vIPI si vedono.</para>
+    /// <para>⚠️ Chi NON è selezionato si <b>mostra</b>, non si lascia com'è: senza, cambiare idea su quale
+    /// documento nascondere lascerebbe nascoste tutt'e due le copie — la seconda scelta nasconderebbe
+    /// l'altro senza rimettere il primo, e la pagina unita resterebbe senza METAR.</para>
+    ///
+    /// <para>⚠️ La polarità è quella chiesta dal committente il 7 settembre 2026: <b>si sceglie il documento
+    /// da cui SPARISCONO</b>. La prima stesura chiedeva chi le TIENE — la stessa scheda, letta al
+    /// contrario — ed è esattamente il clic sbagliato che aspetta di succedere.</para>
     /// </summary>
     public static IReadOnlyList<(int SectionId, bool Nascondi)> Piano(
-        IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi, int documentoCheTiene)
+        IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi, IReadOnlyCollection<int> nascondiIn)
     {
         var scelte = new HashSet<string>(chiavi, StringComparer.Ordinal);
+        var da = new HashSet<int>(nascondiIn);
         return comuni
             .Where(c => scelte.Contains(c.Chiave))
             .SelectMany(c => c.Presenze)
-            .Select(p => (p.SectionId, Nascondi: p.DocumentId != documentoCheTiene, p.Nascosta))
+            .Select(p => (p.SectionId, Nascondi: da.Contains(p.DocumentId), p.Nascosta))
             .Where(x => x.Nascondi != x.Nascosta)
             .Select(x => (x.SectionId, x.Nascondi))
             .ToList();
     }
 
     /// <summary>
-    /// Chi PROPORRE come documento che tiene, guardando lo stato: quello con meno sezioni comuni nascoste.
-    /// A parità vince il primo dell'elenco, cioè l'ospite — ed è il caso di un'unione appena nata, dove
-    /// nessuno ha ancora nascosto niente.
-    ///
-    /// <para>🔴 <b>Senza questo la scheda MENTE alla seconda apertura.</b> Riproponendo sempre l'ospite,
-    /// chi riapre e preme «nascondi» senza guardare <b>ribalta</b> la scelta di prima: rimette le sezioni
-    /// dell'uno e nasconde quelle dell'altro, con un conto che dice «22 cambiate» al posto di «nessuna».
-    /// Misurato a schermo il 7 settembre 2026 — nessun errore, nessun rosso, e il documento che diceva
-    /// un'altra cosa. Lo stato è già scritto nell'archivio: la domanda si fa a lui, non al valore di
-    /// default.</para>
+    /// Vero se, con queste scelte, almeno una sezione comune <b>sparirebbe da tutti</b> i documenti che la
+    /// portano: legittimo, ma va detto — è l'unico caso in cui la pagina unita perde del tutto un dato che
+    /// c'era due volte.
     /// </summary>
-    public static int CheTiene(IReadOnlyList<SezioneComune> comuni, IReadOnlyList<int> membriInOrdine)
+    public static bool SparisceDaTutti(IReadOnlyList<SezioneComune> comuni, IReadOnlyList<string> chiavi,
+                                       IReadOnlyCollection<int> nascondiIn)
     {
-        if (membriInOrdine.Count == 0) return 0;
+        var scelte = new HashSet<string>(chiavi, StringComparer.Ordinal);
+        var da = new HashSet<int>(nascondiIn);
+        return comuni.Where(c => scelte.Contains(c.Chiave))
+                     .Any(c => c.Presenze.All(p => da.Contains(p.DocumentId)));
+    }
 
-        return membriInOrdine
-            .Select((id, posizione) => (id, posizione,
-                nascoste: comuni.Sum(c => c.Presenze.Count(p => p.DocumentId == id && p.Nascosta))))
-            .OrderBy(x => x.nascoste)
-            .ThenBy(x => x.posizione)
-            .First().id;
+    /// <summary>
+    /// Da quali documenti PROPORRE di nascondere, guardando lo stato: quelli che hanno già nascosta almeno
+    /// una sezione comune. Se non ne ha nascosta nessuno — unione appena nata — si propongono <b>tutti
+    /// tranne il primo</b>, che è l'ospite: la pagina unita si legge a casa sua, ed è lì che il dato conviene
+    /// tenerlo visibile.
+    ///
+    /// <para>🔴 <b>Senza guardare lo stato la scheda MENTE alla seconda apertura.</b> Riproponendo sempre lo
+    /// stesso insieme, chi riapre e preme senza guardare <b>ribalta</b> la scelta di prima: rimette le
+    /// sezioni dell'uno e nasconde quelle dell'altro, con un conto che dice «22 cambiate» al posto di
+    /// «nessuna». Misurato a schermo il 7 settembre 2026 — nessun errore, nessun rosso, e il documento che
+    /// diceva un'altra cosa.</para>
+    /// </summary>
+    public static IReadOnlyList<int> DoveNascondere(IReadOnlyList<SezioneComune> comuni,
+                                                    IReadOnlyList<int> membriInOrdine)
+    {
+        if (membriInOrdine.Count == 0) return Array.Empty<int>();
+
+        var conNascoste = membriInOrdine
+            .Where(id => comuni.Any(c => c.Presenze.Any(p => p.DocumentId == id && p.Nascosta)))
+            .ToList();
+
+        return conNascoste.Count > 0 ? conNascoste : membriInOrdine.Skip(1).ToList();
     }
 
     /// <summary>L'albero delle sezioni letto per intero, padri e figli, nell'ordine in cui si legge.</summary>

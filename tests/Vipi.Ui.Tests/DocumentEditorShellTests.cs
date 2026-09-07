@@ -85,7 +85,7 @@ public class DocumentEditorShellTests
         public Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default) => throw NonUsato();
         public Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds, CancellationToken ct = default) => throw NonUsato();
-        public Task<int> ApplicaSezioniComuniAsync(int documentoCheTiene, IReadOnlyList<int> documentIds, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato();
+        public Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default) => throw NonUsato();

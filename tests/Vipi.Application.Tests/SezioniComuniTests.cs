@@ -95,36 +95,36 @@ public class SezioniComuniTests
         Assert.False(comuni.Single(c => c.Chiave == SezioniComuni.ChiaveValidita).Proposta);
     }
 
-    // ---- il piano: chi tiene si VEDE, gli altri si nascondono ----------------------------------------
+    // ---- il piano: sparisce da chi si SPUNTA -------------------------------------------------------
 
     [Fact]
-    public void Chi_tiene_si_vede_e_gli_altri_si_nascondono()
+    public void Sparisce_dai_documenti_SPUNTATI_e_resta_negli_altri()
     {
+        // La polarita' chiesta dal committente: spunto la vIPI, spariscono quelle della vIPI.
         var comuni = SezioniComuni.Di(new[]
         {
             (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF"))),
             (Vsop, Sezioni(Sez(2, "weather", "METAR & TAF"))),
         });
 
-        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, documentoCheTiene: Vsop);
+        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, new[] { Vipi });
 
-        // La sezione della vIPI si nasconde; quella del vSOP era già visibile, quindi non si tocca.
+        // La sezione della vIPI si nasconde; quella del vSOP era gia' visibile, quindi non si tocca.
         Assert.Equal(new[] { (1, true) }, piano);
     }
 
     [Fact]
-    public void Cambiare_idea_RIMETTE_quella_di_chi_tiene()
+    public void Cambiare_idea_RIMETTE_quella_dell_altro()
     {
-        // 🔴 Senza questo, la seconda scelta nasconderebbe le sezioni dell'altro senza rimettere le proprie:
-        // due copie nascoste, e la pagina unita senza METAR. «Le tiene la vIPI» vuol dire che nella vIPI si
-        // vedono — non «lascia com'è».
+        // 🔴 Senza questo, la seconda scelta nasconderebbe l'altro senza rimettere il primo: due copie
+        // nascoste, e la pagina unita senza METAR.
         var comuni = SezioniComuni.Di(new[]
         {
             (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF", nascosta: true))),
             (Vsop, Sezioni(Sez(2, "weather", "METAR & TAF"))),
         });
 
-        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, documentoCheTiene: Vipi);
+        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, new[] { Vsop });
 
         Assert.Equal(new[] { (1, false), (2, true) }, piano);
     }
@@ -138,7 +138,7 @@ public class SezioniComuniTests
             (Vsop, Sezioni(Sez(3, "weather", "METAR & TAF"), Sez(4, "validity", "Validità e revisione"))),
         });
 
-        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, documentoCheTiene: Vipi);
+        var piano = SezioniComuni.Piano(comuni, new[] { "weather" }, new[] { Vsop });
 
         Assert.Equal(new[] { 3 }, piano.Select(x => x.SectionId));
     }
@@ -147,21 +147,35 @@ public class SezioniComuniTests
     public void Un_piano_VUOTO_e_una_risposta()
     {
         // Premere due volte non deve «nascondere sei sezioni» la seconda volta: il conto dice quante ne ha
-        // cambiate DAVVERO, ed è la stessa bugia del conteggio dei documenti pubblicati — sbagliata tre
-        // volte in quest'area.
+        // cambiate DAVVERO.
         var comuni = SezioniComuni.Di(new[]
         {
             (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF"))),
             (Vsop, Sezioni(Sez(2, "weather", "METAR & TAF", nascosta: true))),
         });
 
-        Assert.Empty(SezioniComuni.Piano(comuni, new[] { "weather" }, documentoCheTiene: Vipi));
+        Assert.Empty(SezioniComuni.Piano(comuni, new[] { "weather" }, new[] { Vsop }));
     }
 
-    // ---- chi tiene lo dice lo STATO ------------------------------------------------------------------
+    [Fact]
+    public void Spuntare_TUTTI_i_documenti_si_puo_ma_si_deve_dire()
+    {
+        // Legittimo — «quel dato qui non lo vogliamo» — ma la sezione sparisce dalla pagina unita per
+        // intero: la scheda lo avvisa invece di vietarlo.
+        var comuni = SezioniComuni.Di(new[]
+        {
+            (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF"))),
+            (Vsop, Sezioni(Sez(2, "weather", "METAR & TAF"))),
+        });
+
+        Assert.True(SezioniComuni.SparisceDaTutti(comuni, new[] { "weather" }, new[] { Vipi, Vsop }));
+        Assert.False(SezioniComuni.SparisceDaTutti(comuni, new[] { "weather" }, new[] { Vipi }));
+    }
+
+    // ---- da dove nascondere lo dice lo STATO ---------------------------------------------------------
 
     [Fact]
-    public void A_unione_appena_nata_tiene_l_OSPITE()
+    public void A_unione_appena_nata_si_propone_TUTTI_TRANNE_l_ospite()
     {
         var comuni = SezioniComuni.Di(new[]
         {
@@ -169,16 +183,15 @@ public class SezioniComuniTests
             (Vsop, Sezioni(Sez(2, "weather", "METAR & TAF"))),
         });
 
-        // Nessuno ha nascosto niente: parità totale, e a parità vince il primo dell'elenco.
-        Assert.Equal(Vipi, SezioniComuni.CheTiene(comuni, new[] { Vipi, Vsop }));
+        // Nessuno ha nascosto niente: la pagina unita si legge a casa dell'ospite, che e' il primo.
+        Assert.Equal(new[] { Vsop }, SezioniComuni.DoveNascondere(comuni, new[] { Vipi, Vsop }));
     }
 
     [Fact]
-    public void Riaprendo_la_scheda_tiene_chi_le_ha_ANCORA_VISIBILI()
+    public void Riaprendo_la_scheda_si_propone_CHI_LE_HA_GIA_NASCOSTE()
     {
-        // 🔴 Il difetto trovato a schermo il 7 settembre 2026: riproponendo sempre l'ospite, chi riapriva e
-        // premeva senza guardare RIBALTAVA la scelta di prima — «22 sezioni cambiate» invece di nessuna, e
-        // il documento che diceva un'altra cosa. Nessun errore, nessun rosso.
+        // 🔴 Il difetto trovato a schermo il 7 settembre 2026: con una proposta fissa, chi riapriva e
+        // premeva senza guardare RIBALTAVA la scelta di prima — «22 sezioni cambiate» invece di nessuna.
         var comuni = SezioniComuni.Di(new[]
         {
             (Vipi, Sezioni(Sez(1, "weather", "METAR & TAF", nascosta: true),
@@ -186,11 +199,11 @@ public class SezioniComuniTests
             (Vsop, Sezioni(Sez(3, "weather", "METAR & TAF"), Sez(4, "runways", "Piste"))),
         });
 
-        var tiene = SezioniComuni.CheTiene(comuni, new[] { Vipi, Vsop });
+        var dove = SezioniComuni.DoveNascondere(comuni, new[] { Vipi, Vsop });
 
-        Assert.Equal(Vsop, tiene);
-        // E con quella proposta, premere di nuovo non cambia niente: la scheda non ha piu' niente da dire.
-        Assert.Empty(SezioniComuni.Piano(comuni, new[] { "weather", "runways" }, tiene));
+        Assert.Equal(new[] { Vipi }, dove);
+        // E con quella proposta, premere di nuovo non cambia niente.
+        Assert.Empty(SezioniComuni.Piano(comuni, new[] { "weather", "runways" }, dove));
     }
 
     // ---- attrezzi ------------------------------------------------------------------------------------
