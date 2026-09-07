@@ -63,6 +63,8 @@ public class DocReviewBarTests : TestContext
             Task.FromResult<IReadOnlyDictionary<int, ImpactBadge>>(new Dictionary<int, ImpactBadge>());
         public Task<(int Aperti, int Chiusi)> ReconcileAsync(ImpactKind kind, IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) =>
             Task.FromResult((0, 0));
+        public Task<(int Aperti, int Chiusi)> ReconcileForDocumentAsync(int documentId, IReadOnlyCollection<ImpactKind> kinds,
+            IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default) => Task.FromResult(0);
     }
 

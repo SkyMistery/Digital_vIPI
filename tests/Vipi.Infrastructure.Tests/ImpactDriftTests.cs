@@ -256,6 +256,155 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.Equal(0, esito.Esaminati);
     }
 
+    // ---- Pubblicare deve dirlo SUBITO (7 settembre 2026) ---------------------------------------------
+
+    /// <summary>
+    /// Il caso che ha fatto scrivere tutto questo: la riga «da ripubblicare» si chiudeva solo al giro delle
+    /// 24 ore. Misurato dal vivo su LIBD — riga aperta il 6 alle 19:27Z, ripubblicato il 7 alle 06:52, riga
+    /// ancora lì a metà mattina: chi pubblica non aveva <b>nessun</b> modo di sapere se fosse riuscito.
+    /// </summary>
+    [Fact]
+    public async Task Ripubblicare_Richiude_La_Riga_Subito()
+    {
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Righe = new[] { new ReleaseDiffRow("Carte aeroportuali", ReleaseChangeKind.Added, null, 5) },
+        };
+
+        await Giro(admin, rel, repo, new FakeTargets(_docId)).RunAsync();
+        Assert.Single(await _impatti.ListOpenAsync(_docId));
+
+        // Si pubblica: la copia in vigore ora dice quel che direbbe oggi.
+        rel.Righe = Array.Empty<ReleaseDiffRow>();
+        var esito = await Giro(admin, rel, repo, new FakeTargets(_docId)).RunForDocumentAsync(_docId);
+
+        Assert.Equal(1, esito.Chiusi);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>
+    /// ⚠️ La trappola per cui <c>ReconcileForDocumentAsync</c> esiste. <c>ReconcileAsync</c> legge TUTTE le
+    /// righe aperte del tipo e chiude quelle fuori dall'insieme: riusarlo passandogli il solo documento
+    /// appena pubblicato avrebbe chiuso le righe di tutti gli altri — che nessuno ha guardato — e la lista
+    /// si sarebbe svuotata a ogni pubblicazione.
+    /// </summary>
+    [Fact]
+    public async Task Riconciliare_Un_Documento_Non_Tocca_Gli_Altri()
+    {
+        var altro = new Document
+        {
+            Type = DocumentType.Vipi, Title = "vIPI Milano ACC", Language = Language.It,
+            Status = DocumentStatus.Published, LastUpdatedAiracCycle = "2608",
+        };
+        _db.Documents.Add(altro);
+        await _db.SaveChangesAsync();
+
+        await _impatti.RaiseAsync(new RaiseImpactInput(
+            altro.Id, ImpactKind.ReleaseDrift, "LIMM|LIMM_CTR",
+            DocumentImpactService.Reasons.ReleaseDrift, new[] { "AoR" }));
+
+        var admin = new FakeAdmin(Gestito());
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+
+        await Giro(admin, new FakeReleaseService(), repo, new FakeTargets(_docId)).RunForDocumentAsync(_docId);
+
+        Assert.Single(await _impatti.ListOpenAsync(altro.Id));
+    }
+
+    /// <summary>
+    /// Una pubblicazione non risolve un settore sparito: quella riga la chiude una persona quando ha
+    /// riletto. La riconciliazione per documento tocca solo i tipi che la pubblicazione può cambiare.
+    /// </summary>
+    [Fact]
+    public async Task Riconciliare_Non_Chiude_Le_Righe_Di_Evento()
+    {
+        await _impatti.RaiseAsync(new RaiseImpactInput(
+            _docId, ImpactKind.SectorGone, "LIRR_S_CTR", "Impact_SectorGone", new[] { "LIRR_S_CTR" }));
+
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        await Giro(new FakeAdmin(Gestito()), new FakeReleaseService(), repo, new FakeTargets(_docId))
+            .RunForDocumentAsync(_docId);
+
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal(ImpactKind.SectorGone, riga.Kind);
+    }
+
+    /// <summary>
+    /// ⚠️ Chi programma al ciclo entrante fa il gesto GIUSTO, e una programmata non diventa la copia in
+    /// vigore: senza questa regola la deriva continuava a confrontare con la vecchia e a chiedere di
+    /// ripubblicare per settimane, fino al rollover, senza nessun modo di farla tacere.
+    /// </summary>
+    [Fact]
+    public async Task Una_Programmata_Allineata_Non_Chiede_Di_Ripubblicare()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) },
+            Programmata = "2610",
+        };
+
+        var esito = await Giro(new FakeAdmin(Gestito()), rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        Assert.Equal(0, esito.Aperti);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>E vale anche per il fratello: «da preparare al ciclo entrante» lo chiude lo stesso gesto,
+    /// quindi averlo fatto deve zittire anche quello.</summary>
+    [Fact]
+    public async Task Una_Programmata_Allineata_Copre_Anche_Il_Ciclo_Entrante()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            RigheEntranti = new[] { new ReleaseDiffRow("SID", ReleaseChangeKind.Modified, 8, 9) },
+            Programmata = "2610",
+        };
+
+        var esito = await Giro(new FakeAdmin(Gestito()), rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        Assert.Equal(0, esito.Aperti);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
+    /// <summary>⚠️ Ma se la bozza cambia DOPO aver programmato, la riga deve tornare: quella programmata
+    /// porta un testo che non è più quello che si vuole pubblicare.</summary>
+    [Fact]
+    public async Task Una_Programmata_Non_Piu_Allineata_Riapre_La_Riga()
+    {
+        var repo = new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") };
+        var rel = new FakeReleaseService
+        {
+            Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) },
+            Programmata = null,   // le firme non coincidono più
+        };
+
+        await Giro(new FakeAdmin(Gestito()), rel, repo, new FakeTargets(_docId)).RunAsync();
+
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal(ImpactKind.ReleaseDrift, riga.Kind);
+    }
+
+    /// <summary>Un documento uscito dal cancello — nascosto — non si salta: gli si chiudono le righe, come
+    /// fa il giro intero quando sparisce dall'insieme «attuali».</summary>
+    [Fact]
+    public async Task Un_Documento_Fuori_Dal_Cancello_Si_Riconcilia_A_Vuoto()
+    {
+        await _impatti.RaiseAsync(new RaiseImpactInput(
+            _docId, ImpactKind.ReleaseDrift, "LIRR|LIRR_NE_CTR",
+            DocumentImpactService.Reasons.ReleaseDrift, new[] { "AoR" }));
+
+        var nascosto = Gestito() with { IsHidden = true };
+        var esito = await Giro(new FakeAdmin(nascosto), new FakeReleaseService(),
+            new FakeReleaseRepo(), new FakeTargets(_docId)).RunForDocumentAsync(_docId);
+
+        Assert.Equal(1, esito.Chiusi);
+        Assert.Empty(await _impatti.ListOpenAsync(_docId));
+    }
+
     private static DocRelease Release(string key) => new()
     {
         Id = 1, TargetType = ReleaseTargetType.AccVipi, TargetKey = key, VersionNumber = 1,
@@ -349,6 +498,12 @@ public class ImpactDriftTests : IAsyncLifetime
             CicliChiesti.Add(alCiclo);
             return Task.FromResult(alCiclo is null ? Righe : RigheEntranti);
         }
+
+        /// <summary>Il ciclo di una release PROGRAMMATA che porta gia' questa bozza, se c'e'.</summary>
+        public string? Programmata { get; set; }
+
+        public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult(Programmata);
 
         public Vipi.Domain.Services.AiracCycleInfo NextCycle() =>
             new("2609", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc));

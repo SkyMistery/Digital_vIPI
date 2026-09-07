@@ -36,6 +36,23 @@ public sealed record ImpactDriftResult(int Esaminati, int Aperti, int Chiusi, in
 public interface IImpactDriftUseCase
 {
     Task<ImpactDriftResult> RunAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Lo stesso giro, per <b>un documento solo</b> e subito. Lo chiede la pubblicazione appena ha scritto:
+    /// senza, la riga «da ripubblicare» la chiudeva solo il giro delle 24 ore, e chi aveva appena pubblicato
+    /// continuava a vedersi chiedere il lavoro che aveva finito — senza nessun modo di sapere se fosse
+    /// riuscito.
+    ///
+    /// <para>⚠️ Riconcilia solo i tipi che una pubblicazione può cambiare
+    /// (<see cref="TipiDellaPubblicazione"/>) e solo su questo documento: le righe degli altri non le ha
+    /// guardate nessuno, e quelle di <b>evento</b> le chiude una persona.</para>
+    ///
+    /// <para>⚠️ Un documento che il gate non guarda più — nascosto, o che nessun descrittore riconosce —
+    /// non viene saltato: si riconcilia con l'insieme <b>vuoto</b>, cioè gli si chiudono le righe. È la
+    /// stessa cosa che fa il giro intero, dove un documento fuori dai candidati sparisce dall'insieme
+    /// «attuali» e le sue righe si chiudono.</para>
+    /// </summary>
+    Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IImpactDriftUseCase"/>
@@ -107,75 +124,22 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         foreach (var d in candidati)
         {
             ct.ThrowIfCancellationRequested();
-            var docId = d.DocumentId!.Value;
 
-            // 1) La chiave del bersaglio è ancora quella sotto cui sono scritte le sue release?
-            //    ⚠️ La chiave di una vIPI ACC è «{acc}|{callsign del primario}» e quella di un APP È il
-            //    callsign: le sposta un settore riparentato o una rinomina in sorgente. Quando succede, le
-            //    release restano scritte sotto la vecchia e il pubblico non le trova più: il documento è
-            //    pubblicato e la sua pagina è muta. Vedi lavori-aperti C6.
-            // 0) Il bersaglio risolve ancora a QUESTO documento? È il caso del §0 della carta: cancella
-            //    l'aeroporto e la sua vIPI resta in archivio senza che nessuna pagina la raggiunga più.
-            //    ⚠️ Si confronta con l'Id, non con «non null»: un bersaglio che risolve a un ALTRO documento
-            //    è rotto quanto uno che non risolve, e in più è silenzioso — la pagina mostra qualcosa.
-            var risolto = await _targets.For(d.ReleaseTarget).ResolveDocumentIdAsync(d.ReleaseKey, ct);
-            if (risolto != docId)
+            var (riga, ripuntata) = await ValutaAsync(d, entrante.Cycle, ct);
+            if (ripuntata) ripuntate++;
+            if (riga is null) continue;
+
+            switch (riga.Kind)
             {
-                bersagliRotti.Add(new RaiseImpactInput(
-                    docId, ImpactKind.BrokenTarget, d.ReleaseKey,
-                    DocumentImpactService.Reasons.BrokenTarget));
-                continue;
+                case ImpactKind.ReleaseDrift: attuali.Add(riga); break;
+                case ImpactKind.ReleaseDriftNextCycle: entranti.Add(riga); break;
+                case ImpactKind.ReleaseKeyMoved: chiaviSpostate.Add(riga); break;
+                case ImpactKind.BrokenTarget: bersagliRotti.Add(riga); break;
+                // ⚠️ Nessun `default` silenzioso: un tipo nuovo che ValutaAsync imparasse a produrre e che
+                // qui non finisse in nessun secchio non verrebbe MAI riconciliato — si aprirebbe una volta
+                // e non si richiuderebbe più, che è il difetto peggiore di un rivelatore calcolato.
+                default: throw new InvalidOperationException($"Tipo di deriva non riconciliato: {riga.Kind}.");
             }
-
-            var effettiva = await _releaseRepo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, DateTime.UtcNow, ct);
-            if (effettiva is null)
-            {
-                if (await ChiaveSpostataAsync(d, docId, ct) is string vecchia)
-                {
-                    // Si RIPARA, non si segnala soltanto: la chiave è un puntatore, e finché resta indietro
-                    // la pagina pubblica di un documento pubblicato è muta. Il ripuntamento è lecito solo
-                    // quando è inequivocabile — stesso documento, chiave nuova senza release — e il
-                    // repository rifiuta gli altri casi ritornando 0.
-                    if (await _releaseRepo.RepointKeyAsync(d.ReleaseTarget, vecchia, d.ReleaseKey, ct) > 0)
-                    {
-                        ripuntate++;
-                        // La deriva di questo documento si guarda al giro prossimo: la copia pubblicata ora
-                        // si trova, e confrontarla adesso vorrebbe dire rileggere quel che si è appena scritto.
-                        continue;
-                    }
-
-                    chiaviSpostate.Add(new RaiseImpactInput(
-                        docId, ImpactKind.ReleaseKeyMoved, vecchia,
-                        DocumentImpactService.Reasons.ReleaseKeyMoved, new[] { vecchia }));
-                }
-                continue;
-            }
-
-            // 2) La deriva vera e propria.
-            var righe = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, ct: ct);
-            if (righe.Count > 0)
-            {
-                attuali.Add(new RaiseImpactInput(
-                    docId, ImpactKind.ReleaseDrift, d.ReleaseKey,
-                    DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) }));
-                // ⚠️ E qui si FERMA: un documento già indietro adesso ha già la sua riga «da ripubblicare»,
-                // e una seconda che dice «e sarà indietro anche al ciclo entrante» sarebbe rumore su una
-                // lista che vive di essere corta. Le due righe non compaiono mai insieme (carta §AW1).
-                continue;
-            }
-
-            // 3) La deriva al CICLO ENTRANTE. È la riga che mancava: le derivate che dipendono dal ciclo —
-            //    le SID d'aeroporto, le shape dei settori — nascondono quel che entra dopo, quindi guardando
-            //    solo a oggi il giro non poteva vedere quel che sta per cambiare e l'avviso arrivava sempre
-            //    IL GIORNO DOPO il rollover, a ciclo già in vigore. Adesso arriva mentre c'è ancora il tempo
-            //    di programmare la release a quel ciclo — che è il gesto che rende il fatto falso.
-            var prossime = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, entrante.Cycle, ct);
-            if (prossime.Count == 0) continue;
-
-            entranti.Add(new RaiseImpactInput(
-                docId, ImpactKind.ReleaseDriftNextCycle, d.ReleaseKey,
-                DocumentImpactService.Reasons.ReleaseDriftNextCycle,
-                new[] { entrante.Cycle, Riassunto(prossime) }));
         }
 
         var (apertiDeriva, chiusiDeriva) = await _impacts.ReconcileAsync(ImpactKind.ReleaseDrift, attuali, ct);
@@ -196,6 +160,126 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
             potati,
             quantiStantii,
             ripuntate);
+    }
+
+    /// <summary>
+    /// I tipi che una <b>pubblicazione</b> può rendere veri o falsi, e quindi i soli che la riconciliazione
+    /// per documento ha il diritto di toccare. <c>SectorStale</c> resta fuori apposta: quello parla dei
+    /// cataloghi, e nessun gesto editoriale lo cambia.
+    /// </summary>
+    private static readonly ImpactKind[] TipiDellaPubblicazione =
+    {
+        ImpactKind.ReleaseDrift, ImpactKind.ReleaseDriftNextCycle,
+        ImpactKind.ReleaseKeyMoved, ImpactKind.BrokenTarget,
+    };
+
+    public async Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default)
+    {
+        // ⚠️ Si passa dall'elenco gestito e NON da `DescribeAsync`: quello non porta i cicli di release
+        // (è scritto nella sua stessa documentazione), quindi `HasEffectiveRelease` sarebbe falso e
+        // `VaTenutoAggiornato` scarterebbe proprio i documenti pubblicati per sola PROGRAMMAZIONE — che
+        // restano `Status = Draft`. Sarebbe il difetto del 2 settembre, rifatto nel posto nuovo. Sono
+        // decine di righe, non migliaia, e una pubblicazione ne fa molte di più.
+        var d = (await _admin.ListAsync(ct)).FirstOrDefault(x => x.DocumentId == documentId);
+
+        var riga = d is { DocumentId: not null } && d.VaTenutoAggiornato
+            ? (await ValutaAsync(d, _releases.NextCycle().Cycle, ct)).Riga
+            : null;
+
+        var (aperti, chiusi) = await _impacts.ReconcileForDocumentAsync(
+            documentId, TipiDellaPubblicazione,
+            riga is null ? Array.Empty<RaiseImpactInput>() : new[] { riga }, ct);
+
+        return new ImpactDriftResult(Esaminati: d is null ? 0 : 1, aperti, chiusi, Potati: 0);
+    }
+
+    /// <summary>
+    /// Che cosa dice <b>oggi</b> la copia pubblicata di un documento: la riga da aprire — al più una — e se
+    /// il giro gliene ha riparato la chiave.
+    ///
+    /// <para>⚠️ Una sola riga per documento, e non è un caso: un documento già indietro <i>adesso</i> non
+    /// deve anche sentirsi dire «e sarà indietro al ciclo entrante» (carta §AW1), e un bersaglio rotto rende
+    /// senza oggetto ogni domanda sul contenuto. L'ordine dei controlli È la priorità.</para>
+    ///
+    /// <para>⚠️ Estratto dal giro perché la pubblicazione possa chiedere <b>la stessa cosa</b> per un
+    /// documento solo. La stessa domanda scritta in due posti è il modo in cui due racconti divergono, e
+    /// qui divergere vorrebbe dire che pubblicare chiude una riga che stanotte si riapre.</para>
+    /// </summary>
+    private async Task<(RaiseImpactInput? Riga, bool Ripuntata)> ValutaAsync(
+        ManagedDoc d, string entrante, CancellationToken ct)
+    {
+        var docId = d.DocumentId!.Value;
+
+        // 0) Il bersaglio risolve ancora a QUESTO documento? È il caso del §0 della carta: cancella
+        //    l'aeroporto e la sua vIPI resta in archivio senza che nessuna pagina la raggiunga più.
+        //    ⚠️ Si confronta con l'Id, non con «non null»: un bersaglio che risolve a un ALTRO documento
+        //    è rotto quanto uno che non risolve, e in più è silenzioso — la pagina mostra qualcosa.
+        // 1) Poi: la chiave del bersaglio è ancora quella sotto cui sono scritte le sue release?
+        //    ⚠️ La chiave di una vIPI ACC è «{acc}|{callsign del primario}» e quella di un APP È il
+        //    callsign: le sposta un settore riparentato o una rinomina in sorgente. Quando succede, le
+        //    release restano scritte sotto la vecchia e il pubblico non le trova più: il documento è
+        //    pubblicato e la sua pagina è muta. Vedi lavori-aperti C6.
+        var risolto = await _targets.For(d.ReleaseTarget).ResolveDocumentIdAsync(d.ReleaseKey, ct);
+        if (risolto != docId)
+            return (new RaiseImpactInput(
+                docId, ImpactKind.BrokenTarget, d.ReleaseKey,
+                DocumentImpactService.Reasons.BrokenTarget), false);
+
+        var effettiva = await _releaseRepo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, DateTime.UtcNow, ct);
+        if (effettiva is null)
+        {
+            if (await ChiaveSpostataAsync(d, docId, ct) is not string vecchia) return (null, false);
+
+            // Si RIPARA, non si segnala soltanto: la chiave è un puntatore, e finché resta indietro
+            // la pagina pubblica di un documento pubblicato è muta. Il ripuntamento è lecito solo
+            // quando è inequivocabile — stesso documento, chiave nuova senza release — e il
+            // repository rifiuta gli altri casi ritornando 0.
+            // La deriva di questo documento si guarda al giro prossimo: la copia pubblicata ora
+            // si trova, e confrontarla adesso vorrebbe dire rileggere quel che si è appena scritto.
+            if (await _releaseRepo.RepointKeyAsync(d.ReleaseTarget, vecchia, d.ReleaseKey, ct) > 0)
+                return (null, true);
+
+            return (new RaiseImpactInput(
+                docId, ImpactKind.ReleaseKeyMoved, vecchia,
+                DocumentImpactService.Reasons.ReleaseKeyMoved, new[] { vecchia }), false);
+        }
+
+        // 2) La deriva vera e propria.
+        var righe = await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, ct: ct);
+
+        // 3) La deriva al CICLO ENTRANTE. È la riga che mancava: le derivate che dipendono dal ciclo —
+        //    le SID d'aeroporto, le shape dei settori — nascondono quel che entra dopo, quindi guardando
+        //    solo a oggi il giro non poteva vedere quel che sta per cambiare e l'avviso arrivava sempre
+        //    IL GIORNO DOPO il rollover, a ciclo già in vigore. Adesso arriva mentre c'è ancora il tempo
+        //    di programmare la release a quel ciclo — che è il gesto che rende il fatto falso.
+        // ⚠️ Si chiede solo se oggi la copia è allineata: un documento già indietro adesso ha già la sua
+        // riga «da ripubblicare», e una seconda che dice «e sarà indietro anche al ciclo entrante» sarebbe
+        // rumore su una lista che vive di essere corta. Le due non compaiono mai insieme (carta §AW1).
+        var prossime = righe.Count > 0
+            ? Array.Empty<ReleaseDiffRow>()
+            : await _releases.DriftFromEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, entrante, ct);
+
+        if (righe.Count == 0 && prossime.Count == 0) return (null, false);
+
+        // ⚠️ C'è deriva — ma il lavoro che la chiude può essere GIÀ STATO FATTO: una release PROGRAMMATA
+        // che porta questa stessa bozza. `DriftFromEffectiveAsync` non può vederla, perché confronta con la
+        // copia IN VIGORE e una programmata non lo è per definizione; e chiedere di ripubblicare a chi ha
+        // appena programmato al ciclo entrante — che è il gesto giusto — vorrebbe dire chiedere due volte
+        // lo stesso lavoro per settimane, fino al rollover, senza nessun modo di farlo tacere.
+        // Se poi la bozza cambia, le firme divergono di nuovo e la riga torna: quella programmata porta un
+        // testo che non è più quello che si vuole, ed è giusto risentirselo dire.
+        if (await _releases.ProgrammataAllineataAsync(d.ReleaseTarget, d.ReleaseKey, ct) is not null)
+            return (null, false);
+
+        if (righe.Count > 0)
+            return (new RaiseImpactInput(
+                docId, ImpactKind.ReleaseDrift, d.ReleaseKey,
+                DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) }), false);
+
+        return (new RaiseImpactInput(
+            docId, ImpactKind.ReleaseDriftNextCycle, d.ReleaseKey,
+            DocumentImpactService.Reasons.ReleaseDriftNextCycle,
+            new[] { entrante, Riassunto(prossime) }), false);
     }
 
 

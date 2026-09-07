@@ -136,6 +136,12 @@ public static class DependencyInjection
         services.AddScoped<Abstractions.IAttachmentUsage, AttachmentUsageService>();
         services.AddScoped<IAttachmentCuration, AttachmentCurationService>();
         services.AddScoped<IImpactDriftUseCase, ImpactDriftUseCase>();
+        // ⚠️ Il pigro serve a ROMPERE UN CICLO, non a risparmiare: `ReleaseService` chiede la deriva per
+        // rivalutare quel che ha appena pubblicato, e `ImpactDriftUseCase` chiede `IReleaseService` per
+        // sapere che cosa direbbe oggi la copia pubblicata. Iniettati direttamente l'uno nell'altro, il
+        // contenitore rifiuta la prima risoluzione — e la rifiuterebbe all'avvio, su ogni pagina che
+        // pubblica. Qui il ciclo si apre nel punto in cui non è un ciclo: la deriva serve DOPO la scrittura.
+        services.AddScoped(sp => new Lazy<IImpactDriftUseCase>(sp.GetRequiredService<IImpactDriftUseCase>));
         services.AddScoped<IDocumentAdminService, DocumentAdminService>();
         // Le unioni di documenti: chi puo' unire, che cosa si puo' unire, e quando un'unione smette
         // di essere tale (carta docs/feature/2026-09-03-documenti-uniti.md).

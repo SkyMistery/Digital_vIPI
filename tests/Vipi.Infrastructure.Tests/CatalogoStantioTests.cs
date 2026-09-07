@@ -246,6 +246,7 @@ public class CatalogoStantioTests : IAsyncLifetime
     {
         public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ReleaseDiffRow>>(Array.Empty<ReleaseDiffRow>());
+        public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<string?>(null);
         public Vipi.Domain.Services.AiracCycleInfo NextCycle() =>
             new("2609", new DateTime(2026, 9, 3, 0, 0, 0, DateTimeKind.Utc));
         public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
