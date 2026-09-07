@@ -1,3 +1,13 @@
+> ⛔ **SUPERATO dal 22 agosto 2026 — questa ricetta NON è la produzione.**
+>
+> Era la strada «container su una VM gratuita»: VM Oracle Cloud + Docker Compose + Caddy + DuckDNS, cioè il
+> consumatore di `fly.toml`, `docker-compose.yml` e `Caddyfile`, marcati come questo. La produzione è
+> **Plesk + Passenger su `atc.it.ivao.aero`** (si consegna via FTP, si riavvia toccando `tmp/restart.txt`)
+> e l'anteprima è **Render + Neon**.
+>
+> Da leggere al posto suo: **`../atc-ivao/`** e **`../render/README.md`**. Resta come storia, non come
+> istruzione (revisione del 6 settembre 2026, R-032).
+
 # Deploy vIPI su Oracle Cloud Always Free
 
 Stack: VM Ubuntu (Ampere ARM, gratis a vita) + Docker Compose (app .NET + Caddy per HTTPS automatico) +

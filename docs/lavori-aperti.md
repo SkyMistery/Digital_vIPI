@@ -1,5 +1,28 @@
 ﻿# Lavori aperti — elenco unico
 
+## Dove siamo — 7 settembre 2026
+
+1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` = `e8249f13`, albero pulito, nessun ramo
+   di lavoro aperto.
+2. **Il lavoro in corso è il bugfixing della revisione totale** del 6-7 settembre (33 findings, registro sul
+   ramo `revisione-totale`): chiusi e fusi i **lotti 1-5**; restano il **6** (i documenti) e il **7** (igiene).
+3. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
+   è congelato, e tutti i lotti fatti finora sono senza migrazione.
+4. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste in archivio
+   prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting dopo il 16.
+5. **Come si legge questo file**: qui sopra c'è la cronologia — è **storia**, non stato; le sezioni
+   dalla **A** in poi sono il lavoro aperto vero, ognuna col suo blocco.
+
+> ⚠️ **Perché queste cinque righe sono cinque.** Fino al 7 settembre 2026 la sezione «da leggere per prima»
+> ne aveva 707, si apriva su una consegna «a metà» di otto giorni prima e diceva di spingere un ramo che
+> nel frattempo era stato fuso e cancellato. Chi la leggeva era per definizione chi non aveva altro
+> contesto: faceva la prima cosa che gli veniva detta, e non funzionava. Il valore di questo documento non
+> è quanto racconta — è che la **prima schermata** dica il vero (revisione del 6 settembre 2026, R-029).
+
+<details>
+<summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
+com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
 **Aggiornato:** 7 settembre 2026 — ✅ **§CC: LA DERIVA RISPONDE A CHI PUBBLICA, NON IL GIORNO DOPO.** Segnalazione del committente: «ci sono documenti in produzione segnalati come da ripubblicare anche se li ho appena ripubblicati (tipo LIBD)», e poi la regola: «chi edita non può aspettare il giorno dopo per sapere che le modifiche sono state pubblicate o programmate con successo». 🔴 **Il calcolo era giusto: mancava chi lo rifacesse.** `PublishNowAsync`/`PublishAsync` non toccavano `IDocumentImpactService`, e a riconciliare c'era il solo `ImpactDriftHostedService` — **ogni 24 ore**, senza modo di rilanciarlo. Cronologia vera di LIBD: riga aperta il **6-set 19:27Z** (le sei sezioni «Carte aeroportuali» mancavano dalla release del 31-ago, giustamente), ripubblicato il **7-set 06:52**, riga **ancora aperta** a metà mattina perché la deriva non era più passata. Tre parti: (1) **`ReconcileForDocumentAsync`**, riconciliazione ristretta a un documento e ai soli tipi che una pubblicazione può cambiare — 🔴 **non** è `ReconcileAsync` con un filtro: quello legge **tutte** le righe aperte del tipo e chiude quelle fuori dall'insieme, quindi riusarlo avrebbe svuotato la lista di ogni altro documento a ogni pubblicazione (un test lo pianta); (2) **`RunForDocumentAsync`**, il corpo del giro estratto in `ValutaAsync` e chiesto dalle due parti — la stessa domanda in due posti è il modo in cui due racconti divergono — agganciato a `PublishNowAsync`, a **tutti e due** i rami di `PublishAsync` e a `CancelReleaseAsync` (l'annullo è il verso opposto: può rendere **vera** una deriva che non c'era), **fuori dalla transazione e a prova di guasto**, con la rete del giro notturno; (3) **`ProgrammataAllineataAsync`** — ⚠️ una release **programmata** non è quella in vigore, quindi chi programmava al ciclo entrante si vedeva chiedere di ripubblicare **fino al rollover**: ora una programmata che porta già la bozza zittisce sia «da ripubblicare» sia «da preparare al ciclo entrante», e se la bozza cambia dopo le firme divergono e la riga torna. 🔴 **E c'era un ciclo vero nel contenitore** (`ReleaseService` ↔ `ImpactDriftUseCase`): non si vede compilando, esplode alla prima **risoluzione** — cioè in produzione, sulla prima pagina che pubblica. Rotto con `Lazy<IImpactDriftUseCase>` e un banco E2E che monta il contenitore vero e risolve entrambi. ➕ **Diagnostica**: pulsante **«Rilancia il controllo»** (prima si poteva solo aspettare) e **avviso oltre le 36 ore** — ⚠️ `GatedImportLoop` all'avvio dorme fino alla scadenza, quindi su un host che ricicla il processo prima il timer riparte da zero e la passata **non arriva mai**. ✅ **Fuso in `main`** (`f3561483`, ramo `deriva-alla-pubblicazione`): build Release pulita e suite intera verde sui due TFM, undici test nuovi di cui due end-to-end sul database vero. **Nessuna migrazione, nessuna entità** → spedibile dentro la finestra cieca al 16.
 
 **Aggiornato:** 5 settembre 2026, pomeriggio — ✅ **1.10.0 È IN PRODUZIONE**, caricata dal committente e **verificata da fuori**. I dieci controlli pubblici verdi (JS minificato servito, circuito aperto, **Ricerca che risponde**, foglio di stile in vigore, console pulita), e — quel che conta di più, perché i dieci passerebbero anche su 1.9.0 — **due prove che gira il codice NUOVO**: (1) il cancello di §BQ da anonimo, `/services/vsop/live/lirr_ctr` → **302** verso `/services/vsop/live` dove 1.9.0 dava **200**; (2) i due asset di `wwwroot` serviti dal sito hanno **sha256 identici** a quelli del pacchetto, e l'indice li chiede col nome giusto (le varianti `.br`/`.gz` rispondono 200 tutte e quattro). ⚠️ Il **timbro** da fuori resta invisibile (la barra lo mostra ai soli admin): lo conferma `diagnostica/avvio-diagnostica.txt` al prossimo scarico. 🔴 E quel che serve indietro non cambia: **`diagnostica/errori-richieste.txt` fra qualche giorno** — di 1.8.1 e 1.9.0 non c'è ancora un dato.
@@ -328,10 +351,17 @@ documento che ce l'ha per esteso. L'ordine dentro ogni sezione è quello in cui 
 > scelta che l'utente non ha mai fatto, e cambiare lingua al browser non avrebbe più effetto. Due test E2E,
 > uno per verso; verificato anche guidando Edge con `Accept-Language: en-US`.
 
-## Dove siamo, in cinque righe
+</details>
 
-**Riscritto il 30 agosto 2026**, con le cifre **contate**. È la sezione da leggere per prima quando si
-riprende senza contesto: dice dov'è il codice, cosa manca e cosa va fatto *prima* del prossimo deploy.
+## Dove eravamo — 30 agosto 2026 (storia)
+
+> ⚠️ **Questa sezione è STORIA e non stato**, e va letta sapendolo: descrive la consegna del 30 agosto,
+> quando il ramo `consegna-db-20260830` era ancora da spingere. Quel ramo è stato fuso (`549e9357`) e
+> cancellato, e da allora sono uscite cinque consegne — 1.11.0, 1.12.0, 1.13.0, 1.14.0, 1.14.2.
+> **Lo stato corrente sta in cima al file**, in «Dove siamo».
+>
+> Resta qui perché la cronaca di quella consegna serve — è la prima fatta col database — ma non è più la
+> mappa di nessuno (revisione del 6 settembre 2026, R-029).
 
 ---
 

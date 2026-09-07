@@ -3,7 +3,7 @@
 # Rigenerare: tools/conta-test.sh <log di dotnet test> --scrivi
 Vipi.Application.Tests.dll net10.0 2237
 Vipi.Application.Tests.dll net8.0 2237
-Vipi.Assets.Tests.dll net8.0 55
+Vipi.Assets.Tests.dll net8.0 57
 Vipi.AuroraBridge.Tests.dll net8.0 79
 Vipi.AuroraProfiles.Tests.dll net10.0 63
 Vipi.AuroraProfiles.Tests.dll net8.0 63

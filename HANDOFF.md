@@ -137,6 +137,19 @@ partenza.
 `e5077ab9`.
 
 ---
+**Fra le due — 6 settembre 2026:** ✅ **1.12.0 È STATA IN PRODUZIONE**, fra 1.11.0 e 1.13.0.
+`vipi-1.12.0-solo-file-cambiati.zip` · **17 file** · timbro **`1.12.0 · e5077ab9`**. Nessuna migrazione.
+Dentro: **§BW** ricerca e rotazione degli allegati, **§BX** le sotto-sezioni collassabili, **§BY** e
+**§BZ** il sommario unico. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.12.0.md`; ✅ la prova sono le
+impronte degli asset e le classi che 1.11.0 non aveva.
+
+> ⚠️ **Questa voce mancava**, ed è l'unica consegna che non fosse mai entrata nel registro: 1.11.0,
+> 1.13.0 e 1.14.0 c'erano, la 1.12.0 aveva **zero occorrenze** in tutto il file. Da sola è un buco
+> piccolo; conta perché questo è il documento che risponde a «che cosa è successo», e un anello mancante
+> nella catena non si vede finché qualcuno non risale proprio quello — e allora non trova né la ragione
+> né il contenuto di quella consegna (revisione del 6 settembre 2026, R-031).
+
+---
 **Aggiornamento precedente:** 6 settembre 2026 — ✅ **1.11.0 È IN PRODUZIONE**, caricata dal committente e
 **verificata da fuori**.
 

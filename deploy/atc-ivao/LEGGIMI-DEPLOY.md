@@ -1,6 +1,17 @@
 ﻿# vIPI — build self-contained linux-x64
 
-> ## 📌 Se il sito è già in piedi, questo non è il foglio giusto
+> ## 🔴 L'host vero è **Plesk + Passenger**, e questo foglio racconta l'altra strada
+>
+> `atc.it.ivao.aero` gira dentro **Plesk con Phusion Passenger**: si consegna via **FTP** e si riavvia
+> toccando **`tmp/restart.txt`**, non con `systemctl`. Il corpo di questo documento descrive invece il
+> modello **systemd + nginx** — che resta valido, ed è l'alternativa se un giorno il sito uscisse da
+> Plesk, ma **non è quello che si usa oggi**. I punti in cui i due modelli differiscono davvero sono
+> **dove stanno le chiavi di Data Protection** e **come si riavvia**: stanno nel riquadro più sotto
+> («Se il sito gira su Plesk con Phusion Passenger»), e sono le due cose che, sbagliate, lasciano il
+> sito giù o gli utenti sloggati. ⚠️ `nginx-vipi.conf` **non si usa** (revisione del 6 settembre 2026,
+> R-032).
+>
+> ## 📌 E se il sito è già in piedi, questo non è il foglio giusto
 >
 > Questo documento descrive la **prima installazione**. Per **aggiornare** un sito già in produzione — che
 > dal 16 agosto 2026 è il caso di `atc.it.ivao.aero` — si segue
@@ -162,7 +173,11 @@ documenti editoriali non ci sarebbero affatto.
 ⚠️ In entrambi i casi la prima istruzione della migrazione è `ALTER DATABASE … CHARACTER SET utf8mb4;`, che
 la libreria emette da sé: serve il permesso **ALTER sul database**. Con `GRANT ALL ON itivao_atc.*` c'è.
 
-### 4. Servizio e reverse proxy
+### 4. Servizio e reverse proxy — **solo nel modello systemd**
+
+> ⚠️ Su **Plesk + Passenger**, che è la produzione di oggi, questo passo **non si fa**: è Passenger ad
+> avviare l'applicazione e a mettersi davanti. `nginx-vipi.conf` resta nella cartella come alternativa,
+> e porta scritto in testa che non si usa.
 
 `vipi.service` e `nginx-vipi.conf` sono nella cartella `deploy/`, già scritti.
 

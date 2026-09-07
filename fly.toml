@@ -1,3 +1,12 @@
+# ⛔ SUPERATO dal 22 agosto 2026 — questo file NON descrive la produzione.
+#
+# Era la strada «container su una VM gratuita» (Oracle Cloud Always Free + Docker Compose + Caddy +
+# DuckDNS), abbandonata quando la produzione è diventata **Plesk + Passenger su atc.it.ivao.aero** e
+# l'anteprima **Render + Neon**. Nessun documento vivo lo cita più.
+#
+# Da usare al posto suo: `deploy/atc-ivao/` (produzione, FTP) e `deploy/render/README.md` (anteprima).
+# Resta come storia, non come istruzione (revisione del 6 settembre 2026, R-032).
+
 # Fly.io deploy della vIPI (Blazor Server + SQLite su volume persistente).
 # CAMBIA "app" con un nome globale unico prima del primo deploy (o lascia che `fly launch` lo generi).
 app = "vipi-italy"
