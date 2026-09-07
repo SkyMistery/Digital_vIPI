@@ -1,13 +1,14 @@
 ﻿@page "/services/coordinates"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Auth
 @using Vipi.Application.Content
 @using Vipi.Application.Airspace
 @using Vipi.Application.Coordinates
 @using Vipi.Ui.Components.App
 @inject IEditAuthorizationService Authz
-@inject IAirspaceCatalog SpaziAerei
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
@@ -458,11 +459,34 @@
     private void OnForma(ChangeEventArgs e) =>
         _forma = Enum.TryParse<DmsCoordinate.Forma>(e.Value?.ToString(), out var f) ? f : DmsCoordinate.Forma.Puntata;
 
+    /// <summary>
+    /// Il catalogo degli spazi aerei: dallo SCOPE DI QUESTA PAGINA e non da quello del circuito.
+    ///
+    /// <para>⚠️ La pagina è interattiva, quindi il suo <c>DbContext</c> vive quanto il circuito — ore — e
+    /// una lettura che parte mentre un'altra è in volo lo trova occupato: «A second operation was started on
+    /// this context instance». Lo scope proprio protegge dagli ALTRI, la sentinella qui sotto da SÉ STESSI
+    /// (revisione del 6 settembre 2026, R-016).</para>
+    /// </summary>
+    private IAirspaceCatalog SpaziAerei = default!;
+
+    /// <summary>Il catalogo è già in lettura: ⚠️ si alza <b>prima</b> dell'<c>await</c>.</summary>
+    private bool _inCorso;
+
+    protected override void OnInitialized() =>
+        SpaziAerei = ScopedServices.GetRequiredService<IAirspaceCatalog>();
+
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira una volta sola.
+    // E proprio per questo la sentinella serve: `OnParametersSetAsync` rigira a ogni cambio di parametro.
     protected override async Task OnParametersSetAsync()
     {
         if (!Authz.IsDivisionStaff) return;
-        _volumi = await SpaziAerei.ListVolumesAsync(new AirspaceVolumeQuery(UsableOnly: true, Take: 2000));
+        if (_inCorso) return;
+        _inCorso = true;
+        try
+        {
+            _volumi = await SpaziAerei.ListVolumesAsync(new AirspaceVolumeQuery(UsableOnly: true, Take: 2000));
+        }
+        finally { _inCorso = false; }
     }
 
     /// <summary>

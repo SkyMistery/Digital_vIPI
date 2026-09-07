@@ -1,13 +1,19 @@
 ﻿@page "/services/vsop/admin/diagnostics"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Diagnostics
 @using Vipi.Application.Auth
-@inject IConsistencyReportService Consistency
-@inject Vipi.Application.Content.IDocumentImpactService Impacts
-@inject Vipi.Application.Abstractions.IImportStateStore ImportStates
-@inject Vipi.Application.Content.IImpactDriftUseCase Deriva
-@inject IAdminCoverageService AdminCoverage
+
+@* ⚠️ SCOPE PROPRIO e sentinelle di rientro (revisione del 6 settembre 2026, R-016). La pagina è
+   interattiva: il suo `DbContext` è quello del CIRCUITO e vive per ore, quindi un gesto che parte mentre il
+   precedente è ancora in volo lo trova occupato e la pagina muore con «A second operation was started on
+   this context instance». Qui il caso è concreto: il giro della deriva dura, e «Aggiorna» è lì accanto.
+
+   Lo scope proprio protegge dagli ALTRI, le sentinelle da SÉ STESSI: servono tutte e due, e i due flag che
+   già c'erano (`_loading`, `_derivaInCorso`) spegnevano i tasti a schermo senza fermare chi entrava lo
+   stesso — un secondo clic prima del render, la scorciatoia di tastiera, un doppio invio. *@
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
@@ -340,6 +346,10 @@
 
     private bool DerivaVecchia => _ultimaDeriva is { } u && DateTime.UtcNow - u > DerivaScaduta;
     private bool _loading = true;
+
+    /// <summary>Un giro di letture è già in volo. ⚠️ Si alza <b>prima</b> del primo <c>await</c>, ed è un flag
+    /// diverso da <see cref="_loading"/>: quello serve allo schermo e nasce acceso.</summary>
+    private bool _inCorso;
     private string? _errore;
     private DateTime? _quando;
 
@@ -348,8 +358,23 @@
 
     private static readonly ConsistencyArea[] Aree = Enum.GetValues<ConsistencyArea>();
 
+    // I servizi che interrogano il database: dallo SCOPE DI QUESTA PAGINA. Vedi il commento in testa al file.
+    // ⚠️ `IEditAuthorizationService` resta quello del circuito: risponde dai claim, non dal database, ed è
+    // memoizzato per scope — riprenderlo da un altro scope vorrebbe dire rifare il giro dell'identità.
+    private IConsistencyReportService Consistency = default!;
+    private Vipi.Application.Content.IDocumentImpactService Impacts = default!;
+    private Vipi.Application.Abstractions.IImportStateStore ImportStates = default!;
+    private Vipi.Application.Content.IImpactDriftUseCase Deriva = default!;
+    private IAdminCoverageService AdminCoverage = default!;
+
     protected override async Task OnInitializedAsync()
     {
+        Consistency = ScopedServices.GetRequiredService<IConsistencyReportService>();
+        Impacts = ScopedServices.GetRequiredService<Vipi.Application.Content.IDocumentImpactService>();
+        ImportStates = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IImportStateStore>();
+        Deriva = ScopedServices.GetRequiredService<Vipi.Application.Content.IImpactDriftUseCase>();
+        AdminCoverage = ScopedServices.GetRequiredService<IAdminCoverageService>();
+
         if (!Authz.IsAdmin) { _loading = false; return; }
         await LoadAsync();
     }
@@ -373,6 +398,10 @@
     /// </summary>
     private async Task LoadAsync()
     {
+        // ⚠️ La sentinella è un flag SUO e non `_loading`, che nasce a true per far vedere lo scheletro
+        // prima della prima lettura: leggere quello rifiuterebbe proprio il primo giro.
+        if (_inCorso) return;
+        _inCorso = true;
         _loading = true;
         _errore = null;
         try
@@ -397,7 +426,7 @@
             _quando = DateTime.UtcNow;
         }
         catch (Exception ex) { _errore = ex.Message; }
-        finally { _loading = false; }
+        finally { _loading = false; _inCorso = false; }
     }
 
     /// <summary>
@@ -412,6 +441,7 @@
     private async Task RilanciaDerivaAsync()
     {
         if (!Authz.IsAdmin) return;
+        if (_derivaInCorso || _inCorso) return;   // la stessa sentinella, sull'altra porta
         _derivaInCorso = true;
         _esitoDeriva = null;
         try
