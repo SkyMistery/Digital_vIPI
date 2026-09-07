@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-7 CHIUSE · 28 findings** · restano 8-11
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-8 CHIUSE · 31 findings** · restano 9-11
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -87,7 +87,7 @@ parte da `2b33791a` e non lo tocca.
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ✅ **chiusa** — 2 findings |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ✅ **chiusa** — 3 findings |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ✅ **chiusa** — 1 finding |
-| **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
+| **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ✅ **chiusa** — 3 findings |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ⏳ |
 | **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ⏳ |
 | **11** | Sintesi: registro ordinato, le due liste (🟢🟡 subito / 🔴 dopo il 16), lotti di rimedio | ⏳ |
@@ -146,6 +146,9 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-022** | 4i ✅ | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
 | **R-025** | 6 | **S2** | 🟢 | CONFERMATO | **Byte di controllo nel sorgente, secondo caso**: `0x1F`/`0x1E` come separatori della firma dell'indice unito. Perderli riapre un difetto già chiuso, e nessun test cadrebbe | `UnionMembersEditor.razor:136` |
+| **R-029** | 8 | S3 | 🟢 | CONFERMATO | **La sezione «da leggere per prima» manda su un ramo che non esiste** e dichiara a metà una consegna finita quattro versioni fa. «In cinque righe» è lunga 707 | `docs/lavori-aperti.md:329-341` |
+| **R-030** | 8 | S3 | 🟢 | CONFERMATO | **L'indice si dichiara «di tutti i documenti» e ne mancano 44**, di cui 33 carte di funzionalità — cioè dove sta scritto il *perché* | `docs/index.md` |
+| **R-031** | 8 | S4 | 🟢 | CONFERMATO | **La consegna 1.12.0 non compare in `HANDOFF.md`**: zero occorrenze, mentre 1.11, 1.13 e 1.14 ci sono | `HANDOFF.md` |
 | **R-028** | 7 | S3 | 🟢 | CONFERMATO | **Niente conta quanti test girano**: `dotnet test` esce zero anche su meno test di ieri, e la differenza si è già pagata una volta — ~1000 test sul runtime sbagliato per settimane | `.github/workflows/ci.yml:31` |
 | **R-027** | 6 | S3 | 🟢 | CONFERMATO | **La regola del brand dichiara «zero letterali, ed è verificato»**: nessun test lo verifica, e quattro letterali sono entrati — uno con una ragione buona che le eccezioni scritte non contemplano | `docs/design/regole-brand.md:9-20` · `vipi-theme.css:2556,4251,4336` |
 | **R-026** | 6 | S4 | 🟢 | CONFERMATO | **13 etichette e 9 segnaposto non seguono la barra della lingua** (regola R6): sette sono `aria-label`, cioè il testo che esiste solo per chi non vede l'icona | 13 file · vedi sotto |
@@ -1447,3 +1450,102 @@ serve la precisione: serve che **calare** faccia rumore.
 | **Autorizzazione** | Tredici file pretendono `EditNotAllowedException`: il pattern c'è, ed è per questo che la sua assenza sugli allegati (R-023) è una svista e non una scelta |
 | **Orologio vero** | 186 usi di `UtcNow` in 66 file di test — ma i motori che decidono (`RunwaySuggestion`, `SogliaEliminazione`, `SidStampCycle`, `AiracService`) prendono **l'istante come parametro**, quindi la fragilità resta sul contorno e non sul verdetto |
 | **s-13** | ✅ **chiuso**: la guardia «nessun `<text>` nel markup reso» esiste in `SezioniAeroportoTests` e copre un componente. Non è un difetto: è la **prima** occorrenza del genere di guardia che la tabella qui sopra chiede di estendere |
+
+---
+
+# Fase 8 — I documenti
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · 3 findings
+
+Tre confronti distinti, come previsto: doc↔doc, doc↔codice, **stato↔realtà**. I primi due avevano già dato
+sei findings nelle fasi precedenti (R-006, R-007, R-011, R-012, R-013, R-027); questa fase chiude il terzo,
+che è il più scomodo — perché riguarda i documenti che qualcuno legge **quando non sa niente**.
+
+## R-029 — La sezione «da leggere per prima» manda su un ramo che non esiste
+
+`docs/lavori-aperti.md:329-341` · **S3** · 🟢 · CONFERMATO
+
+`lavori-aperti.md` ha una sezione che dichiara sé stessa così:
+
+> `## Dove siamo, in cinque righe`
+> *«Riscritto il 30 agosto 2026 … **È la sezione da leggere per prima quando si riprende senza contesto**:
+> dice dov'è il codice, cosa manca e cosa va fatto prima del prossimo deploy.»*
+
+Ed è la prima cosa che dice:
+
+> 🔴 **30 agosto, sera — LA CONSEGNA È A METÀ, E QUESTO VIENE PRIMA DI TUTTO**
+> *«Nove commit sul ramo `consegna-db-20260830`, **NON SPINTI**. … Prima cosa da fare riprendendo:
+> `git push -u origin consegna-db-20260830`.»*
+
+**Tre fatti, misurati.**
+
+| Cosa dice | Cosa è vero |
+|---|---|
+| Nove commit da spingere sul ramo `consegna-db-20260830` | Il ramo **non esiste**, né locale né su origin: è stato fuso (`549e9357`) e cancellato. Non c'è niente da spingere |
+| «La consegna è a metà, e questo viene prima di tutto» | Da allora sono uscite **quattro** consegne — 1.11.0, 1.12.0, 1.13.0, 1.14.0 — e `main` è al 6 settembre |
+| «in cinque righe» | La sezione è lunga **707 righe** |
+
+**Scenario di rottura.** Il lettore a cui questa sezione parla è **per definizione** quello che non ha altro
+contesto: una persona nuova, o l'autore dopo una pausa. Fa la prima cosa che gli viene detta, `git push` su
+un ramo che non c'è, e non capisce; poi legge che la consegna è a metà e va a cercare che cosa manca, mentre
+in produzione sta girando roba di quattro versioni dopo. **Il documento non è vecchio in un punto: è vecchio
+esattamente nel punto in cui si offre come mappa.**
+
+⚠️ E non è che il documento non sappia: le quattro consegne successive **ci sono**, nel corpo (1.11.0 vi
+compare 29 volte). Il difetto è che la sezione d'ingresso non è stata riscritta da allora, e sopra di lei
+stanno **328 righe** di cronologia — 62 voci `**Aggiornato:**` — che raccontano stati passati **senza dire
+che sono passati**. Ci sono cascato anch'io: una riga della cronologia («il ramo `statistiche-atc` è completo
+e NON fuso») l'ho presa per stato corrente, e ho dovuto guardare la struttura del file per capire che era
+storia.
+
+**Rimedio:** riscrivere le cinque righe — e che siano cinque —, e mettere la cronologia **sotto** la sezione
+di stato o dietro un `<details>`. Il valore di quel documento non è quanto racconta: è che la prima schermata
+dica il vero.
+
+## R-030 — L'indice si dichiara «di tutti i documenti» e ne mancano 44
+
+`docs/index.md` · **S3** · 🟢 · CONFERMATO
+
+L'indice si apre così: *«Mappa **di tutti** i documenti del progetto, con scopo e stato»*, e propone un
+**ordine di lettura consigliato per una nuova chat**.
+
+Documenti sotto `docs/`: **167**. Citati dall'indice: **123**. **Ne mancano 44.**
+
+| Cartella | Non citati |
+|---|---|
+| `feature` | **33** |
+| `history` | 6 |
+| `design` · `refactor` | 2 + 2 |
+| `guide` | 1 |
+
+I 33 mancanti di `feature` sono il caso che conta: le carte di funzionalità sono il posto dove sta scritto
+**perché** una cosa è fatta così, e sono esattamente ciò che questa revisione ha usato per distinguere una
+scelta da una svista. Chi arriva dall'indice non sa che esistono.
+
+È la **stessa specie di R-012** (§9.8 che si dichiara «la lista migrazioni autoritativa» e si ferma alla 85ª
+di 114): non un elenco incompleto — un elenco che **dichiara di essere completo** e non lo è. E il rimedio è
+lo stesso: o l'elenco lo genera un comando, o non promette di essere tutto.
+
+## R-031 — Una consegna su cinque non è mai entrata nel registro
+
+`HANDOFF.md` · **S4** · 🟢 · CONFERMATO
+
+`HANDOFF.md` è aggiornato al **6 settembre** e apre con 1.14.0 pronta: la testata è viva. Ma la **1.12.0**
+non compare **da nessuna parte** nel file — zero occorrenze — mentre 1.11.0, 1.13.0 e 1.14.0 ci sono con
+sette, sette e cinque menzioni.
+
+La 1.12.0 è esistita davvero: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.12.0.md`, timbro `1.12.0 · e5077ab9`,
+6 settembre 2026.
+
+Da solo è un buco piccolo. Conta perché `HANDOFF.md` è il documento che risponde a «che cosa è successo»:
+un anello mancante nella catena non si vede finché qualcuno non risale proprio quello — e allora non trova
+né la ragione né il contenuto di quella consegna.
+
+## Verificato e corretto
+
+| Cosa | Esito |
+|---|---|
+| **I «NON fuso» ancora scritti** | Dieci occorrenze, e **tutte legittime**: stanno nella cronologia in testa, cioè in voci datate che raccontano un momento. La fusione poi c'è, e il documento la registra (§A17: «`main` è stato allineato, e i sei rami sono stati cancellati») |
+| **La convenzione di superamento degli ADR** | Esiste e funziona: ADR-0001 porta due «⚠️ Emendato da ADR-0002», ADR-0005 estende ADR-0002 dichiarandolo. Dove manca — §9.13 di `modello-dati`, R-011 — è una svista dentro una regola che c'è, non l'assenza della regola |
+| **La testata di `HANDOFF.md`** | Al 6 settembre, con sha256, dimensione, numero di file e timbro del commit: è il documento di stato che funziona meglio |
+| **`mappa-pagine.md`** | Corrente (25 agosto + note successive), e marca da sé le rotte assorbite («ex `/vsop/editor` assorbito») |
