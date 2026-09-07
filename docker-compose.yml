@@ -1,3 +1,12 @@
+# ⛔ SUPERATO dal 22 agosto 2026 — questo file NON descrive la produzione.
+#
+# Era la strada «container su una VM gratuita» (Oracle Cloud Always Free + Docker Compose + Caddy +
+# DuckDNS), abbandonata quando la produzione è diventata **Plesk + Passenger su atc.it.ivao.aero** e
+# l'anteprima **Render + Neon**. Nessun documento vivo lo cita più.
+#
+# Da usare al posto suo: `deploy/atc-ivao/` (produzione, FTP) e `deploy/render/README.md` (anteprima).
+# Resta come storia, non come istruzione (revisione del 6 settembre 2026, R-032).
+
 # Deploy vIPI su una VM (Oracle Cloud Always Free): app Blazor Server + Caddy (HTTPS auto Let's Encrypt).
 # I segreti stanno in .env (NON committato). Avvio: docker compose up -d --build
 services:

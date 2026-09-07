@@ -182,3 +182,210 @@ Asse di revisione strutturale post round ~23-34 (doc di area 01→10, **tutti es
 
 ---
 **Nota:** i commenti nel codice sorgente (`.cs`/`.razor`) citano i documenti per **nome e sezione** in forma informale (es. «modello-dati §9.12», «ADR-0001 D5»), non come link a percorso.
+
+---
+
+<!-- ELENCO GENERATO: non scrivere a mano fra questi due marcatori (tools/indice-doc.py) -->
+
+## Tutte le carte, per cartella
+
+Generato da `tools/indice-doc.py`: c'è **ogni** file di `docs/`, comprese quelle che le sezioni curate qui
+sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *cosa c'è*.
+
+
+### `(radice)`
+
+- [`FEATURE-PROCESS.md`](FEATURE-PROCESS.md) — Feature — Process (anti-vibecoding) 🟢
+
+### `adr`
+
+- [`adr/adr-0001-scelte-architetturali-fondanti.md`](adr/adr-0001-scelte-architetturali-fondanti.md) — ADR-0001 — Scelte architetturali fondanti
+- [`adr/adr-0002-integrazione-e-autenticazione-portabile.md`](adr/adr-0002-integrazione-e-autenticazione-portabile.md) — ADR-0002 — Integrazione nel sito e autenticazione portabile
+- [`adr/adr-0003-trasporto-live-sse.md`](adr/adr-0003-trasporto-live-sse.md) — ADR-0003 — Trasporto live: Server-Sent Events
+- [`adr/adr-0004-configurazione-divisione-e-admin.md`](adr/adr-0004-configurazione-divisione-e-admin.md) — ADR-0004 — Configurazione divisione e codici admin
+- [`adr/adr-0005-superficie-modulo-e-isolamento.md`](adr/adr-0005-superficie-modulo-e-isolamento.md) — ADR-0005 — Superficie del modulo e isolamento dall'host
+- [`adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md`](adr/adr-0006-indipendenza-sorgente-dati-e-policy-import.md) — ADR-0006 — Indipendenza dalla sorgente dati e policy di import
+- [`adr/adr-0007-produzione-persistenza-e-scala.md`](adr/adr-0007-produzione-persistenza-e-scala.md) — ADR-0007 — Produzione: persistenza, concorrenza e scala
+
+### `design`
+
+- [`design/piano-aurora-bridge.md`](design/piano-aurora-bridge.md) — vIPI Aurora Bridge — Piano e Architettura 🟡
+- [`design/piano-coerenza-sectorfile.md`](design/piano-coerenza-sectorfile.md) — Piano — coerenza vIPI ↔ sectorfile 🟣
+- [`design/piano-editor-appn.md`](design/piano-editor-appn.md) — Editor vIPI — APP non remotizzati (mockup 3c)
+- [`design/piano-import-tabelle.md`](design/piano-import-tabelle.md) — Importare una tabella — incolla, CSV, XLSX
+- [`design/piano-import-trasferimenti.md`](design/piano-import-trasferimenti.md) — Importare i trasferimenti — le tabelle degli IPI dentro gli accordi
+- [`design/piano-segnalazioni.md`](design/piano-segnalazioni.md) — Piano — le segnalazioni dal campo 🟣
+- [`design/piano-supporto-mysql.md`](design/piano-supporto-mysql.md) — Piano — supporto MySQL per il sito definitivo `atc.it.ivao.aero` 🟣
+- [`design/piano-ux-hardening.md`](design/piano-ux-hardening.md) — UX Hardening — carta 🟢
+- [`design/piano-vipi-tool.md`](design/piano-vipi-tool.md) — vIPI/vLOA Interactive — Documento di Pianificazione e Architettura
+- [`design/regole-brand.md`](design/regole-brand.md) — Regole di brand — colori e font
+- [`design/regole-lingua.md`](design/regole-lingua.md) — Regole della lingua (28 agosto 2026)
+- [`design/regole-perimetro-servizi.md`](design/regole-perimetro-servizi.md) — Il perimetro dei servizi — che cosa entra in questo sito e che cosa no (1 settembre 2026) 🟣
+- [`design/regole-ui-pagine-admin.md`](design/regole-ui-pagine-admin.md) — Regole di densità e uso per le pagine admin (19-23 agosto 2026) — 224 voci in 31 gruppi
+
+### `feature`
+
+- [`feature/2026-07-29-toc-editor.md`](feature/2026-07-29-toc-editor.md) — Feature — TOC laterale sezioni negli editor (menu di navigazione sempre disponibile)
+- [`feature/2026-07-30-pill-stato-dopo-publish.md`](feature/2026-07-30-pill-stato-dopo-publish.md) — Fix — La pill di stato resta «Bozza vN» dopo «Pubblica ora»
+- [`feature/2026-07-30-stampa-documenti.md`](feature/2026-07-30-stampa-documenti.md) — Feature — Stampa dei documenti (CSS `@media print`)
+- [`feature/2026-07-31-aor3d-leggibilita.md`](feature/2026-07-31-aor3d-leggibilita.md) — Feature — AoR 3D: leggibilità (altezza, etichette, selezione settori)
+- [`feature/2026-07-31-immagini-nei-blocchi.md`](feature/2026-07-31-immagini-nei-blocchi.md) — Feature — Immagini come blocco editoriale (upload da dispositivo e drag & drop)
+- [`feature/2026-07-31-pulizia-immagini-orfane.md`](feature/2026-07-31-pulizia-immagini-orfane.md) — Feature — Pulizia delle immagini non più usate (spazio recuperabile)
+- [`feature/2026-08-03-aree-regolamentate-hardening.md`](feature/2026-08-03-aree-regolamentate-hardening.md) — Feature — Aree regolamentate: interruttore, import incrementale, dangling, appartenenza e opt-in per ACC
+- [`feature/2026-08-11-trasferimenti-acc-app.md`](feature/2026-08-11-trasferimenti-acc-app.md) — Feature — Trasferimenti ACC↔APP: autorizzazione e trasferimento separati, varianti per condizione, velocità
+- [`feature/2026-08-12-editor-trasferimenti-rifiniture.md`](feature/2026-08-12-editor-trasferimenti-rifiniture.md) — Feature — Editor trasferimenti: il costo per gesto, la tastiera, l'annulla, il blocco
+- [`feature/2026-08-12-editor-trasferimenti-tre-colonne.md`](feature/2026-08-12-editor-trasferimenti-tre-colonne.md) — Feature — Editor trasferimenti: tre colonne, vista elenco, stato in URL, editing in cella
+- [`feature/2026-08-12-editor-trasferimenti-ux.md`](feature/2026-08-12-editor-trasferimenti-ux.md) — Feature — Editor trasferimenti: l'editing esce dalla riga ed entra nel pannello
+- [`feature/2026-08-12-trasferimenti-gruppi-e-salva.md`](feature/2026-08-12-trasferimenti-gruppi-e-salva.md) — Feature — Trasferimenti: il gruppo si vede, il Salva si raggiunge
+- [`feature/2026-08-12-varianti-a-livelli.md`](feature/2026-08-12-varianti-a-livelli.md) — Feature — Varianti a livelli: alternative pari-grado, eccezioni annidate, eccezioni trasversali
+- [`feature/2026-08-16-accordi-di-coordinamento.md`](feature/2026-08-16-accordi-di-coordinamento.md) — Accordi di coordinamento — carta ed esito (16-17 agosto 2026) 🟢
+- [`feature/2026-08-17-editor-accordi-per-relazione.md`](feature/2026-08-17-editor-accordi-per-relazione.md) — Editor accordi: per relazione, e con i due versi sempre a vista — carta ed esito (17 agosto 2026) 🟢
+- [`feature/2026-08-18-accordi-a-sezioni.md`](feature/2026-08-18-accordi-a-sezioni.md) — Accordi a SEZIONI — un accordo per coppia, il traffico dentro 🟢
+- [`feature/2026-08-19-acc-admin-densita-ui.md`](feature/2026-08-19-acc-admin-densita-ui.md) — Pagina ACC (admin) — testata, intestazioni che restano, limiti che non si perdono (19 agosto 2026)
+- [`feature/2026-08-19-accordi-densita-ui.md`](feature/2026-08-19-accordi-densita-ui.md) — Accordi di coordinamento — densità della pagina (19 agosto 2026)
+- [`feature/2026-08-19-aeroporti-densita-ui.md`](feature/2026-08-19-aeroporti-densita-ui.md) — Aeroporti (admin) — due pannelli misurati, intestazioni ferme, avanzamento vero (19 agosto 2026)
+- [`feature/2026-08-19-struttura-densita-ui.md`](feature/2026-08-19-struttura-densita-ui.md) — Struttura (gerarchia settori) — densità della pagina (19 agosto 2026)
+- [`feature/2026-08-20-confinanti-densita-ui.md`](feature/2026-08-20-confinanti-densita-ui.md) — Confinanti (vLOA) — densità e uso (20 agosto 2026)
+- [`feature/2026-08-20-editor-acc-densita-ui.md`](feature/2026-08-20-editor-acc-densita-ui.md) — Editor ACC — densità e uso (20 agosto 2026)
+- [`feature/2026-08-20-editor-aeroporto-densita-ui.md`](feature/2026-08-20-editor-aeroporto-densita-ui.md) — Editor aeroporto — la tabella SID lavorabile (20 agosto 2026)
+- [`feature/2026-08-21-versioni-densita-ui.md`](feature/2026-08-21-versioni-densita-ui.md) — Versioni — densità e uso (21 agosto 2026)
+- [`feature/2026-08-21-versioni-lock-e-azioni.md`](feature/2026-08-21-versioni-lock-e-azioni.md) — Versioni — chi ci sta lavorando, e le azioni delicate (21 agosto 2026)
+- [`feature/2026-08-22-audit-cosa-registra.md`](feature/2026-08-22-audit-cosa-registra.md) — Audit — cosa il registro registra davvero (22 agosto 2026)
+- [`feature/2026-08-22-audit-densita-ui.md`](feature/2026-08-22-audit-densita-ui.md) — Audit — densità e leggibilità della pagina (22 agosto 2026)
+- [`feature/2026-08-22-brand-atmosphere.md`](feature/2026-08-22-brand-atmosphere.md) — Allineamento al brand IVAO «atmosphere» (22 agosto 2026)
+- [`feature/2026-08-22-catalogo-punti-suggerimenti.md`](feature/2026-08-22-catalogo-punti-suggerimenti.md) — Catalogo dei punti — suggerire i fix e vedere i typo (22 agosto 2026)
+- [`feature/2026-08-22-coordinamenti-lettura.md`](feature/2026-08-22-coordinamenti-lettura.md) — I coordinamenti si leggono (carta, 22 agosto 2026)
+- [`feature/2026-08-22-diagnostica-cosa-afferma.md`](feature/2026-08-22-diagnostica-cosa-afferma.md) — Diagnostica — cosa afferma, e cosa succede quando è lei a rompersi (carta, 22 agosto 2026)
+- [`feature/2026-08-22-diagnostica-densita-ui.md`](feature/2026-08-22-diagnostica-densita-ui.md) — Diagnostica — densità UI (carta, 22 agosto 2026)
+- [`feature/2026-08-22-editori-app-vloa-cosa-fanno.md`](feature/2026-08-22-editori-app-vloa-cosa-fanno.md) — Editor APP ed Editor vLOA — cosa fanno davvero (carta, 22 agosto 2026)
+- [`feature/2026-08-22-editori-app-vloa-densita-ui.md`](feature/2026-08-22-editori-app-vloa-densita-ui.md) — Editor APP ed Editor vLOA — densità (carta, 22 agosto 2026)
+- [`feature/2026-08-22-incarichi-cosa-sono.md`](feature/2026-08-22-incarichi-cosa-sono.md) — Incarichi — cosa sono davvero (carta, 22 agosto 2026)
+- [`feature/2026-08-22-incarichi-densita-ui.md`](feature/2026-08-22-incarichi-densita-ui.md) — Incarichi — densità e QoL delle due pagine (carta, 22 agosto 2026)
+- [`feature/2026-08-22-minime-di-vettoramento.md`](feature/2026-08-22-minime-di-vettoramento.md) — Minime di vettoramento (MRVA): la carta, non la tabella
+- [`feature/2026-08-22-newdoc-cosa-crea.md`](feature/2026-08-22-newdoc-cosa-crea.md) — Nuovo documento — cosa crea davvero (carta, 22 agosto 2026)
+- [`feature/2026-08-22-newdoc-densita-ui.md`](feature/2026-08-22-newdoc-densita-ui.md) — Nuovo documento — densità UI (carta, 22 agosto 2026)
+- [`feature/2026-08-22-pannello-release.md`](feature/2026-08-22-pannello-release.md) — Il pannello release (carta, 22 agosto 2026)
+- [`feature/2026-08-22-permessi-densita-ui.md`](feature/2026-08-22-permessi-densita-ui.md) — Permessi (Area Staff) — densità e uso (22 agosto 2026)
+- [`feature/2026-08-22-servizi-atc-e-profile-swapper.md`](feature/2026-08-22-servizi-atc-e-profile-swapper.md) — Feature — Servizi ATC: l'hub `/services` e il primo strumento integrato
+- [`feature/2026-08-22-sorgenti-cosa-fa-la-policy.md`](feature/2026-08-22-sorgenti-cosa-fa-la-policy.md) — Sorgenti — cosa promette la policy e cosa fanno davvero gli import (carta, 22 agosto 2026)
+- [`feature/2026-08-22-sorgenti-densita-ui.md`](feature/2026-08-22-sorgenti-densita-ui.md) — Sorgenti — densità UI (carta, 22 agosto 2026)
+- [`feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md`](feature/2026-08-22-sorgenti-giro-automatico-ta-piste.md) — Sorgenti — il giro automatico di TA e Piste, e cosa la pagina non elenca (carta, 22 agosto 2026)
+- [`feature/2026-08-22-telefono-pagine-pubbliche.md`](feature/2026-08-22-telefono-pagine-pubbliche.md) — Il telefono, sulle pagine pubbliche (carta, 22 agosto 2026)
+- [`feature/2026-08-22-topbar-larghezza-e-lingua.md`](feature/2026-08-22-topbar-larghezza-e-lingua.md) — La topbar: larghezza e lingua (carta, 22 agosto 2026)
+- [`feature/2026-08-22-topbar-misurata.md`](feature/2026-08-22-topbar-misurata.md) — La topbar si misura da sola (carta, 22 agosto 2026)
+- [`feature/2026-08-23-live-coordinamenti-a-colonne.md`](feature/2026-08-23-live-coordinamenti-a-colonne.md) — I coordinamenti della vista live entrano in una schermata (carta, 23 agosto 2026)
+- [`feature/2026-08-23-quattro-difetti-e-le-proprieta.md`](feature/2026-08-23-quattro-difetti-e-le-proprieta.md) — Quattro difetti chiusi, e le proprietà dell'AoR
+- [`feature/2026-08-24-coordinamenti-lato-ricevente.md`](feature/2026-08-24-coordinamenti-lato-ricevente.md) — Coordinamenti — il lato di CHI RICEVE ✅
+- [`feature/2026-08-24-servizio-statistiche-atc.md`](feature/2026-08-24-servizio-statistiche-atc.md) — Statistiche ATC: il terzo servizio (carta, 24 agosto 2026)
+- [`feature/2026-08-24-tessere-mappa-ritenti.md`](feature/2026-08-24-tessere-mappa-ritenti.md) — Mappe a scacchi alla prima apertura — le tessere che non arrivano (24 agosto 2026)
+- [`feature/2026-08-25-aeroporti-militari.md`](feature/2026-08-25-aeroporti-militari.md) — Quali aeroporti sono militari — il dato c'era già (25 agosto 2026)
+- [`feature/2026-08-25-biblioteca-allegati.md`](feature/2026-08-25-biblioteca-allegati.md) — Feature — Biblioteca allegati (PDF su Drive di divisione, linkati nei documenti)
+- [`feature/2026-08-25-documenti-da-rivedere.md`](feature/2026-08-25-documenti-da-rivedere.md) — Documenti da rivedere — la casella degli impatti (carta v3, eseguita — 25 agosto 2026)
+- [`feature/2026-08-25-vid-porta-sul-profilo-ivao.md`](feature/2026-08-25-vid-porta-sul-profilo-ivao.md) — Feature — Il VID è una porta sul profilo IVAO
+- [`feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md`](feature/2026-08-25-vipi-aeroporto-legata-allo-scalo.md) — La vIPI di un aeroporto è dell'AEROPORTO, non di un suo settore (25 agosto 2026)
+- [`feature/2026-08-26-aeroporto-a-sezioni.md`](feature/2026-08-26-aeroporto-a-sezioni.md) — La vIPI d'aeroporto diventa un documento come gli altri — carta (26 agosto 2026)
+- [`feature/2026-08-26-chiedere-alla-sorgente.md`](feature/2026-08-26-chiedere-alla-sorgente.md) — Chiedere alla sorgente, invece di aspettarla — carta (26 agosto 2026, sera)
+- [`feature/2026-08-26-da-fare-una-lista-sola.md`](feature/2026-08-26-da-fare-una-lista-sola.md) — «Da fare»: una lista sola — carta (26 agosto 2026, notte)
+- [`feature/2026-08-26-eliminare-con-le-protezioni.md`](feature/2026-08-26-eliminare-con-le-protezioni.md) — Eliminare, con le protezioni — carta (26 agosto 2026)
+- [`feature/2026-08-26-identita-dei-settori.md`](feature/2026-08-26-identita-dei-settori.md) — L'identità di un settore non è il suo nome
+- [`feature/2026-08-26-lassenza-non-cancella.md`](feature/2026-08-26-lassenza-non-cancella.md) — L'assenza non cancella la presenza
+- [`feature/2026-08-26-ordine-sezioni-personalizzato.md`](feature/2026-08-26-ordine-sezioni-personalizzato.md) — L'ordine delle sezioni è una scelta editoriale — carta (26 agosto 2026)
+- [`feature/2026-08-26-riordino-sezioni-trascinando.md`](feature/2026-08-26-riordino-sezioni-trascinando.md) — Le sezioni si riordinano trascinandole nel menu — carta (26 agosto 2026)
+- [`feature/2026-08-26-shape-dal-sectorfile.md`](feature/2026-08-26-shape-dal-sectorfile.md) — Le shape dal sectorfile, e il ciclo che non è ancora uscito
+- [`feature/2026-08-27-aree-regolamentate-una-mappa.md`](feature/2026-08-27-aree-regolamentate-una-mappa.md) — Aree regolamentate: una mappa sola, con le chip — carta (27 agosto 2026)
+- [`feature/2026-08-27-basemap-esri.md`](feature/2026-08-27-basemap-esri.md) — Il fondo delle mappe non è più CARTO
+- [`feature/2026-08-27-chip-morte-pagina-statica.md`](feature/2026-08-27-chip-morte-pagina-statica.md) — Le chip che non facevano niente (METAR/TAF e pista delle SID)
+- [`feature/2026-08-27-documenti-bilingue.md`](feature/2026-08-27-documenti-bilingue.md) — Documenti bilingue — carta 🟣
+- [`feature/2026-08-27-vsop-militari.md`](feature/2026-08-27-vsop-militari.md) — vSOP militari — carta 🟣
+- [`feature/2026-08-28-archivio-atc-mondiale.md`](feature/2026-08-28-archivio-atc-mondiale.md) — Archivio ATC mondiale: il poller smette di buttare le altre postazioni (28 agosto 2026)
+- [`feature/2026-08-28-autorizzazioni-a-livelli.md`](feature/2026-08-28-autorizzazioni-a-livelli.md) — Le autorizzazioni a livelli: un numero al posto di un interruttore (28 agosto 2026)
+- [`feature/2026-08-29-convertitore-coordinate.md`](feature/2026-08-29-convertitore-coordinate.md) — Il convertitore di coordinate — carta (29 agosto 2026)
+- [`feature/2026-08-29-quote-transizione-colonna-destra.md`](feature/2026-08-29-quote-transizione-colonna-destra.md) — La colonna destra delle «Quote di transizione» — 29 agosto 2026
+- [`feature/2026-08-29-spazi-aerei-dal-kmz.md`](feature/2026-08-29-spazi-aerei-dal-kmz.md) — Gli spazi aerei dell'AIP: un file caricato a mano (29 agosto 2026)
+- [`feature/2026-08-30-intro-di-pagina.md`](feature/2026-08-30-intro-di-pagina.md) — L'intro di pagina: sezioni editabili in cima a un elenco — 30 agosto 2026
+- [`feature/2026-08-31-corse-dbcontext-e-diagnostica.md`](feature/2026-08-31-corse-dbcontext-e-diagnostica.md) — Quattro difetti letti nella diagnostica del 31 agosto, e uno era la diagnostica
+- [`feature/2026-08-31-lingua-bloccata.md`](feature/2026-08-31-lingua-bloccata.md) — Lingua bloccata — carta ✅
+- [`feature/2026-08-31-ricaduta-verticale-e-cicli.md`](feature/2026-08-31-ricaduta-verticale-e-cicli.md) — La ricaduta guarda anche in alto — e un settore non è più nipote di sé stesso
+- [`feature/2026-08-31-riconnessione-circuito.md`](feature/2026-08-31-riconnessione-circuito.md) — «Attempting to reconnect to the server…» — quattro mosse
+- [`feature/2026-09-01-fraseologia-e-traduzioni.md`](feature/2026-09-01-fraseologia-e-traduzioni.md) — Fraseologia e traduzioni: una pagina sola, una ricerca vera, «dove si usa»
+- [`feature/2026-09-02-il-ciclo-entrante.md`](feature/2026-09-02-il-ciclo-entrante.md) — Il ciclo entrante — quattro cose che aspettavano il rollover per accorgersi di esistere
+- [`feature/2026-09-03-documenti-uniti.md`](feature/2026-09-03-documenti-uniti.md) — Documenti uniti — una pagina, un editor, una pubblicazione — carta (3 settembre 2026)
+- [`feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md`](feature/2026-09-03-trasferimenti-scheda-clausola-finestra.md) — Feature — Trasferimenti: la scheda della clausola diventa una finestra, e quattro difetti di collegamento
+- [`feature/2026-09-04-aeroporto-porta-sola.md`](feature/2026-09-04-aeroporto-porta-sola.md) — L'aeroporto entra nella regola: una porta sola per salvare, e i campi vivi solo col lock — 4 settembre 2026
+- [`feature/2026-09-04-sezioni-mobili.md`](feature/2026-09-04-sezioni-mobili.md) — Sezioni e sotto-sezioni che si muovono davvero — 4 settembre 2026
+- [`feature/2026-09-04-stato-traduzione.md`](feature/2026-09-04-stato-traduzione.md) — A che punto è la traduzione: il meccanismo che lo dice
+- [`feature/2026-09-05-aeroporto-cambia-acc.md`](feature/2026-09-05-aeroporto-cambia-acc.md) — Un aeroporto che cambia ACC (5 settembre 2026)
+- [`feature/2026-09-05-larghezza-delle-immagini.md`](feature/2026-09-05-larghezza-delle-immagini.md) — Larghezza delle immagini nei documenti (5 settembre 2026)
+- [`feature/2026-09-05-payload-non-mangia-il-contenuto.md`](feature/2026-09-05-payload-non-mangia-il-contenuto.md) — Il payload della scheda non mangia più il contenuto di chi redige (5 settembre 2026)
+- [`feature/2026-09-05-vista-live-selettore-e-cancello.md`](feature/2026-09-05-vista-live-selettore-e-cancello.md) — La vista live si sceglie — ma solo da chi può — 5 settembre 2026
+- [`feature/2026-09-06-vsop-sezioni-sod.md`](feature/2026-09-06-vsop-sezioni-sod.md) — vSOP militari — l'indice che chiede il SOD (6 settembre 2026)
+
+### `guide`
+
+- [`guide/aurora-bridge.md`](guide/aurora-bridge.md) — vIPI Aurora Bridge — guida all'uso
+- [`guide/config.md`](guide/config.md) — Configurazione — vIPI / vLOA
+- [`guide/dev-bootstrap.md`](guide/dev-bootstrap.md) — Bootstrap sviluppo — da DB vuoto a sito popolato
+- [`guide/integration.md`](guide/integration.md) — Integrazione del modulo vIPI/vLOA in un sito esistente
+- [`guide/integrazione-ivao-it-da-fare.md`](guide/integrazione-ivao-it-da-fare.md) — Integrazione nel sito Ivao.It — che cosa manca ancora
+- [`guide/preparare-un-pacchetto.md`](guide/preparare-un-pacchetto.md) — Preparare un pacchetto di consegna 🟢
+- [`guide/standalone-auth-ivao.md`](guide/standalone-auth-ivao.md) — Login IVAO standalone (scenario C)
+
+### `history`
+
+- [`history/audit-2026-07-14-correttezza-fonti-dati.md`](history/audit-2026-07-14-correttezza-fonti-dati.md) — Audit correttezza + fonti-dati multiple (14 lug 2026) ⚪
+- [`history/audit-2026-07-22-criticita-full-stack.md`](history/audit-2026-07-22-criticita-full-stack.md) — Audit full-stack — criticità back/front/DB (22 lug 2026) ✅
+- [`history/audit-2026-07-30-concorrenza-e-ridondanze.md`](history/audit-2026-07-30-concorrenza-e-ridondanze.md) — Audit — concorrenza, codice morto, ridondanze (30 lug 2026) ✅
+- [`history/audit-2026-08-11-crepe-full-stack.md`](history/audit-2026-08-11-crepe-full-stack.md) — Audit full-stack — 11 agosto 2026
+- [`history/audit-2026-08-14-database-mariadb.md`](history/audit-2026-08-14-database-mariadb.md) — Audit del database e della sua gestione — 14 agosto 2026
+- [`history/audit-2026-08-23-frontend-ui.md`](history/audit-2026-08-23-frontend-ui.md) — Audit frontend/UI — 23 agosto 2026
+- [`history/audit-2026-08-25-cancellazione-dati-importati.md`](history/audit-2026-08-25-cancellazione-dati-importati.md) — Analisi 25 agosto 2026 — che cosa succede se un dato importato viene eliminato dal DB
+- [`history/audit-2026-08-25-versioni-release.md`](history/audit-2026-08-25-versioni-release.md) — Audit versioni & release — 25 agosto 2026
+- [`history/audit-2026-08-27-prestazioni.md`](history/audit-2026-08-27-prestazioni.md) — Audit prestazioni — 27 agosto 2026, sera
+- [`history/audit-2026-08-29-vsop-militari-relazione.md`](history/audit-2026-08-29-vsop-militari-relazione.md) — Audit 29 agosto 2026 — i vSOP militari e la loro relazione col civile 🟢
+- [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md) — HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
+- [`history/handoff-brand-atmosphere.md`](history/handoff-brand-atmosphere.md) — Handoff — il ramo del brand IVAO (22 agosto 2026)
+- [`history/handoff-coordinamenti-fasi-3-4.md`](history/handoff-coordinamenti-fasi-3-4.md) — HANDOFF — Coordinamenti/trasferimenti: Fasi 3-4 (resa documento)
+- [`history/handoff-densita-ui.md`](history/handoff-densita-ui.md) — Handoff — il ramo della densità UI (aggiornato 22 agosto 2026: pagine, chrome e telefono)
+- [`history/handoff-round22.md`](history/handoff-round22.md) — Handoff di sessione — Round 22 (30 giu 2026)
+- [`history/handoff-round5.md`](history/handoff-round5.md) — HANDOFF — Round 5: Fusione Settore/Posizione
+- [`history/piano-round20.md`](history/piano-round20.md) — PIANO Round 20 — Fonte unica dei settori (cataloghi) + gerarchia per callsign
+- [`history/review-flusso-gap.md`](history/review-flusso-gap.md) — Review del flusso utente e analisi dei gap — vIPI/vLOA Interactive
+- [`history/rounds.md`](history/rounds.md) — Changelog dei round (cronologico)
+
+### `(radice)`
+
+- [`lavori-aperti.md`](lavori-aperti.md) — Lavori aperti — elenco unico
+
+### `refactor`
+
+- [`refactor/00-overview.md`](refactor/00-overview.md) — Refactor — Overview 🟢
+- [`refactor/01-import-infra-condivisa.md`](refactor/01-import-infra-condivisa.md) — 01 — Infra import condivisa (L0) 🟢✅
+- [`refactor/02-import-acc-e-settori.md`](refactor/02-import-acc-e-settori.md) — 02 — Import ACC + settori di ACC (punti 1+2) 🟢✅
+- [`refactor/03-import-aeroporti-e-settori.md`](refactor/03-import-aeroporti-e-settori.md) — 03 — Import aeroporti + settori di aeroporto (punti 3+4) 🟢✅
+- [`refactor/04-import-github.md`](refactor/04-import-github.md) — 04 — Import SID da GitHub (punto 11) 🟢✅
+- [`refactor/05-import-confinanti.md`](refactor/05-import-confinanti.md) — 05 — Import ACC + settori confinanti (punti 5+6) 🟢✅
+- [`refactor/06-gerarchia.md`](refactor/06-gerarchia.md) — 06 — Gerarchia (albero di copertura) (punto 7) 🟢✅
+- [`refactor/07-trasferimenti.md`](refactor/07-trasferimenti.md) — 07 — Trasferimenti (punto 8) 🟢✅
+- [`refactor/08-modello-documento-ed-editing.md`](refactor/08-modello-documento-ed-editing.md) — 08 — Modello documento + editing (punti 9+12) ✅ COMPLETO (08a–08i mergiati, 2026-07-10)
+- [`refactor/09-flusso-pubblicazione.md`](refactor/09-flusso-pubblicazione.md) — 09 — Flusso di pubblicazione (punto 10) 🟢
+- [`refactor/10-snapshot-totale-e-rendermode.md`](refactor/10-snapshot-totale-e-rendermode.md) — 10 — Snapshot totale + RenderMode per sezione 🟢
+- [`refactor/11-uniformita-tre-documenti.md`](refactor/11-uniformita-tre-documenti.md) — 11 — Uniformità dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
+- [`refactor/12-vista-live-unificata.md`](refactor/12-vista-live-unificata.md) — 12 — Vista live unificata per callsign ✅
+- [`refactor/13-audit-tre-documenti.md`](refactor/13-audit-tre-documenti.md) — 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
+- [`refactor/14-quattro-documenti.md`](refactor/14-quattro-documenti.md) — 14 — I quattro documenti: un motore solo 🟡
+- [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md) — 15 — La shape di un settore: una porta sola 🟡
+- [`refactor/REFACTOR-PROCESS.md`](refactor/REFACTOR-PROCESS.md) — Refactor — Process (runbook) 🟢
+
+### `reference`
+
+- [`reference/api-aurora-bridge.md`](reference/api-aurora-bridge.md) — API bridge Aurora — `/vsop/api/v1/transfers/resolve` 🟢
+- [`reference/sector-map.md`](reference/sector-map.md) — Sector map — ACC Roma (LIRR)
+
+### `spec`
+
+- [`spec/logica-aor.md`](spec/logica-aor.md) — Specifica della Logica AoR e Visibilità — vIPI/vLOA Interactive
+- [`spec/mappa-pagine.md`](spec/mappa-pagine.md) — MAPPA PAGINE — servizi ATC (hub `/services`)
+- [`spec/modello-dati.md`](spec/modello-dati.md) — Specifica del Modello Dati — vIPI/vLOA Interactive
+- [`spec/pagine-disabilitate.md`](spec/pagine-disabilitate.md) — PAGINE DISABILITATE — rebuild `/services/vsop` (Round 12)
+
+<!-- FINE ELENCO GENERATO -->
