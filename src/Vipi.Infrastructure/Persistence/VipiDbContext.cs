@@ -50,9 +50,19 @@ public class VipiDbContext : DbContext
     /// <c>SaveChangesAsync(ct)</c> senza argomenti: EF li implementa delegando a queste.</para>
     ///
     /// <para>⚠️ Restano fuori <c>ExecuteUpdate</c>/<c>ExecuteDelete</c>, che non passano dal change-tracker
-    /// né da qui. Oggi è innocuo — l'unica entità che li usa (<c>EditResourceLock</c>) non ha token, e ha un
-    /// meccanismo di esclusione suo — ma è la condizione da ricontrollare prima di convertire una scrittura
-    /// su entità versionata in ExecuteUpdate.</para>
+    /// né da qui. <b>La regola vera</b>, misurata: su <c>Document</c> — che il token ce l'ha —
+    /// <c>ExecuteUpdate</c> si usa in <b>quattro</b> punti, tutti in <c>EfEditingRepository</c> e tutti per
+    /// le <b>sole colonne del lock</b> (acquisizione, rinnovo, rilascio, sblocco forzato). Lì il token
+    /// <b>non deve</b> ruotare, ed è la scelta giusta: il battito del lock passa ogni pochi secondi, e
+    /// ruotarlo farebbe fallire il salvataggio di chiunque abbia l'editor aperto. Il lock ha un'esclusione
+    /// sua — la condizione «libero, scaduto o già mio» sta dentro la <c>WHERE</c>, quindi è atomica lato
+    /// database — e non ha bisogno del token.</para>
+    ///
+    /// <para>⚠️ <b>Prima di convertire QUALUNQUE ALTRA scrittura</b> su un'entità versionata in
+    /// <c>ExecuteUpdate</c>: quella salterebbe la rotazione, e con lei la concorrenza ottimistica. Fino al
+    /// 7 settembre 2026 qui c'era scritto che l'unica entità a usarli era <c>EditResourceLock</c>, che token
+    /// non ne ha — una premessa che un <c>grep</c> smentiva in dieci secondi, e che <b>autorizzava</b> la
+    /// conversione sbagliata a chi la leggeva (revisione del 6 settembre 2026, R-022).</para>
     /// </summary>
     private void RuotaTokenDiConcorrenza()
     {
