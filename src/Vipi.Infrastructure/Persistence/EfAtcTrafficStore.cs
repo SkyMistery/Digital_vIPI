@@ -9,8 +9,13 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfAtcTrafficStore : IAtcTrafficStore
 {
     private readonly VipiDbContext _db;
+    private readonly IUnitOfWork _uow;
 
-    public EfAtcTrafficStore(VipiDbContext db) => _db = db;
+    public EfAtcTrafficStore(VipiDbContext db, IUnitOfWork uow)
+    {
+        _db = db;
+        _uow = uow;
+    }
 
     public async Task<IReadOnlyDictionary<long, (IReadOnlyList<TrafficLegRow> Legs, int TrafficMinutes)>> GetLegsAsync(
         IReadOnlyCollection<long> sessionIds, CancellationToken ct = default)
@@ -275,50 +280,64 @@ public sealed class EfAtcTrafficStore : IAtcTrafficStore
         if (batch <= 0) return 0;
         var limite = notAfter.UtcDateTime;
 
-        // ⚠️ Solo le sessioni CHIUSE: una ancora aperta non ha una durata definitiva, e riassumerla
-        // vorrebbe dire congelare un numero sbagliato. Una connessione aperta da più di un anno non
-        // esiste, ma se esistesse sarebbe un guasto da guardare, non da cancellare.
-        var righe = await _db.AtcSessions
-            .Where(s => s.StartUtc < limite && s.EndUtc != null)
-            .OrderBy(s => s.StartUtc)
-            .Take(batch)
-            .ToListAsync(ct);
-        if (righe.Count == 0) return 0;
-
-        // Riassunto e cancellazione nella STESSA transazione: separate, un'interruzione fra le due
-        // conterebbe due volte lo stesso mese al giro successivo.
-        await using var tx = await _db.Database.BeginTransactionAsync(ct);
-
-        var adesso = DateTime.UtcNow;
-
-        // ⚠️ Il riassunto è SOLO della divisione: <c>AtcMonthRollup</c> è la memoria lunga delle ore
-        // italiane (mese · persona · callsign) e regge la classifica. Le sessioni fuori divisione si
-        // cancellano e basta, alla stessa scadenza — dodici mesi — senza lasciare niente dietro: sono
-        // archivio, non un conto di qualcuno, e riassumerle vorrebbe dire mettere il pianeta in classifica.
-        foreach (var g in righe.Where(s => !s.IsOutsideDivision).GroupBy(s => (
-            Mese: new DateTime(s.StartUtc.Year, s.StartUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc),
-            s.UserId, s.Callsign)))
+        // ⚠️ La transazione passa da IUnitOfWork, che è l'UNICO punto che ne apre: la avvolge in
+        // `CreateExecutionStrategy()` e azzera il change-tracker a ogni tentativo. Aprirla qui a mano
+        // funzionava su SQLite — sviluppo e tutti i test — e sollevava su MariaDB e Postgres, dove
+        // `EnableRetryOnFailure` mette una strategy che ritenta: «The configured execution strategy does
+        // not support user-initiated transactions». Verde su tutta la suite, rosso sull'unico ambiente che
+        // conta: la potatura non è mai avvenuta in produzione (revisione del 6 settembre, R-015).
+        var potate = 0;
+        await _uow.ExecuteInTransactionAsync(async token =>
         {
-            var riga = await _db.AtcMonthRollups.FirstOrDefaultAsync(
-                x => x.Month == g.Key.Mese && x.UserId == g.Key.UserId && x.Callsign == g.Key.Callsign, ct);
-            if (riga is null)
+            // ⚠️ La lettura sta DENTRO: a un ritentativo la lambda rigira su un change-tracker appena
+            // azzerato, e le righe lette prima sarebbero staccate. Rileggerle rende ogni tentativo un giro
+            // intero, uguale al primo. Per la stessa ragione il conto riparte da zero qui.
+            potate = 0;
+
+            // ⚠️ Solo le sessioni CHIUSE: una ancora aperta non ha una durata definitiva, e riassumerla
+            // vorrebbe dire congelare un numero sbagliato. Una connessione aperta da più di un anno non
+            // esiste, ma se esistesse sarebbe un guasto da guardare, non da cancellare.
+            var righe = await _db.AtcSessions
+                .Where(s => s.StartUtc < limite && s.EndUtc != null)
+                .OrderBy(s => s.StartUtc)
+                .Take(batch)
+                .ToListAsync(token);
+            if (righe.Count == 0) return;
+
+            var adesso = DateTime.UtcNow;
+
+            // ⚠️ Il riassunto è SOLO della divisione: <c>AtcMonthRollup</c> è la memoria lunga delle ore
+            // italiane (mese · persona · callsign) e regge la classifica. Le sessioni fuori divisione si
+            // cancellano e basta, alla stessa scadenza — dodici mesi — senza lasciare niente dietro: sono
+            // archivio, non un conto di qualcuno, e riassumerle vorrebbe dire mettere il pianeta in classifica.
+            foreach (var g in righe.Where(s => !s.IsOutsideDivision).GroupBy(s => (
+                Mese: new DateTime(s.StartUtc.Year, s.StartUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+                s.UserId, s.Callsign)))
             {
-                riga = new AtcMonthRollup { Month = g.Key.Mese, UserId = g.Key.UserId, Callsign = g.Key.Callsign };
-                _db.AtcMonthRollups.Add(riga);
+                var riga = await _db.AtcMonthRollups.FirstOrDefaultAsync(
+                    x => x.Month == g.Key.Mese && x.UserId == g.Key.UserId && x.Callsign == g.Key.Callsign, token);
+                if (riga is null)
+                {
+                    riga = new AtcMonthRollup { Month = g.Key.Mese, UserId = g.Key.UserId, Callsign = g.Key.Callsign };
+                    _db.AtcMonthRollups.Add(riga);
+                }
+
+                riga.Position ??= g.Select(s => s.Position).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
+                riga.Sessions += g.Count();
+                riga.Seconds += g.Sum(s => (long)s.DurationSeconds);
+                riga.TrafficSeen += g.Sum(s => s.TrafficCount);
+                riga.TrafficMoved += g.Sum(s => s.MovementCount);
+                riga.BusyMinutes += g.Sum(s => s.TrafficMinutes);
+                riga.UpdatedUtc = adesso;
             }
 
-            riga.Position ??= g.Select(s => s.Position).FirstOrDefault(p => !string.IsNullOrWhiteSpace(p));
-            riga.Sessions += g.Count();
-            riga.Seconds += g.Sum(s => (long)s.DurationSeconds);
-            riga.TrafficSeen += g.Sum(s => s.TrafficCount);
-            riga.TrafficMoved += g.Sum(s => s.MovementCount);
-            riga.BusyMinutes += g.Sum(s => s.TrafficMinutes);
-            riga.UpdatedUtc = adesso;
-        }
+            // Riassunto e cancellazione nella STESSA transazione: separate, un'interruzione fra le due
+            // conterebbe due volte lo stesso mese al giro successivo.
+            _db.AtcSessions.RemoveRange(righe);
+            await _db.SaveChangesAsync(token);
+            potate = righe.Count;
+        }, ct);
 
-        _db.AtcSessions.RemoveRange(righe);
-        await _db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-        return righe.Count;
+        return potate;
     }
 }

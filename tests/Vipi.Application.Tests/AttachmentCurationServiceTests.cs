@@ -1,4 +1,5 @@
 ﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -31,7 +32,7 @@ public class AttachmentCurationServiceTests
         public Task<(AttachmentReplace Esito, AttachmentRow? Riga)> ReplaceAsync(
             string slug, string link, string? note, int userId, CancellationToken ct = default)
         {
-            Slug = slug; Link = link; Nota = note;
+            Slug = slug; Link = link; Nota = note; Chi = userId;
 
             var riga = _esito == AttachmentReplace.Ok
                 ? new AttachmentRow(1, slug, "LoA Roma-Marseille", AttachmentKind.Loa, AttachmentScope.Division,
@@ -54,8 +55,27 @@ public class AttachmentCurationServiceTests
         public Task<AttachmentDelete> DeleteAsync(string slug, int userId, CancellationToken ct = default)
         {
             Eliminato = slug;
+            Chi = userId;
             return Task.FromResult(EsitoDelete);
         }
+
+        /// <summary>L'<c>userId</c> con cui la biblioteca è stata chiamata: è quel che finisce nell'audit.</summary>
+        public int? Chi { get; private set; }
+    }
+
+    /// <summary>Il livello di chi sta scrivendo, e chi è secondo il server.</summary>
+    private sealed class AuthzFinta : IEditAuthorizationService
+    {
+        public AuthzFinta(VipiRole livello = VipiRole.Editor, int? utente = 704798)
+        {
+            Role = livello;
+            CurrentUserId = utente;
+        }
+
+        public VipiRole Role { get; }
+        public bool IsAdmin => Role >= VipiRole.Admin;
+        public int? CurrentUserId { get; }
+        public string? CurrentName => "Chi Cura";
     }
 
     private sealed class UsoFinto : IAttachmentUsage
@@ -117,9 +137,9 @@ public class AttachmentCurationServiceTests
     {
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti);
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti, new AuthzFinta());
 
-        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 704798);
+        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
 
         var aperto = Assert.Single(impatti.Aperti);
         Assert.Equal(ImpactKind.AttachmentReplaced, aperto.Kind);
@@ -137,9 +157,9 @@ public class AttachmentCurationServiceTests
     {
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vIPI Fiumicino", 7)), impatti);
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vIPI Fiumicino", 7)), impatti, new AuthzFinta());
 
-        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
+        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
 
         Assert.Equal(new[] { 7 }, Assert.Single(impatti.Aperti).Documenti);
     }
@@ -151,9 +171,9 @@ public class AttachmentCurationServiceTests
     {
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("minime-generali", null)), impatti);
+            new BibliotecaFinta(), new UsoFinto(Cita("minime-generali", null)), impatti, new AuthzFinta());
 
-        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
+        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
 
         Assert.Empty(impatti.Aperti);
     }
@@ -162,9 +182,9 @@ public class AttachmentCurationServiceTests
     public async Task Se_non_la_cita_nessuno_non_si_apre_niente()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti);
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti, new AuthzFinta());
 
-        var esito = await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
+        var esito = await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
 
         Assert.Equal(AttachmentReplace.Ok, esito.Esito);
         Assert.Empty(impatti.Aperti);
@@ -183,9 +203,9 @@ public class AttachmentCurationServiceTests
     {
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(esito), new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti);
+            new BibliotecaFinta(esito), new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti, new AuthzFinta());
 
-        var risultato = await servizio.ReplaceAsync("loa-lirr-lfmm", "qualunque", null, 1);
+        var risultato = await servizio.ReplaceAsync("loa-lirr-lfmm", "qualunque", null);
 
         Assert.Equal(esito, risultato.Esito);
         Assert.Empty(impatti.Aperti);
@@ -197,7 +217,7 @@ public class AttachmentCurationServiceTests
     public async Task Lanteprima_dice_chi_cambia()
     {
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti());
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti(), new AuthzFinta());
 
         var citazioni = await servizio.ImpactPreviewAsync("loa-lirr-lfmm");
 
@@ -210,10 +230,10 @@ public class AttachmentCurationServiceTests
     public async Task Link_e_nota_arrivano_alla_biblioteca()
     {
         var biblioteca = new BibliotecaFinta();
-        var servizio = new AttachmentCurationService(biblioteca, new UsoFinto(), new ImpattiFinti());
+        var servizio = new AttachmentCurationService(biblioteca, new UsoFinto(), new ImpattiFinti(), new AuthzFinta());
 
         await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view",
-            "rifirmata dopo modifica CoP", 704798);
+            "rifirmata dopo modifica CoP");
 
         Assert.Equal("loa-lirr-lfmm", biblioteca.Slug);
         Assert.Equal("https://drive.google.com/file/d/AAAAAAAAAAAA/view", biblioteca.Link);
@@ -232,9 +252,9 @@ public class AttachmentCurationServiceTests
     {
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti);
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7), Cita("vLOA LIRR-LFMM", 9)), impatti, new AuthzFinta());
 
-        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 704798);
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm");
 
         Assert.Equal(AttachmentDelete.Ok, esito.Esito);
         var aperto = Assert.Single(impatti.Aperti);
@@ -250,9 +270,9 @@ public class AttachmentCurationServiceTests
     public async Task Leliminazione_torna_chi_resta_da_correggere()
     {
         var servizio = new AttachmentCurationService(
-            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti());
+            new BibliotecaFinta(), new UsoFinto(Cita("vIPI Fiumicino", 7)), new ImpattiFinti(), new AuthzFinta());
 
-        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 1);
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm");
 
         Assert.Equal("vIPI Fiumicino", Assert.Single(esito.Orfani).Title);
     }
@@ -261,9 +281,9 @@ public class AttachmentCurationServiceTests
     public async Task Eliminare_una_voce_che_non_cita_nessuno_non_segnala_niente()
     {
         var impatti = new ImpattiFinti();
-        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti);
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), new UsoFinto(), impatti, new AuthzFinta());
 
-        Assert.Equal(AttachmentDelete.Ok, (await servizio.DeleteAsync("loa-lirr-lfmm", 1)).Esito);
+        Assert.Equal(AttachmentDelete.Ok, (await servizio.DeleteAsync("loa-lirr-lfmm")).Esito);
         Assert.Empty(impatti.Aperti);
     }
 
@@ -275,9 +295,9 @@ public class AttachmentCurationServiceTests
         var impatti = new ImpattiFinti();
         var servizio = new AttachmentCurationService(
             new BibliotecaFinta { EsitoDelete = AttachmentDelete.NonTrovata },
-            new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti);
+            new UsoFinto(Cita("vIPI Fiumicino", 7)), impatti, new AuthzFinta());
 
-        var esito = await servizio.DeleteAsync("loa-lirr-lfmm", 1);
+        var esito = await servizio.DeleteAsync("loa-lirr-lfmm");
 
         Assert.Equal(AttachmentDelete.NonTrovata, esito.Esito);
         Assert.Empty(impatti.Aperti);
@@ -292,10 +312,60 @@ public class AttachmentCurationServiceTests
     public async Task Chi_cita_si_legge_una_volta_sola_e_prima_di_scrivere()
     {
         var uso = new UsoFinto(Cita("vIPI Fiumicino", 7));
-        var servizio = new AttachmentCurationService(new BibliotecaFinta(), uso, new ImpattiFinti());
+        var servizio = new AttachmentCurationService(new BibliotecaFinta(), uso, new ImpattiFinti(), new AuthzFinta());
 
-        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null, 1);
+        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
 
         Assert.Equal(1, uso.Letture);
     }
+
+    // ---- il cancello (R-023) -----------------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>Le tre scritture si rifiutano sotto l'Editor</b>, e non perché la pagina nasconde i tasti.
+    ///
+    /// <para>Fino al 7 settembre 2026 la biblioteca era l'unica delle cinque famiglie di scrittura a
+    /// difendersi <i>solo dentro una pagina</i>: sotto, servizio e repository accettavano chiunque. Reggeva
+    /// finché la porta era una sola — e questo test esiste perché la seconda porta non chieda il permesso
+    /// a nessuno.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(VipiRole.User)]
+    [InlineData(VipiRole.DivisionStaff)]
+    public async Task Sotto_l_editor_le_tre_scritture_si_rifiutano(VipiRole livello)
+    {
+        var biblioteca = new BibliotecaFinta();
+        var servizio = new AttachmentCurationService(biblioteca, new UsoFinto(), new ImpattiFinti(),
+            new AuthzFinta(livello, utente: 999));
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() =>
+            servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null));
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => servizio.DeleteAsync("loa-lirr-lfmm"));
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => servizio.CreateAsync(
+            new AttachmentDraft("loa-nuova", "LoA nuova", AttachmentKind.Loa, AttachmentScope.Division, null,
+                null, "https://drive.google.com/file/d/AAAAAAAAAAAA/view")));
+
+        // ⚠️ E non ha scritto niente: un cancello che rifiuta dopo aver scritto non è un cancello.
+        Assert.Null(biblioteca.Slug);
+        Assert.Null(biblioteca.Eliminato);
+    }
+
+    /// <summary>
+    /// Chi ha scritto lo dice il <b>server</b>, non chi chiama: l'<c>userId</c> era un parametro, e un
+    /// registro di audit che crede al parametro registra quel che gli viene detto.
+    /// </summary>
+    [Fact]
+    public async Task L_utente_dell_audit_arriva_dal_server()
+    {
+        var biblioteca = new BibliotecaFinta();
+        var servizio = new AttachmentCurationService(biblioteca, new UsoFinto(), new ImpattiFinti(),
+            new AuthzFinta(VipiRole.Editor, utente: 123456));
+
+        await servizio.ReplaceAsync("loa-lirr-lfmm", "https://drive.google.com/file/d/AAAAAAAAAAAA/view", null);
+        Assert.Equal(123456, biblioteca.Chi);
+
+        await servizio.DeleteAsync("loa-lirr-lfmm");
+        Assert.Equal(123456, biblioteca.Chi);
+    }
 }
+

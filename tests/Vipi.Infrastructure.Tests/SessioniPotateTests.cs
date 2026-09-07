@@ -30,7 +30,7 @@ public class SessioniPotateTests : IAsyncLifetime
         var options = new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options;
         _db = new VipiDbContext(options);
         await _db.Database.EnsureCreatedAsync();
-        _store = new EfAtcTrafficStore(_db);
+        _store = new EfAtcTrafficStore(_db, new EfUnitOfWork(_db));
     }
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }

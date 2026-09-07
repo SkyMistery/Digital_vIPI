@@ -1,4 +1,4 @@
-using Vipi.Domain.Entities;
+﻿using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
 
@@ -99,8 +99,11 @@ public enum AttachmentDelete
 /// APP, dove si vedevano solo i pubblicati e il primo non si poteva creare.</item>
 /// </list>
 ///
-/// <para>⚠️ <b>Nessun controllo di autorizzazione qui dentro</b>: il cancello sta dove sta per tutte le
-/// scritture editoriali, e ripeterlo darebbe due cancelli che col tempo dicono cose diverse.</para>
+/// <para>⚠️ <b>Nessun controllo di autorizzazione qui dentro</b>: ripeterlo darebbe due cancelli che col
+/// tempo dicono cose diverse. Il cancello è <b>uno</b>, e sta su <c>IAttachmentCuration</c>: da là passano
+/// tutte e tre le scritture — creare, sostituire, eliminare — e là si legge dal server <i>chi</i> sta
+/// scrivendo. ⚠️ Una scrittura che chiami questa porta direttamente è una scrittura che il cancello non
+/// vede: fino al 7 settembre 2026 la creazione faceva proprio così (revisione del 6 settembre, R-023).</para>
 /// </summary>
 public interface IAttachmentLibrary
 {

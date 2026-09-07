@@ -73,7 +73,7 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
         });
         await _db.SaveChangesAsync();
 
-        _traffico = new EfAtcTrafficStore(_db);
+        _traffico = new EfAtcTrafficStore(_db, new EfUnitOfWork(_db));
         _sessioni = new EfAtcSessionStore(_db);
         _recorder = new AtcTrafficRecorder(new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))));
     }
