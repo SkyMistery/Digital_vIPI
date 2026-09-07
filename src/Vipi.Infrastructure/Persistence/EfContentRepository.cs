@@ -52,11 +52,20 @@ public sealed class EfContentRepository : IContentRepository
     public Task<RawDocument?> LoadAppVipiAsync(string appCallsign, bool ignoreRelease = false, bool preferWorking = false, CancellationToken ct = default)
     {
         var app = (appCallsign ?? "").Trim().ToUpperInvariant();
+        // ⚠️ `s.IsActive` non è un dettaglio: è l'equivalente, per questa porta, del filtro
+        // sull'aeroporto nascosto che hanno le due gemelle. L'APP è l'unica delle quattro porte pubbliche
+        // che passa da un settore, cioè dalla proiezione dei cataloghi — e la proiezione DISATTIVA la
+        // posizione quando l'admin la nasconde o quando la sorgente smette di mandarla, dichiarando
+        // (`EfSectorProjectionService`) che «chi risolve un documento filtra su IsActive». Questa non lo
+        // faceva: la pagina pubblica restava in piedi, con la release congelata, cioè con l'aria di un dato
+        // buono, per una postazione che non esiste più (revisione del 6 settembre, R-024).
+        // Come per il resto: in anteprima bozza l'editor continua a vedere anche l'APP disattivato.
         return LoadVipiAsync(
             d => d.Type == DocumentType.Vipi
                  && (preferWorking || ignoreRelease || !d.IsHidden)
                  && d.Sectors.Any(s => s.IsPrimary && s.Type == SectorType.App
-                        && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app),
+                        && s.ApproachKind == ApproachKind.Standalone && s.Callsign == app
+                        && (preferWorking || ignoreRelease || s.IsActive)),
             ignoreRelease, preferWorking, ct);
     }
 
