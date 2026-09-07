@@ -395,16 +395,24 @@ public static class AuroraSectorfileParser
         string[]? callsigns = null;
         List<(double, double)>? ring = null;
         string? mancante = null;
+        string? malformato = null;
 
         void Flush()
         {
             if (callsigns is { Length: > 0 })
             {
+                // ⚠️ Le due maniere di sbagliare un vertice si trattano ALLO STESSO MODO, e fino al
+                // 7 settembre 2026 non era così: il nome che non si risolve invalidava l'anello, la
+                // coordinata scritta male no — cadeva nel ramo dell'intestazione, chiudeva il blocco e ne
+                // salvava la parte vista fin lì. Il risultato non era un buco, era un poligono TRONCATO: si
+                // disegna benissimo, e `PolygonGeometry.Contains` risponde su di lui (revisione del
+                // 6 settembre, R-018).
                 if (mancante is not null) irrisolti.Add((mancante, string.Join(" ", callsigns)));
+                else if (malformato is not null) irrisolti.Add((malformato, string.Join(" ", callsigns)));
                 else if (ring is { Count: >= 3 })
                     foreach (var cs in callsigns) rings[cs] = ring;
             }
-            callsigns = null; ring = null; mancante = null;
+            callsigns = null; ring = null; mancante = null; malformato = null;
         }
 
         foreach (var raw in tfl.Split('\n'))
@@ -434,6 +442,17 @@ public static class AuroraSectorfileParser
                 continue;
             }
 
+            // Vertice MALFORMATO. ⚠️ Dentro un blocco, una riga che COMINCIA come una coordinata
+            // (emisfero + cifra) ma non si legge come tale non è un'intestazione: è un vertice scritto
+            // male — un separatore sbagliato, una virgola al posto del punto, uno spazio invece del punto e
+            // virgola. Prenderla per un'intestazione è il modo silenzioso di troncare l'anello. Un callsign
+            // non entra qui: nessuno comincia con N/S/E/W seguito da una cifra.
+            if (ring is not null && Array.Exists(fields, SembraCoordinata))
+            {
+                malformato ??= line;                              // il PRIMO che sbaglia: basta lui a invalidare
+                continue;
+            }
+
             // Tutto il resto è un'intestazione: chiude il blocco precedente e ne apre uno.
             if (fields.Length >= 1 && fields[0].Length != 0)
             {
@@ -447,6 +466,19 @@ public static class AuroraSectorfileParser
 
         return new SectorShapeParse(rings, irrisolti);
     }
+
+    /// <summary>
+    /// Se una stringa <b>si presenta</b> come una coordinata Aurora: emisfero (<c>N</c>/<c>S</c>/<c>E</c>/
+    /// <c>W</c>) e subito una cifra, come in <c>N044.23.16.000</c>.
+    ///
+    /// <para>Non dice che si legge — dice che ci prova. Serve a distinguere un vertice sbagliato da
+    /// un'intestazione, e la distinzione tiene perché nessun callsign ha quella forma: cominciano tutti con
+    /// due lettere di prefisso (<c>LIRR_NE_CTR</c>, <c>EDMM_CTR</c>).</para>
+    /// </summary>
+    private static bool SembraCoordinata(string campo) =>
+        campo.Length >= 2
+        && (campo[0] is 'N' or 'S' or 'E' or 'W' or 'n' or 's' or 'e' or 'w')
+        && char.IsAsciiDigit(campo[1]);
 
     /// <summary>
     /// Anello (Lat, Lon) → JSON <c>[[lng,lat],…]</c>: <b>longitudine prima</b>, che è la forma di

@@ -1,4 +1,4 @@
-using Vipi.Application.Abstractions;
+﻿using Vipi.Application.Abstractions;
 using Vipi.Infrastructure.Sectorfile;
 using Xunit;
 
@@ -146,6 +146,64 @@ public class SectorShapeParserTests
 
         Assert.Equal("LIRR_B_CTR", Assert.Single(r.Rings).Key);
         Assert.Equal("TUFTE", Assert.Single(r.UnresolvedPoints).Point);
+    }
+
+    // ---- il vertice scritto male (R-018) ---------------------------------------------------------------
+
+    /// <summary>
+    /// ⚠️ <b>Una coordinata scritta male non tronca l'anello: lo butta.</b>
+    ///
+    /// <para>Fino al 7 settembre 2026 le due maniere di sbagliare un vertice finivano in due posti opposti:
+    /// il nome che non si risolve invalidava il blocco, la coordinata malformata cadeva nel ramo
+    /// dell'intestazione — chiudeva il blocco, <b>ne salvava la parte già letta</b> (tre vertici bastano a
+    /// fare un poligono) e ne apriva uno fantasma col testo sbagliato per callsign. Nessun errore, niente in
+    /// «Coerenza col sectorfile», e un'AoR più piccola del vero su cui <c>Contains</c> risponde sul serio.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("N044.11.11.000;E011,22,33,000;")]   // virgole al posto dei punti
+    [InlineData("N044.11.11.000 E011.22.33.000;")]   // spazio invece del punto e virgola: un campo solo
+    [InlineData("N044.11.11.000;E0AA.22.33.000;")]   // lettere dentro i gradi
+    public void Una_coordinata_scritta_male_butta_l_anello_invece_di_troncarlo(string riga)
+    {
+        var r = AuroraSectorfileParser.ParseSectorShapes(
+            "LIRR_NE_CTR;CTR;1;CTR;1;\n" + TreVertici + "\n" + riga, Punti());
+
+        Assert.Empty(r.Rings);
+        var (testo, callsigns) = Assert.Single(r.UnresolvedPoints);
+        Assert.Equal("LIRR_NE_CTR", callsigns);
+        Assert.Contains("N044.11.11.000", testo);   // chi legge la segnalazione vede la riga che non va
+    }
+
+    /// <summary>E il blocco rotto non si porta via i vicini, come per il punto che non si risolve.</summary>
+    [Fact]
+    public void Dopo_una_coordinata_malformata_i_blocchi_successivi_escono_lo_stesso()
+    {
+        var tfl = "LIRR_A_CTR;CTR;1;CTR;1;\n" + TreVertici + "\nN044.11.11.000;E011,22,33,000;\n\n"
+                + "LIRR_B_CTR;CTR;1;CTR;1;\n" + TreVertici;
+
+        var r = AuroraSectorfileParser.ParseSectorShapes(tfl, Punti());
+
+        Assert.Equal("LIRR_B_CTR", Assert.Single(r.Rings).Key);
+        Assert.Equal("LIRR_A_CTR", Assert.Single(r.UnresolvedPoints).Callsigns);
+        // ⚠️ E nessun blocco fantasma intestato alla riga sbagliata.
+        Assert.DoesNotContain(r.Rings.Keys, k => k.Contains("011"));
+    }
+
+    /// <summary>
+    /// ⚠️ La controprova: un'intestazione resta un'intestazione. La regola nuova guarda l'emisfero
+    /// seguito da una cifra, e nessun callsign ha quella forma — nemmeno quelli con le cifre dentro
+    /// (<c>LIMM_WS2_CTR</c>).
+    /// </summary>
+    [Fact]
+    public void Le_intestazioni_non_diventano_vertici_malformati()
+    {
+        var tfl = "LIMM_WS2_CTR:LIMM_WS5_CTR;CTR;1;CTR;1;\n" + TreVertici + "\n"
+                + "EDMM_CTR EDMM_S_CTR;CTR;1;CTR;1;\n" + TreVertici;
+
+        var r = AuroraSectorfileParser.ParseSectorShapes(tfl, Punti());
+
+        Assert.Equal(4, r.Rings.Count);
+        Assert.Empty(r.UnresolvedPoints);
     }
 
     // ---- bordi ----------------------------------------------------------------------------------------
