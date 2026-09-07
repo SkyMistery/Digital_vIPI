@@ -1,5 +1,7 @@
 ﻿# Lavori aperti — elenco unico
 
+**Aggiornato:** 7 settembre 2026 — ✅ **§CC: LA DERIVA RISPONDE A CHI PUBBLICA, NON IL GIORNO DOPO.** Segnalazione del committente: «ci sono documenti in produzione segnalati come da ripubblicare anche se li ho appena ripubblicati (tipo LIBD)», e poi la regola: «chi edita non può aspettare il giorno dopo per sapere che le modifiche sono state pubblicate o programmate con successo». 🔴 **Il calcolo era giusto: mancava chi lo rifacesse.** `PublishNowAsync`/`PublishAsync` non toccavano `IDocumentImpactService`, e a riconciliare c'era il solo `ImpactDriftHostedService` — **ogni 24 ore**, senza modo di rilanciarlo. Cronologia vera di LIBD: riga aperta il **6-set 19:27Z** (le sei sezioni «Carte aeroportuali» mancavano dalla release del 31-ago, giustamente), ripubblicato il **7-set 06:52**, riga **ancora aperta** a metà mattina perché la deriva non era più passata. Tre parti: (1) **`ReconcileForDocumentAsync`**, riconciliazione ristretta a un documento e ai soli tipi che una pubblicazione può cambiare — 🔴 **non** è `ReconcileAsync` con un filtro: quello legge **tutte** le righe aperte del tipo e chiude quelle fuori dall'insieme, quindi riusarlo avrebbe svuotato la lista di ogni altro documento a ogni pubblicazione (un test lo pianta); (2) **`RunForDocumentAsync`**, il corpo del giro estratto in `ValutaAsync` e chiesto dalle due parti — la stessa domanda in due posti è il modo in cui due racconti divergono — agganciato a `PublishNowAsync`, a **tutti e due** i rami di `PublishAsync` e a `CancelReleaseAsync` (l'annullo è il verso opposto: può rendere **vera** una deriva che non c'era), **fuori dalla transazione e a prova di guasto**, con la rete del giro notturno; (3) **`ProgrammataAllineataAsync`** — ⚠️ una release **programmata** non è quella in vigore, quindi chi programmava al ciclo entrante si vedeva chiedere di ripubblicare **fino al rollover**: ora una programmata che porta già la bozza zittisce sia «da ripubblicare» sia «da preparare al ciclo entrante», e se la bozza cambia dopo le firme divergono e la riga torna. 🔴 **E c'era un ciclo vero nel contenitore** (`ReleaseService` ↔ `ImpactDriftUseCase`): non si vede compilando, esplode alla prima **risoluzione** — cioè in produzione, sulla prima pagina che pubblica. Rotto con `Lazy<IImpactDriftUseCase>` e un banco E2E che monta il contenitore vero e risolve entrambi. ➕ **Diagnostica**: pulsante **«Rilancia il controllo»** (prima si poteva solo aspettare) e **avviso oltre le 36 ore** — ⚠️ `GatedImportLoop` all'avvio dorme fino alla scadenza, quindi su un host che ricicla il processo prima il timer riparte da zero e la passata **non arriva mai**. ✅ **Fuso in `main`** (`f3561483`, ramo `deriva-alla-pubblicazione`): build Release pulita e suite intera verde sui due TFM, undici test nuovi di cui due end-to-end sul database vero. **Nessuna migrazione, nessuna entità** → spedibile dentro la finestra cieca al 16.
+
 **Aggiornato:** 5 settembre 2026, pomeriggio — ✅ **1.10.0 È IN PRODUZIONE**, caricata dal committente e **verificata da fuori**. I dieci controlli pubblici verdi (JS minificato servito, circuito aperto, **Ricerca che risponde**, foglio di stile in vigore, console pulita), e — quel che conta di più, perché i dieci passerebbero anche su 1.9.0 — **due prove che gira il codice NUOVO**: (1) il cancello di §BQ da anonimo, `/services/vsop/live/lirr_ctr` → **302** verso `/services/vsop/live` dove 1.9.0 dava **200**; (2) i due asset di `wwwroot` serviti dal sito hanno **sha256 identici** a quelli del pacchetto, e l'indice li chiede col nome giusto (le varianti `.br`/`.gz` rispondono 200 tutte e quattro). ⚠️ Il **timbro** da fuori resta invisibile (la barra lo mostra ai soli admin): lo conferma `diagnostica/avvio-diagnostica.txt` al prossimo scarico. 🔴 E quel che serve indietro non cambia: **`diagnostica/errori-richieste.txt` fra qualche giorno** — di 1.8.1 e 1.9.0 non c'è ancora un dato.
 
 **Aggiornato:** 5 settembre 2026, primo pomeriggio — 📦 **IL PACCHETTO 1.10.0 È PRONTO** (ora caricato). `vipi-1.10.0-solo-file-cambiati.zip`, sha256 `bdd10cb852e2ba0eef837bacdf4e48d81b4a4675dd36c16066c3b4158a2cd016`, 4,44 MB, **16 file**, timbro **`1.10.0 · 99f33f0`**. **MINOR**, e il numero lo decide il contenuto: dentro ci sono **§BN** (l'editor d'aeroporto ha una porta sola), **§BQ** (la vista live non è più pubblica) e **§BR** (la vista rapida cerca le SID), più le due code §BO/§BP. **NESSUNA migrazione**, quindi spedibile dentro la finestra cieca. L'elenco è DICHIARATO in `artifacts/publish/elenco-1.10.0.txt`, col perché di ogni file dentro e — quel che conta di più — di ogni file **fuori**: verificato che nessun assieme rimasto indietro chiami una firma cambiata (incluso il `const` di §BP, che il compilatore **inlinea**). Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.10.0.md`, e dice le **due cose che sembreranno guasti**: niente più tasti «Salva» nell'editor d'aeroporto, e il live di un collega che rimanda alla propria postazione.
@@ -9464,7 +9466,8 @@ Azure, non in `appsettings.json`): premere «traduci ora» in locale spende davv
 `artifacts/publish/vipi-1.14.0-solo-file-cambiati.zip` · sha256
 **`477eeed00283b52a3f027acbe4b59c15e9566ada5d1fa0e7aa1cbf5524c80781`** · 2,34 MB · **5 file** ·
 timbro **`1.14.0 · a9979306`** · publish `linux-x64-20260906-2330`. Foglio:
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.0.md`. ⏳ **Da caricare.**
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.0.md`. 🗑️ **Mai caricata, e lo zip si butta**: il suo contenuto
+e' entrato in **1.14.1**, online dal 7 settembre. Il foglio resta valido per la parte che descrive.
 
 **MINOR, e il numero lo decide il contenuto**: non ci sono sezioni nuove, ma l'editor guadagna un cruscotto
 che prima non c'era e un pannello dove non ne compariva nessuno. Non è «solo correzioni», che è ciò che una
@@ -9490,3 +9493,128 @@ italiano e anche a zero mancanti.
 impronte da confrontare da anonimo, e l'editor da fuori non si raggiunge. Da fuori si prova che il sito
 **risponde** e il **timbro**; che il cruscotto c'è lo vede chi entra, in tre secondi, aprendo il blocco
 «Traduzione» di un documento qualsiasi con la barra su IT.
+
+---
+
+## §CC — La deriva risponde a chi pubblica, non il giorno dopo — 7 settembre 2026
+
+**Segnalazione del committente**, alla lettera: *«ci sono alcuni documenti in produzione che mi vengono
+segnalati come da ripubblicare anche se li ho appena ripubblicati (tipo LIBD)»*. E, quando è stato chiaro
+di che si trattava: *«chi edita non può aspettare il giorno dopo per sapere che le modifiche sono state
+pubblicate o programmate con successo»*.
+
+### Che cos'era — e non era un difetto della deriva
+
+Il calcolo era giusto. Mancava **chi lo rifacesse**. `PublishNowAsync` e `PublishAsync` non toccavano
+`IDocumentImpactService`, e l'unico a riconciliare le righe calcolate era `ImpactDriftHostedService`:
+**ogni ventiquattr'ore**, senza nessun modo di rilanciarlo. Fra il gesto e la prova che il gesto era
+servito potevano passare ventiquattro ore, e in quelle ore la lista chiedeva un lavoro già fatto.
+
+**La cronologia di LIBD, ricostruita dai dati veri e non ipotizzata:**
+
+| ora | fatto |
+|---|---|
+| 6-set 19:27Z | gira la deriva. In vigore c'è la release #2 (31-ago, AIRAC 2608); la bozza ha già le sei sezioni «Carte aeroportuali» che il catalogo ha guadagnato. Divergono → **riga aperta, correttamente** |
+| 7-set 06:52 | si pubblica. La release #3 (AIRAC 2609, effettiva) contiene le sei sezioni → **il fatto è diventato falso** |
+| 7-set 09:02 | si apre l'editor, nasce la bozza v4: `CreateDraftAsync` è una copia fedele, struttura identica |
+| metà mattina | la deriva **non gira da 6-set 19:27Z**. La riga è ancora lì, e la frase che si legge è la fotografia della sera prima |
+
+⚠️ **Il conteggio in Diagnostica diceva 15 «copia pubblicata indietro»**: è l'ondata legittima del cambio di
+catalogo (Carte aeroportuali, e l'indice del SOD del 6 settembre). Ogni documento pubblicato è davvero
+indietro finché non lo si ripubblica — quel che non era voluto è che la prova di averlo fatto arrivasse il
+giorno dopo.
+
+### Le tre parti della riparazione
+
+**1. `ReconcileForDocumentAsync` — la riconciliazione ristretta a un documento.**
+
+🔴 **Non è `ReconcileAsync` con un filtro, e i due non si possono scambiare.** Quello legge **tutte** le
+righe aperte di un `ImpactKind` e chiude quelle fuori dall'insieme che gli si passa: riusarlo col solo
+documento appena pubblicato avrebbe chiuso le righe di **ogni altro documento**, a ogni pubblicazione — la
+lista si sarebbe svuotata da sola, e nessuno se ne sarebbe accorto, perché svuotarsi è quel che una lista fa
+quando il lavoro è finito. È il motivo per cui il metodo esiste invece di un parametro in più, e un test lo
+pianta (`Riconciliare_Un_Documento_Non_Tocca_Gli_Altri`).
+
+⚠️ Dentro, la chiave porta il **tipo** davanti: guarda più `ImpactKind` in una volta sola, e senza il tipo
+un `BrokenTarget` e un `ReleaseDrift` con la stessa origine si scambierebbero per la stessa riga.
+
+⚠️ E tocca **solo** i tipi che una pubblicazione può cambiare. Le righe di **evento** — un settore sparito,
+un allegato sostituito — le chiude una persona quando ha riletto: pubblicare non le risolve.
+
+**2. `RunForDocumentAsync` — lo stesso giro, per un documento e subito.**
+
+Il corpo del giro notturno è estratto in `ValutaAsync` e chiesto dalle **due** parti. Non è un abbellimento:
+la stessa domanda scritta in due posti è il modo in cui due racconti divergono, e qui divergere vorrebbe
+dire che pubblicare chiude una riga che stanotte si riapre — cioè il ping-pong che i rivelatori calcolati
+esistono per non fare. Un documento produce **al più una riga**, e l'ordine dei controlli *è* la priorità.
+
+Agganciato in `RiconciliaDerivaAsync` a `PublishNowAsync`, a **tutti e due** i rami di `PublishAsync`
+(il singolo esce presto, ed è il ramo che ci si dimentica) e a `CancelReleaseAsync` — l'annullo è il verso
+opposto: può rendere **vera** una deriva che non c'era, perché la copia in vigore torna a essere la
+precedente, e taceva anche lui fino al giorno dopo.
+
+⚠️ **Fuori dalla transazione e a prova di guasto.** La release è già scritta e la bozza promossa: un errore
+qui non deve far dire «pubblicazione fallita» a una pubblicazione riuscita, né annullarla. Se salta, resta
+la rete del giro notturno — cioè si torna al comportamento di prima, che è il peggio che possa capitare e
+non è una rottura. L'annullamento della richiesta invece **passa**: quello non è un guasto, è qualcuno che
+ha chiuso la pagina.
+
+**3. `ProgrammataAllineataAsync` — programmare al ciclo entrante è un gesto compiuto.**
+
+⚠️ Una release **programmata** non è quella in vigore, e `DriftFromEffectiveAsync` confronta con quella in
+vigore. Quindi chi programmava al ciclo entrante — il gesto che §AW3 insegna — si vedeva chiedere di
+ripubblicare **fino al rollover**, per settimane, senza nessun modo di farlo tacere. E il difetto si
+alimentava da sé: più lo si usa, più documenti restano a lamentarsi.
+
+Ora, quando c'è deriva, si chiede se una programmata porti già questa bozza: stessa **firma editoriale**,
+con lo snapshot chiesto **al ciclo di quella release** (le derivate che dipendono dal ciclo risponderebbero
+altro, e si direbbe «diversa» una programmata identica). Se coincide, tacciono sia «da ripubblicare» sia il
+fratello «da preparare al ciclo entrante»: l'azione che li chiude è stata fatta.
+
+⚠️ E se la bozza cambia **dopo** aver programmato, le firme tornano a divergere e la riga riappare — che è
+giusto: quella programmata porta un testo che non è più quello che si vuole pubblicare.
+
+### 🔴 Il ciclo nel contenitore, e perché c'è un `Lazy`
+
+`ReleaseService` chiede la deriva; `ImpactDriftUseCase` chiede `IReleaseService` per sapere che cosa direbbe
+oggi la copia pubblicata. **È un ciclo**, e un ciclo nel contenitore non si vede compilando: esplode alla
+prima **risoluzione** — cioè in produzione, all'apertura della prima pagina che pubblica, con
+`A circular dependency was detected`.
+
+Rotto con `Lazy<IImpactDriftUseCase>` registrato a mano, nel punto in cui non è un ciclo: la deriva serve
+**dopo** la scrittura, mai per costruire il servizio. E siccome un pigro somiglia a un vezzo e qualcuno
+prima o poi lo toglierebbe, `DerivaAllaPubblicazioneTests` (E2E) monta il contenitore vero e risolve
+entrambi.
+
+### Diagnostica: il rilancio, e l'allarme che mancava
+
+⚠️ **Il giro da ventiquattr'ore può non girare mai.** `GatedImportLoop` all'avvio calcola
+`initial = due - now` e dorme fino alla scadenza: su un host che ricicla il processo prima
+(Plesk/Passenger) il timer riparte da zero ogni volta e la passata **non arriva**. La data dell'ultimo giro
+c'era già; quel che mancava era leggerla.
+
+Adesso: un pulsante **«Rilancia il controllo»** — prima si poteva solo aspettare — che gira e **marca il
+successo** come lo marcherebbe il giro automatico, e un **avviso oltre le 36 ore**, che è una volta e mezza
+il periodo: uno slittamento di qualche ora è normale (riavvio, retry, host lento), a una volta e mezza la
+spiegazione innocente non c'è più.
+
+### Come è stato provato
+
+Undici test nuovi. I due che contano girano sul **database vero** (SQLite in memoria, schema reale):
+`Pubblicare_Chiude_Subito_La_Riga_Da_Ripubblicare` apre davvero la riga con un giro completo e poi
+ripubblica; `Programmare_Al_Ciclo_Entrante_Non_Lascia_La_Riga_Da_Ripubblicare` programma e poi fa girare il
+**giro intero** — se la soppressione stesse solo nella riconciliazione della pubblicazione, la riga
+tornerebbe alla prima passata automatica.
+
+Suite intera verde sui due TFM (Application 2215, Infrastructure 1317 / 1303, Ui 1341, E2E 302, Hosting 58,
+Domain 130, AuroraProfiles 63, AuroraBridge 79, Assets 54), build `Release` pulita.
+
+**Nessuna migrazione, nessuna entità** → si consegna via FTP anche dentro la finestra cieca al 16.
+
+### Quel che resta vero, e non è un difetto
+
+La catena `ReconcileVipiDocuments` gira a **ogni avvio** e scrive nella versione di lavoro
+(`AddMissingCatalogSectionsAsync` prende la versione col `VersionNumber` più alto, cioè la bozza). Quindi
+ogni cambio di catalogo rende «da ripubblicare» **tutti** i documenti pubblicati, in blocco: è il
+comportamento voluto, ed è quel che ha prodotto i 15 di ieri sera. Il lavoro resta da fare — solo, adesso,
+farlo si vede subito.

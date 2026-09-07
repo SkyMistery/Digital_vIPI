@@ -556,8 +556,27 @@
       Rispetto a 1.13.0 cambiano DUE progetti: `Ui` (da 1.14.0) e `Infrastructure` (da qui), piu' le FRASI
       e `Host`, che porta sempre il timbro. ⚠️ Nessun file di `wwwroot` toccato — da verificare con le
       IMPRONTE, non a memoria.
+
+      1.14.2 — 7 settembre 2026. **PATCH**, e la tabella del runbook regge: nessuna migrazione, nessuna
+      pagina e nessuna sezione nuova. Si costruisce contro cio' che GIRA, che ora e' **1.14.1**
+      (`e5cc7661`), caricata in mattinata.
+
+        · La DERIVA risponde a chi pubblica invece che il giorno dopo (§CC). La riga «la copia pubblicata
+          e' indietro» la chiudeva soltanto il giro delle 24 ore: chi pubblicava continuava a vedersi
+          chiedere il lavoro appena fatto, senza nessun modo di sapere se fosse riuscito. Ora pubblicare,
+          programmare e annullare rivalutano subito il documento toccato.
+          ⚠️ E una release PROGRAMMATA non e' quella in vigore: chi programmava al ciclo entrante — il
+          gesto giusto — se lo sentiva chiedere fino al rollover. Ora una programmata che porta gia' la
+          bozza zittisce la riga, e se la bozza cambia dopo la riga torna.
+          ➕ In Diagnostica: il pulsante «Rilancia il controllo» (prima si poteva solo aspettare) e
+          l'avviso se il giro non passa da piu' di 36 ore — su un host che ricicla, il timer del loop
+          riparte da capo a ogni avvio e puo' non scadere mai.
+
+      Rispetto a 1.14.1 cambiano DUE progetti: `Application` (la riparazione) e `Ui` (il pulsante e
+      l'avviso), piu' le FRASI (tre chiavi nuove per lingua) e `Host`, che porta sempre il timbro.
+      ⚠️ Nessun file di `wwwroot` toccato — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.14.1</VipiVersione>
+    <VipiVersione>1.14.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
