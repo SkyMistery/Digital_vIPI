@@ -2,13 +2,20 @@
 
 ## Dove siamo — 7 settembre 2026
 
-1. ✅ **In produzione c'è 1.15.0**, caricata la sera del 7 settembre e **verificata da fuori**: non solo i
-   controlli pubblici verdi (Ricerca compresa), ma la prova che gira il codice **nuovo** — i quattro asset di
-   `wwwroot` serviti dal sito hanno **sha256 identici** a quelli del pacchetto, il token `?v=` che la pagina
-   chiede (che l'app calcola dal file su disco) combacia, e nel foglio servito ci sono `.union-common` e
-   `.union-keepers`, che 1.14.2 non ha. `main` è pulito e spinto, nessun ramo di lavoro aperto.
-2. ⚠️ **Quel che da fuori NON si vede, e resta da guardare con occhi da admin**: unendo la vIPI e il vSOP di
-   uno scalo deve comparire la scheda **«Sezioni in comune»**. L'editor da anonimo non si raggiunge.
+1. ✅ **In produzione c'è 1.15.0**, caricata la sera del 7 settembre e **verificata da fuori** con le
+   impronte degli asset (non solo coi controlli pubblici, che passerebbero anche sulla versione prima).
+   `main` è pulito e spinto, nessun ramo di lavoro aperto.
+2. 📦 **1.15.1 È PRONTA E ASPETTA DI ESSERE CARICATA.**
+   `artifacts/publish/vipi-1.15.1-solo-file-cambiati.zip`, sha256
+   `b574635f2cac634c964017490eaffb87e3fa881cca2d4b77a37ebac913a5b43c`, 3,32 MB, **7 file**, timbro
+   **`1.15.1 · 68e71bfa`**. **PATCH**, nessuna migrazione, niente `wwwroot`. Foglio:
+   `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.1.md`.
+   🔴 **Dentro ci sono due cose che ha trovato l'uso vero**, poche ore dopo il caricamento di 1.15.0: la
+   **scheda delle sezioni in comune era girata al contrario** (chiedeva chi le TIENE invece che da dove
+   spariscono — chi la usava nascondeva il documento sbagliato), e **invertendo l'ordine dei membri**
+   l'ospite cambia e l'editor unito si sposta di pagina, in silenzio.
+   ⚠️ **La regola «tutti insieme» di 1.15.0 qui NON vale**: nasceva da R-009, e la visibilità fra assiemi
+   non cambia.
 3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
@@ -30,6 +37,28 @@
 <details>
 <summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
 com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
+**Aggiornato:** 7 settembre 2026, notte fonda — 📦 **1.15.1 È PRONTA**, e le due cose che porta le ha
+trovate **l'uso vero** poche ore dopo il caricamento di 1.15.0 — nessuna dai test.
+🔴 **La scheda delle sezioni in comune era girata al contrario.** Il committente ha chiesto *conferma* — «se
+seleziono vIPI vengono nascoste le sezioni della vIPI?» — e la risposta era **no**: teneva. La sua richiesta
+iniziale diceva l'opposto, e nella domanda a opzioni che gli avevo fatto la **polarità era cambiata dentro
+un'opzione che parlava d'altro** (il *modo*: lato + caselle). Lui ha scelto il modo; il verso è passato senza
+che nessuno l'avesse deciso. ⚠️ **Una domanda cambia UNA cosa sola** — se ne cambia due, la risposta ne
+conferma una e l'altra entra di straforo. Ora si spuntano i **documenti da cui le sezioni spariscono**, con
+tre membri se ne spuntano due, e spuntarli tutti si può ma la scheda avvisa che quella sezione sparisce dalla
+pagina unita per intero.
+🔴 **E invertendo l'ordine dei membri l'editor unito si spostava di pagina, in silenzio**: l'ospite è il
+primo dell'elenco, e con lui si spostano pagina unita, editor e pannello di pubblicazione. Non si perdeva
+niente — l'archivio era intatto — ma sembrava che l'unione fosse sparita (segnalato su LICA, riprodotto a
+schermo su LIMS). Ora chi non è l'ospite lo legge in testa al pannello **col link all'editor dell'ospite**, e
+in modifica una riga dice che cosa comporta essere primi; la scheda delle comuni si offre **solo all'ospite**,
+che è l'unico che tiene i lock degli altri.
+✅ **Provata sul pacchetto pubblicato**: dieci controlli verdi, timbro `1.15.1 · 68e71bf`, la scheda dice
+«Hide the shared sections of:» con le caselle e spuntando la vIPI nasconde **le sezioni della vIPI** (11, e
+zero sul vSOP), l'avviso «sparisce da tutti» compare spuntandoli entrambi, e il rimando all'ospite porta a
+`/services/vsop/limm/airports/editor?icao=LIMS`.
+▶ **Resta da caricarlo** — 7 file — e da rifare la prova da fuori.
 
 **Aggiornato:** 7 settembre 2026, notte — ✅ **1.15.0 È IN PRODUZIONE**, caricata dal committente e
 **verificata da fuori**. Gli otto controlli pubblici verdi (JS minificato servito, circuito aperto,

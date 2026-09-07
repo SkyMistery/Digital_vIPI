@@ -1,41 +1,33 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 7 settembre 2026, notte — ✅ **1.15.0 È ONLINE** (caricata e verificata da fuori: i quattro asset serviti hanno sha256 identici al pacchetto), e ✅ **la revisione
-totale del codice è chiusa** (31 findings su 33 più R-009, sette lotti: vedi in fondo).
+**Ultimo aggiornamento:** 7 settembre 2026, notte fonda — 📦 **1.15.1 È PRONTA DA CARICARE** (1.15.0 è
+online da poche ore).
 
-`artifacts/publish/vipi-1.15.0-solo-file-cambiati.zip` · sha256 `b05da878…` · 4,87 MB · **28 file** ·
-timbro **`1.15.0 · 31fd4194`**. **MINOR**, **NESSUNA migrazione** → si consegna da sola via FTP anche
-dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.0.md`.
+`artifacts/publish/vipi-1.15.1-solo-file-cambiati.zip` · sha256 `b574635f…` · 3,32 MB · **7 file** ·
+timbro **`1.15.1 · 68e71bfa`**. **PATCH**, **nessuna migrazione**, **niente `wwwroot`**. Foglio:
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.1.md`.
 
-> ### 🔴 I 28 file si caricano TUTTI INSIEME
+> ### 🔴 Da dire a chi ha già usato la scheda «Sezioni in comune» con 1.15.0
 >
-> R-009 ha reso `internal` **74 tipi fra gli assiemi**. Un assieme vecchio lasciato accanto a uno nuovo non
-> dà nessun errore mentre si carica: **esplode al caricamento del tipo**, cioè alla prima pagina che qualcuno
-> apre. Se il caricamento si interrompe a metà, **non si riavvia**: si finisce, oppure si rimettono i file di
-> 1.14.2.
+> In 1.15.0 quella scheda chiedeva **chi TIENE** le sezioni: selezionando la vIPI si nascondevano quelle del
+> **vSOP**, cioè l'opposto di come la legge chiunque. In 1.15.1 si spuntano i **documenti da cui le sezioni
+> spariscono**. ℹ️ **Niente è perso**: «nascosto» è lo stesso stato del tasto «nascondi», e riaprendo la
+> scheda con la spunta giusta le sezioni dell'altro tornano visibili da sole.
 >
-> ⚠️ E ci sono **quattro** file di `wwwroot` coi loro `.br`/`.gz`, che viaggiano **insieme** a
-> `Vipi.Host.staticwebassets.endpoints.json`: uno senza l'altro fa chiedere al sito nomi che non esistono.
+> ### E l'altra correzione
+>
+> Invertendo l'ordine dei membri cambia l'**ospite**, e con lui si sposta l'**editor unito**: sembrava che
+> l'unione fosse sparita. Ora chi non è l'ospite lo legge in cima al pannello, col **link** per andarci.
 
-**Dentro**: la scheda **«sezioni in comune»** quando si uniscono la vIPI e il vSOP dello stesso scalo (si
-sceglie chi le **tiene**, nelle altre si nascondono) · il tasto **⧉ di copia sulla riga** negli accordi di
-coordinamento · la **chip «Tutto · Pilota · ATC»**, che spariva se le sezioni marcate stavano sul secondo
-documento di un'unione · e sotto, la **revisione totale** del 6-7 settembre.
+> ### ▶ Da controllare dopo aver caricato
+>
+> **1. La Ricerca** (due lettere, la riga sotto cambia): l'unico controllo che passa dal server.
+> **2. Il timbro**: `diagnostica/avvio-diagnostica.txt` → `1.15.1 · 68e71bfa`.
+> **3. Da admin**: «Sezioni in comune…» deve dire **«Nascondi le sezioni comuni di:»** con le **caselle**. Se
+> dice «Le tiene:» coi pallini, sta girando ancora 1.15.0.
 
-> ### ▶ Da dire a chi carica, e da controllare mentre è ancora al telefono
->
-> **1. La Ricerca.** Due lettere nel campo in alto: la riga sotto deve cambiare. È l'unico controllo che
-> passa dal **server** — lingua, zoom e tema funzionano anche su un sito che non è mai partito.
->
-> **2. Una pagina con la grafica giusta.** È il controllo dei fogli di stile: se l'indice e i fogli non sono
-> arrivati insieme, la pagina esce **senza grafica**.
->
-> **3. Il timbro**: `diagnostica/avvio-diagnostica.txt` deve dire `1.15.0 · 31fd4194`. ⚠️ Il timbro dice
-> quale versione è partita, **non** che il sito risponda: il controllo vero resta il primo.
-
-✅ **Provato sul pacchetto pubblicato** (win-x64 avviato dalla sua cartella, non sul sorgente): dieci
-controlli verdi, la scheda delle sezioni in comune funziona anche lì, e il processo ucciso e riavviato fa
-**ricaricare la pagina da sola** in 9 secondi.
+✅ **Provata sul pacchetto pubblicato**: dieci controlli verdi, e le due correzioni verificate a schermo —
+spuntando la vIPI si nascondono **le sue** 11 sezioni, e il rimando all'ospite porta dove deve.
 
 ### Le piste arrivano in METRI (7 settembre)
 
