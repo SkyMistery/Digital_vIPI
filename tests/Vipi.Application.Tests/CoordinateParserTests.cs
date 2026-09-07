@@ -129,6 +129,23 @@ public class CoordinateParserTests
         Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.FuoriIntervallo);
     }
 
+    /// <summary>
+    /// ⚠️ <b>E i primi oltre 59 sono fuori intervallo anche quando la somma non sfora.</b> Trovato a schermo
+    /// il 7 settembre 2026 guidando il convertitore: <c>N041.99.28.965</c> fa 42,6°, cioè una latitudine
+    /// perfettamente possibile — entrava come punto valido spostato di mezzo grado, che è il modo peggiore
+    /// di sbagliare, perché non si vede. A non essere una coordinata è il token, non il risultato.
+    /// </summary>
+    [Theory]
+    [InlineData("N041.99.28.965;E011.58.06.000;")]
+    [InlineData("N041.37.99.965;E011.58.06.000;")]
+    public void I_Primi_E_I_Secondi_Oltre_59_Sono_Fuori_Intervallo(string riga)
+    {
+        var esito = CoordinateParser.Parse(riga);
+
+        Assert.Empty(esito.Aree);
+        Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.FuoriIntervallo);
+    }
+
     // ---- Il sectorfile a segmenti: la forma dell'esempio del committente ----
 
     private const string R14A =

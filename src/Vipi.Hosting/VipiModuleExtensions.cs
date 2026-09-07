@@ -420,6 +420,22 @@ public static class VipiModuleExtensions
                 if (request is null || string.IsNullOrWhiteSpace(request.OwnerCallsign))
                     return Results.BadRequest(new { error = "ownerCallsign obbligatorio" });
 
+                // ⚠️ Il livello è in FL, e finora nessuno lo controllava: un client che mandasse i PIEDI
+                // (25000 invece di 250) otteneva due risposte sbagliate insieme — la parità semicircolare si
+                // calcola su `(cruise / 10) % 2`, quindi 25000 diventa «pari» invece di «dispari», e
+                // `FeetOf` moltiplica per cento dando 2 500 000 piedi alla catena di ripiego. Nessun avviso:
+                // un consiglio di trasferimento sbagliato con l'aria di uno buono.
+                //
+                // L'unico client che esiste oggi è conservativo per costruzione (`CruiseFlightLevel` torna un
+                // valore solo per le quote in forma `F…`), ma è di nuovo la garanzia che sta nel chiamante
+                // invece che nel contratto (revisione del 6 settembre 2026, R-021). FL660 è il tetto: sopra
+                // c'è lo spazio in cui non si vola in IFR con un piano ICAO.
+                if (request.CruiseLevel is int fl && fl is < 1 or > 660)
+                    return Results.BadRequest(new
+                    {
+                        error = "cruiseLevel fuori intervallo: atteso il livello di volo (F330 → 330), non i piedi",
+                    });
+
                 var result = await service.ResolveAsync(request, ct);
                 return Results.Json(result);
             })

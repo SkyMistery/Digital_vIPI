@@ -30,35 +30,86 @@ public static class DmsCoordinate
     /// </summary>
     /// <remarks>La forma compatta si legge da destra: 3 cifre di millisecondi, 2 di secondi, 2 di primi, il resto
     /// gradi — così vale sia per la latitudine sia per la longitudine, che ha un grado in più.</remarks>
-    public static bool TryParse(string? token, out double degrees)
+    public static bool TryParse(string? token, out double degrees) => TryParse(token, out degrees, out _);
+
+    /// <summary>
+    /// Come <see cref="TryParse(string?, out double)"/>, ma dice anche <b>perché</b> ha rifiutato: se il
+    /// token era scritto bene e a stare fuori è il valore (<c>N095.00.00.000</c>), <paramref name="fuoriIntervallo"/>
+    /// esce vero — e in quel caso <paramref name="degrees"/> porta comunque il valore <b>grezzo</b>, che è
+    /// quel che serve per dirlo a chi ha incollato.
+    ///
+    /// <para>Serve al convertitore di coordinate, che deve rispondere «fuori intervallo» e non «non è un
+    /// angolo»: sono due correzioni diverse. Chi importa un file, invece, guarda solo il <c>false</c>.</para>
+    /// </summary>
+    public static bool TryParse(string? token, out double degrees, out bool fuoriIntervallo)
     {
         degrees = 0;
+        fuoriIntervallo = false;
         if (string.IsNullOrWhiteSpace(token)) return false;
         token = token.Trim();
         var hemi = char.ToUpperInvariant(token[0]);
         if (hemi is not ('N' or 'S' or 'E' or 'W')) return false;
 
         var body = token[1..];
-        if (!body.Contains('.')) return TryParseCompact(body, hemi, out degrees);
+        if (!body.Contains('.')) return TryParseCompact(body, hemi, out degrees, out fuoriIntervallo);
 
         var parts = body.Split('.');
         if (parts.Length < 3) return false;
         // Secondi = "SS.sss": parts[2] interi + eventuale parts[3] frazione.
         var secText = parts.Length >= 4 ? parts[2] + "." + parts[3] : parts[2];
-        if (!int.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var deg)) return false;
-        if (!int.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var min)) return false;
-        if (!double.TryParse(secText, NumberStyles.Float, CultureInfo.InvariantCulture, out var sec)) return false;
+        // ⚠️ `NumberStyles.None` e non `Integer`: `Integer` ammette il SEGNO, e `N-41.37.28` passava dando
+        // una latitudine di −40,4° sotto un emisfero Nord — un punto plausibile nell'altro emisfero
+        // (revisione del 6 settembre 2026, R-019).
+        if (!int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var deg)) return false;
+        if (!int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var min)) return false;
+        if (!double.TryParse(secText, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var sec)) return false;
+
+        return Componi(hemi, deg, min, sec, out degrees, out fuoriIntervallo);
+    }
+
+    /// <summary>
+    /// Mette insieme gradi, primi e secondi — e <b>rifiuta ciò che non è una coordinata</b>.
+    ///
+    /// <para>⚠️ Fino al 7 settembre 2026 non c'era nessun controllo d'intervallo, e il contratto diceva
+    /// «false se malformata»: <c>N091.99.99.999</c> entrava e disegnava un vertice plausibile nel posto
+    /// sbagliato. I due gemelli lo facevano già — <c>KmlReader</c> scarta il punto, <c>CoordinateParser</c>
+    /// (quello che usa l'utente) risponde con un errore — ed è il segno che mancava qui, non che serviva a
+    /// loro: la garanzia stava nel chiamante invece che nel validatore che la dichiara.</para>
+    ///
+    /// <para>Il tetto lo sceglie l'emisfero, che è l'unica cosa che dice se si sta leggendo una latitudine o
+    /// una longitudine: 90° per N/S, 180° per E/W.</para>
+    /// </summary>
+    private static bool Componi(char hemi, int deg, int min, double sec,
+        out double degrees, out bool fuoriIntervallo)
+    {
+        degrees = 0;
+        fuoriIntervallo = false;
+        if (deg < 0 || sec < 0) return false;
 
         var value = deg + min / 60.0 + sec / 3600.0;
-        degrees = hemi is 'S' or 'W' ? -value : value;
+        var valore = hemi is 'S' or 'W' ? -value : value;
+
+        // Primi e secondi oltre 59, o gradi oltre il tetto: il token è scritto bene, a stare fuori è il
+        // valore. ⚠️ Il valore grezzo esce lo stesso, insieme al «no»: al convertitore serve per dire a chi
+        // ha incollato che il punto è fuori intervallo invece che «non è un angolo» — due correzioni
+        // diverse. Chi importa un file guarda solo il `false`, e per lui non cambia niente.
+        if (min > 59 || sec >= 60 || value > (hemi is 'N' or 'S' ? 90.0 : 180.0))
+        {
+            degrees = valore;
+            fuoriIntervallo = true;
+            return false;
+        }
+
+        degrees = valore;
         return true;
     }
 
     /// <summary>Forma compatta <c>DDD MM SS sss</c> senza separatori, letta da destra. Serve almeno una cifra di
     /// gradi oltre alle 7 fisse (3 millisecondi + 2 secondi + 2 primi).</summary>
-    private static bool TryParseCompact(string body, char hemi, out double degrees)
+    private static bool TryParseCompact(string body, char hemi, out double degrees, out bool fuoriIntervallo)
     {
         degrees = 0;
+        fuoriIntervallo = false;
         if (body.Length < 8) return false;
         foreach (var c in body) if (!char.IsAsciiDigit(c)) return false;
 
@@ -67,13 +118,11 @@ public static class DmsCoordinate
         var min = body[^7..^5];
         var deg = body[..^7];
 
-        if (!int.TryParse(deg, NumberStyles.Integer, CultureInfo.InvariantCulture, out var d)) return false;
-        if (!int.TryParse(min, NumberStyles.Integer, CultureInfo.InvariantCulture, out var m)) return false;
-        if (!double.TryParse(sec + "." + frac, NumberStyles.Float, CultureInfo.InvariantCulture, out var s)) return false;
+        if (!int.TryParse(deg, NumberStyles.None, CultureInfo.InvariantCulture, out var d)) return false;
+        if (!int.TryParse(min, NumberStyles.None, CultureInfo.InvariantCulture, out var m)) return false;
+        if (!double.TryParse(sec + "." + frac, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var s)) return false;
 
-        var value = d + m / 60.0 + s / 3600.0;
-        degrees = hemi is 'S' or 'W' ? -value : value;
-        return true;
+        return Componi(hemi, d, m, s, out degrees, out fuoriIntervallo);
     }
 
     /// <summary>

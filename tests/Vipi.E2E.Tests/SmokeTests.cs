@@ -267,6 +267,45 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     }
 
     /// <summary>
+    /// ⚠️ <b>Il livello di crociera è in FL, e chi manda i piedi si sente dire di no.</b>
+    ///
+    /// <para>Senza controllo, 25 000 (piedi) al posto di 250 (FL) dava due risposte sbagliate insieme: la
+    /// parità semicircolare si calcola su <c>(cruise / 10) % 2</c> — 25 000 diventa «pari» invece di
+    /// «dispari» — e <c>FeetOf</c> moltiplica per cento, mandando 2 500 000 piedi alla catena di ripiego.
+    /// Il controllore riceveva un consiglio di trasferimento sbagliato senza nessun avviso (revisione del
+    /// 6 settembre 2026, R-021).</para>
+    /// </summary>
+    [Theory]
+    [InlineData(25000)]   // piedi al posto del livello
+    [InlineData(0)]
+    [InlineData(-330)]
+    [InlineData(661)]
+    public async Task Aurora_bridge_rejects_cruise_level_out_of_range(int livello)
+    {
+        using var factory = new BridgeOnAppFactory();
+
+        var res = await factory.CreateClient().PostAsJsonAsync(
+            "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "LIRR_CTR", cruiseLevel = livello });
+
+        Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
+    }
+
+    /// <summary>La controprova: i livelli veri passano, e il livello assente resta lecito.</summary>
+    [Theory]
+    [InlineData(250)]
+    [InlineData(660)]
+    [InlineData(null)]
+    public async Task Aurora_bridge_accepts_real_cruise_levels(int? livello)
+    {
+        using var factory = new BridgeOnAppFactory();
+
+        var res = await factory.CreateClient().PostAsJsonAsync(
+            "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "ZZZZ_CTR", cruiseLevel = livello });
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+    }
+
+    /// <summary>
     /// Il cache-busting degli asset deve essere <b>per file</b>, non per build. Su net8 non c'è
     /// <c>@Assets[...]</c> e la prima versione usava un'impronta sola per tutti (il MVID dell'assembly):
     /// bastava ricompilare per far riscaricare al browser anche i file identici byte per byte.

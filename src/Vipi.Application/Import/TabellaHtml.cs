@@ -17,10 +17,19 @@ namespace Vipi.Application.Import;
 /// che si spezza dove non deve. Ogni altra porta e' un'euristica; questa no.
 /// </para>
 /// <para>
-/// ⚠️ <b>Il <c>colspan</c> si espande, il <c>rowspan</c> no.</b> Una cella su due colonne diventa la cella
-/// piu' una vuota, perche' altrimenti la riga sarebbe piu' corta e in una tabella le celle successive
-/// scalerebbero a sinistra — il dato sembrerebbe sbagliato invece che unito. Il <c>rowspan</c> invece
-/// vorrebbe ricordare le righe precedenti: si legge come cella vuota, e chi rilegge l'anteprima la riempie.
+/// ⚠️ <b>Le celle unite si espandono tutte e due</b>, in orizzontale e in verticale. Una cella su due colonne
+/// diventa la cella piu' una vuota, e una cella su due righe lascia una vuota nella riga sotto: altrimenti la
+/// riga sarebbe piu' corta e in una tabella le celle successive scalerebbero a sinistra — il valore della
+/// colonna <i>n</i> finirebbe nel campo della colonna <i>n-1</i>, e l'anteprima non mostrerebbe un buco ma una
+/// tabella plausibile e sbagliata. La vuota si legge come vuota, e chi rilegge l'anteprima la riempie.
+/// </para>
+/// <para>
+/// ⚠️ Fino al 7 settembre 2026 questo paragrafo prometteva il <c>rowspan</c> e il codice non lo faceva:
+/// nessun ramo inseriva la cella ereditata, e le righe corte restavano corte (<c>Griglia.Colonne</c> e' il
+/// <i>massimo</i> delle lunghezze, non pareggia niente). Le tabelle aeronautiche uniscono in verticale di
+/// continuo — e le rende cosi' anche questo sito (<c>CoordTable</c>, <c>TableBlock</c>,
+/// <c>AppFrequencies</c>): bastava copiare una pagina della vIPI e reincollarla qui (revisione del
+/// 6 settembre 2026, R-020).
 /// </para>
 /// <para>
 /// ⚠️ Non e' un parser HTML e non deve diventarlo: legge <b>la prima tabella</b> di un frammento incollato.
@@ -41,6 +50,9 @@ public static class TabellaHtml
     private static readonly Regex Colspan =
         new("colspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase);
 
+    private static readonly Regex Rowspan =
+        new("rowspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase);
+
     private static readonly Regex Interruzione =
         new("<br[^>]*>|</p>|</div>", RegexOptions.IgnoreCase);
 
@@ -57,20 +69,66 @@ public static class TabellaHtml
         if (!tab.Success) return Griglia.Vuota;
 
         var righe = new List<IReadOnlyList<string>>();
+
+        // Quel che le righe PRECEDENTI si portano dietro: colonna → quante righe restano da coprire. È tutto
+        // il conto del `rowspan`, ed è lo stesso del `colspan` su un asse diverso.
+        var eredita = new Dictionary<int, int>();
+
         foreach (Match r in Riga.Matches(tab.Groups[1].Value))
         {
             var celle = new List<string>();
+            var colonna = 0;
+
+            // Le colonne già occupate da una cella unita in verticale si riempiono di vuoto PRIMA di piazzare
+            // la prossima cella scritta: altrimenti quella prende il posto di chi la copre, e da lì in giù
+            // tutta la riga scala a sinistra.
+            void Ereditate()
+            {
+                while (eredita.TryGetValue(colonna, out var restano) && restano > 0)
+                {
+                    celle.Add("");
+                    eredita[colonna] = restano - 1;
+                    colonna++;
+                }
+            }
+
             foreach (Match c in Cella.Matches(r.Groups[1].Value))
             {
-                celle.Add(Testo(c.Groups[2].Value));
-                var span = Colspan.Match(c.Groups[1].Value);
-                if (span.Success && int.TryParse(span.Groups[1].Value, NumberStyles.None,
-                        CultureInfo.InvariantCulture, out var n) && n > 1)
-                    for (var k = 1; k < Math.Min(n, 64); k++) celle.Add("");
+                Ereditate();
+
+                var testo = Testo(c.Groups[2].Value);
+                var larghe = Quante(Colspan, c.Groups[1].Value);
+                var alte = Quante(Rowspan, c.Groups[1].Value);
+
+                for (var k = 0; k < larghe; k++)
+                {
+                    celle.Add(k == 0 ? testo : "");
+                    if (alte > 1) eredita[colonna] = alte - 1;
+                    colonna++;
+                }
             }
+
+            // Le eredità in coda: una cella unita che sta all'ULTIMA colonna non ha nessuna cella scritta
+            // dopo di sé a farle da innesco.
+            Ereditate();
+
             if (celle.Count > 0) righe.Add(celle);
         }
         return righe.Count == 0 ? Griglia.Vuota : new Griglia(righe, FormaGriglia.Html);
+    }
+
+    /// <summary>
+    /// Quante celle vale uno span: 1 se l'attributo non c'è o non è un numero.
+    /// <para>⚠️ Col tetto a 64 che c'era già per il <c>colspan</c>: un <c>rowspan="100000"</c> incollato —
+    /// per errore o apposta — non deve diventare centomila righe di vuoto.</para>
+    /// </summary>
+    private static int Quante(Regex quale, string attributi)
+    {
+        var m = quale.Match(attributi);
+        return m.Success && int.TryParse(m.Groups[1].Value, NumberStyles.None,
+                   CultureInfo.InvariantCulture, out var n) && n > 1
+            ? Math.Min(n, 64)
+            : 1;
     }
 
     /// <summary>Il contenuto di una cella: interruzioni a spazio, marcatori via, entita' sciolte.</summary>
