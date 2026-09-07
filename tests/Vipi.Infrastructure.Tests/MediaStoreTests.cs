@@ -103,7 +103,7 @@ public class MediaStoreTests : IAsyncLifetime
     public async Task File_che_non_e_immagine_viene_rifiutato()
     {
         var store = Store();
-        var finto = System.Text.Encoding.UTF8.GetBytes("PK sono uno zip travestito da png");
+        var finto = System.Text.Encoding.UTF8.GetBytes("PK\u0003\u0004 sono uno zip travestito da png");
 
         await Assert.ThrowsAsync<ValidationException>(() => store.SaveAsync(new MemoryStream(finto), "foto.png"));
     }

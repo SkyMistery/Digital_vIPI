@@ -32,7 +32,7 @@ public class ProtettoreSulCorpusRealeTests
     private static readonly Regex SequenzaDaVid = new(@"(?<![\d.,])\d{6,8}(?![\d.,])", RegexOptions.Compiled);
 
     /// <summary>Il nome avvelenato come parola intera: «crossing» non e' un cognome.</summary>
-    private static readonly Regex NomeIntero = new(@"(Mario|Rossi)", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex NomeIntero = new(@"\b(Mario|Rossi)\b", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>Nomi finti col taglio di quelli veri: il roster non si committa.</summary>
     private static readonly string[] RosterFinto = { "Mario Rossi", "Giulia Bianchi", "Anna Verdi" };

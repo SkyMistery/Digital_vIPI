@@ -379,7 +379,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         var html = await _factory.CreateClient().GetStringAsync(percorso);
 
-        var carica = Regex.Matches(html, @"<(?:script|link)[^>]*(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
+        var carica = Regex.Matches(html, @"<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
             .Select(m => m.Groups["url"].Value)
             .Where(u => u.Contains("leaflet", StringComparison.OrdinalIgnoreCase))
             .ToList();
