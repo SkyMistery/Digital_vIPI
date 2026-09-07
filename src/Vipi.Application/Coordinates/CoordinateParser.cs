@@ -314,7 +314,11 @@ public static class CoordinateParser
     {
         if (RxAuroraPuntata.IsMatch(token) || RxAuroraCompatta.IsMatch(token))
         {
-            if (!DmsCoordinate.TryParse(token, out var g)) return false;
+            // ⚠️ Il token scritto bene ma FUORI INTERVALLO entra lo stesso, col suo valore grezzo: è
+            // `ProvaCoppia` a segnalarlo come tale. Scartarlo qui lo farebbe diventare un'etichetta, e chi ha
+            // incollato `N095.00.00.000` si sentirebbe dire «angolo spaiato» — una correzione diversa da
+            // quella che serve. Chi importa un file non passa di qui: per lui `TryParse` dice no e basta.
+            if (!DmsCoordinate.TryParse(token, out var g, out var fuori) && !fuori) return false;
             angoli.Add(new Angolo(Math.Abs(g), token[0], g < 0));
             return true;
         }
