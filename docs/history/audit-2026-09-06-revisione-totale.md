@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse · Fase 4 (4a-4d chiusi, resto campionato) · Fase 5 aperta, matrice fatta · 23 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 e 5 chiuse · Fase 4 (4a-4d chiusi, resto campionato) · 24 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -84,7 +84,7 @@ parte da `2b33791a` e non lo tocca.
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a-4d ✅ · 4e/4g/4h/4i/4k campionati · 6 findings |
-| **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | 🔵 **in corso** — le due matrici ✅ · 1 finding |
+| **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ✅ **chiusa** — 2 findings |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
@@ -145,6 +145,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
 | **R-022** | 4i | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
+| **R-024** | 5 | **S2** | 🟢 | CONFERMATO | **L'APP nascosto resta pubblico**: delle quattro porte pubbliche è l'unica che passa da un `Sector` e l'unica che non filtra `IsActive` — contro la premessa scritta nella proiezione | `EfContentRepository.cs:52-61` · `EfSectorProjectionService.cs:229` |
 
 ---
 
@@ -1155,3 +1156,58 @@ e l'`userId` letto da `CurrentUserId` invece che ricevuto. Tre righe, nessuna mi
 - **`AuditScribe`** usa un encoder JSON rilassato — scelta giusta e motivata (il registro si legge anche in
   SQL, e un titolo scappato a metà non lo pesca un `LIKE`), e non è un rischio perché il valore torna da un
   parser JSON e lo rende Blazor, che scappa da sé.
+
+## Fase 5, seconda parte — segreti, upload, intestazioni, OIDC, cancelli pubblici
+
+**Stato:** ✅ **Fase 5 chiusa** · 2 findings in tutto (R-023, R-024)
+
+### R-024 — L'APP nascosto resta pubblico
+
+`src/Vipi.Infrastructure/Persistence/EfContentRepository.cs:52-61` · **S2** · 🟢 · CONFERMATO
+
+Il repository che risolve i documenti **per il pubblico** ha quattro porte. Tre chiudono quando l'oggetto è
+nascosto; la quarta no.
+
+| Porta | Come esclude ciò che è nascosto |
+|---|---|
+| `LoadAirportVipiAsync` | `!d.IsHidden` **e** `!Airports.Any(a => a.Icao == icao && a.IsHidden)` — col commento: *«Aeroporto nascosto dall'admin ⇒ pagina pubblica inaccessibile»* |
+| `LoadAirportMilVipiAsync` | identica alla gemella civile |
+| `LoadVloaByIdAsync` | `!d.IsHidden` (una vLOA non ha un oggetto di catalogo dietro) |
+| **`LoadAppVipiAsync`** | **solo** `!d.IsHidden`. Il settore lo cerca così: `d.Sectors.Any(s => s.IsPrimary && s.Type == App && s.ApproachKind == Standalone && s.Callsign == app)` — **nessun `s.IsActive`** |
+
+È l'unica delle quattro che passa da un `Sector`, cioè dalla **proiezione dei cataloghi**. E la proiezione,
+`EfSectorProjectionService:229`, dichiara la premessa opposta:
+
+> *«Il motivo originale resta coperto: **chi risolve un documento filtra su `IsActive`**.»*
+
+Non è vero per questa porta. E gli altri che risolvono sui settori — `EfAccDerivationRepository`,
+`EfVloaDerivationRepository`, `EfSectorVolumeCatalog`, `EfStructureEditingRepository` — il filtro ce l'hanno
+tutti. **La porta pubblica dell'APP è l'unica senza.**
+
+**Scenario di rottura, due strade per lo stesso esito.**
+
+1. Un amministratore **nasconde** una posizione APP dal catalogo. La proiezione la disattiva
+   (`IsActive = false`, riga 236). La sua pagina pubblica **resta in piedi**.
+2. La **sorgente smette di mandare** quella posizione (rinomina, riorganizzazione). La proiezione la
+   disattiva allo stesso modo. La pagina pubblica continua a servire un documento che descrive una postazione
+   **che non esiste più** — e lo fa con la release congelata, quindi con l'aria di un dato buono.
+
+Nessuno dei due casi produce un errore: producono una pagina. Chi ha nascosto la posizione crede di averla
+tolta di mezzo, e sull'aeroporto quel gesto funziona davvero — che è ciò che rende difficile accorgersene.
+
+**Rimedio:** aggiungere `s.IsActive` alla `Any(...)` di `LoadAppVipiAsync`, con lo stesso schermo per
+l'anteprima che hanno le altre (`preferWorking || ignoreRelease || …`), così l'editor continua a vedere la
+bozza di un APP disattivato mentre il pubblico no. Una riga.
+
+### Verificato e corretto
+
+| Area | Esito |
+|---|---|
+| **Segreti** | Nessuna credenziale nei file versionati. `deploy/atc-ivao/appsettings.Production.json` porta la connection string **senza** `Password=`, con un `"//SEGRETI"` che dice di non metterci niente di segreto «per principio, anche ora che il file…», e un `segreti.esempio.json` accanto che mostra la forma |
+| **Upload delle immagini** | `MediaValidator` controlla, in quest'ordine: file vuoto, tetto di byte, **formato vero** (`ImageProbe` sui byte, non sul tipo dichiarato), dimensioni dichiarate valide, lato massimo in pixel, e la quota per documento. Sull'uscita: `nosniff`, ETag sullo sha, cache immutabile — l'URL **è** il contenuto |
+| **Intestazioni** | `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` che spegne cinque permessi. `UseHsts` e `UseHttpsRedirection` fuori da Development |
+| **CSP** | In **Report-Only**, e non per dimenticanza: il commento conta ciò che manca per accenderla — **17** gestori inline nel markup e **554** attributi `style`, misurati l'11 agosto — e spiega che accenderla senza `unsafe-inline` romperebbe stampa, drag&drop e tre elenchi, mentre accenderla *con* non proteggerebbe da niente. `script-src` ha già perso `'unsafe-inline'`, che è il pezzo che conta, e una guardia E2E pretende che la pagina non contenga altri script inline |
+| **OIDC** | Codice + **PKCE**, `SaveTokens = false` con la ragione scritta, scope minimi (`openid profile email`), `OnRemoteFailure` gestito con una pagina propria |
+| **Cookie** | `HttpOnly`, `SameSite=Lax` e `SecurePolicy=Always` fuori da Development — **scritti invece che ereditati**, «perché un default non dichiarato è un default che qualcuno cambia» |
+| **Cancello pubblico delle release** | La visibilità pubblica **è** l'esistenza di una release effettiva: niente release ⇒ invisibile, senza il vecchio ripiego che rendeva pubblica una versione pubblicata senza release |
+| **Allegati serviti sul web** | Pubblici di proposito (il file sul Drive è condiviso «chiunque abbia il link»), redirect **302** e non 301 perché il deposito può cambiare |
