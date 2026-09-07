@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4c fatti), 19 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4d fatti), 21 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -83,7 +83,7 @@ parte da `2b33791a` e non lo tocca.
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
-| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 4c ✅ · 4e parziale · 3 findings |
+| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 4c ✅ · 4d ✅ · 4e parziale · 5 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
@@ -102,7 +102,7 @@ propria documentazione.
 | 4a ✅ | Documento, sezioni, catalogo, blocchi | `refactor/08`, `11`, `14` |
 | 4b ✅ | Release, snapshot, pubblicazione, retention | `refactor/09`, `10` · `audit-2026-08-25-versioni-release` |
 | 4c ✅ | Import: SID, piste, settori, confinanti, GitHub | `refactor/01`-`05` |
-| 4d | Import: tabelle, trasferimenti | `design/piano-import-*` |
+| 4d ✅ | Import: tabelle, trasferimenti | `design/piano-import-*` |
 | 4e 🔵 | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
 | 4f | Trasferimenti e accordi di coordinamento | `refactor/07` · feature accordi |
 | 4g | Aeroporti: dati, posizioni, quote, regole piste | feature aeroporti · vSOP militari |
@@ -141,6 +141,8 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-017** | 4b | S4 | 🟢 | CONFERMATO | **La pubblicazione programmata di un documento singolo sta fuori dalla transazione** che il ramo dell'unione, dodici righe sotto, usa. Due scritture senza rete | `src/Vipi.Application/Content/ReleaseService.cs:219-226` |
 | **R-018** | 4c | **S2** | 🟢 | CONFERMATO | **Un vertice malformato non invalida la forma del settore: la tronca**, la salva e non lascia traccia — mentre un punto *nominato* mancante la invalida | `AuroraSectorfileParser.cs:399-437` |
 | **R-019** | 4c | S3 | 🟢 | CONFERMATO | **Tre validatori accettano ciò che il loro contratto dichiara di rifiutare**: `"+261"` come ciclo AIRAC, una latitudine di 91°, un segno dentro un DMS | `AiracService.cs:36` · `DmsCoordinate.cs:36,60` |
+| **R-020** | 4d | **S2** | 🟢 | CONFERMATO | **Il `rowspan` non produce la cella vuota che il commento promette**: le righe sotto una cella unita scalano a sinistra, e l'anteprima mostra una tabella plausibile e sbagliata | `src/Vipi.Application/Import/TabellaHtml.cs:20-23,64-69` |
+| **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
 
 ---
 
@@ -924,3 +926,76 @@ Guardati in questo giro, perché R-018 ci finisce dentro:
 
 Restano da fare: la gerarchia effettiva oltre R-014, le aree regolamentate multi-ACC, il viewer 3D, i
 KMZ degli spazi aerei.
+
+## 4d — Import di tabelle e trasferimenti ✅
+
+Perimetro: `TabellaHtml`, `Griglia`, `RisolutoreCelle`, `CostruttoreProposta`, `LettoreXlsx`,
+`TransferMatcher` (448 righe), il contratto del ponte Aurora.
+
+### R-020 — Il `rowspan`: il commento dice una cosa, il codice ne fa un'altra
+
+`src/Vipi.Application/Import/TabellaHtml.cs:20-23, 64-69` · **S2** · 🟢 · CONFERMATO
+
+La porta d'import a fedeltà più alta è quella HTML: quando si incolla da Excel, da Word o da una pagina, la
+clipboard porta anche il `text/html`, dove **le celle sono celle**. Il file lo spiega bene, e spiega anche
+come tratta le celle unite:
+
+> *«Il `colspan` si espande, il `rowspan` no. Una cella su due colonne diventa la cella più una vuota, perché
+> altrimenti la riga sarebbe più corta e in una tabella le celle successive **scalerebbero a sinistra** — il
+> dato sembrerebbe sbagliato invece che unito. Il `rowspan` invece vorrebbe ricordare le righe precedenti:
+> **si legge come cella vuota**, e chi rilegge l'anteprima la riempie.»*
+
+La prima metà è vera: il `colspan` viene espanso con celle vuote, e c'è il codice che lo fa. **La seconda no.**
+Non esiste nessun ramo che inserisca una cella vuota per un `rowspan`: la riga di continuazione ha
+semplicemente un `<td>` in meno nel sorgente, e nessuno lo rimpiazza.
+
+```csharp
+celle.Add(Testo(c.Groups[2].Value));
+var span = Colspan.Match(c.Groups[1].Value);        // ← solo colspan
+if (span.Success && … && n > 1)
+    for (var k = 1; k < Math.Min(n, 64); k++) celle.Add("");
+```
+
+E `Griglia.Colonne` è `Righe.Max(r => r.Count)`: le righe corte **restano corte**, non vengono pareggiate.
+
+**Scenario di rottura.** Si incolla una tabella con una cella unita in verticale — che nelle tabelle
+aeronautiche è la norma, e che **questo stesso sito produce**: `CoordTable`, `TableBlock` e `AppFrequencies`
+rendono le loro tabelle proprio con `rowspan`, quindi basta copiare da una pagina della vIPI e reincollarla
+nell'import. Da lì in poi ogni riga sotto quella unita ha una cella in meno, e **tutte le colonne scalano a
+sinistra**: la mappatura assegna il valore della colonna *n* al campo della colonna *n−1*. L'anteprima non
+mostra un buco — mostra una tabella **plausibile e sbagliata**, che è precisamente il difetto che il commento
+descrive due frasi prima come la ragione per cui il `colspan` si espande.
+
+**Rimedio:** fare per il `rowspan` ciò che il commento già promette — tenere una riga di «celle in eredità» e
+inserire la vuota nelle righe coperte. È lo stesso conto del `colspan`, su un asse diverso.
+
+### R-021 — Il livello di crociera arriva da fuori senza che nessuno ne controlli l'unità
+
+`src/Vipi.Hosting/VipiModuleExtensions.cs:394` · **S4** · 🟢 · CONFERMATO · *stessa famiglia di R-019*
+
+`POST /vsop/api/v1/transfers/resolve` accetta `CruiseLevel`, documentato come **FL** («già normalizzato dal
+formato ICAO, `F330` → 330»). L'endpoint verifica il tetto di richieste e che `OwnerCallsign` non sia vuoto;
+**sul livello non controlla niente**.
+
+Un client che mandi i **piedi** (25000 invece di 250) ottiene due risposte sbagliate insieme: la parità
+semicircolare si calcola su `(cruise / 10) % 2`, quindi 25000 diventa «pari» invece di «dispari»; e
+`FeetOf(CruiseLevel, Fl)` moltiplica per cento, dando 2 500 000 piedi alla catena di ripiego, che finisce
+fuori da ogni fascia. Il controllore riceve un consiglio di trasferimento sbagliato senza nessun avviso.
+
+**Perché S4 e non di più:** l'unico client che esiste è il ponte Aurora, ed è **conservativo per costruzione**
+— `CruiseFlightLevel` torna un valore solo per le quote in forma `F…`, e per i piedi (`A050`) o le metriche
+(`S1130`) torna `null`, così la parità non viene proprio valutata. Di nuovo: la garanzia sta nel chiamante,
+non nel contratto. Bastano un intervallo plausibile e un avviso.
+
+### Quel che è stato guardato e regge
+
+- **Il punteggio di `TransferMatcher`.** `ScoreScale` è la somma dei massimi positivi
+  (1,00 + 0,30 + 0,15 + 0,20 + 0,15 = 1,80) e ogni contributo si applica **una volta sola**: base del flusso,
+  un solo punteggio di CoP fra i quattro possibili, parità, condizione, next ATC. Il `Math.Clamp` finale non
+  scatta mai, ed è una rete, non una toppa. La parità semicircolare `(cruise / 10) % 2` è quella giusta:
+  FL250 → 25 → dispari.
+- **La forma canonica dei due lati di un accordo.** Il servizio valida che i lati ci siano e siano diversi;
+  a metterli in ordine (`id minore = A`) è il **repository**, in tutte e tre le porte di scrittura — nuovo,
+  modifica e ripristino da snapshot. L'unicità della coppia non orientata non dipende da chi chiama.
+- **Le regole di sezione degli accordi**: arrivi e partenze pretendono un aeroporto, i sorvoli lo vietano,
+  gli ICAO non possono ripetersi. Ognuna con la ragione, e una col riferimento al caso che l'ha prodotta.
