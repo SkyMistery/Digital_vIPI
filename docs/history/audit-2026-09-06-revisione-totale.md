@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-8 CHIUSE · 31 findings** · restano 9-11
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-9 CHIUSE · 33 findings** · restano 10-11
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -88,7 +88,7 @@ parte da `2b33791a` e non lo tocca.
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ✅ **chiusa** — 3 findings |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ✅ **chiusa** — 1 finding |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ✅ **chiusa** — 3 findings |
-| **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ⏳ |
+| **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ✅ **chiusa** — 2 findings |
 | **10** | Prestazioni, misurate dal vivo e **divise per operazione** | ⏳ |
 | **11** | Sintesi: registro ordinato, le due liste (🟢🟡 subito / 🔴 dopo il 16), lotti di rimedio | ⏳ |
 
@@ -146,6 +146,8 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-022** | 4i ✅ | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
 | **R-025** | 6 | **S2** | 🟢 | CONFERMATO | **Byte di controllo nel sorgente, secondo caso**: `0x1F`/`0x1E` come separatori della firma dell'indice unito. Perderli riapre un difetto già chiuso, e nessun test cadrebbe | `UnionMembersEditor.razor:136` |
+| **R-032** | 9 | S3 | 🟢 | CONFERMATO | **Cinque artefatti di consegna descrivono strade non prese**, senza il marcatore ⛔ che il repository usa bene altrove — e uno sta nella cartella della consegna vera | `fly.toml` · `Caddyfile` · `docker-compose.yml` · `deploy/oracle/` · `nginx-vipi.conf` |
+| **R-033** | 9 | S4 | 🟢 | CONFERMATO | **Un file di zero byte chiamato `--nologo`, versionato** in radice: residuo di un comando finito storto | `--nologo` |
 | **R-029** | 8 | S3 | 🟢 | CONFERMATO | **La sezione «da leggere per prima» manda su un ramo che non esiste** e dichiara a metà una consegna finita quattro versioni fa. «In cinque righe» è lunga 707 | `docs/lavori-aperti.md:329-341` |
 | **R-030** | 8 | S3 | 🟢 | CONFERMATO | **L'indice si dichiara «di tutti i documenti» e ne mancano 44**, di cui 33 carte di funzionalità — cioè dove sta scritto il *perché* | `docs/index.md` |
 | **R-031** | 8 | S4 | 🟢 | CONFERMATO | **La consegna 1.12.0 non compare in `HANDOFF.md`**: zero occorrenze, mentre 1.11, 1.13 e 1.14 ci sono | `HANDOFF.md` |
@@ -1549,3 +1551,75 @@ né la ragione né il contenuto di quella consegna.
 | **La convenzione di superamento degli ADR** | Esiste e funziona: ADR-0001 porta due «⚠️ Emendato da ADR-0002», ADR-0005 estende ADR-0002 dichiarandolo. Dove manca — §9.13 di `modello-dati`, R-011 — è una svista dentro una regola che c'è, non l'assenza della regola |
 | **La testata di `HANDOFF.md`** | Al 6 settembre, con sha256, dimensione, numero di file e timbro del commit: è il documento di stato che funziona meglio |
 | **`mappa-pagine.md`** | Corrente (25 agosto + note successive), e marca da sé le rotte assorbite («ex `/vsop/editor` assorbito») |
+
+---
+
+# Fase 9 — Build, consegna, host, strumenti
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · 2 findings
+
+## R-032 — Cinque artefatti di consegna descrivono strade non prese, e nessuno lo dice
+
+**S3** · 🟢 · CONFERMATO
+
+Questo repository sa marcare ciò che è superato, e lo fa bene. `deploy/mysql/README.md` si apre così:
+
+> ⛔ **SUPERATO dal 6 agosto 2026 — usare `../mariadb/README.md`.** *«Il server di `atc.it.ivao.aero` è
+> MariaDB 11.4.10, e il provider non è più quello di Oracle ma Pomelo: questa ricetta monta un MySQL 8.4 su
+> cui il ramo di produzione non gira più. Resta come storia … non come istruzione.»*
+
+È il modo giusto. **Cinque artefatti non l'hanno avuto:**
+
+| Artefatto | Ultimo tocco | Chi lo cita |
+|---|---|---|
+| `fly.toml` | 25 lug | **nessuno**, in tutto il repository |
+| `docker-compose.yml` | 25 lug | **nessuno** |
+| `Caddyfile` | 25 lug | solo `docker-compose.yml`, che a sua volta non è citato da nessuno |
+| `deploy/oracle/README.md` | 30 lug | **nessuno** — è la ricetta «VM Oracle Cloud + Docker Compose + Caddy + DuckDNS», cioè il consumatore dei tre file qui sopra |
+| `deploy/atc-ivao/nginx-vipi.conf` | 25 ago | i runbook — che però dicono che **non si usa** |
+
+I primi quattro sono un gruppo solo: la strada «container su una VM gratuita», abbandonata quando la
+produzione è diventata **Plesk + Passenger su `atc.it.ivao.aero`** e l'anteprima **Render + Neon**. Nessuno
+dei quattro porta un marcatore; `deploy/oracle/README.md` si presenta con lo stesso tono di runbook di
+`deploy/render/README.md`, che invece è vivo.
+
+Il quinto è più fine, e sta **nella cartella della consegna vera**. `LEGGIMI-DEPLOY.md` descrive nel corpo il
+deploy con **systemd** (`/opt/vipi`, `vipi.service`, nginx davanti), e in testa ha un riquadro onesto:
+
+> 📌 *«Se il sito gira su Plesk con Phusion Passenger (non con systemd) … Passenger si riavvia toccando
+> `tmp/restart.txt`, non con `systemctl`. E **`nginx-vipi.conf` non viene usato**.»*
+
+Cioè: **il testo principale descrive l'host che non è quello vero**, e la realtà è un riquadro aggiunto sopra.
+Il file di configurazione che il riquadro dichiara inutilizzato resta nella cartella, senza marcatore, accanto
+ai diciannove fogli di consegna veri.
+
+**Scenario di rottura.** Chi deve consegnare — e questo prodotto lo consegna **una persona sola, via FTP** —
+apre `deploy/`, trova sei cartelle e un runbook che parla di `systemctl`, e deve capire da sé che quella non è
+la sua strada. Il rischio non è teorico: la differenza fra i due modelli riguarda **dove stanno le chiavi di
+Data Protection** e **come si riavvia**, cioè le due cose che, sbagliate, lasciano il sito giù o gli utenti
+sloggati.
+
+**Rimedio:** il marcatore che il repository usa già. Quattro righe in cima a quattro file, e in
+`LEGGIMI-DEPLOY.md` invertire il peso — Passenger nel corpo, systemd nel riquadro.
+
+## R-033 — Un file di zero byte chiamato `--nologo`, versionato
+
+**S4** · 🟢 · CONFERMATO
+
+Nella radice del repository c'è un file **tracciato da git**, di **0 byte**, il cui nome è `--nologo`
+(27 agosto 2026). È il residuo di un comando in cui l'opzione è finita a fare da nome di file.
+
+Non rompe niente. Vale una riga perché il nome comincia con due trattini: chi prova a toglierlo con
+`rm --nologo` non ci riesce — serve `rm -- --nologo` o `git rm -- --nologo` — e perché un file così è il
+genere di cosa che resta per anni proprio in quanto nessuno la guarda.
+
+## Verificato e corretto
+
+| Cosa | Esito |
+|---|---|
+| **Artefatti di build versionati** | **Zero** file sotto `bin/` o `obj/` tracciati; `artifacts/` non è in git |
+| **I 26 `packages.lock.json`** | Presenti, uno per progetto, e **nessuno modificato** rispetto a git: la regola del RID dichiarato (5 settembre) tiene, e il «ballo» dei lock è chiuso davvero |
+| **`tools/prepara-pacchetto.ps1`** | Ha **due reti** sui segreti: il nome del file e il **contenuto** dei file di testo, cercando **le chiavi e mai i valori** — così l'esito si può incollare in una chat. E porta la correzione della prima stesura, che accusava `Vipi.Host.dll` perché dentro un assembly la stringa «ClientSecret» c'è come nome di configurazione: *«un allarme che suona a ogni consegna su un file che dev'esserci non è un allarme»* |
+| **I fogli di consegna** | 19 fogli di pacchetto e 8 di correzione, ognuno col proprio **timbro** (`1.12.0 · e5077ab9`) e la propria data: un archivio che si identifica da sé, non una pila ambigua |
+| **`Dockerfile`** | Vivo: lo costruisce e lo prova il job `docker` della CI. È l'unico dei quattro artefatti «container» che qualcuno usa |
+| **`deploy/mariadb/README.md`** | 293 righe, ed è la ricetta che serve davvero: MariaDB 11.4.10 identica in locale, «perché il 3306 loro è su localhost del loro server» |
