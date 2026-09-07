@@ -1,33 +1,33 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 7 settembre 2026, notte fonda — 📦 **1.15.1 È PRONTA DA CARICARE** (1.15.0 è
-online da poche ore).
+**Ultimo aggiornamento:** 8 settembre 2026, notte — ✅ **1.15.1 È ONLINE** e confermata dal timbro del
+server (`diagnostica/avvio-diagnostica.txt`: `1.15.1 · 68e71bf`, Production, in servizio dalle 21:11 UTC).
 
-`artifacts/publish/vipi-1.15.1-solo-file-cambiati.zip` · sha256 `b574635f…` · 3,32 MB · **7 file** ·
-timbro **`1.15.1 · 68e71bfa`**. **PATCH**, **nessuna migrazione**, **niente `wwwroot`**. Foglio:
-`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.1.md`.
+▶ **Il lavoro aperto è §CD in [`docs/lavori-aperti.md`](docs/lavori-aperti.md)**: le tre cose che ha detto
+la diagnostica di produzione, la prima volta che l'abbiamo in mano.
 
-> ### 🔴 Da dire a chi ha già usato la scheda «Sezioni in comune» con 1.15.0
+> ### Le tre, in ordine di quel che costano a chi usa il sito
 >
-> In 1.15.0 quella scheda chiedeva **chi TIENE** le sezioni: selezionando la vIPI si nascondevano quelle del
-> **vSOP**, cioè l'opposto di come la legge chiunque. In 1.15.1 si spuntano i **documenti da cui le sezioni
-> spariscono**. ℹ️ **Niente è perso**: «nascosto» è lo stesso stato del tasto «nascondi», e riaprendo la
-> scheda con la spunta giusta le sezioni dell'altro tornano visibili da sole.
+> **1. 🔴 Una corsa sulla CONNESSIONE MySQL**, tre coppie in un giorno (10:42, 10:50, 16:51):
+> `NotSupportedException` «another read operation is pending» dal socket del connettore, più un
+> `NullReferenceException` dentro `MySqlDataReader`, nello stesso circuito e nello stesso secondo. Il
+> fotogramma Vipi passa da `DocumentEditorShell.InFilaAsync` — il tornello che serializza — quindi la
+> domanda è **chi gli gira accanto senza passarci**.
 >
-> ### E l'altra correzione
+> **2. 🔴 Un utente vero (VID 201143) ha visto una pagina d'errore** sull'editor APP, 14:21:36:
+> `NullReferenceException` in `AppSectionsEditor.BuildRenderTree` riga 71, da un ridisegno a fine
+> operazione async. Due nulli possibili sulla stessa riga: **da guardare, non da indovinare**.
 >
-> Invertendo l'ordine dei membri cambia l'**ospite**, e con lui si sposta l'**editor unito**: sembrava che
-> l'unione fosse sparita. Ora chi non è l'ospite lo legge in cima al pannello, col **link** per andarci.
+> **3. 🟡 Il 55% del registro è rumore**: 39 voci su 71 sono `ObjectDisposedException` di circuiti chiusi
+> mentre un caricamento era in volo. Non sono guasti — ma un registro fatto per metà di rumore è un
+> registro che si smette di leggere, e le due cose qui sopra ci sono finite in mezzo.
 
-> ### ▶ Da controllare dopo aver caricato
->
-> **1. La Ricerca** (due lettere, la riga sotto cambia): l'unico controllo che passa dal server.
-> **2. Il timbro**: `diagnostica/avvio-diagnostica.txt` → `1.15.1 · 68e71bfa`.
-> **3. Da admin**: «Sezioni in comune…» deve dire **«Nascondi le sezioni comuni di:»** con le **caselle**. Se
-> dice «Le tiene:» coi pallini, sta girando ancora 1.15.0.
+⚠️ **Zero errori dopo le 20:00 del 7**: niente sotto 1.15.0 e 1.15.1. E i due file d'errore che si trovano
+in `diagnostica/` **non sono di stanotte** — `arresto-errore.txt` è il processo **1.15.0** che muore male
+allo spegnimento (dll sostituita sotto un processo vivo, il prezzo noto dell'FTP), `avvio-errore.txt` è del
+**6 settembre**. La data si guarda prima del contenuto.
 
-✅ **Provata sul pacchetto pubblicato**: dieci controlli verdi, e le due correzioni verificate a schermo —
-spuntando la vIPI si nascondono **le sue** 11 sezioni, e il rimando all'ospite porta dove deve.
+⚠️ **I file di `diagnostica/` non si committano**: `errori-richieste.txt` porta i VID degli utenti.
 
 ### Le piste arrivano in METRI (7 settembre)
 

@@ -2,20 +2,13 @@
 
 ## Dove siamo — 7 settembre 2026
 
-1. ✅ **In produzione c'è 1.15.0**, caricata la sera del 7 settembre e **verificata da fuori** con le
-   impronte degli asset (non solo coi controlli pubblici, che passerebbero anche sulla versione prima).
-   `main` è pulito e spinto, nessun ramo di lavoro aperto.
-2. 📦 **1.15.1 È PRONTA E ASPETTA DI ESSERE CARICATA.**
-   `artifacts/publish/vipi-1.15.1-solo-file-cambiati.zip`, sha256
-   `b574635f2cac634c964017490eaffb87e3fa881cca2d4b77a37ebac913a5b43c`, 3,32 MB, **7 file**, timbro
-   **`1.15.1 · 68e71bfa`**. **PATCH**, nessuna migrazione, niente `wwwroot`. Foglio:
-   `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.1.md`.
-   🔴 **Dentro ci sono due cose che ha trovato l'uso vero**, poche ore dopo il caricamento di 1.15.0: la
-   **scheda delle sezioni in comune era girata al contrario** (chiedeva chi le TIENE invece che da dove
-   spariscono — chi la usava nascondeva il documento sbagliato), e **invertendo l'ordine dei membri**
-   l'ospite cambia e l'editor unito si sposta di pagina, in silenzio.
-   ⚠️ **La regola «tutti insieme» di 1.15.0 qui NON vale**: nasceva da R-009, e la visibilità fra assiemi
-   non cambia.
+1. ✅ **In produzione c'è 1.15.1**, caricata la notte del 7 settembre. Confermata dal timbro in
+   `diagnostica/avvio-diagnostica.txt`: `Versione 1.15.1 · commit 68e71bf`, ambiente **Production**, in
+   servizio dalle **21:11 UTC**. `main` è pulito e spinto, nessun ramo di lavoro aperto.
+2. ▶ **Il lavoro aperto è §CD: le tre cose che ha detto la diagnostica di produzione** — la prima volta che
+   abbiamo `errori-richieste.txt` in mano. In ordine: la **corsa sulla connessione MySQL** (tre coppie in un
+   giorno), l'**NRE dell'editor APP** che ha visto un utente vero, e il **rumore** degli
+   `ObjectDisposedException`, che sono il 55% del file.
 3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
@@ -37,6 +30,18 @@
 <details>
 <summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
 com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
+**Aggiornato:** 8 settembre 2026, notte — ✅ **1.15.1 È IN PRODUZIONE**, e per la prima volta abbiamo la
+**diagnostica del server**: il committente ha messo in `diagnostica/` (fuori dal repo) i cinque file scaricati
+via FTP. Timbro confermato: `1.15.1 · 68e71bf`, Production, in servizio dalle 21:11 UTC.
+⚠️ **I due file d'errore NON sono di 1.15.1**, e vale la pena saper leggere perché. `arresto-errore.txt`
+(21:16) è il processo **vecchio** che muore male — `avvii.txt` dice «acceso per 01:03:18», cioè partito alle
+20:12, che è **1.15.0** — con una `BadImageFormatException` in `AtcPollingHostedService.StopAsync`: è la firma
+di una **dll sostituita sotto un processo vivo**, cioè il prezzo noto della procedura FTP. E
+`avvio-errore.txt` è del **6 settembre** (un `Vipi.Infrastructure` non trovato, caricamento a metà ai tempi di
+1.14): quei file restano lì finché non vengono riscritti, e la **data va guardata prima del contenuto**.
+🔴 **`errori-richieste.txt`: 71 voci, zero dopo le 20:00** — cioè niente sotto 1.15.0 e 1.15.1. Il resto è del
+4-7 settembre, e dice tre cose: vedi **§CD**.
 
 **Aggiornato:** 7 settembre 2026, notte fonda — 📦 **1.15.1 È PRONTA**, e le due cose che porta le ha
 trovate **l'uso vero** poche ore dopo il caricamento di 1.15.0 — nessuna dai test.
@@ -9806,3 +9811,75 @@ il win-x64 non è dunque «il byte identico», è **il comportamento dello stess
 l'impronta — e va scritto, o alla prossima consegna qualcuno cercherà un'uguaglianza che non c'è.
 
 Le **7 impronte riverificate dentro lo zip** dopo averlo costruito: 7 giuste, 0 sbagliate.
+
+## §CD — Le tre cose che ha detto la diagnostica di produzione — 7 settembre 2026 (notte)
+
+**La prima volta che leggiamo `errori-richieste.txt` del server vero.** 71 voci, dal 4 al 7 settembre; il
+file si mette da parte da solo a 512 kB, quindi questa è la finestra che c'è. I file stanno fuori dal repo,
+in `diagnostica/` accanto alla cartella di lavoro — ⚠️ **non si committano**: `errori-richieste.txt` porta i
+VID degli utenti.
+
+> ✅ **Zero voci dopo le 20:00 del 7**, cioè **niente** sotto 1.15.0 e 1.15.1. Tutto quel che segue è di
+> prima, e nessuna delle tre cose nasce da quello che è stato caricato stanotte.
+
+### 1. 🔴 La corsa sulla CONNESSIONE, non sul DbContext — tre coppie in un giorno solo
+
+Alle **10:42:01**, **10:50:11** e **16:51:13** (utente non collegato, stesso circuito) escono **due**
+eccezioni nello stesso secondo:
+
+```
+System.NotSupportedException: This method may not be called when another read operation is pending.
+   at System.Net.Security.SslStream.ReadAsyncInternal…
+   at MySqlConnector…ServerSession.TryResetConnectionAsync…      ← apertura della connessione
+   at …EfRoleOverrideStore.ListAsync
+System.NullReferenceException:
+   at MySqlConnector.MySqlDataReader.ActivateResultSet…          ← lettura del risultato
+   at …EfAirportRepository.EnsureDocumentAsync
+   at …AirportSectionsEditor.LoadAsyncCore  →  DocumentEditorShell.InFilaAsync
+```
+
+⚠️ **Non è la solita «A second operation was started»**: qui la EF non se ne accorge nemmeno, e a rompersi è
+il **socket** del connettore MySQL, letto da due flussi insieme. Il fotogramma Vipi passa da
+`InFilaAsync` — **il tornello che esiste apposta per serializzare** — quindi qualcosa gli gira **accanto**,
+fuori dalla fila: la domanda da farsi non è «il tornello funziona?» ma **«chi non ci passa?»**.
+
+Da guardare: `EfRoleOverrideStore.ListAsync` e `EfAirportRepository.EnsureDocumentAsync` sono in due catene
+diverse dello stesso circuito. Vedi le corse già chiuse in `docs/history/` e la voce «pagina vs editor».
+
+### 2. 🔴 Un utente vero ha visto una pagina d'errore sull'editor APP
+
+**14:21:36**, `GET /services/vsop/lirr/apps/editor`, **VID 201143**:
+
+```
+System.NullReferenceException:
+   at Vipi.Ui.Components.Doc.AppSectionsEditor.BuildRenderTree(…) : line 71
+   at …ComponentBase.CallStateHasChangedOnAsyncCompletion(Task task)
+```
+
+La riga cade nella **testata** del componente, dentro il ramo che si disegna quando `_acc` **non** è nullo
+(il `@if (_acc is null)` di riga 26 lo protegge) e che legge `_shell.Doc.VersionStatus` senza `?.`. Lo stack
+dice `CallStateHasChangedOnAsyncCompletion`, cioè un **ridisegno che arriva al termine di un'operazione
+async**: il candidato è un render mentre il caricamento ha rimesso a nullo qualcosa che la testata dà per
+buono. ⚠️ **Da guardare, non da indovinare** — e ci sono due nulli possibili sulla stessa riga.
+
+### 3. 🟡 Il 55% del file è rumore, e un registro di rumore non si legge
+
+**39 voci su 71** sono `ObjectDisposedException` sul `VipiDbContext`: il circuito si chiude (l'utente cambia
+pagina) mentre un caricamento è in volo, e la query esplode su un contesto già smaltito. **Non è un guasto**:
+è il comportamento normale di chi chiude una scheda.
+
+⚠️ Ma è la stessa lezione degli avvisi che suonano sul caso normale: **un registro fatto per più di metà di
+rumore è un registro che si smette di leggere**, e le due cose qui sopra ci sono finite in mezzo. Da
+distinguere: un `ObjectDisposedException` che arriva **dopo** la chiusura del circuito non è una riga
+d'errore, è una nota — o non si scrive, o si scrive altrove.
+
+### Come rileggere questi file la prossima volta
+
+1. **La data prima del contenuto.** `avvio-errore.txt` e `arresto-errore.txt` restano fermi finché non
+   vengono riscritti: quello che c'era stanotte era del **6 settembre**.
+2. **`avvii.txt` dice CHI è morto**: la riga `ARRESTO` porta «acceso per hh:mm:ss», e sottraendola dall'ora
+   si ottiene l'avvio corrispondente — è così che si è visto che il crash delle 21:16 era del processo
+   **1.15.0**, non di 1.15.1.
+3. **Una `BadImageFormatException` allo spegnimento, in un assieme che NON era nel pacchetto**, è la firma
+   della dll sostituita sotto il processo vivo. Non è la versione nuova che non parte.
+
