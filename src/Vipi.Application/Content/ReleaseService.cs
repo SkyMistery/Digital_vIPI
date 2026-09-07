@@ -256,7 +256,17 @@ public sealed class ReleaseService : IReleaseService
         {
             await EnsureCanEditAsync(type, key, ct);
             var solo = await EnsureNotLockedByOthersAsync(type, key, ct);
-            await SnapshotAndSaveAsync(type, key, releaseCycle, _airac.EffectiveUtcForCycle(releaseCycle), note, ct);
+
+            // ⚠️ Nella STESSA transazione del ramo dell'unione, dodici righe più sotto. Fino al 7 settembre
+            // 2026 questa riga stava fuori, e la differenza non aveva una ragione: un documento solo è il
+            // caso N=1 dell'altro, non un'operazione diversa. `SnapshotAndSaveAsync` scrive più di una
+            // volta — la fotografia e la riga di release, con `VersionNumber` = max+1 letto in memoria
+            // sotto un indice UNICO — quindi senza rete un secondo salvataggio che collide lascia dietro
+            // metà lavoro (revisione del 6 settembre 2026, R-017).
+            await _uow.ExecuteInTransactionAsync(
+                token => SnapshotAndSaveAsync(
+                    type, key, releaseCycle, _airac.EffectiveUtcForCycle(releaseCycle), note, token),
+                ct).ConfigureAwait(false);
             // ⚠️ Anche — anzi SOPRATTUTTO — sulla programmata: una release a ciclo futuro non diventa quella
             // in vigore, quindi la deriva continuerebbe a confrontare con la vecchia e a chiedere di
             // ripubblicare per settimane a chi ha appena fatto il gesto giusto.

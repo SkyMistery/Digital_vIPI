@@ -506,7 +506,7 @@ public static class VipiModuleExtensions
     ///
     /// <para>⚠️ <b>Il dispatch è esplicito sui tre provider e il ramo sconosciuto lancia.</b> Prima era
     /// <c>if (Npgsql) reconcile else Migrate()</c>, dove l'<c>else</c> significava «SQLite» per convenzione
-    /// non scritta. Con MySQL configurato quel ramo avrebbe applicato le 68 migrazioni SQLite-flavored a
+    /// non scritta. Con MySQL configurato quel ramo avrebbe applicato le migrazioni SQLite-flavored a
     /// MySQL — cioè la cosa peggiore possibile su un database di produzione, e senza che nulla lo
     /// annunciasse. Un provider nuovo deve fermare l'avvio, non ereditare la strategia di un altro.</para>
     /// </summary>
@@ -550,7 +550,7 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>
-    /// Esegue le quattro manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
+    /// Esegue le CINQUE manutenzioni d'avvio <b>non critiche</b>, ognuna isolata dalle altre: se una
     /// fallisce viene registrata e l'avvio prosegue con le successive.
     ///
     /// <para><b>Perché non basta lasciarle esplodere.</b> Sono passate idempotenti che rigirano a ogni

@@ -43,7 +43,7 @@ public static class DependencyInjection
                 break;
 
             case Persistence.PersistenceProvider.Postgres:
-                // Deploy hostato (Render + Neon): le 60 migrazioni sono SQLite-flavored e non girano su Postgres,
+                // Deploy hostato (Render + Neon): le migrazioni del repo sono SQLite-flavored e non girano su Postgres,
                 // quindi lo schema si crea via EnsureCreated in MigrateVipiDatabase (no cronologia migrazioni).
                 // Adeguato a un DB test/fresco; NON usare EnsureCreated e Migrate insieme sullo stesso DB.
                 services.AddDbContext<VipiDbContext>((sp, o) => o

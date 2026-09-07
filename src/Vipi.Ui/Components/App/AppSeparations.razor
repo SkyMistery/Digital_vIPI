@@ -17,9 +17,9 @@
                 <div class="app-sep-deflbl muted">@L["AppSep_Default"]</div>
             }
             <div class="app-sep-vals">
-                <label>@L["AppSep_Vertical"]<input class="app-in" placeholder="es. 1000 ft" value="@row.Vertical"
+                <label>@L["AppSep_Vertical"]<input class="app-in" placeholder="@L["Common_EsempioPh", "1000 ft"]" value="@row.Vertical"
                                        @onchange="e => Set(idx, AsString(e.Value), row.Lateral, row.Applicability)" /></label>
-                <label>@L["AppSep_Lateral"]<input class="app-in" placeholder="es. 3 NM" value="@row.Lateral"
+                <label>@L["AppSep_Lateral"]<input class="app-in" placeholder="@L["Common_EsempioPh", "3 NM"]" value="@row.Lateral"
                                       @onchange="e => Set(idx, row.Vertical, AsString(e.Value), row.Applicability)" /></label>
                 <button class="btn ghost" title="@L["AppSep_Remove"]" @onclick="() => Remove(idx)">✕</button>
             </div>

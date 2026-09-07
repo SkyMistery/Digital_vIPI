@@ -15,6 +15,13 @@
   <Folder Name="/tools/">
     <Project Path="tools/Vipi.AgreementsToSections/Vipi.AgreementsToSections.csproj" />
     <Project Path="tools/Vipi.MilSopLoader/Vipi.MilSopLoader.csproj" />
+    <!-- ⚠️ Questi tre stavano FUORI dalla soluzione fino al 7 settembre 2026, quindi la CI non li
+         compilava mai: potevano marcire in silenzio, e il primo a scoprirlo sarebbe stato chi li lancia
+         nel momento in cui gli servono — cioè quando il tempo non c'è. Compilarli costa secondi
+         (revisione del 6 settembre 2026, R-005). -->
+    <Project Path="tools/Vipi.AuroraBridge.Cli/Vipi.AuroraBridge.Cli.csproj" />
+    <Project Path="tools/Vipi.AuroraProbe/Vipi.AuroraProbe.csproj" />
+    <Project Path="tools/Vipi.DbSeed/Vipi.DbSeed.csproj" />
     <!-- Sta nella soluzione, a differenza degli altri attrezzi, perché non è uno strumento da lanciare a
          mano una volta: è un passo del PUBLISH. Se smette di compilare, il pacchetto non si costruisce
          più — e questo dev'essere la CI a dirlo, non chi sta preparando una consegna. -->

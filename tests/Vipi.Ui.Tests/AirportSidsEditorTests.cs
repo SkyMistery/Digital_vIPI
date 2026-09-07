@@ -68,8 +68,12 @@ public class AirportSidsEditorTests : TestContext
     [Theory]
     [InlineData("FIX")]
     [InlineData("SID")]
-    [InlineData("Transition")]
-    [InlineData("Type")]
+    // ⚠️ Le CHIAVI e non le parole: dal 7 settembre 2026 queste due etichette passano dai `.resx`
+    // (revisione del 6 settembre, R-026 — erano inglese fisso in un editor usato in italiano, e sono
+    // `aria-label`, cioe' il testo che esiste solo per chi non vede il campo). Il localizzatore del
+    // banco rende la chiave, quindi è la chiave che si cerca nel DOM.
+    [InlineData("Ape_Transition")]
+    [InlineData("Ape_Type")]
     public void Modificare_una_SID_manuale_dice_alla_pagina_che_c_e_da_salvare(string campo)
     {
         var avvisata = 0;
