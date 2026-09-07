@@ -2,16 +2,22 @@
 
 ## Dove siamo — 7 settembre 2026
 
-1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` = `725c0c79`, albero pulito, tutto spinto,
-   nessun ramo di lavoro aperto.
-2. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
+1. **In produzione c'è 1.14.2**, caricata il 7 settembre. `main` è pulito e spinto, nessun ramo di lavoro
+   aperto.
+2. 📦 **IL PACCHETTO 1.15.0 È PRONTO E ASPETTA DI ESSERE CARICATO.**
+   `artifacts/publish/vipi-1.15.0-solo-file-cambiati.zip`, sha256
+   `b05da878551458258086fdd7132c571d7ca0c600c3a5a20616fc6185e3140490`, 4,87 MB, **28 file**, timbro
+   **`1.15.0 · 31fd4194`**. **MINOR**: nessuna migrazione — si carica anche in finestra cieca — ma due gesti
+   a schermo non c'erano. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.0.md`.
+   🔴 **Da dire a chi carica**: i 28 file vanno caricati **tutti insieme**. R-009 ha reso `internal` 74 tipi
+   fra gli assiemi, e un assieme vecchio accanto a uno nuovo non dà errore al caricamento — esplode alla
+   prima pagina, a runtime.
+3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
    l'`.editorconfig`, **non** c'è il passo di CI su `dotnet format`, e il perché sta scritto lì dentro.
-3. 📦 **Il prossimo pacchetto NON è ancora preparato, ed è il passo successivo.** Da 1.14.2 (`5ed5a0c4`) a
-   `725c0c79` ci sono **30 commit** e cambiano **tutti e sei** i progetti; **nessuna migrazione**, quindi si
-   consegna anche in finestra cieca. Numero proposto: **1.15.0** — da confermare **prima** di timbrare.
-   ⚠️ Prima dello zip: `tools/conta-test.sh` è entrato in CI col Lotto 5 e **non è mai girato davvero**.
+   ✅ E `tools/conta-test.sh` — che era entrato in CI senza mai girare davvero — **ha girato**: 15 assiemi,
+   nessun calo, e l'atteso è stato rialzato a quel che c'è adesso.
 4. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
    è congelato. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste
    in archivio prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting.
@@ -27,6 +33,30 @@
 <details>
 <summary><b>La cronologia — storia, non stato.</b> Sono le voci «Aggiornato:» in ordine inverso: dicono
 com'è andata, non com'è adesso. Aprire solo per risalire a un perché.</summary>
+
+**Aggiornato:** 7 settembre 2026, sera tardi — 📦 **IL PACCHETTO 1.15.0 È PRONTO.**
+`vipi-1.15.0-solo-file-cambiati.zip`, sha256 `b05da878551458258086fdd7132c571d7ca0c600c3a5a20616fc6185e3140490`,
+4,87 MB, **28 file**, timbro **`1.15.0 · 31fd4194`**. **MINOR** e non PATCH: nessuna migrazione (si consegna
+via FTP anche in finestra cieca), ma tre lavori chiesti dal committente nel pomeriggio del 7 aggiungono
+**due gesti che non c'erano** — la scheda **«sezioni in comune»** quando si uniscono la vIPI e il vSOP dello
+stesso scalo (si sceglie chi le TIENE, nelle altre si nascondono) e il tasto **⧉ di copia sulla riga** negli
+accordi di coordinamento — più la **chip «Tutto · Pilota · ATC»**, che spariva quando le sezioni marcate
+stavano sul secondo documento di un'unione. Sotto, la **revisione totale** (31 findings + R-009).
+🔴 **Perché ci sono TUTTI gli assiemi, ed è la riga da leggere a chi carica**: R-009 ha reso `internal` 74
+tipi **fra gli assiemi**; un assieme vecchio accanto a uno nuovo non dà errore al caricamento, **esplode al
+caricamento del tipo** alla prima pagina. Entra anche `Vipi.Infrastructure.MySqlMigrations.dll` — nessuna
+migrazione cambiata, ma quell'assieme **referenzia** Infrastructure — mentre **restano fuori**
+`Vipi.AuroraProfiles` e `Vipi.AuroraBridge.Contracts`, che risultano diversi per solo MVID e **non hanno
+nessun `ProjectReference`**: R-009 non può averli toccati. ⚠️ Dentro ci sono **quattro** file di `wwwroot`
+coi loro `.br`/`.gz` **e** `staticwebassets.endpoints.json`, che viaggiano insieme.
+✅ **Provato sul pacchetto pubblicato** (publish win-x64 avviato dalla sua cartella, non sul sorgente): i
+dieci controlli di `pacchetto-verifica.js` verdi — JS minificato servito, circuito aperto, **Ricerca che
+risponde**, editor che si apre, foglio di stile in vigore, console pulita — il timbro dice
+`1.15.0 · 31fd419`, la scheda delle sezioni in comune funziona anche lì (11 cambiate, poi 0 ripremendo), e
+il processo **ucciso e riavviato** ha fatto ricaricare la pagina **da sola** in 9 secondi.
+▶ **Resta da fare**: caricarlo (28 file, tutti insieme), poi la prova da fuori con
+`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node pacchetto-verifica.js` **mentre chi carica è ancora al
+telefono**.
 
 **Aggiornato:** 7 settembre 2026, sera — ✅ **LA REVISIONE TOTALE È CHIUSA: SETTE LOTTI IN UNA GIORNATA.**
 31 findings su 33 lavorati e fusi in `main` (`4f4ccafb`), più **R-009** in due tagli (`6c6ce07f`,

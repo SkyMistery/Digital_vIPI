@@ -1,35 +1,41 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 7 settembre 2026 — 📦 **1.14.1 È PRONTA DA CARICARE**, e ✅ **la revisione totale
-del codice è chiusa** (33 findings, sette lotti: vedi in fondo).
+**Ultimo aggiornamento:** 7 settembre 2026, sera — 📦 **1.15.0 È PRONTA DA CARICARE**, e ✅ **la revisione
+totale del codice è chiusa** (31 findings su 33 più R-009, sette lotti: vedi in fondo).
 
-`artifacts/publish/vipi-1.14.1-solo-file-cambiati.zip` · sha256 `b3172f28…` · 3,43 MB · **7 file** ·
-timbro **`1.14.1 · 27bd6616`**. **PATCH**, **NESSUNA migrazione** → si consegna da sola via FTP anche
-dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.1.md`.
+`artifacts/publish/vipi-1.15.0-solo-file-cambiati.zip` · sha256 `b05da878…` · 4,87 MB · **28 file** ·
+timbro **`1.15.0 · 31fd4194`**. **MINOR**, **NESSUNA migrazione** → si consegna da sola via FTP anche
+dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.0.md`.
 
-> ### ⚠️ Sostituisce **1.13.0**, non 1.14.0 — e lo zip di 1.14.0 si BUTTA
+> ### 🔴 I 28 file si caricano TUTTI INSIEME
 >
-> 1.14.0 era pronta e **non è mai stata caricata**; poi ci è entrata la correzione delle piste, quindi il
-> numero è salito: *il numero segue il contenuto*, e due zip diversi timbrati entrambi `1.14.0` sarebbero
-> l'ambiguità che il timbro esiste per impedire. **1.14.1 contiene tutto 1.14.0 più la correzione.**
-> Il foglio di 1.14.0 resta valido per la parte che descrive, e va letto insieme al nuovo.
+> R-009 ha reso `internal` **74 tipi fra gli assiemi**. Un assieme vecchio lasciato accanto a uno nuovo non
+> dà nessun errore mentre si carica: **esplode al caricamento del tipo**, cioè alla prima pagina che qualcuno
+> apre. Se il caricamento si interrompe a metà, **non si riavvia**: si finisce, oppure si rimettono i file di
+> 1.14.2.
+>
+> ⚠️ E ci sono **quattro** file di `wwwroot` coi loro `.br`/`.gz`, che viaggiano **insieme** a
+> `Vipi.Host.staticwebassets.endpoints.json`: uno senza l'altro fa chiedere al sito nomi che non esistono.
 
-**Dentro**: lo **stato della traduzione nell'editor**, che prima si spegneva da solo (§CB) · **§CA**, i
-link dell'elenco dei vSOP militari che aprono in vista pilota · e le **piste in METRI**.
+**Dentro**: la scheda **«sezioni in comune»** quando si uniscono la vIPI e il vSOP dello stesso scalo (si
+sceglie chi le **tiene**, nelle altre si nascondono) · il tasto **⧉ di copia sulla riga** negli accordi di
+coordinamento · la **chip «Tutto · Pilota · ATC»**, che spariva se le sezioni marcate stavano sul secondo
+documento di un'unione · e sotto, la **revisione totale** del 6-7 settembre.
 
 > ### ▶ Da dire a chi carica, e da controllare mentre è ancora al telefono
 >
-> **1. Il cruscotto della traduzione.** Si apre un documento qualsiasi **in modifica**, barra della lingua su
-> **IT**, e si apre il blocco «Traduzione». Deve comparire una riga con **due percentuali** (bozza e
-> pubblicato) e il tasto **«Traduci ora»**. Se dice solo «stai leggendo nella lingua in cui questo documento
-> è scritto», sta girando ancora la versione vecchia.
+> **1. La Ricerca.** Due lettere nel campo in alto: la riga sotto deve cambiare. È l'unico controllo che
+> passa dal **server** — lingua, zoom e tema funzionano anche su un sito che non è mai partito.
 >
-> **2. Le piste, e si guarda DUE volte — prima e dopo.** **LIRF**, sezione Piste, 16L/34R deve dire
-> **~3 900 m**. Se **prima** di caricare dice già ~1 189, un giro è già passato con la sorgente nuova e il
-> programma vecchio: il re-import dopo il caricamento rimette a posto. Se lo dice **dopo** il re-import,
-> `Vipi.Infrastructure.dll` non è stato caricato.
+> **2. Una pagina con la grafica giusta.** È il controllo dei fogli di stile: se l'indice e i fogli non sono
+> arrivati insieme, la pagina esce **senza grafica**.
 >
-> ⚠️ §CA **non si vedrà**: non c'è nessun vSOP militare pubblicato, su nessuno dei quattro ACC.
+> **3. Il timbro**: `diagnostica/avvio-diagnostica.txt` deve dire `1.15.0 · 31fd4194`. ⚠️ Il timbro dice
+> quale versione è partita, **non** che il sito risponda: il controllo vero resta il primo.
+
+✅ **Provato sul pacchetto pubblicato** (win-x64 avviato dalla sua cartella, non sul sorgente): dieci
+controlli verdi, la scheda delle sezioni in comune funziona anche lì, e il processo ucciso e riavviato fa
+**ricaricare la pagina da sola** in 9 secondi.
 
 ### Le piste arrivano in METRI (7 settembre)
 
