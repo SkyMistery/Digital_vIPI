@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4d fatti), 21 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4d chiusi, il resto campionato), 22 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -83,7 +83,7 @@ parte da `2b33791a` e non lo tocca.
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
-| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 4c ✅ · 4d ✅ · 4e parziale · 5 findings |
+| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a-4d ✅ · 4e/4g/4h/4i/4k campionati · 6 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
@@ -143,6 +143,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-019** | 4c | S3 | 🟢 | CONFERMATO | **Tre validatori accettano ciò che il loro contratto dichiara di rifiutare**: `"+261"` come ciclo AIRAC, una latitudine di 91°, un segno dentro un DMS | `AiracService.cs:36` · `DmsCoordinate.cs:36,60` |
 | **R-020** | 4d | **S2** | 🟢 | CONFERMATO | **Il `rowspan` non produce la cella vuota che il commento promette**: le righe sotto una cella unita scalano a sinistra, e l'anteprima mostra una tabella plausibile e sbagliata | `src/Vipi.Application/Import/TabellaHtml.cs:20-23,64-69` |
 | **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
+| **R-022** | 4i | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 
 ---
 
@@ -999,3 +1000,56 @@ non nel contratto. Bastano un intervallo plausibile e un avviso.
   modifica e ripristino da snapshot. L'unicità della coppia non orientata non dipende da chi chiama.
 - **Le regole di sezione degli accordi**: arrivi e partenze pretendono un aeroporto, i sorvoli lo vietano,
   gli ICAO non possono ripetersi. Ognuna con la ragione, e una col riferimento al caso che l'ha prodotta.
+
+## 4e · 4g · 4h · 4i · 4k — passata trasversale sui meccanismi a rischio 🔵
+
+Gli ambiti restano **aperti**: questa non è la loro lettura per intero, è una passata mirata sui meccanismi
+dove un difetto costa di più — il tempo che si piega, i lock, i tetti di spesa, i numeri mostrati come veri.
+Un finding, e sette meccanismi verificati integri.
+
+### R-022 — La premessa scritta nel `DbContext` è già falsa
+
+`src/Vipi.Infrastructure/Persistence/VipiDbContext.cs:52-55` · **S3** · 🟢 · CONFERMATO
+
+`RuotaTokenDiConcorrenza` — il metodo che assegna un token nuovo a ogni entità versionata a ogni salvataggio,
+cioè la garanzia centrale della concorrenza ottimistica — chiude con questo avvertimento:
+
+> *«⚠️ Restano fuori `ExecuteUpdate`/`ExecuteDelete`, che non passano dal change-tracker né da qui. **Oggi è
+> innocuo — l'unica entità che li usa (`EditResourceLock`) non ha token** — ma è la condizione da
+> ricontrollare prima di convertire una scrittura su entità versionata in `ExecuteUpdate`.»*
+
+La premessa non regge. `Document` **ha** il token (`VipiDbContext:338`), e `EfEditingRepository` lo scrive con
+`ExecuteUpdateAsync` in **quattro** punti: acquisizione del lock (1226), rinnovo (1262), rilascio (1268),
+sblocco forzato (1284).
+
+**Perché non è S2.** Il comportamento è, in questo caso, quello **giusto**: le colonne toccate sono soltanto
+quelle del lock, e ruotare il token a ogni battito del lock — uno ogni pochi secondi — farebbe fallire il
+salvataggio di chiunque avesse l'editor aperto. Non ruotarlo è la scelta corretta, anche se nessuno l'ha
+scritta.
+
+**Perché conta lo stesso.** Quella frase non descrive: **autorizza**. È la guardia lasciata a chi verrà dopo,
+e dice «puoi convertire in `ExecuteUpdate` finché l'entità non ha un token». Chi la legge oggi conclude che
+nessuna entità versionata è scritta così — e non è vero da quattro punti. La prossima conversione su
+`Document` potrebbe essere una che il token lo deve ruotare (una promozione di bozza, un cambio di stato), e
+la guardia avrà detto di sì.
+
+**Rimedio:** correggere la premessa e dire la regola vera — *«su `Document` si scrive con `ExecuteUpdate`
+soltanto per le colonne del lock, che di proposito non ruotano il token»* — invece di lasciare in piedi
+un'affermazione che un `grep` smentisce in dieci secondi.
+
+### I sette meccanismi verificati integri
+
+| Ambito | Meccanismo | Esito |
+|---|---|---|
+| 4g | **Il giorno operativo delle regole pista.** Una finestra 22:00→06:00 vive in due giorni di calendario, e la coda dopo mezzanotte deve contare come il giorno *prima* — o «venerdì notte» diventa sabato | ✅ `GiornoOperativo` sottrae un giorno solo quando la finestra scavalca **e** l'ora sta nella coda. Giorni della settimana, parità e finestra stagionale si valutano tutti sul giorno operativo, non sul calendario |
+| 4g | Finestre di orario e stagionali col **wrap** (22:00→06:00, 1101→0228), fuso italiano con DST e ripiego a UTC se il fuso non c'è | ✅ entrambe con la stessa forma `f <= t ? dentro : fuori-o-dentro`, e la rimappa Domenica→6 per il bitmask |
+| 4e | `PolygonGeometry.Contains` | ✅ (già in 4c) |
+| 4i | **Acquisizione del lock**, di documento e di risorsa: `ExecuteUpdate` con la condizione «libero, scaduto o già mio» **dentro la `WHERE`** | ✅ è atomica lato database: due editori non possono prenderlo entrambi. L'inserimento della prima riga cattura la violazione di unicità e ricade sull'ispezione |
+| 4k | **La griglia di copertura.** Due controllori sovrapposti non devono contare doppio, e una sessione a cavallo di un'ora non deve dare il 120% | ✅ si fondono gli intervalli **prima** di contare (`Unione`), i minuti si spalmano sulle caselle attraversate, e il clamp sul bordo della finestra è scritto con la sua ragione |
+| 4h | **Il tetto di spesa di traduzione** si legge dal registro `TranslationSpends` invece che dedurlo dalla memoria — perché la spesa dedotta non vede i segmenti tornati rotti | ✅ e la fotografia iniziale «una volta sola per motore» si chiede al **database**, non a un flag in memoria che un riavvio azzererebbe |
+| 4b/4j | `AuditScribe` dopo un `ExecuteUpdate` ha il suo `SaveChanges` esplicito, «perché qui non c'è un salvataggio dell'atto a cui accodarsi» | ✅ |
+
+> **Nota di metodo.** Tre di questi sette sono meccanismi che in altri repository sarebbero difetti quasi
+> certi — il giorno operativo, la fusione degli intervalli, l'atomicità del lock. Qui sono corretti **e**
+> commentati con il caso che li ha prodotti. Vale la pena scriverlo, perché è la ragione per cui la resa di
+> questa fase è bassa: non è che si stia cercando male.
