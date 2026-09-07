@@ -1,7 +1,7 @@
 From 5841bf07bd6f6435323117efe5380cc6ad7f792e Mon Sep 17 00:00:00 2001
 From: Carmine Granato <cgranatojr@gmail.com>
 Date: Sat, 1 Aug 2026 02:48:26 +0200
-Subject: [PATCH] Aggancia il modulo vIPI/vLOA (pagine /vsop)
+Subject: [PATCH] Aggancia il modulo vIPI/vLOA (pagine /services/vsop)
 
 Il modulo e' una Razor Class Library Blazor + le sue librerie di logica, gira
 in-process, riusa il login IVAO gia' presente e non espone endpoint nuovi sul
@@ -20,8 +20,16 @@ AdditionalAssemblies sul <Router> per quello interattivo. Aggiornarne uno
 solo produce 404 al primo caricamento con la navigazione interna
 funzionante: sintomo fuorviante.
 
-L'hook enhancedload in App.razor non e' cosmetico: la navigazione enhanced
-rimpiazza il DOM e perde gli handler del modulo.
+Il riaggancio dopo la navigazione "enhanced" non e' cosmetico - quella
+rimpiazza il DOM e perde gli handler del modulo - ma non e' piu' un hook da
+scrivere nel sito: lo fa vipi-boot.js, che carica anche i moduli pesanti solo
+dove servono.
+
+RunVipiStartupMaintenance() e' l'ombrello di cinque passi d'avvio (promozioni
+a mano, riconciliazioni, proiezione dei settori, backfill delle release,
+pulizia delle unioni). Senza, il sito parte VERDE con le promozioni ignorate e
+i settori non proiettati: la rete del Degraded scatta solo se un passo gira e
+fallisce, non se non gira affatto.
 
 Il modulo usa DbContext e connection string propri, separati dal MySQL del
 sito. Supporta SQLite e PostgreSQL, non MySQL: qui e' impostato SQLite su
@@ -30,13 +38,13 @@ file, adatto a provarlo ma da decidere per la produzione (sezione 3).
 Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
 ---
  INTEGRAZIONE-VIPI.md                          | 153 ++++++++++++++++++
- src/Frontend/Website/Features/App.razor       |  41 ++++-
+ src/Frontend/Website/Features/App.razor       |  37 +++++-
  src/Frontend/Website/Features/Routes.razor    |   7 +-
  src/Frontend/Website/Ivao.It.Website.csproj   |  10 ++
- src/Frontend/Website/Program.cs               |  23 ++-
+ src/Frontend/Website/Program.cs               |  31 +++++-
  src/Frontend/Website/appsettings.json         |  26 ++-
  .../Website/appsettings.production.json       |   6 +-
- 7 files changed, 261 insertions(+), 5 deletions(-)
+ 7 files changed, 265 insertions(+), 5 deletions(-)
  create mode 100644 INTEGRAZIONE-VIPI.md
 
 diff --git a/INTEGRAZIONE-VIPI.md b/INTEGRAZIONE-VIPI.md
@@ -50,7 +58,7 @@ index 0000000..e6f9e7a
 +Il modulo vIPI/vLOA Interactive (documentazione operativa ATC: vIPI ACC, vIPI APP, aeroporti, vLOA,
 +vista live) è una **Razor Class Library Blazor** più le sue librerie di logica. Gira **in-process**
 +dentro `Ivao.It.Website`, riusa il login IVAO già presente e **non espone alcun endpoint nuovo** sul
-+sito. Le sue pagine vivono sotto il prefisso **`/vsop`**.
++sito. Le sue pagine vivono sotto il prefisso **`/services/vsop`**.
 +
 +Repository: <https://github.com/SkyMistery/Digital_vIPI> — tag **`embed-v1.0`**.
 +
@@ -74,15 +82,15 @@ index 0000000..e6f9e7a
 +| File | Modifica |
 +|---|---|
 +| `src/Frontend/Website/Ivao.It.Website.csproj` | 5 `ProjectReference` verso `external/vipi` |
-+| `src/Frontend/Website/Program.cs` | `AddVipiModule` · `MigrateVipiDatabase` · `UseVipiModule` · `MapVipiModule` · `AddAdditionalAssemblies` |
++| `src/Frontend/Website/Program.cs` | `AddVipiModule` · `MigrateVipiDatabase` · `RunVipiStartupMaintenance` · `UseVipiModule` · `MapVipiModule` · `AddAdditionalAssemblies` |
 +| `src/Frontend/Website/Features/Routes.razor` | `AdditionalAssemblies` sul `<Router>` |
-+| `src/Frontend/Website/Features/App.razor` | CSS/JS del modulo + hook `enhancedload` |
++| `src/Frontend/Website/Features/App.razor` | CSS e JS del modulo (il riaggancio dopo la navigazione lo fa `vipi-boot.js`) |
 +| `src/Frontend/Website/appsettings.json` | sezioni `Division`, `HostIdentity`, `Vipi`, `Persistence`, `DataSource`, connection string `Vipi` (SQLite) |
 +| `src/Frontend/Website/appsettings.production.json` | variante **PostgreSQL**: `Persistence:Provider` + connection string `Vipi` da riempire (vedi §3) |
 +
 +Le pagine della RCL vanno registrate in **due** posti — `AddAdditionalAssemblies` per il routing SSR
 +statico e `AdditionalAssemblies` sul `<Router>` per quello interattivo. Se se ne aggiorna uno solo, le
-+pagine `/vsop` danno 404 al primo caricamento ma funzionano navigando internamente: sintomo tipico e
++pagine `/services/vsop` danno 404 al primo caricamento ma funzionano navigando internamente: sintomo tipico e
 +fuorviante.
 +
 +La solution `Ivao.It.Frontend.sln` **non** è stata toccata: il build passa dai `ProjectReference`.
@@ -155,7 +163,7 @@ index 0000000..e6f9e7a
 +come non-staff senza alcun errore visibile.
 +
 +Admin = staff position che matcha `^IT-<ruolo>$`. I permessi per-ACC si concedono da
-+`/vsop/admin/permessi`, e l'elenco si popola con gli staffisti che hanno fatto login almeno una volta.
++`/services/vsop/admin/permissions`, e l'elenco si popola con gli staffisti che hanno fatto login almeno una volta.
 +
 +## 5. Segreti
 +
@@ -178,18 +186,18 @@ index 0000000..e6f9e7a
 +Poi, ad app avviata:
 +
 +- `GET /vsop/health/ready` → 200 (DB raggiungibile, schema allineato).
-+- `/vsop` da loggati: in alto compare l'utente; se admin, i tasti **Editor** e **Permessi**.
-+- Navigare dal sito a `/vsop` e ritorno: se la mappa AoR smette di funzionare dopo la prima
++- `/services/vsop` da loggati: in alto compare l'utente; se admin, i tasti **Editor** e **Permessi**.
++- Navigare dal sito a `/services/vsop` e ritorno: se la mappa AoR smette di funzionare dopo la prima
 +  navigazione, manca l'hook `enhancedload` in `App.razor`.
 +
 +## 7. Vincoli noti
 +
-+- **Prefisso `/vsop` fisso** nelle direttive `@page`. Per montarlo altrove serve un reverse proxy.
++- **Prefisso `/services/vsop` fisso** nelle direttive `@page`. Per montarlo altrove serve un reverse proxy.
 +- **`Vipi:RenderTopbar=false`** nella patch: il sito ha già la propria header, e senza questo flag ne
 +  comparirebbero due.
 +- **Stili confinati sotto `.vipi-root`**: il modulo non tocca `body`/reset del sito.
-+- **Leaflet da CDN unpkg** — verificate che la vostra CSP lo consenta. Self-hostandolo, l'obbligo di
-+  notice BSD-2-Clause passa a voi.
++- **Leaflet e three.js sono vendorizzati nel modulo** (dal 22 agosto 2026): nessun CDN da consentire
++  nella vostra CSP, e l'obbligo di notice BSD-2-Clause resta nostro. Esterne restano le sole TESSERE.
 +- **Nessun `MapStaticAssets`**: è .NET 9+, quindi su net8 gli asset della RCL sono referenziati con
 +  path nudi sotto `UseStaticFiles()`, senza cache-busting per impronta.
 +
@@ -202,57 +210,53 @@ diff --git a/src/Frontend/Website/Features/App.razor b/src/Frontend/Website/Feat
 index 84cd65f..46c7547 100644
 --- a/src/Frontend/Website/Features/App.razor
 +++ b/src/Frontend/Website/Features/App.razor
-@@ -27,6 +27,17 @@
+@@ -27,6 +27,16 @@
      <link href="css/ivao-it/ivao-it.min.css" rel="stylesheet" />
      <link href="Ivao.It.Website.styles.css" rel="stylesheet" />
  
-+    <!--Modulo vIPI/vLOA (pagine /vsop). Gli stili sono confinati sotto .vipi-root: non toccano
-+        body/reset del sito. Vedi INTEGRAZIONE-VIPI.md.-->
++    <!--Modulo vIPI/vLOA (pagine /services/vsop). Gli stili sono confinati sotto .vipi-root: non
++        toccano body/reset del sito. Vedi INTEGRAZIONE-VIPI.md.-->
 +    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-fonts.css" />
 +    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-theme.css" />
 +    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-aor3d.css" />
-+    <link rel="stylesheet" href="_content/Vipi.Ui/vipi-print.css" />
-+    <!--Leaflet (mappe AoR). Dipendenza da CDN esterna: se la CSP del sito non la consente, va
-+        self-hostata e in quel caso scatta l'obbligo di notice BSD-2-Clause.-->
-+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
++    <!--Il foglio di stampa e' media="print": senza, le sue regole valgono anche a schermo.-->
++    <link rel="stylesheet" media="print" href="_content/Vipi.Ui/vipi-print.css" />
++    <!--Il tema chiaro/scuro si sceglie PRIMA della prima pittura, o la pagina lampeggia bianca.-->
++    <script src="_content/Vipi.Ui/vipi-theme-mode.js"></script>
 +
      <!--Icons-->
      <link rel="apple-touch-icon-precomposed" sizes="57x57" href="favicon/apple-touch-icon-57x57.png" />
      <link rel="apple-touch-icon-precomposed" sizes="114x114" href="favicon/apple-touch-icon-114x114.png" />
-@@ -83,7 +94,35 @@
+@@ -83,7 +93,32 @@
  
      <link rel="stylesheet" type="text/css" href="/" media="print" />
      <script src="_framework/blazor.web.js"></script>
 -    
 +
-+    <!--Modulo vIPI/vLOA. Le funzioni sono tutte sotto il prefisso vipi*, non collidono.-->
-+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
++    <!--Modulo vIPI/vLOA. Le funzioni stanno tutte sotto il prefisso vipi*, non collidono.
++        Vanno DOPO blazor.web.js, che e' quello che definisce `Blazor`.-->
++    <script src="_content/Vipi.Ui/vipi-riconnessione.js"></script>
 +    <script src="_content/Vipi.Ui/vipi-ui.js"></script>
-+    <script src="_content/Vipi.Ui/vipi-screens.js"></script>
++    <script src="_content/Vipi.Ui/vipi-time.js"></script>
 +    <script src="_content/Vipi.Ui/vipi-live.js"></script>
-+    <script src="_content/Vipi.Ui/vipi-aor.js"></script>
-+    <!--three.js (r128 UMD, 592 KB) NON va caricato qui: serve al solo tab 3D dell'AoR, mentre questo head
-+        vale per ogni pagina del sito. L'URL passa a vipi-aor3d.js via data-three-src, che lo carica alla
-+        prima apertura di uno stage 3D.-->
-+    <script src="_content/Vipi.Ui/vipi-aor3d.js"
-+            data-three-src="_content/Vipi.Ui/vendor/three.min.js"></script>
 +    <script src="_content/Vipi.Ui/vipi-editor.js"></script>
-+    <script src="_content/Vipi.Ui/vipi-tour.js"></script>
 +    <script src="_content/Vipi.Ui/vipi-media.js"></script>
-+    <script>
-+        // Obbligatorio, non cosmetico: la navigazione "enhanced" di Blazor rimpiazza il DOM e perde gli
-+        // handler del modulo. Senza questo hook mappe, live e editor smettono di funzionare dopo la prima
-+        // navigazione interna, e la pagina sembra rotta solo a volte.
-+        Blazor.addEventListener('enhancedload', function () {
-+            window.vipiWireUi && window.vipiWireUi();
-+            window.vipiInitScreens && window.vipiInitScreens();
-+            window.vipiInitAor && window.vipiInitAor();
-+            window.vipiInitAor3d && window.vipiInitAor3d();
-+            window.vipiMaybeTour && window.vipiMaybeTour();
-+        });
-+    </script>
++    <script src="_content/Vipi.Ui/vipi-zoom.js"></script>
++    <!--I quattro moduli pesanti - mappe AoR, carte delle minime, viewer 3D, tour - NON si caricano qui:
++        li tira dentro vipi-boot.js quando la pagina mostra qualcosa su cui possano lavorare, e con loro
++        le librerie vendorizzate. Leaflet e three.js NON stanno piu' su un CDN dal 22 agosto 2026: l'SRI
++        copriva la manomissione ma non l'irraggiungibilita', e CDN giu' voleva dire tutte le mappe vuote.
++        E' anche vipi-boot.js a riagganciare il modulo dopo una navigazione "enhanced": l'hook inline che
++        questa patch portava fino al 7 settembre 2026 non serve piu', e nominava funzioni che oggi in
++        parte non esistono.-->
++    <script src="_content/Vipi.Ui/vipi-boot.js"
++            data-aor-src="_content/Vipi.Ui/vipi-aor.js"
++            data-leaflet-src="_content/Vipi.Ui/vendor/leaflet/leaflet.js"
++            data-leaflet-css="_content/Vipi.Ui/vendor/leaflet/leaflet.css"
++            data-mva-src="_content/Vipi.Ui/vipi-mva.js"
++            data-aor3d-src="_content/Vipi.Ui/vipi-aor3d.js"
++            data-three-src="_content/Vipi.Ui/vendor/three.min.js"
++            data-tour-src="_content/Vipi.Ui/vipi-tour.js"></script>
 +
      <script>
          //Get current user agent for stats
@@ -268,7 +272,7 @@ index 98b9fd1..5daea24 100644
 -<Router AppAssembly="typeof(Program).Assembly">
 +@* AdditionalAssemblies serve al routing INTERATTIVO (questo Router). Il routing SSR statico passa invece
 +   da AddAdditionalAssemblies() su MapRazorComponents in Program.cs: vanno tenuti allineati, o le pagine
-+   /vsop rispondono solo in uno dei due percorsi (sintomo tipico: 404 al primo caricamento, ma la
++   /services/vsop rispondono solo in uno dei due percorsi (sintomo tipico: 404 al primo caricamento, ma la
 +   navigazione interna funziona). *@
 +<Router AppAssembly="typeof(Program).Assembly"
 +        AdditionalAssemblies="new[] { Vipi.Hosting.VipiModuleExtensions.UiAssembly }">
@@ -306,11 +310,11 @@ index 53970c8..2214d66 100644
  
  var builder = WebApplication.CreateBuilder(args);
  
-@@ -41,9 +42,18 @@ builder.Services.AddIvaoItLegacyUserData(builder.Configuration);
+@@ -41,9 +42,26 @@ builder.Services.AddIvaoItLegacyUserData(builder.Configuration);
  builder.Services.AddContentsApi(builder.Configuration)
                  .AddEventsApi(builder.Configuration);
  
-+// Modulo vIPI/vLOA (pagine sotto /vsop). Registra Application, EF, polling IVAO, opzioni e identita'.
++// Modulo vIPI/vLOA (pagine sotto /services/vsop). Registra Application, EF, polling IVAO, opzioni e identita'.
 +// useDevIdentity:false => l'identita' e' letta dal ClaimsPrincipal gia' autenticato da AddIvaoAuth:
 +// nessun secondo login, nessun endpoint nuovo esposto. Mappa dei claim in appsettings, sezione HostIdentity.
 +// Il modulo usa un DbContext e una connection string PROPRI ("Vipi"), separati dal MySQL del sito.
@@ -320,12 +324,20 @@ index 53970c8..2214d66 100644
  var app = builder.Build();
  
 +// Crea/migra il DB del modulo (SQLite o PostgreSQL secondo Persistence:Provider).
++// CRITICA: un guasto qui deve fermare l'avvio, o si servono pagine su uno schema che non e' il suo.
 +app.MigrateVipiDatabase();
++
++// Le manutenzioni d'avvio, ognuna isolata dalle altre: promozioni a mano, riconciliazioni documentali,
++// proiezione dei settori dai cataloghi, backfill delle release, pulizia delle unioni. Idempotenti e NON
++// fatali: un guasto finisce nella diagnostica e manda /vsop/health in Degraded, l'avvio prosegue.
++// ATTENZIONE: senza questa riga il sito parte VERDE con le promozioni a mano ignorate e i settori non
++// proiettati - la rete del Degraded scatta solo se un passo gira e FALLISCE, non se non gira affatto.
++app.RunVipiStartupMaintenance();
 +
  // Configure the HTTP request pipeline.
  if (app.Environment.IsStaging() || app.Environment.IsProduction())
  {
-@@ -65,12 +75,23 @@ app.UseHttpsRedirection();
+@@ -65,12 +83,23 @@ app.UseHttpsRedirection();
  app.UseAntiforgery();
  app.UseStaticFiles();
  
