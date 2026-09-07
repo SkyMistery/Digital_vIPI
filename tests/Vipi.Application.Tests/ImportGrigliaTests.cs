@@ -111,6 +111,75 @@ public class ImportGrigliaTests
         Assert.Equal(new[] { "unita", "", "c" }, g.Riga(0));
     }
 
+    /// <summary>
+    /// ⚠️ <b>E lo stesso vale in verticale.</b> Fino al 7 settembre 2026 il commento del file prometteva la
+    /// cella vuota per il <c>rowspan</c> e non c'era nessun ramo che la inserisse: la riga di continuazione
+    /// aveva un <c>td</c> in meno, e da lì in giù ogni colonna scalava a sinistra. Non un buco — una tabella
+    /// plausibile e sbagliata, che è precisamente il difetto per cui il <c>colspan</c> si espande.
+    ///
+    /// <para>Le tabelle aeronautiche uniscono in verticale di continuo, e le rende così anche questo sito:
+    /// bastava copiare una pagina della vIPI e reincollarla nell'import (revisione del 6 settembre, R-020).</para>
+    /// </summary>
+    [Fact]
+    public void Il_rowspan_lascia_la_cella_vuota_nella_riga_sotto()
+    {
+        var g = Griglia.Leggi(
+            "<table>" +
+            "<tr><td rowspan=\"2\">LIRF</td><td>16R</td><td>ILS</td></tr>" +
+            "<tr><td>16L</td><td>RNP</td></tr>" +
+            "<tr><td>LIRA</td><td>16</td><td>VOR</td></tr>" +
+            "</table>");
+
+        Assert.Equal(new[] { "LIRF", "16R", "ILS" }, g.Riga(0));
+        // La riga di mezzo ha DUE celle scritte e tre colonne: la prima è quella coperta dall'unione.
+        Assert.Equal(new[] { "", "16L", "RNP" }, g.Riga(1));
+        Assert.Equal(new[] { "LIRA", "16", "VOR" }, g.Riga(2));
+    }
+
+    /// <summary>Una cella unita per tre righe copre le due sotto, non solo la prima.</summary>
+    [Fact]
+    public void Un_rowspan_di_tre_copre_le_due_righe_sotto()
+    {
+        var g = Griglia.Leggi(
+            "<table>" +
+            "<tr><td rowspan=\"3\">LIRR</td><td>a</td></tr>" +
+            "<tr><td>b</td></tr><tr><td>c</td></tr><tr><td>LIMM</td><td>d</td></tr>" +
+            "</table>");
+
+        Assert.Equal(new[] { "LIRR", "a" }, g.Riga(0));
+        Assert.Equal(new[] { "", "b" }, g.Riga(1));
+        Assert.Equal(new[] { "", "c" }, g.Riga(2));
+        Assert.Equal(new[] { "LIMM", "d" }, g.Riga(3));
+    }
+
+    /// <summary>⚠️ L'unione sull'ULTIMA colonna: sotto non c'è nessuna cella scritta a farle da innesco, e
+    /// la vuota va messa lo stesso o la riga esce più corta.</summary>
+    [Fact]
+    public void Un_rowspan_in_coda_riga_lascia_la_vuota_lo_stesso()
+    {
+        var g = Griglia.Leggi(
+            "<table>" +
+            "<tr><td>a</td><td rowspan=\"2\">nota</td></tr><tr><td>b</td></tr>" +
+            "</table>");
+
+        Assert.Equal(new[] { "a", "nota" }, g.Riga(0));
+        Assert.Equal(new[] { "b", "" }, g.Riga(1));
+    }
+
+    /// <summary>Le due unioni insieme: due colonne e due righe dalla stessa cella.</summary>
+    [Fact]
+    public void Colspan_e_rowspan_insieme_coprono_il_rettangolo()
+    {
+        var g = Griglia.Leggi(
+            "<table>" +
+            "<tr><td colspan=\"2\" rowspan=\"2\">blocco</td><td>x</td></tr>" +
+            "<tr><td>y</td></tr>" +
+            "</table>");
+
+        Assert.Equal(new[] { "blocco", "", "x" }, g.Riga(0));
+        Assert.Equal(new[] { "", "", "y" }, g.Riga(1));
+    }
+
     [Fact]
     public void Le_entita_e_le_interruzioni_si_sciolgono()
     {
