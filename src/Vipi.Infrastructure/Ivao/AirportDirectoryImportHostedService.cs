@@ -30,7 +30,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// (<see cref="IAirportImportUseCase"/>; il guard admin lo mette
 /// <c>StructureEditingService.AutoAssignKnownAirportsAsync</c>, che è l'altro chiamante).</para>
 /// </summary>
-public sealed class AirportDirectoryImportHostedService : BackgroundService
+internal sealed class AirportDirectoryImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

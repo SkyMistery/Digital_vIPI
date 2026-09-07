@@ -64,7 +64,7 @@ public sealed class CoordinationSentenceOptions
 
 /// <summary>Espone il template corrente della frase di coordinamento, con hot-reload dal file (IOptionsMonitor).
 /// I campi mancanti nel file ricadono sul default hardcoded di <see cref="CoordinationSentenceTemplate.Default"/>.</summary>
-public sealed class CoordinationSentenceTemplateProvider : ICoordinationSentenceTemplate
+internal sealed class CoordinationSentenceTemplateProvider : ICoordinationSentenceTemplate
 {
     private readonly IOptionsMonitor<CoordinationSentenceOptions> _mon;
 

@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// (niente authz utente). Preserva IsHidden e i limiti admin. Resiliente: errori loggati senza uccidere
 /// il loop; se le credenziali sorgente mancano, salta in silenzio.
 /// </summary>
-public sealed class AirportSectorImportHostedService : BackgroundService
+internal sealed class AirportSectorImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

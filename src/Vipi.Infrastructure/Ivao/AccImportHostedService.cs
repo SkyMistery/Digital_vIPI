@@ -13,7 +13,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// IsHidden e i limiti impostati dall'admin. Resiliente: errori loggati, senza uccidere il loop;
 /// se le credenziali sorgente mancano, salta in silenzio.
 /// </summary>
-public sealed class AccImportHostedService : BackgroundService
+internal sealed class AccImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly IvaoOptions _opt;

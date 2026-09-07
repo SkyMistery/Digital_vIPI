@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// uno sha è citato; a chi sta per cancellare un allegato serve sapere <b>quali</b> documenti cambiano —
 /// è l'unica informazione con cui si decide, e senza la schermata di conferma sarebbe un «sei sicuro?».</para>
 /// </summary>
-public sealed class EfAttachmentTextSource : IAttachmentTextSource
+internal sealed class EfAttachmentTextSource : IAttachmentTextSource
 {
     private readonly VipiDbContext _db;
 

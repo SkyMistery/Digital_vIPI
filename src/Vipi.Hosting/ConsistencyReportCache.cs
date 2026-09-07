@@ -23,6 +23,9 @@ namespace Vipi.Hosting;
 /// <para>⚠️ Vale <b>solo</b> per l'health check. <c>/services/vsop/admin/diagnostics</c> continua a leggere il report
 /// fresco: chi apre quella pagina l'ha aperta per vedere adesso, e ha già fatto login.</para>
 /// </summary>
+// ⚠️ Resta PUBBLICA come `IvaoAirportCache`, e per la stessa ragione: `VipiHealthCheck` è pubblica e la
+// prende nel costruttore. Il compilatore lo dice (CS0051), ed è il modo giusto di scoprirlo
+// (revisione del 6 settembre 2026, R-009).
 public sealed class ConsistencyReportCache
 {
     /// <summary>Quanto resta valida una fotografia del report.</summary>

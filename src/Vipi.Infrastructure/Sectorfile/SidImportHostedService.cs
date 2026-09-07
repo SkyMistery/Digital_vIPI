@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// Gated (<see cref="GatedImportLoop"/>): non richiama la sorgente a ogni riavvio se ancora fresco. Job di
 /// sistema (nessuna authz utente): rimpiazza le SID importate preservando manuali/priorità.
 /// </summary>
-public sealed class SidImportHostedService : BackgroundService
+internal sealed class SidImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly SectorfileOptions _opt;

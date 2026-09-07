@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// <para>⚠️ La lista <b>non</b> porta <c>atcSession</c>: posizione e frequenza stanno solo sul dettaglio
 /// per-sessione. Si evita una chiamata per sessione ricavando la posizione dal callsign.</para>
 /// </summary>
-public sealed class IvaoAtcHistoryClient : IAtcHistorySource
+internal sealed class IvaoAtcHistoryClient : IAtcHistorySource
 {
     /// <summary>Tetto di pagine per prefisso: 200 pagine sono 20 000 sessioni, molto oltre il caso reale.</summary>
     private const int MaxPages = 200;

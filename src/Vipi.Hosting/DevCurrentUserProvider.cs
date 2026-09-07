@@ -35,7 +35,7 @@ public sealed class DevIdentityOptions
 /// identità → CurrentUser → UI). Memoizzato (una fetch sola). Con fallback statico se l'API non risponde.
 /// In produzione è sostituito da <see cref="HostIdentityCurrentUserProvider"/> (claim host). ADR-0002.
 /// </summary>
-public sealed class DevCurrentUserProvider : ICurrentUserProvider
+internal sealed class DevCurrentUserProvider : ICurrentUserProvider
 {
     private static CurrentUser? _cached;
     private static readonly object Lock = new();

@@ -5,7 +5,7 @@ using Vipi.Application.Content;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <inheritdoc cref="ISectorCatalogMaintenance"/>
-public sealed class EfSectorCatalogMaintenance : ISectorCatalogMaintenance
+internal sealed class EfSectorCatalogMaintenance : ISectorCatalogMaintenance
 {
     private readonly VipiDbContext _db;
     private readonly IImportStateStore _states;

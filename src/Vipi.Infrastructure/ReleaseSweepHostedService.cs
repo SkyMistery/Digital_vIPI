@@ -30,7 +30,7 @@ namespace Vipi.Infrastructure;
 /// di un nome che mente. ⚠️ Non è un import e non compare nella pagina Sorgenti (stessa ragione della
 /// deriva): si legge in Diagnostica.</para>
 /// </summary>
-public sealed class ReleaseSweepHostedService : BackgroundService
+internal sealed class ReleaseSweepHostedService : BackgroundService
 {
     /// <summary>Ogni quanto. Un giorno: il fatto che lo muove è il <b>rollover AIRAC</b>, che capita ogni 28
     /// giorni — guardare più spesso costerebbe una passata su tutti i documenti senza poter trovare altro.</summary>

@@ -7,7 +7,7 @@ namespace Vipi.Infrastructure.Ivao;
 /// breve. Nessuna dipendenza esterna. Il polling tollera comunque i fallimenti (mantiene l'ultima cache),
 /// questo riduce solo i buchi su singoli scatti.
 /// </summary>
-public sealed class TransientRetryHandler : DelegatingHandler
+internal sealed class TransientRetryHandler : DelegatingHandler
 {
     private const int MaxAttempts = 3;
 

@@ -21,7 +21,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// e la fotografia precedente <b>non si cancella</b>. Una fotografia vecchia dice ancora qualcosa; «nessun
 /// rilievo» direbbe una cosa falsa.</para>
 /// </summary>
-public sealed class SectorfileComparisonHostedService : BackgroundService
+internal sealed class SectorfileComparisonHostedService : BackgroundService
 {
     /// <summary>Ritardo d'avvio: dopo i giri d'import, che sui primi secondi hanno più diritto della rete.</summary>
     private static readonly TimeSpan Avvio = TimeSpan.FromMinutes(3);

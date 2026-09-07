@@ -5,7 +5,7 @@ using Vipi.Domain.Entities;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>Implementazione EF di <see cref="IStaffRosterRepository"/> (roster staffisti IT).</summary>
-public sealed class EfStaffRosterRepository : IStaffRosterRepository
+internal sealed class EfStaffRosterRepository : IStaffRosterRepository
 {
     private readonly VipiDbContext _db;
     public EfStaffRosterRepository(VipiDbContext db) => _db = db;

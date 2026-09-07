@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// invecchia e i suoi guai di concorrenza. Qui lo scope si apre e si chiude a ogni lettura — che è una
 /// all'ora, non una al minuto.</para>
 /// </summary>
-public sealed class ScopedSectorVolumeCatalog : ISectorVolumeCatalog
+internal sealed class ScopedSectorVolumeCatalog : ISectorVolumeCatalog
 {
     private readonly IServiceScopeFactory _scopes;
 

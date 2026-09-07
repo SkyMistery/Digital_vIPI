@@ -5,7 +5,7 @@ using Vipi.Domain.Entities;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>EF: alias prefisso-troncato → fix reale (globali, uno per prefisso).</summary>
-public sealed class EfSidFixAliasRepository : ISidFixAliasRepository
+internal sealed class EfSidFixAliasRepository : ISidFixAliasRepository
 {
     private readonly VipiDbContext _db;
     public EfSidFixAliasRepository(VipiDbContext db) => _db = db;

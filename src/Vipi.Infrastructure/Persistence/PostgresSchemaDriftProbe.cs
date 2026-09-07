@@ -13,7 +13,7 @@ namespace Vipi.Infrastructure.Persistence;
 /// <c>/vsop/health</c>), non nella sonda <c>/vsop/health/ready</c> che l'orchestratore ripete di continuo.
 /// </para>
 /// </summary>
-public sealed class PostgresSchemaDriftProbe : ISchemaDriftProbe
+internal sealed class PostgresSchemaDriftProbe : ISchemaDriftProbe
 {
     private readonly VipiDbContext _db;
     public PostgresSchemaDriftProbe(VipiDbContext db) => _db = db;
