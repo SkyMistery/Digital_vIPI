@@ -460,6 +460,35 @@ Zero errori di pagina in tutta la sessione. Il `vipi.db` del progetto è rimasto
 ⚠️ **Ed è esattamente la seconda richiesta, vista a schermo**: su un campo con presenza militare il vSOP
 diventa il documento **completo** dello scalo — come lo sono oggi quelli dei campi *solo* militari — e la
 pagina civile ci porta invece di vivere per conto suo.
+## §10 — La chip di lettura è dell'UNIONE, non dell'ospite (7 settembre 2026) ✅
+
+Segnalato dal committente: unendo due documenti di cui **solo il secondo** ha sezioni marcate pilota/ATC, i
+tre comandi *Tutto · Pilota · ATC* **sparivano dal viewer**.
+
+**La causa.** La chip è **una sola per pagina** e la disegna l'**ospite**, che si chiedeva «*io* ho sezioni
+marcate?» (`_doc.HaMarcate`) invece di «ce n'è qualcuna **in questa pagina**?». Ogni caricatore di famiglia il
+suo `HaMarcate` lo calcolava già (`AppMemberLoader`, `AirportMemberLoader`, `MilMemberLoader`), ma
+`MembroUnito` **non lo portava fuori**: il valore esisteva e non arrivava a chi doveva deciderne.
+
+⚠️ **Nessun errore, nessun rosso, e il filtro funzionava lo stesso**: `?vista=atc` scritto a mano filtrava
+anche il membro, perché `Vista` ai membri arriva (`AltriMembriAsync`). Mancava il solo modo di **chiederlo con
+un clic** — la stessa forma dei tre difetti seri della supervisione: una cosa **falsa a schermo**.
+
+**Il rimedio.** `MembroUnito` porta `HaMarcate`, e la domanda si fa all'unione intera con
+`MembroUnito.QualcunoHaMarcate(ospite, altri)` — ⚠️ **una funzione sola e non tre condizioni copiate**: i
+chiamanti sono `AeroportoPage`, `AppnPage` e `MilDocumentPage`, e la stessa condizione scritta tre volte è la
+prima a divergere. La vIPI **ACC** e la **vLOA** restano fuori: non sono famiglie unibili, e la loro chip
+guarda il proprio documento e basta.
+
+⚠️ **Il filtro vale su tutta la pagina unita**, ospite compreso: in vista ATC un ospite tutto «per tutti»
+resta **intero** sotto un membro filtrato. È la regola di `AudienceFilter` — le sezioni non marcate non si
+filtrano mai — e qui è quella giusta: la pagina unita è **un** documento per chi la legge.
+
+**Le reti.** In `DocumentiUnitiTests`: le marcate di un membro tengono la chip accesa; senza marcate da
+nessuna parte resta spenta; quelle dell'ospite bastano da sole. ⚠️ E una **guardia sul sorgente** delle tre
+pagine (`Ogni_pagina_che_OSPITA_chiede_la_chip_all_unione_intera`), perché le prime tre non vedrebbero una
+pagina che torna a chiedere `_doc.HaMarcate`: **provata rimettendo il difetto**, e va rossa.
+
 ## Verifica
 
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde sui **due TFM**, 0 avvisi.

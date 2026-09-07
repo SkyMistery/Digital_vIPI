@@ -97,7 +97,7 @@ else
                         </div>
                         <div class="sim-line"><SimDisclaimer /> <TranslationNotice Coverage="_doc.Copertura" Compatto="true" /> <LinguaBloccataNotice Lingua="@_doc.Bloccata" Compatto="true" /></div>
                     </div>
-                    <AudienceChip Compatto="true" Visibile="_doc.HaMarcate" Vista="_doc.Vista"
+                    <AudienceChip Compatto="true" Visibile="@MembroUnito.QualcunoHaMarcate(_doc.HaMarcate, _altri)" Vista="_doc.Vista"
                                   BaseHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={_icao}" + (_doc.Mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
                     <div class="dh-actions">
                         <button type="button" class="btn ghost" onclick="window.print()">@Sito["Common_Print"]</button>

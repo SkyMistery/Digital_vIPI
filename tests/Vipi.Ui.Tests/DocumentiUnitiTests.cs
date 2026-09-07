@@ -48,11 +48,15 @@ public class DocumentiUnitiTests : TestContext
 
     private static MembroUnito Membro(int documentId, ReleaseTargetType tipo, string chiave, string titolo,
                                       params SectionView[] sezioni)
+        => Membro(documentId, tipo, chiave, titolo, haMarcate: false, sezioni);
+
+    private static MembroUnito Membro(int documentId, ReleaseTargetType tipo, string chiave, string titolo,
+                                      bool haMarcate, params SectionView[] sezioni)
     {
         var doc = new ManagedDoc(tipo, titolo, chiave, "LIRR", IsPublished: true, HasDraft: false,
                                  IsHidden: false, tipo, chiave, documentId);
         var membro = new UnionMemberView(MemberId: documentId, Order: 1, IsHost: false, doc);
-        return new MembroUnito(membro, titolo, sezioni,
+        return new MembroUnito(membro, titolo, sezioni, haMarcate,
             b => b.AddMarkupContent(0, $"<p class=\"corpo\">{titolo}</p>"));
     }
 
@@ -141,5 +145,85 @@ public class DocumentiUnitiTests : TestContext
 
         Assert.Empty(TocGruppiUnione.Di(Array.Empty<MembroUnito>(), bozza: false));
         Assert.Empty(corpi.Markup.Trim());
+    }
+
+    // ---- La chip «Tutto · Pilota · ATC» è dell'UNIONE, non dell'ospite -------------------------------
+
+    /// <summary>
+    /// 🔴 Il difetto del 7 settembre 2026: unendo due documenti di cui <b>solo il secondo</b> ha sezioni
+    /// marcate, i tre comandi sparivano dal viewer. La chip è una per pagina e la disegna l'ospite, che si
+    /// chiedeva «ho sezioni marcate?» invece di «ce n'è qualcuna in questa pagina?».
+    ///
+    /// <para>⚠️ Non c'era nessun errore e nessun rosso: il filtro continuava a funzionare scrivendo
+    /// <c>?vista=atc</c> a mano — <c>Vista</c> arriva ai membri — e mancava il solo modo di chiederlo.
+    /// È la stessa forma dei tre difetti seri della supervisione: una cosa <b>falsa a schermo</b>.</para>
+    /// </summary>
+    [Fact]
+    public void Le_sezioni_marcate_di_un_MEMBRO_tengono_la_chip_accesa()
+    {
+        var altri = new[]
+        {
+            Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach", haMarcate: true,
+                   Sez("s-1", "Separazioni")),
+        };
+
+        Assert.True(MembroUnito.QualcunoHaMarcate(ospite: false, altri));
+    }
+
+    [Fact]
+    public void Senza_marcate_da_NESSUNA_parte_la_chip_resta_spenta()
+    {
+        // L'altra metà della regola: la chip non deve comparire su ogni pagina unita solo perché è unita.
+        var altri = new[] { Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach") };
+
+        Assert.False(MembroUnito.QualcunoHaMarcate(ospite: false, altri));
+        Assert.False(MembroUnito.QualcunoHaMarcate(ospite: false, Array.Empty<MembroUnito>()));
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La guardia che vale davvero</b>: le tre asserzioni qui sopra provano la regola, ma la regola
+    /// non serve a niente se una pagina torna a chiederla al solo ospite. Quel ritorno non darebbe nessun
+    /// errore — <c>_doc.HaMarcate</c> compila e vale <c>false</c> — e sarebbe di nuovo il difetto.
+    /// <para>Le tre sedi sono quelle che possono OSPITARE un'unione: la vIPI ACC e la vLOA restano fuori
+    /// dalle famiglie unibili, dichiarato in carta, e la loro chip guarda il proprio documento e basta.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("Pages/AeroportoPage.razor")]
+    [InlineData("Pages/AppnPage.razor")]
+    [InlineData("Pages/MilDocumentPage.razor")]
+    public void Ogni_pagina_che_OSPITA_chiede_la_chip_all_unione_intera(string relativo)
+    {
+        var sorgente = Leggi(relativo);
+
+        var chip = System.Text.RegularExpressions.Regex.Match(sorgente, @"<AudienceChip\b[^>]*>");
+        Assert.True(chip.Success, $"{relativo}: nessuna <AudienceChip …>.");
+
+        Assert.Contains("MembroUnito.QualcunoHaMarcate(", chip.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("Visibile=\"_doc.HaMarcate\"", chip.Value, StringComparison.Ordinal);
+    }
+
+    private static string Leggi(string relativo) =>
+        File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static string Radice()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var c = Path.Combine(dir.FullName, "src", "Vipi.Ui");
+            if (Directory.Exists(Path.Combine(c, "Pages"))) return c;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException($"src/Vipi.Ui non trovata risalendo da {AppContext.BaseDirectory}");
+    }
+
+    [Fact]
+    public void Le_marcate_dell_OSPITE_bastano_da_sole()
+    {
+        // Il caso che funzionava già, e che il rimedio non deve rompere: documento solo, o ospite marcato
+        // con membri che non lo sono.
+        Assert.True(MembroUnito.QualcunoHaMarcate(ospite: true, Array.Empty<MembroUnito>()));
+        Assert.True(MembroUnito.QualcunoHaMarcate(
+            ospite: true, new[] { Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach") }));
     }
 }

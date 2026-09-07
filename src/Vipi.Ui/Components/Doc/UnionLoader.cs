@@ -15,10 +15,16 @@ namespace Vipi.Ui.Components.Doc;
 /// non un ramo in ogni pagina che ospita un'unione. È la Regola del 2 del <c>FEATURE-PROCESS</c> applicata
 /// prima che il secondo switch nasca.</para>
 /// </summary>
+/// <param name="HaMarcate">Vero se <b>questo</b> membro ha almeno una sezione marcata pilota/ATC.
+/// <para>⚠️ Esce di qui perché la chip «Tutto · Pilota · ATC» è <b>una sola per pagina</b> e la disegna
+/// l'OSPITE: senza questo campo la domanda «c'è qualcosa da filtrare?» se la faceva il solo ospite, e un
+/// documento con le sezioni marcate finito in seconda posizione perdeva il selettore — il filtro continuava
+/// a funzionare da URL (<c>?vista=</c> arriva ai membri), ma nessuno poteva più chiederlo con un clic.</para></param>
 public sealed record MembroUnito(
     UnionMemberView Membro,
     string Titolo,
     IReadOnlyList<SectionView> Sezioni,
+    bool HaMarcate,
     RenderFragment Corpo)
 {
     /// <summary>L'ancora del gruppo di questo membro: è dove atterra chi arriva dalla sua vecchia URL.</summary>
@@ -28,6 +34,18 @@ public sealed record MembroUnito(
     /// <para>⚠️ Sull'ID DEL DOCUMENTO e non sulla posizione: l'ordine dei membri si cambia con due frecce, e
     /// un'ancora che cambia insieme all'ordine è un collegamento salvato che un giorno porta altrove.</para></summary>
     public static string AncoraDi(int documentId) => $"doc-{documentId}";
+
+    /// <summary>
+    /// Se la chip «Tutto · Pilota · ATC» ha senso su <b>questa pagina</b>: la domanda è dell'unione intera,
+    /// non dell'ospite.
+    /// <para>⚠️ La chip è UNA per pagina e il filtro si applica a tutto ciò che la pagina disegna, membri
+    /// compresi. Chiederlo al solo ospite faceva sparire il selettore quando le sezioni marcate stavano su
+    /// un membro — e un documento che le aveva le perdeva unendosi, senza nessun errore.</para>
+    /// <para>Sta qui e non nelle tre pagine perché i chiamanti sono tre: la stessa condizione scritta tre
+    /// volte è la prima a divergere.</para>
+    /// </summary>
+    public static bool QualcunoHaMarcate(bool ospite, IReadOnlyList<MembroUnito> altri) =>
+        ospite || altri.Any(a => a.HaMarcate);
 }
 
 /// <summary>
@@ -161,7 +179,7 @@ public sealed class UnionLoader
                 var loader = ActivatorUtilities.CreateInstance<AppMemberLoader>(_sp);
                 var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, fissaLaPagina: false, ct)
                                       .ConfigureAwait(false);
-                return doc is null ? null : new MembroUnito(m, doc.DisplayName, doc.View.Sections,
+                return doc is null ? null : new MembroUnito(m, doc.DisplayName, doc.View.Sections, doc.HaMarcate,
                     b => { b.OpenComponent<AppDocumentBody>(0); b.AddComponentParameter(1, nameof(AppDocumentBody.Doc), doc); b.CloseComponent(); });
             }
             case ReleaseTargetType.Airport:
@@ -169,7 +187,7 @@ public sealed class UnionLoader
                 var loader = ActivatorUtilities.CreateInstance<AirportMemberLoader>(_sp);
                 var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
                                                  fissaLaPagina: false, ct).ConfigureAwait(false);
-                return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.Sezioni,
+                return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.Sezioni, doc.HaMarcate,
                     b => { b.OpenComponent<AirportDocumentBody>(0); b.AddComponentParameter(1, nameof(AirportDocumentBody.Doc), doc); b.CloseComponent(); });
             }
             case ReleaseTargetType.AirportMil:
@@ -177,7 +195,7 @@ public sealed class UnionLoader
                 var loader = ActivatorUtilities.CreateInstance<MilMemberLoader>(_sp);
                 var doc = await loader.LoadAsync(m.Doc.ReleaseKey, mode, vista, linguaDelCircuito,
                                                  fissaLaPagina: false, ct).ConfigureAwait(false);
-                return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.View.Sections,
+                return doc is null ? null : new MembroUnito(m, doc.View.Title, doc.View.Sections, doc.HaMarcate,
                     b => { b.OpenComponent<MilDocumentBody>(0); b.AddComponentParameter(1, nameof(MilDocumentBody.Doc), doc); b.CloseComponent(); });
             }
             // ⚠️ Nessun `default` che disegna un segnaposto: le famiglie ammesse le decide
