@@ -512,7 +512,7 @@ e costa due ricompilazioni.
 le viste. È la trappola dell'attrezzo già scritta in §9d — quando un gesto «non fa niente», il primo sospetto
 va al **selettore**, non al codice.
 
-## §11 — Le sezioni in comune: chi le tiene (7 settembre 2026) ✅
+## §11 — Le sezioni in comune: da quale documento spariscono (7 settembre 2026) ✅
 
 Chiesto dal committente: unendo la vIPI d'aeroporto di uno scalo e il suo vSOP militare la pagina **ripete**
 METAR, frequenze, piste, quote di transizione. All'unione il sistema deve **chiedere** da quale documento
@@ -520,9 +520,18 @@ nasconderle, e nasconderle come farebbe una persona col tasto «nascondi».
 
 **La forma decisa** (tre domande al committente, tre risposte):
 
-1. **Lato + caselle**: si sceglie il documento che **tiene** le comuni, e sotto compare l'elenco con le
-   caselle già spuntate. ⚠️ «Chi TIENE» e non «chi nasconde», perché i membri possono essere **tre** — LIBV ha
-   due APP — e a quel punto «quale nascondere» non è più una domanda con una risposta sola.
+1. **Documenti + caselle**: si spuntano i documenti **da cui le sezioni spariscono**, e sotto l'elenco delle
+   sezioni con le caselle già proposte.
+   🔴 **La polarità è stata girata l'8 settembre**, e la lezione vale oltre questa scheda. La prima stesura
+   chiedeva **chi le TIENE** — la stessa scheda letta al contrario — e il committente l'ha scoperto chiedendo
+   conferma: «se seleziono vIPI vengono nascoste le sezioni della vIPI?». No: teneva. La sua richiesta
+   iniziale diceva *«se seleziono vipi nasconde metar, frequenze, ecc delle vipi»*, e nella domanda che gli
+   avevo fatto la polarità era cambiata **dentro un'opzione che parlava d'altro** (il *modo*: lato + caselle).
+   ⚠️ **Una domanda cambia UNA cosa sola**: se ne cambia due, la risposta ne conferma una e l'altra passa
+   senza che nessuno l'abbia decisa. Con tre membri (LIBV ha due APP) le caselle reggono lo stesso: se ne
+   spuntano due.
+   ⚠️ E spuntarli **tutti** si può — «quel dato qui non lo vogliamo» — ma la sezione sparisce dalla pagina
+   unita per intero: la scheda lo **dice**, non lo vieta.
 2. **La validità sta in elenco ma non spuntata**: è comune per *chiave*, non per significato — dice ciclo e
    release **di quel documento**, e in un'unione sono due.
 3. **Il comando resta**, non solo appena si unisce: le sezioni si aggiungono dopo, e una comune che nasce
@@ -534,8 +543,8 @@ in cima. Stessa chiave `frequencies`, e un confronto per titolo — o sui soli p
 niente proprio nel caso per cui la scheda esiste. Le sezioni **libere** restano fuori per costruzione: la
 loro chiave nasce unica.
 
-⚠️ **Chi tiene si MOSTRA, non si lascia com'è.** Senza, cambiare idea sul vincitore lascerebbe nascoste
-tutt'e due le copie: la seconda scelta nasconde quelle dell'altro e non rimette le proprie.
+⚠️ **Chi NON è spuntato si MOSTRA, non si lascia com'è.** Senza, cambiare idea lascerebbe nascoste tutt'e
+due le copie: la seconda scelta nasconde l'altro e non rimette il primo.
 
 Codice: `SezioniComuni` (puro) · `IEditingService.SezioniComuniAsync` / `ApplicaSezioniComuniAsync` ·
 la scheda in `UnionPanel`. Il flag è lo stesso di `SetSectionHiddenAsync`, e ogni scrittura passa dalla
@@ -550,9 +559,9 @@ la scheda in `UnionPanel`. Il flag è lo stesso di `SetSectionHiddenAsync`, e og
    caricato e `PrendiLockAsync` torna `null` — cioè «preso» — **senza prendere niente**. Un no-op che si
    dichiara riuscito è peggio di un errore. Ora il lock si prende quando il membro è **pronto**
    (`UnionMembersEditor.AssicuraLockAsync`, da `MembroCambiato` e da `OnAfterRenderAsync`).
-2. **Riaprendo la scheda, «chi tiene» tornava sempre l'ospite**: chi premeva senza guardare **ribaltava** la
-   scelta di prima — «22 sezioni cambiate» invece di nessuna. Ora la proposta la fa lo **stato**
-   (`SezioniComuni.CheTiene`: chi ne ha meno nascoste; a parità l'ospite).
+2. **Riaprendo la scheda, la proposta tornava sempre la stessa**: chi premeva senza guardare **ribaltava** la
+   scelta di prima — «22 sezioni cambiate» invece di nessuna. Ora la fa lo **stato**
+   (`SezioniComuni.DoveNascondere`: chi ne ha già nascosta almeno una; a stato vergine, tutti tranne l'ospite).
 
 E una terza, di robustezza: `EditConflictException` nel pannello ora si **mostra**; prima faceva cadere il
 circuito, e a schermo diventava «Attempting to reconnect».
@@ -563,8 +572,8 @@ circuito, e a schermo diventava «Attempting to reconnect».
 |---|---|
 | Unisco la vIPI col vSOP dello stesso scalo | la scheda si apre **da sola** |
 | L'elenco | 12 voci: METAR, quote di transizione, frequenze, piste, procedure generali, carte (5) — spuntate — e **validità non spuntata** |
-| «Le tiene la vIPI» → nascondi | «Done: **11** sections changed»; in archivio **11 nascoste sul vSOP, 0 sulla vIPI** |
-| Riapro | ogni riga porta «già nascosta», e la proposta è **la vIPI**, che le ha visibili |
+| «Nascondi quelle della vIPI» → nascondi | «Done: **11** sections changed»; in archivio **11 nascoste sulla vIPI, 0 sul vSOP**, e nell'editor le sue sezioni portano la pastiglia «Hidden» |
+| Riapro | ogni riga porta «già nascosta», e la proposta torna **la vIPI**, cioè chi le ha nascoste |
 | Premo di nuovo senza toccare niente | «**0** sections changed» — prima del rimedio erano 22, cioè il ribaltamento |
 
 ⚠️ **Trappola dell'attrezzo, pagata due volte**: sostituendo la copia del `vipi.db` **il `-wal` vecchio va
