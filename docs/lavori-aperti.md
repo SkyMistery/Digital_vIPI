@@ -1,10 +1,14 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 7 settembre 2026
+## Dove siamo — 8 settembre 2026
 
-1. ✅ **In produzione c'è 1.15.1**, caricata la notte del 7 settembre. Confermata dal timbro in
-   `diagnostica/avvio-diagnostica.txt`: `Versione 1.15.1 · commit 68e71bf`, ambiente **Production**, in
-   servizio dalle **21:11 UTC**. `main` è pulito e spinto, nessun ramo di lavoro aperto.
+1. 🔴 **In produzione c'è ancora 1.15.1** (`68e71bf`, timbro del server, in servizio dalle 21:11 UTC del 7):
+   **niente di §CD è consegnato**. `main` = `6406d425`, pulito e spinto, nessun ramo aperto.
+   ▶ **Il primo lavoro è il pacchetto**: sono solo correzioni — nessuna pagina né sezione nuova, nessuna
+   migrazione — quindi il numero è **1.15.2**. Runbook `docs/guide/preparare-un-pacchetto.md`.
+   ⚠️ **La prova delle correzioni non è nostra**: la darà il prossimo `errori-richieste.txt` scaricato
+   qualche giorno dopo il caricamento — zero «A second operation», meno `ObjectDisposedException`, e le
+   note in una riga.
 2. ✅ **§CD è LAVORATO** (8 settembre): due difetti su tre chiusi con una correzione ciascuno, il terzo
    ristretto e strumentato. La domanda «chi gira accanto al tornello?» ha una risposta, e non era quella che
    sembrava: **nessuno lo scavalca**. Il tornello serializza lo scope PROPRIO dell'editor, ma dentro lo

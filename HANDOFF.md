@@ -1,33 +1,101 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026, notte — ✅ **1.15.1 È ONLINE** e confermata dal timbro del
-server (`diagnostica/avvio-diagnostica.txt`: `1.15.1 · 68e71bf`, Production, in servizio dalle 21:11 UTC).
+**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD è chiuso e provato vivo.** `main` = `6406d425`,
+albero pulito e spinto, suite verde.
 
-▶ **Il lavoro aperto è §CD in [`docs/lavori-aperti.md`](docs/lavori-aperti.md)**: le tre cose che ha detto
-la diagnostica di produzione, la prima volta che l'abbiamo in mano.
+🔴 **In produzione c'è ancora 1.15.1** (`68e71bf`, timbro del server): **niente di §CD è consegnato.**
+Le correzioni sono solo correzioni — nessuna pagina né sezione nuova — quindi il numero sarebbe **1.15.2**,
+e non c'è nessuna migrazione. ▶ **Il primo lavoro è il pacchetto**: runbook
+[`docs/guide/preparare-un-pacchetto.md`](docs/guide/preparare-un-pacchetto.md).
 
-> ### Le tre, in ordine di quel che costano a chi usa il sito
->
-> **1. 🔴 Una corsa sulla CONNESSIONE MySQL**, tre coppie in un giorno (10:42, 10:50, 16:51):
-> `NotSupportedException` «another read operation is pending» dal socket del connettore, più un
-> `NullReferenceException` dentro `MySqlDataReader`, nello stesso circuito e nello stesso secondo. Il
-> fotogramma Vipi passa da `DocumentEditorShell.InFilaAsync` — il tornello che serializza — quindi la
-> domanda è **chi gli gira accanto senza passarci**.
->
-> **2. 🔴 Un utente vero (VID 201143) ha visto una pagina d'errore** sull'editor APP, 14:21:36:
-> `NullReferenceException` in `AppSectionsEditor.BuildRenderTree` riga 71, da un ridisegno a fine
-> operazione async. Due nulli possibili sulla stessa riga: **da guardare, non da indovinare**.
->
-> **3. 🟡 Il 55% del registro è rumore**: 39 voci su 71 sono `ObjectDisposedException` di circuiti chiusi
-> mentre un caricamento era in volo. Non sono guasti — ma un registro fatto per metà di rumore è un
-> registro che si smette di leggere, e le due cose qui sopra ci sono finite in mezzo.
+## Che cosa ha detto la diagnostica di produzione, e come è finita
 
-⚠️ **Zero errori dopo le 20:00 del 7**: niente sotto 1.15.0 e 1.15.1. E i due file d'errore che si trovano
-in `diagnostica/` **non sono di stanotte** — `arresto-errore.txt` è il processo **1.15.0** che muore male
-allo spegnimento (dll sostituita sotto un processo vivo, il prezzo noto dell'FTP), `avvio-errore.txt` è del
-**6 settembre**. La data si guarda prima del contenuto.
+La prima volta che abbiamo `errori-richieste.txt` del server vero: 71 voci, 4-7 settembre. Carta completa
+in [`docs/lavori-aperti.md`](docs/lavori-aperti.md) **§CD**.
+
+🔴 **Le voci si CONTANO, non si sfogliano.** Sfogliandole erano «tre cose»; contandole per (tipo, primo
+fotogramma nostro) è saltata fuori la categoria che spiegava tutto e che la prima lettura non aveva
+contato: **dodici** `A second operation was started on this context instance`.
+
+> **1. ✅ «Chi gira accanto al tornello?» — nessuno lo scavalca: gli gira accanto un ALTRO `DbContext`.**
+> Il tornello (`DocumentEditorShell.InFilaAsync`) serializza lo scope **proprio** dell'editor. Ma dentro lo
+> stesso caricamento tre servizi arrivavano da `@inject`, cioè dal **circuito** — e le ultime due voci del
+> registro hanno `InFilaAsync` **nello stack**: erano già in fila, e la lettura passava da un'altra porta.
+> Ora vengono da `ScopedServices`.
+>
+> **2. ✅ Le 39 `ObjectDisposedException` NON erano rumore.** Erano lo smontaggio che chiudeva lo scope di
+> DI — e con lui il `DbContext` e la sua connessione — **mentre una query era ancora aperta**. E il conto
+> lo paga un terzo: una sessione MySQL restituita al pool con una lettura in corso la prende poi chi la
+> chiede dopo, ed è la coppia sul socket delle 16:51:13 (due contesti **diversi**, stesso socket).
+> `DocumentEditorShell.ChiudiAsync()` chiude la porta e aspetta chi era già dentro; i **cinque** editor
+> documentali sono diventati `IAsyncDisposable` per poterla aspettare.
+>
+> **3. ✅ Il registro non si legge più per metà di rumore**, e non si butta via niente: la **prima** voce di
+> ogni famiglia intera col suo stack, dalla seconda in poi **una riga**. ⚠️ La regola è scritta
+> sull'**oggetto smaltito**, non sul tipo: il difetto del 4 settembre era proprio una
+> `ObjectDisposedException` — su un `SemaphoreSlim` — e una regola sul tipo l'avrebbe nascosta.
+>
+> **4. ▶ RESTA APERTA: l'NRE di render dell'editor APP.** 🔴 La carta diceva `_shell.Doc.VersionStatus` e
+> **non è quello** — quella lettura sta a riga 76, non a 71. La riga 71 ha **un solo** dereferenziamento,
+> `L["App_EditorTitle"]`, e `L` **non è nullo**: il render *precedente* della stessa richiesta passa da un
+> altro `L["…"]` e non cade. Il guasto è **dentro** la lettura dell'etichetta, e in Release non ne resta un
+> fotogramma perché i metodi corti finiscono dentro il chiamante. ⚠️ Non si indovina: `LocalizzatoreDiLingua`
+> adesso **rilancia con la chiave e le due lingue in gioco**. La prossima occorrenza è una diagnosi.
+
+### Il difetto cercato OVUNQUE, e il presidio che era cieco
+
+Trovato il difetto, la domanda è quante altre volte succede. 🔴 **`ScopeProprioDellePagineTests` era cieco
+proprio lì**: contava le pagine esposte ma **saltava** i file che dichiarano lo scope proprio, e guardava
+solo `Pages/` — i tre colpevoli stavano in `Components/`. La forma peggiore del difetto — la difesa
+dichiarata in testa al file e poi tradita da un `@inject` — non la misurava nessuno.
+
+✅ Adesso guarda **pagine e componenti**. Da **12** trasgressori a **1**, e quell'uno è un'eccezione voluta:
+
+- **convertiti**: `AccEditorPage`, `AccLanding`, `AeroportoEditorPage`, `AeroportoPage`, `MilEditorPage`,
+  `NewDocumentPage`, `VersioniPage`;
+- **sicuri, col perché scritto**: `IOnlineAtcProvider` e `IWeatherProvider` sono **singleton** (un singleton
+  non può tenersi un `DbContext`), `INavaidSource` è un client HTTP tipizzato;
+- ⚠️ **eccezione voluta**: `TranslationReviewPanel`. I suoi due servizi servono a una **scrittura** che parte
+  da un clic — quindi non corre contro il render — e legge i **claim**: in uno scope creato dopo la
+  richiesta l'identità non c'è più, e il salvataggio verrebbe rifiutato a tutti. Sta scritto in testa a quel
+  file dal 31 agosto. **Non si «uniforma»**;
+- 🔴 **il fratello mancato**: `AppEditorPage` aveva lo **stesso** `LeggiUnioneAsync` sul circuito che il 4
+  settembre era stato corretto sulle altre due sorelle. Nessuno se n'era accorto perché il presidio guarda
+  le **aggiunte**, non i **pari grado di una correzione già fatta**.
+
+⚠️ Il presidio nuovo è stato provato **a rovescio**: rimesso un `@inject` su `AccLanding`, il test cade e
+nomina il file e il servizio.
+
+### La prova: viva, non verde
+
+⚠️ **I test non vedono una risoluzione DI sbagliata**, e §CD ha toccato la risoluzione DI di nove file più
+cinque componenti diventati `IAsyncDisposable`. Quindi `dotnet run` su una copia del DB ed Edge guidato
+(skill `verifica-live`):
+
+1. le **otto pagine convertite** aprono col circuito agganciato, titoli veri, nessun callout d'errore,
+   nessun `console.error`, nessuna risposta ≥ 400;
+2. 🔴 **il lock si prende e si rilascia su tutti e quattro gli editor** (APP, ACC, aeroporto, militare): è
+   **la** prova che serviva, perché prendere il lock è una **scrittura autorizzata** — se l'identità non
+   sopravvivesse nello scope figlio sarebbe stata rifiutata;
+3. **quindici uscite a metà caricamento**, cioè la strada di `ChiudiAsync`: circuito vivo alla fine.
+
+✅ **Zero eccezioni in 97.666 righe di log**, spegnimento compreso.
+⚠️ In locale il database è **SQLite**: questa prova dice che **non ho rotto niente**, non che la corsa su
+MySQL sia sparita. Quella la dirà il **prossimo `errori-richieste.txt`** — zero «A second operation», meno
+`ObjectDisposedException`, e le note in una riga.
+
+### Che cosa NON è stato fatto, e si sa
+
+- ⚠️ **I caricamenti non prendono un `CancellationToken`**: `ChiudiAsync` **aspetta**, non annulla. Sono 59
+  punti di chiamata nei cinque editor più complessi, e il guadagno è solo accorciare un'attesa già limitata
+  a 15 s — la correttezza c'è già. **Pesato e rimandato**, non dimenticato.
+- ⚠️ Le **22 pagine** del debito noto (interattive, senza scope proprio) restano: «tocca mezzo prodotto».
 
 ⚠️ **I file di `diagnostica/` non si committano**: `errori-richieste.txt` porta i VID degli utenti.
+
+---
+
+## Quel che porta 1.15.1, che è online (7 settembre) — storia
 
 ### Le piste arrivano in METRI (7 settembre)
 
@@ -49,7 +117,7 @@ test, e il pacchetto è stato costruito con **15 assiemi su 15 verdi** (5 547 te
 
 ---
 
-## ✅ La revisione totale del codice è chiusa — e il prossimo passo è quella
+## ✅ La revisione totale del codice è chiusa (7 settembre) — storia, non lavoro aperto
 
 **7 settembre 2026.** Dodici fasi, **33 findings**, condotta con la postura di chi il codice non l'ha
 scritto. Registro completo: **`docs/history/audit-2026-09-06-revisione-totale.md`** (1 905 righe), ramo
@@ -323,7 +391,9 @@ fusa in `main` e spinta; prima, i due rami di §AA e §E10. ⚠️ Tutto ciò ch
 sezione «Dove siamo» è **storia**: i rami che vi si citano come «non fusi» sono in `main` e sono stati
 cancellati — vale il riquadro qui sotto).
 
-## Dove siamo, prima di tutto il resto
+## Storia — «dove siamo» delle consegne 1.4.x (2 settembre 2026)
+
+⚠️ Da qui in giù è **cronologia**, non stato: lo stato sta in cima al file.
 
 > ### ✅ PRIMA DI TUTTO: 1.4.0 È ONLINE
 >
