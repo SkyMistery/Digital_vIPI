@@ -9906,6 +9906,24 @@ Le **7 impronte riverificate dentro lo zip** dopo averlo costruito: 7 giuste, 0 
 > questa no, e nessuno se n'era accorto perché il presidio guarda le **aggiunte**, non i **pari grado di una
 > correzione già fatta**. ✅ Convertita, e messa nella teoria che le presidia tutte e tre.
 >
+> ### ✅ Provato VIVO, non solo verde (8 settembre)
+>
+> I test non vedono quel che ho toccato: la **risoluzione DI** di nove file e cinque componenti diventati
+> `IAsyncDisposable`. Un errore lì rompe il salvataggio in produzione con la suite tutta verde. Quindi
+> `dotnet run` su una copia del DB, e Edge guidato (skill `verifica-live`):
+>
+> 1. **Le otto pagine convertite aprono** col circuito agganciato, titoli veri, nessun callout d'errore,
+>    nessun `console.error`, nessuna risposta ≥ 400.
+> 2. 🔴 **Il LOCK si prende su tutti e quattro gli editor** (APP, ACC, aeroporto, militare) e si rilascia:
+>    è **la** prova che serviva, perché prendere il lock è una **scrittura autorizzata** — se l'identità non
+>    sopravvivesse nello scope figlio, sarebbe stata rifiutata. Chip `🔒 until …` a schermo, zero errori.
+> 3. **Quindici uscite a metà caricamento** (navigazione via dopo 350-850 ms, prima che il caricamento
+>    finisca): è la strada di `ChiudiAsync`. Circuito vivo alla fine, nessun riquadro «ricarica la pagina».
+>
+> ✅ **Zero eccezioni in 97.666 righe di log** dell'applicazione, spegnimento compreso.
+> ⚠️ In locale il database è SQLite: questa prova dice che **non ho rotto niente**, non che la corsa su
+> MySQL sia sparita. Quella la dirà il prossimo `errori-richieste.txt`.
+>
 > ### Che cosa non è stato fatto
 >
 > - I caricamenti **non prendono ancora un `CancellationToken`**: `ChiudiAsync` aspetta, non annulla. Con i
