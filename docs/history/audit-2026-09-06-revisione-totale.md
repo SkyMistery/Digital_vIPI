@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 e 5 chiuse · Fase 4 e 6 in parte · 26 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-6 CHIUSE · 27 findings** · restano 7-11
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -83,9 +83,9 @@ parte da `2b33791a` e non lo tocca.
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
-| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a-4d ✅ · 4e/4g/4h/4i/4k campionati · 6 findings |
+| **4** | Application — undici ambiti funzionali (vedi sotto) | ✅ **chiusa** — tutti e undici · 6 findings |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ✅ **chiusa** — 2 findings |
-| **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | 🔵 **parte meccanica ✅** — 2 findings · residuo: CSS a fondo, stampa, i18n del testo, telefono |
+| **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ✅ **chiusa** — 3 findings |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
 | **8** | Documenti: doc↔doc, doc↔codice, stato↔realtà | ⏳ |
 | **9** | Build, consegna, host, strumenti: config di deploy vive e morte, `.github`, lock file, i 7 tool, runbook | ⏳ |
@@ -103,13 +103,13 @@ propria documentazione.
 | 4b ✅ | Release, snapshot, pubblicazione, retention | `refactor/09`, `10` · `audit-2026-08-25-versioni-release` |
 | 4c ✅ | Import: SID, piste, settori, confinanti, GitHub | `refactor/01`-`05` |
 | 4d ✅ | Import: tabelle, trasferimenti | `design/piano-import-*` |
-| 4e 🔵 | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
-| 4f | Trasferimenti e accordi di coordinamento | `refactor/07` · feature accordi |
-| 4g | Aeroporti: dati, posizioni, quote, regole piste | feature aeroporti · vSOP militari |
-| 4h | Traduzioni: catena, stato, spesa, glossario | documenti bilingue |
-| 4i | Lock di risorsa e di editing | design lock |
-| 4j | Audit, incarichi, impatti, notifiche | `refactor/13` |
-| 4k | Live, statistiche, Aurora bridge, servizi | `refactor/12` · `adr-0003` |
+| 4e ✅ | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
+| 4f ✅ | Trasferimenti e accordi di coordinamento | `refactor/07` · feature accordi |
+| 4g ✅ | Aeroporti: dati, posizioni, quote, regole piste | feature aeroporti · vSOP militari |
+| 4h ✅ | Traduzioni: catena, stato, spesa, glossario | documenti bilingue |
+| 4i ✅ | Lock di risorsa e di editing | design lock |
+| 4j ✅ | Audit, incarichi, impatti, notifiche | `refactor/13` |
+| 4k ✅ | Live, statistiche, Aurora bridge, servizi | `refactor/12` · `adr-0003` |
 
 Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che trova i difetti veri**:
 *questa regola regge soltanto perché adesso ce n'è UNO SOLO?*
@@ -143,9 +143,10 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-019** | 4c | S3 | 🟢 | CONFERMATO | **Tre validatori accettano ciò che il loro contratto dichiara di rifiutare**: `"+261"` come ciclo AIRAC, una latitudine di 91°, un segno dentro un DMS | `AiracService.cs:36` · `DmsCoordinate.cs:36,60` |
 | **R-020** | 4d | **S2** | 🟢 | CONFERMATO | **Il `rowspan` non produce la cella vuota che il commento promette**: le righe sotto una cella unita scalano a sinistra, e l'anteprima mostra una tabella plausibile e sbagliata | `src/Vipi.Application/Import/TabellaHtml.cs:20-23,64-69` |
 | **R-021** | 4d | S4 | 🟢 | CONFERMATO | **`CruiseLevel` entra dall'API senza un controllo di unità**: i piedi al posto dei FL danno parità e catena di ripiego sbagliate, in silenzio | `src/Vipi.Hosting/VipiModuleExtensions.cs:394` |
-| **R-022** | 4i | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
+| **R-022** | 4i ✅ | S3 | 🟢 | CONFERMATO | **La premessa che autorizza l'uso di `ExecuteUpdate` è già falsa**: dice che nessuna entità versionata lo usa, e `Document` — che il token ce l'ha — lo usa in quattro punti | `VipiDbContext.cs:52-55` · `EfEditingRepository.cs:1226,1262,1268,1284` |
 | **R-023** | 5 | **S2** | 🟢 | CONFERMATO | **La biblioteca allegati si difende solo dentro una pagina**: servizio e repository non hanno nessun controllo di ruolo, e l'`userId` dell'audit lo dichiara chi chiama | `AttachmentCurationService.cs` · `EfAttachmentLibrary.cs` · `AdminAttachmentsPage.razor:435` |
 | **R-025** | 6 | **S2** | 🟢 | CONFERMATO | **Byte di controllo nel sorgente, secondo caso**: `0x1F`/`0x1E` come separatori della firma dell'indice unito. Perderli riapre un difetto già chiuso, e nessun test cadrebbe | `UnionMembersEditor.razor:136` |
+| **R-027** | 6 | S3 | 🟢 | CONFERMATO | **La regola del brand dichiara «zero letterali, ed è verificato»**: nessun test lo verifica, e quattro letterali sono entrati — uno con una ragione buona che le eccezioni scritte non contemplano | `docs/design/regole-brand.md:9-20` · `vipi-theme.css:2556,4251,4336` |
 | **R-026** | 6 | S4 | 🟢 | CONFERMATO | **13 etichette e 9 segnaposto non seguono la barra della lingua** (regola R6): sette sono `aria-label`, cioè il testo che esiste solo per chi non vede l'icona | 13 file · vedi sotto |
 | **R-024** | 5 | **S2** | 🟢 | CONFERMATO | **L'APP nascosto resta pubblico**: delle quattro porte pubbliche è l'unica che passa da un `Sector` e l'unica che non filtra `IsActive` — contro la premessa scritta nella proiezione | `EfContentRepository.cs:52-61` · `EfSectorProjectionService.cs:229` |
 
@@ -1045,12 +1046,12 @@ un'affermazione che un `grep` smentisce in dieci secondi.
 
 | Ambito | Meccanismo | Esito |
 |---|---|---|
-| 4g | **Il giorno operativo delle regole pista.** Una finestra 22:00→06:00 vive in due giorni di calendario, e la coda dopo mezzanotte deve contare come il giorno *prima* — o «venerdì notte» diventa sabato | ✅ `GiornoOperativo` sottrae un giorno solo quando la finestra scavalca **e** l'ora sta nella coda. Giorni della settimana, parità e finestra stagionale si valutano tutti sul giorno operativo, non sul calendario |
-| 4g | Finestre di orario e stagionali col **wrap** (22:00→06:00, 1101→0228), fuso italiano con DST e ripiego a UTC se il fuso non c'è | ✅ entrambe con la stessa forma `f <= t ? dentro : fuori-o-dentro`, e la rimappa Domenica→6 per il bitmask |
+| 4g ✅ | **Il giorno operativo delle regole pista.** Una finestra 22:00→06:00 vive in due giorni di calendario, e la coda dopo mezzanotte deve contare come il giorno *prima* — o «venerdì notte» diventa sabato | ✅ `GiornoOperativo` sottrae un giorno solo quando la finestra scavalca **e** l'ora sta nella coda. Giorni della settimana, parità e finestra stagionale si valutano tutti sul giorno operativo, non sul calendario |
+| 4g ✅ | Finestre di orario e stagionali col **wrap** (22:00→06:00, 1101→0228), fuso italiano con DST e ripiego a UTC se il fuso non c'è | ✅ entrambe con la stessa forma `f <= t ? dentro : fuori-o-dentro`, e la rimappa Domenica→6 per il bitmask |
 | 4e | `PolygonGeometry.Contains` | ✅ (già in 4c) |
-| 4i | **Acquisizione del lock**, di documento e di risorsa: `ExecuteUpdate` con la condizione «libero, scaduto o già mio» **dentro la `WHERE`** | ✅ è atomica lato database: due editori non possono prenderlo entrambi. L'inserimento della prima riga cattura la violazione di unicità e ricade sull'ispezione |
-| 4k | **La griglia di copertura.** Due controllori sovrapposti non devono contare doppio, e una sessione a cavallo di un'ora non deve dare il 120% | ✅ si fondono gli intervalli **prima** di contare (`Unione`), i minuti si spalmano sulle caselle attraversate, e il clamp sul bordo della finestra è scritto con la sua ragione |
-| 4h | **Il tetto di spesa di traduzione** si legge dal registro `TranslationSpends` invece che dedurlo dalla memoria — perché la spesa dedotta non vede i segmenti tornati rotti | ✅ e la fotografia iniziale «una volta sola per motore» si chiede al **database**, non a un flag in memoria che un riavvio azzererebbe |
+| 4i ✅ | **Acquisizione del lock**, di documento e di risorsa: `ExecuteUpdate` con la condizione «libero, scaduto o già mio» **dentro la `WHERE`** | ✅ è atomica lato database: due editori non possono prenderlo entrambi. L'inserimento della prima riga cattura la violazione di unicità e ricade sull'ispezione |
+| 4k ✅ | **La griglia di copertura.** Due controllori sovrapposti non devono contare doppio, e una sessione a cavallo di un'ora non deve dare il 120% | ✅ si fondono gli intervalli **prima** di contare (`Unione`), i minuti si spalmano sulle caselle attraversate, e il clamp sul bordo della finestra è scritto con la sua ragione |
+| 4h ✅ | **Il tetto di spesa di traduzione** si legge dal registro `TranslationSpends` invece che dedurlo dalla memoria — perché la spesa dedotta non vede i segmenti tornati rotti | ✅ e la fotografia iniziale «una volta sola per motore» si chiede al **database**, non a un flag in memoria che un riavvio azzererebbe |
 | 4b/4j | `AuditScribe` dopo un `ExecuteUpdate` ha il suo `SaveChanges` esplicito, «perché qui non c'è un salvataggio dell'atto a cui accodarsi» | ✅ |
 
 > **Nota di metodo.** Tre di questi sette sono meccanismi che in altri repository sarebbero difetti quasi
@@ -1292,3 +1293,82 @@ proprio il testo che **esiste solo** per chi non vede l'icona.
 | # | Sospetto | Dove si decide |
 |---|---|---|
 | s-13 | La guardia «nessun `<text>` nel markup reso» esiste in `SezioniAeroportoTests` e copre **un** componente. Gli altri 40 usi non hanno nessuno che verifichi che siano dentro un blocco di codice — e fuori da un blocco `<text>` non è un comando Razor, è un tag che finisce nel DOM | Fase 7 |
+
+---
+
+# Residuo colmato — Fase 6 completa, Fase 4 chiusa
+
+**Stato:** ✅ **Fase 6 chiusa** (1 finding nuovo) · ✅ **Fase 4 chiusa** (0 findings nuovi, 1 rinforzo a R-014)
+
+## Fase 6 — il residuo
+
+### R-027 — La regola dice «zero, ed è verificato». Non lo verifica nessuno
+
+`docs/design/regole-brand.md:9-20` · **S3** · 🟢 · CONFERMATO
+
+`regole-brand` §1 descrive `vipi-theme.css` a tre livelli e chiude la tabella così:
+
+| livello | esadecimali ammessi |
+|---|---|
+| 1 — la scala di brand | **sì, solo qui** |
+| 2 — i ruoli · 3 — le tinte | no |
+| **corpo del foglio** | **no — zero, ed è verificato** |
+
+**Non c'è niente che lo verifichi.** I test sul tema esistono e sono parecchi — la minificazione che non
+perde variabili, il rosso dell'avviso che *viene dal token*, la gerarchia dei titoli, la regione live, il
+piè di stampa — ma nessuno conta i letterali. E in assenza del controllo ne sono entrati **quattro** che le
+tre eccezioni scritte non coprono:
+
+| Dove | Letterale | Perché non è coperto |
+|---|---|---|
+| `vipi-theme.css:2556` (`.mva-label`) | `color:#1a1a22` | L'eccezione «cartografica» vale per un `<input type=color>`, il DB o un attributo SVG — non per una regola CSS |
+| idem | `border:1px solid rgba(193,18,31,.5)` | L'eccezione del **velo** ammette solo bianco e nero: questo è il rosso di brand scritto a mano |
+| `vipi-theme.css:4251` e `4336` | `--nbr-ink:#b39dfa` (chiaro e scuro) | È un token di **livello 2**, dove l'esadecimale è vietato |
+
+⚠️ E il terzo caso è il più interessante, perché ha una **ragione buona scritta accanto**:
+*«product.creators (#8b5cf6) sul fondo scuro fa 4.09:1, sotto AA: schiarito»*. Cioè una correzione di
+**contrasto**, che le tre eccezioni non contemplano. Il difetto quindi non è il CSS: è la **regola**, a cui
+manca una quarta eccezione — «una tinta corretta per raggiungere AA, con il rapporto misurato scritto
+accanto» — oppure la forma derivata (`color-mix(… var(--ivao-color-product-creators) …, white)`) che
+resterebbe dentro la regola.
+
+**Rimedio:** il test che la regola dichiara già di avere. Conta i letterali fuori dal primo `:root` e
+confronta con una lista di eccezioni **nominata**: dieci righe, e la frase «ed è verificato» diventa vera.
+
+### Verificato e corretto nel residuo
+
+| Cosa | Esito |
+|---|---|
+| **Testo scritto a mano nel markup** | La sonda ne segnalava 249, **tutti in `GuidaPage`** — e sono **falsi positivi**: la Guida è bilingue con un helper `T("italiano","english")` sulla stessa riga, e una sonda a righe ne vede solo una metà. Nessun testo monolingua nel markup |
+| **Foglio di stampa e `<details>`** | La trappola è chiusa **due volte**: `beforeprint` apre i `<details>` da JS, e il CSS ha la rete — `details:not([open]) > .cb-body { display:block !important }` più `::details-content { content-visibility: visible }`, perché in Chrome il contenuto di un `<details>` chiuso non si stampa |
+| **Rotture di pagina** | Sette regole fra `break-inside`, `break-before`, `orphans`/`widows` |
+| **Isolamento del foglio di stampa** | 119 selettori sotto `.vipi-root` su 82 regole — l'opposto di `vipi-theme.css` (R-008). Qui l'isolamento c'è |
+
+## Fase 4 — il residuo
+
+Chiusi 4e, 4f, 4g, 4h, 4i, 4j, 4k sui meccanismi che restavano. **Nessun finding nuovo**, e sette verifiche
+che vale la pena aver fatto perché ognuna è un difetto classico che qui non c'è:
+
+| Ambito | Meccanismo | Esito |
+|---|---|---|
+| 4e | **Guardia anti-ciclo** (`HierarchyRules.EnsureNoCycle`) | ✅ risale i padri con un indice posizione→profondità e restituisce **l'anello**, non un booleano. E lavora sull'albero **effettivo**, che è la correzione del difetto vero: in produzione `LIMF_WW0_APP → LIMF_WN0_APP → LIMF_WW0_APP` era invisibile perché `WW0` non aveva un padre *scritto* |
+| 4g ✅ | **Scaletta delle posizioni d'aeroporto** | ✅ sale di gradino in gradino (DEL→GND→TWR→APP), e se un gradino è ambiguo **sale invece di tirare a sorte**; un gradino che darebbe una risposta ciclica vale come ambiguo |
+| 4h ✅ | **La lingua nello snapshot** | ✅ `ConLinguaDelDocumento` ricostruisce lo snapshot con la lingua del documento **vivo** — il difetto che la memoria del progetto registra come pagato — e `LanguageLocked` spegne la traduzione a monte |
+| 4j ✅ | **La sentinella «aperto» degli impatti** | ✅ `ClearedUtc` è NOT NULL con sentinella (MariaDB non ha indici unici parziali), e **tutti e dieci** i punti di lettura confrontano con `DocumentImpact.Aperto`, mai con `null`. Chi chiude si difende perfino dal chiudere *con* la sentinella |
+| 4i ✅ | Lock di documento e di risorsa | ✅ (già in Fase 4 trasversale) |
+| 4f ✅ | Forma canonica dei lati, regole di sezione | ✅ (già in 4d) |
+| 4k ✅ | Griglia di copertura, tetto di traduzione | ✅ (già in Fase 4 trasversale) |
+
+### Rinforzo a R-014
+
+Chiudendo 4e è emersa una **seconda conseguenza** del finding, che vale più della prima.
+
+`EnsureNoCycle` pretende la mappa dei padri **effettivi**, e il commento spiega perché con l'incidente che
+l'ha prodotta: *«due alberi diversi, e il difetto stava nella differenza»*. Quella mappa la costruisce
+`EffectiveHierarchy.ParentMap` — cioè proprio il metodo che, se lo stesso callsign esiste nei due cataloghi,
+**ne perde uno in silenzio** (R-014).
+
+Vuol dire che R-014 non produce soltanto una gerarchia sbagliata: fa **validare alla guardia anti-ciclo un
+albero che non è quello vero**, cioè riapre esattamente la differenza fra due alberi che quella guardia è
+stata scritta per chiudere. La severità resta **S2** e il verdetto **PLAUSIBILE** — le collisioni misurate
+oggi sono zero — ma il rimedio sale di priorità: non è una svista di igiene, è la premessa di una guardia.
