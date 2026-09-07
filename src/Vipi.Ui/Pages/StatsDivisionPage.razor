@@ -1,15 +1,24 @@
 ﻿@page "/services/stats/division"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
 @using Vipi.Application.Stats
-@inject IAtcStatsQueries Stats
-@inject IStatsSettingsStore Impostazioni
+
+@* ⚠️ SCOPE PROPRIO (OwningComponentBase) e sentinella di rientro, per la stessa ragione delle altre
+   pagine che ce l'hanno: questa è interattiva, quindi il suo `DbContext` è quello del CIRCUITO e vive per
+   ore. Un gesto che parte mentre il precedente è ancora in volo trova il contesto occupato e la pagina muore
+   con «A second operation was started on this context instance» — è la sequenza che il 24 agosto 2026 ha
+   ucciso sette volte una pagina di questo sito.
+
+   Le due porte servono a due cose diverse: lo scope proprio protegge dagli ALTRI, la sentinella da SÉ STESSI.
+   Qui servono tutte e due, perché la casella della classifica scrive e poi rilegge tutto mentre una chip di
+   periodo può già aver fatto ripartire lo stesso caricamento (revisione del 6 settembre 2026, R-016).
+
+   Restano fuori dallo scope proprio le cose che il database non lo toccano: localizzazione e identità. *@
 @inject ICurrentUserProvider Utenti
-@inject IEditAuthorizationService Authz
-@inject IStaffRosterRepository Roster
-@inject IAirportCoverageQueries Aeroporti
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 
@@ -313,6 +322,27 @@
     /// <summary>Periodo e gruppo dell'ultimo caricamento: senza, ogni render rifarebbe tutte le query.</summary>
     private string? _caricato;
 
+    /// <summary>È già in corso un giro di letture? ⚠️ Si alza <b>prima</b> del primo <c>await</c>: alzarla
+    /// dopo vorrebbe dire non alzarla affatto, perché è lì che il gesto successivo entra.</summary>
+    private bool _inCorso;
+
+    // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello del circuito.
+    // Vedi il commento in testa al file.
+    private IAtcStatsQueries Stats = default!;
+    private IStatsSettingsStore Impostazioni = default!;
+    private IEditAuthorizationService Authz = default!;
+    private IStaffRosterRepository Roster = default!;
+    private IAirportCoverageQueries Aeroporti = default!;
+
+    protected override void OnInitialized()
+    {
+        Stats = ScopedServices.GetRequiredService<IAtcStatsQueries>();
+        Impostazioni = ScopedServices.GetRequiredService<IStatsSettingsStore>();
+        Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
+        Roster = ScopedServices.GetRequiredService<IStaffRosterRepository>();
+        Aeroporti = ScopedServices.GetRequiredService<IAirportCoverageQueries>();
+    }
+
     /// <summary>
     /// ⚠️ <c>OnParametersSetAsync</c> e <b>non</b> <c>OnInitializedAsync</c>, ed è la differenza fra chip che
     /// funzionano e chip che non fanno niente.
@@ -335,7 +365,22 @@
         await CaricaAsync();
     }
 
+    /// <summary>
+    /// La porta del caricamento, con la <b>sentinella di rientro</b>.
+    ///
+    /// <para>⚠️ Sta qui e non nei chiamanti perché i chiamanti sono due — i parametri della pagina e la
+    /// casella della classifica — e la porta è una sola. E si alza <b>prima</b> di chiamare: alzarla dopo il
+    /// primo <c>await</c> vorrebbe dire non alzarla, perché è esattamente lì che entra il gesto successivo.</para>
+    /// </summary>
     private async Task CaricaAsync()
+    {
+        if (_inCorso) return;
+        _inCorso = true;
+        try { await LeggiAsync(); }
+        finally { _inCorso = false; }
+    }
+
+    private async Task LeggiAsync()
     {
         var impostazioni = await Impostazioni.GetAsync();
         _pubblica = impostazioni.PublicLeaderboard;

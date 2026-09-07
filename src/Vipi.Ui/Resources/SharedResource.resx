@@ -561,6 +561,8 @@
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Il padre «{0}» non esiste nei cataloghi: la catena di copertura si interrompe qui.</value></data>
   <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Gerarchia ciclica</value></data>
   <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>Il settore è antenato di sé stesso ({0}): ogni catena di ricaduta che ci passa si interrompe qui.</value></data>
+  <data name="Diag_Cat_CallsignDueCataloghi" xml:space="preserve"><value>Callsign in due cataloghi</value></data>
+  <data name="Diag_Msg_CallsignDueCataloghi" xml:space="preserve"><value>Lo stesso callsign è nel catalogo ACC e in quello d’aeroporto: l’albero di copertura tiene il padre «{0}» e scarta «{1}». Va tolto da uno dei due.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Area regolamentata sparita</value></data>
   <data name="Diag_Msg_AreaRegDangling" xml:space="preserve"><value>Aree scelte che non esistono più: {0}. Rimosse dalla sorgente e potate dall’import; nel documento restano citate ma non si vedono.</value></data>
   <data name="Diag_Cat_CallsignAmbiguo" xml:space="preserve"><value>Callsign ambiguo</value></data>

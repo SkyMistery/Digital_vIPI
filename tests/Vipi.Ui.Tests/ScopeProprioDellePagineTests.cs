@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 namespace Vipi.Ui.Tests;
 
@@ -76,10 +76,28 @@ public sealed class ScopeProprioDellePagineTests
     {
         "AccAdminPage", "AdminAirspacePage", "AdminAttachmentsPage", "AdminNavaidsPage", "AdminRolesPage",
         "AdminTasksPage", "AdminTrasferimentiPage", "AeroportiPage", "AirspacePage", "AppEditorPage",
-        "AtcWorldArchivePage", "AuditPage", "ChangedPage", "ConfinantiAdminPage", "CoordinateConverterPage",
-        "DiagnosticaPage", "GlossarioPage", "LivePage", "PendingPage", "SearchPage", "SectorfilePage",
-        "SorgentiAdminPage", "StatsDivisionPage", "StrutturaPage", "TasksPage", "VloaEditorPage",
+        "AuditPage", "ChangedPage", "ConfinantiAdminPage", "GlossarioPage", "LivePage", "PendingPage",
+        "SearchPage", "SectorfilePage", "SorgentiAdminPage", "StrutturaPage", "TasksPage", "VloaEditorPage",
     };
+
+    /// <summary>
+    /// Le quattro convertite il <b>7 settembre 2026</b> (revisione del 6 settembre, R-016), che erano nel
+    /// debito qui sopra: <c>StatsDivisionPage</c>, <c>DiagnosticaPage</c>, <c>AtcWorldArchivePage</c>,
+    /// <c>CoordinateConverterPage</c>. Non hanno preso solo lo scope proprio: hanno preso anche la
+    /// <b>sentinella di rientro</b>, che è l'altra porta — vedi <c>SentinellaDiRientroTests</c>.
+    /// </summary>
+    [Theory]
+    [InlineData("StatsDivisionPage")]
+    [InlineData("DiagnosticaPage")]
+    [InlineData("AtcWorldArchivePage")]
+    [InlineData("CoordinateConverterPage")]
+    public void Le_quattro_del_7_settembre_tengono_lo_scope_proprio(string pagina)
+    {
+        var testo = File.ReadAllText(Path.Combine(Radice(), "Pages", pagina + ".razor"));
+
+        Assert.Contains("@inherits OwningComponentBase", testo);
+        Assert.Contains("ScopedServices.GetRequiredService<", testo);
+    }
 
     [Fact]
     public void Nessuna_pagina_NUOVA_prende_un_servizio_dal_circuito()

@@ -163,4 +163,58 @@ public class EffectiveHierarchyTests
     [InlineData(null, SectorType.App)]
     public void TypeOfPosition_mappa_il_suffisso(string? position, SectorType atteso) =>
         Assert.Equal(atteso, EffectiveHierarchy.TypeOfPosition(position));
+
+    // =====================================================================================================
+    //  Lo stesso callsign nei DUE cataloghi (R-014)
+    // =====================================================================================================
+
+    /// <summary>
+    /// ⚠️ <b>Chi arriva secondo non vince più in silenzio.</b>
+    ///
+    /// <para>Le righe arrivano da due tabelle — <c>AccSectors</c> e <c>AirportSectors</c> — ognuna con il suo
+    /// indice unico su <c>ComposePosition</c>, e niente vieta la stessa chiave in tutte e due. Fino al
+    /// 7 settembre 2026 l'indicizzatore sovrascriveva: il settore perdeva il padre vero, la catena di
+    /// copertura si accorciava e la ricaduta dei trasferimenti finiva su un ente sbagliato o su UNICOM.
+    /// Nessuna eccezione e nessun rilievo — si vedeva solo a valle, come una gerarchia diversa da quella
+    /// scritta (revisione del 6 settembre 2026, R-014).</para>
+    ///
+    /// <para>Un indice non è la risposta, perché le tabelle sono due: la risposta è <b>fare rumore</b>.</para>
+    /// </summary>
+    [Fact]
+    public void Lo_stesso_callsign_nei_due_cataloghi_si_racconta_invece_di_sovrascrivere()
+    {
+        var righe = new[]
+        {
+            Ctr("LIRR_CTR", padre: null),
+            Ctr("LIPE_W_APP", padre: "LIMM_WS2_CTR"),      // dal catalogo ACC
+            App("LIPE_W_APP", padre: "LIRR_CTR", "LIPE"),  // e la STESSA chiave dal catalogo d'aeroporto
+        };
+        var padreScalo = new Dictionary<string, string?> { ["LIPE"] = "LIRR_CTR" };
+
+        var mappa = EffectiveHierarchy.ParentMap(righe, padreScalo, out var doppioni);
+
+        // Vince la PRIMA: deterministico, invece di dipendere dall'ordine in cui i cataloghi sono stati uniti.
+        Assert.Equal("LIMM_WS2_CTR", mappa["LIPE_W_APP"]);
+
+        var d = Assert.Single(doppioni);
+        Assert.Equal("LIPE_W_APP", d.Callsign);
+        Assert.Equal("LIMM_WS2_CTR", d.PadreTenuto);
+        Assert.Equal("LIRR_CTR", d.PadreScartato);
+    }
+
+    /// <summary>La controprova: senza collisioni non si racconta niente — è il caso di tutti i giorni.</summary>
+    [Fact]
+    public void Senza_collisioni_non_c_e_nessun_doppione()
+    {
+        var righe = new[]
+        {
+            Ctr("LIMM_WS2_CTR", padre: null),
+            App("LIPE_W_APP", padre: "LIMM_WS2_CTR", "LIPE"),
+            Twr("LIPE_TWR", padre: null, "LIPE"),
+        };
+
+        EffectiveHierarchy.ParentMap(righe, new Dictionary<string, string?>(), out var doppioni);
+
+        Assert.Empty(doppioni);
+    }
 }

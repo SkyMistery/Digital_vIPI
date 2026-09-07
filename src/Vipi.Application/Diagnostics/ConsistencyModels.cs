@@ -160,6 +160,14 @@ public sealed class ConsistencyDataset
 
     /// <summary>Le shape dei settori come stanno in archivio, per i controlli sulla geometria di sorgente.</summary>
     public IReadOnlyList<SectorShapeRow> SectorShapes { get; init; } = Array.Empty<SectorShapeRow>();
+
+    /// <summary>
+    /// I callsign presenti in <b>tutti e due</b> i cataloghi: l'albero effettivo ne tiene uno solo.
+    /// <para>Non è un errore d'ingresso — ogni riga è legale nella sua tabella, e le tabelle sono due, quindi
+    /// nessun indice può impedirlo. È qui che si racconta, invece di sovrascrivere in silenzio.</para>
+    /// </summary>
+    public IReadOnlyList<Domain.Services.HierarchyDuplicate> HierarchyDuplicates { get; init; }
+        = Array.Empty<Domain.Services.HierarchyDuplicate>();
 }
 
 /// <summary>

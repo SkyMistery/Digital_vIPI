@@ -1,12 +1,19 @@
 ﻿@page "/services/stats/world"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
 @using Vipi.Application.Stats
-@inject IAtcArchiveQueries Archivio
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+
+@* ⚠️ SCOPE PROPRIO e sentinella di rientro (revisione del 6 settembre 2026, R-016): la pagina è
+   interattiva, quindi il `DbContext` è quello del CIRCUITO e vive per ore. Qui la ricerca si rilancia a ogni
+   filtro cambiato — quattro controlli uno accanto all'altro — e due letture in volo sullo stesso contesto
+   uccidono la pagina con «A second operation was started on this context instance».
+   Lo scope proprio protegge dagli ALTRI, la sentinella da SÉ STESSI. *@
 
 @* L'archivio grezzo delle connessioni ATC, divisione compresa: chi è aperto adesso e chi c'era prima.
    Interattiva perché è tutta una ricerca — i filtri cambiano senza cambiare pagina. *@
@@ -137,6 +144,15 @@
     /// </summary>
     private bool _caricata;
 
+    /// <summary>Una ricerca è già in volo: ⚠️ si alza <b>prima</b> dell'<c>await</c>.</summary>
+    private bool _inCorso;
+
+    /// <summary>L'archivio: dallo SCOPE DI QUESTA PAGINA, non da quello del circuito.</summary>
+    private IAtcArchiveQueries Archivio = default!;
+
+    protected override void OnInitialized() =>
+        Archivio = ScopedServices.GetRequiredService<IAtcArchiveQueries>();
+
     protected override async Task OnParametersSetAsync()
     {
         if (_caricata || !Authz.IsDivisionStaff) return;
@@ -156,6 +172,12 @@
         // metodo dice cosa si legge — e questo lo può chiamare un evento, non solo il render.
         if (!Authz.IsDivisionStaff) return;
 
+        // ⚠️ E la sentinella di rientro si alza PRIMA dell'await: è là che entra il filtro cambiato subito
+        // dopo, sullo stesso contesto.
+        if (_inCorso) return;
+        _inCorso = true;
+        try
+        {
         var pagina = await Archivio.SearchAsync(new AtcArchiveFilter(
             CallsignPrefix: string.IsNullOrWhiteSpace(_callsign) ? null : _callsign,
             UserId: int.TryParse(_vid, out var v) ? v : null,
@@ -165,5 +187,7 @@
 
         _righe = pagina.Rows;
         _totale = pagina.Total;
+        }
+        finally { _inCorso = false; }
     }
 }

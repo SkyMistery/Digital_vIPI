@@ -62,7 +62,9 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                 .Select(a => new { a.Icao, a.ParentCallsign }).ToListAsync(ct))
             .ToDictionary(a => a.Icao, a => a.ParentCallsign, StringComparer.OrdinalIgnoreCase);
 
-        var effectiveParents = EffectiveHierarchy.ParentMap(righeGerarchia, padreScalo);
+        // ⚠️ I doppioni escono di qui invece di essere sovrascritti in silenzio: lo stesso callsign può
+        // stare in tutti e due i cataloghi (due indici unici, due tabelle) e l'albero effettivo ne tiene uno.
+        var effectiveParents = EffectiveHierarchy.ParentMap(righeGerarchia, padreScalo, out var doppioni);
 
         // Callsign validi come padre = chiavi naturali dei cataloghi (ACC + aeroporto).
         var valid = (await _db.AccSectors.AsNoTracking().Select(s => s.ComposePosition).ToListAsync(ct))
@@ -89,6 +91,7 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             AreaNames = areaNames,
             ParentRefs = parentRefs,
             EffectiveParents = effectiveParents,
+            HierarchyDuplicates = doppioni,
             ValidCallsigns = valid,
             RegulatedRefs = await LoadRegulatedRefsAsync(ct),
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))

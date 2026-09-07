@@ -58,6 +58,30 @@ public class ConsistencyReportTests
         Assert.Contains("LIMF_WN0_APP", f.Detail);
     }
 
+    /// <summary>
+    /// ⚠️ <b>Lo stesso callsign nei due cataloghi si racconta.</b> Nessun indice lo può impedire — le tabelle
+    /// sono due — e prima del 7 settembre 2026 la seconda riga sovrascriveva la prima in silenzio: la
+    /// gerarchia risultava diversa da quella scritta, e si vedeva solo a valle, sulla ricaduta (R-014).
+    /// </summary>
+    [Fact]
+    public void Un_callsign_nei_due_cataloghi_diventa_un_rilievo()
+    {
+        var d = new ConsistencyDataset
+        {
+            HierarchyDuplicates = new[]
+            {
+                new Vipi.Domain.Services.HierarchyDuplicate("LIPE_W_APP", "LIMM_WS2_CTR", "LIRR_CTR"),
+            },
+        };
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d), x => x.Category == "Callsign in due cataloghi");
+
+        Assert.Equal(ConsistencySeverity.Error, f.Severity);
+        Assert.Equal("LIPE_W_APP", f.Entity);
+        Assert.Contains("LIMM_WS2_CTR", f.Detail);
+        Assert.Contains("LIRR_CTR", f.Detail);
+    }
+
     /// <summary>Un anello si segnala UNA volta, non una per ogni nodo che ci finisce dentro.</summary>
     [Fact]
     public void Un_anello_produce_un_rilievo_solo()
