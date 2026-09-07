@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Localization;
+﻿using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 using Microsoft.JSInterop;
 using Vipi.Application.Content;
@@ -67,6 +67,16 @@ public sealed class DocumentEditorShell : IDisposable
     /// </summary>
     private readonly AsyncLocal<bool> _inFila = new();
 
+    /// <summary>Vero dopo <see cref="ChiudiAsync"/>: da lì in poi nel tornello non entra più nessuno.</summary>
+    private bool _chiuso;
+
+    /// <summary>
+    /// Quanto si aspetta, al massimo, che il caricamento in volo esca dal tornello prima di chiudere lo
+    /// scope lo stesso. ⚠️ Un caricamento normale dura millisecondi: questo tetto non è la durata attesa, è
+    /// il limite oltre il quale una pagina che non torna più non deve tenere in ostaggio la propria chiusura.
+    /// </summary>
+    private static readonly TimeSpan AttesaMassimaDiChiusura = TimeSpan.FromSeconds(15);
+
     /// <param name="famiglia">Come si chiama questo documento nei log: «ACC», «APP», «vLOA», «aeroporto».</param>
     /// <param name="chiaveNoPermesso">Chiave di traduzione del «non hai il permesso» di questa famiglia: è la
     /// sola frase che le quattro non condividono, perché nomina il tipo di documento.</param>
@@ -119,6 +129,10 @@ public sealed class DocumentEditorShell : IDisposable
     /// </summary>
     public async Task InFilaAsync(Func<Task> azione)
     {
+        // ⚠️ La pagina se n'è andata: non si comincia niente di nuovo. Non è una cortesia — dopo
+        // `ChiudiAsync` lo scope di DI sta per chiudersi, e una catena che partisse adesso andrebbe a
+        // sbattere sul `DbContext` smaltito, cioè esattamente il difetto che ChiudiAsync esiste per togliere.
+        if (_chiuso) return;
         if (_inFila.Value) { await azione(); return; }
 
         await _tornello.WaitAsync().ConfigureAwait(false);
@@ -299,4 +313,45 @@ public sealed class DocumentEditorShell : IDisposable
     /// il tornello chiuso, e la pagina dopo si pianterebbe invece di cadere.</para>
     /// </summary>
     public void Dispose() => _spegniSalvato.Dispose();
+
+    /// <summary>
+    /// Chiude la pagina: ferma i badge e <b>aspetta che l'operazione in volo esca dal tornello</b>. Solo dopo
+    /// chi chiama può smaltire il proprio scope di DI.
+    ///
+    /// <para>🔴 <b>Perché non basta <see cref="Dispose"/>.</b> Il tornello mette in fila chi lavora, ma non
+    /// ha nessuna presa su chi <b>se ne va</b>: fino al 7 settembre 2026 lo smontaggio chiudeva lo scope — e
+    /// con lui il <c>DbContext</c> e la sua connessione — mentre una query era ancora aperta. Nel registro di
+    /// produzione sono trentanove <c>ObjectDisposedException</c> su <c>VipiDbContext</c>, lette fino a ieri
+    /// come rumore («l'utente ha cambiato pagina»).</para>
+    ///
+    /// <para>🔴 <b>Non sono rumore.</b> Una sessione MySQL restituita al pool con una lettura ancora in corso
+    /// la trova poi <b>qualcun altro</b>: è la coppia delle 16:51:13 del 7 settembre — «<c>This method may
+    /// not be called when another read operation is pending</c>» sul socket, dalla parte di chi la sessione
+    /// l'ha appena presa, e una <c>NullReferenceException</c> dentro <c>MySqlDataReader</c> dalla parte di
+    /// chi la stava ancora leggendo. Vedi <c>docs/lavori-aperti.md</c> §CD.</para>
+    ///
+    /// <para>⚠️ <b>A chiudere la porta è il flag, non il semaforo tenuto stretto.</b> Trattenere il
+    /// tornello per sempre avrebbe fatto aspettare <i>all'infinito</i> chi fosse arrivato dopo — un task che
+    /// non finisce più, che è il modo silenzioso di perdere memoria. Il flag invece manda via chi arriva
+    /// tardi <b>subito</b>, e l'attesa qui sotto riguarda solo chi era già dentro.</para>
+    ///
+    /// <para>⚠️ Scaduto il tetto si chiude lo stesso. È il comportamento di prima — il male minore già noto —
+    /// e non un modo nuovo di piantarsi; ma lo si scrive nel log, perché una chiusura che scade è un
+    /// caricamento che non torna, cioè una cosa da guardare.</para>
+    /// </summary>
+    public async Task ChiudiAsync()
+    {
+        Dispose();
+        // Chi è già dentro il tornello aspetterebbe se stesso — stessa regola di InFilaAsync.
+        if (_chiuso || _inFila.Value) return;
+        // ⚠️ Prima la porta, poi l'attesa: chi arriva da adesso in poi non entra (vedi InFilaAsync), quindi
+        // aspettare vuol dire aspettare SOLO chi era già dentro — un'attesa che finisce.
+        _chiuso = true;
+        if (await _tornello.WaitAsync(AttesaMassimaDiChiusura).ConfigureAwait(false))
+            _tornello.Release();
+        else
+            _log.LogWarning(
+                "Chiusura editor {Famiglia}: un'operazione era ancora in volo dopo {Secondi}s (documento {DocId}). Lo scope si chiude lo stesso.",
+                _famiglia, AttesaMassimaDiChiusura.TotalSeconds, DocumentId);
+    }
 }

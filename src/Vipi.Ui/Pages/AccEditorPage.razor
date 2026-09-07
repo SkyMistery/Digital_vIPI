@@ -4,6 +4,7 @@
 @* ⚠️ OwningComponentBase per lo SCOPE: IEditingService (e con lui il DbContext) non deve venire dal
    circuito, che lo condivide con barra, isole e pannelli. Vedi il blocco su `Editing`. *@
 @inherits OwningComponentBase
+@implements IAsyncDisposable
 @using Microsoft.Extensions.DependencyInjection
 @using System.Text.Json
 @inject IAccDocumentService AccDoc
@@ -589,6 +590,26 @@ else
     {
         if (disposing) _shell.Dispose();
         base.Dispose(disposing);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Prima si aspetta il caricamento in volo, poi si chiude lo scope di DI.</b> Chiudere lo scope
+    /// mentre una query e' ancora aperta smaltisce il <c>DbContext</c> <b>sotto</b> la query, e restituisce
+    /// al pool una sessione MySQL con una lettura in corso — che poi si becca qualcun altro. Sono le
+    /// trentanove <c>ObjectDisposedException</c> del registro di produzione e la coppia sul socket delle
+    /// 16:51 del 7 settembre 2026: vedi <c>DocumentEditorShell.ChiudiAsync</c> e
+    /// <c>docs/lavori-aperti.md</c> §CD.
+    ///
+    /// <para>⚠️ <b>Essere <c>IAsyncDisposable</c> con uno scope proprio e' una trappola</b>: il renderer, se
+    /// il componente e' <c>IAsyncDisposable</c>, chiama <b>solo</b> <c>DisposeAsync</c> — mai il
+    /// <c>Dispose</c> sincrono, che e' quello con cui <c>OwningComponentBase</c> chiude il proprio scope.
+    /// Senza la riga nel <c>finally</c>, ogni visita lascerebbe in piedi uno scope con dentro un
+    /// <c>DbContext</c>: un guasto che non si vede il primo giorno e si vede il quindicesimo.</para>
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        try { await _shell.ChiudiAsync(); }
+        finally { ((IDisposable)this).Dispose(); }
     }
     private static string AsString(object? v) => v as string ?? "";
     private async Task<bool> Confirm(string message) => await JS.InvokeAsync<bool>("confirm", message);

@@ -14,9 +14,9 @@
    unito questo conta il DOPPIO: i membri sono piu' d'uno, e ognuno ha il suo. *@
 @inherits OwningComponentBase
 @implements IMembroEditor
+@implements IAsyncDisposable
 @using Microsoft.Extensions.DependencyInjection
 @using System.Text.Json
-@inject IStationResolver Stations
 @inject IJSRuntime JS
 @inject ILogger<AppSectionsEditor> Logger
 @inject IDocRoutesRegistry DocRoutes
@@ -251,10 +251,26 @@ else
     /// </summary>
     private IAppDocumentService AppDoc = default!;
 
+
+    /// <summary>
+    /// ⚠️ <b>Dallo scope PROPRIO, non da <c>@@inject</c></b>: questi servizi leggono dal database dentro il
+    /// caricamento della pagina, cioè <b>dentro il tornello</b>. Con <c>@@inject</c> arrivavano dal
+    /// <c>DbContext</c> del CIRCUITO — quello che la sessione condivide con barra, isole e le altre pagine —
+    /// e il tornello, che serializza il contesto di questa pagina, su quello non ha nessuna presa: la fila
+    /// c'era, ma la lettura passava da un'altra porta.
+    ///
+    /// <para>🔴 Lo dice il registro di produzione: dodici «<c>A second operation was started on this context
+    /// instance</c>» fra il 4 e il 7 settembre 2026, e le ultime — 7 settembre, 11:10 e 12:16 — hanno nello
+    /// stack <c>DocumentEditorShell.InFilaAsync</c>, cioè <b>erano già in fila</b>. Vedi
+    /// <c>docs/lavori-aperti.md</c> §CD.</para>
+    /// </summary>
+    private IStationResolver Stations = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         AppDoc = ScopedServices.GetRequiredService<IAppDocumentService>();
+        Stations = ScopedServices.GetRequiredService<IStationResolver>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "APP", "App_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e'
             // sua, e senza questo resterebbe ferma su quel che era prima del gesto.
@@ -515,6 +531,26 @@ else
     {
         if (disposing) _shell.Dispose();
         base.Dispose(disposing);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Prima si aspetta il caricamento in volo, poi si chiude lo scope di DI.</b> Chiudere lo scope
+    /// mentre una query e' ancora aperta smaltisce il <c>DbContext</c> <b>sotto</b> la query, e restituisce
+    /// al pool una sessione MySQL con una lettura in corso — che poi si becca qualcun altro. Sono le
+    /// trentanove <c>ObjectDisposedException</c> del registro di produzione e la coppia sul socket delle
+    /// 16:51 del 7 settembre 2026: vedi <c>DocumentEditorShell.ChiudiAsync</c> e
+    /// <c>docs/lavori-aperti.md</c> §CD.
+    ///
+    /// <para>⚠️ <b>Essere <c>IAsyncDisposable</c> con uno scope proprio e' una trappola</b>: il renderer, se
+    /// il componente e' <c>IAsyncDisposable</c>, chiama <b>solo</b> <c>DisposeAsync</c> — mai il
+    /// <c>Dispose</c> sincrono, che e' quello con cui <c>OwningComponentBase</c> chiude il proprio scope.
+    /// Senza la riga nel <c>finally</c>, ogni visita lascerebbe in piedi uno scope con dentro un
+    /// <c>DbContext</c>: un guasto che non si vede il primo giorno e si vede il quindicesimo.</para>
+    /// </summary>
+    public async ValueTask DisposeAsync()
+    {
+        try { await _shell.ChiudiAsync(); }
+        finally { ((IDisposable)this).Dispose(); }
     }
 
     private static string AsString(object? v) => v as string ?? "";

@@ -20,10 +20,6 @@
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
 @using RenderMode = Vipi.Domain.RenderMode
-@inject IEditAuthorizationService Authz
-@inject IStationResolver Stations
-@inject ISidImporter SidImporter
-@inject ISidFixAliasRepository SidAliases
 @inject INavaidSource Navaids
 @inject Vipi.Domain.Services.IAiracService Airac
 @inject IJSRuntime JS
@@ -32,7 +28,6 @@
 @inject IDocRoutesRegistry DocRoutes
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
-@inject Vipi.Application.Airspace.ISectorShapeResolver Forme
 @inject EnglishStrings En
 
 @if (_acc is null)
@@ -434,12 +429,33 @@ else
     /// </summary>
     private IEditingService Editing = default!;
 
+    /// <summary>
+    /// ⚠️ <b>Dallo scope PROPRIO, non da <c>@@inject</c></b>: questi servizi leggono dal database dentro il
+    /// caricamento della pagina, cioè <b>dentro il tornello</b>. Con <c>@@inject</c> arrivavano dal
+    /// <c>DbContext</c> del CIRCUITO — quello che la sessione condivide con barra, isole e le altre pagine —
+    /// e il tornello, che serializza il contesto di questa pagina, su quello non ha nessuna presa: la fila
+    /// c'era, ma la lettura passava da un'altra porta.
+    ///
+    /// <para>🔴 Lo dice il registro di produzione: dodici «<c>A second operation was started on this context
+    /// instance</c>» fra il 4 e il 7 settembre 2026, e le ultime — 7 settembre, 11:10 e 12:16 — hanno nello
+    /// stack <c>DocumentEditorShell.InFilaAsync</c>, cioè <b>erano già in fila</b>. Vedi
+    /// <c>docs/lavori-aperti.md</c> §CD.</para>
+    /// </summary>
+    private IStationResolver Stations = default!;
+    private Vipi.Application.Airspace.ISectorShapeResolver Forme = default!;
+    private ISidImporter SidImporter = default!;
+    private ISidFixAliasRepository SidAliases = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
         Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         Sectors = ScopedServices.GetRequiredService<IAirportSectorService>();
         Profile = ScopedServices.GetRequiredService<IAirportEditingService>();
+        Stations = ScopedServices.GetRequiredService<IStationResolver>();
+        Forme = ScopedServices.GetRequiredService<Vipi.Application.Airspace.ISectorShapeResolver>();
+        SidImporter = ScopedServices.GetRequiredService<ISidImporter>();
+        SidAliases = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
@@ -596,13 +612,14 @@ else
         {
             // I due badge che si spengono da soli: fermarli PRIMA di tutto il resto, o restano in volo su un
             // renderer che sta sparendo.
-            _shell.Dispose();
+            // ⚠️ E si ASPETTA il caricamento in volo: sotto, nel `finally`, si chiude lo scope di DI, cioè il
+            // `DbContext` e la sua connessione. Chiuderlo con una query aperta e' il difetto §CD.
+            await _shell.ChiudiAsync();
             _dismissInfo.Dispose();
             // ⚠️ Qui si spegneva la guardia `beforeunload`. Non c'è più niente da spegnere: nessun buffer
             // sopravvive a un gesto, quindi nessuna chiamata JS in `Dispose` — che era anche la sorgente di
             // dieci `CircuitUnhandledException` in produzione il 4 settembre 2026, tutte `TaskCanceledException`
             // esattamente 60 secondi dopo la morte del circuito (il timeout della chiamata rimasta appesa).
-            await Task.CompletedTask;
         }
         finally
         {

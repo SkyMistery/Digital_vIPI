@@ -316,4 +316,63 @@ public class DocumentEditorShellTests
 
         Assert.Equal(1, massimo);
     }
+
+    /// <summary>
+    /// 🔴 <b>La coppia delle 16:51:13 del 7 settembre 2026, in miniatura.</b> Chiudere la pagina mentre un
+    /// caricamento è in volo chiudeva lo scope di DI — e con lui il <c>DbContext</c> e la sua connessione —
+    /// <b>sotto</b> una query ancora aperta. Nel registro di produzione sono trentanove
+    /// <c>ObjectDisposedException</c> lette come rumore, e una sessione MySQL restituita al pool con una
+    /// lettura in corso: la prende poi un altro circuito, e lì diventa «<c>another read operation is
+    /// pending</c>» sul socket.
+    ///
+    /// <para>Qui si prova la sola cosa che il guscio può garantire: <c>ChiudiAsync</c> <b>non torna</b>
+    /// finché chi era dentro il tornello non è uscito. Chi chiama smaltisce lo scope dopo, e quel «dopo» è
+    /// tutta la correzione.</para>
+    /// </summary>
+    [Fact]
+    public async Task Chiudere_aspetta_il_caricamento_in_volo()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var apri = new TaskCompletionSource();
+        var finito = false;
+
+        var caricamento = guscio.InFilaAsync(async () => { await apri.Task; finito = true; });
+
+        var chiusura = guscio.ChiudiAsync();
+        Assert.False(chiusura.IsCompleted);   // senza l'attesa, qui lo scope sarebbe già chiuso
+        Assert.False(finito);
+
+        apri.SetResult();
+        await chiusura.WaitAsync(TimeSpan.FromSeconds(5));
+        await caricamento;
+        Assert.True(finito);
+    }
+
+    /// <summary>
+    /// ⚠️ E dopo la chiusura <b>non si comincia niente di nuovo</b>: una catena che partisse adesso
+    /// andrebbe a sbattere sul <c>DbContext</c> che sta per essere smaltito, cioè rifarebbe il difetto
+    /// dall'altro capo. Chi arriva tardi se ne torna <b>subito</b>: non aspetta un tornello che non si
+    /// riaprirà, che sarebbe un task fermo per sempre.
+    /// </summary>
+    [Fact]
+    public async Task Dopo_la_chiusura_non_si_comincia_piu_niente()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        await guscio.ChiudiAsync();
+
+        var partito = false;
+        var tardivo = guscio.InFilaAsync(() => { partito = true; return Task.CompletedTask; });
+
+        await tardivo.WaitAsync(TimeSpan.FromSeconds(5));   // torna, e torna subito
+        Assert.False(partito);
+    }
+
+    /// <summary>Chiudere due volte è lecito: lo smontaggio di un componente non è un gesto che si conta.</summary>
+    [Fact]
+    public async Task Chiudere_due_volte_non_solleva()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        await guscio.ChiudiAsync();
+        await guscio.ChiudiAsync().WaitAsync(TimeSpan.FromSeconds(5));
+    }
 }

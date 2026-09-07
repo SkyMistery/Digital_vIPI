@@ -110,6 +110,72 @@ public sealed class PaginaErroreTests
         Assert.DoesNotContain("SEGRETISSIMO", righe);
     }
 
+    /// <summary>
+    /// 🔴 <b>39 voci su 71.</b> Nel file sceso dal server il 7 settembre 2026 più di metà del registro era
+    /// <c>ObjectDisposedException</c> sul <c>VipiDbContext</c> di circuiti chiusi — il prezzo normale di chi
+    /// chiude la scheda mentre un caricamento è in volo. Non sono guasti, ma sono lunghe uno stack l'una, e
+    /// i due difetti VERI di quella finestra ci sono finiti in mezzo. Un registro fatto per metà di rumore è
+    /// un registro che si smette di leggere — e che ruota via a 512 kB portandosi la storia che serviva.
+    ///
+    /// <para>Quindi: la PRIMA di ogni famiglia intera, con il suo stack; dalla seconda in poi una riga.</para>
+    /// </summary>
+    [Fact]
+    public async Task Il_rumore_di_chi_se_ne_va_vale_una_riga_dalla_seconda_volta()
+    {
+        var registro = StartupDiagnostics.Percorso(DiagnosticaErrori.NomeFile);
+        Assert.NotNull(registro);
+        if (File.Exists(registro)) File.Delete(registro);
+
+        var smaltito = Cattura(new ObjectDisposedException("VipiDbContext"));
+
+        DiagnosticaErrori.Registra("uno", "GET", "/services/vsop/lipz", null, smaltito);
+        DiagnosticaErrori.Registra("due", "GET", "/services/vsop/lipz", null, smaltito);
+
+        var righe = await File.ReadAllTextAsync(registro!);
+
+        // La prima volta si scrive intera: uno stack di esempio serve a capire da dove nasce la famiglia.
+        Assert.Contains("ObjectDisposedException", righe);
+        Assert.Contains("Cattura", righe);
+
+        // La seconda vale una riga sola, e la riga porta comunque tipo, punto nostro e percorso.
+        var note = righe.Split(Environment.NewLine).Where(r => r.StartsWith("NOTA ", StringComparison.Ordinal)).ToList();
+        var nota = Assert.Single(note);
+        Assert.Contains("ObjectDisposedException", nota);
+        Assert.Contains("Vipi.E2E.Tests", nota);
+        Assert.Contains("/services/vsop/lipz", nota);
+    }
+
+    /// <summary>
+    /// 🔴 <b>E non si demoliscono tutte le <c>ObjectDisposedException</c>.</b> Il 4 settembre 2026 il difetto
+    /// era proprio una di quelle — su un <c>SemaphoreSlim</c> smaltito, non su un <c>DbContext</c> — e
+    /// abbatteva il circuito. Una regola scritta sul TIPO l'avrebbe nascosta; questa è scritta sull'OGGETTO.
+    /// </summary>
+    [Fact]
+    public async Task Un_semaforo_smaltito_resta_un_guasto_intero()
+    {
+        var registro = StartupDiagnostics.Percorso(DiagnosticaErrori.NomeFile);
+        if (File.Exists(registro)) File.Delete(registro);
+
+        var semaforo = Cattura(new ObjectDisposedException("SemaphoreSlim"));
+        DiagnosticaErrori.Registra("uno", "GET", "/services/vsop/lipz", null, semaforo);
+        DiagnosticaErrori.Registra("due", "GET", "/services/vsop/lipz", null, semaforo);
+
+        var righe = await File.ReadAllTextAsync(registro!);
+        // ⚠️ Si guardano le RIGHE, non il testo: «NOTA» compare anche nell'intestazione del file, che
+        // quella distinzione la spiega — e cercarla nel testo intero farebbe passare il test per il
+        // motivo sbagliato.
+        Assert.DoesNotContain(righe.Split(Environment.NewLine), r => r.StartsWith("NOTA ", StringComparison.Ordinal));
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Matches(righe, "SemaphoreSlim").Count);
+    }
+
+    /// <summary>Un'eccezione con uno stack VERO: la firma di una nota è il tipo più il primo fotogramma
+    /// nostro, e senza stack non ci sarebbe niente da distinguere.</summary>
+    private static Exception Cattura(Exception da)
+    {
+        try { throw da; }
+        catch (Exception ex) { return ex; }
+    }
+
     /// <summary>Il codice mostrato in pagina, dal riquadro in fondo.</summary>
     private static string Codice(string html)
     {

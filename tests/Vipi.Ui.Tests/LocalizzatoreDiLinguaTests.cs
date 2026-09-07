@@ -100,4 +100,46 @@ public class LocalizzatoreDiLinguaTests
         var italiano = RisorseCondivise.Testo("Lang_LockedTitle", System.Globalization.CultureInfo.GetCultureInfo("it"));
         Assert.Equal(italiano, sito["Lang_LockedTitle"]);
     }
+
+    /// <summary>Un localizzatore interno che si rompe: serve a provare che il guasto esce con un NOME.</summary>
+    private sealed class Rotto : IStringLocalizer<SharedResource>
+    {
+        public LocalizedString this[string name] => throw new NullReferenceException();
+        public LocalizedString this[string name, params object[] arguments] => throw new NullReferenceException();
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) =>
+            Array.Empty<LocalizedString>();
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il 6 e il 7 settembre 2026 due pagine d'errore, e nessuna delle due diceva quale etichetta.</b>
+    /// Lo stack finiva dentro il <c>BuildRenderTree</c> dell'editor APP con una
+    /// <c>NullReferenceException</c> nuda: in Release i metodi corti finiscono dentro il chiamante, quindi
+    /// del percorso che ha sollevato non resta un fotogramma. Adesso l'eccezione porta la CHIAVE e le due
+    /// lingue in gioco — che è la differenza fra una diagnosi e una congettura (§CD).
+    /// </summary>
+    [Fact]
+    public void Un_etichetta_che_non_si_legge_dice_QUALE()
+    {
+        using var _ = CulturaDiProva.Italiana();
+        var l = new LocalizzatoreDiLingua(new Rotto(), new ReadingLanguageContext());
+
+        var caduta = Assert.Throws<InvalidOperationException>(() => l["App_EditorTitle"]);
+
+        Assert.Contains("App_EditorTitle", caduta.Message);
+        Assert.Contains("(nessuna)", caduta.Message);          // nessuna lingua imposta: è il caso normale
+        Assert.IsType<NullReferenceException>(caduta.InnerException);
+    }
+
+    /// <summary>⚠️ E vale anche per la forma con gli argomenti: sono la stessa porta, e una porta sola
+    /// strumentata è una porta che il prossimo guasto scavalca dall'altra parte.</summary>
+    [Fact]
+    public void Vale_anche_per_l_etichetta_con_argomenti()
+    {
+        using var _ = CulturaDiProva.Italiana();
+        var l = new LocalizzatoreDiLingua(new Rotto(), new ReadingLanguageContext());
+
+        var caduta = Assert.Throws<InvalidOperationException>(() => l["Ed_DraftVN", 3]);
+
+        Assert.Contains("Ed_DraftVN", caduta.Message);
+    }
 }

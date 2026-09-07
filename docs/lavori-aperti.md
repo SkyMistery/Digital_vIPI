@@ -5,10 +5,13 @@
 1. ✅ **In produzione c'è 1.15.1**, caricata la notte del 7 settembre. Confermata dal timbro in
    `diagnostica/avvio-diagnostica.txt`: `Versione 1.15.1 · commit 68e71bf`, ambiente **Production**, in
    servizio dalle **21:11 UTC**. `main` è pulito e spinto, nessun ramo di lavoro aperto.
-2. ▶ **Il lavoro aperto è §CD: le tre cose che ha detto la diagnostica di produzione** — la prima volta che
-   abbiamo `errori-richieste.txt` in mano. In ordine: la **corsa sulla connessione MySQL** (tre coppie in un
-   giorno), l'**NRE dell'editor APP** che ha visto un utente vero, e il **rumore** degli
-   `ObjectDisposedException`, che sono il 55% del file.
+2. ✅ **§CD è LAVORATO** (8 settembre): due difetti su tre chiusi con una correzione ciascuno, il terzo
+   ristretto e strumentato. La domanda «chi gira accanto al tornello?» ha una risposta, e non era quella che
+   sembrava: **nessuno lo scavalca**. Il tornello serializza lo scope PROPRIO dell'editor, ma dentro lo
+   stesso caricamento tre servizi arrivavano da `@inject`, cioè dal **circuito** — un altro `DbContext`, su
+   cui il tornello non ha nessuna presa. E il **rumore non era rumore**: era lo scope che moriva con una
+   query ancora aperta. ▶ Resta aperta **una** cosa: l'NRE dell'editor APP, ristretta al primo `L["…"]`
+   della pagina e adesso strumentata perché la prossima volta dica quale.
 3. ✅ **La revisione totale del 6-7 settembre è CHIUSA**: sette lotti, **31 findings su 33**, più **R-009**
    (la superficie pubblica) in due tagli. Restano, e non sono di corsa: **R-004** — `xunit` deprecato →
    `xunit.v3`, nove progetti di test con API diverse, vuole un ramo suo — e **R-003 a metà**: c'è
@@ -9813,6 +9816,76 @@ l'impronta — e va scritto, o alla prossima consegna qualcuno cercherà un'ugua
 Le **7 impronte riverificate dentro lo zip** dopo averlo costruito: 7 giuste, 0 sbagliate.
 
 ## §CD — Le tre cose che ha detto la diagnostica di produzione — 7 settembre 2026 (notte)
+
+> ## ✅ Esito — 8 settembre 2026
+>
+> **Le 71 voci contate una per una** dicono più di quel che si era letto la prima notte:
+>
+> | quante | che cosa | verdetto |
+> |---|---|---|
+> | 39 | `ObjectDisposedException` sul `VipiDbContext` | **non è rumore**: è lo scope che muore con una query aperta → §CD.1b |
+> | 12 | `InvalidOperationException` «**A second operation was started**» | 🔴 **la carta non le aveva contate**, ed è qui la causa del difetto 1 |
+> | 12 | `TaskCanceledException` da `AirportSectionsEditor.DisposeAsync` | tutte del **4 settembre**, cioè già corrette (la chiamata JS in `Dispose`) |
+> | 5 | `NullReferenceException` | 3 dentro `MySqlDataReader` (§CD.1b) + 2 di **render** sull'editor APP (§CD.2) |
+> | 3 | `NotSupportedException` sul socket MySQL | l'altra metà delle coppie (§CD.1b) |
+>
+> ### 1a — «chi gira accanto al tornello?»: **un altro `DbContext`**
+>
+> Le dodici «A second operation» lo dicono in chiaro, e le ultime due — **7 settembre, 11:10 e 12:16**, cioè
+> sotto 1.14.2 — hanno nello stack `DocumentEditorShell.InFilaAsync`: **erano già in fila**. Il tornello
+> funziona; quel che gli girava accanto non era un chiamante distratto, era un **contesto diverso**:
+>
+> - `ISectorShapeResolver` (`Forme`) → `EfSectorAirspaceBindings.ResolveAsync`, 4 voci
+> - `IStationResolver` (`Stations`) → `EfStationDirectory.ListAccs`, dentro `ParametriAsync`
+> - (già chiusi il 4 settembre: `INavaidCatalog` di `MilSectionsEditor`, e i due servizi che scrivono)
+>
+> Erano `@inject`, cioè **circuito**, dentro editor che per tutto il resto hanno uno scope proprio.
+> ✅ **Corretto**: `AirportSectionsEditor`, `AppSectionsEditor` e `MilSectionsEditor` li prendono da
+> `ScopedServices`. In `AirportSectionsEditor` `IEditAuthorizationService` era iniettato e **non usato da
+> nessuno**: tolto.
+>
+> ### 1b — la coppia sul socket, e i 39 che sembravano rumore: **la stessa cosa**
+>
+> Alle 16:51:13 le due eccezioni stanno su **due contesti diversi** (`AdminRolesPage` sul circuito,
+> `AirportSectionsEditor` sul suo scope) e sullo **stesso socket**. Non è una corsa fra loro: è una
+> **sessione MySQL restituita al pool con una lettura ancora aperta**, che poi si becca il primo che la
+> chiede. Chi ce l'ha rimessa dentro è lo smontaggio: `DisposeAsync` chiudeva lo scope di DI — e con lui il
+> `DbContext` — **senza aspettare né annullare** il caricamento in volo. Le 39
+> `ObjectDisposedException` sono lo stesso gesto visto dall'altro lato.
+>
+> ✅ **Corretto**: `DocumentEditorShell.ChiudiAsync()` chiude la porta (chi arriva dopo non entra) e
+> **aspetta chi era già dentro**, con un tetto di 15s scritto nel log se scade. La chiamano i **cinque**
+> editor documentali, che per questo diventano tutti `IAsyncDisposable` — con la riga nel `finally` che
+> chiude lo scope, perché il renderer, su un `IAsyncDisposable`, il `Dispose` sincrono non lo chiama più.
+>
+> ### 2 — l'NRE dell'editor APP: **ristretta, non chiusa**
+>
+> 🔴 **La carta diceva `_shell.Doc.VersionStatus`, e non è quello**: quella lettura sta a riga 76, non a 71.
+> La riga 71 ha un solo dereferenziamento, `L["App_EditorTitle"]`. E **`L` non è nullo**: il render
+> *precedente* della stessa richiesta — quello che parte quando `OnParametersSetAsync` cede — passa dal ramo
+> «sto caricando», che è un `L["…"]` anche lui, e non cade. Quindi il guasto è **dentro** la lettura
+> dell'etichetta, e in Release non ne resta un fotogramma perché i metodi corti finiscono dentro il
+> chiamante.
+>
+> ⚠️ Non si indovina: si strumenta. `LocalizzatoreDiLingua` adesso rilancia con **la chiave e le due lingue
+> in gioco**. La prossima occorrenza è una diagnosi. ▶ **Resta questa.** C'è una seconda voce dello stesso
+> utente (6 settembre, `DocumentSectionsEditor.BuildToc` riga 138) che è probabilmente la stessa cosa vista
+> da un'altra pagina.
+>
+> ### 3 — un registro fatto per metà di rumore
+>
+> ✅ **Corretto**, ma non buttando via niente: la **prima** voce di ogni famiglia si scrive intera, con il
+> suo stack; dalla seconda in poi vale **una riga** che porta comunque tipo, punto nostro e percorso.
+> ⚠️ E la regola è scritta sull'**oggetto smaltito**, non sul tipo: il difetto del 4 settembre era proprio
+> una `ObjectDisposedException` — su un `SemaphoreSlim` — e una regola sul tipo l'avrebbe nascosta.
+>
+> ### Che cosa non è stato fatto
+>
+> - I caricamenti **non prendono ancora un `CancellationToken`**: `ChiudiAsync` aspetta, non annulla. Con i
+>   token l'attesa sarebbe immediata invece che «quanto dura la query»; sono molti punti di chiamata, e vale
+>   un lavoro suo.
+> - Le voci di `MilListPage` e `ImportaTabella` (4 settembre) erano già coperte da correzioni successive.
+
 
 **La prima volta che leggiamo `errori-richieste.txt` del server vero.** 71 voci, dal 4 al 7 settembre; il
 file si mette da parte da solo a 512 kB, quindi questa è la finestra che c'è. I file stanno fuori dal repo,

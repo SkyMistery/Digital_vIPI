@@ -90,10 +90,82 @@ public static class DiagnosticaErrori
 
             var voce = sb.ToString();
 
-            lock (Serratura) Scrivi(voce);
+            lock (Serratura)
+            {
+                // Una nota gia' vista si scrive in una riga; la prima volta si scrive intera, perche' lo
+                // stack di UN esemplare serve a capire da dove nasce quella famiglia.
+                if (ENota(ex) && !NoteGiaViste.Add(Firma(ex)))
+                    Scrivi(RigaDiNota(codice, metodo, percorso, utente, ex));
+                else
+                    Scrivi(voce);
+            }
         }
         catch { /* non c'è un piano C, e non deve esserci */ }
     }
+
+    /// <summary>
+    /// Le famiglie di nota gia' incontrate da quando il processo e' partito: tipo dell'eccezione + primo
+    /// fotogramma nostro. ⚠️ Non e' una cache che va svuotata: se il processo riparte, riparte anche questa,
+    /// e il primo esemplare torna a scriversi intero.
+    /// </summary>
+    private static readonly HashSet<string> NoteGiaViste = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Vero per i guasti che sono il <b>prezzo normale di una pagina che se ne va</b>: chi chiude la scheda
+    /// mentre un caricamento e' in volo, e la query esplode su un contesto gia' smaltito o su un'attesa
+    /// annullata.
+    ///
+    /// <para>🔴 <b>Perche' esiste questa distinzione.</b> Nel file sceso dal server il 7 settembre 2026,
+    /// <b>39 voci su 71</b> erano <c>ObjectDisposedException</c> sul <c>VipiDbContext</c> di circuiti chiusi,
+    /// e altre 12 <c>TaskCanceledException</c>. Non sono guasti; ma sono lunghe uno stack l'una, e i DUE
+    /// difetti veri di quella finestra ci sono finiti in mezzo. E' la stessa lezione degli avvisi che suonano
+    /// sul caso normale: <b>un registro fatto per meta' di rumore e' un registro che si smette di leggere</b>
+    /// — e, peggio, che ruota via a 512 kB portandosi la storia che serviva.</para>
+    ///
+    /// <para>⚠️ <b>Non si demoliscono tutte le <c>ObjectDisposedException</c></b>, e la ragione ha una data:
+    /// il 4 settembre 2026 il difetto era proprio una <c>ObjectDisposedException</c> — su un
+    /// <c>SemaphoreSlim</c> smaltito, non su un <c>DbContext</c> — e abbatteva il circuito. Una regola scritta
+    /// sul TIPO l'avrebbe nascosta. Qui la regola e' sull'OGGETTO smaltito: il contesto del database, cioe'
+    /// l'unico che muore per un motivo previsto.</para>
+    ///
+    /// <para>⚠️ E una nota non sparisce: la prima di ogni famiglia si scrive intera, le successive in una
+    /// riga che porta comunque tipo, percorso e primo fotogramma nostro. Dieci righe uguali si vedono; dieci
+    /// stack uguali si saltano.</para>
+    /// </summary>
+    private static bool ENota(Exception ex) =>
+        ex is OperationCanceledException
+        || (ex is ObjectDisposedException smaltito
+            && ((smaltito.ObjectName?.Contains("DbContext", StringComparison.OrdinalIgnoreCase) ?? false)
+                || smaltito.Message.Contains("DbContext", StringComparison.OrdinalIgnoreCase)));
+
+    /// <summary>La famiglia di una nota: il tipo e il punto NOSTRO da cui nasce. Due note con la stessa firma
+    /// raccontano la stessa cosa, e la seconda in poi vale una riga.</summary>
+    private static string Firma(Exception ex) => $"{ex.GetType().Name}|{PrimoFotogrammaNostro(ex)}";
+
+    /// <summary>
+    /// Il primo fotogramma di codice nostro nello stack: e' quel che serve per sapere DOVE, e sta in una
+    /// riga. Se non ce n'e' nessuno lo dice, invece di lasciare un vuoto che sembra un dato mancante.
+    /// </summary>
+    private static string PrimoFotogrammaNostro(Exception ex)
+    {
+        for (var e = ex; e is not null; e = e.InnerException)
+            foreach (var riga in (e.StackTrace ?? "").Split('\n'))
+            {
+                var t = riga.Trim();
+                if (!t.StartsWith("at Vipi.", StringComparison.Ordinal)) continue;
+                var senzaAt = t[3..];
+                var in_ = senzaAt.IndexOf(" in ", StringComparison.Ordinal);
+                return in_ > 0 ? senzaAt[..in_] : senzaAt;
+            }
+        return "(nessun fotogramma nostro)";
+    }
+
+    /// <summary>Una nota gia' vista: una riga sola, e si riconosce a colpo d'occhio perche' comincia con
+    /// <c>NOTA</c> invece che con la fila di trattini di una voce intera.</summary>
+    private static string RigaDiNota(string? codice, string metodo, string percorso, string? utente, Exception ex) =>
+        $"NOTA {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · {ex.GetType().Name} · {PrimoFotogrammaNostro(ex)}"
+        + $" · {metodo} {percorso} · utente {utente ?? "non collegato"} · codice {codice ?? "(nessuno)"}"
+        + Environment.NewLine;
 
     private static void Scrivi(string voce)
     {
@@ -128,6 +200,11 @@ public static class DiagnosticaErrori
         Ogni voce porta il CODICE mostrato in pagina all'utente: se qualcuno manda la fotografia di una
         pagina d'errore, quel codice si cerca qui dentro. La stringa di query non viene registrata (su
         /signin-oidc conterrebbe una credenziale), e nemmeno cookie o intestazioni.
+
+        Le righe che cominciano con NOTA non sono guasti: sono il prezzo normale di una pagina che se ne
+        va — la scheda chiusa mentre un caricamento era in volo. La PRIMA di ogni famiglia si scrive intera,
+        con il suo stack; dalla seconda in poi vale una riga. Se una famiglia di note diventa fitta, e' un
+        dato anche quello: dice che qualcuno se ne va sempre nello stesso punto.
 
         Il file si mette da parte come {NomeFilePrecedente} quando supera {TettoByte / 1024} kB.
 

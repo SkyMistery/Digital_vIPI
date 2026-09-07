@@ -60,9 +60,13 @@ public sealed class LocalizzatoreDiLingua : IStringLocalizer<SharedResource>
     {
         get
         {
-            if (Imposta is not { } cultura) return _standard[name];
-            var testo = RisorseCondivise.Manager.GetString(name, cultura);
-            return new LocalizedString(name, testo ?? name, resourceNotFound: testo is null);
+            try
+            {
+                if (Imposta is not { } cultura) return _standard[name];
+                var testo = RisorseCondivise.Manager.GetString(name, cultura);
+                return new LocalizedString(name, testo ?? name, resourceNotFound: testo is null);
+            }
+            catch (Exception causa) { throw Illeggibile(name, causa); }
         }
     }
 
@@ -70,14 +74,38 @@ public sealed class LocalizzatoreDiLingua : IStringLocalizer<SharedResource>
     {
         get
         {
-            if (Imposta is not { } cultura) return _standard[name, arguments];
-            var formato = RisorseCondivise.Manager.GetString(name, cultura);
-            // ⚠️ Anche i NUMERI seguono la lingua del documento: «1.234,5» dentro una tabella inglese
-            // sarebbe la stessa incoerenza dell'intestazione italiana, solo più difficile da vedere.
-            var testo = formato is null ? name : string.Format(cultura, formato, arguments);
-            return new LocalizedString(name, testo, resourceNotFound: formato is null);
+            try
+            {
+                if (Imposta is not { } cultura) return _standard[name, arguments];
+                var formato = RisorseCondivise.Manager.GetString(name, cultura);
+                // ⚠️ Anche i NUMERI seguono la lingua del documento: «1.234,5» dentro una tabella inglese
+                // sarebbe la stessa incoerenza dell'intestazione italiana, solo più difficile da vedere.
+                var testo = formato is null ? name : string.Format(cultura, formato, arguments);
+                return new LocalizedString(name, testo, resourceNotFound: formato is null);
+            }
+            catch (Exception causa) { throw Illeggibile(name, causa); }
         }
     }
+
+    /// <summary>
+    /// 🔴 <b>Un'etichetta che non si legge deve dire QUALE.</b> Il 6 e il 7 settembre 2026 lo stesso utente
+    /// ha visto due pagine d'errore sull'editor APP, e in tutt'e due lo stack finiva dentro il
+    /// <c>BuildRenderTree</c> del componente con una <c>NullReferenceException</c> e <b>nessun fotogramma
+    /// che dicesse dove</b>: in Release i metodi corti finiscono dentro il chiamante, e la riga incolpata
+    /// era quella del titolo — cioè il primo <c>L["…"]</c> che quella pagina valuta.
+    ///
+    /// <para>⚠️ Questo <c>catch</c> non ripara niente, e non deve: rimette in piedi la sola cosa che
+    /// mancava per capire, cioè <b>la chiave e le due lingue in gioco</b>. La prossima volta il registro
+    /// dirà «etichetta X, lingua imposta Y», e sarà una diagnosi invece di una congettura. Vedi
+    /// <c>docs/lavori-aperti.md</c> §CD.</para>
+    ///
+    /// <para>⚠️ Non si ingoia: si rilancia. Un'etichetta illeggibile è un guasto, e una pagina che al suo
+    /// posto scrivesse la chiave sarebbe il difetto che nessuno segnala.</para>
+    /// </summary>
+    private Exception Illeggibile(string chiave, Exception causa) =>
+        new InvalidOperationException(
+            $"Etichetta «{chiave}» non leggibile — lingua imposta: {_lingua.Fissata ?? "(nessuna)"}, "
+            + $"lingua del lettore: {LinguaDiLettura.DelLettore()}.", causa);
 
     /// <summary>
     /// Tutte le stringhe. La usa chi enumera le risorse (le prove di completezza dei resx), non le pagine:

@@ -9,10 +9,10 @@ Vipi.AuroraProfiles.Tests.dll net10.0 63
 Vipi.AuroraProfiles.Tests.dll net8.0 63
 Vipi.Domain.Tests.dll net10.0 140
 Vipi.Domain.Tests.dll net8.0 140
-Vipi.E2E.Tests.dll net8.0 310
+Vipi.E2E.Tests.dll net8.0 312
 Vipi.Hosting.Tests.dll net10.0 66
 Vipi.Hosting.Tests.dll net8.0 66
 Vipi.Infrastructure.Tests.dll net10.0 1316
 Vipi.Infrastructure.Tests.dll net8.0 1330
-Vipi.Ui.Tests.dll net10.0 1362
-Vipi.Ui.Tests.dll net8.0 1362
+Vipi.Ui.Tests.dll net10.0 1367
+Vipi.Ui.Tests.dll net8.0 1367
