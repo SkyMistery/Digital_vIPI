@@ -536,7 +536,28 @@
       `Host`, che porta sempre il timbro. ⚠️ Nessun file di `wwwroot` toccato — da verificare con le
       IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.14.0</VipiVersione>
+    <!--
+      1.14.1 — 7 settembre 2026. **PATCH**, e il numero cambia per una ragione che vale la pena scrivere:
+      1.14.0 era pronta ma NON e' mai stata caricata, e nel frattempo il suo contenuto e' cresciuto. Il
+      runbook dice che il numero segue il CONTENUTO, e due zip diversi timbrati tutti e due `1.14.0`
+      sarebbero esattamente l'ambiguita' che il timbro esiste per impedire.
+
+      ⚠️ Quindi questo pacchetto porta il contenuto di 1.14.0 **piu'** la correzione qui sotto, e si
+      costruisce contro cio' che GIRA — che e' **1.13.0** (`708257ed`), non 1.14.0.
+
+        · Le PISTE arrivano dalla sorgente in METRI. Il client le moltiplicava per 0,3048 perche' fino a
+          oggi arrivavano in piedi: con la sorgente nuova quella riga accorciava ogni pista a un terzo.
+          ⚠️ Il campo NON ha cambiato nome quando ha cambiato unita', quindi niente lo direbbe: la misura
+          e' scritta in due posti (client e DTO) e adesso ha il suo test — il primo che esercita
+          `IvaoAirportDetailClient`, che nessuno provava.
+          ⚠️ SERVE UN RE-IMPORT dell'anagrafica perche' le piste gia' in archivio prendano la misura
+          giusta: `EfAirportRepository` sovrascrive `LengthM` sulle righe che la sorgente manda ancora.
+
+      Rispetto a 1.13.0 cambiano DUE progetti: `Ui` (da 1.14.0) e `Infrastructure` (da qui), piu' le FRASI
+      e `Host`, che porta sempre il timbro. ⚠️ Nessun file di `wwwroot` toccato — da verificare con le
+      IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.14.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
