@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-2 chiuse, 14 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, 16 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -82,7 +82,7 @@ parte da `2b33791a` e non lo tocca.
 | **0** | Baseline misurabile: build, test, analizzatori, pacchetti, grafo, file mai citati | ✅ **chiusa** — 5 findings |
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
-| **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ⏳ |
+| **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
 | **4** | Application — undici ambiti funzionali (vedi sotto) | ⏳ |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
@@ -136,6 +136,8 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-012** | 2 | S3 | 🟢 | CONFERMATO | **§9.8, dichiarata «la lista migrazioni autoritativa», si ferma alla 85ª di 114**: mancano 29 migrazioni, cioè sottosistemi interi | `docs/spec/modello-dati.md:577` |
 | **R-013** | 2 | S3 | 🟢 | CONFERMATO | **16 entità su 59 non compaiono da nessuna parte** nella specifica del modello dati | `docs/spec/modello-dati.md` |
 | **R-014** | 2 | **S2** | 🟢 | PLAUSIBILE | `EffectiveHierarchy.ParentMap` **perde in silenzio** un nodo se lo stesso callsign esiste nei due cataloghi: gli indici unici sono per-tabella, non fra tabelle | `src/Vipi.Domain/Services/EffectiveHierarchy.cs:48-64` |
+| **R-015** | 3 | **S2** | 🟢 | CONFERMATO | **Una transazione aperta fuori dall'execution strategy**: passa su SQLite (sviluppo e tutti i test) e **solleva su MariaDB**, cioè in produzione. La potatura dell'archivio ATC non avviene mai | `src/Vipi.Infrastructure/Persistence/EfAtcTrafficStore.cs:290` |
+| **R-016** | 3 | **S2** | 🟢 | PLAUSIBILE | **Sei pagine con handler `async` che toccano un repository EF senza sentinella e senza scope proprio**, sul `DbContext` del circuito | `StatsDivisionPage` · `DiagnosticaPage` · `AtcWorldArchivePage` · `StatsHome` · `StatsSessionPage` · `CoordinateConverterPage` |
 
 ---
 
@@ -153,7 +155,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | s-05 | 30 tipi `internal` mai istanziati in `src/` (`CA1812`) — altri candidati morti oltre a R-002 | Fase 4 |
 | s-06 | 63 proprietà di raccolta scrivibili (`CA2227`) nel modello | Fase 2 |
 | s-07 | 4 punti in `AppMemberLoader.cs` non propagano il `CancellationToken` (`CA2016`) | Fase 6 |
-| s-08 | **196 registrazioni `AddScoped`** e un `AddDbContext` (che è Scoped): in Blazor Server «scoped» vuol dire *per circuito*, cioè ore. Solo **29 componenti su ~140** che iniettano hanno uno scope proprio (`OwningComponentBase`) | Fase 3 |
+| ~~s-08~~ | **196 registrazioni `AddScoped`** e un `AddDbContext` (che è Scoped): in Blazor Server «scoped» vuol dire *per circuito*, cioè ore. Solo **29 componenti su ~140** che iniettano hanno uno scope proprio (`OwningComponentBase`) → **sciolto in Fase 3**: nessun uso parallelo, sei pagine esposte (R-016) | — |
 | ~~s-09~~ | ~~la sonda EF8 ferma a 65 migrazioni~~ → **chiuso in Fase 2, misurato**: le 114 si applicano da vuoto sotto net8 | — |
 | ~~s-10~~ | ~~`EnsureCreated` contro `Migrate()`~~ → **chiuso in Fase 2**: la scelta è esplicita per provider e un provider ignoto solleva | — |
 | ~~s-06~~ | ~~63 raccolte scrivibili~~ → **chiuso in Fase 2**: sono navigazioni EF e binding di opzioni, che i setter li vogliono | — |
@@ -590,3 +592,162 @@ rumore** invece di sovrascrivere, come questo repository fa già altrove con `Do
 | s-06 | 63 raccolte scrivibili (`CA2227`) | Sono navigazioni EF e binding di `IOptions`: i setter servono. Nessun caso residuo |
 | s-09 | La sonda «EF10 applicabili sotto EF8» ferma a 65 migrazioni | **Eseguita**: 114 su 114 applicate da vuoto sotto `net8.0` |
 | s-10 | `EnsureCreated` (Postgres) contro `Migrate()` (SQLite/MySQL) | La scelta è esplicita per `ProviderName`, con un `throw` per il provider ignoto e la ragione scritta |
+
+---
+
+# Fase 3 — Persistenza e concorrenza
+
+**Stato:** ✅ **chiusa** il 7 settembre 2026 · 2 findings (2 × S2), s-08 sciolto
+
+Perimetro: i 164 file di `Vipi.Infrastructure` fuori dalle migrazioni, `EfUnitOfWork`,
+`TracciaCollisioniInterceptor`, e i 140 componenti `.razor` che iniettano un servizio.
+
+## Esito in una riga
+
+**La corsa che tutti temono non c'è più; ce n'è un'altra, e sta dove nessun test può vederla.** Il censimento
+a tappeto non ha trovato un solo uso parallelo del `DbContext` — i due `Task.WhenAll` del repository sono
+HTTP e basta — e le scorciatoie che sfuggono al change-tracker sono usate in quattro file, ognuna con la sua
+ragione scritta. Il difetto vero è di **configurazione**, non di codice concorrente: una transazione aperta
+fuori dall'execution strategy **funziona su SQLite e solleva su MariaDB**, cioè passa tutti i test e cade
+solo in produzione.
+
+## Quel che è stato misurato
+
+| Misura | Valore |
+|---|---|
+| Registrazioni `AddScoped` | 196 · `AddSingleton` 37 · `AddHostedService` 17 · `AddTransient` 1 |
+| Componenti con scope proprio (`OwningComponentBase`) | **29** |
+| Componenti `.razor` con handler `async` | **82** — 31 con una guardia (`_busy`/`_salvando`/semaforo), **51 senza** |
+| Di quei 51, quanti toccano davvero un repository EF | **6** → R-016 |
+| Usi paralleli del `DbContext` (`Task.WhenAll`, `Parallel`, `Task.Run`) | **0** — i due `WhenAll` sono chiamate HTTP |
+| Query dentro un ciclo (N+1) in `Infrastructure` | **0** |
+| Letture EF · di cui `AsNoTracking` | 774 · 424 (le altre sono percorsi di scrittura, che il tracking lo vogliono) |
+| Punti che aprono una transazione esplicita | **2** — `EfUnitOfWork` e R-015 |
+
+## Le difese che reggono
+
+- **`ExecuteDelete` non si usa nei repository**, e non per abitudine: in quattro file c'è scritto *perché*
+  (`RemoveRange` e non `ExecuteDelete`, il secondo desincronizza il change-tracker). I sette `ExecuteUpdate`
+  che restano sono tutti su entità **senza** token di concorrenza — lock e flag — e ognuno porta la nota che
+  spiega che scrive subito e non passa dal tracker.
+- **L'interceptor che nomina chi c'era prima è senza stato** (un solo campo, e statico) ed è montato su
+  **tutti e tre** i provider: la diagnosi delle collisioni non cambia a seconda di dove gira.
+- **La sentinella prima dell'`await` è una convenzione viva**: `StatsDivisionPage.OnParametersSetAsync`
+  segna la chiave *prima* di leggere, con il commento che spiega che segnarla dopo farebbe le query due volte.
+  Il difetto di R-016 è che la stessa pagina non lo faccia nell'altro handler.
+
+## R-015 — Una transazione fuori dall'execution strategy: passa i test, cade in produzione
+
+`src/Vipi.Infrastructure/Persistence/EfAtcTrafficStore.cs:290` · **S2** · 🟢 **SUBITO** · CONFERMATO
+
+`RollupAndPruneSessionsAsync` apre la transazione **a mano**:
+
+```csharp
+await using var tx = await _db.Database.BeginTransactionAsync(ct);
+...
+await _db.SaveChangesAsync(ct);
+await tx.CommitAsync(ct);
+```
+
+`EfUnitOfWork` — l'unico altro punto che apre transazioni — fa la stessa cosa **dentro**
+`Database.CreateExecutionStrategy().ExecuteAsync(...)`. E `DependencyInjection.cs:89` scrive l'invariante
+a lettere chiare: *«l'unico punto che apre transazioni esplicite è `EfUnitOfWork` … Prima di aprire una
+transazione altrove, rileggere quel file.»* Questo è il punto che non l'ha riletto.
+
+**Il meccanismo, provato invece che ricordato.** Una sonda scritta apposta (SQLite + una execution strategy
+che dichiara di ritentare, come fanno `EnableRetryOnFailure` di Pomelo e di Npgsql):
+
+```
+RetriesOnFailure = True
+BeginTransactionAsync da solo  → PASSA, nessuna eccezione
+BeginTransaction + SaveChanges + Commit (la forma esatta del codice)
+   → InvalidOperationException
+     "The configured execution strategy '…' does not support user-initiated transactions.
+      Use the execution strategy returned by 'DbContext.Database.CreateExecutionStrategy()'…"
+```
+
+> ⚠️ Vale la pena dire anche l'ipotesi **sbagliata**: il `BeginTransaction` da solo **non** solleva. Se ci si
+> fermava lì, il difetto risultava inesistente. È la coppia transazione + `SaveChanges` a farlo uscire.
+
+**Perché nessun test lo vede.** `EnableRetryOnFailure` è configurato per **MySQL** (produzione, MariaDB su
+`atc.it.ivao.aero`) e per **Postgres** (Render + Neon). Su **SQLite** — cioè in sviluppo e in *tutti* i
+test, `SessioniPotateTests` e `ArchivioAtcMondialeTests` compresi — non c'è nessuna strategy che ritenta,
+quindi la stessa riga passa. Il codice è verde su 5 543 test e rosso sull'unico ambiente che conta.
+
+**Scenario di rottura, e perché è adesso.** `TrafficRetentionHostedService` gira ogni `TrafficRetentionHours`
+e chiama `AtcSessionRetentionUseCase`, che chiama questo metodo. Il metodo esce prima della transazione solo
+se **non** ci sono sessioni chiuse più vecchie di 366 giorni. Misurato sul database di sviluppo: le sessioni
+partono dal **5 settembre 2025** (le porta il backfill dello storico IVAO) e **49 righe** sono già oltre la
+soglia. Quindi in produzione il giro entra nella transazione, solleva, e `GatedImportLoop` la cattura, la
+registra come `ImportState.LastError` della categoria e **riprova ogni ora, per sempre**.
+
+Il danno non è visibile a schermo: è che **la potatura non avviene mai**. L'archivio ATC mondiale — misurato
+a 10-14× le sessioni italiane, ~230 MB a regime — cresce senza il freno che è stato scritto per contenerlo,
+e il riassunto mensile non si costruisce più. Si vede in `/services/vsop/admin/sources`, dove quella
+categoria resta in errore con quel messaggio.
+
+**Rimedio:** far passare il metodo da `IUnitOfWork` come tutti gli altri, o avvolgerlo in
+`CreateExecutionStrategy()` con `ChangeTracker.Clear()` a ogni tentativo, come fa `EfUnitOfWork` e per la
+ragione che quel file spiega. Nessuna migrazione.
+
+> **Come renderlo impossibile invece che corretto una volta:** un test che monti il `VipiDbContext` con una
+> execution strategy che ritenta e chiami i percorsi transazionali. Oggi la differenza fra i provider è
+> proprio il buco in cui questo difetto è passato.
+
+## R-016 — Sei pagine senza sentinella, sul `DbContext` del circuito
+
+**S2** · 🟢 **SUBITO** · **PLAUSIBILE**
+
+In Blazor Server un handler `async` cede il contesto al primo `await`: il gesto successivo dell'utente parte
+**mentre** il primo è ancora in volo. Se entrambi toccano il `DbContext` — che è *scoped*, cioè uno per
+circuito e vivo per ore — la seconda operazione trova il contesto occupato e la pagina muore con
+«A second operation was started on this context instance».
+
+Sei componenti hanno handler `async` che toccano un repository EF, **senza** una guardia di rientro e
+**senza** scope proprio:
+
+| Componente | Handler che toccano EF | Scope proprio |
+|---|---|---|
+| `StatsDivisionPage.razor` | 3 | no |
+| `DiagnosticaPage.razor` | 3 | no |
+| `AtcWorldArchivePage.razor` | 2 | no |
+| `StatsHome.razor` | 1 | no |
+| `StatsSessionPage.razor` | 1 | no |
+| `CoordinateConverterPage.razor` | 1 | no |
+
+**Scenario di rottura, con il caso lavorato.** `StatsDivisionPage` sa fare la cosa giusta e la fa **in un
+posto solo**: `OnParametersSetAsync` segna `_caricato` **prima** dell'`await`, col commento che spiega
+perché. `CambiaVisibilita` — la casella «classifica pubblica» — non ha niente:
+
+```csharp
+private async Task CambiaVisibilita(ChangeEventArgs e)
+{
+    if (!Authz.IsDivisionStaff) return;
+    await Impostazioni.SaveAsync(acceso, …);   // scrive
+    await CaricaAsync();                        // e rilegge tutto
+}
+```
+
+Chi spunta la casella e subito dopo clicca una chip di periodo (che è un link, quindi
+`OnParametersSetAsync`) mette **due `CaricaAsync` in volo sullo stesso contesto**. È la sequenza esatta che
+il 24 agosto 2026 ha ucciso sette volte una pagina di questo sito, e che ha fatto nascere la convenzione
+dello scope proprio.
+
+**Perché PLAUSIBILE e non CONFERMATO:** la corsa dipende dai tempi e non è stata riprodotta a schermo. Il
+meccanismo però è quello già pagato da questo repository, e le sei pagine sono l'elenco completo di dove
+può ripresentarsi.
+
+> Il rimedio non è una guardia per pagina: sei pagine su ottantadue vuol dire che la convenzione c'è e
+> regge, e che a queste è sfuggita. Delle due porte — `OwningComponentBase` o `_busy` — la prima è quella
+> che protegge dagli **altri**, la seconda quella che protegge da **sé stessi**. A queste sei serve la
+> seconda, e a quattro delle sei anche la prima.
+
+## Quel che è stato guardato e non è un finding
+
+- **`CA1001` — cinque singleton tengono un `SemaphoreSlim` senza fare `Dispose`** (`CachedGlobalTopology`,
+  `ConsistencyReportCache`, `IvaoAirportCache`, `IvaoTokenProvider`, `SectorfileCache`). Vivono quanto il
+  processo: non c'è perdita da misurare. Vero, e irrilevante.
+- **`CA1849` in `EfMediaStore:99`** — `MemoryStream.Write` sincrona dentro un metodo `async`. È la scelta
+  **giusta**: su uno stream in memoria l'`await` costerebbe e non renderebbe.
+- **`CA1849` nelle sonde `Postgres`/`MySql`** — chiamate sincrone in avvio, fuori da ogni percorso di
+  richiesta.
