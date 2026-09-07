@@ -172,6 +172,12 @@ public sealed class AgreementService : IAgreementService
         return await _repo.DuplicateVariantGroupAsync(accCode, clauseId, ct);
     }
 
+    public async Task<int> DuplicateClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        return await _repo.DuplicateClauseAsync(accCode, clauseId, ct);
+    }
+
     public async Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);

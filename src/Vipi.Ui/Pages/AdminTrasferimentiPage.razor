@@ -1842,7 +1842,7 @@
                        Disabled="@(_busy || !_canEdit)" DragId="_dragId" DragOverId="_dragOver"
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
                        OnEdit="OnEditRow" OnGoToAgreement="GoToAgreement"
-                       OnAddAlternative="AddAlternative" OnAddException="AddException"
+                       OnAddAlternative="AddAlternative" OnAddException="AddException" OnDuplicate="DuplicateRow"
                        OnToggleSelect="ToggleSelect"
                        OnDragStart="id => _dragId = id" OnDragOver="id => _dragOver = id" OnDrop="DropOn" />
     };
@@ -2120,7 +2120,10 @@
             {
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_MoveUp"]" @onclick="() => MoveClause(true)">↑</button>
                 <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_MoveDown"]" @onclick="() => MoveClause(false)">↓</button>
-                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateGroupTitle"]" @onclick="DuplicateGroup">⧉</button>
+                @* ⧉⑂ e non ⧉: dal 7 settembre 2026 il ⧉ nudo sta sulla RIGA e copia LA RIGA. Due gesti che si
+                   somigliano e fanno cose diverse devono avere due segni diversi — il ⑂ è già la lingua delle
+                   varianti in questa pagina (la pastiglia del gruppo, il tasto «alternativa»). *@
+                <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DuplicateGroupTitle"]" @onclick="DuplicateGroup">⧉⑂</button>
                 @if (InGroup())
                 {
                     <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_DetachTitle"]" @onclick="DetachVariant">⇤</button>
@@ -3212,6 +3215,14 @@
                 _status = string.Format(L["Xfer_GroupDuplicated"].Value, n);
             }, null)
             : Task.CompletedTask;
+
+    /// <summary>
+    /// La copia di UNA riga, chiesta dalla riga stessa (7 settembre 2026, committente): non apre il pannello e
+    /// non sposta la selezione — si duplica per scrivere una riga quasi uguale, e chi ne vuole tre preme tre
+    /// volte. ⚠️ Non è <see cref="DuplicateGroup"/>, che copia tutto il gruppo di varianti.
+    /// </summary>
+    private Task DuplicateRow(int clauseId) =>
+        Guarded(() => Agreements.DuplicateClauseAsync(_acc!.Code, clauseId), L["Xfer_RowDuplicated"].Value);
 
     private Task DetachVariant() =>
         _editClauseId is int id ? RowAction(() => Agreements.DetachVariantAsync(_acc!.Code, id)) : Task.CompletedTask;

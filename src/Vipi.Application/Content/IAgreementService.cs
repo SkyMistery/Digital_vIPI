@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -52,6 +52,10 @@ public interface IAgreementService
     Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default);
     Task<int> AddExceptionAsync(string accCode, int clauseId, CancellationToken ct = default);
     Task<int> DuplicateVariantGroupAsync(string accCode, int clauseId, CancellationToken ct = default);
+
+    /// <summary>Copia UNA clausola subito sotto l'originale, condizione compresa. Il gesto sta sulla RIGA;
+    /// quello del gruppo sta nel pannello, e i due non fanno la stessa cosa.</summary>
+    Task<int> DuplicateClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
     Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default);
 
     Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default);

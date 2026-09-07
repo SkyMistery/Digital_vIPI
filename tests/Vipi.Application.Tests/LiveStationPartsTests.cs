@@ -201,6 +201,8 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> DuplicateVariantGroupAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
+        public Task<int> DuplicateClauseAsync(string a, int id, CancellationToken ct = default) =>
+            throw new NotSupportedException();
         public Task DetachVariantAsync(string a, int id, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>

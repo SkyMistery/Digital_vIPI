@@ -147,8 +147,13 @@
                     }
                 </td>
                 <td class="xt-acts">
-                    @* Tre azioni, non nove: aggiungere, modificare, eliminare. Spostare, duplicare e sfilare
-                       stanno nel pannello, dove c'è posto per le parole. *@
+                    @* Quattro azioni, non nove: aggiungere (alternativa ed eccezione), COPIARE, modificare.
+                       Spostare, sfilare ed eliminare stanno nel pannello, dove c'è posto per le parole.
+
+                       ⚠️ La copia è entrata qui il 7 settembre 2026, su richiesta del committente: si duplica
+                       una riga per scriverne una quasi uguale, e passare dal pannello vuol dire aprirlo per
+                       premere un tasto e richiuderlo. Il ⧉ del pannello NON è questo: quello copia tutto il
+                       gruppo di varianti — e su una riga senza gruppo non fa niente. *@
                     @if (ShowContext)
                     {
                         @* Solo in elenco, e solo lì ha senso: si trova una riga col filtro «senza ricevente», la
@@ -158,6 +163,8 @@
                     }
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddAlternativeTitle"]" @onclick="() => OnAddAlternative.InvokeAsync(c.Id)">⑂</button>
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_AddExceptionTitle"]" @onclick="() => OnAddException.InvokeAsync(c.Id)">↳</button>
+                    <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_DuplicateRow"]"
+                            aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)">⧉</button>
                     <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
                 </td>
             </tr>
@@ -212,6 +219,10 @@
     [Parameter] public EventCallback<XferTableRow> OnGoToAgreement { get; set; }
     [Parameter] public EventCallback<int> OnAddAlternative { get; set; }
     [Parameter] public EventCallback<int> OnAddException { get; set; }
+
+    /// <summary>«Copia questa riga qui sotto». ⚠️ La RIGA, non il suo gruppo di varianti: quello è il ⧉ del
+    /// pannello, e i due gesti si somigliano abbastanza da meritare due titoli che li distinguano.</summary>
+    [Parameter] public EventCallback<int> OnDuplicate { get; set; }
     [Parameter] public EventCallback<int> OnToggleSelect { get; set; }
     [Parameter] public EventCallback<int> OnDragStart { get; set; }
     [Parameter] public EventCallback<int> OnDragOver { get; set; }

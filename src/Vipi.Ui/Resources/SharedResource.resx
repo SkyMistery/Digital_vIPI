@@ -1492,7 +1492,7 @@
   <data name="Xfer_CustomCond" xml:space="preserve"><value>Condizione personalizzata</value></data>
   <data name="Xfer_MoveUp" xml:space="preserve"><value>Sposta su</value></data>
   <data name="Xfer_MoveDown" xml:space="preserve"><value>Sposta giù</value></data>
-  <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Duplica riga (form precompilato)</value></data>
+  <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Copia questa riga qui sotto (la riga, non il gruppo)</value></data>
   <data name="Xfer_CopListHint" xml:space="preserve"><value>(anche lista: VALMA, ELB)</value></data>
   <data name="Xfer_CopUnknown" xml:space="preserve"><value>Fuori catalogo: {0}. Controlla la grafia, oppure il punto non è nel sectorfile italiano.</value></data>
   <data name="Xfer_NoPoint" xml:space="preserve"><value>Nessun punto con questo nome</value></data>
@@ -2303,6 +2303,7 @@
   <data name="Xfer_DuplicateGroup" xml:space="preserve"><value>⧉ Duplica gruppo varianti</value></data>
   <data name="Xfer_DuplicateGroupTitle" xml:space="preserve"><value>Copia l&apos;intero gruppo di varianti di questa riga, con la sua struttura</value></data>
   <data name="Xfer_GroupDuplicated" xml:space="preserve"><value>Gruppo duplicato: {0} righe.</value></data>
+  <data name="Xfer_RowDuplicated" xml:space="preserve"><value>Riga duplicata.</value></data>
   <data name="Common_Delete" xml:space="preserve"><value>Elimina</value></data>
   <data name="Xfer_GroupClone" xml:space="preserve"><value>Duplica</value></data>
   <data name="Xfer_GroupEdit" xml:space="preserve"><value>Modifica</value></data>

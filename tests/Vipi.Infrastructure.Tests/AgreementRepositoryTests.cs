@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
 using Vipi.Domain;
@@ -384,6 +384,81 @@ public class AgreementRepositoryTests : IAsyncLifetime
 
         var a = Assert.Single(await _repo.ListByAccAsync("LIRR"));
         Assert.True(a.SideA.SectorId < a.SideB.SectorId);
+    }
+
+    // ---- la copia di UNA riga (7 settembre 2026) -----------------------------------------------------
+
+    [Fact]
+    public async Task Duplicare_una_riga_ne_fa_una_copia_CON_la_condizione_subito_sotto()
+    {
+        // ⚠️ Al contrario dell'alternativa, qui la condizione SI copia: si duplica una riga per scriverne una
+        // quasi uguale, e la condizione e' meta' di cio' che si sta copiando.
+        var (_, first) = await WithClauseAsync();
+        await _repo.UpdateClauseAsync("LIRR", first, Clause("VALMA", 130) with { ConditionLabel = "16R" });
+
+        var copia = await _repo.DuplicateClauseAsync("LIRR", first);
+        var clauses = await ClausesAsync();
+
+        Assert.Equal(2, clauses.Count);
+        Assert.Equal(new[] { first, copia }, clauses.OrderBy(c => c.Order).Select(c => c.Id));
+        Assert.Equal("16R", clauses.Single(c => c.Id == copia).ConditionLabel);
+        Assert.Equal("VALMA", clauses.Single(c => c.Id == copia).Cops);
+    }
+
+    [Fact]
+    public async Task Duplicare_una_riga_INDIPENDENTE_non_le_apre_un_gruppo()
+    {
+        // 🔴 La riga che regge tutto il resto: un gruppo aperto di nascosto legherebbe i PUNTI delle due
+        // (UpdateClauseAsync li propaga alle sorelle), e la copia comincerebbe a riscrivere l'originale.
+        var (_, first) = await WithClauseAsync();
+
+        var copia = await _repo.DuplicateClauseAsync("LIRR", first);
+        var clauses = await ClausesAsync();
+
+        Assert.All(clauses, c => Assert.Null(c.VariantGroup));
+
+        await _repo.UpdateClauseAsync("LIRR", copia, Clause("BIRSU", 130));
+        Assert.Equal("VALMA", (await ClausesAsync()).Single(c => c.Id == first).Cops);
+    }
+
+    [Fact]
+    public async Task Duplicare_una_capofila_mette_la_copia_DOPO_le_sue_eccezioni()
+    {
+        // Stessa trappola dello spostamento: una copia infilata fra la capofila e le sue eccezioni se le
+        // prenderebbe — l'appartenenza qui e' per ordine, e cambia significato senza dare errore.
+        var (_, first) = await WithClauseAsync();
+        var exc = await _repo.AddExceptionAsync("LIRR", first);
+        var alt = await _repo.AddAlternativeAsync("LIRR", first);
+
+        var copia = await _repo.DuplicateClauseAsync("LIRR", first);
+        var clauses = await ClausesAsync();
+
+        Assert.Equal(new[] { first, exc, copia, alt }, clauses.OrderBy(c => c.Order).Select(c => c.Id));
+        // La copia resta SORELLA nel gruppo che gia' c'e', al grado della sorgente: e' una variante in piu',
+        // gia' compilata.
+        var c1 = clauses.Single(c => c.Id == first);
+        var c2 = clauses.Single(c => c.Id == copia);
+        Assert.Equal(c1.VariantGroup, c2.VariantGroup);
+        Assert.Equal(c1.VariantDepth, c2.VariantDepth);
+    }
+
+    [Fact]
+    public async Task Duplicare_una_riga_non_e_duplicare_il_suo_GRUPPO()
+    {
+        // I due gesti stanno a due passi l'uno dall'altro nella pagina (⧉ sulla riga, ⧉⑂ nel pannello): che
+        // facciano cose diverse deve restare vero anche quando qualcuno li riscrivera'.
+        var (_, first) = await WithClauseAsync();
+        await _repo.AddAlternativeAsync("LIRR", first);
+
+        Assert.Equal(2, (await ClausesAsync()).Count);
+
+        // La copia della RIGA aggiunge una riga sola, anche se la riga sta in un gruppo di due.
+        await _repo.DuplicateClauseAsync("LIRR", first);
+        Assert.Equal(3, (await ClausesAsync()).Count);
+
+        // Il gruppo, invece, si copia INTERO: dalle tre righe se ne aggiungono altre tre.
+        Assert.Equal(3, await _repo.DuplicateVariantGroupAsync("LIRR", first));
+        Assert.Equal(6, (await ClausesAsync()).Count);
     }
 
     // ---- attrezzi ------------------------------------------------------------------------------------

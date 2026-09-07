@@ -147,6 +147,46 @@ precedente.
     `@open.ToString().ToLowerInvariant()`. Tre occorrenze in quest'area lo sbagliavano; `StrutturaPage` lo
     faceva già giusto. Visto **ispezionando il DOM**, non dai test.
 
+## La copia di una riga sta SULLA RIGA (7 settembre 2026)
+
+Chiesto dal committente: il tasto per duplicare una clausola deve stare **nella riga**, non nella finestra di
+modifica. I tasti di riga sono passati da tre a **quattro** — `⑂` alternativa · `↳` eccezione · **`⧉` copia
+questa riga** · `✎` apri nel pannello.
+
+⚠️ **Non è il `⧉` del pannello, e i due non si sostituiscono:**
+
+| | `⧉` sulla riga | `⧉⑂` nel pannello |
+|---|---|---|
+| Copia | **una riga**, la sua condizione compresa | **tutto il gruppo di varianti**, con la sua struttura |
+| Dove finisce | subito sotto la sorgente, **dopo il suo sottoalbero** | in fondo alla sezione, come **gruppo nuovo** |
+| Su una riga senza gruppo | funziona | **non fa niente** (`DuplicateVariantGroupAsync` torna 0) — ed è metà del motivo per cui il tasto nuovo serviva |
+
+Le decisioni che costano se si disfano:
+
+- ⚠️ **La condizione SI copia**, al contrario dell'alternativa (`⑂`), che la lascia vuota apposta: si duplica
+  una riga per scriverne una **quasi** uguale, e la condizione è metà di ciò che si sta copiando.
+- 🔴 **Il gruppo non nasce dalla copia.** Duplicando una riga indipendente restano **due righe indipendenti**:
+  un gruppo aperto di nascosto legherebbe i **punti** delle due — `UpdateClauseAsync` li propaga alle sorelle —
+  e la copia comincerebbe a riscrivere l'originale. Dentro un gruppo, invece, la copia resta **sorella** al
+  grado della sorgente: una variante in più, già compilata.
+- ⚠️ **La copia va dopo il SOTTOALBERO**, non subito sotto la riga: infilata fra una capofila e le sue
+  eccezioni se le prenderebbe. È la stessa trappola dello spostamento — appartenenza per ordine, significato
+  cambiato senza errore.
+- ⚠️ **La colonna dei tasti è larga a mano** (`.xt-c-acts` 132 → **176px**, `.xt-c-acts-ctx` 168 → **212px**):
+  a `table-layout:fixed` non si allarga da sola e i tasti sono `nowrap`, quindi il quarto sarebbe uscito dalla
+  cella **senza dirlo**.
+- ⚠️ Il tasto del pannello è diventato **`⧉⑂`**: due gesti che si somigliano e fanno cose diverse non possono
+  avere lo stesso segno. Il `⑂` è già la lingua delle varianti in questa pagina.
+
+Codice: `EfAgreementRepository.DuplicateClauseAsync` · `XferRowsTable.OnDuplicate` ·
+`AdminTrasferimentiPage.DuplicateRow` · chiavi `Xfer_DuplicateRow` (riscritta) e `Xfer_RowDuplicated`.
+Reti: quattro casi in `AgreementRepositoryTests`, «la copia di UNA riga».
+
+✅ **Provato a schermo** (5035, copia del DB): quattro tasti per riga e nessuno fuori dalla cella (176/176 in
+albero, 212/212 in elenco, pagina che non scorre in orizzontale); su una riga con condizione e con
+un'eccezione, la copia esce **dopo l'eccezione**, porta la condizione — mentre il `⑂` accanto la lascia vuota
+(«otherwise») — e il gruppo passa da tre a quattro varianti.
+
 ## Dove mettere le mani per un aggiustamento di UI
 
 Tutta la pagina è **un file**: `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor` (~2900 righe), diviso in

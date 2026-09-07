@@ -1487,7 +1487,7 @@
   <data name="Xfer_CustomCond" xml:space="preserve"><value>Custom condition</value></data>
   <data name="Xfer_MoveUp" xml:space="preserve"><value>Move up</value></data>
   <data name="Xfer_MoveDown" xml:space="preserve"><value>Move down</value></data>
-  <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Duplicate row (pre-filled form)</value></data>
+  <data name="Xfer_DuplicateRow" xml:space="preserve"><value>Copy this row below it (the row, not the group)</value></data>
   <data name="Xfer_CopListHint" xml:space="preserve"><value>(also a list: VALMA, ELB)</value></data>
   <data name="Xfer_CopUnknown" xml:space="preserve"><value>Not in the catalogue: {0}. Check the spelling, or the point is not in the Italian sectorfile.</value></data>
   <data name="Xfer_NoPoint" xml:space="preserve"><value>No point with this name</value></data>
@@ -2295,6 +2295,7 @@
   <data name="Xfer_DuplicateGroup" xml:space="preserve"><value>⧉ Duplicate variant group</value></data>
   <data name="Xfer_DuplicateGroupTitle" xml:space="preserve"><value>Copy this row&apos;s whole variant group, with its structure</value></data>
   <data name="Xfer_GroupDuplicated" xml:space="preserve"><value>Group duplicated: {0} rows.</value></data>
+  <data name="Xfer_RowDuplicated" xml:space="preserve"><value>Row duplicated.</value></data>
   <data name="Common_Delete" xml:space="preserve"><value>Delete</value></data>
   <data name="Xfer_GroupClone" xml:space="preserve"><value>Duplicate</value></data>
   <data name="Xfer_GroupEdit" xml:space="preserve"><value>Edit</value></data>

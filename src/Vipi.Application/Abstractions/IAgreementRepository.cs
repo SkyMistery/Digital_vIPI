@@ -84,6 +84,12 @@ public interface IAgreementRepository
     /// Ritorna quante clausole ha creato; 0 se la clausola non sta in un gruppo.</summary>
     Task<int> DuplicateVariantGroupAsync(string accCode, int clauseId, CancellationToken ct = default);
 
+    /// <summary>Copia UNA clausola subito sotto l'originale, condizione compresa, e ne ritorna l'id.
+    /// <para>⚠️ Non è <see cref="DuplicateVariantGroupAsync"/>: quella copia tutte le sorelle come gruppo nuovo,
+    /// e su una clausola senza gruppo non fa niente. Questa vale su qualunque riga, e il gruppo <b>non lo
+    /// crea</b>: due righe indipendenti restano tali.</para></summary>
+    Task<int> DuplicateClauseAsync(string accCode, int clauseId, CancellationToken ct = default);
+
     /// <summary>Sfila la clausola col suo sottoalbero dal gruppo; scioglie ciò che resta di un gruppo di una.</summary>
     Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default);
 

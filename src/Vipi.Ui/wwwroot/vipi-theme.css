@@ -1846,8 +1846,12 @@
 :where(.vipi-root) .struct .xfe-table th{padding:4px 9px}
 :where(.vipi-root) .xt-c-drag{width:26px}
 :where(.vipi-root) .xt-c-pick{width:26px}
-:where(.vipi-root) .xt-c-acts{width:132px}
-:where(.vipi-root) .xt-c-acts-ctx{width:168px}
+/* 132 -> 176 e 168 -> 212 il 7 settembre 2026: la colonna ha un tasto in piu' (la copia della riga). A
+   `table-layout:fixed` una colonna non si allarga da sola, e i tasti sono `white-space:nowrap`: lasciata
+   com'era, l'ultimo usciva dalla cella invece di stringerla. Lo spazio lo cede la condizione, che prende
+   cio' che resta. */
+:where(.vipi-root) .xt-c-acts{width:176px}
+:where(.vipi-root) .xt-c-acts-ctx{width:212px}
 :where(.vipi-root) .xt-c-pts{width:34%}
 :where(.vipi-root) .xt-c-lvl{width:20%}
 /* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */

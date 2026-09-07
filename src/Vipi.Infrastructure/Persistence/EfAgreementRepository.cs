@@ -378,6 +378,36 @@ public sealed class EfAgreementRepository : IAgreementRepository
         return copy.Id;
     }
 
+    /// <summary>
+    /// La copia di UNA clausola, subito sotto l'originale. È l'alternativa con la condizione tenuta: si
+    /// duplica una riga per scriverne una quasi uguale, e la condizione è metà di ciò che si sta copiando.
+    /// </summary>
+    public async Task<int> DuplicateClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
+    {
+        var src = await ClauseInAccAsync(accCode, clauseId, ct);
+
+        // Dopo il SOTTOALBERO della sorgente, non subito dopo la sua riga: le eccezioni descrivono la clausola
+        // che le ospita, e una copia infilata in mezzo se le prenderebbe — l'appartenenza qui è per ordine, e
+        // cambia significato senza dare errore.
+        var after = src.VariantGroup is int g ? Subtree(await GroupRowsAsync(src, g, ct), src)[^1] : src;
+
+        var copy = CopyOf(src);
+        // ⚠️ Il gruppo NON nasce qui, al contrario dell'alternativa: due righe indipendenti restano
+        // indipendenti. Un gruppo aperto di nascosto legherebbe i PUNTI delle due — `UpdateClauseAsync` li
+        // propaga alle sorelle — e la copia comincerebbe a riscrivere l'originale.
+        copy.VariantGroup = src.VariantGroup;
+        copy.VariantDepth = src.VariantDepth;
+        copy.IsGroupWide = src.IsGroupWide;
+        copy.Order = after.Order + 1;
+
+        foreach (var x in await Scope(src.SectionId).Where(x => x.Order > after.Order).ToListAsync(ct))
+            x.Order++;
+
+        _db.AgreementClauses.Add(copy);
+        await _db.SaveChangesAsync(ct);
+        return copy.Id;
+    }
+
     public async Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
         var c = await ClauseInAccAsync(accCode, clauseId, ct);
