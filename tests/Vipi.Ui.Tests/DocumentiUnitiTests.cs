@@ -202,6 +202,40 @@ public class DocumentiUnitiTests : TestContext
         Assert.DoesNotContain("Visibile=\"_doc.HaMarcate\"", chip.Value, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 🔴 Chi NON è l'ospite deve saperlo, e sapere dove andare (segnalazione del committente, 7 settembre
+    /// 2026). Invertendo l'ordine dei membri l'ospite CAMBIA, e con lui si sposta l'editor unito: i corpi
+    /// degli altri membri smettono di comparire in questa pagina. Senza il rimando sembra che l'unione si
+    /// sia persa — e l'archivio invece è intatto.
+    /// </summary>
+    [Fact]
+    public void Chi_non_e_l_OSPITE_lo_legge_e_ha_il_link_per_andarci()
+    {
+        var sorgente = Leggi("Components/Doc/UnionPanel.razor");
+
+        Assert.Contains("@if (!SonoOspite)", sorgente, StringComparison.Ordinal);
+        Assert.Contains("Union_NotHost", sorgente, StringComparison.Ordinal);
+        // Il rimando è un LINK all'editor dell'ospite, non una frase che dice «vai di là»: chi legge deve
+        // poterci arrivare senza sapere com'è fatto l'indirizzo.
+        Assert.Contains("_indirizzoOspite", sorgente, StringComparison.Ordinal);
+        Assert.Contains("Union_OpenHost", sorgente, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// ⚠️ La scheda delle sezioni in comune scrive sui documenti DEGLI ALTRI membri, e i loro lock li tiene
+    /// l'editor dell'ospite: offerta altrove, cadrebbe con «bloccato da un altro redattore». Sta dove il
+    /// gesto può riuscire.
+    /// </summary>
+    [Fact]
+    public void La_scheda_delle_comuni_si_offre_SOLO_all_ospite()
+    {
+        var sorgente = Leggi("Components/Doc/UnionPanel.razor");
+
+        Assert.Contains("@if (IsEditing && SonoOspite)", sorgente, StringComparison.Ordinal);
+        // E chi sposta il primo dev'essere avvisato PRIMA di premere: sposta anche la pagina e l'editor.
+        Assert.Contains("Union_FirstIsHost", sorgente, StringComparison.Ordinal);
+    }
+
     private static string Leggi(string relativo) =>
         File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
 

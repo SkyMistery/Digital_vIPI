@@ -572,6 +572,39 @@ cancellato**. Lasciato lì, SQLite lo riapplica sul file nuovo e il banco «puli
 giro prima — due misure buttate. E il controllo «il DB del progetto è intatto» **non si fa con `git status`**:
 quel file è in `.gitignore`, quindi git tace comunque. Si interroga l'archivio.
 
+## §12 — Invertire l'ordine sposta l'OSPITE, e adesso lo dice (7 settembre 2026) ✅
+
+Segnalato dal committente: unito il vSOP di LICA con la sua vIPI **dall'editor del vSOP**, poi **invertito
+l'ordine**, poi uscito e rientrato nell'editor del vSOP — «la vIPI non risulta essere lì».
+
+**Non si era perso niente.** L'unione era intatta e il pannello continuava a elencare tutt'e due i documenti,
+con la pastiglia «ospite» sulla vIPI. Quel che si era spostato era il **posto di lavoro**: l'editor unito
+vive all'indirizzo dell'**ospite** (`UnionMembersEditor` si monta solo se `_altri.Count > 0`, e quella lista
+è vuota per chi ospite non è), quindi il corpo della vIPI aveva smesso di comparire nella pagina del vSOP ed
+era ricomparso in quella dell'aeroporto. **Riprodotto a schermo** su LIMS: prima dell'inversione
+`section.union-part` c'era, dopo no.
+
+⚠️ **Il difetto vero era il silenzio.** Il primo dell'elenco è l'ospite, e le due frecce lo spostano come
+qualunque altro membro: un gesto da due pixel cambia dove vivono la pagina unita, l'editor e il pannello di
+pubblicazione, e nessuno lo diceva né prima né dopo.
+
+**Il rimedio, due righe e un link:**
+
+- chi **non** è l'ospite ora lo legge in testa al pannello, col **link all'editor dell'ospite**
+  (`IDocKindRoutes.EditorUrl`, ⚠️ con l'ACC **dell'ospite**: due documenti uniti possono stare su ACC
+  diversi);
+- sotto l'elenco, in modifica: «⚠️ il primo dell'elenco è l'ospite: spostandolo si sposta anche la pagina
+  unita, l'editor unito e il pannello di pubblicazione».
+
+⚠️ E la **scheda delle sezioni in comune** ora si offre **solo all'ospite**: scrive sui documenti degli altri
+membri, e i loro lock li tiene l'editor dell'ospite — altrove cadrebbe con «bloccato da un altro redattore».
+
+🔴 **Non si redirige, ed è la stessa decisione di sempre**: gli editor e le anteprime restano dove sono
+(§4). Un membro si redige da casa sua; quel che si sposta è l'editor **unito**.
+
+Reti: due guardie sul sorgente del pannello in `DocumentiUnitiTests` — il rimando c'è ed è un link, e la
+scheda sta dentro `@if (IsEditing && SonoOspite)`.
+
 ## Verifica
 
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde sui **due TFM**, 0 avvisi.

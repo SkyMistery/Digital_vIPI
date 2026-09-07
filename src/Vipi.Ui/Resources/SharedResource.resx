@@ -3223,6 +3223,9 @@
   <data name="Union_RemovePrompt" xml:space="preserve"><value>Questo documento torna alla sua pagina. Se nell'unione resta un membro solo, l'unione si scioglie.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Togli</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Sciogli l'unione</value></data>
+  <data name="Union_NotHost" xml:space="preserve"><value>Questo documento è unito, ma l'ospite dell'unione è «{0}»: la pagina unita, l'editor unito e la pubblicazione stanno al SUO indirizzo. Qui si redige soltanto questo documento.</value></data>
+  <data name="Union_OpenHost" xml:space="preserve"><value>Apri l'editor di «{0}»</value></data>
+  <data name="Union_FirstIsHost" xml:space="preserve"><value>⚠️ Il primo dell'elenco è l'ospite: spostandolo si sposta anche la pagina unita, l'editor unito e il pannello di pubblicazione, che vivono al suo indirizzo.</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Sezioni in comune…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Sezioni in comune</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>Questi documenti non hanno sezioni in comune: non c'è niente da nascondere.</value></data>

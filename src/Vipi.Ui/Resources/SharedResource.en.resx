@@ -3215,6 +3215,9 @@
   <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
+  <data name="Union_NotHost" xml:space="preserve"><value>This document is joined, but the union's host is «{0}»: the joined page, the joined editor and publishing all live at ITS address. Here you only edit this document.</value></data>
+  <data name="Union_OpenHost" xml:space="preserve"><value>Open the editor of «{0}»</value></data>
+  <data name="Union_FirstIsHost" xml:space="preserve"><value>⚠️ The first in the list is the host: moving it also moves the joined page, the joined editor and the release panel, which live at its address.</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Shared sections</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>These documents have no sections in common: there is nothing to hide.</value></data>
