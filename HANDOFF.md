@@ -1,26 +1,89 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 6 settembre 2026, notte — 📦 **1.14.0 È PRONTA DA CARICARE**.
+**Ultimo aggiornamento:** 7 settembre 2026 — 📦 **1.14.1 È PRONTA DA CARICARE**, e ✅ **la revisione totale
+del codice è chiusa** (33 findings, sette lotti: vedi in fondo).
 
-`artifacts/publish/vipi-1.14.0-solo-file-cambiati.zip` · sha256 `477eeed0…` · 2,34 MB · **5 file** ·
-timbro **`1.14.0 · a9979306`**. **MINOR**, **NESSUNA migrazione** → si consegna da sola via FTP anche
-dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.0.md`.
+`artifacts/publish/vipi-1.14.1-solo-file-cambiati.zip` · sha256 `b3172f28…` · 3,43 MB · **7 file** ·
+timbro **`1.14.1 · 27bd6616`**. **PATCH**, **NESSUNA migrazione** → si consegna da sola via FTP anche
+dentro la finestra cieca fino al 16. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.14.1.md`.
 
-**Dentro**: lo **stato della traduzione nell'editor**, che prima si spegneva da solo (§CB), e **§CA**, i
-link dell'elenco dei vSOP militari che aprono in vista pilota.
+> ### ⚠️ Sostituisce **1.13.0**, non 1.14.0 — e lo zip di 1.14.0 si BUTTA
+>
+> 1.14.0 era pronta e **non è mai stata caricata**; poi ci è entrata la correzione delle piste, quindi il
+> numero è salito: *il numero segue il contenuto*, e due zip diversi timbrati entrambi `1.14.0` sarebbero
+> l'ambiguità che il timbro esiste per impedire. **1.14.1 contiene tutto 1.14.0 più la correzione.**
+> Il foglio di 1.14.0 resta valido per la parte che descrive, e va letto insieme al nuovo.
+
+**Dentro**: lo **stato della traduzione nell'editor**, che prima si spegneva da solo (§CB) · **§CA**, i
+link dell'elenco dei vSOP militari che aprono in vista pilota · e le **piste in METRI**.
 
 > ### ▶ Da dire a chi carica, e da controllare mentre è ancora al telefono
 >
-> Il controllo che il timbro non dà: si apre un documento qualsiasi **in modifica**, barra della lingua su
+> **1. Il cruscotto della traduzione.** Si apre un documento qualsiasi **in modifica**, barra della lingua su
 > **IT**, e si apre il blocco «Traduzione». Deve comparire una riga con **due percentuali** (bozza e
 > pubblicato) e il tasto **«Traduci ora»**. Se dice solo «stai leggendo nella lingua in cui questo documento
 > è scritto», sta girando ancora la versione vecchia.
 >
+> **2. Le piste, e si guarda DUE volte — prima e dopo.** **LIRF**, sezione Piste, 16L/34R deve dire
+> **~3 900 m**. Se **prima** di caricare dice già ~1 189, un giro è già passato con la sorgente nuova e il
+> programma vecchio: il re-import dopo il caricamento rimette a posto. Se lo dice **dopo** il re-import,
+> `Vipi.Infrastructure.dll` non è stato caricato.
+>
 > ⚠️ §CA **non si vedrà**: non c'è nessun vSOP militare pubblicato, su nessuno dei quattro ACC.
 
-**Provata sul pacchetto pubblicato** (win-x64 dalla sua cartella, copia del `vipi.db`):
-`pacchetto-verifica.js` **10/10** — Ricerca compresa — timbro `1.14.0 · a997930` nella diagnostica, e la
-riga nuova presente sui tre editor nelle due lingue.
+### Le piste arrivano in METRI (7 settembre)
+
+La sorgente IVAO manda `length` già in metri: tolto il `* 0.3048` da `IvaoAirportDetailClient`. ⚠️ Il campo
+**non ha cambiato nome quando ha cambiato unità**, quindi la misura è scritta in **due** posti (client e DTO)
+e ora ha il **primo test che esercita quel client**: la conversione non era mai stata provata da nessuno —
+tutti gli altri test sostituiscono `IAirportDetailProvider` con un falso e gli passano un valore già convertito.
+
+⚠️ **Misurato prima di scrivere il foglio**: le lunghezze in archivio **sono giuste** (LIRF 3 902, LIMC 3 920,
+LIPZ 3 300 = le misure vere delle carte), quindi nessun giro è ancora passato con la sorgente nuova e questo
+pacchetto **non ripara: previene**. Col programma vecchio il primo re-import avrebbe riscritto ogni pista
+d'Italia a **un terzo** (3 902 → 1 189), senza un errore che lo annunciasse. Su **produzione** non si è
+potuto guardare: per questo il controllo 2 si fa prima e dopo. Il **re-import serve comunque**, come conferma.
+
+**La parte di 1.14.0 era stata provata sul pacchetto pubblicato** (win-x64 dalla sua cartella, copia del
+`vipi.db`): `pacchetto-verifica.js` **10/10** — Ricerca compresa. La correzione delle piste ha invece i suoi
+test, e il pacchetto è stato costruito con **15 assiemi su 15 verdi** (5 547 test su net8) e build Release a
+**0 avvisi**.
+
+---
+
+## ✅ La revisione totale del codice è chiusa — e il prossimo passo è quella
+
+**7 settembre 2026.** Dodici fasi, **33 findings**, condotta con la postura di chi il codice non l'ha
+scritto. Registro completo: **`docs/history/audit-2026-09-06-revisione-totale.md`** (1 905 righe), ramo
+`revisione-totale` spinto.
+
+**La risposta alla domanda che l'ha aperta: niente deve aspettare il 16 settembre.** 33 su 33 sono 🟢 —
+nessuna migrazione, nessun cambio di schema. Non è fortuna: lo schema è la parte più difesa del repository, e
+la Fase 2 l'ha *misurato* invece di guardarlo (i due insiemi di migrazioni allineati al modello, le 114
+applicate da vuoto anche sotto EF Core 8). I difetti stanno **intorno**.
+Bilancio: **11 S2 · 13 S3 · 9 S4** · 31 CONFERMATI, 2 PLAUSIBILI · **zero S1**.
+
+**I sette lotti, in ordine di esecuzione** (ognuno col test che lo chiude e come si prova *da fuori*):
+
+1. **I due minuti che valgono di più** — R-015 · R-024 · R-023
+2. **I parser che accettano troppo** — R-018 · R-020 · R-019 · R-021 *(tutte funzioni pure)*
+3. **Le corse e la gerarchia** — R-016 · R-014
+4. 🟡 **Il contratto verso ivao.it** — R-007 · R-008 · R-006
+5. **Le guardie che mancano** — R-027 · R-028 · R-022 + il test dei byte di controllo
+6. **I documenti che si leggono quando non si sa niente** — R-029…R-032 · R-011…R-013
+7. **Igiene** — nove voci
+
+▶ **Concordato: si comincia dal Lotto 1.** E **R-015 è il primo** e non è un dettaglio di transazioni: è
+l'unico difetto che *sta già facendo danno adesso*, in silenzio — la potatura dell'archivio ATC non è mai
+avvenuta in produzione, perché la transazione è aperta fuori dall'execution strategy e questo è verde su
+5 543 test e rosso **solo** su MariaDB.
+
+> **Le tre cose che la revisione ha imparato sul repository**, che valgono più dell'elenco:
+> **(1)** dove il progetto ha già pagato un difetto non lo ripaga — cinque meccanismi che altrove sarebbero
+> difetti quasi certi qui sono corretti *e* commentati col caso che li ha prodotti;
+> **(2)** i difetti veri stanno dove **una garanzia è scritta e non verificata**: sei findings sono frasi che
+> *autorizzano* qualcosa e non sono più vere, e nessuna era una bugia quando è stata scritta;
+> **(3)** la cucitura cieca è **fra i provider** — ed è lì che passeranno i prossimi.
 
 ---
 
