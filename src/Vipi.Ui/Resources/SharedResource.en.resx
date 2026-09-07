@@ -1547,6 +1547,9 @@
   <data name="Diag_ImpactsOpen" xml:space="preserve"><value>Open</value></data>
   <data name="Diag_ImpactsLastRun" xml:space="preserve"><value>Last drift check: </value></data>
   <data name="Diag_ImpactsNeverRun" xml:space="preserve"><value>The drift check has not run yet.</value></data>
+  <data name="Diag_ImpactsRun" xml:space="preserve"><value>Run the check now</value></data>
+  <data name="Diag_ImpactsRunDone" xml:space="preserve"><value>Done: {0} documents checked, {1} items raised, {2} closed.</value></data>
+  <data name="Diag_ImpactsStale" xml:space="preserve"><value>The drift check has not run for over 36 hours: the rows below may refer to work already done. Run it to see the current state.</value></data>
   <data name="ImpactKind_SectorGone" xml:space="preserve"><value>Sector gone</value></data>
   <data name="ImpactKind_SectorHidden" xml:space="preserve"><value>Sector hidden</value></data>
   <data name="ImpactKind_SectorReparented" xml:space="preserve"><value>Sector reparented</value></data>

@@ -6,6 +6,7 @@
 @inject IConsistencyReportService Consistency
 @inject Vipi.Application.Content.IDocumentImpactService Impacts
 @inject Vipi.Application.Abstractions.IImportStateStore ImportStates
+@inject Vipi.Application.Content.IImpactDriftUseCase Deriva
 @inject IAdminCoverageService AdminCoverage
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -284,6 +285,32 @@
                             <span class="warn">@e</span>
                         }
                     </p>
+
+                    @* ⚠️ «Vecchio» non è «non ha girato»: il giro dorme 24 ore fra una passata e l'altra, e
+                       riparte da capo a ogni riavvio del processo. Su un host che ricicla spesso può non
+                       arrivare MAI alla scadenza — e allora la data resta ferma mentre la lista continua a
+                       chiedere lavoro già fatto. Senza questa riga il sintomo è indistinguibile da un bug
+                       della deriva. *@
+                    @if (DerivaVecchia)
+                    {
+                        <div class="callout warning" style="margin-top:6px">
+                            <span class="cic"><Icon Name="warning" Size="18" /></span>
+                            <div>@L["Diag_ImpactsStale"]</div>
+                        </div>
+                    }
+
+                    @* Il gesto che mancava: fino al 7 settembre 2026 la riga «da ripubblicare» si poteva solo
+                       ASPETTARE. Ora la pubblicazione la richiude da sé, e questo resta per il resto — un
+                       cambio di catalogo, un import — e per rispondere a «ha girato davvero?». *@
+                    <div style="margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+                        <button class="btn ghost" disabled="@(_derivaInCorso || _loading)" @onclick="RilanciaDerivaAsync">
+                            <Icon Name="refresh" Size="15" /> @L["Diag_ImpactsRun"]
+                        </button>
+                        @if (_esitoDeriva is { } esito)
+                        {
+                            <span class="help">@esito</span>
+                        }
+                    </div>
                 </div>
 
                 @* Manutenzione del deposito immagini: sta qui perché è la pagina delle azioni di manutenzione
@@ -303,6 +330,15 @@
     private IReadOnlyDictionary<Vipi.Domain.ImpactKind, int> _impatti = new Dictionary<Vipi.Domain.ImpactKind, int>();
     private DateTime? _ultimaDeriva;
     private string? _erroreDeriva;
+    private bool _derivaInCorso;
+    private string? _esitoDeriva;
+
+    /// <summary>Oltre quanto un giro da 24 ore è «non sta girando» invece di «ha girato stanotte». Trentasei
+    /// ore: un giro può slittare di qualche ora (riavvio, retry, host lento) senza che sia un guasto, ma a
+    /// una volta e mezza il periodo la spiegazione innocente non c'è più.</summary>
+    private static readonly TimeSpan DerivaScaduta = TimeSpan.FromHours(36);
+
+    private bool DerivaVecchia => _ultimaDeriva is { } u && DateTime.UtcNow - u > DerivaScaduta;
     private bool _loading = true;
     private string? _errore;
     private DateTime? _quando;
@@ -362,6 +398,32 @@
         }
         catch (Exception ex) { _errore = ex.Message; }
         finally { _loading = false; }
+    }
+
+    /// <summary>
+    /// Rilancia il giro della deriva adesso, e ricarica il quadro con l'esito.
+    ///
+    /// <para>⚠️ Marca il successo come lo marcherebbe il giro automatico: la data che si legge sopra deve
+    /// dire «l'ultima volta che questo controllo è passato», non «l'ultima volta che è passato da solo» —
+    /// altrimenti un rilancio a mano lascerebbe la pagina a dichiarare un ritardo che non c'è più.</para>
+    ///
+    /// <para>⚠️ Il guasto si mostra, non si inghiotte: è la pagina che serve a capire cosa non va.</para>
+    /// </summary>
+    private async Task RilanciaDerivaAsync()
+    {
+        if (!Authz.IsAdmin) return;
+        _derivaInCorso = true;
+        _esitoDeriva = null;
+        try
+        {
+            var esito = await Deriva.RunAsync();
+            await ImportStates.MarkSuccessAsync(
+                Vipi.Application.Abstractions.ImportCategories.ImpactDrift, DateTime.UtcNow);
+            _esitoDeriva = string.Format(L["Diag_ImpactsRunDone"], esito.Esaminati, esito.Aperti, esito.Chiusi);
+            await LoadAsync();
+        }
+        catch (Exception ex) { _esitoDeriva = ex.Message; }
+        finally { _derivaInCorso = false; }
     }
 
     private int Gravi => _findings.Count(f => f.Severity == ConsistencySeverity.Error);

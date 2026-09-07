@@ -108,6 +108,25 @@ public interface IDocumentImpactService
     Task<(int Aperti, int Chiusi)> ReconcileAsync(ImpactKind kind, IReadOnlyCollection<RaiseImpactInput> attuali,
         CancellationToken ct = default);
 
+    /// <summary>
+    /// Come <see cref="ReconcileAsync"/>, ma per <b>un documento solo</b>: allinea le sue righe aperte dei
+    /// tipi indicati a quel che si è appena calcolato per lui. Serve a chi ha in mano un gesto — pubblicare,
+    /// annullare una release — e non l'intero archivio.
+    ///
+    /// <para>⚠️ <b>Non è <see cref="ReconcileAsync"/> con un filtro, e i due non si possono scambiare.</b>
+    /// Quello legge TUTTE le righe aperte del tipo e chiude quelle fuori dall'insieme: chiamarlo con il solo
+    /// documento appena pubblicato chiuderebbe le righe di <b>tutti gli altri</b>, che nessuno ha guardato.
+    /// È esattamente il motivo per cui questo metodo esiste invece di un parametro in più.</para>
+    ///
+    /// <para>⚠️ Tocca solo i tipi in <paramref name="kinds"/>. Le righe di <b>evento</b> dello stesso
+    /// documento — un settore sparito, un allegato sostituito — le chiude una persona quando ha riletto, e
+    /// pubblicare non le risolve.</para>
+    /// </summary>
+    /// <param name="attuali">Le righe che valgono adesso per <paramref name="documentId"/>. Vuoto = «per lui
+    /// non c'è più niente», cioè si chiude tutto quel che era aperto di quei tipi.</param>
+    Task<(int Aperti, int Chiusi)> ReconcileForDocumentAsync(int documentId, IReadOnlyCollection<ImpactKind> kinds,
+        IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default);
+
     /// <summary>Pota le righe chiuse prima della soglia.</summary>
     Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default);
 }
@@ -308,8 +327,47 @@ public sealed class DocumentImpactService : IDocumentImpactService
         return (aperti, chiusi);
     }
 
+    public async Task<(int Aperti, int Chiusi)> ReconcileForDocumentAsync(int documentId,
+        IReadOnlyCollection<ImpactKind> kinds, IReadOnlyCollection<RaiseImpactInput> attuali,
+        CancellationToken ct = default)
+    {
+        // ⚠️ Una riga d'un altro documento qui non si apre e non si chiude: il chiamante ha chiesto di
+        // riconciliare QUESTO documento, e accettarne una di un altro vorrebbe dire aprirla senza che
+        // nessuno abbia guardato lo stato di quell'altro. È un errore di programmazione, non un dato.
+        foreach (var a in attuali)
+            if (a.DocumentId != documentId)
+                throw new ArgumentException(
+                    $"Riga del documento {a.DocumentId} passata alla riconciliazione del documento {documentId}.",
+                    nameof(attuali));
+
+        var tipi = kinds.ToHashSet();
+        var aperte = await _repo.ListOpenAsync(documentId, ct);
+        var chiavi = attuali.Select(a => ChiaveTipata(a.Kind, a.DocumentId, a.SourceKey))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var chiusi = 0;
+        foreach (var r in aperte)
+        {
+            if (!tipi.Contains(r.Kind)) continue;
+            if (chiavi.Contains(ChiaveTipata(r.Kind, r.DocumentId, r.SourceKey))) continue;
+            await _repo.ClearAsync(r.Id, byUserId: 0, DateTime.UtcNow, ct);   // 0 = l'ha chiusa il calcolo
+            chiusi++;
+        }
+
+        var aperti = 0;
+        foreach (var a in attuali) { await _repo.RaiseAsync(a, ct); aperti++; }
+
+        return (aperti, chiusi);
+    }
+
     public Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default) =>
         _repo.PruneClearedBeforeAsync(cutoffUtc, ct);
 
     private static string Chiave(int documentId, string sourceKey) => $"{documentId}|{sourceKey}";
+
+    /// <summary>La chiave di <see cref="Chiave"/> col <b>tipo</b> davanti. Serve alla riconciliazione per
+    /// documento, che guarda più tipi in una volta sola: senza il tipo, un <c>BrokenTarget</c> e un
+    /// <c>ReleaseDrift</c> con la stessa origine si scambierebbero per la stessa riga.</summary>
+    private static string ChiaveTipata(ImpactKind kind, int documentId, string sourceKey) =>
+        $"{(int)kind}|{Chiave(documentId, sourceKey)}";
 }

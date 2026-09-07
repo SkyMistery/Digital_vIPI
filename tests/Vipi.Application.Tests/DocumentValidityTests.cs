@@ -168,6 +168,7 @@ public class DocumentValidityTests
         public string CurrentCycle() => throw new NotSupportedException();
         public IReadOnlyList<AiracCycleInfo> UpcomingCycles(int count) => throw new NotSupportedException();
         public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key, string? alCiclo = null, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => Task.FromResult<string?>(null);
         public Vipi.Domain.Services.AiracCycleInfo NextCycle() => throw new NotSupportedException();
         public Task<int> PruneAllAsync(CancellationToken ct = default) => throw new NotSupportedException();
     }

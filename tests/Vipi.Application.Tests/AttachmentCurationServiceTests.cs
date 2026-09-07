@@ -98,6 +98,8 @@ public class AttachmentCurationServiceTests
         public Task<IReadOnlyDictionary<int, ImpactBadge>> CountOpenAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) => throw new NotSupportedException();
         public Task ClearAsync(int impactId, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<(int Aperti, int Chiusi)> ReconcileAsync(ImpactKind kind, IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<(int Aperti, int Chiusi)> ReconcileForDocumentAsync(int documentId, IReadOnlyCollection<ImpactKind> kinds,
+            IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) => throw new NotSupportedException();
         public Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default) => throw new NotSupportedException();
     }
 

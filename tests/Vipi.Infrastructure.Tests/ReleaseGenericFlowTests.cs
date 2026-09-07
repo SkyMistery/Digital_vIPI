@@ -264,6 +264,133 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         Assert.Null(after.LockedByUserId);
     }
 
+    // ---- Chi pubblica lo deve sapere SUBITO (7 settembre 2026) ---------------------------------------
+
+    /// <summary>
+    /// Il servizio con la deriva agganciata. ⚠️ Il <c>Lazy</c> non è un vezzo del banco: è il modo in cui il
+    /// ciclo si rompe anche in produzione — <c>ImpactDriftUseCase</c> vuole un <c>IReleaseService</c> e
+    /// <c>ReleaseService</c> vuole la deriva, e qui si vede che l'uno esiste prima che l'altro serva.
+    /// </summary>
+    private (ReleaseService Servizio, DocumentImpactService Impatti, EfDocumentImpactRepository Repo) ConDeriva()
+    {
+        var impattiRepo = new EfDocumentImpactRepository(_db);
+        var impatti = new DocumentImpactService(impattiRepo, new AllowAuthz());
+        ReleaseService? svc = null;
+
+        var deriva = new Lazy<IImpactDriftUseCase>(() => new ImpactDriftUseCase(
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            svc!, new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)),
+            impatti, new Vipi.Domain.Services.AiracService(), Registry()));
+
+        svc = new ReleaseService(new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new AllowAuthz(),
+            new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)),
+            Registry(), Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+            new EfUnitOfWork(_db), deriva: deriva);
+
+        return (svc, impatti, impattiRepo);
+    }
+
+    /// <summary>Una sezione in più nella bozza: è quel che la firma editoriale della deriva sa vedere.</summary>
+    private async Task AggiungiSezioneAllaBozzaAsync(string titolo)
+    {
+        var draft = await _db.DocumentVersions
+            .Where(v => v.DocumentId == _docId && v.Status == DocumentStatus.Draft)
+            .OrderByDescending(v => v.VersionNumber).FirstAsync();
+        _db.DocumentSections.Add(new DocumentSection
+        {
+            DocumentVersionId = draft.Id, Title = titolo, Order = 2, Depth = 0,
+            SectionKey = "custom-2", RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Il difetto misurato su LIBD il 7 settembre 2026: si ripubblicava e la riga «la copia pubblicata è
+    /// indietro» restava lì, perché a chiuderla c'era solo il giro delle 24 ore. Chi editava non aveva
+    /// <b>nessun</b> modo di sapere se la pubblicazione fosse riuscita.
+    /// </summary>
+    [Fact]
+    public async Task Pubblicare_Chiude_Subito_La_Riga_Da_Ripubblicare()
+    {
+        var (svc, _, impattiRepo) = ConDeriva();
+
+        await AddDraftAsync(2);
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        // La bozza va avanti: la copia pubblicata resta indietro, e il giro lo segnala.
+        await AddDraftAsync(3);
+        await AggiungiSezioneAllaBozzaAsync("Carte aeroportuali");
+        var giro = new ImpactDriftUseCase(
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            svc, new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)),
+            new DocumentImpactService(impattiRepo, new AllowAuthz()), new Vipi.Domain.Services.AiracService(), Registry());
+        await giro.RunAsync();
+
+        var prima = await impattiRepo.ListOpenAsync(_docId);
+        Assert.Contains(prima, r => r.Kind == ImpactKind.ReleaseDrift);
+
+        // Si ripubblica. La riga deve sparire ADESSO, senza aspettare il giro di stanotte.
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        var dopo = await impattiRepo.ListOpenAsync(_docId);
+        Assert.DoesNotContain(dopo, r => r.Kind == ImpactKind.ReleaseDrift);
+    }
+
+    /// <summary>
+    /// L'altra metà, e la più insidiosa: una release <b>programmata</b> non diventa quella in vigore, quindi
+    /// la deriva continuava a confrontare con la vecchia e a chiedere di ripubblicare — per settimane, fino
+    /// al rollover, a chi aveva appena fatto il gesto giusto.
+    /// </summary>
+    [Fact]
+    public async Task Programmare_Al_Ciclo_Entrante_Non_Lascia_La_Riga_Da_Ripubblicare()
+    {
+        var (svc, _, impattiRepo) = ConDeriva();
+
+        await AddDraftAsync(2);
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await AggiungiSezioneAllaBozzaAsync("Carte aeroportuali");
+
+        // Programmata al ciclo entrante: la copia IN VIGORE resta la vecchia, e va bene così.
+        var entrante = svc.NextCycle().Cycle;
+        await svc.PublishAsync(FakeType, "fake-key", entrante, null);
+
+        Assert.Equal(entrante, await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+
+        // ⚠️ E il giro INTERO, che è quello che gira stanotte, deve dire la stessa cosa: se lo dicesse solo
+        // la riconciliazione della pubblicazione, la riga tornerebbe alla prima passata automatica — cioè il
+        // ping-pong che i rivelatori calcolati esistono per non fare.
+        var giro = new ImpactDriftUseCase(
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            svc, new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)),
+            new DocumentImpactService(impattiRepo, new AllowAuthz()), new Vipi.Domain.Services.AiracService(), Registry());
+        await giro.RunAsync();
+
+        var aperte = await impattiRepo.ListOpenAsync(_docId);
+        Assert.DoesNotContain(aperte, r => r.Kind == ImpactKind.ReleaseDrift);
+        Assert.DoesNotContain(aperte, r => r.Kind == ImpactKind.ReleaseDriftNextCycle);
+    }
+
+    /// <summary>⚠️ Ma se la bozza cambia DOPO la programmazione, quella release porta un testo che non è più
+    /// quello che si vuole: le firme divergono e non copre più niente.</summary>
+    [Fact]
+    public async Task Una_Programmata_Superata_Dalla_Bozza_Non_Copre_Piu()
+    {
+        var (svc, _, _) = ConDeriva();
+
+        await AddDraftAsync(2);
+        await svc.PublishAsync(FakeType, "fake-key", svc.NextCycle().Cycle, null);
+        Assert.NotNull(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+
+        await AggiungiSezioneAllaBozzaAsync("Sezione arrivata dopo");
+
+        Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+    }
+
     private async Task AddDraftAsync(int versionNumber)
     {
         var draft = new DocumentVersion { DocumentId = _docId, VersionNumber = versionNumber, Status = DocumentStatus.Draft, AiracCycle = "2606", CreatedUtc = DateTime.UtcNow };

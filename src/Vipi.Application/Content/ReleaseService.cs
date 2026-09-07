@@ -126,6 +126,25 @@ public interface IReleaseService
     Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key,
         string? alCiclo = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// Il ciclo di una release <b>programmata</b> che porta già lo stato di lavorazione di oggi, o
+    /// <c>null</c> se non ce n'è nessuna. Operazione di sistema: nessuna autorizzazione.
+    ///
+    /// <para><b>Perché serve.</b> <see cref="DriftFromEffectiveAsync"/> confronta con la release
+    /// <b>in vigore</b>, e una programmata non lo è per definizione: chi programma al ciclo entrante — che è
+    /// il gesto giusto — si vede rispondere «la copia pubblicata è indietro» e resta a vederselo chiedere
+    /// fino al rollover, cioè per settimane, senza nessun modo di farlo tacere. Ma l'azione che chiude
+    /// quella riga <b>è stata fatta</b>: il pubblico vedrà il nuovo al ciclo, e la timeline lo dice già.</para>
+    ///
+    /// <para>⚠️ Il confronto è la stessa firma editoriale della deriva, e lo snapshot si chiede <b>al ciclo
+    /// di quella release</b>: le derivate che dipendono dal ciclo risponderebbero altro, e si direbbe
+    /// «diversa» una programmata identica.</para>
+    ///
+    /// <para>⚠️ Se la bozza cambia <i>dopo</i> aver programmato, le firme tornano a divergere e la riga
+    /// riappare — che è giusto: quella programmata porta un testo che non è più quello che si vuole.</para>
+    /// </summary>
+    Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
+
     /// <summary>Il ciclo AIRAC <b>entrante</b> con la sua data efficace: il primo che non è ancora in vigore.</summary>
     AiracCycleInfo NextCycle();
 
@@ -170,8 +189,10 @@ public sealed class ReleaseService : IReleaseService
         ShapeReleaseContext? shapeCycle = null,
         Abstractions.ITranslationMemory? memoriaTraduzioni = null,
         IOptions<Translation.TranslationOptions>? traduzione = null,
-        ReadingLanguageContext? linguaProsa = null)
+        ReadingLanguageContext? linguaProsa = null,
+        Lazy<IImpactDriftUseCase>? deriva = null)
     {
+        _deriva = deriva;
         _linguaProsa = linguaProsa;
         _shapeCycle = shapeCycle;
         _memoriaTraduzioni = memoriaTraduzioni;
@@ -201,6 +222,19 @@ public sealed class ReleaseService : IReleaseService
     /// <summary>In che lingua comporre la prosa generata mentre si congela. Vedi BuildSnapshotJsonAsync.</summary>
     private readonly ReadingLanguageContext? _linguaProsa;
 
+    /// <summary>
+    /// Il rivelatore della deriva, per rivalutare i bersagli <b>appena</b> pubblicati.
+    ///
+    /// <para>⚠️ <c>Lazy</c> e non iniezione diretta perché <c>ImpactDriftUseCase</c> dipende a sua volta da
+    /// <see cref="IReleaseService"/>: chiederli l'uno nel costruttore dell'altro è un ciclo, e il contenitore
+    /// lo rifiuta alla prima risoluzione. Il pigro rompe il ciclo nel punto giusto — la deriva serve
+    /// <b>dopo</b> che la release è scritta, mai per costruire questo servizio.</para>
+    ///
+    /// <para>Opzionale: senza, la riconciliazione resta al solo giro notturno, che è il comportamento di
+    /// prima del 7 settembre 2026.</para>
+    /// </summary>
+    private readonly Lazy<IImpactDriftUseCase>? _deriva;
+
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
 
@@ -221,8 +255,12 @@ public sealed class ReleaseService : IReleaseService
         if (membri.Count == 0)
         {
             await EnsureCanEditAsync(type, key, ct);
-            await EnsureNotLockedByOthersAsync(type, key, ct);
+            var solo = await EnsureNotLockedByOthersAsync(type, key, ct);
             await SnapshotAndSaveAsync(type, key, releaseCycle, _airac.EffectiveUtcForCycle(releaseCycle), note, ct);
+            // ⚠️ Anche — anzi SOPRATTUTTO — sulla programmata: una release a ciclo futuro non diventa quella
+            // in vigore, quindi la deriva continuerebbe a confrontare con la vecchia e a chiedere di
+            // ripubblicare per settimane a chi ha appena fatto il gesto giusto.
+            await RiconciliaDerivaAsync(new[] { solo ?? 0 }, ct).ConfigureAwait(false);
             return;
         }
 
@@ -249,6 +287,8 @@ public sealed class ReleaseService : IReleaseService
             foreach (var m in membri)
                 await SnapshotAndSaveAsync(m.Type, m.Key, releaseCycle, effectiveUtc, note, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
+
+        await RiconciliaDerivaAsync(membri.Select(m => m.DocumentId), ct).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -315,6 +355,41 @@ public sealed class ReleaseService : IReleaseService
         foreach (var t in bersagli)
             if (t.DocumentId > 0)
                 await _editing.ReleaseLockAsync(t.DocumentId, _authz.CurrentUserId ?? 0, ct);
+
+        await RiconciliaDerivaAsync(bersagli.Select(t => t.DocumentId), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Rivaluta <b>subito</b> la deriva dei documenti appena pubblicati (o appena rimasti senza una
+    /// release), così la lista «Da fare» dice il vero appena si esce dal pannello.
+    ///
+    /// <para><b>Che cosa riparava.</b> Fino al 7 settembre 2026 la riga «la copia pubblicata è indietro» la
+    /// chiudeva soltanto il giro delle 24 ore: chi pubblicava continuava a vedersi chiedere il lavoro che
+    /// aveva appena fatto, per un giorno intero, e non aveva <b>nessun</b> modo di sapere se la
+    /// pubblicazione fosse andata a segno. Misurato dal vivo su LIBD: riga aperta il 6 alle 19:27Z,
+    /// ripubblicato il 7 alle 06:52, riga ancora lì a metà mattina.</para>
+    ///
+    /// <para>⚠️ <b>Fuori dalla transazione, e a prova di guasto.</b> La release è già scritta e promossa:
+    /// un errore qui non deve far dire «pubblicazione fallita» a una pubblicazione riuscita, né annullarla.
+    /// Se salta, resta la rete del giro notturno — cioè si torna esattamente al comportamento di prima, che
+    /// è il peggio che possa succedere e non è una rottura.</para>
+    ///
+    /// <para>⚠️ L'annullamento della richiesta invece <b>passa</b>: quello non è un guasto, è qualcuno che
+    /// ha chiuso la pagina, e inghiottirlo vorrebbe dire continuare a lavorare per nessuno.</para>
+    /// </summary>
+    private async Task RiconciliaDerivaAsync(IEnumerable<int> documentIds, CancellationToken ct)
+    {
+        if (_deriva is null) return;
+
+        foreach (var id in documentIds.Where(x => x > 0).Distinct())
+        {
+            try
+            {
+                await _deriva.Value.RunForDocumentAsync(id, ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (Exception) { /* vedi sopra: la rete è il giro notturno. */ }
+        }
     }
 
     // ---- L'unione: piu' documenti, un gesto solo (carta 2026-09-03) -----------------------------------
@@ -371,7 +446,15 @@ public sealed class ReleaseService : IReleaseService
         await EnsureCanEditAsync(rel.TargetType, rel.TargetKey, ct);
 
         var daAnnullare = await SorelleDelloStessoCicloAsync(rel, ct).ConfigureAwait(false);
-        if (daAnnullare.Count == 1) { await _repo.CancelAsync(releaseId, ct); return; }
+        if (daAnnullare.Count == 1)
+        {
+            await _repo.CancelAsync(releaseId, ct);
+            // ⚠️ Anche qui, e per il verso opposto: annullare una release può rendere VERA una deriva che
+            // non c'era: la copia in vigore torna a essere la precedente. Senza questo, la lista tace su un
+            // documento che è appena tornato indietro — e tace fino a domani.
+            await RiconciliaDerivaAsync(await DocumentiDeiBersagliAsync(daAnnullare, ct), ct).ConfigureAwait(false);
+            return;
+        }
 
         // Il permesso su OGNI bersaglio prima di toccare qualunque riga, e fuori dalla transazione.
         foreach (var s in daAnnullare)
@@ -382,6 +465,20 @@ public sealed class ReleaseService : IReleaseService
             foreach (var s in daAnnullare)
                 await _repo.CancelAsync(s.Id, token).ConfigureAwait(false);
         }, ct).ConfigureAwait(false);
+
+        await RiconciliaDerivaAsync(await DocumentiDeiBersagliAsync(daAnnullare, ct), ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Gli Id documento dei bersagli indicati, per la riconciliazione. Un bersaglio che non risolve
+    /// più a un documento — è appena stato eliminato — semplicemente non torna.</summary>
+    private async Task<IReadOnlyList<int>> DocumentiDeiBersagliAsync(
+        IReadOnlyList<(ReleaseTargetType Type, string Key, int Id)> bersagli, CancellationToken ct)
+    {
+        var ids = new List<int>();
+        foreach (var b in bersagli)
+            if (await _targets.For(b.Type).ResolveDocumentIdAsync(b.Key, ct).ConfigureAwait(false) is int docId)
+                ids.Add(docId);
+        return ids;
     }
 
     /// <summary>
@@ -495,6 +592,37 @@ public sealed class ReleaseService : IReleaseService
 
         return righe;
     }
+
+    public async Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key,
+        CancellationToken ct = default)
+    {
+        // ⚠️ «Programmata» si misura sulla DATA, non sulla colonna `Status`: quella la riscrive
+        // `RecomputeStatuses`, che gira al salvataggio e all'annullo — fra un gesto e l'altro una riga
+        // invecchia da sola ed entra in vigore senza che nessuno l'abbia toccata.
+        var now = DateTime.UtcNow;
+        var future = (await _repo.ListAsync(type, key, ct))
+            .Where(r => r.ReleaseEffectiveUtc > now && r.Status != ReleaseStatus.Superseded)
+            .OrderBy(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
+            .ToList();
+        if (future.Count == 0) return null;
+
+        foreach (var r in future)
+        {
+            ct.ThrowIfCancellationRequested();
+            var rel = await _repo.GetByIdAsync(r.Id, ct);
+            if (rel is null) continue;
+
+            var oggiJson = await BuildSnapshotJsonAsync(type, key, rel.ReleaseAiracCycle, ct);
+            if (oggiJson is null) continue;
+
+            if (StesseFirme(Signature(oggiJson), Signature(rel.PayloadJson))) return rel.ReleaseAiracCycle;
+        }
+        return null;
+    }
+
+    /// <summary>Due firme editoriali dicono la stessa cosa? Stesse voci, stessi conteggi.</summary>
+    private static bool StesseFirme(Dictionary<string, int> a, Dictionary<string, int> b) =>
+        a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && v == kv.Value);
 
     public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType,
         string expectedKey, CancellationToken ct = default)
