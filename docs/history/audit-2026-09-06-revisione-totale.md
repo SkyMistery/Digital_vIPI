@@ -1,6 +1,6 @@
 ﻿# Revisione totale del codice — aperta il 6 settembre 2026
 
-**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, 16 findings**
+**Ramo:** `revisione-totale` (da `main` `2b33791a`) · **Stato:** 🔵 **in corso — Fasi 0-3 chiuse, Fase 4 aperta (4a-4b fatti), 17 findings**
 
 Revisione **integrale e senza perimetro escluso**, condotta con la postura di uno sviluppatore senior
 **esterno che non ha scritto questo codice** e deve valutarlo. Cerca *tutto*: bug, incoerenze, codice morto,
@@ -83,7 +83,7 @@ parte da `2b33791a` e non lo tocca.
 | **1** | Architettura e contratti: grafo fra progetti, ADR, multitarget net8/net10, superficie pubblica, cicli di vita DI | ✅ **chiusa** — 5 findings |
 | **2** | Dominio e modello dati: invarianti, `spec/modello-dati.md` contro lo schema reale, parità SQLite↔MySQL, indici | ✅ **chiusa** — 4 findings |
 | **3** | Persistenza e concorrenza: corse sul `DbContext` censite a tappeto, sentinelle prima dell'`await`, `ExecuteDelete`, N+1 | ✅ **chiusa** — 2 findings |
-| **4** | Application — undici ambiti funzionali (vedi sotto) | ⏳ |
+| **4** | Application — undici ambiti funzionali (vedi sotto) | 🔵 **in corso** — 4a ✅ · 4b ✅ · 1 finding |
 | **5** | Autorizzazioni e sicurezza: matrice completa, guardia nel *service*, cancelli pubblici, segreti, upload | ⏳ |
 | **6** | UI Blazor: render mode e isole, difetti Razor invisibili al compilatore, JS, CSS, i18n, stampa, accessibilità | ⏳ |
 | **7** | Test: copertura del **rischio**, test che passano sempre, fragilità, la trappola dell'uscita zero | ⏳ |
@@ -99,8 +99,8 @@ propria documentazione.
 
 | # | Ambito | Documento di riscontro |
 |---|---|---|
-| 4a | Documento, sezioni, catalogo, blocchi | `refactor/08`, `11`, `14` |
-| 4b | Release, snapshot, pubblicazione, retention | `refactor/09`, `10` · `audit-2026-08-25-versioni-release` |
+| 4a ✅ | Documento, sezioni, catalogo, blocchi | `refactor/08`, `11`, `14` |
+| 4b ✅ | Release, snapshot, pubblicazione, retention | `refactor/09`, `10` · `audit-2026-08-25-versioni-release` |
 | 4c | Import: SID, piste, settori, confinanti, GitHub | `refactor/01`-`05` |
 | 4d | Import: tabelle, trasferimenti | `design/piano-import-*` |
 | 4e | Gerarchia, AoR, shape, aree | `refactor/06`, `15` · `spec/logica-aor` |
@@ -138,6 +138,7 @@ Per ogni ambito, oltre a correttezza e casi limite, si pone **la domanda che tro
 | **R-014** | 2 | **S2** | 🟢 | PLAUSIBILE | `EffectiveHierarchy.ParentMap` **perde in silenzio** un nodo se lo stesso callsign esiste nei due cataloghi: gli indici unici sono per-tabella, non fra tabelle | `src/Vipi.Domain/Services/EffectiveHierarchy.cs:48-64` |
 | **R-015** | 3 | **S2** | 🟢 | CONFERMATO | **Una transazione aperta fuori dall'execution strategy**: passa su SQLite (sviluppo e tutti i test) e **solleva su MariaDB**, cioè in produzione. La potatura dell'archivio ATC non avviene mai | `src/Vipi.Infrastructure/Persistence/EfAtcTrafficStore.cs:290` |
 | **R-016** | 3 | **S2** | 🟢 | PLAUSIBILE | **Sei pagine con handler `async` che toccano un repository EF senza sentinella e senza scope proprio**, sul `DbContext` del circuito | `StatsDivisionPage` · `DiagnosticaPage` · `AtcWorldArchivePage` · `StatsHome` · `StatsSessionPage` · `CoordinateConverterPage` |
+| **R-017** | 4b | S4 | 🟢 | CONFERMATO | **La pubblicazione programmata di un documento singolo sta fuori dalla transazione** che il ramo dell'unione, dodici righe sotto, usa. Due scritture senza rete | `src/Vipi.Application/Content/ReleaseService.cs:219-226` |
 
 ---
 
@@ -751,3 +752,78 @@ può ripresentarsi.
   **giusta**: su uno stream in memoria l'`await` costerebbe e non renderebbe.
 - **`CA1849` nelle sonde `Postgres`/`MySql`** — chiamate sincrone in avvio, fuori da ogni percorso di
   richiesta.
+
+---
+
+# Fase 4 — Application (in corso)
+
+**Stato:** 🔵 **aperta** · **4a e 4b chiusi** il 7 settembre 2026 · 1 finding (S4), 1 sospetto
+
+## 4a — Documento, sezioni, catalogo, blocchi ✅
+
+Perimetro: `SectionCatalog` (518 righe), `SectionKeys`, `IFrozenSectionProvider`, `DocSection`,
+i quattro provider di congelamento, `VloaDocumentView`.
+
+**Nessun finding.** Tre piste sono state seguite fino in fondo e si sono chiuse:
+
+| Pista | Come si è chiusa |
+|---|---|
+| `KindOf` **ripiega su `Editorial`** per una chiave che non conosce, e `FrozenSectionScan` decide *proprio da lì* che cosa congelare in una release. Una chiave fissa senza natura dichiarata uscirebbe da un documento pubblicato **non congelata** | Confronto meccanico fra le 52 chiavi con natura e quelle usate nei registri: le uniche due scoperte sono `coordination:out` e `coordination:in`. **Non è un difetto**: sono sotto-sezioni che portano solo ordine, titolo e visibilità — il corpo lo disegna il caso `coordination` del padre, che è Derived ed è congelato. Non hanno un corpo da congelare |
+| 23 `catch` vuoti | Ventuno sono attorno a `IJSRuntime` in `OnAfterRenderAsync` (il circuito può non esserci più), due sono discese da GitHub con quindici secondi di timeout, e **tutte** portano scritto perché |
+| `DateTime.Now` invece di `UtcNow` | Due sole occorrenze in tutto `src`: il log del ponte Aurora e il nome di uno zip da scaricare. Nessuna finisce in un dato |
+
+## 4b — Release, snapshot, pubblicazione, retention ✅
+
+Perimetro: `ReleaseService` (753 righe), `EfReleaseRepository`, `RecomputeStatuses`, la potatura.
+
+### R-017 — Una pubblicazione su due strade, e una sola ha la rete
+
+`src/Vipi.Application/Content/ReleaseService.cs:219-226` · **S4** · 🟢 · CONFERMATO
+
+`PublishAsync` (pubblicazione **programmata** a un ciclo futuro) ha due rami. Quello dell'unione avvolge
+tutto in `_uow.ExecuteInTransactionAsync`, col commento che spiega perché — *«tutto o niente … metà unione a
+un ciclo e metà a un altro»*. Quello del **documento singolo**, dodici righe sopra, chiama
+`SnapshotAndSaveAsync` **senza transazione**:
+
+```csharp
+if (membri.Count == 0)
+{
+    await EnsureCanEditAsync(type, key, ct);
+    await EnsureNotLockedByOthersAsync(type, key, ct);
+    await SnapshotAndSaveAsync(type, key, releaseCycle, …, ct);   // ← nessuna transazione
+    return;
+}
+```
+
+E `SnapshotAndSaveAsync` fa **due** scritture: `SaveReleaseAsync` e poi `PruneReleasesAsync`.
+
+**Scenario di rottura, e la sua misura onesta.** Se il processo cade fra le due, la release è pubblicata e la
+potatura non è avvenuta: restano in tabella delle Superseded che dovevano sparire. È un danno **piccolo e che
+si ripara da solo** al salvataggio successivo — per questo è S4 e non di più.
+
+**Perché conta lo stesso.** `PublishNowAsync`, che è l'operazione gemella, avvolge in transazione
+**entrambi** i rami, e il suo commento dice *«è l'operazione più importante che l'applicazione compie, ed era
+l'unica senza rete»*. Qui la rete c'è per l'unione e non per il singolo: è la stessa regola scritta due volte
+in due modi. Il giorno che a `SnapshotAndSaveAsync` si aggiunge una terza scrittura — promuovere la bozza,
+mollare un lock, toccare un impatto — quel ramo diventa il buco che oggi non è. È il difetto della
+**premessa che vale per uno solo**.
+
+### Quel che è stato guardato e regge
+
+- **`RecomputeStatuses`** applica «una release per ciclo, vince il `VersionNumber` più alto», poi elegge
+  l'effettiva fra le vincitrici. Nessun pareggio possibile: due righe con la stessa data efficace sono dello
+  stesso ciclo, e una delle due è per costruzione Superseded.
+- **`SummariesAsync` non ha lo spareggio su `VersionNumber`** che hanno le altre quattro query di selezione.
+  Cercato apposta il caso in cui questo la fa sbagliare: **non esiste**, per la regola qui sopra.
+- **Gli stati invecchiano da soli** — al rollover AIRAC una programmata entra in vigore senza che nessuno
+  scriva — e la selezione lo regge: filtra su `Status != Superseded` e poi **sulla data**, quindi una
+  Scheduled diventata attuale viene scelta anche prima che lo sweep delle 24 ore la marchi.
+- **La soglia di eliminazione (D8)** difende dal doppio clic: un secondo giro che arriva a meno di un'ora
+  aggiorna l'ultimo timbro ma **non** fa scorrere il penultimo, che è ciò che autorizza a cancellare. E la
+  «prova di assenza» salta l'attesa solo col verdetto `Assente` — «non si sa» non basta.
+
+## Sospetto nuovo
+
+| # | Sospetto | Dove si decide |
+|---|---|---|
+| s-12 | `MySqlCollation` porta MariaDB su `uca1400_as_cs`, che per **maiuscole e accenti** allinea la produzione a SQLite (era il rischio grosso, ed è chiuso). Restano due differenze che nessun test vede: `LOWER()`/`UPPER()` di SQLite sono **solo ASCII** mentre MariaDB piega anche le accentate, e l'**ordinamento** di SQLite è binario mentre quello UCA è alfabetico. **Misurato**: oggi in archivio c'è **una sola** stringa non ASCII (`Zürich ACC`), quindi la differenza esiste e non si vede. Il repository lo sa già e chiede di verificarlo *guidando l'app* | verifica live |
