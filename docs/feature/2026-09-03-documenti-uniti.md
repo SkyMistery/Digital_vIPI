@@ -489,6 +489,29 @@ nessuna parte resta spenta; quelle dell'ospite bastano da sole. ⚠️ E una **g
 pagine (`Ogni_pagina_che_OSPITA_chiede_la_chip_all_unione_intera`), perché le prime tre non vedrebbero una
 pagina che torna a chiedere `_doc.HaMarcate`: **provata rimettendo il difetto**, e va rossa.
 
+### ✅ Provato a schermo il 7 settembre, con il difetto RIMESSO e ritolto
+
+Banco su copia del `vipi.db` reale: **LIBA** — ospite la vIPI d'aeroporto (doc 26, **bozza**, `?as=draft`),
+membro `LIBA_APP` (doc 3). Marcata **una sola** sezione, «Separations», e **sul membro**; l'ospite tutte «per
+tutti». È esattamente il caso segnalato: le marcate solo sul **secondo**.
+
+| Passo | Esito |
+|---|---|
+| Pagina unita, vista «tutto» | chip **presente**, tre voci, «Everything» attiva; indice a due gruppi |
+| Vista **ATC** | «ATC» attiva; «Separations» c'è, col badge *ATC only* |
+| Vista **pilota** | «Pilot» attiva; «Separations» **sparisce dal corpo E dall'indice**, badge a zero |
+| ⚠️ Controllo: tolta la marcatura al membro | chip **spenta**, unione ancora disegnata — non è una chip che sta sempre accesa |
+| 🔴 Controllo vero: **difetto rimesso** nel codice e ricompilato | chip **assente** con il badge ATC ancora a schermo: il sintomo segnalato, riprodotto |
+| Rimedio rimesso, ricompilato | chip di nuovo presente, stesso DB e stessa pagina |
+
+⚠️ **Il controllo che conta è il quinto**: gli altri dicono che la pagina si comporta bene, non che sia
+*questa* riga a farlo. Rimettere il difetto e vederlo tornare è l'unico passo che lega il sintomo al rimedio —
+e costa due ricompilazioni.
+
+⚠️ **L'app girava in INGLESE**, e la prima asserzione cercava «Separazioni»: rispondeva «assente» in tutt'e tre
+le viste. È la trappola dell'attrezzo già scritta in §9d — quando un gesto «non fa niente», il primo sospetto
+va al **selettore**, non al codice.
+
 ## Verifica
 
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde sui **due TFM**, 0 avvisi.
