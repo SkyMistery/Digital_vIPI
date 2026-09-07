@@ -1250,7 +1250,7 @@ una concatenazione, due elenchi diversi possono produrre la stessa stringa, e il
 un cambiamento — cioè **si riapre esattamente il difetto che quel commento dice di aver chiuso**, e si
 riapre senza che nessun test cada.
 
-**Rimedio:** `''` e `""` come escape. Il file torna testuale, e il comportamento non cambia di un
+**Rimedio:** scriverli come escape (`''`, `""`). Il file torna testuale, e il comportamento non cambia di un
 bit. Insieme a R-001 sono due righe.
 
 > ⚠️ **La lezione che vale più del fix**: dopo il primo caso nessuno ha guardato se ce n'erano altri. Un
