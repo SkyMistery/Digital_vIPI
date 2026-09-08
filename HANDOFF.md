@@ -1,7 +1,39 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD e §CE sono chiusi e 1.15.2 è ONLINE.**
-Albero pulito e spinto, suite verde sui due TFM, Release senza avvisi.
+**Ultimo aggiornamento:** 8 settembre 2026, sera — 📦 **1.16.0 è PRONTA e aspetta solo di essere
+caricata.** Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+
+📦 **1.16.0 — pronta, NON ancora online.** Timbro `1.16.0 · a8b54c8`, zip `b48ed1cf…`, **16 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md). **MINOR**,
+nessuna migrazione: si consegna da sola via FTP anche dentro la finestra cieca fino al 16.
+
+⚠️ **Questa volta `wwwroot` c'è**, e i file viaggiano insieme: `vipi-theme.css`, `vipi-ui.js`, i loro
+`.br`/`.gz` e `Vipi.Host.staticwebassets.endpoints.json`. **La finestra che ingrandisce le immagini vive
+dentro `vipi-ui.js`**: senza quel file il clic non fa niente, e nessun errore lo dice.
+
+Sei lavori, tre dei quali sono difetti segnalati dal committente: la casella «APP» dell'initial climb
+tagliata coi puntini; la tabella delle configurazioni che perdeva un settore incluso secondo l'ORDINE dei
+membri; il convertitore che non riscriveva l'ultima riga del poligono (e webeye rifiutava la forma). Più le
+quindici attività e le note delle aree di lavoro, i poligoni di tiro riconoscibili, e il clic
+sull'immagine che la riapre a dimensioni originali.
+
+✅ **Provata sul PACCHETTO** (win-x64, JS minificato), non sul sorgente: Ricerca che risponde dal server,
+la finestra dell'immagine che si apre a 1912×1073, le quattro colonne delle aree con la riga del poligono
+di tiro, il convertitore che chiude il poligono, la cella SID che non taglia più. Zero errori JS, zero
+risposte ≥400.
+⚠️ E la prova ha corretto **il foglio**: il controllo «due lettere nel campo della Ricerca» era sbagliato —
+quel campo NAVIGA, non filtra la pagina sotto. Scritto giusto nel LEGGIMI, perché il runbook chiede di
+provarlo prima di scriverlo.
+
+▶ **Da fare: caricarla**, e poi rifare la stessa prova su produzione mentre chi ha caricato è ancora al
+telefono.
+
+🧹 **Rami**: i fusi sono stati cancellati (sedici in locale, tredici sul remoto), ognuno verificato ancestor
+di `main`. Restano `main` e **`revisione-totale`**, non fuso apposta: ci vive il registro dei 33 findings.
+
+---
+
+✅ **§CD e §CE sono chiusi e 1.15.2 è ONLINE** (storia, 8 settembre mattina).
 
 ✅ **In produzione gira 1.15.2** (timbro del server **`1.15.2 · eb7f389`**, caricata l'8 settembre): 7 file,
 zip `60e375c4…`, foglio

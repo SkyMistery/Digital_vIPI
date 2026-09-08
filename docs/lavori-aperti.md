@@ -1,8 +1,53 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 8 settembre 2026
+## Dove siamo — 8 settembre 2026 (sera)
 
-1. ✅ **1.15.2 è ONLINE** (caricata l'8 settembre 2026): timbro del server **`1.15.2 · eb7f389`**, sha256
+1. 📦 **1.16.0 è PRONTA, non ancora online.** Timbro `1.16.0 · a8b54c8`, sha256 dello zip
+   `b48ed1cf…`, **16 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md`. **MINOR**: nessuna
+   migrazione — tutto quel che si aggiunge vive nel payload JSON dei documenti — quindi si consegna da sola
+   via FTP anche dentro la finestra cieca fino al 16.
+   ⚠️ **Questa volta `wwwroot` c'è**: `vipi-theme.css` e `vipi-ui.js`, coi loro `.br`/`.gz` e **insieme** a
+   `Vipi.Host.staticwebassets.endpoints.json`. E non è una formalità — la finestra che ingrandisce le
+   immagini **vive dentro `vipi-ui.js`**: senza quel file il clic non fa niente e nessun errore lo dice.
+   Sei lavori, tre dei quali sono difetti segnalati dal committente:
+     · 🔴 la casella «APP» dell'initial climb era **tagliata coi puntini** e non si poteva spuntare;
+     · 🔴 la tabella delle configurazioni perdeva un settore incluso, a seconda dell'**ordine** dei membri;
+     · 🔴 il convertitore non riscriveva **l'ultima riga** del poligono, e webeye rifiutava la forma;
+     · le aree di lavoro: quindici attività, una **nota** per area, i poligoni di tiro marcati e arancioni;
+     · il clic su un'immagine la riapre a **dimensioni originali**;
+     · le note delle aree **si traducono** (due correzioni indipendenti: il segmentatore e l'ordine di
+       lettura del visore).
+   ✅ Provata **sul pacchetto pubblicato** (win-x64, JS minificato): circuito aperto, Ricerca che risponde
+   dal server (50 risultati), la finestra dell'immagine che si apre a 1912×1073, la tabella delle aree con
+   le quattro colonne e la riga del poligono di tiro, il convertitore che chiude il poligono, la cella SID
+   che non taglia più. Zero errori JS, zero risposte ≥400.
+   ▶ **Da fare: caricarla**, e poi rifare la stessa prova su produzione mentre chi ha caricato è ancora al
+   telefono. ⚠️ Il controllo che conta **non è il timbro**: è la Ricerca, e il clic su un'immagine.
+
+2. ✅ **1.15.2 è ONLINE** (caricata l'8 settembre 2026): timbro del server **`1.15.2 · eb7f389`**, sha256
+   dello zip `60e375c4…`, **7 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e
+   §CE** insieme: PATCH, nessuna migrazione.
+   ▶ **Quel che resta è aspettare il prossimo `errori-richieste.txt`**, fra qualche giorno: è l'unica prova
+   di §CD, e non è a schermo — zero «A second operation», meno `ObjectDisposedException`, note in una riga.
+
+3. ✅ **§CD è LAVORATO** (8 settembre): due difetti su tre chiusi con una correzione ciascuno, il terzo
+   ristretto e strumentato. ▶ Resta aperta **una** cosa: l'NRE dell'editor APP, ristretta al primo `L["…"]`
+   della pagina e adesso strumentata perché la prossima volta dica quale.
+
+4. 🧹 **I rami fusi sono stati cancellati** (8 settembre, sera): sedici in locale e tredici sul remoto,
+   ognuno verificato ancestor di `main` prima di toglierlo. Restano `main` e **`revisione-totale`**, che
+   **non** è fuso apposta: ci vive il registro dei 33 findings.
+
+5. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
+   è congelato. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste
+   in archivio prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting.
+
+6. **Come si legge questo file**: qui sopra c'è la cronologia — è **storia**, non stato; le sezioni
+   dalla **A** in poi sono il lavoro aperto vero, ognuna col suo blocco.
+
+## Dove eravamo — 8 settembre 2026 (mattina, storia)
+
+1. (vedi la voce 2 qui sopra) ✅ **1.15.2 è ONLINE**: timbro del server **`1.15.2 · eb7f389`**, sha256
    dello zip `60e375c4…`, **7 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e
    §CE** insieme: PATCH, nessuna migrazione. Otto controlli pubblici verdi da fuori (Ricerca compresa) e il
    cancello di `/admin/diagnostics` **disegnato**; ⚠️ ma quegli otto sarebbero verdi identici su 1.15.1 —
