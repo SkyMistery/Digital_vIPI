@@ -54,8 +54,13 @@ public abstract class ScopeProprioCheAspetta : OwningComponentBase, IAsyncDispos
     /// Chi è già dentro non deve rimettersi in fila dietro sé stesso: un caricamento che ne chiama un altro
     /// aspetterebbe un permesso che tiene lui, e resterebbe lì per sempre. <c>AsyncLocal</c> perché la
     /// catena è asincrona: un <c>bool</c> di campo direbbe «dentro» anche a chi entra da un altro gesto.
+    ///
+    /// <para>⚠️ <b>Di istanza, non statico</b>, come l'omologo del tornello dell'editor. Statico, il
+    /// permesso che tiene <b>questo</b> componente varrebbe anche per un <b>altro</b>: un genitore che nel
+    /// suo caricamento aspetta quello di un figlio farebbe entrare il figlio <b>senza</b> la sua porta, e la
+    /// chiusura del figlio non avrebbe nessuno da aspettare. Il rientro è una faccenda fra sé e sé.</para>
     /// </summary>
-    private static readonly AsyncLocal<bool> _giaDentro = new();
+    private readonly AsyncLocal<bool> _giaDentro = new();
 
     /// <summary>Vero dopo <see cref="DisposeAsync"/>: da qui in poi non entra più nessuno.</summary>
     private bool _chiusa;

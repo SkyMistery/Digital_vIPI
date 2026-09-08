@@ -10303,3 +10303,41 @@ Guidata a schermo (`verifica-live`, Edge headful su una copia del `vipi.db`, `Vi
 - ✅ E la riga che chiude la questione dell'identità è a schermo nel riquadro della promozione:
   **«Granted by: Carmine (704798)»**. Quel VID lo scrive `_authz.CurrentUserId` **dentro lo scope figlio**.
 - Nessun errore in console, nessun letterale Razor non valutato.
+
+### La terza porta, e una prova che non provava niente
+
+✅ **`ScopeProprioCheAspetta`** estende `OwningComponentBase` e chiude come fa `DocumentEditorShell.ChiudiAsync`
+per i cinque editor dal 7 settembre: **prima la porta** (chi arriva dopo non entra), **poi l'attesa** (solo chi
+era già dentro), tetto 15 s scritto nel log, e la riga nel `finally` che smaltisce davvero lo scope. Il
+semaforo **non si smaltisce**, per la ragione già pagata sul tornello.
+
+Convertiti i **sei** che il registro nomina: `StatsDivisionPage`, `VersioniPage`, `DiagnosticaPage`,
+`AdminRolesPage`, `TranslationReviewPanel`, `ValidityStamp`. Gli altri **ventuno** restano in un debito
+**scritto e misurato** (`TerzaPortaTests`), con la regola accanto: quando un nome di quell'elenco compare in
+`errori-richieste.txt`, la riga **si converte**, non si aggiorna la data.
+
+🔴 **I presidi cercavano la stringa `@inherits OwningComponentBase`.** Convertire un file lo avrebbe fatto
+sparire dal conteggio: le pagine **più** difese sarebbero diventate le **meno** misurate, e tutto sarebbe
+restato verde. È la stessa forma di guasto dell'8 settembre, quando quel file saltava i componenti con lo
+scope proprio. Ora la domanda si fa in **un posto solo** (`DichiaraScopeProprio`). ⚠️ E il **secondo**
+presidio con la stringa fissa (`ScopeDellEditingTests`) l'ha trovato **la suite**, non chi scriveva.
+
+### 🔴 La verifica live NON ha provato la correzione, e va detto
+
+Guidata in locale: **trenta uscite a metà caricamento** su sei pagine, zero circuiti abbattuti, tutte le
+pagine ancora intere dopo, registro dell'app **pulito** — zero `ObjectDisposedException`.
+
+⚠️ **Poi lo stesso giro è stato rifatto sul commit PRIMA della correzione: pulito uguale.** Cioè quella prova
+**non distingueva le due versioni**, e da sola avrebbe fatto scrivere «corretto» a chiunque. Su SQLite in
+locale un caricamento finisce prima che si faccia in tempo ad andarsene; il difetto vero vuole la latenza di
+MySQL e più gente insieme. **Una prova che non ha mai visto il guasto non dice che il guasto non c'è: dice
+che non l'ha visto.**
+
+✅ Quel che si **può** provare è la **garanzia**, ed è provata in cinque test (`PortaCheAspettaTests`): la
+chiusura aspetta chi è dentro; a porta chiusa non entra più nessuno **e non aspetta**; un caricamento dentro
+un altro non si pianta; lo scope alla fine è smaltito **davvero**; chiudere due volte non fa danno.
+⚠️ **Provati a rovescio**: tolta l'attesa dal `finally`, cade **esattamente** quel test e nessun altro.
+
+⚠️ E anche la prova a rovescio è stata sbagliata al primo colpo: il taglio non compilava, il test è girato
+sulla **dll vecchia** e ha detto «Passed». È la trappola già scritta nel runbook — *il totale dei test mente
+se un progetto non compila*. Un `grep` sugli errori di build prima di credere a un verde, sempre.
