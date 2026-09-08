@@ -2,7 +2,7 @@
 
 ## Dove siamo — 8 settembre 2026 (notte)
 
-1. 📦 **1.16.1 è PRONTA, non ancora online.** Timbro `1.16.1 · 6c1108f`, sha256 dello zip `ed238f32…`,
+1. 📦 **1.16.1 è PRONTA, non ancora online.** Timbro `1.16.1 · d2925b3`, sha256 dello zip `2cfa711d…`,
    **13 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`. **PATCH**, nessuna migrazione.
    Tre lavori, tutti nati dall'uso vero di 1.16.0 nelle ore dopo il caricamento:
      · 🔴 **il tasto «+ riga» che cancellava le aree scelte** — la stessa domanda («payload o contenuto?»)
@@ -10,7 +10,12 @@
        `Table` senza `variant`) cadeva nella crepa: l'editor la disegnava come tabella scritta a mano, col
        tasto. ⚠️ Riguardava anche vIPI ACC e APP;
      · **il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM;
-     · **il tasto in barra si chiama «Documenti»**, non più «Editor».
+     · **il tasto in barra si chiama «Documenti»**, non più «Editor»;
+     · 🔴 **aprire un aeroporto costava VENTI SECONDI** quando NOAA non risponde — due attese in fila su
+       due bollettini indipendenti, e il meteo su quella pagina è bloccante. Ora si chiedono insieme, con
+       un tetto di 5 s (3 s per tutte le scorte): **20,2 s → 5,2 s**, col METAR che arriva lo stesso.
+       ⚠️ Non era la scorta, ed era un difetto più vecchio: le prove del giorno prima non l'avevano visto
+       perché spegnevano NOAA con un DNS **inesistente**, che fallisce in 4 ms.
    ⚠️ `wwwroot` c'è ancora ma con UN file solo (`vipi-theme.css`); **`vipi-ui.js` NON entra** — identico a
    1.16.0, verificato per impronta e non a memoria.
    ✅ Provata **sul pacchetto pubblicato** (win-x64, JS minificato, NOAA spento apposta): Ricerca 50

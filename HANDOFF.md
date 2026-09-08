@@ -3,7 +3,7 @@
 **Ultimo aggiornamento:** 8 settembre 2026, notte — 📦 **1.16.1 è PRONTA e aspetta di essere caricata.**
 Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
 
-📦 **1.16.1 — pronta, NON ancora online.** Timbro `1.16.1 · 6c1108f`, zip `ed238f32…`, **13 file**, foglio
+📦 **1.16.1 — pronta, NON ancora online.** Timbro `1.16.1 · d2925b3`, zip `2cfa711d…`, **13 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md). **PATCH**,
 nessuna migrazione. Corregge tre cose viste usando 1.16.0:
 
@@ -13,6 +13,10 @@ nessuna migrazione. Corregge tre cose viste usando 1.16.0:
 - **il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM, con la provenienza scritta a schermo solo
   quando non è la principale.
 - **il tasto in barra si chiama «Documenti»**, non più «Editor».
+- 🔴 **aprire un aeroporto costava venti secondi** quando NOAA non risponde: METAR e TAF si chiedevano in
+  **fila**, dieci secondi ciascuno, su due bollettini indipendenti. Ora insieme, con un tetto di 5 s e 3 s
+  per le scorte — **20,2 s → 5,2 s**, misurato. ⚠️ Segnalato come «è il meccanismo nuovo che rallenta»:
+  non lo era, ed era più vecchio.
 
 ⚠️ `wwwroot` c'è ma con **un file solo** (`vipi-theme.css`, coi suoi `.br`/`.gz` e l'indice degli asset).
 **`vipi-ui.js` NON entra**: identico a 1.16.0, verificato per impronta.

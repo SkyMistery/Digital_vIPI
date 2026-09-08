@@ -1,6 +1,6 @@
 # Pacchetto 1.16.1 — solo i file cambiati
 
-> **Timbro:** `1.16.1 · 6c1108f` (8 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.16.1 · d2925b3` (8 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.16.0**, online dall'8 settembre. **13 file.**
@@ -71,6 +71,20 @@ prima: niente cambia nell'uso.
 
 ---
 
+## 🟢 Gli aeroporti si aprono in fretta anche quando NOAA fa i capricci
+
+Se il servizio meteo americano **non risponde** (non «dice di no»: proprio tace), aprire la pagina di un
+aeroporto poteva richiedere **una ventina di secondi** — la pagina aspettava due volte, una per il METAR e
+una per il TAF, dieci secondi ciascuna.
+
+Adesso i due bollettini si chiedono **insieme** e l'attesa massima è **cinque secondi**; se scade, entrano in
+gioco le sorgenti di scorta, che hanno tre secondi per tutte. Misurato: **da 20 a 5 secondi**, col METAR che
+arriva lo stesso.
+
+ℹ️ Nel funzionamento normale non cambia niente: NOAA risponde in mezzo secondo e la pagina è immediata.
+
+---
+
 ## Il controllo dopo il caricamento
 
 ⚠️ **Il timbro non basta.** `diagnostica/avvio-diagnostica.txt` dice quale versione è partita, non che il
@@ -85,6 +99,8 @@ sito funzioni.
 3. **Una sezione «Aree di lavoro»** di un vSOP militare, in modifica: sotto la tabella **non** ci deve più
    essere una seconda tabella vuota col tasto «+ riga».
 4. **Una pagina qualsiasi con lo stile giusto**: se esce senza colori, manca `vipi-theme.css` o l'indice.
+5. **Un aeroporto qualsiasi**: deve aprirsi subito. Se ci mette più di una decina di secondi, il
+   `Vipi.Infrastructure.dll` non è arrivato.
 
 ⚠️ E dopo aver toccato i file: `tmp/restart.txt` **e poi si apre il sito una volta**, o Passenger non se ne
 accorge.
@@ -98,7 +114,7 @@ Le impronte `sha256` di ognuno stanno in `IMPRONTE.txt`, dentro la cartella del 
 | | |
 |---|---|
 | `Vipi.Application.dll` + `.pdb` | il bollettino meteo e la sua sorgente |
-| `Vipi.Infrastructure.dll` + `.pdb` | le tre sorgenti METAR e la catena fra loro |
+| `Vipi.Infrastructure.dll` + `.pdb` | le tre sorgenti METAR, la catena fra loro e i tempi d'attesa |
 | `Vipi.Ui.dll` + `.pdb` | il payload che non è più una tabella da scrivere, e il tasto «Documenti» |
 | `Vipi.Host.dll` + `.pdb` | l'avvio, e il **timbro** della versione |
 | `en/Vipi.Ui.resources.dll` | le frasi inglesi |
