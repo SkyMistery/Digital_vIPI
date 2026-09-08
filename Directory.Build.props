@@ -706,7 +706,43 @@
       — `vipi-theme.css` e `vipi-ui.js` — quindi viaggiano coi loro `.br`/`.gz` e **insieme** a
       `Vipi.Host.staticwebassets.endpoints.json`. Da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.16.0</VipiVersione>
+    <!--
+      1.16.1 — 8 settembre 2026, sera. **PATCH**: nessuna migrazione, nessuna pagina e nessuna sezione nuova.
+      Si costruisce contro cio' che GIRA, che e' **1.16.0** (`a8b54c8`), caricata poche ore prima.
+
+      ⚠️ E' una PATCH anche se una cosa a schermo si aggiunge (la pastiglia della sorgente del METAR): la
+      regola del runbook e' «nessuna pagina o sezione nuova», e qui non ce n'e' nessuna. La ricaduta del
+      METAR non e' una funzionalita' in piu' — e' la stessa funzionalita' che smette di sparire.
+
+      Tre lavori, tutti nati dall'uso vero di 1.16.0:
+
+        · 🔴 **Il tasto «+ riga» che cancellava le aree scelte.** La stessa domanda — «questo blocco e' il
+          payload della scheda o contenuto di chi redige?» — era fatta in DUE posti con DUE regole diverse:
+          `SectionPayload.EEditoriale` (dove il payload si legge e si scrive) e `BlockJson.EStruttura` (che
+          cosa viewer ed editor mostrano). La selezione delle aree e' `{"OwnAuto":…}`, un blocco Table SENZA
+          `variant`: per la scrittura era payload, per l'editor una tabella scritta a mano, con tanto di
+          «+ riga». Premerlo ci scriveva sopra `{"columns":…,"rows":…}` — tutte le aree cancellate, senza un
+          errore. Ora `EStruttura` gira la domanda a `EEditoriale`: una regola, un posto solo.
+          ⚠️ Non riguardava solo le aree: anche i blocchi ACC/APP (`{"Key":"grp:…"}`) e la forma legacy ad
+          array non hanno `variant`, e cadevano nella stessa crepa.
+
+        · **Il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM, e ci si ferma alla prima che
+          risponde. IVAO prima perche' e' la rete che questi documenti servono, e le credenziali ci sono
+          gia'; VATSIM terza perche' e' un altro operatore e non chiede chiavi. Solo METAR: un TAF gratuito
+          e indipendente da NOAA non esiste (provato). La provenienza si scrive a schermo SOLO quando non e'
+          la principale.
+
+        · **Il tasto in barra si chiama «Documenti»**, non piu' «Editor»: si confondeva con l'editor del
+          singolo documento. Chiavi rinominate (non solo i valori), icona da matita a foglio, e le due righe
+          della Guida che nominavano il tasto.
+
+      Rispetto a 1.16.0 cambiano `Application`, `Infrastructure` e `Ui`, piu' `Host` (che porta sempre il
+      timbro) e il satellite inglese, perche' le due `.resx` hanno chiavi nuove e rinominate. ⚠️ `wwwroot`
+      c'e' ancora, ma con UN file solo: `vipi-theme.css` (la pastiglia della sorgente). Viaggia coi suoi
+      `.br`/`.gz` e **insieme** a `Vipi.Host.staticwebassets.endpoints.json`. ⚠️ `vipi-ui.js` NON e' cambiato
+      da 1.16.0 — da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.16.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
