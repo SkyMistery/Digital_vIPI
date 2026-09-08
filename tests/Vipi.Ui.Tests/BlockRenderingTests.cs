@@ -203,4 +203,54 @@ public class BlockRenderingTests : TestContext
 
         Assert.DoesNotContain("<table", cut.Markup);
     }
+
+    /// <summary>
+    /// 🔴 <b>Il payload che NON ha una variante è payload lo stesso.</b> La selezione delle aree
+    /// regolamentate è <c>{"OwnAuto":…,"OwnIds":[…]}</c> — un blocco <c>Table</c> senza <c>variant</c> — e
+    /// fino all'8 settembre 2026 questa regola chiedeva proprio la variante: il payload finiva nella tabella
+    /// generica, l'editor gli disegnava accanto il tasto <b>«+ riga»</b>, e premerlo ci scriveva sopra
+    /// <c>{"columns":…,"rows":…}</c>. <b>Tutte le aree scelte cancellate</b>, senza un errore.
+    ///
+    /// <para>Segnalato dal committente su 1.16.0 in produzione, riprodotto a schermo su LIBG: nella sezione
+    /// «Aree di lavoro» c'erano DUE tabelle, la sua e una <c>cfg-table</c> vuota con l'intestazione «＋».</para>
+    ///
+    /// <para>⚠️ Il caso col <c>notes</c> è la forma di 1.16.0, quello senza è la forma che sta in archivio
+    /// dai documenti scritti prima: valgono tutt'e due, e nessuna delle due ha una variante.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("""{"OwnAuto":false,"OwnIds":["10478","735"],"ExtraIds":[],"activities":{"735":"CAS"}}""")]
+    [InlineData("""{"OwnAuto":false,"OwnIds":["10478"],"ExtraIds":[],"activities":{},"notes":{"10478":"prosa"}}""")]
+    [InlineData("""[{"Key":"cfg:bbbb0611","Name":"Conf 1","OpenCallsigns":["LIMF_WW0_APP"]}]""")]
+    public void Il_payload_senza_variante_non_si_rende(string json)
+    {
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, Block(BlockFormat.Table, bodyJson: json)));
+
+        Assert.DoesNotContain("<table", cut.Markup);
+        Assert.DoesNotContain("OwnIds", cut.Markup);
+        Assert.DoesNotContain("prosa", cut.Markup);
+    }
+
+    /// <summary>
+    /// ⚠️ La domanda è UNA SOLA, e questa è la rete che lo tiene vero: quel che l'editor mostra come
+    /// contenuto è esattamente quel che <see cref="SectionPayload"/> <b>non</b> legge come payload. Due
+    /// regole per la stessa domanda sono il modo in cui si perde un payload — o il contenuto di qualcun
+    /// altro — senza che nessuno protesti.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"OwnAuto":false,"OwnIds":["1"]}""", false)]                       // payload aree
+    [InlineData("""{"variant":"milcallsigns","rows":[]}""", false)]                   // payload militare
+    [InlineData("""["1029"]""", false)]                                               // payload legacy
+    [InlineData("""{"columns":["A"],"rows":[{"cells":["x"]}]}""", true)]              // tabella a mano
+    [InlineData("""{"mediaId":"abc","alt":null}""", true)]                            // immagine
+    [InlineData("""{"ref":"allegato-1"}""", true)]                                    // allegato
+    public void L_editor_e_il_payload_rispondono_alla_STESSA_domanda(string json, bool eContenuto)
+    {
+        // Quel che il viewer/editor considerano contenuto...
+        var reso = !Vipi.Ui.BlockJson.EStruttura(json);
+        // ...e quel che la lettura del payload salta.
+        var saltato = SectionPayload.EEditoriale(json);
+
+        Assert.Equal(eContenuto, reso);
+        Assert.Equal(reso, saltato);
+    }
 }

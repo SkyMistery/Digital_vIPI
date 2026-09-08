@@ -579,7 +579,7 @@ else
                vuol dire darlo in pasto all'anteprima della tabella generica — che su righe fatte di stringhe
                alza `InvalidOperationException` e manda in 500 l'editor. Trovato dal vivo il 30 agosto 2026.
                La domanda e' la stessa del viewer, e sta in un posto solo. *@
-            @foreach (var b in s.Blocks.Where(b => !BlockJson.EStruttura(b.Format, b.BodyJson)))
+            @foreach (var b in s.Blocks.Where(b => !BlockJson.EStruttura(b.BodyJson)))
             {
                 @BlockEditor(s, b)
             }
