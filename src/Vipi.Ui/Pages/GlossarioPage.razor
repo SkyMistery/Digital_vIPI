@@ -116,9 +116,21 @@
                            maxlength="@GlossarioFraseologia.LunghezzaMassimaResa"
                            @bind="_nuovaResa" @bind:event="oninput"
                            @onkeydown="TastoNuovaVoce" />
-                    <button class="btn" disabled="@(_busy || RifiutoNuova is not null)" @onclick="AggiungiAsync">
-                        <Icon Name="plus" Size="14" /> @L["Gl_Add"]
-                    </button>
+                    @* ⚠️ Il motivo sta ANCHE sul tasto. L'avviso qui sotto lo si vede se si guarda lì: a
+                       schermo stretto il modulo va a capo e la riga gialla finisce sotto la piega, e un
+                       tasto grigio senza spiegazione accanto si legge come un permesso che manca — questa
+                       pagina non ha nessun lock, ma il 9 settembre 2026 è stata segnalata come se ce
+                       l'avesse, e con la richiesta di «sbloccarla».
+
+                       ⚠️ E il `title` sta sull'INVOLUCRO, non sul tasto: Chrome ed Edge non consegnano
+                       eventi del mouse a un controllo `disabled`, quindi il suggerimento scritto lì non
+                       comparirebbe mai — proprio nell'unico stato in cui serve. `display:inline-flex` e
+                       non `display:contents`: senza un riquadro proprio non c'è niente da sorvolare. *@
+                    <span title="@PerchéSpento" style="display:inline-flex">
+                        <button class="btn" disabled="@(_busy || RifiutoNuova is not null)" @onclick="AggiungiAsync">
+                            <Icon Name="plus" Size="14" /> @L["Gl_Add"]
+                        </button>
+                    </span>
                 </div>
 
                 @* Il motivo si mostra solo quando c'è qualcosa di scritto: un modulo vuoto che grida «servono
@@ -192,10 +204,12 @@
                                             </p>
                                         }
                                         <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-                                            <button class="btn" disabled="@(_busy || !BozzaValida(v))"
-                                                    @onclick="() => SalvaVoceAsync(v)">
-                                                <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
-                                            </button>
+                                            <span title="@PerchéSpentoVoce(v)" style="display:inline-flex">
+                                                <button class="btn" disabled="@(_busy || !BozzaValida(v))"
+                                                        @onclick="() => SalvaVoceAsync(v)">
+                                                    <Icon Name="check-circle" Size="14" /> @L["Common_Save"]
+                                                </button>
+                                            </span>
                                             @if (_inMemoria > 0)
                                             {
                                                 <button class="btn ghost" disabled="@_busy"
@@ -955,11 +969,28 @@
     private GlossarioRifiuto? RifiutoNuova => GlossarioFraseologia.PerchéNonVa(
         _nuovaSorgente, _nuovaResa, _voci?.Select(v => v.SourceText));
 
-    /// <summary>Correggere una voce esistente non è un duplicato di sé stessa: la sorgente non cambia, e
-    /// dall'elenco dei già presenti si toglie la riga che si sta modificando.</summary>
-    private bool BozzaValida(GlossaryTerm v) =>
+    /// <summary>Perché la correzione in corso non si può salvare, o null se va bene. ⚠️ Correggere una voce
+    /// esistente non è un duplicato di sé stessa: la sorgente non cambia, e dall'elenco dei già presenti si
+    /// toglie la riga che si sta modificando.</summary>
+    private GlossarioRifiuto? RifiutoVoce(GlossaryTerm v) =>
         GlossarioFraseologia.PerchéNonVa(
-            v.SourceText, _bozza, _voci?.Where(x => x.Id != v.Id).Select(x => x.SourceText)) is null;
+            v.SourceText, _bozza, _voci?.Where(x => x.Id != v.Id).Select(x => x.SourceText));
+
+    private bool BozzaValida(GlossaryTerm v) => RifiutoVoce(v) is null;
+
+    /// <summary>Perché il tasto «Aggiungi» è spento, per chi ci passa sopra. Vale anche a modulo vuoto,
+    /// dove l'avviso sotto non c'è apposta: un suggerimento è muto finché non lo si cerca, e chi lo cerca
+    /// è esattamente chi sta guardando un tasto grigio senza capire.</summary>
+    private string? PerchéSpento =>
+        _busy ? L["Common_Loading"].Value
+        : RifiutoNuova is { } r ? L[ChiaveDi(r)].Value
+        : null;
+
+    /// <inheritdoc cref="PerchéSpento"/>
+    private string? PerchéSpentoVoce(GlossaryTerm v) =>
+        _busy ? L["Common_Loading"].Value
+        : RifiutoVoce(v) is { } r ? L[ChiaveDi(r)].Value
+        : null;
 
     private static string ChiaveDi(GlossarioRifiuto r) => r switch
     {
