@@ -162,10 +162,15 @@ MySQL sia sparita. Quella la dirà il **prossimo `errori-richieste.txt`** — ze
 
 ### Che cosa NON è stato fatto, e si sa
 
-- ⚠️ **I caricamenti non prendono un `CancellationToken`**: `ChiudiAsync` **aspetta**, non annulla. Sono 59
-  punti di chiamata nei cinque editor più complessi, e il guadagno è solo accorciare un'attesa già limitata
-  a 15 s — la correttezza c'è già. **Pesato e rimandato**, non dimenticato.
-- ⚠️ Le **22 pagine** del debito noto (interattive, senza scope proprio) restano: «tocca mezzo prodotto».
+- 🔴 **`ChiudiAsync` vive solo nei cinque editor: le PAGINE non aspettano nessuno.** Scope proprio e
+  sentinella proteggono dagli altri e da sé stessi, non dal **tempo**: se lo scope muore con la query ancora
+  aperta, il caricamento in volo trova il contesto smaltito. Misurato in produzione l'8 settembre 2026 —
+  `StatsDivisionPage` ha entrambe le porte ed è caduta lo stesso (§CF). I caricamenti non prendono nemmeno
+  un `CancellationToken` (59 punti nei cinque editor): quella parte resta **pesata e rimandata**, l'attesa
+  no.
+- ⚠️ Le **21 pagine** del debito noto (interattive, senza scope proprio) restano: «tocca mezzo prodotto».
+  `AdminRolesPage` è uscita dall'elenco l'8 settembre, dopo che la produzione l'aveva nominata due volte in
+  un pomeriggio (§CF): un debito scritto vale finché resta teorico.
 
 ⚠️ **I file di `diagnostica/` non si committano**: `errori-richieste.txt` porta i VID degli utenti.
 

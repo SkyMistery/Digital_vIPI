@@ -10200,3 +10200,84 @@ passerebbero identici sulla versione di prima. La conferma è arrivata dalle due
 amministra: il **timbro** del server (`1.15.2 · eb7f389`) e il **gesto** — ripubblicare si comporta come
 deve, cioè l'avviso se ne va da sé.
 
+
+## §CF — Il registro dell'8 sera: la prova di §CD è tornata negativa — 8 settembre 2026 (notte)
+
+Il committente ha scaricato `diagnostica/` a fine giornata, subito dopo aver caricato 1.16.1. È il file che
+[§CD](#cd--le-tre-cose-che-ha-detto-la-diagnostica-di-produzione--7-settembre-2026-notte) aspettava: «la
+prova delle tre correzioni è il PROSSIMO file sceso dal server, non i test».
+
+### Due regole di lettura, pagate stasera
+
+🔴 **Il file non si azzera fra una consegna e l'altra.** A 234 kB (il taglio è a 512) portava dentro **tutte**
+le 71 voci vecchie più le nuove: 91 in tutto, dal 4 settembre. Contarle in blocco dice che non è cambiato
+niente. Si conta **per era**, e i confini li dà `avvii.txt` — prima comparsa di ogni versione: **1.15.2 alle
+11:32:39Z**, 1.16.0 alle 17:26:04Z, 1.16.1 alle 20:24:56Z.
+
+🔴 **Un tasso «errori su mille richieste» non si confronta con le ore di notte.** Le richieste contate in
+`avvii.txt` sono in grandissima parte `/vsop/health/ready` dell'host che risveglia il processo: 3594
+richieste notturne non sono traffico, e di notte non c'è nessun admin dentro un editor — che è **dove**
+nascono queste voci. Il confronto onesto è **quali famiglie sono sparite**, non quante voci per mille.
+
+### Che cosa dicono le 18 voci nuove
+
+| quante | che cosa | verdetto |
+|---|---|---|
+| 7 | `ObjectDisposedException` su `VipiDbContext` | 🔴 **non chiusa**: l'ultima alle 20:26:02, già sotto 1.16.1 |
+| 6 | `Connection must be Open` ×4, `another read operation is pending` ×1, `Packet received out-of-order` ×1 | **faccia nuova, stessa radice**: due thread su una connessione, o una sessione MySQL tornata sporca nel pool |
+| 3 | NRE di **render** | `AppSectionsEditor` riga 71 ×2, `DocumentSectionsEditor.BuildToc` ×1 |
+| 1 | `A second operation was started` | da **12** a **1** — e quell'uno ha un nome |
+| 1 | NRE in `EfImportStateStore.GetLastSuccessAsync` | nuova |
+
+⚠️ Le sei della seconda riga **non sono difetti nuovi**, e lo prova l'orario: le coppie delle **17:46:35** e
+delle **17:51:38-39** cadono allo stesso secondo su **due contesti diversi**. È l'altro lato già descritto in
+§CD — chi prende dal pool la sessione che qualcun altro ha restituito con una lettura ancora aperta.
+
+✅ **Quel che ha funzionato**: i cinque editor corretti **non compaiono più**.
+🔴 **Quel che mancava**: la correzione era fatta per gli **editor**, e le voci nuove parlano di **pagine**.
+
+### 🔴 Due porte non bastano: la terza è **aspettare**
+
+`StatsDivisionPage` ha **entrambe** le porte — scope proprio e sentinella di rientro, convertita il 7
+settembre — e alle **20:26:02**, già sotto 1.16.1, ha dato `ObjectDisposedException` in
+`EfAtcStatsQueries.ByPositionAsync` ← `LeggiAsync` ← `OnParametersSetAsync`.
+
+⚠️ **Le due porte proteggono dagli ALTRI e da SÉ STESSI, non dal TEMPO.** Nessuna delle due impedisce che lo
+scope **muoia con la query ancora aperta**: l'utente cambia pagina, il circuito finisce, e il caricamento in
+volo trova il contesto smaltito. Quella è la terza porta, e per le pagine **non esiste**:
+`DocumentEditorShell.ChiudiAsync` — che chiude e **aspetta**, tetto 15 s — vive solo nei **cinque editor**.
+▶ Il lavoro è portare quell'attesa alle pagine, ed è il seguito di questo §.
+
+### ✅ La prima riga chiusa: `AdminRolesPage`
+
+🔴 Un **debito scritto** ha smesso di essere teorico. La pagina dei permessi stava in `DebitoNoto` dal 4
+settembre — l'elenco che serve a non farne nascere di nuove — e nello stesso pomeriggio è finita **due volte**
+nel registro, sempre dalla catena `RoleAdminService.ListAsync` ← `CaricaAsync`: alle **13:57:43**
+`ObjectDisposedException` su `EfStaffRosterRepository.ListActiveAsync`, alle **17:46:35** l'unica
+`A second operation was started` rimasta, su `EfRoleOverrideStore.ListAsync`. Non aveva nessuno scope
+proprio: `IRoleAdminService` e `IStaffRosterRepository` arrivavano da `@inject`, cioè dal circuito.
+
+✅ Convertita: `@inherits OwningComponentBase`, i due servizi da `ScopedServices`, e la **sentinella di
+rientro** sul caricamento. Tolta da `DebitoNoto` (22 → 21) e messa fra le `Convertite()`, che è il presidio
+più stretto: da lì il test pretende che quei servizi **non tornino** fra gli `@inject`.
+
+⚠️ **Anche le scritture passano dallo scope proprio**, e non è una scommessa sull'identità: `RoleAdminService`
+legge i claim (`EnsureAdmin`, `CurrentUserId`), ed è la stessa strada da cui `VersioniPage` — che risolve
+`IEditingService` e `IReleaseService` da `ScopedServices` — **pubblica ogni giorno**. La cautela scritta in
+testa a `TranslationReviewPanel` resta dov'è, per il suo caso: qui il precedente c'è ed è in esercizio.
+
+⚠️ **La sentinella non salta il giro, lo rimanda.** I chiamanti sono tre e due sono scritture: un caricamento
+**saltato** dopo un salvataggio lascerebbe a schermo il livello vecchio sotto un messaggio che dice
+«salvato». Chi è già dentro rifà il giro per chi ha trovato la porta chiusa.
+
+### ▶ Che cosa resta
+
+1. L'**attesa** del caricamento alle pagine, non solo ai cinque editor (la terza porta, qui sopra).
+2. Il **contesto** nella NRE di render dell'editor APP: è tornata due volte (13:58:40 e 14:00:22) e le voci
+   portano lo **stesso stack nudo** di prima. 🔴 Una strumentazione si prova **facendola scattare** prima di
+   consegnarla, altrimenti «aspetta la prossima occorrenza» diventa aspettarne **due**. E le voci nuove
+   arrivano dal **circuito** (`CircuitUnhandledException`): non portano né rotta né VID, quindi il contesto
+   deve metterlo il codice.
+
+⚠️ **1.16.1 non è provata da questo scarico**: ci vive per **4 richieste** e novanta secondi. Un'era senza
+traffico non assolve nessuno — serve il prossimo file.

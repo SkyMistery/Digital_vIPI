@@ -26,7 +26,8 @@ namespace Vipi.Ui.Tests;
 public sealed class ScopeProprioDellePagineTests
 {
     /// <summary>
-    /// Le tre pagine convertite il 4 settembre 2026, con il servizio che le aveva fatte cadere.
+    /// Le pagine convertite, ognuna col servizio che l'aveva fatta cadere — le prime tre il 4 settembre 2026,
+    /// <c>AppEditorPage</c> e <c>AdminRolesPage</c> l'8.
     /// ⚠️ Il servizio non deve tornare fra gli <c>@@inject</c>: da lì verrebbe di nuovo dal circuito, e il
     /// difetto tornerebbe identico con lo scope proprio ancora dichiarato sopra.
     /// </summary>
@@ -39,6 +40,14 @@ public sealed class ScopeProprioDellePagineTests
         // stessa corsa col caricamento del componente figlio, e nessuno se n'era accorto perche' il
         // presidio guardava le AGGIUNTE, non i pari grado di una correzione gia' fatta.
         { "AppEditorPage",       "IDocumentUnionService" },
+        // 🔴 L'8 settembre 2026 sera, dal registro sceso dal server: questa pagina stava in `DebitoNoto`
+        // dal 4 settembre, e nello stesso pomeriggio ci e' finita DUE volte — 13:57:43
+        // `ObjectDisposedException` su `EfStaffRosterRepository.ListActiveAsync`, 17:46:35
+        // `A second operation was started` su `EfRoleOverrideStore.ListAsync`, sempre dalla catena
+        // `RoleAdminService.ListAsync` <- `CaricaAsync`. Un debito SCRITTO smette di essere un debito
+        // quando la produzione lo nomina. Vedi docs/lavori-aperti.md.
+        { "AdminRolesPage",      "IRoleAdminService" },
+        { "AdminRolesPage",      "IStaffRosterRepository" },
     };
 
     [Theory]
@@ -83,7 +92,7 @@ public sealed class ScopeProprioDellePagineTests
     /// </summary>
     private static readonly string[] DebitoNoto =
     {
-        "AccAdminPage", "AdminAirspacePage", "AdminAttachmentsPage", "AdminNavaidsPage", "AdminRolesPage",
+        "AccAdminPage", "AdminAirspacePage", "AdminAttachmentsPage", "AdminNavaidsPage",
         "AdminTasksPage", "AdminTrasferimentiPage", "AeroportiPage", "AirspacePage",
         "AuditPage", "ChangedPage", "ConfinantiAdminPage", "GlossarioPage", "LivePage", "PendingPage",
         "SearchPage", "SectorfilePage", "SorgentiAdminPage", "StrutturaPage", "TasksPage", "VloaEditorPage",

@@ -1,11 +1,30 @@
 @page "/services/vsop/admin/permissions"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits OwningComponentBase
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Abstractions
 @using Vipi.Domain
+
+@* ⚠️ SCOPE PROPRIO (OwningComponentBase) e sentinella di rientro, come su Versioni e Diagnostica: questa
+   pagina è interattiva, quindi con `@@inject` il suo `DbContext` sarebbe quello del CIRCUITO — condiviso con
+   la barra, col «Da fare» e con quel che la pagina precedente ha lasciato in volo.
+
+   🔴 Non è una precauzione: è misurato in produzione l'8 settembre 2026. Questa pagina è finita due volte in
+   `errori-richieste.txt` nello stesso pomeriggio, sempre dalla stessa catena `RoleAdminService.ListAsync` ←
+   `CaricaAsync` — alle 13:57:43 una `ObjectDisposedException` su `EfStaffRosterRepository.ListActiveAsync`,
+   alle 17:46:35 una `A second operation was started` su `EfRoleOverrideStore.ListAsync`. Era l'ultima riga
+   rimasta di quella famiglia, ed era in `DebitoNoto` fin dal 4 settembre: un debito scritto smette di essere
+   un debito quando la produzione lo nomina.
+
+   ⚠️ Anche le SCRITTURE passano dallo scope proprio, non dal circuito: `RoleAdminService` legge i claim
+   (`EnsureAdmin`, `CurrentUserId`), e che l'identità sopravviva in uno scope figlio non è una scommessa — è
+   la stessa strada da cui Versioni pubblica ogni giorno.
+
+   Restano fuori le cose che il database non lo toccano: identità (dal 28 agosto il livello si risolve senza
+   una query), localizzazione, JS. *@
 @inject IEditAuthorizationService Authz
-@inject IRoleAdminService Livelli
 @inject IStringLocalizer<SharedResource> L
-@inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
 @inject IJSRuntime JS
 
 @* Chi può cosa: una persona, un livello.
@@ -205,6 +224,18 @@
     // Nomi risolti dal roster: l'elenco porta il VID di chi ha firmato, e «704798» non dice niente.
     private readonly Dictionary<int, string> _nomi = new();
 
+    // I servizi che interrogano il database: presi dallo SCOPE DI QUESTA PAGINA, non da quello del circuito.
+    // Vedi il commento in testa al file.
+    private IRoleAdminService Livelli = default!;
+    private IStaffRosterRepository StaffRoster = default!;
+
+    /// <summary>È già in corso un giro di letture? ⚠️ Si alza <b>prima</b> del primo <c>await</c>: alzarla
+    /// dopo vorrebbe dire non alzarla affatto, perché è lì che il gesto successivo entra.</summary>
+    private bool _inCorso;
+
+    /// <summary>Qualcuno ha bussato mentre un giro era in corso: chi è dentro glielo rifà prima di uscire.</summary>
+    private bool _daRifare;
+
     private static readonly VipiRole[] Tutti =
     {
         VipiRole.User, VipiRole.IvaoStaff, VipiRole.DivisionStaff, VipiRole.Editor, VipiRole.Admin,
@@ -215,6 +246,12 @@
     {
         VipiRole.Admin, VipiRole.Editor, VipiRole.DivisionStaff, VipiRole.IvaoStaff, VipiRole.User,
     };
+
+    protected override void OnInitialized()
+    {
+        Livelli = ScopedServices.GetRequiredService<IRoleAdminService>();
+        StaffRoster = ScopedServices.GetRequiredService<IStaffRosterRepository>();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -230,7 +267,32 @@
         try { await JS.InvokeVoidAsync("vipiFitViewport", ".perm-layout", 900); } catch (Exception) { }
     }
 
+    /// <summary>
+    /// La porta del caricamento, con la <b>sentinella di rientro</b>. Lo scope proprio protegge dagli ALTRI,
+    /// la sentinella da SÉ STESSI: i chiamanti sono tre — l'inizializzazione e i due gesti — e la porta è una.
+    ///
+    /// <para>⚠️ La sentinella <b>non salta</b> il giro, lo <b>rimanda</b>. Due dei tre chiamanti sono
+    /// scritture, e un caricamento saltato lì lascerebbe a schermo il livello vecchio sotto un messaggio che
+    /// dice «salvato»: chi è già dentro rifà il giro per chi ha trovato la porta chiusa.</para>
+    /// </summary>
     private async Task CaricaAsync()
+    {
+        if (_inCorso) { _daRifare = true; return; }
+
+        _inCorso = true;
+        try
+        {
+            do
+            {
+                _daRifare = false;
+                await LeggiAsync();
+            }
+            while (_daRifare);
+        }
+        finally { _inCorso = false; }
+    }
+
+    private async Task LeggiAsync()
     {
         try
         {
