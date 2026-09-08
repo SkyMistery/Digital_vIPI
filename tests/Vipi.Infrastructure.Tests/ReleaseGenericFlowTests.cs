@@ -271,7 +271,10 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
     /// ciclo si rompe anche in produzione — <c>ImpactDriftUseCase</c> vuole un <c>IReleaseService</c> e
     /// <c>ReleaseService</c> vuole la deriva, e qui si vede che l'uno esiste prima che l'altro serva.
     /// </summary>
-    private (ReleaseService Servizio, DocumentImpactService Impatti, EfDocumentImpactRepository Repo) ConDeriva()
+    /// <param name="stati">Dove la pubblicazione lascia scritto com'è andata la riconciliazione. Null = come
+    /// prima dell'8 settembre 2026, cioè un guasto che non lascia traccia da nessuna parte.</param>
+    private (ReleaseService Servizio, DocumentImpactService Impatti, EfDocumentImpactRepository Repo) ConDeriva(
+        IImportStateStore? stati = null)
     {
         var impattiRepo = new EfDocumentImpactRepository(_db);
         var impatti = new DocumentImpactService(impattiRepo, new AllowAuthz());
@@ -288,7 +291,7 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
             new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
             new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)),
             Registry(), Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
-            new EfUnitOfWork(_db), deriva: deriva);
+            new EfUnitOfWork(_db), deriva: deriva, stati: stati);
 
         return (svc, impatti, impattiRepo);
     }
@@ -389,6 +392,96 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         await AggiungiSezioneAllaBozzaAsync("Sezione arrivata dopo");
 
         Assert.Null(await svc.ProgrammataAllineataAsync(FakeType, "fake-key"));
+    }
+
+    // ---- E se la riconciliazione salta? (8 settembre 2026) ------------------------------------------
+
+    /// <summary>
+    /// La riconciliazione alla pubblicazione è <b>a prova di guasto</b> per una ragione giusta: la release è
+    /// già scritta e promossa, e un errore nel ricalcolo non deve far dire «pubblicazione fallita» a una
+    /// pubblicazione riuscita. Ma fino all'8 settembre 2026 il guasto veniva ingoiato <b>e basta</b>, e il
+    /// sintomo era identico al difetto che quella riconciliazione era andata a togliere: «ho ripubblicato e
+    /// l'avviso è ancora lì», con la lista che si richiudeva — se si richiudeva — solo il giorno dopo.
+    ///
+    /// <para>Il banco prova le <b>due</b> cose insieme, perché separate non dicono niente: che la
+    /// pubblicazione resti riuscita, e che il guasto lasci una traccia leggibile.</para>
+    /// </summary>
+    [Fact]
+    public async Task Se_La_Riconciliazione_Rompe_La_Pubblicazione_Regge_E_Il_Guasto_Resta_Scritto()
+    {
+        var stati = new StatiFinti();
+        var repo = new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db));
+        var svc = new ReleaseService(repo, new AllowAuthz(), new Vipi.Domain.Services.AiracService(),
+            new FrozenSectionRegistry(Array.Empty<IFrozenSectionProvider>()),
+            new EfDocumentAdminRepository(_db, Registry(), new EfReleaseRepository(_db, Registry(), new EfMediaMaintenance(_db)), new EfMediaMaintenance(_db)),
+            new EfEditingRepository(_db, new Vipi.Domain.Services.AiracService(), new EfMediaMaintenance(_db)), Registry(),
+            Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+            new EfUnitOfWork(_db),
+            deriva: new Lazy<IImpactDriftUseCase>(() => new DerivaCheRompe()), stati: stati);
+
+        await AddDraftAsync(2);
+        await svc.PublishNowAsync(FakeType, "fake-key", null);   // non deve sollevare niente
+
+        Assert.NotNull(await repo.GetEffectiveAsync(FakeType, "fake-key", DateTime.UtcNow));
+
+        // ⚠️ Sulla chiave SUA, non su quella del giro giornaliero: sono due guasti con due rimedi, e scritti
+        // sulla stessa riga si nasconderebbero a vicenda.
+        Assert.Equal(ImportCategories.ImpactDriftOnPublish, stati.CategoriaFallita);
+        Assert.Contains("guasto simulato", stati.Errore);
+        Assert.Null(stati.CategoriaRiuscita);
+    }
+
+    /// <summary>Il successo si scrive <b>sempre</b>: è quello che azzera il guasto precedente, e senza la
+    /// riga direbbe «una volta, chissà quando, andò male» per sempre.</summary>
+    [Fact]
+    public async Task Una_Riconciliazione_Riuscita_Lascia_Scritto_Che_E_Andata_Bene()
+    {
+        var stati = new StatiFinti();
+        var (svc, _, _) = ConDeriva(stati);
+
+        await AddDraftAsync(2);
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        Assert.Equal(ImportCategories.ImpactDriftOnPublish, stati.CategoriaRiuscita);
+        Assert.Null(stati.CategoriaFallita);
+    }
+
+    /// <summary>La riconciliazione che si rifiuta di fare il suo lavoro, per vedere che cosa resta scritto.</summary>
+    private sealed class DerivaCheRompe : IImpactDriftUseCase
+    {
+        public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) =>
+            throw new InvalidOperationException("guasto simulato nel giro della deriva");
+
+        public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
+            throw new InvalidOperationException("guasto simulato nella riconciliazione");
+    }
+
+    /// <summary>Il registro degli stati, ridotto a quel che la pubblicazione ci scrive.</summary>
+    private sealed class StatiFinti : IImportStateStore
+    {
+        public string? CategoriaFallita { get; private set; }
+        public string? Errore { get; private set; }
+        public string? CategoriaRiuscita { get; private set; }
+
+        public Task MarkFailureAsync(string category, DateTime utc, string error, CancellationToken ct = default)
+        {
+            CategoriaFallita = category;
+            Errore = error;
+            return Task.CompletedTask;
+        }
+
+        public Task MarkSuccessAsync(string category, DateTime utc, CancellationToken ct = default)
+        {
+            CategoriaRiuscita = category;
+            return Task.CompletedTask;
+        }
+
+        public Task<DateTime?> GetLastSuccessAsync(string category, CancellationToken ct = default) =>
+            Task.FromResult<DateTime?>(null);
+        public Task<DateTime?> GetPrevSuccessAsync(string category, CancellationToken ct = default) =>
+            Task.FromResult<DateTime?>(null);
+        public Task<IReadOnlyList<ImportState>> GetAllAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ImportState>>(Array.Empty<ImportState>());
     }
 
     private async Task AddDraftAsync(int versionNumber)

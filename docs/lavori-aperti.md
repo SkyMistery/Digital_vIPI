@@ -10005,3 +10005,69 @@ d'errore, è una nota — o non si scrive, o si scrive altrove.
 3. **Una `BadImageFormatException` allo spegnimento, in un assieme che NON era nel pacchetto**, è la firma
    della dll sostituita sotto il processo vivo. Non è la versione nuova che non parte.
 
+---
+
+## §CE — «Ho ripubblicato e l'avviso è ancora lì»: le due metà che restavano — 8 settembre 2026
+
+**La segnalazione**: l'avviso «da ripubblicare» non spariva subito dopo aver ripubblicato — *«nell'editor del
+documento e nella lista dei documenti»*. §CC (7 settembre) aveva già fatto in modo che **pubblicare chiudesse
+la riga all'istante**, e su LIBD funzionava. Rivedendo il meccanismo sono uscite **due** cose diverse, e
+nessuna delle due era la deriva.
+
+### 1. Il banner dell'editor ridipingeva la lista di quando si era aperta la pagina
+
+`DocReviewBar` si ricarica **solo quando cambia il `DocumentId`** (la guardia in `OnParametersSetAsync`, che
+serve: senza, interrogherebbe il database a ogni render della pagina ospite). Dopo una pubblicazione il
+documento è **lo stesso**: l'ospite ricaricava, il banner tornava a render, uscìva subito dalla guardia e
+ridipingeva le righe lette all'apertura. La riga nel database era già chiusa da §CC; a schermo restava fino
+al ricarico completo.
+
+⚠️ **Non è un parametro «revisione»**: fra il pannello che pubblica e il banner ci sono **due** componenti
+(pagina → editor delle sezioni), e un parametro andrebbe infilato in tutti e due. È un metodo pubblico —
+`DocReviewBar.RicaricaAsync()` — chiamato dalla via di ricarico che gli ospiti **hanno già** dopo
+`ReleasePanel.Published`: `RicaricaAsync()` nei tre editor di sezioni, un `DopoPubblicazioneAsync` nuovo su
+ACC e vLOA (dove pannello e banner stanno nello stesso file).
+
+Banco `Dopo_La_Pubblicazione_Il_Banner_Si_Rilegge_A_Documento_Invariato`: prova **tutte e due** le metà — che
+un render qualunque **non** rilegga, e che la richiesta dell'ospite sì. Provato a rovescio.
+
+### 2. 🔴 Il guasto della riconciliazione era MUTO, e il sintomo è identico al difetto
+
+`ReleaseService.RiconciliaDerivaAsync` ingoia ogni eccezione, e ha ragione: la release è già scritta e
+promossa, e un errore nel ricalcolo non deve far dire «pubblicazione fallita» a una pubblicazione riuscita —
+la rete è il giro notturno. Ma la ingoiava **senza scrivere niente da nessuna parte** (`Vipi.Application` non
+ha un logger), quindi *«ho ripubblicato e l'avviso è ancora lì»* e *«il ricalcolo non è mai avvenuto»* si
+leggevano allo stesso modo: cioè il difetto che §CC era andato a togliere, ma **invisibile**.
+
+Ora l'esito resta scritto sulla tabella degli stati, che è la porta che c'era già:
+`IImportStateStore.MarkSuccessAsync`/`MarkFailureAsync` sulla chiave nuova
+**`ImportCategories.ImpactDriftOnPublish`**, e Diagnostica lo mostra sotto «Documenti da rivedere».
+
+- ⚠️ **Chiave sua, non `ImpactDrift`**: quella dice se passa il **giro giornaliero**, questa se la
+  **pubblicazione** richiude le righe all'istante. Due guasti, due rimedi; sulla stessa riga si
+  nasconderebbero a vicenda — e il giro gestito usa `LastAttemptUtc` per il proprio ritentativo.
+- **Il successo si scrive sempre**, non solo il guasto: `MarkSuccessAsync` azzera l'errore precedente, quindi
+  la riga dice «l'ultimo guasto è **ancora** vero» invece di «una volta, chissà quando, andò male».
+- **Il primo guasto, non l'ultimo**: su un'unione i successivi sono di solito la stessa causa vista N volte.
+- ⚠️ **A prova di guasto a sua volta**: se scrivere la nota esplodesse, una pubblicazione riuscita si direbbe
+  fallita per colpa di una nota di diagnostica.
+
+Banchi: `Se_La_Riconciliazione_Rompe_La_Pubblicazione_Regge_E_Il_Guasto_Resta_Scritto` (le due cose insieme:
+la release c'è **e** la traccia c'è) e `Una_Riconciliazione_Riuscita_Lascia_Scritto_Che_E_Andata_Bene`.
+Entrambi provati a rovescio. In più, in E2E,
+`Il_registro_degli_stati_arriva_davvero_al_servizio_delle_release`: è la **stessa trappola del pigro** di
+§CC — un parametro opzionale che il contenitore non passa lascia `_stati = null`, e tutto questo torna a
+essere muto senza che niente si accorga.
+
+### Che cosa NON è stato toccato, e si sa
+
+- Il giro resta **una volta al giorno**: è la rete, non il gesto.
+- La lista `/services/vsop/versions` rilegge già gli impatti a ogni caricamento e dopo ogni pubblicazione
+  fatta da lì: lì non c'era niente da correggere.
+- ⚠️ Resta possibile una **deriva che non si chiude pubblicando**: `DriftFromEffectiveAsync` confronta due
+  *firme* (`titolo sezione → numero di blocchi`, `FlattenSections`), e se le due costruzioni dello snapshot
+  divergono per qualcosa che sta fuori da `BuildSnapshotJsonAsync` — i **titoli**, che sono la chiave della
+  firma — la riga non si chiuderebbe **mai**, né pubblicando né col giro. Non misurata: sul caso reale
+  (LIBD) ora funziona. Se ricapita, il primo dato utile è **quali sezioni nomina** l'avviso: una o due →
+  quella sezione si ricostruisce diversa; tutte → sono le chiavi della firma a non combaciare.
+

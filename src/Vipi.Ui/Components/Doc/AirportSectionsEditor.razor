@@ -92,7 +92,7 @@ else
     
             @if (_data is not null)
             {
-                <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+                <DocReviewBar @ref="_avviso" DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
     
             }
         }
@@ -357,7 +357,15 @@ else
     public Task RilasciaLockAsync() => _shell.IsEditing ? FineModificaAsync() : Task.CompletedTask;
 
     /// <inheritdoc cref="AppSectionsEditor.RicaricaAsync"/>
-    public Task RicaricaAsync() => LoadAsync();
+    public async Task RicaricaAsync()
+    {
+        await LoadAsync();
+        if (_avviso is not null) await _avviso.RicaricaAsync();
+    }
+
+    /// <summary>Il banner delle cose da fare, per rileggerlo dopo una pubblicazione. Può essere null: vive
+    /// dentro un ramo condizionale del markup.</summary>
+    private DocReviewBar? _avviso;
 
     /// <summary>Vero se chi guarda puo' pubblicare questo scalo: lo chiede l'ospite per decidere se
     /// mostrare i pannelli dell'unione e della pubblicazione.</summary>

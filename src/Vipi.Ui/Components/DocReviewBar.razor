@@ -58,10 +58,26 @@
     {
         if (DocumentId == _loadedFor) return;   // evita ricariche a ogni render
         _loadedFor = DocumentId;
-        await RicaricaAsync();
+        await CaricaAsync();
     }
 
-    private async Task RicaricaAsync() =>
+    /// <summary>
+    /// Rilegge che cosa resta da fare, su richiesta dell'ospite. Serve <b>dopo una pubblicazione</b>: la
+    /// riconciliazione chiude la riga «da ripubblicare» all'istante
+    /// (<c>ReleaseService.RiconciliaDerivaAsync</c>), ma il <see cref="DocumentId"/> non cambia — quindi la
+    /// guardia di <see cref="OnParametersSetAsync"/> esce subito e il banner ridipinge la lista letta
+    /// all'apertura della pagina, cioè continua a chiedere il lavoro appena fatto fino al ricarico completo.
+    ///
+    /// <para>⚠️ Pubblico e non un parametro «revisione»: fra il pannello che pubblica e questo banner ci sono
+    /// due componenti (pagina → editor delle sezioni), e un parametro andrebbe infilato in tutti e due.</para>
+    /// </summary>
+    public async Task RicaricaAsync()
+    {
+        await CaricaAsync();
+        StateHasChanged();
+    }
+
+    private async Task CaricaAsync() =>
         _righe = DocumentId is int id
             ? await Lavoro.PerDocumentoAsync(id)
             : Array.Empty<WorkItem>();
@@ -76,7 +92,7 @@
             if (r.TaskId is int taskId) await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.Done);
             else if (r.ImpactId is int impactId) await Impacts.ClearAsync(impactId);
 
-            await RicaricaAsync();
+            await CaricaAsync();
             await OnResolved.InvokeAsync();
         }
         finally { _busy = false; }
@@ -89,7 +105,7 @@
         try
         {
             await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.InProgress);
-            await RicaricaAsync();
+            await CaricaAsync();
         }
         finally { _busy = false; }
     }

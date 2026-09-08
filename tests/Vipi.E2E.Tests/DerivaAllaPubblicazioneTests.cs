@@ -51,6 +51,26 @@ public sealed class DerivaAllaPubblicazioneTests : IClassFixture<DerivaAllaPubbl
         Assert.NotNull(pigro.Value);
     }
 
+    /// <summary>
+    /// Stessa trappola del pigro, sull'altro parametro opzionale: se il contenitore non passa
+    /// <c>IImportStateStore</c>, <c>ReleaseService</c> nasce con <c>_stati = null</c> — compila, gira,
+    /// pubblica — e il guasto della riconciliazione torna a essere <b>muto</b>, che è esattamente il difetto
+    /// che quella nota è andata a togliere (8 settembre 2026). Si guarda il campo perché è l'unica cosa che
+    /// distingue «c'è» da «c'è e non gliel'hanno dato».
+    /// </summary>
+    [Fact]
+    public void Il_registro_degli_stati_arriva_davvero_al_servizio_delle_release()
+    {
+        using var scope = _fabbrica.Services.CreateScope();
+
+        var release = scope.ServiceProvider.GetRequiredService<IReleaseService>();
+
+        var campo = typeof(ReleaseService).GetField("_stati",
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(campo);
+        Assert.NotNull(campo!.GetValue(release));
+    }
+
     public sealed class Fabbrica : WebApplicationFactory<Program>
     {
         private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"vipi-deriva-{Guid.NewGuid():N}.db");

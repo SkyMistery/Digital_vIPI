@@ -119,6 +119,26 @@ public static class ImportCategories
     public const string ImpactDrift = "ImpactDrift";
 
     /// <summary>
+    /// L'altra metà della deriva: la riconciliazione che la <b>pubblicazione</b> chiede per il documento
+    /// appena scritto (<c>ReleaseService.RiconciliaDerivaAsync</c>, dal 7 settembre 2026). ⚠️ Non è un import
+    /// e non è un giro: non ha periodo, e il suo «ultimo successo» è l'ultima pubblicazione andata a buon
+    /// fine — sta fra queste chiavi perché questa è la tabella che sa tenere «ultimo tentativo, ultimo
+    /// errore».
+    ///
+    /// <para>⚠️ <b>Chiave sua e non <see cref="ImpactDrift"/></b>: quella dice se il <b>giro giornaliero</b>
+    /// passa, e questa se la pubblicazione richiude le righe all'istante. Sono due guasti diversi con due
+    /// rimedi diversi, e scritti sulla stessa riga si nasconderebbero a vicenda — per giunta il giro
+    /// gestito usa <c>LastAttemptUtc</c> per il proprio ritentativo.</para>
+    ///
+    /// <para><b>Perché esiste.</b> Quella riconciliazione è volutamente a prova di guasto: se salta, la
+    /// pubblicazione resta riuscita e la rete è il giro notturno. Ma fino al 8 settembre 2026 l'errore
+    /// veniva <b>ingoiato e basta</b> — <c>Vipi.Application</c> non ha un logger — quindi il sintomo era
+    /// indistinguibile dal difetto che quella riconciliazione era andata a togliere: «ho ripubblicato e
+    /// l'avviso è ancora lì», senza una riga da nessuna parte che lo spiegasse.</para>
+    /// </summary>
+    public const string ImpactDriftOnPublish = "ImpactDriftOnPublish";
+
+    /// <summary>
     /// NON è un import: è il segnaposto della riconciliazione one-shot che ha marcato le righe di catalogo
     /// <b>aggiunte a mano</b> (<c>ISectorCatalogMaintenance.MarkManualCatalogRowsAsync</c>). Senza un
     /// registro «già fatto» persistente rifarebbe il giro a ogni riavvio, e marcherebbe a mano anche righe

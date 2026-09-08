@@ -99,7 +99,7 @@ else
                     </div>
                 </div>
     
-                <DocReviewBar DocumentId="_shell.DocumentId" />
+                <DocReviewBar @ref="_avviso" DocumentId="_shell.DocumentId" />
     
             }
 
@@ -211,8 +211,23 @@ else
     /// <summary>Molla il lock di questo membro. No-op se non era suo.</summary>
     public Task RilasciaLockAsync() => _shell.IsEditing ? _shell.FinishEditingAsync() : Task.CompletedTask;
 
-    /// <summary>Ricarica questo membro: lo chiama l'ospite dopo un gesto che tocca tutti.</summary>
-    public Task RicaricaAsync() => LoadAsync();
+    /// <summary>
+    /// Ricarica questo membro: lo chiama l'ospite dopo un gesto che tocca tutti — in pratica dopo una
+    /// pubblicazione.
+    ///
+    /// <para>⚠️ Rilegge <b>anche</b> il banner «che cosa resta da fare»: pubblicare chiude all'istante la riga
+    /// «da ripubblicare», ma il documento è sempre lo stesso e il banner si ricarica solo quando cambia il
+    /// <c>DocumentId</c> — quindi restava a chiedere il lavoro appena fatto fino al ricarico della pagina.</para>
+    /// </summary>
+    public async Task RicaricaAsync()
+    {
+        await LoadAsync();
+        if (_avviso is not null) await _avviso.RicaricaAsync();
+    }
+
+    /// <summary>Il banner delle cose da fare, per poterlo rileggere dopo una pubblicazione. Può essere null:
+    /// vive dentro un ramo condizionale del markup.</summary>
+    private DocReviewBar? _avviso;
 
     private AccInfo? _acc;
     private string _app = "";

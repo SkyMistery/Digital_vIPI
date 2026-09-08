@@ -74,7 +74,7 @@ else
                 </div>
             </div>
 
-            <DocReviewBar DocumentId="_shell.DocumentId" />
+            <DocReviewBar @ref="_avviso" DocumentId="_shell.DocumentId" />
 
             @* Come si legge questo documento nell'altra lingua, e la correzione sul posto. Chiuso di suo: si
                apre quando serve, e chi scrive in italiano non ha ragione di vederlo tutti i giorni. *@
@@ -183,7 +183,7 @@ else
             <ReleasePanel Target="ReleaseTargetType.AccVipi" Key="@($"{Acc.Trim().ToUpperInvariant()}|{_root}")"
                           ShowDiff="true" AllowCancel="Authz.IsEditor"
                           PreviewUrlFactory="ReleasePreviewUrl"
-                          Published="LoadAsync" />
+                          Published="DopoPubblicazioneAsync" />
             </div>
             </div>
             <aside class="ed-rail">
@@ -396,6 +396,23 @@ else
     /// e il circuito muore. Visto il 2 settembre 2026 aggiungendo una sotto-sezione.
     /// </summary>
     private Task LoadAsync() => _shell.InFilaAsync(LoadAsyncCore);
+
+    /// <summary>
+    /// Dopo una pubblicazione: ricarica il documento <b>e</b> rilegge il banner delle cose da fare.
+    ///
+    /// <para>⚠️ Il banner non basta lasciarlo al ricarico del documento: si aggiorna solo quando cambia il
+    /// <c>DocumentId</c>, e qui il documento è lo stesso — restava a chiedere di ripubblicare quel che si era
+    /// appena pubblicato, benché la riga fosse già chiusa nel database.</para>
+    /// </summary>
+    private async Task DopoPubblicazioneAsync()
+    {
+        await LoadAsync();
+        if (_avviso is not null) await _avviso.RicaricaAsync();
+    }
+
+    /// <summary>Il banner delle cose da fare, per rileggerlo dopo una pubblicazione. Può essere null: vive
+    /// dentro un ramo condizionale del markup.</summary>
+    private DocReviewBar? _avviso;
 
     private async Task LoadAsyncCore()
     {

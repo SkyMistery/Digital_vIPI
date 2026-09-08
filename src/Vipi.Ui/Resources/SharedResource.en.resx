@@ -1552,6 +1552,7 @@
   <data name="Diag_ImpactsRun" xml:space="preserve"><value>Run the check now</value></data>
   <data name="Diag_ImpactsRunDone" xml:space="preserve"><value>Done: {0} documents checked, {1} items raised, {2} closed.</value></data>
   <data name="Diag_ImpactsStale" xml:space="preserve"><value>The drift check has not run for over 36 hours: the rows below may refer to work already done. Run it to see the current state.</value></data>
+  <data name="Diag_ImpactsOnPublishFailed" xml:space="preserve"><value>The clean-up that follows every publish last failed on {0}: “{1}”. Until it succeeds, the “needs republishing” row does not clear as soon as you publish — only the check above closes it, at worst a day later.</value></data>
   <data name="ImpactKind_SectorGone" xml:space="preserve"><value>Sector gone</value></data>
   <data name="ImpactKind_SectorHidden" xml:space="preserve"><value>Sector hidden</value></data>
   <data name="ImpactKind_SectorReparented" xml:space="preserve"><value>Sector reparented</value></data>

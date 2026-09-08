@@ -1557,6 +1557,7 @@
   <data name="Diag_ImpactsRun" xml:space="preserve"><value>Rilancia il controllo</value></data>
   <data name="Diag_ImpactsRunDone" xml:space="preserve"><value>Fatto: {0} documenti esaminati, {1} segnalazioni aperte, {2} richiuse.</value></data>
   <data name="Diag_ImpactsStale" xml:space="preserve"><value>Il controllo della deriva non passa da più di 36 ore: le righe qui sotto possono riferirsi a lavoro già fatto. Rilancialo per vedere lo stato di adesso.</value></data>
+  <data name="Diag_ImpactsOnPublishFailed" xml:space="preserve"><value>La ripulitura che segue ogni pubblicazione è fallita l'ultima volta il {0}: «{1}». Finché non riesce, la riga «da ripubblicare» non sparisce appena si pubblica — la chiude solo il controllo qui sopra, al massimo il giorno dopo.</value></data>
   <data name="ImpactKind_SectorGone" xml:space="preserve"><value>Settore sparito</value></data>
   <data name="ImpactKind_SectorHidden" xml:space="preserve"><value>Settore nascosto</value></data>
   <data name="ImpactKind_SectorReparented" xml:space="preserve"><value>Settore riparentato</value></data>

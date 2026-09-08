@@ -139,6 +139,37 @@ public class DocReviewBarTests : TestContext
         Assert.Single(cut.FindAll(".impact-list button"));   // solo quella del settore sparito
     }
 
+    /// <summary>
+    /// ⚠️ <b>Dopo una pubblicazione il documento è lo stesso</b>, e il banner si ricarica da sé soltanto quando
+    /// cambia il <c>DocumentId</c>: la riga «da ripubblicare» che la riconciliazione chiude all'istante
+    /// (<c>ReleaseService.RiconciliaDerivaAsync</c>, dal 7 settembre 2026) restava comunque a schermo fino al
+    /// ricarico completo della pagina — cioè chi pubblicava continuava a vedersi chiedere il lavoro appena
+    /// fatto, esattamente il difetto che quella riconciliazione era andata a togliere.
+    ///
+    /// <para>Il banco prova <b>tutte e due</b> le metà: che un render qualunque NON ricarichi (la guardia serve,
+    /// o si interrogherebbe il database a ogni battuta di tasto della pagina ospite) e che la richiesta
+    /// esplicita dell'ospite sì.</para>
+    /// </summary>
+    [Fact]
+    public async Task Dopo_La_Pubblicazione_Il_Banner_Si_Rilegge_A_Documento_Invariato()
+    {
+        var fake = Predisponi(Riga(1, ImpactKind.ReleaseDrift, "AoR"));
+        var cut = RenderComponent<DocReviewBar>(p => p.Add(x => x.DocumentId, 7));
+        Assert.Single(cut.FindAll(".impact-list > li.wi"));
+
+        // La pubblicazione ha chiuso la riga nel database…
+        fake.Righe.Clear();
+
+        // …ma un render con gli stessi parametri non deve rileggere niente.
+        cut.SetParametersAndRender(p => p.Add(x => x.DocumentId, 7));
+        Assert.Single(cut.FindAll(".impact-list > li.wi"));
+
+        // …lo chiede l'ospite, che è l'unico a sapere di aver pubblicato.
+        await cut.InvokeAsync(() => cut.Instance.RicaricaAsync());
+
+        Assert.Empty(cut.FindAll(".callout"));
+    }
+
     [Fact]
     public async Task Chiudere_Una_Riga_Lascia_Le_Altre()
     {

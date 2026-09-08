@@ -113,7 +113,7 @@ else
                     </div>
                 </div>
     
-                <DocReviewBar DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
+                <DocReviewBar @ref="_avviso" DocumentId="_shell.DocumentId" OnResolved="LoadAsync" />
     
             }
 
@@ -205,7 +205,15 @@ else
     public Task RilasciaLockAsync() => _shell.IsEditing ? _shell.FinishEditingAsync() : Task.CompletedTask;
 
     /// <inheritdoc cref="AppSectionsEditor.RicaricaAsync"/>
-    public Task RicaricaAsync() => LoadAsync();
+    public async Task RicaricaAsync()
+    {
+        await LoadAsync();
+        if (_avviso is not null) await _avviso.RicaricaAsync();
+    }
+
+    /// <summary>Il banner delle cose da fare, per rileggerlo dopo una pubblicazione. Può essere null: vive
+    /// dentro un ramo condizionale del markup.</summary>
+    private DocReviewBar? _avviso;
 
     private AccInfo? _acc;
     private string _icao = "";

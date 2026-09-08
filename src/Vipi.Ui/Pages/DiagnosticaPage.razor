@@ -292,6 +292,20 @@
                         }
                     </p>
 
+                    @* ⚠️ L'ALTRA metà della deriva, e un guasto tutto suo: la riconciliazione che la
+                       PUBBLICAZIONE chiede per il documento appena scritto è a prova di guasto — se salta, la
+                       release resta pubblicata e la rete è il giro qui sopra — ma fino all'8 settembre 2026
+                       saltava in SILENZIO, e il sintomo era identico al difetto che era andata a togliere:
+                       «ho ripubblicato e l'avviso è ancora lì». Riga separata da quella del giro perché sono
+                       due guasti con due rimedi. *@
+                    @if (_erroreDerivaPubblicazione is { } ep)
+                    {
+                        <div class="callout warning" style="margin-top:6px">
+                            <span class="cic"><Icon Name="warning" Size="18" /></span>
+                            <div>@L["Diag_ImpactsOnPublishFailed", _tentativoDerivaPubblicazione is { } qp ? VipiTime.DayZ(qp) : "?", ep]</div>
+                        </div>
+                    }
+
                     @* ⚠️ «Vecchio» non è «non ha girato»: il giro dorme 24 ore fra una passata e l'altra, e
                        riparte da capo a ogni riavvio del processo. Su un host che ricicla spesso può non
                        arrivare MAI alla scadenza — e allora la data resta ferma mentre la lista continua a
@@ -336,6 +350,12 @@
     private IReadOnlyDictionary<Vipi.Domain.ImpactKind, int> _impatti = new Dictionary<Vipi.Domain.ImpactKind, int>();
     private DateTime? _ultimaDeriva;
     private string? _erroreDeriva;
+
+    /// <summary>L'ultimo guasto della riconciliazione chiesta dalla <b>pubblicazione</b> (chiave
+    /// <c>ImpactDriftOnPublish</c>), e quando è successo. Null = l'ultima è andata bene, o non è mai stata
+    /// tentata. È un guasto diverso da quello del giro: vedi il markup.</summary>
+    private string? _erroreDerivaPubblicazione;
+    private DateTime? _tentativoDerivaPubblicazione;
     private bool _derivaInCorso;
     private string? _esitoDeriva;
 
@@ -419,10 +439,17 @@
             }
             _impatti = aperti;
 
-            var stato = (await ImportStates.GetAllAsync())
+            // Una lettura sola per due chiavi: il giro giornaliero e la riconciliazione della pubblicazione.
+            var stati = await ImportStates.GetAllAsync();
+            var stato = stati
                 .FirstOrDefault(x => x.Category == Vipi.Application.Abstractions.ImportCategories.ImpactDrift);
             _ultimaDeriva = stato?.LastSuccessUtc == default ? null : stato?.LastSuccessUtc;
             _erroreDeriva = string.IsNullOrWhiteSpace(stato?.LastError) ? null : stato!.LastError;
+
+            var statoPub = stati
+                .FirstOrDefault(x => x.Category == Vipi.Application.Abstractions.ImportCategories.ImpactDriftOnPublish);
+            _erroreDerivaPubblicazione = string.IsNullOrWhiteSpace(statoPub?.LastError) ? null : statoPub!.LastError;
+            _tentativoDerivaPubblicazione = statoPub?.LastAttemptUtc;
             _quando = DateTime.UtcNow;
         }
         catch (Exception ex) { _errore = ex.Message; }

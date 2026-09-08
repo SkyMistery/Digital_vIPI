@@ -190,8 +190,10 @@ public sealed class ReleaseService : IReleaseService
         Abstractions.ITranslationMemory? memoriaTraduzioni = null,
         IOptions<Translation.TranslationOptions>? traduzione = null,
         ReadingLanguageContext? linguaProsa = null,
-        Lazy<IImpactDriftUseCase>? deriva = null)
+        Lazy<IImpactDriftUseCase>? deriva = null,
+        IImportStateStore? stati = null)
     {
+        _stati = stati;
         _deriva = deriva;
         _linguaProsa = linguaProsa;
         _shapeCycle = shapeCycle;
@@ -234,6 +236,10 @@ public sealed class ReleaseService : IReleaseService
     /// prima del 7 settembre 2026.</para>
     /// </summary>
     private readonly Lazy<IImpactDriftUseCase>? _deriva;
+
+    /// <summary>Dove resta scritto se la riconciliazione alla pubblicazione riesce. Opzionale: senza, il
+    /// guasto torna a essere invisibile — vedi <see cref="AnnotaEsitoAsync"/>.</summary>
+    private readonly IImportStateStore? _stati;
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
@@ -391,6 +397,10 @@ public sealed class ReleaseService : IReleaseService
     {
         if (_deriva is null) return;
 
+        // Il primo guasto, non l'ultimo: è quello che è successo per primo a spiegare gli altri, e i
+        // successivi su un'unione sono di solito la stessa causa vista N volte.
+        Exception? guasto = null;
+
         foreach (var id in documentIds.Where(x => x > 0).Distinct())
         {
             try
@@ -398,8 +408,46 @@ public sealed class ReleaseService : IReleaseService
                 await _deriva.Value.RunForDocumentAsync(id, ct).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
-            catch (Exception) { /* vedi sopra: la rete è il giro notturno. */ }
+            catch (Exception ex) { guasto ??= ex; /* vedi sopra: la rete è il giro notturno. */ }
         }
+
+        await AnnotaEsitoAsync(guasto, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Lascia scritto <b>com'è andata</b> la riconciliazione di cui sopra, sulla chiave
+    /// <see cref="ImportCategories.ImpactDriftOnPublish"/>: la legge Diagnostica.
+    ///
+    /// <para>⚠️ <b>È il pezzo che mancava.</b> Ingoiare il guasto è giusto — la release è scritta, e una
+    /// pubblicazione riuscita non deve dirsi fallita — ma ingoiarlo <b>in silenzio</b> rendeva il sintomo
+    /// indistinguibile dal difetto di partenza: chi ripubblicava vedeva l'avviso restare, e non c'era una
+    /// riga da nessuna parte a dire che il ricalcolo non era mai avvenuto. <c>Vipi.Application</c> non ha un
+    /// logger, e questa tabella è la porta che c'è già.</para>
+    ///
+    /// <para>Il successo si scrive <b>sempre</b>, non solo il guasto: <c>MarkSuccessAsync</c> azzera
+    /// l'errore precedente, quindi la riga dice «l'ultimo guasto è ancora vero» e non «una volta, chissà
+    /// quando, andò male». È anche la risposta a «ha mai funzionato?».</para>
+    ///
+    /// <para>⚠️ A prova di guasto <b>a sua volta</b>, e per la stessa ragione della riconciliazione: se
+    /// scrivere l'annotazione esplodesse, una pubblicazione riuscita si direbbe fallita per colpa di una
+    /// nota di diagnostica.</para>
+    /// </summary>
+    private async Task AnnotaEsitoAsync(Exception? guasto, CancellationToken ct)
+    {
+        if (_stati is null) return;
+
+        try
+        {
+            if (guasto is null)
+                await _stati.MarkSuccessAsync(ImportCategories.ImpactDriftOnPublish, DateTime.UtcNow, ct)
+                    .ConfigureAwait(false);
+            else
+                await _stati.MarkFailureAsync(ImportCategories.ImpactDriftOnPublish, DateTime.UtcNow,
+                        $"{guasto.GetType().Name}: {guasto.Message}", ct)
+                    .ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+        catch (Exception) { /* una nota che non si scrive non è una pubblicazione fallita. */ }
     }
 
     // ---- L'unione: piu' documenti, un gesto solo (carta 2026-09-03) -----------------------------------
