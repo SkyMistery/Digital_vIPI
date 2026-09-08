@@ -141,6 +141,71 @@ public class CoordinateConverterPageTests
 
         Assert.Contains("Conv_Type", cut.Markup);
         Assert.Contains("Conv_CloseRing", cut.Markup);
+        // ⚠️ E la casella dei VERTICI sparisce: fra i segmenti la chiusura è un lato, non una riga ripetuta.
+        Assert.DoesNotContain("Conv_RepeatFirst", cut.Markup);
+    }
+
+    // ---- La chiusura del poligono negli elenchi di vertici (8 settembre 2026) ------------------------
+    //
+    // Segnalata dal committente: «l'ultima riga non viene scritta se è uguale a quella iniziale; serve per le
+    // forme di webeye, altrimenti dà errore».
+
+    [Fact]
+    public void L_Elenco_Punti_Riscrive_Il_Primo_Vertice_In_Fondo()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+
+        var righe = cut.Find("textarea.conv-out").TextContent.Split('\n');
+
+        // Tre vertici, quattro righe: l'ultima chiude il poligono. È il default, perché è ciò che serve.
+        Assert.Equal(4, righe.Length);
+        Assert.Equal(righe[0], righe[^1]);
+        Assert.Contains("Conv_RepeatFirst", cut.Markup);
+    }
+
+    [Fact]
+    public void La_Chiusura_Si_Puo_Spegnere()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo);
+
+        cut.Find(".conv-opt-check input[type=checkbox]").Change(false);
+
+        var righe = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        Assert.Equal(3, righe.Length);
+        Assert.NotEqual(righe[0], righe[^1]);
+    }
+
+    /// <summary>
+    /// ⚠️ Una COSTA è una linea aperta per davvero, e chiuderla inventerebbe un lato che non esiste. Lo
+    /// decide l'area (<c>SiChiude</c>), non l'uscita: il motore riceve punti e non può saperlo.
+    /// </summary>
+    [Fact]
+    public void Una_Linea_Aperta_Non_Si_Chiude_Mai()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Costa);
+
+        var righe = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        Assert.Equal(3, righe.Length);
+        Assert.NotEqual(righe[0], righe[^1]);
+    }
+
+    /// <summary>Il giro completo del difetto segnalato: entra chiuso, esce chiuso.</summary>
+    [Fact]
+    public void Un_Poligono_Incollato_Chiuso_Esce_Chiuso()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(Triangolo + "\n42:11");
+
+        var righe = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        Assert.Equal(4, righe.Length);
+        Assert.Equal(righe[0], righe[^1]);
     }
 
     [Fact]
@@ -332,6 +397,20 @@ public class CoordinateConverterPageTests
 
     private const string Triangolo = "42:11\n42.5:11.5\n41.5:11.5";
 
+    /// <summary>
+    /// Le righe dell'uscita <b>senza la chiusura</b>: dall'8 settembre 2026 gli elenchi di vertici riscrivono
+    /// il primo punto in fondo (la casella «Ripeti il primo punto», accesa di suo, che serve a webeye).
+    ///
+    /// <para>⚠️ Serve perché questi test guardano i <b>gesti</b> — invertire, ruotare — e per loro l'ultima
+    /// riga dev'essere l'ultimo VERTICE. Senza, `dopo[^1]` sarebbe sempre uguale a `dopo[0]` e le asserzioni
+    /// direbbero che il gesto funziona qualunque cosa faccia.</para>
+    /// </summary>
+    private static string[] Vertici(IRenderedFragment cut)
+    {
+        var righe = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        return righe.Length > 1 && righe[^1] == righe[0] ? righe[..^1] : righe;
+    }
+
     /// <summary>Due righe di costa: dai segmenti, e quindi una linea aperta dichiarata dal file.</summary>
     private const string Costa =
         "N042.00.00.000;E011.00.00.000;N042.30.00.000;E011.30.00.000;COAST;\n" +
@@ -402,11 +481,11 @@ public class CoordinateConverterPageTests
         var cut = ctx.Apri(VipiRole.DivisionStaff);
         // ⚠️ Anello CHIUSO: l'ultimo vertice ripete il primo, ed è così che l'ingresso dice «è un anello».
         cut.Find("textarea.conv-ta").Input(Triangolo + "\n42:11");
-        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        var prima = Vertici(cut);
 
         cut.FindAll(".conv-actions button").ToArray()[2].Click();   // Inverti
 
-        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        var dopo = Vertici(cut);
         Assert.Equal(prima.Length, dopo.Length);
         // Il primo vertice resta il primo: spostarlo è l'altro gesto, e i due devono restare indipendenti.
         Assert.Equal(prima[0], dopo[0]);
@@ -438,11 +517,11 @@ public class CoordinateConverterPageTests
         using var ctx = new Contesto();
         var cut = ctx.Apri(VipiRole.DivisionStaff);
         cut.Find("textarea.conv-ta").Input(Triangolo);
-        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        var prima = Vertici(cut);
 
         cut.FindAll(".conv-actions button").ToArray()[3].Click();   // Ruota
 
-        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n');
+        var dopo = Vertici(cut);
         Assert.Equal(prima[1], dopo[0]);
         Assert.Equal(prima[0], dopo[^1]);
     }

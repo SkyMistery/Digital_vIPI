@@ -131,6 +131,100 @@ public class CoordinateWriterTests
         }
     }
 
+    // ---- La chiusura esplicita del poligono (8 settembre 2026) ---------------------------------------
+    //
+    // Segnalata dal committente: «l'ultima riga non viene scritta se è uguale a quella iniziale; serve per le
+    // forme di webeye, altrimenti dà errore». Il lettore toglie il vertice di chiusura APPOSTA — non è un
+    // vertice, è una proprietà dell'anello — ma l'uscita non lo riscriveva mai, in nessun modo.
+
+    /// <summary>⚠️ Il valore predefinito NON ripete: il DB IVAO scrive cinque righe per R14A, ed è il dato
+    /// vero del committente. Chi vuole la riga in più la chiede.</summary>
+    [Theory]
+    [InlineData(CoordinateOutput.DbIvao)]
+    [InlineData(CoordinateOutput.SectorfilePunti)]
+    public void Per_Default_Il_Primo_Vertice_Non_Si_Ripete(CoordinateOutput formato)
+    {
+        var uscita = CoordinateWriter.Write(R14A(), formato);
+
+        Assert.Equal(5, uscita.Split('\n').Length);
+        Assert.NotEqual(uscita.Split('\n')[0], uscita.Split('\n')[^1]);
+    }
+
+    [Fact]
+    public void Chiesta_La_Chiusura_L_Elenco_Punti_Riscrive_Il_Primo()
+    {
+        var uscita = CoordinateWriter.Write(R14A(), CoordinateOutput.SectorfilePunti,
+            CoordinateWriteOptions.Default with { RipetiPrimoVertice = true });
+
+        Assert.Equal(Punti + "\n" + "N042.00.28.000;E011.58.06.000;", uscita);
+    }
+
+    [Fact]
+    public void Chiesta_La_Chiusura_Il_Db_Riscrive_Il_Primo()
+    {
+        var uscita = CoordinateWriter.Write(R14A(), CoordinateOutput.DbIvao,
+            CoordinateWriteOptions.Default with { RipetiPrimoVertice = true });
+
+        Assert.Equal(Db + "\n" + "42.00777778:11.96833333", uscita);
+    }
+
+    /// <summary>
+    /// ⚠️ Andata e ritorno: un poligono che ARRIVA chiuso deve tornare chiuso. È il difetto segnalato, nella
+    /// forma in cui si vede — e il lettore, rileggendo l'uscita, deve ritrovare gli stessi CINQUE vertici,
+    /// non sei: la riga in più è una chiusura, non un punto.
+    /// </summary>
+    [Fact]
+    public void Un_Poligono_Gia_Chiuso_Torna_Chiuso()
+    {
+        var conChiusura = Db + "\n42.00777778:11.96833333";
+        var area = CoordinateParser.Parse(conChiusura).Aree[0];
+        Assert.True(area.AnelloChiuso);
+        Assert.Equal(5, area.Punti.Count);
+
+        var uscita = CoordinateWriter.Write(area.Punti, CoordinateOutput.DbIvao,
+            CoordinateWriteOptions.Default with { RipetiPrimoVertice = true });
+
+        Assert.Equal(conChiusura, uscita);
+        Assert.Equal(5, CoordinateParser.Parse(uscita).Aree[0].Punti.Count);
+    }
+
+    /// <summary>⚠️ Se l'elenco ripete GIÀ il primo vertice non si raddoppia: `Write` è pubblico e chi lo
+    /// chiama non passa per forza dal lettore.</summary>
+    [Fact]
+    public void Un_Elenco_Gia_Ripetuto_Non_Si_Raddoppia()
+    {
+        var punti = R14A().Append(R14A()[0]).ToList();
+
+        var uscita = CoordinateWriter.Write(punti, CoordinateOutput.DbIvao,
+            CoordinateWriteOptions.Default with { RipetiPrimoVertice = true });
+
+        Assert.Equal(6, uscita.Split('\n').Length);
+    }
+
+    /// <summary>⚠️ Sotto i tre vertici non si chiude niente: due punti sono un segmento, uno è un punto.</summary>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Sotto_I_Tre_Vertici_Non_Si_Chiude_Niente(int quanti)
+    {
+        var punti = R14A().Take(quanti).ToList();
+
+        var uscita = CoordinateWriter.Write(punti, CoordinateOutput.DbIvao,
+            CoordinateWriteOptions.Default with { RipetiPrimoVertice = true });
+
+        Assert.Equal(quanti, uscita.Split('\n').Length);
+    }
+
+    /// <summary>⚠️ I due interruttori sono INDIPENDENTI: la ripetizione non tocca i segmenti, dove la
+    /// chiusura è un lato generato e la governa <c>ChiudiAnello</c>.</summary>
+    [Fact]
+    public void La_Ripetizione_Non_Tocca_I_Segmenti()
+    {
+        var opzioni = CoordinateWriteOptions.Default with { Nome = "R14A", RipetiPrimoVertice = true };
+
+        Assert.Equal(Segmenti, CoordinateWriter.Write(R14A(), CoordinateOutput.SectorfileSegmenti, opzioni));
+    }
+
     [Fact]
     public void Nessun_Punto_Nessuna_Riga() =>
         Assert.Equal("", CoordinateWriter.Write([], CoordinateOutput.DbIvao));

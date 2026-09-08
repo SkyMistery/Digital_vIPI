@@ -158,6 +158,20 @@
                             <span>@L["Conv_CloseRing"]</span>
                         </label>
                     }
+                    else
+                    {
+                        @* ⚠️ Negli elenchi di VERTICI la chiusura è un'altra cosa — il primo punto riscritto in
+                           fondo — e ha la sua casella. Nasce ACCESA: chi converte un'area la porta quasi sempre
+                           in webeye, che senza quella riga rifiuta la forma. Chi invece incolla nel sectorfile,
+                           dove il vertice ripetuto è rumore, la spegne e la pagina se lo ricorda.
+                           ⚠️ Segnalato dal committente l'8 settembre 2026: «l'ultima riga non viene scritta se è
+                           uguale a quella iniziale». Non era il lettore a sbagliare — toglie il vertice di
+                           chiusura apposta, perché non è un vertice — era l'uscita a non riscriverlo mai. *@
+                        <label class="conv-opt conv-opt-check">
+                            <input type="checkbox" checked="@_ripeti" @onchange="e => _ripeti = (bool?)e.Value ?? true" />
+                            <span>@L["Conv_RepeatFirst"]</span>
+                        </label>
+                    }
                 </div>
 
                 @* ---- Il selettore delle aree ----
@@ -338,6 +352,9 @@
     private string _tipo = "RESTRICT";
     private string? _nome;
     private bool _chiudi = true;
+    // ⚠️ Nasce ACCESA: senza il primo punto riscritto in fondo, webeye rifiuta la forma. Vedi il
+    // commento accanto alla casella.
+    private bool _ripeti = true;
 
     /// <summary>Quale riquadro ha appena detto «copiato»: uno per area, quindi un indice e non un sì/no.</summary>
     private int? _copiata;
@@ -569,7 +586,13 @@
             Forma: _forma,
             Tipo: string.IsNullOrWhiteSpace(_tipo) ? area.Tipo ?? "RESTRICT" : _tipo,
             Nome: string.IsNullOrWhiteSpace(nome) ? null : nome,
-            ChiudiAnello: _chiudi);
+            ChiudiAnello: _chiudi,
+            // ⚠️ `SiChiude`, non il solo `_ripeti`: su una COSTA — una linea aperta per davvero —
+            // riscrivere il primo punto in fondo inventerebbe un lato che non esiste. La casella dice
+            // «scrivi la chiusura», non «chiudi qualunque cosa», e chi decide se la forma è un anello è
+            // l'area, non l'uscita: il motore riceve punti e non può saperlo. Preso da un test dell'8
+            // settembre 2026, che invertiva una costa e se la ritrovava chiusa.
+            RipetiPrimoVertice: _ripeti && area.SiChiude);
     }
 
     private async Task Copia(int indice, CoordinateArea area)
