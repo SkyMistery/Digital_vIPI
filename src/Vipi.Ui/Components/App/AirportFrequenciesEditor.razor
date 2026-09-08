@@ -6,7 +6,11 @@
    una sola lista già fusa.
 
    ⚠️ Lo stato della casella di ricerca (`_cerca`, `_aperta`) vive QUI e non nella pagina, dov'era: è stato
-   della vista, non del documento, e nella pagina restava vivo anche cambiando sezione. *@
+   della vista, non del documento, e nella pagina restava vivo anche cambiando sezione.
+
+   ⚠️ Si riordinano SOLO le righe collegate, e l'ordine è del DOCUMENTO: le righe di catalogo stanno nella
+   successione delle posizioni (ATIS·DEL·GND·TWR·APP/DEP), che è dell'anagrafica e non si tocca da qui. Il
+   riordino riscrive `LinkIds`, cioè la stessa lista che il collegamento e lo scollegamento già salvano. *@
 @inject IStringLocalizer<SharedResource> L
 
 @* ⚠️ Niente `@onchange` sul contenitore: non funzionava (vedi AirportRunwaysEditor), e qui non servirebbe
@@ -20,19 +24,36 @@
         <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_FreqHelpAria"]" ExtraClass="wide">@L["Ape_FreqHelp"]</HelpHint>
     </div>
     <table class="res-table freq-table">
-        <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th></th></tr></thead>
+        <thead><tr><th>Callsign</th><th>Position</th><th>@L["Vle_Frequency"]</th><th>@L["Ape_Origin"]</th><th style="@(Editing ? "width:150px" : null)">@if (Editing) { @L["Common_Order"] }</th></tr></thead>
         <tbody>
             @foreach (var f in Catalogo)
             {
                 <tr class="@(f.IsPrimary ? "primary" : null)"><td>@if (f.IsPrimary) { <span class="freq-key">★</span><text>&#32;</text> }@NomeDaMostrare(f)</td><td>@f.ComposePosition</td><td>@(f.Frequency ?? "—")</td><td class="muted">@L["Ape_Catalog"]</td><td></td></tr>
             }
-            @foreach (var id in LinkIds)
+            @for (var i = 0; i < LinkIds.Count; i++)
             {
+                var idx = i;
+                var id = LinkIds[idx];
                 var lf = Linkable.FirstOrDefault(x => x.SectorId == id);
-                <tr @key="id">
-                    <td>@(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)</td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
+                <tr @key="id" class="@(Editing && _drag == idx ? "app-sec-drag" : null)"
+                    @ondragover:preventDefault="Editing" @ondragenter="() => Trascina(idx)"
+                    @ondrop="Posa" @ondragend="Posa">
+                    <td>
+                        @if (Editing)
+                        {
+                            <span class="app-drag" title="@L["Common_DragReorder"]" draggable="true" @ondragstart="() => _drag = idx">⠿</span>
+                        }
+                        @(string.IsNullOrWhiteSpace(lf?.AtcCallsign) ? (lf?.Callsign ?? "—") : lf!.AtcCallsign)
+                    </td><td>@(lf?.Callsign ?? "—")</td><td>@(lf?.FrequencyMhz ?? "—")</td>
                     <td class="muted">@L["Ape_Linked"]</td>
-                    <td>@if (Editing) { <button class="btn ghost" @onclick="() => Scollega(id)">✕</button> }</td>
+                    <td>
+                        @if (Editing)
+                        {
+                            <button class="btn ghost" disabled="@(idx == 0)" title="@L["Common_Up"]" @onclick="() => Sposta(idx, -1)">↑</button>
+                            <button class="btn ghost" disabled="@(idx == LinkIds.Count - 1)" title="@L["Common_Down"]" @onclick="() => Sposta(idx, 1)">↓</button>
+                            <button class="btn ghost" title="@L["Common_RemoveLink"]" @onclick="() => Scollega(id)">✕</button>
+                        }
+                    </td>
                 </tr>
             }
         </tbody>
@@ -87,6 +108,9 @@
     private string _cerca = "";
     private bool _aperta;
 
+    /// <summary>L'indice della riga collegata che si sta trascinando. Null = nessun trascinamento in corso.</summary>
+    private int? _drag;
+
     /// <summary>Il nome dell'ente: il callsign ATC se c'è, altrimenti il nome della posizione.</summary>
     private static string NomeDaMostrare(AirportSectorRow f) =>
         string.IsNullOrWhiteSpace(f.AtcCallsign) ? AirportFrequencyPicker.NomePosizione(f.Position) : f.AtcCallsign;
@@ -105,5 +129,35 @@
     {
         LinkIds.Remove(id);
         await LinksChanged.InvokeAsync();
+    }
+
+    // ---- ordine delle righe collegate (solo loro) ----
+    // L'ordine È la successione di `LinkIds`: chi la salva scrive `AirportFrequencyLink.Order`, che è quello
+    // che rilegge il documento. Nessun campo nuovo, e il catalogo dei settori non lo sfiora nessuno.
+
+    private Task Sposta(int idx, int verso)
+    {
+        var j = idx + verso;
+        if (j < 0 || j >= LinkIds.Count) return Task.CompletedTask;
+        (LinkIds[idx], LinkIds[j]) = (LinkIds[j], LinkIds[idx]);
+        return LinksChanged.InvokeAsync();
+    }
+
+    /// <summary>La riga trascinata passa sopra la riga <paramref name="idx"/>: si sposta subito, così si vede
+    /// dove finirà. Il salvataggio arriva al rilascio, non a ogni passaggio.</summary>
+    private void Trascina(int idx)
+    {
+        if (_drag is not int from || from == idx || idx < 0 || idx >= LinkIds.Count) return;
+        var id = LinkIds[from];
+        LinkIds.RemoveAt(from);
+        LinkIds.Insert(idx, id);
+        _drag = idx;
+    }
+
+    private Task Posa()
+    {
+        if (_drag is null) return Task.CompletedTask;
+        _drag = null;
+        return LinksChanged.InvokeAsync();
     }
 }

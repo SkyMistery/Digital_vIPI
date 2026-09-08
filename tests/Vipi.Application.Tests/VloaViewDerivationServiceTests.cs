@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
 
@@ -68,5 +68,6 @@ public class VloaViewDerivationServiceTests
         public Task<VloaCoordination> DeriveCoordinationAsync(int docId, CancellationToken ct = default) => Task.FromResult(VloaCoordination.Empty);
         public Task ToggleAorSectorAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
         public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
+        public Task SaveFrequencyOrderAsync(int docId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) => Task.CompletedTask;
     }
 }

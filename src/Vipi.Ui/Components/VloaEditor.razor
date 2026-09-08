@@ -135,6 +135,14 @@ else
     // Sezioni DERIVATE (data-driven) unendo i due ACC: AoR, frequenze, coordinamenti.
     private VloaAorData _aor = VloaAorData.Empty;
     private VloaFreqData _freq = VloaFreqData.Empty;
+
+    /// <summary>Le righe frequenza in ordine di schermo, MUTABILI: il riordino le sposta qui e poi le salva.
+    /// Il record derivato (<see cref="_freq"/>) resta per le intestazioni dei due lati.</summary>
+    private List<VloaFreqRow> _freqRows = new();
+
+    /// <summary>La riga che si sta trascinando: lato + indice DENTRO quel lato. Il lato fa parte della chiave
+    /// perché le due tabelle sono due, e una riga italiana non finisce sotto l'intestazione estera.</summary>
+    private (bool Foreign, int Index)? _freqDrag;
     private VloaCoordination _coord = VloaCoordination.Empty;
     private bool _notFound, _denied;
     private bool _wide;
@@ -244,6 +252,7 @@ else
     {
         _aor = await Vloa.DeriveAorAsync(id);
         _freq = await Vloa.DeriveFrequenciesAsync(id);
+        _freqRows = _freq.Rows.ToList();
         _coord = await Vloa.DeriveCoordinationAsync(id);
     }
 
@@ -257,7 +266,58 @@ else
     {
         await Vloa.ToggleFrequencyAsync(_shell.DocumentId!.Value, cs);
         _freq = await Vloa.DeriveFrequenciesAsync(_shell.DocumentId!.Value);
+        _freqRows = _freq.Rows.ToList();
     });
+
+    // ---- ordine delle frequenze (del DOCUMENTO: l'anagrafica dei due ACC non si tocca) ----
+
+    /// <summary>Le posizioni, dentro <see cref="_freqRows"/>, delle righe di un lato: il riordino avviene fra
+    /// queste e lascia le altre dove sono.</summary>
+    private List<int> PosizioniDelLato(bool foreign)
+    {
+        var pos = new List<int>();
+        for (var i = 0; i < _freqRows.Count; i++)
+            if (_freqRows[i].IsForeign == foreign) pos.Add(i);
+        return pos;
+    }
+
+    /// <summary>Sposta una riga da <paramref name="from"/> a <paramref name="to"/> DENTRO il suo lato.
+    /// Ritorna false se non c'è niente da spostare.</summary>
+    private bool RiordinaLato(bool foreign, int from, int to)
+    {
+        var pos = PosizioniDelLato(foreign);
+        if (from < 0 || to < 0 || from >= pos.Count || to >= pos.Count || from == to) return false;
+        var righe = pos.Select(i => _freqRows[i]).ToList();
+        var riga = righe[from];
+        righe.RemoveAt(from);
+        righe.Insert(to, riga);
+        for (var k = 0; k < pos.Count; k++) _freqRows[pos[k]] = righe[k];
+        return true;
+    }
+
+    private Task MoveFreq(bool foreign, (int Index, int Dir) m) => _shell.GuardAsync(async () =>
+    {
+        if (!RiordinaLato(foreign, m.Index, m.Index + m.Dir)) return;
+        await SalvaOrdineFreq();
+    });
+
+    private void FreqDragOver(bool foreign, int idx)
+    {
+        if (_freqDrag is not (bool f, int from) || f != foreign) return;
+        if (!RiordinaLato(foreign, from, idx)) return;
+        _freqDrag = (foreign, idx);
+    }
+
+    private Task FreqDragDrop() => _freqDrag is null ? Task.CompletedTask : _shell.GuardAsync(async () =>
+    {
+        _freqDrag = null;
+        await SalvaOrdineFreq();
+    });
+
+    /// <summary>Salva l'ordine con indici GLOBALI sui due lati in fila: è la stessa lista che la derivazione
+    /// rilegge, e due callsign di lati diversi non si contendono lo stesso numero.</summary>
+    private Task SalvaOrdineFreq() => Vloa.SaveFrequencyOrderAsync(_shell.DocumentId!.Value,
+        _freqRows.Select((r, i) => new AppFreqOrderOverride(r.Row.Callsign, i)).ToList());
 
     // Sezione il cui corpo lo produce l'editor dai dati, non i blocchi. Lo dice il catalogo per il profilo vLOA
     // (doc 13 §3a). La sezione PADRE dei coordinamenti lo è quanto le due figlie (doc 11 §3f): l'editor offriva
@@ -330,13 +390,21 @@ else
     };
 
     // Righe di un lato: in modifica tutte (le escluse attenuate), in lettura solo quelle nel documento.
+    // ⚠️ In MODIFICA l'elenco a schermo è esattamente quello del lato: per questo l'indice di riga vale
+    // anche per il riordino. In lettura le nascoste cadono, ma lì non si riordina.
     private RenderFragment FreqSide(bool foreign) => __builder =>
     {
-        var side = _freq.Rows.Where(r => r.IsForeign == foreign).Where(r => _shell.IsEditing || !r.Hidden).ToList();
+        var side = _freqRows.Where(r => r.IsForeign == foreign).Where(r => _shell.IsEditing || !r.Hidden).ToList();
         var hidden = side.Where(r => r.Hidden).Select(r => r.Row.Callsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
         <AppFrequencies Rows="side.Select(r => r.Row).ToList()"
+                        Editing="_shell.IsEditing"
                         IsDimmed="row => hidden.Contains(row.Callsign)"
-                        RowActions="@(_shell.IsEditing ? FreqToggle(hidden) : null)" />
+                        RowActions="@(_shell.IsEditing ? FreqToggle(hidden) : null)"
+                        OnMove="m => MoveFreq(foreign, m)"
+                        DragIndex="@(_freqDrag?.Foreign == foreign ? _freqDrag.Value.Index : null)"
+                        OnDragStart="i => _freqDrag = (foreign, i)"
+                        OnDragEnter="i => FreqDragOver(foreign, i)"
+                        OnDrop="FreqDragDrop" OnDragEnd="FreqDragDrop" />
     };
 
     private RenderFragment<AppFreqRow> FreqToggle(IReadOnlySet<string> hidden) => row => __builder =>
@@ -388,7 +456,7 @@ else
 
     private RenderFragment FreqView() => __builder =>
     {
-        @if (_freq.Rows.Count == 0)
+        @if (_freqRows.Count == 0)
         {
             <p class="muted">@L["Vle_NoDerivedFreq"]</p>
         }

@@ -2116,7 +2116,7 @@
   <data name="Ape_QnhFrom" xml:space="preserve"><value>QNH from (hPa)</value></data>
   <data name="Ape_QnhTo" xml:space="preserve"><value>QNH to (hPa)</value></data>
   <data name="Ape_Open" xml:space="preserve"><value>open</value></data>
-  <data name="Ape_FreqHelp" xml:space="preserve"><value>Own frequencies come from the sector catalog («Sectors» panel): ATIS · Delivery · Ground · TWR · APP. The primary (★) is chosen there. Here you can add links to frequencies already in the DB (live reference).</value></data>
+  <data name="Ape_FreqHelp" xml:space="preserve"><value>Own frequencies come from the sector catalog («Sectors» panel): ATIS · Delivery · Ground · TWR · APP. The primary (★) is chosen there. Here you can add links to frequencies already in the DB (live reference) and reorder the linked rows only, by dragging ⠿ or with ↑/↓.</value></data>
   <data name="Ape_Origin" xml:space="preserve"><value>Origin</value></data>
   <data name="Ape_Catalog" xml:space="preserve"><value>catalog</value></data>
   <data name="Ape_SearchCallsignFreq" xml:space="preserve"><value>search callsign/freq…</value></data>

@@ -68,6 +68,7 @@ public class VloaDocumentViewTests : TestContext
         public Task<VloaCoordination> DeriveCoordinationAsync(int docId, CancellationToken ct = default) => Task.FromResult(Coordination);
         public Task ToggleAorSectorAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
         public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) => Task.CompletedTask;
+        public Task SaveFrequencyOrderAsync(int docId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default) => Task.CompletedTask;
 
         /// <summary>Quante derivazioni sono partite: serve alla guardia sulla corsa, qui sotto.</summary>
         public int Derivazioni { get; private set; }

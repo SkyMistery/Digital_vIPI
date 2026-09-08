@@ -63,6 +63,12 @@ public interface IVloaDerivationService
     /// <summary>Inverte la visibilità di una frequenza nella tabella (persistito). Authz: edit dell'ACC Home.</summary>
     Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default);
 
+    /// <summary>Riscrive l'ordine delle frequenze del DOCUMENTO (override per callsign, persistito su
+    /// <c>DocumentProfile.FreqOrderJson</c> come per l'APP). Authz: edit dell'ACC Home.</summary>
+    /// <remarks>Gli indici sono GLOBALI sui due lati messi in fila (prima home, poi estero): la tabella si
+    /// riordina per lato, ma un solo elenco evita che due righe di lati diversi si contendano lo stesso posto.</remarks>
+    Task SaveFrequencyOrderAsync(int docId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default);
+
 }
 
 /// <inheritdoc cref="IVloaDerivationService"/>
@@ -75,6 +81,12 @@ internal sealed class VloaDerivationService : IVloaDerivationService
 
     private readonly IVloaDerivationRepository _repo;
     private readonly IAccDerivationRepository _accRepo;
+
+    /// <summary>La porta del <c>DocumentProfile</c>: qui serve solo l'ordine delle frequenze, la STESSA colonna
+    /// che scrive l'APP. Gli insiemi nascosti restano dov'erano (<see cref="IVloaDerivationRepository"/>): due
+    /// letture della stessa riga, ma una sola scrittura per campo.</summary>
+    private readonly IDocumentProfileRepository _docProfiles;
+
     private readonly IAgreementService _transfers;
     private readonly ICoordinationSentenceTemplate _sentence;
     private readonly IEditAuthorizationService _authz;
@@ -95,10 +107,11 @@ internal sealed class VloaDerivationService : IVloaDerivationService
 
     public VloaDerivationService(IVloaDerivationRepository repo, IAccDerivationRepository accRepo, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IEditAuthorizationService authz, IOptions<NeighboursOptions> neighbours,
-        Airspace.ISectorShapeResolver forme, ReadingLanguageContext? lingua = null)
+        Airspace.ISectorShapeResolver forme, IDocumentProfileRepository docProfiles, ReadingLanguageContext? lingua = null)
     {
         _repo = repo;
         _accRepo = accRepo;
+        _docProfiles = docProfiles;
         _forme = forme;
         _transfers = transfers;
         _sentence = sentence;
@@ -187,8 +200,16 @@ internal sealed class VloaDerivationService : IVloaDerivationService
         var homeRows = await _accRepo.DeriveFrequenciesForMembersAsync(homeConf, empty, ct);
         var foreignRows = await _accRepo.DeriveFrequenciesForMembersAsync(foreignConf, empty, ct);
 
-        var rows = homeRows.Select(r => new VloaFreqRow(r, false, hidden.Contains(r.Callsign)))
-            .Concat(foreignRows.Select(r => new VloaFreqRow(r, true, hidden.Contains(r.Callsign))))
+        // L'ordine scelto dallo staff (per callsign) si applica DENTRO ciascun lato: i due lati restano due
+        // tabelle, e la loro successione (home, poi estero) non è una scelta editoriale ma l'intestazione.
+        var order = (await _docProfiles.GetAsync(docId, ct)).FreqOrder
+            .GroupBy(o => o.Callsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.First().Order, StringComparer.OrdinalIgnoreCase);
+        var homeOrdered = FrequencyOrdering.ApplyOrder(homeRows, order);
+        var foreignOrdered = FrequencyOrdering.ApplyOrder(foreignRows, order);
+
+        var rows = homeOrdered.Select(r => new VloaFreqRow(r, false, hidden.Contains(r.Callsign)))
+            .Concat(foreignOrdered.Select(r => new VloaFreqRow(r, true, hidden.Contains(r.Callsign))))
             .ToList();
         return new VloaFreqData("IT", pair.HomeAcc, pair.ForeignCountry, pair.ForeignAcc, rows);
     }
@@ -265,6 +286,14 @@ internal sealed class VloaDerivationService : IVloaDerivationService
 
     public Task ToggleFrequencyAsync(int docId, string callsign, CancellationToken ct = default) =>
         ToggleAsync(docId, callsign, Target.Freq, ct);
+
+    public async Task SaveFrequencyOrderAsync(int docId, IReadOnlyList<AppFreqOrderOverride> overrides, CancellationToken ct = default)
+    {
+        _ = await _repo.GetHomeAccCodeAsync(docId, ct)
+            ?? throw new Aor.ValidationException(Lingua("vLOA inesistente.", "The vLOA does not exist."));
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        await _docProfiles.SaveFreqOrderAsync(docId, overrides ?? Array.Empty<AppFreqOrderOverride>(), ct);
+    }
 
     private enum Target { Aor, Freq }
 
