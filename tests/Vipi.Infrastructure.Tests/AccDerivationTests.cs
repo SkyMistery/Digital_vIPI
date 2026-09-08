@@ -175,6 +175,43 @@ public class AccProfileTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Config_Table_AppGroup_Unifies_Under_Parent_Listed_Before_Its_Children()
+    {
+        // Il caso di Milano (8 settembre 2026): il gruppo-APP elenca un padre e i suoi due figli, e la
+        // configurazione apre il SOLO padre. La tabella deve dire che il padre accorpa tutt'e tre.
+        // ⚠️ L'ordine dei membri è quello che rompeva: un figlio elencato DOPO il padre risolveva sé stesso
+        // (dominio di un settore solo, risalita ferma al bordo) e sovrascriveva l'accorpamento del padre.
+        var accId = (await _db.Accs.FirstAsync(a => a.Code == Acc)).Id;
+        var ww = Sec(accId, "LIRR_WW0", null);
+        _db.Sectors.Add(ww);
+        await _db.SaveChangesAsync();
+        _db.Sectors.AddRange(Sec(accId, "LIRR_WN0", ww.Id), Sec(accId, "LIRR_WS0", ww.Id));
+        await _db.SaveChangesAsync();
+
+        var block = new AccBlock
+        {
+            Key = "grp:1", Kind = AccBlockKind.AppGroup,
+            MemberCallsigns = { "LIRR_WN0", "LIRR_WW0", "LIRR_WS0" },   // il padre IN MEZZO ai figli
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "Configurazione unica",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_WW0" } } },
+            },
+        };
+
+        var t = Assert.Single(await _service.DeriveConfigTableAsync(Acc, block));
+        var row = Assert.Single(t.Rows);
+        Assert.Equal("LIRR_WW0", row.UnifiedCallsign);
+        Assert.Equal(new[] { "LIRR_WN0", "LIRR_WS0", "LIRR_WW0" }, row.Absorbed);
+    }
+
+    private static Sector Sec(int accId, string callsign, int? parent) => new()
+    {
+        Callsign = callsign, Name = callsign, AccId = accId, Type = SectorType.App,
+        Kind = SectorKind.Acc, CoverageOrder = 20, ParentSectorId = parent, IsActive = true,
+    };
+
+    [Fact]
     public async Task DeriveAorView_Appends_Extra_Shapes_After_Sectors_Dedup()
     {
         // Blocco Aerovia (membri = tutti i CTR). Config "all" apre i CTR; aggiungo shape extra:

@@ -25,12 +25,21 @@ internal static class ConfigTableProjector
     {
         if (roots.Count == 0 || configs.Count == 0) return Array.Empty<AccConfigTableView>();
 
+        // ⚠️ Le radici arrivano dal DOCUMENTO (i settori scelti nel gruppo-APP) e possono ANNIDARSI: a Milano
+        // il gruppo elenca LIMF_WW0 insieme ai suoi figli LIMF_WN0 e LIMJ_WS0. Risolvere anche dai figli non
+        // aggiunge niente — il loro dominio è dentro quello del padre — ma l'unione qui sotto scrive per
+        // ULTIMO chi arriva per ultimo, e un figlio risolto da sé stesso torna sempre padrone di sé (il suo
+        // dominio è un solo settore, e la risalita si ferma al bordo del dominio). Così il figlio elencato
+        // DOPO il padre cancellava la riga giusta: con la sola WW0 aperta, WS0 tornava «WS0 possiede WS0»,
+        // non aperto, e spariva dagli assorbiti — la configurazione unica usciva senza i settori inclusi.
+        roots = RadiciMassime(topology, roots);
+
         var result = new List<AccConfigTableView>();
         foreach (var cfg in configs)
         {
             var open = new HashSet<string>(cfg.OpenCallsigns, OIC);
 
-            // Union dell'ownership su tutte le radici (i domini delle radici sono disgiunti).
+            // Union dell'ownership su tutte le radici (dopo la riduzione i domini sono disgiunti).
             var ownership = new Dictionary<string, string>(OIC);
             foreach (var root in roots)
                 foreach (var kv in aor.Resolve(topology, root, open).Ownership)
@@ -59,6 +68,29 @@ internal static class ConfigTableProjector
             result.Add(new AccConfigTableView(cfg.Key, cfg.Name, rows));
         }
         return result;
+    }
+
+    /// <summary>
+    /// Le sole radici MASSIME: si scarta chi ha, fra i propri antenati, un'altra radice dell'elenco. Il dominio di
+    /// un discendente è già dentro quello del suo antenato, quindi non si perde niente e i domini tornano disgiunti
+    /// — che è la premessa dell'unione qui sopra.
+    ///
+    /// <para>⚠️ Se la riduzione svuotasse l'elenco si tengono le radici di partenza: succede solo con una gerarchia
+    /// ad ANELLO (dove ognuno è antenato dell'altro), e una tabella storta si legge, una vuota no. L'anello lo
+    /// nomina il rilievo «Gerarchia ciclica» del report di consistenza, che è il posto dove si aggiusta.</para>
+    /// </summary>
+    private static IReadOnlyList<string> RadiciMassime(Topology topology, IReadOnlyList<string> roots)
+    {
+        var insieme = new HashSet<string>(roots, OIC);
+        var viste = new HashSet<string>(OIC);
+        var massime = new List<string>();
+        foreach (var r in roots)
+        {
+            if (!viste.Add(r)) continue;                                          // stesso callsign elencato due volte
+            if (topology.Ancestors(r).Any(a => insieme.Contains(a) && !OIC.Equals(a, r))) continue;
+            massime.Add(r);
+        }
+        return massime.Count > 0 ? massime : roots;
     }
 
     /// <summary>Deserializza una lista di configurazioni dal BodyJson d'una sezione «configurations» (vuoto/malformato = nessuna).</summary>
