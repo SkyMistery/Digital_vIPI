@@ -674,7 +674,39 @@
       da verificare con le IMPRONTE, non a memoria. ⚠️ La regola «tutti insieme» di 1.15.0 qui non si
       applica: la visibilita' fra assiemi non cambia.
     -->
-    <VipiVersione>1.15.2</VipiVersione>
+    <!--
+      1.16.0 — 8 settembre 2026. **MINOR**: funzionalita' nuove, **nessuna migrazione** (quindi spedibile
+      dentro la finestra cieca del 16 settembre: lo schema non si tocca, tutto quel che si aggiunge vive nel
+      payload JSON dei documenti). Si costruisce contro cio' che GIRA, che e' **1.15.2** (`eb7f389`).
+
+      ⚠️ E' un MINOR e non una PATCH perche' entrano cose che prima non c'erano: tredici attivita' nuove,
+      una colonna nuova in una tabella, una finestra nuova sulle immagini e un'opzione nuova nel
+      convertitore. Una PATCH e' «solo correzioni»: qui le correzioni sono tre su sei lavori.
+
+      Sei lavori, tutti chiesti dal committente, e i primi tre sono difetti:
+
+        · 🔴 SID, cella initial climb: la casella «APP» era TAGLIATA coi puntini e l'opzione non si poteva
+          spuntare. Colpa della regola di taglio aggiunta il 5 settembre per il testo in sola lettura, che
+          vale anche in scrittura: due larghezze fisse non stavano nei 118px utili. Ora e' una riga di flex,
+          e la colonna passa a 144px perche' a 132 «11000» perdeva l'ultima cifra (misurato a schermo).
+          Spuntando APP il campo dei piedi si spegne.
+        · 🔴 Tabella configurazioni dei gruppi APP: con la sola LIMF_WW0_APP aperta non usciva che accorpa
+          i suoi figli. `ConfigTableProjector` univa l'ownership da OGNI membro, e un figlio elencato DOPO
+          il padre si sovrascriveva da se'. Ora si tengono le sole radici MASSIME.
+        · 🔴 Convertitore di coordinate: l'ultima riga del poligono — quella uguale alla prima — non veniva
+          scritta mai, e le forme di webeye senza quella riga danno errore.
+        · Aree di lavoro del vSOP militare: quindici attivita' invece di due (catalogo unico, non piu' tre
+          switch sulle combinazioni), una NOTA libera per area, e i poligoni di tiro marcati in tabella e
+          arancioni in mappa. Le note si traducono: servivano due correzioni indipendenti, nel segmentatore
+          e nell'ordine di lettura del visore.
+        · Il clic su un'immagine la riapre a dimensioni originali.
+
+      Rispetto a 1.15.2 cambiano `Application`, `Infrastructure` e `Ui`, piu' `Host` (che porta sempre il
+      timbro) e il satellite inglese, perche' le due `.resx` hanno frasi nuove. ⚠️ Qui `wwwroot` E' toccato
+      — `vipi-theme.css` e `vipi-ui.js` — quindi viaggiano coi loro `.br`/`.gz` e **insieme** a
+      `Vipi.Host.staticwebassets.endpoints.json`. Da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.16.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

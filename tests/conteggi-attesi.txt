@@ -1,18 +1,18 @@
 # Test eseguiti per assieme e TFM. Il confronto è «non meno di»: questo file si alza da sé
 # quando si aggiungono test, e si abbassa SOLO a mano, con un commit che dice perché.
 # Rigenerare: tools/conta-test.sh <log di dotnet test> --scrivi
-Vipi.Application.Tests.dll net10.0 2249
-Vipi.Application.Tests.dll net8.0 2249
+Vipi.Application.Tests.dll net10.0 2278
+Vipi.Application.Tests.dll net8.0 2278
 Vipi.Assets.Tests.dll net8.0 57
 Vipi.AuroraBridge.Tests.dll net8.0 79
 Vipi.AuroraProfiles.Tests.dll net10.0 63
 Vipi.AuroraProfiles.Tests.dll net8.0 63
 Vipi.Domain.Tests.dll net10.0 140
 Vipi.Domain.Tests.dll net8.0 140
-Vipi.E2E.Tests.dll net8.0 312
+Vipi.E2E.Tests.dll net8.0 313
 Vipi.Hosting.Tests.dll net10.0 66
 Vipi.Hosting.Tests.dll net8.0 66
-Vipi.Infrastructure.Tests.dll net10.0 1316
-Vipi.Infrastructure.Tests.dll net8.0 1330
-Vipi.Ui.Tests.dll net10.0 1370
-Vipi.Ui.Tests.dll net8.0 1370
+Vipi.Infrastructure.Tests.dll net10.0 1322
+Vipi.Infrastructure.Tests.dll net8.0 1336
+Vipi.Ui.Tests.dll net10.0 1379
+Vipi.Ui.Tests.dll net8.0 1379
