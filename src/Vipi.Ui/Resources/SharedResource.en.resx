@@ -2281,6 +2281,9 @@
   <data name="Xfer_DetachVariant" xml:space="preserve"><value>Detach from group</value></data>
   <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Delete the row</value></data>
   <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Delete the row?</value></data>
+  <data name="Xfer_DeleteRowTitle" xml:space="preserve"><value>Delete this row (and its exceptions)</value></data>
+  <data name="Xfer_DeleteRowKidsPrompt_One" xml:space="preserve"><value>Delete the row and its exception?</value></data>
+  <data name="Xfer_DeleteRowKidsPrompt" xml:space="preserve"><value>Delete the row and its {0} exceptions?</value></data>
   <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copy rows from…</value></data>
   <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copy another group&apos;s rows into this one (agreements of nearby airports look alike)</value></data>
   <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Group to copy from</value></data>

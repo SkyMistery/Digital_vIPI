@@ -69,6 +69,44 @@ public static class Outline
         return chain;
     }
 
+    /// <summary>
+    /// La riga <b>e tutto ciò che pende da lei</b>: le sue eccezioni, le eccezioni delle eccezioni, a
+    /// qualunque profondità. Una riga senza figli torna da sola, e la riga stessa è sempre la prima.
+    ///
+    /// <para>🔴 <b>Si costruisce risalendo, non scendendo</b>, ed è la sola cosa che conta qui: figlia è la
+    /// riga la cui catena di <see cref="ParentOf"/> passa da questa. Scendendo — «le righe che seguono, più
+    /// profonde, finché non ne arriva una meno profonda» — si scriverebbe una <b>seconda</b> lettura
+    /// dell'outline, e due letture dello stesso outline prima o poi dicono due alberi diversi senza che la
+    /// differenza si veda da nessuna parte. È la ragione per cui questa classe esiste, scritta in testa.</para>
+    ///
+    /// <para>⚠️ Chi <b>scavalca</b> le alternative non pende da nessuno (<see cref="IOutlineRow.IsGroupWide"/>
+    /// non ha antenati, per costruzione di <see cref="ParentOf"/>): vale per tutto il gruppo, quindi non se ne
+    /// va con una sola alternativa. Cade solo se si elimina lei.</para>
+    ///
+    /// <para>Serve a eliminare: una riga che se ne va lasciando indietro le proprie eccezioni non lascia
+    /// «righe in più», lascia righe che <b>dicono un'altra cosa</b> — l'eccezione di una condizione che non
+    /// c'è più diventa una clausola qualunque.</para>
+    /// </summary>
+    public static IReadOnlyList<T> SubtreeOf<T>(IReadOnlyList<T> rowsInOrder, T row) where T : class, IOutlineRow
+    {
+        var sottoalbero = new List<T> { row };
+        var dentro = new HashSet<int> { row.Id };
+
+        // L'ordine è la struttura: un antenato PRECEDE sempre il suo discendente, quindi una sola passata in
+        // avanti basta — quando si guarda una riga, chi sta sopra di lei è già stato deciso.
+        foreach (var candidata in rowsInOrder)
+        {
+            if (dentro.Contains(candidata.Id)) continue;
+            var padre = ParentOf(rowsInOrder, candidata);
+            if (padre is not null && dentro.Contains(padre.Id))
+            {
+                sottoalbero.Add(candidata);
+                dentro.Add(candidata.Id);
+            }
+        }
+        return sottoalbero;
+    }
+
     private static int IndexOf<T>(IReadOnlyList<T> rows, T row) where T : class, IOutlineRow
     {
         for (var i = 0; i < rows.Count; i++)

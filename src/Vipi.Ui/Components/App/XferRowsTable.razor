@@ -147,8 +147,8 @@
                     }
                 </td>
                 <td class="xt-acts">
-                    @* Quattro azioni, non nove: aggiungere (alternativa ed eccezione), COPIARE, modificare.
-                       Spostare, sfilare ed eliminare stanno nel pannello, dove c'è posto per le parole.
+                    @* Cinque azioni, non nove: aggiungere (alternativa ed eccezione), COPIARE, modificare,
+                       ELIMINARE. Spostare e sfilare restano nel pannello, dove c'è posto per le parole.
 
                        ⚠️ La copia è entrata qui il 7 settembre 2026, su richiesta del committente: si duplica
                        una riga per scriverne una quasi uguale, e passare dal pannello vuol dire aprirlo per
@@ -166,6 +166,22 @@
                     <button class="btn ghost" disabled="@Disabled" title="@L["Xfer_DuplicateRow"]"
                             aria-label="@L["Xfer_DuplicateRow"]" @onclick="() => OnDuplicate.InvokeAsync(c.Id)">⧉</button>
                     <button class="btn @(sel ? "primary" : "ghost")" disabled="@Disabled" title="@L["Xfer_EditRowTitle"]" @onclick="() => OnEdit.InvokeAsync(r)">✎</button>
+                    @* ⚠️ L'eliminazione era SOLO nel pannello: per togliere una riga bisognava aprirla,
+                       premere un tasto e richiudere. Chiesta sulla riga dal committente (9 settembre 2026),
+                       come il ⧉ due giorni prima.
+
+                       🔴 La domanda DICE quante righe se ne vanno, e non è cortesia: una riga si porta via le
+                       proprie eccezioni, e chi preme il tasto sulla capofila di un ramo ne cancella tre senza
+                       averle contate. Il conto lo fa la pagina, che è l'unica a conoscere l'outline. *@
+                    @if (OnDelete.HasDelegate)
+                    {
+                        <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Xfer_DeleteRowTitle"]"
+                                       AriaLabel="@L["Xfer_DeleteRowAria"]" Disabled="@Disabled"
+                                       Prompt="@(DeletePrompt?.Invoke(c.Id) ?? L["Xfer_DeleteRowPrompt"].Value)"
+                                       OnConfirm="() => OnDelete.InvokeAsync(c.Id)">
+                            <Trigger><Icon Name="x" /></Trigger>
+                        </InlineConfirm>
+                    }
                 </td>
             </tr>
             @if (r.HasPreview)
@@ -223,6 +239,20 @@
     /// <summary>«Copia questa riga qui sotto». ⚠️ La RIGA, non il suo gruppo di varianti: quello è il ⧉ del
     /// pannello, e i due gesti si somigliano abbastanza da meritare due titoli che li distinguano.</summary>
     [Parameter] public EventCallback<int> OnDuplicate { get; set; }
+
+    /// <summary>
+    /// «Elimina questa riga e ciò che pende da lei». Non impostato = il tasto non c'è: la tabella si usa
+    /// anche in sola lettura, e un tasto spento sarebbe una promessa che non si può mantenere.
+    /// </summary>
+    [Parameter] public EventCallback<int> OnDelete { get; set; }
+
+    /// <summary>
+    /// La domanda di conferma per una riga, dato il suo id. Non impostata = quella generica.
+    /// <para>⚠️ La compone la <b>pagina</b>, come tutto il resto del calcolo di questa tabella: solo lei
+    /// conosce l'outline della sezione, quindi solo lei sa che eliminando una riga se ne vanno anche le sue
+    /// eccezioni — e quante. Contarle qui vorrebbe dire leggere l'outline una seconda volta.</para>
+    /// </summary>
+    [Parameter] public Func<int, string>? DeletePrompt { get; set; }
     [Parameter] public EventCallback<int> OnToggleSelect { get; set; }
     [Parameter] public EventCallback<int> OnDragStart { get; set; }
     [Parameter] public EventCallback<int> OnDragOver { get; set; }

@@ -1894,12 +1894,25 @@
 :where(.vipi-root) .struct .xfe-table th{padding:4px 9px}
 :where(.vipi-root) .xt-c-drag{width:26px}
 :where(.vipi-root) .xt-c-pick{width:26px}
-/* 132 -> 176 e 168 -> 212 il 7 settembre 2026: la colonna ha un tasto in piu' (la copia della riga). A
-   `table-layout:fixed` una colonna non si allarga da sola, e i tasti sono `white-space:nowrap`: lasciata
-   com'era, l'ultimo usciva dalla cella invece di stringerla. Lo spazio lo cede la condizione, che prende
+/* 132 -> 176 -> 220 e 168 -> 212 -> 256: un tasto in piu' ogni volta (la copia della riga il 7 settembre
+   2026, l'ELIMINA il 9). A `table-layout:fixed` una colonna non si allarga da sola, e i tasti sono
+   `white-space:nowrap`: lasciata com'era, l'ultimo usciva dalla cella invece di stringerla -- e usciva in
+   SILENZIO, che e' il motivo per cui questa riga ha un commento. Lo spazio lo cede la condizione, che prende
    cio' che resta. */
-:where(.vipi-root) .xt-c-acts{width:176px}
-:where(.vipi-root) .xt-c-acts-ctx{width:212px}
+:where(.vipi-root) .xt-c-acts{width:220px}
+/* 🔴 La conferma di riga si STACCA dal flusso della cella. Aperta, `InlineConfirm` non e' piu' un'icona: e'
+   una frase piu' due tasti, e in 220px a `table-layout:fixed` non ci sta -- usciva dal bordo destro tagliata
+   a meta', col tasto rosso mezzo fuori. Visto SOLO a schermo (9 settembre 2026): nessun test guarda la
+   larghezza di una cella, ed e' lo stesso guasto silenzioso gia' pagato dal quarto tasto due giorni prima.
+   Si ancora al bordo destro della cella e sta SOPRA, come un fumetto: la riga non si deforma e la frase si
+   legge intera. */
+:where(.vipi-root) .xt-acts{position:relative}
+:where(.vipi-root) .xt-acts .inline-confirm.is-open{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:6;
+  flex-wrap:nowrap;white-space:nowrap;
+  background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:6px 8px;
+  box-shadow:0 8px 24px rgba(0,0,0,.28)}
+:where(.vipi-root) .xt-c-acts-ctx{width:256px}
 :where(.vipi-root) .xt-c-pts{width:34%}
 :where(.vipi-root) .xt-c-lvl{width:20%}
 /* In elenco le colonne di contesto dicono DI CHI è la riga, e il dato deve restare il protagonista. */

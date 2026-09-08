@@ -10,7 +10,12 @@
    (tabelle struttura, header gruppo) che altrimenti reagirebbero al toggle. *@
 @inject IStringLocalizer<SharedResource> L
 
-<span class="inline-confirm">
+@* ⚠️ `is-open` non è decorazione: aperta, la conferma è una frase più due tasti dove prima c'era un'icona,
+   e chi la ospita in uno spazio STRETTO deve poterla trattare diversamente — dentro una cella di tabella a
+   `table-layout:fixed` non ci sta, e usciva tagliata dal bordo (visto a schermo il 9 settembre 2026, sulla
+   tabella delle clausole). Senza una classe, l'unica presa sarebbe `:has()`, che dice la stessa cosa in un
+   modo che chi legge il CSS non collega più a questo componente. *@
+<span class="inline-confirm @(_open ? "is-open" : "")">
     @if (_open)
     {
         @* ⚠️ I default passano dal LOCALIZER, non da stringhe cablate. Erano «Eliminare?» / «Sì, elimina» /

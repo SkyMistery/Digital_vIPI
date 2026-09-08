@@ -2289,6 +2289,9 @@
   <data name="Xfer_DetachVariant" xml:space="preserve"><value>Sfila dal gruppo</value></data>
   <data name="Xfer_DeleteRowAria" xml:space="preserve"><value>Elimina la riga</value></data>
   <data name="Xfer_DeleteRowPrompt" xml:space="preserve"><value>Eliminare la riga?</value></data>
+  <data name="Xfer_DeleteRowTitle" xml:space="preserve"><value>Elimina questa riga (e le sue eccezioni)</value></data>
+  <data name="Xfer_DeleteRowKidsPrompt_One" xml:space="preserve"><value>Eliminare la riga e la sua eccezione?</value></data>
+  <data name="Xfer_DeleteRowKidsPrompt" xml:space="preserve"><value>Eliminare la riga e le sue {0} eccezioni?</value></data>
   <data name="Xfer_CopyFrom" xml:space="preserve"><value>⇱ Copia righe da…</value></data>
   <data name="Xfer_CopyFromTitle" xml:space="preserve"><value>Copia in questo gruppo le righe di un altro gruppo (gli accordi di aeroporti vicini si somigliano)</value></data>
   <data name="Xfer_CopyFromLabel" xml:space="preserve"><value>Gruppo da cui copiare</value></data>

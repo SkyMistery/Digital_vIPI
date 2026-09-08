@@ -10379,3 +10379,65 @@ diverse — e legge la cultura dentro un `try`. Sette test, e il caso che conta 
 invece di un altro giro — che è tutto quello che si può fare senza averla sotto mano.
 ⚠️ Resta fuori l'altra NRE di render, `DocumentSectionsEditor.BuildToc` (8-set 13:59:03): quella ha già un
 metodo **suo** nello stack, quindi non ha lo stesso problema e non ha bisogno della stessa rete.
+
+## §CG — Il ✕ sulla riga di un coordinamento — 9 settembre 2026
+
+Chiesto dal committente, e nella stessa consegna: sulla riga della tabella delle clausole un **✕** che elimina
+**quella riga e le sue eccezioni**, con conferma. È il seguito naturale del ⧉ del 7 settembre — stessa ragione,
+stesso posto.
+
+### Il gesto c'era già, ma solo nel pannello
+
+Eliminare una riga si poteva: bisognava **aprirla** nel pannello di destra, premere il ✕ lì e richiudere. Tre
+gesti per uno. ⚠️ E quel ✕ cancellava la **sola** riga.
+
+🔴 **Le eccezioni non sono righe in più: sono righe che dicono un'altra cosa.** Un'eccezione è tale solo
+rispetto alla riga da cui pende; tolta quella, non resta un residuo — resta una clausola qualunque, che nel
+documento pubblicato vale **sempre**. È un accordo cambiato in silenzio. Per questo se ne vanno insieme, e per
+questo ci passa **anche il ✕ del pannello**: due porte accanto con due regole diverse sono il modo in cui
+quella più sicura viene scavalcata dall'altra.
+
+### La verità del sottoalbero sta in `Outline`, e si costruisce RISALENDO
+
+`Outline.SubtreeOf` è la riga più il **transitivo** di `ParentOf`. ⚠️ Scendendo — «le righe che seguono, più
+profonde, finché non ne arriva una meno profonda» — sarebbe stata una **seconda** lettura dello stesso outline,
+e due letture dello stesso outline prima o poi dicono due alberi diversi senza che la differenza si veda: la
+tabella ne mostrerebbe uno e l'eliminazione ne cancellerebbe un altro. È la ragione per cui quella classe
+esiste, scritta in testa al file dal giorno in cui è nata.
+
+⚠️ Chi **scavalca** le alternative non pende da nessuno: vale per tutto il gruppo, quindi non se ne va con una
+sola alternativa. Otto test, uno dei quali confronta il sottoalbero con la risalita **riga per riga** su un
+albero misto — sono la stessa lettura, e il giorno in cui divergono lo dice il banco.
+
+### La conferma CONTA, e le due larghezze
+
+La domanda dice **quante** righe se ne vanno («Eliminare la riga e le sue 2 eccezioni?»): chi preme il tasto
+sulla capofila di un ramo ne cancella tre senza averle contate, e la conferma è l'ultimo momento in cui glielo
+si può dire. Due chiavi per il plurale, non una — «1 eccezioni» sbaglia sempre sull'uno.
+
+⚠️ **La colonna dei tasti non si allarga da sola** (`table-layout:fixed`): 176 → **220** e 212 → **256**, come
+il 7 settembre. È la seconda volta in tre giorni.
+
+### 🔴 E il difetto che si vedeva SOLO a schermo
+
+Aperta, `InlineConfirm` non è più un'icona: è una frase più due tasti. In 220 px **non ci sta** — usciva dal
+bordo destro della tabella **tagliata a metà**, col tasto rosso mezzo fuori. Nessun test guarda la larghezza di
+una cella: l'ha preso lo screenshot, ed è lo stesso guasto silenzioso del quarto tasto due giorni prima.
+✅ Ora la conferma si **stacca dal flusso** e si ancora al bordo destro della cella, come un fumetto, sopra la
+riga. Il componente espone `is-open`: senza una classe l'unica presa sarebbe `:has()`, che dice la stessa cosa
+in un modo che chi legge il CSS non collega più al componente.
+
+### La prova, e un errore di misura per strada
+
+Guidata a schermo sulla **5035** (la 5034 è del committente), su una copia del `vipi.db` **seminata**: nel
+database di sviluppo nessuna clausola ha una condizione, quindi le eccezioni si scrivono a mano — capofila,
+sua eccezione, eccezione dell'eccezione.
+
+⚠️ **La prima misura era sbagliata, e non era il codice**: nel pannello «TORPO» compare **due volte**, perché
+l'accordo ha due sezioni — una per verso — e la sonda aveva preso la prima, che non ha eccezioni. Diceva
+«conferma generica, una riga eliminata», ed era **vero**: aveva eliminato un'altra riga, correttamente. Quando
+una prova dice che una cosa non funziona, il primo sospetto è la prova.
+
+✅ Sulla capofila giusta: **«Delete the row and its 2 exceptions?»** → **12 righe → 9**, «3 rows deleted», la
+riga TORPO **dell'altra sezione resta**, e l'annulla rimette tutte e tre con l'outline ricostruito (12 di
+nuovo). Registro dell'app pulito.

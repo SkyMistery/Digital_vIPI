@@ -1843,6 +1843,7 @@
                        EditingCell="_cellEdit" CellEditor="@(_canEdit ? CellEditor : null)" OnCellClick="OpenCell"
                        OnEdit="OnEditRow" OnGoToAgreement="GoToAgreement"
                        OnAddAlternative="AddAlternative" OnAddException="AddException" OnDuplicate="DuplicateRow"
+                       OnDelete="DeleteRow" DeletePrompt="PromptEliminaRiga"
                        OnToggleSelect="ToggleSelect"
                        OnDragStart="id => _dragId = id" OnDragOver="id => _dragOver = id" OnDrop="DropOn" />
     };
@@ -3188,21 +3189,74 @@
         }, L["Xfer_RowAdded"]);
     }
 
-    private async Task DeleteClause()
+    /// <summary>
+    /// La riga e <b>ciò che pende da lei</b>: la lettura la fa <c>Outline</c>, che è la stessa che disegna
+    /// l'albero a schermo. Una seconda lettura scritta qui prima o poi direbbe un albero diverso da quello
+    /// che l'utente vede, e la differenza non si noterebbe da nessuna parte.
+    /// </summary>
+    private IReadOnlyList<AgreementClauseRow> RigaESueEccezioni(int clauseId)
     {
-        if (_editClauseId is not int id) return;
-        var c = FindClause(id);
-        var sec = SectionOf(id);
-        if (c is null || sec is null) return;
-
-        var snap = new AgreementClauseRestore(sec.Id, SnapshotOf(c));
-        await Guarded(() => Agreements.DeleteClauseAsync(_acc!.Code, id), L["Xfer_RowDeleted"].Value);
-        if (_error is null)
-        {
-            ClosePanel();
-            _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, new[] { snap }), L["Xfer_RowsRestored"].Value);
-        }
+        var sec = SectionOf(clauseId);
+        var c = sec?.Clauses.FirstOrDefault(x => x.Id == clauseId);
+        return sec is null || c is null
+            ? Array.Empty<AgreementClauseRow>()
+            : Outline.SubtreeOf(sec.Clauses, c);
     }
+
+    /// <summary>
+    /// La domanda di conferma. 🔴 <b>Dice quante righe se ne vanno</b>, e non è cortesia: chi preme il tasto
+    /// sulla capofila di un ramo ne cancella tre senza averle contate, e la conferma è l'ultimo momento in cui
+    /// glielo si può dire.
+    /// </summary>
+    private string PromptEliminaRiga(int clauseId)
+    {
+        var eccezioni = RigaESueEccezioni(clauseId).Count - 1;
+        return eccezioni <= 0
+            ? L["Xfer_DeleteRowPrompt"].Value
+            : string.Format(
+                L[eccezioni == 1 ? "Xfer_DeleteRowKidsPrompt_One" : "Xfer_DeleteRowKidsPrompt"].Value, eccezioni);
+    }
+
+    /// <summary>
+    /// Elimina una riga <b>con le sue eccezioni</b>.
+    ///
+    /// <para>🔴 <b>Perché le eccezioni se ne vanno con lei.</b> Un'eccezione è tale solo rispetto alla riga da
+    /// cui pende: tolta quella, non resta una riga in più — resta una riga che <b>dice un'altra cosa</b>, cioè
+    /// una clausola qualunque che nel documento pubblicato vale sempre. Non è un residuo, è un accordo
+    /// cambiato in silenzio.</para>
+    ///
+    /// <para>⚠️ <b>Una porta sola per due tasti.</b> Ci passa anche il ✕ del pannello, che fino al 9 settembre
+    /// 2026 cancellava la <b>sola</b> riga: due porte accanto con due regole diverse sono il modo in cui la
+    /// regola più sicura viene scavalcata dall'altra.</para>
+    ///
+    /// <para>L'annulla rimette <b>tutto</b> il sottoalbero, non solo la capofila.</para>
+    /// </summary>
+    private async Task DeleteRow(int clauseId)
+    {
+        var sec = SectionOf(clauseId);
+        var sottoalbero = RigaESueEccezioni(clauseId);
+        if (sec is null || sottoalbero.Count == 0) return;
+
+        // Fotografia prima, annulla armato dopo, e solo se è andata: come l'eliminazione multipla.
+        var snaps = sottoalbero.Select(c => new AgreementClauseRestore(sec.Id, SnapshotOf(c))).ToList();
+        var ids = sottoalbero.Select(c => c.Id).ToList();
+
+        await Guarded(async () => await Agreements.DeleteClausesAsync(_acc!.Code, ids),
+            ids.Count == 1 ? L["Xfer_RowDeleted"].Value : string.Format(L["Xfer_BulkDeleted"].Value, ids.Count));
+
+        if (_error is not null) return;
+
+        // La selezione non deve restare appesa a righe che non ci sono più: il tasto «elimina i selezionati»
+        // le rimanderebbe al server, e il conteggio in testata direbbe un numero che non esiste.
+        foreach (var id in ids) _selected.Remove(id);
+        if (_editClauseId is int aperta && ids.Contains(aperta)) ClosePanel();
+
+        _undo = (() => Agreements.RestoreClausesAsync(_acc!.Code, snaps), L["Xfer_RowsRestored"].Value);
+    }
+
+    /// <summary>Il ✕ del pannello: stessa porta del ✕ di riga, comprese le eccezioni.</summary>
+    private Task DeleteClause() =>
+        _editClauseId is int id ? DeleteRow(id) : Task.CompletedTask;
 
     private Task MoveClause(bool up) =>
         _editClauseId is int id ? RowAction(() => Agreements.MoveClauseAsync(_acc!.Code, id, up)) : Task.CompletedTask;
