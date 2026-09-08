@@ -10272,12 +10272,10 @@ testa a `TranslationReviewPanel` resta dov'è, per il suo caso: qui il precedent
 
 ### ▶ Che cosa resta
 
-1. L'**attesa** del caricamento alle pagine, non solo ai cinque editor (la terza porta, qui sopra).
-2. Il **contesto** nella NRE di render dell'editor APP: è tornata due volte (13:58:40 e 14:00:22) e le voci
-   portano lo **stesso stack nudo** di prima. 🔴 Una strumentazione si prova **facendola scattare** prima di
-   consegnarla, altrimenti «aspetta la prossima occorrenza» diventa aspettarne **due**. E le voci nuove
-   arrivano dal **circuito** (`CircuitUnhandledException`): non portano né rotta né VID, quindi il contesto
-   deve metterlo il codice.
+1. ✅ L'**attesa** del caricamento alle pagine, non solo ai cinque editor: la terza porta, qui sopra.
+2. ✅ Il **contesto** nella NRE di render dell'editor APP, qui sotto. ⚠️ E la ragione per cui le due voci
+   nuove portavano lo stesso stack nudo di prima **non** era una strumentazione che non copriva: era che
+   **non c'era**.
 
 ⚠️ **1.16.1 non è provata da questo scarico**: ci vive per **4 richieste** e novanta secondi. Un'era senza
 traffico non assolve nessuno — serve il prossimo file.
@@ -10341,3 +10339,43 @@ un altro non si pianta; lo scope alla fine è smaltito **davvero**; chiudere due
 ⚠️ E anche la prova a rovescio è stata sbagliata al primo colpo: il taglio non compilava, il test è girato
 sulla **dll vecchia** e ha detto «Passed». È la trappola già scritta nel runbook — *il totale dei test mente
 se un progetto non compila*. Un `grep` sugli errori di build prima di credere a un verde, sempre.
+
+### 🔴 La NRE dell'editor APP: la strumentazione non «non copriva», NON C'ERA
+
+Il primo gesto è stato rileggere la riga incolpata **al commit che girava** (1.15.2 = `eb7f389`), come vuole
+la regola. E poi cercare la rete che il 7 settembre era stata **decisa**: non c'è. Nel file, a `main`, su
+quella strada non esiste nessun `catch`. «Da strumentare» era rimasto un **proposito**, e per due occorrenze
+si è aspettata una risposta che nessuno stava preparando.
+
+⚠️ **Poi una diagnosi sbagliata, e come si è chiusa.** Leggendo il file da riga 36 in giù risultava che
+`_acc` è dichiarato `AccInfo?` — nullable, `Stations.Resolve` può rispondere `null` — e che nel markup
+`@_acc.Code` e `@_acc.Name` compaiono **quattro** volte senza `?.`; il codice, per di più, il caso lo prevede
+(`if (_acc is null) return;`). Sembrava il colpevole. **Non lo è**: il ramo `@if (_acc is null)` c'è, ed è il
+**primo del file** (riga 26) — l'avevo mancato leggendo dal punto sbagliato. Lo conferma il compilatore, che
+qui non è muto: `Nullable` è `enable` e `TreatWarningsAsErrors` è `true`, e un `CS8602` vero **ferma la
+build** — provato apposta, sia in un blocco `@code` sia in **markup**. 🔴 **Quando il compilatore tace su un
+dereferenziamento, il sospetto va prima alla propria lettura.**
+
+Quindi sulla riga 71, al commit che girava, **non c'è niente che possa essere nullo**: ramo «ACC sconosciuto»
+presente, `_displayName` inizializzato a `""`, `_mil` letto con `?.`, e il localizzatore aveva già girato nel
+render precedente. È esattamente il caso in cui il metodo dice di **strumentare**.
+
+✅ **`Testata()`**: i quattro pezzi della testata si leggono in **una** chiamata, dentro un `try` che rilancia
+con `ContestoDiRender.TestataApp(...)` — app, acc, se il documento è caricato, se la stazione militare è nota,
+il nome, e la **lingua di lettura**. Una `record struct`: non alloca a ogni render.
+
+⚠️ **`[MethodImpl(NoInlining)]` non è un vezzo, è tutto il punto.** In Release un metodo corto finisce dentro
+`BuildRenderTree`, la sua riga sparisce, e la prossima occorrenza tornerebbe a incolpare la riga del
+chiamante — cioè si sarebbe scritta una rete per non sapere niente di nuovo. È un attributo che un riordino
+toglie per primo, quindi **c'è un test che lo inchioda** (`La_testata_dell_editor_APP_non_si_fa_inlinare`),
+provato a rovescio: tolto l'attributo, cade solo quello.
+
+🔴 **E la rete non deve poter cadere.** Una frase di contesto che solleva a sua volta mentre racconta un
+guasto **sostituisce l'errore vero col proprio**: `ContestoDiRender` non dereferenzia niente, prende tutto già
+letto e annullabile, distingue `(null)` da `(vuoto)` — che a occhio si somigliano e vogliono dire due cose
+diverse — e legge la cultura dentro un `try`. Sette test, e il caso che conta è quello con **tutto nullo**.
+
+⚠️ **Questo non chiude la NRE**: non si sa ancora chi sia. Rende la **prossima occorrenza** una diagnosi
+invece di un altro giro — che è tutto quello che si può fare senza averla sotto mano.
+⚠️ Resta fuori l'altra NRE di render, `DocumentSectionsEditor.BuildToc` (8-set 13:59:03): quella ha già un
+metodo **suo** nello stack, quindi non ha lo stesso problema e non ha bisogno della stessa rete.

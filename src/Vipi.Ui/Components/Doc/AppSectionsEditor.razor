@@ -68,7 +68,11 @@ else
             {
             <div class="editor-bar">
                     <div class="doc-head st-head" style="margin:0">
-                        <h1 class="st-h2 page-h1">✎ @L["App_EditorTitle"] @_displayName <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                        @* 🔴 I pezzi della testata si leggono in UNA chiamata, e quella chiamata sa dire dov'era
+                           se cade: è la riga che in produzione ha dato tre NRE nude (7-set 14:21:36, 8-set
+                           13:58:40 e 14:00:22) senza mai portare un colpevole. Vedi `Testata()` e §CF. *@
+                        @{ var testata = Testata(); }
+                        <h1 class="st-h2 page-h1">✎ @testata.Titolo @testata.Nome <MilitaryTag HasMilitaryPresence="testata.ConMilitari" IsMilitaryOnly="testata.SoloMilitari" /></h1>
                         <HelpHint Href="/services/vsop/guide#editor-app" AriaLabel="@L["App_HelpAria"]" ExtraClass="wide">
                             <p>@_app · @_acc.Name</p>
                             @((MarkupString)L["App_HelpBody"].Value)
@@ -231,6 +235,46 @@ else
 
     private AccInfo? _acc;
     private string _app = "";
+    /// <summary>I quattro pezzi della testata, letti insieme. Struct: non si alloca a ogni render.</summary>
+    private readonly record struct PezziDellaTestata(string Titolo, string Nome, bool ConMilitari, bool SoloMilitari);
+
+    /// <summary>
+    /// La testata, letta <b>dentro una rete</b>.
+    ///
+    /// <para>🔴 <b>Perché esiste.</b> Questa riga ha dato tre <c>NullReferenceException</c> in produzione — il
+    /// 7 settembre 2026 alle 14:21:36 e l'8 alle 13:58:40 e 14:00:22 — e la diagnosi si è fermata ogni volta
+    /// nello stesso punto: <b>sulla riga incolpata non c'è niente che possa essere nullo</b>. Il ramo «ACC
+    /// sconosciuto» c'è ed è il primo del file, <c>_displayName</c> è una stringa inizializzata a vuoto, la
+    /// stazione militare si legge con <c>?.</c>, e il localizzatore aveva già girato nel render precedente.
+    /// Restringere non è chiudere: quando resta una sola chiamata sospetta e non si sa quale anello dentro di
+    /// lei si rompa, si mette una rete che <b>rilancia dicendo il contesto</b>.</para>
+    ///
+    /// <para>⚠️ <c>NoInlining</c> non è un vezzo: <b>è tutto il punto</b>. In Release un metodo corto come
+    /// questo finirebbe dentro <c>BuildRenderTree</c>, la sua riga sparirebbe, e la prossima occorrenza
+    /// tornerebbe a incolpare la riga del chiamante — cioè si sarebbe scritto codice per non sapere niente di
+    /// nuovo. Vedi <see cref="ContestoDiRender"/>.</para>
+    ///
+    /// <para>⚠️ E si rilancia, non si ingoia: una testata che non si disegna è un guasto, e va vista.</para>
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private PezziDellaTestata Testata()
+    {
+        try
+        {
+            return new PezziDellaTestata(
+                L["App_EditorTitle"].Value,
+                _displayName,
+                _mil?.HasMilitaryPresence ?? false,
+                _mil?.IsMilitaryOnly ?? false);
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(
+                ContestoDiRender.TestataApp(_app, _acc?.Code, _shell.Doc is not null, _mil is not null, _displayName),
+                ex);
+        }
+    }
+
     private string _displayName = "";
     // Vedi AppnPage: l'aeroporto di questo APP, per l'etichetta militare in testata.
     private Vipi.Application.Content.AirportStation? _mil;
