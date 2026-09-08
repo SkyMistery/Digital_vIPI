@@ -959,9 +959,142 @@ window.vipiScorrimento = function () {
         wirePrint();
         wireAttRotate();
         wireHashLanding();   // deep-link "#id" verso sezioni collassate (Guida) → apri + scorri
+        wireLightbox();      // clic su un'immagine del documento → finestra a dimensioni originali
         window.vipiFitTopbar();
         window.vipiFitPanes();
     };
+
+    // ---- Immagini a dimensioni originali -----------------------------------------------------------
+    //
+    // Un'immagine nel documento è larga quanto la colonna, e da quando l'editore può stringerla (5 settembre
+    // 2026) può essere larga anche il 30% di quella: una carta di avvicinamento, lì dentro, non si legge. Il
+    // clic la riapre com'è davvero.
+    //
+    // ⚠️ Nessun giro dal server. Le pagine dei documenti sono rese in SSR statico con isole interattive: una
+    // finestra che avesse bisogno del circuito Blazor non si aprirebbe affatto sulle pagine pubbliche, che
+    // sono proprio quelle dove si legge. E l'immagine è già nella cache del browser — l'URL è lo stesso, non
+    // esiste una versione ridotta: la finestra non chiede un byte in più.
+    //
+    // ⚠️ Una delega sola su `document`, in bolla e non in cattura: i blocchi immagine nascono e muoiono a
+    // ogni render di Blazor, e agganciare ogni figura vorrebbe dire riagganciarle tutte a ogni giro.
+    var lightboxWired = false;
+    function wireLightbox() {
+        if (lightboxWired) return;
+        lightboxWired = true;
+        document.addEventListener('click', function (e) {
+            var b = e.target && e.target.closest ? e.target.closest('button.img-zoom') : null;
+            if (!b) return;
+            var img = b.querySelector('img');
+            if (!img || !img.getAttribute('src')) return;
+            e.preventDefault();
+            apriLightbox(img, b);
+        });
+    }
+
+    function apriLightbox(img, bottone) {
+        // Una sola alla volta: un doppio clic non deve impilare due veli.
+        if (document.querySelector('.lb-backdrop')) return;
+
+        // ⚠️ `naturalWidth` e non gli attributi width/height: quelli sono la misura SALVATA al caricamento, e
+        // un'immagine che il browser non ha ancora scaricato li ha comunque. Se però il naturale non c'è
+        // ancora (lazy sotto la piega, clic da tastiera prima del download) si ripiega sugli attributi, che
+        // sono la stessa misura scritta nel documento.
+        var w = img.naturalWidth || parseInt(img.getAttribute('width') || '0', 10) || 0;
+        var h = img.naturalHeight || parseInt(img.getAttribute('height') || '0', 10) || 0;
+
+        var testi = {
+            chiudi: bottone.getAttribute('data-lb-close') || 'X',
+            adatta: bottone.getAttribute('data-lb-fit') || 'Fit',
+            piena: bottone.getAttribute('data-lb-full') || '1:1'
+        };
+
+        var velo = document.createElement('div');
+        velo.className = 'lb-backdrop';
+        velo.setAttribute('role', 'dialog');
+        velo.setAttribute('aria-modal', 'true');
+        velo.setAttribute('aria-label', img.getAttribute('alt') || testi.piena);
+
+        var barra = document.createElement('div');
+        barra.className = 'lb-bar';
+
+        var misura = document.createElement('span');
+        misura.className = 'lb-size';
+        misura.textContent = w && h ? (w + ' × ' + h + ' px') : '';
+
+        // ⚠️ Si apre a dimensioni ORIGINALI, che è quel che si è chiesto guardando l'immagine. Ma una foto da
+        // 4000px su uno schermo da 1400 si aprirebbe su un angolo, e chi la apre non sa che il velo scorre:
+        // il tasto «Adatta» è la via d'uscita, e il primo stato lo dice mostrando l'altro.
+        var tasto = document.createElement('button');
+        tasto.type = 'button';
+        tasto.className = 'btn ghost lb-mode';
+        tasto.textContent = testi.adatta;
+
+        var chiudi = document.createElement('button');
+        chiudi.type = 'button';
+        chiudi.className = 'btn ghost lb-close';
+        chiudi.textContent = testi.chiudi;
+        chiudi.setAttribute('aria-label', testi.chiudi);
+
+        barra.appendChild(misura);
+        barra.appendChild(tasto);
+        barra.appendChild(chiudi);
+
+        var piano = document.createElement('div');
+        piano.className = 'lb-scroll';
+        var grande = document.createElement('img');
+        grande.className = 'lb-img';
+        grande.src = img.getAttribute('src');
+        grande.alt = img.getAttribute('alt') || '';
+        if (w) grande.style.width = w + 'px';
+        piano.appendChild(grande);
+
+        velo.appendChild(barra);
+        velo.appendChild(piano);
+
+        var adattata = false;
+        function commuta() {
+            adattata = !adattata;
+            velo.classList.toggle('lb-fit', adattata);
+            grande.style.width = adattata ? '' : (w ? w + 'px' : '');
+            tasto.textContent = adattata ? testi.piena : testi.adatta;
+        }
+        tasto.onclick = function (ev) { ev.stopPropagation(); commuta(); };
+
+        // Chiudere: il velo, la ✕, Esc. Il clic sull'immagine NON chiude — ci si clicca sopra per scorrerla.
+        var attivoPrima = document.activeElement;
+        var scorrimentoPrima = document.body.style.overflow;
+        function chiudiTutto() {
+            document.removeEventListener('keydown', suTasto, true);
+            velo.remove();
+            document.body.style.overflow = scorrimentoPrima;
+            // ⚠️ Il fuoco torna da dove è partito: senza, dopo la chiusura il tabulatore ricomincia dall'inizio
+            // della pagina e chi naviga da tastiera perde il segno.
+            if (attivoPrima && attivoPrima.focus) { try { attivoPrima.focus(); } catch (err) { } }
+        }
+        function suTasto(ev) {
+            if (ev.key === 'Escape') { ev.preventDefault(); ev.stopImmediatePropagation(); chiudiTutto(); }
+        }
+        chiudi.onclick = chiudiTutto;
+        velo.onclick = function (ev) { if (ev.target === velo || ev.target === piano) chiudiTutto(); };
+        document.addEventListener('keydown', suTasto, true);
+
+        // ⚠️ Dentro `.vipi-root` e non nel <body>: TUTTO il foglio di stile di casa passa da lì — i token dei
+        // colori, e soprattutto `.btn`, che è dichiarato `:where(.vipi-root) .btn`. Appesa al body, la
+        // finestra usciva coi due tasti nudi del browser. `.vipi-root` non ha transform né filter, quindi
+        // `position:fixed` continua a riferirsi alla finestra e non a lui.
+        (document.querySelector('.vipi-root') || document.body).appendChild(velo);
+        document.body.style.overflow = 'hidden';
+        chiudi.focus();
+
+        // Se la misura non si sapeva (immagine non ancora scaricata), la si scrive quando arriva.
+        if (!w || !h) {
+            grande.onload = function () {
+                w = grande.naturalWidth; h = grande.naturalHeight;
+                misura.textContent = w + ' × ' + h + ' px';
+                if (!adattata && w) grande.style.width = w + 'px';
+            };
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
         window.vipiApplyZoom && window.vipiApplyZoom();

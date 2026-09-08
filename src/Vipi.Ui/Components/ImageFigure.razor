@@ -1,6 +1,7 @@
 @* Resa CONDIVISA di un'immagine editoriale: viewer (BlockRenderer), anteprime read-only dei due editor e viewer
    aeroporto passano tutti di qui, così documento, editor, anteprima di release e stampa non possono divergere.
    Senza riferimento valido si mostra il segnaposto: un blocco immagine appena creato esiste prima della sua foto. *@
+@inject IStringLocalizer<SharedResource> L
 
 @if (Media is null)
 {
@@ -13,9 +14,26 @@ else
     <figure class="doc-img" style="@WidthStyle">
         @* width/height nativi: il posto dell'immagine è già riservato prima che arrivi, quindi il testo non salta.
            loading=lazy perché un documento può averne molte e stanno quasi tutte sotto la piega. *@
-        <img src="@Media.Url" alt="@(Media.Alt ?? "")" loading="lazy"
-             width="@(Media.Width > 0 ? Media.Width.ToString() : null)"
-             height="@(Media.Height > 0 ? Media.Height.ToString() : null)" />
+        @if (Ingrandibile)
+        {
+            @* ⚠️ Un <button> vero e non un `role="button"` sull'<img>: apre una finestra, quindi deve stare nel
+               giro del tabulatore e rispondere a Invio e Spazio senza che nessuno lo riscriva a mano. È la
+               stessa ragione per cui le chip sono diventate <button> il 23 agosto 2026.
+               ⚠️ Le etichette della finestra viaggiano come attributi `data-`: la finestra la costruisce il JS,
+               e il JS non deve conoscere nessuna lingua. Stesso modo del conteggio delle aree regolamentate. *@
+            <button type="button" class="img-zoom" title="@L["Img_ZoomOpen"]" aria-label="@L["Img_ZoomOpen"]"
+                    data-lb-close="@L["Common_Close"]" data-lb-fit="@L["Img_ZoomFit"]" data-lb-full="@L["Img_ZoomFull"]">
+                <img src="@Media.Url" alt="@(Media.Alt ?? "")" loading="lazy"
+                     width="@(Media.Width > 0 ? Media.Width.ToString() : null)"
+                     height="@(Media.Height > 0 ? Media.Height.ToString() : null)" />
+            </button>
+        }
+        else
+        {
+            <img src="@Media.Url" alt="@(Media.Alt ?? "")" loading="lazy"
+                 width="@(Media.Width > 0 ? Media.Width.ToString() : null)"
+                 height="@(Media.Height > 0 ? Media.Height.ToString() : null)" />
+        }
         @Overlay
         @if (!string.IsNullOrWhiteSpace(Caption))
         {
@@ -35,6 +53,17 @@ else
 
     /// <summary>Testo del segnaposto quando l'immagine non c'è ancora (l'editor ne mette uno più esplicito).</summary>
     [Parameter] public string? EmptyLabel { get; set; }
+
+    /// <summary>
+    /// Il clic apre l'immagine a dimensioni originali in una finestra sopra la pagina.
+    ///
+    /// <para>⚠️ <b>Non dove si sta scrivendo.</b> Nell'editor la stessa figura porta la maniglia di
+    /// ridimensionamento (<see cref="Overlay"/>) e il gesto del mouse su quell'immagine <b>è</b> il
+    /// trascinamento della larghezza: aprirci sopra una finestra vorrebbe dire che chi stringe la foto se la
+    /// vede spalancare in faccia a dito alzato. Perciò la condizione non è un parametro che si può
+    /// dimenticare di passare — è l'assenza dell'overlay, cioè il fatto stesso di non essere in scrittura.</para>
+    /// </summary>
+    private bool Ingrandibile => Overlay is null;
 
     private string? WidthStyle => Media is { Scale: > 0 and < MediaRef.MaxScale } m
         ? $"width:{m.Scale}%"
