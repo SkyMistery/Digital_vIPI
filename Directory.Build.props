@@ -640,7 +640,41 @@
       R-009, che ha cambiato la visibilita' fra assiemi; qui in produzione girano gia' tutti quelli di
       1.15.0.
     -->
-    <VipiVersione>1.15.1</VipiVersione>
+    <!--
+      1.15.2 — 8 settembre 2026. **PATCH**: solo correzioni, nessuna pagina e nessuna sezione nuova,
+      nessuna migrazione (quindi spedibile dentro la finestra cieca del 16 settembre). Si costruisce contro
+      cio' che GIRA, che e' **1.15.1** (`68e71bf`). Due lavori, e nessuno dei due nasce dai test.
+
+      §CD — le tre cose dette dalla DIAGNOSTICA di produzione (`errori-richieste.txt` del 7 settembre):
+
+        · 🔴 «A second operation was started on this context»: dodici componenti con lo scope DI proprio
+          chiedevano i servizi al CIRCUITO, cioe' al DbContext della pagina. Cercati OVUNQUE (non solo dove
+          era esploso): 12 trasgressori → 1, l'unica eccezione voluta e scritta. Il presidio che avrebbe
+          dovuto vederli era CIECO ai file con lo scope proprio: ora guarda anche `Components/`, ed e'
+          stato provato a rovescio.
+        · 🔴 `ObjectDisposedException` alla chiusura dell'editor: lo scope moriva con un caricamento in
+          volo. `DocumentEditorShell.ChiudiAsync()` lo aspetta, e i cinque editor documentali sono
+          diventati `IAsyncDisposable` per poterlo fare.
+        · Il registro degli errori: la prima voce di ogni famiglia intera, dalla seconda UNA RIGA. Un
+          registro fatto per meta' di rumore e' un registro che si smette di leggere.
+
+      §CE — «ho ripubblicato e l'avviso e' ancora li'», e sono DUE cose diverse:
+
+        · 🔴 Il banner delle cose da fare (`DocReviewBar`) si ricarica solo quando cambia il `DocumentId` —
+          e dopo una pubblicazione il documento e' lo STESSO: ridipingeva le righe lette all'apertura della
+          pagina, benche' 1.14.2 le avesse gia' chiuse nel database. Ora lo rilegge la via di ricarico che
+          gli ospiti hanno gia' dopo `ReleasePanel.Published`.
+        · 🔴 E il guasto di quella riconciliazione era MUTO: l'eccezione si ingoia (giusto: la release e'
+          scritta) ma non si scriveva NIENTE da nessuna parte, quindi il sintomo era identico al difetto
+          che 1.14.2 era andato a togliere. Ora l'esito resta sulla tabella degli stati, chiave
+          `ImpactDriftOnPublish`, e Diagnostica lo mostra.
+
+      Rispetto a 1.15.1 cambiano `Application`, `Ui` e `Host` (che porta sempre il timbro), piu' il
+      satellite inglese perche' le due `.resx` hanno una frase nuova. ⚠️ Nessun file di `wwwroot` toccato —
+      da verificare con le IMPRONTE, non a memoria. ⚠️ La regola «tutti insieme» di 1.15.0 qui non si
+      applica: la visibilita' fra assiemi non cambia.
+    -->
+    <VipiVersione>1.15.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
