@@ -313,6 +313,7 @@
   <data name="Airport_SubtitlePrefix" xml:space="preserve"><value>Aeroporto</value></data>
   <data name="Airport_LiveNoaa" xml:space="preserve"><value>(live · NOAA)</value></data>
   <data name="Airport_Visibility" xml:space="preserve"><value>Visibilità</value></data>
+  <data name="Wx_FallbackTitle" xml:space="preserve"><value>NOAA non ha dato il METAR: questo arriva da {0}</value></data>
   <data name="Airport_Clouds" xml:space="preserve"><value>Nubi</value></data>
   <data name="Airport_Weather" xml:space="preserve"><value>Tempo</value></data>
   <data name="Airport_Trend" xml:space="preserve"><value>Tendenza</value></data>

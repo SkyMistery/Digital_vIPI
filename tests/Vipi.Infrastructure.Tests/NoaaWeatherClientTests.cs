@@ -140,4 +140,142 @@ public class NoaaWeatherClientTests
         Assert.Equal(TimeSpan.FromMinutes(1), opt.CacheTtlFor(hasData: true));
         Assert.Equal(TimeSpan.FromMinutes(1), opt.CacheTtlFor(hasData: false));
     }
+
+    // ---- La sorgente di SCORTA per il METAR (8 settembre 2026) ---------------------------------------
+    //
+    // Chiesta dal committente: «ogni tanto NOAA fallisce e non dà il METAR».
+
+    /// <summary>Una scorta che conta quante volte la si è chiamata: serve a provare che NON si chiama quando
+    /// la principale ha risposto.</summary>
+    private sealed class ScortaFinta : Vipi.Application.Abstractions.IMetarFallback
+    {
+        private readonly string? _metar;
+        public int Chiamate { get; private set; }
+        public ScortaFinta(string? metar) => _metar = metar;
+        public string NomeFinto { get; init; } = "VATSIM";
+        public string Nome => NomeFinto;
+        public Task<string?> GetMetarAsync(string icao, CancellationToken ct = default)
+        {
+            Chiamate++;
+            return Task.FromResult(_metar);
+        }
+    }
+
+    /// <summary>⚠️ Le scorte sono una CATENA ordinata, non una sola: <c>params</c> perché i banchi ne provano
+    /// zero, una e due — e l'ordine è parte di quel che si presidia.</summary>
+    private static NoaaWeatherClient Build(HttpMessageHandler handler,
+        params Vipi.Application.Abstractions.IMetarFallback[] scorte) =>
+        new(new StubFactory(handler), Options.Create(new WeatherOptions { BaseUrl = "https://example.test" }), scorte);
+
+    [Fact]
+    public async Task Se_NOAA_Non_Da_Il_Metar_Lo_Chiede_Alla_Scorta()
+    {
+        var scorta = new ScortaFinta("LIRF 081720Z 28004KT 9999 SCT015 27/24 Q1014 NOSIG");
+        var client = Build(new CountingHandler(null, TafJson), scorta);   // METAR 204, TAF c'è
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal("LIRF 081720Z 28004KT 9999 SCT015 27/24 Q1014 NOSIG", report.Metar);
+        Assert.Equal(1, scorta.Chiamate);
+        // ⚠️ La provenienza si scrive: senza, una scorta morta e una scorta mai servita si vedono uguali.
+        Assert.Equal("VATSIM", report.MetarSource);
+        // Il TAF resta quello di NOAA: sono due bollettini indipendenti.
+        Assert.Contains("TAF LIRF", report.Taf);
+    }
+
+    /// <summary>⚠️ La scorta NON si chiede quando la principale ha risposto: è una sorgente di terzi, e
+    /// interrogarla a ogni giro sarebbe traffico su un servizio che non è nostro.</summary>
+    [Fact]
+    public async Task Se_NOAA_Da_Il_Metar_La_Scorta_Non_Si_Disturba()
+    {
+        var scorta = new ScortaFinta("NON DEVE ARRIVARE");
+        var client = Build(new CountingHandler(MetarJson, TafJson), scorta);
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal(0, scorta.Chiamate);
+        Assert.Contains("LIRF 121250Z", report.Metar);
+        // Sorgente principale ⇒ nessuna etichetta: una che c'è sempre non si legge più.
+        Assert.Null(report.MetarSource);
+    }
+
+    /// <summary>Anche la scorta può non avere il bollettino (un ICAO che nessuno serve): resta un report senza
+    /// METAR, non un guasto.</summary>
+    [Fact]
+    public async Task Se_Nemmeno_La_Scorta_Ce_L_Ha_Non_Succede_Niente_Di_Brutto()
+    {
+        var scorta = new ScortaFinta(null);
+        var client = Build(new CountingHandler(null, null), scorta);
+
+        var report = await client.GetAsync("ZZZZ");
+
+        Assert.False(report.HasData);
+        Assert.Null(report.MetarSource);
+        Assert.Equal(1, scorta.Chiamate);
+    }
+
+    /// <summary>⚠️ Senza scorta registrata il comportamento è ESATTAMENTE quello di prima: la ricaduta è
+    /// un'aggiunta, non una riscrittura.</summary>
+    [Fact]
+    public async Task Senza_Scorta_Tutto_Come_Prima()
+    {
+        var client = Build(new CountingHandler(null, TafJson));
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Null(report.Metar);
+        Assert.Null(report.MetarSource);
+        Assert.Contains("TAF LIRF", report.Taf);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>L'ORDINE della catena è una decisione, non un dettaglio di registrazione</b>: prima IVAO —
+    /// è la rete che questi documenti servono — poi VATSIM. Se la prima risponde, la seconda non si
+    /// disturba: sono servizi di altri.
+    /// </summary>
+    [Fact]
+    public async Task La_Catena_Si_Ferma_Alla_Prima_Che_Risponde()
+    {
+        var ivao = new ScortaFinta("LIRF 081720Z 28004KT CAVOK 27/24 Q1014") { NomeFinto = "IVAO" };
+        var vatsim = new ScortaFinta("NON DEVE ARRIVARE") { NomeFinto = "VATSIM" };
+        var client = Build(new CountingHandler(null, TafJson), ivao, vatsim);
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal("IVAO", report.MetarSource);
+        Assert.Equal(1, ivao.Chiamate);
+        Assert.Equal(0, vatsim.Chiamate);
+    }
+
+    /// <summary>E se la prima non ce l'ha, si passa alla seconda: è tutto il senso della terza gamba.</summary>
+    [Fact]
+    public async Task Se_La_Prima_Scorta_Tace_Risponde_La_Seconda()
+    {
+        var ivao = new ScortaFinta(null) { NomeFinto = "IVAO" };
+        var vatsim = new ScortaFinta("LIRF 081720Z 28004KT CAVOK 27/24 Q1014") { NomeFinto = "VATSIM" };
+        var client = Build(new CountingHandler(null, TafJson), ivao, vatsim);
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal("VATSIM", report.MetarSource);
+        Assert.Equal(1, ivao.Chiamate);
+        Assert.Equal(1, vatsim.Chiamate);
+    }
+
+    /// <summary>
+    /// ⚠️ La scorta sta DENTRO la fetch, quindi eredita la cache: due letture ravvicinate la chiamano una
+    /// volta sola. Se stesse in un decoratore attorno a <c>GetAsync</c> la chiamerebbe a ogni render di ogni
+    /// pagina, su un servizio che non è nostro.
+    /// </summary>
+    [Fact]
+    public async Task La_Scorta_Passa_Dalla_Cache_Come_Tutto_Il_Resto()
+    {
+        var scorta = new ScortaFinta("LIRF 081720Z 28004KT CAVOK 27/24 Q1014");
+        var client = Build(new CountingHandler(null, TafJson), scorta);
+
+        await client.GetAsync("LIRF");
+        await client.GetAsync("LIRF");
+
+        Assert.Equal(1, scorta.Chiamate);
+    }
 }

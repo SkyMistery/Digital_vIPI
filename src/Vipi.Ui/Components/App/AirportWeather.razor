@@ -30,7 +30,18 @@
     @if (_tab == "metar" && Metar is not null)
     {
         <div class="wx-view">
-            <div class="metar"><span class="metar-live"><span class="dot"></span> LIVE</span> @Metar.Raw</div>
+            @* ⚠️ La provenienza si scrive SOLO quando non è la sorgente principale: un'etichetta che c'è
+               sempre smette di essere letta, e questa deve saltare all'occhio proprio nel giorno in cui il
+               METAR arriva da un'altra parte. È anche l'unico modo di sapere che la scorta funziona ancora:
+               senza, una scorta morta e una scorta mai servita si vedono uguali. *@
+            <div class="metar">
+                <span class="metar-live"><span class="dot"></span> LIVE</span>
+                @if (Report.MetarSource is { Length: > 0 } sorgente)
+                {
+                    <span class="metar-src" title="@L["Wx_FallbackTitle", sorgente]">@sorgente</span>
+                }
+                @Metar.Raw
+            </div>
             <div class="metar-parse">
                 <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@(Metar.Wind?.Label ?? "—")</b></span>
                 <span class="mp"><span class="muted">@T("Airport_Visibility")</span><b>@(Metar.Visibility ?? "—")</b></span>

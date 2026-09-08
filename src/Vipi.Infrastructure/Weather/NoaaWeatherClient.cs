@@ -26,10 +26,18 @@ public sealed class NoaaWeatherClient : IWeatherProvider
     // perdenti ne avvino uno da scartare (come farebbe la factory di GetOrAdd, che può girare più volte).
     private readonly ConcurrentDictionary<string, Lazy<Task<WeatherReport>>> _inFlight = new();
 
-    public NoaaWeatherClient(IHttpClientFactory factory, IOptions<WeatherOptions> opt)
+    // Le sorgenti di scorta per il solo METAR, NELL'ORDINE in cui si provano: IVAO, poi VATSIM. Vuota =
+    // nessuna scorta, e il comportamento torna quello di prima.
+    // ⚠️ L'ordine è quello di registrazione nel contenitore, ed è una decisione: IVAO prima perché è la rete
+    // che questi documenti servono — se le due sorgenti divergessero, quella giusta per noi è la sua.
+    private readonly IReadOnlyList<IMetarFallback> _scorte;
+
+    public NoaaWeatherClient(IHttpClientFactory factory, IOptions<WeatherOptions> opt,
+        IEnumerable<IMetarFallback>? scorte = null)
     {
         _factory = factory;
         _opt = opt.Value;
+        _scorte = scorte?.ToList() ?? (IReadOnlyList<IMetarFallback>)Array.Empty<IMetarFallback>();
     }
 
     public Task<WeatherReport> GetAsync(string icao, CancellationToken ct = default)
@@ -59,11 +67,29 @@ public sealed class NoaaWeatherClient : IWeatherProvider
             var metar = await TryFetchAsync(() => FetchMetarAsync(http, icao));
             var taf = await TryFetchAsync(() => FetchTafAsync(http, icao));
 
+            // ⚠️ La SCORTA si chiede solo per il METAR mancante, e solo dopo che la principale ha risposto
+            // (o ha taciuto). Segnalato dal committente l'8 settembre 2026: «ogni tanto NOAA fallisce e non
+            // dà il METAR». Sta QUI dentro, e non in un decoratore attorno a `GetAsync`, perché così eredita
+            // la cache per ICAO, la deduplica delle richieste in volo e la ricaduta sull'ultimo valore noto:
+            // un decoratore fuori le vedrebbe tutte già risolte e finirebbe per chiedere la scorta a ogni
+            // render di ogni pagina.
+            // ⚠️ Il TAF non ha scorta, e non è una dimenticanza: un TAF gratuito e indipendente da NOAA non
+            // esiste (provato). Meglio un METAR senza il suo TAF che nessuno dei due.
+            // ⚠️ Si prova UNA scorta per volta e ci si ferma alla prima che risponde: sono servizi di altri, e
+            // interrogarli tutti quando il primo ha già dato il METAR sarebbe traffico regalato.
+            string? sorgente = null;
+            foreach (var scorta in _scorte)
+            {
+                if (metar is not null) break;
+                metar = await scorta.GetMetarAsync(icao).ConfigureAwait(false);
+                if (metar is not null) sorgente = scorta.Nome;
+            }
+
             // Entrambi assenti: probabile servizio irraggiungibile → ricade sull'ultimo valore noto (anche scaduto).
             if (metar is null && taf is null && _cache.TryGetValue(icao, out var stale))
                 return stale.Report;
 
-            var report = new WeatherReport(icao, metar, taf, now);
+            var report = new WeatherReport(icao, metar, taf, now, sorgente);
             // TTL breve sull'esito vuoto: col TTL pieno un blip di pochi secondi di NOAA azzererebbe il meteo
             // dell'aeroporto per tutta la finestra normale, senza modo di riprovare prima.
             _cache[icao] = (report, now.Add(_opt.CacheTtlFor(report.HasData)));

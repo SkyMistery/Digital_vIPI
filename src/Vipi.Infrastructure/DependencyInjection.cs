@@ -221,6 +221,16 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(10);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
+        // ⚠️ Le SCORTE del METAR, e l'ORDINE di registrazione È la catena: prima IVAO, poi VATSIM.
+        // IVAO per prima perché è la rete che questi documenti servono — se le due sorgenti divergessero,
+        // quella giusta per noi è la sua — e perché le credenziali ci sono già. VATSIM resta la terza gamba:
+        // niente chiave, altro operatore, e regge anche se il token IVAO non c'è.
+        // ⚠️ Si registrano SEMPRE, anche senza credenziali o senza indirizzo: in quel caso rispondono `null`
+        // e la catena prosegue da sé, senza un secondo percorso di codice a seconda della configurazione.
+        // ⚠️ Tutt'e due SINGLETON come chi le usa (`NoaaWeatherClient`): nessuna delle due tiene un typed
+        // client: prendono la `HttpClient` dalla fabbrica a ogni chiamata.
+        services.AddSingleton<Vipi.Application.Abstractions.IMetarFallback, Ivao.IvaoMetarClient>();
+        services.AddSingleton<Vipi.Application.Abstractions.IMetarFallback, Weather.VatsimMetarClient>();
         services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
 
         // Documenti bilingue (carta 2026-08-27): il motore di traduzione automatica.
