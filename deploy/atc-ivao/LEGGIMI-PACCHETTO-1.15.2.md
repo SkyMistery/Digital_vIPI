@@ -1,6 +1,6 @@
 # Pacchetto 1.15.2 — solo i file cambiati
 
-> **Timbro:** `1.15.2 · eb7f3894` (8 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.15.2 · eb7f389` (8 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.15.1**, online dalla notte del 7. **7 file.**
@@ -74,7 +74,7 @@ la data e l'errore. Se non c'è, vuol dire che l'ultimo è andato bene.
 
 1. **La Ricerca**: due lettere nel campo in alto, la riga sotto deve cambiare. È l'unico controllo che passa
    dal **server**: una pagina che si vede intera non dimostra che l'applicazione sia partita.
-2. **Timbro**: `diagnostica/avvio-diagnostica.txt` deve dire `1.15.2 · eb7f3894`.
+2. **Timbro**: `diagnostica/avvio-diagnostica.txt` deve dire `1.15.2 · eb7f389`.
 3. Con occhi da **amministratore**, ed è la prova vera di questo pacchetto: aprite un documento che il
    sistema segnala come **«da ripubblicare»** (lo trovate in «Da fare», oppure il banner giallo in cima al
    suo editor), **pubblicatelo** dal pannello «Versioni & release» in fondo alla pagina, e **restate lì**:

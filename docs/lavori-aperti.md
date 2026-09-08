@@ -4,8 +4,8 @@
 
 1. 📦 **Il pacchetto 1.15.2 è PRONTO, ⏳ e non è ancora caricato**: in produzione gira ancora **1.15.1**
    (`68e71bf`, timbro del server, in servizio dalle 21:11 UTC del 7). Zip
-   `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`, sha256 `7e88bfc3…`, **7 file**, timbro
-   **`1.15.2 · eb7f3894`**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e §CE**
+   `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`, sha256 `60e375c4…`, **7 file**, timbro
+   **`1.15.2 · eb7f389`**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e §CE**
    insieme: PATCH, nessuna migrazione, si consegna da solo anche dentro la finestra cieca.
    ▶ **Il lavoro che resta è caricarlo**, e poi rifare la prova su produzione (`SOLO_PUBBLICO=1`).
    ⚠️ **La prova di §CD non è nostra**: la darà il prossimo `errori-richieste.txt` scaricato qualche giorno
@@ -10076,8 +10076,8 @@ essere muto senza che niente si accorga.
 ### 📦 Il pacchetto 1.15.2 — pronto l'8 settembre 2026, ⏳ da caricare
 
 `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip` · sha256
-`7e88bfc370208eee8bbf2965ac64655dff2638dbd85565fa2ccae68ad812c622` · 3,33 MB · **7 file** · timbro
-**`1.15.2 · eb7f3894`**. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`.
+`60e375c473b5dc5a922396745017f329d68b4a67ea844cc8963c7ada655f9ed7` · 3,33 MB · **7 file** · timbro
+**`1.15.2 · eb7f389`**. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`.
 
 Porta **§CD e §CE insieme**: sono le une e le altre solo correzioni, quindi **PATCH**. Nessuna migrazione →
 si consegna da solo dentro la [finestra cieca](#finestra-cieca) fino al 16.

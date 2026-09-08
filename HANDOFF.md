@@ -3,8 +3,8 @@
 **Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD e §CE sono chiusi, e il pacchetto 1.15.2 è PRONTO.**
 Albero pulito e spinto, suite verde sui due TFM, Release senza avvisi.
 
-📦 **`artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`** · sha256 `7e88bfc3…` · 3,33 MB · **7 file** ·
-timbro **`1.15.2 · eb7f3894`** · foglio
+📦 **`artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`** · sha256 `60e375c4…` · 3,33 MB · **7 file** ·
+timbro **`1.15.2 · eb7f389`** · foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md).
 PATCH: nessuna migrazione, niente `wwwroot` — si consegna da solo anche dentro la finestra cieca.
 
