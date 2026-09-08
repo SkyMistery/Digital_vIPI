@@ -1,12 +1,23 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD è chiuso e provato vivo.** `main` = `6406d425`,
-albero pulito e spinto, suite verde.
+**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD e §CE sono chiusi, e il pacchetto 1.15.2 è PRONTO.**
+Albero pulito e spinto, suite verde sui due TFM, Release senza avvisi.
 
-🔴 **In produzione c'è ancora 1.15.1** (`68e71bf`, timbro del server): **niente di §CD è consegnato.**
-Le correzioni sono solo correzioni — nessuna pagina né sezione nuova — quindi il numero sarebbe **1.15.2**,
-e non c'è nessuna migrazione. ▶ **Il primo lavoro è il pacchetto**: runbook
-[`docs/guide/preparare-un-pacchetto.md`](docs/guide/preparare-un-pacchetto.md).
+📦 **`artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`** · sha256 `7e88bfc3…` · 3,33 MB · **7 file** ·
+timbro **`1.15.2 · eb7f3894`** · foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md).
+PATCH: nessuna migrazione, niente `wwwroot` — si consegna da solo anche dentro la finestra cieca.
+
+🔴 **⏳ Non è ancora caricato**: in produzione gira ancora **1.15.1** (`68e71bf`). ▶ **Il lavoro che resta è
+caricarlo** (runbook [`docs/guide/preparare-un-pacchetto.md`](docs/guide/preparare-un-pacchetto.md), passo
+6-bis: la stessa prova ripuntata su produzione).
+
+**§CE — «ho ripubblicato e l'avviso è ancora lì»** (8 settembre): due difetti diversi, e nessuno dei due
+nella deriva. Il banner delle cose da fare si ricaricava **solo al cambio di `DocumentId`** — e dopo una
+pubblicazione il documento è lo stesso; e il guasto della riconciliazione alla pubblicazione era **muto**,
+quindi indistinguibile dal difetto che 1.14.2 era andato a togliere. Ora l'esito resta scritto
+(`ImpactDriftOnPublish`) e Diagnostica lo mostra. Provato **sul pacchetto**: su LIBC e su vIPI Milano il
+banner si svuota senza ricaricare, e ricaricando resta vuoto.
 
 ## Che cosa ha detto la diagnostica di produzione, e come è finita
 

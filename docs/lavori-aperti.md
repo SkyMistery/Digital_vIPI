@@ -2,13 +2,15 @@
 
 ## Dove siamo — 8 settembre 2026
 
-1. 🔴 **In produzione c'è ancora 1.15.1** (`68e71bf`, timbro del server, in servizio dalle 21:11 UTC del 7):
-   **niente di §CD è consegnato**. `main` = `6406d425`, pulito e spinto, nessun ramo aperto.
-   ▶ **Il primo lavoro è il pacchetto**: sono solo correzioni — nessuna pagina né sezione nuova, nessuna
-   migrazione — quindi il numero è **1.15.2**. Runbook `docs/guide/preparare-un-pacchetto.md`.
-   ⚠️ **La prova delle correzioni non è nostra**: la darà il prossimo `errori-richieste.txt` scaricato
-   qualche giorno dopo il caricamento — zero «A second operation», meno `ObjectDisposedException`, e le
-   note in una riga.
+1. 📦 **Il pacchetto 1.15.2 è PRONTO, ⏳ e non è ancora caricato**: in produzione gira ancora **1.15.1**
+   (`68e71bf`, timbro del server, in servizio dalle 21:11 UTC del 7). Zip
+   `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`, sha256 `7e88bfc3…`, **7 file**, timbro
+   **`1.15.2 · eb7f3894`**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e §CE**
+   insieme: PATCH, nessuna migrazione, si consegna da solo anche dentro la finestra cieca.
+   ▶ **Il lavoro che resta è caricarlo**, e poi rifare la prova su produzione (`SOLO_PUBBLICO=1`).
+   ⚠️ **La prova di §CD non è nostra**: la darà il prossimo `errori-richieste.txt` scaricato qualche giorno
+   dopo il caricamento — zero «A second operation», meno `ObjectDisposedException`, e le note in una riga.
+   §CE invece è **già provata sul pacchetto**: il banner si svuota da sé appena si pubblica.
 2. ✅ **§CD è LAVORATO** (8 settembre): due difetti su tre chiusi con una correzione ciascuno, il terzo
    ristretto e strumentato. La domanda «chi gira accanto al tornello?» ha una risposta, e non era quella che
    sembrava: **nessuno lo scavalca**. Il tornello serializza lo scope PROPRIO dell'editor, ma dentro lo
@@ -10070,4 +10072,34 @@ essere muto senza che niente si accorga.
   firma — la riga non si chiuderebbe **mai**, né pubblicando né col giro. Non misurata: sul caso reale
   (LIBD) ora funziona. Se ricapita, il primo dato utile è **quali sezioni nomina** l'avviso: una o due →
   quella sezione si ricostruisce diversa; tutte → sono le chiavi della firma a non combaciare.
+
+### 📦 Il pacchetto 1.15.2 — pronto l'8 settembre 2026, ⏳ da caricare
+
+`artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip` · sha256
+`7e88bfc370208eee8bbf2965ac64655dff2638dbd85565fa2ccae68ad812c622` · 3,33 MB · **7 file** · timbro
+**`1.15.2 · eb7f3894`**. Foglio: `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`.
+
+Porta **§CD e §CE insieme**: sono le une e le altre solo correzioni, quindi **PATCH**. Nessuna migrazione →
+si consegna da solo dentro la [finestra cieca](#finestra-cieca) fino al 16.
+
+**I file**: `Vipi.Application` `.dll`/`.pdb`, `Vipi.Ui` `.dll`/`.pdb`, `Vipi.Host` `.dll`/`.pdb` e
+`en/Vipi.Ui.resources.dll` (le due `.resx` hanno una frase nuova, l'avviso in Diagnostica).
+**Niente `wwwroot`, e non è dedotto**: confrontate per impronta le due cartelle pubblicate intere — 460 file
+per parte — le differenze sono **tutte** negli assiemi, `staticwebassets.endpoints.json` compreso, che è
+identico.
+
+⚠️ **La domanda del runbook sugli assiemi lasciati fuori**, fatta: `IImportStateStore` **non** cambia (la
+costante nuova sta nella classe statica accanto, e una `const` la si porta dentro il **chiamante** alla
+compilazione — i soli a nominarla sono `ReleaseService` e `DiagnosticaPage`, tutt'e due dentro); il
+costruttore di `ReleaseService` guadagna un parametro, e **aggiungere un parametro cambia la firma**, ma
+l'unico a costruirlo è la registrazione DI, che sta in `Vipi.Application`; `DocumentEditorShell` e i cinque
+editor vivono in `Vipi.Ui`. `EfImportStateStore` (Infrastructure) non ha nulla da adeguare.
+
+✅ **Provato sul PACCHETTO pubblicato** (win-x64 avviato dalla sua cartella, JS minificato), non sul
+sorgente: i dieci controlli verdi — Ricerca compresa — più **la prova di §CE**, che è la ragione del
+pacchetto: su `vIPI — LIBC Crotone` (editor d'aeroporto) e su `vIPI Milano` (editor ACC) il banner
+⚠️ «da ripubblicare» c'era, si è premuto **Publish now** e il banner **si è svuotato senza ricaricare la
+pagina**. E ricaricandola resta vuoto — cioè la riga era chiusa **davvero** nel database, non solo a
+schermo. In Diagnostica il riquadro «Documents needing review» risponde e l'avviso nuovo **non** compare:
+la ripulitura è riuscita, ed è quello che deve dire.
 
