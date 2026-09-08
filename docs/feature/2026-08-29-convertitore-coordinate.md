@@ -354,3 +354,63 @@ cinque); e una riga di solo commento che chiudeva il blocco anonimo, spezzando i
 cose — il verso *e* il punto di partenza — e chi ha chiesto «inverti» non ha chiesto la seconda. Su un anello
 il primo vertice resta il primo; su una linea aperta si percorre dall'altro capo, che lì è proprio il
 significato.
+
+## §16 — La chiusura del poligono negli elenchi di vertici (8 settembre 2026)
+
+Segnalata dal committente: *«l'ultima riga non viene scritta se è uguale a quella iniziale (chiusura
+poligono); purtroppo serve per le forme di webeye altrimenti dà errore»*.
+
+⚠️ **Il lettore non sbagliava.** `CoordinateParser.DaVertici` toglie il vertice che ripete il primo, e deve
+farlo: non è un vertice, è una proprietà dell'anello — tenerlo falserebbe il conto dei punti, il perimetro,
+l'area e ogni gesto sulla forma. Il difetto stava **in uscita**: quella riga non veniva riscritta mai, in
+nessun formato e con nessuna opzione. Chi incollava un poligono chiuso lo riotteneva **aperto**.
+
+### Due interruttori, non uno
+
+C'era già `ChiudiAnello`, e la tentazione era allargarlo. **È stata scartata dopo aver riletto i test**: le
+prove fissano l'uscita del DB IVAO carattere per carattere sui dati veri del committente, e il DB scrive i
+cinque vertici di R14A in **cinque** righe, senza ripetere il primo. Allargare `ChiudiAnello` avrebbe fatto
+cadere quelle prove — cioè avrebbe affermato una cosa falsa sul formato.
+
+Perché sono due gesti diversi, e non due nomi dello stesso:
+
+| | che cos'è la chiusura | interruttore |
+|---|---|---|
+| segmenti | un **lato** che nell'elenco dei vertici non esiste e va **generato** | `ChiudiAnello` (default `true`) |
+| DB IVAO, elenco punti | il primo vertice **riscritto** come ultima riga: un dato duplicato | `RipetiPrimoVertice` (default `false`) |
+
+⚠️ Il default del motore è `false` **perché è il formato**: il DB non ripete. A chiedere la riga in più è la
+**pagina**, dove c'è una persona che sa in quale campo sta per incollare — e lì la casella «Ripeti il primo
+punto in fondo (chiusura)» nasce **accesa**, perché chi converte un'area la porta quasi sempre in webeye. Chi
+incolla nel sectorfile, dove il vertice ripetuto è rumore, la spegne.
+
+⚠️ **La casella dei vertici e quella dei segmenti non compaiono mai insieme**: sono la stessa idea in due
+formati, e vederle entrambe farebbe pensare a due chiusure sovrapponibili.
+
+### Il difetto che ha preso la suite, dentro la correzione
+
+⚠️ La prima stesura ripeteva il primo vertice su **qualunque** elenco di tre punti o più — **coste comprese**.
+Una `COAST` è una linea aperta per davvero, e chiuderla inventa un lato che non esiste. L'ha inchiodata un
+test che c'era già (`Invertire_Una_Linea_Aperta_La_Percorre_Dall_Altro_Capo`), non uno nuovo. Rimedio: la
+pagina passa `_ripeti && area.SiChiude` — **chi decide se la forma è un anello è l'area**, non l'uscita: il
+motore riceve punti e non può saperlo.
+
+### Che cosa ha preso la verifica live
+
+Su `/services/coordinates`, incollando R14A **già chiusa** (sei righe dal DB):
+
+| | righe | ultima = prima? |
+|---|---|---|
+| elenco punti (default) | 6 | ✅ |
+| DB IVAO | 6 | ✅ |
+| DB IVAO, casella spenta | 5 | — |
+| segmenti | 5 lati | la chiude il lato, come prima |
+| una `COAST` | 3 | — mai chiusa |
+
+⚠️ E il righello continua a dire **«points: 5»** con sei righe a schermo: la chiusura non è un vertice, e i
+due numeri non devono mai contraddirsi. Console pulita.
+
+**Prove**: 8 nuove nel motore (default che non ripete su tutt'e due i formati, la ripetizione chiesta su
+entrambi, l'andata-e-ritorno di un poligono già chiuso, l'elenco che ripete già e non si raddoppia, sotto i
+tre vertici non si chiude niente, e i due interruttori indipendenti) e 4 sulla pagina. Verdi su net10:
+Application **2 278**, Ui **1 379**.

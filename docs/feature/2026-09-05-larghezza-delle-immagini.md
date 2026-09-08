@@ -62,3 +62,65 @@ caricata davvero, maniglia trascinata col mouse del browser):
   `ImageBlockEditorTests` (la maniglia c'e' solo con l'immagine, la percentuale torna all'host nello stesso
   riferimento, «piena larghezza» cancella la scelta, una misura uguale non salva), `BlockRenderingTests`
   (la percentuale arriva al documento; senza scelta la figura **non porta nessuno stile**).
+
+## Il seguito: il clic riapre la foto a dimensioni originali (8 settembre 2026)
+
+Richiesta del committente subito dopo: *«ora le immagini caricate si possono ridimensionare, si può fare che
+se l'utente clicca sull'immagine in un documento si apre tipo pop up e la mostra a dimensioni originali?»*.
+
+⚠️ **È il prezzo della feature qui sopra, ed era prevedibile.** Da quando la figura si stringe, una carta di
+avvicinamento nel documento può stare al 30% della colonna: misurata su LIBG, una foto **1912×1073** si
+disegna a **555px**. Prima non c'era modo di leggerla.
+
+**Come è fatta.** Un `<button class="img-zoom">` intorno all'`<img>` in `ImageFigure` — la resa condivisa,
+quindi viewer, anteprime dei due editor e stampa non possono divergere — e una **delega sola** su `document`
+in `vipi-ui.js` che costruisce il velo.
+
+- ⚠️ **Nessun giro dal server.** Le pagine dei documenti sono SSR statico con isole interattive: una finestra
+  che avesse bisogno del circuito Blazor non si aprirebbe **proprio sulle pagine pubbliche**, che sono quelle
+  dove si legge. E l'immagine è già nella cache — l'URL è lo stesso, non esiste una versione ridotta: la
+  finestra non chiede un byte in più.
+- ⚠️ **Delega e non aggancio per figura**: i blocchi immagine nascono e muoiono a ogni render di Blazor.
+- ⚠️ **Un `<button>` vero, non un `role="button"` sull'`<img>`**: apre una finestra, quindi deve stare nel
+  giro del tabulatore e rispondere a Invio e Spazio senza che nessuno lo riscriva a mano. Stessa ragione per
+  cui le chip sono diventate `<button>` il 23 agosto.
+- ⚠️ **Le etichette viaggiano come attributi `data-`** (`data-lb-close`, `data-lb-fit`, `data-lb-full`): la
+  finestra la costruisce il JS, e il JS non deve conoscere nessuna lingua.
+- ⚠️ **Il velo si appende dentro `.vipi-root`, non al `<body>`**: `.btn` è dichiarato `:where(.vipi-root)
+  .btn`, e fuori di lì i due tasti uscivano **nudi**, coi bordi di sistema. `.vipi-root` non ha `transform`
+  né `filter`, quindi il `position:fixed` continua a riferirsi alla finestra.
+- ⚠️ **NON si apre dove si scrive**, e la condizione non è un parametro che si può dimenticare di passare: è
+  l'assenza dell'`Overlay`, cioè della maniglia. Nell'editor il gesto del mouse su quell'immagine **è** il
+  trascinamento della larghezza — col gancio anche lì, chi ha appena stretto la foto se la vedrebbe
+  spalancare in faccia a dito alzato.
+
+**Che cosa vede chi legge**: la misura in pixel, un tasto «Adatta allo schermo» / «Dimensioni originali», e
+«Chiudi». Si chiude con Esc, con la ✕ o cliccando sul velo; **non** cliccando sull'immagine, perché lì ci si
+clicca sopra per scorrerla. Il fuoco torna da dov'è partito, la pagina sotto non scorre, e in `print` il velo
+non esiste.
+
+⚠️ `place-items:safe center` e non `center`: col centraggio normale un contenuto più largo del contenitore
+finisce con **l'inizio fuori e irraggiungibile** — cioè proprio il caso per cui la finestra esiste.
+
+⚠️ Adattata usa `max-width`/`max-height`, non `width`: con `width` un'immagine piccola verrebbe **ingrandita**
+oltre il suo naturale, che è sfocatura pura.
+
+**Che cosa ha preso la verifica live** (LIBG, Edge+puppeteer, tema chiaro e scuro):
+
+| | |
+|---|---|
+| viewer | 1 tasto, cursore `zoom-in`, immagine 555px in pagina |
+| aperta | dentro `.vipi-root`, `fixed`, z 1900, «1912 × 1073 px», immagine **1912×1073**, il piano scorre, fuoco sulla ✕, pagina bloccata |
+| adattata | 1372×770, niente scorrimento, il tasto diventa «Dimensioni originali» |
+| Esc / velo | chiude, scorrimento della pagina ripristinato |
+| **editor** | **0 tasti zoom**, la maniglia al suo posto |
+
+- ⚠️ **E ha trovato due regole CSS morte, scritte da me un'ora prima**: volevano i tasti bianchi sul velo e
+  non dipingevano niente — `.btn.ghost` sta più in basso nel foglio e a parità di peso vinceva. Misurato con
+  la finestra aperta: in tema chiaro pastiglia quasi bianca con testo blu `#0d2c99`, in scuro pastiglia blu
+  notte con testo azzurro. Si leggono in tutt'e due, sono i tasti di casa: le due regole sono state **tolte**.
+  Due regole morte con un commento che dice il contrario sono peggio di nessuna regola.
+
+**Prove**: `ImmagineIngrandibileTests` — il gancio c'è dove si legge, **non** c'è dove si ridimensiona, le
+etichette tradotte viaggiano come `data-`, la larghezza al 60% non si perde, e senza immagine non c'è niente
+da aprire. Ui **1 375** verdi su net10, solution 0 avvisi.

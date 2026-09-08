@@ -1144,7 +1144,7 @@ guardie sulla radice del JSON, dove il `catch` sbagliato dava una falsa sicurezz
 | ⚠️ Alternato **estero** | `LSZH Zurich` — il nome l'ha trovato **IVAO**, e si è salvato nel documento |
 | Coordinate delle soglie | seconda tabella: `17 │ N45°32'20.40''E008°39'28.80'' │ 586 ft` |
 | Nominativi / Parcheggi | le righe scritte a mano, e ci restano |
-| Aree di lavoro | un clic = `A/A`; un **doppio clic vero** = `A/A - A/G` |
+| Aree di lavoro | un clic = `A/A`; un **doppio clic vero** = `A/A - A/G` <br><small>⚠️ misura del 29 agosto: dall'8 settembre le attività sono quindici e il doppio clic non c'è più — §12h</small> |
 | L'indice | le sotto-sezioni ci sono, nel viewer e nell'editor |
 
 ⚠️ **Una trappola dell'attrezzo, per la prossima volta**: `[list="vipi-navaid-types"]` è *sia* la casella
@@ -1307,6 +1307,154 @@ invariate (su 149 righe dal sectorfile)» in chip verde; nessuna `cfg-table` rim
 stile in linea nelle sei tabelle; nessuna pagina che scorre in orizzontale; console e rete pulite.
 ⚠️ E la colonna «Coordinate» dell'anagrafica, unica senza larghezza, si prendeva **824px su 1600** lasciando
 la provenienza contro il bordo: con tutte le colonne dichiarate l'avanzo si distribuisce in proporzione.
+
+### 12g / 12h. Le tabelle a mano e le «Aree di lavoro» — la sezione che il codice citava e che non c'era
+
+⚠️ **Prima di tutto il resto: queste due lettere sono un buco della carta, non una novità.** Dal 27 agosto
+undici punti del codice rimandano a «carta §12g» (le tabelle a colonne fisse: `MilTablePayload`,
+`MilFixedTable`, `MilFixedTableEditor`) e a «carta §12h» (le attività delle aree: `MilRegulatedPayload`,
+`MilWorkingAreas`, `IMilitaryDocumentService`) — e nel documento quelle due sezioni **non sono mai state
+scritte**. Chi seguiva il rimando finiva sul nulla. Si chiude qui, con le decisioni di allora e quelle
+dell'8 settembre 2026 nello stesso posto.
+
+**§12g in una riga**: «Nominativi» e «Parcheggi» sono tabelle a **colonne fisse e celle libere**. Le colonne
+le decide il **profilo** — Squadrone/OAT/GAT/QRA, Nome/Numeri/Usato da — perché è quel che rende una sezione
+di SOP confrontabile fra quindici campi. Il contenuto è il payload, il payload è nel documento, e la release
+lo fotografa copiando i blocchi: niente si risolve altrove, quindi niente si congela. È la differenza con
+«Radioassistenze» e «Aeroporti alternati», che vivono sui cataloghi e per questo sono `Derived`.
+
+**§12h**: sotto la mappa delle aree c'è una tabella. Nome e limiti **non si riscrivono**: vengono dalle aree
+scelte con le chip. Si compila solo quel che la mappa non può dire.
+
+#### Le quindici attività (8 settembre 2026)
+
+Erano due, `A/A` e `A/G`. Su richiesta del committente diventano quindici: `EW`, `AEW`, `RPA`, `AAR`,
+`HAAR`, `CAP`, `CAS`, `ASW`, `SFO`, `TEST FLIGHTS`, `TRAINING`, `PARA`, `LOW LEVEL`.
+
+⚠️ **Non è «tredici righe in più in un enum».** `Scrivi`/`Chiave`/`Leggi` erano tre `switch` che elencavano le
+**combinazioni**: con 2 attività sono 4 casi, con 15 sono 32 768. Ora c'è un **catalogo solo** — bandierina,
+etichetta a schermo, chiave nel JSON — e le tre funzioni ci scorrono sopra. La stessa riga fa il gettone
+nell'editor, il testo in sola lettura e la chiave salvata: la sedicesima sarà una riga.
+
+⚠️ **I bit non si riordinano e non si riciclano**: un bit riusato per un'altra attività riscrive il
+significato di quel che è già salvato. Le nuove si accodano.
+
+⚠️ **Nel JSON restano PAROLE** (`CAS-LOWLEVEL`, non `16640`), e le chiavi non contengono né il trattino — che
+è il separatore — né spazi: `TEST FLIGHTS` si salva `TESTFLIGHTS`. Si aggiunge, non si rinomina.
+
+⚠️ **Quel che è salvato si rilegge**: `AA`, `AG`, `AA-AG` continuano a valere, l'ordine dei pezzi non conta
+più, e un pezzo **sconosciuto si salta** invece di far perdere la riga — un documento scritto da una versione
+che ha un'attività in più si legge lo stesso, meno quella voce.
+
+⚠️ **L'ordine a schermo è quello del CATALOGO, mai quello dei clic**: due aree con le stesse attività devono
+scriverle uguali, o sembrano diverse.
+
+⚠️ **Il doppio clic «prendile tutte» è stato tolto.** Con due voci era la scorciatoia per `A/A - A/G`; con
+quindici scrive un'area dove si fa *tutto*, che non esiste — e partiva per sbaglio a chiunque cliccasse due
+volte di fila sullo stesso gettone. La riga d'aiuto è cambiata di conseguenza in tutt'e due le lingue.
+
+#### La colonna «Note»
+
+Una nota libera per area, per spiegare una procedura particolare: è la cosa che quindici gettoni non sanno
+dire. Vuota, la cella dice «—» e la colonna **non sparisce** — una colonna che c'è a volte si legge come un
+dato mancante. È l'unica colonna di prosa, quindi l'unica **senza larghezza**: con `table-layout:fixed` si
+prende quel che avanza, come Condition nelle SID.
+
+Si salva quando il campo perde il fuoco (evento `change`, non `input`): una nota è prosa, e salvare a ogni
+tasto sarebbero cento scritture per riga. Vuota o di soli spazi ⇒ si toglie; gli spazi ai bordi si tagliano.
+
+⚠️ **`MilRegulatedPayload.Scrivi` prende le note come parametro OBBLIGATORIO, senza valore di scorta.** Quel
+JSON lo riscrive intero chiunque salvi una delle tre cose (selezione, attività, note): un chiamante che
+passasse la sola selezione **cancellerebbe tutte le note**, senza un errore e senza che chi le ha scritte
+tocchi mai quella tendina. È lo stesso incidente che le attività avevano già evitato a forza di commenti; ora
+lo impedisce il compilatore — e ha già funzionato, facendo cadere il build su cinque chiamate nei test.
+
+⚠️ **Il difetto che la revisione ha trovato, e che la prova a schermo ha confermato.**
+`MilSectionsEditor.SaveRegulated` salvava la selezione e ricaricava solo `_regulated` e `_areeScelte`. Ma
+salvare la selezione **pota**: `Scrivi` scarta attività e note delle aree non più scelte. Le mappe in memoria
+restavano con le voci appena cancellate. Misurato dal vivo su LIBG, togliendo la chip di un'area con una nota
+e rimettendola nella stessa sessione:
+
+| | togli chip → rimetti | dopo ricarico vero |
+|---|---|---|
+| senza correzione | `"PROVA LIVE 1788882274732"` — la nota riappare | `""` — non c'era più |
+| con correzione | `""` | `""` |
+
+Lo schermo diceva «salvata» e sul disco non c'era niente. Con due gettoni si perdeva un clic; con una nota si
+perde prosa scritta a mano. Si ricarica dalla **porta unica** (`CaricaTabelleAsync`) e non due righe a mano:
+il giorno che una terza cosa per-area si aggiunge, chi la aggiunge non deve ricordarsi anche di quel punto.
+
+#### I poligoni di tiro (*weapon range*)
+
+Il flag `range` dell'import IVAO era **già nel DB** (`SpecialArea.Range`, scritto da `IvaoAccClient`) e si
+fermava lì: tre `Select` non lo copiavano, quindi né la tabella né la mappa potevano saperlo. Ora arriva fino
+in fondo — `SpecialAreas.Range` → `SpecialAreaDetail` → `AccSpecialAreaView` — e si vede in due modi: la riga
+in tabella è tinta con la barretta a sinistra e la targhetta «Poligono di tiro», e il poligono in mappa è
+**arancione** (`SpecialAreaColorScheme.WeaponRange = #E2711D`).
+
+⚠️ **Il flag vince sul tipo, e non è un sesto colore della tavolozza**: nel `vipi.db` di sviluppo le 16 aree
+marcate (su 230) stanno sotto **R, D e TRA insieme**. Un colore per tipo non potrebbe dirlo.
+
+⚠️ **Arancione e non un altro rosso**: la R è già rossa e i poligoni si riempiono al 16%, dove due rossi
+vicini diventano lo stesso rosso.
+
+⚠️ **I preset per tipo NON cambiano**: un poligono di tiro si accende ancora con la chip del suo tipo. Se
+cambiasse anche il raggruppamento, spegnere «R» lascerebbe accese delle R.
+
+⚠️ **L'esadecimale sta in UN posto**: la costante C#. Tabella e schede lo passano al foglio di stile come
+`--wr`, e il CSS costruisce tinta, bordo e barretta con `color-mix`. Cambiarlo cambia insieme poligono,
+targhetta e riga.
+
+⚠️ **Tocca anche vIPI ACC e APP**, non solo il militare: `RegulatedAreasMap` è il motore condiviso. È voluto —
+un poligono di tiro è un poligono di tiro anche per un civile — ed è una riga da restringere al solo militare
+se il committente decide altrimenti.
+
+#### La traduzione, e il pezzo che il revisore non aveva visto
+
+Le note sono **prosa**, quindi si traducono. Erano fuori per due ragioni **indipendenti**, e correggerne una
+sola non si sarebbe visto:
+
+1. `TextSegmenter` portava il flag «qui dentro è tutto testo» solo dentro gli **array** (`columns`, `cells`).
+   Il valore di `notes` è un **oggetto** id-area → testo: ci scendeva col flag spento e non trovava niente.
+   Ora il flag entra anche negli oggetti, e `notes` è fra le chiavi di testo.
+2. `MilMemberLoader` leggeva i payload **prima** della passata di traduzione. Anche col segmentatore giusto,
+   il lettore inglese avrebbe trovato tutto tradotto e le note in italiano. Le quattro letture sono spostate
+   **dopo** la traduzione — e **prima** del filtro d'audience, che toglie sezioni e da una sezione tolta i
+   payload tornerebbero vuoti.
+
+⚠️ **Le CHIAVI non si traducono mai.** Sotto `notes` la chiave è l'id dell'area: tradotta, la nota si
+scollegherebbe dalla sua area — si perderebbe il dato invece di renderlo bilingue. Il ramo degli oggetti non
+tocca le chiavi in nessun caso, quindi è vero per costruzione e non per attenzione. Stessa ragione per cui
+`activities` resta intatta: non è prosa, è la forma compatta dei flag.
+
+⚠️ **`rows` resta FUORI dalla traduzione, e non è una dimenticanza: è una decisione del committente,
+presa l'8 settembre 2026.** `rows` di `MilTablePayload` (§12g) porta «Nominativi» e «Parcheggi», e non è lo
+stesso caso delle note: «Nominativi» contiene **identificatori** (`13° Gruppo`, `IBIS`, `IAM 1234`), che
+tradotti sarebbero peggio che lasciati, e il protettore non li riconosce — non hanno la forma di un callsign
+né di un punto. «Parcheggi» è mezza prosa (`Piazzale Nord`), e vale il prezzo piccolo.
+
+La strada c'era: il payload porta un campo `variant`, quindi si poteva tradurre la **sola** variante
+Parcheggi. È stata **scartata** perché vuol dire insegnare al segmentatore una semantica dei documenti che
+oggi non ha — finora conosce nomi di chiavi, non che cosa significano — e quella conoscenza andrebbe
+presidiata con test propri per una riga di tabella.
+
+Chi rileggendo pensa «qui manca `rows`» legga questo capoverso prima di aggiungerlo.
+
+#### Larghezze e conti
+
+La colonna delle attività passa da 190 a **260px** (i gettoni vanno a capo da soli e il testo in sola lettura
+pure: a 190 non si perdeva niente, si leggeva una colonna alta sei righe accanto a una vuota); la colonna
+Note non ha larghezza.
+
+**Prove**: 8 test nuovi in `MilTabelleAManoTests` (ordine di catalogo, andata-e-ritorno di **ogni** attività
+girando sul catalogo — così una aggiunta all'enum e dimenticata nel catalogo fa rosso invece di sparire in
+silenzio —, chiavi vecchie, pezzo sconosciuto, e quattro sulle note), 3 in `SezioneAreeDiLavoroTests` (note
+che sopravvivono a un cambio di aree e di attività, nota svuotata, e la catena DB→vista→colore del poligono
+di tiro), 2 in `RegulatedAreasMapTests`, 2 in `TextSegmenterTests`. Verdi su net10: Application **2 269**
+(+20), Infrastructure **1 322** (+4), Ui **1 375** (+4), Domain 140, Hosting 66. Solution 0 avvisi.
+
+⚠️ **Non verificato a schermo**: la traduzione delle note — servirebbe un vSOP militare con memoria di
+traduzione popolata e un lettore inglese. È provata dai test e dalla lettura, non dall'occhio.
 
 ### 12d. Ordine dei lavori
 

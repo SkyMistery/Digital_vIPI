@@ -67,6 +67,34 @@ Non si manda un blocco intero.
   distruggerebbe la struttura.
 - **Titoli** (`Document.Title`, `DocumentSection.Title`) → un segmento ciascuno.
 
+⚠️ **Il `BodyJson` non e' sempre «una tabella», e l'8 settembre 2026 e' costato un difetto muto.** Le chiavi
+di testo sono un elenco di cio' che **si traduce** — una chiave nuova che nessuno ha classificato resta
+intatta, ed e' la regola giusta — ma il flag «qui dentro e' tutto testo» scendeva solo dentro gli **array**
+(`columns`, `cells`). Le note delle «Aree di lavoro» del vSOP militare hanno per valore un **oggetto**
+id-area -> testo: `Percorri` ci entrava col flag spento e non trovava niente. Un lettore inglese trovava il
+documento tradotto e le note ancora in italiano, senza che niente protestasse. Ora il flag entra anche negli
+oggetti, e `notes` e' fra le chiavi di testo.
+
+⚠️ **E le CHIAVI non si traducono mai, nemmeno li' dentro**: sotto `notes` la chiave e' l'id dell'area, e
+tradurla scollegherebbe la nota dalla sua area — si perderebbe il dato invece di renderlo bilingue. Il ramo
+degli oggetti non tocca le chiavi in nessun caso, che e' quel che rende la regola vera per costruzione e non
+per attenzione. Stessa ragione per cui `activities` resta intatta: non e' prosa, e' la forma compatta dei
+flag, e tradotta non si rileggerebbe piu'.
+
+⚠️ **Segmentare non basta: chi legge deve leggere DOPO.** `MilMemberLoader` prendeva i payload dal
+documento **prima** della passata di traduzione, quindi col segmentatore gia' corretto il difetto restava
+identico. Le letture sono state spostate dopo la traduzione — e prima del filtro d'audience, che toglie
+sezioni e da una sezione tolta i payload tornerebbero vuoti. Vedi `2026-08-27-vsop-militari.md` §12h.
+
+⚠️ **`rows` resta FUORI, per decisione del committente dell'8 settembre 2026** — non per dimenticanza.
+`rows` di `MilTablePayload` porta «Nominativi» e «Parcheggi» del vSOP militare: la prima e' fatta di
+**identificatori** (`13° Gruppo`, `IBIS`, `IAM 1234`) che il protettore non riconosce — non hanno la forma di
+un callsign ne' di un punto — e che tradotti sarebbero peggio che lasciati. La seconda e' mezza prosa, e vale
+il prezzo piccolo. La strada per-variante (il payload porta un campo `variant`) e' stata **scartata**:
+insegnare al segmentatore che cosa **significano** le chiavi, e non solo come si chiamano, e' una conoscenza
+nuova da presidiare con test propri, per una riga di tabella. Chi rileggendo pensa «qui manca `rows`» legga
+questo capoverso prima di aggiungerlo.
+
 La normalizzazione prima dell'hash (spazi, a-capo, virgolette tipografiche) decide quanto il dedup
 morde. Va scritta una volta e testata, perché due normalizzazioni diverse = due cache che non si parlano.
 
