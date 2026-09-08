@@ -156,8 +156,8 @@
   <data name="Chrome_TierExtended" xml:space="preserve"><value>Estesa</value></data>
   <data name="Chrome_TierReduced" xml:space="preserve"><value>Ridotta</value></data>
   <data name="Chrome_LiveDisconnected" xml:space="preserve"><value>Live · non connesso</value></data>
-  <data name="Chrome_OpenEditor" xml:space="preserve"><value>Apri editor</value></data>
-  <data name="Chrome_Editor" xml:space="preserve"><value>Editor</value></data>
+  <data name="Chrome_OpenDocs" xml:space="preserve"><value>Apri l'elenco dei documenti</value></data>
+  <data name="Chrome_Docs" xml:space="preserve"><value>Documenti</value></data>
   <data name="Chrome_Permissions" xml:space="preserve"><value>Permessi editing</value></data>
   <data name="Chrome_ConnectedAs" xml:space="preserve"><value>Sei connesso come questo callsign · apri la vista live</value></data>
   <data name="Chrome_OpenLive" xml:space="preserve"><value>Apri la vista live</value></data>
