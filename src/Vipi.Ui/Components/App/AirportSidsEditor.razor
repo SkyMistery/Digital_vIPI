@@ -127,9 +127,20 @@
                                 <td class="col-climb">
                                     @if (Editing)
                                     {
-                                        <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
-                                               @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
-                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => TouchImported(e)" @onfocus="() => Src(true, e, SidCol.Climb)" /> APP</label>
+                                        @* ⚠️ Riga di flex e non due elementi accostati: dal 5 settembre la cella si TAGLIA
+                                           coi puntini, e due larghezze fisse (76px di campo più ~38 di casella) non stanno
+                                           nei 118px utili della colonna — a schermo si vedevano tre puntini e la casella
+                                           «APP» spariva, cioè l'opzione non si poteva più spuntare. Qui la casella tiene la
+                                           sua larghezza e il campo cede quel che serve. *@
+                                        <div class="cell-climb">
+                                            <input type="number" min="0" step="100" class="in-climb" @bind="e.InitialClimb" @bind:after="() => TouchImported(e)" placeholder="ft" title="@L["Ape_ClimbTitle"]" aria-label="@L["Ape_ClimbTitle"]"
+                                                   disabled="@e.InitialClimbByApp" @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" />
+                                            @* ⚠️ `@onkeydown` anche sulla casella: col campo dei piedi SPENTO
+                                               la casella è l'unica cosa che prende il fuoco in questa cella, e
+                                               senza di qui il Ctrl+Invio «applica alle scelte» smetterebbe di
+                                               funzionare proprio sulle righe da concordare con l'APP. *@
+                                            <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="e.InitialClimbByApp" @bind:after="() => ClimbApp(e)" @onfocus="() => Src(true, e, SidCol.Climb)" @onkeydown="ev => CellKey(ev, true)" /> APP</label>
+                                        </div>
                                     }
                                     else { <span title="@Climb(e.InitialClimb, e.InitialClimbByApp)">@Climb(e.InitialClimb, e.InitialClimbByApp)</span> }
                                 </td>
@@ -261,9 +272,11 @@
                             <td class="col-climb">
                                 @if (Editing)
                                 {
-                                    <input class="in-climb" @bind="s.InitialClimb" @bind:after="Sporca" placeholder="ft" aria-label="@L["Ape_InitialClimb"]"
-                                           @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
-                                    <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @bind:after="Sporca" @onfocus="() => Src(false, s, SidCol.Climb)" /> APP</label>
+                                    <div class="cell-climb">
+                                        <input class="in-climb" @bind="s.InitialClimb" @bind:after="Sporca" placeholder="ft" aria-label="@L["Ape_InitialClimb"]"
+                                               disabled="@s.InitialClimbByApp" @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" />
+                                        <label class="ic-app" title="@L["Ape_ClimbByAppTitle"]"><input type="checkbox" @bind="s.InitialClimbByApp" @bind:after="() => ClimbApp(s)" @onfocus="() => Src(false, s, SidCol.Climb)" @onkeydown="ev => CellKey(ev, false)" /> APP</label>
+                                    </div>
                                 }
                                 else { <span title="@Climb(s.InitialClimb, s.InitialClimbByApp)">@Climb(s.InitialClimb, s.InitialClimbByApp)</span> }
                             </td>
@@ -401,6 +414,28 @@
 
     /// <summary>Un valore in sola lettura, o il trattino.</summary>
     private static string Testo(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!;
+
+    /// <summary>
+    /// La spunta «APP» è cambiata: la quota la decide l'APP, quindi il campo in piedi si spegne e il valore
+    /// che c'era si toglie.
+    ///
+    /// <para>⚠️ Si toglie il valore, non si nasconde soltanto: la riga finisce nel DOCUMENTO passando da
+    /// <see cref="AirportSidDerivationService.NotaClimbApp"/>, che una quota rimasta lì sotto la
+    /// pubblicherebbe come «5000 (to coord with APP)» — cioè una quota fissa E da concordare, che non è
+    /// nessuno dei due stati. Chi torna indietro togliendo la spunta trova il campo vuoto e riscrive.</para>
+    /// </summary>
+    private Task ClimbApp(ImportedSidEdit e)
+    {
+        if (e.InitialClimbByApp) { e.InitialClimb = null; }
+        return TouchImported(e);
+    }
+
+    /// <inheritdoc cref="ClimbApp(ImportedSidEdit)"/>
+    private Task ClimbApp(SidEdit s)
+    {
+        if (s.InitialClimbByApp) { s.InitialClimb = null; }
+        return Sporca();
+    }
 
     /// <summary>
     /// L'initial climb in sola lettura: la quota e, se c'è, la nota della quota da concordare con l'APP.
