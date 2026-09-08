@@ -30,6 +30,33 @@ public sealed class WeatherOptions
     /// <summary>Come si chiama la scorta a schermo, accanto al METAR che ha dato lei.</summary>
     public string FallbackMetarName { get; set; } = "VATSIM";
 
+    /// <summary>
+    /// Quanto si aspetta la sorgente principale, in secondi. ⚠️ Molto meno del timeout della
+    /// <c>HttpClient</c> (10 s), che resta il tetto ultimo: qui si decide quanto vale la pena aspettare **un
+    /// bollettino meteo**, e la risposta non è «quanto un'operazione qualsiasi».
+    ///
+    /// <para>🔴 Misurato l'8 settembre 2026 con NOAA che <b>non risponde</b> (un host che ingoia i pacchetti,
+    /// non un DNS morto — quello fallisce in 4 ms e non prova niente): aprire un aeroporto costava
+    /// <b>20 secondi</b>. Erano due attese da dieci in fila, METAR e TAF, su due bollettini che non hanno
+    /// nulla da spartire.</para>
+    /// </summary>
+    public int TimeoutSeconds { get; set; } = 5;
+
+    /// <summary>
+    /// Quanto si aspetta la <b>catena delle scorte</b>, in secondi — tutta insieme, non una per una.
+    ///
+    /// <para>⚠️ Più corto della principale, e deve restarlo: una scorta serve a coprire un buco <b>in
+    /// fretta</b>. Una scorta lenta quanto ciò che sostituisce non salva la pagina, la fa aspettare due
+    /// volte.</para>
+    /// </summary>
+    public int FallbackTimeoutSeconds { get; set; } = 3;
+
+    /// <summary>Il tetto d'attesa della principale, minimo un secondo.</summary>
+    public TimeSpan Timeout => TimeSpan.FromSeconds(Math.Max(1, TimeoutSeconds));
+
+    /// <summary>Il tetto d'attesa di TUTTE le scorte messe insieme, minimo un secondo.</summary>
+    public TimeSpan FallbackTimeout => TimeSpan.FromSeconds(Math.Max(1, FallbackTimeoutSeconds));
+
     /// <summary>TTL da applicare a un risultato, in base al fatto che porti dati o sia vuoto. Minimo 1 minuto.</summary>
     public TimeSpan CacheTtlFor(bool hasData) =>
         TimeSpan.FromMinutes(Math.Max(1, hasData ? TtlMinutes : EmptyTtlMinutes));

@@ -64,8 +64,20 @@ public sealed class NoaaWeatherClient : IWeatherProvider
             var http = _factory.CreateClient(HttpClientName);
             // METAR e TAF sono bollettini indipendenti: uno mancante (es. NOAA risponde 204 No Content sul
             // METAR ma ha il TAF) non deve scartare l'altro. Ogni fetch tollera errore/empty tornando null.
-            var metar = await TryFetchAsync(() => FetchMetarAsync(http, icao));
-            var taf = await TryFetchAsync(() => FetchTafAsync(http, icao));
+            //
+            // 🔴 E si chiedono INSIEME, non uno dopo l'altro. Fino all'8 settembre 2026 erano due `await` in
+            // fila: con NOAA che non risponde diventavano DUE attese da dieci secondi, e aprire un aeroporto
+            // costava VENTI SECONDI — misurato, non stimato, con un host che ingoia i pacchetti (un DNS
+            // morto non prova niente: fallisce in 4 ms). Sono indipendenti per definizione, e aspettarli in
+            // fila non serviva a nessuno.
+            // ⚠️ Il segnale e' arrivato come «e' il meccanismo nuovo del METAR che rallenta»: non lo era —
+            // la ricaduta costa qualche decimo. Era questa riga, e c'era da prima.
+            using var attesa = new CancellationTokenSource(_opt.Timeout);
+            var metarTask = TryFetchAsync(() => FetchMetarAsync(http, icao, attesa.Token));
+            var tafTask = TryFetchAsync(() => FetchTafAsync(http, icao, attesa.Token));
+            await Task.WhenAll(metarTask, tafTask).ConfigureAwait(false);
+            var metar = metarTask.Result;
+            var taf = tafTask.Result;
 
             // ⚠️ La SCORTA si chiede solo per il METAR mancante, e solo dopo che la principale ha risposto
             // (o ha taciuto). Segnalato dal committente l'8 settembre 2026: «ogni tanto NOAA fallisce e non
@@ -77,12 +89,19 @@ public sealed class NoaaWeatherClient : IWeatherProvider
             // esiste (provato). Meglio un METAR senza il suo TAF che nessuno dei due.
             // ⚠️ Si prova UNA scorta per volta e ci si ferma alla prima che risponde: sono servizi di altri, e
             // interrogarli tutti quando il primo ha già dato il METAR sarebbe traffico regalato.
+            // ⚠️ Le scorte hanno un budget LORO, piu' corto, e vale per TUTTA la catena messa insieme: una
+            // scorta serve a coprire un buco in fretta, e una scorta lenta quanto cio' che sostituisce fa
+            // aspettare la pagina due volte invece di salvarla.
             string? sorgente = null;
-            foreach (var scorta in _scorte)
+            if (metar is null && _scorte.Count > 0)
             {
-                if (metar is not null) break;
-                metar = await scorta.GetMetarAsync(icao).ConfigureAwait(false);
-                if (metar is not null) sorgente = scorta.Nome;
+                using var budget = new CancellationTokenSource(_opt.FallbackTimeout);
+                foreach (var scorta in _scorte)
+                {
+                    if (metar is not null || budget.IsCancellationRequested) break;
+                    metar = await scorta.GetMetarAsync(icao, budget.Token).ConfigureAwait(false);
+                    if (metar is not null) sorgente = scorta.Nome;
+                }
             }
 
             // Entrambi assenti: probabile servizio irraggiungibile → ricade sull'ultimo valore noto (anche scaduto).
@@ -111,17 +130,17 @@ public sealed class NoaaWeatherClient : IWeatherProvider
         catch { return null; }
     }
 
-    private async Task<string?> FetchMetarAsync(HttpClient http, string icao)
+    private async Task<string?> FetchMetarAsync(HttpClient http, string icao, CancellationToken ct)
     {
         var url = $"{_opt.BaseUrl.TrimEnd('/')}/api/data/metar?ids={icao}&format=json";
-        var rows = await http.GetFromJsonAsync<List<MetarDto>>(url);
+        var rows = await http.GetFromJsonAsync<List<MetarDto>>(url, ct);
         return rows?.FirstOrDefault()?.RawOb;
     }
 
-    private async Task<string?> FetchTafAsync(HttpClient http, string icao)
+    private async Task<string?> FetchTafAsync(HttpClient http, string icao, CancellationToken ct)
     {
         var url = $"{_opt.BaseUrl.TrimEnd('/')}/api/data/taf?ids={icao}&format=json";
-        var rows = await http.GetFromJsonAsync<List<TafDto>>(url);
+        var rows = await http.GetFromJsonAsync<List<TafDto>>(url, ct);
         return rows?.FirstOrDefault()?.RawTaf;
     }
 

@@ -161,6 +161,73 @@ public class NoaaWeatherClientTests
         }
     }
 
+    // ---- I due bollettini si chiedono INSIEME (8 settembre 2026) --------------------------------------
+    //
+    // 🔴 Fino a quel giorno erano due `await` in fila. Con NOAA che NON risponde — un host che ingoia i
+    // pacchetti, non un DNS morto, che fallisce in 4 ms e non prova niente — diventavano DUE attese da
+    // dieci secondi, e aprire un aeroporto costava VENTI SECONDI. Misurato a schermo, e segnalato dal
+    // committente come «e' il meccanismo nuovo del METAR che rallenta»: non lo era.
+
+    /// <summary>Handler che TIENE la richiesta finché non lo si lascia andare, e dice quante ne ha in mano
+    /// nello stesso momento. È il solo modo di provare che due fetch viaggiano insieme e non in fila.</summary>
+    private sealed class HandlerCheTrattiene : HttpMessageHandler
+    {
+        private int _dentro, _massimoInsieme;
+        public TaskCompletionSource Apri { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public int MassimoInsieme => Volatile.Read(ref _massimoInsieme);
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            // ⚠️ Il `finally` NON è pulizia: senza, una richiesta ANNULLATA non scala il contatore e resta
+            // dentro per sempre. Il banco allora vede «due insieme» anche quando le due sono in FILA — la
+            // prima scaduta e mai uscita, la seconda entrata dopo — e passa qualunque cosa faccia il codice.
+            // Preso provando il banco a rovescio: in sequenza passava lo stesso, cioè non provava niente.
+            var ora = Interlocked.Increment(ref _dentro);
+            int visto;
+            do { visto = Volatile.Read(ref _massimoInsieme); }
+            while (ora > visto && Interlocked.CompareExchange(ref _massimoInsieme, ora, visto) != visto);
+
+            try
+            {
+                await Apri.Task.WaitAsync(TimeSpan.FromSeconds(30), ct);
+                return new HttpResponseMessage(HttpStatusCode.NoContent);
+            }
+            finally { Interlocked.Decrement(ref _dentro); }
+        }
+    }
+
+    [Fact]
+    public async Task Il_Metar_E_Il_Taf_Si_Chiedono_INSIEME()
+    {
+        var handler = new HandlerCheTrattiene();
+        var client = Build(handler);
+
+        var lettura = client.GetAsync("LIRF");
+        // Si aspetta che tutt'e due siano partite: se fossero in fila, la seconda non partirebbe mai finché
+        // la prima non torna — e questo test scadrebbe invece di passare.
+        var scadenza = DateTime.UtcNow.AddSeconds(10);
+        while (handler.MassimoInsieme < 2 && DateTime.UtcNow < scadenza)
+            await Task.Delay(20);
+
+        handler.Apri.SetResult();
+        await lettura;
+
+        Assert.Equal(2, handler.MassimoInsieme);
+    }
+
+    /// <summary>⚠️ I due tetti d'attesa sono espliciti, e quello delle SCORTE è più corto: una scorta serve a
+    /// coprire un buco in fretta, e una lenta quanto ciò che sostituisce fa aspettare due volte.</summary>
+    [Fact]
+    public void La_Scorta_Aspetta_Meno_Della_Principale()
+    {
+        var o = new WeatherOptions();
+
+        Assert.True(o.FallbackTimeout < o.Timeout);
+        Assert.True(o.Timeout < TimeSpan.FromSeconds(10));   // il tetto della HttpClient resta l'ultimo
+        Assert.Equal(TimeSpan.FromSeconds(1), new WeatherOptions { TimeoutSeconds = 0, FallbackTimeoutSeconds = -3 }.Timeout);
+        Assert.Equal(TimeSpan.FromSeconds(1), new WeatherOptions { TimeoutSeconds = 0, FallbackTimeoutSeconds = -3 }.FallbackTimeout);
+    }
+
     /// <summary>⚠️ Le scorte sono una CATENA ordinata, non una sola: <c>params</c> perché i banchi ne provano
     /// zero, una e due — e l'ordine è parte di quel che si presidia.</summary>
     private static NoaaWeatherClient Build(HttpMessageHandler handler,
