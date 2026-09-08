@@ -1,6 +1,45 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 8 settembre 2026 (sera)
+## Dove siamo — 8 settembre 2026 (notte)
+
+1. 📦 **1.16.1 è PRONTA, non ancora online.** Timbro `1.16.1 · 6c1108f`, sha256 dello zip `ed238f32…`,
+   **13 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`. **PATCH**, nessuna migrazione.
+   Tre lavori, tutti nati dall'uso vero di 1.16.0 nelle ore dopo il caricamento:
+     · 🔴 **il tasto «+ riga» che cancellava le aree scelte** — la stessa domanda («payload o contenuto?»)
+       era fatta in DUE posti con DUE regole diverse, e la selezione delle aree (`{"OwnAuto":…}`, un blocco
+       `Table` senza `variant`) cadeva nella crepa: l'editor la disegnava come tabella scritta a mano, col
+       tasto. ⚠️ Riguardava anche vIPI ACC e APP;
+     · **il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM;
+     · **il tasto in barra si chiama «Documenti»**, non più «Editor».
+   ⚠️ `wwwroot` c'è ancora ma con UN file solo (`vipi-theme.css`); **`vipi-ui.js` NON entra** — identico a
+   1.16.0, verificato per impronta e non a memoria.
+   ✅ Provata **sul pacchetto pubblicato** (win-x64, JS minificato, NOAA spento apposta): Ricerca 50
+   risultati dal server, METAR presente con la pastiglia **IVAO**, tasto **«Documents»**, nella sezione
+   «Aree di lavoro» **una tabella sola e zero tasti «+ riga»**, la finestra dell'immagine, il convertitore
+   che chiude il poligono e la cella SID a 144px. Zero errori JS, zero risposte ≥400.
+   ▶ **Da fare: caricarla.**
+
+2. ✅ **1.16.0 è ONLINE** (caricata l'8 settembre): timbro `1.16.0 · a8b54c8`, zip `b48ed1cf…`, 16 file.
+   MINOR, nessuna migrazione. ⚠️ Porta un difetto che 1.16.1 corregge: **non usare «+ riga» nella sezione
+   «Aree di lavoro»** finché 1.16.1 non è caricata.
+   ℹ️ I documenti su cui era già stato premuto li ha **sistemati a mano il committente**: non c'è niente da
+   recuperare.
+
+3. ✅ **1.15.2 e §CD/§CE** (storia dell'8 mattina).
+   ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**: è l'unica prova di §CD, e non è a schermo.
+   ▶ E l'**NRE di render dell'editor APP**, ristretta e strumentata: non si chiude senza una nuova occorrenza.
+
+4. 🧹 **I rami fusi sono stati cancellati** (8 settembre): sedici in locale e tredici sul remoto, ognuno
+   verificato ancestor di `main`. Restano `main` e **`revisione-totale`**, non fuso apposta.
+
+5. **Fino al 16 settembre non si consegna database** (finestra cieca): lo *schema* però non è congelato.
+   **Quel che aspetta una persona**: il re-import dell'anagrafica per le piste in metri, il tipo delle 122
+   radioassistenze, il pannello dell'hosting.
+
+6. **Come si legge questo file**: qui sopra c'è la cronologia — è **storia**, non stato; le sezioni dalla
+   **A** in poi sono il lavoro aperto vero.
+
+## Dove eravamo — 8 settembre 2026 (sera, storia)
 
 1. 📦 **1.16.0 è PRONTA, non ancora online.** Timbro `1.16.0 · a8b54c8`, sha256 dello zip
    `b48ed1cf…`, **16 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md`. **MINOR**: nessuna

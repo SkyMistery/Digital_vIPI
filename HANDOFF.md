@@ -1,7 +1,35 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026, sera — 📦 **1.16.0 è PRONTA e aspetta solo di essere
-caricata.** Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+**Ultimo aggiornamento:** 8 settembre 2026, notte — 📦 **1.16.1 è PRONTA e aspetta di essere caricata.**
+Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+
+📦 **1.16.1 — pronta, NON ancora online.** Timbro `1.16.1 · 6c1108f`, zip `ed238f32…`, **13 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md). **PATCH**,
+nessuna migrazione. Corregge tre cose viste usando 1.16.0:
+
+- 🔴 **il tasto «+ riga» che cancellava le aree scelte** nella sezione «Aree di lavoro». La stessa domanda —
+  «questo blocco è il payload della scheda o contenuto di chi redige?» — era fatta in **due posti con due
+  regole diverse**, e la selezione delle aree cadeva nella crepa. ⚠️ Riguardava anche vIPI ACC e APP.
+- **il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM, con la provenienza scritta a schermo solo
+  quando non è la principale.
+- **il tasto in barra si chiama «Documenti»**, non più «Editor».
+
+⚠️ `wwwroot` c'è ma con **un file solo** (`vipi-theme.css`, coi suoi `.br`/`.gz` e l'indice degli asset).
+**`vipi-ui.js` NON entra**: identico a 1.16.0, verificato per impronta.
+
+✅ **Provata sul PACCHETTO** (win-x64, JS minificato, NOAA spento apposta): Ricerca 50 risultati dal server,
+METAR con la pastiglia **IVAO**, tasto **«Documents»**, e nella sezione «Aree di lavoro» **una tabella sola,
+zero «+ riga»**.
+
+▶ **Da fare: caricarla**, e poi rifare la stessa prova su produzione mentre chi ha caricato è ancora al
+telefono.
+
+⚠️ **Finché non è caricata**, su 1.16.0 online: **non premere «+ riga»** nella sezione «Aree di lavoro».
+ℹ️ I documenti già toccati li ha sistemati a mano il committente: niente da recuperare.
+
+---
+
+📦 **1.16.0 è ONLINE** dall'8 settembre (timbro `1.16.0 · a8b54c8`, 16 file) — storia qui sotto.
 
 📦 **1.16.0 — pronta, NON ancora online.** Timbro `1.16.0 · a8b54c8`, zip `b48ed1cf…`, **16 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md). **MINOR**,
