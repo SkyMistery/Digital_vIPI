@@ -736,6 +736,14 @@
           singolo documento. Chiavi rinominate (non solo i valori), icona da matita a foglio, e le due righe
           della Guida che nominavano il tasto.
 
+        · 🔴 **Aprire un aeroporto costava VENTI SECONDI** quando NOAA non risponde, e non era la scorta:
+          `FetchAndStoreAsync` chiedeva METAR e TAF con due `await` IN FILA — due attese da dieci — su due
+          bollettini indipendenti, e su quella pagina il meteo e' BLOCCANTE. Ora si chiedono insieme, la
+          principale ha un tetto di 5 s (sotto i 10 dell'HttpClient, che resta il tetto ultimo) e le scorte
+          un budget di 3 s per TUTTA la catena. Misurato: 20,2 s → 5,2 s, col METAR che arriva lo stesso.
+          ⚠️ Il difetto era invisibile alle prove del giorno prima perche' spegnevano NOAA con un DNS
+          INESISTENTE, che fallisce in 4 ms: un servizio che non risponde non e' un servizio che non esiste.
+
       Rispetto a 1.16.0 cambiano `Application`, `Infrastructure` e `Ui`, piu' `Host` (che porta sempre il
       timbro) e il satellite inglese, perche' le due `.resx` hanno chiavi nuove e rinominate. ⚠️ `wwwroot`
       c'e' ancora, ma con UN file solo: `vipi-theme.css` (la pastiglia della sorgente). Viaggia coi suoi
