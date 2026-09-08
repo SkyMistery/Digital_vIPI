@@ -1121,8 +1121,12 @@
   <data name="Area_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Area_Limits" xml:space="preserve"><value>Limits</value></data>
   <data name="Area_Activity" xml:space="preserve"><value>Type of activity</value></data>
-  <data name="Area_ActivityTitle" xml:space="preserve"><value>Click to turn on or off, double click to take them all</value></data>
+  <data name="Area_ActivityTitle" xml:space="preserve"><value>Click to turn on or off</value></data>
   <data name="Area_None" xml:space="preserve"><value>No area selected: pick them with the chips above the map.</value></data>
+  <data name="Area_WeaponRange" xml:space="preserve"><value>Weapon range</value></data>
+  <data name="Area_WeaponRangeTitle" xml:space="preserve"><value>Weapon range: the source marks this area with the «range» flag</value></data>
+  <data name="Area_Notes" xml:space="preserve"><value>Notes</value></data>
+  <data name="Area_NotesPlaceholder" xml:space="preserve"><value>Special procedures…</value></data>
   <data name="Mil_TableEmpty" xml:space="preserve"><value>No rows in this table.</value></data>
   <data name="Mil_TableAddRow" xml:space="preserve"><value>Add row</value></data>
   <data name="Mil_Squadron" xml:space="preserve"><value>Squadron</value></data>
@@ -2219,6 +2223,9 @@
   <data name="Img_Remove" xml:space="preserve"><value>Remove image</value></data>
   <data name="Img_ResizeTitle" xml:space="preserve"><value>Drag to change the width (arrow keys: 5% at a time)</value></data>
   <data name="Img_ResizeAria" xml:space="preserve"><value>Resize image</value></data>
+  <data name="Img_ZoomOpen" xml:space="preserve"><value>Open the image at its original size</value></data>
+  <data name="Img_ZoomFit" xml:space="preserve"><value>Fit to screen</value></data>
+  <data name="Img_ZoomFull" xml:space="preserve"><value>Original size</value></data>
   <data name="MediaClean_Title" xml:space="preserve"><value>Document images</value></data>
   <data name="MediaClean_Intro" xml:space="preserve"><value>Images stay in the database even after you remove the block that showed them: a published version may still refer to them. Here you can see the ones no longer needed and free up their space.</value></data>
   <data name="MediaClean_Analyze" xml:space="preserve"><value>Analyse</value></data>
@@ -2901,6 +2908,7 @@
   <data name="Conv_Type" xml:space="preserve"><value>Type</value></data>
   <data name="Conv_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Conv_CloseRing" xml:space="preserve"><value>Close the ring</value></data>
+  <data name="Conv_RepeatFirst" xml:space="preserve"><value>Repeat the first point at the end (closure)</value></data>
   <data name="Conv_Copy" xml:space="preserve"><value>Copy</value></data>
   <data name="Conv_Copied" xml:space="preserve"><value>Copied</value></data>
   <data name="Conv_Download" xml:space="preserve"><value>Download .txt</value></data>

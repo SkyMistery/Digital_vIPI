@@ -1527,6 +1527,12 @@
    colonna): i margini automatici la tengono CENTRATA, e l'immagine dentro non supera mai la figura. */
 :where(.vipi-root) .doc-img{margin:14px auto 4px}
 :where(.vipi-root) .doc-img img{max-width:100%;height:auto;border-radius:10px;border:1px solid var(--line);display:block;margin-inline:auto}
+/* Il tasto che apre l'immagine grande NON deve sembrare un tasto: è l'immagine stessa a essere cliccabile.
+   Reset completo (niente bordo, niente fondo, niente gronde) e larghezza piena, o la figura si stringerebbe
+   sul contenuto invece di riempire la colonna come faceva prima. La lente la dà il cursore. */
+:where(.vipi-root) .doc-img .img-zoom{display:block;width:100%;padding:0;margin:0;border:0;background:none;
+  cursor:zoom-in;font:inherit;color:inherit;line-height:0}
+:where(.vipi-root) .doc-img .img-zoom:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:3px;border-radius:10px}
 :where(.vipi-root) .doc-img figcaption{margin-top:6px;color:var(--ink-soft);font-size:12.5px}
 :where(.vipi-root) .doc-img figcaption p{margin:0}
 /* editor del blocco immagine: l'area è un <label> e il file input ci sta sopra trasparente, così CLICK e DROP
@@ -1551,6 +1557,35 @@
    «a occhio» non si torna piu' a un valore preciso. */
 :where(.vipi-root) .img-size{position:absolute;right:6px;top:6px;padding:2px 7px;border-radius:999px;background:rgb(0 0 0 / .62);
   color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.02em;opacity:0;transition:opacity .12s;pointer-events:none;z-index:2}
+/* --- L'immagine a dimensioni originali, sopra la pagina -------------------------------------------
+   Velo e ombra sono quelli delle finestre di casa (DeleteDialog, pannello trasferimenti). Lo z-index sta
+   SOPRA la barra di modifica (1200) e le finestre (1501) e SOTTO il tour guidato (2000): la finestra la si
+   apre anche stando in un editor, e sotto la barra non si vedrebbe.
+   ⚠️ La finestra la costruisce il JS, ma la appende DENTRO `.vipi-root`, non al <body>: `.btn` è dichiarato
+   `:where(.vipi-root) .btn`, e fuori di lì i due tasti uscivano nudi, coi bordi di sistema. `.vipi-root` non
+   ha transform né filter, quindi il `position:fixed` continua a riferirsi alla finestra. */
+:where(.vipi-root) .lb-backdrop{position:fixed;inset:0;z-index:1900;display:flex;flex-direction:column;
+  background:color-mix(in srgb,#000 72%,transparent)}
+/* Il piano che scorre: a dimensioni originali un'immagine grande esce dallo schermo, e uscire è il punto —
+   si scorre per leggerla. `place-items:safe center` centra quella piccola SENZA tagliare quella grande:
+   col `center` normale, un contenuto più largo del contenitore finisce con l'inizio fuori e irraggiungibile. */
+:where(.vipi-root) .lb-scroll{flex:1;min-height:0;overflow:auto;display:grid;place-items:safe center;padding:14px}
+:where(.vipi-root) .lb-img{display:block;max-width:none;height:auto;border-radius:6px;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+/* Adattata: torna a stare nello schermo. `max-width/max-height` e non `width`, o un'immagine piccola verrebbe
+   INGRANDITA oltre il suo naturale, che è sfocatura pura. */
+:where(.vipi-root) .lb-backdrop.lb-fit .lb-scroll{overflow:hidden}
+:where(.vipi-root) .lb-backdrop.lb-fit .lb-img{max-width:100%;max-height:100%;width:auto}
+:where(.vipi-root) .lb-bar{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:10px 14px;
+  background:color-mix(in srgb,#000 35%,transparent);color:#fff}
+:where(.vipi-root) .lb-size{margin-right:auto;font-size:12.5px;opacity:.85;font-variant-numeric:tabular-nums}
+/* ⚠️ I due tasti NON hanno uno stile proprio, ed è una scelta rifatta dopo averla misurata: qui c'erano due
+   regole che li volevano bianchi sul velo, e non hanno mai dipinto niente — `.btn.ghost` sta più in basso nel
+   foglio e a parità di peso vinceva. Misurati a schermo l'8 settembre 2026 con la finestra aperta: in tema
+   chiaro pastiglia quasi bianca con testo blu #0d2c99, in scuro pastiglia blu notte con testo azzurro. Si
+   leggono in tutt'e due, sono i tasti di casa, e due regole morte con un commento che dice il contrario sono
+   peggio di nessuna regola. La misura, quella sì, resta bianca sul velo: `.lb-size` la scrive. */
+/* Sulla carta la finestra non esiste: si stampa il documento, non quel che si stava guardando. */
+@media print{:where(.vipi-root) .lb-backdrop{display:none !important}}
 :where(.vipi-root) .doc-img.sizing .img-size{opacity:1}
 :where(.vipi-root) .doc-img.sizing img{user-select:none}
 :where(.vipi-root) .img-fields{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}
@@ -2656,6 +2691,12 @@
 :where(.vipi-root) .reg-type{font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft)}
 :where(.vipi-root) .reg-band{font-family:var(--font-head);font-weight:600;font-size:12.5px;color:var(--ink-soft)}
 :where(.vipi-root) .reg-noshape{font-size:11.5px;font-style:italic}
+/* Poligono di tiro (weapon range). ⚠️ Il colore NON è scritto qui: arriva come `--wr` dal componente, che lo
+   prende dalla costante `SpecialAreaColorScheme.WeaponRange` — la stessa che colora il poligono sulla mappa.
+   Un esadecimale ricopiato nel foglio è il modo in cui la targhetta e la mappa finiscono di due colori. */
+:where(.vipi-root) .reg-wr{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap;
+  padding:0 5px;border-radius:4px;color:var(--wr);border:1px solid color-mix(in srgb,var(--wr) 55%,transparent);
+  background:color-mix(in srgb,var(--wr) 12%,transparent)}
 /* ⚠️ Le chip sono <button> dal 23 agosto 2026, non piu' <span>: erano comandi che esistevano solo per il
    mouse — non entravano nel giro del tabulatore e non rispondevano a Invio/Spazio — e stanno sulle pagine
    PUBBLICHE, cioe' quelle che si aprono senza login. La regola e' scritta per esteso in Chip.razor.
@@ -3215,8 +3256,26 @@
    specificita' a decidere qui, quindi alzarla non serve a niente. */
 :where(.vipi-root) .struct .res-table.sid-edit input::-webkit-calendar-picker-indicator{display:none !important}
 /* ⚠️ 76px e non 52: l'initial climb arriva a cinque cifre («11000») e il campo numerico porta anche le
-   frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato. */
+   frecce. A 52 il valore si vedeva a metà — misurato scrivendoci dentro, non stimato.
+   ⚠️ Nella riga di flex qui sotto questa misura è il PUNTO DI PARTENZA, non la larghezza finale: il campo
+   cede alla casella «APP». Perciò la colonna è larga 144 e non 132 — misurato a schermo l'8 settembre 2026
+   scrivendo «11000» dentro il campo: a 132 restavano 69px utili contro 71 di contenuto, e l'ultima cifra
+   spariva. Chi stringe di nuovo la colonna rifaccia quella misura, non questo conto. */
 :where(.vipi-root) .struct .res-table.sid-edit .in-climb{width:76px}
+/* Initial climb: il campo e la casella «APP» stanno in RIGA, e chi cede è il CAMPO.
+   ⚠️ Non è cosmesi, è il difetto dell'8 settembre 2026: dal 5 la cella si taglia coi puntini (regola di
+   `td.col-climb` qui sopra) e con due larghezze fisse — 76px di campo più ~38 di casella — la somma
+   superava i 118px utili della colonna. Il taglio mangiava proprio la casella: a schermo restavano tre
+   puntini e l'opzione non si poteva più spuntare. In riga di flex la casella tiene la sua larghezza
+   (`flex:0 0 auto`) e il campo prende quel che avanza, quindi non può più sparire a nessuna larghezza.
+   ⚠️ `min-width:0` sul campo serve DAVVERO: senza, un elemento di flex non scende sotto la propria
+   larghezza minima automatica e la riga tornerebbe a sbordare invece di stringersi. */
+:where(.vipi-root) .struct .res-table.sid-edit .cell-climb{display:flex;align-items:center;gap:3px;min-width:0}
+:where(.vipi-root) .struct .res-table.sid-edit .cell-climb .in-climb{width:auto;flex:1 1 auto;min-width:0}
+:where(.vipi-root) .struct .res-table.sid-edit .cell-climb .ic-app{flex:0 0 auto;margin-left:0}
+/* Quota decisa dall'APP: il campo dei piedi si spegne. Stessi colori del `select:disabled` di queste
+   tabelle, così «spento» si legge allo stesso modo dovunque. */
+:where(.vipi-root) .struct .res-table.sid-edit .in-climb:disabled{background:var(--bg);color:var(--ink-dim);cursor:not-allowed}
 /* 64px = cinque caratteri PIU' le gronde del campo (9px per lato): cinque lettere sono il 95% dei fix veri
    — misurato sul DB, 1403 righe su 1480 stanno in 3-5 lettere, le poche da 9-10 sono scarti del parser. Il
    resto della colonna se lo prendono l'avviso e la casella «alias», non il testo. */
@@ -3254,14 +3313,14 @@
    sotto quella soglia scorre il riquadro, non si taglia niente. --- */
 /* 1020 = le colonne fisse (902) più un pavimento di ~118px per Condition: sotto quella soglia scorre il
    riquadro (66px a 1600 con indice e rail; il tasto ⤢ li azzera e Condition sale a ~590px). */
-:where(.vipi-root) .sid-imported{min-width:1028px}
+:where(.vipi-root) .sid-imported{min-width:1040px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-chk,:where(.vipi-root) .struct .res-table.sid-imported td.col-chk{width:28px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-fix,:where(.vipi-root) .struct .res-table.sid-imported td.col-fix{width:146px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-sid,:where(.vipi-root) .struct .res-table.sid-imported td.col-sid{width:111px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-rwy,:where(.vipi-root) .struct .res-table.sid-imported td.col-rwy{width:46px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-trans,:where(.vipi-root) .struct .res-table.sid-imported td.col-trans{width:61px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-type,:where(.vipi-root) .struct .res-table.sid-imported td.col-type{width:53px}
-:where(.vipi-root) .struct .res-table.sid-imported th.col-climb,:where(.vipi-root) .struct .res-table.sid-imported td.col-climb{width:132px}
+:where(.vipi-root) .struct .res-table.sid-imported th.col-climb,:where(.vipi-root) .struct .res-table.sid-imported td.col-climb{width:144px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-cat,:where(.vipi-root) .struct .res-table.sid-imported td.col-cat{width:101px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-wtc,:where(.vipi-root) .struct .res-table.sid-imported td.col-wtc{width:84px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-prio,:where(.vipi-root) .struct .res-table.sid-imported td.col-prio{width:70px}
@@ -3271,14 +3330,14 @@
    dove c'è `list=` — la freccina del datalist, altri ~16px: a 47px il segnaposto «CONV» si leggeva «C» e la
    pista «35» spariva. Stessa regola dell'altra tabella: pixel misurati sulle colonne che hanno una misura,
    e Condition senza larghezza, che si prende quello che avanza. */
-:where(.vipi-root) .sid-manual{min-width:1068px}
+:where(.vipi-root) .sid-manual{min-width:1080px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-chk,:where(.vipi-root) .struct .res-table.sid-manual td.col-chk{width:28px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-fix,:where(.vipi-root) .struct .res-table.sid-manual td.col-fix{width:76px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-sid,:where(.vipi-root) .struct .res-table.sid-manual td.col-sid{width:94px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-rwy,:where(.vipi-root) .struct .res-table.sid-manual td.col-rwy{width:66px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-trans,:where(.vipi-root) .struct .res-table.sid-manual td.col-trans{width:74px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-type,:where(.vipi-root) .struct .res-table.sid-manual td.col-type{width:82px}
-:where(.vipi-root) .struct .res-table.sid-manual th.col-climb,:where(.vipi-root) .struct .res-table.sid-manual td.col-climb{width:132px}
+:where(.vipi-root) .struct .res-table.sid-manual th.col-climb,:where(.vipi-root) .struct .res-table.sid-manual td.col-climb{width:144px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-cat,:where(.vipi-root) .struct .res-table.sid-manual td.col-cat{width:101px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-wtc,:where(.vipi-root) .struct .res-table.sid-manual td.col-wtc{width:84px}
 :where(.vipi-root) .struct .res-table.sid-manual th.col-prio,:where(.vipi-root) .struct .res-table.sid-manual td.col-prio{width:70px}
@@ -3469,7 +3528,22 @@
 :where(.vipi-root) .res-table.mil-table.div-table th.c-num,:where(.vipi-root) .res-table.mil-table.div-table td.c-num{width:112px}
 :where(.vipi-root) .res-table.mil-table.milarea-table{margin-top:12px}
 :where(.vipi-root) .res-table.mil-table.milarea-table th.c-lim,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-lim{width:180px}
-:where(.vipi-root) .res-table.mil-table.milarea-table th.c-act2,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-act2{width:190px}
+/* ⚠️ 260 e non 190: le attività erano DUE gettoni («A/A», «A/G») e dall'8 settembre 2026 sono quindici, con
+   dentro «TEST FLIGHTS» e «LOW LEVEL». I gettoni vanno a capo da soli (`.tok-set` avvolge) e il testo in
+   sola lettura pure (`.mil-table td` ha `overflow-wrap:anywhere`), quindi a 190 non si perdeva niente: si
+   leggeva una colonna alta sei righe accanto a una vuota. */
+:where(.vipi-root) .res-table.mil-table.milarea-table th.c-act2,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-act2{width:260px}
+/* Le note: l'unica colonna di PROSA della tabella, quindi l'unica senza larghezza — con `table-layout:fixed`
+   si prende quel che avanza, come Condition nelle SID. Il campo riempie la cella e cresce solo in alto: un
+   `resize` orizzontale dentro una tabella a colonne fisse non allarga niente, sposta e basta. */
+:where(.vipi-root) .res-table.mil-table.milarea-table th.c-note,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-note{vertical-align:top}
+:where(.vipi-root) .milarea-table .in-note{width:100%;box-sizing:border-box;resize:vertical;min-height:44px;font:inherit;line-height:1.35}
+/* Le righe dei poligoni di tiro. Tinta e barretta si COSTRUISCONO da `--wr`, non da un colore proprio: così
+   il giorno che l'arancione cambia nella costante C#, cambiano insieme il poligono, la targhetta e la riga.
+   Barretta a sinistra come le righe modificate delle SID: due segni diversi per due cose diverse, ma lo
+   stesso vocabolario. Il fondo resta chiaro perché sopra ci scrivono i gettoni A/A - A/G. */
+:where(.vipi-root) .milarea-table tbody tr.wr-row>td{background:color-mix(in srgb,var(--wr) 9%,var(--surface))}
+:where(.vipi-root) .milarea-table tbody tr.wr-row>td:first-child{box-shadow:inset 3px 0 0 var(--wr)}
 :where(.vipi-root) .res-table.mil-table.thr-table th.c-rwy,:where(.vipi-root) .res-table.mil-table.thr-table td.c-rwy{width:90px}
 :where(.vipi-root) .res-table.mil-table.thr-table th.c-elev,:where(.vipi-root) .res-table.mil-table.thr-table td.c-elev{width:130px}
 :where(.vipi-root) .res-table.mil-table.navadm-table th.c-code,:where(.vipi-root) .res-table.mil-table.navadm-table td.c-code{width:82px}
