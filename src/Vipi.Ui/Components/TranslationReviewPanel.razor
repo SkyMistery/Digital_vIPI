@@ -1,4 +1,4 @@
-﻿@inherits OwningComponentBase
+﻿@inherits ScopeProprioCheAspetta
 @inject Vipi.Application.Translation.IDocumentTranslationReview Revisione
 @* ⚠️ Dal circuito, come `Revisione` e per la stessa ragione: legge chi sta premendo da
    `IEditAuthorizationService`, che risolve l'identità dall'HttpContext. Il lavoro pesante — e la chiamata di
@@ -355,15 +355,25 @@
         _aperta = null;
         _esito = null;
 
-        var revisione = await _lettura.RevisioneAsync(DocumentId, _lettore);
-        // Vuoto vuol dire due cose diverse — «stessa lingua» e «niente da tradurre» — e vanno dette in due
-        // modi diversi, o chi guarda pensa che il pannello sia rotto. La risposta arriva dalla STESSA
-        // lettura: prima si ricaricava il documento con l'altra lingua solo per dedurla.
-        _stessaLingua = revisione.StessaLingua(_lettore);
-        _bloccata = revisione.Bloccata;
-        _righe = revisione.Righe;
+        // ⚠️ Dentro `InFilaAsync` (`ScopeProprioCheAspetta`): queste letture vengono dallo scope PROPRIO, e
+        // se il pannello si smonta mentre sono in volo — l'editor si chiude, l'utente cambia pagina — lo
+        // scope si porta via il DbContext sotto la query. In produzione l'8 settembre 2026 sono le voci
+        // delle 13:57:43 e 18:18:23 (`EfEditingRepository.LoadForEditAsync`, per questa strada) e quella
+        // delle 18:16:30 (`EfImportStateStore.GetLastSuccessAsync`, cioè `StatoEAttesaAsync`). §CF.
+        // ⚠️ Le SCRITTURE (`Revisione`, `TraduciOra`) non ci passano e non devono: vengono dal circuito,
+        // che al pannello sopravvive — è la decisione scritta in testa a questo file.
+        await InFilaAsync(async () =>
+        {
+            var revisione = await _lettura.RevisioneAsync(DocumentId, _lettore);
+            // Vuoto vuol dire due cose diverse — «stessa lingua» e «niente da tradurre» — e vanno dette in
+            // due modi diversi, o chi guarda pensa che il pannello sia rotto. La risposta arriva dalla
+            // STESSA lettura: prima si ricaricava il documento con l'altra lingua solo per dedurla.
+            _stessaLingua = revisione.StessaLingua(_lettore);
+            _bloccata = revisione.Bloccata;
+            _righe = revisione.Righe;
 
-        await StatoEAttesaAsync();
+            await StatoEAttesaAsync();
+        });
     }
 
     /// <summary>

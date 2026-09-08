@@ -1,7 +1,7 @@
 ﻿@page "/services/vsop/admin/diagnostics"
 @layout SopLayout
 @rendermode InteractiveServer
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Diagnostics
 @using Vipi.Application.Auth
@@ -424,8 +424,13 @@
         _inCorso = true;
         _loading = true;
         _errore = null;
+        // ⚠️ `InFilaAsync` NON sostituisce la sentinella qui sopra e non prova a indovinarla: quella decide
+        // CHI entra, questa fa sapere alla chiusura che c'è qualcuno dentro da aspettare — la terza porta,
+        // vedi `ScopeProprioCheAspetta` e §CF.
         try
         {
+            await InFilaAsync(async () =>
+            {
             // Grave prima, poi per categoria: la lista più urgente in cima.
             var all = await Consistency.RunAsync();
             _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
@@ -451,6 +456,7 @@
             _erroreDerivaPubblicazione = string.IsNullOrWhiteSpace(statoPub?.LastError) ? null : statoPub!.LastError;
             _tentativoDerivaPubblicazione = statoPub?.LastAttemptUtc;
             _quando = DateTime.UtcNow;
+            });
         }
         catch (Exception ex) { _errore = ex.Message; }
         finally { _loading = false; _inCorso = false; }

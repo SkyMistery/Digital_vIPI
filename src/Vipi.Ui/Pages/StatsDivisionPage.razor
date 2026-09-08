@@ -1,7 +1,7 @@
 ﻿@page "/services/stats/division"
 @layout SopLayout
 @rendermode InteractiveServer
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Abstractions
 @using Vipi.Application.Auth
@@ -13,9 +13,14 @@
    con «A second operation was started on this context instance» — è la sequenza che il 24 agosto 2026 ha
    ucciso sette volte una pagina di questo sito.
 
-   Le due porte servono a due cose diverse: lo scope proprio protegge dagli ALTRI, la sentinella da SÉ STESSI.
+   Le porte servono a tre cose diverse: lo scope proprio protegge dagli ALTRI, la sentinella da SÉ STESSI.
    Qui servono tutte e due, perché la casella della classifica scrive e poi rilegge tutto mentre una chip di
    periodo può già aver fatto ripartire lo stesso caricamento (revisione del 6 settembre 2026, R-016).
+
+   🔴 E non bastavano: nessuna delle due protegge dal TEMPO. Con tutt'e due in linea, questa pagina è caduta
+   in produzione l'8 settembre 2026 alle 20:26:02 — `ObjectDisposedException` in
+   `EfAtcStatsQueries.ByPositionAsync` — perché lo scope si chiude con la query ancora aperta quando l'utente
+   se ne va. La terza porta è `ScopeProprioCheAspetta`: chiude e ASPETTA chi era dentro. Vedi §CF.
 
    Restano fuori dallo scope proprio le cose che il database non lo toccano: localizzazione e identità. *@
 @inject ICurrentUserProvider Utenti
@@ -376,7 +381,9 @@
     {
         if (_inCorso) return;
         _inCorso = true;
-        try { await LeggiAsync(); }
+        // ⚠️ `InFilaAsync` non è la sentinella qui sopra e non la sostituisce: quella decide CHI entra,
+        // questa fa sapere alla chiusura che c'è qualcuno dentro da aspettare. Vedi ScopeProprioCheAspetta.
+        try { await InFilaAsync(LeggiAsync); }
         finally { _inCorso = false; }
     }
 

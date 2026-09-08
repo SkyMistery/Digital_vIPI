@@ -9,7 +9,7 @@
    corsa «a second operation was started on this context instance». *@
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Ui.Shared
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @inject IStringLocalizer<SharedResource> L
 
 <table class="res-table validity-stamp">
@@ -84,7 +84,14 @@
         if (_letto == ora) return;
         _letto = ora;
 
-        var svc = ScopedServices.GetRequiredService<IDocumentValidityService>();
-        _stamp = await svc.ResolveAsync(Target, Key ?? "", ReleaseId);
+        // ⚠️ Dentro `InFilaAsync` (`ScopeProprioCheAspetta`): questo timbro si monta su pagine che si
+        // ricostruiscono spesso, e se il componente sparisce mentre la lettura è in volo lo scope si porta
+        // via il DbContext sotto la query. In produzione l'8 settembre 2026 sono le voci delle 17:46:35 e
+        // 17:51:38 — `EfReleaseRepository.ListAsync` ← `DocumentValidityService.ResolveAsync` ← qui. §CF.
+        await InFilaAsync(async () =>
+        {
+            var svc = ScopedServices.GetRequiredService<IDocumentValidityService>();
+            _stamp = await svc.ResolveAsync(Target, Key ?? "", ReleaseId);
+        });
     }
 }

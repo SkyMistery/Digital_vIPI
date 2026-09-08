@@ -56,7 +56,7 @@ public sealed class ScopeProprioDellePagineTests
     {
         var testo = File.ReadAllText(Path.Combine(Radice(), "Pages", pagina + ".razor"));
 
-        Assert.Contains("@inherits OwningComponentBase", testo);
+        Assert.True(DichiaraScopeProprio(testo), $"{pagina} non dichiara piu' uno scope proprio.");
         Assert.DoesNotContain($"@inject {servizio} ", testo);
         Assert.Contains($"ScopedServices.GetRequiredService<{servizio}>()", testo);
     }
@@ -113,7 +113,7 @@ public sealed class ScopeProprioDellePagineTests
     {
         var testo = File.ReadAllText(Path.Combine(Radice(), "Pages", pagina + ".razor"));
 
-        Assert.Contains("@inherits OwningComponentBase", testo);
+        Assert.True(DichiaraScopeProprio(testo), $"{pagina} non dichiara piu' uno scope proprio.");
         Assert.Contains("ScopedServices.GetRequiredService<", testo);
     }
 
@@ -209,7 +209,7 @@ public sealed class ScopeProprioDellePagineTests
         foreach (var f in Directory.EnumerateFiles(Radice(), "*.razor", SearchOption.AllDirectories))
         {
             var testo = File.ReadAllText(f);
-            if (!testo.Contains("@inherits OwningComponentBase")) continue;
+            if (!DichiaraScopeProprio(testo)) continue;
 
             var tipi = Regex.Matches(testo, @"^@inject\s+(\S+)", RegexOptions.Multiline)
                 .Select(m => m.Groups[1].Value.Split('<')[0].Split('.')[^1])
@@ -231,7 +231,7 @@ public sealed class ScopeProprioDellePagineTests
         {
             var testo = File.ReadAllText(f);
             if (!testo.Contains("@rendermode InteractiveServer")) continue;
-            if (testo.Contains("@inherits OwningComponentBase")) continue;
+            if (DichiaraScopeProprio(testo)) continue;
 
             var tipi = Regex.Matches(testo, @"^@inject\s+(\S+)", RegexOptions.Multiline)
                 .Select(m => m.Groups[1].Value.Split('<')[0].Split('.')[^1])
@@ -244,6 +244,20 @@ public sealed class ScopeProprioDellePagineTests
         }
         return fuori;
     }
+
+    /// <summary>
+    /// 🔴 <b>«Scope proprio» sono DUE basi, non una stringa.</b> Dall'8 settembre 2026 c'è
+    /// <c>ScopeProprioCheAspetta</c>, che <c>OwningComponentBase</c> lo estende per aggiungere la terza
+    /// porta (chiude e <b>aspetta</b> il caricamento in volo — vedi §CF).
+    ///
+    /// <para>⚠️ Questa riga esiste perché il presidio non torni <b>cieco</b>: cercando la sola stringa
+    /// <c>@@inherits OwningComponentBase</c>, ogni file convertito alla base nuova sarebbe sparito dal
+    /// conteggio — cioè le pagine <b>più</b> difese sarebbero diventate quelle <b>meno</b> misurate, restando
+    /// tutto verde. È la stessa forma di guasto dell'8 settembre, quando questo file saltava i file con lo
+    /// scope proprio e guardava solo <c>Pages/</c>.</para>
+    /// </summary>
+    internal static bool DichiaraScopeProprio(string testo) =>
+        testo.Contains("@inherits OwningComponentBase") || testo.Contains("@inherits ScopeProprioCheAspetta");
 
     private static string Radice()
     {

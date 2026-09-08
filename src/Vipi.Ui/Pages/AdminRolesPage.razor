@@ -1,7 +1,7 @@
 @page "/services/vsop/admin/permissions"
 @layout SopLayout
 @rendermode InteractiveServer
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @using Vipi.Application.Abstractions
 @using Vipi.Domain
@@ -20,6 +20,10 @@
    ⚠️ Anche le SCRITTURE passano dallo scope proprio, non dal circuito: `RoleAdminService` legge i claim
    (`EnsureAdmin`, `CurrentUserId`), e che l'identità sopravviva in uno scope figlio non è una scommessa — è
    la stessa strada da cui Versioni pubblica ogni giorno.
+
+   ⚠️ E la base è `ScopeProprioCheAspetta`, non `OwningComponentBase`: la terza porta, quella che quando si
+   lascia la pagina ASPETTA il caricamento in volo prima di chiudere lo scope. Le altre due proteggono dagli
+   altri e da sé stessi, non dal tempo.
 
    Restano fuori le cose che il database non lo toccano: identità (dal 28 agosto il livello si risolve senza
    una query), localizzazione, JS. *@
@@ -285,9 +289,9 @@
             do
             {
                 _daRifare = false;
-                await LeggiAsync();
+                await InFilaAsync(LeggiAsync);
             }
-            while (_daRifare);
+            while (_daRifare && !Chiusa);
         }
         finally { _inCorso = false; }
     }

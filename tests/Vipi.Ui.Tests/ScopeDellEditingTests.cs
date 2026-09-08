@@ -136,7 +136,12 @@ public class ScopeDellEditingTests
             + "condiviso con barra, isole e pannelli. Serve `@inherits OwningComponentBase` e "
             + "`ScopedServices.GetRequiredService<IEditingService>()`.");
 
-        Assert.Matches(@"^@inherits\s+OwningComponentBase\b", TrovaRiga(sorgente, "@inherits"));
+        // ⚠️ Le basi con lo scope proprio sono DUE: `OwningComponentBase` e `ScopeProprioCheAspetta`, che la
+        // estende per aggiungere la terza porta (chiude e ASPETTA il caricamento in volo — §CF, 8 settembre
+        // 2026). Scritta a mano, questa riga rendeva il presidio CIECO su ogni file convertito alla base
+        // nuova: cioè proprio sui più difesi. La domanda si fa in un posto solo.
+        Assert.True(ScopeProprioDellePagineTests.DichiaraScopeProprio(sorgente),
+            $"{relativo} non dichiara piu' uno scope proprio: riga «{TrovaRiga(sorgente, "@inherits")}».");
         Assert.Contains("ScopedServices.GetRequiredService<IEditingService>()", sorgente);
     }
 

@@ -3,7 +3,7 @@
 @layout SopLayout
 @rendermode InteractiveServer
 @* ⚠️ OwningComponentBase per lo SCOPE: il servizio di editing (e il suo DbContext) non viene dal circuito. *@
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @using Microsoft.Extensions.DependencyInjection
 @inject IProssimoAiracService ProssimoAirac
 @inject IEditAuthorizationService Authz
@@ -617,8 +617,14 @@
 
     private async Task LoadAsync()
     {
+        // ⚠️ `InFilaAsync` è la TERZA porta (`ScopeProprioCheAspetta`): non mette in fila i gesti, fa sapere
+        // alla chiusura della pagina che c'è un caricamento dentro da aspettare. Senza, lo scope si chiude
+        // con la query aperta — che è quello che questa pagina ha fatto in produzione l'8 settembre 2026
+        // alle 17:54:06 e alle 17:59:22 (`EfDocumentImpactRepository`, `EfDocumentAdminRepository`). §CF.
         try
         {
+            await InFilaAsync(async () =>
+            {
             _docs = await DocAdmin.ListAsync();
             // Le appartenenze in UNA lettura: sono poche righe, e senza di esse ogni riga dell'elenco
             // farebbe la sua domanda (il difetto N+1 che questo elenco ha gia' pagato due volte).
@@ -640,6 +646,7 @@
             // domanda per riga sarebbe lo stesso N+1 che questo elenco ha già pagato due volte — e su un
             // circuito Blazor sarebbe anche una corsa sul DbContext.
             _traduzione = (await StatoTraduzione.QuadroAsync()).Righe.ToDictionary(r => r.DocumentId);
+            });
         }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
     }
