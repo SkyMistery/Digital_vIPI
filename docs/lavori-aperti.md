@@ -10441,3 +10441,28 @@ una prova dice che una cosa non funziona, il primo sospetto è la prova.
 ✅ Sulla capofila giusta: **«Delete the row and its 2 exceptions?»** → **12 righe → 9**, «3 rows deleted», la
 riga TORPO **dell'altra sezione resta**, e l'annulla rimette tutte e tre con l'outline ricostruito (12 di
 nuovo). Registro dell'app pulito.
+
+### ✅ 1.17.0 CARICATA — 9 settembre 2026
+
+Timbro **`1.17.0 · 30ca658`**, undici file, `main` `1944d8f1`.
+
+✅ **La verifica da fuori, e stavolta prova qualcosa.** Su 1.15.x e 1.16.x da fuori non si distingueva la
+versione nuova dalla vecchia — senza asset cambiati non c'è impronta da confrontare, ed era stato scritto
+ogni volta. Qui il foglio cambia, e la prova è a due livelli:
+
+- **`vipi-theme.css?v=dadd32ce`** (1.16.1 era `?v=2bd621bc`): il token è lo SHA256 del **contenuto**, primi
+  otto caratteri, e dice «è un file diverso»;
+- 🔴 **il foglio servito CONTIENE le regole nuove** — `inline-confirm.is-open`, `xt-c-acts{width:220px}`,
+  `xt-c-acts-ctx{width:256px}`. Il token dice *che* è cambiato, il contenuto dice **cosa**: è la differenza
+  fra credere e vedere, e costa una riga di `curl`.
+
+Più: **Ricerca «50 results for li»** (l'unico controllo pubblico che passa dal server), il documento di LIBD
+reso intero con le sue cinque tabelle (cioè gli assiemi girano), il cancello di `/admin/transfers` che
+risponde `200` col corpo «Accedi» e **zero** righe di dati, e nessun errore in console.
+
+▶ **Restano tre controlli col login** — i cinque tasti sulla riga e la conferma che sta dentro il bordo, più
+i due di 1.16.1 mai confermati (il tasto «Documenti», e la tabella vuota che non deve più esserci).
+
+🔴 ▶ **E la prova vera delle tre correzioni non è a schermo**: è il prossimo `errori-richieste.txt`, dove le
+`ObjectDisposedException` devono calare e le «A second operation» sparire. Si conta **per era**, e il tasso
+non si confronta con le ore di notte.

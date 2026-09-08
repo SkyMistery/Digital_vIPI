@@ -1,41 +1,50 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026, notte — 📦 **1.16.1 è PRONTA e aspetta di essere caricata.**
-Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+**Ultimo aggiornamento:** 9 settembre 2026 — ✅ **1.17.0 è ONLINE.**
+Albero pulito e spinto, `main` `1944d8f1`, Release verde su tutti e quindici gli assiemi, 0 avvisi.
 
-📦 **1.16.1 — pronta, NON ancora online.** Timbro `1.16.1 · d2925b3`, zip `2cfa711d…`, **13 file**, foglio
-[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md). **PATCH**,
-nessuna migrazione. Corregge tre cose viste usando 1.16.0:
+✅ **1.17.0 — online dal 9 settembre.** Timbro `1.17.0 · 30ca658`, zip `040974e3…`, **11 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.17.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.17.0.md). **MINOR** —
+c'è un **comando** nuovo in pagina — nessuna migrazione.
 
-- 🔴 **il tasto «+ riga» che cancellava le aree scelte** nella sezione «Aree di lavoro». La stessa domanda —
-  «questo blocco è il payload della scheda o contenuto di chi redige?» — era fatta in **due posti con due
-  regole diverse**, e la selezione delle aree cadeva nella crepa. ⚠️ Riguardava anche vIPI ACC e APP.
-- **il METAR ha due sorgenti di scorta**: NOAA → IVAO → VATSIM, con la provenienza scritta a schermo solo
-  quando non è la principale.
-- **il tasto in barra si chiama «Documenti»**, non più «Editor».
-- 🔴 **aprire un aeroporto costava venti secondi** quando NOAA non risponde: METAR e TAF si chiedevano in
-  **fila**, dieci secondi ciascuno, su due bollettini indipendenti. Ora insieme, con un tetto di 5 s e 3 s
-  per le scorte — **20,2 s → 5,2 s**, misurato. ⚠️ Segnalato come «è il meccanismo nuovo che rallenta»:
-  non lo era, ed era più vecchio.
+Non nasce da un'idea: dal primo `errori-richieste.txt` sceso dopo §CD, che diceva che quelle correzioni
+**non avevano chiuso**. Vedi §CF e §CG.
 
-⚠️ `wwwroot` c'è ma con **un file solo** (`vipi-theme.css`, coi suoi `.br`/`.gz` e l'indice degli asset).
-**`vipi-ui.js` NON entra**: identico a 1.16.0, verificato per impronta.
+- 🔴 **La terza porta.** Scope proprio e sentinella proteggono dagli ALTRI e da SÉ STESSI, non dal **tempo**:
+  se il componente si smonta con una query aperta, lo scope si porta via il `DbContext` sotto quella query —
+  e il conto lo paga **un altro utente**, che riceve la sessione sporca dal pool. `ScopeProprioCheAspetta`
+  chiude e **aspetta**. Sei componenti convertiti, ventuno in un debito misurato.
+- **La pagina dei permessi** prende lo scope suo: era in `DebitoNoto` dal 4 settembre e in un pomeriggio è
+  finita **due volte** nel registro. Un debito scritto smette di esserlo quando la produzione lo nomina.
+- **La NRE di render dell'editor APP ha una rete.** Non «non copriva»: **non c'era**, era rimasta un
+  proposito. ⚠️ Non chiude il difetto — rende una diagnosi la prossima occorrenza.
+- **Il ✕ sulla riga di un coordinamento** (chiesto dal committente), che si porta via le sue **eccezioni**:
+  un'eccezione senza la riga da cui pende non è un residuo, è una clausola qualunque che nel documento
+  pubblicato vale sempre.
 
-✅ **Provata sul PACCHETTO** (win-x64, JS minificato, NOAA spento apposta): Ricerca 50 risultati dal server,
-METAR con la pastiglia **IVAO**, tasto **«Documents»**, e nella sezione «Aree di lavoro» **una tabella sola,
-zero «+ riga»**.
+⚠️ `wwwroot` con **un file solo** (`vipi-theme.css`, coi suoi `.br`/`.gz` e l'indice degli asset).
+🔴 **`Vipi.Infrastructure.dll` resta FUORI**, prima volta dopo tre consegne: il `git diff` non lo nomina.
+Le sue impronte differiscono, ma è l'MVID — **sugli assiemi comanda il diff, le impronte parlano per gli
+asset**.
 
-▶ **Da fare: caricarla**, e poi rifare la stessa prova su produzione mentre chi ha caricato è ancora al
-telefono.
+✅ **Provata sul PACCHETTO** (win-x64, JS minificato) e poi **su produzione**. E stavolta da fuori la prova
+vale: il foglio servito porta le **regole nuove** (`?v=dadd32ce`, `inline-confirm.is-open`, colonne
+220/256), non solo un'impronta diversa. Più Ricerca «50 results for li», documento LIBD intero, cancello
+dell'admin chiuso.
 
-⚠️ **Finché non è caricata**, su 1.16.0 online: **non premere «+ riga»** nella sezione «Aree di lavoro».
-ℹ️ I documenti già toccati li ha sistemati a mano il committente: niente da recuperare.
+▶ **Da fare: il prossimo `errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni — le
+`ObjectDisposedException` devono calare. E tre controlli col login: i cinque tasti sulla riga con la
+conferma che sta dentro il bordo, più i due di 1.16.1 mai confermati.
 
 ---
 
-📦 **1.16.0 è ONLINE** dall'8 settembre (timbro `1.16.0 · a8b54c8`, 16 file) — storia qui sotto.
+📦 **1.16.1 è ONLINE** dall'8 settembre sera (timbro `1.16.1 · d2925b3`, 13 file), e **1.16.0** dall'8
+mattina (`a8b54c8`, 16 file) — storia qui sotto.
 
-📦 **1.16.0 — pronta, NON ancora online.** Timbro `1.16.0 · a8b54c8`, zip `b48ed1cf…`, **16 file**, foglio
+> ⚠️ Da qui in giù è **storia**: le righe sono quelle scritte allora, al presente di allora. Una riga che
+> dice «pronta, NON ancora online» è la fotografia di quel momento, non un fatto di oggi.
+
+📦 *(testo dell'8 settembre)* **1.16.0 — pronta, NON ancora online.** Timbro `1.16.0 · a8b54c8`, zip `b48ed1cf…`, **16 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.0.md). **MINOR**,
 nessuna migrazione: si consegna da sola via FTP anche dentro la finestra cieca fino al 16.
 
@@ -171,6 +180,10 @@ MySQL sia sparita. Quella la dirà il **prossimo `errori-richieste.txt`** — ze
 - ⚠️ Le **21 pagine** del debito noto (interattive, senza scope proprio) restano: «tocca mezzo prodotto».
   `AdminRolesPage` è uscita dall'elenco l'8 settembre, dopo che la produzione l'aveva nominata due volte in
   un pomeriggio (§CF): un debito scritto vale finché resta teorico.
+- 🔴 E **ventuno componenti** hanno lo scope proprio e **non aspettano** il caricamento in volo
+  (`SenzaAttesaNoto` in `TerzaPortaTests`, §CF). Sono due elenchi diversi che per caso hanno lo stesso
+  numero. ⚠️ Regola scritta accanto a quell'elenco: quando un nome ci compare dentro **e** in
+  `errori-richieste.txt`, la riga si converte — non si aggiorna la data.
 
 ⚠️ **I file di `diagnostica/` non si committano**: `errori-richieste.txt` porta i VID degli utenti.
 
