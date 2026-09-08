@@ -2,15 +2,14 @@
 
 ## Dove siamo — 8 settembre 2026
 
-1. 📦 **Il pacchetto 1.15.2 è PRONTO, ⏳ e non è ancora caricato**: in produzione gira ancora **1.15.1**
-   (`68e71bf`, timbro del server, in servizio dalle 21:11 UTC del 7). Zip
-   `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`, sha256 `60e375c4…`, **7 file**, timbro
-   **`1.15.2 · eb7f389`**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e §CE**
-   insieme: PATCH, nessuna migrazione, si consegna da solo anche dentro la finestra cieca.
-   ▶ **Il lavoro che resta è caricarlo**, e poi rifare la prova su produzione (`SOLO_PUBBLICO=1`).
-   ⚠️ **La prova di §CD non è nostra**: la darà il prossimo `errori-richieste.txt` scaricato qualche giorno
-   dopo il caricamento — zero «A second operation», meno `ObjectDisposedException`, e le note in una riga.
-   §CE invece è **già provata sul pacchetto**: il banner si svuota da sé appena si pubblica.
+1. ✅ **1.15.2 è ONLINE** (caricata l'8 settembre 2026): timbro del server **`1.15.2 · eb7f389`**, sha256
+   dello zip `60e375c4…`, **7 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`. Porta **§CD e
+   §CE** insieme: PATCH, nessuna migrazione. Otto controlli pubblici verdi da fuori (Ricerca compresa) e il
+   cancello di `/admin/diagnostics` **disegnato**; ⚠️ ma quegli otto sarebbero verdi identici su 1.15.1 —
+   senza asset di `wwwroot` cambiati **la prova da fuori la dà solo il timbro**, come per 1.15.1. La prova
+   vera l'ha data il gesto da admin: **ripubblicare si comporta come deve**.
+   ▶ **Quel che resta è aspettare il prossimo `errori-richieste.txt`**, fra qualche giorno: è l'unica prova
+   di §CD, e non è a schermo — zero «A second operation», meno `ObjectDisposedException`, note in una riga.
 2. ✅ **§CD è LAVORATO** (8 settembre): due difetti su tre chiusi con una correzione ciascuno, il terzo
    ristretto e strumentato. La domanda «chi gira accanto al tornello?» ha una risposta, e non era quella che
    sembrava: **nessuno lo scavalca**. Il tornello serializza lo scope PROPRIO dell'editor, ma dentro lo
@@ -10073,7 +10072,7 @@ essere muto senza che niente si accorga.
   (LIBD) ora funziona. Se ricapita, il primo dato utile è **quali sezioni nomina** l'avviso: una o due →
   quella sezione si ricostruisce diversa; tutte → sono le chiavi della firma a non combaciare.
 
-### 📦 Il pacchetto 1.15.2 — pronto l'8 settembre 2026, ⏳ da caricare
+### ✅ Il pacchetto 1.15.2 — ONLINE dall'8 settembre 2026
 
 `artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip` · sha256
 `60e375c473b5dc5a922396745017f329d68b4a67ea844cc8963c7ada655f9ed7` · 3,33 MB · **7 file** · timbro
@@ -10102,4 +10101,13 @@ pacchetto: su `vIPI — LIBC Crotone` (editor d'aeroporto) e su `vIPI Milano` (e
 pagina**. E ricaricandola resta vuoto — cioè la riga era chiusa **davvero** nel database, non solo a
 schermo. In Diagnostica il riquadro «Documents needing review» risponde e l'avviso nuovo **non** compare:
 la ripulitura è riuscita, ed è quello che deve dire.
+
+✅ **E caricata, l'8 settembre.** Da fuori: gli otto controlli pubblici verdi — Ricerca compresa, che è
+l'unico che passa dal server — e il cancello di `/admin/diagnostics` **disegnato** (200 col corpo che dice
+«Accedi», nessun dato: [un 200 non vuol dire aperta](#un-200-su-una-pagina-riservata)).
+⚠️ **Ma da fuori non si distingueva 1.15.2 da 1.15.1**, ed è la stessa lezione di quel pacchetto: senza un
+solo asset di `wwwroot` cambiato non c'è nessuna impronta da confrontare, e quegli otto controlli
+passerebbero identici sulla versione di prima. La conferma è arrivata dalle due cose che vede solo chi
+amministra: il **timbro** del server (`1.15.2 · eb7f389`) e il **gesto** — ripubblicare si comporta come
+deve, cioè l'avviso se ne va da sé.
 

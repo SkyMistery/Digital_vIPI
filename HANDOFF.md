@@ -1,16 +1,17 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD e §CE sono chiusi, e il pacchetto 1.15.2 è PRONTO.**
+**Ultimo aggiornamento:** 8 settembre 2026 — ✅ **§CD e §CE sono chiusi e 1.15.2 è ONLINE.**
 Albero pulito e spinto, suite verde sui due TFM, Release senza avvisi.
 
-📦 **`artifacts/publish/vipi-1.15.2-solo-file-cambiati.zip`** · sha256 `60e375c4…` · 3,33 MB · **7 file** ·
-timbro **`1.15.2 · eb7f389`** · foglio
-[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md).
-PATCH: nessuna migrazione, niente `wwwroot` — si consegna da solo anche dentro la finestra cieca.
+✅ **In produzione gira 1.15.2** (timbro del server **`1.15.2 · eb7f389`**, caricata l'8 settembre): 7 file,
+zip `60e375c4…`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.15.2.md). PATCH:
+nessuna migrazione, niente `wwwroot`. Otto controlli pubblici verdi da fuori (Ricerca compresa) e il gesto
+provato da admin — ripubblicare si comporta come deve. ⚠️ **Senza asset cambiati, da fuori la prova la dà
+solo il timbro**: quegli otto controlli sarebbero verdi identici sulla versione di prima.
 
-🔴 **⏳ Non è ancora caricato**: in produzione gira ancora **1.15.1** (`68e71bf`). ▶ **Il lavoro che resta è
-caricarlo** (runbook [`docs/guide/preparare-un-pacchetto.md`](docs/guide/preparare-un-pacchetto.md), passo
-6-bis: la stessa prova ripuntata su produzione).
+▶ **Quel che resta è aspettare**: il prossimo `errori-richieste.txt`, fra qualche giorno, è l'**unica** prova
+di §CD e non è a schermo — zero «A second operation», meno `ObjectDisposedException`, note in una riga.
 
 **§CE — «ho ripubblicato e l'avviso è ancora lì»** (8 settembre): due difetti diversi, e nessuno dei due
 nella deriva. Il banner delle cose da fare si ricaricava **solo al cambio di `DocumentId`** — e dopo una
