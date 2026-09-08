@@ -172,6 +172,75 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
         Assert.NotNull(sezione.ParentSectionId);
     }
 
+    /// <summary>
+    /// ⚠️ Il gemello del primo test, per le NOTE: selezione, attività e note stanno tutte e tre nello stesso
+    /// oggetto JSON, e ognuno dei tre salvataggi lo riscrive intero. Un salvataggio che si dimentica degli
+    /// altri due li cancella — senza errore, e senza che chi li ha scritti tocchi mai quel comando.
+    /// </summary>
+    [Fact]
+    public async Task Le_note_sopravvivono_a_un_cambio_di_aree_e_di_attivita()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2"));
+        await m.SaveAreaNoteAsync("LIBA", "A1", "Ingresso solo da nord.");
+        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.Cas);
+
+        // Un'altra persona, un altro momento: tocca le chip, poi i gettoni dell'attività.
+        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2", "A3"));
+        await m.SaveAreaActivityAsync("LIBA", "A2", MilActivity.LowLevel);
+
+        Assert.Equal("Ingresso solo da nord.", (await m.GetAreaNotesAsync("LIBA"))["A1"]);
+        Assert.Equal(MilActivity.Cas, (await m.GetAreaActivitiesAsync("LIBA"))["A1"]);
+
+        // E al contrario: scrivere una nota non porta via le attività.
+        await m.SaveAreaNoteAsync("LIBA", "A3", "Attiva solo su NOTAM.");
+        var attivita = await m.GetAreaActivitiesAsync("LIBA");
+        Assert.Equal(MilActivity.Cas, attivita["A1"]);
+        Assert.Equal(MilActivity.LowLevel, attivita["A2"]);
+    }
+
+    /// <summary>Una nota svuotata si toglie: «vuota» in archivio ha una forma sola, l'assenza.</summary>
+    [Fact]
+    public async Task Una_nota_svuotata_sparisce()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        await m.SaveRegulatedAsync("LIBA", Selezione("A1"));
+        await m.SaveAreaNoteAsync("LIBA", "A1", "qualcosa");
+        await m.SaveAreaNoteAsync("LIBA", "A1", "   ");
+
+        Assert.Empty(await m.GetAreaNotesAsync("LIBA"));
+    }
+
+    /// <summary>
+    /// Il flag «poligono di tiro» dell'import (<c>SpecialArea.Range</c>) arriva fino alla vista e da lì al
+    /// colore della mappa.
+    ///
+    /// <para>⚠️ Il test parte dal DB e non dalla proiezione perché la catena ha tre giunti — colonna →
+    /// <c>SpecialAreaDetail</c> → <c>AccSpecialAreaView</c> — e ognuno è una `Select` che si può dimenticare
+    /// di scrivere. Dimenticarne uno non rompe niente: le aree escono tutte come non-tiro, cioè esattamente
+    /// come uscivano prima, e a schermo non si vede che manca qualcosa.</para>
+    /// </summary>
+    [Fact]
+    public async Task Il_poligono_di_tiro_arriva_dal_DB_fino_al_colore_della_mappa()
+    {
+        _db.SpecialAreas.AddRange(
+            new SpecialArea { IvaoId = "1311", Name = "LI R59A - Capo Frasca", Type = "R", Range = true },
+            new SpecialArea { IvaoId = "1113", Name = "LI R300A - Amendola", Type = "R", Range = false });
+        await _db.SaveChangesAsync();
+
+        var viste = await Militari().ResolveRegulatedAreasAsync(Selezione("1311", "1113"));
+
+        Assert.True(viste[0].Range);
+        Assert.False(viste[1].Range);
+
+        // Stesso tipo «R», due colori: è il flag a decidere, non il tipo.
+        var mappa = Vipi.Application.Aor.RegulatedAreasMap.Build(viste);
+        Assert.Equal(Vipi.Application.Aor.SpecialAreaColorScheme.WeaponRange, mappa.Sectors[0].Color);
+        Assert.Equal(Vipi.Application.Aor.SpecialAreaColorScheme.Defaults["R"], mappa.Sectors[1].Color);
+    }
+
     [Fact]
     public async Task Un_campo_senza_documento_non_esplode()
     {

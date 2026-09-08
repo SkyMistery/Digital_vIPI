@@ -180,14 +180,22 @@ public sealed class RegulatedSelection
 }
 
 /// <summary>Area speciale grezza dal DB (per la proiezione nel viewer). Shape = JSON grezzo.</summary>
+/// <param name="Range">Poligono di tiro (<i>weapon range</i>): il flag <c>range</c> dell'import IVAO.</param>
 public sealed record SpecialAreaDetail(
     string IvaoId, string Name, string? Type, string? Description, string? ActivationDetails,
-    int? MinimumAlt, int? MaximumAlt, string? RegionMapPolygon);
+    int? MinimumAlt, int? MaximumAlt, string? RegionMapPolygon, bool Range = false);
 
 /// <summary>Area speciale attaccata a una vIPI, risolta per il viewer: metadati + shape proiettata (null = assente).</summary>
+/// <param name="Range">
+/// Poligono di tiro (<i>weapon range</i>), dal flag <c>range</c> dell'import IVAO.
+///
+/// <para>⚠️ È una proprietà <b>trasversale al tipo</b>, non un tipo in più: nei dati veri i poligoni di tiro
+/// stanno sotto R, D e TRA insieme. Perciò a schermo si dice con un SEGNO PROPRIO (colore e riga marcata) e
+/// non aggiungendo una voce alla tavolozza dei tipi.</para>
+/// </param>
 public sealed record AccSpecialAreaView(
     string IvaoId, string Name, string? Type, string? Description, string? ActivationDetails,
-    int? MinimumAlt, int? MaximumAlt, AppAorPolygon? Shape);
+    int? MinimumAlt, int? MaximumAlt, AppAorPolygon? Shape, bool Range = false);
 
 /// <summary>Flussi verso un aeroporto (foglia dell'albero): arrivi + partenze separati.</summary>
 public sealed record AccAirportFlows(string AirportLabel, IReadOnlyList<AppCoordRow> Arrivals, IReadOnlyList<AppCoordRow> Departures);

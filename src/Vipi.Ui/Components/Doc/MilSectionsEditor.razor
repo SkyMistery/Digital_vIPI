@@ -236,6 +236,7 @@ else
     private IReadOnlyList<IReadOnlyList<string>> _nominativi = Array.Empty<IReadOnlyList<string>>();
     private IReadOnlyList<IReadOnlyList<string>> _parcheggi = Array.Empty<IReadOnlyList<string>>();
     private IReadOnlyDictionary<string, MilActivity> _attivitaAree = new Dictionary<string, MilActivity>();
+    private IReadOnlyDictionary<string, string> _noteAree = new Dictionary<string, string>();
 
     // Aree di lavoro: selezione salvata + i due cataloghi del picker (aree dell'ACC, aree degli altri).
     private RegulatedSelection _regulated = new() { OwnAuto = false };
@@ -570,8 +571,9 @@ else
                 <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
                                       Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
                                       SelectionChanged="SaveRegulated" />
-                <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Editing="_shell.IsEditing"
-                                 OnSet="ScriviAttivitaArea" />
+                <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Notes="_noteAree"
+                                 Editing="_shell.IsEditing"
+                                 OnSet="ScriviAttivitaArea" OnSetNote="ScriviNotaArea" />
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"
@@ -1074,6 +1076,7 @@ else
         _nominativi = await Militari.GetFixedTableAsync(_icao, "callsigns", ColNominativi);
         _parcheggi = await Militari.GetFixedTableAsync(_icao, "parkings", ColParcheggi);
         _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao);
     }
 
     /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
@@ -1208,6 +1211,13 @@ else
         _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
     });
 
+    /// <summary>La nota di UN'area, allo stesso modo: si salva quando il campo perde il fuoco.</summary>
+    private Task ScriviNotaArea((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveAreaNoteAsync(_icao, x.AreaId, x.Nota);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao);
+    });
+
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {
         await Militari.SaveRegulatedAsync(_icao, sel);
@@ -1218,6 +1228,15 @@ else
         // «nessuna area scelta» fino al ricarico della pagina. Chi sceglie e chi legge la tabella sono la
         // stessa persona, nello stesso istante.
         _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
+
+        // ⚠️ E anche attività e NOTE, perché il salvataggio della selezione le POTA: `MilRegulatedPayload.Scrivi`
+        // scarta quelle delle aree non più scelte. Senza questa riga le due mappe in memoria conservano le voci
+        // appena cancellate, e chi toglie una chip e la rimette nella stessa sessione si rivede la sua nota nel
+        // campo — salvata, dice lo schermo. Non lo è: sparisce al ricarico. Con due gettoni si perdeva un clic,
+        // con una nota si perde della prosa scritta a mano.
+        // ⚠️ Si ricarica dalla porta UNICA (`CaricaTabelleAsync`) e non due righe a mano: il giorno che una
+        // terza cosa per-area si aggiunge, chi la aggiunge non deve ricordarsi anche di questo punto.
+        await CaricaTabelleAsync();
     });
 
 

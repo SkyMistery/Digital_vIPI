@@ -41,7 +41,7 @@ public static class RegulatedAreasMap
             sectors.Add(new AccSectorAor(
                 Callsign: a.IvaoId,
                 Name: a.Name,
-                Color: SpecialAreaColorScheme.For(a.Type),
+                Color: SpecialAreaColorScheme.For(a.Type, a.Range),
                 Polygons: a.Shape is null ? Array.Empty<AppAorPolygon>() : new[] { a.Shape },
                 LowerFl: bottom,
                 UpperFl: top,

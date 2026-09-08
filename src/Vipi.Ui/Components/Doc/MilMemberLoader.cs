@@ -37,6 +37,7 @@ public sealed record MilMemberDocument(
     IReadOnlyList<NavaidRow> Radioassistenze,
     IReadOnlyList<MilDiversionView> Alternati,
     IReadOnlyDictionary<string, MilActivity> AttivitaAree,
+    IReadOnlyDictionary<string, string> NoteAree,
     IReadOnlyList<IReadOnlyList<string>> Nominativi,
     IReadOnlyList<IReadOnlyList<string>> Parcheggi)
 {
@@ -157,18 +158,27 @@ public sealed class MilMemberLoader
         var alternati = await _militari.ResolveDiversionsForViewAsync(
             code, MilDiversionPayload.Leggi(SectionPayload.Read(Sezione(view, "diversion"))), useFrozen, ct);
 
-        // ⚠️ Queste tre si leggono dai BLOCCHI del documento mostrato e non dal servizio: il contenuto è il
-        // payload, quindi in anteprima release arriva già dallo snapshot — chiederlo al servizio darebbe
-        // quel che c'è adesso, cioè scavalcherebbe la release.
-        var attivita = MilRegulatedPayload.LeggiAttivita(SectionPayload.Read(Sezione(view, "regulated")));
-        var nominativi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "callsigns")), 4);
-        var parcheggi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "parkings")), 3);
-
         // ⚠️ Il vSOP militare nasce in ITALIANO (carta §1d): la lingua sorgente è quella in cui si REDIGE,
         // non quella dei quindici PDF di partenza. «It» qui è solo la lingua di NASCITA della famiglia: la
         // sorgente vera la porta il documento.
         var tradotto = await _translator.TranslateAsync(view, Language.It, lettore, ct);
         view = tradotto.View;
+
+        // ⚠️ Questi quattro si leggono dai BLOCCHI del documento mostrato e non dal servizio: il contenuto è
+        // il payload, quindi in anteprima release arriva già dallo snapshot — chiederlo al servizio darebbe
+        // quel che c'è adesso, cioè scavalcherebbe la release.
+        //
+        // ⚠️ E si leggono DOPO la traduzione, dall'8 settembre 2026. La passata riscrive il `BodyJson` di
+        // ogni blocco, e da quel giorno le NOTE delle aree di lavoro sono fra i testi che riscrive: lette
+        // prima, un lettore inglese trovava tutto il documento tradotto e le note ancora in italiano.
+        // Attività, nominativi e parcheggi vengono dalla stessa lettura perché sono lo stesso payload letto
+        // nello stesso modo — tenerne metà di qua e metà di là è il modo di scordarsene alla prossima.
+        // ⚠️ Qui e non più in basso: sotto, `AudienceFilter` TOGLIE le sezioni non destinate a chi legge, e
+        // da una sezione tolta questi payload tornerebbero vuoti.
+        var attivita = MilRegulatedPayload.LeggiAttivita(SectionPayload.Read(Sezione(view, "regulated")));
+        var noteAree = MilRegulatedPayload.LeggiNote(SectionPayload.Read(Sezione(view, "regulated")));
+        var nominativi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "callsigns")), 4);
+        var parcheggi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "parkings")), 3);
 
         // I titoli delle sezioni di CATALOGO nella lingua di lettura, DOPO la traduzione.
         // ⚠️ Non è un doppione della passata: quei titoli stanno scritti nel documento nella lingua che aveva
@@ -184,7 +194,7 @@ public sealed class MilMemberLoader
 
         return new MilMemberDocument(code, view, mode, relCycle, bloccata, tradotto.Coverage, haMarcate,
                                      letturaVista, civile, derivate, station, wx, metar, taf, aree,
-                                     radioassistenze, alternati, attivita, nominativi, parcheggi);
+                                     radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi);
     }
 
     /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>

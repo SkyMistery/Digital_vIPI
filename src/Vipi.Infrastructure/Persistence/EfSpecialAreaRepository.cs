@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 
@@ -51,7 +51,7 @@ public sealed class EfSpecialAreaRepository : ISpecialAreaRepository
         return await _db.SpecialAreas.AsNoTracking()
             .Where(s => ids.Contains(s.IvaoId))
             .Select(s => new SpecialAreaDetail(s.IvaoId, s.Name, s.Type, s.Description, s.ActivationDetails,
-                s.MinimumAlt, s.MaximumAlt, s.RegionMapPolygon))
+                s.MinimumAlt, s.MaximumAlt, s.RegionMapPolygon, s.Range))
             .ToListAsync(ct);
     }
 }

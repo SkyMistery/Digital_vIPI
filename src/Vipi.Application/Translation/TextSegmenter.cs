@@ -39,8 +39,12 @@ public static class TextSegmenter
     /// <c>height</c>, <c>unified</c>, <c>primary</c>, <c>star</c>: sono identificatori e interruttori, e
     /// tradurli romperebbe il documento invece di renderlo bilingue.</para>
     /// </summary>
+    /// <para>⚠️ <c>notes</c> è entrata l'8 settembre 2026, con le note delle «Aree di lavoro» del vSOP
+    /// militare. Il suo valore non è né una stringa né un elenco: è un <b>oggetto</b> id-area → testo. È il
+    /// caso che ha costretto <see cref="Percorri"/> a portare il flag anche dentro gli oggetti — vedi lì il
+    /// perché le CHIAVI non si toccano mai.</para>
     private static readonly IReadOnlySet<string> ChiaviDiTesto =
-        new HashSet<string>(StringComparer.Ordinal) { "title", "alt", "group", "columns", "cells" };
+        new HashSet<string>(StringComparer.Ordinal) { "title", "alt", "group", "columns", "cells", "notes" };
 
     // ---- Prosa ---------------------------------------------------------------------------------------
 
@@ -103,9 +107,14 @@ public static class TextSegmenter
     }
 
     /// <summary>
-    /// Scende nell'albero. <paramref name="traducibile"/> vale per i valori <b>dentro</b> un array che una
-    /// chiave di testo ha aperto (<c>columns</c>, <c>cells</c>): lì le stringhe sono tutte da leggere, e non
-    /// hanno una chiave propria da cui riconoscerle.
+    /// Scende nell'albero. <paramref name="traducibile"/> vale per i valori <b>dentro</b> quel che una chiave
+    /// di testo ha aperto — un array (<c>columns</c>, <c>cells</c>) o un oggetto (<c>notes</c>): lì le
+    /// stringhe sono tutte da leggere, e non hanno una chiave propria da cui riconoscerle.
+    ///
+    /// <para>⚠️ <b>Le chiavi non si traducono mai</b>, nemmeno qui dentro. Sotto <c>notes</c> le chiavi sono
+    /// id d'area («10478»): tradurle scollegherebbe la nota dalla sua area, cioè perderebbe il dato invece di
+    /// renderlo bilingue. Il flag governa i VALORI e basta — e il ramo degli oggetti non tocca le chiavi in
+    /// nessun caso, che è quel che rende questa regola vera per costruzione e non per attenzione.</para>
     /// </summary>
     private static void Percorri(JsonNode nodo, bool traducibile, Func<string, string> traduci)
     {
@@ -116,11 +125,11 @@ public static class TextSegmenter
                 foreach (var (chiave, valore) in oggetto.ToList())
                 {
                     if (valore is null) continue;
-                    var chiaveDiTesto = ChiaviDiTesto.Contains(chiave);
-                    if (chiaveDiTesto && valore is JsonValue vs && vs.TryGetValue<string>(out var testo))
+                    var diTesto = traducibile || ChiaviDiTesto.Contains(chiave);
+                    if (diTesto && valore is JsonValue vs && vs.TryGetValue<string>(out var testo))
                         oggetto[chiave] = traduci(testo);
                     else
-                        Percorri(valore, chiaveDiTesto, traduci);
+                        Percorri(valore, diTesto, traduci);
                 }
                 break;
 

@@ -31,7 +31,7 @@ public static class SpecialAreaProjection
                 d.IvaoId, d.Name, d.Type,
                 traduci is null ? d.Description : traduci(d.Description),
                 traduci is null ? d.ActivationDetails : traduci(d.ActivationDetails),
-                d.MinimumAlt, d.MaximumAlt, shape));
+                d.MinimumAlt, d.MaximumAlt, shape, d.Range));
         }
         return result;
     }

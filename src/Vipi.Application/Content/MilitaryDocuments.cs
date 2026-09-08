@@ -181,4 +181,13 @@ public interface IMilitaryDocumentService
     /// aree diverse non devono sovrascriversi — è la stessa regola dei campi delle radioassistenze.
     /// </summary>
     Task SaveAreaActivityAsync(string icao, string areaId, MilActivity attivita, CancellationToken ct = default);
+
+    /// <summary>La nota libera di ognuna delle aree di lavoro scelte, per id d'area.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetAreaNotesAsync(string icao, CancellationToken ct = default);
+
+    /// <summary>
+    /// Cambia la nota di UN'area. Vuota o solo spazi ⇒ la nota si toglie. ⚠️ Un'area alla volta, per la
+    /// stessa ragione dell'attività: due persone che scrivono su due aree diverse non si sovrascrivono.
+    /// </summary>
+    Task SaveAreaNoteAsync(string icao, string areaId, string? nota, CancellationToken ct = default);
 }

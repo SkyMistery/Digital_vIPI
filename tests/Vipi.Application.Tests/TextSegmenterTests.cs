@@ -123,6 +123,34 @@ public class TextSegmenterTests
         Assert.Contains("LIBB CH / AOD", tradotto);   // non toccata: non era nella mappa
     }
 
+    // ---- Le note delle aree di lavoro: un OGGETTO di testo, non una stringa né un elenco ---------------
+
+    // Il payload vero della sezione «Aree di lavoro» di un vSOP militare: selezione, attività e note insieme.
+    private const string AreeDiLavoro =
+        """{"OwnAuto":false,"OwnIds":["10478","735"],"ExtraIds":[],"activities":{"735":"CAS-LOWLEVEL"},"notes":{"735":"Ingresso solo da nord, coordinare con LIBB."}}""";
+
+    [Fact]
+    public void La_nota_di_un_area_e_un_segmento()
+    {
+        // ⚠️ Il valore di `notes` è un OGGETTO id-area → testo: prima dell'8 settembre 2026 il segmentatore
+        // scendeva lì dentro col flag spento e non trovava niente — un documento tradotto restava con le note
+        // nella lingua di partenza, e nessuno protestava.
+        Assert.Equal(new[] { "Ingresso solo da nord, coordinare con LIBB." }, TextSegmenter.SplitJson(AreeDiLavoro));
+    }
+
+    [Fact]
+    public void Le_chiavi_e_le_attivita_delle_aree_non_si_traducono()
+    {
+        var tradotto = TextSegmenter.MapJson(AreeDiLavoro, _ => "TRADOTTO");
+
+        Assert.Contains("\"TRADOTTO\"", tradotto);
+        // ⚠️ L'id d'area è la CHIAVE, e la chiave lega la nota alla sua area: tradurla perderebbe il dato.
+        Assert.Contains("\"735\":", tradotto);
+        Assert.Contains("\"OwnIds\":[\"10478\",\"735\"]", tradotto);
+        // ⚠️ E `activities` non è prosa: è la forma compatta dei flag. Tradotta, non si rileggerebbe più.
+        Assert.Contains("\"CAS-LOWLEVEL\"", tradotto);
+    }
+
     [Fact]
     public void Un_corpo_che_non_capiamo_non_si_tocca()
     {

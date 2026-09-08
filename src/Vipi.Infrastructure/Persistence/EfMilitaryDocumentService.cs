@@ -320,7 +320,36 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         else attuali[areaId] = attivita;
 
         await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
-            MilRegulatedPayload.Scrivi(selezione, attuali), _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+            MilRegulatedPayload.Scrivi(selezione, attuali, MilRegulatedPayload.LeggiNote(json)),
+            _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyDictionary<string, string>> GetAreaNotesAsync(
+        string icao, CancellationToken ct = default)
+    {
+        if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
+            return new Dictionary<string, string>();
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        return MilRegulatedPayload.LeggiNote(json);
+    }
+
+    public async Task SaveAreaNoteAsync(string icao, string areaId, string? nota, CancellationToken ct = default)
+    {
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+
+        // Come l'attività: si rilegge TUTTO l'oggetto e lo si riscrive intero, o la metà non toccata
+        // tornerebbe a com'era prima della modifica precedente.
+        var selezione = Manuale(RegulatedSelectionJson.Parse(json));
+        var attuali = new Dictionary<string, string>(
+            MilRegulatedPayload.LeggiNote(json), StringComparer.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(nota)) attuali.Remove(areaId);
+        else attuali[areaId] = nota.Trim();
+
+        await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
+            MilRegulatedPayload.Scrivi(selezione, MilRegulatedPayload.LeggiAttivita(json), attuali),
+            _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
 
     public async Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default)
@@ -338,14 +367,14 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         var pulita = Manuale(selection);
         var vuota = pulita.OwnIds.Count == 0 && pulita.ExtraIds.Count == 0;
 
-        // ⚠️ Le ATTIVITÀ già scritte si riportano: stanno nello stesso oggetto JSON, e serializzare la sola
-        // selezione le cancellerebbe a ogni chip aggiunta o tolta — senza un errore, e senza che chi le ha
-        // scritte tocchi mai quella tendina. Quelle delle aree non più scelte le scarta `Scrivi`.
-        var attivita = MilRegulatedPayload.LeggiAttivita(
-            await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false));
+        // ⚠️ Le ATTIVITÀ e le NOTE già scritte si riportano: stanno nello stesso oggetto JSON, e serializzare
+        // la sola selezione le cancellerebbe a ogni chip aggiunta o tolta — senza un errore, e senza che chi
+        // le ha scritte tocchi mai quella tendina. Quelle delle aree non più scelte le scarta `Scrivi`.
+        var precedente = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
 
         await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
-            vuota ? null : MilRegulatedPayload.Scrivi(pulita, attivita),
+            vuota ? null : MilRegulatedPayload.Scrivi(pulita,
+                MilRegulatedPayload.LeggiAttivita(precedente), MilRegulatedPayload.LeggiNote(precedente)),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
 

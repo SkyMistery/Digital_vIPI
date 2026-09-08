@@ -24,7 +24,9 @@ else
 
     @* Le descrizioni. Vivono FUORI dai due riquadri 2D/3D — devono restare in pagina in tutt'e due le viste —
        e si legano alla mappa con la chiave di scope, come fanno i <details> di configurazione. *@
-    <div class="reg-cards" data-areacards="@scope">
+    @* `--wr`: l'arancione dei poligoni di tiro, preso dalla stessa costante che colora la mappa (vedi
+       MilWorkingAreas). Il foglio di stile non conosce il valore. *@
+    <div class="reg-cards" data-areacards="@scope" style="--wr:@SpecialAreaColorScheme.WeaponRange">
         @* Il conteggio nasce già scritto (all'apertura sono tutte accese) e il JS lo riscrive a ogni chip usando
            il FORMATO qui accanto: la frase resta tradotta anche se a cambiarla è il browser. *@
         <p class="muted reg-count" data-areacount="@scope" data-fmt="@L["Reg_Shown"].Value"
@@ -35,9 +37,14 @@ else
             <details class="coord-sub reg-card" data-areacard="@a.IvaoId">
                 <summary>
                     <span>
-                        <span class="reg-dot" style="background:@(SpecialAreaColorScheme.For(a.Type))33;border-color:@SpecialAreaColorScheme.For(a.Type)"></span>
+                        @* Il pallino porta il colore CHE HA SULLA MAPPA, poligoni di tiro compresi: se la
+                           scheda dicesse il colore del tipo e la mappa un altro, la stessa area sarebbe due
+                           aree. *@
+                        @{ var col = SpecialAreaColorScheme.For(a.Type, a.Range); }
+                        <span class="reg-dot" style="background:@(col)33;border-color:@col"></span>
                         @if (!string.IsNullOrWhiteSpace(a.Type)) { <b class="reg-type">@a.Type</b> }
                         @a.Name
+                        @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
                         <span class="reg-band">@Band(a)</span>
                         @if (a.Shape is null) { <span class="muted reg-noshape">@L["Reg_NoShape"]</span> }
                     </span>

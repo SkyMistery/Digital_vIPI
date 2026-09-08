@@ -31,9 +31,26 @@ public static class SpecialAreaColorScheme
             ["TRA"] = "#3E8E5A",   // verde   — Temporary Reserved Area  (convenzione, vedi sopra)
         };
 
+    /// <summary>
+    /// Poligoni di tiro (<i>weapon range</i>, flag <c>range</c> dell'import IVAO): un colore SOLO LORO, che
+    /// vince sul tipo.
+    ///
+    /// <para>⚠️ Vince sul tipo perché «poligono di tiro» <b>non è</b> un tipo: nei dati veri quel flag sta
+    /// sotto R, D e TRA insieme (16 aree su 230 nel DB di sviluppo, tre tipi diversi). Un colore in più nella
+    /// tavolozza dei tipi non lo direbbe; questo sì, ed è il dato che al militare interessa per primo.</para>
+    ///
+    /// <para>⚠️ Arancione e non un'altra sfumatura di rosso: il rosso è già la R e i poligoni si riempiono al
+    /// 16%, dove due rossi vicini diventano lo stesso rosso. L'arancione resta separato anche da sopra il
+    /// giallo della D, che è più chiaro e più smorto.</para>
+    /// </summary>
+    public const string WeaponRange = "#E2711D";
+
     /// <summary>Colore per un tipo di area. <see cref="Fallback"/> se ignoto o assente.</summary>
     public static string For(string? type) =>
         !string.IsNullOrWhiteSpace(type) && Defaults.TryGetValue(type.Trim(), out var c) ? c : Fallback;
+
+    /// <summary>Colore di un'area: <see cref="WeaponRange"/> se è un poligono di tiro, altrimenti quello del tipo.</summary>
+    public static string For(string? type, bool weaponRange) => weaponRange ? WeaponRange : For(type);
 
     /// <summary>
     /// I tipi presenti in un elenco di aree, nell'ordine in cui il catalogo li elenca (<see cref="Defaults"/>),

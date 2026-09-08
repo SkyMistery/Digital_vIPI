@@ -19,8 +19,8 @@ namespace Vipi.Application.Tests;
 public class RegulatedAreasMapTests
 {
     private static AccSpecialAreaView Area(string id, string nome, string? tipo, int? min = 0, int? max = 5000,
-        bool shape = true) =>
-        new(id, nome, tipo, "descrizione", "Permanently active", min, max, shape ? Poly() : null);
+        bool shape = true, bool tiro = false) =>
+        new(id, nome, tipo, "descrizione", "Permanently active", min, max, shape ? Poly() : null, tiro);
 
     private static AppAorPolygon Poly() =>
         new("0 0 10 10", "M0 0 L10 0 L10 10 Z", new List<double[]> { new[] { 41.0, 12.0 }, new[] { 41.5, 12.5 }, new[] { 41.0, 12.5 } },
@@ -65,6 +65,42 @@ public class RegulatedAreasMapTests
         Assert.Equal(SpecialAreaColorScheme.Fallback, v.Sectors[5].Color);
         // Cinque tipi, cinque colori diversi: se due combaciassero la mappa non li distinguerebbe.
         Assert.Equal(5, SpecialAreaColorScheme.Defaults.Values.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+
+    // ⚠️ Il flag «poligono di tiro» VINCE sul tipo, e il test lo chiede su tre tipi diversi perché nei dati
+    // veri è così: nel DB di sviluppo le 16 aree marcate stanno sotto R, D e TRA. Un colore per tipo non
+    // potrebbe dirlo — è la ragione per cui questo colore non è un sesto tipo della tavolozza.
+    [Fact]
+    public void Il_poligono_di_tiro_ha_un_colore_suo_che_vince_sul_tipo()
+    {
+        var v = RegulatedAreasMap.Build(new[]
+        {
+            Area("1", "LI R59A Capo Frasca", "R", tiro: true),
+            Area("2", "LI D40B Cagliari", "D", tiro: true),
+            Area("3", "LI TRA611A", "TRA", tiro: true),
+            Area("4", "LI R300A", "R"),                        // stesso tipo, NON di tiro: resta rossa
+        });
+
+        Assert.Equal(SpecialAreaColorScheme.WeaponRange, v.Sectors[0].Color);
+        Assert.Equal(SpecialAreaColorScheme.WeaponRange, v.Sectors[1].Color);
+        Assert.Equal(SpecialAreaColorScheme.WeaponRange, v.Sectors[2].Color);
+        Assert.Equal(SpecialAreaColorScheme.Defaults["R"], v.Sectors[3].Color);
+        // E non è il colore di nessun tipo, o sulla mappa i due si confonderebbero.
+        Assert.DoesNotContain(SpecialAreaColorScheme.WeaponRange, SpecialAreaColorScheme.Defaults.Values);
+        Assert.NotEqual(SpecialAreaColorScheme.Fallback, SpecialAreaColorScheme.WeaponRange);
+    }
+
+    // ⚠️ I preset restano per TIPO: un poligono di tiro si accende con la chip del suo tipo, come prima.
+    // Il segno del tiro è il colore, non un gruppo in più — se cambiasse anche il raggruppamento, spegnere
+    // «R» lascerebbe accese delle R.
+    [Fact]
+    public void Il_poligono_di_tiro_resta_nel_preset_del_suo_tipo()
+    {
+        var p = RegulatedAreasMap.Presets(new[] { Area("1", "LI R1", "R", tiro: true), Area("2", "LI R2", "R") });
+
+        var r = Assert.Single(p);
+        Assert.Equal("R", r.Key);
+        Assert.Equal(new[] { "1", "2" }, r.OpenCallsigns);
     }
 
     // Le quote delle aree sono in PIEDI (29000, 1500). Il visore 3D estrude su una banda FL: senza la
