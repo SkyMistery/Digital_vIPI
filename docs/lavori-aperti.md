@@ -10281,3 +10281,25 @@ testa a `TranslationReviewPanel` resta dov'è, per il suo caso: qui il precedent
 
 ⚠️ **1.16.1 non è provata da questo scarico**: ci vive per **4 richieste** e novanta secondi. Un'era senza
 traffico non assolve nessuno — serve il prossimo file.
+
+### ✅ La prova: viva, non verde
+
+I test non vedono una risoluzione DI sbagliata, e qui la domanda era una sola: `RoleAdminService` chiama
+`EnsureAdmin()` e legge `CurrentUserId`, e ora quel servizio arriva da uno **scope figlio**. Se l'identità non
+ci sopravvivesse, l'elenco non caricherebbe e il salvataggio verrebbe rifiutato **a tutti**.
+
+Guidata a schermo (`verifica-live`, Edge headful su una copia del `vipi.db`, `VipiAuth__Enabled=false`):
+
+- ⚠️ **Il primo giro non prova il salvataggio**, e non è colpa della pagina: nel `vipi.db` di sviluppo il
+  roster ha **una sola persona**, e quella persona sono io — su sé stessi il livello non si tocca, per
+  disegno. Si **semina** una seconda riga in `StaffMembers` nella copia (§5 del runbook) e si riprova.
+- ✅ **L'elenco carica**: due righe, contatore «2», nessun callout d'accesso negato. `EnsureAdmin()` nello
+  scope figlio è passato.
+- ✅ **Il pavimento funziona**: per `IT-ACC1` le opzioni sotto «Division staff» sono **disabilitate**, con la
+  riga che spiega perché.
+- ✅ **Il salvataggio è accettato**: «Prova Semina (123456) is now «Editor»» in verde, la pastiglia della riga
+  passa a `Editor •` (il pallino = data a mano), e **dopo un ricarico completo della pagina il livello è
+  ancora lì** — cioè è finito nel database, non solo a schermo.
+- ✅ E la riga che chiude la questione dell'identità è a schermo nel riquadro della promozione:
+  **«Granted by: Carmine (704798)»**. Quel VID lo scrive `_authz.CurrentUserId` **dentro lo scope figlio**.
+- Nessun errore in console, nessun letterale Razor non valutato.
