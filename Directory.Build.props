@@ -750,7 +750,49 @@
       `.br`/`.gz` e **insieme** a `Vipi.Host.staticwebassets.endpoints.json`. ⚠️ `vipi-ui.js` NON e' cambiato
       da 1.16.0 — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.16.1</VipiVersione>
+    <!--
+      1.17.0 — 9 settembre 2026. **MINOR**: nessuna migrazione, ma un COMANDO nuovo in pagina.
+      Si costruisce contro cio' che GIRA, che e' **1.16.1** (`d2925b3`), caricata la sera prima.
+
+      ⚠️ Non e' una PATCH e la regola del runbook e' chiara: una PATCH e' «solo correzioni, nessuna pagina o
+      sezione nuova». Qui sulla riga delle clausole compare un tasto che prima non c'era e che ELIMINA.
+
+      Il pacchetto nasce da un file sceso dal server, non da un'idea: il primo `errori-richieste.txt`
+      posteriore alle correzioni di §CD dice che quelle correzioni NON hanno chiuso (§CF).
+
+        · 🔴 **La TERZA PORTA.** Scope proprio e sentinella di rientro proteggono dagli ALTRI e da SE'
+          STESSI, non dal TEMPO: se il componente si smonta con una query aperta, lo scope si porta via il
+          `DbContext` sotto quella query. `StatsDivisionPage` aveva gia' tutt'e due le altre porte ed e'
+          caduta lo stesso, in produzione, alle 20:26:02 dell'8 settembre — gia' sotto 1.16.1.
+          `ScopeProprioCheAspetta` chiude e ASPETTA (tetto 15 s), come `DocumentEditorShell.ChiudiAsync` fa
+          per i cinque editor dal 7 settembre. Convertiti i SEI che il registro nomina; gli altri ventuno in
+          un debito misurato (`TerzaPortaTests`).
+          ⚠️ La prova non e' la verifica live e non poteva esserlo: trenta uscite a meta' caricamento hanno
+          lasciato il registro pulito ANCHE sul codice di prima. E' provata la garanzia, a rovescio.
+
+        · **La pagina dei permessi prende lo scope suo.** Era in `DebitoNoto` dal 4 settembre e nello stesso
+          pomeriggio e' finita DUE volte nel registro: un debito scritto smette di essere un debito quando
+          la produzione lo nomina. Provata VIVA — elenco, pavimento, salvataggio, «Granted by» col VID
+          giusto, cioe' l'identita' sopravvive nello scope figlio.
+
+        · **La NRE di render dell'editor APP ha finalmente una rete.** Non «non copriva»: NON C'ERA — era
+          rimasta un proposito dal 7 settembre, e per due occorrenze si e' aspettata una risposta che
+          nessuno stava preparando. Ora `Testata()` rilancia col contesto (app, acc, documento, stazione
+          militare, nome, lingua), con `NoInlining` inchiodato da un test.
+          ⚠️ NON chiude la NRE: rende una diagnosi la prossima occorrenza.
+
+        · **Il ✕ sulla riga di un coordinamento** (chiesto dal committente), che si porta via le sue
+          ECCEZIONI: un'eccezione senza la riga da cui pende non e' un residuo, e' una clausola qualunque
+          che nel documento pubblicato vale sempre. Ci passa anche il ✕ del pannello, che prima cancellava
+          la sola riga. La conferma CONTA quante righe se ne vanno.
+
+      Rispetto a 1.16.1 cambiano `Application` (il sottoalbero dell'outline) e `Ui`, piu' `Host` (che porta
+      sempre il timbro) e il satellite inglese, perche' le due `.resx` hanno tre chiavi nuove. ⚠️ `wwwroot`
+      c'e' con UN file solo: `vipi-theme.css` (la conferma di riga e la colonna dei tasti). Viaggia coi suoi
+      `.br`/`.gz` e **insieme** a `Vipi.Host.staticwebassets.endpoints.json`. ⚠️ `Infrastructure` NON cambia,
+      e `vipi-ui.js` nemmeno — da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.17.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
