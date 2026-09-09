@@ -148,6 +148,22 @@ public class ProfiloMilitareTests
         Assert.Contains("lowlevel", Mil.Single(d => d.Key == "regulated").Children!.Select(d => d.Key));
     }
 
+    [Fact]
+    public void La_bassa_quota_ha_un_visualizzatore_SUO_e_tiene_anche_i_propri_blocchi()
+    {
+        // Carta 2026-09-09-aree-boat.md: la sotto-sezione disegna mappa, elenco e tabella delle aree BOAT,
+        // come fa il padre con le working areas — quindi il corpo lo produce la PAGINA.
+        // ⚠️ `HostAndBlocks` e non `Host`: sotto la scheda restano i blocchi editoriali. Fino all'8
+        // settembre 2026 questa sezione era prosa e basta, e chi ci aveva scritto dentro non deve perderla.
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "lowlevel"));
+        Assert.True(SectionCatalog.KeepsOwnBlocks(SectionProfile.AirportMil, "lowlevel"));
+
+        // ⚠️ E la NATURA non cambia: non c'è niente da congelare alla release, quindi niente interruttore
+        // Live/Frozen. È la stessa scelta di «regulated», ed è la lezione delle coordinate delle soglie.
+        Assert.Equal(SectionKind.Editorial, SectionCatalog.KindOf("lowlevel"));
+        Assert.False(SectionCatalog.IsRenderModeToggleable("lowlevel"));
+    }
+
     // ---- L'APP militare ------------------------------------------------------------------------------
 
     [Fact]
