@@ -3326,4 +3326,13 @@
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>una vuole una persona</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>Una frase di questo documento non è ancora tradotta. La release NON la congela: si leggerà tradotta appena passa il giro, senza ripubblicare.</value></data>
   <data name="Ape_RowIncomplete" xml:space="preserve"><value>Riga incompleta: non ancora salvata</value></data>
+  <data name="Rta_Toolbar" xml:space="preserve"><value>Formattazione del testo</value></data>
+  <data name="Rta_Bold" xml:space="preserve"><value>Grassetto</value></data>
+  <data name="Rta_BoldLetter" xml:space="preserve"><value>G</value></data>
+  <data name="Rta_Italic" xml:space="preserve"><value>Corsivo</value></data>
+  <data name="Rta_ItalicLetter" xml:space="preserve"><value>C</value></data>
+  <data name="Rta_Underline" xml:space="preserve"><value>Sottolineato</value></data>
+  <data name="Rta_UnderlineLetter" xml:space="preserve"><value>S</value></data>
+  <data name="Rta_Bullets" xml:space="preserve"><value>Elenco puntato</value></data>
+  <data name="Rta_Numbers" xml:space="preserve"><value>Elenco numerato</value></data>
 </root>

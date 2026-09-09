@@ -634,8 +634,8 @@ else
                 {
                     case BlockFormat.Prose:
                     case BlockFormat.List:
-                        <textarea class="app-ta" rows="3" value="@b.Body" placeholder="@L["Dse_TextMarkdownPh"]"
-                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="3" Value="@b.Body" Placeholder="@L["Dse_TextMarkdownPh"]"
+                                      ValueChanged="v => SaveBlock(b, body: v)" />
                         break;
                     case BlockFormat.Callout:
                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
@@ -645,8 +645,8 @@ else
                                 @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
                             </select>
                         </div>
-                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="@L["Dse_CalloutTextPh"]"
-                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="2" Value="@b.Body" Placeholder="@L["Dse_CalloutTextPh"]"
+                                      ValueChanged="v => SaveBlock(b, body: v)" />
                         break;
                     case BlockFormat.Table:
                         @TableEditor(b)
@@ -661,8 +661,8 @@ else
                            monta il componente condiviso, come per l'immagine. *@
                         <AttachmentBlockEditor AttachmentJson="@b.BodyJson" AttachmentJsonChanged="j => SaveBlock(b, bodyJson: j ?? string.Empty)"
                                                Note="@b.Body" />
-                        <textarea class="app-ta" rows="2" value="@b.Body" placeholder="@L["Att_BlockNotePh"]"
-                                  @onchange="e => SaveBlock(b, body: AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="2" Value="@b.Body" Placeholder="@L["Att_BlockNotePh"]"
+                                      ValueChanged="v => SaveBlock(b, body: v)" />
                         break;
                     default:
                         <p class="muted">@(string.Format(L["Dse_BlockNotEditable"].Value, b.Format))</p>

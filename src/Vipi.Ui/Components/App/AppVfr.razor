@@ -1,11 +1,9 @@
-@* Sezione VFR (editoriale): prosa introduttiva (markdown) + tabella opzionale (situazione→procedura). *@
+﻿@* Sezione VFR (editoriale): prosa introduttiva (markdown) + tabella opzionale (situazione→procedura). *@
 @inject IStringLocalizer<SharedResource> L
 @if (Editing)
 {
-    <label class="app-lbl">@L["AppVfr_IntroLabel"]
-        <textarea class="app-ta" rows="4" value="@Content.Intro"
-                  @onchange="e => SetIntro(AsString(e.Value))"></textarea>
-    </label>
+    <RichTextArea Label="@L["AppVfr_IntroLabel"]" Rows="4" Value="@Content.Intro"
+                  ValueChanged="SetIntro" />
     <table>
         <thead><tr><th>@L["AppVfr_Situation"]</th><th>@L["AppVfr_Procedure"]</th><th style="width:48px"></th></tr></thead>
         <tbody>

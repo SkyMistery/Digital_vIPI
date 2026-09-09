@@ -1,0 +1,70 @@
+@* Campo di testo markdown con la barra di formattazione: grassetto, corsivo, sottolineato, i due elenchi.
+   È la PORTA SOLA dei campi di prosa dell'editor — paragrafo, callout, nota d'allegato, didascalia, intro
+   VFR. Una barra scritta due volte diventerebbe due barre diverse al primo ritocco.
+
+   ⚠️ La barra è SEMPRE nel DOM e si accende col fuoco in CSS (`:focus-within`), non in C#. Legarla a un
+   `@onfocus`/`@onblur` sarebbe stato uno stato in più e un giro di rete a ogni entrata e uscita dal campo —
+   su un editor con venti blocchi si vede. E soprattutto: una barra che compare farebbe crescere il blocco e
+   scivolare in giù tutto quello sotto, esattamente il salto che `vipi-editor.js` già compensa a mano per la
+   fisarmonica. Occupando lo spazio sempre, non c'è niente da compensare.
+
+   ⚠️ Il secondo motivo per non spegnerla: il `blur` parte PRIMA del `click`. Una barra che sparisce sul blur
+   sparirebbe mentre la clicchi. *@
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+@* ⚠️ L'etichetta è un PARAMETRO e non un involucro lasciato al chiamante: dentro un `<label>` un click su
+   un tasto della barra attiva l'etichetta, che rimanda il fuoco alla textarea — e nel rimandarlo azzera la
+   selezione, cioè proprio la cosa che il tasto stava per formattare. Qui il legame si fa con `for`/`id`,
+   che dà l'accessibilità senza l'effetto collaterale. *@
+@if (!string.IsNullOrWhiteSpace(Label))
+{
+    <label class="app-lbl" for="@_id">@Label</label>
+}
+<div class="rta">
+    <div class="rta-bar" role="toolbar" aria-label="@L["Rta_Toolbar"]">
+        @Tasto("**", "**", L["Rta_Bold"].Value + " (Ctrl+B)", L["Rta_BoldLetter"].Value, "rta-b")
+        @Tasto("*", "*", L["Rta_Italic"].Value + " (Ctrl+I)", L["Rta_ItalicLetter"].Value, "rta-i")
+        @Tasto("__", "__", L["Rta_Underline"].Value + " (Ctrl+U)", L["Rta_UnderlineLetter"].Value, "rta-u")
+        <span class="rta-sep" aria-hidden="true"></span>
+        @TastoElenco(false, L["Rta_Bullets"].Value, "•")
+        @TastoElenco(true, L["Rta_Numbers"].Value, "1.")
+    </div>
+    <textarea @ref="_ta" id="@_id" class="app-ta" rows="@Rows" value="@Value" placeholder="@Placeholder"
+              @onchange="Cambiato"></textarea>
+</div>
+
+@code {
+    [Parameter] public string? Value { get; set; }
+    [Parameter] public EventCallback<string> ValueChanged { get; set; }
+    [Parameter] public int Rows { get; set; } = 3;
+    [Parameter] public string? Placeholder { get; set; }
+    /// <summary>Etichetta sopra il campo. Vuota = nessuna etichetta (il caso dei blocchi, che hanno già il
+    /// loro titolo di sezione).</summary>
+    [Parameter] public string? Label { get; set; }
+
+    private ElementReference _ta;
+    private readonly string _id = "rta-" + Guid.NewGuid().ToString("n")[..8];
+
+    private Task Cambiato(ChangeEventArgs e) => ValueChanged.InvokeAsync(e.Value as string ?? string.Empty);
+
+    // ⚠️ `@onmousedown:preventDefault` NON è un dettaglio: senza, premere il tasto toglie il fuoco alla
+    // textarea e il browser AZZERA la selezione. Quando il click arriva, `selectionStart` e `selectionEnd`
+    // sono già collassati e il gesto formatterebbe il nulla. Il click scatta lo stesso: si annulla solo il
+    // trasferimento del fuoco.
+    private RenderFragment Tasto(string pre, string post, string titolo, string lettera, string cls) => __builder =>
+    {
+        <button type="button" class="rta-btn @cls" title="@titolo" aria-label="@titolo"
+                @onmousedown:preventDefault="true" @onclick="() => Wrap(pre, post)">@lettera</button>
+    };
+
+    private RenderFragment TastoElenco(bool ordinato, string titolo, string segno) => __builder =>
+    {
+        <button type="button" class="rta-btn" title="@titolo" aria-label="@titolo"
+                @onmousedown:preventDefault="true" @onclick="() => Lista(ordinato)">@segno</button>
+    };
+
+    private Task Wrap(string pre, string post) => JS.InvokeVoidAsync("vipiMdWrap", _ta, pre, post).AsTask();
+
+    private Task Lista(bool ordinato) => JS.InvokeVoidAsync("vipiMdList", _ta, ordinato).AsTask();
+}

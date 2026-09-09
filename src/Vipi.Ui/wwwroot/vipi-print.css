@@ -209,6 +209,11 @@
   .vipi-root tr { break-inside: avoid; }
   .vipi-root p { orphans: 3; widows: 3; }
 
+  /* Elenchi: una VOCE non si spezza a metà fra due pagine — spezzata perde il puntino, e su carta una riga
+     senza puntino non si riconosce più come voce. L'elenco intero invece può spezzarsi: uno lungo non
+     starebbe comunque, e vietarglielo lascerebbe mezza pagina bianca. */
+  .vipi-root .md-list li { break-inside: avoid; }
+
   /* Immagini editoriali: sulla carta il vincolo non è la larghezza (già al 100%) ma l'ALTEZZA — una foto
      verticale da sola occuperebbe la pagina intera spingendo il testo oltre. Il tetto in mm la tiene dentro
      il flusso; la didascalia resta attaccata alla sua figura grazie al break-inside sopra. */

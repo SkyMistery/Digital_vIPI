@@ -20,6 +20,18 @@ sotto-sezione **Bassa quota (BOAT)** disegna mappa, elenco e tabella come il pad
 finestra cieca. ⚠️ Nel catalogo IVAO **non c'è nessuna area BOAT**: la sotto-sezione resta vuota finché non
 ce ne sono, ed è una conseguenza accettata, non un difetto.
 
+📦 **§CL — testo ricco nei campi di prosa** (9 settembre, notte): ogni campo markdown dei due editor
+di blocchi (più l'intro VFR) ha una **barra** — grassetto, corsivo, sottolineato, elenco puntato, elenco
+numerato — e `MarkdownLite` è riscritto **a righe**, così gli elenchi si rendono davvero. **Nessuna
+migrazione, nessun tocco a `BlockFormat`**: un elenco è markup dentro il corpo, non un blocco. Spedibile
+dentro la finestra cieca. Carta `docs/feature/2026-09-09-testo-ricco-nell-editor.md`.
+▶ **Manca la prova col browser**: la barra è selezione + fuoco + un `change` sintetico, e nessun test
+bUnit può vederli. Da guidare a mano prima di consegnare.
+🔴 **L'«va tutto su una riga» di LIMC NON si è riprodotto**, e la prima diagnosi (la traduzione che
+appiattisce) è stata **smentita dai dati**: in `TranslationUnits` le 4 unità multi-riga hanno tutte gli a
+capo. Il percorso è sano da capo a fondo; adesso è anche presidiato da prove, callout compreso. Se torna,
+servono **pagina, blocco e lingua**.
+
 📝 **§CJ — il sistema di feedback a due canali: ragionato, scritto e RIMANDATA.** Nessun codice. La carta
 `docs/design/piano-segnalazioni.md` cresce di un §10 (il canale staff → sviluppatore) e passa tutta a
 **«non eseguita — RIMANDATA»**: si riapre **dopo il 16 settembre**. 🔴 Il nodo non è il modello — *lo

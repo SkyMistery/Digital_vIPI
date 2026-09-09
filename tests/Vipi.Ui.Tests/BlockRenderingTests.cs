@@ -253,4 +253,34 @@ public class BlockRenderingTests : TestContext
         Assert.Equal(eContenuto, reso);
         Assert.Equal(reso, saltato);
     }
+
+    /// <summary>
+    /// ⚠️ La rete sul posto dove il difetto è stato SEGNALATO (9 settembre 2026): un callout in una sezione
+    /// custom della vIPI di LIMC, «il testo va tutto su una riga sola». Il renderer l'a capo lo rendeva
+    /// — provato — ma nessuno controllava che arrivasse fin qui: fra il corpo e lo schermo ci sono il
+    /// dispatch del <see cref="BlockRenderer"/> e il markup del callout, e un difetto in mezzo avrebbe
+    /// avuto la stessa faccia. Adesso la riga di questo file dice dove guardare.
+    /// </summary>
+    [Fact]
+    public void Un_callout_manda_a_capo_come_lo_scrive_chi_redige()
+    {
+        var cut = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Callout, body: "Test\nVEst", callout: CalloutKind.Info)));
+
+        Assert.Contains("Test<br>VEst", cut.Markup);
+    }
+
+    /// <summary>Lo stesso per la prosa, e per gli elenchi: fra il corpo e il <c>&lt;li&gt;</c> non deve
+    /// esserci niente che li appiattisca.</summary>
+    [Fact]
+    public void La_prosa_manda_a_capo_e_rende_gli_elenchi()
+    {
+        var acapo = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Prose, body: "uno\ndue")));
+        Assert.Contains("uno<br>due", acapo.Markup);
+
+        var elenco = RenderComponent<BlockRenderer>(p => p.Add(x => x.Block,
+            Block(BlockFormat.Prose, body: "- uno\n- due")));
+        Assert.Contains("<li>uno</li><li>due</li>", elenco.Markup);
+    }
 }

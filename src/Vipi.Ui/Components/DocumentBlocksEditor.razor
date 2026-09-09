@@ -1,4 +1,4 @@
-@* Editor di blocchi editoriali IN-MEMORY, condiviso. Stesso vocabolario/markup del sotto-editor blocchi di
+﻿@* Editor di blocchi editoriali IN-MEMORY, condiviso. Stesso vocabolario/markup del sotto-editor blocchi di
    DocumentSectionsEditor (Prosa/Callout/Tabella), ma su una lista <ExtraBlock> mutata in loco: l'host decide
    come persistere (OnChanged → salva/marca dirty). *@
 @using System.Text.Json
@@ -20,8 +20,8 @@
                 {
                     case BlockFormat.Prose:
                     case BlockFormat.List:
-                        <textarea class="app-ta" rows="3" value="@blk.Text" placeholder="@L["Dse_TextMarkdownPh"]"
-                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="3" Value="@blk.Text" Placeholder="@L["Dse_TextMarkdownPh"]"
+                                      ValueChanged="v => SetText(blk, v)" />
                         break;
                     case BlockFormat.Callout:
                         <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
@@ -31,8 +31,8 @@
                                 @foreach (var k in Enum.GetValues<CalloutKind>()) { <option value="@k">@k</option> }
                             </select>
                         </div>
-                        <textarea class="app-ta" rows="2" value="@blk.Text" placeholder="@L["Dse_CalloutTextPh"]"
-                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="2" Value="@blk.Text" Placeholder="@L["Dse_CalloutTextPh"]"
+                                      ValueChanged="v => SetText(blk, v)" />
                         break;
                     case BlockFormat.Table:
                         @TableEditor(blk)
@@ -44,8 +44,8 @@
                     case BlockFormat.Attachment:
                         <AttachmentBlockEditor AttachmentJson="@blk.AttachmentJson" AttachmentJsonChanged="j => SetAttachment(blk, j)"
                                                Note="@blk.Text" />
-                        <textarea class="app-ta" rows="2" value="@blk.Text" placeholder="@L["Att_BlockNotePh"]"
-                                  @onchange="e => SetText(blk, AsString(e.Value))"></textarea>
+                        <RichTextArea Rows="2" Value="@blk.Text" Placeholder="@L["Att_BlockNotePh"]"
+                                      ValueChanged="v => SetText(blk, v)" />
                         break;
                 }
             </div>

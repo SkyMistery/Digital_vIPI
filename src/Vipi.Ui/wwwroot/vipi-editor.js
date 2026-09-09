@@ -90,6 +90,92 @@
         try { if (val == null) window.localStorage.removeItem(key); else window.localStorage.setItem(key, val); } catch (e) { }
     };
 
+    // ---- Barra di formattazione delle textarea markdown (RichTextArea.razor) -----------------------
+    //
+    // ⚠️ Ogni gesto finisce con un `change` SINTETICO. Blazor ascolta `onchange` con un listener delegato
+    // sul documento: scrivere `el.value` da JS non fa scattare nessun evento da solo, e senza questa riga
+    // il testo cambierebbe a schermo e NON tornerebbe mai nel modello — sparirebbe al primo re-render.
+    function vipiMdFine(el, s, e) {
+        el.focus();
+        el.selectionStart = s;
+        el.selectionEnd = e;
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Avvolge la selezione, o la sguscia se è già avvolta (il tasto è un interruttore, come in un editor
+    // vero: premuto due volte torna indietro invece di impilare i marcatori).
+    window.vipiMdWrap = function (el, pre, post) {
+        if (!el) return;
+        var s = el.selectionStart, e = el.selectionEnd, v = el.value;
+        var dentro = v.substring(s, e);
+
+        // Già avvolta DENTRO la selezione (**testo**) o FUORI (il cursore sta fra i marcatori)?
+        if (dentro.length > pre.length + post.length &&
+            dentro.slice(0, pre.length) === pre && dentro.slice(-post.length) === post) {
+            var nudo = dentro.slice(pre.length, dentro.length - post.length);
+            el.value = v.substring(0, s) + nudo + v.substring(e);
+            return vipiMdFine(el, s, s + nudo.length);
+        }
+        if (v.substring(s - pre.length, s) === pre && v.substring(e, e + post.length) === post) {
+            el.value = v.substring(0, s - pre.length) + dentro + v.substring(e + post.length);
+            return vipiMdFine(el, s - pre.length, s - pre.length + dentro.length);
+        }
+
+        el.value = v.substring(0, s) + pre + dentro + post + v.substring(e);
+        // Selezione vuota: il cursore va FRA i marcatori, pronto a scrivere. Con la selezione, resta sul
+        // testo — così si può incalzare con un secondo tasto (grassetto E corsivo) senza riselezionare.
+        vipiMdFine(el, s + pre.length, s + pre.length + dentro.length);
+    };
+
+    // Marca/smarca come elenco le righe TOCCATE dalla selezione (anche solo sfiorate: il cursore su una
+    // riga basta). Se sono già tutte marcate dello stesso tipo, le smarca — stesso interruttore di sopra.
+    window.vipiMdList = function (el, ordinato) {
+        if (!el) return;
+        var v = el.value;
+        var ini = v.lastIndexOf('\n', Math.max(0, el.selectionStart - 1)) + 1;
+        var fin = v.indexOf('\n', el.selectionEnd);
+        if (fin < 0) fin = v.length;
+
+        var righe = v.substring(ini, fin).split('\n');
+        var puntata = /^[ \t]*[-*+•][ \t]+/;
+        var numerata = /^[ \t]*\d{1,3}[.)][ \t]+/;
+        var mia = ordinato ? numerata : puntata;
+
+        var tutteMie = righe.every(function (r) { return r.trim() === '' || mia.test(r); });
+        var n = 0;
+        var nuove = righe.map(function (r) {
+            if (r.trim() === '') return r;
+            var nudo = r.replace(puntata, '').replace(numerata, '');
+            if (tutteMie) return nudo;                        // erano già mie: le smarco
+            n++;
+            return (ordinato ? n + '. ' : '- ') + nudo;
+        });
+
+        var testo = nuove.join('\n');
+        el.value = v.substring(0, ini) + testo + v.substring(fin);
+        vipiMdFine(el, ini, ini + testo.length);
+    };
+
+    // Ctrl/Cmd+B/I/U dentro una textarea markdown. ⚠️ Delegato sul documento e NON legato al componente:
+    // un `@onkeydown` di Blazor sarebbe un giro di rete a OGNI tasto battuto, su ogni campo dell'editor.
+    // Qui il costo è zero finché non si preme la combinazione.
+    // Il listener globale di sopra ignora di proposito i campi di testo, quindi non si pestano i piedi.
+    if (!window.__vipiMdKeys) {
+        window.__vipiMdKeys = true;
+        document.addEventListener('keydown', function (e) {
+            if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+            var el = e.target;
+            // ⚠️ Si riconosce dall'INVOLUCRO (`.rta`), non da una classe propria sulla textarea: una classe
+            // messa lì solo per farsi trovare dal JS sarebbe un campo con un vestito che nessun foglio
+            // cuce — e c'è una prova che lo vieta, perché è così che un campo finisce coi colori del browser.
+            if (!el || !el.matches || !el.matches('textarea.app-ta') || !el.closest('.rta')) return;
+            var k = (e.key || '').toLowerCase();
+            if (k === 'b') { e.preventDefault(); window.vipiMdWrap(el, '**', '**'); }
+            else if (k === 'i') { e.preventDefault(); window.vipiMdWrap(el, '*', '*'); }
+            else if (k === 'u') { e.preventDefault(); window.vipiMdWrap(el, '__', '__'); }
+        });
+    }
+
     // Scroll a un'ancora lasciando spazio per la barra sticky (altezza misurata a runtime).
     window.vipiScrollTo = function (id) {
         var el = document.getElementById(id);

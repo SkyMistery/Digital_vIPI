@@ -3318,4 +3318,13 @@
   <data name="TrEd_Wait_ByHandOne" xml:space="preserve"><value>one needs a person</value></data>
   <data name="Rel_TrFreezeOne" xml:space="preserve"><value>One sentence of this document is not translated yet. The release does NOT freeze it: it will read translated as soon as the round has been through, without republishing.</value></data>
   <data name="Ape_RowIncomplete" xml:space="preserve"><value>Incomplete row: not saved yet</value></data>
+  <data name="Rta_Toolbar" xml:space="preserve"><value>Text formatting</value></data>
+  <data name="Rta_Bold" xml:space="preserve"><value>Bold</value></data>
+  <data name="Rta_BoldLetter" xml:space="preserve"><value>B</value></data>
+  <data name="Rta_Italic" xml:space="preserve"><value>Italic</value></data>
+  <data name="Rta_ItalicLetter" xml:space="preserve"><value>I</value></data>
+  <data name="Rta_Underline" xml:space="preserve"><value>Underline</value></data>
+  <data name="Rta_UnderlineLetter" xml:space="preserve"><value>U</value></data>
+  <data name="Rta_Bullets" xml:space="preserve"><value>Bulleted list</value></data>
+  <data name="Rta_Numbers" xml:space="preserve"><value>Numbered list</value></data>
 </root>

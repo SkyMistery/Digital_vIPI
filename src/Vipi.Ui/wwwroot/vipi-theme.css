@@ -2478,6 +2478,14 @@
 :where(.vipi-root) .collapsed-strip>summary{cursor:pointer;list-style:none;color:var(--ink-soft);background:var(--tint-atmos-soft);border:1px dashed var(--ivao-lightblue);border-radius:9px;padding:9px 13px;font-style:italic;font-size:13.5px}
 :where(.vipi-root) .collapsed-strip[open]>summary{margin-bottom:8px}
 :where(.vipi-root) .prose p{margin:.5em 0}:where(.vipi-root) .prose p:first-child{margin-top:0}
+/* Elenchi resi da MarkdownLite. La classe sta sull'elemento e NON su un antenato apposta: lo stesso
+   renderer serve la prosa (`.prose`), il corpo di un callout e la didascalia di una figura, e quegli
+   ultimi due non hanno `.prose` sopra. Un aggancio solo che vale in tutti e tre i posti.
+   `padding-left` in em: rientra col testo anche quando lo zoom della pagina cambia il corpo. */
+:where(.vipi-root) .md-list{margin:.5em 0;padding-left:1.6em}
+:where(.vipi-root) .md-list:first-child{margin-top:0}
+:where(.vipi-root) .md-list:last-child{margin-bottom:0}
+:where(.vipi-root) .md-list li{margin:.15em 0}
 :where(.vipi-root) .block{scroll-margin-top:78px}
 /* controllo zoom nella topbar */
 :where(.vipi-root) .zoom-ctrl{display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.12);border-radius:9px;padding:3px}
@@ -2589,6 +2597,24 @@
 :where(.vipi-root) .app-lbl{display:block;font-size:13px;color:var(--ink-soft,var(--ink-mid));margin:8px 0}
 :where(.vipi-root) .app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
 :where(.vipi-root) .app-block-edit .app-ta{flex:1}
+/* Campo markdown con barra (RichTextArea). La barra è SEMPRE nel flusso e si accende col fuoco: nessuno
+   stato in C#, nessun giro di rete a ogni fuoco, e soprattutto nessun salto di layout — comparendo,
+   farebbe scivolare in giù tutti i blocchi sotto. Attenuata, non nascosta: `visibility`/`display` la
+   toglierebbero anche alla tastiera e al lettore di schermo. */
+:where(.vipi-root) .rta{display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .rta-bar{display:flex;align-items:center;gap:2px;opacity:.5;transition:opacity .12s}
+:where(.vipi-root) .rta:focus-within .rta-bar,:where(.vipi-root) .rta-bar:hover{opacity:1}
+/* Un tasto che ha il fuoco da tastiera si vede SEMPRE, anche se la barra è attenuata: chi naviga col
+   tabulatore non ha un puntatore da posare sopra per farla accendere. */
+:where(.vipi-root) .rta-bar:focus-within{opacity:1}
+:where(.vipi-root) .rta-btn{min-width:28px;height:26px;padding:0 7px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink-mid);font-family:var(--font-head);font-size:13px;line-height:1;cursor:pointer;transition:.12s}
+:where(.vipi-root) .rta-btn:hover{border-color:var(--line-ocean);color:var(--ink);background:var(--tint-atmos-soft)}
+:where(.vipi-root) .rta-btn:focus-visible{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+:where(.vipi-root) .rta-b{font-weight:800}
+:where(.vipi-root) .rta-i{font-style:italic}
+:where(.vipi-root) .rta-u{text-decoration:underline}
+:where(.vipi-root) .rta-sep{width:1px;height:16px;background:var(--line);margin:0 5px}
 :where(.vipi-root) .app-linkpick{position:relative;margin-top:10px;max-width:420px}
 :where(.vipi-root) .app-linkpick .sector-pick{position:absolute;z-index:20;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.12);overflow:hidden;margin-top:4px}
 :where(.vipi-root) .app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}
