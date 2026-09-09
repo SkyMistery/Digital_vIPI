@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -74,6 +74,45 @@ public class ConsistencyRegulatedRefsTests : IAsyncLifetime
         Assert.Empty(d.RegulatedRefs);                 // nessun documento: niente da controllare
     }
 
+    /// <summary>
+    /// 🔴 Le aree scelte sotto «Bassa quota (BOAT)» contano quanto le altre (carta 2026-09-09-aree-boat.md
+    /// §4): senza, un'area potata dai cataloghi sparirebbe da un vSOP militare e il rapporto tacerebbe —
+    /// cioè proprio il silenzio che questo rapporto esiste per rompere.
+    ///
+    /// <para>⚠️ E il payload è «il primo blocco di STRUTTURA», non «il primo blocco»: qui davanti c'è una
+    /// tabella scritta a mano, che è il caso normale di una sezione che fino a ieri era solo prosa.</para>
+    /// </summary>
+    [Fact]
+    public async Task Anche_le_aree_della_bassa_quota_finiscono_nel_rapporto()
+    {
+        var doc = new Document
+        {
+            Type = DocumentType.Vipi, Title = "vSOP MIL — LIBA", Language = Language.It,
+            Status = DocumentStatus.Draft, LastUpdatedAiracCycle = "2606", Edition = DocumentEdition.Military,
+        };
+        var draft = NewVersion(doc, 1, DocumentStatus.Draft);
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+
+        AddSezione(draft, "regulated", """{"OwnAuto":false,"OwnIds":["areadilavoro"],"ExtraIds":[]}""");
+        var boat = AddSezione(draft, "lowlevel", """{"OwnAuto":false,"OwnIds":["areaboat"],"ExtraIds":[]}""");
+        // Davanti al payload, una tabella scritta a mano: il vecchio «primo blocco» avrebbe letto questa.
+        _db.ContentBlocks.Add(new ContentBlock
+        {
+            DocumentVersionId = draft.Id, SectionId = boat.Id, Order = 0,
+            Format = BlockFormat.Table, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always,
+            BodyJson = """{"columns":["a"],"cells":["scritta a mano"]}""",
+        });
+        await _db.SaveChangesAsync();
+
+        var d = await _repo.LoadAsync();
+
+        Assert.Equal(2, d.RegulatedRefs.Count);
+        Assert.Contains(d.RegulatedRefs, r => (r.Json ?? "").Contains("areadilavoro"));
+        Assert.Contains(d.RegulatedRefs, r => (r.Json ?? "").Contains("areaboat"));
+        Assert.DoesNotContain(d.RegulatedRefs, r => (r.Json ?? "").Contains("scritta a mano"));
+    }
+
     private DocumentVersion NewVersion(Document doc, int number, DocumentStatus status)
     {
         var v = new DocumentVersion
@@ -85,11 +124,15 @@ public class ConsistencyRegulatedRefsTests : IAsyncLifetime
         return v;
     }
 
-    private void AddRegulated(DocumentVersion version, string json)
+    private void AddRegulated(DocumentVersion version, string json) => AddSezione(version, "regulated", json);
+
+    /// <summary>Una sezione con dentro il payload della selezione, per chiave: le sezioni che ne portano una
+    /// sono due — «Aree di lavoro» e «Bassa quota (BOAT)».</summary>
+    private DocumentSection AddSezione(DocumentVersion version, string chiave, string json)
     {
         var section = new DocumentSection
         {
-            DocumentVersionId = version.Id, Title = "Aree regolamentate", Order = 1, Depth = 0, SectionKey = "regulated",
+            DocumentVersionId = version.Id, Title = chiave, Order = 1, Depth = 0, SectionKey = chiave,
         };
         _db.DocumentSections.Add(section);
         _db.SaveChanges();
@@ -98,5 +141,6 @@ public class ConsistencyRegulatedRefsTests : IAsyncLifetime
             DocumentVersionId = version.Id, SectionId = section.Id, Order = 1,
             Format = BlockFormat.Table, Tier = BlockTier.Extended, Visibility = BlockVisibility.Always, BodyJson = json,
         });
+        return section;
     }
 }
