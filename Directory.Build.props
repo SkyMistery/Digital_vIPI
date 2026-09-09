@@ -846,7 +846,55 @@
       file: `vipi-theme.css`, `vipi-print.css` e `vipi-editor.js`. Viaggiano coi loro `.br`/`.gz` e
       **insieme** a `Vipi.Host.staticwebassets.endpoints.json` — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.18.0</VipiVersione>
+    <!--
+      1.18.1 — 9 settembre 2026 (sera). **PATCH**: due correzioni, nessuna pagina e nessuna sezione nuova,
+      nessuna migrazione. Si costruisce contro cio' che GIRA, che e' **1.18.0** (`eff062e`), caricata il
+      pomeriggio.
+
+      Nasce da una segnalazione arrivata SUBITO DOPO il caricamento, unendo un TERZO documento
+      (`LIBV_APP`) alla vIPI e al vSOP di Gioia del Colle. ⚠️ **Non sono difetti di 1.18.0**: quel codice
+      il pacchetto non l'aveva toccato, e le voci di `errori-richieste.txt` sono dell'era PRECEDENTE
+      (l'ultima e' delle 14:11:39, l'avvio di 1.18.0 delle 14:13:21 — la DATA prima del contenuto).
+
+        · 🔴 **IL BLOCCO DELLA PAGINA NON ERA DELL'UNIONE: ERA IL TORNELLO.** `InFilaAsync` ricorda di
+          essere «gia' dentro» con un `AsyncLocal`, e un `AsyncLocal` **si eredita**: ogni flusso nato
+          dentro un'operazione in fila lo trova acceso. Un render provocato da li' dentro chiama
+          `OnParametersSetAsync`, che leggeva «sono gia' dentro» e **saltava la coda**, partendo ACCANTO
+          alla prima invece che dopo. Due catene sullo stesso `DbContext` → «A second operation was
+          started» → render morto a meta' → `NotImplementedException: unsupported frame type during
+          diffing: None` → **il diff di Blazor resta corrotto e la pagina non risponde piu' a niente**.
+          Non era «sciogli l'unione» a essere rotto: non c'era piu' nessuno ad ascoltare il clic.
+          ⚠️ **La differenza fra il rientro giusto e questo e' CHI ASPETTA**, e non si vede dal codice:
+          `StartEditingAsync` chiama il ricarico e lo ASPETTA — stessa catena, scavalcare e' giusto o si
+          aspetterebbe se stessi. Il `Task` di `OnParametersSetAsync` non lo aspetta chi lo ha provocato:
+          lo tiene il renderer. Ora due porte dichiarate: `InFilaAsync` rientra, `CaricaInFilaAsync` si
+          mette SEMPRE in coda — e sono i cinque `OnParametersSetAsync` degli editor a usarla.
+          ✅ **Provato PRIMA di correggere**: sul codice di 1.18.0 la prova diceva `Expected: 1,
+          Actual: 2`. Se fosse stata verde, la diagnosi era sbagliata.
+          ⚠️ **Non si riproduce in locale, ed e' coerente**: e' una corsa. Con tre membri l'ospite
+          ridisegna a ogni caricamento e su MariaDB le query durano abbastanza da sovrapporsi; su SQLite
+          finiscono prima che la seconda parta.
+
+        · 🔴 **LA STESSA CHIAVE DI CATALOGO NON E' LO STESSO DATO.** Un APP e la vIPI d'aeroporto
+          condividono `frequencies`, `operationaltechnique` e `validity` — misurato sul catalogo — ma le
+          frequenze di un APP sono quelle dell'AVVICINAMENTO e quelle dell'aeroporto sono del CAMPO. La
+          scheda delle sezioni in comune le proponeva **gia' spuntate**: chi premeva senza guardare non
+          toglieva un doppione, **perdeva contenuto vero**. Vale anche fra i DUE APP di LIBV.
+          ✅ `SezioniComuni.Confrontabili` ammette solo chi descrive lo STESSO LUOGO (`Airport`,
+          `AirportMil`), e la scheda non si apre piu' da sola quando non ha niente da chiedere.
+          ⚠️ **La regola entra nella porta che c'e' gia'**: `SezioniComuniAsync` e
+          `ApplicaSezioniComuniAsync` non prendono piu' id nudi ma i membri CON LA FAMIGLIA. Scritta nel
+          pannello sarebbe stata una regola che il secondo chiamante non trova.
+
+      Rispetto a 1.18.0 cambiano `Application` e `Ui`, piu' `Host` (che porta sempre il timbro).
+      ⚠️ **Niente `wwwroot` e niente `endpoints.json`**: nessun asset e' cambiato. ⚠️ E **niente satellite
+      inglese**: nessuna `.resx` e' stata toccata — li' comanda il diff, non l'impronta, che cambia a ogni
+      ricompilazione. Da verificare con le IMPRONTE, non a memoria.
+
+      ⚠️ `IEditingService` ha due firme cambiate in modo **ROMPENTE** (non additivo): implementata solo da
+      `EditingService` (Application) e chiamata solo da `UnionPanel` (Ui). Tutt'e due nel pacchetto.
+    -->
+    <VipiVersione>1.18.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
