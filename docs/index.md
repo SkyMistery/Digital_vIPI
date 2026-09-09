@@ -320,7 +320,8 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-05-payload-non-mangia-il-contenuto.md`](feature/2026-09-05-payload-non-mangia-il-contenuto.md) — Il payload della scheda non mangia più il contenuto di chi redige (5 settembre 2026)
 - [`feature/2026-09-05-vista-live-selettore-e-cancello.md`](feature/2026-09-05-vista-live-selettore-e-cancello.md) — La vista live si sceglie — ma solo da chi può — 5 settembre 2026
 - [`feature/2026-09-06-vsop-sezioni-sod.md`](feature/2026-09-06-vsop-sezioni-sod.md) — vSOP militari — l'indice che chiede il SOD (6 settembre 2026)
-- [`feature/2026-09-09-aree-boat.md`](feature/2026-09-09-aree-boat.md) — Aree BOAT: un visualizzatore gemello dentro «Aree di lavoro» (9 settembre 2026)
+- [`feature/2026-09-09-aree-boat.md`](feature/2026-09-09-aree-boat.md) — Aree BOAT — un visualizzatore gemello dentro «Aree di lavoro» (9 settembre 2026)
+- [`feature/2026-09-09-testo-ricco-nell-editor.md`](feature/2026-09-09-testo-ricco-nell-editor.md) — Testo ricco nell'editor: grassetto, corsivo, sottolineato, elenchi (9 settembre 2026)
 
 ### `guide`
 
