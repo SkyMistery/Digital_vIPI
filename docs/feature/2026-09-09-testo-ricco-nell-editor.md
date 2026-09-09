@@ -141,6 +141,10 @@ salvato prima si rende come prima — salvo i due difetti di sopra, che si raddr
   sintetico arriva davvero nel modello. Riletta in sola lettura, la stessa sezione rende
   `<p><strong>foxtrot</strong> golf</p><ul class="md-list"><li>hotel</li><li>india</li></ul>`.
 - ✅ **La barra a schermo**, nei due temi: `opacity` 0.5 a riposo e 1 col fuoco, misurata dal `getComputedStyle`.
+- ✅ **E rifatta sul PACCHETTO**, che qui non era una formalità: `vipi-editor.js` è uno dei tre asset
+  cambiati e nel publish il JS è **minificato** (11 032 → 4 118 byte) — se la minificazione rompesse un
+  gesto, nessun test lo vedrebbe. Guidato l'exe win-x64 dalla sua cartella: **16 verdi**, più i dieci
+  dello smoke di pacchetto. È in **1.18.0**.
 
 🔴 **Due rossi del primo giro erano l'ATTREZZO, non il prodotto**, e vale la pena scriverli perché sono
 già nel libro delle trappole di questa casa: (1) i campi stanno in `<details>` **collassati**, dove
@@ -149,3 +153,8 @@ un campo con triplo clic + Backspace cancella **una riga**, e la prova finiva pe
 avanzi, rendendo false tutte le asserzioni dopo la prima. E una terza, nuova: il `clip` di
 `page.screenshot` è in coordinate di **pagina**, non di viewport — senza sommare lo `scrollY` si fotografa
 un pezzo qualunque del documento credendo di guardare il campo.
+
+E una quarta, che ha tenuto rossi due controlli per tre giri: il tasto «Fine modifica» non si cerca per
+**spunta**. Nell'editor ACC decine di chip delle aree cominciano con `✓`, e il primo che si trova è una
+di quelle — si clicca una chip, si resta in modifica, e la prova conclude che il documento non rende gli
+elenchi. Si ancora all'ETICHETTA (`Lock_FinishEdit`), nelle due lingue.

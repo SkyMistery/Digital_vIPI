@@ -1,10 +1,20 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 settembre 2026 (sera) — ✅ **1.17.0 è ONLINE.**
-Albero pulito e spinto, `main` `3deb67b0`, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+**Ultimo aggiornamento:** 9 settembre 2026 (notte) — 📦 **1.18.0 è PRONTA, non ancora online.**
+Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
 
-📦 **In `main` DOPO la 1.17.0, quindi NON ancora online** — tre lavori, **nessuna migrazione**, tutti
-spedibili dentro la finestra cieca fino al 16 settembre:
+📦 **1.18.0 — PRONTA DA CARICARE.** Timbro `1.18.0 · eff062e`, sha256 dello zip
+`8ca9d7f9…`, **19 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md).
+**MINOR** — una sotto-sezione che disegna e cinque tasti nuovi — **nessuna migrazione**, quindi si carica
+anche dentro la finestra cieca fino al 16. Porta **§CH, §CI, §CK e §CL** insieme.
+
+✅ **Provata sul PACCHETTO e non sul sorgente**, che qui non era una formalità: `vipi-editor.js` è uno dei
+tre asset cambiati e nel publish il JS è **minificato** (11 032 → 4 118 byte). Guidato l'exe win-x64 dalla
+sua cartella: **16 controlli verdi** sui gesti della barra, più i dieci dello smoke di pacchetto (ricerca,
+circuito, foglio di stile, console pulita). Timbro letto in `avvio-diagnostica.txt`: `1.18.0 · eff062e`.
+
+I quattro lavori che porta:
 
 - **§CH** — le frequenze si riordinano in **tutti e cinque** gli editor (prima solo ACC e APP).
 - **§CI** — il tasto spento del glossario **dice perché**: era letto come un lock che non esiste.
@@ -16,6 +26,23 @@ spedibili dentro la finestra cieca fino al 16 settembre:
   decisione del committente è di riusare quelle chip. La tabella BOAT è a **tre** colonne — l'attività
   direbbe sempre «LOW LEVEL». ⚠️ E «Aree di lavoro» nasce **collassata** da sempre: a documento appena
   aperto la mappa si vede solo dopo averla aperta.
+
+- **§CL** — **testo ricco nei campi di prosa**: sei campi prendono una barra (grassetto, corsivo,
+  sottolineato, elenco puntato, elenco numerato, più Ctrl+B/I/U) e `MarkdownLite` è riscritto **a righe**,
+  così gli elenchi si rendono davvero.
+  Carta [`docs/feature/2026-09-09-testo-ricco-nell-editor.md`](docs/feature/2026-09-09-testo-ricco-nell-editor.md).
+  Di sponda chiude due difetti mai segnalati: due capoversi battuti su Windows uscivano **attaccati**
+  (`"
+
+"` non contiene `"
+
+"`), e un marcatore spaiato si mangiava tutto fino al successivo, a
+  capi compresi. ⚠️ Un elenco è **markup nel corpo**, non un formato di blocco: `BlockFormat` non si tocca.
+  🔴 La segnalazione che ha aperto il lavoro — «va tutto su una riga sola», in una sezione custom della
+  vIPI di **LIMC** — **NON si è riprodotta**, e la prima diagnosi («la traduzione appiattisce») è stata
+  **smentita dai dati**: in `TranslationUnits` le 4 unità multi-riga hanno tutte gli a capo. Il percorso è
+  sano da capo a fondo, e ora è presidiato da venti prove — due delle quali **sul posto segnalato**, un
+  callout reso da `BlockRenderer`. Se torna servono **pagina, blocco e lingua**.
 
 📝 **§CJ** — il sistema di feedback a due canali: carta scritta e **RIMANDATA** al dopo-16-settembre.
 Nessun codice.

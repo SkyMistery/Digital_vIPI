@@ -1,26 +1,38 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 9 settembre 2026
+## Dove siamo — 9 settembre 2026 (notte)
+
+📦 **1.18.0 è PRONTA, non ancora online.** Timbro `1.18.0 · eff062e`, sha256 dello zip `8ca9d7f9…`,
+**19 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md`. **MINOR** — una sotto-sezione che
+disegna e cinque tasti nuovi — **nessuna migrazione**: si carica dentro la finestra cieca.
+Porta **§CH, §CI, §CK e §CL** insieme.
+
+✅ **Provata sul PACCHETTO, non sul sorgente**, e qui non era una formalità: `vipi-editor.js` è uno dei tre
+asset cambiati e nel publish il JS è **minificato** (11 032 → 4 118 byte) — se la minificazione rompesse un
+gesto, nessun test lo vedrebbe. Guidato l'exe win-x64 dalla sua cartella: **16 controlli verdi** sui gesti
+della barra, più i **dieci** dello smoke di pacchetto (ricerca dal server, circuito, foglio di stile in
+vigore, console pulita). Timbro letto in `avvio-diagnostica.txt`.
+
+I quattro lavori che porta:
+
+- **§CH** — le frequenze si riordinano in **tutti e cinque** gli editor: prima solo ACC e APP.
+- **§CI** — il tasto spento del glossario **dice perché**: era stato letto come un lock che non esiste.
+- **§CK** — le aree BOAT hanno un visualizzatore loro (qui sotto).
+- **§CL** — testo ricco nei campi di prosa (qui sotto).
 
 ✅ **1.17.0 è ONLINE** (timbro `1.17.0 · 30ca658`, undici file) e **provata da fuori**: il `vipi-theme.css`
 servito porta le regole nuove, non solo un'impronta diversa. §CG.
 
-📦 **In `main` dopo la 1.17.0, quindi NON ancora online** — due lavori, nessuna migrazione, spedibili dentro
-la finestra cieca:
-
-- **§CH** — le frequenze si riordinano in **tutti e cinque** gli editor: prima solo ACC e APP.
-- **§CI** — il tasto spento del glossario **dice perché**: era stato letto come un lock che non esiste.
-
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
-📦 **§CK — le aree BOAT hanno un visualizzatore loro** (9 settembre, sera): dentro «Aree di lavoro» la
+📦 **§CK — le aree BOAT hanno un visualizzatore loro** (9 settembre, sera; in **1.18.0**): dentro «Aree di lavoro» la
 sotto-sezione **Bassa quota (BOAT)** disegna mappa, elenco e tabella come il padre, su una selezione sua.
 **Nessuna migrazione** — è lo stesso payload sotto un'altra chiave di sezione — quindi spedibile dentro la
 finestra cieca. ⚠️ Nel catalogo IVAO **non c'è nessuna area BOAT**: la sotto-sezione resta vuota finché non
 ce ne sono, ed è una conseguenza accettata, non un difetto.
 
-📦 **§CL — testo ricco nei campi di prosa** (9 settembre, notte): ogni campo markdown dei due editor
+📦 **§CL — testo ricco nei campi di prosa** (9 settembre, notte; in **1.18.0**): ogni campo markdown dei due editor
 di blocchi (più l'intro VFR) ha una **barra** — grassetto, corsivo, sottolineato, elenco puntato, elenco
 numerato — e `MarkdownLite` è riscritto **a righe**, così gli elenchi si rendono davvero. **Nessuna
 migrazione, nessun tocco a `BlockFormat`**: un elenco è markup dentro il corpo, non un blocco. Spedibile

@@ -16,7 +16,9 @@ const dice = (ok, msg) => { if (!ok) ko++; console.log((ok ? '  OK  ' : '  KO  '
 
 async function inModifica(page) {
   const entrato = await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button')].find(x => /✎/.test(x.innerText) && !x.disabled);
+    // ⚠️ `textContent` e NON `innerText`: su un elemento non reso — dentro un <details> chiuso o in un
+    // aside collassato — `innerText` torna VUOTO, e il tasto sembra non esserci.
+    const b = [...document.querySelectorAll('button')].find(x => /✎/.test(x.textContent) && !x.disabled);
     if (!b) return false;
     b.scrollIntoView({ block: 'center' }); b.click(); return true;
   });
@@ -154,7 +156,11 @@ async function apri(page) {
 
   // --- 9. e come si RENDE, uscendo dalla modifica ---
   await page.evaluate(() => {
-    const b = [...document.querySelectorAll('button')].find(x => /✔|✓|Fine|Done|Finish|Termina/i.test(x.innerText) && !x.disabled);
+    // ⚠️ NON basta cercare la spunta: nell'editor ACC decine di chip delle aree cominciano con ✓,
+    // e il primo che si trova e' una di quelle. Si ancora all'ETICHETTA del tasto (Lock_FinishEdit),
+    // nelle due lingue.
+    const b = [...document.querySelectorAll('button')]
+      .find(x => /(Fine modifica|Finish editing)/i.test(x.textContent) && !x.disabled);
     if (b) { b.scrollIntoView({ block: 'center' }); b.click(); }
   });
   await sleep(4500);
