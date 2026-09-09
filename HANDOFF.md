@@ -1,7 +1,24 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 settembre 2026 — ✅ **1.17.0 è ONLINE.**
-Albero pulito e spinto, `main` `1944d8f1`, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+**Ultimo aggiornamento:** 9 settembre 2026 (sera) — ✅ **1.17.0 è ONLINE.**
+Albero pulito e spinto, `main` `3deb67b0`, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+
+📦 **In `main` DOPO la 1.17.0, quindi NON ancora online** — tre lavori, **nessuna migrazione**, tutti
+spedibili dentro la finestra cieca fino al 16 settembre:
+
+- **§CH** — le frequenze si riordinano in **tutti e cinque** gli editor (prima solo ACC e APP).
+- **§CI** — il tasto spento del glossario **dice perché**: era letto come un lock che non esiste.
+- **§CK** — le **aree BOAT** hanno un visualizzatore loro: dentro «Aree di lavoro» la sotto-sezione
+  **Bassa quota (BOAT)** disegna mappa (2D+3D), elenco e tabella come il padre, su una selezione sua.
+  Carta [`docs/feature/2026-09-09-aree-boat.md`](docs/feature/2026-09-09-aree-boat.md).
+  🔴 **Si vedrà VUOTA**, e va detto prima che qualcuno lo chiami difetto: nel catalogo IVAO di aree BOAT
+  **non ce n'è nessuna** (misurato: 241 aree R/D/TSA/TRA/P, 3 072 volumi del KMZ, zero BOAT), e la
+  decisione del committente è di riusare quelle chip. La tabella BOAT è a **tre** colonne — l'attività
+  direbbe sempre «LOW LEVEL». ⚠️ E «Aree di lavoro» nasce **collassata** da sempre: a documento appena
+  aperto la mappa si vede solo dopo averla aperta.
+
+📝 **§CJ** — il sistema di feedback a due canali: carta scritta e **RIMANDATA** al dopo-16-settembre.
+Nessun codice.
 
 ✅ **1.17.0 — online dal 9 settembre.** Timbro `1.17.0 · 30ca658`, zip `040974e3…`, **11 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.17.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.17.0.md). **MINOR** —
