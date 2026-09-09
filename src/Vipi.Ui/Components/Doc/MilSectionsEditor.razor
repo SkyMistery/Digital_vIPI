@@ -247,6 +247,13 @@ else
     /// non esiste nessun secondo posto dove riscriverli.</summary>
     private IReadOnlyList<AccSpecialAreaView> _areeScelte = Array.Empty<AccSpecialAreaView>();
 
+    // «Bassa quota (BOAT)»: la stessa terna, per la sotto-sezione che ha un visualizzatore suo. I due
+    // cataloghi del picker sono gli STESSI (`_areaPicks`, `_otherAreaPicks`): il pool d'aree è quello.
+    // ⚠️ Nessuna attività qui: la tabella BOAT non ha quella colonna (carta 2026-09-09-aree-boat.md §3e).
+    private RegulatedSelection _boat = new() { OwnAuto = false };
+    private IReadOnlyList<AccSpecialAreaView> _areeBoat = Array.Empty<AccSpecialAreaView>();
+    private IReadOnlyDictionary<string, string> _noteBoat = new Dictionary<string, string>();
+
     // ---- l'anagrafica dello scalo (frequenze, piste, quote di transizione) ----------------------------
     //
     // ⚠️ Non è contenuto del documento: è il dato dell'AEROPORTO, che questo vSOP mostra. Ci sta qui solo
@@ -516,12 +523,14 @@ else
             _shell.Lock = await Editing.InspectLockAsync(id);
             if (_shell.Doc is null) { _notFound = true; return; }
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
-            _regulated = await Militari.GetRegulatedAsync(_icao);
+            _regulated = await Militari.GetRegulatedAsync(_icao, SectionKeys.Regulated);
+            _boat = await Militari.GetRegulatedAsync(_icao, SectionKeys.LowLevel);
             await CaricaRadioassistenzeAsync();
             await CaricaAlternatiAsync();
             await CaricaTabelleAsync();
             await CaricaAltriSopAsync();
             _areeScelte = await Militari.ResolveRegulatedAreasAsync(_regulated);
+            _areeBoat = await Militari.ResolveRegulatedAreasAsync(_boat);
         }
         catch (EditNotAllowedException) { _denied = true; }
     }
@@ -565,7 +574,7 @@ else
                                      OnImporta="ImportaAlternati"
                                      Sorgenti="_altriSop" CaricaSorgente="AlternatiDiUnAltroSop" />
                 break;
-            case "regulated":
+            case SectionKeys.Regulated:
                 @* Come l'APP: nessuna area di default, si scelgono tutte a mano. Sotto, la tabella: nome e
                    limiti vengono dalle aree scelte, l'attività si compila coi gettoni. *@
                 <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
@@ -574,6 +583,15 @@ else
                 <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Notes="_noteAree"
                                  Editing="_shell.IsEditing"
                                  OnSet="ScriviAttivitaArea" OnSetNote="ScriviNotaArea" />
+                break;
+            @* Le aree BOAT: stesso picker, stessa tabella, selezione SUA. La tabella qui è a tre colonne —
+               l'attività su un'area BOAT direbbe sempre «LOW LEVEL». *@
+            case SectionKeys.LowLevel:
+                <RegulatedAreasEditor Selection="_boat" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
+                                      Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
+                                      SelectionChanged="SaveBoat" />
+                <MilWorkingAreas Areas="_areeBoat" Notes="_noteBoat" MostraAttivita="false"
+                                 Editing="_shell.IsEditing" OnSetNote="ScriviNotaBoat" />
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"
@@ -1075,8 +1093,9 @@ else
     {
         _nominativi = await Militari.GetFixedTableAsync(_icao, "callsigns", ColNominativi);
         _parcheggi = await Militari.GetFixedTableAsync(_icao, "parkings", ColParcheggi);
-        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
-        _noteAree = await Militari.GetAreaNotesAsync(_icao);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao, SectionKeys.Regulated);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao, SectionKeys.Regulated);
+        _noteBoat = await Militari.GetAreaNotesAsync(_icao, SectionKeys.LowLevel);
     }
 
     /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
@@ -1207,21 +1226,21 @@ else
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveAreaActivityAsync(_icao, x.AreaId, x.Attivita);
-        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+        await Militari.SaveAreaActivityAsync(_icao, SectionKeys.Regulated, x.AreaId, x.Attivita);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao, SectionKeys.Regulated);
     });
 
     /// <summary>La nota di UN'area, allo stesso modo: si salva quando il campo perde il fuoco.</summary>
     private Task ScriviNotaArea((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveAreaNoteAsync(_icao, x.AreaId, x.Nota);
-        _noteAree = await Militari.GetAreaNotesAsync(_icao);
+        await Militari.SaveAreaNoteAsync(_icao, SectionKeys.Regulated, x.AreaId, x.Nota);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao, SectionKeys.Regulated);
     });
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveRegulatedAsync(_icao, sel);
-        _regulated = await Militari.GetRegulatedAsync(_icao);
+        await Militari.SaveRegulatedAsync(_icao, SectionKeys.Regulated, sel);
+        _regulated = await Militari.GetRegulatedAsync(_icao, SectionKeys.Regulated);
 
         // ⚠️ E le aree RISOLTE, o la tabella sotto la mappa resta indietro di una scelta. Trovato a schermo il
         // 30 agosto 2026: la chip si accendeva, la selezione si salvava — e la tabella continuava a dire
@@ -1237,6 +1256,30 @@ else
         // ⚠️ Si ricarica dalla porta UNICA (`CaricaTabelleAsync`) e non due righe a mano: il giorno che una
         // terza cosa per-area si aggiunge, chi la aggiunge non deve ricordarsi anche di questo punto.
         await CaricaTabelleAsync();
+    });
+
+    /// <summary>
+    /// La stessa cosa per le aree BOAT. ⚠️ Gemella e non condivisa: le due sezioni salvano su due blocchi
+    /// diversi e ricaricano due campi diversi, e una funzione sola con un `if` dentro direbbe la stessa cosa
+    /// con un ramo in più da sbagliare. Quel che è condiviso — e conta — è il SERVIZIO, che prende la chiave.
+    /// </summary>
+    private Task SaveBoat(RegulatedSelection sel) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveRegulatedAsync(_icao, SectionKeys.LowLevel, sel);
+        _boat = await Militari.GetRegulatedAsync(_icao, SectionKeys.LowLevel);
+
+        // Le aree risolte e le note, per la stessa ragione della sezione sopra: chi sceglie e chi legge la
+        // tabella sono la stessa persona, nello stesso istante — e il salvataggio della selezione POTA le
+        // note delle aree non più scelte.
+        _areeBoat = await Militari.ResolveRegulatedAreasAsync(_boat);
+        await CaricaTabelleAsync();
+    });
+
+    /// <summary>La nota di UN'area BOAT: si salva quando il campo perde il fuoco, come sopra.</summary>
+    private Task ScriviNotaBoat((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
+    {
+        await Militari.SaveAreaNoteAsync(_icao, SectionKeys.LowLevel, x.AreaId, x.Nota);
+        _noteBoat = await Militari.GetAreaNotesAsync(_icao, SectionKeys.LowLevel);
     });
 
 

@@ -128,15 +128,27 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
         if (working.Count == 0) return Array.Empty<RegulatedRefRow>();
 
         var versionIds = working.Keys.ToList();
-        var rows = await (
+
+        // ⚠️ DUE chiavi dal 9 settembre 2026: le sezioni che portano una selezione d'aree sono «Aree di
+        // lavoro» e, sul vSOP militare, «Bassa quota (BOAT)». Guardarne una sola vorrebbe dire che un'area
+        // BOAT potata dai cataloghi sparisce dai documenti senza che il rapporto lo dica — cioè proprio il
+        // silenzio che questo rapporto esiste per rompere.
+        var chiaviAree = new[] { Vipi.Application.Content.SectionKeys.Regulated, Vipi.Application.Content.SectionKeys.LowLevel };
+        var rows = (await (
             from s in _db.DocumentSections.AsNoTracking()
-            where s.SectionKey == "regulated" && versionIds.Contains(s.DocumentVersionId)
+            where chiaviAree.Contains(s.SectionKey) && versionIds.Contains(s.DocumentVersionId)
             select new
             {
                 s.DocumentVersionId,
-                Json = _db.ContentBlocks.AsNoTracking()
-                    .Where(b => b.SectionId == s.Id).OrderBy(b => b.Order).Select(b => b.BodyJson).FirstOrDefault(),
-            }).ToListAsync(ct);
+                // ⚠️ TUTTI i blocchi, non il primo: la scelta di quale sia il payload la fa
+                // `SectionPayload` sulla FORMA del JSON. Su una sezione «scheda + blocchi» il primo blocco
+                // può benissimo essere una tabella scritta a mano o un'immagine — e su «Bassa quota», che
+                // fino a ieri era solo prosa, è il caso normale.
+                Jsons = _db.ContentBlocks.AsNoTracking()
+                    .Where(b => b.SectionId == s.Id).OrderBy(b => b.Order).Select(b => b.BodyJson).ToList(),
+            }).ToListAsync(ct))
+            .Select(r => new { r.DocumentVersionId, Json = Vipi.Application.Content.SectionPayload.Scegli(r.Jsons) })
+            .ToList();
 
         var byId = docs.ToDictionary(d => d.Id);
         return rows

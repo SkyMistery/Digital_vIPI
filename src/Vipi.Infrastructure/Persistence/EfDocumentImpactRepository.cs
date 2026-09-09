@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -320,16 +320,23 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
         if (versioniDiLavoro.Count == 0) return Array.Empty<AffectedDoc>();
 
         var versionIds = versioniDiLavoro.Keys.ToList();
-        var righe = await (
+
+        // ⚠️ Le sezioni con una selezione d'aree sono DUE (9 settembre 2026): «Aree di lavoro» e «Bassa
+        // quota (BOAT)». E il payload è «il primo blocco di STRUTTURA», non «il primo blocco»: la domanda
+        // la fa `SectionPayload`, qui come in lettura e in scrittura.
+        var chiaviAree = new[] { SectionKeys.Regulated, SectionKeys.LowLevel };
+        var righe = (await (
             from sec in _db.DocumentSections.AsNoTracking()
-            where sec.SectionKey == "regulated" && versionIds.Contains(sec.DocumentVersionId)
+            where chiaviAree.Contains(sec.SectionKey) && versionIds.Contains(sec.DocumentVersionId)
             select new
             {
                 sec.DocumentVersionId,
-                Json = _db.ContentBlocks.AsNoTracking()
+                Jsons = _db.ContentBlocks.AsNoTracking()
                     .Where(b => b.SectionId == sec.Id).OrderBy(b => b.Order)
-                    .Select(b => b.BodyJson).FirstOrDefault(),
-            }).ToListAsync(ct);
+                    .Select(b => b.BodyJson).ToList(),
+            }).ToListAsync(ct))
+            .Select(r => new { r.DocumentVersionId, Json = SectionPayload.Scegli(r.Jsons) })
+            .ToList();
         if (righe.Count == 0) return Array.Empty<AffectedDoc>();
 
         // Gli ACC che elencano quest'area: servono per i documenti in automatico.
@@ -536,7 +543,7 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
                 "aor", "frequencies", "coordination", "coordination:in", "coordination:out",
                 "minima", "appgroup", "aerovia",
             },
-            [ImpactFamily.Area] = new[] { "regulated" },
+            [ImpactFamily.Area] = new[] { SectionKeys.Regulated, SectionKeys.LowLevel },
             [ImpactFamily.Document] = Array.Empty<string>(),
         };
 

@@ -415,7 +415,14 @@ public static class SectionCatalog
                     }),
                     // Aree tattiche dove si vola il BOAT: parla di AREE, quindi sta sotto la sezione che le
                     // disegna. Presente in 9 SOP su 15.
-                    D("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)", aud: Piloti),
+                    // ⚠️ `HB` e non `D` dal 9 settembre 2026 (carta 2026-09-09-aree-boat.md): ha un
+                    // visualizzatore SUO — mappa, elenco e tabella — gemello di quello del padre, e SOTTO
+                    // restano i blocchi editoriali di chi ha gia' scritto prosa li'. Il payload e' lo stesso
+                    // `MilRegulatedPayload`, sotto questa chiave di sezione: nessuna tabella nuova.
+                    // ⚠️ `SectionKind` resta editoriale, come per «regulated»: non c'e' nessuna derivazione
+                    // da congelare alla release, e prometterne una darebbe un interruttore Live/Frozen che
+                    // nessuno esegue.
+                    HB("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)", aud: Piloti),
                 }),
             }.Concat(CarteAeroportuali(6)).Append(
                 HB("validity", "Validità e revisione", 7, en: "Validity and revision")).ToArray(),

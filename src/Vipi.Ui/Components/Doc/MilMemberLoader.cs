@@ -39,7 +39,16 @@ public sealed record MilMemberDocument(
     IReadOnlyDictionary<string, MilActivity> AttivitaAree,
     IReadOnlyDictionary<string, string> NoteAree,
     IReadOnlyList<IReadOnlyList<string>> Nominativi,
-    IReadOnlyList<IReadOnlyList<string>> Parcheggi)
+    IReadOnlyList<IReadOnlyList<string>> Parcheggi,
+    // ---- «Bassa quota (BOAT)»: la stessa terna, per la sotto-sezione che ha un visualizzatore suo ----
+    // ⚠️ Tre campi in più e non un secondo tipo: è lo STESSO payload sotto un'altra chiave di sezione, e
+    // due record gemelli si sarebbero divisi al primo campo aggiunto a uno dei due.
+    // ⚠️ Le attività qui restano vuote per costruzione: la tabella BOAT non ha la colonna (carta
+    // 2026-09-09-aree-boat.md §3e). Si leggono lo stesso, perché il payload è quello e un documento
+    // scritto da una versione futura che le portasse non va perso in lettura.
+    IReadOnlyList<AccSpecialAreaView> AreeBoat,
+    IReadOnlyDictionary<string, MilActivity> AttivitaBoat,
+    IReadOnlyDictionary<string, string> NoteBoat)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -145,10 +154,11 @@ public sealed class MilMemberLoader
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta
         // porta la prosa, non il JSON del blocco.
-        var sezAree = Sezione(view, "regulated");
-        var aree = sezAree is null
-            ? Array.Empty<AccSpecialAreaView>()
-            : await _militari.ResolveRegulatedAreasAsync(LeggiAree(sezAree), ct);
+        // ⚠️ DUE sezioni dal 9 settembre 2026, non una: «Aree di lavoro» e la sua sotto-sezione «Bassa quota
+        // (BOAT)», che ha lo stesso visualizzatore su una selezione sua. Una funzione sola, chiamata due
+        // volte con la chiave: due copie di queste tre righe si sarebbero divise al primo ritocco.
+        var aree = await AreeDellaSezioneAsync(view, SectionKeys.Regulated, ct);
+        var areeBoat = await AreeDellaSezioneAsync(view, SectionKeys.LowLevel, ct);
 
         // ⚠️ `useFrozen`: in pubblica e in anteprima release si legge la FOTOGRAFIA della release, non
         // l'anagrafica di adesso. In bozza no — lì si guarda quel che si sta scrivendo.
@@ -175,8 +185,12 @@ public sealed class MilMemberLoader
         // nello stesso modo — tenerne metà di qua e metà di là è il modo di scordarsene alla prossima.
         // ⚠️ Qui e non più in basso: sotto, `AudienceFilter` TOGLIE le sezioni non destinate a chi legge, e
         // da una sezione tolta questi payload tornerebbero vuoti.
-        var attivita = MilRegulatedPayload.LeggiAttivita(SectionPayload.Read(Sezione(view, "regulated")));
-        var noteAree = MilRegulatedPayload.LeggiNote(SectionPayload.Read(Sezione(view, "regulated")));
+        var payloadAree = SectionPayload.Read(Sezione(view, SectionKeys.Regulated));
+        var payloadBoat = SectionPayload.Read(Sezione(view, SectionKeys.LowLevel));
+        var attivita = MilRegulatedPayload.LeggiAttivita(payloadAree);
+        var noteAree = MilRegulatedPayload.LeggiNote(payloadAree);
+        var attivitaBoat = MilRegulatedPayload.LeggiAttivita(payloadBoat);
+        var noteBoat = MilRegulatedPayload.LeggiNote(payloadBoat);
         var nominativi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "callsigns")), 4);
         var parcheggi = MilTablePayload.Leggi(SectionPayload.Read(Sezione(view, "parkings")), 3);
 
@@ -194,7 +208,8 @@ public sealed class MilMemberLoader
 
         return new MilMemberDocument(code, view, mode, relCycle, bloccata, tradotto.Coverage, haMarcate,
                                      letturaVista, civile, derivate, station, wx, metar, taf, aree,
-                                     radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi);
+                                     radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi,
+                                     areeBoat, attivitaBoat, noteBoat);
     }
 
     /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>
@@ -218,6 +233,19 @@ public sealed class MilMemberLoader
         }
         return null;
     }
+
+    /// <summary>
+    /// Le aree scelte in UNA sezione del documento mostrato, risolte su shape e descrizioni dei cataloghi
+    /// correnti. Sezione assente ⇒ nessuna area: è il caso normale di un documento nato prima che la
+    /// sotto-sezione avesse un visualizzatore, e non è un errore.
+    /// <para>⚠️ Una funzione sola per tutt'e due le sezioni («Aree di lavoro» e «Bassa quota»): il motore è
+    /// lo stesso della vIPI ACC e dell'APP, e la selezione non sa da quale sezione arriva.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<AccSpecialAreaView>> AreeDellaSezioneAsync(
+        DocumentView view, string sectionKey, CancellationToken ct) =>
+        Sezione(view, sectionKey) is { } sez
+            ? await _militari.ResolveRegulatedAreasAsync(LeggiAree(sez), ct)
+            : Array.Empty<AccSpecialAreaView>();
 
     /// <summary>
     /// La selezione delle aree, dal payload della sezione.

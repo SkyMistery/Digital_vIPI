@@ -98,11 +98,22 @@ public interface IMilitaryDocumentService
     /// </summary>
     Task<CivilEdition> GetCivilEditionAsync(string icao, CancellationToken ct = default);
 
-    /// <summary>Le aree di lavoro scelte per questo campo (sezione <c>regulated</c>).</summary>
-    Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default);
+    /// <summary>
+    /// Le aree scelte per questo campo in <b>una</b> delle due sezioni che ne mostrano una mappa:
+    /// <see cref="SectionKeys.Regulated"/> (working areas) o <see cref="SectionKeys.LowLevel"/> (BOAT).
+    ///
+    /// <para>⚠️ <b>La chiave è obbligatoria e non ha un valore di scorta, apposta</b> (carta
+    /// 2026-09-09-aree-boat.md §3b). Le due selezioni vivono nello stesso formato, in due blocchi diversi:
+    /// un chiamante che scordasse la chiave leggerebbe — e alla prima scrittura sovrascriverebbe — le aree
+    /// dell'altra sezione, senza un errore e senza che chi le ha scelte tocchi mai quella tendina. Qui lo
+    /// impedisce il compilatore, non la memoria di chi scrive il prossimo chiamante.</para>
+    /// </summary>
+    Task<RegulatedSelection> GetRegulatedAsync(string icao, string sectionKey, CancellationToken ct = default);
 
-    /// <summary>Salva la scelta delle aree. ACC-gated come ogni scrittura sul documento.</summary>
-    Task SaveRegulatedAsync(string icao, RegulatedSelection selection, CancellationToken ct = default);
+    /// <summary>Salva la scelta delle aree di <b>quella</b> sezione. ACC-gated come ogni scrittura sul
+    /// documento.</summary>
+    Task SaveRegulatedAsync(string icao, string sectionKey, RegulatedSelection selection,
+        CancellationToken ct = default);
 
     /// <summary>Le aree che l'ACC del campo elenca — il pool del picker.</summary>
     Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasAsync(string icao, CancellationToken ct = default);
@@ -172,22 +183,26 @@ public interface IMilitaryDocumentService
     Task SaveFixedTableAsync(string icao, string sectionKey, string variante,
         IReadOnlyList<IReadOnlyList<string>> righe, int colonne, CancellationToken ct = default);
 
-    /// <summary>Che attività si vola in ognuna delle aree di lavoro scelte (carta §12h), per id d'area.</summary>
+    /// <summary>Che attività si vola in ognuna delle aree scelte in quella sezione (carta §12h), per id
+    /// d'area. La chiave è obbligatoria per la stessa ragione di <see cref="GetRegulatedAsync"/>.</summary>
     Task<IReadOnlyDictionary<string, MilActivity>> GetAreaActivitiesAsync(
-        string icao, CancellationToken ct = default);
+        string icao, string sectionKey, CancellationToken ct = default);
 
     /// <summary>
     /// Cambia l'attività di UN'area. ⚠️ Un'area alla volta e non la mappa intera: due persone che marcano due
     /// aree diverse non devono sovrascriversi — è la stessa regola dei campi delle radioassistenze.
     /// </summary>
-    Task SaveAreaActivityAsync(string icao, string areaId, MilActivity attivita, CancellationToken ct = default);
+    Task SaveAreaActivityAsync(string icao, string sectionKey, string areaId, MilActivity attivita,
+        CancellationToken ct = default);
 
-    /// <summary>La nota libera di ognuna delle aree di lavoro scelte, per id d'area.</summary>
-    Task<IReadOnlyDictionary<string, string>> GetAreaNotesAsync(string icao, CancellationToken ct = default);
+    /// <summary>La nota libera di ognuna delle aree scelte in quella sezione, per id d'area.</summary>
+    Task<IReadOnlyDictionary<string, string>> GetAreaNotesAsync(
+        string icao, string sectionKey, CancellationToken ct = default);
 
     /// <summary>
     /// Cambia la nota di UN'area. Vuota o solo spazi ⇒ la nota si toglie. ⚠️ Un'area alla volta, per la
     /// stessa ragione dell'attività: due persone che scrivono su due aree diverse non si sovrascrivono.
     /// </summary>
-    Task SaveAreaNoteAsync(string icao, string areaId, string? nota, CancellationToken ct = default);
+    Task SaveAreaNoteAsync(string icao, string sectionKey, string areaId, string? nota,
+        CancellationToken ct = default);
 }

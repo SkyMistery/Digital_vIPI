@@ -68,9 +68,21 @@
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
                mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. E SOTTO la tabella: nome e
                limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività. *@
-            case "regulated":
-                <RegulatedAreas Areas="Doc.Aree" />
+            @* 🔴 `BlockKey` su TUTT'E DUE, e non è decorazione: lo scope della mappa è «reg-» + la chiave, e
+               senza vale «reg-x» per chiunque. In questa pagina le mappe sono due — le aree di lavoro e le
+               aree BOAT — e con lo stesso scope le chip di una accenderebbero le schede dell'altra, col
+               conteggio «ne vedi N su M» che parla della sezione sbagliata. Il legame chip→scheda lo tiene
+               vipi-aor.js per attributo `data-aor`: il difetto sarebbe MUTO. *@
+            case SectionKeys.Regulated:
+                <RegulatedAreas Areas="Doc.Aree" BlockKey="@SectionKeys.Regulated" />
                 <MilWorkingAreas Areas="Doc.Aree" Activities="Doc.AttivitaAree" Notes="Doc.NoteAree" />
+                break;
+            @* Le aree BOAT: lo STESSO visualizzatore su una selezione sua (carta 2026-09-09-aree-boat.md).
+               ⚠️ La tabella qui è a tre colonne: l'attività su un'area BOAT direbbe sempre «LOW LEVEL». *@
+            case SectionKeys.LowLevel:
+                <RegulatedAreas Areas="Doc.AreeBoat" BlockKey="@SectionKeys.LowLevel" />
+                <MilWorkingAreas Areas="Doc.AreeBoat" Activities="Doc.AttivitaBoat" Notes="Doc.NoteBoat"
+                                 MostraAttivita="false" />
                 break;
             case "callsigns":
                 <MilFixedTable Colonne="MilProfiloTabelle.Nominativi(L)" Righe="Doc.Nominativi" />

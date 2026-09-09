@@ -294,21 +294,27 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     }
 
     // ---- Aree di lavoro: che attività si vola (§12h) ----------------------------------------------------
+    //
+    // ⚠️ Tutti e sei i metodi qui sotto prendono la CHIAVE DI SEZIONE, dal 9 settembre 2026: le sezioni che
+    // portano una selezione d'aree sono DUE — «Aree di lavoro» e «Bassa quota (BOAT)» — e vivono nello
+    // stesso formato, in due blocchi diversi. La chiave scritta dentro il metodo avrebbe voluto dire sei
+    // metodi gemelli `…BoatAsync`, cioè due copie che al primo ritocco divergono (regola del 2 del
+    // FEATURE-PROCESS). Carta 2026-09-09-aree-boat.md §3b.
 
     public async Task<IReadOnlyDictionary<string, MilActivity>> GetAreaActivitiesAsync(
-        string icao, CancellationToken ct = default)
+        string icao, string sectionKey, CancellationToken ct = default)
     {
         if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
             return new Dictionary<string, MilActivity>();
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
         return MilRegulatedPayload.LeggiAttivita(json);
     }
 
-    public async Task SaveAreaActivityAsync(string icao, string areaId, MilActivity attivita,
+    public async Task SaveAreaActivityAsync(string icao, string sectionKey, string areaId, MilActivity attivita,
         CancellationToken ct = default)
     {
         var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
 
         // Si rilegge la selezione dal payload e la si riscrive INSIEME alle attività: sono un oggetto solo,
         // e salvarne metà lascerebbe l'altra metà com'era prima della modifica precedente.
@@ -319,24 +325,25 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         if (attivita == MilActivity.None) attuali.Remove(areaId);
         else attuali[areaId] = attivita;
 
-        await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
+        await _editing.SaveSectionBlockJsonAsync(docId, sectionKey,
             MilRegulatedPayload.Scrivi(selezione, attuali, MilRegulatedPayload.LeggiNote(json)),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyDictionary<string, string>> GetAreaNotesAsync(
-        string icao, CancellationToken ct = default)
+        string icao, string sectionKey, CancellationToken ct = default)
     {
         if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId)
             return new Dictionary<string, string>();
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
         return MilRegulatedPayload.LeggiNote(json);
     }
 
-    public async Task SaveAreaNoteAsync(string icao, string areaId, string? nota, CancellationToken ct = default)
+    public async Task SaveAreaNoteAsync(string icao, string sectionKey, string areaId, string? nota,
+        CancellationToken ct = default)
     {
         var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
 
         // Come l'attività: si rilegge TUTTO l'oggetto e lo si riscrive intero, o la metà non toccata
         // tornerebbe a com'era prima della modifica precedente.
@@ -347,19 +354,21 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         if (string.IsNullOrWhiteSpace(nota)) attuali.Remove(areaId);
         else attuali[areaId] = nota.Trim();
 
-        await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
+        await _editing.SaveSectionBlockJsonAsync(docId, sectionKey,
             MilRegulatedPayload.Scrivi(selezione, MilRegulatedPayload.LeggiAttivita(json), attuali),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
 
-    public async Task<RegulatedSelection> GetRegulatedAsync(string icao, CancellationToken ct = default)
+    public async Task<RegulatedSelection> GetRegulatedAsync(string icao, string sectionKey,
+        CancellationToken ct = default)
     {
         if (await GetDocumentIdAsync(icao, ct).ConfigureAwait(false) is not int docId) return Manuale(null);
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
         return Manuale(RegulatedSelectionJson.Parse(json));
     }
 
-    public async Task SaveRegulatedAsync(string icao, RegulatedSelection selection, CancellationToken ct = default)
+    public async Task SaveRegulatedAsync(string icao, string sectionKey, RegulatedSelection selection,
+        CancellationToken ct = default)
     {
         // Passa da CreaAsync e non da GetDocumentIdAsync: è ACC-gated e idempotente, quindi chi non può
         // scrivere si ferma qui e non alla riga dopo, con mezza modifica già fatta.
@@ -370,9 +379,9 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         // ⚠️ Le ATTIVITÀ e le NOTE già scritte si riportano: stanno nello stesso oggetto JSON, e serializzare
         // la sola selezione le cancellerebbe a ogni chip aggiunta o tolta — senza un errore, e senza che chi
         // le ha scritte tocchi mai quella tendina. Quelle delle aree non più scelte le scarta `Scrivi`.
-        var precedente = await _editing.GetSectionBlockJsonAsync(docId, "regulated", ct).ConfigureAwait(false);
+        var precedente = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
 
-        await _editing.SaveSectionBlockJsonAsync(docId, "regulated",
+        await _editing.SaveSectionBlockJsonAsync(docId, sectionKey,
             vuota ? null : MilRegulatedPayload.Scrivi(pulita,
                 MilRegulatedPayload.LeggiAttivita(precedente), MilRegulatedPayload.LeggiNote(precedente)),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
