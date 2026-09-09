@@ -2,13 +2,18 @@
 
 ## Dove siamo — 9 settembre 2026 (notte)
 
-📦 **1.18.2 è PRONTA da caricare** (9 settembre, notte). Timbro **`1.18.2 · 578300a`**, sha256 dello zip
+✅ **1.18.2 è ONLINE** (9 settembre, notte). Timbro **`1.18.2 · 578300a`**, sha256 dello zip
 **`4e1ead40…`**, **8 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.2.md`. **PATCH**, **nessuna
 migrazione**: si carica dentro la finestra cieca.
 ✅ Provata **sul pacchetto**: i **dieci** controlli di smoke più il gesto di questa consegna
 (`ancora-verifica.js`), guidato su **due** pacchetti — 1.18.1 porta via, 1.18.2 resta.
-🔴 **Porta `wwwroot`** — `vipi-ui.js` è cambiato: consegnarla senza asset vuol dire non consegnare la
-correzione del rimbalzo in home. Porta **§CN**: quattro difetti nati da due segnalazioni sull'unione di
+✅ **E PROVATA DA FUORI**, che qui e' la prova vera perche' la consegna portava `wwwroot`:
+il `vipi-ui.js` **servito** da `atc.it.ivao.aero` ha lo **stesso sha256** di quello nel pacchetto
+(`d6792968…`) — non un'impronta diversa: la **stessa**. E porta le regole giuste nel merito, non solo
+nell'impronta: nel minificato `e.preventDefault()` sta **prima** di `getElementById`.
+✅ Otto controlli di smoke pubblici verdi, e `ancora-verifica.js` guidato **contro la produzione**
+su `/services/vsop/libb/vipi`: un'ancora senza bersaglio **non porta piu' via la pagina**.
+✅ **`wwwroot` E' ARRIVATO** (verificato per impronta dal servito, non dedotto). Porta **§CN**: quattro difetti nati da due segnalazioni sull'unione di
 Gioia del Colle, e nessuno dei due sintomi aveva la causa che sembrava avere.
 ⚠️ **La NRE di render è strumentata, NON chiusa**: la prossima occorrenza deve portare il contesto.
 

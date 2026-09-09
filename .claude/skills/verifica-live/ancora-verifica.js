@@ -43,11 +43,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         .map((a) => a.getAttribute('href'))
         .find((h) => h.length > 1 && document.getElementById(h.slice(1))));
     if (conBersaglio) {
+      // ⚠️ Il confronto e' con la pagina IN PROVA, non con un percorso cablato: la prima stesura aveva
+      // `/airports/editor` scritto dentro e, puntata su un'altra pagina (la produzione, dove l'editor da
+      // anonimo non si raggiunge), dava ROSSO su un comportamento GIUSTO. Un driver che sbaglia colore e'
+      // lo stesso difetto del verde bugiardo, dall'altro capo.
+      const attesa = new URL(BASE + PAGINA).pathname;
       await page.evaluate((h) => document.querySelector(`a[href="${h}"]`).click(), conBersaglio);
       await sleep(1200);
       const u = new URL(page.url());
-      nota('ancora CON bersaglio: resta sulla pagina', u.pathname.includes('/airports/editor'),
-        `${u.pathname}${u.hash}`);
+      nota('ancora CON bersaglio: resta sulla pagina', u.pathname === attesa, `${u.pathname}${u.hash}`);
     } else {
       nota('ancora CON bersaglio: nessuna disponibile', true, 'saltato (non inficia il caso che conta)');
     }
