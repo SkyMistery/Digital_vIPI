@@ -1,6 +1,20 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 8 settembre 2026 (notte)
+## Dove siamo — 9 settembre 2026
+
+✅ **1.17.0 è ONLINE** (timbro `1.17.0 · 30ca658`, undici file) e **provata da fuori**: il `vipi-theme.css`
+servito porta le regole nuove, non solo un'impronta diversa. §CG.
+
+📦 **In `main` dopo la 1.17.0, quindi NON ancora online** — due lavori, nessuna migrazione, spedibili dentro
+la finestra cieca:
+
+- **§CH** — le frequenze si riordinano in **tutti e cinque** gli editor: prima solo ACC e APP.
+- **§CI** — il tasto spento del glossario **dice perché**: era stato letto come un lock che non esiste.
+
+▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
+1.17.0, più i controlli col login elencati in §CG.
+
+## Dove eravamo — 8 settembre 2026 (notte)
 
 1. 📦 **1.16.1 è PRONTA, non ancora online.** Timbro `1.16.1 · d2925b3`, sha256 dello zip `2cfa711d…`,
    **13 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.16.1.md`. **PATCH**, nessuna migrazione.
@@ -10466,3 +10480,101 @@ i due di 1.16.1 mai confermati (il tasto «Documenti», e la tabella vuota che n
 🔴 ▶ **E la prova vera delle tre correzioni non è a schermo**: è il prossimo `errori-richieste.txt`, dove le
 `ObjectDisposedException` devono calare e le «A second operation» sparire. Si conta **per era**, e il tasso
 non si confronta con le ore di notte.
+
+## §CH — Le frequenze si riordinano in tutti gli editor, non solo in ACC — 9 settembre 2026
+
+Chiesto dal committente: «negli editor le frequenze si possono riordinare trascinandole? Nelle vIPI di ACC
+sì, negli altri controlla». Controllato: **due su cinque**.
+
+| editor | prima | ora |
+|---|---|---|
+| ACC (`AccEditorPage`) | ⠿ + ↑↓ | invariato |
+| APP (`AppSectionsEditor`) | ⠿ + ↑↓ | invariato |
+| vLOA (`VloaEditor`) | **niente** — solo mostra/nascondi | ⠿ + ↑↓, per lato |
+| Aeroporto (`AirportSectionsEditor`) | **niente** | ⠿ + ↑↓ sulle **sole righe collegate** |
+| Militare (`MilSectionsEditor`) | **niente** | come l'aeroporto |
+
+### La vLOA: l'ordine è del DOCUMENTO, e la porta esisteva già
+
+L'override per callsign vive su `DocumentProfile.FreqOrderJson` — la **stessa** colonna che scrive l'APP,
+per la stessa `IDocumentProfileRepository`. Nessun campo nuovo, **nessuna migrazione**: spedibile dentro la
+finestra cieca. Il servizio prende quella porta e non una seconda lettura del `DocumentProfile` scritta
+accanto a quella che c'è.
+
+⚠️ **L'ordine si applica DENTRO ciascun lato.** I due lati sono due tabelle con la loro intestazione — «IT ·
+LIRR» e «TN · DTTC» — e un ordine che le attraversasse metterebbe una frequenza tunisina sotto il titolo
+italiano: non un difetto estetico, un documento che dice il falso. Gli indici salvati restano invece
+**globali** (prima home, poi estero) perché due callsign di lati diversi non si contendano lo stesso numero.
+
+### Aeroporto e militare: si riordina solo ciò che è del documento
+
+Il catalogo dei settori dello scalo esce nell'ordine delle posizioni — ATIS · DEL · GND · TWR · APP/DEP, poi
+la principale (★) — e quell'ordine è **dell'anagrafica**: si scrive in «Struttura», non da un documento.
+Restano ferme, senza maniglia e senza tasti.
+
+Si riordinano le **righe collegate**, e il riordino non è altro che riscrivere `LinkIds`: la stessa lista che
+collegare e scollegare già salvano, e che `SaveFrequencyLinksAsync` traduce in `AirportFrequencyLink.Order` —
+cioè esattamente quel che rilegge il documento pubblicato. Nessun campo nuovo nemmeno qui.
+
+⚠️ **Civile e militare condividono la tabella dei link, per ICAO.** Collegare, scollegare — e da oggi
+riordinare — in un'edizione si vede **anche nell'altra**. È come stava prima e non è stato cambiato: la
+decisione, se mai, è del committente, non un effetto collaterale di questo giro.
+
+### Il componente condiviso aveva le due colonne in ALTERNATIVA
+
+`AppFrequencies` rendeva la colonna delle azioni di riga solo `else if (!Editing)`. La vLOA è l'unica che
+passa `RowActions` — è lì che sta «mostra/nascondi», cioè il comando che decide che cosa entra nel documento
+— e in modifica l'avrebbe **perso** proprio nel momento in cui le si dava il riordino. Ora convivono, con
+l'ordine delle celle uguale a quello delle intestazioni (azioni, poi riordino): invertirne uno solo sfasa la
+tabella, e un test lo confronta.
+
+### Le prove, e perché distinguono
+
+Quattro in `VloaOrdineFrequenzeTests` (SQLite in memoria, servizio preso dal **contenitore** — è `internal`,
+e la prova non allarga la superficie del modulo per potersi scrivere) e cinque in `FrequenzeSiRiordinanoTests`
+(bUnit).
+
+⚠️ L'ordine chiesto nella prova è l'**opposto** di quello che dà il catalogo — misurato: EW prima di NE. Con
+lo stesso, una derivazione che legge l'override e una che lo ignora darebbero la stessa risposta. E sul codice
+di prima il comando per salvarlo non esisteva nemmeno.
+
+## §CI — «Non mi fa cliccare su Add»: il tasto spento del glossario ora dice perché — 9 settembre 2026
+
+Segnalato dal committente sulla pagina `/services/vsop/admin/glossary`: «non mi fa cliccare su Add… forse è
+protetto dal lock, ma nella pagina non c'è il tasto per sbloccarlo».
+
+🔴 **Quella pagina non ha nessun lock.** Il tasto è spento dalla **validazione** (`GlossarioFraseologia.
+PerchéNonVa`): manca un lato, meno di quattro caratteri, la formula c'è già, dentro c'è un identificatore,
+oppure `<`, `>`, `&`. Il motivo c'era — una riga gialla **sotto** il modulo — e a modulo vuoto, per scelta,
+nemmeno quella: «un modulo vuoto che grida *servono tutti e due i lati* è rumore, non aiuto».
+
+**Ma un tasto grigio senza spiegazione accanto non si legge come una regola: si legge come un permesso che
+manca.** È esattamente la lettura che è arrivata, con in più la richiesta di sbloccare qualcosa che non
+esiste. Ora il motivo sta **anche sul tasto**, in ogni stato, modulo vuoto compreso — un suggerimento è muto
+finché non lo si cerca, e chi lo cerca è chi sta guardando un tasto grigio senza capire.
+
+⚠️ **E il `title` sta sull'INVOLUCRO, non sul tasto.** Chrome ed Edge non consegnano eventi del mouse a un
+controllo `disabled`: scritto sul `<button>` non comparirebbe **mai**, cioè proprio nell'unico stato in cui
+serve. `display:inline-flex` e non `display:contents`: senza un riquadro proprio non c'è niente da sorvolare.
+Stesso rimedio sul «Salva» della riga in correzione, che aveva lo stesso difetto — e una porta sola per il
+rifiuto (`RifiutoVoce`), che prima era calcolato due volte con gli stessi argomenti.
+
+### Il caso segnalato, riprodotto
+
+`Pista → Runway` **passa**: nessuna regola lo rifiuta, e guidando l'app a schermo la voce entra (57 → 58
+righe). Restano due sole spiegazioni per il tasto spento, ed erano entrambe mute sul tasto: **un lato solo**
+compilato in quel momento, oppure **«pista» già presente** in quel glossario.
+
+⚠️ E una cosa che la pagina diceva già, e vale la pena ripetere: `Pista` è **una parola sola**, e la resa
+entra **verbatim**. Con quella voce ogni «pista» diventa `Runway` con la maiuscola in mezzo alla frase, in
+ogni documento. Il glossario è fatto per le formule — «pista in uso» → «runway in use».
+
+### La verifica, e un limite dichiarato
+
+Guidata a schermo con Edge su una copia del `vipi.db`, sei stati: modulo vuoto, un lato solo, duplicato,
+sigla maiuscola (`ATIS` — quattro maiuscole in un testo minuscolo *sono* un identificatore), troppo corto,
+valido. Il suggerimento c'è nei primi cinque, sparisce nel sesto, e il modulo resta su una riga sola.
+
+⚠️ Quel che **non** si è potuto misurare è il fumetto dipinto dal sistema operativo: la sonda vede il
+`title` su un elemento che riceve il puntatore e non è `disabled` — che è la ragione per cui l'involucro
+esiste — non il rettangolo giallo sullo schermo.
