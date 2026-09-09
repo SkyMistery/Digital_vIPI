@@ -110,7 +110,7 @@ public static class GuideSearchCatalog
             "L'editor della vLOA: lato Home, sezioni derivate dai due ACC, quali settori entrano nel documento.",
             "The vLOA editor: the Home side, the sections derived from the two ACCs, which sectors go into the document."),
         new Entry("editor-mil", "Editor vSOP militare", "Military vSOP editor",
-            "militare militari mil vsop sop aeronautica base campo qra scramble boat bassa quota aree di lavoro destinatario pilota atc chip italiano traduzione inglese aviano ghedi rivolto decimomannu istrana grosseto amendola gioia del colle military base audience pilot atc translation english",
+            "militare militari mil vsop sop aeronautica base campo qra scramble boat bassa quota aree boat mappa delle aree boat low level areas aree di lavoro working areas destinatario pilota atc chip italiano traduzione inglese aviano ghedi rivolto decimomannu istrana grosseto amendola gioia del colle military base audience pilot atc translation english",
             "L'editor del vSOP militare d'aeroporto: italiano, destinatario per sezione, aree di lavoro, release.",
             "The airport military vSOP editor: written in Italian, audience per section, working areas, release."),
         new Entry("documenti-uniti", "Unire due documenti", "Joining two documents",

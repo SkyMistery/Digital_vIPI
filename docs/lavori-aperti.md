@@ -14,6 +14,12 @@ la finestra cieca:
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
+📦 **§CK — le aree BOAT hanno un visualizzatore loro** (9 settembre, sera): dentro «Aree di lavoro» la
+sotto-sezione **Bassa quota (BOAT)** disegna mappa, elenco e tabella come il padre, su una selezione sua.
+**Nessuna migrazione** — è lo stesso payload sotto un'altra chiave di sezione — quindi spedibile dentro la
+finestra cieca. ⚠️ Nel catalogo IVAO **non c'è nessuna area BOAT**: la sotto-sezione resta vuota finché non
+ce ne sono, ed è una conseguenza accettata, non un difetto.
+
 📝 **§CJ — il sistema di feedback a due canali: ragionato, scritto e RIMANDATA.** Nessun codice. La carta
 `docs/design/piano-segnalazioni.md` cresce di un §10 (il canale staff → sviluppatore) e passa tutta a
 **«non eseguita — RIMANDATA»**: si riapre **dopo il 16 settembre**. 🔴 Il nodo non è il modello — *lo
@@ -10638,3 +10644,61 @@ complementari, non alternativi.
 
 ▶ **Le quattro domande aperte** stanno in §10.6 della carta. La prima — *lo sviluppatore ha, o può avere,
 un login admin in produzione?* — è quella che decide più codice di tutte.
+
+## §CK — Le aree BOAT hanno un visualizzatore loro — 9 settembre 2026 (sera)
+
+**La richiesta del committente:** *«nella sezione dedicata alle working areas vorrei aggiungere un
+visualizzatore separato per le aree BOAT, praticamente identico a quello attuale»*, con la sotto-sezione
+**Bassa quota (BOAT)** che porta — nell'ordine — la mappa, l'elenco delle aree e la tabella.
+
+Carta: `docs/feature/2026-09-09-aree-boat.md`. Ramo `aree-boat`, **sette slice**, `dotnet build -c Release`
+verde su tutt'e due i TFM e suite verde. ⚠️ **Nessuna migrazione**: spedibile dentro la finestra cieca.
+
+### Che cosa c'era già, e che cosa è cambiato davvero
+
+✅ **La struttura delle sezioni era già esatta**: `lowlevel` è figlia di `regulated`, dopo «Procedure
+generali», dal 6 settembre. Non si è spostata né creata nessuna sezione — è cambiato **chi disegna il
+corpo**: `lowlevel` passa da `D(...)` a `HB(...)`, cioè scheda dalla pagina **più** i blocchi editoriali di
+chi ci aveva già scritto prosa.
+
+✅ E il **dato non ha una casa nuova**: selezione, attività e note stanno in un JSON solo, letto e scritto
+**per chiave di sezione**. La seconda sezione è la stessa macchina sotto un'altra chiave — ed è tutta la
+ragione per cui questo lavoro non tocca lo schema.
+
+### Le tre decisioni del committente
+
+1. **Le aree si scelgono dalle stesse chip del catalogo IVAO** (opzione A della carta): nessun catalogo
+   nuovo. 🔴 **Misurato prima di proporre**: in `SpecialAreas` ci sono **241** aree (R 126, D 47, TSA 39,
+   TRA 26, P 3) e **zero** BOAT; nel KMZ dell'AIP **3 072** volumi e **zero** BOAT. Le aree BOAT stanno solo
+   dentro i PDF dei SOP. ⚠️ Quindi **la sotto-sezione nasce vuota** finché quelle aree non esistono da
+   qualche parte: è una conseguenza accettata sapendola, non un difetto del visualizzatore. Le altre due
+   strade — un catalogo BOAT suo, o righe manuali protette dalla potatura — restano scritte in carta.
+2. **La tabella è a tre colonne**, senza «attività»: su un'area BOAT direbbe sempre `LOW LEVEL`. È un
+   **parametro** su `MilWorkingAreas`, non un secondo componente.
+3. **La mappa tiene 2D e 3D**, come quella delle working areas.
+
+### Le due reti nuove, e perché
+
+🔴 **Lo scope della mappa è diventato OBBLIGATORIO.** `RegulatedAreas.BlockKey` era facoltativo e senza
+valeva `reg-x` per tutti: con **due** mappe nella stessa pagina lo stesso scope fa accendere a una chip le
+schede dell'**altra** mappa, e il conteggio «ne vedi N su M» parla della sezione sbagliata. Il legame
+chip→scheda lo tiene `vipi-aor.js` per attributo, quindi il difetto sarebbe stato **muto**. Ora è
+`EditorRequired`: provato a rovescio togliendolo da un chiamante, la build si ferma (`RZ2012`, e qui gli
+avvisi sono errori).
+
+🔴 **Il rapporto «documenti da rivedere» e gli impatti guardavano la sola chiave `regulated`**: un'area BOAT
+potata dai cataloghi sarebbe sparita da un vSOP **senza che nessuno lo dicesse** — cioè proprio il silenzio
+che quel rapporto esiste per rompere. Ora guardano tutt'e due le chiavi, e nello stesso giro scelgono il
+payload con la regola di `SectionPayload` (**il primo blocco di STRUTTURA**) invece di «il primo blocco»:
+su una sezione che fino a ieri era prosa e tabelle, davanti al payload c'è quasi sempre altro.
+
+### La prova
+
+Il test che conta dice che **scrivere in una sezione non tocca l'altra** — se una chiave si perdesse per
+strada, salvare le aree BOAT cancellerebbe le working areas senza un errore. **Provato a rovescio**:
+ignorando la chiave nel servizio il test diventa rosso, come deve.
+
+▶ **Resta da guardare col login** (lo fa il committente): in un vSOP militare in modifica, scegliere due
+aree in «Aree di lavoro» e due **diverse** in «Bassa quota» — le due mappe devono restare indipendenti, e
+nella tabella BOAT non ci devono essere i gettoni dell'attività.
+
