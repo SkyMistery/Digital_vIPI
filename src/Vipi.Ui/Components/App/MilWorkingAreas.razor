@@ -1,4 +1,4 @@
-@* La tabella sotto la mappa delle «Aree di lavoro» (carta §12h): nome, limiti, che attività ci si vola e una
+﻿@* La tabella sotto la mappa delle «Aree di lavoro» (carta §12h): nome, limiti, che attività ci si vola e una
    nota libera.
 
    ⚠️ Nome e limiti NON si riscrivono a mano: vengono dalle aree scelte con le chip, cioè dal catalogo. Le
@@ -23,7 +23,7 @@
         <tr>
             <th>@L["Area_Name"]</th>
             <th class="c-lim">@L["Area_Limits"]</th>
-            <th class="c-act2">@L["Area_Activity"]</th>
+            @if (MostraAttivita) { <th class="c-act2">@L["Area_Activity"]</th> }
             <th class="c-note">@L["Area_Notes"]</th>
         </tr>
     </thead>
@@ -37,6 +37,8 @@
                     @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
                 </td>
                 <td class="c-lim c-nowrap">@Banda(a)</td>
+                @if (MostraAttivita)
+                {
                 <td class="c-act2">
                     @if (Editing)
                     {
@@ -59,6 +61,7 @@
                         @(MilActivityText.Scrivi(att) is { Length: > 0 } s ? s : "—")
                     }
                 </td>
+                }
                 <td class="c-note">
                     @if (Editing)
                     {
@@ -78,7 +81,7 @@
         }
         @if (Areas.Count == 0)
         {
-            <tr><td colspan="4" class="muted">@L["Area_None"]</td></tr>
+            <tr><td colspan="@(MostraAttivita ? 4 : 3)" class="muted">@L["Area_None"]</td></tr>
         }
     </tbody>
 </table>
@@ -94,6 +97,16 @@
     [Parameter] public IReadOnlyDictionary<string, string> Notes { get; set; } = new Dictionary<string, string>();
 
     [Parameter] public bool Editing { get; set; }
+
+    /// <summary>
+    /// Se la tabella ha la colonna «Attività» coi quindici gettoni. Vera per le <b>aree di lavoro</b>, falsa
+    /// per le aree <b>BOAT</b>: lì l'attività sarebbe sempre la stessa — «LOW LEVEL» — e una colonna che
+    /// dice sempre la stessa cosa non aggiunge niente (carta 2026-09-09-aree-boat.md §3e).
+    ///
+    /// <para>⚠️ Un parametro e non un secondo componente: banda di quota, pastiglia dei poligoni di tiro e
+    /// cella «—» sono scritte qui una volta sola, e due tabelle gemelle divergerebbero al primo ritocco.</para>
+    /// </summary>
+    [Parameter] public bool MostraAttivita { get; set; } = true;
 
     /// <summary>Cambia l'attività di UN'area: due persone che marcano due aree diverse non si sovrascrivono.</summary>
     [Parameter] public EventCallback<(string AreaId, MilActivity Attivita)> OnSet { get; set; }
