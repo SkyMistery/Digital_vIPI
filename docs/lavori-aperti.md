@@ -2,7 +2,12 @@
 
 ## Dove siamo — 9 settembre 2026 (notte)
 
-📦 **1.18.0 è PRONTA, non ancora online.** Timbro `1.18.0 · eff062e`, sha256 dello zip `8ca9d7f9…`,
+📦 **1.18.1 è PRONTA, non ancora online.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip
+`ed78a32d…`, **6 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md`. **PATCH**, nessuna
+migrazione, **niente `wwwroot`** e **niente satellite inglese** — verificato per impronta, non a memoria.
+Porta **§CM**. ✅ Provata sul pacchetto: 10 controlli di smoke + i 16 dei gesti dell'editor.
+
+✅ **1.18.0 è ONLINE** dal 9 settembre pomeriggio. Timbro `1.18.0 · eff062e`, sha256 dello zip `8ca9d7f9…`,
 **19 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md`. **MINOR** — una sotto-sezione che
 disegna e cinque tasti nuovi — **nessuna migrazione**: si carica dentro la finestra cieca.
 Porta **§CH, §CI, §CK e §CL** insieme.
@@ -26,8 +31,8 @@ servito porta le regole nuove, non solo un'impronta diversa. §CG.
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
-🔧 **§CM — il tornello scavalcato, e le sezioni in comune che non erano comuni** (9 settembre, sera;
-in `main`, **NON** in 1.18.0). Due difetti segnalati insieme unendo un TERZO documento (`LIBV_APP`) alla
+📦 **§CM — il tornello scavalcato, e le sezioni in comune che non erano comuni** (9 settembre, sera;
+in **1.18.1**, pronta e non ancora online). Due difetti segnalati insieme unendo un TERZO documento (`LIBV_APP`) alla
 vIPI e al vSOP di Gioia del Colle. Carta
 `docs/feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md`. Nessuna migrazione.
 
@@ -46,7 +51,7 @@ vIPI e al vSOP di Gioia del Colle. Carta
   del servizio** — che non prende più id nudi ma i membri **con la famiglia** — così nessun chiamante la
   salta. La scheda non si apre più da sola quando non ha niente da chiedere.
 
-▶ **Serve un pacchetto**: 1.18.0 è online e non le porta.
+✅ **Il pacchetto c'è**: 1.18.1, pronta da caricare.
 ⚠️ Il `errori-richieste.txt` del 9 settembre finisce alle **14:11:39** e 1.18.0 è partita alle **14:13:21**:
 quelle voci sono dell'era PRECEDENTE, non una regressione del pacchetto.
 

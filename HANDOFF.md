@@ -3,7 +3,20 @@
 **Ultimo aggiornamento:** 9 settembre 2026 (notte) — 📦 **1.18.0 è PRONTA, non ancora online.**
 Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
 
-📦 **1.18.0 — PRONTA DA CARICARE.** Timbro `1.18.0 · eff062e`, sha256 dello zip
+📦 **1.18.1 — PRONTA DA CARICARE.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip `ed78a32d…`,
+**6 file** — il più piccolo da mesi — foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md).
+**PATCH**, **nessuna migrazione**, **niente `wwwroot`** (zero asset diversi su 90, `endpoints.json`
+identico — verificato per impronta) e **niente satellite inglese** (nessuna `.resx` toccata).
+Porta **§CM**: il tornello scavalcato e le sezioni in comune che non erano comuni.
+
+✅ Provata sul pacchetto: dieci controlli di smoke più i sedici dei gesti dell'editor, timbro letto in
+`avvio-diagnostica.txt`.
+
+🔴 **Non sono difetti di 1.18.0**, e lo dice la DATA: l'ultima voce di `errori-richieste.txt` è delle
+**14:11:39**, l'avvio di 1.18.0 delle **14:13:21**.
+
+✅ **1.18.0 — ONLINE dal 9 settembre pomeriggio.** Timbro `1.18.0 · eff062e`, sha256 dello zip
 `8ca9d7f9…`, **19 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.0.md).
 **MINOR** — una sotto-sezione che disegna e cinque tasti nuovi — **nessuna migrazione**, quindi si carica

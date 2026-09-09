@@ -109,4 +109,5 @@ Conseguenze in pagina:
   `errori-richieste.txt` — devono sparire le `A second operation` da `AppSectionsEditor`.
 - ⚠️ **Il §2 non è stato guidato a schermo**: serve un'unione a tre membri, che in locale non c'è
   (i tre documenti di LIBV nel `vipi.db` di sviluppo non hanno versione di lavoro).
-- ⚠️ **Serve un pacchetto**: 1.18.0 è online e non porta queste due correzioni.
+- ✅ **Il pacchetto c'è**: **1.18.1** (`ba16e1c`, 6 file, zip `ed78a32d…`), provata sul pacchetto
+  pubblicato — dieci controlli di smoke e i sedici dei gesti dell'editor.
