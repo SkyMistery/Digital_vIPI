@@ -10698,7 +10698,13 @@ Il test che conta dice che **scrivere in una sezione non tocca l'altra** — se 
 strada, salvare le aree BOAT cancellerebbe le working areas senza un errore. **Provato a rovescio**:
 ignorando la chiave nel servizio il test diventa rosso, come deve.
 
-▶ **Resta da guardare col login** (lo fa il committente): in un vSOP militare in modifica, scegliere due
-aree in «Aree di lavoro» e due **diverse** in «Bassa quota» — le due mappe devono restare indipendenti, e
-nella tabella BOAT non ci devono essere i gettoni dell'attività.
+✅ **E la verifica live è stata fatta**, su una copia del `vipi.db`, guidando il browser su **LIML**:
+nell'editor si sono scelte `AT Emilia` in «Aree di lavoro» e `LI D5A` in «Bassa quota», e nel database della
+copia i due blocchi sono **separati** — la nota scritta sotto BOAT non è finita nell'altra sezione. Nel
+viewer ci sono **due mappe** con scope diversi (`reg-regulated`, `reg-lowlevel`): spegnendo la chip della
+prima, il suo conteggio va a «0 of 1» e la seconda **resta accesa**. Tabella sopra a quattro colonne coi
+gettoni, tabella BOAT a tre e senza. Zero errori JS, zero risposte ≥ 400.
+
+⚠️ **Da sapere guardandolo**: «Aree di lavoro» nasce **collassata** (è così dal doc 11 §3i), quindi a
+documento appena aperto la mappa e la sotto-sezione BOAT si vedono solo dopo averla aperta.
 
