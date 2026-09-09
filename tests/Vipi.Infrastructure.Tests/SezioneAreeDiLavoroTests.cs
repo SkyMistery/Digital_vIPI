@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Auth;
 using Vipi.Application.Content;
@@ -66,15 +66,15 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2"));
-        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.AirToAir | MilActivity.AirToGround);
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2"));
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.AirToAir | MilActivity.AirToGround);
 
         // Un'altra persona, un altro momento: aggiunge un'area con le chip.
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2", "A3"));
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2", "A3"));
 
-        var attivita = await m.GetAreaActivitiesAsync("LIBA");
+        var attivita = await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated);
         Assert.Equal(MilActivity.AirToAir | MilActivity.AirToGround, attivita["A1"]);
-        Assert.Equal(new[] { "A1", "A2", "A3" }, (await m.GetRegulatedAsync("LIBA")).OwnIds);
+        Assert.Equal(new[] { "A1", "A2", "A3" }, (await m.GetRegulatedAsync("LIBA", SectionKeys.Regulated)).OwnIds);
     }
 
     /// <summary>Un'area tolta dalla selezione si porta via la sua attività: un payload che cresce a ogni
@@ -84,12 +84,12 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2"));
-        await m.SaveAreaActivityAsync("LIBA", "A2", MilActivity.AirToGround);
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2"));
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A2", MilActivity.AirToGround);
 
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1"));
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1"));
 
-        Assert.Empty(await m.GetAreaActivitiesAsync("LIBA"));
+        Assert.Empty(await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated));
     }
 
     /// <summary>Si scrive UN'area alla volta: due persone che marcano due aree diverse non si
@@ -99,12 +99,12 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2"));
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2"));
 
-        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.AirToAir);
-        await m.SaveAreaActivityAsync("LIBA", "A2", MilActivity.AirToGround);
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.AirToAir);
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A2", MilActivity.AirToGround);
 
-        var attivita = await m.GetAreaActivitiesAsync("LIBA");
+        var attivita = await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated);
         Assert.Equal(MilActivity.AirToAir, attivita["A1"]);
         Assert.Equal(MilActivity.AirToGround, attivita["A2"]);
     }
@@ -116,12 +116,12 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1"));
-        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.AirToAir);
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1"));
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.AirToAir);
 
-        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.None);
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.None);
 
-        Assert.Empty(await m.GetAreaActivitiesAsync("LIBA"));
+        Assert.Empty(await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated));
     }
 
     // ---- Le due tabelle a colonne fisse ----------------------------------------------------------------
@@ -182,20 +182,20 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2"));
-        await m.SaveAreaNoteAsync("LIBA", "A1", "Ingresso solo da nord.");
-        await m.SaveAreaActivityAsync("LIBA", "A1", MilActivity.Cas);
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2"));
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.Regulated, "A1", "Ingresso solo da nord.");
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.Cas);
 
         // Un'altra persona, un altro momento: tocca le chip, poi i gettoni dell'attività.
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1", "A2", "A3"));
-        await m.SaveAreaActivityAsync("LIBA", "A2", MilActivity.LowLevel);
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2", "A3"));
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A2", MilActivity.LowLevel);
 
-        Assert.Equal("Ingresso solo da nord.", (await m.GetAreaNotesAsync("LIBA"))["A1"]);
-        Assert.Equal(MilActivity.Cas, (await m.GetAreaActivitiesAsync("LIBA"))["A1"]);
+        Assert.Equal("Ingresso solo da nord.", (await m.GetAreaNotesAsync("LIBA", SectionKeys.Regulated))["A1"]);
+        Assert.Equal(MilActivity.Cas, (await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated))["A1"]);
 
         // E al contrario: scrivere una nota non porta via le attività.
-        await m.SaveAreaNoteAsync("LIBA", "A3", "Attiva solo su NOTAM.");
-        var attivita = await m.GetAreaActivitiesAsync("LIBA");
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.Regulated, "A3", "Attiva solo su NOTAM.");
+        var attivita = await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated);
         Assert.Equal(MilActivity.Cas, attivita["A1"]);
         Assert.Equal(MilActivity.LowLevel, attivita["A2"]);
     }
@@ -206,11 +206,11 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     {
         var m = Militari();
         await m.CreaAsync("LIBA");
-        await m.SaveRegulatedAsync("LIBA", Selezione("A1"));
-        await m.SaveAreaNoteAsync("LIBA", "A1", "qualcosa");
-        await m.SaveAreaNoteAsync("LIBA", "A1", "   ");
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1"));
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.Regulated, "A1", "qualcosa");
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.Regulated, "A1", "   ");
 
-        Assert.Empty(await m.GetAreaNotesAsync("LIBA"));
+        Assert.Empty(await m.GetAreaNotesAsync("LIBA", SectionKeys.Regulated));
     }
 
     /// <summary>
@@ -245,6 +245,6 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     public async Task Un_campo_senza_documento_non_esplode()
     {
         Assert.Empty(await Militari().GetFixedTableAsync("LIRF", "callsigns", 4));
-        Assert.Empty(await Militari().GetAreaActivitiesAsync("LIRF"));
+        Assert.Empty(await Militari().GetAreaActivitiesAsync("LIRF", SectionKeys.Regulated));
     }
 }

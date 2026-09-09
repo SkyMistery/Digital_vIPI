@@ -43,6 +43,20 @@ public static class SectionKeys
     /// <summary>Direzione vicino → Home.</summary>
     public const string CoordinationIn = "coordination:in";
 
+    // ---- le due sezioni che disegnano una MAPPA DI AREE su un vSOP militare (9 settembre 2026) ----
+    // ⚠️ Esistevano già come stringhe scritte a mano in una decina di punti. Diventano costanti il giorno
+    // che sono DUE: da qui in poi «quale delle due?» è una domanda che si fa al chiamante, e una chiave
+    // sbagliata scriverebbe le aree di una sezione sopra quelle dell'altra — senza un errore.
+    // Carta 2026-09-09-aree-boat.md.
+
+    /// <summary>«Aree di lavoro»: mappa, elenco e tabella delle working areas. Universale (sta anche in
+    /// ACC, APP e vLOA, dove però è un'altra cosa: un picker sulla vIPI, prosa sulla vLOA).</summary>
+    public const string Regulated = "regulated";
+
+    /// <summary>«Bassa quota (BOAT)», sotto-sezione di <see cref="Regulated"/> nel solo profilo militare:
+    /// lo <b>stesso</b> visualizzatore su una selezione d'aree sua.</summary>
+    public const string LowLevel = "lowlevel";
+
     // ---- carte aeroportuali (3 settembre 2026) ----
     // ⚠️ CHIAVI PROPRIE, e non «sids»/«vfr» che pure direbbero la stessa parola: quelle due chiavi hanno già un
     // mestiere — le SID IMPORTATE della vIPI d'aeroporto e la sezione VFR di un profilo di posizione — e dentro

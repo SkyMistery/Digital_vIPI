@@ -516,7 +516,7 @@ else
             _shell.Lock = await Editing.InspectLockAsync(id);
             if (_shell.Doc is null) { _notFound = true; return; }
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable && _shell.Lock.IsMine;
-            _regulated = await Militari.GetRegulatedAsync(_icao);
+            _regulated = await Militari.GetRegulatedAsync(_icao, SectionKeys.Regulated);
             await CaricaRadioassistenzeAsync();
             await CaricaAlternatiAsync();
             await CaricaTabelleAsync();
@@ -1075,8 +1075,8 @@ else
     {
         _nominativi = await Militari.GetFixedTableAsync(_icao, "callsigns", ColNominativi);
         _parcheggi = await Militari.GetFixedTableAsync(_icao, "parkings", ColParcheggi);
-        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
-        _noteAree = await Militari.GetAreaNotesAsync(_icao);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao, SectionKeys.Regulated);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao, SectionKeys.Regulated);
     }
 
     /// <summary>Le due tabelle si comportano allo stesso modo: una sola funzione, e la sezione la sceglie il
@@ -1207,21 +1207,21 @@ else
     /// <summary>L'attività di UN'area (§12h): una alla volta, come i campi delle radioassistenze.</summary>
     private Task ScriviAttivitaArea((string AreaId, MilActivity Attivita) x) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveAreaActivityAsync(_icao, x.AreaId, x.Attivita);
-        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao);
+        await Militari.SaveAreaActivityAsync(_icao, SectionKeys.Regulated, x.AreaId, x.Attivita);
+        _attivitaAree = await Militari.GetAreaActivitiesAsync(_icao, SectionKeys.Regulated);
     });
 
     /// <summary>La nota di UN'area, allo stesso modo: si salva quando il campo perde il fuoco.</summary>
     private Task ScriviNotaArea((string AreaId, string? Nota) x) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveAreaNoteAsync(_icao, x.AreaId, x.Nota);
-        _noteAree = await Militari.GetAreaNotesAsync(_icao);
+        await Militari.SaveAreaNoteAsync(_icao, SectionKeys.Regulated, x.AreaId, x.Nota);
+        _noteAree = await Militari.GetAreaNotesAsync(_icao, SectionKeys.Regulated);
     });
 
     private Task SaveRegulated(RegulatedSelection sel) => _shell.GuardAsync(async () =>
     {
-        await Militari.SaveRegulatedAsync(_icao, sel);
-        _regulated = await Militari.GetRegulatedAsync(_icao);
+        await Militari.SaveRegulatedAsync(_icao, SectionKeys.Regulated, sel);
+        _regulated = await Militari.GetRegulatedAsync(_icao, SectionKeys.Regulated);
 
         // ⚠️ E le aree RISOLTE, o la tabella sotto la mappa resta indietro di una scelta. Trovato a schermo il
         // 30 agosto 2026: la chip si accendeva, la selezione si salvava — e la tabella continuava a dire
