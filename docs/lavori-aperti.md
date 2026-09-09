@@ -14,6 +14,11 @@ la finestra cieca:
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
+📝 **§CJ — il sistema di feedback a due canali: ragionato, scritto e RIMANDATA.** Nessun codice. La carta
+`docs/design/piano-segnalazioni.md` cresce di un §10 (il canale staff → sviluppatore) e passa tutta a
+**«non eseguita — RIMANDATA»**: si riapre **dopo il 16 settembre**. 🔴 Il nodo non è il modello — *lo
+sviluppatore non vede il DB di produzione*.
+
 ## Dove eravamo — 8 settembre 2026 (notte)
 
 1. 📦 **1.16.1 è PRONTA, non ancora online.** Timbro `1.16.1 · d2925b3`, sha256 dello zip `2cfa711d…`,
@@ -10578,3 +10583,58 @@ valido. Il suggerimento c'è nei primi cinque, sparisce nel sesto, e il modulo r
 ⚠️ Quel che **non** si è potuto misurare è il fumetto dipinto dal sistema operativo: la sonda vede il
 `title` su un elemento che riceve il puntatore e non è `disabled` — che è la ragione per cui l'involucro
 esiste — non il rettangolo giallo sullo schermo.
+
+## §CJ — Un sistema di feedback a due canali: carta ragionata e RIMANDATA — 9 settembre 2026
+
+**Non è un lavoro fatto: è una decisione presa e messa per iscritto perché non si ripensi da zero.**
+Nessuna riga di codice, nessuna migrazione, niente in `main` oltre a questa pagina e a
+`docs/design/piano-segnalazioni.md` §10.
+
+**La richiesta del committente:** *«vorrei pensare a un sistema di feedback, sia dall'utente verso lo staff
+che dallo staff verso lo sviluppatore»*.
+
+**Che cosa ha trovato la ricognizione nel sorgente**, prima di proporre qualsiasi cosa:
+
+- Il **primo** canale (utente → staff) **è già una carta completa** dal 1 settembre —
+  `docs/design/piano-segnalazioni.md`, 271 righe, richiesta dello stesso committente: entità `FieldReport`,
+  ciclo a cinque stati, tetti, cinque slice, la prova. ⚠️ **Nel codice non c'è niente**: `FieldReport` e
+  `FromReportId` hanno **zero occorrenze**, `WorkOrigin` ha ancora solo `Sistema` e `Persona`. Quindi il
+  primo canale **non si ridisegna: si esegue**, quando si potrà.
+- Il **secondo** canale (staff → sviluppatore) **non esiste**, né carta né codice — e la carta del primo lo
+  **escludeva di proposito** (§7: *«non è il bug tracker del sito»*). Aprirlo **riapre quella decisione**.
+
+**Le tre risposte di merito**, tutte scritte per esteso in §10 della carta:
+
+1. **Una macchina sola, due bersagli** — `FieldReportTarget { Documenti, Prodotto }`, non una seconda
+   tabella. Il ciclo è identico; cambiano il triage e il contesto. È la regola del 2 del FEATURE-PROCESS.
+2. 🔴 **Il pezzo che vale più di tutto: il `CodiceRichiesta` di `PaginaErrore` catturato in automatico**,
+   col timbro di versione. Oggi arriva la fotografia di una pagina «Error.» e la caccia dentro
+   `errori-richieste.txt` si fa a mano; con codice e timbro si salta dritti allo stack e si sa quale commit
+   girava. Il bottone «segnala questo» va **dentro** la pagina d'errore: è l'unico posto dove chi ha visto
+   il guasto ha ancora il codice sotto gli occhi.
+3. 🔴 **Il nodo vero non è il modello: lo sviluppatore non vede il database di produzione.** Una riga
+   salvata su `atc.it.ivao.aero` gli è lontana quanto una mail. O gli si dà un **login admin** (B-1), o le
+   segnalazioni si scrivono **anche** come settimo file in `diagnostica/` e scendono col viaggio FTP che
+   già si fa (B-2). ⚠️ E qui **salta la D6** della carta (*«la lista si guarda, non insegue»*): regge per lo
+   staff, che il sito lo apre ogni giorno, **non** per lo sviluppatore, che non lo apre. Il secondo canale
+   vuole un meccanismo **pull** per forza.
+
+**Perché è fermo.** 🔴 Decisione del committente lo stesso 9 settembre: *siamo nel periodo cieco e la cosa
+richiede un grosso cambiamento sul database*. ⚠️ Da dire con precisione, perché il §6 della carta dice
+un'altra cosa: la migrazione sarebbe **additiva** e il presidio
+`MigrazioniDellaFinestraCiecaTests` la lascerebbe passare. **Non è un divieto tecnico: è prudenza sulla
+taglia** — una tabella nuova più un canale nuovo nella settimana in cui i dati non hanno ripristino.
+▶ **Si riapre dopo il 16 settembre 2026.**
+
+⚠️ **Una cosa da decidere prima di scrivere codice, non dopo:** esiste già in `main` la migrazione
+`IncaricoDaSegnalazione` (26 agosto), che aggiunge **solo** `EditorTasks.FromImpactId` — lì «segnalazione»
+vuol dire `DocumentImpact`, la riga **dedotta dal sistema**. Con `FieldReport` la parola ne indicherebbe
+**due**. O il nuovo prende un nome diverso in UI e nei documenti (*«richiesta dal campo»*), o la collisione
+si accetta e si documenta: un rename dopo costa il doppio a valle, per la regola di propagazione dei gate.
+
+✋ **E `errori-richieste.txt` resta comunque**: prende ciò che **nessuno segnala** (le eccezioni notturne),
+mentre il canale prende ciò che **non lancia** — un testo sbagliato, un tasto che non si capisce. Sono
+complementari, non alternativi.
+
+▶ **Le quattro domande aperte** stanno in §10.6 della carta. La prima — *lo sviluppatore ha, o può avere,
+un login admin in produzione?* — è quella che decide più codice di tutte.

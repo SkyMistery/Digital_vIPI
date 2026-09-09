@@ -1,6 +1,6 @@
 # Piano — le segnalazioni dal campo 🟣
 
-**Stato:** **carta, non eseguita** · **Aggiornato:** 1 settembre 2026
+**Stato:** **carta, non eseguita — RIMANDATA** (vedi §10.0) · **Aggiornato:** 9 settembre 2026
 **Metodo:** [FEATURE-PROCESS](../FEATURE-PROCESS.md) · **Perimetro:** [regole-perimetro-servizi](regole-perimetro-servizi.md) §P1
 **Richiesta del committente (1 set 2026):** *«sì, sarebbe molto utile, così da non dover passare dalle mail»*
 
@@ -269,3 +269,143 @@ Un commit per slice, `dotnet build Vipi.slnx -c Release --no-incremental` verde 
   **chiuda**: un utente non-staff apre una segnalazione da un documento pubblicato, uno staffista la prende
   in carico, l'incarico compare in «Da fare», la risposta torna all'autore.
   ⚠️ Per impersonare un livello più basso si usa il metodo già scritto in `docs/lavori-aperti.md` §AL.
+
+---
+
+# §10 — Il secondo canale: dallo staff allo sviluppatore (9 settembre 2026)
+
+**Richiesta del committente (9 set 2026):** *«vorrei pensare a un sistema di feedback, sia dall'utente verso
+lo staff che dallo staff verso lo sviluppatore»*.
+
+## §10.0 — Perché tutto questo è fermo, e da quando
+
+🔴 **Rimandata per decisione del committente, 9 settembre 2026**, con la motivazione: *siamo nel periodo
+cieco e la cosa richiede un grosso cambiamento sul database*. Vale per **tutto** il piano, §1-§9 compresi:
+non è mai partita nessuna slice.
+
+⚠️ **La motivazione va letta con precisione, perché il §6 dice un'altra cosa.** Tecnicamente la migrazione di
+§6 è **additiva e spedibile** anche dentro la finestra cieca — una `CreateTable` e una colonna nullable
+passano `MigrazioniDellaFinestraCiecaTests`. Quindi il blocco **non** è un divieto del presidio: è
+**prudenza sulla taglia**. Con il secondo canale di questo §10 la superficie di schema cresce ancora
+(un enum e tre colonne in più), e una tabella nuova più un canale nuovo nella settimana in cui i dati non si
+possono ripristinare è un rischio che il committente ha scelto di non correre.
+
+▶ **Quando si riapre:** **dopo il 16 settembre 2026**, quando la finestra cieca si chiude. A quel punto la
+carta è pronta: §1-§9 non vanno ridiscussi, §10 sì — restano le quattro domande di §10.6.
+
+## §10.1 — Che cosa c'è oggi, rilevato nel sorgente (9 settembre 2026)
+
+| Canale | Stato |
+|---|---|
+| **Utente → staff** (§1-§9 di questa carta) | **carta pura**: `FieldReport` e `FromReportId` hanno **zero occorrenze** nel sorgente; `WorkOrigin` ha ancora solo `Sistema` e `Persona` |
+| **Staff → sviluppatore** | **non esiste**, né carta né codice |
+
+Oggi il secondo canale passa da tre strade, **tutte fuori dal prodotto**:
+
+1. `errori-richieste.txt` scaricato via FTP e messo in `diagnostica/` — automatico ma **pull**, e lo tira lo
+   sviluppatore;
+2. il **codice della richiesta** stampato da `PaginaErrore` (*«Se la segnalate, indicate questo codice»*),
+   fotografato e mandato a mano;
+3. voce, posta, Discord.
+
+⚠️ **La carta esclude questo canale di proposito** (§7: *«Non è il bug tracker del sito. Questo canale parla
+dei documenti. I difetti del prodotto restano dove stanno»*). Aprire il secondo canale **riapre quella
+decisione**: va scritto che si riapre, non fatto di straforo.
+
+## §10.2 — Una macchina sola, due bersagli
+
+La §1 del FEATURE-PROCESS vale qui più che altrove: *estendi o sostituisci, mai affiancare*. Due sistemi di
+segnalazione accanto sarebbero il **terzo** errore della stessa famiglia, dopo `DocumentImpact`,
+`EditorTask` e il read-model `WorkItem` che è servito a rimetterli in fila.
+
+Il ciclo del secondo canale è **identico** al primo: un autore, un corpo in prosa, la presa in carico, i
+quattro esiti, la risposta obbligatoria. Cambia **chi triaga** e **che contesto la riga si porta dietro**.
+Regola del 2: due casi sono **una colonna enum**, non due tabelle.
+
+```csharp
+public enum FieldReportTarget { Documenti, Prodotto }
+```
+
+| | **Documenti** (canale 1) | **Prodotto** (canale 2) |
+|---|---|---|
+| chi apre | chiunque connesso IVAO (§2/D1) | staff, `VipiRole.Editor` (3) in su |
+| contesto | `DocumentId` · `SectionKey` · `ReleaseNumber` | 🔴 `Rotta` · `CodiceRichiesta` · `Timbro` (`1.17.0 · 30ca658`) · user-agent |
+| chi triaga | staff `Editor`+ | **lo sviluppatore** |
+| che cosa la chiude | una risposta | un **rilascio** |
+| gravità in «Da fare» | `DaRileggere` / `Normale` (§3) | da decidere — vedi §10.6/4 |
+
+🔴 **Il pezzo che vale più di tutto il resto: `CodiceRichiesta` catturato in automatico.** Oggi arriva la
+fotografia di una pagina «Error.» e la caccia dentro `errori-richieste.txt` la si fa a mano. Se la riga
+porta il **codice** e il **timbro**, si salta dritti allo stack e si sa **quale commit** girava — che è
+esattamente il passo 2 della memoria `diagnostica-di-produzione`. Quel giunto la posta elettronica non può
+farlo.
+
+**Corollario:** il bottone «segnala questo» va messo **dentro `PaginaErrore`**. È l'unico posto dove chi ha
+appena visto il guasto ha ancora il codice sotto gli occhi.
+
+## §10.3 — 🔴 Il nodo vero, e non è il modello
+
+**Lo sviluppatore non vede il database di produzione.** Una segnalazione salvata in una tabella su
+`atc.it.ivao.aero` è lontana da lui quanto una mail — di più, perché nessuno gliela mette in mano. Tre
+uscite, e la scelta cambia più codice di tutto il resto:
+
+| | Come | Pro | Contro |
+|---|---|---|---|
+| **B-1** | lo sviluppatore ha un **login admin in produzione** e legge la coda come una pagina | pulito, la risposta torna da sola, un solo meccanismo | ⚠️ oggi i controlli col login li fa il **committente**: l'accesso va concesso, ed è una decisione sua |
+| **B-2** | le segnalazioni si scrivono **anche** in `diagnostica/`, come settimo file, e scendono con lo stesso viaggio FTP | zero accesso nuovo, costo quasi nullo, si aggancia a un giro che **già esiste** | ⚠️ il **ritorno** verso lo staff non ha strada: la risposta arriva solo col rilascio dopo |
+| **B-3** | pagina di export, il committente scarica e passa il file | — | è la posta elettronica travestita: **sconsigliata** |
+
+⚠️ **E qui salta la D6** (*«niente posta, niente notifiche: la lista si guarda, non insegue»*). Regge per il
+primo canale — lo staff il sito lo apre ogni giorno. **Non regge per il secondo**: lo sviluppatore il sito
+non lo apre. Il secondo canale ha bisogno di un meccanismo **pull** per forza, e **B-2 è quel meccanismo**.
+Non è una deroga alla D6: è il riconoscimento che la D6 parlava di un pubblico diverso.
+
+## §10.4 — Che cosa NON si tocca
+
+- ✋ **`errori-richieste.txt` resta.** Non è ridondante con il secondo canale, è **complementare**: il file
+  prende ciò che **nessuno segnala** (le eccezioni notturne, le `ObjectDisposedException`); il canale prende
+  ciò che **non lancia** — un testo sbagliato, un tasto che non si capisce, una pagina storta. Spegnere il
+  file perché «adesso c'è la pagina» perderebbe la metà che nessuno racconta.
+- ✋ Valgono uguali per il secondo canale tutte le esclusioni di §7: **niente allegati** (nemmeno lo
+  screenshot, per quanto tenti), **nessun thread**, **nessun voto**, **nessuna riga in `AuditLog`**.
+- ✅ La finestra cieca non è un divieto tecnico — vedi §10.0. Ma **una migrazione sola**, come dice §6: qui
+  vuol dire che tabella, colonna del ponte **e** le colonne del secondo canale nascono **insieme**, non in
+  due giri.
+
+## §10.5 — ⚠️ La collisione di nomi, da decidere prima di scrivere codice
+
+Esiste già in `main` la migrazione **`IncaricoDaSegnalazione`** (26 agosto 2026, `20260826122501`) — e
+aggiunge **solo** `EditorTasks.FromImpactId`. Lì dentro «segnalazione» significa `DocumentImpact`, cioè la
+riga **dedotta dal sistema**.
+
+Quando arriva `FieldReport`, «segnalazione» significa **due cose diverse**: la riga dedotta e la riga
+scritta da una persona. Per la regola di propagazione dei gate un rename costa il doppio a valle, quindi si
+sceglie **adesso**:
+
+- **(a)** `FieldReport` prende in UI e nei documenti un nome italiano diverso — *«richiesta dal campo»* —
+  e «segnalazione» resta al sistema. Costa una riga oggi.
+- **(b)** si accetta la collisione e la si documenta qui. Costa ogni volta che qualcuno legge.
+
+## §10.6 — Le quattro domande aperte
+
+Nessuna ha risposta al 9 settembre 2026. La **1** è quella che decide più codice.
+
+1. **Lo sviluppatore ha, o può avere, un login admin in produzione?** Decide **B-1 contro B-2** (§10.3).
+2. **Chi può aprire una segnalazione «Prodotto»?** Solo staff, o anche l'utente comune? Se anche l'utente,
+   serve un triage **in due passi**: lo staff smista prima di girarla allo sviluppatore.
+3. **Si riapre la §7?** Vuol dire che le segnalazioni di prodotto entrano in «Da fare» accanto a quelle
+   documentali, e la lista dello staff si affolla. È una decisione, non un dettaglio.
+4. **Come chiude una segnalazione «Prodotto»?** Lo stato lo mette lo sviluppatore a mano, oppure si aggancia
+   al **timbro di versione** e si chiude da sé quando la versione online supera quella dichiarata nella
+   risposta? La seconda è più bella e più fragile: il timbro dice il commit, non dice che il difetto è andato.
+
+## §10.7 — L'ordine, se e quando si parte
+
+**Prima il canale 1, poi il 2 come sesta slice.** Le slice S1-S3 di §8 (schema, servizio, pagina) sono il
+**90%** del secondo canale: il canale 2 aggiunge un valore d'enum, tre colonne nullable e un filtro di coda.
+Farlo per primo vorrebbe dire scrivere due volte le stesse rotaie.
+
+| Slice | Che cos'è |
+|---|---|
+| S1-S5 | §8 di questa carta, invariate |
+| **S6** | `FieldReportTarget`, le tre colonne di contesto, il bottone dentro `PaginaErrore`, la coda filtrata per bersaglio, e **B-1 o B-2** secondo la risposta alla domanda 1 |
