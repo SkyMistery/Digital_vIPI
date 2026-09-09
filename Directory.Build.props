@@ -792,7 +792,61 @@
       `.br`/`.gz` e **insieme** a `Vipi.Host.staticwebassets.endpoints.json`. ⚠️ `Infrastructure` NON cambia,
       e `vipi-ui.js` nemmeno — da verificare con le IMPRONTE, non a memoria.
     -->
-    <VipiVersione>1.17.0</VipiVersione>
+    <!--
+      1.18.0 — 9 settembre 2026 (notte). **MINOR**: nessuna migrazione, ma una sotto-sezione con un corpo
+      che prima non c'era e una BARRA DI COMANDI in ogni campo di prosa.
+      Si costruisce contro cio' che GIRA, che e' **1.17.0** (`30ca658`), caricata la mattina.
+
+      ⚠️ Non e' una PATCH: la regola del runbook e' «solo correzioni, nessuna pagina o sezione nuova», e qui
+      ci sono tutt'e due — una sotto-sezione che disegna e cinque tasti nuovi sotto le mani di chi redige.
+
+        · **§CH — le frequenze si riordinano in TUTTI E CINQUE gli editor**, non piu' in due soli. Chiesto
+          dal committente e CONTROLLATO prima di rispondere: ACC e APP le riordinavano, vLOA, aeroporto e
+          militare no. Nessun campo nuovo — l'ordine vive sulla `DocumentProfile.FreqOrderJson` che l'APP
+          gia' scrive, per la stessa porta.
+          ⚠️ Sulla vLOA l'ordine e' del DOCUMENTO e si applica DENTRO ciascun lato: un ordine che
+          attraversasse i due lati metterebbe una frequenza tunisina sotto il titolo italiano — non un
+          difetto estetico, un documento che dice il falso.
+          ⚠️ Su aeroporto e militare si riordinano le SOLE righe collegate: l'anagrafica non si tocca da li'.
+
+        · **§CI — il tasto spento del glossario dice PERCHE'.** Segnalato come «non mi fa cliccare su Add,
+          forse e' il lock, ma non c'e' il tasto per sbloccarlo»: 🔴 quella pagina non ha nessun lock, il
+          tasto e' spento dalla VALIDAZIONE. Un grigio senza motivo accanto non si legge come una regola, si
+          legge come un permesso che manca.
+          ⚠️ Il `title` sta sull'INVOLUCRO e non sul tasto: Chrome ed Edge non consegnano eventi del mouse a
+          un controllo `disabled`, quindi sul `<button>` non comparirebbe MAI — cioe' proprio nell'unico
+          stato in cui serve.
+
+        · **§CK — le aree BOAT hanno un visualizzatore loro.** Dentro «Aree di lavoro», la sotto-sezione
+          «Bassa quota (BOAT)» porta mappa, elenco e tabella come il padre, su una selezione sua. La
+          sezione c'era gia': cambia CHI ne disegna il corpo. Il dato non ha una casa nuova — stessa
+          macchina, altra chiave di sezione — ed e' tutta la ragione per cui non tocca lo schema.
+          🔴 **A schermo si vedra' VUOTA**, e si sa: nel catalogo IVAO ci sono 241 aree speciali e ZERO
+          BOAT, nel KMZ dell'AIP 3 072 volumi e ZERO BOAT. Misurato prima di proporre. E' una conseguenza
+          accettata, non un difetto del visualizzatore.
+
+        · **§CL — testo ricco nei campi di prosa.** Sei campi (paragrafo, callout e nota d'allegato nei due
+          editor di blocchi, piu' l'intro VFR) prendono una barra: grassetto, corsivo, sottolineato, elenco
+          puntato, elenco numerato, piu' Ctrl+B/I/U. `MarkdownLite` e' riscritto **a righe**, ed e' l'unico
+          ordine in cui gli elenchi stanno in piedi senza litigare col corsivo.
+          Di sponda chiude due difetti che nessuno aveva segnalato: `"
+
+"` non contiene `"
+
+"`,
+          quindi due capoversi battuti su Windows uscivano ATTACCATI; e un marcatore spaiato si mangiava
+          tutto fino al successivo, a capi compresi.
+          ⚠️ **Un elenco e' MARKUP nel corpo, non un formato di blocco**: `BlockFormat` non si tocca.
+          🔴 La segnalazione che ha aperto il lavoro — «va tutto su una riga sola», su LIMC — NON si e'
+          riprodotta, e la prima diagnosi (la traduzione che appiattisce) e' stata smentita dai dati. Il
+          percorso e' sano da capo a fondo e adesso e' presidiato da venti prove.
+
+      Rispetto a 1.17.0 cambiano `Application`, `Infrastructure` e `Ui`, piu' `Host` (che porta sempre il
+      timbro) e il satellite inglese, perche' le due `.resx` hanno chiavi nuove. ⚠️ `wwwroot` c'e' con TRE
+      file: `vipi-theme.css`, `vipi-print.css` e `vipi-editor.js`. Viaggiano coi loro `.br`/`.gz` e
+      **insieme** a `Vipi.Host.staticwebassets.endpoints.json` — da verificare con le IMPRONTE, non a memoria.
+    -->
+    <VipiVersione>1.18.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
