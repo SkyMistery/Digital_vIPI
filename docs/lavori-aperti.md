@@ -25,8 +25,9 @@ di blocchi (più l'intro VFR) ha una **barra** — grassetto, corsivo, sottoline
 numerato — e `MarkdownLite` è riscritto **a righe**, così gli elenchi si rendono davvero. **Nessuna
 migrazione, nessun tocco a `BlockFormat`**: un elenco è markup dentro il corpo, non un blocco. Spedibile
 dentro la finestra cieca. Carta `docs/feature/2026-09-09-testo-ricco-nell-editor.md`.
-▶ **Manca la prova col browser**: la barra è selezione + fuoco + un `change` sintetico, e nessun test
-bUnit può vederli. Da guidare a mano prima di consegnare.
+✅ **Provata anche dal vivo** (Edge, editor ACC di LIBB su copia del DB): quattordici controlli verdi, e
+quello che conta è che il testo scritto **coi soli tasti** sopravvive a un ricarico — il `change` sintetico
+arriva nel modello. Il driver è entrato nella skill: `.claude/skills/verifica-live/testo-verifica.js`.
 🔴 **L'«va tutto su una riga» di LIMC NON si è riprodotto**, e la prima diagnosi (la traduzione che
 appiattisce) è stata **smentita dai dati**: in `TranslationUnits` le 4 unità multi-riga hanno tutte gli a
 capo. Il percorso è sano da capo a fondo; adesso è anche presidiato da prove, callout compreso. Se torna,

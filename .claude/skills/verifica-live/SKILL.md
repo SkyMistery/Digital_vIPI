@@ -107,6 +107,7 @@ Accanto a `driver.js` ci sono altri script, che non si adattano: si lanciano cos
 | `drag-verifica.js` | il riordino delle sezioni trascinando, con un drag **vero** (§4-bis) | quando si tocca `EditorToc` o `wireTocDrop` |
 | `sposta-verifica.js` | le sezioni che **cambiano gruppo**: il menu «Sposta in…», una figlia trascinata su un altro gruppo (drag vero) e «sopra il corpo» sotto una sezione resa dalla pagina | quando si tocca `SectionMoveTargets`, `TocDropRules`, `MoveSectionToParentAsync` o `SectionNode` |
 | `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
+| `testo-verifica.js` | la **barra di formattazione** dei campi di prosa: i cinque tasti come interruttori, gli elenchi su piu' righe, Ctrl+B/I/U, e che quel che i tasti scrivono **sopravviva a un ricarico** | quando si tocca `RichTextArea`, `MarkdownLite` o `vipiMdWrap`/`vipiMdList` |
 | `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
 
 ```powershell

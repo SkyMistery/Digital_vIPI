@@ -133,5 +133,19 @@ salvato prima si rende come prima — salvo i due difetti di sopra, che si raddr
   capo e rende gli elenchi.
 - Tutta la soluzione verde: Ui 1434, Application 2287, Infrastructure 1352, Domain 140, Assets 57,
   Hosting 66, AuroraProfiles 63, AuroraBridge 79.
-- ⚠️ **Quel che i test non possono vedere**: la barra è JS + selezione + fuoco. I gesti (avvolgi, sguscia,
-  marca/smarca un elenco, Ctrl+B/I/U) si provano **guidando un browser vero**. Da fare prima della consegna.
+- ✅ **La prova viva, fatta** (`.claude/skills/verifica-live/testo-verifica.js`, editor ACC di LIBB su una
+  copia del DB): quattordici controlli verdi. Avvolge la selezione; premuto di nuovo **sguscia**; corsivo e
+  sottolineato; tre righe battute diventano `- uno / - due / - tre` e poi `1. 2. 3.` e poi tornano nude; col
+  **cursore su una riga sola** marca solo quella; Ctrl+B e Ctrl+U. E il controllo che conta: quel che i tasti
+  hanno scritto — mai battendo un marcatore — **sopravvive a un ricarico della pagina**, cioè il `change`
+  sintetico arriva davvero nel modello. Riletta in sola lettura, la stessa sezione rende
+  `<p><strong>foxtrot</strong> golf</p><ul class="md-list"><li>hotel</li><li>india</li></ul>`.
+- ✅ **La barra a schermo**, nei due temi: `opacity` 0.5 a riposo e 1 col fuoco, misurata dal `getComputedStyle`.
+
+🔴 **Due rossi del primo giro erano l'ATTREZZO, non il prodotto**, e vale la pena scriverli perché sono
+già nel libro delle trappole di questa casa: (1) i campi stanno in `<details>` **collassati**, dove
+`innerText` torna vuoto e i tasti non arrivano — si apre tutto con `vipiEditorSections(true)`; (2) svuotare
+un campo con triplo clic + Backspace cancella **una riga**, e la prova finiva per scrivere sopra i propri
+avanzi, rendendo false tutte le asserzioni dopo la prima. E una terza, nuova: il `clip` di
+`page.screenshot` è in coordinate di **pagina**, non di viewport — senza sommare lo `scrollY` si fotografa
+un pezzo qualunque del documento credendo di guardare il campo.
