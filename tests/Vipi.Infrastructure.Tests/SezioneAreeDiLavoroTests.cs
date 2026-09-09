@@ -247,4 +247,53 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
         Assert.Empty(await Militari().GetFixedTableAsync("LIRF", "callsigns", 4));
         Assert.Empty(await Militari().GetAreaActivitiesAsync("LIRF", SectionKeys.Regulated));
     }
+
+    // ---- «Bassa quota (BOAT)»: la seconda sezione con una selezione d'aree (carta 2026-09-09) ---------
+
+    /// <summary>
+    /// 🔴 <b>Il test che conta di questa carta.</b> Le due sezioni portano lo <b>stesso</b> payload sotto due
+    /// chiavi diverse: se una chiave si perdesse per strada — un parametro scordato, un valore di scorta
+    /// rimesso «per comodità» — scrivere le aree BOAT cancellerebbe le working areas, <b>senza un errore</b>,
+    /// e chi le ha scelte non tocca mai quella tendina. Nessuna rilettura del codice trova un difetto così.
+    /// </summary>
+    [Fact]
+    public async Task Le_aree_BOAT_e_quelle_di_lavoro_NON_si_toccano()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.Regulated, Selezione("A1", "A2"));
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.Regulated, "A1", "Nota delle aree di lavoro.");
+        await m.SaveAreaActivityAsync("LIBA", SectionKeys.Regulated, "A1", MilActivity.AirToAir);
+
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.LowLevel, Selezione("B1"));
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.LowLevel, "B1", "Nota BOAT.");
+
+        Assert.Equal(new[] { "A1", "A2" }, (await m.GetRegulatedAsync("LIBA", SectionKeys.Regulated)).OwnIds);
+        Assert.Equal(new[] { "B1" }, (await m.GetRegulatedAsync("LIBA", SectionKeys.LowLevel)).OwnIds);
+
+        Assert.Equal("Nota delle aree di lavoro.",
+            (await m.GetAreaNotesAsync("LIBA", SectionKeys.Regulated))["A1"]);
+        Assert.Equal("Nota BOAT.", (await m.GetAreaNotesAsync("LIBA", SectionKeys.LowLevel))["B1"]);
+
+        // ⚠️ E l'attività di una sezione non compare nell'altra: le due mappe id→attività sono due.
+        Assert.Equal(MilActivity.AirToAir,
+            (await m.GetAreaActivitiesAsync("LIBA", SectionKeys.Regulated))["A1"]);
+        Assert.Empty(await m.GetAreaActivitiesAsync("LIBA", SectionKeys.LowLevel));
+    }
+
+    /// <summary>Le note BOAT si potano come le altre quando l'area esce dalla selezione: è lo stesso
+    /// <c>MilRegulatedPayload.Scrivi</c>, e questo test dice che ci passa davvero.</summary>
+    [Fact]
+    public async Task Togliere_unarea_BOAT_si_porta_via_la_sua_nota()
+    {
+        var m = Militari();
+        await m.CreaAsync("LIBA");
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.LowLevel, Selezione("B1", "B2"));
+        await m.SaveAreaNoteAsync("LIBA", SectionKeys.LowLevel, "B2", "Solo su NOTAM.");
+
+        await m.SaveRegulatedAsync("LIBA", SectionKeys.LowLevel, Selezione("B1"));
+
+        Assert.Empty(await m.GetAreaNotesAsync("LIBA", SectionKeys.LowLevel));
+    }
 }
