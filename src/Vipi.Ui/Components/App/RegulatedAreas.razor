@@ -1,4 +1,4 @@
-@* Corpo della sezione «Aree regolamentate»: UNA mappa (2D/3D) con una chip per area, e sotto la descrizione
+﻿@* Corpo della sezione «Aree regolamentate»: UNA mappa (2D/3D) con una chip per area, e sotto la descrizione
    delle sole aree accese, compatta e apribile. Condiviso fra la vIPI ACC (per blocco, via AccSectionBody),
    la vIPI APP non remotizzata e la vLOA.
 
@@ -66,11 +66,20 @@ else
 @code {
     [Parameter] public IReadOnlyList<AccSpecialAreaView> Areas { get; set; } = Array.Empty<AccSpecialAreaView>();
 
-    /// <summary>Chiave del blocco ospite (vIPI ACC), per tenere separate due sezioni «aree» nella stessa pagina.
-    /// Null va bene dove la sezione è una sola (APP, vLOA).</summary>
-    [Parameter] public string? BlockKey { get; set; }
+    /// <summary>
+    /// Chiave che fa da <b>scope</b>: tiene separate due sezioni «aree» nella stessa pagina — i blocchi di una
+    /// vIPI ACC, e dal 9 settembre 2026 le due mappe di un vSOP militare («Aree di lavoro» e «Bassa quota»).
+    ///
+    /// <para>🔴 <b>Obbligatoria dal 9 settembre 2026.</b> Prima era facoltativa e senza valeva <c>reg-x</c>
+    /// per tutti: finché la mappa era una sola per pagina non si vedeva, ma con due lo stesso scope fa
+    /// accendere a una chip le schede dell'ALTRA mappa, e il conteggio «ne vedi N su M» parla della sezione
+    /// sbagliata. Il legame chip→scheda lo tiene <c>vipi-aor.js</c> per attributo, quindi il difetto
+    /// sarebbe muto: nessun errore, due mappe che si rispondono a vicenda. Qui lo prende il compilatore.</para>
+    /// </summary>
+    [Parameter, EditorRequired] public string BlockKey { get; set; } = default!;
 
     private string Scope() => "reg-" + (string.IsNullOrWhiteSpace(BlockKey) ? "x" : BlockKey);
+
 
     // Banda di quota, come la scriveva l'elenco di prima: un valore solo se coincidono, GND per lo zero.
     private static string Band(AccSpecialAreaView a) =>

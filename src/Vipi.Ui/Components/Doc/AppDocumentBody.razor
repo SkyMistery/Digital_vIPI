@@ -1,4 +1,4 @@
-@* Il CORPO di una vIPI di APP non remotizzato: le sezioni, con il corpo derivato che questa famiglia
+﻿@* Il CORPO di una vIPI di APP non remotizzato: le sezioni, con il corpo derivato che questa famiglia
    disegna per chiave.
 
    Sta fuori da `AppnPage` perché lo stesso documento va reso in due posti — la sua pagina, e la pagina
@@ -12,6 +12,7 @@
    ⚠️ `lang` sta sul contenitore del CORPO e non sulla pagina: in una pagina unita due membri possono avere
    lingue di redazione diverse, e il chrome parla comunque la lingua del sito. *@
 @using Vipi.Domain
+@using Vipi.Application.Content
 
 <div lang="@Doc.Bloccata">
     <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.App"
@@ -45,7 +46,10 @@
             case "minima": <MinimaSection View="Doc.Derived.Minima" Aor="Doc.Derived.Aor" />; break;
             case "vfr": <AppVfr Content="LeggiVfr(s)" />; break;
             case "coordination": <AppCoordinationView Coord="Doc.Derived.Coord" LeadSentence="s.LeadSentence" />; break;
-            case "regulated": <RegulatedAreas Areas="Doc.Areas" />; break;
+            @* La sezione «aree» qui è una sola, ma la chiave si passa lo stesso: è lo scope della mappa,
+               e un default silenzioso è quel che ha permesso a due mappe di condividerlo altrove. *@
+            case SectionKeys.Regulated:
+                <RegulatedAreas Areas="Doc.Areas" BlockKey="@SectionKeys.Regulated" />; break;
             case "validity": <ValidityStamp Target="ReleaseTargetType.App" Key="@Doc.Callsign" ReleaseId="@Doc.ReleaseIdShown" />; break;
         }
     };
