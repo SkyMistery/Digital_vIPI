@@ -1,17 +1,28 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 settembre 2026 (notte) — 📦 **1.18.0 è PRONTA, non ancora online.**
+**Ultimo aggiornamento:** 9 settembre 2026 (sera) — ✅ **1.18.1 è CARICATA.**
 Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
 
-📦 **1.18.1 — PRONTA DA CARICARE.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip `ed78a32d…`,
+✅ **1.18.1 — CARICATA dal committente il 9 settembre sera.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip `ed78a32d…`,
 **6 file** — il più piccolo da mesi — foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md).
 **PATCH**, **nessuna migrazione**, **niente `wwwroot`** (zero asset diversi su 90, `endpoints.json`
 identico — verificato per impronta) e **niente satellite inglese** (nessuna `.resx` toccata).
 Porta **§CM**: il tornello scavalcato e le sezioni in comune che non erano comuni.
 
-✅ Provata sul pacchetto: dieci controlli di smoke più i sedici dei gesti dell'editor, timbro letto in
-`avvio-diagnostica.txt`.
+✅ Provata **sul pacchetto** prima di consegnarla: dieci controlli di smoke più i sedici dei gesti
+dell'editor, timbro letto in `avvio-diagnostica.txt`.
+
+▶ 🔴 **NON è ancora confermata da fuori, e sono due cose diverse.** Restano da fare:
+1. **Rifare l'unione a tre di Gioia** (serve il login): la scheda delle sezioni in comune **non deve
+   aprirsi da sola**, e la pagina **deve continuare a rispondere** — «sciogli l'unione» e «togli un
+   documento». È il gesto che ha trovato i due difetti, ed è il controllo che conta.
+2. Su un'unione di **soli** vIPI + vSOP dello stesso scalo, il tasto delle sezioni in comune deve **ancora**
+   aprire la scheda con METAR, frequenze, piste: è il controllo che dice che la regola nuova non ha spento
+   anche quella giusta.
+3. 🔴 **Il prossimo `errori-richieste.txt`**, che è l'unica prova vera del tornello e **non è a
+   schermo**: devono **sparire** le «A second operation was started» che nominano `AppSectionsEditor`.
+   Il difetto non si riproduce sul banco — è una corsa, e SQLite finisce prima che la seconda parta.
 
 🔴 **Non sono difetti di 1.18.0**, e lo dice la DATA: l'ultima voce di `errori-richieste.txt` è delle
 **14:11:39**, l'avvio di 1.18.0 delle **14:13:21**.

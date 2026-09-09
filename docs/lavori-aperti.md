@@ -2,7 +2,9 @@
 
 ## Dove siamo — 9 settembre 2026 (notte)
 
-📦 **1.18.1 è PRONTA, non ancora online.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip
+✅ **1.18.1 è CARICATA** (9 settembre sera). ▶ Da confermare a schermo: l'unione a tre di Gioia (la
+scheda **non** si apre da sola e la pagina **risponde**), la scheda che funziona ancora su vIPI+vSOP, e
+🔴 il prossimo `errori-richieste.txt` — devono sparire le «A second operation» di `AppSectionsEditor`. Timbro `1.18.1 · ba16e1c`, sha256 dello zip
 `ed78a32d…`, **6 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.1.md`. **PATCH**, nessuna
 migrazione, **niente `wwwroot`** e **niente satellite inglese** — verificato per impronta, non a memoria.
 Porta **§CM**. ✅ Provata sul pacchetto: 10 controlli di smoke + i 16 dei gesti dell'editor.
@@ -31,8 +33,8 @@ servito porta le regole nuove, non solo un'impronta diversa. §CG.
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
-📦 **§CM — il tornello scavalcato, e le sezioni in comune che non erano comuni** (9 settembre, sera;
-in **1.18.1**, pronta e non ancora online). Due difetti segnalati insieme unendo un TERZO documento (`LIBV_APP`) alla
+✅ **§CM — il tornello scavalcato, e le sezioni in comune che non erano comuni** (9 settembre, sera;
+in **1.18.1**, caricata — da confermare a schermo). Due difetti segnalati insieme unendo un TERZO documento (`LIBV_APP`) alla
 vIPI e al vSOP di Gioia del Colle. Carta
 `docs/feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md`. Nessuna migrazione.
 
