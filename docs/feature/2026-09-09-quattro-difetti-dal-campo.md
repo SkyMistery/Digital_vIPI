@@ -177,7 +177,12 @@ e.stopImmediatePropagation();
 
 Se la sezione **non è nel DOM**, la protezione **si sfila proprio nel caso in cui serve**: il clic prosegue,
 lo prende l'intercettore di navigazione di Blazor, che con `<base href="/">` risolve `#s-4256` come
-**`/#s-4256`** — la **home**.
+**`/#s-4256`**: la radice, che rimanda alla **pagina dei servizi**.
+
+✅ **Misurato dal vivo, sul pacchetto minificato**: sul JS di 1.18.1 il clic su un'ancora senza bersaglio
+porta da `/services/vsop/libb/airports/editor` a **`/services`**. ⚠️ Non a `/`: un controllo scritto come
+`pathname === '/'` sarebbe passato **proprio nel caso che deve inchiodare**, ed è il primo modo in cui una
+prova dà un verde bugiardo. L'asserzione giusta è «resta sulla **stessa** pagina».
 
 🔴 **E il commento due righe più su lo diceva già, testualmente**: *«Con `<base href="/">` i link "#id"
 verrebbero risolti come "/#id" (→ home)»*. Le righe sotto lo impedivano in **tutti i casi tranne quello per
@@ -203,6 +208,20 @@ Sul JS di prima **falliscono tutt'e due**.
 ⚠️ Il presidio conta i `return` **togliendo i commenti**: la prosa accanto nomina `return` a parole, e un
 presidio che diventa rosso per una spiegazione scritta bene è un presidio che si fa **cancellare** invece
 che leggere.
+
+✅ **E provata sul PACCHETTO, non sul sorgente**, che qui non era una formalità: il minificatore riscrive
+quel gestore in **espressioni-virgola** (`a&&(id=...,id)&&(e.preventDefault(),e.stopImmediatePropagation(),
+...,el=document.getElementById(id),el)&&(...)`), quindi «l'ordine regge anche dopo la minificazione» è un
+fatto che solo una prova a schermo può stabilire. Driver: `.claude/skills/verifica-live/ancora-verifica.js`.
+Guidati **due** pacchetti win-x64 sulla stessa pagina, con lo stesso banco:
+
+| pacchetto | ancora senza bersaglio |
+|---|---|
+| **1.18.1** | 🔴 `PORTATA VIA: /services/vsop/libb/airports/editor -> /services` |
+| **1.18.2** | ✅ `/services/vsop/libb/airports/editor` — resta dov'è |
+
+✅ Più i **dieci** controlli di smoke del pacchetto (`pacchetto-verifica.js`), tutti verdi, e il timbro
+`1.18.2 · 578300a` letto in `avvio-diagnostica.txt`.
 
 🔴 **Questa correzione tocca `wwwroot`**: il pacchetto deve portare `vipi-ui.js` (coi suoi `.br`/`.gz`) e
 `Vipi.Host.staticwebassets.endpoints.json`. 1.18.1 non aveva asset — se si consegna senza, la correzione

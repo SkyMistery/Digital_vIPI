@@ -2,7 +2,11 @@
 
 ## Dove siamo — 9 settembre 2026 (notte)
 
-📦 **1.18.2 è PRONTA da caricare** (9 settembre, notte). **PATCH**, **nessuna migrazione**.
+📦 **1.18.2 è PRONTA da caricare** (9 settembre, notte). Timbro **`1.18.2 · 578300a`**, sha256 dello zip
+**`4e1ead40…`**, **8 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.2.md`. **PATCH**, **nessuna
+migrazione**: si carica dentro la finestra cieca.
+✅ Provata **sul pacchetto**: i **dieci** controlli di smoke più il gesto di questa consegna
+(`ancora-verifica.js`), guidato su **due** pacchetti — 1.18.1 porta via, 1.18.2 resta.
 🔴 **Porta `wwwroot`** — `vipi-ui.js` è cambiato: consegnarla senza asset vuol dire non consegnare la
 correzione del rimbalzo in home. Porta **§CN**: quattro difetti nati da due segnalazioni sull'unione di
 Gioia del Colle, e nessuno dei due sintomi aveva la causa che sembrava avere.
@@ -10845,7 +10849,11 @@ quando viene unito non è fluido», che non è un difetto ma il prezzo di §CM.
 
 ✅ `preventDefault` + `stopImmediatePropagation` **sempre**, `getElementById` **dopo**.
 ✅ `AncoraCheNonTrovaIlBersaglioTests` fissa **l'ordine** leggendo il JS: sul JS di prima falliscono tutt'e
-due. ⚠️ Conta i `return` **togliendo i commenti** — un presidio rosso per una spiegazione scritta bene si fa
+due.
+✅ **E provata sul PACCHETTO**, dove il JS è minificato in espressioni-virgola: guidati due win-x64 sulla
+stessa pagina — **1.18.1** porta via (`-> /services`), **1.18.2** resta. Driver `ancora-verifica.js`.
+⚠️ L'atterraggio è `/services`, **non** `/`: un'asserzione scritta come `pathname === '/'` sarebbe passata
+proprio nel caso da inchiodare — il primo modo in cui una prova dà un verde bugiardo. ⚠️ Conta i `return` **togliendo i commenti** — un presidio rosso per una spiegazione scritta bene si fa
 cancellare invece che leggere.
 
 ### La trappola dell'attrezzatura
