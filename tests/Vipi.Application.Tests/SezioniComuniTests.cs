@@ -18,6 +18,76 @@ public class SezioniComuniTests
     private const int Vipi = 26;
     private const int Vsop = 3;
 
+    // ---- CHI si confronta (9 settembre 2026) ------------------------------------------------------
+    //
+    // 🔴 Segnalato dal committente unendo un TERZO documento (LIBV_APP) alla vIPI e al vSOP di Gioia
+    // del Colle: la scheda si apriva e proponeva di nascondere sezioni che NON sono ripetizioni.
+    // ⚠️ La stessa chiave non vuol dire lo stesso dato: un APP e la vIPI d'aeroporto condividono
+    // `frequencies`, `operationaltechnique` e `validity`, ma le frequenze di un APP sono quelle
+    // dell'AVVICINAMENTO e quelle dell'aeroporto sono del CAMPO. Nasconderne una perde contenuto vero.
+
+    [Fact]
+    public void Un_APP_non_partecipa_al_confronto()
+    {
+        var confrontabili = SezioniComuni.Confrontabili(new[]
+        {
+            (Vipi, ReleaseTargetType.Airport),
+            (Vsop, ReleaseTargetType.AirportMil),
+            (99, ReleaseTargetType.App),
+        });
+
+        Assert.Equal(new[] { Vipi, Vsop }, confrontabili);
+    }
+
+    /// <summary>Aeroporto + APP soli: non resta nessuna coppia che descriva lo stesso luogo, quindi
+    /// <b>niente</b> da confrontare — e la scheda non ha niente da chiedere.</summary>
+    [Fact]
+    public void Aeroporto_e_APP_da_soli_non_hanno_niente_da_confrontare()
+    {
+        Assert.Empty(SezioniComuni.Confrontabili(new[]
+        {
+            (Vipi, ReleaseTargetType.Airport),
+            (99, ReleaseTargetType.App),
+        }));
+    }
+
+    /// <summary>LIBV ha DUE APP. Settori diversi, frequenze diverse: nemmeno fra loro c'è una
+    /// ripetizione da togliere.</summary>
+    [Fact]
+    public void Due_APP_dello_stesso_campo_non_si_confrontano_fra_loro()
+    {
+        Assert.Empty(SezioniComuni.Confrontabili(new[]
+        {
+            (98, ReleaseTargetType.App),
+            (99, ReleaseTargetType.App),
+        }));
+    }
+
+    /// <summary>La coppia per cui la scheda esiste continua a funzionare: è il controllo che dice che la
+    /// regola nuova non ha spento anche quella.</summary>
+    [Fact]
+    public void La_coppia_aeroporto_e_vSOP_militare_si_confronta_ancora()
+    {
+        Assert.Equal(new[] { Vipi, Vsop }, SezioniComuni.Confrontabili(new[]
+        {
+            (Vipi, ReleaseTargetType.Airport),
+            (Vsop, ReleaseTargetType.AirportMil),
+        }));
+    }
+
+    /// <summary>L'ordine è quello dell'unione: l'ospite per primo, perché da là esce l'ordine
+    /// dell'elenco e la proposta di <see cref="SezioniComuni.DoveNascondere"/>.</summary>
+    [Fact]
+    public void L_ordine_dell_unione_si_conserva()
+    {
+        Assert.Equal(new[] { Vsop, Vipi }, SezioniComuni.Confrontabili(new[]
+        {
+            (Vsop, ReleaseTargetType.AirportMil),
+            (99, ReleaseTargetType.App),
+            (Vipi, ReleaseTargetType.Airport),
+        }));
+    }
+
     [Fact]
     public void In_comune_e_la_CHIAVE_non_il_titolo()
     {

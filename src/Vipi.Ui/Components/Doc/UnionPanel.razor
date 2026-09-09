@@ -124,7 +124,7 @@
                        richiesta del committente: spunto la vIPI, spariscono quelle della vIPI. *@
                     <p class="muted" style="margin:0 0 4px">@Sito["Union_Common_HideIn"]</p>
                     <ul class="union-keepers">
-                        @foreach (var m in _unione.Members)
+                        @foreach (var m in _confrontabili)
                         {
                             var id = m.DocumentId;
                             <li>
@@ -377,6 +377,10 @@
         _apriComuniDopoIlCarico = true;
     });
 
+    /// <summary>I membri che partecipano al confronto: sono loro, e solo loro, a comparire fra le
+    /// caselle «nascondi in». Vedi <see cref="SezioniComuni.Confrontabili"/>.</summary>
+    private IReadOnlyList<UnionMemberView> _confrontabili = Array.Empty<UnionMemberView>();
+
     private bool _apriComuniDopoIlCarico;
 
     /// <summary>
@@ -393,8 +397,18 @@
     {
         if (_unione is null) { _comuni = Array.Empty<SezioneComune>(); return; }
 
-        var membri = _unione.Members.Select(m => m.DocumentId).ToList();
-        _comuni = await _editing.SezioniComuniAsync(membri);
+        // ⚠️ Con la FAMIGLIA, non con degli id nudi: chi si confronta lo decide il servizio
+        // (`SezioniComuni.Confrontabili`), perche' un APP unito a una vIPI d'aeroporto ha `frequencies`
+        // con lo stesso nome e un altro contenuto. Qui si passano tutti i membri; torna vuoto da solo
+        // quando non c'e' niente da confrontare.
+        var conFamiglia = _unione.Members.Select(m => (m.DocumentId, m.Doc.ReleaseTarget)).ToList();
+        _comuni = await _editing.SezioniComuniAsync(conFamiglia);
+
+        // I documenti su cui si puo' nascondere sono SOLO quelli che si sono confrontati: offrire una
+        // casella per l'APP vorrebbe dire proporre di nascondere una sezione che nessuno ripete.
+        _confrontabili = _unione.Members
+            .Where(m => SezioniComuni.Confrontabili(conFamiglia).Contains(m.DocumentId)).ToList();
+        var membri = _confrontabili.Select(m => m.DocumentId).ToList();
         // 🔴 La proposta la fa lo STATO, non un default fisso: riproponendo sempre lo stesso insieme, chi
         // riapre la scheda e preme senza guardare RIBALTA la scelta di prima. A unione appena nata nessuno
         // ha nascosto niente, e allora si propongono tutti tranne l'ospite.
@@ -428,7 +442,8 @@
     {
         if (_unione is null) return;
         var n = await _editing.ApplicaSezioniComuniAsync(
-            _nascondiIn.ToList(), _unione.Members.Select(m => m.DocumentId).ToList(), _spuntate.ToList());
+            _nascondiIn.ToList(), _unione.Members.Select(m => (m.DocumentId, m.Doc.ReleaseTarget)).ToList(),
+            _spuntate.ToList());
         // ⚠️ Due chiavi, non un plurale solo: «1 sezioni» sbaglia sempre sull'uno, in tutte e due le lingue —
         // e il progetto non ha ICU. È la stessa regola di `XferLabels`.
         _esito = n == 1 ? Sito["Union_Common_Done_One"] : Sito.Formatta("Union_Common_Done", n);
@@ -464,7 +479,12 @@
             {
                 _apriComuniDopoIlCarico = false;
                 await CaricaComuniAsync();
-                _scheda = true;
+                // ⚠️ Si apre solo se c'e' DAVVERO qualcosa da chiedere. Fino al 9 settembre 2026 si
+                // apriva sempre — «niente da scegliere e' una risposta, il silenzio e' un dubbio» — e
+                // andava bene finche' l'unione era vIPI + vSOP dello stesso scalo. Unendo un APP le chiavi
+                // in comune non sono ripetizioni: la scheda compariva a ogni unione per non proporre
+                // niente, e una scheda che si apre per dire «niente» la seconda volta e' rumore.
+                _scheda = _comuni.Count > 0;
             }
             else if (_scheda) await CaricaComuniAsync();
             await Changed.InvokeAsync();

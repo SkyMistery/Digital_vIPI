@@ -1,4 +1,6 @@
-﻿namespace Vipi.Application.Content;
+﻿using Vipi.Domain;
+
+namespace Vipi.Application.Content;
 
 /// <summary>Dov'è una sezione comune dentro un documento dell'unione.</summary>
 /// <param name="DocumentId">Il documento che la porta.</param>
@@ -37,6 +39,51 @@ public static class SezioniComuni
     /// può) ma <b>non spuntata</b>: nessuno la nasconde per distrazione.</para>
     /// </summary>
     public const string ChiaveValidita = "validity";
+
+    /// <summary>
+    /// Chi <b>partecipa</b> al confronto, fra i membri di un'unione: i documenti che descrivono lo
+    /// <b>STESSO LUOGO</b> — la vIPI d'aeroporto e il vSOP militare di quello scalo. Meno di due che si
+    /// confrontano = nessuna sezione in comune, e la scheda non ha niente da chiedere.
+    ///
+    /// <para>
+    /// 🔴 <b>Segnalato dal committente il 9 settembre 2026</b>, unendo un terzo documento
+    /// (<c>LIBV_APP</c>) alla vIPI e al vSOP di Gioia del Colle: la scheda si apriva e proponeva di
+    /// nascondere sezioni che <b>non sono ripetizioni</b>.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ <b>La stessa chiave non vuol dire lo stesso dato.</b> Misurato sul catalogo: un APP e la vIPI
+    /// d'aeroporto hanno tre chiavi in comune — <c>frequencies</c>, <c>operationaltechnique</c>,
+    /// <c>validity</c>. Ma le «Frequenze» di un APP sono quelle dell'<b>avvicinamento</b> e quelle
+    /// dell'aeroporto sono del <b>campo</b>: non c'è niente di ripetuto da togliere, e nasconderne una
+    /// <b>perde contenuto vero</b>. La scheda le proponeva pure <b>già spuntate</b>: chi premeva senza
+    /// guardare le nascondeva.
+    /// </para>
+    ///
+    /// <para>
+    /// Vale anche fra due APP dello stesso campo (LIBV ne ha due): settori diversi, frequenze diverse.
+    /// L'unico asse su cui una chiave uguale significa davvero la stessa cosa è il <b>luogo</b>.
+    /// </para>
+    ///
+    /// <para>
+    /// ⚠️ Sta <b>qui</b> e non nel pannello: il pannello è l'unico chiamante di oggi, e una regola
+    /// editoriale scritta dentro chi la usa è una regola che il secondo chiamante non troverà. La porta
+    /// del servizio la applica per conto suo, così nessuno la può scavalcare passando degli id nudi.
+    /// </para>
+    /// </summary>
+    public static IReadOnlyList<int> Confrontabili(
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri)
+    {
+        var stessoLuogo = membri
+            .Where(m => m.Famiglia is ReleaseTargetType.Airport or ReleaseTargetType.AirportMil)
+            .Select(m => m.DocumentId)
+            .Distinct()
+            .ToList();
+
+        // Uno solo non ha con chi avere qualcosa in comune. Tornare quell'uno farebbe una scheda con un
+        // documento e zero sezioni: una domanda senza risposte possibili.
+        return stessoLuogo.Count > 1 ? stessoLuogo : Array.Empty<int>();
+    }
 
     /// <summary>
     /// Le sezioni comuni ai documenti dati, nell'ordine in cui compaiono nel <b>primo</b> (l'ospite).

@@ -164,10 +164,16 @@ public sealed class EditingService : IEditingService
         await _repo.SetSectionHiddenAsync(sectionId, hidden, ct);
     }
 
-    public async Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds,
+    public async Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
         CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+
+        // ⚠️ Chi si confronta lo decide la regola, non il chiamante: un APP unito a una vIPI d'aeroporto
+        // ha `frequencies` con lo STESSO nome e un ALTRO contenuto. Fuori di qui non si passa.
+        var documentIds = SezioniComuni.Confrontabili(membri);
+        if (documentIds.Count == 0) return Array.Empty<SezioneComune>();
 
         var documenti = new List<(int, IReadOnlyList<EditableSection>)>();
         // ⚠️ In SEQUENZA: sono letture sullo stesso DbContext, e due catene insieme danno «A second operation
@@ -183,10 +189,11 @@ public sealed class EditingService : IEditingService
         return SezioniComuni.Di(documenti);
     }
 
-    public async Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds,
+    public async Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn,
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
         IReadOnlyList<string> chiavi, CancellationToken ct = default)
     {
-        var comuni = await SezioniComuniAsync(documentIds, ct);
+        var comuni = await SezioniComuniAsync(membri, ct);
         var piano = SezioniComuni.Piano(comuni, chiavi, nascondiIn);
 
         // ⚠️ Ognuna passa dalla porta normale: autorizzazione e LOCK per documento, come se il tasto

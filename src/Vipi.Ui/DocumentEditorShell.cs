@@ -134,12 +134,41 @@ public sealed class DocumentEditorShell : IDisposable
         // sbattere sul `DbContext` smaltito, cioè esattamente il difetto che ChiudiAsync esiste per togliere.
         if (_chiuso) return;
         if (_inFila.Value) { await azione(); return; }
+        await CodaAsync(azione).ConfigureAwait(false);
+    }
 
+    /// <summary>Il tornello vero e proprio, senza la corsia dei rientri.</summary>
+    private async Task CodaAsync(Func<Task> azione)
+    {
+        if (_chiuso) return;
         await _tornello.WaitAsync().ConfigureAwait(false);
         _inFila.Value = true;
         try { await azione(); }
         finally { _inFila.Value = false; _tornello.Release(); }
     }
+
+    /// <summary>
+    /// Il caricamento che <c>OnParametersSetAsync</c> fa partire: <b>si mette SEMPRE in coda</b>, anche se
+    /// il flusso corrente risulta già dentro il tornello.
+    ///
+    /// <para>🔴 <b>Perché esiste una porta a parte.</b> La memoria di «sono già dentro» è un
+    /// <see cref="AsyncLocal{T}"/>, e un <c>AsyncLocal</c> <b>si eredita</b>: ogni flusso nato dentro
+    /// un'operazione in fila lo trova acceso. Un render provocato da lì dentro chiama
+    /// <c>OnParametersSetAsync</c>, che leggeva «sono già dentro» e <b>scavalcava la coda</b> — partendo
+    /// <b>accanto</b> alla prima invece che dopo. Due catene sullo stesso <c>DbContext</c>.</para>
+    ///
+    /// <para>⚠️ <b>La differenza con una catena annidata è chi ATTENDE.</b> <c>StartEditingAsync</c>
+    /// chiama il ricarico e lo <b>aspetta</b>: sono la stessa catena, e scavalcare è giusto, o si
+    /// aspetterebbe se stessi. Il <c>Task</c> di <c>OnParametersSetAsync</c> non lo aspetta chi lo ha
+    /// provocato — lo tiene il renderer: sono due catene, e la seconda va in coda. Non c'è stallo proprio
+    /// per quel motivo.</para>
+    ///
+    /// <para>Visto in produzione il 9 settembre 2026 su un editor UNITO a tre membri (LIBV): «A second
+    /// operation was started», poi il render morto a metà e il diff di Blazor corrotto — da lì in poi la
+    /// pagina non risponde più a niente, nemmeno a «sciogli l'unione». Inchiodato da
+    /// <c>Un_caricamento_provocato_DA_DENTRO_si_mette_in_coda</c>.</para>
+    /// </summary>
+    public Task CaricaInFilaAsync(Func<Task> azione) => CodaAsync(azione);
 
     public Task GuardAsync(Func<Task> azione) => GuardCoreAsync(azione, silenziosa: false);
 

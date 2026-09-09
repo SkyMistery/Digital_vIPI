@@ -196,7 +196,7 @@ else
     /// caricamento, e <c>OnParametersSetAsync</c> scatta a ogni ridisegno — compreso quello che un gesto
     /// provoca mentre il suo ricarico è ancora in volo. Erano le due catene che si sovrapponevano.
     /// </summary>
-    protected override Task OnParametersSetAsync() => _shell.InFilaAsync(ParametriAsync);
+    protected override Task OnParametersSetAsync() => _shell.CaricaInFilaAsync(ParametriAsync);
 
     private async Task ParametriAsync()
     {

@@ -84,8 +84,8 @@ public class DocumentEditorShellTests
         public Task RenameSectionAsync(int sectionId, string title, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionRenderModeAsync(int sectionId, RenderMode mode, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionHiddenAsync(int sectionId, bool hidden, CancellationToken ct = default) => throw NonUsato();
-        public Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds, CancellationToken ct = default) => throw NonUsato();
-        public Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato();
+        public Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, CancellationToken ct = default) => throw NonUsato();
+        public Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default) => throw NonUsato();
         public Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default) => throw NonUsato();
@@ -290,6 +290,57 @@ public class DocumentEditorShellTests
 
         await lavoro.WaitAsync(TimeSpan.FromSeconds(5));   // senza la guardia, qui si aspetterebbe per sempre
         Assert.Equal(new[] { "fuori", "dentro", "fine" }, passi);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Il difetto del 9 settembre 2026, in un editor UNITO con tre membri</b> (segnalato dal
+    /// committente su LIBV; diagnostica di produzione delle 14:05-14:11).
+    ///
+    /// <para>Il tornello ricorda di essere «già dentro» con un <c>AsyncLocal</c>, e un <c>AsyncLocal</c>
+    /// <b>si eredita</b>: ogni flusso che nasce dentro un'operazione in fila lo trova acceso. Un render
+    /// provocato da lì dentro chiama <c>OnParametersSetAsync</c> del componente, che legge «sono già
+    /// dentro» e <b>salta la coda</b> — partendo <b>accanto</b> alla prima invece che dopo. Due catene
+    /// sullo stesso <c>DbContext</c>: «A second operation was started», il render muore a metà, e da lì in
+    /// poi il diff di Blazor è corrotto e la pagina non risponde più a niente.</para>
+    ///
+    /// <para>⚠️ <b>La differenza con <c>Una_catena_annidata_non_aspetta_se_stessa</c> è UNA sola, e
+    /// è tutta</b>: lì la catena interna viene <b>attesa</b> da quella esterna — sono la stessa catena, e
+    /// scavalcare è giusto, o si aspetterebbe se stessi. Qui <b>non viene attesa</b>: la tiene il
+    /// renderer. Sono due catene, e la seconda deve mettersi in coda.</para>
+    ///
+    /// <para>⚠️ Perché non si vede in locale: è una corsa. Con un editor solo la finestra è stretta;
+    /// con tre membri l'ospite ridisegna a ogni caricamento, e su MariaDB le query durano abbastanza da
+    /// farle sovrapporre. Su SQLite finiscono prima che la seconda parta.</para>
+    /// </summary>
+    [Fact]
+    public async Task Un_caricamento_provocato_DA_DENTRO_si_mette_in_coda()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        var dentro = 0;
+        var massimoInsieme = 0;
+        var apri = new TaskCompletionSource();
+
+        async Task Lento()
+        {
+            var quanti = Interlocked.Increment(ref dentro);
+            massimoInsieme = Math.Max(massimoInsieme, quanti);
+            await apri.Task;
+            Interlocked.Decrement(ref dentro);
+        }
+
+        Task? intruso = null;
+        var primo = guscio.InFilaAsync(async () =>
+        {
+            // Il render provocato da qui dentro: il componente chiama OnParametersSetAsync, e quel Task
+            // NON lo attende chi lo ha provocato — lo tiene il renderer. E' l'unico dettaglio che conta.
+            intruso = guscio.CaricaInFilaAsync(Lento);
+            await Lento();
+        });
+
+        apri.SetResult();
+        await Task.WhenAll(primo, intruso!).WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(1, massimoInsieme);
     }
 
     /// <summary>Anche i GESTI passano dal tornello: due salvataggi a raffica sono due catene sullo stesso

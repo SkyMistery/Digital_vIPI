@@ -51,9 +51,16 @@ public interface IEditingService : IDocumentForReview
     /// <summary>
     /// Le sezioni che questi documenti hanno <b>in comune</b> (stessa chiave di catalogo, a qualunque
     /// profondità), per la scheda che si apre unendo due documenti dello stesso scalo.
-    /// <para>I documenti si passano nell'ordine dell'unione: l'elenco esce nell'ordine dell'ospite.</para>
+    /// <para>I membri si passano nell'ordine dell'unione, <b>con la loro famiglia</b>: l'elenco esce
+    /// nell'ordine dell'ospite.</para>
+    /// <para>⚠️ <b>La famiglia non è decorazione</b>: decide CHI si confronta. Solo i documenti che
+    /// descrivono lo stesso LUOGO — vIPI d'aeroporto e vSOP militare — hanno chiavi che significano la
+    /// stessa cosa; un APP nella stessa unione ha <c>frequencies</c> uguale di nome e diverso di
+    /// contenuto. La scelta la fa <c>SezioniComuni.Confrontabili</c>, dentro questa porta, così nessun
+    /// chiamante la può saltare passando degli id nudi.</para>
     /// </summary>
-    Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<int> documentIds,
+    Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
         CancellationToken ct = default);
 
     /// <summary>
@@ -64,7 +71,8 @@ public interface IEditingService : IDocumentForReview
     /// non è uno stato dell'unione, e sciogliendola resta dov'è. Vuole il <b>lock</b> di ogni documento
     /// toccato, come ogni altra scrittura.</para>
     /// </summary>
-    Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<int> documentIds,
+    Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn,
+        IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri,
         IReadOnlyList<string> chiavi, CancellationToken ct = default);
     /// <summary>Colloca una sotto-sezione PRIMA o dopo il corpo della sezione padre (doc 11 §3g): blocchi per una
     /// sezione editoriale, resa derivata per una strutturata. Fra loro le sotto-sezioni restano ordinate per Order.</summary>

@@ -26,6 +26,30 @@ servito porta le regole nuove, non solo un'impronta diversa. §CG.
 ▶ Resta l'attesa del prossimo **`errori-richieste.txt`**, che è l'unica prova vera delle tre correzioni di
 1.17.0, più i controlli col login elencati in §CG.
 
+🔧 **§CM — il tornello scavalcato, e le sezioni in comune che non erano comuni** (9 settembre, sera;
+in `main`, **NON** in 1.18.0). Due difetti segnalati insieme unendo un TERZO documento (`LIBV_APP`) alla
+vIPI e al vSOP di Gioia del Colle. Carta
+`docs/feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md`. Nessuna migrazione.
+
+- 🔴 **Il blocco non era dell'unione: era il tornello.** `InFilaAsync` ricorda di essere «già dentro»
+  con un `AsyncLocal`, che **si eredita**: un render provocato da dentro un'operazione in fila chiama
+  `OnParametersSetAsync`, che leggeva «sono già dentro» e partiva **accanto** invece che dopo. Due catene
+  sullo stesso `DbContext` → «A second operation» → render morto a metà → **diff di Blazor corrotto**, e da
+  lì la pagina non risponde più a niente. Ora due porte: `InFilaAsync` (rientra, per le catene che si
+  **aspettano**) e `CaricaInFilaAsync` (**sempre in coda**), su tutti e cinque gli editor.
+  ✅ **Provato prima di correggere**: sul codice di prima la prova diceva `Expected: 1, Actual: 2`.
+  ⚠️ Non si riproduce in locale: è una corsa, e SQLite finisce prima che la seconda parta.
+- 🔴 **La stessa chiave non è lo stesso dato.** Un APP e la vIPI d'aeroporto condividono `frequencies`,
+  `operationaltechnique` e `validity`, ma le frequenze di un APP sono quelle dell'AVVICINAMENTO: la scheda
+  le proponeva **già spuntate**, e chi premeva perdeva contenuto vero. Ora `SezioniComuni.Confrontabili`
+  ammette solo chi descrive lo **stesso luogo** (`Airport`, `AirportMil`), e la regola sta **dentro la porta
+  del servizio** — che non prende più id nudi ma i membri **con la famiglia** — così nessun chiamante la
+  salta. La scheda non si apre più da sola quando non ha niente da chiedere.
+
+▶ **Serve un pacchetto**: 1.18.0 è online e non le porta.
+⚠️ Il `errori-richieste.txt` del 9 settembre finisce alle **14:11:39** e 1.18.0 è partita alle **14:13:21**:
+quelle voci sono dell'era PRECEDENTE, non una regressione del pacchetto.
+
 📦 **§CK — le aree BOAT hanno un visualizzatore loro** (9 settembre, sera; in **1.18.0**): dentro «Aree di lavoro» la
 sotto-sezione **Bassa quota (BOAT)** disegna mappa, elenco e tabella come il padre, su una selezione sua.
 **Nessuna migrazione** — è lo stesso payload sotto un'altra chiave di sezione — quindi spedibile dentro la
