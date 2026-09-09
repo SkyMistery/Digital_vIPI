@@ -131,21 +131,81 @@ else
     /// cui nascono tutte le famiglie tranne la vLOA (che i titoli li ha già in inglese).</summary>
     private string LinguaDelDocumento => Doc.Language == Vipi.Domain.Language.En ? "en" : "it";
 
+    /// <summary>
+    /// L'indice, letto <b>dentro una rete</b>.
+    ///
+    /// <para>🔴 <b>Perché esiste.</b> Il 9 settembre 2026 questa riga ha dato tre
+    /// <c>NullReferenceException</c> in produzione (13:50:43, 13:51:06, 13:53:59 UTC) e la quarta, dal corpo
+    /// qui sotto, ha abbattuto il circuito. Sulla riga incolpata, al commit che girava, <b>non c'è niente
+    /// che possa essere nullo</b>: <c>ExtraTocItems</c> si legge col pattern, <c>IsSectionDirty</c> con
+    /// <c>?.</c>, <c>Titolo</c> guarda <c>Profile is { } p</c>. Quel che manca alla vista sono i membri
+    /// <b>corti</b> che l'enumerazione chiama — <c>Titolo</c> e <c>LinguaDelDocumento</c>, cioè
+    /// <c>Doc.Language</c> — che in Release finiscono dentro questo metodo e si portano via la propria riga.
+    /// Stessa diagnosi, e stesso rimedio, della testata dell'APP (<c>ContestoDiRender.TestataApp</c>).</para>
+    ///
+    /// <para>⚠️ <c>NoInlining</c> non è un vezzo, è tutto il punto: senza, questo metodo sparirebbe dentro
+    /// <c>BuildRenderTree</c> e la prossima occorrenza tornerebbe a incolpare la riga del chiamante — cioè
+    /// si sarebbe scritto codice per non sapere niente di nuovo.</para>
+    ///
+    /// <para>⚠️ E si rilancia, non si ingoia: un indice che non si disegna è un guasto, e va visto.</para>
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
     private IReadOnlyList<EditorTocItem> BuildToc()
     {
-        // Le voci-sezione, radici e figlie, le costruisce una funzione pura (EditorTocProjection): è la parte
-        // che si può sbagliare in silenzio, e provarla di qui vorrebbe dire montare l'editor intero.
-        var items = EditorTocProjection.DaSezioni(
-            RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup, Titolo,
-            radiceId: AddParentId).ToList();
-        if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
-        return items;
+        try
+        {
+            // Le voci-sezione, radici e figlie, le costruisce una funzione pura (EditorTocProjection): è la parte
+            // che si può sbagliare in silenzio, e provarla di qui vorrebbe dire montare l'editor intero.
+            var items = EditorTocProjection.DaSezioni(
+                RootSections ?? Doc.Sections, s => IsSectionDirty?.Invoke(s) == true, TocGroup, Titolo,
+                radiceId: AddParentId).ToList();
+            if (ExtraTocItems is { Count: > 0 }) items.AddRange(ExtraTocItems);
+            return items;
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(Contesto("indice"), ex);
+        }
     }
+
+    /// <summary>
+    /// Le radici da rendere e i loro scostamenti, <b>dentro la stessa rete</b> dell'indice: è il prologo che
+    /// il 9 settembre 2026 alle 14:10:23 UTC ha abbattuto il circuito, e porta lo stesso dereferenziamento
+    /// (<c>Doc.Sections</c>) più <c>Offset</c>, che è corto e sparisce anche lui.
+    /// </summary>
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private (IReadOnlyList<EditableSection> Radici, IReadOnlyDictionary<int, int> Scostamenti) PrologoDelCorpo()
+    {
+        try
+        {
+            var radici = RootSections ?? Doc.Sections;
+            return (radici, SectionOrdering.OffsetsFromStandard(Profile, radici));
+        }
+        catch (Exception ex)
+        {
+            throw new InvalidOperationException(Contesto("corpo delle sezioni"), ex);
+        }
+    }
+
+    /// <summary>
+    /// La frase che accompagna il guasto. ⚠️ <b>Non deve poter fallire</b>: legge tutto con <c>?.</c> e non
+    /// dereferenzia niente — una frase di contesto che solleva a sua volta sostituisce l'errore vero col
+    /// proprio, e si perde anche quel poco che si sapeva.
+    /// </summary>
+    private string Contesto(string dove) =>
+        ContestoDiRender.EditoreDiSezioni(
+            dove,
+            documentoCaricato: Doc is not null,
+            quanteSezioniDelDocumento: Doc?.Sections?.Count,
+            quanteRadiciProprie: RootSections?.Count,
+            profiloNoto: Profile is not null,
+            conIndice: ShowToc,
+            radiceId: AddParentId,
+            gruppo: TocGroup);
 
     private RenderFragment SectionsBody => __builder =>
     {
-        var roots = RootSections ?? Doc.Sections;
-        var offsets = SectionOrdering.OffsetsFromStandard(Profile, roots);
+        var (roots, offsets) = PrologoDelCorpo();
         foreach (var s in roots)
         {
             @SectionEditor(s, 0, Offset(offsets, s))

@@ -189,14 +189,31 @@ window.vipiScorrimento = function () {
             if (!a) return;
             var id = a.getAttribute('href').slice(1);
             if (!id) return;
-            var el = document.getElementById(id);
-            if (!el) return;
+
+            // 🔴 SI FERMA SEMPRE, anche se il bersaglio non c'è (ancora). Fino al 9 settembre 2026 qui
+            // c'era `var el = ...; if (!el) return;` PRIMA di `preventDefault`, cioè la protezione si
+            // sfilava proprio nel caso in cui serve: se la sezione non è nel DOM, il clic prosegue,
+            // l'intercettore di Blazor risolve «#id» contro la `<base href="/">` e la pagina se ne va
+            // IN HOME — che è esattamente il guasto che queste righe esistono per impedire, scritto due
+            // righe più su. Segnalato dal campo riordinando i membri di un'unione: durante il ricarico dei
+            // membri la sezione bersaglio non è ancora resa, e il salto porta via l'editor.
+            //
+            // ⚠️ E dal 1.18.1 la finestra è più LARGA, non più stretta: i caricamenti dei membri passano
+            // uno per volta dal tornello, quindi il DOM resta incompleto più a lungo.
+            //
+            // ⚠️ Un «#ancora» che non trova il bersaglio deve NON FARE NIENTE. Non fare niente è il
+            // comportamento giusto: il bersaglio o arriva col render dopo, o quel link è morto — e in
+            // nessuno dei due casi la risposta è portare via chi stava lavorando.
             e.preventDefault();
             e.stopImmediatePropagation();
-            openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
-            scrollAfterLayout(el, vipiScorrimento());
+
             var toc = a.closest('.toc');
             if (toc) { toc.querySelectorAll('a').forEach(function (x) { x.classList.remove('active'); }); a.classList.add('active'); }
+
+            var el = document.getElementById(id);
+            if (!el) return;      // ⚠️ dopo l'arresto, non prima: la voce resta marcata, la pagina resta ferma
+            openDetailsFor(el);   // se il target è una sezione collassata (Guida), aprila prima di scorrere
+            scrollAfterLayout(el, vipiScorrimento());
             history.replaceState(null, '', location.pathname + location.search + '#' + id);
         }, true);
     }

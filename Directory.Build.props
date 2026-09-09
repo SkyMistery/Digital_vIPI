@@ -894,7 +894,24 @@
       ⚠️ `IEditingService` ha due firme cambiate in modo **ROMPENTE** (non additivo): implementata solo da
       `EditingService` (Application) e chiamata solo da `UnionPanel` (Ui). Tutt'e due nel pacchetto.
     -->
-    <VipiVersione>1.18.1</VipiVersione>
+    <!-- 1.18.2 - PATCH (9 settembre 2026, notte). Porta SS.CN: quattro difetti dal campo, nati da due
+      segnalazioni sull'unione di Gioia del Colle. Nessuna pagina nuova, nessuna sezione nuova, nessuna
+      migrazione: e' una PATCH.
+
+      Carta: docs/feature/2026-09-09-quattro-difetti-dal-campo.md
+
+      UN SOLO progetto cambiato: Vipi.Ui (il diff dei nomi fra ba16e1ce e HEAD, limitato a src/).
+      Vipi.Application e Vipi.Infrastructure NON sono toccati, e nessuna firma pubblica e' cambiata:
+      niente da ricompilare altrove.
+
+      ATTENZIONE: questa consegna PORTA wwwroot. `vipi-ui.js` e' cambiato (wireAnchors), e va con i suoi
+      .br/.gz E con Vipi.Host.staticwebassets.endpoints.json - viaggiano insieme, o il sito chiede nomi
+      che non esistono. 1.18.1 non aveva asset: qui senza il JS la correzione del rimbalzo in home NON
+      arriva, e il resto del pacchetto sembrerebbe funzionare lo stesso.
+
+      Niente satellite inglese: nessuna .resx toccata. Li' comanda il DIFF, non l'impronta.
+    -->
+    <VipiVersione>1.18.2</VipiVersione>
   </PropertyGroup>
 
 </Project>

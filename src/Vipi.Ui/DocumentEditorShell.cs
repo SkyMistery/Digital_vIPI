@@ -81,9 +81,13 @@ public sealed class DocumentEditorShell : IDisposable
     /// <param name="chiaveNoPermesso">Chiave di traduzione del «non hai il permesso» di questa famiglia: è la
     /// sola frase che le quattro non condividono, perché nomina il tipo di documento.</param>
     /// <param name="ridisegna">Come la pagina si fa ridisegnare: <c>() =&gt; InvokeAsync(StateHasChanged)</c>.</param>
+    /// <param name="attesaMassimaDelTurno">Solo per i test: il tetto d'attesa al tornello. Null = quello
+    /// vero (trenta secondi).</param>
     public DocumentEditorShell(IEditingService editing, IJSRuntime js, IStringLocalizer<SharedResource> l,
-        ILogger log, string famiglia, string chiaveNoPermesso, Func<Task> ridisegna)
+        ILogger log, string famiglia, string chiaveNoPermesso, Func<Task> ridisegna,
+        TimeSpan? attesaMassimaDelTurno = null)
     {
+        _attesaMassimaDelTurno = attesaMassimaDelTurno ?? AttesaPredefinitaDelTurno;
         _editing = editing;
         _js = js;
         _l = l;
@@ -134,14 +138,57 @@ public sealed class DocumentEditorShell : IDisposable
         // sbattere sul `DbContext` smaltito, cioè esattamente il difetto che ChiudiAsync esiste per togliere.
         if (_chiuso) return;
         if (_inFila.Value) { await azione(); return; }
-        await CodaAsync(azione).ConfigureAwait(false);
+        await CodaAsync(azione, chiSpettaLoVede: true).ConfigureAwait(false);
     }
 
-    /// <summary>Il tornello vero e proprio, senza la corsia dei rientri.</summary>
-    private async Task CodaAsync(Func<Task> azione)
+    /// <summary>
+    /// Quanto si aspetta, al massimo, il proprio turno al tornello.
+    ///
+    /// <para>🔴 <b>Perché c'è un tetto, dal 9 settembre 2026.</b> Questa attesa non ne aveva, mentre
+    /// <see cref="ChiudiAsync"/> due metodi più sotto ce l'ha da sempre: la stessa attesa con due regole
+    /// diverse, e quella senza guardia è quella che si è piantata. Un turno che non arriva mai non è un
+    /// caricamento lento — è un gesto che non torna, e chi lo aspetta resta fermo <b>senza una riga di
+    /// log</b>. Sul pannello dell'unione si vedeva così: <c>UnionPanel.EseguiAsync</c> attende
+    /// <c>Changed</c>, che finisce qui dentro; se non torna, il suo <c>finally</c> non gira, <c>_busy</c>
+    /// resta acceso e <b>tutti</b> i comandi dell'unione restano <c>disabled</c> — la ✕ non apre nemmeno la
+    /// conferma. Un guasto muto travestito da tasto rotto.</para>
+    ///
+    /// <para>⚠️ Trenta secondi e non quindici: è il <c>DefaultCommandTimeout</c> della connessione, cioè il
+    /// tempo oltre il quale chi sta davanti non sta più lavorando ma è appeso.</para>
+    /// </summary>
+    private static readonly TimeSpan AttesaPredefinitaDelTurno = TimeSpan.FromSeconds(30);
+
+    /// <summary>
+    /// Il tetto vero di questa istanza. ⚠️ È un parametro <b>facoltativo del costruttore</b> e non una
+    /// costante, per una ragione sola: un tetto di trenta secondi non si può provare su un banco: la prova
+    /// durerebbe trenta secondi o non ci sarebbe. Le cinque pagine non lo passano e prendono il valore vero.
+    /// </summary>
+    private readonly TimeSpan _attesaMassimaDelTurno;
+
+    /// <summary>
+    /// Il tornello vero e proprio, senza la corsia dei rientri.
+    ///
+    /// <para>⚠️ <b>Scaduto il tetto le due porte si comportano in modo diverso, ed è voluto.</b> Un
+    /// <b>gesto</b> (<paramref name="chiSpettaLoVede"/> vero) ha qualcuno che ne aspetta l'esito: solleva,
+    /// così l'errore si vede in pagina, il badge torna indietro e il <c>finally</c> di chi ha premuto gira —
+    /// cioè i tasti si riaccendono. Un <b>caricamento</b> no: lo tiene il renderer, e sollevare lì
+    /// abbatterebbe il circuito per un ritardo. Quello rinuncia al giro e lo scrive; il render successivo
+    /// riprova da sé, perché <c>OnParametersSetAsync</c> scatta di nuovo.</para>
+    /// </summary>
+    private async Task CodaAsync(Func<Task> azione, bool chiSpettaLoVede)
     {
         if (_chiuso) return;
-        await _tornello.WaitAsync().ConfigureAwait(false);
+        if (!await _tornello.WaitAsync(_attesaMassimaDelTurno).ConfigureAwait(false))
+        {
+            _log.LogError(
+                "Tornello dell'editor {Famiglia}: turno non arrivato dopo {Secondi}s (documento {DocId}, {Chi}).",
+                _famiglia, _attesaMassimaDelTurno.TotalSeconds, DocumentId,
+                chiSpettaLoVede ? "gesto" : "caricamento");
+            if (!chiSpettaLoVede) return;
+            throw new InvalidOperationException(
+                $"L'editor {_famiglia} non ha ottenuto il proprio turno entro {_attesaMassimaDelTurno.TotalSeconds:0} secondi: " +
+                "un'operazione precedente non è ancora tornata. Ricaricare la pagina.");
+        }
         _inFila.Value = true;
         try { await azione(); }
         finally { _inFila.Value = false; _tornello.Release(); }
@@ -168,7 +215,7 @@ public sealed class DocumentEditorShell : IDisposable
     /// pagina non risponde più a niente, nemmeno a «sciogli l'unione». Inchiodato da
     /// <c>Un_caricamento_provocato_DA_DENTRO_si_mette_in_coda</c>.</para>
     /// </summary>
-    public Task CaricaInFilaAsync(Func<Task> azione) => CodaAsync(azione);
+    public Task CaricaInFilaAsync(Func<Task> azione) => CodaAsync(azione, chiSpettaLoVede: false);
 
     public Task GuardAsync(Func<Task> azione) => GuardCoreAsync(azione, silenziosa: false);
 

@@ -101,13 +101,15 @@ public class DocumentEditorShellTests
         public Task ForceUnlockAsync(int documentId, CancellationToken ct = default) => throw NonUsato();
     }
 
-    private static (DocumentEditorShell Guscio, List<string> Ridisegni) Guscio(IEditingService editing)
+    private static (DocumentEditorShell Guscio, List<string> Ridisegni) Guscio(
+        IEditingService editing, TimeSpan? attesaMassimaDelTurno = null)
     {
         var ridisegni = new List<string>();
         var guscio = new DocumentEditorShell(
             editing, new NoJs(), new KeyLocalizer(), NullLogger.Instance,
             famiglia: "prova", chiaveNoPermesso: "Ed_NoPermission",
-            ridisegna: () => { ridisegni.Add("ridisegna"); return Task.CompletedTask; })
+            ridisegna: () => { ridisegni.Add("ridisegna"); return Task.CompletedTask; },
+            attesaMassimaDelTurno: attesaMassimaDelTurno)
         {
             DocumentId = 7,
             IsEditing = true,
@@ -425,5 +427,60 @@ public class DocumentEditorShellTests
         var (guscio, _) = Guscio(new EditingFinto());
         await guscio.ChiudiAsync();
         await guscio.ChiudiAsync().WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>
+    /// 🔴 Un turno che non arriva NON resta appeso per sempre, e chi lo aspettava lo viene a sapere.
+    ///
+    /// <para><b>Perché esiste.</b> Il 9 settembre 2026 la ✕ del pannello dell'unione ha smesso di aprire
+    /// perfino la propria conferma. Non era il tasto: <c>UnionPanel.EseguiAsync</c> accende <c>_busy</c>,
+    /// attende <c>Changed</c> — che finisce in questo tornello — e lo spegne nel <c>finally</c>. Con
+    /// un'attesa senza tetto quel <c>finally</c> non gira mai: <c>_busy</c> resta acceso e TUTTI i comandi
+    /// dell'unione restano <c>disabled</c>. Un guasto muto travestito da tasto rotto.</para>
+    ///
+    /// <para>⚠️ La prova <b>distingue</b>: sul codice di prima non fallisce con un'asserzione, si pianta —
+    /// ed è per questo che il <c>WaitAsync</c> di sicurezza sta sul gesto e non sull'assert.</para>
+    /// </summary>
+    [Fact]
+    public async Task Un_gesto_che_non_ottiene_il_turno_SOLLEVA_invece_di_restare_appeso()
+    {
+        var (guscio, _) = Guscio(new EditingFinto(), attesaMassimaDelTurno: TimeSpan.FromMilliseconds(150));
+        var tieniIlTurno = new TaskCompletionSource();
+
+        // Chi sta davanti e non molla: è il caricamento che non torna.
+        var primo = guscio.InFilaAsync(() => tieniIlTurno.Task);
+
+        // Il gesto che arriva dopo. Senza tetto resterebbe qui per sempre.
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => guscio.GuardCoreAsync(() => Task.CompletedTask, silenziosa: true)
+                        .WaitAsync(TimeSpan.FromSeconds(5)));
+
+        tieniIlTurno.SetResult();
+        await primo.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    /// <summary>
+    /// ⚠️ E un CARICAMENTO no: rinuncia al giro in silenzio verso l'utente (ma non verso il log).
+    ///
+    /// <para>🔴 <b>Le due porte non si comportano allo stesso modo, ed è voluto.</b> Il <c>Task</c> di
+    /// <c>OnParametersSetAsync</c> lo tiene il renderer, e nessuno lo attende: sollevare lì è un'eccezione
+    /// non catturata nel ciclo di vita, cioè <b>il circuito abbattuto per un ritardo</b> — esattamente il
+    /// guasto che si sta togliendo. Il render successivo riprova da sé.</para>
+    /// </summary>
+    [Fact]
+    public async Task Un_caricamento_che_non_ottiene_il_turno_RINUNCIA_senza_sollevare()
+    {
+        var (guscio, _) = Guscio(new EditingFinto(), attesaMassimaDelTurno: TimeSpan.FromMilliseconds(150));
+        var tieniIlTurno = new TaskCompletionSource();
+        var primo = guscio.InFilaAsync(() => tieniIlTurno.Task);
+
+        var partito = false;
+        var caricamento = guscio.CaricaInFilaAsync(() => { partito = true; return Task.CompletedTask; });
+
+        await caricamento.WaitAsync(TimeSpan.FromSeconds(5));   // torna, e non solleva
+        Assert.False(partito);                                   // e non è partito accanto al primo
+
+        tieniIlTurno.SetResult();
+        await primo.WaitAsync(TimeSpan.FromSeconds(5));
     }
 }

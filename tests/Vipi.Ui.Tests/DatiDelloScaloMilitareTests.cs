@@ -36,6 +36,14 @@ public class DatiDelloScaloMilitareTests
     private static string Aeroporto() => Sorgente("Components/Doc/AirportSectionsEditor.razor");
 
     /// <summary>
+    /// ⚠️ Dal 9 settembre 2026 la DOMANDA dell'aeroporto non sta più nel markup: è stata estratta in
+    /// <c>RimandoAllEdizioneMilitare</c> perché stava dentro il RICARICO e ogni gesto sull'unione portava
+    /// via la pagina senza un clic. La coppia da tenere allineata è la stessa; è cambiato solo dove abita
+    /// una delle due, e questo presidio è diventato rosso proprio per dirlo.
+    /// </summary>
+    private static string RimandoDelloScalo() => Sorgente("RimandoAllEdizioneMilitare.cs");
+
+    /// <summary>
     /// ⚠️ <b>Le due pagine devono fare la STESSA domanda.</b> Chi rimanda («qui non si scrive, vai di là»)
     /// e chi lascia entrare («questa pagina non fa per te, torna indietro») decidono la stessa cosa: se
     /// una dicesse «solo militare» e l'altra «solo militare E senza documento civile», su un campo marcato
@@ -46,7 +54,11 @@ public class DatiDelloScaloMilitareTests
     public void Chi_rimanda_e_chi_lascia_entrare_chiedono_la_stessa_cosa()
     {
         Assert.Matches(@"SoloMilitare:\s*true,\s*Esiste:\s*false", Militare());
-        Assert.Matches(@"IsMilitaryOnly:\s*true,\s*DocumentId:\s*null", Aeroporto());
+        Assert.Matches(@"IsMilitaryOnly:\s*true,\s*DocumentId:\s*null", RimandoDelloScalo());
+
+        // ⚠️ E l'editor deve passare DA LÌ: una domanda estratta che nessuno chiama sarebbe una guardia
+        // scritta e non applicata — la forma peggiore del difetto, perché il presidio resterebbe verde.
+        Assert.Contains("RimandoAllEdizioneMilitare.Serve(", Aeroporto());
     }
 
     /// <summary>

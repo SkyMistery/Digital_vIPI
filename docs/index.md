@@ -321,6 +321,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-05-vista-live-selettore-e-cancello.md`](feature/2026-09-05-vista-live-selettore-e-cancello.md) — La vista live si sceglie — ma solo da chi può — 5 settembre 2026
 - [`feature/2026-09-06-vsop-sezioni-sod.md`](feature/2026-09-06-vsop-sezioni-sod.md) — vSOP militari — l'indice che chiede il SOD (6 settembre 2026)
 - [`feature/2026-09-09-aree-boat.md`](feature/2026-09-09-aree-boat.md) — Aree BOAT — un visualizzatore gemello dentro «Aree di lavoro» (9 settembre 2026)
+- [`feature/2026-09-09-quattro-difetti-dal-campo.md`](feature/2026-09-09-quattro-difetti-dal-campo.md) — §CN — Quattro difetti dal campo, e uno solo era quello segnalato
 - [`feature/2026-09-09-testo-ricco-nell-editor.md`](feature/2026-09-09-testo-ricco-nell-editor.md) — Testo ricco nell'editor: grassetto, corsivo, sottolineato, elenchi (9 settembre 2026)
 - [`feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md`](feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md) — Il tornello scavalcato, e le sezioni in comune che non erano comuni (9 settembre 2026, sera)
 

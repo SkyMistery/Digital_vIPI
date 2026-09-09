@@ -744,10 +744,33 @@ else
         // Campo SOLO militare e nessuna vIPI civile: l'edizione è un'altra. Si va lì invece di aprire un
         // editor che non potrebbe far nascere niente (`EnsureDocumentAsync` lo rifiuterebbe), lasciando a
         // schermo un errore che non spiega dove andare.
-        if (_milState is { IsMilitaryOnly: true, DocumentId: null } && MilEditorUrl() is { } milUrl)
+        //
+        // 🔴 SOLO ALL'ENTRATA, e solo se questo editor è la PAGINA. Fino al 9 settembre 2026 questo rimando
+        // stava nudo qui dentro, cioè dentro il RICARICO — e il ricarico lo fa scattare ogni gesto
+        // sull'unione (`UnionPanel` → `Changed` → `UnioneCambiata` → `RicaricaAsync` → `LoadAsync`). Chi
+        // spostava un membro con le frecce si ritrovava portato via **senza aver cliccato niente**:
+        // `forceLoad` è una navigazione vera del browser, non un cambio di componente. Segnalato dal campo.
+        //
+        // ⚠️ Le due guardie sono indipendenti e servono a due cose diverse:
+        //   • «una volta sola» — mandare qualcuno nel posto giusto è una decisione d'INGRESSO. A ricarico
+        //     numero due chi guarda sta già lavorando qui, e la risposta non è più una guida: è uno strappo.
+        //   • `Chrome` — senza chrome questo editor è un MEMBRO montato dentro l'unione di qualcun altro.
+        //     Un membro che naviga si porta via la pagina dell'OSPITE, cioè un documento che non è suo.
+        //     ⚠️ `EditorUrl` non torna mai null (è un'interpolazione secca): il pattern `is { }` qui NON è
+        //     una guardia, e non va letto come tale — l'unico interruttore è `_milState`.
+        if (RimandoAllEdizioneMilitare.Serve(Chrome, _rimandoValutato, _milState))
         {
-            Nav.NavigateTo(milUrl, forceLoad: true);
-            return;
+            _rimandoValutato = true;
+            if (MilEditorUrl() is { } milUrl)
+            {
+                Nav.NavigateTo(milUrl, forceLoad: true);
+                return;
+            }
+        }
+        else if (Chrome)
+        {
+            // La domanda si è fatta: non si rifà a ogni ricarico, nemmeno quando la risposta era «no».
+            _rimandoValutato = true;
         }
 
         // ---- il documento ----
@@ -769,6 +792,11 @@ else
             _shell.IsEditing = _shell.IsEditing && _shell.Doc?.IsEditable == true && _shell.Lock.IsMine;
         }
     }
+
+    /// <summary>Il rimando all'edizione militare è già stato deciso una volta, per questa istanza: non si
+    /// ridecide a ogni ricarico. ⚠️ Si alza <b>prima</b> di navigare, non dopo: la navigazione non torna, e
+    /// alzarlo dopo lo lascerebbe spento per sempre.</summary>
+    private bool _rimandoValutato;
 
     /// <summary>L'indirizzo dell'editor del vSOP militare di questo scalo. Dal registry, non scritto a mano:
     /// è la stessa rotta che usano l'elenco militare e «Nuovo documento».</summary>

@@ -2,6 +2,12 @@
 
 ## Dove siamo — 9 settembre 2026 (notte)
 
+📦 **1.18.2 è PRONTA da caricare** (9 settembre, notte). **PATCH**, **nessuna migrazione**.
+🔴 **Porta `wwwroot`** — `vipi-ui.js` è cambiato: consegnarla senza asset vuol dire non consegnare la
+correzione del rimbalzo in home. Porta **§CN**: quattro difetti nati da due segnalazioni sull'unione di
+Gioia del Colle, e nessuno dei due sintomi aveva la causa che sembrava avere.
+⚠️ **La NRE di render è strumentata, NON chiusa**: la prossima occorrenza deve portare il contesto.
+
 ✅ **1.18.1 è CARICATA** (9 settembre sera). ▶ Da confermare a schermo: l'unione a tre di Gioia (la
 scheda **non** si apre da sola e la pagina **risponde**), la scheda che funziona ancora su vIPI+vSOP, e
 🔴 il prossimo `errori-richieste.txt` — devono sparire le «A second operation» di `AppSectionsEditor`. Timbro `1.18.1 · ba16e1c`, sha256 dello zip
@@ -10764,3 +10770,91 @@ gettoni, tabella BOAT a tre e senza. Zero errori JS, zero risposte ≥ 400.
 ⚠️ **Da sapere guardandolo**: «Aree di lavoro» nasce **collassata** (è così dal doc 11 §3i), quindi a
 documento appena aperto la mappa e la sotto-sezione BOAT si vedono solo dopo averla aperta.
 
+
+## §CN — Quattro difetti dal campo, e uno solo era quello segnalato — 9 settembre 2026 (notte)
+
+**Le due segnalazioni del committente** sull'editor unito di Gioia del Colle (LIBV): *«la ✕ per eliminare
+uno dei documenti dall'unione la clicco e non mi apre nemmeno la conferma»* e *«dopo che sposto un documento
+verso l'alto o il basso nell'unione vengo rimandato direttamente alla home senza che clicchi nulla»*.
+
+Sotto quei due sintomi c'erano **quattro** difetti distinti, e **nessuno dei due sintomi aveva la causa che
+sembrava avere**. Carta: `docs/feature/2026-09-09-quattro-difetti-dal-campo.md`. In **1.18.2**.
+**Nessuna migrazione**. 🔴 **Tocca `wwwroot`.**
+
+### I tre errori di lettura pagati per arrivarci
+
+🔴 **L'ora prima del contenuto, e il FUSO è parte della prova.** La diagnostica riportava il timbro `1.18.0`
+e `avvii.txt` finiva alle **14:13:21 UTC**, col file scaricato alle **16:14** locali: la prima lettura è
+stata «file vecchi», ed era **sbagliata** — era il fuso (+2), e quella riga era di **un minuto prima**.
+Conseguenza grossa: le **15:00 locali** della prova sono le **13:00 UTC**, e lì girava **1.17.0**. La ✕ era
+stata provata su una versione che non conteneva nessuna delle correzioni in discussione. ⚠️ E due volte la
+cartella conteneva gli **stessi byte**: si controlla l'**impronta** *e* l'offset, o le due cause si
+confondono.
+
+🔴 **L'ORDINE dei guasti diceva che erano due difetti.** Otto `NullReferenceException` di render fra le
+**13:47:30** e le **14:10:23**, e solo alle **14:11:26** la prima «A second operation». Ventiquattro minuti
+di distanza: §CM corregge la corsa, non le NRE — e tre di quelle NRE abbattono il circuito **da sole**,
+cioè danno lo stesso sintomo a schermo.
+
+🔴 **Si chiede l'indirizzo, non si deduce.** La prima ipotesi sul rimbalzo l'ha smentita la barra degli
+indirizzi (`.../airports/editor?icao=LIBV#s-4256`, la **stessa** pagina). Il difetto trovato per quella
+strada è reale ed è corretto lo stesso, ma non era il sintomo.
+
+### 1. La NRE di render è dell'editor CONDIVISO, non dell'APP
+
+`DocumentSectionsEditor.BuildToc():138` e `SectionsBody:147` sono **lo stesso** dereferenziamento
+(`RootSections ?? Doc.Sections`), in un componente che rendono **tutte e cinque** le famiglie.
+
+🔴 `[Parameter, EditorRequired] public EditableDocument Doc { get; set; } = default!` — `EditorRequired` è
+un avviso al **chiamante in compilazione**, non una garanzia a runtime, e `default!` zittisce il compilatore
+per sempre. ✅ Rete con `NoInlining` + rilancio col contesto (`ContestoDiRender.EditoreDiSezioni`), perché
+`LinguaDelDocumento`, `Titolo` e `Offset` sono membri **corti** che in Release spariscono dentro il
+chiamante — ed è il motivo per cui tre volte «sulla riga incolpata non c'è niente che possa essere nullo».
+⚠️ **Strumentata, non chiusa**: parla la prossima occorrenza.
+⚠️ Il `.g.cs` in `obj/` **non** serve a mappare le righe: si legge il commit che girava.
+
+### 2. Il tornello aspettava SENZA TETTO — ed è quello che spegneva la ✕
+
+`CodaAsync` faceva `WaitAsync()` senza tetto mentre `ChiudiAsync`, due metodi sotto, ne ha uno da sempre.
+`UnionPanel.EseguiAsync` accende `_busy`, attende `Changed` che finisce lì, e se non torna il `finally` non
+gira: `InlineConfirm` ha `disabled` **sul tasto d'innesco**, quindi la ✕ era **spenta**, non inerte.
+✅ Tetto di **30 s**, con due comportamenti voluti: un **gesto** solleva (errore a schermo, tasti
+riaccesi), un **caricamento** rinuncia e lo scrive (sollevare lì abbatterebbe il circuito per un ritardo).
+✅ Due prove che **distinguono**: sul codice di prima falliscono tutt'e due, **piantandosi**.
+
+### 3. Una navigazione dentro il RICARICO
+
+`AirportSectionsEditor.LoadAsyncCore` conteneva un `NavigateTo(..., forceLoad: true)` nudo, e il ricarico lo
+fa scattare **ogni** gesto sull'unione. ⚠️ `EditorUrl` non torna **mai** `null`: il `is { }` accanto sembra
+una guardia e non lo è. ✅ Decisione estratta in `RimandoAllEdizioneMilitare.Serve`, con due guardie: **una
+volta sola** (è una decisione d'ingresso) e **`Chrome`** (un membro che naviga si porta via la pagina
+dell'ospite). 🔴 Ha fatto **cadere** il presidio `Chi_rimanda_e_chi_lascia_entrare_chiedono_la_stessa_cosa`,
+che cerca la domanda **come testo**: aggiornato dove guarda, **non indebolito**, e aggiunta l'asserzione che
+l'editor passi davvero dalla funzione estratta.
+
+### 4. 🔴 IL rimbalzo in home: `wireAnchors`, e l'ordine di quattro righe
+
+In `vipi-ui.js` la ricerca del bersaglio stava **prima** di `preventDefault`, con un `return` in mezzo:
+sezione non nel DOM → la protezione si sfila → il clic va a Blazor → con `<base href="/">` `#s-4256`
+diventa `/#s-4256`, cioè la **home**. 🔴 **Il commento due righe sopra lo diceva già in chiaro**, e le righe
+sotto lo impedivano in tutti i casi tranne quello.
+
+Il bersaglio manca perché riordinando i membri il DOM si ricostruisce. ⚠️ **Da 1.18.1 quella finestra è più
+LARGA**: i caricamenti dei membri passano uno per volta dal tornello — ed è anche perché «il caricamento
+quando viene unito non è fluido», che non è un difetto ma il prezzo di §CM.
+
+✅ `preventDefault` + `stopImmediatePropagation` **sempre**, `getElementById` **dopo**.
+✅ `AncoraCheNonTrovaIlBersaglioTests` fissa **l'ordine** leggendo il JS: sul JS di prima falliscono tutt'e
+due. ⚠️ Conta i `return` **togliendo i commenti** — un presidio rosso per una spiegazione scritta bene si fa
+cancellare invece che leggere.
+
+### La trappola dell'attrezzatura
+
+⚠️ Passando `\b` per heredoc + Python, in un `.cs` è finito un **carattere di controllo** (`\x08`): non fa
+fallire un test, fa **cadere l'host dei test**. Tolto, e ricontrollati tutti i file toccati.
+
+### ▶ Che cosa resta
+
+- ⚠️ La NRE è **strumentata, non chiusa**: la prossima occorrenza deve portare il contesto.
+- ▶ **Rifare l'unione a tre di Gioia con 1.18.2 in barra**, poi mandare `errori-richieste.txt`: è l'unico
+  modo di sapere quale firma resta.
