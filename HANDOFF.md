@@ -1,7 +1,66 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 settembre 2026 (sera) — ✅ **1.18.1 è CARICATA.**
-Albero pulito e spinto, Release verde su tutti e quindici gli assiemi, 0 avvisi.
+**Ultimo aggiornamento:** 9 settembre 2026 (notte) — ✅ **1.18.2 è ONLINE, e provata DA FUORI.**
+Albero pulito e spinto, Release verde su tutti e quindici gli assiemi (11 151 test), 0 avvisi.
+
+✅ **1.18.2 — ONLINE dal 9 settembre notte.** Timbro `1.18.2 · 578300a`, sha256 dello zip `4e1ead40…`,
+**8 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.2.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.2.md).
+**PATCH**, **nessuna migrazione**. 🔴 **Porta `wwwroot`** — `vipi-ui.js` coi suoi `.br`/`.gz` e
+**insieme** a `Vipi.Host.staticwebassets.endpoints.json`.
+Porta **§CN**: quattro difetti nati da due segnalazioni sull'unione di Gioia del Colle, e
+**nessuno dei due sintomi aveva la causa che sembrava avere**.
+Carta [`docs/feature/2026-09-09-quattro-difetti-dal-campo.md`](docs/feature/2026-09-09-quattro-difetti-dal-campo.md).
+
+✅ **PROVATA DA FUORI, ed è la prova vera quando una consegna porta `wwwroot`**: il `vipi-ui.js`
+**servito** da `atc.it.ivao.aero` ha lo **stesso sha256** di quello dentro il pacchetto (`d6792968…`) —
+non «un'impronta diversa da prima»: la **stessa** del file spedito. E porta la regola giusta nel **merito**,
+non solo nell'impronta: nel minificato servito `e.preventDefault()` sta **prima** di `getElementById`.
+Più **otto** controlli di smoke pubblici verdi e `ancora-verifica.js` guidato **contro la produzione**
+(`/services/vsop/libb/vipi`): un'ancora senza bersaglio **non porta più via la pagina**.
+
+✅ E provata **sul pacchetto** prima di consegnarla: dieci controlli di smoke, più lo stesso
+`ancora-verifica.js` guidato su **DUE** pacchetti win-x64 — **1.18.1 porta via** (`-> /services`),
+**1.18.2 resta**. ⚠️ Il minificatore riscrive `wireAnchors` in espressioni-virgola: che l'ordine regga
+**dopo** la minificazione lo può stabilire solo una prova a schermo, non un test sul sorgente.
+
+I quattro difetti che chiude (o strumenta):
+
+1. 🔴 **Il rimbalzo in home era `wireAnchors`**, e l'ordine di quattro righe: `getElementById` stava
+   **prima** di `preventDefault`, con un `return` in mezzo. Sezione non nel DOM → la protezione si sfila →
+   il clic va all'intercettore di Blazor → con `<base href="/">` `#s-4256` diventa `/#s-4256`.
+   ⚠️ **Il commento due righe sopra lo diceva già in chiaro**, e le righe sotto lo impedivano in tutti i
+   casi tranne quello. ⚠️ L'atterraggio è **`/services`**, non `/`: un'asserzione `pathname === '/'`
+   sarebbe passata proprio sul caso da inchiodare.
+2. 🔴 **La ✕ non era inerte: era SPENTA.** `DocumentEditorShell.CodaAsync` aspettava il tornello
+   **senza tetto**, mentre `ChiudiAsync` due metodi sotto ne ha uno da sempre. `UnionPanel` accende
+   `_busy`, attende `Changed` che finisce lì, e se non torna il `finally` non gira: `InlineConfirm` ha
+   `disabled` sul tasto d'**innesco**. Ora tetto di **30 s**, e due porte diverse **volute**: un **gesto**
+   solleva (tasti riaccesi), un **caricamento** rinuncia e lo scrive (sollevare lì abbatterebbe il circuito
+   per un ritardo).
+3. **Una navigazione dentro il RICARICO**: `AirportSectionsEditor.LoadAsyncCore` aveva un
+   `NavigateTo(forceLoad)` nudo, e il ricarico lo fa scattare **ogni** gesto sull'unione. Decisione
+   estratta in `RimandoAllEdizioneMilitare.Serve`, con due guardie: **una volta sola** (è una decisione
+   d'ingresso) e **`Chrome`** (un membro non porta via la pagina dell'ospite).
+   ⚠️ Difetto vero, ma **non era il sintomo segnalato**: l'ha smentito la barra degli indirizzi.
+4. 🟡 **La NRE di render è STRUMENTATA, non chiusa**, ed è di `DocumentSectionsEditor` — il motore
+   che rendono **tutte e cinque** le famiglie, non dell'editor APP. Rete con `NoInlining` + rilancio col
+   contesto: `LinguaDelDocumento`, `Titolo` e `Offset` sono membri **corti** che in Release spariscono nel
+   chiamante, ed è il motivo per cui tre volte «sulla riga incolpata non c'è niente che possa essere
+   nullo». ▶ Se la prossima occorrenza dirà «documento=(NON caricato)», il rimedio è una guardia su `Doc`
+   — che è `[Parameter, EditorRequired] … = default!`, cioè un avviso al **chiamante in compilazione** e
+   nessuna garanzia a runtime.
+
+▶ **CHE COSA RESTA DA FARE, in ordine:**
+1. 🔴 **Il gesto di Gioia, col login** (da fuori non si raggiunge): unione a tre, spostare un membro
+   **su e giù** — la pagina deve **restare dov'è** — poi la **✕**, che deve aprire la conferma
+   **dentro la riga**.
+2. 🔴 **Il prossimo `errori-richieste.txt`**, unica prova vera che resta e **non a schermo**: devono
+   sparire le «A second operation» di `AppSectionsEditor` (conferma di **1.18.1**, ancora in sospeso), e se
+   ricompare la NRE di render arriva **con la sua spiegazione**.
+   ⚠️ **Sovrascrivere davvero i file in `diagnostica/`**: due volte è arrivata la stessa copia (impronte
+   identiche). E si controlla il **fuso** prima di dire «file vecchi»: mtime locale contro l'ultima riga
+   UTC — la prima lettura di questa tornata era sbagliata proprio lì.
 
 ✅ **1.18.1 — CARICATA dal committente il 9 settembre sera.** Timbro `1.18.1 · ba16e1c`, sha256 dello zip `ed78a32d…`,
 **6 file** — il più piccolo da mesi — foglio
