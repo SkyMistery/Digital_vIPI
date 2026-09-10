@@ -911,7 +911,56 @@
 
       Niente satellite inglese: nessuna .resx toccata. Li' comanda il DIFF, non l'impronta.
     -->
-    <VipiVersione>1.18.2</VipiVersione>
+    <!-- 1.19.0 - MINOR (10 settembre 2026). Porta SS.CO: il ripiego di un settore SOVRAPPOSTO si risolve
+      sul PUNTO, la scala di risalita, e due segnalazioni del committente (quote delle aree, NIL).
+
+      MINOR e non PATCH per due ragioni, ognuna sufficiente: c'e' una MIGRAZIONE (additiva) e ci sono
+      COMANDI NUOVI in pagina (il genere della riga di ripiego, il tasto «Come risale»).
+
+      Carta: docs/feature/2026-09-10-rinvio-geometrico.md
+
+      SI CONSEGNA DA SOLA. La migrazione e' `RinvioGeometrico` e fa UN `AddColumn` per provider
+      (`SectorFallbacks.TargetKind`, default `Callsign`): additiva, quindi spedibile anche dentro la
+      finestra cieca — la domanda che conta e' «puo' lasciare il database in uno stato da cui
+      l'applicazione non riparte?», e la risposta e' no. Presidio: MigrazioniDellaFinestraCiecaTests, che
+      in questa consegna ha FERMATO un `AlterColumn` prima che partisse.
+      ⚠️ A colonna nuova e nessun rinvio scritto il comportamento e' identico riga per riga a 1.18.2: la
+      funzione si ACCENDE scrivendo una riga, e in produzione non ce n'e' nessuna.
+
+      CHE COSA CAMBIA, in breve:
+
+        · Un ripiego puo' avere per bersaglio una DOMANDA — «chi copre questo punto, a questa quota,
+          adesso» — invece di un nome. Serve ai settori sovrapposti (MIL, FSS), che coprono tutto l'ACC e
+          quindi non sono il sottoalbero di nessuno: un `ParentCallsign` e' UN puntatore e non puo'
+          nominare i due settori d'area che stanno sotto.
+        · La SCALA DI RISALITA nei Trasferimenti: si selezionano le clausole, si preme «Come risale», e il
+          pannello mostra la discesa per intero col perche' di ogni gradino. Tetto a dieci PUNTI (non
+          clausole), scale identiche raggruppate.
+        · Tre rilievi nuovi in Diagnostica: «ricaduta che non copre la quota», «albero proiettato
+          divergente», «CoP senza posizione», piu' «trasferimento senza ripiego».
+        · 🔴 Le quote delle AREE escono in piedi. `MinimumAlt`/`MaximumAlt` sono piedi e passavano
+          dall'euristica dei SETTORI: su AT Basilicata (150 ft - 1000 ft) usciva FL150-FL151, cioe' un
+          prisma a 15 000 piedi. Tocca aree regolamentate, aree BOAT e volumi del KMZ.
+        · NIL: un blocco di prosa nasce dicendo NIL invece di «Nuovo testo...», e un testo che e' soltanto
+          NIL non passa il cancello della traduzione — quindi si legge uguale nelle due lingue.
+
+      I FILE. Il diff dei nomi fra 578300a e HEAD, limitato a src/, nomina SEI progetti: Application,
+      Domain, Hosting, Infrastructure, Infrastructure.MySqlMigrations, Ui. Piu' `Host`, che porta sempre il
+      timbro.
+      ⚠️ **La MySqlMigrations entra**, ed e' la cosa da non sbagliare qui: senza quel `.dll` la colonna non
+      viene creata, e il pacchetto SEMBRA funzionare — la funzione e' spenta finche' nessuno scrive una
+      riga, quindi non se ne accorgerebbe nessuno fino al primo tentativo di scriverla.
+      ⚠️ **wwwroot ENTRA**: `vipi-aor3d.js` (il testo della banda) e `vipi-theme.css` (la scala di
+      risalita), coi loro .br/.gz E con Vipi.Host.staticwebassets.endpoints.json — viaggiano insieme.
+      ⚠️ **Il satellite inglese ENTRA**: le `.resx` sono cambiate (trentotto chiavi nuove). Li' comanda il
+      DIFF, non l'impronta.
+
+      FIRME CAMBIATE, e chi le implementa: `SectorVolumeRow` guadagna `AccCode` (additivo, in fondo, con
+      default) e `AccSectorAor` guadagna `BandText`; `FallbackRow`/`FallbackStep` guadagnano `Kind`, sempre
+      in fondo con default; `SectorFallback.TargetCallsign` resta NOT NULL. Tutti i costruttori stanno in
+      Application e Infrastructure, tutt'e due nel pacchetto.
+    -->
+    <VipiVersione>1.19.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
