@@ -2,25 +2,30 @@
 
 ## Dove siamo — 10 settembre 2026
 
-📦 **1.19.0 È PRONTA E NON È CARICATA.** Timbro **`1.19.0 · 6f38e58`**, sha256 dello zip
-**`58b8260b…`**, **22 file**, 4,97 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md`.
-**MINOR**, e per due ragioni ognuna sufficiente: **una migrazione additiva** (`RinvioGeometrico`, un
-`AddColumn` per provider) e **comandi nuovi in pagina**.
-✅ **Si consegna da sola**, anche dentro la finestra cieca: la domanda che decide non è «c'è una
-migrazione?» ma «può lasciare il database in uno stato da cui l'applicazione non riparte?», e per un'additiva
-la risposta è no.
-✅ Provata **sul pacchetto** (win-x64, JS minificato): i **dieci** controlli di
-`pacchetto-verifica.js` verdi, timbro giusto in `avvio-diagnostica.txt`, e i due asset **servite dal
-pacchetto** portano il codice nuovo — `flText` in `vipi-aor3d.js`, `.xt-ladder` e `.fb-rinvio` in
-`vipi-theme.css`.
-✅ Impronte confrontate sulle cartelle pubblicate **intere**: su 90 asset gli unici diversi sono
-`vipi-aor3d.js` e `vipi-theme.css` coi loro compressi. ⚠️ `vipi-ui.js` risulta **identico** e resta fuori —
-il diff lo diceva, le impronte l'hanno verificato.
-🔴 **Le tre cose da non sbagliare al caricamento**: `Vipi.Infrastructure.MySqlMigrations.dll` (senza, la
-colonna non nasce e il pacchetto **sembra funzionare**, perché la funzione è spenta finché nessuno scrive
-una riga); `wwwroot` coi `.br`/`.gz` **e** `endpoints.json`; il satellite `en/`.
-▶ **E poi tocca ai dati**: la riga «copertura del punto» sui cinque MIL d'ACC, i tre padri di Roma, il
-ripiego di `LIMM_WS5_CTR` a FL325.
+✅ **1.19.0 È ONLINE** (10 settembre 2026), e **provata da fuori**. Timbro **`1.19.0 · 6f38e58`**,
+sha256 dello zip **`58b8260b…`**, **22 file**, 4,97 MB, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md`. **MINOR**: una **migrazione additiva** (`RinvioGeometrico`,
+un `AddColumn` per provider) e comandi nuovi in pagina.
+
+**Le prove, e sono quattro fatti, non un'impressione:**
+✅ I due asset **serviti da `atc.it.ivao.aero` hanno lo STESSO sha256** di quelli nel pacchetto
+(`vipi-aor3d.js` = `f67d7bca…`, `vipi-theme.css` = `d2c897a4…`) — non un'impronta diversa: la **stessa**.
+E `vipi-ui.js`, che nel pacchetto non c'era, è rimasto quello di 1.18.2.
+✅ **Otto controlli pubblici verdi** (`pacchetto-verifica.js` con `SOLO_PUBBLICO=1`), fra cui **la
+Ricerca**, che è quella che passa dal server e distingue un sito vivo da uno mezzo caricato.
+✅ **Timbro `1.19.0 · 6f38e58`** letto nella pagina, da dentro.
+✅ 🔴 **La migrazione È passata**, ed è il controllo che contava: in Diagnostica lo **Schema è 0**. Se
+`Vipi.Infrastructure.MySqlMigrations.dll` non fosse arrivato, il modello si aspetterebbe `TargetKind` e lo
+schema fisico non l'avrebbe — quella riga direbbe un numero diverso da zero.
+
+⚠️ **E il codice nuovo lavora sul dato vero**: il rilievo «Trasferimento senza ripiego» ha già trovato una
+cosa in produzione — `LIMM_WS2_CTR → LIMM_MIL_CTR`, cioè un trasferimento che, chiuso il ricevente, va su
+UNICOM mentre quel punto lo copre MIL. È una segnalazione, non una prescrizione: decidere se WS2 debba
+ricadere su MIL è del committente.
+
+▶ **Ora tocca ai DATI, a mano** — nessuna di queste si accende da sé: la riga «copertura del punto» sui
+cinque MIL d'ACC; i **tre padri di Roma** (`LIRR_MIL_CTR`, `LIRR_FSS`, `LIRR_PLN_FSS` sono radici ⇒
+UNICOM); il ripiego di `LIMM_WS5_CTR` a FL325.
 
 Porta **§CO** (il rinvio geometrico + la scala di risalita) e le **due segnalazioni** del 10 settembre: le
 quote delle aree in piedi e NIL.
@@ -11000,5 +11005,6 @@ di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella p
   che la riga su ES5 chiude. Una riga sola, e la trova il rilievo nuovo.
 - 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
   Roma ha cinque radici in tutto: da guardare col committente.
-- ✅ **FUSA in `main`** il 10 settembre 2026, merge `e99a66f8`, dodici commit, ramo cancellato, spinta su
-  origin. 📦 **E impacchettata in 1.19.0** (`1.19.0 · 6f38e58`, 22 file), che **non è ancora caricata**.
+- ✅ **FUSA in `main`** (merge `e99a66f8`, dodici commit, ramo cancellato) e ✅ **ONLINE in 1.19.0** dal
+  10 settembre 2026, provata da fuori: asset serviti con lo stesso sha del pacchetto, Ricerca viva, timbro
+  `1.19.0 · 6f38e58`, e **Schema 0** in Diagnostica — cioè la migrazione è passata.
