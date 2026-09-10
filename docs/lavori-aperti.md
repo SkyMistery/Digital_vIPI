@@ -10871,3 +10871,51 @@ fallire un test, fa **cadere l'host dei test**. Tolto, e ricontrollati tutti i f
 - ⚠️ La NRE è **strumentata, non chiusa**: la prossima occorrenza deve portare il contesto.
 - ▶ **Rifare l'unione a tre di Gioia con 1.18.2 in barra**, poi mandare `errori-richieste.txt`: è l'unico
   modo di sapere quale firma resta.
+
+## §CO — Il ripiego di un settore sovrapposto si risolve sul PUNTO — 10 settembre 2026
+
+📄 **Carta scritta, codice ZERO.** [`feature/2026-09-10-rinvio-geometrico.md`](feature/2026-09-10-rinvio-geometrico.md).
+
+**Il fatto, letto in produzione.** `LIMM_MIL_CTR` ha una catena sola — `→ LIMM_WS2_CTR` (padre), nient'altro
+— quindi MIL chiuso manda **sempre** a WS2, da qualunque cedente e per qualunque punto. Il committente
+chiede due comportamenti diversi: da Ghedi (`LIPX_ES0_APP`) deve andare a **ES2**, da `LIMC_ANE_APP` a
+**ES2 se il punto è a est** e a **WS2 se è a ovest**. 🔴 Un `ParentCallsign` è **un** puntatore: MIL copre
+SFC–UNL su tutto l'ACC, sotto di lui ci sono ES2 **e** WS2, e oltre confine LIPP. Non è impostato male —
+è **inesprimibile**.
+
+⚠️ **I cinque assetti d'ACC (WS2/ES2/WS5/ES5) funzionano GIÀ**, verificati contro l'albero di produzione. E
+**due di quei cinque poggiano su UNA riga** (`LIMM_ES5_CTR`, FL325–UNL → WS5): cancellandola non compare
+nessun errore, il traffico continua a ricadere sul settore sbagliato.
+
+🔴 **Scartata l'idea «riparti dal cedente»**: cade su ANE, dove dal **medesimo** cedente alla **medesima**
+quota due punti vogliono due riceventi. Il discriminante non è chi cede, è **dov'è il punto**.
+
+**La proposta.** Un bersaglio di ripiego che non è un callsign ma una domanda — ⟨la copertura di questo
+punto⟩ — risolta con i motori che già girano per le statistiche (`SectorVolumeMap.BuildClaims` +
+`TrafficAttribution.AttributeClaim`). **Non è un secondo albero**: la profondità è `ParentCallsign` e il
+collasso è la gerarchia; la geometria decide solo **in quale ramo** ti trovi. Una riga per ognuno dei
+cinque MIL d'ACC, e basta.
+
+Tre cose che decidono se funziona, tutt'e tre nella carta:
+
+- ⚠️ **Filtro di rango**, o la risposta è sbagliata quasi sempre: quasi ogni CoP sta dentro un APP **e**
+  dentro l'ACC, e l'APP è più profondo. Un poligono d'APP è spazio aereo, non titolarità del flusso.
+- 🔴 **`BuildClaims` collassa con `CoverageResolver.Owners`, che le righe di ripiego NON le conosce**: usarlo
+  com'è farebbe rispondere geometria e catena **in modo diverso** sullo stesso ES5 — «due alberi», per la
+  terza volta. Il collassatore diventa un parametro; le statistiche restano com'erano, per scelta dichiarata.
+- ⚠️ **`Y01-Y12` non è un punto**, ed è il codice a dirlo già (`NavaidCheck`: 52 token CoP su 62 sono
+  verificabili). Per i tratti di confine il rinvio **non risponde** e lo dice; la risposta la scrive una
+  persona.
+
+**Prerequisito misurato:** `Navaids` ha **149 righe, solo VHF e NDB, zero Fix** — i CoP di Milano sono in
+maggioranza fix di 5 lettere, le cui coordinate stanno in un catalogo caricato **via HTTP all'import**.
+Prima slice utile: persistere i fix.
+
+### ▶ Che cosa resta
+
+- ▶ **Nove slice**, la prima è riallineare il `vipi.db` di sviluppo alla produzione (da noi ES5 è figlio di
+  WS5 invece che di ES2, e la riga locale ha il piede a **32 500 000 ft**): finché è così, i test del caso
+  verticale provano una struttura che non esiste.
+- 🔴 **Da chiudere a mano in produzione, indipendente da tutto**: `LIRR_MIL_CTR`, `LIRR_FSS` e
+  `LIRR_PLN_FSS` sono **radici** — chiusi, il traffico va su **UNICOM**. E Roma ha cinque radici in tutto:
+  da guardare col committente.
