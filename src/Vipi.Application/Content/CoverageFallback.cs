@@ -72,6 +72,29 @@ public static class CoverageFallback
     };
 
     /// <summary>
+    /// Vero se il callsign è un servizio <b>informazioni</b> (<c>…_FSS</c>).
+    ///
+    /// <para>🔴 <b>Perché si guarda il nome e non il tipo.</b> <see cref="SectorType"/> un valore
+    /// <c>Fss</c> non ce l'ha: nella proiezione un FSS è tipato <see cref="SectorType.Ctr"/>, quindi il
+    /// filtro di rango non lo distingue da un ente di controllo. Il suffisso è l'unico dato che lo dice, e
+    /// il progetto lo legge già così altrove (<c>ForeignSectorCallsign</c>, <c>FrequencyPositions</c>).</para>
+    ///
+    /// <para>⚠️ <b>Trovato dal vivo il 10 settembre 2026, non dai test.</b> Su Milano <c>LIMM_FSS</c> è
+    /// SFC–FL195: una banda <b>più stretta</b> di quella di <c>LIMM_ES2_CTR</c> (SFC–FL325), e alla stessa
+    /// profondità. Vinceva lui su ogni punto sotto FL195 — e, essendo chiuso, mandava il traffico al suo
+    /// proprietario. Il primo giro dal vivo ha risposto <c>LIMM_WS2_CTR</c> dove doveva rispondere
+    /// <c>LIMM_ES2_CTR</c>. Un trasferimento fra enti di <b>controllo</b> non si delega a un servizio
+    /// informazioni; se il ricevente nominale è a sua volta un FSS, invece, è legittimo.</para>
+    /// </summary>
+    public static bool Informazioni(string? callsign)
+    {
+        var cs = (callsign ?? "").Trim();
+        if (cs.Length == 0) return false;
+        var taglio = cs.LastIndexOf('_');
+        return taglio >= 0 && cs.AsSpan(taglio + 1).Equals("FSS".AsSpan(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Chi raccoglie il traffico di <paramref name="cop"/> quando il ricevente nominale è chiuso.
     /// </summary>
     /// <param name="cop">Il punto di trasferimento, come è scritto nella clausola.</param>
@@ -86,6 +109,10 @@ public static class CoverageFallback
     /// <c>LIPX_ES0_APP</c> — e chi consegna non può essere chi raccoglie.
     /// </param>
     /// <param name="accDi">callsign → codice ACC, per lo spareggio «stesso centro».</param>
+    /// <param name="riceventeCallsign">
+    /// Il ricevente nominale, per nome. Serve a una cosa sola: sapere se è un <b>FSS</b>, e quindi se un FSS
+    /// può raccogliere. Vedi <see cref="Informazioni"/>.
+    /// </param>
     public static CoverageFallbackResult Resolve(
         string? cop,
         int? levelFeet,
@@ -94,7 +121,8 @@ public static class CoverageFallback
         SectorType tipoRicevente,
         string? accRicevente,
         IReadOnlySet<string> fuoriGioco,
-        Func<string, string?> accDi)
+        Func<string, string?> accDi,
+        string? riceventeCallsign = null)
     {
         // ⚠️ Prima «che cosa è questo token», poi «che quota ha»: sono due frasi diverse per chi legge, e la
         // prima è quella che dice all'admin che non c'è niente da aggiustare.
@@ -103,8 +131,10 @@ public static class CoverageFallback
         if (levelFeet is not int ft) return CoverageFallbackResult.No(CoverageFallbackOutcome.NoLevel);
 
         var soglia = Rango(tipoRicevente);
+        var informazioniAmmesse = Informazioni(riceventeCallsign);
         var ammessi = claims.Where(c =>
             Rango(c.Type) >= soglia
+            && (informazioniAmmesse || !Informazioni(c.Volume.Callsign))
             && !fuoriGioco.Contains(c.Volume.Callsign)
             && !fuoriGioco.Contains(c.SessionCallsign)).ToList();
 

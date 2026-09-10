@@ -27,6 +27,7 @@ public class CoverageFallbackTests
     private const string Ws2 = "LIMM_WS2_CTR", Es2 = "LIMM_ES2_CTR", Ws5 = "LIMM_WS5_CTR", Es5 = "LIMM_ES5_CTR";
     private const string Mil = "LIMM_MIL_CTR", Ane = "LIMC_ANE_APP", Es0 = "LIPX_ES0_APP", Ade = "LIME_ADE_APP";
     private const string PpCe1 = "LIPP_CE1_CTR", PpMil = "LIPP_MIL_CTR";
+    private const string Fss = "LIMM_FSS";
 
     private const int Split = 32500;
 
@@ -52,6 +53,9 @@ public class CoverageFallbackTests
         Riga(Es5, Es2, SectorType.Ctr, Est, Split, null),
         // ⚠️ MIL: tutta la FIR, SFC–UNL. Piu' alto del suo stesso padre — ed e' il fatto da cui nasce tutto.
         Riga(Mil, Ws2, SectorType.Ctr, Fir, 0, null),
+        // ⚠️ L'FSS: tutta la FIR, SFC–FL195. Nella proiezione e' tipato Ctr, e la sua banda e' PIU' STRETTA
+        // di quella di ES2 — quindi a pari profondita' vincerebbe lui. E' il difetto trovato dal vivo.
+        Riga(Fss, Ws2, SectorType.Ctr, Fir, 0, 19500),
         Riga(Ane, Ws2, SectorType.App, TmaMalpensa, 0, 19500),
         Riga(Ade, Ane, SectorType.App, TmaBergamo, 0, 19500),
         Riga(Es0, Es2, SectorType.App, TmaGhedi, 0, 19500),
@@ -62,13 +66,13 @@ public class CoverageFallbackTests
     private static readonly Dictionary<string, string?> Padri = new(StringComparer.OrdinalIgnoreCase)
     {
         [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2, [Mil] = Ws2,
-        [Ane] = Ws2, [Ade] = Ane, [Es0] = Es2, [PpCe1] = null, [PpMil] = PpCe1,
+        [Ane] = Ws2, [Ade] = Ane, [Es0] = Es2, [PpCe1] = null, [PpMil] = PpCe1, [Fss] = Ws2,
     };
 
     private static readonly Dictionary<string, string> AccDi = new(StringComparer.OrdinalIgnoreCase)
     {
         [Ws2] = "LIMM", [Es2] = "LIMM", [Ws5] = "LIMM", [Es5] = "LIMM", [Mil] = "LIMM",
-        [Ane] = "LIMM", [Ade] = "LIMM", [Es0] = "LIMM", [PpCe1] = "LIPP", [PpMil] = "LIPP",
+        [Ane] = "LIMM", [Ade] = "LIMM", [Es0] = "LIMM", [PpCe1] = "LIPP", [PpMil] = "LIPP", [Fss] = "LIMM",
     };
 
     /// <summary>La riga vera che sta in produzione su ES5, per non perdere la famiglia «dipende dalla quota».</summary>
@@ -117,7 +121,8 @@ public class CoverageFallbackTests
             tipoRicevente: Settori.First(s => s.Callsign == ricevente).Type,
             accRicevente: AccDi.GetValueOrDefault(ricevente),
             fuoriGioco: Dominio(cedente),
-            accDi: cs => AccDi.GetValueOrDefault(cs));
+            accDi: cs => AccDi.GetValueOrDefault(cs),
+            riceventeCallsign: ricevente);
 
     // =====================================================================================================
     //  I casi del committente
@@ -204,6 +209,40 @@ public class CoverageFallbackTests
         var sogliaBassa = CoverageFallback.Resolve("NELAB", 14000, Punti, Claims(Online(Ade, Es2, Ws2), 14000),
             SectorType.App, "LIMM", Dominio(Es0), cs => AccDi.GetValueOrDefault(cs));
         Assert.Equal(Ade, sogliaBassa.TargetCallsign);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Un FSS non raccoglie un trasferimento fra enti di CONTROLLO</b>, e il filtro di rango da solo non
+    /// basta a dirlo: nella proiezione un FSS e' tipato <c>Ctr</c>. Trovato dal vivo il 10 settembre 2026 —
+    /// <c>LIMM_FSS</c> e' SFC–FL195, cioe' <b>piu' stretto</b> di ES2, e vinceva lui su ogni punto sotto
+    /// FL195. Essendo chiuso mandava il traffico al suo proprietario: la prima prova dal vivo ha risposto
+    /// WS2 dove doveva rispondere ES2.
+    /// </summary>
+    [Fact]
+    public void Un_FSS_non_raccoglie_un_trasferimento_fra_enti_di_controllo()
+    {
+        var online = Online(Es2, Ws2);
+
+        var r = Risolvi("NELAB", 14000, cedente: Es0, ricevente: Mil, online);
+        Assert.Equal(Es2, r.TargetCallsign);
+
+        // La mutazione: senza il nome del ricevente il filtro non si applica, e vince la banda piu' stretta —
+        // l'FSS, chiuso, che porta il traffico al suo proprietario WS2.
+        var senzaFiltro = CoverageFallback.Resolve("NELAB", 14000, Punti, Claims(online, 14000),
+            SectorType.Ctr, "LIMM", Dominio(Es0), cs => AccDi.GetValueOrDefault(cs), riceventeCallsign: Fss);
+        Assert.Equal(Ws2, senzaFiltro.TargetCallsign);
+    }
+
+    /// <summary>Se pero' il ricevente nominale e' a sua volta un FSS, un FSS puo' raccogliere.</summary>
+    [Fact]
+    public void Fra_FSS_il_ripiego_su_un_FSS_e_legittimo()
+    {
+        var online = Online(Fss, Es2, Ws2);
+
+        var r = CoverageFallback.Resolve("NELAB", 14000, Punti, Claims(online, 14000),
+            SectorType.Ctr, "LIMM", Dominio(Es0), cs => AccDi.GetValueOrDefault(cs), riceventeCallsign: "LIPP_FSS");
+
+        Assert.Equal(Fss, r.TargetCallsign);
     }
 
     /// <summary>

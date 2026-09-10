@@ -78,7 +78,8 @@ public sealed class CoverageFallbackContext
             tipoRicevente: ricevente?.Type ?? SectorType.Ctr,
             accRicevente: ricevente?.AccCode,
             fuoriGioco: Dominio(cedente),
-            accDi: cs => _perCallsign.GetValueOrDefault(cs)?.AccCode);
+            accDi: cs => _perCallsign.GetValueOrDefault(cs)?.AccCode,
+            riceventeCallsign: riceventeNominale);
     }
 
     /// <summary>Come lo vuole <see cref="FallbackChain.Candidates"/>.</summary>
