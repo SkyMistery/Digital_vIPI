@@ -81,9 +81,7 @@ else
     private string Scope() => "reg-" + (string.IsNullOrWhiteSpace(BlockKey) ? "x" : BlockKey);
 
 
-    // Banda di quota, come la scriveva l'elenco di prima: un valore solo se coincidono, GND per lo zero.
+    // ⚠️ La porta unica: la stessa che scrive la banda sulla MAPPA. Vedi AorFlBand.FeetBand.
     private static string Band(AccSpecialAreaView a) =>
-        a.MinimumAlt == a.MaximumAlt ? Alt(a.MaximumAlt) : $"{Alt(a.MinimumAlt)} – {Alt(a.MaximumAlt)}";
-
-    private static string Alt(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
+        AorFlBand.FeetBand(a.MinimumAlt, a.MaximumAlt);
 }

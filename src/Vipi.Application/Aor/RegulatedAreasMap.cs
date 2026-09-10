@@ -37,7 +37,10 @@ public static class RegulatedAreasMap
         var sectors = new List<AccSectorAor>(areas.Count);
         foreach (var a in areas)
         {
-            var (bottom, top) = AorFlBand.Normalize(a.MinimumAlt, a.MaximumAlt);
+            // 🔴 `FromFeet`, non `Normalize`: MinimumAlt/MaximumAlt dell'API IVAO sono PIEDI, e l'euristica
+            // dei settori rompeva tutte le aree basse — su `AT Basilicata` (150 ft – 1000 ft) usciva
+            // FL150–FL151, cioè un prisma a 15 000 piedi. Segnalato dal committente il 10 settembre 2026.
+            var (bottom, top) = AorFlBand.FromFeet(a.MinimumAlt, a.MaximumAlt);
             sectors.Add(new AccSectorAor(
                 Callsign: a.IvaoId,
                 Name: a.Name,
@@ -45,7 +48,10 @@ public static class RegulatedAreasMap
                 Polygons: a.Shape is null ? Array.Empty<AppAorPolygon>() : new[] { a.Shape },
                 LowerFl: bottom,
                 UpperFl: top,
-                Label: ChipLabel(a)));
+                Label: ChipLabel(a),
+                // ⚠️ Il testo lo scrive chi sa l'unità, e lo scrive UNA volta: la mappa e la tabella che le
+                // sta sotto devono dire la stessa cosa della stessa area.
+                BandText: AorFlBand.FeetBand(a.MinimumAlt, a.MaximumAlt)));
         }
 
         // Il posto delle chip-configurazione lo prendono i preset per TIPO: stesso contratto («accendi

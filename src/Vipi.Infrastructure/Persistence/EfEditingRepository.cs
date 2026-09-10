@@ -705,7 +705,11 @@ public sealed class EfEditingRepository : IEditingRepository
             Format = format,
             Tier = tier,
             Visibility = visibility,
-            Body = format == BlockFormat.Prose ? "Nuovo testo…" : null,
+            // ⚠️ Un blocco di prosa nasce dicendo NIL, non «Nuovo testo…»: in un documento operativo «NIL»
+            // vuol dire «qui non c'è niente, e non è una dimenticanza», ed è già la cosa giusta da leggere se
+            // nessuno ci scrive. Il segnaposto invece era una frase che nessuno voleva pubblicare — e che il
+            // motore di traduzione avrebbe pure tradotto. La costante è quella del cancello che la esclude.
+            Body = format == BlockFormat.Prose ? Vipi.Application.Translation.TranslationText.Nil : null,
             RowVersion = Guid.NewGuid().ToByteArray(),
         };
         _db.ContentBlocks.Add(block);

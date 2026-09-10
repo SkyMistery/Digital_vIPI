@@ -288,7 +288,9 @@
             el.style.color = s._ink || '';
             el.title = s.name || s.label || s.sec || '';
             var nm = document.createElement('b'); nm.textContent = s.label || s.sec || s.name || '';
-            var fl = document.createElement('i'); fl.textContent = 'FL' + (b[0] || 0) + '–' + (b[1] || 660);
+            // Il testo della banda lo scrive C# quando sa l'unita' (aree regolamentate, volumi del KMZ:
+            // piedi); per i settori, dove l'unita' non e' tracciata, resta il FL calcolato.
+            var fl = document.createElement('i'); fl.textContent = s.flText || ('FL' + (b[0] || 0) + '–' + (b[1] || 660));
             el.appendChild(nm); el.appendChild(fl);
             // Il pointerdown NON deve arrivare allo stage: là parte l'orbita e con essa setPointerCapture, che
             // ridirige il pointerup sullo stage — il click finirebbe sull'antenato comune e l'etichetta non lo
@@ -471,7 +473,8 @@
             box.innerHTML = sectors.map(function (s, i) {
                 var b = s.fl || [0, 660];
                 return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || s.label || '') + '"><span class="sw" style="background:' + hex(s.color) +
-                    '"></span>' + esc(s.label || s.sec || s.name || '') + '<span class="fl">FL' + (b[0] || 0) + '–' + (b[1] || 660) + '</span></div>';
+                    '"></span>' + esc(s.label || s.sec || s.name || '') + '<span class="fl">' +
+                    esc(s.flText || ('FL' + (b[0] || 0) + '–' + (b[1] || 660))) + '</span></div>';
             }).join('');
             box.querySelectorAll('.lg-row').forEach(function (r) {
                 r.addEventListener('click', function () {

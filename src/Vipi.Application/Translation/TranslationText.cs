@@ -111,14 +111,45 @@ public static partial class TranslationText
     }
 
     /// <summary>
+    /// La parola con cui un documento dice «qui non c'è niente, e non è una dimenticanza». È la stessa in
+    /// italiano e in inglese, ed è il motivo per cui non si traduce.
+    ///
+    /// <para>⚠️ Sta qui, accanto al cancello che la riconosce, e non in due posti: la usa anche il blocco di
+    /// prosa appena creato (<c>EfEditingRepository.AddBlockAsync</c>), che nasce dicendo NIL invece di
+    /// «Nuovo testo…». Se le due stringhe divergessero, un blocco nuovo verrebbe spedito al motore di
+    /// traduzione.</para>
+    /// </summary>
+    public const string Nil = "NIL";
+
+    /// <summary>
+    /// Vero se il testo <b>è soltanto</b> <see cref="Nil"/> — a parte gli spazi, le maiuscole e un punto
+    /// finale.
+    ///
+    /// <para>⚠️ Stretto di proposito: <c>«NIL for runway 07»</c> ha del contenuto e <b>deve</b> passare. Qui
+    /// si riconosce la sola parola, non la parola dentro una frase.</para>
+    /// </summary>
+    public static bool IsNilOnly(string? raw)
+    {
+        var t = (raw ?? "").Trim();
+        if (t.EndsWith('.')) t = t[..^1].TrimEnd();
+        return t.Equals(Nil, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
     /// Vero se in questo testo c'è qualcosa da tradurre: almeno una lettera. <c>"126.850"</c>, <c>"—"</c>,
     /// <c>"1 / 2"</c> non ne hanno.
     /// <para>⚠️ È un filtro <b>grossolano</b> e sta qui solo per non spedire l'ovvio: <c>"16R"</c> HA una
     /// lettera e passa questo cancello. A riconoscere gli identificatori pensa il protettore (§3a), che è
     /// un'altra cosa e arriva dopo.</para>
+    ///
+    /// <para>⚠️ <b><see cref="Nil"/> non si traduce</b>, e questo è l'unico posto dove serve dirlo: il
+    /// cancello è uno, e chi lo attraversa decide chi finisce nella memoria, chi va al motore e chi conta
+    /// come «da tradurre» nel cruscotto. Escluderlo qui lo esclude in tutt'e tre, e a schermo la parola si
+    /// legge <b>uguale nelle due lingue</b> perché quel che non è tradotto resta com'è
+    /// (<see cref="TranslationLookup"/>). Chiesto dal committente il 10 settembre 2026.</para>
     /// </summary>
     public static bool HasSomethingToTranslate(string? raw) =>
-        !string.IsNullOrWhiteSpace(raw) && QualcheLettera().IsMatch(raw);
+        !string.IsNullOrWhiteSpace(raw) && QualcheLettera().IsMatch(raw) && !IsNilOnly(raw);
 
     /// <summary>
     /// Ripara il <b>grassetto</b> di una traduzione: se i marcatori <c>**</c> non sono più tanti quanti

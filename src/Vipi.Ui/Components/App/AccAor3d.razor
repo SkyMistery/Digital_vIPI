@@ -56,7 +56,7 @@
     // vipi-aor3d.js re-inizializza. ⚠️ Ci vanno anche le bande dei singoli anelli: due zone che si scambiano
     // le quote lasciano l'inviluppo identico, e senza questo il viewer resterebbe su quello di prima.
     private string Signature() => string.Join("|", View.Sectors.Select(s =>
-        $"{s.Callsign}:{s.Label}:{s.Color}:{s.LowerFl}:{s.UpperFl}:" +
+        $"{s.Callsign}:{s.Label}:{s.Color}:{s.LowerFl}:{s.UpperFl}:{s.BandText}:" +
         string.Join(",", s.Polygons.Select(p => $"{p.LowerFl}-{p.UpperFl}"))));
 
     private string SectorsJson() => JsonSerializer.Serialize(
@@ -74,6 +74,10 @@
             color = s.Color,
             rings = s.Polygons.Select(p => p.Points),
             fl = new[] { s.LowerFl ?? AorFlBand.Ground, s.UpperFl ?? AorFlBand.Unlimited },
+            // ⚠️ Il testo della banda, quando chi ha costruito la vista sa l'unità vera: il JS scriveva
+            // «FL» davanti ai due numeri, e per un'area a 150 piedi diceva una cosa falsa. Assente = il JS
+            // ricade su «FL…–FL…», che per i settori è giusto.
+            flText = s.BandText,
             // ⚠️ La banda di OGNI anello: un CTR di piu' zone ne ha una per zona, e l'inviluppo `fl` da solo
             // disegnerebbe un parallelepipedo che rivendica cielo che il settore non ha (carta refactor 15).
             // Gli snapshot di release congelati prima non le hanno: li' i due valori sono null e si ricade

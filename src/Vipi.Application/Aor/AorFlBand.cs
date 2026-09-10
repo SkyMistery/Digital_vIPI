@@ -29,6 +29,45 @@ public static class AorFlBand
         return (bottom, top);
     }
 
+    /// <summary>
+    /// La stessa banda, ma per limiti che sono <b>certamente in piedi</b>: nessuna euristica, si divide e
+    /// basta.
+    ///
+    /// <para>🔴 <b>Perché serve una porta a parte.</b> L'euristica di <see cref="Normalize"/> esiste perché i
+    /// limiti di <i>settore</i> non dichiarano l'unità. Le <b>aree regolamentate</b> (<c>MinimumAlt</c>/
+    /// <c>MaximumAlt</c> dall'API IVAO) e i <b>volumi del KMZ</b> (<c>BaseFeet</c>/<c>TopFeet</c>) la
+    /// dichiarano: sono piedi. Passarli dall'euristica rompe tutte le aree <b>basse</b> — e sono proprio
+    /// quelle a bassa quota (BOAT) il caso d'uso. Misurato su <c>AT Basilicata</c>, 150 ft – 1000 ft: il
+    /// piede restava 150 e veniva letto «FL150», il tetto diventava FL10, e siccome il tetto finiva
+    /// <b>sotto</b> il piede la banda degenerava a FL150–FL151. Cioè un prisma disegnato a 15 000 piedi,
+    /// alto cento, per un'area che sta fra 150 e 1000 piedi.</para>
+    /// </summary>
+    public static (int Bottom, int Top) FromFeet(int? lowerFeet, int? upperFeet)
+    {
+        var bottom = lowerFeet is { } lo ? FeetToFl(lo) : Ground;
+        var top = upperFeet is { } up ? FeetToFl(up) : Unlimited;
+        if (top <= bottom) top = bottom + 1;
+        return (bottom, top);
+    }
+
+    /// <summary>
+    /// Il testo di una quota <b>in piedi</b>: <c>GND</c> per lo zero, <c>—</c> per il nulla, altrimenti i
+    /// piedi con l'unità scritta.
+    ///
+    /// <para>⚠️ Sta qui e non in due componenti perché la mappa e la tabella che le sta sotto devono dire la
+    /// <b>stessa</b> cosa: prima la tabella diceva «150 ft» e la mappa «FL150», della stessa area.</para>
+    /// </summary>
+    public static string FeetLabel(int? feet) =>
+        feet is null ? "—" : feet.Value <= 0 ? "GND" : $"{feet.Value} ft";
+
+    /// <summary>La banda in piedi come si legge: un valore solo se piede e tetto coincidono.</summary>
+    public static string FeetBand(int? lowerFeet, int? upperFeet) =>
+        lowerFeet == upperFeet ? FeetLabel(upperFeet) : $"{FeetLabel(lowerFeet)} – {FeetLabel(upperFeet)}";
+
+    /// <summary>Piedi → FL, senza euristica: è la conversione, non un'ipotesi.</summary>
+    private static int FeetToFl(int feet) =>
+        feet <= 0 ? Ground : (int)System.Math.Round(feet / 100.0);
+
     private static int ToFl(int v)
     {
         if (v < 0) v = 0;

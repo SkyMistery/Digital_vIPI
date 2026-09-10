@@ -124,9 +124,8 @@
 
     private Task ScriviNota(string id, string? testo) => OnSetNote.InvokeAsync((id, testo));
 
-    // Come la mappa: un valore solo se coincidono, GND per lo zero.
+    // ⚠️ La porta unica: la stessa che scrive la banda sulla MAPPA. Erano due copie della stessa regola, e
+    // il 10 settembre 2026 la mappa ha smesso di dire quel che diceva la tabella (FL150 contro 150 ft).
     private static string Banda(AccSpecialAreaView a) =>
-        a.MinimumAlt == a.MaximumAlt ? Alt(a.MaximumAlt) : $"{Alt(a.MinimumAlt)} – {Alt(a.MaximumAlt)}";
-
-    private static string Alt(int? alt) => alt is null ? "—" : (alt.Value <= 0 ? "GND" : $"{alt.Value} ft");
+        Vipi.Application.Aor.AorFlBand.FeetBand(a.MinimumAlt, a.MaximumAlt);
 }

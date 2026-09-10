@@ -230,7 +230,8 @@ public sealed class AccCoordination
 /// coprirebbe la prima e il confronto non direbbe niente.</param>
 public sealed record AccSectorAor(
     string Callsign, string Name, string Color, IReadOnlyList<AppAorPolygon> Polygons,
-    int? LowerFl = null, int? UpperFl = null, string? Label = null, bool Dashed = false);
+    int? LowerFl = null, int? UpperFl = null, string? Label = null, bool Dashed = false,
+    string? BandText = null);
 
 /// <summary>Selezione di configurazione per la mappa: quali settori accendere.</summary>
 public sealed record AccConfigSelection(string Key, string Name, IReadOnlyList<string> OpenCallsigns);

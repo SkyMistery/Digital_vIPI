@@ -60,7 +60,9 @@ public static class AirspaceMap
             var poly = AorPolygonProjector.Project(v.PolygonJson);
             if (poly is null) continue;
 
-            var (bottom, top) = AorFlBand.Normalize(v.BaseFeet, v.TopFeet);
+            // 🔴 `FromFeet`: BaseFeet/TopFeet lo dicono nel nome. Stessa famiglia del difetto delle aree
+            // regolamentate — l'euristica dei settori qui non ha niente da indovinare.
+            var (bottom, top) = AorFlBand.FromFeet(v.BaseFeet, v.TopFeet);
             anelli.Add(new AccSectorAor(
                 Callsign: ChiaveVolume + v.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 Name: $"{v.Name} · {v.BandLabel}",
