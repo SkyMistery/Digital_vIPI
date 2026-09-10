@@ -111,6 +111,21 @@ public sealed record ConsistencyFinding(string Category, ConsistencySeverity Sev
 public sealed record TransferConditionRow(int ClauseId, string AccCode, string Points,
     int? ConditionRefId, string? ConditionLabel, string? ConditionAreaLabel);
 
+/// <summary>
+/// Un campo marcato <b>solo militare</b> che ha comunque una vIPI civile in archivio.
+///
+/// <para>⚠️ Non è di per sé un difetto: la guardia blocca la <b>nascita</b> di una vIPI civile su un campo
+/// solo militare, non l'<b>apertura</b> di una che c'era già — e la via d'uscita (nascondere, o eliminare)
+/// è un gesto editoriale che nessuno deve fare al posto di chi decide. Diventa un rilievo solo quando quel
+/// documento è ancora <b>visibile</b>, o quando resta <b>unito</b> al vSOP.</para>
+/// </summary>
+/// <param name="CivileVisibile">La vIPI civile si vede dal web: ha una release in vigore, non è nascosta, e
+/// nemmeno l'aeroporto lo è. Sono le tre condizioni che il caricatore pubblico chiede, tutte e tre.</param>
+/// <param name="UnitaAlVsop">La vIPI civile e il vSOP dello stesso campo stanno nella <b>stessa</b> unione.
+/// <para>⚠️ Conta anche a documento nascosto: la pubblicazione accoppiata <b>non guarda</b> <c>IsHidden</c>,
+/// quindi ogni pubblicazione del vSOP crea una release anche per un documento che nessuno vede.</para></param>
+public sealed record CampoSoloMilitareRow(string Icao, string AccCode, bool CivileVisibile, bool UnitaAlVsop);
+
 /// <summary>Nodo dei cataloghi che dichiara un padre di copertura per callsign (soft-ref cross-catalogo, no FK).</summary>
 /// <param name="Kind">Che cosa è il nodo, in chiaro: «Settore ACC», «Settore APT», «Aeroporto».</param>
 /// <param name="KindKey">La stessa cosa come chiave di traduzione, per chi il rilievo lo mostra.</param>
@@ -190,6 +205,9 @@ public sealed class ConsistencyDataset
 
     /// <summary>Tutti i punti di trasferimento, uno per riga: la base della scala di risalita.</summary>
     public IReadOnlyList<TransferLadderRow> TransferLadders { get; init; } = Array.Empty<TransferLadderRow>();
+
+    /// <summary>I campi solo militari che hanno comunque una vIPI civile. Vuoto = niente da dire.</summary>
+    public IReadOnlyList<CampoSoloMilitareRow> CampiSoloMilitari { get; init; } = Array.Empty<CampoSoloMilitareRow>();
 }
 
 /// <summary>La banda verticale di un settore, coi limiti <b>grezzi</b> del catalogo (l'unità non è tracciata

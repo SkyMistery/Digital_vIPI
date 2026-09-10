@@ -2,6 +2,42 @@
 
 ## Dove siamo — 10 settembre 2026
 
+🆕 **§CU: UN CAMPO «SOLO MILITARE» CON UNA vIPI CIVILE ADESSO SI DICE, E DICE COME USCIRNE.** Chiesto dal
+committente prima di caricare 1.20.0: *«se un aeroporto per cui esistono già vIPI e vSOP viene marcato come
+military only, cosa succede?»*
+**Risposta misurata: niente si rompe, e niente aiuta.** Il toggle fa un controllo solo («deve avere presenza
+militare») e scrive il flag; la vIPI civile resta viva, modificabile e **pubblicata**, l'elenco pubblico non
+filtra, e la pagina civile mostra «solo militare» **accanto al proprio titolo** — si contraddice da sola.
+Nessuno avvisa, e la Diagnostica non guardava.
+✅ **La parte difficile era già giusta**: i dati dello scalo non restano senza porta di scrittura, perché §AS
+aveva già stabilito che la domanda è «solo militare **E** senza civile».
+▶ **Decisione del committente: la vIPI civile RESTA finché qualcuno non la nasconde o la elimina.** Niente
+automatismi — si dice e si guida.
+
+🔴 **Le due verifiche chieste hanno cambiato il piano.**
+1. **Uniti**: nascondere la vIPI la toglie **anche** dalla pagina unita (il caricatore passa dalla via
+   pubblica, che filtra `IsHidden` e pretende una release in vigore). **Ma non basta**: `BersagliUnitiAsync`
+   **non guarda `IsHidden`**, quindi ogni pubblicazione del vSOP crea una release **anche per lei**. La via
+   d'uscita è **due gesti**: nascondere **e** sciogliere l'unione.
+2. **Spostare sezioni fra due documenti uniti: NON si può**, e c'è una guardia scritta — «una sezione non
+   cambia mai documento, e fra i membri di un documento unito nemmeno». E dentro un documento si spostano
+   solo le sezioni **libere**. 🔴 Quindi il commento di `AirportEditingService` che indicava la via d'uscita
+   in «spostarne il contenuto» **prometteva un comando che non esiste**: corretto.
+
+**Che cosa è stato fatto**: la pastiglia militare chiede **conferma** quando accende «solo militare» su un
+campo che una vIPI civile ce l'ha già (e **solo** lì: una conferma che chiede sempre non si legge); un
+rilievo nuovo in Diagnostica con **tre messaggi interi** — visibile · visibile e unita · non visibile ma
+unita — che nominano i gesti giusti; e il commento riparato.
+🔴 **E il caso a posto TACE**: un campo la cui vIPI è già fuori dal pubblico e già staccata non produce
+niente. «Un avviso che scatta sul caso normale non è un avviso», e questa pagina l'ha già imparato due volte.
+⚠️ **Il testo l'hanno corretto i dati veri**: il terzo messaggio diceva «la vIPI civile è **nascosta**», ma
+quel secchio contiene due situazioni — nascosta e **mai pubblicata** — e su LIBV è la seconda. Ora dice «non
+è visibile al pubblico», che è vero in tutt'e due i casi.
+✅ Provato dal vivo sui **quattro** stati (LIPA · LIMN · LIBV · LIBA), in italiano e in inglese, e in
+archivio: aprendo la conferma su LIMS **non si scrive niente**, mentre LICA — senza vIPI civile — si accende
+col clic secco. **Nessuna migrazione.**
+Carta: `docs/feature/2026-09-10-solo-militare-con-vipi-civile.md`.
+
 📦 **1.20.0 È PRONTA E NON CARICATA.** Timbro **`1.20.0 · 775170f3`**, sha256 dello zip
 **`c6033740…`**, **13 file**, 4,83 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`.
 **MINOR** con **due migrazioni**, niente `wwwroot`. Porta **§CR**, **§CS** e **§CT**.

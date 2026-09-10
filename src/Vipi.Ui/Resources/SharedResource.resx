@@ -616,6 +616,12 @@
   <data name="Diag_Ent_SettoreAcc" xml:space="preserve"><value>Settore ACC {0}</value></data>
   <data name="Diag_Ent_SettoreApt" xml:space="preserve"><value>Settore d’aeroporto {0}</value></data>
   <data name="Diag_Ent_Aeroporto" xml:space="preserve"><value>Aeroporto {0}</value></data>
+  <data name="Diag_Cat_SoloMilConCivile" xml:space="preserve"><value>vIPI civile su campo solo militare</value></data>
+  <data name="Diag_Msg_SoloMilConCivile" xml:space="preserve"><value>{0} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico: va nascosta, o eliminata. Non si spegne da sé.</value></data>
+  <data name="Diag_Msg_SoloMilConCivileUnita" xml:space="preserve"><value>{0} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico ED è unita al vSOP: va nascosta (o eliminata) e l'unione va sciolta, o ogni pubblicazione del vSOP pubblicherà anche lei.</value></data>
+  <data name="Diag_Msg_SoloMilNascostaMaUnita" xml:space="preserve"><value>{0}: la vIPI civile non è visibile al pubblico, ma è ancora unita al vSOP — quindi ogni pubblicazione del vSOP le crea una release lo stesso, per un documento che nessuno vede. Sciogli l'unione.</value></data>
+  <data name="Apt_MilitaryOnlyConCivile" xml:space="preserve"><value>{0} ha una vIPI civile. Marcandolo «solo militare» quel documento NON viene toccato: resta com'è, e se è pubblicato resta online. Va nascosto a parte — e se è unito al vSOP, l'unione va sciolta.</value></data>
+  <data name="Apt_MilitaryOnlyConCivileYes" xml:space="preserve"><value>Sì, marcalo solo militare</value></data>
   <data name="Diag_Ent_Staffisti" xml:space="preserve"><value>{0} staffisti nel roster</value></data>
   <data name="Diag_Pezzo_Dati" xml:space="preserve"><value>Incongruenze dei dati</value></data>
   <data name="Diag_Pezzo_Schema" xml:space="preserve"><value>Drift di schema</value></data>

@@ -225,8 +225,18 @@ public sealed class AirportEditingService : IAirportEditingService
         //
         // ⚠️ Blocca la NASCITA, non l'apertura. Se una vIPI civile su un campo solo militare esiste già —
         // creata prima di questa regola, o perché il campo è stato marcato dopo — l'editor deve continuare
-        // ad aprirla: rifiutare qui renderebbe illeggibile un documento che c'è, e la via d'uscita
-        // (spostarne il contenuto, poi eliminarlo) passa proprio da lì.
+        // ad aprirla: rifiutare qui renderebbe illeggibile un documento che c'è, e la via d'uscita passa
+        // proprio da lì.
+        //
+        // 🔴 E la via d'uscita è NASCONDERE (o eliminare), non «spostare il contenuto»: fin qui questo
+        // commento prometteva uno spostamento che NON ESISTE. `MoveSectionToParentAsync` pretende che il
+        // padre nuovo stia nella stessa versione — «una sezione non cambia mai documento, e fra i membri di
+        // un documento unito nemmeno» — e per giunta si spostano solo le sezioni LIBERE. Portare del testo
+        // dalla vIPI civile al vSOP è copia-e-incolla a mano, blocco per blocco.
+        // ⚠️ E se i due documenti sono UNITI serve un secondo gesto: sciogliere l'unione. Nasconderla la
+        // toglie dal pubblico, ma `BersagliUnitiAsync` non guarda `IsHidden`, quindi ogni pubblicazione del
+        // vSOP continuerebbe a pubblicarla. Lo dice il rilievo «vIPI civile su campo solo militare».
+        // Carta: docs/feature/2026-09-10-solo-militare-con-vipi-civile.md.
         var stato = await _repo.GetMilitaryStateAsync(icao, ct);
         if (stato is { IsMilitaryOnly: true, DocumentId: null })
             throw new ValidationException(Lingua(

@@ -233,12 +233,37 @@
                                                la riga di quaranta pixel. Qui sta su una riga sola e cambia ciò che dice. *@
                                             @if (a.HasMilitaryPresence)
                                             {
-                                                <button class="pill apt-mil @(a.IsMilitaryOnly ? "amber" : "neutral")" disabled="@(_busy || !_canEdit)"
-                                                        @onclick="() => ToggleMilitaryOnly(a)"
-                                                        aria-label="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffAria"] : L["Apt_MilitaryOnlyOnAria"])"
-                                                        title="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffTitle"] : L["Apt_MilitaryOnlyOnTitle"])">
-                                                    <Icon Name="shield" Size="11" /> @(a.IsMilitaryOnly ? L["Apt_MilitaryOnly"] : L["Apt_MilitaryPresence"])
-                                                </button>
+                                                @* ⚠️ La conferma compare SOLO quando il gesto ha una conseguenza che chi preme
+                                                   non vede: accendere «solo militare» su un campo che una vIPI civile ce l'ha
+                                                   GIÀ. Quel documento non viene toccato — resta com'è, online se è pubblicato —
+                                                   e toglierlo è un gesto a parte.
+                                                   🔴 Negli altri casi il clic resta secco: una conferma che chiede sempre è una
+                                                   conferma che nessuno legge, ed è il modo in cui si perde quella che conta.
+                                                   ⚠️ Lo STATO esatto (pubblicata? nascosta? unita?) non si dice qui: quella è la
+                                                   domanda del rilievo in Diagnostica, che ha il dataset intero. Qui si dice la
+                                                   cosa che chi preme deve sapere PRIMA. *@
+                                                @if (ChiedeConfermaSoloMilitare(a))
+                                                {
+                                                    <InlineConfirm TriggerClass="@($"pill apt-mil {(a.IsMilitaryOnly ? "amber" : "neutral")}")"
+                                                                   TriggerTitle="@L["Apt_MilitaryOnlyOnTitle"]"
+                                                                   AriaLabel="@L["Apt_MilitaryOnlyOnAria"]"
+                                                                   Prompt="@L["Apt_MilitaryOnlyConCivile", a.Icao].Value"
+                                                                   ConfirmLabel="@L["Apt_MilitaryOnlyConCivileYes"].Value"
+                                                                   CancelLabel="@L["Common_Close"].Value"
+                                                                   Danger="false" Disabled="@(_busy || !_canEdit)"
+                                                                   OnConfirm="() => ToggleMilitaryOnly(a)">
+                                                        <Trigger><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</Trigger>
+                                                    </InlineConfirm>
+                                                }
+                                                else
+                                                {
+                                                    <button class="pill apt-mil @(a.IsMilitaryOnly ? "amber" : "neutral")" disabled="@(_busy || !_canEdit)"
+                                                            @onclick="() => ToggleMilitaryOnly(a)"
+                                                            aria-label="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffAria"] : L["Apt_MilitaryOnlyOnAria"])"
+                                                            title="@(a.IsMilitaryOnly ? L["Apt_MilitaryOnlyOffTitle"] : L["Apt_MilitaryOnlyOnTitle"])">
+                                                        <Icon Name="shield" Size="11" /> @(a.IsMilitaryOnly ? L["Apt_MilitaryOnly"] : L["Apt_MilitaryPresence"])
+                                                    </button>
+                                                }
                                             }
                                         </td>
                                         <td class="col-act">
@@ -561,6 +586,17 @@
 
     private Task ToggleMilitaryOnly(AirportAdminRow a) =>
         Guarded(() => Struct.SetAirportMilitaryOnlyAsync(a.AccCode, a.Id, !a.IsMilitaryOnly));
+
+    /// <summary>
+    /// Se ACCENDERE «solo militare» su questa riga va confermato: succede quando una vIPI civile esiste già.
+    ///
+    /// <para>⚠️ Solo in ACCENSIONE. Spegnere il flag non lascia dietro nessuno stato che si contraddice —
+    /// il campo torna a essere misto, e la sua vIPI civile è di nuovo quel che deve avere.</para>
+    /// <para>⚠️ E solo se il documento c'è: la riga lo sa già (<c>DocumentId</c>), quindi la domanda non
+    /// costa una lettura in più.</para>
+    /// </summary>
+    private static bool ChiedeConfermaSoloMilitare(AirportAdminRow a) =>
+        !a.IsMilitaryOnly && a.DocumentId is not null;
 
     // --- Azioni di gruppo -------------------------------------------------------------------------------
     // Un ciclo solo per tutte: prosegue oltre i fallimenti per-riga, mostra l'avanzamento, si lascia fermare

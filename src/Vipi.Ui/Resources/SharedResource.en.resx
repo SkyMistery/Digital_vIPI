@@ -611,6 +611,12 @@
   <data name="Diag_Ent_SettoreAcc" xml:space="preserve"><value>ACC sector {0}</value></data>
   <data name="Diag_Ent_SettoreApt" xml:space="preserve"><value>Airport sector {0}</value></data>
   <data name="Diag_Ent_Aeroporto" xml:space="preserve"><value>Airport {0}</value></data>
+  <data name="Diag_Cat_SoloMilConCivile" xml:space="preserve"><value>Civil vIPI on a military-only field</value></data>
+  <data name="Diag_Msg_SoloMilConCivile" xml:space="preserve"><value>{0} is marked “military only”, but its civil vIPI is still visible to the public: hide it, or delete it. It does not switch itself off.</value></data>
+  <data name="Diag_Msg_SoloMilConCivileUnita" xml:space="preserve"><value>{0} is marked “military only”, but its civil vIPI is still visible to the public AND joined to the vSOP: hide it (or delete it) and dissolve the union, or every vSOP publication will publish it too.</value></data>
+  <data name="Diag_Msg_SoloMilNascostaMaUnita" xml:space="preserve"><value>{0}: the civil vIPI is not visible to the public, but it is still joined to the vSOP — so every vSOP publication still creates a release for a document nobody sees. Dissolve the union.</value></data>
+  <data name="Apt_MilitaryOnlyConCivile" xml:space="preserve"><value>{0} has a civil vIPI. Marking it “military only” does NOT touch that document: it stays as it is, and if it is published it stays online. It has to be hidden separately — and if it is joined to the vSOP, the union has to be dissolved.</value></data>
+  <data name="Apt_MilitaryOnlyConCivileYes" xml:space="preserve"><value>Yes, mark it military only</value></data>
   <data name="Diag_Ent_Staffisti" xml:space="preserve"><value>{0} staff members in the roster</value></data>
   <data name="Diag_Pezzo_Dati" xml:space="preserve"><value>Data inconsistencies</value></data>
   <data name="Diag_Pezzo_Schema" xml:space="preserve"><value>Schema drift</value></data>

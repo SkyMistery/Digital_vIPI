@@ -104,6 +104,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     private const string DoveAccordi = "/services/vsop/admin/transfers";
     private const string DoveStruttura = "/services/vsop/admin/sector-structure";
     private const string DoveSorgenti = "/services/vsop/admin/sources";
+    // ⚠️ La pastiglia «solo militare» E il tasto «nascondi» stanno sulla stessa riga di questa pagina: chi
+    // legge il rilievo ci trova tutti e due i gesti, non solo quello che ha causato lo stato.
+    private const string DoveAeroporti = "/services/vsop/admin/airports";
 
     /// <summary>
     /// L'elenco dei documenti, non l'editor del singolo. ⚠️ Scelta dichiarata: la riga porta il <i>titolo</i>
@@ -347,6 +350,48 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     DetailArgs: new object[] { mancante },
                     EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
+        }
+
+        // 3-bis) Campo SOLO MILITARE con una vIPI civile ancora addosso.
+        //
+        // ⚠️ Il flag si accende con un clic e NON tocca la vIPI civile: il documento resta com'è — voluto,
+        // perché nasconderlo o eliminarlo è un gesto editoriale che nessuno deve fare al posto di chi decide
+        // (carta 2026-09-10-solo-militare-con-vipi-civile.md). Quindi qui non si agisce: si DICE.
+        //
+        // 🔴 E si tace nel caso a posto. Un campo la cui vIPI civile è già nascosta e già staccata ha
+        // percorso la via d'uscita per intero: un rilievo lì sarebbe un avviso che scatta sul caso NORMALE,
+        // che è il difetto che questa pagina ha già imparato due volte (il cruscotto delle lacune, e lo
+        // scalo coperto da un ente non ricevente). Un avviso che suona sempre è un avviso che si spegne.
+        foreach (var campo in d.CampiSoloMilitari)
+        {
+            var chi = $"Aeroporto {campo.Icao}";
+            object[] soloIcao = { campo.Icao };
+
+            // ⚠️ TRE messaggi interi e non uno da comporre a pezzi: «visibile», «visibile e unita»,
+            // «nascosta ma unita» dicono gesti diversi, e una frase costruita concatenando un pezzo
+            // condizionale si legge male in una lingua e peggio nell'altra.
+            if (campo.CivileVisibile)
+                findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
+                    ConsistencySeverity.Warning, chi,
+                    campo.UnitaAlVsop
+                        ? $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico ED è unita al vSOP: va nascosta (o eliminata) e l'unione va sciolta, o ogni pubblicazione del vSOP pubblicherà anche lei."
+                        : $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico: va nascosta, o eliminata. Non si spegne da sé.",
+                    ConsistencyArea.Dati, DoveAeroporti,
+                    CategoryKey: "Diag_Cat_SoloMilConCivile",
+                    DetailKey: campo.UnitaAlVsop ? "Diag_Msg_SoloMilConCivileUnita" : "Diag_Msg_SoloMilConCivile",
+                    DetailArgs: soloIcao,
+                    EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+            else if (campo.UnitaAlVsop)
+                findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
+                    ConsistencySeverity.Warning, chi,
+                    // 🔴 «non visibile» e NON «nascosta»: quel secchio contiene due situazioni diverse — un
+                    // documento nascosto e uno mai pubblicato — e sui dati veri (LIBV) è il secondo. Dire
+                    // «è nascosta» sarebbe una frase falsa in un rilievo che serve a dire il vero.
+                    $"{campo.Icao}: la vIPI civile non è visibile al pubblico, ma è ancora unita al vSOP — quindi ogni pubblicazione del vSOP le crea una release lo stesso, per un documento che nessuno vede. Sciogli l'unione.",
+                    ConsistencyArea.Dati, DoveAeroporti,
+                    CategoryKey: "Diag_Cat_SoloMilConCivile",
+                    DetailKey: "Diag_Msg_SoloMilNascostaMaUnita", DetailArgs: soloIcao,
+                    EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
         }
 
         // 4) Gerarchia dangling: un padre di copertura per callsign che non risolve ad alcun nodo dei cataloghi.

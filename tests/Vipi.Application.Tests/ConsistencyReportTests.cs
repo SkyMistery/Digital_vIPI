@@ -254,6 +254,97 @@ public class ConsistencyReportTests
         Assert.Empty(ConsistencyReportService.Analyze(d));
     }
 
+    // ---- Campo solo militare con una vIPI civile (carta 2026-09-10-solo-militare-con-vipi-civile.md) ----
+
+    private static ConsistencyDataset ConCampo(params CampoSoloMilitareRow[] campi) => new()
+    {
+        CampiSoloMilitari = campi,
+        RunwayIdents = new Dictionary<int, string>(),
+        AreaNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+        ParentRefs = Array.Empty<ParentRefRow>(),
+        ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+    };
+
+    /// <summary>
+    /// 🔴 <b>La metà che conta.</b> Un campo la cui vIPI civile è già nascosta e già staccata ha percorso la
+    /// via d'uscita per intero: qui il report deve TACERE. Un avviso che scatta sul caso normale non è un
+    /// avviso — è il modo in cui si smette di leggerli, e questa pagina l'ha già imparato due volte.
+    /// </summary>
+    [Fact]
+    public void Un_campo_gia_a_posto_non_dice_NIENTE()
+    {
+        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: false, UnitaAlVsop: false));
+
+        Assert.Empty(ConsistencyReportService.Analyze(d));
+    }
+
+    /// <summary>La vIPI civile è ancora online: un gesto, nasconderla.</summary>
+    [Fact]
+    public void La_vIPI_civile_ancora_VISIBILE_si_dice()
+    {
+        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: false));
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("vIPI civile su campo solo militare", f.Category);
+        Assert.Equal(ConsistencySeverity.Warning, f.Severity);
+        Assert.Contains("LIBG", f.Detail);
+        Assert.Equal("Diag_Msg_SoloMilConCivile", f.DetailKey);
+        // ⚠️ Il rilievo manda dove stanno TUTTI E DUE i gesti (la pastiglia e il «nascondi»), non dove è
+        // nato lo stato.
+        Assert.Equal("/services/vsop/admin/airports", f.Where);
+    }
+
+    /// <summary>
+    /// 🔴 Visibile <b>e</b> unita: i gesti sono DUE, e il messaggio deve dirli tutti e due. Chi ne fa uno
+    /// solo crede di aver finito — ed è esattamente il caso in cui la pubblicazione accoppiata continua a
+    /// girare su un documento che nessuno vede.
+    /// </summary>
+    [Fact]
+    public void Visibile_E_unita_chiede_DUE_gesti()
+    {
+        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: true));
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Diag_Msg_SoloMilConCivileUnita", f.DetailKey);
+        Assert.Contains("unione", f.Detail);
+    }
+
+    /// <summary>
+    /// Non visibile ma ancora unita: dal web non si vede, ma ogni pubblicazione del vSOP le fa una release.
+    /// ⚠️ UN solo rilievo, e quello giusto: resta il solo scioglimento.
+    /// <para>🔴 E il messaggio dice «non visibile», non «nascosta»: quel secchio contiene DUE situazioni —
+    /// un documento nascosto e uno mai pubblicato — e sui dati veri di sviluppo (LIBV) è il secondo. Trovato
+    /// guardando l'archivio prima di provare, non dopo.</para>
+    /// </summary>
+    [Fact]
+    public void Non_visibile_ma_ancora_UNITA_dice_di_sciogliere()
+    {
+        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: false, UnitaAlVsop: true));
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Diag_Msg_SoloMilNascostaMaUnita", f.DetailKey);
+        Assert.Equal(ConsistencySeverity.Warning, f.Severity);
+        // ⚠️ Non deve affermare che è NASCOSTA: potrebbe essere solo mai pubblicata.
+        Assert.DoesNotContain("nascosta", f.Detail);
+    }
+
+    /// <summary>⚠️ E ogni campo parla per sé: due campi in stati diversi danno due rilievi diversi, non uno
+    /// riassuntivo — chi ripara lavora su un ICAO alla volta.</summary>
+    [Fact]
+    public void Due_campi_danno_due_rilievi_distinti()
+    {
+        var d = ConCampo(
+            new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: false),
+            new CampoSoloMilitareRow("LIPA", "LIPP", CivileVisibile: false, UnitaAlVsop: true),
+            new CampoSoloMilitareRow("LIBN", "LIBB", CivileVisibile: false, UnitaAlVsop: false));
+
+        var f = ConsistencyReportService.Analyze(d).ToList();
+        Assert.Equal(2, f.Count);
+        Assert.Contains(f, x => x.Detail.Contains("LIBG"));
+        Assert.Contains(f, x => x.Detail.Contains("LIPA"));
+        Assert.DoesNotContain(f, x => x.Detail.Contains("LIBN"));
+    }
+
     [Fact]
     public void Dangling_regulated_area_id_is_flagged()
     {

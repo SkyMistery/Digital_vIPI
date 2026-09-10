@@ -138,7 +138,72 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
             TransferLadders = await PuntiDiTrasferimentoAsync(ct),
+            CampiSoloMilitari = await CampiSoloMilitariAsync(ct),
         };
+    }
+
+    /// <summary>
+    /// I campi marcati <b>solo militari</b> che hanno comunque una vIPI civile, con le due domande che
+    /// decidono se c'è qualcosa da dire: quel documento <b>si vede</b>? è ancora <b>unito</b> al vSOP?
+    ///
+    /// <para>⚠️ <b>Tre letture in tutto</b>, non una per aeroporto: le appartenenze alle unioni e le release
+    /// si chiedono in blocco. Questo elenco ha già pagato due volte il difetto N+1 altrove, e un rilievo che
+    /// costa una query per riga si finisce per spegnerlo.</para>
+    ///
+    /// <para>⚠️ «Visibile» sono <b>tre</b> condizioni e non una, e sono esattamente quelle che chiede il
+    /// caricatore pubblico (<c>LoadAirportVipiAsync</c>): release in vigore <b>e</b> documento non nascosto
+    /// <b>e</b> aeroporto non nascosto. Chiederne due su tre farebbe gridare il rilievo su un campo che dal
+    /// web non si raggiunge.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<CampoSoloMilitareRow>> CampiSoloMilitariAsync(CancellationToken ct)
+    {
+        var campi = await _db.Airports.AsNoTracking()
+            .Where(a => a.IsMilitaryOnly && a.DocumentId != null)
+            .Select(a => new
+            {
+                a.Icao,
+                AccCode = a.Acc!.Code,
+                AeroportoNascosto = a.IsHidden,
+                CivileId = a.DocumentId!.Value,
+                a.MilDocumentId,
+                CivileNascosta = _db.Documents.Any(d => d.Id == a.DocumentId && d.IsHidden),
+            })
+            .ToListAsync(ct);
+        if (campi.Count == 0) return Array.Empty<CampoSoloMilitareRow>();
+
+        var icaos = campi.Select(c => c.Icao).ToList();
+        var adesso = DateTime.UtcNow;
+        var conRelease = (await _db.DocReleases.AsNoTracking()
+                .Where(r => r.TargetType == ReleaseTargetType.Airport
+                            && icaos.Contains(r.TargetKey)
+                            && r.ReleaseEffectiveUtc <= adesso)
+                .Select(r => r.TargetKey)
+                .Distinct()
+                .ToListAsync(ct))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // Le appartenenze dei documenti che ci interessano, in UNA lettura: (unione → documenti).
+        var interessati = campi.Select(c => c.CivileId)
+            .Concat(campi.Where(c => c.MilDocumentId != null).Select(c => c.MilDocumentId!.Value))
+            .Distinct().ToList();
+        var appartenenze = await _db.DocumentUnionMembers.AsNoTracking()
+            .Where(m => interessati.Contains(m.DocumentId))
+            .Select(m => new { m.UnionId, m.DocumentId })
+            .ToListAsync(ct);
+        var unioniDi = appartenenze.GroupBy(x => x.DocumentId)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.UnionId).ToHashSet());
+
+        return campi.Select(c => new CampoSoloMilitareRow(
+                c.Icao, c.AccCode,
+                CivileVisibile: conRelease.Contains(c.Icao) && !c.CivileNascosta && !c.AeroportoNascosto,
+                // ⚠️ «Unita» vuol dire unita AL vSOP DI QUESTO CAMPO, non «unita a qualcosa»: il messaggio
+                // nomina il vSOP, e nominare il documento sbagliato manderebbe a sciogliere l'unione sbagliata.
+                UnitaAlVsop: c.MilDocumentId is int mil
+                             && unioniDi.TryGetValue(c.CivileId, out var sue)
+                             && unioniDi.TryGetValue(mil, out var sueMil)
+                             && sue.Overlaps(sueMil)))
+            .OrderBy(r => r.Icao, StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>
