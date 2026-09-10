@@ -59,7 +59,7 @@ public interface IAgreementService
     Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default);
 
     Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default);
-    Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel, bool areaNegated, string? customLabel,
+    Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel, bool areaNegated, bool areaAll, string? customLabel,
         CancellationToken ct = default);
     Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default);
 

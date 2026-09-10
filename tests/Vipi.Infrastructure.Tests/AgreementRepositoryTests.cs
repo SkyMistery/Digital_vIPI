@@ -143,6 +143,60 @@ public class AgreementRepositoryTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// PIÙ aree su una riga: si salvano separate da <c>;</c> e si rileggono in ordine. Il TAG le unisce col
+    /// simbolo del senso — <c>+</c> tutte, <c>/</c> una qualunque — più <c>⊘</c> se la polarità è rovescia.
+    /// </summary>
+    [Fact]
+    public async Task Piu_aree_si_salvano_e_il_tag_dice_il_loro_senso()
+    {
+        var (_, first) = await WithClauseAsync();
+        await _repo.UpdateClauseAsync("LIRR", first, Clause("VALMA", 130) with
+        {
+            ConditionAreaLabel = TransferConditionText.UnisciAree(new[] { "$406", "$407" }),
+            ConditionAreaNegated = true,
+            ConditionAreaAll = false,
+        });
+
+        var c = Assert.Single(await ClausesAsync());
+        Assert.Equal(new[] { "$406", "$407" }, TransferConditionText.SpezzaAree(c.ConditionAreaLabel));
+        Assert.Equal($"area $406 / $407 {TransferConditionText.NonAttiva}", c.ConditionDisplay);
+
+        await _repo.UpdateClauseAsync("LIRR", first, Clause("VALMA", 130) with
+        {
+            ConditionAreaLabel = c.ConditionAreaLabel, ConditionAreaNegated = false, ConditionAreaAll = true,
+        });
+        Assert.Equal("area $406 + $407", Assert.Single(await ClausesAsync()).ConditionDisplay);
+    }
+
+    /// <summary>
+    /// 🔴 Il separatore è <c>;</c> e NON <c>/</c>: cinque aree del catalogo IVAO hanno già lo <c>/</c> nel
+    /// nome. Col separatore delle piste, <c>LI R49A/B/C/D/E/F - Zita</c> tornerebbe indietro a pezzi.
+    /// </summary>
+    [Fact]
+    public async Task Un_area_con_lo_SLASH_nel_nome_sopravvive_al_giro_in_archivio()
+    {
+        var (_, first) = await WithClauseAsync();
+        var nomi = new[] { "LI R49A/B/C/D/E/F - Zita", "LI/LD D35/A-CRIT" };
+        await _repo.UpdateClauseAsync("LIRR", first, Clause("VALMA", 130) with
+        {
+            ConditionAreaLabel = TransferConditionText.UnisciAree(nomi), ConditionAreaAll = true,
+        });
+
+        var c = Assert.Single(await ClausesAsync());
+        Assert.Equal(nomi, TransferConditionText.SpezzaAree(c.ConditionAreaLabel));
+    }
+
+    /// <summary>⚠️ La stessa area due volte darebbe «con A e A attive»: si scarta scrivendo, senza guardare
+    /// le maiuscole.</summary>
+    [Fact]
+    public void L_elenco_delle_aree_non_tiene_doppioni()
+    {
+        Assert.Equal("$406", TransferConditionText.UnisciAree(new[] { "$406", " $406 ", "" }));
+        Assert.Equal("AT Molise", TransferConditionText.UnisciAree(new[] { "AT Molise", "at molise" }));
+        Assert.Null(TransferConditionText.UnisciAree(new[] { "  ", "" }));
+    }
+
+    /// <summary>
     /// 🔴 La bandiera SEGUE l'etichetta: senza area non vuol dire niente, e lasciata accesa in archivio
     /// riaccenderebbe il rovescio alla prossima area scritta — una condizione che si capovolge da sola.
     /// È la stessa regola di <c>ConditionRefId</c>, che esiste solo se c'è una pista.
@@ -170,10 +224,10 @@ public class AgreementRepositoryTests : IAsyncLifetime
     {
         var (_, first) = await WithClauseAsync();
 
-        await _repo.SetConditionAsync("LIRR", new[] { first }, "$406", areaNegated: true, customLabel: null);
+        await _repo.SetConditionAsync("LIRR", new[] { first }, "$406", areaNegated: true, areaAll: false, customLabel: null);
         Assert.True(Assert.Single(await ClausesAsync()).ConditionAreaNegated);
 
-        await _repo.SetConditionAsync("LIRR", new[] { first }, null, areaNegated: true, customLabel: null);
+        await _repo.SetConditionAsync("LIRR", new[] { first }, null, areaNegated: true, areaAll: true, customLabel: null);
         Assert.False(Assert.Single(await ClausesAsync()).ConditionAreaNegated);
     }
 

@@ -1,4 +1,4 @@
-#if NET8_0
+﻿#if NET8_0
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -103,7 +103,24 @@ public class MigrazioniDellaFinestraCiecaTests
     /// </summary>
     private static readonly HashSet<string> RevisionateAMano = new(StringComparer.Ordinal)
     {
-        // (nessuna)
+        // 10 settembre 2026 — «più aree in una condizione» (carta 2026-09-10-condizione-piu-aree.md).
+        // L'operazione vietata è UN `AlterColumn`: `AgreementClauses.ConditionAreaLabel` da varchar(80) a
+        // varchar(200), perché le aree adesso si elencano e tre nomi lunghi del catalogo IVAO fanno 105
+        // caratteri (misurato sulle 241 aree in archivio, non stimato).
+        //
+        // Perché si può fare adesso, e non è la distrazione che questa guardia esiste per fermare:
+        //  • È un ALLARGAMENTO. La `Up` non può troncare niente e non può fallire sui dati: non aggiunge
+        //    vincoli, non tocca la nullabilità, non crea indici. L'avviso «loss of data» dello scaffolding
+        //    parla della `Down`, che stringe 200→80 — e la `Down` in produzione non gira.
+        //  • La riscrittura di tabella che il commento sopra teme è quella di `AtcSessions`, che a regime
+        //    cresce di centinaia di migliaia di righe. `AgreementClauses` ne ha **60** nell'archivio vero:
+        //    la riscrittura è istantanea, non un blocco lungo mentre Passenger aspetta.
+        //  • Senza, la funzione nasce azzoppata: con tre aree lunghe il salvataggio prende un
+        //    «Data too long» in faccia all'utente, che è un guasto peggiore di quello che si sta evitando.
+        //
+        // ⚠️ Se il pacchetto che la porta esce DOPO il 16 settembre 2026 questa voce non serve più, e va
+        // tolta insieme al file: una deroga che sopravvive alla finestra è una regola travestita.
+        "20260910191356_PiuAreeNellaCondizione",
     };
 
     /// <summary>Stesso wiring dell'host: provider MySQL + assembly di migrazioni dedicato.</summary>

@@ -32,6 +32,8 @@ public sealed record AgreementClauseRow : IOutlineRow
     public string? ConditionAreaLabel { get; init; }
     /// <summary>La condizione d'area vale quando l'area <b>non</b> è attiva. Senza etichetta non vuol dire niente.</summary>
     public bool ConditionAreaNegated { get; init; }
+    /// <summary>Con più aree: <c>true</c> = valgono tutte, <c>false</c> = ne basta una qualunque.</summary>
+    public bool ConditionAreaAll { get; init; }
     public string? ConditionCustomLabel { get; init; }
 
     // Faccetta trasferimento. Unspecified = il trasferimento coincide con l'ingresso.
@@ -72,5 +74,6 @@ public sealed record AgreementClauseRow : IOutlineRow
 
     /// <summary>Etichetta condizione combinata per il display (pista · area · personalizzata); vuota se nessuna.</summary>
     public string? ConditionDisplay =>
-        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated, ConditionCustomLabel);
+        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated,
+                                      ConditionAreaAll, ConditionCustomLabel);
 }

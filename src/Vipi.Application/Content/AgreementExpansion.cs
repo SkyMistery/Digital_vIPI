@@ -113,6 +113,7 @@ public static class AgreementExpansion
             ConditionRefId = c.ConditionRefId,
             ConditionAreaLabel = c.ConditionAreaLabel,
             ConditionAreaNegated = c.ConditionAreaNegated,
+            ConditionAreaAll = c.ConditionAreaAll,
             ConditionCustomLabel = c.ConditionCustomLabel,
             HandoffKind = c.HandoffKind,
             HandoffLabel = c.HandoffLabel,

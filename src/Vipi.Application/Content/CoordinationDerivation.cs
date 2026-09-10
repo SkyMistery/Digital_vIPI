@@ -96,7 +96,8 @@ public static class CoordinationDerivation
     /// </summary>
     public static IReadOnlyList<ConditionClause> ConditionChain(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p) =>
         Outline.ConditionChain(flowPoints, p,
-            x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated, x.ConditionCustomLabel));
+            x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated,
+                                     x.ConditionAreaAll, x.ConditionCustomLabel));
 
     /// <summary>La riga di cui <paramref name="p"/> è un'eccezione, o <c>null</c>. Serve anche alla TABELLA
     /// dell'editor, che deve dire di quale riga una condizione è l'eccezione.</summary>

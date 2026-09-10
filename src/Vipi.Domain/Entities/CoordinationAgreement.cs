@@ -160,7 +160,16 @@ public class AgreementClause
     // snapshot pubblicati.
     public string? ConditionLabel { get; set; }             // pista/e in uso ("16R / 16L")
     public int? ConditionRefId { get; set; }                // soft-ref pista singola; nessun FK
-    public string? ConditionAreaLabel { get; set; }         // area, attiva o NON attiva secondo la bandiera qui sotto
+    /// <summary>Le aree, separate da <c>;</c>. ⚠️ NON da <c>/</c> come le piste: cinque aree del catalogo IVAO
+    /// hanno gia' lo <c>/</c> nel nome (<c>LI/LD D35/A-CRIT</c>, <c>LI R49A/B/C/D/E/F - Zita</c>), e tagliarle
+    /// li' le farebbe a pezzi. Misurato sul catalogo prima di scegliere.</summary>
+    public string? ConditionAreaLabel { get; set; }         // aree, attive o NON attive secondo le bandiere qui sotto
+    /// <summary>Con PIU' aree: <c>true</c> = valgono <b>tutte</b>, <c>false</c> = ne basta <b>una qualunque</b>.
+    /// <para>⚠️ Il default e' <c>false</c> — «una qualunque» — perche' e' il senso che ha gia' la multi-pista,
+    /// dove il matcher fa <c>wanted.Any(...)</c>. Due liste vicine con due sensi opposti sono il modo in cui
+    /// qualcuno legge la seconda con la testa della prima.</para>
+    /// <para>⚠️ Con UNA sola area non vuol dire niente, e l'editor lo spegne.</para></summary>
+    public bool ConditionAreaAll { get; set; }
     /// <summary>La condizione d'area è ROVESCIA: vale quando l'area <b>non</b> è attiva (10 settembre 2026).
     /// <para>⚠️ È una POLARITÀ, non una quarta dimensione: «con A attiva e B non attiva» si scrive con
     /// l'outline delle varianti — capofila e sua eccezione — che <c>BuildCondition</c> cumula già in AND.</para>

@@ -1,4 +1,5 @@
 ﻿using Vipi.Application.Abstractions;
+using Vipi.Application.Content;
 using Vipi.Domain;
 
 namespace Vipi.Application.Diagnostics;
@@ -330,14 +331,20 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                     EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
 
-            // 3) Area fantasma: l'area denormalizzata non corrisponde ad alcuna area speciale esistente.
-            if (!string.IsNullOrWhiteSpace(t.ConditionAreaLabel) && !d.AreaNames.Contains(t.ConditionAreaLabel!.Trim()))
+            // 3) Area fantasma: un'area denormalizzata che non corrisponde ad alcuna area speciale esistente.
+            // 🔴 L'etichetta e' un ELENCO (dal 10 settembre 2026): si spezza e si guarda NOME PER NOME.
+            // Confrontando l'etichetta intera, una riga con due aree non combacerebbe MAI con un nome di
+            // catalogo e l'avviso scatterebbe sul caso NORMALE — che e' il difetto che questa pagina ha gia'
+            // imparato due volte. E il messaggio deve dire QUALE nome manca, non l'elenco: chi legge deve
+            // sapere che cosa correggere.
+            foreach (var mancante in TransferConditionText.SpezzaAree(t.ConditionAreaLabel)
+                                                          .Where(nome => !d.AreaNames.Contains(nome)))
             {
                 findings.Add(new ConsistencyFinding("Area fantasma", ConsistencySeverity.Warning, who,
-                    $"Area «{t.ConditionAreaLabel}» non presente tra le aree speciali: rinominata o rimossa.",
+                    $"Area «{mancante}» non presente tra le aree speciali: rinominata o rimossa.",
                     ConsistencyArea.Dati, DoveAccordi,
                     CategoryKey: "Diag_Cat_AreaFantasma", DetailKey: "Diag_Msg_AreaFantasma",
-                    DetailArgs: new object[] { t.ConditionAreaLabel! },
+                    DetailArgs: new object[] { mancante },
                     EntityKey: "Diag_Ent_Clausola", EntityArgs: ArgomentiClausola(t)));
             }
         }

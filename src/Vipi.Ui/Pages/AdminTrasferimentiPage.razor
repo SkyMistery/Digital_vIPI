@@ -308,14 +308,33 @@
 
                         @* Condizione: area + testo libero. Niente piste — dipendono dall'aeroporto, e con un
                            accordo che può averne quattro la stessa sigla è ancora più ambigua di prima. *@
+                        @* ⚠️ Anche qui le aree sono PIÙ D'UNA, e col gesto della riga: dalla barra si deve
+                           poter scrivere quel che si scrive dalla clausola, o le due porte divergono. *@
+                        @foreach (var nome in _bulkAree.ToList())
+                        {
+                            <span class="pill neutral">@nome
+                                <button type="button" class="xt-chipx" title="@L["Xfer_CondAreaRemove"]"
+                                        @onclick="() => _bulkAree.Remove(nome)">✕</button>
+                            </span>
+                        }
                         <TypeaheadPicker Class="xt-bulkpick" Placeholder="@L["Xfer_BulkArea"]"
-                                         Items="AreaItems(_bulkAreaText)" EmptyOption="@L["Xfer_AreaNone"]"
-                                         NoMatch="@L["Xfer_NoArea"]" @bind-Text="_bulkAreaText" />
-                        <label class="muted xt-check" title="@L["Xfer_CondAreaNegTitle", _bulkAreaText.Trim()]">
-                            <input type="checkbox" disabled="@(_bulkAreaText.Trim().Length == 0)"
+                                         Items="AreaItems(_bulkAreaText, _bulkAree)" EmptyOption="@L["Xfer_AreaNone"]"
+                                         NoMatch="@L["Xfer_NoArea"]" Text="@_bulkAreaText"
+                                         TextChanged="t => _bulkAreaText = t"
+                                         OnPick="i => AggiungiAreaBulk(i?.Value)" />
+                        <button type="button" class="btn ghost" disabled="@(string.IsNullOrWhiteSpace(_bulkAreaText))"
+                                @onclick="() => AggiungiAreaBulk(_bulkAreaText)">+ @L["Xfer_CondAreaAdd"]</button>
+                        <label class="muted xt-check" title="@L["Xfer_CondAreaNegTitle", string.Join(", ", _bulkAree)]">
+                            <input type="checkbox" disabled="@(_bulkAree.Count == 0)"
                                    checked="@_bulkAreaNegated"
                                    @onchange="e => _bulkAreaNegated = (bool)(e.Value ?? false)" /> @L["Xfer_CondAreaNeg"]
                         </label>
+                        <select disabled="@(_bulkAree.Count < 2)" title="@L["Xfer_CondAreaMode"]"
+                                value="@Vero(_bulkAreaAll)"
+                                @onchange="e => _bulkAreaAll = LeggiVero(e)">
+                            <option value="false">@L["Xfer_CondAreaAny"]</option>
+                            <option value="true">@L["Xfer_CondAreaAll"]</option>
+                        </select>
                         <div class="field xt-bulkfield">
                             <input placeholder="@L["Xfer_BulkCustom"]" @bind="_bulkCustomText" @bind:event="oninput" />
                         </div>
@@ -600,10 +619,13 @@
 
         // Condizione: tre dimensioni indipendenti (tutte opzionali).
         public string[] Rwys { get; set; } = Array.Empty<string>();
-        public string AreaLabel { get; set; } = "";
+        /// <summary>Le aree scelte, nell'ordine in cui si aggiungono.</summary>
+        public List<string> Aree { get; } = new();
         public string AreaText { get; set; } = "";
-        /// <summary>La condizione d'area è rovescia: vale quando l'area NON è attiva.</summary>
+        /// <summary>La condizione d'area è rovescia: vale quando le aree NON sono attive.</summary>
         public bool AreaNegated { get; set; }
+        /// <summary>Con più aree: valgono tutte (true) o ne basta una qualunque (false).</summary>
+        public bool AreaAll { get; set; }
         public string CustomLabel { get; set; } = "";
 
         public FacetForm Facet { get; } = new();
@@ -619,7 +641,10 @@
         {
             Points, Constraint.ToString(), Value?.ToString() ?? "", Unit.ToString(), Special,
             Parity.ToString(), VState.ToString(),
-            string.Join(',', Rwys), AreaLabel, CustomLabel,
+            // ⚠️ Le AREE e le loro due bandiere stanno qui dentro: la firma è ciò che dice «hai modifiche
+            // non salvate», e una casella che cambia senza entrarci si perderebbe uscendo, in silenzio.
+            string.Join(',', Rwys), string.Join(';', Aree), AreaNegated.ToString(), AreaAll.ToString(),
+            CustomLabel,
             Facet.Kind.ToString(), Facet.Label, Facet.LevelValue?.ToString() ?? "",
             Facet.LevelUnit.ToString(), Facet.LevelConstraint.ToString(),
             Facet.CommsKind.ToString(), Facet.CommsLabel,
@@ -630,7 +655,8 @@
         {
             Points = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
             Parity = LevelParity.Any; VState = TransferVerticalState.Unspecified;
-            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; AreaNegated = false; CustomLabel = "";
+            Rwys = Array.Empty<string>(); Aree.Clear(); AreaText = ""; AreaNegated = false; AreaAll = false;
+            CustomLabel = "";
             Facet.Reset();
         }
 
@@ -639,8 +665,9 @@
             Points = c.Cops; Constraint = c.LevelConstraint; Value = c.LevelValue; Unit = c.LevelUnit;
             Special = c.LevelSpecial ?? ""; Parity = c.Parity; VState = c.VerticalState;
             Rwys = parseRwys(c.ConditionLabel);
-            AreaLabel = c.ConditionAreaLabel ?? ""; AreaText = c.ConditionAreaLabel ?? "";
-            AreaNegated = c.ConditionAreaNegated;
+            Aree.Clear(); Aree.AddRange(TransferConditionText.SpezzaAree(c.ConditionAreaLabel));
+            AreaText = "";
+            AreaNegated = c.ConditionAreaNegated; AreaAll = c.ConditionAreaAll;
             CustomLabel = c.ConditionCustomLabel ?? "";
             Facet.LoadFrom(c);
         }
@@ -948,6 +975,18 @@
     private readonly HashSet<int> _selected = new();
     private string _bulkLevelText = "", _bulkAreaText = "", _bulkCustomText = "";
     private bool _bulkAreaNegated;
+    private bool _bulkAreaAll;
+    private readonly List<string> _bulkAree = new();
+
+    private void AggiungiAreaBulk(string? nome)
+    {
+        var testo = (nome ?? "").Trim();
+        if (testo.Length == 0) return;
+        var canonico = _areas.FirstOrDefault(a => string.Equals(a.Name, testo, StringComparison.OrdinalIgnoreCase))?.Name ?? testo;
+        if (!_bulkAree.Any(x => string.Equals(x, canonico, StringComparison.OrdinalIgnoreCase)))
+            _bulkAree.Add(canonico);
+        _bulkAreaText = "";
+    }
 
     private void ToggleSelect(int clauseId)
     {
@@ -976,14 +1015,15 @@
     {
         if (_selected.Count == 0) return;
         var ids = _selected.ToList();
-        var area = _bulkAreaText.Trim();
+        var area = TransferConditionText.UnisciAree(_bulkAree);
         var custom = _bulkCustomText.Trim();
         var n = 0;
         await Guarded(async () =>
         {
             n = await Agreements.SetConditionAsync(_acc!.Code, ids,
-                area.Length == 0 ? null : area, _bulkAreaNegated, custom.Length == 0 ? null : custom);
-            _selected.Clear(); _bulkAreaText = ""; _bulkAreaNegated = false; _bulkCustomText = "";
+                area, _bulkAreaNegated, _bulkAreaAll, custom.Length == 0 ? null : custom);
+            _selected.Clear(); _bulkAree.Clear(); _bulkAreaText = "";
+            _bulkAreaNegated = false; _bulkAreaAll = false; _bulkCustomText = "";
         }, null);
         if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
     }
@@ -2269,24 +2309,59 @@
                 }
             </select>
         </div>
-        <TypeaheadPicker Label="@L["Xfer_CondArea"]" Placeholder="@L["Xfer_SearchArea"]"
-                         Items="AreaItems(form.AreaText)" EmptyOption="@L["Xfer_AreaNone"]" NoMatch="@L["Xfer_NoArea"]"
-                         Text="@form.AreaText" TextChanged="t => { form.AreaText = t; ResolveArea(form); }"
-                         OnPick="i => PickArea(form, i?.Value)" OnUnhandledKey="PanelKey" />
         @* La POLARITÀ dell'area (10 settembre 2026, committente): «vale solo con la $406 NON attiva».
            ⚠️ Spenta finché non c'è un'area: da sola non vuol dire niente, e una casella che si può spuntare
            senza effetto è la stessa cosa di un tasto che a volte non fa niente. Il perché sta ACCANTO, come
            chiede la regola dei tasti spenti — un `disabled` muto si legge «permesso mancante». *@
+        @* Più aree su una riga (10 settembre 2026, committente). Chip con la ✕ + typeahead + «+»: è il
+           pattern che gli AEROPORTI della sezione usano già in questa stessa pagina (`.xt-aptline`), e una
+           seconda invenzione per lo stesso gesto sarebbe la prima a divergere. *@
+        <div class="field">
+            <label>@L["Xfer_CondArea"] <span class="muted xt-lbl-soft">@L["Xfer_CondAreasHint"]</span></label>
+            <div class="xt-aptline">
+                @foreach (var nome in form.Aree.ToList())
+                {
+                    <span class="pill neutral">@nome
+                        <button type="button" class="xt-chipx" title="@L["Xfer_CondAreaRemove"]"
+                                @onclick="() => form.Aree.Remove(nome)">✕</button>
+                    </span>
+                }
+                @if (form.Aree.Count == 0) { <span class="muted">—</span> }
+                <span class="xt-barsep"></span>
+                <TypeaheadPicker Placeholder="@L["Xfer_SearchArea"]"
+                                 Items="AreaItems(form.AreaText, form.Aree)" EmptyOption="@L["Xfer_AreaNone"]"
+                                 NoMatch="@L["Xfer_NoArea"]" Text="@form.AreaText"
+                                 TextChanged="t => form.AreaText = t"
+                                 OnPick="i => AggiungiArea(form, i?.Value)" OnUnhandledKey="PanelKey" />
+                <button type="button" class="btn ghost" disabled="@(string.IsNullOrWhiteSpace(form.AreaText))"
+                        @onclick="() => AggiungiArea(form, form.AreaText)">+ @L["Xfer_CondAreaAdd"]</button>
+            </div>
+        </div>
+        @* La POLARITÀ e il senso dell'elenco. ⚠️ Tutt'e due SPENTI quando non servono, col motivo accanto:
+           la regola dei tasti spenti — un `disabled` muto si legge «permesso mancante». *@
         @* ⚠️ `L[chiave, arg]` e NON `L[chiave].Value` dentro uno `string.Format`: il secondo indexer è
            l'unico che formatta, e col primo l'argomento sparisce in silenzio lasciando «{0}» a schermo. *@
-        <label class="muted xt-check" title="@(form.AreaLabel.Trim().Length == 0 ? L["Xfer_CondAreaNegNoArea"] : L["Xfer_CondAreaNegTitle", form.AreaLabel.Trim()])">
-            <input type="checkbox" disabled="@(form.AreaLabel.Trim().Length == 0)" checked="@form.AreaNegated"
+        <label class="muted xt-check" title="@(form.Aree.Count == 0 ? L["Xfer_CondAreaNegNoArea"] : L["Xfer_CondAreaNegTitle", EtichettaAree(form)])">
+            <input type="checkbox" disabled="@(form.Aree.Count == 0)" checked="@form.AreaNegated"
                    @onchange="e => form.AreaNegated = (bool)(e.Value ?? false)" /> @L["Xfer_CondAreaNeg"]
-            @if (form.AreaLabel.Trim().Length == 0)
+            @if (form.Aree.Count == 0)
             {
                 <span class="muted xt-hint xt-pickhint">@L["Xfer_CondAreaNegNoArea"]</span>
             }
         </label>
+        <div class="field">
+            <label>@L["Xfer_CondAreaMode"]
+                @if (form.Aree.Count < 2) { <span class="muted xt-hint xt-pickhint">@L["Xfer_CondAreaModeOne"]</span> }
+            </label>
+            @* ⚠️ Il confronto va in un METODO e non nell'attributo: una stringa fra virgolette dentro un
+               attributo Razor delimitato da virgolette chiude l'attributo, e l'errore è un CS1525 che
+               nomina una parentesi e non la causa. *@
+            <select disabled="@(form.Aree.Count < 2)" value="@Vero(form.AreaAll)"
+                    @onchange="e => form.AreaAll = LeggiVero(e)">
+                <option value="false">@L["Xfer_CondAreaAny"]</option>
+                <option value="true">@L["Xfer_CondAreaAll"]</option>
+            </select>
+        </div>
         <div class="field"><label>@L["Xfer_CondCustom"]</label>
             <input placeholder="@L["Xfer_CondCustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
         </div>
@@ -2387,8 +2462,8 @@
     private static string ConditionSummary(ClauseForm f) =>
         TransferConditionText.Display(
             f.Rwys.Length == 0 ? null : string.Join(" / ", f.Rwys),
-            string.IsNullOrWhiteSpace(f.AreaLabel) ? null : f.AreaLabel,
-            f.AreaNegated,
+            TransferConditionText.UnisciAree(f.Aree),
+            f.AreaNegated, f.AreaAll,
             string.IsNullOrWhiteSpace(f.CustomLabel) ? null : f.CustomLabel) ?? "";
 
     private string FacetSummary(AgreementClauseRow c)
@@ -2422,7 +2497,7 @@
             LevelValue = draft.LevelValue, LevelUnit = draft.LevelUnit, LevelConstraint = draft.LevelConstraint,
             LevelSpecial = draft.LevelSpecial, Parity = draft.Parity, VerticalState = draft.VerticalState,
             ConditionLabel = draft.ConditionLabel, ConditionAreaLabel = draft.ConditionAreaLabel,
-            ConditionAreaNegated = draft.ConditionAreaNegated,
+            ConditionAreaNegated = draft.ConditionAreaNegated, ConditionAreaAll = draft.ConditionAreaAll,
             ConditionCustomLabel = draft.ConditionCustomLabel,
             HandoffKind = draft.HandoffKind, HandoffLabel = draft.HandoffLabel,
             HandoffLevelValue = draft.HandoffLevelValue, HandoffLevelUnit = draft.HandoffLevelUnit,
@@ -2543,6 +2618,7 @@
         LevelSpecial = c.LevelSpecial, Parity = c.Parity, VerticalState = c.VerticalState,
         ConditionLabel = c.ConditionLabel, ConditionRefId = c.ConditionRefId,
         ConditionAreaLabel = c.ConditionAreaLabel, ConditionAreaNegated = c.ConditionAreaNegated,
+        ConditionAreaAll = c.ConditionAreaAll,
         ConditionCustomLabel = c.ConditionCustomLabel,
         HandoffKind = c.HandoffKind, HandoffLabel = c.HandoffLabel,
         HandoffLevelValue = c.HandoffLevelValue, HandoffLevelUnit = c.HandoffLevelUnit,
@@ -2678,8 +2754,13 @@
         _ => "FIX",
     };
 
-    private IReadOnlyList<TypeaheadPicker.Item> AreaItems(string text) =>
+    private IReadOnlyList<TypeaheadPicker.Item> AreaItems(string text) => AreaItems(text, Array.Empty<string>());
+
+    /// <summary>⚠️ Le aree GIÀ scelte escono dai suggerimenti: riproporle vorrebbe dire offrire un gesto che
+    /// non fa niente, ed è la stessa ragione per cui i candidati di un'unione escludono chi è già dentro.</summary>
+    private IReadOnlyList<TypeaheadPicker.Item> AreaItems(string text, IReadOnlyCollection<string> gia) =>
         (string.IsNullOrWhiteSpace(text) ? _areas : _areas.Where(a => a.Name.Contains(text.Trim(), StringComparison.OrdinalIgnoreCase)))
+            .Where(a => !gia.Any(x => string.Equals(x, a.Name, StringComparison.OrdinalIgnoreCase)))
             .Take(50).Select(a => new TypeaheadPicker.Item(a.Name, a.Type)).ToList();
 
     private static bool Match(GlobalSectorRow s, string text) =>
@@ -2746,10 +2827,31 @@
     private void PickRunways(ClauseForm form, ChangeEventArgs e) =>
         form.Rwys = e.Value is string[] v ? v : Array.Empty<string>();
 
-    private void ResolveArea(ClauseForm form) =>
-        form.AreaLabel = _areas.FirstOrDefault(a => string.Equals(a.Name, form.AreaText.Trim(), StringComparison.OrdinalIgnoreCase))?.Name ?? form.AreaText.Trim();
+    /// <summary>
+    /// Aggiunge un'area all'elenco della clausola. Il nome si NORMALIZZA sul catalogo quando combacia, così
+    /// «at molise» diventa «AT Molise» e il report di consistenza lo riconosce.
+    /// <para>⚠️ Il testo che non combacia si tiene lo stesso — è il comportamento che c'era già, e toglierlo
+    /// vieterebbe di scrivere un'area che il catalogo non ha ancora. La Diagnostica lo dirà, riga per riga.</para>
+    /// <para>⚠️ Niente doppioni: la stessa area due volte darebbe «con A e A attive».</para>
+    /// </summary>
+    private void AggiungiArea(ClauseForm form, string? nome)
+    {
+        var testo = (nome ?? "").Trim();
+        if (testo.Length == 0) return;
+        var canonico = _areas.FirstOrDefault(a => string.Equals(a.Name, testo, StringComparison.OrdinalIgnoreCase))?.Name ?? testo;
+        if (!form.Aree.Any(x => string.Equals(x, canonico, StringComparison.OrdinalIgnoreCase)))
+            form.Aree.Add(canonico);
+        form.AreaText = "";
+    }
 
-    private void PickArea(ClauseForm form, string? name) { form.AreaLabel = name ?? ""; form.AreaText = name ?? ""; }
+    /// <summary>L'elenco delle aree della clausola come lo legge un umano: serve al titolo della casella.</summary>
+    private static string EtichettaAree(ClauseForm form) => string.Join(", ", form.Aree);
+
+    /// <summary>Il valore di una <c>&lt;option&gt;</c> booleana, e la sua rilettura.
+    /// <para>⚠️ Stanno in due metodi e non nell'attributo perché una stringa fra virgolette dentro un
+    /// attributo Razor lo chiude, e il compilatore lo racconta come «Invalid expression term ')'».</para></summary>
+    private static string Vero(bool v) => v ? "true" : "false";
+    private static bool LeggiVero(ChangeEventArgs e) => e.Value?.ToString() == "true";
 
     private static string[] ParseRwys(string? label) =>
         string.IsNullOrWhiteSpace(label)
@@ -3545,8 +3647,9 @@
         Parity = form.Parity,
         VerticalState = form.VState,
         ConditionLabel = form.Rwys.Length == 0 ? null : string.Join(" / ", form.Rwys),
-        ConditionAreaLabel = NullIfBlank(form.AreaLabel),
+        ConditionAreaLabel = TransferConditionText.UnisciAree(form.Aree),
         ConditionAreaNegated = form.AreaNegated,
+        ConditionAreaAll = form.AreaAll,
         ConditionCustomLabel = NullIfBlank(form.CustomLabel),
     });
 

@@ -2410,12 +2410,19 @@
   <data name="Xfer_HandoffSet" xml:space="preserve"><value>separate transfer</value></data>
   <data name="Xfer_SpeedKt" xml:space="preserve"><value>kt</value></data>
   <data name="Xfer_CondRunway" xml:space="preserve"><value>Runway in use</value></data>
-  <data name="Xfer_CondArea" xml:space="preserve"><value>Active area</value></data>
+  <data name="Xfer_CondArea" xml:space="preserve"><value>Areas</value></data>
   <data name="Xfer_CondCustom" xml:space="preserve"><value>Custom condition</value></data>
   <data name="Xfer_CondCustomPh" xml:space="preserve"><value>at night / with military traffic</value></data>
-  <data name="Xfer_CondAreaNeg" xml:space="preserve"><value>area NOT active</value></data>
-  <data name="Xfer_CondAreaNegTitle" xml:space="preserve"><value>The condition applies when the area is NOT active. The document reads “with {0} not active”.</value></data>
+  <data name="Xfer_CondAreaNeg" xml:space="preserve"><value>NOT active</value></data>
+  <data name="Xfer_CondAreaNegTitle" xml:space="preserve"><value>The condition applies when the areas are NOT active. Areas: {0}.</value></data>
   <data name="Xfer_CondAreaNegNoArea" xml:space="preserve"><value>pick an area first</value></data>
+  <data name="Xfer_CondAreasHint" xml:space="preserve"><value>one or more</value></data>
+  <data name="Xfer_CondAreaAdd" xml:space="preserve"><value>area</value></data>
+  <data name="Xfer_CondAreaRemove" xml:space="preserve"><value>Remove this area</value></data>
+  <data name="Xfer_CondAreaMode" xml:space="preserve"><value>With several areas</value></data>
+  <data name="Xfer_CondAreaModeOne" xml:space="preserve"><value>needs more than one area</value></data>
+  <data name="Xfer_CondAreaAny" xml:space="preserve"><value>any one of them is enough</value></data>
+  <data name="Xfer_CondAreaAll" xml:space="preserve"><value>all of them apply</value></data>
   <data name="Xfer_NoRunways" xml:space="preserve"><value>(no runway imported)</value></data>
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Detach from the variant group (with its subtree)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Preview</value></data>

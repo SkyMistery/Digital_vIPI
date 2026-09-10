@@ -33,7 +33,8 @@ public static class AgreementPreview
         // un'altra tabella.
         var siblings = section.Clauses.OrderBy(c => c.Order).ToList();
         var chain = Outline.ConditionChain(siblings, clause,
-            x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated, x.ConditionCustomLabel));
+            x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated,
+                                     x.ConditionAreaAll, x.ConditionCustomLabel));
 
         return ctx.Compose(
             sender.Callsign, receiver.Callsign, airport?.Icao, section.Kind,

@@ -185,76 +185,112 @@ public static class CoordinationSentenceComposer
         return d.Facet.IsGroupWide ? $"{tpl.GroupWide}, {text}" : text;
     }
 
-    /// <summary>La catena fusa, pronta per le parole: le aree stanno in DUE secchi.
-    /// <para>🔴 Attive e non attive non si possono unire in una stringa sola: «con A attiva e B» direbbe che
-    /// anche B è attiva, e sarebbe l'opposto di quel che c'è scritto in archivio — senza nessun errore.</para></summary>
-    private sealed record CondizioneFusa(string? Runway, string? AreaAttiva, string? AreaNonAttiva, string? Custom)
+    /// <summary>Un GRUPPO d'aree: quelle di <b>una</b> clausola della catena, col suo conteggio, la sua
+    /// polarità e il suo «tutte / una qualunque».
+    /// <para>🔴 I gruppi NON si fondono fra clausole: fonderli vorrebbe dire scegliere un connettivo solo per
+    /// aree che vengono da righe con flag diversi, e «con A o B attiva <b>e</b> C attiva» diventerebbe «con A
+    /// o B e C attive», che dice un'altra cosa. La pista e la personalizzata si fondono ancora, perché non
+    /// hanno flag.</para></summary>
+    private sealed record GruppoAree(IReadOnlyList<string> Nomi, bool NonAttiva, bool Tutte);
+
+    /// <summary>La catena pronta per le parole: pista e personalizzata fuse, le aree a gruppi.</summary>
+    private sealed record CondizioneFusa(string? Runway, IReadOnlyList<GruppoAree> Aree, string? Custom)
     {
-        public bool IsEmpty => string.IsNullOrWhiteSpace(Runway) && string.IsNullOrWhiteSpace(AreaAttiva)
-                               && string.IsNullOrWhiteSpace(AreaNonAttiva) && string.IsNullOrWhiteSpace(Custom);
+        public bool IsEmpty => string.IsNullOrWhiteSpace(Runway) && Aree.Count == 0
+                               && string.IsNullOrWhiteSpace(Custom);
     }
 
-    // Fonde i livelli dimensione per dimensione. Due piste (o due aree della stessa polarità) su livelli
-    // diversi sono un caso limite: si elencano unite dalla stessa congiunzione, perché restano un AND.
+    // Fonde le dimensioni SENZA flag — pista e personalizzata — e raccoglie le aree gruppo per gruppo.
+    // Due piste su livelli diversi restano un caso limite: si elencano unite dalla stessa congiunzione,
+    // perché restano un AND.
     private static CondizioneFusa Merge(CoordinationSentenceTemplate tpl, IReadOnlyList<ConditionClause> chain)
     {
-        string? Join(IEnumerable<ConditionClause> da, Func<ConditionClause, string?> pick)
+        string? Join(Func<ConditionClause, string?> pick)
         {
-            var parts = da.Select(pick).Select(x => (x ?? "").Trim()).Where(x => x.Length > 0).ToList();
+            var parts = chain.Select(pick).Select(x => (x ?? "").Trim()).Where(x => x.Length > 0).ToList();
             return parts.Count == 0 ? null : string.Join($" {tpl.Condition.Join} ", parts);
         }
-        return new CondizioneFusa(
-            Join(chain, c => c.Runway),
-            Join(chain.Where(c => !c.AreaNegated), c => c.Area),
-            Join(chain.Where(c => c.AreaNegated), c => c.Area),
-            Join(chain, c => c.Custom));
+        var aree = Fondi(chain.Select(c => new GruppoAree(c.Aree, c.AreaNegated, c.AreaAll))
+                              .Where(g => g.Nomi.Count > 0).ToList());
+        return new CondizioneFusa(Join(c => c.Runway), aree, Join(c => c.Custom));
     }
 
-    // Le dimensioni di UNA condizione fusa. Pista+area insieme usano la forma dedicata «con pista X in uso e Y
-    // attiva» (fraseologia approvata), che non è la semplice unione delle due — e per l'area NON attiva ne
-    // esiste una seconda, per la stessa ragione.
+    /// <summary>
+    /// Fonde i gruppi CONSECUTIVI che si possono fondere, e solo quelli.
+    ///
+    /// <para>🔴 <b>La regola è l'associatività, non la somiglianza.</b> Due gruppi in AND si fondono perché
+    /// <c>(A∧B) ∧ C = A∧B∧C</c>; due gruppi in OR <b>no</b>, perché <c>(A∨B) ∧ C ≠ A∨B∨C</c> — e fondendoli
+    /// l'eccezione della catena diventerebbe una terza alternativa invece di una condizione in più. È lo
+    /// stesso errore, scritto in prosa invece che in codice.</para>
+    ///
+    /// <para>⚠️ Un gruppo con UN nome solo è sempre fondibile: «tutte» e «una qualunque» su un elemento sono
+    /// la stessa cosa, e la sua bandiera non dice niente. È il caso normale della catena — capofila con la
+    /// sua area, eccezione con la sua — e senza questa riga uscirebbe «con A non attiva e B non attiva».</para>
+    /// </summary>
+    private static IReadOnlyList<GruppoAree> Fondi(IReadOnlyList<GruppoAree> gruppi)
+    {
+        static bool InAnd(GruppoAree g) => g.Tutte || g.Nomi.Count == 1;
+
+        var fusi = new List<GruppoAree>(gruppi.Count);
+        foreach (var g in gruppi)
+        {
+            if (fusi.Count > 0 && InAnd(fusi[^1]) && InAnd(g) && fusi[^1].NonAttiva == g.NonAttiva)
+            {
+                fusi[^1] = new GruppoAree(fusi[^1].Nomi.Concat(g.Nomi).ToList(), g.NonAttiva, Tutte: true);
+                continue;
+            }
+            fusi.Add(g);
+        }
+        return fusi;
+    }
+
+    /// <summary>
+    /// I frammenti di UNA condizione fusa, nell'ordine in cui si leggono.
+    ///
+    /// <para>🔴 <b>La regola, ed è una sola</b>: il PRIMO frammento porta la preposizione, gli altri no, e si
+    /// uniscono con <c>Join</c>. Da qui le coppie «piena / in coda» dei template dell'area — e da qui la
+    /// morte di <c>RunwayAndArea</c>, che era questa stessa regola scritta a mano: «con pista {r} in uso» +
+    /// « e » + «{a} attiva». Il testo prodotto è carattere per carattere lo stesso, e lo dicono i test che
+    /// c'erano già.</para>
+    /// </summary>
     private static IEnumerable<string> ClausesOf(CoordinationSentenceTemplate tpl, CondizioneFusa c)
     {
+        var cond = tpl.Condition;
         var rwy = (c.Runway ?? "").Trim();
-        var attiva = (c.AreaAttiva ?? "").Trim();
-        var nonAttiva = (c.AreaNonAttiva ?? "").Trim();
         var custom = (c.Custom ?? "").Trim();
+        var primo = true;
 
-        // ⚠️ La forma combinata consuma la pista UNA volta sola. Con pista + attive + non attive, la combinata
-        // si prende le attive e le non attive si appendono a parte: «con pista 16R in uso e A attiva e B non
-        // attiva». Ripetere «con pista 16R in uso» due volte sarebbe la stessa frase detta male.
-        // 🔴 E chi si appende usa la forma in CODA, senza preposizione: qualcosa ha già aperto con «con», e
-        // la congiunzione la ripeterebbe — «con A attiva E CON B non attiva». Difetto trovato da un test.
-        var nonAttivaConsumata = false;
-        var haApertoLaFrase = false;
-        if (rwy.Length > 0 && attiva.Length > 0)
+        if (rwy.Length > 0)
         {
-            yield return tpl.Condition.RunwayAndArea.Replace("{runway}", rwy).Replace("{area}", attiva).Trim();
-            haApertoLaFrase = true;
-        }
-        else if (rwy.Length > 0 && nonAttiva.Length > 0)
-        {
-            yield return tpl.Condition.RunwayAndAreaInactive.Replace("{runway}", rwy).Replace("{area}", nonAttiva).Trim();
-            nonAttivaConsumata = true;
-            haApertoLaFrase = true;
-        }
-        else if (rwy.Length > 0)
-        {
-            yield return tpl.Condition.Runway.Replace("{label}", rwy).Trim();
-            haApertoLaFrase = true;
-        }
-        else if (attiva.Length > 0)
-        {
-            yield return tpl.Condition.Area.Replace("{label}", attiva).Trim();
-            haApertoLaFrase = true;
+            yield return cond.Runway.Replace("{label}", rwy).Trim();
+            primo = false;
         }
 
-        if (nonAttiva.Length > 0 && !nonAttivaConsumata)
-            yield return (haApertoLaFrase ? tpl.Condition.AreaInactiveTail : tpl.Condition.AreaInactive)
-                .Replace("{label}", nonAttiva).Trim();
+        foreach (var g in c.Aree)
+        {
+            // ⚠️ Il connettivo fra i NOMI è quello del gruppo («e» / «o»); quello fra i FRAMMENTI è `Join`.
+            // Sono due congiunzioni diverse che in italiano possono coincidere, e confonderle qui vorrebbe
+            // dire scrivere «o» dove il documento deve dire «e».
+            var nomi = string.Join($" {(g.Tutte ? cond.AreaAll : cond.AreaAny)} ", g.Nomi);
+            var tanti = g.Nomi.Count > 1;
+            var forma = (g.NonAttiva, primo, tanti) switch
+            {
+                (false, true,  false) => cond.Area,
+                (false, true,  true)  => cond.AreaMany,
+                (false, false, false) => cond.AreaTail,
+                (false, false, true)  => cond.AreaTailMany,
+                (true,  true,  false) => cond.AreaInactive,
+                (true,  true,  true)  => cond.AreaInactiveMany,
+                (true,  false, false) => cond.AreaInactiveTail,
+                (true,  false, true)  => cond.AreaInactiveTailMany,
+            };
+            yield return forma.Replace("{label}", nomi).Trim();
+            primo = false;
+        }
 
+        // La personalizzata ha una preposizione sua («in condizione»), che dopo la congiunzione si legge.
         if (custom.Length > 0)
-            yield return tpl.Condition.Custom.Replace("{label}", custom).Trim();
+            yield return cond.Custom.Replace("{label}", custom).Trim();
     }
 
     // Inserisce la clausola prima del punto finale («… su VALMA con pista RWY 16 in uso.»); senza punto finale, appende.

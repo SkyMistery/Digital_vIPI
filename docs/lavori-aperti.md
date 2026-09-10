@@ -2,6 +2,32 @@
 
 ## Dove siamo — 10 settembre 2026
 
+🆕 **§CT: PIÙ AREE in una condizione, e la frase si adatta.** Chiesto dal committente subito dopo §CS. Chip
+con la ✕ + typeahead nel pannello della clausola **e** nella barra della scrittura in blocco, più un selettore
+**«ne basta una qualunque» / «valgono tutte»** — decisione del committente, perché il senso naturale
+**cambia con la polarità** (al positivo si pensa «tutte», al negativo «se una qualunque è attiva niente
+trasferimento»: sono i due lati di De Morgan, e indovinare vuol dire scrivere in un documento operativo una
+regola che nessuno ha deciso).
+🔴 **Due misure prese PRIMA di scrivere hanno cambiato il disegno**: il separatore delle piste non si può
+riusare — **cinque aree del catalogo hanno già lo `/` nel nome** — quindi è `;`; e la colonna da 80 non basta,
+perché tre nomi lunghi fanno 105 caratteri.
+🔴 **Due template MUOIONO e il testo esce identico**: `RunwayAndArea` non era una forma dedicata, era la
+regola generale scritta a mano — «il primo frammento porta la preposizione, gli altri no». Scritta come regola,
+le due forme si cancellano e riparano da sole il difetto della preposizione ripetuta.
+🔴 **La fusione dei gruppi è l'ASSOCIATIVITÀ, non la somiglianza**: due gruppi in AND si fondono, due in OR no
+— `(A∨B) ∧ C ≠ A∨B∨C`, e fondendoli l'eccezione della catena diventerebbe una terza alternativa.
+🔴 **Il report di consistenza guardava l'area SINGOLA**: su un elenco avrebbe detto «area fantasma» su **ogni**
+riga multi-area — un avviso che scatta sul caso normale, il difetto che questa pagina ha già imparato due
+volte. Ora spezza e nomina **quale** nome manca.
+⚠️ **Il presidio della finestra cieca ha fermato la migrazione**, e ha fatto bene: l'`AlterColumn` 80→200 su
+MariaDB riscrive la tabella mentre Passenger aspetta. Registrata in `RevisionateAMano` con la ragione — è un
+**allargamento** su una tabella di **60 righe**, non l'`AtcSessions` che quel commento teme. ▶ **Se 1.20.0 esce
+dopo il 16 settembre quella deroga non serve più e va tolta col file.**
+✅ Provato dal vivo su LIBB ⇄ LDZO: chip, i due controlli spenti col motivo accanto (il selettore si accende
+solo con DUE aree), e le quattro rese — «con A **o** B **attive**» · «con A **e** B **non attive**» · le stesse
+in inglese · pill `area A / B` e `area A + B ⊘`. 🔴 E `real-coordination.approved.txt` non si è mosso.
+Carta: `docs/feature/2026-09-10-condizione-piu-aree.md`.
+
 🆕 **§CS: LA CONDIZIONE D'AREA HA UNA POLARITÀ — «con la $406 NON attiva».** Chiesto dal committente: «vale
 solo con un'area attiva, ma non il contrario». Ora la riga di clausola ha una casella **«area NON attiva»**
 accanto al picker dell'area, e il documento esce «… con AT Molise **non attiva**» / «… with AT Molise **not

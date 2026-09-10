@@ -1,4 +1,4 @@
-# Condizione di coordinamento: «area NON attiva» 🟢
+﻿# Condizione di coordinamento: «area NON attiva» 🟢
 
 **Chiesto dal committente il 10 settembre 2026.** «Nei trasferimenti c'è modo di dire che un certo
 trasferimento non si può effettuare se c'è un'area tipo la $406 attiva? Abbiamo il caso in cui un certo
@@ -43,6 +43,12 @@ esiste solo se c'è una pista:
 c.ConditionRefId       = c.ConditionLabel     is null ? null  : i.ConditionRefId;
 c.ConditionAreaNegated = c.ConditionAreaLabel is null ? false : i.ConditionAreaNegated;   // ← nuova, stesso modo
 ```
+
+> ⛔ **Superato in parte dalla carta [«PIÙ aree»](2026-09-10-condizione-piu-aree.md)** (stesso giorno):
+> `RunwayAndArea` e `RunwayAndAreaInactive`, descritti qui sotto come «forme dedicate», **non esistono più** —
+> erano la regola generale dei frammenti scritta a mano, e il testo che producevano non è cambiato di un
+> carattere. Il resto di questa carta — la polarità, la bandiera che segue l'etichetta, il tag simbolico —
+> resta in vigore.
 
 ## Le parole: DUE template nuovi per lingua, non uno
 

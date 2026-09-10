@@ -174,10 +174,15 @@ public sealed class CoordinationSentenceTemplate
         {
             Runway = "with runway {label} in use",
             Area = "with {label} active",
+            AreaMany = "with {label} active",
+            AreaTail = "{label} active",
+            AreaTailMany = "{label} active",
             AreaInactive = "with {label} not active",
+            AreaInactiveMany = "with {label} not active",
             AreaInactiveTail = "{label} not active",
-            RunwayAndArea = "with runway {runway} in use and {area} active",
-            RunwayAndAreaInactive = "with runway {runway} in use and {area} not active",
+            AreaInactiveTailMany = "{label} not active",
+            AreaAll = "and",
+            AreaAny = "or",
             Custom = "under condition {label}",
             Join = "and",
         },
@@ -296,23 +301,40 @@ public sealed class CoordinationSentenceCondition
 {
     /// <summary>Condizione di pista in uso, placeholder {label}: «con pista {label} in uso».</summary>
     public string Runway { get; init; } = "con pista {label} in uso";
-    /// <summary>Condizione di area attiva, placeholder {label}: «con {label} attiva».</summary>
+    // ---- L'AREA ------------------------------------------------------------------------------------
+    // 🔴 La regola: la condizione e' una fila di FRAMMENTI, e il PRIMO porta la preposizione, gli altri no.
+    // Da qui le coppie «piena / in coda». Da qui anche la morte di `RunwayAndArea` e `RunwayAndAreaInactive`,
+    // che erano quella stessa regola scritta a mano: «con pista {r} in uso» + « e » + «{a} attiva».
+    // ⚠️ E ogni forma ha il suo PLURALE, due chiavi e non una: «una sola forma plurale sbaglia sempre
+    // sull'uno», la regola gia' pagata con «1 clauses». In inglese le due coincidono e si dichiarano lo
+    // stesso — una coincidenza di lingua non e' una regola di codice.
+
+    /// <summary>Area attiva, UNA, placeholder {label}: «con {label} attiva».</summary>
     public string Area { get; init; } = "con {label} attiva";
-    /// <summary>Condizione di area NON attiva, placeholder {label}: «con {label} non attiva».
-    /// <para>⚠️ Non è «non (con {label} attiva)»: è una clausola sua, perché va in AND con le altre.</para></summary>
+    /// <summary>Aree attive, PIU' D'UNA: «con {label} attive».</summary>
+    public string AreaMany { get; init; } = "con {label} attive";
+    /// <summary>Area attiva in CODA a un frammento che ha già aperto con la preposizione: «… e {label} attiva».</summary>
+    public string AreaTail { get; init; } = "{label} attiva";
+    /// <summary>Aree attive in coda, più d'una: «… e {label} attive».</summary>
+    public string AreaTailMany { get; init; } = "{label} attive";
+    /// <summary>Area NON attiva, UNA: «con {label} non attiva».
+    /// <para>⚠️ Non è «non (con {label} attiva)»: è un frammento suo, perché va in AND con gli altri.</para></summary>
     public string AreaInactive { get; init; } = "con {label} non attiva";
-    /// <summary>La stessa, ma in CODA a una clausola che ha già aperto con la preposizione, placeholder
-    /// {label}: «… attiva <b>e</b> {label} non attiva».
-    /// <para>🔴 Esiste perché due clausole d'area unite dalla congiunzione ripetono la preposizione — «con
-    /// $406 attiva E CON $407 non attiva» — che è italiano storto e in inglese non va meglio. È lo stesso
-    /// difetto che <see cref="RunwayAndArea"/> evita per pista+area, e la stessa cura: una forma dedicata.
-    /// Trovato da un test, non previsto.</para></summary>
+    /// <summary>Aree NON attive, più d'una: «con {label} non attive».</summary>
+    public string AreaInactiveMany { get; init; } = "con {label} non attive";
+    /// <summary>Area NON attiva in coda: «… e {label} non attiva».
+    /// <para>🔴 La coda esiste perché due frammenti d'area uniti dalla congiunzione ripetono la preposizione —
+    /// «con $406 attiva E CON $407 non attiva» — che è italiano storto e in inglese non va meglio. Trovato da
+    /// un test, non previsto.</para></summary>
     public string AreaInactiveTail { get; init; } = "{label} non attiva";
-    /// <summary>Condizione combinata pista + area in AND, placeholder {runway}/{area}: «con pista {runway} in uso e {area} attiva».</summary>
-    public string RunwayAndArea { get; init; } = "con pista {runway} in uso e {area} attiva";
-    /// <summary>Come <see cref="RunwayAndArea"/> ma con l'area NON attiva. ⚠️ Ne serve una SECONDA e non basta
-    /// rovesciare una parola: pista+area usano una forma dedicata, non l'unione delle due clausole.</summary>
-    public string RunwayAndAreaInactive { get; init; } = "con pista {runway} in uso e {area} non attiva";
+    /// <summary>Aree NON attive in coda, più d'una: «… e {label} non attive».</summary>
+    public string AreaInactiveTailMany { get; init; } = "{label} non attive";
+    /// <summary>Congiunzione FRA I NOMI delle aree quando valgono <b>tutte</b>: «$406 e $407».</summary>
+    public string AreaAll { get; init; } = "e";
+    /// <summary>Congiunzione fra i nomi quando ne basta <b>una qualunque</b>: «$406 o $407».
+    /// <para>⚠️ È il default, ed è il senso della multi-pista: il matcher chiede che UNA delle piste elencate
+    /// sia in uso.</para></summary>
+    public string AreaAny { get; init; } = "o";
     /// <summary>Condizione libera, placeholder {label}: «in condizione {label}».</summary>
     public string Custom { get; init; } = "in condizione {label}";
     /// <summary>Congiunzione tra clausole condizione presenti (pista/area/personalizzata): «e» (EN «and»).</summary>

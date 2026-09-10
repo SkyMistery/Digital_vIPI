@@ -99,7 +99,7 @@ public interface IAgreementRepository
 
     /// <summary>Cambia area e condizione personalizzata di più clausole (<c>null</c> = togli). Niente piste:
     /// dipendono dall'aeroporto, e la stessa sigla su scali diversi è una pista diversa.</summary>
-    Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel, bool areaNegated, string? customLabel,
+    Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel, bool areaNegated, bool areaAll, string? customLabel,
         CancellationToken ct = default);
 
     /// <summary>Elimina più clausole, sciogliendo i gruppi che restino di una sola.</summary>

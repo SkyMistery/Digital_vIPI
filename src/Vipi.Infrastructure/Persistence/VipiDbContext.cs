@@ -464,7 +464,9 @@ public class VipiDbContext : DbContext
             // Dimensionata anche fuori da MySQL perché è una lista corta per natura, non prosa.
             e.Property(x => x.Cops).HasMaxLength(200);
             e.Property(x => x.ConditionLabel).HasMaxLength(80);
-            e.Property(x => x.ConditionAreaLabel).HasMaxLength(80);
+            // ⚠️ 200 e non 80 come le altre: le AREE si elencano, e tre nomi lunghi del catalogo IVAO fanno
+            // 105 caratteri. Misurato sulle 241 aree in archivio, non stimato.
+            e.Property(x => x.ConditionAreaLabel).HasMaxLength(200);
             e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
             e.Property(x => x.HandoffLabel).HasMaxLength(80);
             e.Property(x => x.CommsHandoffLabel).HasMaxLength(80);
@@ -486,6 +488,9 @@ public class VipiDbContext : DbContext
             // che omette la colonna in INSERT non fa tornare indietro una riga cambiata. E su una tabella già
             // piena `false` = «area ATTIVA», che è quel che dicono tutte le clausole scritte finora.
             e.Property(x => x.ConditionAreaNegated).HasDefaultValue(false);
+            // ⚠️ `false` = «ne basta UNA qualunque», che è il senso della multi-pista: due liste vicine con
+            // due sensi opposti sono il modo in cui qualcuno legge la seconda con la testa della prima.
+            e.Property(x => x.ConditionAreaAll).HasDefaultValue(false);
         });
 
         b.Entity<StaffMember>(e =>

@@ -202,6 +202,58 @@ public class ConsistencyReportTests
         Assert.Equal("Area fantasma", f.Category);
     }
 
+    /// <summary>
+    /// 🔴 Dal 10 settembre 2026 l'etichetta è un ELENCO, e questa è la guardia che tiene il controllo
+    /// onesto: confrontando l'etichetta intera, una riga con due aree non combacerebbe MAI con un nome di
+    /// catalogo e l'avviso scatterebbe sul caso NORMALE — «un avviso che scatta sul caso normale non è un
+    /// avviso», che questa pagina ha già imparato due volte.
+    /// <para>⚠️ E il messaggio deve dire QUALE nome manca, non l'elenco: chi legge deve sapere che cosa
+    /// correggere.</para>
+    /// </summary>
+    [Fact]
+    public void Phantom_area_is_found_INSIDE_a_list_and_names_the_missing_one()
+    {
+        var d = new ConsistencyDataset
+        {
+            TransferConditions = new[]
+            {
+                new TransferConditionRow(1, "LIRR", "VALMA", null, null, "LI R14A;Area Sparita;LI R21A/B - Sara"),
+            },
+            RunwayIdents = new Dictionary<int, string>(),
+            AreaNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LI R14A", "LI R21A/B - Sara" },
+            ParentRefs = Array.Empty<ParentRefRow>(),
+            ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+        };
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Area fantasma", f.Category);
+        Assert.Contains("Area Sparita", f.Detail);
+        // ⚠️ E le due che ci sono NON compaiono: l'avviso nomina il colpevole, non la riga.
+        Assert.DoesNotContain("LI R14A", f.Detail);
+    }
+
+    /// <summary>
+    /// L'altra metà: con tutti i nomi in catalogo non si lamenta. ⚠️ Compresa un'area che ha lo <c>/</c> nel
+    /// nome, che col separatore delle piste sarebbe stata spezzata in sei fantasmi.
+    /// </summary>
+    [Fact]
+    public void A_list_of_areas_that_all_exist_says_nothing()
+    {
+        var d = new ConsistencyDataset
+        {
+            TransferConditions = new[]
+            {
+                new TransferConditionRow(1, "LIRR", "VALMA", null, null, "LI R14A;LI R49A/B/C/D/E/F - Zita"),
+            },
+            RunwayIdents = new Dictionary<int, string>(),
+            AreaNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "LI R14A", "LI R49A/B/C/D/E/F - Zita" },
+            ParentRefs = Array.Empty<ParentRefRow>(),
+            ValidCallsigns = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+        };
+
+        Assert.Empty(ConsistencyReportService.Analyze(d));
+    }
+
     [Fact]
     public void Dangling_regulated_area_id_is_flagged()
     {

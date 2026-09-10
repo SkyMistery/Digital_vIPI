@@ -326,6 +326,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-09-testo-ricco-nell-editor.md`](feature/2026-09-09-testo-ricco-nell-editor.md) — Testo ricco nell'editor: grassetto, corsivo, sottolineato, elenchi (9 settembre 2026)
 - [`feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md`](feature/2026-09-09-tornello-scavalcato-e-sezioni-comuni.md) — Il tornello scavalcato, e le sezioni in comune che non erano comuni (9 settembre 2026, sera)
 - [`feature/2026-09-10-condizione-area-non-attiva.md`](feature/2026-09-10-condizione-area-non-attiva.md) — Condizione di coordinamento: «area NON attiva» 🟢
+- [`feature/2026-09-10-condizione-piu-aree.md`](feature/2026-09-10-condizione-piu-aree.md) — Condizione di coordinamento: PIÙ aree su una riga 🟢
 - [`feature/2026-09-10-rinvio-geometrico.md`](feature/2026-09-10-rinvio-geometrico.md) — Il ripiego di un settore sovrapposto si risolve sul PUNTO, non sul padre
 
 ### `guide`

@@ -262,8 +262,8 @@ public class CoordinationSentenceComposerTests
     }
 
     private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null,
-                                       bool areaNegated = false) =>
-        ComposeChain(new ConditionClause(runway, area, areaNegated, custom));
+                                       bool areaNegated = false, bool areaAll = false) =>
+        ComposeChain(new ConditionClause(runway, area, areaNegated, areaAll, custom));
 
     /// <summary>Compone con una CATENA di condizioni: una clausola per livello dell'outline, dalla capofila
     /// alla riga. Una riga senza varianti ne ha una sola.</summary>
@@ -306,7 +306,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("RWY 16", null, false, null) });
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("RWY 16", null, false, false, null) });
         Assert.EndsWith("over VALMA with runway RWY 16 in use.", s);
     }
 
@@ -331,7 +331,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "R41", false, null) });
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "R41", false, false, null) });
         Assert.EndsWith("over VALMA with runway 16R in use and R41 active.", s);
     }
 
@@ -374,7 +374,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "$406", true, null) });
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "$406", true, false, null) });
         Assert.EndsWith("over VALMA with runway 16R in use and $406 not active.", s);
     }
 
@@ -388,21 +388,42 @@ public class CoordinationSentenceComposerTests
     public void Due_aree_di_polarita_OPPOSTA_restano_due_clausole()
     {
         var s = ComposeChain(
-            new ConditionClause(null, "$406", false, null),
-            new ConditionClause(null, "$407", true, null));
+            new ConditionClause(null, "$406", false, false, null),
+            new ConditionClause(null, "$407", true, false, null));
 
         Assert.EndsWith("su VALMA con $406 attiva e $407 non attiva.", s);
     }
 
-    /// <summary>Due aree della STESSA polarità restano un elenco solo, come prima: sono un AND.</summary>
+    /// <summary>
+    /// Due gruppi da UN nome, stessa polarità: si FONDONO in un elenco solo, perché su un elemento «tutte» e
+    /// «una qualunque» sono la stessa cosa e i frammenti stanno in AND. È il caso normale della catena —
+    /// capofila con la sua area, eccezione con la sua — e senza la fusione uscirebbe «con $406 non attiva e
+    /// $407 non attiva». ⚠️ E l'aggettivo va al PLURALE appena i nomi sono due.
+    /// </summary>
     [Fact]
     public void Due_aree_non_attive_si_elencano_in_una_clausola_sola()
     {
         var s = ComposeChain(
-            new ConditionClause(null, "$406", true, null),
-            new ConditionClause(null, "$407", true, null));
+            new ConditionClause(null, "$406", true, false, null),
+            new ConditionClause(null, "$407", true, false, null));
 
-        Assert.EndsWith("su VALMA con $406 e $407 non attiva.", s);
+        Assert.EndsWith("su VALMA con $406 e $407 non attive.", s);
+    }
+
+    /// <summary>
+    /// 🔴 L'altra metà della regola, e la ragione per cui la fusione non è «gruppi che si somigliano»: un
+    /// gruppo in OR non si fonde con quello che segue, perché <c>(A∨B) ∧ C ≠ A∨B∨C</c>. Fondendoli,
+    /// l'eccezione della catena diventerebbe una terza alternativa invece di una condizione in più.
+    /// </summary>
+    [Fact]
+    public void Un_gruppo_in_OR_non_si_fonde_con_quello_dopo()
+    {
+        var s = ComposeChain(
+            new ConditionClause(null, "$406;$407", false, false, null),
+            new ConditionClause(null, "$500", false, false, null));
+
+        Assert.EndsWith("su VALMA con $406 o $407 attive e $500 attiva.", s);
+        Assert.DoesNotContain("$406 o $407 o $500", s);
     }
 
     /// <summary>
@@ -414,11 +435,98 @@ public class CoordinationSentenceComposerTests
     public void La_pista_entra_UNA_volta_sola_anche_con_le_due_polarita()
     {
         var s = ComposeChain(
-            new ConditionClause("16R", "$406", false, null),
-            new ConditionClause(null, "$407", true, null));
+            new ConditionClause("16R", "$406", false, false, null),
+            new ConditionClause(null, "$407", true, false, null));
 
         Assert.EndsWith("su VALMA con pista 16R in uso e $406 attiva e $407 non attiva.", s);
         Assert.Equal(1, s!.Split("pista 16R").Length - 1);
+    }
+
+    // ---- PIÙ aree su una riga (carta 2026-09-10-condizione-piu-aree.md) -----------------------------
+
+    /// <summary>
+    /// Il default: ne basta UNA qualunque — è il senso che ha già la multi-pista.
+    /// ⚠️ E il PLURALE dell'aggettivo: «attive», non «attiva». Una sola forma plurale sbaglia sempre sull'uno.
+    /// </summary>
+    [Fact]
+    public void Due_aree_una_qualunque_si_dicono_con_la_O_e_al_plurale()
+    {
+        var s = ComposeCond(area: "$406;$407", areaAll: false);
+        Assert.EndsWith("su VALMA con $406 o $407 attive.", s);
+    }
+
+    [Fact]
+    public void Due_aree_TUTTE_si_dicono_con_la_E()
+    {
+        var s = ComposeCond(area: "$406;$407", areaAll: true);
+        Assert.EndsWith("su VALMA con $406 e $407 attive.", s);
+    }
+
+    /// <summary>
+    /// 🔴 Il caso che ha fatto scegliere il selettore: al ROVESCIO il senso naturale si capovolge — «non vale
+    /// se una qualunque è attiva». Sono i due lati di De Morgan, e la frase deve dire quello che è scritto.
+    /// </summary>
+    [Fact]
+    public void Due_aree_NON_attive_dicono_il_loro_senso()
+    {
+        Assert.EndsWith("su VALMA con $406 o $407 non attive.",
+                        ComposeCond(area: "$406;$407", areaNegated: true, areaAll: false));
+        Assert.EndsWith("su VALMA con $406 e $407 non attive.",
+                        ComposeCond(area: "$406;$407", areaNegated: true, areaAll: true));
+    }
+
+    /// <summary>
+    /// 🔴 Con UNA sola area il senso dell'elenco non deve vedersi da nessuna parte: la frase è la stessa con
+    /// il selettore in tutt'e due le posizioni, ed è la garanzia che il giro non tocca quel che c'era.
+    /// </summary>
+    [Fact]
+    public void Con_UNA_area_il_senso_dell_elenco_non_cambia_niente()
+    {
+        Assert.Equal(ComposeCond(area: "$406", areaAll: false), ComposeCond(area: "$406", areaAll: true));
+        Assert.EndsWith("su VALMA con $406 attiva.", ComposeCond(area: "$406", areaAll: true));
+    }
+
+    /// <summary>
+    /// ⚠️ Il separatore è <c>;</c> e NON <c>/</c>: cinque aree del catalogo IVAO hanno già lo <c>/</c> nel
+    /// nome, e tagliarle lì le farebbe a pezzi. Qui si prova col nome vero.
+    /// </summary>
+    [Fact]
+    public void Un_area_con_lo_SLASH_nel_nome_resta_intera()
+    {
+        var s = ComposeCond(area: "LI R49A/B/C/D/E/F - Zita;LI/LD D35/A-CRIT", areaAll: true);
+        Assert.EndsWith("su VALMA con LI R49A/B/C/D/E/F - Zita e LI/LD D35/A-CRIT attive.", s);
+    }
+
+    [Fact]
+    public void Piu_aree_in_inglese()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause(null, "$406;$407", true, false, null) });
+        Assert.EndsWith("over VALMA with $406 or $407 not active.", s);
+    }
+
+    /// <summary>
+    /// 🔴 I GRUPPI non si fondono fra clausole della catena. Capofila «una qualunque fra A e B», eccezione
+    /// «C»: fondendoli si otterrebbe «con A o B o C attive», che dice un'altra cosa — l'eccezione non è una
+    /// terza alternativa, è una condizione IN PIÙ.
+    /// </summary>
+    [Fact]
+    public void I_gruppi_di_aree_restano_DISTINTI_lungo_la_catena()
+    {
+        var s = ComposeChain(
+            new ConditionClause(null, "$406;$407", false, false, null),
+            new ConditionClause(null, "$500", false, false, null));
+
+        Assert.EndsWith("su VALMA con $406 o $407 attive e $500 attiva.", s);
+    }
+
+    /// <summary>⚠️ E la pista entra una volta sola, davanti a tutto, con le aree in coda.</summary>
+    [Fact]
+    public void Pista_piu_due_aree()
+    {
+        var s = ComposeCond(runway: "16R", area: "$406;$407", areaAll: true);
+        Assert.EndsWith("su VALMA con pista 16R in uso e $406 e $407 attive.", s);
     }
 
     [Fact]
@@ -535,7 +643,7 @@ public class CoordinationSentenceComposerTests
         var s = CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, LevelUnit.Fl, null, LevelParity.Any,
             "BIRSU", TransferFlowKind.Arrival,
-            new[] { new ConditionClause(null, null, false, "traffico notturno") },
+            new[] { new ConditionClause(null, null, false, false, "traffico notturno") },
             facet: Facet(TransferHandoffKind.Unspecified, groupWide: true));
         // Chi scavalca le alternative premette il proprio marcatore: senza, il lettore la scambierebbe per
         // un'alternativa in più.

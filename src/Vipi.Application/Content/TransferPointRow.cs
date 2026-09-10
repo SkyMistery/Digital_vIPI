@@ -26,11 +26,14 @@ public sealed record TransferPointRow : IOutlineRow
     public string? ConditionAreaLabel { get; init; }    // area: attiva, o NON attiva secondo la bandiera
     /// <summary>La condizione d'area vale quando l'area <b>non</b> è attiva. Senza etichetta non vuol dire niente.</summary>
     public bool ConditionAreaNegated { get; init; }
+    /// <summary>Con più aree: <c>true</c> = valgono tutte, <c>false</c> = ne basta una qualunque.</summary>
+    public bool ConditionAreaAll { get; init; }
     public string? ConditionCustomLabel { get; init; }  // condizione personalizzata
 
     /// <summary>Etichetta condizione combinata per il display (pill/chip): pista · area · personalizzata. Vuota se nessuna.</summary>
     public string? ConditionDisplay =>
-        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated, ConditionCustomLabel);
+        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated,
+                                      ConditionAreaAll, ConditionCustomLabel);
 
     // Faccetta trasferimento. HandoffKind = Unspecified ⇒ trasferimento e ingresso coincidono (riga «come prima»).
     // La PAROLA del luogo («al confine dell'AoR») non sta qui: è lingua, e la lingua vive nel template della frase,
