@@ -11069,6 +11069,9 @@ stava entrando, il caso senza eccezione, e che `RegistraLogin` scriva **davvero*
   partito 03:33:01 prima»), e un processo che muore non scrive niente per definizione. Lo dice solo
   `avvii.txt`, ed è già così.
 
+✅ **FUSA in `main`** (merge `2af50168`) e **CONSEGNATA in 1.19.1** — pacchetto pronto, **non ancora
+caricato**.
+
 ---
 
 ## §CQ — Il convertitore e l'AIP: due apostrofi e una riga bianca — 10 settembre 2026
@@ -11116,3 +11119,36 @@ i due elenchi che **restano** due, i gruppi col nome che non si uniscono).
 collection contained 10 items». Una prova che non distingue le due versioni non prova niente.
 
 Suite: **2 372** verdi in `Vipi.Application.Tests` e **1 447** in `Vipi.Ui.Tests`, su net8 e net10.
+
+✅ **FUSA in `main`** (merge `e79038a8`) e **CONSEGNATA in 1.19.1** — pacchetto pronto, **non ancora
+caricato**.
+
+---
+
+## Il pacchetto 1.19.1 — 10 settembre 2026
+
+**PATCH.** Timbro `1.19.1 · c58ad07d`, zip
+`8f2cfef5e0aba31d2de9009aa330019ead8dd9006eb3f7ba00152828957bea26`, **7 file**, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.1.md`. Porta **§CP** e **§CQ**.
+
+Il numero è PATCH e non MINOR perché nessuna delle due voci aggiunge una pagina, una sezione o una
+migrazione: una è una **diagnosi che prima non si scriveva**, l'altra una **lettura che prima sbagliava**.
+Lo schema resta quello di 1.19.0, quindi si consegna da sola anche dentro la finestra cieca.
+
+**I sette file**, e come sono stati scelti: `git diff --name-only 6f38e58 HEAD -- src` nomina tre progetti
+(Application, Host, Ui) → i tre `.dll` coi loro `.pdb`, più `en/Vipi.Ui.resources.dll` perché le due `.resx`
+sono cambiate (una chiave: `Conv_IssueBlankLines`).
+
+⚠️ **`wwwroot` resta fuori, e non per deduzione**: i **54** file di `_content/Vipi.Ui` hanno lo **stesso
+sha256** del publish di 1.19.0, `Vipi.Host.staticwebassets.endpoints.json` compreso. Nessun `.css` e nessun
+`.js` toccati ⇒ niente `.br`/`.gz` e niente indice. Fuori anche `MySqlMigrations` (nessuna migrazione) e
+Domain/Hosting/Infrastructure, le cui impronte cambiano per l'MVID mentre i sorgenti no.
+
+✅ **Provato sul PACCHETTO** (publish win-x64, Edge): JS minificato servito, circuito aperto, Ricerca viva,
+editor ACC che si apre, console pulita, timbro giusto in `avvio-diagnostica.txt`.
+🔴 ⚠️ **E il rosso residuo è stato verificato, non interpretato.** Il driver segna «pannello traduzioni
+assente»: la stessa prova rifatta sul publish del commit **`6f38e58`** — la versione **online** — dà lo
+**stesso identico rosso**. Non distingue le due versioni, quindi non dice niente su questa consegna.
+⚠️ E il primo giro ne dava **due**: «0 schede ACC» era il **database vuoto** del publish di prova, e si è
+visto ricopiando il DB di sviluppo — 4 schede. Un rosso ambientale letto come difetto avrebbe mandato a
+cercare un guasto che non c'era.

@@ -1,7 +1,45 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 9 settembre 2026 (notte) — ✅ **1.18.2 è ONLINE, e provata DA FUORI.**
-Albero pulito e spinto, Release verde su tutti e quindici gli assiemi (11 151 test), 0 avvisi.
+**Ultimo aggiornamento:** 10 settembre 2026 — 📦 **1.19.1 è PRONTA e NON ancora caricata**; 1.19.0 è
+ONLINE dalle 12:31 UTC. Albero pulito e spinto, Release verde su nove progetti di test, 0 avvisi.
+
+📦 **1.19.1 — PRONTA, DA CARICARE.** Timbro `1.19.1 · c58ad07d`, sha256 dello zip
+`8f2cfef5e0aba31d2de9009aa330019ead8dd9006eb3f7ba00152828957bea26`, **7 file** — il pacchetto più piccolo
+da mesi — foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.1.md).
+**PATCH**: nessuna pagina nuova, **nessuna migrazione**, **niente `wwwroot`**. Si consegna da sola dentro la
+finestra cieca. Porta **§CP** e **§CQ**, tutt'e due nate da segnalazioni del 10 settembre.
+
+- 🔴 **§CP — il login rotto non lasciava una riga.** `OnRemoteFailure` è *gestito*, quindi l'eccezione non
+  arriva a `DiagnosticaErrori.Gancio` (un `IExceptionHandler` della pipeline HTTP): restava un `ILogger` di
+  categoria `Vipi.Auth.Ivao` → `stdout` → il vuoto. E `/Error` è un `MapGet` come un altro: ci si arriva
+  anche **a piedi**, e la pagina è **identica** — «la riga non si è scritta» e «non c'era niente da
+  scrivere» portavano a due indagini opposte. Ora scrivono tutt'e due.
+  ⚠️ Il `Referer` si tronca alla query: su `/signin-oidc` quella query è il `code` OAuth.
+- 🟢 **§CQ — il convertitore legge quel che esce dall'AIP.** I secondi con **due apostrofi**
+  (`41°07'24''N`) non erano una coordinata: diventavano un'etichetta e il punto spariva. E una **riga
+  bianca** fra un vertice e l'altro spezzava un'area di dieci vertici in **dieci aree da un punto**.
+  ⚠️ La regola nuova sulle righe vuote è **globale, decisa alla fine**: farla blocco per blocco spezza
+  l'elenco a metà (cinque aree da due), che è peggio del difetto di partenza.
+
+✅ **Provata sul PACCHETTO**, non sul sorgente: publish win-x64 guidato con Edge — JS minificato servito,
+circuito aperto, **Ricerca viva** (passa dal server), editor ACC che si apre, console pulita, timbro
+`1.19.1 · c58ad07` in `avvio-diagnostica.txt`.
+⚠️ **E il rosso che resta è di 1.19.0 uguale**: il «pannello traduzioni assente» compare **identico**
+rifacendo la stessa prova sul publish del commit `6f38e58`, che è la versione online. Una prova che non
+distingue le due versioni non prova niente — quindi non è una regressione di questa consegna.
+⚠️ La scelta di **non** spedire `wwwroot` non è dedotta: i **54** asset di `_content/Vipi.Ui` hanno lo
+stesso sha256 di 1.19.0, `Vipi.Host.staticwebassets.endpoints.json` compreso.
+
+✅ **1.19.0 — ONLINE dal 10 settembre 2026, 12:31 UTC, e provata DA FUORI.** Timbro `1.19.0 · 6f38e58`,
+zip `58b8260b…`, **22 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md).
+**MINOR** con **migrazione additiva** (`SectorFallbacks.TargetKind`). Porta **§CO** — il ripiego di un
+settore **sovrapposto** si risolve sul **punto** — più le quote delle aree in piedi e il NIL.
+🔴 **La migrazione è passata, e da fuori lo dice lo «Schema 0» in Diagnostica**: non il timbro, che dice
+solo quale versione è partita.
+▶ **Il codice di §CO è ONLINE ma SPENTO**: si accende scrivendo i dati a mano (la riga «copertura del
+punto» sui cinque MIL d'ACC, i tre padri di Roma, il ripiego di `LIMM_WS5_CTR` a FL325).
 
 ✅ **1.18.2 — ONLINE dal 9 settembre notte.** Timbro `1.18.2 · 578300a`, sha256 dello zip `4e1ead40…`,
 **8 file**, foglio
