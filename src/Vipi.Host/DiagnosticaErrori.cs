@@ -210,6 +210,91 @@ public static class DiagnosticaErrori
 
         """;
 
+
+    /// <summary>
+    /// Il guasto del <b>login</b> IVAO, nello stesso registro di tutto il resto.
+    ///
+    /// <para>🔴 <b>Perché esiste, e la data è il 10 settembre 2026.</b> Uno staffista ha fatto il login verso
+    /// le 11:00 UTC e si è trovato davanti una pagina d'errore; nel file sceso dal server due ore dopo
+    /// l'ultima voce era del <b>giorno prima</b>. Non era una copia vecchia — l'impronta lo escludeva: era
+    /// che di quel guasto qui non si scriveva niente. <c>OnRemoteFailure</c> lo racconta a un
+    /// <c>ILogger</c> di categoria <c>Vipi.Auth.Ivao</c>, e su <c>atc.it.ivao.aero</c> quel logger scrive su
+    /// <c>stdout</c>, che lì è il vuoto. Il registro è nato per il login rotto del 23 agosto 2026, ed era
+    /// rimasto l'unico guasto che non ci finiva.</para>
+    ///
+    /// <para>⚠️ <b>Che cosa NON entra.</b> La stringa di query, mai: su <c>/signin-oidc</c> porta il
+    /// <c>code</c> OAuth e lo <c>state</c>, cioè credenziali. Restano il motivo (che è un insieme CHIUSO),
+    /// l'errore dichiarato dal portale, se il giro aveva ancora le sue proprietà, se una sessione c'era già
+    /// e dove si stava andando: è quello che il 23 agosto è costato una serata a ricostruire.</para>
+    ///
+    /// <para>⚠️ Come <see cref="Registra"/>, <b>non solleva mai</b>: un guasto nel raccontare il guasto
+    /// riporterebbe esattamente alla pagina muta che tutto questo serve a togliere di mezzo.</para>
+    /// </summary>
+    public static void RegistraLogin(
+        string motivo, string errorePortale, bool statoRecuperato, bool giaDentro, string ritorno,
+        string? utente, Exception? guasto)
+    {
+        try
+        {
+            var voce = VoceDiLogin(motivo, errorePortale, statoRecuperato, giaDentro, ritorno, utente, guasto);
+            lock (Serratura) Scrivi(voce);
+        }
+        catch { /* non c'è un piano C, e non deve esserci */ }
+    }
+
+    /// <summary>
+    /// Il testo della voce, separato dalla scrittura perché è la parte che si può provare: che ci sia il
+    /// motivo, e che non ci finisca mai un pezzo di credenziale.
+    /// <para>⚠️ Nessuna dedup da <see cref="ENota"/> qui: un login che fallisce non è mai rumore, e sono
+    /// pochi per definizione — chi non entra non riprova venti volte al minuto.</para>
+    /// </summary>
+    internal static string VoceDiLogin(
+        string motivo, string errorePortale, bool statoRecuperato, bool giaDentro, string ritorno,
+        string? utente, Exception? guasto) =>
+        new StringBuilder()
+            .AppendLine()
+            .AppendLine(new string('-', 78))
+            .AppendLine($"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · codice login-{motivo}")
+            .AppendLine($"LOGIN {PercorsoCallback} · utente {utente ?? "non collegato"}")
+            .AppendLine()
+            .AppendLine($"Motivo ..................... {motivo}")
+            .AppendLine($"Errore dal portale ......... {errorePortale}")
+            .AppendLine($"Stato del giro recuperato .. {(statoRecuperato ? "sì" : "NO")}")
+            .AppendLine($"Sessione già attiva ........ {(giaDentro
+                ? "sì — l'utente è rimasto dentro e NON ha visto niente"
+                : "no — è finito sulla pagina che spiega")}")
+            .AppendLine($"Ritorno .................... {ritorno}")
+            .AppendLine()
+            .AppendLine(guasto?.ToString()
+                ?? "(nessuna eccezione: il giro si è fermato per una risposta del portale, non per un guasto nostro)")
+            .ToString();
+
+    /// <summary>
+    /// La pagina d'errore è stata servita <b>senza</b> che ci fosse un'eccezione dietro: qualcuno è
+    /// arrivato su <c>/Error</c> per la sua strada, non per <c>UseExceptionHandler</c>.
+    ///
+    /// <para>🔴 <b>Perché vale una riga.</b> Il 10 settembre 2026 un socio ha visto la pagina d'errore e
+    /// nel registro non c'era niente per quell'ora. Le due spiegazioni — «la riga non si è scritta» e «non
+    /// c'era nessuna eccezione da scrivere» — portano a due indagini opposte, e dalla pagina non si
+    /// distinguono: è la stessa. Da qui in poi il file lo dice.</para>
+    ///
+    /// <para>Una riga sola, come le note: non è un guasto, è un fatto che serve a leggere gli altri.</para>
+    /// </summary>
+    public static void RegistraPaginaSenzaEccezione(string? codice, string percorso)
+    {
+        try
+        {
+            var riga = $"NOTA {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC · pagina /Error servita SENZA eccezione"
+                       + $" (nessuna richiesta è morta: ci si è arrivati da {percorso})"
+                       + $" · codice {codice ?? "(nessuno)"}" + Environment.NewLine;
+            lock (Serratura) Scrivi(riga);
+        }
+        catch { /* non c'è un piano C, e non deve esserci */ }
+    }
+
+    /// <summary>Il percorso del callback, scritto a mano e senza query: la query è la credenziale.</summary>
+    private const string PercorsoCallback = "/signin-oidc";
+
     /// <summary>
     /// Il gancio: registra ogni eccezione non gestita e <b>non</b> scrive la risposta — quella resta a
     /// <c>UseExceptionHandler("/Error")</c>, cioè a <see cref="PaginaErrore"/>. Ritornare <c>false</c> è

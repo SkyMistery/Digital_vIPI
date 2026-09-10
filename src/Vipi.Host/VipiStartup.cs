@@ -457,6 +457,18 @@ internal static class VipiStartup
         foreach (var storica in new[] { "/sop", "/sop/{*rest}", "/vsop", "/vsop/{*rest}" })
             app.MapGet(storica, RedirectLegacy);
 
+        // Da dove si e' arrivati sulla pagina d'errore, SENZA la query. ⚠️ Il Referer di una navigazione
+        // interna la porta con se', e se si veniva dal callback quella query e' il `code` OAuth: una
+        // credenziale scritta in un file che si spedisce per email. Restano schema, host e percorso.
+        static string DaDove(HttpContext ctx)
+        {
+            var grezzo = ctx.Request.Headers.Referer.ToString();
+            if (string.IsNullOrWhiteSpace(grezzo)) return "una visita diretta";
+            return Uri.TryCreate(grezzo, UriKind.Absolute, out var u)
+                ? $"{u.Scheme}://{u.Authority}{u.AbsolutePath}"
+                : "un rimando che non si legge";
+        }
+
         // (I file statici li serve UseStaticFiles, più in alto: su net8 non esistono né MapStaticAssets né
         //  WithStaticAssets, che sono .NET 9+.)
 
@@ -464,9 +476,18 @@ internal static class VipiStartup
         // e' stato il layout condiviso — successo il 24 agosto 2026: una pagina d'errore che passasse di li'
         // lancerebbe una seconda volta. Il codice che mostra e' quello scritto in diagnostica/errori-richieste.txt.
         app.MapGet("/Error", (HttpContext ctx) =>
-            Results.Content(
-                PaginaErrore.Build(System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier),
-                "text/html; charset=utf-8"));
+        {
+            var codice = System.Diagnostics.Activity.Current?.Id ?? ctx.TraceIdentifier;
+
+            // 🔴 Se non c'e' la feature, qui non ci ha portato UseExceptionHandler: nessuna richiesta
+            // e' morta, e nel registro non comparira' NIENTE per quest'ora. E' successo il 10 settembre 2026
+            // — un socio vede la pagina, il file tace, e le due spiegazioni («la riga non si e' scritta» e
+            // «non c'era niente da scrivere») portano a due indagini opposte. Ora il file lo dice.
+            if (ctx.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>() is null)
+                DiagnosticaErrori.RegistraPaginaSenzaEccezione(codice, DaDove(ctx));
+
+            return Results.Content(PaginaErrore.Build(codice), "text/html; charset=utf-8");
+        });
 
         app.MapRazorComponents<App>()
             .AddInteractiveServerRenderMode()

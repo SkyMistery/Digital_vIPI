@@ -111,6 +111,42 @@ public sealed class PaginaErroreTests
     }
 
     /// <summary>
+    /// 🔴 <b>La pagina c'era, la riga no.</b> Il 10 settembre 2026 un socio ha visto la pagina d'errore
+    /// dopo il login e nel registro non c'era niente per quell'ora. Le due spiegazioni — «la riga non si è
+    /// scritta» e «non c'era nessuna eccezione da scrivere» — portano a indagini opposte, e dalla pagina non
+    /// si distinguono: è la stessa. <c>/Error</c> è un endpoint come un altro, e ci si arriva anche a piedi.
+    /// </summary>
+    [Fact]
+    public async Task La_pagina_raggiunta_SENZA_eccezione_lo_dice_nel_registro()
+    {
+        var registro = StartupDiagnostics.Percorso(DiagnosticaErrori.NomeFile);
+        Assert.NotNull(registro);
+        if (File.Exists(registro)) File.Delete(registro);
+
+        using var fabbrica = new FabbricaRotta();
+        // ⚠️ La query c'è apposta: nel Referer di una navigazione interna ci finisce, e se si veniva dal
+        // callback quella query è il `code` OAuth.
+        var richiesta = new HttpRequestMessage(HttpMethod.Get, "/Error");
+        richiesta.Headers.Referrer = new Uri("https://atc.it.ivao.aero/signin-oidc?code=SEGRETISSIMO&state=xyz");
+        var res = await fabbrica.CreateClient().SendAsync(richiesta);
+
+        Assert.Equal(HttpStatusCode.OK, await Task.FromResult(res.StatusCode));
+        var righe = await File.ReadAllTextAsync(registro!);
+
+        Assert.Contains("SENZA eccezione", righe);
+        Assert.Contains("/signin-oidc", righe);
+        Assert.DoesNotContain("SEGRETISSIMO", righe);
+        Assert.DoesNotContain("xyz", righe);
+        // Una riga, non uno stack: non è un guasto, è un fatto che serve a leggere gli altri.
+        // \u000A e non Environment.NewLine: il file nasce da un raw string literal e cresce per
+        // append, quindi dentro ci convivono le due fini-riga. Splittare su quella sbagliata dà UN pezzo
+        // solo — cioè tutto il file — e l'asserzione guarda l'intestazione credendo di guardare la nota.
+        var nota = righe.Split('\u000A', StringSplitOptions.RemoveEmptyEntries)
+                        .First(r => r.Contains("SENZA eccezione")).TrimEnd('\u000D');
+        Assert.StartsWith("NOTA", nota);
+    }
+
+    /// <summary>
     /// 🔴 <b>39 voci su 71.</b> Nel file sceso dal server il 7 settembre 2026 più di metà del registro era
     /// <c>ObjectDisposedException</c> sul <c>VipiDbContext</c> di circuiti chiusi — il prezzo normale di chi
     /// chiude la scheda mentre un caricamento è in volo. Non sono guasti, ma sono lunghe uno stack l'una, e
