@@ -83,9 +83,38 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                 .ToListAsync(ct))
             .ToList();
 
+        // Le bande dichiarate dei settori visibili, per il rilievo «ricaduta che non copre la quota».
+        var bande = (await _db.AccSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorBandRow(x.ComposePosition, x.LowerLimit, x.UpperLimit))
+                .ToListAsync(ct))
+            .Concat(await _db.AirportSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorBandRow(x.ComposePosition, x.LowerLimit, x.UpperLimit))
+                .ToListAsync(ct))
+            .ToList();
+
+        var ripieghi = (await _db.SectorFallbacks.AsNoTracking()
+                .OrderBy(r => r.SectorCallsign).ThenBy(r => r.Order)
+                .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
+                .ToListAsync(ct))
+            .GroupBy(r => r.SectorCallsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<Vipi.Application.Content.FallbackRow>)g
+                    .Select(r => new Vipi.Application.Content.FallbackRow(
+                        r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+        // L'albero PROIETTATO, per confrontarlo con quello dei cataloghi.
+        var proiettati = await ProjectedParentsAsync(ct);
+
         return new ConsistencyDataset
         {
             SectorShapes = shapes,
+            SectorBands = bande,
+            Fallbacks = ripieghi,
+            ProjectedParents = proiettati,
             TransferConditions = conditions,
             RunwayIdents = runwayIdents,
             AreaNames = areaNames,
@@ -97,6 +126,21 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
         };
+    }
+
+    /// <summary>callsign → padre nell'albero proiettato (<c>Sector.ParentSectorId</c>), risolto a callsign.</summary>
+    private async Task<IReadOnlyDictionary<string, string?>> ProjectedParentsAsync(CancellationToken ct)
+    {
+        var settori = await _db.Sectors.AsNoTracking()
+            .Where(s => s.IsActive)
+            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId })
+            .ToListAsync(ct);
+
+        var perId = settori.ToDictionary(s => s.Id, s => s.Callsign);
+        return settori.ToDictionary(
+            s => s.Callsign,
+            s => s.ParentSectorId is int pid && perId.TryGetValue(pid, out var p) ? p : null,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

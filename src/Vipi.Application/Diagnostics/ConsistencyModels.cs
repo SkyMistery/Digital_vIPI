@@ -168,7 +168,30 @@ public sealed class ConsistencyDataset
     /// </summary>
     public IReadOnlyList<Domain.Services.HierarchyDuplicate> HierarchyDuplicates { get; init; }
         = Array.Empty<Domain.Services.HierarchyDuplicate>();
+
+    /// <summary>La banda verticale dichiarata di ogni settore visibile: serve a chiedersi se la sua ricaduta
+    /// quel cielo lo copre davvero.</summary>
+    public IReadOnlyList<SectorBandRow> SectorBands { get; init; } = Array.Empty<SectorBandRow>();
+
+    /// <summary>Le righe di ripiego dichiarate, per settore e in ordine: sono la prima parte della catena.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<Content.FallbackRow>> Fallbacks { get; init; }
+        = new Dictionary<string, IReadOnlyList<Content.FallbackRow>>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// callsign → padre nell'albero <b>PROIETTATO</b> (<c>Sector.ParentSectorId</c>).
+    ///
+    /// <para>⚠️ Non è un doppione di <see cref="EffectiveParents"/>: quello è l'albero dei <b>cataloghi</b>,
+    /// questo è quello che leggono la geometria (<c>EfSectorVolumeCatalog</c>) e la topologia. Devono
+    /// coincidere — la proiezione nasce dai cataloghi — ma sono <b>due letture</b>, e quando divergono la
+    /// ricaduta e la copertura rispondono due cose diverse alla stessa domanda.</para>
+    /// </summary>
+    public IReadOnlyDictionary<string, string?> ProjectedParents { get; init; }
+        = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
 }
+
+/// <summary>La banda verticale di un settore, coi limiti <b>grezzi</b> del catalogo (l'unità non è tracciata
+/// a schema: la deduce <c>AorFlBand</c>).</summary>
+public sealed record SectorBandRow(string Callsign, int? LowerLimit, int? UpperLimit);
 
 /// <summary>
 /// La shape di un settore come arriva dalla sorgente, <b>grezza</b>.

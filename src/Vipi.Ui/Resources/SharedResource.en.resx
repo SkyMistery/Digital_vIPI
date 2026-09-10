@@ -557,6 +557,14 @@
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Parent «{0}» does not exist in the catalogues: the coverage chain stops here.</value></data>
   <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Cyclic hierarchy</value></data>
   <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>The sector is its own ancestor ({0}): every fallback chain going through it stops here.</value></data>
+  <data name="Diag_Cat_CopSenzaPosizione" xml:space="preserve"><value>COPs without a position</value></data>
+  <data name="Diag_Msg_CopSenzaPosizione" xml:space="preserve"><value>{0} points used in the agreements are in no catalogue ({1}): on those, the «point coverage» fallback cannot answer.</value></data>
+  <data name="Diag_Ent_Acc" xml:space="preserve"><value>ACC {0}</value></data>
+  <data name="Diag_Cat_RicadutaScoperta" xml:space="preserve"><value>Fallback that does not cover the level</value></data>
+  <data name="Diag_Msg_RicadutaScoperta" xml:space="preserve"><value>The sector starts at {0}, but nobody in its fallback chain has anything at that level: with it closed, the traffic goes to someone who does not have it.</value></data>
+  <data name="Diag_Cat_AlberoDivergente" xml:space="preserve"><value>Projected tree diverges</value></data>
+  <data name="Diag_Msg_AlberoDivergente" xml:space="preserve"><value>The catalogues say the parent is «{0}», the projection says «{1}»: fallback and coverage answer two different things.</value></data>
+  <data name="Diag_Ent_Settore" xml:space="preserve"><value>Sector {0}</value></data>
   <data name="Diag_Cat_CallsignDueCataloghi" xml:space="preserve"><value>Callsign in two catalogues</value></data>
   <data name="Diag_Msg_CallsignDueCataloghi" xml:space="preserve"><value>The same callsign is in both the ACC and the airport catalogue: the coverage tree keeps parent «{0}» and drops «{1}». Remove it from one of the two.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Regulated area gone</value></data>

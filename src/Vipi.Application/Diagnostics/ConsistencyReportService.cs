@@ -62,7 +62,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         Auth.IAdminCoverageService? admin = null, IServerSettingsProbe? server = null,
         IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null,
         ISectorfileComparisonReport? sectorfile = null,
-        Content.IImportOverviewService? giri = null)
+        Content.IImportOverviewService? giri = null,
+        Abstractions.ICopPositions? punti = null)
     {
         _repo = repo;
         _schema = schema;
@@ -72,7 +73,11 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _policy = policy;
         _sectorfile = sectorfile;
         _giri = giri;
+        _punti = punti;
     }
+
+    /// <summary>Dove stanno i punti dei CoP. Opzionale: senza, il rilievo sui CoP non si fa.</summary>
+    private readonly Abstractions.ICopPositions? _punti;
 
     /// <summary>Lo stato dei giri periodici. Opzionale: senza, il report e' quello di prima.</summary>
     private readonly Content.IImportOverviewService? _giri;
@@ -118,7 +123,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // ⚠️ Il guasto eredita l'AREA del pezzo che non è riuscito: è l'area di cui il report non sa più dire
         // niente, ed è la sola cosa che rende quel rilievo utile a chi guarda i conteggi per area.
         await Raccogli(findings, "incongruenze dei dati", "Diag_Pezzo_Dati", ConsistencyArea.Dati,
-            async () => Analyze(await _repo.LoadAsync(ct)), ct);
+            async () => Analyze(await _repo.LoadAsync(ct),
+                _punti is null ? null : await _punti.GetAsync(ct)), ct);
         if (_schema is not null)
             await Raccogli(findings, "drift di schema", "Diag_Pezzo_Schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
         if (_admin is not null)
@@ -272,7 +278,12 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         new object[] { t.ClauseId, t.AccCode, t.Points };
 
     // Logica pura (nessuna dipendenza da EF): il dataset è già in memoria ⇒ testabile con fixture.
-    public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d)
+    /// <param name="punti">
+    /// Dove stanno i punti scrivibili in un CoP. <b>Facoltativo</b>: senza, il rilievo «CoP senza posizione»
+    /// non si fa — e non si fa <b>in silenzio</b> di proposito, perche' un catalogo assente non prova che i
+    /// punti manchino. E' la stessa regola di <c>NavaidCheck</c>: a catalogo vuoto NIENTE e' sconosciuto.
+    /// </param>
+    public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d, Abstractions.CopPositions? punti = null)
     {
         var findings = new List<ConsistencyFinding>();
 
@@ -392,6 +403,74 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 DetailArgs: new object[] { string.Join(", ", missing) }));
         }
 
+        // 4-quater) La ricaduta di un settore NON copre il cielo che quel settore occupa.
+        //
+        // 🔴 Un settore chiuso manda il traffico a chi, a quella quota, non ha niente — e non succede niente
+        // di visibile: la ricaduta RIESCE, verso l'ente sbagliato. Due forme dello stesso difetto, e sono
+        // tutt'e due vere in produzione:
+        //   · `LIMM_MIL_CTR` e' SFC-UNL ma pende da `LIMM_WS2_CTR`, che si ferma a FL325: un settore
+        //     SOVRAPPOSTO non e' il sottoalbero di nessuno, e il suo padre e' una bugia strutturale;
+        //   · `LIMM_ES5_CTR` sta FL325-UNL e pende da `LIMM_ES2_CTR`, che a quella quota non c'e': regge
+        //     solo per UNA riga dichiarata, e chi la cancella non vede nessun errore.
+        // Carta docs/feature/2026-09-10-rinvio-geometrico.md, Parte 8.
+        findings.AddRange(RicadutaCheNonCopreLaQuota(d));
+
+        // 4-quinquies) L'albero PROIETTATO e quello dei CATALOGHI dicono due cose diverse.
+        //
+        // ⚠️ La proiezione nasce dai cataloghi, quindi devono coincidere — ma sono due letture, e chi le usa
+        // e' diverso: la ricaduta legge i cataloghi, la geometria (`EfSectorVolumeCatalog`, e con lei le
+        // statistiche e il rinvio) legge la proiezione. Se divergono, alla stessa domanda si ottengono due
+        // risposte a seconda di chi la fa — ed e' il difetto «due alberi» che questa base di codice ha gia'
+        // pagato una volta.
+        foreach (var cs in d.EffectiveParents.Keys.OrderBy(x => x, StringComparer.OrdinalIgnoreCase))
+        {
+            if (!d.ProjectedParents.TryGetValue(cs, out var proiettato)) continue;   // non proiettato: e' un altro rilievo
+            var catalogo = d.EffectiveParents[cs];
+            if (string.Equals(catalogo ?? "", proiettato ?? "", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var a = catalogo ?? "—";
+            var b = proiettato ?? "—";
+            findings.Add(new ConsistencyFinding("Albero proiettato divergente", ConsistencySeverity.Error, cs,
+                $"I cataloghi dicono che il padre e' «{a}», la proiezione dice «{b}»: ricaduta e copertura rispondono due cose diverse.",
+                ConsistencyArea.Dati, DoveStruttura,
+                CategoryKey: "Diag_Cat_AlberoDivergente", DetailKey: "Diag_Msg_AlberoDivergente",
+                DetailArgs: new object[] { a, b },
+                EntityKey: "Diag_Ent_Settore", EntityArgs: new object[] { cs }));
+        }
+
+        // 4-sexies) I CoP che un rinvio non potra' mai collocare.
+        //
+        // ⚠️ Dice QUANTO E' CIECO il rinvio prima di accenderlo, invece di scoprirlo un punto alla volta. E
+        // distingue due cose che si somigliano e non lo sono: `Y01-Y12` NON e' un punto — e' un tratto di
+        // aerovie, la risposta va scritta a mano e non c'e' niente da aggiustare — mentre un nome di cinque
+        // lettere che nessun catalogo colloca e' un dato che manca, e si apre una coordinata in anagrafica.
+        // Qui si segnala solo il secondo. Carta 2026-09-10-rinvio-geometrico.md, Parti 5 e 8.
+        if (punti is not null && punti.Count > 0)
+        {
+            var senzaPosizione = new SortedDictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in d.TransferConditions)
+                foreach (var token in Content.CopList.Parse(t.Points))
+                {
+                    if (!Content.NavaidCheck.IsCheckable(token)) continue;   // non e' un punto: non e' un difetto
+                    if (punti.TryGet(token, out _)) continue;
+
+                    if (!senzaPosizione.TryGetValue(t.AccCode, out var elenco))
+                        senzaPosizione[t.AccCode] = elenco = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                    elenco.Add(token.Trim().ToUpperInvariant());
+                }
+
+            foreach (var (acc, elenco) in senzaPosizione)
+            {
+                var nomi = string.Join(", ", elenco);
+                findings.Add(new ConsistencyFinding("CoP senza posizione", ConsistencySeverity.Warning, acc,
+                    $"{elenco.Count} punti usati negli accordi non stanno in nessun catalogo ({nomi}): su di loro il ripiego «copertura del punto» non puo' rispondere.",
+                    ConsistencyArea.Dati, DoveAccordi,
+                    CategoryKey: "Diag_Cat_CopSenzaPosizione", DetailKey: "Diag_Msg_CopSenzaPosizione",
+                    DetailArgs: new object[] { elenco.Count, nomi },
+                    EntityKey: "Diag_Ent_Acc", EntityArgs: new object[] { acc }));
+            }
+        }
+
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
         findings.AddRange(ShapeDiSorgente(d.SectorShapes));
         return findings;
@@ -504,4 +583,58 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             }
         }
     }
+
+    /// <summary>
+    /// I settori la cui <b>catena di ricaduta</b> non contiene nessuno che copra il loro stesso piede.
+    ///
+    /// <para>Si guarda il piede e non tutta la banda di proposito: un settore alto che ricade su uno basso
+    /// perde <b>tutto</b> il suo cielo, ed e' il caso che si vuole raccontare. Un ripiego che copre il piede
+    /// ma non il tetto e' una divisione legittima, non un difetto.</para>
+    ///
+    /// <para>⚠️ I <b>rinvii</b> qui contano come «copre»: il loro bersaglio dipende dal punto, e questo
+    /// report i punti non li ha. Segnalarli direbbe il falso proprio sulle righe scritte per riparare questo
+    /// difetto.</para>
+    /// </summary>
+    private static IEnumerable<ConsistencyFinding> RicadutaCheNonCopreLaQuota(ConsistencyDataset d)
+    {
+        if (d.SectorBands.Count == 0) yield break;
+
+        var bande = new Dictionary<string, (int Bottom, int Top)>(StringComparer.OrdinalIgnoreCase);
+        foreach (var b in d.SectorBands)
+            bande[b.Callsign] = Aor.AorFlBand.Normalize(b.LowerLimit, b.UpperLimit);
+
+        foreach (var b in d.SectorBands.OrderBy(x => x.Callsign, StringComparer.OrdinalIgnoreCase))
+        {
+            var (piede, _) = bande[b.Callsign];
+            if (piede <= Aor.AorFlBand.Ground) continue;   // parte da terra: qualunque ripiego lo tocca
+
+            // La catena alla QUOTA DEL PIEDE, che e' la quota piu' bassa che questo settore possiede.
+            var piediDelPiede = piede * 100;
+            var catena = Content.FallbackChain.Candidates(
+                b.Callsign, piediDelPiede, d.Fallbacks,
+                cs => d.EffectiveParents.TryGetValue(cs, out var p) ? p : null);
+
+            var copre = false;
+            var rinvio = d.Fallbacks.TryGetValue(b.Callsign, out var righe)
+                         && righe.Any(r => r.Kind == Domain.FallbackTargetKind.Coverage && r.AppliesAt(piediDelPiede));
+
+            foreach (var c in catena.Skip(1))
+            {
+                if (!bande.TryGetValue(c, out var banda)) { copre = true; break; }   // non lo so: non accuso
+                if (banda.Bottom <= piede && piede < banda.Top) { copre = true; break; }
+            }
+
+            if (copre || rinvio || catena.Count <= 1) continue;
+
+            var quota = $"FL{piede}";
+            yield return new ConsistencyFinding("Ricaduta che non copre la quota", ConsistencySeverity.Error,
+                b.Callsign,
+                $"Il settore parte da {quota}, ma nessuno della sua catena di ripiego ha qualcosa a quella quota: chiuso lui, il traffico va a chi non ce l'ha.",
+                ConsistencyArea.Dati, DoveStruttura,
+                CategoryKey: "Diag_Cat_RicadutaScoperta", DetailKey: "Diag_Msg_RicadutaScoperta",
+                DetailArgs: new object[] { quota },
+                EntityKey: "Diag_Ent_Settore", EntityArgs: new object[] { b.Callsign });
+        }
+    }
+
 }
