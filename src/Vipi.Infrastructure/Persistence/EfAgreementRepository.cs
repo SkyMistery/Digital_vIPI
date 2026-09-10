@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Aor;      // ValidationException: la UI cattura questa, mai quella di DataAnnotations
 using Vipi.Application.Content;
@@ -368,7 +368,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         // ⚠️ La CONDIZIONE no: è ciò che la clausola nuova deve dire di diverso, e copiarla darebbe due clausole
         // identiche. CopyOf la porta perché serve alla duplicazione del gruppo, dove invece va tenuta.
         copy.ConditionLabel = null; copy.ConditionRefId = null;
-        copy.ConditionAreaLabel = null; copy.ConditionCustomLabel = null;
+        copy.ConditionAreaLabel = null; copy.ConditionAreaNegated = false; copy.ConditionCustomLabel = null;
 
         foreach (var x in await Scope(src.SectionId).Where(x => x.Order > after.Order).ToListAsync(ct))
             x.Order++;
@@ -528,12 +528,15 @@ public sealed class EfAgreementRepository : IAgreementRepository
     }
 
     public async Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel,
-        string? customLabel, CancellationToken ct = default)
+        bool areaNegated, string? customLabel, CancellationToken ct = default)
     {
         var rows = await ClausesInAccAsync(accCode, clauseIds, ct);
         foreach (var r in rows)
         {
             r.ConditionAreaLabel = NullIfBlank(areaLabel);
+            // ⚠️ La polarità segue l'etichetta: senza area non vuol dire niente, e lasciata accesa
+            // riaccenderebbe il rovescio alla prossima area scritta.
+            r.ConditionAreaNegated = r.ConditionAreaLabel is not null && areaNegated;
             r.ConditionCustomLabel = NullIfBlank(customLabel);
         }
 
@@ -786,6 +789,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         ConditionLabel = src.ConditionLabel,
         ConditionRefId = src.ConditionRefId,
         ConditionAreaLabel = src.ConditionAreaLabel,
+        ConditionAreaNegated = src.ConditionAreaNegated,
         ConditionCustomLabel = src.ConditionCustomLabel,
         HandoffKind = src.HandoffKind,
         HandoffLabel = src.HandoffLabel,
@@ -869,6 +873,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         c.ConditionLabel = NullIfBlank(i.ConditionLabel);
         c.ConditionRefId = c.ConditionLabel is null ? null : i.ConditionRefId;
         c.ConditionAreaLabel = NullIfBlank(i.ConditionAreaLabel);
+        c.ConditionAreaNegated = c.ConditionAreaLabel is not null && i.ConditionAreaNegated;
         c.ConditionCustomLabel = NullIfBlank(i.ConditionCustomLabel);
 
         // Senza tipo non c'è trasferimento distinto: i campi correlati si azzerano, così una clausola tornata a
@@ -926,6 +931,7 @@ public sealed class EfAgreementRepository : IAgreementRepository
         ConditionLabel = c.ConditionLabel,
         ConditionRefId = c.ConditionRefId,
         ConditionAreaLabel = c.ConditionAreaLabel,
+        ConditionAreaNegated = c.ConditionAreaNegated,
         ConditionCustomLabel = c.ConditionCustomLabel,
         HandoffKind = c.HandoffKind,
         HandoffLabel = c.HandoffLabel,

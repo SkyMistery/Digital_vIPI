@@ -2413,6 +2413,9 @@
   <data name="Xfer_CondArea" xml:space="preserve"><value>Active area</value></data>
   <data name="Xfer_CondCustom" xml:space="preserve"><value>Custom condition</value></data>
   <data name="Xfer_CondCustomPh" xml:space="preserve"><value>at night / with military traffic</value></data>
+  <data name="Xfer_CondAreaNeg" xml:space="preserve"><value>area NOT active</value></data>
+  <data name="Xfer_CondAreaNegTitle" xml:space="preserve"><value>The condition applies when the area is NOT active. The document reads “with {0} not active”.</value></data>
+  <data name="Xfer_CondAreaNegNoArea" xml:space="preserve"><value>pick an area first</value></data>
   <data name="Xfer_NoRunways" xml:space="preserve"><value>(no runway imported)</value></data>
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Detach from the variant group (with its subtree)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Preview</value></data>

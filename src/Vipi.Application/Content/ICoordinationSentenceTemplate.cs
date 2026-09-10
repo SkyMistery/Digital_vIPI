@@ -1,4 +1,4 @@
-namespace Vipi.Application.Content;
+﻿namespace Vipi.Application.Content;
 
 /// <summary>Template (default globale) della frase di coordinamento, caricato da file di progetto.
 /// L'implementazione vive fuori da Application (Host/Infrastructure) e può ricaricarsi a caldo.</summary>
@@ -174,7 +174,10 @@ public sealed class CoordinationSentenceTemplate
         {
             Runway = "with runway {label} in use",
             Area = "with {label} active",
+            AreaInactive = "with {label} not active",
+            AreaInactiveTail = "{label} not active",
             RunwayAndArea = "with runway {runway} in use and {area} active",
+            RunwayAndAreaInactive = "with runway {runway} in use and {area} not active",
             Custom = "under condition {label}",
             Join = "and",
         },
@@ -295,8 +298,21 @@ public sealed class CoordinationSentenceCondition
     public string Runway { get; init; } = "con pista {label} in uso";
     /// <summary>Condizione di area attiva, placeholder {label}: «con {label} attiva».</summary>
     public string Area { get; init; } = "con {label} attiva";
+    /// <summary>Condizione di area NON attiva, placeholder {label}: «con {label} non attiva».
+    /// <para>⚠️ Non è «non (con {label} attiva)»: è una clausola sua, perché va in AND con le altre.</para></summary>
+    public string AreaInactive { get; init; } = "con {label} non attiva";
+    /// <summary>La stessa, ma in CODA a una clausola che ha già aperto con la preposizione, placeholder
+    /// {label}: «… attiva <b>e</b> {label} non attiva».
+    /// <para>🔴 Esiste perché due clausole d'area unite dalla congiunzione ripetono la preposizione — «con
+    /// $406 attiva E CON $407 non attiva» — che è italiano storto e in inglese non va meglio. È lo stesso
+    /// difetto che <see cref="RunwayAndArea"/> evita per pista+area, e la stessa cura: una forma dedicata.
+    /// Trovato da un test, non previsto.</para></summary>
+    public string AreaInactiveTail { get; init; } = "{label} non attiva";
     /// <summary>Condizione combinata pista + area in AND, placeholder {runway}/{area}: «con pista {runway} in uso e {area} attiva».</summary>
     public string RunwayAndArea { get; init; } = "con pista {runway} in uso e {area} attiva";
+    /// <summary>Come <see cref="RunwayAndArea"/> ma con l'area NON attiva. ⚠️ Ne serve una SECONDA e non basta
+    /// rovesciare una parola: pista+area usano una forma dedicata, non l'unione delle due clausole.</summary>
+    public string RunwayAndAreaInactive { get; init; } = "con pista {runway} in uso e {area} non attiva";
     /// <summary>Condizione libera, placeholder {label}: «in condizione {label}».</summary>
     public string Custom { get; init; } = "in condizione {label}";
     /// <summary>Congiunzione tra clausole condizione presenti (pista/area/personalizzata): «e» (EN «and»).</summary>

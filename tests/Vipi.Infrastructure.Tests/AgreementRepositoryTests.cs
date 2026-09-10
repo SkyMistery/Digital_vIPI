@@ -125,6 +125,76 @@ public class AgreementRepositoryTests : IAsyncLifetime
 
     // ---- clausole e outline --------------------------------------------------------------------------
 
+    // ---- La polarità dell'area (carta 2026-09-10-condizione-area-non-attiva.md) ----------------------
+
+    /// <summary>
+    /// La bandiera si scrive e si rilegge, e il tag breve la mostra col simbolo.
+    /// </summary>
+    [Fact]
+    public async Task L_area_NON_attiva_si_scrive_e_si_rilegge()
+    {
+        var (_, first) = await WithClauseAsync();
+        await _repo.UpdateClauseAsync("LIRR", first,
+            Clause("VALMA", 130) with { ConditionAreaLabel = "$406", ConditionAreaNegated = true });
+
+        var c = Assert.Single(await ClausesAsync());
+        Assert.True(c.ConditionAreaNegated);
+        Assert.Equal($"area $406 {TransferConditionText.NonAttiva}", c.ConditionDisplay);
+    }
+
+    /// <summary>
+    /// 🔴 La bandiera SEGUE l'etichetta: senza area non vuol dire niente, e lasciata accesa in archivio
+    /// riaccenderebbe il rovescio alla prossima area scritta — una condizione che si capovolge da sola.
+    /// È la stessa regola di <c>ConditionRefId</c>, che esiste solo se c'è una pista.
+    /// </summary>
+    [Fact]
+    public async Task La_bandiera_si_spegne_se_l_area_se_ne_va()
+    {
+        var (_, first) = await WithClauseAsync();
+        await _repo.UpdateClauseAsync("LIRR", first,
+            Clause("VALMA", 130) with { ConditionAreaLabel = "$406", ConditionAreaNegated = true });
+
+        // Si toglie l'area lasciando la casella spuntata: è il gesto che si fa davvero, svuotando il picker.
+        await _repo.UpdateClauseAsync("LIRR", first,
+            Clause("VALMA", 130) with { ConditionAreaLabel = null, ConditionAreaNegated = true });
+
+        var c = Assert.Single(await ClausesAsync());
+        Assert.Null(c.ConditionAreaLabel);
+        Assert.False(c.ConditionAreaNegated);
+        Assert.Null(c.ConditionDisplay);
+    }
+
+    /// <summary>⚠️ La scrittura in blocco passa dalla stessa regola: la polarità segue l'etichetta.</summary>
+    [Fact]
+    public async Task La_scrittura_in_blocco_porta_la_polarita_e_la_spegne_senza_area()
+    {
+        var (_, first) = await WithClauseAsync();
+
+        await _repo.SetConditionAsync("LIRR", new[] { first }, "$406", areaNegated: true, customLabel: null);
+        Assert.True(Assert.Single(await ClausesAsync()).ConditionAreaNegated);
+
+        await _repo.SetConditionAsync("LIRR", new[] { first }, null, areaNegated: true, customLabel: null);
+        Assert.False(Assert.Single(await ClausesAsync()).ConditionAreaNegated);
+    }
+
+    /// <summary>
+    /// ⚠️ L'eccezione nasce senza condizione — è ciò che deve dire di diverso — e «senza condizione»
+    /// comprende la polarità: nata con la bandiera del padre direbbe il rovescio di una riga vuota.
+    /// </summary>
+    [Fact]
+    public async Task L_eccezione_non_eredita_nemmeno_la_POLARITA()
+    {
+        var (_, first) = await WithClauseAsync();
+        await _repo.UpdateClauseAsync("LIRR", first,
+            Clause("VALMA", 130) with { ConditionAreaLabel = "$406", ConditionAreaNegated = true });
+
+        var ecc = await _repo.AddExceptionAsync("LIRR", first);
+        var figlia = (await ClausesAsync()).Single(c => c.Id == ecc);
+
+        Assert.Null(figlia.ConditionAreaLabel);
+        Assert.False(figlia.ConditionAreaNegated);
+    }
+
     [Fact]
     public async Task Un_alternativa_nasce_pari_grado_e_senza_condizione()
     {

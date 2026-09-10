@@ -2421,6 +2421,9 @@
   <data name="Xfer_CondArea" xml:space="preserve"><value>Area attiva</value></data>
   <data name="Xfer_CondCustom" xml:space="preserve"><value>Condizione personalizzata</value></data>
   <data name="Xfer_CondCustomPh" xml:space="preserve"><value>di notte / con traffico militare</value></data>
+  <data name="Xfer_CondAreaNeg" xml:space="preserve"><value>area NON attiva</value></data>
+  <data name="Xfer_CondAreaNegTitle" xml:space="preserve"><value>La condizione vale quando l'area NON è attiva. Nel documento esce «con {0} non attiva».</value></data>
+  <data name="Xfer_CondAreaNegNoArea" xml:space="preserve"><value>scegli prima un'area</value></data>
   <data name="Xfer_NoRunways" xml:space="preserve"><value>(nessuna pista importata)</value></data>
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Sfila dal gruppo di varianti (col suo sottoalbero)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Anteprima</value></data>

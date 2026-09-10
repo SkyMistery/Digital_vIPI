@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -23,11 +23,14 @@ public sealed record TransferPointRow : IOutlineRow
     // Condizione operativa: tre dimensioni indipendenti (pista/e · area · personalizzata). Tutte null = sempre valida.
     public string? ConditionLabel { get; init; }        // pista/e in uso
     public int? ConditionRefId { get; init; }           // soft-ref pista singola
-    public string? ConditionAreaLabel { get; init; }    // area attiva
+    public string? ConditionAreaLabel { get; init; }    // area: attiva, o NON attiva secondo la bandiera
+    /// <summary>La condizione d'area vale quando l'area <b>non</b> è attiva. Senza etichetta non vuol dire niente.</summary>
+    public bool ConditionAreaNegated { get; init; }
     public string? ConditionCustomLabel { get; init; }  // condizione personalizzata
 
     /// <summary>Etichetta condizione combinata per il display (pill/chip): pista · area · personalizzata. Vuota se nessuna.</summary>
-    public string? ConditionDisplay => TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionCustomLabel);
+    public string? ConditionDisplay =>
+        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated, ConditionCustomLabel);
 
     // Faccetta trasferimento. HandoffKind = Unspecified ⇒ trasferimento e ingresso coincidono (riga «come prima»).
     // La PAROLA del luogo («al confine dell'AoR») non sta qui: è lingua, e la lingua vive nel template della frase,

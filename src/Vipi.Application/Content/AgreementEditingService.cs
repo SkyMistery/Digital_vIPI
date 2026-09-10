@@ -218,10 +218,10 @@ public sealed class AgreementService : IAgreementService
     }
 
     public async Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel,
-        string? customLabel, CancellationToken ct = default)
+        bool areaNegated, string? customLabel, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
-        return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, customLabel, ct);
+        return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, customLabel, ct);
     }
 
     public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default)

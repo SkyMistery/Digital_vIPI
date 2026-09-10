@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Domain.Entities;
 
@@ -160,7 +160,13 @@ public class AgreementClause
     // snapshot pubblicati.
     public string? ConditionLabel { get; set; }             // pista/e in uso ("16R / 16L")
     public int? ConditionRefId { get; set; }                // soft-ref pista singola; nessun FK
-    public string? ConditionAreaLabel { get; set; }         // area attiva
+    public string? ConditionAreaLabel { get; set; }         // area, attiva o NON attiva secondo la bandiera qui sotto
+    /// <summary>La condizione d'area è ROVESCIA: vale quando l'area <b>non</b> è attiva (10 settembre 2026).
+    /// <para>⚠️ È una POLARITÀ, non una quarta dimensione: «con A attiva e B non attiva» si scrive con
+    /// l'outline delle varianti — capofila e sua eccezione — che <c>BuildCondition</c> cumula già in AND.</para>
+    /// <para>⚠️ Senza <see cref="ConditionAreaLabel"/> non vuol dire niente, e si azzera scrivendo: stessa
+    /// regola di <see cref="ConditionRefId"/>, che esiste solo se c'è una pista.</para></summary>
+    public bool ConditionAreaNegated { get; set; }
     public string? ConditionCustomLabel { get; set; }       // condizione personalizzata
 
     // ---- Faccetta TRASFERIMENTO ----

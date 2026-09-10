@@ -261,8 +261,9 @@ public class CoordinationSentenceComposerTests
         Assert.Contains("destinazione LFPG LFPG", s);            // ICAO come nome di fallback
     }
 
-    private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null) =>
-        ComposeChain(new ConditionClause(runway, area, custom));
+    private static string? ComposeCond(string? runway = null, string? area = null, string? custom = null,
+                                       bool areaNegated = false) =>
+        ComposeChain(new ConditionClause(runway, area, areaNegated, custom));
 
     /// <summary>Compone con una CATENA di condizioni: una clausola per livello dell'outline, dalla capofila
     /// alla riga. Una riga senza varianti ne ha una sola.</summary>
@@ -305,7 +306,7 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("RWY 16", null, null) });
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("RWY 16", null, false, null) });
         Assert.EndsWith("over VALMA with runway RWY 16 in use.", s);
     }
 
@@ -330,8 +331,94 @@ public class CoordinationSentenceComposerTests
     {
         var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
-            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "R41", null) });
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "R41", false, null) });
         Assert.EndsWith("over VALMA with runway 16R in use and R41 active.", s);
+    }
+
+    // ---- L'area NON attiva (carta 2026-09-10-condizione-area-non-attiva.md) --------------------------
+
+    /// <summary>
+    /// Il caso chiesto dal committente: «questo trasferimento non vale se la $406 è attiva».
+    /// </summary>
+    [Fact]
+    public void Area_non_attiva_si_dice_al_rovescio()
+    {
+        Assert.EndsWith("su VALMA con $406 non attiva.", ComposeCond(area: "$406", areaNegated: true));
+    }
+
+    /// <summary>
+    /// 🔴 La rete che conta di questo giro: con la bandiera SPENTA la frase deve uscire <b>identica</b> a
+    /// prima. È additivo o non lo è.
+    /// </summary>
+    [Fact]
+    public void Con_la_bandiera_spenta_la_frase_non_cambia()
+    {
+        Assert.EndsWith("su VALMA con $406 attiva.", ComposeCond(area: "$406", areaNegated: false));
+        Assert.EndsWith("su VALMA con $406 attiva.", ComposeCond(area: "$406"));
+    }
+
+    /// <summary>
+    /// Pista + area non attiva vuole la SUA forma combinata: pista e area insieme non sono l'unione delle due
+    /// clausole, e con la sola <c>AreaInactive</c> sarebbe uscito «con pista 16R in uso e con $406 non
+    /// attiva» — due preposizioni accostate, che è il difetto che <c>RunwayAndArea</c> esiste per evitare.
+    /// </summary>
+    [Fact]
+    public void Pista_piu_area_non_attiva_usa_la_forma_combinata_rovescia()
+    {
+        var s = ComposeCond(runway: "16R", area: "$406", areaNegated: true);
+        Assert.EndsWith("su VALMA con pista 16R in uso e $406 non attiva.", s);
+    }
+
+    [Fact]
+    public void Area_non_attiva_in_inglese()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 195, LevelUnit.Fl, null, LevelParity.Any,
+            "VALMA", TransferFlowKind.Arrival, new[] { new ConditionClause("16R", "$406", true, null) });
+        Assert.EndsWith("over VALMA with runway 16R in use and $406 not active.", s);
+    }
+
+    /// <summary>
+    /// 🔴 Il cuore della §: la catena delle varianti porta DUE aree di polarità opposta — capofila «$406
+    /// attiva», sua eccezione «$407 non attiva» — e le due NON si possono fondere in una stringa sola.
+    /// Fuse, «con $406 e $407 attiva» direbbe che anche la $407 è attiva: l'opposto di quel che c'è scritto
+    /// in archivio, senza nessun errore.
+    /// </summary>
+    [Fact]
+    public void Due_aree_di_polarita_OPPOSTA_restano_due_clausole()
+    {
+        var s = ComposeChain(
+            new ConditionClause(null, "$406", false, null),
+            new ConditionClause(null, "$407", true, null));
+
+        Assert.EndsWith("su VALMA con $406 attiva e $407 non attiva.", s);
+    }
+
+    /// <summary>Due aree della STESSA polarità restano un elenco solo, come prima: sono un AND.</summary>
+    [Fact]
+    public void Due_aree_non_attive_si_elencano_in_una_clausola_sola()
+    {
+        var s = ComposeChain(
+            new ConditionClause(null, "$406", true, null),
+            new ConditionClause(null, "$407", true, null));
+
+        Assert.EndsWith("su VALMA con $406 e $407 non attiva.", s);
+    }
+
+    /// <summary>
+    /// ⚠️ Pista + attive + non attive: la forma combinata si prende le ATTIVE e consuma la pista una volta
+    /// sola; le non attive si appendono a parte. Ripetere «con pista 16R in uso» sarebbe la stessa frase
+    /// detta male.
+    /// </summary>
+    [Fact]
+    public void La_pista_entra_UNA_volta_sola_anche_con_le_due_polarita()
+    {
+        var s = ComposeChain(
+            new ConditionClause("16R", "$406", false, null),
+            new ConditionClause(null, "$407", true, null));
+
+        Assert.EndsWith("su VALMA con pista 16R in uso e $406 attiva e $407 non attiva.", s);
+        Assert.Equal(1, s!.Split("pista 16R").Length - 1);
     }
 
     [Fact]
@@ -448,7 +535,7 @@ public class CoordinationSentenceComposerTests
         var s = CoordinationSentences.Compose(Tpl, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 130, LevelUnit.Fl, null, LevelParity.Any,
             "BIRSU", TransferFlowKind.Arrival,
-            new[] { new ConditionClause(null, null, "traffico notturno") },
+            new[] { new ConditionClause(null, null, false, "traffico notturno") },
             facet: Facet(TransferHandoffKind.Unspecified, groupWide: true));
         // Chi scavalca le alternative premette il proprio marcatore: senza, il lettore la scambierebbe per
         // un'alternativa in più.

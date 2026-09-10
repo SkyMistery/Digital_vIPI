@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -30,6 +30,8 @@ public sealed record AgreementClauseRow : IOutlineRow
     public string? ConditionLabel { get; init; }
     public int? ConditionRefId { get; init; }
     public string? ConditionAreaLabel { get; init; }
+    /// <summary>La condizione d'area vale quando l'area <b>non</b> è attiva. Senza etichetta non vuol dire niente.</summary>
+    public bool ConditionAreaNegated { get; init; }
     public string? ConditionCustomLabel { get; init; }
 
     // Faccetta trasferimento. Unspecified = il trasferimento coincide con l'ingresso.
@@ -70,5 +72,5 @@ public sealed record AgreementClauseRow : IOutlineRow
 
     /// <summary>Etichetta condizione combinata per il display (pista · area · personalizzata); vuota se nessuna.</summary>
     public string? ConditionDisplay =>
-        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionCustomLabel);
+        TransferConditionText.Display(ConditionLabel, ConditionAreaLabel, ConditionAreaNegated, ConditionCustomLabel);
 }

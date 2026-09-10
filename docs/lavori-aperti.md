@@ -2,6 +2,30 @@
 
 ## Dove siamo — 10 settembre 2026
 
+🆕 **§CS: LA CONDIZIONE D'AREA HA UNA POLARITÀ — «con la $406 NON attiva».** Chiesto dal committente: «vale
+solo con un'area attiva, ma non il contrario». Ora la riga di clausola ha una casella **«area NON attiva»**
+accanto al picker dell'area, e il documento esce «… con AT Molise **non attiva**» / «… with AT Molise **not
+active**».
+🔴 **Una POLARITÀ, non una quarta dimensione**: «con A attiva e B non attiva» si scrive già, e meglio, con
+l'outline delle varianti — capofila e sua eccezione — che la frase cumula in AND. Una colonna in più sarebbe
+un secondo modo di dire la stessa cosa, e nasconderebbe la struttura che il documento stampa.
+🔴 **La fusione della catena si è dovuta SDOPPIARE**: due aree di polarità opposta non si possono unire in una
+stringa sola — «con A attiva e B» direbbe che anche B è attiva, cioè l'opposto di quel che c'è in archivio,
+senza nessun errore.
+🔴 **E un difetto l'ha trovato un TEST, non lo schermo**: due clausole d'area unite dalla congiunzione
+ripetevano la preposizione — «con $406 attiva **E CON** $407 non attiva». È lo stesso difetto che
+`RunwayAndArea` evita per pista+area, e la cura è la stessa: una forma dedicata in coda (`AreaInactiveTail`).
+⚠️ **La bandiera segue l'etichetta**: senza area si azzera scrivendo, come `ConditionRefId` senza pista —
+altrimenti resterebbe accesa in archivio e capovolgerebbe la prossima area scritta.
+⚠️ **Il tag breve resta un tag**: il pill dice `area X ⊘` (un simbolo, perché quella proprietà calcolata non ha
+un localizzatore e il prefisso «area» era già non tradotto); la **prosa** lo dice a parole in tutt'e due le
+lingue, ed è quella che legge il pubblico.
+✅ Provato dal vivo su LIBB ⇄ LDZO (clausola TORPO): frase IT e EN, pill col simbolo, casella **spenta col
+motivo accanto** finché non c'è un'area, round-trip riaprendo il pannello, e la bandiera che **si spegne in
+archivio** togliendo l'area. 🔴 E `real-coordination.approved.txt` **non si è mosso di un carattere**: è la
+rete che dice che il giro è additivo davvero. Migrazione **additiva** per i due provider.
+Carta: `docs/feature/2026-09-10-condizione-area-non-attiva.md`.
+
 🆕 **§CR: LA PORTA DECIDE L'ORDINE DI UNA PAGINA UNITA — e l'«ospite» non esiste più.** Chiesto dal
 committente: unendo la vIPI d'aeroporto, il vSOP e l'APP dello stesso scalo, aprendo la vIPI si legge prima
 la vIPI, aprendo il vSOP prima il vSOP, aprendo l'APP prima l'APP — e negli editor uguale. **La regola**: il

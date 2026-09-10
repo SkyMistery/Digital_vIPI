@@ -207,7 +207,7 @@ public class LiveStationPartsTests
             throw new NotSupportedException();
         public Task<int> SetLevelAsync(string a, IReadOnlyList<int> ids, Vipi.Domain.ParsedLevel lv, CancellationToken ct = default) =>
             throw new NotSupportedException();
-        public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, string? custom, CancellationToken ct = default) =>
+        public Task<int> SetConditionAsync(string a, IReadOnlyList<int> ids, string? area, bool areaNegated, string? custom, CancellationToken ct = default) =>
             throw new NotSupportedException();
         public Task<int> DeleteClausesAsync(string a, IReadOnlyList<int> ids, CancellationToken ct = default) =>
             throw new NotSupportedException();

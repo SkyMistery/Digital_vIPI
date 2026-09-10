@@ -187,6 +187,11 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("ConditionAreaNegated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("ConditionCustomLabel")
                         .HasMaxLength(80)
                         .HasColumnType("TEXT");

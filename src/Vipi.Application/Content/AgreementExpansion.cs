@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Domain;
@@ -112,6 +112,7 @@ public static class AgreementExpansion
             ConditionLabel = c.ConditionLabel,
             ConditionRefId = c.ConditionRefId,
             ConditionAreaLabel = c.ConditionAreaLabel,
+            ConditionAreaNegated = c.ConditionAreaNegated,
             ConditionCustomLabel = c.ConditionCustomLabel,
             HandoffKind = c.HandoffKind,
             HandoffLabel = c.HandoffLabel,

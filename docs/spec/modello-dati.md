@@ -715,10 +715,18 @@ Un solo schema di anteprima per i 4 tipi di documento, reso **dentro il viewer t
 Il livello di un trasferimento può variare per **pista in uso**, **area attiva** o una condizione **personalizzata**. Modello **editoriale** (non calcolato live): le varianti sono più righe con la **stessa CoP** e livelli diversi, ognuna etichettata dalla/e condizione/i; il controllore legge quella attiva. **Tre dimensioni INDIPENDENTI e additive** su `TransferPoint` (una riga può averle tutte; tutte vuote = sempre valida). Verità **denormalizzata** per il display (sopravvive a rename/rimozione della config e agli snapshot pubblicati):
 - `ConditionLabel : string?` (max 80) — **pista/e in uso**; può **elencare più piste** («16R / 16L»): stessa condizione valida per più piste in una sola riga.
 - `ConditionRefId : int?` — **soft-ref** opzionale a `AirportRunwayRule.Id`/`RunwayRow.Id` (**solo pista singola**); **nessun FK**. Tenuto solo se c'è una pista.
-- `ConditionAreaLabel : string?` (max 80) — **area attiva** (`SpecialArea.Name`).
+- `ConditionAreaLabel : string?` (max 80) — l'**area** (`SpecialArea.Name`).
+- `ConditionAreaNegated : bool` (NOT NULL, default `false`) — la **polarità** dell'area (10 settembre 2026):
+  `false` = «con {area} attiva», `true` = «con {area} **non** attiva».
+  ⚠️ È una polarità e **non** una quarta dimensione: «con A attiva e B non attiva» si scrive con l'outline
+  delle varianti (capofila + eccezione), che la frase cumula già in AND.
+  ⚠️ **Segue l'etichetta**: senza `ConditionAreaLabel` si azzera scrivendo, come `ConditionRefId` senza pista.
+  ⚠️ Il default è dichiarato **nel modello** (`VipiDbContext`) e non solo nella migrazione, per il
+  `PostgresSchemaReconciler` del deploy Render; regge perché `false` è il default CLR di `bool`.
 - `ConditionCustomLabel : string?` (max 80) — **condizione personalizzata** (testo libero).
 
-Migrazioni: `AddTransferPointCondition` (impianto iniziale, poi rimosso `ConditionKind`), `AddTransferPointConditionArea` (colonna area), **`SplitTransferConditionColumns`** (22 lug 2026: **droppa `ConditionKind`**, aggiunge `ConditionCustomLabel`, backfilla Area/Custom nelle rispettive colonne). L'enum `TransferConditionKind` è **rimosso**.
+Migrazioni: `AddTransferPointCondition` (impianto iniziale, poi rimosso `ConditionKind`), `AddTransferPointConditionArea` (colonna area), **`SplitTransferConditionColumns`** (22 lug 2026: **droppa `ConditionKind`**, aggiunge `ConditionCustomLabel`, backfilla Area/Custom nelle rispettive colonne). L'enum `TransferConditionKind` è **rimosso**. **`CondizioneAreaNonAttiva`** (10 set 2026: `AddColumn` additiva
+per i due provider, nessun backfill — `false` su tutte le righe esistenti *è* «attiva»).
 
 Frase (`CoordinationSentenceComposer`): compone la clausola di ciascuna dimensione presente e le unisce con `Condition.Join` («e»/EN «and»). Pista+area insieme usano la forma dedicata `Condition.RunwayAndArea` («con pista X in uso e Y attiva»); poi eventuale «e in condizione Z». Template IT/EN.
 

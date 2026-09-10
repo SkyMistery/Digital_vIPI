@@ -311,6 +311,11 @@
                         <TypeaheadPicker Class="xt-bulkpick" Placeholder="@L["Xfer_BulkArea"]"
                                          Items="AreaItems(_bulkAreaText)" EmptyOption="@L["Xfer_AreaNone"]"
                                          NoMatch="@L["Xfer_NoArea"]" @bind-Text="_bulkAreaText" />
+                        <label class="muted xt-check" title="@L["Xfer_CondAreaNegTitle", _bulkAreaText.Trim()]">
+                            <input type="checkbox" disabled="@(_bulkAreaText.Trim().Length == 0)"
+                                   checked="@_bulkAreaNegated"
+                                   @onchange="e => _bulkAreaNegated = (bool)(e.Value ?? false)" /> @L["Xfer_CondAreaNeg"]
+                        </label>
                         <div class="field xt-bulkfield">
                             <input placeholder="@L["Xfer_BulkCustom"]" @bind="_bulkCustomText" @bind:event="oninput" />
                         </div>
@@ -597,6 +602,8 @@
         public string[] Rwys { get; set; } = Array.Empty<string>();
         public string AreaLabel { get; set; } = "";
         public string AreaText { get; set; } = "";
+        /// <summary>La condizione d'area è rovescia: vale quando l'area NON è attiva.</summary>
+        public bool AreaNegated { get; set; }
         public string CustomLabel { get; set; } = "";
 
         public FacetForm Facet { get; } = new();
@@ -623,7 +630,7 @@
         {
             Points = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
             Parity = LevelParity.Any; VState = TransferVerticalState.Unspecified;
-            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; CustomLabel = "";
+            Rwys = Array.Empty<string>(); AreaLabel = ""; AreaText = ""; AreaNegated = false; CustomLabel = "";
             Facet.Reset();
         }
 
@@ -633,6 +640,7 @@
             Special = c.LevelSpecial ?? ""; Parity = c.Parity; VState = c.VerticalState;
             Rwys = parseRwys(c.ConditionLabel);
             AreaLabel = c.ConditionAreaLabel ?? ""; AreaText = c.ConditionAreaLabel ?? "";
+            AreaNegated = c.ConditionAreaNegated;
             CustomLabel = c.ConditionCustomLabel ?? "";
             Facet.LoadFrom(c);
         }
@@ -939,6 +947,7 @@
     // ---- Selezione multipla e modifica in blocco ----
     private readonly HashSet<int> _selected = new();
     private string _bulkLevelText = "", _bulkAreaText = "", _bulkCustomText = "";
+    private bool _bulkAreaNegated;
 
     private void ToggleSelect(int clauseId)
     {
@@ -973,8 +982,8 @@
         await Guarded(async () =>
         {
             n = await Agreements.SetConditionAsync(_acc!.Code, ids,
-                area.Length == 0 ? null : area, custom.Length == 0 ? null : custom);
-            _selected.Clear(); _bulkAreaText = ""; _bulkCustomText = "";
+                area.Length == 0 ? null : area, _bulkAreaNegated, custom.Length == 0 ? null : custom);
+            _selected.Clear(); _bulkAreaText = ""; _bulkAreaNegated = false; _bulkCustomText = "";
         }, null);
         if (n > 0) _status = string.Format(L["Xfer_BulkDone"].Value, n);
     }
@@ -2264,6 +2273,20 @@
                          Items="AreaItems(form.AreaText)" EmptyOption="@L["Xfer_AreaNone"]" NoMatch="@L["Xfer_NoArea"]"
                          Text="@form.AreaText" TextChanged="t => { form.AreaText = t; ResolveArea(form); }"
                          OnPick="i => PickArea(form, i?.Value)" OnUnhandledKey="PanelKey" />
+        @* La POLARITÀ dell'area (10 settembre 2026, committente): «vale solo con la $406 NON attiva».
+           ⚠️ Spenta finché non c'è un'area: da sola non vuol dire niente, e una casella che si può spuntare
+           senza effetto è la stessa cosa di un tasto che a volte non fa niente. Il perché sta ACCANTO, come
+           chiede la regola dei tasti spenti — un `disabled` muto si legge «permesso mancante». *@
+        @* ⚠️ `L[chiave, arg]` e NON `L[chiave].Value` dentro uno `string.Format`: il secondo indexer è
+           l'unico che formatta, e col primo l'argomento sparisce in silenzio lasciando «{0}» a schermo. *@
+        <label class="muted xt-check" title="@(form.AreaLabel.Trim().Length == 0 ? L["Xfer_CondAreaNegNoArea"] : L["Xfer_CondAreaNegTitle", form.AreaLabel.Trim()])">
+            <input type="checkbox" disabled="@(form.AreaLabel.Trim().Length == 0)" checked="@form.AreaNegated"
+                   @onchange="e => form.AreaNegated = (bool)(e.Value ?? false)" /> @L["Xfer_CondAreaNeg"]
+            @if (form.AreaLabel.Trim().Length == 0)
+            {
+                <span class="muted xt-hint xt-pickhint">@L["Xfer_CondAreaNegNoArea"]</span>
+            }
+        </label>
         <div class="field"><label>@L["Xfer_CondCustom"]</label>
             <input placeholder="@L["Xfer_CondCustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
         </div>
@@ -2365,6 +2388,7 @@
         TransferConditionText.Display(
             f.Rwys.Length == 0 ? null : string.Join(" / ", f.Rwys),
             string.IsNullOrWhiteSpace(f.AreaLabel) ? null : f.AreaLabel,
+            f.AreaNegated,
             string.IsNullOrWhiteSpace(f.CustomLabel) ? null : f.CustomLabel) ?? "";
 
     private string FacetSummary(AgreementClauseRow c)
@@ -2398,6 +2422,7 @@
             LevelValue = draft.LevelValue, LevelUnit = draft.LevelUnit, LevelConstraint = draft.LevelConstraint,
             LevelSpecial = draft.LevelSpecial, Parity = draft.Parity, VerticalState = draft.VerticalState,
             ConditionLabel = draft.ConditionLabel, ConditionAreaLabel = draft.ConditionAreaLabel,
+            ConditionAreaNegated = draft.ConditionAreaNegated,
             ConditionCustomLabel = draft.ConditionCustomLabel,
             HandoffKind = draft.HandoffKind, HandoffLabel = draft.HandoffLabel,
             HandoffLevelValue = draft.HandoffLevelValue, HandoffLevelUnit = draft.HandoffLevelUnit,
@@ -2517,7 +2542,8 @@
         Cops = c.Cops, LevelValue = c.LevelValue, LevelUnit = c.LevelUnit, LevelConstraint = c.LevelConstraint,
         LevelSpecial = c.LevelSpecial, Parity = c.Parity, VerticalState = c.VerticalState,
         ConditionLabel = c.ConditionLabel, ConditionRefId = c.ConditionRefId,
-        ConditionAreaLabel = c.ConditionAreaLabel, ConditionCustomLabel = c.ConditionCustomLabel,
+        ConditionAreaLabel = c.ConditionAreaLabel, ConditionAreaNegated = c.ConditionAreaNegated,
+        ConditionCustomLabel = c.ConditionCustomLabel,
         HandoffKind = c.HandoffKind, HandoffLabel = c.HandoffLabel,
         HandoffLevelValue = c.HandoffLevelValue, HandoffLevelUnit = c.HandoffLevelUnit,
         HandoffLevelConstraint = c.HandoffLevelConstraint,
@@ -3520,6 +3546,7 @@
         VerticalState = form.VState,
         ConditionLabel = form.Rwys.Length == 0 ? null : string.Join(" / ", form.Rwys),
         ConditionAreaLabel = NullIfBlank(form.AreaLabel),
+        ConditionAreaNegated = form.AreaNegated,
         ConditionCustomLabel = NullIfBlank(form.CustomLabel),
     });
 

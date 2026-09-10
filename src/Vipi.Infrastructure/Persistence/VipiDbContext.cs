@@ -482,6 +482,10 @@ public class VipiDbContext : DbContext
             e.Property(x => x.HandoffLevelUnit).HasDefaultValue(LevelUnit.Fl);
             e.Property(x => x.HandoffLevelConstraint).HasDefaultValue(LevelConstraint.AtOrAbove);
             e.Property(x => x.SpeedConstraint).HasDefaultValue(SpeedConstraint.Unspecified);
+            // ⚠️ Stessa ragione, e vale per lo stesso motivo: `false` È il default CLR di `bool`, quindi EF
+            // che omette la colonna in INSERT non fa tornare indietro una riga cambiata. E su una tabella già
+            // piena `false` = «area ATTIVA», che è quel che dicono tutte le clausole scritte finora.
+            e.Property(x => x.ConditionAreaNegated).HasDefaultValue(false);
         });
 
         b.Entity<StaffMember>(e =>

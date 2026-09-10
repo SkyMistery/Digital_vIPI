@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using Vipi.Domain;
@@ -185,32 +185,73 @@ public static class CoordinationSentenceComposer
         return d.Facet.IsGroupWide ? $"{tpl.GroupWide}, {text}" : text;
     }
 
-    // Fonde i livelli dimensione per dimensione. Due piste (o due aree) su livelli diversi sono un caso
-    // limite: si elencano unite dalla stessa congiunzione, perché restano un AND.
-    private static ConditionClause Merge(CoordinationSentenceTemplate tpl, IReadOnlyList<ConditionClause> chain)
+    /// <summary>La catena fusa, pronta per le parole: le aree stanno in DUE secchi.
+    /// <para>🔴 Attive e non attive non si possono unire in una stringa sola: «con A attiva e B» direbbe che
+    /// anche B è attiva, e sarebbe l'opposto di quel che c'è scritto in archivio — senza nessun errore.</para></summary>
+    private sealed record CondizioneFusa(string? Runway, string? AreaAttiva, string? AreaNonAttiva, string? Custom)
     {
-        string? Join(Func<ConditionClause, string?> pick)
-        {
-            var parts = chain.Select(pick).Select(x => (x ?? "").Trim()).Where(x => x.Length > 0).ToList();
-            return parts.Count == 0 ? null : string.Join($" {tpl.Condition.Join} ", parts);
-        }
-        return new ConditionClause(Join(c => c.Runway), Join(c => c.Area), Join(c => c.Custom));
+        public bool IsEmpty => string.IsNullOrWhiteSpace(Runway) && string.IsNullOrWhiteSpace(AreaAttiva)
+                               && string.IsNullOrWhiteSpace(AreaNonAttiva) && string.IsNullOrWhiteSpace(Custom);
     }
 
-    // Le tre dimensioni di UNA clausola. Pista+area insieme usano la forma dedicata «con pista X in uso e Y
-    // attiva» (fraseologia approvata), che non è la semplice unione delle due.
-    private static IEnumerable<string> ClausesOf(CoordinationSentenceTemplate tpl, ConditionClause c)
+    // Fonde i livelli dimensione per dimensione. Due piste (o due aree della stessa polarità) su livelli
+    // diversi sono un caso limite: si elencano unite dalla stessa congiunzione, perché restano un AND.
+    private static CondizioneFusa Merge(CoordinationSentenceTemplate tpl, IReadOnlyList<ConditionClause> chain)
+    {
+        string? Join(IEnumerable<ConditionClause> da, Func<ConditionClause, string?> pick)
+        {
+            var parts = da.Select(pick).Select(x => (x ?? "").Trim()).Where(x => x.Length > 0).ToList();
+            return parts.Count == 0 ? null : string.Join($" {tpl.Condition.Join} ", parts);
+        }
+        return new CondizioneFusa(
+            Join(chain, c => c.Runway),
+            Join(chain.Where(c => !c.AreaNegated), c => c.Area),
+            Join(chain.Where(c => c.AreaNegated), c => c.Area),
+            Join(chain, c => c.Custom));
+    }
+
+    // Le dimensioni di UNA condizione fusa. Pista+area insieme usano la forma dedicata «con pista X in uso e Y
+    // attiva» (fraseologia approvata), che non è la semplice unione delle due — e per l'area NON attiva ne
+    // esiste una seconda, per la stessa ragione.
+    private static IEnumerable<string> ClausesOf(CoordinationSentenceTemplate tpl, CondizioneFusa c)
     {
         var rwy = (c.Runway ?? "").Trim();
-        var area = (c.Area ?? "").Trim();
+        var attiva = (c.AreaAttiva ?? "").Trim();
+        var nonAttiva = (c.AreaNonAttiva ?? "").Trim();
         var custom = (c.Custom ?? "").Trim();
 
-        if (rwy.Length > 0 && area.Length > 0)
-            yield return tpl.Condition.RunwayAndArea.Replace("{runway}", rwy).Replace("{area}", area).Trim();
+        // ⚠️ La forma combinata consuma la pista UNA volta sola. Con pista + attive + non attive, la combinata
+        // si prende le attive e le non attive si appendono a parte: «con pista 16R in uso e A attiva e B non
+        // attiva». Ripetere «con pista 16R in uso» due volte sarebbe la stessa frase detta male.
+        // 🔴 E chi si appende usa la forma in CODA, senza preposizione: qualcosa ha già aperto con «con», e
+        // la congiunzione la ripeterebbe — «con A attiva E CON B non attiva». Difetto trovato da un test.
+        var nonAttivaConsumata = false;
+        var haApertoLaFrase = false;
+        if (rwy.Length > 0 && attiva.Length > 0)
+        {
+            yield return tpl.Condition.RunwayAndArea.Replace("{runway}", rwy).Replace("{area}", attiva).Trim();
+            haApertoLaFrase = true;
+        }
+        else if (rwy.Length > 0 && nonAttiva.Length > 0)
+        {
+            yield return tpl.Condition.RunwayAndAreaInactive.Replace("{runway}", rwy).Replace("{area}", nonAttiva).Trim();
+            nonAttivaConsumata = true;
+            haApertoLaFrase = true;
+        }
         else if (rwy.Length > 0)
+        {
             yield return tpl.Condition.Runway.Replace("{label}", rwy).Trim();
-        else if (area.Length > 0)
-            yield return tpl.Condition.Area.Replace("{label}", area).Trim();
+            haApertoLaFrase = true;
+        }
+        else if (attiva.Length > 0)
+        {
+            yield return tpl.Condition.Area.Replace("{label}", attiva).Trim();
+            haApertoLaFrase = true;
+        }
+
+        if (nonAttiva.Length > 0 && !nonAttivaConsumata)
+            yield return (haApertoLaFrase ? tpl.Condition.AreaInactiveTail : tpl.Condition.AreaInactive)
+                .Replace("{label}", nonAttiva).Trim();
 
         if (custom.Length > 0)
             yield return tpl.Condition.Custom.Replace("{label}", custom).Trim();
