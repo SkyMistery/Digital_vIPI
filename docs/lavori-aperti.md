@@ -10975,5 +10975,6 @@ di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella p
   che la riga su ES5 chiude. Una riga sola, e la trova il rilievo nuovo.
 - 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
   Roma ha cinque radici in tutto: da guardare col committente.
-- ▶ Il ramo **non è fuso** e **non è in un pacchetto**: porta una migrazione additiva, quindi la consegna
-  va pensata dentro la finestra cieca.
+- ✅ **FUSA in `main`** il 10 settembre 2026, merge `e99a66f8`, dodici commit, ramo cancellato, spinta su
+  origin. ⚠️ **NON è in un pacchetto** e porta una **migrazione additiva**: la consegna va pensata dentro la
+  finestra cieca.
