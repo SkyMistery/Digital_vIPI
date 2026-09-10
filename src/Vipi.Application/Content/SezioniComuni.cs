@@ -171,8 +171,8 @@ public static class SezioniComuni
     /// <summary>
     /// Da quali documenti PROPORRE di nascondere, guardando lo stato: quelli che hanno già nascosta almeno
     /// una sezione comune. Se non ne ha nascosta nessuno — unione appena nata — si propongono <b>tutti
-    /// tranne il primo</b>, che è l'ospite: la pagina unita si legge a casa sua, ed è lì che il dato conviene
-    /// tenerlo visibile.
+    /// tranne il primo</b> dell'ordine memorizzato. ⚠️ Dalla §13 quel primo non è «l'ospite» di niente: è
+    /// solo una proposta STABILE, la stessa da qualunque porta si apra la scheda, e resta modificabile.
     ///
     /// <para>🔴 <b>Senza guardare lo stato la scheda MENTE alla seconda apertura.</b> Riproponendo sempre lo
     /// stesso insieme, chi riapre e preme senza guardare <b>ribalta</b> la scelta di prima: rimette le

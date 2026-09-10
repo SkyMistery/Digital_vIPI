@@ -3266,8 +3266,6 @@
   <data name="Union_Help" xml:space="preserve"><value>Unire due o più documenti vuol dire leggerli in una pagina sola e pubblicarli con un clic. Restano documenti separati: si sciolgono quando si vuole, senza perdere niente.</value></data>
   <data name="Union_None" xml:space="preserve"><value>Questo documento si legge da solo.</value></data>
   <data name="Union_Members" xml:space="preserve"><value>Nell'unione, in ordine</value></data>
-  <data name="Union_Host" xml:space="preserve"><value>ospite</value></data>
-  <data name="Union_HostHint" xml:space="preserve"><value>La pagina unita vive all'indirizzo dell'ospite: gli altri ci reindirizzano.</value></data>
   <data name="Union_AddLabel" xml:space="preserve"><value>Unisci a</value></data>
   <data name="Union_AddAction" xml:space="preserve"><value>Unisci</value></data>
   <data name="Union_SameAirport" xml:space="preserve"><value>stesso scalo</value></data>
@@ -3278,9 +3276,6 @@
   <data name="Union_RemovePrompt" xml:space="preserve"><value>Questo documento torna alla sua pagina. Se nell'unione resta un membro solo, l'unione si scioglie.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Togli</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Sciogli l'unione</value></data>
-  <data name="Union_NotHost" xml:space="preserve"><value>Questo documento è unito, ma l'ospite dell'unione è «{0}»: la pagina unita, l'editor unito e la pubblicazione stanno al SUO indirizzo. Qui si redige soltanto questo documento.</value></data>
-  <data name="Union_OpenHost" xml:space="preserve"><value>Apri l'editor di «{0}»</value></data>
-  <data name="Union_FirstIsHost" xml:space="preserve"><value>⚠️ Il primo dell'elenco è l'ospite: spostandolo si sposta anche la pagina unita, l'editor unito e il pannello di pubblicazione, che vivono al suo indirizzo.</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Sezioni in comune…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Sezioni in comune</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>Questi documenti non hanno sezioni in comune: non c'è niente da nascondere.</value></data>
@@ -3303,6 +3298,7 @@
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>uniti: {0}</value></data>
   <data name="Union_SearchPh" xml:space="preserve"><value>cerca per nome o codice…</value></data>
   <data name="Union_Found" xml:space="preserve"><value>{0} di {1}</value></data>
+  <data name="Union_OrderHint" xml:space="preserve"><value>L'ordine di questo elenco è quello in cui compaiono gli ALTRI documenti. Il primo della pagina è sempre quello da cui si entra: aprendo la vIPI si legge prima la vIPI, aprendo il vSOP prima il vSOP.</value></data>
   <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>giri periodici</value></data>
   <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Giro periodico fermo</value></data>
   <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>L'ultimo giro riuscito è {0}, oltre il doppio della sua cadenza. Non c'è un errore registrato: quando succede senza errore, di solito il processo si è spento prima che il giro arrivasse al suo ritardo d'avvio.</value></data>

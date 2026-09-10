@@ -290,26 +290,18 @@ else
         _haMilitare = await Militari.HasPublishedAsync(_icao)
                       || (_canEdit && await Militari.GetDocumentIdAsync(_icao) is not null);
 
-        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
-        // ⚠️ Si compone solo se questo documento è l'OSPITE: la pagina unita vive al suo indirizzo, e chi
-        // ospite non è ci reindirizza (§4) invece di disegnare l'unione a partire da sé — che darebbe lo
-        // stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        // ---- L'unione (carta 2026-09-03, §13 del 10-09) ---------------------------------------------
+        // ⚠️ Questa pagina è una PORTA dell'unione, non l'ospite di nessuno: disegna sé stessa per prima e
+        // gli altri membri di seguito, nell'ordine memorizzato. Non si reindirizza più (§4 superata): lo
+        // stesso contenuto si legge da N indirizzi in N ordini, ed è proprio ciò che è stato chiesto.
         var unione = await Unioni.ForTargetAsync(ReleaseTargetType.Airport, _icao);
-        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.Airport, _icao))
-        {
-            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
-            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
-            // anteprima irraggiungibile.
-            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
-            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
-            if (_doc.Mode.Kind == PreviewKind.Public
-                && await Membri.IndirizzoDellOspiteAsync(unione, ReleaseTargetType.Airport, _icao) is { } indirizzo)
-                Nav.NavigateTo(indirizzo, replace: true);
-            return;
-        }
-        _altri = unione is null
-            ? Array.Empty<MembroUnito>()
-            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, _doc.RelCycle ?? _doc.View.AiracCycle, Lingua);
+        // ⚠️ La porta si cerca per FAMIGLIA E CHIAVE: un aeroporto e il suo vSOP militare hanno la stessa
+        // chiave (l'ICAO) e si distinguono per il solo tipo. `null` vuol dire che l'unione non descrive
+        // questo documento — un membro senza descrittore si salta — e allora non c'è unione da disegnare.
+        _altri = unione?.Di(ReleaseTargetType.Airport, _icao) is { } mio
+            ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista,
+                                            _doc.RelCycle ?? _doc.View.AiracCycle, Lingua)
+            : Array.Empty<MembroUnito>();
     }
 
     /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

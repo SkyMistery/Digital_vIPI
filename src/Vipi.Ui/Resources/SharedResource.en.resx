@@ -3258,8 +3258,6 @@
   <data name="Union_Help" xml:space="preserve"><value>Joining two or more documents means reading them on one page and publishing them with one click. They stay separate documents: unjoin them whenever you like, losing nothing.</value></data>
   <data name="Union_None" xml:space="preserve"><value>This document is read on its own.</value></data>
   <data name="Union_Members" xml:space="preserve"><value>In the union, in order</value></data>
-  <data name="Union_Host" xml:space="preserve"><value>host</value></data>
-  <data name="Union_HostHint" xml:space="preserve"><value>The joined page lives at the host's address: the others redirect to it.</value></data>
   <data name="Union_AddLabel" xml:space="preserve"><value>Join to</value></data>
   <data name="Union_AddAction" xml:space="preserve"><value>Join</value></data>
   <data name="Union_SameAirport" xml:space="preserve"><value>same airfield</value></data>
@@ -3270,9 +3268,6 @@
   <data name="Union_RemovePrompt" xml:space="preserve"><value>This document goes back to its own page. If only one member is left, the union is dissolved.</value></data>
   <data name="Union_RemoveYes" xml:space="preserve"><value>Remove</value></data>
   <data name="Union_Dissolve" xml:space="preserve"><value>Dissolve the union</value></data>
-  <data name="Union_NotHost" xml:space="preserve"><value>This document is joined, but the union's host is «{0}»: the joined page, the joined editor and publishing all live at ITS address. Here you only edit this document.</value></data>
-  <data name="Union_OpenHost" xml:space="preserve"><value>Open the editor of «{0}»</value></data>
-  <data name="Union_FirstIsHost" xml:space="preserve"><value>⚠️ The first in the list is the host: moving it also moves the joined page, the joined editor and the release panel, which live at its address.</value></data>
   <data name="Union_Common_Open" xml:space="preserve"><value>Shared sections…</value></data>
   <data name="Union_Common_Title" xml:space="preserve"><value>Shared sections</value></data>
   <data name="Union_Common_None" xml:space="preserve"><value>These documents have no sections in common: there is nothing to hide.</value></data>
@@ -3295,6 +3290,7 @@
   <data name="Ver_UnitedBadge" xml:space="preserve"><value>joined: {0}</value></data>
   <data name="Union_SearchPh" xml:space="preserve"><value>search by name or code…</value></data>
   <data name="Union_Found" xml:space="preserve"><value>{0} of {1}</value></data>
+  <data name="Union_OrderHint" xml:space="preserve"><value>This order is the order the OTHER documents appear in. The first one on the page is always the one you came in from: open the vIPI and you read the vIPI first, open the vSOP and you read the vSOP first.</value></data>
   <data name="Diag_Pezzo_Giri" xml:space="preserve"><value>periodic runs</value></data>
   <data name="Diag_Cat_GiroFermo" xml:space="preserve"><value>Periodic run stalled</value></data>
   <data name="Diag_Msg_GiroFermo" xml:space="preserve"><value>The last successful run was {0}, more than twice its period. No error was recorded: when that happens without an error, the process usually shut down before the run reached its start delay.</value></data>

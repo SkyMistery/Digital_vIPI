@@ -19,8 +19,8 @@
 
 <AppSectionsEditor @ref="_editor" Acc="@Acc" App="@App" Chrome="true"
                    VociIndiceExtra="_vociMembri"
-                   SuModifica="@(Ospite ? ModificaTutti : null)"
-                   SuFineModifica="@(Ospite ? FineModificaTutti : null)">
+                   SuModifica="@(Unito ? ModificaTutti : null)"
+                   SuFineModifica="@(Unito ? FineModificaTutti : null)">
     <AfterSections>
         @if (_errore is { Length: > 0 })
         {
@@ -29,7 +29,7 @@
 
         @* Gli ALTRI documenti dell'unione, nell'ordine scelto dal redattore. Qui dentro e non dopo il
            componente: questo slot è reso nella colonna centrale della griglia. *@
-        @if (Ospite)
+        @if (Unito)
         {
             <UnionMembersEditor @ref="_membri" Membri="_altri" Acc="@Acc"
                                StatoCambiato="Ridisegna" VociCambiate="AggiornaVoci"
@@ -72,7 +72,7 @@
     private string Callsign => (App ?? "").Trim().ToUpperInvariant();
 
     /// <summary>Questo documento è l'OSPITE di un'unione: allora redige anche gli altri.</summary>
-    private bool Ospite => _altri.Count > 0;
+    private bool Unito => _altri.Count > 0;
 
     /// <summary>Quante volte l'unione e' cambiata in questa sessione di pagina: alzarla costringe
     /// <c>ReleasePanel</c> a rileggere i suoi bersagli.</summary>
@@ -82,11 +82,11 @@
 
     private async Task LeggiUnioneAsync()
     {
-        // ⚠️ Solo se questo documento è l'OSPITE: l'editor unito vive al suo indirizzo, e comporlo a partire
-        // da un membro darebbe lo stesso contenuto in un ordine diverso a seconda di dove si è entrati.
+        // ⚠️ §13: questo editor è una PORTA dell'unione, non l'ospite di nessuno. Ogni membro ha il suo
+        // editor unito, che mette sé stesso per primo e gli altri nell'ordine memorizzato.
         var unione = await Unioni.ForTargetAsync(ReleaseTargetType.App, Callsign);
-        _altri = unione is not null && unione.IsHostTarget(ReleaseTargetType.App, Callsign)
-            ? unione.Members.Where(m => m.DocumentId != unione.Host.DocumentId).ToList()
+        _altri = unione?.Di(ReleaseTargetType.App, Callsign) is { } mio
+            ? unione.AltriDa(mio.DocumentId)
             : Array.Empty<UnionMemberView>();
     }
 
@@ -102,9 +102,9 @@
         _errore = null;
         if (_editor is null) return;
 
-        if (await _editor.PrendiLockAsync() is { } chiOspite)
+        if (await _editor.PrendiLockAsync() is { } chiLoTiene)
         {
-            _errore = L["Union_LockedBy", chiOspite];
+            _errore = L["Union_LockedBy", chiLoTiene];
             return;
         }
         if (_membri is not null && await _membri.PrendiLockAsync() is { } chiMembro)

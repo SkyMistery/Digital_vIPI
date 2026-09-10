@@ -29,21 +29,21 @@ public class DocumentUnionServiceTests
         new(tipo, titolo, chiave, "LIRR", IsPublished: true, HasDraft: false, IsHidden: false, tipo, chiave, id);
 
     [Fact]
-    public async Task Unire_due_documenti_mette_l_OSPITE_per_primo()
+    public async Task Unire_due_documenti_accoda_l_INVITATO()
     {
         var s = Servizio(out var repo, VsopMil(24, "LIBV"), App(3, "LIBV_APP"));
 
-        var unionId = await s.UniscoAsync(ospiteDocumentId: 24, invitatoDocumentId: 3);
+        var unionId = await s.UniscoAsync(invitanteDocumentId: 24, invitatoDocumentId: 3);
 
         var vista = await s.ForDocumentAsync(3);
         Assert.NotNull(vista);
         Assert.Equal(unionId, vista!.Id);
         Assert.Equal(new[] { 24, 3 }, vista.Members.Select(m => m.DocumentId));
-        // L'ospite è il primo, e la pagina unita vive al SUO indirizzo: è la sola cosa che il redirect guarda.
-        Assert.True(vista.Host.IsHost);
-        Assert.Equal(24, vista.Host.DocumentId);
-        Assert.True(vista.IsHostDocument(24));
-        Assert.False(vista.IsHostDocument(3));
+        // ⚠️ L'invitante resta primo NELL'ORDINE MEMORIZZATO, e quell'ordine non nomina un capo (§13): dice
+        // in che sequenza compaiono gli ALTRI, qualunque sia la porta da cui si entra.
+        Assert.Equal(new[] { 0, 1 }, vista.Members.Select(m => m.Order));
+        Assert.Equal(new[] { 3 }, vista.AltriDa(24).Select(m => m.DocumentId));
+        Assert.Equal(new[] { 24 }, vista.AltriDa(3).Select(m => m.DocumentId));
         Assert.Single(repo.Unioni);
     }
 
@@ -178,21 +178,21 @@ public class DocumentUnionServiceTests
     }
 
     [Fact]
-    public async Task L_OSPITE_si_riconosce_da_famiglia_E_chiave_insieme()
+    public async Task La_PORTA_si_riconosce_da_famiglia_E_chiave_insieme()
     {
         // ⚠️ La trappola: un aeroporto e il suo vSOP militare hanno la STESSA chiave di release (l'ICAO) e
         // si distinguono per il TIPO — è il fatto su cui poggiano le due edizioni con cicli indipendenti.
-        // Confrontare la sola chiave farebbe credere ospite anche l'edizione che ospite non è, e la pagina
-        // civile disegnerebbe l'unione del militare.
+        // Confrontare la sola chiave darebbe la stessa porta alle due edizioni, e la pagina civile
+        // disegnerebbe l'unione nell'ordine visto dal militare.
         var s = Servizio(out _, VsopMil(29, "LIMN"), Aeroporto(28, "LIMN"));
         await s.UniscoAsync(29, 28);
 
         var vista = await s.ForTargetAsync(ReleaseTargetType.AirportMil, "LIMN");
 
-        Assert.True(vista!.IsHostTarget(ReleaseTargetType.AirportMil, "LIMN"));
-        Assert.False(vista.IsHostTarget(ReleaseTargetType.Airport, "LIMN"));
+        Assert.Equal(29, vista!.Di(ReleaseTargetType.AirportMil, "LIMN")!.DocumentId);
+        Assert.Equal(28, vista.Di(ReleaseTargetType.Airport, "LIMN")!.DocumentId);
         // E non fa distinzione di maiuscole: le chiavi arrivano dagli indirizzi.
-        Assert.True(vista.IsHostTarget(ReleaseTargetType.AirportMil, "limn"));
+        Assert.Equal(29, vista.Di(ReleaseTargetType.AirportMil, "limn")!.DocumentId);
     }
 
     [Fact]
@@ -266,7 +266,9 @@ public class DocumentUnionServiceTests
         var vista = await mezza.ForDocumentAsync(24);
         Assert.NotNull(vista);
         Assert.Equal(new[] { 24 }, vista!.Members.Select(m => m.DocumentId));
-        Assert.Equal(24, vista.Host.DocumentId);
+        // ⚠️ E chi guarda da quell'unico membro non ha altri da disegnare: la pagina mostra sé stessa, e il
+        // pannello dell'editor il tasto «sciogli».
+        Assert.Empty(vista.AltriDa(24));
     }
 
     private static DocumentUnionService Servizio(out RepoFinto repo, params ManagedDoc[] docs) =>

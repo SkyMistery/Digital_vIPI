@@ -55,7 +55,7 @@ public class DocumentiUnitiTests : TestContext
     {
         var doc = new ManagedDoc(tipo, titolo, chiave, "LIRR", IsPublished: true, HasDraft: false,
                                  IsHidden: false, tipo, chiave, documentId);
-        var membro = new UnionMemberView(MemberId: documentId, Order: 1, IsHost: false, doc);
+        var membro = new UnionMemberView(MemberId: documentId, Order: 1, doc);
         return new MembroUnito(membro, titolo, sezioni, haMarcate,
             b => b.AddMarkupContent(0, $"<p class=\"corpo\">{titolo}</p>"));
     }
@@ -147,11 +147,11 @@ public class DocumentiUnitiTests : TestContext
         Assert.Empty(corpi.Markup.Trim());
     }
 
-    // ---- La chip «Tutto · Pilota · ATC» è dell'UNIONE, non dell'ospite -------------------------------
+    // ---- La chip «Tutto · Pilota · ATC» è dell'UNIONE, non del solo documento della porta -------------------------------
 
     /// <summary>
     /// 🔴 Il difetto del 7 settembre 2026: unendo due documenti di cui <b>solo il secondo</b> ha sezioni
-    /// marcate, i tre comandi sparivano dal viewer. La chip è una per pagina e la disegna l'ospite, che si
+    /// marcate, i tre comandi sparivano dal viewer. La chip è una per pagina e la disegna il documento della porta, che si
     /// chiedeva «ho sezioni marcate?» invece di «ce n'è qualcuna in questa pagina?».
     ///
     /// <para>⚠️ Non c'era nessun errore e nessun rosso: il filtro continuava a funzionare scrivendo
@@ -167,7 +167,7 @@ public class DocumentiUnitiTests : TestContext
                    Sez("s-1", "Separazioni")),
         };
 
-        Assert.True(MembroUnito.QualcunoHaMarcate(ospite: false, altri));
+        Assert.True(MembroUnito.QualcunoHaMarcate(dellaPorta: false, altri));
     }
 
     [Fact]
@@ -176,22 +176,22 @@ public class DocumentiUnitiTests : TestContext
         // L'altra metà della regola: la chip non deve comparire su ogni pagina unita solo perché è unita.
         var altri = new[] { Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach") };
 
-        Assert.False(MembroUnito.QualcunoHaMarcate(ospite: false, altri));
-        Assert.False(MembroUnito.QualcunoHaMarcate(ospite: false, Array.Empty<MembroUnito>()));
+        Assert.False(MembroUnito.QualcunoHaMarcate(dellaPorta: false, altri));
+        Assert.False(MembroUnito.QualcunoHaMarcate(dellaPorta: false, Array.Empty<MembroUnito>()));
     }
 
     /// <summary>
     /// ⚠️ <b>La guardia che vale davvero</b>: le tre asserzioni qui sopra provano la regola, ma la regola
-    /// non serve a niente se una pagina torna a chiederla al solo ospite. Quel ritorno non darebbe nessun
+    /// non serve a niente se una pagina torna a chiederla al solo documento della porta. Quel ritorno non darebbe nessun
     /// errore — <c>_doc.HaMarcate</c> compila e vale <c>false</c> — e sarebbe di nuovo il difetto.
-    /// <para>Le tre sedi sono quelle che possono OSPITARE un'unione: la vIPI ACC e la vLOA restano fuori
+    /// <para>Le tre sedi sono quelle che possono disegnare un'unione: la vIPI ACC e la vLOA restano fuori
     /// dalle famiglie unibili, dichiarato in carta, e la loro chip guarda il proprio documento e basta.</para>
     /// </summary>
     [Theory]
     [InlineData("Pages/AeroportoPage.razor")]
     [InlineData("Pages/AppnPage.razor")]
     [InlineData("Pages/MilDocumentPage.razor")]
-    public void Ogni_pagina_che_OSPITA_chiede_la_chip_all_unione_intera(string relativo)
+    public void Ogni_pagina_unibile_chiede_la_chip_all_unione_intera(string relativo)
     {
         var sorgente = Leggi(relativo);
 
@@ -203,37 +203,63 @@ public class DocumentiUnitiTests : TestContext
     }
 
     /// <summary>
-    /// 🔴 Chi NON è l'ospite deve saperlo, e sapere dove andare (segnalazione del committente, 7 settembre
-    /// 2026). Invertendo l'ordine dei membri l'ospite CAMBIA, e con lui si sposta l'editor unito: i corpi
-    /// degli altri membri smettono di comparire in questa pagina. Senza il rimando sembra che l'unione si
-    /// sia persa — e l'archivio invece è intatto.
+    /// ⚠️ §13 (10 settembre 2026): <b>il concetto di ospite non esiste più</b>, e questa è la guardia che lo
+    /// tiene morto. Il pannello non deve tornare a distinguere un membro dagli altri: niente pastiglia
+    /// «ospite», niente avviso «non sei tu», niente link per andare altrove — e soprattutto <b>nessuna</b>
+    /// delle cinque chiavi di traduzione che quelle righe usavano, che senza questa rete resterebbero in
+    /// archivio a descrivere un meccanismo sparito.
     /// </summary>
     [Fact]
-    public void Chi_non_e_l_OSPITE_lo_legge_e_ha_il_link_per_andarci()
+    public void Il_pannello_non_nomina_piu_nessun_OSPITE()
     {
         var sorgente = Leggi("Components/Doc/UnionPanel.razor");
 
-        Assert.Contains("@if (!SonoOspite)", sorgente, StringComparison.Ordinal);
-        Assert.Contains("Union_NotHost", sorgente, StringComparison.Ordinal);
-        // Il rimando è un LINK all'editor dell'ospite, non una frase che dice «vai di là»: chi legge deve
-        // poterci arrivare senza sapere com'è fatto l'indirizzo.
-        Assert.Contains("_indirizzoOspite", sorgente, StringComparison.Ordinal);
-        Assert.Contains("Union_OpenHost", sorgente, StringComparison.Ordinal);
+        foreach (var morta in new[]
+                 {
+                     "SonoOspite", "_indirizzoOspite",
+                     "Union_NotHost", "Union_OpenHost", "Union_Host", "Union_HostHint", "Union_FirstIsHost",
+                 })
+            Assert.DoesNotContain(morta, sorgente, StringComparison.Ordinal);
     }
 
     /// <summary>
-    /// ⚠️ La scheda delle sezioni in comune scrive sui documenti DEGLI ALTRI membri, e i loro lock li tiene
-    /// l'editor dell'ospite: offerta altrove, cadrebbe con «bloccato da un altro redattore». Sta dove il
-    /// gesto può riuscire.
+    /// ⚠️ La scheda delle sezioni in comune si offre da <b>ogni</b> porta, non più dal solo ospite: da §13
+    /// ogni membro ha il suo editor unito, prende i lock di tutti e può quindi scrivere sugli altri.
+    /// L'unica condizione che resta è quella vera — <b>essere in modifica</b>.
     /// </summary>
     [Fact]
-    public void La_scheda_delle_comuni_si_offre_SOLO_all_ospite()
+    public void La_scheda_delle_comuni_si_offre_da_OGNI_porta()
     {
         var sorgente = Leggi("Components/Doc/UnionPanel.razor");
 
-        Assert.Contains("@if (IsEditing && SonoOspite)", sorgente, StringComparison.Ordinal);
-        // E chi sposta il primo dev'essere avvisato PRIMA di premere: sposta anche la pagina e l'editor.
-        Assert.Contains("Union_FirstIsHost", sorgente, StringComparison.Ordinal);
+        // Il comando c'è, e il suo cancello è il solo `IsEditing`: la riga che lo apriva citando l'ospite è
+        // già vietata dalla guardia qui sopra, quindi basta pinnare che il cancello nudo esista.
+        Assert.Contains("Union_Common_Open", sorgente, StringComparison.Ordinal);
+        Assert.Matches(@"@if \(IsEditing\)\s*\r?\n\s*\{", sorgente);
+    }
+
+    /// <summary>
+    /// 🔴 <b>La guardia che conta di §13</b>: nessuna delle tre pagine pubbliche deve più reindirizzare a un
+    /// altro membro. Le tre asserzioni sulla regola (l'ordine, qui sopra) resterebbero verdi anche se una
+    /// pagina tornasse a rimbalzare, perché il rimbalzo sta nella pagina e non nel pezzo puro — e un
+    /// documento che sparisce dal proprio indirizzo non lascia traccia da nessuna parte.
+    ///
+    /// <para>⚠️ Si guarda il SORGENTE delle tre pagine, che è dove il difetto vivrebbe. Le famiglie sono
+    /// quelle unibili: la vIPI ACC e la vLOA restano fuori, dichiarato in carta.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("Pages/AeroportoPage.razor")]
+    [InlineData("Pages/AppnPage.razor")]
+    [InlineData("Pages/MilDocumentPage.razor")]
+    public void Nessuna_pagina_rimanda_piu_a_un_altro_membro(string relativo)
+    {
+        var sorgente = Leggi(relativo);
+
+        Assert.DoesNotContain("IndirizzoDellOspite", sorgente, StringComparison.Ordinal);
+        Assert.DoesNotContain("IsHostTarget", sorgente, StringComparison.Ordinal);
+        // E la porta si riconosce da FAMIGLIA E CHIAVE insieme: `Di(tipo, chiave)`. Un aeroporto e il suo
+        // vSOP militare hanno la stessa chiave di release e si distinguono per il solo tipo.
+        Assert.Contains(".Di(ReleaseTargetType.", sorgente, StringComparison.Ordinal);
     }
 
     private static string Leggi(string relativo) =>
@@ -252,12 +278,12 @@ public class DocumentiUnitiTests : TestContext
     }
 
     [Fact]
-    public void Le_marcate_dell_OSPITE_bastano_da_sole()
+    public void Le_marcate_della_PORTA_bastano_da_sole()
     {
-        // Il caso che funzionava già, e che il rimedio non deve rompere: documento solo, o ospite marcato
+        // Il caso che funzionava già, e che il rimedio non deve rompere: documento solo, o documento della porta marcato
         // con membri che non lo sono.
-        Assert.True(MembroUnito.QualcunoHaMarcate(ospite: true, Array.Empty<MembroUnito>()));
+        Assert.True(MembroUnito.QualcunoHaMarcate(dellaPorta: true, Array.Empty<MembroUnito>()));
         Assert.True(MembroUnito.QualcunoHaMarcate(
-            ospite: true, new[] { Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach") }));
+            dellaPorta: true, new[] { Membro(3, ReleaseTargetType.App, "LIBA_APP", "Amendola Approach") }));
     }
 }

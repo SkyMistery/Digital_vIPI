@@ -311,25 +311,16 @@
         _doc = await Loader.LoadAsync(_icao, PreviewMode.Parse(As, null), Vista);
         if (_doc is null) return;
 
-        // ---- L'unione (carta 2026-09-03) ------------------------------------------------------------
+        // ---- L'unione (carta 2026-09-03, §13 del 10-09) ---------------------------------------------
         // ⚠️ `AirportMil` e non `Airport`: le due edizioni dello stesso scalo hanno la STESSA chiave di
         // release (l'ICAO) e si distinguono per il tipo. Chiedere con l'altro tipo darebbe l'unione del
-        // documento civile — che è un altro documento, e magari un'altra unione.
+        // documento civile — che è un altro documento, e magari un'altra unione. Vale due volte per `Di`,
+        // che cerca la PORTA dentro l'unione con la stessa coppia.
+        // ⚠️ Questa pagina è una PORTA, non l'ospite di nessuno: chi apre il vSOP legge PRIMA il vSOP, poi
+        // la vIPI d'aeroporto e l'avvicinamento. Non si reindirizza più (§4 superata).
         var unione = await Unioni.ForTargetAsync(ReleaseTargetType.AirportMil, _icao);
-        if (unione is not null && !unione.IsHostTarget(ReleaseTargetType.AirportMil, _icao))
-        {
-            // ⚠️ SOLO la vista pubblica reindirizza. Le anteprime e l'editor restano dove sono: chi guarda
-            // la release di QUESTO documento la sta guardando apposta, e mandarlo altrove renderebbe la sua
-            // anteprima irraggiungibile.
-            // ⚠️ `replace: true` e nessun `@rendermode` su questa pagina: così il rimando diventa una vera
-            // 302 che il browser segue prima di disegnare qualunque cosa — è il modo di ReleasePreviewPage.
-            if (_doc.Mode.Kind == PreviewKind.Public
-                && await Membri.IndirizzoDellOspiteAsync(unione, ReleaseTargetType.AirportMil, _icao) is { } indirizzo)
-                Nav.NavigateTo(indirizzo, replace: true);
-            return;
-        }
-        _altri = unione is null
-            ? Array.Empty<MembroUnito>()
-            : await Membri.AltriMembriAsync(unione, unione.Host.DocumentId, _doc.Mode, Vista, Cycle());
+        _altri = unione?.Di(ReleaseTargetType.AirportMil, _icao) is { } mio
+            ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista, Cycle())
+            : Array.Empty<MembroUnito>();
     }
 }

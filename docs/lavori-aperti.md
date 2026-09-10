@@ -2,6 +2,27 @@
 
 ## Dove siamo — 10 settembre 2026
 
+🆕 **§CR: LA PORTA DECIDE L'ORDINE DI UNA PAGINA UNITA — e l'«ospite» non esiste più.** Chiesto dal
+committente: unendo la vIPI d'aeroporto, il vSOP e l'APP dello stesso scalo, aprendo la vIPI si legge prima
+la vIPI, aprendo il vSOP prima il vSOP, aprendo l'APP prima l'APP — e negli editor uguale. **La regola**: il
+primo è il documento della porta, gli altri seguono nell'**ordine memorizzato** (le due frecce ↑↓), senza di
+lui. Regge anche i **DUE APP di LIBV**, dove una priorità cablata per famiglia non saprebbe quale mettere
+prima.
+🔴 **Non è codice aggiunto, è codice tolto**: muoiono il rimando della §4 (`IndirizzoDellOspiteAsync`),
+l'avviso «non sei l'ospite» della §12 col suo link, la pastiglia «ospite», cinque chiavi di traduzione e
+`UnionView.Host`/`IsHostTarget`/`IsHostDocument`/`UnionMemberView.IsHost`. Verificato prima di toglierli che
+**nessuno** li chiamasse fuori dal disegno: la pubblicazione accoppiata sta dentro `PublishAsync` e non ha
+mai saputo che cosa fosse un ospite. `AltriMembriAsync` **non è cambiata di una riga** — escludeva già l'id
+che le si passa: le pagine le davano quello dell'ospite, adesso le danno il proprio.
+✅ **Due problemi spariscono con la funzione che li conteneva**: la guardia «l'ospite deve avere qualcosa in
+pubblico» (un APP pubblicato spariva dal web sotto una vIPI in bozza) e l'ACC da prendere all'ospite (due
+membri su ACC diversi davano un indirizzo che non esiste). E il difetto §12 non ha più causa: le frecce
+spostano solo l'ordine dei secondi, non il posto di lavoro.
+⚠️ **Le conseguenze, dichiarate**: l'URL pubblica non è più unica (stesso contenuto a N indirizzi in N
+ordini); ogni porta carica N documenti invece di rimbalzare con una 302; l'editor unito ha N porte e il lock
+resta «tutti o nessuno». **Nessuna migrazione** — lo schema non si tocca, quindi passa la finestra cieca del
+16 settembre. Carta: `docs/feature/2026-09-03-documenti-uniti.md` §13.
+
 ✅ **1.19.0 È ONLINE** (10 settembre 2026), e **provata da fuori**. Timbro **`1.19.0 · 6f38e58`**,
 sha256 dello zip **`58b8260b…`**, **22 file**, 4,97 MB, foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md`. **MINOR**: una **migrazione additiva** (`RinvioGeometrico`,
@@ -7763,7 +7784,9 @@ release, le sei rotte e i cinque provider di congelamento. Il legame è verso `D
 `TargetKey`, che è un puntatore e viene riscritto dalla rinomina di un callsign.
 
 Lettura: un indice per membro impilato, i corpi in ordine sotto l'intestazione del loro documento, un solo
-`PrintMeta`. La vista pubblica di un membro non-ospite **reindirizza** alla pagina unita.
+`PrintMeta`. ⛔ *«La vista pubblica di un membro non-ospite reindirizza alla pagina unita»* — **superato dalla
+§13 del 10 settembre 2026**: ogni membro disegna la pagina unita al proprio indirizzo, con sé stesso in
+testa, e nessuno reindirizza.
 Editor: il corpo delle tre famiglie è uscito dalle pagine in `Components/Doc/*SectionsEditor.razor`, e
 l'ospite li monta con `Chrome="false"` dentro la sua griglia — il pattern della vIPI ACC.
 Pubblicazione: **dentro** `PublishAsync`/`PublishNowAsync` — una transazione, catture **in sequenza**, un

@@ -1289,8 +1289,12 @@ Migrazione `DocumentiUniti` nelle **due** serie. Carta:
   - ⚠️ Il legame è verso **`Document.Id`**, non verso `DocRelease.TargetKey`: quella chiave è un *puntatore* e
     viene riscritta (rinomina di callsign, `RepointKeyAsync`), quindi un'unione agganciata lì si romperebbe.
   - ⚠️ `Order` **non** è `DocumentSection.Order`: quello ordina i **fratelli dentro** un documento (e una
-    sezione non cambia mai documento), questo ordina i **documenti fra loro**. Il minore è l'**ospite**:
-    pagina ed editor dell'unione vivono al suo indirizzo, gli altri ci reindirizzano.
+    sezione non cambia mai documento), questo ordina i **documenti fra loro**.
+  - 🔴 **`Order` non nomina un capo** (§13 della carta, 10 settembre 2026). Il primo documento di una pagina
+    unita è quello della **porta da cui si entra**: ogni membro ha la propria pagina unita e il proprio
+    editor unito, mette sé stesso in testa e gli altri seguono in quest'ordine, senza di lui. Nessuno
+    reindirizza a nessuno. Fino al 10 settembre il minore era l'«ospite» e gli altri ci reindirizzavano:
+    quel concetto **non esiste più**, e con lui `UnionView.Host`/`IsHostTarget`.
 
 **Nessun tipo nuovo.** Non c'è un `ReleaseTargetType`, né un `SectionProfile`, né un `DocumentEdition` per
 l'unione: i membri restano quello che sono, e l'unione è una **relazione**. È ciò che la rende indipendente

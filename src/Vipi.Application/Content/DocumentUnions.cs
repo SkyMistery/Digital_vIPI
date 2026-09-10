@@ -7,43 +7,49 @@ namespace Vipi.Application.Content;
 
 /// <summary>Un documento dentro un'unione, con la sua identità già risolta.</summary>
 /// <param name="MemberId">La riga di appartenenza: è ciò che si sposta e si toglie.</param>
-/// <param name="Order">La posizione, 0-based.</param>
-/// <param name="IsHost">È il primo: pagina ed editor dell'unione vivono al suo indirizzo.</param>
+/// <param name="Order">La posizione memorizzata, 0-based: decide l'ordine degli ALTRI, non chi comanda.</param>
 /// <param name="Doc">Titolo, famiglia, chiave di release, ACC e stato del lock — dai descrittori, non a mano.</param>
-public sealed record UnionMemberView(int MemberId, int Order, bool IsHost, ManagedDoc Doc)
+public sealed record UnionMemberView(int MemberId, int Order, ManagedDoc Doc)
 {
     public int DocumentId => Doc.DocumentId!.Value;
 }
 
 /// <summary>
-/// Un'unione vista da chi la mostra: i membri in ordine, il primo è l'ospite.
+/// Un'unione vista da chi la mostra: i membri nell'ordine memorizzato.
+///
+/// <para>⚠️ <b>Nessun membro è «l'ospite»</b> (§13 della carta, 10 settembre 2026). Il primo documento di
+/// una pagina unita è quello della <b>porta da cui si è entrati</b>, e gli altri seguono in quest'ordine
+/// senza di lui: la stessa unione si legge in N ordini a N indirizzi, e nessuno reindirizza altrove.
+/// L'<c>Order</c> qui dentro non nomina un capo — dice soltanto in che sequenza vanno i secondi.</para>
 /// </summary>
 public sealed record UnionView(int Id, IReadOnlyList<UnionMemberView> Members)
 {
-    /// <summary>Il membro al cui indirizzo vive la pagina unita.
-    /// <para>⚠️ È <c>Members[0]</c>, e regge perché una <see cref="UnionView"/> con zero membri
-    /// <b>non si costruisce</b>: chi la proietta torna <c>null</c> invece di una vista vuota. Senza quella
-    /// guardia questa riga alzerebbe <c>ArgumentOutOfRangeException</c> dentro un viewer pubblico — cioè il
-    /// circuito giù su una pagina che chiunque può aprire.</para></summary>
-    public UnionMemberView Host => Members[0];
-
     /// <summary>Il membro che porta questo documento, se c'è.</summary>
     public UnionMemberView? Of(int documentId) => Members.FirstOrDefault(m => m.DocumentId == documentId);
 
-    /// <summary>Vero se questo documento è l'ospite: chi non lo è, in pubblico, reindirizza qui.</summary>
-    public bool IsHostDocument(int documentId) => Host.DocumentId == documentId;
-
     /// <summary>
-    /// Vero se l'ospite è il documento di questa famiglia e questa chiave — la domanda che si fa un
-    /// <b>viewer</b>, che conosce il proprio bersaglio e non l'id del proprio documento.
+    /// Il membro di questa famiglia e questa chiave — la domanda che si fa un <b>viewer</b>, che conosce il
+    /// proprio bersaglio e non l'id del proprio documento. <c>null</c> se l'unione non lo contiene.
     /// <para>⚠️ Servono TUTTE E DUE: la chiave da sola non basta. Un aeroporto e il suo vSOP militare hanno
     /// la <b>stessa</b> chiave di release (l'ICAO) e si distinguono per il tipo — è il fatto su cui poggiano
-    /// le due edizioni con cicli AIRAC indipendenti. Confrontare la sola chiave farebbe credere ospite anche
-    /// l'edizione che ospite non è.</para>
+    /// le due edizioni con cicli AIRAC indipendenti. Confrontare la sola chiave farebbe disegnare alla
+    /// pagina civile l'unione del militare.</para>
     /// </summary>
-    public bool IsHostTarget(ReleaseTargetType type, string key) =>
-        Host.Doc.ReleaseTarget == type
-        && string.Equals(Host.Doc.ReleaseKey, key, StringComparison.OrdinalIgnoreCase);
+    public UnionMemberView? Di(ReleaseTargetType type, string key) =>
+        Members.FirstOrDefault(m => m.Doc.ReleaseTarget == type
+                                    && string.Equals(m.Doc.ReleaseKey, key, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>
+    /// Gli <b>altri</b> membri visti da chi è entrato dal documento <paramref name="documentId"/>: l'ordine
+    /// memorizzato, senza di lui. È <b>la</b> regola della §13, e sta qui — funzione pura su una vista — e
+    /// non dentro il caricatore, perché è la sola parte che si può sbagliare in silenzio: sbagliata, la
+    /// pagina disegna gli stessi documenti in un ordine che nessuno ha chiesto, senza nessun errore.
+    ///
+    /// <para>⚠️ Chi entra <b>non</b> si mette in testa a questa lista: la sua pagina disegna sé stessa dal
+    /// proprio caricatore, con la propria testata e le proprie release. Qui escono i secondi.</para>
+    /// </summary>
+    public IReadOnlyList<UnionMemberView> AltriDa(int documentId) =>
+        Members.Where(m => m.DocumentId != documentId).ToList();
 }
 
 /// <summary>Un documento che si può unire a quello che si sta redigendo.</summary>
@@ -82,9 +88,11 @@ public interface IDocumentUnionService
     /// </summary>
     Task<UnionView?> ForTargetAsync(ReleaseTargetType type, string key, CancellationToken ct = default);
 
-    /// <summary>Unisce <paramref name="invitatoDocumentId"/> a <paramref name="ospiteDocumentId"/>, in coda.
-    /// Ritorna l'id dell'unione — nuova, o quella che l'ospite aveva già.</summary>
-    Task<int> UniscoAsync(int ospiteDocumentId, int invitatoDocumentId, CancellationToken ct = default);
+    /// <summary>Unisce <paramref name="invitatoDocumentId"/> a <paramref name="invitanteDocumentId"/>, in
+    /// coda. Ritorna l'id dell'unione — nuova, o quella a cui l'invitante apparteneva già.
+    /// <para>⚠️ L'invitante non diventa «l'ospite» di niente (§13): dà solo l'unione a cui accodare. Chi
+    /// unisce dal pannello passa il documento della propria pagina perché è quello che ha in mano.</para></summary>
+    Task<int> UniscoAsync(int invitanteDocumentId, int invitatoDocumentId, CancellationToken ct = default);
 
     /// <summary>Toglie un membro. Se ne resta uno solo, l'unione si scioglie: unire un documento a sé stesso
     /// non è uno stato che qualcuno abbia chiesto.</summary>
@@ -195,20 +203,20 @@ public sealed class DocumentUnionService : IDocumentUnionService
         return id is null ? Array.Empty<UnionCandidate>() : await CandidatiAsync(id.Value, ct).ConfigureAwait(false);
     }
 
-    public async Task<int> UniscoAsync(int ospiteDocumentId, int invitatoDocumentId, CancellationToken ct = default)
+    public async Task<int> UniscoAsync(int invitanteDocumentId, int invitatoDocumentId, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
 
-        if (ospiteDocumentId == invitatoDocumentId)
+        if (invitanteDocumentId == invitatoDocumentId)
             throw new Aor.ValidationException(Lingua(
                 "Un documento non si unisce a sé stesso.",
                 "A document cannot be joined to itself."));
 
-        var descritti = await _docs.DescribeAsync(new[] { ospiteDocumentId, invitatoDocumentId }, ct)
+        var descritti = await _docs.DescribeAsync(new[] { invitanteDocumentId, invitatoDocumentId }, ct)
                                    .ConfigureAwait(false);
-        var ospite = Esigi(descritti, ospiteDocumentId);
+        var invitante = Esigi(descritti, invitanteDocumentId);
         var invitato = Esigi(descritti, invitatoDocumentId);
-        EsigiFamigliaAmmessa(ospite);
+        EsigiFamigliaAmmessa(invitante);
         EsigiFamigliaAmmessa(invitato);
 
         // ⚠️ Il controllo è QUI e non solo sull'indice unico: la violazione dell'indice arriva come una
@@ -220,15 +228,15 @@ public sealed class DocumentUnionService : IDocumentUnionService
                 $"«{invitato.Title}» è già unito ad altri documenti: va prima staccato da lì.",
                 $"“{invitato.Title}” is already joined to other documents: detach it there first."));
 
-        var unioneOspite = await _repo.ByDocumentAsync(ospiteDocumentId, ct).ConfigureAwait(false);
-        if (unioneOspite.Count > 0)
+        var unioneDellInvitante = await _repo.ByDocumentAsync(invitanteDocumentId, ct).ConfigureAwait(false);
+        if (unioneDellInvitante.Count > 0)
         {
-            var id = unioneOspite[0].UnionId;
+            var id = unioneDellInvitante[0].UnionId;
             await _repo.AddMemberAsync(id, invitatoDocumentId, ct).ConfigureAwait(false);
             return id;
         }
 
-        return await _repo.CreateAsync(ospiteDocumentId, invitatoDocumentId, _authz.CurrentUserId ?? 0, ct)
+        return await _repo.CreateAsync(invitanteDocumentId, invitatoDocumentId, _authz.CurrentUserId ?? 0, ct)
                           .ConfigureAwait(false);
     }
 
@@ -307,13 +315,14 @@ public sealed class DocumentUnionService : IDocumentUnionService
             // stessa risposta che l'elenco unificato dà da sempre. Se ne resta uno solo, `TidyAsync` chiuderà
             // l'unione al primo giro; nel frattempo la pagina mostra ciò che sa mostrare.
             .Where(r => descritti.ContainsKey(r.DocumentId))
-            .Select((r, i) => new UnionMemberView(r.MemberId, r.Order, IsHost: i == 0, descritti[r.DocumentId]))
+            .Select(r => new UnionMemberView(r.MemberId, r.Order, descritti[r.DocumentId]))
             .ToList();
-        // ⚠️ Se non ne resta NESSUNO, la risposta è «nessuna unione» e non una vista vuota: `Host` è
-        // `Members[0]`, e una vista senza membri farebbe cadere il primo che gliela chiede — un viewer
-        // pubblico, cioè il circuito giù su una pagina aperta a chiunque.
-        // ⚠️ UNO invece basta, e non si scarta: la pagina non disegnerà nessuna unione (è ospite di sé
-        // stessa) ma il pannello dell'editor mostrerà il tasto «sciogli». Scartando anche quella, un'unione
+        // ⚠️ Se non ne resta NESSUNO, la risposta è «nessuna unione» e non una vista vuota: un'unione senza
+        // membri non descrive niente, e chi la ricevesse disegnerebbe un'intestazione di gruppo vuota dentro
+        // un viewer pubblico — cioè una pagina aperta a chiunque che mostra una scatola che nessuno sa
+        // spiegare.
+        // ⚠️ UNO invece basta, e non si scarta: la pagina non disegnerà nessun altro membro (l'unico è chi
+        // sta guardando) ma il pannello dell'editor mostrerà il tasto «sciogli». Scartando anche quella, un'unione
         // con un membro rotto diventerebbe invisibile E indissolubile: `TidyAsync` non la tocca, perché le
         // RIGHE sono ancora due.
         return membri.Count == 0 ? null : new UnionView(righe[0].UnionId, membri);

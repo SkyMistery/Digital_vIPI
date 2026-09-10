@@ -155,7 +155,7 @@ contenuto resta nella loro lingua perché traduzione, titoli di catalogo e deriv
 dello **stesso ciclo**. E il degrado di un'anteprima non autorizzata deve restare quello di oggi — pubblica
 **con `_useFrozen = true`**, o il congelamento AIRAC si aggira dall'indirizzo.
 
-## §4 — Il redirect ✅
+## §4 — Il redirect ⛔ SUPERATA dalla §13 (10 settembre 2026): il rimando non esiste più
 
 La vista **pubblica** di un membro non-ospite rimanda alla pagina unita, ancorata al suo gruppo. Precedente
 esatto: `ReleasePreviewPage` — `NavigateTo(url, replace: true)` **senza `@rendermode`**, così diventa una vera
@@ -581,7 +581,7 @@ cancellato**. Lasciato lì, SQLite lo riapplica sul file nuovo e il banco «puli
 giro prima — due misure buttate. E il controllo «il DB del progetto è intatto» **non si fa con `git status`**:
 quel file è in `.gitignore`, quindi git tace comunque. Si interroga l'archivio.
 
-## §12 — Invertire l'ordine sposta l'OSPITE, e adesso lo dice (7 settembre 2026) ✅
+## §12 — Invertire l'ordine sposta l'OSPITE, e adesso lo dice (7 settembre 2026) ⛔ SUPERATA dalla §13: la causa è stata tolta
 
 Segnalato dal committente: unito il vSOP di LICA con la sua vIPI **dall'editor del vSOP**, poi **invertito
 l'ordine**, poi uscito e rientrato nell'editor del vSOP — «la vIPI non risulta essere lì».
@@ -613,6 +613,67 @@ membri, e i loro lock li tiene l'editor dell'ospite — altrove cadrebbe con «b
 
 Reti: due guardie sul sorgente del pannello in `DocumentiUnitiTests` — il rimando c'è ed è un link, e la
 scheda sta dentro `@if (IsEditing && SonoOspite)`.
+
+## §13 — La PORTA decide l'ordine: niente più ospite (10 settembre 2026) ✅
+
+**Chiesto dal committente.** Unendo la vIPI d'aeroporto, il vSOP e l'APP dello stesso scalo, l'ordine dei
+documenti nella pagina non deve essere uno solo: deve dipendere **da dove si è entrati**.
+
+| Entri da | La pagina mostra |
+|---|---|
+| vIPI d'aeroporto | vIPI · vSOP · APP |
+| vSOP | vSOP · vIPI · APP |
+| APP | APP · vIPI · vSOP |
+
+**La regola, in una riga:** il primo è **il documento della porta**; gli altri seguono nell'**ordine
+memorizzato**, senza di lui. Le due frecce ↑↓ continuano a decidere quell'ordine — è la scelta del
+committente fra ordine memorizzato e priorità cablata per famiglia, e regge anche i **DUE APP di LIBV**,
+dove una priorità per famiglia non saprebbe quale mettere prima.
+
+### Che cosa muore
+
+Il concetto di **ospite** esce dal disegno. Non si sposta: **muore**, perché non aveva altri clienti.
+
+- **§4, il redirect**: cancellato. `UnionLoader.IndirizzoDellOspiteAsync` non esiste più, e con lui se ne
+  vanno due problemi che erano **suoi** e non del dominio: la guardia «l'ospite deve avere qualcosa in
+  pubblico» (un APP pubblicato spariva dal web sotto una vIPI in bozza) e l'ACC dell'ospite (due membri su
+  ACC diversi davano un indirizzo che non esiste). Chi entra da una porta **resta a quella porta**.
+- **§12, l'avviso «non sei l'ospite»**: cancellato insieme alla causa. Le frecce non spostano più il posto
+  di lavoro — spostano solo l'ordine dei **secondi** — quindi non c'è più niente da avvisare. Via
+  `Union_NotHost`, `Union_OpenHost`, `Union_Host`, `Union_HostHint`, `Union_FirstIsHost`.
+- **`UnionView.Host` / `IsHostDocument` / `IsHostTarget` / `UnionMemberView.IsHost`**: cancellati.
+  ⚠️ Verificato prima di toglierli che **nessuno** li chiamasse fuori dal disegno: `ReleaseService` accoppia
+  la pubblicazione dentro `PublishAsync` e non ha mai saputo che cosa fosse un ospite.
+
+### Che cosa nasce, ed è poco
+
+`UnionView.Di(type, key)` — il membro di questa famiglia **e** questa chiave. ⚠️ **Tutte e due**, per la
+stessa ragione per cui le voleva `IsHostTarget`: un aeroporto e il suo vSOP militare hanno la **stessa**
+chiave di release (l'ICAO) e si distinguono solo per il tipo.
+
+`UnionLoader.AltriMembriAsync` **non cambia di una riga**: escludeva già l'id che le si passa e teneva
+l'ordine memorizzato. Le pagine le davano `unione.Host.DocumentId`; adesso le danno **il proprio**. La
+funzione che serviva c'era già — vedi [[gesto-piu-corto]].
+
+### Le conseguenze, dichiarate
+
+- ⚠️ **L'URL pubblica non è più unica.** Lo stesso contenuto vive a N indirizzi, in N ordini. È un attrezzo
+  interno e non un sito da indicizzare; se un giorno servisse, il `<link rel="canonical">` va al **primo
+  memorizzato**, che è l'unico ordine che non dipende da chi guarda.
+- ⚠️ **Il costo si sposta.** Prima un membro non-ospite costava una 302; adesso ogni porta carica **N**
+  documenti in sequenza. Su LIBV sono quattro documenti su quattro indirizzi. È il costo che la pagina
+  dell'ospite paga da sempre — cambia che ora lo pagano tutte.
+- ⚠️ **L'editor ha N porte invece di una.** Il lock si prende su **tutti** i membri da qualunque porta: il
+  primo che entra li prende, il secondo legge «tenuto da Tizio». La meccanica è quella del §5b, invariata —
+  cambia solo da quanti indirizzi la si può avviare.
+- ✅ **Ricerca, «Novità» e impatti non si toccano**, e adesso è vero due volte: producono l'URL del membro
+  con `DocRoutes`, e quell'URL disegna l'unione con **lui** primo. Prima ci arrivavano per rimbalzo.
+- ✅ **La scheda delle sezioni in comune** si offre da **ogni** porta. Non cambia che cosa scrive: «chi
+  tiene» è **stato memorizzato**, non dipende da dove si guarda. Cambia solo in che punto della pagina
+  compare la sezione tenuta.
+
+Reti: `RimandoAllOspiteTests` **rinominato** in `OgniPortaDisegnaLUnioneTests` — non ci si aspetta più un
+rimando, ci si aspetta che **nessuna** porta rimandi e che ognuna metta sé stessa in testa.
 
 ## Verifica
 

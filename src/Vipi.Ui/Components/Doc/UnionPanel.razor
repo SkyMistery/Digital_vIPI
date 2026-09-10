@@ -34,27 +34,9 @@
     }
     else
     {
-        @* 🔴 Chi NON e' l'ospite deve saperlo QUI, e sapere dove andare. Spostando il primo dell'elenco
-           l'ospite CAMBIA, e con lui si sposta l'editor unito: i corpi degli altri membri smettono di
-           comparire in questa pagina e ricompaiono nell'altra. Senza questa riga sembrava che l'unione si
-           fosse persa — segnalato dal committente il 7 settembre 2026, dopo aver invertito l'ordine e
-           essere rientrato nell'editor del vSOP. *@
-        @if (!SonoOspite)
-        {
-            <div class="callout info">
-                <span class="cic"><Icon Name="info" Size="18" /></span>
-                <div>
-                    @Sito.Formatta("Union_NotHost", _unione.Host.Doc.Title)
-                    @if (_indirizzoOspite is { Length: > 0 })
-                    {
-                        <div style="margin-top:6px">
-                            <a class="btn ghost" href="@_indirizzoOspite">@Sito.Formatta("Union_OpenHost", _unione.Host.Doc.Title)</a>
-                        </div>
-                    }
-                </div>
-            </div>
-        }
-
+        @* ⚠️ §13: niente avviso «questo non è il posto» e nessun link per andare altrove, perché non c'è più un
+           altrove. Ogni membro ha la sua pagina unita e il suo editor unito, e mette sé stesso per primo;
+           questo elenco dice soltanto in che ordine seguono GLI ALTRI. *@
         <p class="muted" style="margin:0 0 6px">@Sito["Union_Members"]</p>
         <ol class="union-list">
             @* ⚠️ Le frecce si spengono sulla POSIZIONE nella lista, non su `m.Order`. `RemoveMemberAsync`
@@ -68,10 +50,6 @@
                 <li>
                     <b>@m.Doc.Title</b>
                     <span class="muted">@m.Doc.ReleaseKey</span>
-                    @if (m.IsHost)
-                    {
-                        <span class="pill green" title="@Sito["Union_HostHint"]">@Sito["Union_Host"]</span>
-                    }
                     @if (IsEditing)
                     {
                         <span class="union-cmds">
@@ -93,10 +71,10 @@
 
         @if (IsEditing && _unione.Members.Count > 1)
         {
-            <p class="help" style="margin:0 0 8px">@Sito["Union_FirstIsHost"]</p>
+            <p class="help" style="margin:0 0 8px">@Sito["Union_OrderHint"]</p>
         }
 
-        @if (IsEditing && SonoOspite)
+        @if (IsEditing)
         {
             @* Le sezioni in comune (7 settembre 2026, committente): unendo la vIPI di uno scalo e il suo vSOP
                la pagina ripete METAR, frequenze, piste. Si sceglie CHI LE TIENE e le altre si nascondono —
@@ -243,18 +221,14 @@
 
     private IDocumentUnionService _unioni = default!;
     private IEditingService _editing = default!;
-    private Vipi.Application.Routing.IDocRoutesRegistry _rotte = default!;
 
     /// <summary>
-    /// Vero se il documento di QUESTA pagina è l'ospite dell'unione.
+    /// Il membro che porta il documento di QUESTA pagina, se l'unione c'è.
     /// <para>⚠️ Famiglia <b>e</b> chiave insieme: un aeroporto e il suo vSOP militare hanno la stessa chiave
     /// di release (l'ICAO) e si distinguono per il tipo — confrontare la sola chiave direbbe «sono io» a
     /// tutt'e due.</para>
     /// </summary>
-    private bool SonoOspite => _unione is not null && _unione.IsHostTarget(Target, Key);
-
-    /// <summary>L'editor dell'ospite, per chi ospite non è. null se la famiglia non ne dichiara uno.</summary>
-    private string? _indirizzoOspite;
+    private UnionMemberView? Mio => _unione?.Di(Target, Key);
 
     /// <summary>La scheda delle sezioni in comune è aperta.</summary>
     private bool _scheda;
@@ -322,7 +296,6 @@
         // ⚠️ Dallo scope PROPRIO come l'altro: qui si scrive (il flag «nascosta» sulle bozze dei membri), e
         // un servizio di scrittura preso col circuito è il difetto già pagato tre volte.
         _editing = ScopedServices.GetRequiredService<IEditingService>();
-        _rotte = ScopedServices.GetRequiredService<Vipi.Application.Routing.IDocRoutesRegistry>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -340,27 +313,16 @@
     {
         _unione = await _unioni.ForTargetAsync(Target, Key);
         // I candidati servono solo a chi può premere, e costano una lettura dell'elenco unificato.
-        // ⚠️ Si chiedono a partire dall'OSPITE quando l'unione c'è già: chi arriva entra in coda a quella,
-        // non ne apre una seconda — ed è l'ospite a decidere chi è già dentro.
+        // ⚠️ Si chiedono a partire dal documento di QUESTA pagina quando l'unione c'è già: chi arriva entra
+        // in coda a quella e non ne apre una seconda. Prima si partiva da un ospite fisso; adesso non c'è
+        // e la risposta è la stessa, perché «chi è già dentro» è una proprietà dell'UNIONE, non di un membro.
         _candidati = !IsEditing
             ? Array.Empty<UnionCandidate>()
-            : _unione is null
-                ? await _unioni.CandidatiPerTargetAsync(Target, Key)
-                : await _unioni.CandidatiAsync(_unione.Host.DocumentId);
+            : Mio is { } mio
+                ? await _unioni.CandidatiAsync(mio.DocumentId)
+                : await _unioni.CandidatiPerTargetAsync(Target, Key);
         _scelto = 0;
         _cerca = "";
-
-        // L'indirizzo dell'editor dell'ospite. ⚠️ L'ACC lo dice l'OSPITE, non questa pagina: due documenti
-        // uniti possono stare su ACC diversi, e col proprio si costruirebbe un indirizzo che non esiste —
-        // o, peggio, uno che esiste e apre un altro scalo.
-        _indirizzoOspite = null;
-        if (_unione is not null && !SonoOspite)
-        {
-            var ospite = _unione.Host.Doc;
-            _indirizzoOspite = _rotte.For(ospite.ReleaseTarget)
-                .EditorUrl((ospite.AccCode ?? "").ToLowerInvariant(), ospite.ReleaseKey,
-                           ospite.NeighbourCode, ospite.DocumentId);
-        }
     }
 
     /// <summary>
@@ -371,9 +333,10 @@
     private Task Unisci() => EseguiAsync(async () =>
     {
         if (_scelto == 0) return;
-        var ospite = _unione?.Host.DocumentId ?? await _unioni.DocumentIdAsync(Target, Key) ?? 0;
-        if (ospite == 0) return;
-        await _unioni.UniscoAsync(ospite, _scelto);
+        // L'invitante è il documento di QUESTA pagina: dà l'unione a cui accodare, non un ruolo di capo.
+        var invitante = Mio?.DocumentId ?? await _unioni.DocumentIdAsync(Target, Key) ?? 0;
+        if (invitante == 0) return;
+        await _unioni.UniscoAsync(invitante, _scelto);
         _apriComuniDopoIlCarico = true;
     });
 
@@ -411,7 +374,8 @@
         var membri = _confrontabili.Select(m => m.DocumentId).ToList();
         // 🔴 La proposta la fa lo STATO, non un default fisso: riproponendo sempre lo stesso insieme, chi
         // riapre la scheda e preme senza guardare RIBALTA la scelta di prima. A unione appena nata nessuno
-        // ha nascosto niente, e allora si propongono tutti tranne l'ospite.
+        // ha nascosto niente, e allora si propongono tutti tranne il PRIMO dell'ordine memorizzato — che è
+        // una proposta stabile, uguale da qualunque porta si apra la scheda, e resta modificabile.
         if (_nascondiIn.Count == 0 || _nascondiIn.Any(id => membri.All(m => m != id)))
         {
             _nascondiIn.Clear();
