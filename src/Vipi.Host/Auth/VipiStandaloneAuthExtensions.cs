@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -274,6 +274,18 @@ public static class VipiStandaloneAuthExtensions
                 existing.Succeeded,
                 returnUrl);
 
+            // 🔴 E nel registro che si SCARICA: `Vipi.Auth.Ivao` finisce su stdout, e su
+            // atc.it.ivao.aero stdout è il vuoto. Il 10 settembre 2026 un login rotto delle 11:00 UTC non ha
+            // lasciato una riga in `errori-richieste.txt`, e la diagnosi si è fermata lì.
+            DiagnosticaErrori.RegistraLogin(
+                motivo: reason,
+                errorePortale: Describe(context.Request.Query["error"], context.Request.Query["error_description"]),
+                statoRecuperato: context.Properties is not null,
+                giaDentro: existing.Succeeded,
+                ritorno: returnUrl,
+                utente: Vid(existing.Principal),
+                guasto: context.Failure);
+
             if (existing.Succeeded)
             {
                 // Era già dentro: il login nuovo non si è chiuso, ma sbatterlo su una pagina d'errore
@@ -290,6 +302,7 @@ public static class VipiStandaloneAuthExtensions
             {
                 context.HttpContext.RequestServices.GetService<ILoggerFactory>()?.CreateLogger(AuthLogCategory)
                     .LogError(ex, "Login IVAO: anche la gestione del guasto è fallita.");
+                DiagnosticaErrori.Registra("login-gestore", "LOGIN", "/signin-oidc", null, ex);
             }
             catch { /* non c'è un piano C, e non deve esserci: sotto si risponde comunque */ }
         }
@@ -344,6 +357,20 @@ public static class VipiStandaloneAuthExtensions
 
     /// <summary>Coppia <c>error</c>/<c>error_description</c> del portale in una riga di log; «nessuno» se non c'è.
     /// ⚠️ Va nel LOG, mai in pagina: è testo che arriva da fuori.</summary>
+    /// <summary>
+    /// Il VID di chi aveva <b>già</b> una sessione, quando ce l'aveva. Serve a distinguere due guasti che
+    /// si somigliano e non sono lo stesso: uno staffista già dentro a cui il giro nuovo non si è chiuso
+    /// (non vede niente, ed è il caso del 23 agosto 2026), e chi stava entrando davvero.
+    /// <para>⚠️ Solo il VID: né nome né email. Il registro si spedisce per email.</para>
+    /// </summary>
+    private static string? Vid(ClaimsPrincipal? principal)
+    {
+        var vid = principal?.FindFirst("id")?.Value
+                  ?? principal?.FindFirst("sub")?.Value
+                  ?? principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        return vid is null ? null : $"VID {vid}";
+    }
+
     private static string Describe(string? error, string? description) =>
         string.IsNullOrWhiteSpace(error) && string.IsNullOrWhiteSpace(description)
             ? "nessuno"

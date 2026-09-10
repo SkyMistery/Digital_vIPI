@@ -1,5 +1,6 @@
-using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+﻿using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Vipi.Application.Tests;
+using Vipi.Host;
 using Vipi.Host.Auth;
 using Xunit;
 
@@ -166,5 +167,88 @@ public sealed class LoginFailureTests
         // bene — la frase inglese finisce «recorded on the server.» e la spia scattava sul suo bersaglio.
         foreach (var spia in new[] { "Riprova", "consenso", "questo codice", "scaduto", "Continua senza" })
             Assert.DoesNotContain(spia, html, StringComparison.Ordinal);
+    }
+
+    // ------------------------------------------------------------------------------------------------
+    // La voce nel registro. 🔴 10 settembre 2026: un login rotto delle 11:00 UTC non ha lasciato NIENTE
+    // in `errori-richieste.txt`, perché `Vipi.Auth.Ivao` scrive su stdout e su atc.it.ivao.aero stdout è il
+    // vuoto. Questi test tengono in piedi l'altra metà: che la riga ci sia, e che non porti credenziali.
+    // ------------------------------------------------------------------------------------------------
+
+    [Fact]
+    public void La_voce_del_login_porta_il_motivo_e_il_codice_da_cercare()
+    {
+        var voce = DiagnosticaErrori.VoceDiLogin(
+            "correlazione", "nessuno", statoRecuperato: true, giaDentro: false,
+            "/services/vsop/libb", utente: null, guasto: new Exception("Correlation failed."));
+
+        // Il codice è la stringa che si cerca nel file, e dice da sé che famiglia è.
+        Assert.Contains("codice login-correlazione", voce);
+        Assert.Contains("LOGIN /signin-oidc", voce);
+        Assert.Contains("/services/vsop/libb", voce);
+        // Lo stack serve: è quello che distingue un nonce da un key-ring perso.
+        Assert.Contains("Correlation failed.", voce);
+    }
+
+    [Fact]
+    public void Nella_voce_non_finisce_MAI_la_query_del_callback()
+    {
+        // ⚠️ Su /signin-oidc la query porta `code` e `state`: sono credenziali, e il file si spedisce
+        // per email. Nella voce entra il PERCORSO, mai la query.
+        var voce = DiagnosticaErrori.VoceDiLogin(
+            "nonce", "nessuno", statoRecuperato: false, giaDentro: false,
+            "/services/vsop", utente: "VID 201143", guasto: null);
+
+        foreach (var credenziale in new[] { "code=", "state=", "id_token", "?" })
+            Assert.DoesNotContain(credenziale, voce, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void La_voce_distingue_chi_era_gia_dentro_da_chi_stava_entrando()
+    {
+        // È il caso del 23 agosto 2026: la sessione c'era già, il giro nuovo non si è chiuso, e l'utente
+        // non si accorge di niente. Un guasto che nessuno vede è esattamente quello che il registro deve dire.
+        var dentro = DiagnosticaErrori.VoceDiLogin(
+            "correlazione", "nessuno", statoRecuperato: true, giaDentro: true,
+            "/services/vsop", utente: "VID 201143", guasto: null);
+        var fuori = DiagnosticaErrori.VoceDiLogin(
+            "correlazione", "nessuno", statoRecuperato: true, giaDentro: false,
+            "/services/vsop", utente: null, guasto: null);
+
+        Assert.Contains("VID 201143", dentro);
+        Assert.Contains("NON ha visto niente", dentro);
+        Assert.Contains("utente non collegato", fuori);
+        Assert.Contains("pagina che spiega", fuori);
+    }
+
+    [Fact]
+    public void Senza_eccezione_la_voce_lo_DICE_invece_di_lasciare_un_vuoto()
+    {
+        // Il portale che risponde `access_denied` non produce nessuna eccezione: uno spazio bianco lì
+        // sembrerebbe un dato perduto, e non lo è.
+        var voce = DiagnosticaErrori.VoceDiLogin(
+            "portale", "access_denied / user refused", statoRecuperato: true, giaDentro: false,
+            "/services/vsop", utente: null, guasto: null);
+
+        Assert.Contains("access_denied / user refused", voce);
+        Assert.Contains("nessuna eccezione", voce);
+    }
+
+    [Fact]
+    public void RegistraLogin_scrive_DAVVERO_nel_file_del_registro()
+    {
+        // La prova che conta: non che il testo sia giusto, ma che finisca dove qualcuno lo leggerà.
+        var registro = StartupDiagnostics.Percorso(DiagnosticaErrori.NomeFile);
+        Assert.NotNull(registro);
+
+        var spia = $"/services/vsop/prova-{Guid.NewGuid():N}";
+        DiagnosticaErrori.RegistraLogin(
+            "nonce", "nessuno", statoRecuperato: true, giaDentro: false, spia, null,
+            new Exception("IDX21323: RequireNonce is true."));
+
+        var righe = File.ReadAllText(registro!);
+        Assert.Contains(spia, righe);
+        Assert.Contains("codice login-nonce", righe);
+        Assert.Contains("IDX21323", righe);
     }
 }

@@ -11008,3 +11008,63 @@ di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella p
 - ✅ **FUSA in `main`** (merge `e99a66f8`, dodici commit, ramo cancellato) e ✅ **ONLINE in 1.19.0** dal
   10 settembre 2026, provata da fuori: asset serviti con lo stesso sha del pacchetto, Ricerca viva, timbro
   `1.19.0 · 6f38e58`, e **Schema 0** in Diagnostica — cioè la migrazione è passata.
+
+---
+
+## §CP — Un login rotto che non lascia una riga — 10 settembre 2026
+
+### Il fatto
+
+Uno staffista fa il login verso le **11:00 UTC** e si trova davanti la pagina d'errore. Il file
+`errori-richieste.txt`, sceso alle **12:32 UTC**, ha per ultima voce il **giorno prima**, `2026-09-09
+20:50:09 UTC`. Nessuno screenshot, nessun URL: il codice mostrato in pagina è andato perso.
+
+⚠️ **E non era una copia vecchia**, che è il primo sospetto e stavolta è stato escluso per impronta: il file
+sceso pesa 422 955 byte contro i 407 775 della copia del 9 sera (`artifacts/publish_old/20260909-1703/`),
+sha diverso, con dentro le voci nuove fino alle 20:50. Fresco, e muto.
+
+⚠️ **La cartella era scrivibile**: `avvio-diagnostica.txt` e `avvii.txt` portano le righe delle 12:31 UTC,
+scritte dallo stesso `StartupDiagnostics.Percorso`. Quindi non è che la scrittura fallisse: **non è stata
+chiamata**.
+
+### 🔴 Le due strade che portano alla stessa pagina, e nessuna delle due scriveva
+
+**1. Il guasto del giro OIDC.** `OnRemoteFailure` (§E7, 24 agosto) è **gestito**: chiama `HandleResponse()`,
+quindi l'eccezione non arriva mai a `DiagnosticaErrori.Gancio`, che è un `IExceptionHandler`. Lo raccontava
+a un `ILogger` di categoria `Vipi.Auth.Ivao` — e su `atc.it.ivao.aero` un logger scrive su `stdout`, che lì
+è **il vuoto**. Cioè: il registro è nato per il login rotto del 23 agosto, ed è rimasto l'**unico guasto che
+non ci finiva**.
+
+**2. `/Error` raggiunto a piedi.** È un endpoint come un altro (`app.MapGet("/Error", …)`): ci si arriva per
+`UseExceptionHandler` — e allora la riga c'è — ma anche con una visita diretta, un rimando, un tasto
+«indietro». La pagina è **identica** nei due casi. Da fuori, «la riga non si è scritta» e «non c'era niente
+da scrivere» sono indistinguibili, e portano a due indagini opposte.
+
+### ✅ Che cosa è cambiato
+
+- **`DiagnosticaErrori.RegistraLogin(…)`** — il guasto del login scrive nel registro come tutto il resto:
+  motivo (insieme CHIUSO), errore dichiarato dal portale, se il giro aveva ancora le sue proprietà, se una
+  sessione **c'era già** (il caso del 23 agosto: l'utente non vede niente e il guasto è vero lo stesso), il
+  ritorno, e lo stack quando c'è. Il codice della voce è `login-<motivo>`, così si cerca come gli altri.
+- **`RegistraPaginaSenzaEccezione(…)`** — una riga `NOTA` quando `/Error` viene servita **senza** la
+  `IExceptionHandlerPathFeature`. Non è un guasto: è il fatto che serve a leggere gli altri.
+- **Anche il guasto DEL gestore** lascia una riga (`codice login-gestore`): prima, se cadeva
+  `AuthenticateAsync`, restava solo un log che nessuno legge.
+- ⚠️ **Niente credenziali, e vale anche per il `Referer`**: su `/signin-oidc` la query porta `code` e
+  `state`, e il Referer di una navigazione interna se la porta dietro. `DaDove(ctx)` tiene schema, host e
+  percorso e **taglia la query**. C'è un test che passa `?code=SEGRETISSIMO&state=xyz` e pretende che nel
+  file non compaia né l'uno né l'altro.
+
+**Prove**: 5 test in `LoginFailureTests` (la voce, la query che non entra, chi era già dentro contro chi
+stava entrando, il caso senza eccezione, e che `RegistraLogin` scriva **davvero** nel file) + 1 in
+`PaginaErroreTests` per `/Error` a piedi. 319 verdi sul progetto E2E.
+
+### ▶ Che cosa resta, e non si può chiudere da qui
+
+- 🔴 **Del guasto del 10 settembre non sapremo il motivo**: è passato prima di questa rete. Se ricapita, la
+  riga c'è — e se **non** ricapita mai più, la NOTA di `/Error` dirà che qualcuno la pagina l'ha vista senza
+  che niente fosse morto.
+- ⚠️ Resta fuori la terza strada, che nessun codice nostro può registrare: il **processo che muore di
+  colpo**. Quel giorno `1.18.2` è morto senza arresto ordinato (`avvii.txt`, riga delle 12:31:14Z: «era
+  partito 03:33:01 prima»), e un processo che muore non scrive niente per definizione. Lo dice solo
+  `avvii.txt`, ed è già così.
