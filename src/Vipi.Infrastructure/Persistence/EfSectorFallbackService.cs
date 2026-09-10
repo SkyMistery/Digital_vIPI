@@ -62,7 +62,7 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
                         $"Fascia vuota sul rinvio: il piede ({rb} ft) non è sotto il tetto ({rt} ft).",
                         $"Empty band on the coverage fallback: the base ({rb} ft) is not below the top ({rt} ft)."));
 
-                pulite.Add(r with { TargetCallsign = null });
+                pulite.Add(r with { TargetCallsign = "" });
                 continue;
             }
 
@@ -97,7 +97,7 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
                 SectorCallsign = sectorCallsign,
                 Order = i,
                 TargetKind = pulite[i].Kind,
-                TargetCallsign = pulite[i].TargetCallsign,
+                TargetCallsign = pulite[i].TargetCallsign ?? "",
                 BaseFeet = pulite[i].BaseFeet,
                 TopFeet = pulite[i].TopFeet,
             });

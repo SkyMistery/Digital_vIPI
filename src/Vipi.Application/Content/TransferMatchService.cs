@@ -20,6 +20,9 @@ public sealed class TransferMatchService : ITransferMatchService
     private readonly ITopologyProvider _topology;
     private readonly IStationResolver _stations;
     private readonly IOnlineAtcProvider _online;
+    // ⚠️ Facoltativi: senza, il rinvio non risponde e la catena prosegue sul padre. Vedi AgreementService.
+    private readonly ISectorVolumeCatalog? _volumi;
+    private readonly ICopPositions? _punti;
     private readonly TransferMatchOptions _options;
 
     public TransferMatchService(
@@ -27,12 +30,16 @@ public sealed class TransferMatchService : ITransferMatchService
         ITopologyProvider topology,
         IStationResolver stations,
         IOnlineAtcProvider online,
+        ISectorVolumeCatalog? volumi = null,
+        ICopPositions? punti = null,
         TransferMatchOptions? options = null)
     {
         _agreements = agreements;
         _topology = topology;
         _stations = stations;
         _online = online;
+        _volumi = volumi;
+        _punti = punti;
         _options = options ?? new TransferMatchOptions();
     }
 
@@ -56,8 +63,13 @@ public sealed class TransferMatchService : ITransferMatchService
         // varianti SONO due candidati distinti, ed e' la lettura giusta per lui.
         var flows = await _agreements.ListFlowsByAccAsync(acc.Code, ct);
 
+        // Il contesto del rinvio: volumi e posizioni una volta per richiesta, non per punto.
+        var rinvio = _volumi is null || _punti is null
+            ? CoverageFallbackContext.Nessuno
+            : CoverageFallbackContext.Da(topo, await _volumi.GetAllAsync(ct), snapshot.Callsigns, await _punti.GetAsync(ct));
+
         return TransferMatcher.Match(
             request, flows, topo, snapshot.Callsigns, acc.Code,
-            snapshot.AsOf, DateTimeOffset.UtcNow, _options);
+            snapshot.AsOf, DateTimeOffset.UtcNow, _options, rinvio);
     }
 }

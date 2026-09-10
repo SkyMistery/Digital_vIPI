@@ -114,6 +114,9 @@ public static class MySqlStringLengths
             // Stessa ragione: ha un valore di default, quindi non puo' essere longtext.
             // Il valore piu' lungo e' `Military` (8).
             [("Document", "Edition")] = EnumChars,
+            // Stessa ragione ancora: TargetKind ha un valore di DEFAULT (`Callsign`, 8), quindi su MySQL non
+            // può nascere longtext. L'ha colto IndexedStringLengthTests, non una rilettura.
+            [("SectorFallback", "TargetKind")] = EnumChars,
             [("Document", "Type")] = 32,                   // misurato 4 (`Vipi`)
             [("Document", "Status")] = 32,                 // misurato 9 (`Published`)
             // Non è indicizzata: sta qui perché ha un DEFAULT. In MySQL una colonna BLOB/TEXT non può

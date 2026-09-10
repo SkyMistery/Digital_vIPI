@@ -240,4 +240,17 @@ public static class FallbackChain
     /// <summary>Quota di un punto di trasferimento in piedi. <c>FL350</c> → 35000; <c>null</c> resta null.</summary>
     public static int? FeetOf(int? levelValue, LevelUnit unit) =>
         levelValue is not int v ? null : unit == LevelUnit.Fl ? v * 100 : v;
+
+    /// <summary>
+    /// La quota a cui il traffico <b>passa di mano</b>, in piedi: quella della faccetta trasferimento se la
+    /// riga ce l'ha, altrimenti il livello della riga.
+    ///
+    /// <para>⚠️ Su una riga «autorizzato FL160, trasferito passando FL110» i due livelli sono <b>diversi</b>,
+    /// e quello che decide chi raccoglie è il secondo: a FL110 il cielo è di un altro settore. Senza faccetta
+    /// coincidono e non cambia niente — che è il caso di tutte le clausole scritte finora.</para>
+    /// </summary>
+    public static int? HandoffFeetOf(TransferPointRow p) =>
+        p.HasHandoff && p.HandoffLevelValue is not null
+            ? FeetOf(p.HandoffLevelValue, p.HandoffLevelUnit)
+            : FeetOf(p.LevelValue, p.LevelUnit);
 }

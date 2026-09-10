@@ -101,7 +101,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             .ToDictionary(
                 g => g.Key,
                 g => (IReadOnlyList<FallbackRow>)g
-                    .Select(r => new FallbackRow(r.TargetCallsign ?? "", r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
+                    .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
                 StringComparer.OrdinalIgnoreCase);
     }
 

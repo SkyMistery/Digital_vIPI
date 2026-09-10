@@ -131,6 +131,10 @@ public static class VipiModuleExtensions
                 topologia,
                 sp.GetRequiredService<Vipi.Application.Content.IStationResolver>(),
                 sp.GetRequiredService<Vipi.Application.Abstractions.IOnlineAtcProvider>(),
+                // I due che servono al RINVIO: senza, un ripiego "copertura del punto" non risponderebbe e la
+                // catena proseguirebbe sul padre. Qui si montano sempre.
+                sp.GetRequiredService<Vipi.Application.Abstractions.ISectorVolumeCatalog>(),
+                sp.GetRequiredService<Vipi.Application.Abstractions.ICopPositions>(),
                 opt.ToMatchOptions());
         });
 

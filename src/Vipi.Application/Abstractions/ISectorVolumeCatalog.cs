@@ -18,13 +18,22 @@ namespace Vipi.Application.Abstractions;
 /// </param>
 /// <param name="Source">Da dove viene la forma: finisce in archivio accanto alla tratta, perché un gradino
 /// nei numeri dev'essere spiegabile fra sei mesi.</param>
+/// <param name="AccCode">
+/// Il centro di appartenenza. Serve a chi risolve un <b>rinvio</b>: a pari specificità si preferisce un
+/// settore dello stesso ACC del ricevente nominale, o sulla striscia dove due FIR si sovrappongono a
+/// decidere resterebbe l'area del bounding box, cioè il caso.
+///
+/// <para>⚠️ In fondo e con un default perché è additivo: chi costruiva la riga a sei campi continua a dire
+/// esattamente quel che diceva, e le statistiche non lo guardano affatto.</para>
+/// </param>
 public sealed record SectorVolumeRow(
     string Callsign,
     string? ParentCallsign,
     SectorType Type,
     string? AirportIcao,
     IReadOnlyList<Vipi.Application.Airspace.ShapePart> Parts,
-    ShapeSource Source);
+    ShapeSource Source,
+    string? AccCode = null);
 
 /// <summary>
 /// Da dove l'attribuzione del traffico prende la mappa dei settori: albero di copertura più volumi.

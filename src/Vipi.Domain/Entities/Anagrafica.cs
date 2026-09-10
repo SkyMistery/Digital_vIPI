@@ -480,11 +480,17 @@ public class SectorFallback
     public FallbackTargetKind TargetKind { get; set; }
 
     /// <summary>
-    /// Chi raccoglie il traffico. <b>Null</b> quando <see cref="TargetKind"/> è
+    /// Chi raccoglie il traffico. <b>Stringa vuota</b> quando <see cref="TargetKind"/> è
     /// <see cref="FallbackTargetKind.Coverage"/>: lì il nome non esiste finché non c'è un punto a cui
-    /// chiederlo.
+    /// chiederlo, e a dire perché è vuota è il <i>genere</i>, non il campo.
+    ///
+    /// <para>⚠️ <b>Non è nullable, ed è una scelta della finestra cieca.</b> Renderla tale avrebbe voluto
+    /// dire un <c>AlterColumn</c>, che su MariaDB riscrive la tabella: fino al 16 settembre 2026 le
+    /// migrazioni girano da sole all'avvio in produzione, il DDL non è transazionale e nessuno può
+    /// ripristinare il database. Il presidio
+    /// <c>MigrazioniDellaFinestraCiecaTests</c> l'ha fermato — non una rilettura, un test.</para>
     /// </summary>
-    public string? TargetCallsign { get; set; }
+    public string TargetCallsign { get; set; } = "";
 
     /// <summary>Piede della fascia in <b>piedi</b>, incluso. Null = nessun limite in basso.</summary>
     public int? BaseFeet { get; set; }

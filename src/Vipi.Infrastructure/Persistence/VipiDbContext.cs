@@ -232,10 +232,10 @@ public class VipiDbContext : DbContext
             // Legame per CALLSIGN, come tutta la gerarchia di copertura: nessuna chiave esterna, perché la
             // riga può citare un settore di un altro catalogo (ACC o aeroporto) e persino di un altro ACC.
             e.Property(x => x.SectorCallsign).IsRequired().HasMaxLength(32);
-            // ⚠️ NON più obbligatorio: una riga di rinvio (TargetKind = Coverage) un nome non ce l'ha, e
-            // metterci una stringa vuota per far contento un NOT NULL vorrebbe dire scrivere in archivio un
-            // callsign che non esiste. Vedi FallbackTargetKind.
-            e.Property(x => x.TargetCallsign).HasMaxLength(32);
+            // ⚠️ Resta obbligatorio: una riga di rinvio porta la stringa VUOTA, e a dire che non è un
+            // callsign mancante è TargetKind. Renderlo nullable sarebbe stato un AlterColumn, vietato nella
+            // finestra cieca (MigrazioniDellaFinestraCiecaTests).
+            e.Property(x => x.TargetCallsign).IsRequired().HasMaxLength(32);
             e.Property(x => x.TargetKind).HasDefaultValue(FallbackTargetKind.Callsign);
             // L'indice è (settore, ordine): si legge sempre «tutte le righe di X, in ordine».
             e.HasIndex(x => new { x.SectorCallsign, x.Order });
