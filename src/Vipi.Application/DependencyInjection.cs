@@ -151,6 +151,9 @@ public static class DependencyInjection
         services.AddScoped<IAirportDataImportUseCase, AirportDataImportUseCase>();
         services.AddScoped<ISidImporter, SidImporter>();
         services.AddScoped<INavaidImporter, NavaidImporter>();
+        // Dove stanno i punti scrivibili in un CoP: anagrafica (VOR/NDB, coordinate anche a mano) + catalogo
+        // punti del sectorfile (i fix). Nessuna anagrafica nuova — vedi ICopPositions.
+        services.AddScoped<ICopPositions, CopPositionsProvider>();
         // Il perimetro dei ripieghi shape (solo enti della divisione): uno solo, condiviso dai tre.
         services.AddSingleton<ShapeFallbackScope>();
         services.AddScoped<IGithubTowerShapeService, GithubTowerShapeService>();

@@ -362,23 +362,37 @@ provare a spezzarlo.
 
 ## Parte 6 — Il prerequisito: le coordinate dei fix
 
-Misurato sul `vipi.db`: la tabella `Navaids` ha **149 righe, solo `VHF` e `NDB`, zero `Fix`**. I CoP di
+Misurato sul `vipi.db`: la tabella `Navaids` ha **149 righe, solo `VHF` e `NDB`, zero `Fix`**, e è **giusto così**. I CoP di
 Milano sono in maggioranza fix di 5 lettere (`NELAB, ITCAP, LAGEN, EGHIN, KUMIN, VEROB, SIRLO, ASTIG,
 IXUSA, KUKEV`), che **in archivio non ci sono**: le loro coordinate stanno in `NavaidCatalog`, che arriva da
 `INavaidSource` via **HTTP dal sectorfile** (`Infrastructure/DependencyInjection.cs:307`) e viene usato
 all'**import**, non a ogni richiesta.
 
-Due strade:
+🔴 **E i fix in anagrafica NON ci devono andare.** `NavaidImporter` lo dice a chiare lettere, ed è una
+decisione presa, non una svista: «i *fix* sono punti di riporto: non hanno frequenza, non hanno canale e non
+sono radioassistenze — metterli qui riempirebbe l'anagrafica di tremila righe che nessuna tabella di SOP
+citerà mai, e la tendina da cui si sceglie diventerebbe inservibile». La prima stesura di questa carta
+proponeva esattamente quello: **corretta il 10 settembre 2026, prima di scrivere codice.**
 
-- **(A) persistere i fix.** `NavaidKind.Fix` **esiste già** nel modello (`Abstractions/INavaidSource.cs`) e
-  in archivio non ha righe: si riempie al giro d'import, come già si fa per VOR e NDB. Additiva, e utile per
-  conto suo — la proposta dei CoP nell'editor smetterebbe di dipendere dalla rete.
-- **(B) risolvere a tempo di scrittura** e salvare il risultato: il rinvio diventa un proponitore e in
-  archivio finisce un callsign normale. Nessuna dipendenza a runtime, catena pura — ma il valore invecchia
-  quando cambia un poligono, e serve un rilievo che ricalcoli e segnali le divergenze.
+**Non serve persistere niente.** Il catalogo punti sta già dietro una cache **singleton**
+(`Sectorfile.SectorfileCache`, registrata così apposta perché gli adapter sono transient), e
+`NavaidCatalog.TryGetPoint(nome, out punto)` **esiste già**. Chiamarlo una volta per richiesta non è una
+scaricata dalla rete per richiesta.
 
-**Si fa (A).** Senza le coordinate persistite anche (B) è cieca sugli stessi fix, e (A) è un pezzo che il
-progetto vuole comunque.
+Quindi la slice si riduce a un **compositore**, `ICopPositions` / `CopPositionsProvider`: una fotografia
+`nome → posizione` che mette in fila le due anagrafiche che ci sono già —
+
+1. **l'anagrafica delle radioassistenze** (`INavaidCatalog`): VOR e NDB, e le coordinate **scritte a mano**;
+2. **il catalogo punti del sectorfile** (`INavaidSource`): i fix.
+
+⚠️ **L'ordine è la sola decisione**: vince la **prima** occorrenza, quindi l'anagrafica sta davanti. È il
+modo in cui una coordinata corretta a mano scavalca quella della sorgente — se vincesse l'ultima, quella
+valvola non si aprirebbe mai, e una correzione scritta e mai applicata è peggio di nessuna valvola.
+
+⚠️ Sorgente muta (GitHub giù, `RawBaseUrl` vuoto) ⇒ restano i soli VOR/NDB: **degradazione dichiarata**, non
+un guasto — chi risolve perde una risposta e lo dice.
+
+**Nessuna tabella nuova, nessuna migrazione, nessun giro d'import toccato.**
 
 ---
 
@@ -463,7 +477,7 @@ Ognuna è un commit, build verde, e ha valore da sola.
 | # | slice | perché sta in piedi da sola |
 |---|---|---|
 | 1 | **Riallineare il `vipi.db` di sviluppo** alla produzione (padre di ES5, riga con le quote giuste) | senza questo i test del caso verticale provano una struttura inesistente |
-| 2 | **Fix persistiti** (`NavaidKind.Fix` scritto al giro d'import) | la proposta dei CoP smette di dipendere dalla rete |
+| 2 | **`ICopPositions`**: la fotografia `nome → posizione`, anagrafica + catalogo punti, **nessuna persistenza** | ✅ **fatta** — 5 test. 🔴 La prima stesura voleva persistere i fix in anagrafica: `NavaidImporter` lo **vieta** con la sua ragione |
 | 3 | **`BuildClaims` prende il collassatore come parametro**; statistiche invariate, test che fissa la differenza | chiude la divergenza fra geometria e catena prima che qualcuno ci costruisca sopra |
 | 4 | **`FallbackTargetKind` + migrazione additiva** (due provider) + validazione in `EfSectorFallbackService.ReplaceAsync` | modello pronto, comportamento identico a tabella senza rinvii |
 | 5 | **Il risolutore puro**: rango, esclusione cedente+dominio, spareggio stesso-ACC, «non risponde». Test-first | è il cuore deterministico: si prova senza IO |
