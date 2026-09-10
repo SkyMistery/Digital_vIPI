@@ -996,7 +996,57 @@
       (RigheVuoteIgnorate) e `DiagnosticaErrori` due metodi statici nuovi: additivi tutt'e due, e chi li
       usa (Ui, Host) sta nel pacchetto.
     -->
-    <VipiVersione>1.19.1</VipiVersione>
+    <!-- 1.20.0 - MINOR (10 settembre 2026). Tre lavori chiesti dal committente in giornata, e DUE
+      migrazioni. Si consegna da sola: non serve sostituire il database.
+
+      SS.CR - LA PORTA DECIDE L'ORDINE DI UNA PAGINA UNITA. Unendo la vIPI d'aeroporto, il vSOP e l'APP
+      dello stesso scalo, l'ordine dipende da DOVE SI ENTRA: aprendo la vIPI si legge prima la vIPI,
+      aprendo il vSOP prima il vSOP. Il concetto di OSPITE non esiste piu', e con lui il rimando della
+      vecchia SS.4: ogni membro disegna la pagina unita al PROPRIO indirizzo. -180 righe nette, e cinque
+      chiavi di traduzione TOLTE (Union_NotHost, Union_OpenHost, Union_Host, Union_HostHint,
+      Union_FirstIsHost) piu' una nuova (Union_OrderHint).
+      ATTENZIONE - CAMBIA UN COMPORTAMENTO PUBBLICO: prima l'indirizzo di un membro non-ospite
+      REINDIRIZZAVA; adesso risponde e disegna. Lo stesso contenuto vive a N indirizzi, in N ordini.
+
+      SS.CS - LA CONDIZIONE D'AREA HA UNA POLARITA'. Casella «area NON attiva» nella clausola dei
+      coordinamenti: «con la $406 non attiva» / «with $406 not active». Migrazione ADDITIVA
+      (ConditionAreaNegated, un AddColumn per provider, default false = «attiva», che e' il significato
+      giusto per le righe che c'erano gia').
+
+      SS.CT - PIU' AREE IN UNA CONDIZIONE. Le aree si elencano (chip + typeahead), col selettore «ne basta
+      una qualunque / valgono tutte», e le frasi si adattano: «con A o B attive» / «con A e B non attive».
+      Separatore `;` e NON `/`: cinque aree del catalogo IVAO hanno gia' lo `/` nel nome.
+
+      LE DUE MIGRAZIONI, e la sola riga che vuole attenzione:
+      · CondizioneAreaNonAttiva - AddColumn, additiva su tutt'e due i provider.
+      · PiuAreeNellaCondizione  - AddColumn (ConditionAreaAll) + su MySQL un AlterColumn che ALLARGA
+        AgreementClauses.ConditionAreaLabel da varchar(80) a varchar(200).
+        ATTENZIONE: l'AlterColumn cade nella finestra cieca e il presidio
+        (MigrazioniDellaFinestraCiecaTests) l'ha fermato. E' registrato in RevisionateAMano CON LA RAGIONE:
+        e' un allargamento - la Up non puo' troncare ne' fallire sui dati - su una tabella di 60 righe, non
+        l'AtcSessions da centinaia di migliaia che quel commento teme. Se questo pacchetto esce dopo il
+        16 settembre 2026, quella deroga non serve piu' e va tolta insieme al file.
+
+      I FILE. Il diff dei nomi fra c58ad07d e HEAD, limitato a src/, nomina CINQUE progetti: Domain,
+      Application, Infrastructure, Infrastructure.MySqlMigrations, Ui.
+      ATTENZIONE: NIENTE wwwroot - nessun .css e nessun .js e' stato toccato, quindi niente .br/.gz e
+      niente Vipi.Host.staticwebassets.endpoints.json.
+      ATTENZIONE: Vipi.Infrastructure.MySqlMigrations.dll DEVE ESSERCI. Senza, le colonne non nascono e il
+      pacchetto SEMBRA funzionare: le due funzioni nuove restano spente e non danno nessun segnale finche'
+      qualcuno non prova a usarle. La prova da fuori e' la riga Schema in admin/diagnostics: dev'essere 0.
+      Il satellite inglese ENTRA: le due .resx sono cambiate (sei chiavi nuove, cinque tolte).
+
+      FIRME CAMBIATE, e chi le implementa:
+      · IAgreementRepository.SetConditionAsync e IAgreementService.SetConditionAsync guadagnano due
+        parametri. Le uniche implementazioni sono EfAgreementRepository (Infrastructure) e
+        AgreementEditingService (Application): tutt'e due nel pacchetto.
+      · Il record ConditionClause cambia forma e CoordinationSentenceCondition perde RunwayAndArea e
+        RunwayAndAreaInactive. Chi li usa sta in Application e Ui, tutt'e due nel pacchetto; Vipi.Hosting
+        costruisce il template SENZA nominare quei due membri, quindi resta fuori senza rischio.
+      · UnionView perde Host/IsHostTarget/IsHostDocument e UnionMemberView perde IsHost. Chi li chiamava
+        stava solo in Ui, che e' nel pacchetto.
+    -->
+    <VipiVersione>1.20.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
