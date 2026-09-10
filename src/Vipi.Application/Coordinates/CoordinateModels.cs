@@ -1,4 +1,4 @@
-namespace Vipi.Application.Coordinates;
+﻿namespace Vipi.Application.Coordinates;
 
 /// <summary>Che cosa il lettore non è riuscito a fare, o ha fatto con una scelta che va dichiarata.</summary>
 /// <remarks>⚠️ È un <b>codice</b>, non un messaggio: il testo lo scrive la UI, nelle due lingue. Un motore che
@@ -28,6 +28,12 @@ public enum CoordinateIssueKind
 
     /// <summary>Il file KML/KMZ non si è potuto aprire.</summary>
     FileNonLetto,
+
+    /// <summary>
+    /// Le righe vuote erano spaziatura, non separatori: i blocchi erano tutti di un punto solo e sono stati
+    /// riuniti in un'area sola. <c>Dettaglio</c> = quanti blocchi.
+    /// </summary>
+    RigheVuoteIgnorate,
 }
 
 /// <summary>Una segnalazione, ancorata alla <paramref name="Riga"/> (1-based; 0 = riguarda tutto l'ingresso).</summary>
