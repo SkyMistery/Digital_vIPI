@@ -1,6 +1,31 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 9 settembre 2026 (notte)
+## Dove siamo — 10 settembre 2026
+
+📦 **1.19.0 È PRONTA E NON È CARICATA.** Timbro **`1.19.0 · 6f38e58`**, sha256 dello zip
+**`58b8260b…`**, **22 file**, 4,97 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.0.md`.
+**MINOR**, e per due ragioni ognuna sufficiente: **una migrazione additiva** (`RinvioGeometrico`, un
+`AddColumn` per provider) e **comandi nuovi in pagina**.
+✅ **Si consegna da sola**, anche dentro la finestra cieca: la domanda che decide non è «c'è una
+migrazione?» ma «può lasciare il database in uno stato da cui l'applicazione non riparte?», e per un'additiva
+la risposta è no.
+✅ Provata **sul pacchetto** (win-x64, JS minificato): i **dieci** controlli di
+`pacchetto-verifica.js` verdi, timbro giusto in `avvio-diagnostica.txt`, e i due asset **servite dal
+pacchetto** portano il codice nuovo — `flText` in `vipi-aor3d.js`, `.xt-ladder` e `.fb-rinvio` in
+`vipi-theme.css`.
+✅ Impronte confrontate sulle cartelle pubblicate **intere**: su 90 asset gli unici diversi sono
+`vipi-aor3d.js` e `vipi-theme.css` coi loro compressi. ⚠️ `vipi-ui.js` risulta **identico** e resta fuori —
+il diff lo diceva, le impronte l'hanno verificato.
+🔴 **Le tre cose da non sbagliare al caricamento**: `Vipi.Infrastructure.MySqlMigrations.dll` (senza, la
+colonna non nasce e il pacchetto **sembra funzionare**, perché la funzione è spenta finché nessuno scrive
+una riga); `wwwroot` coi `.br`/`.gz` **e** `endpoints.json`; il satellite `en/`.
+▶ **E poi tocca ai dati**: la riga «copertura del punto» sui cinque MIL d'ACC, i tre padri di Roma, il
+ripiego di `LIMM_WS5_CTR` a FL325.
+
+Porta **§CO** (il rinvio geometrico + la scala di risalita) e le **due segnalazioni** del 10 settembre: le
+quote delle aree in piedi e NIL.
+
+## Dove eravamo — 9 settembre 2026 (notte)
 
 ✅ **1.18.2 è ONLINE** (9 settembre, notte). Timbro **`1.18.2 · 578300a`**, sha256 dello zip
 **`4e1ead40…`**, **8 file**, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.18.2.md`. **PATCH**, **nessuna
@@ -10976,5 +11001,4 @@ di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella p
 - 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
   Roma ha cinque radici in tutto: da guardare col committente.
 - ✅ **FUSA in `main`** il 10 settembre 2026, merge `e99a66f8`, dodici commit, ramo cancellato, spinta su
-  origin. ⚠️ **NON è in un pacchetto** e porta una **migrazione additiva**: la consegna va pensata dentro la
-  finestra cieca.
+  origin. 📦 **E impacchettata in 1.19.0** (`1.19.0 · 6f38e58`, 22 file), che **non è ancora caricata**.
