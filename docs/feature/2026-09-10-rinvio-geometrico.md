@@ -474,17 +474,80 @@ restano fuori, ma il collassatore ora è un parametro), la memoria `ricaduta-ver
 
 Ognuna è un commit, build verde, e ha valore da sola.
 
-| # | slice | perché sta in piedi da sola |
+| # | slice | stato |
 |---|---|---|
-| 1 | **Riallineare il `vipi.db` di sviluppo** alla produzione (padre di ES5, riga con le quote giuste) | senza questo i test del caso verticale provano una struttura inesistente |
-| 2 | **`ICopPositions`**: la fotografia `nome → posizione`, anagrafica + catalogo punti, **nessuna persistenza** | ✅ **fatta** — 5 test. 🔴 La prima stesura voleva persistere i fix in anagrafica: `NavaidImporter` lo **vieta** con la sua ragione |
-| 3 | **`BuildClaims` prende il collassatore come parametro**; statistiche invariate, test che fissa la differenza | chiude la divergenza fra geometria e catena prima che qualcuno ci costruisca sopra |
-| 4 | **`FallbackTargetKind` + migrazione additiva** (due provider) + validazione in `EfSectorFallbackService.ReplaceAsync` | modello pronto, comportamento identico a tabella senza rinvii |
-| 5 | **Il risolutore puro**: rango, esclusione cedente+dominio, spareggio stesso-ACC, «non risponde». Test-first | è il cuore deterministico: si prova senza IO |
-| 6 | **Innesto nei due siti col punto** (`AgreementService`, `TransferMatcher.ResolveHandler`); gli altri due invariati | i casi del banco cominciano a passare |
-| 7 | **A schermo**: la risoluzione si mostra; Struttura mostra la voce e la casella «prova un punto» | la condizione vincolante della Parte 7 |
-| 8 | **I quattro rilievi** della Parte 8 | la rete, prima di fidarsi |
-| 9 | **I dati**: le righe sui cinque MIL; i tre padri di Roma (`LIRR_MIL_CTR`, `LIRR_FSS`, `LIRR_PLN_FSS`) | è il gesto che accende la cosa in produzione |
+| 1 | **Riallineato il `vipi.db` di sviluppo** alla produzione: padre di ES5 → ES2, riga `FL325–UNL → WS5` con le quote giuste | ✅ fatta (backup `vipi.db.bak-pre-rinvio-geometrico-20260910`) |
+| 2 | **`ICopPositions`**: la fotografia `nome → posizione`, anagrafica + catalogo punti | ✅ fatta, 5 test. 🔴 La prima stesura voleva persistere i fix: `NavaidImporter` lo **vieta**, con la sua ragione |
+| 3 | **`BuildClaims` prende il collassatore come parametro**; statistiche invariate | ✅ fatta, 4 test che **fissano la differenza**, così resta deliberata |
+| 4 | **`FallbackTargetKind` + migrazione additiva** (due provider) + validazione | ✅ fatta. 🔴 Due presidi l'hanno corretta: vedi sotto |
+| 5 | **Il risolutore puro** (rango, cedente, spareggio di centro, «non risponde») | ✅ fatta, 20 test — il banco della Parte 9, con due mutazioni scritte nei test |
+| 6 | **Innesto nei due siti col punto**; gli altri due invariati | ✅ fatta |
+| 7 | **A schermo**: editor, catena, riga live | ✅ fatta, 12 chiavi in due lingue |
+| 8 | **I rilievi** della Parte 8 | ✅ fatti **tre** (uno ne assorbe due), 8 test |
+| 9 | **I dati in produzione**: le righe sui MIL; i tre padri di Roma | ▶ **da fare a mano**, dopo la consegna, e da verificare **da fuori** |
+
+### Quel che hanno detto i presidi (slice 4)
+
+🔴 **`MigrazioniDellaFinestraCiecaTests` ha fermato un `AlterColumn`.** Rendere `TargetCallsign` nullable
+riscrive la tabella su MariaDB, e fino al 16 settembre le migrazioni girano **da sole** all'avvio in
+produzione, senza nessuno che possa ripristinare. La colonna resta **NOT NULL** e un rinvio porta la
+**stringa vuota**: a dire perché è vuota è `TargetKind`, non il campo. La migrazione è un `AddColumn` e
+basta, su tutt'e due i provider.
+
+⚠️ **`IndexedStringLengthTests` ha chiesto la lunghezza di `TargetKind`**: ha un valore di default, e su
+MySQL una colonna con default non può essere `longtext`.
+
+Nessuno dei due l'ha visto una rilettura: li ha visti la suite.
+
+---
+
+## Verifica live — 10 settembre 2026
+
+Guidata la vista live su **Milano vera** (`vipi.db` di sviluppo copiato, `Ivao__FakeOnlineCallsigns` =
+`LIMM_ES2_CTR, LIMM_WS2_CTR`, MIL chiuso, una riga di rinvio su `LIMM_MIL_CTR`, un flusso
+`LIPX_ES0_APP → LIMM_MIL_CTR` con due punti reali: `GHE` a est e `TOP` a ovest).
+
+### 🔴 Il difetto che i test non vedevano: l'FSS raccoglieva
+
+Il **primo** giro ha risposto `LIMM_WS2_CTR` dove doveva rispondere `LIMM_ES2_CTR`.
+
+La causa non era la geometria: `LIMM_FSS` è **SFC–FL195**, cioè una banda **più stretta** di quella di ES2
+(SFC–FL325), alla **stessa profondità**. A parità di profondità il tie-break sceglie la banda più stretta,
+quindi vinceva l'FSS — e, essendo chiuso, il traffico finiva al suo proprietario, WS2.
+
+⚠️ **Il filtro di rango non poteva vederlo**: `SectorType` un valore `Fss` non ce l'ha, e nella proiezione
+un FSS è tipato `Ctr`. Il suffisso del callsign è l'unico dato che lo dice — e il progetto già lo legge così
+(`ForeignSectorCallsign`, `FrequencyPositions`).
+
+**La regola aggiunta**: un trasferimento fra enti di **controllo** non si delega a un servizio informazioni.
+Se il ricevente nominale è a sua volta un FSS, invece, è legittimo. La fixture dei test ora ha l'FSS con la
+banda vera, e la mutazione è scritta dentro il test.
+
+### ✅ La coppia che conta, dal vivo
+
+Stesso flusso, **stesso cedente** (`LIPX_ES0_APP`), **stessa quota** (FL140), **stesso ricevente nominale**
+(`LIMM_MIL_CTR`, chiuso):
+
+```
+— GHE  FL140   LIMM_ES2_CTR   coverage
+  TOP  FL140   LIMM_WS2_CTR   coverage
+```
+
+Due riceventi diversi, e a deciderli è **il punto**. È il banco che nessun meccanismo basato sul cedente
+può passare.
+
+### ✅ E il pannello Struttura lo disegna
+
+Su `LIMM_MIL_CTR`, in inglese (la cultura di UI di questa macchina):
+
+```
+1   any level → the point coverage  ?
+    any level → LIMM_WS2_CTR  PARENT
+```
+
+Il rinvio sta **davanti** al padre, e si mostra **senza nome**: quella pagina i punti non li ha.
+
+---
 
 ⚠️ **Le slice 1 e 9 sono dati, non codice**, e la 9 tocca la **produzione**: si fa a mano, dopo che il resto
 è online, e si verifica **da fuori**.

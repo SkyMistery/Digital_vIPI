@@ -10911,11 +10911,39 @@ Tre cose che decidono se funziona, tutt'e tre nella carta:
 maggioranza fix di 5 lettere, le cui coordinate stanno in un catalogo caricato **via HTTP all'import**.
 Prima slice utile: persistere i fix.
 
+### ✅ ESEGUITA — otto slice su nove, ramo `rinvio-geometrico`
+
+Otto slice fatte, build pulita sui due TFM, **5845 test verdi**. Resta la nona, che è **dati in
+produzione** e si fa a mano.
+
+**Due presidi hanno corretto il progetto mentre lo scrivevo**, e avevano ragione tutt'e due:
+🔴 `MigrazioniDellaFinestraCiecaTests` ha fermato l'`AlterColumn` con cui rendevo `TargetCallsign`
+nullable — su MariaDB riscrive la tabella, e fino al 16 settembre le migrazioni girano **da sole**
+all'avvio senza nessuno che possa ripristinare. Ora un rinvio porta la **stringa vuota** e a dire perché è
+vuota è `TargetKind`; la migrazione è un `AddColumn` e basta.
+⚠️ `IndexedStringLengthTests` ha chiesto la lunghezza di `TargetKind`: ha un default, e su MySQL una
+colonna con default non può essere `longtext`.
+
+**🔴 E la verifica dal vivo ha trovato quello che i test non vedevano: l'FSS raccoglieva.** Il primo giro
+su Milano vera ha risposto `LIMM_WS2_CTR` dove doveva rispondere `LIMM_ES2_CTR`. `LIMM_FSS` è SFC–FL195,
+cioè una banda **più stretta** di ES2 (SFC–FL325) alla **stessa profondità**: a parità di profondità vince
+la banda più stretta, quindi vinceva lui — e, chiuso, mandava il traffico al suo proprietario. ⚠️ Il filtro
+di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella proiezione un FSS è tipato
+`Ctr`. Un trasferimento fra enti di **controllo** non si delega a un servizio informazioni.
+
+**✅ La coppia che conta, provata dal vivo** — stesso flusso, stesso cedente (`LIPX_ES0_APP`), stessa quota
+(FL140), stesso ricevente nominale (`LIMM_MIL_CTR`, chiuso):
+
+```
+— GHE  FL140   LIMM_ES2_CTR   coverage
+  TOP  FL140   LIMM_WS2_CTR   coverage
+```
+
 ### ▶ Che cosa resta
 
-- ▶ **Nove slice**, la prima è riallineare il `vipi.db` di sviluppo alla produzione (da noi ES5 è figlio di
-  WS5 invece che di ES2, e la riga locale ha il piede a **32 500 000 ft**): finché è così, i test del caso
-  verticale provano una struttura che non esiste.
-- 🔴 **Da chiudere a mano in produzione, indipendente da tutto**: `LIRR_MIL_CTR`, `LIRR_FSS` e
-  `LIRR_PLN_FSS` sono **radici** — chiusi, il traffico va su **UNICOM**. E Roma ha cinque radici in tutto:
-  da guardare col committente.
+- ▶ **Slice 9, in produzione e a mano**: la riga «⟨copertura del punto⟩» sui cinque MIL d'ACC, e i **tre
+  padri di Roma**. Poi si verifica **da fuori**.
+- 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
+  Roma ha cinque radici in tutto: da guardare col committente.
+- ▶ Il ramo **non è fuso** e **non è in un pacchetto**: porta una migrazione additiva, quindi la consegna
+  va pensata dentro la finestra cieca.
