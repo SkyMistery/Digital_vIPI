@@ -2363,6 +2363,19 @@
 :where(.vipi-root) .fb-rinvio{font-style:italic;color:var(--ink-soft)}
 /* Perche' quel ricevente: l'etichetta del rinvio accanto al nome, sulla riga live. Tenue - e' una
    spiegazione, non un avviso - ma PRESENTE: un rinvio muto e' indistinguibile da un guasto. */
+/* La scala di risalita: si apre su richiesta e si chiude. Blocchi separati da una riga, perche' due scale
+   diverse sono la cosa che si e' venuti a vedere. */
+:where(.vipi-root) .xt-ladder{margin:10px 0}
+:where(.vipi-root) .xt-ladder-head{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+:where(.vipi-root) .xt-ladder-head .muted{font-size:11.5px}
+:where(.vipi-root) .xt-ladder-block{padding:8px 0;border-top:1px solid var(--line-soft)}
+:where(.vipi-root) .xt-ladder-block:first-of-type{border-top:0}
+:where(.vipi-root) .xt-ladder-steps{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+:where(.vipi-root) .xt-ladder-step{display:inline-flex;gap:5px;align-items:baseline;cursor:help}
+:where(.vipi-root) .xt-ladder-why{font-size:10px;font-family:var(--font-head);font-weight:700;
+                 text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft)}
+:where(.vipi-root) .xt-ladder-pts{margin-top:4px;font-size:11.5px;color:var(--ink-soft)}
+:where(.vipi-root) .xt-ladder-note{margin-top:4px}
 :where(.vipi-root) .xl-rinvio{margin-left:5px;font-size:10px;font-family:var(--font-head);font-weight:700;
                  text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);cursor:help}
 :where(.vipi-root) .struct .fb-sug{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0}

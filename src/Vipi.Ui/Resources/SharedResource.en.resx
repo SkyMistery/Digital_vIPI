@@ -557,6 +557,8 @@
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Parent «{0}» does not exist in the catalogues: the coverage chain stops here.</value></data>
   <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Cyclic hierarchy</value></data>
   <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>The sector is its own ancestor ({0}): every fallback chain going through it stops here.</value></data>
+  <data name="Diag_Cat_TrasferimentoSenzaRipiego" xml:space="preserve"><value>Transfer with no fallback</value></data>
+  <data name="Diag_Msg_TrasferimentoSenzaRipiego" xml:space="preserve"><value>With the receiver closed the traffic goes to UNICOM, but somebody else covers that point: a fallback is missing ({0}).</value></data>
   <data name="Diag_Cat_CopSenzaPosizione" xml:space="preserve"><value>COPs without a position</value></data>
   <data name="Diag_Msg_CopSenzaPosizione" xml:space="preserve"><value>{0} points used in the agreements are in no catalogue ({1}): on those, the «point coverage» fallback cannot answer.</value></data>
   <data name="Diag_Ent_Acc" xml:space="preserve"><value>ACC {0}</value></data>
@@ -2551,6 +2553,25 @@
   <data name="AorColor_ColorOf" xml:space="preserve"><value>Colour of {0}</value></data>
   <data name="AorColor_ResetTitle" xml:space="preserve"><value>Restore the default colour for this station type</value></data>
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Operational condition</value></data>
+  <data name="Xfer_Ladder_Show" xml:space="preserve"><value>Fallback ladder</value></data>
+  <data name="Xfer_Ladder_TitleOk" xml:space="preserve"><value>Shows how the traffic of these points would climb if the receiver were closed, rung by rung.</value></data>
+  <data name="Xfer_Ladder_TitleNone" xml:space="preserve"><value>Select at least one clause carrying a point.</value></data>
+  <data name="Xfer_Ladder_TitleTooMany" xml:space="preserve"><value>{0} points selected, the maximum is {1}: select fewer rows.</value></data>
+  <data name="Xfer_Ladder_Title" xml:space="preserve"><value>Fallback ladder</value></data>
+  <data name="Xfer_Ladder_Hint" xml:space="preserve"><value>with everyone open, closing one rung at a time</value></data>
+  <data name="Xfer_Ladder_NoPoints" xml:space="preserve"><value>None of the selected clauses carries a point with a receiver.</value></data>
+  <data name="Xfer_Ladder_Point1" xml:space="preserve"><value>1 point:</value></data>
+  <data name="Xfer_Ladder_PointsN" xml:space="preserve"><value>{0} points:</value></data>
+  <data name="Xfer_Ladder_Why_Written" xml:space="preserve"><value>written</value></data>
+  <data name="Xfer_Ladder_Why_Row" xml:space="preserve"><value>row</value></data>
+  <data name="Xfer_Ladder_Why_Coverage" xml:space="preserve"><value>coverage</value></data>
+  <data name="Xfer_Ladder_Why_Parent" xml:space="preserve"><value>parent</value></data>
+  <data name="Xfer_Ladder_Why_Unicom" xml:space="preserve"><value>nobody</value></data>
+  <data name="Xfer_Ladder_WhyLong_Written" xml:space="preserve"><value>It is the receiver written in the clause.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Row" xml:space="preserve"><value>A hand-written fallback row says so, in the band shown.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Coverage" xml:space="preserve"><value>Point coverage says so: it is who covers this point at this level, with the previous rungs closed.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Parent" xml:space="preserve"><value>It is the coverage parent: the tail of the chain, which nobody writes and cannot be removed.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Unicom" xml:space="preserve"><value>All exhausted: the traffic goes to UNICOM.</value></data>
   <data name="Xfer_Coverage_Tag" xml:space="preserve"><value>coverage</value></data>
   <data name="Xfer_Coverage_TagNone" xml:space="preserve"><value>coverage ?</value></data>
   <data name="Xfer_Coverage_Resolved" xml:space="preserve"><value>Receiver chosen by point coverage: {1} covers point {0} at this level.</value></data>

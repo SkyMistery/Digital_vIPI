@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Airspace;
 using Vipi.Application.Content;
 using Vipi.Application.Diagnostics;
 using Vipi.Domain;
@@ -51,8 +52,8 @@ public class RilieviDellaRicadutaTests
         new() { TransferConditions = righe };
 
     private static IReadOnlyList<ConsistencyFinding> Rilievi(ConsistencyDataset d, string categoria,
-        CopPositions? punti = null) =>
-        ConsistencyReportService.Analyze(d, punti).Where(f => f.Category == categoria).ToList();
+        CopPositions? punti = null, CoverageFallbackContext? rinvio = null) =>
+        ConsistencyReportService.Analyze(d, punti, rinvio).Where(f => f.Category == categoria).ToList();
 
     // =====================================================================================================
     //  Ricaduta che non copre la quota
@@ -185,5 +186,100 @@ public class RilieviDellaRicadutaTests
 
         Assert.Empty(Rilievi(d, "CoP senza posizione"));
         Assert.Empty(Rilievi(d, "CoP senza posizione", CopPositions.Empty));
+    }
+    // =====================================================================================================
+    //  Trasferimento senza ripiego
+    // =====================================================================================================
+
+    /// <summary>
+    /// 🔴 Il ricevente e' una RADICE senza ripieghi: chiuso lui, UNICOM. In produzione e' il caso di
+    /// <c>LIRR_MIL_CTR</c>, e nessun altro controllo lo dice.
+    /// </summary>
+    [Fact]
+    public void Un_ricevente_senza_ripieghi_ne_padre_si_segnala()
+    {
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000));
+
+        var f = Assert.Single(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva()));
+
+        Assert.Equal("LIMM", f.Entity);
+        Assert.Contains(Radice, f.Detail);
+    }
+
+    /// <summary>
+    /// 🔴 <b>«Finisce su UNICOM» da solo NON e' un difetto</b>, e questa e' la lezione del primo giro dal
+    /// vivo: sopra un ACC non c'e' niente per costruzione, quindi una radice che non e' sovrapposta a nessuno
+    /// finisce su UNICOM ed e' giusto cosi'. Misurato: otto riceventi segnalati su LIBB, sei erano ACC esteri.
+    /// Si segnala solo se quel punto lo copre <b>qualcun altro</b> e la catena non ci arriva.
+    /// </summary>
+    [Fact]
+    public void Una_radice_che_nessuno_sovrappone_non_si_segnala()
+    {
+        // Contesto con la sola radice e il cedente: chiuso il ricevente, non c'e' nessun altro sopra quel punto.
+        const string quadrato = "[[8,44],[12,44],[12,46],[8,46]]";
+        SectorVolumeRow riga(string cs, string? padre, SectorType tipo) =>
+            new(cs, padre, tipo, null,
+                new[] { new ShapePart(quadrato, 0, null, AirspaceDatum.Amsl, AirspaceDatum.Amsl, "", "") },
+                ShapeSource.Source, "LIMM");
+
+        var settori = new List<SectorVolumeRow> { riga(Radice, null, SectorType.Ctr), riga(Cedente, Radice, SectorType.App) };
+        var padri = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { [Radice] = null, [Cedente] = Radice };
+        var contesto = new CoverageFallbackContext(settori,
+            new HashSet<string>(settori.Select(x => x.Callsign), StringComparer.OrdinalIgnoreCase),
+            new CopPositions(new[] { ("GHE", 45.0, 10.0) }),
+            new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase),
+            cs => padri.GetValueOrDefault(cs));
+
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000));
+
+        Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: contesto));
+    }
+
+    /// <summary>Con un padre sotto, la scala continua e non si segnala niente.</summary>
+    [Fact]
+    public void Un_ricevente_col_padre_non_si_segnala()
+    {
+        var d = ConPunti(new TransferLadderRow("LIMM", 1, "GHE", ConPadre, Cedente, 14000));
+
+        Assert.Empty(Rilievi(d, "Trasferimento senza ripiego", rinvio: ContestoDiProva()));
+    }
+
+    /// <summary>⚠️ Senza il contesto il rilievo non si fa: senza i volumi «non ha ripieghi» e «non lo so»
+    /// sarebbero indistinguibili.</summary>
+    [Fact]
+    public void Senza_contesto_il_rilievo_non_si_fa() =>
+        Assert.Empty(Rilievi(ConPunti(new TransferLadderRow("LIMM", 1, "GHE", Radice, Cedente, 14000)),
+            "Trasferimento senza ripiego"));
+
+    private const string Radice = "R_CTR", ConPadre = "F_CTR", Cedente = "C_APP";
+
+    private static ConsistencyDataset ConPunti(params TransferLadderRow[] righe) =>
+        new() { TransferLadders = righe };
+
+    /// <summary>Un contesto minimo: una radice senza ripieghi, un figlio, e un cedente.</summary>
+    private static CoverageFallbackContext ContestoDiProva()
+    {
+        const string quadrato = "[[8,44],[12,44],[12,46],[8,46]]";
+        SectorVolumeRow riga(string cs, string? padre, SectorType tipo) =>
+            new(cs, padre, tipo, null,
+                new[] { new ShapePart(quadrato, 0, null, AirspaceDatum.Amsl, AirspaceDatum.Amsl, "", "") },
+                ShapeSource.Source, "LIMM");
+
+        var settori = new List<SectorVolumeRow>
+        {
+            riga(Radice, null, SectorType.Ctr),
+            riga(ConPadre, Radice, SectorType.Ctr),
+            riga(Cedente, Radice, SectorType.App),
+        };
+        var padri = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
+        {
+            [Radice] = null, [ConPadre] = Radice, [Cedente] = Radice,
+        };
+
+        return new CoverageFallbackContext(settori,
+            new HashSet<string>(settori.Select(x => x.Callsign), StringComparer.OrdinalIgnoreCase),
+            new CopPositions(new[] { ("GHE", 45.0, 10.0) }),
+            new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase),
+            cs => padri.GetValueOrDefault(cs));
     }
 }

@@ -63,7 +63,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         IStartupMaintenanceReport? startup = null, IImportPolicyStore? policy = null,
         ISectorfileComparisonReport? sectorfile = null,
         Content.IImportOverviewService? giri = null,
-        Abstractions.ICopPositions? punti = null)
+        Abstractions.ICopPositions? punti = null,
+        Abstractions.ISectorVolumeCatalog? volumi = null,
+        Abstractions.ITopologyProvider? topologia = null)
     {
         _repo = repo;
         _schema = schema;
@@ -74,7 +76,13 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         _sectorfile = sectorfile;
         _giri = giri;
         _punti = punti;
+        _volumi = volumi;
+        _topologia = topologia;
     }
+
+    /// <summary>Volumi e topologia: servono alla scala di risalita. Opzionali, come tutto il resto qui.</summary>
+    private readonly Abstractions.ISectorVolumeCatalog? _volumi;
+    private readonly Abstractions.ITopologyProvider? _topologia;
 
     /// <summary>Dove stanno i punti dei CoP. Opzionale: senza, il rilievo sui CoP non si fa.</summary>
     private readonly Abstractions.ICopPositions? _punti;
@@ -124,7 +132,8 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // niente, ed è la sola cosa che rende quel rilievo utile a chi guarda i conteggi per area.
         await Raccogli(findings, "incongruenze dei dati", "Diag_Pezzo_Dati", ConsistencyArea.Dati,
             async () => Analyze(await _repo.LoadAsync(ct),
-                _punti is null ? null : await _punti.GetAsync(ct)), ct);
+                _punti is null ? null : await _punti.GetAsync(ct),
+                await ContestoDelRinvioAsync(ct)), ct);
         if (_schema is not null)
             await Raccogli(findings, "drift di schema", "Diag_Pezzo_Schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
         if (_admin is not null)
@@ -283,7 +292,13 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// non si fa — e non si fa <b>in silenzio</b> di proposito, perche' un catalogo assente non prova che i
     /// punti manchino. E' la stessa regola di <c>NavaidCheck</c>: a catalogo vuoto NIENTE e' sconosciuto.
     /// </param>
-    public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d, Abstractions.CopPositions? punti = null)
+    /// <param name="rinvio">
+    /// Volumi, punti e topologia, per percorrere la <b>scala di risalita</b> di ogni punto. <b>Facoltativo</b>:
+    /// senza, il rilievo «trasferimento senza ripiego» non si fa — e non si fa in silenzio, perché senza i
+    /// volumi non si potrebbe distinguere «non ha ripieghi» da «non lo so».
+    /// </param>
+    public static IReadOnlyList<ConsistencyFinding> Analyze(ConsistencyDataset d,
+        Abstractions.CopPositions? punti = null, Content.CoverageFallbackContext? rinvio = null)
     {
         var findings = new List<ConsistencyFinding>();
 
@@ -438,6 +453,53 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 EntityKey: "Diag_Ent_Settore", EntityArgs: new object[] { cs }));
         }
 
+        // 4-septies) I trasferimenti che, chiuso il ricevente, non hanno NESSUNO.
+        //
+        // ⚠️ Non e' «CoP senza posizione» con altre parole: quello dice che il rinvio non potra' rispondere,
+        // questo dice che la CATENA non porta da nessuna parte — ed e' vero anche su un punto collocato
+        // benissimo, per esempio quando il ricevente e' una radice senza ripieghi (in produzione
+        // `LIRR_MIL_CTR` lo e'). Il pannello della Parte 10 serve a chi ha un sospetto; questo serve a non
+        // doverne avere uno.
+        if (rinvio is not null && d.TransferLadders.Count > 0)
+        {
+            var perAcc = new SortedDictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var t in d.TransferLadders)
+            {
+                if (string.IsNullOrWhiteSpace(t.NextSectorCallsign)) continue;
+
+                var scala = Content.RisalitaScala.Costruisci(
+                    t.NextSectorCallsign!, t.Cop, t.LevelFeet, t.OwningSectorCallsign, rinvio);
+                if (!Content.RisalitaScala.FinisceSubitoSuUnicom(scala)) continue;
+
+                // ⚠️ «Finisce su UNICOM» da solo NON è un difetto, ed è la lezione più importante di questo
+                // rilievo: sopra un ACC non c'è niente per costruzione, quindi la radice di Brindisi e le
+                // radici estere finiscono su UNICOM ed è giusto così. Misurato al primo giro dal vivo:
+                // otto riceventi segnalati su LIBB, e sei erano ACC esteri. Un avviso che grida su dati
+                // corretti si impara a ignorare, e allora smette di servire anche quando ha ragione.
+                //
+                // Il difetto è un altro: quel punto lo copre QUALCUN ALTRO, e la catena non ci arriva. È il
+                // caso di `LIRR_MIL_CTR`, sovrapposto ai civili di Roma e però radice.
+                var chiAltro = rinvio.Con(SenzaDiLui(rinvio.TuttiISettori, t.NextSectorCallsign!))
+                    .Risolvi(t.Cop, t.LevelFeet, t.OwningSectorCallsign, t.NextSectorCallsign);
+                if (chiAltro.Outcome != Content.CoverageFallbackOutcome.Resolved) continue;
+
+                if (!perAcc.TryGetValue(t.AccCode, out var elenco))
+                    perAcc[t.AccCode] = elenco = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
+                elenco.Add($"{t.NextSectorCallsign} → {chiAltro.TargetCallsign}");
+            }
+
+            foreach (var (acc, riceventi) in perAcc)
+            {
+                var nomi = string.Join(", ", riceventi);
+                findings.Add(new ConsistencyFinding("Trasferimento senza ripiego", ConsistencySeverity.Error, acc,
+                    $"Chiuso il ricevente il traffico va su UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego ({nomi}).",
+                    ConsistencyArea.Dati, DoveAccordi,
+                    CategoryKey: "Diag_Cat_TrasferimentoSenzaRipiego", DetailKey: "Diag_Msg_TrasferimentoSenzaRipiego",
+                    DetailArgs: new object[] { nomi },
+                    EntityKey: "Diag_Ent_Acc", EntityArgs: new object[] { acc }));
+            }
+        }
+
         // 4-sexies) I CoP che un rinvio non potra' mai collocare.
         //
         // ⚠️ Dice QUANTO E' CIECO il rinvio prima di accenderlo, invece di scoprirlo un punto alla volta. E
@@ -447,9 +509,16 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // Qui si segnala solo il secondo. Carta 2026-09-10-rinvio-geometrico.md, Parti 5 e 8.
         if (punti is not null && punti.Count > 0)
         {
+            // ⚠️ Si guardano TUTTI i punti, non le sole clausole con una condizione: quel filtro è giusto per
+            // il controllo delle piste e sarebbe una vista parziale qui. Se l'elenco dei punti non c'è (chi
+            // monta il report senza gli accordi) si ripiega sulle condizioni, che è meglio di niente.
+            var sorgente = d.TransferLadders.Count > 0
+                ? d.TransferLadders.Select(t => (t.AccCode, Punti: t.Cop))
+                : d.TransferConditions.Select(t => (t.AccCode, Punti: t.Points));
+
             var senzaPosizione = new SortedDictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
-            foreach (var t in d.TransferConditions)
-                foreach (var token in Content.CopList.Parse(t.Points))
+            foreach (var t in sorgente)
+                foreach (var token in Content.CopList.Parse(t.Punti))
                 {
                     if (!Content.NavaidCheck.IsCheckable(token)) continue;   // non e' un punto: non e' un difetto
                     if (punti.TryGet(token, out _)) continue;
@@ -636,5 +705,28 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 EntityKey: "Diag_Ent_Settore", EntityArgs: new object[] { b.Callsign });
         }
     }
+
+
+    /// <summary>
+    /// Il contesto del rinvio con <b>tutti aperti</b>: è la domanda strutturale «come risalirebbe», non «chi
+    /// c'è adesso». ⚠️ Senza volumi, punti o topologia torna <c>null</c> e il rilievo della scala non si fa.
+    /// </summary>
+    private async Task<Content.CoverageFallbackContext?> ContestoDelRinvioAsync(CancellationToken ct)
+    {
+        if (_volumi is null || _punti is null || _topologia is null) return null;
+
+        var settori = await _volumi.GetAllAsync(ct);
+        if (settori.Count == 0) return null;
+
+        var tutti = new HashSet<string>(settori.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+        return Content.CoverageFallbackContext.Da(
+            await _topologia.BuildGlobalAsync(ct), settori, tutti, await _punti.GetAsync(ct));
+    }
+
+
+    /// <summary>L'insieme dei settori senza uno: serve a chiedere «e se questo non ci fosse, chi lo copre?».</summary>
+    private static IReadOnlySet<string> SenzaDiLui(IReadOnlySet<string> tutti, string escluso) =>
+        new HashSet<string>(tutti.Where(c => !string.Equals(c, escluso, StringComparison.OrdinalIgnoreCase)),
+            StringComparer.OrdinalIgnoreCase);
 
 }

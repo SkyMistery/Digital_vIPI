@@ -9,6 +9,9 @@
 @inject IAirportEditingService Airports
 @inject IAccDerivationService AccDeriv
 @inject Vipi.Application.Abstractions.INavaidSource Navaids
+@inject Vipi.Application.Abstractions.ISectorVolumeCatalog Volumi
+@inject Vipi.Application.Abstractions.ICopPositions PuntiCop
+@inject Vipi.Application.Abstractions.ITopologyProvider Topologia
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 @inject NavigationManager Nav
@@ -314,13 +317,74 @@
                         <button class="btn ghost" disabled="@(_busy || !_canEdit)" title="@L["Xfer_BulkConditionTitle"]"
                                 @onclick="ApplyBulkCondition">@L["Xfer_BulkApplyCondition"]</button>
 
+                        @* «Come risale»: non modifica niente, quindi NON chiede _canEdit — la si guarda anche
+                           in sola lettura, ed e' il caso piu' frequente (si viene qui per capire, non per
+                           scrivere). ⚠️ Il tetto sta sui PUNTI e non sulle righe: una clausola porta piu' CoP
+                           e ognuno ha la sua scala. Il tasto spento dice i numeri VERI, non «troppi». *@
+                        <button class="btn ghost" disabled="@(_busy || _puntiSelezionati == 0 || _puntiSelezionati > Vipi.Application.Content.RisalitaScala.MassimoPunti)"
+                                title="@TitoloRisalita()" @onclick="MostraRisalitaAsync">@L["Xfer_Ladder_Show"]</button>
+
                         <span class="ln xt-grow"></span>
                         <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Xfer_BulkDeleteAria"]" Disabled="@(_busy || !_canEdit)"
                                        Prompt="@(string.Format(L["Xfer_BulkDeletePrompt"].Value, _selected.Count))"
                                        OnConfirm="DeleteBulk"><Trigger><Icon Name="x" /> @L["Common_Delete"]</Trigger></InlineConfirm>
-                        <button class="btn ghost" @onclick="() => _selected.Clear()">@L["Xfer_BulkClear"]</button>
+                        <button class="btn ghost" @onclick="SvuotaSelezione">@L["Xfer_BulkClear"]</button>
                     </div>
                 </div>
+            }
+
+            @* La scala di risalita: apre solo su richiesta, e si chiude. La pagina e' gia' piena, e questo e'
+               un attrezzo che si prende in mano e si rimette giu'. Carta
+               docs/feature/2026-09-10-rinvio-geometrico.md Parte 10. *@
+            @if (_risalita is not null)
+            {
+                <section class="callout xt-ladder">
+                    <div class="xt-ladder-head">
+                        <b>@L["Xfer_Ladder_Title"]</b>
+                        <span class="muted">@L["Xfer_Ladder_Hint"]</span>
+                        <span class="ln xt-grow"></span>
+                        <button class="btn ghost" @onclick="() => _risalita = null">@L["Common_Close"]</button>
+                    </div>
+
+                    @if (_risalita.Count == 0)
+                    {
+                        <p class="help">@L["Xfer_Ladder_NoPoints"]</p>
+                    }
+                    @foreach (var blocco in _risalita)
+                    {
+                        <div class="xt-ladder-block">
+                            <div class="xt-ladder-steps">
+                                @for (var g = 0; g < blocco.Scala.Gradini.Count; g++)
+                                {
+                                    var gr = blocco.Scala.Gradini[g];
+                                    @if (g > 0)
+                                    {
+                                        <span class="fb-arrow">→</span>
+                                    }
+                                    <span class="xt-ladder-step" title="@MotivoTesto(gr)">
+                                        <b>@gr.Callsign</b>
+                                        <span class="xt-ladder-why">@MotivoBreve(gr)</span>
+                                        @if (gr.BaseFeet is not null || gr.TopFeet is not null)
+                                        {
+                                            <span class="fb-band">@FasciaRisalita(gr)</span>
+                                        }
+                                    </span>
+                                }
+                            </div>
+                            <div class="xt-ladder-pts">
+                                @* ⚠️ Singolare e plurale sono DUE chiavi, non una desinenza incollata: in inglese la parola che
+                                   cambia non e' in fondo, e una regola scritta sulle desinenze italiane si rompe li'.
+                                   E' la stessa lezione di XferLabels. *@
+                                <b>@(blocco.Punti.Count == 1 ? L["Xfer_Ladder_Point1"].Value : string.Format(L["Xfer_Ladder_PointsN"].Value, blocco.Punti.Count))</b>
+                                @string.Join(" · ", blocco.Punti.Select(x => x.Length == 0 ? "—" : x))
+                            </div>
+                            @if (blocco.Scala.Esito is { } esito && esito.Outcome != Vipi.Application.Content.CoverageFallbackOutcome.Resolved)
+                            {
+                                <div class="help xt-ladder-note">@EsitoTesto(esito, blocco.Punti.FirstOrDefault())</div>
+                            }
+                        </div>
+                    }
+                </section>
             }
 
             @* ---- Due colonne: si sceglie · si lavora ----
@@ -767,6 +831,111 @@
         if (_error is null) _status = string.Format(L["Xfer_Merged"].Value, n);
     }
 
+    // ---- La scala di risalita (carta 2026-09-10, Parte 10) ----
+
+    /// <summary>I blocchi da mostrare: una scala per firma, coi punti che la seguono. Null = pannello chiuso.</summary>
+    private IReadOnlyList<(Vipi.Application.Content.RisalitaScalaDiUnPunto Scala, IReadOnlyList<string> Punti)>? _risalita;
+
+    /// <summary>
+    /// Quanti PUNTI portano le clausole selezionate. ⚠️ Non e' <c>_selected.Count</c>: una clausola porta piu'
+    /// CoP, e il tetto sta sui punti — o il tasto promette dieci scale e ne consegna trenta.
+    /// </summary>
+    private int _puntiSelezionati;
+
+    private void RicalcolaPuntiSelezionati()
+    {
+        if (_selected.Count == 0) { _puntiSelezionati = 0; return; }
+
+        var n = 0;
+        foreach (var a in _agreements)
+            foreach (var sec in a.Sections)
+                foreach (var c in sec.Clauses)
+                    if (_selected.Contains(c.Id))
+                        n += Vipi.Application.Content.CopList.Parse(c.Cops).Count(x => x.Length > 0);
+        _puntiSelezionati = n;
+    }
+
+    private string TitoloRisalita() =>
+        _puntiSelezionati == 0 ? L["Xfer_Ladder_TitleNone"].Value
+        : _puntiSelezionati > Vipi.Application.Content.RisalitaScala.MassimoPunti
+            ? string.Format(L["Xfer_Ladder_TitleTooMany"].Value, _puntiSelezionati,
+                Vipi.Application.Content.RisalitaScala.MassimoPunti)
+            : L["Xfer_Ladder_TitleOk"].Value;
+
+    /// <summary>
+    /// Costruisce le scale dei punti selezionati. ⚠️ Il contesto si monta con <b>tutti aperti</b>: la domanda
+    /// e' «come risalirebbe», non «chi c'e' adesso» — mescolare le due e' il modo in cui si crede che una
+    /// configurazione sia sbagliata perche' stasera non c'e' nessuno.
+    /// </summary>
+    private async Task MostraRisalitaAsync()
+    {
+        if (_acc is null || _selected.Count == 0) return;
+
+        await Guarded(async () =>
+        {
+            var flussi = await Agreements.ListFlowsByAccAsync(_acc.Code);
+            var settori = await Volumi.GetAllAsync();
+            var tutti = new HashSet<string>(settori.Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+            var contesto = Vipi.Application.Content.CoverageFallbackContext.Da(
+                await Topologia.BuildGlobalAsync(), settori, tutti, await PuntiCop.GetAsync());
+
+            var scale = new List<Vipi.Application.Content.RisalitaScalaDiUnPunto>();
+            foreach (var f in flussi)
+                foreach (var pt in f.Points)
+                {
+                    if (pt.ClauseId is not int id || !_selected.Contains(id)) continue;
+                    if (string.IsNullOrWhiteSpace(pt.NextSectorCallsign)) continue;
+
+                    scale.Add(Vipi.Application.Content.RisalitaScala.Costruisci(
+                        pt.NextSectorCallsign!, pt.Cop,
+                        Vipi.Application.Content.FallbackChain.HandoffFeetOf(pt),
+                        f.OwningSectorCallsign, contesto));
+                }
+
+            _risalita = Vipi.Application.Content.RisalitaScala.Raggruppa(scale);
+        }, null);
+    }
+
+    private string MotivoBreve(Vipi.Application.Content.RisalitaGradino g) => g.Motivo switch
+    {
+        Vipi.Application.Content.RisalitaMotivo.RiceventeScritto => L["Xfer_Ladder_Why_Written"].Value,
+        Vipi.Application.Content.RisalitaMotivo.RigaDichiarata => L["Xfer_Ladder_Why_Row"].Value,
+        Vipi.Application.Content.RisalitaMotivo.Copertura => L["Xfer_Ladder_Why_Coverage"].Value,
+        Vipi.Application.Content.RisalitaMotivo.Padre => L["Xfer_Ladder_Why_Parent"].Value,
+        _ => L["Xfer_Ladder_Why_Unicom"].Value,
+    };
+
+    private string MotivoTesto(Vipi.Application.Content.RisalitaGradino g) => g.Motivo switch
+    {
+        Vipi.Application.Content.RisalitaMotivo.RiceventeScritto => L["Xfer_Ladder_WhyLong_Written"].Value,
+        Vipi.Application.Content.RisalitaMotivo.RigaDichiarata => L["Xfer_Ladder_WhyLong_Row"].Value,
+        Vipi.Application.Content.RisalitaMotivo.Copertura => L["Xfer_Ladder_WhyLong_Coverage"].Value,
+        Vipi.Application.Content.RisalitaMotivo.Padre => L["Xfer_Ladder_WhyLong_Parent"].Value,
+        _ => L["Xfer_Ladder_WhyLong_Unicom"].Value,
+    };
+
+    /// <summary>La fascia come la scrive il resto del sito: `StatsView.Livello` deduce FL o piedi dal numero,
+    /// perche' a schema l'unita' non e' tracciata.</summary>
+    private string FasciaRisalita(Vipi.Application.Content.RisalitaGradino g) =>
+        $"{(g.BaseFeet is int b ? StatsView.Livello(b) : L["Struct_Fallback_Sfc"].Value)}–" +
+        $"{(g.TopFeet is int t ? StatsView.Livello(t) : L["Struct_Fallback_Unl"].Value)}";
+
+    private string EsitoTesto(Vipi.Application.Content.CoverageFallbackResult esito, string? cop) => esito.Outcome switch
+    {
+        Vipi.Application.Content.CoverageFallbackOutcome.NotAPoint => L["Xfer_Coverage_NotAPoint", cop ?? ""].Value,
+        Vipi.Application.Content.CoverageFallbackOutcome.PointUnknown => L["Xfer_Coverage_PointUnknown", cop ?? ""].Value,
+        Vipi.Application.Content.CoverageFallbackOutcome.NoLevel => L["Xfer_Coverage_NoLevel"].Value,
+        Vipi.Application.Content.CoverageFallbackOutcome.NobodyCovers => L["Xfer_Coverage_NobodyCovers", cop ?? ""].Value,
+        _ => "",
+    };
+
+    private void SvuotaSelezione()
+    {
+        _selected.Clear();
+        _puntiSelezionati = 0;
+        _risalita = null;
+    }
+
     // ---- Selezione multipla e modifica in blocco ----
     private readonly HashSet<int> _selected = new();
     private string _bulkLevelText = "", _bulkAreaText = "", _bulkCustomText = "";
@@ -774,6 +943,10 @@
     private void ToggleSelect(int clauseId)
     {
         if (!_selected.Remove(clauseId)) _selected.Add(clauseId);
+        RicalcolaPuntiSelezionati();
+        // ⚠️ Il pannello aperto si CHIUDE quando la selezione cambia: lasciarlo li' mostrerebbe le scale di
+        // righe che non sono piu' selezionate, che e' peggio di non mostrarne nessuna.
+        _risalita = null;
     }
 
     private async Task ApplyBulkLevel()

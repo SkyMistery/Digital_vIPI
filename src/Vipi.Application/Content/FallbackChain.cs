@@ -124,6 +124,38 @@ public static class FallbackChain
     }
 
     /// <summary>
+    /// I candidati come <b>voci ordinate</b> invece che come nomi: serve a chi deve dire non solo CHI
+    /// raccoglie ma <b>perché</b> — il padre, una riga dichiarata, un rinvio.
+    ///
+    /// <para>⚠️ <b>Dalla stessa camminata di <see cref="Candidates"/></b>, col medesimo filtro sulla quota e
+    /// il medesimo risolutore: se fossero due percorsi, la scala mostrata e la ricaduta eseguita potrebbero
+    /// divergere — che è il difetto che tutta questa famiglia di carte esiste per chiudere.</para>
+    ///
+    /// <para>Il settore di partenza <b>non</b> è nel risultato, e i doppioni si perdono tenendo la
+    /// <b>prima</b> voce: due motivi per arrivare allo stesso settore sono un candidato solo, e il primo è
+    /// quello che la risoluzione guarderebbe.</para>
+    /// </summary>
+    public static IReadOnlyList<FallbackStep> OrderedSteps(
+        string sector,
+        int? levelFeet,
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
+        Func<string, string?> parentOf,
+        Func<IReadOnlyList<string>>? resolveCoverage = null)
+    {
+        var visti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(sector)) visti.Add(sector.Trim());
+
+        var esito = new List<FallbackStep>();
+        foreach (var passo in Cammina(sector, declared, parentOf, r => r.AppliesAt(levelFeet), resolveCoverage,
+                     mostraRinviiNonRisolti: false))
+            foreach (var e in passo)
+                if (visti.Add(e.TargetCallsign))
+                    esito.Add(e);
+
+        return esito;
+    }
+
+    /// <summary>
     /// La stessa catena, ma <b>per mostrarla</b>: raggruppata per passo e con la fascia di ogni voce, senza
     /// filtrare su una quota — perché a schermo si vogliono vedere <b>tutte</b> le fasce insieme, ed è
     /// esattamente la domanda «chi si dividerebbe il traffico, e a quali quote».

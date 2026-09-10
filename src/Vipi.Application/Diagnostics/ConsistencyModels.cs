@@ -187,11 +187,27 @@ public sealed class ConsistencyDataset
     /// </summary>
     public IReadOnlyDictionary<string, string?> ProjectedParents { get; init; }
         = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Tutti i punti di trasferimento, uno per riga: la base della scala di risalita.</summary>
+    public IReadOnlyList<TransferLadderRow> TransferLadders { get; init; } = Array.Empty<TransferLadderRow>();
 }
 
 /// <summary>La banda verticale di un settore, coi limiti <b>grezzi</b> del catalogo (l'unità non è tracciata
 /// a schema: la deduce <c>AorFlBand</c>).</summary>
 public sealed record SectorBandRow(string Callsign, int? LowerLimit, int? UpperLimit);
+
+/// <summary>
+/// Un <b>punto</b> di trasferimento come serve a percorrerne la scala di risalita: chi cede, chi riceve, a
+/// che quota, e dove.
+///
+/// <para>⚠️ Una riga per <b>punto</b>, non per clausola: una clausola porta più CoP e ognuno ha la sua
+/// scala. E <b>tutte</b> le clausole, non solo quelle con una condizione — che è il filtro di
+/// <see cref="TransferConditionRow"/>, giusto per quel controllo e sbagliato per questo.</para>
+/// </summary>
+/// <param name="LevelFeet">La quota <b>al trasferimento</b>, già in piedi.</param>
+public sealed record TransferLadderRow(
+    string AccCode, int ClauseId, string Cop, string? NextSectorCallsign,
+    string OwningSectorCallsign, int? LevelFeet);
 
 /// <summary>
 /// La shape di un settore come arriva dalla sorgente, <b>grezza</b>.

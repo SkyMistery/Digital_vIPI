@@ -442,6 +442,122 @@ meccanismo basato sul cedente li passa.
 
 ---
 
+## Parte 10 — La scala di risalita (chiesta il 10 settembre, a lavoro fatto)
+
+Da quando la risposta dipende da chi è online, l'admin non ha più modo di **guardare** una configurazione:
+può solo aspettare di vederla sbagliare. Il committente chiede un attrezzo: seleziono un coordinamento,
+premo un tasto, e il sistema mi dice come risalirebbe.
+
+### Non un nome: tutta la discesa
+
+Un nome solo sarebbe vero per i cinque minuti in cui lo guardi, e verrebbe letto come una proprietà della
+configurazione. Quindi si mostra la **scala**: chi lo prende, e poi — chiuso quello — chi lo prende ancora,
+fino a UNICOM.
+
+```
+GHE · FL140 · ricevente scritto: LIMM_MIL_CTR
+  1  LIMM_MIL_CTR    il ricevente scritto
+  2  LIMM_ES2_CTR    copertura del punto — GHE cade nella sua area
+  3  LIMM_WS2_CTR    copertura del punto — con ES2 chiuso
+  4  UNICOM          esauriti tutti
+```
+
+Ogni gradino porta il **perché**: «il ricevente scritto», «padre», «riga dichiarata FL325–UNL»,
+«copertura del punto». È la differenza fra sapere dove finisce il traffico e sapere se la configurazione fa
+quello che si voleva.
+
+### 🔴 La scala NON è la lista dei candidati
+
+`FallbackChain.Candidates` scioglie il rinvio **una volta** e poi cammina l'albero. Il sistema vero, a ogni
+richiesta, lo **richiede** con l'insieme di chi è online in quel momento. Quindi la simulazione fedele si fa
+per **eliminazione**: risolvi con tutti aperti, chiudi il vincitore, richiedi.
+
+Su Milano le due strade danno lo stesso esito — il padre di ES2 è WS2, che è anche la risposta geometrica —
+e su un albero diverso no. Una scala costruita con una sola chiamata sarebbe **giusta per caso**, cioè il
+genere di attrezzo che convince che il dato sia a posto.
+
+### Il tetto sta sui PUNTI, non sulle clausole
+
+Una clausola porta più CoP, e ogni punto ha la **sua** scala — è il senso della cosa. Un tetto contato sulle
+righe prometterebbe dieci e ne consegnerebbe trenta. **Dieci punti**, una costante sola col motivo accanto.
+
+⚠️ E il tasto spento dice il **numero vero** — «13 punti su 10: seleziona meno righe» — non un «troppi»
+generico: è la regola che ci siamo già dati per i tasti spenti.
+
+### Le scale identiche si raggruppano
+
+Con dieci righe la maggior parte delle scale coincide. Elencarle una per una sarebbe il muro che il tetto
+serve a evitare, e nasconderebbe l'unica cosa che si vuole vedere. Un blocco per scala **distinta**, con
+sotto i punti che la seguono:
+
+```
+LIMM_MIL_CTR → LIMM_ES2_CTR → LIMM_WS2_CTR → UNICOM      7 punti: GHE · NELAB · …
+LIMM_MIL_CTR → LIMM_WS2_CTR → UNICOM                     2 punti: TOP · VOG
+nessuna scala — il rinvio non risponde                   1 punto: Y01-Y12 (non è un punto)
+```
+
+⚠️ Il raggruppamento si fa **dopo** aver risolto, non prima: due punti diversi possono dare la stessa scala,
+e non lo si sa finché non si chiede.
+
+### ✅ Provata dal vivo — 10 settembre 2026
+
+Selezionate due clausole dello **stesso** flusso (cedente `LIPX_ES0_APP`, ricevente `LIMM_MIL_CTR`), il
+pannello ha reso due blocchi:
+
+```
+LIMM_MIL_CTR SCRITTO → LIMM_ES2_CTR COPERTURA → LIMM_WS2_CTR COPERTURA → UNICOM      1 punto: GHE
+LIMM_MIL_CTR SCRITTO → LIMM_WS2_CTR COPERTURA → UNICOM                               1 punto: TOP
+```
+
+E con una clausola da nove punti il raggruppamento ha fatto il suo lavoro — **otto** insieme, e **uno** da
+solo che se ne va a Padova:
+
+```
+LIMM_MIL_CTR → LIMM_ES2_CTR → LIMM_WS2_CTR → UNICOM
+   8 punti: BSM · BRL · IPR · LIN · NOV · SRN · TZO · CAM
+
+LIMM_MIL_CTR → LIMM_ES2_CTR → LIMM_WS2_CTR → LIPP_MIL_CTR → LIPP_CE1_CTR → LIPP_NE3_CTR → UNICOM
+   1 punto: VIL
+```
+
+⚠️ Quel secondo blocco **nessuno l'ha configurato**: `VIL` sta vicino al confine con Padova, e la geometria
+ci ha portato il traffico da sé, col MIL di Padova prima del suo civile. È il caso che il committente aveva
+descritto a parole il 9 settembre, comparso da solo su dati reali.
+
+Il tetto: con 12 punti selezionati il tasto si spegne e dice **«12 points selected, the maximum is 10:
+select fewer rows»** — i numeri veri, e contati sui punti (tre clausole da un punto più una da nove).
+
+⚠️ Un difetto di resa preso lì: **«1 points»**. Singolare e plurale sono **due chiavi**, non una desinenza
+incollata — in inglese la parola che cambia non è in fondo. È la lezione di `XferLabels`, e l'avevo appena
+riletta. 🔴 E la correzione non si è vista al primo riavvio perché avevo riavviato **senza ripubblicare**:
+la trappola «il processo, non il file», pagata un'altra volta.
+
+### E il rilievo che le guarda tutte
+
+Il pannello serve a chi ha un sospetto. Il rilievo serve a non doverne avere uno: percorre la scala di
+**ogni** clausola e segnala quelle che **al secondo gradino finiscono su UNICOM** — cioè i trasferimenti
+che, chiuso il ricevente, non hanno nessuno.
+
+⚠️ Non duplica «CoP senza posizione» (Parte 8): quello dice che il rinvio **non potrà rispondere**, questo
+dice che **la catena non porta da nessuna parte**. Sono due domande, e la seconda è vera anche su un punto
+collocato benissimo.
+
+🔴 **«Finisce su UNICOM» da solo NON è un difetto**, e questa è la correzione più importante del giro dal
+vivo. Sopra un ACC non c'è niente per costruzione: la radice di Brindisi e le radici estere finiscono su
+UNICOM ed è **giusto** così. Il primo giro ne ha segnalati **otto su LIBB, e sei erano ACC esteri** — un
+avviso che grida su dati corretti si impara a ignorare, e allora smette di servire anche quando ha ragione.
+
+Il difetto è un altro: **quel punto lo copre qualcun altro, e la catena non ci arriva**. Si chiede
+richiudendo il solo ricevente e ridomandando alla geometria; se nessun altro copre, il ricevente è davvero
+il tetto e non c'è niente da dire. È il caso di `LIRR_MIL_CTR`, sovrapposto ai civili di Roma e però radice.
+
+⚠️ Se il CoP non ha una posizione, questo rilievo **tace** — e non è un buco: senza la posizione non si può
+sapere se qualcun altro copra, e dirlo sarebbe indovinare. Quella metà la coprono gli altri due rilievi:
+«ricaduta che non copre la quota» lavora sulla **struttura** e non ha bisogno di posizioni, «CoP senza
+posizione» dice **quanti** punti sono ciechi. I tre insieme dicono tutto; ognuno da solo, no.
+
+---
+
 ## Pre-flight (FEATURE-PROCESS)
 
 **1. Modello — aggiungo un concetto o ne esiste già uno?**

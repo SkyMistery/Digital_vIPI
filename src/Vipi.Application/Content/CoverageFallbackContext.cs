@@ -63,6 +63,27 @@ public sealed class CoverageFallbackContext
         Topology topologia, IReadOnlyList<SectorVolumeRow> settori, IReadOnlySet<string> online, CopPositions punti) =>
         new(settori, online, punti, topologia.Fallbacks, topologia.ParentOf);
 
+    /// <summary>
+    /// Lo stesso contesto con un <b>altro</b> insieme di stazioni online: volumi, punti e topologia si
+    /// riusano, le pretese si ricalcolano.
+    ///
+    /// <para>⚠️ Serve alla <b>scala di risalita</b>, che simula per eliminazione: chiude il vincitore e
+    /// richiede. Le pretese dipendono da chi è online — è il motivo per cui non si possono riusare, ed è
+    /// anche il motivo per cui la cache è per QUOTA e non globale.</para>
+    /// </summary>
+    public CoverageFallbackContext Con(IReadOnlySet<string> online) =>
+        new(_settori, online, _punti, _dichiarate, _padreDi);
+
+    /// <summary>I callsign di tutti i settori che hanno un volume: l'insieme «tutti aperti».</summary>
+    public IReadOnlySet<string> TuttiISettori =>
+        new HashSet<string>(_perCallsign.Keys, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Le righe dichiarate, per chi deve camminare la catena accanto a questo contesto.</summary>
+    public IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> Dichiarate => _dichiarate;
+
+    /// <summary>Il padre effettivo, per lo stesso motivo.</summary>
+    public Func<string, string?> PadreDi => _padreDi;
+
     /// <summary>Chi raccoglie il traffico di quel punto se <paramref name="riceventeNominale"/> è chiuso.</summary>
     public CoverageFallbackResult Risolvi(string? cop, int? levelFeet, string? cedente, string? riceventeNominale)
     {
