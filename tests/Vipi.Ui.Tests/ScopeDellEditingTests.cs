@@ -60,6 +60,12 @@ public class ScopeDellEditingTests
         "IEditingService", "IAirportEditingService", "IAirportSectorService",
         "IMilitaryDocumentService", "IAppDocumentService", "IDocumentAdminService",
         "IDocumentUnionService", "IReleaseService",
+        // ⚠️ Aggiunti il 10 settembre 2026 con le SID nel vSOP militare (§CV): `ISidImporter` arriva al
+        // database per `IAirportRepository` e `IImportPolicyStore`, `ISidFixAliasRepository` tiene un
+        // `VipiDbContext` in mano. Sono presi dallo scope proprio — questa riga serve perché resti così.
+        // È la lezione scritta qui sopra applicata a sé stessa: una regola scritta per un nome solo copre
+        // un nome solo.
+        "ISidImporter", "ISidFixAliasRepository",
     };
 
     /// <summary>
