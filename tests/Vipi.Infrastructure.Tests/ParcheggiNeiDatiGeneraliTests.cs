@@ -297,8 +297,12 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
 
         // ⚠️ «airportlayout» sta PRIMA dei parcheggi: e' l'ordine della lista del SOD, e i parcheggi
         // chiudono i dati generali come deciso il 3 settembre 2026.
+        // 🔴 E «sids» sta subito DOPO le piste (10 settembre 2026, committente). Questa riga e' anche la
+        // prova che conta di quel giro: il vSOP di partenza e' VECCHIO e la sezione non ce l'aveva: se
+        // compare qui, `AddMissingCatalogSectionsAsync` la semina davvero nei documenti gia' scritti, e
+        // non solo in quelli nuovi. Senza, la funzione sarebbe accesa solo per i vSOP futuri.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "transition", "callsigns",
+            new[] { "navaids", "frequencies", "diversion", "runways", "sids", "transition", "callsigns",
                     "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));

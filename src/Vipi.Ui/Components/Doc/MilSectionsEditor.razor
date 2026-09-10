@@ -25,6 +25,10 @@
 @inject IDocRoutesRegistry DocRoutes
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
+@inject Vipi.Domain.Services.IAiracService Airac
+@* ⚠️ `INavaidSource` è una discesa da GitHub, non il database: sta fra gli `@inject` come nel pannello
+   civile, e si chiama DOPO il primo disegno. Non è uno dei servizi che passano dallo scope proprio. *@
+@inject INavaidSource CatalogoPunti
 @using Vipi.Application.Content
 @using Vipi.Application.Abstractions
 @using Vipi.Ui.Shared
@@ -285,6 +289,14 @@ else
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
 
+    // ---- le SID (10 settembre 2026, committente) --------------------------------------------------------
+    // ⚠️ Lo stesso stato del pannello civile, perché è lo STESSO dato: le SID stanno nell'anagrafica dello
+    // scalo, e qui c'è un secondo OSPITE di `<AirportSidsEditor>`, non un secondo editor.
+    private List<SidEdit> _sids = new();
+    private List<ImportedSidEdit> _sidsImportate = new();
+    private NavaidCatalog _catalogoNavaid = NavaidCatalog.Empty;
+    private bool _sidLarghe;
+
     // Voce del menu-sezioni per il pannello Release, che sta FUORI da DocumentSectionsEditor: senza, con
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
     /// ⚠️ Solo col chrome: in un editor unito il pannello di pubblicazione e' UNO, dell'ospite, e una
@@ -350,6 +362,8 @@ else
     /// guardava vedeva il riquadro «ricarica la pagina» e da lì in poi nessun clic funzionava.</para>
     /// </summary>
     private Vipi.Application.Abstractions.INavaidCatalog Radioassistenze = default!;
+    private ISidImporter ImportatoreSid = default!;
+    private ISidFixAliasRepository AliasSid = default!;
 
     /// <summary>Gli aeroporti noti, per gli alternati: <b>stesso scope</b>, e per la stessa ragione — si
     /// legge dentro <c>CaricaAlternatiAsync</c>, cioè nel caricamento della pagina.</summary>
@@ -377,6 +391,10 @@ else
         Settori = ScopedServices.GetRequiredService<IAirportSectorService>();
         Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         Radioassistenze = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.INavaidCatalog>();
+        // ⚠️ Dallo scope PROPRIO come tutti gli altri: leggono e scrivono nel database dentro il
+        // caricamento della pagina, cioè dentro il tornello. Vale parola per parola il blocco qui sopra.
+        ImportatoreSid = ScopedServices.GetRequiredService<ISidImporter>();
+        AliasSid = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
@@ -418,9 +436,34 @@ else
         finally { ((IDisposable)this).Dispose(); }
     }
 
-    protected override void OnAfterRender(bool firstRender)
+    /// <summary>⚠️ <c>OnAfterRenderAsync</c> e non <c>async void</c>: un <c>void</c> asincrono ingoia le
+    /// eccezioni fuori dal ciclo di vita del componente, e il guasto uscirebbe dove nessuno lo cerca.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender) _shell.JsReady = true;
+        if (!firstRender) return;
+        _shell.JsReady = true;
+        // ⚠️ DOPO il primo disegno, non prima: è una discesa da GitHub con quindici secondi di timeout, e
+        // metterla in apertura vorrebbe dire una pagina bianca quando la sorgente è lenta. Stessa scelta
+        // del pannello civile, stessa ragione.
+        await CaricaCatalogoPuntiAsync();
+    }
+
+    /// <summary>
+    /// Il catalogo dei punti, per i suggerimenti dei campi «fix» delle SID.
+    /// <para>⚠️ Una sorgente muta NON è un errore dell'editor: si perdono i suggerimenti, non si blocca la
+    /// modifica. Per questo l'eccezione si registra e non si rilancia.</para>
+    /// </summary>
+    private async Task CaricaCatalogoPuntiAsync()
+    {
+        try
+        {
+            _catalogoNavaid = await CatalogoPunti.GetAsync();
+            if (_catalogoNavaid.Entries.Count > 0) StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Catalogo punti non disponibile: i campi punto delle SID restano senza suggerimenti.");
+        }
     }
 
     // ⚠️ OnParametersSetAsync e non OnInitializedAsync: su InteractiveServer il secondo gira UNA VOLTA SOLA,
@@ -504,6 +547,25 @@ else
             Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
         }).ToList();
         _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
+
+        // Le SID, dallo STESSO `AirportData` degli altri tre: una lettura sola per tutta l'anagrafica.
+        var ciclo = Airac.GetCycle(DateTime.UtcNow);
+        _sids = dati.Sids.Where(x => !x.IsImported).Select(x => new SidEdit
+        {
+            Runway = x.Runway, Fix = x.Fix, Name = x.Name, Transition = x.Transition, InitialClimb = x.InitialClimb,
+            InitialClimbByApp = x.InitialClimbByApp, Type = x.Type, Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
+            Priority = x.Priority, IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
+        }).ToList();
+        _sidsImportate = dati.Sids.Where(x => x.IsImported)
+            .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
+            .Select(x => new ImportedSidEdit
+            {
+                Id = x.Id, Fix = x.Fix, Name = x.Name, Runway = x.Runway, Transition = x.Transition, Type = x.Type,
+                Priority = x.Priority, ForcePublished = x.ForcePublished, NeedsReview = x.NeedsFixReview,
+                IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
+                InitialClimb = x.InitialClimb, InitialClimbByApp = x.InitialClimbByApp,
+                Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
+            }).ToList();
     }
 
     /// <summary>
@@ -716,6 +778,18 @@ else
                 <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
                                           Editing="_shell.IsEditing" LinksChanged="SalvaLink" />
                 break;
+            @* Le SID, e SOLO su un campo senza vIPI civile: questo blocco è già dentro `ScaloSenzaCivile`.
+               Sui campi misti resta la nota di rimando all'editor civile — due porte di scrittura sullo
+               stesso dato sono il modo in cui una delle due comincia a mentire. *@
+            case "sids":
+                <NavaidDatalist Entries="_catalogoNavaid.Entries" />
+                <AirportSidsEditor Imported="_sidsImportate" Manual="_sids" RunwayIdents="IdentPiste()"
+                                   Navaids="_catalogoNavaid" Icao="@_icao" Editing="_shell.IsEditing"
+                                   Wide="_sidLarghe" WideChanged="v => _sidLarghe = v"
+                                   ManualChanged="SalvaSid" OnReimport="ReimportaSid"
+                                   PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
+                                   ConfirmAsync="Conferma" />
+                break;
         }
     };
 
@@ -772,6 +846,51 @@ else
         : Task.CompletedTask;
 
     private Task SalvaLink() => _shell.GuardedAsync(() => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+
+    // ---- le SID -----------------------------------------------------------------------------------------
+    //
+    // ⚠️ Le stesse porte del pannello civile (`IAirportEditingService`), perché è lo stesso dato: scriverle
+    // qui cambia le SID dello scalo, non «le SID del vSOP». Su un campo senza vIPI civile questo editor È
+    // l'editor dello scalo — è la stessa decisione del §AS per piste, livelli e frequenze.
+
+    private IReadOnlyList<string> IdentPiste() =>
+        _rwys.Where(r => !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).Distinct().ToList();
+
+    /// <summary>Il ciclo da cui una SID importata è in vigore, o «—» se quel ciclo non si sa leggere.</summary>
+    private string DaCiclo(string? cicloDiOrigine)
+    {
+        if (string.IsNullOrWhiteSpace(cicloDiOrigine)) return "—";
+        try { _ = Airac.EffectiveUtcForCycle(cicloDiOrigine); return cicloDiOrigine.Trim(); }
+        catch (ArgumentException) { return "—"; }
+    }
+
+    private Task SalvaSid() => AirportSaveGate.Sids(_sids)
+        ? _shell.GuardedAsync(() => Scalo.SaveSidsAsync(_icao,
+            _sids.Select(x => new SidRow(0, x.Runway, x.Fix ?? "", x.Name ?? "", x.Transition, x.InitialClimb,
+                x.Type, x.Cat, x.Wtc, x.Condition, Priority: x.Priority,
+                InitialClimbByApp: x.InitialClimbByApp)).ToList()))
+        : Task.CompletedTask;
+
+    /// <summary>⚠️ Il carry fix a mano crea anche l'ALIAS quando glielo si chiede: senza, la stessa
+    /// correzione andrebbe rifatta al prossimo import del sectorfile.</summary>
+    private async Task ScriviSidImportata(ImportedSidEdit e)
+    {
+        string? fissato = null;
+        if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
+        {
+            fissato = e.FixOverride!.Trim();
+            if (e.CreateAlias) await AliasSid.UpsertAsync(e.Fix, fissato);
+        }
+        await Scalo.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, fissato,
+            e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
+        e.IsPublicNow = e.IsPublicNow || e.ForcePublished;
+    }
+
+    private async Task ReimportaSid()
+    {
+        if (await _shell.GuardedAsync(() => ImportatoreSid.ImportForCurrentUserAsync(_icao)))
+            await CaricaDatiScaloAsync();
+    }
 
     // ---- Radioassistenze ------------------------------------------------------------------------------
     //

@@ -31,7 +31,42 @@ public class ProfiloMilitareTests
         // documenti invecchia; uno contato sul profilo no.
         // ⚠️ Quarantatré dal 6 settembre 2026: trentadue meno «qra» (fuori: non sta in nessuno dei quindici
         // PDF) più le dodici dell'indice chiesto dal SOD.
-        Assert.Equal(43, Tutte(Mil).Count());
+        // ⚠️ QUARANTAQUATTRO dal 10 settembre 2026: le SID (committente).
+        Assert.Equal(44, Tutte(Mil).Count());
+    }
+
+    // ---- Le SID (carta 2026-09-10-sid-nel-vsop-militare.md) --------------------------------------------
+
+    /// <summary>
+    /// Le SID stanno in «Dati generali», <b>subito dopo le piste</b> — deciso dal committente.
+    /// <para>🔴 SORELLA e non figlia: figlia starebbe accanto a «Coordinate delle soglie» e porterebbe il
+    /// profilo oltre <c>MaxDepth</c>, che qui è già toccato. Il test lo pinna perché la differenza fra le
+    /// due si vede solo scendendo nell'albero.</para>
+    /// </summary>
+    [Fact]
+    public void Le_SID_stanno_subito_DOPO_le_piste_dentro_i_dati_generali()
+    {
+        var generali = Mil.Single(d => d.Key == "generaldata").Children!.OrderBy(d => d.Order).Select(d => d.Key).ToList();
+
+        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "sids", "transition",
+                             "callsigns", SectionKeys.AirportLayout, "parkings" }, generali);
+        // E non è figlia di «Piste»: là sotto c'è solo la sotto-sezione delle soglie.
+        var piste = Mil.Single(d => d.Key == "generaldata").Children!.Single(d => d.Key == "runways");
+        Assert.Equal(new[] { SectionKeys.RunwayThresholds }, piste.Children!.Select(d => d.Key));
+    }
+
+    /// <summary>
+    /// ⚠️ Le SID sono <b>derivate</b>, come nel profilo civile: la pagina disegna la tabella e non c'è
+    /// nessun blocco di prosa da scrivere. Le code per campo restano sezioni <b>libere</b>.
+    /// </summary>
+    [Fact]
+    public void Le_SID_sono_una_sezione_DERIVATA_senza_blocchi()
+    {
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "sids"));
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "sids"));
+        // ⚠️ La stessa CHIAVE nei due profili, e non è un dettaglio: il congelamento alla release passa per
+        // la chiave, e `AirportFrozenSectionProvider` è lo stesso provider registrato due volte.
+        Assert.NotNull(SectionCatalog.Find(SectionProfile.AirportMil, "sids"));
     }
 
     [Fact]
@@ -48,7 +83,7 @@ public class ProfiloMilitareTests
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
         Assert.Equal(7, Mil.Count);
-        Assert.Equal(8, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(9, Mil.Single(d => d.Key == "generaldata").Children!.Count);
         Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(9, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
@@ -119,10 +154,15 @@ public class ProfiloMilitareTests
 
     // ---- Quel che NON c'è, e di proposito -------------------------------------------------------------
 
+    // 🔴 «sids» stava QUI, con la ragione «l'import SID Aurora non copre i campi militari». Il 10 settembre
+    // 2026 il committente ha chiesto le SID nel vSOP, e la premessa è stata MISURATA sull'archivio vero:
+    // LIBG 18, LIBN 22, LIBV 24 SID importate — tutti campi SOLO MILITARI. La ragione dell'esclusione era
+    // falsa sui dati, quindi l'esclusione è caduta. (LIMN ne ha zero: la sezione lì nasce vuota, ed è vero.)
+    // ⚠️ Non è stata tolta una riga: è stata ribaltata una premessa, e sta scritto qui perché fra sei mesi
+    // la domanda «perché prima no?» abbia una risposta.
     [Theory]
     [InlineData("aor")]           // un aeroporto è un LUOGO: l'AoR è della torre
     [InlineData("coordination")]  // idem
-    [InlineData("sids")]          // l'import SID Aurora non copre i campi militari
     [InlineData("qra")]           // vedi sotto: l'unica che avevamo inventato noi
     public void Cio_che_e_stato_lasciato_fuori_resta_fuori(string chiave) =>
         Assert.DoesNotContain(chiave, Tutte(Mil).Select(d => d.Key));
@@ -203,7 +243,7 @@ public class ProfiloMilitareTests
 
         var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
 
-        Assert.Equal(43, chiavi.Count);
+        Assert.Equal(44, chiavi.Count);
         Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
     }
 

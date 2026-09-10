@@ -328,6 +328,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-10-condizione-area-non-attiva.md`](feature/2026-09-10-condizione-area-non-attiva.md) — Condizione di coordinamento: «area NON attiva» 🟢
 - [`feature/2026-09-10-condizione-piu-aree.md`](feature/2026-09-10-condizione-piu-aree.md) — Condizione di coordinamento: PIÙ aree su una riga 🟢
 - [`feature/2026-09-10-rinvio-geometrico.md`](feature/2026-09-10-rinvio-geometrico.md) — Il ripiego di un settore sovrapposto si risolve sul PUNTO, non sul padre
+- [`feature/2026-09-10-sid-nel-vsop-militare.md`](feature/2026-09-10-sid-nel-vsop-militare.md) — Le SID nel vSOP militare 🟢
 - [`feature/2026-09-10-solo-militare-con-vipi-civile.md`](feature/2026-09-10-solo-militare-con-vipi-civile.md) — Campo «solo militare» con una vIPI civile: dirlo, e dire come uscirne 🟢
 
 ### `guide`

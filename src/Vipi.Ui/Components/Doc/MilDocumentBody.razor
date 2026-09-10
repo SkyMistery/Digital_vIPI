@@ -65,6 +65,18 @@
                uno, e la release lo congela una volta sola sotto la chiave «runways». Due derivazioni della
                stessa tabella potrebbero raccontare due cicli diversi, una sotto l'altra. *@
             case SectionKeys.RunwayThresholds: <MilRunwayThresholds View="Doc.Derivate.Runways" />; break;
+            @* Le SID (10 settembre 2026, committente). Stesso componente della vIPI civile e stessa
+               derivazione: il dato sta nell'ANAGRAFICA dello scalo, non nel documento — la vIPI civile è
+               solo la porta di scrittura. `MilMemberLoader` le calcolava già dentro `AirportDerived` e le
+               buttava via, perché il profilo militare non aveva la sezione.
+               ⚠️ Niente `InitialRunway` né `DepIdents`, e non è una dimenticanza: quelli marcano la pista
+               IN USO ADESSO, che si decide dalle regole piste — una sezione che il profilo militare NON ha.
+               Seminarli qui vorrebbe dire inventare una seconda derivazione di un dato che questo documento
+               non mostra. Il filtro per pista resta, si sceglie a mano. *@
+            case "sids":
+                <AirportSids View="Doc.Derivate.Sids" Lingua="@Doc.Bloccata"
+                             TransitionAltitudeFt="Doc.Derivate.Transition.TransitionAltitudeFt" />;
+                break;
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
                mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. E SOTTO la tabella: nome e
                limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività. *@

@@ -2,6 +2,39 @@
 
 ## Dove siamo — 10 settembre 2026
 
+🆕 **§CV: LE SID NEL vSOP MILITARE.** Chiesto dal committente: *«nelle vSOP andrebbero aggiunte le SID; se ci
+sono delle vIPI civili le SID sono prese da lì, come frequenze e transition altitude»*. Sezione **«SID» in
+Dati generali, subito dopo le Piste** (posizione decisa dal committente).
+
+🔴 **La precisazione che ha tolto tre quarti del lavoro**: le SID **non stanno «nella vIPI»**, stanno
+nell'**anagrafica dello scalo** (`AirportSids`). La vIPI civile è solo la **porta di scrittura**. Quindi in
+lettura **non serve nessun ramo**: il vSOP legge dall'aeroporto, misto o solo militare che sia. Si biforca
+solo la scrittura, e quella biforcazione esiste dal §AS (`ScaloSenzaCivile`).
+
+🔴 **E il vSOP le calcolava GIÀ, buttandole via**: `MilMemberLoader` chiama
+`ResolveForViewAsync(..., AirportMil)`, che torna un `AirportDerived` **con dentro le `Sids`**. Mancava solo
+chi le disegnasse. Il congelamento alla release funzionava già (`AirportFrozenSectionProvider` è lo stesso
+provider registrato due volte, e gestisce la chiave `"sids"`), e la semina nei vSOP **già scritti** pure:
+`AddMissingCatalogSectionsAsync` gira all'avvio e copre i militari. **Nessuna passata nuova da scrivere.**
+
+🔴 **Un test diceva che le SID erano fuori APPOSTA**, con la ragione «l'import SID Aurora non copre i campi
+militari». **Misurata sull'archivio vero: falsa.** LIBG **18**, LIBN **22**, LIBV **24** SID importate — tutti
+campi solo militari. L'esclusione è caduta perché la sua premessa era sbagliata, e **sta scritto lì** perché
+fra sei mesi «perché prima no?» abbia una risposta. (LIMN ne ha zero: lì la sezione nasce vuota, ed è vero.)
+
+⚠️ **Rinumerare il catalogo è innocuo per i documenti già scritti**, verificato:
+`SectionOrdering.OffsetsFromStandard` confronta la **sottosuccessione** delle sole sezioni presenti — «chi
+manca dal documento non lascia un buco» — quindi nessuna sezione si accende come «fuori posto».
+
+✅ Provato dal vivo: all'avvio **«Aggiunte 6 sezioni di catalogo mancanti»**; su **LIBG** (solo militare) la
+sezione c'è in IT e in EN, **dopo le Piste e prima delle Quote di transizione**, con le **18 SID vere** e il
+selettore delle piste, e nell'editor **si scrive lì** (22 campi); su **LIML** (misto) la sezione c'è e
+**rimanda all'editor civile**. **Nessuna migrazione.**
+⚠️ **Trappola dell'attrezzo, la terza in due giorni**: le sotto-sezioni sono `<details><summary>`, non `<h3>`
+— cercandole come intestazioni «sparivano», e il rimando si riconosce **in due lingue**, perché l'app di
+prova gira in inglese anche quando l'URL chiede l'italiano per il contenuto.
+Carta: `docs/feature/2026-09-10-sid-nel-vsop-militare.md`.
+
 🆕 **§CU: UN CAMPO «SOLO MILITARE» CON UNA vIPI CIVILE ADESSO SI DICE, E DICE COME USCIRNE.** Chiesto dal
 committente prima di caricare 1.20.0: *«se un aeroporto per cui esistono già vIPI e vSOP viene marcato come
 military only, cosa succede?»*

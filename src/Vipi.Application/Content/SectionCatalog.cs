@@ -325,11 +325,20 @@ public static class SectionCatalog
                         H(SectionKeys.RunwayThresholds, "Coordinate delle soglie", 1,
                           en: "Threshold coordinates", aud: Piloti),
                     }),
+                    // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
+                    // (`AirportSids`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
+                    // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
+                    // dall'aeroporto, misto o solo militare che sia.
+                    // ⚠️ Sorella di «Piste» e non FIGLIA: figlia starebbe accanto a «Coordinate delle
+                    // soglie» e porterebbe il profilo oltre `MaxDepth`, che qui e' gia' toccato.
+                    // ⚠️ `H` e non `HB`: derivata pura, senza blocchi. Le code per campo -- il «Combat
+                    // departure» di Gioia -- restano sezioni LIBERE, come dice la nota in testa al profilo.
+                    H("sids", "SID", 5),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 5, en: "Transition altitude and levels"),
+                    H("transition", "Quote di transizione", 6, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 6, en: "Callsigns", aud: Piloti),
+                    HB("callsigns", "Nominativi", 7, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -339,11 +348,11 @@ public static class SectionCatalog
                     // motore di riordino sposta solo fra FRATELLI, apposta.
                     // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
                     // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 7, en: "Airport layout"),
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 8, en: "Airport layout"),
                     // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
                     // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
                     // fermato questa modifica una volta, quando la planimetria era finita in coda.
-                    HB("parkings", "Parcheggi", 8, en: "Parking", aud: Piloti, children: new[]
+                    HB("parkings", "Parcheggi", 9, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),
