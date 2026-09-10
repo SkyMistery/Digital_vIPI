@@ -17,19 +17,40 @@ public static class SectorVolumeMap
     /// <summary>
     /// Le pretese di tutte le sessioni online: una per ogni settore coperto che abbia un volume utilizzabile.
     /// </summary>
+    /// <param name="proprietarioDi">
+    /// Come si collassa un settore chiuso su chi lo tiene: callsign → sessione online, o <c>null</c> se
+    /// nessuno lo copre. Omesso ⇒ <see cref="CoverageResolver.Owners"/>, cioè <b>i soli padri</b>.
+    ///
+    /// <para>⚠️ <b>Perché è un parametro e non una costante.</b> <c>CoverageResolver</c> conosce i soli
+    /// <c>ParentCallsign</c>: le righe di ripiego dichiarate <b>no</b>. Con <c>LIMM_ES5_CTR</c> chiuso a
+    /// FL350 la <b>catena</b> risponde <c>WS5</c> (per la riga «FL325–UNL → WS5») e la <b>geometria</b>
+    /// risponderebbe <c>ES2</c> (per il padre): due risposte diverse alla stessa domanda, cioè «due alberi»
+    /// ricostruiti in un posto nuovo. Chi risolve un <b>rinvio</b> passa qui <c>FallbackChain</c> e le due
+    /// tornano a coincidere.</para>
+    ///
+    /// <para>⚠️ Le <b>statistiche</b> continuano a non passarlo, e la differenza resta <b>dichiarata</b>: là
+    /// la domanda è «di chi era quell'aereo», e la catena di ripiego non c'entra. Vedi
+    /// <c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §2 e la carta del 10 settembre 2026.</para>
+    /// </param>
     public static IReadOnlyList<SectorClaim> BuildClaims(
-        IReadOnlyList<SectorVolumeRow> settori, IReadOnlySet<string> online)
+        IReadOnlyList<SectorVolumeRow> settori, IReadOnlySet<string> online,
+        Func<string, string?>? proprietarioDi = null)
     {
         if (settori.Count == 0 || online.Count == 0) return Array.Empty<SectorClaim>();
 
-        var nodi = settori.Select(s => new CoverageNode(s.Callsign, s.ParentCallsign)).ToList();
-        var padroni = CoverageResolver.Owners(nodi, online);
+        if (proprietarioDi is null)
+        {
+            var nodi = settori.Select(s => new CoverageNode(s.Callsign, s.ParentCallsign)).ToList();
+            var padri = CoverageResolver.Owners(nodi, online);
+            proprietarioDi = cs => padri.TryGetValue(cs, out var p) ? p : null;
+        }
+
         var profondita = Depths(settori);
 
         var claims = new List<SectorClaim>();
         foreach (var s in settori)
         {
-            if (!padroni.TryGetValue(s.Callsign, out var padrone) || padrone is null) continue;
+            if (proprietarioDi(s.Callsign) is not { Length: > 0 } padrone) continue;
 
             var volume = VolumeOf(s, settori);
             if (volume is null) continue;   // niente poligono utilizzabile: non rivendica nulla
