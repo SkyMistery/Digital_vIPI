@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text.RegularExpressions;
 using Vipi.Application.Aor;
 
@@ -72,6 +72,17 @@ public static class CoordinateParser
 
     private static readonly char[] Separatori = [';', ',', '|', '\t', ' ', ':'];
 
+    /// <summary>
+    /// I segni che vogliono dire grado, primo e secondo ma non sono quelli: l'apostrofo curvo di Word, il
+    /// primo tipografico, l'accento acuto, l'ordinale maschile al posto del grado.
+    /// </summary>
+    private static readonly (char Strano, char Giusto)[] SegniEquivalenti =
+    [
+        ('\u2019', '\''), ('\u2018', '\''), ('\u2032', '\''), ('\u00B4', '\''), ('`', '\''),
+        ('\u201D', '"'), ('\u201C', '"'), ('\u2033', '"'),
+        ('\u00BA', '\u00B0'), ('\u02DA', '\u00B0'),
+    ];
+
     /// <summary>Legge il testo. Non lancia mai: ciò che non si capisce esce come segnalazione.</summary>
     public static CoordinateReadResult Parse(string? testo)
     {
@@ -101,6 +112,7 @@ public static class CoordinateParser
         }
 
         var gruppi = new List<Gruppo>();
+        var anonimi = new List<Gruppo>();
         Gruppo? anonimo = null;
         var perNome = new Dictionary<string, Gruppo>(StringComparer.OrdinalIgnoreCase);
         var lette = 0;
@@ -158,7 +170,7 @@ public static class CoordinateParser
             // c'è sempre). Due punti nudi sono due vertici scritti sulla stessa riga.
             var segmento = punti.Count == 2 && etichette.Count > 0;
 
-            var gruppo = Prendi(nome, ref anonimo, perNome, gruppi);
+            var gruppo = Prendi(nome, ref anonimo, perNome, gruppi, anonimi);
             gruppo.Tipo ??= tipo;
             if (segmento)
             {
@@ -170,6 +182,8 @@ public static class CoordinateParser
                 gruppo.Vertici.AddRange(punti);
             }
         }
+
+        UnisciSeLeRigheVuoteEranoSpaziatura(anonimi, gruppi, segnalazioni);
 
         var aree = new List<CoordinateArea>();
         foreach (var g in gruppi)
@@ -193,7 +207,7 @@ public static class CoordinateParser
     }
 
     private static Gruppo Prendi(string? nome, ref Gruppo? anonimo,
-        Dictionary<string, Gruppo> perNome, List<Gruppo> tutti)
+        Dictionary<string, Gruppo> perNome, List<Gruppo> tutti, List<Gruppo> anonimi)
     {
         if (nome is not null)
         {
@@ -209,8 +223,45 @@ public static class CoordinateParser
         {
             anonimo = new Gruppo();
             tutti.Add(anonimo);
+            anonimi.Add(anonimo);
         }
         return anonimo;
+    }
+
+    /// <summary>
+    /// 🔴 <b>Una riga vuota separa due aree — ma solo quando c'è un'area da separare.</b> Chi incolla
+    /// dall'AIP si porta dietro una riga bianca fra un vertice e l'altro, e dieci vertici diventavano dieci
+    /// «aree» da un punto: la mappa mostrava dieci puntini e nessun poligono. Segnalato dal committente il
+    /// 10 settembre 2026 su un'area sarda di dieci vertici.
+    ///
+    /// <para>⚠️ <b>La regola è GLOBALE, e deve esserlo.</b> Deciderlo blocco per blocco («chiudi solo se
+    /// questo blocco ha già due punti») spezza l'elenco a metà: il primo blocco resta di un punto, il
+    /// secondo ne accumula due, e da lì in poi ogni riga bianca taglia davvero. Quindi la domanda si fa una
+    /// volta sola, alla fine: <b>se nessun blocco anonimo arriva a due punti, le righe vuote erano
+    /// spaziatura</b>.</para>
+    ///
+    /// <para>⚠️ Non tocca né i gruppi col nome né i blocchi a segmenti: lì dove finisce un'area lo dice il
+    /// file, e indovinarlo al posto suo sarebbe un altro difetto. E resta vero il caso che il difetto NON
+    /// riguarda: due elenchi da due punti separati da una riga bianca sono due aree, come prima.</para>
+    /// </summary>
+    private static void UnisciSeLeRigheVuoteEranoSpaziatura(
+        List<Gruppo> anonimi, List<Gruppo> tutti, List<CoordinateIssue> segnalazioni)
+    {
+        if (anonimi.Count < 2) return;
+        foreach (var g in anonimi)
+            if (g.DaSegmenti || g.Vertici.Count > 1) return;
+
+        var primo = anonimi[0];
+        for (var i = 1; i < anonimi.Count; i++)
+        {
+            primo.Vertici.AddRange(anonimi[i].Vertici);
+            primo.Tipo ??= anonimi[i].Tipo;
+            tutti.Remove(anonimi[i]);
+        }
+
+        // Non si fa in silenzio: chi incolla deve sapere che i suoi blocchi sono diventati uno.
+        segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RigheVuoteIgnorate, 0, "",
+            anonimi.Count.ToString(CultureInfo.InvariantCulture)));
     }
 
     private static CoordinateArea? DaVertici(Gruppo g)
@@ -282,6 +333,25 @@ public static class CoordinateParser
         return riga.Trim();
     }
 
+    /// <summary>
+    /// Riporta a <c>°</c>, <c>'</c> e <c>"</c> i segni che l'AIP e i programmi d'ufficio scrivono in altri modi.
+    ///
+    /// <para>🔴 <b>I DUE APOSTROFI.</b> Copiando dall'AIP italiana i secondi arrivano scritti
+    /// <c>41°07'24''N</c>: due apostrofi, non una virgoletta. <see cref="RxSimboli"/> cerca <c>"</c> o
+    /// <c>″</c>, quindi quel pezzo non era una coordinata — diventava un'<b>etichetta</b>, e il punto spariva
+    /// senza che niente sembrasse rotto. Segnalato dal committente il 10 settembre 2026.</para>
+    ///
+    /// <para>⚠️ L'ordine conta: i due apostrofi diventano una virgoletta <b>dopo</b> che gli apici curvi sono
+    /// diventati dritti, altrimenti <c>24’’N</c> resta fuori.</para>
+    /// </summary>
+    private static string NormalizzaSegni(string riga)
+    {
+        foreach (var (strano, giusto) in SegniEquivalenti)
+            if (riga.IndexOf(strano) >= 0) riga = riga.Replace(strano, giusto);
+
+        return riga.Contains("''", StringComparison.Ordinal) ? riga.Replace("''", "\"") : riga;
+    }
+
     /// <summary>Angolo letto: il valore assoluto in gradi e l'emisfero se dichiarato (null = da dedurre).</summary>
     /// <summary>
     /// Un angolo letto da un pezzo di riga.
@@ -296,7 +366,7 @@ public static class CoordinateParser
     {
         // Le forme a spazi e a due punti diventano simboliche PRIMA di spezzare: se si spezzasse per primo,
         // «41 59 26 N» diventerebbe quattro pezzi e nessuno di loro sarebbe una coordinata.
-        riga = riga.ToUpperInvariant();
+        riga = NormalizzaSegni(riga.ToUpperInvariant());
         riga = RxSpaziEmisferoDietro.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"{m.Groups["h"].Value}");
         riga = RxSpaziEmisferoDavanti.Replace(riga, m => $"{m.Groups["h"].Value}{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
         riga = RxDuePunti.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");

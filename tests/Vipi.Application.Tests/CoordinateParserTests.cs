@@ -1,4 +1,4 @@
-using Vipi.Application.Coordinates;
+﻿using Vipi.Application.Coordinates;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -254,6 +254,94 @@ public class CoordinateParserTests
 
         Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.TroppeRighe);
         Assert.Equal(CoordinateParser.MaxRighe, esito.RigheLette);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
+    // Le due segnalazioni del 10 settembre 2026, tutt'e due nate incollando dall'AIP italiana.
+    // ---------------------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴I secondi dell'AIP sono scritti con DUE APOSTROFI, non con la virgoletta. Prima non erano una
+    /// coordinata: diventavano un'etichetta, e il punto spariva senza che niente sembrasse rotto.
+    /// </summary>
+    [Theory]
+    [InlineData("41\u00b007'24''N,018\u00b052'12''E")]              // come esce dall'AIP
+    [InlineData("41\u00b007'24\"N,018\u00b052'12\"E")]               // la stessa cosa scritta a regola
+    [InlineData("41\u00b007\u201924\u2019\u2019N,018\u00b052\u201912\u2019\u2019E")]  // e con gli apostrofi curvi di Word
+    public void I_Secondi_Si_Leggono_Anche_Con_Due_Apostrofi(string riga)
+    {
+        var esito = CoordinateParser.Parse(riga);
+
+        var p = Assert.Single(Assert.Single(esito.Aree).Punti);
+        Assert.Equal(41.123333, p.Lat, 5);
+        Assert.Equal(18.87, p.Lon, 5);
+        Assert.Empty(esito.Segnalazioni);
+    }
+
+    /// <summary>
+    /// 🔴Un'area sarda di dieci vertici, incollata dall'AIP con una riga bianca fra un vertice e
+    /// l'altro: usciva come DIECI aree da un punto, cioè dieci puntini e nessun poligono.
+    ///
+    /// <para>⚠️ La regola nuova è globale: se nessun blocco anonimo arriva a due punti, le righe vuote
+    /// erano spaziatura. Un punto solo non è un'area, e non lo diventa perché ha una riga bianca sotto.</para>
+    /// </summary>
+    [Fact]
+    public void Un_Vertice_Per_Blocco_Non_Fa_Dieci_Aree_Da_Un_Punto()
+    {
+        var daAip = string.Join("\n\n", new[]
+        {
+            "40\u00b020'00\"N 008\u00b010'00\"E;",
+            "40\u00b020'00\"N 008\u00b015'00\"E;",
+            "40\u00b009'00\"N 008\u00b027'30\"E;",
+            "39\u00b045'20\"N 008\u00b043'10\"E;",
+            "39\u00b006'09\"N 008\u00b043'10\"E;",
+            "38\u00b059'46\"N 008\u00b056'02\"E;",
+            "38\u00b046'24\"N 008\u00b058'41\"E;",
+            "38\u00b039'08\"N 008\u00b050'58\"E;",
+            "39\u00b000'00\"N 008\u00b000'00\"E;",
+            "40\u00b013'15\"N 008\u00b000'00\"E;",
+        });
+
+        var esito = CoordinateParser.Parse(daAip);
+
+        var area = Assert.Single(esito.Aree);
+        Assert.Equal(10, area.Punti.Count);
+        Assert.Equal(40.333333, area.Punti[0].Lat, 5);
+        Assert.Equal(8.166667, area.Punti[0].Lon, 5);
+        Assert.Equal(40.220833, area.Punti[^1].Lat, 5);
+        Assert.True(area.SiChiude);   // dieci vertici sono un anello, e la mappa deve chiuderlo
+
+        // ⚠️ E non si fa in silenzio: chi incolla deve sapere che i suoi blocchi sono diventati uno.
+        var detto = Assert.Single(esito.Segnalazioni);
+        Assert.Equal(CoordinateIssueKind.RigheVuoteIgnorate, detto.Kind);
+        Assert.Equal("10", detto.Dettaglio);
+    }
+
+    /// <summary>
+    /// ⚠️ Il caso che la regola nuova NON deve toccare, ed è quello che il difetto somigliava: due
+    /// elenchi VERI separati da una riga bianca restano due aree. Basta che un blocco arrivi a due punti.
+    /// </summary>
+    [Fact]
+    public void Due_Elenchi_Separati_Da_Una_Riga_Vuota_Restano_Due_Aree()
+    {
+        var esito = CoordinateParser.Parse("42:11\n42.5:11.5\n\n43:12");
+
+        Assert.Equal(2, esito.Aree.Count);
+        Assert.Equal(2, esito.Aree[0].Punti.Count);
+        Assert.Single(esito.Aree[1].Punti);
+        Assert.DoesNotContain(esito.Segnalazioni, x => x.Kind == CoordinateIssueKind.RigheVuoteIgnorate);
+    }
+
+    /// <summary>Un nome nel testo comanda sempre: quelle aree non si uniscono mai per una riga bianca.</summary>
+    [Fact]
+    public void I_Blocchi_Col_Nome_Non_Si_Uniscono()
+    {
+        var esito = CoordinateParser.Parse(
+            "N042.00.28.000;E011.58.06.000;N041.59.26.000;E011.59.00.000;RESTRICT;R14A;\n\n" +
+            "N043.00.00.000;E012.00.00.000;N043.10.00.000;E012.10.00.000;RESTRICT;R107B;");
+
+        Assert.Equal(2, esito.Aree.Count);
+        Assert.DoesNotContain(esito.Segnalazioni, x => x.Kind == CoordinateIssueKind.RigheVuoteIgnorate);
     }
 
     [Fact]

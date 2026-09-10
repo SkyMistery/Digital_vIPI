@@ -11068,3 +11068,48 @@ stava entrando, il caso senza eccezione, e che `RegistraLogin` scriva **davvero*
   colpo**. Quel giorno `1.18.2` è morto senza arresto ordinato (`avvii.txt`, riga delle 12:31:14Z: «era
   partito 03:33:01 prima»), e un processo che muore non scrive niente per definizione. Lo dice solo
   `avvii.txt`, ed è già così.
+## §CQ — Il convertitore e l'AIP: due apostrofi e una riga bianca — 10 settembre 2026
+
+Due segnalazioni del committente, tutt'e due nate **incollando dall'AIP italiana**, e tutt'e due invisibili
+alla suite: il convertitore non si rompeva, faceva una cosa diversa da quella che serviva.
+
+### 1. I secondi si scrivono con DUE APOSTROFI
+
+Dall'AIP le coordinate escono `41°07'24''N,018°52'12''E`: i secondi non hanno la virgoletta, hanno **due
+apostrofi**. `RxSimboli` cerca `"` o `″`, quindi quel pezzo **non era una coordinata**: diventava
+un'**etichetta**, e il punto spariva. 🔴 Il modo peggiore di sbagliare, perché niente sembra rotto.
+
+✅ `NormalizzaSegni` riporta a `°`, `'` e `"` anche gli apici curvi di Word (`’ ‘ ” “`), il primo e il
+secondo tipografici (`′ ″`), l'accento acuto, il backtick e l'ordinale maschile (`º`) usato al posto del
+grado — poi **due apostrofi diventano una virgoletta**. ⚠️ In quest'ordine: se i due apostrofi si
+convertissero per primi, `24’’N` resterebbe fuori.
+
+### 2. Una riga vuota separava un'area sola in dieci
+
+Un'area sarda di dieci vertici, incollata con una riga bianca fra un vertice e l'altro, usciva come **dieci
+aree da un punto**: dieci puntini e nessun poligono. La riga vuota chiude il blocco anonimo — regola giusta,
+nata dai `.vfi`, e c'è un test che la difende — ma **un punto solo non è un'area**.
+
+✅ La regola nuova: **se nessun blocco anonimo arriva a due punti, le righe vuote erano spaziatura** e i
+vertici si riuniscono.
+
+🔴 ⚠️ **E deve essere GLOBALE, decisa alla fine.** Il primo tentativo era «chiudi solo se questo blocco ha
+già due punti», e spezza l'elenco a metà: il primo blocco resta di un punto, il secondo ne accumula due, e
+da lì in poi ogni riga bianca taglia davvero. Dieci vertici sarebbero usciti in cinque aree da due invece
+che in dieci da uno — un difetto più difficile da vedere del precedente.
+
+⚠️ Non tocca **né i gruppi col nome né i blocchi a segmenti**: lì dove finisce un'area lo dice il file. E il
+caso che il difetto somigliava resta com'era: due elenchi veri separati da una riga bianca sono due aree.
+
+⚠️ **E non si fa in silenzio**: nasce `CoordinateIssueKind.RigheVuoteIgnorate` (dettaglio = quanti blocchi),
+con la frase nelle due lingue. Un motore che unisce blocchi senza dirlo è un motore di cui non ci si fida.
+
+### Le prove
+
+5 test nuovi in `CoordinateParserTests` (i due apostrofi in tre scritture, l'area sarda dei dieci vertici,
+i due elenchi che **restano** due, i gruppi col nome che non si uniscono).
+
+✅ **Rifatte sul parser di PRIMA: 3 rosse su 4**, e la seconda dice il difetto con le sue parole — «The
+collection contained 10 items». Una prova che non distingue le due versioni non prova niente.
+
+Suite: **2 372** verdi in `Vipi.Application.Tests` e **1 447** in `Vipi.Ui.Tests`, su net8 e net10.
