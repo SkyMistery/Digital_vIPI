@@ -11069,8 +11069,7 @@ stava entrando, il caso senza eccezione, e che `RegistraLogin` scriva **davvero*
   partito 03:33:01 prima»), e un processo che muore non scrive niente per definizione. Lo dice solo
   `avvii.txt`, ed è già così.
 
-✅ **FUSA in `main`** (merge `2af50168`) e **CONSEGNATA in 1.19.1** — pacchetto pronto, **non ancora
-caricato**.
+✅ **FUSA in `main`** (merge `2af50168`) e ✅ **ONLINE in 1.19.1** dal 10 settembre 2026 (pomeriggio).
 
 ---
 
@@ -11120,12 +11119,11 @@ collection contained 10 items». Una prova che non distingue le due versioni non
 
 Suite: **2 372** verdi in `Vipi.Application.Tests` e **1 447** in `Vipi.Ui.Tests`, su net8 e net10.
 
-✅ **FUSA in `main`** (merge `e79038a8`) e **CONSEGNATA in 1.19.1** — pacchetto pronto, **non ancora
-caricato**.
+✅ **FUSA in `main`** (merge `e79038a8`) e ✅ **ONLINE in 1.19.1** dal 10 settembre 2026 (pomeriggio).
 
 ---
 
-## Il pacchetto 1.19.1 — 10 settembre 2026
+## Il pacchetto 1.19.1 — 10 settembre 2026, ✅ ONLINE
 
 **PATCH.** Timbro `1.19.1 · c58ad07d`, zip
 `8f2cfef5e0aba31d2de9009aa330019ead8dd9006eb3f7ba00152828957bea26`, **7 file**, foglio
@@ -11152,3 +11150,27 @@ assente»: la stessa prova rifatta sul publish del commit **`6f38e58`** — la v
 ⚠️ E il primo giro ne dava **due**: «0 schede ACC» era il **database vuoto** del publish di prova, e si è
 visto ricopiando il DB di sviluppo — 4 schede. Un rosso ambientale letto come difetto avrebbe mandato a
 cercare un guasto che non c'era.
+
+### Caricata, e come si è provato che è ARRIVATA
+
+✅ **CARICATA il 10 settembre 2026 (pomeriggio), e viva**: otto controlli pubblici verdi — JS minificato
+servito, circuito aperto, 4 schede ACC, **Ricerca viva** (passa dal server), foglio di stile in vigore,
+console pulita.
+
+🔴 **Ma «il sito è vivo» non è «sono arrivati QUESTI sette file», e qui la prova solita non c'è**: il
+pacchetto non porta asset (niente sha da confrontare sul servito), il **timbro** da anonimo non si legge, e
+le due voci nuove stanno **dietro il login**.
+
+✅ **La prova d'arrivo è §CP stessa.** `GET /Error` è pubblico, e 1.19.0 quella riga **non sa scriverla**:
+chiamata da fuori alle **14:39:11 UTC**, ha risposto 200 col codice
+`00-c840e2061e76f58e4353e16d2de4fe6b-5758aabf4926ea41-00`. Se in `diagnostica/errori-richieste.txt` c'è la
+riga `NOTA … pagina /Error servita SENZA eccezione … codice 00-c840e206…`, allora il `Vipi.Host.dll` nuovo è
+quello che gira.
+⚠️ È lo stesso genere di prova dello «Schema 0» di 1.19.0: **una cosa che la versione di prima non sa
+fare** — non un'impronta, non un numero di versione.
+
+▶ **Restano due controlli che vogliono il login, e li fa il committente:**
+1. **Il convertitore** (`/services/coordinates`): incollare l'area sarda **con le righe vuote** e i secondi
+   a **due apostrofi** ⇒ **un'area sola da dieci vertici**, chiusa, più la riga «righe vuote ignorate».
+   È quello che prova `Vipi.Application.dll` e `Vipi.Ui.dll`.
+2. **Scaricare `errori-richieste.txt`** e cercarci quel codice.

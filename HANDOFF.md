@@ -1,9 +1,9 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 10 settembre 2026 — 📦 **1.19.1 è PRONTA e NON ancora caricata**; 1.19.0 è
-ONLINE dalle 12:31 UTC. Albero pulito e spinto, Release verde su nove progetti di test, 0 avvisi.
+**Ultimo aggiornamento:** 10 settembre 2026 (pomeriggio) — ✅ **1.19.1 è CARICATA**, otto controlli
+pubblici verdi. Albero pulito e spinto, Release verde su nove progetti di test, 0 avvisi.
 
-📦 **1.19.1 — PRONTA, DA CARICARE.** Timbro `1.19.1 · c58ad07d`, sha256 dello zip
+✅ **1.19.1 — CARICATA il 10 settembre 2026.** Timbro `1.19.1 · c58ad07d`, sha256 dello zip
 `8f2cfef5e0aba31d2de9009aa330019ead8dd9006eb3f7ba00152828957bea26`, **7 file** — il pacchetto più piccolo
 da mesi — foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.19.1.md).
@@ -22,8 +22,30 @@ finestra cieca. Porta **§CP** e **§CQ**, tutt'e due nate da segnalazioni del 1
   ⚠️ La regola nuova sulle righe vuote è **globale, decisa alla fine**: farla blocco per blocco spezza
   l'elenco a metà (cinque aree da due), che è peggio del difetto di partenza.
 
-✅ **Provata sul PACCHETTO**, non sul sorgente: publish win-x64 guidato con Edge — JS minificato servito,
-circuito aperto, **Ricerca viva** (passa dal server), editor ACC che si apre, console pulita, timbro
+✅ **CARICATA il 10 settembre 2026 (pomeriggio), e viva**: otto controlli pubblici verdi — JS minificato
+servito, circuito aperto, 4 schede ACC, **Ricerca viva** (passa dal server), foglio di stile in vigore,
+console pulita.
+
+🔴 **Ma «il sito è vivo» non è «sono arrivati QUESTI sette file», e qui la prova solita non c'è**: il
+pacchetto non porta asset (niente sha da confrontare sul servito), il **timbro** da anonimo non si legge, e
+le due voci nuove stanno **dietro il login**.
+
+✅ **La prova d'arrivo è §CP stessa.** `GET /Error` è pubblico, e 1.19.0 quella riga **non sa scriverla**:
+chiamata da fuori alle **14:39:11 UTC**, ha risposto 200 col codice
+`00-c840e2061e76f58e4353e16d2de4fe6b-5758aabf4926ea41-00`. Se in `diagnostica/errori-richieste.txt` c'è la
+riga `NOTA … pagina /Error servita SENZA eccezione … codice 00-c840e206…`, allora il `Vipi.Host.dll` nuovo è
+quello che gira.
+⚠️ È lo stesso genere di prova dello «Schema 0» di 1.19.0: **una cosa che la versione di prima non sa
+fare** — non un'impronta, non un numero di versione.
+
+▶ **Restano due controlli che vogliono il login, e li fa il committente:**
+1. **Il convertitore** (`/services/coordinates`): incollare l'area sarda **con le righe vuote** e i secondi
+   a **due apostrofi** ⇒ **un'area sola da dieci vertici**, chiusa, più la riga «righe vuote ignorate».
+   È quello che prova `Vipi.Application.dll` e `Vipi.Ui.dll`.
+2. **Scaricare `errori-richieste.txt`** e cercarci quel codice.
+
+✅ **E prima di consegnarla, provata sul PACCHETTO** e non sul sorgente: publish win-x64 guidato con Edge —
+JS minificato servito, circuito aperto, **Ricerca viva**, editor ACC che si apre, console pulita, timbro
 `1.19.1 · c58ad07` in `avvio-diagnostica.txt`.
 ⚠️ **E il rosso che resta è di 1.19.0 uguale**: il «pannello traduzioni assente» compare **identico**
 rifacendo la stessa prova sul publish del commit `6f38e58`, che è la versione online. Una prova che non
