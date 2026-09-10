@@ -472,8 +472,19 @@ public class SectorFallback
     /// <summary>Ordine di consultazione fra le righe dello stesso settore: più basso = prima.</summary>
     public int Order { get; set; }
 
-    /// <summary>Chi raccoglie il traffico.</summary>
-    public string TargetCallsign { get; set; } = default!;
+    /// <summary>
+    /// Se il bersaglio è un <b>nome</b> o una <b>domanda</b>. Colonna aggiunta il 10 settembre 2026, additiva
+    /// e con default <see cref="FallbackTargetKind.Callsign"/>: a colonna nuova e nessun rinvio scritto il
+    /// comportamento è identico riga per riga a quello di prima.
+    /// </summary>
+    public FallbackTargetKind TargetKind { get; set; }
+
+    /// <summary>
+    /// Chi raccoglie il traffico. <b>Null</b> quando <see cref="TargetKind"/> è
+    /// <see cref="FallbackTargetKind.Coverage"/>: lì il nome non esiste finché non c'è un punto a cui
+    /// chiederlo.
+    /// </summary>
+    public string? TargetCallsign { get; set; }
 
     /// <summary>Piede della fascia in <b>piedi</b>, incluso. Null = nessun limite in basso.</summary>
     public int? BaseFeet { get; set; }

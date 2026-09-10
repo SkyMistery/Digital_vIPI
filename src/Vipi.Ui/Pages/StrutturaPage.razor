@@ -290,11 +290,11 @@
                                                          Disabled="@_busy"
                                                          Max="12"
                                                          NoMatch="@L["Struct_Fallback_NoMatch"]"
-                                                         Items="BersagliPossibili(sel, _ripieghi[idx].TargetCallsign)"
-                                                         Text="@_ripieghi[idx].TargetCallsign"
+                                                         Items="BersagliPossibili(sel, _ripieghi[idx].TargetCallsign ?? string.Empty)"
+                                                         Text="@(_ripieghi[idx].TargetCallsign ?? string.Empty)"
                                                          TextChanged="t => CambiaBersaglio(idx, t)"
                                                          OnPick="i => CambiaBersaglio(idx, i?.Value)">
-                                            @if (BersaglioSconosciuto(_ripieghi[idx].TargetCallsign))
+                                            @if (BersaglioSconosciuto(_ripieghi[idx].TargetCallsign ?? string.Empty))
                                             {
                                                 <span class="fb-warn" title="@L["Struct_Fallback_UnknownTitle"]">@L["Struct_Fallback_Unknown"]</span>
                                             }
@@ -1291,8 +1291,8 @@
         var dichiarate = new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase);
         if (_ripieghiSalvati.Count > 0)
             dichiarate[sel.Callsign] = _ripieghiSalvati
-                .Where(r => r.TargetCallsign.Length > 0)
-                .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet)).ToList();
+                .Where(r => !string.IsNullOrEmpty(r.TargetCallsign) || r.Kind == FallbackTargetKind.Coverage)
+                .Select(r => new FallbackRow(r.TargetCallsign ?? "", r.BaseFeet, r.TopFeet, r.Kind)).ToList();
 
         string? Padre(string cs) => byCs.TryGetValue(cs, out var n) ? n.EffectiveParentCallsign : null;
 

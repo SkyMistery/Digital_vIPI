@@ -6,6 +6,30 @@ public enum SectorType { Del, Gnd, Twr, ITwr, App, Ctr }
 /// <summary>Natura del settore: aeroportuale o di area (ACC). Determina l'API IVAO usata per le shape.</summary>
 public enum SectorKind { Airport, Acc }
 
+/// <summary>
+/// Che cosa dice una riga di ripiego: <b>un nome</b> o <b>una domanda</b>.
+///
+/// <para>⚠️ <b>Perché non basta il callsign.</b> Un settore <b>sovrapposto</b> — <c>MIL</c>, e con lui
+/// <c>FSS</c> — copre SFC–UNL su tutto l'ACC, quindi non è il sottoalbero di nessuno: sotto di lui ci sono
+/// due settori d'area, e oltre confine quelli di un altro centro. Un bersaglio scritto è <b>un</b> nome e
+/// non può nominarli tutti; il rinvio lo chiede al punto di trasferimento. Carta
+/// <c>docs/feature/2026-09-10-rinvio-geometrico.md</c>.</para>
+/// </summary>
+public enum FallbackTargetKind
+{
+    /// <summary>Il bersaglio è scritto: <c>TargetCallsign</c> lo porta. È il caso di sempre, e il default.</summary>
+    Callsign,
+
+    /// <summary>
+    /// Il bersaglio è <b>chi copre il punto di trasferimento</b> a quella quota, adesso. <c>TargetCallsign</c>
+    /// è vuoto: il nome non c'è finché non c'è un punto a cui chiederlo.
+    ///
+    /// <para>⚠️ Chi risolve senza un punto in mano (il proprietario di un flusso, il disegno della catena)
+    /// <b>salta</b> la riga: la catena prosegue sul padre, cioè come si è sempre comportata.</para>
+    /// </summary>
+    Coverage,
+}
+
 /// <summary>Per gli APP (<see cref="SectorType.App"/>): la doc vive nella vIPI di ACC (Remotized) o in un documento proprio (Standalone).</summary>
 public enum ApproachKind { Remotized, Standalone }
 

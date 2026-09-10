@@ -1,7 +1,16 @@
+using Vipi.Domain;
+
 namespace Vipi.Application.Content;
 
 /// <summary>Una riga di ripiego come si edita: bersaglio e fascia. L'ordine lo dà la posizione nella lista.</summary>
-public sealed record FallbackRowEdit(string TargetCallsign, int? BaseFeet, int? TopFeet);
+/// <param name="TargetCallsign">
+/// Il bersaglio scritto. <b>Vuoto</b> quando <paramref name="Kind"/> è
+/// <see cref="FallbackTargetKind.Coverage"/>: lì il nome non c'è, e una riga lasciata a metà nell'editor si
+/// riconosce proprio dal fatto che il nome manca <i>senza</i> essere un rinvio.
+/// </param>
+public sealed record FallbackRowEdit(
+    string? TargetCallsign, int? BaseFeet, int? TopFeet,
+    FallbackTargetKind Kind = FallbackTargetKind.Callsign);
 
 /// <summary>
 /// La catena di ripiego <b>dichiarata</b> di un settore: leggerla, riscriverla, e farsela proporre dalla

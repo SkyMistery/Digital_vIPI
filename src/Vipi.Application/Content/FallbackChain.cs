@@ -6,10 +6,17 @@ namespace Vipi.Application.Content;
 /// Una riga di ripiego <b>dichiarata</b>: chi riceve il traffico di un settore chiuso, e in quale fascia di
 /// quota. Quote nulle = riga sempre valida.
 /// </summary>
-/// <param name="TargetCallsign">Il settore che raccoglie.</param>
+/// <param name="TargetCallsign">Il settore che raccoglie. Vuoto quando <paramref name="Kind"/> è un rinvio.</param>
 /// <param name="BaseFeet">Piede della fascia in piedi, <b>incluso</b>. Null = nessun limite in basso.</param>
 /// <param name="TopFeet">Tetto della fascia in piedi, <b>escluso</b>. Null = nessun limite in alto.</param>
-public readonly record struct FallbackRow(string TargetCallsign, int? BaseFeet, int? TopFeet)
+/// <param name="Kind">
+/// Se il bersaglio è un nome o una domanda. ⚠️ Sta in fondo <b>con un default</b> di proposito: le righe
+/// scritte prima del 10 settembre 2026 sono tutte callsign, e ogni chiamante che le costruisce a tre campi
+/// continua a dire la stessa cosa che diceva.
+/// </param>
+public readonly record struct FallbackRow(
+    string TargetCallsign, int? BaseFeet, int? TopFeet,
+    FallbackTargetKind Kind = FallbackTargetKind.Callsign)
 {
     /// <summary>
     /// Se la riga vale a quella quota. Il piede è incluso e il tetto escluso: due fasce scritte
@@ -36,10 +43,18 @@ public readonly record struct FallbackRow(string TargetCallsign, int? BaseFeet, 
 /// <param name="BaseFeet">Piede della fascia in piedi (incluso). Null = nessun limite.</param>
 /// <param name="TopFeet">Tetto della fascia in piedi (escluso). Null = nessun limite.</param>
 /// <param name="FromParent">Vero se è il padre di copertura, cioè la coda implicita della catena.</param>
+/// <param name="Kind">
+/// Da che genere di riga viene la voce. ⚠️ Con <see cref="FallbackTargetKind.Coverage"/> e
+/// <paramref name="TargetCallsign"/> <b>vuoto</b> la voce è un rinvio <i>non risolto</i>: è così che la
+/// disegna il pannello, che un punto in mano non ce l'ha. Con il callsign valorizzato è un rinvio
+/// <b>risolto</b>, e il nome è la risposta che ha dato quel punto.
+/// </param>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
 // compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
-public readonly record struct FallbackStep(string TargetCallsign, int? BaseFeet, int? TopFeet, bool FromParent);
+public readonly record struct FallbackStep(
+    string TargetCallsign, int? BaseFeet, int? TopFeet, bool FromParent,
+    FallbackTargetKind Kind = FallbackTargetKind.Callsign);
 
 /// <summary>
 /// La catena di ripiego di un settore <b>a una data quota</b>: i candidati a ricevere il suo traffico, in
@@ -71,11 +86,24 @@ public static class FallbackChain
     /// </summary>
     /// <param name="declared">callsign → sue righe dichiarate, <b>già in ordine</b>. Assente = nessuna riga.</param>
     /// <param name="parentOf">Il padre effettivo di un callsign, o null. È la coda della catena.</param>
+    /// <param name="resolveCoverage">
+    /// Come si scioglie un <b>rinvio</b> (<see cref="FallbackTargetKind.Coverage"/>): torna zero o più
+    /// callsign, e zero è una risposta legittima — il punto non ha una posizione, o non lo copre nessuno.
+    ///
+    /// <para>⚠️ <b>Omesso, un rinvio non produce niente</b> e la catena prosegue sul padre: è il
+    /// comportamento di sempre, ed è il motivo per cui i chiamanti che un punto non ce l'hanno non cambiano
+    /// di una riga.</para>
+    ///
+    /// <para>🔴 <b>Chi lo passa non deve consultare rinvii al suo interno.</b> Il collassatore che il rinvio
+    /// usa per sapere chi tiene un settore chiuso è a sua volta una catena: se anche quella sciogliesse i
+    /// rinvii, si girerebbe in tondo. Un giro, e basta.</para>
+    /// </param>
     public static IReadOnlyList<string> Candidates(
         string sector,
         int? levelFeet,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
-        Func<string, string?> parentOf)
+        Func<string, string?> parentOf,
+        Func<IReadOnlyList<string>>? resolveCoverage = null)
     {
         var risultato = new List<string>();
         if (string.IsNullOrWhiteSpace(sector)) return risultato;
@@ -86,7 +114,8 @@ public static class FallbackChain
         risultato.Add(sector.Trim());
         visti.Add(sector.Trim());
 
-        foreach (var passo in Cammina(sector, declared, parentOf, r => r.AppliesAt(levelFeet)))
+        foreach (var passo in Cammina(sector, declared, parentOf, r => r.AppliesAt(levelFeet), resolveCoverage,
+                     mostraRinviiNonRisolti: false))
             foreach (var e in passo)
                 if (visti.Add(e.TargetCallsign))
                     risultato.Add(e.TargetCallsign);
@@ -110,7 +139,7 @@ public static class FallbackChain
         string sector,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
         Func<string, string?> parentOf) =>
-        Cammina(sector, declared, parentOf, _ => true);
+        Cammina(sector, declared, parentOf, _ => true, resolveCoverage: null, mostraRinviiNonRisolti: true);
 
     /// <summary>
     /// La camminata in ampiezza, sola e condivisa. Ogni giro produce <b>un passo</b>: tutte le voci a quella
@@ -125,11 +154,18 @@ public static class FallbackChain
     /// successivi. Dentro lo <b>stesso</b> passo, invece, i motivi convivono.</para>
     /// </summary>
     /// <param name="accetta">Quali righe dichiarate contano. Con la quota, la ricaduta; sempre vero, il disegno.</param>
+    /// <param name="mostraRinviiNonRisolti">
+    /// Vero per il <b>disegno</b>: un rinvio senza risolutore esce come voce con il callsign vuoto, così il
+    /// pannello può scrivere «⟨la copertura del punto⟩» dove la catena passa di lì. Falso per chi
+    /// <b>risolve</b>: lì una voce senza nome non è un candidato, è rumore.
+    /// </param>
     private static List<IReadOnlyList<FallbackStep>> Cammina(
         string sector,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> declared,
         Func<string, string?> parentOf,
-        Func<FallbackRow, bool> accetta)
+        Func<FallbackRow, bool> accetta,
+        Func<IReadOnlyList<string>>? resolveCoverage,
+        bool mostraRinviiNonRisolti)
     {
         var passi = new List<IReadOnlyList<FallbackStep>>();
         if (string.IsNullOrWhiteSpace(sector)) return passi;
@@ -158,8 +194,35 @@ public static class FallbackChain
             {
                 if (declared.TryGetValue(x, out var righe))
                     foreach (var r in righe)
-                        if (accetta(r) && !string.IsNullOrWhiteSpace(r.TargetCallsign))
-                            Aggiungi(new FallbackStep(r.TargetCallsign, r.BaseFeet, r.TopFeet, FromParent: false));
+                    {
+                        if (!accetta(r)) continue;
+
+                        if (r.Kind == FallbackTargetKind.Coverage)
+                        {
+                            // ⚠️ Senza risolutore il rinvio NON produce un candidato: chi risolve lo salta e
+                            // prosegue sul padre (il comportamento di sempre), chi disegna lo mostra come voce
+                            // senza nome — perché il nome, senza un punto, non esiste.
+                            if (resolveCoverage is null)
+                            {
+                                if (mostraRinviiNonRisolti)
+                                {
+                                    var voce = new FallbackStep("", r.BaseFeet, r.TopFeet, FromParent: false,
+                                        FallbackTargetKind.Coverage);
+                                    if (giaInQuestoPasso.Add(voce)) passo.Add(voce);   // non si cammina da un rinvio non risolto
+                                }
+                                continue;
+                            }
+
+                            foreach (var cs in resolveCoverage())
+                                if (!string.IsNullOrWhiteSpace(cs))
+                                    Aggiungi(new FallbackStep(cs, r.BaseFeet, r.TopFeet, FromParent: false,
+                                        FallbackTargetKind.Coverage));
+                            continue;
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(r.TargetCallsign))
+                            Aggiungi(new FallbackStep(r.TargetCallsign!, r.BaseFeet, r.TopFeet, FromParent: false));
+                    }
 
                 if (parentOf(x) is { Length: > 0 } padre)
                     Aggiungi(new FallbackStep(padre, null, null, FromParent: true));

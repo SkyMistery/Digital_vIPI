@@ -2436,9 +2436,14 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("TargetCallsign")
-                        .IsRequired()
                         .HasMaxLength(32)
                         .HasColumnType("TEXT");
+
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Callsign");
 
                     b.Property<int?>("TopFeet")
                         .HasColumnType("INTEGER");
