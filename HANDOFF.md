@@ -1,7 +1,41 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 10 settembre 2026 (pomeriggio) — ✅ **1.19.1 è CARICATA**, otto controlli
-pubblici verdi. Albero pulito e spinto, Release verde su nove progetti di test, 0 avvisi.
+**Ultimo aggiornamento:** 10 settembre 2026 (sera) — 📦 **1.20.0 è PRONTA e NON CARICATA**. Albero pulito
+e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+
+📦 **1.20.0 — PRONTA, DA CARICARE.** Timbro `1.20.0 · 775170f3`, sha256 dello zip
+`c60337408711a3b45b34c43941e62dcb49a2cde0f1ba8ee28c5015409a865504`, **13 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md).
+**MINOR**, **due migrazioni**, **niente `wwwroot`**. Si consegna da sola: non serve sostituire il database.
+
+- 🔴 **§CR — la PORTA decide l'ordine di una pagina unita.** Aprendo la vIPI si legge prima la vIPI,
+  aprendo il vSOP prima il vSOP. Il concetto di «ospite» **non esiste più**, e con lui il rimando: −180
+  righe nette, cinque chiavi di traduzione tolte e una nuova.
+  ⚠️ **È l'unica cosa che cambia un comportamento PUBBLICO**: l'indirizzo di un membro che prima
+  reindirizzava adesso risponde. Lo stesso contenuto vive a N indirizzi, in N ordini — voluto.
+- 🟢 **§CS — la condizione d'area ha una polarità**: «con la $406 **non** attiva».
+- 🟢 **§CT — le aree si elencano**, col senso «ne basta una qualunque / valgono tutte», e le frasi si
+  adattano: «con A **o** B **attive**» · «con A **e** B **non attive**».
+
+🔴 **Il file da non dimenticare è `Vipi.Infrastructure.MySqlMigrations.dll`**: senza, le colonne non
+nascono e il pacchetto **sembra funzionare** — le due funzioni nuove restano spente e non danno nessun
+segnale. La prova da fuori è la riga **Schema** in `admin/diagnostics`: dev'essere **0**.
+⚠️ **E `Vipi.Host.dll` entra anche se il suo codice non è cambiato**: il timbro è un `AssemblyMetadata` di
+quel progetto, e senza la pagina direbbe ancora «1.19.1».
+
+⚠️ **Una deroga scritta, da togliere quando scade.** La migrazione `PiuAreeNellaCondizione` porta un
+`AlterColumn` (80→200) che cade nella finestra cieca: il presidio l'ha fermata e sta in `RevisionateAMano`
+**con la ragione** — allargamento, `Up` che non può troncare né fallire, tabella da **60 righe**. **Se il
+pacchetto esce dopo il 16 settembre 2026, quella voce e il file del presidio vanno tolti.**
+
+✅ **Provata SUL PACCHETTO** (publish win-x64 avviato dalla sua cartella): i dieci controlli di
+`pacchetto-verifica.js` verdi — Ricerca compresa — più otto sui lavori nuovi: le tre porte dell'unione che
+**non rimandano**, **Schema 0**, i due comandi nuovi nel pannello, e due aree aggiunte davvero col typeahead
+che escono come «with AT Molise **or** AT Basilicata active» col pill `area AT Molise / AT Basilicata`.
+
+---
+
+✅ **1.19.1 — CARICATA il 10 settembre 2026**, otto controlli pubblici verdi.
 
 ✅ **1.19.1 — CARICATA il 10 settembre 2026.** Timbro `1.19.1 · c58ad07d`, sha256 dello zip
 `8f2cfef5e0aba31d2de9009aa330019ead8dd9006eb3f7ba00152828957bea26`, **7 file** — il pacchetto più piccolo

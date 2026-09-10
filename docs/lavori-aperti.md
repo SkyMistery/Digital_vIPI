@@ -2,6 +2,41 @@
 
 ## Dove siamo — 10 settembre 2026
 
+📦 **1.20.0 È PRONTA E NON CARICATA.** Timbro **`1.20.0 · 775170f3`**, sha256 dello zip
+**`c6033740…`**, **13 file**, 4,83 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`.
+**MINOR** con **due migrazioni**, niente `wwwroot`. Porta **§CR**, **§CS** e **§CT**.
+▶ **Il gesto che resta: caricarla via FTP**, col nome finto e poi la rinomina.
+
+**Le prove fatte sul PACCHETTO**, non sul sorgente (publish win-x64 avviato dalla sua cartella):
+✅ i **dieci controlli** di `pacchetto-verifica.js`, Ricerca compresa — è quella che distingue un sito vivo
+da uno mezzo caricato.
+✅ **Schema 0**: le due migrazioni si applicano da sole al primo avvio del binario pubblicato, e le colonne
+nuove ci sono.
+✅ Le **tre porte** dell'unione di Gioia **non rimandano** più, e ognuna mette sé stessa in testa.
+✅ I due comandi nuovi nel pannello della clausola, e **due aree aggiunte davvero** col typeahead: la frase
+esce «with AT Molise **or** AT Basilicata active», il pill dice `area AT Molise / AT Basilicata`.
+✅ Timbro letto in `diagnostica/avvio-diagnostica.txt`: `1.20.0 · 775170f`.
+
+🔴 **I due file da non sbagliare.** `Vipi.Infrastructure.MySqlMigrations.dll` porta le colonne: senza, il
+pacchetto **sembra funzionare** e le funzioni nuove restano spente **senza dare nessun segnale**. E
+`Vipi.Host.dll` entra anche se il suo codice non è cambiato, perché il **timbro** è un `AssemblyMetadata`
+di quel progetto — senza, la pagina direbbe ancora «1.19.1».
+
+⚠️ **Una deroga scritta, con una scadenza.** L'`AlterColumn` di `PiuAreeNellaCondizione` cade nella
+finestra cieca: sta in `RevisionateAMano` **con la ragione** (allargamento, `Up` che non può troncare né
+fallire, tabella da 60 righe). ▶ **Se si carica dopo il 16 settembre, quella voce e
+`MigrazioniDellaFinestraCiecaTests` vanno tolti** — una deroga che sopravvive alla finestra è una regola
+travestita da eccezione.
+
+⚠️ **E §CR cambia un comportamento PUBBLICO**: l'indirizzo di un membro unito che prima reindirizzava
+adesso risponde e disegna. È quel che è stato chiesto, non un effetto collaterale — ma va detto a chi
+guarda il sito dopo il caricamento.
+
+⚠️ **Trappola dell'attrezzo pagata preparando questo pacchetto**: `rm -rf` e `dotnet publish` **nello stesso
+comando** hanno lasciato un publish **parziale** (25 file su 374), e l'errore che ne usciva parlava di
+`hostpolicy.dll` mancante in `C:\Program Files\dotnet\` — cioè accusava l'installazione di .NET invece
+del publish a metà. **Si contano i file prima di crederci.**
+
 🆕 **§CT: PIÙ AREE in una condizione, e la frase si adatta.** Chiesto dal committente subito dopo §CS. Chip
 con la ✕ + typeahead nel pannello della clausola **e** nella barra della scrittura in blocco, più un selettore
 **«ne basta una qualunque» / «valgono tutte»** — decisione del committente, perché il senso naturale
