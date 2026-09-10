@@ -10,6 +10,10 @@ public sealed record CoverageChildRow(string Name, string Badge, string BadgeCla
 /// <param name="Banda">Testo della fascia già composto (es. «FL325–UNL»); <c>null</c> = vale a ogni quota.</param>
 /// <param name="DalPadre">Vero se la voce è il padre di copertura, cioè la coda implicita della catena.</param>
 /// <param name="Online">Vero se quel settore è in frequenza adesso: è la voce che il traffico prenderebbe.</param>
+/// <param name="Rinvio">
+/// Vero se la voce e' un <b>rinvio</b> non risolto: <paramref name="Callsign"/> e' vuoto, perche' il nome
+/// senza un punto non esiste. Il pannello disegna la catena e un punto in mano non ce l'ha.
+/// </param>
 public sealed record FallbackChainRow(
     string Callsign, string Badge, string BadgeClass, string AccCode,
-    string? Banda = null, bool DalPadre = false, bool Online = false);
+    string? Banda = null, bool DalPadre = false, bool Online = false, bool Rinvio = false);

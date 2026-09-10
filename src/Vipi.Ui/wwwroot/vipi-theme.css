@@ -2355,6 +2355,16 @@
 /* Spia «non nei cataloghi»: mentre si batte lo e' quasi sempre, quindi tenue - e' un avviso, non un errore. */
 :where(.vipi-root) .struct .fb-warn{display:inline-block;margin-top:4px;font-size:11px;font-family:var(--font-head);font-weight:700;
                  background:var(--tint-yellow);color:var(--warn-ink);border:1px solid var(--line-yellow);border-radius:5px;padding:1px 6px}
+/* Il genere della riga: sta SOPRA il campo del nome perche' lo spegne, e va letto prima. */
+:where(.vipi-root) .struct .fb-kind{display:flex;gap:6px;align-items:center;margin-bottom:6px;
+                 font-size:11.5px;font-family:var(--font-head);font-weight:700;color:var(--ink-soft);cursor:pointer}
+:where(.vipi-root) .struct .fb-kind input{margin:0}
+/* Un rinvio non risolto: in corsivo, perche' NON e' un callsign e non deve sembrarlo. */
+:where(.vipi-root) .fb-rinvio{font-style:italic;color:var(--ink-soft)}
+/* Perche' quel ricevente: l'etichetta del rinvio accanto al nome, sulla riga live. Tenue - e' una
+   spiegazione, non un avviso - ma PRESENTE: un rinvio muto e' indistinguibile da un guasto. */
+:where(.vipi-root) .xl-rinvio{margin-left:5px;font-size:10px;font-family:var(--font-head);font-weight:700;
+                 text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);cursor:help}
 :where(.vipi-root) .struct .fb-sug{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0}
 :where(.vipi-root) .struct .fb-sug .muted{font-size:11.5px}
 :where(.vipi-root) .struct .fb-acts{display:flex;gap:8px;align-items:center;margin-top:10px}

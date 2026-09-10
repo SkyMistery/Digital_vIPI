@@ -714,6 +714,11 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>No fallback and no parent: when this sector is offline, traffic goes to UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>any level</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>parent</value></data>
+  <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>point coverage</value></data>
+  <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>The target is not a name but a question: who covers the transfer point, at that level, right now. It is for overlapping sectors (MIL, FSS), which cover a whole ACC and therefore have no single parent.</value></data>
+  <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>The name is decided by the transfer point: nothing to type here.</value></data>
+  <data name="Struct_Fallback_Seq_Coverage" xml:space="preserve"><value>the point coverage</value></data>
+  <data name="Struct_Fallback_Seq_CoverageTitle" xml:space="preserve"><value>Who takes over depends on where the transfer point is: it cannot be said here, because this page has no points. It shows in Transfers, row by row.</value></data>
   <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>all exhausted, traffic goes to UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>How the fallback chain works</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Who takes this sector's traffic when it is offline.&lt;/b&gt; The rows below are read &lt;b&gt;in order&lt;/b&gt;, and each one may apply only within an altitude band: the first row that applies and whose target is online takes the traffic. Once the rows run out, the fallback continues up the &lt;b&gt;parent&lt;/b&gt; chain as it always did — which is why a sector with no rows behaves exactly as before.&lt;br/&gt;&lt;br/&gt;It matters when the airspace split is &lt;b&gt;vertical&lt;/b&gt;: with Milan split in two up to FL305 and a single sector open above, upper-east traffic goes to upper-west, not to lower-east, which is its parent.&lt;br/&gt;&lt;br/&gt;⚠️ A transfer point that &lt;b&gt;does not state an altitude&lt;/b&gt; cannot be resolved vertically: only rows without a band apply to it.</value></data>
@@ -2538,6 +2543,13 @@
   <data name="AorColor_ColorOf" xml:space="preserve"><value>Colour of {0}</value></data>
   <data name="AorColor_ResetTitle" xml:space="preserve"><value>Restore the default colour for this station type</value></data>
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Operational condition</value></data>
+  <data name="Xfer_Coverage_Tag" xml:space="preserve"><value>coverage</value></data>
+  <data name="Xfer_Coverage_TagNone" xml:space="preserve"><value>coverage ?</value></data>
+  <data name="Xfer_Coverage_Resolved" xml:space="preserve"><value>Receiver chosen by point coverage: {1} covers point {0} at this level.</value></data>
+  <data name="Xfer_Coverage_NotAPoint" xml:space="preserve"><value>Point coverage does not apply: «{0}» is not a point (it is an airway range, a STAR or «ALL»). Write the fallback for this row by hand.</value></data>
+  <data name="Xfer_Coverage_PointUnknown" xml:space="preserve"><value>Point coverage does not apply: no catalogue locates point «{0}». You can give it coordinates from the navaid register.</value></data>
+  <data name="Xfer_Coverage_NoLevel" xml:space="preserve"><value>Point coverage does not apply: this row carries no transfer level.</value></data>
+  <data name="Xfer_Coverage_NobodyCovers" xml:space="preserve"><value>Point coverage found nobody: at this level point «{0}» is not covered by any online area unit.</value></data>
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calm</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Document information</value></data>

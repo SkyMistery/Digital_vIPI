@@ -34,11 +34,23 @@
                         <div class="fb-seq-alt @(r.Online ? "live" : null)">
                             <span class="fb-band @(r.Banda is null ? "any" : null)">@(r.Banda ?? L["Struct_Fallback_Seq_AnyLevel"].Value)</span>
                             <span class="fb-arrow">→</span>
-                            @if (r.Online) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
-                            <b>@r.Callsign</b>
-                            <span class="node-badge @r.BadgeClass">@r.Badge</span>
-                            <span class="acc-tag">@r.AccCode</span>
-                            @if (r.DalPadre) { <span class="fb-seq-tag">@L["Struct_Fallback_Seq_FromParent"]</span> }
+                            @if (r.Rinvio)
+                            {
+                                @* ⚠️ Un rinvio qui NON si risolve: il nome dipende dal punto di trasferimento,
+                                   e questa pagina i punti non li ha. Mostrarlo come voce senza nome e' l'unica
+                                   cosa vera che si possa dire, e dirlo e' obbligatorio - un rinvio muto e'
+                                   indistinguibile da un ripiego mancante. *@
+                                <b class="fb-rinvio">@L["Struct_Fallback_Seq_Coverage"]</b>
+                                <span class="fb-seq-tag" title="@L["Struct_Fallback_Seq_CoverageTitle"]">?</span>
+                            }
+                            else
+                            {
+                                @if (r.Online) { <span class="onl-dot" title="@L["Struct_OnlineNow"]"></span> }
+                                <b>@r.Callsign</b>
+                                <span class="node-badge @r.BadgeClass">@r.Badge</span>
+                                <span class="acc-tag">@r.AccCode</span>
+                                @if (r.DalPadre) { <span class="fb-seq-tag">@L["Struct_Fallback_Seq_FromParent"]</span> }
+                            }
                         </div>
                     }
                 </div>

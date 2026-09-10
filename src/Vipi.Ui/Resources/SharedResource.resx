@@ -719,6 +719,11 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>Nessun ripiego e nessun padre: se questo settore e' chiuso, il traffico va su UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>ogni quota</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>padre</value></data>
+  <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>copertura del punto</value></data>
+  <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>Il bersaglio non e' un nome ma una domanda: chi copre il punto di trasferimento, a quella quota, adesso. Serve ai settori sovrapposti (MIL, FSS), che coprono tutto l'ACC e quindi non hanno un padre solo.</value></data>
+  <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>Il nome lo decide il punto di trasferimento: qui non si scrive.</value></data>
+  <data name="Struct_Fallback_Seq_Coverage" xml:space="preserve"><value>la copertura del punto</value></data>
+  <data name="Struct_Fallback_Seq_CoverageTitle" xml:space="preserve"><value>Chi raccoglie dipende da dove sta il punto di trasferimento: qui non si puo' dire, perche' questa pagina i punti non li ha. Si vede nei Trasferimenti, riga per riga.</value></data>
   <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>esauriti tutti, il traffico va su UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>Come funziona la catena di ripiego</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Chi riceve il traffico di questo settore quando è chiuso.&lt;/b&gt; Le righe qui sotto si consultano &lt;b&gt;in ordine&lt;/b&gt;, e ognuna può valere solo in una fascia di quota: la prima che vale e il cui bersaglio è online si prende il traffico. Esaurite le righe, la ricaduta prosegue sul &lt;b&gt;padre&lt;/b&gt; come ha sempre fatto — per questo un settore senza righe si comporta esattamente come prima.&lt;br/&gt;&lt;br/&gt;Serve quando la divisione dello spazio aereo è &lt;b&gt;verticale&lt;/b&gt;: con Milano divisa in due fino a FL305 e un solo settore aperto sopra, il traffico alto dell'est va all'alto dell'ovest, non al basso dell'est che è il suo padre.&lt;br/&gt;&lt;br/&gt;⚠️ Un punto di trasferimento che &lt;b&gt;non dichiara la quota&lt;/b&gt; non può essere risolto in verticale: per lui valgono solo le righe senza fascia.</value></data>
@@ -2546,6 +2551,13 @@
   <data name="AorColor_ColorOf" xml:space="preserve"><value>Colore di {0}</value></data>
   <data name="AorColor_ResetTitle" xml:space="preserve"><value>Ripristina il colore di default per tipo-ente</value></data>
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Condizione operativa</value></data>
+  <data name="Xfer_Coverage_Tag" xml:space="preserve"><value>rinvio</value></data>
+  <data name="Xfer_Coverage_TagNone" xml:space="preserve"><value>rinvio ?</value></data>
+  <data name="Xfer_Coverage_Resolved" xml:space="preserve"><value>Ricevente scelto dal rinvio: {1} copre il punto {0} a questa quota.</value></data>
+  <data name="Xfer_Coverage_NotAPoint" xml:space="preserve"><value>Il rinvio non si applica: «{0}» non e' un punto (e' un tratto di aerovie, una STAR o «ALL»). Il ripiego per questa riga va scritto a mano.</value></data>
+  <data name="Xfer_Coverage_PointUnknown" xml:space="preserve"><value>Il rinvio non si applica: nessun catalogo colloca il punto «{0}». Si puo' dargli una coordinata dall'anagrafica delle radioassistenze.</value></data>
+  <data name="Xfer_Coverage_NoLevel" xml:space="preserve"><value>Il rinvio non si applica: questa riga non porta una quota al trasferimento.</value></data>
+  <data name="Xfer_Coverage_NobodyCovers" xml:space="preserve"><value>Il rinvio non ha trovato nessuno: a questa quota il punto «{0}» non e' coperto da nessun ente d'area online.</value></data>
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Informazioni sul documento</value></data>
