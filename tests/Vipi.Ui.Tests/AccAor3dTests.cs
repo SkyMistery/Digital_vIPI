@@ -132,4 +132,42 @@ public class AccAor3dTests : TestContext
         var payload = cut.Find(".aor3d-stage").GetAttribute("data-sectors3d")!;
         Assert.Contains("\"fl\":[0,660]", payload);           // GND / UNL di default
     }
+    /// <summary>
+    /// 🔴 Il testo della banda arriva al payload come <c>flText</c>, e il JS lo preferisce al «FL…» che
+    /// calcolava da se'. Segnalato dal committente il 10 settembre 2026: nell'AoR delle aree BOAT le quote
+    /// uscivano in FL dove sono PIEDI — su <c>AT Basilicata</c> (150 ft – 1000 ft) usciva «FL150».
+    /// </summary>
+    [Fact]
+    public void Il_testo_della_banda_arriva_al_payload()
+    {
+        var view = new AccAorView(
+            new[]
+            {
+                new AccSectorAor("11167", "AT Basilicata", "#0D2C99", new[] { Poly() }, 2, 10,
+                    Label: "AT Basilicata", BandText: "150 ft – 1000 ft"),
+            },
+            System.Array.Empty<AccConfigSelection>());
+
+        var payload = RenderComponent<AccAor3d>(p => p.Add(x => x.View, view))
+            .Find(".aor3d-stage").GetAttribute("data-sectors3d")!;
+
+        // \u26a0\ufe0f Il confronto si ferma prima del trattino: il serializzatore lo scrive come \u2013, e
+        // un'asserzione col carattere vero fallirebbe per l'escaping invece che per il merito.
+        Assert.Contains("\"flText\":\"150 ft", payload);
+        Assert.Contains("1000 ft\"", payload);
+    }
+
+    /// <summary>Per un SETTORE vero il testo non c'e', e il JS ricade sul FL calcolato: e' giusto cosi'.</summary>
+    [Fact]
+    public void Un_settore_senza_testo_lascia_il_ripiego_al_JS()
+    {
+        var view = new AccAorView(
+            new[] { new AccSectorAor("LIRR_NE_CTR", "NE", "#0D2C99", new[] { Poly() }, 245, 355) },
+            System.Array.Empty<AccConfigSelection>());
+
+        var payload = RenderComponent<AccAor3d>(p => p.Add(x => x.View, view))
+            .Find(".aor3d-stage").GetAttribute("data-sectors3d")!;
+
+        Assert.Contains("\"flText\":null", payload);
+    }
 }
