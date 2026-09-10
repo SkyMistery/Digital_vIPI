@@ -10366,6 +10366,34 @@ testa a `TranslationReviewPanel` resta dov'è, per il suo caso: qui il precedent
 **saltato** dopo un salvataggio lascerebbe a schermo il livello vecchio sotto un messaggio che dice
 «salvato». Chi è già dentro rifà il giro per chi ha trovato la porta chiusa.
 
+### ✅ E la scala di risalita — chiesta il 10 settembre a lavoro fatto (Parte 10)
+
+Il committente non aveva piu' modo di **guardare** una configurazione: da quando la risposta dipende da chi
+e' online, poteva solo aspettare di vederla sbagliare. Selezioni le clausole, premi «Come risale», e il
+pannello mostra la **discesa per intero**, col perche' di ogni gradino.
+
+🔴 **La scala non e' la lista dei candidati**: `Candidates` scioglie il rinvio una volta e poi cammina
+l'albero, il sistema vero lo **richiede** a ogni richiesta. Si simula per **eliminazione**. Su Milano le due
+strade coincidono per caso, su un altro albero no.
+
+Il tetto sta sui **punti** (dieci) e non sulle clausole, e le scale identiche si **raggruppano** — dieci
+righe diventano due o tre blocchi invece di un muro.
+
+✅ **Provato dal vivo.** Una clausola da nove punti si e' divisa in **8 + 1**, e l'uno — `VIL`, vicino al
+confine — se ne va a **Padova** passando per `LIPP_MIL_CTR` prima del suo civile. Nessuno l'aveva
+configurato: e' comparso da solo dalla geometria vera. E' il caso che il committente aveva descritto a parole
+il 9 settembre.
+
+🔴 **Il rilievo, al primo giro, gridava su dati corretti**: otto riceventi segnalati su LIBB, e **sei erano
+ACC esteri**. Sopra un ACC non c'e' niente per costruzione. Ora si segnala solo se quel punto **lo copre
+qualcun altro** e la catena non ci arriva — il caso di `LIRR_MIL_CTR`.
+
+⚠️ **E il rilievo ha trovato una cosa vera**: `LIMM_WS5_CTR` parte da FL325 e nessuno della sua catena ha
+niente a quella quota. E' il buco **simmetrico** a quello che la riga su ES5 chiude — e in produzione c'e'.
+
+⚠️ Due difetti di resa presi dal vivo: **«1 points»** (singolare e plurale sono DUE chiavi) e la correzione
+che non si vedeva perche' avevo **riavviato senza ripubblicare** — «il processo, non il file», di nuovo.
+
 ### ▶ Che cosa resta
 
 1. ✅ L'**attesa** del caricamento alle pagine, non solo ai cinque editor: la terza porta, qui sopra.
@@ -10943,6 +10971,8 @@ di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella p
 
 - ▶ **Slice 9, in produzione e a mano**: la riga «⟨copertura del punto⟩» sui cinque MIL d'ACC, e i **tre
   padri di Roma**. Poi si verifica **da fuori**.
+- ▶ **`LIMM_WS5_CTR` non ha nessun ripiego a FL325**, e in produzione e' cosi': il buco simmetrico a quello
+  che la riga su ES5 chiude. Una riga sola, e la trova il rilievo nuovo.
 - 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
   Roma ha cinque radici in tutto: da guardare col committente.
 - ▶ Il ramo **non è fuso** e **non è in un pacchetto**: porta una migrazione additiva, quindi la consegna
