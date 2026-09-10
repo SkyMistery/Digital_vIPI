@@ -93,7 +93,7 @@ public sealed class TopologyBuilder : ITopologyProvider
     {
         var righe = await _db.SectorFallbacks.AsNoTracking()
             .OrderBy(r => r.SectorCallsign).ThenBy(r => r.Order)
-            .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet })
+            .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
             .ToListAsync(ct);
 
         return righe
@@ -101,7 +101,7 @@ public sealed class TopologyBuilder : ITopologyProvider
             .ToDictionary(
                 g => g.Key,
                 g => (IReadOnlyList<FallbackRow>)g
-                    .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet)).ToList(),
+                    .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
                 StringComparer.OrdinalIgnoreCase);
     }
 

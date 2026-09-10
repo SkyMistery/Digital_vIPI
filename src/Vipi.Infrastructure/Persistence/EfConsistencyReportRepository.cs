@@ -10,7 +10,19 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
 {
     private readonly VipiDbContext _db;
-    public EfConsistencyReportRepository(VipiDbContext db) => _db = db;
+    private readonly IAgreementRepository? _accordi;
+
+    /// <param name="accordi">
+    /// Serve ai punti di trasferimento (<see cref="ConsistencyDataset.TransferLadders"/>): chi riceve un
+    /// punto lo decide l'<b>espansione</b> degli accordi, e rifarla a mano qui sarebbe un secondo modello
+    /// della stessa cosa. ⚠️ Facoltativo: senza, quel pezzo del report non si fa — e i test che guardano
+    /// altro non devono montarlo.
+    /// </param>
+    public EfConsistencyReportRepository(VipiDbContext db, IAgreementRepository? accordi = null)
+    {
+        _db = db;
+        _accordi = accordi;
+    }
 
     public async Task<ConsistencyDataset> LoadAsync(CancellationToken ct = default)
     {
@@ -83,9 +95,38 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                 .ToListAsync(ct))
             .ToList();
 
+        // Le bande dichiarate dei settori visibili, per il rilievo «ricaduta che non copre la quota».
+        var bande = (await _db.AccSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorBandRow(x.ComposePosition, x.LowerLimit, x.UpperLimit))
+                .ToListAsync(ct))
+            .Concat(await _db.AirportSectors.AsNoTracking()
+                .Where(x => !x.IsHidden)
+                .Select(x => new SectorBandRow(x.ComposePosition, x.LowerLimit, x.UpperLimit))
+                .ToListAsync(ct))
+            .ToList();
+
+        var ripieghi = (await _db.SectorFallbacks.AsNoTracking()
+                .OrderBy(r => r.SectorCallsign).ThenBy(r => r.Order)
+                .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
+                .ToListAsync(ct))
+            .GroupBy(r => r.SectorCallsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                g => g.Key,
+                g => (IReadOnlyList<Vipi.Application.Content.FallbackRow>)g
+                    .Select(r => new Vipi.Application.Content.FallbackRow(
+                        r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
+                StringComparer.OrdinalIgnoreCase);
+
+        // L'albero PROIETTATO, per confrontarlo con quello dei cataloghi.
+        var proiettati = await ProjectedParentsAsync(ct);
+
         return new ConsistencyDataset
         {
             SectorShapes = shapes,
+            SectorBands = bande,
+            Fallbacks = ripieghi,
+            ProjectedParents = proiettati,
             TransferConditions = conditions,
             RunwayIdents = runwayIdents,
             AreaNames = areaNames,
@@ -96,7 +137,52 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             RegulatedRefs = await LoadRegulatedRefsAsync(ct),
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
+            TransferLadders = await PuntiDiTrasferimentoAsync(ct),
         };
+    }
+
+    /// <summary>
+    /// Tutti i punti di trasferimento della divisione, uno per riga.
+    ///
+    /// <para>⚠️ Passa dall'<b>espansione</b> degli accordi e non da una query sua: chi riceve un punto dipende
+    /// dalla direzione della sezione, e riscriverlo qui sarebbe un secondo modello di una cosa che ne ha già
+    /// uno (<c>AgreementExpansion</c>). Gli ACC sono quattro: il giro costa quattro letture.</para>
+    /// </summary>
+    private async Task<IReadOnlyList<TransferLadderRow>> PuntiDiTrasferimentoAsync(CancellationToken ct)
+    {
+        if (_accordi is null) return Array.Empty<TransferLadderRow>();
+
+        var codici = await _db.Accs.AsNoTracking()
+            .Where(a => !a.IsForeign && !a.IsHidden)
+            .Select(a => a.Code)
+            .ToListAsync(ct);
+
+        var righe = new List<TransferLadderRow>();
+        foreach (var acc in codici)
+        {
+            var flussi = Vipi.Application.Content.AgreementExpansion.Expand(await _accordi.ListByAccAsync(acc, ct));
+            foreach (var f in flussi)
+                foreach (var p in f.Points)
+                    righe.Add(new TransferLadderRow(
+                        acc, p.ClauseId ?? 0, p.Cop, p.NextSectorCallsign, f.OwningSectorCallsign,
+                        Vipi.Application.Content.FallbackChain.HandoffFeetOf(p)));
+        }
+        return righe;
+    }
+
+    /// <summary>callsign → padre nell'albero proiettato (<c>Sector.ParentSectorId</c>), risolto a callsign.</summary>
+    private async Task<IReadOnlyDictionary<string, string?>> ProjectedParentsAsync(CancellationToken ct)
+    {
+        var settori = await _db.Sectors.AsNoTracking()
+            .Where(s => s.IsActive)
+            .Select(s => new { s.Id, s.Callsign, s.ParentSectorId })
+            .ToListAsync(ct);
+
+        var perId = settori.ToDictionary(s => s.Id, s => s.Callsign);
+        return settori.ToDictionary(
+            s => s.Callsign,
+            s => s.ParentSectorId is int pid && perId.TryGetValue(pid, out var p) ? p : null,
+            StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>

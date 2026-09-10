@@ -13,12 +13,23 @@ public sealed class AgreementService : IAgreementService
     private readonly IAgreementRepository _repo;
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
+    private readonly ISectorVolumeCatalog? _volumi;
+    private readonly ICopPositions? _punti;
 
-    public AgreementService(IAgreementRepository repo, IEditAuthorizationService authz, ITopologyProvider topology)
+    /// <param name="volumi">
+    /// I volumi dei settori e i punti scrivibili in un CoP: servono <b>solo</b> a sciogliere un rinvio.
+    /// ⚠️ <b>Facoltativi</b>, e la ragione è la stessa per cui la tabella dei ripieghi nasce vuota: senza di
+    /// loro il rinvio non risponde e la catena prosegue sul padre, cioè il comportamento di sempre. In
+    /// produzione li inietta il contenitore; nei test che la ricaduta non la guardano non si montano.
+    /// </param>
+    public AgreementService(IAgreementRepository repo, IEditAuthorizationService authz, ITopologyProvider topology,
+        ISectorVolumeCatalog? volumi = null, ICopPositions? punti = null)
     {
         _repo = repo;
         _authz = authz;
         _topology = topology;
+        _volumi = volumi;
+        _punti = punti;
     }
 
     public Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string accCode, CancellationToken ct = default) =>
@@ -33,13 +44,18 @@ public sealed class AgreementService : IAgreementService
         var flows = await ListFlowsByAccAsync(accCode, ct);
         var topo = await _topology.BuildGlobalAsync(ct);
 
+        // Il contesto del rinvio: volumi e posizioni si prendono UNA volta per richiesta, non per punto.
+        var rinvio = _volumi is null || _punti is null
+            ? CoverageFallbackContext.Nessuno
+            : CoverageFallbackContext.Da(topo, await _volumi.GetAllAsync(ct), online, await _punti.GetAsync(ct));
+
         // Catena di candidati di un settore A UNA QUOTA: sé stesso, i ripieghi dichiarati che valgono lì, poi
         // gli antenati di copertura (cross-ACC). ⚠️ La quota è quella del PUNTO, non del flusso: un flusso una
         // quota non ce l'ha, e due punti dello stesso flusso possono ricadere su due settori diversi.
-        IReadOnlyList<string> Chain(string? callsign, int? quotaFt) =>
+        IReadOnlyList<string> Chain(string? callsign, int? quotaFt, Func<IReadOnlyList<string>>? rinvioQui = null) =>
             string.IsNullOrWhiteSpace(callsign)
                 ? Array.Empty<string>()
-                : FallbackChain.Candidates(callsign, quotaFt, topo.Fallbacks, topo.ParentOf);
+                : FallbackChain.Candidates(callsign, quotaFt, topo.Fallbacks, topo.ParentOf, rinvioQui);
 
         return flows.Select(f =>
         {
@@ -47,9 +63,20 @@ public sealed class AgreementService : IAgreementService
             var ownerHit = TransferOnlineResolver.FirstOnline(Chain(f.OwningSectorCallsign, null), online);
             var points = f.Points.Select(p =>
             {
-                var quota = FallbackChain.FeetOf(p.LevelValue, p.LevelUnit);
-                var (handler, isOnline) = TransferOnlineResolver.Resolve(Chain(p.NextSectorCallsign, quota), online);
-                return new ResolvedTransferPoint { Point = p, ResolvedHandler = handler, IsOnline = isOnline };
+                // ⚠️ La quota è quella AL TRASFERIMENTO: su una riga che distingue i due eventi è la seconda a
+                // dire di chi è quel cielo.
+                var quota = FallbackChain.HandoffFeetOf(p);
+                CoverageFallbackResult? esito = null;
+                var (handler, isOnline) = TransferOnlineResolver.Resolve(
+                    Chain(p.NextSectorCallsign, quota, () =>
+                    {
+                        esito = rinvio.Risolvi(p.Cop, quota, f.OwningSectorCallsign, p.NextSectorCallsign);
+                        return esito.Value.AsCandidates();
+                    }), online);
+                return new ResolvedTransferPoint
+                {
+                    Point = p, ResolvedHandler = handler, IsOnline = isOnline, Coverage = esito,
+                };
             }).ToList();
 
             return new ResolvedTransferFlow

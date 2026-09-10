@@ -110,7 +110,17 @@ else
                                         <span class="xl-cond" title="@L["Xfer_ConditionTitle"]">@p.Point.ConditionLabel</span>
                                     }
                                 </span>
-                                <span class="xl-next @(p.IsOnline ? "" : "tieni")"><b>@p.ResolvedHandler</b></span>
+                                <span class="xl-next @(p.IsOnline ? "" : "tieni")">
+                                    <b>@p.ResolvedHandler</b>
+                                    @* ⚠️ Se il ricevente e' stato scelto da un RINVIO, la riga lo DICE: chi
+                                       legge deve poter capire perche' quel traffico va li' — e, quando il
+                                       rinvio non ha saputo rispondere, perche' NON e' andato altrove. Un
+                                       rinvio muto e' indistinguibile da un guasto. *@
+                                    @if (p.Coverage is { } esito)
+                                    {
+                                        <span class="xl-rinvio" title="@RinvioTitolo(esito, p.Point.Cop)">@RinvioEtichetta(esito)</span>
+                                    }
+                                </span>
                             </div>
                         }
                     }
@@ -121,6 +131,23 @@ else
 }
 
 @code {
+    /// <summary>L'etichetta corta accanto al ricevente: dice CHE COSA ha fatto il rinvio.</summary>
+    private string RinvioEtichetta(CoverageFallbackResult esito) => esito.Outcome switch
+    {
+        CoverageFallbackOutcome.Resolved => L["Xfer_Coverage_Tag"].Value,
+        _ => L["Xfer_Coverage_TagNone"].Value,
+    };
+
+    /// <summary>E il perche', per esteso, dove c'e' spazio per dirlo.</summary>
+    private string RinvioTitolo(CoverageFallbackResult esito, string? cop) => esito.Outcome switch
+    {
+        CoverageFallbackOutcome.Resolved => L["Xfer_Coverage_Resolved", cop ?? "", esito.TargetCallsign ?? ""].Value,
+        CoverageFallbackOutcome.NotAPoint => L["Xfer_Coverage_NotAPoint", cop ?? ""].Value,
+        CoverageFallbackOutcome.PointUnknown => L["Xfer_Coverage_PointUnknown", cop ?? ""].Value,
+        CoverageFallbackOutcome.NoLevel => L["Xfer_Coverage_NoLevel"].Value,
+        _ => L["Xfer_Coverage_NobodyCovers", cop ?? ""].Value,
+    };
+
     [Parameter, EditorRequired] public IReadOnlyList<ResolvedTransferFlow> Flows { get; set; } = Array.Empty<ResolvedTransferFlow>();
     /// <summary>Che cosa dire quando non c'è nessun flusso. ⚠️ Nullo = lo dice questo componente nella
     /// lingua di chi legge: un default scritto qui sarebbe una stringa italiana che nessun resx conosce.</summary>

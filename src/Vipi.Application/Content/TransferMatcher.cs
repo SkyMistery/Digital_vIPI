@@ -67,7 +67,8 @@ public static class TransferMatcher
         string? accCode,
         DateTimeOffset onlineAsOf,
         DateTimeOffset now,
-        TransferMatchOptions? options = null)
+        TransferMatchOptions? options = null,
+        CoverageFallbackContext? coverage = null)
     {
         var opt = options ?? new TransferMatchOptions();
         var response = new TransferResolveResponse
@@ -115,7 +116,7 @@ public static class TransferMatcher
 
             foreach (var point in flow.Points)
             {
-                var c = ScorePoint(flow, point, request, topology, online, fixEto, routeTokens, baseScore, kindReason, opt);
+                var c = ScorePoint(flow, point, request, topology, online, fixEto, routeTokens, baseScore, kindReason, opt, coverage);
                 candidates.Add(c);
             }
         }
@@ -193,7 +194,7 @@ public static class TransferMatcher
     private static TransferCandidate ScorePoint(
         TransferFlowRow flow, TransferPointRow p, TransferResolveRequest req, Topology topology,
         IReadOnlySet<string> online, IReadOnlyDictionary<string, string?> fixEto, IReadOnlySet<string> routeTokens,
-        double baseScore, string kindReason, TransferMatchOptions opt)
+        double baseScore, string kindReason, TransferMatchOptions opt, CoverageFallbackContext? coverage)
     {
         var reasons = new List<string> { kindReason };
         var score = baseScore;
@@ -232,7 +233,11 @@ public static class TransferMatcher
         else if (condition.Match == "unmatched") reasons.Add($"condizione «{condition.Display}» NON soddisfatta");
 
         // --- ente successivo già impostato dal controllore in Aurora ---
-        var (handler, handlerOnline) = ResolveHandler(p.NextSectorCallsign, FallbackChain.FeetOf(p.LevelValue, p.LevelUnit), topology, online);
+        // ⚠️ La quota è quella AL TRASFERIMENTO: dove la riga distingue i due eventi, a dire di chi è quel
+        // cielo è il secondo.
+        var (handler, handlerOnline) = ResolveHandler(
+            p.NextSectorCallsign, FallbackChain.HandoffFeetOf(p), topology, online,
+            coverage, flow.OwningSectorCallsign, p.Cop);
         if (!string.IsNullOrWhiteSpace(req.NextStation) && !string.IsNullOrWhiteSpace(p.NextSectorCallsign) &&
             Same(req.NextStation, p.NextSectorCallsign))
         {
@@ -381,11 +386,13 @@ public static class TransferMatcher
     /// punto a FL250, e lo stesso ricevente chiuso manda quindi a due settori diversi a due quote diverse.
     /// </summary>
     private static (string Handler, bool Online) ResolveHandler(
-        string? next, int? levelFeet, Topology topology, IReadOnlySet<string> online)
+        string? next, int? levelFeet, Topology topology, IReadOnlySet<string> online,
+        CoverageFallbackContext? coverage = null, string? cedente = null, string? cop = null)
     {
         if (string.IsNullOrWhiteSpace(next)) return (TransferOnlineResolver.Unicom, false);
         return TransferOnlineResolver.Resolve(
-            FallbackChain.Candidates(next!, levelFeet, topology.Fallbacks, topology.ParentOf), online);
+            FallbackChain.Candidates(next!, levelFeet, topology.Fallbacks, topology.ParentOf,
+                coverage is null ? null : coverage.Per(cop, levelFeet, cedente, next)), online);
     }
 
     /// <summary>

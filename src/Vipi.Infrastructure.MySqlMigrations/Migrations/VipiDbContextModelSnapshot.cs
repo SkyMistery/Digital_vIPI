@@ -2830,6 +2830,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("varchar(32)")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("TargetKind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Callsign")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<int?>("TopFeet")
                         .HasColumnType("int");
 

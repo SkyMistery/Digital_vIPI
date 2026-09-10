@@ -40,6 +40,8 @@ public sealed class EfSectorVolumeCatalog : ISectorVolumeCatalog
                 s.ParentSectorId,
                 s.Type,
                 s.AirportIcao,
+                // Il centro, dal legame che il settore proiettato ha gia': serve allo spareggio del rinvio.
+                AccCode = s.Acc != null ? s.Acc.Code : null,
             })
             .ToListAsync(ct);
 
@@ -57,7 +59,8 @@ public sealed class EfSectorVolumeCatalog : ISectorVolumeCatalog
                 Type: s.Type,
                 AirportIcao: s.AirportIcao,
                 Parts: forma?.Parts ?? Array.Empty<Vipi.Application.Airspace.ShapePart>(),
-                Source: forma?.Source ?? ShapeSource.Source);
+                Source: forma?.Source ?? ShapeSource.Source,
+                AccCode: s.AccCode);
         }).ToList();
     }
 }

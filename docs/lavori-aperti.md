@@ -10366,6 +10366,34 @@ testa a `TranslationReviewPanel` resta dov'è, per il suo caso: qui il precedent
 **saltato** dopo un salvataggio lascerebbe a schermo il livello vecchio sotto un messaggio che dice
 «salvato». Chi è già dentro rifà il giro per chi ha trovato la porta chiusa.
 
+### ✅ E la scala di risalita — chiesta il 10 settembre a lavoro fatto (Parte 10)
+
+Il committente non aveva piu' modo di **guardare** una configurazione: da quando la risposta dipende da chi
+e' online, poteva solo aspettare di vederla sbagliare. Selezioni le clausole, premi «Come risale», e il
+pannello mostra la **discesa per intero**, col perche' di ogni gradino.
+
+🔴 **La scala non e' la lista dei candidati**: `Candidates` scioglie il rinvio una volta e poi cammina
+l'albero, il sistema vero lo **richiede** a ogni richiesta. Si simula per **eliminazione**. Su Milano le due
+strade coincidono per caso, su un altro albero no.
+
+Il tetto sta sui **punti** (dieci) e non sulle clausole, e le scale identiche si **raggruppano** — dieci
+righe diventano due o tre blocchi invece di un muro.
+
+✅ **Provato dal vivo.** Una clausola da nove punti si e' divisa in **8 + 1**, e l'uno — `VIL`, vicino al
+confine — se ne va a **Padova** passando per `LIPP_MIL_CTR` prima del suo civile. Nessuno l'aveva
+configurato: e' comparso da solo dalla geometria vera. E' il caso che il committente aveva descritto a parole
+il 9 settembre.
+
+🔴 **Il rilievo, al primo giro, gridava su dati corretti**: otto riceventi segnalati su LIBB, e **sei erano
+ACC esteri**. Sopra un ACC non c'e' niente per costruzione. Ora si segnala solo se quel punto **lo copre
+qualcun altro** e la catena non ci arriva — il caso di `LIRR_MIL_CTR`.
+
+⚠️ **E il rilievo ha trovato una cosa vera**: `LIMM_WS5_CTR` parte da FL325 e nessuno della sua catena ha
+niente a quella quota. E' il buco **simmetrico** a quello che la riga su ES5 chiude — e in produzione c'e'.
+
+⚠️ Due difetti di resa presi dal vivo: **«1 points»** (singolare e plurale sono DUE chiavi) e la correzione
+che non si vedeva perche' avevo **riavviato senza ripubblicare** — «il processo, non il file», di nuovo.
+
 ### ▶ Che cosa resta
 
 1. ✅ L'**attesa** del caricamento alle pagine, non solo ai cinque editor: la terza porta, qui sopra.
@@ -10871,3 +10899,81 @@ fallire un test, fa **cadere l'host dei test**. Tolto, e ricontrollati tutti i f
 - ⚠️ La NRE è **strumentata, non chiusa**: la prossima occorrenza deve portare il contesto.
 - ▶ **Rifare l'unione a tre di Gioia con 1.18.2 in barra**, poi mandare `errori-richieste.txt`: è l'unico
   modo di sapere quale firma resta.
+
+## §CO — Il ripiego di un settore sovrapposto si risolve sul PUNTO — 10 settembre 2026
+
+📄 **Carta scritta, codice ZERO.** [`feature/2026-09-10-rinvio-geometrico.md`](feature/2026-09-10-rinvio-geometrico.md).
+
+**Il fatto, letto in produzione.** `LIMM_MIL_CTR` ha una catena sola — `→ LIMM_WS2_CTR` (padre), nient'altro
+— quindi MIL chiuso manda **sempre** a WS2, da qualunque cedente e per qualunque punto. Il committente
+chiede due comportamenti diversi: da Ghedi (`LIPX_ES0_APP`) deve andare a **ES2**, da `LIMC_ANE_APP` a
+**ES2 se il punto è a est** e a **WS2 se è a ovest**. 🔴 Un `ParentCallsign` è **un** puntatore: MIL copre
+SFC–UNL su tutto l'ACC, sotto di lui ci sono ES2 **e** WS2, e oltre confine LIPP. Non è impostato male —
+è **inesprimibile**.
+
+⚠️ **I cinque assetti d'ACC (WS2/ES2/WS5/ES5) funzionano GIÀ**, verificati contro l'albero di produzione. E
+**due di quei cinque poggiano su UNA riga** (`LIMM_ES5_CTR`, FL325–UNL → WS5): cancellandola non compare
+nessun errore, il traffico continua a ricadere sul settore sbagliato.
+
+🔴 **Scartata l'idea «riparti dal cedente»**: cade su ANE, dove dal **medesimo** cedente alla **medesima**
+quota due punti vogliono due riceventi. Il discriminante non è chi cede, è **dov'è il punto**.
+
+**La proposta.** Un bersaglio di ripiego che non è un callsign ma una domanda — ⟨la copertura di questo
+punto⟩ — risolta con i motori che già girano per le statistiche (`SectorVolumeMap.BuildClaims` +
+`TrafficAttribution.AttributeClaim`). **Non è un secondo albero**: la profondità è `ParentCallsign` e il
+collasso è la gerarchia; la geometria decide solo **in quale ramo** ti trovi. Una riga per ognuno dei
+cinque MIL d'ACC, e basta.
+
+Tre cose che decidono se funziona, tutt'e tre nella carta:
+
+- ⚠️ **Filtro di rango**, o la risposta è sbagliata quasi sempre: quasi ogni CoP sta dentro un APP **e**
+  dentro l'ACC, e l'APP è più profondo. Un poligono d'APP è spazio aereo, non titolarità del flusso.
+- 🔴 **`BuildClaims` collassa con `CoverageResolver.Owners`, che le righe di ripiego NON le conosce**: usarlo
+  com'è farebbe rispondere geometria e catena **in modo diverso** sullo stesso ES5 — «due alberi», per la
+  terza volta. Il collassatore diventa un parametro; le statistiche restano com'erano, per scelta dichiarata.
+- ⚠️ **`Y01-Y12` non è un punto**, ed è il codice a dirlo già (`NavaidCheck`: 52 token CoP su 62 sono
+  verificabili). Per i tratti di confine il rinvio **non risponde** e lo dice; la risposta la scrive una
+  persona.
+
+**Prerequisito misurato:** `Navaids` ha **149 righe, solo VHF e NDB, zero Fix** — i CoP di Milano sono in
+maggioranza fix di 5 lettere, le cui coordinate stanno in un catalogo caricato **via HTTP all'import**.
+Prima slice utile: persistere i fix.
+
+### ✅ ESEGUITA — otto slice su nove, ramo `rinvio-geometrico`
+
+Otto slice fatte, build pulita sui due TFM, **5845 test verdi**. Resta la nona, che è **dati in
+produzione** e si fa a mano.
+
+**Due presidi hanno corretto il progetto mentre lo scrivevo**, e avevano ragione tutt'e due:
+🔴 `MigrazioniDellaFinestraCiecaTests` ha fermato l'`AlterColumn` con cui rendevo `TargetCallsign`
+nullable — su MariaDB riscrive la tabella, e fino al 16 settembre le migrazioni girano **da sole**
+all'avvio senza nessuno che possa ripristinare. Ora un rinvio porta la **stringa vuota** e a dire perché è
+vuota è `TargetKind`; la migrazione è un `AddColumn` e basta.
+⚠️ `IndexedStringLengthTests` ha chiesto la lunghezza di `TargetKind`: ha un default, e su MySQL una
+colonna con default non può essere `longtext`.
+
+**🔴 E la verifica dal vivo ha trovato quello che i test non vedevano: l'FSS raccoglieva.** Il primo giro
+su Milano vera ha risposto `LIMM_WS2_CTR` dove doveva rispondere `LIMM_ES2_CTR`. `LIMM_FSS` è SFC–FL195,
+cioè una banda **più stretta** di ES2 (SFC–FL325) alla **stessa profondità**: a parità di profondità vince
+la banda più stretta, quindi vinceva lui — e, chiuso, mandava il traffico al suo proprietario. ⚠️ Il filtro
+di rango non poteva vederlo: `SectorType` un valore `Fss` non ce l'ha, e nella proiezione un FSS è tipato
+`Ctr`. Un trasferimento fra enti di **controllo** non si delega a un servizio informazioni.
+
+**✅ La coppia che conta, provata dal vivo** — stesso flusso, stesso cedente (`LIPX_ES0_APP`), stessa quota
+(FL140), stesso ricevente nominale (`LIMM_MIL_CTR`, chiuso):
+
+```
+— GHE  FL140   LIMM_ES2_CTR   coverage
+  TOP  FL140   LIMM_WS2_CTR   coverage
+```
+
+### ▶ Che cosa resta
+
+- ▶ **Slice 9, in produzione e a mano**: la riga «⟨copertura del punto⟩» sui cinque MIL d'ACC, e i **tre
+  padri di Roma**. Poi si verifica **da fuori**.
+- ▶ **`LIMM_WS5_CTR` non ha nessun ripiego a FL325**, e in produzione e' cosi': il buco simmetrico a quello
+  che la riga su ES5 chiude. Una riga sola, e la trova il rilievo nuovo.
+- 🔴 **`LIRR_MIL_CTR`, `LIRR_FSS` e `LIRR_PLN_FSS` sono radici**: chiusi, il traffico va su **UNICOM**. E
+  Roma ha cinque radici in tutto: da guardare col committente.
+- ▶ Il ramo **non è fuso** e **non è in un pacchetto**: porta una migrazione additiva, quindi la consegna
+  va pensata dentro la finestra cieca.

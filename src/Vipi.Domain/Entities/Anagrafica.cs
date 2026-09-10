@@ -472,8 +472,25 @@ public class SectorFallback
     /// <summary>Ordine di consultazione fra le righe dello stesso settore: più basso = prima.</summary>
     public int Order { get; set; }
 
-    /// <summary>Chi raccoglie il traffico.</summary>
-    public string TargetCallsign { get; set; } = default!;
+    /// <summary>
+    /// Se il bersaglio è un <b>nome</b> o una <b>domanda</b>. Colonna aggiunta il 10 settembre 2026, additiva
+    /// e con default <see cref="FallbackTargetKind.Callsign"/>: a colonna nuova e nessun rinvio scritto il
+    /// comportamento è identico riga per riga a quello di prima.
+    /// </summary>
+    public FallbackTargetKind TargetKind { get; set; }
+
+    /// <summary>
+    /// Chi raccoglie il traffico. <b>Stringa vuota</b> quando <see cref="TargetKind"/> è
+    /// <see cref="FallbackTargetKind.Coverage"/>: lì il nome non esiste finché non c'è un punto a cui
+    /// chiederlo, e a dire perché è vuota è il <i>genere</i>, non il campo.
+    ///
+    /// <para>⚠️ <b>Non è nullable, ed è una scelta della finestra cieca.</b> Renderla tale avrebbe voluto
+    /// dire un <c>AlterColumn</c>, che su MariaDB riscrive la tabella: fino al 16 settembre 2026 le
+    /// migrazioni girano da sole all'avvio in produzione, il DDL non è transazionale e nessuno può
+    /// ripristinare il database. Il presidio
+    /// <c>MigrazioniDellaFinestraCiecaTests</c> l'ha fermato — non una rilettura, un test.</para>
+    /// </summary>
+    public string TargetCallsign { get; set; } = "";
 
     /// <summary>Piede della fascia in <b>piedi</b>, incluso. Null = nessun limite in basso.</summary>
     public int? BaseFeet { get; set; }

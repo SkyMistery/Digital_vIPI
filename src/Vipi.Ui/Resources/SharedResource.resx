@@ -562,6 +562,16 @@
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Il padre «{0}» non esiste nei cataloghi: la catena di copertura si interrompe qui.</value></data>
   <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Gerarchia ciclica</value></data>
   <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>Il settore è antenato di sé stesso ({0}): ogni catena di ricaduta che ci passa si interrompe qui.</value></data>
+  <data name="Diag_Cat_TrasferimentoSenzaRipiego" xml:space="preserve"><value>Trasferimento senza ripiego</value></data>
+  <data name="Diag_Msg_TrasferimentoSenzaRipiego" xml:space="preserve"><value>Chiuso il ricevente il traffico va su UNICOM, ma quel punto lo copre qualcun altro: manca un ripiego ({0}).</value></data>
+  <data name="Diag_Cat_CopSenzaPosizione" xml:space="preserve"><value>CoP senza posizione</value></data>
+  <data name="Diag_Msg_CopSenzaPosizione" xml:space="preserve"><value>{0} punti usati negli accordi non stanno in nessun catalogo ({1}): su di loro il ripiego «copertura del punto» non può rispondere.</value></data>
+  <data name="Diag_Ent_Acc" xml:space="preserve"><value>ACC {0}</value></data>
+  <data name="Diag_Cat_RicadutaScoperta" xml:space="preserve"><value>Ricaduta che non copre la quota</value></data>
+  <data name="Diag_Msg_RicadutaScoperta" xml:space="preserve"><value>Il settore parte da {0}, ma nessuno della sua catena di ripiego ha qualcosa a quella quota: chiuso lui, il traffico va a chi non ce l'ha.</value></data>
+  <data name="Diag_Cat_AlberoDivergente" xml:space="preserve"><value>Albero proiettato divergente</value></data>
+  <data name="Diag_Msg_AlberoDivergente" xml:space="preserve"><value>I cataloghi dicono che il padre è «{0}», la proiezione dice «{1}»: ricaduta e copertura rispondono due cose diverse.</value></data>
+  <data name="Diag_Ent_Settore" xml:space="preserve"><value>Settore {0}</value></data>
   <data name="Diag_Cat_CallsignDueCataloghi" xml:space="preserve"><value>Callsign in due cataloghi</value></data>
   <data name="Diag_Msg_CallsignDueCataloghi" xml:space="preserve"><value>Lo stesso callsign è nel catalogo ACC e in quello d’aeroporto: l’albero di copertura tiene il padre «{0}» e scarta «{1}». Va tolto da uno dei due.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Area regolamentata sparita</value></data>
@@ -719,6 +729,11 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>Nessun ripiego e nessun padre: se questo settore e' chiuso, il traffico va su UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>ogni quota</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>padre</value></data>
+  <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>copertura del punto</value></data>
+  <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>Il bersaglio non e' un nome ma una domanda: chi copre il punto di trasferimento, a quella quota, adesso. Serve ai settori sovrapposti (MIL, FSS), che coprono tutto l'ACC e quindi non hanno un padre solo.</value></data>
+  <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>Il nome lo decide il punto di trasferimento: qui non si scrive.</value></data>
+  <data name="Struct_Fallback_Seq_Coverage" xml:space="preserve"><value>la copertura del punto</value></data>
+  <data name="Struct_Fallback_Seq_CoverageTitle" xml:space="preserve"><value>Chi raccoglie dipende da dove sta il punto di trasferimento: qui non si puo' dire, perche' questa pagina i punti non li ha. Si vede nei Trasferimenti, riga per riga.</value></data>
   <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>esauriti tutti, il traffico va su UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>Come funziona la catena di ripiego</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Chi riceve il traffico di questo settore quando è chiuso.&lt;/b&gt; Le righe qui sotto si consultano &lt;b&gt;in ordine&lt;/b&gt;, e ognuna può valere solo in una fascia di quota: la prima che vale e il cui bersaglio è online si prende il traffico. Esaurite le righe, la ricaduta prosegue sul &lt;b&gt;padre&lt;/b&gt; come ha sempre fatto — per questo un settore senza righe si comporta esattamente come prima.&lt;br/&gt;&lt;br/&gt;Serve quando la divisione dello spazio aereo è &lt;b&gt;verticale&lt;/b&gt;: con Milano divisa in due fino a FL305 e un solo settore aperto sopra, il traffico alto dell'est va all'alto dell'ovest, non al basso dell'est che è il suo padre.&lt;br/&gt;&lt;br/&gt;⚠️ Un punto di trasferimento che &lt;b&gt;non dichiara la quota&lt;/b&gt; non può essere risolto in verticale: per lui valgono solo le righe senza fascia.</value></data>
@@ -2546,6 +2561,32 @@
   <data name="AorColor_ColorOf" xml:space="preserve"><value>Colore di {0}</value></data>
   <data name="AorColor_ResetTitle" xml:space="preserve"><value>Ripristina il colore di default per tipo-ente</value></data>
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Condizione operativa</value></data>
+  <data name="Xfer_Ladder_Show" xml:space="preserve"><value>Come risale</value></data>
+  <data name="Xfer_Ladder_TitleOk" xml:space="preserve"><value>Mostra come risalirebbe il traffico di questi punti se il ricevente fosse chiuso, gradino per gradino.</value></data>
+  <data name="Xfer_Ladder_TitleNone" xml:space="preserve"><value>Seleziona almeno una clausola con un punto.</value></data>
+  <data name="Xfer_Ladder_TitleTooMany" xml:space="preserve"><value>{0} punti selezionati, il massimo e' {1}: seleziona meno righe.</value></data>
+  <data name="Xfer_Ladder_Title" xml:space="preserve"><value>Come risale</value></data>
+  <data name="Xfer_Ladder_Hint" xml:space="preserve"><value>con tutti aperti, chiudendo un gradino alla volta</value></data>
+  <data name="Xfer_Ladder_NoPoints" xml:space="preserve"><value>Nessuna delle clausole selezionate porta un punto con un ricevente.</value></data>
+  <data name="Xfer_Ladder_Point1" xml:space="preserve"><value>1 punto:</value></data>
+  <data name="Xfer_Ladder_PointsN" xml:space="preserve"><value>{0} punti:</value></data>
+  <data name="Xfer_Ladder_Why_Written" xml:space="preserve"><value>scritto</value></data>
+  <data name="Xfer_Ladder_Why_Row" xml:space="preserve"><value>riga</value></data>
+  <data name="Xfer_Ladder_Why_Coverage" xml:space="preserve"><value>copertura</value></data>
+  <data name="Xfer_Ladder_Why_Parent" xml:space="preserve"><value>padre</value></data>
+  <data name="Xfer_Ladder_Why_Unicom" xml:space="preserve"><value>nessuno</value></data>
+  <data name="Xfer_Ladder_WhyLong_Written" xml:space="preserve"><value>E' il ricevente scritto nella clausola.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Row" xml:space="preserve"><value>Lo dice una riga di ripiego scritta a mano, nella fascia indicata.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Coverage" xml:space="preserve"><value>Lo dice il rinvio: e' chi copre questo punto a questa quota, con i gradini precedenti chiusi.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Parent" xml:space="preserve"><value>E' il padre di copertura: la coda della catena, che nessuno scrive e non si puo' togliere.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Unicom" xml:space="preserve"><value>Esauriti tutti: il traffico va su UNICOM.</value></data>
+  <data name="Xfer_Coverage_Tag" xml:space="preserve"><value>rinvio</value></data>
+  <data name="Xfer_Coverage_TagNone" xml:space="preserve"><value>rinvio ?</value></data>
+  <data name="Xfer_Coverage_Resolved" xml:space="preserve"><value>Ricevente scelto dal rinvio: {1} copre il punto {0} a questa quota.</value></data>
+  <data name="Xfer_Coverage_NotAPoint" xml:space="preserve"><value>Il rinvio non si applica: «{0}» non e' un punto (e' un tratto di aerovie, una STAR o «ALL»). Il ripiego per questa riga va scritto a mano.</value></data>
+  <data name="Xfer_Coverage_PointUnknown" xml:space="preserve"><value>Il rinvio non si applica: nessun catalogo colloca il punto «{0}». Si puo' dargli una coordinata dall'anagrafica delle radioassistenze.</value></data>
+  <data name="Xfer_Coverage_NoLevel" xml:space="preserve"><value>Il rinvio non si applica: questa riga non porta una quota al trasferimento.</value></data>
+  <data name="Xfer_Coverage_NobodyCovers" xml:space="preserve"><value>Il rinvio non ha trovato nessuno: a questa quota il punto «{0}» non e' coperto da nessun ente d'area online.</value></data>
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Informazioni sul documento</value></data>

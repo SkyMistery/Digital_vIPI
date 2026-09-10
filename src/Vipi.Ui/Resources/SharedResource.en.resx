@@ -557,6 +557,16 @@
   <data name="Diag_Msg_GerarchiaDangling" xml:space="preserve"><value>Parent «{0}» does not exist in the catalogues: the coverage chain stops here.</value></data>
   <data name="Diag_Cat_GerarchiaCiclica" xml:space="preserve"><value>Cyclic hierarchy</value></data>
   <data name="Diag_Msg_GerarchiaCiclica" xml:space="preserve"><value>The sector is its own ancestor ({0}): every fallback chain going through it stops here.</value></data>
+  <data name="Diag_Cat_TrasferimentoSenzaRipiego" xml:space="preserve"><value>Transfer with no fallback</value></data>
+  <data name="Diag_Msg_TrasferimentoSenzaRipiego" xml:space="preserve"><value>With the receiver closed the traffic goes to UNICOM, but somebody else covers that point: a fallback is missing ({0}).</value></data>
+  <data name="Diag_Cat_CopSenzaPosizione" xml:space="preserve"><value>COPs without a position</value></data>
+  <data name="Diag_Msg_CopSenzaPosizione" xml:space="preserve"><value>{0} points used in the agreements are in no catalogue ({1}): on those, the «point coverage» fallback cannot answer.</value></data>
+  <data name="Diag_Ent_Acc" xml:space="preserve"><value>ACC {0}</value></data>
+  <data name="Diag_Cat_RicadutaScoperta" xml:space="preserve"><value>Fallback that does not cover the level</value></data>
+  <data name="Diag_Msg_RicadutaScoperta" xml:space="preserve"><value>The sector starts at {0}, but nobody in its fallback chain has anything at that level: with it closed, the traffic goes to someone who does not have it.</value></data>
+  <data name="Diag_Cat_AlberoDivergente" xml:space="preserve"><value>Projected tree diverges</value></data>
+  <data name="Diag_Msg_AlberoDivergente" xml:space="preserve"><value>The catalogues say the parent is «{0}», the projection says «{1}»: fallback and coverage answer two different things.</value></data>
+  <data name="Diag_Ent_Settore" xml:space="preserve"><value>Sector {0}</value></data>
   <data name="Diag_Cat_CallsignDueCataloghi" xml:space="preserve"><value>Callsign in two catalogues</value></data>
   <data name="Diag_Msg_CallsignDueCataloghi" xml:space="preserve"><value>The same callsign is in both the ACC and the airport catalogue: the coverage tree keeps parent «{0}» and drops «{1}». Remove it from one of the two.</value></data>
   <data name="Diag_Cat_AreaRegDangling" xml:space="preserve"><value>Regulated area gone</value></data>
@@ -714,6 +724,11 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>No fallback and no parent: when this sector is offline, traffic goes to UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>any level</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>parent</value></data>
+  <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>point coverage</value></data>
+  <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>The target is not a name but a question: who covers the transfer point, at that level, right now. It is for overlapping sectors (MIL, FSS), which cover a whole ACC and therefore have no single parent.</value></data>
+  <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>The name is decided by the transfer point: nothing to type here.</value></data>
+  <data name="Struct_Fallback_Seq_Coverage" xml:space="preserve"><value>the point coverage</value></data>
+  <data name="Struct_Fallback_Seq_CoverageTitle" xml:space="preserve"><value>Who takes over depends on where the transfer point is: it cannot be said here, because this page has no points. It shows in Transfers, row by row.</value></data>
   <data name="Struct_Fallback_Seq_Unicom" xml:space="preserve"><value>all exhausted, traffic goes to UNICOM</value></data>
   <data name="Struct_Fallback_HelpAria" xml:space="preserve"><value>How the fallback chain works</value></data>
   <data name="Struct_Fallback_Help" xml:space="preserve"><value>&lt;b&gt;Who takes this sector's traffic when it is offline.&lt;/b&gt; The rows below are read &lt;b&gt;in order&lt;/b&gt;, and each one may apply only within an altitude band: the first row that applies and whose target is online takes the traffic. Once the rows run out, the fallback continues up the &lt;b&gt;parent&lt;/b&gt; chain as it always did — which is why a sector with no rows behaves exactly as before.&lt;br/&gt;&lt;br/&gt;It matters when the airspace split is &lt;b&gt;vertical&lt;/b&gt;: with Milan split in two up to FL305 and a single sector open above, upper-east traffic goes to upper-west, not to lower-east, which is its parent.&lt;br/&gt;&lt;br/&gt;⚠️ A transfer point that &lt;b&gt;does not state an altitude&lt;/b&gt; cannot be resolved vertically: only rows without a band apply to it.</value></data>
@@ -2538,6 +2553,32 @@
   <data name="AorColor_ColorOf" xml:space="preserve"><value>Colour of {0}</value></data>
   <data name="AorColor_ResetTitle" xml:space="preserve"><value>Restore the default colour for this station type</value></data>
   <data name="Xfer_ConditionTitle" xml:space="preserve"><value>Operational condition</value></data>
+  <data name="Xfer_Ladder_Show" xml:space="preserve"><value>Fallback ladder</value></data>
+  <data name="Xfer_Ladder_TitleOk" xml:space="preserve"><value>Shows how the traffic of these points would climb if the receiver were closed, rung by rung.</value></data>
+  <data name="Xfer_Ladder_TitleNone" xml:space="preserve"><value>Select at least one clause carrying a point.</value></data>
+  <data name="Xfer_Ladder_TitleTooMany" xml:space="preserve"><value>{0} points selected, the maximum is {1}: select fewer rows.</value></data>
+  <data name="Xfer_Ladder_Title" xml:space="preserve"><value>Fallback ladder</value></data>
+  <data name="Xfer_Ladder_Hint" xml:space="preserve"><value>with everyone open, closing one rung at a time</value></data>
+  <data name="Xfer_Ladder_NoPoints" xml:space="preserve"><value>None of the selected clauses carries a point with a receiver.</value></data>
+  <data name="Xfer_Ladder_Point1" xml:space="preserve"><value>1 point:</value></data>
+  <data name="Xfer_Ladder_PointsN" xml:space="preserve"><value>{0} points:</value></data>
+  <data name="Xfer_Ladder_Why_Written" xml:space="preserve"><value>written</value></data>
+  <data name="Xfer_Ladder_Why_Row" xml:space="preserve"><value>row</value></data>
+  <data name="Xfer_Ladder_Why_Coverage" xml:space="preserve"><value>coverage</value></data>
+  <data name="Xfer_Ladder_Why_Parent" xml:space="preserve"><value>parent</value></data>
+  <data name="Xfer_Ladder_Why_Unicom" xml:space="preserve"><value>nobody</value></data>
+  <data name="Xfer_Ladder_WhyLong_Written" xml:space="preserve"><value>It is the receiver written in the clause.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Row" xml:space="preserve"><value>A hand-written fallback row says so, in the band shown.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Coverage" xml:space="preserve"><value>Point coverage says so: it is who covers this point at this level, with the previous rungs closed.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Parent" xml:space="preserve"><value>It is the coverage parent: the tail of the chain, which nobody writes and cannot be removed.</value></data>
+  <data name="Xfer_Ladder_WhyLong_Unicom" xml:space="preserve"><value>All exhausted: the traffic goes to UNICOM.</value></data>
+  <data name="Xfer_Coverage_Tag" xml:space="preserve"><value>coverage</value></data>
+  <data name="Xfer_Coverage_TagNone" xml:space="preserve"><value>coverage ?</value></data>
+  <data name="Xfer_Coverage_Resolved" xml:space="preserve"><value>Receiver chosen by point coverage: {1} covers point {0} at this level.</value></data>
+  <data name="Xfer_Coverage_NotAPoint" xml:space="preserve"><value>Point coverage does not apply: «{0}» is not a point (it is an airway range, a STAR or «ALL»). Write the fallback for this row by hand.</value></data>
+  <data name="Xfer_Coverage_PointUnknown" xml:space="preserve"><value>Point coverage does not apply: no catalogue locates point «{0}». You can give it coordinates from the navaid register.</value></data>
+  <data name="Xfer_Coverage_NoLevel" xml:space="preserve"><value>Point coverage does not apply: this row carries no transfer level.</value></data>
+  <data name="Xfer_Coverage_NobodyCovers" xml:space="preserve"><value>Point coverage found nobody: at this level point «{0}» is not covered by any online area unit.</value></data>
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calm</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Document information</value></data>

@@ -14,14 +14,20 @@ namespace Vipi.Application.Tests;
 /// <item><term>WS2</term><description>ovest, SFC – FL325, radice</description></item>
 /// <item><term>ES2</term><description>est, SFC – FL325, figlio di WS2</description></item>
 /// <item><term>WS5</term><description>ovest, FL325 – UNL, figlio di WS2</description></item>
-/// <item><term>ES5</term><description>est, FL325 – UNL, figlio di <b>WS5</b></description></item>
+/// <item><term>ES5</term><description>est, FL325 – UNL, figlio di <b>ES2</b></description></item>
 /// </list>
 ///
-/// <para>E' questa forma dell'albero a decidere quale caso e' rotto. Con <b>ES5</b> chiuso la catena passa
-/// comunque da WS5 e la risposta e' giusta — ma <i>per caso</i>, perche' l'albero mette per l'appunto
-/// l'altro settore alto sulla strada. Con <b>WS5</b> chiuso la catena salta diritta a WS2, che sopra FL325
-/// non ha niente, mentre quel cielo lo tiene ES5 — e l'albero <b>non puo'</b> dirlo, perche' ES5 sta
-/// <b>sotto</b> WS5, e un figlio non e' mai un ripiego per suo padre.</para>
+/// <para>⚠️ <b>Il padre di ES5 e' stato corretto il 10 settembre 2026.</b> Questo commento diceva «figlio di
+/// WS5», misurato sul <c>vipi.db</c> di sviluppo — e il <c>vipi.db</c> di sviluppo era <b>sbagliato</b>: in
+/// produzione (letto su <c>atc.it.ivao.aero</c> il 9 settembre) <c>LIMM_ES5_CTR</c> pende da
+/// <c>LIMM_ES2_CTR</c>. Il DB locale e' stato riallineato; la lezione e' che «misurato sul dato vero» vale
+/// quanto vale il dato che si e' guardato.</para>
+///
+/// <para>E' questa forma dell'albero a decidere quale caso e' rotto, e con l'albero vero i casi rotti sono
+/// <b>due</b>, non uno. Con <b>WS5</b> chiuso la catena salta a WS2, che sopra FL325 non ha niente, mentre
+/// quel cielo lo tiene ES5. E con <b>ES5</b> chiuso la catena salta a ES2, che sopra FL325 non ha niente
+/// nemmeno lui, mentre quel cielo lo tiene WS5. L'albero <b>non puo'</b> dirlo in nessuno dei due versi: i
+/// due settori alti stanno su rami diversi, e nessuno dei due e' antenato dell'altro.</para>
 /// </summary>
 public class FallbackChainTests
 {
@@ -32,7 +38,7 @@ public class FallbackChainTests
 
     private static readonly Dictionary<string, string?> Padri = new(StringComparer.OrdinalIgnoreCase)
     {
-        [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Ws5,
+        [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2,
     };
 
     private static string? Padre(string cs) => Padri.GetValueOrDefault(cs);
@@ -46,6 +52,17 @@ public class FallbackChainTests
 
     private static IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> Nessuna =>
         new Dictionary<string, IReadOnlyList<FallbackRow>>();
+
+    /// <summary>Un albero minimo dove riga dichiarata e padre puntano allo STESSO settore: e' il solo modo di
+    /// tenere in piedi la proprieta' «due motivi, un candidato» senza appenderla alla forma di Milano.</summary>
+    private static readonly Dictionary<string, IReadOnlyList<FallbackRow>> RigaVersoIlPadre =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["FIGLIO"] = new[] { new FallbackRow("PADRE", BaseFeet: Split, TopFeet: null) },
+        };
+
+    private static string? PadreDiFiglio(string cs) =>
+        cs.Equals("FIGLIO", StringComparison.OrdinalIgnoreCase) ? "PADRE" : null;
 
     private static (string Handler, bool Online) Risolvi(string ricevente, int? quotaFt, params string[] online) =>
         TransferOnlineResolver.Resolve(
@@ -108,15 +125,31 @@ public class FallbackChainTests
     }
 
     /// <summary>
-    /// Il verso che l'albero gia' copriva: ES5 chiuso con WS5 aperto. Funzionava <b>per caso</b> — perche'
-    /// WS5 e' il padre di ES5 — e con la riga dichiarata continua a funzionare, ora <b>per costruzione</b>.
+    /// L'altro verso: ES5 chiuso con WS5 aperto. ⚠️ Sull'albero <b>vero</b> non funzionava «per caso» — ES5
+    /// pende da ES2, che sopra FL325 non ha niente: senza la riga il traffico dell'alto est finiva li'. Con
+    /// la riga va a WS5, che quel cielo lo sta tenendo.
     /// </summary>
     [Fact]
-    public void Il_verso_che_gia_funzionava_continua_a_funzionare()
+    public void A_FL350_con_WS5_aperto_il_traffico_di_ES5_va_a_WS5()
     {
         var (handler, _) = Risolvi(Es5, quotaFt: 35000, Ws2, Es2, Ws5);
 
         Assert.Equal(Ws5, handler);
+    }
+
+    /// <summary>
+    /// La fotografia del difetto nell'altro verso, sull'albero vero: senza la riga, ES5 chiuso a FL350 va a
+    /// <b>ES2</b>. ⚠️ E' la prova che quella riga in produzione e' <b>portante</b>: cancellarla non da'
+    /// nessun errore, il traffico continua a ricadere — sul settore che a quella quota non c'e'.
+    /// </summary>
+    [Fact]
+    public void Senza_la_riga_ES5_chiuso_a_FL350_finisce_su_ES2()
+    {
+        var (handler, _) = TransferOnlineResolver.Resolve(
+            FallbackChain.Candidates(Es5, 35000, Nessuna, Padre),
+            new HashSet<string>(new[] { Ws2, Es2, Ws5 }, StringComparer.OrdinalIgnoreCase));
+
+        Assert.Equal(Es2, handler);
     }
 
     /// <summary>Nessuno online: il traffico va su UNICOM, come prima.</summary>
@@ -134,20 +167,15 @@ public class FallbackChainTests
     // =====================================================================================================
 
     /// <summary>
-    /// ⚠️ In ampiezza, non in profondita'. Sull'albero reale — dove i due alti stanno uno sotto l'altro — la
-    /// differenza non si vede; si vede su quello che la carta descriveva all'inizio, ES5 figlio di ES2, ed e'
-    /// il motivo per cui la visita e' scritta cosi': in profondita' si esaurirebbe tutto il ramo del primo
-    /// ripiego — il suo padre compreso — prima di guardare il proprio.
+    /// ⚠️ In ampiezza, non in profondita' — e sull'albero <b>vero</b> la differenza si vede a occhio nudo.
+    /// Da ES5, con la riga «sopra FL325 -> WS5» e il padre ES2, in profondita' si esaurirebbe tutto il ramo
+    /// di WS5 — il suo padre WS2 compreso — <i>prima</i> di guardare il proprio padre. Con WS2 ed ES2
+    /// tutt'e due online il traffico dell'est finirebbe a ovest, saltando il padre.
     /// </summary>
     [Fact]
     public void I_candidati_escono_per_distanza_non_per_ramo()
     {
-        var altroAlbero = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
-        {
-            [Ws2] = null, [Es2] = Ws2, [Ws5] = Ws2, [Es5] = Es2,
-        };
-
-        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, cs => altroAlbero.GetValueOrDefault(cs));
+        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, Padre);
 
         Assert.Equal(new[] { Es5, Ws5, Es2, Ws2 }, c);   // in profondita' sarebbe ES5, WS5, WS2, ES2
     }
@@ -183,7 +211,7 @@ public class FallbackChainTests
     [Fact]
     public void A_tabella_vuota_la_catena_e_quella_dei_padri()
     {
-        Assert.Equal(new[] { Es5, Ws5, Ws2 }, FallbackChain.Candidates(Es5, 35000, Nessuna, Padre));
+        Assert.Equal(new[] { Es5, Es2, Ws2 }, FallbackChain.Candidates(Es5, 35000, Nessuna, Padre));
     }
 
     [Fact]
@@ -205,7 +233,7 @@ public class FallbackChainTests
     {
         var passi = FallbackChain.Sequence(Ws5, Dichiarate, Padre);
 
-        var primo = Assert.Single(passi);
+        var primo = passi[0];
         Assert.Equal(2, primo.Count);
 
         Assert.Equal(Es5, primo[0].TargetCallsign);
@@ -220,17 +248,21 @@ public class FallbackChainTests
 
     /// <summary>
     /// ⚠️ Allo stesso passo un settore puo' comparire DUE volte, e non e' un doppione: sono due motivi per
-    /// arrivarci. ES5 dichiara «sopra FL325 -> WS5» E ha WS5 come padre; mostrarne uno solo direbbe che sotto
-    /// FL325 WS5 non c'e', mentre c'e' — come padre. Visto dal vivo il 1 settembre 2026.
+    /// arrivarci. Un settore che dichiara «sopra FL325 -> il padre» E ha quel padre; mostrarne uno solo
+    /// direbbe che sotto FL325 il padre non c'e', mentre c'e'. Visto dal vivo il 1 settembre 2026.
+    ///
+    /// <para>⚠️ Vuole un albero <b>suo</b>: su quello vero di Milano la riga di ES5 e il padre di ES5 puntano
+    /// a due settori <i>diversi</i> (WS5 e ES2), quindi il caso non si presenta. Tenerlo appeso all'albero
+    /// reale vorrebbe dire perdere la proprieta' il giorno che l'albero cambia — ed e' appena successo.</para>
     /// </summary>
     [Fact]
     public void Allo_stesso_passo_si_vedono_tutti_i_motivi_per_arrivarci()
     {
-        var passi = FallbackChain.Sequence(Es5, Dichiarate, Padre);
+        var passi = FallbackChain.Sequence("FIGLIO", RigaVersoIlPadre, PadreDiFiglio);
 
         var primo = passi[0];
         Assert.Equal(2, primo.Count);
-        Assert.All(primo, e => Assert.Equal(Ws5, e.TargetCallsign));
+        Assert.All(primo, e => Assert.Equal("PADRE", e.TargetCallsign));
 
         Assert.Equal(Split, primo[0].BaseFeet);      // la riga dichiarata: sopra FL325
         Assert.False(primo[0].FromParent);
@@ -240,12 +272,9 @@ public class FallbackChainTests
 
     /// <summary>Ma chi RISOLVE lo conta una volta sola: due motivi, un candidato.</summary>
     [Fact]
-    public void I_due_motivi_restano_un_candidato_solo()
-    {
-        var c = FallbackChain.Candidates(Es5, 35000, Dichiarate, Padre);
-
-        Assert.Equal(new[] { Es5, Ws5, Ws2 }, c);
-    }
+    public void I_due_motivi_restano_un_candidato_solo() =>
+        Assert.Equal(new[] { "FIGLIO", "PADRE" },
+            FallbackChain.Candidates("FIGLIO", 35000, RigaVersoIlPadre, PadreDiFiglio));
 
     /// <summary>Il settore di partenza non e' un ripiego di se' stesso: e' l'intestazione, non una voce.</summary>
     [Fact]
@@ -253,25 +282,30 @@ public class FallbackChainTests
         Assert.DoesNotContain(FallbackChain.Sequence(Ws5, Dichiarate, Padre).SelectMany(p => p),
             e => e.TargetCallsign == Ws5);
 
-    /// <summary>Piu' passi: da ES5 si arriva a WS2 al secondo giro, passando per WS5.</summary>
+    /// <summary>Piu' passi: da ES5 si arriva a WS2 al secondo giro, passando per il padre ES2.</summary>
     [Fact]
     public void La_sequenza_conta_i_passi()
     {
         var passi = FallbackChain.Sequence(Es5, Nessuna, Padre);
 
         Assert.Equal(2, passi.Count);
-        Assert.Equal(Ws5, Assert.Single(passi[0]).TargetCallsign);
+        Assert.Equal(Es2, Assert.Single(passi[0]).TargetCallsign);
         Assert.Equal(Ws2, Assert.Single(passi[1]).TargetCallsign);
     }
 
-    /// <summary>Un settore preso a un passo non torna ai successivi: e' quel che chiude i cicli.</summary>
+    /// <summary>
+    /// Un settore preso a un passo non torna ai successivi: e' quel che chiude i cicli. ⚠️ Da ES5,
+    /// sull'albero vero, a WS2 si arriva per DUE strade (il padre di WS5 e il padre di ES2) e deve comparire
+    /// <b>una volta sola</b>.
+    /// </summary>
     [Fact]
     public void Un_settore_gia_preso_non_torna_ai_passi_successivi()
     {
         var tutte = FallbackChain.Sequence(Es5, Dichiarate, Padre)
             .SelectMany(p => p).Select(e => e.TargetCallsign).ToList();
 
-        Assert.Equal(tutte.Distinct(StringComparer.OrdinalIgnoreCase).Count() + 1, tutte.Count);   // il solo WS5 doppio, nello stesso passo
+        Assert.Equal(new[] { Ws5, Es2, Ws2 }, tutte);
+        Assert.Equal(tutte.Distinct(StringComparer.OrdinalIgnoreCase).Count(), tutte.Count);
     }
 
     /// <summary>Senza righe e senza padre non c'e' nessun passo: la catena finisce sul settore stesso.</summary>

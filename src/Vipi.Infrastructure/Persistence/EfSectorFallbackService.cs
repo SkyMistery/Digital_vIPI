@@ -30,9 +30,9 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
         (await _db.SectorFallbacks.AsNoTracking()
             .Where(r => r.SectorCallsign == sectorCallsign)
             .OrderBy(r => r.Order)
-            .Select(r => new { r.TargetCallsign, r.BaseFeet, r.TopFeet })
+            .Select(r => new { r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
             .ToListAsync(ct))
-        .Select(r => new FallbackRowEdit(r.TargetCallsign, r.BaseFeet, r.TopFeet))
+        .Select(r => new FallbackRowEdit(r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind))
         .ToList();
 
     public async Task ReplaceAsync(string sectorCallsign, IReadOnlyList<FallbackRowEdit> rows, CancellationToken ct = default)
@@ -52,6 +52,20 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
         foreach (var r in rows)
         {
             var target = r.TargetCallsign?.Trim();
+
+            // ⚠️ Un RINVIO un nome non ce l'ha, e non è una riga a metà: si riconosce dal genere, non dal
+            // campo vuoto. Confonderli vorrebbe dire scartare in silenzio l'unica riga che l'admin voleva.
+            if (r.Kind == FallbackTargetKind.Coverage)
+            {
+                if (r.BaseFeet is int rb && r.TopFeet is int rt && rb >= rt)
+                    throw new ValidationException(Lingua(
+                        $"Fascia vuota sul rinvio: il piede ({rb} ft) non è sotto il tetto ({rt} ft).",
+                        $"Empty band on the coverage fallback: the base ({rb} ft) is not below the top ({rt} ft)."));
+
+                pulite.Add(r with { TargetCallsign = "" });
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(target)) continue;      // riga lasciata a metà nell'editor: si scarta
 
             if (!noti.Contains(target))
@@ -82,14 +96,21 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
             {
                 SectorCallsign = sectorCallsign,
                 Order = i,
-                TargetCallsign = pulite[i].TargetCallsign,
+                TargetKind = pulite[i].Kind,
+                TargetCallsign = pulite[i].TargetCallsign ?? "",
                 BaseFeet = pulite[i].BaseFeet,
                 TopFeet = pulite[i].TopFeet,
             });
 
         AuditScribe.Write(_db, _authz.CurrentUserId ?? 0, AuditAction.HierarchyChange, "SectorFallback",
             sectorCallsign,
-            new { Settore = sectorCallsign, Righe = pulite.Select(p => $"{p.TargetCallsign} [{p.BaseFeet?.ToString() ?? "SFC"}–{p.TopFeet?.ToString() ?? "UNL"}]").ToList() });
+            new
+            {
+                Settore = sectorCallsign,
+                Righe = pulite.Select(p =>
+                    $"{(p.Kind == FallbackTargetKind.Coverage ? "⟨copertura del punto⟩" : p.TargetCallsign)} " +
+                    $"[{p.BaseFeet?.ToString() ?? "SFC"}–{p.TopFeet?.ToString() ?? "UNL"}]").ToList(),
+            });
 
         await _db.SaveChangesAsync(ct);
     }
@@ -125,8 +146,12 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
         var antenati = new HashSet<string>(topo.Ancestors(sectorCallsign), StringComparer.OrdinalIgnoreCase);
 
         // Chi è GIÀ dichiarato non si ripropone: la proposta serve a riempire la tabella, non a ripeterla.
+        // ⚠️ I rinvii non entrano qui: un nome non ce l'hanno, e non tolgono nessun bersaglio dalle proposte.
         var gia = (await ListAsync(sectorCallsign, ct))
-            .Select(r => r.TargetCallsign).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Select(r => r.TargetCallsign)
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t!)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         return FallbackSuggestions.For(sectorCallsign, bande, antenati)
             .Where(p => !gia.Contains(p.TargetCallsign))

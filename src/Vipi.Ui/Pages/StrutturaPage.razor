@@ -274,7 +274,18 @@
                                 @for (var i = 0; i < _ripieghi.Count; i++)
                                 {
                                     var idx = i;
+                                    var rinvio = _ripieghi[idx].Kind == FallbackTargetKind.Coverage;
                                     <div class="fb-form">
+                                        @* ⚠️ Il rinvio NON e' un bersaglio fra i tanti: e' un altro GENERE di
+                                           riga, quindi si sceglie prima e spegne il campo del nome. Un nome
+                                           speciale nella tendina («⟨copertura⟩») sarebbe finito nella stessa
+                                           colonna dei callsign, e chi rilegge l'archivio fra sei mesi ci
+                                           troverebbe una stringa che non e' un settore. *@
+                                        <label class="fb-kind" title="@L["Struct_Fallback_CoverageTitle"]">
+                                            <input type="checkbox" disabled="@_busy" checked="@rinvio"
+                                                   @onchange="e => CambiaGenere(idx, e.Value is true)" />
+                                            @L["Struct_Fallback_Coverage"]
+                                        </label>
                                         @* ⚠️ Campo a DIGITAZIONE, non una tendina: i bersagli possibili sono
                                            tutti i settori dei cataloghi, e scorrerne centinaia per trovarne uno
                                            non e' una scelta, e' una ricerca fatta a mano. Il componente e' lo
@@ -285,16 +296,16 @@
                                            lo dice subito la spia qui accanto, e il servizio lo rifiuta al
                                            salvataggio - meglio due volte che una riga muta. *@
                                         <TypeaheadPicker Label="@L["Struct_Fallback_Target"]"
-                                                         Hint="@L["Struct_Fallback_TypeHint"]"
+                                                         Hint="@(rinvio ? L["Struct_Fallback_CoverageHint"] : L["Struct_Fallback_TypeHint"])"
                                                          Placeholder="LIMM_ES5_CTR"
-                                                         Disabled="@_busy"
+                                                         Disabled="@(_busy || rinvio)"
                                                          Max="12"
                                                          NoMatch="@L["Struct_Fallback_NoMatch"]"
-                                                         Items="BersagliPossibili(sel, _ripieghi[idx].TargetCallsign)"
-                                                         Text="@_ripieghi[idx].TargetCallsign"
+                                                         Items="BersagliPossibili(sel, _ripieghi[idx].TargetCallsign ?? string.Empty)"
+                                                         Text="@(_ripieghi[idx].TargetCallsign ?? string.Empty)"
                                                          TextChanged="t => CambiaBersaglio(idx, t)"
                                                          OnPick="i => CambiaBersaglio(idx, i?.Value)">
-                                            @if (BersaglioSconosciuto(_ripieghi[idx].TargetCallsign))
+                                            @if (BersaglioSconosciuto(_ripieghi[idx].TargetCallsign ?? string.Empty))
                                             {
                                                 <span class="fb-warn" title="@L["Struct_Fallback_UnknownTitle"]">@L["Struct_Fallback_Unknown"]</span>
                                             }
@@ -1146,6 +1157,20 @@
     }
 
     /// <summary>
+    /// Da bersaglio scritto a RINVIO e ritorno. ⚠️ Passando a rinvio il nome si <b>azzera</b>: tenerlo
+    /// lascerebbe in archivio un callsign che non conta piu' niente, e alla rilettura sembrerebbe la riga di
+    /// qualcun altro. La fascia invece resta — «⟨copertura⟩ sopra FL325» e' una riga legittima.
+    /// </summary>
+    private void CambiaGenere(int i, bool rinvio)
+    {
+        _ripieghi[i] = _ripieghi[i] with
+        {
+            Kind = rinvio ? FallbackTargetKind.Coverage : FallbackTargetKind.Callsign,
+            TargetCallsign = rinvio ? "" : _ripieghi[i].TargetCallsign,
+        };
+    }
+
+    /// <summary>
     /// Il bersaglio battuto a mano si normalizza in MAIUSCOLO: i callsign lo sono, e una riga scritta
     /// «limm_es5_ctr» sarebbe accettata dal servizio (che confronta senza distinzione) ma poi si leggerebbe
     /// diversa da tutte le altre in tabella.
@@ -1291,8 +1316,8 @@
         var dichiarate = new Dictionary<string, IReadOnlyList<FallbackRow>>(StringComparer.OrdinalIgnoreCase);
         if (_ripieghiSalvati.Count > 0)
             dichiarate[sel.Callsign] = _ripieghiSalvati
-                .Where(r => r.TargetCallsign.Length > 0)
-                .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet)).ToList();
+                .Where(r => !string.IsNullOrEmpty(r.TargetCallsign) || r.Kind == FallbackTargetKind.Coverage)
+                .Select(r => new FallbackRow(r.TargetCallsign ?? "", r.BaseFeet, r.TopFeet, r.Kind)).ToList();
 
         string? Padre(string cs) => byCs.TryGetValue(cs, out var n) ? n.EffectiveParentCallsign : null;
 
@@ -1307,7 +1332,8 @@
                     n?.AccCode ?? "",
                     Banda: e.BaseFeet is null && e.TopFeet is null ? null : FasciaTesto(e.BaseFeet, e.TopFeet),
                     DalPadre: e.FromParent,
-                    Online: _online.Contains(e.TargetCallsign));
+                    Online: _online.Contains(e.TargetCallsign),
+                    Rinvio: e.Kind == FallbackTargetKind.Coverage);
             }).ToList())
             .ToList();
     }
