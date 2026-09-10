@@ -11068,6 +11068,9 @@ stava entrando, il caso senza eccezione, e che `RegistraLogin` scriva **davvero*
   colpo**. Quel giorno `1.18.2` è morto senza arresto ordinato (`avvii.txt`, riga delle 12:31:14Z: «era
   partito 03:33:01 prima»), e un processo che muore non scrive niente per definizione. Lo dice solo
   `avvii.txt`, ed è già così.
+
+---
+
 ## §CQ — Il convertitore e l'AIP: due apostrofi e una riga bianca — 10 settembre 2026
 
 Due segnalazioni del committente, tutt'e due nate **incollando dall'AIP italiana**, e tutt'e due invisibili

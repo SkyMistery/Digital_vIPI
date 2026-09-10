@@ -960,7 +960,43 @@
       in fondo con default; `SectorFallback.TargetCallsign` resta NOT NULL. Tutti i costruttori stanno in
       Application e Infrastructure, tutt'e due nel pacchetto.
     -->
-    <VipiVersione>1.19.0</VipiVersione>
+    <!-- 1.19.1 - PATCH (10 settembre 2026). Due segnalazioni dal campo, tutt'e due sulla DIAGNOSI o sulla
+      LETTURA, nessuna pagina nuova e nessuna migrazione. Si consegna da sola, dentro la finestra cieca.
+
+      SS.CP - IL LOGIN ROTTO LASCIA UNA RIGA. Uno staffista ha fatto il login verso le 11:00 UTC e ha visto
+      la pagina d'errore; in `errori-richieste.txt` per quell'ora non c'era NIENTE. Il file era fresco
+      (impronta diversa dalla copia della sera prima) e la cartella scrivibile (`avvii.txt` porta le righe
+      delle 12:31 UTC): la riga non mancava, non era mai stata chiesta.
+        · `OnRemoteFailure` e' GESTITO (HandleResponse), quindi l'eccezione non arriva a
+          `DiagnosticaErrori.Gancio`, che e' un IExceptionHandler della pipeline HTTP. Restava un ILogger di
+          categoria `Vipi.Auth.Ivao` -> stdout -> su atc.it.ivao.aero il vuoto.
+        · `/Error` e' un MapGet come un altro: ci si arriva anche a piedi, e la pagina e' IDENTICA. «La riga
+          non si e' scritta» e «non c'era niente da scrivere» portano a indagini opposte.
+      Ora: `RegistraLogin` (codice `login-<motivo>`), `RegistraPaginaSenzaEccezione` (riga NOTA), e il
+      guasto DEL gestore (`login-gestore`). Il Referer si tronca alla query: su /signin-oidc quella query
+      e' il `code` OAuth, e il registro si spedisce per email.
+
+      SS.CQ - IL CONVERTITORE LEGGE L'AIP. Incollando dall'AIP italiana i secondi arrivano con DUE
+      APOSTROFI (41d07'24''N): non erano una coordinata, diventavano un'ETICHETTA e il punto spariva. E una
+      riga bianca fra un vertice e l'altro spezzava un'area di dieci vertici in DIECI aree da un punto.
+      Ora i segni si normalizzano (apici curvi, primo/secondo tipografici, ordinale al posto del grado) e
+      le righe vuote contano come separatori solo se un blocco anonimo arriva a due punti - decisione
+      GLOBALE, presa alla fine: farla blocco per blocco spezza l'elenco a meta'.
+
+      I FILE. Il diff dei nomi fra 6f38e58 e HEAD, limitato a src/, nomina TRE progetti: Application, Host,
+      Ui. Sette file in tutto (i tre .dll coi loro .pdb, piu' il satellite inglese).
+      ATTENZIONE: NIENTE wwwroot in questa consegna - nessun .css e nessun .js e' stato toccato, quindi
+      niente .br/.gz e niente Vipi.Host.staticwebassets.endpoints.json. Se ci finissero dentro sarebbero
+      rinomine in piu' su file che il processo tiene aperti, senza portare niente.
+      Il satellite inglese ENTRA: le due .resx sono cambiate (una chiave nuova, Conv_IssueBlankLines). Li'
+      comanda il DIFF, non l'impronta.
+      NIENTE MySqlMigrations: nessuna migrazione nuova. Lo schema resta quello di 1.19.0.
+
+      FIRME: nessuna interfaccia toccata. `CoordinateIssueKind` guadagna un valore IN FONDO
+      (RigheVuoteIgnorate) e `DiagnosticaErrori` due metodi statici nuovi: additivi tutt'e due, e chi li
+      usa (Ui, Host) sta nel pacchetto.
+    -->
+    <VipiVersione>1.19.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
