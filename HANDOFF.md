@@ -1,6 +1,13 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (sera) — ✅ **1.22.1 è CARICATA** (otto controlli pubblici verdi; PATCH, 6 file, timbro
+**Ultimo aggiornamento:** 11 settembre 2026 (notte) — 📦 **1.23.0 È PRONTA, da caricare.** MINOR senza migrazione,
+**9 file** (`Vipi.Ui`, `Vipi.Host` coi `.pdb`, satellite inglese, `vipi-theme.css` coi `.br`/`.gz` + indice degli
+endpoint), timbro `1.23.0 · da243f29`, zip `80841e87b23b417c276f3526d87d627739b8b3d088f2ccd91cea9084d6906666`,
+foglio [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.23.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.23.0.md). Porta i vSOP
+militari fra gli Aeroporti dell'ACC (filtri per categoria, due voci, vista ATC) e `/services` a due porte per
+pubblico. Provata sul pacchetto win-x64: timbro, dieci controlli verdi, le funzioni nuove guidate dal vivo.
+
+Prima: 11 settembre (sera) — ✅ **1.22.1 è CARICATA** (otto controlli pubblici verdi; PATCH, 6 file, timbro
 `1.22.1 · 659c334b`, zip `939981b1…`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md)): «ILS, VOR» e il
 pannello «Settori ATC» nel vSOP senza vIPI. Tutto il codice è in produzione: dopo `659c334b` solo documenti.

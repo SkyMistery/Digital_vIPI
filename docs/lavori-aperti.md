@@ -2,7 +2,16 @@
 
 ## Dove siamo — 11 settembre 2026
 
-🆕 **Gli aeroporti dell'ACC, per categoria (11 settembre, notte — in `main`, NON in un pacchetto).** Chiesto dal
+📦 **1.23.0 — il pacchetto** (11 settembre, notte). Timbro **`1.23.0 · da243f29`**, sha256 dello zip
+**`80841e87b23b417c276f3526d87d627739b8b3d088f2ccd91cea9084d6906666`**, **9 file** (`Vipi.Ui`, `Vipi.Host` coi `.pdb`,
+`en/Vipi.Ui.resources.dll`, `vipi-theme.css` coi `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`), 2,55 MB,
+foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.23.0.md`. **MINOR**, nessuna migrazione. Asset confrontati per sha256
+con 1.22.1: diversi solo il foglio di stile e l'indice. ✅ Provata sul pacchetto win-x64: timbro nel file di
+avvio, dieci controlli di `pacchetto-verifica.js`, filtri/voci/vista ATC su LIMM e le due porte di `/services` in
+IT/EN e a 400px. ▶ **Dopo il caricamento**: timbro, Ricerca, `/services` (tasto militare **oliva** = CSS
+arrivato), un elenco aeroporti con campi militari, «FOR AIR TRAFFIC CONTROLLERS» in inglese.
+
+🆕 **Gli aeroporti dell'ACC, per categoria (11 settembre, notte — in 1.23.0).** Chiesto dal
 committente: su `/services/vsop/{acc}` via il riquadro «vSOP militari»; su `/services/vsop/{acc}/airports` tutti gli
 scali con almeno un documento pubblico (anche i solo militari), filtri «Tutti» + quattro categorie, e due voci
 («vIPI civile» / «vSOP militare») sulla scheda di chi li ha tutt'e due. Una regola sola, `AeroportiDellAcc`, per
