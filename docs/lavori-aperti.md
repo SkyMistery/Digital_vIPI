@@ -2,6 +2,15 @@
 
 ## Dove siamo — 11 settembre 2026
 
+📦 **1.22.1 — PRONTA, da caricare** (11 settembre, sera). Timbro **`1.22.1 · 659c334b`**, sha256 dello zip
+**`939981b135919b2e226cdee3160018083b707e196947fc71cf657391179f664e`**, **6 file** (`Vipi.Application`, `Vipi.Ui`,
+`Vipi.Host` coi `.pdb`), 3,33 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`. **PATCH**: niente
+migrazioni, `wwwroot` (91 asset identici per impronta), satellite inglese. Porta:
+- `82e7e451` le APP procedures lette «ILS, VOR» (al disegno: vale anche sulle release congelate);
+- `eeee530f` il pannello «Settori ATC» e «Re-importa da IVAO» nell'editor del vSOP di un campo senza vIPI civile
+  (segnalato su LIMS: Frequenze vuota e non riempibile). ⚠️ Su LIMS la sorgente non ha posizioni ATC.
+✅ Provata sul pacchetto win-x64: timbro, dieci controlli verdi, pannello nel vSOP di LIMS, «VOR,RNAV» → «VOR, RNAV».
+
 ✅ **1.22.0 È CARICATA** (11 settembre, pomeriggio). Da fuori, subito dopo: **otto controlli pubblici verdi**
 (Ricerca compresa); `vipi-theme.css` servito con lo **stesso sha256** del pacchetto (`35a20819…`); l'etichetta
 «Civile» su LIBD e «Militare con presenza civile» nell'elenco vSOP ⇒ la colonna c'è e il travaso è girato.
