@@ -1148,7 +1148,36 @@
       NIENTE MySqlMigrations, NIENTE Application/Infrastructure. FIRME: nessuna fuori da Vipi.Ui
       (AeroportiDellAcc e AeroportoInElenco sono nuovi e usati solo li').
     -->
-    <VipiVersione>1.23.0</VipiVersione>
+    <!-- 1.24.0 - MINOR (12 settembre 2026). Le regole piste nel vSOP militare, nessuna migrazione.
+
+      LE REGOLE PISTE NEL vSOP (4d83182d, chiesto dal committente). Sezione «Regole piste» in Dati generali,
+      SUBITO DOPO le Piste e prima delle SID: il profilo militare passa da 44 a 45 sezioni. Stessa chiave
+      `runwayrules` del profilo civile, quindi congelamento alla release, derivazione e semina nei vSOP gia'
+      scritti arrivano senza codice nuovo. Dalle regole il viewer marca la pista IN USO in Piste e nelle SID,
+      come nella vIPI. Si scrivono nell'editor del vSOP solo sui campi SENZA vIPI civile; sui misti resta il
+      rimando all'editor civile.
+
+      IL VERDETTO SEGUE LA SEZIONE (fba63da9, dopo una revisione indipendente). La tabella seguiva gia' il
+      Frozen/Live della sezione; il verdetto - quale regola vince, quale pista e' marcata - si calcolava SEMPRE
+      sulle regole vive, e su una sezione congelata bastava cambiare una regola dopo aver pubblicato perche' la
+      stessa pagina dicesse due cose. Ora la fotografia porta le regole in forma calcolabile e si valuta su
+      quelle mostrate; il vento resta sempre di adesso. Vale anche per la vIPI CIVILE d'aeroporto.
+      Le release scattate prima non le hanno: si ricade sulle vive e si nascondono pastiglia e didascalia.
+
+      MINOR e non PATCH: una sezione nuova nel catalogo (stessa regola di 1.21.0 con le SID).
+
+      ⚠️ AL PRIMO AVVIO la sezione entra nei vSOP gia' scritti, ANCHE nella loro versione pubblicata: il
+      pubblico non cambia (legge la fotografia della release), ma quei vSOP possono comparire fra i «da
+      ripubblicare». In un'unione vIPI+vSOP dove le ripetizioni erano gia' nascoste, «Regole piste» si vede due
+      volte finche' non si ripassa dalla scheda delle sezioni in comune.
+
+      I FILE. Il diff dei nomi fra da243f29 e HEAD, limitato a src/, nomina DUE progetti: Vipi.Application (tre
+      file) e Vipi.Ui (otto). Piu' Vipi.Host per il TIMBRO. Sei file: i tre .dll coi .pdb.
+      NIENTE satellite inglese (nessuna .resx toccata), NIENTE wwwroot, NIENTE MySqlMigrations.
+      FIRME: AirportRulesView guadagna un parametro OPZIONALE in coda e AirportSectionProjection.Rules cambia
+      solo il valore di ritorno; chi le nomina sta in Vipi.Application e Vipi.Ui, che si spediscono tutt'e due.
+    -->
+    <VipiVersione>1.24.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
