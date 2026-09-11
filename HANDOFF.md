@@ -3,7 +3,10 @@
 **Ultimo aggiornamento:** 11 settembre 2026 (sera) — ✅ **1.22.1 è CARICATA** (otto controlli pubblici verdi; PATCH, 6 file, timbro
 `1.22.1 · 659c334b`, zip `939981b1…`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md)): «ILS, VOR» e il
-pannello «Settori ATC» nel vSOP senza vIPI. ✅ 1.22.0 è online (otto controlli pubblici verdi). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+pannello «Settori ATC» nel vSOP senza vIPI. Tutto il codice è in produzione: dopo `659c334b` solo documenti.
+✅ «Mancano SID e frequenze nel vSOP di LIMS» chiuso **senza codice**: LIMS non ha dati alla sorgente (`lims.sid`
+404, nessuna posizione IVAO); il committente ha confermato su LIRS che col flusso vero le SID ci sono (dettaglio e
+un punto da verificare su LIML in `docs/lavori-aperti.md`). ✅ 1.22.0 è online (otto controlli pubblici verdi). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
 
 📦 **1.22.0 — il pacchetto.** Timbro `1.22.0 · f538b6f2`, **19 file**, zip
 `74ebe3b822e0d0362d0dd295bb66ff0476aefb9f63fbfd6090e8a8c102dcaf52`, foglio

@@ -4,6 +4,18 @@
 
 ✅ **1.22.1 È CARICATA** (11 settembre, sera): otto controlli pubblici verdi; 92 celle APP su 37 vIPI pubbliche tutte «X, Y». ⚠️ Dati da correggere a mano: LIBN pista 32 «ILS. TAC» (punto al posto della virgola), LIPL 13R/13L «CIRCLING» nella colonna APP.
 
+✅ **Chiuso senza codice (11 settembre, notte): «nel vSOP di LIMS senza vIPI mancano SID e frequenze».** Non è un
+difetto: LIMS **non ha dati alla sorgente** — `lims.sid` sul GitHub di Aurora risponde **404**, e IVAO non elenca
+posizioni ATC per Piacenza. Nell'archivio (oggi, backup del 30-ago e del 10-set) LIMS ha 0 SID, 0 posizioni, 0
+link. Confronto a schermo con la stessa build 1.22.1: la vIPI di LIMS ricostruita dal backup del 10-set e il vSOP
+di oggi hanno **le stesse tabelle** (Frequenze vuota + «cerca callsign/freq», «SID manuali 0» + «+ SID», piste,
+quote). Su **LIBG** (solo militare, senza vIPI) il vSOP mostra le **18 SID importate** con «Re-importa SID», e il
+committente ha confermato su **LIRS** che dopo aver eliminato la vIPI le SID ci sono. ⚠️ L'eliminazione del
+documento non tocca l'anagrafica: SID e link per `AirportId`, posizioni per ICAO, `Sector.DocumentId → SetNull`.
+▶ **Da verificare** (non misurato): un campo in categoria 4 **senza vIPI** (oggi LIML) nell'editor del vSOP ha il
+rimando all'editor civile (`ScaloSenzaCivile` è falso perché la categoria ammette il civile) — cosa trova chi segue
+quel link su uno scalo senza vIPI?
+
 📦 **1.22.1 — il pacchetto** (11 settembre, sera). Timbro **`1.22.1 · 659c334b`**, sha256 dello zip
 **`939981b135919b2e226cdee3160018083b707e196947fc71cf657391179f664e`**, **6 file** (`Vipi.Application`, `Vipi.Ui`,
 `Vipi.Host` coi `.pdb`), 3,33 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`. **PATCH**: niente
