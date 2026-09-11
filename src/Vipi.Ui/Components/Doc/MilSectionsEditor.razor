@@ -135,6 +135,10 @@ else
             {
                 <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div style="flex:1">@_shell.Error</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _shell.Error = null">✕</button></div>
             }
+            @if (_esito is not null)
+            {
+                <div class="callout @(_rwyOrfane.Count > 0 ? "warning" : "success")"><span class="cic">@(_rwyOrfane.Count > 0 ? "⚠️" : "✓")</span><div style="flex:1">@_esito</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _esito = null" title="@L["Common_Close"]">✕</button></div>
+            }
 
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
                                     DerivedContent="DerivedSection"
@@ -161,9 +165,32 @@ else
                     {
                         <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
+                    @* Il re-import dell'anagrafica (piste, TA, posizioni ATC) dalla sorgente: lo stesso tasto
+                       dell'editor d'aeroporto, e solo dove i dati dello scalo si scrivono QUI. *@
+                    @if (ScaloSenzaCivile)
+                    {
+                        <button class="btn ghost" disabled="@(_busy || !_shell.IsEditing)" @onclick="Reimporta" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
+                        @if (AirportSectorsPanel.UltimoImport(_sectors) is DateTime li)
+                        {
+                            <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
+                        }
+                    }
                     }
                 </RightRail>
-                <AfterSections>@AfterSections</AfterSections>
+                <AfterSections>
+                    @* Il catalogo delle posizioni ATC dello scalo, SOLO dove l'anagrafica si scrive qui (campo solo
+                       militare senza vIPI civile). ⚠️ Segnalato dal committente l'11 settembre 2026 su LIMS: senza
+                       questo pannello la sezione «Frequenze» restava vuota e nessuno poteva riempirla — le
+                       posizioni si importano da qui. È lo stesso componente dell'editor d'aeroporto. *@
+                    @if (ScaloSenzaCivile)
+                    {
+                        <AirportSectorsPanel Sectors="_sectors" Forme="_formeSettori" Editing="_shell.IsEditing" Busy="_busy"
+                                             OnImport="ImportaSettori" OnImportTwrShapes="ImportaFormeTwr"
+                                             OnSetLimits="LimitiSettore" OnSetHidden="NascondiSettore"
+                                             OnSetPrimary="PrincipaleSettore" OnSetAccApp="AccAppSettore" />
+                    }
+                    @AfterSections
+                </AfterSections>
             </DocumentSectionsEditor>
         }
     </div>
@@ -199,6 +226,8 @@ else
     public async Task<string?> PrendiLockAsync()
     {
         if (_shell.Doc is null) return null;
+        // Stesso ricontrollo di «Modifica»: in un editor unito il lock lo prende l'ospite, passando di qui.
+        await _shell.InFilaAsync(RiallineaScaloAsync);
         if (_shell.Lock is { Locked: true, IsMine: false })
             return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
         await _shell.StartEditingAsync(LoadAsync);
@@ -294,6 +323,17 @@ else
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
 
+    /// <summary>Da dove viene la forma di ogni posizione, per il pannello «Settori ATC».</summary>
+    private IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> _formeSettori =
+        new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
+
+    /// <summary>Le piste che l'ultimo re-import ha trovato in archivio ma non nella sorgente, tenute perché
+    /// portano dati scritti a mano: le segnala l'editor delle piste, come nell'editor d'aeroporto.</summary>
+    private IReadOnlyList<string> _rwyOrfane = Array.Empty<string>();
+
+    /// <summary>Un gesto sull'anagrafica sta correndo: i tasti del pannello e del re-import si spengono.</summary>
+    private bool _busy;
+
     // ---- le SID (10 settembre 2026, committente) --------------------------------------------------------
     // ⚠️ Lo stesso stato del pannello civile, perché è lo STESSO dato: le SID stanno nell'anagrafica dello
     // scalo, e qui c'è un secondo OSPITE di `<AirportSidsEditor>`, non un secondo editor.
@@ -306,9 +346,13 @@ else
     // ventisei sezioni il pannello si raggiunge solo scorrendo fino in fondo. Come negli altri quattro.
     /// ⚠️ Solo col chrome: in un editor unito il pannello di pubblicazione e' UNO, dell'ospite, e una
     /// voce per membro prometterebbe N pannelli che non ci sono.
-    private IReadOnlyList<EditorTocItem> _tocExtra => (Chrome
-        ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
-        : Array.Empty<EditorTocItem>())
+    /// La voce dei SETTORI c'è solo dove c'è il pannello (<see cref="ScaloSenzaCivile"/>), e resta anche senza
+    /// chrome, come nell'editor d'aeroporto: il catalogo è di QUESTO scalo.
+    private IReadOnlyList<EditorTocItem> _tocExtra =>
+        (ScaloSenzaCivile ? new[] { new EditorTocItem("sec-settori", L["Ape_PanelSectors"]) } : Array.Empty<EditorTocItem>())
+        .Concat(Chrome
+            ? new[] { new EditorTocItem(ReleasePanel.SectionAnchor, L["Rel_SectionTitle"]) }
+            : Array.Empty<EditorTocItem>())
         // ⚠️ Le voci dell'OSPITE in coda: nell'editor unito l'indice è UNO solo, e ci stanno dentro
         //    anche le sezioni degli altri membri, raggruppate col titolo del loro documento.
         .Concat(VociIndiceExtra ?? Array.Empty<EditorTocItem>()).ToList();
@@ -389,6 +433,10 @@ else
     private IStationResolver Stations = default!;
     private IEditAuthorizationService Authz = default!;
 
+    /// <summary>Le forme delle posizioni dello scalo, per il pannello «Settori ATC»: stesso scope proprio, perché
+    /// si legge nello stesso caricamento.</summary>
+    private Vipi.Application.Airspace.ISectorShapeResolver Forme = default!;
+
     protected override void OnInitialized()
     {
         Editing = ScopedServices.GetRequiredService<IEditingService>();
@@ -403,6 +451,7 @@ else
         Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Authz = ScopedServices.GetRequiredService<IEditAuthorizationService>();
+        Forme = ScopedServices.GetRequiredService<Vipi.Application.Airspace.ISectorShapeResolver>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "vSOP militare", "Mil_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
             () => InvokeAsync(async () => { StateHasChanged(); await StatoCambiato.InvokeAsync(); }));
@@ -545,6 +594,7 @@ else
         _policy = await Scalo.GetImportPolicyAsync();
         _linkable = await Scalo.ListLinkableFrequenciesAsync();
         _sectors = await Settori.ListByAirportAsync(_icao);
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
 
         _ta = dati.TransitionAltitudeFt;
         _tls = dati.TransitionLevels
@@ -778,7 +828,7 @@ else
                                          ConfirmRemove="ConfermaRimozioneRiga" />
                 break;
             case "runways":
-                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways"
+                <AirportRunwaysEditor Rows="_rwys" SourceLocked="_policy.Runways" MissingFromSource="_rwyOrfane"
                                       Editing="_shell.IsEditing" RowsChanged="SalvaPiste"
                                       ConfirmRemove="ConfermaRimozionePista" />
                 break;
@@ -892,6 +942,85 @@ else
         await Scalo.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, fissato,
             e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;
+    }
+
+    // ---- il pannello «Settori ATC» e il re-import (11 settembre 2026) ------------------------------------
+    // Gli stessi gesti dell'editor d'aeroporto, sullo stesso servizio e sotto lo stesso lock: su un campo senza
+    // vIPI civile il lock dello scalo è quello del vSOP (AirportLockGuard). Il pannello disegna, qui si scrive.
+
+    /// <summary>Un gesto sull'anagrafica, con i tasti spenti mentre corre. Ritorna l'esito, come nell'editor
+    /// d'aeroporto.</summary>
+    private async Task<bool> GestoScalo(Func<Task> azione)
+    {
+        _busy = true;
+        try { return await _shell.GuardedAsync(azione); }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Ricarica il solo catalogo delle posizioni: la tabella Frequenze lo legge di qui.</summary>
+    private async Task RicaricaSettoriAsync()
+    {
+        _sectors = await Settori.ListByAirportAsync(_icao);
+        _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
+    }
+
+    private Task ImportaSettori() => GestoScalo(async () =>
+    {
+        await Settori.ImportFromSourceAsync(_icao);
+        await RicaricaSettoriAsync();
+    });
+
+    private Task ImportaFormeTwr() => GestoScalo(async () =>
+    {
+        var n = await Settori.ApplyGithubTwrShapesAsync(_icao);
+        await RicaricaSettoriAsync();
+        _esito = n > 0 ? string.Format(L["Ape_ImportTwrShapesDone"].Value, n) : L["Ape_ImportTwrShapesNone"].Value;
+    });
+
+    private Task LimitiSettore(int id, int? lower, int? upper) => GestoScalo(() => Settori.SetLimitsAsync(id, lower, upper));
+    private Task NascondiSettore(int id, bool hidden) => GestoScalo(async () => { await Settori.SetHiddenAsync(id, hidden); await RicaricaSettoriAsync(); });
+    private Task PrincipaleSettore(int id) => GestoScalo(async () => { await Settori.SetPrimaryAsync(id); await RicaricaSettoriAsync(); });
+    private Task AccAppSettore(int id, bool v) => GestoScalo(async () => { await Settori.SetAccAppAsync(id, v); await RicaricaSettoriAsync(); });
+
+    /// <summary>
+    /// Re-importa dalla sorgente piste, TA e posizioni ATC dello scalo: lo stesso gesto dell'editor d'aeroporto.
+    /// Dopo, i dati dello scalo si rileggono dal database — come fa lui — e si segnalano le piste tenute perché
+    /// portano dati scritti a mano ma che la sorgente non nomina più.
+    /// </summary>
+    private async Task Reimporta()
+    {
+        if (!await Conferma(L["Ape_ReimportConfirm"].Value)) return;
+
+        AirportSectorImportResult? settori = null;
+        RunwayMergeOutcome? piste = null;
+        if (!await GestoScalo(async () =>
+            {
+                piste = await Scalo.ReimportFromSourceAsync(_icao);
+                settori = await Settori.ImportFromSourceAsync(_icao);
+            }))
+            return;
+
+        await CaricaDatiScaloAsync();
+        _rwyOrfane = piste?.OrphansWithData ?? Array.Empty<string>();
+        _esito = L["Ape_ReimportDone", _rwys.Count, settori?.Created ?? 0, settori?.Updated ?? 0].Value;
+        if (_rwyOrfane.Count > 0)
+            _esito += " " + L["Ape_ReimportOrphans", string.Join(", ", _rwyOrfane)].Value;
+    }
+
+    /// <summary>L'esito dell'ultimo gesto sull'anagrafica («importate N posizioni…»). Si chiude con la ✕.</summary>
+    private string? _esito;
+
+    /// <summary>
+    /// ⚠️ Prima di prendere il lock si richiede se lo scalo ha una vIPI civile. Questa pagina lo chiede una volta
+    /// sola, quando si apre: se nel frattempo lo scalo è diventato «solo militare» e la vIPI è stata eliminata
+    /// da un'altra scheda, la pagina rimasta aperta continuava a mandare all'editor civile — che non c'è più —
+    /// invece di mostrare qui piste, frequenze e SID. Il ricontrollo costa una lettura, e solo se la risposta è
+    /// cambiata si rileggono i dati dello scalo.
+    /// </summary>
+    private async Task RiallineaScaloAsync()
+    {
+        var adesso = await Militari.GetCivilEditionAsync(_icao);
+        if (adesso != _civile) await CaricaDatiScaloAsync();
     }
 
     private async Task ReimportaSid()
@@ -1428,7 +1557,11 @@ else
     /// il chrome e' una pagina a se', e non c'e' nessun ospite da avvisare.</summary>
     [Parameter] public EventCallback<IMembroEditor> Registrati { get; set; }
 
-    private Task Modifica() => SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync);
+    private async Task Modifica()
+    {
+        await _shell.InFilaAsync(RiallineaScaloAsync);
+        await (SuModifica is not null ? SuModifica() : _shell.StartEditingAsync(LoadAsync));
+    }
 
     private Task FineModifica() => SuFineModifica is not null ? SuFineModifica() : _shell.FinishEditingAsync();
 

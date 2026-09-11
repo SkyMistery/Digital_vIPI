@@ -129,6 +129,28 @@ public class DatiDelloScaloMilitareTests
         }
     }
 
+    /// <summary>
+    /// 🔴 <b>Il pannello «Settori ATC» c'è anche qui</b> (11 settembre 2026, segnalato dal committente su LIMS):
+    /// da lì nascono le righe della sezione Frequenze. Senza, su un campo solo militare senza vIPI civile la
+    /// tabella Frequenze restava vuota e le posizioni non si potevano importare da nessuna parte — lo stesso
+    /// «giro chiuso» di §AS, per il catalogo invece che per le piste. E sta dietro la STESSA guardia degli altri
+    /// editor dello scalo, col lock del documento.
+    /// </summary>
+    [Fact]
+    public void Il_pannello_dei_settori_si_monta_anche_qui_dietro_la_stessa_guardia()
+    {
+        var sorgente = Militare();
+
+        Assert.Contains("<AirportSectorsPanel ", Aeroporto());
+        var montaggio = sorgente[sorgente.IndexOf("<AirportSectorsPanel ", StringComparison.Ordinal)..];
+        montaggio = montaggio[..montaggio.IndexOf("/>", StringComparison.Ordinal)];
+        Assert.Contains(@"Editing=""_shell.IsEditing""", montaggio);
+
+        // La guardia: il montaggio sta dentro un `@if (ScaloSenzaCivile)`, l'ultimo prima del componente.
+        var prima = sorgente[..sorgente.IndexOf("<AirportSectorsPanel ", StringComparison.Ordinal)];
+        Assert.EndsWith("@if (ScaloSenzaCivile)", prima[..prima.LastIndexOf('{')].TrimEnd());
+    }
+
     private static string Sorgente(string relativo) => File.ReadAllText(Path.Combine(Radice(), relativo));
 
     private static string Radice()

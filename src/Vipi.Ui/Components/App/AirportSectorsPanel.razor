@@ -1,0 +1,191 @@
+@* Il pannello «Settori ATC» di uno scalo: il catalogo delle sue posizioni (importate da IVAO), con la
+   frequenza principale per tipo, il flag «di ACC» degli APP, i limiti verticali e il «nascondi».
+
+   ⚠️ NON è una sezione del documento: è amministrazione della struttura, non testo pubblicato. Da qui però
+   nascono le righe della sezione «Frequenze» — che le legge in sola lettura — quindi un editor che scrive
+   l'anagrafica dello scalo senza questo pannello ha una tabella Frequenze che nessuno può riempire.
+
+   ⚠️ Estratto dall'editor d'aeroporto l'11 settembre 2026 perché un campo SOLO MILITARE senza vIPI civile
+   ne aveva bisogno anche nell'editor del vSOP (segnalato dal committente su LIMS: zero posizioni, e nessun
+   modo di importarle). Due OSPITI dello stesso pannello, non due pannelli: la stessa lezione di
+   `AirportRunwaysEditor` e `AirportSidsEditor` (dati-scalo-editor-militare).
+
+   ⚠️ Non tocca il database da sé: ogni gesto lo esegue l'ospite, che ha il servizio dal suo scope proprio
+   e la sua porta di salvataggio (`GuardedAsync`). Qui c'è solo il disegno e i buffer dei limiti. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div id="@Anchor" class="block">
+    <div class="section-title" style="margin-top:0">
+        <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@Sectors.Count</span></h2>
+        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
+        @if (UltimoImport(Sectors) is DateTime lastImp)
+        {
+            @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede che il bottone
+               non abbia fatto nulla. Stessa convenzione della vista live (orari in Z). *@
+            <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
+        }
+        <button class="btn primary" disabled="@(Busy || !Editing)" @onclick="() => OnImport.InvokeAsync()" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
+        @if (Sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
+        {
+            <button class="btn ghost" disabled="@(Busy || !Editing)" @onclick="() => OnImportTwrShapes.InvokeAsync()" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
+        }
+    </div>
+    @if (Sectors.Count == 0)
+    {
+        <p class="help">@L["Ape_NoSectors"]</p>
+    }
+    else
+    {
+        <table class="res-table">
+            <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Sectors)
+                {
+                    var hasLimits = SupportsLimits(s.Position);
+                    <tr style="@(s.IsHidden ? "opacity:.5" : "")">
+                        <td><b>@s.ComposePosition</b></td>
+                        <td><span class="pill blue">@s.AccCode</span></td>
+                        <td>@(s.Position ?? "—")</td>
+                        <td>@(s.MiddleIdentifier ?? "—")</td>
+                        <td style="text-align:center">
+                            @if (IsApp(s.Position))
+                            {
+                                <input type="checkbox" checked="@s.IsAccApp" disabled="@(Busy || !Editing)" @onchange="e => OnSetAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
+                            }
+                            else { <span class="muted">—</span> }
+                        </td>
+                        <td>@(s.Frequency ?? "—")</td>
+                        <td style="text-align:center">
+                            @if (CanBePrimary(s.Position))
+                            {
+                                <input type="radio" name="primaryFreq-@(Anchor)-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(Busy || !Editing)" @onchange="() => OnSetPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
+                            }
+                            else { <span class="muted">—</span> }
+                        </td>
+                        <td>@if (hasLimits) { <ShapeSourcePill Shape="@FormaDi(s.ComposePosition)" /> } else { <span class="muted">—</span> }</td>
+                        @if (hasLimits)
+                        {
+                            @* ⚠️ Con la forma agganciata all'AIP le quote le portano i PEZZI: queste due caselle
+                               restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. *@
+                            <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                <input style="width:70px" value="@FmtLower(_lower.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _lower[s.Id] = ParseLower(e.Value))" title="@L["AccAdmin_LowerHint"]" disabled="@(!Editing || s.LimitsFromSource)" />
+                                @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
+                            </td>
+                            <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
+                                title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
+                                <input style="width:70px" value="@FmtUpper(_upper.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _upper[s.Id] = ParseUpper(e.Value))" title="@L["AccAdmin_UpperHint"]" disabled="@(!Editing || s.LimitsFromSource)" /></td>
+                        }
+                        else
+                        {
+                            <td class="muted">—</td>
+                            <td class="muted">—</td>
+                        }
+                        <td>
+                            @if (s.IsHidden)
+                            {
+                                <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
+                            }
+                            else
+                            {
+                                <span class="pill green">@L["AccAdmin_Active"]</span>
+                            }
+                        </td>
+                        <td style="white-space:nowrap">
+                            <button class="btn ghost" disabled="@(Busy || !Editing)" @onclick="() => OnSetHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    /// <summary>L'ancora del pannello, per la voce del sommario. Un id per ospite: in un editor unito gli
+    /// scali possono essere due.</summary>
+    [Parameter] public string Anchor { get; set; } = "sec-settori";
+
+    /// <summary>Il catalogo delle posizioni dello scalo, come l'ha letto l'ospite.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<AirportSectorRow> Sectors { get; set; } = Array.Empty<AirportSectorRow>();
+
+    /// <summary>Da dove viene la forma di ogni posizione (carta refactor 15): la chiede l'ospite, UNA volta.</summary>
+    [Parameter] public IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> Forme { get; set; }
+        = new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
+
+    /// <summary>Il documento è in modifica e il lock è nostro: solo allora i comandi sono accesi.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Un salvataggio sta correndo: i tasti si spengono.</summary>
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public EventCallback OnImport { get; set; }
+    [Parameter] public EventCallback OnImportTwrShapes { get; set; }
+
+    /// <summary>Un limite digitato: (settore, inferiore, superiore). L'ospite lo scrive subito.</summary>
+    [Parameter, EditorRequired] public Func<int, int?, int?, Task> OnSetLimits { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, bool, Task> OnSetHidden { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, Task> OnSetPrimary { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<int, bool, Task> OnSetAccApp { get; set; } = default!;
+
+    private readonly Dictionary<int, int?> _lower = new();
+    private readonly Dictionary<int, int?> _upper = new();
+    private IReadOnlyList<AirportSectorRow>? _visti;
+
+    /// <summary>I buffer dei limiti si rifanno solo quando l'ospite porta un catalogo NUOVO (dopo un import o
+    /// un ricarico): rifarli a ogni disegno butterebbe via un numero appena digitato.</summary>
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(_visti, Sectors)) return;
+        _visti = Sectors;
+        _lower.Clear(); _upper.Clear();
+        foreach (var s in Sectors) { _lower[s.Id] = s.LowerLimit; _upper[s.Id] = s.UpperLimit; }
+    }
+
+    /// <summary>Un limite digitato: nel buffer e subito in archivio, come ogni altro campo dell'editor.</summary>
+    private async Task LimiteDigitato(int sectorId, Action scrivi)
+    {
+        scrivi();
+        await OnSetLimits(sectorId, _lower.GetValueOrDefault(sectorId), _upper.GetValueOrDefault(sectorId));
+    }
+
+    /// <summary>L'ultima volta che la sorgente ha scritto una posizione di questo scalo. null = nessuna.</summary>
+    public static DateTime? UltimoImport(IReadOnlyList<AirportSectorRow> sectors) =>
+        sectors.Count == 0 ? null : sectors.Max(s => s.ImportedAtUtc);
+
+    private Vipi.Application.Airspace.SectorShape? FormaDi(string callsign) =>
+        Forme.TryGetValue(callsign, out var f) ? f : null;
+
+    /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
+    private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
+
+    // Solo le posizioni APP/DEP hanno il flag "di ACC".
+    private static bool IsApp(string? position) => (position ?? "").Trim().ToUpperInvariant() is "APP" or "DEP";
+
+    // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
+    private static bool CanBePrimary(string? position) =>
+        (position ?? "").Trim().ToUpperInvariant() is "DEL" or "GND" or "TWR" or "APP" or "DEP";
+
+    // Solo TWR/APP/DEP/CTR/FSS hanno un volume (limiti + shape); GND/DEL/ATIS no.
+    private static bool SupportsLimits(string? position) =>
+        (position ?? "").Trim().ToUpperInvariant() is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
+
+    // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
+    private static int ParseLower(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("GND", StringComparison.OrdinalIgnoreCase)) return 0;
+        return int.TryParse(s, out var n) ? Math.Max(0, n) : 0;
+    }
+
+    // Limite superiore: "UNL"/vuoto = null (illimitato); altrimenti la quota in ft.
+    private static int? ParseUpper(object? v)
+    {
+        var s = v?.ToString()?.Trim() ?? "";
+        if (s.Length == 0 || s.Equals("UNL", StringComparison.OrdinalIgnoreCase)) return null;
+        return int.TryParse(s, out var n) ? n : (int?)null;
+    }
+
+    private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
+    private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
+}

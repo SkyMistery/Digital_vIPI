@@ -191,7 +191,7 @@ else
                         <button class="btn ghost" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     <button class="btn ghost" disabled="@(_busy || !_shell.IsEditing)" @onclick="Reimport" title="@L["Ape_ReimportIvaoTitle"]"><Icon Name="refresh" Size="14" /> @L["Ape_ReimportIvao"]</button>
-                    @if (LastImport() is DateTime li)
+                    @if (AirportSectorsPanel.UltimoImport(_sectors) is DateTime li)
                     {
                         <span class="ed-rail-meta" title="@L["Ape_LastImportTitle"]">↧ @($"{li:dd/MM HH:mm}Z")</span>
                     }
@@ -207,93 +207,10 @@ else
                        Non passa quindi da `DocumentSectionsEditor` — non si riordina, non si nasconde, non finisce
                        nella vIPI pubblicata — ma sta nella sua STESSA colonna, e si aggancia all'indice come voce
                        extra, la strada che l'editor APP usa già per il pannello Release. *@
-                    <div id="sec-settori" class="block">
-                            <div class="section-title" style="margin-top:0">
-                                <h2 class="h-sect" style="margin:0">@L["Ape_AtcSectors"] <span class="pill blue">@_sectors.Count</span></h2>
-                                <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_SectorsNoteAria"]" ExtraClass="wide">@L["Ape_SectorsNote"]</HelpHint><span class="ln"></span>
-                                @if (LastImport() is DateTime lastImp)
-                                {
-                                    @* La "Z": il timbro è UTC. Senza, chi importa alle 17 locali legge 15:11 e crede
-                                       che il bottone non abbia fatto nulla — è esattamente l'equivoco da cui è nata
-                                       questa modifica. Stessa convenzione della vista live (orari in Z). *@
-                                    <span class="muted" style="font-size:11.5px" title="@L["Ape_LastImportTitle"]">↧ @($"{lastImp:dd/MM/yyyy HH:mm}Z")</span>
-                                }
-                                <button class="btn primary" disabled="@(_busy || !_shell.IsEditing)" @onclick="ImportSectors" title="@L["Ape_ImportSectorsTitle"]">⟳ @L["Ape_ImportSectors"]</button>
-                                @if (_sectors.Any(s => (s.Position ?? "").Trim().ToUpperInvariant() == "TWR"))
-                                {
-                                    <button class="btn ghost" disabled="@(_busy || !_shell.IsEditing)" @onclick="ImportTwrShapes" title="@L["Ape_ImportTwrShapesTitle"]">⬡ @L["Ape_ImportTwrShapes"]</button>
-                                }
-                            </div>
-                            @if (_sectors.Count == 0)
-                            {
-                                <p class="help">@L["Ape_NoSectors"]</p>
-                            }
-                            else
-                            {
-                                <table class="res-table">
-                                    <thead><tr><th>Callsign</th><th>ACC</th><th>Pos</th><th>Mid</th><th title="@L["Ape_AccQTitle"]">ACC?</th><th>Freq</th><th>@L["Ape_PrimaryCol"]</th><th>Shape</th><th>@L["AccAdmin_LowerLimit"] <span class="muted" style="font-weight:400">(GND=0)</span></th><th>@L["AccAdmin_UpperLimit"] <span class="muted" style="font-weight:400">(UNL=@L["AccAdmin_Unlimited"])</span></th><th>@L["Common_State"]</th><th></th></tr></thead>
-                                    <tbody>
-                                        @foreach (var s in _sectors)
-                                        {
-                                            var hasLimits = SupportsLimits(s.Position);
-                                            <tr style="@(s.IsHidden ? "opacity:.5" : "")">
-                                                <td><b>@s.ComposePosition</b></td>
-                                                <td><span class="pill blue">@s.AccCode</span></td>
-                                                <td>@(s.Position ?? "—")</td>
-                                                <td>@(s.MiddleIdentifier ?? "—")</td>
-                                                <td style="text-align:center">
-                                                    @if (IsApp(s.Position))
-                                                    {
-                                                        <input type="checkbox" checked="@s.IsAccApp" disabled="@(_busy || !_shell.IsEditing)" @onchange="e => SetSectorAccApp(s.Id, (bool)(e.Value ?? false))" title="@L["Ape_AccAppTitle"]" />
-                                                    }
-                                                    else { <span class="muted">—</span> }
-                                                </td>
-                                                <td>@(s.Frequency ?? "—")</td>
-                                                <td style="text-align:center">
-                                                    @if (CanBePrimary(s.Position))
-                                                    {
-                                                        <input type="radio" name="primaryFreq-@((s.Position ?? "").Trim().ToUpperInvariant())" checked="@s.IsPrimary" disabled="@(_busy || !_shell.IsEditing)" @onchange="() => SetSectorPrimary(s.Id)" title="@L["Ape_PrimaryFreqTitle"]" />
-                                                    }
-                                                    else { <span class="muted">—</span> }
-                                                </td>
-                                                <td>@if (hasLimits) { <ShapeSourcePill Shape="@FormaDi(s.ComposePosition)" /> } else { <span class="muted">—</span> }</td>
-                                                @if (hasLimits)
-                                                {
-                                                    @* ⚠️ Con la forma agganciata all'AIP le quote le portano i PEZZI: queste due caselle
-                                                       restano quelle dell'anagrafica e non le usa nessuno finché l'aggancio dura. *@
-                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
-                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
-                                                        <input style="width:70px" value="@FmtLower(_secLower.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secLower[s.Id] = ParseLower(e.Value))" title="@L["AccAdmin_LowerHint"]" disabled="@(!_shell.IsEditing || s.LimitsFromSource)" />
-                                                        @if (s.LimitsFromSource) { <span class="pill" style="background:var(--surface-muted);color:var(--ink-soft);margin-left:4px" title="@L["Ape_LimitsFromSourceTitle"]">🔒</span> }
-                                                    </td>
-                                                    <td class="@(Scavalcati(s.ComposePosition) ? "lim-overridden" : null)"
-                                                        title="@(Scavalcati(s.ComposePosition) ? L["Shape_LimitsOverridden"].Value : null)">
-                                                        <input style="width:70px" value="@FmtUpper(_secUpper.GetValueOrDefault(s.Id))" @onchange="e => LimiteDigitato(s.Id, () => _secUpper[s.Id] = ParseUpper(e.Value))" title="@L["AccAdmin_UpperHint"]" disabled="@(!_shell.IsEditing || s.LimitsFromSource)" /></td>
-                                                }
-                                                else
-                                                {
-                                                    <td class="muted">—</td>
-                                                    <td class="muted">—</td>
-                                                }
-                                                <td>
-                                                    @if (s.IsHidden)
-                                                    {
-                                                        <span class="pill neutral">@L["AccAdmin_Hidden"]</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="pill green">@L["AccAdmin_Active"]</span>
-                                                    }
-                                                </td>
-                                                <td style="white-space:nowrap">
-                                                    <button class="btn ghost" disabled="@(_busy || !_shell.IsEditing)" @onclick="() => ToggleSectorHidden(s.Id, !s.IsHidden)" title="@L["AccAdmin_ToggleHide"]" aria-label="@L["AccAdmin_ToggleHide"]"><Icon Name="@(s.IsHidden ? "eye" : "eye-off")" /></button>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            }
-                    </div>
+                    <AirportSectorsPanel Sectors="_sectors" Forme="_formeSettori" Editing="_shell.IsEditing" Busy="_busy"
+                                         OnImport="ImportSectors" OnImportTwrShapes="ImportTwrShapes"
+                                         OnSetLimits="SetSectorLimits" OnSetHidden="ToggleSectorHidden"
+                                         OnSetPrimary="SetSectorPrimary" OnSetAccApp="SetSectorAccApp" />
                     @* Il pannello dell'unione e quello di pubblicazione li porta chi monta questo
                        componente: in un editor unito sono UNO per tutti i membri, non uno per ciascuno. *@
                     @AfterSections
@@ -521,10 +438,8 @@ else
 
     // Drag-and-drop riordino regole.
 
-    // Settori ATC importati (catalogo): righe + buffer limiti editabili per id.
+    // Settori ATC importati (catalogo). I buffer dei limiti li tiene <AirportSectorsPanel>.
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
-    private readonly Dictionary<int, int?> _secLower = new();
-    private readonly Dictionary<int, int?> _secUpper = new();
 
     // ---- il motore condiviso: chi rende cosa, cosa è fisso, cosa si può congelare ----
     // Le tre risposte le dà il CATALOGO, per profilo (doc 13 §3a/§3b): qui non c'è nessun insieme scritto a mano.
@@ -660,9 +575,6 @@ else
         await _shell.FinishEditingAsync();
     }
 
-    // Ultimo import dei settori da IVAO (il più recente del catalogo); null se mai importati.
-    private DateTime? LastImport() => _sectors.Count == 0 ? null : _sectors.Max(s => s.ImportedAtUtc);
-
     // --- Tester regole (Prova vento): mappa i buffer correnti in DTO e valuta senza salvare ---
             // --- DnD riordino regole: enter riordina live, drop marca dirty ---
         /// <summary>
@@ -730,8 +642,6 @@ else
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
 
         _sectors = await Sectors.ListByAirportAsync(_icao);
-        _secLower.Clear(); _secUpper.Clear();
-        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
         // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
         // caricamento (il DbContext del circuito è uno solo).
         _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
@@ -1002,19 +912,13 @@ else
             : L["Ape_ImportTwrShapesNone"].Value;
         _saveInfoWarn = n == 0;
     });
-    /// <summary>Un limite digitato: nel buffer e subito in archivio, come ogni altro campo dell'editor.
+    /// <summary>Un limite digitato nel pannello: subito in archivio, come ogni altro campo dell'editor.
     /// ⚠️ Prima restava pendente in attesa di un ✓ per riga — l'ultimo dei nove tasti «Salva».</summary>
-    private async Task LimiteDigitato(int sectorId, Action scrivi)
-    {
-        scrivi();
-        await Guarded(() => Sectors.SetLimitsAsync(sectorId, _secLower.GetValueOrDefault(sectorId), _secUpper.GetValueOrDefault(sectorId)));
-    }
+    private Task SetSectorLimits(int sectorId, int? lower, int? upper) =>
+        Guarded(() => Sectors.SetLimitsAsync(sectorId, lower, upper));
     private Task ToggleSectorHidden(int id, bool hidden) => Guarded(async () => { await Sectors.SetHiddenAsync(id, hidden); await ReloadSectorsAsync(); });
     private Task SetSectorPrimary(int id) => Guarded(async () => { await Sectors.SetPrimaryAsync(id); await ReloadSectorsAsync(); });
     private Task SetSectorAccApp(int id, bool v) => Guarded(async () => { await Sectors.SetAccAppAsync(id, v); await ReloadSectorsAsync(); });
-
-    // Solo le posizioni APP/DEP hanno il flag "di ACC".
-    private static bool IsApp(string? position) => (position ?? "").Trim().ToUpperInvariant() is "APP" or "DEP";
 
     // Frequenze dal catalogo settori, ordine ATIS·DEL·GND·TWR·APP/DEP (solo con frequenza, non nascosti).
     private IEnumerable<AirportSectorRow> FreqRows()
@@ -1025,39 +929,6 @@ else
             .OrderBy(s => { var i = Array.IndexOf(order, (s.Position ?? "").Trim().ToUpperInvariant()); return i < 0 ? 99 : i; })
             .ThenByDescending(s => s.IsPrimary)   // dentro il tipo: la principale (★) per prima
             .ThenBy(s => s.ComposePosition);
-    }
-
-    /// <summary>Nome mostrato in tabella frequenze: AtcCallsign IVAO; fallback al nome-posizione (come nel documento).</summary>
-
-        // Una principale per tipo: Delivery/Ground/TWR/APP/DEP (ATIS escluso).
-    private static bool CanBePrimary(string? position)
-    {
-        var p = (position ?? "").Trim().ToUpperInvariant();
-        return p is "DEL" or "GND" or "TWR" or "APP" or "DEP";
-    }
-
-    // Limite inferiore: "GND"/vuoto = 0 (suolo); altrimenti la quota in ft.
-    private static int ParseLower(object? v)
-    {
-        var s = v?.ToString()?.Trim() ?? "";
-        if (s.Length == 0 || s.Equals("GND", StringComparison.OrdinalIgnoreCase)) return 0;
-        return int.TryParse(s, out var n) ? Math.Max(0, n) : 0;
-    }
-    // Limite superiore: "UNL"/vuoto = null (illimitato); altrimenti la quota in ft.
-    private static int? ParseUpper(object? v)
-    {
-        var s = v?.ToString()?.Trim() ?? "";
-        if (s.Length == 0 || s.Equals("UNL", StringComparison.OrdinalIgnoreCase)) return null;
-        return int.TryParse(s, out var n) ? n : (int?)null;
-    }
-    private static string FmtLower(int? v) => (v ?? 0) == 0 ? "GND" : v!.Value.ToString();
-    private static string FmtUpper(int? v) => v is null ? "UNL" : v.Value.ToString();
-
-    // Solo TWR/APP/DEP/CTR/FSS hanno un volume (limiti + shape); GND/DEL/ATIS no.
-    private static bool SupportsLimits(string? position)
-    {
-        var p = (position ?? "").Trim().ToUpperInvariant();
-        return p is "TWR" or "APP" or "DEP" or "CTR" or "FSS";
     }
 
     // Esegue un'azione con badge Salvataggio/Salvato + gestione errori. NON ricarica i buffer (in scroll-unico un reload
@@ -1075,12 +946,11 @@ else
         finally { _busy = false; }
     }
 
-    // Ricarica il solo catalogo settori + i buffer limiti (non tocca gli altri buffer di sezione).
+    // Ricarica il solo catalogo settori (non tocca gli altri buffer di sezione): un catalogo NUOVO fa rifare al
+    // pannello i buffer dei limiti.
     private async Task ReloadSectorsAsync()
     {
         _sectors = await Sectors.ListByAirportAsync(_icao);
-        _secLower.Clear(); _secUpper.Clear();
-        foreach (var s in _sectors) { _secLower[s.Id] = s.LowerLimit; _secUpper[s.Id] = s.UpperLimit; }
         // Da dove viene la forma di ognuno: UNA domanda per tutta la tabella, in sequenza col resto del
         // caricamento (il DbContext del circuito è uno solo).
         _formeSettori = await Forme.ResolveAsync(_sectors.Select(x => x.ComposePosition).ToList());
@@ -1234,11 +1104,6 @@ else
     private IReadOnlyDictionary<string, Vipi.Application.Airspace.SectorShape> _formeSettori =
         new Dictionary<string, Vipi.Application.Airspace.SectorShape>();
 
-    private Vipi.Application.Airspace.SectorShape? FormaDi(string callsign) =>
-        _formeSettori.TryGetValue(callsign, out var f) ? f : null;
-
-    /// <summary>Vero se le quote di questa riga non le usa nessuno: le porta l'aggancio all'AIP.</summary>
-    private bool Scavalcati(string callsign) => FormaDi(callsign)?.FromAip == true;
 
     /// <summary>
     /// Se valorizzato, il tasto <b>Modifica</b> chiama QUESTO invece di prendere il solo lock di questo
