@@ -1128,7 +1128,27 @@
       MySqlMigrations. FIRME: Vipi.Application AGGIUNGE AirportRunwayLists e non cambia niente di esistente;
       gli assiemi che restano fuori non la nominano.
     -->
-    <VipiVersione>1.22.1</VipiVersione>
+    <!-- 1.23.0 - MINOR (11 settembre 2026, notte). Pagine pubbliche rifatte, nessuna migrazione.
+
+      GLI AEROPORTI DELL'ACC (ee501f7f, 34462482). Via il riquadro «vSOP militari» dalla pagina dell'ACC: i vSOP
+      stanno fra gli Aeroporti, sulla scheda del loro scalo. L'elenco mostra ogni scalo con ALMENO UN documento
+      pubblico (anche i solo militari), filtri «Tutti» + le quattro categorie, e due voci accanto al nome
+      («vIPI civile» / «vSOP militare») dove ci sono tutt'e due. Il vSOP dall'ACC si apre in vista ATC.
+      Una regola sola per landing ed elenco: AeroportiDellAcc.
+
+      L'HUB DEI SERVIZI (59bb82a0, 2dd5667b). /services senza banner: due porte, una per pubblico - «Per i
+      controllori del traffico aereo» (vSOP) e «Per i piloti militari» (Documentazione militare) - poi
+      «Strumenti per controllori». Via la scheda dei vSOP militari da /services/vsop.
+
+      MINOR e non PATCH: cambiano pagine pubbliche e la loro struttura, non si corregge un difetto.
+
+      I FILE. Il diff dei nomi fra 659c334b e HEAD, limitato a src/, nomina UN progetto: Vipi.Ui (sei file di
+      codice, le due .resx, vipi-theme.css). Piu' Vipi.Host per il TIMBRO. Piu' il satellite inglese (frasi
+      nuove e tolte) e vipi-theme.css coi suoi .br/.gz e l'indice degli endpoint.
+      NIENTE MySqlMigrations, NIENTE Application/Infrastructure. FIRME: nessuna fuori da Vipi.Ui
+      (AeroportiDellAcc e AeroportoInElenco sono nuovi e usati solo li').
+    -->
+    <VipiVersione>1.23.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
