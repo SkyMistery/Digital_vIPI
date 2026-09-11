@@ -323,6 +323,36 @@ public static class AirportRuleMapping
         0, JoinCsv(r.Dep), JoinCsv(r.Arr), r.Name, r.MaxTail, r.MaxCross, Surface(r.Surface), r.Note,
         TimeToMin(r.TimeFrom), TimeToMin(r.TimeTo), r.DaysMask == 0 ? null : r.DaysMask, Parity(r.Parity),
         CombineMd(r.DateFromMonth, r.DateFromDay), CombineMd(r.DateToMonth, r.DateToDay));
+
+    /// <summary>
+    /// La regola salvata, riportata in forma d'editor: è il rovescio di <see cref="ToRow"/>.
+    /// <para>⚠️ Stava scritta dentro l'editor d'aeroporto. Dall'11 settembre 2026 la legge anche l'editor del
+    /// vSOP militare (le regole piste di un campo senza vIPI civile si scrivono lì), e due copie della stessa
+    /// lettura sono il modo in cui un campo si perde in una delle due — un caricamento che dimentica la
+    /// parità riscrive la regola senza, al primo salvataggio.</para>
+    /// </summary>
+    public static RuleEdit FromRow(RunwayRuleRow r) => new()
+    {
+        Name = r.Name,
+        Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
+        MaxTail = r.MaxTailwindKt, MaxCross = r.MaxCrosswindKt,
+        Surface = r.Surface switch { RunwaySurface.Dry => "dry", RunwaySurface.Wet => "wet", _ => "any" },
+        TimeFrom = MinToTime(r.TimeFromLocalMin), TimeTo = MinToTime(r.TimeToLocalMin),
+        DaysMask = r.DaysOfWeekMask ?? 0,
+        Parity = r.DateParity switch { DateParity.Even => "even", DateParity.Odd => "odd", _ => "" },
+        DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
+        DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
+    };
+
+    private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static TimeOnly? MinToTime(int? min) => min is int m ? new TimeOnly(m / 60, m % 60) : null;
+
+    // Finestra stagionale ricorrente: in DB è MMDD (mese*100+giorno), nell'editor giorno e mese separati.
+    private static int? MdDay(int? mmdd) => mmdd is int md and >= 101 ? md % 100 : null;
+    private static int? MdMonth(int? mmdd) => mmdd is int md and >= 101 ? md / 100 : null;
 }
 
 /// <summary>Che cosa si sta guardando nell'elenco delle SID importate: il testo cercato, la pista scelta fra

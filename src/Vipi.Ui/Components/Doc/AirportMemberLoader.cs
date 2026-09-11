@@ -173,7 +173,7 @@ public sealed class AirportMemberLoader
             : PisteCotte(view);
         var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
         var windKt = metar?.Wind?.SpeedKt ?? 0;
-        var (ruleResult, dep, arr, sidRwy) = PistaInUso(profilo, derived, runways, windDir, windKt, metar);
+        var inUso = PistaInUso.Calcola(profilo, derived.Sids, runways, windDir, windKt, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
         // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
@@ -200,53 +200,11 @@ public sealed class AirportMemberLoader
         return new AirportMemberDocument(
             code, view, AudienceFilter.Filtra(sezioni, letturaVista), mode, relCycle, bloccata,
             tradotto.Coverage, haMarcate, letturaVista, derived, station, wx, metar, taf,
-            ruleResult, dep, arr, windDir, windKt, sidRwy);
+            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy);
     }
 
     private Task<DocumentView?> PubblicaAsync(string icao, CancellationToken ct) =>
         _viewService.BuildAirportVipiAsync(icao, BlockTier.Extended, live: false, ct: ct);
-
-    /// <summary>
-    /// Quale pista è in uso <b>adesso</b>, in partenza e in arrivo, e da quale pista parte il filtro SID.
-    ///
-    /// <para>⚠️ Si valuta sulle regole <b>vive</b>, non su quelle eventualmente congelate: «quale pista è in
-    /// uso adesso» è una domanda sul presente, e resta tale anche mentre si sfoglia un ciclo passato.</para>
-    /// </summary>
-    private static (RunwayRuleResult? Rule, HashSet<string> Dep, HashSet<string> Arr, string? SidRwy)
-        PistaInUso(AirportData? profilo, AirportDerived derived, List<string> runways,
-                   int? windDir, int windKt, ParsedMetar? metar)
-    {
-        var wet = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
-        var ruleResult = profilo is { Rules.Count: > 0 }
-            ? RunwaySuggestion.EvaluateRules(profilo.Rules.Select(AirportViewFormat.MapRule).ToList(),
-                                             windDir, windKt, wet, DateTime.UtcNow)
-            : null;
-        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt);
-
-        var dep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var arr = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        if (ruleResult is not null)
-        {
-            foreach (var id in Identificativi(ruleResult.Dep)) dep.Add(id);
-            foreach (var id in Identificativi(ruleResult.Arr)) arr.Add(id);
-        }
-        else if (sugg.Best is not null)
-        {
-            dep.Add((sugg.DepIdent ?? sugg.Best.Ident).Trim());
-            arr.Add((sugg.ArrIdent ?? sugg.Best.Ident).Trim());
-        }
-
-        // Seme del filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID.
-        // ⚠️ Qui non c'è nessun «se il lettore ha già scelto»: quella scelta vive nell'isola <AirportSids>,
-        // e fingere di conoscerla è esattamente ciò che teneva le chip ferme.
-        var sidRwys = Components.App.AirportSids.RunwaysOf(derived.Sids);
-        var sidRwy = sidRwys.FirstOrDefault(r => dep.Contains(r)) ?? sidRwys.FirstOrDefault();
-
-        return (ruleResult, dep, arr, sidRwy);
-    }
-
-    private static IEnumerable<string> Identificativi(string? csv) => (csv ?? "")
-        .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>
     /// Ripiego: estrae gli identificativi pista dalla tabella «Piste» <b>cotta</b> nel documento. Serve solo

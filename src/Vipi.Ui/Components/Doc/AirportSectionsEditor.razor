@@ -609,18 +609,7 @@ else
             Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
             Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
         }).ToList();
-        _rules = _data.Rules.Select(r => new RuleEdit
-        {
-            Name = r.Name,
-            Dep = SplitCsv(r.DepRunways), Arr = SplitCsv(r.ArrRunways), Note = r.Note,
-            MaxTail = r.MaxTailwindKt, MaxCross = r.MaxCrosswindKt,
-            Surface = r.Surface switch { RunwaySurface.Dry => "dry", RunwaySurface.Wet => "wet", _ => "any" },
-            TimeFrom = MinToTime(r.TimeFromLocalMin), TimeTo = MinToTime(r.TimeToLocalMin),
-            DaysMask = r.DaysOfWeekMask ?? 0,
-            Parity = r.DateParity switch { DateParity.Even => "even", DateParity.Odd => "odd", _ => "" },
-            DateFromDay = MdDay(r.DateFromMonthDay), DateFromMonth = MdMonth(r.DateFromMonthDay),
-            DateToDay = MdDay(r.DateToMonthDay), DateToMonth = MdMonth(r.DateToMonthDay),
-        }).ToList();
+        _rules = _data.Rules.Select(AirportRuleMapping.FromRow).ToList();
         var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
         {
@@ -968,17 +957,12 @@ else
         private static string DayChip(RuleEdit r, int bit) => (r.DaysMask & (1 << bit)) != 0
         ? "background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)" : "opacity:.6";
 
-        private static HashSet<string> SplitCsv(string? csv) => (csv ?? "")
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
     private static string JoinCsv(HashSet<string> set) => string.Join(",", set);
 
-    private static TimeOnly? MinToTime(int? min) => min is int m ? new TimeOnly(m / 60, m % 60) : null;
     private static int? TimeToMin(TimeOnly? t) => t is TimeOnly v ? v.Hour * 60 + v.Minute : null;
 
-    // Finestra stagionale ricorrente: in DB è MMDD (mese*100+giorno); nell'editor giorno e mese separati (nessun anno).
-    private static int? MdDay(int? mmdd) => mmdd is int md and >= 101 ? md % 100 : null;
-    private static int? MdMonth(int? mmdd) => mmdd is int md and >= 101 ? md / 100 : null;
+    // ⚠️ La lettura inversa (CSV → insieme, minuti → ora, MMDD → giorno/mese) sta in AirportRuleMapping.FromRow
+    // dall'11 settembre 2026: la usa anche l'editor del vSOP militare.
     // Valida solo se ENTRAMBI valorizzati; altrimenti null (nessun estremo per quel lato).
     private static int? CombineMd(int? month, int? day) =>
         month is int m && day is int d ? m * 100 + d : null;
