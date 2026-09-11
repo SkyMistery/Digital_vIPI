@@ -761,6 +761,12 @@ nominano le stesse cose in due modi diversi si scostano al primo che si tocca.
 
 ### 11g. Il quarto riquadro sulla pagina di una ACC
 
+> ⚠️ **SUPERATO l'11 settembre 2026** (committente): il riquadro «vSOP militari» della pagina ACC è stato
+> **tolto**. I vSOP stanno fra gli **Aeroporti**, sulla scheda del loro scalo accanto alla vIPI (due voci
+> quando ci sono tutt'e due), con i filtri per categoria. La regola di chi compare è `AeroportiDellAcc`, e
+> tiene il filtro `IsHidden` (non `IsPublic`) per il vSOP spiegato qui sotto. Vedi
+> `2026-09-11-categorie-aeroporto.md` §«Gli aeroporti dell'ACC». Il testo che segue racconta com'era.
+
 `/services/vsop/{acc}` offriva tre famiglie — Aeroporti, APP, vLOA — e i vSOP militari di quei campi non
 c'erano: per arrivarci bisognava tornare all'ingresso e passare dall'elenco nazionale. Ora c'è la quarta
 scheda, con lo **stesso gate** delle altre tre (release effettiva e non nascosto) e sullo **stesso** elenco

@@ -974,6 +974,16 @@
 :where(.vipi-root) .onl-badge.off{background:var(--surface-muted);color:var(--ink-dim)}:where(.vipi-root) .onl-badge.off .dot{background:var(--grey-mid)}
 /* Riga della pill militare sulla card d'aeroporto: sta fra il nome e il meteo, e non deve toccarli. */
 :where(.vipi-root) .apt-mil{margin:6px 0 0}
+/* Scheda di uno scalo con vIPI E vSOP militare: non e' un link unico (un <a> dentro un <a> non e' HTML), ma
+   un riquadro con due voci. Non si solleva al passaggio, o prometterebbe un clic che sul riquadro non c'e'.
+   La voce militare prende l'oliva dell'edizione militare. */
+:where(.vipi-root) .apt-card.apt-two:hover{transform:none}
+/* ⚠️ I filtri per categoria: una categoria a zero e' NEUTRA, non verde — il verde di `button.sh-chip:disabled`
+   dice «coda vuota, bene», e qui «0 solo militari» e' un numero come gli altri. Stessa correzione di Versioni. */
+:where(.vipi-root) .apt-filtri button.sh-chip:disabled{background:var(--surface-muted);color:var(--ink-soft);border-color:var(--line);opacity:.65}
+:where(.vipi-root) .apt-docs{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+:where(.vipi-root) .apt-docs .btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;font-size:13px;font-weight:600}
+:where(.vipi-root) .apt-docs .btn.mil{color:var(--cat-mil-ink)}
 /* L'etichetta militare accanto al titolo di un documento: staccata dal nome e allineata al suo mezzo, o
    appoggiata alla linea di base sembrerebbe caduta. */
 :where(.vipi-root) .mil-tag{margin-left:8px;vertical-align:middle}
@@ -1058,7 +1068,6 @@
 :where(.vipi-root) .nav-card.c-air{--accent:var(--cat-air);--accent-ink:var(--cat-air-ink)}
 :where(.vipi-root) .nav-card.c-app{--accent:var(--cat-app);--accent-ink:var(--cat-app-ink)}
 :where(.vipi-root) .nav-card.c-vloa{--accent:var(--cat-vloa);--accent-ink:var(--cat-vloa-ink)}
-:where(.vipi-root) .nav-card.c-mil{--accent:var(--cat-mil);--accent-ink:var(--cat-mil-ink)}
 :where(.vipi-root) .nav-card.c-admin{--accent:var(--cat-admin);--accent-ink:var(--cat-admin-ink)}
 :where(.vipi-root) .nav-card.c-vipi{--accent:var(--ivao-blue);--accent-ink:var(--brand-ink)}
 :where(.vipi-root) .nav-card:hover{border-color:var(--accent);box-shadow:0 8px 22px color-mix(in srgb,var(--ivao-blue) 10%,transparent);transform:translateY(-1px)}

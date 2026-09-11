@@ -895,12 +895,10 @@
   <data name="AccLanding_VipiDesc" xml:space="preserve"><value>Documento di ACC: separazioni, AoR, configurazioni, frequenze, minime e coordinamenti. Include gli APP remotizzati.</value></data>
   <data name="AccLanding_VipiUnpublished" xml:space="preserve"><value>Non ancora pubblicata: aprila dall'editor e pubblicala.</value></data>
   <data name="AccLanding_Airports" xml:space="preserve"><value>Aeroporti</value></data>
-  <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI dei singoli aeroporti sotto la ACC.</value></data>
+  <data name="AccLanding_AirportsDesc" xml:space="preserve"><value>vIPI e vSOP militari dei singoli aeroporti sotto la ACC.</value></data>
   <data name="AccLanding_Apps" xml:space="preserve"><value>Avvicinamenti non remotizzati</value></data>
   <data name="AccLanding_AppsDesc" xml:space="preserve"><value>APP con documentazione propria.</value></data>
-  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>
-  <data name="AccLanding_MilDesc" xml:space="preserve"><value>Le procedure operative dei campi militari di questa ACC. Un campo con traffico civile ha due documenti: la vIPI sta fra gli aeroporti, il vSOP militare qui.</value></data>
-  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
+  <data name="AccLanding_VloaDesc" xml:space="preserve"><value>Lettere di accordo con i centri confinanti.</value></data>  <data name="AccLanding_OpsView" xml:space="preserve"><value>Vista operativa</value></data>
   <data name="AccLanding_OpsViewOf" xml:space="preserve"><value>Vista operativa di {0}</value></data>
   <data name="AccLanding_OpsViewDesc" xml:space="preserve"><value>Proiezione live per la tua postazione: collasso morbido di ciò che è delegato a un ente online, più i trasferimenti risolti in tempo reale.</value></data>
   <data name="AccLanding_TransfersAdminDesc" xml:space="preserve"><value>Accordi di coordinamento fra enti (pagina admin).</value></data>
@@ -1398,9 +1396,7 @@
   <data name="Apt_ChipNoTwr" xml:space="preserve"><value>no TWR {0}</value></data>
   <data name="Apt_ChipNoTwrTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza torre (TWR o I_TWR)</value></data>
   <data name="Apt_ChipMilitary" xml:space="preserve"><value>militari {0}</value></data>
-  <data name="Airport_ChipCivil" xml:space="preserve"><value>civili {0}</value></data>
-  <data name="Airport_ChipMilitaryTitle" xml:space="preserve"><value>Mostra solo gli aeroporti con una base militare sul sedime</value></data>
-  <data name="Airport_ChipCivilTitle" xml:space="preserve"><value>Mostra solo gli aeroporti senza base militare</value></data>
+  <data name="Airport_ChipAll" xml:space="preserve"><value>Tutti {0}</value></data>
   <data name="Apt_ChipMilitaryTitle" xml:space="preserve"><value>Mostra solo gli aeroporti su cui c&#39;è una base militare, secondo la sorgente</value></data>
   <data name="Apt_Cat_Civil" xml:space="preserve"><value>Civile</value></data>
   <data name="Apt_Cat_MilitaryOnly" xml:space="preserve"><value>Solo militare</value></data>

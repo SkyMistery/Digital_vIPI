@@ -45,9 +45,10 @@
 /services/vsop/{acc}                             Landing ACC  ................. AccLanding.razor
 ├─ Documenti:
 │  ├─ vIPI di ACC                                  → /services/vsop/{acc}/vipi
-│  ├─ Card Aeroporti (3 in evidenza)
-│  │     titolo → /services/vsop/{acc}/airports            (elenco)
-│  │     voce   → /services/vsop/{acc}/airports?icao=XXXX  (documento)
+│  ├─ Card Aeroporti (3 in evidenza · conta gli scali con vIPI O vSOP militare pubblici)
+│  │     titolo → /services/vsop/{acc}/airports            (elenco: filtri per categoria; con vIPI E vSOP la scheda ha due voci)
+│  │     voce   → /services/vsop/{acc}/airports?icao=XXXX  (vIPI) · /services/vsop/{acc}/mil?icao=XXXX se c'è solo il vSOP
+│  │     ⚠️ Dall'11-09-2026 NON c'è più una card «vSOP militari»: stanno fra gli Aeroporti (AeroportiDellAcc)
 │  ├─ Card APP non remot. (3 in evidenza)
 │  │     titolo → /services/vsop/{acc}/apps                (elenco)
 │  │     voce   → /services/vsop/{acc}/apps/vipi?app=XXX_APP (documento · solo APP NON remotizzati · editor: /apps/editor?app=)

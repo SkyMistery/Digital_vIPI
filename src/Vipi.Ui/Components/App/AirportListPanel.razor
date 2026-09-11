@@ -1,4 +1,5 @@
-@* L'elenco degli aeroporti di una ACC: le schede, il filtro militare/civile e il meteo che arriva dopo.
+@* L'elenco degli aeroporti di una ACC: le schede — una voce per documento, vIPI e vSOP militare —, i filtri
+   per categoria e il meteo che arriva dopo.
 
    ⚠️ È un'ISOLA interattiva (doc 14 §3g), come <LiveBadge> nella topbar, e sta dentro una pagina che è SSR
    statica. Il motivo è misurato: la vIPI d'aeroporto era l'unico dei quattro documenti pubblici a tenere un
@@ -27,65 +28,98 @@
 }
 else
 {
-    @* Il chip c'è solo dove c'è qualcosa da filtrare: su una ACC di soli scali civili sarebbe un comando che
-       non fa niente. Ricliccato torna a «tutti», come i chip della pagina Aeroporti. *@
-    @if (Militari > 0 && Militari < _aeroporti.Count)
+    @* I filtri per CATEGORIA (carta 2026-09-11-categorie-aeroporto.md), dal più civile al più militare, più
+       «tutti». La barra c'è solo dove c'è qualcosa da filtrare: su una ACC di soli scali civili sarebbe un
+       comando che non fa niente. Dentro, le quattro categorie ci sono SEMPRE — una a zero è spenta, e il suo
+       zero scritto sul chip dice perché. *@
+    @if (_aeroporti.Select(x => x.Scalo.Category).Distinct().Count() > 1)
     {
-        <div class="struct-bar" style="margin-top:14px">
+        <div class="struct-bar apt-filtri" style="margin-top:14px">
             <span class="sb-chips">
-                <button class="sh-chip @(_filtro == FiltroMil.Militari ? "on" : "")"
-                        title="@L["Airport_ChipMilitaryTitle"]" @onclick="() => Commuta(FiltroMil.Militari)">@L["Apt_ChipMilitary", Militari]</button>
-                <button class="sh-chip @(_filtro == FiltroMil.Civili ? "on" : "")"
-                        title="@L["Airport_ChipCivilTitle"]" @onclick="() => Commuta(FiltroMil.Civili)">@L["Airport_ChipCivil", _aeroporti.Count - Militari]</button>
+                <button class="sh-chip @(_filtro is null ? "on" : "")" aria-pressed="@(_filtro is null ? "true" : "false")"
+                        @onclick="() => _filtro = null">@L["Airport_ChipAll", _aeroporti.Count]</button>
+                @foreach (var c in AeroportiDellAcc.OrdineDelleCategorie)
+                {
+                    var quanti = _aeroporti.Count(x => x.Scalo.Category == c);
+                    <button class="sh-chip @(_filtro == c ? "on" : "")" aria-pressed="@(_filtro == c ? "true" : "false")"
+                            disabled="@(quanti == 0)" title="@L[AirportCategoryText.TitleKey(c)]"
+                            @onclick="() => Commuta(c)">@L[AirportCategoryText.Key(c)] @quanti</button>
+                }
             </span>
         </div>
     }
     <div class="choice-grid" style="margin-top:14px">
-        @foreach (var ap in Mostrati())
+        @foreach (var voce in Mostrati())
         {
+            var ap = voce.Scalo;
             var n = OnlineSu(ap.Icao);
-            <a class="choice apt-card" href="@($"/services/vsop/{Acc.ToLowerInvariant()}/airports?icao={ap.Icao}")">
-                <div class="apt-top">
-                    <h2 class="h-card">@ap.Icao</h2>
-                    <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
-                </div>
-                <p class="muted">@ap.Name</p>
-                @* ⚠️ Nell'ELENCO la categoria compare solo sui campi con presenza militare: «Civile» su sessanta
-                   schede sarebbe rumore. È nei DOCUMENTI che la categoria c'è sempre, anche «Civile» (carta
-                   2026-09-11-categorie-aeroporto.md). *@
-                @if (ap.HasMilitaryPresence)
-                {
-                    <p class="apt-mil"><MilitaryTag Category="ap.Category" /></p>
-                }
-                @if (_meteo.TryGetValue(ap.Icao, out var wx))
-                {
-                    <div class="apt-wx">
-                        <span><span class="wx-k">@L["Airport_Wind"]</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
-                        <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
-                        @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
-                        {
-                            <span><span class="wx-k">@L["Airport_Departures"]</span><b>@(wx.Dep ?? "—")</b></span>
-                            <span><span class="wx-k">@L["Airport_Arrivals"]</span><b>@(wx.Arr ?? "—")</b></span>
-                        }
+            @* ⚠️ Con DUE documenti la scheda non è più un link unico: un <a> dentro un <a> non è HTML valido, e
+               il browser lo spezza da sé. Diventa un riquadro con due voci, una per documento. Con un documento
+               solo resta tutta cliccabile, com'era. *@
+            @if (voce.HaVipi && voce.HaVsop)
+            {
+                <div class="choice apt-card apt-two">
+                    @Corpo(voce, n)
+                    <div class="apt-docs">
+                        <a class="btn ghost" href="@voce.VipiHref(Acc)"><Icon Name="plane" Size="13" /> @L["Mil_LinkToCivil"]</a>
+                        <a class="btn ghost mil" href="@voce.VsopHref(Acc)"><Icon Name="shield" Size="13" /> @L["Mil_LinkFromCivil"]</a>
                     </div>
-                }
-                else if (_meteoInArrivo)
-                {
-                    <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">@L["Airport_WxLoading"]</span></div>
-                }
-            </a>
+                </div>
+            }
+            else
+            {
+                <a class="choice apt-card" href="@voce.Href(Acc)">
+                    @Corpo(voce, n)
+                </a>
+            }
         }
     </div>
+}
+
+@code {
+    /// <summary>Il contenuto comune alle due forme di scheda: ICAO, stato online, nome, categoria e meteo.</summary>
+    private RenderFragment Corpo(AeroportoInElenco voce, int n) => __builder =>
+    {
+        var ap = voce.Scalo;
+        <div class="apt-top">
+            <h2 class="h-card">@ap.Icao</h2>
+            <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
+        </div>
+        <p class="muted">@ap.Name</p>
+        @* ⚠️ Nell'ELENCO la categoria compare solo sui campi con presenza militare: «Civile» su sessanta
+           schede sarebbe rumore. È nei DOCUMENTI che la categoria c'è sempre, anche «Civile» (carta
+           2026-09-11-categorie-aeroporto.md). *@
+        @if (ap.HasMilitaryPresence)
+        {
+            <p class="apt-mil"><MilitaryTag Category="ap.Category" /></p>
+        }
+        @if (_meteo.TryGetValue(ap.Icao, out var wx))
+        {
+            <div class="apt-wx">
+                <span><span class="wx-k">@L["Airport_Wind"]</span><b>@(string.IsNullOrWhiteSpace(wx.Wind) ? "—" : wx.Wind)</b></span>
+                <span><span class="wx-k">QNH</span><b>@(wx.Qnh is int q ? $"{q}" : "—")</b></span>
+                @if (!string.IsNullOrEmpty(wx.Dep) || !string.IsNullOrEmpty(wx.Arr))
+                {
+                    <span><span class="wx-k">@L["Airport_Departures"]</span><b>@(wx.Dep ?? "—")</b></span>
+                    <span><span class="wx-k">@L["Airport_Arrivals"]</span><b>@(wx.Arr ?? "—")</b></span>
+                }
+            </div>
+        }
+        else if (_meteoInArrivo)
+        {
+            <div class="apt-wx loading"><span class="muted" style="font-size:12.5px">@L["Airport_WxLoading"]</span></div>
+        }
+    };
 }
 
 @code {
     /// <summary>Il codice della ACC di cui elencare gli aeroporti.</summary>
     [Parameter, EditorRequired] public string Acc { get; set; } = default!;
 
-    private enum FiltroMil { Tutti, Militari, Civili }
-    private FiltroMil _filtro = FiltroMil.Tutti;
+    /// <summary>La categoria mostrata; <c>null</c> = tutte.</summary>
+    private AirportCategory? _filtro;
 
-    private IReadOnlyList<AirportRow> _aeroporti = Array.Empty<AirportRow>();
+    private IReadOnlyList<AeroportoInElenco> _aeroporti = Array.Empty<AeroportoInElenco>();
     // ⚠️ Piste e regole, NON il profilo intero. Fino al 27 agosto 2026 qui c'era una AirportData per
     // aeroporto, caricata una alla volta: otto query a testa (livelli di transizione, SID, link-frequenze…)
     // per leggerne due liste. Contate: 36 query per un elenco di TRE righe.
@@ -115,38 +149,27 @@ else
         _caricato = acc;
 
         var data = await _struttura.LoadAsync(acc);
-        // Solo aeroporti con release AIRAC effettiva e non nascosti (doc 10 §3f: visibilità pubblica = release effettiva).
-        var pubblicati = (await _documenti.ListAsync())
-            .Where(m => m.Kind == ReleaseTargetType.Airport && m.HasEffectiveRelease && !m.IsHidden
-                        && string.Equals(m.AccCode, acc, StringComparison.OrdinalIgnoreCase))
-            .Select(m => m.Scope)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        _aeroporti = data?.Airports
-            .Where(x => x.IsPublic && pubblicati.Contains(x.Icao))
-            .OrderBy(x => x.Icao).ToList()
-            ?? (IReadOnlyList<AirportRow>)Array.Empty<AirportRow>();
+        // Gli scali con almeno un documento pubblico, vIPI o vSOP militare: la regola sta in AeroportiDellAcc,
+        // la stessa che conta gli aeroporti nella landing dell'ACC.
+        _aeroporti = data is null
+            ? Array.Empty<AeroportoInElenco>()
+            : AeroportiDellAcc.Elenco(data.Airports, await _documenti.ListAsync(), acc);
 
         // Piste e regole di TUTTI gli scali in una volta: servono alla pista consigliata. Il METAR (HTTP,
         // lento) NON si aspetta qui — la lista si disegna subito e il meteo arriva dopo. È la ragione per
         // cui questa è un'isola.
-        _piste = await _profilo.ListRunwayDataAsync(_aeroporti.Select(x => x.Icao).ToList());
+        _piste = await _profilo.ListRunwayDataAsync(_aeroporti.Select(x => x.Scalo.Icao).ToList());
 
         _meteo.Clear();
         _meteoInArrivo = _aeroporti.Count > 0;
         if (_meteoInArrivo) _ = CaricaMeteoAsync(acc);
     }
 
-    private int Militari => _aeroporti.Count(x => x.HasMilitaryPresence);
+    private IEnumerable<AeroportoInElenco> Mostrati() =>
+        _filtro is { } c ? _aeroporti.Where(x => x.Scalo.Category == c) : _aeroporti;
 
-    private List<AirportRow> Mostrati() => _filtro switch
-    {
-        FiltroMil.Militari => _aeroporti.Where(x => x.HasMilitaryPresence).ToList(),
-        FiltroMil.Civili => _aeroporti.Where(x => !x.HasMilitaryPresence).ToList(),
-        _ => _aeroporti.ToList(),
-    };
-
-    private void Commuta(FiltroMil f) => _filtro = _filtro == f ? FiltroMil.Tutti : f;
+    /// <summary>Ricliccato torna a «tutti», come i chip della pagina Aeroporti.</summary>
+    private void Commuta(AirportCategory c) => _filtro = _filtro == c ? null : c;
 
     /// <summary>Gli ATC su quello scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.</summary>
     private int OnlineSu(string icao) => Online.GetCurrent().Callsigns.Count(cs =>
@@ -160,15 +183,15 @@ else
     /// </summary>
     private async Task CaricaMeteoAsync(string acc)
     {
-        var esiti = await Task.WhenAll(_aeroporti.Select(async ap =>
+        var esiti = await Task.WhenAll(_aeroporti.Select(x => x.Scalo.Icao).Select(async icao =>
         {
             try
             {
-                var wx = await Weather.GetAsync(ap.Icao);
+                var wx = await Weather.GetAsync(icao);
                 var m = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
-                return (ap.Icao, Metar: m);
+                return (icao, Metar: m);
             }
-            catch { return (ap.Icao, Metar: (ParsedMetar?)null); }
+            catch { return (icao, Metar: (ParsedMetar?)null); }
         }));
 
         if (acc != _caricato) return;

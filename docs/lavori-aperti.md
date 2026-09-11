@@ -2,6 +2,15 @@
 
 ## Dove siamo — 11 settembre 2026
 
+🆕 **Gli aeroporti dell'ACC, per categoria (11 settembre, notte — in `main`, NON in un pacchetto).** Chiesto dal
+committente: su `/services/vsop/{acc}` via il riquadro «vSOP militari»; su `/services/vsop/{acc}/airports` tutti gli
+scali con almeno un documento pubblico (anche i solo militari), filtri «Tutti» + quattro categorie, e due voci
+(«vIPI civile» / «vSOP militare») sulla scheda di chi li ha tutt'e due. Una regola sola, `AeroportiDellAcc`, per
+landing ed elenco. Nessuna migrazione, niente `wwwroot` a parte `vipi-theme.css`; chiavi resx tolte
+(`AccLanding_MilDesc`, `Airport_ChipCivil*`, `Airport_ChipMilitaryTitle`) e una nuova (`Airport_ChipAll`).
+Carta: `feature/2026-09-11-categorie-aeroporto.md` §«Gli aeroporti dell'ACC». ▶ Andrà in **1.23.0** (MINOR: cambia
+la pagina pubblica) — con `vipi-theme.css` e il satellite inglese.
+
 ✅ **1.22.1 È CARICATA** (11 settembre, sera): otto controlli pubblici verdi; 92 celle APP su 37 vIPI pubbliche tutte «X, Y». ⚠️ Dati da correggere a mano: LIBN pista 32 «ILS. TAC» (punto al posto della virgola), LIPL 13R/13L «CIRCLING» nella colonna APP.
 
 ✅ **Chiuso senza codice (11 settembre, notte): «nel vSOP di LIMS senza vIPI mancano SID e frequenze».** Non è un

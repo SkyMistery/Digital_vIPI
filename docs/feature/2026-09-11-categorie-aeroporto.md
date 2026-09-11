@@ -102,6 +102,33 @@ Fino al 16 settembre 2026 le migrazioni MySQL non possono togliere colonne né e
   «civile con presenza militare», perché non era mai stato marcato «solo militare». In produzione i 26 campi in
   categoria 3 vanno riguardati una volta: quelli che un vSOP lo devono avere (Pisa, per esempio) vanno in 4.
 
+## Gli aeroporti dell'ACC (11 settembre 2026, sera)
+
+**Chiesto dal committente:** su `/services/vsop/{acc}` niente più riquadro «vSOP militari»; su
+`/services/vsop/{acc}/airports` **tutti** gli aeroporti, filtrabili per le quattro categorie, e dove ci sono
+vIPI **e** vSOP la scheda ha **due voci**, una per documento.
+
+- **Chi compare** — `AeroportiDellAcc.Elenco` (Ui), una regola sola per la landing (conteggio e tre in
+  evidenza) e per l'elenco: lo scalo c'è se ha **almeno un** documento pubblico (release effettiva, non
+  nascosto). La vIPI pretende `IsPublic` (almeno un settore), il vSOP solo lo scalo non nascosto — LIMS ha
+  zero settori. «Tutti» vuol dire tutti quelli con qualcosa da leggere: uno scalo senza documenti porterebbe a
+  «documento non disponibile».
+- ⚠️ **La categoria non filtra i documenti**: un documento pubblicato fuori categoria resta raggiungibile
+  finché qualcuno non lo nasconde (decisione 3 qui sopra). Toglierlo dall'elenco lo renderebbe irraggiungibile
+  senza spegnerlo.
+- **La scheda** — con un documento solo resta un link intero (al vSOP se è l'unico); con due diventa un
+  riquadro con «vIPI civile» e «vSOP militare», perché un `<a>` dentro un `<a>` non è HTML. La riga della
+  landing ha posto per un link: la vIPI se c'è, altrimenti il vSOP.
+- **I filtri** — «Tutti» più le quattro categorie, dal più civile al più militare; la barra c'è solo con
+  almeno due categorie presenti, e dentro ci sono sempre tutte e quattro (a zero spente, **neutre**: il verde
+  di `sh-chip:disabled` vuol dire «coda vuota, bene»).
+- L'elenco **nazionale** `/services/vsop/mil` resta, raggiunto da `/services` e `/services/vsop`.
+
+Verificato dal vivo su una copia del `vipi.db` (con una release vIPI seminata su LIMN per avere uno scalo con
+tutti e due i documenti): LIBB 4 schede (LIBG solo vSOP), LIMM 3 (LIML e LIMS solo vSOP, LIMN due voci che
+aprono i due documenti), ogni filtro mostra solo la sua categoria e ricliccato torna a tutti, italiano e
+inglese, tema scuro, 400px senza scorrimento orizzontale, zero errori in console.
+
 ## ▶ Dopo il 16 settembre 2026
 
 Una migrazione toglie `Airports.IsMilitaryOnly`; `AirportCategoryTransfer` perde il ramo del travaso e resta
