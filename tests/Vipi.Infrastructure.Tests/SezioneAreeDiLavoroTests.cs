@@ -50,7 +50,7 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
         _db.Accs.Add(acc);
         _db.Airports.Add(new Airport
         {
-            Icao = "LIBA", Name = "Amendola", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = true,
+            Icao = "LIBA", Name = "Amendola", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryOnly,
         });
         await _db.SaveChangesAsync();
     }

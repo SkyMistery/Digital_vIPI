@@ -1,4 +1,5 @@
 using Vipi.Application.Content;
+using Vipi.Domain;
 using Vipi.Ui;
 using Xunit;
 
@@ -16,7 +17,7 @@ namespace Vipi.Ui.Tests;
 public class RimandoAllEdizioneMilitareTests
 {
     private static AirportMilitaryState SoloMilitareSenzaCivile() => new(
-        HasMilitaryPresence: true, IsMilitaryOnly: true, DocumentId: null, MilDocumentId: 42);
+        HasMilitaryPresence: true, Category: AirportCategory.MilitaryOnly, DocumentId: null, MilDocumentId: 42);
 
     /// <summary>Il caso per cui il rimando esiste: si entra sull'editor civile di un campo solo militare.</summary>
     [Fact]
@@ -54,17 +55,19 @@ public class RimandoAllEdizioneMilitareTests
     {
         Assert.False(RimandoAllEdizioneMilitare.Serve(
             conChrome: true, giaValutato: false,
-            new AirportMilitaryState(true, IsMilitaryOnly: true, DocumentId: 7, MilDocumentId: 42)));
+            new AirportMilitaryState(true, AirportCategory.MilitaryOnly, DocumentId: 7, MilDocumentId: 42)));
     }
 
-    /// <summary>⚠️ Base sul campo ≠ campo militare: Linate, Pisa e Ciampino hanno <c>HasMilitaryPresence</c>
-    /// vero e traffico civile. Solo <c>IsMilitaryOnly</c> decide.</summary>
-    [Fact]
-    public void Una_base_sul_campo_da_sola_non_rimanda_nessuno()
+    /// <summary>⚠️ Base sul campo ≠ campo militare: le due categorie con presenza militare che AMMETTONO la
+    /// vIPI civile (Linate; Pisa) non rimandano nessuno, nemmeno con un vSOP già nato. Decide la categoria.</summary>
+    [Theory]
+    [InlineData(AirportCategory.CivilWithMilitaryPresence)]
+    [InlineData(AirportCategory.MilitaryWithCivilPresence)]
+    public void Una_categoria_che_ammette_la_vIPI_non_rimanda_nessuno(AirportCategory categoria)
     {
         Assert.False(RimandoAllEdizioneMilitare.Serve(
             conChrome: true, giaValutato: false,
-            new AirportMilitaryState(HasMilitaryPresence: true, IsMilitaryOnly: false, null, MilDocumentId: 42)));
+            new AirportMilitaryState(HasMilitaryPresence: true, categoria, null, MilDocumentId: 42)));
     }
 
     /// <summary>ICAO sconosciuto: non si manda nessuno da nessuna parte, lo dice la pagina.</summary>

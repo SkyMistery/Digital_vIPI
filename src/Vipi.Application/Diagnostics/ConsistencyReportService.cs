@@ -352,46 +352,73 @@ public sealed class ConsistencyReportService : IConsistencyReportService
             }
         }
 
-        // 3-bis) Campo SOLO MILITARE con una vIPI civile ancora addosso.
+        // 3-bis) Un documento che la CATEGORIA del suo campo non ammette: una vIPI civile su un campo solo
+        // militare, o un vSOP militare su un campo civile o civile con presenza militare.
         //
-        // ⚠️ Il flag si accende con un clic e NON tocca la vIPI civile: il documento resta com'è — voluto,
-        // perché nasconderlo o eliminarlo è un gesto editoriale che nessuno deve fare al posto di chi decide
-        // (carta 2026-09-10-solo-militare-con-vipi-civile.md). Quindi qui non si agisce: si DICE.
+        // ⚠️ La categoria si cambia con un clic e NON tocca i documenti: restano com'erano — voluto, perché
+        // nasconderli o eliminarli è un gesto editoriale che nessuno deve fare al posto di chi decide (carte
+        // 2026-09-10-solo-militare-con-vipi-civile.md e 2026-09-11-categorie-aeroporto.md). Quindi qui non si
+        // agisce: si DICE.
         //
-        // 🔴 E si tace nel caso a posto. Un campo la cui vIPI civile è già nascosta e già staccata ha
-        // percorso la via d'uscita per intero: un rilievo lì sarebbe un avviso che scatta sul caso NORMALE,
-        // che è il difetto che questa pagina ha già imparato due volte (il cruscotto delle lacune, e lo
-        // scalo coperto da un ente non ricevente). Un avviso che suona sempre è un avviso che si spegne.
-        foreach (var campo in d.CampiSoloMilitari)
+        // 🔴 E si tace nel caso a posto. Un documento già nascosto e già staccato ha percorso la via d'uscita
+        // per intero: un rilievo lì sarebbe un avviso che scatta sul caso NORMALE, che è il difetto che questa
+        // pagina ha già imparato due volte (il cruscotto delle lacune, e lo scalo coperto da un ente non
+        // ricevente). Un avviso che suona sempre è un avviso che si spegne.
+        foreach (var campo in d.DocumentiFuoriCategoria)
         {
             var chi = $"Aeroporto {campo.Icao}";
             object[] soloIcao = { campo.Icao };
 
-            // ⚠️ TRE messaggi interi e non uno da comporre a pezzi: «visibile», «visibile e unita»,
-            // «nascosta ma unita» dicono gesti diversi, e una frase costruita concatenando un pezzo
+            // ⚠️ TRE messaggi interi per edizione e non uno da comporre a pezzi: «visibile», «visibile e
+            // unito», «non visibile ma unito» dicono gesti diversi, e una frase costruita concatenando un pezzo
             // condizionale si legge male in una lingua e peggio nell'altra.
-            if (campo.CivileVisibile)
-                findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
-                    ConsistencySeverity.Warning, chi,
-                    campo.UnitaAlVsop
-                        ? $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico ED è unita al vSOP: va nascosta (o eliminata) e l'unione va sciolta, o ogni pubblicazione del vSOP pubblicherà anche lei."
-                        : $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico: va nascosta, o eliminata. Non si spegne da sé.",
-                    ConsistencyArea.Dati, DoveAeroporti,
-                    CategoryKey: "Diag_Cat_SoloMilConCivile",
-                    DetailKey: campo.UnitaAlVsop ? "Diag_Msg_SoloMilConCivileUnita" : "Diag_Msg_SoloMilConCivile",
-                    DetailArgs: soloIcao,
-                    EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
-            else if (campo.UnitaAlVsop)
-                findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
-                    ConsistencySeverity.Warning, chi,
-                    // 🔴 «non visibile» e NON «nascosta»: quel secchio contiene due situazioni diverse — un
-                    // documento nascosto e uno mai pubblicato — e sui dati veri (LIBV) è il secondo. Dire
-                    // «è nascosta» sarebbe una frase falsa in un rilievo che serve a dire il vero.
-                    $"{campo.Icao}: la vIPI civile non è visibile al pubblico, ma è ancora unita al vSOP — quindi ogni pubblicazione del vSOP le crea una release lo stesso, per un documento che nessuno vede. Sciogli l'unione.",
-                    ConsistencyArea.Dati, DoveAeroporti,
-                    CategoryKey: "Diag_Cat_SoloMilConCivile",
-                    DetailKey: "Diag_Msg_SoloMilNascostaMaUnita", DetailArgs: soloIcao,
-                    EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+            if (campo.Edizione == DocumentEdition.Civil)
+            {
+                if (campo.Visibile)
+                    findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
+                        ConsistencySeverity.Warning, chi,
+                        campo.UnitoAllAltra
+                            ? $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico ED è unita al vSOP: va nascosta (o eliminata) e l'unione va sciolta, o ogni pubblicazione del vSOP pubblicherà anche lei."
+                            : $"{campo.Icao} è marcato «solo militare», ma la sua vIPI civile è ancora visibile al pubblico: va nascosta, o eliminata. Non si spegne da sé.",
+                        ConsistencyArea.Dati, DoveAeroporti,
+                        CategoryKey: "Diag_Cat_SoloMilConCivile",
+                        DetailKey: campo.UnitoAllAltra ? "Diag_Msg_SoloMilConCivileUnita" : "Diag_Msg_SoloMilConCivile",
+                        DetailArgs: soloIcao,
+                        EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+                else if (campo.UnitoAllAltra)
+                    findings.Add(new ConsistencyFinding("vIPI civile su campo solo militare",
+                        ConsistencySeverity.Warning, chi,
+                        // 🔴 «non visibile» e NON «nascosta»: quel secchio contiene due situazioni diverse — un
+                        // documento nascosto e uno mai pubblicato — e sui dati veri (LIBV) è il secondo. Dire
+                        // «è nascosta» sarebbe una frase falsa in un rilievo che serve a dire il vero.
+                        $"{campo.Icao}: la vIPI civile non è visibile al pubblico, ma è ancora unita al vSOP — quindi ogni pubblicazione del vSOP le crea una release lo stesso, per un documento che nessuno vede. Sciogli l'unione.",
+                        ConsistencyArea.Dati, DoveAeroporti,
+                        CategoryKey: "Diag_Cat_SoloMilConCivile",
+                        DetailKey: "Diag_Msg_SoloMilNascostaMaUnita", DetailArgs: soloIcao,
+                        EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+            }
+            else
+            {
+                if (campo.Visibile)
+                    findings.Add(new ConsistencyFinding("vSOP militare fuori categoria",
+                        ConsistencySeverity.Warning, chi,
+                        campo.UnitoAllAltra
+                            ? $"{campo.Icao}: la sua categoria non prevede il vSOP militare, ma il vSOP è ancora visibile al pubblico ED è unito alla vIPI civile: va nascosto (o eliminato) e l'unione va sciolta, o ogni pubblicazione della vIPI pubblicherà anche lui."
+                            : $"{campo.Icao}: la sua categoria non prevede il vSOP militare, ma il vSOP è ancora visibile al pubblico: va nascosto, o eliminato. Non si spegne da sé.",
+                        ConsistencyArea.Dati, DoveAeroporti,
+                        CategoryKey: "Diag_Cat_VsopFuoriCategoria",
+                        DetailKey: campo.UnitoAllAltra ? "Diag_Msg_VsopFuoriCategoriaUnito" : "Diag_Msg_VsopFuoriCategoria",
+                        DetailArgs: soloIcao,
+                        EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+                else if (campo.UnitoAllAltra)
+                    findings.Add(new ConsistencyFinding("vSOP militare fuori categoria",
+                        ConsistencySeverity.Warning, chi,
+                        $"{campo.Icao}: il vSOP militare non è visibile al pubblico, ma è ancora unito alla vIPI civile — quindi ogni pubblicazione della vIPI gli crea una release lo stesso, per un documento che nessuno vede. Sciogli l'unione.",
+                        ConsistencyArea.Dati, DoveAeroporti,
+                        CategoryKey: "Diag_Cat_VsopFuoriCategoria",
+                        DetailKey: "Diag_Msg_VsopNonVisibileMaUnito", DetailArgs: soloIcao,
+                        EntityKey: "Diag_Ent_Aeroporto", EntityArgs: soloIcao));
+            }
         }
 
         // 4) Gerarchia dangling: un padre di copertura per callsign che non risolve ad alcun nodo dei cataloghi.

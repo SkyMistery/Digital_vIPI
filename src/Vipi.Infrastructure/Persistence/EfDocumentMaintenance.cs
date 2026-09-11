@@ -152,6 +152,28 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return collegati;
     }
 
+    public async Task<int> ReconcileAirportCategoriesAsync(CancellationToken ct = default)
+    {
+        // Solo le righe che l'invariante dice sbagliate: senza presenza e non Civile, o con presenza e ancora
+        // Civile. A regime sono zero, e il giro non carica niente.
+        var airports = await _db.Airports
+            .Where(a => (!a.HasMilitaryPresence && a.Category != AirportCategory.Civil)
+                        || (a.HasMilitaryPresence && a.Category == AirportCategory.Civil))
+            .ToListAsync(ct);
+
+        var cambiati = 0;
+        foreach (var a in airports)
+        {
+            var attesa = AirportCategoryTransfer.Attesa(a);
+            if (attesa == a.Category) continue;
+            a.Category = attesa;
+            cambiati++;
+        }
+
+        if (cambiati > 0) await _db.SaveChangesAsync(ct);
+        return cambiati;
+    }
+
     public async Task<int> ClearVloaSeededAiracRowAsync(CancellationToken ct = default)
     {
         var blocchi = await _db.ContentBlocks

@@ -85,22 +85,12 @@
                                 {
                                     <span><b>@r.Icao</b> @r.Name</span>
                                 }
-                                @* ⚠️ «solo militare» è il giudizio di un amministratore, non il campo
-                                   `military` della sorgente — che è vero anche su Linate e Ciampino. Dirlo
-                                   com'è evita che il lettore creda a un'informazione che non abbiamo. *@
-                                <span class="pill @(r.SoloMilitare ? "amber" : "blue")">
-                                    @(r.SoloMilitare ? L["Mil_OnlyMilitary"] : L["Mil_JointField"])
-                                </span>
-                                @* ⚠️ Un vSOP militare su un campo MISTO senza la sua vIPI civile. Dal 29
-                                   agosto 2026 non si può più creare, ma i documenti nati prima possono
-                                   essere lì: una guardia nuova non ripara il passato, e questo elenco è
-                                   l'unico posto da cui si vedono TUTTI insieme. *@
-                                @if (Authz.IsEditor && !r.SoloMilitare && !r.HaCivile && r.DocumentId is not null)
-                                {
-                                    <a class="pill red" href="@EditorCivile(r)" title="@L["Mil_MissingCivilBody"]">
-                                        <Icon Name="warning" Size="12" /> @L["Mil_MissingCivilTitle"]
-                                    </a>
-                                }
+                                @* La categoria dello scalo (carta 2026-09-11-categorie-aeroporto.md): è il giudizio
+                                   di un amministratore, non il campo `military` della sorgente — che è vero anche
+                                   su Linate e Ciampino. ⚠️ Fino all'11 settembre qui c'era anche l'avviso «manca la
+                                   vIPI civile» sui campi misti: la regola «prima la vIPI» il committente l'ha tolta,
+                                   e un avviso su un caso lecito è un avviso che insegna a non leggerlo. *@
+                                <MilitaryTag Category="r.Categoria" />
                             </td>
                             <td>
                                 @if (r.Pubblicato)
@@ -118,16 +108,8 @@
                                 {
                                     <a class="btn ghost" href="@Editor(r)"><Icon Name="pencil" Size="14" /> @L["Ed_Edit"]</a>
                                 }
-                                @* ⚠️ Su un campo MISTO il vSOP militare arriva DOPO la vIPI civile (carta
-                                   §5-bis). Finché quella non c'è, qui non si offre «Crea» — si offre la
-                                   strada: il tasto porta all'editor civile, che è il passo che manca. Un
-                                   tasto che fallisce sempre insegna solo a non premerlo. *@
-                                else if (r.DocumentId is null && Authz.IsEditor && !r.SoloMilitare && !r.HaCivile)
-                                {
-                                    <a class="btn ghost" href="@EditorCivile(r)" title="@L["Mil_NeedCivilFirst"]">
-                                        <Icon Name="book-open" Size="14" /> @L["Mil_GoCreateCivil"]
-                                    </a>
-                                }
+                                @* ⚠️ «Crea» c'è su ogni candidato senza documento: l'elenco li contiene solo se la
+                                   categoria ammette il vSOP (il filtro sta nel servizio, che rifiuterebbe comunque). *@
                                 else if (r.DocumentId is null && Authz.IsEditor)
                                 {
                                     <button class="btn ghost" disabled="@_busy" @onclick="() => CreaAsync(r.Icao)">
@@ -191,11 +173,6 @@
 
     private static string Editor(MilAirportRow r) =>
         $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/mil/editor?icao={r.Icao}";
-
-    /// <summary>L'editor della vIPI CIVILE dello stesso scalo: il passo che manca sui campi misti senza
-    /// documento civile. Apre l'editor, che è anche ciò che fa nascere il documento.</summary>
-    private static string EditorCivile(MilAirportRow r) =>
-        $"/services/vsop/{(r.AccCode ?? "").ToLowerInvariant()}/airports/editor?icao={r.Icao}";
 
     private async Task CreaAsync(string icao)
     {

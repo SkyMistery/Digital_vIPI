@@ -655,6 +655,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Collegati {Count} aeroporti alla loro vIPI (il legame passa dall'aeroporto, non piu' dai settori).", collegati);
 
+        // La categoria dello scalo (carta 2026-09-11-categorie-aeroporto.md). ⚠️ DOPO il legame dei documenti: il
+        // travaso mette in «militare con presenza civile» chi ha già un vSOP, e lo legge dall'aeroporto.
+        var categorie = maintenance.ReconcileAirportCategoriesAsync().GetAwaiter().GetResult();
+        if (categorie > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Portati {Count} aeroporti alla loro categoria (travaso da «solo militare», o presenza militare cambiata).", categorie);
+
         var keys = maintenance.ReconcileCustomSectionKeysAsync().GetAwaiter().GetResult();
         if (keys > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(

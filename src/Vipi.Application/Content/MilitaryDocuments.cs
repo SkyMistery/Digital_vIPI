@@ -9,16 +9,14 @@ namespace Vipi.Application.Content;
 /// <param name="Icao">Il campo.</param>
 /// <param name="Name">Il suo nome.</param>
 /// <param name="AccCode">L'ACC che lo governa: l'elenco si raggruppa per questo.</param>
-/// <param name="SoloMilitare">Nessun traffico civile (Aviano, Ghedi, Decimomannu…). ⚠️ È il giudizio di un
-/// amministratore, non il campo <c>military</c> della sorgente — che è vero anche su Linate e Ciampino.</param>
+/// <param name="Categoria">La categoria dello scalo (carta 2026-09-11-categorie-aeroporto.md). ⚠️ È il giudizio
+/// di un amministratore, non il campo <c>military</c> della sorgente — che è vero anche su Linate e Ciampino.
+/// Sta nell'elenco anche fuori dalle due categorie che ammettono il vSOP, se un vSOP c'è già: un documento
+/// esistente si deve poter raggiungere.</param>
 /// <param name="DocumentId">Il documento militare, se esiste. null = c'è solo il candidato.</param>
 /// <param name="Pubblicato">Se ha una release effettiva: è il gate dell'elenco pubblico.</param>
-/// <param name="HaCivile">La vIPI CIVILE dello scalo esiste (anche solo in bozza). ⚠️ Sui campi MISTI è il
-/// prerequisito del vSOP militare (carta §5-bis): senza, l'elenco offrirebbe un tasto «Crea» che il servizio
-/// rifiuta — e un tasto che fallisce sempre è peggio di un tasto che non c'è.</param>
 public sealed record MilAirportRow(
-    string Icao, string Name, string? AccCode, bool SoloMilitare, int? DocumentId, bool Pubblicato,
-    bool HaCivile = false);
+    string Icao, string Name, string? AccCode, AirportCategory Categoria, int? DocumentId, bool Pubblicato);
 
 /// <summary>
 /// L'elenco dei campi con un vSOP militare, e la creazione del primo (carta
@@ -40,9 +38,9 @@ public sealed record MilAirportRow(
 /// </summary>
 /// <param name="Esiste">La vIPI civile c'è, anche solo in <b>bozza</b>.</param>
 /// <param name="Pubblicata">Ha una release effettiva: è il gate del ponte per il <b>pubblico</b>.</param>
-/// <param name="SoloMilitare">Il campo non ha traffico civile: allora la vIPI civile <b>non deve</b>
-/// esistere, e la sua assenza non è un difetto ma la regola (carta vSOP militari §5-bis).</param>
-public sealed record CivilEdition(bool Esiste, bool Pubblicata, bool SoloMilitare);
+/// <param name="Categoria">La categoria dello scalo. Se non ammette la vIPI civile
+/// (<see cref="AirportCategories.AllowsCivil"/>), la sua assenza non è un difetto ma la regola.</param>
+public sealed record CivilEdition(bool Esiste, bool Pubblicata, AirportCategory Categoria);
 
 public interface IMilitaryDocumentService
 {

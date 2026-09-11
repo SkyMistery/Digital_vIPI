@@ -615,6 +615,10 @@
   <data name="Diag_Msg_SoloMilConCivile" xml:space="preserve"><value>{0} is marked “military only”, but its civil vIPI is still visible to the public: hide it, or delete it. It does not switch itself off.</value></data>
   <data name="Diag_Msg_SoloMilConCivileUnita" xml:space="preserve"><value>{0} is marked “military only”, but its civil vIPI is still visible to the public AND joined to the vSOP: hide it (or delete it) and dissolve the union, or every vSOP publication will publish it too.</value></data>
   <data name="Diag_Msg_SoloMilNascostaMaUnita" xml:space="preserve"><value>{0}: the civil vIPI is not visible to the public, but it is still joined to the vSOP — so every vSOP publication still creates a release for a document nobody sees. Dissolve the union.</value></data>
+  <data name="Diag_Cat_VsopFuoriCategoria" xml:space="preserve"><value>Military vSOP outside the field's category</value></data>
+  <data name="Diag_Msg_VsopFuoriCategoria" xml:space="preserve"><value>{0}: its category does not provide for a military vSOP, but the vSOP is still visible to the public: hide it, or delete it. It does not switch itself off.</value></data>
+  <data name="Diag_Msg_VsopFuoriCategoriaUnito" xml:space="preserve"><value>{0}: its category does not provide for a military vSOP, but the vSOP is still visible to the public AND joined to the civil vIPI: hide it (or delete it) and dissolve the union, or every vIPI publication will publish it too.</value></data>
+  <data name="Diag_Msg_VsopNonVisibileMaUnito" xml:space="preserve"><value>{0}: the military vSOP is not visible to the public, but it is still joined to the civil vIPI — so every vIPI publication still creates a release for a document nobody sees. Dissolve the union.</value></data>
   <data name="Apt_MilitaryOnlyConCivile" xml:space="preserve"><value>{0} has a civil vIPI. Marking it “military only” does NOT touch that document: it stays as it is, and if it is published it stays online. It has to be hidden separately — and if it is joined to the vSOP, the union has to be dissolved.</value></data>
   <data name="Apt_MilitaryOnlyConCivileYes" xml:space="preserve"><value>Yes, mark it military only</value></data>
   <data name="Diag_Ent_Staffisti" xml:space="preserve"><value>{0} staff members in the roster</value></data>
@@ -1393,14 +1397,17 @@
   <data name="Airport_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field</value></data>
   <data name="Airport_ChipCivilTitle" xml:space="preserve"><value>Show only the airports without a military base</value></data>
   <data name="Apt_ChipMilitaryTitle" xml:space="preserve"><value>Show only the airports with a military base on the field, according to the source</value></data>
-  <data name="Apt_MilitaryPresence" xml:space="preserve"><value>military presence</value></data>
-  <data name="Apt_MilitaryPresenceTitle" xml:space="preserve"><value>The source reports a military base on the airport. It does not mean the airport is a military one: many civil airports share the field with the Air Force</value></data>
-  <data name="Apt_MilitaryOnly" xml:space="preserve"><value>military only</value></data>
-  <data name="Apt_MilitaryOnlyTitle" xml:space="preserve"><value>Airport with no civil traffic. An administrator decides this: the source only tells whether a military base is there</value></data>
-  <data name="Apt_MilitaryOnlyOnAria" xml:space="preserve"><value>Mark as military only</value></data>
-  <data name="Apt_MilitaryOnlyOffAria" xml:space="preserve"><value>Clear «military only»</value></data>
-  <data name="Apt_MilitaryOnlyOnTitle" xml:space="preserve"><value>Mark as military only: no civil traffic</value></data>
-  <data name="Apt_MilitaryOnlyOffTitle" xml:space="preserve"><value>Clear «military only»: the airport also has civil traffic</value></data>
+  <data name="Apt_Cat_Civil" xml:space="preserve"><value>Civil</value></data>
+  <data name="Apt_Cat_MilitaryOnly" xml:space="preserve"><value>Military only</value></data>
+  <data name="Apt_Cat_CivilWithMilitaryPresence" xml:space="preserve"><value>Civil with military presence</value></data>
+  <data name="Apt_Cat_MilitaryWithCivilPresence" xml:space="preserve"><value>Military with civil presence</value></data>
+  <data name="Apt_CatTitle_Civil" xml:space="preserve"><value>No military presence according to the source. Documents: the vIPI only.</value></data>
+  <data name="Apt_CatTitle_MilitaryOnly" xml:space="preserve"><value>No civil traffic. Documents: the military vSOP only. Set by an administrator.</value></data>
+  <data name="Apt_CatTitle_CivilWithMilitaryPresence" xml:space="preserve"><value>Civil airport sharing its grounds with a military base. Documents: the vIPI only. Set by an administrator.</value></data>
+  <data name="Apt_CatTitle_MilitaryWithCivilPresence" xml:space="preserve"><value>Military field also open to civil traffic. Documents: the vIPI and the military vSOP. Set by an administrator.</value></data>
+  <data name="Apt_CatPickAria" xml:space="preserve"><value>Category of {0}</value></data>
+  <data name="Apt_CatConMil" xml:space="preserve"><value>{0} has a military vSOP, and the “{1}” category does not provide for one. That document is NOT touched: it stays as it is, and if it is published it stays online. Hide it separately — and if it is joined to the vIPI, dissolve the union.</value></data>
+  <data name="Apt_CatConfirmYes" xml:space="preserve"><value>Yes, change category</value></data>
   <data name="Apt_ChipAssigned" xml:space="preserve"><value>already assigned {0}</value></data>
   <data name="Apt_ChipAssignedTitle" xml:space="preserve"><value>Also show the airports already assigned to an ACC (hidden by default: they are in the list on the left)</value></data>
   <data name="Apt_Stop" xml:space="preserve"><value>Stop</value></data>
@@ -1785,8 +1792,8 @@
   <data name="Nd_IcaoOption" xml:space="preserve"><value>ICAO…</value></data>
   <data name="Nd_NoAirports" xml:space="preserve"><value>No airport assigned to {0}. Assign them from &lt;a href="/vsop/admin/airports"&gt;Airport management&lt;/a&gt;.</value></data>
   <data name="Nd_MilOnlyHint" xml:space="preserve"><value>&lt;b&gt;Military-only&lt;/b&gt; field: its single edition is the military vSOP, and the button goes there. The civil vIPI is not created, because there would be no civil traffic to describe.</value></data>
-  <data name="Nd_MilAfterCivilHint" xml:space="preserve"><value>Field with a &lt;b&gt;military presence&lt;/b&gt;: this creates the &lt;b&gt;civil&lt;/b&gt; vIPI. The military vSOP comes afterwards, from the vIPI editor or from the &lt;a href="/services/vsop/mil"&gt;military vSOP list&lt;/a&gt;.</value></data>
-  <data name="Nd_MilAfterCivilReady" xml:space="preserve"><value>Field with a &lt;b&gt;military presence&lt;/b&gt;: the civil vIPI exists, so the military vSOP can be created — from the vIPI editor or from the &lt;a href="/services/vsop/mil"&gt;military vSOP list&lt;/a&gt;.</value></data>
+  <data name="Nd_MilWithCivilHint" xml:space="preserve"><value>&lt;b&gt;Military field with civil presence&lt;/b&gt;: this creates the &lt;b&gt;civil&lt;/b&gt; vIPI. The military vSOP is created separately, in any order: from the vIPI editor or from the &lt;a href="/services/vsop/mil"&gt;military vSOP list&lt;/a&gt;.</value></data>
+  <data name="Nd_CivilWithMilHint" xml:space="preserve"><value>&lt;b&gt;Civil airport with military presence&lt;/b&gt;: this creates the civil vIPI, which is the only document it provides for. To also have the military vSOP, change the category on the Airports page.</value></data>
   <data name="Nd_SelectHomeNeigh" xml:space="preserve"><value>Select the Home sector and the Neighbour sector.</value></data>
   <data name="Nd_CannotResolveHome" xml:space="preserve"><value>Cannot resolve the vLOA Home ACC.</value></data>
   <data name="Ver_Intro" xml:space="preserve"><value>&lt;p style="margin:0 0 6px"&gt;Every row is a &lt;b&gt;document&lt;/b&gt;: the pills say whether it is public, whether a draft is open, whether a release is &lt;b&gt;effective&lt;/b&gt; or &lt;b&gt;scheduled&lt;/b&gt;, and who is editing it right now.&lt;/p&gt;&lt;p style="margin:0 0 6px"&gt;Picking a row shows, in the right-hand panel, the &lt;b&gt;versions&lt;/b&gt; (with the draft to publish or discard), the &lt;b&gt;history&lt;/b&gt; of changes and the &lt;b&gt;AIRAC releases&lt;/b&gt;, from where you publish at the chosen cycle or right away.&lt;/p&gt;&lt;p style="margin:0"&gt;The chips count: they say how many documents sit in each state, and they filter the list.&lt;/p&gt;</value></data>
@@ -2875,14 +2882,10 @@
   <data name="PageIntro_NotAllowed" xml:space="preserve"><value>You are not allowed to write here.</value></data>
   <data name="PageIntro_HelpAria" xml:space="preserve"><value>What the page intro is</value></data>
   <data name="PageIntro_HelpBody" xml:space="preserve"><value>Free-form sections at the top of the page, to introduce the list and link PDFs from the attachment library.&lt;br/&gt;⚠️ It is not a document: it has no AIRAC cycle and is not frozen to a release, so it goes live as soon as you save it. Normative content belongs in a document.</value></data>
-  <data name="Mil_OnlyMilitary" xml:space="preserve"><value>military only</value></data>
-  <data name="Mil_JointField" xml:space="preserve"><value>joint civil/military</value></data>
   <data name="Mil_NoDoc" xml:space="preserve"><value>no document</value></data>
   <data name="Mil_Draft" xml:space="preserve"><value>draft</value></data>
   <data name="Mil_Published" xml:space="preserve"><value>published</value></data>
   <data name="Mil_Create" xml:space="preserve"><value>Create the vSOP</value></data>
-  <data name="Mil_GoCreateCivil" xml:space="preserve"><value>Civil vIPI first</value></data>
-  <data name="Mil_NeedCivilFirst" xml:space="preserve"><value>Civil field with a military presence: the military vSOP comes after the civil vIPI. This button opens the vIPI editor.</value></data>
   <data name="Mil_Empty" xml:space="preserve"><value>No military vSOP published</value></data>
   <data name="Mil_EmptyHint" xml:space="preserve"><value>When a military vSOP is published, it will appear here.</value></data>
   <data name="Mil_EmptyStaff" xml:space="preserve"><value>No airfield with military presence</value></data>
@@ -2891,9 +2894,6 @@
   <data name="Mil_ColState" xml:space="preserve"><value>State</value></data>
   <data name="Mil_LinkFromCivil" xml:space="preserve"><value>Military vSOP</value></data>
   <data name="Mil_LinkToCivil" xml:space="preserve"><value>Civil vIPI</value></data>
-  <data name="Mil_MissingCivilTitle" xml:space="preserve"><value>This field has no civil vIPI</value></data>
-  <data name="Mil_MissingCivilBody" xml:space="preserve"><value>This field carries civil traffic, so the military vSOP should sit alongside a civil vIPI: it says what differs from it. This document was created before the rule was in force.</value></data>
-  <data name="Mil_MissingCivilAction" xml:space="preserve"><value>Create the civil vIPI</value></data>
   <data name="Mil_Created" xml:space="preserve"><value>Military vSOP created for {0}: it is a draft now, to be filled in and published.</value></data>
   <data name="Mil_CreateFromCivil" xml:space="preserve"><value>Create the military vSOP</value></data>
   <data name="Mil_OpenFromCivil" xml:space="preserve"><value>Military vSOP</value></data>

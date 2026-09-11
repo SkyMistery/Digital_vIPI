@@ -547,6 +547,18 @@ editoriale (nessun traffico civile) che la sorgente non esprime: lo dà un ammin
 solo dove c'è presenza militare, e **l'import non lo tocca mai** — l'unica eccezione è la coerenza, perché tolta
 la presenza militare «solo militare» viene azzerato con essa.
 
+**Categoria dello scalo (2026-09-11, migrazione `CategoriaAeroporto`, carta `feature/2026-09-11-categorie-aeroporto.md`).**
+Colonna **`Airport.Category`** (enum `AirportCategory` salvato come stringa, varchar(32) su MySQL, NOT NULL,
+default `'Civil'`) che **prende il posto di `IsMilitaryOnly`**: `Civil` · `MilitaryOnly` ·
+`CivilWithMilitaryPresence` · `MilitaryWithCivilPresence`. Decide quali documenti lo scalo ammette
+(`AirportCategories.AllowsCivil`/`AllowsMilitary`): Civile e civile-con-presenza-militare solo la vIPI, solo-militare
+solo il vSOP, militare-con-presenza-civile tutti e due in qualunque ordine. ⚠️ **Invariante**: senza
+`HasMilitaryPresence` è `Civil`, con la presenza non lo è mai; la tengono il giro dell'anagrafica, il comando della
+pagina Aeroporti e la passata d'avvio `ReconcileAirportCategoriesAsync` (che fa anche il travaso). ⚠️
+**`IsMilitaryOnly` è IN PENSIONE ma resta in tabella** fino alla prima migrazione dopo la finestra cieca del 16
+settembre 2026: nessuno la legge tranne il travaso, e il setter di `Category` la scrive come specchio
+(`Category == MilitaryOnly`) per un eventuale ritorno a 1.21.x.
+
 `Iata` normalizzato: la sorgente manda **stringa vuota**, non null, per i 73 aeroporti che non ne hanno uno.
 
 **La vIPI d'aeroporto è dell'AEROPORTO (2026-08-25, migrazione `DocumentoDellAeroporto`).** Colonna

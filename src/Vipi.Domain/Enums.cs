@@ -59,6 +59,66 @@ public enum DocumentEdition
     Military,
 }
 
+/// <summary>
+/// La <b>categoria</b> di un aeroporto: civile, militare, o le due combinazioni (carta
+/// <c>docs/feature/2026-09-11-categorie-aeroporto.md</c>). Decide quali documenti lo scalo può avere — la regola
+/// sta in <see cref="AirportCategories"/>, non in chi la usa.
+///
+/// <para>⚠️ <b>Invariante</b>: senza presenza militare secondo la sorgente la categoria è <see cref="Civil"/>, e
+/// con presenza non lo è mai. Le altre tre le sceglie un amministratore.</para>
+/// <para>⚠️ <see cref="Civil"/> è lo zero, e i valori si aggiungono <b>in coda</b>: la colonna è una stringa, ma
+/// un enum di questa applicazione può finire in un payload come ordinale.</para>
+/// </summary>
+public enum AirportCategory
+{
+    /// <summary>Nessuna presenza militare secondo la sorgente. Solo la vIPI civile.</summary>
+    Civil,
+
+    /// <summary>Nessun traffico civile (Aviano, Ghedi…). Solo il vSOP militare.</summary>
+    MilitaryOnly,
+
+    /// <summary>Scalo civile con sedime militare (Linate, Ciampino…). Solo la vIPI civile.</summary>
+    CivilWithMilitaryPresence,
+
+    /// <summary>Campo militare aperto anche al traffico civile. vIPI civile e vSOP militare, in qualunque ordine.</summary>
+    MilitaryWithCivilPresence,
+}
+
+/// <summary>
+/// Le regole di <see cref="AirportCategory"/>: <b>quali documenti</b> ammette ogni categoria, e l'invariante con la
+/// presenza militare. Stanno qui e non nei sei punti che le chiedono — nascita della vIPI e del vSOP, «Nuovo
+/// documento», elenco dei vSOP, rimando all'editor militare, Diagnostica — perché due porte che decidono la stessa
+/// cosa devono chiedere la stessa cosa.
+/// </summary>
+public static class AirportCategories
+{
+    /// <summary>La categoria che prende un campo appena la sorgente gli riconosce la presenza militare, e che
+    /// nessuno ha ancora classificato (decisione del committente dell'11 settembre 2026).</summary>
+    public const AirportCategory DefaultWithMilitaryPresence = AirportCategory.CivilWithMilitaryPresence;
+
+    /// <summary>Le tre categorie che un amministratore può scegliere, nell'ordine in cui si offrono.</summary>
+    public static readonly IReadOnlyList<AirportCategory> Selectable = new[]
+    {
+        AirportCategory.MilitaryOnly,
+        AirportCategory.CivilWithMilitaryPresence,
+        AirportCategory.MilitaryWithCivilPresence,
+    };
+
+    /// <summary>Lo scalo può avere la vIPI civile.</summary>
+    public static bool AllowsCivil(this AirportCategory c) => c != AirportCategory.MilitaryOnly;
+
+    /// <summary>Lo scalo può avere il vSOP militare.</summary>
+    public static bool AllowsMilitary(this AirportCategory c) =>
+        c is AirportCategory.MilitaryOnly or AirportCategory.MilitaryWithCivilPresence;
+
+    /// <summary>La categoria come deve stare, data la presenza militare della sorgente: senza presenza è
+    /// <see cref="AirportCategory.Civil"/>; con presenza, una categoria ancora <c>Civil</c> prende il default.</summary>
+    public static AirportCategory Normalize(bool hasMilitaryPresence, AirportCategory stored) =>
+        !hasMilitaryPresence ? AirportCategory.Civil
+        : stored == AirportCategory.Civil ? DefaultWithMilitaryPresence
+        : stored;
+}
+
 /// <summary>Stato di un documento o di una sua versione.</summary>
 public enum DocumentStatus { Draft, Published, Archived }
 

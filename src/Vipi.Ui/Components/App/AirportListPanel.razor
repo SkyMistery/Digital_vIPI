@@ -50,9 +50,12 @@ else
                     <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
                 </div>
                 <p class="muted">@ap.Name</p>
+                @* ⚠️ Nell'ELENCO la categoria compare solo sui campi con presenza militare: «Civile» su sessanta
+                   schede sarebbe rumore. È nei DOCUMENTI che la categoria c'è sempre, anche «Civile» (carta
+                   2026-09-11-categorie-aeroporto.md). *@
                 @if (ap.HasMilitaryPresence)
                 {
-                    <p class="apt-mil"><MilitaryTag HasMilitaryPresence="ap.HasMilitaryPresence" IsMilitaryOnly="ap.IsMilitaryOnly" /></p>
+                    <p class="apt-mil"><MilitaryTag Category="ap.Category" /></p>
                 }
                 @if (_meteo.TryGetValue(ap.Icao, out var wx))
                 {

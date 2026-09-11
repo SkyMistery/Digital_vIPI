@@ -53,8 +53,10 @@ public class DatiDelloScaloMilitareTests
     [Fact]
     public void Chi_rimanda_e_chi_lascia_entrare_chiedono_la_stessa_cosa()
     {
-        Assert.Matches(@"SoloMilitare:\s*true,\s*Esiste:\s*false", Militare());
-        Assert.Matches(@"IsMilitaryOnly:\s*true,\s*DocumentId:\s*null", RimandoDelloScalo());
+        // Dall'11 settembre 2026 la domanda è quella della CATEGORIA (carta 2026-09-11-categorie-aeroporto.md):
+        // «la categoria non ammette la vIPI civile, e la vIPI civile non c'è». Stessa regola da tutt'e due i lati.
+        Assert.Matches(@"!_civile\.Categoria\.AllowsCivil\(\)\s*&&\s*!_civile\.Esiste", Militare());
+        Assert.Matches(@"DocumentId:\s*null\s*\}\s*s\s*&&\s*!s\.Category\.AllowsCivil\(\)", RimandoDelloScalo());
 
         // ⚠️ E l'editor deve passare DA LÌ: una domanda estratta che nessuno chiama sarebbe una guardia
         // scritta e non applicata — la forma peggiore del difetto, perché il presidio resterebbe verde.

@@ -9,7 +9,8 @@ public sealed record AccInfo(string Code, string Name);
 /// anagrafica di campo.</summary>
 /// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sul campo. ⚠️ Non vuol dire
 /// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino.</param>
-/// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile.</param>
+/// <param name="Category">La categoria dello scalo (<see cref="Vipi.Domain.AirportCategory"/>): Civile dalla
+/// sorgente, le altre tre scelte da un amministratore. È quella che l'etichetta mostra in ogni documento.</param>
 /// <param name="ElevationFt">Quota del riferimento aeroporto, in piedi. null = la sorgente non la dà.</param>
 /// <param name="MagneticVariation">Variazione magnetica in gradi, positiva a EST (in Italia è 1°–4° E).</param>
 /// <param name="Iata">Codice IATA, dove la sorgente ce l'ha (55 aeroporti su 93 in archivio).</param>
@@ -23,7 +24,7 @@ public sealed record AccInfo(string Code, string Name);
 /// finché qualcuno non lo ripubblica.
 /// </remarks>
 public sealed record AirportStation(string Icao, string AccCode,
-    bool HasMilitaryPresence = false, bool IsMilitaryOnly = false,
+    bool HasMilitaryPresence = false, Vipi.Domain.AirportCategory Category = Vipi.Domain.AirportCategory.Civil,
     int? ElevationFt = null, double? MagneticVariation = null, string? Iata = null,
     double? Latitude = null, double? Longitude = null);
 

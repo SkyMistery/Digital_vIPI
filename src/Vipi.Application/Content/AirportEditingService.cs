@@ -237,8 +237,10 @@ public sealed class AirportEditingService : IAirportEditingService
         // toglie dal pubblico, ma `BersagliUnitiAsync` non guarda `IsHidden`, quindi ogni pubblicazione del
         // vSOP continuerebbe a pubblicarla. Lo dice il rilievo «vIPI civile su campo solo militare».
         // Carta: docs/feature/2026-09-10-solo-militare-con-vipi-civile.md.
+        // La domanda è quella della categoria (carta 2026-09-11-categorie-aeroporto.md): oggi l'unica che non
+        // ammette la vIPI civile è «solo militare», ma la risposta la dà AirportCategories, non questo if.
         var stato = await _repo.GetMilitaryStateAsync(icao, ct);
-        if (stato is { IsMilitaryOnly: true, DocumentId: null })
+        if (stato is { DocumentId: null } s && !s.Category.AllowsCivil())
             throw new ValidationException(Lingua(
                 $"{icao} è un campo solo militare: la sua edizione è il vSOP militare, non la vIPI civile.",
                 $"{icao} is a military-only field: its edition is the military vSOP, not the civil vIPI."));

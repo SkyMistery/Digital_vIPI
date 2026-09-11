@@ -114,6 +114,10 @@ public static class MySqlStringLengths
             // Stessa ragione: ha un valore di default, quindi non puo' essere longtext.
             // Il valore piu' lungo e' `Military` (8).
             [("Document", "Edition")] = EnumChars,
+            // Stessa ragione: la categoria dello scalo ha un DEFAULT (`Civil`), quindi non può nascere longtext.
+            // Il valore più lungo è `MilitaryWithCivilPresence` (25): sotto EnumChars, ma col margine più stretto
+            // del dominio — un nome più lungo lo ferma il test di EnumChars, non la produzione.
+            [("Airport", "Category")] = EnumChars,
             // Stessa ragione ancora: TargetKind ha un valore di DEFAULT (`Callsign`, 8), quindi su MySQL non
             // può nascere longtext. L'ha colto IndexedStringLengthTests, non una rilettura.
             [("SectorFallback", "TargetKind")] = EnumChars,

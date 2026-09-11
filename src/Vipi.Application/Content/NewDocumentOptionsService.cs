@@ -19,20 +19,20 @@ public sealed record NewDocumentAcc(
 /// <summary>Un bersaglio selezionabile. <paramref name="Key"/> è ciò che la rotta dell'editor vuole
 /// (callsign o ICAO); <paramref name="Id"/> serve solo alle parti della vLOA, che si scelgono per Id.
 ///
-/// <para>⚠️ I tre campi militari valgono <b>solo</b> per gli aeroporti e restano ai valori di riposo per i
+/// <para>⚠️ I campi militari valgono <b>solo</b> per gli aeroporti e restano ai valori di riposo per i
 /// settori: un settore non ha edizioni. Stanno qui e non in un secondo tipo perché la scheda «Aeroporto»
 /// della pagina usa la stessa tendina delle altre — sdoppiare il tipo vorrebbe dire sdoppiare la tendina,
-/// la selezione e il tasto per aggiungere due booleani.</para>
+/// la selezione e il tasto per aggiungere due campi.</para>
 /// </summary>
 /// <param name="HasDocument">La vIPI CIVILE esiste già (anche in bozza): allora il tasto dice «Apri».</param>
-/// <param name="HasMilitaryPresence">C'è una base sul campo: allora, DOPO la civile, si può creare il vSOP
-/// militare.</param>
-/// <param name="IsMilitaryOnly">Nessun traffico civile: l'unica edizione è il vSOP militare, e la scheda
-/// «Aeroporto» porta direttamente lì (carta vSOP militari §5-bis).</param>
+/// <param name="HasMilitaryPresence">C'è una base sul campo (dalla sorgente).</param>
+/// <param name="Category">La categoria dello scalo: decide quali edizioni si offrono
+/// (<see cref="AirportCategories"/>). Su un campo solo militare la scheda «Aeroporto» porta direttamente al
+/// vSOP (carta vSOP militari §5-bis).</param>
 /// <param name="HasMilDocument">Il vSOP MILITARE esiste già: sui campi solo militari è LUI a decidere se il
 /// tasto dice «Crea» o «Apri».</param>
 public sealed record NewDocumentTarget(int Id, string Key, string Label, bool HasDocument,
-    bool HasMilitaryPresence = false, bool IsMilitaryOnly = false, bool HasMilDocument = false);
+    bool HasMilitaryPresence = false, AirportCategory Category = AirportCategory.Civil, bool HasMilDocument = false);
 
 /// <summary>Un ACC estero, coi suoi settori d'area: sono i candidati Neighbour di una vLOA.</summary>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
@@ -103,7 +103,7 @@ public sealed class NewDocumentOptionsService : INewDocumentOptionsService
                 Airports: airports.Where(x => Uguale(x.AccCode, a.Code))
                     .OrderBy(x => x.Icao, StringComparer.Ordinal)
                     .Select(x => new NewDocumentTarget(x.Id, x.Icao, $"{x.Icao} · {x.Name}", x.DocumentId is not null,
-                        x.HasMilitaryPresence, x.IsMilitaryOnly, x.MilDocumentId is not null))
+                        x.HasMilitaryPresence, x.Category, x.MilDocumentId is not null))
                     .ToList()));
         }
 

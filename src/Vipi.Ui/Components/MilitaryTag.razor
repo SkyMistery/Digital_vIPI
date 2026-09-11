@@ -1,31 +1,26 @@
-@* MilitaryTag — la pastiglia militare di un aeroporto, accanto al nome, in TUTTI i documenti che lo riguardano:
-   la vIPI dello scalo e quella del suo APP, in vista e in editor.
+@* MilitaryTag — la categoria di un aeroporto, accanto al nome, in TUTTI i documenti che lo riguardano: la vIPI
+   dello scalo, quella del suo APP e il vSOP militare, in vista e in editor.
 
-   ⚠️ Due etichette per due cose diverse, e non è pignoleria. La sorgente sa dire solo «c'è una base militare sul
-   campo»: è vero anche per Linate, Pisa, Ciampino, Catania, Elmas, Lamezia e Rimini — sette dei trentaquattro
-   aeroporti italiani marcati. Scrivere «Militare» su Linate sarebbe falso per un lettore su cinque. «Solo
-   militare» è invece un giudizio che la sorgente non esprime: lo dà un amministratore.
+   ⚠️ Dall'11 settembre 2026 (carta 2026-09-11-categorie-aeroporto.md) le etichette sono QUATTRO, e compare
+   anche «Civile»: il committente vuole che ogni documento dica in che categoria sta il suo scalo, non solo quelli
+   con una base. «Civile con presenza militare» e non «Militare» su Linate: la sorgente sa dire solo «c'è una
+   base sul campo», e scrivere «Militare» su uno scalo civile sarebbe falso per un lettore su cinque.
 
-   ⚠️ Componente PURO: riceve i due booleani, non li va a cercare. Chi lo usa li prende da IStationResolver nel
+   ⚠️ Componente PURO: riceve la categoria, non la va a cercare. Chi lo usa la prende da IStationResolver nel
    proprio ciclo di vita — una testata non deve interrogare il database mentre si disegna (regola del progetto:
    niente I/O nel render, o il circuito muore con «second operation»). *@
 @using Microsoft.Extensions.Localization
+@using Vipi.Domain
 @using Vipi.Ui.Shared
 @inject IStringLocalizer<SharedResource> L
 
-@if (IsMilitaryOnly)
+@if (Category is AirportCategory c)
 {
-    <span class="pill amber mil-tag" title="@L["Apt_MilitaryOnlyTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryOnly"]</span>
-}
-else if (HasMilitaryPresence)
-{
-    <span class="pill neutral mil-tag" title="@L["Apt_MilitaryPresenceTitle"]"><Icon Name="shield" Size="11" /> @L["Apt_MilitaryPresence"]</span>
+    <span class="pill @AirportCategoryText.PillClass(c) mil-tag" title="@L[AirportCategoryText.TitleKey(c)]"><Icon Name="@(c == AirportCategory.Civil ? "plane" : "shield")" Size="11" /> @L[AirportCategoryText.Key(c)]</span>
 }
 
 @code {
-    /// <summary>Dalla sorgente: c'è una base militare sul campo. Non vuol dire «aeroporto militare».</summary>
-    [Parameter] public bool HasMilitaryPresence { get; set; }
-
-    /// <summary>Scelta di un amministratore: nessun traffico civile. Vince sull'altra etichetta.</summary>
-    [Parameter] public bool IsMilitaryOnly { get; set; }
+    /// <summary>La categoria dello scalo. <c>null</c> = lo scalo non si conosce (un APP la cui testa non è un
+    /// aeroporto in archivio): allora non si scrive niente, invece di dire «Civile» di qualcosa che non sappiamo.</summary>
+    [Parameter] public AirportCategory? Category { get; set; }
 }

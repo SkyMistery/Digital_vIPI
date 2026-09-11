@@ -173,7 +173,7 @@
                                     @* ⚠️ L'etichetta dice «solo militare» nella TENDINA e non solo dopo aver
                                        scelto: è l'informazione che cambia quale documento nascerà, e chi
                                        sceglie deve averla PRIMA di scegliere, non come sorpresa dopo. *@
-                                    @foreach (var t in Bersagli()) { <option value="@t.Key">@t.Label@(t.IsMilitaryOnly ? $" · {L["Mil_OnlyMilitary"].Value}" : "")</option> }
+                                    @foreach (var t in Bersagli()) { <option value="@t.Key">@t.Label@(t.Category == AirportCategory.MilitaryOnly ? $" · {L["Apt_Cat_MilitaryOnly"].Value}" : "")</option> }
                                 </select>
                             </div>
                         }
@@ -197,17 +197,20 @@
                        Le due righe qui sotto non sono decorazione: la scheda si chiama «Aeroporto» e su un
                        campo solo militare NON crea una vIPI d'aeroporto. Senza dirlo, il tasto porterebbe a
                        un editor diverso da quello che il suo nome promette. *@
-                    @if (Militare() is { IsMilitaryOnly: true })
+                    @* ⚠️ MarkupString: queste frasi portano un `<b>` e un collegamento, come già `Nd_NoAirports`
+                       qui sotto. Senza, i tag si leggerebbero a schermo. Una frase per categoria militare
+                       (carta 2026-09-11-categorie-aeroporto.md): su «Civile» non c'è niente da dire. *@
+                    @switch (Militare()?.Category)
                     {
-                        @* ⚠️ MarkupString: queste due frasi portano un `<b>` e un collegamento, come già
-                           `Nd_NoAirports` qui sotto. Senza, i tag si leggerebbero a schermo. *@
-                        <p class="help nd-vuoto">@((MarkupString)L["Nd_MilOnlyHint"].Value)</p>
-                    }
-                    else if (Militare() is { HasMilitaryPresence: true } m)
-                    {
-                        <p class="help nd-vuoto">
-                            @((MarkupString)(m.HasDocument ? L["Nd_MilAfterCivilReady"].Value : L["Nd_MilAfterCivilHint"].Value))
-                        </p>
+                        case AirportCategory.MilitaryOnly:
+                            <p class="help nd-vuoto">@((MarkupString)L["Nd_MilOnlyHint"].Value)</p>
+                            break;
+                        case AirportCategory.MilitaryWithCivilPresence:
+                            <p class="help nd-vuoto">@((MarkupString)L["Nd_MilWithCivilHint"].Value)</p>
+                            break;
+                        case AirportCategory.CivilWithMilitaryPresence:
+                            <p class="help nd-vuoto">@((MarkupString)L["Nd_CivilWithMilHint"].Value)</p>
+                            break;
                     }
 
                     @if (!string.IsNullOrEmpty(_selAcc) && _kind == Kind.App && Bersagli().Count == 0)
@@ -377,7 +380,7 @@
     /// <summary>Il bersaglio scelto se è un AEROPORTO con qualcosa di militare da dire; null altrimenti.
     /// ⚠️ Filtra anche sulla scheda: un APP standalone non ha edizioni, e i suoi flag stanno a riposo.</summary>
     private NewDocumentTarget? Militare() =>
-        _kind == Kind.Airport && Scelto() is { } t && (t.HasMilitaryPresence || t.IsMilitaryOnly) ? t : null;
+        _kind == Kind.Airport && Scelto() is { } t && t.Category != AirportCategory.Civil ? t : null;
 
     /// <summary>
     /// Vero se il documento del bersaglio scelto c'è già: allora il tasto dice «Apri».
@@ -388,7 +391,7 @@
     private bool EsisteGia => _kind switch
     {
         Kind.Acc => AccScelto()?.AreaSectors.Any(s => s.HasDocument) == true,
-        Kind.Airport when Scelto() is { IsMilitaryOnly: true } t => t.HasMilDocument,
+        Kind.Airport when Scelto() is { } t && !t.Category.AllowsCivil() => t.HasMilDocument,
         _ => Scelto()?.HasDocument == true,
     };
 
@@ -417,7 +420,7 @@
         var acc = _selAcc.ToLowerInvariant();
         _msg = null;
 
-        if (_kind == Kind.Airport && Scelto() is { IsMilitaryOnly: true })
+        if (_kind == Kind.Airport && Scelto() is { } scelto && !scelto.Category.AllowsCivil())
         {
             _busy = true;
             try

@@ -73,7 +73,7 @@ else
 
         @if (_notFound)
         {
-            <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">✎ @L["Mil_EditorTitle"] @_icao</h1><span class="muted">@_acc.Name</span></div></div>
+            <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">✎ @L["Mil_EditorTitle"] @_icao <MilitaryTag Category="_categoria" /></h1><span class="muted">@_acc.Name</span></div></div>
             <div class="callout warning"><span class="cic">⚠️</span><div>@L["Mil_NotFound"]</div></div>
         }
         else if (_denied)
@@ -91,7 +91,7 @@ else
             {
             <div class="editor-bar">
                     <div class="doc-head st-head" style="margin:0">
-                        <h1 class="st-h2 page-h1">✎ @L["Mil_EditorTitle"] @_icao</h1>
+                        <h1 class="st-h2 page-h1">✎ @L["Mil_EditorTitle"] @_icao <MilitaryTag Category="_categoria" /></h1>
                         <HelpHint Href="/services/vsop/guide#editor-mil" AriaLabel="@L["Mil_HelpAria"]" ExtraClass="wide">
                             <p>@_icao · @_acc.Name</p>
                             @((MarkupString)L["Mil_HelpBody"].Value)
@@ -265,17 +265,22 @@ else
 
     /// <summary>Quale edizione civile esiste per questo scalo. Serve a decidere DOVE si cambiano i dati
     /// dell'aeroporto, e va letta anche sui campi misti (la nota di rimando la usa lo stesso).</summary>
-    private CivilEdition _civile = new(false, false, false);
+    private CivilEdition _civile = new(false, false, AirportCategory.Civil);
+
+    /// <summary>La categoria dello scalo, per l'etichetta in testata. null = scalo non in anagrafica.</summary>
+    private AirportCategory? _categoria;
 
     /// <summary>
-    /// Il campo è solo militare e la vIPI civile <b>non esiste</b>: allora l'editor d'aeroporto non è
-    /// raggiungibile e i suoi dati si scrivono qui.
+    /// La categoria non ammette la vIPI civile e la vIPI civile <b>non esiste</b>: allora l'editor d'aeroporto
+    /// non è raggiungibile e i suoi dati si scrivono qui.
     ///
-    /// <para>⚠️ <c>SoloMilitare</c> da solo <b>non basta</b>, ed è l'errore facile: un campo marcato solo
-    /// militare <i>dopo</i> che la sua vIPI civile era nata continua ad aprirla — la guardia blocca la
-    /// nascita, non l'apertura. Là il rimando funziona e va lasciato, o gli editor diventerebbero due.</para>
+    /// <para>⚠️ La categoria da sola <b>non basta</b>, ed è l'errore facile: un campo marcato solo militare
+    /// <i>dopo</i> che la sua vIPI civile era nata continua ad aprirla — la guardia blocca la nascita, non
+    /// l'apertura. Là il rimando funziona e va lasciato, o gli editor diventerebbero due. ⚠️ E la domanda è
+    /// la stessa di <c>RimandoAllEdizioneMilitare</c>: due porte che decidono la stessa cosa chiedono la stessa
+    /// cosa (<c>DatiDelloScaloMilitareTests</c> le tiene insieme).</para>
     /// </summary>
-    private bool ScaloSenzaCivile => _civile is { SoloMilitare: true, Esiste: false };
+    private bool ScaloSenzaCivile => !_civile.Categoria.AllowsCivil() && !_civile.Esiste;
 
     /// <summary>Chi guarda ha il RUOLO per scrivere sull'anagrafica di questo scalo. Non basta più a
     /// scrivere — per quello serve il lock — ma dice se i dati si sono potuti leggere in modifica.</summary>
@@ -481,6 +486,9 @@ else
         if (_acc is null) return;
         _icao = (Icao ?? "").Trim().ToUpperInvariant();
         if (_icao.Length == 0) { _notFound = true; return; }
+        // La categoria per l'etichetta in testata: dall'anagrafica in cache, a ogni giro — cambia dalla pagina
+        // Aeroporti, e la cache la rinfresca il contatore del catalogo, non questo editor.
+        _categoria = Stations.Airport(_icao)?.Category;
         if (_loaded == _icao) return;
 
         _loaded = _icao;

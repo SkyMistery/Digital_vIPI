@@ -12,14 +12,15 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// <b>Quale edizione può esistere su quale campo</b> (carta vSOP militari §5-bis).
+/// <b>Quale edizione può esistere su quale campo</b>: lo decide la <b>categoria</b> dello scalo (carta
+/// <c>2026-09-11-categorie-aeroporto.md</c>, che prende il posto della regola §5-bis della carta vSOP militari).
 ///
-/// <para>Due guardie gemelle, e vanno lette insieme perché una senza l'altra è sbagliata:</para>
 /// <list type="bullet">
-///   <item>su un campo <b>solo militare</b> (Aviano, Ghedi, Decimomannu, Rivolto) la vIPI <b>civile</b> non
-///   nasce: non c'è traffico civile da descrivere, e il documento resterebbe lì vuoto;</item>
-///   <item>su un campo <b>misto</b> (Pisa, Linate, Ciampino) il vSOP <b>militare</b> nasce solo <b>dopo</b> la
-///   vIPI civile: dice cosa cambia rispetto a quella, e senza non c'è il «rispetto a cosa».</item>
+///   <item><b>Civile</b> (Venezia): solo la vIPI;</item>
+///   <item><b>solo militare</b> (Rivolto): solo il vSOP — non c'è traffico civile da descrivere;</item>
+///   <item><b>civile con presenza militare</b> (Linate): solo la vIPI;</item>
+///   <item><b>militare con presenza civile</b> (Pisa): tutti e due, <b>in qualunque ordine</b>. Fino all'11
+///   settembre 2026 il vSOP nasceva solo dopo la vIPI: il committente ha tolto quel vincolo.</item>
 /// </list>
 ///
 /// <para>⚠️ <b>Le guardie stanno nei SERVIZI</b>, non nelle tendine che le anticipano. Una tendina filtra,
@@ -82,9 +83,11 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
         _db.Accs.Add(acc);
         _db.Airports.AddRange(
             // Rivolto: campo SOLO militare — l'unica edizione è il vSOP.
-            new Airport { Icao = "LIPI", Name = "Rivolto", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = true },
-            // Pisa: scalo civile con sedime militare — servono TUTTE E DUE, nell'ordine.
-            new Airport { Icao = "LIRP", Name = "Pisa", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = false },
+            new Airport { Icao = "LIPI", Name = "Rivolto", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryOnly },
+            // Pisa: campo militare con presenza civile — tutte e due le edizioni, in qualunque ordine.
+            new Airport { Icao = "LIRP", Name = "Pisa", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryWithCivilPresence },
+            // Linate: scalo civile con sedime militare — solo la vIPI.
+            new Airport { Icao = "LIML", Name = "Linate", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.CivilWithMilitaryPresence },
             // Venezia: niente di militare.
             new Airport { Icao = "LIPZ", Name = "Venezia", Acc = acc, HasMilitaryPresence = false });
         await _db.SaveChangesAsync();
@@ -124,66 +127,81 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
     {
         // La guardia blocca la NASCITA, non l'apertura: un documento creato prima della regola (o su un campo
         // marcato dopo) deve restare leggibile e modificabile — la via d'uscita passa proprio da lì.
-        var docId = await Civile().EnsureDocumentAsync("LIRP");   // Pisa: misto, quindi lecito
+        var docId = await Civile().EnsureDocumentAsync("LIRP");   // Pisa: ammette la vIPI, quindi lecito
         var pisa = await _db.Airports.SingleAsync(a => a.Icao == "LIRP");
-        pisa.IsMilitaryOnly = true;                                // marcato solo militare DOPO
+        pisa.Category = AirportCategory.MilitaryOnly;              // marcato solo militare DOPO
         await _db.SaveChangesAsync();
 
         Assert.Equal(docId, await Civile().EnsureDocumentAsync("LIRP"));
     }
 
-    // ---- Campo MISTO: prima la civile, poi il militare ------------------------------------------------
+    // ---- Le quattro categorie, tutte: chi nasce e chi no ----------------------------------------------
+
+    /// <summary>
+    /// La tabella della carta, provata riga per riga contro i DUE servizi — non contro una tendina. Ogni caso
+    /// è uno scalo nuovo, così un documento nato in una riga non fa da premessa alla successiva.
+    /// </summary>
+    [Theory]
+    [InlineData(AirportCategory.Civil, true, false)]
+    [InlineData(AirportCategory.MilitaryOnly, false, true)]
+    [InlineData(AirportCategory.CivilWithMilitaryPresence, true, false)]
+    [InlineData(AirportCategory.MilitaryWithCivilPresence, true, true)]
+    public async Task Le_guardie_di_nascita_rispondono_per_categoria(AirportCategory categoria, bool vipiNasce, bool vsopNasce)
+    {
+        var acc = await _db.Accs.SingleAsync();
+        _db.Airports.Add(new Airport
+        {
+            Icao = "LIXX", Name = "Prova", Acc = acc,
+            HasMilitaryPresence = categoria != AirportCategory.Civil, Category = categoria,
+        });
+        await _db.SaveChangesAsync();
+
+        // ⚠️ Il vSOP PRIMA della vIPI: è l'ordine che fino all'11 settembre era vietato sui campi misti, e
+        // provarlo in questo verso è ciò che dice che il vincolo è davvero caduto.
+        if (vsopNasce) await Militari().CreaAsync("LIXX");
+        else await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Militari().CreaAsync("LIXX"));
+
+        if (vipiNasce) await Civile().EnsureDocumentAsync("LIXX");
+        else await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => Civile().EnsureDocumentAsync("LIXX"));
+
+        var campo = await _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == "LIXX");
+        Assert.Equal(vipiNasce, campo.DocumentId is not null);
+        Assert.Equal(vsopNasce, campo.MilDocumentId is not null);
+    }
 
     [Fact]
-    public async Task Su_un_campo_MISTO_il_vSOP_militare_non_nasce_prima_della_vIPI_civile()
+    public async Task Su_uno_scalo_civile_con_presenza_militare_il_rifiuto_dice_dove_si_cambia()
     {
         var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => Militari().CreaAsync("LIRP"));
+            () => Militari().CreaAsync("LIML"));
 
         // Il rifiuto dice cosa fare, non solo che no: è la differenza fra una guardia e un muro.
-        // ⚠️ Si cerca «vIPI» e non «civile»: `Lingua()` sceglie sulla cultura corrente, e nella suite è
-        // l'INGLESE. Un'asserzione sulla parola italiana passava solo per caso di ambiente.
-        Assert.Contains("vIPI", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Null((await _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == "LIRP")).MilDocumentId);
+        // ⚠️ Si cerca la parola inglese: `Lingua()` sceglie sulla cultura corrente, e nella suite è l'INGLESE.
+        Assert.Contains("category", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
-    public async Task Su_un_campo_MISTO_basta_che_la_vIPI_civile_sia_in_BOZZA()
-    {
-        // ⚠️ ESISTERE, non essere pubblicata: pretendere la pubblicazione bloccherebbe il lavoro parallelo
-        // sulle due edizioni, che è il caso normale su uno scalo appena aperto. La civile nasce in bozza.
-        await Civile().EnsureDocumentAsync("LIRP");
-        var civile = await _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == "LIRP");
-        Assert.NotNull(civile.DocumentId);
-        Assert.Equal(DocumentStatus.Draft,
-            (await _db.Documents.AsNoTracking().SingleAsync(d => d.Id == civile.DocumentId)).Status);
-
-        var milId = await Militari().CreaAsync("LIRP");
-        Assert.NotEqual(civile.DocumentId, milId);   // due documenti, due edizioni
-    }
+    // ---- L'elenco militare: i candidati sono quelli che la categoria ammette --------------------------
 
     [Fact]
-    public async Task Un_campo_senza_presenza_militare_resta_rifiutato_come_prima()
+    public async Task L_elenco_offre_i_campi_che_la_categoria_ammette_piu_quelli_che_un_vSOP_ce_l_hanno_gia()
     {
-        // La regola nuova non ha allentato quella vecchia: su Venezia il primo rifiuto resta il suo.
-        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(
-            () => Militari().CreaAsync("LIPZ"));
-    }
+        var elenco = (await Militari().ListAsync(perStaff: true)).Select(r => r.Icao).ToList();
+        Assert.Contains("LIPI", elenco);       // solo militare
+        Assert.Contains("LIRP", elenco);       // militare con presenza civile
+        Assert.DoesNotContain("LIML", elenco); // civile con presenza militare: nessun «Crea» da offrire
+        Assert.DoesNotContain("LIPZ", elenco);
 
-    // ---- Ciò che l'elenco militare deve sapere per non offrire un tasto che fallisce -------------------
-
-    [Fact]
-    public async Task L_elenco_dice_se_la_vIPI_civile_c_e()
-    {
-        var prima = await Militari().ListAsync(perStaff: true);
-        Assert.False(prima.Single(r => r.Icao == "LIRP").HaCivile);
-        // Sul campo solo militare la domanda non si pone, e la risposta è comunque onesta.
-        Assert.False(prima.Single(r => r.Icao == "LIPI").HaCivile);
-
-        await Civile().EnsureDocumentAsync("LIRP");
+        // ⚠️ Un vSOP che c'è già, anche fuori categoria, si deve raggiungere: nato su Linate quando era in 4,
+        // resta in elenco dopo che la categoria è passata a 3. La Diagnostica dice che è fuori posto.
+        var linate = await _db.Airports.SingleAsync(a => a.Icao == "LIML");
+        linate.Category = AirportCategory.MilitaryWithCivilPresence;
+        await _db.SaveChangesAsync();
+        await Militari().CreaAsync("LIML");
+        linate.Category = AirportCategory.CivilWithMilitaryPresence;
+        await _db.SaveChangesAsync();
 
         var dopo = await Militari().ListAsync(perStaff: true);
-        Assert.True(dopo.Single(r => r.Icao == "LIRP").HaCivile);
+        Assert.Equal(AirportCategory.CivilWithMilitaryPresence, dopo.Single(r => r.Icao == "LIML").Categoria);
     }
 
     // ---- Il ponte militare → civile, e il difetto che resta dal passato -------------------------------
@@ -191,17 +209,16 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
     /// <summary>
     /// ⚠️ Le tre risposte servono tutte, e per ragioni diverse: <b>pubblicata</b> accende il ponte per il
     /// pubblico, <b>esiste</b> lo accende per lo staff (una civile appena nata è in bozza, e un
-    /// collegamento che compare solo dopo la pubblicazione compare quando non serve più), <b>solo
-    /// militare</b> dice se l'assenza del civile è la regola o un difetto.
+    /// collegamento che compare solo dopo la pubblicazione compare quando non serve più), la <b>categoria</b>
+    /// dice se l'assenza del civile è la regola.
     /// </summary>
     [Fact]
-    public async Task Lo_stato_della_vIPI_civile_dice_ESISTE_PUBBLICATA_e_SOLO_MILITARE()
+    public async Task Lo_stato_della_vIPI_civile_dice_ESISTE_PUBBLICATA_e_CATEGORIA()
     {
-        // Campo misto, nessuna civile: è il caso che va DETTO — un vSOP militare orfano.
         var prima = await Militari().GetCivilEditionAsync("LIRP");
         Assert.False(prima.Esiste);
         Assert.False(prima.Pubblicata);
-        Assert.False(prima.SoloMilitare);
+        Assert.Equal(AirportCategory.MilitaryWithCivilPresence, prima.Categoria);
 
         // Creata: esiste, ma è una BOZZA. Il pubblico non deve vedere il ponte, lo staff sì.
         await Civile().EnsureDocumentAsync("LIRP");
@@ -227,22 +244,22 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
     [Fact]
     public async Task Su_un_campo_SOLO_militare_l_assenza_del_civile_e_la_REGOLA_e_lo_dice()
     {
-        // ⚠️ Senza questo campo la pagina militare di Rivolto griderebbe «manca la vIPI civile» per sempre,
-        // su un campo dove quella vIPI non deve esistere.
+        // ⚠️ Senza la categoria l'editor militare di Rivolto non saprebbe che i dati dello scalo si scrivono
+        // lì, su un campo dove quella vIPI non deve esistere.
         var rivolto = await Militari().GetCivilEditionAsync("LIPI");
         Assert.False(rivolto.Esiste);
-        Assert.True(rivolto.SoloMilitare);
+        Assert.False(rivolto.Categoria.AllowsCivil());
     }
 
     [Fact]
     public async Task Un_ICAO_sconosciuto_non_dichiara_che_l_assenza_e_a_norma()
     {
-        // ⚠️ `SoloMilitare` falso e non vero: di quel campo non si sa niente, e dire «a norma» sarebbe
+        // ⚠️ Civile e non «solo militare»: di quel campo non si sa niente, e dire «a norma» sarebbe
         // rispondere a una domanda che non è stata posta.
         var ignoto = await Militari().GetCivilEditionAsync("ZZZZ");
         Assert.False(ignoto.Esiste);
         Assert.False(ignoto.Pubblicata);
-        Assert.False(ignoto.SoloMilitare);
+        Assert.True(ignoto.Categoria.AllowsCivil());
     }
 
     // ---- La lettura che le due guardie condividono ----------------------------------------------------
@@ -253,7 +270,7 @@ public class EdizioneGiustaPerCampoTests : IAsyncLifetime
         var rivolto = await Repo().GetMilitaryStateAsync("lipi");   // anche minuscolo: si normalizza
         Assert.NotNull(rivolto);
         Assert.True(rivolto!.HasMilitaryPresence);
-        Assert.True(rivolto.IsMilitaryOnly);
+        Assert.Equal(AirportCategory.MilitaryOnly, rivolto.Category);
         Assert.Null(rivolto.DocumentId);
         Assert.Null(rivolto.MilDocumentId);
 

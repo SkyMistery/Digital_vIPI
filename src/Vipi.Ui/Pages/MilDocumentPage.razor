@@ -73,7 +73,10 @@
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
                            Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
                 <div class="doc-head with-aud">
-                    <h1 class="page-h1" style="margin-bottom:2px">@_doc.View.Title</h1>
+                    @* La categoria dello scalo, come in ogni documento che lo riguarda (carta
+                       2026-09-11-categorie-aeroporto.md). Dall'anagrafica, non dal documento: non è un dato di
+                       release. Letta nel ciclo di vita, non qui: niente I/O mentre si disegna. *@
+                    <h1 class="page-h1" style="margin-bottom:2px">@_doc.View.Title <MilitaryTag Category="_categoria" /></h1>
                     @* ⚠️ Il sottotitolo e' arrivato il 3 settembre 2026: fino a quel giorno questa era
                        l'UNICA delle cinque testate senza, e sopra il documento restavano una riga di
                        titolo nuda, un blocco di tre bottoni e un riquadro pieno per dire in che lingua
@@ -135,24 +138,10 @@
                                    DraftHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/mil?icao={_icao}&as=draft")" />
                 }
 
-                @* ⚠️ Un vSOP militare su un campo MISTO senza la sua vIPI civile: la guardia impedisce di
-                   crearne di nuovi, ma non ripara quelli nati prima del 29 agosto 2026. Lo si dice a chi
-                   può rimediare, con il tasto che rimedia — non a chi legge, che non ci può fare niente. *@
-                @if (MancaCivile)
-                {
-                    <div class="callout warning">
-                        <span class="cic"><Icon Name="warning" Size="18" /></span>
-                        <div>
-                            <p class="ct">@Sito["Mil_MissingCivilTitle"]</p>
-                            @Sito["Mil_MissingCivilBody"]
-                            <p style="margin:8px 0 0">
-                                <a class="btn ghost" href="/services/vsop/@Acc.ToLowerInvariant()/airports/editor?icao=@_icao">
-                                    <Icon Name="plus" Size="14" /> @Sito["Mil_MissingCivilAction"]
-                                </a>
-                            </p>
-                        </div>
-                    </div>
-                }
+                @* ⚠️ Qui fino all'11 settembre 2026 c'era l'avviso «manca la vIPI civile» per i vSOP su campi
+                   misti senza vIPI. La regola «prima la vIPI, poi il vSOP» il committente l'ha tolta (carta
+                   2026-09-11-categorie-aeroporto.md): un vSOP da solo, su un campo militare con presenza civile,
+                   è lecito. Un vSOP fuori categoria lo dice la Diagnostica, che guarda tutti i campi insieme. *@
 
                 @* ⚠️ Chip di lettura e gettone della lingua stanno nella TESTATA, non qui: vedi la
                    `.doc-head.with-aud` piu' sopra. *@
@@ -270,18 +259,11 @@
     /// <summary>Il ponte verso la vIPI civile: al pubblico solo se PUBBLICATA, allo staff anche se è solo
     /// una bozza — il civile può essere appena nato, e un collegamento che compare solo dopo la
     /// pubblicazione compare quando non serve più.</summary>
+    /// <summary>La categoria dello scalo, per l'etichetta in testata. null = scalo non in anagrafica.</summary>
+    private AirportCategory? _categoria;
+
     private bool MostraPonteCivile =>
         _doc is { } d && (d.Civile.Pubblicata || (_canEdit && d.Civile.Esiste));
-
-    /// <summary>
-    /// Vero quando questo vSOP militare <b>non dovrebbe esistere da solo</b>: campo misto, e la vIPI civile
-    /// non c'è. Si dice solo allo staff, perché è un lavoro da fare, non un'informazione per chi legge.
-    /// <para>⚠️ Dal 29 agosto 2026 questo caso non si può più CREARE (la guardia sta in
-    /// <c>EfMilitaryDocumentService.CreaAsync</c>), ma i documenti nati prima possono benissimo essere lì:
-    /// una guardia nuova non ripara il passato, e tacere lascerebbe il difetto dov'è.</para>
-    /// </summary>
-    private bool MancaCivile =>
-        _canEdit && _doc is { } d && !d.Civile.SoloMilitare && !d.Civile.Esiste;
 
     protected override async Task OnParametersSetAsync()
     {
@@ -289,6 +271,7 @@
         _acc = Stations.Resolve(Acc);
         _doc = null;
         if (_icao.Length == 0) return;
+        _categoria = Stations.Airport(_icao)?.Category;
 
     /// <summary>
     /// L'indirizzo porta un ACC che non è più quello dello scalo (un aeroporto passato a un altro centro):

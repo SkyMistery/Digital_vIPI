@@ -12,8 +12,9 @@ internal sealed record AirportDto(
     [property: JsonPropertyName("longitude")] double? Longitude,
     // ⚠️ `military` NON vuol dire «aeroporto militare»: la sorgente lo mette a true anche su Linate, Pisa,
     // Ciampino, Catania, Elmas, Lamezia e Rimini — scali civili con sedime militare. Vuol dire «c'è presenza
-    // militare». Misurato il 25 agosto 2026: 34 su 221 aeroporti italiani. La distinzione «solo militare» non
-    // sta nella sorgente ed è una scelta editoriale (Airport.IsMilitaryOnly).
+    // militare». Misurato il 25 agosto 2026: 34 su 221 aeroporti italiani. La categoria dello scalo (solo
+    // militare, civile con presenza militare, militare con presenza civile) non sta nella sorgente ed è una
+    // scelta editoriale (Airport.Category).
     [property: JsonPropertyName("military")] bool? Military,
     [property: JsonPropertyName("iata")] string? Iata,
     // Quota di riferimento in piedi. 43 su 221 nulla (la sorgente non la conosce ovunque).

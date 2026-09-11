@@ -48,7 +48,7 @@ public class SezioneAlternatiTests : IAsyncLifetime
         var acc = new Acc { Code = "LIBB", Name = "Brindisi" };
         _db.Accs.Add(acc);
         _db.Airports.AddRange(
-            new Airport { Icao = "LIBA", Name = "Amendola", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = true },
+            new Airport { Icao = "LIBA", Name = "Amendola", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryOnly },
             new Airport { Icao = "LIBG", Name = "Grottaglie", Acc = acc, HasMilitaryPresence = true });
         await _db.SaveChangesAsync();
 

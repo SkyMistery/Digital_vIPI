@@ -551,7 +551,7 @@ public sealed class EfAirportRepository : IAirportRepository
         return await _db.Airports.AsNoTracking()
             .Where(a => a.Icao == icao)
             .Select(a => new AirportMilitaryState(
-                a.HasMilitaryPresence, a.IsMilitaryOnly, a.DocumentId, a.MilDocumentId))
+                a.HasMilitaryPresence, a.Category, a.DocumentId, a.MilDocumentId))
             .FirstOrDefaultAsync(ct);
     }
 

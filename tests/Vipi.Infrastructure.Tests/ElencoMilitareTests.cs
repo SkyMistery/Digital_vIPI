@@ -51,10 +51,10 @@ public class ElencoMilitareTests : IAsyncLifetime
         _db.Accs.Add(acc);
         _db.Airports.AddRange(
             // Rivolto: campo solo militare, il caso tipico.
-            new Airport { Icao = "LIPI", Name = "Rivolto", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = true },
-            // ⚠️ Pisa: presenza militare MA scalo civile. La sorgente dice `military` anche per lui, ed è
-            // giusto che compaia — il suo SOP è fra i quindici PDF veri.
-            new Airport { Icao = "LIRP", Name = "Pisa", Acc = acc, HasMilitaryPresence = true, IsMilitaryOnly = false },
+            new Airport { Icao = "LIPI", Name = "Rivolto", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryOnly },
+            // ⚠️ Pisa: campo militare con presenza civile. Compare — il suo SOP è fra i quindici PDF veri — e
+            // la riga dice la sua categoria, non «militare».
+            new Airport { Icao = "LIRP", Name = "Pisa", Acc = acc, HasMilitaryPresence = true, Category = AirportCategory.MilitaryWithCivilPresence },
             // Venezia: nessuna presenza militare, non è un candidato.
             new Airport { Icao = "LIPZ", Name = "Venezia", Acc = acc, HasMilitaryPresence = false });
         await _db.SaveChangesAsync();
@@ -92,15 +92,16 @@ public class ElencoMilitareTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Uno_scalo_CIVILE_con_sedime_militare_e_un_candidato_e_si_vede_che_lo_e()
+    public async Task La_riga_dice_la_categoria_del_campo()
     {
         // ⚠️ `HasMilitaryPresence` è vero anche su Linate, Pisa e Ciampino, e non vuol dire «militare»: la
-        // riga lo dice com'è, o il lettore crederebbe a un'informazione che non abbiamo.
+        // riga dice la categoria che ha dato un amministratore, o il lettore crederebbe a un'informazione che
+        // non abbiamo.
         var pisa = (await Servizio().ListAsync(perStaff: true)).Single(r => r.Icao == "LIRP");
-        Assert.False(pisa.SoloMilitare);
+        Assert.Equal(AirportCategory.MilitaryWithCivilPresence, pisa.Categoria);
 
         var rivolto = (await Servizio().ListAsync(perStaff: true)).Single(r => r.Icao == "LIPI");
-        Assert.True(rivolto.SoloMilitare);
+        Assert.Equal(AirportCategory.MilitaryOnly, rivolto.Categoria);
     }
 
     // ---- La creazione ---------------------------------------------------------------------------------

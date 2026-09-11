@@ -33,8 +33,8 @@ public interface IStructureEditingService
     /// <summary>Nasconde/mostra un aeroporto (ACC-gated): la pagina pubblica e gli elenchi non lo mostrano più.</summary>
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
 
-    /// <summary>Segna/desegna un aeroporto come «solo militare» (nessun traffico civile). Vedi la porta omonima.</summary>
-    Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default);
+    /// <summary>Sceglie la categoria di un aeroporto con presenza militare. Vedi la porta omonima del repository.</summary>
+    Task SetAirportCategoryAsync(string accCode, int airportId, AirportCategory category, CancellationToken ct = default);
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
     /// <summary>Vista globale (cross-ACC) dei settori attivi col prefisso nazione e l'albero, per il picker di «Nuovo documento».</summary>
@@ -87,7 +87,7 @@ public sealed class StructureEditingService : IStructureEditingService
     private readonly IDocumentImpactService _impatti;
 
     /// <summary>Dice a TUTTE le sessioni che la mappa degli aeroporti è cambiata: la loro cache è scoped al
-    /// circuito e senza una spinta invecchierebbe per ore. Vedi <see cref="SetAirportMilitaryOnlyAsync"/>.</summary>
+    /// circuito e senza una spinta invecchierebbe per ore. Vedi <see cref="SetAirportCategoryAsync"/>.</summary>
 
     public StructureEditingService(
         IStructureEditingRepository repo, IAirportRepository profile, IEditAuthorizationService authz,
@@ -199,10 +199,10 @@ public sealed class StructureEditingService : IStructureEditingService
         await _repo.SetAirportHiddenAsync(accCode, airportId, hidden, ct);
     }
 
-    public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)
+    public async Task SetAirportCategoryAsync(string accCode, int airportId, AirportCategory category, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
-        await _repo.SetAirportMilitaryOnlyAsync(accCode, airportId, militaryOnly, ct);
+        await _repo.SetAirportCategoryAsync(accCode, airportId, category, ct);
         // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
         // BumpCatalogoStazioniInterceptor, sul salvataggio, per chiunque scriva un Acc o un Airport.
         // Il motivo del trasloco e' un conto: al 31 agosto 2026 le chiamate a mano erano QUATTRO e i
@@ -244,7 +244,7 @@ public sealed class StructureEditingService : IStructureEditingService
         // perché — invece di interrompersi su un'eccezione che, in un giro su tutti gli aeroporti di una
         // ACC, farebbe perdere anche il lavoro già buono.
         var stato = await _profile.GetMilitaryStateAsync(icao, ct);
-        if (stato is { IsMilitaryOnly: true, DocumentId: null })
+        if (stato is { DocumentId: null } s && !s.Category.AllowsCivil())
             return new AirportDocResult(icao, false, 0, null,
                 "Campo solo militare: la sua edizione è il vSOP militare, non la vIPI civile.");
 

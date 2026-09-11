@@ -402,6 +402,14 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int>("AccId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Civil")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<int?>("DocumentId")
                         .HasColumnType("int");
 

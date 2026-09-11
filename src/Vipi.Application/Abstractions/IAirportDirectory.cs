@@ -5,8 +5,9 @@ namespace Vipi.Application.Abstractions;
 /// (<c>AirportLatitude</c>/<c>AirportLongitude</c> del blocco ATCPositions), usate dal fallback shape TWR.
 /// <para><paramref name="HasMilitaryPresence"/> si chiama cosi' e non <c>IsMilitary</c> perche' e' cio' che la
 /// sorgente dice davvero: il suo campo <c>military</c> e' vero anche per Linate, Pisa, Ciampino, Catania, Elmas,
-/// Lamezia e Rimini, che sono scali civili con sedime militare. «Solo militare» e' un giudizio che la sorgente non
-/// esprime, e sta sull'aeroporto in archivio (<c>Airport.IsMilitaryOnly</c>), deciso da un amministratore.</para></summary>
+/// Lamezia e Rimini, che sono scali civili con sedime militare. La categoria dello scalo — solo militare, civile
+/// con presenza militare, militare con presenza civile — e' un giudizio che la sorgente non esprime, e sta
+/// sull'aeroporto in archivio (<c>Airport.Category</c>), deciso da un amministratore.</para></summary>
 public sealed record SourceAirport(string Icao, string Name, string? AccCode, string? City, int? TransitionAltitude = null,
     bool HasMilitaryPresence = false, string? Iata = null, int? ElevationFt = null, double? MagneticVariation = null);
 

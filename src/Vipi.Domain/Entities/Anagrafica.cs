@@ -298,10 +298,27 @@ public class Airport
     public bool HasMilitaryPresence { get; set; }
 
     /// <summary>
-    /// <b>Solo militare</b>: aeroporto senza traffico civile (Aviano, Ghedi, Decimomannu…). La sorgente non lo
-    /// dice — e' un giudizio, e lo da' un amministratore dalla pagina Aeroporti. Vale solo dove
-    /// <see cref="HasMilitaryPresence"/> e' vero; l'import non lo tocca mai, altrimenti il giro notturno
-    /// cancellerebbe la scelta di una persona.
+    /// La <b>categoria</b> dello scalo: decide quali documenti può avere (<see cref="AirportCategories"/>).
+    /// <see cref="AirportCategory.Civil"/> la dà la sorgente (nessuna presenza militare); le altre tre le sceglie
+    /// un amministratore dalla pagina Aeroporti, e solo dove <see cref="HasMilitaryPresence"/> è vero. L'import la
+    /// tocca solo per tenere l'invariante: presenza caduta ⇒ Civil, presenza comparsa ⇒ il default.
+    /// <para>⚠️ Il setter scrive anche lo specchio <see cref="IsMilitaryOnly"/>: così nessun chiamante se ne può
+    /// dimenticare. EF invece materializza dal campo <c>_category</c> (convenzione del campo di appoggio), quindi
+    /// leggere una riga <b>non</b> riscrive lo specchio — ed è quel che serve al travaso, che lo legge.</para>
+    /// </summary>
+    public AirportCategory Category
+    {
+        get => _category;
+        set { _category = value; IsMilitaryOnly = value == AirportCategory.MilitaryOnly; }
+    }
+    private AirportCategory _category;
+
+    /// <summary>
+    /// ⚠️ <b>IN PENSIONE dall'11 settembre 2026</b> (carta <c>2026-09-11-categorie-aeroporto.md</c>): il suo posto
+    /// l'ha preso <see cref="Category"/>. Resta nel modello solo perché la finestra cieca vieta di togliere
+    /// colonne fino al 16 settembre. Nessuno la legge tranne il travaso d'avvio; la scrive il setter di
+    /// <see cref="Category"/>, come <b>specchio</b>, perché una versione precedente — in caso di ritorno
+    /// indietro — trovi il dato giusto. ▶ La prima migrazione dopo il 16 settembre la toglie.
     /// </summary>
     public bool IsMilitaryOnly { get; set; }
 

@@ -1,4 +1,5 @@
 ﻿using Vipi.Application.Diagnostics;
+using Vipi.Domain;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -254,11 +255,19 @@ public class ConsistencyReportTests
         Assert.Empty(ConsistencyReportService.Analyze(d));
     }
 
-    // ---- Campo solo militare con una vIPI civile (carta 2026-09-10-solo-militare-con-vipi-civile.md) ----
+    // ---- Documento fuori categoria (carte 2026-09-10-solo-militare-con-vipi-civile.md e -11-categorie) ----
 
-    private static ConsistencyDataset ConCampo(params CampoSoloMilitareRow[] campi) => new()
+    /// <summary>Una vIPI civile su un campo solo militare.</summary>
+    private static DocumentoFuoriCategoriaRow Civile(string icao, string acc, bool visibile, bool unito) =>
+        new(icao, acc, DocumentEdition.Civil, visibile, unito);
+
+    /// <summary>Un vSOP militare su un campo la cui categoria non lo prevede.</summary>
+    private static DocumentoFuoriCategoriaRow Militare(string icao, string acc, bool visibile, bool unito) =>
+        new(icao, acc, DocumentEdition.Military, visibile, unito);
+
+    private static ConsistencyDataset ConCampo(params DocumentoFuoriCategoriaRow[] campi) => new()
     {
-        CampiSoloMilitari = campi,
+        DocumentiFuoriCategoria = campi,
         RunwayIdents = new Dictionary<int, string>(),
         AreaNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase),
         ParentRefs = Array.Empty<ParentRefRow>(),
@@ -273,7 +282,7 @@ public class ConsistencyReportTests
     [Fact]
     public void Un_campo_gia_a_posto_non_dice_NIENTE()
     {
-        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: false, UnitaAlVsop: false));
+        var d = ConCampo(Civile("LIBG", "LIBB", visibile: false, unito: false));
 
         Assert.Empty(ConsistencyReportService.Analyze(d));
     }
@@ -282,7 +291,7 @@ public class ConsistencyReportTests
     [Fact]
     public void La_vIPI_civile_ancora_VISIBILE_si_dice()
     {
-        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: false));
+        var d = ConCampo(Civile("LIBG", "LIBB", visibile: true, unito: false));
 
         var f = Assert.Single(ConsistencyReportService.Analyze(d));
         Assert.Equal("vIPI civile su campo solo militare", f.Category);
@@ -302,7 +311,7 @@ public class ConsistencyReportTests
     [Fact]
     public void Visibile_E_unita_chiede_DUE_gesti()
     {
-        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: true));
+        var d = ConCampo(Civile("LIBG", "LIBB", visibile: true, unito: true));
 
         var f = Assert.Single(ConsistencyReportService.Analyze(d));
         Assert.Equal("Diag_Msg_SoloMilConCivileUnita", f.DetailKey);
@@ -319,7 +328,7 @@ public class ConsistencyReportTests
     [Fact]
     public void Non_visibile_ma_ancora_UNITA_dice_di_sciogliere()
     {
-        var d = ConCampo(new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: false, UnitaAlVsop: true));
+        var d = ConCampo(Civile("LIBG", "LIBB", visibile: false, unito: true));
 
         var f = Assert.Single(ConsistencyReportService.Analyze(d));
         Assert.Equal("Diag_Msg_SoloMilNascostaMaUnita", f.DetailKey);
@@ -334,15 +343,42 @@ public class ConsistencyReportTests
     public void Due_campi_danno_due_rilievi_distinti()
     {
         var d = ConCampo(
-            new CampoSoloMilitareRow("LIBG", "LIBB", CivileVisibile: true, UnitaAlVsop: false),
-            new CampoSoloMilitareRow("LIPA", "LIPP", CivileVisibile: false, UnitaAlVsop: true),
-            new CampoSoloMilitareRow("LIBN", "LIBB", CivileVisibile: false, UnitaAlVsop: false));
+            Civile("LIBG", "LIBB", visibile: true, unito: false),
+            Civile("LIPA", "LIPP", visibile: false, unito: true),
+            Civile("LIBN", "LIBB", visibile: false, unito: false));
 
         var f = ConsistencyReportService.Analyze(d).ToList();
         Assert.Equal(2, f.Count);
         Assert.Contains(f, x => x.Detail.Contains("LIBG"));
         Assert.Contains(f, x => x.Detail.Contains("LIPA"));
         Assert.DoesNotContain(f, x => x.Detail.Contains("LIBN"));
+    }
+
+    /// <summary>
+    /// Il gemello dall'altra parte (carta 2026-09-11-categorie-aeroporto.md): un vSOP militare su uno scalo la
+    /// cui categoria non lo prevede — «civile con presenza militare», o Civile perché la sorgente ha tolto la
+    /// presenza. Stessi tre stati, stessa regola del silenzio, messaggi che nominano l'edizione giusta.
+    /// </summary>
+    [Theory]
+    [InlineData(true, false, "Diag_Msg_VsopFuoriCategoria")]
+    [InlineData(true, true, "Diag_Msg_VsopFuoriCategoriaUnito")]
+    [InlineData(false, true, "Diag_Msg_VsopNonVisibileMaUnito")]
+    public void Un_vSOP_fuori_categoria_si_dice_col_messaggio_giusto(bool visibile, bool unito, string chiave)
+    {
+        var d = ConCampo(Militare("LIML", "LIMM", visibile, unito));
+
+        var f = Assert.Single(ConsistencyReportService.Analyze(d));
+        Assert.Equal("Diag_Cat_VsopFuoriCategoria", f.CategoryKey);
+        Assert.Equal(chiave, f.DetailKey);
+        Assert.Contains("vSOP", f.Detail);
+        Assert.Equal("/services/vsop/admin/airports", f.Where);
+    }
+
+    /// <summary>🔴 E anche qui il caso a posto TACE: vSOP già nascosto e già staccato.</summary>
+    [Fact]
+    public void Un_vSOP_fuori_categoria_gia_a_posto_non_dice_NIENTE()
+    {
+        Assert.Empty(ConsistencyReportService.Analyze(ConCampo(Militare("LIML", "LIMM", visibile: false, unito: false))));
     }
 
     [Fact]

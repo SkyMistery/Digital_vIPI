@@ -655,6 +655,14 @@ public class VipiDbContext : DbContext
             .Property(x => x.Edition)
             .HasDefaultValue(DocumentEdition.Civil);
 
+        // --- Categoria dell'aeroporto (carta 2026-09-11-categorie-aeroporto.md) ---
+        // Stessa ragione dell'edizione qui sopra: default DICHIARATO NEL MODELLO, e `Civil` è lo zero. Le righe
+        // già in tabella nascono Civil; la passata d'avvio le porta alla categoria giusta
+        // (IDocumentMaintenance.ReconcileAirportCategoriesAsync), perché la finestra cieca vieta l'SQL in migrazione.
+        b.Entity<Airport>()
+            .Property(x => x.Category)
+            .HasDefaultValue(AirportCategory.Civil);
+
         // --- A chi si rivolge una sezione (carta vSOP militari del 27 agosto 2026) ---
         // ⚠️ Default DICHIARATO NEL MODELLO e non solo nella migrazione: su Postgres la colonna la aggiunge
         // PostgresSchemaReconciler, che legge di qui il valore con cui backfillare le righe esistenti.

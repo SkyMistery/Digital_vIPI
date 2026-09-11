@@ -38,11 +38,13 @@ public interface IStructureEditingRepository
     Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default);
 
     /// <summary>
-    /// Segna un aeroporto come <b>solo militare</b> (o toglie il segno): nessun traffico civile. È l'unica metà
+    /// Sceglie la <b>categoria</b> di un aeroporto (carta 2026-09-11-categorie-aeroporto.md). È la metà
     /// editoriale della faccenda — la presenza militare la dice la sorgente e si riscrive da sé a ogni giro.
-    /// Errore se l'aeroporto non ha presenza militare: «solo militare» ne è un sottoinsieme.
+    /// ⚠️ Tiene l'invariante: errore se si chiede una delle tre categorie militari su un campo senza presenza, o
+    /// <c>Civil</c> su un campo che la presenza ce l'ha (Civile lo decide la sorgente, non una persona).
+    /// Non tocca i documenti: se la categoria nuova ne esclude uno che c'è già, resta — lo dice la Diagnostica.
     /// </summary>
-    Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default);
+    Task SetAirportCategoryAsync(string accCode, int airportId, AirportCategory category, CancellationToken ct = default);
     /// <summary>Tutti i settori (id+callsign+ACC), per i menu della gestione aeroporti.</summary>
     Task<IReadOnlyList<SectorBriefRow>> ListAllSectorsAsync(CancellationToken ct = default);
 
@@ -72,9 +74,10 @@ public interface IStructureEditingRepository
     /// riempirebbe mai nessuno: e' la stessa trappola del flag opt-out di ImportSids.</para>
     ///
     /// <para>⚠️ Tocca solo cio' che dice la sorgente. Restano fuori il nome, la ACC di competenza e
-    /// <c>IsMilitaryOnly</c>, che sono scelte di una persona: un giro notturno che le riscrivesse le
-    /// cancellerebbe in silenzio. L'unica eccezione e' la coerenza — se la sorgente toglie la presenza militare,
-    /// «solo militare» non puo' restare vero.</para>
+    /// la <c>Category</c>, che sono scelte di una persona: un giro notturno che le riscrivesse le
+    /// cancellerebbe in silenzio. L'unica eccezione e' l'invariante della categoria — se la sorgente toglie la
+    /// presenza militare lo scalo torna Civile, e se gliela riconosce prende il default
+    /// (<c>AirportCategories.Normalize</c>).</para>
     /// </summary>
     Task<int> SyncAirportSourceFieldsAsync(IReadOnlyList<SourceAirport> source, CancellationToken ct = default);
 

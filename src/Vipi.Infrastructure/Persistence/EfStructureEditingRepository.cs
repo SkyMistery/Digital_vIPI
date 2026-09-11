@@ -73,7 +73,7 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
         var airports = await _db.Airports.AsNoTracking().Where(a => a.AccId == acc.Id)
             .OrderBy(a => a.Icao)
             .Select(a => new AirportRow(a.Id, a.Icao, a.Name, a.Sectors.Count, a.FeaturedRank, a.IsHidden, a.ParentCallsign,
-                a.HasMilitaryPresence, a.IsMilitaryOnly))
+                a.HasMilitaryPresence, a.Category))
             .ToListAsync(ct);
 
         var sectors = await _db.Sectors.AsNoTracking().Where(s => s.AccId == acc.Id)
@@ -243,22 +243,27 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
                 // l'APP non remotizzato, e uno scalo senza torre non lo trovava mai: la pagina offriva «crea»
                 // per un documento che esisteva già.
                 a.DocumentId,
-                a.HasMilitaryPresence, a.IsMilitaryOnly, a.MilDocumentId))
+                a.HasMilitaryPresence, a.Category, a.MilDocumentId))
             .ToListAsync(ct);
 
-    public async Task SetAirportMilitaryOnlyAsync(string accCode, int airportId, bool militaryOnly, CancellationToken ct = default)
+    public async Task SetAirportCategoryAsync(string accCode, int airportId, AirportCategory category, CancellationToken ct = default)
     {
         var fid = await AccIdAsync(accCode, ct) ?? throw new InvalidOperationException($"ACC {accCode} inesistente.");
         var airport = await _db.Airports.FirstOrDefaultAsync(a => a.Id == airportId && a.AccId == fid, ct)
             ?? throw new InvalidOperationException(Lingua("Aeroporto inesistente nella ACC indicata.", "The airport does not exist in that ACC."));
-        // Senza presenza militare la distinzione non ha senso: «solo militare» ne è un sottoinsieme, non un flag
-        // indipendente. Tacere e uscire lascerebbe la spunta accesa a schermo e spenta in archivio.
-        if (militaryOnly && !airport.HasMilitaryPresence)
+        // ⚠️ L'invariante, dai due lati (carta 2026-09-11-categorie-aeroporto.md). Senza presenza militare le tre
+        // categorie militari non hanno senso; con la presenza, «Civile» non la sceglie una persona — la dice la
+        // sorgente. Tacere e uscire lascerebbe a schermo una scelta che l'archivio non ha.
+        if (category != AirportCategory.Civil && !airport.HasMilitaryPresence)
             throw new InvalidOperationException(Lingua(
-                $"{airport.Icao} non ha presenza militare secondo la sorgente: non può essere «solo militare».",
-                $"{airport.Icao} has no military presence according to the source: it cannot be «military only»."));
-        if (airport.IsMilitaryOnly == militaryOnly) return;
-        airport.IsMilitaryOnly = militaryOnly;
+                $"{airport.Icao} non ha presenza militare secondo la sorgente: resta «Civile».",
+                $"{airport.Icao} has no military presence according to the source: it stays «Civil»."));
+        if (category == AirportCategory.Civil && airport.HasMilitaryPresence)
+            throw new InvalidOperationException(Lingua(
+                $"{airport.Icao} ha presenza militare secondo la sorgente: scegli una delle tre categorie militari.",
+                $"{airport.Icao} has a military presence according to the source: choose one of the three military categories."));
+        if (airport.Category == category) return;
+        airport.Category = category;
         await _db.SaveChangesAsync(ct);
     }
 
@@ -350,14 +355,18 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             apt.LastSeenAtUtc = visto;
             timbrati++;
 
-            var before = (apt.HasMilitaryPresence, apt.IsMilitaryOnly, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
+            var before = (apt.HasMilitaryPresence, apt.Category, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
             apt.HasMilitaryPresence = src.HasMilitaryPresence;
-            // Coerenza: «solo militare» non puo' sopravvivere alla presenza militare che l'ha reso possibile.
-            if (!apt.HasMilitaryPresence) apt.IsMilitaryOnly = false;
+            // L'invariante della categoria: presenza caduta ⇒ Civile; presenza comparsa su un campo ancora
+            // Civile ⇒ il travaso (o il default). Una scelta già fatta da una persona su un campo che resta
+            // militare NON si tocca. ⚠️ Stessa funzione della passata d'avvio: vedi AirportCategoryTransfer.
+            // ⚠️ Si assegna solo se cambia: il setter riscrive anche lo specchio in pensione.
+            var categoria = AirportCategoryTransfer.Attesa(apt);
+            if (categoria != apt.Category) apt.Category = categoria;
             apt.Iata = src.Iata;
             apt.ElevationFt = src.ElevationFt;
             apt.MagneticVariation = src.MagneticVariation;
-            if (before != (apt.HasMilitaryPresence, apt.IsMilitaryOnly, apt.Iata, apt.ElevationFt, apt.MagneticVariation))
+            if (before != (apt.HasMilitaryPresence, apt.Category, apt.Iata, apt.ElevationFt, apt.MagneticVariation))
                 changed++;
         }
 

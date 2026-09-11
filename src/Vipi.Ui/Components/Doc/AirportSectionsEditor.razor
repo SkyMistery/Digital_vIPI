@@ -60,7 +60,7 @@ else
         {
         <div class="editor-bar">
                 <div class="doc-head st-head" style="margin:0">
-                    <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao <MilitaryTag HasMilitaryPresence="_mil?.HasMilitaryPresence ?? false" IsMilitaryOnly="_mil?.IsMilitaryOnly ?? false" /></h1>
+                    <h1 class="st-h2 page-h1">✎ @L["Ape_EditorTitle"] @_icao <MilitaryTag Category="_mil?.Category" /></h1>
                     <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Ape_HelpAria"]" ExtraClass="wide">
                         @((MarkupString)L["Ape_HelpBody"].Value)
                     </HelpHint>
@@ -154,19 +154,20 @@ else
                        comando: dal 4 settembre 2026 ogni gesto scrive (carta 2026-09-04-aeroporto-porta-sola). *@
                     <DraftPreviewLink Href="@(DocRoutes.For(ReleaseTargetType.Airport).DraftUrl(Acc.ToLowerInvariant(), _icao, null))" />
                     @* ---- Il ponte verso l'ALTRA edizione dello stesso scalo (carta vSOP militari §5-bis) ----
-                       Su un campo con presenza militare il vSOP militare si crea DA QUI, dopo la vIPI civile:
-                       è il punto in cui si è già, e l'unica alternativa era ricordarsi che esiste
-                       /services/vsop/mil e cercarci dentro il proprio scalo.
-                       ⚠️ Il tasto compare solo dove ha senso: niente presenza militare, niente tasto. E
-                       «crea» solo a chi può editare — a chi guarda resta il collegamento, se il documento
-                       c'è. *@
-                    @if (_milState?.HasMilitaryPresence == true)
+                       Su un campo «militare con presenza civile» il vSOP militare si crea anche DA QUI: è il
+                       punto in cui si è già, e l'unica alternativa era ricordarsi che esiste /services/vsop/mil
+                       e cercarci dentro il proprio scalo.
+                       ⚠️ «Crea» compare solo dove la CATEGORIA lo ammette (carta 2026-09-11-categorie-aeroporto.md):
+                       su uno scalo civile con presenza militare il vSOP non è previsto. «Apri» invece compare
+                       dovunque il documento c'è — anche fuori categoria: un documento esistente si raggiunge. E
+                       «crea» solo a chi può editare. *@
+                    @if (_milState is { } ms)
                     {
-                        @if (_milState.MilDocumentId is not null)
+                        @if (ms.MilDocumentId is not null)
                         {
                             <a class="btn ghost" href="@MilEditorUrl()"><Icon Name="book-open" Size="14" /> @L["Mil_OpenFromCivil"]</a>
                         }
-                        else if (_canEdit)
+                        else if (_canEdit && ms.Category.AllowsMilitary())
                         {
                             <button class="btn ghost" disabled="@_busy" @onclick="CreaVsopMilitare" title="@L["Mil_CreateFromCivil"]">
                                 <Icon Name="plus" Size="14" /> @L["Mil_CreateFromCivil"]

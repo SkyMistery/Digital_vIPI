@@ -138,53 +138,78 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
             SpecialAreaIds = (await _db.SpecialAreas.AsNoTracking().Select(s => s.IvaoId).ToListAsync(ct))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
             TransferLadders = await PuntiDiTrasferimentoAsync(ct),
-            CampiSoloMilitari = await CampiSoloMilitariAsync(ct),
+            DocumentiFuoriCategoria = await DocumentiFuoriCategoriaAsync(ct),
         };
     }
 
     /// <summary>
-    /// I campi marcati <b>solo militari</b> che hanno comunque una vIPI civile, con le due domande che
-    /// decidono se c'è qualcosa da dire: quel documento <b>si vede</b>? è ancora <b>unito</b> al vSOP?
+    /// I documenti che la <b>categoria</b> del loro campo non ammette — una vIPI civile su un campo solo
+    /// militare, un vSOP militare su un campo civile o civile con presenza militare — con le due domande che
+    /// decidono se c'è qualcosa da dire: quel documento <b>si vede</b>? è ancora <b>unito</b> all'altra edizione?
     ///
-    /// <para>⚠️ <b>Tre letture in tutto</b>, non una per aeroporto: le appartenenze alle unioni e le release
+    /// <para>⚠️ <b>Quattro letture in tutto</b>, non una per aeroporto: le appartenenze alle unioni e le release
     /// si chiedono in blocco. Questo elenco ha già pagato due volte il difetto N+1 altrove, e un rilievo che
     /// costa una query per riga si finisce per spegnerlo.</para>
     ///
     /// <para>⚠️ «Visibile» sono <b>tre</b> condizioni e non una, e sono esattamente quelle che chiede il
-    /// caricatore pubblico (<c>LoadAirportVipiAsync</c>): release in vigore <b>e</b> documento non nascosto
-    /// <b>e</b> aeroporto non nascosto. Chiederne due su tre farebbe gridare il rilievo su un campo che dal
-    /// web non si raggiunge.</para>
+    /// caricatore pubblico: release in vigore <b>e</b> documento non nascosto <b>e</b> aeroporto non nascosto.
+    /// Chiederne due su tre farebbe gridare il rilievo su un campo che dal web non si raggiunge.</para>
+    ///
+    /// <para>⚠️ Le categorie si confrontano per valore, e non con <c>AirportCategories.AllowsCivil</c>: un metodo
+    /// dentro una <c>Where</c> non si traduce in SQL. Chi aggiunge una categoria cambia le due condizioni qui
+    /// sotto insieme alle regole — lo presidia <c>DocumentiFuoriCategoriaTests</c>.</para>
     /// </summary>
-    private async Task<IReadOnlyList<CampoSoloMilitareRow>> CampiSoloMilitariAsync(CancellationToken ct)
+    private async Task<IReadOnlyList<DocumentoFuoriCategoriaRow>> DocumentiFuoriCategoriaAsync(CancellationToken ct)
     {
         var campi = await _db.Airports.AsNoTracking()
-            .Where(a => a.IsMilitaryOnly && a.DocumentId != null)
+            .Where(a => (a.Category == AirportCategory.MilitaryOnly && a.DocumentId != null)
+                        || (a.Category != AirportCategory.MilitaryOnly
+                            && a.Category != AirportCategory.MilitaryWithCivilPresence
+                            && a.MilDocumentId != null))
             .Select(a => new
             {
                 a.Icao,
                 AccCode = a.Acc!.Code,
                 AeroportoNascosto = a.IsHidden,
-                CivileId = a.DocumentId!.Value,
+                a.Category,
+                a.DocumentId,
                 a.MilDocumentId,
-                CivileNascosta = _db.Documents.Any(d => d.Id == a.DocumentId && d.IsHidden),
             })
             .ToListAsync(ct);
-        if (campi.Count == 0) return Array.Empty<CampoSoloMilitareRow>();
+        if (campi.Count == 0) return Array.Empty<DocumentoFuoriCategoriaRow>();
 
-        var icaos = campi.Select(c => c.Icao).ToList();
+        // Per ogni campo, QUALE dei due documenti è fuori categoria e qual è l'altro.
+        var fuori = campi.Select(c => c.Category == AirportCategory.MilitaryOnly
+                ? (c.Icao, c.AccCode, c.AeroportoNascosto, Edizione: DocumentEdition.Civil,
+                   Id: c.DocumentId!.Value, Altro: c.MilDocumentId)
+                : (c.Icao, c.AccCode, c.AeroportoNascosto, Edizione: DocumentEdition.Military,
+                   Id: c.MilDocumentId!.Value, Altro: c.DocumentId))
+            .ToList();
+
+        var ids = fuori.Select(f => f.Id).ToList();
+        var nascosti = (await _db.Documents.AsNoTracking()
+                .Where(d => ids.Contains(d.Id) && d.IsHidden)
+                .Select(d => d.Id)
+                .ToListAsync(ct))
+            .ToHashSet();
+
+        // ⚠️ Le due edizioni condividono la CHIAVE di release (l'ICAO) e si distinguono per il TIPO: la release
+        // si cerca col tipo del documento fuori categoria, o si risponderebbe per quello sbagliato.
+        var icaos = fuori.Select(f => f.Icao).ToList();
         var adesso = DateTime.UtcNow;
         var conRelease = (await _db.DocReleases.AsNoTracking()
-                .Where(r => r.TargetType == ReleaseTargetType.Airport
+                .Where(r => (r.TargetType == ReleaseTargetType.Airport || r.TargetType == ReleaseTargetType.AirportMil)
                             && icaos.Contains(r.TargetKey)
                             && r.ReleaseEffectiveUtc <= adesso)
-                .Select(r => r.TargetKey)
+                .Select(r => new { r.TargetType, r.TargetKey })
                 .Distinct()
                 .ToListAsync(ct))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            .Select(r => (r.TargetType, Icao: r.TargetKey.ToUpperInvariant()))
+            .ToHashSet();
 
         // Le appartenenze dei documenti che ci interessano, in UNA lettura: (unione → documenti).
-        var interessati = campi.Select(c => c.CivileId)
-            .Concat(campi.Where(c => c.MilDocumentId != null).Select(c => c.MilDocumentId!.Value))
+        var interessati = fuori.Select(f => f.Id)
+            .Concat(fuori.Where(f => f.Altro != null).Select(f => f.Altro!.Value))
             .Distinct().ToList();
         var appartenenze = await _db.DocumentUnionMembers.AsNoTracking()
             .Where(m => interessati.Contains(m.DocumentId))
@@ -193,15 +218,19 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
         var unioniDi = appartenenze.GroupBy(x => x.DocumentId)
             .ToDictionary(g => g.Key, g => g.Select(x => x.UnionId).ToHashSet());
 
-        return campi.Select(c => new CampoSoloMilitareRow(
-                c.Icao, c.AccCode,
-                CivileVisibile: conRelease.Contains(c.Icao) && !c.CivileNascosta && !c.AeroportoNascosto,
-                // ⚠️ «Unita» vuol dire unita AL vSOP DI QUESTO CAMPO, non «unita a qualcosa»: il messaggio
-                // nomina il vSOP, e nominare il documento sbagliato manderebbe a sciogliere l'unione sbagliata.
-                UnitaAlVsop: c.MilDocumentId is int mil
-                             && unioniDi.TryGetValue(c.CivileId, out var sue)
-                             && unioniDi.TryGetValue(mil, out var sueMil)
-                             && sue.Overlaps(sueMil)))
+        return fuori.Select(f => new DocumentoFuoriCategoriaRow(
+                f.Icao, f.AccCode, f.Edizione,
+                Visibile: conRelease.Contains((f.Edizione == DocumentEdition.Civil ? ReleaseTargetType.Airport
+                                                                                  : ReleaseTargetType.AirportMil,
+                                               f.Icao.ToUpperInvariant()))
+                          && !nascosti.Contains(f.Id) && !f.AeroportoNascosto,
+                // ⚠️ «Unito» vuol dire unito ALL'ALTRA EDIZIONE DI QUESTO CAMPO, non «unito a qualcosa»: il
+                // messaggio nomina l'altro documento, e nominare quello sbagliato manderebbe a sciogliere
+                // l'unione sbagliata.
+                UnitoAllAltra: f.Altro is int altro
+                               && unioniDi.TryGetValue(f.Id, out var sue)
+                               && unioniDi.TryGetValue(altro, out var sueAltro)
+                               && sue.Overlaps(sueAltro)))
             .OrderBy(r => r.Icao, StringComparer.Ordinal)
             .ToList();
     }

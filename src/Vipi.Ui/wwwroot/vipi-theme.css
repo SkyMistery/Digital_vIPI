@@ -2483,14 +2483,22 @@
 :where(.vipi-root) .struct .res-table .pill{display:inline-flex;align-items:center;gap:4px;vertical-align:middle}
 :where(.vipi-root) .struct .res-table td.col-state,:where(.vipi-root) .struct .res-table td.col-act{white-space:nowrap}
 :where(.vipi-root) .struct .res-table td .apt-flag{margin-left:6px}
-/* Pill militare della pagina Aeroporti: è un BOTTONE (segna/desegna «solo militare»), non un'etichetta.
-   `nowrap` perché su due parole andava a capo dentro la cella e alzava la riga di quaranta pixel.
-   ⚠️ Il bordo TRATTEGGIATO non è decorazione: senza, la pastiglia era indistinguibile dalle pill statiche
-   che le stanno accanto («visibile», «nascosto») e nessuno capiva di poterci cliccare — segnalato guardando
-   la pagina vera. Il tratteggio dice «questo si cambia», il pieno all'hover conferma. */
-:where(.vipi-root) .struct .res-table td button.apt-mil{margin-left:6px;white-space:nowrap;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;font-family:var(--font-head);border:1px dashed color-mix(in srgb, currentColor 45%, transparent);padding:2px 8px}
-:where(.vipi-root) .struct .res-table td button.apt-mil:hover:not(:disabled){border-style:solid;border-color:currentColor}
-:where(.vipi-root) .struct .res-table td button.apt-mil:disabled{cursor:default;opacity:.65;border-style:solid;border-color:transparent}
+/* La categoria dello scalo nella pagina Aeroporti (carta 2026-09-11-categorie-aeroporto.md): sui campi con
+   presenza militare è un COMANDO a tre voci, una tendina vestita da pastiglia; sugli altri l'etichetta «Civile».
+   ⚠️ Il bordo TRATTEGGIATO non è decorazione, e viene dalla pastiglia-bottone che c'era prima: senza, il comando
+   era indistinguibile dalle pill statiche accanto («visibile», «nascosto») e nessuno capiva di poterci
+   cliccare. Il tratteggio dice «questo si cambia», il pieno all'hover conferma. */
+/* ⚠️ La categoria sta SOTTO lo stato, non accanto: è un elemento a blocco dentro una cella `nowrap`. Accanto,
+   «Militare con presenza civile» (196px) si sommava alla pastiglia di stato e allargava la colonna a 378px — lo
+   sforo orizzontale già aperto (§H3) saliva da 17 a 85px a 1600 e da 171 a 239 a 1280, misurato. Sotto, la
+   riga non si alza: la cella ICAO ha già due righe. */
+:where(.vipi-root) .struct .res-table td select.apt-cat{display:block;width:max-content;margin:4px 0 0;cursor:pointer;font:inherit;font-size:11.5px;font-weight:600;font-family:var(--font-head);border:1px dashed color-mix(in srgb, currentColor 45%, transparent);border-radius:20px;padding:2px 6px}
+:where(.vipi-root) .struct .res-table td select.apt-cat:hover:not(:disabled){border-style:solid;border-color:currentColor}
+:where(.vipi-root) .struct .res-table td select.apt-cat:disabled{cursor:default;opacity:.65;border-style:solid;border-color:transparent}
+:where(.vipi-root) .struct .res-table td.col-state .mil-tag{display:flex;width:max-content;margin:4px 0 0}
+/* La conferma del cambio di categoria: una frase lunga dentro una cella `nowrap`. Senza, usciva TAGLIATA al
+   bordo della cella (visto a schermo l'11 settembre 2026, riga di LIML): qui va a capo sotto lo stato. */
+:where(.vipi-root) .struct .res-table td .apt-cat-confirm{display:flex;white-space:normal;max-width:34em;margin-top:6px}
 :where(.vipi-root) .struct .res-table td .apt-sub{font-size:11px}
 /* Riga dell'anagrafica già assegnata: si vede col chip, non si può scegliere. */
 :where(.vipi-root) .struct .res-table tbody tr.row-done>td{background:var(--tint-green-soft)}

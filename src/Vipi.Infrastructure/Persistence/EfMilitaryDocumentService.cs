@@ -46,15 +46,18 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
 
     public async Task<IReadOnlyList<MilAirportRow>> ListAsync(bool perStaff, CancellationToken ct = default)
     {
-        // I campi CANDIDATI sono quelli con presenza militare secondo la sorgente. ⚠️ `HasMilitaryPresence`
-        // è vero anche su Linate, Pisa, Ciampino: sono scali civili con sedime militare, e un SOP militare
-        // ce l'hanno davvero (LIRP è fra i quindici PDF). Quindi il filtro è quello giusto — è
-        // `IsMilitaryOnly` a dire un'altra cosa, e si mostra soltanto.
+        // I campi CANDIDATI sono quelli la cui CATEGORIA ammette il vSOP (carta 2026-09-11-categorie-aeroporto.md):
+        // solo militare, e militare con presenza civile. ⚠️ Più quelli che un vSOP ce l'hanno GIÀ, anche fuori
+        // categoria: un documento esistente si deve raggiungere, e la Diagnostica dice che è fuori posto.
+        // ⚠️ Le categorie per valore e non con AllowsMilitary: un metodo dentro una Where non si traduce in SQL.
         var campi = await _db.Airports.AsNoTracking()
-            .Where(a => a.HasMilitaryPresence && !a.IsHidden)
+            .Where(a => !a.IsHidden
+                        && (a.Category == AirportCategory.MilitaryOnly
+                            || a.Category == AirportCategory.MilitaryWithCivilPresence
+                            || a.MilDocumentId != null))
             .Select(a => new
             {
-                a.Icao, a.Name, AccCode = a.Acc!.Code, a.IsMilitaryOnly, a.MilDocumentId, a.DocumentId,
+                a.Icao, a.Name, AccCode = a.Acc!.Code, a.Category, a.MilDocumentId,
             })
             .ToListAsync(ct).ConfigureAwait(false);
 
@@ -72,12 +75,11 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
               .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         var righe = campi
-            .Select(c => new MilAirportRow(c.Icao, c.Name, c.AccCode, c.IsMilitaryOnly,
-                                           c.MilDocumentId, pubblicati.Contains(c.Icao),
-                                           HaCivile: c.DocumentId is not null))
+            .Select(c => new MilAirportRow(c.Icao, c.Name, c.AccCode, c.Category,
+                                           c.MilDocumentId, pubblicati.Contains(c.Icao)))
             // Prima i solo-militari, poi per ICAO: su un elenco nazionale l'ordine alfabetico puro
             // mescolerebbe Aviano con Pisa, che sono due cose diverse per chi cerca.
-            .OrderByDescending(r => r.SoloMilitare)
+            .OrderByDescending(r => r.Categoria == AirportCategory.MilitaryOnly)
             .ThenBy(r => r.Icao, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -98,30 +100,22 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
 
         if (campo.MilDocumentId is int esistente) return esistente;
 
-        if (!campo.HasMilitaryPresence)
-            // Meglio fermarsi che creare un vSOP militare su un campo che militare non è: il documento
-            // resterebbe lì, vuoto, in un elenco dove nessuno saprebbe perché c'è.
-            throw new Vipi.Application.Aor.ValidationException(Lingua(
-                $"{icao} non risulta avere presenza militare: la sorgente non lo dice.",
-                $"{icao} is not recorded as having a military presence: the source does not say so."));
-
-        // ---- Sui campi MISTI la vIPI civile viene PRIMA (carta vSOP militari §5-bis) -------------------
+        // ---- La CATEGORIA decide (carta 2026-09-11-categorie-aeroporto.md) ----------------------------
         //
-        // Su Pisa, Linate, Ciampino il vSOP militare descrive la METÀ militare di uno scalo che ne ha due:
-        // dice cosa cambia rispetto alla vIPI civile — quale parte del sedime, quali frequenze, quali
-        // procedure sono le altre. Senza la civile non c'è il «rispetto a cosa», e il documento nasce a
-        // descrivere un campo di cui nessuno ha ancora scritto le piste.
+        // Il vSOP militare nasce solo dove la categoria lo prevede: solo militare, o militare con presenza
+        // civile. Meglio fermarsi che crearlo altrove: il documento resterebbe lì, vuoto, in un elenco dove
+        // nessuno saprebbe perché c'è. ⚠️ La guardia sta QUI e non solo nei tasti: un tasto filtra, non
+        // autorizza.
         //
-        // ⚠️ Vale solo per i MISTI. Su un campo solo militare la civile non esiste e non deve esistere
-        // (la guardia gemella sta in AirportEditingService.EnsureDocumentAsync): chiederla qui renderebbe
-        // Aviano e Ghedi — proprio i campi che un vSOP ce l'hanno — gli unici a non poterlo avere.
-        //
-        // ⚠️ Basta che la vIPI civile ESISTA, anche solo in bozza: pretenderla pubblicata bloccherebbe il
-        // lavoro parallelo sulle due edizioni, che è il caso normale su uno scalo appena aperto.
-        if (!campo.IsMilitaryOnly && campo.DocumentId is null)
-            throw new Vipi.Application.Aor.ValidationException(Lingua(
-                $"{icao} è uno scalo civile con presenza militare: prima si crea la vIPI civile, poi il vSOP militare.",
-                $"{icao} is a civil field with a military presence: create the civil vIPI first, then the military vSOP."));
+        // ⚠️ Fino all'11 settembre 2026 sui campi misti c'era un secondo vincolo — «prima la vIPI civile, poi il
+        // vSOP» (carta vSOP militari §5-bis). Il committente l'ha tolto: in «militare con presenza civile» i due
+        // documenti nascono in qualunque ordine, e LIML il vSOP senza la vIPI ce l'aveva già.
+        if (!campo.Category.AllowsMilitary())
+            throw new Vipi.Application.Aor.ValidationException(campo.Category == AirportCategory.Civil
+                ? Lingua($"{icao} non risulta avere presenza militare: la sorgente non lo dice.",
+                         $"{icao} is not recorded as having a military presence: the source does not say so.")
+                : Lingua($"{icao} è uno scalo civile con presenza militare: la sua categoria non prevede il vSOP militare. Si cambia nella pagina Aeroporti.",
+                         $"{icao} is a civil airport with a military presence: its category does not provide for a military vSOP. It can be changed on the Airports page."));
 
         // ⚠️ Language.It, non En (carta §1d): la lingua sorgente è quella in cui si REDIGE. I quindici PDF
         // di partenza sono in inglese, ma il documento è nostro e un lettore inglese lo ottiene tradotto.
@@ -154,25 +148,25 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     {
         icao = Norm(icao);
 
-        // Una proiezione sola: esiste il documento civile, e il campo è solo militare? Le due risposte
+        // Una proiezione sola: esiste il documento civile, e che categoria ha il campo? Le due risposte
         // stanno sulla stessa riga di `Airports`, e chiederle separatamente vorrebbe dire poterle vedere
         // in due istanti diversi.
         var campo = await _db.Airports.AsNoTracking()
             .Where(a => a.Icao == icao)
-            .Select(a => new { Esiste = a.DocumentId != null, a.IsMilitaryOnly })
+            .Select(a => new { Esiste = a.DocumentId != null, a.Category })
             .FirstOrDefaultAsync(ct).ConfigureAwait(false);
 
         // ICAO sconosciuto: «non esiste, non pubblicata» — e NON «solo militare», che direbbe che
-        // l'assenza è a norma quando in realtà non si sa niente di quel campo.
-        if (campo is null) return new CivilEdition(false, false, false);
-        if (!campo.Esiste) return new CivilEdition(false, false, campo.IsMilitaryOnly);
+        // l'assenza è a norma quando in realtà non si sa niente di quel campo. Civil ammette la vIPI.
+        if (campo is null) return new CivilEdition(false, false, AirportCategory.Civil);
+        if (!campo.Esiste) return new CivilEdition(false, false, campo.Category);
 
         var adesso = DateTime.UtcNow;
         var pubblicata = await _db.DocReleases.AsNoTracking()
             .AnyAsync(r => r.TargetType == ReleaseTargetType.Airport && r.TargetKey == icao
                            && r.ReleaseEffectiveUtc <= adesso, ct).ConfigureAwait(false);
 
-        return new CivilEdition(true, pubblicata, campo.IsMilitaryOnly);
+        return new CivilEdition(true, pubblicata, campo.Category);
     }
 
     /// <summary>

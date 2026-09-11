@@ -35,7 +35,7 @@ public sealed class EfStationDirectory : IStationDirectory
     // del profilo dell'aeroporto (sei query) che il vSOP militare non fa nemmeno.
     public IReadOnlyList<AirportStation> ListAirports() =>
         _db.Airports.AsNoTracking()
-            .Select(a => new AirportStation(a.Icao, a.Acc!.Code, a.HasMilitaryPresence, a.IsMilitaryOnly,
+            .Select(a => new AirportStation(a.Icao, a.Acc!.Code, a.HasMilitaryPresence, a.Category,
                 a.ElevationFt, a.MagneticVariation, a.Iata, a.Latitude, a.Longitude))
             .ToList();
 }

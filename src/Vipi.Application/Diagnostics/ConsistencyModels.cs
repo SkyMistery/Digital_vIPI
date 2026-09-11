@@ -1,4 +1,6 @@
-﻿namespace Vipi.Application.Diagnostics;
+﻿using Vipi.Domain;
+
+namespace Vipi.Application.Diagnostics;
 
 /// <summary>Gravità di un'incongruenza rilevata (solo diagnosi: nessun dato viene modificato).</summary>
 public enum ConsistencySeverity { Warning, Error }
@@ -112,19 +114,24 @@ public sealed record TransferConditionRow(int ClauseId, string AccCode, string P
     int? ConditionRefId, string? ConditionLabel, string? ConditionAreaLabel);
 
 /// <summary>
-/// Un campo marcato <b>solo militare</b> che ha comunque una vIPI civile in archivio.
+/// Un campo che ha in archivio un documento che la sua <b>categoria non ammette</b> (carta
+/// <c>2026-09-11-categorie-aeroporto.md</c>): una vIPI civile su un campo solo militare, o un vSOP militare su un
+/// campo civile o civile con presenza militare.
 ///
-/// <para>⚠️ Non è di per sé un difetto: la guardia blocca la <b>nascita</b> di una vIPI civile su un campo
-/// solo militare, non l'<b>apertura</b> di una che c'era già — e la via d'uscita (nascondere, o eliminare)
-/// è un gesto editoriale che nessuno deve fare al posto di chi decide. Diventa un rilievo solo quando quel
-/// documento è ancora <b>visibile</b>, o quando resta <b>unito</b> al vSOP.</para>
+/// <para>⚠️ Non è di per sé un difetto: le guardie bloccano la <b>nascita</b> di un documento fuori categoria,
+/// non l'<b>apertura</b> di uno che c'era già — e la via d'uscita (nascondere, o eliminare) è un gesto editoriale
+/// che nessuno deve fare al posto di chi decide. Diventa un rilievo solo quando quel documento è ancora
+/// <b>visibile</b>, o quando resta <b>unito</b> all'altra edizione dello stesso campo.</para>
 /// </summary>
-/// <param name="CivileVisibile">La vIPI civile si vede dal web: ha una release in vigore, non è nascosta, e
-/// nemmeno l'aeroporto lo è. Sono le tre condizioni che il caricatore pubblico chiede, tutte e tre.</param>
-/// <param name="UnitaAlVsop">La vIPI civile e il vSOP dello stesso campo stanno nella <b>stessa</b> unione.
+/// <param name="Edizione">Quale dei due documenti è fuori categoria.</param>
+/// <param name="Visibile">Quel documento si vede dal web: ha una release in vigore, non è nascosto, e nemmeno
+/// l'aeroporto lo è. Sono le tre condizioni che il caricatore pubblico chiede, tutte e tre.</param>
+/// <param name="UnitoAllAltra">Quel documento e l'ALTRA edizione dello stesso campo stanno nella <b>stessa</b>
+/// unione.
 /// <para>⚠️ Conta anche a documento nascosto: la pubblicazione accoppiata <b>non guarda</b> <c>IsHidden</c>,
-/// quindi ogni pubblicazione del vSOP crea una release anche per un documento che nessuno vede.</para></param>
-public sealed record CampoSoloMilitareRow(string Icao, string AccCode, bool CivileVisibile, bool UnitaAlVsop);
+/// quindi ogni pubblicazione dell'altra edizione crea una release anche per un documento che nessuno vede.</para></param>
+public sealed record DocumentoFuoriCategoriaRow(string Icao, string AccCode, DocumentEdition Edizione,
+    bool Visibile, bool UnitoAllAltra);
 
 /// <summary>Nodo dei cataloghi che dichiara un padre di copertura per callsign (soft-ref cross-catalogo, no FK).</summary>
 /// <param name="Kind">Che cosa è il nodo, in chiaro: «Settore ACC», «Settore APT», «Aeroporto».</param>
@@ -206,8 +213,8 @@ public sealed class ConsistencyDataset
     /// <summary>Tutti i punti di trasferimento, uno per riga: la base della scala di risalita.</summary>
     public IReadOnlyList<TransferLadderRow> TransferLadders { get; init; } = Array.Empty<TransferLadderRow>();
 
-    /// <summary>I campi solo militari che hanno comunque una vIPI civile. Vuoto = niente da dire.</summary>
-    public IReadOnlyList<CampoSoloMilitareRow> CampiSoloMilitari { get; init; } = Array.Empty<CampoSoloMilitareRow>();
+    /// <summary>I documenti che la categoria del loro campo non ammette. Vuoto = niente da dire.</summary>
+    public IReadOnlyList<DocumentoFuoriCategoriaRow> DocumentiFuoriCategoria { get; init; } = Array.Empty<DocumentoFuoriCategoriaRow>();
 }
 
 /// <summary>La banda verticale di un settore, coi limiti <b>grezzi</b> del catalogo (l'unità non è tracciata

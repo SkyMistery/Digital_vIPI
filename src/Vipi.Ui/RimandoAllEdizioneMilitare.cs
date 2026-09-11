@@ -1,4 +1,5 @@
 using Vipi.Application.Content;
+using Vipi.Domain;
 
 namespace Vipi.Ui;
 
@@ -29,7 +30,8 @@ public static class RimandoAllEdizioneMilitare
     public static bool Serve(bool conChrome, bool giaValutato, AirportMilitaryState? stato) =>
         conChrome
         && !giaValutato
-        // Campo SOLO militare e nessuna vIPI civile: qui non potrebbe nascere niente
+        // La categoria non ammette la vIPI civile e non ce n'è una: qui non potrebbe nascere niente
         // (`EnsureDocumentAsync` lo rifiuterebbe), e un errore che non dice dove andare è peggio.
-        && stato is { IsMilitaryOnly: true, DocumentId: null };
+        // ⚠️ La stessa domanda della guardia di nascita, con la stessa regola: AirportCategories.AllowsCivil.
+        && stato is { DocumentId: null } s && !s.Category.AllowsCivil();
 }

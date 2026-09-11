@@ -15,7 +15,7 @@ public sealed record ExternalAirportInfo(string Icao, string Name, string? City,
 /// <summary>Aeroporto di una ACC per l'editor struttura.
 /// <paramref name="IsHidden"/> = nascosto dall'admin; la visibilità pubblica effettiva richiede anche almeno un settore (vedi <see cref="IsPublic"/>).</summary>
 public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, int? FeaturedRank = null, bool IsHidden = false,
-    string? ParentCallsign = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false)
+    string? ParentCallsign = null, bool HasMilitaryPresence = false, AirportCategory Category = AirportCategory.Civil)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;
@@ -30,13 +30,14 @@ public sealed record AirportRow(int Id, string Icao, string Name, int Sectors, i
 /// «crea» da «apri»: la pagina «Nuovo documento» si chiama così e per l'aeroporto apre quasi sempre.</param>
 /// <param name="HasMilitaryPresence">Dalla sorgente: c'è una base militare sull'aeroporto. ⚠️ Non vuol dire
 /// «aeroporto militare» — è vero anche per Linate, Pisa, Ciampino, Catania, Elmas, Lamezia e Rimini.</param>
-/// <param name="IsMilitaryOnly">Scelta di un amministratore: nessun traffico civile. La sorgente non lo dice.</param>
+/// <param name="Category">La categoria dello scalo: Civile dalla sorgente, le altre tre scelte da un
+/// amministratore proprio da questa pagina (<see cref="AirportCategories"/>).</param>
 /// <param name="MilDocumentId">Il vSOP MILITARE dello scalo, se esiste. Sta accanto a <paramref name="DocumentId"/>
 /// perché la domanda «crea o apri?» ha DUE risposte su un campo militare, e chiederle in due letture diverse
 /// vuol dire poterle vedere in due istanti diversi.</param>
 public sealed record AirportAdminRow(int Id, string Icao, string Name, string AccCode, int Sectors, bool HasTower,
-    bool IsHidden = false, int? DocumentId = null, bool HasMilitaryPresence = false, bool IsMilitaryOnly = false,
-    int? MilDocumentId = null)
+    bool IsHidden = false, int? DocumentId = null, bool HasMilitaryPresence = false,
+    AirportCategory Category = AirportCategory.Civil, int? MilDocumentId = null)
 {
     /// <summary>Vero se l'aeroporto è visibile al pubblico: non nascosto dall'admin e con almeno un settore.</summary>
     public bool IsPublic => !IsHidden && Sectors > 0;

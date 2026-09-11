@@ -46,11 +46,11 @@ public sealed record AirportMemberDocument(
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
 
-    /// <summary>⚠️ Dall'ANAGRAFICA, non dalle derivate: in anteprima di release il profilo viene azzerato di
-    /// proposito, e la presenza di una base militare non è un dato di release — sparire dalla testata solo
-    /// perché si guarda un ciclo passato sarebbe un'informazione persa senza motivo.</summary>
-    public bool MilitaryPresence => Station?.HasMilitaryPresence ?? false;
-    public bool MilitaryOnly => Station?.IsMilitaryOnly ?? false;
+    /// <summary>La categoria dello scalo, per l'etichetta in testata. null = lo scalo non è in anagrafica.
+    /// ⚠️ Dall'ANAGRAFICA, non dalle derivate: in anteprima di release il profilo viene azzerato di
+    /// proposito, e la categoria non è un dato di release — sparire dalla testata solo perché si guarda un
+    /// ciclo passato sarebbe un'informazione persa senza motivo.</summary>
+    public AirportCategory? Category => Station?.Category;
 }
 
 /// <summary>

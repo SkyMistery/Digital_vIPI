@@ -149,6 +149,18 @@ public interface IDocumentMaintenance
     Task<int> LinkAirportDocumentsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Porta ogni aeroporto alla <b>categoria</b> che deve avere (carta 2026-09-11-categorie-aeroporto.md): il
+    /// travaso dal booleano in pensione <c>IsMilitaryOnly</c>, più l'invariante con la presenza militare.
+    /// Ritorna quanti aeroporti sono cambiati. Idempotente: a regime tocca zero righe.
+    ///
+    /// <para>⚠️ Sta qui e non in una migrazione per due ragioni: la finestra cieca vieta l'SQL nelle migrazioni
+    /// MySQL fino al 16 settembre 2026, e su Postgres la colonna la aggiunge il riconciliatore, che non travasa
+    /// niente. ⚠️ Deve girare DOPO <see cref="LinkAirportDocumentsAsync"/>: il travaso guarda il vSOP dello
+    /// scalo, e un legame non ancora scritto lo farebbe sembrare assente.</para>
+    /// </summary>
+    Task<int> ReconcileAirportCategoriesAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Porta i documenti d'aeroporto già scritti sulle chiavi del catalogo (carta 2026-08-26 §3). Fino a quella
     /// carta il documento era una proiezione <b>cotta</b>: le sue sezioni si riconoscevano per TITOLO e nascevano
     /// con una chiave <c>custom:{guid}</c> nuova a ogni rigenerazione (<c>BlockSection.Airport</c> non ha una
