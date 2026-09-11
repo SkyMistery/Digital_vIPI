@@ -2,6 +2,12 @@
 
 ## Dove siamo — 11 settembre 2026
 
+▶ **Il prossimo gesto: leggere un `errori-richieste.txt` scaricato dopo una giornata di lavoro con 1.21.1.**
+Il committente mette i file in `diagnostica/` (fuori dal repo: portano i VID), poi
+`python tools/errori-per-era.py` divide le voci **per versione in servizio** e le conta per famiglia,
+col traffico di ogni era accanto. Nell'era di 1.21.1 **non** devono comparire `AppSectionsEditor` né
+«documento=NON caricato» (§CW). ⚠️ Un'era muta vale solo se c'è stato traffico vero, non solo il ping.
+
 ✅ **1.21.1 È CARICATA** (11 settembre, mattina; otto controlli pubblici verdi subito dopo). Timbro **`1.21.1 · 034f9187`**, sha256 dello zip
 **`cce670a1fc029d2420cb807878b6a88f4640d0d818d20a2f5cb9b029e14c7c71`**, **4 file** (`Vipi.Ui` e
 `Vipi.Host` coi `.pdb`), 2,32 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.1.md`. **PATCH**: porta
