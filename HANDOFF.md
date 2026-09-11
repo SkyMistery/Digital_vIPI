@@ -9,8 +9,10 @@ produzione: nello stesso disegno `_shell.Doc` era pieno a una riga e nullo due r
 secondo caricamento, che aspettava il tornello con `ConfigureAwait(false)` e ripartiva **sul pool**, mentre
 il dispatcher disegnava. Tolto in `DocumentEditorShell.CodaAsync`/`InFilaAsync` e in
 `ScopeProprioCheAspetta.InFilaAsync`; tre test con un dispatcher di prova, **rossi prima e verdi dopo**.
-▶ **Serve un pacchetto** (PATCH, tre `.dll`: Ui e Host per il timbro). La prova vera sarà un
-`errori-richieste.txt` di giorno.
+📦 **1.21.1 — PRONTA, DA CARICARE**: timbro `1.21.1 · 034f9187`, **4 file** (`Vipi.Ui` e `Vipi.Host` coi
+`.pdb`), zip `cce670a1fc029d2420cb807878b6a88f4640d0d818d20a2f5cb9b029e14c7c71`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.1.md). Provata sul
+pacchetto. La prova vera sarà un `errori-richieste.txt` di giorno.
 
 ✅ **1.21.0 — ONLINE dall'11 settembre, 06:56 UTC**: timbro letto nel `avvio-diagnostica.txt` di
 produzione, otto controlli pubblici verdi.
