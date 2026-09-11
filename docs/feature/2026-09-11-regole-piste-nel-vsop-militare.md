@@ -38,12 +38,12 @@ dal §AS (`ScaloSenzaCivile`).
 
 | | |
 |---|---|
-| Il dato, il servizio di scrittura e la sua guardia del lock (`SaveRunwayRulesAsync` → `EnsureLockMineAsync`, che accetta il lock civile **o** militare) | ✅ |
+| Il dato, il servizio di scrittura e la sua guardia del lock (`SaveRunwayRulesAsync` → `EnsureLockMineAsync`, che pretende il lock della vIPI civile se esiste, altrimenti quello del vSOP — `AirportLockGuard`) | ✅ |
 | La derivazione per la vista: `AirportDerived.Rules`, già calcolata da `MilMemberLoader` e buttata via | ✅ |
 | Il congelamento alla release: `AirportFrozenSectionProvider` è registrato per le due edizioni e sa già fotografare `runwayrules` | ✅ |
 | I componenti: `AirportRunwayRules` (lettura), `AirportRunwayRulesEditor` (scrittura, **col banco di prova**), `AirportRunways`/`AirportSids` coi parametri della pista in uso | ✅ |
 | La semina nei vSOP già scritti (`AddMissingCatalogSectionsAsync`) | ✅ |
-| La scheda delle sezioni in comune di un'unione vIPI + vSOP: confronta per **chiave**, quindi le regole ci entrano da sole | ✅ |
+| La scheda delle sezioni in comune di un'unione vIPI + vSOP: confronta per **chiave**, quindi le regole ci entrano da sole | ✅ ⚠️ ma vedi sotto: in un'unione già «ripulita» la sezione nuova nasce **visibile** e compare due volte finché non si ripassa dalla scheda |
 
 ## Che cosa cambia
 
@@ -75,6 +75,27 @@ dal §AS (`ScaloSenzaCivile`).
   (`FromRow` → `ToRow` non perde niente), `TitoliUfficialiTests`.
 - Dal vivo: vedi §«Verificato a schermo» qui sotto.
 - Suite intera verde su 15 progetti-TFM, `dotnet build Vipi.slnx -c Release --no-incremental` con 0 avvisi.
+
+## Revisione indipendente (11 settembre 2026, notte)
+
+Un revisore senza il contesto di chi ha scritto il codice: diff, suite, build Release, e l'app guidata su
+una copia del DB (anche con un'identità a basso livello e con una pubblicazione vera). Esito: **funziona,
+con riserve**; nessun difetto che rompa qualcosa. Il commit meccanico è davvero meccanico.
+
+- 🟡 **In vista pubblica la regola «adesso» può cadere sulla riga sbagliata**: la tabella viene dalla release
+  congelata, il numero della regola vincente dalle regole vive. Cancellata la #1 dopo aver pubblicato, la
+  pagina segnava la #1 della fotografia mentre le Piste citavano un'altra regola. Solo da `DivisionStaff` in
+  su. **Preesistente, identico nella vIPI**.
+- 🟡 **Unioni già «ripulite»**: la passata d'avvio crea la sezione **visibile**, quindi dove nel vSOP si erano
+  nascoste le ripetizioni «Regole piste» compare due volte finché non si ripassa dalla scheda delle sezioni in
+  comune (che la propone già spuntata). Introdotto da questo lavoro; con le SID era successo lo stesso.
+- 🟡 **Anteprima di release del vSOP**: `MilMemberLoader` non passa il ciclo della release alle derivate
+  (la vIPI sì), quindi le SID in `?as=rel:` sono quelle di oggi. Preesistente dal 10 settembre.
+- ⚪ Buchi di test: nessun test di componente sul collegamento `MilDocumentBody` → Piste/SID/regole, e
+  `DatiDelloScaloMilitareTests` non elenca `AirportRunwayRulesEditor`. Oggi lo prova solo il vivo.
+- ⚪ Frasi corrette dopo la revisione: la guardia del lock (vedi tabella sopra), «su uno solo militare»
+  (vale per i campi SENZA vIPI civile), e «un posto solo» per il calcolo (vista rapida ed elenco hanno
+  ancora la loro copia).
 
 ## Verificato a schermo (11 settembre 2026, notte)
 

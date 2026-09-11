@@ -19,6 +19,11 @@ public sealed record PistaInUsoAdesso(RunwayRuleResult? Regola, HashSet<string> 
 /// «su che pista si decolla adesso?» — scritta due volte darebbe prima o poi due risposte diverse sullo stesso
 /// campo, a seconda della pagina da cui lo si guarda.</para>
 ///
+/// <para>⚠️ Un posto solo per i due DOCUMENTI, non ancora per tutto il sito: <c>AirportQuickPanel</c> e
+/// <c>AirportListPanel</c> (la vista rapida e l'elenco degli aeroporti) hanno ancora una copia loro dello
+/// stesso calcolo, con le piste lette dall'anagrafica viva invece che dalle derivate. Preesistente, rilevato
+/// dalla revisione dell'11 settembre 2026.</para>
+///
 /// <para>⚠️ Si valuta sulle regole <b>vive</b>, non su quelle eventualmente congelate: «quale pista è in uso
 /// adesso» è una domanda sul presente, e resta tale anche mentre si sfoglia un ciclo passato.</para>
 /// </summary>

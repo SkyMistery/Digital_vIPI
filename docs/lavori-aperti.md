@@ -20,7 +20,8 @@ Chiesto dal committente: *«le regole di pista nelle vSOP mancano; quando ci son
 sono. Sotto la sezione delle piste, e deve funzionare esattamente come per le vIPI, suggerendo le piste in base
 alle regole»*. Deciso con lui: sezione **dopo Piste e prima delle SID**; sui campi **misti** c'è in sola
 lettura, col rimando all'editor civile (come le SID). Stessa chiave `runwayrules` del profilo civile, quindi
-congelamento, derivazione, semina nei vSOP già scritti e sezioni in comune arrivano senza codice nuovo.
+congelamento, derivazione, semina nei vSOP già scritti e sezioni in comune arrivano senza codice nuovo
+(⚠️ ma in un'unione già «ripulita» la sezione nuova nasce visibile e compare due volte: vedi la revisione).
 Il vSOP ora calcola la pista in uso (regole **vive**, poi vento) con lo **stesso** `PistaInUso.Calcola` della
 vIPI, e la marca in Piste e SID. Scrittura solo dove `ScaloSenzaCivile`. **Nessuna migrazione, nessuna chiave
 resx, niente `wwwroot`** ⇒ va in una **MINOR** (sezione nuova). ⚠️ Al primo avvio la sezione entra anche

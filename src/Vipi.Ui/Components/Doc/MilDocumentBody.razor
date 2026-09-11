@@ -78,7 +78,7 @@
                                 HasRain="@(Doc.Metar?.HasRain == true)" HasSnow="@(Doc.Metar?.HasSnow == true)" />;
                 break;
             @* Le regole piste (11 settembre 2026, committente), subito dopo le Piste. Stanno nell'ANAGRAFICA
-               dello scalo come le SID: su un campo misto le scrive la vIPI civile, su uno solo militare
+               dello scalo come le SID: dove esiste una vIPI civile le scrive lei, su un campo SENZA vIPI civile
                l'editor di questo vSOP. ⚠️ Il segno «adesso» (quale regola sta vincendo) solo da
                `DivisionStaff` in su, come nella vIPI: la tabella è contenuto pubblicato, il collegamento
                col momento è meccanica. *@
