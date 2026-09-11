@@ -41,7 +41,11 @@ public sealed record AirportMemberDocument(
     HashSet<string> ArrIdents,
     int? WindDir,
     int WindKt,
-    string? SidRwy)
+    string? SidRwy,
+    /// <summary>Il verdetto è stato calcolato sulle regole che la tabella mostra: vedi
+    /// <see cref="PistaInUsoAdesso.SulleRegoleMostrate"/>. Falso solo su release scattate prima del
+    /// 12 settembre 2026, dove la pastiglia «adesso» non si mostra.</summary>
+    bool VerdettoSulleRegoleMostrate = true)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -152,10 +156,6 @@ public sealed class AirportMemberLoader
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
         var taf = string.IsNullOrWhiteSpace(wx?.Taf) ? null : MetarParser.ParseTaf(wx!.Taf!);
 
-        // ⚠️ Il profilo serve solo alle regole piste, che decidono la pista IN USO ADESSO: quella si valuta
-        // sempre sulle regole vive, anche mentre si guarda un ciclo passato — è la risposta a «dove atterro»,
-        // non un dato di release. La tabella delle regole, invece, viene dalle derivate come tutto il resto.
-        var profilo = await _profile.LoadForViewAsync(code, ct);
         var station = _stations.Airport(code);
 
         // ⚠️ Le derivate si risolvono INSIEME al documento e con lo stesso criterio (doc 11 §3d): frozen solo
@@ -173,7 +173,12 @@ public sealed class AirportMemberLoader
             : PisteCotte(view);
         var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
         var windKt = metar?.Wind?.SpeedKt ?? 0;
-        var inUso = PistaInUso.Calcola(profilo, derived.Sids, runways, windDir, windKt, metar);
+        // La pista in uso si decide sulle regole CHE SI STANNO MOSTRANDO: la sezione dice quali sono, perché
+        // la porta con sé (carta 2026-09-12). Solo una release scattata prima non le ha, e allora si ricade
+        // sulle regole vive — il comportamento di prima — chiedendo l'anagrafica SOLO in quel caso.
+        var regole = derived.Rules.Regole;
+        var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
+        var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
         // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
@@ -200,7 +205,7 @@ public sealed class AirportMemberLoader
         return new AirportMemberDocument(
             code, view, AudienceFilter.Filtra(sezioni, letturaVista), mode, relCycle, bloccata,
             tradotto.Coverage, haMarcate, letturaVista, derived, station, wx, metar, taf,
-            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy);
+            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy, inUso.SulleRegoleMostrate);
     }
 
     private Task<DocumentView?> PubblicaAsync(string icao, CancellationToken ct) =>

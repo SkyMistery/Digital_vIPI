@@ -71,8 +71,10 @@
             @* Le Piste marcano la pista IN USO adesso — dalle regole, poi dal vento — come nella vIPI
                d'aeroporto: stesso componente, stessi parametri, stesso calcolo (`PistaInUso`). *@
             case "runways":
+                @* ⚠️ La provenienza solo se la regola sta nella tabella che il lettore ha davanti: vedi la
+                   nota gemella in `AirportDocumentBody`. *@
                 <AirportRunways View="Doc.Derivate.Runways" DepIdents="Doc.InUso.Dep" ArrIdents="Doc.InUso.Arr"
-                                MostraProvenienza="MeccanicaVisibile"
+                                MostraProvenienza="@(MeccanicaVisibile && Doc.InUso.SulleRegoleMostrate)"
                                 RuleName="@(Doc.InUso.Regola is null ? null : Doc.InUso.Regola.RuleName ?? $"#{Doc.InUso.Regola.RuleIndex + 1}")"
                                 RuleNote="@Doc.InUso.Regola?.Note" WindDir="Doc.WindDir" WindKt="Doc.WindKt"
                                 HasRain="@(Doc.Metar?.HasRain == true)" HasSnow="@(Doc.Metar?.HasSnow == true)" />;
@@ -82,9 +84,12 @@
                l'editor di questo vSOP. ⚠️ Il segno «adesso» (quale regola sta vincendo) solo da
                `DivisionStaff` in su, come nella vIPI: la tabella è contenuto pubblicato, il collegamento
                col momento è meccanica. *@
+            @* ⚠️ La pastiglia solo se il verdetto viene dalle regole DI QUESTA TABELLA: su una release
+               scattata prima del 12 settembre 2026 si ricade sulle regole vive, e un numero di riga
+               riferito a un'altra lista indicherebbe la regola sbagliata. *@
             case "runwayrules":
                 <AirportRunwayRules View="Doc.Derivate.Rules"
-                                    ActivePosition="@(MeccanicaVisibile && Doc.InUso.Regola is not null ? Doc.InUso.Regola.RuleIndex + 1 : null)" />;
+                                    ActivePosition="@(MeccanicaVisibile && Doc.InUso is { SulleRegoleMostrate: true, Regola: not null } ? Doc.InUso.Regola!.RuleIndex + 1 : null)" />;
                 break;
             @* ⚠️ Le soglie sono SOLO militari — nella vIPI civile non c'è questa sezione — e dal 6
                settembre 2026 sono una sotto-sezione di «Piste» invece della sua seconda tabella (indice

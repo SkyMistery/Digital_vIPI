@@ -76,6 +76,39 @@ dal §AS (`ScaloSenzaCivile`).
 - Dal vivo: vedi §«Verificato a schermo» qui sotto.
 - Suite intera verde su 15 progetti-TFM, `dotnet build Vipi.slnx -c Release --no-incremental` con 0 avvisi.
 
+## ✅ Il verdetto segue la sezione (12 settembre 2026) — chiude il rilievo 🟡 della revisione
+
+**Deciso dal committente** dopo la revisione: *«applica la soluzione 2 … e sistema così anche le vIPI,
+ovunque compaiono le regole pista»*.
+
+**Com'era.** La **tabella** seguiva la sezione — `Frozen` ⇒ fotografia della release, `Live` ⇒ adesso — ma il
+**verdetto** («quale regola vince», «quale pista è in uso») si calcolava **sempre** sulle regole vive. Con la
+sezione congelata bastava cambiare una regola dopo aver pubblicato: la tabella pubblicata diceva una cosa, la
+pastiglia e le Piste un'altra.
+
+**Com'è.** La fotografia della sezione porta anche le regole in forma **calcolabile**
+(`AirportRulesView.Regole`), e chi valuta guarda **le stesse** regole che il lettore ha davanti. Il **vento**
+resta sempre quello di adesso: non è contenuto del documento, e congelarlo sarebbe meteo scaduto.
+
+⚠️ **«Non si sa» ≠ «non ce ne sono».** Le release scattate **prima** non portano le regole calcolabili
+(`Regole == null`): lì si ricade sulle regole vive — il comportamento di allora — e si **dichiara**
+(`PistaInUsoAdesso.SulleRegoleMostrate == false`). In quel caso la pastiglia «adesso» e la didascalia
+«consigliate dalla regola X» **non si mostrano**: indicherebbero una riga di un'altra lista. La pista marcata
+resta, perché quella è la risposta a «dove si decolla adesso». Un elenco **vuoto** invece è un fatto del
+documento, e vale come tale.
+
+⚠️ Vale per **tutt'e due** le famiglie: vIPI d'aeroporto e vSOP militare, che ora condividono anche questo.
+⚠️ Effetto collaterale gradito: l'anagrafica dello scalo non si legge più a ogni visita — serve solo nel caso
+di ripiego. Erano otto interrogazioni per pagina.
+⚠️ **Non toccati** la vista rapida e l'elenco aeroporti: lì non c'è nessuna release, le regole sono vive per
+definizione e la domanda non si pone. Resta la loro copia del calcolo (rilievo ⚪ della revisione).
+
+**Provato dal vivo** (copia del DB, Edge): su **LIBG** scritta la regola «Pubblicata» sulla 17 e **pubblicato**,
+poi cambiata in «DopoLaPubblicazione» sulla 35 ⇒ la pagina **pubblica** dice «Pubblicata» e marca la **17**, la
+**bozza** dice «DopoLaPubblicazione» e marca la **35**. Stesso giro sulla **vIPI civile di LIBC** con lo stesso
+esito. Sulle release **vecchie** (LIBC, LIBR pubbliche): tabella della fotografia, **nessuna** pastiglia,
+**nessuna** didascalia di regola, pista marcata dalle vive. Zero errori di console, zero 4xx.
+
 ## Revisione indipendente (11 settembre 2026, notte)
 
 Un revisore senza il contesto di chi ha scritto il codice: diff, suite, build Release, e l'app guidata su

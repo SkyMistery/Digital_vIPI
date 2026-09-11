@@ -162,16 +162,18 @@ public sealed class MilMemberLoader
         var taf = string.IsNullOrWhiteSpace(wx?.Taf) ? null : MetarParser.ParseTaf(wx!.Taf!);
         var derivate = await _airportView.ResolveForViewAsync(code, useFrozen, ReleaseTargetType.AirportMil, ct: ct);
 
-        // La pista in uso ADESSO, come nella vIPI d'aeroporto: le regole si valutano sempre VIVE — anche in
-        // anteprima di una release passata, perché «dove si decolla adesso» è una domanda sul presente — e la
-        // tabella delle regole, invece, arriva dalle derivate come tutto il resto (congelata in pubblica).
+        // La pista in uso ADESSO, come nella vIPI d'aeroporto: si decide sulle regole CHE SI STANNO MOSTRANDO
+        // — congelate in pubblica, vive in bozza — perché la sezione se le porta dietro (carta 2026-09-12). Il
+        // vento resta sempre quello di adesso. Solo una release scattata prima non porta le regole
+        // calcolabili: lì si ricade sulle vive, e l'anagrafica si legge SOLO in quel caso.
         // ⚠️ Fino all'11 settembre 2026 il vSOP non aveva la sezione, e per questo non marcava niente: le
         // regole c'erano solo nell'anagrafica, e la vIPI civile era l'unica pagina che le leggesse.
-        var profilo = await _scalo.LoadForViewAsync(code, ct);
         var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
         var windKt = metar?.Wind?.SpeedKt ?? 0;
-        var inUso = PistaInUso.Calcola(profilo, derivate.Sids,
-            derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar);
+        var regole = derivate.Rules.Regole;
+        var vive = regole is null ? (await _scalo.LoadForViewAsync(code, ct))?.Rules : null;
+        var inUso = PistaInUso.Calcola(regole, derivate.Sids,
+            derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar, vive);
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta

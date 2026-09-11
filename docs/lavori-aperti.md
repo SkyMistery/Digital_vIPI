@@ -15,6 +15,22 @@ vIPI, o spostando i due campi in «Militare con presenza civile» (come LIRP). L
 (l'elenco nazionale) e non ad «ACC › Aeroporti»; la scheda dice «Documentazione militare» mentre la pagina
 `/services/vsop/mil` si intitola ancora «vSOP militari».
 
+🆕 **§CY: IL VERDETTO DELLE REGOLE PISTE SEGUE LA SEZIONE** (12 settembre — in `main`, **non** in produzione).
+Deciso dal committente dopo la revisione di §CX: *«applica la soluzione 2, e sistema così anche le vIPI,
+ovunque compaiono le regole pista»*. La **tabella** seguiva già la sezione (Frozen = fotografia della release,
+Live = adesso); il **verdetto** — quale regola vince, quale pista è marcata — si calcolava **sempre** sulle
+regole vive, e su una sezione congelata bastava cambiare una regola dopo aver pubblicato per far dire due cose
+diverse alla stessa pagina. Ora la fotografia porta anche le regole **calcolabili** (`AirportRulesView.Regole`)
+e chi valuta guarda quelle che il lettore ha davanti; il **vento** resta sempre di adesso.
+⚠️ Le release scattate **prima** non le hanno (`Regole == null`): si ricade sulle vive — il comportamento di
+allora — e lo si **dichiara** (`SulleRegoleMostrate`), nascondendo pastiglia e didascalia «consigliate dalla
+regola X», che indicherebbero una riga di un'altra lista. La pista marcata resta.
+✅ Vale per vIPI d'aeroporto **e** vSOP. Suite verde, Release 0 avvisi, e provato dal vivo su LIBG (vSOP) e
+LIBC (vIPI): pubblicato con una regola, cambiata dopo ⇒ la pubblica dice la regola pubblicata, la bozza quella
+nuova; sulle release vecchie niente pastiglia e niente didascalia. Nessuna migrazione.
+⚠️ **Non toccati** vista rapida ed elenco aeroporti: lì non c'è release, le regole sono vive per definizione.
+Carta: la stessa di §CX, §«Il verdetto segue la sezione».
+
 🆕 **§CX: LE REGOLE PISTE NEL vSOP MILITARE** (11 settembre, notte — in `main`, **non** in produzione).
 Chiesto dal committente: *«le regole di pista nelle vSOP mancano; quando ci sono aeroporti senza vIPI non ci
 sono. Sotto la sezione delle piste, e deve funzionare esattamente come per le vIPI, suggerendo le piste in base

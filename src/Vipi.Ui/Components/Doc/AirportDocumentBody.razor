@@ -64,17 +64,24 @@
                 @* ⚠️ Il segno «adesso» è la stessa informazione della provenienza vista da un'altra colonna:
                    dice QUALE regola sta vincendo. Sotto lo staff di divisione la tabella resta — è contenuto
                    pubblicato — ma senza il segno che la lega al momento. *@
+                @* ⚠️ La pastiglia solo se il verdetto viene dalle regole DI QUESTA TABELLA: su una release
+                   scattata prima del 12 settembre 2026 le regole calcolabili non ci sono, si ricade sulle
+                   vive, e un numero di riga riferito a un'altra lista indicherebbe la regola sbagliata. *@
                 <AirportRunwayRules View="Doc.Derived.Rules"
-                                    ActivePosition="@(MeccanicaVisibile && Doc.RuleResult is not null ? Doc.RuleResult.RuleIndex + 1 : null)" />;
+                                    ActivePosition="@(MeccanicaVisibile && Doc.VerdettoSulleRegoleMostrate && Doc.RuleResult is not null ? Doc.RuleResult.RuleIndex + 1 : null)" />;
                 break;
             case "transition":
                 <AirportTransition View="Doc.Derived.Transition" CurrentQnh="Doc.Metar?.QnhHpa"
                                    MetarTimeRaw="@Doc.Metar?.TimeRaw" Station="Doc.Station" />;
                 break;
             case "frequencies": <AirportFrequencies View="Doc.Derived.Frequencies" />; break;
+            @* ⚠️ La PROVENIENZA («consigliate dalla regola X») solo se quella regola è in una tabella che il
+               lettore ha davanti: su una release scattata prima del 12 settembre 2026 il verdetto viene dalle
+               regole vive, e citare «#1» indicherebbe la prima riga di un'ALTRA lista. La pista marcata resta:
+               quella è la risposta a «dove si decolla adesso», e non ha bisogno di una didascalia. *@
             case "runways":
                 <AirportRunways View="Doc.Derived.Runways" DepIdents="Doc.DepIdents" ArrIdents="Doc.ArrIdents"
-                                MostraProvenienza="MeccanicaVisibile"
+                                MostraProvenienza="@(MeccanicaVisibile && Doc.VerdettoSulleRegoleMostrate)"
                                 RuleName="@(Doc.RuleResult is null ? null : Doc.RuleResult.RuleName ?? $"#{Doc.RuleResult.RuleIndex + 1}")"
                                 RuleNote="@Doc.RuleResult?.Note" WindDir="Doc.WindDir" WindKt="Doc.WindKt"
                                 HasRain="@(Doc.Metar?.HasRain == true)" HasSnow="@(Doc.Metar?.HasSnow == true)" />;

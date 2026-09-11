@@ -15,9 +15,30 @@ namespace Vipi.Application.Content;
 public sealed record AirportRuleRowView(int Position, string Condition, string Dep, string Arr, string Note);
 
 /// <summary>Sezione «Regole piste»: si applica la <b>prima</b> regola le cui condizioni sono soddisfatte.</summary>
-public sealed record AirportRulesView(IReadOnlyList<AirportRuleRowView> Rows)
+/// <param name="Regole">
+/// Le stesse regole in forma <b>calcolabile</b>, nello stesso ordine di <paramref name="Rows"/>: servono a
+/// dire quale sta vincendo <i>adesso</i> e quale pista marcare.
+///
+/// <para>⚠️ <b>Perché stanno nella vista e non si rileggono dall'anagrafica.</b> La tabella segue la sezione:
+/// <c>Frozen</c> ⇒ è la fotografia della release, <c>Live</c> ⇒ è quella di adesso. Il verdetto, invece, si
+/// calcolava <b>sempre</b> sulle regole vive: con la sezione congelata bastava cambiare una regola dopo aver
+/// pubblicato perché la pastiglia «adesso» finisse su un'altra riga e le Piste marcassero una pista che la
+/// tabella pubblicata non spiega. Tenendole insieme alle righe, chi valuta guarda per forza <b>le stesse</b>
+/// regole che il lettore ha davanti. Il vento, quello sì, resta sempre quello di adesso.</para>
+///
+/// <para>⚠️ <c>null</c> = <b>non si sa</b>, ed è diverso da «nessuna regola»: sono le fotografie scattate
+/// prima del 12 settembre 2026, che questo campo non l'hanno. Chi legge ricade sulle regole vive — cioè sul
+/// comportamento di prima — e non mostra la pastiglia, che non avrebbe niente a cui riferirsi. Una lista
+/// <b>vuota</b> invece è un fatto: «quel documento dice che non ci sono regole».</para>
+/// </param>
+public sealed record AirportRulesView(
+    IReadOnlyList<AirportRuleRowView> Rows, IReadOnlyList<RunwayRuleRow>? Regole = null)
 {
     public static AirportRulesView Empty { get; } = new(Array.Empty<AirportRuleRowView>());
+
+    /// <summary>Nessuna regola, e lo si sa: il documento (o l'anagrafica) non ne ha.</summary>
+    public static AirportRulesView Nessuna { get; } =
+        new(Array.Empty<AirportRuleRowView>(), Array.Empty<RunwayRuleRow>());
 }
 
 /// <summary>Riga della tabella dei livelli di transizione: fascia QNH → livello.</summary>
@@ -110,12 +131,22 @@ public sealed record AirportDerived(
 /// </summary>
 public static class AirportSectionProjection
 {
+    /// <summary>
+    /// Le regole, in forma leggibile e in forma calcolabile: le due viaggiano insieme apposta (vedi
+    /// <see cref="AirportRulesView.Regole"/>).
+    /// <para>⚠️ Un'anagrafica che non c'è dà <see cref="AirportRulesView.Empty"/> («non si sa»); una senza
+    /// regole dà <see cref="AirportRulesView.Nessuna"/> («non ce ne sono»). La distinzione conta solo per chi
+    /// legge una release vecchia, e lì vale la differenza fra ricadere sulle regole vive e non valutare nulla.</para>
+    /// </summary>
     public static AirportRulesView Rules(AirportData? data)
     {
-        if (data is null || data.Rules.Count == 0) return AirportRulesView.Empty;
-        return new AirportRulesView(data.Rules
-            .Select((r, i) => new AirportRuleRowView(i + 1, RuleCondition(r), Dash(r.DepRunways), Dash(r.ArrRunways), Dash(r.Note)))
-            .ToList());
+        if (data is null) return AirportRulesView.Empty;
+        if (data.Rules.Count == 0) return AirportRulesView.Nessuna;
+        return new AirportRulesView(
+            data.Rules
+                .Select((r, i) => new AirportRuleRowView(i + 1, RuleCondition(r), Dash(r.DepRunways), Dash(r.ArrRunways), Dash(r.Note)))
+                .ToList(),
+            data.Rules);
     }
 
     public static AirportTransitionView Transition(AirportData? data)

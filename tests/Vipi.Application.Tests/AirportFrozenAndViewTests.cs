@@ -1,4 +1,5 @@
-﻿using Vipi.Application.Abstractions;
+﻿using System.Text.Json;
+using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Xunit;
@@ -74,6 +75,42 @@ public class AirportFrozenAndViewTests
         Assert.Contains("6000", frozen[20]);
         Assert.Contains("118.700", frozen[30]);
         Assert.Contains("16L", frozen[40]);
+    }
+
+    /// <summary>
+    /// La fotografia delle regole porta anche le regole in forma <b>calcolabile</b>, non solo il testo: è ciò
+    /// che permette a chi legge una release di dire quale regola sta vincendo <i>su quelle regole lì</i>.
+    /// <para>🔴 Senza, il verdetto si calcolava sulle regole VIVE mentre la tabella era la fotografia: bastava
+    /// cambiare una regola dopo aver pubblicato perché la pastiglia «adesso» finisse su un'altra riga e le
+    /// Piste marcassero una pista che la tabella pubblicata non spiega. Riprodotto dalla revisione dell'11
+    /// settembre 2026.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_fotografia_delle_regole_porta_anche_le_soglie_e_si_rilegge()
+    {
+        var frozen = await Provider(Profilo()).CaptureFrozenAsync("LIRF", Doc(Sec(10, "runwayrules", RenderMode.Frozen)));
+
+        var riletta = JsonSerializer.Deserialize<AirportRulesView>(frozen[10]);
+
+        Assert.NotNull(riletta!.Regole);
+        var regola = Assert.Single(riletta.Regole!);
+        Assert.Equal("16R", regola.DepRunways);
+        Assert.Equal(5, regola.MaxTailwindKt);
+        Assert.Equal("Sud", regola.Name);
+        // E l'ordine è quello delle righe mostrate: il numero della regola vincente indica QUELLA riga.
+        Assert.Equal(riletta.Rows.Count, riletta.Regole!.Count);
+    }
+
+    /// <summary>
+    /// ⚠️ «Non si sa» e «non ce ne sono» sono due risposte diverse, e la differenza la paga chi legge una
+    /// release vecchia: lì le regole calcolabili non ci sono (<c>null</c>) e si ricade sulle vive, mentre un
+    /// elenco vuoto è un fatto del documento — «questo scalo non ha regole».
+    /// </summary>
+    [Fact]
+    public void Senza_anagrafica_le_regole_sono_IGNOTE_senza_regole_sono_VUOTE()
+    {
+        Assert.Null(AirportSectionProjection.Rules(null).Regole);
+        Assert.Empty(AirportSectionProjection.Rules(ProfiloSenzaRegole()).Regole!);
     }
 
     [Fact]
@@ -274,6 +311,15 @@ public class AirportFrozenAndViewTests
         Runways = new[] { new RunwayRow(1, "16L", 3902, 160, null, null, "ILS CAT III", null, null) },
         Rules = new[] { new RunwayRuleRow(1, "16R", "16L", "Sud", 5, null, RunwaySurface.Any, "vento da sud") },
         Sids = Array.Empty<SidRow>(),
+        Links = Array.Empty<FrequencyLinkRow>(),
+    };
+
+    /// <summary>Lo stesso scalo, ma senza nessuna regola scritta.</summary>
+    private static AirportData ProfiloSenzaRegole() => new()
+    {
+        AirportId = 1, Icao = "LIRF", Name = "Roma Fiumicino", AccCode = "LIRR",
+        TransitionLevels = Array.Empty<TlRow>(), Runways = Array.Empty<RunwayRow>(),
+        Rules = Array.Empty<RunwayRuleRow>(), Sids = Array.Empty<SidRow>(),
         Links = Array.Empty<FrequencyLinkRow>(),
     };
 
