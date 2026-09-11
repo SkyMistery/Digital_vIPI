@@ -1,9 +1,23 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 10 settembre 2026 (sera) — 📦 **1.20.0 è PRONTA e NON CARICATA**. Albero pulito
-e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+**Ultimo aggiornamento:** 11 settembre 2026 — ✅ **1.20.0 è ONLINE** · 📦 **1.21.0 è PRONTA e NON
+CARICATA**. Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
 
-📦 **1.20.0 — PRONTA, DA CARICARE.** Timbro `1.20.0 · 775170f3`, sha256 dello zip
+📦 **1.21.0 — PRONTA, DA CARICARE.** Timbro `1.21.0 · 8291dd14`, **9 file**, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md), sha256 dello
+zip `328a1bd3a3f607ede081f47fac2f980a51b38d673c60b0a526e0cad79dcd8ef4`. **MINOR** (una sezione nuova nel catalogo), **nessuna migrazione**, niente
+`wwwroot`. Porta **§CU** (il campo «solo militare» con una vIPI civile: conferma sulla pastiglia + rilievo in
+Diagnostica) e **§CV** (le SID nel vSOP militare, sotto le Piste).
+⚠️ **Al primo avvio scrive nei DATI**: la passata d'avvio aggiunge «SID» ai vSOP militari già scritti,
+**anche nella versione pubblicata**. Il pubblico non cambia fino alla prossima pubblicazione, ma quei vSOP
+possono comparire fra i «da ripubblicare».
+✅ Provata sul pacchetto: dieci controlli verdi, «Aggiunte 6 sezioni» contate in archivio, SID scrivibile su
+LIBG e in sola lettura su LIMS, pagina pubblica di LIMN invariata, rilievo e conferma di §CU, Schema 0.
+
+✅ **1.20.0 — ONLINE** (confermato dal committente l'11 settembre): otto controlli pubblici verdi sulla
+produzione. ⚠️ Da anonimo non si distingue da 1.19.1: **Schema 0** e timbro vogliono il login.
+
+📦 **1.20.0 — il pacchetto.** Timbro `1.20.0 · 775170f3`, sha256 dello zip
 `c60337408711a3b45b34c43941e62dcb49a2cde0f1ba8ee28c5015409a865504`, **13 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md).
 **MINOR**, **due migrazioni**, **niente `wwwroot`**. Si consegna da sola: non serve sostituire il database.
@@ -25,8 +39,9 @@ quel progetto, e senza la pagina direbbe ancora «1.19.1».
 
 ⚠️ **Una deroga scritta, da togliere quando scade.** La migrazione `PiuAreeNellaCondizione` porta un
 `AlterColumn` (80→200) che cade nella finestra cieca: il presidio l'ha fermata e sta in `RevisionateAMano`
-**con la ragione** — allargamento, `Up` che non può troncare né fallire, tabella da **60 righe**. **Se il
-pacchetto esce dopo il 16 settembre 2026, quella voce e il file del presidio vanno tolti.**
+**con la ragione** — allargamento, `Up` che non può troncare né fallire, tabella da **60 righe**. ✅ Il
+pacchetto è uscito **dentro** la finestra: quella voce se ne va insieme al file del presidio quando la
+finestra si chiude, il 16 settembre 2026.
 
 ✅ **Provata SUL PACCHETTO** (publish win-x64 avviato dalla sua cartella): i dieci controlli di
 `pacchetto-verifica.js` verdi — Ricerca compresa — più otto sui lavori nuovi: le tre porte dell'unione che

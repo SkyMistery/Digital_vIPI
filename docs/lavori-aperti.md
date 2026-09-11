@@ -1,5 +1,45 @@
 ﻿# Lavori aperti — elenco unico
 
+## Dove siamo — 11 settembre 2026
+
+📦 **1.21.0 È PRONTA E NON CARICATA.** Timbro **`1.21.0 · 8291dd14`**, sha256 dello zip **`328a1bd3…`** (intero in
+`artifacts/publish/vipi-1.21.0-solo-file-cambiati.zip.sha256`), **9 file**, 4,52 MB, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md`. **MINOR** e **nessuna migrazione**, niente `wwwroot`. Porta
+**§CU** e **§CV** (qui sotto), arrivati in `main` dopo che 1.20.0 era chiuso.
+MINOR e non PATCH perché §CV aggiunge una **sezione** al catalogo, e una PATCH è «nessuna pagina o sezione
+nuova».
+▶ **Il gesto che resta: caricarla via FTP**, col nome finto e poi la rinomina.
+
+**Le prove fatte sul PACCHETTO** (publish win-x64 avviato dalla sua cartella, su una copia del `vipi.db`):
+✅ i **dieci controlli** di `pacchetto-verifica.js`, Ricerca compresa.
+✅ 🔴 **La passata d'avvio lavora sul binario pubblicato**: nell'archivio di prova **nessun** vSOP militare
+aveva la sezione `sids`; al primo avvio il log dice «Aggiunte 6 sezioni di catalogo mancanti», e in archivio
+ce ne sono **sei**, una per vSOP, tutte in *Dati generali* fra `runways:4` e `transition:6`.
+✅ Bozza di **LIBG**: SID dopo le Piste, **18 righe**. Editor di **LIBG** (solo militare, senza civile): la
+sezione **si scrive lì**. Editor di **LIMS** (misto): **zero campi** e il rimando all'editor civile.
+✅ Pagina **pubblica** di **LIMN** (release in vigore): la SID **non c'è ancora**. Una release è una
+fotografia; la sezione arriva alla prossima pubblicazione, ed è quel che dice il foglio.
+✅ Diagnostica: il rilievo nuovo c'è (LIPA *visibile*, LIBV *non visibile ma unita*); **Schema 0**.
+✅ La conferma sulla pastiglia di **LIMS** si apre, col tasto «Sì» — e non si è confermato niente.
+✅ Timbro in `avvio-diagnostica.txt` e nella barra: `1.21.0 · 8291dd1`. Console pulita, nessun `fail:`.
+
+⚠️ **Una conseguenza da dire a chi carica, misurata e non dedotta**: la passata d'avvio scrive nell'**ultima
+versione** del documento **anche se è quella pubblicata** (LIMN: la sua versione corrente è `Published`, e
+la sezione ci è entrata). Non cambia il pubblico, che legge la fotografia della release, ma i vSOP militari
+già pubblicati possono comparire fra i **«da ripubblicare»**. È lo stesso segnale che hanno dato le *Carte
+aeroportuali* il 4 settembre: nell'archivio di prova LIBG, LIML e LIMN lo portano da allora.
+
+⚠️ **Trappola della sonda, la quarta in tre giorni**: nell'editor il titolo della sezione è `▸ SID mandatory
+↑ ↓ + subsection 🧊 Frozen…`, e un'espressione scritta per la pagina di lettura non lo riconosceva — due
+«rossi» che erano dell'attrezzo. Con `/^\W*SID\b/` escono **102 campi** su LIBG e **zero** su LIMS.
+
+✅ **1.20.0 È ONLINE** (confermato dal committente l'11 settembre). Da fuori, sulla produzione, gli **otto
+controlli pubblici** di `pacchetto-verifica.js` sono verdi, Ricerca compresa.
+⚠️ **Da anonimo non si distingue 1.20.0 da 1.19.1**: il timbro è solo per gli amministratori, e le due porte
+pubbliche dell'unione di Gioia rispondono senza rimandare — ma mostrano solo sé stesse, perché gli altri
+membri non sono pubblici, quindi non provano §CR. ▶ **Le prove che restano vogliono il login**: riga
+**Schema = 0** in `admin/diagnostics` (le due migrazioni) e il timbro `1.20.0 · 775170f3`.
+
 ## Dove siamo — 10 settembre 2026
 
 🆕 **§CV: LE SID NEL vSOP MILITARE.** Chiesto dal committente: *«nelle vSOP andrebbero aggiunte le SID; se ci
@@ -71,10 +111,9 @@ archivio: aprendo la conferma su LIMS **non si scrive niente**, mentre LICA — 
 col clic secco. **Nessuna migrazione.**
 Carta: `docs/feature/2026-09-10-solo-militare-con-vipi-civile.md`.
 
-📦 **1.20.0 È PRONTA E NON CARICATA.** Timbro **`1.20.0 · 775170f3`**, sha256 dello zip
-**`c6033740…`**, **13 file**, 4,83 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`.
+📦 **1.20.0** — ✅ **caricata** — online, confermato dal committente l'11 settembre (vedi sopra). Timbro **`1.20.0 · 775170f3`**,
+sha256 dello zip **`c6033740…`**, **13 file**, 4,83 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.20.0.md`.
 **MINOR** con **due migrazioni**, niente `wwwroot`. Porta **§CR**, **§CS** e **§CT**.
-▶ **Il gesto che resta: caricarla via FTP**, col nome finto e poi la rinomina.
 
 **Le prove fatte sul PACCHETTO**, non sul sorgente (publish win-x64 avviato dalla sua cartella):
 ✅ i **dieci controlli** di `pacchetto-verifica.js`, Ricerca compresa — è quella che distingue un sito vivo
@@ -93,9 +132,9 @@ di quel progetto — senza, la pagina direbbe ancora «1.19.1».
 
 ⚠️ **Una deroga scritta, con una scadenza.** L'`AlterColumn` di `PiuAreeNellaCondizione` cade nella
 finestra cieca: sta in `RevisionateAMano` **con la ragione** (allargamento, `Up` che non può troncare né
-fallire, tabella da 60 righe). ▶ **Se si carica dopo il 16 settembre, quella voce e
-`MigrazioniDellaFinestraCiecaTests` vanno tolti** — una deroga che sopravvive alla finestra è una regola
-travestita da eccezione.
+fallire, tabella da 60 righe). ✅ **Caricata prima del 16 settembre, cioè dentro la finestra**: la deroga è servita a
+quello per cui era scritta. ▶ **Se ne va insieme a `MigrazioniDellaFinestraCiecaTests` quando la finestra si
+chiude** (16 settembre) — una deroga che sopravvive alla finestra è una regola travestita da eccezione.
 
 ⚠️ **E §CR cambia un comportamento PUBBLICO**: l'indirizzo di un membro unito che prima reindirizzava
 adesso risponde e disegna. È quel che è stato chiesto, non un effetto collaterale — ma va detto a chi
