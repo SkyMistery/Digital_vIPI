@@ -1,8 +1,14 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (mattina) — ✅ **1.21.1 è CARICATA** (porta §CW; otto controlli
-pubblici verdi, timbro ancora da leggere col login). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15
-progetti-TFM.
+**Ultimo aggiornamento:** 11 settembre 2026 (pomeriggio) — 📦 **1.22.0 è PRONTA, da caricare** (sopra 1.21.1,
+che è online). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+
+📦 **1.22.0 — il pacchetto.** Timbro `1.22.0 · f538b6f2`, **19 file**, zip
+`74ebe3b822e0d0362d0dd295bb66ff0476aefb9f63fbfd6090e8a8c102dcaf52`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.0.md). **MINOR**, una
+migrazione additiva. Porta le **piste a chip** e le **quattro categorie d'aeroporto**
+([`docs/feature/2026-09-11-categorie-aeroporto.md`](docs/feature/2026-09-11-categorie-aeroporto.md)). Provata sul
+pacchetto. ⚠️ `Airports.IsMilitaryOnly` resta in tabella come specchio: la toglie la prima migrazione dopo il 16-set.
 
 🆕 **§CW — la NRE di render dell'editor APP ha un colpevole.** La rete di 1.18.2 ha parlato nei file di
 produzione: nello stesso disegno `_shell.Doc` era pieno a una riga e nullo due righe dopo. Lo azzerava il

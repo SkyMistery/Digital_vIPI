@@ -2,6 +2,22 @@
 
 ## Dove siamo — 11 settembre 2026
 
+📦 **1.22.0 — PRONTA, da caricare** (11 settembre, pomeriggio). Timbro **`1.22.0 · f538b6f2`**, sha256 dello zip
+**`74ebe3b822e0d0362d0dd295bb66ff0476aefb9f63fbfd6090e8a8c102dcaf52`**, **19 file**, 5,01 MB, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.0.md`. **MINOR** con **una migrazione additiva** (`CategoriaAeroporto`,
+un `AddColumn`, presidio della finestra cieca verde senza deroghe). Porta due lavori chiesti dal committente:
+- **le piste a chip** (`e71843ed`): APP procedures / Patterns / Circling; lo storage non cambia, le voci vecchie
+  fuori elenco restano come chip gialle;
+- **le quattro categorie d'aeroporto** (`6226ecbd`, carta `feature/2026-09-11-categorie-aeroporto.md`):
+  `Airport.Category` al posto di `IsMilitaryOnly`, travaso alla prima accensione, via la regola «prima la vIPI».
+✅ Provata **sul pacchetto** win-x64: migrazione e travaso al primo avvio del binario pubblicato (34 aeroporti),
+timbro nel file di avvio, dieci controlli di `pacchetto-verifica.js` verdi, e le due funzioni guidate dal vivo.
+⚠️ Dentro ci sono `wwwroot` (`vipi-theme.css` coi `.br`/`.gz` + l'indice degli endpoint), il satellite
+inglese, `MySqlMigrations` e `Hosting`. **Gli assiemi cambiano firma fra loro**: nel foglio, prima tutti i file
+col nome finto, poi le rinomine di seguito, `Vipi.Host.dll` per ultimo.
+▶ **Dopo il caricamento**: Schema = 0; timbro; Ricerca; i sei «solo militare» ancora tali; e — da fare a mano,
+una volta — rivedere i campi finiti in «civile con presenza militare» (su dev c'è anche Ghedi).
+
 ▶ **Il prossimo gesto: leggere un `errori-richieste.txt` scaricato dopo una giornata di lavoro con 1.21.1.**
 Il committente mette i file in `diagnostica/` (fuori dal repo: portano i VID), poi
 `python tools/errori-per-era.py` divide le voci **per versione in servizio** e le conta per famiglia,
