@@ -1,5 +1,28 @@
 ﻿# Lavori aperti — elenco unico
 
+## Dove siamo — 12 settembre 2026
+
+✅ **1.24.0 È CARICATA** (12 settembre, detto dal committente). Da fuori, subito dopo: **otto controlli pubblici
+verdi** (Ricerca compresa), e le pagine toccate dalla consegna rese senza un errore — vSOP di **LIBV** e di
+**Ghedi** con le loro tabelle e la pista marcata, vIPI di **LIBD** e **LIBC** idem, elenco dei vSOP militari.
+Console pulita (il rumore di `ogs.google.com`/401 viene dagli iframe di Google Drive dentro quei documenti, e
+c'era già).
+
+⚠️ **Da fuori NON si distingue 1.24.0 da 1.23.0**, e va detto: il timbro è solo per gli amministratori, e la
+sezione nuova sulle pagine **pubbliche** non c'è ancora — una release è una fotografia, e «Regole piste» arriva
+alla **prossima pubblicazione** di ogni documento. Verificato: su LIBV in pubblica i *Dati generali* sono ancora
+quelli della release (nemmeno le SID di 1.21.0 ci sono).
+▶ **Le prove che restano vogliono il login**: (1) il timbro **`1.24.0 · ed4c0f3`**; (2) la **bozza** di un vSOP
+militare, dove «Regole piste» dev'essere fra Piste e SID; (3) su un campo **senza vIPI civile** (LIBN, LIMS),
+scrivere una regola dall'editor del vSOP e vedere la pista marcarsi nel documento.
+
+ℹ️ **`/vsop/health` dice «Degraded»** mentre `/vsop/health/ready` è «Healthy»: il corpo pubblico non riporta il
+conteggio, e sono le incongruenze dati che elenca la Diagnostica — con ogni probabilità quelle **già aperte**
+(LIBN e Ghedi «solo militare» con la vIPI civile ancora pubblicata). Da confermare col login.
+
+ℹ️ **In produzione LIBG non ha un vSOP pubblicato** («No military vSOP published»): la pagina è corretta così.
+In sviluppo invece ce l'ha, ed è il campo su cui è stata provata la funzione.
+
 ## Dove siamo — 11 settembre 2026
 
 ✅ **1.23.0 È CARICATA** (11 settembre, notte). Da fuori, subito dopo: **otto controlli pubblici verdi** (Ricerca
@@ -15,7 +38,7 @@ vIPI, o spostando i due campi in «Militare con presenza civile» (come LIRP). L
 (l'elenco nazionale) e non ad «ACC › Aeroporti»; la scheda dice «Documentazione militare» mentre la pagina
 `/services/vsop/mil` si intitola ancora «vSOP militari».
 
-📦 **1.24.0 — il pacchetto** (12 settembre 2026). Timbro **`1.24.0 · ed4c0f36`**, sha256 dello zip
+📦 **1.24.0 — il pacchetto** (12 settembre 2026, **caricato**). Timbro **`1.24.0 · ed4c0f36`**, sha256 dello zip
 **`9ae071869cc4b50a59532901afec7310e24e490dd564f4daefbb5ce7885190fd`**, **6 file** (`Vipi.Application`,
 `Vipi.Ui`, `Vipi.Host` coi `.pdb`), 3,34 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md`. **MINOR**
 (sezione nuova nel catalogo), **nessuna migrazione**, niente `wwwroot`, niente satellite inglese. Parte da
