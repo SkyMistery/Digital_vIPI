@@ -2,7 +2,7 @@
 
 ## Dove siamo — 11 settembre 2026
 
-📦 **1.21.1 È PRONTA E NON CARICATA.** Timbro **`1.21.1 · 034f9187`**, sha256 dello zip
+✅ **1.21.1 È CARICATA** (11 settembre, mattina; otto controlli pubblici verdi subito dopo). Timbro **`1.21.1 · 034f9187`**, sha256 dello zip
 **`cce670a1fc029d2420cb807878b6a88f4640d0d818d20a2f5cb9b029e14c7c71`**, **4 file** (`Vipi.Ui` e
 `Vipi.Host` coi `.pdb`), 2,32 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.1.md`. **PATCH**: porta
 solo §CW (qui sotto). Niente migrazioni, `wwwroot`, satellite inglese.
@@ -11,7 +11,7 @@ editor e le due pagine con la porta col lock preso, zero `fail:`.
 ⚠️ **Nel foglio c'è un consiglio nuovo sul caricamento**: per ogni file, le due rinomine **una subito dopo
 l'altra**. Fra le due il file non c'è, e qui il processo si riavvia da solo ogni ~50 s: stamattina l'avvio
 delle 06:56:55 è caduto proprio in quel buco.
-▶ **Il gesto che resta: caricarla via FTP.** La prova vera è un `errori-richieste.txt` di giorno.
+▶ **Restano due prove**: il timbro `1.21.1 · 034f9187` (barra da amministratore, o `avvio-diagnostica.txt`) e un `errori-richieste.txt` di giorno.
 
 🆕 **§CW: LA NRE DI RENDER DELL'EDITOR APP HA UN COLPEVOLE — un `ConfigureAwait(false)`.** Cercata dal 7
 settembre (§CF, §CN), strumentata in 1.18.2, e nei file di produzione scesi l'11 settembre **ha parlato**:
