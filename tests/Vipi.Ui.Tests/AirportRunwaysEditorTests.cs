@@ -51,7 +51,8 @@ public class AirportRunwaysEditorTests : TestContext
     {
         var c = Rendi(new List<RwEdit> { Rw("12"), Rw("30"), Rw("13", "2800") });
 
-        Assert.Equal(3, c.FindAll("tbody button").Count);
+        // `.btn`: dall'11 settembre 2026 nella riga ci sono anche i tasti delle chip.
+        Assert.Equal(3, c.FindAll("tbody button.btn").Count);
     }
 
     /// <summary>Una pista NUOVA invece non si inventa: «+ Pista» resta sotto chiave, perché un'aggiunta a
@@ -64,8 +65,8 @@ public class AirportRunwaysEditorTests : TestContext
 
         // A sorgente bloccata c'è la sola ✕ della riga; a sorgente libera si aggiunge «+ Pista».
         // ⚠️ Il tasto «Salva piste» non c'è più da nessuna delle due parti: ogni gesto scrive.
-        Assert.Single(bloccato.FindAll("button"));
-        Assert.Equal(2, libero.FindAll("button").Count);
+        Assert.Single(bloccato.FindAll("button.btn"));
+        Assert.Equal(2, libero.FindAll("button.btn").Count);
     }
 
     /// <summary>La ✕ toglie la riga e avvisa la pagina: è l'avviso che fa scattare il salvataggio.</summary>
@@ -76,7 +77,7 @@ public class AirportRunwaysEditorTests : TestContext
         var avvisi = 0;
         var c = Rendi(righe, suCambio: () => avvisi++);
 
-        c.FindAll("tbody button").ToList()[1].Click();
+        c.FindAll("tbody button.btn").ToList()[1].Click();
 
         Assert.Equal(new[] { "12" }, righe.Select(r => r.Ident).ToArray());
         Assert.Equal(1, avvisi);
@@ -94,9 +95,6 @@ public class AirportRunwaysEditorTests : TestContext
     [Theory]
     [InlineData(0)]   // TORA
     [InlineData(1)]   // LDA
-    [InlineData(2)]   // APP procedures
-    [InlineData(3)]   // Patterns
-    [InlineData(4)]   // Circling
     public void Scrivere_in_una_cella_editoriale_avvisa_la_pagina(int colonna)
     {
         var righe = new List<RwEdit> { Rw("12") };
@@ -118,6 +116,70 @@ public class AirportRunwaysEditorTests : TestContext
         c.FindAll("tbody tr td input").ToList()[0].Change("1700");
 
         Assert.Equal("1700", righe[0].Tora);
+    }
+
+    /// <summary>
+    /// APP procedures, Patterns e Circling sono chip dall'11 settembre 2026: il clic porta la voce nel modello
+    /// <b>e</b> avvisa la pagina. Stessa trappola della casella di testo: senza l'avviso l'auto-salvataggio
+    /// non parte e il valore resta solo a schermo.
+    /// </summary>
+    [Theory]
+    [InlineData(4, "RNP")]      // APP procedures
+    [InlineData(5, "L JET")]    // Patterns
+    [InlineData(6, "R")]        // Circling
+    public void Cliccare_una_chip_scrive_il_campo_e_avvisa(int cella, string voce)
+    {
+        var righe = new List<RwEdit> { Rw("12") };
+        var avvisi = 0;
+        var c = Rendi(righe, suCambio: () => avvisi++);
+
+        c.FindAll("tbody tr td").ToList()[cella].QuerySelectorAll("button.sh-chip")
+            .Single(b => b.TextContent == voce).Click();
+
+        var r = righe[0];
+        Assert.Equal(voce, cella switch { 4 => r.App, 5 => r.Patterns, _ => r.Circling });
+        Assert.Equal(1, avvisi);
+    }
+
+    /// <summary>La chip accesa lo dice (classe e <c>aria-pressed</c>), e un secondo clic la spegne.</summary>
+    [Fact]
+    public void Un_secondo_clic_spegne_la_chip()
+    {
+        var righe = new List<RwEdit> { new() { Ident = "12", App = "ILS, VOR" } };
+        var c = Rendi(righe);
+
+        IEnumerable<AngleSharp.Dom.IElement> Chip() =>
+            c.FindAll("tbody tr td").ToList()[4].QuerySelectorAll("button.sh-chip").Where(b => b.TextContent == "ILS");
+        Assert.Equal("true", Chip().Single().GetAttribute("aria-pressed"));
+
+        Chip().Single().Click();
+
+        Assert.Equal("VOR", righe[0].App);
+        Assert.Equal("false", Chip().Single().GetAttribute("aria-pressed"));
+    }
+
+    /// <summary>
+    /// ⚠️ Il caso dei documenti già scritti: «RNAV» non è nell'elenco, e resta una chip gialla con la sua ✕.
+    /// Cliccare un'altra chip non la tocca; la ✕ la toglie, e solo lei.
+    /// </summary>
+    [Fact]
+    public void La_voce_vecchia_resta_finche_non_la_si_toglie()
+    {
+        var righe = new List<RwEdit> { new() { Ident = "07", App = "\tILS, VOR, RNAV", Circling = "N" } };
+        var avvisi = 0;
+        var c = Rendi(righe, suCambio: () => avvisi++);
+
+        var app = c.FindAll("tbody tr td").ToList()[4];
+        Assert.Contains("RNAV", app.QuerySelector(".sh-chip.warn")!.TextContent);
+        Assert.Contains("N", c.FindAll("tbody tr td").ToList()[6].QuerySelector(".sh-chip.warn")!.TextContent);
+
+        app.QuerySelectorAll("button.sh-chip").Single(b => b.TextContent == "LOC").Click();
+        Assert.Equal("ILS, LOC, VOR, RNAV", righe[0].App);
+
+        c.FindAll("tbody tr td").ToList()[4].QuerySelector("button.rw-chip-x")!.Click();
+        Assert.Equal("ILS, LOC, VOR", righe[0].App);
+        Assert.Equal("N", righe[0].Circling);
+        Assert.Equal(2, avvisi);
     }
 
     /// <summary>L'ident resta in sola lettura a sorgente bloccata: la ✕ non ha allentato quello. ⚠️ Non è

@@ -2418,6 +2418,12 @@
 :where(.vipi-root) .sh-chip.warn{background:var(--tint-yellow);color:var(--warn-ink);border-color:var(--line-yellow)}
 :where(.vipi-root) button.sh-chip.warn:hover{background:var(--tint-gold)}
 :where(.vipi-root) .sh-chip.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
+/* Le chip delle colonne a scelta della tabella piste (APP procedures, Patterns, Circling): piu' strette dei
+   filtri di testata, perche' stanno in una cella e ce ne sono fino a nove. La chip gialla e' una voce scritta
+   col vecchio testo libero: porta la sua ✕ dentro. `.struct` davanti, o `.res-table td` vince. */
+:where(.vipi-root) .struct .rw-chips{display:flex;flex-wrap:wrap;gap:4px}
+:where(.vipi-root) .struct .rw-chips .sh-chip{font-size:11px;line-height:14px;padding:2px 8px;white-space:nowrap;display:inline-flex;align-items:center}
+:where(.vipi-root) .struct .rw-chips .rw-chip-x{border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 5px;font-size:10px;line-height:1}
 :where(.vipi-root) .onl-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ivao-green);display:inline-block;box-shadow:0 0 0 2px var(--on-dark-green)}
 :where(.vipi-root) .acc-row[draggable="true"]{cursor:grab}
 :where(.vipi-root) .acc-row.drop-ok{background:var(--tint-green);box-shadow:inset 0 0 0 2px var(--ivao-green)}

@@ -131,6 +131,91 @@ public static class AirportRunwayValidation
 }
 
 /// <summary>
+/// Le tre colonne a scelta della tabella piste — procedure d'avvicinamento, circuiti, circling — scritte a chip
+/// dall'11 settembre 2026. Prima erano testo libero, e il testo libero aveva prodotto «RNAV» accanto a «RNP», una
+/// tabulazione in testa a una cella e «N» per dire «niente circling».
+///
+/// <para>⚠️ <b>Lo storage NON cambia</b>: resta la stringa separata da virgole di prima (<c>"ILS, LOC, VOR"</c>).
+/// È quel che rende il cambio innocuo per i documenti già pubblicati — le release fotografano la stringa
+/// (<see cref="AirportRunwayRowView"/>), e la lettura continua a scriverla così com'è. Niente migrazione.</para>
+///
+/// <para>⚠️ <b>Quel che non sta nell'elenco non si butta</b>: un valore scritto col vecchio sistema resta nel campo
+/// e l'editor lo mostra come chip «fuori elenco» con la sua ✕. Toglierlo è un gesto di chi redige, mai un effetto
+/// collaterale del clic su un altro chip — altrimenti il primo clic su «ILS» cancellerebbe in silenzio l'«RNAV»
+/// che qualcuno aveva scritto, e il documento pubblicato successivo lo perderebbe senza che nessuno l'abbia
+/// deciso.</para>
+///
+/// <para>Cuore deterministico: stringa che entra, stringa che esce. Nessuna UI.</para>
+/// </summary>
+public static class RunwayChoices
+{
+    /// <summary>Procedure d'avvicinamento, nell'ordine in cui si scrivono.</summary>
+    public static readonly IReadOnlyList<string> App =
+        new[] { "ILS", "LOC", "RNP", "VOR", "NDB", "TAC", "HTAC", "PAR", "SRA" };
+
+    /// <summary>Circuiti di traffico.</summary>
+    public static readonly IReadOnlyList<string> Patterns = new[] { "L", "R", "L JET", "R JET" };
+
+    /// <summary>Lati del circling. ⚠️ Nessun chip = circling non ammesso: la cella si legge «—».</summary>
+    public static readonly IReadOnlyList<string> Circling = new[] { "L", "R" };
+
+    /// <summary>Un campo letto contro il suo elenco: le voci riconosciute e quelle che l'elenco non ha.</summary>
+    /// <param name="Known">Le voci dell'elenco presenti, scritte come le scrive l'elenco.</param>
+    /// <param name="Legacy">Le voci fuori elenco, nell'ordine in cui compaiono nel campo.</param>
+    public sealed record Parsed(IReadOnlyList<string> Known, IReadOnlyList<string> Legacy);
+
+    /// <summary>
+    /// Divide il campo sulle virgole (e sui punti e virgola, che il testo libero ammetteva) e confronta ogni
+    /// pezzo con l'elenco senza badare a maiuscole e spazi ripetuti: «l  jet» è «L JET». ⚠️ Non si divide sugli
+    /// spazi: «L JET» è UNA voce.
+    /// </summary>
+    public static Parsed Parse(string? value, IReadOnlyList<string> choices)
+    {
+        var known = new List<string>();
+        var legacy = new List<string>();
+        foreach (var raw in (value ?? "").Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+        {
+            var tok = Norm(raw);
+            if (tok.Length == 0) continue;
+            var hit = choices.FirstOrDefault(c => string.Equals(c, tok, StringComparison.OrdinalIgnoreCase));
+            if (hit is not null) { if (!known.Contains(hit)) known.Add(hit); }
+            else if (!legacy.Contains(tok, StringComparer.OrdinalIgnoreCase)) legacy.Add(tok);
+        }
+        return new Parsed(known, legacy);
+    }
+
+    /// <summary>
+    /// Accende o spegne una voce dell'elenco. Le voci si riscrivono nell'ordine dell'ELENCO, non in quello del
+    /// clic — così due piste con le stesse procedure si leggono uguali — e quelle fuori elenco restano in coda.
+    /// Campo vuoto = <c>null</c>, come prima delle chip.
+    /// </summary>
+    public static string? Toggle(string? value, IReadOnlyList<string> choices, string choice)
+    {
+        var p = Parse(value, choices);
+        var on = p.Known.ToHashSet();
+        if (!on.Remove(choice)) on.Add(choice);
+        return Compose(choices.Where(on.Contains), p.Legacy);
+    }
+
+    /// <summary>Toglie una voce fuori elenco: è l'unico modo in cui una voce vecchia lascia il campo.</summary>
+    public static string? RemoveLegacy(string? value, IReadOnlyList<string> choices, string legacy)
+    {
+        var p = Parse(value, choices);
+        return Compose(choices.Where(p.Known.Contains),
+            p.Legacy.Where(l => !string.Equals(l, legacy, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string? Compose(IEnumerable<string> known, IEnumerable<string> legacy)
+    {
+        var s = string.Join(", ", known.Concat(legacy));
+        return s.Length == 0 ? null : s;
+    }
+
+    private static string Norm(string s) =>
+        string.Join(' ', s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+}
+
+/// <summary>
 /// Il picker delle frequenze collegabili: filtro e nomi delle posizioni. Cuore deterministico, provabile
 /// senza montare niente.
 /// </summary>

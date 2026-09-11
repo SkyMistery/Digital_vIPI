@@ -17,7 +17,11 @@
 
    ⚠️ Niente tasto «Salva» e niente `CanEdit` dal 4 settembre 2026 (carta 2026-09-04-aeroporto-porta-sola):
    ogni gesto avvisa l'host, che salva subito passando dalla sua porta unica. Il cancello è `Editing` — il
-   lock del documento — e si legge come RAMO DI RENDER, non come `disabled`. *@
+   lock del documento — e si legge come RAMO DI RENDER, non come `disabled`.
+
+   ⚠️ APP procedures, Patterns e Circling sono CHIP dall'11 settembre 2026 (<RunwayChoiceChips>), non più testo
+   libero. Il campo salvato resta la stringa di prima: le regole, e il perché le voci vecchie non si buttano,
+   stanno in `RunwayChoices`. *@
 @inject IStringLocalizer<SharedResource> L
 
 @* ⚠️ L'aggancio sta su OGNI input (`@bind:after`), NON su un `@onchange` del contenitore. Il contenitore
@@ -49,7 +53,7 @@
         <div class="callout warning"><span class="cic">⚠️</span><div>@foreach (var p in problemi) { <div>@L[p.Key, p.Args]</div> }</div></div>
     }
     <table class="res-table">
-        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th>Circling</th>@if (Editing) { <th></th> }</tr></thead>
+        <thead><tr><th>@L["Ape_Runway"]</th><th>@L["Ape_LengthM"]</th><th>TORA</th><th>LDA</th><th>APP procedures</th><th>Patterns</th><th title="@L["Ape_RwCirclingNone"]">Circling</th>@if (Editing) { <th></th> }</tr></thead>
         <tbody>
             @foreach (var r in Rows)
             {
@@ -70,9 +74,9 @@
                     {
                         <td><input style="width:80px" @bind="r.Tora" @bind:after="Cambiato" /></td>
                         <td><input style="width:80px" @bind="r.Lda" @bind:after="Cambiato" /></td>
-                        <td><input style="width:150px" @bind="r.App" @bind:after="Cambiato" /></td>
-                        <td><input style="width:70px" @bind="r.Patterns" @bind:after="Cambiato" /></td>
-                        <td><input style="width:70px" @bind="r.Circling" @bind:after="Cambiato" /></td>
+                        <td><RunwayChoiceChips Choices="RunwayChoices.App" @bind-Value="r.App" @bind-Value:after="Cambiato" /></td>
+                        <td><RunwayChoiceChips Choices="RunwayChoices.Patterns" @bind-Value="r.Patterns" @bind-Value:after="Cambiato" /></td>
+                        <td><RunwayChoiceChips Choices="RunwayChoices.Circling" @bind-Value="r.Circling" @bind-Value:after="Cambiato" /></td>
                         <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
                     }
                     else

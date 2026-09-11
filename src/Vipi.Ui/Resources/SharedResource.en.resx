@@ -3314,6 +3314,9 @@
   <data name="Ape_RwMissingRow" xml:space="preserve"><value>gone from source</value></data>
   <data name="Ape_RwMissingRowTitle" xml:space="preserve"><value>The IVAO database no longer lists this runway. Move the editorial data and remove the row.</value></data>
   <data name="Ape_RwRemoveTitle" xml:space="preserve"><value>Remove the runway. If the source still has it, the next re-import brings it back.</value></data>
+  <data name="Ape_RwChipLegacyTitle" xml:space="preserve"><value>Written with the old free text and not in the list. It stays as it is until you remove it with the ✕.</value></data>
+  <data name="Ape_RwChipLegacyRemove" xml:space="preserve"><value>Remove “{0}”</value></data>
+  <data name="Ape_RwCirclingNone" xml:space="preserve"><value>No side chosen = circling not allowed.</value></data>
   <data name="Ape_ReimportOrphans" xml:space="preserve"><value>⚠️ Gone from the source, but kept because they hold hand-written data: {0}.</value></data>
   <data name="TrEd_Wait_Missing" xml:space="preserve"><value>{0} to translate</value></data>
   <data name="TrEd_Wait_Next" xml:space="preserve"><value>next round in ~{0} min</value></data>

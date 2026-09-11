@@ -1,0 +1,39 @@
+@* Una cella a chip della tabella piste: una voce dell'elenco per chip, accesa o spenta col clic.
+   Le regole — che cosa è nell'elenco, in che ordine si scrive, che cosa succede a una voce vecchia — stanno in
+   <see cref="RunwayChoices"/>; qui c'è solo il disegno.
+
+   ⚠️ Le voci fuori elenco (scritte col testo libero di prima) si mostrano come chip gialle con la loro ✕ e NON
+   si accendono né spengono: si possono solo togliere. È l'unico modo in cui lasciano il campo. *@
+@inject IStringLocalizer<SharedResource> L
+
+<div class="rw-chips">
+    @foreach (var c in Choices)
+    {
+        var on = _parsed.Known.Contains(c);
+        <button type="button" class="sh-chip @(on ? "on" : "")" aria-pressed="@(on ? "true" : "false")"
+                @onclick="() => Toggle(c)">@c</button>
+    }
+    @foreach (var l in _parsed.Legacy)
+    {
+        <span class="sh-chip warn" title="@L["Ape_RwChipLegacyTitle"]">@l<button type="button" class="rw-chip-x"
+              aria-label="@L["Ape_RwChipLegacyRemove", l]" @onclick="() => RemoveLegacy(l)">✕</button></span>
+    }
+</div>
+
+@code {
+    /// <summary>Il campo com'è salvato: voci separate da virgole, null = vuoto.</summary>
+    [Parameter] public string? Value { get; set; }
+
+    [Parameter] public EventCallback<string?> ValueChanged { get; set; }
+
+    /// <summary>L'elenco delle voci ammesse, nell'ordine in cui si scrivono (<see cref="RunwayChoices"/>).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<string> Choices { get; set; } = Array.Empty<string>();
+
+    private RunwayChoices.Parsed _parsed = new(Array.Empty<string>(), Array.Empty<string>());
+
+    protected override void OnParametersSet() => _parsed = RunwayChoices.Parse(Value, Choices);
+
+    private Task Toggle(string c) => ValueChanged.InvokeAsync(RunwayChoices.Toggle(Value, Choices, c));
+
+    private Task RemoveLegacy(string l) => ValueChanged.InvokeAsync(RunwayChoices.RemoveLegacy(Value, Choices, l));
+}
