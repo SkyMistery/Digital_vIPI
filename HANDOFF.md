@@ -1,6 +1,18 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (notte) — ✅ **1.23.0 È CARICATA**: otto controlli pubblici verdi, CSS
+**Ultimo aggiornamento:** 12 settembre 2026 — 📦 **1.24.0 È PRONTA, NON ANCORA CARICATA.** Timbro
+`1.24.0 · ed4c0f36`, **6 file** (`Vipi.Application`, `Vipi.Ui`, `Vipi.Host` coi `.pdb`), zip
+`9ae071869cc4b50a59532901afec7310e24e490dd564f4daefbb5ce7885190fd`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md). **MINOR**, nessuna
+migrazione, niente `wwwroot` e niente satellite inglese. Porta le **regole piste nel vSOP militare** con la pista
+in uso marcata in Piste e SID, e il **verdetto che segue la sezione** (vale anche per la vIPI civile):
+[`docs/feature/2026-09-11-regole-piste-nel-vsop-militare.md`](docs/feature/2026-09-11-regole-piste-nel-vsop-militare.md).
+Provata **sul pacchetto** win-x64: timbro, dieci controlli di `pacchetto-verifica.js`, e il giro vero — regola
+scritta dal vSOP, pubblicata, poi cambiata: la pubblica dice la regola pubblicata, la bozza quella nuova.
+⚠️ Al primo avvio la sezione entra anche nei vSOP già pubblicati: possono comparire fra i «da ripubblicare».
+Prima di questo lavoro il codice era stato passato a una **revisione indipendente** (nessun difetto che rompa).
+
+Prima: 11 settembre 2026 (notte) — ✅ **1.23.0 È CARICATA**: otto controlli pubblici verdi, CSS
 servito con l'impronta del pacchetto, le funzioni nuove viste da fuori in IT/EN. Tutto il codice è in produzione.
 ⚠️ Dati: LIBN e Ghedi (LIPL) sono «Solo militare» con la vIPI civile ancora pubblicata — da nascondere o da
 spostare in «Militare con presenza civile» (dettaglio in `docs/lavori-aperti.md`).

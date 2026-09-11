@@ -15,6 +15,22 @@ vIPI, o spostando i due campi in «Militare con presenza civile» (come LIRP). L
 (l'elenco nazionale) e non ad «ACC › Aeroporti»; la scheda dice «Documentazione militare» mentre la pagina
 `/services/vsop/mil` si intitola ancora «vSOP militari».
 
+📦 **1.24.0 — il pacchetto** (12 settembre 2026). Timbro **`1.24.0 · ed4c0f36`**, sha256 dello zip
+**`9ae071869cc4b50a59532901afec7310e24e490dd564f4daefbb5ce7885190fd`**, **6 file** (`Vipi.Application`,
+`Vipi.Ui`, `Vipi.Host` coi `.pdb`), 3,34 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md`. **MINOR**
+(sezione nuova nel catalogo), **nessuna migrazione**, niente `wwwroot`, niente satellite inglese. Parte da
+`da243f29` (1.23.0, online). Porta **§CX** e **§CY** (qui sotto).
+✅ Provata **sul pacchetto** win-x64 (porta 5199, copia del `vipi.db`): timbro in `avvio-diagnostica.txt`, i
+**dieci controlli** di `pacchetto-verifica.js`, e il giro vero su **LIBG** — nessuna regola ⇒ pista dal vento;
+scritta «Pubblicata» sulla 17 e **pubblicato**; cambiata in «DopoLaPubblicazione» sulla 35 ⇒ la **pubblica** dice
+«Pubblicata» e marca la **17**, la **bozza** dice l'altra e marca la **35**; sulla vIPI civile di **LIBC** (release
+vecchia) tabella della fotografia, **niente** pastiglia e **niente** didascalia. Zero errori di console, zero 4xx.
+⚠️ **Trappola dell'attrezzo, pagata due volte**: sul binario pubblicato il primo disegno è lento e tre secondi
+d'attesa non bastano a prendere il lock — il driver scriveva nel vuoto; e **ogni giro caduto lascia un lock di
+30 minuti** che blocca i successivi. Il driver ora **aspetta la condizione** invece di dormire a caso.
+▶ **Dopo il caricamento**: timbro `1.24.0 · ed4c0f3`, Ricerca, un vSOP militare con «Regole piste» fra Piste e
+SID, e — col login — una regola scritta dall'editor del vSOP che marca la pista nel documento.
+
 🆕 **§CY: IL VERDETTO DELLE REGOLE PISTE SEGUE LA SEZIONE** (12 settembre — in `main`, **non** in produzione).
 Deciso dal committente dopo la revisione di §CX: *«applica la soluzione 2, e sistema così anche le vIPI,
 ovunque compaiono le regole pista»*. La **tabella** seguiva già la sezione (Frozen = fotografia della release,
