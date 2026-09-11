@@ -1077,7 +1077,22 @@
       (CampiSoloMilitari) con un default vuoto: la riempie solo EfConsistencyReportRepository
       (Infrastructure), che e' nel pacchetto.
     -->
-    <VipiVersione>1.21.0</VipiVersione>
+    <!-- 1.21.1 - PATCH (11 settembre 2026). Una correzione sola, nessuna migrazione, nessuna pagina nuova.
+
+      SS.CW - LA NRE DI RENDER DELL'EDITOR APP. Cercata dal 7 settembre, strumentata in 1.18.2, e nei file di
+      produzione dell'11 settembre ha parlato: nello stesso disegno _shell.Doc era pieno alla riga che
+      sceglie il ramo e nullo due righe dopo. Lo azzerava il secondo caricamento, che aspettava il tornello
+      con ConfigureAwait(false) e ripartiva SUL POOL, scrivendo lo stato del componente mentre il
+      dispatcher lo disegnava. Tolto in DocumentEditorShell (CodaAsync, InFilaAsync) e in
+      ScopeProprioCheAspetta.InFilaAsync; lasciato nelle chiusure, che dopo l'attesa fanno solo
+      Release/Dispose. Tre test con un dispatcher di prova, rossi prima e verdi dopo.
+
+      I FILE. Il diff dei nomi fra 8291dd14 e HEAD, limitato a src/, nomina UN progetto: Vipi.Ui (due file).
+      Piu' Vipi.Host per il TIMBRO. Quattro file: i due .dll coi .pdb.
+      NIENTE satellite inglese (nessuna .resx toccata), NIENTE wwwroot, NIENTE MySqlMigrations.
+      FIRME: nessuna. DocumentEditorShell e ScopeProprioCheAspetta sono usati solo dentro Vipi.Ui.
+    -->
+    <VipiVersione>1.21.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
