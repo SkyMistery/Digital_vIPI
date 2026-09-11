@@ -301,9 +301,11 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         // prova che conta di quel giro: il vSOP di partenza e' VECCHIO e la sezione non ce l'aveva: se
         // compare qui, `AddMissingCatalogSectionsAsync` la semina davvero nei documenti gia' scritti, e
         // non solo in quelli nuovi. Senza, la funzione sarebbe accesa solo per i vSOP futuri.
+        // 🔴 Idem per «runwayrules» (11 settembre 2026, committente), fra le piste e le SID: stessa prova,
+        // stesso significato — un vSOP già scritto la riceve all'avvio, nel posto giusto.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "sids", "transition", "callsigns",
-                    "airportlayout", "parkings" },
+            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
+                    "callsigns", "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));
         // Le sezioni del profilo, né una di più — il numero lo conta il CATALOGO, non questa riga.

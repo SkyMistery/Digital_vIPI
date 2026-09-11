@@ -15,6 +15,21 @@ vIPI, o spostando i due campi in «Militare con presenza civile» (come LIRP). L
 (l'elenco nazionale) e non ad «ACC › Aeroporti»; la scheda dice «Documentazione militare» mentre la pagina
 `/services/vsop/mil` si intitola ancora «vSOP militari».
 
+🆕 **§CX: LE REGOLE PISTE NEL vSOP MILITARE** (11 settembre, notte — in `main`, **non** in produzione).
+Chiesto dal committente: *«le regole di pista nelle vSOP mancano; quando ci sono aeroporti senza vIPI non ci
+sono. Sotto la sezione delle piste, e deve funzionare esattamente come per le vIPI, suggerendo le piste in base
+alle regole»*. Deciso con lui: sezione **dopo Piste e prima delle SID**; sui campi **misti** c'è in sola
+lettura, col rimando all'editor civile (come le SID). Stessa chiave `runwayrules` del profilo civile, quindi
+congelamento, derivazione, semina nei vSOP già scritti e sezioni in comune arrivano senza codice nuovo.
+Il vSOP ora calcola la pista in uso (regole **vive**, poi vento) con lo **stesso** `PistaInUso.Calcola` della
+vIPI, e la marca in Piste e SID. Scrittura solo dove `ScaloSenzaCivile`. **Nessuna migrazione, nessuna chiave
+resx, niente `wwwroot`** ⇒ va in una **MINOR** (sezione nuova). ⚠️ Al primo avvio la sezione entra anche
+nell'ultima versione pubblicata dei vSOP: possono comparire fra i «da ripubblicare».
+✅ Suite verde (15 progetti-TFM), Release 0 avvisi, e provata dal vivo su LIBG (regola scritta dal vSOP ⇒ la 17
+marcata in bozza e in pubblica) e LIML (rimando). ⚠️ Trovato e non toccato: la pastiglia della regola attiva
+dice «QNH attuale» (chiave sbagliata, anche nella vIPI civile). Carta:
+`feature/2026-09-11-regole-piste-nel-vsop-militare.md`.
+
 📦 **1.23.0 — il pacchetto** (11 settembre, notte). Timbro **`1.23.0 · da243f29`**, sha256 dello zip
 **`80841e87b23b417c276f3526d87d627739b8b3d088f2ccd91cea9084d6906666`**, **9 file** (`Vipi.Ui`, `Vipi.Host` coi `.pdb`,
 `en/Vipi.Ui.resources.dll`, `vipi-theme.css` coi `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`), 2,55 MB,

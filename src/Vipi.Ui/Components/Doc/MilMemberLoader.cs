@@ -48,7 +48,13 @@ public sealed record MilMemberDocument(
     // scritto da una versione futura che le portasse non va perso in lettura.
     IReadOnlyList<AccSpecialAreaView> AreeBoat,
     IReadOnlyDictionary<string, MilActivity> AttivitaBoat,
-    IReadOnlyDictionary<string, string> NoteBoat)
+    IReadOnlyDictionary<string, string> NoteBoat,
+    // ---- La pista in uso ADESSO (11 settembre 2026): dalle regole piste, poi dal vento del METAR ----
+    // ⚠️ Lo STESSO calcolo della vIPI d'aeroporto (`PistaInUso`), perché è lo stesso campo: due pagine che
+    // sullo stesso scalo dicessero due piste diverse sarebbero peggio di nessuna delle due.
+    PistaInUsoAdesso InUso,
+    int? WindDir,
+    int WindKt)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -78,11 +84,15 @@ public sealed class MilMemberLoader
     private readonly IStationResolver _stations;
     private readonly ReadingLanguageContext _lingua;
 
+    /// <summary>L'anagrafica dello scalo, per le sole regole piste <b>vive</b>: la pista in uso adesso non è un
+    /// dato di release. È la stessa porta da cui la legge la vIPI d'aeroporto.</summary>
+    private readonly IAirportEditingService _scalo;
+
     public MilMemberLoader(IVipiViewService viewService, IAirportViewDerivationService airportView,
                            IMilitaryDocumentService militari, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
                            IWeatherProvider weather, IStationResolver stations,
-                           ReadingLanguageContext lingua)
+                           ReadingLanguageContext lingua, IAirportEditingService scalo)
     {
         _viewService = viewService;
         _airportView = airportView;
@@ -93,6 +103,7 @@ public sealed class MilMemberLoader
         _weather = weather;
         _stations = stations;
         _lingua = lingua;
+        _scalo = scalo;
     }
 
     public async Task<MilMemberDocument?> LoadAsync(string icao, PreviewMode mode, string? vista,
@@ -150,6 +161,17 @@ public sealed class MilMemberLoader
         var metar = string.IsNullOrWhiteSpace(wx?.Metar) ? null : MetarParser.ParseMetar(wx!.Metar!);
         var taf = string.IsNullOrWhiteSpace(wx?.Taf) ? null : MetarParser.ParseTaf(wx!.Taf!);
         var derivate = await _airportView.ResolveForViewAsync(code, useFrozen, ReleaseTargetType.AirportMil, ct: ct);
+
+        // La pista in uso ADESSO, come nella vIPI d'aeroporto: le regole si valutano sempre VIVE — anche in
+        // anteprima di una release passata, perché «dove si decolla adesso» è una domanda sul presente — e la
+        // tabella delle regole, invece, arriva dalle derivate come tutto il resto (congelata in pubblica).
+        // ⚠️ Fino all'11 settembre 2026 il vSOP non aveva la sezione, e per questo non marcava niente: le
+        // regole c'erano solo nell'anagrafica, e la vIPI civile era l'unica pagina che le leggesse.
+        var profilo = await _scalo.LoadForViewAsync(code, ct);
+        var windDir = metar?.Wind is { Calm: false, DirectionDeg: int d } ? d : (int?)null;
+        var windKt = metar?.Wind?.SpeedKt ?? 0;
+        var inUso = PistaInUso.Calcola(profilo, derivate.Sids,
+            derivate.Runways.Rows.Select(r => r.Ident).ToList(), windDir, windKt, metar);
 
         // ⚠️ Gli id delle aree li porta il DOCUMENTO mostrato; shape e descrizioni vengono dai cataloghi
         // correnti — come nella vIPI ACC e nell'APP. Si legge PRIMA della traduzione: la sezione tradotta
@@ -209,7 +231,7 @@ public sealed class MilMemberLoader
         return new MilMemberDocument(code, view, mode, relCycle, bloccata, tradotto.Coverage, haMarcate,
                                      letturaVista, civile, derivate, station, wx, metar, taf, aree,
                                      radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi,
-                                     areeBoat, attivitaBoat, noteBoat);
+                                     areeBoat, attivitaBoat, noteBoat, inUso, windDir, windKt);
     }
 
     /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>

@@ -33,7 +33,9 @@ public static class TitoliUfficiali
     /// ⚠️ Solo i titoli che nel PDF ci sono davvero: <c>weather</c> e <c>transition</c> sono aggiunte
     /// nostre e il loro inglese lo scriviamo noi, quindi stanno qui per lo stesso motivo — è la nostra
     /// parola, non una resa automatica. Dal 6 settembre 2026 valgono anche le dodici sezioni dell'indice
-    /// chiesto dal SOD: lì l'inglese è il SUO, ed è quello che va in memoria.
+    /// chiesto dal SOD: lì l'inglese è il SUO, ed è quello che va in memoria. Dall'11 settembre 2026 c'è
+    /// anche un titolo nato nel catalogo CIVILE («Regole piste»), entrato nel vSOP: non viene da un PDF, ma
+    /// l'originale lo conosciamo lo stesso — ed è questo il criterio, non la provenienza militare.
     /// </summary>
     public static readonly IReadOnlyList<(string It, string En)> Sezioni = new[]
     {
@@ -83,6 +85,12 @@ public static class TitoliUfficiali
         ("SID", "SID"),
         ("STAR", "STAR"),
         ("VFR", "VFR"),
+        // Le regole di scelta pista (11 settembre 2026): entrate nel vSOP dal catalogo civile, quindi
+        // l'inglese è quello del CATALOGO, «Runway selection rules». ⚠️ Vale per tutti i documenti — la
+        // memoria è una sola — ed è voluto: sulla vIPI di Linate la macchina l'aveva resa «Slope rules»
+        // (lavori-aperti, verifica §V1). La ragione che tiene insieme questa tabella non è «militare», è «di
+        // questo titolo conosciamo l'originale».
+        ("Regole piste", "Runway selection rules"),
         ("Validità e revisione", "Validity and Revision"),
     };
 

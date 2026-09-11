@@ -331,6 +331,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-10-sid-nel-vsop-militare.md`](feature/2026-09-10-sid-nel-vsop-militare.md) — Le SID nel vSOP militare 🟢
 - [`feature/2026-09-10-solo-militare-con-vipi-civile.md`](feature/2026-09-10-solo-militare-con-vipi-civile.md) — Campo «solo militare» con una vIPI civile: dirlo, e dire come uscirne 🟢
 - [`feature/2026-09-11-categorie-aeroporto.md`](feature/2026-09-11-categorie-aeroporto.md) — Le quattro categorie d'aeroporto: chi le decide e quali documenti ammette 🟢
+- [`feature/2026-09-11-regole-piste-nel-vsop-militare.md`](feature/2026-09-11-regole-piste-nel-vsop-militare.md) — Le regole piste nel vSOP militare, con la pista in uso 🟢
 
 ### `guide`
 

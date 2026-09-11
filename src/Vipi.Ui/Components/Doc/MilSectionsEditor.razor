@@ -319,6 +319,10 @@ else
     private int? _ta;
     private List<TlEdit> _tls = new();
     private List<RwEdit> _rwys = new();
+
+    /// <summary>Le regole piste (11 settembre 2026): lo stesso buffer dell'editor d'aeroporto, perché è lo
+    /// stesso dato — le regole stanno nell'anagrafica dello scalo, non nel vSOP.</summary>
+    private List<RuleEdit> _rules = new();
     private List<int> _linkIds = new();
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
     private IReadOnlyList<AirportSectorRow> _sectors = Array.Empty<AirportSectorRow>();
@@ -604,6 +608,7 @@ else
             Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
             Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
         }).ToList();
+        _rules = dati.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
 
         // Le SID, dallo STESSO `AirportData` degli altri tre: una lettura sola per tutta l'anagrafica.
@@ -832,6 +837,14 @@ else
                                       Editing="_shell.IsEditing" RowsChanged="SalvaPiste"
                                       ConfirmRemove="ConfermaRimozionePista" />
                 break;
+            @* Le regole piste, e SOLO su un campo senza vIPI civile, come le SID: sui campi misti le scrive
+               l'editor civile e qui resta il rimando. Stesso componente, col suo banco di prova: chi scrive
+               una regola vede subito quale pista sceglierebbe con un vento dato. *@
+            case "runwayrules":
+                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()"
+                                          Editing="_shell.IsEditing" RowsChanged="SalvaRegole"
+                                          ConfirmRemove="ConfermaRimozioneRegola" />
+                break;
             case "frequencies":
                 <AirportFrequenciesEditor Catalogo="FreqRows().ToList()" LinkIds="_linkIds" Linkable="_linkable"
                                           Editing="_shell.IsEditing" LinksChanged="SalvaLink" />
@@ -868,6 +881,7 @@ else
     private Task<bool> Conferma(string messaggio) => JS.InvokeAsync<bool>("confirm", messaggio).AsTask();
     private Task<bool> ConfermaRimozioneRiga() => Conferma(L["Ape_RemoveRowConfirm"].Value);
     private Task<bool> ConfermaRimozionePista() => Conferma(L["Ape_RemoveRwConfirm"].Value);
+    private Task<bool> ConfermaRimozioneRegola() => Conferma(L["Ape_RemoveRuleConfirm"].Value);
 
     /// <summary>
     /// I salvataggi dell'anagrafica: ogni gesto scrive, dalla stessa porta dei blocchi del documento
@@ -904,6 +918,12 @@ else
         : Task.CompletedTask;
 
     private Task SalvaLink() => _shell.GuardedAsync(() => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
+
+    /// <summary>Le regole piste dello scalo: la stessa porta dell'editor d'aeroporto
+    /// (<c>SaveRunwayRulesAsync</c>, con la sua guardia del lock), e lo stesso cancello per le righe a metà.</summary>
+    private Task SalvaRegole() => AirportSaveGate.Rules(_rules)
+        ? _shell.GuardedAsync(() => Scalo.SaveRunwayRulesAsync(_icao, _rules.Select(AirportRuleMapping.ToRow).ToList()))
+        : Task.CompletedTask;
 
     // ---- le SID -----------------------------------------------------------------------------------------
     //

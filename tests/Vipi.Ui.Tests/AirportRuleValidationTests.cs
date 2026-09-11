@@ -140,6 +140,19 @@ public class AirportRuleValidationTests
     }
 
     [Fact]
+    public void Caricare_e_risalvare_una_regola_non_perde_NIENTE()
+    {
+        // ⚠️ La lettura (`FromRow`) dall'11 settembre 2026 serve a due editor — la vIPI d'aeroporto e il vSOP
+        // militare — e un campo dimenticato qui si perderebbe al primo salvataggio, su tutt'e due: si carica
+        // la regola, si tocca un'altra cella, e la riga torna al database senza la parità o senza la finestra.
+        var salvata = AirportRuleMapping.ToRow(RegolaCompleta());
+
+        var ricaricata = AirportRuleMapping.ToRow(AirportRuleMapping.FromRow(salvata));
+
+        Assert.Equal(salvata, ricaricata);
+    }
+
+    [Fact]
     public void L_ora_diventa_minuti_dalla_mezzanotte()
     {
         Assert.Equal(22 * 60 + 30, AirportRuleMapping.TimeToMin(new TimeOnly(22, 30)));

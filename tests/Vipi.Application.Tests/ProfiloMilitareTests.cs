@@ -32,23 +32,58 @@ public class ProfiloMilitareTests
         // ⚠️ Quarantatré dal 6 settembre 2026: trentadue meno «qra» (fuori: non sta in nessuno dei quindici
         // PDF) più le dodici dell'indice chiesto dal SOD.
         // ⚠️ QUARANTAQUATTRO dal 10 settembre 2026: le SID (committente).
-        Assert.Equal(44, Tutte(Mil).Count());
+        // ⚠️ QUARANTACINQUE dall'11 settembre 2026: le regole piste (committente).
+        Assert.Equal(45, Tutte(Mil).Count());
+    }
+
+    // ---- Le regole piste (carta 2026-09-11-regole-piste-nel-vsop-militare.md) --------------------------
+
+    /// <summary>
+    /// Le regole piste stanno in «Dati generali», <b>subito dopo le Piste</b> e prima delle SID — deciso dal
+    /// committente. Sorelle e non figlie di «Piste», come le SID.
+    /// </summary>
+    [Fact]
+    public void Le_regole_piste_stanno_subito_DOPO_le_piste_e_prima_delle_SID()
+    {
+        var generali = Mil.Single(d => d.Key == "generaldata").Children!.OrderBy(d => d.Order).Select(d => d.Key).ToList();
+
+        var piste = generali.IndexOf("runways");
+        Assert.Equal("runwayrules", generali[piste + 1]);
+        Assert.Equal("sids", generali[piste + 2]);
+    }
+
+    /// <summary>
+    /// ⚠️ La STESSA chiave del profilo civile, ed è ciò che fa arrivare tutto il resto senza una riga nuova: il
+    /// congelamento alla release (`AirportFrozenSectionProvider`, registrato per le due edizioni, sa già
+    /// fotografare «runwayrules»), la derivazione per la vista, e la scheda delle sezioni in comune in
+    /// un'unione vIPI + vSOP dello stesso scalo. Una chiave nuova che le somigliasse non avrebbe nessuna delle tre.
+    /// </summary>
+    [Fact]
+    public void Le_regole_piste_sono_la_STESSA_sezione_derivata_del_profilo_civile()
+    {
+        Assert.NotNull(SectionCatalog.Find(SectionProfile.Airport, "runwayrules"));
+        Assert.NotNull(SectionCatalog.Find(SectionProfile.AirportMil, "runwayrules"));
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.AirportMil, "runwayrules"));
+        Assert.False(SectionCatalog.KeepsOwnBlocks(SectionProfile.AirportMil, "runwayrules"));
+        Assert.Equal(SectionKind.Derived, SectionCatalog.KindOf("runwayrules"));
     }
 
     // ---- Le SID (carta 2026-09-10-sid-nel-vsop-militare.md) --------------------------------------------
 
     /// <summary>
-    /// Le SID stanno in «Dati generali», <b>subito dopo le piste</b> — deciso dal committente.
-    /// <para>🔴 SORELLA e non figlia: figlia starebbe accanto a «Coordinate delle soglie» e porterebbe il
-    /// profilo oltre <c>MaxDepth</c>, che qui è già toccato. Il test lo pinna perché la differenza fra le
-    /// due si vede solo scendendo nell'albero.</para>
+    /// Le SID stanno in «Dati generali», <b>subito dopo le piste</b> — deciso dal committente. Dall'11
+    /// settembre 2026 fra le due ci sono le regole piste, sempre per decisione del committente.
+    /// <para>🔴 SORELLA e non figlia: è una scelta d'indice. ⚠️ Qui c'era scritto che una figlia «porterebbe il
+    /// profilo oltre <c>MaxDepth</c>»: non è vero — «Dati generali › Piste › figlia» sta a profondità 2, come
+    /// le soglie, e il limite è 3. Il test lo pinna perché la differenza fra le due si vede solo scendendo
+    /// nell'albero.</para>
     /// </summary>
     [Fact]
     public void Le_SID_stanno_subito_DOPO_le_piste_dentro_i_dati_generali()
     {
         var generali = Mil.Single(d => d.Key == "generaldata").Children!.OrderBy(d => d.Order).Select(d => d.Key).ToList();
 
-        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "sids", "transition",
+        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
                              "callsigns", SectionKeys.AirportLayout, "parkings" }, generali);
         // E non è figlia di «Piste»: là sotto c'è solo la sotto-sezione delle soglie.
         var piste = Mil.Single(d => d.Key == "generaldata").Children!.Single(d => d.Key == "runways");
@@ -83,7 +118,7 @@ public class ProfiloMilitareTests
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
         Assert.Equal(7, Mil.Count);
-        Assert.Equal(9, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(10, Mil.Single(d => d.Key == "generaldata").Children!.Count);
         Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(9, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
@@ -243,7 +278,7 @@ public class ProfiloMilitareTests
 
         var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
 
-        Assert.Equal(44, chiavi.Count);
+        Assert.Equal(45, chiavi.Count);
         Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
     }
 

@@ -14,7 +14,9 @@
 @using Vipi.Domain
 @using Vipi.Application.Content
 @using Vipi.Ui.Components.App
+@using Vipi.Application.Auth
 @inject IStringLocalizer<SharedResource> L
+@inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">
     <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.AirportMil"
@@ -31,6 +33,15 @@
     /// <para>⚠️ Deve restare uguale a quella che riceve <c>DocumentToc</c>, o l'indice punterebbe a un id che
     /// non esiste e i suoi link non farebbero niente — senza errori.</para></summary>
     public static string AnchorOf(SectionView s) => s.Id;
+
+    /// <summary>
+    /// Se mostrare la <b>meccanica</b> delle regole piste: quale regola sta vincendo adesso, e da dove viene
+    /// la pista marcata. Da <c>DivisionStaff</c> in su, la stessa soglia della vIPI d'aeroporto
+    /// (<c>AirportDocumentBody.MeccanicaVisibile</c>, decisione del committente del 4 settembre 2026).
+    /// <para>⚠️ La pagina è SSR STATICA e senza cache d'uscita, quindi il livello si chiede qui: ogni
+    /// richiesta ha il suo scope e la sua risposta. Dietro una cache questo cancello andrebbe rifatto.</para>
+    /// </summary>
+    private bool MeccanicaVisibile => Authz.IsDivisionStaff;
 
     /// <summary>
     /// Il corpo delle sezioni rese dalla pagina. ⚠️ Sono le STESSE dell'aeroporto civile perché parlano dello
@@ -57,7 +68,24 @@
                congelano, o una frequenza corretta oggi cambierebbe un SOP pubblicato al ciclo scorso. *@
             case "navaids": <MilNavaids Rows="Doc.Radioassistenze" />; break;
             case "diversion": <MilDiversions Rows="Doc.Alternati" />; break;
-            case "runways": <AirportRunways View="Doc.Derivate.Runways" />; break;
+            @* Le Piste marcano la pista IN USO adesso — dalle regole, poi dal vento — come nella vIPI
+               d'aeroporto: stesso componente, stessi parametri, stesso calcolo (`PistaInUso`). *@
+            case "runways":
+                <AirportRunways View="Doc.Derivate.Runways" DepIdents="Doc.InUso.Dep" ArrIdents="Doc.InUso.Arr"
+                                MostraProvenienza="MeccanicaVisibile"
+                                RuleName="@(Doc.InUso.Regola is null ? null : Doc.InUso.Regola.RuleName ?? $"#{Doc.InUso.Regola.RuleIndex + 1}")"
+                                RuleNote="@Doc.InUso.Regola?.Note" WindDir="Doc.WindDir" WindKt="Doc.WindKt"
+                                HasRain="@(Doc.Metar?.HasRain == true)" HasSnow="@(Doc.Metar?.HasSnow == true)" />;
+                break;
+            @* Le regole piste (11 settembre 2026, committente), subito dopo le Piste. Stanno nell'ANAGRAFICA
+               dello scalo come le SID: su un campo misto le scrive la vIPI civile, su uno solo militare
+               l'editor di questo vSOP. ⚠️ Il segno «adesso» (quale regola sta vincendo) solo da
+               `DivisionStaff` in su, come nella vIPI: la tabella è contenuto pubblicato, il collegamento
+               col momento è meccanica. *@
+            case "runwayrules":
+                <AirportRunwayRules View="Doc.Derivate.Rules"
+                                    ActivePosition="@(MeccanicaVisibile && Doc.InUso.Regola is not null ? Doc.InUso.Regola.RuleIndex + 1 : null)" />;
+                break;
             @* ⚠️ Le soglie sono SOLO militari — nella vIPI civile non c'è questa sezione — e dal 6
                settembre 2026 sono una sotto-sezione di «Piste» invece della sua seconda tabella (indice
                del SOD).
@@ -69,12 +97,13 @@
                derivazione: il dato sta nell'ANAGRAFICA dello scalo, non nel documento — la vIPI civile è
                solo la porta di scrittura. `MilMemberLoader` le calcolava già dentro `AirportDerived` e le
                buttava via, perché il profilo militare non aveva la sezione.
-               ⚠️ Niente `InitialRunway` né `DepIdents`, e non è una dimenticanza: quelli marcano la pista
-               IN USO ADESSO, che si decide dalle regole piste — una sezione che il profilo militare NON ha.
-               Seminarli qui vorrebbe dire inventare una seconda derivazione di un dato che questo documento
-               non mostra. Il filtro per pista resta, si sceglie a mano. *@
+               Dall'11 settembre 2026 anche `InitialRunway` e `DepIdents`: marcano la pista IN USO adesso,
+               che si decide dalle regole piste — e le regole ora il vSOP le ha. Fino a quel giorno mancavano
+               apposta: senza la sezione sarebbero state una derivazione di un dato che il documento non
+               mostrava. *@
             case "sids":
-                <AirportSids View="Doc.Derivate.Sids" Lingua="@Doc.Bloccata"
+                <AirportSids View="Doc.Derivate.Sids" InitialRunway="@Doc.InUso.SidRwy" Lingua="@Doc.Bloccata"
+                             DepIdents="Doc.InUso.Dep.ToArray()"
                              TransitionAltitudeFt="Doc.Derivate.Transition.TransitionAltitudeFt" />;
                 break;
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
