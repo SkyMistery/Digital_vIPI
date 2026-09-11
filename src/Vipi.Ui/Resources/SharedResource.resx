@@ -2562,7 +2562,7 @@
   <data name="Services_Title" xml:space="preserve"><value>Servizi ATC</value></data>
   <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — documentazione operativa</value></data>
   <data name="Services_VsopDesc" xml:space="preserve"><value>vIPI di ACC, aeroporti (con i vSOP militari), APP e vLOA: le procedure con cui si lavora in frequenza.</value></data>
-  <data name="Services_ForAtc" xml:space="preserve"><value>Per i controllori ATC</value></data>
+  <data name="Services_ForAtc" xml:space="preserve"><value>Per i controllori del traffico aereo</value></data>
   <data name="Services_ForMilPilots" xml:space="preserve"><value>Per i piloti militari</value></data>
   <data name="Services_MilTitle" xml:space="preserve"><value>Documentazione militare</value></data>
   <data name="Services_MilDesc" xml:space="preserve"><value>I vSOP dei campi militari italiani: le procedure operative da consultare prima del volo.</value></data>

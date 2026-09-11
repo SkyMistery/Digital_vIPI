@@ -2554,7 +2554,7 @@
   <data name="Services_Title" xml:space="preserve"><value>ATC Services</value></data>
   <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — operational documentation</value></data>
   <data name="Services_VsopDesc" xml:space="preserve"><value>ACC vIPI, airports (with the military vSOPs), APP and vLOA: the procedures you work with on frequency.</value></data>
-  <data name="Services_ForAtc" xml:space="preserve"><value>For ATC controllers</value></data>
+  <data name="Services_ForAtc" xml:space="preserve"><value>For air traffic controllers</value></data>
   <data name="Services_ForMilPilots" xml:space="preserve"><value>For military pilots</value></data>
   <data name="Services_MilTitle" xml:space="preserve"><value>Military documentation</value></data>
   <data name="Services_MilDesc" xml:space="preserve"><value>The vSOPs of the Italian military airfields: the operating procedures to read before you fly.</value></data>

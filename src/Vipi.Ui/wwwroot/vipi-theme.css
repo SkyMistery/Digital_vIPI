@@ -1100,6 +1100,9 @@
 :where(.vipi-root) .svc-doors .big-choice.nav-card{flex-direction:row;flex-wrap:wrap}
 :where(.vipi-root) .svc-doors .big-choice .ic{flex:none;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 16%,transparent)}
 :where(.vipi-root) .svc-doors .big-choice .bc-body{flex:1 1 260px;min-width:0}
+/* Il pubblico sopra il titolo e' la cosa da leggere per prima: piu' grande e piu' pesante dell'eyebrow
+   delle altre schede grandi (11px), che li' e' solo un'etichetta. */
+:where(.vipi-root) .svc-doors .big-choice .eyebrow{font-size:14px;font-weight:800;letter-spacing:.06em;margin-bottom:2px}
 :where(.vipi-root) .svc-doors .big-choice.c-mil{background:linear-gradient(110deg,color-mix(in srgb,var(--cat-mil) 16%,var(--surface)),var(--surface-soft));border-color:color-mix(in srgb,var(--cat-mil) 40%,var(--line))}
 :where(.vipi-root) .svc-doors .big-choice.c-mil .bc-open{background:var(--cat-mil)}
 :where(.vipi-root) .svc-doors .big-choice.c-mil:hover .bc-open{background:color-mix(in srgb,var(--cat-mil) 80%,#000)}
