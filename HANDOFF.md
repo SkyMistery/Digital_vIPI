@@ -1,6 +1,6 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (sera) — 📦 **1.22.1 è PRONTA, da caricare** (PATCH, 6 file, timbro
+**Ultimo aggiornamento:** 11 settembre 2026 (sera) — ✅ **1.22.1 è CARICATA** (otto controlli pubblici verdi; PATCH, 6 file, timbro
 `1.22.1 · 659c334b`, zip `939981b1…`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md)): «ILS, VOR» e il
 pannello «Settori ATC» nel vSOP senza vIPI. ✅ 1.22.0 è online (otto controlli pubblici verdi). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.

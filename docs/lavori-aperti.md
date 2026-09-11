@@ -2,7 +2,9 @@
 
 ## Dove siamo — 11 settembre 2026
 
-📦 **1.22.1 — PRONTA, da caricare** (11 settembre, sera). Timbro **`1.22.1 · 659c334b`**, sha256 dello zip
+✅ **1.22.1 È CARICATA** (11 settembre, sera): otto controlli pubblici verdi; 92 celle APP su 37 vIPI pubbliche tutte «X, Y». ⚠️ Dati da correggere a mano: LIBN pista 32 «ILS. TAC» (punto al posto della virgola), LIPL 13R/13L «CIRCLING» nella colonna APP.
+
+📦 **1.22.1 — il pacchetto** (11 settembre, sera). Timbro **`1.22.1 · 659c334b`**, sha256 dello zip
 **`939981b135919b2e226cdee3160018083b707e196947fc71cf657391179f664e`**, **6 file** (`Vipi.Application`, `Vipi.Ui`,
 `Vipi.Host` coi `.pdb`), 3,33 MB, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.1.md`. **PATCH**: niente
 migrazioni, `wwwroot` (91 asset identici per impronta), satellite inglese. Porta:
