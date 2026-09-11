@@ -209,6 +209,24 @@ public class AirportRunwaysEditorTests : TestContext
         Assert.Contains("2800", c.Markup);
     }
 
+    /// <summary>
+    /// Il VISUALIZZATORE scrive le procedure «ILS, VOR» anche se l'archivio — o lo snapshot di una release già
+    /// pubblicata — le porta nella forma del vecchio testo libero (committente, 11 settembre 2026).
+    /// </summary>
+    [Fact]
+    public void Il_visualizzatore_scrive_le_procedure_con_virgola_e_spazio()
+    {
+        var view = new Vipi.Application.Content.AirportRunwaysView(new[]
+        {
+            new Vipi.Application.Content.AirportRunwayRowView("07", 3000, "3000", "3000", "ILS,VOR", "L", "—"),
+        });
+
+        var c = RenderComponent<AirportRunways>(p => p.Add(x => x.View, view).Add(x => x.Legend, false));
+
+        Assert.Contains(c.FindAll("tbody td"), td => td.TextContent == "ILS, VOR");
+        Assert.DoesNotContain("ILS,VOR", c.Markup);
+    }
+
     /// <summary>Le orfane si dichiarano: un callout in cima e un contrassegno sulla riga giusta, così chi
     /// apre l'aeroporto sa quali piste la sorgente non nomina più e perché sono ancora lì.</summary>
     [Fact]

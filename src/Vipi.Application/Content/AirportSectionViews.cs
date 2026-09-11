@@ -49,6 +49,40 @@ public sealed record AirportRunwayRowView(string Ident, int? LengthM, string Tor
     string AppProcedures, string Patterns, string Circling,
     string Threshold = "", int? ThresholdElevationFt = null);
 
+/// <summary>
+/// Una colonna a elenco della tabella piste — le procedure d'avvicinamento — letta come elenco: le voci si
+/// scrivono <b>«ILS, VOR»</b>, una virgola e uno spazio fra l'una e l'altra, qualunque sia la forma in cui sono
+/// in archivio (chiesto dal committente l'11 settembre 2026).
+///
+/// <para>⚠️ Esiste perché il testo libero di prima delle chip ha lasciato forme diverse — «VOR,RNP», una
+/// tabulazione in testa, il punto e virgola — e lo storage è rimasto quella stringa. Le chip riscrivono la forma
+/// giusta al primo clic; questa la dà a chi <b>legge</b> senza aspettare che qualcuno clicchi.</para>
+///
+/// <para>⚠️ Si applica al <b>disegno</b>, non alla proiezione: le release congelano la stringa di allora, e
+/// così anche i documenti già pubblicati escono nella forma giusta senza ripubblicarli. Cambiarla nella
+/// proiezione avrebbe fatto sembrare «da ripubblicare» ogni aeroporto con la forma vecchia, per una virgola.</para>
+///
+/// <para>È anche la regola con cui le chip (<c>RunwayChoices</c>) dividono il campo: una sola definizione di
+/// «dove finisce una voce», o lettura e scrittura non si troverebbero d'accordo.</para>
+/// </summary>
+public static class AirportRunwayLists
+{
+    /// <summary>Le voci del campo: divise sulle virgole e sui punti e virgola, spazi ripetuti ridotti a uno.
+    /// ⚠️ Non si divide sugli spazi: «L JET» è UNA voce.</summary>
+    public static IReadOnlyList<string> Tokens(string? value) =>
+        (value ?? "").Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => string.Join(' ', t.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)))
+            .Where(t => t.Length > 0)
+            .ToList();
+
+    /// <summary>Il campo come si legge: «ILS, VOR». Vuoto = «—», come ogni cella editoriale vuota.</summary>
+    public static string Format(string? value)
+    {
+        var voci = Tokens(value);
+        return voci.Count == 0 ? "—" : string.Join(", ", voci);
+    }
+}
+
 /// <summary>Sezione «Piste».</summary>
 public sealed record AirportRunwaysView(IReadOnlyList<AirportRunwayRowView> Rows)
 {

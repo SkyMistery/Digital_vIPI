@@ -44,7 +44,9 @@
                 <td>@(r.LengthM?.ToString() ?? "—")</td>
                 <td>@r.Tora</td>
                 <td>@r.Lda</td>
-                <td>@r.AppProcedures</td>
+                @* «ILS, VOR» qualunque sia la forma in archivio: vedi AirportRunwayLists. Al disegno, così vale
+                   anche per le release già congelate. *@
+                <td>@AirportRunwayLists.Format(r.AppProcedures)</td>
                 <td>@r.Patterns</td>
                 <td>@r.Circling</td>
             </tr>

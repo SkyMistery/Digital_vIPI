@@ -165,18 +165,16 @@ public static class RunwayChoices
     public sealed record Parsed(IReadOnlyList<string> Known, IReadOnlyList<string> Legacy);
 
     /// <summary>
-    /// Divide il campo sulle virgole (e sui punti e virgola, che il testo libero ammetteva) e confronta ogni
-    /// pezzo con l'elenco senza badare a maiuscole e spazi ripetuti: «l  jet» è «L JET». ⚠️ Non si divide sugli
-    /// spazi: «L JET» è UNA voce.
+    /// Divide il campo con la regola della lettura (<see cref="AirportRunwayLists.Tokens"/>: virgole e punti e
+    /// virgola, spazi ripetuti ridotti) e confronta ogni pezzo con l'elenco senza badare alle maiuscole: «l  jet»
+    /// è «L JET». ⚠️ Non si divide sugli spazi: «L JET» è UNA voce.
     /// </summary>
     public static Parsed Parse(string? value, IReadOnlyList<string> choices)
     {
         var known = new List<string>();
         var legacy = new List<string>();
-        foreach (var raw in (value ?? "").Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries))
+        foreach (var tok in AirportRunwayLists.Tokens(value))
         {
-            var tok = Norm(raw);
-            if (tok.Length == 0) continue;
             var hit = choices.FirstOrDefault(c => string.Equals(c, tok, StringComparison.OrdinalIgnoreCase));
             if (hit is not null) { if (!known.Contains(hit)) known.Add(hit); }
             else if (!legacy.Contains(tok, StringComparer.OrdinalIgnoreCase)) legacy.Add(tok);
@@ -210,9 +208,6 @@ public static class RunwayChoices
         var s = string.Join(", ", known.Concat(legacy));
         return s.Length == 0 ? null : s;
     }
-
-    private static string Norm(string s) =>
-        string.Join(' ', s.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 }
 
 /// <summary>
