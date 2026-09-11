@@ -1092,7 +1092,26 @@
       NIENTE satellite inglese (nessuna .resx toccata), NIENTE wwwroot, NIENTE MySqlMigrations.
       FIRME: nessuna. DocumentEditorShell e ScopeProprioCheAspetta sono usati solo dentro Vipi.Ui.
     -->
-    <VipiVersione>1.21.1</VipiVersione>
+    <!-- 1.22.0 - MINOR (11 settembre 2026). Due funzioni nuove, UNA migrazione ADDITIVA.
+
+      PISTE A CHIP (e71843ed). APP procedures, Patterns e Circling non sono piu' testo libero: chip cliccabili.
+      Lo storage resta la stringa di prima, quindi niente migrazione e le release pubblicate non si muovono;
+      le voci vecchie fuori elenco (RNAV, circling «N») restano come chip gialle finche' non si tolgono.
+
+      LE QUATTRO CATEGORIE D'AEROPORTO (6226ecbd). Airport.Category prende il posto di IsMilitaryOnly: Civile,
+      solo militare, civile con presenza militare, militare con presenza civile — e decide quali documenti lo
+      scalo ammette. Migrazione CategoriaAeroporto: UN AddColumn con default 'Civil', niente altro (finestra
+      cieca). Il travaso lo fa la passata d'avvio ReconcileAirportCategoriesAsync; IsMilitaryOnly resta in
+      tabella come specchio.
+
+      I FILE. Il diff dei nomi fra 034f9187 e HEAD, limitato a src/, nomina SEI progetti: Domain, Application,
+      Infrastructure, Infrastructure.MySqlMigrations (la colonna), Hosting (la passata d'avvio), Ui. Piu'
+      Vipi.Host per il TIMBRO. Piu' il satellite inglese (frasi nuove e tolte) e vipi-theme.css col suo indice.
+      FIRME: cambiate parecchie (AirportStation, AirportAdminRow, IStructureEditingRepository,
+      IDocumentMaintenance...). Implementazioni e chiamanti stanno TUTTI nei sei assiemi spediti: gli Aurora*
+      non ne nominano nessuna (controllato col testo).
+    -->
+    <VipiVersione>1.22.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
