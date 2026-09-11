@@ -1046,7 +1046,38 @@
       · UnionView perde Host/IsHostTarget/IsHostDocument e UnionMemberView perde IsHost. Chi li chiamava
         stava solo in Ui, che e' nel pacchetto.
     -->
-    <VipiVersione>1.20.0</VipiVersione>
+    <!-- 1.21.0 - MINOR (11 settembre 2026). Due lavori chiesti dal committente PRIMA di caricare 1.20.0,
+      e arrivati in main DOPO che quel pacchetto era chiuso. NESSUNA migrazione: si consegna da sola.
+
+      MINOR e non PATCH, e non e' un'opinione: una PATCH e' «solo correzioni, nessuna pagina o sezione
+      nuova», e SS.CV aggiunge una SEZIONE al catalogo dei vSOP militari.
+
+      SS.CU - UN CAMPO «SOLO MILITARE» CON UNA vIPI CIVILE LO SI DICE. Marcarlo solo militare non tocca la
+      vIPI civile (decisione del committente: resta finche' qualcuno non la nasconde o la elimina). Adesso
+      la pastiglia militare chiede CONFERMA quando accende il flag su un campo che una vIPI civile ce l'ha
+      gia' - e solo li' - e la Diagnostica ha un rilievo nuovo che dice i DUE gesti per uscirne: nascondere
+      E sciogliere l'unione, perche' la pubblicazione accoppiata non guarda IsHidden. Il caso a posto TACE.
+
+      SS.CV - LE SID NEL vSOP MILITARE. Sezione «SID» in Dati generali, subito dopo le Piste. Si LEGGE
+      dall'anagrafica dell'aeroporto su tutti i campi; si SCRIVE nel vSOP solo sui campi solo militari
+      senza vIPI civile (sui misti resta la porta dell'editor civile).
+      ATTENZIONE - AL PRIMO AVVIO SI SCRIVE NEI DATI: la passata AddMissingCatalogSectionsAsync, che gira da
+      sempre, trova la chiave nuova e aggiunge la sezione ai vSOP militari GIA' SCRITTI. E' una scrittura di
+      righe, non di schema - la stessa strada di ogni sezione aggiunta al catalogo. Sulle pagine pubbliche la
+      sezione compare alla PROSSIMA pubblicazione di ciascun vSOP: una release gia' in vigore non cambia.
+
+      I FILE. Il diff dei nomi fra 775170f3 e HEAD, limitato a src/, nomina TRE progetti: Application,
+      Infrastructure, Ui. Piu' Vipi.Host per il TIMBRO (entra anche se il suo codice non e' cambiato: la
+      versione e' un AssemblyMetadata di quel progetto). Nove file: i quattro .dll coi .pdb, piu' il
+      satellite inglese (le due .resx sono cambiate: sei chiavi nuove, nessuna tolta).
+      NIENTE wwwroot e NIENTE MySqlMigrations: nessun .css/.js toccato, nessuna migrazione nuova. Lo schema
+      resta quello di 1.20.0.
+
+      FIRME: nessuna interfaccia toccata. ConsistencyDataset guadagna una proprieta' init
+      (CampiSoloMilitari) con un default vuoto: la riempie solo EfConsistencyReportRepository
+      (Infrastructure), che e' nel pacchetto.
+    -->
+    <VipiVersione>1.21.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
