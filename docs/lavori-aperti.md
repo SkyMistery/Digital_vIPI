@@ -10,6 +10,11 @@ landing ed elenco. Nessuna migrazione, niente `wwwroot` a parte `vipi-theme.css`
 (`AccLanding_MilDesc`, `Airport_ChipCivil*`, `Airport_ChipMilitaryTitle`) e una nuova (`Airport_ChipAll`).
 Carta: `feature/2026-09-11-categorie-aeroporto.md` §«Gli aeroporti dell'ACC». ▶ Andrà in **1.23.0** (MINOR: cambia
 la pagina pubblica) — con `vipi-theme.css` e il satellite inglese.
+Seguiti della stessa sera, stessa destinazione: il vSOP dall'ACC si apre in **vista ATC** e le due voci stanno
+accanto al nome (`34462482`); **`/services` ripensata** in due porte per pubblico — «Per i controllori ATC» (vSOP)
+e «Per i piloti militari» (Documentazione militare) — più «Strumenti per controllori», senza banner; e via la
+scheda dei vSOP militari da `/services/vsop`. Chiavi resx tolte `Services_Intro`, `Mil_Desc`; nuove
+`Services_ForAtc`, `Services_ForMilPilots`, `Services_MilTitle`, `Services_MilDesc`, `Services_ToolsSection`.
 
 ✅ **1.22.1 È CARICATA** (11 settembre, sera): otto controlli pubblici verdi; 92 celle APP su 37 vIPI pubbliche tutte «X, Y». ⚠️ Dati da correggere a mano: LIBN pista 32 «ILS. TAC» (punto al posto della virgola), LIPL 13R/13L «CIRCLING» nella colonna APP.
 

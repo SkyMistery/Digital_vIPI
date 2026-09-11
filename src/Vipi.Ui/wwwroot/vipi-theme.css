@@ -1093,6 +1093,16 @@
 :where(.vipi-root) .big-choice .bc-body .muted{font-size:13.5px}
 :where(.vipi-root) .big-choice .bc-open{margin-left:auto;flex:none;padding:10px 24px;border-radius:999px;background:var(--ivao-blue);color:var(--on-brand);font-weight:700;font-size:14px}
 :where(.vipi-root) .big-choice.nav-card:hover .bc-open{background:var(--ivao-lightblue)}
+/* Le due PORTE di /services, una per pubblico (11 settembre 2026): icona | testo | «Apri» in riga, a capo sul
+   telefono. La porta dei piloti militari prende l'oliva dell'edizione militare, perche' le due si devono
+   distinguere a colpo d'occhio: sono due pubblici, non due voci dello stesso elenco. */
+:where(.vipi-root) .nav-card.c-mil{--accent:var(--cat-mil);--accent-ink:var(--cat-mil-ink)}
+:where(.vipi-root) .svc-doors .big-choice.nav-card{flex-direction:row;flex-wrap:wrap}
+:where(.vipi-root) .svc-doors .big-choice .ic{flex:none;color:var(--accent-ink);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+:where(.vipi-root) .svc-doors .big-choice .bc-body{flex:1 1 260px;min-width:0}
+:where(.vipi-root) .svc-doors .big-choice.c-mil{background:linear-gradient(110deg,color-mix(in srgb,var(--cat-mil) 16%,var(--surface)),var(--surface-soft));border-color:color-mix(in srgb,var(--cat-mil) 40%,var(--line))}
+:where(.vipi-root) .svc-doors .big-choice.c-mil .bc-open{background:var(--cat-mil)}
+:where(.vipi-root) .svc-doors .big-choice.c-mil:hover .bc-open{background:color-mix(in srgb,var(--cat-mil) 80%,#000)}
 
 /* ---------- Screen 3: vIPI doc ---------- */
 :where(.vipi-root) .doc-layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:30px;align-items:start}

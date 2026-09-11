@@ -86,6 +86,22 @@ public class ServicesHomeTests : TestContext
     }
 
     /// <summary>
+    /// Le due documentazioni sono due PORTE, una per pubblico, e ognuna lo dice (11 settembre 2026): la vSOP
+    /// ai controllori, quella militare ai piloti militari. Gli strumenti stanno fuori, sotto.
+    /// </summary>
+    [Fact]
+    public void Le_due_porte_dicono_a_chi_sono()
+    {
+        var cut = Render(VipiRole.User);
+        var porte = cut.FindAll(".svc-doors a.big-choice")
+            .Select(a => (a.GetAttribute("href") ?? "", a.QuerySelector(".eyebrow")!.TextContent.Trim()))
+            .ToList();
+
+        Assert.Equal(new[] { ("/services/vsop", "Services_ForAtc"), ("/services/vsop/mil", "Services_ForMilPilots") }, porte);
+        Assert.Empty(cut.FindAll(".hero"));
+    }
+
+    /// <summary>
     /// Il convertitore è per lo staff di divisione, e chi non lo è non deve nemmeno vedere la porta: un elenco
     /// di porte chiuse è la stessa cosa che la barra admin evita da sempre (regola 120).
     /// </summary>

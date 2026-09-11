@@ -2552,9 +2552,13 @@
   <data name="Swap_Done" xml:space="preserve"><value>Done: {0} sections copied into {1} profiles, downloaded as “{2}”.</value></data>
   <data name="Swap_Note" xml:space="preserve"><value>Unselected sections stay byte-for-byte identical.</value></data>
   <data name="Services_Title" xml:space="preserve"><value>ATC Services</value></data>
-  <data name="Services_Intro" xml:space="preserve"><value>The tools for those controlling in IVAO Italy.</value></data>
   <data name="Services_VsopTitle" xml:space="preserve"><value>vSOP — operational documentation</value></data>
-  <data name="Services_VsopDesc" xml:space="preserve"><value>ACC vIPI, airports, APP and vLOA: the procedures you work with on frequency.</value></data>
+  <data name="Services_VsopDesc" xml:space="preserve"><value>ACC vIPI, airports (with the military vSOPs), APP and vLOA: the procedures you work with on frequency.</value></data>
+  <data name="Services_ForAtc" xml:space="preserve"><value>For ATC controllers</value></data>
+  <data name="Services_ForMilPilots" xml:space="preserve"><value>For military pilots</value></data>
+  <data name="Services_MilTitle" xml:space="preserve"><value>Military documentation</value></data>
+  <data name="Services_MilDesc" xml:space="preserve"><value>The vSOPs of the Italian military airfields: the operating procedures to read before you fly.</value></data>
+  <data name="Services_ToolsSection" xml:space="preserve"><value>Tools for controllers</value></data>
   <data name="Services_SwapperDesc" xml:space="preserve"><value>Copy whole sections between Aurora .cpr profiles, with no manual copy-paste.</value></data>
   <data name="Services_Open" xml:space="preserve"><value>Open</value></data>
   <data name="Chrome_Services" xml:space="preserve"><value>Services</value></data>
@@ -2868,7 +2872,6 @@
   <data name="Mil_DerivedNote" xml:space="preserve"><value>This card is drawn by the document from the airport data. To change it:</value></data>
   <data name="Mil_DerivedLink" xml:space="preserve"><value>airport editor</value></data>
   <data name="Mil_OwnDataNote" xml:space="preserve"><value>This data belongs to the airport record, not to the document: you write it here because the field is military only and has no civil vIPI. What you change applies to anything else that cites this field.</value></data>
-  <data name="Mil_Desc" xml:space="preserve"><value>Standard operating procedures of the Italian military airfields: read by both pilots and controllers.</value></data>
   <data name="Mil_Intro" xml:space="preserve"><value>These are the SOPs of the Italian military airfields. Readers can filter by audience using the chip at the top of the document.</value></data>
   <data name="PageIntro_Title" xml:space="preserve"><value>Page intro</value></data>
   <data name="PageIntro_Unsaved" xml:space="preserve"><value>Unsaved changes</value></data>

@@ -14,9 +14,13 @@
 ```
 /                                       → 301 a /services
 /services                               Hub dei servizi  ............. ServicesHome.razor
-├─ vSOP — documentazione operativa                 → /services/vsop
-├─ Aurora Profile Swapper                          → /services/profile-swapper
-└─ Statistiche ATC                                 → /services/stats
+│  (dall'11-09-2026 niente banner: due PORTE grandi, una per pubblico, poi gli strumenti)
+├─ [Per i controllori ATC]  vSOP — documentazione operativa   → /services/vsop
+├─ [Per i piloti militari]  Documentazione militare           → /services/vsop/mil  (scorciatoia)
+├─ Strumenti per controllori:
+│  ├─ Le mie statistiche ATC                       → /services/stats
+│  └─ Aurora Profile Swapper                       → /services/profile-swapper
+└─ [staff di divisione] Spazi aerei · Convertitore · [Editor] Coerenza sectorfile
 
 /services/profile-swapper               Copia sezioni fra profili Aurora .cpr  ... ProfileSwapperPage.razor
 
@@ -40,6 +44,7 @@
 ├─ Ricerca: titolo + AIRAC + barra
 ├─ Card ACC (codice, nome, n° ATC online)        → /services/vsop/{acc}
 ├─ Navigazione rapida: "Cosa è cambiato"         → /services/vsop/changed
+│  (⚠️ dall'11-09-2026 niente scheda «vSOP militari»: gli ATC li trovano negli Aeroporti dell'ACC)
 └─ [staff/editori] Documenti · Bozze&Versioni (= hub editor unificato, tasto «Nuovo documento») · Tutte le schermate · Struttura · Permessi
 
 /services/vsop/{acc}                             Landing ACC  ................. AccLanding.razor

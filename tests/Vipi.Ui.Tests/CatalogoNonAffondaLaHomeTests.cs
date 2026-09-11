@@ -124,7 +124,7 @@ public class CatalogoNonAffondaLaHomeTests : TestContext
 
         // Il resto della pagina — gli strumenti, che col catalogo non c'entrano — è tutto lì.
         var indirizzi = cut.FindAll("a.choice").Select(a => a.GetAttribute("href")).ToList();
-        Assert.Contains("/services/vsop/mil", indirizzi);
+        Assert.Contains("/services/vsop/changed", indirizzi);
         Assert.Contains("/services/stats", indirizzi);
     }
 
