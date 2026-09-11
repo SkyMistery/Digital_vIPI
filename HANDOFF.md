@@ -4,7 +4,10 @@
 compresa) e le pagine toccate dalla consegna rese senza errori. ⚠️ Da fuori non si distingue da 1.23.0 — il
 timbro è per gli amministratori e la sezione nuova arriva alla **prossima pubblicazione** di ogni documento —
 quindi restano tre prove col login: il timbro `1.24.0 · ed4c0f3`, «Regole piste» nella **bozza** di un vSOP, e
-una regola scritta dall'editor di un campo senza vIPI civile. Il pacchetto: timbro
+una regola scritta dall'editor di un campo senza vIPI civile. **Da dove si riprende** sta in fondo alla voce del
+12 settembre in [`docs/lavori-aperti.md`](docs/lavori-aperti.md): le tre prove col login, la verifica di «Da
+fare» (due difetti, sei migliorie, nessun codice scritto), i tre rilievi rimasti dalla revisione di §CX e i dati
+da decidere in produzione. Il pacchetto: timbro
 `1.24.0 · ed4c0f36`, **6 file** (`Vipi.Application`, `Vipi.Ui`, `Vipi.Host` coi `.pdb`), zip
 `9ae071869cc4b50a59532901afec7310e24e490dd564f4daefbb5ce7885190fd`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.0.md). **MINOR**, nessuna

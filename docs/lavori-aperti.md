@@ -23,6 +23,27 @@ conteggio, e sono le incongruenze dati che elenca la Diagnostica — con ogni pr
 ℹ️ **In produzione LIBG non ha un vSOP pubblicato** («No military vSOP published»): la pagina è corretta così.
 In sviluppo invece ce l'ha, ed è il campo su cui è stata provata la funzione.
 
+### ▶ Da dove si riprende, in ordine
+
+Il codice è tutto in produzione, l'albero è pulito e spinto. Niente è in sospeso a metà.
+
+1. **Le tre prove col login** qui sopra: il committente ha detto «pare sia andata bene», ma il timbro e la
+   sezione nella bozza **non li ha ancora guardati nessuno**, e finché è così restano prove aperte — non
+   difetti, non conferme.
+2. **La verifica di «Da fare»** (11 settembre): **solo analisi, nessun codice scritto** — non ha una carta in
+   `docs/feature/`, sta qui. Due difetti veri: un incarico *preso in carico* non si chiude quando la
+   segnalazione che l'ha generato sparisce (la carta `2026-08-26-da-fare-una-lista-sola.md` §2/D5 promette il
+   contrario), e la frase di «la copia pubblicata è indietro» resta **ferma alla prima apertura** perché
+   `RaiseAsync` non riscrive gli argomenti di una riga già aperta. La miglioria che pesa di più: la deriva si
+   calcola **una volta ogni 24 ore**, quindi un trasferimento cambiato alle 10 compare in «Da fare» il giorno
+   dopo.
+3. **Quel che resta dalla revisione indipendente di §CX**: la pastiglia della regola attiva usa la chiave
+   `Airport_QnhNow` («QNH attuale») anche nella vIPI civile; `MilMemberLoader` non passa il ciclo della release
+   alle derivate, quindi in `?as=rel:` le SID del vSOP sono quelle di oggi (preesistente dal 10 settembre);
+   mancano test di componente sul collegamento corpo → Piste/SID/regole.
+4. **I dati da decidere in produzione**, che non sono codice: LIBN e Ghedi «solo militare» con la vIPI civile
+   ancora pubblicata; i refusi nelle colonne APP di LIBN (32 «ILS. TAC») e LIPL (13R/13L «CIRCLING»).
+
 ## Dove siamo — 11 settembre 2026
 
 ✅ **1.23.0 È CARICATA** (11 settembre, notte). Da fuori, subito dopo: **otto controlli pubblici verdi** (Ricerca
