@@ -1,6 +1,11 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (notte) — 📦 **1.23.0 È PRONTA, da caricare.** MINOR senza migrazione,
+**Ultimo aggiornamento:** 11 settembre 2026 (notte) — ✅ **1.23.0 È CARICATA**: otto controlli pubblici verdi, CSS
+servito con l'impronta del pacchetto, le funzioni nuove viste da fuori in IT/EN. Tutto il codice è in produzione.
+⚠️ Dati: LIBN e Ghedi (LIPL) sono «Solo militare» con la vIPI civile ancora pubblicata — da nascondere o da
+spostare in «Militare con presenza civile» (dettaglio in `docs/lavori-aperti.md`).
+
+Il pacchetto: MINOR senza migrazione,
 **9 file** (`Vipi.Ui`, `Vipi.Host` coi `.pdb`, satellite inglese, `vipi-theme.css` coi `.br`/`.gz` + indice degli
 endpoint), timbro `1.23.0 · da243f29`, zip `80841e87b23b417c276f3526d87d627739b8b3d088f2ccd91cea9084d6906666`,
 foglio [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.23.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.23.0.md). Porta i vSOP

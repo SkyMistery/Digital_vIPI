@@ -2,6 +2,19 @@
 
 ## Dove siamo — 11 settembre 2026
 
+✅ **1.23.0 È CARICATA** (11 settembre, notte). Da fuori, subito dopo: **otto controlli pubblici verdi** (Ricerca
+compresa); `vipi-theme.css` servito col token `?v=805cc499` = l'impronta del pacchetto; `/services` senza banner con
+le due porte in IT («PER I CONTROLLORI DEL TRAFFICO AEREO») e in EN («FOR AIR TRAFFIC CONTROLLERS» ⇒ satellite
+arrivato), tasto militare oliva; niente scheda militare su `/services/vsop` né sulle landing delle quattro ACC;
+filtri per categoria e vSOP con `&vista=atc` negli elenchi; console pulita.
+⚠️ **Dati da decidere** (non codice): in produzione **LIBN** e **LIPL (Ghedi)** sono «Solo militare» ma hanno
+**ancora la vIPI civile pubblicata**, quindi nell'elenco compaiono con due voci. Si chiude o nascondendo quelle
+vIPI, o spostando i due campi in «Militare con presenza civile» (come LIRP). La Diagnostica li segnala.
+✅ Chiusa la domanda di 1.22.0 «in prod nessun solo militare?»: ora LIBN, LIBV e LIPL lo sono.
+▶ **Proposte al committente, non fatte**: il breadcrumb del vSOP militare porta ancora a «vSOP militari»
+(l'elenco nazionale) e non ad «ACC › Aeroporti»; la scheda dice «Documentazione militare» mentre la pagina
+`/services/vsop/mil` si intitola ancora «vSOP militari».
+
 📦 **1.23.0 — il pacchetto** (11 settembre, notte). Timbro **`1.23.0 · da243f29`**, sha256 dello zip
 **`80841e87b23b417c276f3526d87d627739b8b3d088f2ccd91cea9084d6906666`**, **9 file** (`Vipi.Ui`, `Vipi.Host` coi `.pdb`,
 `en/Vipi.Ui.resources.dll`, `vipi-theme.css` coi `.br`/`.gz`, `Vipi.Host.staticwebassets.endpoints.json`), 2,55 MB,
@@ -11,14 +24,14 @@ avvio, dieci controlli di `pacchetto-verifica.js`, filtri/voci/vista ATC su LIMM
 IT/EN e a 400px. ▶ **Dopo il caricamento**: timbro, Ricerca, `/services` (tasto militare **oliva** = CSS
 arrivato), un elenco aeroporti con campi militari, «FOR AIR TRAFFIC CONTROLLERS» in inglese.
 
-🆕 **Gli aeroporti dell'ACC, per categoria (11 settembre, notte — in 1.23.0).** Chiesto dal
+✅ **Gli aeroporti dell'ACC, per categoria (11 settembre, notte — online con 1.23.0).** Chiesto dal
 committente: su `/services/vsop/{acc}` via il riquadro «vSOP militari»; su `/services/vsop/{acc}/airports` tutti gli
 scali con almeno un documento pubblico (anche i solo militari), filtri «Tutti» + quattro categorie, e due voci
 («vIPI civile» / «vSOP militare») sulla scheda di chi li ha tutt'e due. Una regola sola, `AeroportiDellAcc`, per
 landing ed elenco. Nessuna migrazione, niente `wwwroot` a parte `vipi-theme.css`; chiavi resx tolte
 (`AccLanding_MilDesc`, `Airport_ChipCivil*`, `Airport_ChipMilitaryTitle`) e una nuova (`Airport_ChipAll`).
-Carta: `feature/2026-09-11-categorie-aeroporto.md` §«Gli aeroporti dell'ACC». ▶ Andrà in **1.23.0** (MINOR: cambia
-la pagina pubblica) — con `vipi-theme.css` e il satellite inglese.
+Carta: `feature/2026-09-11-categorie-aeroporto.md` §«Gli aeroporti dell'ACC». Uscito con **1.23.0** (MINOR: cambia
+la pagina pubblica), con `vipi-theme.css` e il satellite inglese.
 Seguiti della stessa sera, stessa destinazione: il vSOP dall'ACC si apre in **vista ATC** e le due voci stanno
 accanto al nome (`34462482`); **`/services` ripensata** in due porte per pubblico — «Per i controllori ATC» (vSOP)
 e «Per i piloti militari» (Documentazione militare) — più «Strumenti per controllori», senza banner; e via la
