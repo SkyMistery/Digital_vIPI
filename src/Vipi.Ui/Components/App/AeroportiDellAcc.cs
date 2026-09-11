@@ -11,9 +11,14 @@ public sealed record AeroportoInElenco(AirportRow Scalo, bool HaVipi, bool HaVso
 {
     public string VipiHref(string acc) => $"/services/vsop/{acc.ToLowerInvariant()}/airports?icao={Scalo.Icao}";
 
-    /// <summary>⚠️ Senza <c>vista=pilota</c>: chi arriva dall'ACC vede il documento intero. La vista pilota
-    /// la mette solo l'elenco NAZIONALE, che si consulta come lo consulta un pilota.</summary>
-    public string VsopHref(string acc) => $"/services/vsop/{acc.ToLowerInvariant()}/mil?icao={Scalo.Icao}";
+    /// <summary>
+    /// ⚠️ In vista <b>ATC</b> (committente, 11 settembre 2026): chi arriva dalla documentazione di un'ACC è un
+    /// controllore, come chi arriva dall'elenco NAZIONALE è un pilota — lì la vista è <c>pilota</c>. Sta
+    /// nell'indirizzo e non è un default nascosto della pagina: resta condivisibile, e la chip in testata
+    /// riporta a «Tutto» con un clic. Su un documento senza sezioni marcate non filtra niente.
+    /// </summary>
+    public string VsopHref(string acc) =>
+        $"/services/vsop/{acc.ToLowerInvariant()}/mil?icao={Scalo.Icao}&vista={AudienceFilter.QueryAtc}";
 
     /// <summary>Dove porta la riga quando c'è posto per UN solo collegamento: la vIPI se c'è, altrimenti il
     /// vSOP. Un campo solo militare ha soltanto il secondo.</summary>

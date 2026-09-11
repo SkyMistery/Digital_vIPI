@@ -31,7 +31,7 @@ public class AeroportiDellAccTests
         var voce = Assert.Single(elenco);
         Assert.False(voce.HaVipi);
         Assert.True(voce.HaVsop);
-        Assert.Equal("/services/vsop/limm/mil?icao=LIPL", voce.Href("LIMM"));
+        Assert.Equal("/services/vsop/limm/mil?icao=LIPL&vista=atc", voce.Href("LIMM"));
     }
 
     [Fact]
@@ -44,7 +44,8 @@ public class AeroportiDellAccTests
         var voce = Assert.Single(elenco);
         Assert.True(voce.HaVipi && voce.HaVsop);
         Assert.Equal("/services/vsop/limm/airports?icao=LIBV", voce.VipiHref("LIMM"));
-        Assert.Equal("/services/vsop/limm/mil?icao=LIBV", voce.VsopHref("LIMM"));
+        // Il vSOP si apre in vista ATC: dall'ACC arriva un controllore.
+        Assert.Equal("/services/vsop/limm/mil?icao=LIBV&vista=atc", voce.VsopHref("LIMM"));
         // Dove c'è posto per un collegamento solo, vince la vIPI.
         Assert.Equal(voce.VipiHref("LIMM"), voce.Href("LIMM"));
     }

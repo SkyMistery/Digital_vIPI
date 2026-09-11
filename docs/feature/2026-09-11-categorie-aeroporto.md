@@ -117,8 +117,11 @@ vIPI **e** vSOP la scheda ha **due voci**, una per documento.
   finché qualcuno non lo nasconde (decisione 3 qui sopra). Toglierlo dall'elenco lo renderebbe irraggiungibile
   senza spegnerlo.
 - **La scheda** — con un documento solo resta un link intero (al vSOP se è l'unico); con due diventa un
-  riquadro con «vIPI civile» e «vSOP militare», perché un `<a>` dentro un `<a>` non è HTML. La riga della
-  landing ha posto per un link: la vIPI se c'è, altrimenti il vSOP.
+  riquadro con «vIPI civile» e «vSOP militare» **accanto al nome** (a capo se non c'è posto), perché un `<a>`
+  dentro un `<a>` non è HTML. La riga della landing ha posto per un link: la vIPI se c'è, altrimenti il vSOP.
+- **Il vSOP si apre in vista ATC** (`&vista=atc`), da ogni collegamento di questo elenco e della landing: dall'ACC
+  arriva un controllore, come dall'elenco nazionale arriva un pilota (`vista=pilota`). La chip in testata
+  riporta a «Tutto»; su un vSOP senza sezioni marcate non filtra niente (e la chip non compare).
 - **I filtri** — «Tutti» più le quattro categorie, dal più civile al più militare; la barra c'è solo con
   almeno due categorie presenti, e dentro ci sono sempre tutte e quattro (a zero spente, **neutre**: il verde
   di `sh-chip:disabled` vuol dire «coda vuota, bene»).

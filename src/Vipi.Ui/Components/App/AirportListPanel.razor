@@ -54,16 +54,12 @@ else
             var ap = voce.Scalo;
             var n = OnlineSu(ap.Icao);
             @* ⚠️ Con DUE documenti la scheda non è più un link unico: un <a> dentro un <a> non è HTML valido, e
-               il browser lo spezza da sé. Diventa un riquadro con due voci, una per documento. Con un documento
-               solo resta tutta cliccabile, com'era. *@
+               il browser lo spezza da sé. Diventa un riquadro con due voci accanto al nome, una per documento.
+               Con un documento solo resta tutta cliccabile, com'era. *@
             @if (voce.HaVipi && voce.HaVsop)
             {
                 <div class="choice apt-card apt-two">
                     @Corpo(voce, n)
-                    <div class="apt-docs">
-                        <a class="btn ghost" href="@voce.VipiHref(Acc)"><Icon Name="plane" Size="13" /> @L["Mil_LinkToCivil"]</a>
-                        <a class="btn ghost mil" href="@voce.VsopHref(Acc)"><Icon Name="shield" Size="13" /> @L["Mil_LinkFromCivil"]</a>
-                    </div>
                 </div>
             }
             else
@@ -85,7 +81,22 @@ else
             <h2 class="h-card">@ap.Icao</h2>
             <span class="onl-badge @(n > 0 ? "on" : "off")"><span class="dot"></span> @(n > 0 ? L["Common_OnlineN", n] : L["Common_Offline"])</span>
         </div>
-        <p class="muted">@ap.Name</p>
+        @* Con DUE documenti le voci stanno accanto al nome (committente, 11 settembre 2026): sono la prima cosa
+           che si cerca sulla scheda, e sotto il meteo finivano in fondo. Se non c'è posto vanno a capo. *@
+        @if (voce.HaVipi && voce.HaVsop)
+        {
+            <div class="apt-name">
+                <p class="muted">@ap.Name</p>
+                <span class="apt-docs">
+                    <a class="btn ghost" href="@voce.VipiHref(Acc)"><Icon Name="plane" Size="12" /> @L["Mil_LinkToCivil"]</a>
+                    <a class="btn ghost mil" href="@voce.VsopHref(Acc)"><Icon Name="shield" Size="12" /> @L["Mil_LinkFromCivil"]</a>
+                </span>
+            </div>
+        }
+        else
+        {
+            <p class="muted">@ap.Name</p>
+        }
         @* ⚠️ Nell'ELENCO la categoria compare solo sui campi con presenza militare: «Civile» su sessanta
            schede sarebbe rumore. È nei DOCUMENTI che la categoria c'è sempre, anche «Civile» (carta
            2026-09-11-categorie-aeroporto.md). *@
