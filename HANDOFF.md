@@ -1,7 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (pomeriggio) — 📦 **1.22.0 è PRONTA, da caricare** (sopra 1.21.1,
-che è online). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+**Ultimo aggiornamento:** 11 settembre 2026 (pomeriggio) — ✅ **1.22.0 è CARICATA** (otto controlli pubblici
+verdi, CSS servito identico al pacchetto, categorie visibili nelle pagine pubbliche; Schema e timbro col login). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
 
 📦 **1.22.0 — il pacchetto.** Timbro `1.22.0 · f538b6f2`, **19 file**, zip
 `74ebe3b822e0d0362d0dd295bb66ff0476aefb9f63fbfd6090e8a8c102dcaf52`, foglio

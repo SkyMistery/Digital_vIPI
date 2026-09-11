@@ -2,7 +2,15 @@
 
 ## Dove siamo — 11 settembre 2026
 
-📦 **1.22.0 — PRONTA, da caricare** (11 settembre, pomeriggio). Timbro **`1.22.0 · f538b6f2`**, sha256 dello zip
+✅ **1.22.0 È CARICATA** (11 settembre, pomeriggio). Da fuori, subito dopo: **otto controlli pubblici verdi**
+(Ricerca compresa); `vipi-theme.css` servito con lo **stesso sha256** del pacchetto (`35a20819…`); l'etichetta
+«Civile» su LIBD e «Militare con presenza civile» nell'elenco vSOP ⇒ la colonna c'è e il travaso è girato.
+⚠️ **Da guardare col login**: in produzione i quattro vSOP pubblicati (LIBN, LIBV, Ghedi, Pisa) sono usciti
+**tutti** «militare con presenza civile», cioè nessuno era marcato «solo militare» prima (su sviluppo LIBN sì:
+sono archivi diversi). Se in produzione lo erano, è un difetto del travaso; se no, è il dato giusto e LIBN,
+LIBV e Ghedi vanno messi a mano in «solo militare». ▶ Restano: Schema = 0 e timbro, col login.
+
+📦 **1.22.0 — il pacchetto** (11 settembre, pomeriggio). Timbro **`1.22.0 · f538b6f2`**, sha256 dello zip
 **`74ebe3b822e0d0362d0dd295bb66ff0476aefb9f63fbfd6090e8a8c102dcaf52`**, **19 file**, 5,01 MB, foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.22.0.md`. **MINOR** con **una migrazione additiva** (`CategoriaAeroporto`,
 un `AddColumn`, presidio della finestra cieca verde senza deroghe). Porta due lavori chiesti dal committente:
