@@ -1,7 +1,7 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 (mattina) — ✅ **1.21.0 è ONLINE** · 🆕 **§CW in `main`, non
-in produzione**. Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15
+**Ultimo aggiornamento:** 11 settembre 2026 (mattina) — ✅ **1.21.0 è ONLINE** · 📦 **1.21.1 PRONTA e NON
+CARICATA** (porta §CW). Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15
 progetti-TFM.
 
 🆕 **§CW — la NRE di render dell'editor APP ha un colpevole.** La rete di 1.18.2 ha parlato nei file di
