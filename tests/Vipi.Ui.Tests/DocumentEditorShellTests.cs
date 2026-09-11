@@ -345,6 +345,75 @@ public class DocumentEditorShellTests
         Assert.Equal(1, massimoInsieme);
     }
 
+    /// <summary>
+    /// 🔴 <b>Chi ha aspettato il turno riparte sul DISPATCHER, non sul pool</b> (§CW, 11 settembre 2026).
+    ///
+    /// <para>La NRE di render dell'editor APP, cercata dal 7 settembre, l'ha spiegata la rete di contesto di
+    /// 1.18.2: nello stesso disegno <c>_shell.Doc</c> era pieno alla riga che sceglie il ramo e <b>nullo</b>
+    /// due righe dopo («documento=NON caricato»). Nessun thread del renderer può farlo: lo faceva il secondo
+    /// caricamento, che aspettava il tornello con <c>ConfigureAwait(false)</c> e quindi ripartiva <b>sul
+    /// pool</b> — e la prima riga di <c>ParametriAsync</c> è <c>_shell.Doc = null</c>, scritta mentre il
+    /// dispatcher disegnava il seguito del primo (<c>CallStateHasChangedOnAsyncCompletion</c>).</para>
+    ///
+    /// <para>⚠️ Serve un dispatcher vero per vederlo: senza <see cref="SynchronizationContext"/> ogni seguito
+    /// finisce sul pool comunque, e il test passerebbe anche col difetto.</para>
+    /// </summary>
+    [Fact]
+    public async Task Chi_aspetta_il_turno_riparte_sul_dispatcher()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        using var dispatcher = new DispatcherDiProva();
+        var apri = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int? threadDellAzione = null;
+        Task primo = Task.CompletedTask, secondo = Task.CompletedTask;
+
+        await dispatcher.Esegui(() =>
+        {
+            // Il primo tiene il tornello; il secondo — il caricamento che il renderer fa ripartire — aspetta.
+            primo = guscio.InFilaAsync(() => apri.Task);
+            secondo = guscio.CaricaInFilaAsync(() =>
+            {
+                threadDellAzione = Environment.CurrentManagedThreadId;
+                return Task.CompletedTask;
+            });
+            return Task.CompletedTask;
+        });
+
+        Assert.False(secondo.IsCompleted);   // il secondo è davvero in attesa del turno
+        apri.SetResult();
+        await Task.WhenAll(primo, secondo).WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(dispatcher.ThreadId, threadDellAzione);
+    }
+
+    /// <summary>Lo stesso per un <b>gesto</b>: passa da <c>InFilaAsync</c>, che ha la sua attesa.</summary>
+    [Fact]
+    public async Task Anche_un_gesto_che_aspetta_il_turno_riparte_sul_dispatcher()
+    {
+        var (guscio, _) = Guscio(new EditingFinto());
+        using var dispatcher = new DispatcherDiProva();
+        var apri = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int? threadDelGesto = null;
+        Task primo = Task.CompletedTask, gesto = Task.CompletedTask;
+
+        await dispatcher.Esegui(() =>
+        {
+            primo = guscio.CaricaInFilaAsync(() => apri.Task);
+            gesto = guscio.GuardAsync(() =>
+            {
+                threadDelGesto = Environment.CurrentManagedThreadId;
+                return Task.CompletedTask;
+            });
+            return Task.CompletedTask;
+        });
+
+        Assert.False(gesto.IsCompleted);
+        apri.SetResult();
+        await Task.WhenAll(primo, gesto).WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(dispatcher.ThreadId, threadDelGesto);
+    }
+
     /// <summary>Anche i GESTI passano dal tornello: due salvataggi a raffica sono due catene sullo stesso
     /// contesto quanto lo sono un gesto e un ricarico.</summary>
     [Fact]

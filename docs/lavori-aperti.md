@@ -2,13 +2,51 @@
 
 ## Dove siamo — 11 settembre 2026
 
-📦 **1.21.0 È PRONTA E NON CARICATA.** Timbro **`1.21.0 · 8291dd14`**, sha256 dello zip **`328a1bd3…`** (intero in
+🆕 **§CW: LA NRE DI RENDER DELL'EDITOR APP HA UN COLPEVOLE — un `ConfigureAwait(false)`.** Cercata dal 7
+settembre (§CF, §CN), strumentata in 1.18.2, e nei file di produzione scesi l'11 settembre **ha parlato**:
+cinque voci su `GET /services/vsop/libb/apps/editor` (prerender), sempre VID 201143, in due famiglie —
+`AppSectionsEditor` «riga 75» nuda, e l'indice di `DocumentSectionsEditor` con **«documento=NON caricato,
+sezioni=(null)»**. Lo stack: `RunInitAndSetParametersAsync → CallStateHasChangedOnAsyncCompletion →
+StateHasChanged → render`.
+🔴 **Le due famiglie sono UNA causa.** Nello stesso disegno `_shell.Doc` era pieno alla riga 57 (che sceglie il
+ramo) e **nullo** alla 80 (`_shell.Doc.VersionStatus`, che in Release si fa incolpare la 75) o alla 122 (dove
+si passa al figlio). Il thread del renderer non può farlo. Lo faceva il **secondo caricamento**: aspettava il
+tornello con `ConfigureAwait(false)` (`DocumentEditorShell.CodaAsync`), quindi ripartiva **sul pool**, e la
+prima riga di `ParametriAsync` è `_shell.Doc = null` — scritta **mentre** il dispatcher disegnava il seguito
+del primo. Il tornello serializzava le catene sul `DbContext`, non le catene **col disegno**.
+⚠️ `ConfigureAwait(false)` era entrato il 2 settembre (`18a53272`) **senza una riga che lo giustificasse**; e
+`ScopeProprioCheAspetta.InFilaAsync` aveva **lo stesso schema** (sei componenti). Tolto nei due punti dove
+dopo l'attesa gira l'azione; lasciato nelle due **chiusure**, che dopo l'attesa fanno solo `Release`/`Dispose`.
+✅ **Provato a rovescio**: tre test con un **dispatcher di prova a thread unico** (`DispatcherDiProva`) —
+rossi sul codice di prima (l'azione girava sul thread 19/15, il pool), verdi dopo. ⚠️ Senza un
+`SynchronizationContext` il test non distingueva: sul banco ogni seguito finisce sul pool comunque.
+🔴 **Trappola pagata scrivendo il test**: il dispatcher di prova, chiuso, **abbatteva l'host dei test** (il
+badge «Salvato» posta due secondi dopo) — 1456 casi diventati 233, **senza un rosso**. Si è visto solo
+**contando**. Ora quel che arriva tardi va sul pool.
+✅ Suite verde su 15 progetti-TFM (UI 1456 su tutt'e due), Release 0 avvisi, e dal vivo sei editor + le due
+pagine con la porta, col lock preso, zero `fail:`. ⚠️ Dal vivo si prova che **non rompe**, non che chiude: in
+locale la corsa non si riproduce (SQLite finisce prima). La prova vera sarà il prossimo
+`errori-richieste.txt` **di giorno**, con gente sugli editor. **Non è in produzione**: serve un pacchetto.
+
+✅ **1.21.0 È ONLINE** (caricata l'11 settembre, 06:56 UTC): timbro `1.21.0 · 8291dd1` letto nel
+`avvio-diagnostica.txt` **di produzione**, otto controlli pubblici verdi. L'unico `avvio-errore.txt` di oggi
+(06:56:55, `Vipi.Infrastructure` non trovato) è **il momento della rinomina**: dodici secondi dopo lo stesso
+binario è partito, e da lì regolare.
+✅ **E 1.20.0 si è provata dai file**: `avvii.txt` conta **533 avvii di 1.20.0** in dieci ore, tutti riusciti.
+`Migrate()` gira a ogni avvio: se le due migrazioni fossero fallite, ogni avvio sarebbe caduto.
+⚠️ **L'era di 1.20.0 in `errori-richieste.txt` è muta — e non assolve niente**: 3704 richieste in 533
+accensioni, **531 svegliate dal ping di salute**. Era notte. Il confronto onesto si fa su un giorno.
+⚠️ **Da tenere d'occhio, già noto**: il processo vive ~50 secondi (sveglia del ping, poi SIGTERM) e ogni
+avvio costa **19 s** (8 di `Migrate()`, 10 di manutenzioni). È la voce «keep-alive e pannello dell'hosting»,
+rimandata al dopo-16-settembre.
+
+📦 **1.21.0 — il pacchetto.** Timbro **`1.21.0 · 8291dd14`**, sha256 dello zip **`328a1bd3…`** (intero in
 `artifacts/publish/vipi-1.21.0-solo-file-cambiati.zip.sha256`), **9 file**, 4,52 MB, foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md`. **MINOR** e **nessuna migrazione**, niente `wwwroot`. Porta
 **§CU** e **§CV** (qui sotto), arrivati in `main` dopo che 1.20.0 era chiuso.
 MINOR e non PATCH perché §CV aggiunge una **sezione** al catalogo, e una PATCH è «nessuna pagina o sezione
 nuova».
-▶ **Il gesto che resta: caricarla via FTP**, col nome finto e poi la rinomina.
+✅ Caricata l'11 settembre (vedi sopra).
 
 **Le prove fatte sul PACCHETTO** (publish win-x64 avviato dalla sua cartella, su una copia del `vipi.db`):
 ✅ i **dieci controlli** di `pacchetto-verifica.js`, Ricerca compresa.

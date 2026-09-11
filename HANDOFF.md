@@ -1,9 +1,21 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 11 settembre 2026 — ✅ **1.20.0 è ONLINE** · 📦 **1.21.0 è PRONTA e NON
-CARICATA**. Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15 progetti-TFM.
+**Ultimo aggiornamento:** 11 settembre 2026 (mattina) — ✅ **1.21.0 è ONLINE** · 🆕 **§CW in `main`, non
+in produzione**. Albero pulito e spinto, Release verde sui due TFM con 0 avvisi, suite verde su 15
+progetti-TFM.
 
-📦 **1.21.0 — PRONTA, DA CARICARE.** Timbro `1.21.0 · 8291dd14`, **9 file**, foglio
+🆕 **§CW — la NRE di render dell'editor APP ha un colpevole.** La rete di 1.18.2 ha parlato nei file di
+produzione: nello stesso disegno `_shell.Doc` era pieno a una riga e nullo due righe dopo. Lo azzerava il
+secondo caricamento, che aspettava il tornello con `ConfigureAwait(false)` e ripartiva **sul pool**, mentre
+il dispatcher disegnava. Tolto in `DocumentEditorShell.CodaAsync`/`InFilaAsync` e in
+`ScopeProprioCheAspetta.InFilaAsync`; tre test con un dispatcher di prova, **rossi prima e verdi dopo**.
+▶ **Serve un pacchetto** (PATCH, tre `.dll`: Ui e Host per il timbro). La prova vera sarà un
+`errori-richieste.txt` di giorno.
+
+✅ **1.21.0 — ONLINE dall'11 settembre, 06:56 UTC**: timbro letto nel `avvio-diagnostica.txt` di
+produzione, otto controlli pubblici verdi.
+
+📦 **1.21.0 — il pacchetto.** Timbro `1.21.0 · 8291dd14`, **9 file**, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.21.0.md), sha256 dello
 zip `328a1bd3a3f607ede081f47fac2f980a51b38d673c60b0a526e0cad79dcd8ef4`. **MINOR** (una sezione nuova nel catalogo), **nessuna migrazione**, niente
 `wwwroot`. Porta **§CU** (il campo «solo militare» con una vIPI civile: conferma sulla pastiglia + rilievo in

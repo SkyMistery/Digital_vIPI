@@ -138,7 +138,8 @@ public sealed class DocumentEditorShell : IDisposable
         // sbattere sul `DbContext` smaltito, cioè esattamente il difetto che ChiudiAsync esiste per togliere.
         if (_chiuso) return;
         if (_inFila.Value) { await azione(); return; }
-        await CodaAsync(azione, chiSpettaLoVede: true).ConfigureAwait(false);
+        // ⚠️ Niente ConfigureAwait(false), qui e in CodaAsync: vedi la nota là (§CW).
+        await CodaAsync(azione, chiSpettaLoVede: true);
     }
 
     /// <summary>
@@ -178,7 +179,15 @@ public sealed class DocumentEditorShell : IDisposable
     private async Task CodaAsync(Func<Task> azione, bool chiSpettaLoVede)
     {
         if (_chiuso) return;
-        if (!await _tornello.WaitAsync(_attesaMassimaDelTurno).ConfigureAwait(false))
+        // 🔴 NIENTE ConfigureAwait(false) — §CW, 11 settembre 2026. Dopo questa attesa si esegue l'AZIONE, e
+        // l'azione scrive lo stato del componente (`ParametriAsync` comincia con `_shell.Doc = null`). Con
+        // ConfigureAwait(false), chi trovava il tornello occupato ripartiva SUL POOL e scriveva mentre il
+        // dispatcher disegnava il seguito del caricamento di prima: nello stesso disegno `Doc` era pieno alla
+        // riga che sceglie il ramo e nullo due righe dopo. Sono le NRE di render dell'editor APP cercate dal
+        // 7 settembre (`AppSectionsEditor` «riga 75» e l'indice «documento=NON caricato»). Tornando sul
+        // dispatcher, azione e disegno non si intrecciano più: vengono uno prima dell'altro.
+        // Inchiodato da `Chi_aspetta_il_turno_riparte_sul_dispatcher`, provato a rovescio.
+        if (!await _tornello.WaitAsync(_attesaMassimaDelTurno))
         {
             _log.LogError(
                 "Tornello dell'editor {Famiglia}: turno non arrivato dopo {Secondi}s (documento {DocId}, {Chi}).",

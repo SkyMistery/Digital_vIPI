@@ -39,6 +39,14 @@ public sealed class PortaCheAspettaTests
             return Task.CompletedTask;
         });
 
+        /// <summary>Un caricamento che si annota su quale thread gira: è la domanda di §CW.</summary>
+        public int? ThreadDelCaricamento;
+        public Task CaricaAnnotandoIlThread() => InFilaAsync(() =>
+        {
+            ThreadDelCaricamento = Environment.CurrentManagedThreadId;
+            return Task.CompletedTask;
+        });
+
         /// <summary>Un caricamento che ne chiama un altro: senza la guardia del rientro si pianterebbe qui.
         /// ⚠️ Contano <b>tutt'e due</b> i livelli, o il test non distinguerebbe «annidato ed è passato» da
         /// «annidato e il di dentro non è mai girato».</summary>
@@ -62,6 +70,34 @@ public sealed class PortaCheAspettaTests
         var ctx = new TestContext();
         ctx.Services.AddScoped<Testimone>();
         return (ctx, ctx.RenderComponent<Sonda>().Instance);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Chi ha aspettato la porta riparte sul DISPATCHER</b> (§CW, 11 settembre 2026). Il caricamento
+    /// scrive lo stato del componente: se ripartisse sul pool, lo scriverebbe <b>mentre</b> il dispatcher lo
+    /// disegna — la stessa corsa che nell'editor APP dava un documento pieno a una riga e nullo due righe
+    /// dopo. Serve un dispatcher vero: sul banco, senza, ogni seguito finisce sul pool comunque.
+    /// </summary>
+    [Fact]
+    public async Task Chi_aspetta_la_porta_riparte_sul_dispatcher()
+    {
+        var (ctx, s) = Sonda_();
+        using var _ = ctx;
+        using var dispatcher = new DispatcherDiProva();
+        Task primo = Task.CompletedTask, secondo = Task.CompletedTask;
+
+        await dispatcher.Esegui(() =>
+        {
+            primo = s.CaricaBloccandosi();
+            secondo = s.CaricaAnnotandoIlThread();
+            return Task.CompletedTask;
+        });
+
+        Assert.False(secondo.IsCompleted);   // il secondo è davvero in attesa della porta
+        s.Blocco.SetResult();
+        await Task.WhenAll(primo, secondo).WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(dispatcher.ThreadId, s.ThreadDelCaricamento);
     }
 
     [Fact]

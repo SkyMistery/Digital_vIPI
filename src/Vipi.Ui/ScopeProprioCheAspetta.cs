@@ -96,7 +96,11 @@ public abstract class ScopeProprioCheAspetta : OwningComponentBase, IAsyncDispos
         if (_chiusa) return;
         if (_giaDentro.Value) { await caricamento(); return; }
 
-        await _porta.WaitAsync().ConfigureAwait(false);
+        // 🔴 NIENTE ConfigureAwait(false) — §CW, 11 settembre 2026: dopo l'attesa gira il CARICAMENTO, che
+        // scrive lo stato del componente. Ripartendo sul pool lo scriveva mentre il dispatcher disegnava — la
+        // corsa che nell'editor APP dava un documento pieno a una riga e nullo due righe dopo (vedi
+        // `DocumentEditorShell.CodaAsync`). Inchiodato da `Chi_aspetta_la_porta_riparte_sul_dispatcher`.
+        await _porta.WaitAsync();
         _giaDentro.Value = true;
         try { await caricamento(); }
         finally
