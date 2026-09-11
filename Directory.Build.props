@@ -1111,7 +1111,24 @@
       IDocumentMaintenance...). Implementazioni e chiamanti stanno TUTTI nei sei assiemi spediti: gli Aurora*
       non ne nominano nessuna (controllato col testo).
     -->
-    <VipiVersione>1.22.0</VipiVersione>
+    <!-- 1.22.1 - PATCH (11 settembre 2026, sera). Due correzioni, nessuna migrazione, nessuna frase nuova.
+
+      «ILS, VOR» (82e7e451). Nel visualizzatore le APP procedures escono sempre con virgola e spazio, qualunque
+      sia la forma in archivio (AirportRunwayLists.Format, applicata al DISEGNO: vale anche per le release
+      congelate e non fa sembrare «da ripubblicare» nessun aeroporto).
+
+      IL vSOP SENZA vIPI CIVILE (eeee530f). Segnalato su LIMS: la sezione Frequenze era vuota e non si poteva
+      riempire, perche' il pannello «Settori ATC» c'era solo nell'editor d'aeroporto. Estratto in
+      AirportSectorsPanel e montato anche nel vSOP, con «Re-importa da IVAO»; «Modifica» ricontrolla se la vIPI
+      civile c'e' ancora.
+
+      I FILE. Il diff dei nomi fra f538b6f2 e HEAD, limitato a src/, nomina DUE progetti: Vipi.Application (un
+      file) e Vipi.Ui. Piu' Vipi.Host per il TIMBRO. Sei file: i tre .dll coi .pdb.
+      NIENTE satellite inglese (nessuna .resx toccata: i testi usati c'erano gia'), NIENTE wwwroot, NIENTE
+      MySqlMigrations. FIRME: Vipi.Application AGGIUNGE AirportRunwayLists e non cambia niente di esistente;
+      gli assiemi che restano fuori non la nominano.
+    -->
+    <VipiVersione>1.22.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
