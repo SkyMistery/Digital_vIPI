@@ -1,4 +1,4 @@
-﻿@* Sezione «METAR e TAF» della vIPI d'aeroporto: il dato è live dal NOAA.
+@* Sezione «METAR e TAF» della vIPI d'aeroporto: il dato è live dal NOAA.
 
    ⚠️ È l'unica sezione che non si congela mai (SectionCatalog.IsAlwaysLive): un METAR catturato al ciclo AIRAC
    non è un documento d'archivio, è meteo scaduto spacciato per attuale. Per la stessa ragione resta fuori dalla
@@ -36,21 +36,21 @@
                senza, una scorta morta e una scorta mai servita si vedono uguali. *@
             <div class="metar">
                 <span class="metar-live"><span class="dot"></span> LIVE</span>
-                @if (Report.MetarSource is { Length: > 0 } sorgente)
+                @if (MostraSorgente && Report.MetarSource is { Length: > 0 } sorgente)
                 {
-                    <span class="metar-src" title="@L["Wx_FallbackTitle", sorgente]">@sorgente</span>
+                    <span class="metar-src" title="@T("Wx_FallbackTitle", sorgente)">@sorgente</span>
                 }
                 @Metar.Raw
             </div>
             <div class="metar-parse">
-                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@(Metar.Wind?.Label ?? "—")</b></span>
+                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@WxText.Wind(Metar.Wind, T)</b></span>
                 <span class="mp"><span class="muted">@T("Airport_Visibility")</span><b>@(Metar.Visibility ?? "—")</b></span>
                 <span class="mp"><span class="muted">@T("Airport_Clouds")</span><b>@Metar.CloudsLabel</b></span>
                 <span class="mp"><span class="muted">QNH</span><b>@(Metar.QnhHpa is int q ? $"{q} hPa" : "—")</b></span>
                 <span class="mp"><span class="muted">Temp/DP</span><b>@(Metar.TempC is int t ? $"{t} / {Metar.DewpointC} °C" : "—")</b></span>
-                @if (Metar.Weather is not null)
+                @if (WxText.Weather(Metar.Weather, T) is { } tempo)
                 {
-                    <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@Metar.Weather</b></span>
+                    <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@tempo</b></span>
                 }
                 @if (Metar.Trend is not null)
                 {
@@ -85,7 +85,7 @@
                         <div class="taf-parse">
                             @if (seg.Wind is not null)
                             {
-                                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@seg.Wind.Label</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Wind")</span><b>@WxText.Wind(seg.Wind, T)</b></span>
                             }
                             @if (seg.Wind?.GustKt is int g)
                             {
@@ -99,9 +99,9 @@
                             {
                                 <span class="mp"><span class="muted">@T("Airport_Clouds")</span><b>@string.Join(" · ", seg.Clouds.Select(c => c.Label))</b></span>
                             }
-                            @if (seg.Weather is not null)
+                            @if (WxText.Weather(seg.Weather, T) is { } tempoSeg)
                             {
-                                <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@seg.Weather</b></span>
+                                <span class="mp"><span class="muted">@T("Airport_Weather")</span><b>@tempoSeg</b></span>
                             }
                         </div>
                     </div>
@@ -138,6 +138,31 @@ else
         Lingua is { Length: > 0 } l
             ? Vipi.Ui.RisorseCondivise.Testo(chiave, System.Globalization.CultureInfo.GetCultureInfo(l))
             : L[chiave].Value;
+
+    /// <summary>Come <see cref="T(string)"/>, con i segnaposto riempiti. La lingua la decide sempre <see cref="Lingua"/>.</summary>
+    private string T(string chiave, params object[] argomenti) =>
+        string.Format(System.Globalization.CultureInfo.CurrentCulture, T(chiave), argomenti);
+
+    /// <summary>
+    /// Se scrivere da DOVE arriva il METAR quando non è la sorgente principale (la pastiglia «IVAO»/«VATSIM»
+    /// accanto al bollettino). Da <c>DivisionStaff</c> in su, per decisione del committente del 12 settembre
+    /// 2026 — la stessa soglia della meccanica delle regole piste (<c>AirportDocumentBody.MeccanicaVisibile</c>).
+    ///
+    /// <para>⚠️ Non è il METAR a essere riservato: quello resta intero, in chiaro, per chiunque. È il fatto
+    /// che la scorta stia lavorando — un'informazione sullo <b>stato del servizio</b>, che a chi non lo
+    /// gestisce somiglia a un errore.</para>
+    ///
+    /// <para>⚠️ <b>Il livello NON si chiede qui dentro.</b> Questa è un'isola interattiva: vive in un
+    /// circuito suo, e <c>IHttpContextAccessor</c> lì non ha nessuna richiesta da leggere — chiederlo qui
+    /// risponderebbe «anonimo» a tutti, staff compreso. Lo decide chi monta il componente, che è reso SSR
+    /// dentro la richiesta e il livello ce l'ha (stessa ragione per cui <see cref="Lingua"/> arriva da fuori).
+    /// Il default è <c>false</c>: chi monta senza dire niente non mostra niente.</para>
+    ///
+    /// <para>⚠️ La pastiglia sparisce, il dato no: <c>Report.MetarSource</c> resta dentro i parametri
+    /// dell'isola, che viaggiano nel descrittore (cifrato e firmato, quindi non leggibile dal browser, ma
+    /// nemmeno una segretezza su cui appoggiare qualcosa di più serio di un'etichetta).</para>
+    /// </summary>
+    [Parameter] public bool MostraSorgente { get; set; }
 
     [Parameter, EditorRequired] public string Icao { get; set; } = "";
     [Parameter] public WeatherReport? Report { get; set; }

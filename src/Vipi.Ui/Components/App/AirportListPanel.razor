@@ -210,7 +210,7 @@ else
             if (m is not null)
             {
                 var (dep, arr) = PisteConsigliate(icao, m);
-                _meteo[icao] = (m.Wind?.Label, m.QnhHpa, dep, arr);
+                _meteo[icao] = (WxText.Wind(m.Wind, k => L[k].Value), m.QnhHpa, dep, arr);
             }
         _meteoInArrivo = false;
         await InvokeAsync(StateHasChanged);

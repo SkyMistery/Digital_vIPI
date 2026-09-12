@@ -1,14 +1,27 @@
 namespace Vipi.Application.Weather;
 
-/// <summary>Vento decodificato. <see cref="Variable"/>=VRB (direzione non significativa). Velocità/raffica in kt.</summary>
-public sealed record ParsedWind(int? DirectionDeg, bool Variable, int SpeedKt, int? GustKt, bool Calm)
-{
-    /// <summary>Etichetta leggibile, es. "160° / 12 kt", "VRB / 3 kt", "Calmo".</summary>
-    public string Label =>
-        Calm ? "Calmo"
-        : Variable ? $"VRB / {SpeedKt} kt"
-        : $"{DirectionDeg:000}° / {SpeedKt} kt";
-}
+/// <summary>
+/// Vento decodificato. <see cref="Variable"/>=VRB (direzione non significativa). Velocità/raffica in kt.
+///
+/// <para>⚠️ <b>Qui non c'è più <c>Label</c></b>, e non è una semplificazione: l'unica sua parte con una lingua
+/// era «Calmo», scritto in italiano dentro lo strato Application — dove non si sa né in che lingua guarda chi
+/// legge né in quale un documento è bloccato. L'etichetta la compone <c>Vipi.Ui.Shared.WxText.Wind</c>, che
+/// quelle due cose le sa. Toglierla invece di lasciarla «quasi giusta» è voluto: un <c>Label</c> neutro solo
+/// finché il vento non è calmo è una trappola che si vede una volta l'anno, in italiano dentro una pagina
+/// inglese.</para>
+/// </summary>
+public sealed record ParsedWind(int? DirectionDeg, bool Variable, int SpeedKt, int? GustKt, bool Calm);
+
+/// <summary>Intensità di un gruppo di tempo presente: <c>-</c>=leggero, <c>+</c>=forte, <c>VC</c>=in prossimità.</summary>
+public enum WxIntensity { Moderate, Light, Heavy, Vicinity }
+
+/// <summary>
+/// Un gruppo di tempo presente decodificato nei suoi <b>codici</b> (<c>SHRA</c> → <c>[SH, RA]</c>), mai in
+/// parole: le parole hanno una lingua, e questo record attraversa anche il confine SSR→isola serializzato.
+/// </summary>
+/// <param name="Raw">Il token com'era nel bollettino (es. <c>-SHRA</c>), per diagnosi e per la stringa grezza.</param>
+/// <param name="Codes">I codici a due lettere <b>nell'ordine del token</b>: l'ordine è informazione (<c>FZRA</c> ≠ <c>RAFZ</c>).</param>
+public sealed record WeatherGroup(string Raw, WxIntensity Intensity, IReadOnlyList<string> Codes);
 
 /// <summary>Strato di nubi: copertura (FEW/SCT/BKN/OVC) + base in piedi + eventuale tipo (CB/TCU).</summary>
 public sealed record CloudLayer(string Cover, int BaseFt, string? Type)
@@ -24,7 +37,7 @@ public sealed record ParsedMetar(
     ParsedWind? Wind,
     string? Visibility,
     IReadOnlyList<CloudLayer> Clouds,
-    string? Weather,
+    IReadOnlyList<WeatherGroup> Weather,
     int? QnhHpa,
     int? TempC,
     int? DewpointC,
@@ -46,7 +59,7 @@ public sealed record TafSegment(
     ParsedWind? Wind,
     string? Visibility,
     IReadOnlyList<CloudLayer> Clouds,
-    string? Weather,
+    IReadOnlyList<WeatherGroup> Weather,
     string Raw);
 
 /// <summary>TAF decodificato: stazione, periodo di validità grezzo, segmenti (Base + variazioni).</summary>

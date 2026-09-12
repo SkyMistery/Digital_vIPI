@@ -1,4 +1,4 @@
-﻿using Bunit;
+using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
@@ -415,13 +415,13 @@ public class SezioniAeroportoTests : TestContext
     private static ParsedMetar Metar() => new(
         "METAR LIBD 271820Z 05004KT CAVOK 28/23 Q1017", "LIBD", "271820Z",
         new ParsedWind(50, false, 4, null, false), "CAVOK", Array.Empty<CloudLayer>(),
-        null, 1017, 28, 23, null, false, false);
+        Array.Empty<WeatherGroup>(), 1017, 28, 23, null, false, false);
 
     private static ParsedTaf Taf() => new(
         "TAF LIBD 271700Z 2718/2818 06008KT CAVOK", "LIBD", "2718/2818", new[]
         {
             new TafSegment(TafChangeKind.Base, null, null, new ParsedWind(60, false, 8, null, false),
-                "CAVOK", Array.Empty<CloudLayer>(), null, "2718/2818 06008KT CAVOK"),
+                "CAVOK", Array.Empty<CloudLayer>(), Array.Empty<WeatherGroup>(), "2718/2818 06008KT CAVOK"),
         });
 
     private IRenderedComponent<AirportWeather> RendiMeteo(ParsedTaf? taf) =>
@@ -430,6 +430,38 @@ public class SezioniAeroportoTests : TestContext
             .Add(x => x.Report, new WeatherReport("LIBD", Metar().Raw, taf?.Raw, DateTimeOffset.UtcNow))
             .Add(x => x.Metar, Metar())
             .Add(x => x.Taf, taf));
+
+    /// <summary>Lo stesso riquadro, ma con un METAR arrivato dalla SCORTA (IVAO/VATSIM invece che NOAA).</summary>
+    private IRenderedComponent<AirportWeather> RendiMeteoDaScorta(bool mostraSorgente) =>
+        RenderComponent<AirportWeather>(p => p
+            .Add(x => x.Icao, "LIBD")
+            .Add(x => x.Report,
+                new WeatherReport("LIBD", Metar().Raw, null, DateTimeOffset.UtcNow, MetarSource: "VATSIM"))
+            .Add(x => x.Metar, Metar())
+            .Add(x => x.MostraSorgente, mostraSorgente));
+
+    [Fact] // decisione del committente, 12 settembre 2026: la provenienza è meccanica di servizio
+    public void La_provenienza_del_METAR_si_vede_solo_da_DivisionStaff_in_su()
+    {
+        Assert.Contains("VATSIM", RendiMeteoDaScorta(true).Markup);
+
+        // ⚠️ E sotto la soglia sparisce la PASTIGLIA, non il bollettino: il METAR resta intero per chiunque.
+        var senza = RendiMeteoDaScorta(false);
+        Assert.DoesNotContain("VATSIM", senza.Markup);
+        Assert.Contains("METAR LIBD 271820Z", senza.Markup);
+    }
+
+    [Fact] // ⚠️ il default è chiuso: chi monta il componente senza dire niente non mostra la provenienza
+    public void Senza_dire_niente_la_provenienza_non_si_vede()
+    {
+        var cut = RenderComponent<AirportWeather>(p => p
+            .Add(x => x.Icao, "LIBD")
+            .Add(x => x.Report,
+                new WeatherReport("LIBD", Metar().Raw, null, DateTimeOffset.UtcNow, MetarSource: "IVAO"))
+            .Add(x => x.Metar, Metar()));
+
+        Assert.DoesNotContain("IVAO", cut.Markup);
+    }
 
     [Fact]
     public void La_chip_TAF_mostra_il_TAF()

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -321,6 +321,40 @@
   <data name="Airport_MetarNA" xml:space="preserve"><value>METAR not available for {0}</value></data>
   <data name="Airport_WxNA" xml:space="preserve"><value>METAR/TAF not available for {0}</value></data>
   <data name="Airport_WxNAHint" xml:space="preserve"><value>Weather service unreachable or ICAO without a bulletin. Try again later.</value></data>
+  <!-- Decoded METAR/TAF: the words behind the ICAO codes (Vipi.Ui.Shared.WxText). The rest of the bulletin is neutral and does not belong here. -->
+  <data name="Wx_Calm" xml:space="preserve"><value>Calm</value></data>
+  <data name="Wx_Light" xml:space="preserve"><value>light</value></data>
+  <data name="Wx_Heavy" xml:space="preserve"><value>heavy</value></data>
+  <data name="Wx_Vicinity" xml:space="preserve"><value>in the vicinity</value></data>
+  <data name="Wx_RA" xml:space="preserve"><value>rain</value></data>
+  <data name="Wx_SN" xml:space="preserve"><value>snow</value></data>
+  <data name="Wx_DZ" xml:space="preserve"><value>drizzle</value></data>
+  <data name="Wx_GR" xml:space="preserve"><value>hail</value></data>
+  <data name="Wx_GS" xml:space="preserve"><value>small hail</value></data>
+  <data name="Wx_SG" xml:space="preserve"><value>snow grains</value></data>
+  <data name="Wx_PL" xml:space="preserve"><value>ice pellets</value></data>
+  <data name="Wx_IC" xml:space="preserve"><value>ice crystals</value></data>
+  <data name="Wx_SH" xml:space="preserve"><value>shower</value></data>
+  <data name="Wx_TS" xml:space="preserve"><value>thunderstorm</value></data>
+  <data name="Wx_FZ" xml:space="preserve"><value>freezing</value></data>
+  <data name="Wx_FG" xml:space="preserve"><value>fog</value></data>
+  <data name="Wx_BR" xml:space="preserve"><value>mist</value></data>
+  <data name="Wx_HZ" xml:space="preserve"><value>haze</value></data>
+  <data name="Wx_FU" xml:space="preserve"><value>smoke</value></data>
+  <data name="Wx_DU" xml:space="preserve"><value>dust</value></data>
+  <data name="Wx_SA" xml:space="preserve"><value>sand</value></data>
+  <data name="Wx_MI" xml:space="preserve"><value>shallow</value></data>
+  <data name="Wx_BC" xml:space="preserve"><value>patches</value></data>
+  <data name="Wx_PR" xml:space="preserve"><value>partial</value></data>
+  <data name="Wx_DR" xml:space="preserve"><value>drifting</value></data>
+  <data name="Wx_BL" xml:space="preserve"><value>blowing</value></data>
+  <data name="Wx_SQ" xml:space="preserve"><value>squall</value></data>
+  <data name="Wx_FC" xml:space="preserve"><value>funnel cloud</value></data>
+  <data name="Wx_PO" xml:space="preserve"><value>dust whirls</value></data>
+  <data name="Wx_VA" xml:space="preserve"><value>volcanic ash</value></data>
+  <data name="Wx_SS" xml:space="preserve"><value>sandstorm</value></data>
+  <data name="Wx_DS" xml:space="preserve"><value>duststorm</value></data>
+  <data name="Wx_UP" xml:space="preserve"><value>unknown precipitation</value></data>
   <data name="Airport_Validity" xml:space="preserve"><value>Validity</value></data>
   <data name="Airport_FromValidityStart" xml:space="preserve"><value>from validity start</value></data>
   <data name="Airport_TransLevelByQnh" xml:space="preserve"><value>Transition Level based on QNH</value></data>

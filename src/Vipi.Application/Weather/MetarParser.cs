@@ -30,10 +30,10 @@ public static partial class MetarParser
         var tokens = Tokenize(raw, out var station, out var timeRaw, isTaf: false);
 
         ParsedWind? wind = null;
-        string? vis = null, weather = null, trend = null;
+        string? vis = null, trend = null;
         var clouds = new List<CloudLayer>();
         int? qnh = null, temp = null, dew = null;
-        var wxParts = new List<string>();
+        var wxParts = new List<WeatherGroup>();
         bool rain = false, snow = false;
 
         for (var i = 0; i < tokens.Count; i++)
@@ -61,8 +61,7 @@ public static partial class MetarParser
             if (wx is not null) { wxParts.Add(wx); ClassifyPrecip(t, ref rain, ref snow); }
         }
 
-        if (wxParts.Count > 0) weather = string.Join(", ", wxParts);
-        return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, weather, qnh, temp, dew, trend, rain, snow);
+        return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, wxParts, qnh, temp, dew, trend, rain, snow);
     }
 
     public static ParsedTaf ParseTaf(string raw)
@@ -123,9 +122,9 @@ public static partial class MetarParser
     private static TafSegment BuildSegment(TafChangeKind kind, string? period, int? prob, List<string> tokens)
     {
         ParsedWind? wind = null;
-        string? vis = null, weather = null;
+        string? vis = null;
         var clouds = new List<CloudLayer>();
-        var wxParts = new List<string>();
+        var wxParts = new List<WeatherGroup>();
 
         foreach (var t in tokens)
         {
@@ -138,8 +137,7 @@ public static partial class MetarParser
             var wx = DecodeWeather(t);
             if (wx is not null) wxParts.Add(wx);
         }
-        if (wxParts.Count > 0) weather = string.Join(", ", wxParts);
-        return new TafSegment(kind, period, prob, wind, vis, clouds, weather, string.Join(' ', tokens));
+        return new TafSegment(kind, period, prob, wind, vis, clouds, wxParts, string.Join(' ', tokens));
     }
 
     private static List<string> Tokenize(string raw, out string? station, out string? timeRaw, bool isTaf)
@@ -182,36 +180,45 @@ public static partial class MetarParser
         if (token.Contains("SN", StringComparison.Ordinal) || token.Contains("SG", StringComparison.Ordinal)) snow = true;
     }
 
-    /// <summary>Decodifica un gruppo di tempo presente (RA/SHRA/TS/BR…). Ritorna null se non è meteo significativo.</summary>
-    private static string? DecodeWeather(string t)
+    /// <summary>
+    /// Decodifica un gruppo di tempo presente (RA/SHRA/TS/BR…) nei suoi <b>codici</b>. Ritorna null se non è
+    /// meteo significativo.
+    ///
+    /// <para>⚠️ <b>Qui non si traduce</b>, e fino al 12 settembre 2026 si traduceva: la tabella dei codici
+    /// teneva le parole in italiano («pioggia», «foschia») e la pagina le mostrava tali e quali anche in
+    /// inglese. Questo strato non può saperlo: la lingua di chi legge sta nella richiesta, e quella di un
+    /// documento <b>bloccato</b> sta nel documento. Le parole stanno nei <c>.resx</c>, chiavi <c>Wx_RA</c>…,
+    /// e le mette <c>Vipi.Ui.Shared.WxText</c>.</para>
+    /// </summary>
+    private static WeatherGroup? DecodeWeather(string t)
     {
         var s = t;
-        var intensity = "";
-        if (s.StartsWith('-')) { intensity = "leggera "; s = s[1..]; }
-        else if (s.StartsWith('+')) { intensity = "forte "; s = s[1..]; }
-        else if (s.StartsWith("VC")) { intensity = "in prossimità "; s = s[2..]; }
+        var intensity = WxIntensity.Moderate;
+        if (s.StartsWith('-')) { intensity = WxIntensity.Light; s = s[1..]; }
+        else if (s.StartsWith('+')) { intensity = WxIntensity.Heavy; s = s[1..]; }
+        else if (s.StartsWith("VC")) { intensity = WxIntensity.Vicinity; s = s[2..]; }
 
         if (s.Length is 0 or > 6 || s.Length % 2 != 0) return null;
 
-        var sb = new List<string>();
+        var codes = new List<string>();
         for (var k = 0; k + 2 <= s.Length; k += 2)
         {
             var code = s.Substring(k, 2);
-            if (!WxCodes.TryGetValue(code, out var word)) return null;
-            sb.Add(word);
+            if (!WxCodes.Contains(code)) return null;
+            codes.Add(code);
         }
-        return sb.Count == 0 ? null : intensity + string.Join(" ", sb);
+        return codes.Count == 0 ? null : new WeatherGroup(t, intensity, codes);
     }
 
-    private static readonly Dictionary<string, string> WxCodes = new()
+    /// <summary>
+    /// I codici di tempo presente riconosciuti. È anche il <b>filtro</b>: un token che contiene un codice
+    /// sconosciuto non è meteo e resta fuori (torna nel raw, che si mostra sempre per intero).
+    /// </summary>
+    private static readonly HashSet<string> WxCodes = new(StringComparer.Ordinal)
     {
-        ["RA"] = "pioggia", ["SN"] = "neve", ["DZ"] = "pioviggine", ["GR"] = "grandine", ["GS"] = "gragnola",
-        ["SG"] = "neve granulosa", ["PL"] = "granuli di ghiaccio", ["IC"] = "aghi di ghiaccio",
-        ["SH"] = "rovescio", ["TS"] = "temporale", ["FZ"] = "congelantesi", ["FG"] = "nebbia",
-        ["BR"] = "foschia", ["HZ"] = "caligine", ["FU"] = "fumo", ["DU"] = "polvere", ["SA"] = "sabbia",
-        ["MI"] = "sottile", ["BC"] = "banchi", ["PR"] = "parziale", ["DR"] = "scaccia-basso",
-        ["BL"] = "sollevata", ["SQ"] = "groppo", ["FC"] = "tromba", ["PO"] = "vortici di polvere",
-        ["VA"] = "cenere vulcanica", ["SS"] = "tempesta di sabbia", ["DS"] = "tempesta di polvere",
-        ["UP"] = "precipitazione sconosciuta",
+        "RA", "SN", "DZ", "GR", "GS", "SG", "PL", "IC",
+        "SH", "TS", "FZ", "FG", "BR", "HZ", "FU", "DU", "SA",
+        "MI", "BC", "PR", "DR", "BL", "SQ", "FC", "PO",
+        "VA", "SS", "DS", "UP",
     };
 }

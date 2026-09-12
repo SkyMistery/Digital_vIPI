@@ -288,7 +288,8 @@ else
     private string WindText()
     {
         if (_wind is null) return "—";
-        return _wind.GustKt is int g ? $"{_wind.Label} G{g}" : _wind.Label;
+        var vento = WxText.Wind(_wind, k => L[k].Value);
+        return _wind.GustKt is int g ? $"{vento} G{g}" : vento;
     }
 
     private string SuggText()

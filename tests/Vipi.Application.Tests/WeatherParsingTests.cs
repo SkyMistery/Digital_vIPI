@@ -17,7 +17,7 @@ public class WeatherParsingTests
         Assert.NotNull(m.Wind);
         Assert.Equal(160, m.Wind!.DirectionDeg);
         Assert.Equal(12, m.Wind.SpeedKt);
-        Assert.Equal("160° / 12 kt", m.Wind.Label);
+        Assert.False(m.Wind.Calm);
         Assert.Equal(">10 km", m.Visibility);
         Assert.Equal(2, m.Clouds.Count);
         Assert.Equal("FEW 3500", m.Clouds[0].Label);
@@ -38,7 +38,10 @@ public class WeatherParsingTests
         Assert.Equal(-3, m.TempC);
         Assert.Equal(-5, m.DewpointC);
         Assert.Equal(998, m.QnhHpa);
-        Assert.Contains("pioggia", m.Weather);
+        // ⚠️ CODICI, non parole: il parser non sa in che lingua si leggerà (le parole stanno nei .resx).
+        Assert.Equal(new[] { "RA" }, m.Weather.Single().Codes);
+        Assert.Equal(WxIntensity.Light, m.Weather.Single().Intensity);
+        Assert.Equal("-RA", m.Weather.Single().Raw);
     }
 
     [Fact] // vento calmo + visibilità in metri
@@ -46,9 +49,30 @@ public class WeatherParsingTests
     {
         var m = MetarParser.ParseMetar("LIRA 010000Z 00000KT 4000 BR 10/09 Q1020");
         Assert.True(m.Wind!.Calm);
-        Assert.Equal("Calmo", m.Wind.Label);
         Assert.Equal("4000 m", m.Visibility);
-        Assert.Contains("foschia", m.Weather);
+        Assert.Equal(new[] { "BR" }, m.Weather.Single().Codes);
+        Assert.Equal(WxIntensity.Moderate, m.Weather.Single().Intensity);
+    }
+
+    [Fact] // gruppi composti e intensità: l'ordine dei codici è informazione, non stile
+    public void Metar_Weather_Groups_Keep_Codes_And_Intensity()
+    {
+        var m = MetarParser.ParseMetar("LIRF 191250Z 16012KT 3000 +SHRA VCTS FZFG BKN012 10/08 Q1010");
+
+        Assert.Equal(3, m.Weather.Count);
+        Assert.Equal(new[] { "SH", "RA" }, m.Weather[0].Codes);     // SHRA, non RASH
+        Assert.Equal(WxIntensity.Heavy, m.Weather[0].Intensity);
+        Assert.Equal(new[] { "TS" }, m.Weather[1].Codes);
+        Assert.Equal(WxIntensity.Vicinity, m.Weather[1].Intensity);
+        Assert.Equal(new[] { "FZ", "FG" }, m.Weather[2].Codes);
+        Assert.Equal(WxIntensity.Moderate, m.Weather[2].Intensity);
+    }
+
+    [Fact] // un codice sconosciuto non è meteo: resta fuori (e nel raw, che si mostra sempre intero)
+    public void Metar_Unknown_Group_Is_Not_Weather()
+    {
+        var m = MetarParser.ParseMetar("LIRF 191250Z 16012KT 9999 XXYY FEW035 10/08 Q1010");
+        Assert.Empty(m.Weather);
     }
 
     [Fact] // inHg → hPa
@@ -77,7 +101,7 @@ public class WeatherParsingTests
 
         Assert.Equal(TafChangeKind.Tempo, taf.Segments[2].Kind);
         Assert.Equal("4000 m", taf.Segments[2].Visibility);
-        Assert.Contains("pioggia", taf.Segments[2].Weather);
+        Assert.Equal(new[] { "RA" }, taf.Segments[2].Weather.Single().Codes);
 
         Assert.Equal(TafChangeKind.Becmg, taf.Segments[3].Kind);
         Assert.Equal(240, taf.Segments[3].Wind!.DirectionDeg);

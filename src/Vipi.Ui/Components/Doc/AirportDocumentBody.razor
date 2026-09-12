@@ -1,4 +1,4 @@
-﻿@* Il CORPO di una vIPI d'aeroporto: le sezioni nell'ordine del documento, con il corpo derivato che questa
+@* Il CORPO di una vIPI d'aeroporto: le sezioni nell'ordine del documento, con il corpo derivato che questa
    famiglia disegna per chiave.
 
    Sta fuori da `AeroportoPage` perché lo stesso documento va reso in due posti — la sua pagina, e la pagina
@@ -59,7 +59,13 @@
     {
         @switch (sec.SectionKey)
         {
-            case "weather": <AirportWeather Icao="@Doc.Icao" Report="Doc.Wx" Metar="Doc.Metar" Taf="Doc.Taf" Lingua="@Doc.Bloccata" />; break;
+            case "weather":
+                @* ⚠️ La provenienza del METAR («IVAO», «VATSIM») è meccanica di servizio come il numero
+                   della regola pista che sta vincendo: stessa soglia, stesso motivo. Il bollettino resta
+                   intero per chiunque; a cambiare è solo la pastiglia che dice che la scorta ha lavorato. *@
+                <AirportWeather Icao="@Doc.Icao" Report="Doc.Wx" Metar="Doc.Metar" Taf="Doc.Taf" Lingua="@Doc.Bloccata"
+                               MostraSorgente="@MeccanicaVisibile" />;
+                break;
             case "runwayrules":
                 @* ⚠️ Il segno «adesso» è la stessa informazione della provenienza vista da un'altra colonna:
                    dice QUALE regola sta vincendo. Sotto lo staff di divisione la tabella resta — è contenuto

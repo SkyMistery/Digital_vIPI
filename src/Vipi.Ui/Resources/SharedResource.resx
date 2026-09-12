@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -321,6 +321,40 @@
   <data name="Airport_MetarNA" xml:space="preserve"><value>METAR non disponibile per {0}</value></data>
   <data name="Airport_WxNA" xml:space="preserve"><value>METAR/TAF non disponibile per {0}</value></data>
   <data name="Airport_WxNAHint" xml:space="preserve"><value>Servizio meteo non raggiungibile o ICAO senza bollettino. Riprova più tardi.</value></data>
+  <!-- METAR/TAF decodificato: le parole dei codici ICAO (Vipi.Ui.Shared.WxText). Il resto del bollettino e' neutro e non sta qui. -->
+  <data name="Wx_Calm" xml:space="preserve"><value>Calmo</value></data>
+  <data name="Wx_Light" xml:space="preserve"><value>leggera</value></data>
+  <data name="Wx_Heavy" xml:space="preserve"><value>forte</value></data>
+  <data name="Wx_Vicinity" xml:space="preserve"><value>in prossimità</value></data>
+  <data name="Wx_RA" xml:space="preserve"><value>pioggia</value></data>
+  <data name="Wx_SN" xml:space="preserve"><value>neve</value></data>
+  <data name="Wx_DZ" xml:space="preserve"><value>pioviggine</value></data>
+  <data name="Wx_GR" xml:space="preserve"><value>grandine</value></data>
+  <data name="Wx_GS" xml:space="preserve"><value>gragnola</value></data>
+  <data name="Wx_SG" xml:space="preserve"><value>neve granulosa</value></data>
+  <data name="Wx_PL" xml:space="preserve"><value>granuli di ghiaccio</value></data>
+  <data name="Wx_IC" xml:space="preserve"><value>aghi di ghiaccio</value></data>
+  <data name="Wx_SH" xml:space="preserve"><value>rovescio</value></data>
+  <data name="Wx_TS" xml:space="preserve"><value>temporale</value></data>
+  <data name="Wx_FZ" xml:space="preserve"><value>congelantesi</value></data>
+  <data name="Wx_FG" xml:space="preserve"><value>nebbia</value></data>
+  <data name="Wx_BR" xml:space="preserve"><value>foschia</value></data>
+  <data name="Wx_HZ" xml:space="preserve"><value>caligine</value></data>
+  <data name="Wx_FU" xml:space="preserve"><value>fumo</value></data>
+  <data name="Wx_DU" xml:space="preserve"><value>polvere</value></data>
+  <data name="Wx_SA" xml:space="preserve"><value>sabbia</value></data>
+  <data name="Wx_MI" xml:space="preserve"><value>sottile</value></data>
+  <data name="Wx_BC" xml:space="preserve"><value>banchi</value></data>
+  <data name="Wx_PR" xml:space="preserve"><value>parziale</value></data>
+  <data name="Wx_DR" xml:space="preserve"><value>scaccia-basso</value></data>
+  <data name="Wx_BL" xml:space="preserve"><value>sollevata</value></data>
+  <data name="Wx_SQ" xml:space="preserve"><value>groppo</value></data>
+  <data name="Wx_FC" xml:space="preserve"><value>tromba</value></data>
+  <data name="Wx_PO" xml:space="preserve"><value>vortici di polvere</value></data>
+  <data name="Wx_VA" xml:space="preserve"><value>cenere vulcanica</value></data>
+  <data name="Wx_SS" xml:space="preserve"><value>tempesta di sabbia</value></data>
+  <data name="Wx_DS" xml:space="preserve"><value>tempesta di polvere</value></data>
+  <data name="Wx_UP" xml:space="preserve"><value>precipitazione sconosciuta</value></data>
   <data name="Airport_Validity" xml:space="preserve"><value>Validità</value></data>
   <data name="Airport_FromValidityStart" xml:space="preserve"><value>dall'inizio validità</value></data>
   <data name="Airport_TransLevelByQnh" xml:space="preserve"><value>Transition Level in base al QNH</value></data>
