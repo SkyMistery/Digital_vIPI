@@ -4,15 +4,23 @@
 
 ### 📦 A25 — Pacchetto 1.25.0: 25 file — ⏳ **PRONTO DA CARICARE**
 
-Timbro `1.25.0 · 5edd8a98`, zip
-`0590e7b49290c63aadf61df1587ec426aa8311c92fcb0d94b214c2b772bde19b`
+Timbro `1.25.0 · 20775a0e`, zip
+`9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`, 5,04 MB), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md).
-Sostituisce **1.24.1**. Dentro: il **quadro vAWOS** e i **minimi LVP** (le due voci qui sotto).
-⚠️ **Ricostruito dopo il primo giro**: il committente ha voluto la scheda **vAWOS prima di «Le mie
-statistiche ATC»** in `/services`, e il timbro nasce dal commit — quindi zip e impronta sono cambiati
-(il primo, `909e3f03` / `56ab79f0…`, non esiste più). L'ordine di quella pagina è pinnato da
-`ServicesHomeTests.Le_schede_stanno_nell_ordine_deciso`, che è diventato rosso e ha fatto il suo mestiere.
+Sostituisce **1.24.1**. Dentro: il **quadro vAWOS**, i **minimi LVP** (le voci qui sotto) e due ritocchi
+chiesti a pacchetto già fatto — la scheda **vAWOS prima di «Le mie statistiche ATC»** in `/services`, e il
+**ritorno a `/services` dopo il login e dopo il logout** (si atterrava sulla vSOP in tutti e due i casi).
+
+⚠️ **Ricostruito DUE volte**, e il motivo è sempre lo stesso: il timbro nasce dal commit, quindi ogni
+ritocco fa uno zip e un'impronta nuovi. Le due versioni precedenti (`909e3f03` / `56ab79f0…` e
+`5edd8a98` / `0590e7b4…`) **non esistono più**: vale solo quella qui sopra.
+✅ Tutte e due le volte **un test è diventato rosso da solo** e ha fatto il suo mestiere:
+`ServicesHomeTests.Le_schede_stanno_nell_ordine_deciso` per l'ordine delle schede, `SafeReturnTests` per il
+ripiego del login. Nessuno dei due era stato scritto per il cambio che ha intercettato.
+⚠️ Il ritorno dopo login/logout era scritto **a mano in quattro posti** (due link nel layout, il
+`RedirectUri` del logout, il ripiego di `SafeReturn`): ora è `VsopRoutes.ServicesHome`, letto da `Vipi.Ui`
+**e** da `Vipi.Host`. Stessa disciplina del prefisso, che si era già rotta una volta proprio perché copiato.
 
 **MINOR, con UNA migrazione ADDITIVA** — `20260912115615_MinimiLvp`, un `CreateTable`
 (`AirportLvpMinima`) più un indice unico su `AirportId`, sui due provider. Niente SQL, niente `DropColumn`:
@@ -39,7 +47,14 @@ il modello se l'aspetta. La prova da fuori è la riga **`Schema`** in `admin/dia
   LVP, il METAR grezzo, le celle **`RVR 17` / `RVR 35`** (nessun «MID»), la riga
   «RWY IN USE: 35 · from rule #1», e — il difetto della revisione — **zero chiamate all'API dopo aver
   lasciato la pagina**;
-- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.0 · commit 5edd8a9`.
+- l'**ordine delle schede** letto dalla pagina pubblicata: vAWOS terzo in assoluto, **primo fra gli
+  strumenti**, prima di «My ATC statistics»;
+- il **ritorno del login** letto dall'HTML servito con l'auth accesa e da anonimo:
+  `…/auth/login?returnUrl=/services`;
+- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.0 · commit 20775a0`.
+⚠️ **Il giro completo di login e logout non si prova in locale**: serve il portale IVAO vero. Qui è
+provato il ritorno che parte (il link) e il ripiego (`SafeReturnTests`); il **logout** atterra su una
+costante che quei due condividono, ma la sua conferma è dopo il caricamento.
 
 ⚠️ **Un giro a vuoto, e vale come metodo.** Il primo lancio ha dato **tre rossi** con
 «SQLite Error 11: database disk image is malformed». Non era il pacchetto: nello scratchpad c'erano un

@@ -1,8 +1,8 @@
 # HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 12 settembre 2026 (notte) — 📦 **1.25.0 È PRONTA DA CARICARE, non è ancora
-online.** Timbro `1.25.0 · 5edd8a98`, **25 file**, zip
-`0590e7b49290c63aadf61df1587ec426aa8311c92fcb0d94b214c2b772bde19b`
+online.** Timbro `1.25.0 · 20775a0e`, **25 file**, zip
+`9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md). Sostituisce
 1.24.1. **MINOR con UNA migrazione ADDITIVA** (`20260912115615_MinimiLvp`: un `CreateTable` su
@@ -14,11 +14,13 @@ senza, la tabella non nasce e il modello se l'aspetta — la prova da fuori è l
 e `vipi-awos.js` **nuovi**, `vipi-boot.js` cambiato — che viaggiano **insieme** a
 `Vipi.Host.staticwebassets.endpoints.json`.
 
-Porta due cose: il **quadro vAWOS** su `/services/vawos/{icao}` (il meteo di torre da secondo monitor:
+Porta tre cose: il **quadro vAWOS** su `/services/vawos/{icao}` (il meteo di torre da secondo monitor:
 vento per testata con traverso e coda, RVR **una cella per testata**, QNH/QFE, TL dalla tabella dello scalo,
 ATIS, e la pista in uso che dice **chi l'ha decisa**; pubblico per gli scali con un documento pubblicato,
 Test METAR allo staff) e i **minimi LVP**, sezione nuova di vIPI e vSOP con il dato nell'anagrafica dello
-scalo — quindi il vSOP non copia niente. ⚠️ **Gli indici dei documenti cambiano** e i documenti già
+scalo — quindi il vSOP non copia niente. E, chiesto a pacchetto già fatto, **dopo il login e dopo il logout
+si torna a `/services`** invece che sulla vSOP: è anche dove `/` già rimandava, quindi entrare o uscire porta
+alla home del sito. ⚠️ **Gli indici dei documenti cambiano** e i documenti già
 pubblicati compariranno fra i «da ripubblicare»: la sezione arriva in pubblico solo alla **prossima
 pubblicazione** di ognuno. Carta
 [`docs/feature/2026-09-12-vawos-e-minimi-lvp.md`](docs/feature/2026-09-12-vawos-e-minimi-lvp.md).

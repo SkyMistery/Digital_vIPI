@@ -704,8 +704,8 @@ trasloco militare, che riportava zero spostamenti su un documento che andava spo
 
 ## 14. Il pacchetto 1.25.0 (12 settembre 2026, notte)
 
-Timbro `1.25.0 · 5edd8a98`, **25 file**, zip
-`0590e7b49290c63aadf61df1587ec426aa8311c92fcb0d94b214c2b772bde19b`, foglio
+Timbro `1.25.0 · 20775a0e`, **25 file**, zip
+`9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](../../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md).
 Sostituisce 1.24.1.
 

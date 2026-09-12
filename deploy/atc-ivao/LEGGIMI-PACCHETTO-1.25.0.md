@@ -1,6 +1,6 @@
 # Pacchetto 1.25.0 — solo i file cambiati
 
-> **Timbro:** `1.25.0 · 5edd8a98` (12 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.25.0 · 20775a0e` (12 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.24.1.** **25 file**. 🔴 **C'È UNA MIGRAZIONE** — additiva, si applica da sola all'avvio:
@@ -97,7 +97,13 @@ vigore** e **cancellazione** (RVR e ceiling). Il quadro vAWOS li legge e propone
 ⚠️ **Il quadro suggerisce, non decide.** Attivare o cancellare le LVP resta una decisione dell'aeroporto: la
 pastiglia lo scrive per esteso passandoci sopra col mouse.
 
-### 🟢 3. L'indice dei documenti d'aeroporto cambia
+### 🟢 3. Dopo il login e dopo il logout si torna a `/services`
+
+Prima si atterrava sulla **vSOP** in tutti e due i casi. È la porta più usata, ma non è l'unica: da lì il
+vAWOS, le statistiche o la documentazione militare costavano un passo indietro. Adesso si torna alla
+**porta d'ingresso**, che è anche dove `/` già rimandava.
+
+### 🟢 4. L'indice dei documenti d'aeroporto cambia
 
 - Nella **vIPI civile** «Regole di selezione pista» diventa **figlia** di «Piste», e **LVP** nasce subito
   **dopo** «Tecnica operativa».
@@ -116,7 +122,7 @@ l'indice vecchio e **non ha** la sezione LVP. Non è un guasto, è come funziona
 
 ## Dopo il caricamento
 
-1. **Il timbro** in `diagnostica/avvio-diagnostica.txt` dev'essere `1.25.0 · 5edd8a98`.
+1. **Il timbro** in `diagnostica/avvio-diagnostica.txt` dev'essere `1.25.0 · 20775a0e`.
    ⚠️ Il timbro dice **quale versione è partita**, non che il sito funzioni.
 2. 🔴 **`admin/diagnostics`, riga `Schema`: dev'essere `0`.** Se non lo è, la migrazione non è entrata —
    il file `Vipi.Infrastructure.MySqlMigrations.dll` è quello vecchio o non è stato rinominato.
