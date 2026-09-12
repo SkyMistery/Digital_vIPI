@@ -1,0 +1,303 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   vAWOS — il quadro meteo di torre (carta docs/feature/2026-09-12-vawos-e-minimi-lvp.md)
+
+   Serve UNA rotta sola, /services/vawos, e l'host lo carica solo lì (come il
+   foglio dell'Aurora Profile Swapper): su ogni altra pagina sarebbe peso morto.
+
+   ⚠️ TUTTO sta sotto `.awos`: questa pagina non usa il tema del sito. Un quadro
+   d'aeroporto è nero perché lo si guarda in una torre al buio, e seguire il
+   tema chiaro/scuro del browser vorrebbe dire un pannello bianco in faccia a
+   chi controlla di notte. Il passaggio giorno/notte è un tasto del quadro
+   (`data-awos-theme`), non una preferenza del sito.
+
+   ⚠️ I numeri sono in IBM Plex Mono — carattere già ospitato dal sito, e
+   monospaziato non per gusto: i valori si muovono di continuo (l'interpolazione
+   fra un bollettino e l'altro), e con un carattere proporzionale «11» e «00»
+   hanno larghezze diverse e il riquadro sussulta a ogni giro.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.awos {
+  /* Notte: il default. Grigi scuri, niente nero pieno, colori desaturati. */
+  --awos-bg: #2e2e2e;
+  --awos-barra: #3a3a3a;
+  --awos-met: #383838;
+  --awos-pannello: #1a1a1a;
+  --awos-cella: #0d0d0d;
+  --awos-bordo: #4a4a4a;
+  --awos-txt: #d0d0c8;
+  --awos-lbl: #7a7a72;
+  --awos-verde: #29a329;
+  --awos-ambra: #c47e00;
+  --awos-rosso: #b03020;
+  --awos-ciano: #1a7a99;
+  --awos-freccia: #2a8a3a;
+  --awos-freccia-inv: #a08000;
+  --awos-testata: #c8871a;
+
+  --awos-mono: 'IBM Plex Mono', 'Share Tech Mono', ui-monospace, monospace;
+  --awos-testo: 'Poppins', 'Nunito Sans', system-ui, sans-serif;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--awos-bg);
+  color: var(--awos-txt);
+  font-family: var(--awos-testo);
+  font-weight: 600;
+}
+
+.awos[data-awos-theme="day"] {
+  --awos-bg: #b0b2b4;
+  --awos-barra: #111316;
+  --awos-met: #505559;
+  --awos-pannello: #505559;
+  --awos-cella: #111316;
+  --awos-bordo: #787870;
+  --awos-txt: #ffffff;
+  --awos-lbl: #d0d0d0;
+  --awos-verde: #00cc44;
+  --awos-ambra: #f97316;
+  --awos-rosso: #ef4444;
+  --awos-ciano: #35a7d0;
+  --awos-freccia: #00b33c;
+  --awos-freccia-inv: #c86000;
+}
+
+.awos *, .awos *::before, .awos *::after { box-sizing: border-box; }
+/* ⚠️ Serve QUI: le finestrelle e il pannello di prova hanno `display:flex`, che vince su `[hidden]`.
+   Senza questa riga nascono APERTE — visto a schermo il 12 settembre 2026. */
+.awos [hidden] { display: none !important; }
+
+/* ── Barra ─────────────────────────────────────────────────────────────── */
+.awos-barra {
+  background: var(--awos-barra);
+  border-bottom: 2px solid var(--awos-bordo);
+  display: flex; align-items: center; gap: 8px;
+  flex-wrap: wrap;
+  padding: 5px 10px;
+  color: #fff;
+}
+.awos-marchio { font-size: 14px; font-weight: 800; letter-spacing: .1em; }
+.awos-scalo { font-size: 13px; color: #cfcfcf; }
+.awos-sp { margin-left: auto; }
+.awos-btn {
+  font: inherit; font-size: 11px; font-weight: 700;
+  padding: 3px 11px; border-radius: 3px; cursor: pointer;
+  background: transparent; color: #fff;
+  border: 1px solid rgba(255,255,255,.55);
+}
+.awos-btn:hover { filter: brightness(1.35); }
+.awos-btn[aria-pressed="true"] { background: var(--awos-ambra); color: #000; border-color: var(--awos-ambra); }
+.awos-orologio { font-family: var(--awos-mono); font-size: 21px; letter-spacing: .05em; }
+.awos-sel { display: flex; gap: 4px; align-items: center; }
+.awos-sel select {
+  font: inherit; font-size: 11px; max-width: 190px;
+  background: var(--awos-cella); color: #fff; border: 1px solid rgba(255,255,255,.45); padding: 3px 6px; border-radius: 3px;
+}
+.awos-eta { font-size: 11px; color: #9a9a9a; font-family: var(--awos-mono); }
+.awos-eta.vecchio { color: var(--awos-ambra); }
+.awos-eta.morto { color: var(--awos-rosso); }
+/* Il LED di vitalità: otto tacche, una accesa a giro. Dice che il quadro è vivo. */
+.awos-vita circle { fill: #333; }
+
+.awos-pastiglia {
+  font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: 2px; border: 1px solid currentColor;
+}
+.awos-pastiglia.sim { color: #ffd166; }
+.awos-pastiglia.sorgente { color: var(--awos-ciano); }
+.awos-pastiglia.bozza { color: var(--awos-ambra); }
+
+/* ── MET REPORT ────────────────────────────────────────────────────────── */
+.awos-met {
+  background: var(--awos-met);
+  border-bottom: 2px solid var(--awos-bordo);
+  display: grid; gap: 3px; padding: 3px;
+  grid-template-columns: 200px 1fr 1fr 1fr 200px;
+  grid-template-areas:
+    "qnh vis wx cloud atis"
+    "qnh trend trend trend atis";
+}
+.awos-mc { background: var(--awos-pannello); display: flex; flex-direction: column; gap: 2px; padding: 4px 6px; }
+.awos-mc-t {
+  font-size: 10px; letter-spacing: .1em; color: var(--awos-lbl);
+  border-bottom: 1px solid #444; padding-bottom: 2px;
+}
+.awos-qnh { grid-area: qnh; }
+.awos-vis { grid-area: vis; }
+.awos-wx { grid-area: wx; }
+.awos-cloud { grid-area: cloud; }
+.awos-atis { grid-area: atis; }
+.awos-trend { grid-area: trend; }
+
+.awos-qnh-n {
+  font-family: var(--awos-mono); font-size: 42px; font-weight: 700;
+  color: var(--awos-verde); text-align: center; background: var(--awos-cella); padding: 4px 0;
+}
+.awos-sub { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; }
+.awos-cella { background: var(--awos-cella); padding: 4px 6px; text-align: center; }
+.awos-sl { font-size: 9px; letter-spacing: .06em; color: var(--awos-lbl); }
+.awos-sv { font-family: var(--awos-mono); font-size: 19px; font-weight: 700; color: var(--awos-verde); }
+
+.awos-vis-n {
+  font-family: var(--awos-mono); font-size: 32px; font-weight: 700; color: var(--awos-verde);
+  background: var(--awos-cella); display: flex; align-items: center; justify-content: center;
+  flex: 1; margin-top: 2px; min-height: 52px;
+}
+.awos-righe { display: flex; flex-direction: column; gap: 2px; margin-top: 2px; flex: 1; }
+.awos-riga {
+  min-height: 21px; background: var(--awos-cella); display: flex; align-items: center;
+  padding: 0 6px; font-size: 12.5px; font-weight: 700; color: var(--awos-verde);
+}
+.awos-trend-box {
+  background: var(--awos-cella); padding: 4px 6px; margin-top: 2px; flex: 1;
+  font-size: 12.5px; font-weight: 700; color: var(--awos-verde); min-height: 38px;
+  font-family: var(--awos-mono);
+}
+.awos-atis-blk {
+  background: var(--awos-cella); border: 1px solid rgba(255,255,255,.55);
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5px 4px;
+}
+.awos-atis-t { font-size: 9px; letter-spacing: .1em; color: #aaa; text-transform: uppercase; }
+.awos-atis-v { font-family: var(--awos-mono); font-size: 30px; font-weight: 700; color: #fff; line-height: 1.05; }
+.awos-atis-ts { font-family: var(--awos-mono); font-size: 13px; color: #888; }
+
+/* ── Un blocco per pista fisica ────────────────────────────────────────── */
+.awos-blocchi { display: flex; flex-direction: column; flex: 1; }
+.awos-blocco { display: flex; flex-direction: column; }
+.awos-blocco + .awos-blocco { border-top: 3px solid var(--awos-bg); }
+
+.awos-strip { display: flex; align-items: stretch; height: 40px; background: #2a2a2a; border-bottom: 1px solid #444; }
+.awos-testata {
+  width: 88px; flex-shrink: 0; border: 4px solid #000; background: var(--awos-testata); color: #000;
+  font-family: var(--awos-mono); font-size: 21px; font-weight: 700; letter-spacing: .06em;
+  display: flex; align-items: center; justify-content: center;
+}
+.awos-testata.attiva { background: #2fbf4f; }
+.awos-pettine {
+  width: 26px; flex-shrink: 0; background: var(--awos-barra);
+  display: flex; flex-direction: column; justify-content: space-around; padding: 6px 5px;
+}
+.awos-pettine i { display: block; height: 4px; background: #fff; border-radius: 1px; }
+.awos-nastro { flex: 1; position: relative; display: flex; align-items: center; justify-content: center; background: #3a3020; }
+.awos[data-awos-theme="day"] .awos-nastro { background: #5a5f63; }
+.awos-tratteggio {
+  position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%);
+  background: repeating-linear-gradient(90deg, #fff 0, #fff 18px, transparent 18px, transparent 34px);
+}
+.awos-freccia { position: relative; z-index: 2; background: none; border: 0; padding: 0; cursor: pointer; line-height: 0; }
+.awos-freccia svg { transition: transform .18s ease; }
+
+.awos-sorgente {
+  background: var(--awos-cella); border-bottom: 1px solid var(--awos-bordo);
+  font-size: 11px; letter-spacing: .1em; color: #b9b9b9; padding: 3px 12px;
+}
+.awos-sorgente b { color: var(--awos-txt); }
+
+/* ── Vento: due pannelli, uno per testata ──────────────────────────────── */
+.awos-vento { display: flex; justify-content: center; padding: 6px; }
+.awos-vento-wrap {
+  display: grid; grid-template-columns: 1fr 12px 1fr;
+  width: 100%; max-width: clamp(640px, 74vw, 1180px);
+  border: 1px solid rgba(255,255,255,.55);
+}
+.awos-divisore { background: var(--awos-bordo); }
+/* ⚠️ `inline-size` e non `size`, e l'altezza è AUTOMATICA. Con `container-type: size` il pannello deve
+   avere un'altezza definita — il contenimento gli impedisce di misurarsi dal contenuto — e su tre piste
+   quell'altezza (46vh diviso tre) tagliava la riga CROSS/TAIL: a schermo restavano le etichette e sparivano
+   i numeri, che su un quadro d'aeroporto è il difetto peggiore possibile. Con `inline-size` il pannello
+   cresce quanto serve e i caratteri seguono la LARGHEZZA. */
+.awos-pannello {
+  container-type: inline-size;
+  background: var(--awos-pannello); border: 1px solid rgba(255,255,255,.55);
+  display: flex; flex-direction: column; align-items: center; justify-content: space-evenly;
+  gap: clamp(5px, .9cqi, 9px);
+  padding: clamp(9px, 1.5cqi, 16px) clamp(12px, 2.2cqi, 20px);
+  overflow: hidden;
+}
+.awos-pannello-t {
+  width: 100%; text-align: center; border-bottom: 1px solid #444; padding-bottom: 2px;
+  letter-spacing: .2em; color: var(--awos-lbl);
+  font-size: clamp(12px, 2.6cqi, 19px);
+}
+.awos-wrow { display: flex; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: clamp(16px, 5cqi, 44px); width: 100%; }
+.awos-wf { display: flex; flex-direction: column; align-items: center; gap: clamp(2px, .4cqi, 5px); }
+.awos-wl { font-size: clamp(10px, 2cqi, 15px); letter-spacing: .06em; color: var(--awos-lbl); white-space: nowrap; }
+.awos-wpair { display: flex; gap: 4px; }
+.awos-box-lg {
+  background: var(--awos-cella); display: inline-flex; align-items: center; justify-content: center;
+  min-width: clamp(76px, 14cqi, 128px); padding: clamp(4px, .8cqi, 7px) clamp(10px, 2.6cqi, 24px);
+}
+.awos-box-sm {
+  background: var(--awos-cella); display: inline-flex; align-items: center; justify-content: center;
+  min-width: clamp(52px, 9.6cqi, 88px); padding: clamp(4px, .8cqi, 7px) clamp(8px, 1.8cqi, 17px);
+}
+.awos-n-lg { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(28px, 6.6cqi, 50px); }
+.awos-n-sm { font-family: var(--awos-mono); font-weight: 700; line-height: 1; color: var(--awos-verde); font-size: clamp(17px, 3.6cqi, 28px); }
+.awos-n-lg.ambra, .awos-n-sm.ambra { color: var(--awos-ambra); }
+.awos-n-lg.rosso, .awos-n-sm.rosso { color: var(--awos-rosso); }
+
+/* ── RVR ───────────────────────────────────────────────────────────────── */
+.awos-rvr {
+  background: #6f6f6f; border-top: 2px solid var(--awos-bordo);
+  display: flex; align-items: center; justify-content: center; gap: 28px; flex-wrap: wrap;
+  padding: 5px 14px;
+}
+.awos[data-awos-theme="day"] .awos-rvr { background: var(--awos-pannello); }
+.awos-rvr.lvp { background: rgba(249,115,22,.42); }
+.awos-rvr-f { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.awos-rvr-l { font-size: 10px; letter-spacing: .1em; color: #1c1c1c; font-weight: 800; }
+.awos[data-awos-theme="day"] .awos-rvr-l { color: var(--awos-lbl); }
+.awos-rvr-v {
+  font-family: var(--awos-mono); font-size: 26px; font-weight: 700; color: var(--awos-verde);
+  background: var(--awos-cella); min-width: 92px; padding: 3px 12px; text-align: center;
+}
+
+/* ── Stati e messaggi ──────────────────────────────────────────────────── */
+.awos-vuoto { margin: auto; text-align: center; padding: 40px 20px; max-width: 560px; }
+.awos-vuoto h1 { font-size: 20px; margin-bottom: 10px; }
+.awos-vuoto p { font-size: 13.5px; color: var(--awos-lbl); line-height: 1.6; }
+.awos-vuoto a { color: var(--awos-ciano); }
+
+.awos-elenco { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 16px; }
+.awos-elenco a {
+  font-family: var(--awos-mono); font-size: 14px; font-weight: 700; text-decoration: none;
+  padding: 5px 12px; border: 1px solid var(--awos-bordo); color: var(--awos-txt); background: var(--awos-pannello);
+}
+.awos-elenco a:hover { border-color: var(--awos-ciano); color: #fff; }
+
+/* Il pannello del METAR di prova: si apre solo allo staff. */
+.awos-prova { display: flex; gap: 6px; align-items: center; padding: 6px 10px; background: var(--awos-cella); border-bottom: 1px solid var(--awos-bordo); }
+.awos-prova input {
+  flex: 1; font-family: var(--awos-mono); font-size: 12.5px; padding: 4px 8px;
+  background: #000; color: var(--awos-verde); border: 1px solid var(--awos-bordo);
+}
+.awos-prova label { font-size: 10px; letter-spacing: .1em; color: var(--awos-lbl); }
+
+/* Le finestrelle (Local report, ATIS message, Ext data). `hidden` le spegne. */
+.awos-mask {
+  position: fixed; top: 54px; left: 50%; transform: translateX(-50%); z-index: 60;
+  background: #111; border: 2px solid var(--awos-ambra); padding: 12px 16px;
+  min-width: min(420px, 92vw); max-width: min(760px, 94vw); max-height: 62vh; overflow-y: auto;
+  font-family: var(--awos-mono); font-size: 12.5px; color: #fff; white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.awos-mask h2 { font-size: 10px; letter-spacing: .12em; color: #999; margin-bottom: 8px; font-family: var(--awos-testo); }
+.awos-mask .awos-x { position: absolute; top: 4px; right: 8px; background: none; border: 0; color: #aaa; font-size: 15px; cursor: pointer; }
+.awos-mask.dati { border-color: var(--awos-ciano); }
+.awos-mask table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.awos-mask td { padding: 3px 6px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.awos-mask td:last-child { text-align: right; color: var(--awos-verde); }
+
+/* Telefono: la griglia MET si impila e le strisce restano leggibili. */
+@media (max-width: 860px) {
+  .awos-met {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas: "qnh atis" "vis vis" "wx cloud" "trend trend";
+  }
+  .awos-vento-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 8px 1fr; height: auto; }
+  .awos-divisore { height: 8px; }
+  .awos-testata { width: 62px; font-size: 17px; }
+}
+
+/* Un quadro su carta è meteo scaduto: non si stampa. */
+@media print { .awos { display: none; } }

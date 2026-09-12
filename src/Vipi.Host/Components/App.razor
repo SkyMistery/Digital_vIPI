@@ -32,6 +32,13 @@
     {
         <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-swapper.css")" />
     }
+    @* Stessa regola del foglio qui sopra, e stessa ragione: il quadro vAWOS serve a UNA rotta sola
+       (/services/vawos) e ha una tavolozza sua, che sulle altre pagine sarebbe peso morto. *@
+    @if (Nav.ToBaseRelativePath(Nav.Uri).StartsWith("services/vawos", StringComparison.OrdinalIgnoreCase))
+    {
+        <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.css")" />
+        <script defer src="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.js")"></script>
+    }
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
     <style>html,body{height:100%;margin:0;background:var(--bg)}</style>

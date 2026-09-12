@@ -25,6 +25,16 @@ public interface IAwosService
     /// essercene una seconda — la prima sta alla porta, dove si sa chi bussa.</para>
     /// </param>
     Task<AwosResult> BuildAsync(string icao, bool perEditor, string? metarDiProva = null, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gli scali per cui il quadro si apre, in ordine di ICAO: quelli con almeno un documento pubblicato.
+    ///
+    /// <para>⚠️ È lo <b>stesso</b> insieme del cancello, e non è un dettaglio: un selettore che elencasse uno
+    /// scalo che poi rifiuta di aprirsi sarebbe un gesto che non fa niente. Anche per un Editor l'elenco
+    /// resta questo — è «che cosa vede il pubblico» — e uno scalo non pubblicato lui lo apre scrivendone
+    /// l'indirizzo.</para>
+    /// </summary>
+    Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAwosService"/>
@@ -89,6 +99,43 @@ public sealed class AwosService : IAwosService
             Piste: piste,
             Attiva: attiva,
             AsOf: DateTimeOffset.UtcNow), AwosOutcome.Ok);
+    }
+
+    public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default)
+    {
+        var docs = (await _documenti.ListAsync(ct))
+            .Where(m => m.HasEffectiveRelease && !m.IsHidden
+                        && m.Kind is ReleaseTargetType.Airport or ReleaseTargetType.AirportMil
+                        && m.Scope.Length == 4)
+            .ToList();
+
+        return docs
+            .GroupBy(m => m.Scope.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)
+            .Select(g => new AwosAirport(
+                g.Key,
+                // Il nome viene dal titolo del documento: è già quello che il pubblico legge altrove, e non
+                // costa una seconda interrogazione all'anagrafica per una tendina.
+                NomeDalTitolo(g.OrderBy(m => m.Kind == ReleaseTargetType.Airport ? 0 : 1).First().Title, g.Key),
+                g.Any(m => m.Kind == ReleaseTargetType.Airport),
+                g.Any(m => m.Kind == ReleaseTargetType.AirportMil)))
+            .OrderBy(a => a.Icao, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Il nome dello scalo dal titolo del documento: «vIPI — LIBC Crotone» → «Crotone».
+    /// <para>La tendina scrive già l'ICAO da sé, e ripeterlo due volte in una riga larga così ruba lo spazio
+    /// al nome, che è la parte per cui la si legge.</para>
+    /// </summary>
+    private static string NomeDalTitolo(string titolo, string icao)
+    {
+        var t = (titolo ?? "").Trim();
+        foreach (var prefisso in new[] { "vIPI", "vSOP", "vLOA" })
+            if (t.StartsWith(prefisso, StringComparison.OrdinalIgnoreCase))
+                t = t[prefisso.Length..].TrimStart(' ', '—', '-', '–', ':');
+        if (t.StartsWith(icao, StringComparison.OrdinalIgnoreCase))
+            t = t[icao.Length..].TrimStart(' ', '—', '-', '–', ':');
+        return t.Length == 0 ? icao : t;
     }
 
     /// <summary>

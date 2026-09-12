@@ -47,6 +47,19 @@ public static class VipiModuleExtensions
     private static int _sseAperti;
 
     /// <summary>
+    /// Come si serializza il quadro vAWOS.
+    ///
+    /// <para>⚠️ Gli enum escono per <b>nome</b>, non per numero: dall'altra parte c'è del JavaScript che
+    /// scrive <c>g.modifier === 'Above'</c>, e un 1 al posto di 'Above' è il genere di errore che non fa
+    /// rumore — nessuna eccezione, solo un RVR che smette di dire «oltre il fondo scala». Rinumerare
+    /// l'enum in C# romperebbe la pagina in silenzio.</para>
+    /// </summary>
+    private static readonly System.Text.Json.JsonSerializerOptions AwosJson = new(System.Text.Json.JsonSerializerDefaults.Web)
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
+    };
+
+    /// <summary>
     /// Registra tutti i servizi del modulo (Application, Infrastructure/EF, polling IVAO, opzioni,
     /// identità). <paramref name="useDevIdentity"/> = true monta l'utente fittizio di sviluppo;
     /// altrimenti l'identità è letta dal sito ospitante via <see cref="HostIdentityCurrentUserProvider"/>.
@@ -314,6 +327,44 @@ public static class VipiModuleExtensions
                 cache.Changed -= OnChanged;
                 Interlocked.Decrement(ref _sseAperti);
             }
+        });
+
+        // Il quadro vAWOS si rilegge da qui, una volta al minuto per scheda aperta
+        // (carta docs/feature/2026-09-12-vawos-e-minimi-lvp.md §4.2).
+        //
+        // ⚠️ Un ENDPOINT e non un'isola interattiva: la pagina resta aperta per ore su un secondo monitor,
+        // ed è esattamente il caso in cui un circuito Blazor si stacca e non torna. Una richiesta HTTP
+        // sopravvive a un riavvio del processo e a una rete che va e viene.
+        //
+        // ⚠️ Il cancello è lo STESSO della pagina, e dev'esserci: un endpoint che rispondesse anche per uno
+        // scalo senza documenti pubblicati sarebbe la porta di servizio aperta accanto a quella chiusa.
+        // ⚠️ Non costa nessuna chiamata esterna: il METAR esce dalla cache di `IWeatherProvider`.
+        endpoints.MapGet("/services/vawos/api/{icao}", async (
+            string icao,
+            string? test,
+            HttpContext ctx,
+            Vipi.Application.Awos.IAwosService awos,
+            IEditAuthorizationService authz,
+            IStringLocalizer<Vipi.Ui.SharedResource> testi,
+            CancellationToken ct) =>
+        {
+            // Il METAR di prova è dello staff, come il tasto che lo apre: qui la guardia si ripete perché
+            // questa è una porta sua, e una porta non si fida di chi ha bussato all'altra.
+            var prova = authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(test) ? test!.Trim() : null;
+            var esito = await awos.BuildAsync(icao, authz.IsEditor, prova, ct);
+            if (esito.Vista is null) return Results.NotFound(new { esito = esito.Esito.ToString() });
+
+            // ⚠️ Le due righe che hanno una LINGUA (tempo presente e nubi) le compone `AwosTesto`, lo stesso
+            // pezzo che usa la pagina al primo disegno. Se le componesse il JavaScript coi codici grezzi, il
+            // quadro direbbe «light shower rain» al caricamento e «-SHRA» un minuto dopo — visto a schermo il
+            // 12 settembre 2026.
+            var payload = new Vipi.Ui.Shared.AwosPayload(
+                esito.Vista,
+                Vipi.Ui.Shared.AwosTesto.TempoPresente(esito.Vista.Metar, k => testi[k].Value),
+                Vipi.Ui.Shared.AwosTesto.Nubi(esito.Vista.Metar));
+
+            ctx.Response.Headers.CacheControl = "no-store";
+            return Results.Json(payload, AwosJson);
         });
 
         // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).

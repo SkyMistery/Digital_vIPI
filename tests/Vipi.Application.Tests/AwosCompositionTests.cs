@@ -35,20 +35,28 @@ public class AwosCompositionTests
         Assert.Equal("25", strisce[0].Right!.Ident);
     }
 
-    [Fact] // si accoppia per ROTTA, non per ident: 16L sta con 34R, non con 16R
-    public void Le_Parallele_Non_Si_Accoppiano_Fra_Loro()
+    [Fact] // 🔴 il lato si SPECCHIA: 16L sta con 34R, non con 34L. Trovato sul dato vero di LIRF.
+    public void Le_Parallele_Si_Accoppiano_Col_Lato_Speculare()
     {
         var strisce = AwosComposition.Strisce(new[]
         {
-            Pista("16L", 159), Pista("16R", 159), Pista("34L", 339), Pista("34R", 339),
+            Pista("16L", 161), Pista("16R", 161), Pista("34L", 341), Pista("34R", 341),
         });
 
         Assert.Equal(2, strisce.Count);
-        foreach (var s in strisce)
-        {
-            Assert.NotNull(s.Right);
-            Assert.NotEqual(s.Left.Ident[..2], s.Right!.Ident[..2]);   // mai 16 con 16
-        }
+        var sedicisx = Assert.Single(strisce, s => s.Left.Ident == "16L");
+        Assert.Equal("34R", sedicisx.Right!.Ident);
+        var sedicidx = Assert.Single(strisce, s => s.Left.Ident == "16R");
+        Assert.Equal("34L", sedicidx.Right!.Ident);
+    }
+
+    [Fact] // lati che non si specchiano (una L e una senza suffisso): si accoppia lo stesso, per rotta
+    public void Senza_Lato_Speculare_Si_Accoppia_Comunque()
+    {
+        var strisce = AwosComposition.Strisce(new[] { Pista("03L", 30), Pista("21", 210) });
+        var s = Assert.Single(strisce);
+        Assert.Equal("03L", s.Left.Ident);
+        Assert.Equal("21", s.Right!.Ident);
     }
 
     [Fact] // una testata senza opposta resta SOLA: non le si inventa una gemella a +180

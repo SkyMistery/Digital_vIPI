@@ -19,6 +19,9 @@ public sealed record AwosResult(AwosView? Vista, AwosOutcome Esito)
     public static AwosResult NonPubblicato => new(null, AwosOutcome.NonPubblicato);
 }
 
+/// <summary>Uno scalo che il quadro sa aprire, per il selettore.</summary>
+public sealed record AwosAirport(string Icao, string Nome, bool HaVipi, bool HaVsop);
+
 /// <summary>Chi ha deciso la pista attiva. L'ordine è quello di precedenza (carta §4.5).</summary>
 public enum AwosRunwaySource
 {

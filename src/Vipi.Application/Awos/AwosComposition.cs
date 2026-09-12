@@ -35,6 +35,7 @@ public static partial class AwosComposition
             {
                 x.Ident,
                 Numero = int.Parse(IdentRe().Match(x.Ident).Groups[1].Value),
+                Lato = IdentRe().Match(x.Ident).Groups[2].Value,
                 Rotta = Rotta(x.Ident, x.Row.Bearing),
                 Elev = x.Row.ThresholdElevationFt,
             })
@@ -49,7 +50,12 @@ public static partial class AwosComposition
         {
             if (!usate.Add(t.Ident)) continue;
 
-            var opposta = teste.FirstOrDefault(o => !usate.Contains(o.Ident) && EOpposta(t.Rotta, o.Rotta));
+            // 🔴 Fra le candidate con la rotta opposta si prende PRIMA quella col lato SPECULARE (L↔R): la
+            // 16L di Fiumicino è lo stesso nastro della 34R, non della 34L, perché girandosi la sinistra
+            // diventa destra. Trovato dal dato vero il 12 settembre 2026 — la prima versione prendeva la
+            // prima rotta opposta libera e appaiava 16L con 34L, cioè due piste diverse disegnate come una.
+            var candidate = teste.Where(o => !usate.Contains(o.Ident) && EOpposta(t.Rotta, o.Rotta)).ToList();
+            var opposta = candidate.FirstOrDefault(o => o.Lato == LatoSpeculare(t.Lato)) ?? candidate.FirstOrDefault();
             var sinistra = new AwosEnd(t.Ident, t.Rotta, t.Elev);
             if (opposta is null) { strisce.Add(new AwosStrip(sinistra, null)); continue; }
 
@@ -72,6 +78,9 @@ public static partial class AwosComposition
         var dedotta = m.Success ? int.Parse(m.Groups[1].Value) * 10 : 0;
         return dedotta == 0 ? 360 : dedotta;
     }
+
+    /// <summary>Il lato che la stessa pista ha dall'altro capo: L↔R, C resta C, nessuno resta nessuno.</summary>
+    private static string LatoSpeculare(string lato) => lato switch { "L" => "R", "R" => "L", _ => lato };
 
     private static bool EOpposta(int a, int b)
     {

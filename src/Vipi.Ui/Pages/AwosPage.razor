@@ -1,0 +1,434 @@
+@* Il quadro vAWOS: il pannello meteo che un torrista tiene aperto mentre controlla.
+   Carta: docs/feature/2026-09-12-vawos-e-minimi-lvp.md
+
+   ⚠️ **SSR STATICA, e non è una dimenticanza.** Questa pagina resta aperta per ore su un secondo monitor:
+   è esattamente il caso in cui un circuito Blazor si stacca e non torna. I dati arrivano già dentro l'HTML
+   al primo disegno, e da lì in poi li rilegge un modulo JS da `/services/vawos/api/{icao}`, che è una
+   richiesta HTTP qualunque — sopravvive a un riavvio del processo, a una rete che va e viene, e a un
+   portatile che si chiude. Un'isola interattiva darebbe dodici diff al secondo per ogni controllore
+   collegato e un riquadro «riconnessione» al primo singhiozzo.
+
+   ⚠️ Le etichette sono in INGLESE e non passano dai .resx (decisione del committente, 12 settembre 2026):
+   DIR, SPEED, GUST, CROSS, TAIL, RVR, QNH, TL sono sigle ICAO, uguali in ogni torre del mondo. Le uniche
+   parole vere — i codici di tempo presente — le traduce WxText, che c'è già.
+
+   ⚠️ Il METAR di prova (`?test=`) è per lo STAFF: inietta un bollettino che non esiste, e su una pagina
+   pubblica dev'essere impossibile per sbaglio. La guardia è qui, alla porta, e il servizio non ne ha una
+   seconda. *@
+@page "/services/vawos"
+@page "/services/vawos/{Icao}"
+@layout AwosLayout
+@using Vipi.Application.Awos
+@using Vipi.Application.Weather
+@inject IAwosService Awos
+@inject IEditAuthorizationService Authz
+@inject IStringLocalizer<SharedResource> L
+
+<PageTitle>@(_vista is null ? "vAWOS" : $"vAWOS {_vista.Icao}")</PageTitle>
+
+<div class="awos" data-awos-theme="night" data-awos-icao="@(_vista?.Icao)">
+
+    <div class="awos-barra">
+        <svg class="awos-vita" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            @for (var i = 0; i < 8; i++)
+            {
+                var a = i * Math.PI / 4 - Math.PI / 2;
+                <circle data-vita="@i" cx="@((12 + 10 * Math.Cos(a)).ToString("0.0", Inv))"
+                        cy="@((12 + 10 * Math.Sin(a)).ToString("0.0", Inv))" r="2" />
+            }
+        </svg>
+        <span class="awos-marchio">vAWOS</span>
+        @if (_vista is not null)
+        {
+            <span class="awos-scalo">@_vista.Icao · @_vista.Nome</span>
+        }
+
+        @* Il selettore è un form GET: senza circuito non c'è nessun `onchange` da agganciare, e un form
+           funziona anche col JavaScript spento. Elenca SOLO gli scali che il quadro sa aprire. *@
+        @if (_scali.Count > 0)
+        {
+            <form method="get" action="/services/vawos" class="awos-sel">
+                <select name="icao" aria-label="Airport">
+                    @foreach (var s in _scali)
+                    {
+                        <option value="@s.Icao" selected="@(s.Icao == _vista?.Icao)">@s.Icao — @s.Nome</option>
+                    }
+                </select>
+                <button class="awos-btn" type="submit">GO</button>
+            </form>
+        }
+
+        <span class="awos-sp"></span>
+
+        @if (_vista is not null)
+        {
+            @if (_diProva is not null)
+            {
+                <span class="awos-pastiglia bozza">TEST METAR</span>
+            }
+            else if (_vista.MetarSource is { Length: > 0 } sorgente && Authz.IsDivisionStaff)
+            {
+                @* Come nel riquadro METAR delle vIPI: la provenienza si scrive solo quando NON è la
+                   principale, e la si mostra da DivisionStaff in su — è meccanica di servizio. *@
+                <span class="awos-pastiglia sorgente" title="METAR from @sorgente">@sorgente</span>
+            }
+            @if (!_vista.HaVipi && !_vista.HaVsop)
+            {
+                <span class="awos-pastiglia bozza" title="No published document: the public cannot open this">NOT PUBLIC</span>
+            }
+            <span class="awos-pastiglia sim">ONLY FOR SIMULATION</span>
+            <span class="awos-eta" data-awos-eta title="Age of the bulletin on screen">—</span>
+            <button type="button" class="awos-btn" data-awos-mov aria-pressed="true"
+                    title="Interpolate between bulletins">MOV</button>
+            <button type="button" class="awos-btn" data-awos-tema title="Day / night">DAY</button>
+            <button type="button" class="awos-btn" data-awos-mask="report">LOCAL REP.</button>
+            <button type="button" class="awos-btn" data-awos-mask="atis">ATIS MSG</button>
+            <button type="button" class="awos-btn" data-awos-mask="ext">EXT. DATA</button>
+            @if (Authz.IsDivisionStaff)
+            {
+                <button type="button" class="awos-btn" data-awos-mask="prova">TEST METAR</button>
+            }
+        }
+        <span class="awos-orologio" data-awos-clock>--:--:--Z</span>
+    </div>
+
+    @if (_vista is null)
+    {
+        <div class="awos-vuoto">
+            <h1>@(_esito == AwosOutcome.NonPubblicato ? $"{Icao?.ToUpperInvariant()} — no published document" : "vAWOS")</h1>
+            <p>
+                @if (_esito == AwosOutcome.NonPubblicato)
+                {
+                    <text>The panel opens for airports that have a published vIPI — or a published vSOP, for military-only fields.</text>
+                }
+                else if (_esito == AwosOutcome.ScaloIgnoto && !string.IsNullOrWhiteSpace(Icao))
+                {
+                    <text>@Icao!.ToUpperInvariant() is not in the airport directory.</text>
+                }
+                else
+                {
+                    <text>Pick an airport.</text>
+                }
+            </p>
+            <div class="awos-elenco">
+                @foreach (var s in _scali)
+                {
+                    <a href="/services/vawos/@s.Icao.ToLowerInvariant()" title="@s.Nome">@s.Icao</a>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        var m = _vista.Metar;
+
+        @if (Authz.IsDivisionStaff)
+        {
+            @* Il pannello del METAR di prova vive nella pagina ma nasce spento: lo accende il tasto. È un
+               form GET, quindi l'indirizzo che ne esce si può incollare in una nota di verifica. *@
+            <form method="get" action="/services/vawos/@_vista.Icao.ToLowerInvariant()" class="awos-prova"
+                  data-awos-pan="prova" hidden>
+                <label for="awos-test">TEST METAR</label>
+                <input id="awos-test" name="test" value="@_diProva"
+                       placeholder="LIRF 121250Z 24018G32KT 200V280 0500 R16R/0350U -SHRA FG VV002 09/08 Q0998" />
+                <button class="awos-btn" type="submit">APPLY</button>
+                <a class="awos-btn" href="/services/vawos/@_vista.Icao.ToLowerInvariant()">CLEAR</a>
+            </form>
+        }
+
+        <div class="awos-met">
+            <div class="awos-mc awos-qnh">
+                <div class="awos-mc-t">QNH (hPa)</div>
+                <div class="awos-qnh-n" data-awos="qnh">@(m?.QnhHpa?.ToString() ?? "----")</div>
+                <div class="awos-sub">
+                    <div class="awos-cella"><div class="awos-sl">AIR TEMP (°C)</div><div class="awos-sv" data-awos="temp">@N(m?.TempC)</div></div>
+                    <div class="awos-cella"><div class="awos-sl">DEW POINT (°C)</div><div class="awos-sv" data-awos="dew">@N(m?.DewpointC)</div></div>
+                </div>
+                <div class="awos-cella" style="margin-top:2px">
+                    <div class="awos-sl">TL@(_vista.TransitionAltitudeFt is int ta ? $" · TA {ta} ft" : "")</div>
+                    <div class="awos-sv" data-awos="tl">@(_vista.TransitionLevel ?? "—")</div>
+                </div>
+            </div>
+
+            <div class="awos-mc awos-vis">
+                <div class="awos-mc-t">VISIBILITY</div>
+                <div class="awos-vis-n" data-awos="vis">@(m?.Visibility ?? "----")</div>
+            </div>
+
+            <div class="awos-mc awos-wx">
+                <div class="awos-mc-t">WX</div>
+                <div class="awos-righe" data-awos="wx">
+                    @foreach (var riga in Tre(AwosTesto.TempoPresente(m, k => L[k].Value)))
+                    {
+                        <div class="awos-riga">@riga</div>
+                    }
+                </div>
+            </div>
+
+            <div class="awos-mc awos-cloud">
+                <div class="awos-mc-t">CLOUD</div>
+                <div class="awos-righe" data-awos="cloud">
+                    @foreach (var riga in Tre(AwosTesto.Nubi(m)))
+                    {
+                        <div class="awos-riga">@riga</div>
+                    }
+                </div>
+            </div>
+
+            <div class="awos-mc awos-atis">
+                <div class="awos-mc-t">ATIS INFO</div>
+                @* La lettera dell'ATIS arriva con la fetta 6 (OnlineAtc porta le righe dell'ATIS): finché
+                   non c'è, il riquadro dice `—`, che è vero. *@
+                <div class="awos-atis-blk">
+                    <div class="awos-atis-t">— ATIS —</div>
+                    <div class="awos-atis-v" data-awos="atis">—</div>
+                    <div class="awos-atis-ts" data-awos="atis-ts">--:--</div>
+                </div>
+            </div>
+
+            <div class="awos-mc awos-trend">
+                <div class="awos-mc-t">SUPPLEMENTARY INFO / TREND</div>
+                <div class="awos-trend-box" data-awos="trend">@(m?.Trend ?? "")</div>
+            </div>
+        </div>
+
+        <div class="awos-blocchi" style="--awos-blocchi:@Math.Max(1, _vista.Piste.Count)">
+            @if (_vista.Piste.Count == 0)
+            {
+                <div class="awos-vuoto"><p>No runways in the airport directory for @_vista.Icao.</p></div>
+            }
+            @for (var i = 0; i < _vista.Piste.Count; i++)
+            {
+                var striscia = _vista.Piste[i];
+                var sinistra = striscia.Left;
+                var destra = striscia.Right;
+                var attivaSx = Attiva(sinistra.Ident);
+                var attivaDx = destra is not null && Attiva(destra.Ident);
+
+                <div class="awos-blocco" data-awos-blocco="@i">
+                    <div class="awos-strip">
+                        <div class="awos-testata @(attivaSx ? "attiva" : "")" data-awos-end="0">@sinistra.Ident</div>
+                        <div class="awos-pettine"><i></i><i></i><i></i><i></i></div>
+                        <div class="awos-nastro">
+                            <div class="awos-tratteggio"></div>
+                            @* La freccia punta verso la testata in uso. È un tasto: il clic la inverte, e
+                               quando lo si fa la riga qui sotto lo dice («manual»). *@
+                            <button type="button" class="awos-freccia" data-awos-inverti="@i"
+                                    title="Invert the active direction">
+                                <svg width="66" height="34" viewBox="0 0 70 40" data-awos-arrow="@i"
+                                     style="transform:@(attivaDx ? "scaleX(1)" : "scaleX(-1)")">
+                                    <polygon points="0,8 46,8 46,0 70,20 46,40 46,32 0,32"
+                                             fill="@(attivaSx || attivaDx ? "#2a8a3a" : "#8a8a8a")" stroke="#000" stroke-width="2" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="awos-pettine"><i></i><i></i><i></i><i></i></div>
+                        <div class="awos-testata @(attivaDx ? "attiva" : "")" data-awos-end="1">@(destra?.Ident ?? "—")</div>
+                    </div>
+
+                    @if (i == 0)
+                    {
+                        <div class="awos-sorgente" data-awos="attiva">@RigaAttiva()</div>
+                    }
+
+                    <div class="awos-vento">
+                        <div class="awos-vento-wrap">
+                            @PannelloVento(i, 0, sinistra)
+                            <div class="awos-divisore"></div>
+                            @PannelloVento(i, 1, destra)
+                        </div>
+                    </div>
+
+                    <div class="awos-rvr" data-awos-rvr="@i">
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR TDZ (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-tdz">@Rvr(sinistra)</div></div>
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR MID (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-mid">@RvrMedio(striscia)</div></div>
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR END (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-end">@Rvr(destra)</div></div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        @* Le tre finestrelle: scritte nell'HTML e spente, non fabbricate dal JavaScript come nel prototipo.
+           Così esistono anche senza script, e il loro contenuto è nel documento. *@
+        <div class="awos-mask" data-awos-pan="report" hidden>
+            <button type="button" class="awos-x" data-awos-chiudi="report">✕</button>
+            <h2>LOCAL REPORT — LAST METAR</h2>
+            <div>@(_vista.MetarRaw ?? "No METAR available")</div>
+        </div>
+        <div class="awos-mask" data-awos-pan="atis" hidden>
+            <button type="button" class="awos-x" data-awos-chiudi="atis">✕</button>
+            <h2>ATIS MESSAGE</h2>
+            <div data-awos="atis-text">No ATIS.</div>
+        </div>
+        <div class="awos-mask dati" data-awos-pan="ext" hidden>
+            <button type="button" class="awos-x" data-awos-chiudi="ext">✕</button>
+            <h2>EXT. DATA — @_vista.Icao</h2>
+            <table>
+                <tbody>
+                    <tr><td>QNH (inHg)</td><td>@(m?.QnhHpa is int q ? (q * 0.02953).ToString("0.00", Inv) : "—")</td></tr>
+                    <tr><td>Ceiling</td><td>@(m?.CeilingFt is int c ? $"{c} ft" : "—")</td></tr>
+                    <tr><td>Visibility</td><td>@(m?.VisibilityMeters is int v ? $"{v} m" : "—")</td></tr>
+                    @foreach (var end in Testate())
+                    {
+                        <tr>
+                            <td>QFE RWY @end.Ident @(end.ThresholdElevationFt is int e ? $"(thr {e} ft)" : "")</td>
+                            <td>@(AwosComposition.Qfe(m?.QnhHpa, end.ThresholdElevationFt) is int qfe ? $"{qfe} hPa" : "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>ICAO dall'indirizzo. Manca = pagina di scelta.</summary>
+    [Parameter] public string? Icao { get; set; }
+
+    /// <summary>ICAO dalla query: è così che torna il form del selettore, che senza circuito non ha altro modo.</summary>
+    [SupplyParameterFromQuery(Name = "icao")] public string? IcaoQuery { get; set; }
+
+    /// <summary>Il bollettino iniettato a mano. Solo staff: qui è dove la guardia si applica.</summary>
+    [SupplyParameterFromQuery(Name = "test")] public string? Test { get; set; }
+
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    private AwosView? _vista;
+    private AwosOutcome _esito = AwosOutcome.Ok;
+    private string? _diProva;
+    private IReadOnlyList<AwosAirport> _scali = Array.Empty<AwosAirport>();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _scali = await Awos.ElencoAsync();
+
+        var id = string.IsNullOrWhiteSpace(Icao) ? IcaoQuery : Icao;
+        if (string.IsNullOrWhiteSpace(id)) { _vista = null; _esito = AwosOutcome.Ok; return; }
+
+        _diProva = Authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(Test) ? Test!.Trim() : null;
+
+        var esito = await Awos.BuildAsync(id!, Authz.IsEditor, _diProva);
+        _vista = esito.Vista;
+        _esito = esito.Esito;
+    }
+
+    private static string N(int? v) => v?.ToString(Inv) ?? "--";
+
+    /// <summary>Tre righe sempre: il riquadro non deve cambiare altezza quando il tempo peggiora.</summary>
+    private static IEnumerable<string> Tre(IEnumerable<string> righe)
+    {
+        var l = righe.Take(3).ToList();
+        while (l.Count < 3) l.Add("");
+        return l;
+    }
+
+    private bool Attiva(string? ident) =>
+        ident is not null && _vista is not null
+        && (string.Equals(_vista.Attiva.Dep, ident, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(_vista.Attiva.Arr, ident, StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>La riga che dice CHI ha scelto la pista. Un quadro che non lo dice si finisce per girarlo a mano.</summary>
+    private string RigaAttiva()
+    {
+        if (_vista is null) return "";
+        var a = _vista.Attiva;
+        var da = a.Sorgente switch
+        {
+            AwosRunwaySource.Atis => $"from ATIS{(a.Dettaglio is null ? "" : " " + a.Dettaglio)}",
+            AwosRunwaySource.Regola => $"from rule {a.Dettaglio}",
+            AwosRunwaySource.Vento => "from wind (max headwind)",
+            _ => "no runway in use — calm or unknown wind",
+        };
+        if (a.Sorgente == AwosRunwaySource.Nessuna) return $"RWY IN USE: — · {da}";
+        var piste = string.Equals(a.Dep, a.Arr, StringComparison.OrdinalIgnoreCase)
+            ? a.Dep
+            : $"{a.Dep ?? "—"} DEP · {a.Arr ?? "—"} ARR";
+        return $"RWY IN USE: {piste} · {da}";
+    }
+
+    private IEnumerable<AwosEnd> Testate() =>
+        _vista is null ? Array.Empty<AwosEnd>()
+                       : _vista.Piste.SelectMany(s => s.Right is null ? new[] { s.Left } : new[] { s.Left, s.Right });
+
+    /// <summary>
+    /// L'RVR di una testata, o <c>///</c>.
+    /// <para>🔴 Mai <c>P2000</c> per «non ce l'ho»: nel prototipo un RVR assente diventava «oltre 2 000 m»,
+    /// cioè un valore che nessuno ha misurato messo davanti a chi decide se si atterra.</para>
+    /// </summary>
+    private string Rvr(AwosEnd? end)
+    {
+        if (end is null || _vista?.Metar is null) return "///";
+        var g = _vista.Metar.RvrGroups.FirstOrDefault(r => string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
+        return g is null ? "///" : Testo(g);
+    }
+
+    private string RvrMedio(AwosStrip s)
+    {
+        if (_vista?.Metar is null) return "///";
+        var validi = _vista.Metar.RvrGroups
+            .Where(r => string.Equals(r.Runway, s.Left.Ident, StringComparison.OrdinalIgnoreCase)
+                        || (s.Right is not null && string.Equals(r.Runway, s.Right.Ident, StringComparison.OrdinalIgnoreCase)))
+            .Where(r => r.Modifier == RvrModifier.Exact)
+            .Select(r => r.ValueM).ToList();
+        // Solo sui valori ESATTI: mediare un «oltre 2 000» vorrebbe dire prendere per misura un fondo scala.
+        return validi.Count == 0 ? "///" : ((int)Math.Round(validi.Average() / 50.0) * 50).ToString(Inv);
+    }
+
+    private static string Testo(RunwayVisualRange r) =>
+        (r.Modifier switch { RvrModifier.Above => "P", RvrModifier.Below => "M", _ => "" })
+        + r.ValueM.ToString(Inv)
+        + r.Tendency switch { RvrTendency.Up => "U", RvrTendency.Down => "D", RvrTendency.Steady => "N", _ => "" };
+
+    /// <summary>
+    /// Un pannello vento. I due di una striscia hanno la STESSA sorgente — il vento è uno — e cambiano solo
+    /// per la testata su cui si proiettano: è tutto il senso di averne due.
+    /// </summary>
+    private RenderFragment PannelloVento(int blocco, int lato, AwosEnd? end) => __builder =>
+    {
+        var w = _vista?.Metar?.Wind;
+        var hdg = end?.HeadingDeg ?? 0;
+        var comp = Componenti(w, hdg);
+
+        <div class="awos-pannello" data-awos-wind="@blocco-@lato" data-awos-hdg="@hdg">
+            <div class="awos-pannello-t">WIND @(end?.Ident ?? "—")</div>
+            <div class="awos-wrow">
+                <div class="awos-wf"><div class="awos-wl">DIR (°)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="dir">@Dir(w)</div></div></div>
+                <div class="awos-wf"><div class="awos-wl">SPEED (kt)</div><div class="awos-box-lg"><div class="awos-n-lg" data-awos-w="spd">@Spd(w)</div></div></div>
+            </div>
+            <div class="awos-wrow">
+                <div class="awos-wf">
+                    <div class="awos-wl">EXTREMES (°)</div>
+                    <div class="awos-wpair">
+                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmin">@Deg(w?.VarFromDeg)</div></div>
+                        <div class="awos-box-sm"><div class="awos-n-sm" data-awos-w="vmax">@Deg(w?.VarToDeg)</div></div>
+                    </div>
+                </div>
+                <div class="awos-wf">
+                    <div class="awos-wl">GUST (kt)</div>
+                    <div class="awos-box-sm"><div class="awos-n-sm ambra" data-awos-w="gust">@(w?.GustKt is int g ? g.ToString("00", Inv) : "--")</div></div>
+                </div>
+            </div>
+            <div class="awos-wrow">
+                <div class="awos-wf"><div class="awos-wl">CROSS (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @Colore(comp.Cross, 8, 15)" data-awos-w="cross">@Kt(comp.Cross, w)</div></div></div>
+                <div class="awos-wf"><div class="awos-wl">TAIL (kt)</div><div class="awos-box-sm"><div class="awos-n-sm @(comp.Tail > 0 ? "rosso" : "")" data-awos-w="tail">@Kt(comp.Tail, w)</div></div></div>
+            </div>
+        </div>
+    };
+
+    private static string Dir(ParsedWind? w) =>
+        w is null ? "---" : w.Variable ? "VRB" : w.DirectionDeg is int d ? ((d + 359) % 360 + 1).ToString("000", Inv) : "---";
+
+    private static string Spd(ParsedWind? w) => w is null ? "--" : w.SpeedKt.ToString("00", Inv);
+    private static string Deg(int? v) => v is int d ? d.ToString("000", Inv) : "--";
+    private static string Kt(int v, ParsedWind? w) => w is null ? "--" : v.ToString("00", Inv);
+    private static string Colore(int v, int ambra, int rosso) => v >= rosso ? "rosso" : v >= ambra ? "ambra" : "";
+
+    /// <summary>Traverso e coda sulla testata. Vento calmo o sconosciuto ⇒ zero, e la casella dice `--`.</summary>
+    private static (int Cross, int Tail) Componenti(ParsedWind? w, int hdg)
+    {
+        if (w is null || w.Calm || w.DirectionDeg is not int dir) return (0, 0);
+        var delta = (dir - hdg) * Math.PI / 180.0;
+        var testa = (int)Math.Round(w.SpeedKt * Math.Cos(delta));
+        return ((int)Math.Round(Math.Abs(w.SpeedKt * Math.Sin(delta))), testa < 0 ? -testa : 0);
+    }
+}
