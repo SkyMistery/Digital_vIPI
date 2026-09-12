@@ -3425,4 +3425,22 @@
   <data name="Rta_UnderlineLetter" xml:space="preserve"><value>S</value></data>
   <data name="Rta_Bullets" xml:space="preserve"><value>Elenco puntato</value></data>
   <data name="Rta_Numbers" xml:space="preserve"><value>Elenco numerato</value></data>
+  <data name="Lvp_Lead" xml:space="preserve"><value>Le soglie con cui questo scalo entra e esce dalle procedure di bassa visibilità. Il confronto usa l'RVR del bollettino, o la visibilità quando l'RVR non c'è.</value></data>
+  <data name="Lvp_Fase" xml:space="preserve"><value>Fase</value></data>
+  <data name="Lvp_Soffitto" xml:space="preserve"><value>Soffitto</value></data>
+  <data name="Lvp_FasePrep" xml:space="preserve"><value>Preparazione</value></data>
+  <data name="Lvp_FaseInVigore" xml:space="preserve"><value>LVP in vigore</value></data>
+  <data name="Lvp_FaseCancellazione" xml:space="preserve"><value>Cancellazione</value></data>
+  <data name="Lvp_NonDichiarati" xml:space="preserve"><value>Minimi LVP non dichiarati per questo scalo.</value></data>
+  <data name="Lvp_NonApplicabile" xml:space="preserve"><value>LVP non applicabili su questo scalo.</value></data>
+  <data name="Lvp_SuggeritoPrep" xml:space="preserve"><value>Col bollettino di adesso le soglie della fase preparatoria sono raggiunte. È un suggerimento: attivare le LVP resta una decisione dell'aeroporto.</value></data>
+  <data name="Lvp_SuggeritoInVigore" xml:space="preserve"><value>Col bollettino di adesso le soglie di LVP in vigore sono raggiunte. È un suggerimento: attivare le LVP resta una decisione dell'aeroporto.</value></data>
+  <data name="Lvp_Aiuto" xml:space="preserve"><value>I minimi di bassa visibilità sono un dato dello &lt;b&gt;scalo&lt;/b&gt;, non del documento: si scrivono una volta e li leggono la vIPI, il vSOP e il quadro vAWOS. Una soglia lasciata vuota non si valuta.</value></data>
+  <data name="Lvp_AiutoAria" xml:space="preserve"><value>Aiuto sui minimi LVP</value></data>
+  <data name="Lvp_DichiaraStandard" xml:space="preserve"><value>Dichiara i minimi (standard)</value></data>
+  <data name="Lvp_DichiaraNonApplicabile" xml:space="preserve"><value>Qui non si fanno LVP</value></data>
+  <data name="Lvp_StandardAvviso" xml:space="preserve"><value>I valori proposti sono quelli standard: vanno confrontati con l'AIP di questo scalo prima di lasciarli.</value></data>
+  <data name="Lvp_OperaInLvp" xml:space="preserve"><value>Lo scalo opera in LVP</value></data>
+  <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Chi le attiva, quali piste, CAT II/III, restrizioni…</value></data>
+  <data name="Lvp_Togli" xml:space="preserve"><value>Togli i minimi</value></data>
 </root>

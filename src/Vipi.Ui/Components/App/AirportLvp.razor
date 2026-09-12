@@ -1,0 +1,89 @@
+@* Sezione «LVP»: i minimi con cui lo scalo entra e esce dalle procedure di bassa visibilità.
+
+   ⚠️ Il dato sta nell'ANAGRAFICA dello scalo (`AirportLvpMinima`), non nel documento: la vIPI civile è solo
+   la porta di scrittura, e un campo solo militare li scrive dal suo vSOP. Per questo la stessa sezione, con
+   lo stesso componente, sta in tutt'e due i profili — e non c'è nessuna copia da tenere allineata.
+
+   ⚠️ Lo stato «adesso» (NIL / PREP / LVP) è la stessa specie d'informazione della regola pista che sta
+   vincendo: è un collegamento fra la tabella e il momento, e lo si vede da `DivisionStaff` in su. La TABELLA
+   invece resta per chiunque — è contenuto pubblicato. *@
+@using Vipi.Application.Content
+@inject IStringLocalizer<SharedResource> L
+
+@if (!View.Dichiarati && View.Minimi is null)
+{
+    <p class="muted" style="font-size:13px;margin:0">@L["Lvp_NonDichiarati"]</p>
+}
+else if (!View.Dichiarati)
+{
+    @* Lo scalo dichiara di NON operare in LVP. È un'informazione operativa, e il silenzio non lo sarebbe. *@
+    <p style="margin:0"><b>@L["Lvp_NonApplicabile"]</b></p>
+    @if (!string.IsNullOrWhiteSpace(View.Note))
+    {
+        <p class="muted" style="font-size:13px;margin:6px 0 0">@View.Note</p>
+    }
+}
+else
+{
+    var m = View.Minimi!;
+    <p class="muted" style="font-size:12.5px;margin:0 0 8px">@L["Lvp_Lead"]</p>
+    <table class="res-table" style="max-width:560px">
+        <thead>
+            <tr>
+                <th>@L["Lvp_Fase"]</th>
+                <th>RVR</th>
+                <th>@L["Lvp_Soffitto"]</th>
+                @if (Stato is not null) { <th style="width:8ch"></th> }
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="@(Stato == LvpStato.Preparazione ? "rwy-both" : null)">
+                <td>@L["Lvp_FasePrep"]</td>
+                <td>@Metri(m.PrepRvrM)</td>
+                <td>@Piedi(m.PrepCeilingFt)</td>
+                @if (Stato is not null) { <td>@if (Stato == LvpStato.Preparazione) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td> }
+            </tr>
+            <tr class="@(Stato == LvpStato.InVigore ? "rwy-both" : null)">
+                <td><b>@L["Lvp_FaseInVigore"]</b></td>
+                <td>@Metri(m.LvpRvrM)</td>
+                <td>@Piedi(m.LvpCeilingFt)</td>
+                @if (Stato is not null) { <td>@if (Stato == LvpStato.InVigore) { <span class="pref-tag">@L["Airport_QnhNow"]</span> }</td> }
+            </tr>
+            <tr>
+                <td>@L["Lvp_FaseCancellazione"]</td>
+                <td>@Metri(m.CancelRvrM)</td>
+                <td>@Piedi(m.CancelCeilingFt)</td>
+                @if (Stato is not null) { <td></td> }
+            </tr>
+        </tbody>
+    </table>
+
+    @if (!string.IsNullOrWhiteSpace(View.Note))
+    {
+        <p class="muted" style="font-size:13px;margin:8px 0 0">@View.Note</p>
+    }
+
+    @* 🔴 «Suggerito», e la parola è scelta: l'attivazione delle LVP è una procedura d'aeroporto, dentro cui
+       stanno cose che il METAR non sa. Un documento che la dichiarasse da solo direbbe una cosa che nessun
+       controllore ha deciso. *@
+    @if (Stato is LvpStato.Preparazione or LvpStato.InVigore)
+    {
+        <p class="muted" style="font-size:12.5px;margin:8px 0 0">
+            @L[Stato == LvpStato.InVigore ? "Lvp_SuggeritoInVigore" : "Lvp_SuggeritoPrep"]
+        </p>
+    }
+}
+
+@code {
+    [Parameter, EditorRequired] public AirportLvpView View { get; set; } = AirportLvpView.Empty;
+
+    /// <summary>
+    /// Lo stato suggerito dal METAR corrente; <c>null</c> = non si mostra (sotto lo staff di divisione, o
+    /// dato meteo assente). È LIVE, mentre la tabella può venire da uno snapshot di release — la stessa
+    /// asimmetria della regola pista che sta vincendo.
+    /// </summary>
+    [Parameter] public LvpStato? Stato { get; set; }
+
+    private static string Metri(int? v) => v is int n ? $"{n} m" : "—";
+    private static string Piedi(int? v) => v is int n ? $"{n} ft" : "—";
+}

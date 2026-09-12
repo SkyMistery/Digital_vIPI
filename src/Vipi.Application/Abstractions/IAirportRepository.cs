@@ -54,6 +54,9 @@ public interface IAirportRepository : IAirportProfileReader
     Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default);
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
+
+    /// <summary>Scrive (o cancella, con <c>null</c>) i minimi LVP dello scalo: al massimo una riga.</summary>
+    Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
     /// <summary>Salva le sole SID MANUALI dell'aeroporto (IsImported=false): sostituisce l'intera lista manuale, non tocca le importate.</summary>
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
 

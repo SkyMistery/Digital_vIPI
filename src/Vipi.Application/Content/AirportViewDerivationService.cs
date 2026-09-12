@@ -86,11 +86,12 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         var transition = frozen.Get<AirportTransitionView>("transition");
         var freqs = frozen.Get<AirportFreqView>("frequencies");
         var runways = frozen.Get<AirportRunwaysView>("runways");
+        var lvp = frozen.Get<AirportLvpView>("lvp");
 
         // Il profilo si carica una volta sola, e solo se serve davvero: con tutte e quattro le sezioni congelate
         // la pagina pubblica non tocca le tabelle dell'aeroporto.
         AirportData? data = null;
-        if (rules is null || transition is null || runways is null || freqs is null)
+        if (rules is null || transition is null || runways is null || freqs is null || lvp is null)
             data = await _repo.LoadAsync(icao, ct);
 
         rules ??= AirportSectionProjection.Rules(data);
@@ -98,10 +99,11 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         runways ??= AirportSectionProjection.Runways(data);
         freqs ??= AirportSectionProjection.Frequencies(
             await _sectors.ListByAirportAsync(icao, ct), data?.Links);
+        lvp ??= AirportSectionProjection.Lvp(data);
 
         // Le SID dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una sesta volta.
         return new AirportDerived(rules, transition, freqs, runways,
-            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct));
+            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct), lvp);
     }
 
     public async Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, string? atCycle = null,

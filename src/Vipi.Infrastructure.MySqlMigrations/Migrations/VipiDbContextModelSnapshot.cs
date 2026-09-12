@@ -580,6 +580,51 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirportFrequencyLinks");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportLvpMinima", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CancelCeilingFt")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CancelRvrM")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Declared")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int?>("LvpCeilingFt")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LvpRvrM")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int?>("PrepCeilingFt")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PrepRvrM")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId")
+                        .IsUnique();
+
+                    b.ToTable("AirportLvpMinima");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
                 {
                     b.Property<int>("Id")
@@ -3426,6 +3471,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("SourceSector");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportLvpMinima", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("LvpMinima")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
@@ -3814,6 +3870,8 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("ExtraSections");
 
                     b.Navigation("FrequencyLinks");
+
+                    b.Navigation("LvpMinima");
 
                     b.Navigation("RunwayRules");
 

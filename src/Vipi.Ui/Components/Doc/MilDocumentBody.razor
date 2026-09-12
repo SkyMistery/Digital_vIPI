@@ -103,6 +103,10 @@
                ⚠️ Stessa `AirportRunwaysView` della sezione padre, e non una derivazione seconda: il dato è
                uno, e la release lo congela una volta sola sotto la chiave «runways». Due derivazioni della
                stessa tabella potrebbero raccontare due cicli diversi, una sotto l'altra. *@
+            @* I minimi LVP: stessa sezione della vIPI civile, stesso componente, stesso dato d'anagrafica. *@
+            case "lvp":
+                <AirportLvp View="Doc.Derivate.Lvp" Stato="@(MeccanicaVisibile ? Doc.Lvp?.Stato : null)" />;
+                break;
             case SectionKeys.RunwayThresholds: <MilRunwayThresholds View="Doc.Derivate.Runways" />; break;
             @* Le SID (10 settembre 2026, committente). Stesso componente della vIPI civile e stessa
                derivazione: il dato sta nell'ANAGRAFICA dello scalo, non nel documento — la vIPI civile è

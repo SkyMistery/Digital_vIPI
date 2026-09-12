@@ -168,7 +168,7 @@ public class AirportViewFormatTests
             DateParity: DateParity.Odd,
             DateFromMonthDay: 401, DateToMonthDay: 1031);
 
-        var eval = AirportViewFormat.MapRule(row);
+        var eval = RegoleDiPista.Valutabile(row);
 
         Assert.Equal("16R", eval.DepRunways);
         Assert.Equal("16L", eval.ArrRunways);

@@ -76,6 +76,14 @@
                 <AirportRunwayRules View="Doc.Derived.Rules"
                                     ActivePosition="@(MeccanicaVisibile && Doc.VerdettoSulleRegoleMostrate && Doc.RuleResult is not null ? Doc.RuleResult.RuleIndex + 1 : null)" />;
                 break;
+            @* I minimi LVP (12 settembre 2026, committente). Lo STATO suggerito («adesso siamo in PREP») è
+               meccanica come il numero della regola pista che sta vincendo: stessa soglia, stesso motivo —
+               la tabella è contenuto pubblicato, il collegamento col momento no.
+               🔴 E si dice «suggerito»: attivare le LVP è una procedura d'aeroporto, dentro cui stanno cose
+               che il METAR non sa. *@
+            case "lvp":
+                <AirportLvp View="Doc.Derived.Lvp" Stato="@(MeccanicaVisibile ? Doc.Lvp?.Stato : null)" />;
+                break;
             case "transition":
                 <AirportTransition View="Doc.Derived.Transition" CurrentQnh="Doc.Metar?.QnhHpa"
                                    MetarTimeRaw="@Doc.Metar?.TimeRaw" Station="Doc.Station" />;

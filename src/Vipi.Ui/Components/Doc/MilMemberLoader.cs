@@ -54,7 +54,10 @@ public sealed record MilMemberDocument(
     // sullo stesso scalo dicessero due piste diverse sarebbero peggio di nessuna delle due.
     PistaInUsoAdesso InUso,
     int? WindDir,
-    int WindKt)
+    int WindKt,
+    /// <summary>Lo stato LVP suggerito sui minimi che la sezione mostra. Stesso calcolo della vIPI civile
+    /// (<see cref="AirportMemberLoader.ValutaLvp"/>): è lo stesso campo, e la risposta dev'essere una.</summary>
+    LvpValutazione? Lvp = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -233,7 +236,8 @@ public sealed class MilMemberLoader
         return new MilMemberDocument(code, view, mode, relCycle, bloccata, tradotto.Coverage, haMarcate,
                                      letturaVista, civile, derivate, station, wx, metar, taf, aree,
                                      radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi,
-                                     areeBoat, attivitaBoat, noteBoat, inUso, windDir, windKt);
+                                     areeBoat, attivitaBoat, noteBoat, inUso, windDir, windKt,
+                                     AirportMemberLoader.ValutaLvp(derivate.Lvp, metar));
     }
 
     /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>

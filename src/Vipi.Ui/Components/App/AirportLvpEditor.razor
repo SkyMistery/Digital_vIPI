@@ -1,0 +1,148 @@
+@* L'editor della sezione «LVP»: i minimi di bassa visibilità dello scalo.
+
+   ⚠️ Componente a parte da <AirportLvp>, che è la lettura: le due forme del dato sono diverse davvero — in
+   lettura tre righe già composte, in scrittura sei campi mutabili — ed è la stessa scelta di
+   <AirportTransition>/<AirportTransitionEditor>.
+
+   ⚠️ Niente tasto «Salva»: ogni gesto avvisa l'host, che salva subito passando dalla sua porta unica
+   (carta 2026-09-04-aeroporto-porta-sola). Il cancello è `Editing` — il lock del documento — e si legge come
+   RAMO DI RENDER, non come `disabled`.
+
+   ⚠️ Il tasto che DICHIARA i minimi precompila lo standard, e non lo salva da sé nell'archivio di nessuno:
+   seminare le soglie standard su settanta scali vorrebbe dire affermare settanta volte una cosa che nessuno
+   ha letto sull'AIP. Le propone; qualcuno le guarda e le salva. *@
+@using Vipi.Application.Content
+@inject IStringLocalizer<SharedResource> L
+
+<div>
+    <div class="ed-h3 ed-h3-mini">
+        <HelpHint Href="/services/vsop/guide#editor-aeroporto" AriaLabel="@L["Lvp_AiutoAria"]" ExtraClass="wide">
+            @((MarkupString)L["Lvp_Aiuto"].Value)
+        </HelpHint>
+    </div>
+
+    @if (Row is null)
+    {
+        <p class="muted" style="font-size:13px;margin:0 0 8px">@L["Lvp_NonDichiarati"]</p>
+        @if (Editing)
+        {
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button class="btn ghost" @onclick="DichiaraStandard">+ @L["Lvp_DichiaraStandard"]</button>
+                <button class="btn ghost" @onclick="DichiaraNonApplicabile">@L["Lvp_DichiaraNonApplicabile"]</button>
+            </div>
+            <p class="muted" style="font-size:12px;margin:6px 0 0">@L["Lvp_StandardAvviso"]</p>
+        }
+    }
+    else
+    {
+        <div class="se-row">
+            <label>
+                @if (Editing)
+                {
+                    <input type="checkbox" checked="@Row.Declared" @onchange="OperaInLvp" />
+                }
+                <b>@L["Lvp_OperaInLvp"]</b>
+            </label>
+        </div>
+
+        @if (Row.Declared)
+        {
+            <table class="res-table" style="max-width:520px">
+                <thead>
+                    <tr><th>@L["Lvp_Fase"]</th><th>RVR (m)</th><th>@L["Lvp_Soffitto"] (ft)</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>@L["Lvp_FasePrep"]</td>
+                        <td>@Campo(Row.PrepRvrM, v => Row.PrepRvrM = v)</td>
+                        <td>@Campo(Row.PrepCeilingFt, v => Row.PrepCeilingFt = v)</td>
+                    </tr>
+                    <tr>
+                        <td><b>@L["Lvp_FaseInVigore"]</b></td>
+                        <td>@Campo(Row.LvpRvrM, v => Row.LvpRvrM = v)</td>
+                        <td>@Campo(Row.LvpCeilingFt, v => Row.LvpCeilingFt = v)</td>
+                    </tr>
+                    <tr>
+                        <td>@L["Lvp_FaseCancellazione"]</td>
+                        <td>@Campo(Row.CancelRvrM, v => Row.CancelRvrM = v)</td>
+                        <td>@Campo(Row.CancelCeilingFt, v => Row.CancelCeilingFt = v)</td>
+                    </tr>
+                </tbody>
+            </table>
+        }
+
+        <div class="se-row" style="margin-top:8px">
+            <label><b>@L["Ape_Notes"]</b></label>
+            @if (Editing)
+            {
+                <input style="width:100%;max-width:520px" @bind="Row.Note" @bind:after="Cambiato"
+                       placeholder="@L["Lvp_NotePlaceholder"]" />
+            }
+            else
+            {
+                <span>@(string.IsNullOrWhiteSpace(Row.Note) ? "—" : Row.Note)</span>
+            }
+        </div>
+
+        @if (Editing)
+        {
+            <div style="margin-top:10px">
+                <button class="btn ghost" @onclick="Togli">✕ @L["Lvp_Togli"]</button>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// I minimi in lavorazione: <c>null</c> = lo scalo non li ha dichiarati. Il componente li muta in posto e
+    /// avvisa l'host, che salva.
+    /// </summary>
+    [Parameter] public LvpEdit? Row { get; set; }
+
+    /// <summary>Il documento è in modifica e il lock è nostro.</summary>
+    [Parameter] public bool Editing { get; set; }
+
+    /// <summary>Qualcosa è cambiato: l'host salva. Unico punto d'uscita.</summary>
+    [Parameter] public EventCallback RowsChanged { get; set; }
+
+    /// <summary>La riga è nata o è stata tolta: l'host aggiorna il proprio riferimento e salva.</summary>
+    [Parameter] public EventCallback<LvpEdit?> RowChanged { get; set; }
+
+    /// <summary>Conferma prima di togliere i minimi; null = non si chiede (come negli altri editor).</summary>
+    [Parameter] public Func<Task<bool>>? ConfirmRemove { get; set; }
+
+    private Task Cambiato() => RowsChanged.InvokeAsync();
+
+    private RenderFragment Campo(int? valore, Action<int?> scrivi) => __builder =>
+    {
+        @if (Editing)
+        {
+            <input type="number" style="width:96px" value="@valore"
+                   @onchange="@(e => { scrivi(int.TryParse(e.Value?.ToString(), out var v) ? v : null); return Cambiato(); })" />
+        }
+        else
+        {
+            <text>@(valore?.ToString() ?? "—")</text>
+        }
+    };
+
+    private Task DichiaraStandard() => RowChanged.InvokeAsync(LvpEdit.Standard());
+
+    private Task DichiaraNonApplicabile() => RowChanged.InvokeAsync(new LvpEdit { Declared = false });
+
+    private Task OperaInLvp(ChangeEventArgs e)
+    {
+        if (Row is null) return Task.CompletedTask;
+        Row.Declared = e.Value is bool b && b;
+        // Chi riaccende le LVP su uno scalo che le aveva spente trova i campi vuoti, non le soglie standard:
+        // riproporle qui vorrebbe dire riscrivere in archivio, con un clic, sei numeri che nessuno ha letto.
+        return Cambiato();
+    }
+
+    private async Task Togli()
+    {
+        if (ConfirmRemove is not null && !await ConfirmRemove()) return;
+        await RowChanged.InvokeAsync(null);
+    }
+}

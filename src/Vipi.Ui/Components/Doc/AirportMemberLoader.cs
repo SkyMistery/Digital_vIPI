@@ -45,7 +45,11 @@ public sealed record AirportMemberDocument(
     /// <summary>Il verdetto è stato calcolato sulle regole che la tabella mostra: vedi
     /// <see cref="PistaInUsoAdesso.SulleRegoleMostrate"/>. Falso solo su release scattate prima del
     /// 12 settembre 2026, dove la pastiglia «adesso» non si mostra.</summary>
-    bool VerdettoSulleRegoleMostrate = true)
+    bool VerdettoSulleRegoleMostrate = true,
+    /// <summary>Lo stato LVP suggerito dal METAR corrente sui minimi che la sezione mostra. Null = non
+    /// valutabile. ⚠️ Si valuta sui minimi <b>della sezione</b>, non su quelli vivi: la stessa regola del
+    /// verdetto sulle regole piste, e per la stessa ragione.</summary>
+    LvpValutazione? Lvp = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -179,6 +183,7 @@ public sealed class AirportMemberLoader
         var regole = derived.Rules.Regole;
         var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive);
+        var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------
         // ⚠️ IN FONDO, non appena caricato il documento: le sezioni derivate e le piste si leggono
@@ -205,7 +210,27 @@ public sealed class AirportMemberLoader
         return new AirportMemberDocument(
             code, view, AudienceFilter.Filtra(sezioni, letturaVista), mode, relCycle, bloccata,
             tradotto.Coverage, haMarcate, letturaVista, derived, station, wx, metar, taf,
-            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy, inUso.SulleRegoleMostrate);
+            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy, inUso.SulleRegoleMostrate, lvp);
+    }
+
+    /// <summary>
+    /// Lo stato LVP suggerito, sui minimi <b>che la sezione mostra</b> e sul METAR di adesso.
+    ///
+    /// <para>⚠️ Un posto solo per i due documenti — vIPI d'aeroporto e vSOP militare — come
+    /// <see cref="PistaInUso"/>: la stessa domanda scritta due volte darebbe, prima o poi, due risposte
+    /// diverse sullo stesso campo a seconda della pagina da cui lo si guarda.</para>
+    ///
+    /// <para>⚠️ Il METAR è sempre quello di ADESSO anche quando la sezione è congelata: non è contenuto del
+    /// documento, e congelarlo sarebbe meteo scaduto. Sono i MINIMI a seguire la sezione.</para>
+    /// </summary>
+    public static LvpValutazione? ValutaLvp(AirportLvpView vista, ParsedMetar? metar)
+    {
+        if (metar is null) return null;
+        // Il minimo fra i gruppi RVR: è quello che decide, e i «P2000» (oltre il fondo scala) restano fuori
+        // perché non sono una misura.
+        var rvr = metar.RvrGroups.Where(r => r.Modifier != RvrModifier.Above)
+                                 .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
+        return LvpValutatore.Valuta(vista.Minimi, rvr, metar.VisibilityMeters, metar.CeilingFt);
     }
 
     private Task<DocumentView?> PubblicaAsync(string icao, CancellationToken ct) =>

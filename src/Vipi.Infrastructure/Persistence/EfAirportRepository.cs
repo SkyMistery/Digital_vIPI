@@ -53,6 +53,13 @@ public sealed class EfAirportRepository : IAirportRepository
                 x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp))
             .ToListAsync(ct);
 
+        // I minimi LVP: zero o una riga. L'assenza e' un fatto — «nessuno li ha dichiarati» — e non si
+        // sostituisce con dei valori di comodo.
+        var lvp = await _db.AirportLvpMinima.AsNoTracking().Where(x => x.AirportId == airport.Id)
+            .Select(x => new LvpRow(x.Id, x.Declared, x.PrepRvrM, x.PrepCeilingFt,
+                x.LvpRvrM, x.LvpCeilingFt, x.CancelRvrM, x.CancelCeilingFt, x.Note))
+            .FirstOrDefaultAsync(ct);
+
         // Link (riferimento vivo): valore risolto ora dal Sector sorgente (DefaultFrequency).
         var linkRaw = await _db.AirportFrequencyLinks.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order).Include(x => x.SourceSector)
@@ -69,7 +76,7 @@ public sealed class EfAirportRepository : IAirportRepository
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
-            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links,
+            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, Lvp = lvp,
         };
     }
 
@@ -222,6 +229,26 @@ public sealed class EfAirportRepository : IAirportRepository
                 TimeFromLocalMin = r.TimeFromLocalMin, TimeToLocalMin = r.TimeToLocalMin,
                 DaysOfWeekMask = r.DaysOfWeekMask, DateParity = r.DateParity,
                 DateFromMonthDay = r.DateFromMonthDay, DateToMonthDay = r.DateToMonthDay,
+            });
+        }
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default)
+    {
+        var id = await AirportIdAsync(icao, ct);
+        // Cancella e riscrivi, come le altre tabelle del profilo: la riga e' al massimo una, e cosi' «togliere
+        // i minimi» e «cambiarli» passano dalla stessa porta.
+        _db.AirportLvpMinima.RemoveRange(_db.AirportLvpMinima.Where(x => x.AirportId == id));
+        if (row is not null)
+        {
+            _db.AirportLvpMinima.Add(new AirportLvpMinima
+            {
+                AirportId = id, Declared = row.Declared,
+                PrepRvrM = row.PrepRvrM, PrepCeilingFt = row.PrepCeilingFt,
+                LvpRvrM = row.LvpRvrM, LvpCeilingFt = row.LvpCeilingFt,
+                CancelRvrM = row.CancelRvrM, CancelCeilingFt = row.CancelCeilingFt,
+                Note = string.IsNullOrWhiteSpace(row.Note) ? null : row.Note!.Trim(),
             });
         }
         await _db.SaveChangesAsync(ct);

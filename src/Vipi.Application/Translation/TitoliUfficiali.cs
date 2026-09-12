@@ -91,6 +91,10 @@ public static class TitoliUfficiali
         // (lavori-aperti, verifica §V1). La ragione che tiene insieme questa tabella non è «militare», è «di
         // questo titolo conosciamo l'originale».
         ("Regole piste", "Runway selection rules"),
+        // ⚠️ «LVP» non si traduce: è una sigla, ed è la stessa in ogni torre del mondo. Sta in tabella
+        // proprio per questo — senza, la macchina la tradurrebbe in qualcosa («Low visibility procedures»,
+        // o peggio) e il titolo cambierebbe faccia fra le due lingue dello stesso documento.
+        ("LVP", "LVP"),
         ("Validità e revisione", "Validity and Revision"),
     };
 

@@ -230,10 +230,10 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         // posizione fra FRATELLI, non una posizione assoluta nel documento.
         var chiavi = (await _db.DocumentSections.Where(s => s.ParentSectionId == null)
             .OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
-        // weather, runwayrules, operationaltechnique, validity, charts + le cinque raccolte di charts
-        Assert.Equal(10, aggiunte);
+        // weather, runwayrules, lvp, operationaltechnique, validity, charts + le cinque raccolte di charts
+        Assert.Equal(11, aggiunte);
         Assert.Equal(
-            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
+            new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
             chiavi);
         // Le figlie arrivano DENTRO il contenitore appena creato, non accanto a lui.
         var carte = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "charts");

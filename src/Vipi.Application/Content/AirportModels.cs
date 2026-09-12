@@ -111,6 +111,11 @@ public sealed class AirportData
     public required IReadOnlyList<TlRow> TransitionLevels { get; init; }
     public required IReadOnlyList<RunwayRow> Runways { get; init; }
     public required IReadOnlyList<RunwayRuleRow> Rules { get; init; }
+
+    /// <summary>I minimi LVP dello scalo, o <c>null</c> se non sono stati dichiarati.
+    /// <para>⚠️ <c>null</c> è un fatto («nessuno li ha scritti»), e chi legge lo distingue da una riga con
+    /// <c>Declared=false</c>, che invece dice «qui le LVP non si fanno».</para></summary>
+    public LvpRow? Lvp { get; init; }
     public required IReadOnlyList<SidRow> Sids { get; init; }
     public required IReadOnlyList<FrequencyLinkRow> Links { get; init; }
 }

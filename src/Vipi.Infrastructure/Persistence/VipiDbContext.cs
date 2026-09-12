@@ -103,6 +103,7 @@ public class VipiDbContext : DbContext
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
     public DbSet<AirportRunwayRule> AirportRunwayRules => Set<AirportRunwayRule>();
+    public DbSet<AirportLvpMinima> AirportLvpMinima => Set<AirportLvpMinima>();
     public DbSet<AirportSid> AirportSids => Set<AirportSid>();
     public DbSet<SidFixAlias> SidFixAliases => Set<SidFixAlias>();
     public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
@@ -527,6 +528,14 @@ public class VipiDbContext : DbContext
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
             e.HasOne(x => x.Airport).WithMany(a => a.RunwayRules).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+        });
+        b.Entity<AirportLvpMinima>(e =>
+        {
+            // Indice UNICO e non (AirportId, Order): di righe LVP ne esiste al massimo UNA per scalo, e
+            // l'unicità è l'unico modo di dirlo al database invece che soltanto ai commenti.
+            e.HasIndex(x => x.AirportId).IsUnique();
+            e.HasOne(x => x.Airport).WithMany(a => a.LvpMinima).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+            e.Property(x => x.Note).HasMaxLength(2000);
         });
         b.Entity<AirportSid>(e =>
         {

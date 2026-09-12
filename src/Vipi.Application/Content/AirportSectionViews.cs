@@ -41,6 +41,24 @@ public sealed record AirportRulesView(
         new(Array.Empty<AirportRuleRowView>(), Array.Empty<RunwayRuleRow>());
 }
 
+/// <summary>
+/// Sezione «LVP»: i minimi di bassa visibilità dello scalo.
+/// </summary>
+/// <param name="Minimi">
+/// I minimi in forma <b>calcolabile</b>, come le regole piste portano le proprie: il quadro e il documento
+/// devono valutare le <b>stesse</b> soglie che il lettore ha davanti, o la pastiglia dello stato indicherebbe
+/// una riga di un'altra tabella. <c>null</c> = lo scalo non li ha dichiarati.
+/// </param>
+/// <param name="Dichiarati">
+/// Falso = lo scalo dichiara di <b>non</b> operare in LVP, e la sezione lo scrive («LVP not applicable»).
+/// <para>⚠️ Diverso da <paramref name="Minimi"/> nullo, che è «nessuno li ha scritti»: il silenzio non è una
+/// dichiarazione.</para>
+/// </param>
+public sealed record AirportLvpView(bool Dichiarati, LvpRow? Minimi, string? Note)
+{
+    public static AirportLvpView Empty { get; } = new(false, null, null);
+}
+
 /// <summary>Riga della tabella dei livelli di transizione: fascia QNH → livello.</summary>
 public sealed record AirportTlRowView(string QnhRange, string Level);
 
@@ -117,11 +135,11 @@ public sealed record AirportRunwaysView(IReadOnlyList<AirportRunwayRowView> Rows
 /// </summary>
 public sealed record AirportDerived(
     AirportRulesView Rules, AirportTransitionView Transition, AirportFreqView Frequencies,
-    AirportRunwaysView Runways, AirportSidView Sids)
+    AirportRunwaysView Runways, AirportSidView Sids, AirportLvpView Lvp)
 {
     public static AirportDerived Empty { get; } = new(
         AirportRulesView.Empty, AirportTransitionView.Empty, AirportFreqView.Empty,
-        AirportRunwaysView.Empty, AirportSidView.Empty);
+        AirportRunwaysView.Empty, AirportSidView.Empty, AirportLvpView.Empty);
 }
 
 /// <summary>
@@ -148,6 +166,13 @@ public static class AirportSectionProjection
                 .ToList(),
             data.Rules);
     }
+
+    /// <summary>
+    /// I minimi LVP. Un'anagrafica che non c'è, o uno scalo che non li ha dichiarati, danno
+    /// <see cref="AirportLvpView.Empty"/>: la sezione dirà che non ce ne sono, non ne inventerà.
+    /// </summary>
+    public static AirportLvpView Lvp(AirportData? data) =>
+        data?.Lvp is not { } m ? AirportLvpView.Empty : new AirportLvpView(m.Declared, m, m.Note);
 
     public static AirportTransitionView Transition(AirportData? data)
     {

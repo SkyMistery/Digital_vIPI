@@ -28,6 +28,7 @@ public static class SectionCatalog
             // esattamente come «aor»/«frequencies» sull'APP. Prima erano tabelle Markdown cotte nei blocchi.
             ["weather"] = SectionKind.Derived,        // METAR/TAF live dal NOAA
             ["runwayrules"] = SectionKind.Derived,    // regole di scelta pista (vento/superficie)
+            ["lvp"] = SectionKind.Derived,            // minimi di bassa visibilita' (carta 2026-09-12)
             ["transition"] = SectionKind.Derived,     // TA + tabella dei livelli di transizione per fascia QNH
             ["runways"] = SectionKind.Derived,        // piste dell'anagrafica IVAO + arricchimenti editoriali
             // ⚠️ IL TITOLO E' «MRVA», e resta uguale in tutte e due le lingue: e' la sigla con cui la si
@@ -278,13 +279,18 @@ public static class SectionCatalog
             {
                 H("weather", "METAR & TAF", 1),
                 H("runwayrules", "Regole piste", 2, en: "Runway selection rules"),
-                H("transition", "Quote di transizione", 3, en: "Transition altitude and levels"),
-                H("frequencies", "Frequenze", 4, en: "Frequencies"),
-                H("runways", "Piste", 5, en: "Runways"),
-                H("sids", "SID", 6),
-                D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
-            }.Concat(CarteAeroportuali(8)).Append(
-                HB("validity", "Validità e revisione", 9, en: "Validity and revision")).ToArray(),
+                // ✚ Non c'era (12 settembre 2026, committente): i minimi di bassa visibilita'. Sta SUBITO
+                // DOPO le regole piste perche' sono le due sezioni che si leggono dal METAR — una decide la
+                // pista, l'altra il modo di operare — e chi cerca «quando cambia qualcosa» le trova insieme.
+                // Come le regole, il dato sta nell'ANAGRAFICA dello scalo: qui c'e' solo la porta.
+                H("lvp", "LVP", 3),
+                H("transition", "Quote di transizione", 4, en: "Transition altitude and levels"),
+                H("frequencies", "Frequenze", 5, en: "Frequencies"),
+                H("runways", "Piste", 6, en: "Runways"),
+                H("sids", "SID", 7),
+                D("operationaltechnique", "Procedure generali", 8, en: "General procedures"),
+            }.Concat(CarteAeroportuali(9)).Append(
+                HB("validity", "Validità e revisione", 10, en: "Validity and revision")).ToArray(),
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
@@ -332,6 +338,13 @@ public static class SectionCatalog
                     // IN USO adesso, nelle Piste e nelle SID — la stessa derivazione della vIPI.
                     // ⚠️ Sorella e non figlia di «Piste», come le SID: stessa scelta, stesso indice leggibile.
                     H("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
+                    // ✚ Non e' nel PDF (12 settembre 2026, committente): i minimi LVP, subito dopo le regole
+                    // piste come nella vIPI civile. Stesso dato, stessa chiave, stessa porta di scrittura —
+                    // che qui e' l'editor del vSOP solo se il campo non ha una vIPI civile (§AS).
+                    // ⚠️ La nota in testa a questo profilo diceva che le code per campo, «LVP di Pratica»
+                    // compresa, restano sezioni LIBERE: da oggi vale per tutto TRANNE i minimi, che sono un
+                    // dato dello scalo. La prosa di Pratica resta libera, o va nella nota dei minimi.
+                    H("lvp", "LVP", 6),
                     // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
                     // (`AirportSids`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
                     // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
@@ -339,12 +352,12 @@ public static class SectionCatalog
                     // ⚠️ Sorella di «Piste» e non figlia: una scelta di indice, decisa dal committente.
                     // ⚠️ `H` e non `HB`: derivata pura, senza blocchi. Le code per campo -- il «Combat
                     // departure» di Gioia -- restano sezioni LIBERE, come dice la nota in testa al profilo.
-                    H("sids", "SID", 6),
+                    H("sids", "SID", 7),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 7, en: "Transition altitude and levels"),
+                    H("transition", "Quote di transizione", 8, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 8, en: "Callsigns", aud: Piloti),
+                    HB("callsigns", "Nominativi", 9, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -354,11 +367,11 @@ public static class SectionCatalog
                     // motore di riordino sposta solo fra FRATELLI, apposta.
                     // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
                     // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 9, en: "Airport layout"),
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 10, en: "Airport layout"),
                     // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
                     // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
                     // fermato questa modifica una volta, quando la planimetria era finita in coda.
-                    HB("parkings", "Parcheggi", 10, en: "Parking", aud: Piloti, children: new[]
+                    HB("parkings", "Parcheggi", 11, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),

@@ -24,6 +24,38 @@ namespace Vipi.Ui.Components.App;
 /// (<c>From</c>/<c>To</c>, null = aperta), che in lettura diventano una stringa sola.</summary>
 public sealed class TlEdit { public int Id; public int? From; public int? To; public string? Level; }
 
+/// <summary>
+/// I minimi LVP in scrittura. <b>Zero o uno</b>: l'assenza dell'oggetto è «non dichiarati».
+/// </summary>
+public sealed class LvpEdit
+{
+    public int Id;
+    public bool Declared = true;
+    public int? PrepRvrM; public int? PrepCeilingFt;
+    public int? LvpRvrM; public int? LvpCeilingFt;
+    public int? CancelRvrM; public int? CancelCeilingFt;
+    public string? Note;
+
+    /// <summary>La riga precompilata coi minimi standard: la propone l'editor, la salva una persona.</summary>
+    public static LvpEdit Standard() => new()
+    {
+        PrepRvrM = LvpStandard.PrepRvrM, PrepCeilingFt = LvpStandard.PrepCeilingFt,
+        LvpRvrM = LvpStandard.LvpRvrM, LvpCeilingFt = LvpStandard.LvpCeilingFt,
+        CancelRvrM = LvpStandard.CancelRvrM, CancelCeilingFt = LvpStandard.CancelCeilingFt,
+    };
+
+    public static LvpEdit? Da(LvpRow? r) => r is null ? null : new LvpEdit
+    {
+        Id = r.Id, Declared = r.Declared,
+        PrepRvrM = r.PrepRvrM, PrepCeilingFt = r.PrepCeilingFt,
+        LvpRvrM = r.LvpRvrM, LvpCeilingFt = r.LvpCeilingFt,
+        CancelRvrM = r.CancelRvrM, CancelCeilingFt = r.CancelCeilingFt, Note = r.Note,
+    };
+
+    public LvpRow AllaRiga() => new(Id, Declared, PrepRvrM, PrepCeilingFt, LvpRvrM, LvpCeilingFt,
+                                    CancelRvrM, CancelCeilingFt, Note);
+}
+
 /// <summary>Riga in scrittura.</summary>
 public sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling; }
 /// <summary>Riga in scrittura.</summary>

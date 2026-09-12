@@ -397,6 +397,9 @@ else
     private List<TlEdit> _tls = new();
     private List<RwEdit> _rwys = new();
     private List<RuleEdit> _rules = new();
+
+    /// <summary>I minimi LVP in lavorazione. <c>null</c> = lo scalo non li ha dichiarati, ed è uno stato.</summary>
+    private LvpEdit? _lvp;
     /// <summary>
     /// Il catalogo dei punti della divisione: suggerisce i nomi nei campi FIX/Transition e dice quali non
     /// esistono. Vuoto finché non arriva (e per sempre, se la sorgente non risponde): in quel caso i campi
@@ -610,6 +613,7 @@ else
             Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
         }).ToList();
         _rules = _data.Rules.Select(AirportRuleMapping.FromRow).ToList();
+        _lvp = LvpEdit.Da(_data.Lvp);
         var cyc = Airac.GetCycle(DateTime.UtcNow);
         _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
         {
@@ -764,6 +768,16 @@ else
     private Task SaveRules() => AirportSaveGate.Rules(_rules)
         ? Guarded(() => Profile.SaveRunwayRulesAsync(_icao, _rules.Select(AirportRuleMapping.ToRow).ToList()))
         : Task.CompletedTask;
+
+    /// <summary>I minimi LVP: <c>null</c> li toglie, ed è la stessa porta che li scrive.</summary>
+    private Task SaveLvp() => Guarded(() => Profile.SaveLvpAsync(_icao, _lvp?.AllaRiga()));
+
+    /// <summary>La riga è nata o è stata tolta: si aggiorna il riferimento e si salva subito.</summary>
+    private Task LvpCambiata(LvpEdit? riga)
+    {
+        _lvp = riga;
+        return SaveLvp();
+    }
 
     private Task SaveSids() => AirportSaveGate.Sids(_sids)
         ? Guarded(() => Profile.SaveSidsAsync(_icao,
@@ -985,6 +999,7 @@ else
     {
         "weather" => WeatherNote,
         "runwayrules" => RulesEditor,
+        "lvp" => LvpEditor,
         "transition" => TransitionEditor,
         "frequencies" => FrequenciesEditor,
         "runways" => RunwaysEditor,
@@ -1034,6 +1049,12 @@ else
         <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()"
                                   Editing="_shell.IsEditing" RowsChanged="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
+    };
+
+    private RenderFragment LvpEditor => __builder =>
+    {
+        <AirportLvpEditor Row="_lvp" Editing="_shell.IsEditing" RowsChanged="SaveLvp"
+                          RowChanged="LvpCambiata" ConfirmRemove="ConfermaRimozioneRiga" />
     };
 
     // ---- SID: i filtri e le regole li dice AirportSidRules (doc 14 §3g) ----

@@ -96,7 +96,7 @@ public class SectionCatalogTests
             new[] { "aor", "coordination", "frequencies", "validity" },
             Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
         Assert.Equal(
-            new[] { "frequencies", "runwayrules", "runways", "sids", "transition", "validity", "weather" },
+            new[] { "frequencies", "lvp", "runwayrules", "runways", "sids", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
     }
 
@@ -202,7 +202,9 @@ public class SectionCatalogTests
         // ⚠️ «charts» è arrivata il 3 settembre 2026, PRIMA di «validity»: le carte sono contenuto del
         // documento, e la validità è il timbro che lo chiude — deve restare l'ultima.
         Assert.Equal(
-            new[] { "weather", "runwayrules", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
+            // ⚠️ «lvp» è arrivata il 12 settembre 2026 SUBITO DOPO le regole piste: sono le due sezioni che si
+            // leggono dal METAR — una decide la pista, l'altra il modo di operare — e stanno vicine apposta.
+            new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
             keys);
     }
 

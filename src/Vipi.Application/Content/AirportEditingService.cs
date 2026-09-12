@@ -46,6 +46,9 @@ public interface IAirportEditingService
     Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default);
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
+
+    /// <summary>Scrive i minimi LVP dello scalo; <c>null</c> li toglie. ACC-gated come le altre scritture.</summary>
+    Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
     /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto e arricchimenti editoriali (initial climb, CAT,
     /// WTC, condition) di UNA riga SID importata (ACC-gated).</summary>
@@ -165,6 +168,32 @@ public sealed class AirportEditingService : IAirportEditingService
             if (r.MaxCrosswindKt is < 0 or > 60) throw new ValidationException(Lingua("Vento al traverso massimo fuori range (0–60 kt).", "Maximum crosswind out of range (0–60 kt)."));
         }
         await _repo.SaveRunwayRulesAsync(Norm(icao), rows, ct);
+    }
+
+    public async Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default)
+    {
+        await EnsureLockMineAsync(icao, ct);
+        if (row is not null)
+        {
+            // Gli intervalli sono larghi apposta: qui non si sa che cosa dice l'AIP di ogni scalo, e una
+            // guardia stretta rifiuterebbe un minimo vero. Serve a fermare le dita, non a fare il regolatore.
+            foreach (var rvr in new[] { row.PrepRvrM, row.LvpRvrM, row.CancelRvrM })
+                if (rvr is < 0 or > 5000)
+                    throw new ValidationException(Lingua("RVR fuori range (0–5000 m).", "RVR out of range (0–5000 m)."));
+            foreach (var soffitto in new[] { row.PrepCeilingFt, row.LvpCeilingFt, row.CancelCeilingFt })
+                if (soffitto is < 0 or > 5000)
+                    throw new ValidationException(Lingua("Soffitto fuori range (0–5000 ft).", "Ceiling out of range (0–5000 ft)."));
+
+            // ⚠️ Le soglie di LVP in vigore devono stare SOTTO quelle della preparazione, o le due fasi si
+            // invertono e il quadro annuncerebbe «in vigore» prima di «preparazione».
+            if (row.LvpRvrM is int lr && row.PrepRvrM is int pr && lr > pr)
+                throw new ValidationException(Lingua("L'RVR di LVP in vigore deve essere minore o uguale a quello di preparazione.",
+                                                     "The in-force RVR must be lower than or equal to the preparation one."));
+            if (row.LvpCeilingFt is int lc && row.PrepCeilingFt is int pc && lc > pc)
+                throw new ValidationException(Lingua("Il soffitto di LVP in vigore deve essere minore o uguale a quello di preparazione.",
+                                                     "The in-force ceiling must be lower than or equal to the preparation one."));
+        }
+        await _repo.SaveLvpAsync(Norm(icao), row, ct);
     }
 
     public async Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default)

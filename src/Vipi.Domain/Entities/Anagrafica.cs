@@ -390,6 +390,16 @@ public class Airport
     public ICollection<AirportTransitionLevel> TransitionLevels { get; set; } = new List<AirportTransitionLevel>();
     public ICollection<AirportRunway> Runways { get; set; } = new List<AirportRunway>();
     public ICollection<AirportRunwayRule> RunwayRules { get; set; } = new List<AirportRunwayRule>();
+
+    /// <summary>
+    /// I minimi con cui questo scalo entra e esce dalle procedure di bassa visibilità. <b>Zero o una</b> riga.
+    ///
+    /// <para>⚠️ È una <b>collezione</b> per una ragione di EF, non di dominio: una relazione uno-a-uno
+    /// opzionale con la chiave sul figlio si modella così senza costringere il padre a esistere in coppia.
+    /// Chi legge usa <c>SingleOrDefault</c>, e la sua assenza è un fatto — «questo scalo non li ha
+    /// dichiarati» — non uno zero.</para>
+    /// </summary>
+    public ICollection<AirportLvpMinima> LvpMinima { get; set; } = new List<AirportLvpMinima>();
     public ICollection<AirportSid> Sids { get; set; } = new List<AirportSid>();
     public ICollection<AirportFrequencyLink> FrequencyLinks { get; set; } = new List<AirportFrequencyLink>();
 
@@ -619,6 +629,51 @@ public class AirportRunwayRule
     // estremi inclusi; gestisce il wrap di fine anno (es. 1101→0228). Entrambi null = nessun vincolo di data. ---
     public int? DateFromMonthDay { get; set; }         // es. 101 = 1° gennaio
     public int? DateToMonthDay { get; set; }           // es. 331 = 31 marzo
+}
+
+/// <summary>
+/// I minimi LVP di uno scalo: le soglie con cui si <b>prepara</b>, si <b>entra</b> e si <b>esce</b> dalle
+/// procedure di bassa visibilità.
+///
+/// <para>⚠️ Stanno nell'<b>anagrafica dello scalo</b> e non in un documento, come le regole piste (§CX) e le
+/// SID (§CV): la vIPI civile è solo la porta di scrittura, e un campo solo militare li scrive dal suo vSOP.
+/// Così il vSOP non «copia» niente dalla vIPI — legge lo stesso dato, e non c'è nessuna copia da tenere
+/// allineata.</para>
+///
+/// <para>⚠️ Sono d'<b>aeroporto</b> e non di pista. La CAT dell'avvicinamento per pista esiste già, ed è
+/// un'altra colonna (<see cref="AirportRunway.AppProcedures"/>): ripeterla qui darebbe due posti dove cercare
+/// la stessa cosa.</para>
+///
+/// <para>⚠️ Le soglie sono in metri (RVR) e piedi (soffitto), e <b>possono mancare</b>: uno scalo che dichiara
+/// solo l'RVR non deve inventarsi un soffitto. Una soglia nulla non si valuta, e basta l'altra.</para>
+/// </summary>
+public class AirportLvpMinima
+{
+    public int Id { get; set; }
+    public int AirportId { get; set; }
+    public Airport? Airport { get; set; }
+
+    /// <summary>
+    /// Lo scalo dichiara di operare in LVP.
+    /// <para>⚠️ Falso <b>non</b> è «non lo sappiamo»: è «qui le LVP non si fanno», e il documento lo scrive
+    /// («LVP not applicable»). Il «non lo sappiamo» è l'<i>assenza</i> della riga.</para>
+    /// </summary>
+    public bool Declared { get; set; } = true;
+
+    /// <summary>Soglie della fase <b>preparatoria</b>: sotto queste ci si prepara.</summary>
+    public int? PrepRvrM { get; set; }
+    public int? PrepCeilingFt { get; set; }
+
+    /// <summary>Soglie di LVP <b>in vigore</b>.</summary>
+    public int? LvpRvrM { get; set; }
+    public int? LvpCeilingFt { get; set; }
+
+    /// <summary>Soglie di <b>cancellazione</b>: sopra queste, e con tendenza al miglioramento, si esce.</summary>
+    public int? CancelRvrM { get; set; }
+    public int? CancelCeilingFt { get; set; }
+
+    /// <summary>La coda per campo: chi le attiva, quali piste, CAT II/III, restrizioni al piazzale.</summary>
+    public string? Note { get; set; }
 }
 
 /// <summary>Riga SID (editabile a mano oppure importata dal sectorfile Aurora, con merge che preserva le manuali).</summary>

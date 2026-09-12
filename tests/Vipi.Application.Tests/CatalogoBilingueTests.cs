@@ -33,7 +33,9 @@ public class CatalogoBilingueTests
     {
         // ⚠️ «IFR» dal 6 settembre 2026: le procedure di partenza e di arrivo hanno due foglie ciascuna,
         // «VFR» e «IFR», e una sigla non si traduce. «QRA / Scramble» è uscita con la sua sezione.
-        "AOR", "MRVA", "VFR", "IFR", "SID", "STAR", "METAR & TAF",
+        // ⚠️ «LVP» dal 12 settembre 2026: la sezione dei minimi di bassa visibilità. È una sigla che in
+        // torre si dice uguale nelle due lingue, e tradurla farebbe cambiare faccia al titolo a metà documento.
+        "AOR", "MRVA", "VFR", "IFR", "SID", "STAR", "METAR & TAF", "LVP",
     };
 
     /// <summary>

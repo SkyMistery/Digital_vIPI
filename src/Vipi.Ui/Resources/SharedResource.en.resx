@@ -3417,4 +3417,22 @@
   <data name="Rta_UnderlineLetter" xml:space="preserve"><value>U</value></data>
   <data name="Rta_Bullets" xml:space="preserve"><value>Bulleted list</value></data>
   <data name="Rta_Numbers" xml:space="preserve"><value>Numbered list</value></data>
+  <data name="Lvp_Lead" xml:space="preserve"><value>The thresholds this airport uses to enter and leave low visibility procedures. The comparison uses the RVR from the bulletin, or the visibility when there is no RVR.</value></data>
+  <data name="Lvp_Fase" xml:space="preserve"><value>Phase</value></data>
+  <data name="Lvp_Soffitto" xml:space="preserve"><value>Ceiling</value></data>
+  <data name="Lvp_FasePrep" xml:space="preserve"><value>Preparation</value></data>
+  <data name="Lvp_FaseInVigore" xml:space="preserve"><value>LVP in force</value></data>
+  <data name="Lvp_FaseCancellazione" xml:space="preserve"><value>Cancellation</value></data>
+  <data name="Lvp_NonDichiarati" xml:space="preserve"><value>No LVP minima declared for this airport.</value></data>
+  <data name="Lvp_NonApplicabile" xml:space="preserve"><value>LVP not applicable at this airport.</value></data>
+  <data name="Lvp_SuggeritoPrep" xml:space="preserve"><value>With the current bulletin the preparation thresholds are met. This is a suggestion: activating LVP remains the airport's decision.</value></data>
+  <data name="Lvp_SuggeritoInVigore" xml:space="preserve"><value>With the current bulletin the in-force thresholds are met. This is a suggestion: activating LVP remains the airport's decision.</value></data>
+  <data name="Lvp_Aiuto" xml:space="preserve"><value>Low visibility minima belong to the &lt;b&gt;airport&lt;/b&gt;, not to the document: written once, they are read by the vIPI, the vSOP and the vAWOS panel. A threshold left empty is not evaluated.</value></data>
+  <data name="Lvp_AiutoAria" xml:space="preserve"><value>Help on LVP minima</value></data>
+  <data name="Lvp_DichiaraStandard" xml:space="preserve"><value>Declare minima (standard)</value></data>
+  <data name="Lvp_DichiaraNonApplicabile" xml:space="preserve"><value>No LVP here</value></data>
+  <data name="Lvp_StandardAvviso" xml:space="preserve"><value>The proposed values are the standard ones: check them against this airport's AIP before leaving them.</value></data>
+  <data name="Lvp_OperaInLvp" xml:space="preserve"><value>This airport operates LVP</value></data>
+  <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Who activates them, which runways, CAT II/III, restrictions…</value></data>
+  <data name="Lvp_Togli" xml:space="preserve"><value>Remove the minima</value></data>
 </root>
