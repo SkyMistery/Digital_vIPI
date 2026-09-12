@@ -1,6 +1,6 @@
 ﻿# Pacchetto 1.25.1 — solo i file cambiati
 
-> **Timbro:** `1.25.1 · 33aa578` (12 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.25.1 · e7d075b` (12 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.25.0.** **19 file**. ✅ **NESSUNA MIGRAZIONE**: il database non si tocca, e non c'è nessun
@@ -59,11 +59,11 @@ sito in cui il motore non è mai partito. Il controllo che conta è **la Ricerca
 2. si scrivono due lettere (es. `LI`)
 3. **la riga sotto il campo deve cambiare**.
 
-Poi, col login da amministratore, il timbro in barra: **`1.25.1 · 33aa578`**.
+Poi, col login da amministratore, il timbro in barra: **`1.25.1 · e7d075b`**.
 
 ℹ️ **Al primo avvio dopo questo pacchetto** l'applicazione rifà una volta le riconciliazioni interne dei
-documenti — è previsto, ed è come funziona adesso: le rifà **una volta a ogni versione nuova** e poi smette,
-invece che a ogni riavvio. Nel log compare una riga che lo dice. Dal secondo avvio in poi tace.
+documenti — è previsto, ed è come funziona adesso: le rifà **una volta per ogni versione nuova che caricate**
+e poi smette, invece che a ogni riavvio. Nel log compare una riga che lo dice. Dal secondo avvio in poi tace.
 
 ---
 
@@ -160,6 +160,7 @@ vipi-boot.js    vipi-boot.js.br    vipi-boot.js.gz
 ```
 
 ⚠️ **Restano fuori** `Vipi.Domain.dll`, `Vipi.Infrastructure.dll`, `Vipi.Infrastructure.MySqlMigrations.dll`
-e i due assiemi Aurora: il loro codice non è cambiato, e nessuno di loro implementa qualcosa che sia
-cambiato altrove. **Ogni file in più è una rinomina in più su un file che il processo tiene aperto**: non è
-prudenza, è rischio.
+e i due assiemi Aurora: si comportano esattamente come quelli che avete già online, e nessuno di loro
+implementa qualcosa che sia cambiato altrove. (In `Vipi.Infrastructure` è cambiato **un commento**, e un
+commento non fa un assieme diverso.) **Ogni file in più è una rinomina in più su un file che il processo
+tiene aperto**: non è prudenza, è rischio.

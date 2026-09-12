@@ -4,8 +4,8 @@
 
 ### 📦 A26 — Pacchetto 1.25.1: 19 file — ⏳ **PRONTO, non ancora caricato**
 
-Timbro **`1.25.1 · 33aa578`**, zip
-`b514a2acd95f4ce526024338aca1222e2291d6601ad84ead20b38c7883631ef1`
+Timbro **`1.25.1 · e7d075b`**, zip
+`68632bf144a70ca2feec5490ccdd2425122989943d73ebe8a82e375319973de4`
 (`artifacts/publish/vipi-1.25.1-solo-file-cambiati.zip`, 3,51 MB), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md).
 Sostituisce **1.25.0**. Dentro: le **sette voci di codice dell'audit prestazioni** (§CZ qui sotto).
@@ -38,13 +38,30 @@ membri. Le due firme toccate sono metodi di estensione con un parametro **facolt
   2-3 ms**, stessi byte;
 - **Q4** `Cache-Control: public, max-age=86400` su `/_framework/blazor.web.js`; **Q8** favicon 2 764 byte e
   **zero** `<link>` del foglio 3D nella testata;
-- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.1 · commit 33aa578`.
+- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.1 · commit e7d075b`.
 
-⚠️ **Al PRIMO avvio dopo il caricamento le riconciliazioni rigirano tutte** (259 query) e si timbrano per
-`1.25.1+33aa578`; **dal secondo in poi si saltano** (54). Visto succedere sul pacchetto: è il gate di Q7 che
-fa il suo mestiere, non un difetto.
+🔴 **RICOSTRUITO UNA VOLTA, e il difetto l'ha trovato la domanda «posso caricarlo?».** Il primo 1.25.1
+(`33aa578`) **non esiste più**: la chiave che il gate di Q7 scriveva era
+`RiconciliazioniDocumentali:1.25.1+33aa578`, **41 caratteri** in `ImportState.Category`, che è la **chiave
+primaria** ed è `varchar(32)`. In locale passava — SQLite non ha lunghezze — ma su MariaDB i due esiti sono
+tutti e due brutti: in *strict* la scrittura fallisce e il gate muore in silenzio (c'è un `try/catch`); fuori
+da *strict* **tronca**, e `RiconciliazioniDocumentali:1.25` sarebbe la **stessa riga per ogni 1.25.x** — la
+versione dopo salterebbe riconciliazioni mai eseguite. Quale dei due modi sia attivo in produzione **non lo
+sappiamo**: sta scritto in `LEGGIMI-DEPLOY.md`. È la «cucitura cieca fra i provider» della revisione totale,
+presa in pieno.
+✅ **Chiusa in tre pezzi**: la chiave si accorcia (`RiconcDoc:`) e la compone `ImportCategories`, non il
+chiamante; il timbro è il **commit** e non il numero — che **si ripete**, 1.25.0 è stata ricostruita due
+volte; e un test (`CategorieDiImportTests`) misura ogni categoria **e le chiavi composte** contro la
+lunghezza vera, letta da `MySqlStringLengths` invece che riscritta. Più una rete a runtime: se la chiave
+sfora si rinuncia al gate invece di scrivere qualcosa che il database accorcerebbe.
+⚠️ **Controprova fatta**: rimesso il nome vecchio, il test è rosso su tutti e tre i casi (34, 38, 43).
 
-▶ **Dopo il caricamento**: la **Ricerca** (è il controllo che passa dal server), il timbro `1.25.1 · 33aa578`
+✅ **E il ciclo del gate provato per intero sul pacchetto**, tre avvii di fila: 1º **414 query, 17 righe
+toccate → NON timbrato**; 2º **259, niente cambiato → timbrato** per `e7d075b`; 3º **54, saltate**, con la
+riga che dice perché. La regola «si timbra solo un giro che non ha cambiato niente» non è teorica: si è
+vista scattare.
+
+▶ **Dopo il caricamento**: la **Ricerca** (è il controllo che passa dal server), il timbro `1.25.1 · e7d075b`
 col login, e `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` puntato fuori.
 
 🔴 **E le DUE cose del pannello, che valgono più di tutte e sette messe insieme** — stanno nel foglio del
