@@ -1208,8 +1208,30 @@
       inglese (33 frasi nuove). NIENTE wwwroot (nessun CSS/JS toccato), NIENTE MySqlMigrations.
       FIRME: ParsedWind.Label e' TOLTO e ParsedMetar/TafSegment.Weather cambiano TIPO (string? -> lista di
       WeatherGroup). Chi li nomina sta in Vipi.Ui, che si spedisce; nessun assieme che resta fuori li tocca.
+
+      === 1.25.0 — il quadro vAWOS e i minimi LVP (12 settembre 2026) ===================================
+
+      MINOR, e la ragione e' doppia: una PAGINA nuova (/services/vawos, il quadro meteo di torre) e una
+      SEZIONE nuova di catalogo (LVP) in DUE profili — la vIPI d'aeroporto e il vSOP militare. Piu' una
+      MIGRAZIONE, che da sola basterebbe.
+
+      LA MIGRAZIONE E' ADDITIVA: una CreateTable (AirportLvpMinima) sui due provider, nessun DropColumn,
+      nessuna Sql grezza. Dentro la finestra cieca si spedisce (runbook, "una migrazione ADDITIVA invece si
+      spedisce"), e MigrazioniDellaFinestraCiecaTests la lascia passare.
+      🔴 IL FILE DA NON DIMENTICARE E' Vipi.Infrastructure.MySqlMigrations.dll: senza, la tabella non nasce
+      e il pacchetto SEMBRA funzionare — la sezione LVP resta muta e nessuno se ne accorge finche' non prova
+      a scriverci dentro. La prova da fuori e' la riga "Schema" della Diagnostica: deve dire 0.
+
+      I FILE. Il diff dei nomi fra f8d7a75 e HEAD, limitato a src/, nomina TUTTI E SETTE i progetti:
+      Application (21 file), Domain (1), Host (1), Hosting (1), Infrastructure (7), MySqlMigrations (3),
+      Ui (23). Piu' wwwroot: vipi-awos.css e vipi-awos.js sono NUOVI, e vipi-boot.js cambia — quindi
+      Vipi.Host.staticwebassets.endpoints.json viaggia con loro. Piu' il satellite inglese (21 frasi nuove).
+      FIRME: OnlineAtc guadagna cinque parametri, IAirportRepository e IAirportEditingService un metodo,
+      IDocumentMaintenance un metodo, AwosActive cambia il tipo di Dep/Arr. Ogni implementazione sta dentro
+      gli assiemi spediti — che sono tutti — quindi nessun assieme lasciato fuori implementa una firma
+      cambiata.
     -->
-    <VipiVersione>1.24.1</VipiVersione>
+    <VipiVersione>1.25.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
