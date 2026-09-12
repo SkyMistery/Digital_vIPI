@@ -1,4 +1,4 @@
-﻿<Project>
+<Project>
 
   <!--
     Impostazioni comuni a TUTTI i progetti del repository (src, tests, tools): MSBuild importa questo file
@@ -1177,7 +1177,39 @@
       FIRME: AirportRulesView guadagna un parametro OPZIONALE in coda e AirportSectionProjection.Rules cambia
       solo il valore di ritorno; chi le nomina sta in Vipi.Application e Vipi.Ui, che si spediscono tutt'e due.
     -->
-    <VipiVersione>1.24.0</VipiVersione>
+    <!-- 1.24.1 - PATCH (12 settembre 2026, sera). Il METAR decodificato parla la lingua della pagina.
+
+      I VALORI DEL METAR SI TRADUCONO (9c0b1b90, segnalato dal committente). In una vIPI o in un vSOP aperti in
+      inglese il riquadro METAR restava in italiano: le etichette (Vento/Visibilita'/Nubi) erano tradotte da
+      sempre, erano i VALORI a non esserlo - «leggera pioggia», «foschia», «Calmo». Le parole stavano cablate
+      dentro MetarParser, cioe' in uno strato che non sa ne' in che lingua guarda chi legge ne' in quale un
+      documento e' bloccato. Ora il parser torna CODICI (WeatherGroup: token grezzo, intensita', i codici ICAO
+      nell'ordine del bollettino) e le parole stanno nelle due .resx, chiavi Wx_*, messe da Vipi.Ui.Shared.WxText
+      che riceve la traduzione COME FUNZIONE. ParsedWind.Label e' sparito invece di restare «quasi giusto»: la
+      sua unica parola era «Calmo».
+
+      LA PROVENIENZA DEL METAR E' MECCANICA DI SERVIZIO (9c0b1b90, chiesto dal committente). La pastiglia
+      IVAO/VATSIM - che compare solo quando NOAA non ha risposto - si vede da DivisionStaff in su, come il
+      numero della regola pista che sta vincendo. Il bollettino resta intero per chiunque. Il livello NON si
+      chiede dentro l'isola interattiva (li' IHttpContextAccessor non ha nessuna richiesta: risponderebbe
+      «anonimo» a tutti): lo passano i due corpi documento, che sono SSR dentro la richiesta.
+
+      OGNI SCORTA METAR HA IL SUO BUDGET (4b2de139, trovato verificando il resto). Il tetto d'attesa era di
+      TUTTA la catena: con NOAA e IVAO morti la prima scorta che si piantava se lo portava via intero e la
+      terza sorgente - che il METAR ce l'aveva - non veniva nemmeno chiamata. Ora e' per sorgente, e una scorta
+      che esplode non si porta via le altre (prima l'eccezione usciva fino alla pagina, che perdeva anche il
+      TAF gia' arrivato). Prezzo dichiarato: caso pessimo = tetto x numero di scorte, 6 s con due.
+
+      PATCH e non MINOR: nessuna pagina o sezione nuova, nessuna migrazione. Si correggono difetti e si
+      stringe la visibilita' di un'etichetta che c'era gia'.
+
+      I FILE. Il diff dei nomi fra ed4c0f36 e HEAD, limitato a src/, nomina TRE progetti: Vipi.Application
+      (due file), Vipi.Infrastructure (due) e Vipi.Ui (sei). Piu' Vipi.Host per il TIMBRO. Piu' il satellite
+      inglese (33 frasi nuove). NIENTE wwwroot (nessun CSS/JS toccato), NIENTE MySqlMigrations.
+      FIRME: ParsedWind.Label e' TOLTO e ParsedMetar/TafSegment.Weather cambiano TIPO (string? -> lista di
+      WeatherGroup). Chi li nomina sta in Vipi.Ui, che si spedisce; nessun assieme che resta fuori li tocca.
+    -->
+    <VipiVersione>1.24.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
