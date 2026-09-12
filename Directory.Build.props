@@ -1231,7 +1231,35 @@
       gli assiemi spediti — che sono tutti — quindi nessun assieme lasciato fuori implementa una firma
       cambiata.
     -->
-    <VipiVersione>1.25.0</VipiVersione>
+    <!--
+      1.25.1 — PATCH. Le sette voci dell'audit prestazioni del 12 settembre 2026
+      (docs/history/audit-2026-09-12-prestazioni.md, voce §CZ).
+
+      PERCHE' PATCH E NON MINOR: nessuna migrazione, nessuna pagina nuova, nessuna sezione di catalogo
+      nuova, nessuna chiave resx. Non c'e' una sola funzione in piu': ci sono le stesse funzioni che
+      costano meno. La regola e' quella scritta in cima al runbook, e qui si applica per intero.
+
+      COSA CAMBIA, DAL PUNTO DI VISTA DI CHI GUARDA: niente. Le due cose che si potrebbero notare sono
+      volute e provate: chi NON e' entrato non apre piu' un circuito Blazor ne' uno stream SSE (il gettone
+      in barra gli diceva «non in frequenza» e non poteva cambiare), e la favicon ha due misure invece di
+      quattro. Chi E' entrato ha esattamente il badge di prima, circuito e stream compresi.
+
+      I FILE. Il diff fra 20775a0e (1.25.0, online) e HEAD, limitato a src/, nomina QUATTRO progetti:
+      Application (1 file), Host (4), Hosting (1), Ui (4, di cui LiveBadgeSpento.razor NUOVO). Piu'
+      wwwroot: favicon.ico, vipi-aor3d.js, vipi-awos.js e vipi-boot.js cambiano — quindi viaggiano coi
+      loro .br/.gz e INSIEME a Vipi.Host.staticwebassets.endpoints.json.
+      NIENTE satellite inglese: nessun .resx e' cambiato.
+
+      FIRME: nessuna interfaccia ha guadagnato o perso membri. Le due firme cambiate sono metodi di
+      estensione con un parametro FACOLTATIVO (RunVipiStartupMaintenance, ReconcileVipiDocuments), e il
+      solo chiamante — Vipi.Host — e' dentro il pacchetto. Nessun assieme lasciato fuori (Domain,
+      Infrastructure, MySqlMigrations, Aurora*) implementa niente di cambiato.
+
+      ⚠️ E DUE COSE CHE IL PACCHETTO NON PUO' FARE DA SOLO, e valgono piu' di tutte e sette: la Cache Rule
+      su Cloudflare e le direttive nginx in Plesk (LEGGIMI-DEPLOY.md, §O2/§O3). Senza la seconda, gli
+      asset continuano a uscire senza Cache-Control e le varianti .br a qualita' 11 restano inutilizzate.
+    -->
+    <VipiVersione>1.25.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
