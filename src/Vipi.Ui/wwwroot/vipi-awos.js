@@ -5,11 +5,11 @@
      1. rilegge /services/vawos/api/{icao} ogni 60 s (un METAR cambia ogni 30 minuti;
         il prototipo interrogava un servizio pubblico ogni 10 secondi, cioe' 180
         chiamate per ogni bollettino nuovo, per ogni scheda aperta);
-     2. interpola fra un bollettino e l'altro — SOLO dentro i valori che il METAR
-        dichiara (§4.3 della carta): la direzione spazza il settore 200V280 perche'
-        il bollettino lo dice, la velocita' oscilla fra vento e raffica perche' li
-        da' entrambi. Vento fisso 18010KT ⇒ il numero sta fermo. Nessun seno che
-        fabbrica una raffica che non c'e';
+     2. scrive quel che il bollettino dice, e NIENT'ALTRO. 🔴 Qui c'era un'animazione
+        (la direzione spazzava il settore di variabilita', la velocita' oscillava
+        fino alla raffica): tolta il 12 settembre 2026 su decisione del committente
+        — «non abbiamo modo di sapere il vento reale istantaneo nei pressi
+        dell'aeroporto». Il quadro cambia quando cambia il METAR, e non prima;
      3. tiene orologio, LED di vitalita' e l'ETA' del dato — che ingiallisce e poi
         arrossisce se il server smette di rispondere, invece di lasciare a schermo
         numeri vecchi che sembrano nuovi.
@@ -31,7 +31,6 @@
   // invertire non faceva NIENTE — si cliccava e non cambiava nulla. Ora il clic SCEGLIE, e il giro e'
   // derivata → sinistra → destra → derivata.
   var manuale = {};
-  var movimento = true;
   var timers = [];
   var ultimoDato = 0;          // Date.now() dell'ultima lettura riuscita
   // 🔴 La MEMORIA delle LVP, e l'unica cosa che questo modulo ricorda fra una lettura e l'altra: le soglie
@@ -89,7 +88,6 @@
     ogni(1000, orologio);
     ogni(1000, eta);
     ogni(900, vitalita);
-    ogni(250, anima);
     orologio();
   }
 
@@ -153,6 +151,7 @@
     righe('[data-awos="wx"]', parole.wx);
     righe('[data-awos="cloud"]', parole.nubi);
 
+    vento();
     (vista.piste || []).forEach(function (striscia, i) { striscia_(i, striscia); });
   }
 
@@ -229,12 +228,23 @@
     return scelte.length ? base_ + ' · manual' : base_;
   }
 
-  // ── Il movimento: interpolazione DENTRO i valori dichiarati ──────────────
-  // 🔴 Finché il server non ha risposto ALMENO UNA VOLTA questa funzione non tocca niente. Il primo
-  // bollettino sta gia' nell'HTML, scritto da chi ha reso la pagina: scriverci sopra `--` in attesa della
-  // prima lettura — a 60 secondi di distanza — vuol dire cancellare i valori veri e mostrare un quadro
-  // spento per un minuto. Visto a schermo il 12 settembre 2026, tutti i pannelli vento a «--».
-  function anima() {
+  // ── Il vento: QUEL CHE DICE IL BOLLETTINO, e nient'altro ─────────────────
+  //
+  // 🔴 Qui c'era un'ANIMAZIONE, ed e' stata tolta il 12 settembre 2026 su decisione del committente:
+  // «e' meglio riferirsi al METAR e basta, non abbiamo modo di sapere il vento reale istantaneo nei pressi
+  // dell'aeroporto». L'argomento chiude la questione, e chiude anche i tre difetti che quell'animazione si
+  // portava dietro:
+  //
+  //   · la direzione spazzava il settore `200V280` con un seno di dodici secondi, quattro volte al secondo:
+  //     non era interpolazione, era un valore FABBRICATO, e a schermo si leggeva come un generatore casuale;
+  //   · TRAVERSO e CODA si calcolavano su quella direzione inventata — cioe' i due numeri che un
+  //     controllore usa davvero oscillavano da soli, attraversando avanti e indietro le soglie di colore.
+  //     Nemmeno il prototipo lo faceva: mostrava la spazzata ma calcolava le componenti sulla direzione base;
+  //   · e la direzione MISURATA (240) non compariva mai, cioe' spariva l'unico valore che il METAR afferma.
+  //
+  // Adesso: quel che c'e' nel bollettino, fermo finche' non ne arriva un altro. Il settore di variabilita' e
+  // la raffica hanno gia' le loro caselle — EXTREMES e GUST — ed e' li' che quell'informazione appartiene.
+  function vento() {
     if (!vista) return;
     var m = vista.metar;
     var w = m && m.wind;
@@ -251,35 +261,21 @@
       return;
     }
 
-    var t = Date.now() / 1000;
     var dir = w.directionDeg;
-    var spd = w.speedKt;
-
-    if (movimento) {
-      // Il settore di variabilita': si spazza da un estremo all'altro, in 12 s.
-      if (w.varFromDeg != null && w.varToDeg != null) {
-        var ampiezza = ((w.varToDeg - w.varFromDeg) + 360) % 360;
-        var f = (Math.sin(t / 12 * 2 * Math.PI) + 1) / 2;
-        dir = Math.round((w.varFromDeg + ampiezza * f + 360) % 360);
-      }
-      // La raffica: si oscilla fra vento medio e raffica, e mai oltre nessuno dei due.
-      if (w.gustKt != null && w.gustKt > w.speedKt) {
-        var g = (Math.sin(t / 7 * 2 * Math.PI) + 1) / 2;
-        spd = Math.round(w.speedKt + (w.gustKt - w.speedKt) * g);
-      }
-    }
 
     // «CALM» e non «360»: 00000KT vuol dire vento calmo, non «da nord a zero nodi».
     testo(cella('dir'), w.calm ? 'CALM' : w.variable ? 'VRB' : (dir == null ? '---' : pad(((dir + 359) % 360) + 1, 3)));
-    testo(cella('spd'), pad(spd, 2));
+    testo(cella('spd'), pad(w.speedKt, 2));
     testo(cella('vmin'), w.varFromDeg != null ? pad(w.varFromDeg, 3) : '--');
     testo(cella('vmax'), w.varToDeg != null ? pad(w.varToDeg, 3) : '--');
     testo(cella('gust'), w.gustKt != null ? pad(w.gustKt, 2) : '--');
 
+    // ⚠️ Traverso e coda sulla direzione e sulla velocita' MISURATE. Se un giorno tornasse un'animazione,
+    // non deve tornare qui: questi due numeri si guardano per decidere, non per far compagnia.
     if (dir == null || w.calm) { testo(cella('cross'), '--'); testo(cella('tail'), '--'); return; }
     var d = (dir - hdg) * Math.PI / 180;
-    var testa = Math.round(spd * Math.cos(d));
-    var cross = Math.round(Math.abs(spd * Math.sin(d)));
+    var testa = Math.round(w.speedKt * Math.cos(d));
+    var cross = Math.round(Math.abs(w.speedKt * Math.sin(d)));
     var coda = testa < 0 ? -testa : 0;
     scala(cella('cross'), cross, 8, 15);
     scala(cella('tail'), coda, 1, 1);
@@ -324,15 +320,11 @@
     if (radice.dataset.awosLegato === '1') return;
     radice.dataset.awosLegato = '1';
     radice.addEventListener('click', function (e) {
-      var t = e.target.closest('[data-awos-tema],[data-awos-mov],[data-awos-mask],[data-awos-chiudi],[data-awos-inverti]');
+      var t = e.target.closest('[data-awos-tema],[data-awos-mask],[data-awos-chiudi],[data-awos-inverti]');
       if (!t) return;
 
       if (t.hasAttribute('data-awos-tema')) {
         tema(radice.getAttribute('data-awos-theme') === 'day' ? 'night' : 'day');
-      } else if (t.hasAttribute('data-awos-mov')) {
-        movimento = !movimento;
-        t.setAttribute('aria-pressed', movimento ? 'true' : 'false');
-        anima();
       } else if (t.hasAttribute('data-awos-mask')) {
         apri(t.getAttribute('data-awos-mask'));
       } else if (t.hasAttribute('data-awos-chiudi')) {

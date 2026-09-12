@@ -26,9 +26,10 @@ public sealed record AwosRvrScritte(string Tdz, string Mid, string End);
 /// aggiornamenti — e una delle due coppie era <b>già divergita</b>: il riquadro WX mostrava «light shower
 /// rain» al caricamento e «-SHRA» un minuto dopo. Le altre quattro aspettavano il loro turno.</para>
 ///
-/// <para>⚠️ Restano fuori, e per forza, le sole due cose che si <b>animano</b>: direzione/velocità del vento
-/// e le componenti traverso/coda, che il modulo ricalcola venti volte al secondo interpolando fra due
-/// bollettini. Quelle il server non può scriverle: sono diverse a ogni fotogramma.</para>
+/// <para>⚠️ Restano fuori le caselle del <b>vento</b> — direzione, velocità, traverso, coda — e non perché
+/// si muovano (dal 12 settembre 2026 non si muovono più: vengono dal bollettino e basta), ma perché sono le
+/// uniche che dipendono dalla <b>testata</b> su cui si proiettano, e di testate ce ne sono due per striscia.
+/// Le scrive il modulo, che sa a quale pannello sta parlando.</para>
 /// </summary>
 public sealed record AwosScritte(string RigaAttiva, string LvpTesto, string LvpClasse, string LvpTitolo,
                                  IReadOnlyList<AwosRvrScritte> Rvr);

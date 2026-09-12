@@ -8,6 +8,12 @@
    portatile che si chiude. Un'isola interattiva darebbe dodici diff al secondo per ogni controllore
    collegato e un riquadro «riconnessione» al primo singhiozzo.
 
+   🔴 IL VENTO E' QUELLO DEL BOLLETTINO, e non si muove da solo. Fino al 12 settembre 2026 la direzione
+   spazzava il settore di variabilita' e la velocita' oscillava fino alla raffica: tolto su decisione del
+   committente — «non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto». Il settore
+   e la raffica hanno le loro caselle (EXTREMES, GUST): e' li' che quell'informazione sta, senza fingere una
+   misura che nessuno ha preso.
+
    ⚠️ Le etichette sono in INGLESE e non passano dai .resx (decisione del committente, 12 settembre 2026):
    DIR, SPEED, GUST, CROSS, TAIL, RVR, QNH, TL sono sigle ICAO, uguali in ogni torre del mondo. Le uniche
    parole vere — i codici di tempo presente — le traduce WxText, che c'è già.
@@ -84,8 +90,6 @@
                   title="@AwosTesto.LvpTitolo(_vista.Lvp.Valutazione)">@AwosTesto.LvpTesto(_vista.Lvp.Valutazione)</span>
             <span class="awos-pastiglia sim">ONLY FOR SIMULATION</span>
             <span class="awos-eta" data-awos-eta title="Age of the bulletin on screen">—</span>
-            <button type="button" class="awos-btn" data-awos-mov aria-pressed="true"
-                    title="Interpolate between bulletins">MOV</button>
             <button type="button" class="awos-btn" data-awos-tema title="Day / night">DAY</button>
             <button type="button" class="awos-btn" data-awos-mask="report">LOCAL REP.</button>
             <button type="button" class="awos-btn" data-awos-mask="atis">ATIS MSG</button>
@@ -344,6 +348,8 @@
     /// <summary>
     /// Un pannello vento. I due di una striscia hanno la STESSA sorgente — il vento è uno — e cambiano solo
     /// per la testata su cui si proiettano: è tutto il senso di averne due.
+    /// <para>⚠️ Tutti i valori vengono dal bollettino, compresi traverso e coda, che si calcolano sulla
+    /// direzione <b>misurata</b>. Il quadro cambia quando cambia il METAR.</para>
     /// </summary>
     private RenderFragment PannelloVento(int blocco, int lato, AwosEnd? end) => __builder =>
     {

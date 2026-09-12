@@ -16,6 +16,12 @@ suoi timer sopravvivevano all'uscita dalla pagina. Cura unica: il modulo entra n
 pigri di `vipi-boot.js`, che sceglie **sul DOM e non sull'indirizzo**. Chiusi anche: soglie di cancellazione
 LVP inerti (ora c'è l'isteresi), endpoint pubblico senza limitatore, due letture dei documenti per pagina,
 cinque coppie di logica scritte due volte, un `!` su una pagina pubblica, e il cancello senza test (ora 17).
+✅ **E il vento non si anima più** (carta §11): il committente ha chiesto come lo generassi, e la risposta
+— «non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto» — ha ribaltato la
+decisione 3. Il quadro mostra il bollettino e sta fermo; se ne sono andati con l'animazione anche tre difetti
+che nessuno aveva visto, il peggiore dei quali era **traverso e coda calcolati sulla direzione inventata**.
+▶ **Resta da decidere la cella RVR MID**, che è lo stesso problema: oggi è la media delle due testate, cioè
+un numero che nessuno ha misurato sotto il nome di un sensore.
 ▶ Restano due lavori **di dati**, non di codice: unire a mano la sezione LVP libera di **LIRE** (Pratica di
 Mare) con quella strutturata, e scrivere i minimi veri sugli scali che li hanno (l'editor propone gli
 standard, che vanno confrontati con l'AIP prima di lasciarli).

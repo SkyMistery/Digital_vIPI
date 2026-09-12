@@ -11,9 +11,8 @@
    (`data-awos-theme`), non una preferenza del sito.
 
    ⚠️ I numeri sono in IBM Plex Mono — carattere già ospitato dal sito, e
-   monospaziato non per gusto: i valori si muovono di continuo (l'interpolazione
-   fra un bollettino e l'altro), e con un carattere proporzionale «11» e «00»
-   hanno larghezze diverse e il riquadro sussulta a ogni giro.
+   monospaziato non per gusto: con un carattere proporzionale «11» e «00» hanno
+   larghezze diverse, e a ogni bollettino nuovo le caselle sussulterebbero.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 .awos {
@@ -88,6 +87,8 @@
 }
 .awos-btn:hover { filter: brightness(1.35); }
 .awos-btn[aria-pressed="true"] { background: var(--awos-ambra); color: #000; border-color: var(--awos-ambra); }
+/* Il tasto MOV è uscito il 12 settembre 2026 con l'animazione del vento: questa regola resta perché è del
+   TASTO, non di quel tasto — la usa qualunque interruttore che il quadro dovesse avere. */
 .awos-orologio { font-family: var(--awos-mono); font-size: 21px; letter-spacing: .05em; }
 .awos-sel { display: flex; gap: 4px; align-items: center; }
 .awos-sel select {

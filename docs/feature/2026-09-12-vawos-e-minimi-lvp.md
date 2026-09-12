@@ -14,7 +14,7 @@
 1. **Pubblico**, col **Test METAR riservato allo staff**.
 2. Rotta **fuori da `/vsop`**, e il servizio si chiama **vAWOS** — «v» come le vIPI, le vSOP e le vLOA: sono
    **operazioni virtuali**, e il nome lo deve dire prima che lo chieda qualcuno.
-3. Il **movimento** si tiene (interpolazione, §4.3).
+3. ~~Il **movimento** si tiene (interpolazione, §4.3).~~ → **Ribaltata la sera stessa** (§11): il vento è quello del bollettino e **non si muove**. «Non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto».
 4. **Etichette in inglese, fisse.**
 5. **LVP suggerito dal dato e configurabile per aeroporto** → e da qui nasce la seconda metà del lavoro: una
    **sezione LVP nelle vIPI e nei vSOP** con i minimi dello scalo (§5).
@@ -201,11 +201,10 @@ che è già la convenzione del quadro reale e del prototipo per il vento non dis
 - **Provenienza del METAR** (pastiglia IVAO/VATSIM): come altrove, **da `DivisionStaff` in su**
   ([[metar-decodificato-si-traduce-in-ui]]).
 
-**Il movimento** si tiene — decisione 3 — a una condizione: **interpola dentro i valori che il METAR dichiara**,
-non ne inventa di nuovi. La direzione spazza il settore `200V280` **perché il bollettino lo dice**; la velocità
-oscilla fra vento e raffica **perché il bollettino li dà entrambi**. Vento fisso `18010KT` → il numero sta
-fermo. Nessun seno che fabbrica una raffica che non c'è. In barra un interruttore **MOV** lo spegne per chi
-vuole i numeri fermi, e `<SimDisclaimer />` più l'ora del bollettino restano sempre.
+🔴 **Il movimento è stato tolto** (§11). Era: la direzione spazzava il settore `200V280` con un seno di
+dodici secondi, la velocità oscillava fra vento e raffica. Sembrava difendibile — «interpola dentro i valori
+che il bollettino dichiara» — e non lo era: **il vento istantaneo non lo sappiamo**, e quel movimento era
+fabbricato. Restano `<SimDisclaimer />` e l'ora del bollettino.
 
 **Le etichette sono in inglese e fisse** (decisione 4): DIR, SPEED, GUST, CROSS, TAIL, RVR TDZ/MID/END, QNH,
 TL, VISIBILITY, CLOUD, ATIS INFO. Sono sigle ICAO uguali in ogni torre del mondo, e tradurle sarebbe l'unico
@@ -395,7 +394,7 @@ Ogni fetta è verticale, chiude con build verde e si può fermare lì.
 | 7 | **LVP: entità + migrazione + sezione nei due cataloghi + viewer + editor + default standard** | la sezione LVP nelle vIPI e nei vSOP, scritta da una porta sola |
 | 8 | Il vAWOS consuma i minimi: stato NIL/PREP/LVP, provenienza dichiarata | la fascia RVR si accende quando deve, e dice perché |
 | 9 | I quattro ingressi (§6) | ci si arriva dalla torre e dal chip |
-| 10 | Movimento + MOV, Ext. Data (QFE per pista), Test METAR allo staff | il quadro completo |
+| 10 | Ext. Data (QFE per pista), Test METAR allo staff | il quadro completo |
 
 **Ordine di grandezza**: 1–4 sono il grosso del quadro (c'è e vive); **7 è il lavoro più pesante** ed è l'unico
 con una migrazione; 5–6 e 8–10 sono completamento.
@@ -404,7 +403,7 @@ sezione LVP + il consumo nel quadro — MINOR con migrazione. Così la parte che
 viaggia insieme alla parte che non li tocca.
 
 **Il codice del prototipo che sopravvive letteralmente**: il CSS del tema notte, la geometria dei riquadri, la
-tabella NATO delle lettere ATIS, le soglie di colore di cross/tail. Il resto — le 4 928 righe di JavaScript —
+tabella NATO delle lettere ATIS, le soglie di colore di cross/tail. ⚠️ **Non** le sue oscillazioni: vedi §11. Il resto — le 4 928 righe di JavaScript —
 non si porta: le tre cose che fa (parsare il METAR, calcolare il vento sulle testate, decidere il TL) qui
 esistono già, fatte meglio e con i test attorno.
 
@@ -552,3 +551,52 @@ Cancello a basso livello (404 sul non pubblicato, `?test=` ignorato a chi non è
 dato LVP fra vIPI e vSOP, accoppiamento piste col lato speculare, migrazione additiva su due provider,
 nessun `innerHTML` con dati esterni. Suite verde sui due TFM (2488 + 1512 + 1373 + 319) e build Release a
 zero avvisi.
+
+
+---
+
+## 11. Il vento non si anima (12 settembre 2026, sera) — decisione 3 ribaltata
+
+Il committente ha aperto il quadro e ha chiesto: *«il vento come lo generi? la direzione cambia ogni
+secondo»*. La risposta era: non lo genero, lo **interpolo** — la direzione spazza il settore `dddVddd` con un
+seno di dodici secondi, la velocità oscilla fra vento e raffica. Poi la decisione, in una riga che chiude la
+questione:
+
+> **«È meglio riferirsi al METAR e basta, non abbiamo modo di sapere il vento reale istantaneo nei pressi
+> dell'aeroporto.»**
+
+Ha ragione, e la distinzione su cui si reggeva §4.3 — «interpolare dentro i valori dichiarati non è
+inventare» — **non regge**: il bollettino dichiara un *intervallo*, non una successione di istanti. Il valore
+che il quadro mostrava a ogni fotogramma non l'aveva misurato nessuno.
+
+### E l'animazione si portava dietro tre difetti che nessuno aveva ancora visto
+
+1. 🔴 **Traverso e coda si calcolavano sulla direzione inventata.** I due numeri che un controllore usa
+   davvero oscillavano da soli, attraversando avanti e indietro le soglie ambra e rossa. Nemmeno il prototipo
+   lo faceva: mostrava la spazzata ma calcolava le componenti sulla direzione **base**.
+2. 🔴 **La direzione misurata spariva.** Con `24018G32KT 200V280` la casella DIR non mostrava mai **240**:
+   l'unico valore che il bollettino afferma era l'unico che non si poteva leggere.
+3. ⚠️ Un seno che tocca sempre esattamente i due estremi, quattro volte al secondo, **si legge come un
+   generatore casuale** — ed è esattamente l'impressione che ha avuto chi l'ha aperto.
+
+### Com'è adesso
+
+DIR, SPEED, CROSS e TAIL vengono dal bollettino e stanno **fermi** finché non ne arriva un altro. Il settore
+di variabilità e la raffica hanno già le loro caselle — **EXTREMES** e **GUST** — ed è lì che
+quell'informazione appartiene, senza fingere una misura che nessuno ha preso. Il tasto **MOV** è uscito con
+l'animazione che accendeva.
+
+⚠️ **Il quadro resta vivo**, e la differenza è tutta qui: l'orologio UTC scorre, il LED di vitalità gira e
+l'età del dato invecchia — sono tre cose che parlano del **pannello**, non del tempo. A muoversi è quel che
+sappiamo che si muove.
+
+Provato a schermo con `24018G32KT 200V280`: otto campioni in sette secondi, **identici** — DIR 240, SPEED 18,
+EXTREMES 200/280, GUST 32, e sulla 07 coda 18 kt in rosso, ferma.
+
+### ▶ Resta aperta una domanda della stessa famiglia: **RVR MID**
+
+La fascia RVR ha tre celle — TDZ, MID, END — perché il quadro vero ha tre sensori lungo la pista. Il METAR
+non li ha: dà un valore **per testata**. Oggi il quadro mette in TDZ l'RVR della testata sinistra, in END
+quella della destra, e in **MID la media delle due** — cioè un numero che nessuno ha misurato, sotto il nome
+di un sensore. È lo stesso difetto appena chiuso sul vento, e va deciso: togliere la cella MID, o lasciarla
+sempre a `///`, o rinominare le tre celle con le testate a cui appartengono.
