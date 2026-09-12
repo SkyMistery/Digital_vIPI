@@ -43,18 +43,24 @@ public sealed class WeatherOptions
     public int TimeoutSeconds { get; set; } = 5;
 
     /// <summary>
-    /// Quanto si aspetta la <b>catena delle scorte</b>, in secondi — tutta insieme, non una per una.
+    /// Quanto si aspetta <b>ogni</b> scorta, in secondi — una per una, non tutta la catena insieme.
     ///
     /// <para>⚠️ Più corto della principale, e deve restarlo: una scorta serve a coprire un buco <b>in
     /// fretta</b>. Una scorta lenta quanto ciò che sostituisce non salva la pagina, la fa aspettare due
     /// volte.</para>
+    ///
+    /// <para>🔴 <b>Era il budget della CATENA fino al 12 settembre 2026</b>, e la prima scorta che si
+    /// piantava se lo portava via intero: la seconda, che il METAR ce l'aveva, non veniva nemmeno chiamata.
+    /// Il prezzo del cambio è dichiarato: nel caso pessimo si aspetta questo tetto <b>una volta per
+    /// sorgente</b> (oggi due scorte ⇒ 6 s dopo i 5 della principale). Quel che va sorvegliato è il
+    /// <b>numero</b> delle scorte, non il tetto della singola.</para>
     /// </summary>
     public int FallbackTimeoutSeconds { get; set; } = 3;
 
     /// <summary>Il tetto d'attesa della principale, minimo un secondo.</summary>
     public TimeSpan Timeout => TimeSpan.FromSeconds(Math.Max(1, TimeoutSeconds));
 
-    /// <summary>Il tetto d'attesa di TUTTE le scorte messe insieme, minimo un secondo.</summary>
+    /// <summary>Il tetto d'attesa di UNA scorta — non della catena — minimo un secondo.</summary>
     public TimeSpan FallbackTimeout => TimeSpan.FromSeconds(Math.Max(1, FallbackTimeoutSeconds));
 
     /// <summary>TTL da applicare a un risultato, in base al fatto che porti dati o sia vuoto. Minimo 1 minuto.</summary>

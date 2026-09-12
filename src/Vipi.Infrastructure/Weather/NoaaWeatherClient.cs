@@ -89,18 +89,30 @@ public sealed class NoaaWeatherClient : IWeatherProvider
             // esiste (provato). Meglio un METAR senza il suo TAF che nessuno dei due.
             // ⚠️ Si prova UNA scorta per volta e ci si ferma alla prima che risponde: sono servizi di altri, e
             // interrogarli tutti quando il primo ha già dato il METAR sarebbe traffico regalato.
-            // ⚠️ Le scorte hanno un budget LORO, piu' corto, e vale per TUTTA la catena messa insieme: una
-            // scorta serve a coprire un buco in fretta, e una scorta lenta quanto cio' che sostituisce fa
-            // aspettare la pagina due volte invece di salvarla.
+            // ⚠️ Le scorte hanno un budget LORO, piu' corto della principale: una scorta serve a coprire un
+            // buco in fretta, e una scorta lenta quanto cio' che sostituisce fa aspettare la pagina due volte
+            // invece di salvarla.
+            //
+            // 🔴 E il budget e' di OGNI scorta, non della catena: fino al 12 settembre 2026 era uno solo per
+            // tutte, e la prima che si piantava se lo portava via intero — la seconda, sana, non veniva
+            // nemmeno chiamata. Misurato guidando l'app con NOAA e IVAO su una porta morta: la terza sorgente
+            // aveva il METAR e la pagina diceva «METAR non disponibile», che sembra un difetto del meteo e
+            // invece era la catena che si arrendeva al posto suo. Il prezzo dichiarato: nel caso pessimo si
+            // aspetta il budget UNA VOLTA PER SORGENTE (oggi due scorte ⇒ 6 s), e a crescere sono le
+            // sorgenti, non l'attesa di una singola.
             string? sorgente = null;
-            if (metar is null && _scorte.Count > 0)
+            if (metar is null)
             {
-                using var budget = new CancellationTokenSource(_opt.FallbackTimeout);
                 foreach (var scorta in _scorte)
                 {
-                    if (metar is not null || budget.IsCancellationRequested) break;
-                    metar = await scorta.GetMetarAsync(icao, budget.Token).ConfigureAwait(false);
-                    if (metar is not null) sorgente = scorta.Nome;
+                    // ⚠️ E lo stesso vale per un guasto: una scorta che ESPLODE non deve portarsi via le
+                    // altre. Sono servizi di terzi, ognuno col suo modo di rompersi, e da qui l'eccezione
+                    // uscirebbe fino alla pagina — che perderebbe anche il TAF, gia' arrivato.
+                    using var budget = new CancellationTokenSource(_opt.FallbackTimeout);
+                    try { metar = await scorta.GetMetarAsync(icao, budget.Token).ConfigureAwait(false); }
+                    catch { metar = null; }
+
+                    if (metar is not null) { sorgente = scorta.Nome; break; }
                 }
             }
 

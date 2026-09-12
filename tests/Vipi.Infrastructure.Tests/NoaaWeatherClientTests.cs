@@ -161,6 +161,32 @@ public class NoaaWeatherClientTests
         }
     }
 
+    /// <summary>Una scorta che NON risponde finché non la si annulla: è il solo modo di provare che il
+    /// budget d'attesa è SUO e non della catena.</summary>
+    private sealed class ScortaCheSiPianta : Vipi.Application.Abstractions.IMetarFallback
+    {
+        public int Chiamate { get; private set; }
+        public string Nome => "PIANTATA";
+        public async Task<string?> GetMetarAsync(string icao, CancellationToken ct = default)
+        {
+            Chiamate++;
+            await Task.Delay(System.Threading.Timeout.Infinite, ct);
+            return null;
+        }
+    }
+
+    /// <summary>Una scorta che esplode: sono servizi di terzi, ognuno col suo modo di rompersi.</summary>
+    private sealed class ScortaCheEsplode : Vipi.Application.Abstractions.IMetarFallback
+    {
+        public int Chiamate { get; private set; }
+        public string Nome => "ESPLOSA";
+        public Task<string?> GetMetarAsync(string icao, CancellationToken ct = default)
+        {
+            Chiamate++;
+            throw new HttpRequestException("la scorta e' rotta");
+        }
+    }
+
     // ---- I due bollettini si chiedono INSIEME (8 settembre 2026) --------------------------------------
     //
     // 🔴 Fino a quel giorno erano due `await` in fila. Con NOAA che NON risponde — un host che ingoia i
@@ -233,6 +259,15 @@ public class NoaaWeatherClientTests
     private static NoaaWeatherClient Build(HttpMessageHandler handler,
         params Vipi.Application.Abstractions.IMetarFallback[] scorte) =>
         new(new StubFactory(handler), Options.Create(new WeatherOptions { BaseUrl = "https://example.test" }), scorte);
+
+    /// <summary>Come <see cref="Build(HttpMessageHandler, Vipi.Application.Abstractions.IMetarFallback[])"/>,
+    /// ma col tetto d'attesa delle scorte al minimo (1 s): i banchi che provano un'attesa devono costare
+    /// un secondo, non tre.</summary>
+    private static NoaaWeatherClient BuildScorteImpazienti(HttpMessageHandler handler,
+        params Vipi.Application.Abstractions.IMetarFallback[] scorte) =>
+        new(new StubFactory(handler),
+            Options.Create(new WeatherOptions { BaseUrl = "https://example.test", FallbackTimeoutSeconds = 1 }),
+            scorte);
 
     [Fact]
     public async Task Se_NOAA_Non_Da_Il_Metar_Lo_Chiede_Alla_Scorta()
@@ -312,6 +347,43 @@ public class NoaaWeatherClientTests
         Assert.Equal("IVAO", report.MetarSource);
         Assert.Equal(1, ivao.Chiamate);
         Assert.Equal(0, vatsim.Chiamate);
+    }
+
+    /// <summary>
+    /// 🔴 Il budget d'attesa è di OGNI scorta, non della catena. Fino al 12 settembre 2026 era uno solo per
+    /// tutte: la prima che si piantava se lo portava via intero e la seconda — che il METAR ce l'aveva — non
+    /// veniva nemmeno chiamata. Visto guidando l'app con NOAA e IVAO su una porta morta: la pagina diceva
+    /// «METAR non disponibile» mentre la terza sorgente rispondeva benissimo.
+    /// </summary>
+    [Fact]
+    public async Task Una_Scorta_Piantata_Non_Si_Porta_Via_Le_Altre()
+    {
+        var piantata = new ScortaCheSiPianta();
+        var vatsim = new ScortaFinta("LIRF 081720Z 28004KT CAVOK 27/24 Q1014") { NomeFinto = "VATSIM" };
+        var client = BuildScorteImpazienti(new CountingHandler(null, TafJson), piantata, vatsim);
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal("VATSIM", report.MetarSource);
+        Assert.Equal(1, piantata.Chiamate);
+        Assert.Equal(1, vatsim.Chiamate);
+    }
+
+    /// <summary>⚠️ E nemmeno una che esplode: da qui l'eccezione uscirebbe fino alla pagina, che perderebbe
+    /// anche il TAF — già arrivato, e che con la scorta non c'entra niente.</summary>
+    [Fact]
+    public async Task Una_Scorta_Che_Esplode_Non_Si_Porta_Via_Le_Altre()
+    {
+        var esplosa = new ScortaCheEsplode();
+        var vatsim = new ScortaFinta("LIRF 081720Z 28004KT CAVOK 27/24 Q1014") { NomeFinto = "VATSIM" };
+        var client = Build(new CountingHandler(null, TafJson), esplosa, vatsim);
+
+        var report = await client.GetAsync("LIRF");
+
+        Assert.Equal("VATSIM", report.MetarSource);
+        Assert.NotNull(report.Taf);
+        Assert.Equal(1, esplosa.Chiamate);
+        Assert.Equal(1, vatsim.Chiamate);
     }
 
     /// <summary>E se la prima non ce l'ha, si passa alla seconda: è tutto il senso della terza gamba.</summary>
