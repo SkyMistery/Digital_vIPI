@@ -38,7 +38,7 @@
         // [ nome del data- con l'indirizzo, che cosa deve esserci nella pagina, funzione di riaggancio, attributi da riportare ]
         ['aor',   '.aor-leaflet, .aor-chip, .cfg-btn, .cfg-collapse, [data-areacard]', 'vipiInitAor',   ['data-leaflet-src', 'data-leaflet-css']],
         ['mva',   '.mva-leaflet, .mva-base, .mva-chip',                                'vipiInitMva',   []],
-        ['aor3d', '.aor3d-stage, .aor3d-z, .aor3d-legend, .aor3d-hint, .aor-vm-btn',   'vipiInitAor3d', ['data-three-src']],
+        ['aor3d', '.aor3d-stage, .aor3d-z, .aor3d-legend, .aor3d-hint, .aor-vm-btn',   'vipiInitAor3d', ['data-three-src', 'data-aor3d-css']],
         ['tour',  '[data-tour]',                                                        'vipiMaybeTour', []],
         // Il quadro vAWOS: il bersaglio è la sua radice. ⚠️ Sta qui e non in uno `<script>` per percorso
         // (com'era fino al 12 settembre 2026, sera) per la ragione scritta in testa a questa lista: un

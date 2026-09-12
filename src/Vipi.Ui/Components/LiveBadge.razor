@@ -1,5 +1,4 @@
-﻿@rendermode InteractiveServer
-@implements IAsyncDisposable
+﻿@implements IAsyncDisposable
 @inject IOnlineAtcProvider Online
 @inject IJSRuntime JS
 @inject IStringLocalizer<SharedResource> L
@@ -10,6 +9,29 @@
    pagina /services/vsop/live, quindi il ritardo massimo è quello del poller IVAO (Ivao:PollSeconds, 60s). *@
 @* Sempre un link a /services/vsop/live, anche da disconnesso: la vista live è la pagina della tua postazione e
    dev'essere raggiungibile anche prima di collegarsi (senza callsign si racconta da sé). *@
+
+@* 🔴 IL `@@rendermode` NON STA PIÙ QUI, ed è la voce Q1 dell'audit del 12 settembre 2026
+   (`docs/history/audit-2026-09-12-prestazioni.md`).
+
+   Dichiarato sul COMPONENTE, valeva per ogni pagina che monta `SopLayout` — cioè per tutte. Misurato in
+   produzione con un browser vero, da anonimo: `/services/vsop`, la guida, l'hub e i documenti aprivano
+   una WebSocket e uno stream SSE a testa, e in quelle pagine il conteggio delle isole interattive diceva
+   UNO: questo gettone, e nient'altro. Per chi non è entrato `UserId` è `null`, quindi `Resolve()` scrive
+   `null` e il gettone dice «non in frequenza» — e non esiste evento che possa cambiarlo. Le due
+   connessioni tenevano aggiornata una scritta che non cambia mai.
+
+   Ora il rendermode lo mette il LAYOUT, nel punto d'uso, e solo quando c'è un VID (vedi `SopLayout.razor`).
+   Chi è entrato ha esattamente il badge di prima; chi non è entrato riceve `<LiveBadgeSpento />`, che è
+   markup e basta.
+
+   ⚠️ Controprova, perché «meno circuiti» poteva voler dire «pagine morte»: tolto il rendermode e rimisurato,
+   le pagine-documento passano a zero WebSocket e zero SSE, e la pagina d'AEROPORTO si tiene il suo circuito
+   — lì le isole (meteo, SID, elenco) sono vere.
+
+   ⚠️ E la contropartita, scritta perché non si scopra due volte: §BG (4 settembre) aveva misurato che su
+   quell'host una connessione lunga tiene su il processo e una richiesta corta no. Queste due connessioni
+   erano, senza volerlo, ciò che lo teneva caldo. Va insieme a `passenger_min_instances ≥ 1` (§O3): la prova
+   è cinque `/vsop/ping` distanziati di 100 s, e nessuno deve pagare l'avvio. *@
 @if (_callsign is not null)
 {
     @* Il testo sta in uno <span> proprio: sotto i 1100px la topbar lo toglie e resta il pallino col
@@ -20,9 +42,9 @@
 }
 else
 {
-    <a class="live-badge off" href="/services/vsop/live" title="@L["Chrome_OpenLive"]" aria-label="@L["Chrome_LiveDisconnected"]">
-        <span class="dot"></span> <span class="lb-t">@L["Chrome_LiveDisconnected"]</span>
-    </a>
+    @* Lo stesso markup che riceve chi non è entrato: una sorgente sola, o le due barre divergono al primo
+       ritocco e la differenza si vede solo cambiando pagina. *@
+    <LiveBadgeSpento />
 }
 
 @code {

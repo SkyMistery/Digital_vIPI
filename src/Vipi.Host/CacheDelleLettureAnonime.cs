@@ -93,7 +93,7 @@ internal static class CacheDelleLettureAnonime
         });
 
     /// <summary>
-    /// Se di questa richiesta si può tenere una copia. Pubblico per i test: è una decisione con sette
+    /// Se di questa richiesta si può tenere una copia. Pubblico per i test: è una decisione con OTTO
     /// clausole, e ognuna è un modo diverso di sbagliare.
     /// </summary>
     internal static bool Riutilizzabile(HttpContext context)
@@ -103,7 +103,7 @@ internal static class CacheDelleLettureAnonime
         // Chi è entrato vede una pagina sua — col tasto «Modifica», col proprio nome in barra. Quella copia
         // non si tiene e non si presta a nessuno.
         if (context.User?.Identity?.IsAuthenticated == true) return false;
-        if (context.Request.Cookies.Count > 0) return false;
+        if (!SoloCookieInnocui(context.Request.Cookies)) return false;
 
         var percorso = context.Request.Path.Value;
         if (string.IsNullOrEmpty(percorso)) return false;
@@ -116,6 +116,77 @@ internal static class CacheDelleLettureAnonime
         // lavorazione, lo vede solo chi può modificare, e una copia tenuta da parte lo mostrerebbe a chi
         // arriva dopo con lo stesso indirizzo.
         if (context.Request.Query.ContainsKey("as")) return false;
+
+        // ⚠️ «?culture=» è la richiesta ESPLICITA di una lingua, ed è l'unica risposta che porta un
+        // `Set-Cookie` (lo scrive CultureCookieMiddleware, che usa questa stessa condizione). Una risposta
+        // che è insieme «tenetemi» e «prendi questo cookie» è una trappola per qualunque cache condivisa:
+        // la copia tenuta consegnerebbe il cookie di un altro. È una richiesta sola per lettore — quella in
+        // cui clicca il selettore di lingua — e la pagina SUCCESSIVA, che porta il cookie e non la query, si
+        // tiene regolarmente.
+        // ⚠️ Le chiavi le dice LinguaDiLettura, non un elenco scritto qui: due liste divergerebbero in
+        // silenzio, e la seconda a divergere sarebbe questa.
+        foreach (var chiave in Vipi.Application.Content.LinguaDiLettura.ChiaviQuery)
+            if (context.Request.Query.ContainsKey(chiave)) return false;
+
+        return true;
+    }
+
+    /// <summary>
+    /// I due cookie che <b>questo sito emette da sé</b> e che non dicono niente su chi guarda. Sono un
+    /// elenco chiuso, per nome: qualunque altro cookie fa ricadere la risposta in «non si tiene».
+    ///
+    /// <list type="bullet">
+    ///   <item><b><c>.AspNetCore.Antiforgery.*</c></b> (prefisso: il nome porta un hash in coda) — per un
+    ///   anonimo non protegge niente, ed è la stessa premessa che autorizza a <b>toglierlo</b> dalle
+    ///   risposte qui sotto: in tutta l'interfaccia non esiste un <c>&lt;form method="post"&gt;</c> né un
+    ///   <c>&lt;EditForm&gt;</c>, e <c>CacheDelleLettureAnonimeTests</c> diventa rosso il giorno in cui uno
+    ///   compare.</item>
+    ///   <item><b><c>.AspNetCore.Culture</c></b> — dice in che lingua si legge, non chi legge. La risposta
+    ///   deve <b>variare</b> con lui (ed è metà di <c>Vary</c>, qui sotto), non essere buttata.</item>
+    /// </list>
+    ///
+    /// <para><b>Perché non basta più «zero cookie», che era la regola fino al 12 settembre 2026.</b>
+    /// Misurato: <c>/</c>, la ricerca, i «cambiati» e il live — tutte pagine <i>escluse</i>, dove il cookie
+    /// antiforgery non viene tolto perché la risposta non è cacheabile — lasciano quel cookie al primo
+    /// passaggio; e <c>?culture=</c> lascia <c>.AspNetCore.Culture</c> <b>per un anno</b>. Con la regola
+    /// vecchia, da quel momento <b>ogni</b> pagina di quel lettore tornava <c>no-store</c>: la cache anonima
+    /// era morta per chi gira il sito, cioè per tutti. Il difetto non stava nella clausola, che era
+    /// prudente: stava nel fatto che il sito si sabotava da solo e nessuno lo aveva rimisurato.</para>
+    ///
+    /// <para>⚠️ <b>Il controllo sull'identità resta il primo, e questo resta la rete in più.</b> In sviluppo
+    /// l'identità è finta e non passa dal <c>ClaimsPrincipal</c>: senza questa riga, «non autenticato» da
+    /// solo direbbe di sì anche per l'admin di sviluppo — che però il cookie di sessione non ce l'ha. Il
+    /// cookie di autenticazione vero (<c>vipi.auth</c>) non è in questo elenco, quindi chi è entrato
+    /// continua a non ricevere una copia da prestare.</para>
+    ///
+    /// <para>🔴 <b>E al bordo non basta.</b> Cloudflare <b>non onora <c>Vary</c></b> se non
+    /// <c>Accept-Encoding</c>: la Cache Rule deve portare la condizione sul cookie di sessione e la
+    /// <b>chiave di cache sulla lingua</b>, o servirebbe una copia italiana a chi legge in inglese. Sta
+    /// scritto, con i due <c>curl</c> di verifica, in <c>deploy/atc-ivao/LEGGIMI-DEPLOY.md</c>.</para>
+    /// </summary>
+    private static readonly string[] PrefissiInnocui = { ".AspNetCore.Antiforgery." };
+    private static readonly string[] NomiInnocui = { ".AspNetCore.Culture" };
+
+    /// <summary>
+    /// Vero se la richiesta non porta nessun cookie <b>oltre</b> a quelli dell'elenco chiuso qui sopra.
+    /// ⚠️ Si guardano i <b>nomi</b> e non il conteggio: un cookie in più, di chiunque sia, fa decadere la
+    /// copia — che è il comportamento prudente di prima, ristretto ai soli due casi misurati.
+    /// </summary>
+    internal static bool SoloCookieInnocui(IRequestCookieCollection cookies)
+    {
+        foreach (var nome in cookies.Keys)
+        {
+            var innocuo = false;
+
+            foreach (var esatto in NomiInnocui)
+                if (string.Equals(nome, esatto, StringComparison.Ordinal)) { innocuo = true; break; }
+
+            if (!innocuo)
+                foreach (var prefisso in PrefissiInnocui)
+                    if (nome.StartsWith(prefisso, StringComparison.Ordinal)) { innocuo = true; break; }
+
+            if (!innocuo) return false;
+        }
 
         return true;
     }

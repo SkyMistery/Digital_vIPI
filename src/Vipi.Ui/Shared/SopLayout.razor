@@ -167,8 +167,28 @@
                 <span class="ver-chip" title="@Chrome.Value.VersioneDettaglio" aria-label="@(L["Chrome_Version"].Value + ": " + ver)">@ver</span>
             }
             @* Isola interattiva: il layout è SSR statico e il badge dev'essere l'unica cosa che si aggiorna
-               da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha. *@
-            <LiveBadge UserId="_user?.UserId" />
+               da sola quando ti colleghi in frequenza. Il VID glielo passa il layout, che l'HttpContext ce l'ha.
+
+               🔴 MA SOLO A CHI È ENTRATO, e il rendermode sta QUI e non sul componente (audit del 12 settembre
+               2026, voce Q1). Dichiarato là dentro valeva per ogni pagina che monta questo layout — cioè per
+               TUTTE — e misurato in produzione da anonimo ognuna apriva **una WebSocket e uno stream SSE**
+               per un gettone che, senza VID, dice «non in frequenza» e non può cambiare mai. Sulle pagine
+               pubbliche il conteggio delle isole interattive diceva UNO, ed era questo.
+
+               ⚠️ Le due righe non sono intercambiabili e la seconda non è un ripiego: `<LiveBadgeSpento />`
+               è lo stesso markup che rende `<LiveBadge>` quando non trova una postazione aperta, estratto
+               apposta in un componente solo perché le due barre non possano divergere.
+
+               ⚠️ `_user?.UserId is { } vid` e non `_user is not null`: il badge risolve sul VID, e un utente
+               senza VID (non capita, ma il tipo lo ammette) avrebbe un circuito che non può risolvere niente. *@
+            @if (_user?.UserId is { } vid)
+            {
+                <LiveBadge UserId="vid" @rendermode="InteractiveServer" />
+            }
+            else
+            {
+                <LiveBadgeSpento />
+            }
             @if (_canEdit)
             {
                 @* ⚠️ Si chiama «Documenti» e non «Editor», e l'icona e' un FOGLIO e non una matita: porta

@@ -33,6 +33,29 @@ internal static class VersioneBuild
     internal static (string Etichetta, string Dettaglio) Leggi() =>
         _cache ??= Componi(Metadato("VipiVersione"), Metadato("VipiCommit"), Metadato("VipiDataCommit"), AvvioUtc);
 
+    /// <summary>
+    /// Il timbro da scrivere nei <b>registri persistenti</b> — oggi: il gate delle riconciliazioni d'avvio
+    /// (<c>ReconcileVipiDocuments</c>) — oppure <b>null</b> se questa build non ne ha uno.
+    ///
+    /// <para><b>Null è un valore che conta, non un ripiego.</b> In sviluppo non c'è nessun timbro, quindi
+    /// tutte le build di sviluppo sarebbero la «stessa versione»: una riconciliazione che si è dichiarata
+    /// conclusa una volta non ripartirebbe più, e chi aggiunge una sezione al catalogo la vedrebbe non
+    /// arrivare — senza un errore da nessuna parte. Con null il gate si spegne e le passate girano a ogni
+    /// avvio, che è il comportamento di prima e quello giusto mentre si scrive codice.</para>
+    ///
+    /// <para>⚠️ Porta <b>il commit e non il numero di versione</b>: il numero è il nome che diamo noi e può
+    /// restare fermo fra due build (una PATCH ricostruita), il commit no. È la stessa ragione per cui
+    /// <c>Etichetta</c> li mostra tutti e due.</para>
+    /// </summary>
+    internal static string? TimbroPersistente()
+    {
+        var commit = Pulisci(Metadato("VipiCommit"));
+        if (commit is null) return null;
+
+        var versione = Pulisci(Metadato("VipiVersione"));
+        return versione is null ? commit : $"{versione}+{commit}";
+    }
+
     private static string? Metadato(string chiave) =>
         typeof(VersioneBuild).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()
             .FirstOrDefault(a => a.Key == chiave)?.Value;

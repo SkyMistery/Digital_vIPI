@@ -87,6 +87,50 @@ public sealed class CircuitiGiustificatiTests
             "pagina che non ha comandi.");
     }
 
+    /// <summary>
+    /// <b>Il difetto che questo file non vedeva, e che è costato due settimane in produzione.</b>
+    ///
+    /// <para>I due controlli qui sopra guardano <c>Pages/*.razor</c>. Il 12 settembre 2026 la misura in
+    /// produzione ha trovato che <b>ogni</b> pagina pubblica apriva una WebSocket e uno stream SSE, e la
+    /// causa non era una pagina: era <c>LiveBadge</c>, che dichiarava <c>@rendermode InteractiveServer</c>
+    /// nel proprio file ed era montato da <c>SopLayout</c> — cioè da tutte. Un <c>grep</c> sulle pagine non
+    /// poteva vederlo, ed è esattamente il motivo per cui è rimasto lì.</para>
+    ///
+    /// <para><b>La regola, che vale oltre quel componente.</b> Un componente montato dal <b>layout</b> sta
+    /// in ogni schermata del sito: il suo rendermode non è una scelta sua, è una scelta di tutte. Se gli
+    /// serve un circuito, il <c>@rendermode</c> si mette <b>nel punto d'uso</b>, sotto la condizione che lo
+    /// giustifica — come fa oggi <c>SopLayout</c>, che lo dà a <c>LiveBadge</c> solo quando c'è un VID.</para>
+    ///
+    /// <para>⚠️ Non è un divieto di interattività nella barra: è il divieto di <b>dichiararla nel file del
+    /// componente</b>, dove nessuno la vede e vale per chiunque.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("SopLayout.razor")]
+    [InlineData("AwosLayout.razor")]
+    public void Nessun_componente_del_layout_dichiara_un_rendermode_suo(string layout)
+    {
+        var percorso = Path.Combine(Radice(), "Shared", layout);
+        var sorgente = File.ReadAllText(percorso);
+
+        var colpevoli = Componenti.Matches(sorgente)
+            .Select(m => m.Groups[1].Value)
+            .Distinct(StringComparer.Ordinal)
+            .Select(Sorgente)
+            .Where(f => f.Length > 0)
+            .Where(f => Regex.IsMatch(File.ReadAllText(f), @"^@rendermode\b", RegexOptions.Multiline))
+            .Select(Path.GetFileName)
+            .ToList();
+
+        Assert.True(colpevoli.Count == 0,
+            $"{layout} monta {string.Join(", ", colpevoli)}, che dichiara(no) «@rendermode» nel proprio file.\n" +
+            "Il layout sta in OGNI schermata: quel rendermode apre una WebSocket (e, se si aggancia allo " +
+            "stream, anche un SSE) per ogni visitatore di ogni pagina, anche dove quel componente non ha " +
+            "niente da aggiornare. Misurato in produzione il 12 settembre 2026 su LiveBadge: era l'unica " +
+            "isola interattiva delle pagine pubbliche.\n" +
+            "Il rendermode va messo NEL PUNTO D'USO, sotto la condizione che lo giustifica — vedi SopLayout " +
+            "e il commento in testa a LiveBadge.razor.");
+    }
+
     private static string Sorgente(string componente)
     {
         var trovati = Directory.GetFiles(Radice(), componente + ".razor", SearchOption.AllDirectories);

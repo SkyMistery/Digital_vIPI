@@ -41,7 +41,7 @@ riga di log «Sistemate … in N documenti d'aeroporto», e **un login e un logo
 rimasto nello scratchpad, non il pacchetto — una copia di database si fa **cancellando prima** la vecchia,
 `-wal` e `-shm` compresi.
 
-🔬 **E dopo il caricamento, un AUDIT DELLE PRESTAZIONI — otto voci, nessuna eseguita.** Chiesto dal
+🔬 **E dopo il caricamento, un AUDIT DELLE PRESTAZIONI — otto voci, e le SETTE di codice sono FATTE** (in `main`, non ancora in produzione; restano le tre del committente, §O2/§O3). Misurato prima e dopo: ogni pagina pubblica da anonimo passa da **1 WebSocket + 1 SSE a ZERO**; la stessa pagina letta due volte da **25 query e 49 ms a 0 query e 1,2 ms**; l'avvio da **259 query a 54** e da **2 180 a ~1 280 ms**; la favicon da 10 939 a 2 764 byte. E le due che non dovevano cambiare, provate apposta: chi è **entrato** ha ancora circuito e stream, e la pagina d'aeroporto tiene il proprio. Suite: 15 progetti con esito, zero falliti. 🆕 Trovato scrivendo la cura: l'endpoint vAWOS scriveva `no-store` e la produzione rispondeva `public, max-age=60` — **un'intestazione scritta in un endpoint non è quella che esce**, se un middleware più a monte la riscrive in `OnStarting`. ⚠️ **Q1 è andato prima di `passenger_min_instances`**, per decisione del committente: la prova dopo il caricamento è cinque `/vsop/ping` distanziati di 100 s, e nessuno deve pagare l'avvio. Chiesto dal
 committente («i server di IVAO sono un po' lenti, si può fare qualcosa senza alterare il funzionamento?»).
 Carta: [`docs/history/audit-2026-09-12-prestazioni.md`](docs/history/audit-2026-09-12-prestazioni.md), voce
 **§CZ** in [`docs/lavori-aperti.md`](docs/lavori-aperti.md). **Solo analisi**: nessun ramo, nessun commit,

@@ -160,6 +160,28 @@ internal static class VipiStartup
         builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
         builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Optimal);
 
+        // Cache lato server delle sole letture anonime. Il perché sta accanto a `UseOutputCache()`, più
+        // sotto; qui ci sono i numeri, che sono la parte da non sbagliare su un hosting condiviso.
+        builder.Services.AddOutputCache(o =>
+        {
+            // ⚠️ Tetti SCRITTI e non ereditati (i default sono 100 MB e 64 MB per risposta): qui la memoria
+            // del processo è l'unica cosa che regge il sito, e la pagina più grossa che abbiamo è 306 KB
+            // di HTML grezzo. Due megabyte per risposta lasciano un fattore sei di margine su quella;
+            // trentadue in tutto tengono ogni pagina pubblica del sito, in due lingue, molte volte.
+            o.MaximumBodySize = 2 * 1024 * 1024;
+            o.SizeLimit = 32 * 1024 * 1024;
+
+            o.AddBasePolicy(b => b
+                // La stessa identica decisione dell'intestazione: una sola regola, in un posto solo.
+                .With(c => CacheDelleLettureAnonime.Riutilizzabile(c.HttpContext))
+                // La lingua sta nel cookie, non nell'indirizzo: senza questa riga la copia italiana
+                // finirebbe a chi legge in inglese.
+                .VaryByValue(c => new KeyValuePair<string, string>(
+                    "lingua",
+                    c.Request.Cookies[Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName] ?? ""))
+                .Expire(TimeSpan.FromSeconds(60)));
+        });
+
         // Ogni richiesta finita in eccezione lascia una riga in diagnostica/errori-richieste.txt, con lo
         // stesso codice che la pagina d'errore mostra all'utente. Su questo host i log del processo non li
         // legge nessuno: vedi DiagnosticaErrori.
@@ -362,7 +384,10 @@ internal static class VipiStartup
         // registrato — log + diagnostica, quindi /vsop/health in Degraded — e l'avvio prosegue. Prima erano
         // cinque chiamate nude, e con Restart=always nel
         // servizio systemd un difetto in una di esse non era un degrado ma un ciclo di riavvii.
-        app.RunVipiStartupMaintenance();
+        // ⚠️ Il TIMBRO di questa build governa il gate delle riconciliazioni documentali (audit §Q7): dopo
+        // ogni consegna rigirano una volta e poi tacciono. Senza timbro — cioè in sviluppo — il gate non si
+        // attiva e girano sempre, che è quel che serve mentre si scrive.
+        app.RunVipiStartupMaintenance(VersioneBuild.TimbroPersistente());
         crono.Segna("manutenzioni d'avvio");
 
         if (!app.Environment.IsDevelopment())
@@ -377,6 +402,45 @@ internal static class VipiStartup
         // così come sono: niente varianti .br/.gz precompilate a build-time, quelle le faceva MapStaticAssets (.NET 9+).
         // Costo: la compressione di CSS e JS si paga a ogni richiesta invece che una volta in build.
         app.UseResponseCompression();
+
+        // ── blazor.web.js: l'unico asset che il bordo non poteva tenere ──────────────────────────────────
+        //
+        // Misurato in PRODUZIONE il 12 settembre 2026 (audit-2026-09-12-prestazioni.md §Q4):
+        //
+        //     /_framework/blazor.web.js  ->  cache-control: no-cache   cf-cache-status: REVALIDATED
+        //
+        // `no-cache` è il default di Blazor per i file di framework, e non lo tocca il nostro
+        // `OnPrepareResponse`: quel file non sta in `wwwroot`, lo serve il middleware di Blazor. Significa
+        // che ogni caricamento di pagina di ogni visitatore faceva **un'andata all'origine in più** — non
+        // per i byte (il 304 non li rispedisce) ma per il viaggio, che su questo host vale ~95 ms: il
+        // pavimento verso l'origine è 181-199 ms, contro 82-100 di una risposta servita dal bordo.
+        //
+        // ⚠️ UN GIORNO, e NON `immutable`. Qui l'indirizzo NON porta l'impronta del contenuto — `AssetVersion`
+        // non lo tocca, perché non è un file del nostro `wwwroot` — quindi una durata lunga, il giorno di un
+        // aggiornamento di .NET, lascerebbe in giro un client che parla un protocollo diverso dal server. Il
+        // sintomo sarebbe «la pagina si vede e non risponde», che è il più difficile da leggere di tutti.
+        // Un giorno è il compromesso: toglie le rivalidazioni di chi naviga, e si riallinea da solo entro
+        // ventiquattr'ore da un aggiornamento del framework.
+        //
+        // ⚠️ `OnStarting` e non una scrittura diretta: l'intestazione la mette il middleware di Blazor, che
+        // gira DOPO questo. Scriverla qui sarebbe scriverla prima di chi poi la sovrascrive.
+        // ⚠️ Solo 200: un 304 ha già le sue regole, e riscriverne la freschezza non è quel che si è deciso.
+        app.Use(async (context, next) =>
+        {
+            if (context.Request.Path.StartsWithSegments("/_framework", StringComparison.OrdinalIgnoreCase)
+                && context.Request.Path.Value?.EndsWith("/blazor.web.js", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                context.Response.OnStarting(static stato =>
+                {
+                    var risposta = ((HttpContext)stato).Response;
+                    if (risposta.StatusCode == StatusCodes.Status200OK)
+                        risposta.Headers.CacheControl = "public, max-age=86400";
+                    return Task.CompletedTask;
+                }, context);
+            }
+
+            await next();
+        });
 
         // File statici: wwwroot dell'host + wwwroot della RCL vIPI (_content/Vipi.Ui/...).
         // Rimpiazza MapStaticAssets, che è .NET 9+ (ADR-0007 §D4-ter). Il cache-busting lo fa AssetVersion, che
@@ -434,11 +498,40 @@ internal static class VipiStartup
         // Le letture anonime dei documenti pubblici sono copie CONGELATE: si possono tenere per un minuto,
         // e non hanno bisogno del cookie antiforgery — in tutta l'interfaccia non esiste un form da inviare.
         // Dopo UseAuthentication, perché la decisione guarda anche se chi chiede è entrato. Vedi
-        // CacheDelleLettureAnonime, che spiega ognuna delle sette clausole.
+        // CacheDelleLettureAnonime, che spiega ognuna delle OTTO clausole.
         app.UseVipiCacheDelleLettureAnonime();
 
         // Middleware del modulo (registrazione login staff nel roster).
         app.UseVipiModule();
+
+        // ── La stessa decisione, applicata anche QUI DENTRO ──────────────────────────────────────────────
+        //
+        // La riga qui sopra dice ai lettori e al bordo «questa copia si può tenere per un minuto». Non dice
+        // niente a NOI: senza questo, ogni lettura anonima ri-rende la pagina da capo. Misurato in
+        // produzione il 12 settembre 2026 sulla vIPI pubblicata (audit §Q5):
+        //
+        //     /services/vsop/libb/vipi   TTFB 409-532 ms      contro i 181-199 di /vsop/ping, che non fa nulla
+        //     (in locale, la stessa famiglia di pagina: 70 query e 274 KB di HTML da comprimere)
+        //
+        // Il giorno della pubblicazione AIRAC quella pagina la chiedono tutti negli stessi minuti, e dietro
+        // c'è un processo solo. Con la cache il secondo lettore del minuto costa zero query.
+        //
+        // ⚠️ SESSANTA SECONDI, cioè esattamente il `max-age` che già dichiariamo: non si promette a noi una
+        // freschezza diversa da quella promessa a loro. Niente di nuovo diventa stantio.
+        //
+        // ⚠️ LA STESSA `Riutilizzabile`, non una seconda regola che le somigli. Le otto clausole sono una
+        // decisione sola — chi è entrato, i cookie, le anteprime, le schermate di amministrazione — e due
+        // copie di quella decisione divergerebbero; la seconda a divergere sarebbe questa, che non si vede.
+        //
+        // ⚠️ E LA CHIAVE PORTA LA LINGUA. L'indirizzo NON cambia con la lingua (nessuna rotta localizzata:
+        // regole-lingua R5), quindi senza questa riga la nostra cache servirebbe la copia italiana a chi
+        // legge in inglese — lo stesso danno che al bordo si evita con la chiave di cache, fatto in casa.
+        // Si legge il COOKIE e non `CurrentUICulture`: così la chiave non dipende da dove sta questo
+        // middleware rispetto a `UseRequestLocalization`, che è un ordine che qualcuno cambierà.
+        //
+        // ⚠️ Dopo `UseVipiModule` e prima delle rotte: là dentro c'è la localizzazione, e qui sotto ci sono
+        // gli endpoint.
+        app.UseOutputCache();
 
         // Compat: TUTTI gli URL storici passano da qui, e ne escono con l'indirizzo di oggi — quello finale, in UN
         // salto solo. La tabella e il perché stanno in LegacyRoutes: qui resta il collegamento.

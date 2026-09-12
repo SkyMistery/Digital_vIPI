@@ -80,7 +80,13 @@
     if (icao) {
       ultimoDato = Date.now();                 // il primo dato e' gia' nell'HTML
       leggi(icao);                             // ...ma serve anche l'oggetto, o non si puo' animare niente
-      ogni(60000, function () { leggi(icao); });
+      // ⚠️ NON si interroga il server a scheda NASCOSTA (audit del 12 settembre 2026, voce Q6). Una scheda
+      // vAWOS dimenticata in fondo al browser chiamava l'API una volta al minuto per sempre, e ogni giro
+      // costa una lettura dell'elenco documenti piu' il profilo dello scalo su un processo solo.
+      // Non e' un risparmio a scapito di niente: quel che si vede mentre la scheda e' nascosta non lo vede
+      // nessuno, e appena torna visibile si legge SUBITO — quindi chi ci ritorna trova il dato fresco, non
+      // il dato di quando se n'e' andato. L'orologio e l'eta' continuano a girare: sono locali.
+      ogni(60000, function () { if (!document.hidden) leggi(icao); });
     }
     // Con `?test=` in coda all'indirizzo il pannello del bollettino finto si apre da se': ci si e' appena
     // arrivati premendo APPLY, e trovarlo chiuso costringe a riaprirlo per leggere che cosa si e' scritto.
@@ -93,6 +99,18 @@
 
   function ogni(ms, fn) { timers.push(setInterval(fn, ms)); }
   function ferma() { timers.forEach(clearInterval); timers = []; }
+
+  // Appena la scheda torna visibile si legge SUBITO, perche' il giro al minuto qui sopra l'ha saltata
+  // finche' era nascosta: chi ci ritorna deve trovare il dato di adesso, non quello di quando se n'e'
+  // andato. Se nel frattempo ha cambiato scalo, `icaoAgganciato` e' gia' quello nuovo.
+  //
+  // ⚠️ UNA VOLTA SOLA, qui fuori, e NON dentro l'init: l'init rigira a ogni navigazione «enhanced» (si passa
+  // da uno scalo all'altro con un clic) e un ascoltatore aggiunto li' dentro si accumulerebbe a ogni
+  // passaggio — la stessa specie di difetto dei timer che non si spegnevano, trovata guidando l'app il
+  // 12 settembre 2026. `ferma()` spegne i timer, non gli ascoltatori.
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && icaoAgganciato) leggi(icaoAgganciato);
+  });
 
   function leggiTema() {
     try { return localStorage.getItem('vawos-tema') === 'day' ? 'day' : 'night'; }
@@ -108,7 +126,14 @@
     if (lvpInVigore) q.push('inforce=true');
     if (q.length) url += '?' + q.join('&');
 
-    fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+    // ⚠️ Niente `cache: 'no-store'` (c'era fino al 12 settembre 2026). Quel modo esiste per DISFARE le
+    // cache, e qui la cache e' esattamente quel che si vuole: la risposta esce `public, max-age=60` e sotto
+    // c'e' un METAR con dieci minuti di TTL, quindi una copia di un minuto e' piu' fresca del dato che
+    // trasporta. `no-store` faceva anche mandare al bordo intestazioni di richiesta che gli dicono di non
+    // servire la sua copia, cioe' annullava il risparmio proprio dove doveva prodursi.
+    // ⚠️ E non si vede: l'eta' del dato la calcola il quadro da un timbro ASSOLUTO dentro il payload, non da
+    // quando e' arrivata la risposta. Una copia vecchia di un minuto dichiara la propria eta' vera.
+    fetch(url, { headers: { 'Accept': 'application/json' } })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (d) {
         if (!d || !d.vista) return;            // niente da fare: il quadro invecchia e lo dice

@@ -1,9 +1,29 @@
 ﻿# Audit prestazioni — 12 settembre 2026, sera
 
-**Stato:** 🔬 **solo analisi: nessuna riga di codice scritta.** Nessun ramo, nessun commit, albero pulito.
-Chiesto dal committente: *«i server di IVAO non sono delle schegge ma sono un po' lenti. Puoi analizzare il
-nostro sito per vedere se si può fare qualcosa per migliorarne le performance o comunque qualcosa per
-diminuire il carico sui server, senza alterarne il funzionamento?»*
+**Stato:** ✅ **ESEGUITO la sera stessa** — le sette voci di codice sono in `main`, **non ancora in
+produzione**. Restano le tre del committente (§O2, §O3). Chiesto da lui: *«i server di IVAO non sono delle
+schegge ma sono un po' lenti. Puoi analizzare il nostro sito per vedere se si può fare qualcosa per
+migliorarne le performance o comunque qualcosa per diminuire il carico sui server, senza alterarne il
+funzionamento?»*
+
+> ## Che cosa è cambiato, misurato prima e dopo
+>
+> ```
+> ogni pagina pubblica, da anonimo   1 WebSocket + 1 SSE   ->   ZERO           (Q1)
+> la stessa pagina, letta due volte     25 query, 49 ms     ->   0 query, 1,2 ms (Q5)
+> query all'avvio                              259          ->   54            (Q7)
+> avvio, totale                             2 180 ms        ->   1 259-1 310 ms
+> favicon                                   10 939 byte     ->   2 764         (Q8)
+> blazor.web.js                    cache-control: no-cache  ->   public, max-age=86400 (Q4)
+> ```
+>
+> E le due cose che NON sono cambiate, perché era il punto: chi è **entrato** ha ancora il suo circuito e il
+> suo stream (`ws=1 sse=1`, misurato), e la pagina d'**aeroporto** si tiene il proprio circuito, perché lì
+> le isole sono vere.
+>
+> ⚠️ **Q1 è stato consegnato prima di `passenger_min_instances`, e il committente lo ha deciso sapendolo**:
+> vedi il riquadro §BG in fondo a Q1. La prova da fare dopo il caricamento è cinque `/vsop/ping` distanziati
+> di 100 s — se uno paga due secondi, il processo muore e §O3 va chiesto subito.
 
 Il seguito dell'[audit del 27 agosto](audit-2026-08-27-prestazioni.md), a sedici giorni e nove consegne di
 distanza (1.17.0 → 1.25.0). Quello misurava l'applicazione; **questo misura anche la produzione vera**, ed è
@@ -580,20 +600,20 @@ in Release su un database vero — non poteva vederle, perché ha misurato **la 
 
 ## Cosa resta, e di chi è
 
-| Voce | Blocco | Lavoro aperto |
+| Voce | Stato | Lavoro aperto |
 |---|---|---|
-| **`passenger_min_instances ≥ 1`** e **`proxy_read_timeout ≥ 100s`** — chiesti il 27 agosto, **mai confermati**; da chiedere dopo il 16 settembre per decisione del committente | 🔴 committente | **§O3** |
-| **Q1** rendermode di `LiveBadge` solo ai loggati — ⚠️ **dopo** la riga qui sopra, vedi §BG | 🟢 due file | §CZ |
-| **Q2a** cookie innocui in `Riutilizzabile` (+ test) | 🟢 un file | §CZ |
+| **`passenger_min_instances ≥ 1`** e **`proxy_read_timeout ≥ 100s`** — chiesti il 27 agosto, **mai confermati** | 🔴 committente | **§O3** |
 | **Q2b** **Cache Rule su Cloudflare** con la clausola `vipi.auth` e la chiave sulla lingua | 🔴 committente | **§O2** |
 | **Q3** **direttive nginx in Plesk**: `immutable` + `brotli_static`/`gzip_static` | 🔴 committente | **§O3** |
-| **Q4** `Cache-Control` su `/_framework/blazor.web.js` | 🟢 tre righe | §CZ |
-| **Q5** `AddOutputCache` sulle sette clausole | 🟢 un file | §CZ |
-| **Q6** vAWOS: `max-age=30` + guardia su `document.hidden` | 🟢 due file | §CZ |
-| **Q7** timbro di versione sulle riconciliazioni d'avvio | 🟢 infrastruttura | §CZ |
-| **Q8** favicon a due misure, `vipi-aor3d.css` per percorso | 🟢 due file | §CZ |
 | **Q8-bis** pesi di Poppins (tipografia, non prestazioni) | 🔴 committente | §CZ |
-| ✅ Corretto `LEGGIMI-DEPLOY.md`, che diceva che `Vary: Cookie` protegge il bordo, e aggiunte le direttive nginx | — | fatto il 12 settembre |
+| **Q1** rendermode di `LiveBadge` solo ai loggati | ✅ fatto | §CZ |
+| **Q2a** cookie innocui in `Riutilizzabile` (+ test) | ✅ fatto | §CZ |
+| **Q4** `Cache-Control` su `/_framework/blazor.web.js` | ✅ fatto | §CZ |
+| **Q5** `AddOutputCache` sulle otto clausole | ✅ fatto | §CZ |
+| **Q6** vAWOS: l'intestazione che mentiva + guardia su `document.hidden` | ✅ fatto | §CZ |
+| **Q7** timbro di versione sulle riconciliazioni d'avvio | ✅ fatto | §CZ |
+| **Q8** favicon a due misure, `vipi-aor3d.css` col suo modulo | ✅ fatto | §CZ |
+| ✅ Corretto `LEGGIMI-DEPLOY.md`, che diceva che `Vary: Cookie` protegge il bordo, e aggiunte le direttive nginx | ✅ fatto | — |
 | `ListOrphansAsync`: ~150 query per otto orfani | 🟢 invariato | §O1 |
 
 **Ordine consigliato:**
@@ -613,10 +633,69 @@ oggi l'unica cosa che tiene caldo il processo.
 
 ---
 
+## L'esecuzione, e le due cose che ha insegnato
+
+### Un difetto in più, trovato SCRIVENDO la cura di Q6
+
+L'endpoint del vAWOS scriveva `Cache-Control: no-store`. Non era vero, e la produzione lo diceva:
+
+```
+GET /services/vawos/api/LIBA  ->  Cache-Control: public, max-age=60
+```
+
+`/services/vawos/api/{icao}` comincia per `/services` e non porta nessuno dei segmenti esclusi, quindi
+ricade sotto `CacheDelleLettureAnonime` — che scrive in `OnStarting`, cioè **dopo** l'endpoint, e vince.
+Quella riga non faceva niente se non raccontare una cosa falsa a chi la leggeva, ed è **l'unico** endpoint
+del sito in quella condizione (gli altri stanno sotto `/vsop/`, fuori dal raggio).
+
+Il comportamento vero è anche quello giusto — sotto c'è un METAR con dieci minuti di TTL — quindi la cura è
+stata **togliere la riga e scrivere perché**, più un test che pinna le due facce (anonimo sì, con
+`vipi.auth` no). ⚠️ La lezione generale: **un'intestazione scritta in un endpoint non è l'intestazione che
+esce**, se un middleware più a monte la riscrive in `OnStarting`. Vale per chiunque ne aggiunga una domani.
+
+### Q7: che cosa è stato messo sotto gate, e che cosa no
+
+Il timbro copre **le dodici passate sui documenti**. Restano fuori, di proposito,
+`LinkAirportDocumentsAsync` e `ReconcileAirportCategoriesAsync`: la seconda tiene un **invariante** con la
+presenza militare, e quella cambia a runtime quando gira l'import dell'anagrafica. Una riconciliazione che
+mantiene un invariante non è one-shot, e saltarla dopo un riavvio lascerebbe il dato storto fino alla
+consegna dopo — in silenzio. Costano una manciata di query: è il prezzo giusto per non doverci ripensare.
+
+Tre regole rendono il gate sicuro, e vanno lette insieme: la chiave **porta la versione** (dopo ogni
+consegna rigirano una volta); si timbra **solo un giro che non ha cambiato niente** (il timbro certifica un
+fatto osservato, non una previsione); **senza timbro di build il gate non esiste**, quindi in sviluppo
+girano sempre. Misurato: primo avvio 259 query e il timbro; secondo avvio **54**, con la riga di log che
+dice perché.
+
 ## Verifica di questo audit
 
-- Nessuna modifica al codice: `git status` vuoto a fine giro, la patch di controprova rimessa a posto.
+**Dell'analisi:**
+
 - Numeri di query: tre passate identiche per pagina, con i giri di fondo fermi e il rumore verificato a zero.
 - Numeri di byte, intestazioni e `cf-cache-status`: presi su `https://atc.it.ivao.aero`, non in locale.
 - WebSocket e stream SSE: contati dal CDP di un browser vero, in locale **e** in produzione.
 - I tre etag di nginx: confrontati byte per byte coi file dentro `artifacts/publish/linux-x64-20260912c`.
+
+**Dell'esecuzione:**
+
+- Build **Release della soluzione intera**, `--no-incremental`: **0 errori, 0 avvisi**.
+- Suite: **15 progetti con esito**, 11 778 risultati, **zero falliti**.
+- **Q1**, in un browser vero e in due identità: da **anonimo** `ws=0 sse=0` su hub, guida, documenti; da
+  **entrato** `ws=1 sse=1`; la pagina d'aeroporto tiene il proprio circuito in tutti e due i casi. Il
+  conteggio delle isole scende di uno esatto su ogni pagina (1→0, 2→1, 3→2).
+- **Q5** su un indirizzo mai chiesto in quel processo: 1º giro **25 query / 48,9 ms**, 2º e 3º **0 query /
+  1,2 ms**, stessi 262 399 byte. E le tre esclusioni provate una per una: col cookie `vipi.auth` **23 query
+  ogni volta** e `no-cache, no-store`; con `?as=draft` **25 ogni volta**; **col cookie della lingua una
+  copia sua** — «Stampa» contro «Print», impronte diverse, e la seconda lettura inglese a zero query.
+- **Q6**: `awos-verifica.js` **13 su 15** (i due rossi sono «non minificato», che dipende dal girare da
+  sorgente e non da un pacchetto), più una prova scritta apposta: a scheda **nascosta** zero chiamate in
+  70 secondi — un giro intero del timer — e **una** entro 2,5 s da quando torna visibile.
+- **Q7**: primo avvio 259 query e il timbro scritto; **secondo avvio 54**, ripetuto identico due volte. Fase
+  «manutenzioni d'avvio» 828 → **455 / 474 ms**, totale 2 180 → **1 259 / 1 310 ms**.
+- **Q8**: favicon 10 939 → **2 764 byte**, due immagini PNG valide (16 e 32 px), servita 200. Il foglio del
+  3D: **zero** `<link>` sulla guida, **uno** sulla pagina intera del 3D (canvas alto 418 px), e sulla vIPI
+  ACC **zero prima** del tasto «3D view» e **uno dopo**, con il canvas a 538 px.
+- `lazy-verifica.js`: **tutto a posto** — 66 tessere, 187 poligoni, 164 chip, e il modulo che arriva dopo la
+  navigazione «enhanced». `pacchetto-verifica.js`: **un solo rosso**, lo stesso «non minificato».
+- ⚠️ **Quel che NON è stato provato**: il comportamento a freddo dopo Q1 (vuole la produzione), e la
+  minificazione (vuole un publish). Tutti e due si guardano al prossimo pacchetto.

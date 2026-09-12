@@ -18,7 +18,17 @@
          da dentro vipi-fonts.css, quindi non passano da @@Assets: restano serviti col nome originale. -->
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-fonts.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-theme.css")" />
-    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")" />
+    @* Il foglio del visualizzatore 3D è uscito da qui il 12 settembre 2026: erano 807 byte compressi su
+       OGNI schermata — ricerca, elenchi, guida, login — per servire il solo stage 3D. Ora lo porta con sé
+       `vipi-aor3d.js`, che a sua volta arriva solo dove c'è uno stage (`data-aor3d-css` su vipi-boot.js).
+       ⚠️ TRANNE sulla pagina INTERA del 3D, dove resta qui e per percorso: lì lo stage È la pagina, e un
+       foglio che arriva dopo si vedrebbe arrivare. Altrove lo stage compare dopo un gesto (il tasto 2D↔3D),
+       quindi non c'è nessun primo disegno da rovinare. Il modulo non lo mette due volte: guarda prima se un
+       `link` per quel foglio c'è già. *@
+    @if (Nav.ToBaseRelativePath(Nav.Uri).StartsWith("services/vsop/aor3d", StringComparison.OrdinalIgnoreCase))
+    {
+        <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")" />
+    }
     @* ⚠️ `media="print"`: il browser lo scarica ma NON aspetta questo foglio per disegnare la pagina. Sono
        13 KB che stavano sul percorso critico di ogni schermata per servire la stampa. Si è potuto mettere
        solo dopo aver spostato l'unica regola del file che valeva anche a schermo (`.print-only`) dentro
@@ -141,6 +151,7 @@
             data-leaflet-css="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.css")"
             data-mva-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-mva.js")"
             data-aor3d-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.js")"
+            data-aor3d-css="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")"
             data-three-src="@AssetVersion.Url("_content/Vipi.Ui/vendor/three.min.js")"
             data-tour-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"
             data-awos-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.js")"></script>

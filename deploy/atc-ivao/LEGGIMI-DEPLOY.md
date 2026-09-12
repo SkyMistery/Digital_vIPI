@@ -239,7 +239,7 @@ sul dominio:
 ⚠️ **«Respect origin TTL» e non un numero scritto a mano.** L'applicazione già distingue quel che si può
 tenere da quel che non si può — le schermate di amministrazione, gli editor, il live, le anteprime delle
 bozze e tutto ciò che chiede chi è entrato continuano a rispondere `no-store` — e una durata imposta dal
-pannello passerebbe sopra a quella distinzione. Le sette clausole della decisione stanno in
+pannello passerebbe sopra a quella distinzione. Le otto clausole della decisione stanno in
 `CacheDelleLettureAnonime`, una per una, con scritto perché.
 
 🔴 **CORREZIONE del 12 settembre 2026 — qui c'era scritto il contrario, e l'errore era pericoloso.** Fino a

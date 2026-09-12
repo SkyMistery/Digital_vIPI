@@ -14,7 +14,27 @@
     // document.currentScript va letto QUI: dentro una funzione chiamata dopo varrebbe null.
     var SELF = document.currentScript;
     var THREE_SRC = (SELF && SELF.getAttribute('data-three-src')) || '';
+    var AOR3D_CSS = (SELF && SELF.getAttribute('data-aor3d-css')) || '';
     var threePromise = null;
+
+    /// Il proprio foglio, se non è già in pagina. Stessa idea di Leaflet in vipi-aor.js, e stessa ragione:
+    /// fino al 12 settembre 2026 `vipi-aor3d.css` stava nel <head> di OGNI schermata — 807 byte compressi
+    /// spediti a chi apre la ricerca, un elenco o la guida — per servire il solo stage 3D.
+    ///
+    /// ⚠️ Sulla pagina intera del 3D (`/services/vsop/aor3d/…`) il foglio resta nel <head>, dichiarato per
+    /// percorso: lì lo stage È la pagina, e un foglio che arriva dopo si vedrebbe arrivare. Qui dentro lo
+    /// stage compare invece dopo un gesto (il tasto 2D↔3D della vIPI), quindi non c'è nessun primo disegno
+    /// da rovinare. Il `link[data-aor3d-css]` è anche la guardia che impedisce di metterlo due volte.
+    function foglioProprio() {
+        if (!AOR3D_CSS) return;                                  // non dichiarato: la pagina lo ha già nel <head>
+        if (document.querySelector('link[data-aor3d-css]')) return;
+        if (document.querySelector('link[href*="vipi-aor3d.css"]')) return;
+        var l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = AOR3D_CSS;
+        l.setAttribute('data-aor3d-css', '');
+        document.head.appendChild(l);
+    }
 
     /// Carica three.js una sola volta. La promise è memorizzata anche se fallisce: niente tempeste di retry,
     /// coerente con il comportamento di prima (fallback mostrato una volta, nessun secondo tentativo).
@@ -359,6 +379,12 @@
     /// Punto d'ingresso: garantisce three.js, poi costruisce. Tutti i chiamanti (tab 3D, <details>, initAll,
     /// MutationObserver) passano di qui e ignorano il valore di ritorno, quindi l'attesa resta interna.
     function initOne(stage) {
+        // Il foglio PRIMA di misurare qualunque cosa: lo stage si dimensiona sul contenitore, e senza le
+        // sue regole quel contenitore ha l'altezza sbagliata — stessa trappola di Leaflet in vipi-aor.js.
+        // È idempotente e costa una query sul DOM: si chiama qui, che è il solo imbuto da cui passano tutti
+        // gli stage (initAll, il tasto 2D↔3D, il <details> che si apre).
+        foglioProprio();
+
         // 'pending' = caricamento di three.js in corso per questo stage: senza, un secondo evento (resize,
         // re-render di Blazor) rientrerebbe e costruirebbe due volte lo stesso stage.
         if (stage.dataset.init === '1' || stage.dataset.init === 'pending') return;

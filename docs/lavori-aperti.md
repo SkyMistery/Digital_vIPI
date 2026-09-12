@@ -2,7 +2,40 @@
 
 ## Dove siamo — 12 settembre 2026 (dopo il caricamento di 1.25.0)
 
-### 🔬 §CZ — Audit prestazioni: otto voci misurate (Q2 in due metà), ZERO codice scritto
+### 🔬 §CZ — Audit prestazioni: otto voci misurate (Q2 in due metà) — ✅ **le sette di codice sono FATTE**
+
+✅ **ESEGUITO la sera stessa, su decisione del committente («procedi», scegliendo esplicitamente anche Q1).**
+In `main`, **non ancora in produzione**. Misurato prima e dopo:
+
+```
+ogni pagina pubblica, da anonimo   1 WebSocket + 1 SSE  ->  ZERO              (Q1)
+la stessa pagina, letta due volte    25 query, 49 ms    ->  0 query, 1,2 ms   (Q5)
+query all'avvio                            259          ->  54               (Q7)
+avvio, totale                           2 180 ms        ->  1 259-1 310 ms
+favicon                                 10 939 byte     ->  2 764            (Q8)
+blazor.web.js                  cache-control: no-cache  ->  public, max-age=86400 (Q4)
+```
+
+E le due che **non** dovevano cambiare, provate apposta: chi è **entrato** ha ancora circuito e stream
+(`ws=1 sse=1`), e la pagina d'**aeroporto** si tiene il proprio circuito — lì le isole sono vere.
+Build Release intera 0 avvisi, suite **15 progetti con esito e zero falliti**, `lazy-verifica` tutto a posto,
+`awos-verifica` 13/15 e `pacchetto-verifica` 1 rosso — tutti e tre i rossi sono «non minificato», che dipende
+dal girare da sorgente invece che da un pacchetto.
+
+🆕 **E un difetto in più, trovato scrivendo la cura di Q6**: l'endpoint `/services/vawos/api/{icao}` scriveva
+`Cache-Control: no-store` e la produzione rispondeva `public, max-age=60`. Quell'indirizzo sta sotto
+`/services`, quindi ricade su `CacheDelleLettureAnonime`, che scrive in `OnStarting` — cioè **dopo**
+l'endpoint — e vince. La riga non faceva niente se non raccontare il falso. ⚠️ **Un'intestazione scritta in un
+endpoint non è l'intestazione che esce**, se un middleware più a monte la riscrive in `OnStarting`.
+
+▶ **Restano le tre del committente** (§O2 Cache Rule, §O3 nginx + `passenger_min_instances`) e la scelta
+tipografica su Poppins. ⚠️ **Q1 è andato prima di `passenger_min_instances`**: la prova da fare dopo il
+caricamento è **cinque `/vsop/ping` distanziati di 100 s** — se uno paga due secondi, il processo muore per
+inattività e §O3 va chiesto subito.
+
+---
+
+**L'analisi, com'era scritta la sera del 12 settembre:**
 
 Chiesto dal committente: *«i server di IVAO non sono delle schegge ma sono un po' lenti. Puoi analizzare il
 nostro sito per vedere se si può fare qualcosa per migliorarne le performance o comunque qualcosa per
@@ -5470,7 +5503,7 @@ Quel che **non** succede da solo è la cache al bordo: Cloudflare, di suo, non t
 per esteso in [`deploy/atc-ivao/LEGGIMI-DEPLOY.md`](../deploy/atc-ivao/LEGGIMI-DEPLOY.md).
 
 ⚠️ **«Respect origin TTL» e non un numero scritto a mano**: la distinzione fra ciò che si può tenere e ciò
-che non si può la fa l'applicazione — sette clausole, una per una nel codice — e una durata imposta dal
+che non si può la fa l'applicazione — otto clausole, una per una nel codice — e una durata imposta dal
 pannello ci passerebbe sopra.
 
 🔴 **AGGIORNATO il 12 settembre 2026 da §CZ — la regola scritta qui sopra è INCOMPLETA e va corretta prima di

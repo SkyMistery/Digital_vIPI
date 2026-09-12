@@ -147,6 +147,26 @@ public static class ImportCategories
     public const string ManualCatalogRows = "ManualCatalogRows";
 
     /// <summary>
+    /// NON è un import: è il registro «già fatte» delle <b>riconciliazioni documentali d'avvio</b>
+    /// (<c>ReconcileVipiDocuments</c>), dal 12 settembre 2026. Stessa idea di
+    /// <see cref="ManualCatalogRows"/>, applicata a una dozzina di passate invece che a una.
+    ///
+    /// <para><b>Perché.</b> Sono passate <b>one-shot</b> che riparano dati scritti da versioni precedenti —
+    /// chiavi storiche, sezioni spostate, sezioni di catalogo assenti — e rigiravano a <b>ogni avvio</b>
+    /// riscandendo tutti i documenti. Misurato il 12 settembre 2026: <b>~185 query su 256</b> dell'avvio, e
+    /// crescono col contenuto. Su un host che riavvia il processo per inattività si pagano ogni volta.</para>
+    ///
+    /// <para><b>La chiave porta la VERSIONE</b> (<c>RiconciliazioniDocumentali:1.25.0+abc1234</c>): dopo ogni
+    /// consegna le passate rigirano <b>una volta</b> e poi tacciono. È la rete che conta, perché queste
+    /// esistono proprio per riparare quel che ha scritto il codice di prima.</para>
+    ///
+    /// <para>⚠️ <b>E si timbra solo un giro che non ha cambiato NIENTE.</b> Finché una passata tocca righe,
+    /// il giro successivo le rifà: il timbro dice «l'ultima volta non c'era più niente da fare», che è una
+    /// cosa provata, non una promessa. ⚠️ Senza timbro di build (sviluppo) il gate non si attiva affatto.</para>
+    /// </summary>
+    public const string RiconciliazioniDocumentali = "RiconciliazioniDocumentali";
+
+    /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC
     /// esteri (<c>ISpecialAreaMaintenance.OptOutForeignAreasAsync</c>). Sta qui perché serve un registro «già fatto»
     /// persistente, e questa è la tabella che ce l'ha: senza, la riconciliazione ricancellerebbe a ogni riavvio le

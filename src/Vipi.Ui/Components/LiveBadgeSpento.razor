@@ -1,0 +1,16 @@
+﻿@inject IStringLocalizer<SharedResource> L
+
+@* Il gettone «non sei in frequenza»: markup e basta, nessun circuito.
+   ⚠️ NON è un duplicato del ramo «off» di <LiveBadge>: è QUEL ramo, estratto qui perché lo rendono in due —
+   il layout, per chi non è entrato, e <LiveBadge> stesso quando chi è entrato non ha una postazione aperta.
+   Due copie della stessa riga divergerebbero al primo ritocco, e la differenza si vedrebbe solo cambiando
+   pagina (la barra è la stessa in tutte).
+
+   Sempre un link a /services/vsop/live, anche da disconnesso: la vista live è la pagina della propria
+   postazione e dev'essere raggiungibile anche prima di collegarsi (senza callsign si racconta da sé).
+
+   Il testo sta in uno <span> proprio: sotto i 1100px la topbar lo toglie e resta il pallino col `title`
+   (uno STATO si può comprimere, un comando no). L'`aria-label` porta la frase intera. *@
+<a class="live-badge off" href="/services/vsop/live" title="@L["Chrome_OpenLive"]" aria-label="@L["Chrome_LiveDisconnected"]">
+    <span class="dot"></span> <span class="lb-t">@L["Chrome_LiveDisconnected"]</span>
+</a>

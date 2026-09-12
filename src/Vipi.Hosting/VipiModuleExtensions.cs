@@ -393,7 +393,31 @@ public static class VipiModuleExtensions
                 Vipi.Ui.Shared.AwosTesto.Nubi(esito.Vista.Metar),
                 Vipi.Ui.Shared.AwosTesto.Scritte(esito.Vista));
 
-            ctx.Response.Headers.CacheControl = "no-store";
+            // 🔴 QUI C'ERA `no-store`, E NON ERA VERO — misurato in produzione il 12 settembre 2026:
+            //
+            //     GET /services/vawos/api/LIBA  ->  Cache-Control: public, max-age=60
+            //                                       Vary: Accept-Encoding, Cookie
+            //
+            // Questo indirizzo comincia per `/services` e non porta nessuno dei segmenti esclusi, quindi
+            // ricade sotto `CacheDelleLettureAnonime` come le pagine: quel middleware scrive l'intestazione
+            // in `OnStarting`, cioè DOPO che l'endpoint ha scritto la sua, e vince lui. La riga qui non
+            // faceva niente se non raccontare una cosa falsa a chi la leggeva.
+            //
+            // La cosa giusta è quella che già succede, non quella che c'era scritta: sotto c'è un METAR con
+            // un TTL di DIECI MINUTI (`Weather:TtlMinutes`), quindi una copia tenuta sessanta secondi è più
+            // fresca del dato che trasporta, e toglie dall'origine il giro al minuto di ogni scheda aperta.
+            // L'età che il quadro mostra si calcola da un timbro assoluto nel payload: una copia tenuta un
+            // minuto mostra l'età giusta, non un'età congelata.
+            //
+            // ⚠️ E vale SOLO per gli anonimi, che è ciò che rende innocua la riga: chi è entrato non passa
+            // il vaglio di `Riutilizzabile` (né per identità né per cookie), quindi il payload di un editor
+            // — che è diverso, `awos.BuildAsync` riceve `authz.IsEditor` — non finisce in nessuna cache. Per
+            // la stessa ragione il METAR di prova (`?test=`, solo staff) non è cacheabile: chi lo chiede è
+            // per forza entrato.
+            //
+            // ⚠️ Non si riscrive l'intestazione qui: la decisione su che cosa si può tenere sta in UN posto
+            // solo, con le sue otto clausole e i suoi test. Due posti divergerebbero, e il primo a divergere
+            // sarebbe questo.
             return Results.Json(payload, AwosJson);
         });
 
@@ -657,7 +681,12 @@ public static class VipiModuleExtensions
     /// consistenza, quindi si vede in <c>/services/vsop/admin/diagnostics</c> e manda <c>/vsop/health</c> in
     /// Degraded. Un «logga e prosegui» che si ferma al log è un modo per non accorgersene mai.</para>
     /// </summary>
-    public static IHost RunVipiStartupMaintenance(this IHost host)
+    /// <param name="timbroVersione">
+    /// Il timbro di questa build (versione + commit), o <b>null</b> per una build senza timbro. Governa il
+    /// gate delle riconciliazioni documentali: vedi <see cref="ReconcileVipiDocuments"/>. Null = nessun
+    /// gate, tutte le passate girano — che è il comportamento di sempre, e quello giusto in sviluppo.
+    /// </param>
+    public static IHost RunVipiStartupMaintenance(this IHost host, string? timbroVersione = null)
     {
         var log = host.Services.GetService<Microsoft.Extensions.Logging.ILoggerFactory>()
             ?.CreateLogger("Vipi.StartupMaintenance");
@@ -666,7 +695,7 @@ public static class VipiModuleExtensions
         // PRIMA delle riconciliazioni, perché è l'unica che serve a qualcuno appena il sito comincia a
         // servire: finché non è girata, chi è stato promosso a mano vale quanto dice la sua posizione staff.
         Isolata(host, log, report, "promozioni a mano in memoria", h => h.LoadVipiRoleOverrides());
-        Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments());
+        Isolata(host, log, report, "riconciliazioni documentali", h => h.ReconcileVipiDocuments(timbroVersione));
         Isolata(host, log, report, "proiezione dei settori dai cataloghi", h => h.ProjectVipiSectors());
         Isolata(host, log, report, "backfill delle release effettive", h => h.BackfillVipiReleases());
         Isolata(host, log, report, "pulizia delle unioni di documenti", h => h.TidyVipiDocumentUnions());
@@ -721,8 +750,41 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>Riconciliazioni documentali one-shot (doc 11): chiavi univoche per le sezioni libere nate con la
-    /// chiave storica <c>"custom"</c>. Idempotente: sicuro a ogni avvio.</summary>
-    public static IHost ReconcileVipiDocuments(this IHost host)
+    /// chiave storica <c>"custom"</c>. Idempotente: sicuro a ogni avvio.
+    ///
+    /// <para><b>Dal 12 settembre 2026 le passate SUI DOCUMENTI hanno un gate</b> (audit §Q7). Misurato:
+    /// ~185 query su 256 dell'avvio erano queste dodici, che riscandiscono ogni documento a ogni avvio e
+    /// <b>crescono col contenuto</b>. Il timbro sta in <c>IImportStateStore</c> sotto
+    /// <c>RiconciliazioniDocumentali:{versione+commit}</c>, come già fanno le due riconciliazioni one-shot
+    /// che c'erano prima (<c>ManualCatalogRows</c>, <c>SpecialAreaForeignOptOut</c>).</para>
+    ///
+    /// <para><b>Le tre regole che rendono il gate sicuro</b>, e vanno lette insieme:</para>
+    /// <list type="number">
+    ///   <item><b>La chiave porta la versione</b>: dopo ogni consegna rigirano una volta. Esistono per
+    ///   riparare quel che ha scritto il codice di prima — un gate che non si aprisse a un aggiornamento
+    ///   sarebbe il difetto, non l'ottimizzazione.</item>
+    ///   <item><b>Si timbra solo un giro che non ha cambiato NIENTE.</b> Finché una passata tocca righe, il
+    ///   giro dopo le rifà: il timbro certifica un fatto osservato, non una previsione.</item>
+    ///   <item><b>Senza timbro di build il gate non esiste</b> (sviluppo): là le passate girano sempre, o
+    ///   chi aggiunge una sezione al catalogo non la vedrebbe arrivare.</item>
+    /// </list>
+    ///
+    /// <para>⚠️ <b>DUE passate restano FUORI dal gate, e non è una dimenticanza.</b>
+    /// <see cref="Vipi.Application.Content.IDocumentMaintenance.LinkAirportDocumentsAsync"/> e
+    /// <see cref="Vipi.Application.Content.IDocumentMaintenance.ReconcileAirportCategoriesAsync"/> non
+    /// riparano solo il passato: la seconda tiene un <b>invariante</b> con la presenza militare, e quella
+    /// cambia a <b>runtime</b> quando gira l'import dell'anagrafica. Una riconciliazione che mantiene un
+    /// invariante non è one-shot, e saltarla dopo un riavvio lascerebbe il dato storto fino alla consegna
+    /// successiva — in silenzio. Costano insieme una manciata di query: è il prezzo giusto per non doverci
+    /// ripensare.</para>
+    ///
+    /// <para>⚠️ Il rischio che resta, scritto perché si sappia dove guardare: un documento creato
+    /// <b>a runtime</b>, con la stessa versione, che avesse bisogno di una delle dodici. Non dovrebbe
+    /// accadere — il percorso di creazione semina già dal catalogo (<c>EnsureVipiDocumentAsync</c>) — e se
+    /// accade il rimedio è un riavvio dopo la consegna successiva, o cancellare la riga di timbro.</para>
+    /// </summary>
+    /// <param name="timbroVersione">Versione+commit di questa build, o null (nessun gate).</param>
+    public static IHost ReconcileVipiDocuments(this IHost host, string? timbroVersione = null)
     {
         using var scope = host.Services.CreateScope();
         var maintenance = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.IDocumentMaintenance>();
@@ -742,6 +804,38 @@ public static class VipiModuleExtensions
         if (categorie > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Portati {Count} aeroporti alla loro categoria (travaso da «solo militare», o presenza militare cambiata).", categorie);
+
+        // ── Da qui in giù: le DODICI passate sui documenti, e il loro gate ───────────────────────────────
+        //
+        // Il perché sta nel riepilogo in testa al metodo. Qui la meccanica, che è tutta in queste righe.
+        var stato = scope.ServiceProvider.GetService<IImportStateStore>();
+        var chiaveTimbro = timbroVersione is { Length: > 0 }
+            ? $"{ImportCategories.RiconciliazioniDocumentali}:{timbroVersione}"
+            : null;
+
+        if (chiaveTimbro is not null && stato is not null)
+        {
+            // ⚠️ Best-effort: se il registro non si legge si PROSEGUE e si rifà tutto. Il gate è
+            // un'ottimizzazione, e un'ottimizzazione che non sa rispondere deve dire «non lo so», non «sì».
+            DateTime? gia = null;
+            try { gia = stato.GetLastSuccessAsync(chiaveTimbro).GetAwaiter().GetResult(); }
+            catch (Exception ex)
+            {
+                if (log is not null)
+                    Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                        log, ex, "Registro delle riconciliazioni illeggibile: le rifaccio tutte, come prima.");
+            }
+
+            if (gia is not null)
+            {
+                if (log is not null)
+                    Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                        log, "Riconciliazioni documentali gia' concluse per questa build ({Timbro}, il {Quando:u}): saltate. " +
+                             "Rigirano alla prossima consegna, o cancellando quella riga di ImportState.",
+                        timbroVersione, gia.Value);
+                return host;
+            }
+        }
 
         var keys = maintenance.ReconcileCustomSectionKeysAsync().GetAwaiter().GetResult();
         if (keys > 0 && log is not null)
@@ -864,6 +958,44 @@ public static class VipiModuleExtensions
         if (dropped > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Aree regolamentate: spenti gli ACC esteri e liberati {Count} legami (riabilitabili a mano).", dropped);
+
+        // ── Il timbro, e SOLO se non c'è stato niente da fare ────────────────────────────────────────────
+        //
+        // ⚠️ La somma comprende OGNI passata girata dopo il gate. Se anche una sola ha toccato una riga, il
+        // giro successivo le rifà tutte: un timbro messo dopo un giro che ha cambiato qualcosa direbbe
+        // «finito» mentre l'ordine fra le passate potrebbe avere ancora lavoro da propagare — la prima
+        // (chiavi) apre il campo alla seconda (nascoste), e così via fino ai puntatori.
+        //
+        // ⚠️ Best-effort anche qui: se la scrittura fallisce, l'unica conseguenza è che il prossimo avvio
+        // rifà quel che ha appena fatto. Costa qualche centinaio di millisecondi; non merita un avvio in
+        // meno.
+        var cambiamenti = keys + hidden + vloaKeys + airportKeys + parcheggi + scali + catalog + qra
+                        + pubblico + airacRighe + puntatori + mrva + minima + links + manuali + dropped;
+
+        if (chiaveTimbro is not null && stato is not null && cambiamenti == 0)
+        {
+            try
+            {
+                stato.MarkSuccessAsync(chiaveTimbro, DateTime.UtcNow).GetAwaiter().GetResult();
+                if (log is not null)
+                    Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                        log, "Riconciliazioni documentali: nessun cambiamento, timbrate come concluse per {Timbro}. " +
+                             "Dal prossimo avvio si saltano, fino alla consegna successiva.", timbroVersione);
+            }
+            catch (Exception ex)
+            {
+                if (log is not null)
+                    Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                        log, ex, "Non ho potuto timbrare le riconciliazioni: rigireranno al prossimo avvio.");
+            }
+        }
+        else if (cambiamenti > 0 && log is not null)
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riconciliazioni documentali: {Count} righe toccate, quindi NON timbrate: il prossimo avvio le rifà.",
+                cambiamenti);
+        }
+
         return host;
     }
 
