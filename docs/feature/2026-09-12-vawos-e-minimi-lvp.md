@@ -1,6 +1,6 @@
-# vAWOS — il quadro meteo in torre, e i minimi LVP nei documenti 🟡
+# vAWOS — il quadro meteo in torre, e i minimi LVP nei documenti 🟢
 
-> **Stato: PROPOSTA con le decisioni prese, zero codice.** Chiesto dal committente il 12 settembre 2026:
+> **Stato: FATTO** — dieci fette, tutte in `main`. Chiesto dal committente il 12 settembre 2026:
 > *«Guarda il sistema in `Awos_base`. È possibile copiarlo nel nostro sito? Dalla visuale operativa, se sei in
 > torre, oppure se da un APP apri il chip della torre, un tasto che apre quella pagina. Valuta anche se il
 > meccanismo proposto lì può essere sistemato: non è stato fatto con nessun criterio di ingegneria.»*
@@ -410,13 +410,62 @@ esistono già, fatte meglio e con i test attorno.
 
 ---
 
-## 8. Restano da decidere (piccole, ma vere)
+## 8. Le tre decisioni piccole, chiuse il 12 settembre
 
-1. **I tre valori standard LVP** (§5.3) vanno confermati sull'AIP prima di finire in `LvpStandard`.
-2. **`Declared = false` su uno scalo che l'LVP non lo fa**: la sezione si mostra vuota o si **nasconde**? Le
-   sezioni si sanno già nascondere per documento; la mia proposta è mostrarla con «LVP not applicable», perché
-   «non applicabile» è un'informazione operativa e il silenzio no.
-3. **LIRE**: chi unisce a mano la sezione libera esistente con quella nuova, e quando (§5.5.1).
+1. **I valori standard**: confermati dal committente. Sono in `LvpStandard`, un posto solo.
+2. **`Declared = false`**: la sezione si **mostra** e scrive «LVP not applicable». «Non applicabile» è
+   un'informazione operativa; il silenzio non lo sarebbe.
+3. **LIRE**: la unisce a mano il committente (la sezione libera esistente → la nota dei minimi).
+
+---
+
+## 9. Che cosa è stato costruito, e come si è verificato
+
+**Dieci commit, uno per fetta**, dal parser al quadro completo. Nessun modello gemello, una sola migrazione
+(additiva). Suite intera verde sui due TFM (Application 2464, Ui 1512, Infrastructure 1373, E2E 319) e
+`dotnet build Vipi.slnx -c Release --no-incremental` a **zero avvisi**.
+
+### 🔴 I sette difetti trovati GUIDANDO L'APP, non dai test
+
+Sono la ragione per cui il runbook pretende la verifica dal vivo: la suite era verde per tutti e sette.
+
+| | che cosa si vedeva | perché |
+|---|---|---|
+| 1 | **16L accoppiata con 34L** invece che con 34R (dal dato vero di Fiumicino) | l'accoppiamento guardava solo la rotta: girandosi, la sinistra diventa destra |
+| 2 | tutti i pannelli vento a **`--` per un minuto** | il JS scriveva sopra i valori del primo disegno prima della sua prima lettura |
+| 3 | la riga **CROSS/TAIL tagliata** su tre piste | `container-type: size` pretende un'altezza definita, e 46vh diviso tre non bastava |
+| 4 | WX e nubi tornavano ai **codici grezzi** dopo un minuto | le parole hanno una lingua, e il JavaScript non ce l'ha: ora le compone il server |
+| 5 | il pannello del METAR di prova **nasceva aperto** | `display:flex` vince su `[hidden]`, e la regola non c'era |
+| 6 | su una pista sola i pannelli erano **stirati** per tutta l'altezza | crescono con la larghezza, non con l'altezza |
+| 7 | col vento calmo la casella diceva **«360»** | `00000KT` è *calmo*, non «da nord a zero nodi» |
+
+### Le prove, con i dati veri
+
+- **METAR reale**: Fiumicino, tre strisce di pista dall'anagrafica, rotte 68/248 e 161/341 (non 70/250 e
+  160/340), TL FL70 dalla tabella dello scalo, QFE per soglia dalle elevazioni IVAO.
+- **ATIS reale**: `LICC_TWR` informazione **ECHO** delle 11:36z → pista **26** marcata verde e
+  «RWY IN USE: 26 · from ATIS LICC_TWR»; `LIEA_TWR` informazione **INDIA** → pista 20.
+- **Tempo brutto su richiesta**, col Test METAR: `24018G32KT 200V280 0450 R07/0350U FG VV002 Q0998` →
+  visibilità 450 m, `VV 200 FT`, RVR `350U`, la direzione che spazza fra 200 e 280, la velocità fra 18 e 32,
+  coda 31 kt in rosso sulla 07, e la fascia RVR arancione con la pastiglia **LVP**.
+- **La sezione LVP** compare nell'indice e nel corpo della **bozza** di LIBD (tabella Preparation/In force/
+  Cancellation) e nel vSOP militare di **LIBG**; l'editor la dichiara col tasto e salva a ogni gesto.
+- **Il cancello**, guidato con un'identità a **basso livello** (VID 123456, posizione `XX-ZZ9`):
+  `/services/vawos/api/LIRF` → **404 `NonPubblicato`**, LIBD → 200; la pagina di LIRF spiega perché e elenca
+  gli scali che si aprono; il tasto **Test METAR non c'è**, e il parametro `?test=` viene **ignorato** (torna
+  il METAR vero, Q1018, non quello iniettato).
+- **Tema giorno**, **telefono a 400px** e tre piste: nessun taglio, nessuno sfondamento orizzontale, zero
+  errori di console e zero 4xx in tutte le passate.
+
+### ⚠️ Le due cose attese, da dire a chi carica
+
+1. **MINOR con migrazione** (`AirportLvpMinima`, una `CreateTable` sui due provider).
+2. La passata d'avvio ha seminato **17 sezioni** nei documenti già scritti — e le semina anche nell'ultima
+   versione **pubblicata**: il pubblico non cambia (legge la fotografia della release), ma i documenti già
+   pubblicati possono comparire fra i **«da ripubblicare»**. La sezione arriva in pubblico alla prossima
+   pubblicazione: misurato su LIBD, dove la bozza ha «LVP» e la pubblica ancora no.
+3. In un'unione vIPI + vSOP già «ripulita», «LVP» si vede **due volte** finché non si ripassa dalla scheda
+   delle sezioni in comune (che la propone già spuntata).
 
 ---
 

@@ -2,6 +2,19 @@
 
 ## Dove siamo — 12 settembre 2026 (sera)
 
+🆕 **Il vAWOS e i minimi LVP sono in `main`, NON in un pacchetto.** Carta
+[`feature/2026-09-12-vawos-e-minimi-lvp.md`](feature/2026-09-12-vawos-e-minimi-lvp.md), dieci fette.
+Il quadro meteo di torre sta su `/services/vawos/{icao}` (pubblico per gli scali con un documento pubblicato,
+Test METAR allo staff), e i **minimi LVP** sono una sezione nuova delle vIPI **e** dei vSOP — il dato sta
+nell'anagrafica dello scalo, quindi il vSOP non copia niente.
+⚠️ **La prossima consegna è MINOR e porta una migrazione** (`AirportLvpMinima`, additiva) e **una sezione di
+catalogo nuova**: i documenti già pubblicati compariranno fra i «da ripubblicare», e la sezione arriva in
+pubblico solo alla prossima pubblicazione di ognuno.
+▶ Restano due lavori **di dati**, non di codice: unire a mano la sezione LVP libera di **LIRE** (Pratica di
+Mare) con quella strutturata, e scrivere i minimi veri sugli scali che li hanno (l'editor propone gli
+standard, che vanno confrontati con l'AIP prima di lasciarli).
+
+
 ✅ **1.24.1 È CARICATA** (12 settembre, sera). Il timbro c'è — visto dal committente — e il METAR tradotto
 anche. Da fuori, subito dopo: **otto controlli pubblici verdi** di `pacchetto-verifica.js` (Ricerca compresa,
 console pulita), e il riquadro METAR reso in **IT e in EN** su cinque vIPI pubblicate (LIBD, LIMC, LIPZ, LIML,
