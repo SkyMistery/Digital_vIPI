@@ -79,10 +79,12 @@ public class ServicesHomeTests : TestContext
         // attrezzo che si usa mentre si lavora — è una verifica che si guarda ogni tanto. L'ordine «prima si
         // legge, poi si guarda, poi si usa» la mette in coda, dov'è.
         Assert.Equal(
-            // ⚠️ Il vAWOS entra il 12 settembre 2026 dopo il Profile Swapper: e' un attrezzo che si usa
-            // MENTRE si controlla, e sta con gli altri attrezzi.
-            new[] { "/services/vsop", "/services/vsop/mil", "/services/stats",
-                    "/services/profile-swapper", "/services/vawos", "/services/vsop/airspace",
+            // ⚠️ Il vAWOS è entrato il 12 settembre 2026 DOPO il Profile Swapper, e la sera stessa il
+            // committente l'ha spostato in TESTA agli strumenti. La ragione regge meglio della prima: è
+            // l'unico attrezzo che si apre MENTRE si controlla, quindi è quello che si cerca di fretta —
+            // gli altri due si aprono prima o dopo una sessione, con calma.
+            new[] { "/services/vsop", "/services/vsop/mil", "/services/vawos",
+                    "/services/stats", "/services/profile-swapper", "/services/vsop/airspace",
                     "/services/coordinates", "/services/vsop/sectorfile" },
             indirizzi);
     }
