@@ -1,6 +1,17 @@
-﻿# HANDOFF — vIPI/vLOA Interactive
+# HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 12 settembre 2026 — ✅ **1.24.0 È CARICATA**: otto controlli pubblici verdi (Ricerca
+**Ultimo aggiornamento:** 12 settembre 2026 (sera) — 📦 **1.24.1 È PRONTA E NON ANCORA CARICATA**: timbro
+`1.24.1 · f8d7a75`, **9 file** (`Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Ui`, `Vipi.Host` coi `.pdb`,
+più il satellite inglese), zip `ff30a254961ac8afcbd94ce2ffac0c9d194ef90f5233d739e40135bd4e3a6346`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md). **PATCH**,
+nessuna migrazione, niente `wwwroot`. Porta tre cose, tutte nel riquadro METAR/TAF: i **valori** del METAR
+tradotti (prima erano cablati in italiano dentro il parser, e una pagina inglese diceva «leggera pioggia»),
+la **provenienza** del bollettino visibile da `DivisionStaff` in su, e **un tetto d'attesa per ogni sorgente**
+di scorta invece di uno diviso fra tutte. Provata sul pacchetto win-x64 (timbro + dieci controlli verdi) e
+guidata in Edge con una sorgente di scorta finta, che è il solo modo di ordinare un METAR con vento calmo e
+tre gruppi di tempo presente. ▶ Resta il **caricamento**, e poi la prova su produzione.
+
+Prima: 12 settembre 2026 (mattina) — ✅ **1.24.0 È CARICATA**: otto controlli pubblici verdi (Ricerca
 compresa) e le pagine toccate dalla consegna rese senza errori. ⚠️ Da fuori non si distingue da 1.23.0 — il
 timbro è per gli amministratori e la sezione nuova arriva alla **prossima pubblicazione** di ogni documento —
 quindi restano tre prove col login: il timbro `1.24.0 · ed4c0f3`, «Regole piste» nella **bozza** di un vSOP, e

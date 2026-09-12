@@ -1,6 +1,49 @@
-﻿# Lavori aperti — elenco unico
+# Lavori aperti — elenco unico
 
-## Dove siamo — 12 settembre 2026
+## Dove siamo — 12 settembre 2026 (sera)
+
+📦 **1.24.1 È PRONTA, NON ANCORA CARICATA.** Timbro `1.24.1 · f8d7a75`, **9 file**, zip
+`ff30a254961ac8afcbd94ce2ffac0c9d194ef90f5233d739e40135bd4e3a6346`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md).
+**PATCH**, **nessuna migrazione**, niente `wwwroot`; **c'è** il satellite inglese (33 frasi nuove).
+Sostituisce 1.24.0.
+
+Tre cose, tutte nel riquadro METAR/TAF:
+
+1. **I valori del METAR parlano la lingua della pagina** (`9c0b1b90`, segnalato dal committente). In inglese
+   il riquadro diceva ancora «leggera pioggia», «foschia», «Calmo»: le etichette erano tradotte da sempre,
+   erano i **valori** a non esserlo. Le parole stavano cablate dentro `MetarParser`, cioè in uno strato che
+   non sa né in che lingua guarda chi legge né in quale un documento è **bloccato**. Ora il parser torna
+   **codici** (`WeatherGroup`) e le parole stanno nelle due `.resx` (`Wx_*`), messe da
+   `Vipi.Ui.Shared.WxText`, che riceve la traduzione **come funzione**. `ParsedWind.Label` è stato **tolto**
+   invece di restare «quasi neutro»: la sua unica parola era «Calmo».
+2. **La provenienza del METAR si vede da `DivisionStaff` in su** (stesso commit, chiesto dal committente): la
+   pastiglia IVAO/VATSIM è meccanica di servizio, come il numero della regola pista che vince. Il bollettino
+   resta intero per chiunque. ⚠️ Il livello **non si chiede dentro l'isola interattiva** — lì
+   `IHttpContextAccessor` non ha nessuna richiesta e risponderebbe «anonimo» a tutti — lo passano i due corpi
+   documento, che sono SSR dentro la richiesta.
+3. **Ogni scorta METAR ha il suo tetto d'attesa** (`4b2de139`, trovato **verificando** il punto 1): era uno
+   per tutta la catena, e la prima sorgente che si piantava se lo portava via intera — la terza, che il METAR
+   ce l'aveva, non veniva nemmeno chiamata e la pagina diceva «METAR non disponibile». Prezzo dichiarato:
+   caso pessimo = tetto × numero di scorte (6 s con due).
+
+**Come si è provato**, e vale come metodo: il caso «vento calmo + tre gruppi di tempo presente» non si ordina
+in produzione, quindi si è messa in piedi una **sorgente di scorta finta** (10 righe di `node` su :5099) con
+`Weather__BaseUrl` e `Ivao__BaseUrl` su una porta morta. Bollettino deterministico
+`00000KT 3000 -SHRA BR FZFG`: in italiano «Calmo / leggera rovescio pioggia, foschia, congelantesi nebbia»,
+in inglese «Calm / light shower rain, mist, freezing fog», sulla vIPI **e** sul vSOP militare (LIBG).
+Pastiglia `VATSIM` presente col VID fondatore e assente con VID 123456 + `XX-ZZ9`, col METAR intero in tutti
+e due i casi. Sul **pacchetto** win-x64: timbro giusto e **dieci controlli verdi** di `pacchetto-verifica.js`.
+
+⚠️ **Da fuori 1.24.1 si distingue poco**: niente pagine nuove, e la pastiglia della sorgente compare solo nei
+giorni in cui NOAA tace. La differenza si vede aprendo una pagina **in inglese** con del tempo brutto in giro.
+
+▶ **Resta da caricare**, e poi la prova su produzione (`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node
+.claude/skills/verifica-live/pacchetto-verifica.js`). Tutto il resto qui sotto è ancora aperto com'era.
+
+---
+
+## Dove siamo — 12 settembre 2026 (mattina)
 
 ✅ **1.24.0 È CARICATA** (12 settembre, detto dal committente). Da fuori, subito dopo: **otto controlli pubblici
 verdi** (Ricerca compresa), e le pagine toccate dalla consegna rese senza un errore — vSOP di **LIBV** e di
