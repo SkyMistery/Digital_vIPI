@@ -2,7 +2,22 @@
 
 ## Dove siamo — 12 settembre 2026 (sera)
 
-📦 **1.24.1 È PRONTA, NON ANCORA CARICATA.** Timbro `1.24.1 · f8d7a75`, **9 file**, zip
+✅ **1.24.1 È CARICATA** (12 settembre, sera). Il timbro c'è — visto dal committente — e il METAR tradotto
+anche. Da fuori, subito dopo: **otto controlli pubblici verdi** di `pacchetto-verifica.js` (Ricerca compresa,
+console pulita), e il riquadro METAR reso in **IT e in EN** su cinque vIPI pubblicate (LIBD, LIMC, LIPZ, LIML,
+LIPE) senza un errore e senza una parola italiana in pagina inglese.
+
+⚠️ **Una prova che oggi NON si è potuta fare da fuori**, e va detto invece di darla per riuscita: stamattina
+**nessun aeroporto italiano ha tempo significativo** — tutti CAVOK o `9999` con qualche strato — quindi la
+riga «Weather», che è quella dove le parole si traducono, **non compare in nessuna pagina pubblica**. Quel che
+si è visto in produzione sono le etichette e i valori neutri (`310° / 4 kt`, `>10 km`). Le parole restano
+provate dove si potevano ordinare: sul **binario del pacchetto** guidato in Edge con una sorgente di scorta
+finta, e dai banchi. ▶ Basta riguardare una vIPI in inglese il primo giorno di pioggia.
+
+ℹ️ **LIRF, LIRN e LIRQ non hanno una vIPI pubblicata** in produzione («Document not available»): è così da
+prima, non è un effetto di questa consegna.
+
+📦 Il pacchetto: timbro `1.24.1 · f8d7a75`, **9 file**, zip
 `ff30a254961ac8afcbd94ce2ffac0c9d194ef90f5233d739e40135bd4e3a6346`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md).
 **PATCH**, **nessuna migrazione**, niente `wwwroot`; **c'è** il satellite inglese (33 frasi nuove).
@@ -38,8 +53,9 @@ e due i casi. Sul **pacchetto** win-x64: timbro giusto e **dieci controlli verdi
 ⚠️ **Da fuori 1.24.1 si distingue poco**: niente pagine nuove, e la pastiglia della sorgente compare solo nei
 giorni in cui NOAA tace. La differenza si vede aprendo una pagina **in inglese** con del tempo brutto in giro.
 
-▶ **Resta da caricare**, e poi la prova su produzione (`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node
-.claude/skills/verifica-live/pacchetto-verifica.js`). Tutto il resto qui sotto è ancora aperto com'era.
+✅ **La prova su produzione è fatta** (`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node
+.claude/skills/verifica-live/pacchetto-verifica.js`): otto su otto. Il codice è tutto in produzione, l'albero
+è pulito e spinto, niente è a metà. Tutto il resto qui sotto è ancora aperto com'era.
 
 ---
 

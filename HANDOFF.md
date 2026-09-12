@@ -1,6 +1,12 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 12 settembre 2026 (sera) — 📦 **1.24.1 È PRONTA E NON ANCORA CARICATA**: timbro
+**Ultimo aggiornamento:** 12 settembre 2026 (sera) — ✅ **1.24.1 È CARICATA**: timbro e METAR tradotto visti
+dal committente; da fuori **otto controlli pubblici verdi** (Ricerca compresa) e il riquadro METAR reso in IT e
+in EN su cinque vIPI pubblicate. ⚠️ Una prova **non** si è potuta fare da fuori e non va data per riuscita:
+stamattina nessun aeroporto italiano aveva tempo significativo, quindi la riga «Weather» — quella dove le
+parole si traducono — non compare in nessuna pagina pubblica; le parole restano provate sul binario del
+pacchetto (sorgente di scorta finta) e dai banchi. Basta riguardare una vIPI in inglese il primo giorno di
+pioggia. Il pacchetto: timbro
 `1.24.1 · f8d7a75`, **9 file** (`Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Ui`, `Vipi.Host` coi `.pdb`,
 più il satellite inglese), zip `ff30a254961ac8afcbd94ce2ffac0c9d194ef90f5233d739e40135bd4e3a6346`, foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.24.1.md). **PATCH**,
@@ -9,7 +15,7 @@ tradotti (prima erano cablati in italiano dentro il parser, e una pagina inglese
 la **provenienza** del bollettino visibile da `DivisionStaff` in su, e **un tetto d'attesa per ogni sorgente**
 di scorta invece di uno diviso fra tutte. Provata sul pacchetto win-x64 (timbro + dieci controlli verdi) e
 guidata in Edge con una sorgente di scorta finta, che è il solo modo di ordinare un METAR con vento calmo e
-tre gruppi di tempo presente. ▶ Resta il **caricamento**, e poi la prova su produzione.
+tre gruppi di tempo presente. Il codice è tutto in produzione, l'albero è pulito e spinto.
 
 Prima: 12 settembre 2026 (mattina) — ✅ **1.24.0 È CARICATA**: otto controlli pubblici verdi (Ricerca
 compresa) e le pagine toccate dalla consegna rese senza errori. ⚠️ Da fuori non si distingue da 1.23.0 — il
