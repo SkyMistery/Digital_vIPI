@@ -3443,4 +3443,7 @@
   <data name="Lvp_OperaInLvp" xml:space="preserve"><value>Lo scalo opera in LVP</value></data>
   <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Chi le attiva, quali piste, CAT II/III, restrizioni…</value></data>
   <data name="Lvp_Togli" xml:space="preserve"><value>Togli i minimi</value></data>
+  <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
+  <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
+  <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>
 </root>

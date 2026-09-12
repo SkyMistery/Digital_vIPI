@@ -58,6 +58,14 @@
         {
             <a class="btn ghost" href="@href">@L["Live_ExtendedDoc"]</a>
         }
+        @* Il quadro vAWOS, per chi sta su una posizione D'AEROPORTO: torre, torre informativa, ground,
+           delivery. Da un APP o da un'area lo scalo non e' uno solo, e il tasto sta sulla chip — cioe'
+           dentro <AirportQuickPanel>, che quella pagina monta gia'. *@
+        @if (_view?.AirportIcao is { Length: 4 } icaoAwos)
+        {
+            <a class="btn ghost" href="/services/vawos/@icaoAwos.ToLowerInvariant()" target="_blank"
+               title="@L["Live_AwosTitle"]">vAWOS ↗</a>
+        }
         @* Il selettore di postazione esiste solo da DivisionStaff in su: per tutti gli altri la vista live
            è la propria postazione, quindi non c'è niente da scegliere. Riusa TypeaheadPicker — il campo a
            digitazione del prodotto, tastiera compresa — invece di scriverne un settimo.

@@ -19,6 +19,7 @@
 @page "/services/vawos/{Icao}"
 @layout AwosLayout
 @using Vipi.Application.Awos
+@using Vipi.Application.Content
 @using Vipi.Application.Weather
 @inject IAwosService Awos
 @inject IEditAuthorizationService Authz
@@ -76,6 +77,10 @@
             {
                 <span class="awos-pastiglia bozza" title="No published document: the public cannot open this">NOT PUBLIC</span>
             }
+            @* 🔴 Lo stato LVP è SUGGERITO: attivare le procedure di bassa visibilità è una decisione
+               dell'aeroporto, dentro cui stanno cose che il METAR non sa. La pastiglia dice sempre da dove
+               viene la soglia — «(standard)» quando lo scalo non ha minimi suoi. *@
+            <span class="awos-pastiglia lvp @LvpClasse()" data-awos="lvp" title="@LvpTitolo()">@LvpTesto()</span>
             <span class="awos-pastiglia sim">ONLY FOR SIMULATION</span>
             <span class="awos-eta" data-awos-eta title="Age of the bulletin on screen">—</span>
             <button type="button" class="awos-btn" data-awos-mov aria-pressed="true"
@@ -239,7 +244,7 @@
                         </div>
                     </div>
 
-                    <div class="awos-rvr" data-awos-rvr="@i">
+                    <div class="awos-rvr @(_vista.Lvp.Valutazione.Stato is LvpStato.Preparazione or LvpStato.InVigore ? "lvp" : "")" data-awos-rvr="@i">
                         <div class="awos-rvr-f"><div class="awos-rvr-l">RVR TDZ (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-tdz">@Rvr(sinistra)</div></div>
                         <div class="awos-rvr-f"><div class="awos-rvr-l">RVR MID (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-mid">@RvrMedio(striscia)</div></div>
                         <div class="awos-rvr-f"><div class="awos-rvr-l">RVR END (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-end">@Rvr(destra)</div></div>
@@ -313,6 +318,46 @@
     }
 
     private static string N(int? v) => v?.ToString(Inv) ?? "--";
+
+    /// <summary>La pastiglia LVP: lo stato, e «(standard)» quando la soglia non è dello scalo.</summary>
+    private string LvpTesto()
+    {
+        var v = _vista!.Lvp.Valutazione;
+        var stato = v.Stato switch
+        {
+            LvpStato.InVigore => "LVP",
+            LvpStato.Preparazione => "LVP PREP",
+            LvpStato.NonApplicabile => "LVP N/A",
+            LvpStato.NonValutabile => "LVP —",
+            _ => "LVP NIL",
+        };
+        var daStandard = v.Stato is LvpStato.Preparazione or LvpStato.InVigore && !v.DaiMinimiDelloScalo;
+        return daStandard ? stato + " (standard)" : stato;
+    }
+
+    private string LvpClasse() => _vista!.Lvp.Valutazione.Stato switch
+    {
+        LvpStato.InVigore => "on",
+        LvpStato.Preparazione => "prep",
+        _ => "",
+    };
+
+    /// <summary>Il perché, per esteso: da dove viene la misura e da dove vengono le soglie.</summary>
+    private string LvpTitolo()
+    {
+        var v = _vista!.Lvp.Valutazione;
+        if (v.Stato == LvpStato.NonApplicabile) return "This airport does not operate LVP.";
+        if (v.Stato == LvpStato.NonValutabile) return "No minima or no weather data to compare.";
+        var misura = v.Misura switch
+        {
+            LvpMisura.Rvr => $"RVR {v.RvrM} m",
+            LvpMisura.Visibilita => $"visibility {v.RvrM} m (no RVR reported)",
+            _ => "no visibility measure",
+        };
+        var soffitto = v.CeilingFt is int c ? $", ceiling {c} ft" : ", no ceiling";
+        var soglie = v.DaiMinimiDelloScalo ? "airport minima" : "standard minima (this airport declares none)";
+        return $"Suggested from {misura}{soffitto} against {soglie}. Activating LVP remains the airport's decision.";
+    }
 
     /// <summary>Tre righe sempre: il riquadro non deve cambiare altezza quando il tempo peggiora.</summary>
     private static IEnumerable<string> Tre(IEnumerable<string> righe)

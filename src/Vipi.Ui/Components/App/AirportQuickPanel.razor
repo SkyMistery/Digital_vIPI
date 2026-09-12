@@ -22,7 +22,13 @@
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+            <span style="display:flex;gap:6px;align-items:center">
+                @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
+                   che si tiene aperta mentre si continua a lavorare qui. *@
+                <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
+                   title="@L["Apt_OpenAwosTitle"]">vAWOS ↗</a>
+                <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+            </span>
         </div>
         <p class="muted" style="margin:0">Nessun documento pubblicato per @Icao.</p>
     </div>
@@ -32,7 +38,13 @@ else
     <div class="block">
         <div class="rap-h" style="justify-content:space-between">
             <span><b>@Icao</b> <span class="muted">vista rapida</span></span>
-            <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+            <span style="display:flex;gap:6px;align-items:center">
+                @* Il quadro vAWOS di questo scalo: scheda NUOVA, perche' e' una pagina da secondo monitor
+                   che si tiene aperta mentre si continua a lavorare qui. *@
+                <a class="btn ghost" href="/services/vawos/@Icao.ToLowerInvariant()" target="_blank"
+                   title="@L["Apt_OpenAwosTitle"]">vAWOS ↗</a>
+                <a class="btn primary" href="/services/vsop/@Acc.ToLowerInvariant()/airports?icao=@Icao">@L["Apt_OpenFullVipi"] →</a>
+            </span>
         </div>
 
         <div class="rap-quick">

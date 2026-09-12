@@ -97,6 +97,8 @@
     var rep = $('[data-awos-pan="report"] div');
     if (rep) testo(rep, vista.metarRaw || 'No METAR available');
 
+    lvp();
+
     var a = vista.atis;
     testo($('[data-awos="atis-chi"]'), a ? a.callsign : '— ATIS —');
     testo($('[data-awos="atis"]'), (a && a.lettera) || '—');
@@ -109,6 +111,27 @@
     righe('[data-awos="cloud"]', parole.nubi);
 
     (vista.piste || []).forEach(function (striscia, i) { striscia_(i, striscia); });
+  }
+
+  // La pastiglia LVP e la fascia RVR che si accende. Il TESTO e il titolo li compone il server? No: qui
+  // sono sigle (LVP, PREP, N/A), e le sigle non hanno una lingua. Il «(standard)» invece e' un fatto che il
+  // server dichiara, e si ripete tale e quale.
+  function lvp() {
+    var v = vista.lvp && vista.lvp.valutazione;
+    var el = $('[data-awos="lvp"]');
+    if (!el || !v) return;
+
+    var stato = v.stato === 'InVigore' ? 'LVP'
+              : v.stato === 'Preparazione' ? 'LVP PREP'
+              : v.stato === 'NonApplicabile' ? 'LVP N/A'
+              : v.stato === 'NonValutabile' ? 'LVP —' : 'LVP NIL';
+    var acceso = v.stato === 'InVigore' || v.stato === 'Preparazione';
+    if (acceso && !v.daiMinimiDelloScalo) stato += ' (standard)';
+    testo(el, stato);
+    el.classList.toggle('on', v.stato === 'InVigore');
+    el.classList.toggle('prep', v.stato === 'Preparazione');
+
+    $$('[data-awos-rvr]').forEach(function (r) { r.classList.toggle('lvp', acceso); });
   }
 
   // Le righe restano SEMPRE tre: il riquadro non deve cambiare altezza quando il tempo peggiora.

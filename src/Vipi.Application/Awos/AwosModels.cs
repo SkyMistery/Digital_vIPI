@@ -1,3 +1,4 @@
+using Vipi.Application.Content;
 using Vipi.Application.Weather;
 
 namespace Vipi.Application.Awos;
@@ -25,6 +26,15 @@ public sealed record AwosResult(AwosView? Vista, AwosOutcome Esito)
 /// <param name="Callsign">Chi lo trasmette: è la risposta a «chi l'ha detto», e il quadro la scrive.</param>
 public sealed record AwosAtis(string Callsign, string? Lettera, string? Orario, string? Testo,
                               string? PisteArrivo, string? PistePartenza);
+
+/// <summary>
+/// Lo stato LVP del quadro: quello suggerito dai minimi, e i minimi stessi per mostrarli.
+///
+/// <para>⚠️ Il quadro legge i minimi <b>VIVI</b>, non quelli di una release: non è un documento e non ha una
+/// release — è uno strumento, come il vento. Dove il documento pubblicato e il quadro divergessero,
+/// l'autorità è il documento.</para>
+/// </summary>
+public sealed record AwosLvp(LvpValutazione Valutazione, LvpRow? Minimi);
 
 /// <summary>Uno scalo che il quadro sa aprire, per il selettore.</summary>
 public sealed record AwosAirport(string Icao, string Nome, bool HaVipi, bool HaVsop);
@@ -97,4 +107,5 @@ public sealed record AwosView(
     IReadOnlyList<AwosStrip> Piste,
     AwosActive Attiva,
     AwosAtis? Atis,
+    AwosLvp Lvp,
     DateTimeOffset AsOf);

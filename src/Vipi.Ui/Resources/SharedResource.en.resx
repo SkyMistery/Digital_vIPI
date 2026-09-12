@@ -3435,4 +3435,7 @@
   <data name="Lvp_OperaInLvp" xml:space="preserve"><value>This airport operates LVP</value></data>
   <data name="Lvp_NotePlaceholder" xml:space="preserve"><value>Who activates them, which runways, CAT II/III, restrictions…</value></data>
   <data name="Lvp_Togli" xml:space="preserve"><value>Remove the minima</value></data>
+  <data name="Services_AwosDesc" xml:space="preserve"><value>The tower weather panel: per-threshold wind, QNH, TL, RVR and LVP status, from the METAR.</value></data>
+  <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Open this airport's vAWOS panel in a new tab</value></data>
+  <data name="Live_AwosTitle" xml:space="preserve"><value>Open your airport's vAWOS panel in a new tab</value></data>
 </root>

@@ -104,6 +104,7 @@ public sealed class AwosService : IAwosService
             Piste: piste,
             Attiva: attiva,
             Atis: atis,
+            Lvp: ValutaLvp(scalo.Lvp, metar),
             AsOf: DateTimeOffset.UtcNow), AwosOutcome.Ok);
     }
 
@@ -126,6 +127,20 @@ public sealed class AwosService : IAwosService
                 g.Any(m => m.Kind == ReleaseTargetType.AirportMil)))
             .OrderBy(a => a.Icao, StringComparer.Ordinal)
             .ToList();
+    }
+
+    /// <summary>
+    /// Lo stato LVP suggerito, sui minimi <b>vivi</b> dello scalo e sul METAR di adesso.
+    ///
+    /// <para>⚠️ Il minimo fra i gruppi RVR, escludendo i «fuori scala in alto»: un <c>P2000</c> non è una
+    /// misura, e trattarlo come 2000 farebbe entrare un valore inventato nel confronto con una soglia.</para>
+    /// </summary>
+    private static AwosLvp ValutaLvp(LvpRow? minimi, ParsedMetar? metar)
+    {
+        if (metar is null) return new AwosLvp(LvpValutazione.NonValutabile, minimi);
+        var rvr = metar.RvrGroups.Where(r => r.Modifier != RvrModifier.Above)
+                                 .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
+        return new AwosLvp(LvpValutatore.Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt), minimi);
     }
 
     /// <summary>

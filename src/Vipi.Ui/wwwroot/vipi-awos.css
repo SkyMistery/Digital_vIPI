@@ -107,6 +107,10 @@
 .awos-pastiglia.sim { color: #ffd166; }
 .awos-pastiglia.sorgente { color: var(--awos-ciano); }
 .awos-pastiglia.bozza { color: var(--awos-ambra); }
+/* La pastiglia LVP: spenta finche' non c'e' niente da dire, ambra in preparazione, arancione in vigore. */
+.awos-pastiglia.lvp { color: #8f8f8f; }
+.awos-pastiglia.lvp.prep { color: #ffb020; }
+.awos-pastiglia.lvp.on { background: #f97316; border-color: #f97316; color: #000; }
 
 /* ── MET REPORT ────────────────────────────────────────────────────────── */
 .awos-met {
