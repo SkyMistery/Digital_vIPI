@@ -1,6 +1,8 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 12 settembre 2026 (notte) — ✅ **1.25.0 È CARICATA E IN PRODUZIONE.** Timbro `1.25.0 · 20775a0e`, **25 file**, zip
+**Ultimo aggiornamento:** 12 settembre 2026 (notte) — 📦 **IL PACCHETTO 1.25.1 È PRONTO E NON È ANCORA CARICATO.** Timbro **`1.25.1 · 33aa578`**, sha256 dello zip `b514a2acd95f4ce526024338aca1222e2291d6601ad84ead20b38c7883631ef1`, **19 file**, 3,51 MB, foglio [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md). **PATCH**: nessuna migrazione, nessuna pagina nuova, nessuna sezione, nessun resx — non c'è una funzione in più, ci sono le stesse funzioni che costano meno (le sette voci dell'audit prestazioni, §CZ). Provato **sul pacchetto**: `pacchetto-verifica.js` e `awos-verifica.js` **tutti e due TUTTO VERDE**, e lì si è chiuso il dubbio della sera — i due rossi «non minificato» erano l'artefatto del girare da sorgente. ⚠️ Al **primo** avvio dopo il caricamento le riconciliazioni rigirano tutte (259 query) e si timbrano; dal secondo in poi si saltano (54). ▶ Dopo il carico: la **Ricerca**, il timbro col login, e `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`. 🔴 E le **due cose del pannello** che valgono più di tutte e sette — Cache Rule su Cloudflare e direttive nginx — stanno nel foglio coi loro `curl`.
+
+Prima: 12 settembre 2026 (notte) — ✅ **1.25.0 È CARICATA E IN PRODUZIONE.** Timbro `1.25.0 · 20775a0e`, **25 file**, zip
 `9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md). Sostituisce

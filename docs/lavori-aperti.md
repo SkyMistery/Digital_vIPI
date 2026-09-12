@@ -1,5 +1,59 @@
 # Lavori aperti — elenco unico
 
+## Dove siamo — 12 settembre 2026 (notte)
+
+### 📦 A26 — Pacchetto 1.25.1: 19 file — ⏳ **PRONTO, non ancora caricato**
+
+Timbro **`1.25.1 · 33aa578`**, zip
+`b514a2acd95f4ce526024338aca1222e2291d6601ad84ead20b38c7883631ef1`
+(`artifacts/publish/vipi-1.25.1-solo-file-cambiati.zip`, 3,51 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.1.md).
+Sostituisce **1.25.0**. Dentro: le **sette voci di codice dell'audit prestazioni** (§CZ qui sotto).
+
+**PATCH, e la regola si applica per intero**: nessuna migrazione, nessuna pagina nuova, nessuna sezione di
+catalogo, nessuna chiave resx. **Non c'è una funzione in più: ci sono le stesse funzioni che costano meno.**
+Niente satellite inglese — nessun `.resx` è cambiato.
+
+**I 19 file, e perché solo quattro progetti.** `git diff --name-only 20775a0e HEAD -- src` nomina
+Application (1), Host (4), Hosting (1), Ui (4, di cui `LiveBadgeSpento.razor` **nuovo**) — otto fra `.dll` e
+`.pdb` — più **dieci** file di `wwwroot` (`favicon.ico`, `vipi-aor3d.js`, `vipi-awos.js`, `vipi-boot.js` coi
+loro `.br`/`.gz`) e `Vipi.Host.staticwebassets.endpoints.json`, che viaggia con loro.
+✅ **Il confronto sha256 dell'intero `wwwroot`** col publish di 1.25.0 dice **esattamente quei dieci**:
+nessun file in più, nessuno in meno. Gli assiemi invece il confronto per impronta li dà tutti e diciannove
+(l'MVID cambia a ogni ricompilazione): lì comanda il `git diff`, come dice il runbook.
+⚠️ **E la domanda che si fa quando si lascia fuori un assieme**: nessuno fra Domain, Infrastructure,
+MySqlMigrations e i due Aurora **implementa** una firma cambiata — nessuna interfaccia ha guadagnato o perso
+membri. Le due firme toccate sono metodi di estensione con un parametro **facoltativo**, e il solo chiamante
+(`Vipi.Host`) è dentro il pacchetto.
+
+**Provato SUL PACCHETTO** (publish win-x64 avviato dalla sua cartella su :5199, guidato in Edge):
+- `pacchetto-verifica.js` → **TUTTO VERDE**, dieci su dieci, Ricerca compresa e console pulita;
+- `awos-verifica.js` → **TUTTO VERDE**, quindici su quindici. ⚠️ E qui si chiude il dubbio di stasera: sul
+  **sorgente** i due controlli «servito e minificato» erano rossi (`vipi-awos.js` 21 224 caratteri su 389
+  righe); **sul pacchetto** sono verdi (7 793 caratteri su **una** riga). Era l'artefatto del girare da
+  `dotnet run`, non un difetto — ma si sapeva solo dopo averlo provato dove si doveva;
+- **Q1 nelle due identità**: da **anonimo** `/services/vsop` e la guida aprono `ws=0 sse=0`; da **entrato**
+  `ws=1 sse=1`; la pagina d'aeroporto si tiene il circuito in tutt'e due i casi;
+- **Q5 sulla vIPI LIMM** (305 KB, la più pesante): 1º giro **70 query / 467 ms**, 2º e 3º **0 query /
+  2-3 ms**, stessi byte;
+- **Q4** `Cache-Control: public, max-age=86400` su `/_framework/blazor.web.js`; **Q8** favicon 2 764 byte e
+  **zero** `<link>` del foglio 3D nella testata;
+- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.1 · commit 33aa578`.
+
+⚠️ **Al PRIMO avvio dopo il caricamento le riconciliazioni rigirano tutte** (259 query) e si timbrano per
+`1.25.1+33aa578`; **dal secondo in poi si saltano** (54). Visto succedere sul pacchetto: è il gate di Q7 che
+fa il suo mestiere, non un difetto.
+
+▶ **Dopo il caricamento**: la **Ricerca** (è il controllo che passa dal server), il timbro `1.25.1 · 33aa578`
+col login, e `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` puntato fuori.
+
+🔴 **E le DUE cose del pannello, che valgono più di tutte e sette messe insieme** — stanno nel foglio del
+pacchetto coi loro `curl` di verifica, e in §O2/§O3: la **Cache Rule su Cloudflare** (oggi
+`cf-cache-status: DYNAMIC` su tutto l'HTML) e le **direttive nginx** (oggi gli asset escono **senza
+`Cache-Control`** e le varianti `.br` a qualità 11 non le riceve nessuno).
+
+---
+
 ## Dove siamo — 12 settembre 2026 (dopo il caricamento di 1.25.0)
 
 ### 🔬 §CZ — Audit prestazioni: otto voci misurate (Q2 in due metà) — ✅ **le sette di codice sono FATTE**
