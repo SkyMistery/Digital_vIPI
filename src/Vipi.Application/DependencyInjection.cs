@@ -78,6 +78,8 @@ public static class DependencyInjection
         services.AddScoped<Live.ILiveViewService, Live.LiveViewService>();
         // «Chi controlla l'aeroporto adesso» per le pagine fuori dalla vista live (vista rapida, viewer).
         services.AddScoped<Live.IAirportPresidencyService, Live.AirportPresidencyService>();
+        // vAWOS: il quadro meteo di torre (carta 2026-09-12). Sola lettura, nessuna entità sua.
+        services.AddScoped<Awos.IAwosService, Awos.AwosService>();
         // doc 10 §3b: cattura Frozen delle sezioni derivate. Un provider per famiglia; il registry li risolve per tipo.
         services.AddScoped<IFrozenSectionProvider, VloaFrozenSectionProvider>();
         services.AddScoped<IFrozenSectionProvider, AppFrozenSectionProvider>();
