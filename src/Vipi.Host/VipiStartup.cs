@@ -424,7 +424,25 @@ internal static class VipiStartup
         //
         // ⚠️ `OnStarting` e non una scrittura diretta: l'intestazione la mette il middleware di Blazor, che
         // gira DOPO questo. Scriverla qui sarebbe scriverla prima di chi poi la sovrascrive.
-        // ⚠️ Solo 200: un 304 ha già le sue regole, e riscriverne la freschezza non è quel che si è deciso.
+        //
+        // 🔴 ANCHE SUL 304, E LA PRIMA STESURA SBAGLIAVA QUI — misurato in produzione il 13 settembre 2026,
+        // il giorno dopo il caricamento di 1.25.1. La riga c'era e non serviva a niente:
+        //
+        //     GET /_framework/blazor.web.js            -> cf-cache-status: REVALIDATED, cache-control: no-cache
+        //     GET /_framework/blazor.web.js?x=12345    -> cf-cache-status: MISS,        cache-control: public, max-age=86400
+        //
+        // Cioè: sul percorso vero il codice non veniva mai raggiunto. Cloudflare aveva in magazzino la
+        // copia VECCHIA, quella che dice `no-cache`, quindi rivalidava a ogni richiesta; l'origine
+        // rispondeva **304** perché il file non è cambiato davvero (`blazor.web.js` cambia con la versione
+        // di .NET, non col nostro codice); e questa richiamata, scritta per il solo 200, taceva. Il bordo
+        // restava con l'intestazione vecchia **per sempre**: un anello chiuso che non si apriva da sé.
+        //
+        // Un 304 è una risposta **su quella stessa risorsa**, e la RFC 9111 §4.3.4 dice che le sue
+        // intestazioni **aggiornano** la copia in magazzino: è esattamente il canale che serve per dire al
+        // bordo «da adesso puoi tenerlo». Alla prima rivalidazione dopo questo cambio il ciclo si rompe da
+        // solo, senza che nessuno debba svuotare niente dal pannello.
+        //
+        // ⚠️ Nient'altro che 200 e 304: su un 404 o un 500 la freschezza non è una cosa che vogliamo dire.
         app.Use(async (context, next) =>
         {
             if (context.Request.Path.StartsWithSegments("/_framework", StringComparison.OrdinalIgnoreCase)
@@ -433,7 +451,7 @@ internal static class VipiStartup
                 context.Response.OnStarting(static stato =>
                 {
                     var risposta = ((HttpContext)stato).Response;
-                    if (risposta.StatusCode == StatusCodes.Status200OK)
+                    if (risposta.StatusCode is StatusCodes.Status200OK or StatusCodes.Status304NotModified)
                         risposta.Headers.CacheControl = "public, max-age=86400";
                     return Task.CompletedTask;
                 }, context);
