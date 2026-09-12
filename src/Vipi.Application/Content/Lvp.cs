@@ -57,6 +57,14 @@ public enum LvpStato
     Preparazione,
     /// <summary>Sotto le soglie di LVP in vigore.</summary>
     InVigore,
+    /// <summary>
+    /// LVP <b>in vigore</b>, e il dato è risalito sopra le soglie di cancellazione: si può proporre di
+    /// uscirne.
+    /// <para>⚠️ Esiste solo per chi tiene una memoria di che cosa stava succedendo un minuto fa — il quadro.
+    /// Un <b>documento</b> non ce l'ha, si rende da capo ogni volta, e per lui questo stato non si presenta
+    /// mai: è giusto così, perché «si può cancellare» è una frase sul <i>corso</i> delle cose.</para>
+    /// </summary>
+    Cancellabile,
     /// <summary>Lo scalo dichiara di non operare in LVP.</summary>
     NonApplicabile,
     /// <summary>Non ci sono minimi né soglie da confrontare, o manca il dato meteo.</summary>
@@ -102,7 +110,17 @@ public static class LvpValutatore
     /// <param name="rvrM">Il <b>minimo</b> fra i gruppi RVR del bollettino, se ce ne sono.</param>
     /// <param name="visibilitaM">La visibilità prevalente, in metri, usata solo se l'RVR non c'è.</param>
     /// <param name="ceilingFt">Il soffitto (BKN/OVC più basso, o la visibilità verticale).</param>
-    public static LvpValutazione Valuta(LvpRow? minimi, int? rvrM, int? visibilitaM, int? ceilingFt)
+    /// <param name="giaInVigore">
+    /// Le LVP erano <b>già in vigore</b> al giro precedente. È l'<b>isteresi</b>, e senza di essa le soglie di
+    /// cancellazione sono decorazione: la procedura entra sotto una soglia e non esce alla stessa, esce sopra
+    /// un'altra più alta — altrimenti a 549 m si entra, a 551 si esce, e si sfarfalla.
+    ///
+    /// <para>⚠️ Lo sa solo chi ha una memoria: il quadro, che ricorda com'era il giro prima. Un documento si
+    /// rende da capo ogni volta e passa <c>false</c>, quindi non mostra mai la cancellazione — che è la
+    /// risposta giusta a una domanda che lui non può porsi.</para>
+    /// </param>
+    public static LvpValutazione Valuta(LvpRow? minimi, int? rvrM, int? visibilitaM, int? ceilingFt,
+                                        bool giaInVigore = false)
     {
         var dalloScalo = minimi is not null;
         var m = minimi ?? LvpStandard.Riga;
@@ -127,13 +145,42 @@ public static class LvpValutatore
         if (Sotto(vis, m.LvpRvrM) || Sotto(ceilingFt, m.LvpCeilingFt))
             return new LvpValutazione(LvpStato.InVigore, misura, dalloScalo, vis, ceilingFt);
 
+        // ── L'isteresi ────────────────────────────────────────────────────────────────────────────────
+        // Se erano in vigore, il dato risalito sopra la soglia d'ingresso NON le fa uscire: si esce quando
+        // supera quella di CANCELLAZIONE, che è più alta apposta. Nel mezzo restano in vigore.
+        if (giaInVigore)
+            return Cancellabile(m, vis, ceilingFt)
+                ? new LvpValutazione(LvpStato.Cancellabile, misura, dalloScalo, vis, ceilingFt)
+                : new LvpValutazione(LvpStato.InVigore, misura, dalloScalo, vis, ceilingFt);
+
         if (SottoOUguale(vis, m.PrepRvrM) || SottoOUguale(ceilingFt, m.PrepCeilingFt))
             return new LvpValutazione(LvpStato.Preparazione, misura, dalloScalo, vis, ceilingFt);
 
         return new LvpValutazione(LvpStato.Nil, misura, dalloScalo, vis, ceilingFt);
     }
 
+    /// <summary>
+    /// Il dato è sopra <b>tutte</b> le soglie di cancellazione che lo scalo ha dichiarato.
+    ///
+    /// <para>⚠️ Qui è «e», non «o», ed è l'opposto dell'ingresso: per <i>entrare</i> basta che una delle due
+    /// misure sia bassa, per <i>uscire</i> devono essere risalite tutt'e due. Scritto con un «o» si
+    /// proporrebbe di cancellare le LVP col soffitto ancora a 100 piedi.</para>
+    ///
+    /// <para>⚠️ Se lo scalo non ha dichiarato <b>nessuna</b> soglia di cancellazione non si propone niente:
+    /// restano in vigore, e a toglierle è una persona. Il silenzio non è un permesso.</para>
+    /// </summary>
+    private static bool Cancellabile(LvpRow m, int? vis, int? ceilingFt)
+    {
+        if (m.CancelRvrM is null && m.CancelCeilingFt is null) return false;
+        return Sopra(vis, m.CancelRvrM) && Sopra(ceilingFt, m.CancelCeilingFt);
+    }
+
     // Una soglia che lo scalo non ha scritto non si valuta: non è «zero», è «non pertinente».
     private static bool Sotto(int? valore, int? soglia) => valore is int v && soglia is int s && v < s;
+
+    /// <summary>Sopra la soglia. ⚠️ Una soglia non dichiarata non trattiene: è l'altra a decidere.
+    /// Un valore MANCANTE invece sì — non si può dire che sia risalito qualcosa che non si misura.</summary>
+    private static bool Sopra(int? valore, int? soglia) =>
+        soglia is not int s || (valore is int v && v > s);
     private static bool SottoOUguale(int? valore, int? soglia) => valore is int v && soglia is int s && v <= s;
 }

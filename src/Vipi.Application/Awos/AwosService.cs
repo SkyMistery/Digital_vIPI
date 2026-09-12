@@ -24,7 +24,13 @@ public interface IAwosService
     /// <para>⚠️ Chi chiama deve già aver verificato che sia staff: qui non c'è nessuna guardia, e non deve
     /// essercene una seconda — la prima sta alla porta, dove si sa chi bussa.</para>
     /// </param>
-    Task<AwosResult> BuildAsync(string icao, bool perEditor, string? metarDiProva = null, CancellationToken ct = default);
+    /// <param name="giaInVigore">
+    /// Le LVP erano in vigore al giro precedente: è la memoria del QUADRO, che gliela rimanda a ogni
+    /// lettura. Serve all'isteresi delle soglie di cancellazione (<see cref="LvpValutatore"/>), e sta qui
+    /// invece che nel JavaScript perché la decisione dev'essere in un posto solo.
+    /// </param>
+    Task<AwosResult> BuildAsync(string icao, bool perEditor, string? metarDiProva = null,
+                                bool giaInVigore = false, CancellationToken ct = default);
 
     /// <summary>
     /// Gli scali per cui il quadro si apre, in ordine di ICAO: quelli con almeno un documento pubblicato.
@@ -45,6 +51,17 @@ public sealed class AwosService : IAwosService
     private readonly IWeatherProvider _meteo;
     private readonly IOnlineAtcProvider _online;
 
+    /// <summary>
+    /// L'elenco dei documenti, letto <b>una volta per richiesta</b>.
+    ///
+    /// <para>⚠️ Questo servizio è <c>Scoped</c>, quindi la memoria dura quanto la richiesta e non un minuto
+    /// di più: non è una cache con un problema di freschezza, è la stessa domanda posta due volte nello
+    /// stesso istante. E veniva posta due volte davvero — la pagina chiama <c>ElencoAsync</c> per la tendina
+    /// e <c>BuildAsync</c> per il cancello, e ognuna si leggeva TUTTI i documenti (revisione del 12 settembre
+    /// 2026, sera). Il progetto ha già pagato «otto interrogazioni per pagina» sull'elenco aeroporti.</para>
+    /// </summary>
+    private IReadOnlyList<ManagedDoc>? _documentiLetti;
+
     public AwosService(IAirportEditingService scali, IDocumentAdminService documenti, IWeatherProvider meteo,
                        IOnlineAtcProvider online)
     {
@@ -55,7 +72,7 @@ public sealed class AwosService : IAwosService
     }
 
     public async Task<AwosResult> BuildAsync(string icao, bool perEditor, string? metarDiProva = null,
-                                             CancellationToken ct = default)
+                                             bool giaInVigore = false, CancellationToken ct = default)
     {
         var id = (icao ?? "").Trim().ToUpperInvariant();
         if (id.Length != 4) return AwosResult.Ignoto;
@@ -63,7 +80,7 @@ public sealed class AwosService : IAwosService
         var scalo = await _scali.LoadForViewAsync(id, ct);
         if (scalo is null) return AwosResult.Ignoto;
 
-        var (vipi, vsop) = await DocumentiPubblicatiAsync(id, ct);
+        var (vipi, vsop) = AwosGate.Pubblicati(await DocumentiAsync(ct), id);
         if (!vipi && !vsop && !perEditor) return AwosResult.NonPubblicato;
 
         // Il METAR di prova NON passa dal provider: deve poter descrivere un tempo che non c'è, ed è tutto il
@@ -85,9 +102,9 @@ public sealed class AwosService : IAwosService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var atis = AtisDelloScalo(id);
+        var atis = AwosGate.Atis(_online.GetCurrent().Details, id);
         var attiva = AwosComposition.PistaAttiva(scalo.Rules, identificativi, metar,
-            Spezza(atis?.PistePartenza), Spezza(atis?.PisteArrivo), atis?.Callsign);
+            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign);
 
         return new AwosResult(new AwosView(
             Icao: id,
@@ -104,30 +121,12 @@ public sealed class AwosService : IAwosService
             Piste: piste,
             Attiva: attiva,
             Atis: atis,
-            Lvp: ValutaLvp(scalo.Lvp, metar),
+            Lvp: ValutaLvp(scalo.Lvp, metar, giaInVigore),
             AsOf: DateTimeOffset.UtcNow), AwosOutcome.Ok);
     }
 
-    public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default)
-    {
-        var docs = (await _documenti.ListAsync(ct))
-            .Where(m => m.HasEffectiveRelease && !m.IsHidden
-                        && m.Kind is ReleaseTargetType.Airport or ReleaseTargetType.AirportMil
-                        && m.Scope.Length == 4)
-            .ToList();
-
-        return docs
-            .GroupBy(m => m.Scope.ToUpperInvariant(), StringComparer.OrdinalIgnoreCase)
-            .Select(g => new AwosAirport(
-                g.Key,
-                // Il nome viene dal titolo del documento: è già quello che il pubblico legge altrove, e non
-                // costa una seconda interrogazione all'anagrafica per una tendina.
-                NomeDalTitolo(g.OrderBy(m => m.Kind == ReleaseTargetType.Airport ? 0 : 1).First().Title, g.Key),
-                g.Any(m => m.Kind == ReleaseTargetType.Airport),
-                g.Any(m => m.Kind == ReleaseTargetType.AirportMil)))
-            .OrderBy(a => a.Icao, StringComparer.Ordinal)
-            .ToList();
-    }
+    public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default) =>
+        AwosGate.Elenco(await DocumentiAsync(ct));
 
     /// <summary>
     /// Lo stato LVP suggerito, sui minimi <b>vivi</b> dello scalo e sul METAR di adesso.
@@ -135,75 +134,15 @@ public sealed class AwosService : IAwosService
     /// <para>⚠️ Il minimo fra i gruppi RVR, escludendo i «fuori scala in alto»: un <c>P2000</c> non è una
     /// misura, e trattarlo come 2000 farebbe entrare un valore inventato nel confronto con una soglia.</para>
     /// </summary>
-    private static AwosLvp ValutaLvp(LvpRow? minimi, ParsedMetar? metar)
+    private static AwosLvp ValutaLvp(LvpRow? minimi, ParsedMetar? metar, bool giaInVigore)
     {
         if (metar is null) return new AwosLvp(LvpValutazione.NonValutabile, minimi);
         var rvr = metar.RvrGroups.Where(r => r.Modifier != RvrModifier.Above)
                                  .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
-        return new AwosLvp(LvpValutatore.Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt), minimi);
+        return new AwosLvp(
+            LvpValutatore.Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt, giaInVigore), minimi);
     }
 
-    /// <summary>
-    /// L'ATIS in onda su questo scalo, fra le postazioni online.
-    ///
-    /// <para>⚠️ Si preferisce la postazione <c>_ATIS</c>, poi la torre, poi qualunque altra dello scalo che
-    /// trasmetta: quando su un campo ci sono ATIS e torre insieme, quella che parla ai piloti in anticipo è
-    /// la prima, e le due possono dire lettere diverse per qualche minuto dopo un cambio.</para>
-    ///
-    /// <para>Nessuno online, o nessuno con un ATIS leggibile: <c>null</c>. Il quadro scrive «—», che è
-    /// vero — e non una lettera vecchia tenuta lì perché faceva scena.</para>
-    /// </summary>
-    private AwosAtis? AtisDelloScalo(string icao)
-    {
-        var candidati = _online.GetCurrent().Details
-            .Where(a => a.Callsign.StartsWith(icao + "_", StringComparison.OrdinalIgnoreCase))
-            .Where(a => a.AtisLetter is not null || a.AtisArrRunways is not null || a.AtisDepRunways is not null)
-            .OrderBy(a => a.Callsign.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase) ? 0
-                        : a.Callsign.EndsWith("_TWR", StringComparison.OrdinalIgnoreCase) ? 1 : 2)
-            .ThenBy(a => a.Callsign, StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        var scelto = candidati.FirstOrDefault();
-        return scelto is null ? null
-            : new AwosAtis(scelto.Callsign, scelto.AtisLetter, scelto.AtisTimeRaw, scelto.AtisText,
-                           scelto.AtisArrRunways, scelto.AtisDepRunways);
-    }
-
-    private static IReadOnlyList<string>? Spezza(string? csv) => csv is null ? null : csv
-        .Split(new[] { '/', ',', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    /// <summary>
-    /// Il nome dello scalo dal titolo del documento: «vIPI — LIBC Crotone» → «Crotone».
-    /// <para>La tendina scrive già l'ICAO da sé, e ripeterlo due volte in una riga larga così ruba lo spazio
-    /// al nome, che è la parte per cui la si legge.</para>
-    /// </summary>
-    private static string NomeDalTitolo(string titolo, string icao)
-    {
-        var t = (titolo ?? "").Trim();
-        foreach (var prefisso in new[] { "vIPI", "vSOP", "vLOA" })
-            if (t.StartsWith(prefisso, StringComparison.OrdinalIgnoreCase))
-                t = t[prefisso.Length..].TrimStart(' ', '—', '-', '–', ':');
-        if (t.StartsWith(icao, StringComparison.OrdinalIgnoreCase))
-            t = t[icao.Length..].TrimStart(' ', '—', '-', '–', ':');
-        return t.Length == 0 ? icao : t;
-    }
-
-    /// <summary>
-    /// I due documenti dello scalo, filtrati col cancello di <b>ogni</b> elenco pubblico: release AIRAC
-    /// effettiva e documento non nascosto (doc 10 §3f).
-    ///
-    /// <para>⚠️ Il cancello guarda i <b>documenti</b>, non la categoria dello scalo: cambiare categoria non
-    /// tocca i documenti (carta 2026-09-11-categorie-aeroporto.md), e un vSOP pubblicato su un campo
-    /// diventato «civile» resta leggibile finché qualcuno non lo nasconde. Aggiungere qui un filtro per
-    /// categoria renderebbe il quadro irraggiungibile su uno scalo il cui documento invece si apre.</para>
-    /// </summary>
-    private async Task<(bool Vipi, bool Vsop)> DocumentiPubblicatiAsync(string icao, CancellationToken ct)
-    {
-        var docs = await _documenti.ListAsync(ct);
-        bool Pubblicato(ReleaseTargetType tipo) => docs.Any(m =>
-            m.Kind == tipo && m.HasEffectiveRelease && !m.IsHidden
-            && string.Equals(m.Scope, icao, StringComparison.OrdinalIgnoreCase));
-
-        return (Pubblicato(ReleaseTargetType.Airport), Pubblicato(ReleaseTargetType.AirportMil));
-    }
+    private async Task<IReadOnlyList<ManagedDoc>> DocumentiAsync(CancellationToken ct) =>
+        _documentiLetti ??= await _documenti.ListAsync(ct);
 }

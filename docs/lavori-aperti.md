@@ -10,6 +10,12 @@ nell'anagrafica dello scalo, quindi il vSOP non copia niente.
 ⚠️ **La prossima consegna è MINOR e porta una migrazione** (`AirportLvpMinima`, additiva) e **una sezione di
 catalogo nuova**: i documenti già pubblicati compariranno fra i «da ripubblicare», e la sezione arriva in
 pubblico solo alla prossima pubblicazione di ognuno.
+✅ **Rivisto da capo la sera stessa** (carta §10): dieci rilievi, tutti chiusi. Due erano difetti veri
+riprodotti in un browser — il quadro raggiunto dall'elenco restava **fermo con l'orologio che scorreva**, e i
+suoi timer sopravvivevano all'uscita dalla pagina. Cura unica: il modulo entra nella macchina dei moduli
+pigri di `vipi-boot.js`, che sceglie **sul DOM e non sull'indirizzo**. Chiusi anche: soglie di cancellazione
+LVP inerti (ora c'è l'isteresi), endpoint pubblico senza limitatore, due letture dei documenti per pagina,
+cinque coppie di logica scritte due volte, un `!` su una pagina pubblica, e il cancello senza test (ora 17).
 ▶ Restano due lavori **di dati**, non di codice: unire a mano la sezione LVP libera di **LIRE** (Pratica di
 Mare) con quella strutturata, e scrivere i minimi veri sugli scali che li hanno (l'editor propone gli
 standard, che vanno confrontati con l'AIP prima di lasciarli).

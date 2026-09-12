@@ -21,28 +21,63 @@
 (function () {
   'use strict';
 
-  var radice = null;
+  var radice = null;           // la radice AGGANCIATA adesso: puo' cambiare a ogni navigazione
+  var icaoAgganciato = null;   // e con lei l'aeroporto, che decide chi si interroga
   var vista = null;            // l'ultimo AwosView letto dal server
   var parole = { wx: [], nubi: [] };   // le due righe gia' scritte a parole dal server
-  var manuale = {};            // blocco -> true se l'operatore ha invertito la freccia a mano
+  var scritte = null;                  // e tutte le altre scritte fisse, composte dal server
+  // blocco -> 'L' | 'R' | undefined: la testata scelta A MANO, se qualcuno l'ha scelta.
+  // ⚠️ Non piu' un booleano «invertita»: su una striscia dove nessuna testata risulta in uso (vento calmo)
+  // invertire non faceva NIENTE — si cliccava e non cambiava nulla. Ora il clic SCEGLIE, e il giro e'
+  // derivata → sinistra → destra → derivata.
+  var manuale = {};
   var movimento = true;
   var timers = [];
   var ultimoDato = 0;          // Date.now() dell'ultima lettura riuscita
+  // 🔴 La MEMORIA delle LVP, e l'unica cosa che questo modulo ricorda fra una lettura e l'altra: le soglie
+  // di cancellazione sono piu' alte di quelle d'ingresso apposta (isteresi), e senza sapere «un minuto fa
+  // erano in vigore?» quelle soglie sarebbero decorazione. La DECISIONE resta al server: qui si ricorda un
+  // booleano e glielo si rimanda.
+  var lvpInVigore = false;
 
   function $(sel, dove) { return (dove || radice).querySelector(sel); }
   function $$(sel, dove) { return Array.prototype.slice.call((dove || radice).querySelectorAll(sel)); }
   function testo(el, v) { if (el && el.textContent !== v) el.textContent = v; }
   function pad(v, n) { var s = String(Math.abs(Math.round(v))); while (s.length < n) s = '0' + s; return s; }
 
-  // ── Avvio ────────────────────────────────────────────────────────────────
-  function avvia() {
-    radice = document.querySelector('.awos');
-    if (!radice) return;
+  // ── Aggancio, riaggancio, sgancio ────────────────────────────────────────
+  //
+  // 🔴 «Un caricamento = un pannello» E' FALSO, e crederci e' costato due difetti veri (revisione del
+  // 12 settembre 2026, sera). La navigazione «enhanced» di Blazor rimpiazza il DOM senza ricaricare la
+  // pagina e senza rieseguire gli script:
+  //
+  //   · arrivando dall'elenco (`/services/vawos` → `/services/vawos/libc`) il modulo era gia' partito
+  //     SENZA aeroporto, non ripartiva, e il quadro restava fermo per sempre — con l'orologio che
+  //     scorreva, cioe' con l'aria di essere vivo. Misurato: zero chiamate all'API dopo il clic;
+  //   · uscendo dalla pagina `pagehide` NON scatta, quindi i timer restavano armati: misurata una
+  //     chiamata a `/services/vawos/api/LIRN` due minuti dopo essere andati su `/services`.
+  //
+  // La cura e' una sola per tutt'e due: questa funzione si chiama a ogni navigazione (la chiama
+  // `vipi-boot.js`, come per mappe e minime) e guarda che cosa c'e' ADESSO in pagina.
+  function sincronizza() {
+    var nuova = document.querySelector('.awos');
+
+    // Il quadro non c'e' piu': si smonta tutto. E' l'unico posto che ferma i timer.
+    if (!nuova) { ferma(); radice = null; icaoAgganciato = null; vista = null; return; }
+
+    var icao = nuova.getAttribute('data-awos-icao') || null;
+    if (nuova === radice && icao === icaoAgganciato) return;   // stessa pagina, niente da rifare
+
+    ferma();
+    radice = nuova;
+    icaoAgganciato = icao;
+    // Lo stato e' della PAGINA che si sta lasciando: portarselo dietro vorrebbe dire mostrare su Napoli la
+    // freccia girata a mano su Bari.
+    vista = null; parole = { wx: [], nubi: [] }; scritte = null; manuale = {}; lvpInVigore = false;
 
     collegaTasti();
-    tema(localStorage.getItem('vawos-tema') === 'day' ? 'day' : 'night');
+    tema(leggiTema());
 
-    var icao = radice.getAttribute('data-awos-icao');
     if (icao) {
       ultimoDato = Date.now();                 // il primo dato e' gia' nell'HTML
       leggi(icao);                             // ...ma serve anche l'oggetto, o non si puo' animare niente
@@ -56,18 +91,24 @@
     ogni(900, vitalita);
     ogni(250, anima);
     orologio();
-
-    window.addEventListener('pagehide', ferma);
   }
 
   function ogni(ms, fn) { timers.push(setInterval(fn, ms)); }
   function ferma() { timers.forEach(clearInterval); timers = []; }
 
+  function leggiTema() {
+    try { return localStorage.getItem('vawos-tema') === 'day' ? 'day' : 'night'; }
+    catch (e) { return 'night'; }              // finestra privata: si resta di notte
+  }
+
   // ── Lettura dal server ───────────────────────────────────────────────────
   function leggi(icao) {
     var url = '/services/vawos/api/' + encodeURIComponent(icao);
+    var q = [];
     var prova = new URLSearchParams(location.search).get('test');
-    if (prova) url += '?test=' + encodeURIComponent(prova);
+    if (prova) q.push('test=' + encodeURIComponent(prova));
+    if (lvpInVigore) q.push('inforce=true');
+    if (q.length) url += '?' + q.join('&');
 
     fetch(url, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -75,6 +116,9 @@
         if (!d || !d.vista) return;            // niente da fare: il quadro invecchia e lo dice
         vista = d.vista;
         parole = { wx: d.wx || [], nubi: d.nubi || [] };
+        scritte = d.scritte || null;
+        var st = vista.lvp && vista.lvp.valutazione && vista.lvp.valutazione.stato;
+        lvpInVigore = st === 'InVigore' || st === 'Cancellabile';
         ultimoDato = Date.now();
         disegna();
       })
@@ -93,11 +137,10 @@
     testo($('[data-awos="vis"]'), (m && m.visibility) || '----');
     testo($('[data-awos="trend"]'), (m && m.trend) || '');
     testo($('[data-awos="attiva"]'), rigaAttiva());
+    lvp();
 
     var rep = $('[data-awos-pan="report"] div');
     if (rep) testo(rep, vista.metarRaw || 'No METAR available');
-
-    lvp();
 
     var a = vista.atis;
     testo($('[data-awos="atis-chi"]'), a ? a.callsign : '— ATIS —');
@@ -116,21 +159,16 @@
   // La pastiglia LVP e la fascia RVR che si accende. Il TESTO e il titolo li compone il server? No: qui
   // sono sigle (LVP, PREP, N/A), e le sigle non hanno una lingua. Il «(standard)» invece e' un fatto che il
   // server dichiara, e si ripete tale e quale.
+  // La pastiglia LVP e la fascia RVR che si accende. Testo, classe e spiegazione arrivano dal server: erano
+  // scritti due volte, e la coppia gemella (WX) era gia' divergita a schermo.
   function lvp() {
-    var v = vista.lvp && vista.lvp.valutazione;
     var el = $('[data-awos="lvp"]');
-    if (!el || !v) return;
-
-    var stato = v.stato === 'InVigore' ? 'LVP'
-              : v.stato === 'Preparazione' ? 'LVP PREP'
-              : v.stato === 'NonApplicabile' ? 'LVP N/A'
-              : v.stato === 'NonValutabile' ? 'LVP —' : 'LVP NIL';
-    var acceso = v.stato === 'InVigore' || v.stato === 'Preparazione';
-    if (acceso && !v.daiMinimiDelloScalo) stato += ' (standard)';
-    testo(el, stato);
-    el.classList.toggle('on', v.stato === 'InVigore');
-    el.classList.toggle('prep', v.stato === 'Preparazione');
-
+    if (!el || !scritte) return;
+    testo(el, scritte.lvpTesto);
+    el.title = scritte.lvpTitolo;
+    el.classList.toggle('on', scritte.lvpClasse === 'on');
+    el.classList.toggle('prep', scritte.lvpClasse === 'prep');
+    var acceso = scritte.lvpClasse === 'on' || scritte.lvpClasse === 'prep';
     $$('[data-awos-rvr]').forEach(function (r) { r.classList.toggle('lvp', acceso); });
   }
 
@@ -143,9 +181,9 @@
   }
 
   function striscia_(i, striscia) {
-    var attivaSx = eAttiva(striscia.left && striscia.left.ident);
-    var attivaDx = striscia.right && eAttiva(striscia.right.ident);
-    if (manuale[i]) { var t = attivaSx; attivaSx = attivaDx; attivaDx = t; }
+    var scelta = manuale[i];
+    var attivaSx = scelta ? scelta === 'L' : eAttiva(striscia.left && striscia.left.ident);
+    var attivaDx = scelta ? scelta === 'R' : (striscia.right && eAttiva(striscia.right.ident));
 
     var teste = $$('[data-awos-blocco="' + i + '"] .awos-testata');
     if (teste[0]) teste[0].classList.toggle('attiva', !!attivaSx);
@@ -155,60 +193,40 @@
     if (freccia) {
       freccia.style.transform = attivaDx ? 'scaleX(1)' : 'scaleX(-1)';
       var poly = freccia.querySelector('polygon');
-      if (poly) poly.setAttribute('fill', (attivaSx || attivaDx) ? (manuale[i] ? '#a08000' : '#2a8a3a') : '#8a8a8a');
+      if (poly) poly.setAttribute('fill', (attivaSx || attivaDx) ? (scelta ? '#a08000' : '#2a8a3a') : '#8a8a8a');
     }
 
-    rvr(i, striscia);
+    rvr(i);
   }
 
+  // ⚠️ `dep` e `arr` sono ELENCHI, non stringhe: un ATIS che dice «arrival runway 16L 16R» ne dichiara due.
+  // (Erano stringhe fino alla revisione del 12 settembre 2026, e trattarle ancora come tali qui alzava
+  // un'eccezione a ogni giro d'animazione.)
   function eAttiva(ident) {
     if (!ident || !vista || !vista.attiva) return false;
-    var a = vista.attiva;
-    return eq(a.dep, ident) || eq(a.arr, ident);
+    return contiene(vista.attiva.dep, ident) || contiene(vista.attiva.arr, ident);
   }
-  function eq(a, b) { return !!a && !!b && a.toUpperCase() === b.toUpperCase(); }
-
-  // 🔴 RVR assente ⇒ `///`, MAI «P2000»: nel prototipo un RVR che nessuno aveva misurato
-  // diventava «oltre 2 000 m» davanti a chi decide se si atterra.
-  function rvr(i, striscia) {
-    var m = vista && vista.metar;
-    var gruppi = (m && m.rvr) || [];
-    function per(ident) {
-      if (!ident) return '///';
-      for (var k = 0; k < gruppi.length; k++) if (eq(gruppi[k].runway, ident)) return scriviRvr(gruppi[k]);
-      return '///';
-    }
-    testo($('[data-awos-rvrv="' + i + '-tdz"]'), per(striscia.left && striscia.left.ident));
-    testo($('[data-awos-rvrv="' + i + '-end"]'), per(striscia.right && striscia.right.ident));
-
-    var esatti = gruppi.filter(function (g) {
-      return g.modifier === 'Exact' &&
-        (eq(g.runway, striscia.left && striscia.left.ident) || eq(g.runway, striscia.right && striscia.right.ident));
-    }).map(function (g) { return g.valueM; });
-    var media = esatti.length
-      ? String(Math.round(esatti.reduce(function (a, b) { return a + b; }, 0) / esatti.length / 50) * 50)
-      : '///';
-    testo($('[data-awos-rvrv="' + i + '-mid"]'), media);
+  function contiene(elenco, ident) {
+    if (!elenco || !elenco.length) return false;
+    for (var i = 0; i < elenco.length; i++) if (eq(elenco[i], ident)) return true;
+    return false;
   }
+  function eq(a, b) { return !!a && !!b && String(a).toUpperCase() === String(b).toUpperCase(); }
 
-  function scriviRvr(g) {
-    var p = g.modifier === 'Above' ? 'P' : g.modifier === 'Below' ? 'M' : '';
-    var t = g.tendency === 'Up' ? 'U' : g.tendency === 'Down' ? 'D' : g.tendency === 'Steady' ? 'N' : '';
-    return p + g.valueM + t;
+  // Le tre celle RVR: le scrive il server (AwosTesto.Rvr), qui si copiano. 🔴 Un RVR che il bollettino non
+  // da' resta `///`, mai «P2000»: la regola sta in un posto solo.
+  function rvr(i) {
+    var t = scritte && scritte.rvr && scritte.rvr[i];
+    if (!t) return;
+    testo($('[data-awos-rvrv="' + i + '-tdz"]'), t.tdz);
+    testo($('[data-awos-rvrv="' + i + '-mid"]'), t.mid);
+    testo($('[data-awos-rvrv="' + i + '-end"]'), t.end);
   }
 
   function rigaAttiva() {
-    if (!vista || !vista.attiva) return '';
-    var a = vista.attiva, da;
-    switch (a.sorgente) {
-      case 'Atis': da = 'from ATIS' + (a.dettaglio ? ' ' + a.dettaglio : ''); break;
-      case 'Regola': da = 'from rule ' + a.dettaglio; break;
-      case 'Vento': da = 'from wind (max headwind)'; break;
-      default: return 'RWY IN USE: — · no runway in use — calm or unknown wind';
-    }
-    if (Object.keys(manuale).some(function (k) { return manuale[k]; })) da = 'manual (was ' + da + ')';
-    var piste = eq(a.dep, a.arr) ? a.dep : (a.dep || '—') + ' DEP · ' + (a.arr || '—') + ' ARR';
-    return 'RWY IN USE: ' + piste + ' · ' + da;
+    var base_ = (scritte && scritte.rigaAttiva) || '';
+    var scelte = Object.keys(manuale).filter(function (k) { return manuale[k]; });
+    return scelte.length ? base_ + ' · manual' : base_;
   }
 
   // ── Il movimento: interpolazione DENTRO i valori dichiarati ──────────────
@@ -301,6 +319,10 @@
 
   // ── Tasti ────────────────────────────────────────────────────────────────
   function collegaTasti() {
+    // Una volta sola per nodo: `sincronizza` puo' richiamarci sullo stesso `.awos` (cambia solo l'ICAO),
+    // e due ascoltatori vorrebbero dire due inversioni della freccia per un clic solo.
+    if (radice.dataset.awosLegato === '1') return;
+    radice.dataset.awosLegato = '1';
     radice.addEventListener('click', function (e) {
       var t = e.target.closest('[data-awos-tema],[data-awos-mov],[data-awos-mask],[data-awos-chiudi],[data-awos-inverti]');
       if (!t) return;
@@ -317,8 +339,10 @@
         var p = $('[data-awos-pan="' + t.getAttribute('data-awos-chiudi') + '"]');
         if (p) p.hidden = true;
       } else {
+        // derivata → sinistra → destra → derivata. Tre stati e non due: su una striscia senza pista in uso
+        // un'inversione non aveva niente da invertire, e il tasto non faceva niente.
         var i = t.getAttribute('data-awos-inverti');
-        manuale[i] = !manuale[i];
+        manuale[i] = manuale[i] === 'L' ? 'R' : manuale[i] === 'R' ? undefined : 'L';
         if (vista) { striscia_(parseInt(i, 10), vista.piste[i]); testo($('[data-awos="attiva"]'), rigaAttiva()); }
       }
     });
@@ -339,6 +363,11 @@
     try { localStorage.setItem('vawos-tema', quale); } catch (e) { /* finestra privata: pazienza */ }
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', avvia);
-  else avvia();
+  // Il punto d'ingresso, e il nome che `vipi-boot.js` cerca per riagganciare il modulo dopo ogni
+  // navigazione. ⚠️ È anche ciò che lo SMONTA quando si va altrove: la lista dei riagganci gira su ogni
+  // pagina, non solo su questa.
+  window.vipiInitAwos = sincronizza;
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', sincronizza);
+  else sincronizza();
 })();

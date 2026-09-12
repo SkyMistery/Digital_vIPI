@@ -39,7 +39,12 @@
         ['aor',   '.aor-leaflet, .aor-chip, .cfg-btn, .cfg-collapse, [data-areacard]', 'vipiInitAor',   ['data-leaflet-src', 'data-leaflet-css']],
         ['mva',   '.mva-leaflet, .mva-base, .mva-chip',                                'vipiInitMva',   []],
         ['aor3d', '.aor3d-stage, .aor3d-z, .aor3d-legend, .aor3d-hint, .aor-vm-btn',   'vipiInitAor3d', ['data-three-src']],
-        ['tour',  '[data-tour]',                                                        'vipiMaybeTour', []]
+        ['tour',  '[data-tour]',                                                        'vipiMaybeTour', []],
+        // Il quadro vAWOS: il bersaglio è la sua radice. ⚠️ Sta qui e non in uno `<script>` per percorso
+        // (com'era fino al 12 settembre 2026, sera) per la ragione scritta in testa a questa lista: un
+        // elenco di indirizzi è una seconda copia delle rotte, e soprattutto uno script aggiunto dalla
+        // navigazione «enhanced» NON viene eseguito — il quadro arrivava fermo, con l'orologio che scorreva.
+        ['awos',  '.awos',                                                              'vipiInitAwos',  []]
     ];
 
     var caricati = {};

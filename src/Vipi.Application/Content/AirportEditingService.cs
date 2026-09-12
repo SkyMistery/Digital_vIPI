@@ -192,6 +192,16 @@ public sealed class AirportEditingService : IAirportEditingService
             if (row.LvpCeilingFt is int lc && row.PrepCeilingFt is int pc && lc > pc)
                 throw new ValidationException(Lingua("Il soffitto di LVP in vigore deve essere minore o uguale a quello di preparazione.",
                                                      "The in-force ceiling must be lower than or equal to the preparation one."));
+
+            // ⚠️ E la CANCELLAZIONE non può stare sotto la preparazione: le soglie di uscita sono più alte di
+            // quelle d'ingresso apposta (è l'isteresi, vedi LvpValutatore). Scritte al contrario si
+            // proporrebbe di cancellare le LVP mentre ci si sta ancora preparando a entrarci.
+            if (row.CancelRvrM is int cr && row.PrepRvrM is int pr2 && cr < pr2)
+                throw new ValidationException(Lingua("L'RVR di cancellazione deve essere maggiore o uguale a quello di preparazione.",
+                                                     "The cancellation RVR must be greater than or equal to the preparation one."));
+            if (row.CancelCeilingFt is int cc && row.PrepCeilingFt is int pc2 && cc < pc2)
+                throw new ValidationException(Lingua("Il soffitto di cancellazione deve essere maggiore o uguale a quello di preparazione.",
+                                                     "The cancellation ceiling must be greater than or equal to the preparation one."));
         }
         await _repo.SaveLvpAsync(Norm(icao), row, ct);
     }

@@ -80,7 +80,8 @@
             @* 🔴 Lo stato LVP è SUGGERITO: attivare le procedure di bassa visibilità è una decisione
                dell'aeroporto, dentro cui stanno cose che il METAR non sa. La pastiglia dice sempre da dove
                viene la soglia — «(standard)» quando lo scalo non ha minimi suoi. *@
-            <span class="awos-pastiglia lvp @LvpClasse()" data-awos="lvp" title="@LvpTitolo()">@LvpTesto()</span>
+            <span class="awos-pastiglia lvp @AwosTesto.LvpClasse(_vista.Lvp.Valutazione)" data-awos="lvp"
+                  title="@AwosTesto.LvpTitolo(_vista.Lvp.Valutazione)">@AwosTesto.LvpTesto(_vista.Lvp.Valutazione)</span>
             <span class="awos-pastiglia sim">ONLY FOR SIMULATION</span>
             <span class="awos-eta" data-awos-eta title="Age of the bulletin on screen">—</span>
             <button type="button" class="awos-btn" data-awos-mov aria-pressed="true"
@@ -126,6 +127,10 @@
     else
     {
         var m = _vista.Metar;
+        // ⚠️ Le scritte fisse le compone `AwosTesto`, lo stesso pezzo che usa l'endpoint a ogni giro: erano
+        // scritte due volte — qui e nel JavaScript — e una delle due coppie era già divergita a schermo
+        // (revisione del 12 settembre 2026, sera).
+        var scritte = AwosTesto.Scritte(_vista);
 
         @if (Authz.IsDivisionStaff)
         {
@@ -233,7 +238,7 @@
 
                     @if (i == 0)
                     {
-                        <div class="awos-sorgente" data-awos="attiva">@RigaAttiva()</div>
+                        <div class="awos-sorgente" data-awos="attiva">@scritte.RigaAttiva</div>
                     }
 
                     <div class="awos-vento">
@@ -244,10 +249,10 @@
                         </div>
                     </div>
 
-                    <div class="awos-rvr @(_vista.Lvp.Valutazione.Stato is LvpStato.Preparazione or LvpStato.InVigore ? "lvp" : "")" data-awos-rvr="@i">
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR TDZ (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-tdz">@Rvr(sinistra)</div></div>
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR MID (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-mid">@RvrMedio(striscia)</div></div>
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR END (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-end">@Rvr(destra)</div></div>
+                    <div class="awos-rvr @(_vista.Lvp.Valutazione.Stato is LvpStato.Preparazione or LvpStato.InVigore or LvpStato.Cancellabile ? "lvp" : "")" data-awos-rvr="@i">
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR TDZ (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-tdz">@scritte.Rvr[i].Tdz</div></div>
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR MID (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-mid">@scritte.Rvr[i].Mid</div></div>
+                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR END (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-end">@scritte.Rvr[i].End</div></div>
                     </div>
                 </div>
             }
@@ -319,46 +324,6 @@
 
     private static string N(int? v) => v?.ToString(Inv) ?? "--";
 
-    /// <summary>La pastiglia LVP: lo stato, e «(standard)» quando la soglia non è dello scalo.</summary>
-    private string LvpTesto()
-    {
-        var v = _vista!.Lvp.Valutazione;
-        var stato = v.Stato switch
-        {
-            LvpStato.InVigore => "LVP",
-            LvpStato.Preparazione => "LVP PREP",
-            LvpStato.NonApplicabile => "LVP N/A",
-            LvpStato.NonValutabile => "LVP —",
-            _ => "LVP NIL",
-        };
-        var daStandard = v.Stato is LvpStato.Preparazione or LvpStato.InVigore && !v.DaiMinimiDelloScalo;
-        return daStandard ? stato + " (standard)" : stato;
-    }
-
-    private string LvpClasse() => _vista!.Lvp.Valutazione.Stato switch
-    {
-        LvpStato.InVigore => "on",
-        LvpStato.Preparazione => "prep",
-        _ => "",
-    };
-
-    /// <summary>Il perché, per esteso: da dove viene la misura e da dove vengono le soglie.</summary>
-    private string LvpTitolo()
-    {
-        var v = _vista!.Lvp.Valutazione;
-        if (v.Stato == LvpStato.NonApplicabile) return "This airport does not operate LVP.";
-        if (v.Stato == LvpStato.NonValutabile) return "No minima or no weather data to compare.";
-        var misura = v.Misura switch
-        {
-            LvpMisura.Rvr => $"RVR {v.RvrM} m",
-            LvpMisura.Visibilita => $"visibility {v.RvrM} m (no RVR reported)",
-            _ => "no visibility measure",
-        };
-        var soffitto = v.CeilingFt is int c ? $", ceiling {c} ft" : ", no ceiling";
-        var soglie = v.DaiMinimiDelloScalo ? "airport minima" : "standard minima (this airport declares none)";
-        return $"Suggested from {misura}{soffitto} against {soglie}. Activating LVP remains the airport's decision.";
-    }
-
     /// <summary>Tre righe sempre: il riquadro non deve cambiare altezza quando il tempo peggiora.</summary>
     private static IEnumerable<string> Tre(IEnumerable<string> righe)
     {
@@ -367,62 +332,14 @@
         return l;
     }
 
-    private bool Attiva(string? ident) =>
-        ident is not null && _vista is not null
-        && (string.Equals(_vista.Attiva.Dep, ident, StringComparison.OrdinalIgnoreCase)
-            || string.Equals(_vista.Attiva.Arr, ident, StringComparison.OrdinalIgnoreCase));
-
-    /// <summary>La riga che dice CHI ha scelto la pista. Un quadro che non lo dice si finisce per girarlo a mano.</summary>
-    private string RigaAttiva()
-    {
-        if (_vista is null) return "";
-        var a = _vista.Attiva;
-        var da = a.Sorgente switch
-        {
-            AwosRunwaySource.Atis => $"from ATIS{(a.Dettaglio is null ? "" : " " + a.Dettaglio)}",
-            AwosRunwaySource.Regola => $"from rule {a.Dettaglio}",
-            AwosRunwaySource.Vento => "from wind (max headwind)",
-            _ => "no runway in use — calm or unknown wind",
-        };
-        if (a.Sorgente == AwosRunwaySource.Nessuna) return $"RWY IN USE: — · {da}";
-        var piste = string.Equals(a.Dep, a.Arr, StringComparison.OrdinalIgnoreCase)
-            ? a.Dep
-            : $"{a.Dep ?? "—"} DEP · {a.Arr ?? "—"} ARR";
-        return $"RWY IN USE: {piste} · {da}";
-    }
+    /// <summary>Questa testata è in uso. ⚠️ Lo chiede al MODELLO: le piste in uso sono un elenco — un ATIS
+    /// che dice «arrival runway 16L 16R» ne dichiara due — e confrontarle a una a una qui vorrebbe dire
+    /// riscrivere la stessa regola in una pagina.</summary>
+    private bool Attiva(string? ident) => _vista?.Attiva.Comprende(ident) == true;
 
     private IEnumerable<AwosEnd> Testate() =>
         _vista is null ? Array.Empty<AwosEnd>()
                        : _vista.Piste.SelectMany(s => s.Right is null ? new[] { s.Left } : new[] { s.Left, s.Right });
-
-    /// <summary>
-    /// L'RVR di una testata, o <c>///</c>.
-    /// <para>🔴 Mai <c>P2000</c> per «non ce l'ho»: nel prototipo un RVR assente diventava «oltre 2 000 m»,
-    /// cioè un valore che nessuno ha misurato messo davanti a chi decide se si atterra.</para>
-    /// </summary>
-    private string Rvr(AwosEnd? end)
-    {
-        if (end is null || _vista?.Metar is null) return "///";
-        var g = _vista.Metar.RvrGroups.FirstOrDefault(r => string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
-        return g is null ? "///" : Testo(g);
-    }
-
-    private string RvrMedio(AwosStrip s)
-    {
-        if (_vista?.Metar is null) return "///";
-        var validi = _vista.Metar.RvrGroups
-            .Where(r => string.Equals(r.Runway, s.Left.Ident, StringComparison.OrdinalIgnoreCase)
-                        || (s.Right is not null && string.Equals(r.Runway, s.Right.Ident, StringComparison.OrdinalIgnoreCase)))
-            .Where(r => r.Modifier == RvrModifier.Exact)
-            .Select(r => r.ValueM).ToList();
-        // Solo sui valori ESATTI: mediare un «oltre 2 000» vorrebbe dire prendere per misura un fondo scala.
-        return validi.Count == 0 ? "///" : ((int)Math.Round(validi.Average() / 50.0) * 50).ToString(Inv);
-    }
-
-    private static string Testo(RunwayVisualRange r) =>
-        (r.Modifier switch { RvrModifier.Above => "P", RvrModifier.Below => "M", _ => "" })
-        + r.ValueM.ToString(Inv)
-        + r.Tendency switch { RvrTendency.Up => "U", RvrTendency.Down => "D", RvrTendency.Steady => "N", _ => "" };
 
     /// <summary>
     /// Un pannello vento. I due di una striscia hanno la STESSA sorgente — il vento è uno — e cambiano solo

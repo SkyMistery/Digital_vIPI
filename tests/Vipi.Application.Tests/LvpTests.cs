@@ -100,6 +100,64 @@ public class LvpTests
         Assert.Equal(LvpStato.InVigore, LvpValutatore.Valuta(Minimi(), 549, null, null).Stato);
     }
 
+    // ─── L'isteresi: le soglie di cancellazione (revisione del 12 settembre 2026) ───────────────────
+
+    [Fact] // 🔴 in vigore + dato risalito SOPRA la cancellazione ⇒ si propone di uscirne
+    public void Risalito_Sopra_La_Cancellazione_Si_Puo_Cancellare()
+    {
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: 1200, visibilitaM: null, ceilingFt: 900, giaInVigore: true);
+        Assert.Equal(LvpStato.Cancellabile, e.Stato);
+    }
+
+    [Fact] // 🔴 in vigore + dato risalito solo SOPRA L'INGRESSO ⇒ restano in vigore, non si sfarfalla
+    public void Fra_Ingresso_E_Cancellazione_Restano_In_Vigore()
+    {
+        // 700 m: sopra i 550 dell'ingresso, sotto gli 800 della cancellazione.
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: 700, visibilitaM: null, ceilingFt: 900, giaInVigore: true);
+        Assert.Equal(LvpStato.InVigore, e.Stato);
+
+        // Senza la memoria, lo stesso dato è solo «preparazione»: è tutta la differenza che fa l'isteresi.
+        Assert.Equal(LvpStato.Preparazione,
+            LvpValutatore.Valuta(Minimi(), rvrM: 700, visibilitaM: null, ceilingFt: 900).Stato);
+    }
+
+    [Fact] // 🔴 per USCIRE devono essere risalite TUTT'E DUE: si entra con «o», si esce con «e»
+    public void Per_Uscire_Servono_Tutte_E_Due_Le_Misure()
+    {
+        // RVR ottimo ma soffitto ancora a 100 ft: non si propone di cancellare niente.
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: 2000, visibilitaM: null, ceilingFt: 100, giaInVigore: true);
+        Assert.Equal(LvpStato.InVigore, e.Stato);
+    }
+
+    [Fact] // nessuna soglia di cancellazione dichiarata: non si propone niente, e a togliere e' una persona
+    public void Senza_Soglie_Di_Cancellazione_Non_Si_Propone()
+    {
+        var senza = new LvpRow(1, true, 800, 300, 550, 200, null, null, null);
+        var e = LvpValutatore.Valuta(senza, rvrM: 5000, visibilitaM: null, ceilingFt: 5000, giaInVigore: true);
+        Assert.Equal(LvpStato.InVigore, e.Stato);
+    }
+
+    [Fact] // una misura che MANCA non fa risalire niente: non si dichiara migliorato quel che non si misura
+    public void Una_Misura_Mancante_Non_Fa_Cancellare()
+    {
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: null, visibilitaM: null, ceilingFt: 900, giaInVigore: true);
+        Assert.Equal(LvpStato.InVigore, e.Stato);
+    }
+
+    [Fact] // sotto la soglia d'ingresso resta «in vigore» anche con la memoria: l'isteresi non la scavalca
+    public void Sotto_L_Ingresso_Resta_In_Vigore()
+    {
+        Assert.Equal(LvpStato.InVigore,
+            LvpValutatore.Valuta(Minimi(), rvrM: 300, visibilitaM: null, ceilingFt: 100, giaInVigore: true).Stato);
+    }
+
+    [Fact] // un documento non ha memoria: passa false e la cancellazione non si presenta MAI
+    public void Senza_Memoria_La_Cancellazione_Non_Esiste()
+    {
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: 1200, visibilitaM: null, ceilingFt: 900);
+        Assert.Equal(LvpStato.Nil, e.Stato);
+    }
+
     [Fact] // i valori standard sono quelli scritti nella carta, in un posto solo
     public void Lo_Standard_E_Quello_Della_Carta()
     {

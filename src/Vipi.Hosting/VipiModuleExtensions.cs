@@ -225,6 +225,16 @@ public static class VipiModuleExtensions
     }
 
     /// <summary>Richieste al minuto per IP sull'archivio ATC: un cliente onesto sincronizza, non sfoglia.</summary>
+    /// <summary>
+    /// Tetti del quadro vAWOS. Una scheda aperta interroga <b>una volta al minuto</b>: dieci al minuto per IP
+    /// sono nove schede di margine più i ricarichi, e chi ne apre di più non sta guardando il meteo.
+    /// <para>⚠️ Ce ne voleva uno: l'endpoint è pubblico e anonimo come gli altri due, e costa una lettura
+    /// dell'elenco documenti più il profilo dello scalo. Senza tetto, quante richieste al minuto arrivano su
+    /// un processo solo lo decide chi chiama (revisione del 12 settembre 2026, sera).</para>
+    /// </summary>
+    private const int AwosRichiesteAlMinutoPerIp = 10;
+    private const int AwosRichiesteAlMinutoTotali = 600;
+
     private const int ArchivioRichiesteAlMinutoPerIp = 30;
 
     /// <summary>Tetto complessivo dell'archivio ATC: è quello che regge davvero, l'IP dietro il proxy lo sceglie chi chiama.</summary>
@@ -342,16 +352,35 @@ public static class VipiModuleExtensions
         endpoints.MapGet("/services/vawos/api/{icao}", async (
             string icao,
             string? test,
+            bool? inforce,
             HttpContext ctx,
             Vipi.Application.Awos.IAwosService awos,
             IEditAuthorizationService authz,
             IStringLocalizer<Vipi.Ui.SharedResource> testi,
+            RequestRateLimiter limiter,
             CancellationToken ct) =>
         {
+            // Stesso cancello degli altri due endpoint pubblici, e per la stessa ragione: qui una richiesta
+            // costa due interrogazioni al database, e chi le chiede è anonimo.
+            if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, AwosRichiesteAlMinutoTotali))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+            var chiamante = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
+            if (!limiter.TryAcquire("awos:" + chiamante, AwosRichiesteAlMinutoPerIp, ArchivioClientiTracciati))
+            {
+                ctx.Response.Headers.RetryAfter = "60";
+                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
+            }
+
             // Il METAR di prova è dello staff, come il tasto che lo apre: qui la guardia si ripete perché
             // questa è una porta sua, e una porta non si fida di chi ha bussato all'altra.
             var prova = authz.IsDivisionStaff && !string.IsNullOrWhiteSpace(test) ? test!.Trim() : null;
-            var esito = await awos.BuildAsync(icao, authz.IsEditor, prova, ct);
+            // ⚠️ `inforce` è la MEMORIA del quadro, non un permesso: dice che un minuto fa le LVP erano in
+            // vigore, e serve all'isteresi delle soglie di cancellazione. Chi lo falsifica ottiene, al
+            // massimo, di vedersi suggerire una cancellazione a casa sua.
+            var esito = await awos.BuildAsync(icao, authz.IsEditor, prova, inforce == true, ct);
             if (esito.Vista is null) return Results.NotFound(new { esito = esito.Esito.ToString() });
 
             // ⚠️ Le due righe che hanno una LINGUA (tempo presente e nubi) le compone `AwosTesto`, lo stesso
@@ -361,7 +390,8 @@ public static class VipiModuleExtensions
             var payload = new Vipi.Ui.Shared.AwosPayload(
                 esito.Vista,
                 Vipi.Ui.Shared.AwosTesto.TempoPresente(esito.Vista.Metar, k => testi[k].Value),
-                Vipi.Ui.Shared.AwosTesto.Nubi(esito.Vista.Metar));
+                Vipi.Ui.Shared.AwosTesto.Nubi(esito.Vista.Metar),
+                Vipi.Ui.Shared.AwosTesto.Scritte(esito.Vista));
 
             ctx.Response.Headers.CacheControl = "no-store";
             return Results.Json(payload, AwosJson);

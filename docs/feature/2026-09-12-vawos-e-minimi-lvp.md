@@ -474,3 +474,81 @@ Sono la ragione per cui il runbook pretende la verifica dal vivo: la suite era v
 [[catalogo-sezioni-fonte-unica]] · [[indice-del-sod]] · [[regole-piste-giorno-operativo]] ·
 [[piste-colonne-a-chip]] · [[quote-transizione-colonna-destra]] · [[riconnessione-circuito]] ·
 [[avviso-di-simulazione]] · [[tasto-spento-dice-perche]] · [[finestra-cieca-al-16-settembre]]
+
+---
+
+## 10. La revisione indipendente (12 settembre 2026, sera) — dieci rilievi, tutti chiusi
+
+Riletto come se il codice l'avesse scritto un altro, cercando i guasti invece delle conferme. **Due difetti
+riprodotti in un browser vero**, non dedotti; gli altri otto sono debiti di struttura o di copertura.
+
+### 🔴 1-2. Il quadro moriva con la navigazione «enhanced», e i suoi timer no
+
+Una causa sola: il modulo dava per buono che **un caricamento = un pannello**.
+
+| | misurato prima | misurato dopo |
+|---|---|---|
+| hub → `/services/vawos` → clic su un ICAO | **zero** chiamate all'API, età ferma a «—», **orologio che scorreva** | una chiamata, età «1s» |
+| entrata da un'altra pagina del sito | lo `<script>` per percorso **non viene eseguito** dalla navigazione enhanced | il modulo arriva e si aggancia |
+| uscita verso `/services` | una chiamata a `/services/vawos/api/LIRN` **due minuti dopo** | zero chiamate in 66 s |
+
+Il primo caso è il **percorso di scoperta normale** — la card dell'hub porta lì — e il quadro restava fermo
+*con l'aria di essere vivo*: esattamente la bugia che l'invecchiamento del dato doveva impedire.
+
+**La cura**: il modulo entra nella macchina dei **moduli pigri** di `vipi-boot.js`, che il progetto ha già e
+che sceglie **sul DOM, non sull'indirizzo** — è scritto nella nota in testa a quella lista, e non l'avevo
+seguita. `vipiInitAwos` si chiama a ogni navigazione: se il quadro c'è si (ri)aggancia all'aeroporto che
+trova, se non c'è **spegne i timer**.
+
+### 🟠 3. Le soglie di cancellazione erano inerti
+
+Si scrivevano, si mostravano, si precompilavano — e nessuno le leggeva. La carta (§5.6) prometteva il
+suggerimento di cancellazione: non era stato consegnato.
+
+Ora c'è l'**isteresi** vera: `LvpValutatore.Valuta(..., giaInVigore)`. Sotto la soglia d'ingresso si entra;
+risaliti fra ingresso e cancellazione **si resta in vigore** (o si sfarfalla a ogni metro di RVR); sopra la
+cancellazione si propone di uscire. ⚠️ Per **entrare** basta una misura bassa («o»), per **uscire** devono
+essere risalite **tutt'e due** («e») — scritto con un «o» si proporrebbe di cancellare col soffitto a 100 ft.
+⚠️ La memoria ce l'ha solo il **quadro** e gliela rimanda al server (`?inforce=`): un documento si rende da
+capo ogni volta e quello stato non lo mostra mai, che è la risposta giusta a una domanda che non può porsi.
+Aggiunta anche la validazione che mancava: la cancellazione non può stare **sotto** la preparazione.
+
+### 🟠 4-5. Un endpoint pubblico senza tetto, e due letture per pagina
+
+`/services/vawos/api/{icao}` è anonimo e costa due interrogazioni: ora ha il **limitatore** degli altri due
+endpoint pubblici (10/min per IP, 600 globali). Provato: dieci `200` poi `429`, da due client diversi.
+E `ElencoAsync` + `BuildAsync` leggevano **due volte** l'elenco completo dei documenti a ogni resa: ora la
+lettura è memoizzata nello **scope della richiesta** — non è una cache con un problema di freschezza, è la
+stessa domanda posta due volte nello stesso istante.
+
+### 🟡 6. Cinque coppie di logica scritte due volte, in C# e in JavaScript
+
+Riga «RWY IN USE», pastiglia LVP (testo, classe, spiegazione) e le tre celle RVR: ora le compone
+`AwosTesto.Scritte`, **un posto solo**, che serve la pagina al primo disegno e l'endpoint a ogni giro.
+Una di quelle coppie era **già divergita** durante lo sviluppo (WX ai codici grezzi dopo un minuto).
+⚠️ Restano fuori le sole due che si **animano** — direzione/velocità e traverso/coda — e non è una svista:
+sono diverse a ogni fotogramma, e il server non può scriverle.
+
+### 🟡 7-8. Un null-forgiving su una pagina pubblica, e il cancello senza rete
+
+`View.Minimi!` stava su un dato che arriva **deserializzato** da uno snapshot di release: ora la guardia è
+sul nullo, e nel dubbio il documento dice «non dichiarati» invece di non aprirsi.
+Il cancello era provato **solo dal vivo**: le sue tre decisioni (chi entra, che cosa si elenca, quale ATIS
+conta) sono uscite dal servizio in `AwosGate`, **pure**, e hanno **17 test** — compresi il documento
+nascosto, la release non effettiva, e il callsign di un altro scalo che non deve parlare per questo.
+
+### ⚪ 9-10. Le due minori
+
+- Un ATIS che dice «arrival runway 16L 16R» dichiara **due** piste, e se ne marcava una: `AwosActive.Dep/Arr`
+  sono ora **elenchi**. ⚠️ Il cambio ha rotto `eAttiva` nel JavaScript (trattava ancora stringhe) — trovato
+  rileggendo, sarebbe esploso a ogni giro d'animazione.
+- La freccia col vento calmo era **un gesto che non faceva niente**: non c'era una pista attiva da invertire.
+  Ora il clic **sceglie**, con un giro a tre stati (derivata → sinistra → destra → derivata) e la riga sotto
+  che scrive «manual».
+
+### Che cosa regge, e resta vero
+
+Cancello a basso livello (404 sul non pubblicato, `?test=` ignorato a chi non è staff), nessuna copia del
+dato LVP fra vIPI e vSOP, accoppiamento piste col lato speculare, migrazione additiva su due provider,
+nessun `innerHTML` con dati esterni. Suite verde sui due TFM (2488 + 1512 + 1373 + 319) e build Release a
+zero avvisi.

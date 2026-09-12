@@ -139,8 +139,8 @@ public class AwosCompositionTests
             atisDep: new[] { "34L" }, atisArr: new[] { "34R" }, daChi: "LIRF_TWR");
 
         Assert.Equal(AwosRunwaySource.Atis, attiva.Sorgente);
-        Assert.Equal("34L", attiva.Dep);
-        Assert.Equal("34R", attiva.Arr);
+        Assert.Equal(new[] { "34L" }, attiva.Dep);
+        Assert.Equal(new[] { "34R" }, attiva.Arr);
         Assert.Equal("LIRF_TWR", attiva.Dettaglio);
     }
 
@@ -152,8 +152,8 @@ public class AwosCompositionTests
             new[] { Regola("16R", "16L", "Config 16") }, new[] { "16L", "16R", "34L", "34R" }, metar);
 
         Assert.Equal(AwosRunwaySource.Regola, attiva.Sorgente);
-        Assert.Equal("16R", attiva.Dep);
-        Assert.Equal("16L", attiva.Arr);
+        Assert.Equal(new[] { "16R" }, attiva.Dep);
+        Assert.Equal(new[] { "16L" }, attiva.Arr);
         Assert.Equal("Config 16", attiva.Dettaglio);
     }
 
@@ -165,7 +165,7 @@ public class AwosCompositionTests
             new[] { Regola("16R", "16L", "Config 16", coda: 5) }, new[] { "16L", "16R", "34L", "34R" }, metar);
 
         Assert.Equal(AwosRunwaySource.Vento, attiva.Sorgente);
-        Assert.StartsWith("34", attiva.Dep);
+        Assert.StartsWith("34", Assert.Single(attiva.Dep));
     }
 
     [Fact] // vento calmo e nessuna regola: NESSUNA pista, non una a caso
@@ -175,7 +175,31 @@ public class AwosCompositionTests
         var attiva = AwosComposition.PistaAttiva(Array.Empty<RunwayRuleRow>(), new[] { "16L", "34R" }, metar);
 
         Assert.Equal(AwosRunwaySource.Nessuna, attiva.Sorgente);
-        Assert.Null(attiva.Dep);
+        Assert.Empty(attiva.Dep);
+    }
+
+    [Fact] // 🔴 un ATIS con DUE piste in arrivo le marca TUTT'E DUE (rilievo della revisione, 12-set sera)
+    public void L_atis_con_due_piste_non_ne_perde_una()
+    {
+        var metar = MetarParser.ParseMetar("LIRF 121250Z 16008KT 9999 NSC 12/08 Q1013");
+        var attiva = AwosComposition.PistaAttiva(
+            Array.Empty<RunwayRuleRow>(), new[] { "16L", "16R", "34L", "34R" }, metar,
+            atisDep: new[] { "25" }, atisArr: new[] { "16L", "16R" }, daChi: "LIRF_TWR");
+
+        Assert.Equal(new[] { "16L", "16R" }, attiva.Arr);
+        Assert.True(attiva.Comprende("16R"));
+        Assert.True(attiva.Comprende("16l"));      // e non bada alle maiuscole
+        Assert.False(attiva.Comprende("34L"));
+    }
+
+    [Fact] // una regola con due piste DEP le tiene tutt'e due
+    public void Una_regola_con_due_piste_le_tiene_tutte()
+    {
+        var metar = MetarParser.ParseMetar("LIRF 121250Z 16008KT 9999 NSC 12/08 Q1013");
+        var attiva = AwosComposition.PistaAttiva(
+            new[] { Regola("16R,16L", "16L", "Config 16") }, new[] { "16L", "16R" }, metar);
+
+        Assert.Equal(new[] { "16R", "16L" }, attiva.Dep);
     }
 
     [Fact] // senza METAR il quadro non inventa una configurazione

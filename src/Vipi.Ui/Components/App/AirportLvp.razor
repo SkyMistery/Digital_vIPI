@@ -10,7 +10,12 @@
 @using Vipi.Application.Content
 @inject IStringLocalizer<SharedResource> L
 
-@if (!View.Dichiarati && View.Minimi is null)
+@* ⚠️ `Minimi is null` PRIMA di tutto, e non solo insieme a «non dichiarati»: questa vista arriva anche da
+   uno snapshot di release DESERIALIZZATO, e una fotografia scritta da una versione futura (o corretta a
+   mano) con «dichiarati» e nessun minimo farebbe saltare la pagina PUBBLICA con un riferimento nullo. Un
+   documento che dice «non dichiarati» è sbagliato al più in una parola; uno che non si apre è rotto.
+   Rilevato in revisione il 12 settembre 2026, sera. *@
+@if (View.Minimi is null)
 {
     <p class="muted" style="font-size:13px;margin:0">@L["Lvp_NonDichiarati"]</p>
 }
@@ -25,7 +30,7 @@ else if (!View.Dichiarati)
 }
 else
 {
-    var m = View.Minimi!;
+    var m = View.Minimi;
     <p class="muted" style="font-size:12.5px;margin:0 0 8px">@L["Lvp_Lead"]</p>
     <table class="res-table" style="max-width:560px">
         <thead>

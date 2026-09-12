@@ -78,9 +78,23 @@ public sealed record AwosStrip(AwosEnd Left, AwosEnd? Right);
 /// <para>⚠️ <see cref="Dettaglio"/> non è decorazione: un quadro che dice la pista senza dire da dove viene è
 /// la ragione per cui quello del prototipo va girato a mano.</para>
 /// </summary>
-public sealed record AwosActive(string? Dep, string? Arr, AwosRunwaySource Sorgente, string? Dettaglio)
+/// <param name="Dep">
+/// Le piste in partenza, <b>tutte</b> quelle dichiarate.
+/// <para>⚠️ È un elenco e non una stringa: un ATIS che dice «arrival runway 16L 16R» ne dichiara due, e
+/// tenendo solo la prima il quadro lasciava spenta una pista che è in uso (revisione del 12 settembre
+/// 2026, sera).</para>
+/// </param>
+public sealed record AwosActive(IReadOnlyList<string> Dep, IReadOnlyList<string> Arr,
+                                AwosRunwaySource Sorgente, string? Dettaglio)
 {
-    public static readonly AwosActive Nessuna = new(null, null, AwosRunwaySource.Nessuna, null);
+    public static readonly AwosActive Nessuna =
+        new(Array.Empty<string>(), Array.Empty<string>(), AwosRunwaySource.Nessuna, null);
+
+    /// <summary>Questa testata è in uso, in partenza o in arrivo.</summary>
+    public bool Comprende(string? ident) =>
+        ident is not null
+        && (Dep.Contains(ident, StringComparer.OrdinalIgnoreCase)
+            || Arr.Contains(ident, StringComparer.OrdinalIgnoreCase));
 }
 
 /// <summary>

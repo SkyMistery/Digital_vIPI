@@ -129,8 +129,12 @@ public static partial class AwosComposition
     {
         if (atisDep is { Count: > 0 } || atisArr is { Count: > 0 })
         {
-            var dep = Prima(atisDep) ?? Prima(atisArr);
-            var arr = Prima(atisArr) ?? Prima(atisDep);
+            // ⚠️ TUTTE, non la prima: «arrival runway 16L 16R» sono due piste in arrivo, e marcarne una
+            // sola lascerebbe spenta una testata su cui stanno atterrando.
+            var partenze = Tutte(atisDep);
+            var arrivi = Tutte(atisArr);
+            var dep = partenze.Count > 0 ? partenze : arrivi;
+            var arr = arrivi.Count > 0 ? arrivi : partenze;
             return new AwosActive(dep, arr, AwosRunwaySource.Atis, daChi);
         }
 
@@ -142,7 +146,7 @@ public static partial class AwosComposition
             var bagnata = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
             var esito = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(regole), dir, kt, bagnata, DateTime.UtcNow);
             if (esito is not null)
-                return new AwosActive(Prima(Spezza(esito.Dep)), Prima(Spezza(esito.Arr)), AwosRunwaySource.Regola,
+                return new AwosActive(Spezza(esito.Dep), Spezza(esito.Arr), AwosRunwaySource.Regola,
                                       esito.RuleName ?? $"#{esito.RuleIndex + 1}");
         }
 
@@ -150,13 +154,15 @@ public static partial class AwosComposition
         {
             var s = RunwaySuggestion.Suggest(piste, dir, kt);
             if (s.Best is not null)
-                return new AwosActive(s.DepIdent ?? s.Best.Ident, s.ArrIdent ?? s.Best.Ident, AwosRunwaySource.Vento, null);
+                return new AwosActive(new[] { s.DepIdent ?? s.Best.Ident }, new[] { s.ArrIdent ?? s.Best.Ident },
+                                      AwosRunwaySource.Vento, null);
         }
 
         return AwosActive.Nessuna;
     }
 
-    private static string? Prima(IReadOnlyList<string>? v) => v is { Count: > 0 } ? v[0] : null;
+    private static IReadOnlyList<string> Tutte(IReadOnlyList<string>? v) =>
+        v is { Count: > 0 } ? v : Array.Empty<string>();
 
     private static IReadOnlyList<string> Spezza(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

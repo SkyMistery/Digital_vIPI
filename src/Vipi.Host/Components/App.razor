@@ -33,11 +33,14 @@
         <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-swapper.css")" />
     }
     @* Stessa regola del foglio qui sopra, e stessa ragione: il quadro vAWOS serve a UNA rotta sola
-       (/services/vawos) e ha una tavolozza sua, che sulle altre pagine sarebbe peso morto. *@
+       (/services/vawos) e ha una tavolozza sua, che sulle altre pagine sarebbe peso morto.
+       ⚠️ Il FOGLIO sta qui, il suo JAVASCRIPT no: quello lo carica `vipi-boot.js` guardando il DOM, come
+       mappe e minime. Un `<script>` messo qui per percorso non viene ESEGUITO quando ci si arriva con una
+       navigazione «enhanced» — Blazor rimpiazza il DOM ma non esegue gli script che vi trova — e il quadro
+       resterebbe fermo con l'aria di essere vivo. *@
     @if (Nav.ToBaseRelativePath(Nav.Uri).StartsWith("services/vawos", StringComparison.OrdinalIgnoreCase))
     {
         <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.css")" />
-        <script defer src="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.js")"></script>
     }
     <link rel="stylesheet" href="@AssetVersion.Url("Vipi.Host.styles.css")" />
     <!-- Reset di pagina dell'host standalone: il modulo non tocca più body/html (stili confinati in .vipi-root). -->
@@ -139,7 +142,8 @@
             data-mva-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-mva.js")"
             data-aor3d-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.js")"
             data-three-src="@AssetVersion.Url("_content/Vipi.Ui/vendor/three.min.js")"
-            data-tour-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"></script>
+            data-tour-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"
+            data-awos-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.js")"></script>
 </body>
 
 </html>
