@@ -254,9 +254,17 @@
                     </div>
 
                     <div class="awos-rvr @(_vista.Lvp.Valutazione.Stato is LvpStato.Preparazione or LvpStato.InVigore or LvpStato.Cancellabile ? "lvp" : "")" data-awos-rvr="@i">
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR TDZ (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-tdz">@scritte.Rvr[i].Tdz</div></div>
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR MID (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-mid">@scritte.Rvr[i].Mid</div></div>
-                        <div class="awos-rvr-f"><div class="awos-rvr-l">RVR END (m)</div><div class="awos-rvr-v" data-awos-rvrv="@i-end">@scritte.Rvr[i].End</div></div>
+                        @* Una cella PER TESTATA, col suo ident. Il METAR dà l'RVR per testata, non i tre
+                           sensori TDZ/MID/END del quadro reale: una cella «MID» sarebbe la media delle due,
+                           cioè un numero che nessuno ha misurato sotto il nome di un sensore che non c'è. *@
+                        @for (var k = 0; k < scritte.Rvr[i].Count; k++)
+                        {
+                            var cella = scritte.Rvr[i][k];
+                            <div class="awos-rvr-f">
+                                <div class="awos-rvr-l">RVR @cella.Testata (m)</div>
+                                <div class="awos-rvr-v" data-awos-rvrv="@i-@k">@cella.Valore</div>
+                            </div>
+                        }
                     </div>
                 </div>
             }

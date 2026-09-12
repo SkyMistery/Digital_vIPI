@@ -212,14 +212,12 @@
   }
   function eq(a, b) { return !!a && !!b && String(a).toUpperCase() === String(b).toUpperCase(); }
 
-  // Le tre celle RVR: le scrive il server (AwosTesto.Rvr), qui si copiano. 🔴 Un RVR che il bollettino non
-  // da' resta `///`, mai «P2000»: la regola sta in un posto solo.
+  // Le celle RVR — UNA PER TESTATA — le scrive il server (AwosTesto.Rvr), qui si copiano. 🔴 Un RVR che il
+  // bollettino non da' resta `///`, mai «P2000» e mai una media: la regola sta in un posto solo.
   function rvr(i) {
-    var t = scritte && scritte.rvr && scritte.rvr[i];
-    if (!t) return;
-    testo($('[data-awos-rvrv="' + i + '-tdz"]'), t.tdz);
-    testo($('[data-awos-rvrv="' + i + '-mid"]'), t.mid);
-    testo($('[data-awos-rvrv="' + i + '-end"]'), t.end);
+    var celle = scritte && scritte.rvr && scritte.rvr[i];
+    if (!celle) return;
+    for (var k = 0; k < celle.length; k++) testo($('[data-awos-rvrv="' + i + '-' + k + '"]'), celle[k].valore);
   }
 
   function rigaAttiva() {

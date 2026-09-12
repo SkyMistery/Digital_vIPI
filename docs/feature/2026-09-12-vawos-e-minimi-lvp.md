@@ -593,10 +593,24 @@ sappiamo che si muove.
 Provato a schermo con `24018G32KT 200V280`: otto campioni in sette secondi, **identici** — DIR 240, SPEED 18,
 EXTREMES 200/280, GUST 32, e sulla 07 coda 18 kt in rosso, ferma.
 
-### ▶ Resta aperta una domanda della stessa famiglia: **RVR MID**
+### ✅ E la stessa regola ha chiuso **RVR MID**
 
-La fascia RVR ha tre celle — TDZ, MID, END — perché il quadro vero ha tre sensori lungo la pista. Il METAR
-non li ha: dà un valore **per testata**. Oggi il quadro mette in TDZ l'RVR della testata sinistra, in END
-quella della destra, e in **MID la media delle due** — cioè un numero che nessuno ha misurato, sotto il nome
-di un sensore. È lo stesso difetto appena chiuso sul vento, e va deciso: togliere la cella MID, o lasciarla
-sempre a `///`, o rinominare le tre celle con le testate a cui appartengono.
+La fascia RVR aveva tre celle — TDZ, MID, END — perché il quadro vero ha tre sensori lungo la pista. **Il
+METAR non li ha**: dà un valore **per testata**. Quel «MID» era la **media delle due**, cioè un numero che
+nessuno ha misurato sotto il nome di un sensore che non abbiamo. Lo stesso difetto del vento, scritto con
+un'altra formula.
+
+Deciso dal committente: **rinominare le celle con le testate a cui appartengono**. Da cui, per forza, il
+numero delle celle segue la pista invece di essere tre fisse:
+
+| prima | adesso |
+|---|---|
+| `RVR TDZ` · `RVR MID` · `RVR END` | `RVR 07` · `RVR 25` |
+| MID = media di TDZ e END | la cella non esiste: non c'è una testata a cui appartenga |
+| END = l'RVR dell'altra testata, sotto il nome di un sensore di questa | ogni cella porta l'ident di cui parla |
+
+⚠️ Una testata di cui il bollettino non dice l'RVR tiene la sua cella a `///`: **la pista c'è, il valore no**,
+e sono due fatti diversi. Una testata spaiata ne ha una sola.
+
+Provato a schermo: su LIRF, `R16R/0350U R16L/P2000N R25/M0050D` → `RVR 16R 350U`, `RVR 16L P2000N`,
+`RVR 25 M50D`, e `///` sulle tre testate che il bollettino non nomina.

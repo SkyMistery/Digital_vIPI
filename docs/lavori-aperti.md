@@ -20,8 +20,9 @@ cinque coppie di logica scritte due volte, un `!` su una pagina pubblica, e il c
 — «non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto» — ha ribaltato la
 decisione 3. Il quadro mostra il bollettino e sta fermo; se ne sono andati con l'animazione anche tre difetti
 che nessuno aveva visto, il peggiore dei quali era **traverso e coda calcolati sulla direzione inventata**.
-▶ **Resta da decidere la cella RVR MID**, che è lo stesso problema: oggi è la media delle due testate, cioè
-un numero che nessuno ha misurato sotto il nome di un sensore.
+✅ Stessa regola applicata alla fascia **RVR**: le celle non sono più `TDZ · MID · END` (tre sensori che il
+METAR non ha) ma **una per testata**, col suo ident — `RVR 07`, `RVR 25`. La media che stava sotto «MID» non
+la misurava nessuno.
 ▶ Restano due lavori **di dati**, non di codice: unire a mano la sezione LVP libera di **LIRE** (Pratica di
 Mare) con quella strutturata, e scrivere i minimi veri sugli scali che li hanno (l'editor propone gli
 standard, che vanno confrontati con l'AIP prima di lasciarli).

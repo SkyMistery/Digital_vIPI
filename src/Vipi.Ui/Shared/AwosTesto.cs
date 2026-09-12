@@ -15,8 +15,20 @@ namespace Vipi.Ui.Shared;
 public sealed record AwosPayload(AwosView Vista, IReadOnlyList<string> Wx, IReadOnlyList<string> Nubi,
                                  AwosScritte Scritte);
 
-/// <summary>Le tre celle RVR di una striscia, già scritte.</summary>
-public sealed record AwosRvrScritte(string Tdz, string Mid, string End);
+/// <summary>
+/// Una cella RVR: la <b>testata</b> a cui appartiene e il suo valore.
+///
+/// <para>🔴 Le celle erano <c>TDZ · MID · END</c>, come sul quadro reale — che ha tre sensori lungo la
+/// pista. Il METAR non li ha: dà un valore <b>per testata</b>. Quel «MID» era la <i>media</i> delle due,
+/// cioè un numero che nessuno ha misurato sotto il nome di un sensore che non abbiamo. Tolto il 12 settembre
+/// 2026 su decisione del committente, con la stessa regola che aveva già fermato il vento: un dato che non
+/// si misura non si disegna.</para>
+///
+/// <para>⚠️ Le celle sono quindi <b>una per testata</b> — due su una pista normale, una su una testata
+/// spaiata — e non più tre fisse. Una testata di cui il bollettino non dice l'RVR resta a <c>///</c>: c'è la
+/// cella, perché la pista c'è, e manca il valore.</para>
+/// </summary>
+public sealed record AwosRvrCella(string Testata, string Valore);
 
 /// <summary>
 /// Le scritte del quadro che <b>non</b> si muovono fra una lettura e l'altra, composte una volta sola.
@@ -32,7 +44,7 @@ public sealed record AwosRvrScritte(string Tdz, string Mid, string End);
 /// Le scrive il modulo, che sa a quale pannello sta parlando.</para>
 /// </summary>
 public sealed record AwosScritte(string RigaAttiva, string LvpTesto, string LvpClasse, string LvpTitolo,
-                                 IReadOnlyList<AwosRvrScritte> Rvr);
+                                 IReadOnlyList<IReadOnlyList<AwosRvrCella>> Rvr);
 
 /// <summary>
 /// Le righe WX e CLOUD del quadro.
@@ -124,32 +136,22 @@ public static class AwosTesto
     }
 
     /// <summary>
-    /// Le tre celle RVR di una striscia.
-    /// <para>🔴 Un RVR che il bollettino non dà è <c>///</c>, mai <c>P2000</c>: nel prototipo un valore che
-    /// nessuno aveva misurato compariva come «oltre 2 000 m» davanti a chi decide se si atterra.</para>
+    /// Le celle RVR di una striscia: <b>una per testata</b>, con l'ident che le dà il nome.
+    /// <para>🔴 Un RVR che il bollettino non dà è <c>///</c>, mai un valore di comodo: nel prototipo un
+    /// valore che nessuno aveva misurato compariva come «oltre 2 000 m» davanti a chi decide se si
+    /// atterra — e la cella «MID» era una media, che è lo stesso difetto scritto con un'altra formula.</para>
     /// </summary>
-    public static AwosRvrScritte Rvr(AwosStrip s, ParsedMetar? metar)
+    public static IReadOnlyList<AwosRvrCella> Rvr(AwosStrip s, ParsedMetar? metar)
     {
-        if (metar is null) return new AwosRvrScritte("///", "///", "///");
+        var teste = s.Right is null ? new[] { s.Left } : new[] { s.Left, s.Right };
+        return teste.Select(e => new AwosRvrCella(e.Ident, Valore(e, metar))).ToList();
+    }
 
-        string Per(AwosEnd? end)
-        {
-            if (end is null) return "///";
-            var g = metar.RvrGroups.FirstOrDefault(r =>
-                string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
-            return g is null ? "///" : Scrivi(g);
-        }
-
-        // ⚠️ La media SOLO sui valori esatti: mediare un «oltre il fondo scala» vorrebbe dire prendere per
-        // misura un limite dello strumento.
-        var esatti = metar.RvrGroups
-            .Where(r => r.Modifier == RvrModifier.Exact)
-            .Where(r => string.Equals(r.Runway, s.Left.Ident, StringComparison.OrdinalIgnoreCase)
-                        || (s.Right is not null && string.Equals(r.Runway, s.Right.Ident, StringComparison.OrdinalIgnoreCase)))
-            .Select(r => r.ValueM).ToList();
-        var mid = esatti.Count == 0 ? "///" : ((int)Math.Round(esatti.Average() / 50.0) * 50).ToString();
-
-        return new AwosRvrScritte(Per(s.Left), mid, Per(s.Right));
+    private static string Valore(AwosEnd end, ParsedMetar? metar)
+    {
+        var g = metar?.RvrGroups.FirstOrDefault(r =>
+            string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
+        return g is null ? "///" : Scrivi(g);
     }
 
     private static string Scrivi(RunwayVisualRange r) =>
