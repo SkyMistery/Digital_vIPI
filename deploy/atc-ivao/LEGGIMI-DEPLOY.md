@@ -231,9 +231,10 @@ sul dominio:
 
 | campo | valore |
 |---|---|
-| quando | `URI Path starts with /services/` |
+| quando | `URI Path starts with /services/` **and not** `Cookie contains "vipi.auth"` |
 | cosa fare | *Eligible for cache* |
 | durata al bordo | *Respect origin TTL* |
+| chiave di cache | includere il **cookie `.AspNetCore.Culture`** |
 
 ⚠️ **«Respect origin TTL» e non un numero scritto a mano.** L'applicazione già distingue quel che si può
 tenere da quel che non si può — le schermate di amministrazione, gli editor, il live, le anteprime delle
@@ -241,12 +242,91 @@ bozze e tutto ciò che chiede chi è entrato continuano a rispondere `no-store` 
 pannello passerebbe sopra a quella distinzione. Le sette clausole della decisione stanno in
 `CacheDelleLettureAnonime`, una per una, con scritto perché.
 
-⚠️ `Vary: Cookie` fa il resto: chi arriva col proprio cookie di sessione non riceve mai la copia anonima.
-Senza quella riga vedrebbe la pagina di un altro, senza i propri tasti.
+🔴 **CORREZIONE del 12 settembre 2026 — qui c'era scritto il contrario, e l'errore era pericoloso.** Fino a
+oggi questo foglio diceva: *«`Vary: Cookie` fa il resto: chi arriva col proprio cookie di sessione non riceve
+mai la copia anonima»*. **Per il browser è vero. Per Cloudflare no**: il bordo **non onora `Vary` su
+nient'altro che `Accept-Encoding`**. Con la regola scritta come stava — solo il percorso, niente clausola sul
+cookie — chi è entrato potrebbe ricevere **la copia anonima**: la pagina di un altro, senza i propri tasti.
+Esattamente il guasto che quella riga doveva impedire. Perciò la condizione va **nella regola**, non nel
+`Vary`: le due righe nuove della tabella qui sopra sono quelle. `vipi.auth` è il nome del cookie di sessione;
+la chiave sulla lingua serve perché l'indirizzo **non** cambia con la lingua (nessuna rotta localizzata), e
+senza di essa il bordo servirebbe la prima delle due copie che gli capita.
+
+⚠️ **E la regola non si attiva prima della correzione nel codice** (voce **§CZ** di
+[`../../docs/lavori-aperti.md`](../../docs/lavori-aperti.md), carta
+[`../../docs/history/audit-2026-09-12-prestazioni.md`](../../docs/history/audit-2026-09-12-prestazioni.md)
+§Q2). Oggi `CacheDelleLettureAnonime` rifiuta la copia a **chiunque porti un cookie qualunque**, e il sito ne
+lascia due da sé: l'antiforgery sulle pagine escluse (`/`, ricerca, «cambiati», live) e `.AspNetCore.Culture`
+**per un anno** a chi ha scelto la lingua una volta. Messa prima, la regola funzionerebbe **per pochi** — e
+una regola che *sembra* messa è più difficile da sospettare di una che manca.
+
+**La verifica, appena creata la regola** — due `curl`, e sono la prova che vale:
+
+```sh
+# 1) da anonimo, la seconda volta dev'essere HIT
+curl -sD - -o /dev/null https://atc.it.ivao.aero/services/vsop | grep -i cf-cache-status
+
+# 2) con un cookie di sessione NON deve mai essere HIT
+curl -sD - -o /dev/null -H 'Cookie: vipi.auth=qualunque' \
+  https://atc.it.ivao.aero/services/vsop | grep -i cf-cache-status
+```
+
+Se la seconda risponde `HIT`, **la regola è sbagliata e va spenta subito**.
 
 **A che serve.** A una cosa sola, ma è quella che conta: il giorno della pubblicazione AIRAC la stessa
 pagina viene chiesta da molte persone negli stessi minuti, e dietro c'è **un processo solo**, senza
 backplane (vedi il passo 4). Sessanta secondi bastano a far assorbire quella folla al bordo.
+
+---
+
+## Due direttive nginx per i file statici — misurato il 12 settembre 2026
+
+🔴 **Sul vostro server i file di `wwwroot/` li serve nginx, non l'applicazione.** Non è un problema in sé —
+nginx lo fa meglio — ma vuol dire che **due cose che l'applicazione prepara non arrivano a nessuno**, e da
+dentro non si vedeva. La prova sta nell'etag, che è nella forma `mtime-size` di nginx e combacia **byte per
+byte** coi file del pacchetto:
+
+```
+$ curl -D - https://atc.it.ivao.aero/_content/Vipi.Ui/vipi-theme.css
+etag: W/"6aa45224-3a162"        0x3a162 = 237 922 = il file nel pacchetto
+        (e NESSUN Cache-Control)
+```
+
+L'applicazione **non manda mai** un file statico senza `Cache-Control`: quell'assenza è la prova che quel
+file non è passato da lei. Le due conseguenze:
+
+1. **Nessuna durata di cache dichiarata** — né al browser né al bordo. Il pacchetto la porta
+   (un giorno per CSS/JS, sette per i font) e non viene applicata.
+2. **Le varianti già compresse non vengono usate.** Il publish prepara accanto a ogni CSS/JS un `.br` a
+   **qualità massima**; chi comprime al volo lo fa a qualità più bassa. Misurato su un file solo:
+   **32 348 byte serviti contro i 28 591 già pronti sul disco** (+13%), e in proporzione su tutti gli altri.
+
+Le due righe vanno fra le **direttive nginx aggiuntive** del sito in Plesk — lo stesso posto dove stanno già
+le regole che negano `/diagnostica/` e `appsettings*.json`:
+
+```nginx
+location ~* \.(css|js|woff2|ico|svg)$ {
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+}
+
+brotli_static on;    # serve i .br già pronti, se il modulo c'è
+gzip_static  on;     # il ripiego, per gli stessi file
+```
+
+⚠️ **`immutable` con un anno è sicuro qui, e non lo sarebbe su un altro sito**: ogni indirizzo porta già
+l'impronta **SHA-256 del contenuto** (`?v=…`), quindi un file che cambia **cambia indirizzo** e nessuno resta
+con la copia vecchia. I `.woff2` non hanno quell'impronta ma hanno nomi content-addressed e non cambiano mai.
+
+⚠️ **Le due cose vanno chieste insieme.** Con la sola cache si continua a spedire il 13% di byte in più; con
+la sola precompressione si continua a rivalidare ogni file a ogni visita.
+
+⚠️ **Da NON estendere a `/_framework/`**: `blazor.web.js` non porta un'impronta nell'indirizzo, e una cache
+lunga lì, il giorno di un aggiornamento di .NET, lascerebbe in giro un client che parla un protocollo diverso
+dal server. Il sintomo sarebbe «la pagina si vede e non risponde», che è il più difficile da leggere.
+
+**La verifica**: dopo le direttive, `curl -D -` su un `.css` deve mostrare `Cache-Control: public, immutable`,
+e i byte scaricati devono scendere a quelli del `.br` che sta nel pacchetto.
 
 ---
 

@@ -41,6 +41,27 @@ riga di log «Sistemate … in N documenti d'aeroporto», e **un login e un logo
 rimasto nello scratchpad, non il pacchetto — una copia di database si fa **cancellando prima** la vecchia,
 `-wal` e `-shm` compresi.
 
+🔬 **E dopo il caricamento, un AUDIT DELLE PRESTAZIONI — otto voci, nessuna eseguita.** Chiesto dal
+committente («i server di IVAO sono un po' lenti, si può fare qualcosa senza alterare il funzionamento?»).
+Carta: [`docs/history/audit-2026-09-12-prestazioni.md`](docs/history/audit-2026-09-12-prestazioni.md), voce
+**§CZ** in [`docs/lavori-aperti.md`](docs/lavori-aperti.md). **Solo analisi**: nessun ramo, nessun commit,
+albero pulito. 🔴 **Tre voci su otto non sono leggibili nel codice, e due dei risultati dell'audit del 27
+agosto in produzione non sono mai entrati in funzione**: la Cache Rule di Cloudflare non è mai stata creata
+(`cf-cache-status: DYNAMIC` su tutto l'HTML) e **i file statici li serve nginx, non l'applicazione** — provato
+con l'etag `mtime-size`, tre corrispondenze esatte coi file del pacchetto — quindi `OnPrepareResponse` non
+gira mai e le varianti `.br` a qualità 11 non vengono usate (32 348 byte serviti contro 28 591). Il numero che
+decide tutto: **`/vsop/ping`, che non fa niente, costa 181–199 ms; un asset dal bordo 82–100** — ogni andata
+all'origine evitata vale ~95 ms, e ogni caricamento di pagina ne fa **quattro garantite**. La più grossa che è
+nostra: **ogni visita apre una WebSocket e uno stream SSE** perché `LiveBadge` è `@rendermode
+InteractiveServer` **nel layout** (`SopLayout.razor:171`), e per un anonimo quel gettone non può cambiare —
+controprova fatta togliendo il rendermode (`ws=0 sse=0`, e la pagina d'aeroporto si tiene il suo circuito) e
+**rimessa a posto**. Poi: un **cookie qualunque spegne la cache anonima per sempre**, `blazor.web.js` esce
+`no-cache`, **zero cache lato server in tutto `src/`**, avvio **1 286 → 2 180 ms**, prima visita
+**113 → 181 KB**. ⚠️ Il carico verso IVAO è quasi zero e non è dove sembra: il whazzup torna
+`cf-cache-status: HIT`, cioè dal loro bordo — i «server lenti» sono l'hosting nostro. ⚠️ E la regola di metodo
+che ne esce: **un intervento che dipende dall'host non è finito quando il codice è giusto; è finito quando è
+misurato dall'esterno, sull'indirizzo vero.**
+
 Prima: 12 settembre 2026 (sera) — ✅ **1.24.1 È CARICATA**: timbro e METAR tradotto visti
 dal committente; da fuori **otto controlli pubblici verdi** (Ricerca compresa) e il riquadro METAR reso in IT e
 in EN su cinque vIPI pubblicate. ⚠️ Una prova **non** si è potuta fare da fuori e non va data per riuscita:

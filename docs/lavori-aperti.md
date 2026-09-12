@@ -1,5 +1,86 @@
 # Lavori aperti — elenco unico
 
+## Dove siamo — 12 settembre 2026 (dopo il caricamento di 1.25.0)
+
+### 🔬 §CZ — Audit prestazioni: otto voci misurate (Q2 in due metà), ZERO codice scritto
+
+Chiesto dal committente: *«i server di IVAO non sono delle schegge ma sono un po' lenti. Puoi analizzare il
+nostro sito per vedere se si può fare qualcosa per migliorarne le performance o comunque qualcosa per
+diminuire il carico sui server, senza alterarne il funzionamento?»*
+
+Carta completa: [`history/audit-2026-09-12-prestazioni.md`](history/audit-2026-09-12-prestazioni.md).
+**Niente è stato eseguito**: nessun ramo, nessun commit, albero pulito (la patch di controprova di Q1 è stata
+rimessa a posto). Seguito dell'[audit del 27 agosto](history/audit-2026-08-27-prestazioni.md).
+
+🔴 **La scoperta che ribalta il giro: TRE voci su otto non sono leggibili nel codice, e due dei risultati del
+27 agosto in produzione NON SONO MAI ENTRATI IN FUNZIONE.** Quell'audit misurava la nostra macchina; questo ha
+misurato anche `https://atc.it.ivao.aero` dall'esterno, con tre `curl`.
+
+**Il numero che decide tutto.** `/vsop/ping` — che non fa *niente*: no DB, no render — costa **181–199 ms**;
+un asset con `cf-cache-status: HIT` costa **82–100 ms**. Quindi **ogni andata all'origine evitata vale
+~95 ms**, e oggi ogni caricamento di pagina ne fa **quattro garantite**: HTML (`DYNAMIC`), `blazor.web.js`
+(`REVALIDATED`), la **WebSocket** del circuito e lo **stream SSE**. Le ultime due, per un anonimo, non
+servono a niente. L'unica pagina dove pesa il processo è la vIPI pubblicata: `libb/vipi` **409–532 ms**
+(~300 sopra il pavimento), 35 KB br su 274 grezzi.
+
+| # | Voce | di chi è |
+|---|---|---|
+| **Q1** | **Ogni visita apre una WebSocket + uno stream SSE** per il gettone in barra: `LiveBadge` è `@rendermode InteractiveServer` e sta nel **layout** (`SopLayout.razor:171`). Per un anonimo `UserId` è `null`, quindi quel gettone **non può cambiare**. Controprova fatta: rendermode via ⇒ `ws=0 sse=0` sulle pagine-documento, e la pagina d'aeroporto **si tiene** il suo circuito (isole vere). Cura: rendermode **nel punto d'uso**, solo se c'è un VID. | 🟢 2 file |
+| **Q2a** | `CacheDelleLettureAnonime` rifiuta se `Cookies.Count > 0`, e **il sito si autosabota**: `/`, `/search`, `/changed`, `/live` lasciano il cookie **antiforgery**, e `?culture=` lascia `.AspNetCore.Culture` **per un anno**. Da quel momento ogni pagina torna `no-store`: **la cache anonima è morta per i lettori veri**. Cura: scartare quei due nomi, non «zero cookie». | 🟢 1 file |
+| **Q2b** | **La Cache Rule di Cloudflare non è mai stata messa** (`cf-cache-status: DYNAMIC` su tutto l'HTML): metà di P7 è inespressa da sedici giorni. ⚠️ E va scritta **diversamente** da come dice il foglio: **Cloudflare non onora `Vary` se non `Accept-Encoding`**, quindi la regola dev'essere `and not cookie contains "vipi.auth"` con la **chiave di cache sul cookie della lingua**. Così com'è scritta, chi è entrato riceverebbe la copia anonima. | 🔴 committente |
+| **Q3** | **In produzione i file statici li serve nginx, non l'applicazione.** Provato con l'etag `mtime-size`: `W/"6aa45224-3a162"` = 237 922 byte = il file nel pacchetto, e altre due corrispondenze esatte. Conseguenze: **nessun `Cache-Control`** (`OnPrepareResponse` non gira mai) e le varianti **`.br` a qualità 11 non vengono usate** — `vipi-theme.css` servito 32 348 byte contro i **28 591** del nostro `.br`. | 🔴 committente |
+| **Q4** | `/_framework/blazor.web.js` esce `no-cache` ⇒ `REVALIDATED`: **un'andata all'origine garantita per ogni caricamento**, 53 KB che il bordo non può tenere. ⚠️ Cura sì, ma **non `immutable`**: quell'indirizzo non porta impronta. | 🟢 3 righe |
+| **Q5** | **Nessuna cache lato server, in nessun punto**: zero occorrenze di `AddOutputCache|IMemoryCache|HybridCache` in `src/`. ⚠️ E le 70 query di `limm/vipi` **non sono un N+1**: sono 25 per **blocco**, e LIMM ne ha due. | 🟢 1 file |
+| **Q6** | vAWOS: l'API è `no-store` su un METAR vecchio **dieci minuti**, e `vipi-awos.js:83` interroga ogni minuto **anche a scheda nascosta**. | 🟢 2 file |
+| **Q7** | Avvio **1 286 → 2 180 ms**, **153 → 256 query**: ~185 sono le **quattordici riconciliazioni one-shot** che riscandiscono tutti i documenti a ogni avvio e **crescono col contenuto**. Cura: il timbro di `IImportStateStore`, legato alla **versione**. ⚠️ **Non** spostarle in background: `LinkAirportDocumentsAsync` è il legame che tutte le letture d'aeroporto useranno. | 🟢 infra |
+| **Q8** | Prima visita **113 → 181 KB** (misurati 188 392 byte in 25 richieste): font **66 KB**, `blazor.web.js` 53, tema 32, **favicon 10,9 KB con quattro misure** (16+32 farebbe 2 726 byte), `vipi-aor3d.css` su tutte le pagine per il solo visualizzatore 3D. | 🟢 2 file |
+
+🔴 **E c'è un legame con §BG che cambia l'ordine, e non l'ha trovato la misura: sta già scritto qui.** Il
+4 settembre, contando 33 processi corti in produzione, si era misurato che il processo **non muore per
+inattività ma lo uccide qualcuno da fuori** (vita media 46 s) — con **una** eccezione: *«un processo è vissuto
+1h 29m, l'unico svegliato da `/_blazor/negotiate`: una connessione lunga tiene su il processo e una richiesta
+corta no»*. Cioè **le due connessioni che Q1 propone di togliere sono oggi l'unica cosa che tiene caldo il
+processo**, e l'avvio nel frattempo è arrivato a 2 180 ms. Q1 resta giusto — tenere su un processo con una
+WebSocket per lettore è pagare un affitto con una cosa che non c'entra — ma **consegnato da solo potrebbe far
+sembrare il sito più lento pur essendo più leggero**: meno carico costante, più avvii a freddo.
+
+▶ **Ordine consigliato**, quindi:
+1. **§O3** — `passenger_min_instances ≥ 1` e `proxy_read_timeout ≥ 100s`: è il **prerequisito di Q1**, non una
+   voce parallela. (Chiesto dal 27 agosto, mai confermato; da chiedere **dopo il 16 settembre** per decisione
+   del committente.)
+2. **Q2a e Q2b insieme** (§O2 per la regola): il codice prima della regola, o la regola serve a pochi — e una
+   regola che *sembra* messa è più difficile da sospettare di una che manca.
+3. **Q1**, e rimisurando `/vsop/ping` a freddo dopo una pausa.
+4. **Q3** (seconda metà di §O3) e **Q4**. 5. **Q5**. 6. Q6–Q8 in coda a una consegna qualunque.
+
+✅ **Già fatto oggi, perché era un foglio con un'istruzione sbagliata**: `LEGGIMI-DEPLOY.md` è corretto (diceva
+che `Vary: Cookie` protegge il bordo) e porta la sezione nuova con le **direttive nginx** e i due `curl` di
+verifica. **§O2** e **§O3** restano i lavori aperti di riferimento: Q2b è O2, Q3 è la seconda metà di O3.
+
+▶ **Scartati su misura** (la carta dice i numeri): abbassare `Ivao:PollSeconds` (cambia la freschezza del
+pallino e la grana delle statistiche — è una funzione, non un costo); ridurre i pesi di **Poppins** (~17–27 KB,
+ma è **tipografia**: va proposta, non fatta); spezzare `vipi-theme.css` fra pubblico e admin; togliere CSS
+morto (**16 classi su 1 173**, quasi tutte falsi positivi: non c'è niente da recuperare); **ReadyToRun**
+(riconfermato: 1 709 ms su 2 180 sono database); GET condizionale sul whazzup.
+
+ℹ️ **Il carico verso IVAO è quasi zero, e non è dove sembra.** Il whazzup costa 168 803 byte al minuto
+(~243 MB al giorno) ma torna `cf-cache-status: HIT`: **è servito dal loro bordo Cloudflare, non dai loro
+server applicativi**. I «server IVAO lenti» sono **l'hosting nostro** — 181 ms per una richiesta che non fa
+niente sono rete e proxy, e si aggirano solo non andandoci.
+
+⚠️ **Tre trappole di metodo, e una vale più dell'audit.** (1) La prima misura delle query dava **315, 234,
+181** su pagine che ne fanno **9, 9, 13**: era il **rumore dei giri di fondo** nel log da cui contavo — il
+conto si fa con i poller **messi a tacere** e il rumore verificato a zero. (2) Q1 non è stato dedotto ma
+**provato togliendo la causa**, e il risultato distingue: la pagina d'aeroporto conserva il circuito. (3) Le
+tre voci più gravi **non si vedono nel codice**, che su tutte e tre ha ragione. La regola che ne esce:
+**un intervento che dipende dall'host non è finito quando il codice è giusto — è finito quando è misurato
+dall'esterno, sull'indirizzo vero.**
+
+▶ **E resta da correggere un foglio**: `LEGGIMI-DEPLOY.md` oggi dice che «`Vary: Cookie` fa il resto». Per il
+browser è vero, per Cloudflare no.
+
+---
+
 ## Dove siamo — 12 settembre 2026 (notte)
 
 ### 📦 A25 — Pacchetto 1.25.0: 25 file — ✅ **CARICATO E IN PRODUZIONE**
@@ -5392,9 +5473,18 @@ per esteso in [`deploy/atc-ivao/LEGGIMI-DEPLOY.md`](../deploy/atc-ivao/LEGGIMI-D
 che non si può la fa l'applicazione — sette clausole, una per una nel codice — e una durata imposta dal
 pannello ci passerebbe sopra.
 
-**Blocco:** committente (accesso al pannello Cloudflare).
+🔴 **AGGIORNATO il 12 settembre 2026 da §CZ — la regola scritta qui sopra è INCOMPLETA e va corretta prima di
+crearla.** Misurato: `cf-cache-status: DYNAMIC` su tutto l'HTML, quindi a sedici giorni di distanza questa
+voce è ancora intera. E due cose sono cambiate nell'analisi: **(a)** Cloudflare **non onora `Vary` se non
+`Accept-Encoding`**, quindi `Vary: Cookie` **non** protegge il bordo e la regola deve portare
+`and not Cookie contains "vipi.auth"` più la **chiave di cache sul cookie `.AspNetCore.Culture`**; **(b)** il
+codice, così com'è, la sfrutterebbe **per pochi**, perché `Riutilizzabile` rifiuta la copia a chiunque porti
+un cookie qualunque e il sito ne lascia due da sé (antiforgery dalle pagine escluse, `.AspNetCore.Culture`
+per un anno). Il foglio di deploy è già corretto e porta i due `curl` di verifica. **Q2a prima, Q2b dopo.**
 
-### O3 🔴 APERTO — due impostazioni del Plesk da verificare
+**Blocco:** committente (accesso al pannello Cloudflare), **dopo** la correzione Q2a nel codice.
+
+### O3 🔴 APERTO — due impostazioni del Plesk da verificare (e ora sono tre)
 
 Nessuna delle due è codice, e nessuna delle due si vede da qui.
 
@@ -5405,6 +5495,18 @@ Nessuna delle due è codice, e nessuna delle due si vede da qui.
   circuito Blazor **cade da solo ogni minuto** e l'utente vede «Tentativo di riconnessione». ⚠️ Il file
   `deploy/atc-ivao/nginx-vipi.conf` ce l'ha già scritto ma **su quel server non lo carica nessuno**: è
   riferimento per un deploy systemd+nginx.
+- 🆕 **Cache e precompressione degli asset** (§CZ / Q3, 12 settembre): su quel server i file di `wwwroot/`
+  **li serve nginx**, non l'applicazione — provato con l'etag `mtime-size`, tre corrispondenze esatte coi
+  file del pacchetto. Quindi `OnPrepareResponse` **non gira mai** (nessun `Cache-Control` su nessun asset) e
+  le varianti `.br` a qualità 11 preparate dal publish **non le riceve nessuno** (32 348 byte serviti contro
+  28 591 pronti su disco). Servono `expires 1y` + `Cache-Control: public, immutable` sui soli
+  `css|js|woff2|ico|svg` e `brotli_static on` / `gzip_static on`, **insieme**: scritte per esteso in
+  [`deploy/atc-ivao/LEGGIMI-DEPLOY.md`](../deploy/atc-ivao/LEGGIMI-DEPLOY.md) §«Due direttive nginx».
+  ⚠️ **Da NON estendere a `/_framework/`**: lì l'indirizzo non porta un'impronta.
+
+⚠️ **`passenger_min_instances` non è più solo una questione di comodità: è il PREREQUISITO di Q1** (§CZ). Da
+§BG sappiamo che «una connessione lunga tiene su il processo e una richiesta corta no», e Q1 toglie proprio
+le due connessioni lunghe che ogni visita apre oggi. Nell'ordine: prima questa voce, poi Q1.
 
 **Blocco:** committente (accesso al pannello Plesk).
 
