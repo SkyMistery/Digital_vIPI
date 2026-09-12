@@ -740,3 +740,34 @@ del pomeriggio, e `Copy-Item -Filter 'vipi.db*'` aveva sovrascritto il solo `.db
 journal sbagliato. **Una copia di database si fa cancellando prima la vecchia**, `-wal` e `-shm` compresi: un
 journal spaiato non dà «file mancante», dà un archivio corrotto — e il sintomo compare lontano, dentro una
 query qualunque.
+
+### ✅ Caricata, e verificata da fuori (12 settembre 2026, sera)
+
+Timbro finale `1.25.0 · 20775a0e`, sha256
+`9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`. ⚠️ Il pacchetto è stato **ricostruito
+due volte** dopo la prima costruzione, per due ritocchi chiesti a lavoro finito — la scheda vAWOS in testa
+agli strumenti di `/services`, e il ritorno a `/services` dopo login e logout. Il timbro nasce dal commit,
+quindi ogni ritocco ha fatto uno zip nuovo: le impronte `56ab79f0…` e `0590e7b4…` non valgono più.
+
+✅ **Tutte e due le volte un test è diventato rosso da solo**, e nessuno dei due era stato scritto per il
+cambio che ha intercettato: `ServicesHomeTests.Le_schede_stanno_nell_ordine_deciso` per l'ordine delle
+schede, `SafeReturnTests` per il ripiego del login. È il caso in cui un test «di regola» — uno che fissa una
+decisione invece di provare un calcolo — si ripaga.
+
+Su produzione, da anonimo: `pacchetto-verifica.js` **8/8** e `awos-verifica.js` **15/15** su dati veri (76
+scali in elenco, LIBA con due strisce e quattro celle `RVR 11L · 29R · 11R · 29L`, «from rule #1», e zero
+chiamate dopo aver lasciato la pagina).
+
+🔴 **La prova che i byte spediti sono quelli serviti**: i tre file di `wwwroot` scaricati da produzione hanno
+lo **sha256 identico** a quelli dentro il pacchetto, e il token in pagina è `vipi-boot.js?v=e1361444` — cioè
+l'impronta di quel contenuto. Quel token prova **anche** che `Vipi.Host.staticwebassets.endpoints.json` è
+arrivato con loro: se fosse rimasto il vecchio, la pagina chiederebbe un nome che non esiste.
+
+⚠️ **La migrazione si è potuta provare solo al contrario.** La riga `Schema: 0` di `admin/diagnostics` vuole
+il login, quindi da fuori si è chiesto lo stesso a sei pagine d'aeroporto pubbliche: rispondono **200 senza
+errori**, e senza `AirportLvpMinima` il modello la pretenderebbe e cadrebbero. Non è la prova diretta, è la
+stessa domanda posta dall'altro capo — e va detta per quello che è.
+
+✅ **Il pubblico ha ancora il vecchio indice, ed è previsto**: la LIMC pubblicata elenca ancora
+*Piste · SID · Procedure generali*, senza «Regole di selezione pista» dentro Piste e senza LVP. Arriva alla
+**prossima pubblicazione** di ogni documento.

@@ -1,7 +1,6 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 12 settembre 2026 (notte) — 📦 **1.25.0 È PRONTA DA CARICARE, non è ancora
-online.** Timbro `1.25.0 · 20775a0e`, **25 file**, zip
+**Ultimo aggiornamento:** 12 settembre 2026 (notte) — ✅ **1.25.0 È CARICATA E IN PRODUZIONE.** Timbro `1.25.0 · 20775a0e`, **25 file**, zip
 `9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md). Sostituisce
@@ -25,13 +24,22 @@ pubblicati compariranno fra i «da ripubblicare»: la sezione arriva in pubblico
 pubblicazione** di ognuno. Carta
 [`docs/feature/2026-09-12-vawos-e-minimi-lvp.md`](docs/feature/2026-09-12-vawos-e-minimi-lvp.md).
 
-**Provata sul PACCHETTO** (publish win-x64 dalla sua cartella, guidato in Edge): `pacchetto-verifica.js`
-**dieci su dieci**, e il nuovo `awos-verifica.js` (messo nella skill `verifica-live`) **quindici su quindici**
-— compreso il passaggio dall'elenco a uno scalo **con un clic** (navigazione enhanced) e le **zero** chiamate
-all'API dopo aver lasciato la pagina, che erano i due difetti della revisione.
-⚠️ Un giro a vuoto pagato e da ricordare: i primi tre rossi erano un `vipi.db-wal` **spaiato** rimasto nello
-scratchpad, non il pacchetto — una copia di database si fa **cancellando prima** la vecchia, `-wal` e `-shm`
-compresi. ▶ Dopo il caricamento: la stessa prova puntata su produzione, e `admin/diagnostics` con `Schema` a 0.
+**Provata prima sul PACCHETTO e poi su PRODUZIONE.** Da fuori, da anonimo: `pacchetto-verifica.js`
+**otto su otto** (Ricerca compresa, console pulita) e `awos-verifica.js` — nuovo, messo nella skill
+`verifica-live` — **quindici su quindici** su dati veri: 76 scali in elenco, LIBA aperto **con un clic**
+dall'elenco (navigazione enhanced), quattro celle `RVR 11L · 29R · 11R · 29L`, «RWY IN USE: 29R · from rule
+#1», e **zero** chiamate all'API dopo aver lasciato la pagina. 🔴 I tre asset scaricati da produzione hanno lo
+**sha256 identico** a quelli spediti, col token `?v=e1361444` che combacia: sono arrivati loro **e** l'indice
+degli endpoint. La **migrazione è passata** (sei pagine d'aeroporto pubbliche a 200 senza errori: senza
+`AirportLvpMinima` cadrebbero), il **cancello del Test METAR** tiene (`?test=` ignorato da anonimo) e il
+**limitatore** risponde 429 oltre il budget. Il pubblico ha ancora il **vecchio indice**, come previsto:
+arriva alla prossima pubblicazione di ogni documento.
+▶ **Tre cose che da fuori non si vedono** e vogliono il login: `admin/diagnostics` con **`Schema` = 0**, la
+riga di log «Sistemate … in N documenti d'aeroporto», e **un login e un logout veri** (devono atterrare su
+`/services`: il link che parte è verificato, il giro completo passa dal portale IVAO).
+⚠️ Un giro a vuoto pagato e da ricordare: i primi tre rossi in locale erano un `vipi.db-wal` **spaiato**
+rimasto nello scratchpad, non il pacchetto — una copia di database si fa **cancellando prima** la vecchia,
+`-wal` e `-shm` compresi.
 
 Prima: 12 settembre 2026 (sera) — ✅ **1.24.1 È CARICATA**: timbro e METAR tradotto visti
 dal committente; da fuori **otto controlli pubblici verdi** (Ricerca compresa) e il riquadro METAR reso in IT e

@@ -2,7 +2,7 @@
 
 ## Dove siamo — 12 settembre 2026 (notte)
 
-### 📦 A25 — Pacchetto 1.25.0: 25 file — ⏳ **PRONTO DA CARICARE**
+### 📦 A25 — Pacchetto 1.25.0: 25 file — ✅ **CARICATO E IN PRODUZIONE**
 
 Timbro `1.25.0 · 20775a0e`, zip
 `9cbf6eeec9c0dd0b4772e515210321eae1554e3d3c0baf3f0b2c12c6f2b42d1e`
@@ -63,9 +63,39 @@ costante che quei due condividono, ma la sua conferma è dopo il caricamento.
 **Una copia di database si fa cancellando prima quella vecchia, `-wal` e `-shm` compresi**: un journal
 spaiato non dà «file mancante», dà un archivio corrotto. Rifatta la copia, dieci verdi su dieci.
 
-▶ **Da fare dopo il caricamento**: la stessa prova puntata fuori
-(`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node .claude/skills/verifica-live/pacchetto-verifica.js`),
-e `admin/diagnostics` con la riga `Schema` a 0.
+### ✅ E su PRODUZIONE, dopo il caricamento (12 settembre, sera)
+
+Il committente ha caricato e ha detto «tutto pare funzionare». Poi si è guardato da fuori, da anonimo:
+
+- `pacchetto-verifica.js` con `SOLO_PUBBLICO=1` → **otto su otto**, Ricerca compresa e **console pulita**.
+- `awos-verifica.js` puntato su produzione → **quindici su quindici**, e stavolta su dati veri: **76** scali
+  nell'elenco (in locale erano 20), LIBA aperto **con un clic** dall'elenco (navigazione enhanced), due
+  strisce e **quattro** celle RVR col nome della testata — `RVR 11L · RVR 29R · RVR 11R · RVR 29L` —
+  «RWY IN USE: 29R · from rule #1», e **zero** chiamate all'API dopo aver lasciato la pagina.
+- 🔴 **I byte spediti sono quelli che il sito serve**: `vipi-awos.css`, `vipi-awos.js` e `vipi-boot.js`
+  scaricati da produzione hanno lo **sha256 identico** a quelli dentro il pacchetto, e il token in pagina è
+  `vipi-boot.js?v=e1361444`, cioè l'impronta di quel contenuto — il che prova anche che
+  `Vipi.Host.staticwebassets.endpoints.json` è arrivato con loro, o il nome chiesto non esisterebbe.
+- **La migrazione è passata**: sei pagine d'aeroporto pubbliche (LIBD, LIMC, LIPZ, LIPE, LIML e il vSOP di
+  LIBG) rispondono **200 senza errori**. Se `AirportLvpMinima` non ci fosse, il modello la pretenderebbe e
+  quelle pagine cadrebbero. ⚠️ Non è la riga `Schema: 0` — quella vuole il login — ma è la stessa domanda
+  posta al contrario.
+- **Il pubblico ha ancora il vecchio indice, ed è giusto così**: la LIMC pubblicata elenca
+  *Quote di transizione · Frequenze · Piste · SID · Procedure generali · …*, senza «Regole di selezione
+  pista» dentro Piste e **senza LVP**. Arriva alla prossima pubblicazione, come scritto nel foglio.
+- **Il ritorno del login è quello nuovo**: da anonimo il link in barra è
+  `…/auth/login?returnUrl=/services`, e il logout risponde 302 verso l'end-session IVAO.
+- **Il cancello del Test METAR tiene**: da anonimo il tasto non c'è (`data-awos-mask="prova"`: 0 occorrenze)
+  e l'endpoint **ignora** `?test=` — passato un bollettino di nebbia fitta su LIBA, torna comunque il METAR
+  vero e `LVP: Nil`.
+- **Il limitatore c'è**: dodici chiamate di fila a `/services/vawos/api/LIBA` → **429 dall'ottava** (le prime
+  del budget da 10 al minuto se l'erano già prese i controlli qui sopra).
+
+▶ **Restano tre cose che da fuori non si vedono**, e le può fare solo chi ha il login:
+1. `admin/diagnostics`, riga **`Schema` = 0** (la prova diretta della migrazione);
+2. nel log d'avvio la riga «Sistemate «Regole piste» e «LVP» in N documenti d'aeroporto (vIPI e vSOP)»;
+3. **un login vero e un logout vero**: devono atterrare su `/services`. Il link che parte è verificato, il
+   ripiego è pinnato da `SafeReturnTests`, ma il giro completo passa dal portale IVAO e in locale non si fa.
 ▶ **E poi i due lavori di dati** (non di FTP): unire a mano la sezione LVP libera di **LIRE**, e scrivere i
 minimi veri sugli scali che li hanno — poi **ripubblicare**, perché la sezione arrivi al pubblico.
 
