@@ -227,7 +227,7 @@ else
         {
             var bagnata = m.HasRain || m.HasSnow;
             var vincente = RunwaySuggestion.EvaluateRules(
-                profilo.Rules.Select(AirportViewFormat.MapRule).ToList(), dir, kt, bagnata, DateTime.UtcNow);
+                RegoleDiPista.Valutabili(profilo.Rules), dir, kt, bagnata, DateTime.UtcNow);
             if (vincente is not null) return (Norm(vincente.Dep), Norm(vincente.Arr));
         }
 

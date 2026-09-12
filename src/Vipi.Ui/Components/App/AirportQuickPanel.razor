@@ -273,7 +273,7 @@ else
         if (_profile.Rules.Count > 0)
         {
             var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
-            var rr = RunwaySuggestion.EvaluateRules(_profile.Rules.Select(AirportViewFormat.MapRule).ToList(), windDir, windKt, wet, DateTime.UtcNow);
+            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_profile.Rules), windDir, windKt, wet, DateTime.UtcNow);
             if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
         }
         if (_runways.Count > 0)

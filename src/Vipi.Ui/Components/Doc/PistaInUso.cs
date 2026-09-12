@@ -57,7 +57,7 @@ public static class PistaInUso
 
         var wet = (metar?.HasRain ?? false) || (metar?.HasSnow ?? false);
         var ruleResult = daValutare.Count > 0
-            ? RunwaySuggestion.EvaluateRules(daValutare.Select(AirportViewFormat.MapRule).ToList(),
+            ? RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(daValutare),
                                              windDir, windKt, wet, DateTime.UtcNow)
             : null;
         var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt);

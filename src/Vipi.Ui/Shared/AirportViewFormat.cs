@@ -129,10 +129,4 @@ public static class AirportViewFormat
             || row.Name.Contains(q, StringComparison.OrdinalIgnoreCase)
             || row.Transition.Contains(q, StringComparison.OrdinalIgnoreCase);
     }
-
-    /// <summary>Regola pista dal DTO editoriale al modello del motore di valutazione (<see cref="RunwaySuggestion"/>).</summary>
-    public static RunwayRuleEval MapRule(RunwayRuleRow r) =>
-        new(r.DepRunways, r.ArrRunways, r.Name, r.Note, r.MaxTailwindKt, r.MaxCrosswindKt, r.Surface,
-            r.TimeFromLocalMin, r.TimeToLocalMin, r.DaysOfWeekMask, r.DateParity,
-            r.DateFromMonthDay, r.DateToMonthDay);
 }
