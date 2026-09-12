@@ -97,6 +97,12 @@
     var rep = $('[data-awos-pan="report"] div');
     if (rep) testo(rep, vista.metarRaw || 'No METAR available');
 
+    var a = vista.atis;
+    testo($('[data-awos="atis-chi"]'), a ? a.callsign : '— ATIS —');
+    testo($('[data-awos="atis"]'), (a && a.lettera) || '—');
+    testo($('[data-awos="atis-ts"]'), (a && a.orario) || '--:--');
+    testo($('[data-awos="atis-text"]'), (a && a.testo) || 'No ATIS on frequency.');
+
     // ⚠️ Le parole arrivano dal SERVER (AwosTesto), non si compongono qui: la lingua sta nella richiesta,
     // e il JavaScript non ce l'ha. Scrivendo i codici grezzi il quadro cambiava lingua al primo giro.
     righe('[data-awos="wx"]', parole.wx);

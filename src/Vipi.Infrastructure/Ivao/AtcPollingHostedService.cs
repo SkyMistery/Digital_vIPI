@@ -96,7 +96,19 @@ internal sealed class AtcPollingHostedService : BackgroundService
             // dire mostrare come vicino di casa un APP brasiliano.
             var atcs = snapshot.Atc
                 .Where(a => !a.IsOutsideDivision)
-                .Select(a => new OnlineAtc(a.Callsign, a.UserId, $"UserId {a.UserId}", a.Rating))
+                .Select(a =>
+                {
+                    // L'ATIS si legge QUI, una volta per giro e per tutti: le righe sono gia' nella
+                    // fotografia, e il quadro vAWOS ne ha bisogno senza scaricarsela per conto suo.
+                    var info = AtisText.Leggi(a.AtisLines);
+                    var piste = AtisRunways.Leggi(a.AtisLines);
+                    return new OnlineAtc(a.Callsign, a.UserId, $"UserId {a.UserId}", a.Rating,
+                        AtisLetter: info.Lettera.Length > 0 ? info.Lettera : null,
+                        AtisTimeRaw: info.Orario.Length > 0 ? info.Orario : null,
+                        AtisArrRunways: piste.Arrival.Length > 0 ? piste.Arrival : null,
+                        AtisDepRunways: piste.Departure.Length > 0 ? piste.Departure : null,
+                        AtisText: AtisText.Testo(a.AtisLines) is { Length: > 0 } t ? t : null);
+                })
                 .ToList();
             var callsigns = new HashSet<string>(
                 atcs.Select(a => a.Callsign), StringComparer.OrdinalIgnoreCase);

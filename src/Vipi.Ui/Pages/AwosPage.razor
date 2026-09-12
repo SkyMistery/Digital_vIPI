@@ -177,12 +177,12 @@
 
             <div class="awos-mc awos-atis">
                 <div class="awos-mc-t">ATIS INFO</div>
-                @* La lettera dell'ATIS arriva con la fetta 6 (OnlineAtc porta le righe dell'ATIS): finché
-                   non c'è, il riquadro dice `—`, che è vero. *@
+                @* Nessun ATIS in onda ⇒ «—» e basta. Una lettera vecchia tenuta lì perché faceva scena
+                   sarebbe la bugia peggiore di questo riquadro: la lettera è ciò che il pilota ripete. *@
                 <div class="awos-atis-blk">
-                    <div class="awos-atis-t">— ATIS —</div>
-                    <div class="awos-atis-v" data-awos="atis">—</div>
-                    <div class="awos-atis-ts" data-awos="atis-ts">--:--</div>
+                    <div class="awos-atis-t" data-awos="atis-chi">@(_vista.Atis?.Callsign ?? "— ATIS —")</div>
+                    <div class="awos-atis-v" data-awos="atis">@(_vista.Atis?.Lettera ?? "—")</div>
+                    <div class="awos-atis-ts" data-awos="atis-ts">@(_vista.Atis?.Orario ?? "--:--")</div>
                 </div>
             </div>
 
@@ -258,7 +258,7 @@
         <div class="awos-mask" data-awos-pan="atis" hidden>
             <button type="button" class="awos-x" data-awos-chiudi="atis">✕</button>
             <h2>ATIS MESSAGE</h2>
-            <div data-awos="atis-text">No ATIS.</div>
+            <div data-awos="atis-text">@(_vista.Atis?.Testo ?? "No ATIS on frequency.")</div>
         </div>
         <div class="awos-mask dati" data-awos-pan="ext" hidden>
             <button type="button" class="awos-x" data-awos-chiudi="ext">✕</button>

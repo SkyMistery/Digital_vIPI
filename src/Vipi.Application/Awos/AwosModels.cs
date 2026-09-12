@@ -19,6 +19,13 @@ public sealed record AwosResult(AwosView? Vista, AwosOutcome Esito)
     public static AwosResult NonPubblicato => new(null, AwosOutcome.NonPubblicato);
 }
 
+/// <summary>
+/// L'ATIS in onda sullo scalo, se qualcuno lo trasmette.
+/// </summary>
+/// <param name="Callsign">Chi lo trasmette: è la risposta a «chi l'ha detto», e il quadro la scrive.</param>
+public sealed record AwosAtis(string Callsign, string? Lettera, string? Orario, string? Testo,
+                              string? PisteArrivo, string? PistePartenza);
+
 /// <summary>Uno scalo che il quadro sa aprire, per il selettore.</summary>
 public sealed record AwosAirport(string Icao, string Nome, bool HaVipi, bool HaVsop);
 
@@ -89,4 +96,5 @@ public sealed record AwosView(
     string? TransitionLevel,
     IReadOnlyList<AwosStrip> Piste,
     AwosActive Attiva,
+    AwosAtis? Atis,
     DateTimeOffset AsOf);

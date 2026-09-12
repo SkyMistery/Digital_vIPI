@@ -164,7 +164,9 @@
 
 /* ── Un blocco per pista fisica ────────────────────────────────────────── */
 .awos-blocchi { display: flex; flex-direction: column; flex: 1; }
-.awos-blocco { display: flex; flex-direction: column; }
+/* I blocchi si dividono lo spazio che avanza: su uno scalo a una pista sola, senza questo, sotto la fascia
+   RVR resta mezzo schermo di fondo vuoto e il quadro sembra tagliato a metà. */
+.awos-blocco { display: flex; flex-direction: column; flex: 1; }
 .awos-blocco + .awos-blocco { border-top: 3px solid var(--awos-bg); }
 
 .awos-strip { display: flex; align-items: stretch; height: 40px; background: #2a2a2a; border-bottom: 1px solid #444; }
@@ -195,7 +197,7 @@
 .awos-sorgente b { color: var(--awos-txt); }
 
 /* ── Vento: due pannelli, uno per testata ──────────────────────────────── */
-.awos-vento { display: flex; justify-content: center; padding: 6px; }
+.awos-vento { display: flex; justify-content: center; align-items: stretch; padding: 6px; flex: 1; }
 .awos-vento-wrap {
   display: grid; grid-template-columns: 1fr 12px 1fr;
   width: 100%; max-width: clamp(640px, 74vw, 1180px);

@@ -43,12 +43,15 @@ public sealed class AwosService : IAwosService
     private readonly IAirportEditingService _scali;
     private readonly IDocumentAdminService _documenti;
     private readonly IWeatherProvider _meteo;
+    private readonly IOnlineAtcProvider _online;
 
-    public AwosService(IAirportEditingService scali, IDocumentAdminService documenti, IWeatherProvider meteo)
+    public AwosService(IAirportEditingService scali, IDocumentAdminService documenti, IWeatherProvider meteo,
+                       IOnlineAtcProvider online)
     {
         _scali = scali;
         _documenti = documenti;
         _meteo = meteo;
+        _online = online;
     }
 
     public async Task<AwosResult> BuildAsync(string icao, bool perEditor, string? metarDiProva = null,
@@ -82,7 +85,9 @@ public sealed class AwosService : IAwosService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
-        var attiva = AwosComposition.PistaAttiva(scalo.Rules, identificativi, metar);
+        var atis = AtisDelloScalo(id);
+        var attiva = AwosComposition.PistaAttiva(scalo.Rules, identificativi, metar,
+            Spezza(atis?.PistePartenza), Spezza(atis?.PisteArrivo), atis?.Callsign);
 
         return new AwosResult(new AwosView(
             Icao: id,
@@ -98,6 +103,7 @@ public sealed class AwosService : IAwosService
             TransitionLevel: AwosComposition.TransitionLevel(scalo.TransitionLevels, metar?.QnhHpa),
             Piste: piste,
             Attiva: attiva,
+            Atis: atis,
             AsOf: DateTimeOffset.UtcNow), AwosOutcome.Ok);
     }
 
@@ -121,6 +127,35 @@ public sealed class AwosService : IAwosService
             .OrderBy(a => a.Icao, StringComparer.Ordinal)
             .ToList();
     }
+
+    /// <summary>
+    /// L'ATIS in onda su questo scalo, fra le postazioni online.
+    ///
+    /// <para>⚠️ Si preferisce la postazione <c>_ATIS</c>, poi la torre, poi qualunque altra dello scalo che
+    /// trasmetta: quando su un campo ci sono ATIS e torre insieme, quella che parla ai piloti in anticipo è
+    /// la prima, e le due possono dire lettere diverse per qualche minuto dopo un cambio.</para>
+    ///
+    /// <para>Nessuno online, o nessuno con un ATIS leggibile: <c>null</c>. Il quadro scrive «—», che è
+    /// vero — e non una lettera vecchia tenuta lì perché faceva scena.</para>
+    /// </summary>
+    private AwosAtis? AtisDelloScalo(string icao)
+    {
+        var candidati = _online.GetCurrent().Details
+            .Where(a => a.Callsign.StartsWith(icao + "_", StringComparison.OrdinalIgnoreCase))
+            .Where(a => a.AtisLetter is not null || a.AtisArrRunways is not null || a.AtisDepRunways is not null)
+            .OrderBy(a => a.Callsign.EndsWith("_ATIS", StringComparison.OrdinalIgnoreCase) ? 0
+                        : a.Callsign.EndsWith("_TWR", StringComparison.OrdinalIgnoreCase) ? 1 : 2)
+            .ThenBy(a => a.Callsign, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var scelto = candidati.FirstOrDefault();
+        return scelto is null ? null
+            : new AwosAtis(scelto.Callsign, scelto.AtisLetter, scelto.AtisTimeRaw, scelto.AtisText,
+                           scelto.AtisArrRunways, scelto.AtisDepRunways);
+    }
+
+    private static IReadOnlyList<string>? Spezza(string? csv) => csv is null ? null : csv
+        .Split(new[] { '/', ',', ' ' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     /// <summary>
     /// Il nome dello scalo dal titolo del documento: «vIPI — LIBC Crotone» → «Crotone».
