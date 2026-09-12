@@ -1,6 +1,37 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 12 settembre 2026 (sera) — ✅ **1.24.1 È CARICATA**: timbro e METAR tradotto visti
+**Ultimo aggiornamento:** 12 settembre 2026 (notte) — 📦 **1.25.0 È PRONTA DA CARICARE, non è ancora
+online.** Timbro `1.25.0 · 909e3f03`, **25 file**, zip
+`56ab79f0758d03f3a68eb3a82e3000a4dd36868fa873ddc0e02655aaa5aee175`
+(`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md). Sostituisce
+1.24.1. **MINOR con UNA migrazione ADDITIVA** (`20260912115615_MinimiLvp`: un `CreateTable` su
+`AirportLvpMinima` più un indice unico, sui due provider — niente SQL, niente `DropColumn`, si consegna da
+sola dentro la finestra cieca). 🔴 **Il file da non dimenticare è `Vipi.Infrastructure.MySqlMigrations.dll`**:
+senza, la tabella non nasce e il modello se l'aspetta — la prova da fuori è la riga **`Schema`** in
+`admin/diagnostics`, che dev'essere **`0`**. Ci sono **tutti e sette** i progetti (`git diff f8d7a75 HEAD
+-- src` li nomina tutti), il satellite inglese (21 frasi nuove) e **nove** file di `wwwroot` — `vipi-awos.css`
+e `vipi-awos.js` **nuovi**, `vipi-boot.js` cambiato — che viaggiano **insieme** a
+`Vipi.Host.staticwebassets.endpoints.json`.
+
+Porta due cose: il **quadro vAWOS** su `/services/vawos/{icao}` (il meteo di torre da secondo monitor:
+vento per testata con traverso e coda, RVR **una cella per testata**, QNH/QFE, TL dalla tabella dello scalo,
+ATIS, e la pista in uso che dice **chi l'ha decisa**; pubblico per gli scali con un documento pubblicato,
+Test METAR allo staff) e i **minimi LVP**, sezione nuova di vIPI e vSOP con il dato nell'anagrafica dello
+scalo — quindi il vSOP non copia niente. ⚠️ **Gli indici dei documenti cambiano** e i documenti già
+pubblicati compariranno fra i «da ripubblicare»: la sezione arriva in pubblico solo alla **prossima
+pubblicazione** di ognuno. Carta
+[`docs/feature/2026-09-12-vawos-e-minimi-lvp.md`](docs/feature/2026-09-12-vawos-e-minimi-lvp.md).
+
+**Provata sul PACCHETTO** (publish win-x64 dalla sua cartella, guidato in Edge): `pacchetto-verifica.js`
+**dieci su dieci**, e il nuovo `awos-verifica.js` (messo nella skill `verifica-live`) **quindici su quindici**
+— compreso il passaggio dall'elenco a uno scalo **con un clic** (navigazione enhanced) e le **zero** chiamate
+all'API dopo aver lasciato la pagina, che erano i due difetti della revisione.
+⚠️ Un giro a vuoto pagato e da ricordare: i primi tre rossi erano un `vipi.db-wal` **spaiato** rimasto nello
+scratchpad, non il pacchetto — una copia di database si fa **cancellando prima** la vecchia, `-wal` e `-shm`
+compresi. ▶ Dopo il caricamento: la stessa prova puntata su produzione, e `admin/diagnostics` con `Schema` a 0.
+
+Prima: 12 settembre 2026 (sera) — ✅ **1.24.1 È CARICATA**: timbro e METAR tradotto visti
 dal committente; da fuori **otto controlli pubblici verdi** (Ricerca compresa) e il riquadro METAR reso in IT e
 in EN su cinque vIPI pubblicate. ⚠️ Una prova **non** si è potuta fare da fuori e non va data per riuscita:
 stamattina nessun aeroporto italiano aveva tempo significativo, quindi la riga «Weather» — quella dove le

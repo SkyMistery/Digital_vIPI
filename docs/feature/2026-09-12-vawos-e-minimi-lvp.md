@@ -701,3 +701,42 @@ lavoro sui vSOP stava **dopo**. Su un archivio senza nessuna vIPI civile (un ban
 soli campi militari) il passo militare non veniva **mai eseguito**, in silenzio. Lo ha preso il test del
 trasloco militare, che riportava zero spostamenti su un documento che andava spostato: l'uscita anticipata
 è stata tolta.
+
+## 14. Il pacchetto 1.25.0 (12 settembre 2026, notte)
+
+Timbro `1.25.0 · 909e3f03`, **25 file**, zip
+`56ab79f0758d03f3a68eb3a82e3000a4dd36868fa873ddc0e02655aaa5aee175`, foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](../../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md).
+Sostituisce 1.24.1.
+
+**MINOR** — una pagina nuova, una sezione di catalogo nuova e **una migrazione additiva**
+(`20260912115615_MinimiLvp`: un `CreateTable` più un indice unico, sui due provider). Niente SQL, niente
+`DropColumn`: dentro la finestra cieca si consegna da sola, e la domanda che conta — *può lasciare il
+database in uno stato da cui l'applicazione non riparte?* — ha risposta no.
+
+Il `git diff f8d7a75 HEAD -- src` nomina **tutti e sette** i progetti, quindi ci sono tutti coi loro `.pdb`;
+più il satellite inglese (21 frasi), **nove** file di `wwwroot` e l'indice degli endpoint che viaggia con
+loro. Confrontato per sha256 l'**intero** `wwwroot` col publish di 1.24.1: quei nove sono gli unici diversi.
+`deps.json`, `runtimeconfig.json` e `appsettings.json` sono identici e **restano fuori** — un file in meno è
+una rinomina in meno su un file che il processo tiene aperto.
+
+### La prova sul pacchetto, e uno script nuovo
+
+Il publish **win-x64** avviato dalla sua cartella su `:5199` e guidato in Edge:
+
+- `pacchetto-verifica.js` → **10/10**, Ricerca compresa e console pulita;
+- **`awos-verifica.js`**, scritto per questa consegna e messo nella skill `verifica-live` → **15/15**. Prende
+  quel che i banchi non possono prendere: i due asset **serviti e minificati**, il passaggio dall'elenco a
+  uno scalo **con un clic** (navigazione enhanced, il percorso su cui il quadro era già nato fermo), l'età
+  del dato che passa da «—» a «4s», le celle **`RVR 17` / `RVR 35`** senza nessun «MID», la riga
+  «RWY IN USE: 35 · from rule #1», e — l'altro difetto della revisione — **zero** chiamate all'API dopo aver
+  lasciato la pagina.
+
+### 🔴 Tre rossi che non erano del pacchetto
+
+Il primo giro ha dato tre rossi con «SQLite Error 11: *database disk image is malformed*». Non era la
+consegna: nello scratchpad c'erano un `vipi.db-wal` e un `-shm` **di un'altra copia**, rimasti da una prova
+del pomeriggio, e `Copy-Item -Filter 'vipi.db*'` aveva sovrascritto il solo `.db` lasciandoci accanto il
+journal sbagliato. **Una copia di database si fa cancellando prima la vecchia**, `-wal` e `-shm` compresi: un
+journal spaiato non dà «file mancante», dà un archivio corrotto — e il sintomo compare lontano, dentro una
+query qualunque.

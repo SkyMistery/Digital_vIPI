@@ -109,6 +109,7 @@ Accanto a `driver.js` ci sono altri script, che non si adattano: si lanciano cos
 | `aree-verifica.js` | la sezione «Aree regolamentate» su ACC/APP: chip, preset per tipo, 2D↔3D, descrizioni | quando si tocca `RegulatedAreas`, `AccAor` o le chip in `vipi-aor.js` |
 | `testo-verifica.js` | la **barra di formattazione** dei campi di prosa: i cinque tasti come interruttori, gli elenchi su piu' righe, Ctrl+B/I/U, e che quel che i tasti scrivono **sopravviva a un ricarico** | quando si tocca `RichTextArea`, `MarkdownLite` o `vipiMdWrap`/`vipiMdList` |
 | `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
+| `awos-verifica.js` | il quadro **vAWOS**: i due asset serviti e minificati, il passaggio dall'elenco a uno scalo con la navigazione **enhanced**, l'età del dato che scorre, le celle RVR col nome della **testata**, e che uscendo dalla pagina **i timer si spengano** | quando si tocca `AwosPage`, `vipi-awos.js` o la riga `awos` in `vipi-boot.js`, e a ogni consegna che li contiene |
 
 ```powershell
 node sweep.js

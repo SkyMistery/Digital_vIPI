@@ -1,8 +1,58 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 12 settembre 2026 (sera)
+## Dove siamo — 12 settembre 2026 (notte)
 
-🆕 **Il vAWOS e i minimi LVP sono in `main`, NON in un pacchetto.** Carta
+### 📦 A25 — Pacchetto 1.25.0: 25 file — ⏳ **PRONTO DA CARICARE**
+
+Timbro `1.25.0 · 909e3f03`, zip
+`56ab79f0758d03f3a68eb3a82e3000a4dd36868fa873ddc0e02655aaa5aee175`
+(`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`, 5,04 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md).
+Sostituisce **1.24.1**. Dentro: il **quadro vAWOS** e i **minimi LVP** (le due voci qui sotto).
+
+**MINOR, con UNA migrazione ADDITIVA** — `20260912115615_MinimiLvp`, un `CreateTable`
+(`AirportLvpMinima`) più un indice unico su `AirportId`, sui due provider. Niente SQL, niente `DropColumn`:
+si consegna da sola dentro la finestra cieca, e `MigrazioniDellaFinestraCiecaTests` è verde.
+
+**I 25 file, e perché tutti e sette i progetti**: `git diff f8d7a75 HEAD -- src` nomina Application (21),
+Domain (1), Host (1), Hosting (1), Infrastructure (7), MySqlMigrations (3), Ui (23) — 14 fra `.dll` e
+`.pdb`, il satellite inglese (21 frasi nuove), **nove** file di `wwwroot` (`vipi-awos.css` e `vipi-awos.js`
+**nuovi**, `vipi-boot.js` cambiato, coi loro `.br`/`.gz`) e `Vipi.Host.staticwebassets.endpoints.json`, che
+viaggia insieme a loro. Confrontato per sha256 **l'intero `wwwroot`** col publish di 1.24.1: quei nove sono
+gli unici diversi. `deps.json`, `runtimeconfig.json` e `appsettings.json` sono identici e restano fuori.
+Gli assiemi lasciati fuori (`Vipi.AuroraBridge.Contracts`, `Vipi.AuroraProfiles`) non nominano nessuna delle
+firme cambiate — cercato col testo in `src/`.
+
+🔴 **Il file da non dimenticare è `Vipi.Infrastructure.MySqlMigrations.dll`**: senza, la tabella non nasce e
+il modello se l'aspetta. La prova da fuori è la riga **`Schema`** in `admin/diagnostics`, che dev'essere
+**`0`**.
+
+**Provato sul PACCHETTO** (publish win-x64 avviato dalla sua cartella su :5199, guidato in Edge):
+- `pacchetto-verifica.js` → **dieci su dieci**, Ricerca compresa e console pulita;
+- `awos-verifica.js`, nuovo e messo nella skill → **quindici su quindici**: i due asset serviti e
+  minificati (10 827 e 7 670 caratteri su una riga), il passaggio **dall'elenco a uno scalo con un clic**
+  (navigazione enhanced) che apre davvero il quadro, l'età del dato che passa da «—» a «4s», la pastiglia
+  LVP, il METAR grezzo, le celle **`RVR 17` / `RVR 35`** (nessun «MID»), la riga
+  «RWY IN USE: 35 · from rule #1», e — il difetto della revisione — **zero chiamate all'API dopo aver
+  lasciato la pagina**;
+- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.0 · commit 909e3f0`.
+
+⚠️ **Un giro a vuoto, e vale come metodo.** Il primo lancio ha dato **tre rossi** con
+«SQLite Error 11: database disk image is malformed». Non era il pacchetto: nello scratchpad c'erano un
+`vipi.db-wal` e un `-shm` **di un'altra copia**, rimasti da una prova del pomeriggio, e
+`Copy-Item -Filter 'vipi.db*'` aveva sovrascritto il solo `.db` lasciandoci accanto il journal sbagliato.
+**Una copia di database si fa cancellando prima quella vecchia, `-wal` e `-shm` compresi**: un journal
+spaiato non dà «file mancante», dà un archivio corrotto. Rifatta la copia, dieci verdi su dieci.
+
+▶ **Da fare dopo il caricamento**: la stessa prova puntata fuori
+(`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node .claude/skills/verifica-live/pacchetto-verifica.js`),
+e `admin/diagnostics` con la riga `Schema` a 0.
+▶ **E poi i due lavori di dati** (non di FTP): unire a mano la sezione LVP libera di **LIRE**, e scrivere i
+minimi veri sugli scali che li hanno — poi **ripubblicare**, perché la sezione arrivi al pubblico.
+
+---
+
+🆕 **Il vAWOS e i minimi LVP sono in `main`, e ora anche in un pacchetto (A25 qui sopra).** Carta
 [`feature/2026-09-12-vawos-e-minimi-lvp.md`](feature/2026-09-12-vawos-e-minimi-lvp.md), dieci fette.
 Il quadro meteo di torre sta su `/services/vawos/{icao}` (pubblico per gli scali con un documento pubblicato,
 Test METAR allo staff), e i **minimi LVP** sono una sezione nuova delle vIPI **e** dei vSOP — il dato sta
