@@ -251,7 +251,8 @@
       }
     }
 
-    testo(cella('dir'), w.variable ? 'VRB' : (dir == null ? '---' : pad(((dir + 359) % 360) + 1, 3)));
+    // «CALM» e non «360»: 00000KT vuol dire vento calmo, non «da nord a zero nodi».
+    testo(cella('dir'), w.calm ? 'CALM' : w.variable ? 'VRB' : (dir == null ? '---' : pad(((dir + 359) % 360) + 1, 3)));
     testo(cella('spd'), pad(spd, 2));
     testo(cella('vmin'), w.varFromDeg != null ? pad(w.varFromDeg, 3) : '--');
     testo(cella('vmax'), w.varToDeg != null ? pad(w.varToDeg, 3) : '--');

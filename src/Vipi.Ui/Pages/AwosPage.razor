@@ -460,8 +460,15 @@
         </div>
     };
 
+    /// <summary>
+    /// La direzione come la scrive un quadro: <c>VRB</c> se variabile, <c>CALM</c> se calmo, altrimenti i tre
+    /// gradi (con 360 al posto di 000, che è la convenzione).
+    /// <para>⚠️ <c>CALM</c> e non «360»: <c>00000KT</c> vuol dire vento calmo, non «da nord a zero nodi», e
+    /// un 360 in quella casella si legge come una direzione misurata.</para>
+    /// </summary>
     private static string Dir(ParsedWind? w) =>
-        w is null ? "---" : w.Variable ? "VRB" : w.DirectionDeg is int d ? ((d + 359) % 360 + 1).ToString("000", Inv) : "---";
+        w is null ? "---" : w.Calm ? "CALM" : w.Variable ? "VRB"
+        : w.DirectionDeg is int d ? ((d + 359) % 360 + 1).ToString("000", Inv) : "---";
 
     private static string Spd(ParsedWind? w) => w is null ? "--" : w.SpeedKt.ToString("00", Inv);
     private static string Deg(int? v) => v is int d ? d.ToString("000", Inv) : "--";

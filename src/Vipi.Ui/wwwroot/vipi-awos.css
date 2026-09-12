@@ -201,11 +201,21 @@
 .awos-sorgente b { color: var(--awos-txt); }
 
 /* ── Vento: due pannelli, uno per testata ──────────────────────────────── */
-.awos-vento { display: flex; justify-content: center; align-items: stretch; padding: 6px; flex: 1; }
+/* ⚠️ `center` e non `stretch`: i pannelli crescono con la LARGHEZZA (container query), non con l'altezza,
+   e su uno scalo a una pista sola lo stiramento verticale dava due riquadri altissimi con dentro tre righe
+   di numeri persi in mezzo al nero. Lo spazio che avanza resta spazio, sopra e sotto. */
+.awos-vento { display: flex; justify-content: center; align-items: center; padding: 6px; flex: 1; }
 .awos-vento-wrap {
   display: grid; grid-template-columns: 1fr 12px 1fr;
   width: 100%; max-width: clamp(640px, 74vw, 1180px);
   border: 1px solid rgba(255,255,255,.55);
+  /* Occupa lo spazio che c'è, fino a un tetto: su una pista sola il quadro sarebbe due riquadri piccoli in
+     mezzo a mezzo schermo vuoto, su tre piste tre riquadri altissimi.
+     ⚠️ `min-height: max-content` è la rete che impedisce il taglio: quando lo spazio non basta, il
+     contenuto vince sull'altezza — ed è il difetto che aveva già mangiato la riga CROSS/TAIL. */
+  height: 420px;
+  max-height: 100%;
+  min-height: max-content;
 }
 .awos-divisore { background: var(--awos-bordo); }
 /* ⚠️ `inline-size` e non `size`, e l'altezza è AUTOMATICA. Con `container-type: size` il pannello deve
