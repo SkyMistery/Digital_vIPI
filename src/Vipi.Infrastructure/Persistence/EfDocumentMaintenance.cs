@@ -586,6 +586,85 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         return mosse;
     }
 
+    /// <inheritdoc cref="IDocumentMaintenance.ReparentAirportSectionsAsync"/>
+    public async Task<int> ReparentAirportSectionsAsync(CancellationToken ct = default)
+    {
+        const string regole = "runwayrules";
+        const string piste = "runways";
+        const string lvp = "lvp";
+        const string procedure = "operationaltechnique";
+
+        var docIds = await _db.Airports.Where(a => a.DocumentId != null)
+            .Select(a => a.DocumentId!.Value).ToListAsync(ct);
+        if (docIds.Count == 0) return 0;
+
+        var mosse = 0;
+        foreach (var docId in docIds)
+        {
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is not int vid) continue;
+
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
+
+            DocumentSection? Radice(string chiave) => tutte.FirstOrDefault(x =>
+                x.ParentSectionId is null && string.Equals(x.SectionKey, chiave, StringComparison.OrdinalIgnoreCase));
+
+            var cambiato = false;
+
+            // ── 1. Le regole piste diventano figlie delle Piste ───────────────────────────────────────
+            // ⚠️ Solo se sono ancora una RADICE: se qualcuno le ha già portate altrove, quella è una scelta
+            // di chi scrive. È anche ciò che rende il passo idempotente — al secondo avvio sono già figlie.
+            var leRegole = Radice(regole);
+            var lePiste = Radice(piste);
+            if (leRegole is not null && lePiste is not null)
+            {
+                var figlie = tutte.Where(x => x.ParentSectionId == lePiste.Id).ToList();
+                leRegole.ParentSectionId = lePiste.Id;
+                leRegole.ParentSection = lePiste;
+                leRegole.Depth = lePiste.Depth + 1;
+                leRegole.Order = figlie.Count == 0 ? 1 : figlie.Max(x => x.Order) + 1;
+                leRegole.RowVersion = Guid.NewGuid().ToByteArray();
+                cambiato = true;
+            }
+
+            // ── 2. Le LVP scendono subito dopo le Procedure generali, restando SORELLE ────────────────
+            var leLvp = Radice(lvp);
+            var leProcedure = Radice(procedure);
+            if (leLvp is not null && leProcedure is not null && leLvp.Order != leProcedure.Order + 1)
+                cambiato = true;
+
+            if (!cambiato) continue;
+
+            // ── 3. Le radici si rinumerano ───────────────────────────────────────────────────────────
+            // ⚠️ Si conserva l'ORDINE RELATIVO di tutto il resto e si chiude il buco lasciato dalle regole:
+            // riordinare le radici sul catalogo butterebbe via l'ordine che qualcuno ha scelto a mano
+            // ([[ordine-sezioni-personalizzato]]), che è esattamente ciò che questo passo non deve fare.
+            var radici = tutte.Where(x => x.ParentSectionId is null && x.Id != leRegole?.Id)
+                .OrderBy(x => x.Order).ThenBy(x => x.Id).ToList();
+
+            if (leLvp is not null && leProcedure is not null)
+            {
+                radici.Remove(leLvp);
+                radici.Insert(radici.IndexOf(leProcedure) + 1, leLvp);
+            }
+
+            for (var i = 0; i < radici.Count; i++)
+            {
+                if (radici[i].Order == i + 1) continue;
+                radici[i].Order = i + 1;
+                radici[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+
+            mosse++;
+        }
+
+        if (mosse > 0) await _db.SaveChangesAsync(ct);
+        return mosse;
+    }
+
     /// <inheritdoc cref="IDocumentMaintenance.RemoveMilQraSectionsAsync"/>
     public async Task<int> RemoveMilQraSectionsAsync(CancellationToken ct = default)
     {

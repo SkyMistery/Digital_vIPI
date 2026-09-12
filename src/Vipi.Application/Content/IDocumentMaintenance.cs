@@ -88,6 +88,30 @@ public interface IDocumentMaintenance
     Task<int> ReparentMilParkingsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Rimette a posto, nelle vIPI d'aeroporto <b>già scritte</b>, le due sezioni che il 12 settembre 2026
+    /// (sera) hanno cambiato posto nel catalogo su decisione del committente:
+    /// <list type="bullet">
+    ///   <item><c>runwayrules</c> diventa <b>figlia</b> di <c>runways</c> — una regola dice quale pista si
+    ///   usa, quindi sta con le piste;</item>
+    ///   <item><c>lvp</c> si sposta <b>subito dopo</b> <c>operationaltechnique</c>, sorella e non figlia.</item>
+    /// </list>
+    ///
+    /// <para>⚠️ <b>Serve un passo apposta</b>, e non basta ripubblicare: il catalogo decide la struttura solo
+    /// alla <b>nascita</b> del documento, e il motore di riordino sposta soltanto fra <b>fratelli</b> — a
+    /// mano, cambiare padre a una sezione non si può. È la stessa ragione per cui esiste
+    /// <see cref="ReparentMilParkingsAsync"/>.</para>
+    ///
+    /// <para>⚠️ Si tocca <b>solo</b> quel che è rimasto dov'era il catalogo: se qualcuno ha già portato
+    /// altrove una delle due, quella è la scelta di chi scrive e non si sposta. È anche ciò che rende il
+    /// passo idempotente.</para>
+    ///
+    /// <para>⚠️ Le <b>release già pubblicate non si toccano</b>: il pubblico continua a vedere l'indice di
+    /// prima finché quella vIPI non viene ripubblicata.</para>
+    /// </summary>
+    /// <returns>Quanti documenti sono stati sistemati.</returns>
+    Task<int> ReparentAirportSectionsAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Toglie dai vSOP militari già scritti la sezione <c>qra</c>, che dal 6 settembre 2026 non è più nel
     /// catalogo: non sta in nessuno dei quindici SOP reali — l'avevamo aggiunta noi il 27 agosto — e
     /// l'indice chiesto dal SOD non la prevede (carta <c>2026-09-06-vsop-sezioni-sod.md</c> §1b).

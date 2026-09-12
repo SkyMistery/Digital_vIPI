@@ -95,9 +95,14 @@ public class SectionCatalogTests
         Assert.Equal(
             new[] { "aor", "coordination", "frequencies", "validity" },
             Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
+        // ⚠️ `runwayrules` non è più in questo elenco dal 12 settembre 2026 (sera): è diventata FIGLIA di
+        // «Piste», e `Host(...)` guarda le sole radici. Resta host-rendered — `IsHostRendered` cerca
+        // ricorsivamente (`Find` → `Cerca`) — e la riga qui sotto lo pretende, o il difetto sarebbe silenzioso:
+        // una sezione che smette di essere «della pagina» si mette a mostrare blocchi editoriali vuoti.
         Assert.Equal(
-            new[] { "frequencies", "lvp", "runwayrules", "runways", "sids", "transition", "validity", "weather" },
+            new[] { "frequencies", "lvp", "runways", "sids", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
+        Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "runwayrules"));
     }
 
     [Fact]
@@ -201,11 +206,16 @@ public class SectionCatalogTests
         var keys = SectionCatalog.For(SectionProfile.Airport).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
         // ⚠️ «charts» è arrivata il 3 settembre 2026, PRIMA di «validity»: le carte sono contenuto del
         // documento, e la validità è il timbro che lo chiude — deve restare l'ultima.
+        // ⚠️ Dal 12 settembre 2026 (sera, committente) le RADICI sono queste: «runwayrules» è scesa dentro
+        // «Piste» — una regola dice quale pista si usa, quindi sta con le piste — e «lvp» è andata subito
+        // DOPO le «Procedure generali», sorella e non figlia.
         Assert.Equal(
-            // ⚠️ «lvp» è arrivata il 12 settembre 2026 SUBITO DOPO le regole piste: sono le due sezioni che si
-            // leggono dal METAR — una decide la pista, l'altra il modo di operare — e stanno vicine apposta.
-            new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "sids", "operationaltechnique", "lvp", "charts", "validity" },
             keys);
+
+        // E le regole piste stanno DENTRO le Piste, prime e sole.
+        var piste = SectionCatalog.For(SectionProfile.Airport).Single(d => d.Key == "runways");
+        Assert.Equal(new[] { "runwayrules" }, piste.Children!.Select(d => d.Key));
     }
 
     [Fact]

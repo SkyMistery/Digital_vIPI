@@ -614,3 +614,52 @@ e sono due fatti diversi. Una testata spaiata ne ha una sola.
 
 Provato a schermo: su LIRF, `R16R/0350U R16L/P2000N R25/M0050D` → `RVR 16R 350U`, `RVR 16L P2000N`,
 `RVR 25 M50D`, e `///` sulle tre testate che il bollettino non nomina.
+
+
+---
+
+## 12. L'indice della vIPI civile cambia (12 settembre 2026, sera)
+
+Deciso dal committente dopo aver letto §5.4: **nella vIPI civile** le regole piste scendono **dentro
+«Piste»** e le LVP vanno **sotto «Procedure generali»** — sotto nel senso di *dopo*, sorella e non figlia.
+
+| | prima | adesso |
+|---|---|---|
+| `runwayrules` | radice, la 2ª del documento | **figlia** di `runways` |
+| `lvp` | radice, la 3ª | radice, **subito dopo** `operationaltechnique` |
+
+```
+1 METAR & TAF · 2 Quote di transizione · 3 Frequenze
+4 Piste
+   └ Regole piste
+5 SID · 6 Procedure generali · 7 LVP · 8 Carte aeroportuali · 9 Validità e revisione
+```
+
+⚠️ **Il vSOP militare NON cambia**: là le regole piste restano **sorelle** di «Piste» (§CX, decisione
+dell'11 settembre) e le LVP dopo di loro, dentro «Dati generali». I due indici divergono qui, ed è voluto —
+quello militare lo detta il SOD.
+
+### 🔴 Ripubblicare NON basta: serve un passo di manutenzione
+
+Il catalogo decide la struttura solo alla **nascita** del documento, e il motore di riordino sposta soltanto
+fra **fratelli**: a un documento già scritto il padre non glielo cambia nessuno, e ripubblicare
+fotograferebbe la struttura vecchia. Serve `IDocumentMaintenance.ReparentAirportSectionsAsync`, che gira
+all'avvio prima di `AddMissingCatalogSections` — stessa forma e stesso ordine del passo dei parcheggi
+militari (3 settembre).
+⚠️ **Tocca solo quel che è rimasto dov'era il catalogo**: se qualcuno ha già portato altrove una delle due
+sezioni, quella è la scelta di chi scrive. È anche ciò che rende il passo idempotente.
+⚠️ **Le release già pubblicate non si toccano**: il pubblico vede l'indice nuovo alla **prossima
+pubblicazione** di ogni vIPI.
+Misurato all'avvio sulla copia del DB: *«Sistemate «Regole piste» e «LVP» in 10 vIPI d'aeroporto.»*
+
+### 🔴 E il trasloco ha rotto un titolo, in una lingua sola
+
+`AirportLegacySections.ForView` risolveva i titoli di catalogo **solo sulle radici**, con scritto accanto
+*«non serve scendere nei figli: il profilo Airport è piatto»*. Da questa modifica non è più vero, e il
+difetto si vedeva **solo in inglese**: la sezione figlia si chiamava **«Runway rules»** — la resa della
+macchina — invece di «Runway selection rules» del catalogo. In italiano tutto a posto, perché lì il titolo
+salvato coincide.
+
+Ora la risoluzione **scende**, e con lo stesso giro si chiude un difetto **preesistente e mai notato**: le
+cinque raccolte di «Carte aeroportuali», figlie dal 3 settembre, avevano lo stesso problema.
+⚠️ Una sotto-sezione **libera** non è nel catalogo e resta com'è: il suo titolo è di chi scrive.

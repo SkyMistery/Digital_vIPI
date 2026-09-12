@@ -278,19 +278,28 @@ public static class SectionCatalog
             [SectionProfile.Airport] = new[]
             {
                 H("weather", "METAR & TAF", 1),
-                H("runwayrules", "Regole piste", 2, en: "Runway selection rules"),
+                H("transition", "Quote di transizione", 2, en: "Transition altitude and levels"),
+                H("frequencies", "Frequenze", 3, en: "Frequencies"),
+                // ⚠️ Le REGOLE PISTE sono FIGLIE delle Piste dal 12 settembre 2026 (sera, committente): una
+                // regola dice quale pista si usa, quindi sta con le piste e non da un'altra parte
+                // dell'indice. Prima erano una sezione di primo livello, la seconda del documento.
+                // ⚠️ Nel vSOP militare restano SORELLE di «Piste» (§CX, decisione dell'11 settembre): i due
+                // indici divergono qui, ed è voluto — quello militare lo detta il SOD.
+                // ⚠️ Nei documenti GIÀ SCRITTI il catalogo non le sposta: la struttura la decide alla
+                // NASCITA. Lo fa `IDocumentMaintenance.ReparentAirportSectionsAsync` all'avvio.
+                H("runways", "Piste", 4, en: "Runways", children: new[]
+                {
+                    H("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
+                }),
+                H("sids", "SID", 5),
+                D("operationaltechnique", "Procedure generali", 6, en: "General procedures"),
                 // ✚ Non c'era (12 settembre 2026, committente): i minimi di bassa visibilita'. Sta SUBITO
-                // DOPO le regole piste perche' sono le due sezioni che si leggono dal METAR — una decide la
-                // pista, l'altra il modo di operare — e chi cerca «quando cambia qualcosa» le trova insieme.
-                // Come le regole, il dato sta nell'ANAGRAFICA dello scalo: qui c'e' solo la porta.
-                H("lvp", "LVP", 3),
-                H("transition", "Quote di transizione", 4, en: "Transition altitude and levels"),
-                H("frequencies", "Frequenze", 5, en: "Frequencies"),
-                H("runways", "Piste", 6, en: "Runways"),
-                H("sids", "SID", 7),
-                D("operationaltechnique", "Procedure generali", 8, en: "General procedures"),
-            }.Concat(CarteAeroportuali(9)).Append(
-                HB("validity", "Validità e revisione", 10, en: "Validity and revision")).ToArray(),
+                // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
+                // vengono dopo la prosa che descrive come si opera. Come le regole piste, il dato sta
+                // nell'ANAGRAFICA dello scalo: qui c'è solo la porta.
+                H("lvp", "LVP", 7),
+            }.Concat(CarteAeroportuali(8)).Append(
+                HB("validity", "Validità e revisione", 9, en: "Validity and revision")).ToArray(),
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //

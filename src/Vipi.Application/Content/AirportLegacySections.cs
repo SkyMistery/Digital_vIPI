@@ -81,7 +81,24 @@ public static class AirportLegacySections
         var risultato = new List<SectionView>();
         var presenti = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var s in sections ?? Array.Empty<SectionView>())
+        // ⚠️ Il titolo lo decide il CATALOGO anche quando la chiave era già giusta: «Frequencies» e «SID»
+        // non passano dal riconoscimento per titolo, e senza questo ramo il documento resterebbe metà in
+        // italiano e metà in inglese. Una sezione fissa non si rinomina a mano, quindi non c'è nessuna
+        // scelta editoriale da rispettare.
+        // ⚠️ La REGOLA sta in TitoliDiCatalogo, non qui: dal 1 settembre 2026 la stessa risoluzione vale
+        // per tutte e cinque le famiglie — l'aeroporto era l'unica coperta, e su un vSOP o un APP
+        // dichiarati inglesi le testate restavano italiane. Qui resta solo il PERCORSO d'aeroporto, che
+        // fa anche altro (riconosce le sezioni cotte, ne butta i blocchi, accoda le sempre-live).
+        //
+        // 🔴 E SI SCENDE NEI FIGLI. Qui c'era scritto il contrario — «il profilo Airport è piatto, e le
+        // sotto-sezioni di un documento d'aeroporto sono libere» — e dal 12 settembre 2026 (sera) è falso:
+        // «Regole piste» è figlia di «Piste». Senza la discesa il suo titolo non passava dal catalogo e
+        // restava quello che ne aveva fatto la macchina: misurato a schermo, in pagina inglese la sezione si
+        // chiamava «Runway rules» invece di «Runway selection rules». Vale anche per le cinque raccolte di
+        // «Carte aeroportuali», figlie dal 3 settembre e con lo stesso difetto, mai notato.
+        // ⚠️ Una sotto-sezione LIBERA non è nel catalogo e resta esattamente com'è: il suo titolo è una
+        // scelta di chi scrive.
+        SectionView Mappa(SectionView s)
         {
             var cotta = SectionKeys.IsCustom(s.SectionKey) ? KeyForCookedTitle(s.Title) : null;
             var chiave = s.SectionKey;
@@ -89,24 +106,24 @@ public static class AirportLegacySections
             if (cotta is not null && presenti.Add(cotta)) chiave = cotta;
             else if (!SectionKeys.IsCustom(s.SectionKey)) presenti.Add(s.SectionKey);
 
+            var figlie = s.Children.Count == 0
+                ? s.Children
+                : s.Children.Select(Mappa).ToList();
+
             if (SectionCatalog.Find(SectionProfile.Airport, chiave) is not { } desc)
             {
-                // Sezione libera (o chiave che non conosciamo): resta esattamente com'è, blocchi compresi.
-                risultato.Add(s);
-                continue;
+                // Sezione libera (o chiave che non conosciamo): resta com'è, blocchi compresi — ma le sue
+                // figlie sono passate lo stesso, perché una libera può contenerne una di catalogo.
+                if (ReferenceEquals(figlie, s.Children)) return s;
+                return new SectionView
+                {
+                    Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey,
+                    IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+                    LeadSentence = s.LeadSentence, Blocks = s.Blocks, Children = figlie,
+                };
             }
 
-            // ⚠️ Il titolo lo decide il CATALOGO anche quando la chiave era già giusta: «Frequencies» e «SID»
-            // non passano dal riconoscimento per titolo, e senza questo ramo il documento resterebbe metà in
-            // italiano e metà in inglese. Una sezione fissa non si rinomina a mano, quindi non c'è nessuna
-            // scelta editoriale da rispettare.
-            // ⚠️ La REGOLA sta in TitoliDiCatalogo, non qui: dal 1 settembre 2026 la stessa risoluzione vale
-            // per tutte e cinque le famiglie — l'aeroporto era l'unica coperta, e su un vSOP o un APP
-            // dichiarati inglesi le testate restavano italiane. Qui resta solo il PERCORSO d'aeroporto, che
-            // fa anche altro (riconosce le sezioni cotte, ne butta i blocchi, accoda le sempre-live).
-            // ⚠️ Non serve scendere nei figli: il profilo Airport è piatto, e le sotto-sezioni di un
-            // documento d'aeroporto sono libere — cioè prosa, che la traduce il traduttore.
-            risultato.Add(new SectionView
+            return new SectionView
             {
                 Id = s.Id,
                 Title = TitoliDiCatalogo.Titolo(SectionProfile.Airport, chiave, s.Title, lingua),
@@ -118,9 +135,12 @@ public static class AirportLegacySections
                 // Il corpo di una sezione di catalogo lo produce la pagina: i blocchi cotti se ne vanno, o si
                 // vedrebbe la tabella DUE volte (quella dello snapshot e quella derivata).
                 Blocks = desc.BodySource == SectionBodySource.Host ? Array.Empty<BlockView>() : s.Blocks,
-                Children = s.Children,
-            });
+                Children = figlie,
+            };
         }
+
+        foreach (var s in sections ?? Array.Empty<SectionView>())
+            risultato.Add(Mappa(s));
 
         foreach (var d in SectionCatalog.For(SectionProfile.Airport)
                      .Where(d => SectionCatalog.IsAlwaysLive(d.Key) && !presenti.Contains(d.Key))

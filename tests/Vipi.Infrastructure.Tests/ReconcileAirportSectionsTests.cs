@@ -232,9 +232,15 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
             .OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
         // weather, runwayrules, lvp, operationaltechnique, validity, charts + le cinque raccolte di charts
         Assert.Equal(11, aggiunte);
+        // ⚠️ «runwayrules» non è più fra le radici dal 12 settembre 2026 (sera): nasce FIGLIA di «Piste».
         Assert.Equal(
-            new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids", "operationaltechnique", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "sids", "operationaltechnique", "lvp", "charts", "validity" },
             chiavi);
+        var pisteSez = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "runways");
+        Assert.Equal(
+            new[] { "runwayrules" },
+            (await _db.DocumentSections.Where(s => s.ParentSectionId == pisteSez.Id).OrderBy(s => s.Order).ToListAsync())
+                .Select(s => s.SectionKey));
         // Le figlie arrivano DENTRO il contenitore appena creato, non accanto a lui.
         var carte = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "charts");
         Assert.Equal(
@@ -275,5 +281,93 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
 
         Assert.Equal(0, await _manutenzione.ReconcileAirportSectionKeysAsync());
         Assert.Equal(chiave, (await _db.DocumentSections.SingleAsync()).SectionKey);
+    }
+
+    // ─── Il trasloco del 12 settembre 2026 (sera): regole piste sotto le Piste, LVP dopo le Procedure ───
+
+    /// <summary>
+    /// ⚠️ <b>Non basta ripubblicare.</b> Il catalogo decide la struttura solo alla NASCITA, e il motore di
+    /// riordino sposta soltanto fra FRATELLI: a un documento già scritto il padre non glielo cambia nessuno.
+    /// Serve questo passo, ed è la stessa ragione per cui esiste quello dei parcheggi militari.
+    /// </summary>
+    [Fact]
+    public async Task Le_regole_piste_scendono_sotto_le_piste_e_le_lvp_dopo_le_procedure()
+    {
+        await ScaloCottoAsync("LIRF",
+            ("Transition levels", null), ("Frequencies", null), ("Runways", null), ("SID", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+
+        // Le porto a mano dov'erano PRIMA della decisione: due radici, regole in seconda posizione.
+        var tutte = await _db.DocumentSections.OrderBy(x => x.Order).ToListAsync();
+        var regole = tutte.Single(x => x.SectionKey == "runwayrules");
+        regole.ParentSectionId = null;
+        regole.Depth = 0;
+        var lvp = tutte.Single(x => x.SectionKey == "lvp");
+        lvp.ParentSectionId = null;
+        lvp.Depth = 0;
+        var radici = tutte.Where(x => x.SectionKey is "weather" or "runwayrules" or "lvp" or "transition"
+                                      or "frequencies" or "runways" or "sids" or "operationaltechnique"
+                                      or "charts" or "validity").ToList();
+        var vecchio = new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids",
+                              "operationaltechnique", "charts", "validity" };
+        foreach (var r in radici) r.Order = Array.IndexOf(vecchio, r.SectionKey) + 1;
+        await _db.SaveChangesAsync();
+
+        var mosse = await _manutenzione.ReparentAirportSectionsAsync();
+        Assert.Equal(1, mosse);
+
+        var dopo = await _db.DocumentSections.OrderBy(x => x.Order).ToListAsync();
+        var piste = dopo.Single(x => x.SectionKey == "runways");
+        var regoleDopo = dopo.Single(x => x.SectionKey == "runwayrules");
+
+        // 1. Le regole sono FIGLIE delle Piste.
+        Assert.Equal(piste.Id, regoleDopo.ParentSectionId);
+        Assert.Equal(piste.Depth + 1, regoleDopo.Depth);
+
+        // 2. Le LVP sono SORELLE, subito dopo le Procedure generali.
+        var chiavi = dopo.Where(x => x.ParentSectionId is null).OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
+        Assert.Equal(new[] { "weather", "transition", "frequencies", "runways", "sids",
+                             "operationaltechnique", "lvp", "charts", "validity" }, chiavi);
+
+        // 3. Le radici non hanno buchi: Order è una posizione.
+        var ordini = dopo.Where(x => x.ParentSectionId is null).Select(x => x.Order).OrderBy(x => x).ToList();
+        Assert.Equal(Enumerable.Range(1, ordini.Count), ordini);
+    }
+
+    [Fact] // il passo è IDEMPOTENTE: al secondo avvio non c'è più niente da spostare
+    public async Task Il_secondo_giro_non_sposta_niente()
+    {
+        await ScaloCottoAsync("LIRF", ("Runways", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+
+        await _manutenzione.ReparentAirportSectionsAsync();
+        Assert.Equal(0, await _manutenzione.ReparentAirportSectionsAsync());
+    }
+
+    /// <summary>
+    /// 🔴 Se qualcuno ha già portato le regole ALTROVE, quella è la scelta di chi scrive e non si tocca.
+    /// È la stessa regola del passo dei parcheggi, ed è ciò che impedisce a una manutenzione di scavalcare
+    /// una decisione editoriale.
+    /// </summary>
+    [Fact]
+    public async Task Una_sezione_gia_spostata_a_mano_non_si_tocca()
+    {
+        await ScaloCottoAsync("LIRF", ("Runways", null), ("SID", null));
+        await _manutenzione.ReconcileAirportSectionKeysAsync();
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+
+        var tutte = await _db.DocumentSections.ToListAsync();
+        var regole = tutte.Single(x => x.SectionKey == "runwayrules");
+        var sids = tutte.Single(x => x.SectionKey == "sids");
+        regole.ParentSectionId = sids.Id;      // qualcuno le ha messe sotto le SID
+        regole.Depth = sids.Depth + 1;
+        await _db.SaveChangesAsync();
+
+        await _manutenzione.ReparentAirportSectionsAsync();
+
+        var dopo = await _db.DocumentSections.SingleAsync(x => x.SectionKey == "runwayrules");
+        Assert.Equal(sids.Id, dopo.ParentSectionId);
     }
 }

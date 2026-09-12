@@ -167,4 +167,49 @@ public class AirportLegacySectionsTests
         var v = AirportLegacySections.ForView(Array.Empty<SectionView>());
         Assert.Equal(new[] { "weather", "validity" }, v.Select(s => s.SectionKey));
     }
+
+    /// <summary>
+    /// 🔴 Il titolo di catalogo si risolve <b>anche nelle figlie</b>. Il metodo scendeva solo sulle radici,
+    /// con scritto «il profilo Airport è piatto»: dal 12 settembre 2026 «Regole piste» è figlia di «Piste», e
+    /// senza la discesa il suo titolo restava quello della macchina — misurato a schermo, in pagina inglese
+    /// la sezione si chiamava «Runway rules» invece di «Runway selection rules».
+    /// </summary>
+    [Fact]
+    public void Il_titolo_di_catalogo_si_risolve_anche_nelle_figlie()
+    {
+        var piste = new SectionView
+        {
+            Id = "s-1", SectionKey = "runways", Title = "Runways", Depth = 0, Blocks = Array.Empty<BlockView>(),
+            Children = new[]
+            {
+                new SectionView { Id = "s-2", SectionKey = "runwayrules", Title = "Runway rules", Depth = 1,
+                                  Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>() },
+            },
+        };
+
+        var resa = AirportLegacySections.ForView(new[] { piste }, "en");
+
+        var figlia = resa.Single(x => x.SectionKey == "runways").Children.Single();
+        Assert.Equal("Runway selection rules", figlia.Title);
+    }
+
+    [Fact] // una sotto-sezione LIBERA non è nel catalogo: il suo titolo è di chi scrive e non si tocca
+    public void Una_sottosezione_libera_tiene_il_suo_titolo()
+    {
+        var piste = new SectionView
+        {
+            Id = "s-1", SectionKey = "runways", Title = "Piste", Depth = 0, Blocks = Array.Empty<BlockView>(),
+            Children = new[]
+            {
+                new SectionView { Id = "s-9", SectionKey = "airportextra", Title = "Note della torre", Depth = 1,
+                                  Blocks = Array.Empty<BlockView>(), Children = Array.Empty<SectionView>() },
+            },
+        };
+
+        var resa = AirportLegacySections.ForView(new[] { piste }, "en");
+
+        // ⚠️ `resa` porta anche le sempre-live che il documento non aveva (il meteo): si cerca per chiave.
+        Assert.Equal("Note della torre",
+            resa.Single(x => x.SectionKey == "runways").Children.Single().Title);
+    }
 }
