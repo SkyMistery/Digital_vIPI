@@ -20,6 +20,22 @@ public static class VsopRoutes
     /// <summary>Il prefisso di oggi, senza barra finale.</summary>
     public const string Prefix = "/services/vsop";
 
+    /// <summary>
+    /// La porta d'ingresso ai servizi — il padre di <see cref="Prefix"/> — e il posto dove si torna dopo un
+    /// login o un logout.
+    ///
+    /// <para>⚠️ Non è <see cref="Prefix"/>, e la differenza è una decisione del committente (12 settembre
+    /// 2026): chi entra o esce si ritrova davanti <b>tutte</b> le porte — le due documentazioni e gli
+    /// strumenti — invece che dentro una sola. Prima si atterrava sulla vSOP, che è la porta più usata ma
+    /// non è l'unica, e da lì il vAWOS o le statistiche costavano un passo indietro.</para>
+    ///
+    /// <para>⚠️ Sta scritto <b>qui</b> perché lo leggono in due mondi: il layout (<c>Vipi.Ui</c>) per i
+    /// collegamenti «Accedi»/«Esci», e gli endpoint di autenticazione (<c>Vipi.Host</c>) per il ripiego e per
+    /// l'uscita. Scritto due volte, una delle due sarebbe rimasta indietro — è esattamente quello che è
+    /// successo al prefisso il 22 agosto 2026.</para>
+    /// </summary>
+    public const string ServicesHome = "/services";
+
     /// <summary>I segmenti del prefisso, nell'ordine in cui compaiono nel percorso.</summary>
     private static readonly string[] PrefixSegments =
         Prefix.Split('/', StringSplitOptions.RemoveEmptyEntries);

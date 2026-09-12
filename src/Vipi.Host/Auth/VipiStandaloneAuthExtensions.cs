@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using Vipi.Hosting;
+using Vipi.Ui;
 
 namespace Vipi.Host.Auth;
 
@@ -209,7 +210,8 @@ public static class VipiStandaloneAuthExtensions
     /// <summary>Endpoint minimi di login/logout dello scenario standalone. Montati solo se l'auth è attiva.</summary>
     public static WebApplication MapVipiStandaloneAuth(this WebApplication app)
     {
-        // Avvia il flusso IVAO; al ritorno il cookie è impostato e si torna a returnUrl (default /services/vsop).
+        // Avvia il flusso IVAO; al ritorno il cookie è impostato e si torna a returnUrl (default: la porta
+        // d'ingresso ai servizi, VsopRoutes.ServicesHome).
         app.MapGet("/services/vsop/auth/login", (string? returnUrl) =>
             Results.Challenge(
                 // IsPersistent=true ⇒ cookie sopravvive a chiusura browser; scadenza = ExpireTimeSpan (7gg,
@@ -218,9 +220,13 @@ public static class VipiStandaloneAuthExtensions
                 new[] { IvaoScheme }));
 
         // Logout: cancella il cookie locale e la sessione IVAO (redirect end-session).
+        //
+        // ⚠️ Si esce sulla PORTA D'INGRESSO, non sulla vSOP (committente, 12 settembre 2026), e lo stesso
+        // vale per il ripiego del login in SafeReturn: entrare e uscire sono i due momenti in cui non si sa
+        // ancora dove si sta andando, e la risposta giusta è l'elenco di tutte le porte.
         app.MapGet("/services/vsop/auth/logout", () =>
             Results.SignOut(
-                new AuthenticationProperties { RedirectUri = "/services/vsop" },
+                new AuthenticationProperties { RedirectUri = VsopRoutes.ServicesHome },
                 new[] { CookieAuthenticationDefaults.AuthenticationScheme, IvaoScheme }));
 
         // Dove finisce chi il login non l'ha chiuso. Ci arriva solo per redirect da OnRemoteFailure, ma è
@@ -447,7 +453,7 @@ public static class VipiStandaloneAuthExtensions
     }
 
     /// <summary>
-    /// Consente solo redirect locali (anti open-redirect); ripiego su <c>/services/vsop</c>.
+    /// Consente solo redirect locali (anti open-redirect); ripiego sulla porta d'ingresso ai servizi.
     ///
     /// <para>⚠️ Il controllo «comincia per <c>/</c> e non per <c>//</c>» NON basta, ed è quello che c'era
     /// prima: i browser normalizzano la barra rovescia in barra <b>prima</b> di risolvere l'URL, quindi
@@ -459,7 +465,7 @@ public static class VipiStandaloneAuthExtensions
     /// </summary>
     internal static string SafeReturn(string? returnUrl)
     {
-        const string ripiego = "/services/vsop";
+        const string ripiego = VsopRoutes.ServicesHome;
         if (string.IsNullOrEmpty(returnUrl)) return ripiego;
 
         // Un URL assoluto o uno schema (http:, javascript:, data:) non comincia per '/': cade da sé.

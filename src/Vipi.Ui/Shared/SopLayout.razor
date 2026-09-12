@@ -62,7 +62,10 @@
                 }
                 @if (_user is null)
                 {
-                    <a href="/services/vsop/auth/login?returnUrl=/services/vsop"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+                    @* ⚠️ Dopo il login e dopo il logout si torna alla PORTA D'INGRESSO, non alla vSOP (committente,
+                       12 settembre 2026): chi entra o esce si ritrova davanti tutte le porte. Il percorso sta in
+                       VsopRoutes.ServicesHome, e non a mano, perche' lo legge anche l'host. *@
+                    <a href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
                 }
                 else
                 {
@@ -199,7 +202,7 @@
             }
             else
             {
-                <a class="editor-btn" href="/services/vsop/auth/login?returnUrl=/services/vsop" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
+                <a class="editor-btn" href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
             }
         </div>
     </header>

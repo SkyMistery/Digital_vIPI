@@ -19,22 +19,23 @@ public sealed class SafeReturnTests
     [InlineData("/", "/")]
     [InlineData("/services/vsop/lirr/airports?icao=LIRF", "/services/vsop/lirr/airports?icao=LIRF")]
     [InlineData("/services/vsop/live/lirr_ctr#now", "/services/vsop/live/lirr_ctr#now")]
-    // Assente o vuoto: ripiego.
-    [InlineData(null, "/services/vsop")]
-    [InlineData("", "/services/vsop")]
+    // Assente o vuoto: ripiego sulla PORTA D'INGRESSO — dal 12 settembre 2026 non e' piu' la vSOP
+    // (committente): chi entra o esce si ritrova davanti a tutte le porte, non dentro una sola.
+    [InlineData(null, "/services")]
+    [InlineData("", "/services")]
     // Fuori sito, nelle sue forme.
-    [InlineData("//evil.example", "/services/vsop")]
-    [InlineData("/\\evil.example", "/services/vsop")]          // ← il caso che passava
-    [InlineData("\\\\evil.example", "/services/vsop")]
-    [InlineData("https://evil.example", "/services/vsop")]
-    [InlineData("http://evil.example", "/services/vsop")]
-    [InlineData("//evil.example/services/vsop", "/services/vsop")]
+    [InlineData("//evil.example", "/services")]
+    [InlineData("/\\evil.example", "/services")]          // ← il caso che passava
+    [InlineData("\\\\evil.example", "/services")]
+    [InlineData("https://evil.example", "/services")]
+    [InlineData("http://evil.example", "/services")]
+    [InlineData("//evil.example/services/vsop", "/services")]
     // Schemi che non sono navigazione.
-    [InlineData("javascript:alert(1)", "/services/vsop")]
-    [InlineData("data:text/html,<script>alert(1)</script>", "/services/vsop")]
+    [InlineData("javascript:alert(1)", "/services")]
+    [InlineData("data:text/html,<script>alert(1)</script>", "/services")]
     // Response splitting: un a-capo dentro un header Location.
-    [InlineData("/services/vsop\r\nSet-Cookie: a=b", "/services/vsop")]
-    [InlineData("/services/vsop\nLocation: https://evil.example", "/services/vsop")]
+    [InlineData("/services/vsop\r\nSet-Cookie: a=b", "/services")]
+    [InlineData("/services/vsop\nLocation: https://evil.example", "/services")]
     public void Solo_i_percorsi_di_questo_sito_sopravvivono(string? ingresso, string atteso) =>
         Assert.Equal(atteso, VipiStandaloneAuthExtensions.SafeReturn(ingresso));
 }
