@@ -32,6 +32,38 @@ public interface IImportStateStore
 /// <summary>Categorie note degli import periodici gated.</summary>
 public static class ImportCategories
 {
+    /// <summary>
+    /// Quanto può essere lunga una categoria: <b>32 caratteri</b>.
+    ///
+    /// <para>⚠️ <b>Non è un limite di comodo: è la CHIAVE PRIMARIA di <see cref="ImportState"/></b>, e su
+    /// MySQL è una <c>varchar(32)</c> vera. Una chiave più lunga non dà lo stesso esito dappertutto, ed è
+    /// questo che la rende pericolosa: su <b>SQLite</b> passa (la lunghezza di una <c>varchar</c> lì non
+    /// esiste), su <b>MariaDB in strict mode</b> la scrittura fallisce, e <b>fuori da strict MariaDB
+    /// TRONCA in silenzio</b> — cioè due categorie diverse diventano la stessa riga.</para>
+    ///
+    /// <para>🔴 Trovato il 12 settembre 2026 col pacchetto 1.25.1 <b>già costruito</b>: la chiave del gate
+    /// delle riconciliazioni era di 41 caratteri e in locale — SQLite — funzionava benissimo. Troncata a 32
+    /// sarebbe diventata <c>RiconciliazioniDocumentali:1.25</c>, uguale per ogni 1.25.x: la versione
+    /// successiva avrebbe trovato il timbro di quella prima e saltato le proprie riconciliazioni. Il
+    /// difetto che la chiave con la versione esiste per impedire, prodotto dalla chiave stessa.</para>
+    ///
+    /// <para>Il presidio è un test (<c>CategorieDiImportTests</c>) che confronta questo numero col modello
+    /// EF e misura ogni categoria, chiavi composte comprese. Qui non si alza niente senza una migrazione.</para>
+    /// </summary>
+    public const int MaxLunghezza = 32;
+
+    /// <summary>
+    /// La chiave del gate delle riconciliazioni d'avvio per un dato <b>timbro di build</b>.
+    ///
+    /// <para>⚠️ Il timbro è il <b>commit</b> e non il numero di versione, e non è un dettaglio di spazio: il
+    /// numero è il nome che diamo noi e <b>può ripetersi</b> — 1.25.0 è stata ricostruita <b>due volte</b>
+    /// con tre commit diversi (11 e 12 settembre 2026) — mentre il commit identifica il codice. Con la
+    /// versione, due build diverse dello stesso numero avrebbero condiviso il timbro, e la seconda avrebbe
+    /// saltato le riconciliazioni che la prima non aveva mai fatto girare.</para>
+    /// </summary>
+    public static string RiconciliazioniPer(string timbroDiBuild) =>
+        $"{RiconciliazioniDocumentali}:{timbroDiBuild}";
+
     public const string Acc = "Acc";
     public const string AirportSector = "AirportSector";
 
@@ -156,15 +188,17 @@ public static class ImportCategories
     /// riscandendo tutti i documenti. Misurato il 12 settembre 2026: <b>~185 query su 256</b> dell'avvio, e
     /// crescono col contenuto. Su un host che riavvia il processo per inattività si pagano ogni volta.</para>
     ///
-    /// <para><b>La chiave porta la VERSIONE</b> (<c>RiconciliazioniDocumentali:1.25.0+abc1234</c>): dopo ogni
-    /// consegna le passate rigirano <b>una volta</b> e poi tacciono. È la rete che conta, perché queste
-    /// esistono proprio per riparare quel che ha scritto il codice di prima.</para>
+    /// <para><b>La chiave porta il TIMBRO DI BUILD</b> (<c>RiconcDoc:abc1234</c>, vedi
+    /// <see cref="RiconciliazioniPer"/>): dopo ogni consegna le passate rigirano <b>una volta</b> e poi
+    /// tacciono. È la rete che conta, perché queste esistono proprio per riparare quel che ha scritto il
+    /// codice di prima. ⚠️ Il nome è corto per necessità: la categoria è la chiave primaria, e sta in
+    /// <see cref="MaxLunghezza"/> caratteri — leggere lì perché.</para>
     ///
     /// <para>⚠️ <b>E si timbra solo un giro che non ha cambiato NIENTE.</b> Finché una passata tocca righe,
     /// il giro successivo le rifà: il timbro dice «l'ultima volta non c'era più niente da fare», che è una
     /// cosa provata, non una promessa. ⚠️ Senza timbro di build (sviluppo) il gate non si attiva affatto.</para>
     /// </summary>
-    public const string RiconciliazioniDocumentali = "RiconciliazioniDocumentali";
+    public const string RiconciliazioniDocumentali = "RiconcDoc";
 
     /// <summary>
     /// NON è un import periodico: è il segnaposto della riconciliazione one-shot che ha spento le aree degli ACC

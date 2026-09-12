@@ -43,18 +43,18 @@ internal static class VersioneBuild
     /// arrivare — senza un errore da nessuna parte. Con null il gate si spegne e le passate girano a ogni
     /// avvio, che è il comportamento di prima e quello giusto mentre si scrive codice.</para>
     ///
-    /// <para>⚠️ Porta <b>il commit e non il numero di versione</b>: il numero è il nome che diamo noi e può
-    /// restare fermo fra due build (una PATCH ricostruita), il commit no. È la stessa ragione per cui
-    /// <c>Etichetta</c> li mostra tutti e due.</para>
+    /// <para>⚠️ <b>È il COMMIT e basta, non il numero di versione</b>, e la prima stesura sbagliava su tutti
+    /// e due i fronti. Il numero è il nome che diamo noi e <b>può ripetersi</b>: 1.25.0 è stata ricostruita
+    /// <b>due volte</b> (11 e 12 settembre 2026), tre commit sotto lo stesso nome. Un registro che usasse il
+    /// numero direbbe «questa build l'ho già fatta girare» a una build che non ha mai girato.</para>
+    ///
+    /// <para>🔴 E c'è una seconda ragione, misurata: la categoria di <c>ImportState</c> è la sua <b>chiave
+    /// primaria</b>, <c>varchar(32)</c>. Con versione <i>e</i> commit la chiave usciva di <b>41</b>
+    /// caratteri — che su SQLite passa, su MariaDB strict fallisce e su MariaDB non strict <b>si tronca in
+    /// silenzio</b>, facendo collidere ogni 1.25.x sulla stessa riga. Vedi
+    /// <c>ImportCategories.MaxLunghezza</c>: il limite sta scritto lì, con il suo test.</para>
     /// </summary>
-    internal static string? TimbroPersistente()
-    {
-        var commit = Pulisci(Metadato("VipiCommit"));
-        if (commit is null) return null;
-
-        var versione = Pulisci(Metadato("VipiVersione"));
-        return versione is null ? commit : $"{versione}+{commit}";
-    }
+    internal static string? TimbroPersistente() => Pulisci(Metadato("VipiCommit"));
 
     private static string? Metadato(string chiave) =>
         typeof(VersioneBuild).Assembly.GetCustomAttributes<AssemblyMetadataAttribute>()

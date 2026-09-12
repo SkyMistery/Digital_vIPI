@@ -809,9 +809,26 @@ public static class VipiModuleExtensions
         //
         // Il perché sta nel riepilogo in testa al metodo. Qui la meccanica, che è tutta in queste righe.
         var stato = scope.ServiceProvider.GetService<IImportStateStore>();
+
+        // ⚠️ La chiave la compone ImportCategories, non un'interpolazione scritta qui: quella colonna è una
+        // CHIAVE PRIMARIA varchar(32), e una chiave più lunga passa su SQLite, fallisce su MariaDB strict e
+        // TRONCA IN SILENZIO su MariaDB non strict — cioè due build diverse diventano la stessa riga. È
+        // successo con questo stesso gate, a pacchetto già costruito: 41 caratteri.
         var chiaveTimbro = timbroVersione is { Length: > 0 }
-            ? $"{ImportCategories.RiconciliazioniDocumentali}:{timbroVersione}"
+            ? ImportCategories.RiconciliazioniPer(timbroVersione)
             : null;
+
+        // La rete che resta, per il giorno in cui qualcuno allunga il prefisso o il timbro: si rinuncia al
+        // gate invece di scrivere una chiave che il database accorcerebbe. Un'ottimizzazione che non sa
+        // rispondere deve dire «non lo so», non scrivere una risposta sbagliata.
+        if (chiaveTimbro is not null && chiaveTimbro.Length > ImportCategories.MaxLunghezza)
+        {
+            if (log is not null)
+                Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                    log, "La chiave del gate delle riconciliazioni («{Chiave}») supera i {Max} caratteri della " +
+                         "colonna: rinuncio al gate e le rifaccio tutte, come prima.", chiaveTimbro, ImportCategories.MaxLunghezza);
+            chiaveTimbro = null;
+        }
 
         if (chiaveTimbro is not null && stato is not null)
         {

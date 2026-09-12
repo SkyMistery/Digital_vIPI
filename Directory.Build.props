@@ -1255,6 +1255,19 @@
       solo chiamante — Vipi.Host — e' dentro il pacchetto. Nessun assieme lasciato fuori (Domain,
       Infrastructure, MySqlMigrations, Aurora*) implementa niente di cambiato.
 
+      🔴 RICOSTRUITA UNA VOLTA, e vale la pena scrivere perche': il pacchetto era gia' fatto quando e'
+      uscito che la chiave del gate di Q7 era di 41 caratteri in una colonna da 32 — ImportState.Category,
+      che e' una CHIAVE PRIMARIA varchar(32). In locale (SQLite) passava: la' la lunghezza di una varchar
+      non esiste. Su MariaDB o fallisce (strict) o TRONCA IN SILENZIO (non strict), e troncata ogni 1.25.x
+      sarebbe diventata la stessa riga — cioe' la versione dopo avrebbe saltato riconciliazioni mai
+      eseguite. Chiusa accorciando la chiave e usando il COMMIT invece del numero (che si ripete: 1.25.0 e'
+      stata ricostruita due volte), con un test che misura ogni categoria e le chiavi composte contro la
+      lunghezza vera della colonna. La controprova e' stata fatta: col nome vecchio il test e' rosso.
+
+      ⚠️ Vipi.Infrastructure.dll RESTA FUORI benche' il diff lo nomini: l'unica modifica la' dentro e' un
+      COMMENTO in MySqlStringLengths (il numero, 32, non e' cambiato). Un .dll in piu' e' una rinomina in
+      piu' su un file che il processo tiene aperto.
+
       ⚠️ E DUE COSE CHE IL PACCHETTO NON PUO' FARE DA SOLO, e valgono piu' di tutte e sette: la Cache Rule
       su Cloudflare e le direttive nginx in Plesk (LEGGIMI-DEPLOY.md, §O2/§O3). Senza la seconda, gli
       asset continuano a uscire senza Cache-Control e le varianti .br a qualita' 11 restano inutilizzate.
