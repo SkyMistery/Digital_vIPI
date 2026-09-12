@@ -50,10 +50,10 @@ public class ProfiloMilitareTests
 
         var piste = generali.IndexOf("runways");
         Assert.Equal("runwayrules", generali[piste + 1]);
-        // ⚠️ Fra le regole e le SID sono entrati i minimi LVP (12 settembre 2026): sono le due sezioni che
-        // si leggono dal METAR, e stanno vicine apposta.
-        Assert.Equal("lvp", generali[piste + 2]);
-        Assert.Equal("sids", generali[piste + 3]);
+        Assert.Equal("sids", generali[piste + 2]);
+        // ⚠️ Le LVP hanno abitato qui in mezzo per mezza giornata (12 settembre 2026): sono uscite dai Dati
+        // generali la sera stessa e sono diventate una sezione di PRIMO livello.
+        Assert.DoesNotContain("lvp", generali);
     }
 
     /// <summary>
@@ -87,7 +87,7 @@ public class ProfiloMilitareTests
     {
         var generali = Mil.Single(d => d.Key == "generaldata").Children!.OrderBy(d => d.Order).Select(d => d.Key).ToList();
 
-        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "lvp", "sids", "transition",
+        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
                              "callsigns", SectionKeys.AirportLayout, "parkings" }, generali);
         // E non è figlia di «Piste»: là sotto c'è solo la sotto-sezione delle soglie.
         var piste = Mil.Single(d => d.Key == "generaldata").Children!.Single(d => d.Key == "runways");
@@ -111,8 +111,11 @@ public class ProfiloMilitareTests
     [Fact]
     public void I_contenitori_di_primo_livello_sono_sei_e_nell_ordine_del_PDF()
     {
+        // ⚠️ «lvp» è di primo livello dal 12 settembre 2026 (sera, committente), fra le «Procedure di volo» e
+        // le «Aree di lavoro»: nella vIPI civile sta sotto le «Procedure generali», ma qui quella sezione è
+        // FIGLIA di «Aree di lavoro» — e le LVP non sono un'area di lavoro.
         Assert.Equal(
-            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "charts", "validity" },
+            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "lvp", "regulated", "charts", "validity" },
             Mil.OrderBy(d => d.Order).Select(d => d.Key));
     }
 
@@ -121,8 +124,8 @@ public class ProfiloMilitareTests
     {
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
-        Assert.Equal(7, Mil.Count);
-        Assert.Equal(11, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(8, Mil.Count);   // sette contenitori più «lvp», che figlie non ne ha
+        Assert.Equal(10, Mil.Single(d => d.Key == "generaldata").Children!.Count);
         Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(9, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);

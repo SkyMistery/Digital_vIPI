@@ -635,9 +635,9 @@ Deciso dal committente dopo aver letto §5.4: **nella vIPI civile** le regole pi
 5 SID · 6 Procedure generali · 7 LVP · 8 Carte aeroportuali · 9 Validità e revisione
 ```
 
-⚠️ **Il vSOP militare NON cambia**: là le regole piste restano **sorelle** di «Piste» (§CX, decisione
-dell'11 settembre) e le LVP dopo di loro, dentro «Dati generali». I due indici divergono qui, ed è voluto —
-quello militare lo detta il SOD.
+⚠️ Le **regole piste** del vSOP militare **non** cambiano: restano **sorelle** di «Piste» (§CX, decisione
+dell'11 settembre). I due indici divergono qui, ed è voluto — quello militare lo detta il SOD.
+Le **LVP** invece si spostano anche là, ma in un posto diverso: vedi §13.
 
 ### 🔴 Ripubblicare NON basta: serve un passo di manutenzione
 
@@ -663,3 +663,41 @@ salvato coincide.
 Ora la risoluzione **scende**, e con lo stesso giro si chiude un difetto **preesistente e mai notato**: le
 cinque raccolte di «Carte aeroportuali», figlie dal 3 settembre, avevano lo stesso problema.
 ⚠️ Una sotto-sezione **libera** non è nel catalogo e resta com'è: il suo titolo è di chi scrive.
+
+
+---
+
+## 13. E nel vSOP le LVP salgono a primo livello
+
+Chiesto subito dopo §12: *«metti LVP sotto General procedures anche nelle vSOP militari»*. Nel vSOP però
+«Procedure generali» **non è** una sezione di primo livello come nella vIPI — è **figlia di «Aree di
+lavoro»**. Messa lì, la sezione dei minimi sarebbe finita dentro le aree di lavoro, che nei SOP sono le aree
+di addestramento: le LVP non sono un'area.
+
+Deciso dal committente, vista la struttura: **sezione di primo livello, subito dopo «Procedure di volo»**.
+
+```
+1 METAR & TAF
+2 Dati generali        (… Piste · Regole piste · SID · Quote di transizione …)
+3 Procedure di terra
+4 Procedure di volo
+5 LVP                  ← qui
+6 Aree di lavoro       (… Procedure generali · Bassa quota …)
+7 Carte aeroportuali · 8 Validità e revisione
+```
+
+I «Dati generali» tornano a **dieci** figlie e il profilo resta a **46** sezioni: la LVP ha cambiato posto,
+non è sparita. ⚠️ **Il dato è lo stesso** della vIPI (anagrafica dello scalo): cambia solo il posto
+nell'indice.
+
+⚠️ Anche qui i documenti già scritti li sposta `ReparentAirportSectionsAsync`, che ora fa **due** lavori —
+uno per edizione — e resta idempotente. Misurato all'avvio: *«Sistemate «Regole piste» e «LVP» in 7 documenti
+d'aeroporto (vIPI e vSOP)»*, dopo i 10 del giro precedente.
+
+### 🔴 Un difetto trovato dal test, non dal codice
+
+La prima versione del passo apriva con `if (docIds.Count == 0) return 0;` sui documenti **civili** — e il
+lavoro sui vSOP stava **dopo**. Su un archivio senza nessuna vIPI civile (un banco di prova, o un domani con
+soli campi militari) il passo militare non veniva **mai eseguito**, in silenzio. Lo ha preso il test del
+trasloco militare, che riportava zero spostamenti su un documento che andava spostato: l'uscita anticipata
+è stata tolta.

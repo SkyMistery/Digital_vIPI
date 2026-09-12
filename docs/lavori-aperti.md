@@ -23,8 +23,10 @@ che nessuno aveva visto, il peggiore dei quali era **traverso e coda calcolati s
 ✅ Stessa regola applicata alla fascia **RVR**: le celle non sono più `TDZ · MID · END` (tre sensori che il
 METAR non ha) ma **una per testata**, col suo ident — `RVR 07`, `RVR 25`. La media che stava sotto «MID» non
 la misurava nessuno.
-🆕 **E l'indice della vIPI civile è cambiato** (carta §12, committente): «Regole piste» è **dentro Piste**,
-«LVP» **dopo** «Procedure generali». ⚠️ Il vSOP militare **non** cambia. ⚠️ Serve un passo di manutenzione
+🆕 **E gli indici sono cambiati** (carta §12-13, committente): nella **vIPI** «Regole piste» è **dentro
+Piste** e «LVP» sta **dopo** «Procedure generali»; nel **vSOP** «LVP» sale a **primo livello dopo «Procedure
+di volo»** (là «Procedure generali» è figlia di «Aree di lavoro», e le LVP non sono un'area di lavoro). Le
+regole piste del vSOP restano sorelle di «Piste». ⚠️ Serve un passo di manutenzione
 all'avvio (`ReparentAirportSectionsAsync`) — ripubblicare da solo non basta, il catalogo decide la struttura
 alla nascita; il pubblico vede il nuovo indice alla **prossima pubblicazione** di ogni vIPI.
 ▶ Restano due lavori **di dati**, non di codice: unire a mano la sezione LVP libera di **LIRE** (Pratica di

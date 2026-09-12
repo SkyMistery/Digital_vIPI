@@ -96,6 +96,10 @@ public interface IDocumentMaintenance
     ///   <item><c>lvp</c> si sposta <b>subito dopo</b> <c>operationaltechnique</c>, sorella e non figlia.</item>
     /// </list>
     ///
+    /// <para>E nei <b>vSOP militari</b> dello stesso giro: <c>lvp</c> esce da «Dati generali» e diventa una
+    /// sezione di <b>primo livello</b> subito dopo «Procedure di volo». ⚠️ Non sotto «Procedure generali»
+    /// come nella vIPI: là quella sezione è figlia di «Aree di lavoro», e le LVP non sono un'area di lavoro.</para>
+    ///
     /// <para>⚠️ <b>Serve un passo apposta</b>, e non basta ripubblicare: il catalogo decide la struttura solo
     /// alla <b>nascita</b> del documento, e il motore di riordino sposta soltanto fra <b>fratelli</b> — a
     /// mano, cambiare padre a una sezione non si può. È la stessa ragione per cui esiste

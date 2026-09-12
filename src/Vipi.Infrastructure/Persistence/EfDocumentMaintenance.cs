@@ -594,9 +594,11 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         const string lvp = "lvp";
         const string procedure = "operationaltechnique";
 
+        // ⚠️ Niente uscita anticipata su un elenco vuoto: sotto c'è il passo dei vSOP, e un archivio senza
+        // NESSUNA vIPI civile — un test, un campo solo militare — lo saltava in silenzio. Trovato dal test
+        // del trasloco militare, che riportava zero spostamenti su un documento che andava spostato.
         var docIds = await _db.Airports.Where(a => a.DocumentId != null)
             .Select(a => a.DocumentId!.Value).ToListAsync(ct);
-        if (docIds.Count == 0) return 0;
 
         var mosse = 0;
         foreach (var docId in docIds)
@@ -661,7 +663,81 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             mosse++;
         }
 
+        mosse += await LvpFuoriDaiDatiGeneraliAsync(ct);
+
         if (mosse > 0) await _db.SaveChangesAsync(ct);
+        return mosse;
+    }
+
+    /// <summary>
+    /// Nei vSOP militari già scritti: <c>lvp</c> esce da «Dati generali» e diventa una <b>radice</b> subito
+    /// dopo «Procedure di volo» (12 settembre 2026, sera, committente).
+    ///
+    /// <para>⚠️ Stessa regola del gemello civile: si tocca solo se la sezione è rimasta dove l'aveva messa
+    /// il catalogo — cioè figlia di «Dati generali» — e il passo è idempotente perché al secondo giro è già
+    /// una radice.</para>
+    /// </summary>
+    private async Task<int> LvpFuoriDaiDatiGeneraliAsync(CancellationToken ct)
+    {
+        const string lvp = "lvp";
+        const string generali = "generaldata";
+        const string volo = "flightprocedures";
+
+        var milDocIds = await _db.Airports.Where(a => a.MilDocumentId != null)
+            .Select(a => a.MilDocumentId!.Value).ToListAsync(ct);
+        if (milDocIds.Count == 0) return 0;
+
+        var mosse = 0;
+        foreach (var docId in milDocIds)
+        {
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is not int vid) continue;
+
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
+
+            var leLvp = tutte.FirstOrDefault(x => string.Equals(x.SectionKey, lvp, StringComparison.OrdinalIgnoreCase));
+            if (leLvp is null || leLvp.ParentSectionId is null) continue;   // già radice, o non c'è
+
+            var vecchioPadre = tutte.FirstOrDefault(x => x.Id == leLvp.ParentSectionId);
+            if (vecchioPadre is null || !string.Equals(vecchioPadre.SectionKey, generali, StringComparison.OrdinalIgnoreCase))
+                continue;   // qualcuno l'ha già portata altrove: è una scelta di chi scrive
+
+            var procedureDiVolo = tutte.FirstOrDefault(x => x.ParentSectionId is null
+                && string.Equals(x.SectionKey, volo, StringComparison.OrdinalIgnoreCase));
+
+            leLvp.ParentSectionId = null;
+            leLvp.ParentSection = null;
+            leLvp.Depth = 0;
+            leLvp.RowVersion = Guid.NewGuid().ToByteArray();
+
+            // I fratelli che restano nei Dati generali si richiudono: Order è una posizione.
+            var rimasti = tutte.Where(x => x.ParentSectionId == vecchioPadre.Id && x.Id != leLvp.Id)
+                .OrderBy(x => x.Order).ToList();
+            for (var i = 0; i < rimasti.Count; i++)
+            {
+                if (rimasti[i].Order == i + 1) continue;
+                rimasti[i].Order = i + 1;
+                rimasti[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+
+            // E le radici si rinumerano con le LVP al posto giusto, conservando l'ordine di tutte le altre.
+            var radici = tutte.Where(x => x.ParentSectionId is null && x.Id != leLvp.Id)
+                .OrderBy(x => x.Order).ThenBy(x => x.Id).ToList();
+            var dove = procedureDiVolo is null ? radici.Count : radici.IndexOf(procedureDiVolo) + 1;
+            radici.Insert(dove, leLvp);
+            for (var i = 0; i < radici.Count; i++)
+            {
+                if (radici[i].Order == i + 1) continue;
+                radici[i].Order = i + 1;
+                radici[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+
+            mosse++;
+        }
+
         return mosse;
     }
 

@@ -253,7 +253,7 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         var radici = _db.DocumentSections.Where(x => x.DocumentVersionId == ver.Id && x.ParentSectionId == null)
             .OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
         Assert.Equal(
-            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "regulated", "charts", "validity" },
+            new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "lvp", "regulated", "charts", "validity" },
             radici);
         // E le figlie: le nove delle procedure di volo, che nessun passo aveva mai portato. ⚠️ Erano otto
         // fino all'indice chiesto dal SOD (6 settembre 2026), che ne aggiunge due e ne toglie una.
@@ -304,7 +304,7 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         // 🔴 Idem per «runwayrules» (11 settembre 2026, committente), fra le piste e le SID: stessa prova,
         // stesso significato — un vSOP già scritto la riceve all'avvio, nel posto giusto.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "lvp", "sids", "transition",
+            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
                     "callsigns", "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));
@@ -314,5 +314,55 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         Assert.Equal(
             Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Count(),
             _db.DocumentSections.Count(x => x.DocumentVersionId == ver.Id));
+    }
+
+    // ─── Le LVP escono dai Dati generali (12 settembre 2026, sera) ──────────────────────────────────
+
+    /// <summary>
+    /// Le LVP hanno abitato dentro «Dati generali» per mezza giornata. Il committente le ha volute di PRIMO
+    /// livello, dopo le «Procedure di volo»: nella vIPI civile stanno sotto le «Procedure generali», ma nel
+    /// vSOP quella sezione è figlia di «Aree di lavoro» — e le LVP non sono un'area di lavoro.
+    ///
+    /// <para>⚠️ Come per i parcheggi, serve un passo apposta: il catalogo decide la struttura solo alla
+    /// nascita, e il motore di riordino sposta soltanto fra fratelli.</para>
+    /// </summary>
+    [Fact]
+    public async Task Le_lvp_escono_dai_dati_generali_e_vanno_dopo_le_procedure_di_volo()
+    {
+        await VsopVecchioAsync("LIRE");
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+
+        // Le rimetto dov'erano: figlie di «Dati generali», dopo le regole piste.
+        var tutte = await _db.DocumentSections.ToListAsync();
+        var generali = tutte.Single(x => x.SectionKey == "generaldata");
+        var lvp = tutte.Single(x => x.SectionKey == "lvp");
+        lvp.ParentSectionId = generali.Id;
+        lvp.Depth = generali.Depth + 1;
+        lvp.Order = 6;
+        await _db.SaveChangesAsync();
+
+        var mosse = await _manutenzione.ReparentAirportSectionsAsync();
+        Assert.Equal(1, mosse);
+
+        var dopo = await _db.DocumentSections.OrderBy(x => x.Order).ToListAsync();
+        var radici = dopo.Where(x => x.ParentSectionId is null).OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
+
+        Assert.Equal(new[] { "weather", "generaldata", "groundprocedures", "flightprocedures", "lvp",
+                             "regulated", "charts", "validity" }, radici);
+        Assert.Equal(0, dopo.Single(x => x.SectionKey == "lvp").Depth);
+
+        // I Dati generali si sono richiusi: Order è una posizione, non un'etichetta.
+        var figlie = dopo.Where(x => x.ParentSectionId == generali.Id).OrderBy(x => x.Order).ToList();
+        Assert.Equal(Enumerable.Range(1, figlie.Count), figlie.Select(x => x.Order));
+        Assert.DoesNotContain("lvp", figlie.Select(x => x.SectionKey));
+    }
+
+    [Fact] // idempotente: al secondo avvio le LVP sono già una radice
+    public async Task Il_secondo_giro_non_sposta_le_lvp()
+    {
+        await VsopVecchioAsync("LIRE");
+        await _manutenzione.AddMissingCatalogSectionsAsync();
+        await _manutenzione.ReparentAirportSectionsAsync();
+        Assert.Equal(0, await _manutenzione.ReparentAirportSectionsAsync());
     }
 }

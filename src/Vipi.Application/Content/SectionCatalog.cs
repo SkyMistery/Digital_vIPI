@@ -347,13 +347,6 @@ public static class SectionCatalog
                     // IN USO adesso, nelle Piste e nelle SID — la stessa derivazione della vIPI.
                     // ⚠️ Sorella e non figlia di «Piste», come le SID: stessa scelta, stesso indice leggibile.
                     H("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
-                    // ✚ Non e' nel PDF (12 settembre 2026, committente): i minimi LVP, subito dopo le regole
-                    // piste come nella vIPI civile. Stesso dato, stessa chiave, stessa porta di scrittura —
-                    // che qui e' l'editor del vSOP solo se il campo non ha una vIPI civile (§AS).
-                    // ⚠️ La nota in testa a questo profilo diceva che le code per campo, «LVP di Pratica»
-                    // compresa, restano sezioni LIBERE: da oggi vale per tutto TRANNE i minimi, che sono un
-                    // dato dello scalo. La prosa di Pratica resta libera, o va nella nota dei minimi.
-                    H("lvp", "LVP", 6),
                     // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
                     // (`AirportSids`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
                     // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
@@ -361,12 +354,12 @@ public static class SectionCatalog
                     // ⚠️ Sorella di «Piste» e non figlia: una scelta di indice, decisa dal committente.
                     // ⚠️ `H` e non `HB`: derivata pura, senza blocchi. Le code per campo -- il «Combat
                     // departure» di Gioia -- restano sezioni LIBERE, come dice la nota in testa al profilo.
-                    H("sids", "SID", 7),
+                    H("sids", "SID", 6),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 8, en: "Transition altitude and levels"),
+                    H("transition", "Quote di transizione", 7, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 9, en: "Callsigns", aud: Piloti),
+                    HB("callsigns", "Nominativi", 8, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -376,11 +369,11 @@ public static class SectionCatalog
                     // motore di riordino sposta solo fra FRATELLI, apposta.
                     // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
                     // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 10, en: "Airport layout"),
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 9, en: "Airport layout"),
                     // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
                     // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
                     // fermato questa modifica una volta, quando la planimetria era finita in coda.
-                    HB("parkings", "Parcheggi", 11, en: "Parking", aud: Piloti, children: new[]
+                    HB("parkings", "Parcheggi", 10, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),
@@ -425,7 +418,14 @@ public static class SectionCatalog
 
                 // La mappa AoR con le chip per area E' GIA' quello che il PDF disegna a mano, una figura
                 // per volta: qui il riuso porta il motore, non solo la chiave.
-                HB("regulated", "Aree di lavoro", 5, en: "Working areas", children: new[]
+                // ✚ Non e' nel PDF (12 settembre 2026, sera, committente): i minimi LVP, sezione di PRIMO
+                // LIVELLO subito dopo le «Procedure di volo». ⚠️ Non sotto «Procedure generali» come nella
+                // vIPI civile, e non e' un'incoerenza: qui «Procedure generali» e' FIGLIA di «Aree di
+                // lavoro», e le LVP non sono un'area di lavoro. Restano dove stanno le procedure.
+                // ⚠️ Il dato e' lo stesso della vIPI (anagrafica dello scalo): cambia solo il posto
+                // nell'indice, che nel militare lo detta il SOD.
+                H("lvp", "LVP", 5),
+                HB("regulated", "Aree di lavoro", 6, en: "Working areas", children: new[]
                 {
                     // ⚠️ «operationaltechnique» e' una chiave UNIVERSALE (sta in ACC, APP, vLOA e
                     // aeroporto): questi quattro discendenti vivono nel SOLO registro militare, perche'
@@ -461,8 +461,8 @@ public static class SectionCatalog
                     // nessuno esegue.
                     HB("lowlevel", "Bassa quota (BOAT)", 2, en: "Low level (BOAT)", aud: Piloti),
                 }),
-            }.Concat(CarteAeroportuali(6)).Append(
-                HB("validity", "Validità e revisione", 7, en: "Validity and revision")).ToArray(),
+            }.Concat(CarteAeroportuali(7)).Append(
+                HB("validity", "Validità e revisione", 8, en: "Validity and revision")).ToArray(),
 
             // vSOP militare di un APP non remotizzato: PER ORA le stesse sezioni del civile. Vedi sotto il
             // perche' si rimanda invece di ricopiare.

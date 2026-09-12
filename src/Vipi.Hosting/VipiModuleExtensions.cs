@@ -778,13 +778,15 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Spostata la sezione «Parcheggi» sotto «Dati generali» in {Count} vSOP militari.", parcheggi);
 
-        // Le vIPI d'aeroporto già scritte: le regole piste scendono sotto «Piste» e le LVP dopo le
-        // «Procedure generali» (12 settembre 2026, sera). ⚠️ PRIMA di AddMissingCatalogSections, per la
-        // stessa ragione dei parcheggi: una sezione che sta nel posto vecchio va SPOSTATA, non affiancata.
+        // I documenti d'aeroporto già scritti (12 settembre 2026, sera): nelle vIPI le regole piste scendono
+        // sotto «Piste» e le LVP vanno dopo le «Procedure generali»; nei vSOP le LVP escono dai «Dati
+        // generali» e salgono a primo livello dopo le «Procedure di volo».
+        // ⚠️ PRIMA di AddMissingCatalogSections, per la stessa ragione dei parcheggi: una sezione che sta
+        // nel posto vecchio va SPOSTATA, non affiancata.
         var scali = maintenance.ReparentAirportSectionsAsync().GetAwaiter().GetResult();
         if (scali > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Sistemate «Regole piste» e «LVP» in {Count} vIPI d'aeroporto.", scali);
+                log, "Sistemate «Regole piste» e «LVP» in {Count} documenti d'aeroporto (vIPI e vSOP).", scali);
 
         // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
