@@ -4,11 +4,15 @@
 
 ### 📦 A25 — Pacchetto 1.25.0: 25 file — ⏳ **PRONTO DA CARICARE**
 
-Timbro `1.25.0 · 909e3f03`, zip
-`56ab79f0758d03f3a68eb3a82e3000a4dd36868fa873ddc0e02655aaa5aee175`
+Timbro `1.25.0 · 5edd8a98`, zip
+`0590e7b49290c63aadf61df1587ec426aa8311c92fcb0d94b214c2b772bde19b`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`, 5,04 MB), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md).
 Sostituisce **1.24.1**. Dentro: il **quadro vAWOS** e i **minimi LVP** (le due voci qui sotto).
+⚠️ **Ricostruito dopo il primo giro**: il committente ha voluto la scheda **vAWOS prima di «Le mie
+statistiche ATC»** in `/services`, e il timbro nasce dal commit — quindi zip e impronta sono cambiati
+(il primo, `909e3f03` / `56ab79f0…`, non esiste più). L'ordine di quella pagina è pinnato da
+`ServicesHomeTests.Le_schede_stanno_nell_ordine_deciso`, che è diventato rosso e ha fatto il suo mestiere.
 
 **MINOR, con UNA migrazione ADDITIVA** — `20260912115615_MinimiLvp`, un `CreateTable`
 (`AirportLvpMinima`) più un indice unico su `AirportId`, sui due provider. Niente SQL, niente `DropColumn`:
@@ -35,7 +39,7 @@ il modello se l'aspetta. La prova da fuori è la riga **`Schema`** in `admin/dia
   LVP, il METAR grezzo, le celle **`RVR 17` / `RVR 35`** (nessun «MID»), la riga
   «RWY IN USE: 35 · from rule #1», e — il difetto della revisione — **zero chiamate all'API dopo aver
   lasciato la pagina**;
-- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.0 · commit 909e3f0`.
+- timbro in `diagnostica/avvio-diagnostica.txt`: `Versione 1.25.0 · commit 5edd8a9`.
 
 ⚠️ **Un giro a vuoto, e vale come metodo.** Il primo lancio ha dato **tre rossi** con
 «SQLite Error 11: database disk image is malformed». Non era il pacchetto: nello scratchpad c'erano un

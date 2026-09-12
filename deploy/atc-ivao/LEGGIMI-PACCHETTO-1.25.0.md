@@ -1,6 +1,6 @@
 # Pacchetto 1.25.0 — solo i file cambiati
 
-> **Timbro:** `1.25.0 · 909e3f03` (12 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.25.0 · 5edd8a98` (12 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Sostituisce 1.24.1.** **25 file**. 🔴 **C'È UNA MIGRAZIONE** — additiva, si applica da sola all'avvio:
@@ -72,8 +72,9 @@ Il **Test METAR** — il riquadro per incollare un bollettino inventato e vedere
 **dello staff di divisione in su**: agli altri il tasto non compare, e il server ignora il parametro anche
 se qualcuno se lo scrivesse a mano nell'indirizzo.
 
-Si arriva al quadro da tre porte: la scheda in **`/services`**, il tasto **`vAWOS ↗`** nella scheda rapida di
-un aeroporto, e lo stesso tasto nella **vista operativa** quando si è su una posizione d'aeroporto.
+Si arriva al quadro da tre porte: la scheda in **`/services`** — **la prima degli strumenti**, prima di «Le
+mie statistiche ATC» — il tasto **`vAWOS ↗`** nella scheda rapida di un aeroporto, e lo stesso tasto nella
+**vista operativa** quando si è su una posizione d'aeroporto.
 
 ℹ️ **Il vento non si anima**, ed è voluto: il METAR dichiara un **intervallo** (`200V280`, `18G32`), non che
 cosa succede in un dato istante, e il vento istantaneo vicino alla pista noi non lo sappiamo. Il settore e la
@@ -115,7 +116,7 @@ l'indice vecchio e **non ha** la sezione LVP. Non è un guasto, è come funziona
 
 ## Dopo il caricamento
 
-1. **Il timbro** in `diagnostica/avvio-diagnostica.txt` dev'essere `1.25.0 · 909e3f03`.
+1. **Il timbro** in `diagnostica/avvio-diagnostica.txt` dev'essere `1.25.0 · 5edd8a98`.
    ⚠️ Il timbro dice **quale versione è partita**, non che il sito funzioni.
 2. 🔴 **`admin/diagnostics`, riga `Schema`: dev'essere `0`.** Se non lo è, la migrazione non è entrata —
    il file `Vipi.Infrastructure.MySqlMigrations.dll` è quello vecchio o non è stato rinominato.

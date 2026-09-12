@@ -1,8 +1,8 @@
 # HANDOFF — vIPI/vLOA Interactive
 
 **Ultimo aggiornamento:** 12 settembre 2026 (notte) — 📦 **1.25.0 È PRONTA DA CARICARE, non è ancora
-online.** Timbro `1.25.0 · 909e3f03`, **25 file**, zip
-`56ab79f0758d03f3a68eb3a82e3000a4dd36868fa873ddc0e02655aaa5aee175`
+online.** Timbro `1.25.0 · 5edd8a98`, **25 file**, zip
+`0590e7b49290c63aadf61df1587ec426aa8311c92fcb0d94b214c2b772bde19b`
 (`artifacts/publish/vipi-1.25.0-solo-file-cambiati.zip`), foglio
 [`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md`](deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.0.md). Sostituisce
 1.24.1. **MINOR con UNA migrazione ADDITIVA** (`20260912115615_MinimiLvp`: un `CreateTable` su
