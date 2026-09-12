@@ -10,7 +10,30 @@ namespace Vipi.Application.Weather;
 /// finché il vento non è calmo è una trappola che si vede una volta l'anno, in italiano dentro una pagina
 /// inglese.</para>
 /// </summary>
-public sealed record ParsedWind(int? DirectionDeg, bool Variable, int SpeedKt, int? GustKt, bool Calm);
+/// <param name="VarFromDeg">
+/// Estremi del <b>settore di variabilità</b> (gruppo <c>200V280</c>), quando il bollettino lo dichiara.
+/// <para>⚠️ Sono <b>in coda e con un default</b> perché arrivano da un token <i>diverso</i> da quello del vento:
+/// chi costruisce un vento a mano — e i banchi di prova lo fanno — non deve doversene ricordare.</para>
+/// <para>⚠️ Il settore può <b>scavalcare il nord</b> (<c>340V020</c>): la larghezza è
+/// <c>(VarTo - VarFrom + 360) % 360</c>, mai una sottrazione secca.</para>
+/// </param>
+public sealed record ParsedWind(int? DirectionDeg, bool Variable, int SpeedKt, int? GustKt, bool Calm,
+    int? VarFromDeg = null, int? VarToDeg = null);
+
+/// <summary>Il valore RVR è esatto, oppure fuori scala in alto (<c>P2000</c>) o in basso (<c>M0050</c>).</summary>
+public enum RvrModifier { Exact, Above, Below }
+
+/// <summary>Tendenza dichiarata dal suffisso RVR: <c>U</c>=in salita, <c>D</c>=in discesa, <c>N</c>=stabile.</summary>
+public enum RvrTendency { None, Up, Down, Steady }
+
+/// <summary>
+/// Un gruppo RVR (<c>R16R/0350U</c>): portata visuale di pista, in metri, per una testata.
+///
+/// <para>⚠️ <see cref="Modifier"/> non è decorazione: <c>P2000</c> vuol dire «oltre il fondo scala», e trattarlo
+/// come 2000 farebbe entrare un valore misurato dove c'è solo un limite dello strumento. Chi calcola una media
+/// o confronta con un minimo deve guardarlo.</para>
+/// </summary>
+public sealed record RunwayVisualRange(string Runway, int ValueM, RvrModifier Modifier, RvrTendency Tendency);
 
 /// <summary>Intensità di un gruppo di tempo presente: <c>-</c>=leggero, <c>+</c>=forte, <c>VC</c>=in prossimità.</summary>
 public enum WxIntensity { Moderate, Light, Heavy, Vicinity }
@@ -30,6 +53,15 @@ public sealed record CloudLayer(string Cover, int BaseFt, string? Type)
 }
 
 /// <summary>METAR decodificato. Campi null = non presenti/non riconosciuti (token grezzo resta nel raw).</summary>
+/// <param name="Visibility">La visibilità <b>già scritta</b> per chi legge (">10 km", "1200 m").</param>
+/// <param name="VisibilityMeters">
+/// La stessa visibilità in <b>metri</b>, per chi deve confrontarla con una soglia.
+/// <para>⚠️ Esiste perché <see cref="Visibility"/> è una <i>frase</i>, e un minimo LVP non si confronta con una
+/// frase: rileggerne i numeri con una regex sarebbe un secondo parser dentro il primo. CAVOK e <c>9999</c>
+/// valgono 10 000 — è il fondo scala del bollettino, non una misura.</para>
+/// </param>
+/// <param name="Rvr">I gruppi RVR nell'ordine del bollettino; vuoto = la stazione non li manda.</param>
+/// <param name="VerticalVisibilityFt">Visibilità verticale (<c>VV002</c> → 200 ft): c'è quando il cielo è invisibile.</param>
 public sealed record ParsedMetar(
     string Raw,
     string? Station,
@@ -43,9 +75,34 @@ public sealed record ParsedMetar(
     int? DewpointC,
     string? Trend,
     bool HasRain,
-    bool HasSnow)
+    bool HasSnow,
+    int? VisibilityMeters = null,
+    IReadOnlyList<RunwayVisualRange>? Rvr = null,
+    int? VerticalVisibilityFt = null)
 {
     public string CloudsLabel => Clouds.Count == 0 ? "—" : string.Join(" · ", Clouds.Select(c => c.Label));
+
+    /// <summary>I gruppi RVR, mai null: chi cicla non deve difendersi da un elenco assente.</summary>
+    public IReadOnlyList<RunwayVisualRange> RvrGroups => Rvr ?? Array.Empty<RunwayVisualRange>();
+
+    /// <summary>
+    /// Il <b>soffitto</b> in piedi: la base dello strato più basso che copre (BKN o OVC), oppure la visibilità
+    /// verticale quando il cielo non si vede.
+    ///
+    /// <para>⚠️ FEW e SCT <b>non fanno soffitto</b> — è la definizione, non una semplificazione: un cielo
+    /// «sparso a 200 piedi» non chiude l'aeroporto, uno «coperto a 200 piedi» sì. Null = nessuno strato
+    /// coprente, che è diverso da «soffitto zero».</para>
+    /// </summary>
+    public int? CeilingFt
+    {
+        get
+        {
+            var coprenti = Clouds.Where(c => c.Cover is "BKN" or "OVC").Select(c => c.BaseFt).ToList();
+            if (coprenti.Count == 0) return VerticalVisibilityFt;
+            var min = coprenti.Min();
+            return VerticalVisibilityFt is int vv && vv < min ? vv : min;
+        }
+    }
 }
 
 /// <summary>Tipo di gruppo di variazione TAF.</summary>

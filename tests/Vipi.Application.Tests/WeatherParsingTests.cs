@@ -369,4 +369,108 @@ public class WeatherParsingTests
         Assert.Equal(s.DepIdent, s.ArrIdent);
         Assert.Equal("34", s.DepIdent);
     }
+
+    // ─── I tre gruppi aggiunti per il vAWOS (carta 2026-09-12): variabilità, RVR, visibilità verticale ───
+
+    [Fact] // il settore di variabilità è un token SUO e si applica al vento già letto
+    public void Metar_Legge_Il_Settore_Di_Variabilita()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 24018G32KT 200V280 9999 SCT030 12/08 Q1008");
+        Assert.Equal(200, m.Wind!.VarFromDeg);
+        Assert.Equal(280, m.Wind.VarToDeg);
+        Assert.Equal(240, m.Wind.DirectionDeg);   // il vento resta quello che era
+        Assert.Equal(32, m.Wind.GustKt);
+    }
+
+    [Fact] // un settore che scavalca il nord non è una sottrazione secca: si legge com'è scritto
+    public void Metar_Settore_Che_Scavalca_Il_Nord()
+    {
+        var m = MetarParser.ParseMetar("LIPZ 121250Z 36008KT 340V020 9999 NSC 05/03 Q1020");
+        Assert.Equal(340, m.Wind!.VarFromDeg);
+        Assert.Equal(20, m.Wind.VarToDeg);
+    }
+
+    [Fact] // senza il gruppo, i due estremi restano NULL: non si inventa un settore attorno alla direzione
+    public void Metar_Senza_Variabilita_Non_Inventa_Il_Settore()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 18010KT 9999 NSC 12/08 Q1013");
+        Assert.Null(m.Wind!.VarFromDeg);
+        Assert.Null(m.Wind.VarToDeg);
+    }
+
+    [Fact] // RVR: valore esatto, fuori scala in alto e in basso, con e senza tendenza
+    public void Metar_Legge_I_Gruppi_Rvr()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 00000KT 0300 R16R/0350U R16L/P2000N R25/M0050D FG VV002 09/08 Q0998");
+
+        Assert.Equal(3, m.RvrGroups.Count);
+
+        Assert.Equal("16R", m.RvrGroups[0].Runway);
+        Assert.Equal(350, m.RvrGroups[0].ValueM);
+        Assert.Equal(RvrModifier.Exact, m.RvrGroups[0].Modifier);
+        Assert.Equal(RvrTendency.Up, m.RvrGroups[0].Tendency);
+
+        Assert.Equal(RvrModifier.Above, m.RvrGroups[1].Modifier);     // P2000 = oltre il fondo scala
+        Assert.Equal(RvrTendency.Steady, m.RvrGroups[1].Tendency);
+
+        Assert.Equal(RvrModifier.Below, m.RvrGroups[2].Modifier);     // M0050 = sotto il fondo scala
+        Assert.Equal(RvrTendency.Down, m.RvrGroups[2].Tendency);
+    }
+
+    [Fact] // RVR variabile (0300V0800) e in piedi: si tiene il primo valore, il resto non fa cadere il token
+    public void Metar_Rvr_Variabile_E_In_Piedi()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 00000KT 0300 R16R/0300V0800U R07/1200FT 09/08 Q0998");
+        Assert.Equal(2, m.RvrGroups.Count);
+        Assert.Equal(300, m.RvrGroups[0].ValueM);
+        Assert.Equal(RvrTendency.Up, m.RvrGroups[0].Tendency);
+        Assert.Equal(1200, m.RvrGroups[1].ValueM);
+    }
+
+    [Fact] // niente RVR nel bollettino ⇒ elenco VUOTO, non un valore di comodo
+    public void Metar_Senza_Rvr_Non_Inventa_Niente()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 18010KT 9999 NSC 12/08 Q1013");
+        Assert.Empty(m.RvrGroups);
+    }
+
+    [Fact] // VV002 = 200 ft, ed è il soffitto quando non c'è nessuno strato coprente
+    public void Metar_Visibilita_Verticale_Fa_Soffitto()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 00000KT 0200 FG VV002 09/08 Q0998");
+        Assert.Equal(200, m.VerticalVisibilityFt);
+        Assert.Equal(200, m.CeilingFt);
+    }
+
+    [Fact] // VV/// = c'è, ma non misurata: niente numero inventato
+    public void Metar_Visibilita_Verticale_Non_Misurata()
+    {
+        var m = MetarParser.ParseMetar("LIRF 121250Z 00000KT 0200 FG VV/// 09/08 Q0998");
+        Assert.Null(m.VerticalVisibilityFt);
+        Assert.Null(m.CeilingFt);
+    }
+
+    [Fact] // il soffitto lo fanno BKN e OVC, NON few/scattered
+    public void Soffitto_Solo_Da_Bkn_E_Ovc()
+    {
+        var solo = MetarParser.ParseMetar("LIRF 121250Z 18010KT 9999 FEW002 SCT003 12/08 Q1013");
+        Assert.Null(solo.CeilingFt);
+
+        var m = MetarParser.ParseMetar("LIRF 121250Z 18010KT 9999 FEW002 BKN008 OVC020 12/08 Q1013");
+        Assert.Equal(800, m.CeilingFt);
+    }
+
+    [Fact] // la visibilità in metri esiste accanto alla frase: un minimo non si confronta con «>10 km»
+    public void Visibilita_In_Metri_Accanto_Alla_Frase()
+    {
+        var basso = MetarParser.ParseMetar("LIRF 121250Z 00000KT 0800 FG 09/08 Q0998");
+        Assert.Equal("800 m", basso.Visibility);
+        Assert.Equal(800, basso.VisibilityMeters);
+
+        var alto = MetarParser.ParseMetar("LIRF 121250Z 18010KT 9999 NSC 12/08 Q1013");
+        Assert.Equal(10000, alto.VisibilityMeters);
+
+        var cavok = MetarParser.ParseMetar("LIRF 121250Z 18010KT CAVOK 12/08 Q1013");
+        Assert.Equal(10000, cavok.VisibilityMeters);
+    }
 }

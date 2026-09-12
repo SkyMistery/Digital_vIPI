@@ -21,6 +21,15 @@ public static partial class MetarParser
     private static partial Regex PeriodRe();
     [GeneratedRegex(@"^\d{6}Z$")]
     private static partial Regex TimeRe();
+    /// <summary>Settore di variabilità del vento, token a sé: <c>200V280</c>.</summary>
+    [GeneratedRegex(@"^(\d{3})V(\d{3})$")]
+    private static partial Regex WindVarRe();
+    /// <summary>RVR: <c>R16R/0350U</c>, <c>R07/P2000</c>, <c>R25/M0050D</c>. Il <c>/…V…</c> variabile: si tiene il primo valore.</summary>
+    [GeneratedRegex(@"^R(\d{2}[LRC]?)/([PM]?)(\d{3,4})(?:V[PM]?\d{3,4})?(?:FT)?([UDN]?)$")]
+    private static partial Regex RvrRe();
+    /// <summary>Visibilità verticale in centinaia di piedi: <c>VV002</c>. <c>VV///</c> = c'è, ma non misurata.</summary>
+    [GeneratedRegex(@"^VV(\d{3}|///)$")]
+    private static partial Regex VertVisRe();
 
     private static readonly HashSet<string> CloudCovers = new() { "FEW", "SCT", "BKN", "OVC" };
     private static readonly HashSet<string> ChangeTokens = new() { "BECMG", "TEMPO", "NOSIG" };
@@ -32,8 +41,9 @@ public static partial class MetarParser
         ParsedWind? wind = null;
         string? vis = null, trend = null;
         var clouds = new List<CloudLayer>();
-        int? qnh = null, temp = null, dew = null;
+        int? qnh = null, temp = null, dew = null, visM = null, vertVis = null;
         var wxParts = new List<WeatherGroup>();
+        var rvr = new List<RunwayVisualRange>();
         bool rain = false, snow = false;
 
         for (var i = 0; i < tokens.Count; i++)
@@ -41,8 +51,17 @@ public static partial class MetarParser
             var t = tokens[i];
 
             if (wind is null && WindRe().Match(t) is { Success: true } wm) { wind = ParseWind(wm); continue; }
-            if (t is "CAVOK") { vis ??= ">10 km"; continue; }
-            if (vis is null && VisMetersRe().IsMatch(t)) { vis = FormatVisMeters(t); continue; }
+            // Il settore di variabilità è un token SUO, e arriva dopo il vento: si applica al vento già letto.
+            if (WindVarRe().Match(t) is { Success: true } vm && wind is not null)
+            { wind = wind with { VarFromDeg = int.Parse(vm.Groups[1].Value), VarToDeg = int.Parse(vm.Groups[2].Value) }; continue; }
+            if (RvrRe().Match(t) is { Success: true } rm) { rvr.Add(ParseRvr(rm)); continue; }
+            if (VertVisRe().Match(t) is { Success: true } vvm)
+            { if (vvm.Groups[1].Value != "///") vertVis = int.Parse(vvm.Groups[1].Value) * 100; continue; }
+            // CAVOK e 9999 sono il FONDO SCALA del bollettino (10 km), non una misura: chi confronta con una
+            // soglia deve poterli trattare come «sopra a tutto» senza sapere quale dei due era scritto.
+            if (t is "CAVOK") { vis ??= ">10 km"; visM ??= 10000; continue; }
+            if (vis is null && VisMetersRe().IsMatch(t))
+            { vis = FormatVisMeters(t); var m4 = int.Parse(t, CultureInfo.InvariantCulture); visM = m4 >= 9999 ? 10000 : m4; continue; }
 
             if (CloudRe().Match(t) is { Success: true } cm && CloudCovers.Contains(cm.Groups[1].Value))
             { clouds.Add(ParseCloud(cm)); continue; }
@@ -61,7 +80,8 @@ public static partial class MetarParser
             if (wx is not null) { wxParts.Add(wx); ClassifyPrecip(t, ref rain, ref snow); }
         }
 
-        return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, wxParts, qnh, temp, dew, trend, rain, snow);
+        return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, wxParts, qnh, temp, dew, trend, rain, snow,
+            visM, rvr, vertVis);
     }
 
     public static ParsedTaf ParseTaf(string raw)
@@ -162,6 +182,13 @@ public static partial class MetarParser
         if (mps) { speed = (int)Math.Round(speed * 1.94384); if (gust is int g) gust = (int)Math.Round(g * 1.94384); }
         var calm = !variable && dir == "000" && speed == 0;
         return new ParsedWind(variable ? null : int.Parse(dir), variable, speed, gust, calm);
+    }
+
+    private static RunwayVisualRange ParseRvr(Match m)
+    {
+        var modificatore = m.Groups[2].Value switch { "P" => RvrModifier.Above, "M" => RvrModifier.Below, _ => RvrModifier.Exact };
+        var tendenza = m.Groups[4].Value switch { "U" => RvrTendency.Up, "D" => RvrTendency.Down, "N" => RvrTendency.Steady, _ => RvrTendency.None };
+        return new RunwayVisualRange(m.Groups[1].Value, int.Parse(m.Groups[3].Value), modificatore, tendenza);
     }
 
     private static CloudLayer ParseCloud(Match m) =>
