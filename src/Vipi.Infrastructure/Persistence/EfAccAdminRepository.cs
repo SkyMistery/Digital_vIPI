@@ -203,6 +203,13 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
         return ids.ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
+    public async Task<IReadOnlyList<string>> ListSpecialAreaIdsByAccAsync(string accCode, CancellationToken ct = default)
+    {
+        accCode = accCode.Trim().ToUpperInvariant();
+        return await _db.SpecialAreaCenters.AsNoTracking().Where(l => l.CenterId == accCode)
+            .Select(l => l.IvaoId).ToListAsync(ct);
+    }
+
     public async Task<SpecialAreaPruneOutcome> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default)
     {
         accCode = accCode.Trim().ToUpperInvariant();
@@ -288,7 +295,11 @@ public sealed class EfAccAdminRepository : IAccAdminRepository
                 row.Position = s.Position;
                 row.MiddleIdentifier = s.MiddleIdentifier;
                 row.AtcCallsign = s.AtcCallsign;
-                row.Frequency = s.Frequency;
+                // 🔴 Come la shape: l'assenza non è un ordine di cancellare (T-007, 13 settembre 2026). Il client
+                // lascia la frequenza a null quando il DETTAGLIO del subcenter non si legge — un 429 anche dopo i
+                // ritentativi — e qui la si scriveva: catalogo e Sector restavano senza frequenza per un giorno
+                // intero. Il gemello degli aeroporti (AirportSectorImporter) ripiegava già sul valore di prima.
+                if (s.Frequency is not null) row.Frequency = s.Frequency;
                 // Solo una shape VERA sovrascrive: l'assenza non è un ordine di cancellare (PolygonGeometry.IsEmptyShape).
                 if (!PolygonGeometry.IsEmptyShape(s.RegionMapPolygon))
                 {

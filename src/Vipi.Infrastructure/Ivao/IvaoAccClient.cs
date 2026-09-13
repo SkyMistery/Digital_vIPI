@@ -28,7 +28,7 @@ public sealed class IvaoAccClient : IAccDirectory
     public async Task<IReadOnlyList<SourceCenter>> GetCentersByCountryAsync(string countryId, CancellationToken ct = default)
     {
         if (!_http.IsConfigured)
-            throw new InvalidOperationException(
+            throw new SorgenteNonConfigurataException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere l'anagrafica ACC/center.");
 
         countryId = (countryId ?? "").Trim();
@@ -96,7 +96,7 @@ public sealed class IvaoAccClient : IAccDirectory
     public async Task<IReadOnlyList<SourceSubcenter>> GetSubcentersAsync(string accIcao, CancellationToken ct = default)
     {
         if (!_http.IsConfigured)
-            throw new InvalidOperationException(
+            throw new SorgenteNonConfigurataException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere i subcenter.");
 
         accIcao = (accIcao ?? "").Trim().ToUpperInvariant();
@@ -157,7 +157,7 @@ public sealed class IvaoAccClient : IAccDirectory
         string accIcao, IReadOnlySet<string> skipDetailIds, CancellationToken ct = default)
     {
         if (!_http.IsConfigured)
-            throw new InvalidOperationException(
+            throw new SorgenteNonConfigurataException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere le aree speciali.");
 
         accIcao = (accIcao ?? "").Trim().ToUpperInvariant();
@@ -174,9 +174,12 @@ public sealed class IvaoAccClient : IAccDirectory
             var body = await _http.GetStringAsync($"{listBase}?page={page}", ct);
             if (body is null)
             {
-                // Prima pagina non risponde = fetch fallita (non "nessuna area"): segnala, così il prune non cancella per errore.
-                if (page == 1) throw new HttpRequestException($"specialAreas: nessuna risposta per {accIcao} (pagina 1).");
-                break;   // pagine successive: usa quanto raccolto
+                // Una pagina che non risponde = fetch fallita, QUALUNQUE pagina (non "nessuna area"): segnala, così
+                // il prune non cancella per errore.
+                // 🔴 Fino al 13 settembre 2026 (T-005) sulle pagine successive alla prima si faceva `break; // usa
+                // quanto raccolto`: un 429 a pagina 2 consegnava al prune un elenco parziale, e le aree delle pagine
+                // 2 e 3 perdevano il legame — e venivano CANCELLATE se nessun altro ente le elencava.
+                throw new HttpRequestException($"specialAreas: nessuna risposta per {accIcao} (pagina {page}).");
             }
 
             using var doc = System.Text.Json.JsonDocument.Parse(body);
@@ -190,7 +193,9 @@ public sealed class IvaoAccClient : IAccDirectory
                 ? root
                 : (root.TryGetProperty("items", out var it) ? it
                     : (root.TryGetProperty("data", out var dt) ? dt : default));
-            if (items.ValueKind != System.Text.Json.JsonValueKind.Array) break;
+            // Un 200 senza un elenco riconoscibile non è «nessuna area»: è una risposta che non sappiamo leggere (T-005).
+            if (items.ValueKind != System.Text.Json.JsonValueKind.Array)
+                throw new InvalidDataException($"specialAreas: risposta senza elenco per {accIcao} (pagina {page}).");
 
             var any = false;
             foreach (var s in items.EnumerateArray())
@@ -207,6 +212,11 @@ public sealed class IvaoAccClient : IAccDirectory
             if (!any) break;
             page++;
         } while (page <= maxPages && page <= 50);
+
+        // Il tetto di 50 pagine è una rete contro un `pages` assurdo, non un taglio: se lo si raggiunge con altre
+        // pagine ancora da leggere l'elenco è parziale, e un elenco parziale non va al prune (T-005).
+        if (page > 50 && page <= maxPages)
+            throw new InvalidDataException($"specialAreas: {accIcao} dichiara {maxPages} pagine, oltre il tetto di 50.");
 
         // 2) Dettaglio per id: shape (regionMapPolygon grezzo, best-effort). Saltato per le aree la cui shape è già
         //    in archivio e fresca: polygon resta null e l'upsert preserva quella salvata.

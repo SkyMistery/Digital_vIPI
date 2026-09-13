@@ -60,11 +60,11 @@ internal sealed class AirportDataImportHostedService : BackgroundService
                 "Documento non generato (scollegato, doc 03).", r.Airports, r.Failures.Count);
             return true;
         }
-        catch (InvalidOperationException ex)
+        catch (SorgenteNonConfigurataException ex)
         {
-            // tipicamente credenziali sorgente assenti: salta senza rumore (non un fallimento da ritentare a 1h).
+            // 🔴 SOLO «non configurato», e senza timbrare (T-006): vedi AccImportHostedService.
             _log.LogInformation("Giro TA/piste saltato: {Reason}", ex.Message);
-            return true;
+            return false;
         }
     }
 }

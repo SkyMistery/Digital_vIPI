@@ -87,8 +87,25 @@ public sealed class SpecialAreaImportUseCase : ISpecialAreaImportUseCase
         // Aree la cui shape è già in archivio e recente: alla sorgente si chiede solo l'elenco, non il dettaglio.
         var fresh = await _repo.ListAreasWithFreshShapeAsync(accCode, shapeCutoff, ct);
         var areas = await _directory.GetSpecialAreasAsync(accCode, fresh, ct);
+        var arrivate = areas.Select(x => x.IvaoId).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        // 🔴 La guardia di massa PRIMA della potatura (T-005, 13 settembre 2026). Un elenco che torna senza una
+        // quota sospetta delle aree che l'ACC aveva — una pagina che non risponde, un 200 senza `items` — non è
+        // «le aree sono sparite»: è il guasto a monte. Senza guardia si toglievano i legami in blocco e si
+        // CANCELLAVANO le aree rimaste orfane, shape comprese, con un AreaGone per ogni documento: la famiglia
+        // delle 83 aree azzerate del 26 agosto, arrivata da un'altra strada. È la stessa soglia dei settori
+        // (SogliaTimbro): una o due aree che spariscono davvero si potano come prima.
+        var inArchivio = await _repo.ListSpecialAreaIdsByAccAsync(accCode, ct);
+        var sparite = inArchivio.Count(id => !arrivate.Contains(id));
+
+        // Le aree ARRIVATE si aggiornano comunque: sono dato vero, e aggiornarle non toglie niente a nessuno.
         var upsert = await _repo.ImportSpecialAreasAsync(areas, ct);
-        var prune = await _repo.PruneSpecialAreasNotInAsync(accCode, areas.Select(x => x.IvaoId).ToList(), ct);
+        if (SogliaTimbro.TroppiPerEssereVeri(sparite, inArchivio.Count))
+            throw new InvalidDataException(
+                $"specialAreas {accCode}: l'elenco ne omette {sparite} su {inArchivio.Count} — troppe per essere vere, " +
+                "potatura saltata (aggiornate solo le aree arrivate).");
+
+        var prune = await _repo.PruneSpecialAreasNotInAsync(accCode, arrivate.ToList(), ct);
 
         // La casella: solo le aree CAMBIATE (non le «aggiornate») e quelle sparite. ⚠️ Un'area sparisce dalla
         // vista di un ACC anche quando resta in archivio per un altro ente: per i documenti di QUESTO ACC il

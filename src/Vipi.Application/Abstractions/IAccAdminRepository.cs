@@ -29,6 +29,10 @@ public interface IAccAdminRepository
     /// ente la elenca, e si cancella quando resta senza. Ritorna il numero di legami rimossi.</summary>
     Task<SpecialAreaPruneOutcome> PruneSpecialAreasNotInAsync(string accCode, IReadOnlyCollection<string> keepIvaoIds, CancellationToken ct = default);
 
+    /// <summary>Gli id delle aree che l'ACC elenca oggi in archivio (i suoi legami). Serve alla guardia di massa
+    /// prima della potatura (T-005).</summary>
+    Task<IReadOnlyList<string>> ListSpecialAreaIdsByAccAsync(string accCode, CancellationToken ct = default);
+
     /// <summary>Tutti gli ACC (anche nascosti).</summary>
     Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default);
 

@@ -45,11 +45,11 @@ internal sealed class SpecialAreaImportHostedService : BackgroundService
             _log.LogInformation("Import aree speciali automatico: {Created} create, {Updated} aggiornate, {Removed} rimosse.", r.Created, r.Updated, r.Removed);
             return true;
         }
-        catch (InvalidOperationException ex)
+        catch (SorgenteNonConfigurataException ex)
         {
-            // tipicamente credenziali sorgente assenti: salta senza rumore.
+            // 🔴 SOLO «non configurato», e senza timbrare (T-006): vedi AccImportHostedService.
             _log.LogInformation("Import aree speciali saltato: {Reason}", ex.Message);
-            return true;
+            return false;
         }
     }
 }

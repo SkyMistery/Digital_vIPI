@@ -138,6 +138,28 @@ public class RinominaSettoreTests : IAsyncLifetime
         new EfCallsignRenameService(_db).ApplyAsync(
             new[] { new CallsignRename(SourceCatalog.AirportPosition, id, vecchio, nuovo) });
 
+    // ---- T-029 (13 settembre 2026): un nominativo che torna ---------------------------------------------
+
+    /// <summary>
+    /// 🔴 A→B, poi B→A, poi di nuovo A→B. Il secondo alias con lo stesso nominativo dismesso violava l'indice
+    /// unico, e la rinomina gira in testa all'import dei settori senza catch: l'import falliva a ogni giro.
+    /// E la storia deve dire il nome di OGGI: un nominativo tornato in vita non è più «dismesso».
+    /// </summary>
+    [Fact]
+    public async Task Un_nominativo_che_torna_non_blocca_la_rinomina_e_la_storia_dice_il_nome_di_oggi()
+    {
+        await Rinomina(Vecchio, Nuovo);
+        await Rinomina(Nuovo, Vecchio);
+        await Rinomina(Vecchio, Nuovo);
+
+        Assert.Equal(Nuovo, (await _db.Sectors.AsNoTracking().SingleAsync(s => s.Id == _settoreId)).Callsign);
+
+        var storia = new CallsignHistory((await _db.CallsignAliases.AsNoTracking().ToListAsync())
+            .Select(a => (a.OldCallsign, a.NewCallsign)));
+        Assert.Equal(Nuovo, storia.Canonical(Vecchio));
+        Assert.Equal(Nuovo, storia.Canonical(Nuovo));
+    }
+
     // ---- il cuore ----------------------------------------------------------------------------------
 
     [Fact]

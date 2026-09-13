@@ -45,11 +45,15 @@ internal sealed class AccImportHostedService : BackgroundService
                 r.AccsCreated, r.AccsUpdated, r.SubcentersCreated, r.SubcentersUpdated);
             return true;
         }
-        catch (InvalidOperationException ex)
+        catch (SorgenteNonConfigurataException ex)
         {
-            // tipicamente credenziali sorgente assenti: salta senza rumore (non un fallimento da ritentare a 1h).
+            // 🔴 SOLO «non configurato», e senza timbrare (T-006, 13 settembre 2026). Qui si catturava ogni
+            // InvalidOperationException e si rispondeva «riuscito», anche per un 503 o un 403 di IVAO: il giro
+            // fallito veniva timbrato, niente retry, Sorgenti verde, e la soglia di eliminazione avanzava. Ora un
+            // guasto vero risale a GatedImportLoop, che lo registra e riprova fra un'ora; un'installazione senza
+            // credenziali non timbra niente e ricontrolla fra un'ora (costa un confronto).
             _log.LogInformation("Import ACC automatico saltato: {Reason}", ex.Message);
-            return true;
+            return false;
         }
     }
 }

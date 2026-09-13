@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -178,7 +178,7 @@ finding è la fusione di due segnalazioni.
 | **Prova** | `EnsureAsync` (riga 166) = solo `EnsureAtLeast(Editor)`; `EfEditingRepository.SaveSectionBlockJsonAsync:572` e `…BySectionAsync:519` controllano solo `RequireDraftAsync`. `IsLockHeldByAsync` è usato soltanto da `EditingService.EnsureLockAsync:317` e da `AirportLockGuard`. È la regola che il progetto ha già scritto per gli aeroporti («un tasto spento non è una guardia», `AirportLockGuard.cs:63-67`) |
 | **Correzione** | Portare nei tre servizi la porta dell'aeroporto: una guardia condivisa (`IsLockHeldBy` + rinnovo) prima di ogni `Save*`, `Add`/`Remove`/`Move` compresi, che sollevi `EditConflictException`. Lo shell sa già gestirla |
 
-#### T-005 — Import aree regolamentate: una pagina fallita pota in blocco legami e aree dell'ACC
+#### ✅ T-005 (L3, in main) — Import aree regolamentate: una pagina fallita pota in blocco legami e aree dell'ACC
 
 | | |
 |---|---|
@@ -188,7 +188,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | LIRR ha le aree su 3 pagine. Nel giro notturno la pagina 2 risponde 429/503: `GetStringAsync` torna null e il client fa `break; // usa quanto raccolto`. `PruneSpecialAreasNotInAsync` riceve solo le aree di pagina 1: toglie i legami delle pagine 2-3 e **cancella** le aree rimaste orfane, shape comprese. Lo stesso succede per tutte le aree se la pagina 1 risponde 200 con un corpo senza `items`/`data` o con un array vuoto (`if (!any) break`). Per 24 ore le sezioni le perdono, una release pubblicata nel frattempo le congela assenti, e parte un impatto AreaGone per ogni documento. È la famiglia delle «83 aree azzerate» del 26 agosto, arrivata da un'altra strada |
 | **Correzione** | Nel client, una pagina successiva fallita deve sollevare e non troncare. Nel use case, niente potatura con elenco vuoto o oltre una quota (`SogliaTimbro.TroppiPerEssereVeri`), oppure `SogliaEliminazione` a due giri sul timbro del legame |
 
-#### T-006 — Gli import timbrano RIUSCITO un errore HTTP di IVAO: niente retry, e la soglia di eliminazione avanza
+#### ✅ T-006 (L3, in main) — Gli import timbrano RIUSCITO un errore HTTP di IVAO: niente retry, e la soglia di eliminazione avanza
 
 | | |
 |---|---|
@@ -198,7 +198,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | Alle 03:00 `/v2/centers` risponde 503, oppure 403 perché il token ha perso lo scope. `IvaoAccClient.cs:50` solleva `InvalidOperationException`. Il wrapper la cattura come «credenziali assenti», logga a livello Information e restituisce `true`. `GatedImportLoop.cs:52-54` chiama allora `MarkSuccessAsync`: niente retry dopo 1 h, `LastError` azzerato, la pagina Sorgenti diventa verde e `PrevSuccessUtc` scorre. Dopo due notti (con un 403 persistente succede ogni notte) `SogliaEliminazione.Consentita` autorizza l'eliminazione di **ogni** ACC, settore o aeroporto mai riletto. L'eliminazione vera resta un gesto manuale, ma la pagina degli spariti li elenca tutti. Nella stessa rete finirebbe inghiottita anche una `InvalidOperationException` di EF (la famiglia di R-015) |
 | **Correzione** | Catturare solo il caso «non configurato», verificato prima con `IsConfigured` o con un tipo dedicato, e in quel caso tornare `true` **senza** timbrare. Gli errori HTTP devono risalire, oppure i client sollevano `HttpRequestException` |
 
-#### T-007 — Import ACC: un dettaglio subcenter fallito azzera la frequenza in catalogo e nei Sector
+#### ✅ T-007 (L3, in main) — Import ACC: un dettaglio subcenter fallito azzera la frequenza in catalogo e nei Sector
 
 | | |
 |---|---|
@@ -412,7 +412,7 @@ content-a · C · `src/Vipi.Application/Content/AppViewDerivationService.cs:56`.
   corretto.
 - **Correzione.** Overload che riceve personalizzazione e configurazioni dal `DocumentView` mostrato.
 
-**T-029 — Una rinomina che torna su un nominativo già dismesso viola l'indice unico e blocca l'import ogni notte.**
+**✅ T-029 (L3, in main) — Una rinomina che torna su un nominativo già dismesso viola l'indice unico e blocca l'import ogni notte.**
 data · C · `src/Vipi.Infrastructure/Persistence/EfCallsignRenameService.cs:215`.
 - **Scenario.** A→B, poi B→A, poi di nuovo A→B, oppure una riga nuova che riprende A: il secondo
   `CallsignAlias` con lo stesso `OldCallsign` viola `IX_CallsignAliases_OldCallsign` (`VipiDbContext.cs:609`).

@@ -212,15 +212,35 @@ public sealed class EfCallsignRenameService : ICallsignRenameService
                 b.BodyJson = riscritto;
 
         // 7. L'alias, per lo storico: AtcSessions da solo ne ha 21 267 righe, e quelle dicono un fatto.
-        _db.CallsignAliases.Add(new CallsignAlias
+        //
+        // 🔴 T-029 (13 settembre 2026): un nominativo che TORNA. A→B, poi B→A, poi di nuovo A→B: il secondo
+        // alias con OldCallsign = A violava l'indice unico, e la rinomina gira in testa all'import dei settori
+        // senza catch — l'import falliva a ogni giro. Due regole:
+        //   • il nominativo nuovo non è più «dismesso»: se un alias lo dava per tale, quell'alias ora mente
+        //     (la storia tradurrebbe il nome di oggi in quello di ieri) e si toglie;
+        //   • il vecchio ha al più UN successore: se l'alias c'è già, si aggiorna invece di aggiungerne un altro.
+        // Si guarda anche fra le righe NON ancora salvate: più rinomine dello stesso giro vanno in un solo
+        // SaveChanges, e una query non le vedrebbe.
+        bool Stesso(string a, string b) => string.Equals(a, b, StringComparison.OrdinalIgnoreCase);
+
+        foreach (var rinato in _db.CallsignAliases.Local.Where(a => Stesso(a.OldCallsign, nuovo)).ToList()
+                     .Concat(await _db.CallsignAliases.Where(a => a.OldCallsign == nuovo).ToListAsync(ct))
+                     .Distinct())
+            _db.CallsignAliases.Remove(rinato);
+
+        var alias = _db.CallsignAliases.Local.FirstOrDefault(a => Stesso(a.OldCallsign, vecchio)
+                                                                  && _db.Entry(a).State != EntityState.Deleted)
+                    ?? await _db.CallsignAliases.FirstOrDefaultAsync(a => a.OldCallsign == vecchio, ct);
+        if (alias is null)
         {
-            OldCallsign = vecchio,
-            NewCallsign = nuovo,
-            Catalog = r.Catalog,
-            IvaoId = r.IvaoId,
-            SectorId = settore?.Id,
-            RenamedAtUtc = DateTime.UtcNow,
-        });
+            alias = new CallsignAlias { OldCallsign = vecchio };
+            _db.CallsignAliases.Add(alias);
+        }
+        alias.NewCallsign = nuovo;
+        alias.Catalog = r.Catalog;
+        alias.IvaoId = r.IvaoId;
+        alias.SectorId = settore?.Id;
+        alias.RenamedAtUtc = DateTime.UtcNow;
 
         return accCode;
     }

@@ -27,7 +27,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
     public Task<IReadOnlyList<SourceAirport>> GetAirportsAsync(CancellationToken ct = default)
     {
         if (!_http.IsConfigured)
-            throw new InvalidOperationException(
+            throw new SorgenteNonConfigurataException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile leggere l'anagrafica aeroporti.");
 
         var ttl = TimeSpan.FromHours(Math.Max(1, _opt.AirportsCacheHours));
@@ -67,7 +67,7 @@ public sealed class IvaoAirportClient : IAirportDirectory
         if (icao.Length == 0) return null;
         if (_airportCache.TryGetSingle(icao, out var cached)) return cached;
         if (!_http.IsConfigured)
-            throw new InvalidOperationException(
+            throw new SorgenteNonConfigurataException(
                 "Credenziali IVAO non configurate (Ivao:ClientId/ClientSecret): impossibile cercare l'aeroporto.");
 
         // /v2/airports/{ICAO}: dettaglio singolo (anche estero). 404/altro → null (best-effort, non blocca l'editing).

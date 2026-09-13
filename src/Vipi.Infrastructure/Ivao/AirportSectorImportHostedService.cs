@@ -41,6 +41,8 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
         // il fallback shape (che lavora sul catalogo già in DB). Perciò è isolato in un proprio try.
         // NB: l'import popola SOLO il catalogo; la generazione documento è scollegata (doc 03 §4.3).
         int created = 0, updated = 0, airports = 0;
+        System.Runtime.ExceptionServices.ExceptionDispatchInfo? guastoDellaSorgente = null;
+        var nonConfigurata = false;
         try
         {
             var icaos = await repo.ListAirportIcaosAsync(ct);
@@ -55,10 +57,20 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             var projection = sp.GetRequiredService<ISectorProjectionService>();
             await projection.SyncFromCatalogsAsync(ct);
         }
-        catch (InvalidOperationException ex)
+        catch (SorgenteNonConfigurataException ex)
         {
-            // tipicamente credenziali sorgente assenti: salta l'import, ma prosegui col fallback shape.
+            // Credenziali assenti: salta l'import, ma prosegui col fallback shape.
             _log.LogInformation("Import settori aeroporto da sorgente saltato: {Reason}", ex.Message);
+            nonConfigurata = true;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // 🔴 T-006 (13 settembre 2026): qui un 503 o un 403 di IVAO — che escono come InvalidOperationException
+            // — erano trattati come «credenziali assenti», e il giro finiva timbrato riuscito. Il ripiego delle
+            // shape gira lo stesso (lavora sul catalogo già in archivio), ma alla fine il guasto RISALE: il giro
+            // si registra fallito e riprova fra un'ora.
+            _log.LogWarning(ex, "Import settori aeroporto da sorgente fallito; proseguo col ripiego delle shape e poi segnalo il guasto.");
+            guastoDellaSorgente = System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(ex);
         }
 
         // Shape TWR REALI da GitHub (twrs.tfl): ripiego "buono", PRIMA del cerchio così il cerchio copre solo le
@@ -119,6 +131,8 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             + "cerchi sintetici {Circles}. Documento non generato (scollegato, doc 03).",
             airports, created, updated, githubShapes, settori?.Applied ?? 0, settori?.StillWithout ?? 0,
             atz?.Applied ?? 0, circles);
-        return true;
+
+        guastoDellaSorgente?.Throw();
+        return !nonConfigurata;
     }
 }
