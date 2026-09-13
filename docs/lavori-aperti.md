@@ -1,6 +1,26 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 13 settembre 2026
+## Dove siamo — 14 settembre 2026
+
+### 📦 A32 — Pacchetto 1.26.1: 40 file, PATCH su 1.26.0, ancora net8 — 🟡 PRONTO DA CARICARE
+
+Timbro **`1.26.1 · fae666e`**, zip `artifacts/publish/vipi-1.26.1-solo-file-cambiati.zip` (4,92 MB), sha256
+`2fcdf65fc2a3f6d843bec0585177a52b92c7052b61fc2dae751fdd602e6e197a`, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.26.1.md`. Contiene **L2, L5…L12** della revisione totale 2 (tutto quel che
+§A31 elencava «in main, non in pacchetto»). Nessuna migrazione.
+
+- **40 file**: Domain, Application, Infrastructure, AuroraProfiles, Hosting, Ui, Host (dll+pdb),
+  `en/Vipi.Ui.resources.dll`, `Vipi.Host.staticwebassets.endpoints.json` e **otto JS** di `wwwroot` con i loro
+  `.br`/`.gz`. Fuori `MySqlMigrations` e `AuroraBridge.Contracts` (solo MVID).
+- **Provato sul publish win-x64** su copia di `vipi.db`: `pacchetto-verifica` 10/10, `awos-verifica` 15/15,
+  `enhanced-verifica` 6/6 (`DOC=/services/vsop/libb/mil?icao=LIBG`). ⚠️ Al primo giro l'editor era andato in
+  timeout a processo appena partito; rifatto, verde.
+- 🔴 **Scoperto preparandolo: in produzione gira il runtime .NET 8.0.28.** Tutti i publish da agosto portano
+  8.0.28 e i pacchetti sono parziali, quindi il runtime è ancora quello del primo carico completo; .NET 8 è a
+  8.0.31. Un pacchetto parziale non rimedia: rimedia **1.27.0 (L13, net10, carico completo)**. Scritto nel foglio.
+
+▶ Dopo il carico: Ricerca, vAWOS che si aggiorna, mappe AoR; col login timbro e `Schema: 0`.
+▶ Poi, dopo qualche giorno buono: merge di `l13-net10` → **1.27.0**.
 
 ### ✅ A31 — Dopo 1.26.0: otto lotti in main, e la CI finalmente verde
 
