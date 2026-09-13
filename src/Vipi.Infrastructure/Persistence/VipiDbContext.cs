@@ -463,14 +463,16 @@ public class VipiDbContext : DbContext
 
             // Elenco dei punti: una stringa con separatore, come ConditionLabel fa già per le multi-pista.
             // Dimensionata anche fuori da MySQL perché è una lista corta per natura, non prosa.
-            e.Property(x => x.Cops).HasMaxLength(200);
+            // ⚠️ Le lunghezze dei testi scritti o elencati le dice AgreementClauseLimits, che legge anche la
+            // validazione del servizio: dal 13 settembre 2026 (T-053) sono più larghe, e il tetto si dice
+            // all'utente prima di arrivare al database — su MariaDB fuori da strict un testo troppo lungo non dava
+            // errore, veniva troncato. ConditionLabel resta a 80: sono designatori di pista scelti da un elenco.
+            e.Property(x => x.Cops).HasMaxLength(AgreementClauseLimits.Elenco);
             e.Property(x => x.ConditionLabel).HasMaxLength(80);
-            // ⚠️ 200 e non 80 come le altre: le AREE si elencano, e tre nomi lunghi del catalogo IVAO fanno
-            // 105 caratteri. Misurato sulle 241 aree in archivio, non stimato.
-            e.Property(x => x.ConditionAreaLabel).HasMaxLength(200);
-            e.Property(x => x.ConditionCustomLabel).HasMaxLength(80);
-            e.Property(x => x.HandoffLabel).HasMaxLength(80);
-            e.Property(x => x.CommsHandoffLabel).HasMaxLength(80);
+            e.Property(x => x.ConditionAreaLabel).HasMaxLength(AgreementClauseLimits.Elenco);
+            e.Property(x => x.ConditionCustomLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
+            e.Property(x => x.HandoffLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
+            e.Property(x => x.CommsHandoffLabel).HasMaxLength(AgreementClauseLimits.Etichetta);
 
             // ⚠️ Default DICHIARATI NEL MODELLO, non solo nella migrazione. Questi enum stanno su colonna
             // testuale (conversione globale più sopra) e chi aggiunge la colonna a una tabella già piena deve

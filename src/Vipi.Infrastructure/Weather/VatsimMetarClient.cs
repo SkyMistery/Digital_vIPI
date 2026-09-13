@@ -11,7 +11,10 @@ namespace Vipi.Infrastructure.Weather;
 /// <list type="bullet">
 ///   <item><c>tgftp.nws.noaa.gov</c> risponde, ma <b>è ancora NOAA</b>: un guasto del fornitore si porta via
 ///   tutt'e due, e una scorta che cade insieme alla principale non è una scorta.</item>
-///   <item><c>api.ivao.aero/v2/airports/{icao}/METAR</c> → <b>404</b>: quell'endpoint non esiste.</item>
+///   <item><c>api.ivao.aero/v2/airports/{icao}/METAR</c> → <b>404</b>, provato così l'8 settembre. ⚠️ Non era
+///   la strada giusta, non un endpoint assente: IVAO il METAR lo dà da <c>/metar</c> minuscolo e col token, ed è
+///   diventato la PRIMA scorta (<c>IvaoMetarClient</c>, catena NOAA → IVAO → VATSIM). Riga corretta il 13
+///   settembre 2026 (T-078): diceva che l'endpoint non esiste.</item>
 ///   <item><c>metar.vatsim.net</c> → 200 in 0,3 s, 50 byte di METAR puro. Operatore <b>diverso</b>, ed è il
 ///   punto.</item>
 /// </list>

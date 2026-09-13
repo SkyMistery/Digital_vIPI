@@ -71,20 +71,6 @@ public static class TrafficAttribution
         return best;
     }
 
-    /// <summary>Tutti gli aerei di un elenco, attribuiti in un colpo: callsign pilota → callsign sessione.</summary>
-    public static IReadOnlyDictionary<string, string> AttributeAll(
-        IReadOnlyList<SectorClaim> claims,
-        IEnumerable<(string Callsign, double Lat, double Lon, double AltitudeFt, FlightPhase Phase)> pilots)
-    {
-        var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var p in pilots)
-        {
-            var session = Attribute(claims, p.Lat, p.Lon, p.AltitudeFt, p.Phase);
-            if (session is not null) result[p.Callsign] = session;
-        }
-        return result;
-    }
-
     private static bool IsMoreSpecific(SectorClaim a, bool aHandles, SectorClaim b, bool bHandles)
     {
         if (aHandles != bHandles) return aHandles;

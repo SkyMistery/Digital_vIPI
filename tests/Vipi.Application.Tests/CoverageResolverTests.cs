@@ -30,8 +30,19 @@ public class CoverageResolverTests
     private static IReadOnlySet<string> Online(params string[] cs) =>
         new HashSet<string>(cs, System.StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// «Quali settori copre il bersaglio?», letto da <see cref="CoverageResolver.Owners"/>. Fino al 13 settembre 2026
+    /// c'era un metodo apposta, <c>CoveredBy</c>, che nessun codice chiamava più: era vivo solo per questi test
+    /// (T-078). La domanda resta quella giusta per provare la discesa, quindi la si pone a Owners, che è quello
+    /// che la produzione usa davvero.
+    /// </summary>
     private static string[] Covered(string target, params string[] online) =>
-        CoverageResolver.CoveredBy(target, Albero, Online(online)).OrderBy(x => x).ToArray();
+        Coperti(target, Albero, Online(online));
+
+    private static string[] Coperti(string target, IReadOnlyList<CoverageNode> albero, IReadOnlySet<string> online) =>
+        CoverageResolver.Owners(albero, online)
+            .Where(p => string.Equals(p.Value, target, System.StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.Key).OrderBy(x => x).ToArray();
 
     [Fact]
     public void L_ultimo_gradino_della_scaletta_copre_solo_se_stesso()
@@ -97,7 +108,7 @@ public class CoverageResolverTests
     public void Un_padre_inesistente_rende_il_nodo_una_radice()
     {
         var albero = new List<CoverageNode> { new("LIBA_APP", "LIRR_NC_CTR"), new("LIBA_TWR", "LIBA_APP") };
-        var coperti = CoverageResolver.CoveredBy("LIBA_APP", albero, Online("LIBA_APP")).OrderBy(x => x);
+        var coperti = Coperti("LIBA_APP", albero, Online("LIBA_APP"));
         Assert.Equal(new[] { "LIBA_APP", "LIBA_TWR" }, coperti);
     }
 
@@ -106,7 +117,7 @@ public class CoverageResolverTests
     {
         // Dato sporco possibile in archivio: A→B→A. Deve terminare, non ciclare.
         var ciclo = new List<CoverageNode> { new("A_CTR", "B_CTR"), new("B_CTR", "A_CTR"), new("C_TWR", "A_CTR") };
-        var coperti = CoverageResolver.CoveredBy("A_CTR", ciclo, Online("A_CTR")).OrderBy(x => x).ToArray();
+        var coperti = Coperti("A_CTR", ciclo, Online("A_CTR"));
         Assert.Contains("A_CTR", coperti);
         Assert.Contains("C_TWR", coperti);
     }

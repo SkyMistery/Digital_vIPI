@@ -49,10 +49,9 @@ public interface IAirportViewDerivationService
     Task<AirportDerived> ResolveForViewAsync(string icao, bool useFrozen, ReleaseTargetType edizione,
         string? atCycle = null, CancellationToken ct = default);
 
-    /// <summary>Le sole SID. Resta a parte perché la pagina le ri-filtra per pista scelta dal lettore.</summary>
-    /// <param name="atCycle">Come sopra: il ciclo a cui si guarda, <c>null</c> = quello corrente.</param>
-    Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, string? atCycle = null,
-        CancellationToken ct = default);
+    // ⚠️ Qui c'era `ResolveSidsForViewAsync` («le sole SID»), tolto il 13 settembre 2026 (T-064): nessuno lo
+    // chiamava più, e leggeva SEMPRE lo snapshot civile — la trappola che il parametro `edizione` qui sopra
+    // esiste per impedire. Le SID escono da ResolveForViewAsync, dallo stesso lotto delle altre sezioni.
 }
 
 /// <inheritdoc cref="IAirportViewDerivationService"/>
@@ -104,14 +103,6 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         // Le SID dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una sesta volta.
         return new AirportDerived(rules, transition, freqs, runways,
             frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct), lvp);
-    }
-
-    public async Task<AirportSidView> ResolveSidsForViewAsync(string icao, bool useFrozen, string? atCycle = null,
-        CancellationToken ct = default)
-    {
-        icao = Norm(icao);
-        var frozen = useFrozen ? await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct) : FrozenSections.Empty;
-        return frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct);
     }
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();

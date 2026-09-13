@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -180,7 +180,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("Unspecified");
 
                     b.Property<string>("CommsHandoffLabel")
-                        .HasMaxLength(80)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("ConditionAreaAll")
@@ -189,7 +189,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<string>("ConditionAreaLabel")
-                        .HasMaxLength(200)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<bool>("ConditionAreaNegated")
@@ -198,7 +198,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasDefaultValue(false);
 
                     b.Property<string>("ConditionCustomLabel")
-                        .HasMaxLength(80)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("ConditionLabel")
@@ -210,7 +210,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Cops")
                         .IsRequired()
-                        .HasMaxLength(200)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("HandoffKind")
@@ -220,7 +220,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .HasDefaultValue("Unspecified");
 
                     b.Property<string>("HandoffLabel")
-                        .HasMaxLength(80)
+                        .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("HandoffLevelConstraint")

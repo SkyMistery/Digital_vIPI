@@ -180,7 +180,7 @@ public class AirportFrozenAndViewTests
     public async Task View_Frozen_Wins_When_UseFrozen_And_Captured()
     {
         var reader = new FakeReader { Frozen = { ["sids"] = Sid("FROZEN") } };
-        var v = await Derivazione(reader).ResolveSidsForViewAsync("LIRF", useFrozen: true);
+        var v = (await Derivazione(reader).ResolveForViewAsync("LIRF", useFrozen: true, ReleaseTargetType.Airport)).Sids;
         Assert.Equal("FROZEN", Assert.Single(v.Rows).Fix);
     }
 
@@ -188,7 +188,7 @@ public class AirportFrozenAndViewTests
     public async Task View_Live_When_Not_UseFrozen()
     {
         var reader = new FakeReader { Frozen = { ["sids"] = Sid("FROZEN") } };
-        var v = await Derivazione(reader).ResolveSidsForViewAsync("LIRF", useFrozen: false);
+        var v = (await Derivazione(reader).ResolveForViewAsync("LIRF", useFrozen: false, ReleaseTargetType.Airport)).Sids;
         Assert.Equal("ALAXI", Assert.Single(v.Rows).Fix);   // live, reader non consultato
         Assert.False(reader.WasQueried);
     }

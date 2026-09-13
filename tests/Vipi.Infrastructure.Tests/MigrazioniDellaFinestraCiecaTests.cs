@@ -121,6 +121,16 @@ public class MigrazioniDellaFinestraCiecaTests
         // ⚠️ Se il pacchetto che la porta esce DOPO il 16 settembre 2026 questa voce non serve più, e va
         // tolta insieme al file: una deroga che sopravvive alla finestra è una regola travestita.
         "20260910191356_PiuAreeNellaCondizione",
+
+        // 13 settembre 2026 — T-053, decisione del committente: «allarga la colonna con la migrazione additiva».
+        // Cinque `AlterColumn` sulla stessa tabella della voce sopra: `AgreementClauses.Cops` e
+        // `ConditionAreaLabel` da varchar(200) a varchar(500), `ConditionCustomLabel`, `HandoffLabel` e
+        // `CommsHandoffLabel` da varchar(80) a varchar(500). Stesse tre ragioni della voce sopra: sono SOLO
+        // allargamenti (nullabilità e collation invariate, verificato nel file), la tabella ha decine di righe e
+        // non centinaia di migliaia, e senza la migrazione un testo lungo su MariaDB fuori da strict viene
+        // troncato in silenzio. Il tetto nuovo lo dice anche il servizio (AgreementClauseLimits), prima del database.
+        // ⚠️ Stessa scadenza: se esce DOPO il 16 settembre 2026, la voce si toglie.
+        "20260913110951_EtichetteClausolePiuLarghe",
     };
 
     /// <summary>Stesso wiring dell'host: provider MySQL + assembly di migrazioni dedicato.</summary>

@@ -2237,7 +2237,7 @@
             @if (form.Facet.Kind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
             {
                 <div class="field"><label>@L["Xfer_HandoffLabel"]</label>
-                    <input placeholder="CHI / 20 NM da AVN" @bind="form.Facet.Label" @bind:event="oninput" @onkeydown="PanelKey" />
+                    <input placeholder="CHI / 20 NM da AVN" maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="form.Facet.Label" @bind:event="oninput" @onkeydown="PanelKey" />
                 </div>
             }
         </div>
@@ -2270,7 +2270,7 @@
                 @if (form.Facet.CommsKind is TransferHandoffKind.Point or TransferHandoffKind.Custom)
                 {
                     <div class="field"><label>@L["Xfer_HandoffLabel"]</label>
-                        <input @bind="form.Facet.CommsLabel" @bind:event="oninput" @onkeydown="PanelKey" />
+                        <input maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="form.Facet.CommsLabel" @bind:event="oninput" @onkeydown="PanelKey" />
                     </div>
                 }
             </div>
@@ -2363,7 +2363,7 @@
             </select>
         </div>
         <div class="field"><label>@L["Xfer_CondCustom"]</label>
-            <input placeholder="@L["Xfer_CondCustomPh"]" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
+            <input placeholder="@L["Xfer_CondCustomPh"]" maxlength="@Vipi.Domain.Entities.AgreementClauseLimits.Etichetta" @bind="form.CustomLabel" @bind:event="oninput" @onkeydown="PanelKey" />
         </div>
         @if (InGroup())
         {

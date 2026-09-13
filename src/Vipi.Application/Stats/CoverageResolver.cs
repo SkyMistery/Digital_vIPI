@@ -45,23 +45,6 @@ public static class CoverageResolver
     }
 
     /// <summary>
-    /// I settori coperti da <paramref name="target"/> adesso, lui compreso. Vuoto se <paramref name="target"/>
-    /// non è online: chi non è connesso non gestisce niente.
-    /// </summary>
-    public static IReadOnlyList<string> CoveredBy(
-        string target, IReadOnlyList<CoverageNode> nodes, IReadOnlySet<string> online)
-    {
-        var covered = new List<string>();
-        if (string.IsNullOrWhiteSpace(target) || !online.Contains(target)) return covered;
-
-        foreach (var pair in Owners(nodes, online))
-            if (string.Equals(pair.Value, target, StringComparison.OrdinalIgnoreCase))
-                covered.Add(pair.Key);
-
-        return covered;
-    }
-
-    /// <summary>
     /// Risale la catena dei padri partendo dal settore stesso e restituisce il primo callsign online.
     /// La guardia sui nodi già visti chiude i cicli (dato sporco possibile in archivio: A→B→A), che
     /// altrimenti sarebbero un blocco del poller, non un risultato sbagliato.

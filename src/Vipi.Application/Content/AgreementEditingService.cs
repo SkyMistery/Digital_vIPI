@@ -320,6 +320,13 @@ public sealed class AgreementService : IAgreementService
                 "Indica dove passano le comunicazioni (punto o testo).",
                 "Say where the communications transfer happens (a point, or free text)."));
 
+        // Il tetto delle colonne, detto prima del database (T-053): fuori da strict MariaDB troncherebbe in silenzio.
+        TroppoLungo(CopList.Format(CopList.Parse(i.Cops)), Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "I punti", "The points");
+        TroppoLungo(i.ConditionAreaLabel, Vipi.Domain.Entities.AgreementClauseLimits.Elenco, "Le aree della condizione", "The condition areas");
+        TroppoLungo(i.ConditionCustomLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "La condizione", "The condition");
+        TroppoLungo(i.HandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del trasferimento", "The transfer location");
+        TroppoLungo(i.CommsHandoffLabel, Vipi.Domain.Entities.AgreementClauseLimits.Etichetta, "Il luogo del passaggio comunicazioni", "The communications transfer location");
+
         if (i.SpeedConstraint != SpeedConstraint.Unspecified && i.SpeedValue is null)
             throw new ValidationException(Lingua("Indica il valore della velocità, o togli il vincolo.", "Give the speed value, or drop the constraint."));
 
@@ -331,5 +338,14 @@ public sealed class AgreementService : IAgreementService
             throw new ValidationException(Lingua(
                 "Una clausola «in ogni caso» deve dire a quali condizioni vale.",
                 "A «in any case» clause has to say under which conditions it applies."));
+    }
+
+    private static void TroppoLungo(string? testo, int massimo, string cosaIt, string cosaEn)
+    {
+        var lunghezza = testo?.Trim().Length ?? 0;
+        if (lunghezza > massimo)
+            throw new ValidationException(Lingua(
+                $"{cosaIt}: {lunghezza} caratteri, il massimo è {massimo}.",
+                $"{cosaEn}: {lunghezza} characters, the maximum is {massimo}."));
     }
 }

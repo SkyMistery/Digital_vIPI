@@ -47,14 +47,6 @@ public static class AgreementPoints
             .Where(p => p.Length > 0)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>I punti spaiati fra i due versi di <b>un</b> accordo: la riga d'avviso in testa al riquadro.</summary>
-    public static IReadOnlyList<string> UnpairedWithin(AgreementRow a) =>
-        Unpaired(new IReadOnlySet<string>[]
-        {
-            Of(a, AgreementDirection.AtoB),
-            Of(a, AgreementDirection.BtoA),
-        });
-
     /// <summary>I punti spaiati fra due sezioni speculari (i due versi dei sorvoli): è lì che l'asimmetria si
     /// vede, ora che stanno nello stesso accordo una sotto l'altra.</summary>
     public static IReadOnlyList<string> UnpairedBetween(AgreementSectionRow x, AgreementSectionRow y) =>

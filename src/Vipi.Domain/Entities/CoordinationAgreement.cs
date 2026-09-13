@@ -124,6 +124,25 @@ public class AgreementAirport
 }
 
 /// <summary>
+/// Le lunghezze dei testi di una clausola, in <b>un posto solo</b>: le legge il modello EF (la colonna) e le
+/// legge la validazione del servizio (il rifiuto con un messaggio).
+///
+/// <para>🔴 <b>Perché (T-053, revisione del 13 settembre 2026).</b> Le etichette libere stavano in
+/// <c>varchar(80)</c> e punti e aree in <c>varchar(200)</c>, senza nessun tetto nell'interfaccia né nel servizio.
+/// Una condizione di 86 caratteri passava su SQLite (dove la lunghezza non esiste), e su MariaDB dava «Data too
+/// long» in strict mode o veniva <b>troncata in silenzio</b> fuori da strict. Decisione del committente:
+/// colonne più larghe (migrazione additiva), e il tetto nuovo detto prima di arrivare al database.</para>
+/// </summary>
+public static class AgreementClauseLimits
+{
+    /// <summary>Le etichette scritte a mano: condizione libera, dove avviene il trasferimento, dove passano le comunicazioni.</summary>
+    public const int Etichetta = 500;
+
+    /// <summary>L'elenco dei punti d'ingresso e quello delle aree della condizione.</summary>
+    public const int Elenco = 500;
+}
+
+/// <summary>
 /// Una clausola della sezione: i punti d'ingresso a cui si applica, il livello, la faccetta trasferimento, la
 /// condizione. Rispetto al modello di ferragosto cambia <b>due campi</b>: appende alla sezione invece che
 /// all'accordo, e non porta più il verso — lo dice la sezione.

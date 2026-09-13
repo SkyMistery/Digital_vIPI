@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -572,7 +572,7 @@ services · C · `src/Vipi.AuroraBridge.Core/BridgeOrchestrator.cs:109`.
   non assunto» finché non cambia selezione o preme Aggiorna.
 - **Correzione.** Rileggere `#TRPOS` a ogni giro.
 
-**T-053 — Etichette libere delle clausole senza tetto: su MariaDB superano `varchar(80/200)`.**
+**✅ T-053 (in main, migrazione additiva `EtichetteClausolePiuLarghe`) — Etichette libere delle clausole senza tetto: su MariaDB superano `varchar(80/200)`.**
 data · C · `src/Vipi.Infrastructure/Persistence/EfAgreementRepository.cs:881`.
 - **Scenario.** Una condizione libera di 86 caratteri (input senza maxlength in
   `AdminTrasferimentiPage.razor:2366`) passa su SQLite. Su MariaDB strict dà «Data too long», su MariaDB
@@ -643,7 +643,7 @@ documento: ignora `accCode` e la rete di `MoveGroupAsync`. Oggi l'unico chiamant
 · content-a · **P** · `src/Vipi.Application/Content/AccDocumentService.cs:246` · Assemblare e rifiutare,
 insieme a T-004.
 
-**T-064** — `ResolveSidsForViewAsync` legge sempre lo snapshot **civile**: è la trappola che l'interfaccia
+**✅ T-064** (in main, codice morto tolto) — `ResolveSidsForViewAsync` legge sempre lo snapshot **civile**: è la trappola che l'interfaccia
 vieta. È codice morto pubblico. · content-a · C ·
 `src/Vipi.Application/Content/AirportViewDerivationService.cs:113` · Eliminarlo, oppure aggiungere il
 parametro `edizione`.
@@ -703,7 +703,7 @@ con METAR assente; lo split delle piste è scritto tre volte. · quality · C ·
 `src/Vipi.Ui/Components/Doc/AirportMemberLoader.cs:231` (e `AwosService.cs:140`) · Un metodo solo nel
 valutatore, **prerequisito** di T-009.
 
-**T-078** — Codice morto tenuto vivo dai test: `CoverageResolver.CoveredBy` (solo test),
+**✅ T-078** (in main, codice morto tolto) — Codice morto tenuto vivo dai test: `CoverageResolver.CoveredBy` (solo test),
 `TrafficAttribution.AttributeAll` e `AgreementPoints.UnpairedWithin` (zero chiamanti).
 `VatsimMetarClient.cs:14` dice che l'endpoint IVAO non esiste, mentre è la prima scorta. · quality · C ·
 `src/Vipi.Application/Stats/CoverageResolver.cs:51` · Togliere e correggere.

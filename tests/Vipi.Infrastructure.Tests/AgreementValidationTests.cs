@@ -65,6 +65,29 @@ public class AgreementValidationTests : IAsyncLifetime
             () => _svc.AddAgreementAsync("LIRR", Pair(sideB: _neId)));
     }
 
+    /// <summary>
+    /// T-053 (13 settembre 2026): le etichette libere hanno un tetto, uguale alla colonna, e il servizio lo dice
+    /// con una frase. Su MariaDB fuori da strict un testo più lungo della colonna veniva troncato in silenzio;
+    /// qui SQLite non conosce le lunghezze, quindi senza la regola il test salverebbe tutto.
+    /// </summary>
+    [Fact]
+    public async Task Un_etichetta_oltre_il_tetto_si_rifiuta_con_una_frase_e_al_tetto_si_salva()
+    {
+        var id = await _svc.AddAgreementAsync("LIRR", Pair());
+        var sezione = await _svc.AddSectionAsync("LIRR", id, Section(TransferFlowKind.Overflight));
+        var tetto = Vipi.Domain.Entities.AgreementClauseLimits.Etichetta;
+
+        var ex = await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = Vipi.Domain.LevelUnit.Fl, LevelConstraint = Vipi.Domain.LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionCustomLabel = new string('x', tetto + 1) }));
+        Assert.Contains(tetto.ToString(), ex.Message);
+
+        // 86 caratteri, il caso della revisione, e il tetto esatto: si salvano.
+        Assert.True(await _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = Vipi.Domain.LevelUnit.Fl, LevelConstraint = Vipi.Domain.LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "VALMA", ConditionCustomLabel = new string('y', 86) }) > 0);
+        Assert.True(await _svc.AddClauseAsync("LIRR", sezione,
+            new AgreementClauseInput { LevelUnit = Vipi.Domain.LevelUnit.Fl, LevelConstraint = Vipi.Domain.LevelConstraint.AtOrAbove, LevelValue = 240, Cops = "ELKAP", ConditionCustomLabel = new string('z', tetto) }) > 0);
+    }
+
     [Fact]
     public async Task Con_i_due_capi_si_salva()
     {
