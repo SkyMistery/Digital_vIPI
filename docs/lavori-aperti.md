@@ -1,5 +1,63 @@
 # Lavori aperti — elenco unico
 
+## Dove siamo — 13 settembre 2026 (mattina)
+
+### 📦 A27 — Pacchetto 1.25.2: 2 file — ⏳ **PRONTO, non ancora caricato**
+
+Timbro **`1.25.2 · a6367d4`**, zip
+`803453c9f1ea57b2a77b36144d8f0fd0b40c4882fb4088bec8f8568701c4cf40`
+(`artifacts/publish/vipi-1.25.2-solo-file-cambiati.zip`, 0,09 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.2.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.2.md).
+Sostituisce **1.25.1**. **PATCH**, una correzione: `Vipi.Host.dll` e `Vipi.Host.pdb`.
+
+`git diff --name-only e7d075b HEAD -- src` nomina **un** file (`VipiStartup.cs`); le impronte lo confermano:
+`wwwroot` intero **identico** a 1.25.1, e identici `endpoints.json`, `deps.json`, `runtimeconfig.json` e
+`appsettings.json`. Provato **sul pacchetto**: timbro giusto, `pacchetto-verifica.js` **tutto verde**, e
+`blazor.web.js` con `Cache-Control: public, max-age=86400` **sia sul 200 sia sul 304**.
+
+▶ **Dopo il caricamento**: la Ricerca, e da fuori
+`curl -sD - -o /dev/null https://atc.it.ivao.aero/_framework/blazor.web.js | grep -i cache-control`, che
+alla prima rivalidazione di Cloudflare deve smettere di dire `no-cache`.
+
+### ✅ 1.25.1 È IN PRODUZIONE — i controlli da fuori, e le due voci che non si esprimevano
+
+Caricato il 12 settembre, notte. `pacchetto-verifica.js` pubblico **tutto verde**. Poi le sette voci, una per
+una, sull'indirizzo vero:
+
+| | in produzione |
+|---|---|
+| **Q1** | ✅ pagine pubbliche da anonimo `ws=0 sse=0`; la pagina d'aeroporto tiene il circuito |
+| **Q2a** | ✅ cookie della lingua e antiforgery → `public, max-age=60`; `vipi.auth` → `no-cache, no-store` |
+| **Q6** | ✅ l'API vAWOS esce `public, max-age=60` |
+| **Q8** | ✅ favicon 2 764 byte; foglio 3D solo sulla pagina 3D |
+| **Q4** | 🔴 **inerte** → corretto in 1.25.2 (qui sopra) |
+| **Q5** | 🔴 **non si esprime**, e non è il codice (qui sotto) |
+
+Prima visita di `/services/vsop`: **188 392 → 175 803 byte**.
+
+🔴 **Q4**: `blazor.web.js` rispondeva ancora `no-cache` / `REVALIDATED`, mentre con una query fittizia
+(`?x=123` → `MISS`) l'origine dava già `public, max-age=86400`. Cloudflare teneva la copia vecchia e
+rivalidava, l'origine rispondeva **304** (il file non cambia), e l'intestazione si scriveva sul solo 200: un
+anello chiuso. La controprova è stata la produzione stessa: stesso `If-None-Match`, 304 con `no-cache`.
+⚠️ La lezione: **in locale il file arrivava sempre come 200 nuovo, quindi il ramo 304 non era mai stato
+percorso.** Un'intestazione di freschezza va provata anche sulla rivalidazione, non solo sul primo scarico.
+
+🔴 **Q5**: dodici richieste alla vIPI LIBB, **dodici corpi distinti** (varia solo il blob cifrato
+`Blazor-Server-Component-State`, cioè la pagina è stata ricostruita ogni volta). Sullo **stesso binario** in
+locale, **in modalità Production**, con e senza compressione, i corpi sono **identici**: la cache colpisce.
+Intestazioni di produzione e locali uguali. La spiegazione più probabile è **§BG**: il processo viene fermato
+da fuori con una vita media di **46 s**, e una cache in memoria da 60 s non fa in tempo a servire. Il TTFB è
+comunque sceso (409-532 → 257-346 ms) perché il resto del render costa meno; quel che resta è il brotli.
+⚠️ **Quindi `passenger_min_instances` (§O3) cambia peso**: non è più solo l'attesa del primo visitatore,
+**senza, Q5 non lavora**. Da confermare impostandolo e rimisurando: dodici richieste, e i corpi devono
+ripetersi.
+⚠️ E una trappola di misura pagata strada facendo: il primo tentativo di riprodurre «in Production» dava
+`query=0` tre volte su tre — **contro un processo che non era partito** (mancava il `ClientId`). Da lì in poi
+ogni misura parte controllando che la pagina risponda 200; e in Production EF non scrive le query nel log,
+quindi lì il metro giusto sono i **corpi identici**, non il conteggio.
+
+---
+
 ## Dove siamo — 12 settembre 2026 (notte)
 
 ### 📦 A26 — Pacchetto 1.25.1: 19 file — ⏳ **PRONTO, non ancora caricato**
@@ -5608,7 +5666,7 @@ Nessuna delle due è codice, e nessuna delle due si vede da qui.
   [`deploy/atc-ivao/LEGGIMI-DEPLOY.md`](../deploy/atc-ivao/LEGGIMI-DEPLOY.md) §«Due direttive nginx».
   ⚠️ **Da NON estendere a `/_framework/`**: lì l'indirizzo non porta un'impronta.
 
-⚠️ **`passenger_min_instances` non è più solo una questione di comodità: è il PREREQUISITO di Q1** (§CZ). Da
+🔴 **E dal 13 settembre anche di Q5**, misurato in produzione: dodici richieste alla stessa pagina, dodici pagine ricostruite, mentre lo stesso binario in locale serve corpi identici — una cache da 60 s su un processo che vive ~46 s non serve mai. ⚠️ **`passenger_min_instances` non è più solo una questione di comodità: è il PREREQUISITO di Q1** (§CZ). Da
 §BG sappiamo che «una connessione lunga tiene su il processo e una richiesta corta no», e Q1 toglie proprio
 le due connessioni lunghe che ogni visita apre oggi. Nell'ordine: prima questa voce, poi Q1.
 

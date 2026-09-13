@@ -1,7 +1,7 @@
 ﻿# Audit prestazioni — 12 settembre 2026, sera
 
-**Stato:** ✅ **ESEGUITO la sera stessa** — le sette voci di codice sono in `main`, **non ancora in
-produzione**. Restano le tre del committente (§O2, §O3). Chiesto da lui: *«i server di IVAO non sono delle
+**Stato:** ✅ **ESEGUITO e IN PRODUZIONE** con 1.25.1 (12 settembre, notte); la correzione di Q4 viaggia in
+1.25.2. Da fuori Q5 non si esprime (vedi «In produzione, il giorno dopo»). Restano le tre del committente (§O2, §O3). Chiesto da lui: *«i server di IVAO non sono delle
 schegge ma sono un po' lenti. Puoi analizzare il nostro sito per vedere se si può fare qualcosa per
 migliorarne le performance o comunque qualcosa per diminuire il carico sui server, senza alterarne il
 funzionamento?»*
@@ -666,6 +666,27 @@ consegna rigirano una volta); si timbra **solo un giro che non ha cambiato nient
 fatto osservato, non una previsione); **senza timbro di build il gate non esiste**, quindi in sviluppo
 girano sempre. Misurato: primo avvio 259 query e il timbro; secondo avvio **54**, con la riga di log che
 dice perché.
+
+## In produzione, il giorno dopo (13 settembre 2026)
+
+1.25.1 caricato. Controllate da fuori le sette voci: **Q1, Q2a, Q6, Q8 si esprimono**, due no.
+
+**Q4 era inerte, per un difetto nostro.** `blazor.web.js` rispondeva ancora `no-cache` / `REVALIDATED`; con
+una query fittizia (`MISS`) l'origine dava già `public, max-age=86400`. Cloudflare teneva la copia vecchia,
+l'origine rispondeva **304** — il file non cambia — e l'intestazione si scriveva sul solo 200. Controprova
+sulla produzione stessa: 304 con `no-cache`. Corretto in **1.25.2** scrivendola anche sul 304, che per la
+RFC 9111 aggiorna la copia in magazzino. ⚠️ In locale il file arrivava sempre come 200 nuovo: il ramo della
+rivalidazione non era mai stato percorso.
+
+**Q5 non si esprime, e non per il codice.** Dodici richieste alla vIPI LIBB, dodici corpi distinti (cambia
+solo il blob cifrato di stato Blazor: pagina ricostruita). Lo stesso binario in locale in **Production**, con
+e senza compressione, serve corpi identici. La causa più probabile è §BG — processo fermato da fuori ogni
+~46 s — contro una cache in memoria da 60 s. Da confermare con `passenger_min_instances ≥ 1` e la stessa
+prova. Il TTFB della vIPI è comunque sceso da 409-532 a 257-346 ms.
+
+⚠️ Trappola di misura: la prima riproduzione «in Production» diceva `query=0` tre volte su tre contro un
+processo **mai partito**. Ogni misura ora parte controllando il 200; e in Production EF non logga le query,
+quindi il metro sono i **corpi identici**.
 
 ## Verifica di questo audit
 
