@@ -32,9 +32,14 @@ jobs:
       # ATTENZIONE: `shell: bash` NON e' cosmetico. Il guscio di serie di GitHub e' `bash -e`, SENZA
       # `pipefail`: in una pipe l'esito e' quello dell'ULTIMO comando, cioe' `tee`, che riesce sempre.
       # Un `dotnet test` rosso passerebbe per verde. `shell: bash` aggiunge `-o pipefail`.
+      # 🔴 `--logger "console;verbosity=minimal"` NON è cosmetico: con la sola `--verbosity normal` il riepilogo
+      # esce come «Test Run Successful. Total tests: N», SENZA assieme né TFM, e conta-test non trova niente da
+      # contare. Il cancello T-056 non aveva quindi mai potuto scattare: lo si è visto il 13 settembre 2026, alla
+      # prima corsa in cui i test arrivavano in fondo. Il logger minimale stampa «Passed! - ... .dll (net8.0)» e
+      # i dettagli dei test rossi; `--verbosity normal` resta per il log di MSBuild.
       - name: dotnet test (tutti i TFM)
         shell: bash
-        run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal | tee corsa.log
+        run: dotnet test Vipi.slnx --no-build -c Release --verbosity normal --logger "console;verbosity=minimal" | tee corsa.log
       # ⚠️ Il numero dei test NON lo controlla `dotnet test`: se un progetto sparisce dalla corsa la
       # riga esce zero e la CI diventa verde su meno test di ieri. E' successo (vedi il commento sopra:
       # ~1000 test che non toccavano il runtime di produzione, per settimane). Qui calare fa rumore.
@@ -65,7 +70,8 @@ jobs:
       - run: dotnet restore Vipi.slnx --locked-mode
       - name: dotnet test (solo net8.0, la produzione)
         shell: bash
-        run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal | tee corsa-net8.log
+        # Il logger minimale: vedi il job qui sopra, senza non c'è niente da contare.
+        run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal --logger "console;verbosity=minimal" | tee corsa-net8.log
       # Lo stesso cancello sul ramo di PRODUZIONE: qui l'atteso comprende i soli assiemi net8.0,
       # e un progetto che smette di girare su net8 e' proprio il difetto dell'11 agosto.
       - run: bash tools/conta-test.sh corsa-net8.log --tfm net8.0

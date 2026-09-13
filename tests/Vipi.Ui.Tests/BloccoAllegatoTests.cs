@@ -51,7 +51,11 @@ public class BloccoAllegatoTests : TestContext
     /// </summary>
     private sealed class BibliotecaTrattenuta : IAttachmentLibrary
     {
-        private readonly TaskCompletionSource<IReadOnlyList<AttachmentRow>> _cancello = new();
+        // ⚠️ Continuazioni ASINCRONE, e `Lascia` si chiama dentro `cut.InvokeAsync`: completata dal thread del
+        // test, la lettura ripartiva fuori dal dispatcher e sul runner della CI il ridisegno non arrivava in
+        // tempo («Check count: 0», 13 settembre 2026). Stessa cura di SentinellaDiRientroTests.
+        private readonly TaskCompletionSource<IReadOnlyList<AttachmentRow>> _cancello =
+            new(TaskCreationOptions.RunContinuationsAsynchronously);
         public int Letture { get; private set; }
 
         public Task<IReadOnlyList<AttachmentRow>> ListAsync(CancellationToken ct = default)
@@ -406,7 +410,7 @@ public class BloccoAllegatoTests : TestContext
     /// circuito</b>, non da <b>sé stessi</b>.</para>
     /// </summary>
     [Fact]
-    public void Ridisegni_mentre_la_lettura_e_in_volo_non_ne_fanno_partire_altre()
+    public async Task Ridisegni_mentre_la_lettura_e_in_volo_non_ne_fanno_partire_altre()
     {
         Localizzatore();
         var biblioteca = new BibliotecaTrattenuta();
@@ -420,7 +424,7 @@ public class BloccoAllegatoTests : TestContext
 
         Assert.Equal(1, biblioteca.Letture);
 
-        biblioteca.Lascia(Voce("loa-lirr-lfmm", "LoA Roma-Marseille"));
+        await cut.InvokeAsync(() => biblioteca.Lascia(Voce("loa-lirr-lfmm", "LoA Roma-Marseille")));
         cut.WaitForAssertion(() => Assert.Contains("LoA Roma-Marseille", cut.Markup));
 
         // E nemmeno dopo: la lettura è una per montaggio.
@@ -434,14 +438,14 @@ public class BloccoAllegatoTests : TestContext
     /// ridisegno, per sempre. La riga d'aiuto è la stessa: quel che cambia è quante volte si chiede.
     /// </summary>
     [Fact]
-    public void Una_biblioteca_vuota_non_si_rilegge_a_ogni_ridisegno()
+    public async Task Una_biblioteca_vuota_non_si_rilegge_a_ogni_ridisegno()
     {
         Localizzatore();
         var biblioteca = new BibliotecaTrattenuta();
         Services.AddSingleton<IAttachmentLibrary>(biblioteca);
 
         var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
-        biblioteca.Lascia();   // nessuna voce: è uno stato normale, non un guasto
+        await cut.InvokeAsync(() => biblioteca.Lascia());   // nessuna voce: è uno stato normale, non un guasto
         cut.WaitForAssertion(() => Assert.Contains("Att_BlockEmptyHint", cut.Markup));
 
         for (var i = 0; i < 4; i++)
