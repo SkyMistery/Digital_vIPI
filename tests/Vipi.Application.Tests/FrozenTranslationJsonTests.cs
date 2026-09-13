@@ -92,6 +92,24 @@ public class FrozenTranslationJsonTests
         Assert.True(letto["buona"].Reviewed);
     }
 
+    /// <summary>
+    /// 🔴 T-065 (revisione del 13 settembre 2026): un OGGETTO dentro <c>"t"</c> o <c>"r"</c> lasciava il lettore a
+    /// metà — il ciclo leggeva le proprietà dell'oggetto annidato come se fossero del padre — e lo snapshot
+    /// intero diventava illeggibile. Si consuma e si prosegue.
+    /// </summary>
+    [Theory]
+    [InlineData("""{"a":{"t":{"x":"y"},"r":true},"b":{"t":"Sto qui","r":true}}""")]
+    [InlineData("""{"a":{"t":"Testo","r":{"z":[1,{"w":2}]}},"b":{"t":"Sto qui","r":true}}""")]
+    public void Un_oggetto_annidato_in_t_o_r_non_rovina_lo_snapshot(string json)
+    {
+        var letto = Leggi(json);
+
+        Assert.Equal("Sto qui", letto["b"].Text);
+        Assert.True(letto["b"].Reviewed);
+        // Della voce rotta si tiene quel che si sa leggere: un testo che è un oggetto non è un testo.
+        Assert.NotEqual("y", letto["a"].Text);
+    }
+
     [Fact]
     public void Si_scrive_una_forma_sola_anche_quando_il_timbro_e_falso()
     {

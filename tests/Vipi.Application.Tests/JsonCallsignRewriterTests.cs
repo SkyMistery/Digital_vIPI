@@ -56,13 +56,38 @@ public class JsonCallsignRewriterTests
         Assert.Equal(new[] { "LIRR_N_CTR", "LIRR_NE1_CTR" }, arr.Select(x => x!.GetValue<string>()));
     }
 
+    /// <summary>
+    /// 🔴 T-027 (revisione del 13 settembre 2026): qui c'era il test opposto — «non tocca una chiave che si chiama
+    /// come il callsign» — e fissava il difetto. I colori AoR sono un dizionario <b>per callsign</b>
+    /// (<c>"Colors":{"LIMF_TWR":"#ff8800"}</c>): dopo la rinomina la chiave vecchia non indicava più nessuno e il
+    /// settore tornava al colore di default. Una chiave che è ESATTAMENTE il vecchio nominativo è un puntatore
+    /// quanto un valore.
+    /// </summary>
     [Fact]
-    public void Non_tocca_una_chiave_che_si_chiama_come_il_callsign()
+    public void Riscrive_la_chiave_che_e_il_callsign()
     {
-        var esito = Rewrite("""{"LIMF_TWR":{"Range":5}}""");
+        var esito = Rewrite("""{"Callsigns":["LIMZ_TWR"],"Colors":{"LIMF_TWR":"#ff8800","LIMZ_TWR":"#00ff00"}}""")!;
 
-        // La chiave resta; non c'è nessun VALORE stringa da cambiare, quindi non c'è niente da riscrivere.
-        Assert.Null(esito);
+        var colori = JsonNode.Parse(esito)!["Colors"]!.AsObject();
+        Assert.Equal("#ff8800", colori["LIMF_N_TWR"]!.GetValue<string>());
+        Assert.False(colori.ContainsKey("LIMF_TWR"));
+        Assert.Equal("#00ff00", colori["LIMZ_TWR"]!.GetValue<string>());
+    }
+
+    /// <summary>Solo la chiave UGUALE: una che comincia col vecchio nominativo resta com'è.</summary>
+    [Fact]
+    public void Non_tocca_una_chiave_che_comincia_col_callsign() =>
+        Assert.Null(Rewrite("""{"LIMF_TWR2":"#ff8800"}"""));
+
+    /// <summary>Se sotto il nome nuovo c'è già un valore, vince quello: è stato scritto per il settore che si chiama
+    /// così adesso, e sovrascriverlo col valore del nome vecchio vorrebbe dire perderlo.</summary>
+    [Fact]
+    public void Se_la_chiave_nuova_esiste_gia_vince_lei()
+    {
+        var esito = Rewrite("""{"Colors":{"LIMF_TWR":"#111111","LIMF_N_TWR":"#222222"}}""")!;
+        var colori = JsonNode.Parse(esito)!["Colors"]!.AsObject();
+        Assert.Equal("#222222", colori["LIMF_N_TWR"]!.GetValue<string>());
+        Assert.False(colori.ContainsKey("LIMF_TWR"));
     }
 
     [Fact]

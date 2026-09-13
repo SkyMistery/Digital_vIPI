@@ -198,6 +198,33 @@ public class PubblicazioneAccoppiataTests : IAsyncLifetime
         Assert.Empty(await ReleaseAsync());
     }
 
+    /// <summary>
+    /// 🔴 T-008 (revisione del 13 settembre 2026): due pubblicazioni dell'unione nello STESSO ciclo. Annullare la
+    /// prima (superata, «cancella solo storia») del militare annullava, del civile, la PIÙ RECENTE del ciclo — cioè
+    /// quella in vigore: il civile tornava indietro mentre il militare restava avanti, e la pagina unita mostrava
+    /// due momenti diversi. La sorella è quella della STESSA pubblicazione: il posto nel ciclo, non il più alto.
+    /// </summary>
+    [Fact]
+    public async Task Annullare_una_release_SUPERATA_non_tocca_quella_in_vigore_del_gemello()
+    {
+        await Unioni().CreateAsync(_militareId, _civileId, 0);
+        var svc = Servizio(Unioni());
+        await svc.PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", "prima");
+        await svc.PublishAsync(ReleaseTargetType.AirportMil, "LIMN", "2610", "seconda");
+
+        var tutte = await ReleaseAsync();
+        Assert.Equal(4, tutte.Count);
+        var primaDelMilitare = tutte.Where(r => r.TargetType == ReleaseTargetType.AirportMil)
+                                    .OrderBy(r => r.VersionNumber).First();
+
+        await svc.CancelReleaseAsync(primaDelMilitare.Id);
+
+        var rimaste = await ReleaseAsync();
+        Assert.Equal(2, rimaste.Count);
+        // Restano, per tutti e due i membri, quelle della SECONDA pubblicazione.
+        Assert.All(rimaste, r => Assert.Equal("seconda", r.Note));
+    }
+
     [Fact]
     public async Task Annullare_NON_tocca_i_cicli_diversi()
     {

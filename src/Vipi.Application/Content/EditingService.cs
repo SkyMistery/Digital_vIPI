@@ -199,7 +199,19 @@ public sealed class EditingService : IEditingService
         // ⚠️ Ognuna passa dalla porta normale: autorizzazione e LOCK per documento, come se il tasto
         // «nascondi» lo premesse una persona sezione per sezione. Scrivere qui una scorciatoia che salta
         // quelle due domande vorrebbe dire una seconda porta, e la garanzia entra in quella che c'è già.
-        foreach (var (sectionId, nascondi) in piano)
+        //
+        // 🔴 T-026 (revisione del 13 settembre 2026): prima si chiedono autorizzazione e lock a TUTTI i documenti
+        // toccati, e solo dopo si scrive. Passo per passo, il «nascondi nel civile» riusciva e il «mostra nel
+        // militare» sollevava sul lock di un collega: la sezione restava nascosta in tutti e due. E si mostra
+        // PRIMA di nascondere: se un passo cade comunque (lock scaduto fra le due righe) il dato resta al più
+        // ripetuto, mai sparito.
+        var documenti = new HashSet<int>();
+        foreach (var (sectionId, _) in piano)
+            documenti.Add(await AuthorizeSectionAsync(sectionId, ct));
+        foreach (var docId in documenti)
+            await EnsureLockAsync(docId, ct);
+
+        foreach (var (sectionId, nascondi) in piano.OrderBy(p => p.Nascondi))
             await SetSectionHiddenAsync(sectionId, nascondi, ct);
 
         return piano.Count;

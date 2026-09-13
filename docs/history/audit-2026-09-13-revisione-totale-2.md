@@ -208,7 +208,12 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | `/v2/subcenters/LIRR_NE_CTR` risponde 429 anche dopo i 3 tentativi. `freq` resta null e `row.Frequency = s.Frequency` la cancella. `EfSectorProjectionService.cs:138` la copia in `Sector.DefaultFrequency`, e vista live e bozze restano senza frequenza per almeno 24 h. Due righe sotto il poligono è protetto («l'assenza non è un ordine di cancellare»), e il gemello degli aeroporti (`AirportSectorImporter.cs:43-45`) ripiega sul valore precedente. *Precisazione:* un timeout non azzera niente, perché fa fallire l'intero giro; il difetto vale per i 4xx e i 5xx |
 | **Correzione** | `if (s.Frequency is not null) row.Frequency = s.Frequency;`, oppure distinguere nel client «dettaglio non letto» da «dettaglio senza frequenza» |
 
-#### T-008 — Annullare una release SUPERATA di un documento unito cancella quella IN VIGORE del gemello
+#### ✅ T-008 (L8, in main) — Annullare una release SUPERATA di un documento unito cancella quella IN VIGORE del gemello
+
+> ✅ Le sorelle si accoppiano per **posto nel ciclo** contando dalla più recente (la N-esima pubblicazione
+> congiunta). Se i membri hanno un numero diverso di release nel ciclo il posto non dice niente: la più recente
+> resta accoppiata alla più recente, una superata si annulla **da sola**. Test
+> `Annullare_una_release_SUPERATA_non_tocca_quella_in_vigore_del_gemello`, controprova (`sue[0]`) rossa.
 
 | | |
 |---|---|
@@ -390,7 +395,7 @@ content-b · C · `src/Vipi.Application/Content/ResourceLockService.cs:102`.
 - **Correzione.** `_locks.EnsureHeldAsync(...)` in testa alle scritture, oppure dichiarare il lock solo
   consultivo.
 
-**T-026 — «Sezioni in comune» di un'unione si applica sezione per sezione, senza transazione.**
+**✅ T-026 (L8, in main: autorizzazione e lock di TUTTI i membri prima di scrivere, poi i «mostra», poi i «nascondi»; `SezioniComuniApplicateTests`, controprova rossa) — «Sezioni in comune» di un'unione si applica sezione per sezione, senza transazione.**
 content-a · C · `src/Vipi.Application/Content/EditingService.cs:202`.
 - **Scenario.** Unione vIPI LIPZ + vSOP militare (*precisazione:* il confronto vale fra Airport e
   AirportMil, non con l'APP). «Nascondi in LIPZ» dà il piano [nascondi A, mostra B]. Il primo passo riesce,
@@ -398,14 +403,14 @@ content-a · C · `src/Vipi.Application/Content/EditingService.cs:202`.
   nascosto in **tutti e due** i documenti.
 - **Correzione.** Verificare prima lock e bozza di tutti i membri, oppure eseguire prima i «mostra».
 
-**T-027 — La rinomina di un callsign non riscrive le chiavi dei dizionari JSON: gli override di colore AoR si perdono.**
+**✅ T-027 (L8, in main: la chiave UGUALE al vecchio nominativo si sposta; se la nuova c'è già vince lei; il test che fissava il difetto è rovesciato) — La rinomina di un callsign non riscrive le chiavi dei dizionari JSON: gli override di colore AoR si perdono.**
 content-a · C · `src/Vipi.Application/Content/CallsignRename.cs:181`.
 - **Scenario.** `Colors: {"LIMF_TWR":"#ff8800"}` resta sotto la chiave vecchia dopo la rinomina in
   LIMF_N_TWR, e `AorColorScheme.Resolve` torna al colore di default. Il test
   `Non_tocca_una_chiave_che_si_chiama_come_il_callsign` fissa proprio il comportamento sbagliato.
 - **Correzione.** Rinominare anche la proprietà che si chiama esattamente come il callsign vecchio.
 
-**T-028 — Pagina pubblica dell'APP: con la sezione AoR in Live la mappa usa shape extra, colori e configurazioni della BOZZA.**
+**✅ T-028 (L8, in main: overload `GetAorViewAsync(app, custom, configs)` alimentato dal `DocumentView` mostrato; il fake fa esplodere l'overload che legge la versione di lavoro) — Pagina pubblica dell'APP: con la sezione AoR in Live la mappa usa shape extra, colori e configurazioni della BOZZA.**
 content-a · C · `src/Vipi.Application/Content/AppViewDerivationService.cs:56`.
 - **Codice.** `frozen.Get("aor") ?? _app.GetAorViewAsync(app)` legge con `GetSectionBlockJsonAsync`, che
   risolve la versione di lavoro. Il gemello per la tabella di accorpamento (righe 60-63) è già stato
@@ -648,7 +653,7 @@ vieta. È codice morto pubblico. · content-a · C ·
 `src/Vipi.Application/Content/AirportViewDerivationService.cs:113` · Eliminarlo, oppure aggiungere il
 parametro `edizione`.
 
-**T-065** — `FrozenTranslationJsonConverter`: un oggetto annidato in `"t"` o `"r"` lascia il lettore a metà
+**✅ T-065** (L8, in main: `reader.Skip()` dopo ogni valore) — `FrozenTranslationJsonConverter`: un oggetto annidato in `"t"` o `"r"` lascia il lettore a metà
 e rende illeggibile tutto lo snapshot (*precisazione:* un array di stringhe si legge bene). · content-a · C
 · `src/Vipi.Application/Content/FrozenTranslation.cs:102` · `reader.Skip()` nei due rami.
 

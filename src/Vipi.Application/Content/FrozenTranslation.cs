@@ -102,8 +102,12 @@ internal sealed class FrozenTranslationJsonConverter : JsonConverter<FrozenTrans
                 testo = reader.TokenType == JsonTokenType.String ? reader.GetString() ?? "" : "";
             else if (string.Equals(nome, NomeRiletta, StringComparison.OrdinalIgnoreCase))
                 riletta = reader.TokenType == JsonTokenType.True;
-            else
-                reader.Skip();   // campo che questa versione non conosce: si ignora, non si inciampa
+
+            // 🔴 T-065 (revisione del 13 settembre 2026): qualunque valore che sia un oggetto o un array — anche in
+            // «t» o «r» — si CONSUMA per intero. Prima lo si faceva solo per i campi sconosciuti: un oggetto dentro
+            // «t» lasciava il lettore a metà, le sue proprietà venivano lette come del padre e lo snapshot intero
+            // diventava illeggibile. Skip su un valore semplice non fa niente.
+            reader.Skip();
         }
 
         return new FrozenTranslation(testo, riletta);

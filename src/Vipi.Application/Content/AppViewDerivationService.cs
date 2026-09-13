@@ -26,6 +26,7 @@ public interface IAppViewDerivationService
 public sealed class AppViewDerivationService : IAppViewDerivationService
 {
     private const string ConfigurationsKey = "configurations";
+    private const string AorKey = "aor";
 
     private readonly IAppDocumentService _app;
     private readonly IFrozenSectionReader _frozen;
@@ -52,8 +53,11 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
         // ⚠️ Solo la PROSA guarda la lingua (vedi VloaViewDerivationService): le altre congelate restano.
         var coord = frozen.GetProsa<AppCoordination>("coordination", _lingua?.Corrente)
             ?? await _app.DeriveCoordinationAsync(app, ct);
+        // 🔴 T-028 (revisione del 13 settembre 2026): anche la mappa AoR live parte dal documento MOSTRATO — shape
+        // extra, colori e configurazioni. Chiedendola al service si leggeva la versione di lavoro, e la pagina
+        // pubblica disegnava la personalizzazione di una bozza: lo stesso difetto della tabella qui sotto.
         var aor = frozen.Get<AccAorView>("aor")
-            ?? await _app.GetAorViewAsync(app, ct);
+            ?? await _app.GetAorViewAsync(app, AorCustomizationOf(view), ConfigurationsOf(view), ct);
         var minima = frozen.Get<MinimaView>("minima")
             ?? await _app.DeriveMinimaAsync(app, ct);
 
@@ -71,5 +75,17 @@ public sealed class AppViewDerivationService : IAppViewDerivationService
         var section = view?.Sections.FirstOrDefault(s =>
             string.Equals(s.SectionKey, ConfigurationsKey, StringComparison.OrdinalIgnoreCase));
         return ConfigTableProjector.Deserialize(SectionPayload.Read(section));
+    }
+
+    /// <summary>Shape extra e colori salvati nella sezione <c>aor</c> del documento mostrato (vuoti se manca o è
+    /// illeggibile: una mappa senza personalizzazione, non una pagina rotta).</summary>
+    private static AorExtraShapes AorCustomizationOf(DocumentView view)
+    {
+        var section = view?.Sections.FirstOrDefault(s =>
+            string.Equals(s.SectionKey, AorKey, StringComparison.OrdinalIgnoreCase));
+        var json = SectionPayload.Read(section);
+        if (string.IsNullOrWhiteSpace(json)) return new AorExtraShapes();
+        try { return System.Text.Json.JsonSerializer.Deserialize<AorExtraShapes>(json) ?? new AorExtraShapes(); }
+        catch (System.Text.Json.JsonException) { return new AorExtraShapes(); }
     }
 }

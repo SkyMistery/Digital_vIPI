@@ -88,7 +88,17 @@ public class AppViewDerivationServiceTests
         public Task<AppCoordination> DeriveCoordinationAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(AppCoordination.Empty);
         public Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default) =>
-            Task.FromResult(AccAorView.Empty);
+            throw new InvalidOperationException("La vista non deve mai chiedere la mappa AoR della versione di lavoro.");
+
+        /// <summary>Personalizzazione e configurazioni con cui la pagina ha chiesto la mappa.</summary>
+        public (AorExtraShapes Custom, IReadOnlyList<AccConfiguration> Configs)? AorAsked { get; private set; }
+
+        public Task<AccAorView> GetAorViewAsync(string appCallsign, AorExtraShapes custom,
+            IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
+        {
+            AorAsked = (custom, configs);
+            return Task.FromResult(AccAorView.Empty);
+        }
         public Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default) =>
             Task.FromResult(MinimaView.Empty);
 
@@ -156,6 +166,39 @@ public class AppViewDerivationServiceTests
         await svc.ResolveForViewAsync("LIRP_APP", Doc(), useFrozen: true);
 
         Assert.Empty(app.ConfigsAsked!);
+    }
+
+    /// <summary>
+    /// 🔴 T-028 (revisione del 13 settembre 2026): con la sezione AoR in Live la mappa si chiedeva al service, che
+    /// legge shape extra, colori e configurazioni dalla versione di LAVORO — la pagina pubblica mostrava la
+    /// personalizzazione di una bozza mai pubblicata. Era il gemello, rimasto indietro, della tabella qui sopra.
+    /// </summary>
+    [Fact]
+    public async Task La_mappa_AoR_live_usa_personalizzazione_e_configurazioni_del_documento_mostrato()
+    {
+        var app = new FakeApp();
+        var svc = new AppViewDerivationService(app, new FakeReader());
+        var shown = new DocumentView
+        {
+            Title = "LIRP_APP", AiracCycle = "2609",
+            Sections = new[]
+            {
+                Doc("""[{"Key":"nord","Name":"Nord","OpenCallsigns":["LIRP_APP"]}]""").Sections[0],
+                new SectionView
+                {
+                    Id = "s-2", Title = "AoR", Depth = 0, SectionKey = "aor", Children = Array.Empty<SectionView>(),
+                    Blocks = new[] { new BlockView { Id = 2, Format = BlockFormat.Table, State = RenderState.Expanded,
+                        BodyJson = """{"Callsigns":["LIRP_TWR"],"Colors":{"LIRP_APP":"#123456"}}""" } },
+                },
+            },
+        };
+
+        await svc.ResolveForViewAsync("LIRP_APP", shown, useFrozen: true);
+
+        var (custom, configs) = app.AorAsked!.Value;
+        Assert.Equal("LIRP_TWR", Assert.Single(custom.Callsigns));
+        Assert.Equal("#123456", custom.Colors["LIRP_APP"]);
+        Assert.Equal("nord", Assert.Single(configs).Key);
     }
 
     [Fact]

@@ -180,9 +180,24 @@ public static class JsonCallsignRewriter
                 // ToList(): si riassegnano voci mentre si scorre.
                 foreach (var (chiave, valore) in obj.ToList())
                 {
-                    if (valore is null) continue;
-                    if (EIlVecchio(valore, vecchio)) { obj[chiave] = JsonValue.Create(nuovo); cambiato = true; }
-                    else cambiato |= Cammina(valore, vecchio, nuovo);
+                    if (valore is not null)
+                    {
+                        if (EIlVecchio(valore, vecchio)) { obj[chiave] = JsonValue.Create(nuovo); cambiato = true; }
+                        else cambiato |= Cammina(valore, vecchio, nuovo);
+                    }
+
+                    // 🔴 T-027 (revisione del 13 settembre 2026): anche la CHIAVE che è esattamente il vecchio
+                    // nominativo è un puntatore — i colori AoR sono `"Colors":{"LIMF_TWR":"#ff8800"}`, e lasciata
+                    // com'era il settore rinominato tornava al colore di default. Solo la chiave UGUALE, come per i
+                    // valori. Se sotto il nome nuovo c'è già qualcosa vince quello: è stato scritto per il settore
+                    // che si chiama così adesso.
+                    if (string.Equals(chiave, vecchio, StringComparison.OrdinalIgnoreCase))
+                    {
+                        var spostato = obj[chiave];
+                        obj.Remove(chiave);
+                        if (!obj.ContainsKey(nuovo)) obj[nuovo] = spostato;
+                        cambiato = true;
+                    }
                 }
                 break;
 

@@ -60,11 +60,13 @@ public class RicercaUnaAllaVoltaTests : TestContext
 
         // ⚠️ Il campo si ritrova a ogni gesto: un ridisegno fra un gesto e l'altro rinnova i gestori, e un
         // elemento trovato una volta sola dà «There is no event handler with ID» (visto nella suite intera).
+        // E Find e gesto stanno DENTRO lo stesso InvokeAsync: fuori dal dispatcher il ridisegno di una ricerca che
+        // finisce può cadere proprio fra i due (visto il 13-set, solo net8, nella suite intera).
         var gesti = new List<Task>();
         foreach (var testo in new[] { "LI", "LIR", "LIRF" })
         {
-            await pagina.Find("input").InputAsync(new() { Value = testo });
-            gesti.Add(pagina.Find("input").KeyUpAsync(new() { Key = "F" }));
+            await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = testo }));
+            gesti.Add(pagina.InvokeAsync(() => pagina.Find("input").KeyUpAsync(new() { Key = "F" })));
         }
         await Task.WhenAll(gesti);
         pagina.WaitForAssertion(() => Assert.Contains("[LIRF]", pagina.Markup), TimeSpan.FromSeconds(3));

@@ -28,6 +28,11 @@ public interface IAppDocumentService
     /// <summary>Vista AoR come mappa a settori (APP del dominio + shape extra scelte a mano). Riusa il modello di AccAorView.</summary>
     Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default);
 
+    /// <summary>La stessa mappa, con personalizzazione e configurazioni prese da chi chiama — il documento MOSTRATO
+    /// (pubblico, bozza o anteprima), non la versione di lavoro.</summary>
+    Task<AccAorView> GetAorViewAsync(string appCallsign, AorExtraShapes custom,
+        IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default);
+
     /// <summary>Carta MRVA dell'aeroporto dell'APP, dal sectorfile (<c>{icao}.mva</c>). Vuota se l'aeroporto non
     /// ha il file: nel sectorfile italiano ce l'hanno 24 aeroporti su 49 APP.</summary>
     Task<MinimaView> DeriveMinimaAsync(string appCallsign, CancellationToken ct = default);
@@ -279,8 +284,17 @@ public sealed class AppDocumentService : IAppDocumentService
     public async Task<AccAorView> GetAorViewAsync(string appCallsign, CancellationToken ct = default)
     {
         var app = Norm(appCallsign);
-        var sectors = new List<AccSectorAor>();
         var custom = await GetAorCustomizationAsync(app, ct);   // shape extra + override colore
+        var configs = await GetConfigurationsAsync(app, ct);
+        return await GetAorViewAsync(app, custom, configs, ct);
+    }
+
+    public async Task<AccAorView> GetAorViewAsync(string appCallsign, AorExtraShapes custom,
+        IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
+    {
+        var app = Norm(appCallsign);
+        var sectors = new List<AccSectorAor>();
+        custom ??= new AorExtraShapes();
 
         // Settori APP del dominio di copertura (primario + figli standalone), coerente con le frequenze che usano DomainOf.
         var topo = await _topology.BuildGlobalAsync(ct);
@@ -328,7 +342,6 @@ public sealed class AppDocumentService : IAppDocumentService
         }
 
         // Configurazioni selezionabili sulla mappa: le salvate (settori aperti = APP aperti), altrimenti «tutti».
-        var configs = await GetConfigurationsAsync(app, ct);
         var selections = configs.Count > 0
             ? configs.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.ToList())).ToList()
             : new List<AccConfigSelection> { new("all", "Tutti i settori", sectors.Select(s => s.Callsign).ToList()) };

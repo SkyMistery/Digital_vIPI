@@ -543,10 +543,9 @@ public sealed class ReleaseService : IReleaseService
     /// Le release che vanno annullate <b>insieme</b> a questa: lei sola se il documento non e' unito,
     /// altrimenti anche la controparte di ogni altro membro <b>allo stesso ciclo AIRAC</b>.
     ///
-    /// <para>⚠️ Di ogni membro si prende la release <b>piu' recente</b> di quel ciclo
-    /// (<c>VersionNumber</c> piu' alto), non tutte: e' quella la controparte della release che si sta
-    /// annullando — la stessa regola con cui <c>RecomputeStatuses</c> sceglie chi vince per ciclo. Portarsi
-    /// via anche le superate cancellerebbe storia che nessuno ha chiesto di cancellare.</para>
+    /// <para>⚠️ Di ogni membro si prende <b>una</b> release di quel ciclo, quella allo stesso posto (contando
+    /// dalla piu' recente) della release che si sta annullando — non tutte. Portarsi via anche le altre
+    /// cancellerebbe storia che nessuno ha chiesto di cancellare.</para>
     ///
     /// <para>⚠️ Un membro che a quel ciclo non ha pubblicato non ha niente da annullare, e non e' un
     /// errore: puo' essere entrato nell'unione dopo.</para>
@@ -558,6 +557,18 @@ public sealed class ReleaseService : IReleaseService
         var membri = await BersagliUnitiAsync(rel.TargetType, rel.TargetKey, ct).ConfigureAwait(false);
         if (membri.Count == 0) return sola;
 
+        // 🔴 T-008 (revisione del 13 settembre 2026): la sorella è quella della STESSA pubblicazione, cioè allo
+        // stesso POSTO nel ciclo contando dalla più recente — non sempre la più recente. Prima, annullare una
+        // release superata del militare annullava quella IN VIGORE del civile. Se i membri non hanno lo stesso
+        // numero di release nel ciclo il posto non dice niente: la più recente resta accoppiata alla più recente
+        // (è la pubblicazione congiunta in vigore), una superata si annulla da sola.
+        var mie = (await _repo.ListAsync(rel.TargetType, rel.TargetKey, ct).ConfigureAwait(false))
+            .Where(r => r.ReleaseAiracCycle == rel.ReleaseAiracCycle)
+            .OrderByDescending(r => r.VersionNumber)
+            .ToList();
+        var posto = mie.FindIndex(r => r.Id == rel.Id);
+        if (posto < 0) return sola;
+
         var elenco = new List<(ReleaseTargetType, string, int)>();
         foreach (var m in membri)
         {
@@ -566,13 +577,15 @@ public sealed class ReleaseService : IReleaseService
                 elenco.Add((rel.TargetType, rel.TargetKey, rel.Id));
                 continue;
             }
-            var sue = await _repo.ListAsync(m.Type, m.Key, ct).ConfigureAwait(false);
-            var sorella = sue.Where(r => r.ReleaseAiracCycle == rel.ReleaseAiracCycle)
-                             .OrderByDescending(r => r.VersionNumber)
-                             .FirstOrDefault();
-            if (sorella is not null) elenco.Add((m.Type, m.Key, sorella.Id));
+            var sue = (await _repo.ListAsync(m.Type, m.Key, ct).ConfigureAwait(false))
+                .Where(r => r.ReleaseAiracCycle == rel.ReleaseAiracCycle)
+                .OrderByDescending(r => r.VersionNumber)
+                .ToList();
+            if (sue.Count == 0) continue;
+            if (sue.Count == mie.Count) elenco.Add((m.Type, m.Key, sue[posto].Id));
+            else if (posto == 0) elenco.Add((m.Type, m.Key, sue[0].Id));
         }
-        return elenco.Count == 0 ? sola : elenco;
+        return elenco.Count <= 1 ? sola : elenco;
     }
 
     public async Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default)
