@@ -1272,7 +1272,21 @@
       su Cloudflare e le direttive nginx in Plesk (LEGGIMI-DEPLOY.md, §O2/§O3). Senza la seconda, gli
       asset continuano a uscire senza Cache-Control e le varianti .br a qualita' 11 restano inutilizzate.
     -->
-    <VipiVersione>1.25.1</VipiVersione>
+    <!--
+      1.25.2 — PATCH. Una correzione sola, trovata GUARDANDO LA PRODUZIONE il giorno dopo 1.25.1.
+
+      Q4 (Cache-Control su blazor.web.js) era in produzione e non serviva a niente:
+        GET /_framework/blazor.web.js        -> REVALIDATED, cache-control: no-cache
+        GET /_framework/blazor.web.js?x=123  -> MISS,        cache-control: public, max-age=86400
+      Cloudflare aveva in magazzino la copia vecchia (no-cache) e rivalidava sempre; l'origine rispondeva
+      304 perche' il file non cambia; e l'intestazione si scriveva sul SOLO 200. Ora anche sul 304, che per
+      la RFC 9111 aggiorna la copia in magazzino: il ciclo si rompe alla prima rivalidazione.
+
+      I FILE: il diff fra e7d075b (1.25.1, online) e HEAD, limitato a src/, nomina UN file,
+      src/Vipi.Host/VipiStartup.cs. Quindi Vipi.Host.dll e Vipi.Host.pdb, e nient'altro: niente wwwroot,
+      niente endpoints.json, niente resx, nessuna migrazione, nessuna firma cambiata.
+    -->
+    <VipiVersione>1.25.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
