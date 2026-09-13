@@ -1,0 +1,19 @@
+<Project>
+
+  <!--
+    Solo per i progetti di test. MSBuild si ferma al Directory.Build.props più vicino, quindi quello della
+    radice va importato a mano: senza questa riga i test perderebbero TreatWarningsAsErrors e il resto.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <!--
+    🔴 La cultura della suite si DICHIARA. I test leggono parole vere dalle risorse («Summary», «category»,
+    «source») e le cercano in INGLESE, perché le macchine di sviluppo girano in en-GB. Il runner Linux della CI
+    gira invece in cultura invariante, che cade sul resx neutro — l'italiano: gli stessi test erano rossi solo
+    lì, per duecento corse di fila senza che nessuno lo vedesse (13 settembre 2026). Vedi CulturaDellaSuite.cs.
+  -->
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)CulturaDellaSuite.cs" Link="CulturaDellaSuite.cs" />
+  </ItemGroup>
+
+</Project>

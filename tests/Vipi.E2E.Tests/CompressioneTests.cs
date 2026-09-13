@@ -29,7 +29,7 @@ public sealed class CompressioneTests : IClassFixture<SmokeTests.VipiAppFactory>
     /// <summary>
     /// Il foglio di stile del modulo (il singolo asset più pesante), un JS denso e una pagina resa.
     ///
-    /// <para><b>Perché una tolleranza del 2% e non «minore o uguale».</b> Il livello sensato da pagare a
+    /// <para><b>Perché una tolleranza del 5% e non «minore o uguale».</b> Il livello sensato da pagare a
     /// ogni richiesta è <c>Optimal</c>, che per Brotli è la qualità 4. Su testo ripetitivo — HTML, CSS —
     /// stravince; su JavaScript già denso può restare un capello sopra gzip-6 (misurato: 18 522 contro
     /// 18 288 byte su <c>vipi-ui.js</c>, lo 1,3%). Non è un difetto della configurazione: è il punto in cui
@@ -38,9 +38,11 @@ public sealed class CompressioneTests : IClassFixture<SmokeTests.VipiAppFactory>
     /// fa la precompressione degli asset statici.</para>
     ///
     /// <para>⚠️ La tolleranza copre quel capello, non un ritorno a <c>Fastest</c>: con la qualità 1 lo
-    /// scarto misurato era del <b>19÷24%</b>, cioè dieci volte la soglia. Il 2% è il peggior scarto
-    /// misurato (1,3% su <c>vipi-ui.js</c>) più un margine per il prossimo file altrettanto denso. Se
-    /// questo test torna rosso, il livello è stato perso: non è il rumore del formato.</para>
+    /// scarto misurato era del <b>19÷24%</b>, cioè quattro volte la soglia. ⚠️ La soglia era del 2% ed era
+    /// tarata su Windows: sul runner Linux in net8 il gzip del sistema comprime un filo meglio, e
+    /// <c>vipi-ui.js</c> dava 22 643 contro 22 090 byte (2,5%) — rosso in CI e verde in locale, per lo stesso
+    /// binario e la stessa configurazione (13 settembre 2026). Il 5% copre la differenza fra le piattaforme e
+    /// resta lontano dal guasto vero. Se questo test torna rosso, il livello è stato perso.</para>
     /// </summary>
     [Theory]
     [InlineData("/_content/Vipi.Ui/vipi-theme.css")]
@@ -53,8 +55,8 @@ public sealed class CompressioneTests : IClassFixture<SmokeTests.VipiAppFactory>
 
         Assert.Equal("br", brEnc);
         Assert.Equal("gzip", gzEnc);
-        Assert.True(brByte <= gzByte * 1.02,
-            $"{percorso}: Brotli ({brByte} B) supera gzip ({gzByte} B) di più del 2%. " +
+        Assert.True(brByte <= gzByte * 1.05,
+            $"{percorso}: Brotli ({brByte} B) supera gzip ({gzByte} B) di più del 5%. " +
             "È il difetto del 27 agosto 2026: il livello del provider è tornato a Fastest (qualità 1). " +
             "Vedi VipiStartup, la Configure<BrotliCompressionProviderOptions>.");
     }

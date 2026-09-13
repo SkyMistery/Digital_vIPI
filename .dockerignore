@@ -3,5 +3,17 @@
 **/.vs/
 **/.git/
 **/*.user
-**/*.db
 **/node_modules/
+
+# 🔴 I database locali e le loro COPIE. Prima c'era solo `**/*.db`: i backup `vipi.db.bak-*` e i file
+# `-wal`/`-shm` passavano, e `COPY . .` li portava nello stadio di build — più di 4 GB di contesto, fino a
+# riempire il disco C: (13 settembre 2026). Oltre al peso, sono copie dei dati veri: nel contesto non ci vanno.
+**/*.db
+**/*.db-*
+**/*.db.*
+**/*.sqlite*
+
+# Pacchetti di consegna, stato locale di wrangler e degli strumenti: la build non li legge.
+artifacts/
+**/.wrangler/
+.claude/

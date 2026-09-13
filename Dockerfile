@@ -5,6 +5,10 @@ COPY . .
 # Restore del solo Host (+ i suoi ProjectReference): l'immagine ora leggerebbe anche Vipi.slnx, ma
 # restorare la soluzione intera tirerebbe dentro i pacchetti dei progetti di test, inutili nell'immagine.
 RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
+# Il publish lancia tools/Vipi.Assets (net8) per minificare gli asset, e sdk:10.0 porta il SOLO runtime 10:
+# senza questa riga l'attrezzo muore con «Framework 'Microsoft.NETCore.App', version '8.0.0' not found»
+# (codice 150) e il publish con lui. Vale solo in questo stadio: l'immagine finale gira su aspnet:8.0.
+ENV DOTNET_ROLL_FORWARD=Major
 RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restore
 
 # aspnet:8.0 e non 10.0: Vipi.Host è passato a net8 col provider Pomelo (ADR-0007 §D4-ter), e un'immagine
@@ -17,6 +21,10 @@ COPY --from=build /app .
 # Il DB SQLite di default è relativo: per la persistenza montare un volume su /app/data e impostare
 # ConnectionStrings__Vipi="Data Source=/app/data/vipi.db". Segreti IVAO via env: Ivao__ClientId/Secret.
 ENV ASPNETCORE_URLS=http://+:8080
+# Il default relativo («vipi.db») cadrebbe in /app, che col processo non-root (T-062, più sotto) NON è
+# scrivibile: il container moriva alla migrazione con «SQLite Error 14: unable to open database file». Il default
+# dell'immagine sta quindi nell'unica cartella scrivibile; chi passa la sua stringa (Render, la CI) lo sovrascrive.
+ENV ConnectionStrings__Vipi="Data Source=/app/data/vipi.db"
 # Niente FileSystemWatcher sulle config: su host con limite inotify basso (es. Render) i watcher
 # di appsettings*.json esauriscono le istanze inotify e l'avvio crasha (IOException in CreateBuilder).
 ENV DOTNET_hostBuilder__reloadConfigOnChange=false

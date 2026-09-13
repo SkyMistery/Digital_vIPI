@@ -51,7 +51,9 @@ public class SentinellaDiRientroTests : TestContext
     /// </summary>
     private sealed class ArchivioAppeso : IAtcArchiveQueries
     {
-        private readonly TaskCompletionSource<AtcArchivePage> _prima = new();
+        // ⚠️ Continuazioni ASINCRONE: senza, `Rispondi()` faceva ripartire la pagina in linea sul thread del
+        // test, fuori dal dispatcher del renderer, e in CI la verifica successiva non partiva mai.
+        private readonly TaskCompletionSource<AtcArchivePage> _prima = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         public int Chiamate { get; private set; }
 
@@ -100,11 +102,16 @@ public class SentinellaDiRientroTests : TestContext
     /// riapre la porta non è una guardia, è una pagina che smette di cercare dopo la prima volta.
     /// </summary>
     [Fact]
-    public void Finita_la_lettura_il_gesto_successivo_riparte()
+    public async Task Finita_la_lettura_il_gesto_successivo_riparte()
     {
         var cut = Render();
-        _archivio.Rispondi();
-        cut.WaitForState(() => _archivio.Chiamate == 1);
+        Assert.Equal(1, _archivio.Chiamate);
+
+        // La risposta arriva DENTRO il dispatcher, come arriverebbe sul circuito (13 settembre 2026: rosso
+        // solo in CI, «Check count: 0»).
+        var disegniPrima = cut.RenderCount;
+        await cut.InvokeAsync(_archivio.Rispondi);
+        cut.WaitForState(() => cut.RenderCount > disegniPrima);   // la lettura è finita e la pagina ridisegnata
 
         cut.Find("button.btn.primary").Click();
 
