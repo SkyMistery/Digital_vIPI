@@ -3439,4 +3439,36 @@
   <data name="Services_AwosDesc" xml:space="preserve"><value>The tower weather panel: per-threshold wind, QNH, TL, RVR and LVP status, from the METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Open this airport's vAWOS panel in a new tab</value></data>
   <data name="Live_AwosTitle" xml:space="preserve"><value>Open your airport's vAWOS panel in a new tab</value></data>
+  <data name="ApiKeys_Nav" xml:space="preserve"><value>API keys</value></data>
+  <data name="ApiKeys_Title" xml:space="preserve"><value>API keys</value></data>
+  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>The keys other programs use to call the site's APIs (ATC archive, Aurora bridge). The APIs are never anonymous.</value></data>
+  <data name="ApiKeys_Reserved" xml:space="preserve"><value>API keys are issued only by the division's HQ and WD.</value></data>
+  <data name="ApiKeys_NewTitle" xml:space="preserve"><value>Key created for «{0}»</value></data>
+  <data name="ApiKeys_NewOnce" xml:space="preserve"><value>Copy it now: it cannot be shown again. The site keeps only its fingerprint.</value></data>
+  <data name="ApiKeys_Copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="ApiKeys_NewDone" xml:space="preserve"><value>Done, I copied it</value></data>
+  <data name="ApiKeys_Name" xml:space="preserve"><value>Who it is for</value></data>
+  <data name="ApiKeys_NamePh" xml:space="preserve"><value>e.g. IT tour validator</value></data>
+  <data name="ApiKeys_Endpoints" xml:space="preserve"><value>APIs it can call</value></data>
+  <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>ATC archive</value></data>
+  <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Aurora bridge</value></data>
+  <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>A name and at least one API are required</value></data>
+  <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Create the key and show it once</value></data>
+  <data name="ApiKeys_Create" xml:space="preserve"><value>Create key</value></data>
+  <data name="ApiKeys_None" xml:space="preserve"><value>No keys issued.</value></data>
+  <data name="ApiKeys_Active" xml:space="preserve"><value>active</value></data>
+  <data name="ApiKeys_Revoked" xml:space="preserve"><value>revoked</value></data>
+  <data name="ApiKeys_CreatedOn" xml:space="preserve"><value>created on {0} by</value></data>
+  <data name="ApiKeys_LastUse" xml:space="preserve"><value>last used {0}</value></data>
+  <data name="ApiKeys_NeverUsed" xml:space="preserve"><value>never used</value></data>
+  <data name="ApiKeys_RevokedOn" xml:space="preserve"><value>revoked on {0} by</value></data>
+  <data name="ApiKeys_RevokeTitle" xml:space="preserve"><value>Revoke: the client gets 401 right away</value></data>
+  <data name="ApiKeys_Revoke" xml:space="preserve"><value>Revoke</value></data>
+  <data name="ApiKeys_RevokePrompt" xml:space="preserve"><value>Revoke the key of «{0}»? It cannot be reactivated: a new key will be needed.</value></data>
+  <data name="ApiKeys_RevokeYes" xml:space="preserve"><value>Yes, revoke</value></data>
+  <data name="ApiKeys_RevokedStatus" xml:space="preserve"><value>Key of «{0}» revoked.</value></data>
+  <data name="ApiKeys_Copied" xml:space="preserve"><value>Key copied to the clipboard.</value></data>
+  <data name="ApiKeys_CopyFailed" xml:space="preserve"><value>Copy failed: select it and copy it by hand.</value></data>
+  <data name="Audit_Fr_ApiKeyCreate" xml:space="preserve"><value>API key issued ({0})</value></data>
+  <data name="Audit_Fr_ApiKeyRevoke" xml:space="preserve"><value>API key revoked</value></data>
 </root>

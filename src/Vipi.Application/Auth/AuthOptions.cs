@@ -55,4 +55,19 @@ public sealed class AuthOptions
     /// sommare. Serve anche a spegnere l'admin da variabile d'ambiente senza ricompilare.</para>
     /// </summary>
     public List<string> AdminStaffCodes { get; set; } = new();
+
+    /// <summary>
+    /// Suffissi dei ruoli che possono <b>emettere le chiavi delle API</b>: il codice finale è
+    /// <c>^{Division:Code}-{suffisso}$</c>. Default <c>IT-DIR</c>, <c>IT-ADIR</c> (HQ), <c>IT-WM</c>,
+    /// <c>IT-AWM</c> (WD), scelti dal committente il 13 settembre 2026 (carta
+    /// <c>docs/feature/2026-09-13-chiavi-api.md</c> §8). Oltre a loro, i <see cref="FounderVids"/>.
+    ///
+    /// <para>⚠️ È un cancello <b>più stretto</b> di Admin, non un altro: serve anche il livello Admin, così
+    /// <see cref="AdminStaffCodes"/> che restringe l'admin restringe anche questo. Come le altre liste, il
+    /// binder <b>aggiunge</b> ai default.</para>
+    /// </summary>
+    public List<string> ApiKeyIssuerRoles { get; set; } = new()
+    {
+        "DIR", "ADIR", "WM", "AWM",
+    };
 }

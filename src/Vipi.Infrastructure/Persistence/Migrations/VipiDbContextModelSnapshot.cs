@@ -15,7 +15,7 @@ namespace Vipi.Infrastructure.Persistence.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "8.0.30");
 
             modelBuilder.Entity("Vipi.Domain.Entities.Acc", b =>
                 {
@@ -1007,6 +1007,55 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("AirspaceVolumes");
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.ApiClient", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CreataDaUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreataUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ImprontaSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Prefisso")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RevocataDaUserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("RevocataUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UltimoUsoUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ImprontaSha256")
+                        .IsUnique();
+
+                    b.ToTable("ApiClients");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AtcMonthRollup", b =>

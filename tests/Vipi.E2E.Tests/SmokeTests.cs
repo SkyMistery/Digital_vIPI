@@ -255,7 +255,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     public async Task Aurora_bridge_endpoint_answers_when_enabled()
     {
         using var factory = new BridgeOnAppFactory();
-        var client = factory.CreateClient();
+        var client = await factory.ClientConChiaveAsync();
 
         var senzaCallsign = await client.PostAsJsonAsync("/vsop/api/v1/transfers/resolve", new { });
         Assert.Equal(HttpStatusCode.BadRequest, senzaCallsign.StatusCode);
@@ -284,7 +284,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         using var factory = new BridgeOnAppFactory();
 
-        var res = await factory.CreateClient().PostAsJsonAsync(
+        var res = await (await factory.ClientConChiaveAsync()).PostAsJsonAsync(
             "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "LIRR_CTR", cruiseLevel = livello });
 
         Assert.Equal(HttpStatusCode.BadRequest, res.StatusCode);
@@ -299,7 +299,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     {
         using var factory = new BridgeOnAppFactory();
 
-        var res = await factory.CreateClient().PostAsJsonAsync(
+        var res = await (await factory.ClientConChiaveAsync()).PostAsJsonAsync(
             "/vsop/api/v1/transfers/resolve", new { ownerCallsign = "ZZZZ_CTR", cruiseLevel = livello });
 
         Assert.Equal(HttpStatusCode.OK, res.StatusCode);
@@ -513,6 +513,15 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
             }));
             Environment.SetEnvironmentVariable("VipiAuth__Enabled", "false");
             return base.CreateHost(builder);
+        }
+
+        /// <summary>Il bridge chiede sempre una chiave (carta 2026-09-13-chiavi-api.md): un client che la porta.</summary>
+        public async Task<HttpClient> ClientConChiaveAsync()
+        {
+            var client = CreateClient();
+            client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+                "Bearer", await ChiaviApiTests.EmettiAsync(Services, "bridge"));
+            return client;
         }
 
         protected override void Dispose(bool disposing)

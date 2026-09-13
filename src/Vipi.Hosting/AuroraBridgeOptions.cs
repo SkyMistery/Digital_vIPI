@@ -14,8 +14,9 @@ public sealed class AuroraBridgeOptions
 
     /// <summary>
     /// Se montare l'endpoint <c>POST /vsop/api/v1/transfers/resolve</c>. <b>Default <c>false</c></b>: è
-    /// superficie pubblica e anonima su un sito servito a una divisione, e accenderla è una decisione, non
-    /// una conseguenza di aver fuso un ramo. Chi distribuisce il tool desktop la accende quando serve.
+    /// superficie pubblica su un sito servito a una divisione, e accenderla è una decisione, non una
+    /// conseguenza di aver fuso un ramo. Chi distribuisce il tool desktop la accende quando serve. Acceso,
+    /// risponde solo a chi porta una chiave API abilitata al bridge (carta <c>2026-09-13-chiavi-api.md</c>).
     ///
     /// <para>Spento, la rotta non esiste affatto (404) invece di rispondere 403: un endpoint che nega dice
     /// comunque di esserci.</para>
@@ -30,8 +31,8 @@ public sealed class AuroraBridgeOptions
     public int MaxCandidates { get; set; } = 8;
 
     /// <summary>
-    /// Richieste al minuto ammesse per IP. L'endpoint è anonimo: senza tetto, un client difettoso in polling
-    /// stretto basterebbe a caricare il DB del sito.
+    /// Richieste al minuto ammesse per chiamante: per chiave API quando la chiave è buona, per IP per chi ne
+    /// porta una sbagliata. Senza tetto, un client difettoso in polling stretto basterebbe a caricare il DB del sito.
     ///
     /// <para>⚠️ Da solo non basta, e va saputo: dietro il reverse proxy l'IP del chiamante arriva da
     /// <c>X-Forwarded-For</c> e <c>UseForwardedHeaders</c> è configurato senza proxy noti (l'indirizzo del
@@ -69,7 +70,7 @@ public sealed class AuroraBridgeOptions
         MaxCandidates <= 0 ? 8 : MaxCandidates);
 
     /// <summary>Tetto del corpo effettivamente applicato: un valore non positivo ricade sul default invece di
-    /// significare «illimitato», che su un endpoint anonimo non è mai ciò che si intendeva.</summary>
+    /// significare «illimitato», che su un endpoint pubblico non è mai ciò che si intendeva.</summary>
     public int EffectiveMaxRequestBytes => MaxRequestBytes > 0 ? MaxRequestBytes : 64 * 1024;
 
     /// <summary>Durata della cache di topologia, normalizzata.</summary>

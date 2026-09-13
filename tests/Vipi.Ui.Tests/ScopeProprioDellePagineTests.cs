@@ -48,6 +48,8 @@ public sealed class ScopeProprioDellePagineTests
         // quando la produzione lo nomina. Vedi docs/lavori-aperti.md.
         { "AdminRolesPage",      "IRoleAdminService" },
         { "AdminRolesPage",      "IStaffRosterRepository" },
+        // Nata con lo scope proprio il 13 settembre 2026: elenco e scritture delle chiavi toccano il database.
+        { "AdminApiKeysPage",    "IApiClientService" },
     };
 
     [Theory]
@@ -77,6 +79,9 @@ public sealed class ScopeProprioDellePagineTests
         // singleton non può tenersi un DbContext, o sarebbe una dipendenza prigioniera; `INavaidSource` è un
         // client HTTP tipizzato (`AddHttpClient`), quindi parla con Aurora, non con MySQL.
         "IOnlineAtcProvider", "IWeatherProvider", "INavaidSource",
+        // Chi può emettere le chiavi API (13 settembre 2026): la stessa domanda di `IEditAuthorizationService`
+        // posta più stretta — claim, VID dei fondatori, e il livello che quel servizio risolve senza query.
+        "IEmittentiChiaviApi",
     };
 
     /// <summary>

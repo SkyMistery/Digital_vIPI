@@ -22,7 +22,7 @@ public partial class App : Application
             var settings = BridgeSettings.Load();
 
             _client = new AuroraClient();
-            _api = new VipiApiClient(new VipiApiOptions(BaseAddress: settings.SiteUrl));
+            _api = new VipiApiClient(new VipiApiOptions(BaseAddress: settings.SiteUrl, ApiKey: settings.ApiKey));
             var orchestrator = new BridgeOrchestrator(
                 new AuroraSession(_client), _api, settings.ToPollingOptions(), settings.OwnerOverride);
 

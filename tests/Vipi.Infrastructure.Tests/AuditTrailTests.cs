@@ -47,6 +47,38 @@ public class AuditTrailTests : IAsyncLifetime
     private EfRoleOverrideStore Promozioni() => new(_db);
 
     /// <summary>
+    /// Le chiavi API (carta 2026-09-13-chiavi-api.md): emettere e revocare lasciano una riga ciascuno, con chi
+    /// firma e col prefisso — e la chiave non compare da nessuna parte, né in tabella né nel registro.
+    /// </summary>
+    [Fact]
+    public async Task Le_chiavi_API_si_registrano_col_prefisso_e_mai_con_la_chiave()
+    {
+        var store = new EfApiClientStore(_db);
+        var chiave = ChiaveApi.Genera();
+
+        var riga = await store.AddAsync("Validatore tour IT", ChiaveApi.Prefisso(chiave), ChiaveApi.Impronta(chiave),
+            new[] { "archivio" }, actorUserId: 101);
+        Assert.True(await store.RevocaAsync(riga.Id, actorUserId: 202));
+        Assert.False(await store.RevocaAsync(riga.Id, actorUserId: 202));   // due volte non è un errore, né una riga
+
+        var righe = await _db.AuditLogs.AsNoTracking().Where(a => a.EntityType == "ApiClient")
+            .OrderBy(a => a.Id).ToListAsync();
+        Assert.Equal(2, righe.Count);
+        Assert.Equal((101, AuditAction.Create), (righe[0].UserId, righe[0].Action));
+        Assert.Equal((202, AuditAction.Archive), (righe[1].UserId, righe[1].Action));
+        Assert.All(righe, a => Assert.Equal(ChiaveApi.Prefisso(chiave), a.EntityId));
+
+        var tutto = string.Join("|", righe.Select(a => a.DetailsJson))
+            + string.Join("|", (await _db.ApiClients.AsNoTracking().ToListAsync()).Select(c => c.Nome + c.Prefisso + c.ImprontaSha256 + c.Endpoint));
+        Assert.DoesNotContain(chiave, tutto);
+
+        var dalDb = await store.TrovaPerImprontaAsync(ChiaveApi.Impronta(chiave));
+        Assert.NotNull(dalDb);
+        Assert.False(dalDb!.Attiva);
+        Assert.Equal(202, dalDb.RevocataDaUserId);
+    }
+
+    /// <summary>
     /// ⚠️ Il difetto storico stava sulle concessioni, morte il 28 agosto 2026, ma <b>l'invariante è la
     /// stessa e va tenuta ferma dove il permesso vive adesso</b>: la revoca scriveva chi aveva
     /// <b>concesso</b> invece di chi revocava, e con due admin diversi il registro attribuiva l'atto alla

@@ -1,9 +1,15 @@
 # Le API non sono mai anonime: chiavi per i client — carta (13 settembre 2026)
 
-> **Stato: 🟡 CARTA, zero codice.** Nasce da **T-017** della revisione del 13 settembre
+> **Stato: ✅ ESEGUITA in main il 13 settembre 2026, non ancora in un pacchetto** (migrazione additiva
+> `ChiaviApi` → la consegna è una MINOR). Passi 2-4 del §7 da fare in produzione dopo il carico.
+> Nasce da **T-017** della revisione del 13 settembre
 > ([`history/audit-2026-09-13-revisione-totale-2.md`](../history/audit-2026-09-13-revisione-totale-2.md)).
-> Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Si esegue dopo l'approvazione del committente sulle
-> domande aperte del §8.
+> Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Domande del §8 risposte dal committente lo stesso giorno.
+>
+> Dove sta: `ApiClient` (Domain) · `ChiaviApi.cs` (Application: forma della chiave, `EmittentiChiaviApi`,
+> `ApiClientService`, `VerificaChiaveApi`) · `EfApiClientStore` · `PortaDelleApi` (Hosting, l'unico punto che
+> decide 401/403/429) · `AdminApiKeysPage` (`/services/vsop/admin/api-keys`) · bridge desktop: campo «Chiave
+> API» e `--key`/`VIPI_API_KEY` nella CLI.
 
 ## 1. Il problema
 
@@ -61,7 +67,6 @@ Una tabella nuova, **`ApiClients`** (migrazione **additiva**):
 | `ImprontaSha256` | l'impronta della chiave intera. **La chiave non si conserva**: si mostra una volta sola, alla creazione |
 | `Endpoint` | quali API può chiamare: `archivio`, `bridge` (un elenco, così una chiave del bridge non legge l'archivio) |
 | `CreataDaUserId`, `CreataUtc` | |
-| `ScadeUtc` | facoltativa |
 | `RevocataUtc`, `RevocataDaUserId` | una chiave revocata resta in tabella: è storia |
 | `UltimoUsoUtc` | aggiornato al più una volta ogni qualche minuto, non a ogni richiesta |
 
@@ -85,7 +90,7 @@ Emettere, revocare e ogni chiamata rifiutata finiscono nell'**audit**, con il pr
 ## 6. Come si usa
 
 - Header: `Authorization: Bearer vipi_…` (oppure `X-Api-Key`, §8 domanda 3).
-- Risposte: **401** senza chiave o con chiave sconosciuta/revocata/scaduta; **403** con una chiave buona ma
+- Risposte: **401** senza chiave o con chiave sconosciuta/revocata; **403** con una chiave buona ma
   non abilitata a quell'endpoint.
 - Il tetto di richieste diventa **per chiave** (`PassaITetti("archivio", prefisso, …)`): chiude anche il
   problema degli IP condivisi dietro Cloudflare (T-020) per chi usa le API.
@@ -101,10 +106,21 @@ Emettere, revocare e ogni chiamata rifiutata finiscono nell'**audit**, con il pr
 
 Il bridge, che nasce spento, quando si accende chiede la chiave da subito.
 
-## 8. Domande aperte per il committente
+## 8. Le domande, e le risposte del committente (13 settembre 2026)
 
-1. **IT-HQ e IT-WD**: si riconoscono dal **codice** della posizione (e quali codici sono: `IT-DIR`, `IT-ADIR`,
-   `IT-WM`, `IT-AWM`, altri?) o dal **reparto** che IVAO scrive nella posizione?
-2. **Scadenza**: le chiavi scadono da sole (per esempio un anno) o restano valide finché qualcuno le revoca?
-3. **Header**: `Authorization: Bearer` (lo standard) o anche `X-Api-Key` per client che non sanno metterlo?
-4. **Chi vede l'elenco delle chiavi**: solo chi le emette, o tutti gli Admin (senza poterle creare né revocare)?
+1. **IT-HQ e IT-WD** si riconoscono dal **codice**: `IT-DIR`, `IT-ADIR`, `IT-WM`, `IT-AWM`. Lista in
+   `Auth:ApiKeyIssuerRoles` (default quei quattro suffissi, prefisso `Division:Code`), e in più il livello
+   effettivo dev'essere `Admin`: così `Auth:AdminStaffCodes`, quando restringe l'admin, restringe anche chi emette.
+   Il reparto IVAO resta fuori.
+2. **Nessuna scadenza**: una chiave vale finché qualcuno la revoca. La colonna `ScadeUtc` del §4 **non si fa**.
+3. **Entrambi gli header**: `Authorization: Bearer vipi_…` e `X-Api-Key: vipi_…`. Se arrivano tutti e due, vale
+   `Authorization`.
+4. **L'elenco lo vede solo chi può emettere.** Gli altri Admin non vedono né la pagina né la voce di menu.
+
+Scelte di esecuzione che ne discendono:
+
+- Emettere e revocare vanno nell'**audit** (`ApiClient`, `Create` / `Archive`), col prefisso. Le **chiamate
+  rifiutate** vanno nel **log** (avviso con prefisso e IP), non nell'audit: sono richieste anonime e un client
+  rotto in polling riempirebbe il registro delle azioni dello staff.
+- La chiave si cerca nel database per impronta (indice unico) a ogni chiamata: una revoca vale subito, anche
+  con più processi, e la query costa quanto la `COUNT` dell'archivio che la segue.

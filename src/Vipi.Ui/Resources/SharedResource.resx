@@ -3447,4 +3447,36 @@
   <data name="Services_AwosDesc" xml:space="preserve"><value>Il quadro meteo di torre: vento per testata, QNH, TL, RVR e stato LVP, aggiornati dal METAR.</value></data>
   <data name="Apt_OpenAwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS di questo scalo in una scheda nuova</value></data>
   <data name="Live_AwosTitle" xml:space="preserve"><value>Apri il quadro vAWOS del tuo aeroporto in una scheda nuova</value></data>
+  <data name="ApiKeys_Nav" xml:space="preserve"><value>Chiavi API</value></data>
+  <data name="ApiKeys_Title" xml:space="preserve"><value>Chiavi API</value></data>
+  <data name="ApiKeys_Subtitle" xml:space="preserve"><value>Le chiavi con cui altri programmi chiamano le API del sito (archivio ATC, bridge Aurora). Le API non sono mai anonime.</value></data>
+  <data name="ApiKeys_Reserved" xml:space="preserve"><value>Le chiavi API le emettono solo HQ e WD della divisione.</value></data>
+  <data name="ApiKeys_NewTitle" xml:space="preserve"><value>Chiave creata per «{0}»</value></data>
+  <data name="ApiKeys_NewOnce" xml:space="preserve"><value>Copiala adesso: non si potrà più rivedere. Il sito ne conserva solo l'impronta.</value></data>
+  <data name="ApiKeys_Copy" xml:space="preserve"><value>Copia</value></data>
+  <data name="ApiKeys_NewDone" xml:space="preserve"><value>Fatto, l'ho copiata</value></data>
+  <data name="ApiKeys_Name" xml:space="preserve"><value>Per chi è</value></data>
+  <data name="ApiKeys_NamePh" xml:space="preserve"><value>es. Validatore tour IT</value></data>
+  <data name="ApiKeys_Endpoints" xml:space="preserve"><value>API che può chiamare</value></data>
+  <data name="ApiKeys_Ep_archivio" xml:space="preserve"><value>Archivio ATC</value></data>
+  <data name="ApiKeys_Ep_bridge" xml:space="preserve"><value>Bridge Aurora</value></data>
+  <data name="ApiKeys_CreateNeeds" xml:space="preserve"><value>Servono un nome e almeno un'API</value></data>
+  <data name="ApiKeys_CreateTitle" xml:space="preserve"><value>Crea la chiave e mostrala una volta</value></data>
+  <data name="ApiKeys_Create" xml:space="preserve"><value>Crea chiave</value></data>
+  <data name="ApiKeys_None" xml:space="preserve"><value>Nessuna chiave emessa.</value></data>
+  <data name="ApiKeys_Active" xml:space="preserve"><value>attiva</value></data>
+  <data name="ApiKeys_Revoked" xml:space="preserve"><value>revocata</value></data>
+  <data name="ApiKeys_CreatedOn" xml:space="preserve"><value>creata il {0} da</value></data>
+  <data name="ApiKeys_LastUse" xml:space="preserve"><value>ultimo uso {0}</value></data>
+  <data name="ApiKeys_NeverUsed" xml:space="preserve"><value>mai usata</value></data>
+  <data name="ApiKeys_RevokedOn" xml:space="preserve"><value>revocata il {0} da</value></data>
+  <data name="ApiKeys_RevokeTitle" xml:space="preserve"><value>Revoca: da subito il client riceve 401</value></data>
+  <data name="ApiKeys_Revoke" xml:space="preserve"><value>Revoca</value></data>
+  <data name="ApiKeys_RevokePrompt" xml:space="preserve"><value>Revocare la chiave di «{0}»? Non si riattiva: servirà una chiave nuova.</value></data>
+  <data name="ApiKeys_RevokeYes" xml:space="preserve"><value>Sì, revoca</value></data>
+  <data name="ApiKeys_RevokedStatus" xml:space="preserve"><value>Chiave di «{0}» revocata.</value></data>
+  <data name="ApiKeys_Copied" xml:space="preserve"><value>Chiave copiata negli appunti.</value></data>
+  <data name="ApiKeys_CopyFailed" xml:space="preserve"><value>Copia non riuscita: selezionala e copiala a mano.</value></data>
+  <data name="Audit_Fr_ApiKeyCreate" xml:space="preserve"><value>Chiave API emessa ({0})</value></data>
+  <data name="Audit_Fr_ApiKeyRevoke" xml:space="preserve"><value>Chiave API revocata</value></data>
 </root>

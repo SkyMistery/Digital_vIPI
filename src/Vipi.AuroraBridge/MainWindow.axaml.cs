@@ -30,6 +30,7 @@ public partial class MainWindow : Window
 
         SiteBox.Text = model.Settings.SiteUrl;
         OwnerBox.Text = model.Settings.OwnerOverride ?? "";
+        ApiKeyBox.Text = model.Settings.ApiKey ?? "";
         HotkeyBox.Text = model.Settings.Hotkey ?? "";
         HotkeyEnabledBox.IsChecked = model.Settings.HotkeyEnabled;
         PinButton.IsChecked = model.Settings.AlwaysOnTop;
@@ -62,12 +63,13 @@ public partial class MainWindow : Window
     {
         _model.Settings.SiteUrl = string.IsNullOrWhiteSpace(SiteBox.Text) ? "https://it.ivao.aero" : SiteBox.Text!.Trim();
         _model.Settings.OwnerOverride = string.IsNullOrWhiteSpace(OwnerBox.Text) ? null : OwnerBox.Text!.Trim();
+        _model.Settings.ApiKey = string.IsNullOrWhiteSpace(ApiKeyBox.Text) ? null : ApiKeyBox.Text!.Trim();
         _model.Settings.Hotkey = string.IsNullOrWhiteSpace(HotkeyBox.Text) ? null : HotkeyBox.Text!.Trim();
         _model.Settings.HotkeyEnabled = HotkeyEnabledBox.IsChecked == true;
         _model.Settings.Save();
 
         SettingsPanel.IsVisible = false;
-        _model.Notify("Impostazioni salvate. Sito, postazione e scorciatoia si applicano al riavvio del tool.");
+        _model.Notify("Impostazioni salvate. Sito, postazione, chiave e scorciatoia si applicano al riavvio del tool.");
         _ = _orchestrator;   // riferimento tenuto per i comandi futuri della finestra
     }
 }

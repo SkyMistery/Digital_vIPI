@@ -187,11 +187,15 @@ I tetti per giro non cambiano (`SessionRetentionPerRun` = 2000): a regime scadon
   ⚠️ Aggiunta a `SegmentiEsclusi` della cache delle letture anonime: vive sotto `/services/stats` e non
   porta la parola `admin` nell'indirizzo, quindi sarebbe stata l'unica schermata di staff di cui si teneva
   una copia.
-- **`GET /vsop/api/v1/atc/sessions`** — anonimo e in sola lettura come `/vsop/live/atc`, e per lo stesso
-  motivo: è la ripetizione di un dato che la sorgente pubblica già a chiunque senza token. Quel che si
+- **`GET /vsop/api/v1/atc/sessions`** — in sola lettura. ⚠️ **Non più anonimo di proposito** dal 13 settembre
+  2026: le API non sono mai anonime (decisione del committente, carta
+  [`2026-09-13-chiavi-api.md`](2026-09-13-chiavi-api.md)). Si entra con una chiave; finché
+  `Api:RichiediChiave` è spento l'endpoint accetta anche chi non ne porta, perché il validatore dei tour non
+  si fermi prima di aver ricevuto la sua. Chi ha la chiave legge le sessioni di qualunque VID. Quel che si
   aggiunge è il **passato**. Parametri: `from`, `to`, `callsign`, `vid`, `open`, `scope`, `limit`, `offset`.
   Tetto duro a 500 righe, `total` sempre accanto alle righe (una pagina piena non deve poter sembrare tutto
-  quel che c'è), tetto per IP (30/min) e complessivo (300/min) con lo stesso limitatore del bridge Aurora.
+  quel che c'è), tetto per chiave (per IP senza chiave, 30/min) e complessivo (300/min) con lo stesso
+  limitatore del bridge Aurora.
 
 ⚠️ La finestra `from`/`to` seleziona per **sovrapposizione**, non per inizio: chi ha aperto alle 19:50 e
 chiuso alle 22:00 fa parte di «cosa c'era alle 21».

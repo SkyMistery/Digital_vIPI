@@ -68,10 +68,11 @@ Il tool riempie l'**etichetta quota** del tag. **Non** riempie il campo XFL nati
 | Voce | A cosa serve |
 |---|---|
 | **Sito** | da dove arrivano i dati vIPI. Si cambia per puntare a un'istanza locale in prova |
+| **Chiave API** | la chiave `vipi_…` che ti dà lo staff della divisione (HQ o WD, dalla pagina *Chiavi API*). **Senza, il sito risponde 401**: le API non sono mai anonime. Sta in chiaro in `settings.json` |
 | **Postazione** | forza la postazione di cui applicare le regole. Vuoto = quella connessa in Aurora. Serve quando il callsign connesso non è un settore del sito (addestramento, callsign fuori standard) |
 | **Scorciatoia** | combinazione globale, es. `Ctrl+Alt+L`. Serve almeno un modificatore. Se un altro programma la usa già, il tool lo dice all'avvio |
 
-Sito, postazione e scorciatoia si applicano **al riavvio** del tool.
+Sito, postazione, chiave e scorciatoia si applicano **al riavvio** del tool.
 
 > La «Postazione» cambia solo **quali regole di trasferimento** vengono applicate. Chi può scrivere nel tag
 > dipende sempre dalla connessione vera di Aurora, non da questo campo.
@@ -88,6 +89,9 @@ I file stanno in `%LOCALAPPDATA%\VipiAuroraBridge`:
 **«Sito irraggiungibile: sto mostrando l'ultima risposta valida»**: il portale non risponde e il tool sta
 proponendo dati già visti per quello stesso volo. Sono ancora utili, ma non sono freschi: la striscia gialla
 resta accesa finché il sito non torna.
+
+**«Il sito chiede una chiave API»** / **«Chiave API rifiutata dal sito»**: manca la chiave nelle impostazioni,
+oppure è sbagliata, revocata o abilitata solo all'archivio. Chiedine una allo staff della divisione.
 
 ## 8. Limiti noti
 

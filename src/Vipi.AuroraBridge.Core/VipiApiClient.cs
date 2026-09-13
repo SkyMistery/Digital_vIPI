@@ -17,7 +17,8 @@ public sealed record VipiApiOptions(
     string BaseAddress = "https://it.ivao.aero",
     string Path = "/vsop/api/v1/transfers/resolve",
     int TimeoutMs = 5000,
-    string? CacheDirectory = null);
+    string? CacheDirectory = null,
+    string? ApiKey = null);
 
 /// <summary>
 /// Client dell'endpoint di risoluzione. Ogni risposta buona viene messa in cache su disco con la chiave del
@@ -50,7 +51,24 @@ public sealed class VipiApiClient : IDisposable
         var key = CacheKey(request);
         try
         {
-            using var response = await _http.PostAsJsonAsync(_options.Path, request, Json, ct).ConfigureAwait(false);
+            // La chiave va nella singola richiesta, non negli header di default dell'HttpClient: quello può
+            // arrivare da fuori (i test, un domani una factory) e non è nostro da sporcare.
+            using var message = new HttpRequestMessage(HttpMethod.Post, _options.Path)
+            {
+                Content = JsonContent.Create(request, options: Json),
+            };
+            if (!string.IsNullOrWhiteSpace(_options.ApiKey))
+                message.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey.Trim());
+
+            using var response = await _http.SendAsync(message, ct).ConfigureAwait(false);
+
+            // 401/403: il sito vuole una chiave (le API non sono mai anonime) e questa manca, è sbagliata o è
+            // stata revocata. Detto così, chi usa il tool sa a chi chiedere.
+            if ((int)response.StatusCode is 401 or 403)
+                return new ResolveOutcome(await ReadCacheAsync(key, ct).ConfigureAwait(false), true,
+                    string.IsNullOrWhiteSpace(_options.ApiKey)
+                        ? "Il sito chiede una chiave API: inseriscila nelle impostazioni (la dà lo staff della divisione)."
+                        : "Chiave API rifiutata dal sito: è sbagliata, revocata o non abilitata al bridge.");
 
             if ((int)response.StatusCode == 429)
                 return new ResolveOutcome(await ReadCacheAsync(key, ct).ConfigureAwait(false), true,

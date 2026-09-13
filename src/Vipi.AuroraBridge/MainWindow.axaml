@@ -42,7 +42,7 @@
     <!-- Impostazioni, normalmente chiuse -->
     <Border x:Name="SettingsPanel" DockPanel.Dock="Top" IsVisible="False"
             Background="{StaticResource SurfaceRaised}" Padding="12,10">
-      <Grid ColumnDefinitions="Auto,*,Auto,150,Auto" RowDefinitions="Auto,Auto,Auto">
+      <Grid ColumnDefinitions="Auto,*,Auto,150,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
         <TextBlock Text="Sito" Classes="label" VerticalAlignment="Center" Margin="0,0,8,6" />
         <TextBox Grid.Column="1" x:Name="SiteBox" Watermark="https://it.ivao.aero" Margin="0,0,8,6" />
         <TextBlock Grid.Column="2" Text="Postazione" Classes="label" VerticalAlignment="Center" Margin="0,0,8,6" />
@@ -56,8 +56,12 @@
         <CheckBox Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2" x:Name="HotkeyEnabledBox" Content="attiva"
                   Foreground="{StaticResource Muted}" />
 
-        <TextBlock Grid.Row="2" Grid.ColumnSpan="5" Classes="label" TextWrapping="Wrap" Margin="0,6,0,0"
-                   Text="Sito e postazione si applicano al riavvio del tool. La scorciatoia scrive solo il primo candidato, e solo se è scrivibile." />
+        <TextBlock Grid.Row="2" Text="Chiave API" Classes="label" VerticalAlignment="Center" Margin="0,6,8,0" />
+        <TextBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3" x:Name="ApiKeyBox" PasswordChar="•" Watermark="vipi_…" Margin="0,6,8,0"
+                 ToolTip.Tip="La chiave che lo staff della divisione ti ha dato per il bridge. Senza, il sito risponde 401." />
+
+        <TextBlock Grid.Row="3" Grid.ColumnSpan="5" Classes="label" TextWrapping="Wrap" Margin="0,6,0,0"
+                   Text="Sito, postazione e chiave si applicano al riavvio del tool. La scorciatoia scrive solo il primo candidato, e solo se è scrivibile." />
       </Grid>
     </Border>
 

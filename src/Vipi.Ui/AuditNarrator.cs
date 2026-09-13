@@ -108,6 +108,8 @@ public static class AuditNarrator
         if (e.EntityType == "RoleOverride") return L["Audit_VidN", e.EntityId].Value;
         // Il bersaglio è la PERSONA guardata, non una pagina: l'EntityId è il suo VID.
         if (e.EntityType == "StatsProfile") return L["Audit_VidN", e.EntityId].Value;
+        // Il nome del cliente e il prefisso della chiave, come li mostra la pagina delle chiavi.
+        if (e.EntityType == "ApiClient") return $"{Str(d, "Nome") ?? "—"} ({e.EntityId}…)";
         return $"{e.EntityType} {e.EntityId}";
     }
 
@@ -170,6 +172,11 @@ public static class AuditNarrator
                 if (manuali.Length > 0) frasi.Add(L["Audit_Fr_SrcToManual", string.Join(", ", manuali)].Value);
                 return frasi.Count > 0 ? string.Join(" · ", frasi) : L["Audit_Fr_SrcChanged"].Value;
             default:
+                // Le chiavi API (13 settembre 2026): due atti, e l'EntityId è il prefisso, mai la chiave.
+                if (e.EntityType == "ApiClient")
+                    return e.Action == AuditAction.Archive
+                        ? L["Audit_Fr_ApiKeyRevoke"].Value
+                        : L["Audit_Fr_ApiKeyCreate", Str(d, "Endpoint") ?? "—"].Value;
                 return e.Action.ToString();
         }
     }

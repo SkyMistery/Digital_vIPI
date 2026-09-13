@@ -1,6 +1,8 @@
 ﻿@inject IStringLocalizer<SharedResource> L
 @inject NavigationManager Nav
 @inject IEditAuthorizationService Authz
+@inject IServiceProvider Sp
+@using Microsoft.Extensions.DependencyInjection
 
 @* Barra di navigazione fra le pagine admin.
 
@@ -55,7 +57,7 @@
     /// permessi si allargano senza che nessuno lo decida.</para>
     /// </summary>
     private sealed record Voce(string Url, string Icon, string LabelKey, string TitleKey,
-        VipiRole Minimo = VipiRole.Admin);
+        VipiRole Minimo = VipiRole.Admin, bool SoloChiEmetteChiavi = false);
 
     private static readonly Voce[] Voci =
     {
@@ -78,6 +80,9 @@
         new("/services/vsop/admin/audit",           "scroll",         "Audit_Title",         "Grants_AuditDesc"),
         new("/services/vsop/admin/diagnostics",     "activity",       "Nav_Diag",            "Grants_DiagDesc"),
         new("/services/vsop/admin/permissions",        "key",            "Nav_Perms",           "Grants_GrantHint"),
+        // Più stretta di Admin: solo HQ, WD e i fondatori (carta 2026-09-13-chiavi-api.md §8). Gli altri
+        // Admin non vedono neppure la voce.
+        new("/services/vsop/admin/api-keys",        "shield",         "ApiKeys_Nav",         "ApiKeys_Subtitle", SoloChiEmetteChiavi: true),
     };
 
     /// <summary>
@@ -91,8 +96,13 @@
     private IReadOnlyList<Voce> Visibili = Array.Empty<Voce>();
 
     // Una volta sola, non a ogni valutazione del markup: il filtro lo leggono sia il `@if` che il `foreach`.
-    protected override void OnInitialized() =>
-        Visibili = Voci.Where(v => Authz.Role >= v.Minimo).ToArray();
+    protected override void OnInitialized()
+    {
+        // Il servizio si chiede facoltativo: chi non l'ha registrato (un test della barra) non vede la voce,
+        // che è il lato giusto su cui sbagliare.
+        var emette = Sp.GetService<IEmittentiChiaviApi>()?.PuoEmettere == true;
+        Visibili = Voci.Where(v => Authz.Role >= v.Minimo && (!v.SoloChiEmetteChiavi || emette)).ToArray();
+    }
 
     /// <summary>
     /// Confronto sul solo percorso: la pagina corrente può portarsi dietro una query (i filtri di Versioni la

@@ -11,6 +11,11 @@ public sealed class BridgeSettings
     /// <summary>Sito da interrogare. Si cambia per puntare a un host locale in prova.</summary>
     public string SiteUrl { get; set; } = "https://it.ivao.aero";
 
+    /// <summary>La chiave delle API del sito (<c>vipi_…</c>), data dallo staff della divisione. Senza, il sito
+    /// risponde 401: le API non sono mai anonime (carta <c>docs/feature/2026-09-13-chiavi-api.md</c>).
+    /// ⚠️ Sta in chiaro nel file delle impostazioni del profilo utente, come ogni chiave di un client.</summary>
+    public string? ApiKey { get; set; }
+
     /// <summary>Postazione da usare al posto di quella connessa. Vuoto = si usa <c>#CONN</c>.</summary>
     public string? OwnerOverride { get; set; }
 

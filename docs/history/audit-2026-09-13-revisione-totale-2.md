@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -310,7 +310,7 @@ finding è la fusione di due segnalazioni.
 Formato compatto: **titolo** — dimensioni · V · `file:riga`, poi scenario, prova e correzione. Nessun S3
 richiede una migrazione, salvo dove è scritto.
 
-**T-017 — `/vsop/api/v1/atc/sessions?vid=` anonimo aggira «le sessioni di un altro le vede solo lo staff, con audit».**
+**T-017 — `/vsop/api/v1/atc/sessions?vid=` anonimo aggira «le sessioni di un altro le vede solo lo staff, con audit».** ✅ **in main** (13-set): decisione del committente «le API non sono mai anonime», eseguita con le chiavi API — carta [`2026-09-13-chiavi-api.md`](../feature/2026-09-13-chiavi-api.md). L'archivio resta aperto a chi non porta chiave finché `Api:RichiediChiave` è spento (passaggio), il bridge la chiede sempre.
 Dimensioni: sec-auth (S3) + sec-infra (S2) · **P** · `src/Vipi.Hosting/VipiModuleExtensions.cs:433`.
 - **Scenario.** Un anonimo chiama `?vid=727049&limit=500&offset=…` e ottiene callsign, frequenza, rating e
   orari di 12 mesi di turni, senza nessuna riga di audit.

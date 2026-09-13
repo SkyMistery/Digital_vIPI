@@ -3,7 +3,7 @@ using Vipi.AuroraBridge.Core;
 
 // vIPI Aurora Bridge — verifica a riga di comando (F2). Non è il prodotto finale: la shell è F3.
 //
-//   dotnet run --project tools/Vipi.AuroraBridge.Cli -- [--site URL] [--watch] [--write N]
+//   dotnet run --project tools/Vipi.AuroraBridge.Cli -- [--site URL] [--key vipi_…] [--watch] [--write N]
 //
 // Senza argomenti fa un giro solo e stampa i candidati. --write N scrive il candidato N-esimo
 // (1-based) nell'etichetta quota: è un'azione esplicita, mai automatica.
@@ -13,6 +13,8 @@ var watch = false;
 int? writeIndex = null;
 var clear = false;
 string? owner = null;
+// La chiave delle API: da --key o dalla variabile d'ambiente, così non resta nella cronologia della shell.
+var apiKey = Environment.GetEnvironmentVariable("VIPI_API_KEY");
 
 for (var i = 0; i < args.Length; i++)
 {
@@ -23,14 +25,15 @@ for (var i = 0; i < args.Length; i++)
         case "--write": writeIndex = int.Parse(args[++i]); break;
         case "--clear": clear = true; break;
         case "--owner": owner = args[++i]; break;
+        case "--key": apiKey = args[++i]; break;
         case "--help" or "-h":
-            Console.WriteLine("Uso: [--site URL] [--owner CALLSIGN] [--watch] [--write N] [--clear]");
+            Console.WriteLine("Uso: [--site URL] [--key vipi_…] [--owner CALLSIGN] [--watch] [--write N] [--clear]");
             return 0;
     }
 }
 
 await using var client = new AuroraClient();
-using var api = new VipiApiClient(new VipiApiOptions(BaseAddress: site));
+using var api = new VipiApiClient(new VipiApiOptions(BaseAddress: site, ApiKey: apiKey));
 var orchestrator = new BridgeOrchestrator(new AuroraSession(client), api, ownerOverride: owner);
 
 using var stopping = new CancellationTokenSource();

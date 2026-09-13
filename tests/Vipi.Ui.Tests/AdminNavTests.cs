@@ -158,6 +158,36 @@ public class AdminNavTests : TestContext
         return ctx.RenderComponent<AdminNav>().Markup;
     }
 
+    private sealed class EmittentiFinti : IEmittentiChiaviApi
+    {
+        public EmittentiFinti(bool puo) => PuoEmettere = puo;
+        public bool PuoEmettere { get; }
+    }
+
+    private static string MarkupConEmittenti(VipiRole livello, bool puoEmettere)
+    {
+        using var ctx = new TestContext();
+        ctx.Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        ctx.Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        ctx.Services.AddSingleton<IEditAuthorizationService>(new FakeAuthz(livello));
+        ctx.Services.AddSingleton<IEmittentiChiaviApi>(new EmittentiFinti(puoEmettere));
+        ctx.Services.GetRequiredService<NavigationManager>().NavigateTo("http://localhost/services/vsop/guide");
+        return ctx.RenderComponent<AdminNav>().Markup;
+    }
+
+    /// <summary>
+    /// 🔴 Le chiavi API (13 settembre 2026): un cancello più stretto di Admin. Un Admin che non è HQ o WD non
+    /// vede neppure la voce — «solo chi può permettere» (committente, carta 2026-09-13-chiavi-api.md §8).
+    /// </summary>
+    [Fact]
+    public void La_voce_delle_chiavi_la_vede_solo_chi_le_emette()
+    {
+        Assert.Contains("/services/vsop/admin/api-keys", MarkupConEmittenti(VipiRole.Admin, puoEmettere: true));
+        Assert.DoesNotContain("/services/vsop/admin/api-keys", MarkupConEmittenti(VipiRole.Admin, puoEmettere: false));
+        // Senza il servizio registrato la voce non c'è: il lato giusto su cui sbagliare.
+        Assert.DoesNotContain("/services/vsop/admin/api-keys", Markup(VipiRole.Admin));
+    }
+
     /// <summary>Un editor vede le sue undici voci e nessuna delle cinque dell'admin.</summary>
     [Fact]
     public void Un_editor_vede_undici_voci()

@@ -1,0 +1,229 @@
+@page "/services/vsop/admin/api-keys"
+@layout SopLayout
+@rendermode InteractiveServer
+@inherits ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Abstractions
+@using Vipi.Domain.Entities
+
+@* Le chiavi delle API per altri programmi (carta docs/feature/2026-09-13-chiavi-api.md, T-017).
+
+   ⚠️ Il cancello è PIÙ STRETTO di Admin: HQ, WD e i fondatori (`IEmittentiChiaviApi`). Si decide prima di
+   caricare qualunque cosa, e il servizio lo ripete a ogni metodo: la pagina nasconde, il servizio rifiuta.
+
+   ⚠️ La chiave esiste a schermo UNA volta sola, subito dopo la creazione: in tabella c'è l'impronta. Chi
+   chiude il riquadro senza copiarla la rifà.
+
+   Scope proprio e caricamento in fila come Permessi, per le stesse ragioni (vedi AdminRolesPage). *@
+@inject IEditAuthorizationService Authz
+@inject IEmittentiChiaviApi Emittenti
+@inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
+
+<PageTitle>@L["ApiKeys_Title"] · IVAO Italy</PageTitle>
+
+<div class="wrap struct">
+    <AdminNav />
+
+    <div class="doc-head st-head">
+        <h1 class="st-h2 page-h1">@L["ApiKeys_Title"]&nbsp;<span class="pill blue">@(_righe?.Count(r => r.Attiva) ?? 0)</span></h1>
+        <p class="help" style="margin:0">@L["ApiKeys_Subtitle"]</p>
+        @if (Emittenti.PuoEmettere)
+        {
+            <LiveRegion>
+                @if (_error is not null || _status is not null)
+                {
+                    <span class="st-msg @(_error is not null ? "warn" : "ok")">
+                        <Icon Name="@(_error is not null ? "warning" : "check-circle")" Size="14" />
+                        <span class="st-msg-t">@(_error ?? _status)</span>
+                        <button class="tclose" title="@L["Common_Close"]" @onclick="ClearStatus">✕</button>
+                    </span>
+                }
+            </LiveRegion>
+        }
+    </div>
+
+    @if (!Emittenti.PuoEmettere)
+    {
+        <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div><p class="ct">@L["Common_AccessReserved"]</p>@L["ApiKeys_Reserved"]</div></div>
+    }
+    else
+    {
+        @if (_emessa is { } nuova)
+        {
+            <div class="callout warning api-key-new" role="alert">
+                <span class="cic"><Icon Name="key" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["ApiKeys_NewTitle", nuova.Cliente.Nome]</p>
+                    <p style="margin:0 0 6px">@L["ApiKeys_NewOnce"]</p>
+                    <code class="api-key-value" style="word-break:break-all;user-select:all">@nuova.Chiave</code>
+                    <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+                        <button class="btn" @onclick="() => Copia(nuova.Chiave)"><Icon Name="copy" Size="14" /> @L["ApiKeys_Copy"]</button>
+                        <button class="btn ghost" @onclick="() => _emessa = null">@L["ApiKeys_NewDone"]</button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="panel st-pane">
+            <div class="perm-form">
+                <div class="field">
+                    <label for="api-key-nome">@L["ApiKeys_Name"]</label>
+                    <input id="api-key-nome" class="app-in" maxlength="@ApiClientLimits.Nome" placeholder="@L["ApiKeys_NamePh"]" @bind="_nome" />
+                </div>
+                <fieldset class="field" style="border:0;padding:0;margin:0">
+                    <legend>@L["ApiKeys_Endpoints"]</legend>
+                    @foreach (var e in ApiEndpoints.Tutti)
+                    {
+                        var id = "api-key-ep-" + e;
+                        <label for="@id" style="display:flex;gap:6px;align-items:center">
+                            <input id="@id" type="checkbox" checked="@_scelti.Contains(e)" @onchange="ev => Scegli(e, ev.Value is true)" />
+                            <span>@L[$"ApiKeys_Ep_{e}"]</span>
+                        </label>
+                    }
+                </fieldset>
+                <button class="btn primary perm-go" disabled="@(_busy || string.IsNullOrWhiteSpace(_nome) || _scelti.Count == 0)"
+                        title="@(string.IsNullOrWhiteSpace(_nome) || _scelti.Count == 0 ? L["ApiKeys_CreateNeeds"] : L["ApiKeys_CreateTitle"])"
+                        @onclick="Crea"><Icon Name="plus" Size="14" /> @L["ApiKeys_Create"]</button>
+            </div>
+        </div>
+
+        <div class="panel st-pane">
+            @if (_righe is null)
+            {
+                <LoadingState />
+            }
+            else if (_righe.Count == 0)
+            {
+                <p class="help">@L["ApiKeys_None"]</p>
+            }
+            else
+            {
+                @foreach (var r in _righe)
+                {
+                    <div class="ver-row api-key-row @(r.Attiva ? "" : "revoked")">
+                        <span class="vb"><code>@(r.Prefisso)…</code></span>
+                        <div>
+                            <b>@r.Nome</b>
+                            <span class="pill @(r.Attiva ? "green" : "grey")">@(r.Attiva ? L["ApiKeys_Active"] : L["ApiKeys_Revoked"])</span>
+                            <div class="vmeta">
+                                @string.Join(" · ", r.Endpoint.Select(e => L[$"ApiKeys_Ep_{e}"].Value))
+                                · @L["ApiKeys_CreatedOn", VipiTime.Day(r.CreataUtc)] <VidLink Vid="r.CreataDaUserId" />
+                                · @(r.UltimoUsoUtc is { } u ? L["ApiKeys_LastUse", VipiTime.Day(u)] : L["ApiKeys_NeverUsed"])
+                                @if (r.RevocataUtc is { } rev)
+                                {
+                                    <text> · @L["ApiKeys_RevokedOn", VipiTime.Day(rev)] </text><VidLink Vid="@(r.RevocataDaUserId ?? 0)" />
+                                }
+                            </div>
+                        </div>
+                        @if (r.Attiva)
+                        {
+                            <span class="vact">
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["ApiKeys_RevokeTitle"]" AriaLabel="@L["ApiKeys_Revoke"]"
+                                               Prompt="@L["ApiKeys_RevokePrompt", r.Nome]" Disabled="@_busy"
+                                               ConfirmLabel="@L["ApiKeys_RevokeYes"]" CancelLabel="@L["Common_Cancel"]"
+                                               OnConfirm="() => Revoca(r)">
+                                    <Trigger><Icon Name="x" Size="14" /> @L["ApiKeys_Revoke"]</Trigger>
+                                </InlineConfirm>
+                            </span>
+                        }
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private IReadOnlyList<ApiClientRow>? _righe;
+    private ChiaveEmessa? _emessa;
+    private bool _busy;
+    private string? _status, _error;
+    private string _nome = "";
+    private readonly HashSet<string> _scelti = new();
+
+    private IApiClientService Chiavi = default!;
+
+    private bool _inCorso, _daRifare;
+
+    protected override void OnInitialized()
+    {
+        Chiavi = ScopedServices.GetRequiredService<IApiClientService>();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Emittenti.PuoEmettere) return;
+        await CaricaAsync();
+    }
+
+    private async Task CaricaAsync()
+    {
+        if (_inCorso) { _daRifare = true; return; }
+
+        _inCorso = true;
+        try
+        {
+            do
+            {
+                _daRifare = false;
+                await InFilaAsync(LeggiAsync);
+            }
+            while (_daRifare && !Chiusa);
+        }
+        finally { _inCorso = false; }
+    }
+
+    private async Task LeggiAsync()
+    {
+        try { _righe = await Chiavi.ListAsync(); }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+    }
+
+    private void Scegli(string endpoint, bool acceso)
+    {
+        if (acceso) _scelti.Add(endpoint); else _scelti.Remove(endpoint);
+    }
+
+    private async Task Crea()
+    {
+        _busy = true;
+        ClearStatus();
+        try
+        {
+            _emessa = await Chiavi.CreaAsync(_nome, _scelti.ToList());
+            _nome = "";
+            _scelti.Clear();
+            await CaricaAsync();
+        }
+        catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Revoca(ApiClientRow r)
+    {
+        _busy = true;
+        ClearStatus();
+        try
+        {
+            await Chiavi.RevocaAsync(r.Id);
+            _status = L["ApiKeys_RevokedStatus", r.Nome];
+            if (_emessa?.Cliente.Id == r.Id) _emessa = null;
+            await CaricaAsync();
+        }
+        catch (EditNotAllowedException ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    private async Task Copia(string chiave)
+    {
+        bool ok;
+        try { ok = await JS.InvokeAsync<bool>("vipiCopiaTesto", chiave); }
+        catch (Exception) { ok = false; }
+        _status = ok ? L["ApiKeys_Copied"].Value : null;
+        _error = ok ? null : L["ApiKeys_CopyFailed"].Value;
+    }
+
+    private void ClearStatus() { _status = null; _error = null; }
+}

@@ -130,8 +130,9 @@ public static class VipiModuleExtensions
         services.AddSingleton<Vipi.Application.Diagnostics.ISectorfileComparisonReport,
             Vipi.Application.Diagnostics.SectorfileComparisonReport>();
 
-        // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint anonimo.
+        // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint (con chiave API dal 13 settembre 2026).
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
+        services.Configure<ApiOptions>(configuration.GetSection(ApiOptions.SectionName));
         services.AddSingleton<RequestRateLimiter>();
         services.AddSingleton<GlobalTopologyCache>();
         services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp =>
@@ -437,14 +438,17 @@ public static class VipiModuleExtensions
         // endpoint è il modo di rileggerle da fuori — nasce perché altri strumenti della divisione (il
         // validatore dei tour) tenevano un archiviatore proprio sullo stesso whazzup.
         //
-        // Anonimo e in sola lettura come /vsop/live/atc, e per lo stesso motivo: è la ripetizione di un
-        // dato che la sorgente pubblica già a chiunque, senza token. Quel che si aggiunge è il PASSATO, che
-        // il whazzup non conserva. Tetto per IP e tetto complessivo con lo stesso limitatore del bridge: qui
-        // una richiesta costa una COUNT e una pagina di righe, non un file.
+        // 🔴 Le API non sono mai anonime (committente, 13 settembre 2026; carta 2026-09-13-chiavi-api.md): qui
+        // si entra con una chiave. Finché `Api:RichiediChiave` è false l'archivio accetta ANCHE chi non ne
+        // porta, come prima, perché il validatore dei tour non si fermi prima di aver ricevuto la sua; una
+        // chiave presentata però si verifica sempre, e una chiave sbagliata è un 401 anche in quel periodo.
+        // Tetti con lo stesso limitatore del bridge, per chiave quando c'è: qui una richiesta costa una COUNT
+        // e una pagina di righe, non un file.
         endpoints.MapGet("/vsop/api/v1/atc/sessions", async (
             HttpContext ctx,
             IAtcArchiveQueries archivio,
             RequestRateLimiter limiter,
+            Microsoft.Extensions.Options.IOptions<ApiOptions> api,
             DateTimeOffset? from,
             DateTimeOffset? to,
             string? callsign,
@@ -455,13 +459,9 @@ public static class VipiModuleExtensions
             int? offset,
             CancellationToken ct) =>
         {
-            // Prima il tetto per chiamante, poi quello complessivo, con chiavi di QUESTO endpoint (T-019).
-            var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-            if (!limiter.PassaITetti("archivio", ip, ArchivioRichiesteAlMinutoPerIp, ArchivioRichiesteAlMinutoTotali, ArchivioClientiTracciati))
-            {
-                ctx.Response.Headers.RetryAfter = "60";
-                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-            }
+            if (await PortaDelleApi.ControllaAsync(ctx, Vipi.Domain.Entities.ApiEndpoints.Archivio, api.Value.RichiediChiave,
+                    limiter, ArchivioRichiesteAlMinutoPerIp, ArchivioRichiesteAlMinutoTotali, ArchivioClientiTracciati, ct) is { } rifiuto)
+                return rifiuto;
 
             // Una finestra rovesciata non è «zero righe», è una domanda sbagliata: dirlo evita che chi
             // integra passi mezz'ora a chiedersi perché l'archivio è vuoto.
@@ -491,11 +491,11 @@ public static class VipiModuleExtensions
         });
 
         // Bridge Aurora (piano docs/design/piano-aurora-bridge.md §5): dato il contesto di un volo selezionato in
-        // Aurora, restituisce i punti di trasferimento candidati col livello pronto da scrivere. Read-only e
-        // anonimo come i documenti da cui deriva. Nessuna scrittura: è il tool desktop, non il server, a
-        // toccare Aurora — e solo su azione esplicita dell'utente.
+        // Aurora, restituisce i punti di trasferimento candidati col livello pronto da scrivere. Read-only, e
+        // dal 13 settembre 2026 con una chiave API obbligatoria (carta 2026-09-13-chiavi-api.md). Nessuna
+        // scrittura: è il tool desktop, non il server, a toccare Aurora — e solo su azione esplicita dell'utente.
         //
-        // MONTATO SOLO SE ACCESO (AuroraBridge:Enabled, default false). È superficie pubblica e anonima su un
+        // MONTATO SOLO SE ACCESO (AuroraBridge:Enabled, default false). È superficie pubblica su un
         // sito servito a una divisione: accenderla dev'essere una decisione di chi distribuisce il tool, non
         // la conseguenza di aver fuso un ramo. Spento, la rotta non si registra affatto — meglio che un 403,
         // che direbbe comunque che c'è qualcosa. (Il codice che ne esce dipende dal TFM: 405 su net10, dove il
@@ -516,16 +516,12 @@ public static class VipiModuleExtensions
             {
                 var opt = options.Value;
 
-                // Prima il tetto per IP, poi quello complessivo, con chiavi di QUESTO endpoint (T-019, 13
-                // settembre 2026). Fino ad allora il complessivo veniva prima «perché l'IP lo sceglie il
-                // chiamante»: in produzione non è più vero (X-Forwarded-For si accetta dal solo loopback), e
-                // l'ordine vecchio faceva consumare il tetto di tutti anche alle richieste rifiutate per IP.
-                var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-                if (!limiter.PassaITetti("bridge", ip, opt.RequestsPerMinutePerIp, opt.RequestsPerMinuteTotal, opt.MaxTrackedClients))
-                {
-                    ctx.Response.Headers.RetryAfter = "60";
-                    return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-                }
+                // La chiave è obbligatoria da subito: il bridge nasce spento, quindi non c'è nessun client di
+                // oggi da non fermare (carta 2026-09-13-chiavi-api.md §7). Tetti per chiave, poi complessivo,
+                // con chiavi di QUESTO endpoint (T-019).
+                if (await PortaDelleApi.ControllaAsync(ctx, Vipi.Domain.Entities.ApiEndpoints.Bridge, chiaveObbligatoria: true,
+                        limiter, opt.RequestsPerMinutePerIp, opt.RequestsPerMinuteTotal, opt.MaxTrackedClients, ct) is { } rifiuto)
+                    return rifiuto;
 
                 if (request is null || string.IsNullOrWhiteSpace(request.OwnerCallsign))
                     return Results.BadRequest(new { error = "ownerCallsign obbligatorio" });

@@ -99,6 +99,9 @@ public class VipiDbContext : DbContext
 
     /// <summary>Le promozioni a mano: una riga per persona promossa. Carta del 28 agosto 2026 §5.</summary>
     public DbSet<RoleOverride> RoleOverrides => Set<RoleOverride>();
+
+    /// <summary>I programmi con una chiave per le API. Carta del 13 settembre 2026 (T-017).</summary>
+    public DbSet<ApiClient> ApiClients => Set<ApiClient>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
@@ -513,6 +516,17 @@ public class VipiDbContext : DbContext
             e.Property(x => x.Level).HasMaxLength(32);         // enum → stringa (SPEC §6)
             e.Property(x => x.Note).HasMaxLength(500);
             e.Property(x => x.DisplayName).HasMaxLength(120);
+        });
+
+        b.Entity<ApiClient>(e =>
+        {
+            e.Property(x => x.Nome).HasMaxLength(ApiClientLimits.Nome).IsRequired();
+            e.Property(x => x.Prefisso).HasMaxLength(ApiClientLimits.Prefisso).IsRequired();
+            e.Property(x => x.ImprontaSha256).HasMaxLength(ApiClientLimits.Impronta).IsRequired();
+            e.Property(x => x.Endpoint).HasMaxLength(ApiClientLimits.Endpoint).IsRequired();
+            // Unico: è la domanda di ogni chiamata («di chi è questa chiave?»), e due righe con la stessa
+            // impronta vorrebbero dire una chiave con due padroni.
+            e.HasIndex(x => x.ImprontaSha256).IsUnique();
         });
 
         // --- Profilo strutturato aeroporto: tutte FK→Airport con cascade + ordinamento (AirportId, Order). ---

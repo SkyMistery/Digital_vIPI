@@ -52,6 +52,11 @@ public static class DependencyInjection
         // La gestione dei livelli: promuove, declassa, e RICARICA la cache — senza l'ultima cosa una
         // promozione non farebbe effetto fino al riavvio.
         services.AddScoped<Auth.IRoleAdminService, Auth.RoleAdminService>();
+        // Le chiavi delle API (carta 2026-09-13-chiavi-api.md): chi le emette, la pagina, e la verifica
+        // di ogni chiamata. Scoped perché la verifica legge il database per impronta a ogni richiesta.
+        services.AddScoped<Auth.IEmittentiChiaviApi, Auth.EmittentiChiaviApi>();
+        services.AddScoped<Auth.IApiClientService, Auth.ApiClientService>();
+        services.AddScoped<Auth.IVerificaChiaveApi, Auth.VerificaChiaveApi>();
         services.AddScoped<IEditingService, EditingService>();
         services.AddScoped<IResourceLockService, ResourceLockService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
