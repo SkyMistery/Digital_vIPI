@@ -24,7 +24,7 @@ public class CatalogoSpaziAereiTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _catalogo = new EfAirspaceCatalog(_db);
+        _catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
     }
 
     public async Task DisposeAsync()
@@ -83,7 +83,7 @@ public class CatalogoSpaziAereiTests : IAsyncLifetime
 
         await using var altro = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>()
             .UseSqlite(_conn).AddInterceptors(new SalvataggioCheEsplode()).Options);
-        await Assert.ThrowsAsync<DbUpdateException>(() => new EfAirspaceCatalog(altro).SaveAsync(
+        await Assert.ThrowsAsync<DbUpdateException>(() => new EfAirspaceCatalog(altro, LivelloFisso.Editor).SaveAsync(
             new NewAirspaceImport("secondo.kmz", System.Text.Encoding.UTF8.GetBytes(Kml), "2610", 42, "Mario Rossi"),
             AirspaceKmlReader.LeggiKml(Kml), new DateTime(2026, 9, 13, 20, 0, 0, DateTimeKind.Utc)));
 

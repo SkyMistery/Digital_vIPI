@@ -245,9 +245,10 @@ public sealed class GlossarioFraseologia
             ct.ThrowIfCancellationRequested();
             if (PerchéNonVa(voce.Sorgente, voce.Resa, messe) is not null) continue;
 
-            // userId null = nessuna persona: è il contenuto di partenza, non la scelta di qualcuno. La
-            // pagina lo mostra così, ed è giusto che si distingua da una voce che un controllore ha voluto.
-            await deposito.UpsertAsync(sourceLang, targetLang, voce.Sorgente, voce.Resa, null, ct)
+            // Nessuna persona: è il contenuto di partenza, non la scelta di qualcuno. La pagina lo mostra così,
+            // ed è giusto che si distingua da una voce che un controllore ha voluto. ⚠️ Porta a parte, senza
+            // cancello di ruolo: la semina gira all'avvio, dove un livello non c'è (T-060).
+            await deposito.SeminaVoceAsync(sourceLang, targetLang, voce.Sorgente, voce.Resa, ct)
                 .ConfigureAwait(false);
             messe.Add(voce.Sorgente);
             scritte++;

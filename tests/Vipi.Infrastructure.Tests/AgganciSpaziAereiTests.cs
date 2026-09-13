@@ -24,8 +24,8 @@ public class AgganciSpaziAereiTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _catalogo = new EfAirspaceCatalog(_db);
-        _agganci = new EfSectorAirspaceBindings(_db);
+        _catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
+        _agganci = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
         _forme = new EfSectorShapeResolver(_db, _agganci, new EfSectorShapeParts(_db));
     }
 

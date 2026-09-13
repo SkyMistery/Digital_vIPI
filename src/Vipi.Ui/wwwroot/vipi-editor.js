@@ -1,29 +1,8 @@
-﻿// Scorciatoie da tastiera dell'editor vIPI. Registrato per-pagina con un riferimento DotNet (vipiEditorInit).
-// Ctrl/Cmd+E alterna la modalità Modifica. Ignorato quando il focus è in un campo di testo.
+﻿// Aiutanti JS degli editor vIPI: fisarmonica dei blocchi, espandi/comprimi, ancore, store locale, barra markdown.
 (function () {
-    var current = null;   // DotNetObjectReference della pagina editor attiva
-
-    function isTypingTarget(el) {
-        if (!el) return false;
-        var tag = (el.tagName || '').toUpperCase();
-        return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable;
-    }
-
-    // Un solo listener globale, installato una volta.
-    if (!window.__vipiEditorKeys) {
-        window.__vipiEditorKeys = true;
-        document.addEventListener('keydown', function (e) {
-            if (!current) return;
-            if (!(e.ctrlKey || e.metaKey) || isTypingTarget(e.target)) return;   // in un campo: lascia l'undo nativo del testo
-            var k = (e.key || '').toLowerCase();
-            if (k === 'e') { e.preventDefault(); current.invokeMethodAsync('ToggleEdit'); }
-            else if (k === 'z' && !e.shiftKey) { e.preventDefault(); current.invokeMethodAsync('UndoAction'); }
-            else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); current.invokeMethodAsync('RedoAction'); }
-        });
-    }
-
-    // Chiamato da OnAfterRenderAsync: l'ultima pagina montata diventa la destinataria.
-    window.vipiEditorInit = function (dotRef) { current = dotRef; };
+    // ⚠️ Qui stavano le scorciatoie Ctrl/Cmd+E/Z/Y (`vipiEditorInit`, che registrava un DotNetObjectReference
+    // per chiamare `ToggleEdit`/`UndoAction`/`RedoAction`). Nessuna pagina le registrava più, e nessun
+    // componente ha quei metodi: il listener girava a vuoto su ogni tasto (T-071, 13 settembre 2026).
 
     // ⚠️ Qui stavano il Ctrl/Cmd+S dell'editor aeroporto («salva le sezioni modificate»), la guardia
     // `beforeunload` e i due ganci che le servivano (`vipiAirportEditorInit`, `vipiSetDirty`). Sono caduti
@@ -159,7 +138,6 @@
     // Ctrl/Cmd+B/I/U dentro una textarea markdown. ⚠️ Delegato sul documento e NON legato al componente:
     // un `@onkeydown` di Blazor sarebbe un giro di rete a OGNI tasto battuto, su ogni campo dell'editor.
     // Qui il costo è zero finché non si preme la combinazione.
-    // Il listener globale di sopra ignora di proposito i campi di testo, quindi non si pestano i piedi.
     if (!window.__vipiMdKeys) {
         window.__vipiMdKeys = true;
         document.addEventListener('keydown', function (e) {

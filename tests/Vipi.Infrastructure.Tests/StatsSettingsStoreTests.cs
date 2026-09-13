@@ -18,7 +18,7 @@ public class StatsSettingsStoreTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _store = new EfStatsSettingsStore(_db);
+        _store = new EfStatsSettingsStore(_db, LivelloFisso.Editor);
     }
 
     public async Task DisposeAsync()

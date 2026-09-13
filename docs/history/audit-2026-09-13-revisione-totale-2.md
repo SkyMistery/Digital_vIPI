@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L7 in main**: T-015, T-016, T-043, T-044, T-070 (segni in proprietà JS, mappe/3D smontabili; `enhanced-verifica.js`) · ✅ **L6 in main**: T-009, T-010, T-050, T-077 (LVP che si chiudono, memoria decisa dal server, tendenze fuori dall'osservazione) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **in 1.26.0** (`cad6698`, ✅ online dal 13-set) c'è quel che era in main fino a quel commit: T-042, L3, T-053, T-064/T-078, T-017 e ciò che stava in 1.25.4/1.25.3 · ⚠️ **L2, L5, L6, L7 sono entrati DOPO `cad6698`**: in main, NON in pacchetto · ✅ **L8 in main**: T-008, T-026, T-027, T-028, T-065 · ✅ **L9 in main**: T-030, T-031, T-032, T-035, T-036, T-045, T-054, T-055 · ✅ **L10 in main**: T-022, T-023, T-046…T-049, T-066, T-067 · ✅ **L11 in main**: T-034, T-051, T-052, T-062, T-068, T-069, T-074, T-076 · 📦 **L2 e L5…L11 → prossimo pacchetto (1.26.1)**, nessuna migrazione · ✅ **CI di main verde da `02ad2533`** (era rossa da oltre 200 corse: vedi T-056) · ▶ **restano L12 e L13** ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L7 in main**: T-015, T-016, T-043, T-044, T-070 (segni in proprietà JS, mappe/3D smontabili; `enhanced-verifica.js`) · ✅ **L6 in main**: T-009, T-010, T-050, T-077 (LVP che si chiudono, memoria decisa dal server, tendenze fuori dall'osservazione) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **in 1.26.0** (`cad6698`, ✅ online dal 13-set) c'è quel che era in main fino a quel commit: T-042, L3, T-053, T-064/T-078, T-017 e ciò che stava in 1.25.4/1.25.3 · ⚠️ **L2, L5, L6, L7 sono entrati DOPO `cad6698`**: in main, NON in pacchetto · ✅ **L8 in main**: T-008, T-026, T-027, T-028, T-065 · ✅ **L9 in main**: T-030, T-031, T-032, T-035, T-036, T-045, T-054, T-055 · ✅ **L10 in main**: T-022, T-023, T-046…T-049, T-066, T-067 · ✅ **L11 in main**: T-034, T-051, T-052, T-062, T-068, T-069, T-074, T-076 · 📦 **L2 e L5…L11 → prossimo pacchetto (1.26.1)**, nessuna migrazione · ✅ **CI di main verde da `02ad2533`** (era rossa da oltre 200 corse: vedi T-056) · ✅ **L12 in main**: T-060 (cancello di ruolo nelle sette porte di scrittura delle anagrafiche), T-071 (aiuto, Guida e tour sul modello «ogni gesto scrive»), T-075, T-086 · 📦 **L2 e L5…L12 → 1.26.1** · ▶ **resta L13** (T-059), più T-020 e il cursore di T-055 ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -634,7 +634,7 @@ base · C · `src/Vipi.Host/Vipi.Host.csproj` (TargetFramework) · `src/Vipi.Inf
 
 ### S4
 
-**T-060** — La classe di R-023 non era isolata. `EfNavaidCatalog`, `EfAirspaceCatalog`,
+**✅ T-060** (L12, in main: `EnsureAtLeast` dentro le sette porte — Editor per radioassistenze, spazi aerei, agganci, alias creati e glossario; **Admin** per togliere un alias, come la pagina Sorgenti; **DivisionStaff** per la classifica pubblica; «rileggi adesso» dell'importatore chiede l'Editor. Restano libere le due scritture di sfondo: `ImportFromSourceAsync` del giro notturno e la semina del glossario, che passa da una porta nuova `SeminaVoceAsync` — un «`userId` nullo = seme» avrebbe fatto entrare proprio l'anonimo. `PorteDelleAnagraficheTests`: una prova per porta da anonimo, e i due giri di sfondo che devono passare senza nessuno. L'`userId` resta passato dal chiamante: cambiarlo tocca le firme di tutte le pagine, e il cancello è quel che mancava) — La classe di R-023 non era isolata. `EfNavaidCatalog`, `EfAirspaceCatalog`,
 `EfSectorAirspaceBindings`, `EfSidFixAliasRepository`, `EfGlossaryStore`, `EfStatsSettingsStore` e
 `NavaidImporter` hanno zero guardie di ruolo e ricevono `userId` dal chiamante. Oggi nessun percorso è
 raggiungibile, perché le pagine rendono i comandi solo agli Editor. · sec-auth · **P** ·
@@ -684,7 +684,7 @@ commento.
 ResizeObserver e listener `toggle` si accumulano a ogni navigazione. È la radice di T-015 e T-016. ·
 ui-components · C · `src/Vipi.Ui/wwwroot/vipi-ui.js:800` (e `:272-281`) · `WeakSet` al posto degli attributi.
 
-**T-071** — L'aiuto dell'editor aeroporto, la Guida e il tour promettono «Salva tutto» e Ctrl+S, che non
+**✅ T-071** (L12, in main: `Ape_HelpBody`, `Ape_RwRulesHelp2`, `Ape_ApplyTitle` in IT/EN; Guida «editor-salva» e la tabella delle SID importate — celle che si salvano lasciandole, «applica alle scelte» che scrive subito; tour senza il passo «Salva tutto»; voce di ricerca della Guida; `vipiEditorInit` e il suo listener tolti. ⚠️ Resta il filo del «pallino» nell'indice, `IsSectionDirty` → `EditorTocItem.Dirty`: nessuno lo accende più, è codice morto innocuo) — L'aiuto dell'editor aeroporto, la Guida e il tour promettono «Salva tutto» e Ctrl+S, che non
 esistono più; `vipiEditorInit` (Ctrl+E/Z/Y) non ha chiamanti. · ui-components · C ·
 `src/Vipi.Ui/Resources/SharedResource.resx:2054` (e `GuidaPage.razor:584`, `vipi-tour.js:12`,
 `vipi-editor.js:13`) · Riscrivere sul modello «ogni gesto scrive».
@@ -702,7 +702,7 @@ ciascuno un'asserzione osservabile.
 potrebbe creare file piatti. · quality · **P** · `tools/prepara-pacchetto.ps1:213` · `ZipArchive` con `/`,
 oppure un controllo sulle voci.
 
-**T-075** — `catch (Exception)` vuoto in `LoadRunwaysAsync`. Il caso che il commento cita (scalo senza
+**✅ T-075** (L12, in main: il catch lascia passare l'annullamento e scrive il guasto con l'ICAO; l'elenco resta più corto come prima. Prova solo per lettura: `LoadForViewAsync` torna null o piste vuote e non solleva, la pagina non ha un test di render e montarne uno per un log non valeva le tredici dipendenze) — `catch (Exception)` vuoto in `LoadRunwaysAsync`. Il caso che il commento cita (scalo senza
 piste) non solleva, quindi il catch inghiotte solo i guasti veri. · quality · **P** ·
 `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor:2883` · Restringere e loggare.
 
@@ -751,7 +751,7 @@ Far rispondere 404 alla pagina.
 `src/Vipi.Hosting/CultureCookieMiddleware.cs:46` (e `VipiStartup.cs:396`, `:514`) · `Secure`,
 `Antiforgery.Cookie.SecurePolicy = Always`, `AddHsts` a 365 giorni.
 
-**T-086** — `Vipi.Ui` fissa i pacchetti net10 a `10.0.10` esatto, mentre il resto della soluzione fluttua
+**✅ T-086** (L12, in main: `10.0.*`; il lock di `Vipi.Ui` e dei suoi test è passato a 10.0.12, e nel ri-risolvere ha preso anche Components 8.0.31 per net8. Il lock di `Vipi.Host`, che è quello della produzione, non è cambiato) — `Vipi.Ui` fissa i pacchetti net10 a `10.0.10` esatto, mentre il resto della soluzione fluttua
 su `10.0.*`: una patch di sicurezza di Components non arriverebbe proprio al progetto dei componenti.
 · base · C · `src/Vipi.Ui/Vipi.Ui.csproj:30` · `10.0.*`, oppure un commento che giustifichi il blocco.
 
@@ -779,7 +779,7 @@ T-053, se si sceglie di allargare le colonne invece di validare; resta comunque 
 | **L9** | **Dati e statistiche** | T-030, T-031, T-032, T-035, T-036, T-053, T-054, T-055, T-045 | T-053: prima la validazione nel servizio; la colonna più larga è opzionale e additiva |
 | **L10** | **Dominio aeronautico e input** | T-022, T-023, T-046, T-047, T-048, T-049, T-066, T-067 | T-022 e T-023 hanno anche valore di sicurezza (DoS da Editor): possono salire in L1 se c'è spazio |
 | **L11** ✅ | **Servizi e strumenti** | T-034, T-051, T-052, T-068, T-069, T-074, T-076, T-062 | Chiuso in main il 13-set |
-| **L12** | **Garanzie, test e documenti** | T-056 (subito: rigenerare l'atteso), T-087, T-073, T-057, T-058, T-079, T-080, T-081, T-082, T-083, T-071, T-075, T-078, T-060, T-086 | T-056 conviene farlo in testa al primo lotto, perché protegge tutti gli altri |
+| **L12** ✅ | **Garanzie, test e documenti** | T-056 (subito: rigenerare l'atteso), T-087, T-073, T-057, T-058, T-079, T-080, T-081, T-082, T-083, T-071, T-075, T-078, T-060, T-086 | T-056 conviene farlo in testa al primo lotto, perché protegge tutti gli altri. Chiuso in main il 13-set |
 | **L13** | **Piattaforma** | T-059 | Lavoro di settimane (Pomelo 9+, riverifica del set MySQL, CI net10): va aperto ora, la scadenza è il 10 novembre |
 
 ---

@@ -26,9 +26,12 @@
     <SupportedPlatform Include="browser" />
   </ItemGroup>
 
+  <!-- ⚠️ `10.0.*` come il resto della soluzione, e non un numero esatto: fino al 13 settembre 2026 qui stava
+       `10.0.10`, e una patch di sicurezza di Components sarebbe arrivata a tutti i progetti TRANNE a quello dei
+       componenti (T-086). Il numero vero lo fissa il `packages.lock.json`, che la CI restora in locked mode. -->
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.10" />
-    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.Web" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Localization.Abstractions" Version="10.0.*" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">

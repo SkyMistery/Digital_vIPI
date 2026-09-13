@@ -31,8 +31,8 @@ public class AtzTorriTests : IAsyncLifetime
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
         _repo = new EfAirportSectorRepository(_db);
-        _catalogo = new EfAirspaceCatalog(_db);
-        _agganci = new EfSectorAirspaceBindings(_db);
+        _catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
+        _agganci = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
         _pezzi = new EfSectorShapeParts(_db);
         _forme = new EfSectorShapeResolver(_db, _agganci, _pezzi);
         _atz = new AtzTowerShapeService(_repo, _catalogo, _pezzi);

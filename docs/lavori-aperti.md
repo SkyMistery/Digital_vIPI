@@ -21,7 +21,14 @@ segnale. Corretta in `178014b7` e `02ad2533`, verde anche su `cd71c4d8`:
   `/app/data` (col processo non-root di T-062 `/app` non è scrivibile); `.dockerignore` che esclude i backup
   del database (contesto da oltre 6 GB a 39 MB);
 - `conta-test.sh` in CI non aveva **mai** contato: serve `--logger "console;verbosity=minimal"`.
-▶ **Dopo ogni push si guarda `gh run list`.** ▶ Prossimo lavoro: **L12**, poi **L13**.
+▶ **Dopo ogni push si guarda `gh run list`.** ▶ Prossimo lavoro: **L13** (T-059), e fuori lotto T-020 e il
+cursore di T-055.
+
+**✅ L12 in main** (garanzie, test, documenti; nessuna migrazione, **JS cambiato**): T-060 cancello di ruolo
+nelle sette porte di scrittura delle anagrafiche (radioassistenze, spazi aerei, agganci, alias SID, glossario,
+impostazioni statistiche, «rileggi adesso»), con `PorteDelleAnagraficheTests`; T-071 aiuto, Guida e tour
+riscritti su «ogni gesto scrive» e `vipiEditorInit` tolto; T-075 il catch delle piste nei trasferimenti scrive
+il guasto; T-086 `Vipi.Ui` su `10.0.*`. ▶ Entra in **1.26.1** con gli altri.
 
 ### 📦 A30 — Pacchetto 1.26.0: 15 file, CUMULATIVO su 1.25.2, DUE migrazioni additive — ✅ **ONLINE**
 

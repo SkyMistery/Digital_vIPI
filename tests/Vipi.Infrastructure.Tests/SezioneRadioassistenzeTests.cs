@@ -36,7 +36,7 @@ public class SezioneRadioassistenzeTests : IAsyncLifetime
         public void EnsureAdmin() { }
     }
 
-    private EfNavaidCatalog Anagrafica() => new(_db);
+    private EfNavaidCatalog Anagrafica() => new(_db, LivelloFisso.Editor);
 
     private EfMilitaryDocumentService Militari() =>
         new(_db, new AiracService(), new AllowAuthz(),

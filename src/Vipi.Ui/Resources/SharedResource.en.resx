@@ -2048,7 +2048,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude and the ATC sector catalogue (respects the «Data sources» policy)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Help on the airport editor</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes, and the dot next to its name means it has unsaved changes.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Save all&lt;/b&gt; (in the rail, also &lt;b&gt;Ctrl+S&lt;/b&gt;) writes to the &lt;b&gt;draft&lt;/b&gt;: the public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;&lt;b&gt;Imported SIDs&lt;/b&gt; have their own save: edit the cells and press «Save changed».&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row is not saved: a warning appears and the last valid state stays.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Help on runway selection rules</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Help on transition levels</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Why the Transition Altitude is read-only</value></data>
@@ -2097,7 +2097,7 @@
   <data name="Ape_PickSameTransTitle" xml:space="preserve"><value>Picks every row on screen with the transition of the last cell you touched</value></data>
   <data name="Ape_ApplyN" xml:space="preserve"><value>Apply «{0}» to the {1} picked</value></data>
   <data name="Ape_ApplyNoSource" xml:space="preserve"><value>Apply to picked</value></data>
-  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copies the value of the last cell you touched into every picked row (also with Ctrl+Enter inside the cell). The rows stay changed until you save.</value></data>
+  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copies the value of the last cell you touched into every picked row (also with Ctrl+Enter inside the cell). The rows are saved at once, all in one go.</value></data>
   <data name="Ape_ApplyConfirm" xml:space="preserve"><value>Apply «{0}» to {1} rows?</value></data>
   <data name="Ape_ApplyDone" xml:space="preserve"><value>Applied to {0} rows.</value></data>
   <data name="Ape_ApplyDoneOne" xml:space="preserve"><value>Applied to 1 row.</value></data>
@@ -2143,7 +2143,7 @@
   <data name="Ape_PanelVersions" xml:space="preserve"><value>Versions</value></data>
   <data name="Ape_RwRulesTitle" xml:space="preserve"><value>Runway selection rules</value></data>
   <data name="Ape_RwRulesHelp" xml:space="preserve"><value>Each rule: when the indicated runways have &lt;b&gt;tailwind ≤&lt;/b&gt; the threshold, &lt;b&gt;crosswind ≤&lt;/b&gt; the threshold (optional) and the &lt;b&gt;surface&lt;/b&gt; matches, they become preferential for departures/arrivals. Tailwind and crosswind are computed from the current wind. They are evaluated in &lt;b&gt;order&lt;/b&gt;: the first that applies wins (put the more specific ones on top). If none applies, the runway with the best headwind is used.</value></data>
-  <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>The DEP/ARR chips list the runways of the «Runways» panel in memory: a runway just added there appears immediately, but becomes final only after «Save runways».</value></data>
+  <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>The DEP/ARR chips list the runways of the «Runways» panel in memory: a runway just added there appears immediately, and is already saved once its row is complete.</value></data>
   <data name="Ape_NoRwDefined" xml:space="preserve"><value>no runway defined</value></data>
   <data name="Ape_MaxTail" xml:space="preserve"><value>Max tail (kt)</value></data>
   <data name="Ape_MaxCross" xml:space="preserve"><value>Max cross (kt, opt.)</value></data>

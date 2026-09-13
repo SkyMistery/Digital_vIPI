@@ -8,12 +8,19 @@ namespace Vipi.Infrastructure.Persistence;
 /// Riga singola con le scelte sulle statistiche. Scrittura con audit, nella stessa <c>SaveChanges</c>
 /// dell'atto che descrive — come per la policy di import: accendere la classifica pubblica è un atto
 /// amministrativo, e fra sei mesi deve essere possibile sapere chi l'ha deciso.
+/// <para>⚠️ Il cancello (staff di divisione) sta QUI: la pagina chiama questa classe senza un servizio in
+/// mezzo, e prima del 13 settembre 2026 la guardia era solo nella pagina (T-060).</para>
 /// </summary>
 public sealed class EfStatsSettingsStore : IStatsSettingsStore
 {
     private readonly VipiDbContext _db;
+    private readonly Vipi.Application.Auth.IEditAuthorizationService _authz;
 
-    public EfStatsSettingsStore(VipiDbContext db) => _db = db;
+    public EfStatsSettingsStore(VipiDbContext db, Vipi.Application.Auth.IEditAuthorizationService authz)
+    {
+        _db = db;
+        _authz = authz;
+    }
 
     public async Task<StatsSettings> GetAsync(CancellationToken ct = default)
     {
@@ -25,6 +32,8 @@ public sealed class EfStatsSettingsStore : IStatsSettingsStore
 
     public async Task SaveAsync(bool publicLeaderboard, int updatedByUserId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.DivisionStaff);
+
         var riga = await _db.StatsSettings.FirstOrDefaultAsync(x => x.Id == 1, ct);
 
         // Il non-evento non si scrive: riscriverebbe «deciso da X oggi» su una decisione di qualcun altro.

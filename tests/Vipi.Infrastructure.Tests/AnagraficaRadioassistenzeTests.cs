@@ -27,7 +27,7 @@ public class AnagraficaRadioassistenzeTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _cat = new EfNavaidCatalog(_db);
+        _cat = new EfNavaidCatalog(_db, LivelloFisso.Editor);
     }
 
     public async Task DisposeAsync()

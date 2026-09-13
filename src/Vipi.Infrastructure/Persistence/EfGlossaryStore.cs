@@ -1,16 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
+using Vipi.Domain;
 using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
 /// Il glossario di fraseologia su database (<c>lavori-aperti §Q3</c>).
+/// <para>⚠️ Il cancello di ruolo sta QUI (T-060, 13 settembre 2026): la pagina di cura chiama questa classe
+/// senza un servizio in mezzo. La semina all'avvio passa da <see cref="SeminaVoceAsync"/>, che non lo chiede.</para>
 /// </summary>
 public sealed class EfGlossaryStore : IGlossaryStore
 {
     private readonly VipiDbContext _db;
-    public EfGlossaryStore(VipiDbContext db) => _db = db;
+    private readonly IEditAuthorizationService _authz;
+
+    public EfGlossaryStore(VipiDbContext db, IEditAuthorizationService authz)
+    {
+        _db = db;
+        _authz = authz;
+    }
 
     public async Task<IReadOnlyList<GlossaryTerm>> ListAsync(
         string sourceLang, string targetLang, string? cerca = null, bool alfabetico = false,
@@ -35,9 +45,22 @@ public sealed class EfGlossaryStore : IGlossaryStore
             .ToListAsync(ct).ConfigureAwait(false);
     }
 
-    public async Task<bool> UpsertAsync(
+    public Task<bool> UpsertAsync(
         string sourceLang, string targetLang, string sourceText, string targetText,
         int? userId, CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        return ScriviAsync(sourceLang, targetLang, sourceText, targetText, userId, ct);
+    }
+
+    public Task<bool> SeminaVoceAsync(
+        string sourceLang, string targetLang, string sourceText, string targetText,
+        CancellationToken ct = default) =>
+        ScriviAsync(sourceLang, targetLang, sourceText, targetText, userId: null, ct);
+
+    private async Task<bool> ScriviAsync(
+        string sourceLang, string targetLang, string sourceText, string targetText,
+        int? userId, CancellationToken ct)
     {
         var chiave = Chiave(sourceText);
 
@@ -81,6 +104,8 @@ public sealed class EfGlossaryStore : IGlossaryStore
 
     public async Task<bool> DeleteAsync(int id, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
         var riga = await _db.GlossaryTerms.FirstOrDefaultAsync(t => t.Id == id, ct).ConfigureAwait(false);
         if (riga is null) return false;
 

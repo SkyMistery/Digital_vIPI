@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Airspace;
+using Vipi.Application.Auth;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
 using static Vipi.Application.Messaggio;
@@ -15,12 +16,20 @@ namespace Vipi.Infrastructure.Persistence;
 /// <para>⚠️ <b>Il file si conserva intero</b>, e il salvataggio è <b>tutto o niente</b>: un caricamento a
 /// metà — l'intestazione senza i volumi — sarebbe un catalogo che dichiara 1 536 volumi e ne ha 300, e
 /// nessuna pagina saprebbe dirlo.</para>
+/// <para>⚠️ <b>Caricare, mettere in vigore ed eliminare chiedono l'Editor qui dentro</b>: la pagina chiama
+/// questa classe senza un servizio in mezzo, e prima del 13 settembre 2026 il solo cancello era il bottone
+/// (T-060). Le letture restano libere: la pagina pubblica degli spazi aerei le fa per chiunque.</para>
 /// </summary>
 public sealed class EfAirspaceCatalog : IAirspaceCatalog
 {
     private readonly VipiDbContext _db;
+    private readonly IEditAuthorizationService _authz;
 
-    public EfAirspaceCatalog(VipiDbContext db) => _db = db;
+    public EfAirspaceCatalog(VipiDbContext db, IEditAuthorizationService authz)
+    {
+        _db = db;
+        _authz = authz;
+    }
 
     public async Task<IReadOnlyList<AirspaceImportRow>> ListImportsAsync(CancellationToken ct = default) =>
         (await _db.AirspaceImports.AsNoTracking()
@@ -37,6 +46,7 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
     public async Task<AirspaceImportRow> SaveAsync(
         NewAirspaceImport header, AirspaceReadResult read, DateTime nowUtc, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var caricamento = new AirspaceImport
         {
             FileName = Taglia(header.FileName, 260) ?? "spazi-aerei.kmz",
@@ -181,6 +191,7 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
 
     public async Task SetCurrentAsync(int importId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         if (!await _db.AirspaceImports.AnyAsync(i => i.Id == importId, ct)) return;
 
         // T-054: i due passi insieme, o in mezzo resta un catalogo senza niente in vigore.
@@ -195,6 +206,7 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
 
     public async Task DeleteAsync(int importId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         // ⚠️ La guardia si chiede AsNoTracking, e non all'entità tracciata. `SetCurrentAsync` e `SaveAsync`
         // spengono il flag con `ExecuteUpdate`, che scrive nel DATABASE e NON aggiorna il change tracker:
         // un'entità già caricata in questo scope continuerebbe a dire di essere in vigore, e l'eliminazione

@@ -36,11 +36,22 @@ public interface IGlossaryStore
     /// riscrivere «Riporta sottovento» corregge la voce di «riporta sottovento», non ne crea una seconda.
     /// </summary>
     /// <returns>Vero se la voce è nuova, falso se ne ha corretta una che c'era già.</returns>
+    /// <remarks>⚠️ Chiede l'<b>Editor</b>: è la scrittura di una persona dalla pagina di cura (T-060).</remarks>
     Task<bool> UpsertAsync(
         string sourceLang, string targetLang, string sourceText, string targetText,
         int? userId, CancellationToken ct = default);
 
-    /// <summary>Toglie una voce. Falso se non c'era.</summary>
+    /// <summary>
+    /// Scrive una voce del <b>contenuto di partenza</b>, senza nessuna persona dietro: la usa solo la semina
+    /// all'avvio, che gira di sfondo e un livello non ce l'ha.
+    /// <para>⚠️ È una porta a parte e non «<see cref="UpsertAsync"/> con <c>userId</c> nullo»: l'anonimo ha
+    /// proprio <c>userId</c> nullo, e un cancello che si spegnesse su quel valore lo farebbe entrare.</para>
+    /// </summary>
+    Task<bool> SeminaVoceAsync(
+        string sourceLang, string targetLang, string sourceText, string targetText,
+        CancellationToken ct = default);
+
+    /// <summary>Toglie una voce. Falso se non c'era. Chiede l'<b>Editor</b>.</summary>
     Task<bool> DeleteAsync(int id, CancellationToken ct = default);
 
     /// <summary>Quante voci ci sono in questa direzione. Per il contatore in cima alla pagina.</summary>

@@ -47,9 +47,9 @@ public class SectorShapeResolverTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _idApp = (await _db.AirportSectors.FirstAsync(x => x.ComposePosition == App)).Id;
 
-        _agganci = new EfSectorAirspaceBindings(_db);
+        _agganci = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
         _pezzi = new EfSectorShapeParts(_db);
-        _catalogo = new EfAirspaceCatalog(_db);
+        _catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
         _risolutore = new EfSectorShapeResolver(_db, _agganci, _pezzi);
     }
 

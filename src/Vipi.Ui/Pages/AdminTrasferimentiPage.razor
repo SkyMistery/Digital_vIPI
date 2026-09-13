@@ -15,6 +15,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 @inject NavigationManager Nav
+@inject ILogger<AdminTrasferimentiPage> Logger
 
 @*
     Editor degli ACCORDI di coordinamento.
@@ -2880,9 +2881,13 @@
                 foreach (var r in d.Runways)
                     list.Add(new RunwayOption(many ? apt.Icao + " " + r.Ident : r.Ident, r.Ident, r.Id));
             }
-            catch (Exception)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
-                // Un aeroporto senza piste importate non e' un errore della pagina: l'elenco resta piu' corto.
+                // ⚠️ Qui c'era un `catch (Exception)` vuoto «per lo scalo senza piste importate». Ma quel caso non
+                // solleva niente: la lettura torna null (scalo sconosciuto) o una lista vuota. Il catch inghiottiva
+                // quindi SOLO i guasti veri — database, contesto del circuito — e l'editor mostrava meno piste
+                // senza che nessuno lo sapesse (T-075). L'elenco resta più corto, ma il guasto si scrive.
+                Logger.LogWarning(ex, "Trasferimenti: piste di {Icao} non lette per le condizioni", apt.Icao);
             }
         }
         _condRunways = list;

@@ -56,7 +56,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo, LockDiRisorsaConcesso.Instance);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
-        _agganciAip = new EfSectorAirspaceBindings(_db);
+        _agganciAip = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
         var forme = new EfSectorShapeResolver(_db, _agganciAip, new EfSectorShapeParts(_db));
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
@@ -92,7 +92,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         sb.Append("</Document></kml>");
         var kml = sb.ToString();
 
-        var catalogo = new EfAirspaceCatalog(_db);
+        var catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
         await catalogo.SaveAsync(
             new Vipi.Application.Airspace.NewAirspaceImport(
                 "it.kmz", System.Text.Encoding.UTF8.GetBytes(kml), "2609", 1, "Chi carica"),

@@ -39,7 +39,7 @@ public class ElencoMilitareTests : IAsyncLifetime
     private EfMilitaryDocumentService Servizio() =>
         new(_db, new AiracService(), new AllowAuthz(),
             new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)),
-            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db), LockConcesso.Instance);
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db, LivelloFisso.Editor), LockConcesso.Instance);
 
     public async Task InitializeAsync()
     {

@@ -63,7 +63,7 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
     private AppDocumentService App()
     {
         var topo = new TopologyBuilder(_db);
-        var forme = new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db));
+        var forme = new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db, LivelloFisso.Editor), new EfSectorShapeParts(_db));
         return new AppDocumentService(new EfAppDerivationRepository(_db), new EfSpecialAreaRepository(_db), _editing,
             _authz, topo, new AgreementService(new EfAgreementRepository(_db), _authz, topo, LockDiRisorsaConcesso.Instance),
             new StubCoordinationSentenceTemplate(), new EfDocumentProfileRepository(_db),
@@ -169,7 +169,7 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var mil = new EfMilitaryDocumentService(_db, new AiracService(), _authz, _editing,
-            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db), Guardia());
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db, LivelloFisso.Editor), Guardia());
         var docId = await mil.CreaAsync("LIRP");   // creare non chiede il lock: lo fa l'elenco
 
         await Assert.ThrowsAsync<EditConflictException>(() =>

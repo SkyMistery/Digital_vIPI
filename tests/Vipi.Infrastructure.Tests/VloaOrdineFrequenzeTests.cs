@@ -50,7 +50,7 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
         servizi.AddSingleton<ICoordinationSentenceTemplate, StubCoordinationSentenceTemplate>();
         servizi.AddSingleton(authz);
         servizi.AddSingleton<ISectorShapeResolver>(
-            new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db)));
+            new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db, LivelloFisso.Editor), new EfSectorShapeParts(_db)));
         servizi.AddSingleton(new ReadingLanguageContext());
         servizi.AddSingleton<IOptions<NeighboursOptions>>(Options.Create(new NeighboursOptions()));
         return servizi.BuildServiceProvider().GetRequiredService<IVloaDerivationService>();

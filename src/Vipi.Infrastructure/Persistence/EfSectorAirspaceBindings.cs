@@ -16,17 +16,24 @@ namespace Vipi.Infrastructure.Persistence;
 public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
 {
     private readonly VipiDbContext _db;
+    private readonly Vipi.Application.Auth.IEditAuthorizationService _authz;
 
     private readonly Vipi.Application.Airspace.ShapeChangeStamp? _gettone;
 
+    /// <param name="authz">
+    /// ⚠️ Agganciare chiede l'Editor QUI: la pagina chiama questa classe senza un servizio in mezzo, e prima
+    /// del 13 settembre 2026 il solo cancello era il bottone (T-060). Risolvere resta libero.
+    /// </param>
     /// <param name="gettone">
     /// Il gettone dei cambi di forma: agganciare e sganciare cambiano quel che i motori disegnano e contano
     /// <b>adesso</b>, non al prossimo giro d'import. ⚠️ Facoltativo perché i test montano questa porta da
     /// sé, e senza si comporta come prima.
     /// </param>
-    public EfSectorAirspaceBindings(VipiDbContext db, Vipi.Application.Airspace.ShapeChangeStamp? gettone = null)
+    public EfSectorAirspaceBindings(VipiDbContext db, Vipi.Application.Auth.IEditAuthorizationService authz,
+        Vipi.Application.Airspace.ShapeChangeStamp? gettone = null)
     {
         _db = db;
+        _authz = authz;
         _gettone = gettone;
     }
 
@@ -55,6 +62,7 @@ public sealed class EfSectorAirspaceBindings : ISectorAirspaceBindings
     public async Task SetAsync(SourceCatalog catalog, int sectorId, string callsign,
         IReadOnlyList<AirspaceVolumeKey> volumes, int? userId, string? userName, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var cs = Norm(callsign);
 
         // L'elenco SOSTITUISCE quello di prima: è una scelta, non un accumulo. Vuoto = torna a IVAO.

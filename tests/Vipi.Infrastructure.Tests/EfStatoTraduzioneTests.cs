@@ -44,7 +44,7 @@ public class EfStatoTraduzioneTests : IAsyncLifetime
     }
 
     private EfStatoTraduzione Stato() =>
-        new(_db, _memoria, new EfGlossaryStore(_db), _gestiti);
+        new(_db, _memoria, new EfGlossaryStore(_db, LivelloFisso.Editor), _gestiti);
 
     // ---- Il banco ---------------------------------------------------------------------------------------
 

@@ -7,9 +7,11 @@
     var SEEN_KEY = 'vipi-tour:editor:v1';
 
     // Ordine e testo degli step. `sel` = elemento bersaglio; il primo visibile per chiave vince.
+    // ⚠️ Qui stava il passo «Salva tutto» (anche con Ctrl+S): nessun editor ha più quel tasto, ogni gesto scrive
+    // nella bozza da solo (carta 2026-09-04-aeroporto-porta-sola). Il passo si saltava in silenzio, ma il testo
+    // dell'indice prometteva ancora il pallino delle modifiche non salvate (T-071).
     var STEPS = [
-        { sel: '[data-tour="toc"]',     title: 'Indice del documento', body: 'Salta a una sezione. Il pallino segnala le sezioni con modifiche non salvate.' },
-        { sel: '[data-tour="save"]',    title: 'Salva tutto', body: 'Scrive le modifiche nella <b>bozza</b> (anche con Ctrl+S). Non è ancora pubblico.' },
+        { sel: '[data-tour="toc"]',     title: 'Indice del documento', body: 'Salta a una sezione. Non c\'è un tasto «Salva»: dopo «Modifica» ogni gesto scrive da solo nella <b>bozza</b>.' },
         { sel: '[data-tour="preview"]', title: 'Anteprima bozza', body: 'Apri il documento come apparirà. Controlla sempre qui <b>prima</b> di pubblicare.' },
         { sel: '[data-tour="release"]', title: 'Pubblica', body: 'Rendi la bozza pubblica con una <b>release AIRAC</b>: subito o programmata a un ciclo.' }
     ];

@@ -41,7 +41,7 @@ public class RicercaEDoveSiUsaTests : IAsyncLifetime
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
         _memoria = new EfTranslationMemory(_db);
-        _glossario = new EfGlossaryStore(_db);
+        _glossario = new EfGlossaryStore(_db, LivelloFisso.Editor);
     }
 
     public async Task DisposeAsync()

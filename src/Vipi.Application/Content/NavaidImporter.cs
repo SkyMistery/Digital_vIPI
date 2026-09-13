@@ -66,8 +66,13 @@ public sealed class NavaidImporter : INavaidImporter
     private readonly INavaidSource _sorgente;
     private readonly INavaidCatalog _anagrafica;
     private readonly IImportPolicyStore _policy;
+    private readonly Auth.IEditAuthorizationService _authz;
     private readonly IImportStateStore? _stati;
 
+    /// <param name="authz">
+    /// ⚠️ Il tasto «rileggi adesso» chiede l'Editor QUI (T-060): lo preme una persona dalla pagina, che chiama
+    /// questa classe senza altro in mezzo. Il giro dell'orologio (<see cref="RunAsync"/>) resta libero.
+    /// </param>
     /// <param name="stati">
     /// Il registro dei giri riusciti. ⚠️ Lo timbra il <b>corpo</b>, come in <see cref="AccImportUseCase"/>:
     /// così il tasto della pagina Radioassistenze conta quanto il giro notturno, e la pagina Sorgenti non
@@ -75,17 +80,22 @@ public sealed class NavaidImporter : INavaidImporter
     /// dell'anagrafica non c'è niente da timbrare.
     /// </param>
     public NavaidImporter(INavaidSource sorgente, INavaidCatalog anagrafica, IImportPolicyStore policy,
-        IImportStateStore? stati = null)
+        Auth.IEditAuthorizationService authz, IImportStateStore? stati = null)
     {
         _sorgente = sorgente;
         _anagrafica = anagrafica;
         _policy = policy;
+        _authz = authz;
         _stati = stati;
     }
 
     public Task<NavaidImportReport> RunAsync(CancellationToken ct = default) => GiroAsync(false, ct);
 
-    public Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default) => GiroAsync(true, ct);
+    public async Task<NavaidImportReport> RunNowAsync(CancellationToken ct = default)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        return await GiroAsync(true, ct).ConfigureAwait(false);
+    }
 
     /// <param name="rileggendo">Riscarica la sorgente prima di leggerla: lo chiede solo chi preme il tasto.</param>
     private async Task<NavaidImportReport> GiroAsync(bool rileggendo, CancellationToken ct)

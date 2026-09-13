@@ -37,7 +37,7 @@ public class SezioneAlternatiTests : IAsyncLifetime
     private EfMilitaryDocumentService Militari() =>
         new(_db, new AiracService(), new AllowAuthz(),
             new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)),
-            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db), LockConcesso.Instance, new EfAirportNameLookup(_db));
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db, LivelloFisso.Editor), LockConcesso.Instance, new EfAirportNameLookup(_db));
 
     public async Task InitializeAsync()
     {
@@ -52,7 +52,7 @@ public class SezioneAlternatiTests : IAsyncLifetime
             new Airport { Icao = "LIBG", Name = "Grottaglie", Acc = acc, HasMilitaryPresence = true });
         await _db.SaveChangesAsync();
 
-        await new EfNavaidCatalog(_db).ImportFromSourceAsync(new[]
+        await new EfNavaidCatalog(_db, LivelloFisso.Editor).ImportFromSourceAsync(new[]
         {
             new SourceNavaid("MNL", "VHF", "115.25", "99Y", 41.5476, 15.6898),
             // ⚠️ GRO sta DUE volte fra i VHF, come nell'anagrafica vera: un VOR senza canale e un TACAN col

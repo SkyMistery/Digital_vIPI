@@ -29,7 +29,7 @@ public class ImportRadioassistenzeTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _anagrafica = new EfNavaidCatalog(_db);
+        _anagrafica = new EfNavaidCatalog(_db, LivelloFisso.Editor);
         _stati = new EfImportStateStore(_db);
     }
 
@@ -75,7 +75,7 @@ public class ImportRadioassistenzeTests : IAsyncLifetime
     private static NavaidName Mnl() => new("MNL", NavaidKind.Vor, 41.5476, 15.6898, "115.25", "99Y");
 
     private NavaidImporter Importatore(SorgenteFinta sorgente, bool importate = true) =>
-        new(sorgente, _anagrafica, new PolicyFinta(importate), _stati);
+        new(sorgente, _anagrafica, new PolicyFinta(importate), LivelloFisso.Editor, _stati);
 
     /// <summary>
     /// ⚠️ Il tasto <b>rilegge</b>, il giro notturno prende quel che c'è. Chi preme un tasto d'import lo preme

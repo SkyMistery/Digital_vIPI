@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
 using Vipi.Application.Coordinates;
 using Vipi.Domain;
@@ -11,15 +12,23 @@ namespace Vipi.Infrastructure.Persistence;
 /// EF: l'anagrafica delle radioassistenze (carta vSOP militari §12b, corretta in §12l). Le regole che fa
 /// rispettare stanno scritte su <see cref="INavaidCatalog"/>; qui c'è come si applicano.
 ///
-/// <para>⚠️ <b>Nessun controllo di autorizzazione qui dentro.</b> Il cancello sta dove sta per tutte le
-/// scritture editoriali, e ripeterlo qui darebbe due cancelli che col tempo dicono cose diverse. Quel che
-/// questa classe fa rispettare è un'altra cosa: <b>la fonte vince</b>, e vale anche per un amministratore.</para>
+/// <para>⚠️ <b>Il cancello di ruolo sta QUI, sulle scritture di una persona.</b> Fino al 13 settembre 2026
+/// questo commento diceva il contrario («il cancello sta dove sta per tutte le scritture editoriali»): ma le
+/// pagine chiamano questa classe direttamente, senza un servizio in mezzo, e il solo cancello era il bottone
+/// nascosto (T-060, la classe di R-023). L'import dalla sorgente resta senza: lo fa un giro di sfondo, che
+/// una persona non ce l'ha. L'altra regola che questa classe fa rispettare è <b>la fonte vince</b>, e vale
+/// anche per un amministratore.</para>
 /// </summary>
 public sealed class EfNavaidCatalog : INavaidCatalog
 {
     private readonly VipiDbContext _db;
+    private readonly IEditAuthorizationService _authz;
 
-    public EfNavaidCatalog(VipiDbContext db) => _db = db;
+    public EfNavaidCatalog(VipiDbContext db, IEditAuthorizationService authz)
+    {
+        _db = db;
+        _authz = authz;
+    }
 
     /// <summary>
     /// L'identità scritta in una stringa: <c>CODICE|FAMIGLIA|CANALE</c>. ⚠️ Un posto solo — se la chiave si
@@ -56,6 +65,7 @@ public sealed class EfNavaidCatalog : INavaidCatalog
     /// </summary>
     public async Task<NavaidRow> CreateAsync(string code, string kind, int userId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var codice = NavaidRules.Norm(code);
         var famiglia = NavaidRules.Norm(kind);
         if (!NavaidRules.CodiceValido(codice)) throw new ArgumentException($"Codice non valido: '{code}'.", nameof(code));
@@ -86,6 +96,7 @@ public sealed class EfNavaidCatalog : INavaidCatalog
 
     public async Task<NavaidDelete> DeleteAsync(int id, int userId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var n = await _db.Navaids.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (n is null) return NavaidDelete.NonTrovata;
 
@@ -163,6 +174,7 @@ public sealed class EfNavaidCatalog : INavaidCatalog
     /// </summary>
     public async Task<NavaidWrite> SetChannelAsync(int id, string? canale, int userId, CancellationToken ct = default)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
         var n = await _db.Navaids.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (n is null) return NavaidWrite.NonTrovata;
         if (n.ChannelOrigin == NavaidFieldOrigin.Source) return NavaidWrite.DallaSorgente;
@@ -219,6 +231,8 @@ public sealed class EfNavaidCatalog : INavaidCatalog
         Func<Navaid, NavaidFieldOrigin> origine, Func<bool> valido,
         Func<Navaid, string?> leggi, Action<Navaid, string?> scrivi, string? nuovo, string campo)
     {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+
         var n = await _db.Navaids.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (n is null) return NavaidWrite.NonTrovata;
 

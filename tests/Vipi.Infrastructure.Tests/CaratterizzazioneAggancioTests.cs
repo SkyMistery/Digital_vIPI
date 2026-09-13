@@ -45,8 +45,8 @@ public class CaratterizzazioneAggancioTests : IAsyncLifetime
         await _conn.OpenAsync();
         _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn).Options);
         await _db.Database.EnsureCreatedAsync();
-        _catalogo = new EfAirspaceCatalog(_db);
-        _agganci = new EfSectorAirspaceBindings(_db);
+        _catalogo = new EfAirspaceCatalog(_db, LivelloFisso.Editor);
+        _agganci = new EfSectorAirspaceBindings(_db, LivelloFisso.Editor);
 
         var acc = new Acc { Code = "LICC", Name = "Catania" };
         _db.Accs.Add(acc);
@@ -135,7 +135,7 @@ public class CaratterizzazioneAggancioTests : IAsyncLifetime
         var volumi = await AgganciaAsync(SourceCatalog.AirportPosition, App);
         Assert.Equal(2, volumi.Count);
 
-        var righe = await new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db))).GetAllAsync();
+        var righe = await new EfSectorVolumeCatalog(_db, new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db, LivelloFisso.Editor), new EfSectorShapeParts(_db))).GetAllAsync();
         var riga = righe.Single(r => r.Callsign == App);
         Assert.Equal(2, riga.Parts.Count);
         Assert.Equal(ShapeSource.Aip, riga.Source);   // e in archivio finirà scritto da dove veniva

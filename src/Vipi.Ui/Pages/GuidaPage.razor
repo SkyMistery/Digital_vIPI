@@ -582,14 +582,16 @@
                operational data someone would act on. A person declares the association.</p>"),
 
         new Sec("editor-salva", "check-circle",
-            @"<p>L'<b>indice laterale</b> (TOC) elenca le sezioni: cliccane una per saltarci. Un pallino segnala le
-               sezioni con <b>modifiche non salvate</b>.</p>
-              <p>Salva con <b>«Salva tutto»</b>: scrive le modifiche nella <b>bozza</b>, non ancora al pubblico
-               (anche con <code>Ctrl+S</code>). Il pubblico vedrà i cambiamenti solo dopo la <b>pubblicazione</b>.</p>",
-            @"<p>The <b>side index</b> (TOC) lists the sections: click one to jump to it. A dot marks the sections with
-               <b>unsaved changes</b>.</p>
-              <p>Save with <b>""Save all""</b>: it writes the changes to the <b>draft</b>, not yet to the public
-               (also with <code>Ctrl+S</code>). The public sees the changes only after <b>publishing</b>.</p>"),
+            @"<p>L'<b>indice laterale</b> (TOC) elenca le sezioni: cliccane una per saltarci.</p>
+              <p><b>Non c'è un tasto «Salva»</b>: dopo <b>«Modifica»</b>, col lock tuo, ogni gesto scrive da solo
+               nella <b>bozza</b> e la testata dice <b>«Salvato»</b>. Una riga incompleta non si salva: compare un
+               avviso e resta l'ultimo stato valido. Il pubblico vedrà i cambiamenti solo dopo la
+               <b>pubblicazione</b>.</p>",
+            @"<p>The <b>side index</b> (TOC) lists the sections: click one to jump to it.</p>
+              <p><b>There is no ""Save"" button</b>: after <b>""Edit""</b>, while you hold the lock, every change
+               writes itself to the <b>draft</b> and the header says <b>""Saved""</b>. An incomplete row is not
+               saved: a warning appears and the last valid state stays. The public sees the changes only after
+               <b>publishing</b>.</p>"),
 
         new Sec("editor-anteprima", "eye",
             @"<p>Il tasto <b>«Anteprima»</b> apre il documento come <code>?as=draft</code>: vedi la bozza esattamente
@@ -686,8 +688,7 @@
               </ul>
               <p>La tabella delle <b>SID importate</b> è il posto dove si lavora di più, e ha regole sue:</p>
               <ul>
-                <li>Le celle si modificano una dietro l'altra: la riga toccata diventa <b>gialla</b> e il contatore
-                    <b>«N modificate»</b> sale. Si conferma tutto insieme con <b>Salva modificate</b>.</li>
+                <li>Ogni cella si <b>salva quando la lasci</b>: non c'è un tasto da premere alla fine.</li>
                 <li>La <b>scelta</b> (colonna di sinistra, riga blu) è un'altra cosa: serve a <b>Pubblica scelte</b>.
                     Si sceglie col clic, con Shift o Ctrl+clic per un intervallo, trascinando, oppure con
                     <b>Invio</b> o <b>Spazio</b> da tastiera.</li>
@@ -695,7 +696,7 @@
                     <b>pista</b> lasciano solo quella pista. Il numero accanto al titolo dice quante ne stai vedendo
                     sul totale. ⚠️ Cambiare un chip <b>lascia cadere le righe scelte</b>: i tasti della barra
                     agiscono sulle scelte, e dopo un cambio di pista quelle righe non sono più a schermo. Le
-                    righe <b>modificate e non salvate</b> restano: quelle non si buttano via.</li>
+                    modifiche no: sono già salvate.</li>
                 <li><b>Larghezza piena</b> (⤢) nasconde indice e rail: su una tabella a dodici colonne è la
                     differenza fra vederle tutte e scorrere di lato.</li>
                 <li>I chip <b>Cat.</b> e <b>WTC</b> si accendono a scala: un <b>doppio clic</b> (o <b>Shift+clic</b>,
@@ -707,12 +708,12 @@
                     barra, e agiscono sulla riga del campo toccato per ultimo.</li>
                 <li><b>Applica alle scelte</b> (⤓, o <b>Ctrl+Invio</b> dentro la cella) copia il valore della
                     cella toccata per ultimo in tutte le righe scelte: quota (col suo APP), Cat., WTC, condizione
-                    o priorità. Non copia mai punto, nome, pista e transition: sono l'identità della riga. Le
-                    righe restano <b>modificate</b> finché non salvi, quindi un errore si annulla ricaricando.</li>
-                <li>Il <b>ri-prelievo</b> rifà la tabella dalla sorgente: se hai righe modificate e non salvate, te
-                    lo dice prima di scartarle.</li>
+                    o priorità. Non copia mai punto, nome, pista e transition: sono l'identità della riga.
+                    ⚠️ Le righe si <b>salvano subito</b>, tutte in un gesto: ricaricare non annulla niente, un
+                    errore si corregge riapplicando il valore giusto.</li>
+                <li>Il <b>ri-prelievo</b> rifà la tabella dalla sorgente, e chiede conferma prima.</li>
               </ul>
-              <p>Come per gli altri, salvi nella bozza e pubblichi col pannello release.</p>",
+              <p>Come per gli altri, ogni gesto scrive nella bozza e pubblichi col pannello release.</p>",
             @"<p>Opens the airport profile: general data, shared block sections, plus the specific parts.</p>
               <ul>
                 <li><b>Runways</b> — imported from IVAO per single airport; the runway/area rules drive the transfer
@@ -726,16 +727,15 @@
               </ul>
               <p>The <b>imported SIDs</b> table is where most of the work happens, and it has its own rules:</p>
               <ul>
-                <li>You edit cell after cell: a touched row turns <b>yellow</b> and the <b>""N changed""</b> counter
-                    goes up. You confirm them all at once with <b>Save changed</b>.</li>
+                <li>Every cell is <b>saved when you leave it</b>: there is no button to press at the end.</li>
                 <li><b>Picking</b> (left column, blue row) is a different thing: it feeds <b>Publish picked</b>.
                     You pick with a click, Shift or Ctrl+click for a range, by dragging, or with <b>Enter</b> or
                     <b>Space</b> from the keyboard.</li>
                 <li>The chips filter: <b>to verify</b> shows the SIDs whose point must be confirmed by hand, the
                     <b>runway</b> chips leave only that runway. The number next to the title says how many you are
                     seeing out of the total. ⚠️ Changing a chip <b>drops the picked rows</b>: the bar's buttons
-                    act on the picked ones, and after a runway change those rows are no longer on screen. Rows
-                    that are <b>changed and unsaved</b> stay: those are never thrown away.</li>
+                    act on the picked ones, and after a runway change those rows are no longer on screen. The
+                    changes do not drop: they are already saved.</li>
                 <li><b>Full width</b> (⤢) hides the index and the rail: on a twelve-column table that is the
                     difference between seeing them all and scrolling sideways.</li>
                 <li>The <b>Cat.</b> and <b>WTC</b> chips light up as a scale: a <b>double click</b> (or
@@ -749,11 +749,11 @@
                 <li><b>Apply to picked</b> (⤓, or <b>Ctrl+Enter</b> inside the cell) copies the value of the last
                     cell you touched into every picked row: altitude (with its APP), Cat., WTC, condition or
                     priority. It never copies point, name, runway or transition: those are the row's identity.
-                    The rows stay <b>changed</b> until you save, so a mistake is undone by reloading.</li>
-                <li>The <b>re-import</b> rebuilds the table from the source: if you have changed and unsaved rows,
-                    it tells you before discarding them.</li>
+                    ⚠️ The rows are <b>saved at once</b>, all in one go: reloading undoes nothing, a mistake is
+                    fixed by applying the right value again.</li>
+                <li>The <b>re-import</b> rebuilds the table from the source, and asks for confirmation first.</li>
               </ul>
-              <p>As with the others, you save to the draft and publish with the release panel.</p>"),
+              <p>As with the others, every change writes to the draft and you publish with the release panel.</p>"),
 
         new Sec("editor-app", "radio",
             @"<p>L'editor (<code>/services/vsop/{acc}/apps/editor?app=…</code>) scrive il documento di un

@@ -35,7 +35,7 @@ public class GlossarioSuDatabaseTests : IAsyncLifetime
         await _conn.DisposeAsync();
     }
 
-    private EfGlossaryStore Deposito() => new(_db);
+    private EfGlossaryStore Deposito() => new(_db, LivelloFisso.Editor);
     private EfTranslationMemory Memoria() => new(_db);
 
     // ---- Il seme -------------------------------------------------------------------------------------

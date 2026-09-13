@@ -2053,7 +2053,7 @@
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-importa da IVAO</value></data>
   <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude e catalogo settori (rispetta la policy in «Sorgenti dati»)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Aiuto sull'editor aeroporto</value></data>
-  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude, e il pallino accanto al nome dice che ha modifiche non salvate.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Salva tutto&lt;/b&gt; (nel rail, anche &lt;b&gt;Ctrl+S&lt;/b&gt;) scrive nella &lt;b&gt;bozza&lt;/b&gt;: il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Le &lt;b&gt;SID importate&lt;/b&gt; hanno un salvataggio proprio: si modificano le celle e si preme «Salva modificate».&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
+  <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; non si salva: compare un avviso e resta l'ultimo stato valido.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Aiuto sulle regole di scelta pista</value></data>
   <data name="Ape_TlHelpAria" xml:space="preserve"><value>Aiuto sulle quote di transizione</value></data>
   <data name="Ape_TaFromSourceAria" xml:space="preserve"><value>Perché la Transition Altitude è in sola lettura</value></data>
@@ -2102,7 +2102,7 @@
   <data name="Ape_PickSameTransTitle" xml:space="preserve"><value>Sceglie tutte le righe a schermo con la transition della riga del campo toccato per ultimo</value></data>
   <data name="Ape_ApplyN" xml:space="preserve"><value>Applica «{0}» alle {1} scelte</value></data>
   <data name="Ape_ApplyNoSource" xml:space="preserve"><value>Applica alle scelte</value></data>
-  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copia il valore della cella toccata per ultimo in tutte le righe scelte (anche con Ctrl+Invio dentro la cella). Le righe restano modificate finché non salvi.</value></data>
+  <data name="Ape_ApplyTitle" xml:space="preserve"><value>Copia il valore della cella toccata per ultimo in tutte le righe scelte (anche con Ctrl+Invio dentro la cella). Le righe si salvano subito, tutte in un gesto.</value></data>
   <data name="Ape_ApplyConfirm" xml:space="preserve"><value>Applicare «{0}» a {1} righe?</value></data>
   <data name="Ape_ApplyDone" xml:space="preserve"><value>Applicato a {0} righe.</value></data>
   <data name="Ape_ApplyDoneOne" xml:space="preserve"><value>Applicato a 1 riga.</value></data>
@@ -2151,7 +2151,7 @@
   <data name="Ape_PanelVersions" xml:space="preserve"><value>Versioni</value></data>
   <data name="Ape_RwRulesTitle" xml:space="preserve"><value>Regole scelta pista</value></data>
   <data name="Ape_RwRulesHelp" xml:space="preserve"><value>Ogni regola: quando le piste indicate hanno &lt;b&gt;vento in coda ≤&lt;/b&gt; la soglia, &lt;b&gt;traverso ≤&lt;/b&gt; la soglia (opzionale) e la &lt;b&gt;superficie&lt;/b&gt; corrisponde, diventano preferenziali per partenze/arrivi. Coda e traverso si calcolano dal vento corrente. Si valutano in &lt;b&gt;ordine&lt;/b&gt;: la prima che si applica vince (metti le più specifiche in alto). Se nessuna si applica, vale la pista con miglior vento di testa.</value></data>
-  <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>I chip DEP/ARR elencano le piste del pannello «Piste» in memoria: una pista appena aggiunta lì compare subito, ma diventa definitiva solo dopo «Salva piste».</value></data>
+  <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>I chip DEP/ARR elencano le piste del pannello «Piste» in memoria: una pista appena aggiunta lì compare subito, ed è già salvata se la riga è completa.</value></data>
   <data name="Ape_NoRwDefined" xml:space="preserve"><value>nessuna pista definita</value></data>
   <data name="Ape_MaxTail" xml:space="preserve"><value>Coda max (kt)</value></data>
   <data name="Ape_MaxCross" xml:space="preserve"><value>Traverso max (kt, opz.)</value></data>
