@@ -2,6 +2,27 @@
 
 ## Dove siamo — 13 settembre 2026
 
+### ✅ A31 — Dopo 1.26.0: otto lotti in main, e la CI finalmente verde
+
+**In main, NON in pacchetto** (tutti dopo `cad6698`, nessuna migrazione): L2 (`847b4610`, `00782779`), L5
+(`1138da61`), L6 (`aa52c137`), L7 (`de8a4d53`), L8 (`b6d6bcf7`), L9 (`bb734ff5`), L10 (`f327c558`), L11
+(`022cdc5d`) della revisione totale 2. Il dettaglio per finding sta nel registro
+`docs/history/audit-2026-09-13-revisione-totale-2.md`. ▶ Diventano **1.26.1** quando il committente lo chiede.
+
+🔴 **La CI di `main` era rossa da oltre 200 corse** e nessuno la guardava: «verde in locale» era l'unico
+segnale. Corretta in `178014b7` e `02ad2533`, verde anche su `cd71c4d8`:
+- cultura invariante del runner, che legge il resx neutro (italiano): `tests/CulturaDellaSuite.cs` fissa en-GB
+  per ogni progetto di test, tramite `tests/Directory.Build.props`;
+- Brotli contro gzip: su Linux net8 lo scarto normale è 2,5%, tolleranza al 5%;
+- `SentinellaDiRientroTests` e `BloccoAllegatoTests`: la risposta finta ora arriva dentro `cut.InvokeAsync`.
+  ⚠️ `DocumentEditorShellTests` e `DelayedUiActionTests` hanno lo stesso schema e per ora passano: se torna un
+  rosso bUnit solo in CI, si guarda lì;
+- immagine Docker: `DOTNET_ROLL_FORWARD=Major` nello stadio di build; `ConnectionStrings__Vipi` di default su
+  `/app/data` (col processo non-root di T-062 `/app` non è scrivibile); `.dockerignore` che esclude i backup
+  del database (contesto da oltre 6 GB a 39 MB);
+- `conta-test.sh` in CI non aveva **mai** contato: serve `--logger "console;verbosity=minimal"`.
+▶ **Dopo ogni push si guarda `gh run list`.** ▶ Prossimo lavoro: **L12**, poi **L13**.
+
 ### 📦 A30 — Pacchetto 1.26.0: 15 file, CUMULATIVO su 1.25.2, DUE migrazioni additive — ✅ **ONLINE**
 
 ✅ **Caricato il 13 settembre 2026**; il committente conferma il timbro in barra. Da fuori (solo GET):
