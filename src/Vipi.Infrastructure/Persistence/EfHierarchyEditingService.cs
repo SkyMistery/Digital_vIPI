@@ -19,10 +19,13 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
     private readonly ISectorProjectionService _projection;
     private readonly NeighboursOptions _opt;
     private readonly DivisionOptions _division;
+    private readonly Vipi.Application.Content.IResourceLockService _locks;
 
     public EfHierarchyEditingService(VipiDbContext db, IEditAuthorizationService authz,
-        ISectorProjectionService projection, IOptions<NeighboursOptions> opt, IOptions<DivisionOptions> division)
+        ISectorProjectionService projection, IOptions<NeighboursOptions> opt, IOptions<DivisionOptions> division,
+        Vipi.Application.Content.IResourceLockService locks)
     {
+        _locks = locks;
         _db = db;
         _authz = authz;
         _projection = projection;
@@ -128,6 +131,8 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
 
     public async Task SetParentAsync(HierarchyNodeKind kind, int nodeId, string? parentCallsign, CancellationToken ct = default)
     {
+        // T-025: prima di tutto il lock della struttura. Il ruolo si guarda più sotto, per ACC del nodo.
+        await _locks.EnsureHeldAsync(Vipi.Application.Content.ResourceLockKeys.Structure, ct).ConfigureAwait(false);
         parentCallsign = string.IsNullOrWhiteSpace(parentCallsign) ? null : parentCallsign.Trim();
 
         // 1. Risolvi il nodo figlio + il suo ACC (per l'autorizzazione) + il suo callsign (per l'anti-ciclo).

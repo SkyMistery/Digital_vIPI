@@ -65,7 +65,7 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
         var topo = new TopologyBuilder(_db);
         var forme = new EfSectorShapeResolver(_db, new EfSectorAirspaceBindings(_db), new EfSectorShapeParts(_db));
         return new AppDocumentService(new EfAppDerivationRepository(_db), new EfSpecialAreaRepository(_db), _editing,
-            _authz, topo, new AgreementService(new EfAgreementRepository(_db), _authz, topo),
+            _authz, topo, new AgreementService(new EfAgreementRepository(_db), _authz, topo, LockDiRisorsaConcesso.Instance),
             new StubCoordinationSentenceTemplate(), new EfDocumentProfileRepository(_db),
             new Vipi.Application.Aor.AorService(), new NoMinimaSource(), forme, Guardia());
     }

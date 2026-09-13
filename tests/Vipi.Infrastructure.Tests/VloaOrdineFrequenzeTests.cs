@@ -46,7 +46,7 @@ public class VloaOrdineFrequenzeTests : IAsyncLifetime
         servizi.AddSingleton<IAccDerivationRepository>(new EfAccDerivationRepository(_db));
         servizi.AddSingleton<IDocumentProfileRepository>(_profili);
         servizi.AddSingleton<IAgreementService>(
-            new AgreementService(new EfAgreementRepository(_db), authz, new TopologyBuilder(_db)));
+            new AgreementService(new EfAgreementRepository(_db), authz, new TopologyBuilder(_db), LockDiRisorsaConcesso.Instance));
         servizi.AddSingleton<ICoordinationSentenceTemplate, StubCoordinationSentenceTemplate>();
         servizi.AddSingleton(authz);
         servizi.AddSingleton<ISectorShapeResolver>(

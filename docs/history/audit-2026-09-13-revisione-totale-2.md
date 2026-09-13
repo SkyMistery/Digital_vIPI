@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L2 in main**: T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -381,7 +381,7 @@ sicurezza-dal-vivo · **C-vivo** · `src/Vipi.Ui/Components/Doc/AirportSectionsE
 - **Correzione.** Montare il pannello solo se `_canEdit`; comprimere le ripetizioni della stessa firma nel
   registro; niente NOTA di `/Error` per ogni GET.
 
-**T-025 — Il lock di risorsa (Struttura, Trasferimenti, ACC, Confinanti) non è verificato da nessun servizio.**
+**✅ T-025 (L2, in main) — Il lock di risorsa (Struttura, Trasferimenti, ACC, Confinanti) non è verificato da nessun servizio.** Corretto su 44 scritture di 7 servizi (accordi, struttura, orfani, gerarchia, ripieghi, ACC, confinanti): `EnsureHeldAsync(admin:structure)` in testa, e `EditConflictException` diventa una `InvalidOperationException` perché le pagine la mostrino. ⚠️ Restano fuori, perché condivise: `IDeletionService.EliminaAsync` (anche da Pending e Versioni, già solo Admin e col piano ricalcolato) e `ReimportFromSourceAsync` (anche dagli editor d'aeroporto, già «non di un altro» sul lock del documento).
 content-b · C · `src/Vipi.Application/Content/ResourceLockService.cs:102`.
 - **Codice.** `EnsureHeldAsync` non ha chiamanti fuori dai test, e `StructureEditingService` controlla solo
   il ruolo.

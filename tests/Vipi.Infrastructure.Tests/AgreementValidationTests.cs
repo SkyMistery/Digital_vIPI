@@ -33,7 +33,7 @@ public class AgreementValidationTests : IAsyncLifetime
         await _db.Database.EnsureCreatedAsync();
         await RomaStructureSeed.SeedAsync(_db);
         _repo = new EfAgreementRepository(_db);
-        _svc = new AgreementService(_repo, new AllowAuthz(), new TopologyBuilder(_db));
+        _svc = new AgreementService(_repo, new AllowAuthz(), new TopologyBuilder(_db), LockDiRisorsaConcesso.Instance);
 
         var sectors = await _db.Sectors.ToListAsync();
         _neId = sectors.First(s => s.Callsign == "LIRR_NE_CTR").Id;

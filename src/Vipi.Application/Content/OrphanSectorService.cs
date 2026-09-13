@@ -73,12 +73,15 @@ public sealed class OrphanSectorService : IOrphanSectorService
     private readonly IEditAuthorizationService _authz;
     private readonly IImportStateStore _stati;
 
+    private readonly IResourceLockService _locks;
+
     public OrphanSectorService(IOrphanSectorRepository repo, IEditAuthorizationService authz,
-        IImportStateStore stati)
+        IImportStateStore stati, IResourceLockService locks)
     {
         _repo = repo;
         _authz = authz;
         _stati = stati;
+        _locks = locks;
     }
 
     /// <summary>La stessa soglia che usa il giro notturno: due letture diverse dello stesso metro sono il
@@ -115,6 +118,8 @@ public sealed class OrphanSectorService : IOrphanSectorService
 
     public async Task ReattachAsync(int orphanSectorId, int targetSectorId, CancellationToken ct = default)
     {
+        // T-025: riagganciare cambia la gerarchia, cioè la struttura — sotto il suo lock, come la pagina.
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
         await EnsureCanEditAsync(orphanSectorId, ct);
         await _repo.ReattachAsync(orphanSectorId, targetSectorId, ct);
     }

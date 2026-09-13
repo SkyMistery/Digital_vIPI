@@ -16,10 +16,12 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
     private readonly IEditAuthorizationService _authz;
     private readonly ITopologyProvider _topology;
     private readonly ISectorVolumeCatalog _volumi;
+    private readonly IResourceLockService _locks;
 
     public EfSectorFallbackService(VipiDbContext db, IEditAuthorizationService authz,
-        ITopologyProvider topology, ISectorVolumeCatalog volumi)
+        ITopologyProvider topology, ISectorVolumeCatalog volumi, IResourceLockService locks)
     {
+        _locks = locks;
         _db = db;
         _authz = authz;
         _topology = topology;
@@ -38,6 +40,8 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
     public async Task ReplaceAsync(string sectorCallsign, IReadOnlyList<FallbackRowEdit> rows, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        // T-025: la tabella dei ripieghi è struttura, e si scrive sotto il suo lock.
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
 
         if (string.IsNullOrWhiteSpace(sectorCallsign))
             throw new ValidationException(Lingua("Settore non indicato.", "No sector given."));

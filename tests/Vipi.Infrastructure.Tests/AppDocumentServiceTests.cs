@@ -53,7 +53,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var repo = new EfAppDerivationRepository(_db);
         var topo = new TopologyBuilder(_db);
         var authz = new AllowAuthz();
-        var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo);
+        var transfers = new AgreementService(new EfAgreementRepository(_db), authz, topo, LockDiRisorsaConcesso.Instance);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
         var docProfiles = new EfDocumentProfileRepository(_db);
         _agganciAip = new EfSectorAirspaceBindings(_db);

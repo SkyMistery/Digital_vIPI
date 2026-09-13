@@ -16,13 +16,26 @@ internal sealed class AccAdminService : IAccAdminService
     private readonly ISectorProjectionService _projection;
 
     public AccAdminService(IAccAdminRepository repo, IAccImportUseCase import,
-        ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection)
+        ISpecialAreaImportUseCase specialAreas, IEditAuthorizationService authz, ISectorProjectionService projection,
+        IResourceLockService locks)
     {
         _repo = repo;
         _import = import;
         _specialAreas = specialAreas;
         _authz = authz;
         _projection = projection;
+        _locks = locks;
+    }
+
+    private readonly IResourceLockService _locks;
+
+    /// <summary>Ruolo <b>e lock della struttura</b> (T-025, revisione del 13 settembre 2026): la pagina ACC spegne i
+    /// comandi senza lock, ma lo scopre solo al battito successivo. Gli import notturni chiamano i casi d'uso,
+    /// non questo servizio.</summary>
+    private async Task StrutturaAsync(CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
     }
 
     public Task<IReadOnlyList<AccAdminRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
@@ -31,7 +44,7 @@ internal sealed class AccAdminService : IAccAdminService
 
     public async Task<AccImportOutcome> ImportFromSourceAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);                        // solo il manual applica il guard
+        await StrutturaAsync(ct);                        // solo il manual applica il guard
         var result = await _import.RunAsync(ct);     // core ACC + subcenter (condiviso con l'auto)
         var special = await _specialAreas.RunAsync(ct);   // aree speciali: manual = auto, stesso stato DB (doc 02 §4.4)
         // I fallimenti aree speciali per-ACC risalgono alla UI, che li logga (direttiva logging, invariante #7).
@@ -40,7 +53,7 @@ internal sealed class AccAdminService : IAccAdminService
 
     public async Task<SpecialAreaImportResult> ImportSpecialAreasAsync(string accCode, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         var result = await _specialAreas.RunForAccAsync(accCode, ct);
 
         // Abilita solo se ha davvero portato a casa qualcosa: un ACC acceso ma con la fetch fallita entrerebbe nel
@@ -55,15 +68,15 @@ internal sealed class AccAdminService : IAccAdminService
         return result;
     }
 
-    public Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
+    public async Task<int> SetSpecialAreasEnabledAsync(int accId, bool enabled, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
-        return _repo.SetSpecialAreasEnabledAsync(accId, enabled, ct);
+        await StrutturaAsync(ct);
+        return await _repo.SetSpecialAreasEnabledAsync(accId, enabled, ct);
     }
 
     public async Task SetHiddenAsync(int accId, bool hidden, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetHiddenAsync(accId, hidden, ct);
         await _projection.SyncFromCatalogsAsync(ct);   // nascondere un ACC disattiva i suoi settori proiettati
         // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
@@ -74,7 +87,7 @@ internal sealed class AccAdminService : IAccAdminService
 
     public async Task SetSubcenterHiddenAsync(int id, bool hidden, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
 
         // Regola 1: una RADICE (settore senza padre) non si può nascondere finché ha figli visibili — li
         // orfanerebbe senza un nonno a cui riappenderli. I figli di un settore NON-radice risalgono invece al
@@ -102,7 +115,7 @@ internal sealed class AccAdminService : IAccAdminService
 
     public async Task SetSubcenterLimitsAsync(int id, int? lower, int? upper, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetSubcenterLimitsAsync(id, lower, upper, ct);
     }
 }

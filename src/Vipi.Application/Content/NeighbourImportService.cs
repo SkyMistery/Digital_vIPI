@@ -70,8 +70,10 @@ internal sealed class NeighbourImportService : INeighbourImportService
 
     public NeighbourImportService(INeighbourRepository repo, IAccDirectory directory,
         IEditAuthorizationService authz, IServiceScopeFactory scopeFactory, IOptions<NeighboursOptions> opt,
-        ForeignAccFetcher fetcher, NeighbourAdjacencyComputer computer, ForeignSectorResolver sectorResolver)
+        ForeignAccFetcher fetcher, NeighbourAdjacencyComputer computer, ForeignSectorResolver sectorResolver,
+        IResourceLockService locks)
     {
+        _locks = locks;
         _repo = repo;
         _directory = directory;
         _authz = authz;
@@ -80,6 +82,17 @@ internal sealed class NeighbourImportService : INeighbourImportService
         _fetcher = fetcher;
         _computer = computer;
         _sectorResolver = sectorResolver;
+    }
+
+    private readonly IResourceLockService _locks;
+
+    /// <summary>Ruolo <b>e lock della struttura</b> (T-025, revisione del 13 settembre 2026) per le scritture della
+    /// pagina Confinanti. ⚠️ <see cref="RecomputeFromArchiveAsync"/> resta fuori: lo chiama la pagina degli spazi
+    /// aerei, che quel lock non lo tiene.</summary>
+    private async Task StrutturaAsync(CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
     }
 
     public async Task<NeighbourImportResult> ImportAndComputeAsync(CancellationToken ct = default,
@@ -95,7 +108,7 @@ internal sealed class NeighbourImportService : INeighbourImportService
         IProgress<ForeignAccFetchProgress>? progress)
     {
         NeighbourDebugLog.Log("Import start");
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         NeighbourDebugLog.Log("Admin ok");
 
         // L'import dura ~30s (centinaia di GET IVAO). Il VipiDbContext iniettato è scoped al circuito Blazor
@@ -212,13 +225,13 @@ internal sealed class NeighbourImportService : INeighbourImportService
 
     public async Task SetStatusAsync(int id, NeighbourCandidateStatus status, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetStatusAsync(id, status, ct);
     }
 
     public async Task SetPolygonAsync(int id, string? regionMapPolygon, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         // Valida il poligono incollato: null da Project = JSON non parsabile / degenere.
         if (!string.IsNullOrWhiteSpace(regionMapPolygon) && AorPolygonProjector.Project(regionMapPolygon) is null)
             throw new Aor.ValidationException(Lingua("Poligono non valido: atteso JSON [[lng,lat],…] o [{lat,lng},…] con ≥3 punti.", "Invalid polygon: JSON [[lng,lat],…] or [{lat,lng},…] with 3 points or more expected."));
@@ -228,7 +241,7 @@ internal sealed class NeighbourImportService : INeighbourImportService
     public async Task<int> AddManualAsync(string homeAccCode, string foreignAccCode, string foreignAccName,
         string countryId, string foreignRootCallsign, string? regionMapPolygon, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         homeAccCode = (homeAccCode ?? "").Trim().ToUpperInvariant();
         foreignAccCode = (foreignAccCode ?? "").Trim().ToUpperInvariant();
         if (homeAccCode.Length == 0 || foreignAccCode.Length == 0)
@@ -249,7 +262,7 @@ internal sealed class NeighbourImportService : INeighbourImportService
 
     public async Task<int> GenerateVloaAsync(int id, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         var cand = await _repo.GetAsync(id, ct)
             ?? throw new Aor.ValidationException(Lingua("Candidato inesistente.", "The candidate does not exist."));
         if (cand.Status != NeighbourCandidateStatus.Confirmed)
@@ -261,7 +274,7 @@ internal sealed class NeighbourImportService : INeighbourImportService
 
     public async Task<AddForeignSectorResult> AddForeignSectorAsync(int candidateId, string callsign, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         var parsed = ForeignSectorCallsign.Parse(callsign);   // valida la forma (throwa ValidationException)
 
         // Scope DI dedicato: le fetch sorgente possono durare e il context del circuito Blazor potrebbe riciclarsi.

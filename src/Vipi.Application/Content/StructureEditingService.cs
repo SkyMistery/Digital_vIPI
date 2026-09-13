@@ -94,8 +94,9 @@ public sealed class StructureEditingService : IStructureEditingService
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
         IAirportSectorRepository airportSectors, IAirportSectorImporter sectorImporter,
         ISectorProjectionService projection, IAirportImportUseCase airportImport,
-        IDocumentImpactService impatti)
+        IDocumentImpactService impatti, IResourceLockService locks)
     {
+        _locks = locks;
         _repo = repo;
         _profile = profile;
         _authz = authz;
@@ -109,13 +110,27 @@ public sealed class StructureEditingService : IStructureEditingService
         _impatti = impatti;
     }
 
+    private readonly IResourceLockService _locks;
+
+    /// <summary>
+    /// La porta di ogni scrittura della struttura: ruolo <b>e lock della struttura</b> (T-025, revisione del 13
+    /// settembre 2026). Le pagine spengono i comandi senza lock, ma lo scoprono solo al battito successivo
+    /// (60 s): dopo uno «sblocca comunque» continuavano a salvare. Gli import di sfondo non passano di qui
+    /// (chiamano i casi d'uso), quindi non ne sono toccati.
+    /// </summary>
+    private async Task StrutturaAsync(CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
+    }
+
     public Task<IReadOnlyList<AccRow>> ListAccsAsync(CancellationToken ct = default) => _repo.ListAccsAsync(ct);
 
     public Task<StructureData?> LoadAsync(string accCode, CancellationToken ct = default) => _repo.LoadAsync(accCode, ct);
 
     public async Task<int> CreateAccAsync(string code, string name, string? countryPrefix, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         code = (code ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (code.Length is < 2 or > 8) throw new ValidationException(Lingua("Codice ACC non valido (es. LIRR).", "Invalid ACC code (e.g. LIRR)."));
@@ -127,13 +142,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteAccAsync(string accCode, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteAccAsync(accCode, ct);
     }
 
     public async Task<int> CreateAirportAsync(string accCode, string icao, string name, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         icao = (icao ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (icao.Length != 4) throw new ValidationException(Lingua("ICAO aeroporto non valido (4 lettere, es. LIRF).", "Invalid airport ICAO (4 letters, e.g. LIRF)."));
@@ -144,7 +159,7 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteAirportAsync(string accCode, int airportId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteAirportAsync(accCode, airportId, ct);
     }
 
@@ -163,7 +178,7 @@ public sealed class StructureEditingService : IStructureEditingService
     public async Task MoveAirportAsync(int airportId, string fromAccCode, string targetAccCode, CancellationToken ct = default)
     {
         // Spostamento cross-ACC: serve poter editare sia origine sia destinazione.
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         var esito = await _repo.MoveAirportAsync(airportId, targetAccCode, ct);
         if (esito is null) return;   // era già in quell'ACC
 
@@ -195,13 +210,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task SetAirportHiddenAsync(string accCode, int airportId, bool hidden, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetAirportHiddenAsync(accCode, airportId, hidden, ct);
     }
 
     public async Task SetAirportCategoryAsync(string accCode, int airportId, AirportCategory category, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetAirportCategoryAsync(accCode, airportId, category, ct);
         // ⚠️ Qui NON si chiama piu' IStationCatalogVersion.Bump(): la spinta la da'
         // BumpCatalogoStazioniInterceptor, sul salvataggio, per chiunque scriva un Acc o un Airport.
@@ -223,13 +238,13 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task<AirportImportResult> AutoAssignKnownAirportsAsync(CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);                       // solo il chiamante manual applica il guard
+        await StrutturaAsync(ct);                       // solo il chiamante manual applica il guard
         return await _airportImport.RunAsync(ct);   // core anagrafica (doc 03 §4.2); i Failures li logga la UI
     }
 
     public async Task<AirportDocResult> GenerateAirportDocumentAsync(string icao, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await GenerateAirportDocumentCoreAsync(icao, ct);
     }
 
@@ -312,7 +327,7 @@ public sealed class StructureEditingService : IStructureEditingService
         string? defaultFrequency, int coverageOrder, ApproachKind? approachKind, int? parentSectorId,
         int? airportId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         callsign = (callsign ?? "").Trim().ToUpperInvariant();
         name = (name ?? "").Trim();
         if (callsign.Length == 0) throw new ValidationException(Lingua("Callsign obbligatorio (es. LIRR_NE_CTR).", "The callsign is required (e.g. LIRR_NE_CTR)."));
@@ -331,31 +346,31 @@ public sealed class StructureEditingService : IStructureEditingService
 
     public async Task DeleteSectorAsync(string accCode, int sectorId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteSectorAsync(accCode, sectorId, ct);
     }
 
     public async Task SetFeaturedAirportsAsync(string accCode, IReadOnlyList<int> orderedAirportIds, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetFeaturedAirportsAsync(accCode, orderedAirportIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetFeaturedAppsAsync(string accCode, IReadOnlyList<int> orderedAppSectorIds, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetFeaturedAppsAsync(accCode, orderedAppSectorIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetFeaturedVloasAsync(string accCode, IReadOnlyList<int> orderedVloaDocIds, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetFeaturedVloasAsync(accCode, orderedVloaDocIds ?? Array.Empty<int>(), ct);
     }
 
     public async Task SetSectorFrequencyAsync(string accCode, int sectorId, string? frequencyMhz, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.SetSectorFrequencyAsync(accCode, sectorId, (frequencyMhz ?? "").Trim(), ct);
     }
 }

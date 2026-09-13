@@ -58,7 +58,7 @@ public class CatenaDiRipiegoTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         _topo = new TopologyBuilder(_db);
-        _svc = new EfSectorFallbackService(_db, new AllowAuthz(), _topo, new VolumiFinti());
+        _svc = new EfSectorFallbackService(_db, new AllowAuthz(), _topo, new VolumiFinti(), LockDiRisorsaConcesso.Instance);
     }
 
     public async Task DisposeAsync()

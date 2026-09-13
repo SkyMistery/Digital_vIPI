@@ -38,7 +38,7 @@ public class GerarchiaSenzaAnelliTests : IAsyncLifetime
         _svc = new EfHierarchyEditingService(
             _db, new AllowAuthz(), new ProiezioneFinta(),
             Options.Create(new NeighboursOptions()),
-            Options.Create(new DivisionOptions { IcaoPrefixes = new List<string> { "LI" } }));
+            Options.Create(new DivisionOptions { IcaoPrefixes = new List<string> { "LI" } }), LockDiRisorsaConcesso.Instance);
 
         // La configurazione di LIMF com'è in produzione: due APP sullo stesso scalo, l'aeroporto agganciato a
         // una delle due, e la seconda con un padre d'area scritto (lo stato SANO, prima del gesto).

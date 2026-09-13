@@ -99,7 +99,7 @@ public class CatalogoStantioTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private OrphanSectorService Servizio() => new(_orfani, new AuthzSi(), _stati);
+    private OrphanSectorService Servizio() => new(_orfani, new AuthzSi(), _stati, LockDiRisorsaConcesso.Instance);
 
     [Fact]
     public async Task Il_Callsign_Che_La_Sorgente_Non_Manda_Piu_Compare_Fra_Gli_Orfani()

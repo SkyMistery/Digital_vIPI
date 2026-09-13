@@ -23,13 +23,28 @@ public sealed class AgreementService : IAgreementService
     /// produzione li inietta il contenitore; nei test che la ricaduta non la guardano non si montano.
     /// </param>
     public AgreementService(IAgreementRepository repo, IEditAuthorizationService authz, ITopologyProvider topology,
-        ISectorVolumeCatalog? volumi = null, ICopPositions? punti = null)
+        IResourceLockService locks, ISectorVolumeCatalog? volumi = null, ICopPositions? punti = null)
     {
         _repo = repo;
         _authz = authz;
+        _locks = locks;
         _topology = topology;
         _volumi = volumi;
         _punti = punti;
+    }
+
+    private readonly IResourceLockService _locks;
+
+    /// <summary>
+    /// La porta di ogni scrittura degli accordi: ruolo <b>e lock della struttura</b> (T-025, revisione del 13
+    /// settembre 2026). La pagina Trasferimenti spegne i comandi senza lock, ma se ne accorge solo al battito
+    /// successivo (60 s): dopo uno «sblocca comunque» continuava a salvare sopra chi il lock l'aveva preso.
+    /// Come la prosa, chi scrive rinnova il lock.
+    /// </summary>
+    private async Task StrutturaAsync(CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
     }
 
     public Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string accCode, CancellationToken ct = default) =>
@@ -94,28 +109,28 @@ public sealed class AgreementService : IAgreementService
 
     public async Task<int> AddAgreementAsync(string accCode, AgreementInput input, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateAgreement(input);
         return await _repo.AddAgreementAsync(accCode, input, ct);
     }
 
     public async Task UpdateAgreementAsync(string accCode, int agreementId, AgreementInput input, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateAgreement(input);
         await _repo.UpdateAgreementAsync(accCode, agreementId, input, ct);
     }
 
     public async Task DeleteAgreementAsync(string accCode, int agreementId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteAgreementAsync(accCode, agreementId, ct);
     }
 
     public async Task<int> AddSectionAsync(string accCode, int agreementId, AgreementSectionInput input,
         CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateSection(input);
         return await _repo.AddSectionAsync(accCode, agreementId, input, ct);
     }
@@ -123,26 +138,26 @@ public sealed class AgreementService : IAgreementService
     public async Task UpdateSectionAsync(string accCode, int sectionId, AgreementSectionInput input,
         CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateSection(input);
         await _repo.UpdateSectionAsync(accCode, sectionId, input, ct);
     }
 
     public async Task DeleteSectionAsync(string accCode, int sectionId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteSectionAsync(accCode, sectionId, ct);
     }
 
     public async Task<int?> CopySectionToReverseAsync(string accCode, int sectionId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.CopySectionToReverseAsync(accCode, sectionId, ct);
     }
 
     public async Task<int> MergeSectionsAsync(string accCode, int keepId, int absorbId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         if (keepId == absorbId)
             throw new ValidationException(Lingua("Una sezione non può assorbire sé stessa.", "A section cannot absorb itself."));
         return await _repo.MergeSectionsAsync(accCode, keepId, absorbId, ct);
@@ -151,100 +166,100 @@ public sealed class AgreementService : IAgreementService
     public async Task<int> AddClauseAsync(string accCode, int sectionId, AgreementClauseInput input,
         CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateClause(input);
         return await _repo.AddClauseAsync(accCode, sectionId, input, ct);
     }
 
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         ValidateClause(input);
         await _repo.UpdateClauseAsync(accCode, clauseId, input, ct);
     }
 
     public async Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DeleteClauseAsync(accCode, clauseId, ct);
     }
 
     public async Task MoveClauseAsync(string accCode, int clauseId, bool up, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.MoveClauseAsync(accCode, clauseId, up, ct);
     }
 
     public async Task MoveClauseToAsync(string accCode, int clauseId, int targetClauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.MoveClauseToAsync(accCode, clauseId, targetClauseId, ct);
     }
 
     public async Task<int> AddAlternativeAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.AddAlternativeAsync(accCode, clauseId, ct);
     }
 
     public async Task<int> AddExceptionAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.AddExceptionAsync(accCode, clauseId, ct);
     }
 
     public async Task<int> DuplicateVariantGroupAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.DuplicateVariantGroupAsync(accCode, clauseId, ct);
     }
 
     public async Task<int> DuplicateClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.DuplicateClauseAsync(accCode, clauseId, ct);
     }
 
     public async Task DetachVariantAsync(string accCode, int clauseId, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         await _repo.DetachVariantAsync(accCode, clauseId, ct);
     }
 
     public async Task<int> SetLevelAsync(string accCode, IReadOnlyList<int> clauseIds, ParsedLevel level, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.SetLevelAsync(accCode, clauseIds, level, ct);
     }
 
     public async Task<int> SetConditionAsync(string accCode, IReadOnlyList<int> clauseIds, string? areaLabel,
         bool areaNegated, bool areaAll, string? customLabel, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.SetConditionAsync(accCode, clauseIds, areaLabel, areaNegated, areaAll, customLabel, ct);
     }
 
     public async Task<int> DeleteClausesAsync(string accCode, IReadOnlyList<int> clauseIds, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.DeleteClausesAsync(accCode, clauseIds, ct);
     }
 
     public async Task<int> RestoreAgreementAsync(string accCode, AgreementSnapshot snapshot, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.RestoreAgreementAsync(accCode, snapshot, ct);
     }
 
     public async Task<int?> RestoreSectionAsync(string accCode, AgreementSectionRestore section, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.RestoreSectionAsync(accCode, section, ct);
     }
 
     public async Task<int> RestoreClausesAsync(string accCode, IReadOnlyList<AgreementClauseRestore> clauses, CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        await StrutturaAsync(ct);
         return await _repo.RestoreClausesAsync(accCode, clauses, ct);
     }
 

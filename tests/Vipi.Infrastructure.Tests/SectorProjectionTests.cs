@@ -65,7 +65,7 @@ public class SectorProjectionTests : IAsyncLifetime
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
         _proj = new EfSectorProjectionService(_db);
         _hier = new EfHierarchyEditingService(_db, authz, _proj,
-            Options.Create(new Vipi.Application.NeighboursOptions()), Options.Create(new DivisionOptions()));
+            Options.Create(new Vipi.Application.NeighboursOptions()), Options.Create(new DivisionOptions()), LockDiRisorsaConcesso.Instance);
     }
 
     public async Task DisposeAsync()
