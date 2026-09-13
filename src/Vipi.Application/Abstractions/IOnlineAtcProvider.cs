@@ -27,6 +27,13 @@ public sealed class OnlineAtcSnapshot
     public required IReadOnlyList<OnlineAtc> Details { get; init; }
     public required DateTimeOffset AsOf { get; init; }
 
+    /// <summary>
+    /// Vero se l'ultima fotografia è troppo vecchia per dire chi è online: elenchi vuoti, <see cref="AsOf"/>
+    /// resta quello dell'ultimo dato buono. ⚠️ «Nessuno online» qui vuol dire «non lo sappiamo»: chi mostra
+    /// l'età del feed lo deve dire (T-034, revisione del 13 settembre 2026).
+    /// </summary>
+    public bool Expired { get; init; }
+
     /// <summary>Snapshot vuoto: usato prima del primo poll così le viste restano sicure (nessun online).</summary>
     public static readonly OnlineAtcSnapshot Empty = new()
     {

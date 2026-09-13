@@ -137,7 +137,7 @@ Mappata su `IvaoOptions` (`src/Vipi.Infrastructure/Ivao/IvaoOptions.cs`). Vedi `
 | `Ivao:TokenEndpoint` | string | `https://api.ivao.aero/v2/oauth/token` | Endpoint token OpenID (client_credentials). |
 | `Ivao:DivisionMembersPathFormat` | string | `/v2/divisions/{0}/members` | Template path membri divisione; `{0}` = `Division:Code`. Richiede token. |
 | `Ivao:Scopes` | string | `tracker configuration` | Scope richiesti per il token client_credentials (`configuration` serve per aeroporti/ACC/subcenter). |
-| `Ivao:PollSeconds` | int | `60` | Intervallo di polling. Una sola chiamata/minuto a IVAO indipendentemente dagli utenti (RNF-1/RNF-4). **Minimo effettivo 15 s** (clamp nel hosted service). |
+| `Ivao:PollSeconds` | int | `60` | Intervallo di polling. Una sola chiamata/minuto a IVAO indipendentemente dagli utenti (RNF-1/RNF-4). **Minimo effettivo 15 s** (`IvaoOptions.PollPeriod`). Ne dipendono i minuti di traffico delle statistiche (ogni giro vale quanto dura) e la scadenza della fotografia degli ATC online: oltre tre giri persi, mai meno di 5 minuti, nessuno risulta online e la vista live dice che il dato è scaduto. |
 | `Ivao:StaffVerifyHours` | int | `24` | Ogni quante ore ri-verificare il roster staffisti via `/v2/users/{vid}` (disattiva chi non è più staff IT). |
 | `Ivao:AirportsPath` | string | `/v2/airports` | Anagrafica aeroporti (paginato). Richiede scope `configuration`. |
 | `Ivao:AirportsCountryId` | string | `IT` | Paese (countryId) per aeroporti **e** ACC/center. |

@@ -72,17 +72,33 @@ public sealed record TrafficFlush(IReadOnlyList<TrafficLegRow> Legs, IReadOnlyLi
 /// <para><b>I minuti si contano per giro</b>, non come <c>ultimo − primo</c>: chi esce dal settore e rientra
 /// nella stessa tratta regalerebbe al controllore anche il tempo in cui non c'era.</para>
 ///
+/// <para>🔴 <b>Ogni giro vale quanto dura</b> (T-068, revisione del 13 settembre 2026). Contava un minuto a
+/// giro, legato in silenzio a <c>PollSeconds = 60</c>: con il giro da due minuti le statistiche dimezzavano.
+/// Si contano i secondi del giro e si scrivono minuti interi; l'archivio resta in minuti.</para>
+///
 /// <para>Puro nel senso che conta: nessun I/O e nessun orologio interno (l'istante lo passa il chiamante).
 /// Non è thread-safe: lo usa il solo poller, un giro alla volta.</para>
 /// </summary>
 public sealed class TrafficLedger
 {
+    /// <summary>Il giro che vale un minuto: quello di chi non dice quanto dura il suo.</summary>
+    public static readonly TimeSpan GiroPredefinito = TimeSpan.FromMinutes(1);
+
     private readonly Dictionary<long, Sessione> _sessioni = new();
+    private readonly int _secondiPerGiro;
+
+    /// <param name="giro">Quanto dura un giro del poller. Null = un minuto.</param>
+    public TrafficLedger(TimeSpan? giro = null)
+    {
+        var durata = giro ?? GiroPredefinito;
+        if (durata <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(giro), durata, "Un giro dura più di zero.");
+        _secondiPerGiro = Math.Max(1, (int)Math.Round(durata.TotalSeconds));
+    }
 
     private sealed class Sessione
     {
         public readonly List<Leg> Legs = new();
-        public int MinutiConTraffico;
+        public int SecondiConTraffico;
         public bool Sporca;
         public DateTimeOffset UltimaScrittura;
     }
@@ -98,7 +114,8 @@ public sealed class TrafficLedger
         public string? AircraftIcao { get; set; }
         public DateTimeOffset FirstSeenUtc { get; set; }
         public DateTimeOffset LastSeenUtc { get; set; }
-        public int SeenMinutes { get; set; }
+        /// <summary>Secondi visti: si scrivono come minuti interi.</summary>
+        public int SecondiVisti { get; set; }
         public bool SawMovement { get; set; }
         public bool HasObservationGap { get; set; }
         public FlightPhase? FirstPhase { get; set; }
@@ -125,7 +142,7 @@ public sealed class TrafficLedger
     /// contatore ripartirebbe da zero e sovrascriverebbe con un numero più piccolo quello vero.</param>
     public void Hydrate(long sessionId, IEnumerable<TrafficLegRow> legs, int trafficMinutes = 0)
     {
-        var s = new Sessione { UltimaScrittura = DateTimeOffset.MinValue, MinutiConTraffico = trafficMinutes };
+        var s = new Sessione { UltimaScrittura = DateTimeOffset.MinValue, SecondiConTraffico = trafficMinutes * 60 };
         foreach (var l in legs)
             s.Legs.Add(new Leg
             {
@@ -138,7 +155,7 @@ public sealed class TrafficLedger
                 AircraftIcao = l.AircraftIcao,
                 FirstSeenUtc = l.FirstSeenUtc,
                 LastSeenUtc = l.LastSeenUtc,
-                SeenMinutes = l.SeenMinutes,
+                SecondiVisti = l.SeenMinutes * 60,
                 SawMovement = l.SawMovement,
                 HasObservationGap = l.HasObservationGap,
                 FirstPhase = l.FirstPhase,
@@ -187,7 +204,7 @@ public sealed class TrafficLedger
                 AircraftIcao = aircraftIcao,
                 FirstSeenUtc = now,
                 LastSeenUtc = now,
-                SeenMinutes = 0,
+                SecondiVisti = 0,
                 FirstPhase = phase,
                 EntryAltitudeFt = Piedi(altitudeFt),
             };
@@ -210,7 +227,7 @@ public sealed class TrafficLedger
         }
 
         leg.LastSeenUtc = now;
-        leg.SeenMinutes++;
+        leg.SecondiVisti += _secondiPerGiro;
         if (FlightPhases.IsMovement(phase)) leg.SawMovement = true;
 
         // La fase dell'ULTIMO avvistamento, non «la fase del volo»: insieme alla prima è ciò che distingue
@@ -274,7 +291,7 @@ public sealed class TrafficLedger
     public void EndPoll(long sessionId, bool hadTraffic)
     {
         if (!_sessioni.TryGetValue(sessionId, out var s)) return;
-        if (hadTraffic) s.MinutiConTraffico++;
+        if (hadTraffic) s.SecondiConTraffico += _secondiPerGiro;
     }
 
     /// <summary>
@@ -333,7 +350,7 @@ public sealed class TrafficLedger
 
     private static TrafficLegRow Row(long sessionId, Leg l) => new(
         sessionId, l.PilotCallsign, l.LegOrdinal, l.PilotUserId, l.FlightPlanId, l.DepIcao, l.ArrIcao,
-        l.AircraftIcao, l.FirstSeenUtc, l.LastSeenUtc, l.SeenMinutes, l.SawMovement, l.HasObservationGap,
+        l.AircraftIcao, l.FirstSeenUtc, l.LastSeenUtc, l.SecondiVisti / 60, l.SawMovement, l.HasObservationGap,
         l.FirstPhase, l.LastPhase, l.SawAirborne, l.EntryAltitudeFt, l.ExitAltitudeFt, l.MaxAltitudeFt,
         l.HandoffToSessionId, l.HandoffFromSessionId, l.ShapeSource);
 
@@ -341,5 +358,5 @@ public sealed class TrafficLedger
         sessionId,
         TrafficCount: s.Legs.Count,
         MovementCount: s.Legs.Count(l => l.SawMovement),
-        TrafficMinutes: s.MinutiConTraffico);
+        TrafficMinutes: s.SecondiConTraffico / 60);
 }

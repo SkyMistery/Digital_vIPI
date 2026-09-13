@@ -101,8 +101,9 @@ public sealed class VipiHealthCheck : IHealthCheck
                 $"{incongruenze} incongruenze dati rilevate (vedi /services/vsop/admin/diagnostics).", data: data);
         }
 
-        // Snapshot mai aggiornato o troppo vecchio: degradato (il DB e la consultazione funzionano comunque).
-        if (snap.AsOf == default || age > TimeSpan.FromMinutes(5))
+        // Snapshot mai aggiornato o scaduto: degradato (il DB e la consultazione funzionano comunque). La soglia
+        // è quella della cache (T-034): la stessa che spegne il pallino «in frequenza» nelle pagine.
+        if (snap.AsOf == DateTimeOffset.MinValue || snap.Expired)
             return HealthCheckResult.Degraded("Cache ATC online non aggiornata (API IVAO?).", data: data);
 
         return HealthCheckResult.Healthy("OK", data);

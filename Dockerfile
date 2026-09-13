@@ -20,5 +20,11 @@ ENV ASPNETCORE_URLS=http://+:8080
 # Niente FileSystemWatcher sulle config: su host con limite inotify basso (es. Render) i watcher
 # di appsettings*.json esauriscono le istanze inotify e l'avvio crasha (IOException in CreateBuilder).
 ENV DOTNET_hostBuilder__reloadConfigOnChange=false
+# 🔴 T-062 (revisione del 13 settembre 2026): il processo NON gira come root. L'immagine aspnet porta l'utente
+# `app` ($APP_UID), ma senza questa riga lo si ignorava — mentre ci.yml diceva il contrario. /app resta di root
+# e in sola lettura; /app/data è l'unica cartella dell'applicazione scrivibile, quella del volume SQLite. La
+# diagnostica ripiega da sé sulla temporanea, e il key-ring su Render sta nel database.
+RUN mkdir -p /app/data && chown "$APP_UID" /app/data
+USER $APP_UID
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "Vipi.Host.dll"]

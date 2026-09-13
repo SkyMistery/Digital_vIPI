@@ -105,9 +105,31 @@ public sealed class BridgeOrchestrator
             });
         }
 
-        // Stessa selezione e nessuna richiesta esplicita: non ripeto il giro (né verso Aurora né verso il sito).
+        // Stessa selezione e nessuna richiesta esplicita: non ripeto il giro verso il sito. Rileggo però la
+        // posizione, perché il controllore può ASSUMERE il traffico già selezionato: senza, la scrittura restava
+        // bloccata su «non assunto» finché non cambiava selezione (T-052).
         if (!force && string.Equals(traffic, _lastTraffic, StringComparison.OrdinalIgnoreCase))
-            return Current;
+        {
+            var current = Current;
+            var fresh = await _aurora.GetPositionAsync(traffic!, ct).ConfigureAwait(false);
+            var assumed = fresh?.IsAssumedBy(connected) ?? false;
+            if (assumed == current.TrafficAssumed && current.ConnectedCallsign == connected)
+                return current;
+
+            return Publish(new BridgeState
+            {
+                AuroraConnected = current.AuroraConnected,
+                OwnerCallsign = current.OwnerCallsign,
+                ConnectedCallsign = connected,
+                SelectedTraffic = current.SelectedTraffic,
+                TrafficAssumed = assumed,
+                FlightPlan = current.FlightPlan,
+                Position = fresh,
+                Proposal = current.Proposal,
+                ProposalFromCache = current.ProposalFromCache,
+                Notice = current.Notice,
+            });
+        }
 
         _lastTraffic = traffic;
 

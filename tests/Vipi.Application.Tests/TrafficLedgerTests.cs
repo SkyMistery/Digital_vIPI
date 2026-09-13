@@ -21,6 +21,52 @@ public class TrafficLedgerTests
         long sessione = 100, double quota = 24000) =>
         l.Observe(sessione, new LegObservation(pilota, 785031, fp, dep, arr, "B38M", fase, quota), quando);
 
+    /// <summary>T-068: con il giro da due minuti ogni avvistamento vale due minuti, non uno.</summary>
+    [Fact]
+    public void Con_il_giro_da_due_minuti_ogni_giro_vale_due_minuti()
+    {
+        var l = new TrafficLedger(TimeSpan.FromMinutes(2));
+        Vedi(l, T0);
+        Vedi(l, T0.AddMinutes(2));
+        Vedi(l, T0.AddMinutes(4));
+        l.EndPoll(100, true);
+        l.EndPoll(100, true);
+
+        var flush = l.TakeAll(T0.AddMinutes(4));
+        Assert.Equal(6, flush.Legs.Single().SeenMinutes);
+        Assert.Equal(4, flush.Counters.Single().TrafficMinutes);
+    }
+
+    /// <summary>T-068, l'altro verso: con il giro da trenta secondi tre giri sono un minuto e mezzo, e si scrive
+    /// il minuto intero — non tre.</summary>
+    [Fact]
+    public void Con_il_giro_da_trenta_secondi_si_scrivono_minuti_interi()
+    {
+        var l = new TrafficLedger(TimeSpan.FromSeconds(30));
+        Vedi(l, T0);
+        Vedi(l, T0.AddSeconds(30));
+        Vedi(l, T0.AddSeconds(60));
+
+        Assert.Equal(1, l.TakeAll(T0.AddSeconds(60)).Legs.Single().SeenMinutes);
+    }
+
+    [Fact]
+    public void Dopo_un_riavvio_i_minuti_in_archivio_ripartono_col_giro_nuovo()
+    {
+        var l = new TrafficLedger(TimeSpan.FromMinutes(2));
+        l.Hydrate(100, new[]
+        {
+            new TrafficLegRow(100, "AZA123", 1, 785031, 900, "LIRF", "LIRN", "B38M", T0, T0.AddMinutes(9), 10, false, false),
+        }, trafficMinutes: 10);
+
+        Vedi(l, T0.AddMinutes(10));
+        l.EndPoll(100, true);
+
+        var flush = l.TakeAll(T0.AddMinutes(10));
+        Assert.Equal(12, flush.Legs.Single().SeenMinutes);
+        Assert.Equal(12, flush.Counters.Single().TrafficMinutes);
+    }
+
     [Fact]
     public void Un_aereo_nuovo_apre_una_tratta_e_chiede_di_scrivere_subito()
     {

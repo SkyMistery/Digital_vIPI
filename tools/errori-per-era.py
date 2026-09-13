@@ -77,8 +77,10 @@ for blocco in re.split(r"\n-{70,}\n", testo):
     if not m:
         continue
     orario, _, resto = m.groups()
-    tipo = re.search(r"^((?:System|Microsoft)\.[\w.]+)", resto, re.M)
-    messaggio = re.search(r"^(?:System|Microsoft)[\w.]+: (.{0,70})", resto, re.M)
+    # Il tipo e' la prima riga «Namespace.TipoException[: messaggio]», di QUALUNQUE namespace: col solo
+    # System.*/Microsoft.* le MySqlConnector.MySqlProtocolException dell'8 settembre uscivano come «-» (T-076).
+    tipo = re.search(r"^([A-Za-z_]\w*(?:\.\w+)*\.\w*Exception)(?::|$)", resto, re.M)
+    messaggio = re.search(r"^[A-Za-z_]\w*(?:\.\w+)*\.\w*Exception: (.{0,70})", resto, re.M)
     fotogramma = re.search(r"at (Vipi\.[\w.<>`]+)\(", resto)
     voci.append((orario, era(orario),
                  (tipo.group(1).split(".")[-1] if tipo else "-",

@@ -22,7 +22,8 @@ namespace Vipi.Application.Stats;
 public sealed class AtcTrafficRecorder
 {
     private readonly ISectorVolumeCatalog _catalogo;
-    private readonly TrafficLedger _registro = new();
+    private readonly TrafficLedger _registro;
+    private readonly TimeSpan _finestraConsegna;
 
     /// <summary>A chi era attribuito ogni pilota nel giro precedente: serve a riconoscere le consegne.</summary>
     private readonly Dictionary<string, (long SessionId, DateTimeOffset When)> _giroPrecedente =
@@ -44,6 +45,9 @@ public sealed class AtcTrafficRecorder
     /// poller fermo un'ora scriverebbe «consegnato a…» ogni volta che, tornato su, un aeroplano si trova
     /// sotto un altro controllore. Due giri e mezzo di tolleranza coprono un giro perso; oltre, il passaggio
     /// non l'abbiamo visto e non si scrive.</para>
+    ///
+    /// <para>È la finestra del giro da un minuto: con un giro più lungo vale due giri e mezzo di quello
+    /// (T-068), o nessuna consegna cadrebbe mai dentro.</para>
     /// </summary>
     public static readonly TimeSpan HandoffWindow = TimeSpan.FromMinutes(2.5);
 
@@ -51,10 +55,14 @@ public sealed class AtcTrafficRecorder
     /// Il gettone dei cambi di forma. ⚠️ Facoltativo: senza, la cache dura il suo TTL e basta — è il
     /// comportamento di prima, e i test che montano il registratore a mano non devono conoscerlo.
     /// </param>
-    public AtcTrafficRecorder(ISectorVolumeCatalog catalogo, Airspace.ShapeChangeStamp? forme = null)
+    /// <param name="giro">Quanto dura un giro del poller (<c>Ivao:PollSeconds</c>). Null = un minuto.</param>
+    public AtcTrafficRecorder(ISectorVolumeCatalog catalogo, Airspace.ShapeChangeStamp? forme = null, TimeSpan? giro = null)
     {
         _catalogo = catalogo;
         _forme = forme;
+        _registro = new TrafficLedger(giro);
+        var finestra = (giro ?? TrafficLedger.GiroPredefinito) * 2.5;
+        _finestraConsegna = finestra > HandoffWindow ? finestra : HandoffWindow;
     }
 
     /// <summary>Il gettone che dice «le forme sono cambiate»: vedi <see cref="Airspace.ShapeChangeStamp"/>.</summary>
@@ -122,7 +130,7 @@ public sealed class AtcTrafficRecorder
             // su cui scrivere «ricevuto da».
             if (_giroPrecedente.TryGetValue(p.Callsign, out var prima)
                 && prima.SessionId != sessionId
-                && snapshot.AsOf - prima.When <= HandoffWindow)
+                && snapshot.AsOf - prima.When <= _finestraConsegna)
             {
                 _registro.NoteHandoff(prima.SessionId, sessionId, p.Callsign);
                 subito.Add(sessionId);

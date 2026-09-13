@@ -452,7 +452,7 @@ services · **P** · `src/Vipi.Infrastructure/Ivao/StaffRosterVerificationServic
   Aggrava T-002.
 - **Correzione.** Passare a `GatedImportLoop` con una categoria propria.
 
-**T-034 — La fotografia degli ATC online non scade: con il whazzup giù si mostrano per ore controllori che hanno staccato.**
+**✅ T-034 (L11, in main: `OnlineAtcCache` scade dopo tre giri persi, mai meno di 5 min; elenchi vuoti con `Expired`, la vista live dice «scaduto», la salute usa la stessa soglia) — La fotografia degli ATC online non scade: con il whazzup giù si mostrano per ore controllori che hanno staccato.**
 services · **P** · `src/Vipi.Infrastructure/Ivao/AtcPollingHostedService.cs:136`.
 - **Codice.** `OnlineAtcCache` non ha TTL.
 - **Precisazione.** LivePage mostra già l'età del feed; il pallino e la presidenza no.
@@ -565,13 +565,13 @@ aero · **P** · `src/Vipi.Application/Weather/MetarParser.cs:14` (e `:19`).
 - **Perché PLAUSIBILE.** Non si sa quanto spesso le sorgenti servano questa forma.
 - **Correzione.** Accettare i suffissi `///` e `NDV` nelle due regex.
 
-**T-051 — AuroraProfiles: la sezione copiata si incolla alla riga precedente se questa non termina con a-capo.**
+**✅ T-051 (L11, in main: un blocco seguito da un altro chiude col terminatore dominante; l'ultimo resta intatto) — AuroraProfiles: la sezione copiata si incolla alla riga precedente se questa non termina con a-capo.**
 services · C · `src/Vipi.AuroraProfiles/ProfileSwapper.cs:78`.
 - **Scenario.** `Color=12[MAPS]`: l'intestazione si perde e la sezione [MAPS] della destinazione si fonde
   con quella prima.
 - **Correzione.** Aggiungere il terminatore dominante prima di inserire.
 
-**T-052 — Bridge Aurora: «assunto» si calcola solo al cambio di selezione.**
+**✅ T-052 (L11, in main: a stessa selezione si rilegge `#TRPOS` e si ripubblica se l'assunzione cambia, senza richiamare il sito) — Bridge Aurora: «assunto» si calcola solo al cambio di selezione.**
 services · C · `src/Vipi.AuroraBridge.Core/BridgeOrchestrator.cs:109`.
 - **Scenario.** Il controllore assume il traffico già selezionato: la scrittura resta bloccata su «Traffico
   non assunto» finché non cambia selezione o preme Aggiorna.
@@ -639,7 +639,7 @@ di documenti nascosti o mai pubblicati (id enumerabili), e la mette in output ca
 `src/Vipi.Ui/Pages/Aor3dFullPage.razor:56` · Togliere la rotta, che non ha ingressi, oppure passare dalle
 porte pubbliche.
 
-**T-062** — Il `Dockerfile` gira come root (manca `USER $APP_UID`), mentre `ci.yml:181` dichiara il
+**✅ T-062** (L11, in main: `USER $APP_UID`, `/app/data` scrivibile; ⚠️ NON provato in locale (daemon Docker bloccato), lo prova il job `docker-image` della CI) — Il `Dockerfile` gira come root (manca `USER $APP_UID`), mentre `ci.yml:181` dichiara il
 contrario. Riguarda l'immagine Render di anteprima. · sec-infra · C · `Dockerfile:14` · Aggiungere `USER` e
 correggere il commento.
 
@@ -664,11 +664,11 @@ con un lato dritto (famiglia R-018). · aero · C · `src/Vipi.Infrastructure/Se
 **✅ T-067** (L10, in main: `GetCycle(data) == ciclo`; il test che accettava «2614» rovesciato) — `EffectiveUtcForCycle` accetta «2614» in un anno da 13 cicli e restituisce la data di 2701.
 · aero · C · `src/Vipi.Domain/Services/AiracService.cs:52` · Verificare che `GetCycle(d) == t`.
 
-**T-068** — I minuti di traffico si contano «uno per giro», legati in silenzio a `PollSeconds = 60`;
+**✅ T-068** (L11, in main: `TrafficLedger` conta i secondi del giro vero `IvaoOptions.PollPeriod` e scrive minuti interi; finestra di consegna 2,5 giri) — I minuti di traffico si contano «uno per giro», legati in silenzio a `PollSeconds = 60`;
 l'audit prestazioni ne propone il raddoppio. · services · C · `src/Vipi.Application/Stats/TrafficLedger.cs:213`
 · Contare i minuti trascorsi, oppure bloccare la configurazione.
 
-**T-069** — `TransientRetryHandler`: il ramo «timeout: ritenta» non scatta mai, perché il token è già
+**✅ T-069** (L11, in main: ramo tolto, provato che il timeout del client fa UNA chiamata; test del retry nuovi) — `TransientRetryHandler`: il ramo «timeout: ritenta» non scatta mai, perché il token è già
 annullato da `HttpClient.Timeout`, e tutti i tentativi condividono i 15 s. · services · C ·
 `src/Vipi.Infrastructure/Ivao/TransientRetryHandler.cs:25` · Timeout per tentativo, oppure togliere ramo e
 commento.
@@ -691,7 +691,7 @@ Assert, nessuna iscrizione a `UnobservedTaskException`), `DiagnosticaCircuitoTes
 di `CronometroAvvioTests`. · quality · C · `tests/Vipi.Ui.Tests/DelayedUiActionTests.cs:104` · Dare a
 ciascuno un'asserzione osservabile.
 
-**T-074** — Lo zip di consegna ha voci col backslash (Compress-Archive 1.0.1), e un estrattore lato Linux
+**✅ T-074** (L11, in main: `ZipArchive` con `/` e controllo sulle voci; misurato 20/20 col backslash su 1.26.0, e `zipfile` di Python su Windows lo nasconde) — Lo zip di consegna ha voci col backslash (Compress-Archive 1.0.1), e un estrattore lato Linux
 potrebbe creare file piatti. · quality · **P** · `tools/prepara-pacchetto.ps1:213` · `ZipArchive` con `/`,
 oppure un controllo sulle voci.
 
@@ -699,7 +699,7 @@ oppure un controllo sulle voci.
 piste) non solleva, quindi il catch inghiotte solo i guasti veri. · quality · **P** ·
 `src/Vipi.Ui/Pages/AdminTrasferimentiPage.razor:2883` · Restringere e loggare.
 
-**T-076** — `errori-per-era.py` riconosce il tipo solo per `System.*` e `Microsoft.*`: le tre
+**✅ T-076** (L11, in main: tipo = prima riga `Namespace.*Exception` di qualunque namespace; sui dati veri 3 voci «-» → 0) — `errori-per-era.py` riconosce il tipo solo per `System.*` e `Microsoft.*`: le tre
 `MySqlProtocolException` dell'8 settembre escono come «-» e restano fuori dalle prime 15. · quality · C ·
 `tools/errori-per-era.py:80` · Prendere la prima riga dopo l'intestazione.
 
@@ -771,7 +771,7 @@ T-053, se si sceglie di allargare le colonne invece di validare; resta comunque 
 | **L8** | **Release, documenti, editor** | T-008, T-012 (decisione Editor/Admin), T-026, T-027, T-028, T-064, T-065 | T-012 aspetta la scelta della regola |
 | **L9** | **Dati e statistiche** | T-030, T-031, T-032, T-035, T-036, T-053, T-054, T-055, T-045 | T-053: prima la validazione nel servizio; la colonna più larga è opzionale e additiva |
 | **L10** | **Dominio aeronautico e input** | T-022, T-023, T-046, T-047, T-048, T-049, T-066, T-067 | T-022 e T-023 hanno anche valore di sicurezza (DoS da Editor): possono salire in L1 se c'è spazio |
-| **L11** | **Servizi e strumenti** | T-034, T-051, T-052, T-068, T-069, T-074, T-076, T-062 | – |
+| **L11** ✅ | **Servizi e strumenti** | T-034, T-051, T-052, T-068, T-069, T-074, T-076, T-062 | Chiuso in main il 13-set |
 | **L12** | **Garanzie, test e documenti** | T-056 (subito: rigenerare l'atteso), T-087, T-073, T-057, T-058, T-079, T-080, T-081, T-082, T-083, T-071, T-075, T-078, T-060, T-086 | T-056 conviene farlo in testa al primo lotto, perché protegge tutti gli altri |
 | **L13** | **Piattaforma** | T-059 | Lavoro di settimane (Pomelo 9+, riverifica del set MySQL, CI net10): va aperto ora, la scadenza è il 10 novembre |
 

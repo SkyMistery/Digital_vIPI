@@ -198,8 +198,8 @@ switch ($Azione) {
         Write-Host "Zip: $($dichiarati.Count) file dichiarati + IMPRONTE.txt + $((Get-ChildItem $docs -File).Count) fogli in docs/" -ForegroundColor Cyan
         if ($SoloProva) { Write-Host '(prova: nessuno zip scritto)' -ForegroundColor Yellow; break }
 
-        # Si passa da una cartella di transito: Compress-Archive non sa scegliere i nomi delle voci, e
-        # l'unica forma che conta e' quella - due rami paralleli, `solo-...` e `docs`.
+        # Si passa da una cartella di transito: i nomi delle voci si leggono da li', e l'unica forma che conta
+        # e' quella - due rami paralleli, `solo-...` e `docs`.
         $transito = Join-Path $env:TEMP ("vipi-zip-" + [guid]::NewGuid().ToString('N'))
         New-Item -ItemType Directory -Force -Path (Join-Path $transito $Pacchetto) | Out-Null
         foreach ($r in ($dichiarati + 'IMPRONTE.txt')) {
@@ -210,8 +210,26 @@ switch ($Azione) {
         Copy-Item $docs (Join-Path $transito 'docs') -Recurse
 
         if (Test-Path $zip) { Remove-Item $zip -Force }
-        Compress-Archive -Path (Join-Path $transito '*') -DestinationPath $zip -CompressionLevel Optimal
+        # 🔴 T-074 (revisione del 13 settembre 2026): NIENTE Compress-Archive. La 1.0.1 di PowerShell 5.1 scrive
+        # le voci col BACKSLASH (misurato sullo zip di 1.26.0: 20 voci su 20), che la specifica zip non ammette:
+        # un estrattore lato Linux puo' creare file piatti chiamati «solo-15-file-1.26.0\bin\Vipi.dll». ⚠️ E
+        # zipfile di Python su Windows lo NASCONDE, perche' in lettura rimette le barre: si guardano i byte.
+        Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+        $archivio = [System.IO.Compression.ZipFile]::Open($zip, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            foreach ($f in (Get-ChildItem $transito -Recurse -File)) {
+                $voce = $f.FullName.Substring($transito.Length + 1).Replace('\', '/')
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $archivio, $f.FullName, $voce, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+            }
+        }
+        finally { $archivio.Dispose() }
         Remove-Item $transito -Recurse -Force
+
+        $letto = [System.IO.Compression.ZipFile]::OpenRead($zip)
+        try { $storte = @($letto.Entries | Where-Object { $_.FullName.Contains('\') }) }
+        finally { $letto.Dispose() }
+        if ($storte.Count -gt 0) { Fermati "lo zip ha $($storte.Count) voci col backslash: un estrattore Linux le scriverebbe piatte." }
 
         $h = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
         "$h  $(Split-Path $zip -Leaf)" | Out-File "$zip.sha256" -Encoding ascii

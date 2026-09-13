@@ -114,6 +114,36 @@ public class SwapTests
             Assert.Equal(src.FindSection(n)!.RawText, result.FindSection(n)!.RawText);
     }
 
+    /// <summary>T-051: la destinazione finisce senza a-capo. La sezione accodata non deve incollarsi
+    /// all'ultima riga («Color=12[MAPS]»), o l'intestazione si perde alla prossima lettura.</summary>
+    [Fact]
+    public void Appended_section_does_not_glue_to_a_last_line_without_terminator()
+    {
+        var dest = CprProfile.Parse("[COLORS]\r\nText=1\r\nColor=12");
+        var src = CprProfile.Parse("[MAPS]\r\nMap=LIRF\r\n");
+
+        var result = ProfileSwapper.SwapSection(dest, src, "MAPS");
+        var reread = CprProfile.Parse(result.Serialize());
+
+        Assert.Equal("[COLORS]\r\nText=1\r\nColor=12\r\n[MAPS]\r\nMap=LIRF\r\n", result.Serialize());
+        Assert.Equal(new[] { "COLORS", "MAPS" }, reread.SectionNames);
+    }
+
+    /// <summary>T-051, l'altro verso: la sezione copiata era l'ultima della sorgente, senza a-capo, e
+    /// sostituisce una sezione in mezzo alla destinazione. L'intestazione che la segue non deve incollarsi.</summary>
+    [Fact]
+    public void Replaced_section_without_terminator_does_not_swallow_the_next_header()
+    {
+        var dest = CprProfile.Parse("[MAPS]\nMap=OLD\n[LABELS]\nLabel=1\n");
+        var src = CprProfile.Parse("[LABELS]\nLabel=9\n[MAPS]\nMap=NEW");
+
+        var result = ProfileSwapper.SwapSection(dest, src, "MAPS");
+        var reread = CprProfile.Parse(result.Serialize());
+
+        Assert.Equal("[MAPS]\nMap=NEW\n[LABELS]\nLabel=1\n", result.Serialize());
+        Assert.Equal(new[] { "MAPS", "LABELS" }, reread.SectionNames);
+    }
+
     [Fact]
     public void Result_stays_byte_identical_outside_the_swapped_section()
     {

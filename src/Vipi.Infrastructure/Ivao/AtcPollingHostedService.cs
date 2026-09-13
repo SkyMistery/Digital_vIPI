@@ -39,8 +39,7 @@ internal sealed class AtcPollingHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var period = TimeSpan.FromSeconds(Math.Max(15, _opt.PollSeconds));
-        using var timer = new PeriodicTimer(period);
+        using var timer = new PeriodicTimer(_opt.PollPeriod);
 
         // Primo poll immediato all'avvio, poi a cadenza fissa.
         do
@@ -320,7 +319,9 @@ public static class IvaoServiceCollectionExtensions
             .AddHttpMessageHandler<TransientRetryHandler>();
 
         // Cache condivisa: un singolo stato letto da tutti (anche via IOnlineAtcProvider).
-        services.AddSingleton<OnlineAtcCache>();
+        // La fotografia scade dopo tre giri persi (T-034): la soglia segue il giro vero del poller.
+        services.AddSingleton<OnlineAtcCache>(sp => new OnlineAtcCache(TimeProvider.System,
+            OnlineAtcCache.ScadenzaPer(sp.GetRequiredService<IOptions<IvaoOptions>>().Value.PollPeriod)));
         services.AddSingleton<IOnlineAtcProvider>(sp => sp.GetRequiredService<OnlineAtcCache>());
 
         // Un client per porta (doc refactor 01 §4.2): ognuno inietta IvaoHttp.
@@ -345,9 +346,11 @@ public static class IvaoServiceCollectionExtensions
 
         // Attribuzione del traffico: SINGLETON, perche' il registro delle tratte in corso vive in memoria fra
         // un giro e l'altro (e' quello che evita di riscrivere ogni riga ogni minuto). Lo usa il solo poller.
+        // ⚠️ Il giro gli si passa (T-068): un minuto «visto» è un giro solo se il giro dura un minuto.
         services.AddSingleton<AtcTrafficRecorder>(sp => new AtcTrafficRecorder(
             new Persistence.ScopedSectorVolumeCatalog(sp.GetRequiredService<IServiceScopeFactory>()),
-            sp.GetRequiredService<Vipi.Application.Airspace.ShapeChangeStamp>()));
+            sp.GetRequiredService<Vipi.Application.Airspace.ShapeChangeStamp>(),
+            sp.GetRequiredService<IOptions<IvaoOptions>>().Value.PollPeriod));
 
         // Profilo del singolo utente (il roster staff si popola dai login, non dall'elenco membri divisione).
         services.AddScoped<IvaoUserClient>();

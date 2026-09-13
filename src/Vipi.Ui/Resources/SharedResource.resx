@@ -265,6 +265,7 @@
   <data name="Live_OnlineNow" xml:space="preserve"><value>Online adesso — dato aggiornato alle {0}</value></data>
   <data name="Live_NobodyOnline" xml:space="preserve"><value>Nessun ATC online in questo momento.</value></data>
   <data name="Live_FeedNever" xml:space="preserve"><value>mai aggiornato</value></data>
+  <data name="Live_FeedExpired" xml:space="preserve"><value>{0} (scaduto: sorgente IVAO ferma, chi è online non si sa)</value></data>
   <data name="Live_NotYoursTitle" xml:space="preserve"><value>Stai guardando {0}</value></data>
   <data name="Live_NotYoursBody" xml:space="preserve"><value>Non è la postazione con cui sei connesso ({0}): questa vista è in sola consultazione e non ti segue.</value></data>
   <data name="Live_CoveredBy" xml:space="preserve"><value>Sopra di te:</value></data>

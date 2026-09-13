@@ -6,6 +6,10 @@ namespace Vipi.Infrastructure.Ivao;
 /// Retry leggero per blip transitori verso l'API IVAO: ritenta su errori di rete e 5xx/429 con backoff
 /// breve. Nessuna dipendenza esterna. Il polling tollera comunque i fallimenti (mantiene l'ultima cache),
 /// questo riduce solo i buchi su singoli scatti.
+///
+/// <para>⚠️ Un <b>timeout non si ritenta</b>, e non per scelta: <c>HttpClient.Timeout</c> annulla il gettone che
+/// arriva qui, e tutti i tentativi dividono quello stesso tetto. Il ramo «timeout: ritenta» che c'era non poteva
+/// scattare (T-069, revisione del 13 settembre 2026); il giro successivo del poller fa da ritentativo.</para>
 /// </summary>
 internal sealed class TransientRetryHandler : DelegatingHandler
 {
@@ -22,7 +26,6 @@ internal sealed class TransientRetryHandler : DelegatingHandler
                 if (attempt >= MaxAttempts || !IsTransient(response.StatusCode)) return response;
             }
             catch (HttpRequestException) when (attempt < MaxAttempts) { /* ritenta */ }
-            catch (TaskCanceledException) when (attempt < MaxAttempts && !ct.IsCancellationRequested) { /* timeout: ritenta */ }
 
             response?.Dispose();
             await Task.Delay(BackoffFor(attempt), ct);

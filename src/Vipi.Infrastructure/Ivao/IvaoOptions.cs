@@ -69,6 +69,13 @@ public sealed class IvaoOptions
     public int PollSeconds { get; set; } = 60;
 
     /// <summary>
+    /// Il giro VERO del poller: <see cref="PollSeconds"/> con il minimo di 15 secondi. ⚠️ Una definizione sola,
+    /// perché ne dipendono anche i minuti di traffico (T-068) e la scadenza della fotografia online (T-034):
+    /// leggerlo altrove da <see cref="PollSeconds"/> nudo farebbe contare giri che il poller non fa.
+    /// </summary>
+    public TimeSpan PollPeriod => TimeSpan.FromSeconds(Math.Max(15, PollSeconds));
+
+    /// <summary>
     /// <b>Strumento di verifica live, non prodotto.</b> Elenco di callsign separati da virgola pubblicati
     /// come «online» al posto della chiamata al tracker IVAO. Vuoto = polling reale.
     /// <para>⚠️ Onorato <b>solo in Development</b>: <c>AtcPollingHostedService</c> lo rifiuta altrove e logga

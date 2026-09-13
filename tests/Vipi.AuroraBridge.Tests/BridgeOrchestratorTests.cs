@@ -164,6 +164,28 @@ public class BridgeOrchestratorTests
         Assert.Equal(1, site.Calls);
     }
 
+    /// <summary>T-052: il controllore assume il traffico GIÀ selezionato. Senza rileggere <c>#TRPOS</c> a ogni
+    /// giro lo stato restava «non assunto» e la scrittura bloccata finché non cambiava selezione.</summary>
+    [Fact]
+    public async Task Assumere_il_traffico_gia_selezionato_sblocca_la_scrittura_al_giro_dopo()
+    {
+        await using var server = Aurora(assumed: false);
+        var site = new FakeSite();
+        var (orchestrator, api) = Build(server, site, TempCache());
+        using var _ = api;
+
+        var before = await orchestrator.RefreshAsync(force: true);
+        Assert.False(before.TrafficAssumed);
+
+        server.Reply("#TRPOS", $"#TRPOS;AZA123;213;209;37987;470;43.3;8.6;2000;;;;;{Owner};;0;1;1;;1;;-48;;");
+        var after = await orchestrator.RefreshAsync();
+
+        Assert.True(after.TrafficAssumed);
+        Assert.Equal("210", after.Best!.AuroraValue);   // la proposta resta quella del giro prima
+        Assert.Equal(1, site.Calls);                     // e il sito non si richiama
+        Assert.True((await orchestrator.WriteAsync(after.Best!)).Ok);
+    }
+
     [Fact]
     public async Task Sito_giu_ma_contesto_gia_visto_la_proposta_arriva_dalla_cache()
     {

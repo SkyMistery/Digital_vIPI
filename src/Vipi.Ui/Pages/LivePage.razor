@@ -474,9 +474,13 @@
 
     /// <summary>Età del dato ATC. Detta esplicitamente: se il feed è fermo, «non risulti connesso» non deve
     /// far credere all'utente di essere offline quando è la sorgente a essere vecchia.</summary>
+    /// ⚠️ Scaduta la fotografia (T-034) gli elenchi sono vuoti: la riga dice che il dato è vecchio, non che
+    /// nessuno è in frequenza.</summary>
     private string FeedAge() => _snapshot.AsOf == DateTimeOffset.MinValue
         ? L["Live_FeedNever"].Value
-        : _snapshot.AsOf.UtcDateTime.ToString("HH:mm:ss") + "Z";
+        : _snapshot.Expired
+            ? L["Live_FeedExpired", _snapshot.AsOf.UtcDateTime.ToString("HH:mm:ss") + "Z"].Value
+            : _snapshot.AsOf.UtcDateTime.ToString("HH:mm:ss") + "Z";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
