@@ -675,7 +675,8 @@ dice perché.
 una query fittizia (`MISS`) l'origine dava già `public, max-age=86400`. Cloudflare teneva la copia vecchia,
 l'origine rispondeva **304** — il file non cambia — e l'intestazione si scriveva sul solo 200. Controprova
 sulla produzione stessa: 304 con `no-cache`. Corretto in **1.25.2** scrivendola anche sul 304, che per la
-RFC 9111 aggiorna la copia in magazzino. ⚠️ In locale il file arrivava sempre come 200 nuovo: il ramo della
+RFC 9111 aggiorna la copia in magazzino. ✅ **1.25.2 caricata lo stesso giorno: al primo colpo `HIT`, TTFB 86-95
+ms contro 135-178.** ⚠️ In locale il file arrivava sempre come 200 nuovo: il ramo della
 rivalidazione non era mai stato percorso.
 
 **Q5 non si esprime, e non per il codice.** Dodici richieste alla vIPI LIBB, dodici corpi distinti (cambia

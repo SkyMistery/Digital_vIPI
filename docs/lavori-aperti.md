@@ -2,7 +2,23 @@
 
 ## Dove siamo — 13 settembre 2026 (mattina)
 
-### 📦 A27 — Pacchetto 1.25.2: 2 file — ⏳ **PRONTO, non ancora caricato**
+### 📦 A27 — Pacchetto 1.25.2: 2 file — ✅ **CARICATO E IN PRODUZIONE**
+
+✅ **Controllato da fuori subito dopo il carico (13 settembre, mattina)**: `pacchetto-verifica.js` pubblico
+**tutto verde**, Ricerca compresa. E **Q4 si esprime**, al primo colpo:
+
+```
+GET blazor.web.js                    -> 200  REVALIDATED  cache-control: public, max-age=86400
+GET blazor.web.js  (If-None-Match)   -> 304  HIT          cache-control: public, max-age=86400
+TTFB, tre richieste                  -> 86-95 ms, HIT     (prima: 135-178 ms, sempre dall'origine)
+```
+
+La prima rivalidazione di Cloudflare ha portato l'intestazione nuova sul 304 e ha aggiornato la copia in
+magazzino: da lì in poi il file esce dal bordo. Nessuno ha dovuto svuotare niente dal pannello.
+**Un'andata all'origine in meno per ogni caricamento di pagina, per ogni visitatore.**
+
+---
+
 
 Timbro **`1.25.2 · a6367d4`**, zip
 `803453c9f1ea57b2a77b36144d8f0fd0b40c4882fb4088bec8f8568701c4cf40`
