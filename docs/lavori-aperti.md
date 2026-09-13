@@ -1217,6 +1217,9 @@ sviluppatore non vede il DB di produzione*.
    l'`.editorconfig`, **non** c'è il passo di CI su `dotnet format`, e il perché sta scritto lì dentro.
    ✅ E `tools/conta-test.sh` — che era entrato in CI senza mai girare davvero — **ha girato**: 15 assiemi,
    nessun calo, e l'atteso è stato rialzato a quel che c'è adesso.
+   🔴 **Correzione del 13 settembre 2026:** ha girato **in locale**. In CI non aveva mai contato niente: con
+   `--verbosity normal` il riepilogo esce senza assieme né TFM, e la CI di `main` era comunque rossa da oltre
+   200 corse. Verde, e il conteggio attivo, solo da `02ad2533` (T-056 nel registro della revisione totale 2).
 4. **Fino al 16 settembre non si consegna database** (finestra cieca, §finestra-cieca): lo *schema* però non
    è congelato. **Quel che aspetta una persona, non il codice**: il re-import dell'anagrafica perché le piste
    in archivio prendano la misura in metri, il tipo delle 122 radioassistenze, il pannello dell'hosting.

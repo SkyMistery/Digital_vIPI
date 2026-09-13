@@ -598,6 +598,13 @@ data · **P** · `src/Vipi.Infrastructure/Persistence/EfAtcArchiveQueries.cs:63`
 - **Correzione.** Spareggio e paginazione a cursore.
 
 **✅ T-056 (chiuso in main, 13-set, lotto A) — Il cancello del numero di test «si alza da sé»: non è vero, e l'atteso è fermo alla 1.16.1.**
+- 🔴 **Chiuso davvero solo con `02ad2533`.** Il cancello a scatto non aveva **mai contato niente in CI**:
+  con `--verbosity normal` il riepilogo di `dotnet test` esce senza assieme né TFM, e `conta-test.sh` non trova
+  righe. Non si vedeva perché la CI di `main` era **rossa da oltre 200 corse** e cadeva prima, sui test. Le
+  cause di quel rosso, tutte invisibili in locale: cultura invariante del runner, che legge il resx italiano;
+  Brotli su Linux; due test bUnit fuori dal dispatcher; tool degli asset net8 in `sdk:10`. Più il `.dockerignore`,
+  che portava nel contesto i backup del database: oltre 6 GB. Corretto in `178014b7` e `02ad2533`; CI verde,
+  conteggi identici all'atteso in entrambi i job.
 docs · C · `tools/conta-test.sh:22` (e `tests/conteggi-attesi.txt:1`).
 - **Codice.** Il file si riscrive solo con `--scrivi`, che la CI non passa; l'ultimo commit è `d2925b3f`
   dell'8 settembre.
@@ -639,7 +646,7 @@ di documenti nascosti o mai pubblicati (id enumerabili), e la mette in output ca
 `src/Vipi.Ui/Pages/Aor3dFullPage.razor:56` · Togliere la rotta, che non ha ingressi, oppure passare dalle
 porte pubbliche.
 
-**✅ T-062** (L11, in main: `USER $APP_UID`, `/app/data` scrivibile; ⚠️ NON provato in locale (daemon Docker bloccato), lo prova il job `docker-image` della CI) — Il `Dockerfile` gira come root (manca `USER $APP_UID`), mentre `ci.yml:181` dichiara il
+**✅ T-062** (L11, in main: `USER $APP_UID`, `/app/data` scrivibile. **Provato il 13-set** in locale e nel job `docker-image`: la prova ha trovato un difetto che la CI non poteva vedere, perché passa la sua stringa su `/tmp`. Senza configurazione il `vipi.db` relativo cadeva in `/app`, di root, e il container moriva alla migrazione con «SQLite Error 14». Corretto in `178014b7` con `ENV ConnectionStrings__Vipi` su `/app/data`) — Il `Dockerfile` gira come root (manca `USER $APP_UID`), mentre `ci.yml:181` dichiara il
 contrario. Riguarda l'immagine Render di anteprima. · sec-infra · C · `Dockerfile:14` · Aggiungere `USER` e
 correggere il commento.
 

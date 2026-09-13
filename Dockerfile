@@ -18,8 +18,8 @@ RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restor
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 COPY --from=build /app .
-# Il DB SQLite di default è relativo: per la persistenza montare un volume su /app/data e impostare
-# ConnectionStrings__Vipi="Data Source=/app/data/vipi.db". Segreti IVAO via env: Ivao__ClientId/Secret.
+# Il DB SQLite sta in /app/data/vipi.db (ENV qui sotto): per la persistenza montare un volume su /app/data.
+# Segreti IVAO via env: Ivao__ClientId/Secret.
 ENV ASPNETCORE_URLS=http://+:8080
 # Il default relativo («vipi.db») cadrebbe in /app, che col processo non-root (T-062, più sotto) NON è
 # scrivibile: il container moriva alla migrazione con «SQLite Error 14: unable to open database file». Il default
