@@ -2,7 +2,7 @@
 
 ## Dove siamo — 14 settembre 2026
 
-### 📦 A32 — Pacchetto 1.26.1: 40 file, PATCH su 1.26.0, ancora net8 — 🟡 PRONTO DA CARICARE
+### ✅ A32 — Pacchetto 1.26.1: 40 file, PATCH su 1.26.0, ancora net8 — ✅ **ONLINE** (14 settembre 2026)
 
 Timbro **`1.26.1 · fae666e`**, zip `artifacts/publish/vipi-1.26.1-solo-file-cambiati.zip` (4,92 MB), sha256
 `2fcdf65fc2a3f6d843bec0585177a52b92c7052b61fc2dae751fdd602e6e197a`, foglio
@@ -19,7 +19,10 @@ Timbro **`1.26.1 · fae666e`**, zip `artifacts/publish/vipi-1.26.1-solo-file-cam
   8.0.28 e i pacchetti sono parziali, quindi il runtime è ancora quello del primo carico completo; .NET 8 è a
   8.0.31. Un pacchetto parziale non rimedia: rimedia **1.27.0 (L13, net10, carico completo)**. Scritto nel foglio.
 
-▶ Dopo il carico: Ricerca, vAWOS che si aggiorna, mappe AoR; col login timbro e `Schema: 0`.
+✅ **Caricato il 14 settembre.** Da fuori, solo GET anonimi: `pacchetto-verifica` 8/8, `awos-verifica` 15/15,
+`enhanced-verifica` 6/6 (`DOC=/services/vsop/lirr/mil?icao=LIBA`). `/vsop/health` = **Degraded**: è la
+diagnostica dei **dati** (documentazione), confermata dal committente, non il pacchetto.
+▶ Col login: timbro `1.26.1 · fae666e` e `Schema: 0`.
 ▶ Poi, dopo qualche giorno buono: merge di `l13-net10` → **1.27.0**.
 
 ### ✅ A31 — Dopo 1.26.0: otto lotti in main, e la CI finalmente verde
