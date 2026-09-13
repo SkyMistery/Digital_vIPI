@@ -2,7 +2,35 @@
 
 ## Dove siamo — 13 settembre 2026
 
-### 📦 A29 — Pacchetto 1.25.4: 11 file, CUMULATIVO su 1.25.2 — 🟡 **PRONTO, DA CARICARE**
+### 📦 A30 — Pacchetto 1.26.0: 15 file, CUMULATIVO su 1.25.2, DUE migrazioni additive — 🟡 **PRONTO, DA CARICARE**
+
+Contiene tutta 1.25.4 (e 1.25.3): se 1.25.4 non è stata caricata, si carica direttamente questo. Timbro
+**`1.26.0 · cad6698`**, zip `0b50dedc86bbcfd31ce793a5a0df5ae40beae22bb56c28f90f5a3b15f7a7741d`
+(`artifacts/publish/vipi-1.26.0-solo-file-cambiati.zip`, 5,07 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.26.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.26.0.md).
+File: `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`, **`Vipi.Infrastructure.MySqlMigrations`**,
+`Vipi.Hosting`, `Vipi.Ui`, `Vipi.Host` (dll+pdb) e `en/Vipi.Ui.resources.dll`. `wwwroot`, `endpoints.json`,
+`deps.json`, `appsettings.json` identici a 1.25.2 (confronto sha256 sull'intero publish).
+
+Migrazioni: `EtichetteClausolePiuLarghe` (AlterColumn di solo allargamento, deroga scritta) e `ChiaviApi`
+(CreateTable). Contenuto oltre 1.25.4: **T-017** chiavi API (pagina `/services/vsop/admin/api-keys`, porta
+unica per archivio e bridge, `Api:RichiediChiave` spento), **T-042** ricerca/«cambiati» sulla release in
+vigore, **L3** (T-005, T-006, T-007, T-029: import che falliscono non timbrano e non potano), **T-053**
+(clausole a 500), **T-064/T-078** (codice morto).
+
+Provato sul pacchetto win-x64 su una copia del DB di sviluppo: le due migrazioni si applicano all'avvio,
+timbro `1.26.0 · cad6698`, `pacchetto-verifica` tutto verde, **`chiavi-verifica`** (nuovo, nella skill) tutto
+verde — chiave creata dalla pagina, 200 in Bearer e X-Api-Key, 401 con chiave inventata, 200 senza chiave,
+chiave sparita dopo il ricarico, 401 dopo la revoca. Con identità IT-AOC (Admin non HQ/WD): pagina
+«Accesso riservato», voce assente in barra. ⚠️ La migrazione su **MariaDB** non si prova in locale: la prova
+dopo il carico è `Schema: 0` in `admin/diagnostics` (vuole il login).
+
+▶ Dopo il carico: Ricerca, timbro, `Schema: 0`, i tre `curl` del foglio; poi il passaggio del foglio
+(chiave al validatore dei tour → «ultimo uso» → `Api__RichiediChiave=true`). Pannello come da 1.25.4.
+
+---
+
+### 📦 A29 — Pacchetto 1.25.4: 11 file, CUMULATIVO su 1.25.2 — ⏭ **ASSORBITO da 1.26.0** se non ancora caricato
 
 Contiene anche 1.25.3: se 1.25.3 non è stata caricata, si carica direttamente questo. Timbro
 **`1.25.4 · d645c77`**, zip `6299d603d6465cc80f9decddf7864ec27e0db0b8286b7652aff3880f874e5af5`
@@ -21,8 +49,8 @@ Provato sul pacchetto: timbro, `pacchetto-verifica` tutto verde, 404 sull'ACC in
 
 ✅ Dopo il carico si possono fare **`passenger_min_instances`** e le **direttive nginx**; la **Cache Rule** con
 la condizione in più sul cookie di lingua (`LEGGIMI-DEPLOY.md`).
-✅ **T-042 fatto in `main` dopo il pacchetto** (ricerca e «cambiati» leggono lo snapshot della release in vigore, con un indice per release in memoria): entra nel **prossimo** pacchetto, non in 1.25.4. ▶ Decisioni
-aperte: T-017, T-053, T-064/T-078.
+✅ **T-042 fatto in `main` dopo il pacchetto** (ricerca e «cambiati» leggono lo snapshot della release in vigore, con un indice per release in memoria): entra nel **prossimo** pacchetto, non in 1.25.4 — è in 1.26.0 (§A30), con le
+decisioni T-017, T-053, T-064/T-078.
 
 ---
 

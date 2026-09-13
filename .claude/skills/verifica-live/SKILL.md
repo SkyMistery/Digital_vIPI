@@ -110,6 +110,7 @@ Accanto a `driver.js` ci sono altri script, che non si adattano: si lanciano cos
 | `testo-verifica.js` | la **barra di formattazione** dei campi di prosa: i cinque tasti come interruttori, gli elenchi su piu' righe, Ctrl+B/I/U, e che quel che i tasti scrivono **sopravviva a un ricarico** | quando si tocca `RichTextArea`, `MarkdownLite` o `vipiMdWrap`/`vipiMdList` |
 | `lazy-verifica.js` | che i quattro moduli pesanti (mappe, minime, 3D, tour) arrivino **solo** dove servono, e che dove servono arrivino | quando si tocca `vipi-boot.js` o l'elenco degli `<script>` in `App.razor` |
 | `awos-verifica.js` | il quadro **vAWOS**: i due asset serviti e minificati, il passaggio dall'elenco a uno scalo con la navigazione **enhanced**, l'età del dato che scorre, le celle RVR col nome della **testata**, e che uscendo dalla pagina **i timer si spengano** | quando si tocca `AwosPage`, `vipi-awos.js` o la riga `awos` in `vipi-boot.js`, e a ogni consegna che li contiene |
+| `chiavi-verifica.js` | le **chiavi API**: la pagina crea una chiave e la mostra una volta, l'archivio risponde 200 con la chiave (Bearer e X-Api-Key) e 401 con una inventata, la chiave sparisce dopo il ricarico, 401 dopo la revoca. ⚠️ **Scrive** nel DB: solo su una copia, lo script rifiuta `ivao.aero` | quando si tocca `PortaDelleApi`, `ChiaviApi.cs` o `AdminApiKeysPage`, e a ogni consegna che li contiene |
 
 ```powershell
 node sweep.js

@@ -1,7 +1,8 @@
 # Le API non sono mai anonime: chiavi per i client — carta (13 settembre 2026)
 
-> **Stato: ✅ ESEGUITA in main il 13 settembre 2026, non ancora in un pacchetto** (migrazione additiva
-> `ChiaviApi` → la consegna è una MINOR). Passi 2-4 del §7 da fare in produzione dopo il carico.
+> **Stato: ✅ ESEGUITA il 13 settembre 2026, nel pacchetto 1.26.0** (`cad6698`, da caricare; migrazione
+> additiva `ChiaviApi`). Provata sul pacchetto con `.claude/skills/verifica-live/chiavi-verifica.js`.
+> Passi 2-4 del §7 da fare in produzione dopo il carico.
 > Nasce da **T-017** della revisione del 13 settembre
 > ([`history/audit-2026-09-13-revisione-totale-2.md`](../history/audit-2026-09-13-revisione-totale-2.md)).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Domande del §8 risposte dal committente lo stesso giorno.
