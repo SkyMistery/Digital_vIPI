@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, da caricare) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre

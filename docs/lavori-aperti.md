@@ -2,7 +2,13 @@
 
 ## Dove siamo — 13 settembre 2026
 
-### 📦 A30 — Pacchetto 1.26.0: 15 file, CUMULATIVO su 1.25.2, DUE migrazioni additive — 🟡 **PRONTO, DA CARICARE**
+### 📦 A30 — Pacchetto 1.26.0: 15 file, CUMULATIVO su 1.25.2, DUE migrazioni additive — ✅ **ONLINE**
+
+✅ **Caricato il 13 settembre 2026**; il committente conferma il timbro in barra. Da fuori (solo GET):
+`pacchetto-verifica` con `SOLO_PUBBLICO=1` tutto verde (Ricerca compresa); archivio 200 senza chiave e **401
+con chiave inventata** (la porta nuova c'è); ACC inventato 404; `/services/vsop/admin/api-keys` da anonimo
+disegna «Accesso riservato» senza il modulo; `Vary` della guida con `Accept-Language` (1.25.4 dentro).
+▶ Restano, col login: `Schema: 0` in `admin/diagnostics`; poi il passaggio delle chiavi (sotto).
 
 Contiene tutta 1.25.4 (e 1.25.3): se 1.25.4 non è stata caricata, si carica direttamente questo. Timbro
 **`1.26.0 · cad6698`**, zip `0b50dedc86bbcfd31ce793a5a0df5ae40beae22bb56c28f90f5a3b15f7a7741d`

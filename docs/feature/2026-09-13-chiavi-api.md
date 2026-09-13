@@ -1,6 +1,6 @@
 # Le API non sono mai anonime: chiavi per i client — carta (13 settembre 2026)
 
-> **Stato: ✅ ESEGUITA il 13 settembre 2026, nel pacchetto 1.26.0** (`cad6698`, da caricare; migrazione
+> **Stato: ✅ ESEGUITA il 13 settembre 2026, nel pacchetto 1.26.0** (`cad6698`, ✅ online dal 13 settembre; migrazione
 > additiva `ChiaviApi`). Provata sul pacchetto con `.claude/skills/verifica-live/chiavi-verifica.js`.
 > Passi 2-4 del §7 da fare in produzione dopo il carico.
 > Nasce da **T-017** della revisione del 13 settembre
