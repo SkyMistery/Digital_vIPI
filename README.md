@@ -17,7 +17,9 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 |---|---|---|
 | `src/Vipi.Domain` | Entità, enum, regole pure (`AiracService`). Nessuna dipendenza. | — |
 | `src/Vipi.Application` | Use case e porte: `IAorService`, `IContentService`, `ICurrentUserProvider`. Logica AoR pura. | Domain |
-| `src/Vipi.Infrastructure` | EF Core + SQLite (`VipiDbContext`), `TopologyBuilder`, migrazioni. | Application, Domain |
+| `src/Vipi.Infrastructure` | EF Core + SQLite (`VipiDbContext`), `TopologyBuilder`, migrazioni SQLite. | Application, Domain |
+| `src/Vipi.Infrastructure.MySqlMigrations` | Il **secondo set di migrazioni**, per MariaDB/MySQL (Pomelo, solo `net8.0`): è quello che gira in produzione. Ogni cambio di schema si emette due volte (ADR-0007). | Infrastructure |
+| `src/Vipi.AuroraProfiles` | Motore dell'Aurora Profile Swapper: scambia sezioni di un profilo `.cpr` lasciando il resto identico byte per byte. Zero dipendenze. | — |
 | `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host. Stili confinati in `.vipi-root`. | Application, Domain |
 | `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host, middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
 | `src/Vipi.Host` | Host Blazor Server di **sviluppo/esempio** che aggancia il modulo. | tutti |
@@ -37,7 +39,7 @@ In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `I
 
 ```bash
 dotnet build Vipi.slnx            # gli avvisi sono ERRORI (Directory.Build.props)
-dotnet test  Vipi.slnx            # ~5980 test, su net8 e net10: entrambi i TFM girano
+dotnet test  Vipi.slnx            # su net8 e net10: il numero atteso per assieme sta in tests/conteggi-attesi.txt
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /services/vsop
 ```
 
@@ -74,8 +76,15 @@ dotnet ef migrations add <Nome> \
 ```
 (usa `DesignTimeDbContextFactory`; a runtime la connection string la fornisce l'host)
 
+⚠️ **E poi lo stesso cambio per MySQL**, o la produzione non lo vede (`MySqlMigrationsTests` lo pretende):
+```bash
+dotnet ef migrations add <Nome> \
+  --project src/Vipi.Infrastructure.MySqlMigrations --startup-project src/Vipi.Infrastructure.MySqlMigrations \
+  -o Migrations
+```
+
 ## Stato in breve
-Solution a 4 layer + Host Blazor Server **net8** (multi-target `net8.0;net10.0` nelle librerie), **2111 test verdi**. Consultazione + editing + sicurezza dal DB;
+Solution a 4 layer + Host Blazor Server **net8** (multi-target `net8.0;net10.0` nelle librerie); il conteggio dei test lo tiene `tools/conta-test.sh`, non questa riga. Consultazione + editing + sicurezza dal DB;
 live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/services/vsop`; **fonte unica = cataloghi**
 (i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). **Bridge Aurora**:
 tool desktop + endpoint `POST /vsop/api/v1/transfers/resolve` che propone il livello di trasferimento al

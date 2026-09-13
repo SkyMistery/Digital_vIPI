@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -592,7 +592,7 @@ data · **P** · `src/Vipi.Infrastructure/Persistence/EfAtcArchiveQueries.cs:63`
   da archiviatore vede righe ripetute o saltate.
 - **Correzione.** Spareggio e paginazione a cursore.
 
-**T-056 — Il cancello del numero di test «si alza da sé»: non è vero, e l'atteso è fermo alla 1.16.1.**
+**✅ T-056 (chiuso in main, 13-set, lotto A) — Il cancello del numero di test «si alza da sé»: non è vero, e l'atteso è fermo alla 1.16.1.**
 docs · C · `tools/conta-test.sh:22` (e `tests/conteggi-attesi.txt:1`).
 - **Codice.** Il file si riscrive solo con `--scrivi`, che la CI non passa; l'ultimo commit è `d2925b3f`
   dell'8 settembre.
@@ -600,7 +600,7 @@ docs · C · `tools/conta-test.sh:22` (e `tests/conteggi-attesi.txt:1`).
 - **Correzione.** Rigenerare subito e togliere la frase falsa, oppure far fallire la CI se i conteggi salgono
   senza aggiornare il file.
 
-**T-057 — `mappa-pagine.md` (🟢 autorevole) manca 18 rotte e la colonna Accesso dice cancelli che il codice non ha.**
+**✅ T-057 (chiuso in main, 13-set, lotto A) — `mappa-pagine.md` (🟢 autorevole) manca 18 rotte e la colonna Accesso dice cancelli che il codice non ha.**
 docs · C · `docs/spec/mappa-pagine.md:89`.
 - **Rotte mancanti.** Fra le altre: `/services/vawos/{Icao}`, i vSOP militari, `/admin/diagnostics`,
   `/admin/attachments`.
@@ -608,7 +608,7 @@ docs · C · `docs/spec/mappa-pagine.md:89`.
   realtà `IsDivisionStaff`), «staff» su screens (in realtà nessun cancello).
 - **Correzione.** Riscrivere la tabella con i cinque livelli; valutare un test `@page`↔tabella.
 
-**T-058 — Le guide per l'integratore descrivono ancora il modello di permessi eliminato il 28 agosto.**
+**✅ T-058 (chiuso in main, 13-set, lotto A) — Le guide per l'integratore descrivono ancora il modello di permessi eliminato il 28 agosto.**
 docs · C · `docs/guide/config.md:327` (e `integration.md:112-116`, HANDOFF §4 e §6).
 - **Contenuto sbagliato.** `EditGrant`, `AdminRolePatterns`, «altri sola lettura»; la stessa guida alla riga
   23 dice che non esistono più.
@@ -681,7 +681,7 @@ esistono più; `vipiEditorInit` (Ctrl+E/Z/Y) non ha chiamanti. · ui-components 
 L'eccezione salta `RegistraSessioni` e `RegistraTraffico` di quel minuto. · concurrency · C ·
 `src/Vipi.Hosting/VipiModuleExtensions.cs:307` · Isolare i sottoscrittori, oppure non smaltire il semaforo.
 
-**T-073** — Quattro test che non possono fallire: `DelayedUiActionTests.Un_renderer_sparito…` (nessun
+**✅ T-073** (chiuso in main, 13-set, lotto A) — Quattro test che non possono fallire: `DelayedUiActionTests.Un_renderer_sparito…` (nessun
 Assert, nessuna iscrizione a `UnobservedTaskException`), `DiagnosticaCircuitoTests.Senza_eccezione…` e due
 di `CronometroAvvioTests`. · quality · C · `tests/Vipi.Ui.Tests/DelayedUiActionTests.cs:104` · Dare a
 ciascuno un'asserzione osservabile.
@@ -708,26 +708,26 @@ valutatore, **prerequisito** di T-009.
 `VatsimMetarClient.cs:14` dice che l'endpoint IVAO non esiste, mentre è la prima scorta. · quality · C ·
 `src/Vipi.Application/Stats/CoverageResolver.cs:51` · Togliere e correggere.
 
-**T-079** — La premessa del commento di `SectionCatalog.Find` («solo i contenitori AirportMil hanno figli»)
+**✅ T-079** (chiuso in main, 13-set, lotto A) — La premessa del commento di `SectionCatalog.Find` («solo i contenitori AirportMil hanno figli»)
 è falsa: nel profilo Airport ci sono `runways → runwayrules` e le carte. · docs · C ·
 `src/Vipi.Application/Content/SectionCatalog.cs:544` · Riscrivere la premessa.
 
-**T-080** — Commenti e cref che nominano meccanismi rimossi: `EnsureCanEditAccAsync`/GRANT
+**✅ T-080** (chiuso in main, 13-set, lotto A) — Commenti e cref che nominano meccanismi rimossi: `EnsureCanEditAccAsync`/GRANT
 (`NewDocumentPage.razor:43`, `CoordinationAgreement.cs:31`), cref a `Excludes` (`FlightPhase.cs:46`), chiave
 `RiconciliazioniDocumentali:{versione+commit}` (`VipiModuleExtensions.cs:758`), `AmmetteCivile` nella carta
 delle categorie. · docs · C · `src/Vipi.Ui/Pages/NewDocumentPage.razor:43` · Correggere; valutare
 `GenerateDocumentationFile` per avere CS1574.
 
-**T-081** — Il README dà due conteggi di test contraddittori (~5980 e 2111) e la tabella dell'architettura
+**✅ T-081** (chiuso in main, 13-set, lotto A) — Il README dà due conteggi di test contraddittori (~5980 e 2111) e la tabella dell'architettura
 non nomina `Vipi.Infrastructure.MySqlMigrations` né `Vipi.AuroraProfiles`. · docs · C · `README.md:77` ·
 Rimandare a `conta-test.sh` e aggiungere i progetti e il comando MySQL.
 
-**T-082** — Stati al presente smentiti dalla realtà: «non fuso» in `aeroporto-a-sezioni.md:3`, 1.11.0 «non
+**✅ T-082** (chiuso in main, 13-set, lotto A) — Stati al presente smentiti dalla realtà: «non fuso» in `aeroporto-a-sezioni.md:3`, 1.11.0 «non
 ancora caricato» in `docs/index.md:115`, «non ancora in produzione» in `autorizzazioni-a-livelli.md:8`
 (*l'esempio della carta bilingue è confutato: è già marcato come storia*). · docs · C ·
 `docs/feature/2026-08-26-aeroporto-a-sezioni.md:3` · Aggiornare le righe di stato.
 
-**T-083** — Link rotto `09-registri-per-tipo.md`. · docs · C · `docs/refactor/12-vista-live-unificata.md:4`.
+**✅ T-083** (chiuso in main, 13-set, lotto A) — Link rotto `09-registri-per-tipo.md`. · docs · C · `docs/refactor/12-vista-live-unificata.md:4`.
 
 **T-084** — Un ACC inesistente risponde 200 «ACC sconosciuto» con `Cache-Control: public` (misurato in
 produzione su `/services/vsop/nonexistent-xyz`): ogni percorso inventato diventa una copia in cache e una
@@ -743,7 +743,7 @@ Far rispondere 404 alla pagina.
 su `10.0.*`: una patch di sicurezza di Components non arriverebbe proprio al progetto dei componenti.
 · base · C · `src/Vipi.Ui/Vipi.Ui.csproj:30` · `10.0.*`, oppure un commento che giustifichi il blocco.
 
-**T-087** — Nessun test presidia l'allineamento fra modello e migrazioni **SQLite**; quello MySQL esiste.
+**✅ T-087** (chiuso in main, 13-set, lotto A) — Nessun test presidia l'allineamento fra modello e migrazioni **SQLite**; quello MySQL esiste.
 Oggi la misura dà zero differenze: manca la garanzia, non c'è deriva. · base + data · C ·
 `tests/Vipi.Infrastructure.Tests/MySqlMigrationsTests.cs:53` · Test gemello con `GetDifferences` sul set SQLite.
 

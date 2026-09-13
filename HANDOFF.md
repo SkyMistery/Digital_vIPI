@@ -2235,6 +2235,12 @@ girano all'avvio *prima* delle riconciliazioni.
 - **Editor APP non remotizzati (✅ round 21):** `AppEditorPage` (`/vsop/{acc}/apps/editor?app=`) WYSIWYG con 6 sezioni fisse (Separazioni · AOR · Frequenze · VFR · Minime · Coordinamenti) + custom, riordino drag-and-drop+tasti, nascondi sezioni; viewer `AppnPage` data-driven. Entità `AppProfile`/`AppFrequencyLink` (modello §9.13), service `IAppProfileService` (freq/coord/AOR **derivate live**), `AorPolygonProjector`, registry `AppSections`, componenti `Vipi.Ui/Components/App/*`, mappa AOR Leaflet (`vipi-aor.js`). Instradamento via `DocumentSummary.IsStandaloneApp`. **Round 22:** «Trasferimenti verso ACC» suddiviso in sottosezioni **Partenze/Arrivi** (`AppCoordinationView`, split per `Kind`); **AOR** mostra anche le **shape delle TWR** dello stesso aeroporto come overlay Leaflet con toggle «Shape torre» (`GetTowerPolygonsAsync`). ⚠️ **`TopologiaPage` rimossa** (`/vsop/{acc}/topologia`): gerarchia → `sectorstructure`; le regole di unificazione + simulatore AoR erano legacy e non hanno più UI (motore `IAorService` + `UnificationRule` + test S1–S10 **restano**).
 
 **Sicurezza/permessi (✅):** `Application/Auth/EditAuthorizationService.cs`:
+
+> ⚠️ **Le tre righe qui sotto sono STORIA** (nota del 13 settembre 2026, T-058). Dal 28 agosto 2026 il modello è
+> a **cinque livelli** (`VipiRole`), `AdminRolePatterns`/`AdminAccRolePatterns` ed `EditGrant` non esistono più,
+> il chief d'ACC è `Editor` e non admin, e dal 13 settembre **eliminare** è da Admin. Il modello vero:
+> `docs/guide/config.md` §1a-bis e `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`.
+
 - **Admin** = staff position da due set: **ruoli di divisione** (`DivisionOptions.Code` + `AdminRolePatterns` → `^{Code}-{ruolo}$`; dal 22 agosto 2026 il default è il jolly `[A-Z0-9]+`, cioè **tutto** lo staff di divisione) **e ruoli ACC-scoped/chief** (`AdminAccRolePatterns` → `^{prefissoIcao}[A-Z0-9]+-{ruolo}$`, es. `LIRR-CH`/`LIMM-ACH`) → edita tutto + gestisce permessi. Override esplicito opzionale via `Auth:AdminStaffCodes`. **Divisione configurabile** (sezione `Division`): vedi §7.
 - **Multi-divisione:** tutto ciò che cambia passando divisione è in `DivisionOptions` (Application): `Code`, `IcaoPrefixes`, `AdminRolePatterns`, `AdminAccRolePatterns`. Il **contenuto seed** (Roma/LIRR) resta dato separato.
 - **Grant per-ACC** (`EditGrant`, VID→ACC): chi non è admin edita una ACC solo con grant. Schermata `/vsop/admin/permessi` (solo admin).
@@ -2331,7 +2337,7 @@ caricati, ed è una scelta: quelli il codice C# li chiama **per nome**.
 - **Staff code esatti IVAO:** ✅ il lato divisione **non è più aperto** — dal 22 agosto 2026 admin = **tutto** lo staff di divisione (`^{Division.Code}-[A-Z0-9]+$`, default `AdminRolePatterns = ["[A-Z0-9]+"]`), decisione del committente. Resta da confermare il solo lato **chief ACC-scoped** (`{ACC}-CH`/`{ACC}-ACH`, es. `LIRR-CH`): nessun codice del genere è mai comparso in un login vero. I chief (CH/ACH) ora **sono** admin completi (`AdminAccRolePatterns`); l'auto-elenco per il dropdown grant resta via `IDivisionMembersProvider` (path `DivisionMembersPathFormat` = `/v2/divisions/{Code}/members`, da confermare).
 - Identità **P** = callsign connesso del CH (oggi selettore manuale); mapping token-handler trasferimenti (oggi euristica); GeoJSON vs WKT (shape); formato/schedulazione parsing sectorfile (SID + minime).
 
-**Risolte (storico):** modello editing persistente; autorizzazione (admin via staff code + grant per-ACC); lock 30 min + force admin; validazione hard/soft; export = stampa browser; trasporto live = **SSE** (ADR-0003); polling cache singleton 60s.
+**Risolte (storico):** modello editing persistente; autorizzazione (admin via staff code + grant per-ACC — ⚠️ superata il 28 agosto 2026 dai cinque livelli, vedi §4); lock 30 min + force admin (oggi dall'Editor); validazione hard/soft; export = stampa browser; trasporto live = **SSE** (ADR-0003); polling cache singleton 60s.
 
 **Fix collaterali round 21:** `NewDocumentPage` naviga all'editor con **`forceLoad:true`** dopo la creazione (evitava lo stale read «documento non esiste»). `AdminTrasferimentiPage` — i dropdown sector-pick selezionano su **`@onmousedown`** (non `@onclick`): in Blazor Server il `@onblur` chiudeva il dropdown prima del click.
 

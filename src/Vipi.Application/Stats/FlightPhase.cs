@@ -43,7 +43,8 @@ public static class FlightPhases
     /// Vero se questo tipo di posizione gestisce quella fase. È una dichiarazione di competenza, non un
     /// divieto: se nessuna posizione online dichiara la fase, il traffico resta a chi copre il settore
     /// (una DEL sola in frequenza si prende anche chi rulla, perché non c'è nessun altro).
-    /// Il divieto vero è <see cref="Excludes"/>.
+    /// ⚠️ Qui c'era scritto «il divieto vero è <c>Excludes</c>»: quel metodo non esiste più, e un divieto per
+    /// fase oggi non c'è (T-080, 13 settembre 2026).
     /// </summary>
     public static bool Handles(SectorType type, FlightPhase phase) => type switch
     {

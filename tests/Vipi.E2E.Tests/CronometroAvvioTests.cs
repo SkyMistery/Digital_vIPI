@@ -18,12 +18,18 @@ public sealed class CronometroAvvioTests
     /// senza aver segnato nulla, che è il caso in cui un errore di programmazione lo lascerebbe vuoto:
     /// dev'essere un non-fare, non un'eccezione sul percorso critico.
     /// </summary>
+    ///
+    /// <para>⚠️ Fino al 13 settembre 2026 (T-073) questo test e il seguente non avevano un'asserzione: potevano
+    /// fallire solo sollevando. Ora guardano il file, che è l'unica cosa che il cronometro produce.</para>
     [Fact]
     public void Un_cronometro_senza_fasi_non_scrive_e_non_solleva()
     {
         var crono = new StartupDiagnostics.CronometroAvvio();
+        var prima = LunghezzaDelFile();
 
         crono.Scrivi();   // niente da scrivere: non deve succedere niente
+
+        Assert.Equal(prima, LunghezzaDelFile());
     }
 
     /// <summary>Le fasi escono nell'ordine in cui sono state segnate, con la loro durata.</summary>
@@ -31,12 +37,26 @@ public sealed class CronometroAvvioTests
     public void Le_fasi_si_segnano_in_ordine_e_scrivere_non_solleva()
     {
         var crono = new StartupDiagnostics.CronometroAvvio();
+        var prima = LunghezzaDelFile();
 
-        crono.Segna("prima");
-        crono.Segna("seconda");
-
+        // Nomi che non compaiono in nessun altro avvio: quel che si rilegge è di questo test.
+        crono.Segna("fase-uno-del-test");
+        crono.Segna("fase-due-del-test");
         crono.Scrivi();
+
+        var aggiunto = File.ReadAllText(Percorso())[(int)prima..];
+        var uno = aggiunto.IndexOf("fase-uno-del-test", StringComparison.Ordinal);
+        var due = aggiunto.IndexOf("fase-due-del-test", StringComparison.Ordinal);
+        Assert.True(uno >= 0 && due > uno, "le due fasi non sono uscite, o non nell'ordine in cui sono state segnate:\n" + aggiunto);
+        Assert.Contains("TOTALE", aggiunto);
     }
+
+    // Lo stesso percorso del test dell'avvio vero, qui sotto: la cartella dei test è scrivibile.
+    private static string Percorso() =>
+        Path.Combine(AppContext.BaseDirectory, StartupDiagnostics.CartellaDiagnostica, StartupDiagnostics.InfoFileName);
+
+    // ⚠️ In CARATTERI e non in byte: il file ha accenti, e il confronto si fa sul testo riletto.
+    private static long LunghezzaDelFile() => File.Exists(Percorso()) ? File.ReadAllText(Percorso()).Length : 0;
 
     /// <summary>
     /// E l'avvio vero lascia il proprio riepilogo nel file di diagnostica: è l'unico posto in cui, su un

@@ -110,10 +110,14 @@ DB interno si registra un nuovo adapter e si cambia quel valore, senza toccare A
 (`["IT-DIR","IT-WM"]`) sia array di oggetti con campo `id`/`connectAs`.
 
 ## Permessi
-- **Admin** = staff position che matcha i ruoli divisione (`^{Division.Code}-{ruolo}$`, es. `IT-DIR`).
-  Se l'host usa codici diversi, elencarli come pattern in `Auth:AdminStaffCodes`.
-- **Grant per-ACC** = concessi dagli admin in `/services/vsop/admin/permissions` (lista dagli staffisti che si sono
-  loggati almeno una volta). Audit in `/services/vsop/admin/audit`.
+Cinque **livelli** cumulativi (`VipiRole`: User → IvaoStaff → DivisionStaff → Editor → Admin); dettaglio e chiavi
+in [`config.md`](config.md) §1a-bis.
+- **Admin** = staff position di direzione (`^{Division.Code}-{uno di Auth:AdminRoles}$`, es. `IT-DIR`), più i
+  `Auth:FounderVids`. Se l'host usa codici diversi, elencarli come pattern in `Auth:AdminStaffCodes`.
+- **Editor** = chief d'ACC (`Auth:EditorAccRoles`, es. `LIRR-CH`): edita il contenuto di **ogni** ACC.
+- **Promozione a mano**: in `/services/vsop/admin/permissions` un Admin alza il livello di una persona (mai sotto
+  quello dato dalla sua posizione staff). Audit in `/services/vsop/admin/audit`.
+- ⚠️ Le concessioni per ACC (`EditGrant`) non esistono più dal 28 agosto 2026 (riga corretta il 13-set, T-058).
 
 ## Configurazione divisione e segreti
 ```json

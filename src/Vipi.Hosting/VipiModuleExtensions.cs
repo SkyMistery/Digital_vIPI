@@ -755,7 +755,7 @@ public static class VipiModuleExtensions
     /// <para><b>Dal 12 settembre 2026 le passate SUI DOCUMENTI hanno un gate</b> (audit §Q7). Misurato:
     /// ~185 query su 256 dell'avvio erano queste dodici, che riscandiscono ogni documento a ogni avvio e
     /// <b>crescono col contenuto</b>. Il timbro sta in <c>IImportStateStore</c> sotto
-    /// <c>RiconciliazioniDocumentali:{versione+commit}</c>, come già fanno le due riconciliazioni one-shot
+    /// la chiave di <see cref="ImportCategories.RiconciliazioniPer"/> (il COMMIT, non la versione: vedi lì), come già fanno le due riconciliazioni one-shot
     /// che c'erano prima (<c>ManualCatalogRows</c>, <c>SpecialAreaForeignOptOut</c>).</para>
     ///
     /// <para><b>Le tre regole che rendono il gate sicuro</b>, e vanno lette insieme:</para>

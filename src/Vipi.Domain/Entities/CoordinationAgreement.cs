@@ -28,7 +28,8 @@ public class CoordinationAgreement
     public int Id { get; set; }
 
     /// <summary>
-    /// ACC responsabile dell'accordo. Serve **solo all'autorizzazione** (<c>EnsureCanEditAccAsync</c>): la
+    /// ACC responsabile dell'accordo. Serviva all'autorizzazione per ACC (<c>EnsureCanEditAccAsync</c>), che non
+    /// esiste più dal 28 agosto 2026: oggi l'Editor edita tutto (T-080). La
     /// visibilità nei documenti non passa di qui ma dai due LATI, così un accordo di confine non può essere
     /// invisibile a uno dei suoi due capi — che è ciò che succedeva quando i flussi vivevano nel «secchio» di
     /// una ACC sola e un centro estero confinante con due ACC italiane andava riscritto due volte.

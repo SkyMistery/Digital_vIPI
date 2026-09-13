@@ -541,8 +541,10 @@ public static class SectionCatalog
     /// transizione» uscivano come <b>titoli vuoti</b>. Nessun test lo prendeva perché tutte le altre famiglie
     /// hanno le derivate al primo livello.
     /// </para>
-    /// <para>Misurato: gli unici descrittori con figli sono i quattro contenitori di <c>AirportMil</c>, quindi
-    /// la discesa non cambia una virgola per gli altri profili.</para>
+    /// <para>⚠️ Il 29 agosto gli unici descrittori con figli erano i contenitori di <c>AirportMil</c>, e qui
+    /// c'era scritto che la discesa «non cambia una virgola per gli altri profili». Non vale più: dal 12
+    /// settembre anche il profilo <c>Airport</c> ha figli (<c>runways</c> → <c>runwayrules</c>), e per quelli
+    /// la discesa è <b>necessaria</b>, non indifferente (T-079, revisione del 13 settembre 2026).</para>
     /// </summary>
     public static SectionDescriptor? Find(SectionProfile profile, string key) =>
         Cerca(For(profile), key)

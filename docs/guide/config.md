@@ -324,18 +324,25 @@ Mappata su `AuthOptions` (`src/Vipi.Application/Auth/AuthOptions.cs`).
 
 | Chiave | Tipo | Default | Significato |
 |---|---|---|---|
-| `Auth:AdminStaffCodes` | string[] | `[]` (vuoto) | Pattern regex **completi** dei codici staff admin. Se valorizzato **sostituisce** i default derivati da `Division`. Se vuoto, admin = `^{Division:Code}-{AdminRolePatterns}$`. |
+| `Auth:AdminStaffCodes` | string[] | `[]` (vuoto) | Pattern regex **completi** dei codici staff admin. Se valorizzato **sostituisce** i default di `Auth:AdminRoles`. Se vuoto, admin = `^{Division:Code}-{uno di Auth:AdminRoles}$`. |
 
 Usare solo se servono codici admin non derivabili dal codice divisione. Esempio:
 ```json
 "Auth": { "AdminStaffCodes": [ "^IT-DIR$", "^IT-WM$", "^XX-SPECIAL$" ] }
 ```
 
-Regole di autorizzazione (`EditAuthorizationService`):
-- **Admin** (match dei pattern sopra) → edita tutto + gestisce i grant.
-- **Grant per-ACC** (`EditGrant`, VID→ACC, da `/services/vsop/admin/permissions`) → edita le ACC concesse.
-- Altri → sola lettura (la sezione editor in `AccLanding` non compare).
-- Verifica **sempre server-side**; la UI nasconde solo gli entry-point.
+Regole di autorizzazione (`EditAuthorizationService`) — i cinque livelli di §1a-bis, cumulativi:
+- il livello è `max(quello dato dalle posizioni staff IVAO, la promozione a mano)`; i `Auth:FounderVids` sono
+  sempre `Admin`;
+- **Admin** → sorgenti, incarichi di tutti, audit, diagnostica, permessi, **eliminare** (T-012, 13-set-2026);
+- **Editor** → tutto il contenuto documentale di ogni ACC (le concessioni per ACC, `EditGrant`, non esistono
+  più dal 28 agosto 2026);
+- **DivisionStaff** → statistiche di divisione e di chiunque, strumenti di staff;
+- gli altri → lettura;
+- verifica **sempre server-side**; la UI nasconde o spegne solo gli entry-point.
+
+> Riscritto il 13 settembre 2026 (T-058): fino a quel giorno questo paragrafo descriveva ancora il modello a
+> concessioni per ACC eliminato il 28 agosto.
 
 ---
 

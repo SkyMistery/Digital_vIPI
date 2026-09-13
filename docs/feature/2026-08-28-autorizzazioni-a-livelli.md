@@ -5,7 +5,8 @@
 > `DivisionOptions.AdminRolePatterns`), che resta valida come **storia** e non più come regola.
 > **Stato: ✅ FUSO IN `main` il 29 agosto 2026** (merge `8d14b499`, ramo cancellato). Otto slice su otto,
 > più la verifica live guidata su cinque identità — che ha trovato **tre difetti** che la suite non vedeva.
-> ⚠️ **Non è ancora in produzione**: al deploy gli `IT-` fuori dagli otto codici perdono l'editing.
+> ✅ **In produzione** da tempo (riga di stato aggiornata il 13 settembre 2026, T-082). Il 13 settembre
+> eliminare è tornato da amministratore per ogni bersaglio (T-012, 1.25.3).
 
 ## 1. Perché
 

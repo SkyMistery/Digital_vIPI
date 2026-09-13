@@ -99,23 +99,47 @@ public sealed class DelayedUiActionTests
     /// <summary>
     /// Se l'azione lancia <see cref="ObjectDisposedException"/> — il renderer sparito fra il controllo e la
     /// chiamata — non deve restare un'eccezione non osservata: siamo in un task fire-and-forget.
+    ///
+    /// <para>⚠️ Fino al 13 settembre 2026 (T-073) questo test forzava la raccolta e poi non guardava niente:
+    /// un task fallito affiorava in <see cref="TaskScheduler.UnobservedTaskException"/>, che nessuno ascoltava.
+    /// Ora si ascolta. L'evento è di processo e altri test girano in parallelo: si conta solo l'eccezione col
+    /// nome d'oggetto di questo test.</para>
     /// </summary>
     [Fact]
     public async Task Un_renderer_sparito_non_lascia_eccezioni_non_osservate()
     {
-        using var azione = new DelayedUiAction();
-        var lanciato = new TaskCompletionSource();
-
-        azione.Schedule(TimeSpan.FromMilliseconds(20), () =>
+        const string Nome = "Renderer-DelayedUiActionTests";
+        var nonOsservate = 0;
+        void Conta(object? _, UnobservedTaskExceptionEventArgs e)
         {
-            lanciato.TrySetResult();
-            throw new ObjectDisposedException("Renderer");
-        });
+            if (e.Exception.Flatten().InnerExceptions.OfType<ObjectDisposedException>().Any(x => x.ObjectName == Nome))
+                Interlocked.Increment(ref nonOsservate);
+        }
 
-        await lanciato.Task.WaitAsync(TimeSpan.FromSeconds(5));
-        await Task.Delay(50);
+        TaskScheduler.UnobservedTaskException += Conta;
+        try
+        {
+            using (var azione = new DelayedUiAction())
+            {
+                var lanciato = new TaskCompletionSource();
+                azione.Schedule(TimeSpan.FromMilliseconds(20), () =>
+                {
+                    lanciato.TrySetResult();
+                    throw new ObjectDisposedException(Nome);
+                });
+                await lanciato.Task.WaitAsync(TimeSpan.FromSeconds(5));
+                await Task.Delay(100);
+            }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();   // un task fallito e non osservato affiorerebbe qui
+            GC.Collect();
+            GC.WaitForPendingFinalizers();   // un task fallito e non osservato affiora qui
+            GC.Collect();
+
+            Assert.Equal(0, Volatile.Read(ref nonOsservate));
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= Conta;
+        }
     }
 }

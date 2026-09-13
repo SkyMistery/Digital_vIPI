@@ -49,12 +49,23 @@ public class DiagnosticaCircuitoTests
 
     /// <summary>⚠️ Un errore raccontato a parole, senza eccezione, non lascia una voce: nel registro ci va
     /// quel che ha uno stack — e con lo stack la fotografia delle collisioni.</summary>
+    ///
+    /// <para>⚠️ Fino al 13 settembre 2026 (T-073) questo test non aveva un'asserzione. Ora guarda il registro
+    /// degli errori: dopo la chiamata non deve contenere la frase. E per non provare niente per sbaglio,
+    /// la stessa frase CON un'eccezione deve invece arrivarci.</para>
     [Fact]
     public void Senza_eccezione_non_si_scrive_niente()
     {
         var log = PerCategoria("Microsoft.AspNetCore.Components.Server.Circuits.CircuitHost");
+        var registro = Path.Combine(AppContext.BaseDirectory, StartupDiagnostics.CartellaDiagnostica,
+            DiagnosticaErrori.NomeFile);
+        string Letto() => File.Exists(registro) ? File.ReadAllText(registro) : "";
 
-        // Non deve alzare: se scrivesse, scriverebbe una voce vuota di quel che serve.
-        log.Log(LogLevel.Error, new EventId(1, "prova"), "solo parole", null, (s, _) => s);
+        log.Log(LogLevel.Error, new EventId(1, "prova"), "solo-parole-T073", null, (s, _) => s);
+        Assert.DoesNotContain("solo-parole-T073", Letto());
+
+        log.Log(LogLevel.Error, new EventId(1, "prova"), "con-eccezione-T073",
+            new InvalidOperationException("prova"), (s, _) => s);
+        Assert.Contains("con-eccezione-T073", Letto());
     }
 }

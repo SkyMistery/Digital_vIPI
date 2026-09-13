@@ -1,7 +1,7 @@
 # 12 — Vista live unificata per callsign ✅
 
 > Chiude l'ultimo doppione strutturale dell'asse: due pagine gemelle che switchavano sullo stesso tipo di ente.
-> Gemello di [09](09-registri-per-tipo.md) come tecnica (descrittore + registry) e di
+> Gemello di [09](09-flusso-pubblicazione.md) come tecnica (descrittore + registry) e di
 > [11](11-uniformita-tre-documenti.md) come intento (un comportamento solo per cose che sono la stessa cosa).
 >
 > **Fatto il 2026-07-31**, subito dopo la revisione della vista operativa dello stesso giorno.

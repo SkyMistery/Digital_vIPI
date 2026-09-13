@@ -19,8 +19,11 @@
 # ramo net8 sparisce del tutto passerebbe in silenzio - cioe' proprio il guasto che questo script esiste
 # per prendere.
 #
-# ⚠️ L'atteso si alza da sé quando si aggiungono test — il confronto è «non meno di» — ma si ABBASSA solo a
-# mano, con un commit che dice perché. È lì che sta il valore: un calo diventa una decisione, non un caso.
+# ⚠️ L'atteso NON si alza da sé. Qui c'era scritto il contrario, e non era vero: il file si riscrive solo con
+# `--scrivi`, che la CI non passa, e l'8 settembre 2026 l'atteso era rimasto fermo alla 1.16.1 — un calo di
+# ~190 test in Application sarebbe passato verde, cioè il guasto che R-028 doveva chiudere (T-056, revisione
+# del 13 settembre 2026). Da allora il cancello scatta nei DUE sensi: un calo e una salita non dichiarati
+# fermano entrambi la corsa. Chi aggiunge test riscrive l'atteso nello stesso commit, e il diff lo mostra.
 set -uo pipefail
 
 LOG="${1:?serve il file di log di dotnet test}"
@@ -40,8 +43,8 @@ if [ -z "$CORSA" ]; then
 fi
 
 if [ "$MODO" = "--scrivi" ]; then
-  { echo "# Test eseguiti per assieme e TFM. Il confronto è «non meno di»: questo file si alza da sé"
-    echo "# quando si aggiungono test, e si abbassa SOLO a mano, con un commit che dice perché."
+  { echo "# Test eseguiti per assieme e TFM. Il confronto è ESATTO: un calo o una salita non dichiarati fermano"
+    echo "# la CI. Si riscrive nello stesso commit che aggiunge o toglie test, così la decisione si vede nel diff."
     echo "# Rigenerare: tools/conta-test.sh <log di dotnet test> --scrivi"
     echo "$CORSA"
   } > "$ATTESI"
@@ -52,6 +55,7 @@ fi
 [ -f "$ATTESI" ] || { echo "conta-test: manca $ATTESI" >&2; exit 1; }
 
 GUASTI=0
+SALITI=0
 while read -r assieme tfm atteso; do
   case "$assieme" in \#*|"") continue;; esac
 
@@ -68,12 +72,25 @@ while read -r assieme tfm atteso; do
     echo "MANCA   $assieme ($tfm): atteso $atteso, non è stato eseguito affatto"
     GUASTI=$((GUASTI+1))
   elif [ "$visto" -lt "$atteso" ]; then
-    echo "CALATO  $assieme ($tfm): attesi almeno $atteso, eseguiti $visto"
+    echo "CALATO  $assieme ($tfm): attesi $atteso, eseguiti $visto"
     GUASTI=$((GUASTI+1))
+  elif [ "$visto" -gt "$atteso" ]; then
+    echo "SALITO  $assieme ($tfm): attesi $atteso, eseguiti $visto — l'atteso non e' stato riscritto"
+    SALITI=$((SALITI+1))
   else
-    echo "ok      $assieme ($tfm): $visto (atteso >= $atteso)"
+    echo "ok      $assieme ($tfm): $visto"
   fi
 done < "$ATTESI"
+
+# Un assieme che gira ma non e' nell'atteso: un progetto di test nuovo che nessuno ha dichiarato.
+while read -r assieme tfm visto; do
+  [ -z "$assieme" ] && continue
+  if [ "$MODO" = "--tfm" ] && [ "$tfm" != "$TFM_SOLO" ]; then continue; fi
+  if ! awk -v a="$assieme" -v t="$tfm" '$1==a && $2==t {trovato=1} END {exit !trovato}' "$ATTESI"; then
+    echo "NUOVO   $assieme ($tfm): $visto test, assente dall'atteso"
+    SALITI=$((SALITI+1))
+  fi
+done <<< "$CORSA"
 
 if [ "$GUASTI" -gt 0 ]; then
   cat >&2 <<'FINE'
@@ -92,4 +109,14 @@ FINE
   exit 1
 fi
 
-echo "conta-test: nessun calo."
+if [ "$SALITI" -gt 0 ]; then
+  cat >&2 <<'FINE'
+
+I test sono PIU' di quelli dichiarati. Non e' un guasto del codice: e' l'atteso che non e' stato riscritto.
+Va fatto nello stesso commit che aggiunge i test, o il prossimo calo si nasconde sotto questa salita:
+  tools/conta-test.sh <log di dotnet test> --scrivi
+FINE
+  exit 1
+fi
+
+echo "conta-test: conteggi identici all'atteso."

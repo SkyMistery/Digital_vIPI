@@ -52,7 +52,8 @@ mai `Civil`. La mantengono tre porte, e servono tutt'e tre:
 - una **passata d'avvio** idempotente, che ripara lo stato che nessuno digita (e che fa il travaso).
 
 **Le regole «quale documento» stanno in un posto solo**, `AirportCategories` nel Dominio (puro, senza I/O):
-`AmmetteCivile`, `AmmetteMilitare`. Oggi la stessa domanda è scritta in sei punti — nascita della vIPI,
+`AllowsCivil`, `AllowsMilitary` (nella carta si chiamavano `AmmetteCivile`/`AmmetteMilitare`: nel codice
+sono nati coi nomi inglesi — nota del 13 settembre 2026, T-080). Oggi la stessa domanda è scritta in sei punti — nascita della vIPI,
 nascita del vSOP, «Nuovo documento», elenco vSOP, rimando all'editor militare, Diagnostica — ed è la **regola
 del 2** del `FEATURE-PROCESS`.
 

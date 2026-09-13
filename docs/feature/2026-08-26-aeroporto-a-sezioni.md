@@ -1,6 +1,7 @@
 ﻿# La vIPI d'aeroporto diventa un documento come gli altri — carta (26 agosto 2026)
 
-> **Stato: ✅ ESEGUITA il 26 agosto 2026**, ramo `aeroporto-a-sezioni` (da `identita-settori`, **non fuso**).
+> **Stato: ✅ ESEGUITA il 26 agosto 2026**, ramo `aeroporto-a-sezioni` (da `identita-settori`). ✅ **In `main`** e in produzione
+> (verificato il 13 settembre 2026, T-082: i suoi commit stanno nella storia di `main`; il «non fuso» scritto qui era superato).
 > Otto fette, undici commit, suite verde su entrambi i TFM, Release **0 avvisi**. Verifica live su LIBD in §6.
 > **Nessuna migrazione**: non cambia lo schema, cambia chi scrive.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Chiude l'ultima famiglia rimasta fuori dall'asse
