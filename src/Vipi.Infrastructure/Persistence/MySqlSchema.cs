@@ -26,7 +26,6 @@ public static class MySqlSchema
     /// </summary>
     public static readonly Version DefaultMariaDbVersion = new(11, 4, 10);
 
-#if NET8_0
     /// <summary>
     /// Traduce il valore di configurazione in una <c>ServerVersion</c> per Pomelo. Assume <b>MariaDB</b>,
     /// non MySQL: è quello che gira su <c>atc.it.ivao.aero</c>, e le due famiglie divergono su cose che ci
@@ -48,5 +47,4 @@ public static class MySqlSchema
 
         return new Microsoft.EntityFrameworkCore.MariaDbServerVersion(versione);
     }
-#endif
 }

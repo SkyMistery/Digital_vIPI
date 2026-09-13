@@ -13,12 +13,16 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- net8 e non net10 per una ragione sola: il database di produzione è MariaDB (ADR-0007 §D4-ter) e
-         l'unico provider EF che la supporta davvero è Pomelo, che non ha una build per EF Core 10. Le
-         cinque librerie erano già multi-target, quindi qui cambia solo l'host.
-         Costo pagato: MapStaticAssets e @Assets sono .NET 9+, e sono stati sostituiti — vedi Program.cs
-         e Components/App.razor. -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- net10 dal 13 settembre 2026 (L13, T-059; ADR-0007 §D4-quater): .NET 8 esce dal supporto il 10 novembre 2026,
+         e quel che non riceverebbe più patch è proprio questo progetto — Kestrel, OpenIdConnect, DataProtection.
+         Dal 9 agosto era net8 perché Pomelo, l'unico provider che regge MariaDB, non ha una build per EF Core 10:
+         il nodo si scioglie tenendo EF Core 8 + Pomelo 8.0.3 anche sul ramo net10 di Vipi.Infrastructure.
+         ⚠️ Il pacchetto resta self-contained e Passenger lo lancia con `dotnet Vipi.Host.dll`: provato in un
+         container col solo runtime 8, il processo carica hostfxr 8 dalla macchina ma coreclr e CoreLib 10 dalla
+         cartella dell'app. Sul server non va installato niente.
+         Costo storico ancora in piedi: MapStaticAssets e @Assets erano stati sostituiti quando l'host era net8 —
+         vedi Program.cs e Components/App.razor. -->
+    <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>79756a9b-0ff7-4ec7-89d3-88a116771871</UserSecretsId>
@@ -75,8 +79,10 @@
   <ItemGroup>
     <!-- Modulo login IVAO OIDC (scenario C, standalone). STACCABILE: rimuovi questo pacchetto + i file
          Auth\*.cs quando vIPI va embedded in un host con auth propria. Il core resta invariato. -->
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.*" />
-    <!-- Key-ring Data Protection su DB (antiforgery/cookie persistenti tra redeploy su Render). Vedi VipiDataProtection.cs. -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.*" />
+    <!-- Key-ring Data Protection su DB (antiforgery/cookie persistenti tra redeploy su Render). Vedi VipiDataProtection.cs.
+         ⚠️ 8.0.* anche su un host net10: la 10.x di questo pacchetto tira EF Core 10, e lo stack EF qui è EF 8 per
+         Pomelo (Vipi.Infrastructure.csproj). DataProtection vera sta nel framework condiviso, che è 10. -->
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="8.0.*" />
   </ItemGroup>
 

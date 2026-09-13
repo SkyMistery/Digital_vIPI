@@ -31,24 +31,27 @@ Referenziare i progetti del modulo (o i futuri pacchetti NuGet):
 
 ### Target framework
 I cinque progetti del modulo sono **multi-target `net8.0;net10.0`**: un host net8 consuma il ramo
-net8 (stack EF Core 8 / ASP.NET Core 8), un host net10 il ramo net10. Nessuna differenza di API o di
-comportamento fra i due — cambia solo la versione dei pacchetti tirati. `Vipi.Host` è **net8.0 solo**
-(è l'host che va in produzione, e Pomelo esiste solo lì).
+net8 (ASP.NET Core 8), un host net10 il ramo net10 (ASP.NET Core 10). **Lo stack EF è EF Core 8 su
+entrambi**, per Pomelo, l'unico provider che regge MariaDB (ADR-0007 §D4-quater). `Vipi.Host` è
+**net10.0 solo** dal 13 settembre 2026: è l'host che va in produzione. ⚠️ Non portare il ramo net10 a
+EF Core 10 finché non esiste un Pomelo per EF 10: la produzione resterebbe senza provider.
 
 **I progetti di test dall'11 agosto 2026** — prima erano net10 soli tranne uno:
 
 | Progetto | TFM | perché |
 |---|---|---|
 | `Vipi.Application.Tests`, `Vipi.Domain.Tests`, `Vipi.Hosting.Tests`, `Vipi.Ui.Tests`, `Vipi.Infrastructure.Tests` | `net8.0;net10.0` | provano librerie multi-target: vanno provate su entrambi |
-| `Vipi.E2E.Tests` | `net8.0` | avvia `Vipi.Host`, che è net8 solo |
+| `Vipi.E2E.Tests` | `net10.0` | avvia `Vipi.Host`, che è net10 solo: i due TFM si cambiano insieme |
 | `Vipi.AuroraBridge.Tests` | `net8.0` | prova `AuroraBridge.Core`, net8 solo (Avalonia) |
 
 Conseguenze pratiche per chi tocca il codice del modulo:
 - Sotto net8 il compilatore scende a **C# 12**: niente sintassi C# 13/14 nelle cinque librerie.
 - Niente API .NET 9+ nelle librerie. Caso già incontrato: `Convert.ToHexStringLower` (net9+) →
   usare `Convert.ToHexString(...).ToLowerInvariant()`.
-- Le migration sono generate con EF Core 10 ma **applicate anche da EF Core 8** (verificato: le 65
-  migration si applicano su SQLite sotto EF 8.0.29). Restano SQLite-flavored — vedi `config.md`.
+- Le migration SQLite fino al 13 settembre 2026 sono state generate con EF Core 10 e si **applicano anche da
+  EF Core 8** (verificato: le 65 migration su SQLite sotto EF 8.0.29). Da L13 lo strumento di design è EF 8 su
+  entrambi i TFM: una migration nuova nasce da EF 8, e il `ProductVersion` dello snapshot cambia di
+  conseguenza — è atteso, non è una deriva. Restano SQLite-flavored — vedi `config.md`.
 - ⚠️ **Il ramo net8 è coperto dai test, e dall'11 agosto 2026 lo è davvero.** Fino a quel giorno solo
   `Vipi.Infrastructure.Tests` girava su net8: **347 test su ~1400**, mentre logica editoriale, resa e smoke
   di avvio vivevano esclusivamente su net10 — cioè sul runtime che *non* va in produzione. Ora la suite gira

@@ -288,7 +288,7 @@ internal static class VipiStartup
             ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
         };
 
-        // Su net8 la collezione si chiama KnownNetworks (KnownIPNetworks è .NET 9+).
+        // KnownIPNetworks e non KnownNetworks: l'host è net10 dal salto di L13 (T-059), e il nome vecchio è obsoleto.
         //
         // Svuotare entrambe significa «fidati di X-Forwarded-For da chiunque», ed è quel che serve su Render, dove
         // l'IP del proxy non è fisso. Su atc.it.ivao.aero NON serve: nginx sta sulla stessa macchina e arriva da
@@ -296,7 +296,7 @@ internal static class VipiStartup
         // quell'IP si regge il tetto per-IP del bridge Aurora, oltre a ogni riga di log che dice «da dove».
         //
         // Perciò: in Production ci si fida SOLO del loopback; altrove resta il comportamento di prima.
-        forwardedOptions.KnownNetworks.Clear();
+        forwardedOptions.KnownIPNetworks.Clear();
         forwardedOptions.KnownProxies.Clear();
         if (app.Environment.IsProduction())
         {

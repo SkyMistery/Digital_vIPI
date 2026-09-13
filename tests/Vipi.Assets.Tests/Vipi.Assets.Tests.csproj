@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- net8 e basta, come l'attrezzo che prova: Vipi.Assets gira dentro il publish di Vipi.Host, che è net8. -->
+    <!-- net8 e basta, come l'attrezzo che prova: Vipi.Assets gira dentro il publish di Vipi.Host come processo
+         a sé, quindi il suo TFM non segue quello dell'host. -->
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

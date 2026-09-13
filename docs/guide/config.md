@@ -110,8 +110,8 @@ I tre provider sono tutti operativi, ma servono a tre scopi diversi e non sono i
 | `MySql` | **produzione** su `atc.it.ivao.aero` — il server è **MariaDB 11.4.10**, provider **Pomelo 8.0.3** | set di migrazioni dedicato (`Vipi.Infrastructure.MySqlMigrations`) — *non* `EnsureCreated` |
 
 > ℹ️ Il valore si chiama `MySql` anche puntando a MariaDB: è il nome del **dialetto**, non del prodotto.
-> Perché l'host è `net8.0`: Pomelo non esiste per EF Core 10, e Pomelo è l'unico provider che porta la
-> collation fino alla DDL.
+> Pomelo non esiste per EF Core 10, e Pomelo è l'unico provider che porta la collation fino alla DDL: per
+> questo lo stack EF è EF 8 anche con l'host `net10.0` (ADR-0007 §D4-quater).
 >
 > ℹ️ **Solo su `MySql`** il modello riceve due aggiustamenti che sugli altri due non si applicano:
 > le **lunghezze** delle colonne stringa indicizzate (`MySqlStringLengths` — InnoDB non indicizza `longtext`)

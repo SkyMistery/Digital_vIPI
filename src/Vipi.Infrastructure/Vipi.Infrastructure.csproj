@@ -5,38 +5,40 @@
     <ProjectReference Include="..\Vipi.Domain\Vipi.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.*">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.*" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.*" />
-    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.*" />
-  </ItemGroup>
-
-  <!-- Ramo embedding (host Ivao.It, net8): stessa API, stack EF Core 8. -->
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  <!-- ⚠️ LO STACK EF È UNO SOLO, EF Core 8, SU ENTRAMBI I TFM — ANCHE SU net10, ED È VOLUTO (L13, T-059, 13 settembre
+       2026; ADR-0007 §D4-quater). Il database di produzione è MariaDB 11.4 (§D4-ter) e l'unico provider che la regge
+       è Pomelo, che si ferma a EF Core 9 (9.0.0, agosto 2025) e non ha una build per EF Core 10: le PR della comunità
+       sono aperte, il repository è fermo. Il provider Oracle, che EF 10 ce l'ha, scarta la collation di MariaDB
+       proprio sulle colonne indicizzate. Quindi l'host va su net10 — runtime e ASP.NET Core supportati fino al 2028,
+       che è il rischio vero di T-059 (OIDC, Kestrel, DataProtection) — e qui sotto resta EF 8 con Pomelo 8.0.3,
+       lo stesso già verificato contro MariaDB vera. EF 9 non comprerebbe niente: EF 8 e EF 9 escono dal supporto
+       lo STESSO giorno, il 10 novembre 2026, e cambiare versione vorrebbe dire rifare la prova delle migrazioni.
+       Non passare a EF 10 finché non c'è un Pomelo 10: l'host non avrebbe più un provider per la produzione. -->
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.*" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.*" />
-    <!-- MariaDB: il database di PRODUZIONE (atc.it.ivao.aero è MariaDB 11.4, ADR-0007 §D4-ter).
-         SOLO su net8, ed è il motivo per cui Vipi.Host è net8: Pomelo non ha una build per EF Core 10
-         e il provider Oracle, che ce l'ha, non supporta MariaDB — si rompe sul lock di migrazione e
-         sulla collation. Il ramo MySQL del codice è quindi sotto #if NET8_0. -->
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.*" />
+  </ItemGroup>
+
+  <!-- Ramo embedding (host Ivao.It, net8). -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="8.0.*" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Binario nativo di SQLite. EF Core 10 tira la 2.1.11, che è dentro il range di CVE-2025-6965
+    <!-- Binario nativo di SQLite. EF Core 10 tirava la 2.1.11, che è dentro il range di CVE-2025-6965
          (GHSA-2m69-gcr7-jv3q: SQLite < 3.50.2, corruzione di memoria) e fa fallire l'audit NuGet.
          La 2.1.12 è fuori dal range. Solo il .dll nativo: l'API gestita di bundle_e_sqlite3 non cambia.
          Rimuovere quando EF Core tirerà da sé una versione non vulnerabile.

@@ -58,10 +58,9 @@ public static class DependencyInjection
                 break;
 
             case Persistence.PersistenceProvider.MySql:
-#if NET8_0
                 // Produzione su atc.it.ivao.aero, che è MariaDB 11.4 (ADR-0007 §D4-ter). Provider Pomelo,
-                // l'unico che supporta MariaDB davvero — e che esiste solo per EF Core 8, da cui questo #if
-                // e il fatto che Vipi.Host sia net8.
+                // l'unico che supporta MariaDB davvero — e che non ha una build per EF Core 10: per questo lo stack EF
+                // è EF 8 su entrambi i TFM, e il ramo non sta più sotto #if (L13, ADR-0007 §D4-quater).
                 //
                 // La versione del server è FISSATA, non auto-rilevata: ServerVersion.AutoDetect apre una
                 // connessione mentre si costruiscono le opzioni, quindi con il database ancora giù l'app non
@@ -92,16 +91,6 @@ public static class DependencyInjection
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
                     .AddInterceptors(Tracciante, Bump(sp)));
                 break;
-#else
-                // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a
-                // breve (quattro tentativi di porting, nessuno approdato). Meglio un errore che lo dice che
-                // un `default:` generico, che manderebbe a cercare un errore di battitura nella config.
-                throw new InvalidOperationException(
-                    "Persistence:Provider=MySql è supportato solo sul target net8.0, perché il provider " +
-                    "Pomelo — l'unico che regge MariaDB — non ha una build per EF Core 10. L'host di " +
-                    "produzione (Vipi.Host) è net8 apposta. Vedi ADR-0007 §D4-ter e " +
-                    "docs/design/piano-supporto-mysql.md.");
-#endif
 
             default:
                 throw new InvalidOperationException($"Provider di persistenza non gestito: {provider}.");

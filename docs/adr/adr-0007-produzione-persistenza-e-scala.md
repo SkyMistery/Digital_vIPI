@@ -243,7 +243,10 @@ vedi §S7 del piano.
 
 ## Aggiornamento (9 agosto 2026) — D4-ter: il server è **MariaDB**, il provider è **Pomelo**, l'host torna a **net8**
 
-**Questa è la decisione vigente.** Ribalta D4-bis su tutti e tre i punti operativi, e per una ragione sola:
+> ⚠️ **Il punto 2 (host `net8.0`) è superato da D4-quater** (13 settembre 2026), in fondo: l'host è `net10.0`
+> con lo stesso stack EF 8 + Pomelo. Provider, collation e migrazioni restano quelli di qui.
+
+**Era la decisione vigente fino al 13 settembre 2026.** Ribalta D4-bis su tutti e tre i punti operativi, e per una ragione sola:
 D4-bis era costruita su una premessa di fatto sbagliata. «Il server è MySQL 8.0+» era ciò che ci era stato
 riferito; il server è **MariaDB 11.4.10**. Non è una sfumatura di versione — MariaDB e MySQL 8 hanno
 divergiuto abbastanza da rendere invalide entrambe le altre scelte.
@@ -303,3 +306,51 @@ immagini. Ha trovato tre pagine che morivano (voce A6): non erano difetti del pr
 Resta fuori portata da qui l'`sql_mode` del loro server: provato anche in modalità non-strict senza
 differenze osservabili, che non è una dimostrazione — solo l'assenza di un sintomo sulla superficie
 esercitata.
+
+## Aggiornamento (13 settembre 2026) — D4-quater: host **net10**, stack EF **8** + Pomelo 8.0.3 invariato
+
+**Questa è la decisione vigente sul TFM dell'host.** Provider, collation e migrazioni restano quelli di D4-ter.
+
+### Perché si riapre
+
+.NET 8 esce dal supporto il **10 novembre 2026** (revisione totale 2, T-059). Quel che smetterebbe di ricevere
+patch di sicurezza è proprio il pezzo esposto: Kestrel, `OpenIdConnect`, DataProtection — cioè l'host.
+
+### Che cosa si è misurato prima di decidere
+
+- **Pomelo si ferma a 9.0.0** (EF Core 9, 17 agosto 2025). Nessuna build per EF Core 10: le PR della comunità
+  (#2047, #2048, #2049) sono aperte, l'ultimo commit sul ramo principale è di agosto 2025.
+- **EF Core 8 e EF Core 9 escono dal supporto lo STESSO giorno**, il 10 novembre 2026 (tabella ufficiale delle
+  release di EF Core). Passare a Pomelo 9 non allunga niente e costerebbe la riprova delle migrazioni.
+- Il **provider Oracle** (`MySql.EntityFrameworkCore` 10.0.9) ha EF 10, ma su MariaDB scarta la collation sulle
+  colonne indicizzate (D4-ter): la ragione per cui fu scartato non è cambiata.
+- **EF Core 8 su un host net10 funziona**: build Release a zero avvisi, suite intera verde sui due TFM, E2E
+  (che avvia l'host in-process) su net10.
+- **Il pacchetto self-contained net10 parte lanciato come lo lancia Passenger**, `dotnet Vipi.Host.dll`, in un
+  container col **solo runtime 8**: il processo carica `libhostfxr` 8.0.31 dalla macchina, ma `libcoreclr`,
+  `libhostpolicy` e `System.Private.CoreLib` dalla cartella dell'app. Sul server **non va installato niente**.
+- **glibc 2.31** (Debian 11, come dice `SELECT VERSION()` del loro MariaDB): il runtime 10 si carica ed esegue
+  l'avvio. ⚠️ Nella stessa prova `libe_sqlite3.so` (SQLitePCLRaw 2.1.12) chiede `GLIBC_2.33`: non riguarda la
+  produzione, dove il provider è MySql e SQLite non si carica, ed è lo stesso binario già nel pacchetto net8.
+
+### Decisione
+
+1. **`Vipi.Host` è `net10.0`**; `Vipi.E2E.Tests` lo segue, e l'immagine Docker passa ad `aspnet:10.0`.
+2. **Lo stack EF è uno solo, EF Core 8 + Pomelo 8.0.3, su entrambi i TFM** delle librerie. Il ramo MariaDB esce
+   dagli `#if NET8_0` e i suoi test girano anche su net10. Il ramo net8 resta per l'embedding in Ivao.It.
+3. `Vipi.Infrastructure.MySqlMigrations` diventa multi-target; il job `mariadb-schema` applica le migrazioni
+   con l'assembly **net10**.
+4. `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` resta **8.0.\***: la 10.x tira EF Core 10.
+
+### Il costo, dichiarato
+
+- **EF Core 8 dopo il 10 novembre non riceve patch**, esattamente come non le riceverebbe EF 9. Il rischio
+  residuo si sposta dal runtime intero alla sola libreria di accesso ai dati — che per giunta passa da
+  Pomelo, un progetto fermo. Si riapre quando esisterà un Pomelo per EF 10, o un provider MariaDB che regga
+  la collation.
+- **EF Core 8 non è dichiarato da Microsoft per .NET 10** (la tabella lo lega a .NET 8): funziona, e la suite
+  lo prova, ma è una combinazione che si sceglie, non una che si eredita.
+- **Il pacchetto cambia tutto il runtime**: ogni `.so` e ogni assieme del framework. L'aggiornamento via FTP è
+  un carico completo, non una manciata di file, con il vecchio zip pronto per tornare indietro.
+- ⚠️ **Debian 11 è uscito dal supporto LTS il 31 agosto 2026**: `apt` sui mirror normali non installa più
+  pacchetti bullseye (visto nella prova). Non blocca .NET 10, ma è un'informazione per chi gestisce il server.

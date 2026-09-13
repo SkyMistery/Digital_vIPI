@@ -1,5 +1,4 @@
-﻿#if NET8_0
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
@@ -363,4 +362,3 @@ public class MigrazioniDellaFinestraCiecaTests
         Assert.True(IndiceUnicoRischioso(indice, new HashSet<string>(StringComparer.Ordinal)));
     }
 }
-#endif

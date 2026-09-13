@@ -1,4 +1,3 @@
-#if NET8_0
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -122,4 +121,3 @@ public class MySqlModelTuningTests
         Assert.Null(sha.GetCollation());
     }
 }
-#endif

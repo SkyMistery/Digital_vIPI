@@ -18,7 +18,7 @@ live legata a chi è online (AoR top-down) ed editing per i ruoli staff (CH/AOD)
 | `src/Vipi.Domain` | Entità, enum, regole pure (`AiracService`). Nessuna dipendenza. | — |
 | `src/Vipi.Application` | Use case e porte: `IAorService`, `IContentService`, `ICurrentUserProvider`. Logica AoR pura. | Domain |
 | `src/Vipi.Infrastructure` | EF Core + SQLite (`VipiDbContext`), `TopologyBuilder`, migrazioni SQLite. | Application, Domain |
-| `src/Vipi.Infrastructure.MySqlMigrations` | Il **secondo set di migrazioni**, per MariaDB/MySQL (Pomelo, solo `net8.0`): è quello che gira in produzione. Ogni cambio di schema si emette due volte (ADR-0007). | Infrastructure |
+| `src/Vipi.Infrastructure.MySqlMigrations` | Il **secondo set di migrazioni**, per MariaDB/MySQL (Pomelo 8.0.3, `net8.0;net10.0`): è quello che gira in produzione. Ogni cambio di schema si emette due volte (ADR-0007). | Infrastructure |
 | `src/Vipi.AuroraProfiles` | Motore dell'Aurora Profile Swapper: scambia sezioni di un profilo `.cpr` lasciando il resto identico byte per byte. Zero dipendenze. | — |
 | `src/Vipi.Ui` | **RCL Blazor** montabile in-process nel sito host. Stili confinati in `.vipi-root`. | Application, Domain |
 | `src/Vipi.Hosting` | **Superficie del modulo**: `AddVipiModule`/`UseVipiModule`/`MapVipiModule`/`MigrateVipiDatabase`, identità host, middleware, SSE, health. | Ui, Infrastructure, Application, Domain |
@@ -84,7 +84,7 @@ dotnet ef migrations add <Nome> \
 ```
 
 ## Stato in breve
-Solution a 4 layer + Host Blazor Server **net8** (multi-target `net8.0;net10.0` nelle librerie); il conteggio dei test lo tiene `tools/conta-test.sh`, non questa riga. Consultazione + editing + sicurezza dal DB;
+Solution a 4 layer + Host Blazor Server **net10** (multi-target `net8.0;net10.0` nelle librerie, stack EF 8 per Pomelo — ADR-0007 §D4-quater); il conteggio dei test lo tiene `tools/conta-test.sh`, non questa riga. Consultazione + editing + sicurezza dal DB;
 live IVAO (polling + SSE); sorgente dati disaccoppiata; pagine su prefisso `/services/vsop`; **fonte unica = cataloghi**
 (i `Sector` sono una proiezione, gerarchia di copertura per callsign cross-ACC, Round 20). **Bridge Aurora**:
 tool desktop + endpoint `POST /vsop/api/v1/transfers/resolve` che propone il livello di trasferimento al
