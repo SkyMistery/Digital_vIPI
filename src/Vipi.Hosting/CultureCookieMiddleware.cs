@@ -52,6 +52,9 @@ public sealed class CultureCookieMiddleware
                     // Nessuno script deve leggerlo, e non deve viaggiare su richieste cross-site.
                     HttpOnly = true,
                     SameSite = SameSiteMode.Lax,
+                    // Solo HTTPS se la richiesta è HTTPS (T-085, 13 settembre 2026): in produzione lo è, grazie
+                    // a X-Forwarded-Proto; in sviluppo l'host è HTTP, e un Secure lì il browser lo butterebbe.
+                    Secure = ctx.Request.IsHttps,
                 });
             }
         }

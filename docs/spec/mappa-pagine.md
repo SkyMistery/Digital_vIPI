@@ -127,7 +127,7 @@
 | `/services/vsop/mil` | `MilListPage.razor` | Elenco vSOP militari (le bozze le vede solo l'Editor) | tutti |
 | `/services/vsop/{acc}/mil` | `MilDocumentPage.razor` | Documento vSOP militare | tutti (edit: Editor) |
 | `/services/vsop/{acc}/mil/editor` | `MilEditorPage.razor` | Editor vSOP militare | Editor |
-| `/services/vsop/aor3d/{kind}/{key}` | `Aor3dFullPage.razor` | AoR 3D a schermo pieno. ⚠️ Nessun cancello, e mostra la copia di **lavoro** (T-061, aperto) | tutti |
+| `/services/vsop/aor3d/{kind}/{key}` | `Aor3dFullPage.razor` | AoR 3D a schermo pieno, senza ingressi nell'interfaccia; mostra la copia di **lavoro**, quindi dal 13-set-2026 ha il cancello (T-061) | Editor |
 | `/services/vsop/tasks` | `TasksPage.razor` | I miei incarichi (assegnare ad altri: Admin) | chi ha fatto login |
 | `/services/vsop/admin/pending` | `PendingPage.razor` | Da sistemare | Editor (eliminare: Admin) |
 | `/services/vsop/admin/tasks` | `AdminTasksPage.razor` | Incarichi di tutti | Admin |

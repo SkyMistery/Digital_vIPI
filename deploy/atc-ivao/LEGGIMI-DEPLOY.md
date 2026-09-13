@@ -231,10 +231,20 @@ sul dominio:
 
 | campo | valore |
 |---|---|
-| quando | `URI Path starts with /services/` **and not** `Cookie contains "vipi.auth"` |
+| quando | `URI Path starts with /services/` **and not** `Cookie contains "vipi.auth"` **and** `Cookie contains ".AspNetCore.Culture"` |
 | cosa fare | *Eligible for cache* |
 | durata al bordo | *Respect origin TTL* |
 | chiave di cache | includere il **cookie `.AspNetCore.Culture`** |
+
+🔴 **CORREZIONE del 13 settembre 2026 (T-011): la terza condizione, sul cookie di lingua.** Chi arriva **senza**
+quel cookie — cioè ogni prima visita — legge nella lingua del **browser** (`Accept-Language`), e il bordo non
+onora `Vary: Accept-Language`: con la regola di prima il primo visitatore del minuto avrebbe deciso la lingua
+della pagina anche per tutti quelli dopo. Il codice lo sa dal pacchetto **1.25.4** (la cache interna ha la
+chiave sulla lingua risolta e l'intestazione dice `Vary: …, Accept-Language`); al bordo si risolve
+**lasciando passare all'origine chi non ha ancora il cookie**. Mettere `Accept-Language` nella chiave di
+Cloudflare non conviene: il valore grezzo cambia da browser a browser (`it-IT,it;q=0.9,en;q=0.8`…) e
+spezzerebbe la cache in centinaia di copie.
+⚠️ **E la regola non va creata prima che 1.25.4 sia in produzione.**
 
 ⚠️ **«Respect origin TTL» e non un numero scritto a mano.** L'applicazione già distingue quel che si può
 tenere da quel che non si può — le schermate di amministrazione, gli editor, il live, le anteprime delle

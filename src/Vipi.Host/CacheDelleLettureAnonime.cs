@@ -60,6 +60,8 @@ internal static class CacheDelleLettureAnonime
     {
         "/admin", "/editor", "/new-document", "/pending", "/versions", "/tasks",
         "/live", "/search", "/changed", "/auth", "/stats/world",
+        // Da Editor e con la copia di LAVORO (T-061, 13 settembre 2026): come gli editor, non si tiene.
+        "/aor3d",
     };
 
     public static IApplicationBuilder UseVipiCacheDelleLettureAnonime(this WebApplication app)
@@ -84,7 +86,9 @@ internal static class CacheDelleLettureAnonime
                     // ⚠️ Vary: Cookie NON è decorativo. Senza, una cache condivisa potrebbe servire questa
                     // copia anonima a chi è entrato col proprio VID — che vedrebbe la pagina di un altro,
                     // senza i propri tasti. È la riga che rende innocuo tutto il resto.
-                    risposta.Headers.Vary = "Accept-Encoding, Cookie";
+                    // 🔴 E Accept-Language (T-011, 13 settembre 2026): senza il cookie di lingua la pagina esce
+                    // nella lingua del browser, quindi la copia dipende anche da lei.
+                    risposta.Headers.Vary = "Accept-Encoding, Cookie, Accept-Language";
                     return Task.CompletedTask;
                 }, context);
             }

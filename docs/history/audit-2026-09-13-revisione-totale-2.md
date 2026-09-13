@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 (T-042 staccato: va riscritto sullo snapshot della release) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -143,7 +143,7 @@ finding è la fusione di due segnalazioni.
 
 ### S2
 
-#### T-002 — Le posizioni staff restano nel cookie per sempre: chi perde l'incarico resta Admin/Editor
+#### ✅ T-002 (1.25.4) — Le posizioni staff restano nel cookie per sempre: chi perde l'incarico resta Admin/Editor
 
 | | |
 |---|---|
@@ -239,7 +239,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | `LIMC 130250Z 00000KT 3000 BR FEW010 08/07 Q1022 TEMPO 0300 FG VV001`. Il ciclo non si ferma a TEMPO: VV001 porta `CeilingFt` a 100 e `LvpValutatore` risponde InVigore, anche se l'osservazione dice 3000 m senza strati coprenti. `BECMG BKN002` porta il soffitto a 200, cioè Preparazione. `TEMPO RA` imposta `HasRain`, quindi pista bagnata e regola Wet invece di Dry. Lo stesso METAR alimenta il quadro vAWOS, il riquadro LVP dei documenti e la pista in uso. Solo vento, visibilità e temperatura sono protetti da `is null`: nubi, VV, fenomeni e RVR no |
 | **Correzione** | Fermare la lettura delle condizioni al primo token di tendenza (registrando NOSIG) o a RMK, e mettere il resto in `Trend`. Test con `TEMPO … VV001` e con `BECMG BKN002` |
 
-#### T-011 — La cache delle letture anonime varia solo sul cookie: la lingua di `Accept-Language` passa al lettore successivo
+#### ✅ T-011 (1.25.4) — La cache delle letture anonime varia solo sul cookie: la lingua di `Accept-Language` passa al lettore successivo
 
 | | |
 |---|---|
@@ -330,7 +330,7 @@ sec-auth · C · `src/Vipi.Application/Auth/EditAuthorizationService.cs:111`.
   Scoped, quindi vive quanto il circuito.
 - **Correzione.** Memoizzare solo la parte che viene dai claim.
 
-**T-019 — Un solo contatore «globale» per vAWOS, archivio e bridge, consumato anche quando poi scatta il tetto per IP.**
+**✅ T-019 (1.25.4) — Un solo contatore «globale» per vAWOS, archivio e bridge, consumato anche quando poi scatta il tetto per IP.**
 sec-infra · C · `src/Vipi.Hosting/VipiModuleExtensions.cs:365`.
 - **Scenario.** Un client lancia circa 10 richieste al secondo su `/services/vawos/api/LIRF?x=<casuale>`.
   Il globale (600 al minuto) si consuma prima del rifiuto per IP, e da lì in poi tutti i quadri vAWOS e
@@ -347,7 +347,7 @@ sec-infra · **P** · `src/Vipi.Host/VipiStartup.cs:286`.
 - **Correzione.** Usare `CF-Connecting-IP` quando la connessione arriva da loopback, oppure il VID per i
   collegati. Correggere i commenti di `AuroraBridgeOptions`.
 
-**T-021 — Lo stream SSE pubblico ha solo un tetto globale di 300 connessioni.**
+**✅ T-021 (1.25.4) — Lo stream SSE pubblico ha solo un tetto globale di 300 connessioni.**
 sec-infra · C · `src/Vipi.Hosting/VipiModuleExtensions.cs:292`.
 - **Scenario.** Uno script apre 300 GET `/vsop/live/atc` e le tiene vive con il ping ogni 25 s: tutti i
   LiveBadge ricevono 503 finché resta collegato.
@@ -441,7 +441,7 @@ services · **P** · `src/Vipi.Application/Stats/AtcSessionSync.cs:91`.
 - **Perché PLAUSIBILE.** Dipende dall'ordine dei due giri.
 - **Correzione.** Chiudere all'ultimo avvistamento.
 
-**T-033 — La verifica del roster staff parte solo dopo 24 h di processo acceso: sotto Passenger non gira mai.**
+**✅ T-033 (1.25.4) — La verifica del roster staff parte solo dopo 24 h di processo acceso: sotto Passenger non gira mai.**
 services · **P** · `src/Vipi.Infrastructure/Ivao/StaffRosterVerificationService.cs:36`.
 - **Codice.** `PeriodicTimer` senza stato persistito; con i riavvii frequenti non arriva mai al primo tick.
   Aggrava T-002.
@@ -629,7 +629,7 @@ raggiungibile, perché le pagine rendono i comandi solo agli Editor. · sec-auth
 `src/Vipi.Infrastructure/Persistence/EfNavaidCatalog.cs:57` · Facciata con `EnsureAtLeast` e un test per
 porta da anonimo.
 
-**T-061** — `/services/vsop/aor3d/{vloa|app}/{key}` serve a chiunque la copia di **lavoro** dell'AoR, anche
+**✅ T-061** (1.25.4) — `/services/vsop/aor3d/{vloa|app}/{key}` serve a chiunque la copia di **lavoro** dell'AoR, anche
 di documenti nascosti o mai pubblicati (id enumerabili), e la mette in output cache. · sec-auth · C ·
 `src/Vipi.Ui/Pages/Aor3dFullPage.razor:56` · Togliere la rotta, che non ha ingressi, oppure passare dalle
 porte pubbliche.
@@ -729,12 +729,12 @@ ancora caricato» in `docs/index.md:115`, «non ancora in produzione» in `autor
 
 **✅ T-083** (chiuso in main, 13-set, lotto A) — Link rotto `09-registri-per-tipo.md`. · docs · C · `docs/refactor/12-vista-live-unificata.md:4`.
 
-**T-084** — Un ACC inesistente risponde 200 «ACC sconosciuto» con `Cache-Control: public` (misurato in
+**✅ T-084** (1.25.4) — Un ACC inesistente risponde 200 «ACC sconosciuto» con `Cache-Control: public` (misurato in
 produzione su `/services/vsop/nonexistent-xyz`): ogni percorso inventato diventa una copia in cache e una
 pagina indicizzata. · sicurezza-dal-vivo · **C-vivo** · `src/Vipi.Host/CacheDelleLettureAnonime.cs:79` ·
 Far rispondere 404 alla pagina.
 
-**T-085** — Cookie antiforgery e lingua emessi in HTTPS senza `Secure`; HSTS al default di 30 giorni
+**✅ T-085** (1.25.4) — Cookie antiforgery e lingua emessi in HTTPS senza `Secure`; HSTS al default di 30 giorni
 (misurato in produzione). · sicurezza-dal-vivo · **C-vivo** ·
 `src/Vipi.Hosting/CultureCookieMiddleware.cs:46` (e `VipiStartup.cs:396`, `:514`) · `Secure`,
 `Antiforgery.Cookie.SecurePolicy = Always`, `AddHsts` a 365 giorni.

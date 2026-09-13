@@ -130,6 +130,14 @@ public static class ImportCategories
     public const string TrafficRetention = "TrafficRetention";
 
     /// <summary>
+    /// La ri-verifica del roster staff su IVAO (dal 13 settembre 2026, T-033). ⚠️ Non è un import: rilegge
+    /// <c>/v2/users/{vid}</c> di chi è nel roster e disattiva chi non è più staff. Sta fra queste chiavi perché
+    /// prima girava su un <c>PeriodicTimer</c> senza stato: il primo giro veniva dopo 24 ore di processo acceso,
+    /// e sotto Passenger — che ferma il processo di continuo — <b>non arrivava mai</b>.
+    /// </summary>
+    public const string StaffRoster = "StaffRoster";
+
+    /// <summary>
     /// Il riempimento della <b>memoria di traduzione</b> (dal 27 agosto 2026). ⚠️ Non è un import: la
     /// sorgente che interroga non porta dati nostri, li rende in un'altra lingua. Sta fra queste chiavi
     /// perché usa lo stesso giro gestito — periodo, stato, ultimo esito — e senza una chiave sua non si

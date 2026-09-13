@@ -46,6 +46,7 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
     [InlineData("/services/vsop/changed")]
     [InlineData("/services/vsop/auth/login")]
     [InlineData("/services/stats/world")]
+    [InlineData("/services/vsop/aor3d/vloa/42")]
     public void Le_pagine_che_dipendono_da_chi_guarda_non_si_tengono(string percorso)
         => Assert.False(CacheDelleLettureAnonime.Riutilizzabile(Richiesta(percorso)));
 
@@ -137,6 +138,69 @@ public sealed class CacheDelleLettureAnonimeTests : IClassFixture<SmokeTests.Vip
         ctx.Request.QueryString = QueryString.Create(chiave, "en");
 
         Assert.False(CacheDelleLettureAnonime.Riutilizzabile(ctx));
+    }
+
+    /// <summary>
+    /// 🔴 <b>La copia tenuta porta la lingua RISOLTA, non solo il cookie</b> (T-011, 13 settembre 2026).
+    ///
+    /// <para>Chi arriva senza cookie di lingua — cioè ogni prima visita — legge nella lingua del proprio
+    /// browser (<c>Accept-Language</c>). La chiave della cache guardava solo il cookie: il primo lettore del
+    /// minuto decideva la lingua della pagina anche per quelli dopo. Riprodotto dal vivo in modalità
+    /// Production dalla revisione; qui lo stesso giro, due richieste allo stesso indirizzo.</para>
+    /// </summary>
+    [Fact]
+    public async Task La_copia_tenuta_non_passa_la_lingua_di_un_lettore_al_successivo()
+    {
+        using var client = _factory.CreateClient();
+        var indirizzo = "/services/vsop/guide?t011=" + Guid.NewGuid().ToString("N");
+
+        async Task<string> Lingua(string acceptLanguage)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Get, indirizzo);
+            req.Headers.AcceptLanguage.ParseAdd(acceptLanguage);
+            using var resp = await client.SendAsync(req);
+            resp.EnsureSuccessStatusCode();
+            var html = await resp.Content.ReadAsStringAsync();
+            var m = System.Text.RegularExpressions.Regex.Match(html, "<html[^>]*\\blang=\"([a-z]+)");
+            Assert.True(m.Success, "la pagina non dichiara <html lang>");
+            return m.Groups[1].Value;
+        }
+
+        Assert.Equal("en", await Lingua("en"));
+        Assert.Equal("it", await Lingua("it"));
+        Assert.Equal("en", await Lingua("en"));
+    }
+
+    /// <summary>E l'intestazione lo dice anche alle cache fuori da qui: la risposta varia con la lingua del browser.</summary>
+    [Fact]
+    public async Task La_risposta_tenuta_dichiara_che_varia_con_accept_language()
+    {
+        using var client = _factory.CreateClient();
+        using var resp = await client.GetAsync("/services/vsop/guide?t011v=" + Guid.NewGuid().ToString("N"));
+
+        Assert.Contains("Accept-Language", string.Join(",", resp.Headers.Vary));
+    }
+
+    /// <summary>
+    /// 🔴 <b>Un ACC inventato è un 404, non una pagina da tenere</b> (T-084, 13 settembre 2026). Misurato in
+    /// produzione: <c>/services/vsop/nonexistent-xyz</c> rispondeva 200 con <c>Cache-Control: public</c>, cioè
+    /// ogni percorso inventato diventava una copia in cache e una pagina indicizzabile. Le sei pagine con il
+    /// ramo «ACC sconosciuto», una per una.
+    /// </summary>
+    [Theory]
+    [InlineData("/services/vsop/xx-t084")]
+    [InlineData("/services/vsop/xx-t084/vipi")]
+    [InlineData("/services/vsop/xx-t084/airports")]
+    [InlineData("/services/vsop/xx-t084/apps")]
+    [InlineData("/services/vsop/xx-t084/apps/vipi?app=XX_APP")]
+    [InlineData("/services/vsop/xx-t084/vloa")]
+    public async Task Un_acc_inventato_risponde_404_e_non_si_tiene(string indirizzo)
+    {
+        using var client = _factory.CreateClient();
+        using var resp = await client.GetAsync(indirizzo);
+
+        Assert.Equal(System.Net.HttpStatusCode.NotFound, resp.StatusCode);
+        Assert.DoesNotContain("public", resp.Headers.CacheControl?.ToString() ?? "");
     }
 
     /// <summary>Solo le letture: una POST non è una pagina di cui tenere una copia.</summary>

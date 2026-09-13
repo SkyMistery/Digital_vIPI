@@ -41,6 +41,7 @@ internal sealed class ImportSchedule : IImportSchedule
         ImportCategories.AirportTrafficBackfill => Ore(_ivao.AirportTrafficBackfillHours),
         ImportCategories.AirportTrafficRollup => Ore(_ivao.AirportTrafficRollupHours),
         ImportCategories.TrafficRetention => Ore(_ivao.TrafficRetentionHours),
+        ImportCategories.StaffRoster => Ore(_ivao.StaffVerifyHours),
         _ => null,   // chiavi che non sono import periodici (segnaposti di riconciliazioni one-shot).
     };
 

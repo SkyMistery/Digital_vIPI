@@ -138,13 +138,29 @@ public sealed class RequestRateLimiter
         }
     }
 
+    /// <summary>
+    /// I due tetti di un endpoint pubblico, <b>nell'ordine giusto e con le chiavi sue</b>: prima quello per
+    /// chiamante, poi quello complessivo. Vero = passa.
+    ///
+    /// <para>🔴 <b>Perché (T-019, revisione del 13 settembre 2026).</b> I tre endpoint (vAWOS, archivio, bridge)
+    /// controllavano PRIMA il tetto complessivo, con la STESSA chiave <see cref="GlobalKey"/>, e le chiavi per
+    /// IP dell'archivio e del bridge erano l'IP nudo. Un solo client che martellava il vAWOS consumava il
+    /// contatore complessivo anche con le richieste che il suo tetto per IP avrebbe rifiutato: dopo 600 al
+    /// minuto rispondevano 429 tutti i quadri vAWOS <i>e</i> l'archivio, e un IP che usava l'archivio si
+    /// mangiava il tetto del bridge.</para>
+    /// </summary>
+    public bool PassaITetti(string endpoint, string chiamante, int perChiamante, int totali, int chiamantiTracciati) =>
+        TryAcquire(endpoint + ":" + chiamante, perChiamante, chiamantiTracciati)
+        && TryAcquire(GlobalKey + ":" + endpoint, totali);
+
     /// <summary>Toglie i contatori la cui finestra è chiusa: sono chiavi che non contano più nulla.</summary>
     private void SpazzaScadute()
     {
         var now = DateTime.UtcNow;
         foreach (var (key, counter) in _counters)
         {
-            if (key == GlobalKey) continue;   // il contatore complessivo non si spazza mai: è uno solo
+            // I contatori complessivi (uno per endpoint dal 13 settembre 2026) non si spazzano mai: sono pochi.
+            if (key.StartsWith(GlobalKey, StringComparison.Ordinal)) continue;
             bool scaduta;
             lock (counter) scaduta = now - counter.WindowStart >= Window;
             if (scaduta) _counters.TryRemove(key, out _);

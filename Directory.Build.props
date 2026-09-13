@@ -1306,7 +1306,31 @@
       (componenti, pagine, FraseHtml, resx it+en) e Host (un commento, ma Host.dll porta il TIMBRO). Nessuna
       migrazione, niente wwwroot, niente endpoints.json. Firme: nessuna interfaccia cambiata.
     -->
-    <VipiVersione>1.25.3</VipiVersione>
+    <!--
+      1.25.4 — PATCH. Superficie pubblica, cache e identità: il secondo lotto della revisione del 13 settembre.
+
+      T-011: la cache delle letture anonime aveva la chiave sul solo cookie di lingua, e chi arriva senza cookie
+      legge nella lingua del browser: il primo lettore del minuto decideva la lingua per tutti. Ora la chiave è
+      la lingua RISOLTA e la risposta dice Vary: Accept-Language. Sblocca passenger_min_instances; la Cache
+      Rule di Cloudflare vuole in più la condizione sul cookie di lingua (LEGGIMI-DEPLOY).
+      T-084: un ACC inventato risponde 404 (era 200 public, cioè una copia in cache per ogni percorso inventato).
+      T-085: cookie di lingua e antiforgery Secure in HTTPS; HSTS a un anno.
+      T-061: la pagina AoR 3D a schermo pieno (senza ingressi, copia di LAVORO) solo all'Editor.
+      T-019: i tre endpoint pubblici controllano prima il tetto per chiamante e poi quello complessivo, con
+      chiavi loro: un client che martella il vAWOS non spegne più archivio e bridge.
+      T-021: lo stream SSE /vsop/live/atc solo a chi è entrato.
+      T-002: le posizioni staff nel cookie si rileggono da IVAO ogni quattro ore; chi perde l'incarico perde
+      il livello. IVAO che non risponde non butta fuori nessuno.
+      T-033: la verifica del roster staff gira sul giro a timbro (sotto Passenger non partiva mai).
+
+      Più il lotto A (5bccf84f): commenti e documenti, nessun comportamento.
+
+      I FILE: Application, Infrastructure, Hosting, Ui, Host (dll+pdb). Nessuna migrazione, nessuna chiave resx
+      nuova, niente wwwroot. Una chiave nuova in ImportState (StaffRoster, 11 caratteri): additiva, la riga
+      nasce al primo giro. Firme: nessuna interfaccia cambiata; RequestRateLimiter ha un metodo in più e i suoi
+      soli chiamanti sono in Hosting, che è nel pacchetto.
+    -->
+    <VipiVersione>1.25.4</VipiVersione>
   </PropertyGroup>
 
 </Project>

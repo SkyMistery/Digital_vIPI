@@ -79,6 +79,12 @@ internal static class VipiStartup
         // le istanze inotify su host con limite basso (es. Render); in container il file è comunque immutabile (baked nell'immagine).
         builder.Configuration.AddJsonFile("content/coordination-sentence.json", optional: true, reloadOnChange: false);
 
+        // 🔴 T-085 (13 settembre 2026), misurato in produzione: l'antiforgery usciva senza `Secure` su HTTPS, e
+        // HSTS era al default di 30 giorni. «Come la richiesta» e non «sempre»: in sviluppo l'host è HTTP.
+        // Niente includeSubDomains né preload: gli altri nomi del dominio non sono nostri da decidere.
+        builder.Services.AddAntiforgery(o => o.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest);
+        builder.Services.AddHsts(o => o.MaxAge = TimeSpan.FromDays(365));
+
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents(o =>
             {
@@ -174,11 +180,18 @@ internal static class VipiStartup
             o.AddBasePolicy(b => b
                 // La stessa identica decisione dell'intestazione: una sola regola, in un posto solo.
                 .With(c => CacheDelleLettureAnonime.Riutilizzabile(c.HttpContext))
-                // La lingua sta nel cookie, non nell'indirizzo: senza questa riga la copia italiana
-                // finirebbe a chi legge in inglese.
+                // La lingua non sta nell'indirizzo: senza questa riga la copia italiana finirebbe a chi legge
+                // in inglese.
+                // 🔴 La lingua RISOLTA, non il cookie (T-011, 13 settembre 2026). Chi non ha il cookie — ogni
+                // prima visita — legge nella lingua di Accept-Language, e con la chiave sul solo cookie il primo
+                // lettore del minuto decideva la lingua per tutti quelli dopo. `UseOutputCache` sta DOPO
+                // `UseVipiModule`, dove gira `UseRequestLocalization`: la lingua risolta qui c'è già, e la
+                // guardia sotto lo pretende invece di ricadere in silenzio sulla cultura del thread.
                 .VaryByValue(c => new KeyValuePair<string, string>(
                     "lingua",
-                    c.Request.Cookies[Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName] ?? ""))
+                    c.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>()?.RequestCulture.UICulture.Name
+                        ?? throw new InvalidOperationException(
+                            "UseOutputCache e' finito prima di UseRequestLocalization: la chiave di cache non saprebbe la lingua.")))
                 .Expire(TimeSpan.FromSeconds(60)));
         });
 
@@ -548,8 +561,10 @@ internal static class VipiStartup
         // ⚠️ E LA CHIAVE PORTA LA LINGUA. L'indirizzo NON cambia con la lingua (nessuna rotta localizzata:
         // regole-lingua R5), quindi senza questa riga la nostra cache servirebbe la copia italiana a chi
         // legge in inglese — lo stesso danno che al bordo si evita con la chiave di cache, fatto in casa.
-        // Si legge il COOKIE e non `CurrentUICulture`: così la chiave non dipende da dove sta questo
-        // middleware rispetto a `UseRequestLocalization`, che è un ordine che qualcuno cambierà.
+        // 🔴 Fino al 13 settembre 2026 si leggeva il COOKIE «per non dipendere dall'ordine dei middleware»,
+        // e così la chiave non vedeva Accept-Language (T-011). Ora si legge la lingua RISOLTA, e l'ordine
+        // lo pretende l'AddOutputCache qui sopra: se questa riga finisse prima di UseVipiModule, la prima
+        // lettura anonima solleverebbe invece di servire la lingua sbagliata.
         //
         // ⚠️ Dopo `UseVipiModule` e prima delle rotte: là dentro c'è la localizzazione, e qui sotto ci sono
         // gli endpoint.

@@ -110,6 +110,11 @@ public static class VipiModuleExtensions
             services.AddScoped<ICurrentUserProvider, HostIdentityCurrentUserProvider>();
         }
 
+        // «Questa pagina dice che la cosa non esiste» → 404 (T-084). Registrato fuori dal ramo dell'identità:
+        // serve anche con l'identità di sviluppo, e AddHttpContextAccessor si può chiamare due volte.
+        services.AddHttpContextAccessor();
+        services.AddScoped<Vipi.Ui.Components.IStatoDellaRisposta, StatoDellaRispostaHttp>();
+
         // Tracking dei login staff per il roster permessi.
         services.AddSingleton<StaffLoginThrottle>();
 
@@ -282,8 +287,18 @@ public static class VipiModuleExtensions
 
         // F3: transport live SSE. Emette un evento a ogni cambio della cache ATC (+ heartbeat anti-timeout).
         // ADR-0003. Read-only, nessun dato sensibile.
-        endpoints.MapGet("/vsop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, CancellationToken ct) =>
+        endpoints.MapGet("/vsop/live/atc", async (HttpContext ctx, OnlineAtcCache cache, ICurrentUserProvider utente, CancellationToken ct) =>
         {
+            // 🔴 Solo chi è entrato (T-021, 13 settembre 2026). Con il solo tetto globale, 300 connessioni
+            // aperte da uno script lasciavano a 503 i gettoni live di tutta la divisione; un tetto per IP dietro
+            // Cloudflare colpirebbe controllori veri che arrivano dallo stesso indirizzo. Dal §CZ l'anonimo lo
+            // stream non lo apre più (gettone spento): chiudergli la porta non gli toglie niente.
+            if (utente.Get() is null)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                return;
+            }
+
             // Tetto alle connessioni contemporanee. Ogni stream è una richiesta che resta aperta finché il
             // browser la tiene, e l'endpoint è pubblico e anonimo: senza un tetto, il numero di richieste
             // aperte su un processo solo — la scala decisa è UNA istanza — lo sceglie chi chiama.
@@ -362,13 +377,9 @@ public static class VipiModuleExtensions
         {
             // Stesso cancello degli altri due endpoint pubblici, e per la stessa ragione: qui una richiesta
             // costa due interrogazioni al database, e chi le chiede è anonimo.
-            if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, AwosRichiesteAlMinutoTotali))
-            {
-                ctx.Response.Headers.RetryAfter = "60";
-                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-            }
+            // Prima il tetto per chiamante, poi quello complessivo, con chiavi di QUESTO endpoint (T-019).
             var chiamante = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-            if (!limiter.TryAcquire("awos:" + chiamante, AwosRichiesteAlMinutoPerIp, ArchivioClientiTracciati))
+            if (!limiter.PassaITetti("awos", chiamante, AwosRichiesteAlMinutoPerIp, AwosRichiesteAlMinutoTotali, ArchivioClientiTracciati))
             {
                 ctx.Response.Headers.RetryAfter = "60";
                 return Results.StatusCode(StatusCodes.Status429TooManyRequests);
@@ -444,14 +455,9 @@ public static class VipiModuleExtensions
             int? offset,
             CancellationToken ct) =>
         {
-            if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, ArchivioRichiesteAlMinutoTotali))
-            {
-                ctx.Response.Headers.RetryAfter = "60";
-                return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-            }
-
+            // Prima il tetto per chiamante, poi quello complessivo, con chiavi di QUESTO endpoint (T-019).
             var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-            if (!limiter.TryAcquire(ip, ArchivioRichiesteAlMinutoPerIp, ArchivioClientiTracciati))
+            if (!limiter.PassaITetti("archivio", ip, ArchivioRichiesteAlMinutoPerIp, ArchivioRichiesteAlMinutoTotali, ArchivioClientiTracciati))
             {
                 ctx.Response.Headers.RetryAfter = "60";
                 return Results.StatusCode(StatusCodes.Status429TooManyRequests);
@@ -510,17 +516,12 @@ public static class VipiModuleExtensions
             {
                 var opt = options.Value;
 
-                // Il tetto complessivo viene PRIMA di quello per IP, ed è quello che regge davvero: dietro il
-                // reverse proxy l'IP arriva da X-Forwarded-For, che il chiamante sceglie. Il tetto per IP
-                // resta perché protegge dal caso vero — un tool in polling stretto — non dall'avversario.
-                if (!limiter.TryAcquire(RequestRateLimiter.GlobalKey, opt.RequestsPerMinuteTotal))
-                {
-                    ctx.Response.Headers.RetryAfter = "60";
-                    return Results.StatusCode(StatusCodes.Status429TooManyRequests);
-                }
-
+                // Prima il tetto per IP, poi quello complessivo, con chiavi di QUESTO endpoint (T-019, 13
+                // settembre 2026). Fino ad allora il complessivo veniva prima «perché l'IP lo sceglie il
+                // chiamante»: in produzione non è più vero (X-Forwarded-For si accetta dal solo loopback), e
+                // l'ordine vecchio faceva consumare il tetto di tutti anche alle richieste rifiutate per IP.
                 var ip = ctx.Connection.RemoteIpAddress?.ToString() ?? "sconosciuto";
-                if (!limiter.TryAcquire(ip, opt.RequestsPerMinutePerIp, opt.MaxTrackedClients))
+                if (!limiter.PassaITetti("bridge", ip, opt.RequestsPerMinutePerIp, opt.RequestsPerMinuteTotal, opt.MaxTrackedClients))
                 {
                     ctx.Response.Headers.RetryAfter = "60";
                     return Results.StatusCode(StatusCodes.Status429TooManyRequests);

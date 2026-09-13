@@ -138,4 +138,37 @@ public class AuroraBridgeOptionsTests
         Assert.DoesNotContain('\0', "127.0.0.1");
         Assert.True(limiter.TryAcquire("127.0.0.1", 1));
     }
+
+    /// <summary>
+    /// 🔴 T-019 (13 settembre 2026): chi martella un endpoint e viene rifiutato dal PROPRIO tetto non consuma
+    /// quello di tutti. Prima il complessivo si controllava per primo: dieci richieste rifiutate per IP erano
+    /// comunque dieci gettoni tolti agli altri.
+    /// </summary>
+    [Fact]
+    public void Le_richieste_rifiutate_per_chiamante_non_consumano_il_tetto_di_tutti()
+    {
+        var limiter = new RequestRateLimiter();
+
+        // Un chiamante, tetto 2 per lui, tetto complessivo 5: ne manda 20.
+        var passate = Enumerable.Range(0, 20).Count(_ => limiter.PassaITetti("awos", "10.0.0.1", 2, 5, 100));
+        Assert.Equal(2, passate);
+
+        // Gli altri trovano ancora tre posti.
+        Assert.True(limiter.PassaITetti("awos", "10.0.0.2", 2, 5, 100));
+        Assert.True(limiter.PassaITetti("awos", "10.0.0.3", 2, 5, 100));
+        Assert.True(limiter.PassaITetti("awos", "10.0.0.4", 2, 5, 100));
+    }
+
+    /// <summary>E un endpoint esaurito non spegne gli altri: le chiavi, per chiamante e complessive, sono sue.</summary>
+    [Fact]
+    public void Un_endpoint_esaurito_non_spegne_gli_altri()
+    {
+        var limiter = new RequestRateLimiter();
+
+        for (var i = 0; i < 10; i++) limiter.PassaITetti("awos", "10.0.0." + i, 1, 3, 100);
+        Assert.False(limiter.PassaITetti("awos", "10.0.1.1", 1, 3, 100));
+
+        // Stesso IP che ha già usato il vAWOS, e tetto complessivo del vAWOS esaurito: l'archivio passa.
+        Assert.True(limiter.PassaITetti("archivio", "10.0.0.0", 1, 3, 100));
+    }
 }

@@ -81,6 +81,10 @@ public static class VipiStandaloneAuthExtensions
                 o.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
                     ? CookieSecurePolicy.SameAsRequest
                     : CookieSecurePolicy.Always;
+
+                // 🔴 Le posizioni staff si rileggono da IVAO ogni quattro ore (T-002, 13 settembre 2026): col
+                // cookie scorrevole a 7 giorni, chi perdeva l'incarico restava Admin o Editor per sempre.
+                o.Events.OnValidatePrincipal = RiconvalidaPosizioniStaff.OnValidatePrincipal;
             })
             .AddOpenIdConnect(IvaoScheme, "IVAO Single Sign-On", oidc =>
             {

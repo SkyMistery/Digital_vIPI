@@ -8,6 +8,7 @@
 @inject NavigationManager Nav
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
+@inject IEditAuthorizationService Authz
 
 @* Pagina 3D dedicata dell'AoR (schermo quasi intero). Sorgente-neutra: risolve l'AccAorView dal discriminatore Kind
    (acc = intera ACC unendo i blocchi · app = APP standalone · vloa = coppia vLOA) e la rende con AccAor3d.
@@ -15,14 +16,26 @@
    ⚠ SENZA INGRESSO UI dal 2026-07-31: il link «Apri pagina» del tab 3D è stato rimosso (parametro `FullPageUrl` di
    AccAor3d e `Aor3dPageUrl` di AccAor/AccSectionBody con esso) in attesa di rilavorare questa pagina. La rotta
    risponde ancora, quindi ci si arriva a URL diretto: /services/vsop/aor3d/acc/{codice} · /app/{icao} · /vloa/{docId}.
-   Per rimettere il link: revert del commit «AoR 3D: rimosso il link Apri pagina». *@
+   Per rimettere il link: revert del commit «AoR 3D: rimosso il link Apri pagina».
+
+   🔴 CANCELLO EDITOR dal 13 settembre 2026 (T-061): la rotta rispondeva a chiunque con la copia di LAVORO,
+   anche di documenti nascosti o mai pubblicati (`vloa/{docId}` è enumerabile). Chi ci arriva a URL diretto è
+   chi la sta rilavorando. Il rifiuto arriva PRIMA delle letture (PaginaAor3dTests). Se un giorno torna un
+   ingresso pubblico, deve passare dalle porte pubbliche (release effettiva + non nascosto), non da qui. *@
 
 <div class="wrap">
     <PageTitle>@L["Aor3d_PageTitle"] · @_title · IVAO Italy</PageTitle>
 
     <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Aor3d_Crumb"]</b> › @_title</div>
 
-    @if (_view.Sectors is { Count: > 0 })
+    @if (!Authz.IsEditor)
+    {
+        <div class="callout danger" style="margin-top:14px">
+            <span class="cic"><Icon Name="octagon" Size="18" /></span>
+            <div><p class="ct">@L["Common_AccessReserved"]</p></div>
+        </div>
+    }
+    else if (_view.Sectors is { Count: > 0 })
     {
         <h1 style="margin:8px 0 14px">@L["Aor3d_PageTitle"] · @_title</h1>
         <AccAor3d View="_view" Id="@($"page-{Kind}-{Key}")" StageStyle="height:calc(100vh - 190px);min-height:420px" />
@@ -50,6 +63,7 @@
     {
         _view = AccAorView.Empty;
         _title = Key;
+        if (!Authz.IsEditor) return;
         switch ((Kind ?? "").ToLowerInvariant())
         {
             case "acc": _view = await LoadAccAsync(Key); break;
