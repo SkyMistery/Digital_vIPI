@@ -7,6 +7,7 @@ using Vipi.Domain;
 using Vipi.Ui;
 using Vipi.Ui.Pages;
 using Xunit;
+using static Vipi.Ui.Tests.Attese;
 
 namespace Vipi.Ui.Tests;
 
@@ -111,10 +112,10 @@ public class SentinellaDiRientroTests : TestContext
         // solo in CI, «Check count: 0»).
         var disegniPrima = cut.RenderCount;
         await cut.InvokeAsync(_archivio.Rispondi);
-        cut.WaitForState(() => cut.RenderCount > disegniPrima);   // la lettura è finita e la pagina ridisegnata
+        cut.WaitForState(() => cut.RenderCount > disegniPrima, AttesaSottoCarico);   // la lettura è finita e la pagina ridisegnata
 
         cut.Find("button.btn.primary").Click();
 
-        cut.WaitForAssertion(() => Assert.Equal(2, _archivio.Chiamate));
+        cut.WaitForAssertion(() => Assert.Equal(2, _archivio.Chiamate), AttesaSottoCarico);
     }
 }

@@ -7,6 +7,7 @@ using Vipi.Domain;
 using Vipi.Domain.Entities;
 using Vipi.Ui.Components;
 using Xunit;
+using static Vipi.Ui.Tests.Attese;
 
 namespace Vipi.Ui.Tests;
 
@@ -425,7 +426,7 @@ public class BloccoAllegatoTests : TestContext
         Assert.Equal(1, biblioteca.Letture);
 
         await cut.InvokeAsync(() => biblioteca.Lascia(Voce("loa-lirr-lfmm", "LoA Roma-Marseille")));
-        cut.WaitForAssertion(() => Assert.Contains("LoA Roma-Marseille", cut.Markup));
+        cut.WaitForAssertion(() => Assert.Contains("LoA Roma-Marseille", cut.Markup), AttesaSottoCarico);
 
         // E nemmeno dopo: la lettura è una per montaggio.
         cut.SetParametersAndRender(p => p.Add(x => x.Note, "e poi"));
@@ -446,7 +447,7 @@ public class BloccoAllegatoTests : TestContext
 
         var cut = RenderComponent<AttachmentBlockEditor>(p => p.Add(x => x.AttachmentJson, null));
         await cut.InvokeAsync(() => biblioteca.Lascia());   // nessuna voce: è uno stato normale, non un guasto
-        cut.WaitForAssertion(() => Assert.Contains("Att_BlockEmptyHint", cut.Markup));
+        cut.WaitForAssertion(() => Assert.Contains("Att_BlockEmptyHint", cut.Markup), AttesaSottoCarico);
 
         for (var i = 0; i < 4; i++)
             cut.SetParametersAndRender(p => p.Add(x => x.Note, "nota " + i));
