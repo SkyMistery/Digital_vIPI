@@ -1,8 +1,8 @@
 namespace Vipi.Infrastructure.DatabaseCopy;
 
 /// <summary>
-/// Chi sa leggere un database intero per la copia. Oggi uno solo, <c>MySqlDumpSource</c> (MariaDB, solo net8
-/// come Pomelo); sugli altri provider non se ne registra nessuno e la copia risulta non disponibile.
+/// Chi sa leggere un database intero per la copia. Oggi uno solo, <c>MySqlDumpSource</c> (MariaDB, via
+/// Pomelo/MySqlConnector); sugli altri provider non se ne registra nessuno e la copia risulta non disponibile.
 /// </summary>
 public interface IDatabaseDumpSource
 {

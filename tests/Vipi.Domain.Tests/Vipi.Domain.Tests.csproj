@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Multi-target come Vipi.Domain: net8 è il TFM della produzione. -->
+    <!-- Multi-target come Vipi.Domain: net10 è il TFM della produzione (dal 13 settembre 2026), net8 quello dell'embedding. -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

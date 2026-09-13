@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- net8.0 serve SOLO per l'embedding nel sito Ivao.It (host net8). Il ramo net10.0 resta quello
-         consumato da Vipi.Host e dai test. Vedi docs/guide/integration.md §TFM. -->
+    <!-- net8.0 serve SOLO per l'embedding nel sito Ivao.It (host net8). Il ramo net10.0 è quello
+         consumato da Vipi.Host, cioè dalla produzione (L13, 13 settembre 2026). Vedi docs/guide/integration.md §TFM. -->
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <!-- ⚠️ IL RID SI DICHIARA QUI, e non è cosmesi: senza, il `packages.lock.json` di questa libreria CAMBIA
          FORMA a seconda di chi lo restora. Il publish del pacchetto (linux-x64, self-contained) risolve il

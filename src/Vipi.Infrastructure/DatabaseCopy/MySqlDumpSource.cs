@@ -1,4 +1,3 @@
-#if NET8_0
 using System.Data;
 using MySqlConnector;
 
@@ -212,4 +211,3 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
         }
     }
 }
-#endif

@@ -1,4 +1,3 @@
-#if NET8_0
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -160,4 +159,3 @@ public class MySqlMigrationsTests
             .Select(r => r.Trim())
             .FirstOrDefault(r => r.StartsWith($"ALTER TABLE `{tabella}` ADD `{colonna}` ", StringComparison.Ordinal));
 }
-#endif

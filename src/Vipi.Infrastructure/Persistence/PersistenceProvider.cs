@@ -20,7 +20,8 @@ public enum PersistenceProvider
 
     /// <summary>
     /// MariaDB 11.4: il database di <b>produzione</b> (ADR-0007 §D4-ter). Provider <b>Pomelo</b>, l'unico
-    /// che regge MariaDB — e che esiste solo per EF Core 8, da cui il fatto che <c>Vipi.Host</c> sia net8.
+    /// che regge MariaDB — e che non ha una build per EF Core 10, da cui lo stack EF 8 su entrambi i TFM
+    /// anche con <c>Vipi.Host</c> su net10 (ADR-0007 §D4-quater).
     /// <para>A differenza di Postgres lo schema NON si crea con <c>EnsureCreated</c> + reconciler ma da un
     /// set di migrazioni dedicato: la DDL di MySQL non è transazionale, quindi un reconcile interrotto
     /// lascerebbe lo schema parziale senza rollback. Il compromesso che accettiamo su Neon, che è casa

@@ -21,7 +21,7 @@
   </ItemGroup>
 
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net8.0'">
+  <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.*">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
@@ -29,9 +29,9 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <!-- net8 soltanto, a differenza delle cinque librerie: Pomelo non ha una build per EF Core 10, quindi
-         su net10 questo progetto non avrebbe nemmeno un provider con cui generare le migrazioni. -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- Multi-target come le librerie: l'host di produzione è net10 dal 13 settembre 2026 (L13) e usa questo set
+         dal ramo net10 di Vipi.Infrastructure, che ha lo stesso stack EF 8 + Pomelo 8.0.3 del ramo net8. -->
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <!-- ⚠️ IL RID SI DICHIARA QUI, e non è cosmesi: senza, il `packages.lock.json` di questo progetto CAMBIA
          FORMA a seconda di chi lo restora. Un `dotnet build` normale (Windows, nessun RID) non produce la
          sezione `net8.0/linux-x64`, il publish del pacchetto la produce, e il file balla a ogni giro —

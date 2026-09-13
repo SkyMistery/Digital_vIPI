@@ -132,6 +132,15 @@ git diff <commit-online> HEAD -- src | grep -E '^[-+].*\bconst\b'
 grep -rn "NomeDellaCostante" src --include=*.cs --include=*.razor    # chi la usa, progetto per progetto
 ```
 
+🔴 **Eccezione: il primo pacchetto dopo il salto a net10 (L13, ADR-0007 §D4-quater) NON è una lista di
+file.** Cambia il runtime intero — `libcoreclr.so`, `libhostpolicy.so`, `System.Private.CoreLib.dll` e ogni
+assieme del framework — più i pacchetti ri-risolti. Un carico parziale lascerebbe sul server un runtime 8 con
+assiemi 10, o il contrario: il processo non parte, e il messaggio non somiglia alla causa. Si carica il
+**publish completo**, con il vecchio zip pronto per tornare indietro, rispettando le quattro cose che l'FTP
+non deve cancellare (`segreti/`, `appsettings.Production.json`, `vipi-keys/`, `tmp/`). Dal pacchetto dopo si
+torna alla lista corta. ⚠️ I file di prima che net10 non produce più restano sul server: innocui, perché il
+`deps.json` nuovo non li nomina, ma vanno elencati nel foglio.
+
 ⚠️ **Il diff sceglie, le impronte VERIFICANO.** Le due cose non si sostituiscono: il `git diff` dice quali
 *progetti* guardare, poi si confronta lo `sha256` di ogni candidato con **la copia dentro il pacchetto
 precedente** (`artifacts/publish_old/<data>/solo-N-file-<versione>/`) e si tiene solo ciò che è cambiato

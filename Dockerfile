@@ -7,15 +7,15 @@ COPY . .
 RUN dotnet restore src/Vipi.Host/Vipi.Host.csproj
 # Il publish lancia tools/Vipi.Assets (net8) per minificare gli asset, e sdk:10.0 porta il SOLO runtime 10:
 # senza questa riga l'attrezzo muore con «Framework 'Microsoft.NETCore.App', version '8.0.0' not found»
-# (codice 150) e il publish con lui. Vale solo in questo stadio: l'immagine finale gira su aspnet:8.0.
+# (codice 150) e il publish con lui. Vale solo in questo stadio.
 ENV DOTNET_ROLL_FORWARD=Major
 RUN dotnet publish src/Vipi.Host/Vipi.Host.csproj -c Release -o /app --no-restore
 
-# aspnet:8.0 e non 10.0: Vipi.Host è passato a net8 col provider Pomelo (ADR-0007 §D4-ter), e un'immagine
-# col solo runtime 10 fa morire il container all'avvio con «Microsoft.NETCore.App version 8.0.0 not found»
-# — build e publish riescono lo stesso, quindi il guasto si vede solo eseguendolo. Lo stage di build resta
-# su sdk:10.0, che compila net8 senza problemi.
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+# aspnet:10.0, come il TFM di Vipi.Host (net10 dal 13 settembre 2026, L13). ⚠️ I due vanno cambiati INSIEME:
+# ad agosto, con l'host net8 e l'immagine sul solo runtime 10, il container moriva all'avvio con
+# «Microsoft.NETCore.App version 8.0.0 not found» — build e publish riuscivano lo stesso, quindi il guasto si
+# vedeva solo eseguendolo.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 COPY --from=build /app .
 # Il DB SQLite sta in /app/data/vipi.db (ENV qui sotto): per la persistenza montare un volume su /app/data.

@@ -11,9 +11,9 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
-          # Servono entrambi. Vipi.Infrastructure.Tests è multi-target, e senza il runtime 8 installato
-          # l'assembly net8.0 gira in roll-forward sul runtime 10: si proverebbe il ramo MariaDB su un
-          # runtime che in produzione non c'è, che è mezza verifica.
+          # Servono entrambi. I test sono multi-target, e senza il runtime 8 installato l'assembly net8.0
+          # girerebbe in roll-forward sul runtime 10: il ramo dell'embedding si proverebbe su un runtime che
+          # l'host di Ivao.It non ha. La produzione è net10 dal 13 settembre 2026 (L13).
           dotnet-version: |
             8.0.x
             10.0.x
@@ -27,7 +27,7 @@ jobs:
       - run: dotnet build Vipi.slnx --no-restore -c Release
       # Dall'11 agosto 2026 questa riga esegue ENTRAMBI i TFM di ogni progetto multi-target: prima erano
       # net10 tutti tranne Vipi.Infrastructure.Tests, cioè ~1000 test che non toccavano mai il runtime di
-      # produzione. Vedi il job net8 qui sotto per il perché conti.
+      # produzione di allora (net8). Da L13 la produzione è net10 e questo job la copre per intero.
       # `tee`: la corsa si vede in diretta E finisce in un file, perche' il passo dopo la deve contare.
       # ATTENZIONE: `shell: bash` NON e' cosmetico. Il guscio di serie di GitHub e' `bash -e`, SENZA
       # `pipefail`: in una pipe l'esito e' quello dell'ULTIMO comando, cioe' `tee`, che riesce sempre.
@@ -45,8 +45,9 @@ jobs:
       # ~1000 test che non toccavano il runtime di produzione, per settimane). Qui calare fa rumore.
       - run: bash tools/conta-test.sh corsa.log
 
-  # Il ramo net8.0 è la PRODUZIONE: Vipi.Host su atc.it.ivao.aero è net8, perché Pomelo — l'unico provider
-  # che regge MariaDB — non esiste per EF Core 10 (ADR-0007 §D4-ter).
+  # Il ramo net8.0 è quello dell'EMBEDDING in Ivao.It. Fino al 13 settembre 2026 era anche la produzione
+  # (Vipi.Host net8 per Pomelo, ADR-0007 §D4-ter); da L13 l'host è net10 con lo stesso stack EF 8, e la
+  # produzione la prova il job qui sopra, che corre tutti i TFM (E2E compreso, che è solo net10).
   #
   # ⚠️ Questo job ESEGUE i test, non li compila soltanto. Fino all'11 agosto 2026 faceva `dotnet build` di
   # Vipi.Hosting e basta: una compilazione riuscita diceva che il codice esisteva su net8, non che
@@ -68,12 +69,12 @@ jobs:
       # binario. Se la CI si ferma qui, il rimedio è un `dotnet restore --force-evaluate` locale e un commit
       # dei lock aggiornati — cioè rendere visibile l'aggiornamento invece di subirlo.
       - run: dotnet restore Vipi.slnx --locked-mode
-      - name: dotnet test (solo net8.0, la produzione)
+      - name: dotnet test (solo net8.0, l'embedding)
         shell: bash
         # Il logger minimale: vedi il job qui sopra, senza non c'è niente da contare.
         run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal --logger "console;verbosity=minimal" | tee corsa-net8.log
-      # Lo stesso cancello sul ramo di PRODUZIONE: qui l'atteso comprende i soli assiemi net8.0,
-      # e un progetto che smette di girare su net8 e' proprio il difetto dell'11 agosto.
+      # Lo stesso cancello sul ramo net8: qui l'atteso comprende i soli assiemi net8.0, e un progetto che
+      # smette di girare su net8 e' proprio il difetto dell'11 agosto.
       - run: bash tools/conta-test.sh corsa-net8.log --tfm net8.0
 
   # Lo schema di produzione contro un MariaDB VERO. È la classe di guasti che i test unitari non vedono: la
@@ -108,8 +109,8 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-dotnet@v5
         with:
-          # Il progetto delle migrazioni è net8 soltanto, e `dotnet ef` esegue la sua assembly: il runtime 8
-          # qui non è un di più.
+          # Il progetto delle migrazioni è net8 e net10 (L13): `dotnet ef` esegue l'assembly net10, cioè quella
+          # della produzione (`--framework` qui sotto). Il runtime 8 resta per il restore dei due TFM.
           dotnet-version: |
             8.0.x
             10.0.x
@@ -131,6 +132,7 @@ jobs:
           "$HOME/.dotnet/tools/dotnet-ef" database update \
             --project src/Vipi.Infrastructure.MySqlMigrations \
             --startup-project src/Vipi.Infrastructure.MySqlMigrations \
+            --framework net10.0 \
             --connection "$CONN"
 
       # Le verifiche si fanno SUL DATABASE, non sul modello: è la lezione che è costata di più in questa

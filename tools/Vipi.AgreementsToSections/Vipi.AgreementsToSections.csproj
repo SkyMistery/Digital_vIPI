@@ -4,7 +4,8 @@
     <OutputType>Exe</OutputType>
     <!-- net8 e non net10: la destinazione è lo stesso archivio dell'applicazione — SQLite in sviluppo,
          MariaDB in produzione — e l'unico provider EF che regge MariaDB è Pomelo, che esiste solo per
-         EF Core 8 (ADR-0007 §D4-ter). È lo stesso motivo per cui Vipi.Host è net8. -->
+         EF Core 8 (ADR-0007 §D4-ter). Da L13 l'host è net10 con lo stesso stack EF 8: questo attrezzo può
+         restare net8. -->
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
