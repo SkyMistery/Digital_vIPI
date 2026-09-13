@@ -1348,7 +1348,30 @@
       più en/Vipi.Ui.resources.dll. Niente wwwroot, niente endpoints.json. Il bridge desktop cambia ma non
       sta sul sito.
     -->
-    <VipiVersione>1.26.0</VipiVersione>
+    <!--
+      1.26.1 — PATCH, nessuna migrazione. Su 1.26.0 (cad6698, online). Ancora net8: il salto a net10 (L13) è un
+      pacchetto a sé, 1.27.0, dopo che questo ha retto qualche giorno.
+
+      I lotti della revisione totale 2 entrati in main dopo 1.26.0:
+      L2 (T-004, T-063, T-025, T-018): le scritture strutturate chiedono il lock; il livello si rilegge a caldo.
+      L5 (T-013, T-014, T-024, T-037…T-041, T-072): il circuito non cade più su semafori smaltiti e ricerche
+      sovrapposte; pannello traduzioni solo a chi edita.
+      L6 (T-009, T-010, T-050, T-077): vAWOS e LVP — la memoria la decide il server (il JS vAWOS cambia).
+      L7 (T-015, T-016, T-043, T-044, T-070): segni «già agganciato» in proprietà JS, mappe e 3D smontabili.
+      L8 (T-008, T-026, T-027, T-028, T-065): release, documenti uniti, editor.
+      L9 (T-030…T-032, T-035, T-036, T-045, T-054, T-055 spareggio): dati e statistiche ATC.
+      L10 (T-022, T-023, T-046…T-049, T-066, T-067): input e dominio aeronautico.
+      L11 (T-034, T-051, T-052, T-068, T-069, T-074, T-076): cache live che scade, minuti di traffico veri.
+      L12 (T-060, T-071, T-075, T-086): cancello di ruolo nelle anagrafiche; aiuto e tour su «ogni gesto scrive».
+
+      I FILE: Domain, Application, Infrastructure, Hosting, Ui, AuroraProfiles, Host (dll+pdb), più
+      en/Vipi.Ui.resources.dll (resx cambiati) e wwwroot (otto JS) CON i loro .br/.gz e
+      Vipi.Host.staticwebassets.endpoints.json. MySqlMigrations non cambia. Il bridge desktop cambia ma non sta
+      sul sito.
+      Firme: IGlossaryStore ha un metodo in più (SeminaVoceAsync) e i costruttori di sette store chiedono
+      IEditAuthorizationService; implementazioni e registrazioni stanno tutte negli assiemi spediti.
+    -->
+    <VipiVersione>1.26.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
