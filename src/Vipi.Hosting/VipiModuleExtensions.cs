@@ -321,7 +321,14 @@ public static class VipiModuleExtensions
             // `using`: il semaforo alloca il proprio handle di attesa alla prima WaitAsync con timeout, che
             // è esattamente quel che fa il ciclo qui sotto. Senza Dispose restava a ogni connessione chiusa.
             using var signal = new SemaphoreSlim(0);
-            void OnChanged() => signal.Release();
+            // ⚠️ Il poller può chiamare OnChanged DOPO che questo stream si è chiuso e ha smaltito il semaforo (ha
+            // copiato l'elenco dei sottoscrittori prima del `-=`): un segnale a uno stream finito non serve a
+            // nessuno, e non deve diventare un'eccezione nel poller (T-072).
+            void OnChanged()
+            {
+                try { signal.Release(); }
+                catch (ObjectDisposedException) { }
+            }
             cache.Changed += OnChanged;
 
             async Task EmitAsync()

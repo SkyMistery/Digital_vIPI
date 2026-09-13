@@ -450,9 +450,11 @@
             if (mio.IsCancellationRequested) return;
             await lavoro(mio.Token);
         }
-        catch (OperationCanceledException) when (mio.IsCancellationRequested)
+        catch (Exception) when (mio.IsCancellationRequested)
         {
-            // Annullata da una piu' recente: non e' un errore, e non deve arrivare al circuito.
+            // Annullata da una piu' recente, o dal pannello che si chiude: non e' un errore, e non deve
+            // arrivare al circuito. ⚠️ Non la sola OperationCanceledException: chiuso il pannello, lo scope e'
+            // chiuso e il DbContext risponde ObjectDisposedException (T-013, revisione del 13 settembre 2026).
         }
         finally
         {
@@ -462,16 +464,23 @@
         }
     }
 
-    /// <summary>⚠️ Il semaforo e la ricostruzione in corso vivono quanto il componente: senza questo, chi
-    /// chiude il pannello mentre una risoluzione e' in volo lascia in giro una `CancellationTokenSource` e
-    /// un `SemaphoreSlim` per ogni apertura.</summary>
+    /// <summary>
+    /// Chiudere il pannello annulla la ricostruzione in volo.
+    ///
+    /// <para>🔴 <b>Il semaforo NON si smaltisce</b> (T-013, revisione del 13 settembre 2026). Qui c'era
+    /// <c>_unaAllaVolta.Dispose()</c>: la ricostruzione annullata tornava DOPO lo smontaggio sincrono, e il suo
+    /// <c>Release()</c> su un semaforo smaltito usciva dal gestore del gesto — circuito abbattuto, editor perso
+    /// con il non salvato. Si arrivava in un clic: la textarea usa <c>@@onchange</c>, quindi premere «Annulla»
+    /// toglie il fuoco (parte la ricostruzione) e poi smonta il pannello. È il guasto del 4 settembre e la regola
+    /// di <c>DocumentEditorShell</c>: un <c>SemaphoreSlim</c> senza <c>AvailableWaitHandle</c> non tiene risorse,
+    /// e il garbage collector basta.</para>
+    /// </summary>
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
             try { _ricostruzione?.Cancel(); } catch (ObjectDisposedException) { }
             _ricostruzione = null;
-            _unaAllaVolta.Dispose();
         }
         base.Dispose(disposing);   // chiude lo scope, e con lui il DbContext del pannello
     }

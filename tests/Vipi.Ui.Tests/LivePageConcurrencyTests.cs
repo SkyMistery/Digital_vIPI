@@ -79,6 +79,68 @@ public class LivePageConcurrencyTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
+    /// <summary>Il servizio si ferma dentro il caricamento finché il test non lo lascia andare.</summary>
+    private sealed class ServizioCheAspetta : ILiveViewService
+    {
+        public TaskCompletionSource Dentro { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Via { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _chiamate;
+
+        public string? MyCallsign() => "LIBB_ES_CTR";
+        public OnlineAtcSnapshot Snapshot() => OnlineAtcSnapshot.Empty;
+
+        public async Task<LiveViewResult> BuildAsync(string callsign, CancellationToken ct = default)
+        {
+            // Il primo è il caricamento del ciclo di vita: passa. Il secondo (il tick) resta in volo.
+            if (Interlocked.Increment(ref _chiamate) > 1)
+            {
+                Dentro.TrySetResult();
+                await Via.Task;
+            }
+            return LiveViewResult.NotFound(callsign);
+        }
+
+        public Task<IReadOnlyList<LiveStationOption>> ListStationsAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<LiveStationOption>>(Array.Empty<LiveStationOption>());
+    }
+
+    private void Servizi(ILiveViewService servizio)
+    {
+        Services.AddSingleton(servizio);
+        Services.AddSingleton<IDocRoutesRegistry>(new DocRoutesRegistry(Array.Empty<IDocKindRoutes>()));
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<IEditAuthorizationService>(new UtenteNormale());
+        Services.AddSingleton<Vipi.Ui.StringheDelSito>();
+        Services.AddSingleton(new EnglishStrings());
+        JSInterop.Mode = JSRuntimeMode.Loose;
+    }
+
+    /// <summary>
+    /// 🔴 T-037 (revisione del 13 settembre 2026): si lascia la vista live mentre un caricamento è in volo.
+    /// <c>DisposeAsync</c> smaltiva il semaforo, e il <c>Release()</c> del caricamento che tornava dopo
+    /// sollevava <c>ObjectDisposedException</c>: circuito abbattuto. È la regola di T-013 — il semaforo non si
+    /// smaltisce.
+    /// </summary>
+    [Fact]
+    public async Task Lasciare_la_pagina_a_caricamento_in_volo_non_abbatte_il_circuito()
+    {
+        var servizio = new ServizioCheAspetta();
+        Servizi(servizio);
+
+        var cut = RenderComponent<LivePage>(p => p.Add(x => x.Callsign, "LIBB_ES_CTR"));
+        var tick = cut.InvokeAsync(() => cut.Instance.OnLiveUpdate());
+        await servizio.Dentro.Task;
+
+        DisposeComponents();
+        servizio.Via.SetResult();
+
+        var ex = await Record.ExceptionAsync(() => tick);
+        Assert.Null(ex);
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(500));
+        if (caduta == Renderer.UnhandledException)
+            Assert.Fail("Eccezione non gestita: " + await Renderer.UnhandledException);
+    }
+
     [Fact]
     public async Task Il_callback_live_non_si_sovrappone_al_caricamento_del_ciclo_di_vita()
     {

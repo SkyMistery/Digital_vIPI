@@ -102,7 +102,9 @@ else
            🔴 FUORI dal blocco `Chrome`, e prima era dentro: in un editor UNITO i membri si montano senza
            chrome, e il pannello spariva proprio dai documenti che si redigono da li' — cioe' da meta' dei
            documenti veri. Lo stato della traduzione e' del DOCUMENTO, non della testata di chi lo ospita. *@
-        @if (_shell.DocumentId is int docIdTraduzione)
+        @* ⚠️ Solo a chi può editare (T-024): in sola lettura l'editor ha comunque il documento, e il pannello la
+           sua revisione non la dà a nessun altro. *@
+        @if (_canEdit && _shell.DocumentId is int docIdTraduzione)
         {
             <TranslationReviewPanel DocumentId="docIdTraduzione" />
         }

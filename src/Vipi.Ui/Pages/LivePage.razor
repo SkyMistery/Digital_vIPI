@@ -513,6 +513,8 @@
     {
         try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _liveSubId); } catch { /* circuito chiuso */ }
         _ref?.Dispose();
-        _caricamento.Dispose();
+        // 🔴 Il semaforo NON si smaltisce (T-037, revisione del 13 settembre 2026): chi lascia la pagina durante
+        // un caricamento lo vedeva tornare dopo, e il suo Release() su un semaforo smaltito abbatteva il
+        // circuito. Un SemaphoreSlim senza AvailableWaitHandle non tiene risorse: basta il garbage collector.
     }
 }

@@ -150,6 +150,52 @@ public class ImportaTabellaUnaAllaVoltaTests : TestContext
         Assert.Contains("LIMC", cut.Markup);
     }
 
+    // ---- chiudere il pannello mentre una ricostruzione è in volo (T-013) --------------------------------
+
+    /// <summary>Un risolutore che si ferma finché il test non lo lascia andare, e poi cade come cade il
+    /// <c>DbContext</c> di uno scope già chiuso.</summary>
+    private sealed class RisolutoreCheAspetta : IRisolutoreCelle
+    {
+        public TaskCompletionSource Dentro { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Via { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async Task<IReadOnlyDictionary<string, EsitoRisoluzione>> RisolviAsync(
+            TipoCella tipo, IReadOnlyCollection<string> valori, CancellationToken ct = default)
+        {
+            Dentro.TrySetResult();
+            await Via.Task;
+            throw new ObjectDisposedException("VipiDbContext");
+        }
+    }
+
+    /// <summary>
+    /// 🔴 T-013 (revisione del 13 settembre 2026): si incolla, parte la ricostruzione, si preme «Annulla». Lo
+    /// smontaggio smaltiva il semaforo e chiudeva lo scope; la ricostruzione tornava DOPO, e il suo
+    /// <c>Release()</c> su un semaforo smaltito — o l'errore del contesto chiuso — usciva dal gestore del
+    /// gesto: circuito abbattuto, editor perso con tutto il non salvato. È il guasto del 4 settembre, e la
+    /// regola scritta da allora è «il semaforo non si smaltisce».
+    /// </summary>
+    [Fact]
+    public async Task Chiudere_il_pannello_a_ricostruzione_in_volo_non_abbatte_il_circuito()
+    {
+        var risolutore = new RisolutoreCheAspetta();
+        var cut = Pannello(risolutore);
+
+        var gesto = cut.Find("textarea").ChangeAsync(new() { Value = Incollato });
+        await risolutore.Dentro.Task;
+
+        DisposeComponents();
+        risolutore.Via.SetResult();
+
+        // ⚠️ Il renderer NON rilancia l'eccezione di un gestore dal task del gesto: la consegna al circuito, che
+        // in produzione cade. bUnit la tiene in `UnhandledException`, ed è lì che si guarda — sul task il test
+        // passava anche col difetto dentro (provato).
+        await Record.ExceptionAsync(() => gesto);
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(1000));
+        if (caduta == Renderer.UnhandledException)
+            Assert.Fail("Il gesto è uscito con un'eccezione non gestita: " + await Renderer.UnhandledException);
+    }
+
     private static string RadiceUi()
     {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);

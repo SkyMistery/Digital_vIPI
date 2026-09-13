@@ -715,10 +715,12 @@
     {
         if (d.DocumentId is not int id) return true;
 
-        LockInfo lk;
+        LockInfo? lk = null;
         // Se non posso nemmeno ispezionare, non decido qui: lascio parlare il servizio, che dà il messaggio giusto.
-        try { lk = await Editing.InspectLockAsync(id); }
+        // Dentro la porta, come il dettaglio (T-039).
+        try { await InFilaAsync(async () => lk = await Editing.InspectLockAsync(id)); }
         catch (EditNotAllowedException) { return true; }
+        if (lk is null) return true;   // pagina in chiusura
 
         var fresco = lk.Locked
             ? d with { LockedByUserId = lk.ByUserId, LockedByName = lk.ByName, LockExpiresUtc = lk.ExpiresUtc }
@@ -889,6 +891,13 @@
     {
         var d = _docs?.FirstOrDefault(x => RowKey(x) == key);
         if (d is null) return;
+        // 🔴 T-039 (revisione del 13 settembre 2026): dentro la porta. Due righe scelte di seguito, o una riga e
+        // «Aggiorna», erano quattro-cinque query sovrapposte sullo stesso DbContext.
+        await InFilaAsync(() => LeggiDettaglioAsync(d, key));
+    }
+
+    private async Task LeggiDettaglioAsync(ManagedDoc d, string key)
+    {
         try
         {
             if (d.DocumentId is int docId && !_versions.ContainsKey(key))
@@ -1092,11 +1101,27 @@
         // Pubblicazione dalla lista (senza aprire l'editor): acquisisci prima il lock — es. un documento generato
         // in automatico e mai aperto non ne ha uno. PublishAsync lo rilascia dopo. Se un altro editor lo detiene,
         // AcquireLock non lo assegna e PublishAsync solleva il conflitto (messaggio già gestito da Run).
-        await Run(async () =>
-        {
-            if (d.DocumentId is int docId) await Editing.AcquireLockAsync(docId);
-            await Editing.PublishAsync(versionId, note: null);
-        }, L["Ver_VersionPublished"]);
+        await Run(() => ConLockDellaListaAsync(d, () => Editing.PublishAsync(versionId, note: null)),
+            L["Ver_VersionPublished"]);
+        await RileggiDopoGestoAsync(d);
+    }
+
+    /// <summary>Il lock preso dalla lista per un gesto solo, rilasciato se il gesto fallisce (T-041).</summary>
+    private Task ConLockDellaListaAsync(ManagedDoc d, Func<Task> gesto) =>
+        LockDellaLista.EseguiAsync(Editing, d.DocumentId, gesto);
+
+    /// <summary>
+    /// Dopo pubblica/scarta: il pannello e l'elenco si rileggono, come dopo le release. 🔴 T-041: prima restavano
+    /// sulla bozza, e il secondo clic la ripubblicava — «solo una bozza può essere pubblicata», col lock ripreso.
+    /// </summary>
+    private async Task RileggiDopoGestoAsync(ManagedDoc d)
+    {
+        var key = RowKey(d);
+        _versions.Remove(key);
+        _releases.Remove(key);
+        _history.Remove(key);
+        await LoadDetailAsync(key);
+        await LoadAsync();
     }
 
     /// <summary>
@@ -1107,11 +1132,8 @@
     /// </summary>
     private async Task DiscardDraft(ManagedDoc d, int versionId)
     {
-        await Run(async () =>
-        {
-            if (d.DocumentId is int docId) await Editing.AcquireLockAsync(docId);
-            await Editing.DiscardDraftAsync(versionId);
-        }, L["Ver_DraftDiscarded"]);
+        await Run(() => ConLockDellaListaAsync(d, () => Editing.DiscardDraftAsync(versionId)), L["Ver_DraftDiscarded"]);
+        await RileggiDopoGestoAsync(d);
     }
 
     private async Task PublishRelease(ManagedDoc d)
@@ -1153,7 +1175,8 @@
             _diffOpen.Add(releaseId);
             if (!_diffs.ContainsKey(releaseId))
             {
-                try { _diffs[releaseId] = await Releases.DiffAsync(releaseId); }
+                // Dentro la porta, come il dettaglio (T-039).
+                try { await InFilaAsync(async () => _diffs[releaseId] = await Releases.DiffAsync(releaseId)); }
                 catch (EditNotAllowedException ex) { _error = ex.Message; }
             }
         }
@@ -1199,7 +1222,9 @@
     private async Task Run(Func<Task> action, string ok)
     {
         _busy = true; _status = _error = _errorTitle = null;
-        try { await action(); _status = ok; }
+        // Anche i gesti passano dalla porta (T-039): stesso DbContext dello scope della pagina, e un gesto non
+        // deve partire sopra il dettaglio che si sta leggendo.
+        try { await InFilaAsync(action); _status = ok; }
         catch (EditNotAllowedException ex) { _error = ex.Message; }
         catch (EditConflictException ex) { _error = ex.Message; _errorTitle = L["Ver_LockedTitle"]; }
         catch (Vipi.Application.Aor.ValidationException ex) { _error = ex.Message; }

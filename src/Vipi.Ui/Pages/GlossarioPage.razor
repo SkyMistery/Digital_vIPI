@@ -4,11 +4,11 @@
 @page "/services/vsop/admin/translations"
 @layout SopLayout
 @rendermode InteractiveServer
-@inject Vipi.Application.Abstractions.IGlossaryStore Glossario
-@inject Vipi.Application.Abstractions.ITranslationMemory Memoria
-@inject IDocumentAdminService Documenti
-@inject Vipi.Application.Translation.IStatoTraduzione Stato
-@inject Vipi.Application.Translation.IAttesaTraduzione Attese
+@inherits ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@* 🔴 T-038 (revisione del 13 settembre 2026): scope proprio, porta e sentinella. La ricerca aveva il ritardo ma
+   nessuna esclusione, e aprire una voce o le sue frasi girava senza porta: un secondo caricamento (nove query
+   più il corpus intero) partiva sul DbContext del circuito mentre il primo era in volo. *@
 @inject IDocRoutesRegistry Rotte
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
@@ -733,11 +733,14 @@
         _busy = true;
         try
         {
-            _quadro = await Stato.QuadroAsync();
-            _attesa = await Attese.AttesaAsync();
-            // I collegamenti «apri» vogliono l'elenco dei documenti gestiti: e' lo stesso che serve a «dove
-            // si usa», e si carica una volta sola per tutt'e due.
-            _documenti ??= await Documenti.ListAsync();
+            await InFilaAsync(async () =>
+            {
+                _quadro = await Stato.QuadroAsync();
+                _attesa = await Attese.AttesaAsync();
+                // I collegamenti «apri» vogliono l'elenco dei documenti gestiti: e' lo stesso che serve a «dove
+                // si usa», e si carica una volta sola per tutt'e due.
+                _documenti ??= await Documenti.ListAsync();
+            });
         }
         finally
         {
@@ -800,13 +803,52 @@
     // VOLTA SOLA, e questa pagina si ricarica cambiando coppia di lingue, filtro e ricerca.
     protected override Task OnParametersSetAsync() => CaricaAsync();
 
+    // I servizi che leggono e scrivono il database: dallo scope della PAGINA, non dal circuito.
+    private Vipi.Application.Abstractions.IGlossaryStore Glossario = default!;
+    private Vipi.Application.Abstractions.ITranslationMemory Memoria = default!;
+    private IDocumentAdminService Documenti = default!;
+    private Vipi.Application.Translation.IStatoTraduzione Stato = default!;
+    private Vipi.Application.Translation.IAttesaTraduzione Attese = default!;
+
+    protected override void OnInitialized()
+    {
+        Glossario = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IGlossaryStore>();
+        Memoria = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.ITranslationMemory>();
+        Documenti = ScopedServices.GetRequiredService<IDocumentAdminService>();
+        Stato = ScopedServices.GetRequiredService<Vipi.Application.Translation.IStatoTraduzione>();
+        Attese = ScopedServices.GetRequiredService<Vipi.Application.Translation.IAttesaTraduzione>();
+    }
+
     // ---- Caricamento -------------------------------------------------------------------------------
 
+    /// <summary>Un caricamento è in corso (alzata PRIMA del primo await) / qualcuno ha chiesto di rifarlo.</summary>
+    private bool _inCorso, _daRifare;
+
+    /// <summary>
+    /// La porta del caricamento, con la sentinella che <b>rimanda</b>: chi cambia filtro o ricerca mentre un giro
+    /// è in volo vuole i risultati NUOVI, e chi è dentro rifà il giro per lui prima di uscire.
+    /// </summary>
     private async Task CaricaAsync()
     {
         if (!Authz.IsEditor) return;
+        if (_inCorso) { _daRifare = true; return; }
+
+        _inCorso = true;
         _busy = true;
         try
+        {
+            do
+            {
+                _daRifare = false;
+                await InFilaAsync(LeggiAsync);
+            }
+            while (_daRifare && !Chiusa);
+        }
+        finally { _inCorso = false; _busy = false; }
+    }
+
+    private async Task LeggiAsync()
+    {
         {
             _voci = await Glossario.ListAsync(_da, _a, _cerca, _alfabetico);
             _conteggioGlossario = await Glossario.ContaAsync(_da, _a);
@@ -827,7 +869,6 @@
 
             Chiudi();
         }
-        finally { _busy = false; }
     }
 
     /// <summary>«Aggiorna»: ricarica <b>e</b> butta la cache degli usi, perché è l'unico gesto che dichiara
@@ -858,10 +899,13 @@
         _busy = true;
         try
         {
-            var altre = await Memoria.ListForReviewAsync(
-                _da, _a, _origine, PerPagina, _cerca, _righe.Count);
-            _righe.AddRange(altre);
-            await ImparaGliUsiAsync();
+            await InFilaAsync(async () =>
+            {
+                var altre = await Memoria.ListForReviewAsync(
+                    _da, _a, _origine, PerPagina, _cerca, _righe.Count);
+                _righe.AddRange(altre);
+                await ImparaGliUsiAsync();
+            });
         }
         finally { _busy = false; }
     }
@@ -1008,7 +1052,7 @@
         _busy = true;
         try
         {
-            await Glossario.UpsertAsync(_da, _a, _nuovaSorgente, _nuovaResa, Authz.CurrentUserId);
+            await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, _nuovaSorgente, _nuovaResa, Authz.CurrentUserId));
             _nuovaSorgente = "";
             _nuovaResa = "";
             _msg = L["Gl_Saved"].Value;
@@ -1027,7 +1071,8 @@
         _apertaId = v.Id;
         _bozza = v.TargetText;
         _msg = null;
-        _inMemoria = await Memoria.ContaConLaFormulaAsync(_da, _a, v.SourceText);
+        // Dentro la porta (T-038): prima girava accanto a un caricamento in volo.
+        await InFilaAsync(async () => _inMemoria = await Memoria.ContaConLaFormulaAsync(_da, _a, v.SourceText));
     }
 
     /// <summary>Invio salva, Esc chiude: la voce è un campo di una riga, e l'a-capo non ci sta dentro.</summary>
@@ -1048,7 +1093,7 @@
         _busy = true;
         try
         {
-            await Glossario.UpsertAsync(_da, _a, v.SourceText, _bozza, Authz.CurrentUserId);
+            await InFilaAsync(() => Glossario.UpsertAsync(_da, _a, v.SourceText, _bozza, Authz.CurrentUserId));
             _msg = L["Gl_Saved"].Value;
         }
         finally { _busy = false; }
@@ -1065,7 +1110,7 @@
         _busy = true;
         try
         {
-            var quante = await Memoria.DimenticaAutomaticheConLaFormulaAsync(_da, _a, v.SourceText);
+            var quante = await InFilaAsync(() => Memoria.DimenticaAutomaticheConLaFormulaAsync(_da, _a, v.SourceText));
             _msg = (quante > 0 ? L["Gl_RedoDone", quante] : L["Gl_RedoNone"]).Value;
         }
         finally { _busy = false; }
@@ -1077,7 +1122,7 @@
         _busy = true;
         try
         {
-            await Glossario.DeleteAsync(v.Id);
+            await InFilaAsync(() => Glossario.DeleteAsync(v.Id));
             _msg = L["Gl_Deleted"].Value;
         }
         finally { _busy = false; }
@@ -1091,17 +1136,23 @@
 
         _frasiAperteId = v.Id;
         _frasi = null;
-        _frasi = await Memoria.FrasiConLaFormulaAsync(_da, _a, v.SourceText, FrasiPerVoce);
+        // Dentro la porta (T-038): due voci aperte di seguito erano due letture del corpus sovrapposte.
+        await InFilaAsync(async () =>
+        {
+            var frasi = await Memoria.FrasiConLaFormulaAsync(_da, _a, v.SourceText, FrasiPerVoce);
+            if (_frasiAperteId != v.Id) return;   // nel frattempo se n'è aperta un'altra
+            _frasi = frasi;
 
-        // Con le frasi arrivano i loro documenti: la riga di sotto dice «in 2 documenti» senza un secondo clic.
-        var mancanti = _frasi
-            .Select(f => f.SourceText)
-            .Where(t => !_usi.ContainsKey(TranslationText.Hash(t)))
-            .Distinct(StringComparer.Ordinal)
-            .ToList();
-        if (mancanti.Count > 0)
-            foreach (var (impronta, usi) in await Memoria.DoveSiUsanoAsync(mancanti))
-                _usi[impronta] = usi;
+            // Con le frasi arrivano i loro documenti: la riga di sotto dice «in 2 documenti» senza un secondo clic.
+            var mancanti = frasi
+                .Select(f => f.SourceText)
+                .Where(t => !_usi.ContainsKey(TranslationText.Hash(t)))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+            if (mancanti.Count > 0)
+                foreach (var (impronta, usi) in await Memoria.DoveSiUsanoAsync(mancanti))
+                    _usi[impronta] = usi;
+        });
     }
 
     /// <summary>Quanti documenti contengono una frase, sotto la voce di glossario che l'ha generata.</summary>
@@ -1145,7 +1196,7 @@
         {
             // Origin diventa Human: da qui in avanti la macchina non la tocca piu', nemmeno cambiando
             // motore o versione. E' la promessa su cui si regge la funzione.
-            await Memoria.SaveHumanAsync(_da, _a, r.SourceText, _bozzaTr.Trim(), Authz.CurrentUserId ?? 0);
+            await InFilaAsync(() => Memoria.SaveHumanAsync(_da, _a, r.SourceText, _bozzaTr.Trim(), Authz.CurrentUserId ?? 0));
             // ⚠️ Il conto adesso e' vero: la frase deve reggere anche a uno e a zero.
             _msg = (quanti switch
             {
@@ -1215,7 +1266,7 @@
     {
         if (_documenti is not null || _usiApertiId is null || !Authz.IsEditor) return;
 
-        _documenti = await Documenti.ListAsync();
+        await InFilaAsync(async () => _documenti ??= await Documenti.ListAsync());
         StateHasChanged();
     }
 }

@@ -1,10 +1,12 @@
 @page "/services/vsop/admin/audit"
 @layout SopLayout
 @rendermode InteractiveServer
+@inherits ScopeProprioCheAspetta
+@using Microsoft.Extensions.DependencyInjection
+@* 🔴 T-040 (revisione del 13 settembre 2026): scope proprio, porta e sentinella, come Permessi. Il selettore del
+   periodo e «Aggiorna» facevano partire due caricamenti insieme (quattro query ciascuno) sul DbContext del
+   circuito, e il selettore non si spegneva durante il caricamento. *@
 @inject IEditAuthorizationService Authz
-@inject IAuditLogReader Audit
-@inject Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster
-@inject Vipi.Application.Abstractions.IDocumentAdminRepository Documenti
 @inject IStringLocalizer<SharedResource> L
 @inject IJSRuntime JS
 
@@ -163,6 +165,21 @@
         AuditNarrator.Categoria.Sorgenti, AuditNarrator.Categoria.Incarico,
     };
 
+    // I servizi che leggono il database vengono dallo scope della pagina, non dal circuito.
+    private IAuditLogReader Audit = default!;
+    private Vipi.Application.Abstractions.IStaffRosterRepository StaffRoster = default!;
+    private Vipi.Application.Abstractions.IDocumentAdminRepository Documenti = default!;
+
+    /// <summary>Un giro è in corso (alzata PRIMA del primo await) / qualcuno ha chiesto di rifarlo.</summary>
+    private bool _inCorso, _daRifare;
+
+    protected override void OnInitialized()
+    {
+        Audit = ScopedServices.GetRequiredService<IAuditLogReader>();
+        StaffRoster = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IStaffRosterRepository>();
+        Documenti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IDocumentAdminRepository>();
+    }
+
     protected override Task OnInitializedAsync() => Authz.IsAdmin ? LoadAsync() : Task.CompletedTask;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -173,19 +190,36 @@
         try { await JS.InvokeVoidAsync("vipiFitViewport", ".audit-pane", 900); } catch (Exception) { }
     }
 
+    /// <summary>
+    /// La porta del caricamento, con la sentinella che <b>rimanda</b> invece di saltare: chi cambia periodo
+    /// mentre un giro è in volo vuole il periodo NUOVO, e chi è dentro rifà il giro per lui prima di uscire.
+    /// </summary>
     private async Task LoadAsync()
     {
+        if (_inCorso) { _daRifare = true; return; }
+
+        _inCorso = true;
         _busy = true;
         try
         {
-            var da = _giorni > 0 ? DateTime.UtcNow.AddDays(-_giorni) : (DateTime?)null;
-            _totale = await Audit.CountAsync(da);
-            _rows = await Audit.ListRecentAsync(da, Tetto);
-            _troncato = _totale > _rows.Count;
-            await RisolviNomiAsync();
-            await RisolviTitoliAsync();
+            do
+            {
+                _daRifare = false;
+                await InFilaAsync(LeggiAsync);
+            }
+            while (_daRifare && !Chiusa);
         }
-        finally { _busy = false; }
+        finally { _inCorso = false; _busy = false; }
+    }
+
+    private async Task LeggiAsync()
+    {
+        var da = _giorni > 0 ? DateTime.UtcNow.AddDays(-_giorni) : (DateTime?)null;
+        _totale = await Audit.CountAsync(da);
+        _rows = await Audit.ListRecentAsync(da, Tetto);
+        _troncato = _totale > _rows.Count;
+        await RisolviNomiAsync();
+        await RisolviTitoliAsync();
     }
 
     private async Task RisolviNomiAsync()

@@ -1079,9 +1079,11 @@ public sealed class EfEditingRepository : IEditingRepository
     {
         var ver = await _db.DocumentVersions.Include(v => v.Document)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct)
-            ?? throw new InvalidOperationException($"Versione {versionId} inesistente.");
+            ?? throw new InvalidOperationException(Lingua($"Versione {versionId} inesistente.", $"Version {versionId} does not exist."));
         if (ver.Status != DocumentStatus.Draft)
-            throw new InvalidOperationException("Solo una bozza può essere pubblicata.");
+            throw new InvalidOperationException(Lingua(
+                "Solo una bozza può essere pubblicata: questa versione è già pubblicata o archiviata.",
+                "Only a draft can be published: this version is already published or archived."));
 
         var doc = ver.Document!;
         var now = DateTime.UtcNow;

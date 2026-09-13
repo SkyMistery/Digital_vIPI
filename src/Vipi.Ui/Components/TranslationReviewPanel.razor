@@ -364,7 +364,16 @@
         // che al pannello sopravvive — è la decisione scritta in testa a questo file.
         await InFilaAsync(async () =>
         {
-            var revisione = await _lettura.RevisioneAsync(DocumentId, _lettore);
+            RevisioneDocumento revisione;
+            try { revisione = await _lettura.RevisioneAsync(DocumentId, _lettore); }
+            catch (Vipi.Application.Content.EditNotAllowedException)
+            {
+                // 🔴 T-024 (revisione del 13 settembre 2026): la revisione è dell'Editor, e un editor montato in
+                // sola lettura la chiedeva lo stesso. Il rifiuto usciva dal ciclo di vita come 500 — e 6,3 kB di
+                // stack nel registro errori a ogni visita. È una risposta, non un guasto.
+                _esito = L["Common_AccessReserved"];
+                return;
+            }
             // Vuoto vuol dire due cose diverse — «stessa lingua» e «niente da tradurre» — e vanno dette in
             // due modi diversi, o chi guarda pensa che il pannello sia rotto. La risposta arriva dalla
             // STESSA lettura: prima si ricaricava il documento con l'altra lingua solo per dedurla.

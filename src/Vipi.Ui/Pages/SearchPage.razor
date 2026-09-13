@@ -3,7 +3,8 @@
 @rendermode InteractiveServer
 @using System.Net
 @using System.Text.RegularExpressions
-@inject ISearchService Search
+@using Microsoft.Extensions.DependencyInjection
+@inherits ScopeProprioCheAspetta
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 
@@ -68,16 +69,47 @@
         ("Mil_Title", SearchScope.Mil),
     };
 
+    // 🔴 T-014 (revisione del 13 settembre 2026). Ogni tasto lanciava una ricerca (5-8 query) sul DbContext del
+    // CIRCUITO, senza porta: scrivendo «LIRF» di seguito la seconda partiva mentre la prima aspettava, EF
+    // rispondeva «A second operation was started» e il circuito di un anonimo cadeva. Quando non cadeva, una
+    // risposta vecchia poteva arrivare dopo quella nuova e sovrascriverla. Tre cose, ognuna per un pezzo:
+    // - scope proprio: il DbContext è della pagina, non del circuito;
+    // - la porta (InFilaAsync): una ricerca alla volta, e chi lascia la pagina aspetta quella in volo;
+    // - il giro: chi è stato superato mentre aspettava non cerca, e un risultato superato non si scrive.
+    private ISearchService Search = default!;
+    private int _giro;
+
+    /// <summary>Quanto si aspetta dopo un tasto prima di cercare: chi scrive «LIRF» fa una ricerca, non quattro.</summary>
+    private static readonly TimeSpan Pausa = TimeSpan.FromMilliseconds(200);
+
+    protected override void OnInitialized() => Search = ScopedServices.GetRequiredService<ISearchService>();
+
     protected override async Task OnParametersSetAsync()
     {
         if (!string.IsNullOrWhiteSpace(Q) && string.IsNullOrEmpty(_q)) _q = Q!;
-        await RunAsync();
+        await RunAsync(pausa: false);
     }
 
-    private async Task OnKey(KeyboardEventArgs e) => await RunAsync();
-    private async Task SetScope(SearchScope sc) { _scope = sc; await RunAsync(); }
+    private Task OnKey(KeyboardEventArgs e) => RunAsync(pausa: true);
+    private Task SetScope(SearchScope sc) { _scope = sc; return RunAsync(pausa: false); }
 
-    private async Task RunAsync() => _hits = await Search.SearchAsync(_q, _scope);
+    private async Task RunAsync(bool pausa)
+    {
+        var mio = ++_giro;
+        if (pausa)
+        {
+            await Task.Delay(Pausa);
+            if (mio != _giro) return;   // un tasto dopo: cercherà lui
+        }
+
+        await InFilaAsync(async () =>
+        {
+            if (mio != _giro || Chiusa) return;   // superato mentre aspettava la porta
+            var q = _q;
+            var hits = await Search.SearchAsync(q, _scope);
+            if (mio == _giro) _hits = hits;
+        });
+    }
 
     // Hit della Guida (Where "Guida › …"): mostrati con icona libro. Vedi GuideSearchCatalog.
     private static bool IsGuide(SearchHit h) => h.Where.StartsWith("Guida ›", StringComparison.Ordinal);

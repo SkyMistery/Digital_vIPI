@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -265,7 +265,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | LIRR-CH (Editor) su `/services/vsop/versions` preme il cestino di una vIPI gestita. Il tasto è visibile a chi è Editor. `AnteprimaAsync` supera `EnsureAtLeast(Editor)` (righe 89 e 106), ma `PianoAsync` chiama `_incarichi.ListAllAsync()`, che fa `EnsureAdmin()` e solleva `EditNotAllowedException`. Il tasto acceso risponde «non permesso». Settori, aeroporti e ACC invece si eliminano. Il commento alla riga 86 («lo fa un amministratore») contraddice il codice che gli sta sotto. Il test usa un fake di `IEditorTaskService`, quindi non se ne accorge |
 | **Correzione** | Il committente sceglie la regola. Se Editor, leggere gli incarichi da `IEditorTaskRepository`, come già fa `WorkListService:51`. Se Admin, dichiararlo nel servizio e spegnere il tasto in VersioniPage e PendingPage. In entrambi i casi un test con il servizio vero |
 
-#### T-013 — ImportaTabella smaltisce il semaforo che la ricostruzione in volo rilascia: chiudere il pannello abbatte il circuito
+#### ✅ T-013 (L5, in main) — ImportaTabella smaltisce il semaforo che la ricostruzione in volo rilascia: chiudere il pannello abbatte il circuito
 
 | | |
 |---|---|
@@ -275,7 +275,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | Si incolla una tabella e parte `InFila`, che aspetta `CostruisciAsync` (risoluzione degli scali su MariaDB). Si preme «Annulla», che è attivo perché `Occupato` riflette il salvataggio e non la ricostruzione. `Dispose` fa `Cancel()` e poi `_unaAllaVolta.Dispose()`. La continuazione annullata arriva al `finally` **dopo** il Dispose sincrono, e `Release()` su un semaforo smaltito solleva `ObjectDisposedException` fuori dal gestore: circuito abbattuto, editor perso con tutto il non salvato. C'è anche una via quasi deterministica: la textarea usa `@onchange`, quindi il clic su Annulla prima toglie il fuoco e fa partire la ricostruzione, poi smonta il pannello. È esattamente il guasto del 4 settembre, già documentato in `DocumentEditorShell.cs:386-398` e `ScopeProprioCheAspetta.cs:41-50` («il semaforo non si smaltisce») |
 | **Correzione** | Togliere `_unaAllaVolta.Dispose()`, oppure passare a `ScopeProprioCheAspetta` |
 
-#### T-014 — Ricerca pubblica: ogni tasto lancia una ricerca sul DbContext del circuito, e due ricerche sovrapposte lo abbattono
+#### ✅ T-014 (L5, in main) — Ricerca pubblica: ogni tasto lancia una ricerca sul DbContext del circuito, e due ricerche sovrapposte lo abbattono
 
 | | |
 |---|---|
@@ -368,7 +368,7 @@ sec-input · C · `src/Vipi.Application/Import/TabellaHtml.cs:45`.
   In tutto `src` non c'è un solo `MatchTimeout`.
 - **Correzione.** Tetto sulla dimensione del testo e timeout (oppure `NonBacktracking`).
 
-**T-024 — Chi non è editor e apre l'editor aeroporto riceve un 500, e ogni visita scrive 6,3 kB di stack nel registro errori.**
+**✅ T-024 (L5, in main; pannello traduzioni montato solo a chi edita e rifiuto catturato. Compressione del registro errori NON fatta) — Chi non è editor e apre l'editor aeroporto riceve un 500, e ogni visita scrive 6,3 kB di stack nel registro errori.**
 sicurezza-dal-vivo · **C-vivo** · `src/Vipi.Ui/Components/Doc/AirportSectionsEditor.razor:105`.
 - **Riprodotto.** `/services/vsop/libb/airports/editor?icao=LIBD` da anonimo o da non-editor risponde 500;
   gli altri editor rispondono 200 «Non autorizzato».
@@ -467,32 +467,32 @@ concurrency · C · `src/Vipi.Infrastructure/Persistence/BumpCatalogoStazioniInt
   `ResolveByCallsign` fino al riavvio.
 - **Correzione.** Seconda spinta a transazione confermata (`SavedChanges` e dopo `CommitAsync`).
 
-**T-037 — LivePage smaltisce `_caricamento` in `DisposeAsync` mentre un caricamento lo tiene.**
+**✅ T-037 (L5, in main) — LivePage smaltisce `_caricamento` in `DisposeAsync` mentre un caricamento lo tiene.**
 ui-pages + concurrency · C · `src/Vipi.Ui/Pages/LivePage.razor:516`.
 - **Scenario.** Si lascia la vista live durante `LoadAsync` o `CaricaPostazioniAsync`: il `Release()` nel
   `finally` solleva `ObjectDisposedException` e il circuito cade. È la stessa regola violata in T-013.
 - **Correzione.** Togliere il `Dispose` e aggiungere un flag `_chiusa`.
 
-**T-038 — Glossario: la ricerca ha il debounce ma nessuna esclusione; `ApriVoce` e `AlternaFrasi` girano senza `_busy`.**
+**✅ T-038 (L5, in main) — Glossario: la ricerca ha il debounce ma nessuna esclusione; `ApriVoce` e `AlternaFrasi` girano senza `_busy`.**
 ui-pages · **P** · `src/Vipi.Ui/Pages/GlossarioPage.razor:902`.
 - **Scenario.** Un secondo `CaricaAsync` (nove query più il corpus intero) parte mentre il primo è ancora
   in volo, sullo stesso contesto.
 - **Correzione.** Una porta sola per le letture della pagina.
 
-**T-039 — Hub documenti: scegliere una riga carica il dettaglio fuori dalla porta.**
+**✅ T-039 (L5, in main) — Hub documenti: scegliere una riga carica il dettaglio fuori dalla porta.**
 ui-pages · **P** · `src/Vipi.Ui/Pages/VersioniPage.razor:825`.
 - **Scenario.** Due `Pick` su righe diverse, oppure `Pick` e «Aggiorna» insieme, portano 4-5 query
   sovrapposte sullo stesso DbContext; `LoadDetailAsync` cattura solo `EditNotAllowedException`. Anche
   `ToggleDiff` e `RefreshLockAsync` restano fuori dalla porta.
 - **Correzione.** Passare da `InFilaAsync`.
 
-**T-040 — Registro audit: il selettore del periodo non si spegne durante il caricamento.**
+**✅ T-040 (L5, in main) — Registro audit: il selettore del periodo non si spegne durante il caricamento.**
 ui-pages · **P** · `src/Vipi.Ui/Pages/AuditPage.razor:66`.
 - **Scenario.** Due `change` ravvicinati avviano due `LoadAsync` senza controllo di rientro sul contesto del
   circuito.
 - **Correzione.** Sentinella che ricorda di rileggere, oppure scope proprio.
 
-**T-041 — Hub documenti: «Pubblica versione» e «Scarta» non ricaricano, e il secondo clic riprende il lock per 30 minuti.**
+**✅ T-041 (L5, in main) — Hub documenti: «Pubblica versione» e «Scarta» non ricaricano, e il secondo clic riprende il lock per 30 minuti.**
 ui-pages · C · `src/Vipi.Ui/Pages/VersioniPage.razor:1090`.
 - **Scenario.** Il pannello resta sulla bozza. Il secondo clic esegue `AcquireLockAsync` e poi riceve
   «Solo una bozza può essere pubblicata» (solo in italiano), oppure un falso «non permesso» sulla versione
@@ -677,7 +677,7 @@ esistono più; `vipiEditorInit` (Ctrl+E/Z/Y) non ha chiamanti. · ui-components 
 `src/Vipi.Ui/Resources/SharedResource.resx:2054` (e `GuidaPage.razor:584`, `vipi-tour.js:12`,
 `vipi-editor.js:13`) · Riscrivere sul modello «ogni gesto scrive».
 
-**T-072** — SSE: `OnChanged` può rilasciare un semaforo già smaltito dentro `OnlineAtcCache.Set`.
+**✅ T-072** (L5, in main) — SSE: `OnChanged` può rilasciare un semaforo già smaltito dentro `OnlineAtcCache.Set`.
 L'eccezione salta `RegistraSessioni` e `RegistraTraffico` di quel minuto. · concurrency · C ·
 `src/Vipi.Hosting/VipiModuleExtensions.cs:307` · Isolare i sottoscrittori, oppure non smaltire il semaforo.
 

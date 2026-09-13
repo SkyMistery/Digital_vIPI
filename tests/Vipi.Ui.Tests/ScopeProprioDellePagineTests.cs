@@ -50,6 +50,12 @@ public sealed class ScopeProprioDellePagineTests
         { "AdminRolesPage",      "IStaffRosterRepository" },
         // Nata con lo scope proprio il 13 settembre 2026: elenco e scritture delle chiavi toccano il database.
         { "AdminApiKeysPage",    "IApiClientService" },
+        // T-014 (13 settembre 2026): la Ricerca pubblica, una ricerca per tasto sul DbContext del circuito.
+        { "SearchPage",          "ISearchService" },
+        // T-040 (13 settembre 2026): il periodo e «Aggiorna» facevano due caricamenti insieme sul circuito.
+        { "AuditPage",           "IAuditLogReader" },
+        // T-038 (13 settembre 2026): ricerca, voci e frasi del glossario senza porta sul DbContext del circuito.
+        { "GlossarioPage",       "Vipi.Application.Abstractions.ITranslationMemory" },
     };
 
     [Theory]
@@ -99,8 +105,8 @@ public sealed class ScopeProprioDellePagineTests
     {
         "AccAdminPage", "AdminAirspacePage", "AdminAttachmentsPage", "AdminNavaidsPage",
         "AdminTasksPage", "AdminTrasferimentiPage", "AeroportiPage", "AirspacePage",
-        "AuditPage", "ChangedPage", "ConfinantiAdminPage", "GlossarioPage", "LivePage", "PendingPage",
-        "SearchPage", "SectorfilePage", "SorgentiAdminPage", "StrutturaPage", "TasksPage", "VloaEditorPage",
+        "ChangedPage", "ConfinantiAdminPage", "LivePage", "PendingPage",
+        "SectorfilePage", "SorgentiAdminPage", "StrutturaPage", "TasksPage", "VloaEditorPage",
     };
 
     /// <summary>

@@ -47,9 +47,13 @@ public class TranslationReviewPanelTests : TestContext
         public int Letture { get; private set; }
         public List<string> Lingue { get; } = new();
 
+        /// <summary>Come il servizio vero con chi non è Editor: rifiuta la lettura.</summary>
+        public bool Rifiuta { get; set; }
+
         public Task<RevisioneDocumento> RevisioneAsync(int documentId, string targetLang, CancellationToken ct = default)
         {
             Letture++;
+            if (Rifiuta) throw new Vipi.Application.Content.EditNotAllowedException();
             Lingue.Add(targetLang);
             // ⚠️ Come il servizio vero: chiesto nella lingua in cui il documento è scritto non torna nessuna
             // riga — le righe sono la resa nell'ALTRA lingua. È il caso di chi redige in italiano.
@@ -159,6 +163,26 @@ public class TranslationReviewPanelTests : TestContext
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         JSInterop.Mode = JSRuntimeMode.Loose;
         return revisione;
+    }
+
+    /// <summary>
+    /// 🔴 T-024 (revisione del 13 settembre 2026, riprodotto dal vivo): chi non è Editor apriva l'editor
+    /// d'aeroporto e riceveva un 500. L'editor ricadeva in sola lettura ma montava lo stesso questo pannello, la
+    /// cui lettura richiede l'Editor e non catturava il rifiuto. Ogni visita scriveva 6,3 kB di stack nel
+    /// registro errori, spingendo fuori quelli veri. Il rifiuto è una risposta, non un guasto.
+    /// </summary>
+    [Fact]
+    public async Task Chi_non_e_Editor_vede_accesso_riservato_non_un_errore()
+    {
+        var revisione = Arrangia();
+        revisione.Rifiuta = true;
+
+        var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
+
+        var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
+        if (caduta == Renderer.UnhandledException)
+            Assert.Fail("Eccezione non gestita: " + await Renderer.UnhandledException);
+        Assert.Contains("Common_AccessReserved", cut.Markup);
     }
 
     /// <summary>
