@@ -172,8 +172,50 @@ public static class LvpValutatore
     private static bool Cancellabile(LvpRow m, int? vis, int? ceilingFt)
     {
         if (m.CancelRvrM is null && m.CancelCeilingFt is null) return false;
-        return Sopra(vis, m.CancelRvrM) && Sopra(ceilingFt, m.CancelCeilingFt);
+        // 🔴 T-009 (revisione del 13 settembre 2026): un soffitto null CON la visibilità misurata vuol dire
+        // «nessuno strato coprente» (9999 NSC, CAVOK), cioè sopra ogni soglia — non «non misurato». Letto come
+        // mancante, le LVP restavano in vigore sotto un cielo sereno. Senza visibilità, invece, null resta
+        // un dato che manca e non fa cancellare niente.
+        var soffitto = ceilingFt ?? (vis is not null ? int.MaxValue : (int?)null);
+        return Sopra(vis, m.CancelRvrM) && Sopra(soffitto, m.CancelCeilingFt);
     }
+
+    /// <summary>
+    /// La valutazione <b>da un METAR</b>: la stessa per il documento e per il quadro (T-077, revisione del 13
+    /// settembre 2026). Prima stava scritta due volte — in <c>AirportMemberLoader</c> e in <c>AwosService</c> — e
+    /// le due copie già dicevano cose diverse col bollettino assente.
+    ///
+    /// <para>⚠️ Il minimo fra i gruppi RVR, esclusi i «fuori scala in alto»: un <c>P2000</c> non è una misura, e
+    /// trattarlo come 2000 farebbe entrare un valore inventato nel confronto con una soglia.</para>
+    /// </summary>
+    public static LvpValutazione DaMetar(LvpRow? minimi, Vipi.Application.Weather.ParsedMetar? metar,
+                                         bool giaInVigore = false)
+    {
+        if (metar is null) return LvpValutazione.NonValutabile with { DaiMinimiDelloScalo = minimi is not null };
+        var rvr = metar.RvrGroups.Where(r => r.Modifier != Vipi.Application.Weather.RvrModifier.Above)
+                                 .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
+        return Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt, giaInVigore);
+    }
+
+    /// <summary>
+    /// La memoria da portare al giro successivo, dato lo stato di questo giro (T-009).
+    ///
+    /// <list type="bullet">
+    /// <item><b>In vigore</b>: sì.</item>
+    /// <item><b>Cancellabile</b>: no. La proposta di uscita è stata fatta; se al giro dopo il dato è ancora
+    /// sopra, il quadro dice Nil. Prima la contava «in vigore» e la proposta restava accesa per sempre, perché
+    /// sul quadro non c'è niente per confermare la chiusura.</item>
+    /// <item><b>Non valutabile</b>: quella di prima. Un bollettino che manca per un giro non è un'informazione, e
+    /// azzerare la memoria faceva uscire dalle LVP in silenzio.</item>
+    /// <item>Tutto il resto: no.</item>
+    /// </list>
+    /// </summary>
+    public static bool MemoriaDopo(LvpStato stato, bool prima) => stato switch
+    {
+        LvpStato.InVigore => true,
+        LvpStato.NonValutabile => prima,
+        _ => false,
+    };
 
     // Una soglia che lo scalo non ha scritto non si valuta: non è «zero», è «non pertinente».
     private static bool Sotto(int? valore, int? soglia) => valore is int v && soglia is int s && v < s;

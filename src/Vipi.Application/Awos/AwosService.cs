@@ -129,18 +129,14 @@ public sealed class AwosService : IAwosService
         AwosGate.Elenco(await DocumentiAsync(ct));
 
     /// <summary>
-    /// Lo stato LVP suggerito, sui minimi <b>vivi</b> dello scalo e sul METAR di adesso.
-    ///
-    /// <para>⚠️ Il minimo fra i gruppi RVR, escludendo i «fuori scala in alto»: un <c>P2000</c> non è una
-    /// misura, e trattarlo come 2000 farebbe entrare un valore inventato nel confronto con una soglia.</para>
+    /// Lo stato LVP suggerito, sui minimi <b>vivi</b> dello scalo e sul METAR di adesso, e la memoria da
+    /// rimandare al giro dopo. Le due regole stanno nel valutatore (T-077, T-009): qui non se ne riscrive
+    /// nessuna, e il JavaScript non ne decide nessuna.
     /// </summary>
     private static AwosLvp ValutaLvp(LvpRow? minimi, ParsedMetar? metar, bool giaInVigore)
     {
-        if (metar is null) return new AwosLvp(LvpValutazione.NonValutabile, minimi);
-        var rvr = metar.RvrGroups.Where(r => r.Modifier != RvrModifier.Above)
-                                 .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
-        return new AwosLvp(
-            LvpValutatore.Valuta(minimi, rvr, metar.VisibilityMeters, metar.CeilingFt, giaInVigore), minimi);
+        var valutazione = LvpValutatore.DaMetar(minimi, metar, giaInVigore);
+        return new AwosLvp(valutazione, minimi, LvpValutatore.MemoriaDopo(valutazione.Stato, giaInVigore));
     }
 
     private async Task<IReadOnlyList<ManagedDoc>> DocumentiAsync(CancellationToken ct) =>

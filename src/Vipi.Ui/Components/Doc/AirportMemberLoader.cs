@@ -225,12 +225,10 @@ public sealed class AirportMemberLoader
     /// </summary>
     public static LvpValutazione? ValutaLvp(AirportLvpView vista, ParsedMetar? metar)
     {
+        // Senza bollettino il documento non mostra niente (null), e non «non valutabile»: è una sezione di
+        // contenuto, non uno strumento. La valutazione è quella del quadro, scritta una volta (T-077).
         if (metar is null) return null;
-        // Il minimo fra i gruppi RVR: è quello che decide, e i «P2000» (oltre il fondo scala) restano fuori
-        // perché non sono una misura.
-        var rvr = metar.RvrGroups.Where(r => r.Modifier != RvrModifier.Above)
-                                 .Select(r => (int?)r.ValueM).DefaultIfEmpty(null).Min();
-        return LvpValutatore.Valuta(vista.Minimi, rvr, metar.VisibilityMeters, metar.CeilingFt);
+        return LvpValutatore.DaMetar(vista.Minimi, metar);
     }
 
     private Task<DocumentView?> PubblicaAsync(string icao, CancellationToken ct) =>

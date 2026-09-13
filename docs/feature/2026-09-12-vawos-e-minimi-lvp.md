@@ -512,6 +512,18 @@ essere risalite **tutt'e due** («e») — scritto con un «o» si proporrebbe d
 capo ogni volta e quello stato non lo mostra mai, che è la risposta giusta a una domanda che non può porsi.
 Aggiunta anche la validazione che mancava: la cancellazione non può stare **sotto** la preparazione.
 
+🔴 **Aggiornamento del 13 settembre 2026 (revisione, T-009/T-077/T-010/T-050).** Tre difetti tenevano accese
+le LVP sotto un cielo sereno:
+- con «9999 NSC»/CAVOK il soffitto è null («nessuno strato coprente») e il confronto di cancellazione lo
+  leggeva «non misurato»: ora, con la visibilità presente, null è sopra ogni soglia;
+- il JavaScript contava «Cancellabile» come in vigore, e la proposta non si spegneva mai; un giro senza
+  bollettino invece azzerava la memoria. Ora la memoria la decide il server, `LvpValutatore.MemoriaDopo`, e
+  la manda nel payload (`lvp.memoria`): in vigore → sì, cancellabile → no (al giro dopo Nil), non valutabile →
+  quella di prima. Il JS la ricorda e basta;
+- il parser leggeva TEMPO/BECMG/RMK come osservazione («TEMPO … VV001» = LVP in vigore). Ora l'osservazione
+  finisce lì e il resto va in `Trend`; e legge `OVC002///` e `0800NDV` delle stazioni automatiche.
+La valutazione da un METAR è **una**, `LvpValutatore.DaMetar`, per il quadro e per il documento.
+
 ### 🟠 4-5. Un endpoint pubblico senza tetto, e due letture per pagina
 
 `/services/vawos/api/{icao}` è anonimo e costa due interrogazioni: ora ha il **limitatore** degli altri due

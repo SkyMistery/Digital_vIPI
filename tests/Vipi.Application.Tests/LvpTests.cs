@@ -151,6 +151,57 @@ public class LvpTests
             LvpValutatore.Valuta(Minimi(), rvrM: 300, visibilitaM: null, ceilingFt: 100, giaInVigore: true).Stato);
     }
 
+    // ─── T-009: la nebbia si alza e le LVP non si chiudevano (revisione del 13 settembre 2026) ─────────
+
+    /// <summary>
+    /// 🔴 Cielo sereno — «9999 NSC», CAVOK — vuol dire nessuno strato coprente: il soffitto è null, e null non
+    /// è «non misurato». Il confronto di cancellazione lo leggeva come «non risalito», e le LVP restavano in
+    /// vigore sotto un cielo sereno finché qualcuno non ricaricava la pagina.
+    /// </summary>
+    [Fact]
+    public void Senza_strati_coprenti_e_con_la_visibilita_si_puo_cancellare()
+    {
+        var e = LvpValutatore.Valuta(Minimi(), rvrM: null, visibilitaM: 10000, ceilingFt: null, giaInVigore: true);
+        Assert.Equal(LvpStato.Cancellabile, e.Stato);
+    }
+
+    private static LvpStato Giro(string? metar, ref bool memoria)
+    {
+        var e = LvpValutatore.DaMetar(Minimi(), metar is null ? null : Vipi.Application.Weather.MetarParser.ParseMetar(metar), memoria);
+        memoria = LvpValutatore.MemoriaDopo(e.Stato, memoria);
+        return e.Stato;
+    }
+
+    /// <summary>
+    /// 🔴 La sequenza vera del quadro, un giro al minuto con la sua memoria: nebbia, poi la nebbia si alza.
+    /// Le LVP entrano, si propone di cancellarle, e al giro dopo sono chiuse. Un giro senza bollettino in mezzo
+    /// non cancella la memoria (prima la azzerava, e un METAR mancante faceva uscire dalle LVP in silenzio).
+    /// </summary>
+    [Fact]
+    public void Sequenza_di_giri_nebbia_poi_sereno()
+    {
+        var memoria = false;
+        Assert.Equal(LvpStato.InVigore, Giro("LIRF 130550Z 00000KT 0300 R16L/0400 FG VV001 08/08 Q1022", ref memoria));
+        Assert.Equal(LvpStato.NonValutabile, Giro(null, ref memoria));
+        Assert.True(memoria);
+        Assert.Equal(LvpStato.InVigore, Giro("LIRF 130650Z 00000KT 0600 R16L/0700 BR VV002 09/08 Q1022", ref memoria));
+        Assert.Equal(LvpStato.Cancellabile, Giro("LIRF 130750Z 18005KT 9999 NSC 14/08 Q1022", ref memoria));
+        Assert.Equal(LvpStato.Nil, Giro("LIRF 130850Z 18005KT CAVOK 16/08 Q1022", ref memoria));
+        Assert.False(memoria);
+    }
+
+    /// <summary>T-077: la valutazione da un METAR è una sola — il documento e il quadro chiamano la stessa.</summary>
+    [Fact]
+    public void Da_metar_senza_bollettino_non_si_valuta()
+    {
+        Assert.Equal(LvpStato.NonValutabile, LvpValutatore.DaMetar(Minimi(), null).Stato);
+        // Il P2000 non è una misura: resta fuori dal minimo, e decide l'altro gruppo.
+        var m = Vipi.Application.Weather.MetarParser.ParseMetar("LIRF 130550Z 00000KT 0500 R16L/P2000 R34R/0450 FG OVC010 08/08 Q1022");
+        var e = LvpValutatore.DaMetar(Minimi(), m);
+        Assert.Equal(450, e.RvrM);
+        Assert.Equal(LvpStato.InVigore, e.Stato);
+    }
+
     [Fact] // un documento non ha memoria: passa false e la cancellazione non si presenta MAI
     public void Senza_Memoria_La_Cancellazione_Non_Esiste()
     {

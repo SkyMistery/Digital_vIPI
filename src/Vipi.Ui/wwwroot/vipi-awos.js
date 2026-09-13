@@ -140,8 +140,9 @@
         vista = d.vista;
         parole = { wx: d.wx || [], nubi: d.nubi || [] };
         scritte = d.scritte || null;
-        var st = vista.lvp && vista.lvp.valutazione && vista.lvp.valutazione.stato;
-        lvpInVigore = st === 'InVigore' || st === 'Cancellabile';
+        // La memoria la decide il SERVER (T-009, 13 settembre 2026): qui si contava «Cancellabile» come in
+        // vigore, e la proposta di chiudere le LVP restava accesa per sempre; un giro senza bollettino la azzerava.
+        lvpInVigore = !!(vista.lvp && vista.lvp.memoria);
         ultimoDato = Date.now();
         disegna();
       })

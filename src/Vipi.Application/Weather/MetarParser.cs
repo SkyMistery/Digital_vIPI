@@ -11,11 +11,14 @@ public static partial class MetarParser
 {
     [GeneratedRegex(@"^(VRB|\d{3})(\d{2,3})(?:G(\d{2,3}))?(KT|MPS)$")]
     private static partial Regex WindRe();
-    [GeneratedRegex(@"^([A-Z]{2,3})(\d{3})(CB|TCU)?$")]
+    /// <summary>Strato: <c>BKN012</c>, <c>OVC002CB</c>, e dalle stazioni automatiche <c>OVC002///</c> (tipo di nube
+    /// non rilevato) — T-050: senza quel suffisso lo strato non si leggeva e il soffitto spariva.</summary>
+    [GeneratedRegex(@"^([A-Z]{2,3})(\d{3})(CB|TCU|///)?$")]
     private static partial Regex CloudRe();
     [GeneratedRegex(@"^M?(\d{2})/M?(\d{2})$")]
     private static partial Regex TempRe();
-    [GeneratedRegex(@"^\d{4}$")]
+    /// <summary>Visibilità in metri, anche col suffisso <c>NDV</c> delle stazioni automatiche (T-050).</summary>
+    [GeneratedRegex(@"^(\d{4})(?:NDV)?$")]
     private static partial Regex VisMetersRe();
     [GeneratedRegex(@"^\d{4}/\d{4}$")]
     private static partial Regex PeriodRe();
@@ -36,7 +39,18 @@ public static partial class MetarParser
 
     public static ParsedMetar ParseMetar(string raw)
     {
-        var tokens = Tokenize(raw, out var station, out var timeRaw, isTaf: false);
+        var tutti = Tokenize(raw, out var station, out var timeRaw, isTaf: false);
+
+        // 🔴 T-010 (revisione del 13 settembre 2026): l'OSSERVAZIONE finisce al primo gruppo di tendenza o alle
+        // osservazioni supplementari. Dopo TEMPO/BECMG le condizioni sono una previsione, e il ciclo qui sotto le
+        // leggeva come presenti: «TEMPO 0300 FG VV001» portava il soffitto a 100 ft e le LVP in vigore su un
+        // METAR a 3000 m senza strati coprenti; «TEMPO RA» bagnava la pista. Lo stesso METAR alimenta il quadro
+        // vAWOS, il riquadro LVP dei documenti e la pista in uso.
+        var fine = tutti.FindIndex(p => ChangeTokens.Contains(p) || p == "RMK");
+        var tokens = fine < 0 ? tutti : tutti.GetRange(0, fine);
+        var trendDaTendenza = fine >= 0 && tutti[fine] != "RMK"
+            ? string.Join(' ', tutti.Skip(fine).TakeWhile(p => p != "RMK"))
+            : null;
 
         ParsedWind? wind = null;
         string? vis = null, trend = null;
@@ -60,8 +74,11 @@ public static partial class MetarParser
             // CAVOK e 9999 sono il FONDO SCALA del bollettino (10 km), non una misura: chi confronta con una
             // soglia deve poterli trattare come «sopra a tutto» senza sapere quale dei due era scritto.
             if (t is "CAVOK") { vis ??= ">10 km"; visM ??= 10000; continue; }
-            if (vis is null && VisMetersRe().IsMatch(t))
-            { vis = FormatVisMeters(t); var m4 = int.Parse(t, CultureInfo.InvariantCulture); visM = m4 >= 9999 ? 10000 : m4; continue; }
+            if (vis is null && VisMetersRe().Match(t) is { Success: true } vism)
+            {
+                var cifre = vism.Groups[1].Value;
+                vis = FormatVisMeters(cifre); var m4 = int.Parse(cifre, CultureInfo.InvariantCulture); visM = m4 >= 9999 ? 10000 : m4; continue;
+            }
 
             if (CloudRe().Match(t) is { Success: true } cm && CloudCovers.Contains(cm.Groups[1].Value))
             { clouds.Add(ParseCloud(cm)); continue; }
@@ -74,11 +91,10 @@ public static partial class MetarParser
             if (temp is null && TempRe().Match(t) is { Success: true } tm)
             { temp = SignedTemp(t, tm.Groups[1].Value); dew = SignedTemp(t[(t.IndexOf('/') + 1)..], tm.Groups[2].Value); continue; }
 
-            if (t is "NOSIG") { trend = "NOSIG"; continue; }
-
             var wx = DecodeWeather(t);
             if (wx is not null) { wxParts.Add(wx); ClassifyPrecip(t, ref rain, ref snow); }
         }
+        trend = trendDaTendenza;
 
         return new ParsedMetar(raw.Trim(), station, timeRaw, wind, vis, clouds, wxParts, qnh, temp, dew, trend, rain, snow,
             visM, rvr, vertVis);
@@ -150,7 +166,7 @@ public static partial class MetarParser
         {
             if (wind is null && WindRe().Match(t) is { Success: true } wm) { wind = ParseWind(wm); continue; }
             if (t is "CAVOK") { vis ??= ">10 km"; continue; }
-            if (vis is null && VisMetersRe().IsMatch(t)) { vis = FormatVisMeters(t); continue; }
+            if (vis is null && VisMetersRe().Match(t) is { Success: true } vism) { vis = FormatVisMeters(vism.Groups[1].Value); continue; }
             if (CloudRe().Match(t) is { Success: true } cm && CloudCovers.Contains(cm.Groups[1].Value))
             { clouds.Add(ParseCloud(cm)); continue; }
             if (t is "NSC" or "NCD" or "SKC") continue;
@@ -192,7 +208,9 @@ public static partial class MetarParser
     }
 
     private static CloudLayer ParseCloud(Match m) =>
-        new(m.Groups[1].Value, int.Parse(m.Groups[2].Value) * 100, m.Groups[3].Success ? m.Groups[3].Value : null);
+        // «///» è «tipo non rilevato»: non è un tipo, e non deve comparire accanto allo strato.
+        new(m.Groups[1].Value, int.Parse(m.Groups[2].Value) * 100,
+            m.Groups[3].Success && m.Groups[3].Value != "///" ? m.Groups[3].Value : null);
 
     private static int SignedTemp(string token, string digits) =>
         token.StartsWith('M') ? -int.Parse(digits) : int.Parse(digits);

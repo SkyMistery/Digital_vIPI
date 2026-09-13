@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L6 in main**: T-009, T-010, T-050, T-077 (LVP che si chiudono, memoria decisa dal server, tendenze fuori dall'osservazione) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -218,7 +218,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | Unione vIPI LIBV + vSOP militare LIBV, due «Pubblica ora» nello stesso ciclo: A ha v1 superata e v2 in vigore, B lo stesso. L'editore annulla la v1 di A, che il pannello presenta come «cancella solo storia» (`Rel_CancelPromptOld`). Per A si usa `rel.Id`, cioè la v1, ma per B la «sorella» è quella con il `VersionNumber` più alto del ciclo: la **v2 in vigore**. `CancelAsync` la rimuove. B torna indietro, o sparisce dal pubblico se non ha altre release, mentre A resta alla v2: la pagina unita mostra due fotografie di momenti diversi |
 | **Correzione** | Accoppiare le sorelle per pubblicazione (lotto, oppure lo stesso `CreatedUtc` della transazione) e non per ciclo. Come minimo: se la release annullata non è la vincitrice del suo ciclo, non toccare gli altri membri |
 
-#### T-009 — vAWOS: con cielo senza strati coprenti le LVP non si chiudono mai
+#### ✅ T-009 (L6, in main) — vAWOS: con cielo senza strati coprenti le LVP non si chiudono mai
 
 | | |
 |---|---|
@@ -229,7 +229,7 @@ finding è la fusione di due segnalazioni.
 | **Prova** | Nessun caso con `giaInVigore: true` e `ceilingFt: null` in `LvpTests`, e nessun test a sequenza di giri |
 | **Correzione** | Nel confronto di cancellazione trattare un soffitto null con visibilità presente come «sopra ogni soglia». Decidere l'uscita da Cancellabile e non azzerare la memoria su NonValutabile. Fare la correzione **una volta sola** dentro il valutatore (vedi T-077) e aggiungere un test a sequenza |
 
-#### T-010 — Il parser METAR legge TEMPO/BECMG/RMK come condizioni presenti
+#### ✅ T-010 (L6, in main) — Il parser METAR legge TEMPO/BECMG/RMK come condizioni presenti
 
 | | |
 |---|---|
@@ -553,7 +553,7 @@ aero · C · `src/Vipi.Application/Coordinates/CoordinateParser.cs:73`.
 - **Scenario.** `41,9906 12,4964` produce (41N 99,1E) e (12N 50,07E) come righe «lette».
 - **Correzione.** Riconoscere «cifre,cifre» senza spazi come decimale, oppure segnalarlo.
 
-**T-050 — METAR AUTO: `OVC002///` e `0800NDV` non vengono letti.**
+**✅ T-050 (L6, in main) — METAR AUTO: `OVC002///` e `0800NDV` non vengono letti.**
 aero · **P** · `src/Vipi.Application/Weather/MetarParser.cs:14` (e `:19`).
 - **Effetto.** Soffitto e visibilità null, quindi NonValutabile con cielo coperto a 100 ft. *Precisazione:*
   con `9999NDV` il risultato è NonValutabile, non Nil.
@@ -698,7 +698,7 @@ piste) non solleva, quindi il catch inghiotte solo i guasti veri. · quality · 
 `MySqlProtocolException` dell'8 settembre escono come «-» e restano fuori dalle prime 15. · quality · C ·
 `tools/errori-per-era.py:80` · Prendere la prima riga dopo l'intestazione.
 
-**T-077** — «RVR minimo → valutazione LVP» è copiata fra documento e quadro, e le due copie divergono già
+**✅ T-077** (L6, in main: `LvpValutatore.DaMetar`; lo split delle piste scritto tre volte NON toccato) — «RVR minimo → valutazione LVP» è copiata fra documento e quadro, e le due copie divergono già
 con METAR assente; lo split delle piste è scritto tre volte. · quality · C ·
 `src/Vipi.Ui/Components/Doc/AirportMemberLoader.cs:231` (e `AwosService.cs:140`) · Un metodo solo nel
 valutatore, **prerequisito** di T-009.

@@ -34,7 +34,11 @@ public sealed record AwosAtis(string Callsign, string? Lettera, string? Orario, 
 /// release — è uno strumento, come il vento. Dove il documento pubblicato e il quadro divergessero,
 /// l'autorità è il documento.</para>
 /// </summary>
-public sealed record AwosLvp(LvpValutazione Valutazione, LvpRow? Minimi);
+/// <param name="Memoria">
+/// Che cosa il quadro deve rimandare al giro dopo come «erano in vigore» (<see cref="LvpValutatore.MemoriaDopo"/>).
+/// Lo decide il server: il JavaScript la ricorda e basta (T-009).
+/// </param>
+public sealed record AwosLvp(LvpValutazione Valutazione, LvpRow? Minimi, bool Memoria = false);
 
 /// <summary>Uno scalo che il quadro sa aprire, per il selettore.</summary>
 public sealed record AwosAirport(string Icao, string Nome, bool HaVipi, bool HaVsop);

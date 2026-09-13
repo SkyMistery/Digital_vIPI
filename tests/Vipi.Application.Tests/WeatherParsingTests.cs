@@ -7,6 +7,65 @@ namespace Vipi.Application.Tests;
 /// <summary>Decoder METAR/TAF + suggerimento pista dal vento (vista vIPI aeroporto).</summary>
 public class WeatherParsingTests
 {
+    /// <summary>
+    /// 🔴 T-010 (revisione del 13 settembre 2026): dopo TEMPO/BECMG le condizioni sono una PREVISIONE, non
+    /// l'osservazione. Il ciclo non si fermava: <c>TEMPO … VV001</c> portava il soffitto a 100 ft (LVP in vigore
+    /// su un METAR a 3000 m senza strati coprenti) e <c>TEMPO RA</c> bagnava la pista.
+    /// </summary>
+    [Fact]
+    public void Metar_Le_condizioni_dopo_TEMPO_non_sono_osservate()
+    {
+        var m = MetarParser.ParseMetar("LIMC 130250Z 00000KT 3000 BR FEW010 08/07 Q1022 TEMPO 0300 FG VV001");
+
+        Assert.Null(m.CeilingFt);
+        Assert.Null(m.VerticalVisibilityFt);
+        Assert.Equal(3000, m.VisibilityMeters);
+        Assert.Equal(new[] { "BR" }, m.Weather.Select(w => w.Raw));
+        Assert.Equal("TEMPO 0300 FG VV001", m.Trend);
+        Assert.Equal(1022, m.QnhHpa);
+    }
+
+    [Fact]
+    public void Metar_BECMG_non_abbassa_il_soffitto_e_TEMPO_RA_non_bagna_la_pista()
+    {
+        var becmg = MetarParser.ParseMetar("LIRF 130650Z 18005KT 6000 SCT015 12/10 Q1015 BECMG BKN002");
+        Assert.Null(becmg.CeilingFt);
+        Assert.Equal("BECMG BKN002", becmg.Trend);
+
+        var tempo = MetarParser.ParseMetar("LIRF 130650Z 18005KT 9999 FEW030 20/10 Q1015 TEMPO RA");
+        Assert.False(tempo.HasRain);
+    }
+
+    /// <summary>Le osservazioni supplementari (RMK) non sono l'osservazione: un «RMK … OVC002» non fa soffitto.</summary>
+    [Fact]
+    public void Metar_RMK_non_si_legge_come_condizioni()
+    {
+        var m = MetarParser.ParseMetar("KJFK 130651Z 18005KT 10SM FEW250 20/10 A3001 RMK AO2 OVC002 SLP163");
+        Assert.Null(m.CeilingFt);
+    }
+
+    /// <summary>NOSIG resta NOSIG.</summary>
+    [Fact]
+    public void Metar_NOSIG_resta_la_tendenza()
+    {
+        var m = MetarParser.ParseMetar("LIRF 130650Z 18005KT CAVOK 20/10 Q1015 NOSIG");
+        Assert.Equal("NOSIG", m.Trend);
+    }
+
+    /// <summary>
+    /// T-050: le stazioni automatiche scrivono <c>OVC002///</c> (tipo di nube non rilevato) e <c>0800NDV</c>
+    /// (nessuna variazione direzionale). Non letti, davano soffitto e visibilità assenti: NonValutabile sotto un
+    /// cielo coperto a 200 ft.
+    /// </summary>
+    [Fact]
+    public void Metar_AUTO_legge_nubi_con_barre_e_visibilita_NDV()
+    {
+        var m = MetarParser.ParseMetar("LIRQ 130650Z AUTO 00000KT 0800NDV FG OVC002/// 08/08 Q1022");
+
+        Assert.Equal(800, m.VisibilityMeters);
+        Assert.Equal(200, m.CeilingFt);
+    }
+
     [Fact] // METAR campione mockup LIRF
     public void Metar_Parses_All_Fields()
     {
