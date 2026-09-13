@@ -2,7 +2,31 @@
 
 ## Dove siamo — 13 settembre 2026
 
-### 📦 A28 — Pacchetto 1.25.3: 7 file — 🟡 **PRONTO, DA CARICARE** (sicurezza)
+### 📦 A29 — Pacchetto 1.25.4: 11 file, CUMULATIVO su 1.25.2 — 🟡 **PRONTO, DA CARICARE**
+
+Contiene anche 1.25.3: se 1.25.3 non è stata caricata, si carica direttamente questo. Timbro
+**`1.25.4 · d645c77`**, zip `6299d603d6465cc80f9decddf7864ec27e0db0b8286b7652aff3880f874e5af5`
+(`artifacts/publish/vipi-1.25.4-solo-file-cambiati.zip`, 4,69 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.4.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.4.md).
+File: `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Hosting`, `Vipi.Ui`, `Vipi.Host` (dll+pdb) e
+`en/Vipi.Ui.resources.dll`. Nessuna migrazione; `wwwroot` ed `endpoints.json` identici a 1.25.2.
+
+Secondo lotto della revisione del 13 settembre: **T-002** (posizioni staff rilette da IVAO ogni 4 ore),
+**T-011** (cache anonima con la lingua risolta), **T-084** (ACC inventato → 404), **T-085** (cookie Secure,
+HSTS un anno), **T-061** (AoR 3D solo Editor), **T-019** (tetti per endpoint, prima per chiamante), **T-021**
+(stream live solo a chi è entrato), **T-033** (verifica roster sul giro a timbro). Più il lotto A in `main`
+(`5bccf84f`: test, commenti, documenti).
+Provato sul pacchetto: timbro, `pacchetto-verifica` tutto verde, 404 sull'ACC inventato, `Vary` con
+`Accept-Language`, XSS di 1.25.3 ancora encodato.
+
+✅ Dopo il carico si possono fare **`passenger_min_instances`** e le **direttive nginx**; la **Cache Rule** con
+la condizione in più sul cookie di lingua (`LEGGIMI-DEPLOY.md`).
+▶ Staccato: **T-042** (ricerca e «cambiati» sulla release in vigore), va riscritto sullo snapshot. ▶ Decisioni
+aperte: T-017, T-053, T-064/T-078.
+
+---
+
+### 📦 A28 — Pacchetto 1.25.3: 7 file — ⏭ **ASSORBITO da 1.25.4** (sicurezza)
 
 Il primo lotto della revisione totale del 13 settembre
 ([`history/audit-2026-09-13-revisione-totale-2.md`](history/audit-2026-09-13-revisione-totale-2.md), 87
