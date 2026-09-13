@@ -511,7 +511,9 @@
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _liveSubId); } catch { /* circuito chiuso */ }
+        // Senza id non c'è niente da staccare (T-044): mandare null staccava tutti, badge compreso.
+        if (_liveSubId is int id)
+            try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", id); } catch { /* circuito chiuso */ }
         _ref?.Dispose();
         // 🔴 Il semaforo NON si smaltisce (T-037, revisione del 13 settembre 2026): chi lascia la pagina durante
         // un caricamento lo vedeva tornare dopo, e il suo Release() su un semaforo smaltito abbatteva il

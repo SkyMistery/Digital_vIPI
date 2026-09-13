@@ -1,5 +1,6 @@
 ﻿// Carta delle minime di vettoramento (MRVA): disegna il contenuto di un file .mva su una basemap TOPOGRAFICA.
-// Idempotente: ogni contenitore .mva-leaflet[data-mva] è inizializzato una sola volta (data-init), come vipi-aor.js.
+// Idempotente: ogni contenitore .mva-leaflet[data-mva] ha una mappa sola, come vipi-aor.js. ⚠️ Il segno è la
+// mappa viva, non `data-init` (T-015).
 //
 // La basemap di partenza è il rilievo SENZA STRADE, e non è una scelta estetica: la MRVA di una zona dipende
 // dall'orografia, e col terreno sotto i poligoni si legge PERCHÉ in quel punto la minima è quella. La rete
@@ -69,7 +70,11 @@
     }
 
     function initOne(el) {
-        if (el.dataset.init === '1') return;
+        // T-015: il segno è la mappa VIVA, non `data-init` (che la navigazione enhanced cancella lasciando
+        // sull'elemento una mappa morta: `L.map` rifiutava il contenitore e il riquadro restava vuoto).
+        if (el._leafletMap && el.querySelector('.leaflet-pane')) return;
+        if (el._leafletMap) { try { el._leafletMap.remove(); } catch (e) { } el._leafletMap = null; }
+        try { delete el._leaflet_id; } catch (e) { el._leaflet_id = undefined; }
         var data;
         try { data = JSON.parse(el.dataset.mva || 'null'); } catch (e) { return; }
         if (!data) return;

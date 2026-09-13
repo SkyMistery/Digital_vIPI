@@ -18,72 +18,11 @@ window.vipiScorrimento = function () {
 };
 
 (function () {
-    // Stato acceso/spento di una chip: la classe `.on` per l'occhio, `aria-pressed` per tutto il resto.
-    // Gemella di quella in vipi-aor.js — le chip sono le stesse, le pilotano due file diversi a seconda che
-    // dietro ci sia una mappa Leaflet o l'SVG di ripiego.
-    function segna(el, on) {
-        if (!el) return;
-        el.classList.toggle('on', !!on);
-        el.setAttribute('aria-pressed', on ? 'true' : 'false');
-    }
-
-    function setSector(scope, key, on) {
-        segna(scope.querySelector('.aor-chip[data-sec="' + key + '"]'), on);
-        scope.querySelectorAll('.sec[data-sec="' + key + '"], .lbl[data-sec="' + key + '"]').forEach(function (el) {
-            el.classList.toggle('hidden', !on);
-        });
-    }
-
-    function wireAor(scope) {
-        // chip on/off
-        scope.querySelectorAll('.aor-chip[data-sec]').forEach(function (chip) {
-            chip.onclick = function () {
-                setSector(scope, chip.getAttribute('data-sec'), !chip.classList.contains('on'));
-            };
-        });
-        // tutti / nessuno
-        scope.querySelectorAll('.aor-all[data-act]').forEach(function (a) {
-            a.onclick = function () {
-                var on = a.getAttribute('data-act') === 'all';
-                scope.querySelectorAll('.aor-chip[data-sec]').forEach(function (chip) {
-                    setSector(scope, chip.getAttribute('data-sec'), on);
-                });
-            };
-        });
-        // selettore configurazioni → evidenzia righe nella tabella configurazioni + setta i settori
-        scope.querySelectorAll('.cfg-btn').forEach(function (btn) {
-            btn.onclick = function () {
-                scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
-                segna(btn, true);
-                applyConfig(btn.getAttribute('data-rows'), btn.getAttribute('data-secs'));
-            };
-        });
-        var clr = scope.querySelector('.cfg-clear');
-        if (clr) clr.onclick = function () {
-            scope.querySelectorAll('.cfg-btn').forEach(function (b) { segna(b, false); });
-            applyConfig('', null);
-        };
-    }
-
-    function applyConfig(rowsCsv, secsCsv) {
-        var table = document.getElementById('cfg-ops');
-        if (table) {
-            var rows = (rowsCsv || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-            table.querySelectorAll('tr[data-r]').forEach(function (tr) {
-                tr.classList.toggle('cfg-hl', rows.indexOf(tr.getAttribute('data-r')) >= 0);
-            });
-        }
-        if (secsCsv !== null) {
-            var aor = document.querySelector('.aor-block');
-            if (aor) {
-                var want = (secsCsv || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-                aor.querySelectorAll('.aor-chip[data-sec]').forEach(function (chip) {
-                    var key = chip.getAttribute('data-sec');
-                    setSector(aor, key, want.indexOf(key) >= 0);
-                });
-            }
-        }
-    }
+    // ⚠️ Qui c'era `wireAor` (con `setSector` e `applyConfig`), tolto il 13 settembre 2026 (T-043): riagganciava
+    // chip e configurazioni con `onclick` IN PARALLELO a `onAorClick` di vipi-aor.js, che le gestisce per delega.
+    // Due gestori per clic: nel ripiego SVG la chip non commutava (le due inversioni si annullavano), e una
+    // configurazione scelta nel blocco N spegneva le chip del PRIMO blocco. I suoi bersagli (`#cfg-ops`) non
+    // esistono più nelle pagine vere.
 
     function wireExpand() {
         // Espandi/Comprimi tutto su un blocco
@@ -269,8 +208,11 @@ window.vipiScorrimento = function () {
     function wireCollapse() {
         // <details data-persist="key">: ricorda aperto/chiuso in localStorage tra le navigazioni.
         document.querySelectorAll('details[data-persist]').forEach(function (d) {
-            if (d.dataset.persistWired) return;
-            d.dataset.persistWired = '1';
+            // T-070 (revisione del 13 settembre 2026): il segno in PROPRIETÀ, non in `data-persist-wired` — la
+            // navigazione enhanced cancella l'attributo e tiene il nodo, e ogni navigazione aggiungeva un altro
+            // ascoltatore `toggle` allo stesso <details>.
+            if (d._persistWired) return;
+            d._persistWired = true;
             var key = 'vipi-collapse:' + d.getAttribute('data-persist');
             var saved = null;
             try { saved = localStorage.getItem(key); } catch (e) { }
@@ -797,11 +739,15 @@ window.vipiScorrimento = function () {
     function pwWire() {
         document.querySelectorAll('.wrap').forEach(function (el) {
             pwFit(el);
-            if (el.hasAttribute('data-pw')) return;
+            // ⚠️ L'attributo resta — serve al selettore di `pwSchedule` — ma NON è più la guardia (T-070): la
+            // navigazione enhanced lo cancella tenendo il nodo, e ogni navigazione attaccava un altro
+            // ResizeObserver allo stesso riquadro. La guardia è l'osservatore stesso, in una proprietà.
             el.setAttribute('data-pw', '1');
+            if (el._pwRo) return;
             // L'osservatore prende TUTTO quel che un `resize` non emette: lo zoom, una colonna che compare,
             // un pannello che si apre di fianco.
-            if (window.ResizeObserver) new ResizeObserver(function () { pwFit(el); }).observe(el);
+            if (window.ResizeObserver) { el._pwRo = new ResizeObserver(function () { pwFit(el); }); el._pwRo.observe(el); }
+            else el._pwRo = true;
         });
     }
     // ⚠️ Non basta agganciarsi una volta all'avvio, e costa un giro di misure scoprirlo: su una pagina
@@ -963,7 +909,6 @@ window.vipiScorrimento = function () {
     }
 
     window.vipiWireUi = function () {
-        document.querySelectorAll('.aor-block').forEach(wireAor);
         wireExpand();
         wireAnchors();
         wireCollapse();

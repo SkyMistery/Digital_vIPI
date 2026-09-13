@@ -378,6 +378,11 @@
 
     /// Punto d'ingresso: garantisce three.js, poi costruisce. Tutti i chiamanti (tab 3D, <details>, initAll,
     /// MutationObserver) passano di qui e ignorano il valore di ritorno, quindi l'attesa resta interna.
+    /// Lo stage ha una scena viva: il suo canvas è ancora dentro. Il segno è la scena, non un attributo (T-015).
+    function vivo3d(stage) {
+        return !!(stage._aor3dCanvas && stage.contains(stage._aor3dCanvas));
+    }
+
     function initOne(stage) {
         // Il foglio PRIMA di misurare qualunque cosa: lo stage si dimensiona sul contenitore, e senza le
         // sue regole quel contenitore ha l'altezza sbagliata — stessa trappola di Leaflet in vipi-aor.js.
@@ -387,18 +392,22 @@
 
         // 'pending' = caricamento di three.js in corso per questo stage: senza, un secondo evento (resize,
         // re-render di Blazor) rientrerebbe e costruirebbe due volte lo stesso stage.
-        if (stage.dataset.init === '1' || stage.dataset.init === 'pending') return;
+        // ⚠️ Lo stato in PROPRIETÀ JS, non in `data-init` (T-015): la navigazione enhanced cancella gli attributi
+        // e lascia il nodo, e con `data-init` sparito lo stage si ricostruiva SOPRA quello di prima.
+        if (stage._aor3dAttesa || vivo3d(stage)) return;
+        if (stage._aor3dSmonta) stage._aor3dSmonta();   // un avanzo: il suo canvas non c'è più
         var sectors;
         try { sectors = JSON.parse(stage.dataset.sectors3d || '[]') || []; } catch (e) { return; }
         if (!sectors.length) return;
 
         if (window.THREE) { build3d(stage, sectors); return; }
 
-        stage.dataset.init = 'pending';
+        stage._aor3dAttesa = true;
         loadThree().then(
-            function () { stage.dataset.init = ''; build3d(stage, sectors); },
+            function () { stage._aor3dAttesa = false; build3d(stage, sectors); },
             function () {
                 // three.js non disponibile (rete, blocco, file mancante): fallback testuale, nessun ritentativo.
+                stage._aor3dAttesa = false;
                 stage.dataset.init = '1';
                 var fb = stage.querySelector('.aor3d-fallback'); if (fb) fb.style.display = 'flex';
             });
@@ -416,6 +425,12 @@
         }
         if (!ctx) return;
         stage.dataset.init = '1';
+        // T-015 (revisione del 13 settembre 2026): tutti gli ascoltatori di questo stage passano da un
+        // AbortController, così la scena si SMONTA per intero (`_aor3dSmonta`) quando la navigazione enhanced
+        // riusa il nodo. Prima si accumulavano scene, ascoltatori e contesti WebGL a ogni navigazione.
+        var ac = new AbortController();
+        var uno = { signal: ac.signal };
+        stage._aor3dCanvas = ctx.renderer.domElement;
 
         var zf = ZDEF;                                           // fattore «Altezza» corrente (selettore in barra)
         ctx.group.scale.z = zf;
@@ -495,7 +510,7 @@
             // Stessa ragione delle etichette: senza fermare il pointerdown lo stage cattura il puntatore e il click
             // sulla riga non arriva mai (la legenda, per giunta, deve poter scorrere senza far ruotare la scena).
             var legend = stage.querySelector('.aor3d-legend');
-            if (legend) legend.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); });
+            if (legend) legend.addEventListener('pointerdown', function (ev) { ev.stopPropagation(); }, uno);
             box.innerHTML = sectors.map(function (s, i) {
                 var b = s.fl || [0, 660];
                 return '<div class="lg-row" data-i="' + i + '" title="' + esc(s.name || s.label || '') + '"><span class="sw" style="background:' + hex(s.color) +
@@ -512,14 +527,14 @@
 
         // Orbita manuale + zoom.
         var dragging = false, lx = 0, ly = 0;
-        stage.addEventListener('pointerdown', function (e) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } });
-        stage.addEventListener('pointermove', function (e) { if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); });
-        stage.addEventListener('pointerup', function () { dragging = false; stage.classList.remove('grabbing'); });
-        stage.addEventListener('pointerleave', function () { dragging = false; stage.classList.remove('grabbing'); });
-        stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false });
+        stage.addEventListener('pointerdown', function (e) { dragging = true; lx = e.clientX; ly = e.clientY; stage.classList.add('grabbing'); try { stage.setPointerCapture(e.pointerId); } catch (_) { } }, uno);
+        stage.addEventListener('pointermove', function (e) { if (!dragging) return; theta -= (e.clientX - lx) * 0.006; phi = clamp(phi - (e.clientY - ly) * 0.006, 0.18, 1.45); lx = e.clientX; ly = e.clientY; updateCam(); }, uno);
+        stage.addEventListener('pointerup', function () { dragging = false; stage.classList.remove('grabbing'); }, uno);
+        stage.addEventListener('pointerleave', function () { dragging = false; stage.classList.remove('grabbing'); }, uno);
+        stage.addEventListener('wheel', function (e) { e.preventDefault(); radius = clamp(radius + e.deltaY * 0.14, 110, 620); updateCam(); }, { passive: false, signal: uno.signal });
 
         var rst = stage.parentElement && stage.parentElement.querySelector('.aor3d-reset');
-        if (rst) rst.addEventListener('click', function () { theta = DEF.theta; phi = DEF.phi; radius = DEF.radius; setZ(ZDEF); });
+        if (rst) rst.addEventListener('click', function () { theta = DEF.theta; phi = DEF.phi; radius = DEF.radius; setZ(ZDEF); }, uno);
 
         // Selettore «Altezza» (esagerazione verticale): scala il gruppo dei prismi sull'asse Z, niente ricostruzione.
         // La camera rimira a metà della nuova altezza, altrimenti a ×2 i settori escono dall'inquadratura.
@@ -534,7 +549,7 @@
             zBtns.forEach(function (b) { b.classList.toggle('on', parseFloat(b.dataset.z) === zf); });
             updateCam();
         }
-        zBtns.forEach(function (b) { b.addEventListener('click', function () { setZ(parseFloat(b.dataset.z) || 1); }); });
+        zBtns.forEach(function (b) { b.addEventListener('click', function () { setZ(parseFloat(b.dataset.z) || 1); }, uno); });
         setZ(zf);
 
         // Schermo intero (Fullscreen API sullo stage): il canvas riempie il viewport; resize al cambio stato.
@@ -542,8 +557,8 @@
         if (full) full.addEventListener('click', function () {
             if (document.fullscreenElement) { document.exitFullscreen(); return; }
             if (stage.requestFullscreen) stage.requestFullscreen();
-        });
-        document.addEventListener('fullscreenchange', function () { setTimeout(resize, 60); });
+        }, uno);
+        document.addEventListener('fullscreenchange', function () { setTimeout(resize, 60); }, uno);
 
         // Toggle «Mappa base»: mostra/nasconde il pavimento geografico (e, in alternanza, la griglia).
         var mapBtn = stage.parentElement && stage.parentElement.querySelector('.aor3d-basemap');
@@ -553,10 +568,19 @@
             if (plane) plane.visible = on;
             if (ctx.grid) ctx.grid.visible = !on || !plane;   // senza basemap resta la griglia
             render();
-        });
+        }, uno);
 
         // Ricalcolo dimensioni quando il contenitore diventa visibile/ridimensiona.
-        if (window.ResizeObserver) { var ro = new ResizeObserver(function () { resize(); }); ro.observe(stage); }
+        var ro = null;
+        if (window.ResizeObserver) { ro = new ResizeObserver(function () { resize(); }); ro.observe(stage); }
+        stage._aor3dSmonta = function () {
+            ac.abort();
+            if (ro) ro.disconnect();
+            try { ctx.renderer.dispose(); if (ctx.renderer.forceContextLoss) ctx.renderer.forceContextLoss(); } catch (e) { }
+            var cv = ctx.renderer.domElement;
+            if (cv && cv.parentNode) cv.parentNode.removeChild(cv);
+            stage._aor3dSmonta = null; stage._aor3dCanvas = null;
+        };
         setTimeout(resize, 60);
     }
 
@@ -577,7 +601,7 @@
                 node.hidden = !match;
                 if (match) {
                     node.querySelectorAll('.aor3d-stage').forEach(function (el) {
-                        if (el.dataset.init === '1') { if (el._aor3dResize) setTimeout(el._aor3dResize, 60); }
+                        if (vivo3d(el)) { if (el._aor3dResize) setTimeout(el._aor3dResize, 60); }
                         else initOne(el);
                     });
                     // Ricalcola anche le mappe Leaflet tornando al 2D (partite a dimensione 0 se erano nascoste).
@@ -612,7 +636,7 @@
         var d = ev.target;
         if (!d || d.tagName !== 'DETAILS' || !d.open) return;
         d.querySelectorAll('.aor3d-stage').forEach(function (el) {
-            if (el.dataset.init === '1') { if (el._aor3dResize) setTimeout(el._aor3dResize, 60); }
+            if (vivo3d(el)) { if (el._aor3dResize) setTimeout(el._aor3dResize, 60); }
             else initOne(el);
         });
     }, true);

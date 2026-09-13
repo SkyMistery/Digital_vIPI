@@ -1,5 +1,6 @@
 ﻿// Mappa AOR: disegna il poligono shape reale su una basemap minimal (Esri Light Gray Canvas) via Leaflet.
-// Idempotente: ogni contenitore .aor-leaflet[data-poly] è inizializzato una sola volta (data-init).
+// Idempotente: ogni contenitore .aor-leaflet[data-poly] ha una mappa sola. ⚠️ Il segno è la mappa VIVA
+// (`mappaViva`), non `data-init`: la navigazione enhanced cancella gli attributi (T-015).
 //
 // ⚠️ Leaflet NON è nel <body> di ogni pagina: sono 162 KB (js + css) che servono alle sole pagine con una
 // mappa, mentre quel <body> vale per ricerca, incarichi, elenchi admin, guida, login e hub. È la stessa
@@ -490,13 +491,36 @@
         var d = ev.target;
         if (!d || d.tagName !== 'DETAILS' || !d.open) return;
         d.querySelectorAll('.aor-leaflet').forEach(function (el) {
-            if (el._leafletMap) setTimeout(function () { el._leafletMap.invalidateSize(); }, 60);
+            if (mappaViva(el)) setTimeout(function () { el._leafletMap.invalidateSize(); }, 60);
             else initOne(el);
         });
     }, true);
 
+    // 🔴 T-015 (revisione del 13 settembre 2026, visto a schermo su LIBG): «già inizializzata» stava in
+    // `data-init`, e la navigazione enhanced lo CANCELLA — il DomSync tiene lo stesso `div.aor-leaflet`, toglie
+    // gli attributi che il server non scrive e rimette l'SVG di ripiego. Ma sull'elemento restano `_leaflet_id`
+    // e `_leafletMap`: al riaggancio `L.map(el)` solleva «Map container is already initialized» e il riquadro
+    // resta VUOTO, senza mappa e senza ripiego. Cambiando «Tutto/ATC/Pilota» su un documento con sezioni marcate.
+    //
+    // Si guarda lo stato VERO: una mappa è viva se c'è l'oggetto E il suo DOM è ancora dentro il contenitore.
+    // Altrimenti è un avanzo: la si stacca, e se ne disegna una nuova.
+    function mappaViva(el) {
+        return !!(el._leafletMap && el.querySelector('.leaflet-pane'));
+    }
+    function staccaAvanzo(el) {
+        if (el._leafletMap) {
+            try { el._leafletMap.remove(); } catch (e) { /* il suo DOM non c'è già più */ }
+        }
+        el._leafletMap = null;
+        el._aorRefit = null;
+        try { delete el._leaflet_id; } catch (e) { el._leaflet_id = undefined; }
+    }
+    window.vipiMappaViva = mappaViva;
+    window.vipiStaccaAvanzoMappa = staccaAvanzo;
+
     function initOne(el) {
-        if (!window.L || el.dataset.init === '1') return;
+        if (!window.L || mappaViva(el)) return;
+        staccaAvanzo(el);
 
         // ACC multi-settore: una mappa con anelli toggleabili.
         if (el.dataset.sectors != null) { initSectors(el); return; }
@@ -572,7 +596,7 @@
 
     function accendiMappe() {
         var da = [].slice.call(document.querySelectorAll('.aor-leaflet'))
-            .filter(function (el) { return el.dataset.init !== '1'; });
+            .filter(function (el) { return !mappaViva(el); });
         if (!da.length) return;
         var h = window.innerHeight || 900;
         function vicina(el) {
@@ -580,7 +604,7 @@
             return r.top < h * 2 && r.bottom > -h;        // in vista, o a meno di una schermata da essa
         }
         da.filter(vicina).forEach(initOne);
-        var dopo = da.filter(function (el) { return !vicina(el) && el.dataset.init !== '1'; });
+        var dopo = da.filter(function (el) { return !vicina(el) && !mappaViva(el); });
         if (!dopo.length || scaglioniInCorso) return;
         scaglioniInCorso = true;
         (function scaglione() {

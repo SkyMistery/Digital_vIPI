@@ -341,8 +341,12 @@
   function collegaTasti() {
     // Una volta sola per nodo: `sincronizza` puo' richiamarci sullo stesso `.awos` (cambia solo l'ICAO),
     // e due ascoltatori vorrebbero dire due inversioni della freccia per un clic solo.
-    if (radice.dataset.awosLegato === '1') return;
-    radice.dataset.awosLegato = '1';
+    // 🔴 T-016 (revisione del 13 settembre 2026, visto a schermo): il segno stava in `data-awos-legato`, e la
+    // navigazione enhanced dall'elenco a uno scalo lo CANCELLA tenendo lo stesso nodo. Il secondo ascoltatore
+    // si aggiungeva proprio sul percorso che questo commento diceva coperto: DAY/NIGHT tornava com'era, i
+    // pannelli si aprivano e si richiudevano. Il segno sta in una proprietà JS, che il DomSync non tocca.
+    if (radice._awosLegato) return;
+    radice._awosLegato = true;
     radice.addEventListener('click', function (e) {
       var t = e.target.closest('[data-awos-tema],[data-awos-mask],[data-awos-chiudi],[data-awos-inverti]');
       if (!t) return;

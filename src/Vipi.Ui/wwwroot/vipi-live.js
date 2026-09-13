@@ -18,8 +18,11 @@ window.vipiLive = {
     },
 
     unsubscribe: function (id) {
-        if (id === undefined || id === null) this._subs.clear();
-        else this._subs.delete(id);
+        // ⚠️ Un id nullo NON è «tutti» (T-044, revisione del 13 settembre 2026): la vista live smontata mentre il
+        // suo subscribe era ancora in volo mandava null, e staccava anche il badge della barra. Chi non ha un id
+        // non ha niente da staccare; un riferimento rimasto orfano si toglie da sé al primo evento che fallisce.
+        if (id === undefined || id === null) return;
+        this._subs.delete(id);
         if (this._subs.size === 0 && this._src) { this._src.close(); this._src = null; }
     },
 

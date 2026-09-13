@@ -1,6 +1,6 @@
 // Prova che i quattro moduli pesanti arrivino SOLO dove servono, e che dove servono arrivino davvero.
 const puppeteer = require('puppeteer-core');
-const BASE = 'http://127.0.0.1:5360';
+const BASE = process.env.BASE || 'http://127.0.0.1:5360';
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 
 const PESANTI = ['vipi-aor.js', 'vipi-mva.js', 'vipi-aor3d.js', 'vipi-tour.js', 'leaflet.js', 'three.min.js'];

@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L6 in main**: T-009, T-010, T-050, T-077 (LVP che si chiudono, memoria decisa dal server, tendenze fuori dall'osservazione) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L7 in main**: T-015, T-016, T-043, T-044, T-070 (segni in proprietà JS, mappe/3D smontabili; `enhanced-verifica.js`) · ✅ **L6 in main**: T-009, T-010, T-050, T-077 (LVP che si chiudono, memoria decisa dal server, tendenze fuori dall'osservazione) · ✅ **L5 in main**: T-013, T-014, T-024, T-037…T-041, T-072 (porte, semafori mai smaltiti, sottoscrittori isolati) · ✅ **L2 in main**: T-025 (lock della struttura su 7 servizi), T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -285,7 +285,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | Un anonimo scrive «LIRF» di seguito su `/services/vsop/search`. Ogni `keyup` chiama `Search.SearchAsync` (5-8 query, con LIKE su tutti i blocchi) sullo stesso `VipiDbContext`, Scoped per circuito, senza sentinella, senza debounce e senza scope proprio. La seconda ricerca parte mentre la prima aspetta, EF solleva «A second operation was started», l'eccezione esce dal gestore e il circuito cade. Quando non cade, una risposta vecchia può sovrascrivere `_hits`. R-016 non elencava questa pagina, perché passa da un servizio e non da un repository iniettato |
 | **Correzione** | Debounce con contatore di giro, una sola ricerca in volo, e scarto dei risultati superati. Meglio ancora scope proprio con `InFilaAsync` |
 
-#### T-015 — Mappe Leaflet vuote dopo una navigazione enhanced che riusa il contenitore
+#### ✅ T-015 (L7, in main; riprodotto e verificato a schermo su LIBG) — Mappe Leaflet vuote dopo una navigazione enhanced che riusa il contenitore
 
 | | |
 |---|---|
@@ -295,7 +295,7 @@ finding è la fusione di due segnalazioni.
 | **Scenario** | Su un documento con sezioni marcate si clicca «ATC» nella AudienceChip: un link alla stessa pagina con `?vista=`, cioè navigazione enhanced. Il DomSync conserva lo stesso `div.aor-leaflet`, cancella `data-init` perché il server non lo scrive, e rimette l'SVG di ripiego, ma `_leaflet_id` e `_leafletMap` restano sull'elemento. Al riaggancio `el.innerHTML = ''` e poi `L.map(el)` solleva «Map container is already initialized»: il riquadro resta **vuoto**, senza mappa e senza ripiego, e il `forEach` si interrompe lasciando anche le mappe successive col ripiego. Nessun `map.remove()` in tutto il file. Nel 3D invece si accumulano scene, listener e WebGLRenderer |
 | **Correzione** | Tenere lo stato in una proprietà JS invece che in un attributo `data-`. Se `el._leafletMap` esiste, fare `remove()` prima di ricreare. Per il 3D, `renderer.dispose()` e rimozione dei listener. Stessa radice di T-016 e T-070 |
 
-#### T-016 — vAWOS: dall'elenco a uno scalo i tasti si agganciano due volte e non fanno più niente
+#### ✅ T-016 (L7, in main; riprodotto e verificato a schermo) — vAWOS: dall'elenco a uno scalo i tasti si agganciano due volte e non fanno più niente
 
 | | |
 |---|---|
@@ -507,14 +507,14 @@ ui-pages · C · `src/Vipi.Infrastructure/Persistence/EfSearchRepository.cs:66` 
   conteggi. `PublicDocumentGate` controlla solo che una release esista.
 - **Correzione.** Indicizzare il payload della release effettiva.
 
-**T-043 — `wireAor` (legacy) riaggancia le chip in parallelo a `onAorClick`.**
+**✅ T-043 (L7, in main: `wireAor` tolto) — `wireAor` (legacy) riaggancia le chip in parallelo a `onAorClick`.**
 ui-components · C · `src/Vipi.Ui/wwwroot/vipi-ui.js:77`.
 - **Due casi.** Una configurazione cliccata nel blocco N spegne le chip del **primo** blocco
   (`document.querySelector('.aor-block')`). Nel ripiego SVG la chip non commuta, perché le due inversioni si
   annullano. I bersagli originali di `wireAor` non esistono più.
 - **Correzione.** Togliere il cablaggio chip/cfg da `wireAor`.
 
-**T-044 — `vipiLive.unsubscribe(null)` svuota tutti i sottoscrittori.**
+**✅ T-044 (L7, in main) — `vipiLive.unsubscribe(null)` svuota tutti i sottoscrittori.**
 ui-components · **P** · `src/Vipi.Ui/wwwroot/vipi-live.js:21`.
 - **Scenario.** LivePage viene smaltita mentre il suo `subscribe` è ancora in volo, manda
   `unsubscribe(null)` e stacca anche il LiveBadge del layout. Codice senza guardia in `LiveBadge.razor:85` e
@@ -668,7 +668,7 @@ annullato da `HttpClient.Timeout`, e tutti i tentativi condividono i 15 s. · se
 `src/Vipi.Infrastructure/Ivao/TransientRetryHandler.cs:25` · Timeout per tentativo, oppure togliere ramo e
 commento.
 
-**T-070** — I segni «già agganciato» (`data-pw`, `data-persist-wired`) vengono cancellati dal DomSync, e
+**✅ T-070** (L7, in main) — I segni «già agganciato» (`data-pw`, `data-persist-wired`) vengono cancellati dal DomSync, e
 ResizeObserver e listener `toggle` si accumulano a ogni navigazione. È la radice di T-015 e T-016. ·
 ui-components · C · `src/Vipi.Ui/wwwroot/vipi-ui.js:800` (e `:272-281`) · `WeakSet` al posto degli attributi.
 

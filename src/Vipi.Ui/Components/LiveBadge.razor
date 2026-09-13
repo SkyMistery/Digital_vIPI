@@ -82,7 +82,9 @@ else
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", _subId); } catch { /* circuito chiuso */ }
+        // Senza id non c'è niente da staccare (T-044): mandare null staccava tutti.
+        if (_subId is int id)
+            try { await JS.InvokeVoidAsync("vipiLive.unsubscribe", id); } catch { /* circuito chiuso */ }
         _ref?.Dispose();
     }
 }
