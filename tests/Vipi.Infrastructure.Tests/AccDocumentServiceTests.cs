@@ -32,7 +32,9 @@ public class AccDocumentServiceTests : IAsyncLifetime
 
         var repo = new EfAccDerivationRepository(_db);
         var editing = new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db));
-        _service = new AccDocumentService(repo, editing, new AllowAuthz(), TestReleaseTargets.ReleaseRepo(_db));
+        var authz = new AllowAuthz();
+        _service = new AccDocumentService(repo, editing, authz, TestReleaseTargets.ReleaseRepo(_db),
+            LockConcesso.Instance);
     }
 
     public async Task DisposeAsync()

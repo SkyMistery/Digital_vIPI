@@ -229,7 +229,41 @@ public class LivelloEffettivoTests
         Assert.Equal(VipiRole.User, authz.Role);
     }
 
+    /// <summary>
+    /// 🔴 T-018 (revisione del 13 settembre 2026): il servizio vive quanto il circuito, e togliere a mano una
+    /// promozione deve fermare anche chi ha già la pagina aperta. Si memoizzano i claim, non la promozione.
+    /// </summary>
+    [Fact]
+    public void Togliere_una_promozione_vale_anche_per_chi_ha_la_pagina_aperta()
+    {
+        var promozioni = new PromozioniCheCambiano(123, VipiRole.Admin);
+        var authz = new EditAuthorizationService(
+            new UtenteFinto(Utente("IT-T01")),
+            new RoleResolver(new AuthOptions(), new DivisionOptions()),
+            promozioni);
+
+        Assert.True(authz.IsAdmin);            // letto una volta: il circuito è aperto
+
+        promozioni.Livello = null;             // RoleAdminService.RemoveAsync → ReloadAsync
+        Assert.False(authz.IsAdmin);
+        Assert.Equal(VipiRole.DivisionStaff, authz.Role);   // resta il pavimento dello staff
+
+        promozioni.Livello = VipiRole.Editor;  // e una promozione nuova arriva senza riaprire la pagina
+        Assert.Equal(VipiRole.Editor, authz.Role);
+    }
+
     // ------------------------------------------------------------------ doppi
+
+    private sealed class PromozioniCheCambiano : IRoleOverrides
+    {
+        private readonly int _vid;
+        public PromozioniCheCambiano(int vid, VipiRole? livello) { _vid = vid; Livello = livello; }
+        public VipiRole? Livello { get; set; }
+        public bool Loaded => true;
+        public VipiRole? For(int userId) => userId == _vid ? Livello : null;
+        public IReadOnlyDictionary<int, VipiRole> All => new Dictionary<int, VipiRole>();
+        public Task ReloadAsync(CancellationToken ct = default) => Task.CompletedTask;
+    }
 
     private sealed class UtenteFinto : ICurrentUserProvider
     {

@@ -38,7 +38,7 @@ public class SezioneAreeDiLavoroTests : IAsyncLifetime
     private EfMilitaryDocumentService Militari() =>
         new(_db, new AiracService(), new AllowAuthz(),
             new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)),
-            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db), new EfAirportNameLookup(_db));
+            new EfSpecialAreaRepository(_db), new EfNavaidCatalog(_db), LockConcesso.Instance, new EfAirportNameLookup(_db));
 
     public async Task InitializeAsync()
     {

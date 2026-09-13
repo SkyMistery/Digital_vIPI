@@ -132,6 +132,7 @@ public sealed class AppDocumentService : IAppDocumentService
         IEditAuthorizationService authz, ITopologyProvider topology, IAgreementService transfers,
         ICoordinationSentenceTemplate sentence, IDocumentProfileRepository docProfiles, Aor.IAorService aor,
         IVectoringMinimaSource minima, Airspace.ISectorShapeResolver forme,
+        IDocumentLockGuard lockGuard,
         ReadingLanguageContext? lingua = null,
         Translation.TranslationLookup? traduzioni = null)
     {
@@ -148,6 +149,21 @@ public sealed class AppDocumentService : IAppDocumentService
         _lingua = lingua;
         _traduzioni = traduzioni;
         _forme = forme;
+        _lock = lockGuard;
+    }
+
+    private readonly IDocumentLockGuard _lock;
+
+    /// <summary>
+    /// La porta delle scritture: ruolo e documento come <see cref="EnsureAsync"/>, <b>più il lock</b> (T-004).
+    /// <para>⚠️ <see cref="EnsureAsync"/> resta senza lock apposta: lo chiama anche l'apertura dell'editor, che
+    /// crea il documento prima che qualcuno abbia premuto «Modifica».</para>
+    /// </summary>
+    private async Task<int> EnsureWritableAsync(string appCallsign, CancellationToken ct)
+    {
+        var docId = await EnsureAsync(appCallsign, ct);
+        await _lock.EnsureMineAsync(docId, ct);
+        return docId;
     }
 
     /// <summary>
@@ -335,7 +351,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task SaveAorCustomizationAsync(string appCallsign, AorExtraShapes data, CancellationToken ct = default)
     {
-        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var clean = AorCustomizationCleaner.Clean(data);
         var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
         var json = empty ? null : JsonSerializer.Serialize(clean);
@@ -356,7 +372,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)
     {
-        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var clean = (rows ?? Array.Empty<AppSeparationRow>())
             .Select(r => new AppSeparationRow((r.Vertical ?? "").Trim(), (r.Lateral ?? "").Trim(),
                 string.IsNullOrWhiteSpace(r.Applicability) ? null : r.Applicability!.Trim()))
@@ -374,7 +390,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default)
     {
-        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
         var json = empty ? null : JsonSerializer.Serialize(content);
         await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
@@ -393,7 +409,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task SaveRegulatedAsync(string appCallsign, RegulatedSelection selection, CancellationToken ct = default)
     {
-        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var clean = NoAuto(selection);
         var empty = clean.OwnIds.Count == 0 && clean.ExtraIds.Count == 0;
         var json = empty ? null : JsonSerializer.Serialize(clean);
@@ -463,7 +479,7 @@ public sealed class AppDocumentService : IAppDocumentService
 
     public async Task SaveConfigurationsAsync(string appCallsign, IReadOnlyList<AccConfiguration> configs, CancellationToken ct = default)
     {
-        var docId = await EnsureAsync(appCallsign, ct);   // ACC-gated + garantisce il Document
+        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var json = (configs?.Count ?? 0) == 0 ? null : JsonSerializer.Serialize(configs);
         await _editing.SaveSectionBlockJsonAsync(docId, "configurations", json, _authz.CurrentUserId ?? 0, ct);
     }
@@ -500,7 +516,7 @@ public sealed class AppDocumentService : IAppDocumentService
     // Garantisce il Document (ACC-gated via EnsureAsync) poi esegue l'azione sull'override, per documentId.
     private async Task WithDocumentAsync(string appCallsign, Func<int, CancellationToken, Task> action, CancellationToken ct)
     {
-        var docId = await EnsureAsync(appCallsign, ct);
+        var docId = await EnsureWritableAsync(appCallsign, ct);
         await action(docId, ct);
     }
 

@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) · ✅ **L3 in main**: T-005, T-006, T-007, T-029 · ✅ **decisioni del 13-set**: T-053 (colonne allargate), T-064 e T-078 (codice morto tolto) · ✅ **T-017 in main** (chiavi API, `Api:RichiediChiave` ancora spento) · ✅ **L2 in main**: T-004 e T-063 (`DocumentLockGuard` su APP/ACC/vSOP militare, l'ACC rifiuta sezioni di altri documenti e elimina solo gruppi APP), T-018 (si memoizzano i soli claim) · 📦 **tutto ciò che è in main dopo 1.25.4 sta in 1.26.0** (`cad6698`, ✅ online dal 13-set) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -167,7 +167,7 @@ finding è la fusione di due segnalazioni.
 | **Prova** | resx:291 `&lt;b&gt;{0}&lt;/b&gt;`; `AccDocumentAssembler.cs:77` `Title = blockSection.Title`, senza pulizia; `AreaLiveStation.cs:47-49` |
 | **Correzione** | Encodare l'argomento, oppure scrivere `<b>@g.Block.Title</b>` in Razor. Insieme a T-001 |
 
-#### T-004 — Le sezioni strutturate di APP, ACC e vSOP militare si salvano senza controllare il lock
+#### ✅ T-004 (L2, in main) — Le sezioni strutturate di APP, ACC e vSOP militare si salvano senza controllare il lock
 
 | | |
 |---|---|
@@ -323,7 +323,7 @@ Dimensioni: sec-auth (S3) + sec-infra (S2) · **P** · `src/Vipi.Hosting/VipiMod
 - **Correzione.** Una regola sola: niente filtro `vid` agli anonimi, oppure endpoint dietro ruolo o chiave;
   in alternativa si allinea la carta §14.
 
-**T-018 — Il livello resta fisso per tutta la vita del circuito: togliere una promozione a mano non ferma chi ha la pagina aperta.**
+**✅ T-018 (L2, in main) — Il livello resta fisso per tutta la vita del circuito: togliere una promozione a mano non ferma chi ha la pagina aperta.**
 sec-auth · C · `src/Vipi.Application/Auth/EditAuthorizationService.cs:111`.
 - **Codice.** `_role ??= _resolver.Effective(Corrente, _overrides.For(...))` memoizza anche la metà
   «override», che `RoleOverrideCache` cambia a caldo apposta (`RoleAdminService.cs:129`). Il servizio è
@@ -638,7 +638,7 @@ porte pubbliche.
 contrario. Riguarda l'immagine Render di anteprima. · sec-infra · C · `Dockerfile:14` · Aggiungere `USER` e
 correggere il commento.
 
-**T-063** — `RemoveGroupAsync` elimina qualunque sezione, anche l'Aerovia o una sezione di un altro
+**✅ T-063** (L2, in main) — `RemoveGroupAsync` elimina qualunque sezione, anche l'Aerovia o una sezione di un altro
 documento: ignora `accCode` e la rete di `MoveGroupAsync`. Oggi l'unico chiamante non offre il tasto.
 · content-a · **P** · `src/Vipi.Application/Content/AccDocumentService.cs:246` · Assemblare e rifiutare,
 insieme a T-004.

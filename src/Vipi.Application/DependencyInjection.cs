@@ -58,6 +58,8 @@ public static class DependencyInjection
         services.AddScoped<Auth.IApiClientService, Auth.ApiClientService>();
         services.AddScoped<Auth.IVerificaChiaveApi, Auth.VerificaChiaveApi>();
         services.AddScoped<IEditingService, EditingService>();
+        // Il lock del documento per le scritture strutturate di APP, ACC e vSOP militare (T-004).
+        services.AddScoped<IDocumentLockGuard, DocumentLockGuard>();
         services.AddScoped<IResourceLockService, ResourceLockService>();
         services.AddScoped<IStructureEditingService, StructureEditingService>();
         services.AddScoped<IAccImportUseCase, AccImportUseCase>();

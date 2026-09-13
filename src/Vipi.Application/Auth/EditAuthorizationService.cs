@@ -65,7 +65,7 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
     // c'è nessuno»: senza, l'anonimo rifarebbe il giro a ogni lettura, che è proprio il caso peggiore.
     private CurrentUser? _corrente;
     private bool _risolto;
-    private VipiRole? _role;
+    private VipiRole? _daStaff;
 
     public EditAuthorizationService(ICurrentUserProvider user, RoleResolver resolver, IRoleOverrides overrides)
     {
@@ -102,13 +102,26 @@ public sealed class EditAuthorizationService : IEditAuthorizationService
     }
 
     /// <summary>
-    /// Il livello effettivo, memoizzato per scope come l'identità.
+    /// Il livello effettivo: <c>max(posizioni staff, promozione a mano)</c>.
     ///
     /// <para>⚠️ <b>Nessuna query.</b> Le posizioni staff vengono dai claim e la promozione a mano dal
     /// fotogramma in memoria: rispondere «che livello ha questa persona?» non tocca il database. È la
     /// condizione perché la domanda si possa fare dentro il markup, dove si fa.</para>
+    ///
+    /// <para>🔴 <b>Si memoizza SOLO la metà dei claim</b> (T-018, revisione del 13 settembre 2026). Prima si
+    /// memoizzava il risultato intero, e il servizio vive quanto il circuito: togliere a mano una promozione
+    /// non fermava chi aveva già la pagina aperta, che restava Admin per ore. La promozione invece si rilegge a
+    /// ogni domanda dal fotogramma, che <c>RoleAdminService</c> cambia a caldo apposta: è una lettura di
+    /// dizionario, non una query, e il costo che la memoizzazione toglieva era il parse dei claim.</para>
     /// </summary>
-    public VipiRole Role => _role ??= _resolver.Effective(Corrente, _overrides.For(Corrente?.UserId ?? 0));
+    public VipiRole Role
+    {
+        get
+        {
+            var daStaff = _daStaff ??= _resolver.Resolve(Corrente);
+            return _overrides.For(Corrente?.UserId ?? 0) is { } promozione && promozione > daStaff ? promozione : daStaff;
+        }
+    }
 
     public bool IsAdmin => Role >= VipiRole.Admin;
     public bool IsEditor => Role >= VipiRole.Editor;

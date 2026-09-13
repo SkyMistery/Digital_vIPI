@@ -60,7 +60,7 @@ public class AppDocumentServiceTests : IAsyncLifetime
         var forme = new EfSectorShapeResolver(_db, _agganciAip, new EfSectorShapeParts(_db));
         _service = new AppDocumentService(repo, new EfSpecialAreaRepository(_db), editing, authz, topo, transfers,
             new StubCoordinationSentenceTemplate(), docProfiles, new Vipi.Application.Aor.AorService(),
-            new NoMinimaSource(), forme);
+            new NoMinimaSource(), forme, LockConcesso.Instance);
     }
 
     public async Task DisposeAsync()

@@ -41,7 +41,7 @@ public class SezioneRadioassistenzeTests : IAsyncLifetime
     private EfMilitaryDocumentService Militari() =>
         new(_db, new AiracService(), new AllowAuthz(),
             new EfEditingRepository(_db, new AiracService(), new EfMediaMaintenance(_db)),
-            new EfSpecialAreaRepository(_db), Anagrafica());
+            new EfSpecialAreaRepository(_db), Anagrafica(), LockConcesso.Instance);
 
     public async Task InitializeAsync()
     {

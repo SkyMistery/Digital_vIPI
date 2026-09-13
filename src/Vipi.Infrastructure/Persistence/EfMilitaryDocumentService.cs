@@ -25,6 +25,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
                                      Vipi.Application.Auth.IEditAuthorizationService authz,
                                      IEditingRepository editing, ISpecialAreaRepository areas,
                                      INavaidCatalog navaids,
+                                     IDocumentLockGuard lockGuard,
                                      IAirportNameLookup? aeroporti = null,
                                      IFrozenSectionReader? frozen = null,
                                      Vipi.Application.Translation.TranslationLookup? traduzioni = null)
@@ -38,6 +39,23 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
         _aeroporti = aeroporti;
         _frozen = frozen;
         _traduzioni = traduzioni;
+        _lock = lockGuard;
+    }
+
+    private readonly IDocumentLockGuard _lock;
+
+    /// <summary>
+    /// La porta delle scritture del vSOP: <see cref="CreaAsync"/> (ruolo, categoria, documento) <b>più il lock</b>
+    /// del documento militare (T-004, revisione del 13 settembre 2026). Fino ad allora radioassistenze,
+    /// alternati, tabelle e aree si salvavano da una pagina che il lock l'aveva perso.
+    /// <para>⚠️ <see cref="CreaAsync"/> resta senza lock: la chiamano la pagina d'elenco e il caricatore, che
+    /// creano il documento e non lo scrivono.</para>
+    /// </summary>
+    private async Task<int> ScrivibileAsync(string icao, CancellationToken ct)
+    {
+        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        await _lock.EnsureMineAsync(docId, ct).ConfigureAwait(false);
+        return docId;
     }
 
     private readonly INavaidCatalog _navaids;
@@ -212,7 +230,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     {
         // Come per le aree: passa da CreaAsync perché è ACC-gated e idempotente — chi non può scrivere si
         // ferma qui, e non alla riga dopo con mezza modifica già fatta.
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         await _editing.SaveSectionBlockJsonAsync(docId, "navaids", MilNavaidsPayload.Scrivi(righe),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
@@ -251,7 +269,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public async Task SaveDiversionsAsync(string icao, IReadOnlyList<MilDiversionPayload.Riga> righe,
         CancellationToken ct = default)
     {
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         await _editing.SaveSectionBlockJsonAsync(docId, "diversion", MilDiversionPayload.Scrivi(righe),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
@@ -282,7 +300,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public async Task SaveFixedTableAsync(string icao, string sectionKey, string variante,
         IReadOnlyList<IReadOnlyList<string>> righe, int colonne, CancellationToken ct = default)
     {
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         await _editing.SaveSectionBlockJsonAsync(docId, sectionKey,
             MilTablePayload.Scrivi(variante, righe, colonne), _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
@@ -307,7 +325,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public async Task SaveAreaActivityAsync(string icao, string sectionKey, string areaId, MilActivity attivita,
         CancellationToken ct = default)
     {
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
 
         // Si rilegge la selezione dal payload e la si riscrive INSIEME alle attività: sono un oggetto solo,
@@ -336,7 +354,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     public async Task SaveAreaNoteAsync(string icao, string sectionKey, string areaId, string? nota,
         CancellationToken ct = default)
     {
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         var json = await _editing.GetSectionBlockJsonAsync(docId, sectionKey, ct).ConfigureAwait(false);
 
         // Come l'attività: si rilegge TUTTO l'oggetto e lo si riscrive intero, o la metà non toccata
@@ -366,7 +384,7 @@ public sealed class EfMilitaryDocumentService : IMilitaryDocumentService
     {
         // Passa da CreaAsync e non da GetDocumentIdAsync: è ACC-gated e idempotente, quindi chi non può
         // scrivere si ferma qui e non alla riga dopo, con mezza modifica già fatta.
-        var docId = await CreaAsync(icao, ct).ConfigureAwait(false);
+        var docId = await ScrivibileAsync(icao, ct).ConfigureAwait(false);
         var pulita = Manuale(selection);
         var vuota = pulita.OwnIds.Count == 0 && pulita.ExtraIds.Count == 0;
 

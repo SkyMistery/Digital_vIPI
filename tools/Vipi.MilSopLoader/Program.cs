@@ -68,7 +68,9 @@ var editing = new EfEditingRepository(db, airac, new EfMediaMaintenance(db));
 // L'anagrafica delle radioassistenze: il caricatore non la tocca, ma il servizio la vuole — la
 // sezione «Radioassistenze» del profilo militare si risolve di lì (carta §12b).
 var militari = new EfMilitaryDocumentService(db, airac, authz, editing, new EfSpecialAreaRepository(db),
-    new EfNavaidCatalog(db));
+    new EfNavaidCatalog(db),
+    // Il caricatore chiama solo CreaAsync, che il lock non lo chiede: la guardia c'è per le scritture dell'editor.
+    new Vipi.Application.Content.DocumentLockGuard(editing, authz));
 
 Console.WriteLine($"SOP {sop.Icao} — fonte: {sop.Fonte}");
 Console.WriteLine($"Sezioni trascritte: {sop.Sezioni.Count}, blocchi: {sop.Sezioni.Sum(s => s.Blocchi.Count)}.");

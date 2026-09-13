@@ -80,14 +80,37 @@ public sealed class AccDocumentService : IAccDocumentService
     private readonly IEditingRepository _editing;
     private readonly IEditAuthorizationService _authz;
     private readonly IReleaseRepository _releases;
+    private readonly IDocumentLockGuard _lock;
 
     public AccDocumentService(IAccDerivationRepository repo, IEditingRepository editing, IEditAuthorizationService authz,
-        IReleaseRepository releases)
+        IReleaseRepository releases, IDocumentLockGuard lockGuard)
     {
         _repo = repo;
         _editing = editing;
         _authz = authz;
         _releases = releases;
+        _lock = lockGuard;
+    }
+
+    /// <summary>
+    /// La porta di <b>ogni</b> scrittura della vIPI ACC (T-004 e T-063, revisione del 13 settembre 2026): ruolo,
+    /// il documento toccato <b>è</b> quello di <paramref name="accCode"/>, e il lock è mio.
+    ///
+    /// <para>⚠️ Prima i metodi prendevano <c>accCode</c> e non lo usavano: bastava l'id di una sezione, o di una
+    /// versione, di un <b>altro</b> documento — un APP, un aeroporto, l'ACC vicina — per riscriverne il corpo,
+    /// e nessuno guardava il lock. Una sezione che non appartiene a quest'ACC si rifiuta prima di scrivere.</para>
+    /// </summary>
+    private async Task<int> DocumentoScrivibileAsync(string accCode, int? documentoToccato, CancellationToken ct)
+    {
+        _authz.EnsureAtLeast(VipiRole.Editor);
+        accCode = Norm(accCode);
+        var id = await _repo.ResolveAccDocumentIdentityAsync(accCode, ct);
+        if (id?.DocumentId is not int docId || documentoToccato != docId)
+            throw new Aor.ValidationException(Lingua(
+                $"Questa sezione non appartiene alla vIPI ACC {accCode}: niente è stato salvato.",
+                $"This section does not belong to the {accCode} ACC vIPI: nothing was saved."));
+        await _lock.EnsureMineAsync(docId, ct);
+        return docId;
     }
 
     private static string Norm(string s) => (s ?? "").Trim().ToUpperInvariant();
@@ -219,10 +242,11 @@ public sealed class AccDocumentService : IAccDocumentService
         return SaveJsonAsync(accCode, vfrSectionId, empty ? null : content, ct);
     }
 
-    // Serializza (null/vuoto azzera) e scrive il BodyJson della sezione, previa autorizzazione ACC.
+    // Serializza (null/vuoto azzera) e scrive il BodyJson della sezione, dopo la porta: ruolo, documento, lock.
     private async Task SaveJsonAsync(string accCode, int sectionId, object? value, CancellationToken ct)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        await DocumentoScrivibileAsync(accCode, await _editing.GetDocumentIdBySectionAsync(sectionId, ct), ct);
         var json = value is null ? null : System.Text.Json.JsonSerializer.Serialize(value);
         await _editing.SaveSectionBlockJsonBySectionAsync(sectionId, json, _authz.CurrentUserId ?? 0, ct);
     }
@@ -232,6 +256,7 @@ public sealed class AccDocumentService : IAccDocumentService
     public async Task<int> AddGroupAsync(string accCode, int versionId, string title, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        await DocumentoScrivibileAsync(accCode, await _editing.GetDocumentIdByVersionAsync(versionId, ct), ct);
         var block = new VipiBlockSpec("appgroup", string.IsNullOrWhiteSpace(title) ? "Nuovo gruppo APP" : title.Trim(),
             SectionProfile.AccAppBlock);
         var blockSectionId = await _editing.AddBlockToVersionAsync(versionId, block, ct);
@@ -246,6 +271,18 @@ public sealed class AccDocumentService : IAccDocumentService
     public async Task RemoveGroupAsync(string accCode, int blockSectionId, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
+        var docId = await DocumentoScrivibileAsync(accCode, await _editing.GetDocumentIdBySectionAsync(blockSectionId, ct), ct);
+
+        // T-063: si elimina un GRUPPO APP, e soltanto quello. Il blocco Aerovia non si toglie, e una sezione
+        // qualunque del documento — una figlia, un blocco che non esiste — non è un gruppo.
+        var doc = await _editing.LoadForEditAsync(docId, ct);
+        var blocco = doc is null ? null : AccDocumentAssembler.Assemble(doc.Sections)
+            .FirstOrDefault(b => b.BlockSectionId == blockSectionId);
+        if (blocco is null || blocco.Block.Kind == AccBlockKind.Aerovia)
+            throw new Aor.ValidationException(Lingua(
+                "Si eliminano solo i gruppi APP: il blocco Aerovia e le sezioni dentro un blocco restano.",
+                "Only APP groups can be deleted: the Airway block and the sections inside a block stay."));
+
         await _editing.DeleteSectionAsync(blockSectionId, ct);
     }
 
@@ -253,9 +290,8 @@ public sealed class AccDocumentService : IAccDocumentService
     {
         _authz.EnsureAtLeast(VipiRole.Editor);
 
-        var docId = await _editing.GetDocumentIdBySectionAsync(blockSectionId, ct);
-        if (docId is null) return;
-        var doc = await _editing.LoadForEditAsync(docId.Value, ct);
+        var docId = await DocumentoScrivibileAsync(accCode, await _editing.GetDocumentIdBySectionAsync(blockSectionId, ct), ct);
+        var doc = await _editing.LoadForEditAsync(docId, ct);
         if (doc is null) return;
 
         // I blocchi nell'ordine del documento, con la loro natura: la stessa lettura dell'editor e del viewer
