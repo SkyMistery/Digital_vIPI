@@ -1330,7 +1330,25 @@
       nasce al primo giro. Firme: nessuna interfaccia cambiata; RequestRateLimiter ha un metodo in più e i suoi
       soli chiamanti sono in Hosting, che è nel pacchetto.
     -->
-    <VipiVersione>1.25.4</VipiVersione>
+    <!--
+      1.26.0 — MINOR, DUE migrazioni. Cumulativa su 1.25.2 (online): contiene tutta 1.25.4, e vale sia che
+      1.25.4 sia stata caricata sia che no.
+
+      T-017: le API non sono mai anonime (decisione del committente). Chiavi API con pagina di emissione
+      (/services/vsop/admin/api-keys, solo HQ/WD e fondatori), tabella ApiClients (migrazione ChiaviApi,
+      CreateTable), porta unica per archivio e bridge. Api:RichiediChiave resta false: l'archivio risponde
+      ancora a chi non porta chiave, finché i client non hanno la loro.
+      T-053: colonne delle clausole degli accordi allargate a 500 (migrazione EtichetteClausolePiuLarghe:
+      su MySQL AlterColumn di SOLO allargamento, stessa nullabilità e collation, deroga scritta nel test).
+      T-042: ricerca e «cambiati» leggono lo snapshot della release in vigore, con indice in memoria.
+      L3 (T-005, T-006, T-007, T-029): gli import che falliscono non timbrano e non potano; alias upsert.
+      T-064/T-078: codice morto tolto.
+
+      I FILE: Application, Domain, Host, Hosting, Infrastructure, Infrastructure.MySqlMigrations, Ui (dll+pdb)
+      più en/Vipi.Ui.resources.dll. Niente wwwroot, niente endpoints.json. Il bridge desktop cambia ma non
+      sta sul sito.
+    -->
+    <VipiVersione>1.26.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
