@@ -132,6 +132,11 @@ git diff <commit-online> HEAD -- src | grep -E '^[-+].*\bconst\b'
 grep -rn "NomeDellaCostante" src --include=*.cs --include=*.razor    # chi la usa, progetto per progetto
 ```
 
+🔴 **Prima di pubblicare un pacchetto net10: `dotnet --version` deve dire l'SDK di `global.json`** (e
+quell'SDK deve essere l'ultimo della sua riga: https://dotnet.microsoft.com/download/dotnet/10.0). La patch del
+runtime che va in produzione è quella dell'SDK che pubblica — con un SDK di tre mesi prima il pacchetto porta
+un runtime senza tre patch di sicurezza, ed è successo il 13 settembre 2026 (ADR-0007 §D4-quater, punto 5).
+
 🔴 **Eccezione: il primo pacchetto dopo il salto a net10 (L13, ADR-0007 §D4-quater) NON è una lista di
 file.** Cambia il runtime intero — `libcoreclr.so`, `libhostpolicy.so`, `System.Private.CoreLib.dll` e ogni
 assieme del framework — più i pacchetti ri-risolti. Un carico parziale lascerebbe sul server un runtime 8 con

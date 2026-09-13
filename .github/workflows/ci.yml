@@ -16,7 +16,12 @@ jobs:
           # l'host di Ivao.It non ha. La produzione è net10 dal 13 settembre 2026 (L13).
           dotnet-version: |
             8.0.x
-            10.0.x
+            10.0.401
+      # ⚠️ 10.0.401 ESATTO, lo stesso di global.json, e non 10.0.x (L13, 13 settembre 2026): con l'host net10 la
+      # versione del runtime la decide l'SDK — il pacchetto implicito Microsoft.AspNetCore.App.Internal.Assets
+      # entra nel lock con la versione del runtime incluso, e il publish self-contained porta quel runtime in
+      # produzione. Con 10.0.x la CI prendeva un SDK più nuovo di quello di chi scrive il lock, e il restore in
+      # locked mode si fermava su NU1004. Si cambia qui e in global.json INSIEME, poi si rigenerano i lock.
       # --locked-mode: usa i packages.lock.json committati e FALLISCE se una versione è cambiata senza che
       # nessuno l'abbia scritta. Con le wildcard nei csproj (8.0.*, 10.0.*) è l'unica cosa che rende
       # riproducibile il pacchetto consegnato: senza, lo stesso commit compilato fra due mesi è un altro
@@ -62,7 +67,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-            10.0.x
+            10.0.401
       # --locked-mode: usa i packages.lock.json committati e FALLISCE se una versione è cambiata senza che
       # nessuno l'abbia scritta. Con le wildcard nei csproj (8.0.*, 10.0.*) è l'unica cosa che rende
       # riproducibile il pacchetto consegnato: senza, lo stesso commit compilato fra due mesi è un altro
@@ -113,7 +118,7 @@ jobs:
           # della produzione (`--framework` qui sotto). Il runtime 8 resta per il restore dei due TFM.
           dotnet-version: |
             8.0.x
-            10.0.x
+            10.0.401
 
       - name: Strumenti EF
         run: dotnet tool install --global dotnet-ef --version "10.*"
