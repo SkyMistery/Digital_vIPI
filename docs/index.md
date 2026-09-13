@@ -335,6 +335,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-11-categorie-aeroporto.md`](feature/2026-09-11-categorie-aeroporto.md) — Le quattro categorie d'aeroporto 🟢
 - [`feature/2026-09-11-regole-piste-nel-vsop-militare.md`](feature/2026-09-11-regole-piste-nel-vsop-militare.md) — Le regole piste nel vSOP militare 🟢
 - [`feature/2026-09-12-vawos-e-minimi-lvp.md`](feature/2026-09-12-vawos-e-minimi-lvp.md) — vAWOS — il quadro meteo in torre, e i minimi LVP nei documenti 🟢
+- [`feature/2026-09-13-chiavi-api.md`](feature/2026-09-13-chiavi-api.md) — Le API non sono mai anonime: chiavi per i client (T-017) 🟡 carta
 
 ### `guide`
 
