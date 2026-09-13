@@ -341,6 +341,11 @@ patch di sicurezza è proprio il pezzo esposto: Kestrel, `OpenIdConnect`, DataPr
 3. `Vipi.Infrastructure.MySqlMigrations` diventa multi-target; il job `mariadb-schema` applica le migrazioni
    con l'assembly **net10**.
 4. `Microsoft.AspNetCore.DataProtection.EntityFrameworkCore` resta **8.0.\***: la 10.x tira EF Core 10.
+5. **L'SDK è fissato, `10.0.401` in `global.json` e in CI.** Con l'host net10 la patch del runtime la decide
+   l'SDK di chi pubblica: il pacchetto implicito `Microsoft.AspNetCore.App.Internal.Assets` entra nel lock con
+   quella versione, e il publish self-contained porta quel runtime in produzione. Scoperto sulla prima CI del
+   ramo (`NU1004`): l'SDK locale era 10.0.301, cioè runtime 10.0.9, **tre patch di sicurezza indietro**.
+   Aggiornare il runtime spedito = alzare l'SDK in `global.json` e in `ci.yml`, poi rigenerare i lock.
 
 ### Il costo, dichiarato
 
