@@ -188,6 +188,43 @@ public class ArchivioAtcMondialeTests : IAsyncLifetime
         Assert.Equal(5, troppe.Rows.Count);
     }
 
+    /// <summary>
+    /// 🔴 T-055 (revisione del 13 settembre 2026): l'archivio si pagina con OFFSET su `StartUtc`, che non è univoco
+    /// — le sessioni aperte nello stesso giro del poller hanno lo stesso istante. Senza spareggio il database può
+    /// restituirle in un ordine diverso a ogni pagina, e un archiviatore che le scorre ne vede alcune due volte
+    /// e altre mai. Lo spareggio è l'id della sessione, dal più alto.
+    ///
+    /// <para>⚠️ Si guarda la QUERY, non l'esito: su SQLite `SessionId` è il rowid e l'indice su `StartUtc` lo
+    /// restituisce già in ordine — il test sull'esito passava anche senza correzione. MariaDB non promette niente.</para>
+    /// </summary>
+    [Fact]
+    public async Task A_parita_di_inizio_le_pagine_hanno_uno_spareggio_fisso()
+    {
+        var spia = new SpiaDelComando();
+        await using var db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>()
+            .UseSqlite(_conn).AddInterceptors(spia).Options);
+
+        await new EfAtcArchiveQueries(db).SearchAsync(new AtcArchiveFilter(Offset: 1, Limit: 1));
+
+        var select = Assert.Single(spia.Comandi, c => c.Contains("LIMIT", StringComparison.OrdinalIgnoreCase));
+        var orderBy = select[select.LastIndexOf("ORDER BY", StringComparison.OrdinalIgnoreCase)..];
+        Assert.Matches("StartUtc.*DESC.*SessionId.*DESC", orderBy.Replace("\r", " ").Replace("\n", " "));
+    }
+
+    private sealed class SpiaDelComando : Microsoft.EntityFrameworkCore.Diagnostics.DbCommandInterceptor
+    {
+        public List<string> Comandi { get; } = new();
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader>> ReaderExecutingAsync(
+            System.Data.Common.DbCommand command, Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<System.Data.Common.DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Comandi.Add(command.CommandText);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
     [Fact]
     public async Task Gli_istanti_escono_in_UTC_dichiarato()
     {

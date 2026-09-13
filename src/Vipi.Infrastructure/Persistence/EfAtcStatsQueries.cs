@@ -34,6 +34,26 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         return userId is { } vid ? q.Where(s => s.UserId == vid) : q;
     }
 
+    /// <summary>
+    /// 🔴 T-030 (revisione del 13 settembre 2026): il <b>riassunto mensile</b> delle sessioni già potate, per i mesi
+    /// che cadono <b>interi</b> nella finestra. Si scriveva e non si leggeva mai: dopo la potatura il periodo
+    /// lungo, la classifica e le posizioni perdevano i mesi vecchi, un po' di più ogni notte.
+    ///
+    /// <para>⚠️ Riassunto e sessioni sono DISGIUNTI — la potatura riassume e cancella nella stessa transazione —
+    /// quindi si sommano senza contare due volte. Un mese a cavallo dell'inizio resta fuori: non si sa quanto
+    /// ne stia dentro. Quel che il riassunto non sa dire, dichiarato: i turni (non ha la chiave) e la soglia
+    /// delle connessioni-lampo (ci sono confluite tutte).</para>
+    /// </summary>
+    private async Task<List<AtcMonthRollup>> RiassuntiAsync(
+        int? userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
+    {
+        var da = from.UtcDateTime;
+        var a = to.UtcDateTime;
+        var q = _db.AtcMonthRollups.AsNoTracking().Where(r => r.Month >= da && r.Month <= a);
+        if (userId is { } vid) q = q.Where(r => r.UserId == vid);
+        return await q.ToListAsync(ct);
+    }
+
     public async Task<StatsTotals> TotalsAsync(
         int? userId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct = default)
     {
@@ -43,13 +63,14 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         var righe = await q
             .Select(s => new { s.ShiftKey, s.DurationSeconds, s.MovementCount, s.TrafficCount })
             .ToListAsync(ct);
+        var riassunti = await RiassuntiAsync(userId, from, to, ct);
 
         return new StatsTotals(
-            Sessions: righe.Count,
+            Sessions: righe.Count + riassunti.Sum(r => r.Sessions),
             Shifts: righe.Select(r => r.ShiftKey).Distinct().Count(),
-            Seconds: righe.Sum(r => (long)r.DurationSeconds),
-            Movements: righe.Sum(r => r.MovementCount),
-            Presences: righe.Sum(r => r.TrafficCount));
+            Seconds: righe.Sum(r => (long)r.DurationSeconds) + riassunti.Sum(r => r.Seconds),
+            Movements: righe.Sum(r => r.MovementCount) + riassunti.Sum(r => r.TrafficMoved),
+            Presences: righe.Sum(r => r.TrafficCount) + riassunti.Sum(r => r.TrafficSeen));
     }
 
     public async Task<IReadOnlyList<StatsByKey>> ByPositionAsync(
@@ -74,16 +95,19 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         // Le sessioni portano il nominativo di ALLORA, e giustamente: dicono un fatto. Ma una postazione
         // rinominata a giugno non deve comparire come due righe che si dividono le ore. Si traduce in lettura.
         var storia = await StoriaDeiNominativiAsync(ct);
-        if (storia.IsEmpty)
+        var riassunti = await RiassuntiAsync(userId, from, to, ct);
+        if (storia.IsEmpty && riassunti.Count == 0)
             return (await gruppi.Take(limit).ToListAsync(ct))
                 .Select(r => new StatsByKey(r.Key, r.Sessions, r.Seconds, r.Movements)).ToList();
 
-        // ⚠️ Con le rinomine in mezzo il `Take` NON può restare nel database: due righe che si fondono possono
-        // entrare fra le prime dopo essere state sommate, e tagliare prima le escluderebbe. Si tronca dopo, e
-        // le righe da fondere sono poche — sul database vero le postazioni distinte sono ~200.
+        // ⚠️ Con le rinomine o i mesi riassunti in mezzo il `Take` NON può restare nel database: due righe che si
+        // fondono possono entrare fra le prime dopo essere state sommate, e tagliare prima le escluderebbe. Si
+        // tronca dopo, e le righe da fondere sono poche — sul database vero le postazioni distinte sono ~200.
         return (await gruppi.ToListAsync(ct))
+            .Select(r => new StatsByKey(r.Key, r.Sessions, r.Seconds, r.Movements))
+            .Concat(riassunti.Select(r => new StatsByKey(r.Callsign, r.Sessions, r.Seconds, r.TrafficMoved)))
             .GroupBy(r => storia.Canonical(r.Key), StringComparer.OrdinalIgnoreCase)
-            .Select(g => new StatsByKey(g.Key, g.Sum(r => r.Sessions), g.Sum(r => (long)r.Seconds),
+            .Select(g => new StatsByKey(g.Key, g.Sum(r => r.Sessions), g.Sum(r => r.Seconds),
                 g.Sum(r => r.Movements)))
             .OrderByDescending(r => r.Seconds)
             .Take(limit)
@@ -111,10 +135,13 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
             .Select(s => new { s.StartUtc, s.DurationSeconds, s.MovementCount })
             .ToListAsync(ct);
 
+        var riassunti = await RiassuntiAsync(userId, from, to, ct);
+
         return righe
-            .GroupBy(r => r.StartUtc.ToString("yyyy-MM"))
-            .Select(g => new StatsByKey(
-                g.Key, g.Count(), g.Sum(r => (long)r.DurationSeconds), g.Sum(r => r.MovementCount)))
+            .Select(r => new StatsByKey(r.StartUtc.ToString("yyyy-MM"), 1, r.DurationSeconds, r.MovementCount))
+            .Concat(riassunti.Select(r => new StatsByKey(r.Month.ToString("yyyy-MM"), r.Sessions, r.Seconds, r.TrafficMoved)))
+            .GroupBy(r => r.Key)
+            .Select(g => new StatsByKey(g.Key, g.Sum(r => r.Sessions), g.Sum(r => r.Seconds), g.Sum(r => r.Movements)))
             .OrderBy(r => r.Key, StringComparer.Ordinal)
             .ToList();
     }
@@ -179,14 +206,21 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         var righe = await Contate(null, from, to)
             .Select(s => new { s.UserId, s.ShiftKey, s.DurationSeconds, s.MovementCount })
             .ToListAsync(ct);
+        var riassunti = (await RiassuntiAsync(null, from, to, ct)).ToLookup(r => r.UserId);
 
-        return righe
-            .GroupBy(r => r.UserId)
-            .Select(g => new ControllerRanking(
-                g.Key,
-                g.Select(r => r.ShiftKey).Distinct().Count(),
-                g.Sum(r => (long)r.DurationSeconds),
-                g.Sum(r => r.MovementCount)))
+        // T-030: i mesi riassunti sommano ore e movimenti; i turni no — il riassunto non ha la chiave del turno.
+        var perVid = righe.ToLookup(r => r.UserId);
+        return perVid.Select(g => g.Key).Concat(riassunti.Select(g => g.Key)).Distinct()
+            .Select(vid =>
+            {
+                var mie = perVid[vid];
+                var vecchie = riassunti[vid];
+                return new ControllerRanking(
+                    vid,
+                    mie.Select(r => r.ShiftKey).Distinct().Count(),
+                    mie.Sum(r => (long)r.DurationSeconds) + vecchie.Sum(r => r.Seconds),
+                    mie.Sum(r => r.MovementCount) + vecchie.Sum(r => r.TrafficMoved));
+            })
             .OrderByDescending(r => r.Seconds)
             .Take(Math.Max(1, limit))
             .ToList();
@@ -408,12 +442,14 @@ public sealed class EfAtcStatsQueries : IAtcStatsQueries
         // anche gli altri 46. Sono le sessioni di un anno di una divisione — poche migliaia di righe, e la
         // proiezione porta due colonne.
         var righe = await Contate(null, from, to)
-            .Select(s => new { s.UserId, s.DurationSeconds })
+            .Select(s => new { s.UserId, Secondi = (long)s.DurationSeconds })
             .ToListAsync(ct);
+        var riassunti = await RiassuntiAsync(null, from, to, ct);   // T-030
 
         var perVid = righe
+            .Concat(riassunti.Select(r => new { r.UserId, Secondi = r.Seconds }))
             .GroupBy(r => r.UserId)
-            .Select(g => new { Vid = g.Key, Secondi = g.Sum(r => (long)r.DurationSeconds) })
+            .Select(g => new { Vid = g.Key, Secondi = g.Sum(r => r.Secondi) })
             .OrderByDescending(r => r.Secondi)
             .ToList();
 

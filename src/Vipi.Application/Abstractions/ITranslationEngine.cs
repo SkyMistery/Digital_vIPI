@@ -46,6 +46,16 @@ public sealed record TranslationBatch(
     string? Detail = null,
     string? Engine = null)
 {
+    /// <summary>
+    /// 🔴 T-045 (revisione del 13 settembre 2026): i caratteri dei lotti che il motore ha spedito <b>con successo</b>
+    /// prima che un lotto successivo fallisse. Sono pagati anche se l'esito è Ko: senza questo conto la spesa
+    /// non si registrava e il tetto per motore veniva aggirato a ogni giro.
+    /// </summary>
+    public long BilledChars { get; init; }
+
+    /// <summary>Quanti testi stavano in quei lotti.</summary>
+    public int BilledTexts { get; init; }
+
     public static TranslationBatch Ok(IReadOnlyList<string> testi, string? engine = null) =>
         new(testi, TranslationOutcome.Ok, null, engine);
 

@@ -27,7 +27,7 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         // delle sessioni che NON passa da DiDivisione(), ed è apposta.
         var righe = await _db.AtcSessions.AsNoTracking()
             .Where(s => s.EndUtc == null || s.EndUtc >= soglia)
-            .Select(s => new { s.SessionId, s.UserId, s.Callsign, s.StartUtc, s.EndUtc, s.ShiftKey })
+            .Select(s => new { s.SessionId, s.UserId, s.Callsign, s.StartUtc, s.EndUtc, s.ShiftKey, s.DurationSeconds })
             .ToListAsync(ct);
 
         return righe
@@ -35,7 +35,8 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
                 s.SessionId, s.UserId, s.Callsign,
                 new DateTimeOffset(DateTime.SpecifyKind(s.StartUtc, DateTimeKind.Utc)),
                 s.EndUtc is { } fine ? new DateTimeOffset(DateTime.SpecifyKind(fine, DateTimeKind.Utc)) : null,
-                s.ShiftKey))
+                s.ShiftKey,
+                s.DurationSeconds))
             .ToList();
     }
 

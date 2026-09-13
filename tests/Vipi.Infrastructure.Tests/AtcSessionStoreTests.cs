@@ -61,19 +61,20 @@ public class AtcSessionStoreTests : IAsyncLifetime
     public async Task Quando_sparisce_dalla_frequenza_la_sessione_si_chiude()
     {
         await Giro(T0, Conn(100, T0, 60));
-        var fine = T0.AddHours(2);
-        await Giro(fine);                            // nessuno online
+        await Giro(T0.AddHours(2));                  // nessuno online
         _db.ChangeTracker.Clear();
 
+        // 🔴 T-032 (13-set-2026): si chiude all'ULTIMO AVVISTAMENTO (inizio + 60 s), non all'istante del giro che
+        // non la vede più — due ore di fermo non sono due ore di frequenza.
         var s = await _db.AtcSessions.SingleAsync();
-        Assert.Equal(fine.UtcDateTime, s.EndUtc);
+        Assert.Equal(T0.AddSeconds(60).UtcDateTime, s.EndUtc);
     }
 
     [Fact]
     public async Task Chi_si_riconnette_dopo_una_caduta_finisce_nello_stesso_turno()
     {
-        await Giro(T0, Conn(100, T0, 60));
-        await Giro(T0.AddHours(1));                                   // cade: sessione chiusa
+        await Giro(T0, Conn(100, T0, 3600));
+        await Giro(T0.AddHours(1).AddMinutes(1));                     // cade: chiusa all'ultimo avvistamento (T0+1h)
         await Giro(T0.AddHours(1).AddMinutes(3),
                    Conn(101, T0.AddHours(1).AddMinutes(3), 60));      // rientra
         _db.ChangeTracker.Clear();

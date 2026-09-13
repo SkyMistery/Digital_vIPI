@@ -156,6 +156,39 @@ public class TranslationFillUseCaseTests
 
     // ---- Il dedup che si vede -------------------------------------------------------------------------
 
+    /// <summary>
+    /// 🔴 T-045 (revisione del 13 settembre 2026): il motore spedisce il primo lotto, il secondo torna 400. I
+    /// caratteri del primo sono pagati: la spesa si registra (scartata, perché le traduzioni non tornano intere),
+    /// o il tetto del motore non la vede e il giro dopo la ripaga.
+    /// </summary>
+    [Fact]
+    public async Task Un_lotto_fallito_dopo_uno_riuscito_registra_i_caratteri_gia_pagati()
+    {
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreAMeta();
+
+        var rapporto = await new TranslationFillUseCase(new CorpusFinto("Contatta la torre.", "Riporta sottovento."),
+                memoria, new ITranslationEngine[] { motore }, new TextProtector(null, null), new TranslationOptions())
+            .EseguiAsync("it", "en");
+
+        Assert.Equal(TranslationOutcome.PermanentFailure, rapporto.Esito);
+        var spesa = Assert.NotNull(memoria.Spesa);
+        Assert.Equal("azure", spesa.Motore);
+        Assert.Equal(123, spesa.Caratteri);
+        Assert.Equal(1, spesa.Segmenti);
+        Assert.Equal(1, spesa.Scartati);
+        Assert.Equal(123, spesa.CaratteriScartati);
+    }
+
+    private sealed class MotoreAMeta : ITranslationEngine
+    {
+        public string Name => "azure";
+        public bool IsConfigured => true;
+        public Task<TranslationBatch> TranslateAsync(IReadOnlyList<string> testi, string s, string t, CancellationToken ct = default) =>
+            Task.FromResult(TranslationBatch.Ko(TranslationOutcome.PermanentFailure, "HTTP 400", Name)
+                with { BilledChars = 123, BilledTexts = 1 });
+    }
+
     [Fact]
     public async Task Cio_che_e_gia_in_memoria_non_si_rimanda_al_motore()
     {

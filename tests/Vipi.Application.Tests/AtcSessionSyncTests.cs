@@ -61,6 +61,31 @@ public class AtcSessionSyncTests
         Assert.Equal(ora, c.EndUtc);
     }
 
+    /// <summary>
+    /// 🔴 T-032 (revisione del 13 settembre 2026): il processo muore alle 18:30 e riparte alle 02:00. La torre era
+    /// stata vista l'ultima volta con 30 minuti di connessione: la sessione si chiude alle 18:30, non alle 02:00 —
+    /// o il riempimento dei movimenti le attribuisce il traffico di tutta la notte.
+    /// </summary>
+    [Fact]
+    public void Dopo_un_fermo_si_chiude_all_ultimo_avvistamento()
+    {
+        var known = new[] { new KnownAtcSession(101, 704798, "LIRF_TWR", T0, null, 101, DurationSeconds: 1800) };
+
+        var p = AtcSessionSync.Plan(Array.Empty<SourceAtcConnection>(), known, T0.AddHours(8));
+
+        Assert.Equal(T0.AddMinutes(30), Assert.Single(p.Closures).EndUtc);
+    }
+
+    [Fact]
+    public void L_ultimo_avvistamento_non_va_mai_oltre_adesso()
+    {
+        var known = new[] { new KnownAtcSession(101, 704798, "LIRF_TWR", T0, null, 101, DurationSeconds: 7200) };
+
+        var p = AtcSessionSync.Plan(Array.Empty<SourceAtcConnection>(), known, T0.AddMinutes(10));
+
+        Assert.Equal(T0.AddMinutes(10), Assert.Single(p.Closures).EndUtc);
+    }
+
     [Fact]
     public void Una_sessione_gia_chiusa_non_si_richiude()
     {

@@ -119,6 +119,60 @@ public sealed class BumpCatalogoStazioniTests : IDisposable
     }
 
     /// <summary>
+    /// 🔴 T-036 (revisione del 13 settembre 2026): la spinta arrivava solo PRIMA del salvataggio. Dentro una
+    /// transazione un lettore concorrente vede la versione nuova ma legge ancora i dati vecchi (non confermati),
+    /// e rimette in cache «versione N+1, dati di prima»: l'aeroporto eliminato resta in navigazione fino al
+    /// riavvio. Serve una seconda spinta a transazione CONFERMATA.
+    /// </summary>
+    [Fact]
+    public async Task Dentro_una_transazione_si_spinge_anche_alla_conferma()
+    {
+        var accId = await AccDiProva("LIBR");
+
+        using var db = Contesto();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        db.Airports.Add(new Airport { AccId = accId, Icao = "LIBR", Name = "Brindisi" });
+        await db.SaveChangesAsync();
+
+        var dopoIlSalvataggio = _versione.Current;   // qui un lettore può aver ricaricato i dati NON confermati
+        await tx.CommitAsync();
+
+        Assert.NotEqual(dopoIlSalvataggio, _versione.Current);
+    }
+
+    /// <summary>🔴 T-036: e fuori da una transazione si spinge anche DOPO il salvataggio, a scrittura avvenuta.</summary>
+    [Fact]
+    public async Task Senza_transazione_si_spinge_anche_dopo_il_salvataggio()
+    {
+        var accId = await AccDiProva("LIBP");
+        var intercettore = new SpiaDellaVersione(_versione);
+
+        using var db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>()
+            .UseSqlite($"Data Source={_dbPath}")
+            .AddInterceptors(new BumpCatalogoStazioniInterceptor(_versione), intercettore)
+            .Options);
+        db.Airports.Add(new Airport { AccId = accId, Icao = "LIBP", Name = "Pescara" });
+        await db.SaveChangesAsync();
+
+        // La spia gira per seconda: vede la versione dopo la PRIMA spinta, prima che il salvataggio avvenga.
+        Assert.NotEqual(intercettore.PrimaDiScrivere, _versione.Current);
+    }
+
+    private sealed class SpiaDellaVersione(StationCatalogVersion versione)
+        : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public int PrimaDiScrivere { get; private set; }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken ct = default)
+        {
+            PrimaDiScrivere = versione.Current;
+            return ValueTask.FromResult(result);
+        }
+    }
+
+    /// <summary>
     /// E chi non tocca quelle due tabelle <b>non</b> spinge. Una spinta di troppo costa solo una rilettura,
     /// ma se spingesse ogni salvataggio la copia non varrebbe più niente: si rileggerebbe a ogni scrittura
     /// del sito, che è la situazione da cui si veniva.

@@ -425,7 +425,7 @@ data · C · `src/Vipi.Infrastructure/Persistence/EfCallsignRenameService.cs:215
   l'import dei settori fallisce a ogni giro.
 - **Correzione.** Aggiornare l'alias esistente, oppure rifiutare la singola rinomina; test A→B→A→B.
 
-**T-030 — Il riassunto mensile si scrive e non si legge mai: dopo la potatura a 366 giorni ore e classifica perdono i mesi vecchi.**
+**✅ T-030 (L9, in main: Totali, posizioni, mesi, classifica e rango sommano il riassunto dei mesi INTERI nella finestra; turni e soglia-lampo non ricostruibili, dichiarato) — Il riassunto mensile si scrive e non si legge mai: dopo la potatura a 366 giorni ore e classifica perdono i mesi vecchi.**
 services + data · C · `src/Vipi.Infrastructure/Persistence/EfAtcStatsQueries.cs:31`.
 - **Codice.** `Contate()` legge solo `AtcSessions`; `AtcMonthRollups` si legge solo in `ArchiveStartAsync`
   (riga 437), che intanto dichiara «dati da settembre 2025».
@@ -433,12 +433,12 @@ services + data · C · `src/Vipi.Infrastructure/Persistence/EfAtcStatsQueries.c
   365 perdono ore ogni notte.
 - **Correzione.** Sommare il riassunto per i mesi potati, oppure limitare i periodi offerti.
 
-**T-031 — Il ripasso dello storico ATC copre sempre 2 giorni fissi: dopo un fermo più lungo il buco resta.**
+**✅ T-031 (L9, in main: `InizioFinestra` = min(ripasso, ultimo riuscito − 1 g), tetto BackfillDays) — Il ripasso dello storico ATC copre sempre 2 giorni fissi: dopo un fermo più lungo il buco resta.**
 services · C · `src/Vipi.Infrastructure/Ivao/AtcHistoryImportHostedService.cs:55`.
 - **Codice.** `GetLastSuccessAsync` si usa solo come booleano.
 - **Correzione.** `da = min(adesso − RefreshDays, lastSuccess − margine)`, con un tetto a `BackfillDays`.
 
-**T-032 — La sessione si chiude all'istante del riavvio, e il riempimento retroattivo attribuisce movimenti a ore in cui il controllore non c'era.**
+**✅ T-032 (L9, in main: chiusura a `StartUtc + DurationSeconds` dell'ultimo giro, mai oltre adesso; due test del negozio aggiornati alla regola nuova) — La sessione si chiude all'istante del riavvio, e il riempimento retroattivo attribuisce movimenti a ore in cui il controllore non c'era.**
 services · **P** · `src/Vipi.Application/Stats/AtcSessionSync.cs:91`.
 - **Scenario.** Il processo muore alle 23:00 e riparte alle 07:00: `EndUtc = 07:00`. Se il backfill passa
   prima che lo storico corregga `EndUtc`, alla torre vanno i movimenti di tutta la notte, e `TrafficFilledUtc`
@@ -458,14 +458,14 @@ services · **P** · `src/Vipi.Infrastructure/Ivao/AtcPollingHostedService.cs:13
 - **Precisazione.** LivePage mostra già l'età del feed; il pallino e la presidenza no.
 - **Correzione.** Dopo N giri persi, dato marcato «non disponibile».
 
-**T-035 — Il salvataggio finale del traffico in `StopAsync` gira accanto al giro del poller ancora vivo.**
+**✅ T-035 (L9, in main: prima `base.StopAsync`, poi il flush) — Il salvataggio finale del traffico in `StopAsync` gira accanto al giro del poller ancora vivo.**
 concurrency · C · `src/Vipi.Infrastructure/Ivao/AtcPollingHostedService.cs:167`.
 - **Codice.** `FlushAsync` parte prima di `base.StopAsync`, quindi prima che il loop venga annullato.
   `TrafficLedger` (Dictionary e List senza lock) può sollevare «Collection was modified», oppure due
   `SaveAsync` inseriscono la stessa chiave composta: nei due casi il flush finale si perde.
 - **Correzione.** Prima `base.StopAsync`, poi il flush.
 
-**T-036 — La spinta del catalogo stazioni avviene PRIMA del commit: un lettore concorrente rimette in cache i dati vecchi con la versione nuova.**
+**✅ T-036 (L9, in main: seconda spinta a `SavedChanges` e, dentro una transazione, a `TransactionCommitted`) — La spinta del catalogo stazioni avviene PRIMA del commit: un lettore concorrente rimette in cache i dati vecchi con la versione nuova.**
 concurrency · C · `src/Vipi.Infrastructure/Persistence/BumpCatalogoStazioniInterceptor.cs:47`.
 - **Scenario.** Un aeroporto eliminato dentro `ExecuteInTransactionAsync`. Una richiesta concorrente legge
   prima del commit e salva `Copia(N+1, dati vecchi)`: l'aeroporto resta in navigazione, testate e
@@ -526,7 +526,7 @@ ui-components · **P** · `src/Vipi.Ui/wwwroot/vipi-live.js:21`.
   `LivePage.razor:514`.
 - **Correzione.** Non chiamare `unsubscribe` con id null; lato JS ignorare il null.
 
-**T-045 — Traduzione: se un lotto successivo al primo fallisce, i caratteri già fatturati non si registrano e il tetto di spesa è aggirato.**
+**✅ T-045 (L9, in main: `TranslationBatch.BilledChars/BilledTexts` dai due motori, spesa scartata registrata dal giro) — Traduzione: se un lotto successivo al primo fallisce, i caratteri già fatturati non si registrano e il tetto di spesa è aggirato.**
 content-b · C · `src/Vipi.Application/Translation/TranslationFillUseCase.cs:202`.
 - **Codice.** `AzureTranslationEngine.cs:85-91` e `DeepLTranslationEngine.cs:77-83` restituiscono `Ko`
   perdendo il conto dei lotti riusciti; `riuscito == null` esce prima di `RegistraSpesaAsync`. Un 400
@@ -585,13 +585,13 @@ data · C · `src/Vipi.Infrastructure/Persistence/EfAgreementRepository.cs:881`.
 - **Correzione.** Validare le lunghezze nel servizio con costanti condivise col modello e aggiungere
   maxlength. In alternativa allargare le colonne con una **migrazione additiva**.
 
-**T-054 — Caricamento spazi aerei non atomico e con campi dal file non tagliati.**
+**✅ T-054 (L9, in main: `SaveAsync` e `SetCurrentAsync` in `IUnitOfWork`; NaturalKey/Name/Category/AirspaceClass tagliati alla colonna) — Caricamento spazi aerei non atomico e con campi dal file non tagliati.**
 data · C · `src/Vipi.Infrastructure/Persistence/EfAirspaceCatalog.cs:93` (e `SetCurrentAsync:178-181`).
 - **Scenario.** `ExecuteUpdate(IsCurrent=false)` viene scritto subito; se poi il `SaveChanges` fallisce (un
   Name oltre 200 su MariaDB strict) nessun caricamento resta in vigore e il catalogo appare vuoto.
 - **Correzione.** Transazione con `IUnitOfWork` e `Taglia()` anche su Name, Category e NaturalKey.
 
-**T-055 — Archivio ATC paginato con OFFSET su un ordinamento non univoco.**
+**🟡 T-055 (L9, in main solo lo spareggio `ThenByDescending(SessionId)`; la paginazione a cursore cambia il contratto dell'API usata dal validatore dei tour e resta aperta) — Archivio ATC paginato con OFFSET su un ordinamento non univoco.**
 data · **P** · `src/Vipi.Infrastructure/Persistence/EfAtcArchiveQueries.cs:63`.
 - **Scenario.** Senza `ThenBy(SessionId)` e con inserimenti in testa fra una pagina e l'altra, un lettore
   da archiviatore vede righe ripetute o saltate.

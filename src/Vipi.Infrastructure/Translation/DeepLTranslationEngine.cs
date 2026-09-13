@@ -78,7 +78,9 @@ public sealed partial class DeepLTranslationEngine : ITranslationEngine
         {
             var lotto = testi.Skip(i).Take(Math.Max(1, _opt.DeepL.MaxTextsPerCall)).ToList();
             var esito = await UnLottoAsync(lotto, sourceLang, targetLang, ct).ConfigureAwait(false);
-            if (esito.Outcome != TranslationOutcome.Ok) return esito;   // un lotto rotto ferma tutto
+            // Un lotto rotto ferma tutto — ma i lotti già riusciti sono pagati, e il conto esce (T-045).
+            if (esito.Outcome != TranslationOutcome.Ok)
+                return esito with { BilledChars = testi.Take(i).Sum(t => (long)t.Length), BilledTexts = i };
             risultato.AddRange(esito.Texts!);
         }
 

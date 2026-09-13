@@ -66,6 +66,33 @@ public class AzureTranslationEngineTests
     private static string Risposta(params string[] testi) =>
         "[" + string.Join(",", testi.Select(t => "{\"translations\":[{\"text\":\"" + t + "\",\"to\":\"en\"}]}")) + "]";
 
+    /// <summary>Risponde OK alla prima chiamata e 400 alla seconda.</summary>
+    private sealed class PrimaSiPoiNo : HttpMessageHandler
+    {
+        private int _chiamate;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(++_chiamate == 1
+                ? new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Risposta("One"), Encoding.UTF8, "application/json") }
+                : new HttpResponseMessage(HttpStatusCode.BadRequest) { Content = new StringContent("{}") });
+    }
+
+    /// <summary>🔴 T-045: il primo lotto è partito e pagato, il secondo è fallito — il conto esce lo stesso.</summary>
+    [Fact]
+    public async Task Un_lotto_fallito_porta_fuori_i_caratteri_dei_lotti_gia_riusciti()
+    {
+        var motore = new AzureTranslationEngine(new StubFactory(new PrimaSiPoiNo()), Options.Create(new TranslationOptions
+        {
+            Enabled = true,
+            Azure = new AzureOptions { ApiKey = "chiave-finta", Region = "westeurope", MaxTextsPerCall = 1 },
+        }));
+
+        var esito = await motore.TranslateAsync(new[] { "Uno", "Duecento" }, "it", "en");
+
+        Assert.Equal(TranslationOutcome.PermanentFailure, esito.Outcome);
+        Assert.Equal(3, esito.BilledChars);
+        Assert.Equal(1, esito.BilledTexts);
+    }
+
     // ---- Le due trappole -----------------------------------------------------------------------------
 
     [Fact]

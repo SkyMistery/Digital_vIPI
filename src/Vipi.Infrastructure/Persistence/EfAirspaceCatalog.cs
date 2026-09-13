@@ -66,12 +66,14 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
 
             caricamento.Volumes.Add(new AirspaceVolume
             {
-                NaturalKey = v.NaturalKey,
+                // 🔴 T-054: anche questi vengono dal FILE, e si tagliano alla colonna come l'intestazione — su
+                // MariaDB strict un nome più lungo fa fallire l'intero caricamento.
+                NaturalKey = AllaColonna(v.NaturalKey, 300),
                 Ordinal = v.Ordinal,
                 Family = v.Family,
-                Name = v.Name,
-                Category = v.Category,
-                AirspaceClass = v.AirspaceClass,
+                Name = AllaColonna(v.Name, 200),
+                Category = AllaColonna(v.Category, 64),
+                AirspaceClass = Taglia(v.AirspaceClass, 4),
                 BaseDatum = v.Base.Datum,
                 BaseFeet = v.Base.Feet,
                 BaseRaw = Taglia(v.Base.Raw, 32)!,
@@ -90,11 +92,17 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
 
         // Il nuovo entra in vigore e spegne il precedente: «in vigore» è uno solo, ed è la domanda a cui
         // tutte le altre pagine rispondono senza chiedere quale.
-        await _db.AirspaceImports.Where(i => i.IsCurrent).ExecuteUpdateAsync(
-            s => s.SetProperty(i => i.IsCurrent, false), ct);
+        // 🔴 T-054 (revisione del 13 settembre 2026): spegnere il precedente e salvare il nuovo stanno nella STESSA
+        // transazione. L'`ExecuteUpdate` si scrive subito: se poi il salvataggio falliva, nessun caricamento
+        // restava in vigore e il catalogo sembrava vuoto.
+        await new EfUnitOfWork(_db).ExecuteInTransactionAsync(async token =>
+        {
+            await _db.AirspaceImports.Where(i => i.IsCurrent).ExecuteUpdateAsync(
+                s => s.SetProperty(i => i.IsCurrent, false), token);
 
-        _db.AirspaceImports.Add(caricamento);
-        await _db.SaveChangesAsync(ct);
+            _db.AirspaceImports.Add(caricamento);
+            await _db.SaveChangesAsync(token);
+        }, ct);
         return Riga(caricamento);
     }
 
@@ -175,10 +183,14 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
     {
         if (!await _db.AirspaceImports.AnyAsync(i => i.Id == importId, ct)) return;
 
-        await _db.AirspaceImports.Where(i => i.IsCurrent && i.Id != importId)
-            .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsCurrent, false), ct);
-        await _db.AirspaceImports.Where(i => i.Id == importId)
-            .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsCurrent, true), ct);
+        // T-054: i due passi insieme, o in mezzo resta un catalogo senza niente in vigore.
+        await new EfUnitOfWork(_db).ExecuteInTransactionAsync(async token =>
+        {
+            await _db.AirspaceImports.Where(i => i.IsCurrent && i.Id != importId)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsCurrent, false), token);
+            await _db.AirspaceImports.Where(i => i.Id == importId)
+                .ExecuteUpdateAsync(s => s.SetProperty(i => i.IsCurrent, true), token);
+        }, ct);
     }
 
     public async Task DeleteAsync(int importId, CancellationToken ct = default)
@@ -207,6 +219,11 @@ public sealed class EfAirspaceCatalog : IAirspaceCatalog
     private async Task<int?> CurrentIdAsync(CancellationToken ct) =>
         await _db.AirspaceImports.AsNoTracking().Where(i => i.IsCurrent).Select(i => (int?)i.Id)
             .FirstOrDefaultAsync(ct);
+
+    /// <summary>Un campo obbligatorio tagliato alla colonna, <b>senza</b> ritoccarlo altrimenti: la chiave naturale
+    /// deve restare quella che il lettore ha composto.</summary>
+    private static string AllaColonna(string? s, int max) =>
+        s is null ? "" : s.Length <= max ? s : s[..max];
 
     private static string? Taglia(string? s, int max) =>
         string.IsNullOrWhiteSpace(s) ? null : s.Trim().Length <= max ? s.Trim() : s.Trim()[..max];

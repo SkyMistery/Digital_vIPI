@@ -176,6 +176,58 @@ public class SessioniPotateTests : IAsyncLifetime
         Assert.Empty(await _db.AtcSessions.ToListAsync());
     }
 
+    /// <summary>
+    /// 🔴 T-030 (revisione del 13 settembre 2026): il riassunto si scriveva e non si leggeva mai. Dopo la
+    /// potatura il periodo «Tutto» perdeva le ore dei mesi vecchi, la classifica e le posizioni pure — ogni
+    /// notte un po' di più. Le letture ora sommano il riassunto dei mesi che cadono INTERI nella finestra.
+    /// </summary>
+    [Fact]
+    public async Task Le_ore_del_periodo_lungo_non_calano_quando_le_sessioni_vengono_potate()
+    {
+        await SessioneAsync(1, new DateTime(2025, 3, 10, 8, 0, 0, DateTimeKind.Utc), secondi: 3600, mosse: 12);
+        await SessioneAsync(2, Adesso.UtcDateTime.AddDays(-30), secondi: 1800, mosse: 5);
+
+        var query = new EfAtcStatsQueries(_db);
+        var da = Adesso.AddDays(-3650);
+
+        async Task<(Vipi.Application.Abstractions.StatsTotals T, long Classifica, long Posizione, long Mesi, int Rank)> Leggi()
+        {
+            var t = await query.TotalsAsync(null, da, Adesso);
+            var c = Assert.Single(await query.TopControllersAsync(da, Adesso)).Seconds;
+            var p = Assert.Single(await query.ByPositionAsync(null, da, Adesso)).Seconds;
+            var m = (await query.ByMonthAsync(null, da, Adesso)).Sum(x => x.Seconds);
+            var r = (await query.RankAsync(704798, da, Adesso)).Position;
+            return (t, c, p, m, r);
+        }
+
+        var prima = await Leggi();
+        await _store.RollupAndPruneSessionsAsync(Adesso.AddDays(-366), 100);
+        var dopo = await Leggi();
+
+        Assert.Equal(5400, prima.T.Seconds);
+        Assert.Equal(prima.T.Seconds, dopo.T.Seconds);
+        Assert.Equal(prima.T.Sessions, dopo.T.Sessions);
+        Assert.Equal(prima.T.Movements, dopo.T.Movements);
+        Assert.Equal(prima.Classifica, dopo.Classifica);
+        Assert.Equal(prima.Posizione, dopo.Posizione);
+        Assert.Equal(prima.Mesi, dopo.Mesi);
+        Assert.Equal(1, dopo.Rank);
+    }
+
+    /// <summary>🔴 T-030: un mese riassunto che cade solo in parte nella finestra NON entra — non si sa quanto
+    /// di quel mese stia dentro, e contare ore fuori dal periodo è peggio che non contarle.</summary>
+    [Fact]
+    public async Task Un_mese_riassunto_a_cavallo_dell_inizio_non_entra()
+    {
+        await SessioneAsync(1, new DateTime(2025, 3, 10, 8, 0, 0, DateTimeKind.Utc));
+        await _store.RollupAndPruneSessionsAsync(Adesso.AddDays(-366), 100);
+
+        var totali = await new EfAtcStatsQueries(_db).TotalsAsync(
+            null, new DateTimeOffset(2025, 3, 5, 0, 0, 0, TimeSpan.Zero), Adesso);
+
+        Assert.Equal(0, totali.Seconds);
+    }
+
     [Fact]
     public async Task L_inizio_dell_archivio_non_si_accorcia_quando_le_sessioni_vengono_potate()
     {

@@ -63,6 +63,54 @@ public class CatalogoSpaziAereiTests : IAsyncLifetime
             AirspaceKmlReader.LeggiKml(Kml),
             new DateTime(2026, 8, 29, 20, 0, 0, DateTimeKind.Utc));
 
+    private sealed class SalvataggioCheEsplode : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken ct = default) =>
+            throw new DbUpdateException("Data too long for column 'Name'");
+    }
+
+    /// <summary>
+    /// 🔴 T-054 (revisione del 13 settembre 2026): il caricamento spegneva il precedente con un `ExecuteUpdate`
+    /// scritto SUBITO, poi salvava il nuovo. Se il salvataggio falliva (un nome oltre 200 su MariaDB strict)
+    /// nessun caricamento restava in vigore e il catalogo sembrava vuoto a tutte le pagine.
+    /// </summary>
+    [Fact]
+    public async Task Un_caricamento_che_fallisce_lascia_in_vigore_il_precedente()
+    {
+        var primo = await CaricaAsync();
+
+        await using var altro = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>()
+            .UseSqlite(_conn).AddInterceptors(new SalvataggioCheEsplode()).Options);
+        await Assert.ThrowsAsync<DbUpdateException>(() => new EfAirspaceCatalog(altro).SaveAsync(
+            new NewAirspaceImport("secondo.kmz", System.Text.Encoding.UTF8.GetBytes(Kml), "2610", 42, "Mario Rossi"),
+            AirspaceKmlReader.LeggiKml(Kml), new DateTime(2026, 9, 13, 20, 0, 0, DateTimeKind.Utc)));
+
+        var inVigore = await _catalogo.GetCurrentAsync();
+        Assert.NotNull(inVigore);
+        Assert.Equal(primo.Id, inVigore.Id);
+    }
+
+    /// <summary>🔴 T-054: i campi che vengono dal file si tagliano alla colonna, come già l'intestazione.</summary>
+    [Fact]
+    public async Task I_campi_del_file_si_tagliano_alla_colonna()
+    {
+        var lungo = new string('N', 250);
+        var kml = Kml.Replace("PROVA CTR", lungo).Replace("Control Traffic Region", new string('C', 90));
+        await _catalogo.SaveAsync(
+            new NewAirspaceImport("lungo.kmz", System.Text.Encoding.UTF8.GetBytes(kml), "2609", 42, "Mario Rossi"),
+            AirspaceKmlReader.LeggiKml(kml), new DateTime(2026, 8, 29, 20, 0, 0, DateTimeKind.Utc));
+
+        var volumi = await _db.AirspaceVolumes.AsNoTracking().ToListAsync();
+        Assert.All(volumi, v =>
+        {
+            Assert.True(v.Name.Length <= 200, $"Name {v.Name.Length}");
+            Assert.True(v.NaturalKey.Length <= 300, $"NaturalKey {v.NaturalKey.Length}");
+            Assert.True((v.Category ?? "").Length <= 64, $"Category {v.Category?.Length}");
+        });
+    }
+
     [Fact]
     public async Task Il_Caricamento_Conta_Quel_Che_Ha_Letto()
     {

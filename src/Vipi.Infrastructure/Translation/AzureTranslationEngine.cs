@@ -86,7 +86,9 @@ public sealed class AzureTranslationEngine : ITranslationEngine
         {
             var lotto = testi.Skip(i).Take(perChiamata).ToList();
             var esito = await UnLottoAsync(lotto, sourceLang, targetLang, ct).ConfigureAwait(false);
-            if (esito.Outcome != TranslationOutcome.Ok) return esito;
+            // T-045: i lotti già riusciti sono pagati — il conto esce anche con l'esito Ko.
+            if (esito.Outcome != TranslationOutcome.Ok)
+                return esito with { BilledChars = testi.Take(i).Sum(t => (long)t.Length), BilledTexts = i };
             risultato.AddRange(esito.Texts!);
         }
 

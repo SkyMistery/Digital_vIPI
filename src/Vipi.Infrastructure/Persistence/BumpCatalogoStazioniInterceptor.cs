@@ -28,9 +28,15 @@ namespace Vipi.Infrastructure.Persistence;
 /// Fra i due errori si sceglie il primo, e lo si sceglie <b>apposta</b>: se il salvataggio poi fallisce,
 /// abbiamo pagato una query.</para>
 /// </summary>
-public sealed class BumpCatalogoStazioniInterceptor : SaveChangesInterceptor
+public sealed class BumpCatalogoStazioniInterceptor : SaveChangesInterceptor, IDbTransactionInterceptor
 {
     private readonly IStationCatalogVersion _versione;
+
+    /// <summary>
+    /// I contesti che hanno scritto quelle due tabelle e aspettano ancora una spinta «a cose fatte»: dopo il
+    /// salvataggio, o dopo la conferma se c'è una transazione aperta. Debole: un contesto smaltito sparisce da sé.
+    /// </summary>
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<DbContext, object> _inSospeso = new();
 
     public BumpCatalogoStazioniInterceptor(IStationCatalogVersion versione) => _versione = versione;
 
@@ -48,6 +54,48 @@ public sealed class BumpCatalogoStazioniInterceptor : SaveChangesInterceptor
         return ValueTask.FromResult(result);
     }
 
+    // 🔴 T-036 (revisione del 13 settembre 2026): la spinta PRIMA non basta. Fra la spinta e la scrittura — o, dentro
+    // una transazione, fino alla conferma — un lettore concorrente vede la versione nuova, legge i dati vecchi e li
+    // rimette in cache come nuovi: un aeroporto eliminato restava in navigazione fino al riavvio. Si spinge di nuovo
+    // a scrittura avvenuta e, se c'è una transazione, a transazione confermata.
+    public override int SavedChanges(SaveChangesCompletedEventData eventData, int result)
+    {
+        DopoIlSalvataggio(eventData.Context);
+        return result;
+    }
+
+    public override ValueTask<int> SavedChangesAsync(
+        SaveChangesCompletedEventData eventData, int result, CancellationToken cancellationToken = default)
+    {
+        DopoIlSalvataggio(eventData.Context);
+        return ValueTask.FromResult(result);
+    }
+
+    public void TransactionCommitted(System.Data.Common.DbTransaction transaction, TransactionEndEventData eventData) =>
+        AllaConferma(eventData.Context);
+
+    public Task TransactionCommittedAsync(System.Data.Common.DbTransaction transaction, TransactionEndEventData eventData,
+        CancellationToken cancellationToken = default)
+    {
+        AllaConferma(eventData.Context);
+        return Task.CompletedTask;
+    }
+
+    private void DopoIlSalvataggio(DbContext? contesto)
+    {
+        if (contesto is null || !_inSospeso.TryGetValue(contesto, out _)) return;
+        _versione.Bump();
+        // Dentro una transazione la scrittura non è ancora vista dagli altri: si aspetta anche la conferma.
+        if (contesto.Database.CurrentTransaction is null) _inSospeso.Remove(contesto);
+    }
+
+    private void AllaConferma(DbContext? contesto)
+    {
+        if (contesto is null || !_inSospeso.TryGetValue(contesto, out _)) return;
+        _inSospeso.Remove(contesto);
+        _versione.Bump();
+    }
+
     /// <summary>
     /// ⚠️ <c>Modified</c> conta quanto <c>Added</c> e <c>Deleted</c>: nella mappa degli aeroporti stanno
     /// anche quota, variazione magnetica, IATA, coordinate e i due segni militari, e quelli cambiano con un
@@ -63,6 +111,7 @@ public sealed class BumpCatalogoStazioniInterceptor : SaveChangesInterceptor
                 if (voce.State is not (EntityState.Added or EntityState.Modified or EntityState.Deleted)) continue;
                 if (voce.Entity is not (Acc or Airport)) continue;
                 _versione.Bump();
+                _inSospeso.AddOrUpdate(contesto, true);
                 return;   // basta una spinta: il numero dice «rileggi», non «quante volte»
             }
         }

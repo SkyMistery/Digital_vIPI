@@ -160,6 +160,12 @@ internal sealed class AtcPollingHostedService : BackgroundService
     /// </summary>
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
+        // 🔴 T-035 (revisione del 13 settembre 2026): PRIMA si ferma il giro, poi si salva. Il registro del
+        // traffico non ha lock: salvando col giro ancora vivo i due lo scrivevano insieme («Collection was
+        // modified», o la stessa chiave inserita due volte) e il salvataggio finale si perdeva.
+        try { await base.StopAsync(cancellationToken); }
+        catch (OperationCanceledException) { /* il giro non ha fatto in tempo a uscire: si salva lo stesso */ }
+
         try
         {
             using var tempo = new CancellationTokenSource(TempoPerSalvare);
@@ -171,8 +177,6 @@ internal sealed class AtcPollingHostedService : BackgroundService
         {
             _log.LogWarning(ex, "Statistiche ATC: salvataggio finale del traffico fallito.");
         }
-
-        await base.StopAsync(cancellationToken);
     }
 
     /// <summary>

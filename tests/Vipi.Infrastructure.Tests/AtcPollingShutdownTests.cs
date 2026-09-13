@@ -109,10 +109,12 @@ public class AtcPollingShutdownTests
         return recorder;
     }
 
-    private static AtcPollingHostedService Poller(AtcTrafficRecorder recorder, IAtcTrafficStore archivio)
+    private static AtcPollingHostedService Poller(AtcTrafficRecorder recorder, IAtcTrafficStore archivio,
+        IAtcActivitySource? sorgente = null)
     {
         var servizi = new ServiceCollection();
         servizi.AddSingleton(archivio);
+        if (sorgente is not null) servizi.AddSingleton(sorgente);
         var provider = servizi.BuildServiceProvider();
 
         return new AtcPollingHostedService(
@@ -140,6 +142,80 @@ public class AtcPollingShutdownTests
 
         Assert.Equal(salvataggiPrima + 1, archivio.Salvataggi);
         Assert.False(archivio.GettoneAnnullato, "il salvataggio finale ha ricevuto il gettone di «fermati»");
+    }
+
+    /// <summary>Sorgente che resta appesa finché il giro non viene annullato, e ci mette un attimo a uscirne.</summary>
+    private sealed class SorgenteLenta : IAtcActivitySource
+    {
+        public TaskCompletionSource Entrato { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public volatile bool Uscito;
+
+        public async Task<NetworkSnapshot> GetSnapshotAsync(CancellationToken ct = default)
+        {
+            Entrato.TrySetResult();
+            try { await Task.Delay(Timeout.Infinite, ct); }
+            finally
+            {
+                await Task.Delay(150, CancellationToken.None);
+                Uscito = true;
+            }
+            throw new InvalidOperationException("irraggiungibile");
+        }
+    }
+
+    /// <summary>Archivio che ricorda se il giro del poller era già finito quando il salvataggio finale è partito.</summary>
+    private sealed class ArchivioCheGuardaIlGiro(SorgenteLenta sorgente) : IAtcTrafficStore
+    {
+        public bool? GiroFinitoAlSalvataggio { get; private set; }
+        public bool Armato { get; set; }
+
+        public Task<int> SaveAsync(TrafficFlush flush, CancellationToken ct = default)
+        {
+            if (Armato) GiroFinitoAlSalvataggio = sorgente.Uscito;
+            return Task.FromResult(1);
+        }
+
+        public Task<IReadOnlyDictionary<long, (IReadOnlyList<TrafficLegRow> Legs, int TrafficMinutes)>> GetLegsAsync(
+            IReadOnlyCollection<long> sessionIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<long, (IReadOnlyList<TrafficLegRow>, int)>>(
+                new Dictionary<long, (IReadOnlyList<TrafficLegRow>, int)>());
+
+        public Task<(IReadOnlyList<AirportSessionWindow> ToFill, IReadOnlyList<AirportSessionWindow> Concurrent)>
+            GetAirportSessionsToFillAsync(DateTimeOffset notBefore, int max, CancellationToken ct = default) =>
+            Task.FromResult<(IReadOnlyList<AirportSessionWindow>, IReadOnlyList<AirportSessionWindow>)>(
+                (Array.Empty<AirportSessionWindow>(), Array.Empty<AirportSessionWindow>()));
+
+        public Task<int> FillAirportMovementsAsync(long sessionId, IReadOnlyList<SourceAirportMovement> movements,
+            DateTimeOffset filledAtUtc, CancellationToken ct = default) => Task.FromResult(0);
+
+        public Task<int> PruneTrafficAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
+
+        public Task<int> RollupAndPruneSessionsAsync(DateTimeOffset notAfter, int batch, CancellationToken ct = default) =>
+            Task.FromResult(0);
+    }
+
+    /// <summary>
+    /// 🔴 T-035 (revisione del 13 settembre 2026): il salvataggio finale partiva PRIMA di fermare il giro del
+    /// poller. Il registro del traffico (Dictionary e List senza lock) poteva essere scritto dai due insieme:
+    /// «Collection was modified», o la stessa chiave inserita due volte — e il flush finale perso. Prima si ferma
+    /// il giro, poi si salva.
+    /// </summary>
+    [Fact]
+    public async Task Lo_spegnimento_salva_DOPO_che_il_giro_del_poller_e_finito()
+    {
+        var sorgente = new SorgenteLenta();
+        var archivio = new ArchivioCheGuardaIlGiro(sorgente);
+        var recorder = await RecorderConTrafficoInMemoria(archivio);
+        archivio.Armato = true;
+
+        var poller = Poller(recorder, archivio, sorgente);
+        await poller.StartAsync(CancellationToken.None);
+        await sorgente.Entrato.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        await poller.StopAsync(CancellationToken.None);
+
+        Assert.True(archivio.GiroFinitoAlSalvataggio, "il salvataggio finale è partito col giro ancora vivo");
     }
 
     /// <summary>Un guasto vero nel salvataggio non deve impedire allo spegnimento di andare avanti.</summary>

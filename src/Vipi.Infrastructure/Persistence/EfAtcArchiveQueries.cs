@@ -61,6 +61,10 @@ public sealed class EfAtcArchiveQueries : IAtcArchiveQueries
         // sposterebbe l'ora una seconda volta.
         var righe = await q
             .OrderByDescending(s => s.StartUtc)
+            // 🔴 T-055 (revisione del 13 settembre 2026): `StartUtc` non è univoco — le sessioni viste nello stesso
+            // giro del poller hanno lo stesso istante — e senza spareggio pagine diverse possono ripetere o saltare
+            // righe. ⚠️ Resta un OFFSET: con inserimenti in testa fra una pagina e l'altra le righe scorrono.
+            .ThenByDescending(s => s.SessionId)
             .Skip(Math.Max(0, filter.Offset))
             .Take(Math.Clamp(filter.Limit, 1, MaxRighe))
             .Select(s => new

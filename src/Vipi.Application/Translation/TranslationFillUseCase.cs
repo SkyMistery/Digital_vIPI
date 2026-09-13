@@ -192,6 +192,14 @@ public sealed class TranslationFillUseCase
             var tentativo = await motore.TranslateAsync(testi, sourceLang, targetLang, ct).ConfigureAwait(false);
             if (tentativo.Outcome == TranslationOutcome.Ok) { riuscito = tentativo; break; }
 
+            // 🔴 T-045 (revisione del 13 settembre 2026): un lotto successivo al primo è fallito, ma quelli prima sono
+            // partiti e sono pagati. Si registrano come spesa scartata — le traduzioni non tornano intere — o il
+            // tetto del motore non li vede e un 400 deterministico li fa ripagare a ogni giro.
+            if (tentativo.BilledChars > 0)
+                await _memoria.RegistraSpesaAsync(
+                    motore.Name, sourceLang, targetLang, tentativo.BilledChars, tentativo.BilledTexts,
+                    tentativo.BilledTexts, tentativo.BilledChars, DateTime.UtcNow, kind, ct).ConfigureAwait(false);
+
             // Qualunque esito diverso da Ok fa passare al motore dopo. Anche AuthFailed: una chiave
             // sbagliata vuole una persona, ma nel frattempo il documento si traduce lo stesso, e il
             // rapporto porta il motivo.

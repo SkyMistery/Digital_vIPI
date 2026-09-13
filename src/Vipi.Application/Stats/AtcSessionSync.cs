@@ -6,8 +6,11 @@ using Vipi.Application.Abstractions;
 namespace Vipi.Application.Stats;
 
 /// <summary>Una sessione già in archivio, per quel poco che serve a decidere cosa scrivere.</summary>
+/// <param name="DurationSeconds">Quanto era connessa all'ultimo giro che l'ha vista: <c>StartUtc + DurationSeconds</c>
+/// è l'ultimo avvistamento. Null o 0 = non si sa.</param>
 public readonly record struct KnownAtcSession(
-    long SessionId, int UserId, string Callsign, DateTimeOffset StartUtc, DateTimeOffset? EndUtc, long ShiftKey);
+    long SessionId, int UserId, string Callsign, DateTimeOffset StartUtc, DateTimeOffset? EndUtc, long ShiftKey,
+    int? DurationSeconds = null);
 
 /// <summary>Riga di sessione da scrivere (creazione o aggiornamento).</summary>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
@@ -84,14 +87,27 @@ public static class AtcSessionSync
                 IsOutsideDivision: c.IsOutsideDivision));
         }
 
-        // Chiudo quelle che l'archivio ha aperte e che non sono più in frequenza. L'istante è il nostro:
-        // la fine vera la sistemerà il backfill, che legge `completedAt` dalla sorgente.
+        // Chiudo quelle che l'archivio ha aperte e che non sono più in frequenza. La fine vera la sistemerà il
+        // backfill, che legge `completedAt` dalla sorgente.
+        //
+        // 🔴 T-032 (revisione del 13 settembre 2026): si chiude all'ULTIMO AVVISTAMENTO, non adesso. Il processo muore
+        // alle 23:00 e riparte alle 07:00: chiudendo «adesso» la torre risultava connessa tutta la notte, e se il
+        // riempimento dei movimenti passava prima dello storico le attribuiva il traffico di ore in cui non c'era.
         var closures = known
             .Where(k => k.EndUtc is null && !viste.Contains(k.SessionId))
-            .Select(k => new AtcSessionClosure(k.SessionId, now))
+            .Select(k => new AtcSessionClosure(k.SessionId, UltimoAvvistamento(k, now)))
             .ToList();
 
         return new AtcSessionPlan(upserts, closures);
+    }
+
+    /// <summary>L'ultimo istante in cui la sessione è stata vista in frequenza; <paramref name="now"/> se non si sa,
+    /// e mai oltre <paramref name="now"/>.</summary>
+    private static DateTimeOffset UltimoAvvistamento(KnownAtcSession k, DateTimeOffset now)
+    {
+        if (k.DurationSeconds is not > 0) return now;
+        var visto = k.StartUtc.AddSeconds(k.DurationSeconds.Value);
+        return visto < now ? visto : now;
     }
 
     /// <summary>
