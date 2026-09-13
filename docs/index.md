@@ -360,6 +360,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`history/audit-2026-08-29-vsop-militari-relazione.md`](history/audit-2026-08-29-vsop-militari-relazione.md) — Audit 29 agosto 2026 — i vSOP militari e la loro relazione col civile 🟢
 - [`history/audit-2026-09-06-revisione-totale.md`](history/audit-2026-09-06-revisione-totale.md) — Revisione totale del codice — aperta il 6 settembre 2026
 - [`history/audit-2026-09-12-prestazioni.md`](history/audit-2026-09-12-prestazioni.md) — Audit prestazioni — 12 settembre 2026, sera
+- [`history/audit-2026-09-13-revisione-totale-2.md`](history/audit-2026-09-13-revisione-totale-2.md) — Revisione totale, secondo giro — 13 settembre 2026 · 87 findings T-001…T-087
 - [`history/handoff-accordi-coordinamento.md`](history/handoff-accordi-coordinamento.md) — HANDOFF — Accordi di coordinamento (16-18 agosto 2026)
 - [`history/handoff-brand-atmosphere.md`](history/handoff-brand-atmosphere.md) — Handoff — il ramo del brand IVAO (22 agosto 2026)
 - [`history/handoff-coordinamenti-fasi-3-4.md`](history/handoff-coordinamenti-fasi-3-4.md) — HANDOFF — Coordinamenti/trasferimenti: Fasi 3-4 (resa documento)

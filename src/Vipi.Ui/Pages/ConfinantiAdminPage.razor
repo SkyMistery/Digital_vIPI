@@ -309,7 +309,7 @@
                         @if (_sectorOpen)
                         {
                             <div class="field conf-form">
-                                <label>@((MarkupString)string.Format(L["Conf_SectorLabel"].Value, sel.ForeignAccCode))</label>
+                                <label>@FraseHtml.Format(L["Conf_SectorLabel"].Value, sel.ForeignAccCode)</label>
                                 <div class="conf-acts">
                                     <input style="min-width:150px;text-transform:uppercase" @bind="_sectorCallsign" @bind:event="oninput" placeholder="@L["Common_EsempioPh", "LGKR_APP"]" />
                                     <button class="btn primary" disabled="@(_busy || !_canEdit || !SectorReady)" @onclick="() => AddSector(sel.Id)">@L["Conf_AddSector"]</button>

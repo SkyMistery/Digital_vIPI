@@ -211,7 +211,63 @@ public class DeletionProbeTests : IDisposable
         Assert.Null(repo.ProvaScritta);
     }
 
+    /// <summary>
+    /// Eliminare è un atto d'archivio: lo fa un amministratore, per ogni bersaglio (T-012, decisione del
+    /// committente del 13 settembre 2026). Il 29 agosto la Slice 5 l'aveva abbassato all'Editor insieme agli
+    /// 84 cancelli di redazione, ma il commento del servizio era rimasto a dire «amministratore», e per i
+    /// documenti gestiti la lettura degli incarichi rispondeva comunque «non permesso»: la regola vera non
+    /// era né l'una né l'altra. ⚠️ Con un <c>Authz</c> che NON sovrascrive i cancelli: la finta di sopra
+    /// risponde sì a tutto, e un test con quella non potrebbe accorgersi di niente.
+    /// </summary>
+    [Fact]
+    public async Task Un_Editor_non_elimina_ne_vede_l_anteprima_ne_chiede_alla_sorgente()
+    {
+        var repo = new RepoFinto { Settore = Settore() };
+        var s = new DeletionService(repo, new AuthzDiLivello(VipiRole.Editor), new StatiFinti(),
+            new ImpattiFinti(), new DocumentiFinti(), new IncarichiFinti(),
+            new SorgenteFinta(SourceProbeResult.Assente("non c'è")));
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => s.AnteprimaAsync(DeletionTarget.Sector(1)));
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => s.VerificaAllaSorgenteAsync(DeletionTarget.Sector(1)));
+        await Assert.ThrowsAsync<EditNotAllowedException>(() => s.EliminaAsync(DeletionTarget.Sector(1)));
+        Assert.Null(repo.Applicato);
+    }
+
+    [Fact]
+    public async Task Anche_la_seconda_porta_dei_documenti_vuole_un_Admin()
+    {
+        // VersioniPage chiama DocumentAdminService.DeleteAsync direttamente per i documenti senza Id: se il
+        // cancello stesse solo in DeletionService, di lì un Editor passerebbe. Il rifiuto arriva prima di
+        // toccare il repository, che qui non c'è.
+        var s = new DocumentAdminService(null!, new AuthzDiLivello(VipiRole.Editor), null!);
+
+        await Assert.ThrowsAsync<EditNotAllowedException>(() =>
+            s.DeleteAsync(new ManagedDocRef(ReleaseTargetType.AccVipi, "LIRR", null)));
+    }
+
+    [Fact]
+    public async Task Un_Admin_elimina()
+    {
+        var repo = new RepoFinto { Settore = Settore() };
+        var s = new DeletionService(repo, new AuthzDiLivello(VipiRole.Admin), new StatiFinti(),
+            new ImpattiFinti(), new DocumentiFinti(), new IncarichiFinti(),
+            new SorgenteFinta(SourceProbeResult.Assente("non c'è")));
+
+        await s.EliminaAsync(DeletionTarget.Sector(1));
+
+        Assert.NotNull(repo.Applicato);
+    }
+
     // ── Impalcatura ──────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>Un livello e basta: i cancelli restano quelli di default dell'interfaccia.</summary>
+    private sealed class AuthzDiLivello(VipiRole livello) : IEditAuthorizationService
+    {
+        public VipiRole Role => livello;
+        public bool IsAdmin => livello >= VipiRole.Admin;
+        public int? CurrentUserId => 555;
+        public string? CurrentName => "Chi Prova";
+    }
 
     private static SectorFacts Settore(string callsign = "LIRR_W_CTR", SectorKind kind = SectorKind.Acc,
         string? icao = null, DateTime? timbro = null) =>

@@ -367,8 +367,8 @@
                             }
                             else
                             {
-                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@BlockedTitle(sel, L["Ver_DeletePermTitle"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
-                                               Prompt="@L["Ver_DeleteConfirm", sel.Title]" Disabled="@ActionsBlocked(sel)"
+                                <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@(Authz.IsAdmin ? BlockedTitle(sel, L["Ver_DeletePermTitle"].Value) : L["Del_AdminOnly"].Value)" AriaLabel="@L["Ver_DeleteDocAria"]"
+                                               Prompt="@L["Ver_DeleteConfirm", sel.Title]" Disabled="@(ActionsBlocked(sel) || !Authz.IsAdmin)"
                                                CanOpenAsync="() => RefreshLockAsync(sel)" OnConfirm="() => Delete(sel)">
                                     <Trigger><Icon Name="trash" /> @L["Common_Delete"]</Trigger>
                                 </InlineConfirm>

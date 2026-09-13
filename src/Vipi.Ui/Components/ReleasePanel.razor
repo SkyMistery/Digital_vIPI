@@ -17,7 +17,7 @@
     @if (ShowSectionHeader)
     {
         <h3 style="margin-top:0"><Icon Name="calendar" /> @L["Rel_SectionTitle"]</h3>
-        <p class="help">@((MarkupString)string.Format(L["Rel_SectionHelp"].Value, _currentCycle))</p>
+        <p class="help">@FraseHtml.Format(L["Rel_SectionHelp"].Value, _currentCycle)</p>
     }
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <b><Icon Name="calendar" /> @L["Rel_AiracRelease"]</b>

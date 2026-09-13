@@ -158,9 +158,11 @@
                     </select>
                     <button class="btn ghost" disabled="@(_busy || !_canEdit || _selAssigned.Count == 0 || string.IsNullOrEmpty(_bulkMoveAcc))" @onclick="BulkMoveAssigned">@L["Apt_Move"]</button>
                     <button class="btn primary" disabled="@(_busy || !_canEdit || _selAssigned.Count == 0)" @onclick="GenerateDocs" title="@L["Apt_GenDocsTitle"]"><Icon Name="file" /> @L["Apt_GenDocs"]</button>
+                    @* Eliminare è da amministratore (T-012): spento per l'Editor, col motivo. *@
                     <InlineConfirm TriggerClass="btn ghost danger" AriaLabel="@L["Apt_DeleteSelectedAria"]"
+                                   TriggerTitle="@(Authz.IsAdmin ? null : L["Del_AdminOnly"].Value)"
                                    Prompt="@(L["Apt_DeleteSelectedPrompt", _selAssigned.Count].Value)"
-                                   Disabled="@(_busy || !_canEdit || _selAssigned.Count == 0)" OnConfirm="BulkDeleteAssigned">
+                                   Disabled="@(_busy || !_canEdit || !Authz.IsAdmin || _selAssigned.Count == 0)" OnConfirm="BulkDeleteAssigned">
                         <Trigger><Icon Name="trash" /> @L["Apt_DeleteSelected"]</Trigger>
                     </InlineConfirm>
                 </div>

@@ -215,11 +215,11 @@
 
                     @if (!string.IsNullOrEmpty(_selAcc) && _kind == Kind.App && Bersagli().Count == 0)
                     {
-                        <p class="help nd-vuoto">@((MarkupString)string.Format(L["Nd_NoStandalone"].Value, _selAcc))</p>
+                        <p class="help nd-vuoto">@FraseHtml.Format(L["Nd_NoStandalone"].Value, _selAcc)</p>
                     }
                     @if (!string.IsNullOrEmpty(_selAcc) && _kind == Kind.Airport && Bersagli().Count == 0)
                     {
-                        <p class="help nd-vuoto">@((MarkupString)string.Format(L["Nd_NoAirports"].Value, _selAcc))</p>
+                        <p class="help nd-vuoto">@FraseHtml.Format(L["Nd_NoAirports"].Value, _selAcc)</p>
                     }
                 </div>
             }

@@ -17,7 +17,7 @@
 @if (_notFound)
 {
     <div class="callout warning"><span class="cic">⚠️</span><div><p class="ct">@L["Vle_NotExist"]</p>
-        @((MarkupString)string.Format(L["Vle_NotExistBody"].Value, Home, Foreign))</div></div>
+        @FraseHtml.Format(L["Vle_NotExistBody"].Value, Home, Foreign)</div></div>
 }
 else if (_denied)
 {
@@ -41,7 +41,7 @@ else
             <HelpHint Href="/services/vsop/guide#editor-vloa" AriaLabel="@L["Vle_HelpAria"]" ExtraClass="wide">
                 <p>@(string.Format(L["Vle_Chrome"].Value, Home, Foreign))</p>
                 <p style="margin:6px 0 0"><b>@L["Vle_BilateralTitle"]</b></p>
-                @((MarkupString)string.Format(L["Vle_BilateralBody"].Value, Home, Foreign))
+                @FraseHtml.Format(L["Vle_BilateralBody"].Value, Home, Foreign)
                 @((MarkupString)L["Vle_HelpBody"].Value)
             </HelpHint>
             <span class="pill @(_shell.Doc.VersionStatus == DocumentStatus.Draft ? "grey" : "green")">

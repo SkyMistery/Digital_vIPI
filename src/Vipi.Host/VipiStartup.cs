@@ -301,9 +301,13 @@ internal static class VipiStartup
             await next();
         });
 
-        // Intestazioni di sicurezza. Non chiudono una falla nota — le due funzioni che costruiscono HTML a mano
-        // (MarkdownLite, AorBlock.BuildSvg) encodano prima e costruiscono dopo — ma rendono innocuo l'errore di
-        // domani, che è la difesa che costa meno di tutte. Prima di UseStaticFiles, così valgono anche per gli asset.
+        // Intestazioni di sicurezza. Non chiudono una falla nota ma rendono innocuo l'errore di domani, che è la
+        // difesa che costa meno di tutte. Prima di UseStaticFiles, così valgono anche per gli asset.
+        // ⚠️ Il censimento dell'11 agosto diceva «solo MarkdownLite e AorBlock.BuildSvg costruiscono HTML», e non
+        // era vero: undici frasi dei resx con argomenti uscivano come MarkupString senza encodare, una con un
+        // valore della query su una pagina pubblica (T-001, 13 settembre 2026). Ora passano da FraseHtml.Format,
+        // e una guardia di test (FraseHtmlTests) rifiuta il vecchio schema. Con la CSP in sola segnalazione,
+        // quella guardia è la difesa vera.
         app.Use(async (context, next) =>
         {
             var headers = context.Response.Headers;

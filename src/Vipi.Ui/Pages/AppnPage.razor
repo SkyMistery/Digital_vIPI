@@ -19,7 +19,7 @@
 }
 else if (_doc is null)
 {
-    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["Appn_AppNotAvailTitle"]</p>@((MarkupString)string.Format(Sito["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Acc.ToLowerInvariant()}/apps/editor?app={_app}"))</div></div></div>
+    <div class="wrap"><div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["Appn_AppNotAvailTitle"]</p>@FraseHtml.Format(Sito["Appn_AppNotFoundBody"], _app, $"/services/vsop/{Uri.EscapeDataString(Acc.ToLowerInvariant())}/apps/editor?app={Uri.EscapeDataString(_app)}")</div></div></div>
 }
 else
 {

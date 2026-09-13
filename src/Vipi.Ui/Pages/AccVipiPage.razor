@@ -23,7 +23,7 @@ else if (_notAvailable)
 {
     <div class="wrap">
         <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <a href="/services/vsop/@Acc.ToLowerInvariant()">@_acc.Code</a> › <b>vIPI</b></div>
-        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["AccVipi_NotAvailTitle"]</p>@((MarkupString)string.Format(Sito["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Acc.ToLowerInvariant()}/editor"))</div></div>
+        <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span><div><p class="ct">@Sito["AccVipi_NotAvailTitle"]</p>@FraseHtml.Format(Sito["AccVipi_NotAvailBody"], _acc.Code, $"/services/vsop/{Uri.EscapeDataString(Acc.ToLowerInvariant())}/editor")</div></div>
     </div>
 }
 else

@@ -1286,7 +1286,27 @@
       src/Vipi.Host/VipiStartup.cs. Quindi Vipi.Host.dll e Vipi.Host.pdb, e nient'altro: niente wwwroot,
       niente endpoints.json, niente resx, nessuna migrazione, nessuna firma cambiata.
     -->
-    <VipiVersione>1.25.2</VipiVersione>
+    <!--
+      1.25.3 — PATCH di sicurezza. Il primo lotto della revisione totale del 13 settembre
+      (docs/history/audit-2026-09-13-revisione-totale-2.md).
+
+      T-001 (S1) e T-003 (S2): XSS. Undici frasi dei resx con argomenti uscivano come MarkupString senza
+      encodare. La peggiore su una pagina PUBBLICA in SSR: /services/vsop/{acc}/apps/vipi?app=<script…>
+      mandava lo script crudo nell'HTML, con la sessione di chi apriva il link. Sulla vista live il titolo di
+      un gruppo APP scritto da un Editor. Ora passano tutte da FraseHtml.Format, che encoda gli argomenti e
+      lascia il markup della frase; una guardia di test rifiuta il vecchio schema.
+
+      T-012: eliminare torna da AMMINISTRATORE, per ogni bersaglio (decisione del committente). La Slice 5 del
+      29 agosto l'aveva abbassato all'Editor, il commento del servizio diceva il contrario, e per i documenti
+      gestiti la lettura degli incarichi rispondeva «non permesso» a meta' strada. Il cancello sta in
+      DeletionService E in DocumentAdminService.DeleteAsync (seconda porta, chiamata da VersioniPage); il
+      cestino resta a schermo spento, col motivo.
+
+      I FILE: il diff fra a6367d4 (1.25.2, online) e HEAD in src/ nomina Application (due servizi), Ui
+      (componenti, pagine, FraseHtml, resx it+en) e Host (un commento, ma Host.dll porta il TIMBRO). Nessuna
+      migrazione, niente wwwroot, niente endpoints.json. Firme: nessuna interfaccia cambiata.
+    -->
+    <VipiVersione>1.25.3</VipiVersione>
   </PropertyGroup>
 
 </Project>

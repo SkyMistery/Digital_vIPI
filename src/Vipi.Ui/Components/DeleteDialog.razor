@@ -6,13 +6,18 @@
    l'anteprima, e la finestra dice cosa sparisce, cosa si sposta, cosa resterà da ripubblicare e chi
    eventualmente blocca — con il collegamento al posto dove si risolve.
 
+   ⚠️ Eliminare è da amministratore, per ogni bersaglio (T-012, 13 settembre 2026). Il cestino resta a
+   schermo anche per l'Editor, ma spento e con il motivo nel `title`: un tasto spento senza motivo si legge
+   «manca un permesso che non so quale sia». Il cancello vero sta nel servizio.
+
    Carta: docs/feature/2026-08-26-eliminare-con-le-protezioni.md §4 (B5). *@
 @inject IDeletionService Deletion
+@inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
 
 <span class="inline-confirm">
-    <button type="button" class="@TriggerClass" title="@TriggerTitle" aria-label="@AriaLabel"
-            disabled="@(Disabled || _busy)" @onclick="ApriAsync" @onclick:stopPropagation="true">@Trigger</button>
+    <button type="button" class="@TriggerClass" title="@(Authz.IsAdmin ? TriggerTitle : L["Del_AdminOnly"].Value)" aria-label="@AriaLabel"
+            disabled="@(Disabled || _busy || !Authz.IsAdmin)" @onclick="ApriAsync" @onclick:stopPropagation="true">@Trigger</button>
 </span>
 
 @if (_aperto)

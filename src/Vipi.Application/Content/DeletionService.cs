@@ -84,9 +84,13 @@ public sealed class DeletionService : IDeletionService
 
     public async Task<DeletionPlan> AnteprimaAsync(DeletionTarget bersaglio, CancellationToken ct = default)
     {
-        // Eliminare è un atto d'archivio, non di redazione: lo fa un amministratore. È la stessa riga che
-        // separa «rimuovi» da «riaggancia» nella casella degli impatti.
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        // Eliminare è un atto d'archivio, non di redazione: lo fa un amministratore, per OGNI bersaglio. È la
+        // stessa riga che separa «rimuovi» da «riaggancia» nella casella degli impatti.
+        // ⚠️ Il 29 agosto la Slice 5 l'aveva abbassato all'Editor insieme ai cancelli di redazione, e questo
+        // commento era rimasto a dire il contrario; per i documenti gestiti, poi, la lettura degli incarichi
+        // (EnsureAdmin) rispondeva «non permesso» a metà strada. Rimesso ad Admin il 13 settembre 2026 per
+        // decisione del committente (T-012). La finestra spegne il cestino con il motivo.
+        _authz.EnsureAdmin();
         return await PianoAsync(bersaglio, provaDiAssenza: false, ct);
     }
 
@@ -94,7 +98,7 @@ public sealed class DeletionService : IDeletionService
         CancellationToken ct = default)
     {
         // Interrogare la sorgente costa una chiamata di rete a ogni clic: la fa chi può anche eliminare.
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        _authz.EnsureAdmin();
 
         var prova = await ChiediAllaSorgenteAsync(bersaglio, ct);
         return new DeletionProbeOutcome(prova, await PianoAsync(bersaglio, prova.ProvaLAssenza, ct));
@@ -103,7 +107,7 @@ public sealed class DeletionService : IDeletionService
     public async Task<DeletionPlan> EliminaAsync(DeletionTarget bersaglio, bool conVerificaAllaSorgente = false,
         CancellationToken ct = default)
     {
-        _authz.EnsureAtLeast(VipiRole.Editor);
+        _authz.EnsureAdmin();
 
         // La prova si rifà QUI. Quella mostrata nella finestra ha autorizzato il tasto, non il DELETE: fra le
         // due c'è il tempo che l'utente ha impiegato a leggere, e in quel tempo un import può aver rimesso in

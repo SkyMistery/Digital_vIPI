@@ -67,6 +67,10 @@ public sealed class DocumentAdminService : IDocumentAdminService
 
     public async Task DeleteAsync(ManagedDocRef doc, CancellationToken ct = default)
     {
+        // ⚠️ Eliminare è da amministratore (T-012, 13 settembre 2026), e il cancello sta anche QUI e non solo
+        // in DeletionService: questa è una seconda porta, che VersioniPage chiama direttamente per i documenti
+        // senza Id. Nascondere e bloccare la lingua restano all'Editor.
+        _authz.EnsureAdmin();
         await EnsureCanEditAsync(doc, ct);
         await EnsureNotLockedByOtherAsync(doc, ct);
         await _repo.DeleteAsync(doc, _authz.CurrentUserId ?? 0, ct);

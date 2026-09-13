@@ -2,7 +2,9 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Abstractions;
+using Vipi.Application.Auth;
 using Vipi.Application.Content;
+using Vipi.Domain;
 using Vipi.Ui.Components;
 using Xunit;
 
@@ -113,7 +115,30 @@ public class DeleteDialogSourceTests : TestContext
         Assert.False(finto.ChiestaLaVerificaAllEliminazione);
     }
 
+    [Fact]
+    public void Per_un_Editor_il_cestino_e_spento_e_dice_perche()
+    {
+        // T-012: eliminare è da amministratore. Il tasto resta, spento e col motivo, e l'anteprima non parte.
+        var finto = Predisponi(Piano(), livello: VipiRole.Editor);
+        var c = RenderComponent<DeleteDialog>(p => p
+            .Add(x => x.Target, Bersaglio)
+            .Add(x => x.Nome, "LIRR_W_CTR"));
+
+        var tasto = c.Find("span.inline-confirm button");
+        Assert.True(tasto.HasAttribute("disabled"));
+        Assert.Equal("Del_AdminOnly", tasto.GetAttribute("title"));
+        Assert.Equal(0, finto.Anteprime);
+    }
+
     // ── Impalcatura ──────────────────────────────────────────────────────────────────────────────────
+
+    private sealed class Authz(VipiRole livello) : IEditAuthorizationService
+    {
+        public VipiRole Role => livello;
+        public bool IsAdmin => livello >= VipiRole.Admin;
+        public int? CurrentUserId => 1;
+        public string? CurrentName => "Chi Prova";
+    }
 
     private static DeletionPlan Piano(params DeletionBlocker[] blocca) =>
         new(Bersaglio, "LIRR_W_CTR",
@@ -130,10 +155,11 @@ public class DeleteDialogSourceTests : TestContext
     }
 
     private DeletionFinta Predisponi(DeletionPlan piano, SourceProbeResult? prova = null,
-        DeletionPlan? dopoLaProva = null)
+        DeletionPlan? dopoLaProva = null, VipiRole livello = VipiRole.Admin)
     {
         var finto = new DeletionFinta(piano, prova, dopoLaProva);
         Services.AddSingleton<IDeletionService>(finto);
+        Services.AddSingleton<IEditAuthorizationService>(new Authz(livello));
         Services.AddSingleton<IStringLocalizer<SharedResource>, ChiaviNude>();
         return finto;
     }

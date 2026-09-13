@@ -140,7 +140,7 @@
         else if (_view.NoDocument)
         {
             <div class="callout warning"><span class="cic"><Icon Name="warning" Size="18" /></span>
-                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@((MarkupString)string.Format(L["Live_NoDocBody"], ExtendedDocHref() ?? "#"))</div>
+                <div><p class="ct">@L["Live_NoDocTitle", _view.AccCode]</p>@FraseHtml.Format(L["Live_NoDocBody"], ExtendedDocHref() ?? "#")</div>
             </div>
         }
 
@@ -239,7 +239,7 @@
                         <div class="body">
                             @if (g.Delegated)
                             {
-                                <p class="muted" style="font-size:13px;margin-top:0">@((MarkupString)string.Format(L["Live_CollapsedBody"], g.Block.Title))</p>
+                                <p class="muted" style="font-size:13px;margin-top:0">@FraseHtml.Format(L["Live_CollapsedBody"], g.Block.Title)</p>
                             }
                             <AccSectionBody Block="g.Block" Key="frequencies" Root="@_view.TreeRoot" Freqs="g.Freqs" />
                         </div>
