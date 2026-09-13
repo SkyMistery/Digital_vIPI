@@ -37,15 +37,28 @@ public class SearchAndChangesTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    /// <summary>Dà una release effettiva a ogni documento gestito (payload irrilevante: il gate guarda l'esistenza).</summary>
+    /// <summary>
+    /// Dà una release effettiva a ogni documento gestito, con lo SNAPSHOT VERO della versione di lavoro.
+    /// ⚠️ Fino al 13 settembre 2026 il payload era <c>"{}"</c>, «irrilevante: il gate guarda l'esistenza»: era
+    /// vero per il gate e ha nascosto T-042 — ricerca e «cambiati» leggevano la versione corrente, non la
+    /// release, e con uno snapshot vuoto nessun test poteva accorgersene. Da allora l'indice legge lo snapshot:
+    /// chi cambia il contenuto in un test deve ripubblicare, esattamente come in produzione.
+    /// </summary>
     private async Task PublishAllAsync()
     {
         var admin = TestReleaseTargets.AdminRepo(_db);
-        var releases = TestReleaseTargets.ReleaseRepo(_db);
-        var cycle = new AiracService().GetCycle(DateTime.UtcNow);
         foreach (var d in await admin.ListAsync())
-            await releases.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, DateTime.UtcNow.AddMinutes(-1),
-                "{}", createdByUserId: 1, note: null);
+            await PubblicaAsync(d.ReleaseTarget, d.ReleaseKey);
+    }
+
+    private async Task PubblicaAsync(Vipi.Domain.ReleaseTargetType tipo, string chiave, DateTime? efficace = null,
+        string? ciclo = null, string? nota = null)
+    {
+        var releases = TestReleaseTargets.ReleaseRepo(_db);
+        var quando = efficace ?? DateTime.UtcNow.AddMinutes(-1);
+        var c = ciclo ?? new AiracService().GetCycle(quando);
+        var payload = await releases.SnapshotWorkingAsync(tipo, chiave, c) ?? "{}";
+        await releases.SaveReleaseAsync(tipo, chiave, c, quando, payload, createdByUserId: 1, note: nota);
     }
 
     [Fact]
@@ -113,6 +126,7 @@ public class SearchAndChangesTests : IAsyncLifetime
             Body = "Parola rarissima: xyzzyplugh.",
         });
         await _db.SaveChangesAsync();
+        await PublishAllAsync();
 
         var hits = await _search.SearchAsync("xyzzyplugh", SearchScope.All, 50);
 
@@ -141,6 +155,7 @@ public class SearchAndChangesTests : IAsyncLifetime
             BodyJson = MediaRef.Serialize(new MediaRef(sha, "Hangar sud", 1600, 900)),
         });
         await _db.SaveChangesAsync();
+        await PublishAllAsync();
 
         var perAlt = await _search.SearchAsync("Hangar sud", SearchScope.All, 50);
         Assert.Contains(perAlt, h => h.Snippet.Contains("Hangar sud"));
@@ -176,6 +191,7 @@ public class SearchAndChangesTests : IAsyncLifetime
             BodyJson = AttachmentRef.Serialize(new AttachmentRef("loa-lirr-lfmm", "LoA Roma-Marseille")),
         });
         await _db.SaveChangesAsync();
+        await PublishAllAsync();
 
         var perTitolo = await _search.SearchAsync("Marseille", SearchScope.All, 50);
         Assert.Contains(perTitolo, h => h.Snippet.Contains("LoA Roma-Marseille"));
@@ -221,9 +237,7 @@ public class SearchAndChangesTests : IAsyncLifetime
         var versionId = await _db.DocumentVersions.Where(v => v.DocumentId == docId).Select(v => v.Id).FirstAsync();
         await editing.AddSectionAsync(versionId, null, "Consegne particolari PISATOKEN", Vipi.Domain.BlockSection.Other);
         await editing.PublishAsync(versionId, actorUserId: 1, note: null);
-        await TestReleaseTargets.ReleaseRepo(_db).SaveReleaseAsync(
-            Vipi.Domain.ReleaseTargetType.App, "LIRP_APP", new AiracService().GetCycle(DateTime.UtcNow),
-            DateTime.UtcNow.AddMinutes(-1), "{}", createdByUserId: 1, note: null);
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP");
         return docId;
     }
 
@@ -323,13 +337,76 @@ public class SearchAndChangesTests : IAsyncLifetime
             RowVersion = Guid.NewGuid().ToByteArray(),
         });
         await _db.SaveChangesAsync();
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP");
 
         Assert.NotEmpty(await _search.SearchAsync("SOTTOTOKEN", SearchScope.All, 50));
 
         section.IsHidden = true;
         await _db.SaveChangesAsync();
+        // Nascondere è una scelta EDITORIALE: arriva al pubblico — e all'indice — con la pubblicazione.
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP");
 
         Assert.Empty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
         Assert.Empty(await _search.SearchAsync("SOTTOTOKEN", SearchScope.All, 50));
     }
-}
+
+    // ---- T-042 (13 settembre 2026): l'indice legge la release IN VIGORE, non la versione corrente ----
+
+    /// <summary>
+    /// 🔴 Il testo scritto DOPO la pubblicazione non è pubblico finché non si ripubblica: la pagina serve lo
+    /// snapshot della release, e la ricerca anonima non deve citare quel che la pagina non mostra.
+    /// </summary>
+    [Fact]
+    public async Task Il_testo_scritto_dopo_la_release_non_si_trova_finche_non_si_ripubblica()
+    {
+        await SeedPublishedAppDocumentAsync();
+        var section = await _db.DocumentSections.FirstAsync(x => x.Title.Contains("PISATOKEN"));
+        _db.ContentBlocks.Add(new Vipi.Domain.Entities.ContentBlock
+        {
+            DocumentVersionId = section.DocumentVersionId, SectionId = section.Id, Order = 5,
+            Format = Vipi.Domain.BlockFormat.Prose, Tier = Vipi.Domain.BlockTier.Extended,
+            Visibility = Vipi.Domain.BlockVisibility.Always, Body = "Frase nuova DOPOTOKEN",
+            RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+
+        Assert.Empty(await _search.SearchAsync("DOPOTOKEN", SearchScope.All, 50));
+
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP");
+        Assert.NotEmpty(await _search.SearchAsync("DOPOTOKEN", SearchScope.All, 50));
+    }
+
+    /// <summary>
+    /// 🔴 Il caso della revisione: «Pubblica questa versione» con la release al ciclo SUCCESSIVO. La pagina
+    /// serve ancora la release di prima, e la ricerca deve citare quella.
+    /// </summary>
+    [Fact]
+    public async Task Una_release_programmata_al_ciclo_dopo_non_entra_nell_indice()
+    {
+        await SeedPublishedAppDocumentAsync();
+        var section = await _db.DocumentSections.FirstAsync(x => x.Title.Contains("PISATOKEN"));
+        section.Title = "Consegne particolari FUTUROTOKEN";
+        await _db.SaveChangesAsync();
+
+        var airac = new AiracService();
+        var prossimo = airac.GetCycle(DateTime.UtcNow.AddDays(35));
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP",
+            efficace: DateTime.UtcNow.AddDays(30), ciclo: prossimo);
+
+        Assert.Empty(await _search.SearchAsync("FUTUROTOKEN", SearchScope.All, 50));
+        Assert.NotEmpty(await _search.SearchAsync("PISATOKEN", SearchScope.All, 50));
+    }
+
+    /// <summary>«Cosa è cambiato» racconta la release in vigore: il suo numero e la sua nota.</summary>
+    [Fact]
+    public async Task Changed_racconta_la_release_in_vigore_e_non_la_versione_corrente()
+    {
+        await SeedPublishedAppDocumentAsync();
+        await PubblicaAsync(Vipi.Domain.ReleaseTargetType.App, "LIRP_APP", nota: "Nota della release T042");
+
+        var rows = await _changes.ListChangedAsync(new AiracService().GetCycle(DateTime.UtcNow));
+
+        var row = Assert.Single(rows, r => r.DocTitle.Contains("Pisa"));
+        Assert.Equal("Nota della release T042", row.Note);
+        Assert.True(row.CurrSections > 0);
+    }}

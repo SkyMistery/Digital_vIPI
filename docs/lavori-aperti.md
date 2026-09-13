@@ -21,7 +21,7 @@ Provato sul pacchetto: timbro, `pacchetto-verifica` tutto verde, 404 sull'ACC in
 
 ✅ Dopo il carico si possono fare **`passenger_min_instances`** e le **direttive nginx**; la **Cache Rule** con
 la condizione in più sul cookie di lingua (`LEGGIMI-DEPLOY.md`).
-▶ Staccato: **T-042** (ricerca e «cambiati» sulla release in vigore), va riscritto sullo snapshot. ▶ Decisioni
+✅ **T-042 fatto in `main` dopo il pacchetto** (ricerca e «cambiati» leggono lo snapshot della release in vigore, con un indice per release in memoria): entra nel **prossimo** pacchetto, non in 1.25.4. ▶ Decisioni
 aperte: T-017, T-053, T-064/T-078.
 
 ---

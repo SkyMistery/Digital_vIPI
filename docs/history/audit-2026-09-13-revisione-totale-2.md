@@ -1,7 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
 **Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
-(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 (T-042 staccato: va riscritto sullo snapshot della release) ·
+(`e3092ea`)**: T-001, T-003, T-012 · ✅ **lotto A in main** (garanzie, test, documenti): T-056, T-057, T-058, T-073, T-079…T-083, T-087 · ✅ **in 1.25.4**: T-002, T-011, T-019, T-021, T-033, T-061, T-084, T-085 · ✅ **T-042 in main** (ricerca e «cambiati» sullo snapshot della release in vigore; nel pacchetto successivo a 1.25.4) ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -500,7 +500,7 @@ ui-pages · C · `src/Vipi.Ui/Pages/VersioniPage.razor:1090`.
 - **Correzione.** Ricaricare come fanno `PublishRelease` e `CancelRelease`, e rilasciare il lock quando c'è
   un errore.
 
-**T-042 — Ricerca e «Cosa è cambiato» mostrano al pubblico la versione corrente, non lo snapshot della release in vigore.**
+**✅ T-042 (in main dopo 1.25.4, nel prossimo pacchetto) — Ricerca e «Cosa è cambiato» mostrano al pubblico la versione corrente, non lo snapshot della release in vigore.**
 ui-pages · C · `src/Vipi.Infrastructure/Persistence/EfSearchRepository.cs:66` (e `EfChangesRepository.cs:38-85`).
 - **Scenario.** Dopo «Pubblica questa versione» (v5) con la release al ciclo successivo, la pagina serve
   ancora v4, ma la ricerca anonima cita testi e sezioni riesposte della v5 e /changed ne mostra nota e

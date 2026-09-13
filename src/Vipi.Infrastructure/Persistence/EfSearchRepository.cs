@@ -7,8 +7,9 @@ using Vipi.Domain;
 namespace Vipi.Infrastructure.Persistence;
 
 /// <summary>
-/// Ricerca full-text sulle versioni pubblicate correnti. Match case-insensitive in memoria
-/// (scala pilota) su titolo documento, titoli sezione e corpo blocchi (Body + BodyJson).
+/// Ricerca full-text su ciò che il pubblico vede: lo snapshot della release in vigore di ogni documento
+/// pubblico. Match case-insensitive in memoria su titolo documento, titoli sezione e corpo blocchi
+/// (Body + BodyJson), sull'indice tenuto da <see cref="IndiceDelleRelease"/>.
 /// </summary>
 public sealed class EfSearchRepository : ISearchRepository
 {
@@ -16,17 +17,19 @@ public sealed class EfSearchRepository : ISearchRepository
     private readonly IReleaseTargetRegistry _targets;
     private readonly IDocRoutesRegistry _routes;
     private readonly IReleaseRepository _releases;
+    private readonly IndiceDelleRelease _indice;
 
+    /// <param name="indice">Singleton in produzione. Null = un indice proprio (test che costruiscono il
+    /// repository a mano su database che si ripetono gli id).</param>
     public EfSearchRepository(VipiDbContext db, IReleaseTargetRegistry targets, IDocRoutesRegistry routes,
-        IReleaseRepository releases)
+        IReleaseRepository releases, IndiceDelleRelease? indice = null)
     {
         _db = db;
         _targets = targets;
         _routes = routes;
         _releases = releases;
+        _indice = indice ?? new IndiceDelleRelease();
     }
-
-    private sealed record DocMeta(int DocId, int VersionId, string Title, DocumentType Type, string Url);
 
     public async Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope, int limit, CancellationToken ct = default)
     {
@@ -57,119 +60,71 @@ public sealed class EfSearchRepository : ISearchRepository
         var visible = await PublicDocumentGate.VisibleAsync(
             described, x => x.Doc, x => x.Managed!, _releases, ct);
 
-        var metas = new List<DocMeta>();
-        foreach (var (d, managed) in visible)
-        {
-            var url = _routes.For(managed!.Kind).PublicUrl(
-                managed.AccCode!.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
-            if (url is null) continue;
-            metas.Add(new DocMeta(d.Id, d.CurrentVersionId!.Value, d.Title, d.Type, url));
-        }
-
-        var versionIds = metas.Select(m => m.VersionId).ToList();
-
-        // Le SEZIONI si leggono tutte: servono intere sia per il percorso «padre › figlio» sia per calcolare i
-        // sottoalberi nascosti, e sono righe piccole (titolo e poco altro).
-        var sections = await _db.DocumentSections.Where(s => versionIds.Contains(s.DocumentVersionId))
-            .AsNoTracking().ToListAsync(ct);
-
-        // I BLOCCHI no. Qui c'era la stessa lettura senza filtro, e i blocchi sono le righe grosse del
-        // database: Body e soprattutto BodyJson portano i poligoni AoR, le tabelle di configurazione e gli
-        // envelope delle immagini. Ogni ricerca — su una pagina pubblica e anonima, senza limitatore —
-        // trasferiva e allocava l'intero contenuto pubblicato, e poi buttava via quasi tutto in memoria.
+        // 🔴 E stesso CONTENUTO (T-042, 13 settembre 2026): la pagina serve lo snapshot della release in vigore,
+        // e l'indice legge quello — non la versione corrente, che dopo un «Pubblica questa versione» con la
+        // release al ciclo successivo è già un'altra. Le sezioni nascoste sono quelle congelate nello snapshot.
         //
-        // Il filtro va nel database. `ToLower().Contains(...)` diventa LOWER(col) LIKE '%…%' su tutti e tre i
-        // provider, ed è insensibile alle maiuscole **indipendentemente dalla collation** — che è quel che
-        // serve, perché su MariaDB la collation è `as_cs` e un LIKE nudo cambierebbe semantica in silenzio.
-        // Le maiuscole restano indifferenti e gli accenti restano significativi, esattamente come faceva
-        // OrdinalIgnoreCase in memoria.
-        //
-        // ⚠️ I blocchi IMMAGINE entrano comunque, senza filtro: il loro testo cercabile non è nella colonna
-        // (è l'alternativo + didascalia estratti dall'envelope) e nessun WHERE può guardarlo. Sono pochi.
-        var q = query.ToLowerInvariant();
-        var blocks = await _db.ContentBlocks
-            .Where(b => versionIds.Contains(b.DocumentVersionId))
-            .Where(b => b.Format == BlockFormat.Image || b.Format == BlockFormat.Attachment
-                        || (b.Body != null && b.Body.ToLower().Contains(q))
-                        || (b.BodyJson != null && b.BodyJson.ToLower().Contains(q)))
-            .AsNoTracking().ToListAsync(ct);
-
-        var secById = sections.ToDictionary(s => s.Id);
-        // Sezioni nascoste (e i loro sottoalberi): fuori dall'indice, come sono fuori dalla pagina.
-        var hiddenSections = PublicDocumentGate.HiddenSectionIds(sections);
-
-        // Raggruppati una volta sola. Prima erano due `Where` dentro il ciclo sui documenti, cioè una
-        // riscansione completa delle liste per ogni documento: O(documenti × sezioni) e O(documenti × blocchi).
-        var sectionsByVersion = sections.ToLookup(s => s.DocumentVersionId);
-        var blocksByVersion = blocks.ToLookup(b => b.DocumentVersionId);
+        // ⚠️ Il costo resta basso per costruzione: una query per le teste delle release (senza payload), e i
+        // payload solo per le release che l'indice non ha ancora visto — una volta per pubblicazione, non una
+        // volta per tasto. È la stessa preoccupazione dell'11 agosto 2026, quando ogni ricerca leggeva l'intero
+        // contenuto pubblicato.
+        var teste = await ReleaseInVigore.TesteAsync(_db,
+            visible.Select(v => (v.Managed!.ReleaseTarget, v.Managed!.ReleaseKey)).Distinct().ToList(),
+            DateTime.UtcNow, ct);
+        // Le voci delle release uscite di vigore si buttano solo quando la ricerca guarda TUTTO: una ricerca
+        // filtrata per tipo vede una parte dei bersagli, e buttare il resto vorrebbe dire rileggerlo subito dopo.
+        if (scope == SearchScope.All) _indice.TieniSolo(teste.Values);
 
         var hits = new List<SearchHit>();
-
         bool Has(string? text) => !string.IsNullOrEmpty(text) && text.Contains(query, StringComparison.OrdinalIgnoreCase);
 
-        foreach (var m in metas)
+        foreach (var (doc, managed) in visible)
         {
             if (hits.Count >= limit) break;
-            var url = m.Url;
+            if (!teste.TryGetValue((managed!.ReleaseTarget, managed.ReleaseKey), out var testa)) continue;
+            var url = _routes.For(managed.Kind).PublicUrl(
+                managed.AccCode!.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
+            if (url is null) continue;
+            if (await _indice.VoceAsync(_db, testa, ct) is not { } voce) continue;
 
             // 1) titolo documento
-            if (Has(m.Title))
-                hits.Add(new SearchHit { DocTitle = m.Title, DocType = m.Type, Where = m.Title, Snippet = m.Title, Url = url });
+            if (Has(voce.Titolo))
+                hits.Add(new SearchHit { DocTitle = voce.Titolo, DocType = doc.Type, Where = voce.Titolo, Snippet = voce.Titolo, Url = url });
 
             // 2) titoli sezione
-            foreach (var s in sectionsByVersion[m.VersionId])
+            foreach (var s in voce.Sezioni)
             {
                 if (hits.Count >= limit) break;
-                if (hiddenSections.Contains(s.Id)) continue;
-                if (Has(s.Title))
-                    hits.Add(Hit(m, secById, s.Id, s.Title, $"{url}#s-{s.Id}"));
+                if (Has(s.Titolo))
+                    hits.Add(Hit(voce.Titolo, doc.Type, s, s.Titolo, url));
             }
 
-            // 3) corpo blocchi (Body + BodyJson)
-            foreach (var b in blocksByVersion[m.VersionId])
+            // 3) corpo dei blocchi: un risultato per blocco, col primo dei suoi testi che combacia
+            foreach (var s in voce.Sezioni)
             {
                 if (hits.Count >= limit) break;
-                if (hiddenSections.Contains(b.SectionId)) continue;
-                // Un blocco immagine ha per testo il suo alternativo e la didascalia: il BodyJson porta lo sha, e
-                // cercare "abc" non deve pescare un'immagine il cui sha contiene "abc" né mostrare JSON nel risultato.
-                // Un blocco allegato ha per testo il TITOLO e la nota: il BodyJson porta lo slug, e cercare
-                // «loa» non deve mostrare una riga di JSON nel risultato.
-                var searchable = b.Format == BlockFormat.Image
-                    ? MediaRef.TextOf(b.BodyJson, b.Body)
-                    : b.Format == BlockFormat.Attachment
-                        ? AttachmentRef.TextOf(b.BodyJson, b.Body)
-                        : Has(b.Body) ? b.Body : Has(b.BodyJson) ? b.BodyJson : null;
-                if (Has(searchable))
-                    hits.Add(Hit(m, secById, b.SectionId, Snippet(searchable!, query), $"{url}#s-{b.SectionId}"));
+                foreach (var (primo, secondo) in s.Testi)
+                {
+                    if (hits.Count >= limit) break;
+                    var testo = Has(primo) ? primo : Has(secondo) ? secondo : null;
+                    if (testo is not null)
+                        hits.Add(Hit(voce.Titolo, doc.Type, s, Snippet(testo, query), url));
+                }
             }
         }
 
         return hits;
     }
 
-    private SearchHit Hit(DocMeta m, IReadOnlyDictionary<int, Domain.Entities.DocumentSection> secById, int sectionId, string snippet, string url) =>
+    private static SearchHit Hit(string docTitle, DocumentType tipo, IndiceDelleRelease.Sezione s, string snippet, string url) =>
         new()
         {
-            DocTitle = m.Title,
-            DocType = m.Type,
-            Where = $"{m.Title} › {SectionPath(secById, sectionId)}",
+            DocTitle = docTitle,
+            DocType = tipo,
+            Where = $"{docTitle} › {s.Percorso}",
             Snippet = snippet,
-            Url = url,
+            Url = $"{url}#s-{s.Id}",
         };
-
-    /// <summary>Percorso "Sezione padre › Sezione" risalendo i genitori.</summary>
-    private static string SectionPath(IReadOnlyDictionary<int, Domain.Entities.DocumentSection> secById, int sectionId)
-    {
-        var parts = new List<string>();
-        int? cur = sectionId;
-        var guard = 0;
-        while (cur is int id && secById.TryGetValue(id, out var s) && guard++ < 5)
-        {
-            parts.Insert(0, s.Title);
-            cur = s.ParentSectionId;
-        }
-        return string.Join(" › ", parts);
-    }
 
     /// <summary>Finestra di ~120 char attorno al primo match, con ellissi.</summary>
     private static string Snippet(string text, string query)

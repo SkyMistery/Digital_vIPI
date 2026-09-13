@@ -132,6 +132,8 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAgreementRepository, EfAgreementRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IStaffRosterRepository, EfStaffRosterRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IAuditLogReader, EfAuditLogReader>();
+        // L'indice delle release in vigore vive quanto il processo (T-042): una release non cambia dopo che è nata.
+        services.AddSingleton<IndiceDelleRelease>();
         services.AddScoped<Vipi.Application.Abstractions.ISearchRepository, EfSearchRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IChangesRepository, EfChangesRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IImportPolicyStore, EfImportPolicyStore>();

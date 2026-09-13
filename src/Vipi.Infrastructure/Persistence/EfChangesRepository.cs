@@ -23,6 +23,15 @@ public sealed class EfChangesRepository : IChangesRepository
         _releases = releases;
     }
 
+    /// <summary>
+    /// I documenti la cui release IN VIGORE è del ciclo chiesto, con numero, nota, autore e data <b>della
+    /// release</b>, e i conteggi del suo snapshot contro quelli della release precedente dello stesso bersaglio.
+    ///
+    /// <para>🔴 <b>T-042 (13 settembre 2026).</b> Fino ad allora qui si raccontava la versione CORRENTE: dopo un
+    /// «Pubblica questa versione» con la release al ciclo successivo, la pagina serviva ancora la v4 e questo
+    /// elenco ne mostrava già nota e conteggi della v5. «Cosa è cambiato» è una promessa al pubblico: vale per
+    /// quello che il pubblico vede.</para>
+    /// </summary>
     public async Task<IReadOnlyList<ChangeRow>> ListChangedAsync(string airacCycle, CancellationToken ct = default)
     {
         var docs = await _db.Documents
@@ -35,14 +44,12 @@ public sealed class EfChangesRepository : IChangesRepository
             // sta su `EfDocumentAdminRepository.ListAsync`, che fa la stessa query.
             .Include(d => d.MilAirport).ThenInclude(a => a!.Acc)
             .Include(d => d.Parties).ThenInclude(p => p.Sector).ThenInclude(s => s!.Acc)
-            .Include(d => d.CurrentVersion)
             .AsNoTracking().ToListAsync(ct);
 
         // Tipo, ACC e ROTTA dai descrittori + registry delle rotte (doc 13 §3e). Qui c'era la QUARTA copia della
         // risoluzione — dopo VersioniPage, ReleasePreviewPage e la ricerca — con lo stesso errore: i documenti di
         // APP standalone puntavano alla vIPI di ACC.
         var described = docs
-            .Where(d => d.CurrentVersion!.AiracCycle == airacCycle)
             .Select(d => (Doc: d, Managed: Describe(d)))
             .Where(x => x.Managed is not null && !string.IsNullOrEmpty(x.Managed!.AccCode))
             .ToList();
@@ -51,42 +58,59 @@ public sealed class EfChangesRepository : IChangesRepository
         // linkava anche documenti che, aperti, dicono «non disponibile».
         var visible = await PublicDocumentGate.VisibleAsync(described, x => x.Doc, x => x.Managed!, _releases, ct);
 
+        var teste = await ReleaseInVigore.TesteAsync(_db,
+            visible.Select(v => (v.Managed!.ReleaseTarget, v.Managed!.ReleaseKey)).Distinct().ToList(),
+            DateTime.UtcNow, ct);
+
         var rows = new List<ChangeRow>();
         foreach (var (d, managed) in visible)
         {
-            var cur = d.CurrentVersion!;
-            var acc = managed!.AccCode!;
+            if (!teste.TryGetValue((managed!.ReleaseTarget, managed.ReleaseKey), out var testa)) continue;
+            if (testa.AiracCycle != airacCycle) continue;
+
+            var acc = managed.AccCode!;
             var url = _routes.For(managed.Kind).PublicUrl(acc.ToLowerInvariant(), managed.ReleaseKey, managed.NeighbourCode);
             if (url is null) continue;
 
-            // versione precedente (numero più alto < corrente)
-            var prevVersionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == d.Id && v.VersionNumber < cur.VersionNumber)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            var corrente = await ConteggiAsync(testa.Id, ct);
 
-            var currBlocks = await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == cur.Id, ct);
-            var currSections = await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == cur.Id, ct);
-            var prevBlocks = prevVersionId is int pv ? await _db.ContentBlocks.CountAsync(b => b.DocumentVersionId == pv, ct) : 0;
-            var prevSections = prevVersionId is int pv2 ? await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == pv2, ct) : 0;
+            // La release precedente dello stesso bersaglio: quella che il pubblico vedeva prima di questa.
+            var precedenteId = await _db.DocReleases.AsNoTracking()
+                .Where(r => r.TargetType == testa.Type && r.TargetKey == testa.Key && r.Id != testa.Id
+                            && (r.ReleaseEffectiveUtc < testa.EffectiveUtc
+                                || (r.ReleaseEffectiveUtc == testa.EffectiveUtc && r.VersionNumber < testa.VersionNumber)))
+                .OrderByDescending(r => r.ReleaseEffectiveUtc).ThenByDescending(r => r.VersionNumber)
+                .Select(r => (int?)r.Id).FirstOrDefaultAsync(ct);
+            var precedente = precedenteId is int pid ? await ConteggiAsync(pid, ct) : (Blocchi: 0, Sezioni: 0, Titolo: (string?)null);
 
             rows.Add(new ChangeRow
             {
-                DocTitle = d.Title,
+                DocTitle = corrente.Titolo ?? d.Title,
                 Type = d.Type,
                 AccCode = acc,
                 Url = url,
-                VersionNumber = cur.VersionNumber,
-                Note = cur.Note,
-                PublishedByUserId = cur.CreatedByUserId,
-                PublishedUtc = cur.CreatedUtc,
-                PrevBlocks = prevBlocks,
-                CurrBlocks = currBlocks,
-                PrevSections = prevSections,
-                CurrSections = currSections,
+                VersionNumber = testa.VersionNumber,
+                Note = testa.Note,
+                PublishedByUserId = testa.CreatedByUserId,
+                PublishedUtc = testa.CreatedUtc,
+                PrevBlocks = precedente.Blocchi,
+                CurrBlocks = corrente.Blocchi,
+                PrevSections = precedente.Sezioni,
+                CurrSections = corrente.Sezioni,
             });
         }
 
         return rows.OrderByDescending(r => r.PublishedUtc).ToList();
+    }
+
+    /// <summary>Blocchi e sezioni dello snapshot di una release (tutti, nascosti compresi: è un conteggio del documento).</summary>
+    private async Task<(int Blocchi, int Sezioni, string? Titolo)> ConteggiAsync(int releaseId, CancellationToken ct)
+    {
+        var payload = await _db.DocReleases.AsNoTracking().Where(r => r.Id == releaseId)
+            .Select(r => r.PayloadJson).FirstOrDefaultAsync(ct);
+        if (ReleaseInVigore.Documento(payload) is not { } doc) return (0, 0, null);
+        var voce = IndiceDelleRelease.Costruisci(doc);
+        return (voce.Blocchi, voce.TutteLeSezioni, doc.Title);
     }
 
     /// <summary>Attribuisce il documento a un tipo con gli stessi descrittori dell'elenco unificato.</summary>
