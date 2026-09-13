@@ -1,6 +1,32 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 13 settembre 2026 (mattina)
+## Dove siamo — 13 settembre 2026
+
+### 📦 A28 — Pacchetto 1.25.3: 7 file — 🟡 **PRONTO, DA CARICARE** (sicurezza)
+
+Il primo lotto della revisione totale del 13 settembre
+([`history/audit-2026-09-13-revisione-totale-2.md`](history/audit-2026-09-13-revisione-totale-2.md), 87
+findings). Timbro **`1.25.3 · e3092ea`**, zip
+`5fac0b8246ea0b2830096c39916d29dbed275573f40e5c3643557d136d9650f0`
+(`artifacts/publish/vipi-1.25.3-solo-file-cambiati.zip`, 3,52 MB), foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.3.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.25.3.md).
+Sostituisce **1.25.2**. **PATCH**: `Vipi.Application`, `Vipi.Ui`, `Vipi.Host` (dll+pdb) e
+`en/Vipi.Ui.resources.dll`. Nessuna migrazione; `wwwroot` ed `endpoints.json` identici a 1.25.2.
+
+- **T-001 (S1), T-003 (S2)** — XSS: undici frasi con argomenti sotto `MarkupString` → `FraseHtml.Format`, e
+  la guardia `FraseHtmlTests` (rossa sugli undici posti prima, verde dopo). Provato **sul pacchetto**:
+  `?app=<SCRIPT…>` e `?acc=<img onerror…>` arrivano nella pagina **encodati**.
+- **T-012** — eliminare torna da **amministratore** per ogni bersaglio (decisione del committente). Cancello
+  in `DeletionService` e in `DocumentAdminService.DeleteAsync` (seconda porta). Provato sul pacchetto da
+  Editor: 28 cestini su 28 spenti col motivo.
+- `pacchetto-verifica.js` in locale **tutto verde**, Ricerca compresa.
+
+🔴 **Cambia un consiglio**: la Cache Rule di Cloudflare e `passenger_min_instances` **aspettano T-011** (la
+cache delle letture anonime non distingue la lingua del browser). Le direttive nginx no.
+
+▶ Resta della revisione: 13 S2, 43 S3, 28 S4, in lotti — vedi il registro §4.
+
+---
 
 ### 📦 A27 — Pacchetto 1.25.2: 2 file — ✅ **CARICATO E IN PRODUZIONE**
 

@@ -1,6 +1,7 @@
 # Revisione totale del codice, secondo giro — 13 settembre 2026
 
-**Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso, nessun fix applicato ·
+**Commit:** `7fc44840` (1.25.2, in produzione) · **Stato:** registro chiuso · ✅ **corretti in 1.25.3
+(`e3092ea`)**: T-001, T-003, T-012 ·
 **87 findings** `T-001`…`T-087` · **1 S1** · 15 S2 · 43 S3 · 28 S4
 
 Seconda revisione integrale, ripartita da capo sei giorni dopo quella del 6-7 settembre
@@ -128,6 +129,9 @@ finding è la fusione di due segnalazioni.
 
 #### T-001 — XSS riflesso su pagine pubbliche: la query finisce in un `MarkupString` senza encoding
 
+> ✅ **Corretto in 1.25.3 (`e3092ea`)**: `FraseHtml.Format` sugli undici posti (anche T-003 e
+> ConfinantiAdminPage), guardia `FraseHtmlTests`. Provato sul pacchetto: il payload arriva encodato.
+
 | | |
 |---|---|
 | **G / V / Mig.** | S1 · C · no |
@@ -151,6 +155,8 @@ finding è la fusione di due segnalazioni.
 | **Correzione** | `CookieAuthenticationEvents.OnValidatePrincipal` che ogni N ore rilegge `/v2/users/{vid}` con il token app (`IUserDirectory` esiste già) e sostituisce il claim o rigetta il principal. In subordine: durata breve e non scorrevole. `RecordLoginAsync` non deve riattivare una riga disattivata partendo da claim vecchi |
 
 #### T-003 — XSS memorizzato nella vista live: il titolo del gruppo APP finisce in un `MarkupString`
+
+> ✅ **Corretto in 1.25.3 (`e3092ea`)**, insieme a T-001.
 
 | | |
 |---|---|
@@ -245,6 +251,11 @@ finding è la fusione di due segnalazioni.
 | **Correzione** | Mettere nella chiave, in `Vary` e nella Cache Rule la lingua **risolta** (`IRequestCultureFeature`), oppure togliere `AcceptLanguageHeaderRequestCultureProvider` |
 
 #### T-012 — Un Editor non può né vedere l'anteprima né eliminare un documento gestito
+
+> ✅ **Corretto in 1.25.3 (`e3092ea`)**. Decisione del committente (13-set): **eliminare è da
+> amministratore, per ogni bersaglio**. `EnsureAdmin` in `DeletionService` (anteprima, verifica, elimina) e
+> in `DocumentAdminService.DeleteAsync`, la seconda porta; cestini spenti col motivo (`Del_AdminOnly`).
+> Test col servizio vero e con un `Authz` che non sovrascrive i cancelli.
 
 | | |
 |---|---|
