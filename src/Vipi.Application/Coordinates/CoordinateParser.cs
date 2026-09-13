@@ -367,6 +367,7 @@ public static class CoordinateParser
         // Le forme a spazi e a due punti diventano simboliche PRIMA di spezzare: se si spezzasse per primo,
         // «41 59 26 N» diventerebbe quattro pezzi e nessuno di loro sarebbe una coordinata.
         riga = NormalizzaSegni(riga.ToUpperInvariant());
+        riga = VirgolaDecimale(riga);
         riga = RxSpaziEmisferoDietro.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"{m.Groups["h"].Value}");
         riga = RxSpaziEmisferoDavanti.Replace(riga, m => $"{m.Groups["h"].Value}{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
         riga = RxDuePunti.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
@@ -384,6 +385,23 @@ public static class CoordinateParser
         }
 
         return (angoli, etichette);
+    }
+
+    private static readonly Regex RxVirgolaFraCifre = new(@"(?<=\d),(?=\d)", Opzioni);
+
+    /// <summary>
+    /// 🔴 T-049 (revisione del 13 settembre 2026): la virgola decimale all'italiana. <c>41,9906 12,4964</c> si
+    /// spezzava sulle virgole in quattro numeri — due vertici validi e sbagliati. Le virgole fra cifre sono
+    /// decimali quando sulla riga <b>non c'è nessun punto</b> e c'è <b>un altro separatore</b> (spazio, punto e
+    /// virgola, tabulazione): senza il secondo, <c>41,12</c> resta la coppia CSV che è sempre stata.
+    /// </summary>
+    private static string VirgolaDecimale(string riga)
+    {
+        if (riga.IndexOf('.') >= 0 || !RxVirgolaFraCifre.IsMatch(riga)) return riga;
+        var senzaVirgole = RxVirgolaFraCifre.Replace(riga, ".");
+        return senzaVirgole.IndexOfAny([' ', ';', '\t', '|']) >= 0 && senzaVirgole.IndexOf(',') < 0
+            ? senzaVirgole
+            : riga;
     }
 
     /// <summary>Un pezzo di riga → uno o due angoli. False = non è una coordinata (allora è un'etichetta).</summary>
@@ -408,10 +426,10 @@ public static class CoordinateParser
             var hb = arinc.Groups["hb"].Value[0];
             // Due emisferi dello stesso asse (N…N) non sono una coppia: è un'altra cosa, e non la si indovina.
             if (Asse(ha) == Asse(hb)) return false;
-            if (!Impacchettato(arinc.Groups["a"].Value, out var va)) return false;
-            if (!Impacchettato(arinc.Groups["b"].Value, out var vb)) return false;
-            angoli.Add(new Angolo(va, ha, false));
-            angoli.Add(new Angolo(vb, hb, false));
+            if (!Impacchettato(arinc.Groups["a"].Value, out var va, out var fa)) return false;
+            if (!Impacchettato(arinc.Groups["b"].Value, out var vb, out var fb)) return false;
+            angoli.Add(new Angolo(va, ha, false, fa));
+            angoli.Add(new Angolo(vb, hb, false, fb));
             return true;
         }
 
@@ -421,7 +439,9 @@ public static class CoordinateParser
             var d = double.Parse(sim.Groups["d"].Value, CultureInfo.InvariantCulture);
             var m = sim.Groups["m"].Success ? double.Parse(sim.Groups["m"].Value, CultureInfo.InvariantCulture) : 0;
             var s = sim.Groups["s"].Success ? double.Parse(sim.Groups["s"].Value, CultureInfo.InvariantCulture) : 0;
-            angoli.Add(new Angolo(d + m / 60.0 + s / 3600.0, Emisfero(sim), false));
+            // 🔴 T-048 (revisione del 13 settembre 2026): la stessa regola del DMS Aurora (R-019) anche qui — e qui
+            // arrivano pure le forme a spazi e a due punti, riscritte in simboli. `41°75'` faceva 42,25° senza avvisi.
+            angoli.Add(new Angolo(d + m / 60.0 + s / 3600.0, Emisfero(sim), false, FuoriIntervallo: m >= 60 || s >= 60));
             return true;
         }
 
@@ -430,8 +450,8 @@ public static class CoordinateParser
         {
             var testo = semp.Groups["v"].Value;
             var negativo = testo[0] == '-';
-            if (!Impacchettato(testo.TrimStart('+', '-'), out var v)) return false;
-            angoli.Add(new Angolo(v, Emisfero(semp), negativo));
+            if (!Impacchettato(testo.TrimStart('+', '-'), out var v, out var fuori)) return false;
+            angoli.Add(new Angolo(v, Emisfero(semp), negativo, fuori));
             return true;
         }
 
@@ -451,9 +471,11 @@ public static class CoordinateParser
     /// </summary>
     /// <remarks>⚠️ Non è un'euristica azzardata: un grado decimale non può avere quattro cifre intere (il
     /// massimo è 180), quindi il caso non si sovrappone mai a quello dei gradi.</remarks>
-    private static bool Impacchettato(string testo, out double gradi)
+    /// <param name="fuori">🔴 T-048: primi o secondi da 60 in su. Il numero si legge lo stesso, e la coppia lo segnala.</param>
+    private static bool Impacchettato(string testo, out double gradi, out bool fuori)
     {
         gradi = 0;
+        fuori = false;
         if (!double.TryParse(testo, NumberStyles.Float, CultureInfo.InvariantCulture, out var v)) return false;
         var punto = testo.IndexOf('.');
         var cifreIntere = punto < 0 ? testo.Length : punto;
@@ -463,14 +485,18 @@ public static class CoordinateParser
         if (cifreIntere <= 5)
         {
             var d = Math.Floor(v / 100);
-            gradi = d + (v - d * 100) / 60.0;
+            var primi = v - d * 100;
+            fuori = primi >= 60;
+            gradi = d + primi / 60.0;
             return true;
         }
 
         var dd = Math.Floor(v / 10000);
         var resto = v - dd * 10000;
         var mm = Math.Floor(resto / 100);
-        gradi = dd + mm / 60.0 + (resto - mm * 100) / 3600.0;
+        var ss = resto - mm * 100;
+        fuori = mm >= 60 || ss >= 60;
+        gradi = dd + mm / 60.0 + ss / 3600.0;
         return true;
     }
 

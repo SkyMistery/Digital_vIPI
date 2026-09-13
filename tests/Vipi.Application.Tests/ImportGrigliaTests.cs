@@ -188,6 +188,35 @@ public class ImportGrigliaTests
         Assert.Equal(new[] { "a&b c", "308°" }, g.Riga(0));
     }
 
+    /// <summary>
+    /// 🔴 T-023 (revisione del 13 settembre 2026): l'HTML permette di omettere <c>&lt;/tr&gt;</c> e
+    /// <c>&lt;/td&gt;</c>, e la lettura con regex pigre scorreva fino in fondo al testo per ogni <c>&lt;tr</c>:
+    /// costo quadratico, pochi MB bloccavano il circuito. La lettura ora è lineare, e le righe senza chiusura si
+    /// leggono come le leggerebbe un browser.
+    /// </summary>
+    [Fact]
+    public async Task Righe_e_celle_senza_chiusura_si_leggono_in_tempo_lineare()
+    {
+        var html = new System.Text.StringBuilder("<table>");
+        for (var i = 0; i < 30_000; i++) html.Append("<tr><td>LIRF<td>16L");
+        html.Append("</table>");
+
+        var lettura = Task.Run(() => TabellaHtml.Leggi(html.ToString()));
+        var g = await lettura.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal(new[] { "LIRF", "16L" }, g.Riga(0));
+        Assert.Equal(new[] { "LIRF", "16L" }, g.Riga(29_999));
+    }
+
+    [Fact]
+    public void Thead_e_tbody_non_si_scambiano_per_celle_o_righe()
+    {
+        var g = Griglia.Leggi("<table><thead><tr><th>ICAO</th></tr></thead><tbody><tr><td>LIRF</td></tr></tbody></table>");
+
+        Assert.Equal(new[] { "ICAO" }, g.Riga(0));
+        Assert.Equal(new[] { "LIRF" }, g.Riga(1));
+    }
+
     [Fact]
     public void Senza_tabella_l_html_non_da_niente()
     {

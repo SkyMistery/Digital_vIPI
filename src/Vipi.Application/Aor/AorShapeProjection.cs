@@ -37,7 +37,7 @@ public static class AorShapeProjection
         {
             var proiettato = AorPolygonProjector.Project(p.PolygonJson);
             if (proiettato is null) continue;   // ⚠️ un anello rotto non porta via gli altri sei
-            var (bottom, top) = AorFlBand.Normalize(p.BaseFeet, p.TopFeet);
+            var (bottom, top) = AorFlBand.ForSource(shape.Source, p.BaseFeet, p.TopFeet);   // T-046: l'AIP è in piedi
             poligoni.Add(proiettato with { LowerFl = bottom, UpperFl = top });
         }
 

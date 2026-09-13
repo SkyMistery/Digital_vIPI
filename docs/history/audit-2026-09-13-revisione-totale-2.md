@@ -358,7 +358,7 @@ sec-infra · C · `src/Vipi.Hosting/VipiModuleExtensions.cs:292`.
   LiveBadge ricevono 503 finché resta collegato.
 - **Correzione.** Tetto per chiave, oppure stream servito solo ai collegati (dal §CZ l'anonimo non lo apre).
 
-**T-022 — Import XLSX: il riferimento di colonna non ha tetto, e pochi KB fanno allocare gigabyte.**
+**✅ T-022 (L10, in main: colonna oltre XFD e oltre 200 000 celle rifiutano il file PRIMA di allocare; `TryAdd` sulle relazioni) — Import XLSX: il riferimento di colonna non ha tetto, e pochi KB fanno allocare gigabyte.**
 sec-input · C · `src/Vipi.Application/Import/LettoreXlsx.cs:182`.
 - **Scenario.** `r="ZZZZZZ1"` vale 321 milioni e `while (celle.Count < colonna) celle.Add("")` alloca
   diversi GB. L'`OutOfMemoryException` non viene catturata (`Leggi` prende solo `InvalidDataException` e
@@ -366,7 +366,7 @@ sec-input · C · `src/Vipi.Application/Import/LettoreXlsx.cs:182`.
   solleva su un Id duplicato.
 - **Correzione.** Rifiutare colonne oltre 16383; `TryAdd` per le relazioni.
 
-**T-023 — Import tabella HTML: regex lazy senza timeout, costo quadratico su tag non chiusi.**
+**✅ T-023 (L10, in main: lettura lineare sui marcatori strutturali, chiusure omesse lette come un browser; timeout su tutte le regex del lettore) — Import tabella HTML: regex lazy senza timeout, costo quadratico su tag non chiusi.**
 sec-input · C · `src/Vipi.Application/Import/TabellaHtml.cs:45`.
 - **Scenario.** Un `.txt` da 8 MB con `<table>` e poi `<tr>` ripetuto senza `</tr>` (HTML valido, che
   permette di ometterlo): `Riga.Matches` scorre fino in fondo per ogni `<tr` e blocca circuito e thread.
@@ -533,7 +533,7 @@ content-b · C · `src/Vipi.Application/Translation/TranslationFillUseCase.cs:20
   deterministico (oltre 50.000 caratteri nel terzo lotto) si ripete a ogni giro.
 - **Correzione.** Il motore restituisce i caratteri spediti con successo anche quando il lotto finisce `Ko`.
 
-**T-046 — Le quote dei pezzi AIP, dichiarate in PIEDI, passano dall'euristica «≤660 = FL».**
+**✅ T-046 (L10, in main: `AorFlBand.ForSource`, AIP → `FromFeet`, in `SectorVolume` e `AorShapeProjection`) — Le quote dei pezzi AIP, dichiarate in PIEDI, passano dall'euristica «≤660 = FL».**
 aero · **P** · `src/Vipi.Application/Stats/SectorVolume.cs:97` (e `AorShapeProjection.cs:40`).
 - **Scenario.** Un'ATZ «GND–500 FT» agganciata a una TWR (LINL e LILG nel KMZ locale) diventa FL0–FL500:
   la torre rivendica i sorvoli a FL350 nelle statistiche e nel rinvio geometrico.
@@ -541,19 +541,19 @@ aero · **P** · `src/Vipi.Application/Stats/SectorVolume.cs:97` (e `AorShapePro
 - **Perché PLAUSIBILE.** Non è verificato che oggi una TWR abbia un pezzo simile.
 - **Correzione.** Scegliere la conversione in base a `ShapeSource`.
 
-**T-047 — Il gemello TWR di R-018 non è stato corretto: in `twrs.tfl` un vertice malformato tronca l'anello, che poi resta per sempre.**
+**✅ T-047 (L10, in main: `ParseTowerShapes` invalida il blocco su un vertice malformato) — Il gemello TWR di R-018 non è stato corretto: in `twrs.tfl` un vertice malformato tronca l'anello, che poi resta per sempre.**
 aero · C · `src/Vipi.Infrastructure/Sectorfile/AuroraSectorfileParser.cs:334`.
 - **Codice.** `ParseTowerShapes` fa `Flush` su ogni riga che non è una coppia DMS; l'anello parziale diventa
   shape reale con `SetRealShapeAsync` (`GithubTowerShapeService.cs:51-66`) e non viene più rimpiazzato.
   È un gemello mai coperto, **non** R-018 tornato: quella correzione vive solo in `ParseSectorShapes`.
 - **Correzione.** Stessa guardia di `ParseSectorShapes`.
 
-**T-048 — Il convertitore accetta primi e secondi ≥ 60 in tutte le forme tranne il DMS Aurora (R-019 chiuso a metà).**
+**✅ T-048 (L10, in main: `FuoriIntervallo` anche su simboli/spazi/due punti e sulle forme impacchettate) — Il convertitore accetta primi e secondi ≥ 60 in tutte le forme tranne il DMS Aurora (R-019 chiuso a metà).**
 aero · C · `src/Vipi.Application/Coordinates/CoordinateParser.cs:424` (e `Impacchettato`, righe 463-474).
 - **Scenario.** `41°75'00"N` entra come 42,25° senza avvisi, e così le forme a spazi, a due punti e ARINC.
 - **Correzione.** `FuoriIntervallo` anche nei rami simbolico e impacchettato; allargare l'`InlineData`.
 
-**T-049 — Nel convertitore la virgola decimale all'italiana spezza la coordinata in due vertici validi e sbagliati.**
+**✅ T-049 (L10, in main: virgole fra cifre = decimali se la riga non ha punti e ha un altro separatore) — Nel convertitore la virgola decimale all'italiana spezza la coordinata in due vertici validi e sbagliati.**
 aero · C · `src/Vipi.Application/Coordinates/CoordinateParser.cs:73`.
 - **Scenario.** `41,9906 12,4964` produce (41N 99,1E) e (12N 50,07E) come righe «lette».
 - **Correzione.** Riconoscere «cifre,cifre» senza spazi come decimale, oppure segnalarlo.
@@ -657,11 +657,11 @@ parametro `edizione`.
 e rende illeggibile tutto lo snapshot (*precisazione:* un array di stringhe si legge bene). · content-a · C
 · `src/Vipi.Application/Content/FrozenTranslation.cs:102` · `reader.Skip()` nei due rami.
 
-**T-066** — MRVA: un vertice `T;` con coordinata illeggibile viene saltato in silenzio, e l'area si disegna
+**✅ T-066** (L10, in main: il gruppo con un vertice illeggibile si scarta) — MRVA: un vertice `T;` con coordinata illeggibile viene saltato in silenzio, e l'area si disegna
 con un lato dritto (famiglia R-018). · aero · C · `src/Vipi.Infrastructure/Sectorfile/AuroraSectorfileParser.cs:268`
 · Invalidare il gruppo, o almeno loggare.
 
-**T-067** — `EffectiveUtcForCycle` accetta «2614» in un anno da 13 cicli e restituisce la data di 2701.
+**✅ T-067** (L10, in main: `GetCycle(data) == ciclo`; il test che accettava «2614» rovesciato) — `EffectiveUtcForCycle` accetta «2614» in un anno da 13 cicli e restituisce la data di 2701.
 · aero · C · `src/Vipi.Domain/Services/AiracService.cs:52` · Verificare che `GetCycle(d) == t`.
 
 **T-068** — I minuti di traffico si contano «uno per giro», legati in silenzio a `PollSeconds = 60`;

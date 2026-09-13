@@ -138,12 +138,47 @@ public class CoordinateParserTests
     [Theory]
     [InlineData("N041.99.28.965;E011.58.06.000;")]
     [InlineData("N041.37.99.965;E011.58.06.000;")]
+    // 🔴 T-048 (revisione del 13 settembre 2026): R-019 chiuso a metà — le altre forme accettavano 75 primi.
+    [InlineData("41°75'00\"N 011°58'06\"E")]            // simboli
+    [InlineData("41°37'75\"N 011°58'06\"E")]
+    [InlineData("41 75 00 N 011 58 06 E")]              // spazi
+    [InlineData("41:75:00 11:58:06")]                   // due punti
+    [InlineData("4175N01158E")]                         // ARINC gradi e primi
+    [InlineData("413775N0115806E")]                     // ARINC coi secondi
+    [InlineData("4175.000N 01158.000E")]                // gradi e primi decimali
     public void I_Primi_E_I_Secondi_Oltre_59_Sono_Fuori_Intervallo(string riga)
     {
         var esito = CoordinateParser.Parse(riga);
 
         Assert.Empty(esito.Aree);
         Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.FuoriIntervallo);
+    }
+
+    /// <summary>
+    /// 🔴 T-049 (revisione del 13 settembre 2026): la virgola decimale all'italiana. <c>41,9906 12,4964</c> si
+    /// spezzava sulle virgole in quattro numeri e diventava DUE vertici validi e sbagliati (41N 99,1E e 12N 50,07E).
+    /// Se sulla riga non c'è nessun punto e le virgole stanno fra cifre accanto a un altro separatore, sono decimali.
+    /// </summary>
+    [Theory]
+    [InlineData("41,9906 12,4964")]
+    [InlineData("41,9906;12,4964")]
+    [InlineData("41,9906\t12,4964")]
+    public void La_virgola_decimale_all_italiana_si_legge_come_decimale(string riga)
+    {
+        var esito = CoordinateParser.Parse(riga);
+
+        var p = Assert.Single(Assert.Single(esito.Aree).Punti);
+        Assert.Equal(41.9906, p.Lat, 6);
+        Assert.Equal(12.4964, p.Lon, 6);
+    }
+
+    /// <summary>E la coppia CSV coi punti resta com'era: la virgola lì separa.</summary>
+    [Fact]
+    public void La_virgola_fra_due_decimali_col_punto_resta_un_separatore()
+    {
+        var p = Assert.Single(Assert.Single(CoordinateParser.Parse("41.9906,12.4964").Aree).Punti);
+        Assert.Equal(41.9906, p.Lat, 6);
+        Assert.Equal(12.4964, p.Lon, 6);
     }
 
     // ---- Il sectorfile a segmenti: la forma dell'esempio del committente ----

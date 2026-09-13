@@ -228,18 +228,19 @@ public static class AuroraSectorfileParser
         var shapes = new List<MvaShape>();
         string? name = null;
         List<MvaPoint>? points = null;
+        var rotto = false;
 
         void Flush()
         {
             // Un vertice solo non è né linea né area: niente da disegnare.
-            if (name is not null && points is { Count: >= 2 })
+            if (name is not null && !rotto && points is { Count: >= 2 })
             {
                 var first = points[0];
                 var last = points[^1];
                 var closed = first.Lat.Equals(last.Lat) && first.Lon.Equals(last.Lon);
                 shapes.Add(new MvaShape(name, closed, points));
             }
-            name = null; points = null;
+            name = null; points = null; rotto = false;
         }
 
         foreach (var raw in text.Split('\n'))
@@ -265,7 +266,7 @@ public static class AuroraSectorfileParser
             {
                 var group = f[1].Trim();
                 if (group.Equals("DUMMY", StringComparison.OrdinalIgnoreCase)) { Flush(); continue; }
-                if (!TryParseMvaCoordinate(f[2], out var lat) || !TryParseMvaCoordinate(f[3], out var lon)) continue;
+                var leggibile = TryParseMvaCoordinate(f[2], out var lat) & TryParseMvaCoordinate(f[3], out var lon);
 
                 if (points is null) { name = group; points = new List<MvaPoint>(); }
                 else if (!string.Equals(group, name, StringComparison.OrdinalIgnoreCase))
@@ -274,6 +275,10 @@ public static class AuroraSectorfileParser
                     Flush();
                     name = group; points = new List<MvaPoint>();
                 }
+
+                // 🔴 T-066 (revisione del 13 settembre 2026): un vertice illeggibile si saltava in silenzio e l'area
+                // si disegnava con un lato dritto dove il confine gira. Il gruppo intero si scarta (famiglia R-018).
+                if (!leggibile) { rotto = true; continue; }
                 points.Add(new MvaPoint(lat, lon));
             }
         }
@@ -314,11 +319,12 @@ public static class AuroraSectorfileParser
 
         string? current = null;
         List<(double, double)>? ring = null;
+        var malformato = false;
 
         void Flush()
         {
-            if (current is not null && ring is { Count: >= 3 }) result[current] = ring;
-            current = null; ring = null;
+            if (current is not null && !malformato && ring is { Count: >= 3 }) result[current] = ring;
+            current = null; ring = null; malformato = false;
         }
 
         foreach (var raw in tfl.Split('\n'))
@@ -330,6 +336,14 @@ public static class AuroraSectorfileParser
             if (fields.Length == 2 && TryParseDms(fields[0], out var lat) && TryParseDms(fields[1], out var lon))
             {
                 ring?.Add((lat, lon));   // vertice (ignorato se non siamo dentro un blocco)
+            }
+            // 🔴 T-047 (revisione del 13 settembre 2026): il gemello TWR di R-018. Dentro un blocco una riga che
+            // COMINCIA come una coordinata ma non si legge è un vertice scritto male, non un'intestazione: prima
+            // chiudeva il blocco e ne salvava l'anello troncato, che diventava la forma reale della torre. Ora
+            // invalida il blocco intero, come in ParseSectorShapes.
+            else if (ring is not null && Array.Exists(fields, SembraCoordinata))
+            {
+                malformato = true;
             }
             else if (fields.Length >= 1 && fields[0].Length != 0)
             {

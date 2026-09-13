@@ -56,6 +56,15 @@ public static class LettoreXlsx
     /// <summary>Quante righe si leggono al massimo: oltre, non e' piu' una tabella di documento.</summary>
     public const int MaxRighe = 5000;
 
+    /// <summary>L'ultima colonna di Excel, XFD. Oltre, il riferimento non viene da un foglio vero.</summary>
+    public const int MaxColonne = 16384;
+
+    /// <summary>
+    /// 🔴 T-022 (revisione del 13 settembre 2026): quante celle in tutto, vuote comprese. Una cella in XFD riempie
+    /// la riga di sedicimila posti: righe e colonne insieme vanno contate, non solo le righe.
+    /// </summary>
+    public const int MaxCelle = 200_000;
+
     private static readonly EsitoXlsx Niente =
         new(Griglia.Vuota, Array.Empty<string>(), 0);
 
@@ -107,12 +116,11 @@ public static class LettoreXlsx
         var relazioni = Testo(archivio, "xl/_rels/workbook.xml.rels");
         if (libro is not null && relazioni is not null)
         {
-            var mappa = XDocument.Parse(relazioni).Root?.Elements()
-                .Where(e => e.Name.LocalName == "Relationship")
-                .ToDictionary(
-                    e => (string?)e.Attribute("Id") ?? "",
-                    e => Normalizza((string?)e.Attribute("Target") ?? ""))
-                ?? new Dictionary<string, string>();
+            // T-022: un Id doppio faceva sollevare `ToDictionary` fuori dai catch. La prima relazione vince.
+            var mappa = new Dictionary<string, string>();
+            foreach (var e in XDocument.Parse(relazioni).Root?.Elements()
+                         .Where(e => e.Name.LocalName == "Relationship") ?? Enumerable.Empty<XElement>())
+                mappa.TryAdd((string?)e.Attribute("Id") ?? "", Normalizza((string?)e.Attribute("Target") ?? ""));
 
             var elenco = new List<Foglio>();
             foreach (var s in XDocument.Parse(libro).Descendants().Where(e => e.Name.LocalName == "sheet"))
@@ -170,6 +178,7 @@ public static class LettoreXlsx
     private static IReadOnlyList<IReadOnlyList<string>> Celle(string xml, IReadOnlyList<string> condivise)
     {
         var righe = new List<IReadOnlyList<string>>();
+        var totale = 0;
         foreach (var r in XDocument.Parse(xml).Descendants().Where(e => e.Name.LocalName == "row"))
         {
             if (righe.Count >= MaxRighe) break;
@@ -178,9 +187,17 @@ public static class LettoreXlsx
             foreach (var c in r.Elements().Where(e => e.Name.LocalName == "c"))
             {
                 var colonna = Colonna((string?)c.Attribute("r"));
+                // 🔴 T-022: il riferimento decide quante celle vuote aggiungere, e viene dal file. Si controlla
+                // PRIMA di allocare: una colonna oltre XFD, o troppe celle in tutto, e il file si rifiuta.
+                if (colonna >= MaxColonne)
+                    throw new InvalidDataException($"colonna oltre XFD ({(string?)c.Attribute("r")})");
+                var dopo = totale + Math.Max(colonna, celle.Count) + 1 - celle.Count;
+                if (dopo > MaxCelle)
+                    throw new InvalidDataException($"oltre {MaxCelle} celle");
                 if (colonna >= 0)
                     while (celle.Count < colonna) celle.Add("");
                 celle.Add(Valore(c, condivise));
+                totale = dopo;
             }
             if (celle.Any(x => x.Length > 0)) righe.Add(celle);
         }
@@ -197,6 +214,8 @@ public static class LettoreXlsx
             if (c >= 'A' && c <= 'Z') n = n * 26 + (c - 'A' + 1);
             else if (c >= 'a' && c <= 'z') n = n * 26 + (c - 'a' + 1);
             else break;
+            // Oltre XFD si smette di contare: con abbastanza lettere `n` traboccherebbe e tornerebbe negativo.
+            if (n > MaxColonne) return MaxColonne;
         }
         return n - 1;
     }

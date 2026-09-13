@@ -55,7 +55,13 @@ public sealed class AiracService : IAiracService
         int year = 2000 + int.Parse(c[..2]);
         int n = int.Parse(c[2..]);
         var d = FirstCycleOfYear(year).AddDays((n - 1) * CycleDays);
-        return new DateTime(d.Year, d.Month, d.Day, 0, 0, 0, DateTimeKind.Utc);
+        var utc = new DateTime(d.Year, d.Month, d.Day, 0, 0, 0, DateTimeKind.Utc);
+
+        // 🔴 T-067 (revisione del 13 settembre 2026): «14» è il massimo ASSOLUTO, non quello di ogni anno. Il 2026
+        // ne ha tredici, e «2614» dava la data di 2701 senza sollevare. Il ciclo esiste se la sua data torna a lui.
+        if (GetCycle(utc) != t)
+            throw new ArgumentException($"Ciclo AIRAC non valido: '{cycle}' (l'anno 20{c[..2]} non ha il ciclo {n}).", nameof(cycle));
+        return utc;
     }
 
     /// <summary>I prossimi <paramref name="count"/> cicli AIRAC a partire da quello valido a <paramref name="fromUtc"/>

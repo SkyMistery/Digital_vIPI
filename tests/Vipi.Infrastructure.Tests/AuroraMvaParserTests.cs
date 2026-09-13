@@ -96,6 +96,27 @@ public class AuroraMvaParserTests
         Assert.DoesNotContain(chart.Shapes.SelectMany(s => s.Points), p => p == new MvaPoint(0, 0));
     }
 
+    /// <summary>
+    /// 🔴 T-066 (revisione del 13 settembre 2026): un vertice <c>T;</c> con la coordinata illeggibile veniva saltato
+    /// in silenzio, e l'area si disegnava con un lato dritto dove il confine gira (famiglia R-018). Il gruppo si
+    /// scarta intero; gli altri restano.
+    /// </summary>
+    [Fact]
+    public void Un_vertice_illeggibile_scarta_il_suo_gruppo_non_lo_accorcia()
+    {
+        const string rotto = """
+            T;ZONA1;N043.45.02.485;E010.09.24.813;
+            T;ZONA1;N043,10,00,000;E010.20.00.000;
+            T;ZONA1;N042.57.32.893;E010.23.37.514;
+            T;ZONA1;N042.40.00.000;E010.00.00.000;
+            T;LINEA2;N043.12.58.271;E009.34.01.733;
+            T;LINEA2;N042.09.03.534;E009.40.56.766;
+            """;
+        var chart = AuroraSectorfileParser.ParseMva(rotto);
+
+        Assert.Equal("LINEA2", Assert.Single(chart.Shapes).Name);
+    }
+
     [Fact]
     public void Name_Change_Starts_A_New_Shape_Without_Separator()
     {

@@ -63,6 +63,34 @@ public class AuroraTowerShapeParserTests
         Assert.Empty(map);   // solo 2 punti → scartato
     }
 
+    /// <summary>
+    /// 🔴 T-047 (revisione del 13 settembre 2026): il gemello TWR di R-018. Un vertice scritto male
+    /// (<c>N041,37,26,491</c>) cadeva nel ramo dell'intestazione: chiudeva il blocco e ne salvava i punti visti
+    /// fin lì, e l'anello TRONCATO diventava la forma reale della torre, per sempre. Un vertice malformato
+    /// invalida il blocco intero, come in <c>ParseSectorShapes</c>.
+    /// </summary>
+    [Fact]
+    public void Un_vertice_malformato_invalida_la_torre_invece_di_troncarla()
+    {
+        var map = AuroraSectorfileParser.ParseTowerShapes("""
+            LIBA_TWR;TWR;1;TWR;1;
+            N041.37.28.965;E015.43.18.960;
+            N041.37.26.491;E015.43.58.078;
+            N041.37.21.148;E015.44.36.682;
+            N041,37,10,000;E015,44,50,000;
+            N041.37.00.000;E015.45.00.000;
+
+            LIBC_TWR;TWR;1;TWR;1;
+            N039.05.48.116;E017.05.01.138;
+            N039.05.45.845;E017.05.39.246;
+            N039.05.41.125;E017.06.16.981;
+            """);
+
+        Assert.False(map.ContainsKey("LIBA_TWR"));
+        Assert.False(map.ContainsKey("N041,37,10,000"));
+        Assert.True(map.ContainsKey("LIBC_TWR"));   // un blocco rotto non si porta via gli altri
+    }
+
     [Theory]
     [InlineData("N041.37.28.965", 41.624713)]
     [InlineData("E015.43.18.960", 15.721933)]

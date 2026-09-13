@@ -72,13 +72,17 @@ public class AiracServiceTests
     [InlineData("26 6")]
     [InlineData("2600")]   // il numero del ciclo dentro l'anno parte da 1
     [InlineData("2615")]   // e non arriva a quindici: in un anno ce ne stanno al massimo quattordici
+    // 🔴 T-067 (revisione del 13 settembre 2026): il 2026 di cicli ne ha TREDICI. «2614» passava e dava la data di
+    // 2701 — qui sopra, fra i cicli veri, c'era proprio lui. Un ciclo esiste se la sua data torna a sé stesso.
+    [InlineData("2614")]
     public void EffectiveUtcForCycle_Rejects_SignsAndOutOfRange(string cycle) =>
         Assert.Throws<ArgumentException>(() => _sut.EffectiveUtcForCycle(cycle));
 
-    /// <summary>La controprova: i cicli veri continuano a passare, quattordicesimo compreso.</summary>
+    /// <summary>La controprova: i cicli veri continuano a passare, quattordicesimo compreso (il 2020 ne ha quattordici).</summary>
     [Theory]
     [InlineData("2601")]
-    [InlineData("2614")]
+    [InlineData("2613")]
+    [InlineData("2014")]
     [InlineData(" 2606 ")]
     public void EffectiveUtcForCycle_Accepts_RealCycles(string cycle) =>
         Assert.True(_sut.EffectiveUtcForCycle(cycle) > DateTime.MinValue);

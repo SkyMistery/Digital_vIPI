@@ -257,6 +257,39 @@ public class PolygonContainsTests
         Assert.True(v.Contains(37.2, 15.7, altitudeFt: 15_000));
     }
 
+    /// <summary>
+    /// 🔴 T-046 (revisione del 13 settembre 2026): un pezzo dell'AIP dichiara le quote in PIEDI. L'ATZ
+    /// «GND–500 FT» agganciata a una torre passava dall'euristica «≤660 = FL» e diventava FL0–FL500: la torre
+    /// rivendicava i sorvoli a FL350. Con la fonte AIP si divide e basta.
+    /// </summary>
+    [Fact]
+    public void Un_pezzo_AIP_da_500_piedi_non_rivendica_i_sorvoli()
+    {
+        var atz = SectorVolume.From("LINL_TWR", new (string?, int?, int?)[] { (Z1, 0, 500) },
+            Vipi.Domain.ShapeSource.Aip)!;
+
+        Assert.True(atz.Contains(37.2, 15.2, 400));
+        Assert.False(atz.Contains(37.2, 15.2, 35_000));
+        Assert.Equal(5, atz.TopFl);
+    }
+
+    /// <summary>🔴 T-046: lo stesso sulla mappa AoR, che proietta le forme della porta unica.</summary>
+    [Fact]
+    public void La_mappa_disegna_un_pezzo_AIP_da_500_piedi_a_FL5()
+    {
+        var forma = new Vipi.Application.Airspace.SectorShape("LINL_TWR", Vipi.Domain.ShapeSource.Aip,
+            new[]
+            {
+                new Vipi.Application.Airspace.ShapePart(Z1, 0, 500,
+                    Vipi.Domain.AirspaceDatum.Gnd, Vipi.Domain.AirspaceDatum.Amsl, "GND", "500 FT"),
+            },
+            System.Array.Empty<string>());
+
+        var p = Vipi.Application.Aor.AorShapeProjection.Project(forma);
+
+        Assert.Equal(5, p.UpperFl);
+    }
+
     [Fact]
     public void Nessun_pezzo_parsabile_vuol_dire_nessuna_rivendicazione()
     {

@@ -38,82 +38,132 @@ namespace Vipi.Application.Import;
 /// </summary>
 public static class TabellaHtml
 {
-    private static readonly Regex Tabella =
-        new("<table[^>]*>(.*?)</table>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    /// <summary>
+    /// 🔴 T-023 (revisione del 13 settembre 2026): i marcatori STRUTTURALI della tabella, in un solo passaggio.
+    /// Prima righe e celle si leggevano con regex pigre (<c>&lt;tr&gt;(.*?)&lt;/tr&gt;</c>): con le chiusure
+    /// omesse — HTML valido — ogni <c>&lt;tr</c> scorreva fino in fondo al testo, costo quadratico, e pochi MB
+    /// bloccavano il circuito. Qui si trovano i marcatori una volta sola e il contenuto è quel che sta fra l'uno e
+    /// il successivo: lineare, e le chiusure omesse si leggono come le legge un browser.
+    /// <para>⚠️ Il lookahead dopo il nome esclude <c>&lt;thead&gt;</c>, <c>&lt;tbody&gt;</c> e <c>&lt;track&gt;</c>.</para>
+    /// </summary>
+    private static readonly Regex Struttura =
+        new("<(/?)(table|tr|td|th)(?=[\\s>/])([^>]*)>", RegexOptions.IgnoreCase, TimeSpan.FromSeconds(2));
 
-    private static readonly Regex Riga =
-        new("<tr[^>]*>(.*?)</tr>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-
-    private static readonly Regex Cella =
-        new("<t(?:d|h)([^>]*)>(.*?)</t(?:d|h)>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+    /// <summary>Tetto di tempo di ogni regex su testo incollato: un caso che nessuno ha previsto non blocca il circuito.</summary>
+    private static readonly TimeSpan Tempo = TimeSpan.FromSeconds(2);
 
     private static readonly Regex Colspan =
-        new("colspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase);
+        new("colspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase, Tempo);
 
     private static readonly Regex Rowspan =
-        new("rowspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase);
+        new("rowspan\\s*=\\s*[\"']?(\\d+)", RegexOptions.IgnoreCase, Tempo);
 
     private static readonly Regex Interruzione =
-        new("<br[^>]*>|</p>|</div>", RegexOptions.IgnoreCase);
+        new("<br[^>]*>|</p>|</div>", RegexOptions.IgnoreCase, Tempo);
 
-    private static readonly Regex Marcatore = new("<[^>]+>", RegexOptions.Singleline);
+    private static readonly Regex Marcatore = new("<[^>]+>", RegexOptions.Singleline, Tempo);
 
-    private static readonly Regex Entita = new("&(#x[0-9a-fA-F]+|#\\d+|[a-zA-Z]+);");
+    private static readonly Regex Entita = new("&(#x[0-9a-fA-F]+|#\\d+|[a-zA-Z]+);", RegexOptions.None, Tempo);
 
     /// <summary>La prima tabella del frammento, o <see cref="Griglia.Vuota"/> se non ce n'e' nessuna.</summary>
     public static Griglia Leggi(string? html)
     {
         if (string.IsNullOrWhiteSpace(html)) return Griglia.Vuota;
+        try { return LeggiStruttura(html!); }
+        catch (RegexMatchTimeoutException) { return Griglia.Vuota; }   // un testo che nessuno ha previsto: niente, non un circuito fermo
+    }
 
-        var tab = Tabella.Match(html!);
-        if (!tab.Success) return Griglia.Vuota;
-
+    private static Griglia LeggiStruttura(string html)
+    {
         var righe = new List<IReadOnlyList<string>>();
 
         // Quel che le righe PRECEDENTI si portano dietro: colonna → quante righe restano da coprire. È tutto
         // il conto del `rowspan`, ed è lo stesso del `colspan` su un asse diverso.
         var eredita = new Dictionary<int, int>();
 
-        foreach (Match r in Riga.Matches(tab.Groups[1].Value))
+        List<string>? celle = null;
+        var colonna = 0;
+        // La cella aperta: dove comincia il suo contenuto e i suoi attributi. Si chiude al marcatore successivo.
+        int inizioCella = -1;
+        string attributiCella = "";
+        var dentroTabella = false;
+
+        // Le colonne già occupate da una cella unita in verticale si riempiono di vuoto PRIMA di piazzare
+        // la prossima cella scritta: altrimenti quella prende il posto di chi la copre, e da lì in giù
+        // tutta la riga scala a sinistra.
+        void Ereditate()
         {
-            var celle = new List<string>();
-            var colonna = 0;
-
-            // Le colonne già occupate da una cella unita in verticale si riempiono di vuoto PRIMA di piazzare
-            // la prossima cella scritta: altrimenti quella prende il posto di chi la copre, e da lì in giù
-            // tutta la riga scala a sinistra.
-            void Ereditate()
+            while (eredita.TryGetValue(colonna, out var restano) && restano > 0)
             {
-                while (eredita.TryGetValue(colonna, out var restano) && restano > 0)
-                {
-                    celle.Add("");
-                    eredita[colonna] = restano - 1;
-                    colonna++;
-                }
+                celle!.Add("");
+                eredita[colonna] = restano - 1;
+                colonna++;
             }
+        }
 
-            foreach (Match c in Cella.Matches(r.Groups[1].Value))
+        void ChiudiCella(int fine)
+        {
+            if (inizioCella < 0) return;
+            celle ??= new List<string>();
+            Ereditate();
+
+            var testo = Testo(html.Substring(inizioCella, fine - inizioCella));
+            var larghe = Quante(Colspan, attributiCella);
+            var alte = Quante(Rowspan, attributiCella);
+            for (var k = 0; k < larghe; k++)
             {
-                Ereditate();
-
-                var testo = Testo(c.Groups[2].Value);
-                var larghe = Quante(Colspan, c.Groups[1].Value);
-                var alte = Quante(Rowspan, c.Groups[1].Value);
-
-                for (var k = 0; k < larghe; k++)
-                {
-                    celle.Add(k == 0 ? testo : "");
-                    if (alte > 1) eredita[colonna] = alte - 1;
-                    colonna++;
-                }
+                celle.Add(k == 0 ? testo : "");
+                if (alte > 1) eredita[colonna] = alte - 1;
+                colonna++;
             }
+            inizioCella = -1;
+        }
 
+        void ChiudiRiga(int fine)
+        {
+            ChiudiCella(fine);
+            if (celle is null) return;
             // Le eredità in coda: una cella unita che sta all'ULTIMA colonna non ha nessuna cella scritta
             // dopo di sé a farle da innesco.
             Ereditate();
-
             if (celle.Count > 0) righe.Add(celle);
+            celle = null;
+            colonna = 0;
         }
+
+        for (var m = Struttura.Match(html); m.Success; m = m.NextMatch())
+        {
+            var chiusura = m.Groups[1].Length > 0;
+            var nome = m.Groups[2].Value.ToLowerInvariant();
+
+            if (nome == "table")
+            {
+                if (!chiusura && !dentroTabella) { dentroTabella = true; continue; }
+                if (chiusura && dentroTabella) { ChiudiRiga(m.Index); break; }   // la PRIMA tabella, e basta
+                continue;
+            }
+            if (!dentroTabella) continue;
+
+            switch (nome)
+            {
+                case "tr":
+                    ChiudiRiga(m.Index);
+                    if (!chiusura) { celle = new List<string>(); colonna = 0; }
+                    break;
+                default:   // td, th
+                    ChiudiCella(m.Index);
+                    if (!chiusura)
+                    {
+                        celle ??= new List<string>();
+                        inizioCella = m.Index + m.Length;
+                        attributiCella = m.Groups[3].Value;
+                    }
+                    break;
+            }
+        }
+
+        // Una tabella senza </table>: si chiude alla fine del testo.
+        if (dentroTabella) ChiudiRiga(html.Length);
         return righe.Count == 0 ? Griglia.Vuota : new Griglia(righe, FormaGriglia.Html);
     }
 

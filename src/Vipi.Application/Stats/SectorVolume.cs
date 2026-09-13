@@ -94,7 +94,7 @@ public sealed class SectorVolume
         {
             var ring = PolygonGeometry.ToRing(json);
             if (ring is null) continue;
-            var (bottom, top) = AorFlBand.Normalize(lower, upper);
+            var (bottom, top) = AorFlBand.ForSource(source, lower, upper);   // T-046: l'AIP è in piedi
             pezzi.Add(new Part(ring, bottom, top));
         }
 

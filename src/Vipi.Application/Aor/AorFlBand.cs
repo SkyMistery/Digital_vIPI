@@ -30,6 +30,15 @@ public static class AorFlBand
     }
 
     /// <summary>
+    /// La banda di un pezzo di forma, scegliendo la conversione dalla <b>fonte</b>.
+    /// <para>🔴 T-046 (revisione del 13 settembre 2026): i pezzi dell'AIP (KMZ) dichiarano le quote in piedi, e
+    /// passarli dall'euristica faceva di un'ATZ «GND–500 FT» una banda FL0–FL500 — la torre rivendicava i
+    /// sorvoli a FL350. Le altre fonti non dichiarano l'unità e restano sull'euristica.</para>
+    /// </summary>
+    public static (int Bottom, int Top) ForSource(Vipi.Domain.ShapeSource source, int? lower, int? upper) =>
+        source == Vipi.Domain.ShapeSource.Aip ? FromFeet(lower, upper) : Normalize(lower, upper);
+
+    /// <summary>
     /// La stessa banda, ma per limiti che sono <b>certamente in piedi</b>: nessuna euristica, si divide e
     /// basta.
     ///

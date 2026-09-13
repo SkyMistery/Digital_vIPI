@@ -131,6 +131,61 @@ public class ImportXlsxTests
         return s;
     }
 
+    // ---- 🔴 T-022 (revisione del 13 settembre 2026): il file decide quanta memoria usare --------------------
+
+    /// <summary>
+    /// Un riferimento <c>r="ZZZZZZ1"</c> vale 321 milioni: il lettore riempiva la riga di celle vuote fino a lì,
+    /// pochi KB di file e gigabyte allocati, e l'<c>OutOfMemoryException</c> faceva cadere l'istanza. Excel si ferma
+    /// a XFD (16 384 colonne): oltre, il file non è un foglio vero.
+    /// </summary>
+    [Fact]
+    public void Una_colonna_oltre_XFD_rifiuta_il_file()
+    {
+        using var file = Xlsx(
+            fogli: new[] { ("F", Foglio("<row><c r=\"XFE1\"><v>1</v></c></row>")) },
+            condivise: new string[0]);
+
+        var esito = LettoreXlsx.Leggi(file);
+
+        Assert.NotNull(esito.Guasto);
+        Assert.Empty(esito.Griglia.Righe);
+    }
+
+    /// <summary>Anche restando dentro XFD, righe e colonne insieme hanno un tetto: 5 000 righe × 16 384 celle
+    /// sono ottanta milioni di voci.</summary>
+    [Fact]
+    public void Troppe_celle_in_tutto_rifiutano_il_file()
+    {
+        var righe = new StringBuilder();
+        for (var i = 1; i <= 20; i++) righe.Append($"<row><c r=\"XFD{i}\"><v>1</v></c></row>");
+        using var file = Xlsx(fogli: new[] { ("F", Foglio(righe.ToString())) }, condivise: new string[0]);
+
+        Assert.NotNull(LettoreXlsx.Leggi(file).Guasto);
+    }
+
+    /// <summary>Due relazioni con lo stesso Id facevano sollevare `ToDictionary`: la prima vince, il file si legge.</summary>
+    [Fact]
+    public void Una_relazione_doppia_non_fa_cadere_la_lettura()
+    {
+        var memoria = new MemoryStream();
+        using (var zip = new ZipArchive(memoria, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            Scrivi(zip, "xl/workbook.xml",
+                "<workbook xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">" +
+                "<sheets><sheet name=\"F\" sheetId=\"1\" r:id=\"rId1\"/></sheets></workbook>");
+            Scrivi(zip, "xl/_rels/workbook.xml.rels",
+                "<Relationships><Relationship Id=\"rId1\" Target=\"worksheets/sheet1.xml\"/>" +
+                "<Relationship Id=\"rId1\" Target=\"worksheets/sheet2.xml\"/></Relationships>");
+            Scrivi(zip, "xl/worksheets/sheet1.xml", Foglio("<row><c r=\"A1\"><v>7</v></c></row>"));
+        }
+        memoria.Position = 0;
+
+        var esito = LettoreXlsx.Leggi(memoria);
+
+        Assert.Null(esito.Guasto);
+        Assert.Equal("7", esito.Griglia.Riga(0)[0]);
+    }
+
     private static string Foglio(string righe) =>
         "<?xml version=\"1.0\"?><worksheet><sheetData>" + righe + "</sheetData></worksheet>";
 
