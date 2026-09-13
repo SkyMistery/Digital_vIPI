@@ -77,7 +77,15 @@ jobs:
       - name: dotnet test (solo net8.0, l'embedding)
         shell: bash
         # Il logger minimale: vedi il job qui sopra, senza non c'è niente da contare.
-        run: dotnet test Vipi.slnx -f net8.0 -c Release --verbosity normal --logger "console;verbosity=minimal" | tee corsa-net8.log
+        # ⚠️ Progetto per progetto, e non `dotnet test Vipi.slnx -f net8.0`: da L13 (13 settembre 2026)
+        # Vipi.E2E.Tests è SOLO net10, come l'host che avvia, e forzargli net8 ferma il job con NETSDK1005
+        # («doesn't have a target for 'net8.0'»). Si prendono i progetti di test che net8 lo dichiarano davvero:
+        # uno che lo perde sparisce da qui e conta-test lo dice come MANCA.
+        run: |
+          : > corsa-net8.log
+          for p in $(grep -l -E '<TargetFrameworks?>[^<]*net8\.0' tests/*/*.csproj); do
+            dotnet test "$p" -f net8.0 -c Release --verbosity normal --logger "console;verbosity=minimal" | tee -a corsa-net8.log
+          done
       # Lo stesso cancello sul ramo net8: qui l'atteso comprende i soli assiemi net8.0, e un progetto che
       # smette di girare su net8 e' proprio il difetto dell'11 agosto.
       - run: bash tools/conta-test.sh corsa-net8.log --tfm net8.0
