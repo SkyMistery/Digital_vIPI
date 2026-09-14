@@ -91,6 +91,27 @@ public class AuroraSectorfileParserTests
         Assert.NotEqual(rows[0].StableKey, rows[1].StableKey);   // la pista fa parte dell'identità
     }
 
+    [Fact]
+    public void Solo_Le_Righe_Con_L_Icao_Sono_Sid()
+    {
+        // Estratto reale di lied.sid (con ICAO sostituito): il vertice etichettato GOLF del blocco FRASCA DEP16
+        // si leggeva come SID «GOLF» sulla pista «E008.37.28.000». E le SID commentate di lipb.sid entravano.
+        var rows = Parse("""
+            LIRN;16R:16L;FRASCA DEP16; ; ; ;
+            N039.20.30.313;E008.58.34.537;
+            N039.33.45.000;E008.37.28.000;GOLF;
+            IP FRASCA;IP FRASCA;
+            //LIRN;01;FOR1N ADO6A; ; ;0;ADOSA;
+            //ICAO;RWY;SIDNAME;LAT;LONG;TYPE;TRANSITION;RNAV;
+            LIRN;06;ALAX7G;;;;;1;
+            """);
+
+        Assert.DoesNotContain(rows, r => r.Name == "GOLF");
+        Assert.DoesNotContain(rows, r => r.Name.Contains("ADO6A"));
+        Assert.Equal(3, rows.Count);   // FRASCA DEP16 su 16R e 16L + ALAX7G
+        Assert.Equal(2, rows.Count(r => r.Name == "FRASCA DEP16"));
+    }
+
     // --- Catalogo dei punti (itvor/itndb/itfix) -------------------------------------------------------
 
     [Fact]

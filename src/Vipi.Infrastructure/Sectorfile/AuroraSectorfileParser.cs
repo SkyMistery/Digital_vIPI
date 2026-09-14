@@ -135,6 +135,12 @@ public static class AuroraSectorfileParser
             var c = line.Split(';');
             if (c.Length < 3) continue;
 
+            // Una SID è solo la riga che COMINCIA con l'ICAO del file. I blocchi di partenza a vista (lied.sid,
+            // «FRASCA DEP34») portano vertici con un'etichetta — `N039.33.45.000;E008.37.28.000;GOLF;` — che
+            // ha tre campi e si leggeva come SID «GOLF» sulla pista «E008.37.28.000»; e le righe commentate
+            // (`//LIPB;01;FOR1N ADO6A;…` in lipb.sid) entravano come SID vere.
+            if (!string.Equals(c[0].Trim(), icao, StringComparison.OrdinalIgnoreCase)) continue;
+
             var code = c[2].Trim();
             if (code.Length == 0) continue;
             var runwaysField = c[1].Trim();
