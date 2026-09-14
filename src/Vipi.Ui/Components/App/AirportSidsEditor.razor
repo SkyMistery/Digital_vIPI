@@ -76,6 +76,11 @@
                     <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
                     <button class="btn ghost" disabled="@(_src is null || !_src.Imported)" @onclick="() => PickSameFromBar(true, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
                     <button class="btn ghost" disabled="@(!Editing || _selSid.Count == 0)" @onclick="PubblicaSelezionate" title="@L["Ape_SidPublishSelTitle"]"><Icon Name="clock" /> @L["Ape_SidPublishSel"]</button>
+                    @if (SetImportedHidden is not null)
+                    {
+                        <button class="btn ghost" disabled="@(!Editing || _selSid.Count == 0)" @onclick="() => NascondiImportate(true)" title="@L["Ape_SidHideSelTitle"]"><Icon Name="eye-off" /> @L["Ape_SidHideSel"]</button>
+                        <button class="btn ghost" disabled="@(!Editing || !Imported.Any(x => x.IsHidden && _selSid.Contains(x.Id)))" @onclick="() => NascondiImportate(false)" title="@L["Ape_SidShowSelTitle"]"><Icon Name="eye" /> @L["Ape_SidShowSel"]</button>
+                    }
                     @* «Applica alle scelte»: dice sempre COSA copierà e DOVE — niente azioni al buio. *@
                     <button class="btn ghost" disabled="@(!CanApply(true))" @onclick="() => ApplyToSelected(true)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(true)</button>
                     <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selSid.Count == 0)" @onclick="ClearSidSelection">✕</button>
@@ -112,17 +117,40 @@
                                         <input class="in-fix" list="@NavaidDatalist.DefaultId" @bind="e.FixOverride" @bind:after="() => TouchImported(e)" placeholder="@e.Fix" aria-label="@L["Ape_FixToVerify"]" />
                                         <label class="ic-app" title="@(string.Format(L["Ape_AliasTitle"].Value, e.Fix))"><input type="checkbox" @bind="e.CreateAlias" @bind:after="() => TouchImported(e)" /> @L["Ape_Alias"]</label>
                                     }
+                                    else if (Editing && PersistOverrides is not null)
+                                    {
+                                        @* Il parser ha trovato il punto da solo, ma può aver sbagliato (LIRF: «SIV» è
+                                           SOSIV, non SIVIL). Si corregge qui, con conferma: vedi FixCambiato. *@
+                                        <input class="in-fix @UnknownFixClass(e.FixEdit)" list="@NavaidDatalist.DefaultId" @bind="e.FixEdit" @bind:after="() => FixCambiato(e)"
+                                               placeholder="@e.Fix" aria-label="@L["Ape_PointFix"]" title="@(e.FixOverridden ? string.Format(L["Ape_SourceValueTitle"].Value, e.Fix) : UnknownFixTitle(e.FixEdit))" />
+                                        @if (e.FixOverridden) { <span class="fix-edited" title="@(string.Format(L["Ape_SourceValueTitle"].Value, e.Fix))"><Icon Name="pencil" Size="12" /></span> }
+                                    }
                                     else
                                     {
                                         @if (e.NeedsReview) { <span title="@L["Ape_FixToVerify"]" class="fix-warn"><Icon Name="warning" Size="12" /></span> }
-                                        <b>@(string.IsNullOrWhiteSpace(e.FixOverride) ? e.Fix : e.FixOverride)</b>
+                                        <b>@ShownFix(e)</b>
+                                        @if (e.FixOverridden) { <span class="fix-edited" title="@(string.Format(L["Ape_SourceValueTitle"].Value, e.Fix))"><Icon Name="pencil" Size="12" /></span> }
                                     }
                                 </td>
                                 @* Il doppio clic sta sulle celle NON scrivibili: dentro un campo il
                                    doppio clic seleziona la parola, ed è il gesto di chi sta scrivendo. *@
                                 <td class="col-sid dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@e.Name</td>
                                 <td class="col-rwy dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Runway) ? "—" : e.Runway)</td>
-                                <td class="col-trans dbl-pick" title="@L["Ape_DblSameTransTitle"]" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.Transition) ? "—" : e.Transition)</td>
+                                @if (Editing && PersistOverrides is not null)
+                                {
+                                    @* In modifica la transition è un campo, quindi il doppio clic «stessa transition»
+                                       resta al tasto della barra, come per il punto delle righe da verificare. *@
+                                    <td class="col-trans">
+                                        <input class="in-fix @UnknownFixClass(e.TransitionEdit)" list="@NavaidDatalist.DefaultId" @bind="e.TransitionEdit" @bind:after="() => TransitionCambiata(e)"
+                                               placeholder="@(e.Transition ?? "—")" aria-label="@L["Ape_Transition"]"
+                                               title="@(e.TransitionOverridden ? string.Format(L["Ape_SourceValueTitle"].Value, e.Transition ?? "—") : UnknownFixTitle(e.TransitionEdit))" />
+                                        @if (e.TransitionOverridden) { <span class="fix-edited" title="@(string.Format(L["Ape_SourceValueTitle"].Value, e.Transition ?? "—"))"><Icon Name="pencil" Size="12" /></span> }
+                                    </td>
+                                }
+                                else
+                                {
+                                    <td class="col-trans dbl-pick" title="@(e.TransitionOverridden ? string.Format(L["Ape_SourceValueTitle"].Value, e.Transition ?? "—") : L["Ape_DblSameTransTitle"].Value)" @ondblclick="() => PickSameTrans(e)">@(string.IsNullOrWhiteSpace(e.SavedTransition ?? e.Transition) ? "—" : (e.SavedTransition ?? e.Transition))@if (e.TransitionOverridden) { <span class="fix-edited"><Icon Name="pencil" Size="12" /></span> }</td>
+                                }
                                 <td class="col-type dbl-pick" title="@L["Ape_DblSameFixTitle"]" @ondblclick="() => PickSameFix(e)">@(string.IsNullOrWhiteSpace(e.Type) ? "—" : e.Type)</td>
                                 <td class="col-climb">
                                     @if (Editing)
@@ -189,7 +217,8 @@
                                     else { <span>@(e.Priority?.ToString() ?? "—")</span> }
                                 </td>
                                 <td class="col-pub">
-                                    @if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                    @if (e.IsHidden) { <span class="pill grey" title="@L["Ape_HiddenTitle"]"><Icon Name="eye-off" Size="11" /> @L["Ape_Hidden"]</span> }
+                                    else if (e.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
                                     else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, e.PublishFromCycle))"><Icon Name="clock" Size="11" /> @e.PublishFromCycle</span> }
                                 </td>
                             </tr>
@@ -226,6 +255,8 @@
                 <button type="button" class="btn ghost" disabled="@(mview.Count == 0)" @onclick="() => ToggleSelectAllManual(mview)">@(mview.Count > 0 && mview.All(_selManual.Contains) ? L["Ape_SidUnselectAll"] : L["Ape_SidSelectAll"])</button>
                 <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, false)" title="@L["Ape_PickSameFixTitle"]">@L["Ape_PickSameFix"]</button>
                 <button class="btn ghost" disabled="@(_src is null || _src.Imported)" @onclick="() => PickSameFromBar(false, true)" title="@L["Ape_PickSameTransTitle"]">@L["Ape_PickSameTrans"]</button>
+                <button class="btn ghost" disabled="@(!Editing || _selManual.Count == 0)" @onclick="() => NascondiManuali(true)" title="@L["Ape_SidHideSelTitle"]"><Icon Name="eye-off" /> @L["Ape_SidHideSel"]</button>
+                <button class="btn ghost" disabled="@(!Editing || !_selManual.Any(x => x.IsHidden))" @onclick="() => NascondiManuali(false)" title="@L["Ape_SidShowSelTitle"]"><Icon Name="eye" /> @L["Ape_SidShowSel"]</button>
                 <button class="btn ghost" disabled="@(!CanApply(false))" @onclick="() => ApplyToSelected(false)" title="@L["Ape_ApplyTitle"]">⤓ @ApplyLabel(false)</button>
                 <button class="btn ghost" title="@L["Apt_Deselect"]" aria-label="@L["Apt_Deselect"]" disabled="@(_selManual.Count == 0)" @onclick="() => _selManual.Clear()">✕</button>
             </div>
@@ -328,7 +359,8 @@
                                oggi una riga a mano è pubblica appena si pubblica il documento, e la
                                colonna lo dice; se la regola cambia, qui non c'è niente da riscrivere. *@
                             <td class="col-pub">
-                                @if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
+                                @if (s.IsHidden) { <span class="pill grey" title="@L["Ape_HiddenTitle"]"><Icon Name="eye-off" Size="11" /> @L["Ape_Hidden"]</span> }
+                                else if (s.IsPublicNow) { <span class="pill green">@L["Ape_Public"]</span> }
                                 else { <span class="pill future" title="@(string.Format(L["Ape_AutoPublishTitle"].Value, s.PublishFromCycle))"><Icon Name="clock" Size="11" /> @s.PublishFromCycle</span> }
                             </td>
                             <td class="col-act">
@@ -395,6 +427,14 @@
     /// <summary>Scrive UNA riga importata. ⚠️ Una per volta e non in blocco: così un guasto su una riga non
     /// porta con sé le altre, e il componente sa esattamente quali togliere dalle «non salvate».</summary>
     [Parameter, EditorRequired] public Func<ImportedSidEdit, Task> PersistImported { get; set; } = default!;
+
+    /// <summary>Scrive punto e transition corretti a mano di UNA riga importata (<see cref="ImportedSidEdit.FixEdit"/>,
+    /// <see cref="ImportedSidEdit.TransitionEdit"/>). Senza, i due campi restano in sola lettura.</summary>
+    [Parameter] public Func<ImportedSidEdit, Task>? PersistOverrides { get; set; }
+
+    /// <summary>Nasconde (<c>true</c>) o rimostra le righe importate date, in una scrittura sola. Senza, i due
+    /// tasti non ci sono.</summary>
+    [Parameter] public Func<IReadOnlyList<ImportedSidEdit>, bool, Task>? SetImportedHidden { get; set; }
 
     /// <summary>La guardia della pagina: badge, errori tradotti, rete di sicurezza. Ritorna se è andata.</summary>
     [Parameter, EditorRequired] public Func<Func<Task>, Task<bool>> RunGuarded { get; set; } = default!;
@@ -573,7 +613,7 @@
         {
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
             InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-            Priority = s.Priority,
+            Priority = s.Priority, IsHidden = s.IsHidden,
         };
         Manual.Insert(i < 0 ? Manual.Count : i + 1, copy);
         _sidManualSearch = "";   // rendi visibile la nuova riga anche se un filtro era attivo
@@ -625,7 +665,88 @@
         else { foreach (var r in rows) { _selManual.Add(r); } }
     }
     private void PickSameFix(ImportedSidEdit e) =>
-        PickGroup(ImportedView().Where(x => string.Equals(x.Fix, e.Fix, OIC)).Select(x => x.Id).ToList());
+        PickGroup(ImportedView().Where(x => string.Equals(ShownFix(x), ShownFix(e), OIC)).Select(x => x.Id).ToList());
+
+    /// <summary>Il punto come lo si vede: quello risolto per le righe da verificare, altrimenti quello salvato
+    /// (corretto a mano o di sorgente).</summary>
+    private static string ShownFix(ImportedSidEdit e) =>
+        e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride) ? e.FixOverride!
+        : string.IsNullOrWhiteSpace(e.SavedFix) ? e.Fix : e.SavedFix!;
+
+    private static string? Canonico(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim().ToUpperInvariant();
+
+    /// <summary>
+    /// Il punto di una riga importata è cambiato. Tornare al valore di sorgente (o svuotare il campo) scrive senza
+    /// domandare; <b>sostituire</b> quel che il parser ha trovato chiede conferma, perché la correzione sopravvive
+    /// ai reimport e un tasto sfuggito resterebbe pubblicato.
+    ///
+    /// <para>⚠️ Stesso valore di quello salvato = niente: il browser può consegnare lo stesso <c>change</c> due
+    /// volte (alla scelta del suggerimento e all'uscita dal campo), e la seconda volta non deve ridomandare.</para>
+    /// </summary>
+    private Task FixCambiato(ImportedSidEdit e) => CorreggiCampo(e, fix: true);
+
+    /// <inheritdoc cref="FixCambiato"/>
+    private Task TransitionCambiata(ImportedSidEdit e) => CorreggiCampo(e, fix: false);
+
+    private async Task CorreggiCampo(ImportedSidEdit e, bool fix)
+    {
+        if (PersistOverrides is null) return;
+        var sorgente = fix ? e.Fix : e.Transition;
+        var nuovo = Canonico(fix ? e.FixEdit : e.TransitionEdit) ?? Canonico(sorgente);
+        var salvato = Canonico(fix ? e.SavedFix : e.SavedTransition) ?? Canonico(sorgente);
+
+        void Scrivi(string? v) { if (fix) { e.FixEdit = v; } else { e.TransitionEdit = v; } }
+
+        if (string.Equals(nuovo, salvato, StringComparison.Ordinal)) { Scrivi(fix ? e.SavedFix : e.SavedTransition); return; }
+
+        var torna = string.Equals(nuovo, Canonico(sorgente), StringComparison.Ordinal);
+        if (!torna)
+        {
+            var chiave = fix ? "Ape_SidFixOverrideConfirm" : "Ape_SidTransOverrideConfirm";
+            if (!await Conferma(L[chiave, e.Name, sorgente ?? "—", nuovo ?? "—"].Value))
+            {
+                Scrivi(fix ? e.SavedFix : e.SavedTransition);
+                return;
+            }
+        }
+
+        Scrivi(nuovo);
+        var ok = await RunGuarded(() => PersistOverrides(e));
+        if (ok)
+        {
+            if (fix) { e.SavedFix = nuovo; } else { e.SavedTransition = nuovo; }
+        }
+        else
+        {
+            Scrivi(fix ? e.SavedFix : e.SavedTransition);
+        }
+    }
+
+    /// <summary>Nasconde o rimostra le importate scelte, in una scrittura sola. La selezione si svuota: il gesto è
+    /// finito, come «Pubblica scelte».</summary>
+    private Task NascondiImportate(bool nascondi) => RunGuarded(async () =>
+    {
+        var bersagli = Imported.Where(e => _selSid.Contains(e.Id) && e.IsHidden != nascondi).ToList();
+        if (SetImportedHidden is null || bersagli.Count == 0) return;
+
+        await SetImportedHidden(bersagli, nascondi);
+        foreach (var e in bersagli) { e.IsHidden = nascondi; }
+        _selSid.Clear();
+        _lastSelIdx = null;
+        Informa(Plural(bersagli.Count, nascondi ? "Ape_SidHiddenN" : "Ape_SidShownN", bersagli.Count));
+    });
+
+    /// <summary>Nasconde o rimostra le manuali scelte: sono una riga del buffer come le altre, e si salvano con
+    /// tutte le manuali.</summary>
+    private async Task NascondiManuali(bool nascondi)
+    {
+        var bersagli = _selManual.Where(s => s.IsHidden != nascondi).ToList();
+        if (bersagli.Count == 0) return;
+        foreach (var s in bersagli) { s.IsHidden = nascondi; }
+        _selManual.Clear();
+        await Sporca();
+        Informa(Plural(bersagli.Count, nascondi ? "Ape_SidHiddenN" : "Ape_SidShownN", bersagli.Count));
+    }
     private void PickSameFixManual(SidEdit s) =>
         PickGroupManual(ManualView().Where(x => string.Equals(x.Fix ?? "", s.Fix ?? "", OIC)).ToList());
     private void PickSameFromBar(bool imported, bool byTransition)

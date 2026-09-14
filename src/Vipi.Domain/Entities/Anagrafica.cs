@@ -718,6 +718,26 @@ public class AirportSid
     public bool ForcePublished { get; set; }
     /// <summary>Fix non risolto automaticamente dal parser (prefisso troncato irregolare): da completare a mano.</summary>
     public bool NeedsFixReview { get; set; }
+
+    /// <summary>
+    /// Nascosta al pubblico per decisione dello staff. La riga resta nell'editor e sopravvive al reimport (per
+    /// StableKey); la derivazione la salta, quindi con la sezione Live sparisce subito e con la sezione
+    /// congelata alla prossima release.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
+    /// Il punto scritto a mano su una riga IMPORTATA che il parser aveva risolto da solo, ma sbagliando (su LIRF
+    /// «SIV» è SOSIV e non SIVIL). ⚠️ Colonna a parte e non una sovrascrittura di <see cref="Fix"/>: il valore di
+    /// sorgente serve al reimport per riconoscere la riga, e a chi guarda l'editor per sapere che cosa si è
+    /// corretto. Null = vale quello della sorgente.
+    /// </summary>
+    public string? FixOverride { get; set; }
+
+    /// <summary>La transition scritta a mano su una riga importata; null = vale quella della sorgente. ⚠️ Stessa
+    /// ragione di <see cref="FixOverride"/>, più una: il reimport confronta la transition di sorgente per decidere
+    /// se la SID è una revisione nuova, e una transition corretta a mano la farebbe sembrare nuova a ogni giro.</summary>
+    public string? TransitionOverride { get; set; }
 }
 
 /// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"). Globale.</summary>

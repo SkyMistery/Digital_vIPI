@@ -48,8 +48,15 @@ public sealed record SidRow(int Id, string? Runway, string Fix, string Name, str
     string? InitialClimb, string? Type, string? Cat, string? Wtc, string? Condition,
     bool IsImported = false, int? Priority = null, string? StableKey = null,
     string? SourceAiracCycle = null, bool ForcePublished = false, bool NeedsFixReview = false,
-    bool InitialClimbByApp = false)
+    bool InitialClimbByApp = false, bool IsHidden = false,
+    string? FixOverride = null, string? TransitionOverride = null)
 {
+    /// <summary>Il punto che si PUBBLICA: quello corretto a mano, se c'è, altrimenti quello di sorgente.</summary>
+    public string EffectiveFix => string.IsNullOrWhiteSpace(FixOverride) ? Fix : FixOverride!.Trim();
+
+    /// <summary>La transition che si PUBBLICA: quella corretta a mano, se c'è, altrimenti quella di sorgente.</summary>
+    public string? EffectiveTransition => string.IsNullOrWhiteSpace(TransitionOverride) ? Transition : TransitionOverride!.Trim();
+
     /// <summary>
     /// La riga è pubblica al ciclo AIRAC indicato? Manuali sempre; importate se forzate o se il ciclo
     /// indicato ha <b>raggiunto</b> quello da cui la riga è in vigore.

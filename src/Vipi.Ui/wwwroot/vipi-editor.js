@@ -154,6 +154,35 @@
         });
     }
 
+    // ---- Suggerimento scelto da un <datalist>: vale SUBITO, non all'uscita dal campo --------------------
+    //
+    // ⚠️ Segnalato dal campo il 14 settembre 2026: scrivendo a mano il punto di una SID «devo cliccare più
+    // volte sul suggerimento perché vada». I campi con `list=` sono legati con `@bind`, cioè sul `change`.
+    // Quando si sceglie una voce dall'elenco il browser scrive il valore e manda un `input` di tipo
+    // `insertReplacementText`; il `change`, se il campo ha ancora il fuoco, può arrivare solo all'uscita. Fino
+    // ad allora il server non sa niente: il campo resta segnato «punto sconosciuto», niente si salva, e chi
+    // guarda riprova col suggerimento — finché un clic altrove fa uscire dal campo e il valore «va».
+    // Qui la scelta dall'elenco diventa un `change` subito. Solo per quel tipo di `input` e solo se il valore
+    // è davvero una voce dell'elenco: chi scrive a mano continua a salvare all'uscita, come prima.
+    // ⚠️ Se il browser manda anche il suo `change` all'uscita, il valore è lo stesso: chi riceve deve
+    // ignorare un valore invariato (lo fanno l'editor SID e i salvataggi, che sono idempotenti).
+    if (!window.__vipiDatalistPick) {
+        window.__vipiDatalistPick = true;
+        document.addEventListener('input', function (e) {
+            var el = e.target;
+            if (!el || el.tagName !== 'INPUT' || !el.list) return;
+            if (e.inputType && e.inputType !== 'insertReplacementText') return;
+            var v = el.value;
+            var voci = el.list.options;
+            for (var i = 0; i < voci.length; i++) {
+                if (voci[i].value === v) {
+                    el.dispatchEvent(new Event('change', { bubbles: true }));
+                    return;
+                }
+            }
+        }, true);
+    }
+
     // Scroll a un'ancora lasciando spazio per la barra sticky (altezza misurata a runtime).
     window.vipiScrollTo = function (id) {
         var el = document.getElementById(id);

@@ -50,7 +50,8 @@ public sealed class EfAirportRepository : IAirportRepository
         var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
             .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
-                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp))
+                x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp,
+                x.IsHidden, x.FixOverride, x.TransitionOverride))
             .ToListAsync(ct);
 
         // I minimi LVP: zero o una riga. L'assenza e' un fatto — «nessuno li ha dichiarati» — e non si
@@ -270,6 +271,7 @@ public sealed class EfAirportRepository : IAirportRepository
                 // La priorità fra SID dello stesso punto vale anche per le righe a mano: la colonna esisteva
                 // già (tabella unica con le importate), ma qui non veniva scritta e si perdeva a ogni salvataggio.
                 Priority = r.Priority,
+                IsHidden = r.IsHidden,
                 IsImported = false,
             });
         }
@@ -297,7 +299,8 @@ public sealed class EfAirportRepository : IAirportRepository
         foreach (var x in priorRows)
             prior.TryAdd(x.StableKey!,
                 new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
-                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp));
+                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp,
+                    x.IsHidden, x.FixOverride, x.TransitionOverride));
 
         _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
 
@@ -333,6 +336,9 @@ public sealed class EfAirportRepository : IAirportRepository
                 // Arricchimenti editoriali sovrapposti a mano: sopravvivono al reimport (la sorgente non li fornisce).
                 InitialClimb = p?.InitialClimb, InitialClimbByApp = p?.InitialClimbByApp ?? false,
                 Cat = p?.Cat, Wtc = p?.Wtc, Condition = p?.Condition,
+                // Decisioni dello staff sulla riga: nasconderla, correggerne punto e transition. Come gli
+                // arricchimenti, la sorgente non le conosce e un reimport non deve disfarle.
+                IsHidden = p?.IsHidden ?? false, FixOverride = p?.FixOverride, TransitionOverride = p?.TransitionOverride,
             });
         }
         await _db.SaveChangesAsync(ct);
@@ -348,7 +354,35 @@ public sealed class EfAirportRepository : IAirportRepository
     // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
     private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
         string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type,
-        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp);
+        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp,
+        bool IsHidden, string? FixOverride, string? TransitionOverride);
+
+    public async Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default)
+    {
+        var id = await AirportIdAsync(icao, ct);
+        var ids = sidIds.Distinct().ToList();
+        // ⚠️ Filtrate per SCALO oltre che per id: il lock garantito dal service è quello di questo ICAO, e un id
+        // di un altro aeroporto non deve poter passare di qui.
+        var righe = await _db.AirportSids
+            .Where(x => x.AirportId == id && x.IsImported && ids.Contains(x.Id))
+            .ToListAsync(ct);
+        foreach (var s in righe) s.IsHidden = hidden;
+        await _db.SaveChangesAsync(ct);
+        return righe.Count;
+    }
+
+    public async Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
+    {
+        var id = await AirportIdAsync(icao, ct);
+        var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.AirportId == id && x.IsImported, ct);
+        if (s is null) return;
+        // Uguale alla sorgente = nessuna correzione: si torna a seguire la sorgente, anche quando cambierà.
+        var fix = Blank(fixOverride)?.ToUpperInvariant();
+        s.FixOverride = fix is null || string.Equals(fix, s.Fix, StringComparison.OrdinalIgnoreCase) ? null : fix;
+        var trans = Blank(transitionOverride)?.ToUpperInvariant();
+        s.TransitionOverride = trans is null || string.Equals(trans, s.Transition, StringComparison.OrdinalIgnoreCase) ? null : trans;
+        await _db.SaveChangesAsync(ct);
+    }
 
     public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)

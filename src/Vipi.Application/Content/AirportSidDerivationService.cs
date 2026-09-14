@@ -81,12 +81,14 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
         var cycle = string.IsNullOrWhiteSpace(atCycle) ? _airac.GetCycle(DateTime.UtcNow) : atCycle!.Trim();
         // I Sids arrivano già ordinati per Order dal repo; l'OrderBy stabile lo preserva come ultimo criterio a parità
         // di FIX e priorità. Le importate compaiono dal ciclo da cui valgono (o se forzate): IsPublicAt.
+        // Nascosta dallo staff = fuori, qualunque sia il ciclo o la forzatura. E il punto e la transition sono
+        // quelli PUBBLICATI: la correzione a mano, se c'è, prima della sorgente.
         var rows = data.Sids
-            .Where(s => s.IsPublicAt(cycle, _airac))
-            .OrderBy(s => s.Fix, StringComparer.OrdinalIgnoreCase)
+            .Where(s => !s.IsHidden && s.IsPublicAt(cycle, _airac))
+            .OrderBy(s => s.EffectiveFix, StringComparer.OrdinalIgnoreCase)
             .ThenBy(s => s.Priority ?? int.MaxValue)
             .Select(s => new AirportSidRowView(
-                Dash(s.Runway), s.Fix, s.Name, Dash(s.Transition), Climb(s.InitialClimb, s.InitialClimbByApp),
+                Dash(s.Runway), s.EffectiveFix, s.Name, Dash(s.EffectiveTransition), Climb(s.InitialClimb, s.InitialClimbByApp),
                 Dash(s.Type), Dash(s.Cat), Dash(s.Wtc), Dash(s.Condition)))
             .ToList();
         return new AirportSidView(rows);

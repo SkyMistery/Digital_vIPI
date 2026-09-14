@@ -3387,6 +3387,9 @@
 :where(.vipi-root) .struct .res-table.sid-edit .in-fix{width:64px}
 :where(.vipi-root) .struct .res-table.sid-edit .ic-app{white-space:nowrap}
 :where(.vipi-root) .struct .res-table.sid-edit .fix-warn{color:var(--warn-ink);margin-right:2px}
+/* Punto o transition corretti a mano su una SID importata: la matita dice che il valore non e' quello della
+   sorgente, e il `title` dice quale era. */
+:where(.vipi-root) .struct .res-table.sid-edit .fix-edited{color:var(--ivao-lightblue);margin-left:3px;cursor:help;vertical-align:middle}
 /* Punto che il catalogo del sectorfile non conosce: si tinge il CAMPO, che non costa un pixel di colonna.
    L'ombra interna fa leggere il bordo come doppio senza toccare la scatola (box-sizing: border-box e' gia'
    attivo qui sopra, quindi un bordo piu' spesso mangerebbe la larghezza utile invece di aggiungerla).
@@ -3418,12 +3421,14 @@
    sotto quella soglia scorre il riquadro, non si taglia niente. --- */
 /* 1020 = le colonne fisse (902) più un pavimento di ~118px per Condition: sotto quella soglia scorre il
    riquadro (66px a 1600 con indice e rail; il tasto ⤢ li azzera e Condition sale a ~590px). */
-:where(.vipi-root) .sid-imported{min-width:1040px}
+:where(.vipi-root) .sid-imported{min-width:1080px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-chk,:where(.vipi-root) .struct .res-table.sid-imported td.col-chk{width:28px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-fix,:where(.vipi-root) .struct .res-table.sid-imported td.col-fix{width:146px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-sid,:where(.vipi-root) .struct .res-table.sid-imported td.col-sid{width:111px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-rwy,:where(.vipi-root) .struct .res-table.sid-imported td.col-rwy{width:46px}
-:where(.vipi-root) .struct .res-table.sid-imported th.col-trans,:where(.vipi-root) .struct .res-table.sid-imported td.col-trans{width:61px}
+:where(.vipi-root) .struct .res-table.sid-imported th.col-trans,:where(.vipi-root) .struct .res-table.sid-imported td.col-trans{width:100px}
+/* In modifica la transition importata è un campo (correzione a mano): stessa misura del punto, 64px. */
+:where(.vipi-root) .struct .res-table.sid-imported td.col-trans .in-fix{width:64px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-type,:where(.vipi-root) .struct .res-table.sid-imported td.col-type{width:53px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-climb,:where(.vipi-root) .struct .res-table.sid-imported td.col-climb{width:144px}
 :where(.vipi-root) .struct .res-table.sid-imported th.col-cat,:where(.vipi-root) .struct .res-table.sid-imported td.col-cat{width:101px}

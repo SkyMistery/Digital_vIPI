@@ -87,6 +87,8 @@ public sealed class SidEdit
     public string? Cat; public string? Wtc; public string? Condition; public int? Priority;
     // Stato di pubblicazione calcolato al caricamento con la regola del dominio (SidRow.IsPublicAt).
     public bool IsPublicNow = true; public string PublishFromCycle = "—";
+    /// <summary>Nascosta al pubblico: resta qui e si salva con le altre.</summary>
+    public bool IsHidden;
 }
 /// <summary>Riga in scrittura.</summary>
 public sealed class ImportedSidEdit
@@ -96,6 +98,33 @@ public sealed class ImportedSidEdit
     public string? FixOverride; public bool CreateAlias;
     // Arricchimenti editoriali sovrapposti alla riga di sorgente (persistiti con la riga, preservati al reimport).
     public string? InitialClimb; public bool InitialClimbByApp; public string? Cat; public string? Wtc; public string? Condition;
+
+    /// <summary>Nascosta al pubblico per decisione dello staff.</summary>
+    public bool IsHidden;
+
+    /// <summary>
+    /// Punto e transition come si PUBBLICANO: la correzione a mano se c'è, altrimenti la sorgente
+    /// (<see cref="Fix"/>, <see cref="Transition"/>). Sono i valori dei campi; <c>Saved*</c> è quel che sta in
+    /// archivio, e serve a non richiedere conferma — e a non riscrivere — quando il campo non è cambiato davvero
+    /// (il browser può mandare due volte lo stesso valore: una alla scelta del suggerimento, una all'uscita).
+    /// </summary>
+    public string? FixEdit; public string? TransitionEdit;
+    public string? SavedFix; public string? SavedTransition;
+
+    /// <summary>Carica i quattro campi di sopra da una riga d'archivio.</summary>
+    public ImportedSidEdit WithOverrides(string? fixOverride, string? transitionOverride)
+    {
+        SavedFix = FixEdit = string.IsNullOrWhiteSpace(fixOverride) ? Fix : fixOverride.Trim();
+        SavedTransition = TransitionEdit = string.IsNullOrWhiteSpace(transitionOverride) ? Transition : transitionOverride.Trim();
+        return this;
+    }
+
+    /// <summary>Il punto è corretto a mano (diverso da quello di sorgente).</summary>
+    public bool FixOverridden => !string.IsNullOrWhiteSpace(SavedFix) && !string.Equals(SavedFix, Fix, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>La transition è corretta a mano (diversa da quella di sorgente).</summary>
+    public bool TransitionOverridden => !string.IsNullOrWhiteSpace(SavedTransition)
+        && !string.Equals(SavedTransition, Transition ?? "", StringComparison.OrdinalIgnoreCase);
 }
 
 

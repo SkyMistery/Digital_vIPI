@@ -68,6 +68,13 @@ public interface IAirportRepository : IAirportProfileReader
     /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.</summary>
     Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
+
+    /// <summary>Nasconde (o rimostra) al pubblico le SID IMPORTATE indicate, dello scalo indicato. Le manuali
+    /// passano da <see cref="SaveSidsAsync"/>, che le riscrive tutte. Ritorna quante righe ha toccato.</summary>
+    Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default);
+
+    /// <summary>Punto e transition corretti a mano su UNA SID importata. Null o vuoto = torna a valere la sorgente.</summary>
+    Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceSectorIds, CancellationToken ct = default);
 
     /// <summary>

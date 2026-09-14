@@ -2115,6 +2115,19 @@
   <data name="Ape_SidSaveFailedNOne" xml:space="preserve"><value> 1 non salvata (dettaglio nei log).</value></data>
   <data name="Ape_SidPublishedN" xml:space="preserve"><value>Pubblicate {0} SID.</value></data>
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Pubblicata 1 SID.</value></data>
+  <data name="Ape_SidHideSel" xml:space="preserve"><value>Nascondi scelte</value></data>
+  <data name="Ape_SidHideSelTitle" xml:space="preserve"><value>Nasconde al pubblico le SID scelte: con la sezione Live spariscono subito, con la sezione congelata alla prossima pubblicazione</value></data>
+  <data name="Ape_SidShowSel" xml:space="preserve"><value>Mostra scelte</value></data>
+  <data name="Ape_SidShowSelTitle" xml:space="preserve"><value>Rende di nuovo visibili al pubblico le SID scelte</value></data>
+  <data name="Ape_SidHiddenN" xml:space="preserve"><value>Nascoste {0} SID. Con la sezione Live spariscono subito; con la sezione congelata alla prossima pubblicazione.</value></data>
+  <data name="Ape_SidHiddenNOne" xml:space="preserve"><value>Nascosta 1 SID. Con la sezione Live sparisce subito; con la sezione congelata alla prossima pubblicazione.</value></data>
+  <data name="Ape_SidShownN" xml:space="preserve"><value>Di nuovo visibili {0} SID.</value></data>
+  <data name="Ape_SidShownNOne" xml:space="preserve"><value>Di nuovo visibile 1 SID.</value></data>
+  <data name="Ape_Hidden" xml:space="preserve"><value>nascosta</value></data>
+  <data name="Ape_HiddenTitle" xml:space="preserve"><value>Nascosta al pubblico dallo staff</value></data>
+  <data name="Ape_SourceValueTitle" xml:space="preserve"><value>Corretto a mano. Nella sorgente: {0}</value></data>
+  <data name="Ape_SidFixOverrideConfirm" xml:space="preserve"><value>La sorgente indica {1} come punto della SID {0}. Sostituirlo con {2}? La correzione resta anche ai prossimi import.</value></data>
+  <data name="Ape_SidTransOverrideConfirm" xml:space="preserve"><value>La sorgente indica {1} come transition della SID {0}. Sostituirla con {2}? La correzione resta anche ai prossimi import.</value></data>
   <data name="Ape_PreviewHelpAria" xml:space="preserve"><value>Aiuto sull'anteprima bozza</value></data>
   <data name="Ape_PreviewHelpBody" xml:space="preserve"><value>Apre la &lt;b&gt;bozza&lt;/b&gt; in una nuova scheda (&lt;code&gt;?as=draft&lt;/code&gt;): la vedi come sarà, ma &lt;b&gt;non&lt;/b&gt; è ancora pubblica. Controlla sempre qui prima di &lt;b&gt;pubblicare&lt;/b&gt;.</value></data>
   <data name="Ape_DragToReorder" xml:space="preserve"><value>Trascina per riordinare</value></data>

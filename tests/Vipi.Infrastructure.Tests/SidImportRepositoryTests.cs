@@ -188,6 +188,62 @@ public class SidImportRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Nascosta_E_Corretta_A_Mano_Sopravvivono_Al_Reimport()
+    {
+        // LIRF, segnalato dal campo: il parser risolve «SIV» in SIVIL, ed è SOSIV.
+        var riga = new ImportedSid("25", "SIVIL", "SIV5A", "ESINO", "RNAV", "LIRF|SIVIL|A|ESINO|25", NeedsFixReview: false);
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { riga }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+
+        await _repo.SetImportedSidOverridesAsync("LIRF", imp.Id, "sosiv", "ELKAP");
+        Assert.Equal(1, await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { imp.Id }, hidden: true));
+
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { riga }, "2607");
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.True(dopo.IsHidden);
+        Assert.Equal("SIVIL", dopo.Fix);                 // la sorgente resta quella
+        Assert.Equal("SOSIV", dopo.EffectiveFix);        // si pubblica la correzione, in maiuscolo
+        Assert.Equal("ELKAP", dopo.EffectiveTransition);
+        // ⚠️ La transition corretta NON fa sembrare la SID una revisione nuova: il ciclo d'entrata resta il primo.
+        Assert.Equal("2606", dopo.SourceAiracCycle);
+    }
+
+    [Fact]
+    public async Task Correzione_Uguale_Alla_Sorgente_Torna_A_Seguire_La_Sorgente()
+    {
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+
+        await _repo.SetImportedSidOverridesAsync("LIRF", imp.Id, "SOSIV", null);
+        await _repo.SetImportedSidOverridesAsync("LIRF", imp.Id, "alaxi", " ");
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Null(dopo.FixOverride);
+        Assert.Null(dopo.TransitionOverride);
+    }
+
+    [Fact]
+    public async Task Nascondere_Non_Tocca_Le_Righe_Di_Un_Altro_Scalo()
+    {
+        var acc = _db.Accs.Single();
+        _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
+        await _db.SaveChangesAsync();
+        await _repo.ReplaceImportedSidsAsync("LIRA", new[] { Imp("ALAX7G", "ALAXI", "LIRA|ALAXI|G|") }, "2606");
+        var altra = (await _repo.LoadAsync("LIRA"))!.Sids.Single();
+
+        Assert.Equal(0, await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { altra.Id }, hidden: true));
+        Assert.False((await _repo.LoadAsync("LIRA"))!.Sids.Single().IsHidden);
+    }
+
+    [Fact]
+    public async Task Manuale_Nascosta_Resta_Nascosta_Dopo_Il_Salvataggio()
+    {
+        await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true) });
+        Assert.True((await _repo.LoadAsync("LIRF"))!.Sids.Single().IsHidden);
+    }
+
+    [Fact]
     public async Task SaveManualSids_Does_Not_Touch_Imported()
     {
         await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");

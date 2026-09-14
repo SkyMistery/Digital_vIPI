@@ -191,6 +191,117 @@ public class AirportSidsEditorTests : TestContext
         Assert.Empty(cut.FindAll("tr.row-sel"));
     }
 
+    // ---------------------------------------------------------------------------------------------------
+    // Correggere a mano punto e transition di una importata; nasconderla al pubblico (14 settembre 2026)
+    // ---------------------------------------------------------------------------------------------------
+
+    private IRenderedComponent<AirportSidsEditor> RendiConCorrezioni(
+        List<ImportedSidEdit> importate, List<ImportedSidEdit> scritte, List<string> domande, bool risposta = true,
+        List<(IReadOnlyList<ImportedSidEdit> Righe, bool Nascoste)>? nascosti = null) =>
+        RenderComponent<AirportSidsEditor>(p => p
+            .Add(x => x.Imported, importate)
+            .Add(x => x.Manual, new List<SidEdit>())
+            .Add(x => x.RunwayIdents, new[] { "25" })
+            .Add(x => x.Editing, true)
+            .Add(x => x.PersistImported, _ => Task.CompletedTask)
+            .Add(x => x.PersistOverrides, riga => { scritte.Add(riga); return Task.CompletedTask; })
+            .Add(x => x.SetImportedHidden, (righe, n) => { nascosti?.Add((righe.ToList(), n)); return Task.CompletedTask; })
+            .Add(x => x.ConfirmAsync, d => { domande.Add(d); return Task.FromResult(risposta); })
+            .Add(x => x.RunGuarded, async (Func<Task> a) => { await a(); return true; }));
+
+    private static ImportedSidEdit Siv() =>
+        new ImportedSidEdit { Id = 7, Fix = "SIVIL", Name = "SIV5A", Runway = "25", Transition = "ESINO" }.WithOverrides(null, null);
+
+    [Fact]
+    public void Sostituire_il_punto_trovato_dal_parser_chiede_conferma_e_scrive_una_volta()
+    {
+        var riga = Siv();
+        var scritte = new List<ImportedSidEdit>();
+        var domande = new List<string>();
+        var cut = RendiConCorrezioni(new List<ImportedSidEdit> { riga }, scritte, domande);
+
+        cut.Find("table.sid-imported input[aria-label=Ape_PointFix]").Change("sosiv");
+
+        Assert.Single(domande);
+        Assert.Single(scritte);
+        Assert.Equal("SOSIV", riga.FixEdit);
+        Assert.Equal("SOSIV", riga.SavedFix);
+        Assert.True(riga.FixOverridden);
+
+        // ⚠️ Lo stesso valore una seconda volta (il `change` del browser all'uscita dal campo, dopo quello del
+        // suggerimento): niente domanda, niente scrittura.
+        cut.Find("table.sid-imported input[aria-label=Ape_PointFix]").Change("SOSIV");
+        Assert.Single(domande);
+        Assert.Single(scritte);
+    }
+
+    [Fact]
+    public void Conferma_negata_rimette_il_punto_di_prima_e_non_scrive()
+    {
+        var riga = Siv();
+        var scritte = new List<ImportedSidEdit>();
+        var cut = RendiConCorrezioni(new List<ImportedSidEdit> { riga }, scritte, new List<string>(), risposta: false);
+
+        cut.Find("table.sid-imported input[aria-label=Ape_PointFix]").Change("SOSIV");
+
+        Assert.Empty(scritte);
+        Assert.Equal("SIVIL", riga.FixEdit);
+        Assert.False(riga.FixOverridden);
+    }
+
+    [Fact]
+    public void Tornare_alla_sorgente_non_chiede_conferma()
+    {
+        var riga = new ImportedSidEdit { Id = 7, Fix = "SIVIL", Name = "SIV5A", Runway = "25", Transition = "ESINO" }
+            .WithOverrides("SOSIV", null);
+        var scritte = new List<ImportedSidEdit>();
+        var domande = new List<string>();
+        var cut = RendiConCorrezioni(new List<ImportedSidEdit> { riga }, scritte, domande);
+
+        cut.Find("table.sid-imported input[aria-label=Ape_PointFix]").Change("");
+
+        Assert.Empty(domande);
+        Assert.Single(scritte);
+        Assert.False(riga.FixOverridden);
+    }
+
+    [Fact]
+    public void La_transition_si_corregge_con_la_stessa_conferma()
+    {
+        var riga = Siv();
+        var scritte = new List<ImportedSidEdit>();
+        var domande = new List<string>();
+        var cut = RendiConCorrezioni(new List<ImportedSidEdit> { riga }, scritte, domande);
+
+        cut.Find("table.sid-imported input[aria-label=Ape_Transition]").Change("ELKAP");
+
+        Assert.Equal("Ape_SidTransOverrideConfirm", Assert.Single(domande));
+        Assert.Equal("ELKAP", Assert.Single(scritte).TransitionEdit);
+        Assert.True(riga.TransitionOverridden);
+    }
+
+    [Fact]
+    public void Nascondi_scelte_scrive_le_righe_scelte_e_le_segna_nascoste()
+    {
+        var importate = new List<ImportedSidEdit>
+        {
+            Siv(),
+            new ImportedSidEdit { Id = 8, Fix = "ALAXI", Name = "ALAX7G", Runway = "25" }.WithOverrides(null, null),
+        };
+        var nascosti = new List<(IReadOnlyList<ImportedSidEdit> Righe, bool Nascoste)>();
+        var cut = RendiConCorrezioni(importate, new List<ImportedSidEdit>(), new List<string>(), nascosti: nascosti);
+
+        cut.FindAll("button.btn.ghost").First(b => b.TextContent.Contains("Ape_SidSelectAll")).Click();
+        cut.FindAll("button.btn.ghost").First(b => b.TextContent.Contains("Ape_SidHideSel")).Click();
+
+        var (righe, nascoste) = Assert.Single(nascosti);
+        Assert.True(nascoste);
+        Assert.Equal(new[] { 7, 8 }, righe.Select(r => r.Id).OrderBy(i => i));
+        Assert.All(importate, r => Assert.True(r.IsHidden));
+        Assert.Equal(2, cut.FindAll("table.sid-imported td.col-pub .pill.grey").Count);
+        Assert.Empty(cut.FindAll("tr.row-sel"));
+    }
+
     [Fact]
     public void Quando_la_pagina_ricarica_la_selezione_si_azzera()
     {

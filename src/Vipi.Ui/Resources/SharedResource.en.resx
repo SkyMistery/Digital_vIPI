@@ -2110,6 +2110,19 @@
   <data name="Ape_SidSaveFailedNOne" xml:space="preserve"><value> 1 not saved (details in logs).</value></data>
   <data name="Ape_SidPublishedN" xml:space="preserve"><value>Published {0} SIDs.</value></data>
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Published 1 SID.</value></data>
+  <data name="Ape_SidHideSel" xml:space="preserve"><value>Hide picked</value></data>
+  <data name="Ape_SidHideSelTitle" xml:space="preserve"><value>Hides the picked SIDs from the public: with a Live section they disappear at once, with a frozen section at the next publication</value></data>
+  <data name="Ape_SidShowSel" xml:space="preserve"><value>Show picked</value></data>
+  <data name="Ape_SidShowSelTitle" xml:space="preserve"><value>Makes the picked SIDs visible to the public again</value></data>
+  <data name="Ape_SidHiddenN" xml:space="preserve"><value>Hid {0} SIDs. With a Live section they disappear at once; with a frozen section at the next publication.</value></data>
+  <data name="Ape_SidHiddenNOne" xml:space="preserve"><value>Hid 1 SID. With a Live section it disappears at once; with a frozen section at the next publication.</value></data>
+  <data name="Ape_SidShownN" xml:space="preserve"><value>{0} SIDs visible again.</value></data>
+  <data name="Ape_SidShownNOne" xml:space="preserve"><value>1 SID visible again.</value></data>
+  <data name="Ape_Hidden" xml:space="preserve"><value>hidden</value></data>
+  <data name="Ape_HiddenTitle" xml:space="preserve"><value>Hidden from the public by the staff</value></data>
+  <data name="Ape_SourceValueTitle" xml:space="preserve"><value>Corrected by hand. In the source: {0}</value></data>
+  <data name="Ape_SidFixOverrideConfirm" xml:space="preserve"><value>The source gives {1} as the point of SID {0}. Replace it with {2}? The correction survives future imports.</value></data>
+  <data name="Ape_SidTransOverrideConfirm" xml:space="preserve"><value>The source gives {1} as the transition of SID {0}. Replace it with {2}? The correction survives future imports.</value></data>
   <data name="Ape_PreviewHelpAria" xml:space="preserve"><value>Help on the draft preview</value></data>
   <data name="Ape_PreviewHelpBody" xml:space="preserve"><value>Opens the &lt;b&gt;draft&lt;/b&gt; in a new tab (&lt;code&gt;?as=draft&lt;/code&gt;): you see it as it will look, but it is &lt;b&gt;not&lt;/b&gt; public yet. Always check here before &lt;b&gt;publishing&lt;/b&gt;.</value></data>
   <data name="Ape_DragToReorder" xml:space="preserve"><value>Drag to reorder</value></data>

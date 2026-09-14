@@ -622,6 +622,7 @@ else
             Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
             InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
             Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
+            IsHidden = s.IsHidden,
         }).ToList();
         _imported = _data.Sids.Where(s => s.IsImported)
             .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
@@ -631,7 +632,8 @@ else
                 Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
                 IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
                 InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-            }).ToList();
+                IsHidden = s.IsHidden,
+            }.WithOverrides(s.FixOverride, s.TransitionOverride)).ToList();
         // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che
         // se ne accorge da sé quando i buffer cambiano (doc 14 §3g).
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
@@ -784,7 +786,7 @@ else
     private Task SaveSids() => AirportSaveGate.Sids(_sids)
         ? Guarded(() => Profile.SaveSidsAsync(_icao,
             _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
-                s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp)).ToList()))
+                s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp, IsHidden: s.IsHidden)).ToList()))
         : Task.CompletedTask;
 
     private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
@@ -846,6 +848,12 @@ else
             e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;   // riflette subito la forzatura senza reload totale
     }
+
+    private Task PersistSidOverrides(ImportedSidEdit e) =>
+        Profile.SetImportedSidOverridesAsync(_icao, e.Id, e.FixEdit, e.TransitionEdit);
+
+    private Task SetSidsHidden(IReadOnlyList<ImportedSidEdit> righe, bool nascoste) =>
+        Profile.SetImportedSidsHiddenAsync(_icao, righe.Select(r => r.Id).ToList(), nascoste);
 
     // --- Arricchimenti multi-select su SID importate: CAT per VREF, WTC per scia; salvati come CSV nell'ordine canonico ---
         // Toggle di un token; ricompone la CSV nell'ordine canonico (order) così la resa è stabile a prescindere dai click.
@@ -1094,6 +1102,7 @@ else
                            Wide="_wide" WideChanged="v => _wide = v"
                            ManualChanged="SaveSids" OnReimport="ReimportSids"
                            PersistImported="PersistImported" RunGuarded="Guarded"
+                           PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
                            ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
     };
 

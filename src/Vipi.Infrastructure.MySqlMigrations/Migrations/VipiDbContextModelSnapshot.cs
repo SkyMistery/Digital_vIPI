@@ -900,6 +900,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("FixOverride")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<bool>("ForcePublished")
                         .HasColumnType("tinyint(1)");
 
@@ -908,6 +912,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<bool>("InitialClimbByApp")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsHidden")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsImported")
@@ -940,6 +947,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<string>("Transition")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TransitionOverride")
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 

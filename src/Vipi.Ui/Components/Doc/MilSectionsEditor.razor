@@ -622,6 +622,7 @@ else
             Runway = x.Runway, Fix = x.Fix, Name = x.Name, Transition = x.Transition, InitialClimb = x.InitialClimb,
             InitialClimbByApp = x.InitialClimbByApp, Type = x.Type, Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
             Priority = x.Priority, IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
+            IsHidden = x.IsHidden,
         }).ToList();
         _sidsImportate = dati.Sids.Where(x => x.IsImported)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
@@ -632,7 +633,8 @@ else
                 IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
                 InitialClimb = x.InitialClimb, InitialClimbByApp = x.InitialClimbByApp,
                 Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
-            }).ToList();
+                IsHidden = x.IsHidden,
+            }.WithOverrides(x.FixOverride, x.TransitionOverride)).ToList();
     }
 
     /// <summary>
@@ -870,6 +872,7 @@ else
                                    Wide="_sidLarghe" WideChanged="v => _sidLarghe = v"
                                    ManualChanged="SalvaSid" OnReimport="ReimportaSid"
                                    PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
+                                   PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
                                    ConfirmAsync="Conferma" />
                 break;
         }
@@ -965,7 +968,7 @@ else
         ? _shell.GuardedAsync(() => Scalo.SaveSidsAsync(_icao,
             _sids.Select(x => new SidRow(0, x.Runway, x.Fix ?? "", x.Name ?? "", x.Transition, x.InitialClimb,
                 x.Type, x.Cat, x.Wtc, x.Condition, Priority: x.Priority,
-                InitialClimbByApp: x.InitialClimbByApp)).ToList()))
+                InitialClimbByApp: x.InitialClimbByApp, IsHidden: x.IsHidden)).ToList()))
         : Task.CompletedTask;
 
     /// <summary>⚠️ Il carry fix a mano crea anche l'ALIAS quando glielo si chiede: senza, la stessa
@@ -982,6 +985,12 @@ else
             e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
         e.IsPublicNow = e.IsPublicNow || e.ForcePublished;
     }
+
+    private Task ScriviCorrezioniSid(ImportedSidEdit e) =>
+        Scalo.SetImportedSidOverridesAsync(_icao, e.Id, e.FixEdit, e.TransitionEdit);
+
+    private Task NascondiSid(IReadOnlyList<ImportedSidEdit> righe, bool nascoste) =>
+        Scalo.SetImportedSidsHiddenAsync(_icao, righe.Select(r => r.Id).ToList(), nascoste);
 
     // ---- il pannello «Settori ATC» e il re-import (11 settembre 2026) ------------------------------------
     // Gli stessi gesti dell'editor d'aeroporto, sullo stesso servizio e sotto lo stesso lock: su un campo senza

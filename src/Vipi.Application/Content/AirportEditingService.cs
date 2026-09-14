@@ -54,6 +54,12 @@ public interface IAirportEditingService
     /// WTC, condition) di UNA riga SID importata (ACC-gated).</summary>
     Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default);
+
+    /// <summary>Nasconde o rimostra al pubblico le SID importate indicate (ACC-gated). Ritorna quante ne ha toccate.</summary>
+    Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default);
+
+    /// <summary>Corregge a mano punto e transition di una SID importata (ACC-gated). Null = vale la sorgente.</summary>
+    Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default);
     Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default);
 
     /// <summary>RenderMode della sezione SID nel documento corrente (doc 10 §S4c): Live (default) = derivata al view;
@@ -222,6 +228,18 @@ public sealed class AirportEditingService : IAirportEditingService
     {
         await EnsureLockMineAsync(icao, ct);
         await _repo.UpdateImportedSidAsync(sidId, priority, forcePublished, resolvedFix, initialClimb, initialClimbByApp, cat, wtc, condition, ct);
+    }
+
+    public async Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default)
+    {
+        await EnsureLockMineAsync(icao, ct);
+        return sidIds.Count == 0 ? 0 : await _repo.SetImportedSidsHiddenAsync(Norm(icao), sidIds, hidden, ct);
+    }
+
+    public async Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
+    {
+        await EnsureLockMineAsync(icao, ct);
+        await _repo.SetImportedSidOverridesAsync(Norm(icao), sidId, fixOverride, transitionOverride, ct);
     }
 
     public async Task SaveFrequencyLinksAsync(string icao, IReadOnlyList<int> sourceFrequencyIds, CancellationToken ct = default)

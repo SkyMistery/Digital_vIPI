@@ -150,6 +150,8 @@ public class AirportLockGuardTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveSidsAsync("LIPZ", Array.Empty<SidRow>()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveFrequencyLinksAsync("LIPZ", Array.Empty<int>()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.UpdateImportedSidAsync("LIPZ", 1, null, false, null, null, false, null, null, null));
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidsHiddenAsync("LIPZ", new[] { 1 }, true));
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidOverridesAsync("LIPZ", 1, "SOSIV", null));
     }
 
     // ---- Il re-import: basta che il lock non sia di un ALTRO ------------------------------------------

@@ -64,6 +64,36 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Nascosta_Esce_Anche_Se_Forzata_E_La_Correzione_Si_Pubblica()
+    {
+        await _repo.SaveSidsAsync("LIRF", new[]
+        {
+            new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true),
+        });
+        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        {
+            Imp("SIV5A", "SIVIL", "LIRF|SIVIL|A|"),
+            Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|"),
+        }, "2606");
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids;
+        var siv = sids.Single(s => s.Name == "SIV5A");
+        var alax = sids.Single(s => s.Name == "ALAX7G");
+
+        await _repo.UpdateImportedSidAsync(alax.Id, priority: null, forcePublished: true, resolvedFix: null,
+            initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
+        await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { alax.Id }, hidden: true);
+        await _repo.SetImportedSidOverridesAsync("LIRF", siv.Id, "SOSIV", "ESINO");
+
+        var riga = Assert.Single((await _sut.DeriveAsync("LIRF")).Rows);
+        Assert.Equal("SOSIV", riga.Fix);
+        Assert.Equal("ESINO", riga.Transition);
+
+        // Rimostrata: torna, senza bisogno di altro.
+        await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { alax.Id }, hidden: false);
+        Assert.Equal(new[] { "ALAXI", "SOSIV" }, (await _sut.DeriveAsync("LIRF")).Rows.Select(r => r.Fix).ToArray());
+    }
+
+    [Fact]
     public async Task Unknown_Airport_Is_Empty()
     {
         Assert.Empty((await _sut.DeriveAsync("ZZZZ")).Rows);
