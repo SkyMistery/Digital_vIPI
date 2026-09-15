@@ -271,6 +271,51 @@ public class WeatherParsingTests
         Assert.NotNull(RunwaySuggestion.EvaluateRules(rules, 250, 8, false));   // traverso 8 ≤ 10 → sì
     }
 
+    // --- ExplainRules: il banco di prova dell'editor. Tailwind e vento traverso PER PISTA, e perché la regola cade ---
+
+    [Fact] // componenti su ogni pista della regola (DEP poi ARR, una volta sola), tailwind mai negativo
+    public void Explain_Gives_Components_Per_Runway()
+    {
+        // vento 070/10: su 16 quasi traverso da sinistra, su 34 idem; 07 headwind pieno, 25 tailwind pieno.
+        var rules = new[] { Rule("25,07", "07", maxTail: 5) };
+        var e = RunwaySuggestion.ExplainRules(rules, 70, 10, false).Single();
+
+        Assert.Equal(new[] { "25", "07" }, e.Runways.Select(p => p.Ident));
+        Assert.Equal((10, 0), (e.Runways[0].TailwindKt, e.Runways[0].CrosswindKt));   // 25: tailwind pieno
+        Assert.Equal((0, 0), (e.Runways[1].TailwindKt, e.Runways[1].CrosswindKt));    // 07: headwind, non «-10»
+        Assert.Equal(10, e.WorstTailwindKt);
+        Assert.Equal(RuleVerdict.Tailwind, e.Verdict);
+    }
+
+    [Fact] // il primo vincolo che cade è quello che si dice; la superficie viene prima del vento
+    public void Explain_Says_The_First_Failing_Constraint()
+    {
+        var rules = new[]
+        {
+            Rule("16", "16", maxTail: 5, surface: RunwaySurface.Wet),   // asciutto: cade sulla superficie
+            Rule("16", "16", maxTail: 5, maxCross: 10),                  // 250/15: vento traverso 15 > 10
+            Rule("34", "34", maxTail: 5),                                 // si applica
+            Rule("16", "16", maxTail: 20),                                // si applicherebbe anche lei
+        };
+        var e = RunwaySuggestion.ExplainRules(rules, 250, 15, false);
+
+        Assert.Equal(new[] { RuleVerdict.Surface, RuleVerdict.Crosswind, RuleVerdict.Applies, RuleVerdict.Applies },
+                     e.Select(x => x.Verdict));
+        Assert.Equal(15, e[1].WorstCrosswindKt);
+    }
+
+    [Fact] // EvaluateRules è la prima regola che ExplainRules dà per applicabile: un motore solo
+    public void Evaluate_Is_First_Applicable_Of_Explain()
+    {
+        var rules = new[] { Rule("16", "16", maxTail: 0), Rule("34", "34", maxTail: 0), Rule("07", "07", maxTail: 30) };
+        foreach (var (dir, kt) in new[] { (160, 12), (340, 12), (70, 25), (250, 25), (0, 0) })
+        {
+            var prima = RunwaySuggestion.ExplainRules(rules, dir, kt, false)
+                .FirstOrDefault(x => x.Verdict == RuleVerdict.Applies)?.RuleIndex;
+            Assert.Equal(prima, RunwaySuggestion.EvaluateRules(rules, dir, kt, false)?.RuleIndex);
+        }
+    }
+
     [Fact] // condizione superficie: asciutta vs bagnata
     public void Rule_Surface_Dry_Or_Wet()
     {

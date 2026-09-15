@@ -216,7 +216,7 @@ else
         await InvokeAsync(StateHasChanged);
     }
 
-    /// <summary>Piste consigliate dal profilo: le regole se ci sono, altrimenti il miglior vento di testa.</summary>
+    /// <summary>Piste consigliate dal profilo: le regole se ci sono, altrimenti il miglior headwind.</summary>
     private (string? Dep, string? Arr) PisteConsigliate(string icao, ParsedMetar m)
     {
         var profilo = _piste.GetValueOrDefault(icao);

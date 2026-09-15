@@ -2589,6 +2589,19 @@
 :where(.vipi-root) .rule-card:hover{ border-color: var(--line-ocean-soft); }
 :where(.vipi-root) .rule-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 :where(.vipi-root) .rule-ord{ font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .03em;color:var(--brand-ink); }
+/* Banco di prova: come lavora ogni regola col vento di prova (tailwind e vento traverso per pista). */
+:where(.vipi-root) .rule-prova{ display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
+:where(.vipi-root) .rule-prova-regola{ border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); font-size: 12.5px; }
+:where(.vipi-root) .rule-prova-regola.vince{ border-color: var(--ivao-blue); box-shadow: 0 0 0 1px var(--ivao-blue); }
+:where(.vipi-root) .rule-prova-testa{ display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; margin-bottom: 6px; }
+:where(.vipi-root) .rule-prova-testa .ok{ color: var(--ok-ink); font-weight: 600; }
+:where(.vipi-root) .rule-prova-testa .no{ color: var(--danger-ink); }
+:where(.vipi-root) .rule-prova-tab{ width: 100%; border-collapse: collapse; }
+:where(.vipi-root) .rule-prova-tab th{ text-align: left; font-weight: 600; font-size: 11.5px; padding: 2px 4px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+:where(.vipi-root) .rule-prova-tab th .muted{ text-transform: none; letter-spacing: 0; font-weight: 400; }
+:where(.vipi-root) .rule-prova-tab td:first-child{ white-space: nowrap; }
+:where(.vipi-root) .rule-prova-tab td{ padding: 2px 4px; font-variant-numeric: tabular-nums; }
+:where(.vipi-root) .rule-prova-tab td.oltre{ color: var(--danger-ink); font-weight: 700; }
 :where(.vipi-root) .rule-grid{ display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px 14px; }
 :where(.vipi-root) .rule-grid label{ display: flex; flex-direction: column; gap: 4px; }
 :where(.vipi-root) .rule-grid > label, :where(.vipi-root) .rule-rwys > div > .muted, :where(.vipi-root) .rule-days > .muted{

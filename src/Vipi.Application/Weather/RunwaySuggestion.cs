@@ -30,7 +30,23 @@ public sealed record RunwayRuleEval(string DepRunways, string ArrRunways, string
 public sealed record RunwayRuleResult(string Dep, string Arr, string? Note, int RuleIndex = 0, string? RuleName = null);
 
 /// <summary>
-/// Sceglie la pista col massimo componente di testa-vento. Le estremità arrivano come ident ("16L","07","34R").
+/// Perché una regola si applica o no, nell'ordine in cui il motore controlla: il PRIMO vincolo che non passa.
+/// <see cref="Applies"/> = passano tutti (la regola vince se nessuna prima di lei si applica).
+/// </summary>
+public enum RuleVerdict { Applies, Surface, Time, Day, Parity, Season, Tailwind, Crosswind }
+
+/// <summary>Il vento proiettato su una pista di una regola: tailwind (0 se il vento arriva di fronte) e vento traverso, in kt.</summary>
+public sealed record RunwayWindComponents(string Ident, int TailwindKt, int CrosswindKt);
+
+/// <summary>
+/// Una regola passata al motore, con tutto quel che serve a capirla: le componenti su OGNI sua pista, le peggiori
+/// (quelle confrontate con le soglie) e l'esito.
+/// </summary>
+public sealed record RuleExplanation(int RuleIndex, RuleVerdict Verdict,
+    IReadOnlyList<RunwayWindComponents> Runways, int WorstTailwindKt, int WorstCrosswindKt);
+
+/// <summary>
+/// Sceglie la pista col massimo headwind. Le estremità arrivano come ident ("16L","07","34R").
 /// Vento calmo/non noto → nessun suggerimento (nota esplicita).
 /// </summary>
 public static partial class RunwaySuggestion
@@ -112,8 +128,8 @@ public static partial class RunwaySuggestion
 
         var note = best.Headwind < 0
             ? $"Attenzione: vento in coda su {best.Ident} ({-best.Headwind} kt). Nessuna pista favorevole."
-            : $"Testa-vento {best.Headwind} kt su {best.Ident}" +
-              (best.Crosswind > 0 ? $", traverso {best.Crosswind} kt" : "") +
+            : $"Headwind {best.Headwind} kt su {best.Ident}" +
+              (best.Crosswind > 0 ? $", vento traverso {best.Crosswind} kt" : "") +
               (parallels.Count >= 2 ? $". Arrivi {arrIdent}, partenze {depIdent}." : ".");
 
         return new RunwaySuggestionResult(best, ranked, note, depIdent, arrIdent);
@@ -131,32 +147,58 @@ public static partial class RunwaySuggestion
     public static RunwayRuleResult? EvaluateRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir, int windKt, bool wet,
         DateTime? nowUtc = null)
     {
+        var vincente = ExplainRules(rules, windDir, windKt, wet, nowUtc).FirstOrDefault(e => e.Verdict == RuleVerdict.Applies);
+        if (vincente is null) return null;
+
+        var r = rules[vincente.RuleIndex];
+        var dep = string.IsNullOrWhiteSpace(r.DepRunways) ? r.ArrRunways : r.DepRunways;
+        var arr = string.IsNullOrWhiteSpace(r.ArrRunways) ? r.DepRunways : r.ArrRunways;
+        return new RunwayRuleResult(dep.Trim(), arr.Trim(),
+            string.IsNullOrWhiteSpace(r.Note) ? null : r.Note!.Trim(), vincente.RuleIndex,
+            string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim());
+    }
+
+    /// <summary>
+    /// Ogni regola, e perché si applica o no: le componenti del vento su ciascuna delle sue piste e il primo
+    /// vincolo che non passa.
+    ///
+    /// <para>⚠️ È IL motore, non una sua copia per il banco di prova dell'editor: <see cref="EvaluateRules"/> è
+    /// «la prima di queste che si applica». Una spiegazione scritta a parte potrebbe dire «si applica» su una
+    /// regola che il motore scarta, ed è la cosa peggiore che un banco di prova possa fare.</para>
+    ///
+    /// <para>Le componenti si calcolano SEMPRE, anche quando la regola cade prima (superficie, orario): chi prova
+    /// vuole vedere i numeri comunque. Vento calmo (≤ 2 kt) o senza direzione: zero, come nel confronto.</para>
+    /// </summary>
+    public static IReadOnlyList<RuleExplanation> ExplainRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir,
+        int windKt, bool wet, DateTime? nowUtc = null)
+    {
         // Orari/giorni/stagione AIP sono in ora LOCALE: porto l'istante UTC all'ora locale italiana prima dei confronti.
         var utc = DateTime.SpecifyKind(nowUtc ?? DateTime.UtcNow, DateTimeKind.Utc);
         var now = TimeZoneInfo.ConvertTimeFromUtc(utc, ItalyTimeZone);
         var minOfDay = now.Hour * 60 + now.Minute;
+        var esiti = new List<RuleExplanation>(rules.Count);
         for (var i = 0; i < rules.Count; i++)
         {
             var r = rules[i];
-            if (!SurfaceMatches(r.Surface, wet)) continue;
-            if (!TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay)) continue;
+            var piste = Components(r, windDir, windKt);
+            var tail = piste.Count == 0 ? 0 : piste.Max(p => p.TailwindKt);
+            var cross = piste.Count == 0 ? 0 : piste.Max(p => p.CrosswindKt);
             // ⚠️ Il giorno da confrontare è quello OPERATIVO, non quello del calendario: vedi GiornoOperativo.
             var giorno = GiornoOperativo(now, minOfDay, r.TimeFromLocalMin, r.TimeToLocalMin);
-            if (!DayOfWeekMatches(r.DaysOfWeekMask, giorno)) continue;
-            if (!ParityMatches(r.DateParity, giorno)) continue;
-            if (!DateInWindow(r.DateFromMonthDay, r.DateToMonthDay, giorno)) continue;
 
-            var (tail, cross) = WorstComponents(r, windDir, windKt);
-            if (tail > r.MaxTailwindKt) continue;
-            if (r.MaxCrosswindKt is int mc && cross > mc) continue;
+            var verdetto =
+                !SurfaceMatches(r.Surface, wet) ? RuleVerdict.Surface
+                : !TimeInWindow(r.TimeFromLocalMin, r.TimeToLocalMin, minOfDay) ? RuleVerdict.Time
+                : !DayOfWeekMatches(r.DaysOfWeekMask, giorno) ? RuleVerdict.Day
+                : !ParityMatches(r.DateParity, giorno) ? RuleVerdict.Parity
+                : !DateInWindow(r.DateFromMonthDay, r.DateToMonthDay, giorno) ? RuleVerdict.Season
+                : tail > r.MaxTailwindKt ? RuleVerdict.Tailwind
+                : r.MaxCrosswindKt is int mc && cross > mc ? RuleVerdict.Crosswind
+                : RuleVerdict.Applies;
 
-            var dep = string.IsNullOrWhiteSpace(r.DepRunways) ? r.ArrRunways : r.DepRunways;
-            var arr = string.IsNullOrWhiteSpace(r.ArrRunways) ? r.DepRunways : r.ArrRunways;
-            return new RunwayRuleResult(dep.Trim(), arr.Trim(),
-                string.IsNullOrWhiteSpace(r.Note) ? null : r.Note!.Trim(), i,
-                string.IsNullOrWhiteSpace(r.Name) ? null : r.Name!.Trim());
+            esiti.Add(new RuleExplanation(i, verdetto, piste, tail, cross));
         }
-        return null;
+        return esiti;
     }
 
     /// <summary>
@@ -188,31 +230,33 @@ public static partial class RunwaySuggestion
         _ => true,
     };
 
-    /// <summary>Vento in coda e al traverso PEGGIORI (massimi) sulle piste della regola (DEP∪ARR). Vento calmo/ignoto/nessuna pista → (0,0).</summary>
-    private static (int Tail, int Cross) WorstComponents(RunwayRuleEval r, int? windDir, int windKt)
+    /// <summary>
+    /// Tailwind e vento traverso su OGNI pista della regola (DEP poi ARR, ogni ident una volta). Le soglie si
+    /// confrontano coi PEGGIORI di questi. Vento calmo/ignoto → zero su tutte.
+    /// <para>⚠️ Il tailwind è <c>max(0, -headwind)</c>: un vento di fronte non è «tailwind negativo». Il confronto
+    /// con la soglia non cambia (la soglia è ≥ 0), ma a schermo un «-8 kt» in colonna tailwind si leggeva male.</para>
+    /// </summary>
+    private static List<RunwayWindComponents> Components(RunwayRuleEval r, int? windDir, int windKt)
     {
-        if (windDir is not int wd || windKt <= 2) return (0, 0);
-        var headings = Idents(r.ArrRunways).Concat(Idents(r.DepRunways)).ToList();
-        if (headings.Count == 0) return (0, 0);
-        int tail = int.MinValue, cross = 0;
-        foreach (var heading in headings)
+        var piste = Idents(r.DepRunways).Concat(Idents(r.ArrRunways))
+            .DistinctBy(p => p.Ident, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return piste.Select(p =>
         {
-            var rad = AngleDiff(wd, heading) * Math.PI / 180.0;
+            if (windDir is not int wd || windKt <= 2) return new RunwayWindComponents(p.Ident, 0, 0);
+            var rad = AngleDiff(wd, p.Heading) * Math.PI / 180.0;
             var head = (int)Math.Round(windKt * Math.Cos(rad));
-            var c = (int)Math.Round(Math.Abs(windKt * Math.Sin(rad)));
-            if (-head > tail) tail = -head;       // tailwind = -headwind; tieni il peggiore
-            if (c > cross) cross = c;
-        }
-        return (tail, cross);
+            var cross = (int)Math.Round(Math.Abs(windKt * Math.Sin(rad)));
+            return new RunwayWindComponents(p.Ident, Math.Max(0, -head), cross);
+        }).ToList();
     }
 
-    /// <summary>Heading (gradi) delle estremità in un CSV di ident (es. "16L,16R" → [160,160]).</summary>
-    private static List<int> Idents(string? csv) => (csv ?? "")
+    /// <summary>Ident e heading (gradi) delle estremità in un CSV di ident (es. "16L,16R" → [(16L,160),(16R,160)]).</summary>
+    private static IEnumerable<(string Ident, int Heading)> Idents(string? csv) => (csv ?? "")
         .Split(new[] { ',', ' ', '/' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .Select(i => IdentRe().Match(i))
-        .Where(m => m.Success)
-        .Select(m => int.Parse(m.Groups[1].Value) * 10)
-        .ToList();
+        .Select(i => (Ident: i.ToUpperInvariant(), M: IdentRe().Match(i)))
+        .Where(x => x.M.Success)
+        .Select(x => (x.Ident, int.Parse(x.M.Groups[1].Value) * 10));
 
     /// <summary>Vero se l'orario (minuti locali) ricade nella finestra [from,to] (gestisce il wrap notturno, es. 22:00→06:00). Estremi null = nessun vincolo.</summary>
     private static bool TimeInWindow(int? from, int? to, int minOfDay)

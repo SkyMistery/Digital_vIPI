@@ -276,7 +276,7 @@ else
         return _ta is null ? "N/A" : _tlRows[0].Level;
     }
 
-    // ---- Piste suggerite dal profilo (come AeroportoPage): regole se presenti, altrimenti vento di testa ----
+    // ---- Piste suggerite dal profilo (come AeroportoPage): regole se presenti, altrimenti miglior headwind ----
     private (string? Dep, string? Arr) SuggestRwy(ParsedMetar? m)
     {
         if (_profile is null) return (null, null);

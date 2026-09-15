@@ -392,7 +392,7 @@
   <data name="Airport_NoSidsBody" xml:space="preserve"><value>Aggiungile dall'editor aeroporto o importale dal sectorfile.</value></data>
   <data name="Airport_NoFrequencies" xml:space="preserve"><value>Nessuna frequenza per questo aeroporto.</value></data>
   <data name="Airport_NoRunways" xml:space="preserve"><value>Nessuna pista inserita.</value></data>
-  <data name="Airport_RulesLead" xml:space="preserve"><value>Si applica la prima regola le cui condizioni sono soddisfatte; se nessuna si applica, vale la pista col miglior vento di testa.</value></data>
+  <data name="Airport_RulesLead" xml:space="preserve"><value>Si applica la prima regola le cui condizioni sono soddisfatte; se nessuna si applica, vale la pista col miglior headwind.</value></data>
   <data name="Airport_RuleCondition" xml:space="preserve"><value>Condizione</value></data>
   <data name="Airport_NoRules" xml:space="preserve"><value>Nessuna regola: la pista si sceglie col vento.</value></data>
   <data name="Airport_SectionsPanel" xml:space="preserve"><value>Settori ATC</value></data>
@@ -2139,7 +2139,19 @@
   <data name="Ape_TestWindFrom" xml:space="preserve"><value>Vento da (°)</value></data>
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Intensità (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Regola #{0}</value></data>
-  <data name="Ape_TestNoRule" xml:space="preserve"><value>Nessuna regola si applica → ripiego testa-vento:</value></data>
+  <data name="Ape_TestNoRule" xml:space="preserve"><value>Nessuna regola si applica → ripiego sul miglior headwind:</value></data>
+  <data name="Ape_TestColTail" xml:space="preserve"><value>Tailwind</value></data>
+  <data name="Ape_TestColCross" xml:space="preserve"><value>Vento traverso</value></data>
+  <data name="Ape_TestNoRunways" xml:space="preserve"><value>Nessuna pista selezionata.</value></data>
+  <data name="Ape_TestVerdictApplies" xml:space="preserve"><value>si applica</value></data>
+  <data name="Ape_TestVerdictShadowed" xml:space="preserve"><value>si applicherebbe, ma vince la #{0}</value></data>
+  <data name="Ape_TestVerdictSurface" xml:space="preserve"><value>superficie diversa</value></data>
+  <data name="Ape_TestVerdictTime" xml:space="preserve"><value>fuori dalla fascia oraria</value></data>
+  <data name="Ape_TestVerdictDay" xml:space="preserve"><value>giorno non incluso</value></data>
+  <data name="Ape_TestVerdictParity" xml:space="preserve"><value>parità del giorno diversa</value></data>
+  <data name="Ape_TestVerdictSeason" xml:space="preserve"><value>fuori dal periodo</value></data>
+  <data name="Ape_TestVerdictTail" xml:space="preserve"><value>tailwind {0} kt oltre il massimo di {1} kt</value></data>
+  <data name="Ape_TestVerdictCross" xml:space="preserve"><value>vento traverso {0} kt oltre il massimo di {1} kt</value></data>
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>Nessun ente trovato.</value></data>
   <data name="Ape_AlreadyAdded" xml:space="preserve"><value>già aggiunto</value></data>
   <data name="Ape_Linked" xml:space="preserve"><value>collegata</value></data>
@@ -2159,7 +2171,7 @@
   <data name="Ape_PanelSectors" xml:space="preserve"><value>Settori</value></data>
   <data name="Ape_PanelVersions" xml:space="preserve"><value>Versioni</value></data>
   <data name="Ape_RwRulesTitle" xml:space="preserve"><value>Regole scelta pista</value></data>
-  <data name="Ape_RwRulesHelp" xml:space="preserve"><value>Ogni regola: quando le piste indicate hanno &lt;b&gt;vento in coda ≤&lt;/b&gt; la soglia, &lt;b&gt;traverso ≤&lt;/b&gt; la soglia (opzionale) e la &lt;b&gt;superficie&lt;/b&gt; corrisponde, diventano preferenziali per partenze/arrivi. Coda e traverso si calcolano dal vento corrente. Si valutano in &lt;b&gt;ordine&lt;/b&gt;: la prima che si applica vince (metti le più specifiche in alto). Se nessuna si applica, vale la pista con miglior vento di testa.</value></data>
+  <data name="Ape_RwRulesHelp" xml:space="preserve"><value>Ogni regola: quando le piste indicate hanno &lt;b&gt;vento in coda ≤&lt;/b&gt; la soglia, &lt;b&gt;traverso ≤&lt;/b&gt; la soglia (opzionale) e la &lt;b&gt;superficie&lt;/b&gt; corrisponde, diventano preferenziali per partenze/arrivi. Coda e traverso si calcolano dal vento corrente. Si valutano in &lt;b&gt;ordine&lt;/b&gt;: la prima che si applica vince (metti le più specifiche in alto). Se nessuna si applica, vale la pista con miglior headwind.</value></data>
   <data name="Ape_RwRulesHelp2" xml:space="preserve"><value>I chip DEP/ARR elencano le piste del pannello «Piste» in memoria: una pista appena aggiunta lì compare subito, ed è già salvata se la riga è completa.</value></data>
   <data name="Ape_NoRwDefined" xml:space="preserve"><value>nessuna pista definita</value></data>
   <data name="Ape_MaxTail" xml:space="preserve"><value>Coda max (kt)</value></data>

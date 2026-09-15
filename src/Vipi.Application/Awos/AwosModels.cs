@@ -52,7 +52,7 @@ public enum AwosRunwaySource
     Atis,
     /// <summary>Una regola di scelta pista dello scalo.</summary>
     Regola,
-    /// <summary>Il massimo vento di testa, quando non c'è nient'altro.</summary>
+    /// <summary>Il massimo headwind, quando non c'è nient'altro.</summary>
     Vento,
 }
 

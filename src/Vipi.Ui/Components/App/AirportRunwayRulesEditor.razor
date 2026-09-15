@@ -192,6 +192,53 @@
                     @L["Ape_TestNoRule"] @(_ripiego?.Note ?? "—")
                 </div></div>
             }
+
+            @* Come lavora OGNI regola col vento di prova: tailwind e vento traverso su ciascuna delle sue piste,
+               i massimi con cui si confrontano, e il primo vincolo che la fa cadere. Esce dal motore stesso
+               (RunwaySuggestion.ExplainRules), non da un calcolo rifatto qui: se dicessero due cose diverse, il
+               banco di prova mentirebbe proprio su quello che serve a capire. *@
+            @if (_spiegazione.Count > 0)
+            {
+                <div class="rule-prova">
+                    @foreach (var e in _spiegazione)
+                    {
+                        var r = e.RuleIndex < Rows.Count ? Rows[e.RuleIndex] : null;
+                        if (r is null) continue;
+                        <div class="rule-prova-regola @(e.RuleIndex == _vincente?.RuleIndex ? "vince" : "")">
+                            <div class="rule-prova-testa">
+                                <b>#@(e.RuleIndex + 1)@(string.IsNullOrWhiteSpace(r.Name) ? "" : $" · {r.Name}")</b>
+                                <span class="@(e.Verdict == RuleVerdict.Applies ? "ok" : "no")">@Verdetto(e, r)</span>
+                            </div>
+                            @if (e.Runways.Count == 0)
+                            {
+                                <div class="muted">@L["Ape_TestNoRunways"]</div>
+                            }
+                            else
+                            {
+                                <table class="rule-prova-tab">
+                                    <thead>
+                                        <tr>
+                                            <th>RWY</th>
+                                            <th>@L["Ape_TestColTail"] <span class="muted">(max @r.MaxTail kt)</span></th>
+                                            <th>@L["Ape_TestColCross"] <span class="muted">(max @(r.MaxCross is int mc ? $"{mc} kt" : "—"))</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var p in e.Runways)
+                                        {
+                                            <tr>
+                                                <td><b>@p.Ident</b> <span class="muted">@Ruolo(r, p.Ident)</span></td>
+                                                <td class="@(p.TailwindKt > r.MaxTail ? "oltre" : "")">@p.TailwindKt kt</td>
+                                                <td class="@(r.MaxCross is int c && p.CrosswindKt > c ? "oltre" : "")">@p.CrosswindKt kt</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+                    }
+                </div>
+            }
         }
     </div>
 </div>
@@ -223,6 +270,34 @@
     private bool _provaFatta;
     private RunwayRuleResult? _vincente;
     private RunwaySuggestionResult? _ripiego;
+    private IReadOnlyList<RuleExplanation> _spiegazione = Array.Empty<RuleExplanation>();
+
+    /// <summary>L'esito di una regola a parole. Una regola che passa ma viene DOPO la vincente lo dice: altrimenti
+    /// «si applica» su due regole si leggerebbe come «vincono tutt'e due».</summary>
+    private string Verdetto(RuleExplanation e, RuleEdit r) => e.Verdict switch
+    {
+        RuleVerdict.Applies when _vincente is not null && _vincente.RuleIndex != e.RuleIndex
+            => L["Ape_TestVerdictShadowed", _vincente.RuleIndex + 1],
+        RuleVerdict.Applies => L["Ape_TestVerdictApplies"],
+        RuleVerdict.Surface => L["Ape_TestVerdictSurface"],
+        RuleVerdict.Time => L["Ape_TestVerdictTime"],
+        RuleVerdict.Day => L["Ape_TestVerdictDay"],
+        RuleVerdict.Parity => L["Ape_TestVerdictParity"],
+        RuleVerdict.Season => L["Ape_TestVerdictSeason"],
+        RuleVerdict.Tailwind => L["Ape_TestVerdictTail", e.WorstTailwindKt, r.MaxTail],
+        RuleVerdict.Crosswind => L["Ape_TestVerdictCross", e.WorstCrosswindKt, r.MaxCross ?? 0],
+        _ => "",
+    };
+
+    /// <summary>In che veste la pista sta nella regola: DEP, ARR o tutt'e due.</summary>
+    private static string Ruolo(RuleEdit r, string ident) =>
+        (r.Dep.Contains(ident), r.Arr.Contains(ident)) switch
+        {
+            (true, true) => "DEP · ARR",
+            (true, false) => "DEP",
+            (false, true) => "ARR",
+            _ => "",
+        };
 
     private string[] NomiGiorni => new[]
     {
@@ -354,8 +429,9 @@
         var regole = Rows.Select(AirportRuleMapping.ToEval).ToList();
         // ⚠️ Il momento si passa in UTC perché è così che il motore lo vuole, e la conversione la fa LUI:
         // rifarla qui vorrebbe dire due fusi orari nel prodotto, e uno dei due sbagliato prima o poi.
-        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata,
-            RunwaySuggestion.AUtc(_provaQuando));
+        var quando = RunwaySuggestion.AUtc(_provaQuando);
+        _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
+        _spiegazione = RunwaySuggestion.ExplainRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
         _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt) : null;
         _provaFatta = true;
     }
