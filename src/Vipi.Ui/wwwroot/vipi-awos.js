@@ -158,7 +158,9 @@
     testo($('[data-awos="temp"]'), m && m.tempC != null ? String(m.tempC) : '--');
     testo($('[data-awos="dew"]'), m && m.dewpointC != null ? String(m.dewpointC) : '--');
     testo($('[data-awos="tl"]'), vista.transitionLevel || '—');
-    testo($('[data-awos="vis"]'), (m && m.visibility) || '----');
+    // Con più piste la visibilità sta in OGNI blocco (prototipi a 2 e 3 piste): si scrivono tutte, o i
+    // blocchi dopo il primo resterebbero fermi al primo disegno.
+    $$('[data-awos="vis"]').forEach(function (el) { testo(el, (m && m.visibility) || '----'); });
     testo($('[data-awos="trend"]'), (m && m.trend) || '');
     testo($('[data-awos="attiva"]'), rigaAttiva());
     lvp();
@@ -197,12 +199,13 @@
     $$('[data-awos-rvr]').forEach(function (r) { r.classList.toggle('lvp', acceso); });
   }
 
-  // Le righe restano SEMPRE tre: il riquadro non deve cambiare altezza quando il tempo peggiora.
+  // Le righe restano quante ne ha disegnate il server (tre, o quattro per le nubi dei blocchi pista): il
+  // riquadro non deve cambiare altezza quando il tempo peggiora. E si scrivono in OGNI riquadro con quel nome.
   function righe(sel, valori) {
-    var box = $(sel);
-    if (!box) return;
-    var celle = $$('.awos-riga', box);
-    for (var i = 0; i < celle.length; i++) testo(celle[i], valori[i] || '');
+    $$(sel).forEach(function (box) {
+      var celle = $$('.awos-riga', box);
+      for (var i = 0; i < celle.length; i++) testo(celle[i], valori[i] || '');
+    });
   }
 
   function striscia_(i, striscia) {
