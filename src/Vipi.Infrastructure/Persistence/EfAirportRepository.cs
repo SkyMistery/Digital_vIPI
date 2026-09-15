@@ -77,6 +77,7 @@ public sealed class EfAirportRepository : IAirportRepository
         {
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
+            MetarStationIcao = airport.MetarStationIcao,
             TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, Lvp = lvp,
         };
     }
@@ -155,6 +156,13 @@ public sealed class EfAirportRepository : IAirportRepository
             .FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
         a.TransitionAltitudeFt = ta;
         RecomputeDefaultBandLevels(a);
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task SetMetarStationAsync(string icao, string? station, CancellationToken ct = default)
+    {
+        var a = await _db.Airports.FirstOrDefaultAsync(x => x.Icao == icao, ct) ?? throw NotFound(icao);
+        a.MetarStationIcao = station;
         await _db.SaveChangesAsync(ct);
     }
 

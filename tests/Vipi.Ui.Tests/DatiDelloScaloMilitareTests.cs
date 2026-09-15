@@ -77,20 +77,20 @@ public class DatiDelloScaloMilitareTests
     }
 
     /// <summary>
-    /// ⚠️ <b>Il meteo non è un dato dell'aeroporto.</b> È il METAR/TAF live dal NOAA e non si compila in
-    /// nessun editor, nemmeno in quello dell'aeroporto — dove infatti c'è la nota «non c'è nulla da
-    /// compilare». Cadendo nel ramo generico mandava a cambiarlo in una pagina che non può cambiarlo, e
-    /// questo su <b>tutti</b> i campi militari, non solo sui solo militari.
+    /// ⚠️ <b>Il meteo ha il suo ramo.</b> Il bollettino è live dal NOAA e non si compila; dal 15 settembre 2026
+    /// si sceglie però la STAZIONE da cui prenderlo (LIRJ non emette un METAR suo), che è un dato dello scalo —
+    /// quindi segue la regola degli altri: scrivibile qui solo sul campo senza vIPI civile.
     /// </summary>
     [Fact]
-    public void Il_meteo_ha_il_suo_ramo_e_non_manda_a_cambiarlo_altrove()
+    public void Il_meteo_ha_il_suo_ramo_e_la_stazione_segue_la_regola_dello_scalo()
     {
         var sorgente = Militare();
 
         Assert.Matches(@"case ""weather"":", sorgente);
-        // La stessa nota dell'editor d'aeroporto, non una seconda stesura della stessa idea.
-        Assert.Contains("Ape_WeatherBody", sorgente);
-        Assert.Contains("Ape_WeatherBody", Aeroporto());
+        // Lo stesso componente dell'editor d'aeroporto, non una seconda stesura della stessa idea.
+        Assert.Contains("<StazioneMeteoEditor ", sorgente);
+        Assert.Contains("<StazioneMeteoEditor ", Aeroporto());
+        Assert.Contains("Editing=\"false\"", sorgente);
     }
 
     /// <summary>

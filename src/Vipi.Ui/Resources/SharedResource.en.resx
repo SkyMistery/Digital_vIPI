@@ -3481,4 +3481,7 @@
   <data name="ApiKeys_CopyFailed" xml:space="preserve"><value>Copy failed: select it and copy it by hand.</value></data>
   <data name="Audit_Fr_ApiKeyCreate" xml:space="preserve"><value>API key issued ({0})</value></data>
   <data name="Audit_Fr_ApiKeyRevoke" xml:space="preserve"><value>API key revoked</value></data>
+  <data name="Wx_StationLabel" xml:space="preserve"><value>METAR/TAF station</value></data>
+  <data name="Wx_StationHint" xml:space="preserve"><value>Empty = this airport. Enter another ICAO if this field has no METAR of its own: it applies to vIPI, vSOP, vAWOS, runway in use, QNH and LVP.</value></data>
+  <data name="Wx_StationNote" xml:space="preserve"><value>{0} has no METAR of its own: METAR and TAF are those of {1}.</value></data>
 </root>

@@ -115,6 +115,9 @@ public sealed class AirportData
     public required string Name { get; init; }
     public required string AccCode { get; init; }
     public int? TransitionAltitudeFt { get; init; }
+
+    /// <inheritdoc cref="Vipi.Domain.Entities.Airport.MetarStationIcao"/>
+    public string? MetarStationIcao { get; init; }
     public required IReadOnlyList<TlRow> TransitionLevels { get; init; }
     public required IReadOnlyList<RunwayRow> Runways { get; init; }
     public required IReadOnlyList<RunwayRuleRow> Rules { get; init; }

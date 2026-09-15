@@ -152,6 +152,43 @@ public class AirportLockGuardTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditConflictException>(() => s.UpdateImportedSidAsync("LIPZ", 1, null, false, null, null, false, null, null, null));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidsHiddenAsync("LIPZ", new[] { 1 }, true));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidOverridesAsync("LIPZ", 1, "SOSIV", null));
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SetMetarStationAsync("LIPZ", "LIPH"));
+    }
+
+    /// <summary>
+    /// La stazione METAR di riferimento (15 settembre 2026, LIRJ): quattro lettere, maiuscole; vuota o uguale
+    /// allo scalo torna al suo ICAO. E chi la scrive invalida la copia in memoria del provider meteo.
+    /// </summary>
+    [Fact]
+    public async Task StazioneMeteo_Si_Normalizza_Si_Valida_E_Invalida_La_Copia()
+    {
+        var doc = await ApriEditorAsync();
+        await LockA(doc, Io);
+        var stazioni = new StazioniFinte();
+        var authz = new AuthzFinta(Io);
+        var repo = new EfAirportRepository(_db, new EfMediaMaintenance(_db));
+        var s = new AirportEditingService(repo, authz, new NienteDirectory(), new NienteDetails(),
+            new EfImportPolicyStore(_db), new AirportLockGuard(repo, _editing, authz), stazioni);
+
+        async Task<string?> Scritta() => (await _db.Airports.AsNoTracking().FirstAsync(a => a.Icao == "LIPZ")).MetarStationIcao;
+
+        await s.SetMetarStationAsync("LIPZ", " liph ");
+        Assert.Equal("LIPH", await Scritta());
+        Assert.Equal(1, stazioni.Invalidazioni);
+
+        await s.SetMetarStationAsync("LIPZ", "LIPZ");
+        Assert.Null(await Scritta());
+
+        await Assert.ThrowsAsync<Vipi.Application.Aor.ValidationException>(() => s.SetMetarStationAsync("LIPZ", "LI1"));
+        await s.SetMetarStationAsync("LIPZ", "");
+        Assert.Null(await Scritta());
+    }
+
+    private sealed class StazioniFinte : IStazioniMeteo
+    {
+        public int Invalidazioni { get; private set; }
+        public Task<string?> RiferimentoDiAsync(string icao, CancellationToken ct = default) => Task.FromResult<string?>(null);
+        public void Invalida() => Invalidazioni++;
     }
 
     // ---- Il re-import: basta che il lock non sia di un ALTRO ------------------------------------------

@@ -608,6 +608,7 @@ else
         _linkable = await Profile.ListLinkableFrequenciesAsync();
         _policy = await Profile.GetImportPolicyAsync();
         _ta = _data.TransitionAltitudeFt;
+        _stazioneMeteo = _data.MetarStationIcao;
         _tls = _data.TransitionLevels.Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
         _rwys = _data.Runways.Select(r => new RwEdit
         {
@@ -1083,11 +1084,17 @@ else
     /// può congelare alla release, e chi la trova senza comandi si chiederebbe se manca qualcosa.</summary>
     private RenderFragment WeatherNote => __builder =>
     {
-        <div class="callout info" style="margin:0">
-            <span class="cic"><Icon Name="cloud" Size="18" /></span>
-            <div><p class="ct">@L["Ape_WeatherTitle"]</p>@L["Ape_WeatherBody"]</div>
-        </div>
+        <StazioneMeteoEditor Icao="@_icao" Value="@_stazioneMeteo" Editing="_shell.IsEditing" ValueChanged="StazioneMeteoCambiata" />
     };
+
+    /// <summary>La stazione METAR di riferimento dello scalo (15 settembre 2026): nel buffer e subito in archivio.</summary>
+    private async Task StazioneMeteoCambiata(string? stazione)
+    {
+        _stazioneMeteo = stazione;
+        await Guarded(() => Profile.SetMetarStationAsync(_icao, stazione));
+    }
+
+    private string? _stazioneMeteo;
 
     /// <summary>Regole di scelta pista, con il tester «prova vento» che valuta i buffer correnti senza salvare.</summary>
         /// <summary>Frequenze del catalogo (sola lettura) più i link a enti esterni, che si scelgono qui.</summary>

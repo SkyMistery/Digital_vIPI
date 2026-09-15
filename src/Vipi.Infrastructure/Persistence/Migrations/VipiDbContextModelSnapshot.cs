@@ -378,6 +378,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<double?>("MagneticVariation")
                         .HasColumnType("REAL");
 
+                    b.Property<string>("MetarStationIcao")
+                        .HasMaxLength(4)
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("MilDocumentId")
                         .HasColumnType("INTEGER");
 

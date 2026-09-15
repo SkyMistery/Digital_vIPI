@@ -122,7 +122,8 @@ public sealed class AwosService : IAwosService
             Attiva: attiva,
             Atis: atis,
             Lvp: ValutaLvp(scalo.Lvp, metar, giaInVigore),
-            AsOf: DateTimeOffset.UtcNow), AwosOutcome.Ok);
+            AsOf: DateTimeOffset.UtcNow,
+            MetarStation: metarDiProva is null ? bollettino?.Stazione : null), AwosOutcome.Ok);
     }
 
     public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default) =>

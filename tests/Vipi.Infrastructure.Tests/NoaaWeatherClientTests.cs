@@ -72,6 +72,53 @@ public class NoaaWeatherClientTests
         Assert.All(results, r => Assert.Contains("22008KT", r.Metar));
     }
 
+    /// <summary>Handler che risponde col METAR della stazione CHIESTA (dal parametro <c>ids</c>).</summary>
+    private sealed class PerStazioneHandler : HttpMessageHandler
+    {
+        public List<string> Chieste { get; } = new();
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            var q = request.RequestUri!.Query;
+            var ids = System.Text.RegularExpressions.Regex.Match(q, "ids=([A-Za-z]{4})").Groups[1].Value.ToUpperInvariant();
+            lock (Chieste) Chieste.Add(ids);
+            if (!request.RequestUri.AbsolutePath.Contains("metar", StringComparison.OrdinalIgnoreCase))
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent($$"""[{"rawOb":"{{ids}} 151250Z 22008KT CAVOK 24/12 Q1018"}]""",
+                    System.Text.Encoding.UTF8, "application/json"),
+            });
+        }
+    }
+
+    private sealed class StazioniFisse : Vipi.Application.Abstractions.IStazioniMeteo
+    {
+        public Task<string?> RiferimentoDiAsync(string icao, CancellationToken ct = default) =>
+            Task.FromResult(icao == "LIRJ" ? "LIRS" : null);
+        public void Invalida() { }
+    }
+
+    /// <summary>
+    /// LIRJ non emette un METAR suo (15 settembre 2026): il decoratore chiede quello della stazione di
+    /// riferimento, e lo restituisce col nome dello SCALO e la stazione accanto — chi lo mostra deve poterlo dire.
+    /// </summary>
+    [Fact]
+    public async Task Lo_Scalo_Con_Stazione_Di_Riferimento_Riceve_Il_Metar_Di_Quella()
+    {
+        var handler = new PerStazioneHandler();
+        var meteo = new MeteoConStazioneDiRiferimento(Build(handler), new StazioniFisse());
+
+        var lirj = await meteo.GetAsync("lirj");
+        Assert.Equal("LIRJ", lirj.Icao);
+        Assert.Equal("LIRS", lirj.Stazione);
+        Assert.StartsWith("LIRS ", lirj.Metar);
+        Assert.DoesNotContain("LIRJ", handler.Chieste);
+
+        var lirf = await meteo.GetAsync("LIRF");
+        Assert.Null(lirf.Stazione);
+        Assert.StartsWith("LIRF ", lirf.Metar);
+    }
+
     [Fact]
     public async Task Il_Secondo_Accesso_Usa_La_Cache()
     {

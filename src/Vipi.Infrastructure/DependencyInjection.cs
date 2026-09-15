@@ -233,7 +233,11 @@ public static class DependencyInjection
         // client: prendono la `HttpClient` dalla fabbrica a ogni chiamata.
         services.AddSingleton<Vipi.Application.Abstractions.IMetarFallback, Ivao.IvaoMetarClient>();
         services.AddSingleton<Vipi.Application.Abstractions.IMetarFallback, Weather.VatsimMetarClient>();
-        services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.NoaaWeatherClient>();
+        // ⚠️ Chi chiede il meteo riceve il DECORATORE: la stazione di riferimento dello scalo (LIRJ → un'altra)
+        // si applica in un posto solo, davanti al client NOAA con la sua cache (15 settembre 2026).
+        services.AddSingleton<Weather.NoaaWeatherClient>();
+        services.AddSingleton<Vipi.Application.Abstractions.IStazioniMeteo, Weather.StazioniMeteoDaAnagrafica>();
+        services.AddSingleton<Vipi.Application.Abstractions.IWeatherProvider, Weather.MeteoConStazioneDiRiferimento>();
 
         // Documenti bilingue (carta 2026-08-27): il motore di traduzione automatica.
         // ⚠️ Si registra SEMPRE, anche senza chiave: `IsConfigured` è falso e ogni chiamata risponde

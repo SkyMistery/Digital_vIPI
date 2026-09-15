@@ -51,6 +51,9 @@ public interface IAirportRepository : IAirportProfileReader
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
+
+    /// <summary>Scrive la stazione METAR di riferimento dello scalo; <c>null</c> = il suo ICAO.</summary>
+    Task SetMetarStationAsync(string icao, string? station, CancellationToken ct = default);
     Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default);
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);

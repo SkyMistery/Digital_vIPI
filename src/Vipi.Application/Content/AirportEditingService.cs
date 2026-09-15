@@ -43,6 +43,12 @@ public interface IAirportEditingService
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
+
+    /// <summary>
+    /// La stazione da cui prendere il METAR/TAF dello scalo, quando non ne emette uno suo (LIRJ). Vuoto, o uguale
+    /// allo scalo, = il suo ICAO. Stessa guardia delle altre scritture dell'anagrafica: il lock dell'edizione giusta.
+    /// </summary>
+    Task SetMetarStationAsync(string icao, string? station, CancellationToken ct = default);
     Task SaveTransitionLevelsAsync(string icao, IReadOnlyList<TlRow> rows, CancellationToken ct = default);
     Task SaveRunwaysAsync(string icao, IReadOnlyList<RunwayRow> rows, CancellationToken ct = default);
     Task SaveRunwayRulesAsync(string icao, IReadOnlyList<RunwayRuleRow> rows, CancellationToken ct = default);
@@ -86,7 +92,7 @@ public sealed class AirportEditingService : IAirportEditingService
 
     public AirportEditingService(IAirportRepository repo, IEditAuthorizationService authz,
         IAirportDirectory directory, IAirportDetailProvider details, IImportPolicyStore policy,
-        IAirportLockGuard @lock)
+        IAirportLockGuard @lock, Vipi.Application.Abstractions.IStazioniMeteo? stazioni = null)
     {
         _repo = repo;
         _authz = authz;
@@ -94,6 +100,21 @@ public sealed class AirportEditingService : IAirportEditingService
         _details = details;
         _policy = policy;
         _lock = @lock;
+        _stazioni = stazioni;
+    }
+
+    private readonly Vipi.Application.Abstractions.IStazioniMeteo? _stazioni;
+
+    public async Task SetMetarStationAsync(string icao, string? station, CancellationToken ct = default)
+    {
+        await EnsureLockMineAsync(icao, ct);
+        var scalo = Norm(icao);
+        var rif = (station ?? "").Trim().ToUpperInvariant();
+        if (rif.Length == 0 || rif == scalo) rif = "";
+        else if (rif.Length != 4 || !rif.All(char.IsAsciiLetterUpper))
+            throw new ValidationException(Lingua("La stazione METAR è un ICAO di quattro lettere.", "The METAR station is a four-letter ICAO code."));
+        await _repo.SetMetarStationAsync(scalo, rif.Length == 0 ? null : rif, ct);
+        _stazioni?.Invalida();
     }
 
     public Task<ImportPolicySnapshot> GetImportPolicyAsync(CancellationToken ct = default) => _policy.GetAsync(ct);

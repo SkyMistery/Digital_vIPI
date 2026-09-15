@@ -2,6 +2,20 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A36 — Stazione METAR di riferimento dello scalo — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
+
+Richiesta del committente: LIRJ non emette un METAR suo.
+- `Airport.MetarStationIcao` (varchar(4), nullable) sull'**anagrafica**, non nel documento: lo stesso METAR decide
+  pista in uso, QNH/TL, stato LVP in vIPI, vSOP, vAWOS e pannelli. Migrazione **`StazioneMeteoDiRiferimento`**.
+- Si applica in UN posto: `MeteoConStazioneDiRiferimento` decora `NoaaWeatherClient` (tutti ricevono lui);
+  `StazioniMeteoDaAnagrafica` tiene la mappa in memoria (scope proprio, 2 min, invalidata a ogni scrittura).
+  Il bollettino torna col nome dello scalo e `WeatherReport.Stazione`.
+- Editor: campo nella sezione «METAR & TAF» (`StazioneMeteoEditor`) dell'editor d'aeroporto; nel vSOP solo sul
+  campo senza vIPI civile, altrove sola lettura + rimando. `SetMetarStationAsync`: lock, 4 lettere, vuoto/uguale = null.
+- A schermo: riga «LIRJ non emette un METAR suo: METAR e TAF sono quelli di LIRS» per tutti; vAWOS pastiglia «METAR LIRS».
+- Provato dal vivo su copia di `vipi.db`: LIRJ → LIRS dall'editor, viewer bozza col METAR di LIRS, vAWOS con la pastiglia.
+- ⚠️ Visto in prova, preesistente: se NOAA salta il METAR ma dà il TAF, il vuoto resta in cache per il TTL pieno.
+
 ### ✅ A35 — Sotto-sezioni fra i blocchi del padre — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
 
 Richiesta del committente: «sottosezione, blocco, sottosezione, blocco». Vale per tutti i documenti.

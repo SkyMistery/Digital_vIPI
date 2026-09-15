@@ -271,6 +271,15 @@ public class Airport
     /// <summary>Transition Altitude (ft). Sorgente strutturata: da qui si rigenera la sezione del documento.</summary>
     public int? TransitionAltitudeFt { get; set; }
 
+    /// <summary>
+    /// La stazione da cui si prende il METAR/TAF di questo scalo, quando lo scalo non ne emette uno suo
+    /// (15 settembre 2026, committente: LIRJ). <c>null</c> = il suo ICAO, il caso normale.
+    /// <para>⚠️ Sta sull'ANAGRAFICA e non nel documento: lo stesso METAR alimenta vIPI, vSOP, vAWOS, la pista
+    /// in uso, il QNH delle quote di transizione e lo stato LVP — un riferimento per documento darebbe due
+    /// venti diversi allo stesso campo. Scritto a mano, non lo tocca nessun import.</para>
+    /// </summary>
+    public string? MetarStationIcao { get; set; }
+
     /// <summary>Coordinate del riferimento aeroporto (gradi decimali), dalla sorgente. Usate per generare la shape
     /// tonda di fallback dei settori TWR privi di poligono. null = non ancora note.</summary>
     public double? Latitude { get; set; }

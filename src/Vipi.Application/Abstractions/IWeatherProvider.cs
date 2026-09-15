@@ -10,8 +10,13 @@ namespace Vipi.Application.Abstractions;
 /// <b>ha funzionato davvero</b>: senza, una sorgente di scorta che non risponde più è indistinguibile da una
 /// che non è mai servita, e nessuno se ne accorge finché non serve.</para>
 /// </param>
+/// <param name="Stazione">
+/// La stazione da cui viene il bollettino, quando NON è lo scalo stesso (<c>Airport.MetarStationIcao</c>, 15
+/// settembre 2026). <c>null</c> = è il METAR dello scalo. ⚠️ Al contrario della provenienza questa si dice a
+/// tutti: è parte del dato — un vento misurato a trenta chilometri non si legge come quello della pista.
+/// </param>
 public sealed record WeatherReport(
-    string Icao, string? Metar, string? Taf, DateTimeOffset? AsOf, string? MetarSource = null)
+    string Icao, string? Metar, string? Taf, DateTimeOffset? AsOf, string? MetarSource = null, string? Stazione = null)
 {
     public bool HasData => !string.IsNullOrWhiteSpace(Metar) || !string.IsNullOrWhiteSpace(Taf);
     public static WeatherReport Empty(string icao) => new(icao, null, null, null);

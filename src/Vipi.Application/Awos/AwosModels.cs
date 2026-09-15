@@ -109,6 +109,7 @@ public sealed record AwosActive(IReadOnlyList<string> Dep, IReadOnlyList<string>
 /// </summary>
 /// <param name="MetarSource">Chi ha dato il METAR quando non è la sorgente principale; null = NOAA, il caso normale.</param>
 /// <param name="TransitionLevel">Il TL della fascia di QNH corrente, dalla tabella dello scalo. Null = non calcolabile.</param>
+/// <param name="MetarStation">La stazione da cui viene il METAR quando non è lo scalo (<c>Airport.MetarStationIcao</c>); null = lo scalo.</param>
 /// <param name="AsOf">Quando è stata composta: è ciò che fa <b>invecchiare</b> il quadro a schermo se il server smette di rispondere.</param>
 public sealed record AwosView(
     string Icao,
@@ -126,4 +127,5 @@ public sealed record AwosView(
     AwosActive Attiva,
     AwosAtis? Atis,
     AwosLvp Lvp,
-    DateTimeOffset AsOf);
+    DateTimeOffset AsOf,
+    string? MetarStation = null);

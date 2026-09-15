@@ -79,6 +79,11 @@
                    principale, e la si mostra da DivisionStaff in su — è meccanica di servizio. *@
                 <span class="awos-pastiglia sorgente" title="METAR from @sorgente">@sorgente</span>
             }
+            @* Il METAR di un altro campo si dice a tutti, come nel riquadro delle vIPI: è parte del dato. *@
+            @if (_diProva is null && _vista.MetarStation is { Length: > 0 } stazione)
+            {
+                <span class="awos-pastiglia sorgente" title="METAR/TAF from @stazione: @_vista.Icao has no report of its own">METAR @stazione</span>
+            }
             @if (!_vista.HaVipi && !_vista.HaVsop)
             {
                 <span class="awos-pastiglia bozza" title="No published document: the public cannot open this">NOT PUBLIC</span>

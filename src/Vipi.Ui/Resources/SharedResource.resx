@@ -3489,4 +3489,7 @@
   <data name="ApiKeys_CopyFailed" xml:space="preserve"><value>Copia non riuscita: selezionala e copiala a mano.</value></data>
   <data name="Audit_Fr_ApiKeyCreate" xml:space="preserve"><value>Chiave API emessa ({0})</value></data>
   <data name="Audit_Fr_ApiKeyRevoke" xml:space="preserve"><value>Chiave API revocata</value></data>
+  <data name="Wx_StationLabel" xml:space="preserve"><value>Stazione METAR/TAF</value></data>
+  <data name="Wx_StationHint" xml:space="preserve"><value>Vuoto = lo scalo stesso. Scrivi un altro ICAO se questo campo non emette un METAR suo: vale per vIPI, vSOP, vAWOS, pista in uso, QNH e LVP.</value></data>
+  <data name="Wx_StationNote" xml:space="preserve"><value>{0} non emette un METAR suo: METAR e TAF sono quelli di {1}.</value></data>
 </root>

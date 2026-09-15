@@ -451,6 +451,20 @@ public class SezioniAeroportoTests : TestContext
         Assert.Contains("METAR LIBD 271820Z", senza.Markup);
     }
 
+    [Fact] // 15 settembre 2026, LIRJ: il METAR di un'altra stazione si dice a TUTTI, anche senza MostraSorgente
+    public void La_stazione_di_riferimento_si_dice_sempre()
+    {
+        var cut = RenderComponent<AirportWeather>(p => p
+            .Add(x => x.Icao, "LIRJ")
+            .Add(x => x.Report, new WeatherReport("LIRJ", Metar().Raw, null, DateTimeOffset.UtcNow, Stazione: "LIRS"))
+            .Add(x => x.Metar, Metar()));
+
+        Assert.Contains("LIRS", cut.Markup);
+
+        var suo = RendiMeteo(null);
+        Assert.DoesNotContain("LIRS", suo.Markup);
+    }
+
     [Fact] // ⚠️ il default è chiuso: chi monta il componente senza dire niente non mostra la provenienza
     public void Senza_dire_niente_la_provenienza_non_si_vede()
     {
