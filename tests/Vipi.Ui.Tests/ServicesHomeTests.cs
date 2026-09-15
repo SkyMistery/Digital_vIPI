@@ -83,8 +83,10 @@ public class ServicesHomeTests : TestContext
             // committente l'ha spostato in TESTA agli strumenti. La ragione regge meglio della prima: è
             // l'unico attrezzo che si apre MENTRE si controlla, quindi è quello che si cerca di fretta —
             // gli altri due si aprono prima o dopo una sessione, con calma.
+            // ⚠️ The Eye (esterno) entra il 15 settembre 2026 IN CODA agli strumenti: è di un altro sito.
             new[] { "/services/vsop", "/services/vsop/mil", "/services/vawos",
-                    "/services/stats", "/services/profile-swapper", "/services/vsop/airspace",
+                    "/services/stats", "/services/profile-swapper", "https://the-eye.andreadalbero.it/",
+                    "/services/vsop/airspace",
                     "/services/coordinates", "/services/vsop/sectorfile" },
             indirizzi);
     }
@@ -142,7 +144,9 @@ public class ServicesHomeTests : TestContext
     {
         var cut = Render();
 
-        foreach (var a in cut.FindAll("a.choice"))
+        // ⚠️ I collegamenti ESTERNI (`external`) stanno fuori da questa regola per definizione, e sono contati
+        // nel test qui sotto.
+        foreach (var a in cut.FindAll("a.choice:not(.external)"))
         {
             var href = a.GetAttribute("href")!;
             Assert.StartsWith("/services/", href);
@@ -172,6 +176,25 @@ public class ServicesHomeTests : TestContext
     {
         var cut = Render();
         Assert.Equal(3, cut.FindAll("a.choice.shortcut").Count);
+    }
+
+    /// <summary>
+    /// I collegamenti ESTERNI sono un'eccezione come le scorciatoie, e si contano allo stesso modo: l'hub non è
+    /// un elenco di segnalibri. <b>Uno</b> dal 15 settembre 2026, THE EYE («chi è online ora», decisione del
+    /// committente). Esce dal sito, quindi apre una scheda nuova e non passa il riferimento né l'accesso alla
+    /// finestra di partenza.
+    /// </summary>
+    [Fact]
+    public void I_collegamenti_esterni_sono_contati_e_aprono_una_scheda_nuova()
+    {
+        var cut = Render(VipiRole.User);
+        var esterni = cut.FindAll("a.choice.external");
+
+        var eye = Assert.Single(esterni);
+        Assert.Equal("https://the-eye.andreadalbero.it/", eye.GetAttribute("href"));
+        Assert.Equal("_blank", eye.GetAttribute("target"));
+        Assert.Contains("noopener", eye.GetAttribute("rel"));
+        Assert.Contains("Services_EyeTitle", eye.TextContent);
     }
 
     /// <summary>

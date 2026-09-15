@@ -81,6 +81,17 @@
             <h3 class="h-card"><span class="ic"><Icon Name="copy" Size="18" /></span> @L["Swap_Heading"]</h3>
             <p class="muted">@L["Services_SwapperDesc"]</p>
         </a>
+        @* THE EYE: chi è online adesso (committente, 15 settembre 2026). ⚠️ Il PRIMO collegamento ESTERNO
+           dell'hub, e per questo marcato `external`: la regola «ogni scheda sta dentro /services/» resta in piedi
+           per tutte le altre, e le eccezioni si contano (ServicesHomeTests). Nuova scheda del browser, e
+           `noopener` perché è un altro sito.
+           ⚠️ Si apre sulla vista iniziale di The Eye: l'indirizzo non sa portare una posizione (l'app legge solo
+           `?login`, e la mappa nasce su un centro scritto nel suo codice). Il giorno che The Eye accetti centro e
+           zoom nell'indirizzo, si aggiungono qui. *@
+        <a class="choice external" href="https://the-eye.andreadalbero.it/" target="_blank" rel="noopener noreferrer">
+            <h3 class="h-card"><span class="ic"><Icon Name="map" Size="18" /></span> @L["Services_EyeTitle"]</h3>
+            <p class="muted">@L["Services_EyeDesc"]</p>
+        </a>
     </div>
 
     @* ⚠️ Il cancello sta in DUE sedi: qui la sezione si nasconde, e la pagina rifiuta chi scrive
