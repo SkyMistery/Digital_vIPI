@@ -138,7 +138,7 @@
         // ⚠️ Le scritte fisse le compone `AwosTesto`, lo stesso pezzo che usa l'endpoint a ogni giro: erano
         // scritte due volte — qui e nel JavaScript — e una delle due coppie era già divergita a schermo
         // (revisione del 12 settembre 2026, sera).
-        var scritte = AwosTesto.Scritte(_vista);
+        var scritte = AwosTesto.Scritte(_vista, Authz.IsDivisionStaff);
 
         @if (Authz.IsDivisionStaff)
         {

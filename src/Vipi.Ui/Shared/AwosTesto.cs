@@ -61,19 +61,38 @@ public static class AwosTesto
             : m.Weather.Select(g => WxText.Weather(new[] { g }, t) ?? g.Raw).ToList();
 
     /// <summary>Tutte le scritte fisse del quadro, per la pagina e per l'endpoint. Un posto solo.</summary>
-    public static AwosScritte Scritte(AwosView v) => new(
-        RigaAttiva(v.Attiva),
+    /// <param name="meccanicaVisibile">Chi guarda è staff (DivisionStaff in su): vede DA DOVE viene la pista in
+    /// uso. Obbligatorio e senza default: le due porte (pagina, endpoint) devono dichiararlo tutte e due.</param>
+    public static AwosScritte Scritte(AwosView v, bool meccanicaVisibile) => new(
+        RigaAttiva(v.Attiva, meccanicaVisibile),
         LvpTesto(v.Lvp.Valutazione),
         LvpClasse(v.Lvp.Valutazione),
         LvpTitolo(v.Lvp.Valutazione),
         v.Piste.Select(s => Rvr(s, v.Metar)).ToList());
 
     /// <summary>
-    /// La riga che dice quale pista è in uso e <b>chi l'ha decisa</b>. Un quadro che dice la pista senza dire
-    /// da dove viene è la ragione per cui quello del prototipo va girato a mano.
+    /// La vista come la riceve chi guarda. Al pubblico si toglie il <see cref="AwosActive.Dettaglio"/> — il nome
+    /// della regola, o il callsign dell'ATIS — che il JSON dell'endpoint porterebbe altrimenti con sé.
+    /// <para>⚠️ Non basta non scriverlo a schermo: l'endpoint pubblico serializza la vista intera, e un nome di
+    /// regola nascosto nella pagina ma presente nel JSON non sarebbe nascosto.</para>
     /// </summary>
-    public static string RigaAttiva(AwosActive a)
+    public static AwosView PerChiGuarda(AwosView v, bool meccanicaVisibile) =>
+        meccanicaVisibile ? v : v with { Attiva = v.Attiva with { Dettaglio = null } };
+
+    /// <summary>
+    /// La riga che dice quale pista è in uso e, allo staff, <b>chi l'ha decisa</b>.
+    /// <para>⚠️ Al pubblico la provenienza NON si scrive — né la regola, né il vento, né l'ATIS — come nella
+    /// vIPI, dove <c>AirportRunways.MostraProvenienza</c> è solo per DivisionStaff (committente, 15 settembre
+    /// 2026). È meccanica di servizio: al pubblico serve la pista, non il perché.</para>
+    /// </summary>
+    public static string RigaAttiva(AwosActive a, bool meccanicaVisibile)
     {
+        if (!meccanicaVisibile)
+        {
+            if (a.Sorgente == AwosRunwaySource.Nessuna) return "RWY IN USE: —";
+            return $"RWY IN USE: {Piste(a)}";
+        }
+
         var da = a.Sorgente switch
         {
             AwosRunwaySource.Atis => $"from ATIS{(a.Dettaglio is null ? "" : " " + a.Dettaglio)}",
@@ -82,13 +101,16 @@ public static class AwosTesto
             _ => "no runway in use — calm or unknown wind",
         };
         if (a.Sorgente == AwosRunwaySource.Nessuna) return $"RWY IN USE: — · {da}";
+        return $"RWY IN USE: {Piste(a)} · {da}";
+    }
 
+    private static string Piste(AwosActive a)
+    {
         var dep = string.Join('/', a.Dep);
         var arr = string.Join('/', a.Arr);
-        var piste = string.Equals(dep, arr, StringComparison.OrdinalIgnoreCase)
+        return string.Equals(dep, arr, StringComparison.OrdinalIgnoreCase)
             ? dep
             : $"{(dep.Length > 0 ? dep : "—")} DEP · {(arr.Length > 0 ? arr : "—")} ARR";
-        return $"RWY IN USE: {piste} · {da}";
     }
 
     /// <summary>La pastiglia LVP: lo stato, e «(standard)» quando la soglia non è dello scalo.</summary>

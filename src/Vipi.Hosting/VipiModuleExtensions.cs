@@ -406,11 +406,14 @@ public static class VipiModuleExtensions
             // pezzo che usa la pagina al primo disegno. Se le componesse il JavaScript coi codici grezzi, il
             // quadro direbbe «light shower rain» al caricamento e «-SHRA» un minuto dopo — visto a schermo il
             // 12 settembre 2026.
+            // ⚠️ La provenienza della pista in uso (nome della regola, callsign dell'ATIS) è dello STAFF, come
+            // nella vIPI: al pubblico si toglie dalla riga E dalla vista serializzata, o resterebbe nel JSON.
+            var staff = authz.IsDivisionStaff;
             var payload = new Vipi.Ui.Shared.AwosPayload(
-                esito.Vista,
+                Vipi.Ui.Shared.AwosTesto.PerChiGuarda(esito.Vista, staff),
                 Vipi.Ui.Shared.AwosTesto.TempoPresente(esito.Vista.Metar, k => testi[k].Value),
                 Vipi.Ui.Shared.AwosTesto.Nubi(esito.Vista.Metar),
-                Vipi.Ui.Shared.AwosTesto.Scritte(esito.Vista));
+                Vipi.Ui.Shared.AwosTesto.Scritte(esito.Vista, staff));
 
             // 🔴 QUI C'ERA `no-store`, E NON ERA VERO — misurato in produzione il 12 settembre 2026:
             //
