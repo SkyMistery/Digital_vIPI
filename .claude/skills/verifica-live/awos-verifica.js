@@ -77,7 +77,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     nota('il METAR grezzo c e', !!q.metar && q.metar.length > 10, `${(q.metar || '').trim().slice(0, 60)}…`);
     nota('le celle RVR portano il nome della TESTATA', q.rvr.length > 0 && q.rvr.every((k) => !/MID|TDZ/i.test(k)),
       q.rvr.length ? q.rvr.join(' · ') : '(nessuna cella)');
-    nota('la riga dice CHI ha scelto la pista', !!q.attiva && /from /.test(q.attiva), (q.attiva || '').trim());
+    // ⚠️ Dal 15 settembre 2026 (1.27.0) CHI ha scelto la pista si dice solo allo STAFF, come nella vIPI. Da
+    // anonimo (SOLO_PUBBLICO=1, produzione) la riga deve dire la pista e NIENT'ALTRO: un «from» li' sarebbe
+    // la meccanica di servizio uscita al pubblico, cioe' il difetto da prendere.
+    if (process.env.SOLO_PUBBLICO)
+      nota('al pubblico la riga NON dice chi ha scelto la pista', !!q.attiva && /^RWY IN USE/.test(q.attiva.trim()) && !/from |no runway/.test(q.attiva),
+        (q.attiva || '').trim());
+    else
+      nota('allo staff la riga dice CHI ha scelto la pista', !!q.attiva && /from /.test(q.attiva), (q.attiva || '').trim());
 
     // 7. USCENDO, i timer si spengono (il difetto della revisione: chiamate due minuti dopo).
     await page.goto(`${BASE}/services/vsop`, { waitUntil: 'networkidle2' });

@@ -2,6 +2,31 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### 📦 A38 — Pacchetto 1.27.0: 28 file, MINOR su 1.26.1, TRE migrazioni additive — ⏳ **PRONTO, non ancora caricato**
+
+Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cambiati.zip` (5,28 MB), sha256
+`da9e6a1c67b81119ce12cfd75403106f45af04d5e2a35a2ed137000814ef67b5`, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.27.0.md`, elenco `artifacts/publish/elenco-1.27.0.txt`. Contiene §A33…§A37.
+
+- **28 file**: Domain, Application, Infrastructure, **MySqlMigrations**, Hosting, Ui, Host (dll+pdb),
+  `en/Vipi.Ui.resources.dll`, `Vipi.Host.staticwebassets.endpoints.json`, e 4 asset di `wwwroot`
+  (`vipi-awos.css/.js`, `vipi-editor.js`, `vipi-theme.css`) con `.br`/`.gz`. Fuori AuroraProfiles e
+  AuroraBridge.Contracts (solo MVID); `deps.json`/`runtimeconfig.json` identici a 1.26.1.
+- Migrazioni: `SidNascosteECorrette`, `SottosezioniFraIBlocchi`, `StazioneMeteoDiRiferimento` (tutte `AddColumn`),
+  verificate dentro `Vipi.Infrastructure.MySqlMigrations.dll`.
+- **Verde prima**: build Release 0 avvisi, suite intera 15 assiemi, `conta-test` identico all'atteso.
+- **Provato sul publish win-x64** (copia pulita di `vipi.db`): `pacchetto-verifica` 10/10, `awos-verifica` 15/15
+  da staff e 15/15 da pubblico (`SOLO_PUBBLICO=1`), `enhanced-verifica` 6/6
+  (`DOC=/services/vsop/libb/mil?icao=LIBG`); scheda THE EYE presente in `/services`.
+- ⚠️ `awos-verifica.js` aggiornato: da anonimo la riga «RWY IN USE» **non** deve dire chi ha scelto la pista
+  (prima pretendeva «from»: in produzione sarebbe uscito rosso).
+- ⚠️ **1.27.0 non è il net10**: il numero è andato a questo pacchetto, partito prima. `l13-net10` diventerà
+  **1.28.0** e va riallineato a main (tre migrazioni).
+
+▶ **Dopo il carico**: Ricerca; vAWOS di LIMC/LIRF a blocchi; da anonimo niente «from»; col login timbro e
+**`Schema: 0`**. ▶ **Dati**: stazione METAR di LIRJ (LIRS); ripubblicare gli APP non remotizzati.
+▶ Far riprovare il bug del suggerimento SID. ▶ THE EYE: chiedere a chi lo sviluppa centro/zoom nell'indirizzo.
+
 ### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — in main, niente migrazione
 
 Tutto dopo §A36, commit `5e063170` → `1864983b`. Racconto intero nella carta
