@@ -1213,7 +1213,7 @@ inglesi più i loro gemelli italiani legacy) e le **cancellava e ricreava** a og
 per giunta **casuali**: `DocBuilder` chiedeva la chiave a `SectionCatalogBridge.KeyFor(BlockSection.Airport)`,
 che risponde `null`, e ricadeva su `SectionKeys.NewCustom()`.
 
-Conseguenza: tutto lo stato **per-sezione** — `Order`, `IsHidden`, `RenderMode`, `BeforeParentBody`,
+Conseguenza: tutto lo stato **per-sezione** — `Order`, `IsHidden`, `RenderMode`, `BeforeParentBody` (con `BodyPosition`, §A35),
 `LeadSentence`, le sotto-sezioni — non poteva sopravvivere, perché sta sulla sezione e la sezione veniva
 distrutta. È per questo che l'aeroporto era l'unica famiglia senza riordino e senza «nascondi».
 

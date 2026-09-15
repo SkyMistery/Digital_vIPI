@@ -178,8 +178,9 @@
 - **Sezioni libere:** chiave `custom:{guid8}` univoca per sezione (prima la costante `"custom"` le faceva collidere).
 - **Contenuto editoriale:** reso ovunque da `SectionNode`/`SectionBody` (prosa/callout/tabella + sotto-sezioni), anche
   nella vIPI ACC, che prima lo appiattiva a sola prosa.
-- **Sotto-sezioni:** possono stare **prima o dopo** il corpo della sezione (`DocumentSection.BeforeParentBody`,
-  §3g); il corpo è una posizione in una sequenza di tre slot, uguale nei tre viewer e nell'editor.
+- **Sotto-sezioni:** stanno **fra i blocchi** del padre, in una fila sola (`CorpoDiSezione`, 15 settembre 2026, §A35):
+  posizione in `DocumentSection.BodyPosition` (soglia sull'`Order` dei blocchi; null = vale il vecchio
+  `BeforeParentBody`, prima o dopo), si sposta con le frecce, uguale nei viewer e nell'editor. I tre slot del §3g non ci sono più.
 - **Anteprime:** un `?as=` non valido degrada alla pubblica **con le derivate frozen** (prima restava live).
 - **Rotte:** la vLOA ha una sola rotta viewer, `/services/vsop/{acc}/vloa?acc=YYYY` (rimosso `apps/vipi?vloa=`).
 
