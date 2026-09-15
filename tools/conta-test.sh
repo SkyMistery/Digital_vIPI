@@ -33,7 +33,17 @@ TFM_SOLO="${3:-}"
 
 # Le righe di riepilogo di `dotnet test`, una per assieme e TFM:
 #   Passed!  - Failed: 0, Passed: 2237, ... - Vipi.Application.Tests.dll (net8.0)
-CORSA="$(grep -E '^(Passed|Failed)!' "$LOG" \
+#
+# ⚠️ La riga può arrivare SPEZZATA in due: con più assiemi in parallelo `dotnet test` la scrive a pezzi, e
+# sul runner del 14 settembre 2026 è uscita «Passed! ... Duration: 5 s» e, alla riga dopo, « - Vipi.Application
+# .Tests.dll (net8.0)». Il cancello ha dato «MANCA» su una corsa verde. Qui le due metà si ricuciono prima
+# di contare: una riga di riepilogo senza «.dll (» prende la riga che segue, se comincia con « - ».
+CORSA="$(awk '
+    pend != "" { if ($0 ~ /^ *- /) { print pend $0; pend = ""; next } print pend; pend = "" }
+    /^(Passed|Failed)!/ && $0 !~ /\.dll \(/ { pend = $0; next }
+    { print }
+    END { if (pend != "") print pend }' "$LOG" \
+  | grep -E '^(Passed|Failed)!' \
   | sed -E 's/.*Passed: *([0-9]+),.*- (Vipi[^ ]+\.dll) \((net[0-9.]+)\).*/\2 \3 \1/' \
   | sort)"
 
