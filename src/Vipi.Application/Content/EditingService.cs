@@ -143,11 +143,11 @@ public sealed class EditingService : IEditingService
         await _repo.SetSectionAudienceAsync(sectionId, audience, ct);
     }
 
-    public async Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default)
+    public async Task SetBodyOrderAsync(int sectionId, IReadOnlyList<VoceCorpo> fila, CancellationToken ct = default)
     {
         var docId = await AuthorizeSectionAsync(sectionId, ct);
         await EnsureLockAsync(docId, ct);
-        await _repo.SetSectionBeforeParentBodyAsync(sectionId, before, ct);
+        await _repo.SetBodyOrderAsync(sectionId, fila, ct);
     }
 
     public async Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default)

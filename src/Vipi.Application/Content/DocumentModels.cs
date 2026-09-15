@@ -67,6 +67,9 @@ public sealed class RawSection
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g). Viaggia nello snapshot con gli altri flag.</summary>
     public bool BeforeParentBody { get; init; }
 
+    /// <inheritdoc cref="Vipi.Domain.Entities.DocumentSection.BodyPosition"/>
+    public int? BodyPosition { get; init; }
+
     /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). Viaggia nello snapshot con gli altri
     /// flag. <c>Both</c> = per tutti, ed è il default: nessun documento cambia finché nessuno marca.</summary>
     public SectionAudience Audience { get; init; }
@@ -124,6 +127,9 @@ public sealed class SectionView
     /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g).</summary>
     public bool BeforeParentBody { get; init; }
 
+    /// <inheritdoc cref="Vipi.Domain.Entities.DocumentSection.BodyPosition"/>
+    public int? BodyPosition { get; init; }
+
     /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). Viaggia nello snapshot con gli altri
     /// flag. <c>Both</c> = per tutti, ed è il default: nessun documento cambia finché nessuno marca.</summary>
     public SectionAudience Audience { get; init; }
@@ -138,6 +144,10 @@ public sealed class SectionView
 public sealed class BlockView
 {
     public required int Id { get; init; }
+
+    /// <summary>L'<c>Order</c> del blocco nella sezione: serve a mettere le sotto-sezioni fra i blocchi
+    /// (<see cref="CorpoDiSezione"/>). 0 = sconosciuto, e allora vale la posizione nella lista.</summary>
+    public int Order { get; init; }
     public required BlockFormat Format { get; init; }
     public required RenderState State { get; init; }
     public string? CollapseLabel { get; init; }

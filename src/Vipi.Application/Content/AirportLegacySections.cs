@@ -118,7 +118,7 @@ public static class AirportLegacySections
                 return new SectionView
                 {
                     Id = s.Id, Title = s.Title, Depth = s.Depth, SectionKey = s.SectionKey,
-                    IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+                    IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
                     LeadSentence = s.LeadSentence, Blocks = s.Blocks, Children = figlie,
                 };
             }
@@ -130,7 +130,7 @@ public static class AirportLegacySections
                 Depth = s.Depth,
                 SectionKey = chiave,
                 IsHidden = s.IsHidden,
-                BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+                BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
                 LeadSentence = s.LeadSentence,
                 // Il corpo di una sezione di catalogo lo produce la pagina: i blocchi cotti se ne vanno, o si
                 // vedrebbe la tabella DUE volte (quella dello snapshot e quella derivata).

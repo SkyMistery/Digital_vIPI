@@ -108,6 +108,7 @@ internal sealed class VipiViewService : IVipiViewService
                 return new BlockView
                 {
                     Id = b.Id,
+                    Order = b.Order,
                     Format = b.Format,
                     State = r.State,
                     CollapseLabel = r.CollapseLabel,
@@ -130,7 +131,7 @@ internal sealed class VipiViewService : IVipiViewService
             Depth = s.Depth,
             SectionKey = s.SectionKey,
             IsHidden = s.IsHidden,
-            BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+            BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
             LeadSentence = s.LeadSentence,
             Blocks = blocks,
             Children = children,

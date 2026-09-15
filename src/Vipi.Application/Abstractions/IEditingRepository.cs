@@ -121,7 +121,13 @@ public interface IEditingRepository
     /// <inheritdoc cref="Vipi.Application.Content.IEditingService.SetSectionAudienceAsync"/>
     Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default);
 
-    Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
+    /// <summary>
+    /// Riscrive l'ordine del CORPO di una sezione — blocchi e sotto-sezioni in una fila sola (15 settembre 2026) —
+    /// dalla fila che l'editor mostra dopo una freccia. I numeri li calcola <see cref="Vipi.Application.Content.CorpoDiSezione.Pianifica"/>.
+    /// <para>⚠️ La fila deve nominare TUTTE le sotto-sezioni della sezione e solo blocchi suoi: una fila che non
+    /// torna vuol dire un albero vecchio in mano all'editor, e si rifiuta invece di indovinare.</para>
+    /// </summary>
+    Task SetBodyOrderAsync(int sectionId, IReadOnlyList<Vipi.Application.Content.VoceCorpo> fila, CancellationToken ct = default);
 
     /// <summary>Prosa a CAPOFILA per una sezione derivata a tabelle: una frase che introduce la tabella invece
     /// di una per clausola.</summary>

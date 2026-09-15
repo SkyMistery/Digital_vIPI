@@ -2122,6 +2122,9 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<bool>("BeforeParentBody")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int?>("BodyPosition")
+                        .HasColumnType("int");
+
                     b.Property<int>("Depth")
                         .HasColumnType("int");
 

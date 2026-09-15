@@ -76,8 +76,12 @@ public sealed class EditableSection
     /// <summary>Sezione nascosta dal documento pubblicato (doc 11 §3c): l'editor la mostra comunque, marcata.</summary>
     public bool IsHidden { get; init; }
 
-    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g); l'editor espone il toggle.</summary>
+    /// <summary>Sotto-sezione resa prima del corpo del padre (doc 11 §3g): la forma storica, vale finché
+    /// <see cref="BodyPosition"/> è null.</summary>
     public bool BeforeParentBody { get; init; }
+
+    /// <inheritdoc cref="Vipi.Domain.Entities.DocumentSection.BodyPosition"/>
+    public int? BodyPosition { get; init; }
 
     /// <summary>A chi si rivolge la sezione (carta vSOP militari §3). Viaggia nello snapshot con gli altri
     /// flag. <c>Both</c> = per tutti, ed è il default: nessun documento cambia finché nessuno marca.</summary>

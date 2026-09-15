@@ -1,42 +1,43 @@
-@* Corpo di una sezione documentale CONDIVISO (doc 11 §3b). Il corpo è una posizione in una sequenza di tre slot
-   (doc 11 §3g): sotto-sezioni «prima» → blocchi → sotto-sezioni «dopo». Lo usa SectionNode (che aggiunge la card
-   o il <details>) e lo usano i viewer che l'involucro se lo fanno da sé — le sezioni DERIVATE di vIPI ACC/APP/vLOA,
-   il cui corpo lo produce la pagina: quelle chiamano due volte, Slot="Before" e Slot="After", con ShowBlocks="false"
-   (il blocco della sezione derivata porta il payload JSON, non contenuto). *@
+@* Corpo di una sezione documentale CONDIVISO (doc 11 §3b): blocchi e sotto-sezioni in UNA fila.
 
-@if (Slot is SectionSlot.All or SectionSlot.Before)
-{
-    @foreach (var child in Section.Children.Where(c => c.BeforeParentBody))
-    {
-        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                     Profile="Profile" DerivedContent="DerivedContent" />
-    }
-}
+   ⚠️ Dal 15 settembre 2026 il corpo non è più a tre scomparti fissi — sotto-sezioni «prima» → blocchi →
+   sotto-sezioni «dopo» (doc 11 §3g) — ma una fila dove si alternano (committente: «sottosezione, blocco,
+   sottosezione, blocco»). L'ordine lo decide `CorpoDiSezione`, lo stesso che usa l'editor: una fusione
+   scritta due volte sarebbe un editor che dice una cosa e un documento che ne mostra un'altra.
 
-@if (ShowBlocks)
+   Lo usa SectionNode (che aggiunge la card o il <details>) e lo usano i viewer che l'involucro se lo fanno da
+   sé. Le sezioni rese dalla PAGINA passano la loro scheda in `Scheda`: sta dopo le figlie «in testa» e prima
+   di tutto il resto. Con `ShowBlocks="false"` i blocchi non entrano nella fila (il blocco di una derivata
+   porta il payload JSON, non contenuto). *@
+
+@foreach (var voce in CorpoDiSezione.Componi(
+              ShowBlocks ? Blocchi() : Array.Empty<(BlockView Blocco, int Ordine)>(), b => b.Ordine,
+              Section.Children, c => CorpoDiSezione.Soglia(c.BodyPosition, c.BeforeParentBody),
+              conScheda: Scheda is not null))
 {
-    @foreach (var block in Section.Blocks)
+    @switch (voce.Tipo)
     {
-        @if (block.State == RenderState.Collapsed)
-        {
-            <details class="collapsed-strip">
-                <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
+        case TipoVoce.Scheda:
+            @Scheda
+            break;
+        case TipoVoce.Figlia:
+            <SectionNode Section="voce.Figlia!" DepthOffset="DepthOffset" IsDraft="IsDraft"
+                         Profile="Profile" DerivedContent="DerivedContent" />
+            break;
+        case TipoVoce.Blocco:
+            var block = voce.Blocco.Blocco;
+            @if (block.State == RenderState.Collapsed)
+            {
+                <details class="collapsed-strip">
+                    <summary>@(block.CollapseLabel ?? "Contenuto compresso — espandi")</summary>
+                    <BlockRenderer Block="block" />
+                </details>
+            }
+            else
+            {
                 <BlockRenderer Block="block" />
-            </details>
-        }
-        else
-        {
-            <BlockRenderer Block="block" />
-        }
-    }
-}
-
-@if (Slot is SectionSlot.All or SectionSlot.After)
-{
-    @foreach (var child in Section.Children.Where(c => !c.BeforeParentBody))
-    {
-        <SectionNode Section="child" DepthOffset="DepthOffset" IsDraft="IsDraft"
-                     Profile="Profile" DerivedContent="DerivedContent" />
+            }
+            break;
     }
 }
 
@@ -53,8 +54,8 @@
     /// <summary>Rende i blocchi della sezione. False per le sezioni derivate (blocco = payload, non contenuto).</summary>
     [Parameter] public bool ShowBlocks { get; set; } = true;
 
-    /// <summary>Quali sotto-sezioni rendere rispetto al corpo (doc 11 §3g).</summary>
-    [Parameter] public SectionSlot Slot { get; set; } = SectionSlot.All;
+    /// <summary>La scheda che la pagina disegna per QUESTA sezione, se è resa dalla pagina. Null = nessuna.</summary>
+    [Parameter] public RenderFragment? Scheda { get; set; }
 
     /// <summary>Vista bozza: si passa alle sotto-sezioni, che senza non saprebbero se una nascosta va
     /// mostrata marcata o tolta. Default <c>false</c> = comportamento pubblico, che è il prudente.</summary>
@@ -64,11 +65,8 @@
     /// <c>Depth 1</c> (figlie della sezione-blocco) ma le mostra come sezioni di primo livello, quindi passa -1.</summary>
     [Parameter] public int DepthOffset { get; set; }
 
-    /// <summary>Vero se la sezione ha sotto-sezioni per lo slot dato: gli host lo usano per non emettere markup vuoto.</summary>
-    public static bool HasChildren(SectionView s, SectionSlot slot) => slot switch
-    {
-        SectionSlot.Before => s.Children.Any(c => c.BeforeParentBody),
-        SectionSlot.After => s.Children.Any(c => !c.BeforeParentBody),
-        _ => s.Children.Count > 0,
-    };
+    /// <summary>I blocchi col loro <c>Order</c>. ⚠️ Una vista costruita a mano (i test, le proiezioni che non
+    /// lo conoscono) porta 0: allora vale la posizione nella lista, che è l'ordine in cui arrivano.</summary>
+    private IReadOnlyList<(BlockView Blocco, int Ordine)> Blocchi() =>
+        Section.Blocks.Select((b, i) => (b, b.Order > 0 ? b.Order : i + 1)).ToList();
 }

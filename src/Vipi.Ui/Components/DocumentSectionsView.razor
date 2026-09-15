@@ -4,7 +4,7 @@
    sintassi diverse:
      · una sezione nascosta sta fuori dal pubblico e dall'anteprima release, e in bozza si vede marcata;
      · nasce chiusa se lo dice il catalogo;
-     · le sotto-sezioni «prima» vanno sopra il corpo e le altre sotto (doc 11 §3g);
+     · blocchi e sotto-sezioni stanno in una fila sola, nell'ordine di `CorpoDiSezione` (15 settembre 2026);
      · una sezione resa dalla pagina cede il posto al corpo derivato, e tiene anche i propri blocchi solo se
        il catalogo dice che li tiene (oggi la sola «validità e revisione»).
 
@@ -45,25 +45,11 @@
             </Header>
             <ChildContent>
                 @{ var perSlot = SlotsOf?.Invoke(s) ?? s; }
-                @if (SectionBody.HasChildren(perSlot, SectionSlot.Before))
-                {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.Before" IsDraft="IsDraft"
-                                 Profile="Profile" DerivedContent="DerivedContent" />
-                }
-                @DerivedContent(s)
-                @* La sezione tiene ANCHE i suoi blocchi: il timbro sopra, il testo scritto a mano sotto.
-                   ⚠️ `Slot="Blocks"`: SOLO i blocchi. Le sotto-sezioni le rendono le due chiamate attorno, e
-                   con lo slot `All` una sezione che avesse tutt'e due — scheda e sotto-sezioni — le mostrava
-                   DUE VOLTE. Si vede alla prima che le ha, «Aree di lavoro» del vSOP militare. *@
-                @if (SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey))
-                {
-                    <SectionBody Section="s" ShowBlocks="true" Slot="SectionSlot.Blocks" IsDraft="IsDraft" />
-                }
-                @if (SectionBody.HasChildren(perSlot, SectionSlot.After))
-                {
-                    <SectionBody Section="perSlot" ShowBlocks="false" Slot="SectionSlot.After" IsDraft="IsDraft"
-                                 Profile="Profile" DerivedContent="DerivedContent" />
-                }
+                @* La scheda entra nella fila del corpo (15 settembre 2026): figlie «in testa» → scheda → blocchi
+                   propri (solo se il catalogo dice che la sezione li tiene) e figlie, alternati. *@
+                <SectionBody Section="perSlot" ShowBlocks="SectionCatalog.KeepsOwnBlocks(Profile, s.SectionKey)"
+                             Scheda="DerivedContent(s)" IsDraft="IsDraft"
+                             Profile="Profile" DerivedContent="DerivedContent" />
             </ChildContent>
         </CollapsibleBlock>
     }

@@ -108,7 +108,7 @@ public static class AudienceFilter
         Depth = s.Depth,
         SectionKey = s.SectionKey,
         IsHidden = s.IsHidden,
-        BeforeParentBody = s.BeforeParentBody,
+        BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition,
         LeadSentence = s.LeadSentence,
         Audience = s.Audience,
         Blocks = s.Blocks,

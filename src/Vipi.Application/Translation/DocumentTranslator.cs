@@ -282,7 +282,7 @@ public sealed class DocumentTranslator
         Depth = s.Depth,
         SectionKey = s.SectionKey,
         IsHidden = s.IsHidden,
-        BeforeParentBody = s.BeforeParentBody,
+        BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition,
         LeadSentence = s.LeadSentence,
         // ⚠️ Anche il destinatario: questa classe RICOSTRUISCE le sezioni, e ogni flag per-sezione che non
         // si ricopia qui viene azzerato dalla traduzione — in silenzio, perché il default è quello «buono»
@@ -296,6 +296,7 @@ public sealed class DocumentTranslator
     private static BlockView TraduciBlocco(BlockView b, Func<string?, string?> traduci) => new()
     {
         Id = b.Id,
+        Order = b.Order,
         Format = b.Format,
         State = b.State,
         CollapseLabel = b.CollapseLabel,

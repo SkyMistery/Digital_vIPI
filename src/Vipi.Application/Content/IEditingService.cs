@@ -80,7 +80,8 @@ public interface IEditingService : IDocumentForReview
     /// documento resta pubblico, e la vista ATC la apre chiunque cambi l'indirizzo.</summary>
     Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default);
 
-    Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default);
+    /// <inheritdoc cref="Vipi.Application.Abstractions.IEditingRepository.SetBodyOrderAsync"/>
+    Task SetBodyOrderAsync(int sectionId, IReadOnlyList<VoceCorpo> fila, CancellationToken ct = default);
 
     /// <summary>Prosa a CAPOFILA per una sezione derivata a tabelle.</summary>
     Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default);

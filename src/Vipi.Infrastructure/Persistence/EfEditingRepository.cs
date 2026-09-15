@@ -136,7 +136,7 @@ public sealed class EfEditingRepository : IEditingRepository
             Order = s.Order,
             RenderMode = s.RenderMode,
             IsHidden = s.IsHidden,
-            BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+            BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
             LeadSentence = s.LeadSentence,
             Blocks = (blocksBySection.TryGetValue(s.Id, out var bs) ? bs : new())
                 .Select(b => new EditableBlock
@@ -212,7 +212,7 @@ public sealed class EfEditingRepository : IEditingRepository
                     Title = s.Title, Order = s.Order, Depth = s.Depth, SectionKey = s.SectionKey,
                     // La copia deve portarsi dietro anche i flag per-sezione: senza, «crea bozza» resettava
                     // RenderMode a Frozen (doc 10) e ora azzererebbe pure IsHidden (doc 11 §3c).
-                    RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, Audience = s.Audience,
+                    RenderMode = s.RenderMode, IsHidden = s.IsHidden, BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition, Audience = s.Audience,
         LeadSentence = s.LeadSentence,
                     RowVersion = Guid.NewGuid().ToByteArray(),
                 };
@@ -694,8 +694,10 @@ public sealed class EfEditingRepository : IEditingRepository
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
 
-        var nextOrder = (await _db.ContentBlocks.Where(b => b.SectionId == sectionId)
-            .MaxAsync(b => (int?)b.Order, ct) ?? 0) + 1;
+        var lastOrder = await _db.ContentBlocks.Where(b => b.SectionId == sectionId)
+            .MaxAsync(b => (int?)b.Order, ct) ?? 0;
+        var nextOrder = lastOrder + 1;
+        await FissaPosizioniStoricheAsync(sectionId, lastOrder, ct);
 
         var block = new ContentBlock
         {
@@ -746,13 +748,57 @@ public sealed class EfEditingRepository : IEditingRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default)
+    public async Task SetBodyOrderAsync(int sectionId, IReadOnlyList<VoceCorpo> fila, CancellationToken ct = default)
     {
         var section = await _db.DocumentSections.FirstOrDefaultAsync(s => s.Id == sectionId, ct)
             ?? throw new InvalidOperationException($"Sezione {sectionId} inesistente.");
         await RequireDraftAsync(section.DocumentVersionId, ct);
-        section.BeforeParentBody = before;
+
+        var blocchi = await _db.ContentBlocks.Where(b => b.SectionId == sectionId).ToListAsync(ct);
+        var figlie = await _db.DocumentSections.Where(s => s.ParentSectionId == sectionId).ToListAsync(ct);
+
+        // ⚠️ La fila la manda l'editor, cioè l'albero che AVEVA IN MANO: se nel frattempo una sotto-sezione è
+        // nata, morta o cambiata di gruppo, scrivere questi numeri metterebbe le altre in un posto che nessuno
+        // ha chiesto. Si rifiuta — l'editor ricarica.
+        var figlieInFila = fila.Where(v => v.Tipo == TipoVoce.Figlia).Select(v => v.Id).ToList();
+        var blocchiInFila = fila.Where(v => v.Tipo == TipoVoce.Blocco).Select(v => v.Id).ToList();
+        if (figlieInFila.Count != figlie.Count || !figlie.Select(f => f.Id).ToHashSet().SetEquals(figlieInFila)
+            || !blocchiInFila.All(id => blocchi.Any(b => b.Id == id)))
+            throw new InvalidOperationException(Lingua(
+                "L'ordine del corpo si riferisce a una versione vecchia della sezione: ricarica e riprova.",
+                "The body order refers to an old version of the section: reload and try again."));
+
+        var piano = CorpoDiSezione.Pianifica(fila, blocchi.Select(b => (b.Id, b.Order)).ToList());
+        foreach (var (id, order) in piano.Blocchi)
+        {
+            var b = blocchi.First(x => x.Id == id);
+            if (b.Order != order) b.Order = order;
+        }
+        foreach (var (id, posizione, order) in piano.Figlie)
+        {
+            var f = figlie.First(x => x.Id == id);
+            if (f.BodyPosition == posizione && f.Order == order) continue;
+            f.BodyPosition = posizione;
+            f.Order = order;
+            f.RowVersion = Guid.NewGuid().ToByteArray();
+        }
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Scrive la posizione delle sotto-sezioni che non l'hanno mai avuta, fermandola a com'è ADESSO: in testa, o
+    /// dopo l'ultimo blocco di oggi. Da chiamare prima di aggiungere un blocco: una figlia «in coda» senza numero
+    /// resterebbe in coda anche al blocco nuovo, che invece si aggiunge in FONDO al corpo — sotto il tasto.
+    /// </summary>
+    private async Task FissaPosizioniStoricheAsync(int sectionId, int ultimoOrder, CancellationToken ct)
+    {
+        var storiche = await _db.DocumentSections
+            .Where(s => s.ParentSectionId == sectionId && s.BodyPosition == null).ToListAsync(ct);
+        foreach (var f in storiche)
+        {
+            f.BodyPosition = f.BeforeParentBody ? CorpoDiSezione.InTesta : ultimoOrder;
+            f.RowVersion = Guid.NewGuid().ToByteArray();
+        }
     }
 
     public async Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default)
@@ -872,6 +918,10 @@ public sealed class EfEditingRepository : IEditingRepository
         // finché i numeri sono diversi, ma su due fratelli che portano lo STESSO numero — e capita: nessun
         // indice unico li vieta, e un gruppo mai rinumerato può averceli — scambiarli non cambia niente, e la
         // freccia diventa un tasto che non fa nulla. Con la rinumerazione la posizione cambia sempre.
+        // ⚠️ Chi scavalca un fratello ne prende la POSIZIONE nel corpo del padre (15 settembre 2026): l'ordine
+        // fra fratelli e quello nella fila del corpo devono dire la stessa cosa, o l'indice e il documento
+        // mostrano due sequenze diverse.
+        PrendiPosizione(section, siblings[a]);
         siblings.RemoveAt(da);
         siblings.Insert(a, section);
         Rinumera(siblings);
@@ -897,6 +947,9 @@ public sealed class EfEditingRepository : IEditingRepository
 
         siblings.Remove(section);
         var at = target is null ? siblings.Count : siblings.IndexOf(target);
+        // Stessa regola della freccia: prende la posizione nel corpo di chi le sta accanto (il riferimento, o
+        // l'ultimo fratello se va in coda).
+        if ((target ?? siblings.LastOrDefault()) is { } vicino) PrendiPosizione(section, vicino);
         siblings.Insert(at, section);
 
         // Rinumerazione densa del solo gruppo: l'Order è una posizione, non un identificativo (nessun indice
@@ -987,6 +1040,9 @@ public sealed class EfEditingRepository : IEditingRepository
         RiscriviProfondita(section, nuovaProfondita, figlieDi);
         section.RowVersion = Guid.NewGuid().ToByteArray();
 
+        // Nel corpo del padre NUOVO: accanto al riferimento, o in coda come una sotto-sezione appena nata.
+        if (beforeSectionId is not null) PrendiPosizione(section, destinazione[at]);
+        else { section.BodyPosition = null; section.BeforeParentBody = false; }
         destinazione.Insert(at, section);
         Rinumera(destinazione);
 
@@ -1002,6 +1058,15 @@ public sealed class EfEditingRepository : IEditingRepository
         }
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>La sezione mossa prende la posizione nel corpo del padre di <paramref name="vicino"/>.</summary>
+    private static void PrendiPosizione(DocumentSection sezione, DocumentSection vicino)
+    {
+        if (sezione.BodyPosition == vicino.BodyPosition && sezione.BeforeParentBody == vicino.BeforeParentBody) return;
+        sezione.BodyPosition = vicino.BodyPosition;
+        sezione.BeforeParentBody = vicino.BeforeParentBody;
+        sezione.RowVersion = Guid.NewGuid().ToByteArray();
     }
 
     /// <summary>Rinumerazione densa di un gruppo di fratelli, da 1: <c>Order</c> è una posizione.</summary>

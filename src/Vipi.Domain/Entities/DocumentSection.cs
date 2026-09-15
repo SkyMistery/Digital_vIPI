@@ -30,6 +30,21 @@ public class DocumentSection
     public bool BeforeParentBody { get; set; }
 
     /// <summary>
+    /// Dove sta la sotto-sezione DENTRO il corpo del padre, fra i suoi blocchi (15 settembre 2026, committente:
+    /// «sottosezione, blocco, sottosezione, blocco»). È una <b>soglia sull'<c>Order</c> dei blocchi del padre</b>:
+    /// la sotto-sezione viene dopo i blocchi con <c>Order ≤ BodyPosition</c> e prima degli altri.
+    /// <list type="bullet">
+    ///   <item><c>-1</c> = in testa, prima anche della scheda che la pagina disegna sulle sezioni derivate;</item>
+    ///   <item><c>0</c> = dopo la scheda e prima di ogni blocco;</item>
+    ///   <item><c>null</c> = nessuno l'ha mai posizionata: vale <see cref="BeforeParentBody"/> — in testa o in
+    ///   coda — che è la forma di tutti i documenti e di tutte le release scritti prima.</item>
+    /// </list>
+    /// <para>⚠️ Una soglia e non un conteggio: cancellare un blocco lascia un buco negli <c>Order</c>, e un
+    /// conteggio sposterebbe da solo la sotto-sezione di un posto. Il calcolo sta in <c>CorpoDiSezione</c>.</para>
+    /// </summary>
+    public int? BodyPosition { get; set; }
+
+    /// <summary>
     /// Come si legge la PROSA di una sezione derivata a tabelle (i coordinamenti): <c>false</c> = distesa, una
     /// frase per clausola sopra la tabella — il comportamento storico; <c>true</c> = capofila, UNA frase che
     /// introduce la tabella, che è la forma dei documenti veri (LoA EUROCONTROL, IPI ENAV).

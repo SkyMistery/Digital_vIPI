@@ -69,6 +69,7 @@ public class EditingRepositoryTests : IAsyncLifetime
         source.RenderMode = RenderMode.Live;
         source.IsHidden = true;
         source.BeforeParentBody = true;
+        source.BodyPosition = 2;
         await _db.SaveChangesAsync();
 
         var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
@@ -78,23 +79,64 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal(RenderMode.Live, copy.RenderMode);
         Assert.True(copy.IsHidden);
         Assert.True(copy.BeforeParentBody);
+        Assert.Equal(2, copy.BodyPosition);
+    }
+
+    /// <summary>
+    /// Il corpo in una fila (15 settembre 2026): «sottosezione, blocco, sottosezione, blocco». La fila che manda
+    /// l'editor diventa numeri — Order dei blocchi e soglia delle figlie — solo sulla bozza, e una fila che non
+    /// nomina tutte le figlie si rifiuta.
+    /// </summary>
+    [Fact]
+    public async Task SetBodyOrder_alterna_figlie_e_blocchi_solo_in_bozza()
+    {
+        var docId = await AccDocIdAsync();
+        var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
+        var padre = await _db.DocumentSections.Where(s => s.DocumentVersionId == draftId && s.ParentSectionId == null).OrderBy(s => s.Id).FirstAsync();
+
+        foreach (var b in _db.ContentBlocks.Where(b => b.SectionId == padre.Id)) _db.ContentBlocks.Remove(b);
+        foreach (var f in _db.DocumentSections.Where(s => s.ParentSectionId == padre.Id)) f.ParentSectionId = null;
+        await _db.SaveChangesAsync();
+
+        var b1 = await _repo.AddBlockAsync(padre.Id, BlockFormat.Prose, BlockTier.Extended, BlockVisibility.Always);
+        var b2 = await _repo.AddBlockAsync(padre.Id, BlockFormat.Prose, BlockTier.Extended, BlockVisibility.Always);
+        var f1 = await _repo.AddSectionAsync(draftId, padre.Id, "F1", BlockSection.OperationalTechnique);
+        var f2 = await _repo.AddSectionAsync(draftId, padre.Id, "F2", BlockSection.OperationalTechnique);
+
+        // f1 b1 f2 b2
+        var fila = new[]
+        {
+            new VoceCorpo(TipoVoce.Figlia, f1), new VoceCorpo(TipoVoce.Blocco, b1),
+            new VoceCorpo(TipoVoce.Figlia, f2), new VoceCorpo(TipoVoce.Blocco, b2),
+        };
+        await _repo.SetBodyOrderAsync(padre.Id, fila);
+
+        Assert.Equal(0, (await _db.DocumentSections.AsNoTracking().FirstAsync(s => s.Id == f1)).BodyPosition);
+        Assert.Equal(1, (await _db.DocumentSections.AsNoTracking().FirstAsync(s => s.Id == f2)).BodyPosition);
+
+        // Una fila che dimentica una figlia è un albero vecchio: si rifiuta.
+        await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
+            _repo.SetBodyOrderAsync(padre.Id, new[] { new VoceCorpo(TipoVoce.Figlia, f1) }));
+
+        var published = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
+        var onPublished = await _db.DocumentSections.Where(s => s.DocumentVersionId == published).OrderBy(s => s.Id).FirstAsync();
+        await Assert.ThrowsAnyAsync<Exception>(() => _repo.SetBodyOrderAsync(onPublished.Id, Array.Empty<VoceCorpo>()));
     }
 
     [Fact]
-    public async Task SetSectionBeforeParentBody_Requires_A_Draft()
+    public async Task Un_blocco_aggiunto_va_in_fondo_anche_sotto_le_figlie_storiche()
     {
-        // Stessa regola degli altri flag per-sezione: si tocca solo la bozza (doc 11 §3g).
+        // Una figlia «dopo il contenuto» mai posizionata (BodyPosition null) sta in CODA. Aggiungendo un blocco
+        // si ferma dov'è: il blocco nuovo nasce sotto di lei, dove sta il tasto «+ Blocco».
         var docId = await AccDocIdAsync();
-        var published = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId!.Value).FirstAsync();
-        var onPublished = await _db.DocumentSections.Where(s => s.DocumentVersionId == published).OrderBy(s => s.Id).FirstAsync();
-
-        await Assert.ThrowsAnyAsync<Exception>(() => _repo.SetSectionBeforeParentBodyAsync(onPublished.Id, true));
-
         var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 111);
-        var onDraft = await _db.DocumentSections.Where(s => s.DocumentVersionId == draftId).OrderBy(s => s.Id).FirstAsync();
-        await _repo.SetSectionBeforeParentBodyAsync(onDraft.Id, true);
+        var padre = await _db.DocumentSections.Where(s => s.DocumentVersionId == draftId && s.ParentSectionId == null).OrderBy(s => s.Id).FirstAsync();
+        var prima = await _db.ContentBlocks.Where(b => b.SectionId == padre.Id).MaxAsync(b => (int?)b.Order) ?? 0;
+        var figlia = await _repo.AddSectionAsync(draftId, padre.Id, "Storica", BlockSection.OperationalTechnique);
 
-        Assert.True((await _db.DocumentSections.FindAsync(onDraft.Id))!.BeforeParentBody);
+        await _repo.AddBlockAsync(padre.Id, BlockFormat.Prose, BlockTier.Extended, BlockVisibility.Always);
+
+        Assert.Equal(prima, (await _db.DocumentSections.AsNoTracking().FirstAsync(s => s.Id == figlia)).BodyPosition);
     }
 
     [Fact]

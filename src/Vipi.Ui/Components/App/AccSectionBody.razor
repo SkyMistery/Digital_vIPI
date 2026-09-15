@@ -1,61 +1,68 @@
 ﻿@* Corpo di una sezione della vIPI ACC (data-driven). Estratto da AccVipiPage per riuso in AccOperativaPage.
    Riceve il blocco + la chiave sezione + i valori già derivati per quel blocco. *@
 
-@* Sotto-sezioni «prima» del corpo (doc 11 §3g). Per le sezioni libere le rende SectionBody insieme ai blocchi. *@
-@if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.Before))
+@* Il corpo, in UNA fila (15 settembre 2026): per una sezione strutturata la scheda entra nella fila di
+   `SectionBody` insieme alle sotto-sezioni — figlie «in testa» → scheda → figlie e blocchi alternati — la
+   stessa sequenza dei viewer APP/vLOA e dell'editor. Prima erano tre chiamate a «slot» (doc 11 §3g), e su
+   «Validità e revisione» una sotto-sezione sarebbe uscita DUE volte: dagli slot e dalla chiamata completa
+   che stava dentro la scheda.
+   Blocchi propri solo per «validity» (il testo scritto a mano sotto il timbro): per le altre strutturate il
+   blocco porta il payload. *@
+@if (IsStructured(Key) && Editorial is not null)
 {
-    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.Before" DepthOffset="-1" IsDraft="IsDraft" />
+    <SectionBody Section="Editorial" ShowBlocks="@(Key == "validity")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" />
 }
-
-@switch (Key)
+else if (IsStructured(Key))
 {
-    case "separations": <AppSeparations Rows="Block.Separations" /> break;
-    @* Stesso componente dell'editor ACC e della vIPI APP: qui c'era una copia riga per riga della sua resa
-       di lettura, già divergente nei dettagli (doc 13 §3l). MapScope = chiave del blocco, che è anche l'Id
-       della mappa AoR: è il legame che il JS usa per aprire la configurazione selezionata. *@
-    case "configurations":
-        <AppConfigurations Configs="Array.Empty<AccConfiguration>()"
-                           Tables="ConfigTables ?? Array.Empty<AccConfigTableView>()" MapScope="@Block.Key" />
-        break;
-    case "aor":
-        @* @key include l'albero: al cambio root l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
-        <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
-        break;
-    case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
-    @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
-    case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
-    case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
-    case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
-    @* Come l'AoR: la chiave del blocco fa da scope alla mappa (e al legame chip→descrizione), e il @key
-       include l'albero così al cambio root il nodo mappa è ricreato e vipi-aor.js re-inizializza. *@
-    case "regulated":
-        <RegulatedAreas @key="@(Block.Key + ":reg:" + Root)"
-                        Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" BlockKey="@Block.Key" />
-        break;
-    @* Il timbro sopra e il testo scritto a mano sotto: «Validità e revisione» ha tutti e due i corpi.
-       ⚠️ Senza `Acc` non si sa a quale release appartiene il blocco (la chiave è «ACC|root»), e la vista
-       operativa non lo passa: lì resta il solo testo, che è giusto — non è un documento pubblicato. *@
-    case "validity":
-        @if (!string.IsNullOrWhiteSpace(Acc) && !string.IsNullOrWhiteSpace(Root))
-        {
-            <ValidityStamp Target="ReleaseTargetType.AccVipi" Key="@($"{Acc!.Trim().ToUpperInvariant()}|{Root}")" ReleaseId="ReleaseId" />
-        }
-        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" /> }
-        break;
-    default:
-        @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
-        @if (Editorial is not null) { <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" /> }
-        break;
+    @Scheda
 }
-
-@* Le sotto-sezioni di una sezione strutturata restano contenuto del documento: quelle non marcate «prima» si
-   rendono dopo il corpo derivato (prima sparivano, pur essendo creabili dall'editor con «+ sotto-sez»). *@
-@if (IsStructured(Key) && Editorial is not null && SectionBody.HasChildren(Editorial, SectionSlot.After))
+else if (Editorial is not null)
 {
-    <SectionBody Section="Editorial" ShowBlocks="false" Slot="SectionSlot.After" DepthOffset="-1" IsDraft="IsDraft" />
+    @* Editoriale/libera: resa condivisa con APP e vLOA (prosa/callout/tabella + sotto-sezioni). *@
+    <SectionBody Section="Editorial" DepthOffset="-1" IsDraft="IsDraft" />
 }
 
 @code {
+    /// <summary>La scheda che la pagina disegna per questa chiave (sezioni strutturate).</summary>
+    private RenderFragment Scheda => __builder =>
+    {
+        @switch (Key)
+        {
+            case "separations": <AppSeparations Rows="Block.Separations" /> break;
+            @* Stesso componente dell'editor ACC e della vIPI APP: qui c'era una copia riga per riga della sua resa
+               di lettura, già divergente nei dettagli (doc 13 §3l). MapScope = chiave del blocco, che è anche l'Id
+               della mappa AoR: è il legame che il JS usa per aprire la configurazione selezionata. *@
+            case "configurations":
+                <AppConfigurations Configs="Array.Empty<AccConfiguration>()"
+                                   Tables="ConfigTables ?? Array.Empty<AccConfigTableView>()" MapScope="@Block.Key" />
+                break;
+            case "aor":
+                @* @key include l'albero: al cambio root l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
+                <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
+                break;
+            case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
+            @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
+            case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
+            case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
+            case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
+            @* Come l'AoR: la chiave del blocco fa da scope alla mappa (e al legame chip→descrizione), e il @key
+               include l'albero così al cambio root il nodo mappa è ricreato e vipi-aor.js re-inizializza. *@
+            case "regulated":
+                <RegulatedAreas @key="@(Block.Key + ":reg:" + Root)"
+                                Areas="Areas ?? Array.Empty<AccSpecialAreaView>()" BlockKey="@Block.Key" />
+                break;
+            @* Il timbro sopra e il testo scritto a mano sotto: «Validità e revisione» ha tutti e due i corpi.
+               ⚠️ Senza `Acc` non si sa a quale release appartiene il blocco (la chiave è «ACC|root»), e la vista
+               operativa non lo passa: lì resta il solo testo, che è giusto — non è un documento pubblicato. *@
+            case "validity":
+                @if (!string.IsNullOrWhiteSpace(Acc) && !string.IsNullOrWhiteSpace(Root))
+                {
+                    <ValidityStamp Target="ReleaseTargetType.AccVipi" Key="@($"{Acc!.Trim().ToUpperInvariant()}|{Root}")" ReleaseId="ReleaseId" />
+                }
+                break;
+        }
+    };
+
     [Parameter, EditorRequired] public AccBlock Block { get; set; } = default!;
     [Parameter, EditorRequired] public string Key { get; set; } = default!;
 

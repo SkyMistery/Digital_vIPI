@@ -32,7 +32,7 @@ public abstract class EditingServiceStub : IEditingService
     public virtual Task<IReadOnlyList<SezioneComune>> SezioniComuniAsync(IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, CancellationToken ct = default) => throw NonUsato(nameof(SezioniComuniAsync));
     public virtual Task<int> ApplicaSezioniComuniAsync(IReadOnlyList<int> nascondiIn, IReadOnlyList<(int DocumentId, ReleaseTargetType Famiglia)> membri, IReadOnlyList<string> chiavi, CancellationToken ct = default) => throw NonUsato(nameof(ApplicaSezioniComuniAsync));
     public virtual Task SetSectionAudienceAsync(int sectionId, SectionAudience audience, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionAudienceAsync));
-    public virtual Task SetSectionBeforeParentBodyAsync(int sectionId, bool before, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionBeforeParentBodyAsync));
+    public virtual Task SetBodyOrderAsync(int sectionId, IReadOnlyList<VoceCorpo> fila, CancellationToken ct = default) => throw NonUsato(nameof(SetBodyOrderAsync));
     public virtual Task SetSectionLeadSentenceAsync(int sectionId, bool lead, CancellationToken ct = default) => throw NonUsato(nameof(SetSectionLeadSentenceAsync));
     public virtual Task<int> AddSectionAsync(int versionId, int? parentSectionId, string title, BlockSection kind, CancellationToken ct = default) => throw NonUsato(nameof(AddSectionAsync));
     public virtual Task DeleteSectionAsync(int sectionId, CancellationToken ct = default) => throw NonUsato(nameof(DeleteSectionAsync));

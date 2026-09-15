@@ -2,6 +2,22 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A35 — Sotto-sezioni fra i blocchi del padre — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
+
+Richiesta del committente: «sottosezione, blocco, sottosezione, blocco». Vale per tutti i documenti.
+- Il corpo di una sezione è **una fila** (`CorpoDiSezione`): figlie «in testa» → scheda della pagina → blocchi e
+  figlie alternati. Stessa fusione in `SectionBody` (viewer, `SectionNode`, `DocumentSectionsView`,
+  `AccSectionBody`) e in `DocumentSectionsEditor`. Via `SectionSlot` e le tre chiamate a slot.
+- Colonna nuova `DocumentSection.BodyPosition` (int?, soglia sull'`Order` dei blocchi del padre; -1 = in testa).
+  Null = vale `BeforeParentBody` come prima: documenti e **release già pubblicate** non cambiano aspetto.
+  Migrazione **`SottosezioniFraIBlocchi`** (SQLite `20260915122732`, MySQL `20260915122709`): un `AddColumn` nullable.
+  🔴 Il prossimo pacchetto porta `Vipi.Infrastructure.MySqlMigrations.dll` (insieme a `SidNascosteECorrette`).
+- Editor: le frecce ↑↓ di blocchi e sotto-sezioni scavalcano una voce della fila (`SetBodyOrderAsync`, che rifiuta
+  una fila vecchia); tolto il tasto «Prima/Dopo il contenuto». Un blocco nuovo nasce in fondo, sotto anche le
+  figlie (`FissaPosizioniStoricheAsync`). Riordino/trascinamento fra fratelli: la sezione prende la posizione del vicino.
+- Provato dal vivo su copia di `vipi.db` (LIBP_APP, «Tecnica operativa»): due paragrafi e due sotto-sezioni,
+  frecce su sotto-sezione e blocco → `S B S B`, e il viewer bozza mostra la stessa sequenza.
+
 ### ✅ A34 — APP non remotizzato: «Gestione del traffico» e «Tecnica operativa» — in main, NON in pacchetto, niente migrazione EF
 
 Richiesta del committente. Indice nuovo del profilo `App` (e `AppMil`, che lo rimanda):

@@ -214,7 +214,7 @@
         Depth = s.Depth,
         SectionKey = s.SectionKey,
         IsHidden = s.IsHidden,
-        BeforeParentBody = s.BeforeParentBody,
+        BeforeParentBody = s.BeforeParentBody, BodyPosition = s.BodyPosition,
         Blocks = s.Blocks,
         Children = s.Children.Where(c => !IsDirection(c)).ToList(),
     };
