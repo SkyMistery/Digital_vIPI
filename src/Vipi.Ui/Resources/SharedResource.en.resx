@@ -2206,7 +2206,7 @@
   <data name="Ape_SidImportedTitle" xml:space="preserve"><value>SIDs imported from the sectorfile</value></data>
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Re-fetch the SIDs from the GitHub sectorfile</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-import SIDs</value></data>
-  <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: not editable in the data, but you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the cycle after the fetch).</value></data>
+  <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the effective cycle). The point and transition found by the parser can be &lt;b&gt;corrected&lt;/b&gt; (with a confirmation; the pencil marks a value corrected by hand), and the picked SIDs can be &lt;b&gt;hidden&lt;/b&gt; from the public. Corrections survive future imports.</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Condition" xml:space="preserve"><value>Condition</value></data>
   <data name="Ape_Transition" xml:space="preserve"><value>Transition</value></data>

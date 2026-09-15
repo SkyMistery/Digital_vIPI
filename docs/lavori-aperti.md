@@ -1,6 +1,40 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 14 settembre 2026
+## Dove siamo — 15 settembre 2026
+
+### ✅ A33 — SID: tre segnalazioni dal campo, in main e NON in pacchetto — 🔴 **con UNA migrazione additiva**
+
+Tutto dopo 1.26.1 (`fae666e`), CI verde su `812d3acc`.
+
+1. **`08f849e5` — «GOLF» letto come SID** (lied.sid). Il parser prendeva per SID ogni riga con tre campi: il
+   vertice etichettato `N039.33.45.000;E008.37.28.000;GOLF;` dei blocchi FRASCA DEP16/DEP34 diventava la SID
+   «GOLF» sulla pista «E008.37.28.000». Ora è SID solo la riga che comincia con l'**ICAO del file**. Stesso colpo:
+   uscivano anche le 10 SID **commentate** di `lipb.sid` e l'intestazione commentata di `lirp.sid` («SIDNAME»).
+   Spariscono al prossimo import di LIED/LIPB/LIRP. Le partenze a vista («FRASCA DEP34») restano SID come prima.
+2. **`6a859896` — nascondere e correggere.**
+   - `AirportSid.IsHidden` (importate e manuali): «Nascondi/Mostra scelte» nelle due barre. La derivazione la
+     salta prima di `IsPublicAt` (vince anche sulla forzatura): sezione Live → subito; congelata → alla
+     prossima release. Sopravvive al reimport.
+   - `FixOverride`/`TransitionOverride`: punto e transition di un'importata **risolta dal parser** si correggono
+     in tabella (LIRF: «SIV» è SOSIV, non SIVIL), con conferma quando si sostituisce la sorgente; matita col
+     valore di sorgente nel `title`. ⚠️ **Colonne a parte, non sovrascrittura**: `ContentUnchanged` confronta la
+     transition di sorgente, e una sovrascritta ri-timbrava il ciclo a ogni reimport (SID di nuovo in attesa).
+     Le righe «da verificare» restano sul percorso di prima (fix risolto + alias).
+   - Migrazione **`SidNascosteECorrette`** (SQLite `20260914043318`, MySQL `20260914043303`): tre `AddColumn`,
+     `IsHidden` NOT NULL default false. 🔴 **Il prossimo pacchetto deve portare `Vipi.Infrastructure.MySqlMigrations.dll`**
+     e la prova col login è `Schema: 0`.
+   - Provato dal vivo su copia di `vipi.db` (LIRF): OST1D nascosta sparisce dalla bozza, OST1E esce SOSIV/ELKAP.
+3. **Bug «devo cliccare più volte sul suggerimento»** — 🟡 **NON riprodotto**: il popup nativo della datalist
+   non si pilota (né puppeteer né SendKeys). Ipotesi: la scelta manda `input` `insertReplacementText` e il
+   `change` arriva solo all'uscita dal campo. Rimedio in `vipi-editor.js` (`__vipiDatalistPick`): quell'input
+   con valore dell'elenco → `change` sintetico subito. ▶ **Da far riprovare al segnalante** dopo il carico.
+4. **`812d3acc` — CI**: `tools/conta-test.sh` ricuce la riga di riepilogo che `dotnet test` scrive spezzata in
+   due (dava «MANCA Vipi.Application.Tests (net8.0)» su una corsa verde). Il rosso di `08f849e5` era invece mio:
+   test aggiunto senza riscrivere `tests/conteggi-attesi.txt`.
+
+▶ **Pacchetto**: cambiano Domain, Application, Infrastructure, **MySqlMigrations**, Ui (resx IT/EN: satellite
+inglese), `vipi-editor.js` e `vipi-theme.css` con `.br`/`.gz`. ⚠️ Il ramo `l13-net10` va **riallineato a main**
+prima di diventare 1.27.0: la migrazione nuova deve esserci anche lì.
 
 ### ✅ A32 — Pacchetto 1.26.1: 40 file, PATCH su 1.26.0, ancora net8 — ✅ **ONLINE** (14 settembre 2026)
 

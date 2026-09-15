@@ -2214,7 +2214,7 @@
   <data name="Ape_SidImportedTitle" xml:space="preserve"><value>SID importate dal sectorfile</value></data>
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Ripreleva le SID dal sectorfile GitHub</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-importa SID</value></data>
-  <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Righe da sorgente: non editabili nei dati, ma imposti &lt;b&gt;priorità per punto&lt;/b&gt;, &lt;b&gt;fix&lt;/b&gt; se «da verificare», e la &lt;b&gt;pubblicazione&lt;/b&gt; (di default dal ciclo successivo al prelievo).</value></data>
+  <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Righe da sorgente: imposti &lt;b&gt;priorità per punto&lt;/b&gt;, il &lt;b&gt;fix&lt;/b&gt; se «da verificare», e la &lt;b&gt;pubblicazione&lt;/b&gt; (di default dal ciclo d'entrata). Punto e transition trovati dal parser si possono &lt;b&gt;correggere&lt;/b&gt; (con conferma; la matita indica il valore corretto a mano), e le SID scelte si possono &lt;b&gt;nascondere&lt;/b&gt; al pubblico. Le correzioni restano anche ai prossimi import.</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Condition" xml:space="preserve"><value>Condizione</value></data>
   <data name="Ape_Transition" xml:space="preserve"><value>Transizione</value></data>
