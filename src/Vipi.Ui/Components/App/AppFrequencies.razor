@@ -26,6 +26,11 @@
 @* In MODIFICA la tabella prende `.freq-edit`: righe strette, perche' qui si lavora (si trascina, si
    riordina) invece di leggere. La classe esisteva gia' nel foglio dal giro APP e non la usava nessuno:
    il risultato era la riga da ~60px misurata sull'editor ACC. *@
+@* ⚠️ La tabella sta in un contenitore SUO (15 settembre 2026). La regola che fa scorrere il contenitore
+   diretto di una tabella (`.wrap *:has(> table)`, fondo di vipi-theme.css) prendeva il corpo della sezione,
+   dove sotto la tabella c'e' anche il campo «Collega frequenza»: `overflow-x:auto` rende `auto` anche l'asse
+   verticale, e la tendina dei suggerimenti restava chiusa dentro la sezione — si leggeva solo scorrendo. *@
+<div class="freq-scroll">
 <table class="@(grouped ? "cfg-table" : null) @(Editing ? "freq-edit" : null)">
     <thead>
         <tr>
@@ -83,6 +88,7 @@
         }
     </tbody>
 </table>
+</div>
 @* La spiegazione di come si riordina sta nel «?» della riga-titolo della sezione (DocumentSectionsEditor):
    stesso testo, stessa chiave (AppFreq_EditHelp), ma non piu' tre righe fisse per ogni blocco. *@
 
