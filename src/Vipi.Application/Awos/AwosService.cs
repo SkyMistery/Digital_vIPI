@@ -105,7 +105,7 @@ public sealed class AwosService : IAwosService
             .ToList();
 
         var atis = AwosGate.Atis(_online.GetCurrent().Details, id);
-        var regole = await RegoleDaValutareAsync(id, vipi, vsop, scalo.Rules, ct);
+        var (regole, minimiLvp) = await DalPubblicatoAsync(id, vipi, vsop, scalo.Rules, scalo.Lvp, ct);
         var attiva = AwosComposition.PistaAttiva(regole, identificativi, metar,
             AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign);
 
@@ -124,38 +124,45 @@ public sealed class AwosService : IAwosService
             Piste: piste,
             Attiva: attiva,
             Atis: atis,
-            Lvp: ValutaLvp(scalo.Lvp, metar, giaInVigore),
+            Lvp: ValutaLvp(minimiLvp, metar, giaInVigore),
             AsOf: DateTimeOffset.UtcNow,
             MetarStation: metarDiProva is null ? bollettino?.Stazione : null), AwosOutcome.Ok);
     }
 
     /// <summary>
-    /// Le regole di scelta pista su cui decidere: quelle della <b>release pubblicata</b>, non quelle vive.
+    /// Regole di scelta pista e minimi LVP su cui decidere: quelli della <b>release pubblicata</b>, non i vivi.
     ///
-    /// <para>🔴 Fino al 15 settembre 2026 il quadro valutava l'anagrafica viva: una regola scritta o rinominata
-    /// nell'editor e non ancora pubblicata decideva subito la pista in uso sul quadro pubblico, e il suo nome
-    /// finiva a schermo. Decisione del committente: il quadro legge quel che legge la vIPI.</para>
+    /// <para>🔴 Fino al 15 settembre 2026 il quadro leggeva l'anagrafica viva: una regola o un minimo scritti
+    /// nell'editor e non ancora pubblicati cambiavano subito la pista in uso e lo stato LVP sul quadro pubblico.
+    /// Decisione del committente: il quadro legge quel che legge il documento.</para>
     ///
     /// <para>⚠️ La STESSA regola della vIPI (<c>PistaInUso</c>, <c>AirportViewDerivationService</c>): la sezione
-    /// congelata della release in vigore se c'è; altrimenti le vive — che è anche ciò che il documento pubblicato
-    /// mostra quando la sezione è Live, o quando la release è di prima del 12 settembre 2026 e non porta le regole
-    /// in forma calcolabile. Edizione: la vIPI civile se pubblicata, il vSOP militare sui campi che hanno solo
-    /// quello. Nessun documento pubblicato (lo apre un Editor per provarlo): le vive, non c'è altro.</para>
+    /// congelata della release in vigore se c'è; altrimenti i vivi. «Altrimenti» comprende la sezione in
+    /// <b>Live</b> — lo snapshot non la porta, e allora un cambiamento nell'editor arriva sul quadro subito, come
+    /// nel documento — e una release di prima del 12 settembre 2026 senza le regole in forma calcolabile.
+    /// Edizione: la vIPI civile se pubblicata, il vSOP militare sui campi che hanno solo quello. Nessun documento
+    /// pubblicato (lo apre un Editor per provarlo): i vivi, non c'è altro.</para>
+    ///
+    /// <para>⚠️ Una sezione LVP congelata SENZA minimi (<c>Minimi</c> null) vale «pubblicata senza minimi», e il
+    /// quadro ricade sullo standard dichiarandolo: NON si torna ai vivi, che sarebbero proprio i non pubblicati.</para>
     /// </summary>
-    private async Task<IReadOnlyList<RunwayRuleRow>> RegoleDaValutareAsync(
-        string icao, bool vipi, bool vsop, IReadOnlyList<RunwayRuleRow> vive, CancellationToken ct)
+    private async Task<(IReadOnlyList<RunwayRuleRow> Regole, LvpRow? Lvp)> DalPubblicatoAsync(
+        string icao, bool vipi, bool vsop, IReadOnlyList<RunwayRuleRow> regoleVive, LvpRow? lvpVivi,
+        CancellationToken ct)
     {
-        if (!vipi && !vsop) return vive;
+        if (!vipi && !vsop) return (regoleVive, lvpVivi);
         var edizione = vipi ? ReleaseTargetType.Airport : ReleaseTargetType.AirportMil;
-        var congelate = (await _congelate.LoadAsync(edizione, icao, ct)).Get<AirportRulesView>("runwayrules");
-        return congelate?.Regole ?? vive;
+        var snapshot = await _congelate.LoadAsync(edizione, icao, ct);   // una lettura per tutt'e due
+        var regole = snapshot.Get<AirportRulesView>("runwayrules")?.Regole ?? regoleVive;
+        var lvp = snapshot.Get<AirportLvpView>("lvp") is { } congelata ? congelata.Minimi : lvpVivi;
+        return (regole, lvp);
     }
 
     public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default) =>
         AwosGate.Elenco(await DocumentiAsync(ct));
 
     /// <summary>
-    /// Lo stato LVP suggerito, sui minimi <b>vivi</b> dello scalo e sul METAR di adesso, e la memoria da
+    /// Lo stato LVP suggerito, sui minimi <b>pubblicati</b> dello scalo (<see cref="DalPubblicatoAsync"/>) e sul METAR di adesso, e la memoria da
     /// rimandare al giro dopo. Le due regole stanno nel valutatore (T-077, T-009): qui non se ne riscrive
     /// nessuna, e il JavaScript non ne decide nessuna.
     /// </summary>

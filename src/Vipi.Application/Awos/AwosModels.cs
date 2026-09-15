@@ -30,9 +30,9 @@ public sealed record AwosAtis(string Callsign, string? Lettera, string? Orario, 
 /// <summary>
 /// Lo stato LVP del quadro: quello suggerito dai minimi, e i minimi stessi per mostrarli.
 ///
-/// <para>⚠️ Il quadro legge i minimi <b>VIVI</b>, non quelli di una release: non è un documento e non ha una
-/// release — è uno strumento, come il vento. Dove il documento pubblicato e il quadro divergessero,
-/// l'autorità è il documento.</para>
+/// <para>⚠️ Il quadro legge i minimi <b>PUBBLICATI</b> (dal 15 settembre 2026; prima i vivi): la sezione
+/// congelata della release in vigore, o i vivi se la sezione è Live — la regola in <c>AwosService.DalPubblicatoAsync</c>.
+/// Così il quadro e il documento pubblicato non possono divergere.</para>
 /// </summary>
 /// <param name="Memoria">
 /// Che cosa il quadro deve rimandare al giro dopo come «erano in vigore» (<see cref="LvpValutatore.MemoriaDopo"/>).
