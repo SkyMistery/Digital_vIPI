@@ -96,7 +96,7 @@ public class LockDelleScrittureStrutturateTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditConflictException>(() =>
             app.SaveFrequencyOrderAsync("LIRP_APP", new[] { new AppFreqOrderOverride("LIRP_TWR", 0) }));
         await Assert.ThrowsAsync<EditConflictException>(() =>
-            app.SaveVfrAsync("LIRP_APP", new AppVfrContent("sovrascritto", Array.Empty<AppVfrRow>())));
+            app.SaveSeparationsAsync("LIRP_APP", new[] { new AppSeparationRow("sovrascritto", "5 NM") }));
     }
 
     // ------------------------------------------------------------------ ACC

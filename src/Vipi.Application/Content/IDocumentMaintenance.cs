@@ -116,6 +116,22 @@ public interface IDocumentMaintenance
     Task<int> ReparentAirportSectionsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Nelle vIPI di APP non remotizzato <b>già scritte</b> (15 settembre 2026, committente): il VFR, che era
+    /// una radice, diventa figlio di una nuova «Gestione del traffico», che prende il suo posto nell'indice.
+    /// La sorella «IFR» e la «Tecnica operativa» le aggiunge poi <see cref="AddMissingCatalogSectionsAsync"/>.
+    ///
+    /// <para>⚠️ Il VFR smette di essere reso dalla pagina e diventa una sezione a blocchi vuota. Il payload
+    /// della vecchia tabella (<c>AppVfrContent</c>) <b>non si butta</b> se dentro c'è qualcosa: l'intro
+    /// diventa un blocco di prosa e le righe una tabella generica, che chi scrive toglie se non servono. Il
+    /// segnaposto vuoto invece se ne va — su una sezione a blocchi sarebbe una tabella vuota da compilare.</para>
+    ///
+    /// <para>⚠️ Si tocca solo un VFR ancora <b>radice</b>: è ciò che rende il passo idempotente. Le release già
+    /// pubblicate non si toccano: il pubblico vede l'indice di prima finché quell'APP non si ripubblica.</para>
+    /// </summary>
+    /// <returns>Quanti documenti sono stati sistemati.</returns>
+    Task<int> ReparentAppTrafficManagementAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Toglie dai vSOP militari già scritti la sezione <c>qra</c>, che dal 6 settembre 2026 non è più nel
     /// catalogo: non sta in nessuno dei quindici SOP reali — l'avevamo aggiunta noi il 27 agosto — e
     /// l'indice chiesto dal SOD non la prevede (carta <c>2026-09-06-vsop-sezioni-sod.md</c> §1b).

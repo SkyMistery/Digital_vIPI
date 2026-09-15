@@ -2,6 +2,24 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A34 — APP non remotizzato: «Gestione del traffico» e «Tecnica operativa» — in main, NON in pacchetto, niente migrazione EF
+
+Richiesta del committente. Indice nuovo del profilo `App` (e `AppMil`, che lo rimanda):
+Separazioni · Configurazioni · AOR · Frequenze · MRVA · **Gestione del traffico** (IFR, VFR) · Coordinamenti ·
+**Tecnica operativa** · Aree regolamentate · Procedure generali · Validità e revisione.
+
+- **VFR** non è più resa dalla pagina (`AppVfr` tolto da editor e viewer APP, `Get/SaveVfrAsync` tolti da
+  `AppDocumentService`): sezione a blocchi vuota, «+ blocco» come le Procedure generali. IFR e Tecnica operativa idem.
+  ⚠️ Il **blocco APP della vIPI ACC** (`AccAppBlock`) tiene il suo VFR strutturato: non richiesto.
+- Chiavi nuove: `trafficmanagement`, `trafficmanagement:ifr`, `operatingtechnique` (⚠️ ≠ `operationaltechnique`,
+  che è «Procedure generali»). Il VFR tiene `vfr`: è la stessa riga, spostata.
+- Documenti già scritti: `IDocumentMaintenance.ReparentAppTrafficManagementAsync` all'avvio, PRIMA di
+  `AddMissingCatalogSections` (che poi aggiunge IFR e Tecnica operativa). Il contenitore prende il posto del VFR;
+  il segnaposto vuoto se ne va; un vecchio payload VFR **con contenuto** diventa prosa (intro) + tabella generica
+  (Situazione/Procedura), non si butta. Idempotente. In sviluppo gli 8 VFR erano tutti vuoti.
+- ⚠️ **Release già pubblicate**: indice vecchio finché l'APP non si ripubblica; e se un VFR pubblicato aveva la
+  tabella, in pubblico sparisce subito (il payload non lo disegna più nessuno) e torna alla ripubblicazione.
+
 ### ✅ A33 — SID: tre segnalazioni dal campo, in main e NON in pacchetto — 🔴 **con UNA migrazione additiva**
 
 Tutto dopo 1.26.1 (`fae666e`), CI verde su `812d3acc`.

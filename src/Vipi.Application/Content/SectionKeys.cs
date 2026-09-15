@@ -124,4 +124,17 @@ public static class SectionKeys
 
     /// <summary>Procedure di arrivo — IFR.</summary>
     public const string ArrivalProceduresIfr = "arrivalprocedures:ifr";
+
+    /// <summary>Gestione del traffico, nell'APP non remotizzato (15 settembre 2026): contenitore di IFR e VFR.
+    /// <para>⚠️ Il figlio VFR tiene la chiave storica <c>vfr</c>: è la stessa sezione, spostata, e il contenuto
+    /// viaggia con la riga.</para></summary>
+    public const string TrafficManagement = "trafficmanagement";
+
+    /// <summary>Gestione del traffico — IFR.</summary>
+    public const string TrafficManagementIfr = "trafficmanagement:ifr";
+
+    /// <summary>Tecnica operativa, nell'APP non remotizzato, subito sotto i Coordinamenti (15 settembre 2026).
+    /// <para>⚠️ Da non confondere con <c>operationaltechnique</c>, che nonostante la chiave è la sezione
+    /// «Procedure generali».</para></summary>
+    public const string OperatingTechnique = "operatingtechnique";
 }

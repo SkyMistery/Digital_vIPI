@@ -54,12 +54,6 @@ public interface IAppDocumentService
     /// <summary>Salva le righe Separazioni nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
     Task SaveSeparationsAsync(string appCallsign, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
 
-    /// <summary>Contenuto della sezione VFR (prosa + tabella), letto dal blocco keyed del Document. Vuoto se non migrato/assente.</summary>
-    Task<AppVfrContent> GetVfrAsync(string appCallsign, CancellationToken ct = default);
-
-    /// <summary>Salva il contenuto VFR nel blocco keyed del Document (garantisce prima il documento; ACC-gated).</summary>
-    Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default);
-
     /// <summary>Identità dell'APP (settore, callsign, titolo IVAO, ACC, DocumentId se migrato). Null se il callsign non è un APP standalone.</summary>
     Task<AppDocumentIdentity?> GetIdentityAsync(string appCallsign, CancellationToken ct = default);
 
@@ -392,21 +386,6 @@ public sealed class AppDocumentService : IAppDocumentService
             .ToList();
         var json = clean.Count == 0 ? null : JsonSerializer.Serialize(clean);
         await _editing.SaveSectionBlockJsonAsync(docId, "separations", json, _authz.CurrentUserId ?? 0, ct);
-    }
-
-    public async Task<AppVfrContent> GetVfrAsync(string appCallsign, CancellationToken ct = default)
-    {
-        if (await ResolveDocIdAsync(appCallsign, ct) is not int docId) return AppVfrContent.Empty;
-        var json = await _editing.GetSectionBlockJsonAsync(docId, "vfr", ct);
-        return Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty;
-    }
-
-    public async Task SaveVfrAsync(string appCallsign, AppVfrContent content, CancellationToken ct = default)
-    {
-        var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
-        var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
-        var json = empty ? null : JsonSerializer.Serialize(content);
-        await _editing.SaveSectionBlockJsonAsync(docId, "vfr", json, _authz.CurrentUserId ?? 0, ct);
     }
 
     // --- Aree regolamentate (blocco keyed "regulated"): stessa selezione della vIPI ACC, senza il modo automatico.

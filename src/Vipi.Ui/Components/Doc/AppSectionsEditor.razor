@@ -360,7 +360,6 @@ else
 
         // Derivate/editoriali-strutturate (data-driven), rese via DerivedContent per SectionKey.
     private List<AppSeparationRow> _separations = new();
-    private AppVfrContent _vfr = AppVfrContent.Empty;
     private List<AppFreqRow> _freqs = new();
     private List<int> _linkIds = new();
     private AppCoordination _coord = AppCoordination.Empty;
@@ -457,7 +456,6 @@ else
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable;
 
             _separations = (await AppDoc.GetSeparationsAsync(_app)).ToList();
-            _vfr = await AppDoc.GetVfrAsync(_app);
             _regulated = await AppDoc.GetRegulatedAsync(_app);
             var overrides = await AppDoc.GetOverridesAsync(_app);
             _linkIds = overrides.FreqLinkSectorIds.ToList();
@@ -492,12 +490,6 @@ else
     {
         _separations = rows.ToList();
         await AppDoc.SaveSeparationsAsync(_app, _separations);
-    });
-
-    private Task SaveVfr(AppVfrContent content) => _shell.GuardAsync(async () =>
-    {
-        _vfr = content;
-        await AppDoc.SaveVfrAsync(_app, content);
     });
 
     // ---- configurazioni ----
@@ -647,9 +639,6 @@ else
                                 DragIndex="_freqDragIndex" OnDragStart="i => _freqDragIndex = i"
                                 OnDragEnter="FreqDragOver" OnDrop="FreqDragDrop" OnDragEnd="FreqDragDrop" />
                 @if (_shell.IsEditing) { @FreqLinkPicker() }
-                break;
-            case "vfr":
-                <AppVfr Content="_vfr" Editing="_shell.IsEditing" ContentChanged="SaveVfr" />
                 break;
             case "minima":
                 @* Sola lettura anche in modifica: la carta viene dal sectorfile. Qui si decide solo se resti Live

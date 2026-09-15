@@ -83,9 +83,12 @@ public class SectionCatalogTests
         string[] Host(SectionProfile p) => SectionCatalog.For(p)
             .Where(d => SectionCatalog.IsHostRendered(p, d.Key)).Select(d => d.Key).OrderBy(k => k).ToArray();
 
+        // ⚠️ Dal 15 settembre 2026 il VFR dell'APP non remotizzato non è più della pagina: è una sezione a
+        // blocchi dentro «Gestione del traffico». Nel blocco APP della vIPI ACC (sotto) lo resta.
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity", "vfr" },
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
             Host(SectionProfile.App));
+        Assert.False(SectionCatalog.IsHostRendered(SectionProfile.App, "vfr"));
         Assert.Equal(
             new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
             Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR
@@ -219,6 +222,28 @@ public class SectionCatalogTests
     }
 
     [Fact]
+    public void App_gestione_del_traffico_sopra_i_coordinamenti_e_tecnica_operativa_sotto()
+    {
+        // 15 settembre 2026, committente: «Gestione del traffico» con IFR e VFR dentro, sopra i Coordinamenti;
+        // «Tecnica operativa» subito sotto. IFR, VFR e la tecnica operativa nascono VUOTE, a blocchi.
+        var radici = SectionCatalog.For(SectionProfile.App).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
+        Assert.Equal(
+            new[] { "separations", "configurations", "aor", "frequencies", "minima", SectionKeys.TrafficManagement,
+                    "coordination", SectionKeys.OperatingTechnique, "regulated", "operationaltechnique", "validity" },
+            radici);
+
+        var traffico = SectionCatalog.For(SectionProfile.App).Single(d => d.Key == SectionKeys.TrafficManagement);
+        Assert.Equal(new[] { SectionKeys.TrafficManagementIfr, "vfr" },
+            traffico.Children!.OrderBy(d => d.Order).Select(d => d.Key));
+
+        foreach (var k in new[] { SectionKeys.TrafficManagement, SectionKeys.TrafficManagementIfr, "vfr", SectionKeys.OperatingTechnique })
+        {
+            Assert.True(SectionCatalog.IsFixed(SectionProfile.App, k), k);
+            Assert.False(SectionCatalog.IsHostRendered(SectionProfile.App, k), k);
+        }
+    }
+
+    [Fact]
     public void Vloa_is_the_universals_plus_purpose()
     {
         // doc 13 §3c: il profilo descrive la vLOA VERA, che ha anche «Purpose» — prima il catalogo non lo sapeva
@@ -243,7 +268,7 @@ public class SectionCatalogTests
 
         Assert.Contains("configurations", Keys(SectionProfile.App));   // config aggiunta ad APP
         Assert.Contains("minima", Keys(SectionProfile.AccAppBlock));    // minima aggiunta ad AppBlock
-        Assert.Contains("vfr", Keys(SectionProfile.App));
+        Assert.Contains("vfr", Keys(SectionProfile.AccAppBlock));
         Assert.DoesNotContain("vfr", Keys(SectionProfile.AccAerovia));  // Aerovia senza VFR
         Assert.DoesNotContain("separations", Keys(SectionProfile.Vloa)); // vLOA senza separazioni
     }

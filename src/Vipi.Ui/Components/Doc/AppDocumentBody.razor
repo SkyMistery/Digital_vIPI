@@ -44,7 +44,6 @@
             case "aor": <AccAor View="Doc.Derived.Aor" Id="@MapScope" />; break;
             case "frequencies": <AppFrequencies Rows="Doc.Derived.Freqs" />; break;
             case "minima": <MinimaSection View="Doc.Derived.Minima" Aor="Doc.Derived.Aor" />; break;
-            case "vfr": <AppVfr Content="LeggiVfr(s)" />; break;
             case "coordination": <AppCoordinationView Coord="Doc.Derived.Coord" LeadSentence="s.LeadSentence" />; break;
             @* La sezione «aree» qui è una sola, ma la chiave si passa lo stesso: è lo scope della mappa,
                e un default silenzioso è quel che ha permesso a due mappe di condividerlo altrove. *@
@@ -61,7 +60,4 @@
     // Editoriali-strutturate: il dato vive nel BodyJson del primo blocco della sezione keyed del Document.
     private static IReadOnlyList<AppSeparationRow> LeggiSeparazioni(SectionView s) =>
         SezioniDocumentali.Deser<List<AppSeparationRow>>(SectionPayload.Read(s)) ?? new List<AppSeparationRow>();
-
-    private static AppVfrContent LeggiVfr(SectionView s) =>
-        SezioniDocumentali.Deser<AppVfrContent>(SectionPayload.Read(s)) ?? AppVfrContent.Empty;
 }

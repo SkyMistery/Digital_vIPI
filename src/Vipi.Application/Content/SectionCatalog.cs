@@ -46,6 +46,9 @@ public static class SectionCatalog
             ["vfr"] = SectionKind.Editorial,
             ["regulated"] = SectionKind.Editorial,
             ["operationaltechnique"] = SectionKind.Editorial,
+            [SectionKeys.TrafficManagement] = SectionKind.Editorial,
+            [SectionKeys.TrafficManagementIfr] = SectionKind.Editorial,
+            [SectionKeys.OperatingTechnique] = SectionKind.Editorial,
             // «Validità e revisione» deriva il suo timbro dalla RELEASE che si sta mostrando — ciclo, data e chi
             // ha premuto Pubblica — e sotto tiene il testo scritto a mano. Derivata, quindi, ma sempre live.
             ["validity"] = SectionKind.Derived,
@@ -194,11 +197,24 @@ public static class SectionCatalog
         H("aor", "AOR", 3),
         H("frequencies", "Frequenze", 4, en: "Frequencies"),
         H("minima", "MRVA", 5),
-        H("vfr", "VFR", 6),
+        // ✚ 15 settembre 2026 (committente): «Gestione del traffico» SOPRA i Coordinamenti, con IFR e VFR
+        // dentro. Il VFR c'era già come radice resa dalla pagina (tabella situazione → procedura): qui è
+        // una sezione a BLOCCHI e nasce vuota, come le «Procedure generali» — la tabella fissa non serve più.
+        // ⚠️ Solo nell'APP non remotizzato: il blocco APP della vIPI ACC (`AccAppBlock`) tiene il suo VFR.
+        // ⚠️ Nei documenti GIÀ SCRITTI il catalogo non sposta niente: lo fa
+        // `IDocumentMaintenance.ReparentAppTrafficManagementAsync` all'avvio.
+        D(SectionKeys.TrafficManagement, "Gestione del traffico", 6, en: "Traffic management", children: new[]
+        {
+            D(SectionKeys.TrafficManagementIfr, "IFR", 1),
+            D("vfr", "VFR", 2),
+        }),
         H("coordination", "Coordinamenti", 7, en: "Coordination"),
-        H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
-        D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
-        HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
+        // ✚ 15 settembre 2026 (committente): SUBITO SOTTO i Coordinamenti. ⚠️ Non è «operationaltechnique»,
+        // che nonostante la chiave è la sezione «Procedure generali» e resta dov'è.
+        D(SectionKeys.OperatingTechnique, "Tecnica operativa", 8, en: "Operating technique"),
+        H("regulated", "Aree regolamentate", 9, en: "Regulated areas"),
+        D("operationaltechnique", "Procedure generali", 10, en: "General procedures"),
+        HB("validity", "Validità e revisione", 11, en: "Validity and revision"),
     };
 
     /// <summary>

@@ -524,6 +524,141 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         fratelli.FirstOrDefault(d => string.Equals(d.Key, key, StringComparison.OrdinalIgnoreCase))
         ?? SectionCatalog.Find(profile, key);
 
+    // ---- 15 settembre 2026: il VFR dell'APP non remotizzato entra nella «Gestione del traffico» ----
+
+    /// <inheritdoc cref="IDocumentMaintenance.ReparentAppTrafficManagementAsync"/>
+    public async Task<int> ReparentAppTrafficManagementAsync(CancellationToken ct = default)
+    {
+        const string vfrKey = "vfr";
+
+        // Gli stessi documenti che AddMissingCatalogSections riconosce come APP: settore primario APP
+        // standalone. ⚠️ Non la vIPI ACC — il blocco APP remotizzato tiene il suo VFR come radice del blocco.
+        var docs = await _db.Documents
+            .Where(d => d.Type != Vipi.Domain.DocumentType.Vloa
+                        && d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
+                                              && x.ApproachKind == ApproachKind.Standalone))
+            .Select(d => new { d.Id, d.Language })
+            .ToListAsync(ct);
+
+        var gruppo = SectionCatalog.Find(SectionProfile.App, SectionKeys.TrafficManagement)!;
+
+        var mosse = 0;
+        foreach (var doc in docs)
+        {
+            var versionId = await _db.DocumentVersions
+                .Where(v => v.DocumentId == doc.Id)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (versionId is not int vid) continue;
+
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
+
+            // ⚠️ Solo un VFR ancora RADICE: al secondo avvio è già figlio, e non c'è niente da fare.
+            var vfr = tutte.FirstOrDefault(x => x.ParentSectionId is null
+                && string.Equals(x.SectionKey, vfrKey, StringComparison.OrdinalIgnoreCase));
+            if (vfr is null) continue;
+
+            var radici = tutte.Where(x => x.ParentSectionId is null).OrderBy(x => x.Order).ThenBy(x => x.Id).ToList();
+            var posto = radici.IndexOf(vfr);
+            radici.RemoveAt(posto);
+
+            var padre = tutte.FirstOrDefault(x =>
+                string.Equals(x.SectionKey, SectionKeys.TrafficManagement, StringComparison.OrdinalIgnoreCase));
+            if (padre is null)
+            {
+                // Il contenitore prende il POSTO del VFR: chi aveva riordinato l'indice a mano ritrova la
+                // gestione del traffico dove teneva il VFR, non dove la vorrebbe il catalogo.
+                padre = new DocumentSection
+                {
+                    DocumentVersionId = vid,
+                    Title = gruppo.TitleIn(doc.Language == Vipi.Domain.Language.En ? "en" : "it"),
+                    Depth = 0,
+                    SectionKey = gruppo.Key,
+                    RenderMode = RenderMode.Frozen,
+                    Audience = gruppo.Audience,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
+                };
+                _db.DocumentSections.Add(padre);
+                radici.Insert(posto, padre);
+            }
+
+            var figli = tutte.Where(x => padre.Id != 0 && x.ParentSectionId == padre.Id).ToList();
+            vfr.ParentSection = padre;
+            vfr.Depth = padre.Depth + 1;
+            vfr.Order = figli.Count == 0 ? 1 : figli.Max(x => x.Order) + 1;   // «IFR» la mette davanti AddMissing
+            vfr.RowVersion = Guid.NewGuid().ToByteArray();
+
+            for (var i = 0; i < radici.Count; i++)
+            {
+                if (radici[i].Order == i + 1) continue;
+                radici[i].Order = i + 1;
+                radici[i].RowVersion = Guid.NewGuid().ToByteArray();
+            }
+
+            await SvuotaVfrStrutturatoAsync(vfr, ct);
+            mosse++;
+        }
+
+        if (mosse > 0) await _db.SaveChangesAsync(ct);
+        return mosse;
+    }
+
+    /// <summary>
+    /// Il VFR diventa una sezione a blocchi: il segnaposto vuoto se ne va, e il payload della vecchia tabella
+    /// (<c>AppVfrContent</c>) diventa contenuto editoriale — prosa per l'intro, tabella generica per le righe.
+    /// <para>⚠️ Buttarlo non si può: su una sezione a blocchi il payload non lo disegna più nessuno
+    /// (<c>BlockRenderer</c> lo salta), quindi sarebbe testo perso senza che nessuno se ne accorga.</para>
+    /// </summary>
+    private async Task SvuotaVfrStrutturatoAsync(DocumentSection vfr, CancellationToken ct)
+    {
+        var blocchi = await _db.ContentBlocks.Where(b => b.SectionId == vfr.Id).OrderBy(b => b.Order).ToListAsync(ct);
+        var restano = new List<ContentBlock>();
+
+        foreach (var b in blocchi)
+        {
+            var vuoto = string.IsNullOrWhiteSpace(b.Body) && string.IsNullOrWhiteSpace(b.BodyJson);
+            var payload = !string.IsNullOrWhiteSpace(b.BodyJson) && !SectionPayload.EEditoriale(b.BodyJson);
+            if (!vuoto && !payload) { restano.Add(b); continue; }
+
+            _db.ContentBlocks.Remove(b);
+            if (!payload) continue;
+
+            AppVfrContent? vecchio = null;
+            try
+            {
+                vecchio = JsonSerializer.Deserialize<AppVfrContent>(b.BodyJson!,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException) { }
+            if (vecchio is null) continue;
+
+            ContentBlock Nuovo(BlockFormat formato) => new()
+            {
+                DocumentVersionId = b.DocumentVersionId, SectionId = vfr.Id, Format = formato,
+                Tier = b.Tier, Visibility = b.Visibility, RowVersion = Guid.NewGuid().ToByteArray(),
+            };
+
+            if (!string.IsNullOrWhiteSpace(vecchio.Intro))
+            {
+                var prosa = Nuovo(BlockFormat.Prose);
+                prosa.Body = vecchio.Intro;
+                restano.Add(prosa);
+                _db.ContentBlocks.Add(prosa);
+            }
+            if (vecchio.Rows is { Count: > 0 } righe)
+            {
+                var tabella = Nuovo(BlockFormat.Table);
+                tabella.BodyJson = TabellaGenerica.Scrivi(
+                    new[] { "Situazione", "Procedura" },
+                    righe.Select(r => (IReadOnlyList<string>)new[] { r.Situation ?? "", r.Procedure ?? "" }).ToList());
+                restano.Add(tabella);
+                _db.ContentBlocks.Add(tabella);
+            }
+        }
+
+        for (var i = 0; i < restano.Count; i++) restano[i].Order = i + 1;
+    }
+
     // ---- 3 settembre 2026: i parcheggi passano ai Dati generali ----
 
     public async Task<int> ReparentMilParkingsAsync(CancellationToken ct = default)

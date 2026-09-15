@@ -903,6 +903,13 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Sistemate «Regole piste» e «LVP» in {Count} documenti d'aeroporto (vIPI e vSOP).", scali);
 
+        // Il VFR degli APP non remotizzati entra nella «Gestione del traffico» (15 settembre 2026). ⚠️ PRIMA di
+        // AddMissingCatalogSections: il VFR va SPOSTATO, e «IFR» e «Tecnica operativa» le aggiunge quel passo.
+        var traffico = maintenance.ReparentAppTrafficManagementAsync().GetAwaiter().GetResult();
+        if (traffico > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Spostato il VFR sotto «Gestione del traffico» in {Count} vIPI di APP non remotizzato.", traffico);
+
         // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
         if (catalog > 0 && log is not null)

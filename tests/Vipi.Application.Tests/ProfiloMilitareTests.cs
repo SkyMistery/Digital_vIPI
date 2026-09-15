@@ -298,8 +298,7 @@ public class ProfiloMilitareTests
         static bool HaFigli(IEnumerable<SectionDescriptor> d) =>
             d.Any(x => x.Children is { Count: > 0 } || HaFigli(x.Children ?? Array.Empty<SectionDescriptor>()));
 
-        foreach (var p in new[] { SectionProfile.App, SectionProfile.AccAerovia, SectionProfile.AccAppBlock,
-                                  SectionProfile.Vloa, SectionProfile.AppMil })
+        foreach (var p in new[] { SectionProfile.AccAerovia, SectionProfile.AccAppBlock, SectionProfile.Vloa })
             Assert.False(HaFigli(SectionCatalog.For(p)), p.ToString());
 
         // ⚠️ Dal 3 settembre 2026 i profili annidati sono DUE: il militare e la vIPI d'aeroporto, che ha preso
@@ -308,6 +307,11 @@ public class ProfiloMilitareTests
         // ricorrere (DocumentBirth.Semina).
         Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AirportMil)));
         Assert.True(HaFigli(SectionCatalog.For(SectionProfile.Airport)));
+        // ⚠️ Dal 15 settembre 2026 anche l'APP non remotizzato (e AppMil, che lo rimanda): «Gestione del
+        // traffico» con IFR e VFR. Riletto: `Find` scende nei figli, la nascita e AddMissingCatalogSections
+        // ricorrono, e le tre sezioni sono a blocchi — `IsHostRendered` falso comunque.
+        Assert.True(HaFigli(SectionCatalog.For(SectionProfile.App)));
+        Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AppMil)));
     }
 
     [Fact]

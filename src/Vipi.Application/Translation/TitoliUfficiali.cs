@@ -95,6 +95,9 @@ public static class TitoliUfficiali
         // proprio per questo — senza, la macchina la tradurrebbe in qualcosa («Low visibility procedures»,
         // o peggio) e il titolo cambierebbe faccia fra le due lingue dello stesso documento.
         ("LVP", "LVP"),
+        // L'APP non remotizzato (15 settembre 2026): due sezioni nostre, quindi l'inglese lo scriviamo noi.
+        ("Gestione del traffico", "Traffic Management"),
+        ("Tecnica operativa", "Operating Technique"),
         ("Validità e revisione", "Validity and Revision"),
     };
 

@@ -131,7 +131,9 @@ public class EditingRepositoryTests : IAsyncLifetime
         // modifica — prima ogni chiamante ne portava una lista, e accanto un secondo elenco di «chiavi live»
         // scritto a mano: l'ACC ne aveva cinque, l'APP otto, per la stessa domanda.
         var sec = await _db.Sectors.Where(s => s.DocumentId == null).Select(s => s.Id).FirstAsync();
+        // ⚠️ Le RADICI: dal 15 settembre 2026 l'APP ha anche delle figlie (IFR e VFR dentro «Gestione del traffico»).
         var atteso = SectionCatalog.For(SectionProfile.App).OrderBy(d => d.Order).Select(d => d.Key).ToArray();
+        var figlie = SectionCatalog.For(SectionProfile.App).SelectMany(d => d.Children ?? Array.Empty<SectionDescriptor>()).Count();
 
         var docId = await _repo.EnsureVipiDocumentAsync(sec, "vIPI APP di test", Language.It, SectionProfile.App, authorUserId: 9);
 
@@ -139,12 +141,12 @@ public class EditingRepositoryTests : IAsyncLifetime
         Assert.Equal(DocumentType.Vipi, doc.Type);
         var ver = await _db.DocumentVersions.AsNoTracking().FirstAsync(v => v.DocumentId == docId);
         var keys = await _db.DocumentSections.AsNoTracking()
-            .Where(s => s.DocumentVersionId == ver.Id).OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync();
+            .Where(s => s.DocumentVersionId == ver.Id && s.ParentSectionId == null).OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync();
         Assert.Equal(atteso, keys);
 
         // E le sezioni «rese dalla pagina» hanno il loro blocco placeholder, le altre no: senza, sparirebbero
         // dalla vista quando sono vuote — che per una derivata è sempre.
-        foreach (var d in SectionCatalog.For(SectionProfile.App))
+        foreach (var d in SectionCatalog.For(SectionProfile.App).SelectMany(d => new[] { d }.Concat(d.Children ?? Array.Empty<SectionDescriptor>())))
         {
             var haBlocchi = await _db.ContentBlocks.AnyAsync(b => b.Section!.SectionKey == d.Key && b.DocumentVersionId == ver.Id);
             Assert.Equal(SectionCatalog.IsHostRendered(SectionProfile.App, d.Key), haBlocchi);
@@ -156,7 +158,7 @@ public class EditingRepositoryTests : IAsyncLifetime
 
         // Idempotente: seconda chiamata ritorna lo stesso documento, senza duplicare sezioni.
         Assert.Equal(docId, await _repo.EnsureVipiDocumentAsync(sec, "altro titolo", Language.It, SectionProfile.App, authorUserId: 9));
-        Assert.Equal(atteso.Length, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
+        Assert.Equal(atteso.Length + figlie, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
     }
 
     [Fact]
