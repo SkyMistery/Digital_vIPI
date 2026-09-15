@@ -180,7 +180,6 @@
   font-family: var(--awos-mono); font-size: 21px; font-weight: 700; letter-spacing: .06em;
   display: flex; align-items: center; justify-content: center;
 }
-.awos-testata.attiva { background: #2fbf4f; }
 .awos-pettine {
   width: 26px; flex-shrink: 0; background: var(--awos-barra);
   display: flex; flex-direction: column; justify-content: space-around; padding: 6px 5px;

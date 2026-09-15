@@ -38,10 +38,9 @@ public sealed record AwosRvrCella(string Testata, string Valore);
 /// aggiornamenti — e una delle due coppie era <b>già divergita</b>: il riquadro WX mostrava «light shower
 /// rain» al caricamento e «-SHRA» un minuto dopo. Le altre quattro aspettavano il loro turno.</para>
 ///
-/// <para>⚠️ Restano fuori le caselle del <b>vento</b> — direzione, velocità, traverso, coda — e non perché
-/// si muovano (dal 12 settembre 2026 non si muovono più: vengono dal bollettino e basta), ma perché sono le
-/// uniche che dipendono dalla <b>testata</b> su cui si proiettano, e di testate ce ne sono due per striscia.
-/// Le scrive il modulo, che sa a quale pannello sta parlando.</para>
+/// <para>⚠️ Restano fuori le caselle del <b>vento</b> — direzione, velocità, traverso, coda: dipendono dalla
+/// <b>testata</b> su cui si proiettano (due per striscia) e, dal 15 settembre 2026, variano un poco attorno al
+/// bollettino pannello per pannello. Le scrive il modulo, che sa a quale pannello sta parlando.</para>
 /// </summary>
 public sealed record AwosScritte(string RigaAttiva, string LvpTesto, string LvpClasse, string LvpTitolo,
                                  IReadOnlyList<IReadOnlyList<AwosRvrCella>> Rvr);
@@ -137,9 +136,16 @@ public static class AwosTesto
 
     /// <summary>
     /// Le celle RVR di una striscia: <b>una per testata</b>, con l'ident che le dà il nome.
-    /// <para>🔴 Un RVR che il bollettino non dà è <c>///</c>, mai un valore di comodo: nel prototipo un
-    /// valore che nessuno aveva misurato compariva come «oltre 2 000 m» davanti a chi decide se si
-    /// atterra — e la cella «MID» era una media, che è lo stesso difetto scritto con un'altra formula.</para>
+    /// <para>🔴 Tre casi, e non due (decisione del committente, 15 settembre 2026 — ribalta quella del 12):</para>
+    /// <list type="bullet">
+    /// <item>il bollettino <b>non ha nessun RVR</b> ⇒ <c>P2000</c> su ogni cella. È ciò che il gruppo assente
+    /// dice: l'RVR si riporta quando la visibilità scende, e un METAR che non ne riporta nessuno sta dicendo
+    /// «sopra la scala» su tutte le piste. Scrivere <c>///</c> lì si leggeva «sensore guasto».</item>
+    /// <item>il bollettino ha RVR per <b>altre</b> piste ma non per questa ⇒ <c>///</c>: qui l'assenza non si
+    /// può più leggere come «sopra la scala», perché sulle altre la visibilità è bassa.</item>
+    /// <item><b>nessun bollettino</b> ⇒ <c>///</c>: non c'è niente da dire.</item>
+    /// </list>
+    /// <para>⚠️ Resta tolta la cella «MID»: era la media delle due testate, un numero che nessuno ha misurato.</para>
     /// </summary>
     public static IReadOnlyList<AwosRvrCella> Rvr(AwosStrip s, ParsedMetar? metar)
     {
@@ -149,7 +155,9 @@ public static class AwosTesto
 
     private static string Valore(AwosEnd end, ParsedMetar? metar)
     {
-        var g = metar?.RvrGroups.FirstOrDefault(r =>
+        if (metar is null) return "///";
+        if (metar.RvrGroups.Count == 0) return "P2000";
+        var g = metar.RvrGroups.FirstOrDefault(r =>
             string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
         return g is null ? "///" : Scrivi(g);
     }

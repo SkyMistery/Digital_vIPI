@@ -5,11 +5,10 @@
      1. rilegge /services/vawos/api/{icao} ogni 60 s (un METAR cambia ogni 30 minuti;
         il prototipo interrogava un servizio pubblico ogni 10 secondi, cioe' 180
         chiamate per ogni bollettino nuovo, per ogni scheda aperta);
-     2. scrive quel che il bollettino dice, e NIENT'ALTRO. 🔴 Qui c'era un'animazione
-        (la direzione spazzava il settore di variabilita', la velocita' oscillava
-        fino alla raffica): tolta il 12 settembre 2026 su decisione del committente
-        — «non abbiamo modo di sapere il vento reale istantaneo nei pressi
-        dell'aeroporto». Il quadro cambia quando cambia il METAR, e non prima;
+     2. scrive quel che il bollettino dice. Il vento, dal 15 settembre 2026, con una
+        PICCOLA variazione attorno al METAR una volta ogni 45-200 s per pannello
+        (decisione del committente: vedi `vento()` per i limiti e il perche' non e'
+        l'animazione tolta il 12);
      3. tiene orologio, LED di vitalita' e l'ETA' del dato — che ingiallisce e poi
         arrossisce se il server smette di rispondere, invece di lasciare a schermo
         numeri vecchi che sembrano nuovi.
@@ -91,6 +90,7 @@
     // Con `?test=` in coda all'indirizzo il pannello del bollettino finto si apre da se': ci si e' appena
     // arrivati premendo APPLY, e trovarlo chiuso costringe a riaprirlo per leggere che cosa si e' scritto.
     if (new URLSearchParams(location.search).get('test')) apri('prova');
+    $$('[data-awos-wind]').forEach(pianificaVariazione);
     ogni(1000, orologio);
     ogni(1000, eta);
     ogni(900, vitalita);
@@ -98,7 +98,14 @@
   }
 
   function ogni(ms, fn) { timers.push(setInterval(fn, ms)); }
-  function ferma() { timers.forEach(clearInterval); timers = []; }
+  function ferma() {
+    timers.forEach(clearInterval); timers = [];
+    attese.forEach(clearTimeout); attese.clear();
+  }
+  // I timer delle variazioni del vento: uno per pannello, ognuno con un intervallo suo e ripianificato a ogni
+  // scatto. Un insieme e non un elenco: la pagina resta aperta per ore, e un elenco crescerebbe di un id ogni
+  // pochi minuti per sempre.
+  var attese = new Set();
 
   // Appena la scheda torna visibile si legge SUBITO, perche' il giro al minuto qui sopra l'ha saltata
   // finche' era nascosta: chi ci ritorna deve trovare il dato di adesso, non quello di quando se n'e'
@@ -213,13 +220,11 @@
     var attivaSx = scelta ? scelta === 'L' : eAttiva(striscia.left && striscia.left.ident);
     var attivaDx = scelta ? scelta === 'R' : (striscia.right && eAttiva(striscia.right.ident));
 
-    var teste = $$('[data-awos-blocco="' + i + '"] .awos-testata');
-    if (teste[0]) teste[0].classList.toggle('attiva', !!attivaSx);
-    if (teste[1]) teste[1].classList.toggle('attiva', !!attivaDx);
-
+    // Le testate restano arancioni: la pista in uso la dice SOLO la freccia, nel senso di marcia (dalla
+    // testata in uso verso l'altra). ⚠️ Stessa regola di `PuntaADestra` in AwosPage.razor.
     var freccia = $('[data-awos-arrow="' + i + '"]');
     if (freccia) {
-      freccia.style.transform = attivaDx ? 'scaleX(1)' : 'scaleX(-1)';
+      freccia.style.transform = (attivaSx || !attivaDx) ? 'scaleX(1)' : 'scaleX(-1)';
       var poly = freccia.querySelector('polygon');
       if (poly) poly.setAttribute('fill', (attivaSx || attivaDx) ? (scelta ? '#a08000' : '#2a8a3a') : '#8a8a8a');
     }
@@ -241,8 +246,8 @@
   }
   function eq(a, b) { return !!a && !!b && String(a).toUpperCase() === String(b).toUpperCase(); }
 
-  // Le celle RVR — UNA PER TESTATA — le scrive il server (AwosTesto.Rvr), qui si copiano. 🔴 Un RVR che il
-  // bollettino non da' resta `///`, mai «P2000» e mai una media: la regola sta in un posto solo.
+  // Le celle RVR — UNA PER TESTATA — le scrive il server (AwosTesto.Rvr), qui si copiano: P2000 quando il
+  // bollettino non ha nessun RVR, `///` quando ne ha per altre piste ma non per questa. La regola sta la'.
   function rvr(i) {
     var celle = scritte && scritte.rvr && scritte.rvr[i];
     if (!celle) return;
@@ -255,30 +260,61 @@
     return scelte.length ? base_ + ' · manual' : base_;
   }
 
-  // ── Il vento: QUEL CHE DICE IL BOLLETTINO, e nient'altro ─────────────────
+  // ── Il vento: il bollettino, con una PICCOLA variazione ogni 45-200 s ────
   //
-  // 🔴 Qui c'era un'ANIMAZIONE, ed e' stata tolta il 12 settembre 2026 su decisione del committente:
-  // «e' meglio riferirsi al METAR e basta, non abbiamo modo di sapere il vento reale istantaneo nei pressi
-  // dell'aeroporto». L'argomento chiude la questione, e chiude anche i tre difetti che quell'animazione si
-  // portava dietro:
+  // 🔴 Storia, perche' la decisione e' stata ribaltata due volte. Il 12 settembre 2026 si e' tolta
+  // un'animazione (la direzione spazzava il settore `200V280` con un seno di 12 s, quattro volte al secondo)
+  // su decisione del committente — «non abbiamo modo di sapere il vento reale istantaneo». Il 15 settembre il
+  // committente ha chiesto il contrario, ma in una forma DIVERSA, ed e' la forma che conta:
   //
-  //   · la direzione spazzava il settore `200V280` con un seno di dodici secondi, quattro volte al secondo:
-  //     non era interpolazione, era un valore FABBRICATO, e a schermo si leggeva come un generatore casuale;
-  //   · TRAVERSO e CODA si calcolavano su quella direzione inventata — cioe' i due numeri che un
-  //     controllore usa davvero oscillavano da soli, attraversando avanti e indietro le soglie di colore.
-  //     Nemmeno il prototipo lo faceva: mostrava la spazzata ma calcolava le componenti sulla direzione base;
-  //   · e la direzione MISURATA (240) non compariva mai, cioe' spariva l'unico valore che il METAR afferma.
+  //   · uno SCATTO ogni 45-200 s, a intervallo casuale e diverso per pannello — non un moto continuo, che
+  //     a schermo si leggeva come un generatore casuale;
+  //   · lo scarto si tira ogni volta ATTORNO AL METAR, non a partire dal valore precedente: non e' una
+  //     passeggiata casuale, e dopo ore la direzione e' ancora a ±10° dal bollettino;
+  //   · la direzione resta DENTRO il settore dichiarato (`dddVddd`) se c'e'; VRB e CALM non si toccano;
+  //   · la velocita' non supera la RAFFICA dichiarata e non scende a zero; EXTREMES e GUST restano quelli
+  //     del bollettino, perche' sono la sua parte che dichiara i limiti.
   //
-  // Adesso: quel che c'e' nel bollettino, fermo finche' non ne arriva un altro. Il settore di variabilita' e
-  // la raffica hanno gia' le loro caselle — EXTREMES e GUST — ed e' li' che quell'informazione appartiene.
+  // ⚠️ Traverso e coda si calcolano sui valori A SCHERMO: tre caselle che non tornano fra loro (DIR 347 e
+  // un traverso calcolato su 340) sarebbero un quadro che si contraddice. Con ±10° e ±3 kt al massimo il
+  // traverso si sposta di pochi nodi — ma PUO' attraversare una soglia di colore, ed e' voluto: la soglia
+  // e' vicina, e un sensore vero farebbe lo stesso.
+  var VAR_DIR = 10;
+  function varVelocita(kt) { return kt < 5 ? 1 : kt < 15 ? 2 : 3; }
+
   function vento() {
     if (!vista) return;
     var m = vista.metar;
     var w = m && m.wind;
-    $$('[data-awos-wind]').forEach(function (pan) {
-      var hdg = parseInt(pan.getAttribute('data-awos-hdg'), 10) || 0;
-      scriviVento(pan, w, hdg);
-    });
+    $$('[data-awos-wind]').forEach(function (pan) { scriviVento(pan, w, hdgDi(pan)); });
+  }
+
+  function hdgDi(pan) { return parseInt(pan.getAttribute('data-awos-hdg'), 10) || 0; }
+
+  // Lo scarto del pannello, in FRAZIONI di [-1, 1]: si scala sui limiti al momento di scrivere, cosi' un
+  // bollettino nuovo con piu' vento non eredita uno scarto misurato sul vento di prima.
+  function scarto(pan) { return pan._awosScarto || (pan._awosScarto = { dir: 0, spd: 0 }); }
+
+  function pianificaVariazione(pan) {
+    var id = setTimeout(function () {
+      attese.delete(id);
+      if (!pan.isConnected) return;            // pagina cambiata: il pannello non c'e' piu'
+      var s = scarto(pan);
+      s.dir = Math.random() * 2 - 1;
+      s.spd = Math.random() * 2 - 1;
+      if (vista) scriviVento(pan, vista.metar && vista.metar.wind, hdgDi(pan));
+      pianificaVariazione(pan);
+    }, (45 + Math.random() * 155) * 1000);
+    attese.add(id);
+  }
+
+  // La direzione dentro il settore `da → a` in senso orario (anche a cavallo del nord: 340V030).
+  function nelSettore(d, da, a) {
+    if (da == null || a == null) return d;
+    var ampiezza = (a - da + 360) % 360, dentro = (d - da + 360) % 360;
+    if (dentro <= ampiezza) return d;
+    // fuori: al bordo piu' vicino
+    return dentro - ampiezza < 360 - dentro ? a : da;
   }
 
   function scriviVento(pan, w, hdg) {
@@ -288,21 +324,27 @@
       return;
     }
 
+    var s = scarto(pan);
     var dir = w.directionDeg;
+    if (dir != null && !w.calm && !w.variable)
+      dir = nelSettore((dir + Math.round(s.dir * VAR_DIR) + 360) % 360, w.varFromDeg, w.varToDeg);
+    var kt = w.speedKt;
+    if (!w.calm && kt > 0) {
+      kt = Math.max(1, kt + Math.round(s.spd * varVelocita(w.speedKt)));
+      if (w.gustKt != null) kt = Math.min(kt, w.gustKt);
+    }
 
     // «CALM» e non «360»: 00000KT vuol dire vento calmo, non «da nord a zero nodi».
     testo(cella('dir'), w.calm ? 'CALM' : w.variable ? 'VRB' : (dir == null ? '---' : pad(((dir + 359) % 360) + 1, 3)));
-    testo(cella('spd'), pad(w.speedKt, 2));
+    testo(cella('spd'), pad(kt, 2));
     testo(cella('vmin'), w.varFromDeg != null ? pad(w.varFromDeg, 3) : '--');
     testo(cella('vmax'), w.varToDeg != null ? pad(w.varToDeg, 3) : '--');
     testo(cella('gust'), w.gustKt != null ? pad(w.gustKt, 2) : '--');
 
-    // ⚠️ Traverso e coda sulla direzione e sulla velocita' MISURATE. Se un giorno tornasse un'animazione,
-    // non deve tornare qui: questi due numeri si guardano per decidere, non per far compagnia.
-    if (dir == null || w.calm) { testo(cella('cross'), '--'); testo(cella('tail'), '--'); return; }
+    if (dir == null || w.calm || w.variable) { testo(cella('cross'), '--'); testo(cella('tail'), '--'); return; }
     var d = (dir - hdg) * Math.PI / 180;
-    var testa = Math.round(w.speedKt * Math.cos(d));
-    var cross = Math.round(Math.abs(w.speedKt * Math.sin(d)));
+    var testa = Math.round(kt * Math.cos(d));
+    var cross = Math.round(Math.abs(kt * Math.sin(d)));
     var coda = testa < 0 ? -testa : 0;
     scala(cella('cross'), cross, 8, 15);
     scala(cella('tail'), coda, 1, 1);

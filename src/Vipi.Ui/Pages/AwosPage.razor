@@ -8,11 +8,10 @@
    portatile che si chiude. Un'isola interattiva darebbe dodici diff al secondo per ogni controllore
    collegato e un riquadro «riconnessione» al primo singhiozzo.
 
-   🔴 IL VENTO E' QUELLO DEL BOLLETTINO, e non si muove da solo. Fino al 12 settembre 2026 la direzione
-   spazzava il settore di variabilita' e la velocita' oscillava fino alla raffica: tolto su decisione del
-   committente — «non abbiamo modo di sapere il vento reale istantaneo nei pressi dell'aeroporto». Il settore
-   e la raffica hanno le loro caselle (EXTREMES, GUST): e' li' che quell'informazione sta, senza fingere una
-   misura che nessuno ha preso.
+   🔴 IL VENTO PARTE DAL BOLLETTINO. Qui il server lo scrive tale e quale; dal 15 settembre 2026 il modulo JS
+   gli dà una PICCOLA variazione attorno al METAR ogni 45-200 s per pannello (±10°, ±1-3 kt, dentro settore e
+   raffica), su richiesta del committente. Non è l'animazione continua tolta il 12: la storia e i limiti
+   stanno in vipi-awos.js, `vento()`.
 
    ⚠️ Le etichette sono in INGLESE e non passano dai .resx (decisione del committente, 12 settembre 2026):
    DIR, SPEED, GUST, CROSS, TAIL, RVR, QNH, TL sono sigle ICAO, uguali in ogni torre del mondo. Le uniche
@@ -405,26 +404,33 @@
         var attivaSx = Attiva(striscia.Left.Ident);
         var attivaDx = striscia.Right is not null && Attiva(striscia.Right.Ident);
 
+        @* ⚠️ Le testate sono SEMPRE arancioni (committente, 15 settembre 2026): la pista in uso la dice la
+           freccia, e basta. Una testata che diventava verde era un secondo segnale per la stessa cosa. *@
         <div class="awos-strip">
-            <div class="awos-testata @(attivaSx ? "attiva" : "")" data-awos-end="0">@striscia.Left.Ident</div>
+            <div class="awos-testata" data-awos-end="0">@striscia.Left.Ident</div>
             <div class="awos-pettine"><i></i><i></i><i></i><i></i></div>
             <div class="awos-nastro">
                 <div class="awos-tratteggio"></div>
-                @* La freccia punta verso la testata in uso. È un tasto: il clic la inverte, e quando lo si fa
-                   la riga della pista in uso lo dice («manual»). *@
+                @* La freccia va nel SENSO DI MARCIA della pista in uso: in uso la 06 su 06/24, la freccia va
+                   da 06 verso 24 (committente, 15 settembre 2026 — prima puntava VERSO la testata in uso, cioè
+                   al contrario). È un tasto: il clic sceglie a mano, e la riga della pista in uso lo dice. *@
                 <button type="button" class="awos-freccia" data-awos-inverti="@i"
                         title="Invert the active direction">
                     <svg width="66" height="34" viewBox="0 0 70 40" data-awos-arrow="@i"
-                         style="transform:@(attivaDx ? "scaleX(1)" : "scaleX(-1)")">
+                         style="transform:@(PuntaADestra(attivaSx, attivaDx) ? "scaleX(1)" : "scaleX(-1)")">
                         <polygon points="0,8 46,8 46,0 70,20 46,40 46,32 0,32"
                                  fill="@(attivaSx || attivaDx ? "#2a8a3a" : "#8a8a8a")" stroke="#000" stroke-width="2" />
                     </svg>
                 </button>
             </div>
             <div class="awos-pettine"><i></i><i></i><i></i><i></i></div>
-            <div class="awos-testata @(attivaDx ? "attiva" : "")" data-awos-end="1">@(striscia.Right?.Ident ?? "—")</div>
+            <div class="awos-testata" data-awos-end="1">@(striscia.Right?.Ident ?? "—")</div>
         </div>
     };
+
+    /// <summary>La freccia va a destra quando si decolla/atterra dalla testata di SINISTRA. Nessuna delle due
+    /// in uso (freccia grigia): a destra, per convenzione. ⚠️ Stessa regola in vipi-awos.js (`striscia_`).</summary>
+    private static bool PuntaADestra(bool attivaSx, bool attivaDx) => attivaSx || !attivaDx;
 
     private RenderFragment Vento(int i) => __builder =>
     {
@@ -470,8 +476,8 @@
     /// <summary>
     /// Un pannello vento. I due di una striscia hanno la STESSA sorgente — il vento è uno — e cambiano solo
     /// per la testata su cui si proiettano: è tutto il senso di averne due.
-    /// <para>⚠️ Tutti i valori vengono dal bollettino, compresi traverso e coda, che si calcolano sulla
-    /// direzione <b>misurata</b>. Il quadro cambia quando cambia il METAR.</para>
+    /// <para>⚠️ Al primo disegno tutti i valori vengono dal bollettino, compresi traverso e coda. Le piccole
+    /// variazioni periodiche le aggiunge il modulo JS, pannello per pannello.</para>
     /// </summary>
     private RenderFragment PannelloVento(int blocco, int lato, AwosEnd? end) => __builder =>
     {
