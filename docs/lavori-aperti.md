@@ -2,6 +2,25 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — in main, niente migrazione
+
+Tutto dopo §A36, commit `5e063170` → `1864983b`. Racconto intero nella carta
+`docs/feature/2026-09-12-vawos-e-minimi-lvp.md` §15.
+
+- **vAWOS a 2 e 3 piste** con l'impianto dei prototipi `awos_2rwy` / tre piste (colonna di scalo + un blocco per
+  pista alto uguale); la pista sola resta com'era. TAIL tagliata su LIRF chiusa (spazi in px, `min-height` misurato).
+- **Freccia** nel senso di marcia (piste opposte arr/dep: segue le partenze); **testate sempre arancioni**;
+  **P2000** su ogni cella se il METAR non ha RVR; **vento** con piccola variazione attorno al METAR ogni
+  45–200 s per pannello (±10° nel settore, ±1–3 kt sotto la raffica).
+- **Provenienza della pista in uso** («from rule/wind/ATIS») solo a DivisionStaff, anche nel JSON dell'endpoint.
+- **Regole piste e minimi LVP** del quadro dalla **release pubblicata** (congelata se c'è, altrimenti vivi:
+  sezione Live = cambio immediato). Provato su copia DB: LIBC fermo, LIBR cambia.
+- **Banco di prova delle regole piste**: tailwind e vento traverso per pista, massimi, motivo per cui ogni regola
+  cade (`RunwaySuggestion.ExplainRules`, su cui ora poggia `EvaluateRules`). «Testa-vento» → **headwind** ovunque.
+- **Hub `/services`**: scheda «Vedi chi è online ora» → THE EYE (esterna, scheda nuova). ⚠️ La posizione iniziale
+  della mappa non si può passare: THE EYE non la legge dall'indirizzo — serve una modifica lato suo.
+- Test: `AwosRvrTests`, `AwosProvenienzaTests`, tre su `ExplainRules`, uno sul collegamento esterno.
+
 ### ✅ A36 — Stazione METAR di riferimento dello scalo — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
 
 Richiesta del committente: LIRJ non emette un METAR suo.

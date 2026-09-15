@@ -783,3 +783,64 @@ stessa domanda posta dall'altro capo — e va detta per quello che è.
 ✅ **Il pubblico ha ancora il vecchio indice, ed è previsto**: la LIMC pubblicata elenca ancora
 *Piste · SID · Procedure generali*, senza «Regole di selezione pista» dentro Piste e senza LVP. Arriva alla
 **prossima pubblicazione** di ogni documento.
+
+## 15. Il 15 settembre 2026: impianto per numero di piste, e sei decisioni che ribaltano
+
+Tutto in `main` dopo 1.26.1, dentro il pacchetto **1.27.0**. Commit `5e063170` → `045cdd13`.
+
+### Due impianti, non uno (`5e063170`)
+
+«Un motore, tre file del prototipo» valeva per i **dati**, non per il **disegno**. Il committente: la pista
+sola andava bene, ma due piste (LIMC) e tre (LIRF) devono rispettare `awos_2rwy` e il prototipo a tre piste.
+
+- **Una pista**: fascia MET in alto, poi striscia, vento, RVR — com'era.
+- **Due o più** (`awos-multi`): colonna di scalo a sinistra (QNH, Temp/Dew/TL in fila, ATIS, «MET REPORT /
+  SPECIAL DATA», WX, trend) e a destra **un blocco per pista, tutti alti uguali**: barra `RWY 07/25`,
+  VISIBILITY e CLOUD (quattro righe) a sinistra, striscia/vento/RVR a destra. «RWY IN USE» sta nella barra
+  del primo blocco.
+- Gli agganci `data-awos` sono gli stessi; il modulo JS scrive visibilità e nubi in **ogni** blocco.
+- 🔴 Il pannello vento usa `container-type: size` e `cqmin` come il prototipo, ma spazi interni in **px**: le
+  unità `cq` di un elemento si risolvono sul contenitore **antenato**, e qui cadevano sul viewport (7 px invece
+  di 3) — su LIRF la riga TAIL usciva dal fondo. `min-height: 204px` **misurato**, non stimato. RVR con
+  l'etichetta accanto al valore. A 1400×860 con tre piste la pagina scorre invece di tagliare.
+
+### Sei decisioni del committente
+
+| | Prima | Adesso |
+|---|---|---|
+| **Freccia** | puntava VERSO la testata in uso | va nel **senso di marcia**: in uso 06 su 06/24, da 06 verso 24. Arrivi e partenze su testate opposte della stessa pista: segue le **partenze** |
+| **Testate** | verde quella in uso | **sempre arancioni**: la pista in uso la dice la freccia |
+| **RVR** | `///` se il bollettino non lo dà | nessun RVR nel METAR ⇒ **P2000** ovunque; RVR per altre piste ⇒ `///` sulla mancante; niente METAR ⇒ `///` |
+| **Vento** | fermo sul bollettino (§11) | **piccola variazione** attorno al METAR, uno scatto ogni 45–200 s per pannello |
+| **Provenienza** della pista in uso | a tutti («from rule 34 asciutta») | **solo DivisionStaff**, come nella vIPI; al pubblico «RWY IN USE: 35» e basta |
+| **Regole piste e minimi LVP** | anagrafica viva | **release pubblicata** |
+
+**Il vento che varia non è l'animazione tolta il 12.** Uno scatto e non un moto continuo; lo scarto si tira
+ogni volta **attorno al METAR** (non è una passeggiata casuale: dopo ore la direzione è ancora a ±10°); la
+direzione resta dentro il settore `dddVddd`; la velocità varia di ±1/2/3 kt secondo il vento, mai oltre la
+raffica né a zero; VRB e CALM non si toccano; EXTREMES e GUST restano del bollettino. Traverso e coda si
+calcolano sui valori **a schermo**, perché tre caselle che non tornano fra loro sono un quadro che si
+contraddice. Provato accelerando i soli timer lunghi: con `24018G22KT 230V280` la direzione è rimasta in
+230–250, la velocità in 15–21.
+
+**La provenienza**: `AwosTesto.RigaAttiva(a, meccanicaVisibile)` alla pagina e all'endpoint;
+`AwosTesto.PerChiGuarda` toglie il nome della regola anche dalla **vista serializzata** — nascosto a schermo e
+presente nel JSON non sarebbe nascosto. Le risposte ad autenticati non entrano nella cache anonima. ⚠️ Nel
+JSON resta il campo `sorgente` (Regola/Vento/Atis), senza nome.
+
+**Regole e minimi dalla release** (`AwosService.DalPubblicatoAsync`, una lettura dello snapshot): la stessa
+regola della vIPI — sezione congelata della release in vigore (vIPI, o vSOP sui campi solo militari), altrimenti
+le vive. Con la sezione **Live** un cambiamento nell'editor arriva quindi subito, come nel documento. Una
+sezione LVP congelata **senza** minimi vale «pubblicata senza minimi» (standard dichiarato): non si torna ai
+vivi, che sarebbero proprio i non pubblicati. Prova che distingue, su copia del DB: alzati i minimi vivi di
+LIBC (LVP congelata) e LIBR (no) → LIBC resta «LVP NIL», LIBR passa a «LVP».
+
+### Fuori dal quadro, lo stesso giorno
+
+- **Banco di prova delle regole piste** (`ae289e6a`): sotto l'esito, per ogni regola, tailwind e vento traverso
+  su ciascuna pista, i massimi e il primo vincolo che la fa cadere. La spiegazione esce dal motore:
+  `RunwaySuggestion.ExplainRules`, e `EvaluateRules` è «la prima che ExplainRules dà per applicabile».
+  🔴 **Headwind non si traduce** da nessuna parte (committente); crosswind in italiano è «vento traverso».
+- **Hub `/services`** (`1864983b`): scheda «Vedi chi è online ora» verso THE EYE, strumento non ufficiale
+  della divisione — primo collegamento **esterno** dell'hub (`external`, contato nei test). La posizione della
+  mappa non si passa: THE EYE non la legge dall'indirizzo.

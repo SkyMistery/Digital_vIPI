@@ -1371,7 +1371,23 @@
       Firme: IGlossaryStore ha un metodo in più (SeminaVoceAsync) e i costruttori di sette store chiedono
       IEditAuthorizationService; implementazioni e registrazioni stanno tutte negli assiemi spediti.
     -->
-    <VipiVersione>1.26.1</VipiVersione>
+    <!--
+      1.27.0 — MINOR, TRE migrazioni ADDITIVE. Su 1.26.1 (fae666e, online). Ancora net8.
+
+      ⚠️ 1.27.0 era il numero messo da parte per il salto a net10 (L13, ramo `l13-net10`). Il numero però segue
+      l'ordine delle CONSEGNE, non dei piani: questo pacchetto parte prima, quindi è 1.27.0, e il net10 sarà
+      1.28.0. Il ramo va riallineato a main (le tre migrazioni devono esserci anche lì).
+
+      Le migrazioni, tutte AddColumn: `SidNascosteECorrette` (§A33: tre colonne su AirportSids),
+      `SottosezioniFraIBlocchi` (§A35: DocumentSection.BodyPosition), `StazioneMeteoDiRiferimento` (§A36:
+      Airport.MetarStationIcao). 🔴 Il pacchetto porta Vipi.Infrastructure.MySqlMigrations.dll; la prova col
+      login è `Schema: 0`.
+
+      Il contenuto (docs/lavori-aperti.md §A33…§A37): SID nascoste e corrette a mano; APP non remotizzato con
+      «Gestione del traffico» e «Tecnica operativa»; sotto-sezioni fra i blocchi; stazione METAR di riferimento;
+      vAWOS a 2-3 piste coi sei cambi del committente; banco di prova delle regole piste; THE EYE nell'hub.
+    -->
+    <VipiVersione>1.27.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

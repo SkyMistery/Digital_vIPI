@@ -18,8 +18,10 @@
 ├─ [Per i controllori ATC]  vSOP — documentazione operativa   → /services/vsop
 ├─ [Per i piloti militari]  Documentazione militare           → /services/vsop/mil  (scorciatoia)
 ├─ Strumenti per controllori:
+│  ├─ vAWOS (quadro meteo di torre)                → /services/vawos  (scheda nuova)
 │  ├─ Le mie statistiche ATC                       → /services/stats
-│  └─ Aurora Profile Swapper                       → /services/profile-swapper
+│  ├─ Aurora Profile Swapper                       → /services/profile-swapper
+│  └─ Vedi chi è online ora (THE EYE, esterno)     → https://the-eye.andreadalbero.it/  (scheda nuova)
 └─ [staff di divisione] Spazi aerei · Convertitore · [Editor] Coerenza sectorfile
 
 /services/profile-swapper               Copia sezioni fra profili Aurora .cpr  ... ProfileSwapperPage.razor
@@ -121,7 +123,7 @@
 | `/services/vsop/admin/sources` | `SorgentiAdminPage.razor` | Policy import sorgenti | Admin |
 | `/services/vsop/admin/audit` | `AuditPage.razor` | Audit log | Admin |
 | `/` | `Home.razor` (Host) | Radice dell'host di sviluppo/esempio | tutti |
-| `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo. Tetto di richieste per IP sull'API; sorgente METAR e «Test METAR» solo allo staff | tutti (sorgente e test: DivisionStaff) |
+| `/services/vawos` · `/services/vawos/{icao}` | `AwosPage.razor` | **Quadro vAWOS** di torre (SSR + JS): elenco scali e quadro dello scalo; impianto a pista sola o a blocchi per 2+ piste. Tetto di richieste per IP sull'API; sorgente METAR, «Test METAR» e provenienza della pista in uso solo allo staff; regole piste e minimi LVP dalla release pubblicata | tutti (sorgente, test, provenienza: DivisionStaff) |
 | `/services/coordinates` | `CoordinateConverterPage.razor` | Convertitore di coordinate | DivisionStaff |
 | `/services/stats/world` | `AtcWorldArchivePage.razor` | Archivio ATC mondiale | DivisionStaff |
 | `/services/vsop/airspace` | `AirspacePage.razor` | Spazi aerei (vista) | DivisionStaff |
