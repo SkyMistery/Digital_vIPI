@@ -417,7 +417,7 @@
                 <button type="button" class="awos-freccia" data-awos-inverti="@i"
                         title="Invert the active direction">
                     <svg width="66" height="34" viewBox="0 0 70 40" data-awos-arrow="@i"
-                         style="transform:@(PuntaADestra(attivaSx, attivaDx) ? "scaleX(1)" : "scaleX(-1)")">
+                         style="transform:@(PuntaADestra(attivaSx, attivaDx, InPartenza(striscia.Right?.Ident)) ? "scaleX(1)" : "scaleX(-1)")">
                         <polygon points="0,8 46,8 46,0 70,20 46,40 46,32 0,32"
                                  fill="@(attivaSx || attivaDx ? "#2a8a3a" : "#8a8a8a")" stroke="#000" stroke-width="2" />
                     </svg>
@@ -428,9 +428,17 @@
         </div>
     };
 
-    /// <summary>La freccia va a destra quando si decolla/atterra dalla testata di SINISTRA. Nessuna delle due
-    /// in uso (freccia grigia): a destra, per convenzione. ⚠️ Stessa regola in vipi-awos.js (`striscia_`).</summary>
-    private static bool PuntaADestra(bool attivaSx, bool attivaDx) => attivaSx || !attivaDx;
+    /// <summary>
+    /// La freccia va a destra quando si decolla/atterra dalla testata di SINISTRA.
+    /// <para>⚠️ Le DUE testate in uso — arrivi da una, partenze dall'altra — la freccia segue le PARTENZE
+    /// (committente, 15 settembre 2026). Nessuna delle due in uso (freccia grigia): a destra, per convenzione.
+    /// Stessa regola in vipi-awos.js (`striscia_`).</para>
+    /// </summary>
+    private static bool PuntaADestra(bool attivaSx, bool attivaDx, bool destraInPartenza) =>
+        attivaSx && attivaDx ? !destraInPartenza : attivaSx || !attivaDx;
+
+    private bool InPartenza(string? ident) =>
+        ident is not null && _vista?.Attiva.Dep.Contains(ident, StringComparer.OrdinalIgnoreCase) == true;
 
     private RenderFragment Vento(int i) => __builder =>
     {

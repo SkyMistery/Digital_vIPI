@@ -221,10 +221,13 @@
     var attivaDx = scelta ? scelta === 'R' : (striscia.right && eAttiva(striscia.right.ident));
 
     // Le testate restano arancioni: la pista in uso la dice SOLO la freccia, nel senso di marcia (dalla
-    // testata in uso verso l'altra). ⚠️ Stessa regola di `PuntaADestra` in AwosPage.razor.
+    // testata in uso verso l'altra). Tutt'e due in uso (arrivi da una, partenze dall'altra): seguono le
+    // PARTENZE. ⚠️ Stessa regola di `PuntaADestra` in AwosPage.razor.
+    var destraInPartenza = !!(striscia.right && vista.attiva && contiene(vista.attiva.dep, striscia.right.ident));
+    var aDestra = attivaSx && attivaDx ? !destraInPartenza : (attivaSx || !attivaDx);
     var freccia = $('[data-awos-arrow="' + i + '"]');
     if (freccia) {
-      freccia.style.transform = (attivaSx || !attivaDx) ? 'scaleX(1)' : 'scaleX(-1)';
+      freccia.style.transform = aDestra ? 'scaleX(1)' : 'scaleX(-1)';
       var poly = freccia.querySelector('polygon');
       if (poly) poly.setAttribute('fill', (attivaSx || attivaDx) ? (scelta ? '#a08000' : '#2a8a3a') : '#8a8a8a');
     }
