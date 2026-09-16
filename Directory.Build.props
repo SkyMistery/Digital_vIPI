@@ -1402,7 +1402,18 @@
       sotto-sezione), EfDocumentMaintenance, PublicDocumentGate, DocumentBirth. Il .dll online ha 3 cablato:
       senza, il difetto di LIED resterebbe in produzione con Domain nuovo accanto.
     -->
-    <VipiVersione>1.28.0</VipiVersione>
+    <!--
+      1.29.0 — MINOR, NESSUNA migrazione. Su 1.28.0 (4fd8ed7, online). Ancora net8.
+
+      MINOR e non PATCH perché §A47 aggiunge una scheda e un indirizzo (la copia del database): la regola del
+      runbook è «PATCH = nessuna pagina o sezione nuova». Il net10 (L13, ramo `l13-net10`) diventa 1.30.0.
+
+      Il contenuto (docs/lavori-aperti.md §A45…§A47): la ★ blu in tutte le tabelle delle frequenze (§A45); l'intro
+      dei vSOP militari con le sezioni chiuse (§A46); la copia del database scaricabile da Diagnostica, con la
+      revisione indipendente (§A47). 🔴 Dentro c'è anche la correzione di uno stack overflow LATENTE in
+      ScopeProprioCheAspetta.InFilaAsync<T> (Vipi.Ui): online nessuno chiama quell'overload, ma la scheda nuova sì.
+    -->
+    <VipiVersione>1.29.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
