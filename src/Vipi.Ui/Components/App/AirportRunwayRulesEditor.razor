@@ -192,17 +192,23 @@
                 <div class="callout warning" style="margin-top:8px"><span class="cic">⚠️</span><div>
                     @if (_ripiego?.Best is not null)
                     {
-                        @* ⚠️ Con una pista scelta, la frase del ripiego NON si mostra più: `RunwaySuggestion.Suggest` la
-                           scrive in italiano cablato, e usciva tale e quale anche nell'interfaccia inglese («No rule
-                           applies → best headwind fallback: Headwind 13 kt su 13, vento traverso 3 kt»). Le stesse
-                           informazioni arrivano qui sotto dalle risorse: piste in uso, tailwind e vento traverso. *@
+                        @* ⚠️ Tutto dalle risorse. Fino al 16 settembre 2026 qui usciva la `Note` di
+                           `RunwaySuggestion.Suggest`, in italiano cablato anche nell'interfaccia inglese («No rule
+                           applies → best headwind fallback: Headwind 13 kt su 13, vento traverso 3 kt»): ora il
+                           motore dice solo il MOTIVO, e le componenti stanno nella riga per pista qui sotto. *@
                         <span>@L["Ape_TestNoRule"] DEP <b>@_ripiego.DepIdent</b> · ARR <b>@_ripiego.ArrIdent</b></span>
+                        @if (_ripiego.Reason == SuggestionReason.Tailwind)
+                        {
+                            @* Il vento è in coda su tutte le piste: la «migliore» è la meno peggio, e va detto. *@
+                            <span class="muted"> — @L["Ape_TestReasonTailwind"]</span>
+                        }
                         @VentoSullePiste(PisteInUso())
                     }
                     else
                     {
-                        @* Senza pista scelta (vento calmo, nessuna pista nota) la nota è l'unica cosa da dire. *@
-                        @L["Ape_TestNoRule"] @(_ripiego?.Note ?? "—")
+                        @* Senza pista scelta (vento calmo, senza direzione, nessuna pista nota) il motivo è l'unica
+                           cosa da dire. *@
+                        @L["Ape_TestNoRule"] @MotivoSenzaPista()
                     }
                 </div></div>
             }
@@ -361,6 +367,15 @@
                           Math.Max(0, -p.Headwind), p.Crosswind))
             .ToList();
     }
+
+    /// <summary>Perché il ripiego non ha scelto una pista, a parole e nella lingua della pagina.</summary>
+    private string MotivoSenzaPista() => _ripiego?.Reason switch
+    {
+        SuggestionReason.NoRunways => L["Ape_TestReasonNoRunways"],
+        SuggestionReason.Calm => L["Ape_TestReasonCalm"],
+        SuggestionReason.NoDirection => L["Ape_TestReasonNoDirection"],
+        _ => "—",
+    };
 
     /// <summary>In che veste la pista sta nella regola: DEP, ARR o tutt'e due.</summary>
     private static string Ruolo(RuleEdit r, string ident) =>

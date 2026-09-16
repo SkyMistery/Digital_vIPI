@@ -2143,6 +2143,10 @@
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Intensità (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Regola #{0}</value></data>
   <data name="Ape_TestNoRule" xml:space="preserve"><value>Nessuna regola si applica → ripiego sul miglior headwind:</value></data>
+  <data name="Ape_TestReasonNoRunways" xml:space="preserve"><value>nessuna pista nota.</value></data>
+  <data name="Ape_TestReasonCalm" xml:space="preserve"><value>vento calmo, pista a discrezione.</value></data>
+  <data name="Ape_TestReasonNoDirection" xml:space="preserve"><value>direzione del vento non disponibile.</value></data>
+  <data name="Ape_TestReasonTailwind" xml:space="preserve"><value>tailwind su tutte le piste, nessuna è favorevole</value></data>
   <data name="Ape_TestColTail" xml:space="preserve"><value>Tailwind</value></data>
   <data name="Ape_TestColCross" xml:space="preserve"><value>Vento traverso</value></data>
   <data name="Ape_TestNoRunways" xml:space="preserve"><value>Nessuna pista selezionata.</value></data>

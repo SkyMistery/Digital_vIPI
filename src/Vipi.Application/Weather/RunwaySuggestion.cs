@@ -3,7 +3,7 @@ using Vipi.Domain;
 
 namespace Vipi.Application.Weather;
 
-/// <summary>Esito suggerimento pista dal vento: estremità migliore + componenti (kt) + nota leggibile.</summary>
+/// <summary>Esito suggerimento pista dal vento: estremità migliore + componenti (kt).</summary>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
 // compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
@@ -14,8 +14,36 @@ public sealed record RunwayPick(string Ident, int Heading, int Headwind, int Cro
 /// parallele nella stessa direzione del vento (es. 35L arrivi / 35R partenze); coincidono con <see cref="Best"/>
 /// quando non ci sono parallele utili.
 /// </summary>
-public sealed record RunwaySuggestionResult(RunwayPick? Best, IReadOnlyList<RunwayPick> Ranked, string Note,
-    string? DepIdent = null, string? ArrIdent = null);
+public sealed record RunwaySuggestionResult(RunwayPick? Best, IReadOnlyList<RunwayPick> Ranked,
+    SuggestionReason Reason, string? DepIdent = null, string? ArrIdent = null);
+
+/// <summary>
+/// Com'è andato il ripiego sul vento: con una pista scelta (<see cref="Headwind"/>, <see cref="Tailwind"/>) o
+/// senza, e perché.
+///
+/// <para>⚠️ <b>Un codice e non una frase</b> (16 settembre 2026). Fino ad allora il risultato portava una
+/// <c>Note</c> in italiano cablato — «Headwind 8 kt su 16, vento traverso 6 kt», «Vento calmo: pista a
+/// discrezione.» — e il banco di prova dell'editor la stampava così com'era anche nell'interfaccia inglese.
+/// L'Application non conosce la lingua di chi legge: la frase la scrive la UI dalle risorse, e le componenti
+/// in kt stanno già in <see cref="RunwaySuggestionResult.Best"/>.</para>
+/// </summary>
+public enum SuggestionReason
+{
+    /// <summary>Scelta la pista col massimo headwind.</summary>
+    Headwind,
+
+    /// <summary>Scelta la «migliore», ma il vento è in coda su tutte: nessuna pista favorevole.</summary>
+    Tailwind,
+
+    /// <summary>Nessuna pista riconoscibile fra quelle date.</summary>
+    NoRunways,
+
+    /// <summary>Vento calmo (≤ 2 kt): pista a discrezione.</summary>
+    Calm,
+
+    /// <summary>Vento senza direzione (variabile o non noto).</summary>
+    NoDirection,
+}
 
 /// <summary>
 /// Regola di scelta pista (DTO disaccoppiato dalle entità): piste DEP/ARR preferenziali + soglie operative
@@ -100,11 +128,11 @@ public static partial class RunwaySuggestion
             .ToList();
 
         if (ends.Count == 0)
-            return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(), "Nessuna pista nota.");
+            return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(), SuggestionReason.NoRunways);
 
         if (windDir is null || windKt <= 2)
             return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(),
-                windKt <= 2 ? "Vento calmo: pista a discrezione." : "Direzione vento non disponibile.");
+                windKt <= 2 ? SuggestionReason.Calm : SuggestionReason.NoDirection);
 
         var ranked = ends
             .Select(e =>
@@ -126,13 +154,8 @@ public static partial class RunwaySuggestion
             ? (parallels[^1].Ident, parallels[0].Ident)   // ARR = prima (es. 35L), DEP = ultima (es. 35R)
             : (best.Ident, best.Ident);
 
-        var note = best.Headwind < 0
-            ? $"Attenzione: vento in coda su {best.Ident} ({-best.Headwind} kt). Nessuna pista favorevole."
-            : $"Headwind {best.Headwind} kt su {best.Ident}" +
-              (best.Crosswind > 0 ? $", vento traverso {best.Crosswind} kt" : "") +
-              (parallels.Count >= 2 ? $". Arrivi {arrIdent}, partenze {depIdent}." : ".");
-
-        return new RunwaySuggestionResult(best, ranked, note, depIdent, arrIdent);
+        var motivo = best.Headwind < 0 ? SuggestionReason.Tailwind : SuggestionReason.Headwind;
+        return new RunwaySuggestionResult(best, ranked, motivo, depIdent, arrIdent);
     }
 
     /// <summary>

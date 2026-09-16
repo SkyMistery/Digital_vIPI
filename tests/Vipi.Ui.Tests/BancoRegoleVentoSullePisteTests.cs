@@ -97,6 +97,37 @@ public class BancoRegoleVentoSullePisteTests : TestContext
         Assert.DoesNotContain(" su 16", riquadro.TextContent, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// Nessuna regola e vento senza direzione: il ripiego non sceglie una pista, e il motivo arriva dalle
+    /// risorse — non più dalla nota italiana cablata del motore.
+    /// </summary>
+    [Fact]
+    public void Senza_pista_scelta_il_motivo_parla_la_lingua_della_pagina()
+    {
+        var c = RenderComponent<AirportRunwayRulesEditor>(p => p
+            .Add(x => x.Rows, new List<RuleEdit>())
+            .Add(x => x.RunwayIdents, new[] { "16", "34" }));
+        c.FindAll("input").First(i => i.GetAttribute("placeholder") == "Ape_WindCalm").Change("");
+        c.FindAll("button").First(b => b.TextContent.Trim().StartsWith("▷", StringComparison.Ordinal)).Click();
+
+        var riquadro = c.Find(".callout.warning");
+        Assert.Contains("Ape_TestReasonNoDirection", riquadro.TextContent);
+        Assert.Empty(Righe(riquadro));
+        Assert.DoesNotContain("non disponibile", riquadro.TextContent, StringComparison.Ordinal);
+    }
+
+    /// <summary>Tailwind su tutte le piste: il ripiego sceglie la meno peggio, e il riquadro lo dice.</summary>
+    [Fact]
+    public void Con_tailwind_su_tutte_le_piste_il_riquadro_lo_dice()
+    {
+        // 200°/10 sulla sola 34 (340°): 140° di scarto → tailwind 8, traverso 6.
+        var c = ProvaCon(new List<RuleEdit>(), "34");
+
+        var riquadro = c.Find(".callout.warning");
+        Assert.Contains("Ape_TestReasonTailwind", riquadro.TextContent);
+        Assert.Equal(new[] { ("34", "8 kt", "6 kt") }, Righe(riquadro));
+    }
+
     /// <summary>Vento calmo (direzione vuota): le componenti sono zero, e il riquadro lo dice invece di tacere.</summary>
     [Fact]
     public void Col_vento_calmo_le_componenti_sono_zero()

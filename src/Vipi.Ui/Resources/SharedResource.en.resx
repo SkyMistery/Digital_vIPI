@@ -2138,6 +2138,10 @@
   <data name="Ape_TestWindKt" xml:space="preserve"><value>Speed (kt)</value></data>
   <data name="Ape_TestRuleN" xml:space="preserve"><value>Rule #{0}</value></data>
   <data name="Ape_TestNoRule" xml:space="preserve"><value>No rule applies → best headwind fallback:</value></data>
+  <data name="Ape_TestReasonNoRunways" xml:space="preserve"><value>no known runway.</value></data>
+  <data name="Ape_TestReasonCalm" xml:space="preserve"><value>calm wind, runway at discretion.</value></data>
+  <data name="Ape_TestReasonNoDirection" xml:space="preserve"><value>wind direction not available.</value></data>
+  <data name="Ape_TestReasonTailwind" xml:space="preserve"><value>tailwind on every runway, none is favourable</value></data>
   <data name="Ape_TestColTail" xml:space="preserve"><value>Tailwind</value></data>
   <data name="Ape_TestColCross" xml:space="preserve"><value>Crosswind</value></data>
   <data name="Ape_TestNoRunways" xml:space="preserve"><value>No runway selected.</value></data>

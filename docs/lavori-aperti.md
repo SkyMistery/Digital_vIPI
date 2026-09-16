@@ -17,7 +17,12 @@ riga **per pista in uso** — ident, ruolo (DEP/ARR), Tailwind, Vento traverso.
 - Senza regola vincente la riga viene dal **ripiego** (miglior headwind): piste DEP/ARR scelte, tailwind =
   `max(0, -headwind)` come nel motore. ⚠️ La frase del ripiego (`RunwaySuggestion.Suggest`, **italiano
   cablato**) non si mostra più quando una pista è scelta: usciva tale e quale nell'interfaccia inglese.
-  Resta solo per vento calmo / nessuna pista nota — ▶ **lì è ancora italiano cablato** (difetto preesistente).
+- ✅ **Poi alla radice** (stesso giorno, su richiesta): `RunwaySuggestionResult.Note` **tolta**, al suo posto
+  `Reason` (`SuggestionReason`: Headwind, Tailwind, NoRunways, Calm, NoDirection). La frase la scrive la UI
+  dalle risorse (`Ape_TestReason*`), anche nel caso senza pista e col tailwind su tutte. ⚠️ Misurato prima di
+  toccare: gli altri **quattro** consumatori del ripiego (`AwosComposition`, `AirportListPanel`,
+  `AirportQuickPanel`, `PistaInUso`) la nota **non la mostravano** — usavano solo le piste scelte. L'unico
+  posto a schermo era il banco dell'editor.
 - Visto dal vivo: «31DEP» senza spazio (Razor mangia lo spazio in testa allo `<span>`) → margine CSS.
 - Terminologia: headwind mai tradotto; «Tailwind» e «Vento traverso» dalle stesse risorse delle schede.
 - `BancoRegoleVentoSullePisteTests` (3).

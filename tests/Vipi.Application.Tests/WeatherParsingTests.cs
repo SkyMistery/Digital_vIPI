@@ -213,7 +213,20 @@ public class WeatherParsingTests
     {
         var r = RunwaySuggestion.Suggest(new[] { "16L", "34R" }, null, 0);
         Assert.Null(r.Best);
-        Assert.NotEmpty(r.Note);
+        Assert.Equal(SuggestionReason.Calm, r.Reason);
+    }
+
+    /// <summary>
+    /// ⚠️ Il ripiego dice il PERCHÉ con un codice, non con una frase: fino al 16 settembre 2026 portava una nota
+    /// in italiano cablato che il banco dell'editor stampava anche nell'interfaccia inglese.
+    /// </summary>
+    [Fact]
+    public void Runway_Il_motivo_senza_pista_si_distingue()
+    {
+        Assert.Equal(SuggestionReason.NoRunways, RunwaySuggestion.Suggest(new[] { "XX" }, 160, 12).Reason);
+        Assert.Equal(SuggestionReason.NoDirection, RunwaySuggestion.Suggest(new[] { "16" }, null, 12).Reason);
+        Assert.Equal(SuggestionReason.Calm, RunwaySuggestion.Suggest(new[] { "16" }, 160, 2).Reason);
+        Assert.Equal(SuggestionReason.Headwind, RunwaySuggestion.Suggest(new[] { "16" }, 160, 12).Reason);
     }
 
     [Fact] // vento in coda su tutte → nota di attenzione
@@ -221,7 +234,7 @@ public class WeatherParsingTests
     {
         var r = RunwaySuggestion.Suggest(new[] { "16" }, 340, 20);
         Assert.True(r.Best!.Headwind < 0);
-        Assert.Contains("coda", r.Note);
+        Assert.Equal(SuggestionReason.Tailwind, r.Reason);
     }
 
     [Fact] // pioggia e neve riconosciute dai codici
