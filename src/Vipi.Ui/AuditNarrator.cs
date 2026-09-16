@@ -23,7 +23,7 @@ public static class AuditNarrator
 {
     /// <summary>Famiglia dell'evento: è ciò su cui filtrano i chip della pagina, e non coincide con
     /// <see cref="AuditAction"/> (una eliminazione di documento e una revoca di permesso sono due famiglie).</summary>
-    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Incarico, Statistiche, Altro }
+    public enum Categoria { Pubblicazione, Bozza, Documento, Permesso, Gerarchia, Lock, Sorgenti, Incarico, Statistiche, CopiaDatabase, Altro }
 
     public static Categoria CategoriaDi(AuditEntry e) => (e.EntityType, e.Action) switch
     {
@@ -40,6 +40,8 @@ public static class AuditNarrator
         ("EditorTask", _) => Categoria.Incarico,
         // L'unica famiglia che descrive una LETTURA: lo staff ha aperto le statistiche personali di qualcuno.
         ("StatsProfile", _) => Categoria.Statistiche,
+        // Anche questa è una LETTURA, e la più grossa che ci sia: tutto il database, portato fuori (§A47).
+        ("DatabaseBackup", _) => Categoria.CopiaDatabase,
         (_, AuditAction.HierarchyChange) => Categoria.Gerarchia,
         (_, AuditAction.ForceUnlock) => Categoria.Lock,
         ("Document", _) => Categoria.Documento,
@@ -60,6 +62,7 @@ public static class AuditNarrator
         // Ambra per la stessa ragione delle altre due: non si è perso niente, ma è un atto che chi l'ha
         // fatto potrebbe dover spiegare.
         (Categoria.Statistiche, _) => "amber",
+        (Categoria.CopiaDatabase, _) => "amber",
         (_, AuditAction.Delete) => "red",
         (_, AuditAction.Archive) => "red",
         (_, AuditAction.Discard) => "red",
@@ -108,6 +111,7 @@ public static class AuditNarrator
         if (e.EntityType == "RoleOverride") return L["Audit_VidN", e.EntityId].Value;
         // Il bersaglio è la PERSONA guardata, non una pagina: l'EntityId è il suo VID.
         if (e.EntityType == "StatsProfile") return L["Audit_VidN", e.EntityId].Value;
+        if (e.EntityType == "DatabaseBackup") return L["Backup_Title"].Value;
         // Il nome del cliente e il prefisso della chiave, come li mostra la pagina delle chiavi.
         if (e.EntityType == "ApiClient") return $"{Str(d, "Nome") ?? "—"} ({e.EntityId}…)";
         return $"{e.EntityType} {e.EntityId}";
@@ -162,6 +166,13 @@ public static class AuditNarrator
                 return L["Audit_Fr_ForceUnlock", Str(d, "HeldByName") ?? Int(d, "HeldByUserId")?.ToString() ?? "—"].Value;
             case Categoria.Statistiche:
                 return L["Audit_Fr_StatsView"].Value;
+            case Categoria.CopiaDatabase:
+                // Due righe per copia: la richiesta e, se è arrivata in fondo, il riassunto con l'impronta — che
+                // è quella scritta nell'ultima riga del file, così chi ha il file lo confronta con questa.
+                return Str(d, "Fase") == "Fine"
+                    ? L["Audit_Fr_BackupDone", Int(d, "Tabelle") ?? 0, Prop(d, "Righe")?.ToString() ?? "—",
+                                               Str(d, "Sha256") ?? "—"].Value
+                    : L["Audit_Fr_BackupStart"].Value;
             case Categoria.Sorgenti:
                 // Le sole categorie CAMBIATE, e nelle due direzioni separate: «manuale → da sorgente» è
                 // l'unica che, al prossimo import, sovrascrive il lavoro fatto a mano.

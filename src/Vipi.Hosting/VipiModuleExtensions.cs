@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 using Vipi.Application;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Content;
@@ -602,6 +603,62 @@ public static class VipiModuleExtensions
             return Results.Redirect(
                 Vipi.Application.Content.AttachmentRules.UrlEsterno(voce.Provider, voce.ExternalId),
                 permanent: false);
+        });
+
+        // La copia di sicurezza del database, per un Admin (§A47, carta 2026-09-16-copia-del-database.md).
+        //
+        // ⚠️ Un ENDPOINT e non un gesto dell'isola: il file esce dalla risposta HTTP mentre si legge, e il circuito
+        // Blazor col suo DbContext non c'entra. Il tasto in Diagnostica è un link con `download`.
+        // ⚠️ 404 e non 403 a chi non è Admin: a chi non può scaricarla non si annuncia che esiste.
+        endpoints.MapGet(Vipi.Application.Diagnostics.DatabaseBackupRoute.Path, async (
+            HttpContext ctx,
+            IEditAuthorizationService authz,
+            Vipi.Application.Diagnostics.IDatabaseBackup backup,
+            Microsoft.Extensions.Logging.ILoggerFactory logs,
+            CancellationToken ct) =>
+        {
+            if (!authz.IsAdmin || !backup.IsSupported)
+            {
+                ctx.Response.StatusCode = StatusCodes.Status404NotFound;
+                return;
+            }
+
+            var log = logs.CreateLogger("Vipi.DatabaseBackup");
+            ctx.Response.ContentType = "application/gzip";
+            ctx.Response.Headers.ContentDisposition = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue("attachment")
+            {
+                FileNameStar = backup.FileName(DateTime.UtcNow),
+            }.ToString();
+            // Davanti c'è Cloudflare: una copia del database non deve restare in nessuna cache, di nessuno.
+            ctx.Response.Headers.CacheControl = "no-store";
+            ctx.Response.Headers.XContentTypeOptions = "nosniff";
+            ctx.Features.Get<IHttpResponseBodyFeature>()?.DisableBuffering();
+
+            try
+            {
+                var s = await backup.WriteAsync(ctx.Response.Body, ct);
+                log.LogInformation("Copia del database scaricata dal VID {Vid}: {Tabelle} tabelle, {Righe} righe, sha256 {Sha}",
+                    authz.CurrentUserId, s.Tables, s.Rows, s.Sha256);
+            }
+            catch (Vipi.Application.Diagnostics.DatabaseBackupBusyException) when (!ctx.Response.HasStarted)
+            {
+                ctx.Response.Headers.Remove("Content-Disposition");
+                ctx.Response.ContentType = "text/plain; charset=utf-8";
+                ctx.Response.Headers.RetryAfter = "60";
+                ctx.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+                await ctx.Response.WriteAsync("C'è già una copia del database in corso: riprova fra un minuto.", CancellationToken.None);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                log.LogInformation("Copia del database interrotta da chi la scaricava (VID {Vid}).", authz.CurrentUserId);
+            }
+            catch (Exception e) when (ctx.Response.HasStarted)
+            {
+                // Metà file è già partito e lo stato non si può più cambiare. Si chiude la connessione: il file
+                // resta senza la riga di chiusura, ed è così che il verificatore lo riconosce come incompleto.
+                log.LogError(e, "Copia del database fallita a metà (VID {Vid}): il file scaricato è incompleto.", authz.CurrentUserId);
+                ctx.Abort();
+            }
         });
 
         return endpoints;

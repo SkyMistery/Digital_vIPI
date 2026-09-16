@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- net8 come Vipi.Host e Vipi.DbSeed: `scrivi` legge MariaDB con MySqlConnector, che arriva con Pomelo, e
+         Pomelo esiste solo per EF Core 8 (ADR-0007 §D4-ter). `verifica` non ne avrebbe bisogno. -->
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lo scrittore e il verificatore sono quelli del sito: il file che controlla questo strumento è lo stesso
+         che scarica l'Admin, non una sua imitazione. -->
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

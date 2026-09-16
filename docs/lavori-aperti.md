@@ -2,6 +2,37 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### ✅ A47 — La copia del database si scarica dalla Diagnostica (16 settembre 2026, sera)
+
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.** Carta `docs/feature/2026-09-16-copia-del-database.md`.
+
+Richiesta del committente: *«posso scaricarmi tutto il DB per avere una copia locale di sicurezza e non dover chiedere
+al webmaster ogni volta?»* — scelta la forma **A**, un `.sql.gz` che il webmaster reimporta così com'è.
+
+- **Scheda «Copia del database»** in `/services/vsop/admin/diagnostics` (solo Admin) → link con `download` verso
+  `/services/vsop/admin/diagnostics/database-backup`. A chi non è Admin l'indirizzo risponde **404**; una seconda copia
+  mentre la prima è in corso **429**. Su SQLite (sviluppo) la scheda dice che non è disponibile.
+- Il file lo scrive **il sito** (niente shell su Plesk): `MySqlDumpSource` legge con una connessione MySqlConnector sua,
+  in **una** transazione `WITH CONSISTENT SNAPSHOT, READ ONLY`, con `GuidFormat=None` e `TreatTinyAsBoolean=false`
+  (valori crudi); `SqlDumpWriter` scrive mentre legge, gzip al volo, niente file temporanei.
+- 🔴 **L'ultima riga dice che il file è intero**: `-- vipi-backup-fine tabelle=… righe=… sha256=…`, impronta di tutti i
+  byte prima. `tools/Vipi.DbBackup verifica <file>` la controlla senza database.
+- Fuori di proposito: `DataProtectionKeys` (chiavi dei cookie). Segreti e key-ring non stanno nel database.
+- Registro: due righe `DatabaseBackup` (richiesta; fine con l'impronta), raccontate dal narratore dell'audit; la scheda
+  mostra l'ultima copia e se è arrivata in fondo.
+- **Dal vivo** sul MariaDB 11.4.10 locale con i dati di sviluppo travasati (61 124 righe, 2 immagini): download 6,4 MB
+  in 1,1 s, verifica verde, reimportato col client `mariadb` in un database vuoto → **59/62 tabelle con CHECKSUM
+  identico**, e le tre diverse spiegate: `DataProtectionKeys` esclusa, `AuditLogs` con la riga di fine scritta dopo la
+  fotografia, `Accs` con `ImportedAtUtc` riscritto dal giro di import **13 s dopo** (le altre colonne identiche).
+  Editor → 404 e niente scheda; due download insieme → 200 e 429. `copia-verifica.js` 11/11. Visto a schermo e
+  corretto: mancavano due spazi («chiesta:16 set», «CESTda»).
+- **CI**: `andata-e-ritorno.sh` nel job `mariadb-schema` (valori scomodi + copia + ripristino + CHECKSUM su ogni
+  tabella). In locale a sito fermo 63/63 identiche; **provato rosso** togliendo `NO_AUTO_VALUE_ON_ZERO`.
+- `CopiaDelDatabaseTests` (26 per TFM), `AuditNarratorTests` +1.
+- ▶ Nel pacchetto: `Vipi.Infrastructure.dll`, `Vipi.Application.dll`, `Vipi.Hosting.dll`, `Vipi.Ui.dll` (+ pdb).
+  ⚠️ Il download attraversa Cloudflare e Passenger: da provare **online** col login (il file va verificato con lo
+  strumento, non basta che arrivi).
+
 ### ✅ A46 — L'intro dei vSOP militari parte con le sezioni chiuse (16 settembre 2026)
 
 🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**

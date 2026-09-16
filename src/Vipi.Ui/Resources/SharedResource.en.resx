@@ -3509,4 +3509,22 @@
   <data name="Wx_StationLabel" xml:space="preserve"><value>METAR/TAF station</value></data>
   <data name="Wx_StationHint" xml:space="preserve"><value>Empty = this airport. Enter another ICAO if this field has no METAR of its own: it applies to vIPI, vSOP, vAWOS, runway in use, QNH and LVP.</value></data>
   <data name="Wx_StationNote" xml:space="preserve"><value>{0} has no METAR of its own: METAR and TAF are those of {1}.</value></data>
+  <data name="Backup_Title" xml:space="preserve"><value>Database copy</value></data>
+  <data name="Backup_Intro" xml:space="preserve"><value>Download the whole database as a .sql.gz file: a safety copy to keep on your computer, without asking the webmaster. The site writes it while reading, from one consistent snapshot: someone saving in the meantime cannot leave it half-done.</value></data>
+  <data name="Backup_Excluded" xml:space="preserve"><value>Left out on purpose: the sign-in cookie keys (DataProtectionKeys table) and everything that is not in the database — secrets, site keys, production settings. Those stay in the hosting backup.</value></data>
+  <data name="Backup_Verify" xml:space="preserve"><value>To check that the file is whole: &lt;code&gt;dotnet run --project tools/Vipi.DbBackup -- verifica &amp;lt;file&amp;gt;&lt;/code&gt;. The last line of the file carries a sha256 fingerprint: if the download was cut short, or the file changed, the check says so.</value></data>
+  <data name="Backup_Restore" xml:space="preserve"><value>Restoring is done by whoever has MariaDB access: &lt;code&gt;gunzip -c &amp;lt;file&amp;gt; | mariadb -u &amp;lt;user&amp;gt; -p &amp;lt;database&amp;gt;&lt;/code&gt;. It &lt;b&gt;replaces&lt;/b&gt; the tables it contains: do it with the site stopped, or on a test database.</value></data>
+  <data name="Backup_NotSupported" xml:space="preserve"><value>The copy can only be downloaded when the site runs on MariaDB, i.e. in production. In development the database is a SQLite file: just copy that.</value></data>
+  <data name="Backup_Hint" xml:space="preserve"><value>It contains staff personal data (VIDs and names): keep the file accordingly.</value></data>
+  <data name="Backup_Download" xml:space="preserve"><value>Download the copy</value></data>
+  <data name="Backup_DownloadTitle" xml:space="preserve"><value>Download the whole database as a .sql.gz file (the request is kept in the audit log)</value></data>
+  <data name="Backup_Started" xml:space="preserve"><value>Download started: the browser saves the file once the site has finished writing it.</value></data>
+  <data name="Backup_Last" xml:space="preserve"><value>Last copy requested:</value></data>
+  <data name="Backup_LastBy" xml:space="preserve"><value>by</value></data>
+  <data name="Backup_LastDone" xml:space="preserve"><value>completed: {0} tables, {1} rows, {2} · sha256 {3}…</value></data>
+  <data name="Backup_LastIncomplete" xml:space="preserve"><value>did not reach the end: that file, if any, is incomplete.</value></data>
+  <data name="Backup_Never" xml:space="preserve"><value>No copy downloaded so far.</value></data>
+  <data name="Audit_Cat_CopiaDatabase" xml:space="preserve"><value>Database copy</value></data>
+  <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>database copy requested</value></data>
+  <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>database copy completed: {0} tables, {1} rows, sha256 {2}</value></data>
 </root>

@@ -1576,8 +1576,15 @@
                guardato</b>.</p>
               <p>Sono <b>solo diagnosi</b>: la pagina non modifica nessun dato. Il report è una fotografia presa
                all’apertura — dopo aver corretto qualcosa, <b>Aggiorna</b>. A destra, chi può editare (i pattern
-               dei codici staff a confronto con quelli visti ai login) e le <b>immagini</b> che nessun documento
-               cita più, che si eliminano in due tempi: prima si guarda l’elenco, poi si cancella.</p>",
+               dei codici staff a confronto con quelli visti ai login), la <b>copia del database</b> e le
+               <b>immagini</b> che nessun documento cita più, che si eliminano in due tempi: prima si guarda
+               l’elenco, poi si cancella.</p>
+              <p><b>Copia del database</b> — «Scarica la copia» porta via tutto il database in un file
+               <code>.sql.gz</code>, da una fotografia coerente: chi salva nel frattempo non la lascia a metà.
+               Restano fuori le chiavi dei cookie di accesso e quello che non sta nel database (segreti,
+               configurazione). L’ultima riga del file porta un’impronta sha256, e
+               <code>tools/Vipi.DbBackup verifica</code> dice se il file è intero. Ogni copia lascia due righe
+               nel <b>registro</b>, e la scheda dice l’ultima. ⚠️ Il file contiene VID e nomi dello staff.</p>",
             @"<p>The <b>diagnostics</b> page (<code>/services/vsop/admin/diagnostics</code>) answers one question:
                <b>does anything not add up?</b> Every row also says <b>whose problem it is</b>, because the five
                areas are fixed in five different places — and the chips at the top count them.</p>
@@ -1602,8 +1609,16 @@
                the absence of findings does not mean all is well, it means <b>nobody looked</b>.</p>
               <p>These are <b>diagnoses only</b>: the page changes no data. The report is a snapshot taken when
                the page opens — after fixing something, press <b>Refresh</b>. On the right: who can edit (the
-               staff-code patterns compared with the ones actually seen at login) and the <b>images</b> no
-               document cites any more, deleted in two steps: first look at the list, then delete.</p>"),
+               staff-code patterns compared with the ones actually seen at login), the <b>database copy</b> and
+               the <b>images</b> no document cites any more, deleted in two steps: first look at the list,
+               then delete.</p>
+              <p><b>Database copy</b> — ""Download the copy"" takes the whole database away as a
+               <code>.sql.gz</code> file, from one consistent snapshot: someone saving meanwhile cannot leave it
+               half-done. Left out: the sign-in cookie keys and whatever is not in the database (secrets,
+               settings). The file's last line carries a sha256 fingerprint, and
+               <code>tools/Vipi.DbBackup verifica</code> tells whether the file is whole. Every copy leaves two
+               rows in the <b>audit log</b>, and the card shows the latest. ⚠️ The file contains staff VIDs and
+               names.</p>"),
 
         new Sec("incarichi", "clipboard",
             @"<p>La pagina (<code>/services/vsop/tasks</code>) elenca gli <b>incarichi assegnati a te</b>, più quelli

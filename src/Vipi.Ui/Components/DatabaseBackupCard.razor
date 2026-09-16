@@ -1,0 +1,95 @@
+@* La copia di sicurezza del database (§A47, docs/feature/2026-09-16-copia-del-database.md).
+
+   ⚠️ Il tasto è un LINK con `download`, non un gesto dell'isola: il file esce da una risposta HTTP mentre si
+   legge il database, e il circuito Blazor non c'entra. Con `download` il router di Blazor non lo intercetta.
+
+   Sta nella Diagnostica perché è la pagina delle azioni di manutenzione, ed è già riservata agli admin. *@
+@using Microsoft.Extensions.DependencyInjection
+@using Vipi.Application.Diagnostics
+@inherits ScopeProprioCheAspetta
+@inject IStringLocalizer<SharedResource> L
+
+<div class="panel diag-card">
+    <div class="doc-head st-head diag-card-head">
+        <h3 class="st-h2"><Icon Name="download" Size="15" /> @L["Backup_Title"]</h3>
+        <HelpHint AriaLabel="@L["Backup_Title"]" ExtraClass="wide">
+            <p style="margin:0 0 6px">@L["Backup_Intro"]</p>
+            <p style="margin:0 0 6px">@L["Backup_Excluded"]</p>
+            <p style="margin:0 0 6px">@((MarkupString)L["Backup_Verify"].Value)</p>
+            <p style="margin:0">@((MarkupString)L["Backup_Restore"].Value)</p>
+        </HelpHint>
+    </div>
+
+    @if (!_backup.IsSupported)
+    {
+        @* In sviluppo il database è SQLite: la copia si fa copiando il file, e questo tasto non avrebbe niente
+           da dare. Meglio dirlo che mostrarlo spento senza motivo. *@
+        <p class="help diag-mt">@L["Backup_NotSupported"]</p>
+    }
+    else
+    {
+        <p class="help diag-mt">@L["Backup_Hint"]</p>
+
+        <div class="diag-mt">
+            <a class="btn" href="@DatabaseBackupRoute.Path" download data-enhance-nav="false"
+               title="@L["Backup_DownloadTitle"]" @onclick="Scaricata">
+                <Icon Name="download" Size="15" /> @L["Backup_Download"]
+            </a>
+        </div>
+
+        @if (_appenaChiesta)
+        {
+            <p class="help diag-mt">@L["Backup_Started"]</p>
+        }
+
+        <p class="help diag-mt">
+            @if (_ultima is { } u)
+            {
+                @* ⚠️ Gli spazi sono espressioni, non a capo nel markup: Razor toglie quelli fra testo ed elementi,
+                   e a schermo usciva «chiesta:16 set» e «CESTda 704798» (visto dal vivo il 16 settembre 2026). *@
+                @(L["Backup_Last"].Value + " ")<b data-utc="@VipiTime.Iso(u.RequestedUtc)">@VipiTime.DayZ(u.RequestedUtc)</b>@(" " + L["Backup_LastBy"].Value + " ")<VidLink Vid="u.UserId" SoloNumero="true" />
+                @if (u.Completed is { } c)
+                {
+                    <br />
+                    <span class="muted" title="sha256 @c.Sha256">@L["Backup_LastDone", c.Tables, c.Rows, Human(c.Bytes), c.Sha256[..12]]</span>
+                }
+                else
+                {
+                    @* Nessuna riga di fine: la copia non è arrivata in fondo, o è ancora in corso. Il file di
+                       quella volta, se c'è, il verificatore lo dichiarerà incompleto. *@
+                    <br />
+                    <span class="warn">@L["Backup_LastIncomplete"]</span>
+                }
+            }
+            else
+            {
+                @L["Backup_Never"]
+            }
+        </p>
+    }
+</div>
+
+@code {
+    private IDatabaseBackup _backup = default!;
+    private DatabaseBackupLast? _ultima;
+    private bool _appenaChiesta;
+
+    // Dallo scope PROPRIO: non passa dal DbContext del circuito. E la lettura IN FILA: se la pagina si chiude
+    // mentre la query è in volo, lo scope aspetta invece di portarsi via il contesto sotto di lei (terza porta).
+    protected override async Task OnInitializedAsync()
+    {
+        _backup = ScopedServices.GetRequiredService<IDatabaseBackup>();
+        if (_backup.IsSupported) _ultima = await InFilaAsync(() => _backup.LastAsync());
+    }
+
+    /// <summary>Il clic non si ferma: il browser scarica. Qui si dice solo che è partito, perché un file di
+    /// qualche secondo senza un segno sembra un tasto che non fa niente.</summary>
+    private void Scaricata() => _appenaChiesta = true;
+
+    private static string Human(long bytes) => bytes switch
+    {
+        >= 1024 * 1024 => $"{bytes / (double)(1024 * 1024):0.#} MB",
+        >= 1024 => $"{bytes / 1024d:0.#} KB",
+        _ => $"{bytes} B",
+    };
+}

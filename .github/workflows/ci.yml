@@ -175,6 +175,17 @@ jobs:
 
           echo "tutte e tre le verifiche passate."
 
+      # La copia del database che l'Admin scarica da Diagnostica (§A47): scritta col codice del sito, reimportata
+      # col client `mariadb` in un database vuoto, confrontata con CHECKSUM TABLE tabella per tabella. I test
+      # unitari provano il file; solo un server vero prova che il file TORNA. La copia legge con l'utente
+      # limitato (quello di produzione), il ripristino lo fa root perché deve creare un database.
+      # ⚠️ Provato rosso il 16 settembre 2026 togliendo NO_AUTO_VALUE_ON_ZERO dalla testata: cade su ProvaCopia.
+      - name: Copia del database, andata e ritorno
+        env:
+          MARIADB: "docker run --rm -i --network host mariadb:11.4.10 mariadb -h 127.0.0.1 -P 3306 -u root -pradice-di-prova"
+          SORGENTE: itivao_atc
+        run: bash tools/Vipi.DbBackup/andata-e-ritorno.sh
+
   # L'immagine è ciò che gira davvero su Render: se il Dockerfile si rompe, i test verdi non se ne accorgono.
   docker-image:
     runs-on: ubuntu-latest

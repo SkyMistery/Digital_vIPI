@@ -22,6 +22,8 @@
     <Project Path="tools/Vipi.AuroraBridge.Cli/Vipi.AuroraBridge.Cli.csproj" />
     <Project Path="tools/Vipi.AuroraProbe/Vipi.AuroraProbe.csproj" />
     <Project Path="tools/Vipi.DbSeed/Vipi.DbSeed.csproj" />
+    <!-- La copia di sicurezza (§A47): `verifica` la usa chi scarica, `scrivi` la CI per l'andata e ritorno. -->
+    <Project Path="tools/Vipi.DbBackup/Vipi.DbBackup.csproj" />
     <!-- Sta nella soluzione, a differenza degli altri attrezzi, perché non è uno strumento da lanciare a
          mano una volta: è un passo del PUBLISH. Se smette di compilare, il pacchetto non si costruisce
          più — e questo dev'essere la CI a dirlo, non chi sta preparando una consegna. -->

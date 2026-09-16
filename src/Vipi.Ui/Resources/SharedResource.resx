@@ -3517,4 +3517,22 @@
   <data name="Wx_StationLabel" xml:space="preserve"><value>Stazione METAR/TAF</value></data>
   <data name="Wx_StationHint" xml:space="preserve"><value>Vuoto = lo scalo stesso. Scrivi un altro ICAO se questo campo non emette un METAR suo: vale per vIPI, vSOP, vAWOS, pista in uso, QNH e LVP.</value></data>
   <data name="Wx_StationNote" xml:space="preserve"><value>{0} non emette un METAR suo: METAR e TAF sono quelli di {1}.</value></data>
+  <data name="Backup_Title" xml:space="preserve"><value>Copia del database</value></data>
+  <data name="Backup_Intro" xml:space="preserve"><value>Scarica tutto il database in un file .sql.gz: una copia di sicurezza da tenere sul tuo computer, senza chiedere al webmaster. Il sito la scrive mentre legge, da una fotografia coerente: chi salva nel frattempo non la lascia a metà.</value></data>
+  <data name="Backup_Excluded" xml:space="preserve"><value>Restano fuori, di proposito: le chiavi dei cookie di accesso (tabella DataProtectionKeys) e tutto ciò che non sta nel database — i segreti, le chiavi del sito, la configurazione di produzione. Quelli restano nel backup dell'hosting.</value></data>
+  <data name="Backup_Verify" xml:space="preserve"><value>Per controllare che il file sia intero: &lt;code&gt;dotnet run --project tools/Vipi.DbBackup -- verifica &amp;lt;file&amp;gt;&lt;/code&gt;. L'ultima riga del file porta un'impronta sha256: se il download si è interrotto, o il file è cambiato, il controllo lo dice.</value></data>
+  <data name="Backup_Restore" xml:space="preserve"><value>Il ripristino lo fa chi ha accesso a MariaDB: &lt;code&gt;gunzip -c &amp;lt;file&amp;gt; | mariadb -u &amp;lt;utente&amp;gt; -p &amp;lt;database&amp;gt;&lt;/code&gt;. &lt;b&gt;Sostituisce&lt;/b&gt; le tabelle che contiene: si fa a sito fermo, o su un database di prova.</value></data>
+  <data name="Backup_NotSupported" xml:space="preserve"><value>La copia si scarica solo quando il sito usa MariaDB, cioè in produzione. In sviluppo il database è un file SQLite: basta copiare quello.</value></data>
+  <data name="Backup_Hint" xml:space="preserve"><value>Contiene dati personali dello staff (VID e nomi): custodisci il file come tale.</value></data>
+  <data name="Backup_Download" xml:space="preserve"><value>Scarica la copia</value></data>
+  <data name="Backup_DownloadTitle" xml:space="preserve"><value>Scarica tutto il database in un file .sql.gz (la richiesta resta nel registro)</value></data>
+  <data name="Backup_Started" xml:space="preserve"><value>Download avviato: il browser salva il file quando il sito ha finito di scriverlo.</value></data>
+  <data name="Backup_Last" xml:space="preserve"><value>Ultima copia chiesta:</value></data>
+  <data name="Backup_LastBy" xml:space="preserve"><value>da</value></data>
+  <data name="Backup_LastDone" xml:space="preserve"><value>completata: {0} tabelle, {1} righe, {2} · sha256 {3}…</value></data>
+  <data name="Backup_LastIncomplete" xml:space="preserve"><value>non risulta arrivata in fondo: quel file, se c'è, è incompleto.</value></data>
+  <data name="Backup_Never" xml:space="preserve"><value>Nessuna copia scaricata finora.</value></data>
+  <data name="Audit_Cat_CopiaDatabase" xml:space="preserve"><value>Copia del database</value></data>
+  <data name="Audit_Fr_BackupStart" xml:space="preserve"><value>copia del database richiesta</value></data>
+  <data name="Audit_Fr_BackupDone" xml:space="preserve"><value>copia del database completata: {0} tabelle, {1} righe, sha256 {2}</value></data>
 </root>

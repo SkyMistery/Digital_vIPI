@@ -88,9 +88,13 @@ public static class DependencyInjection
                         // Retry-safe come su Npgsql, e per lo stesso motivo: l'unico punto che apre
                         // transazioni esplicite è EfUnitOfWork, che le avvolge in CreateExecutionStrategy()
                         // e azzera il change-tracker a ogni tentativo. Prima di aprire una transazione
-                        // altrove, rileggere quel file.
+                        // altrove, rileggere quel file. (La copia di sicurezza ne apre una sua, ma su una
+                        // connessione MySqlConnector propria, fuori da EF e dal retry: vedi MySqlDumpSource.)
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
                     .AddInterceptors(Tracciante, Bump(sp)));
+                // La copia di sicurezza sa leggere solo questo provider: sugli altri non si registra, e
+                // IDatabaseBackup.IsSupported risponde di no (carta 2026-09-16-copia-del-database.md).
+                services.AddSingleton<DatabaseCopy.IDatabaseDumpSource>(new DatabaseCopy.MySqlDumpSource(connectionString));
                 break;
 #else
                 // Su net10 il provider non esiste: Pomelo non ha una build per EF Core 10 e non l'avrà a
@@ -209,6 +213,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IAtcArchiveQueries, EfAtcArchiveQueries>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsSettingsStore, EfStatsSettingsStore>();
         services.AddScoped<Vipi.Application.Abstractions.IStatsAccessLog, EfStatsAccessLog>();
+        services.AddScoped<Vipi.Application.Diagnostics.IDatabaseBackup, DatabaseCopy.DatabaseBackupService>();
         // Traffico d'aeroporto consolidato: quanto ce n'era e quanto ha trovato un controllore acceso.
         services.AddScoped<Vipi.Application.Abstractions.IAirportTrafficRollupStore, EfAirportTrafficRollupStore>();
         services.AddScoped<Vipi.Application.Abstractions.IAirportCoverageQueries, EfAirportCoverageQueries>();

@@ -61,6 +61,25 @@ public class AuditNarratorTests
     }
 
     /// <summary>
+    /// La copia del database (§A47) lascia due righe: la richiesta e, se arriva in fondo, il riassunto. ⚠️ La
+    /// seconda deve portare l'impronta intera: è quella che chi ha il file confronta con l'ultima riga del file.
+    /// </summary>
+    [Fact]
+    public void La_copia_del_database_si_racconta_in_due_tempi_e_porta_l_impronta()
+    {
+        var sha = new string('a', 64);
+        var inizio = Riga(AuditAction.View, "DatabaseBackup", "database", "{\"Fase\":\"Inizio\",\"Versione\":\"1.28.1\"}");
+        var fine = Riga(AuditAction.View, "DatabaseBackup", "database",
+            "{\"Fase\":\"Fine\",\"Tabelle\":41,\"Righe\":51234,\"Byte\":1000,\"Sha256\":\"" + sha + "\"}");
+
+        Assert.Equal(AuditNarrator.Categoria.CopiaDatabase, AuditNarrator.CategoriaDi(inizio));
+        Assert.Equal("amber", AuditNarrator.ClassePill(fine));
+        Assert.Equal("Backup_Title", AuditNarrator.Bersaglio(fine, L));
+        Assert.Equal("Audit_Fr_BackupStart", AuditNarrator.Frase(inizio, L));
+        Assert.Equal($"Audit_Fr_BackupDone(41|51234|{sha})", AuditNarrator.Frase(fine, L));
+    }
+
+    /// <summary>
     /// ⚠️ La revoca di un permesso è stata <c>Archive</c> fino al 22 agosto 2026 e <c>Delete</c> dopo, e la
     /// chiave dell'ACC nei dettagli è passata da <c>acc</c> minuscola a <c>Acc</c>. Le righe vecchie non si
     /// riscrivono: devono leggersi, e dire la <b>stessa</b> frase delle nuove.
