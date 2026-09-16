@@ -17,17 +17,22 @@ public sealed record DumpVerification(
     string? Problem,
     string? SiteVersion,
     string? CreatedUtc,
+    string? LastMigration,
     DatabaseBackupSummary? Declared,
     DatabaseBackupSummary Found);
 
 /// <summary>
 /// Controlla una copia scritta da <see cref="SqlDumpWriter"/> <b>senza nessun database</b>: che sia intera
-/// (c'è la riga di chiusura), che nessun byte sia cambiato (l'impronta torna), e che tabelle e righe contate
-/// siano quelle dichiarate.
+/// (c'è la riga di chiusura), che nessun byte sia cambiato per strada (l'impronta torna), e che tabelle e righe
+/// contate siano quelle dichiarate.
 ///
-/// <para>⚠️ Non riesegue l'SQL e non lo interpreta: si fida delle righe <c>-- vipi-tabella</c> che lo scrittore
-/// mette in fondo a ogni tabella. Quelle sono coperte dall'impronta, quindi non si possono ritoccare senza che
-/// il controllo se ne accorga. Che l'SQL si reimporti davvero lo prova la CI contro un MariaDB vero.</para>
+/// <para>⚠️ <b>Non è una firma.</b> L'impronta non ha chiave: chi modifica il file di proposito può ricalcolarla
+/// e riscrivere la chiusura. Prende i guasti (download interrotto, disco, editor che cambia i fine riga), non la
+/// malizia. Contro quella, l'impronta si confronta con quella che il <b>registro di audit</b> del sito ha
+/// annotato alla fine del download.</para>
+///
+/// <para>⚠️ Non riesegue l'SQL: si fida delle righe <c>-- vipi-tabella</c> che lo scrittore mette in fondo a
+/// ogni tabella, coperte dall'impronta. Che l'SQL si reimporti davvero lo prova la CI contro un MariaDB vero.</para>
 /// </summary>
 public static partial class SqlDumpVerifier
 {
@@ -40,7 +45,7 @@ public static partial class SqlDumpVerifier
 
     /// <summary>
     /// Controlla lo stream. Se è posizionabile e comincia col marcatore gzip, lo decomprime; altrimenti lo legge
-    /// così com'è.
+    /// così com'è. Un gzip troncato non lancia: finisce prima, e il controllo lo dichiara incompleto.
     /// </summary>
     public static async Task<DumpVerification> VerifyAsync(Stream input, CancellationToken ct = default)
     {
@@ -67,10 +72,11 @@ public static partial class SqlDumpVerifier
         var pending = new MemoryStream();
         byte[]? held = null;           // l'ultima riga completa: non si sa ancora se è la chiusura
         var first = true;
+        var riconosciuta = false;
         string? problem = null;
-        string? version = null, created = null;
+        string? version = null, created = null, migration = null;
         var tables = 0;
-        long rows = 0, bytes = 0;
+        long rows = 0, bytes = 0, longest = 0;
 
         void Consume(byte[] line)
         {
@@ -81,8 +87,12 @@ public static partial class SqlDumpVerifier
             if (first)
             {
                 first = false;
-                if (Text(line) != SqlDumpWriter.Magic)
-                    problem ??= "Non è una copia della vIPI: la prima riga non è quella attesa.";
+                riconosciuta = Text(line) == SqlDumpWriter.Magic;
+                return;
+            }
+            if (line.Length >= 7 && line.AsSpan().StartsWith("INSERT "u8))
+            {
+                longest = Math.Max(longest, line.Length);
                 return;
             }
             // Solo i commenti si decodificano: un INSERT può pesare megabyte e qui non serve leggerlo.
@@ -98,6 +108,7 @@ public static partial class SqlDumpVerifier
             }
             else if (t.StartsWith("-- Versione del sito: ", StringComparison.Ordinal)) version = t[22..];
             else if (t.StartsWith("-- Creata: ", StringComparison.Ordinal)) created = t[11..];
+            else if (t.StartsWith("-- Ultima migrazione: ", StringComparison.Ordinal)) migration = t[22..];
         }
 
         var buffer = new byte[81920];
@@ -117,48 +128,58 @@ public static partial class SqlDumpVerifier
             pending.Write(buffer, start, read - start);
         }
 
-        var found = () => new DatabaseBackupSummary(tables, rows, bytes,
-            Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant());
+        DatabaseBackupSummary Found() => new(tables, rows, bytes,
+            Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant(), longest);
+        DumpVerification Ko(string perche, DatabaseBackupSummary? dichiarato, DatabaseBackupSummary trovato) =>
+            new(false, perche, version, created, migration, dichiarato, trovato);
+
+        const string NonUnaCopia = "Non è una copia della vIPI: la prima riga non è quella attesa.";
+
+        if (held is null && pending.Length == 0)
+            return Ko("Il file è vuoto.", null, Found());
 
         // Byte dopo l'ultimo a capo: il file si è interrotto a metà di una riga. Quella trattenuta non era la
         // chiusura, e il pezzo rimasto non può esserlo.
         if (pending.Length > 0)
         {
             if (held is not null) Consume(held);
-            return new DumpVerification(false,
-                "La copia è INCOMPLETA: il file si interrompe a metà di una riga (download interrotto?).",
-                version, created, null, found());
+            else Consume(pending.ToArray());
+            return Ko(riconosciuta
+                ? "La copia è INCOMPLETA: il file si interrompe a metà di una riga (download interrotto?)."
+                : NonUnaCopia, null, Found());
         }
-        if (held is null)
-            return new DumpVerification(false, "Il file è vuoto.", null, null, null, found());
 
-        var last = Text(held);
+        var last = Text(held!);
         if (!last.StartsWith(SqlDumpWriter.TrailerPrefix, StringComparison.Ordinal))
         {
-            Consume(held);
-            return new DumpVerification(false,
-                "La copia è INCOMPLETA: manca la riga di chiusura (download interrotto, o copia fallita a metà).",
-                version, created, null, found());
+            Consume(held!);
+            // ⚠️ Prima si guarda CHE COSA è, poi se è intero: un file estraneo non è «una copia incompleta».
+            return Ko(riconosciuta
+                ? "La copia è INCOMPLETA: manca la riga di chiusura (download interrotto, o copia fallita a metà)."
+                : NonUnaCopia, null, Found());
         }
 
-        var summary = found();
+        var summary = Found();
+        if (!riconosciuta) return Ko(NonUnaCopia, null, summary);
+
         var mt = Chiusura().Match(last);
-        if (!mt.Success)
-            return new DumpVerification(false, $"Riga di chiusura illeggibile: {last}", version, created, null, summary);
+        if (!mt.Success) return Ko($"Riga di chiusura illeggibile: {last}", null, summary);
 
         var declared = new DatabaseBackupSummary(
             int.Parse(mt.Groups[1].Value, CultureInfo.InvariantCulture),
             long.Parse(mt.Groups[2].Value, CultureInfo.InvariantCulture),
             summary.Bytes,
-            mt.Groups[3].Value);
+            mt.Groups[4].Value,
+            long.Parse(mt.Groups[3].Value, CultureInfo.InvariantCulture));
 
         if (problem is null && declared.Sha256 != summary.Sha256)
             problem = "L'impronta non torna: il file è stato modificato o si è rovinato dopo essere stato scritto.";
-        if (problem is null && (declared.Tables != summary.Tables || declared.Rows != summary.Rows))
+        if (problem is null && (declared.Tables != summary.Tables || declared.Rows != summary.Rows
+                                || declared.LongestStatementBytes != summary.LongestStatementBytes))
             problem = $"I conti non tornano: la chiusura dice {declared.Tables} tabelle e {declared.Rows} righe, " +
                       $"il file ne contiene {summary.Tables} e {summary.Rows}.";
 
-        return new DumpVerification(problem is null, problem, version, created, declared, summary);
+        return new DumpVerification(problem is null, problem, version, created, migration, declared, summary);
     }
 
     private static string Text(byte[] line) =>
@@ -169,6 +190,6 @@ public static partial class SqlDumpVerifier
     [GeneratedRegex(@"righe=(\d+)$")]
     private static partial Regex RigheDiTabella();
 
-    [GeneratedRegex(@"^-- vipi-backup-fine tabelle=(\d+) righe=(\d+) sha256=([0-9a-f]{64})$")]
+    [GeneratedRegex(@"^-- vipi-backup-fine tabelle=(\d+) righe=(\d+) istruzione-max=(\d+) sha256=([0-9a-f]{64})$")]
     private static partial Regex Chiusura();
 }

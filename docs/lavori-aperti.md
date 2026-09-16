@@ -28,7 +28,16 @@ al webmaster ogni volta?»* — scelta la forma **A**, un `.sql.gz` che il webma
   corretto: mancavano due spazi («chiesta:16 set», «CESTda»).
 - **CI**: `andata-e-ritorno.sh` nel job `mariadb-schema` (valori scomodi + copia + ripristino + CHECKSUM su ogni
   tabella). In locale a sito fermo 63/63 identiche; **provato rosso** togliendo `NO_AUTO_VALUE_ON_ZERO`.
-- `CopiaDelDatabaseTests` (26 per TFM), `AuditNarratorTests` +1.
+- `CopiaDelDatabaseTests` (29 per TFM), `AuditNarratorTests` +1, `PortaCheAspettaTests` +1.
+- 🔴 **Revisione indipendente, stessa sera** (carta §5-bis): tre difetti sul ripristino corretti — `INSERT` che
+  superava `max_allowed_packet` dietro una riga grande, gzip ben chiuso dopo un guasto a metà, procedura che non
+  passava dal controllo e non chiedeva un database vuoto — più strict mode, `net_write_timeout`, controllo dello
+  schema all'apertura, `Sec-Fetch-Site`, CI con blob da 3 MB e `SHOW CREATE TABLE`.
+- 🔴🔴 **Rifacendo il giro dal vivo dopo le correzioni: STACK OVERFLOW all'apertura della Diagnostica**, processo
+  morto. `ScopeProprioCheAspetta.InFilaAsync<T>` si richiamava da solo (lambda-espressione di assegnazione →
+  stesso overload), latente dalla nascita; la scheda è stata la prima a usarlo. Corretto nella classe base, test
+  che a difetto rimesso abbatte il banco. Il primo giro dal vivo era verde perché fatto prima di passare alla
+  terza porta.
 - ▶ Nel pacchetto: `Vipi.Infrastructure.dll`, `Vipi.Application.dll`, `Vipi.Hosting.dll`, `Vipi.Ui.dll` (+ pdb).
   ⚠️ Il download attraversa Cloudflare e Passenger: da provare **online** col login (il file va verificato con lo
   strumento, non basta che arrivi).

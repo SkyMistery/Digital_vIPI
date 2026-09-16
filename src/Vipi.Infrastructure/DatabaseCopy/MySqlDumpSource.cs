@@ -24,6 +24,19 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
     /// </summary>
     public static readonly IReadOnlyList<string> ExcludedTables = new[] { "DataProtectionKeys" };
 
+    /// <summary>
+    /// I tipi di colonna che <see cref="SqlLiteral"/> sa riscrivere fedeli. Un tipo fuori elenco ferma la copia
+    /// <b>all'apertura</b>, col nome della colonna nel messaggio: scoprirlo a metà flusso vorrebbe dire un download
+    /// già partito e un «download non riuscito» senza spiegazione nel browser.
+    /// </summary>
+    internal static readonly IReadOnlySet<string> TipiNoti = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "tinyint", "smallint", "mediumint", "int", "bigint", "decimal", "double", "float",
+        "char", "varchar", "tinytext", "text", "mediumtext", "longtext",
+        "binary", "varbinary", "tinyblob", "blob", "mediumblob", "longblob",
+        "date", "datetime", "timestamp", "time",
+    };
+
     private readonly string _connectionString;
 
     public MySqlDumpSource(string connectionString) => _connectionString = connectionString;
@@ -47,6 +60,9 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
         {
             await conn.OpenAsync(ct);
             await ExecAsync(conn, "SET SESSION time_zone = '+00:00'", ct);
+            // Il server scrive le righe a NOI, e noi le giriamo a un browser: se il browser rallenta, noi smettiamo
+            // di leggere e il server aspetta. Col default di 60 s una rete lenta chiuderebbe la lettura a metà.
+            await ExecAsync(conn, "SET SESSION net_write_timeout = 600, net_read_timeout = 600", ct);
             await ExecAsync(conn, "SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ", ct);
             // Da qui ogni SELECT vede il database com'era in QUESTO istante, anche se qualcuno salva durante la copia.
             await ExecAsync(conn, "START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY", ct);
@@ -62,6 +78,8 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
             tables.RemoveAll(t => excluded.Contains(t));
             if (tables.Count == 0)
                 throw new InvalidOperationException("Il database non ha tabelle: non c'è niente da copiare.");
+
+            await ControllaCheSiPossaCopiareAsync(conn, excluded, ct);
 
             var creates = new List<(string Name, string Create)>();
             foreach (var t in tables)
@@ -87,6 +105,57 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
             await conn.DisposeAsync();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Quello che la copia non saprebbe riportare indietro fedele, cercato PRIMA di scrivere un byte: tipi di colonna
+    /// fuori elenco, colonne generate o invisibili (un INSERT con tutte le colonne fallirebbe al ripristino), e
+    /// viste, trigger, procedure (la copia porta solo tabelle). Oggi lo schema non ne ha: se un giorno ne avrà,
+    /// la copia si rifiuta e dice perché, invece di produrre un file che non torna.
+    /// </summary>
+    private static async Task ControllaCheSiPossaCopiareAsync(MySqlConnection conn, IReadOnlyList<string> escluse, CancellationToken ct)
+    {
+        var problemi = new List<string>();
+        await using (var cmd = new MySqlCommand(
+            "SELECT c.TABLE_NAME, c.COLUMN_NAME, c.DATA_TYPE, c.EXTRA FROM information_schema.COLUMNS c " +
+            "JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = c.TABLE_SCHEMA AND t.TABLE_NAME = c.TABLE_NAME " +
+            "WHERE c.TABLE_SCHEMA = DATABASE() AND t.TABLE_TYPE = 'BASE TABLE'", conn))
+        await using (var r = await cmd.ExecuteReaderAsync(ct))
+        {
+            while (await r.ReadAsync(ct))
+            {
+                var tabella = r.GetString(0);
+                if (escluse.Contains(tabella, StringComparer.OrdinalIgnoreCase)) continue;
+                var dove = $"{tabella}.{r.GetString(1)}";
+                var tipo = r.GetString(2);
+                var extra = r.IsDBNull(3) ? "" : r.GetString(3);
+                if (!TipiNoti.Contains(tipo)) problemi.Add($"{dove} è di tipo {tipo}");
+                // ⚠️ Non «GENERATED» nudo: MySQL scrive DEFAULT_GENERATED su un semplice DEFAULT CURRENT_TIMESTAMP,
+                // che si copia benissimo. MariaDB scrive «VIRTUAL GENERATED» / «STORED GENERATED» / «INVISIBLE».
+                if (extra.Contains("VIRTUAL GENERATED", StringComparison.OrdinalIgnoreCase) ||
+                    extra.Contains("STORED GENERATED", StringComparison.OrdinalIgnoreCase) ||
+                    extra.Contains("PERSISTENT", StringComparison.OrdinalIgnoreCase) ||
+                    extra.Contains("INVISIBLE", StringComparison.OrdinalIgnoreCase))
+                    problemi.Add($"{dove} è una colonna {extra}");
+            }
+        }
+
+        foreach (var (vista, cosa) in new[]
+        {
+            ("SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()", "vista"),
+            ("SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()", "trigger"),
+            ("SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE()", "procedura"),
+        })
+        {
+            await using var cmd = new MySqlCommand(vista, conn);
+            await using var r = await cmd.ExecuteReaderAsync(ct);
+            while (await r.ReadAsync(ct)) problemi.Add($"{cosa} {r.GetString(0)}");
+        }
+
+        if (problemi.Count > 0)
+            throw new NotSupportedException(
+                "La copia non parte: lo schema contiene cose che non saprebbe riportare indietro fedeli — " +
+                string.Join("; ", problemi.Take(10)) + (problemi.Count > 10 ? $" (e altre {problemi.Count - 10})" : "") + ".");
     }
 
     private static async Task ExecAsync(MySqlConnection conn, string sql, CancellationToken ct)

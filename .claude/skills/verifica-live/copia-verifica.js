@@ -73,10 +73,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       const righe = testo.split('\n');
       nota('prima riga della copia', righe[0] === '-- vipi-backup formato=1', righe[0]);
       const chiusura = righe[righe.length - 2] || '';
-      const m = /^-- vipi-backup-fine tabelle=(\d+) righe=(\d+) sha256=([0-9a-f]{64})$/.exec(chiusura);
+      const m = /^-- vipi-backup-fine tabelle=(\d+) righe=(\d+) istruzione-max=(\d+) sha256=([0-9a-f]{64})$/.exec(chiusura);
       nota('ultima riga di chiusura', !!m, chiusura.slice(0, 90));
       nota('DataProtectionKeys resta fuori', !/CREATE TABLE `DataProtectionKeys`/.test(testo), 'nessun CREATE');
-      if (m) sha = m[3];
+      if (m) sha = m[4];
     }
 
     await apri();

@@ -624,6 +624,23 @@ public static class VipiModuleExtensions
             }
 
             var log = logs.CreateLogger("Vipi.DatabaseBackup");
+
+            // ⚠️ È un GET che FA qualcosa (legge tutto il database, scrive nel registro). Un link su un altro sito,
+            // aperto da un Admin col cookie valido, lo farebbe partire: il file non lo leggerebbe nessuno, ma il
+            // carico e le righe di registro sì. Il browser dice da dove arriva la richiesta: si accetta solo dal
+            // sito stesso o da un indirizzo scritto a mano. Senza intestazione (curl, browser vecchi) si lascia
+            // passare: l'intestazione la mette il browser, e chi non la manda non è un sito terzo che la nasconde.
+            var provenienza = ctx.Request.Headers["Sec-Fetch-Site"].ToString();
+            if (provenienza.Length > 0 && provenienza is not ("same-origin" or "none"))
+            {
+                log.LogWarning("Copia del database rifiutata: richiesta da un altro sito (Sec-Fetch-Site={Da}, VID {Vid}).",
+                    provenienza, authz.CurrentUserId);
+                ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+                ctx.Response.ContentType = "text/plain; charset=utf-8";
+                await ctx.Response.WriteAsync("La copia del database si scarica dalla pagina Diagnostica del sito.", CancellationToken.None);
+                return;
+            }
+
             ctx.Response.ContentType = "application/gzip";
             ctx.Response.Headers.ContentDisposition = new Microsoft.Net.Http.Headers.ContentDispositionHeaderValue("attachment")
             {
@@ -655,9 +672,20 @@ public static class VipiModuleExtensions
             catch (Exception e) when (ctx.Response.HasStarted)
             {
                 // Metà file è già partito e lo stato non si può più cambiare. Si chiude la connessione: il file
-                // resta senza la riga di chiusura, ed è così che il verificatore lo riconosce come incompleto.
+                // resta senza la riga di chiusura (e senza la chiusura del gzip), ed è così che il verificatore —
+                // e gunzip — lo riconoscono come incompleto.
                 log.LogError(e, "Copia del database fallita a metà (VID {Vid}): il file scaricato è incompleto.", authz.CurrentUserId);
                 ctx.Abort();
+            }
+            catch (Exception e) when (e is not OperationCanceledException && e is not Vipi.Application.Content.EditNotAllowedException)
+            {
+                // Non è partito niente: si può ancora dire perché. Lo legge solo un Admin, e su questo host il log
+                // si raggiunge via FTP — il messaggio nel browser è l'unico che si vede subito.
+                log.LogError(e, "Copia del database non partita (VID {Vid}).", authz.CurrentUserId);
+                ctx.Response.Headers.Remove("Content-Disposition");
+                ctx.Response.ContentType = "text/plain; charset=utf-8";
+                ctx.Response.StatusCode = StatusCodes.Status500InternalServerError;
+                await ctx.Response.WriteAsync("La copia del database non è partita: " + e.Message, CancellationToken.None);
             }
         });
 

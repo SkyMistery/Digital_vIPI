@@ -111,10 +111,19 @@ public abstract class ScopeProprioCheAspetta : OwningComponentBase, IAsyncDispos
     }
 
     /// <inheritdoc cref="InFilaAsync(Func{Task})"/>
+    /// <remarks>
+    /// 🔴 <b>Il corpo della lambda è un BLOCCO, e deve restarlo.</b> Scritta come espressione —
+    /// <c>async () =&gt; esito = await caricamento()</c> — l'assegnazione ha un valore, la lambda diventa un
+    /// <c>Func&lt;Task&lt;T&gt;&gt;</c> e il compilatore sceglie di nuovo QUESTO overload: ricorsione infinita, stack
+    /// overflow, e un stack overflow in .NET non si cattura — muore il PROCESSO, cioè il sito per tutti. È stato
+    /// così dal giorno in cui è nata (commit 14062f06) senza che nessuno chiamasse questo overload; il primo a farlo
+    /// (la scheda della copia del database, 16 settembre 2026) ha spento il sito in locale all'apertura della
+    /// Diagnostica. Inchiodato da <c>PortaCheAspettaTests.Il_caricamento_con_esito_non_richiama_se_stesso</c>.
+    /// </remarks>
     protected async Task<T?> InFilaAsync<T>(Func<Task<T>> caricamento)
     {
         T? esito = default;
-        await InFilaAsync(async () => esito = await caricamento());
+        await InFilaAsync(async () => { esito = await caricamento(); });
         return esito;
     }
 

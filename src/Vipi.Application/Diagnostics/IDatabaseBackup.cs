@@ -13,7 +13,9 @@ public static class DatabaseBackupRoute
 /// <param name="Rows">Righe copiate, tutte le tabelle.</param>
 /// <param name="Bytes">Byte del testo SQL <b>prima</b> della compressione, riga di chiusura esclusa.</param>
 /// <param name="Sha256">Impronta degli stessi byte, esadecimale minuscolo.</param>
-public sealed record DatabaseBackupSummary(int Tables, long Rows, long Bytes, string Sha256);
+/// <param name="LongestStatementBytes">L'istruzione SQL più lunga, in byte: il <c>max_allowed_packet</c> che il
+/// server di ripristino deve accettare (un KMZ da 8 MB diventa un <c>INSERT</c> da 16 MB).</param>
+public sealed record DatabaseBackupSummary(int Tables, long Rows, long Bytes, string Sha256, long LongestStatementBytes);
 
 /// <summary>L'ultima copia chiesta, per la scheda in Diagnostica.</summary>
 /// <param name="RequestedUtc">Quando è stata chiesta.</param>

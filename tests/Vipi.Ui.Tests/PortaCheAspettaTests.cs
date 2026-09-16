@@ -57,12 +57,39 @@ public sealed class PortaCheAspettaTests
         });
 
         public IServiceProvider Scope => ScopedServices;
+
+        /// <summary>Il caricamento che RESTITUISCE qualcosa: passa dall'overload generico di InFilaAsync.</summary>
+        public Task<int> CaricaConEsito() => InFilaAsync(async () =>
+        {
+            Interlocked.Increment(ref Entrate);
+            await Task.Yield();
+            return 42;
+        });
     }
 
     private sealed class Testimone : IDisposable
     {
         public bool Smaltito { get; private set; }
         public void Dispose() => Smaltito = true;
+    }
+
+    /// <summary>
+    /// 🔴 L'overload generico si richiamava da solo — la lambda del suo corpo era un'espressione di assegnazione, e il
+    /// compilatore sceglieva di nuovo lui — fino allo stack overflow, che in .NET abbatte il PROCESSO. Nessuno lo
+    /// chiamava fino al 16 settembre 2026: il primo (la scheda della copia del database) ha spento il sito locale
+    /// all'apertura della Diagnostica. ⚠️ Se torna, questo test non diventa rosso: fa cadere l'intero banco.
+    /// </summary>
+    [Fact]
+    public async Task Il_caricamento_con_esito_non_richiama_se_stesso()
+    {
+        var (ctx, s) = Sonda_();
+        using (ctx)
+        {
+            var esito = await s.CaricaConEsito();
+
+            Assert.Equal(42, esito);
+            Assert.Equal(1, s.Entrate);
+        }
     }
 
     private static (TestContext Ctx, Sonda S) Sonda_()

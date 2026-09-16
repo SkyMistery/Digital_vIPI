@@ -34,12 +34,15 @@ resto.
 -- Server: 11.4.10-MariaDB
 -- Ultima migrazione: 20260915194926_StazioneMeteoDiRiferimento
 -- Escluse di proposito: DataProtectionKeys
--- Ripristino: gunzip -c <file> | mariadb -u <utente> -p <database>
--- ATTENZIONE: SOSTITUISCE le tabelle che contiene (DROP TABLE IF EXISTS).
+-- Ripristino, in quest'ordine:
+--   1. controllo: dotnet run --project tools/Vipi.DbBackup -- verifica <file>   (deve dire INTERA)
+--   2. in un database VUOTO, con il sito alla stessa versione (vedi «Ultima migrazione»):
+--      set -o pipefail; gunzip -c <file> | mariadb --max-allowed-packet=1G -u <utente> -p <database>
+--   Anche il server deve accettare istruzioni lunghe quanto «istruzione-max» nell'ultima riga (max_allowed_packet).
 
 SET NAMES utf8mb4;
 SET @VIPI_OLD_FK=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;      -- e UNIQUE_CHECKS, SQL_MODE, TIME_ZONE
-SET @VIPI_OLD_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO';
+SET @VIPI_OLD_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO,STRICT_ALL_TABLES,NO_ENGINE_SUBSTITUTION';
 
 DROP TABLE IF EXISTS `Accs`;
 CREATE TABLE `Accs` (…)                              -- da SHOW CREATE TABLE, com'è
@@ -47,7 +50,7 @@ INSERT INTO `Accs` (`Id`,`Code`,…) VALUES (…),(…);   -- a blocchi di ~1 MB
 -- vipi-tabella `Accs` righe=28
 …
 SET FOREIGN_KEY_CHECKS=@VIPI_OLD_FK;                  -- le impostazioni tornano com'erano
--- vipi-backup-fine tabelle=62 righe=61227 sha256=ba4bfbf8…e191
+-- vipi-backup-fine tabelle=62 righe=61441 istruzione-max=2625397 sha256=be3065c1…
 ```
 
 - 🔴 **La riga di chiusura è la prova che il file è intero.** Lo `sha256` copre **tutti i byte prima** di
@@ -81,12 +84,36 @@ SET FOREIGN_KEY_CHECKS=@VIPI_OLD_FK;                  -- le impostazioni tornano
 
 ## 5. Ripristino (per il webmaster)
 
-```sh
-gunzip -c vipi-copia-….sql.gz | mariadb -u <utente> -p itivao_atc
-```
+In quest'ordine (lo dicono la testata del file, il README dello strumento e il «?» della scheda):
 
-🔴 **Sostituisce le tabelle** (`DROP TABLE IF EXISTS`): si fa a sito fermo, e su un database di prova se lo
-scopo è guardare. Le tabelle che il file non porta (`DataProtectionKeys`) non vengono toccate.
+1. `tools/Vipi.DbBackup verifica <file>` deve dire **INTERA**.
+2. In un database **VUOTO**, col sito alla stessa versione della copia.
+3. `set -o pipefail; gunzip -c <file> | mariadb --max-allowed-packet=1G -u <utente> -p <database>`
+
+## 5-bis. Revisione indipendente (16 settembre 2026, sera) — che cosa ha cambiato
+
+La prima versione è stata rivista da un revisore che non l'aveva scritta. Confermati e corretti:
+
+| | Difetto | Correzione |
+|---|---|---|
+| 🔴 | La riga si misurava **dopo** averla aggiunta all'`INSERT`: un KMZ da 8 MB (16 MB di esadecimale) in coda a un megabyte di righe superava `max_allowed_packet`, e il ripristino si fermava a metà | Si misura **prima**; una riga grande esce in un `INSERT` suo; la chiusura dichiara `istruzione-max` |
+| 🔴 | Un guasto a metà lasciava un **gzip ben chiuso** (il gzip scrive la sua coda mentre l'eccezione risale): `gunzip -t` lo promuoveva | `TaglioStream`: dopo un guasto nessun byte arriva più, il file resta troncato anche per gunzip |
+| 🔴 | La procedura di ripristino non passava dal controllo, e sopra un database più nuovo il sito non ripartiva | Procedura in tre passi: verifica, database vuoto, pacchetto grande |
+| 🟡 | Strict mode spento dalla testata | `STRICT_ALL_TABLES` |
+| 🟡 | `net_write_timeout` di 60 s contro un browser lento | 600 s sulla connessione della copia |
+| 🟡 | Tipo di colonna sconosciuto scoperto a flusso partito | Controllo dello schema all'apertura (tipi, colonne generate/invisibili, viste, trigger, procedure): 500 col motivo, prima del primo byte |
+| 🟡 | GET senza protezione da un link di un altro sito | `Sec-Fetch-Site` diverso da `same-origin`/`none` → 403 |
+| 🟡 | Riga «Fine» del registro che fallisce → download completo troncato | Si annota nel log, la copia resta buona |
+| 🟡 | La CI provava su tabelle vuote | Blob da 3 MB, 2 MB di righe, `double` a 17 cifre, confronto anche di `SHOW CREATE TABLE` |
+
+🔴 **E la verifica dal vivo dopo le correzioni ha trovato un guasto più grave di tutti**, che la revisione non
+poteva vedere: `ScopeProprioCheAspetta.InFilaAsync<T>` (la «terza porta», usata dalla scheda per far passare
+`TerzaPortaTests`) si richiamava da solo — la lambda del suo corpo era un'espressione di assegnazione e il
+compilatore sceglieva di nuovo l'overload generico. **Stack overflow, processo morto**: in produzione ogni Admin
+che apriva la Diagnostica avrebbe spento il sito. Il difetto era nella classe base dal giorno in cui è nata; la
+scheda è stata la prima a chiamare quell'overload. Il primo giro dal vivo era verde perché fatto **prima** di
+quel cambio. Corpo a blocco, `PortaCheAspettaTests.Il_caricamento_con_esito_non_richiama_se_stesso`.
+Lezione: **dopo aver cambiato qualcosa per far passare una guardia, si rifà il giro dal vivo**.
 
 ## 6. Fette
 

@@ -191,8 +191,10 @@ public class CopiaDelDatabaseTests
     [Fact]
     public async Task Un_file_che_non_e_una_copia_lo_dice()
     {
+        // Senza riga di chiusura, e comunque NON «incompleta»: prima si dice che cosa è, poi se è intera.
         var v = await SqlDumpVerifier.VerifyAsync(new MemoryStream(Encoding.UTF8.GetBytes("SELECT 1;\n")));
         Assert.False(v.Ok);
+        Assert.Contains("Non è una copia", v.Problem);
     }
 
     [Fact]
@@ -228,6 +230,87 @@ public class CopiaDelDatabaseTests
         Assert.All(inserts, r => Assert.EndsWith(");", r));
         Assert.True((await SqlDumpVerifier.VerifyAsync(new MemoryStream(ms.ToArray()))).Ok);
     }
+
+    /// <summary>
+    /// 🔴 Il difetto trovato dalla revisione del 16 settembre 2026: la riga si misurava DOPO averla aggiunta, e una
+    /// riga grande finiva in coda a un INSERT già quasi pieno — un KMZ da 8 MB più il megabyte di prima superava il
+    /// max_allowed_packet e il ripristino si fermava lì. Ora un INSERT supera il limite solo se porta UNA riga.
+    /// </summary>
+    [Fact]
+    public async Task Una_riga_grande_non_si_accoda_a_un_INSERT_gia_pieno()
+    {
+        using var ms = new MemoryStream();
+        using var w = new SqlDumpWriter(ms);
+        await w.WriteHeaderAsync(Testata);
+        await w.BeginTableAsync("Aree", "CREATE TABLE `Aree` (`Id` int, `Content` longblob)", new[] { "Id", "Content" });
+        // ~900 KB di righe piccole: l'INSERT in corso è quasi pieno, ma non abbastanza da chiudersi da solo.
+        for (var i = 0; i < 45; i++) await w.WriteRowAsync(new object?[] { i, new byte[10 * 1024] });
+        await w.WriteRowAsync(new object?[] { 999, new byte[600 * 1024] });   // 1,2 MB di esadecimale
+        await w.EndTableAsync();
+        var s = await w.FinishAsync();
+
+        var inserts = Encoding.UTF8.GetString(ms.ToArray()).Split('\n')
+            .Where(r => r.StartsWith("INSERT INTO", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(2, inserts.Count);
+        Assert.All(inserts, r => Assert.True(
+            r.Length + 1 <= SqlDumpWriter.StatementChars || !r.Contains("),(", StringComparison.Ordinal),
+            $"un INSERT da {r.Length} caratteri con più di una riga"));
+        Assert.StartsWith("INSERT INTO `Aree` (`Id`,`Content`) VALUES (999,", inserts[1]);
+        // L'istruzione più lunga è dichiarata in chiusura, e il verificatore la ritrova.
+        Assert.Equal(inserts.Max(r => (long)r.Length + 1), s.LongestStatementBytes);
+        var v = await SqlDumpVerifier.VerifyAsync(new MemoryStream(ms.ToArray()));
+        Assert.True(v.Ok, v.Problem);
+        Assert.Equal(s.LongestStatementBytes, v.Found.LongestStatementBytes);
+    }
+
+    [Fact]
+    public async Task Il_ripristino_gira_in_strict_mode_e_la_testata_dice_come_si_fa()
+    {
+        var (bytes, _) = await ScriviAsync();
+        var righe = Encoding.UTF8.GetString(bytes).Split('\n');
+
+        // Senza STRICT un valore troncato al ripristino è un avviso che il client mariadb non stampa.
+        Assert.Contains(righe, r => r.StartsWith("SET @VIPI_OLD_MODE=", StringComparison.Ordinal)
+                                    && r.Contains("STRICT_ALL_TABLES") && r.Contains("NO_AUTO_VALUE_ON_ZERO"));
+        // E la testata dice come si ripristina: controllo, database vuoto, pacchetto grande.
+        Assert.Contains(righe, r => r.Contains("verifica <file>"));
+        Assert.Contains(righe, r => r.Contains("VUOTO"));
+        Assert.Contains(righe, r => r.Contains("--max-allowed-packet=1G"));
+    }
+
+    /// <summary>
+    /// 🔴 Un guasto a metà copia NON deve lasciare un gzip ben chiuso: `gunzip -t` lo promuoverebbe e
+    /// `gunzip | mariadb` eseguirebbe la metà che c'è. Un gzip regolare finisce con la lunghezza del contenuto
+    /// (ISIZE, ultimi 4 byte): dopo il taglio non c'è.
+    /// </summary>
+    [Fact]
+    public async Task Una_copia_fallita_a_meta_non_e_un_gzip_chiuso()
+    {
+        var uscita = new MemoryStream();
+        await Assert.ThrowsAsync<IOException>(() => DatabaseBackupService.WriteGzipAsync(
+            new FonteFinta { Guasto = new IOException("connessione caduta") }.Apri(), uscita, "x", DateTime.UtcNow));
+
+        var gz = uscita.ToArray();
+        Assert.False(ChiusuraGzipTorna(gz, (await Decomprimi(gz)).Length), "il gzip porta la sua chiusura regolare");
+        Assert.False((await SqlDumpVerifier.VerifyAsync(new MemoryStream(gz))).Ok);
+
+        // Controprova: la stessa copia arrivata in fondo è un gzip chiuso, quindi la prova qui sopra distingue.
+        var buona = new MemoryStream();
+        await DatabaseBackupService.WriteGzipAsync(new FonteFinta().Apri(), buona, "x", DateTime.UtcNow);
+        var gzBuono = buona.ToArray();
+        Assert.True(ChiusuraGzipTorna(gzBuono, (await Decomprimi(gzBuono)).Length));
+    }
+
+    private static async Task<byte[]> Decomprimi(byte[] gz)
+    {
+        using var fuori = new MemoryStream();
+        await using (var z = new GZipStream(new MemoryStream(gz), CompressionMode.Decompress)) await z.CopyToAsync(fuori);
+        return fuori.ToArray();
+    }
+
+    private static bool ChiusuraGzipTorna(byte[] gz, int lunghezza) =>
+        gz.Length >= 18 && BitConverter.ToUInt32(gz, gz.Length - 4) == (uint)lunghezza;
 
     // ---- Il servizio: cancello, registro, una copia alla volta -------------------------------------------
 
@@ -368,8 +451,10 @@ public class CopiaDelDatabaseTests
         public Task<IDumpSnapshot> OpenAsync(CancellationToken ct = default)
         {
             Aperta = true;
-            return Task.FromResult<IDumpSnapshot>(new Fotografia(this));
+            return Task.FromResult(Apri());
         }
+
+        public IDumpSnapshot Apri() => new Fotografia(this);
 
         private sealed class Fotografia(FonteFinta f) : IDumpSnapshot
         {

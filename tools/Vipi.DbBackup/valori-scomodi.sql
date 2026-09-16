@@ -28,7 +28,19 @@ INSERT INTO `ProvaCopia` VALUES
    'ABCDEF01-2345-6789-abcd-EF0123456789', 18446744073709551615, '{"a":"b\\n"}'),
   (1, '', '', '1000-01-01 00:00:00', '-01:00:00.500000', '9999-12-31', 0, 1e300, -3.4e38, 0,
    '00000000-0000-0000-0000-000000000000', 0, '[]'),
-  (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+  (2, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL),
+  -- double a 17 cifre significative e ai bordi: le coordinate dello schema sono double, e un formato che ne
+  -- perde una cifra le sposta senza che nessuno lo veda.
+  (3, 'doppi', NULL, NULL, NULL, NULL, NULL, 0.30000000000000004, NULL, NULL, NULL, NULL, NULL),
+  (4, 'doppi', NULL, NULL, NULL, NULL, NULL, 41.800277777777779, NULL, NULL, NULL, NULL, NULL),
+  (5, 'doppi', NULL, NULL, NULL, NULL, NULL, 5e-324, NULL, NULL, NULL, NULL, NULL),
+  (6, 'doppi', NULL, NULL, NULL, NULL, NULL, -1.7976931348623157e308, NULL, NULL, NULL, NULL, NULL),
+  -- Un blob da 3 MB (6 MB di esadecimale nell'INSERT): un'immagine al tetto degli upload.
+  (7, 'blob grande', REPEAT(0xAB00, 1536 * 1024), NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+
+-- Due megabyte di righe piccole: la tabella deve uscire in più INSERT, e il blob qui sopra in uno suo.
+INSERT INTO `ProvaCopia` (`Id`, `Testo`, `Doppio`)
+  SELECT 1000 + seq, CONCAT('riga ', seq, ' ', REPEAT('è', 1000)), seq / 7 FROM seq_1_to_1000;
 
 -- La tabella che la copia deve lasciare FUORI. Nello schema delle migrazioni non c'è (la crea il sito
 -- all'avvio): qui la si crea, così l'esclusione si prova invece di passare perché la tabella manca.

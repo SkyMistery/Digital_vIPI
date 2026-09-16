@@ -1,6 +1,8 @@
 using System.IO.Compression;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Vipi.Application;
 using Vipi.Application.Auth;
@@ -31,14 +33,17 @@ public sealed class DatabaseBackupService : IDatabaseBackup
     private readonly IEditAuthorizationService _authz;
     private readonly IDatabaseDumpSource? _source;
     private readonly string? _versione;
+    private readonly ILogger _log;
 
     public DatabaseBackupService(VipiDbContext db, IEditAuthorizationService authz,
-        IEnumerable<IDatabaseDumpSource> sources, IOptions<VipiChromeOptions> chrome)
+        IEnumerable<IDatabaseDumpSource> sources, IOptions<VipiChromeOptions> chrome,
+        ILogger<DatabaseBackupService>? log = null)
     {
         _db = db;
         _authz = authz;
         _source = sources.FirstOrDefault();
         _versione = chrome.Value.Versione;
+        _log = (ILogger?)log ?? NullLogger.Instance;
     }
 
     public bool IsSupported => _source is not null;
@@ -76,16 +81,26 @@ public sealed class DatabaseBackupService : IDatabaseBackup
 
             var summary = await WriteGzipAsync(snapshot, destination, _versione ?? "sviluppo", creata, ct);
 
-            AuditScribe.Write(_db, chi, AuditAction.View, Entita, IdEntita, new
+            // ⚠️ «Fine» vuol dire «il sito l'ha spedita tutta», non «il browser l'ha salvata»: quello lo dice solo
+            // `verifica` sul file. E il file è già tutto dall'altra parte: se questa riga non si scrive, lo si
+            // annota nel log e la copia resta buona — rilanciare qui farebbe troncare un download completo.
+            try
             {
-                Fase = "Fine",
-                Tabelle = summary.Tables,
-                Righe = summary.Rows,
-                Byte = summary.Bytes,
-                summary.Sha256,
-            });
-            // Il file è già tutto dall'altra parte: se il client chiude adesso, la riga va scritta lo stesso.
-            await _db.SaveChangesAsync(CancellationToken.None);
+                AuditScribe.Write(_db, chi, AuditAction.View, Entita, IdEntita, new
+                {
+                    Fase = "Fine",
+                    Tabelle = summary.Tables,
+                    Righe = summary.Rows,
+                    Byte = summary.Bytes,
+                    IstruzioneMax = summary.LongestStatementBytes,
+                    summary.Sha256,
+                });
+                await _db.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                _log.LogError(e, "Copia del database completata (sha256 {Sha}) ma la riga di fine del registro non si è scritta.", summary.Sha256);
+            }
             return summary;
         }
         finally
@@ -103,15 +118,27 @@ public sealed class DatabaseBackupService : IDatabaseBackup
         string siteVersion, DateTime createdUtc, CancellationToken ct = default)
     {
         DatabaseBackupSummary summary;
-        // ⚠️ `await using` e non `using`: il gzip scrive il blocco finale quando si chiude, e Kestrel rifiuta
-        // le scritture sincrone sul corpo della risposta.
-        await using (var gz = new GZipStream(destination, CompressionLevel.Optimal, leaveOpen: true))
+        // 🔴 Il gzip scrive la SUA chiusura quando si smaltisce, anche mentre un'eccezione risale. Senza il taglio,
+        // una copia fallita a metà sarebbe un gzip perfetto che `gunzip -t` promuove e `gunzip | mariadb`
+        // esegue per la metà che c'è (revisione del 16 settembre 2026). Col taglio, dopo un guasto nessun byte
+        // arriva più a destinazione: il file resta un gzip troncato, e lo dice anche gunzip.
+        var taglio = new TaglioStream(destination);
+        // ⚠️ `await using` e non `using`: Kestrel rifiuta le scritture sincrone sul corpo della risposta.
+        await using (var gz = new GZipStream(taglio, CompressionLevel.Optimal, leaveOpen: true))
         {
-            using var writer = new SqlDumpWriter(gz);
-            await writer.WriteHeaderAsync(new DumpHeader(
-                siteVersion, createdUtc, snapshot.ServerVersion, snapshot.LastMigration, snapshot.Excluded), ct);
-            await snapshot.WriteTablesAsync(writer, ct);
-            summary = await writer.FinishAsync(ct);
+            try
+            {
+                using var writer = new SqlDumpWriter(gz);
+                await writer.WriteHeaderAsync(new DumpHeader(
+                    siteVersion, createdUtc, snapshot.ServerVersion, snapshot.LastMigration, snapshot.Excluded), ct);
+                await snapshot.WriteTablesAsync(writer, ct);
+                summary = await writer.FinishAsync(ct);
+            }
+            catch
+            {
+                taglio.Taglia();
+                throw;
+            }
         }
         await destination.FlushAsync(ct);
         return summary;
@@ -153,11 +180,52 @@ public sealed class DatabaseBackupService : IDatabaseBackup
             var r = d.RootElement;
             return new DatabaseBackupSummary(
                 r.GetProperty("Tabelle").GetInt32(), r.GetProperty("Righe").GetInt64(),
-                r.GetProperty("Byte").GetInt64(), r.GetProperty("Sha256").GetString() ?? "");
+                r.GetProperty("Byte").GetInt64(), r.GetProperty("Sha256").GetString() ?? "",
+                r.TryGetProperty("IstruzioneMax", out var im) ? im.GetInt64() : 0);
         }
         catch (Exception e) when (e is JsonException or KeyNotFoundException or InvalidOperationException or ArgumentNullException)
         {
             return null;
         }
     }
+}
+
+/// <summary>
+/// Passa le scritture a <paramref name="inner"/> finché qualcuno non chiama <see cref="Taglia"/>; da lì in poi le
+/// butta. Serve a impedire che un gzip chiuso durante un guasto aggiunga in coda la sua chiusura regolare.
+/// </summary>
+internal sealed class TaglioStream(Stream inner) : Stream
+{
+    private bool _tagliato;
+
+    public void Taglia() => _tagliato = true;
+
+    public override bool CanRead => false;
+    public override bool CanSeek => false;
+    public override bool CanWrite => true;
+    public override long Length => throw new NotSupportedException();
+    public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+
+    public override void Write(byte[] buffer, int offset, int count)
+    {
+        if (!_tagliato) inner.Write(buffer, offset, count);
+    }
+
+    public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken ct = default) =>
+        _tagliato ? ValueTask.CompletedTask : inner.WriteAsync(buffer, ct);
+
+    public override Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken ct) =>
+        _tagliato ? Task.CompletedTask : inner.WriteAsync(buffer, offset, count, ct);
+
+    public override void Flush()
+    {
+        if (!_tagliato) inner.Flush();
+    }
+
+    public override Task FlushAsync(CancellationToken ct) =>
+        _tagliato ? Task.CompletedTask : inner.FlushAsync(ct);
+
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
 }
