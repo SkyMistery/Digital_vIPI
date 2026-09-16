@@ -1,4 +1,4 @@
-﻿using Bunit;
+using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;

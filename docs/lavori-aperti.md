@@ -1,6 +1,32 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 15 settembre 2026
+## Dove siamo — 16 settembre 2026
+
+### ▶ A42 — DA FARE: quel che aspettava la fine della finestra cieca (16 settembre 2026)
+
+La finestra cieca (§A14, più sotto) chiude oggi. Tre lavori erano stati
+rimandati **a dopo** esplicitamente; nessuno è cominciato. Registrati qui su richiesta del committente, **in
+attesa di decidere da quale partire**.
+
+1. ▶ **S11 della shape dei settori — le colonne gemelle del gate** (carta
+   [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md) §4-bis,
+   §AB nel registro del 30 agosto). S0→S10 sono in `main` dal 30 agosto e verificati dal vivo. S11 **non è una slice**: otto siti
+   di scrittura (upsert ACC, upsert aeroporti, sectorfile, torri da GitHub, cerchio, settori esteri…), le letture
+   del **congelamento di release** (`ReleaseService`, `ShapeAiracGate`, `EfShapeGateRepository`), un backfill e
+   **due migrazioni**. Sbagliarla non si vede a schermo: si vede quando qualcuno pubblica. ▶ Prima di toccare
+   codice: **rileggere §4-bis** contro il codice di oggi (dal 30 agosto sono passate 1.1.0 → 1.27.0) e
+   aggiornarne il piano.
+   - ▶ Legata: le **13 torri ATZ** con forma `Aip` non sono mai state guardate dal vivo — le 13 righe devono
+     diventare pezzi e la colonna tornare libera. Si guarda al primo deploy che le converte.
+2. ▶ **Togliere il presidio della finestra** — `tests/Vipi.Infrastructure.Tests/MigrazioniDellaFinestraCiecaTests.cs`
+   e la deroga `RevisionateAMano`. La carta dice **cancellarlo, non spostare le date**: tenuto, diventa una regola
+   permanente travestita da eccezione. ⚠️ **Da confermare col committente** prima: il presidio ha fermato un
+   `AlterColumn` vero il 10 settembre (§CO), e una regola «migrazioni solo additive» potrebbe valere la pena
+   tenerla — ma allora va **riscritta come regola**, senza date.
+   ⚠️ Toglie test: `tests/conteggi-attesi.txt` va riscritto nello stesso commit.
+3. ▶ **Feedback a due canali** (§CJ, memoria «feedback due canali»): carta pronta (`piano-segnalazioni.md` §10),
+   codice zero, rimandato «a dopo il 16 settembre» per la taglia del cambio al database. Il nodo resta: lo
+   sviluppatore non vede il database di produzione.
 
 ### ✅ A41 — Elenchi annidati fino a cinque livelli, e il campo che cresce col testo (16 settembre 2026)
 

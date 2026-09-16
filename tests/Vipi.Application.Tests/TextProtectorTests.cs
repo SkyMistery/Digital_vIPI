@@ -1,4 +1,4 @@
-﻿using Vipi.Application.Translation;
+using Vipi.Application.Translation;
 
 namespace Vipi.Application.Tests;
 

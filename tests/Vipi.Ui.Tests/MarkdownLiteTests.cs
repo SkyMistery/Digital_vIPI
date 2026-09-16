@@ -1,4 +1,4 @@
-﻿using Vipi.Ui;
+using Vipi.Ui;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
