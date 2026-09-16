@@ -337,9 +337,9 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-11-regole-piste-nel-vsop-militare.md`](feature/2026-09-11-regole-piste-nel-vsop-militare.md) — Le regole piste nel vSOP militare 🟢
 - [`feature/2026-09-12-vawos-e-minimi-lvp.md`](feature/2026-09-12-vawos-e-minimi-lvp.md) — vAWOS — il quadro meteo in torre, e i minimi LVP nei documenti 🟢
 - [`feature/2026-09-13-chiavi-api.md`](feature/2026-09-13-chiavi-api.md) — Le API non sono mai anonime: chiavi per i client (T-017) ✅ in main, `Api:RichiediChiave` ancora spento
-- [`feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md`](feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md) — «Il documento è saturo»: due guasti dietro un sintomo solo (§A39) 📦 in 1.28.0
-- [`feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md`](feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md) — Aree di lavoro: una tabella sola, con la riga che si apre (§A40) 📦 in 1.28.0
-- [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md) — Elenchi annidati fino a cinque livelli e campo che cresce col testo (§A41) 📦 in 1.28.0
+- [`feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md`](feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md) — «Il documento è saturo»: due guasti dietro un sintomo solo (§A39) ✅ online in 1.28.0
+- [`feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md`](feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md) — Aree di lavoro: una tabella sola, con la riga che si apre (§A40) ✅ online in 1.28.0
+- [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md) — Elenchi annidati fino a cinque livelli e campo che cresce col testo (§A41) ✅ online in 1.28.0
 
 ### `guide`
 

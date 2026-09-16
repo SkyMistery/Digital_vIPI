@@ -2,7 +2,16 @@
 
 ## Dove siamo — 16 settembre 2026
 
-### 📦 A44 — Pacchetto 1.28.0: 30 file, MINOR su 1.27.0, nessuna migrazione — **DA CARICARE** (16 settembre 2026)
+### ✅ A44 — Pacchetto 1.28.0: 30 file, MINOR su 1.27.0, nessuna migrazione — ✅ **ONLINE** (16 settembre 2026)
+
+✅ **ONLINE dal 16 settembre 2026, controllato da fuori** (soli GET anonimi e clic, niente scritture): timbro
+`1.28.0` confermato in barra dal committente; `pacchetto-verifica.js` **tutto verde** (Ricerca compresa); i **sei
+asset** serviti hanno lo **sha256 identico** a quelli spediti; gli **otto** vSOP militari pubblicati mostrano la
+tabella e **zero schede** (LIED 34 righe, LIBA 23, LIBV 11, LIPL 8, LIRP 8, LICT 7, LIBN 5, LIRE 0), ognuno con una
+riga di dettaglio per area; `aree-mil-verifica.js` su **LIBV** tutto verde (▸, chip 10→9 e ritorno, stampa, l'ACC
+che tiene le schede); `enhanced-verifica.js` su LIBA tutto verde. ℹ️ L'unico rosso — console della vIPI ACC — è un
+iframe di `ogs.google.com` dentro l'anteprima di **Google Drive**, bloccato dalla CSP di Google: non è nostro.
+▶ Col login: `Schema: 0`, un elenco annidato che sopravvive al ricarico, «+ Sottosezione» su LIED.
 
 Timbro **`1.28.0 · 4fd8ed7`**, zip `artifacts/publish/vipi-1.28.0-solo-file-cambiati.zip` (4,99 MB), sha256
 **`6758c162f10d5063699803bb52addf1c33564a548d7b51a4a8801cdf341cf166`**. Foglio

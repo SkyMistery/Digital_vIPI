@@ -1,5 +1,10 @@
 # Pacchetto 1.28.0 — solo i file cambiati
 
+> ✅ **CARICATO il 16 settembre 2026.** Controlli da fuori (soli GET anonimi): pacchetto tutto verde con la Ricerca;
+> i sei file di `wwwroot` serviti hanno lo **sha256 identico** a quelli spediti; gli otto vSOP militari pubblicati
+> mostrano la tabella delle aree e nessuna scheda. Restano da fare **col login**: riga `Schema` = `0`, un elenco
+> annidato che sopravvive al ricarico, «+ Sottosezione» sul SOD di Decimomannu.
+
 > **Timbro:** `1.28.0 · 4fd8ed7` (16 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

@@ -3,12 +3,17 @@
 //
 //   node aree-mil-verifica.js                          sul publish win-x64 su :5199 (DB di sviluppo: LIBG, 3 aree)
 //   BASE=http://localhost:5034 node aree-mil-verifica.js
+//   BASE=https://atc.it.ivao.aero DOC='/services/vsop/libb/mil?icao=LIBV' ACC=/services/vsop/libb/vipi node aree-mil-verifica.js
+//   (in produzione LIBG NON ha un vSOP pubblicato: l'elenco è /services/vsop/mil. Soli GET e clic, niente scritture.)
+// ⚠️ Da Git Bash: MSYS_NO_PATHCONV=1 davanti, o `ACC=/services/...` diventa «C:/Program Files/Git/services/...».
 //
 // ⚠️ La vIPI ACC sta in /services/vsop/{acc}/vipi, NON in /services/vsop/{acc}: su quella pagina di schede non
 // ce n'è nessuna, e il controllo «l'ACC tiene le schede» esce rosso per colpa dello strumento (16-set-2026).
 const puppeteer = require('puppeteer-core');
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const BASE = process.env.BASE || 'http://localhost:5199';
+const DOC = process.env.DOC || '/services/vsop/libb/mil?icao=LIBG';
+const ACC = process.env.ACC || '/services/vsop/libb/vipi';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let ko = 0;
 const dice = (ok, msg) => { if (!ok) ko++; console.log((ok ? '  OK  ' : '  KO  ') + msg); };
@@ -20,7 +25,7 @@ const dice = (ok, msg) => { if (!ok) ko++; console.log((ok ? '  OK  ' : '  KO  '
   page.on('pageerror', (e) => errori.push(e.message));
   page.on('console', (m) => { if (m.type() === 'error') errori.push(m.text()); });
 
-  await page.goto(BASE + '/services/vsop/libb/mil?icao=LIBG', { waitUntil: 'networkidle2', timeout: 120000 });
+  await page.goto(BASE + DOC, { waitUntil: 'networkidle2', timeout: 120000 });
   await sleep(3000);
   await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { d.open = true; }));
   await sleep(1500);
@@ -41,10 +46,10 @@ const dice = (ok, msg) => { if (!ok) ko++; console.log((ok ? '  OK  ' : '  KO  '
   }, scope);
   console.log('  ..', JSON.stringify(s0));
   dice(s0.box && s0.tabella, 'la sezione ha la tabella dentro il contenitore delle aree');
-  dice(s0.righe === 3, `tre righe d'area (${s0.righe})`);
+  dice(s0.righe > 0, `righe d'area presenti (${s0.righe})`);
   dice(s0.dettagli === s0.righe && s0.aperti === 0, 'una riga di dettaglio per area, tutte chiuse');
   dice(s0.schede === 0, `nessun elenco a schede nel vSOP (${s0.schede})`);
-  dice(s0.chip === 3, `tre chip sulla mappa (${s0.chip})`);
+  dice(s0.chip === s0.righe, `una chip per riga sulla mappa (${s0.chip} chip, ${s0.righe} righe)`);
 
   // ▸ apre il dettaglio
   const id = await page.evaluate((sc) => {
@@ -106,7 +111,7 @@ const dice = (ok, msg) => { if (!ok) ko++; console.log((ok ? '  OK  ' : '  KO  '
   await page.screenshot({ path: 'aree-mil.png' });
 
   // l'ACC tiene le schede
-  await page.goto(BASE + '/services/vsop/libb/vipi', { waitUntil: 'networkidle2', timeout: 120000 });
+  await page.goto(BASE + ACC, { waitUntil: 'networkidle2', timeout: 120000 });
   await sleep(3000);
   await page.evaluate(() => document.querySelectorAll('details').forEach((d) => { if (!d.hasAttribute('data-areacard')) d.open = true; }));
   await sleep(2500);
