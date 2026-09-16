@@ -712,18 +712,24 @@ else
                 <RegulatedAreasEditor Selection="_regulated" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
                                       Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
                                       SelectionChanged="SaveRegulated" />
+                @* Lo `Scope` qui non ha una mappa da seguire — il picker non ne disegna una — ma serve lo
+                   stesso: tiene distinti gli `id` delle righe di dettaglio delle DUE tabelle in pagina, e
+                   chi scrive vede esattamente la tabella che vedrà chi legge. *@
                 <MilWorkingAreas Areas="_areeScelte" Activities="_attivitaAree" Notes="_noteAree"
                                  Editing="_shell.IsEditing"
+                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.Regulated)"
                                  OnSet="ScriviAttivitaArea" OnSetNote="ScriviNotaArea" />
                 break;
-            @* Le aree BOAT: stesso picker, stessa tabella, selezione SUA. La tabella qui è a tre colonne —
+            @* Le aree BOAT: stesso picker, stessa tabella, selezione SUA. La tabella qui non ha la colonna dell'attività —
                l'attività su un'area BOAT direbbe sempre «LOW LEVEL». *@
             case SectionKeys.LowLevel:
                 <RegulatedAreasEditor Selection="_boat" OwnPicks="_areaPicks" OtherPicks="_otherAreaPicks"
                                       Editing="_shell.IsEditing" AllowAuto="false" ShowExtra="true"
                                       SelectionChanged="SaveBoat" />
                 <MilWorkingAreas Areas="_areeBoat" Notes="_noteBoat" MostraAttivita="false"
-                                 Editing="_shell.IsEditing" OnSetNote="ScriviNotaBoat" />
+                                 Editing="_shell.IsEditing"
+                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.LowLevel)"
+                                 OnSetNote="ScriviNotaBoat" />
                 break;
             case "callsigns":
                 <MilFixedTableEditor Colonne="MilProfiloTabelle.Nominativi(L)" Righe="_nominativi"

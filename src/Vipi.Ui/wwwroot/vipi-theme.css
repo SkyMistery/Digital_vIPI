@@ -3650,6 +3650,26 @@
 :where(.vipi-root) .res-table.mil-table.div-table th.c-nav,:where(.vipi-root) .res-table.mil-table.div-table td.c-nav{width:38%}
 :where(.vipi-root) .res-table.mil-table.div-table th.c-num,:where(.vipi-root) .res-table.mil-table.div-table td.c-num{width:112px}
 :where(.vipi-root) .res-table.mil-table.milarea-table{margin-top:12px}
+/* La colonna della freccetta. 26px: ci sta il bersaglio del dito senza rubare larghezza alla prosa, che qui
+   e' la nota. `vertical-align:top` perche' la riga puo' essere alta sei righe di gettoni e la freccetta deve
+   restare accanto al NOME, non a meta' cella. */
+:where(.vipi-root) .res-table.mil-table.milarea-table th.c-exp,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-exp{width:26px;padding-left:6px;padding-right:0;vertical-align:top}
+:where(.vipi-root) .milarea-exp{appearance:none;background:none;border:0;padding:2px 3px;margin:0;cursor:pointer;
+  color:var(--ink-soft);font-size:12px;line-height:1;border-radius:4px;transition:transform .12s ease,color .12s ease}
+:where(.vipi-root) .milarea-exp:hover{color:var(--ink)}
+:where(.vipi-root) .milarea-exp:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* Il verso della freccetta lo decide `aria-expanded`, che e' gia' la verita' per chi ascolta: una classe in
+   piu' sarebbe una seconda verita' da tenere allineata. Stesso gesto del `.chev` delle schede. */
+:where(.vipi-root) .milarea-exp[aria-expanded="true"]{transform:rotate(90deg);color:var(--ink)}
+/* La riga di dettaglio. `[hidden]` su un <tr> lo nasconde gia' da user-agent, ma la regola sta scritta: in
+   una tabella il `display` viene toccato da tanti fogli, e un `display:table-row` ereditato la riaprirebbe. */
+:where(.vipi-root) .milarea-more[hidden]{display:none}
+:where(.vipi-root) .milarea-more>td{background:color-mix(in srgb,var(--ink) 3%,var(--surface));padding-top:8px;padding-bottom:10px;font-size:13px;line-height:1.45}
+:where(.vipi-root) .milarea-more .milarea-att{margin:0}
+:where(.vipi-root) .milarea-more .milarea-desc{margin:.3em 0 0}
+/* ⚠️ Anche la riga di dettaglio di un poligono di tiro porta la sua barretta: senza, aprendola la barretta
+   si interrompe a meta' e le due righe si leggono come due aree diverse. */
+:where(.vipi-root) .milarea-table tbody tr.wr-row+tr.milarea-more>td{box-shadow:inset 3px 0 0 var(--wr)}
 :where(.vipi-root) .res-table.mil-table.milarea-table th.c-lim,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-lim{width:180px}
 /* ⚠️ 260 e non 190: le attività erano DUE gettoni («A/A», «A/G») e dall'8 settembre 2026 sono quindici, con
    dentro «TEST FLIGHTS» e «LOW LEVEL». I gettoni vanno a capo da soli (`.tok-set` avvolge) e il testo in

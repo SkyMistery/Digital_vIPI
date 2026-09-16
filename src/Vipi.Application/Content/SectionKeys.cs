@@ -49,7 +49,8 @@ public static class SectionKeys
     // sbagliata scriverebbe le aree di una sezione sopra quelle dell'altra — senza un errore.
     // Carta 2026-09-09-aree-boat.md.
 
-    /// <summary>«Aree di lavoro»: mappa, elenco e tabella delle working areas. Universale (sta anche in
+    /// <summary>«Aree di lavoro»: mappa e tabella delle working areas (l'elenco a schede è confluito nella
+    /// tabella il 16 settembre 2026). Universale (sta anche in
     /// ACC, APP e vLOA, dove però è un'altra cosa: un picker sulla vIPI, prosa sulla vLOA).</summary>
     public const string Regulated = "regulated";
 

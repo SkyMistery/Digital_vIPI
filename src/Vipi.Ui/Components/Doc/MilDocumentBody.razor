@@ -1,4 +1,4 @@
-@* Il CORPO di un vSOP militare d'aeroporto: le sezioni, con il corpo derivato che questa famiglia disegna
+﻿@* Il CORPO di un vSOP militare d'aeroporto: le sezioni, con il corpo derivato che questa famiglia disegna
    per chiave.
 
    Sta fuori da `MilDocumentPage` perché lo stesso documento va reso in due posti — la sua pagina, e la
@@ -123,22 +123,31 @@
                 break;
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a
                mano una figura per volta. Stesso motore della vIPI ACC e dell'APP. E SOTTO la tabella: nome e
-               limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività. *@
+               limiti vengono dalle aree scelte, e la sola colonna scritta a mano è l'attività.
+
+               ⚠️ `ShowCards="false"` dal 16 settembre 2026 (carta
+               2026-09-16-aree-di-lavoro-una-tabella-sola.md): l'elenco a schede stava fra la mappa e la
+               tabella e ripeteva nome, banda e poligono di tiro che la tabella diceva tre righe più sotto,
+               più due frasi che sul catalogo vero hanno 6 e 13 valori distinti su 241 aree. Quel che
+               aggiungeva davvero — tipo, pallino, attivazione, descrizione — è passato nella tabella. Le
+               altre tre famiglie (ACC, APP, vLOA) tengono le schede: lì una tabella non c'è. *@
             @* 🔴 `BlockKey` su TUTT'E DUE, e non è decorazione: lo scope della mappa è «reg-» + la chiave, e
                senza vale «reg-x» per chiunque. In questa pagina le mappe sono due — le aree di lavoro e le
                aree BOAT — e con lo stesso scope le chip di una accenderebbero le schede dell'altra, col
                conteggio «ne vedi N su M» che parla della sezione sbagliata. Il legame chip→scheda lo tiene
                vipi-aor.js per attributo `data-aor`: il difetto sarebbe MUTO. *@
             case SectionKeys.Regulated:
-                <RegulatedAreas Areas="Doc.Aree" BlockKey="@SectionKeys.Regulated" />
-                <MilWorkingAreas Areas="Doc.Aree" Activities="Doc.AttivitaAree" Notes="Doc.NoteAree" />
+                <RegulatedAreas Areas="Doc.Aree" BlockKey="@SectionKeys.Regulated" ShowCards="false" />
+                <MilWorkingAreas Areas="Doc.Aree" Activities="Doc.AttivitaAree" Notes="Doc.NoteAree"
+                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.Regulated)" />
                 break;
             @* Le aree BOAT: lo STESSO visualizzatore su una selezione sua (carta 2026-09-09-aree-boat.md).
-               ⚠️ La tabella qui è a tre colonne: l'attività su un'area BOAT direbbe sempre «LOW LEVEL». *@
+               ⚠️ La tabella qui non ha la colonna dell'attività: su un'area BOAT direbbe sempre «LOW LEVEL». *@
             case SectionKeys.LowLevel:
-                <RegulatedAreas Areas="Doc.AreeBoat" BlockKey="@SectionKeys.LowLevel" />
+                <RegulatedAreas Areas="Doc.AreeBoat" BlockKey="@SectionKeys.LowLevel" ShowCards="false" />
                 <MilWorkingAreas Areas="Doc.AreeBoat" Activities="Doc.AttivitaBoat" Notes="Doc.NoteBoat"
-                                 MostraAttivita="false" />
+                                 MostraAttivita="false"
+                                 Scope="@RegulatedAreas.ScopeOf(SectionKeys.LowLevel)" />
                 break;
             case "callsigns":
                 <MilFixedTable Colonne="MilProfiloTabelle.Nominativi(L)" Righe="Doc.Nominativi" />

@@ -321,6 +321,16 @@
      regole sono il ripiego per i browser che non emettono gli eventi di stampa. */
   .vipi-root details:not([open]) > .cb-body { display: block !important; }
   .vipi-root details::details-content { content-visibility: visible !important; }
+
+  /* ── Aree di lavoro: le righe di dettaglio ─────────────────────────────────────
+     Attivazione e descrizione di un'area stanno in un <tr> gemello, chiuso di suo (MilWorkingAreas). Sulla
+     carta l'apri/chiudi non esiste e quel testo E' il documento: la riga si apre sempre, e la freccetta —
+     che sarebbe un tasto da premere su un foglio — se ne va. Qui basta il CSS, e non serve la mano di
+     'beforeprint' come per i <details>: un <tr> nascosto con l'attributo `hidden` non ha il
+     `content-visibility` dello user-agent che Chrome mette sul contenuto di un <details> chiuso. */
+  .vipi-root .milarea-more[hidden] { display: table-row !important; }
+  .vipi-root .milarea-exp { display: none !important; }
+  .vipi-root .milarea-table th.c-exp, .vipi-root .milarea-table td.c-exp { width: 0; padding: 0; }
 }
 
 /* ---- Documenti UNITI (carta 2026-09-03) --------------------------------------------------------

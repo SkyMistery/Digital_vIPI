@@ -2,6 +2,18 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A40 — Aree di lavoro: una tabella sola, con la riga che si apre (16 settembre 2026)
+
+Carta: [`feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md`](feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md).
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+
+Nei vSOP militari l'elenco a schede sotto la mappa («Aree di lavoro» e «Bassa quota (BOAT)») ripeteva nome,
+banda e poligono di tiro della tabella, più due frasi che sul catalogo vero hanno **6 e 13 valori distinti su
+241 aree**. Spento (`RegulatedAreas.ShowCards=false`, solo MIL): tipo e pallino passano nella cella del nome,
+attivazione e descrizione in una **riga che si apre** con la freccetta (opzione C del committente). Le chip ora
+filtrano le **righe** — prima filtravano solo le schede, e la tabella restava intera senza dirlo. Stampa: righe
+aperte. ▶ Da guardare dal vivo: chip → righe, stampa, editor.
+
 ### ✅ A39 — «Il documento è saturo»: due guasti dietro un sintomo solo (16 settembre 2026)
 
 Carta: [`feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md`](feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md).

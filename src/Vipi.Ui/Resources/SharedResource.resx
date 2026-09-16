@@ -1184,8 +1184,10 @@
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevazione</value></data>
   <data name="Area_Name" xml:space="preserve"><value>Nome</value></data>
   <data name="Area_Limits" xml:space="preserve"><value>Limiti</value></data>
+  <data name="Area_Activation" xml:space="preserve"><value>Attivazione</value></data>
   <data name="Area_Activity" xml:space="preserve"><value>Tipo di attività</value></data>
   <data name="Area_ActivityTitle" xml:space="preserve"><value>Clic per accendere o spegnere</value></data>
+  <data name="Area_Details" xml:space="preserve"><value>Attivazione e descrizione</value></data>
   <data name="Area_None" xml:space="preserve"><value>Nessuna area scelta: si scelgono con le chip sopra la mappa.</value></data>
   <data name="Area_WeaponRange" xml:space="preserve"><value>Poligono di tiro</value></data>
   <data name="Area_WeaponRangeTitle" xml:space="preserve"><value>Poligono di tiro: la sorgente marca l'area col flag «range»</value></data>

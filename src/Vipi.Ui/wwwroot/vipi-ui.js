@@ -201,6 +201,33 @@ window.vipiScorrimento = function () {
         }, true);
     }
 
+    // La freccetta che apre la riga di dettaglio di un'area (MilWorkingAreas, 16 settembre 2026): attivazione
+    // e descrizione stanno in un <tr> gemello, subito sotto quello dell'area.
+    //
+    // ⚠️ Perche' non un <details>. Il dettaglio deve occupare TUTTA la larghezza della tabella, e nel modello
+    // di una tabella l'unica cosa che lo fa e' una riga con un `colspan`: un <details> dentro una cella si
+    // aprirebbe dentro quella colonna. Un <tr> in piu' non e' apribile da solo, quindi la commutazione sta
+    // qui — non nel C#, perche' la pagina del lettore e' SSR STATICA e nessun `@onclick` ci gira sopra.
+    //
+    // ⚠️ La verita' e' `aria-expanded` sul bottone, non una classe: e' la stessa cosa che legge un lettore di
+    // schermo, e due verita' divergono. Delega sola, installata una volta: le righe le rifa' Blazor a ogni
+    // scelta d'area nell'editor, e un listener per bottone sarebbe da riattaccare ogni volta.
+    var righeAreaWired = false;
+    function wireRigheArea() {
+        if (righeAreaWired) return;
+        righeAreaWired = true;
+        document.addEventListener('click', function (e) {
+            var b = e.target && e.target.closest ? e.target.closest('.milarea-exp') : null;
+            if (!b) return;
+            var riga = b.closest('tr');
+            var det = riga && riga.nextElementSibling;
+            if (!det || !det.classList.contains('milarea-more')) return;
+            var apri = b.getAttribute('aria-expanded') !== 'true';
+            b.setAttribute('aria-expanded', apri ? 'true' : 'false');
+            det.hidden = !apri;
+        });
+    }
+
     // Sospende la persistenza del collasso: l'apertura in massa per la stampa non deve riscrivere le preferenze
     // dell'utente (vedi wirePrint).
     var suppressPersist = false;
@@ -914,6 +941,7 @@ window.vipiScorrimento = function () {
         wireCollapse();
         wireBlockMenu();
         wireTocDrop();
+        wireRigheArea();
         applyDense();
         wireUtcClock();
         wireSearchKey();

@@ -1179,8 +1179,10 @@
   <data name="Rwy_ThresholdElev" xml:space="preserve"><value>Elevation</value></data>
   <data name="Area_Name" xml:space="preserve"><value>Name</value></data>
   <data name="Area_Limits" xml:space="preserve"><value>Limits</value></data>
+  <data name="Area_Activation" xml:space="preserve"><value>Activation</value></data>
   <data name="Area_Activity" xml:space="preserve"><value>Type of activity</value></data>
   <data name="Area_ActivityTitle" xml:space="preserve"><value>Click to turn on or off</value></data>
+  <data name="Area_Details" xml:space="preserve"><value>Activation and description</value></data>
   <data name="Area_None" xml:space="preserve"><value>No area selected: pick them with the chips above the map.</value></data>
   <data name="Area_WeaponRange" xml:space="preserve"><value>Weapon range</value></data>
   <data name="Area_WeaponRangeTitle" xml:space="preserve"><value>Weapon range: the source marks this area with the «range» flag</value></data>

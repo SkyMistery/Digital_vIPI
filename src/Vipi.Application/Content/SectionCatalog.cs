@@ -471,7 +471,8 @@ public static class SectionCatalog
                     // Aree tattiche dove si vola il BOAT: parla di AREE, quindi sta sotto la sezione che le
                     // disegna. Presente in 9 SOP su 15.
                     // ⚠️ `HB` e non `D` dal 9 settembre 2026 (carta 2026-09-09-aree-boat.md): ha un
-                    // visualizzatore SUO — mappa, elenco e tabella — gemello di quello del padre, e SOTTO
+                    // visualizzatore SUO — mappa e tabella (l'elenco confluito nella tabella il 16 settembre
+                    // 2026) — gemello di quello del padre, e SOTTO
                     // restano i blocchi editoriali di chi ha gia' scritto prosa li'. Il payload e' lo stesso
                     // `MilRegulatedPayload`, sotto questa chiave di sezione: nessuna tabella nuova.
                     // ⚠️ `SectionKind` resta editoriale, come per «regulated»: non c'e' nessuna derivazione

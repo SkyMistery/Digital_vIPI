@@ -1,5 +1,13 @@
 ﻿@* La tabella sotto la mappa delle «Aree di lavoro» (carta §12h): nome, limiti, che attività ci si vola e una
-   nota libera.
+   nota libera. Dal 16 settembre 2026 è l'UNICO corpo sotto la mappa — l'elenco a schede di `RegulatedAreas`
+   è spento (`ShowCards="false"`) e quel che diceva sta qui: il pallino e il tipo nella cella del nome,
+   attivazione e descrizione in una riga che si apre (carta 2026-09-16-aree-di-lavoro-una-tabella-sola.md).
+
+   ⚠️ Perché una riga che si apre e non due colonne in più: `ActivationDetails` e `Description` arrivano
+   dall'import IVAO e sono PROSA — misurati sul catalogo vero, 154 e 182 caratteri al massimo. In colonna
+   avrebbero schiacciato le quattro che contano; aperte a tutta larghezza si leggono, e chiuse non occupano
+   niente. E soprattutto: su 241 aree in archivio i valori DISTINTI sono 6 e 13 — la stessa frase ripetuta
+   decine di volte nello stesso documento, che è esattamente ciò che l'elenco a schede faceva vedere.
 
    ⚠️ Nome e limiti NON si riscrivono a mano: vengono dalle aree scelte con le chip, cioè dal catalogo. Le
    sole cose che si compilano sono l'attività e la nota — è la differenza fra una tabella che ripete quel che
@@ -18,73 +26,130 @@
 @* ⚠️ Il colore dei poligoni di tiro entra come variabile CSS presa dalla COSTANTE che colora la mappa: la
    tabella e la mappa sopra devono dire lo stesso arancione, e due esadecimali scritti in due file sono due
    esadecimali che prima o poi divergono. Il foglio di stile usa `var(--wr)` e non conosce il valore. *@
-<table class="res-table mil-table milarea-table" style="--wr:@SpecialAreaColorScheme.WeaponRange">
-    <thead>
-        <tr>
-            <th>@L["Area_Name"]</th>
-            <th class="c-lim">@L["Area_Limits"]</th>
-            @if (MostraAttivita) { <th class="c-act2">@L["Area_Activity"]</th> }
-            <th class="c-note">@L["Area_Notes"]</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var a in Areas)
-        {
-            var att = Attivita(a.IvaoId);
-            <tr class="@(a.Range ? "wr-row" : null)">
-                <td>
-                    <b>@a.Name</b>
-                    @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
-                </td>
-                <td class="c-lim c-nowrap">@Banda(a)</td>
-                @if (MostraAttivita)
-                {
-                <td class="c-act2">
-                    @if (Editing)
-                    {
-                        @* Gli stessi gettoni delle WTC nelle SID: il clic accende o spegne.
-                           ⚠️ Il doppio clic «prendile tutte» è sparito l'8 settembre 2026, insieme alle
-                           tredici attività nuove: con due voci era la scorciatoia per «A/A - A/G», con
-                           quindici è un gesto che scrive un'area dove si fa TUTTO, che non esiste — e che
-                           partiva per sbaglio a chiunque cliccasse due volte di fila sullo stesso gettone. *@
-                        <div class="tok-set">
-                            @foreach (var (flag, testo, _) in MilActivityText.Catalogo)
-                            {
-                                <button type="button" class="tok @(att.HasFlag(flag) ? "on" : "")"
-                                        title="@L["Area_ActivityTitle"]"
-                                        @onclick="() => Commuta(a.IvaoId, att, flag)">@testo</button>
-                            }
-                        </div>
-                    }
-                    else
-                    {
-                        @(MilActivityText.Scrivi(att) is { Length: > 0 } s ? s : "—")
-                    }
-                </td>
-                }
-                <td class="c-note">
-                    @if (Editing)
-                    {
-                        @* ⚠️ `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco, non a
-                           ogni tasto. Una nota è prosa — un giro di salvataggio per carattere sarebbe cento
-                           scritture per riga, e il campo perderebbe il fuoco a ogni ridisegno. *@
-                        <textarea class="in-note" rows="2" value="@NotaDi(a.IvaoId)"
-                                  @onchange="e => ScriviNota(a.IvaoId, e.Value?.ToString())"
-                                  placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
-                    }
-                    else
-                    {
-                        @(NotaDi(a.IvaoId) is { Length: > 0 } n ? n : "—")
-                    }
-                </td>
+@* ⚠️ Il contenitore porta `data-areacards`, le righe `data-areacard`: sono gli stessi attributi che
+   l'elenco a schede scriveva, e li cerca `vipi-aor.js` per accendere e spegnere le righe insieme alla chip.
+   Tolte le schede, senza questi la mappa filtrerebbe e la tabella no — un difetto MUTO, che a schermo si
+   legge come «la tabella non risponde». Perciò lo scope è obbligatorio, e lo compone `RegulatedAreas.ScopeOf`. *@
+<div class="milarea-wrap" data-areacards="@Scope">
+    @* Conteggio e riga «tutte spente»: arrivano dall'elenco a schede insieme agli attributi, e per la stessa
+       ragione — una tabella che si accorcia da quaranta righe a tre senza dire perché sembra rotta. Il
+       FORMATO sta nell'attributo, così la frase resta tradotta anche quando a riscriverla è il browser. *@
+    <p class="muted reg-count" data-areacount="@Scope" data-fmt="@L["Reg_Shown"].Value"
+       style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
+    <p class="muted reg-empty" data-areaempty="@Scope" hidden>@L["Reg_AllOff"]</p>
+
+    <table class="res-table mil-table milarea-table" style="--wr:@SpecialAreaColorScheme.WeaponRange">
+        <thead>
+            <tr>
+                @* La colonna della freccetta non ha un titolo da leggere ma ne ha uno da SENTIRE: un `th`
+                   vuoto lascia il lettore di schermo ad annunciare «colonna 1, vuota» su ogni riga. *@
+                <th class="c-exp"><span class="sr-only">@L["Area_Details"]</span></th>
+                <th>@L["Area_Name"]</th>
+                <th class="c-lim">@L["Area_Limits"]</th>
+                @if (MostraAttivita) { <th class="c-act2">@L["Area_Activity"]</th> }
+                <th class="c-note">@L["Area_Notes"]</th>
             </tr>
-        }
-        @if (Areas.Count == 0)
-        {
-            <tr><td colspan="@(MostraAttivita ? 4 : 3)" class="muted">@L["Area_None"]</td></tr>
-        }
-    </tbody>
-</table>
+        </thead>
+        <tbody>
+            @foreach (var a in Areas)
+            {
+                var att = Attivita(a.IvaoId);
+                var idDett = $"amore-{Scope}-{a.IvaoId}";
+                <tr class="@(a.Range ? "wr-row" : null)" data-areacard="@a.IvaoId">
+                    @* La freccetta è un `<button>` e non uno `<span>` cliccabile: apre e chiude, quindi ci deve
+                       arrivare anche il tastierino, e `aria-expanded` deve dire com'è messa. La pagina del
+                       lettore è SSR STATICA — nessun gestore Blazor gira lì sopra — quindi a commutarla è la
+                       delega di `vipi-ui.js`, che è caricato ovunque. *@
+                    <td class="c-exp">
+                        <button type="button" class="milarea-exp" aria-expanded="false" aria-controls="@idDett"
+                                title="@L["Area_Details"]" aria-label="@L["Area_Details"]">▸</button>
+                    </td>
+                    <td>
+                        @* Pallino e tipo vengono dalla scheda che non c'è più, e col colore CHE HANNO SULLA
+                           MAPPA — poligoni di tiro compresi. Se la riga dicesse il colore del tipo e la mappa un
+                           altro, la stessa area sarebbe due aree. *@
+                        @{ var col = SpecialAreaColorScheme.For(a.Type, a.Range); }
+                        <span class="reg-dot" style="background:@(col)33;border-color:@col"></span>
+                        @if (!string.IsNullOrWhiteSpace(a.Type)) { <b class="reg-type">@a.Type</b> }
+                        <b>@a.Name</b>
+                        @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
+                        @* «Senza forma» è un fatto operativo, non una finezza di resa: quell'area sulla mappa non
+                           c'è, e la chip non la farà comparire. Lo diceva la scheda. *@
+                        @if (a.Shape is null) { <span class="muted reg-noshape">@L["Reg_NoShape"]</span> }
+                    </td>
+                    <td class="c-lim c-nowrap">@Banda(a)</td>
+                    @if (MostraAttivita)
+                    {
+                    <td class="c-act2">
+                        @if (Editing)
+                        {
+                            @* Gli stessi gettoni delle WTC nelle SID: il clic accende o spegne.
+                               ⚠️ Il doppio clic «prendile tutte» è sparito l'8 settembre 2026, insieme alle
+                               tredici attività nuove: con due voci era la scorciatoia per «A/A - A/G», con
+                               quindici è un gesto che scrive un'area dove si fa TUTTO, che non esiste — e che
+                               partiva per sbaglio a chiunque cliccasse due volte di fila sullo stesso gettone. *@
+                            <div class="tok-set">
+                                @foreach (var (flag, testo, _) in MilActivityText.Catalogo)
+                                {
+                                    <button type="button" class="tok @(att.HasFlag(flag) ? "on" : "")"
+                                            title="@L["Area_ActivityTitle"]"
+                                            @onclick="() => Commuta(a.IvaoId, att, flag)">@testo</button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            @(MilActivityText.Scrivi(att) is { Length: > 0 } s ? s : "—")
+                        }
+                    </td>
+                    }
+                    <td class="c-note">
+                        @if (Editing)
+                        {
+                            @* ⚠️ `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco, non a
+                               ogni tasto. Una nota è prosa — un giro di salvataggio per carattere sarebbe cento
+                               scritture per riga, e il campo perderebbe il fuoco a ogni ridisegno. *@
+                            <textarea class="in-note" rows="2" value="@NotaDi(a.IvaoId)"
+                                      @onchange="e => ScriviNota(a.IvaoId, e.Value?.ToString())"
+                                      placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
+                        }
+                        else
+                        {
+                            @(NotaDi(a.IvaoId) is { Length: > 0 } n ? n : "—")
+                        }
+                    </td>
+                </tr>
+                @* La riga che si apre. ⚠️ Porta `data-areamore` e NON `data-areacard`: il JS conta le righe per
+                   dire «ne vedi N su M», e una riga di dettaglio contata come area raddoppierebbe il totale. *@
+                <tr class="milarea-more" id="@idDett" data-areamore="@a.IvaoId" hidden>
+                    <td colspan="@Colonne">
+                        @if (!string.IsNullOrWhiteSpace(a.ActivationDetails))
+                        {
+                            @* ⚠️ Con l'etichetta davanti, e nella scheda non ce l'aveva: là il testo stava sotto
+                               un titolo che diceva già di quale area si parlasse, qui è prosa in fondo a una
+                               tabella e «Permanently active» da solo non dice di che cosa sia la proprietà. *@
+                            <p class="milarea-att"><b>@L["Area_Activation"]:</b> @a.ActivationDetails</p>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(a.Description))
+                        {
+                            <p class="milarea-desc">@a.Description</p>
+                        }
+                        @if (string.IsNullOrWhiteSpace(a.ActivationDetails) && string.IsNullOrWhiteSpace(a.Description))
+                        {
+                            @* La freccetta resta accesa anche senza niente da dire: un tasto spento senza motivo
+                               si legge «non ti è permesso», e chi apre merita un «—» invece di un dubbio. *@
+                            <p class="muted milarea-desc">—</p>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (Areas.Count == 0)
+            {
+                <tr><td colspan="@Colonne" class="muted">@L["Area_None"]</td></tr>
+            }
+        </tbody>
+    </table>
+</div>
 
 @code {
     /// <summary>Le aree SCELTE, già risolte: nome e limiti vengono da qui.</summary>
@@ -97,6 +162,18 @@
     [Parameter] public IReadOnlyDictionary<string, string> Notes { get; set; } = new Dictionary<string, string>();
 
     [Parameter] public bool Editing { get; set; }
+
+    /// <summary>
+    /// La chiave di <b>scope</b> che lega questa tabella alla mappa sopra: la compone
+    /// <see cref="RegulatedAreas.ScopeOf"/>, mai si scrive a mano.
+    ///
+    /// <para>🔴 <b>Obbligatoria.</b> Dal 16 settembre 2026 la tabella è l'unico elenco sotto la mappa, quindi
+    /// è lei a portare gli attributi che <c>vipi-aor.js</c> cerca per accendere e spegnere le righe insieme
+    /// alle chip. In una pagina le tabelle sono DUE — «Aree di lavoro» e «Bassa quota (BOAT)» — e con lo
+    /// stesso scope le chip di una piloterebbero le righe dell'altra, senza un errore. Serve anche a tenere
+    /// distinti gli <c>id</c> delle righe di dettaglio, che sono il bersaglio di <c>aria-controls</c>.</para>
+    /// </summary>
+    [Parameter, EditorRequired] public string Scope { get; set; } = default!;
 
     /// <summary>
     /// Se la tabella ha la colonna «Attività» coi quindici gettoni. Vera per le <b>aree di lavoro</b>, falsa
@@ -113,6 +190,11 @@
 
     /// <summary>Cambia la nota di UN'area, per la stessa ragione.</summary>
     [Parameter] public EventCallback<(string AreaId, string? Nota)> OnSetNote { get; set; }
+
+    /// <summary>Quante colonne ha la tabella: freccetta, nome, limiti, [attività], nota. Serve al
+    /// <c>colspan</c> della riga di dettaglio e a quella «nessuna area» — un colspan sbagliato non rompe
+    /// niente a schermo, restringe la riga e basta, ed è per questo che va contato in un posto solo.</summary>
+    private int Colonne => MostraAttivita ? 5 : 4;
 
     private MilActivity Attivita(string id) =>
         Activities.TryGetValue(id, out var a) ? a : MilActivity.None;

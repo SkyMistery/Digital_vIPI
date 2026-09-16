@@ -14,53 +14,62 @@
 
 @if (Areas.Count == 0)
 {
-    <p class="muted">@L["Reg_NoneSelected"]</p>
+    @* ⚠️ Solo se le schede le disegna QUESTO componente. Con `ShowCards="false"` l'elenco è di qualcun
+       altro — la tabella dei vSOP militari — e «nessuna area scelta» lo dice lui: due frasi identiche una
+       sopra l'altra si leggono come due sezioni vuote invece di una. *@
+    @if (ShowCards) { <p class="muted">@L["Reg_NoneSelected"]</p> }
 }
 else
 {
-    var scope = Scope();
+    var scope = ScopeOf(BlockKey);
     <AccAor @key="scope" View="RegulatedAreasMap.Build(Areas)" Id="@scope" BlockClass="aor-many"
             ConfigLabel="@L["Reg_TypeLabel"].Value" Hint="@L["Reg_MapHint"].Value" />
 
-    @* Le descrizioni. Vivono FUORI dai due riquadri 2D/3D — devono restare in pagina in tutt'e due le viste —
+    @* Le descrizioni a schede. ⚠️ Sono FACOLTATIVE: i vSOP militari le spengono e portano gli stessi campi
+       nelle righe della loro tabella (carta 2026-09-16-aree-di-lavoro-una-tabella-sola.md), che ha già nome
+       e limiti — l'elenco a schede glieli ripeteva sotto.
+       Vivono FUORI dai due riquadri 2D/3D — devono restare in pagina in tutt'e due le viste —
        e si legano alla mappa con la chiave di scope, come fanno i <details> di configurazione. *@
     @* `--wr`: l'arancione dei poligoni di tiro, preso dalla stessa costante che colora la mappa (vedi
        MilWorkingAreas). Il foglio di stile non conosce il valore. *@
-    <div class="reg-cards" data-areacards="@scope" style="--wr:@SpecialAreaColorScheme.WeaponRange">
-        @* Il conteggio nasce già scritto (all'apertura sono tutte accese) e il JS lo riscrive a ogni chip usando
-           il FORMATO qui accanto: la frase resta tradotta anche se a cambiarla è il browser. *@
-        <p class="muted reg-count" data-areacount="@scope" data-fmt="@L["Reg_Shown"].Value"
-           style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
-        <p class="muted reg-empty" data-areaempty="@scope" hidden>@L["Reg_AllOff"]</p>
-        @foreach (var a in Areas)
-        {
-            <details class="coord-sub reg-card" data-areacard="@a.IvaoId">
-                <summary>
-                    <span>
-                        @* Il pallino porta il colore CHE HA SULLA MAPPA, poligoni di tiro compresi: se la
-                           scheda dicesse il colore del tipo e la mappa un altro, la stessa area sarebbe due
-                           aree. *@
-                        @{ var col = SpecialAreaColorScheme.For(a.Type, a.Range); }
-                        <span class="reg-dot" style="background:@(col)33;border-color:@col"></span>
-                        @if (!string.IsNullOrWhiteSpace(a.Type)) { <b class="reg-type">@a.Type</b> }
-                        @a.Name
-                        @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
-                        <span class="reg-band">@Band(a)</span>
-                        @if (a.Shape is null) { <span class="muted reg-noshape">@L["Reg_NoShape"]</span> }
-                    </span>
-                    <span class="chev">▸</span>
-                </summary>
-                <div class="body">
-                    @if (!string.IsNullOrWhiteSpace(a.ActivationDetails)) { <p style="margin:.2em 0 0"><b>@a.ActivationDetails</b></p> }
-                    @if (!string.IsNullOrWhiteSpace(a.Description)) { <p style="margin:.3em 0 0">@a.Description</p> }
-                    @if (string.IsNullOrWhiteSpace(a.ActivationDetails) && string.IsNullOrWhiteSpace(a.Description))
-                    {
-                        <p class="muted" style="margin:.2em 0 0">—</p>
-                    }
-                </div>
-            </details>
-        }
-    </div>
+    @if (ShowCards)
+    {
+        <div class="reg-cards" data-areacards="@scope" style="--wr:@SpecialAreaColorScheme.WeaponRange">
+            @* Il conteggio nasce già scritto (all'apertura sono tutte accese) e il JS lo riscrive a ogni chip usando
+               il FORMATO qui accanto: la frase resta tradotta anche se a cambiarla è il browser. *@
+            <p class="muted reg-count" data-areacount="@scope" data-fmt="@L["Reg_Shown"].Value"
+               style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
+            <p class="muted reg-empty" data-areaempty="@scope" hidden>@L["Reg_AllOff"]</p>
+            @foreach (var a in Areas)
+            {
+                <details class="coord-sub reg-card" data-areacard="@a.IvaoId">
+                    <summary>
+                        <span>
+                            @* Il pallino porta il colore CHE HA SULLA MAPPA, poligoni di tiro compresi: se la
+                               scheda dicesse il colore del tipo e la mappa un altro, la stessa area sarebbe due
+                               aree. *@
+                            @{ var col = SpecialAreaColorScheme.For(a.Type, a.Range); }
+                            <span class="reg-dot" style="background:@(col)33;border-color:@col"></span>
+                            @if (!string.IsNullOrWhiteSpace(a.Type)) { <b class="reg-type">@a.Type</b> }
+                            @a.Name
+                            @if (a.Range) { <span class="reg-wr" title="@L["Area_WeaponRangeTitle"]">@L["Area_WeaponRange"]</span> }
+                            <span class="reg-band">@Band(a)</span>
+                            @if (a.Shape is null) { <span class="muted reg-noshape">@L["Reg_NoShape"]</span> }
+                        </span>
+                        <span class="chev">▸</span>
+                    </summary>
+                    <div class="body">
+                        @if (!string.IsNullOrWhiteSpace(a.ActivationDetails)) { <p style="margin:.2em 0 0"><b>@a.ActivationDetails</b></p> }
+                        @if (!string.IsNullOrWhiteSpace(a.Description)) { <p style="margin:.3em 0 0">@a.Description</p> }
+                        @if (string.IsNullOrWhiteSpace(a.ActivationDetails) && string.IsNullOrWhiteSpace(a.Description))
+                        {
+                            <p class="muted" style="margin:.2em 0 0">—</p>
+                        }
+                    </div>
+                </details>
+            }
+        </div>
+    }
 }
 
 @code {
@@ -78,7 +87,24 @@ else
     /// </summary>
     [Parameter, EditorRequired] public string BlockKey { get; set; } = default!;
 
-    private string Scope() => "reg-" + (string.IsNullOrWhiteSpace(BlockKey) ? "x" : BlockKey);
+    /// <summary>
+    /// Se disegnare l'elenco a schede sotto la mappa. Falso nei <b>vSOP militari</b>: lì lo stesso contenuto
+    /// sta nelle righe della tabella delle aree, che porta già nome, limiti e pastiglia del poligono di tiro
+    /// — la scheda li ripeteva tre righe più sotto (carta 2026-09-16).
+    ///
+    /// <para>⚠️ Chi lo spegne si prende anche quel che le schede portavano con sé: il <b>conteggio</b>
+    /// «ne vedi N su M», la riga «tutte spente» e gli attributi <c>data-areacard</c> che il JS cerca. Senza,
+    /// le chip della mappa non avrebbero più niente da accendere e il difetto sarebbe MUTO — la mappa
+    /// filtra, l'elenco no. Vedi <see cref="MilWorkingAreas"/>, che li riprende tutti e quattro.</para>
+    /// </summary>
+    [Parameter] public bool ShowCards { get; set; } = true;
+
+    /// <summary>
+    /// La chiave di scope che lega mappa ed elenco: <c>reg-</c> + la chiave di blocco. È <b>pubblica e
+    /// statica</b> perché chi disegna l'elenco al posto nostro (la tabella militare) deve scriverne una
+    /// identica: due modi di comporre la stessa chiave sono due chiavi, il giorno che uno dei due cambia.
+    /// </summary>
+    public static string ScopeOf(string? blockKey) => "reg-" + (string.IsNullOrWhiteSpace(blockKey) ? "x" : blockKey);
 
 
     // ⚠️ La porta unica: la stessa che scrive la banda sulla MAPPA. Vedi AorFlBand.FeetBand.

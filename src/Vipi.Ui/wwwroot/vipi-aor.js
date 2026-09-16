@@ -390,11 +390,28 @@
 
         // Aree regolamentate: la chip accende l'area sulla mappa E la sua descrizione qui sotto. Sull'AoR non
         // c'è nessuna card con quel nome e questa funzione non trova niente: costa una query e basta.
+        //
+        // ⚠️ «Card» qui vuol dire due cose diverse a seconda del documento, e va bene così: in ACC, APP e
+        // vLOA è il <details> dell'elenco a schede; nei vSOP militari, dal 16 settembre 2026, è la RIGA della
+        // tabella delle aree — le schede lì non ci sono più. L'attributo è lo stesso apposta: la regola («la
+        // chip accende la sua voce») non dipende da che forma abbia la voce.
         function setCard(sec, on) {
             var box = document.querySelector('[data-areacards="' + scope + '"]');
             if (!box) return;
-            var c = box.querySelector('[data-areacard="' + (sec || '').replace(/"/g, '') + '"]');
+            var id = (sec || '').replace(/"/g, '');
+            var c = box.querySelector('[data-areacard="' + id + '"]');
             if (c) c.hidden = !on;
+
+            // La riga di dettaglio segue la sua (solo nelle tabelle militari: altrove non esiste). Si CHIUDE
+            // in tutt'e due i versi, anche riaccendendo: una riga di dettaglio che ricompare da sola, staccata
+            // dalla freccetta che l'aveva aperta, è una cella di prosa senza più l'intestazione che dice di
+            // quale area parli. Riaccesa, l'area riparte chiusa — ed è sempre lo stesso stato.
+            var det = box.querySelector('[data-areamore="' + id + '"]');
+            if (det) {
+                det.hidden = true;
+                var b = c && c.querySelector('.milarea-exp');
+                if (b) b.setAttribute('aria-expanded', 'false');
+            }
         }
 
         // Porta in vista la PRIMA chip accesa dentro la sua barra. Serve quando la barra scorre — 105 chip su
