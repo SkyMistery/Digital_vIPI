@@ -1387,7 +1387,22 @@
       «Gestione del traffico» e «Tecnica operativa»; sotto-sezioni fra i blocchi; stazione METAR di riferimento;
       vAWOS a 2-3 piste coi sei cambi del committente; banco di prova delle regole piste; THE EYE nell'hub.
     -->
-    <VipiVersione>1.27.0</VipiVersione>
+    <!--
+      1.28.0 — MINOR, NESSUNA migrazione. Su 1.27.0 (f6cbea3, online). Ancora net8.
+
+      Il numero segue l'ordine delle CONSEGNE, come per 1.27.0: il net10 (L13, ramo `l13-net10`) diventa 1.29.0.
+
+      Il contenuto (docs/lavori-aperti.md §A39…§A43): profondità delle sezioni 3→5 e striscia «l'ultimo comando
+      potrebbe non essere arrivato» (§A39, dal campo); aree di lavoro e BOAT dei vSOP militari in una tabella sola
+      con la riga che si apre (§A40); elenchi annidati fino a cinque livelli e campi che crescono col testo (§A41);
+      banco regole piste col vento sulle piste in uso e ripiego senza frase italiana cablata (§A43).
+
+      🔴 Vipi.Infrastructure.dll SI SPEDISCE anche col sorgente invariato: DocumentSection.MaxDepth è una CONST di
+      Vipi.Domain, e il compilatore la COPIA dentro chi la usa — EfEditingRepository (il controllo che rifiuta la
+      sotto-sezione), EfDocumentMaintenance, PublicDocumentGate, DocumentBirth. Il .dll online ha 3 cablato:
+      senza, il difetto di LIED resterebbe in produzione con Domain nuovo accanto.
+    -->
+    <VipiVersione>1.28.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
