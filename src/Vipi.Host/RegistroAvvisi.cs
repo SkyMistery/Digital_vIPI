@@ -193,9 +193,16 @@ public sealed class RegistroAvvisi : ILoggerProvider
         return $"{ora:HH:mm:ss} {V("Method")} {V("PathBase")}{percorso} → {codice} {ms}".TrimEnd();
     }
 
-    /// <summary>I ping e i file statici: col ping ogni dieci secondi, i dieci posti sarebbero tutti loro.</summary>
+    /// <summary>
+    /// I ping, i file statici e la meccanica del circuito: col ping ogni dieci secondi, e con tre richieste di servizio
+    /// per ogni pagina interattiva aperta, i dieci posti sarebbero tutti loro.
+    /// <para>⚠️ Visto sul pacchetto 1.30.1 il 16 settembre 2026: una sola apertura dell'editor aveva occupato sei posti
+    /// su dieci con <c>initializers</c>, <c>negotiate</c> e <c>disconnect</c>. Resta <c>GET /_blazor</c> (101): è il
+    /// circuito, e la sua durata dice quanto la pagina è rimasta aperta.</para>
+    /// </summary>
     internal static bool DaNonRicordare(string percorso) =>
         percorso.StartsWith("/vsop/health", StringComparison.OrdinalIgnoreCase)
+        || percorso.StartsWith("/_blazor/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_framework/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_content/", StringComparison.OrdinalIgnoreCase)
         || Regex.IsMatch(percorso, @"\.(css|js|map|png|jpe?g|gif|svg|ico|woff2?|br|gz)$", RegexOptions.IgnoreCase);

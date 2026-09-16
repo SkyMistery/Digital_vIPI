@@ -60,6 +60,9 @@ public class RegistroAvvisiTests
         for (var i = 1; i <= 12; i++) b.Richiesta($"/services/vsop/p{i}");
         b.Richiesta("/vsop/health/ready");                       // il ping non ruba un posto
         b.Richiesta("/_content/Vipi.Ui/vipi-theme.css");         // nemmeno un file statico
+        b.Richiesta("/_blazor/negotiate");                       // né la meccanica del circuito
+        b.Richiesta("/_blazor/initializers");
+        b.Richiesta("/_blazor", 101);                            // il circuito sì: dice quanto è rimasta aperta la pagina
         b.Fabbrica.CreateLogger("Vipi.Import").LogInformation("Import ACC partito per {Acc}", "LIRR");
 
         b.Fabbrica.CreateLogger("Vipi.Import").LogWarning("IVAO ha risposto {Codice} per {Acc}", 429, "LIRR");
@@ -67,10 +70,13 @@ public class RegistroAvvisiTests
         Assert.Contains("AVVISO · firma ", b.File);
         Assert.Contains("IVAO ha risposto 429 per LIRR", b.File);
         Assert.Contains("GET /services/vsop/p12 → 200 12 ms", b.File);
-        Assert.Contains("/services/vsop/p3 ", b.File);
-        Assert.DoesNotContain("/services/vsop/p2 ", b.File);  // l'undicesima più vecchia è uscita
+        Assert.Contains("GET /_blazor → 101", b.File);
+        Assert.Contains("/services/vsop/p4 ", b.File);
+        Assert.DoesNotContain("/services/vsop/p3 ", b.File);  // il circuito ha preso un posto: la più vecchia è uscita
         Assert.DoesNotContain("/vsop/health", b.File);
         Assert.DoesNotContain("vipi-theme.css", b.File);
+        Assert.DoesNotContain("negotiate", b.File);
+        Assert.DoesNotContain("initializers", b.File);
         Assert.Contains("Import · Import ACC partito per LIRR", b.File);
     }
 
