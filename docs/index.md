@@ -398,7 +398,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`refactor/12-vista-live-unificata.md`](refactor/12-vista-live-unificata.md) — 12 — Vista live unificata per callsign ✅
 - [`refactor/13-audit-tre-documenti.md`](refactor/13-audit-tre-documenti.md) — 13 — Audit dei tre documenti (vIPI ACC · vIPI APP · vLOA) 🟢
 - [`refactor/14-quattro-documenti.md`](refactor/14-quattro-documenti.md) — 14 — I quattro documenti: un motore solo 🟡
-- [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md) — 15 — La shape di un settore: una porta sola 🟡
+- [`refactor/15-shape-del-settore-una-porta-sola.md`](refactor/15-shape-del-settore-una-porta-sola.md) — 15 — La shape di un settore: una porta sola 🟡 — S0→S10 fatte; S11 in tre fasi, **fase A online in 1.30.0**, B e C da fare (§4-bis)
 - [`refactor/REFACTOR-PROCESS.md`](refactor/REFACTOR-PROCESS.md) — Refactor — Process (runbook) 🟢
 
 ### `reference`

@@ -15,7 +15,7 @@
 > shape vuote del 26 agosto con un vestito nuovo. Per questo in §3d non è una raccomandazione ma una **firma
 > di metodo**.
 
-**Stato:** 🟡 **in esecuzione** · target approvato dall'owner il 30 agosto 2026 · **S0→S10 fatte**, resta S11 e la verifica dal vivo (§5).
+**Stato:** 🟡 **in esecuzione** · target approvato dall'owner il 30 agosto 2026 · **S0→S10 fatte** · **S11** ripianificata il 16 settembre 2026 in tre fasi (§4-bis): **fase A ONLINE in 1.30.0**, fase B (letture ai pezzi) dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati», fase C una release dopo.
 
 ---
 
@@ -362,7 +362,7 @@ di §3c, e il risolutore a pezzi è **equivalente** a quello di oggi — verific
 | **B — le letture** | Le sedici letture, il risolutore, il congelamento e l'avviso di chi pubblica passano ai pezzi: «corrente» = `Pending` se c'è, altrimenti `InForce`; «per il ciclo C» = la regola di `ShapeAiracGate`. Le colonne si scrivono ancora (il ponte resta). | pubblicazione vera sulla copia del DB, AoR identica a prima |
 | **C — gli scrittori** | Gli scrittori scrivono i pezzi, il ponte se ne va, e la migrazione toglie `RegionMapPolygon`, `RegionMapPolygonInForce`, `ShapeAiracCycle`, `ShapeForcePublished`, `ShapeSource`, `IsShapeSynthetic`. `LowerLimit`/`UpperLimit` **restano**: sono dati dell'anagrafica che la pagina Struttura modifica, e i pezzi ne portano la copia. | una release dopo B |
 
-### ✅ Fase A — fatta il 16 settembre 2026 (in `main`, non in pacchetto)
+### ✅ Fase A — fatta il 16 settembre 2026, ONLINE in 1.30.0 (e 1.30.1)
 
 - `CatalogShapeMirror` (Application, pura): riga di catalogo → una fonte, l'insieme in vigore e, dove il gate
   potrebbe differire, quello in attesa col ciclo e la forzatura.

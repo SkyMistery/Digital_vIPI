@@ -25,7 +25,7 @@ elenco `artifacts/publish/elenco-1.30.1.txt`. Rotazione: 1.30.0 in `publish_old/
 ### ✅ A52 — Avvisi ed errori del log in `diagnostica/avvisi-log.txt`, col contesto (16 settembre 2026, notte) — in 1.30.1
 
 Chiesto dal committente dopo aver letto i file di 1.30.0: *«mettere in diagnostica tutti i messaggi di log warning e
-fail, magari insieme alle 10 chiamate precedenti per ricostruire»*. In `main`, **NON in pacchetto**, nessuna
+fail, magari insieme alle 10 chiamate precedenti per ricostruire»*. In 1.30.1 (online), nessuna
 migrazione: tocca solo `Vipi.Host`.
 
 - `RegistroAvvisi` (`ILoggerProvider`, registrato accanto a `DiagnosticaCircuito`): ogni riga **Warning / Error /
@@ -74,10 +74,10 @@ Il pacchetto, come preparato:
 - ▶ **Dopo il carico, col login**: timbro; `Schema: 0`; nessun rilievo «Pezzi di forma disallineati», e di nuovo
   **dopo qualche giorno** di import veri (condizione della fase B). Da fuori: `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`.
 
-### 🟡 A50 — S11 della shape, fase A: il ponte fra colonne e pezzi (16 settembre 2026, notte)
+### 🟡 A50 — S11 della shape, fase A: il ponte fra colonne e pezzi (16 settembre 2026, notte) — ✅ online in 1.30.0
 
 Il committente approva il piano di §4-bis («procedi pure con questo piano»). Tre fasi, una consegna ciascuna; la
-carta 15 §4-bis ha il dettaglio. In `main`, **NON in pacchetto**, **nessuna migrazione** (la sola distruttiva resta
+carta 15 §4-bis ha il dettaglio. Online in 1.30.0, **nessuna migrazione** (la sola distruttiva resta
 quella di §A49).
 
 - **Fase A fatta**: ogni salvataggio che tocca forma, quote, gate o elimina un settore allinea `SectorShapeParts`
@@ -90,9 +90,9 @@ quella di §A49).
 - ▶ **Dopo il carico**: la Diagnostica online non deve mostrare «Pezzi di forma disallineati». È la condizione
   per la fase B (le letture ai pezzi).
 
-### 🟡 A49 — Via `Airports.IsMilitaryOnly`, e la S11 della shape riletta (16 settembre 2026, notte)
+### 🟡 A49 — Via `Airports.IsMilitaryOnly`, e la S11 della shape riletta (16 settembre 2026, notte) — ✅ online in 1.30.0
 
-In `main`, **NON in pacchetto**. 🔴 **Porta una migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, un
+Online in 1.30.0. 🔴 **Porta una migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, un
 `DropColumn` nelle due serie): il prossimo pacchetto spedisce `MySqlMigrations.dll`, e prima del carico si scarica
 una copia fresca del database (§A47).
 
