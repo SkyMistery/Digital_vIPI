@@ -2,9 +2,30 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 📦 A48 — 1.29.0 PRONTO DA CARICARE (16 settembre 2026, notte)
+
+**MINOR su 1.28.0, NESSUNA migrazione.** Contiene §A45 (★ blu), §A46 (intro MIL chiusa) e §A47 (copia del database,
+con la revisione indipendente e la correzione dello stack overflow latente in `ScopeProprioCheAspetta`). MINOR e
+non PATCH perché §A47 aggiunge una scheda e un indirizzo. 🔴 Il net10 (`l13-net10`) diventa **1.30.0**.
+
+- Timbro **`1.29.0 · 49a2dd5`**; zip `artifacts/publish/vipi-1.29.0-solo-file-cambiati.zip` (4,96 MB), sha256
+  `f3d8420436518efa4acf728caec6eead95134e145580fc26befa3cd9d375ba38`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.29.0.md`;
+  elenco `artifacts/publish/elenco-1.29.0.txt`. Rotazione: 1.28.0 in `publish_old/20260916`.
+- **15 file**: Application, Infrastructure, Hosting, Ui (dll+pdb), `en/Vipi.Ui.resources.dll`, **Vipi.Host dll+pdb
+  (solo per il TIMBRO: sorgente invariato)**, `endpoints.json`, `vipi-theme.css` ×3. Fuori Domain, MySqlMigrations,
+  AuroraProfiles, AuroraBridge.Contracts; `deps.json`, `runtimeconfig.json` e `MySqlConnector.dll` identici a 1.28.0.
+- Prima: build Release 0 avvisi, 15 assiemi verdi, conteggi identici all'atteso.
+- **Provato sul pacchetto** (publish win-x64 su :5199, **su MariaDB 11.4.10** con i dati di sviluppo):
+  `pacchetto-verifica.js` 10/10 con la Ricerca, `avvio-diagnostica.txt` = `1.29.0 · commit 49a2dd5`;
+  `copia-verifica.js` 11/11; il file scaricato (6,5 MB in 0,7 s) → `verifica` INTERA, timbro 1.29.0.
+  A45/A46 controllati sui file del pacchetto (regola CSS, `InitiallyOpen` in `Vipi.Ui.dll`), non a schermo.
+- ▶ **Dopo il carico, col login**: timbro in barra; `Schema: 0`; la Diagnostica **si apre e resta su**; «Scarica la
+  copia» → `tools/Vipi.DbBackup verifica` sul file deve dire INTERA (la prova che passa intero da Cloudflare e
+  Passenger); ★ blu su un APP. Da fuori: `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`.
+
 ### ✅ A47 — La copia del database si scarica dalla Diagnostica (16 settembre 2026, sera)
 
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.** Carta `docs/feature/2026-09-16-copia-del-database.md`.
+📦 Nel pacchetto **1.29.0** (§A48). **Nessuna migrazione.** Carta `docs/feature/2026-09-16-copia-del-database.md`.
 
 Richiesta del committente: *«posso scaricarmi tutto il DB per avere una copia locale di sicurezza e non dover chiedere
 al webmaster ogni volta?»* — scelta la forma **A**, un `.sql.gz` che il webmaster reimporta così com'è.
@@ -44,7 +65,7 @@ al webmaster ogni volta?»* — scelta la forma **A**, un `.sql.gz` che il webma
 
 ### ✅ A46 — L'intro dei vSOP militari parte con le sezioni chiuse (16 settembre 2026)
 
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+📦 Nel pacchetto **1.29.0** (§A48). **Nessuna migrazione.**
 
 Richiesta del committente su `/services/vsop/mil`: le sezioni dell'intro (§AC) partivano **aperte** — in produzione
 quattro, ABBREVIATIONS, CHARTS SYMBOLS, EXPLANATION OF LANDING MINIMA, GENERAL OPERATIONS WARNING — e spingevano
@@ -61,7 +82,7 @@ l'elenco dei campi sotto. Ora nascono **chiuse**, col titolo in vista.
 
 ### ✅ A45 — La frequenza principale (★) è blu in tutte le tabelle (16 settembre 2026)
 
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+📦 Nel pacchetto **1.29.0** (§A48). **Nessuna migrazione.**
 
 Segnalato dal committente: «alcune di quelle con la stellina non sono evidenziate di blu, altre sì». **Misurato in
 produzione** (sfondo calcolato delle righe ★): vIPI ACC LIBB e APP LIBV **0/1** evidenziate; vIPI aeroporto LIBD e

@@ -1,7 +1,7 @@
 # §A47 — La copia del database si scarica dalla Diagnostica
 
-> 16 settembre 2026, sera. Carta scritta **prima** del codice (FEATURE-PROCESS). ✅ Fatta lo stesso giorno, in `main`,
-> non in pacchetto: esito e prove in `docs/lavori-aperti.md` §A47.
+> 16 settembre 2026, sera. Carta scritta **prima** del codice (FEATURE-PROCESS). ✅ Fatta lo stesso giorno;
+> 📦 nel pacchetto **1.29.0** (§A48). Esito e prove in `docs/lavori-aperti.md` §A47.
 > Richiesta del committente: *«dalla sezione admin posso scaricarmi tutto il DB in modo da avere una copia
 > locale di sicurezza e non dover chiedere al webmaster ogni volta?»* — scelta la forma **A**: un `.sql.gz`
 > che il webmaster importa così com'è.
