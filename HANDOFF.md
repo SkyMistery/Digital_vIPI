@@ -1,6 +1,8 @@
 # HANDOFF — vIPI/vLOA Interactive
 
-**Ultimo aggiornamento:** 16 settembre 2026 (notte, tardi) — 📦 **1.30.1 PRONTO DA CARICARE** (§A53): PATCH, 2 file (`Vipi.Host.dll`+`.pdb`), timbro `1.30.1 · be9a612`, zip `9d641583…c77d`. Porta `diagnostica/avvisi-log.txt` (§A52): Warning/Error/Critical con le ultime 10 richieste e righe informative. Provato sul pacchetto; la prima prova ha trovato la meccanica di Blazor che occupava i posti, corretta. ▶ Dopo il carico: timbro, Ricerca, `Schema 0`. S11 fase B resta in attesa dei giorni di import con Diagnostica pulita. 🔴 net10 = **1.31.0**.
+**Ultimo aggiornamento:** 16 settembre 2026 (notte, fine) — ✅ **1.30.1 È ONLINE** (§A53): timbro confermato, da fuori verde con la Ricerca. In main non resta codice fuori pacchetto. ▶ Prossimo scarico di `diagnostica/`: guardare `avvisi-log.txt`. ▶ S11 fase B dopo giorni di Diagnostica senza «Pezzi di forma disallineati». 🔴 net10 = **1.31.0**.
+
+Prima: 16 settembre 2026 (notte, tardi) — 📦 **1.30.1 PRONTO DA CARICARE** (§A53): PATCH, 2 file (`Vipi.Host.dll`+`.pdb`), timbro `1.30.1 · be9a612`, zip `9d641583…c77d`. Porta `diagnostica/avvisi-log.txt` (§A52): Warning/Error/Critical con le ultime 10 richieste e righe informative. Provato sul pacchetto; la prima prova ha trovato la meccanica di Blazor che occupava i posti, corretta. ▶ Dopo il carico: timbro, Ricerca, `Schema 0`. S11 fase B resta in attesa dei giorni di import con Diagnostica pulita. 🔴 net10 = **1.31.0**.
 
 Prima: 16 settembre 2026 (notte, dopo il carico) — ✅ **1.30.0 È ONLINE** (§A51): timbro `1.30.0 · d083a15` confermato, da fuori pacchetto verde con la Ricerca. ▶ Col login: `Schema: 0`, nessun «Pezzi di forma disallineati» (subito e dopo qualche giorno): poi la **fase B** della S11. In main non resta codice fuori pacchetto. 🔴 net10 = **1.31.0**.
 

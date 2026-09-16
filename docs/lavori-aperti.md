@@ -2,7 +2,13 @@
 
 ## Dove siamo — 16 settembre 2026
 
-### 📦 A53 — 1.30.1 PRONTO DA CARICARE (16 settembre 2026, notte)
+### ✅ A53 — 1.30.1 È ONLINE (16 settembre 2026, notte)
+
+✅ **Caricato**, timbro `1.30.1` confermato dal committente; da fuori `pacchetto-verifica.js` pubblico 8/8 con la
+Ricerca; CI verde sul commit timbrato. ▶ `diagnostica/avvisi-log.txt` nasce al primo avviso: guardarlo al prossimo
+scarico. ▶ S11 fase B dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati».
+
+Il pacchetto, come preparato:
 
 **PATCH su 1.30.0, NESSUNA migrazione.** Contiene §A52. Timbro **`1.30.1 · be9a612`**; zip
 `artifacts/publish/vipi-1.30.1-solo-file-cambiati.zip` (0,10 MB), sha256

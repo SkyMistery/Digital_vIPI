@@ -1,5 +1,8 @@
 # Pacchetto 1.30.1 — solo i file cambiati
 
+> ✅ **CARICATO il 16 settembre 2026.** Timbro confermato dal committente; da fuori `pacchetto-verifica.js` pubblico
+> tutto verde, Ricerca compresa.
+
 > **Timbro:** `1.30.1 · be9a612` (16 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
