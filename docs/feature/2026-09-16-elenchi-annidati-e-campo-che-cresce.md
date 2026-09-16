@@ -1,6 +1,6 @@
 # Elenchi annidati e campo che cresce col testo (16 settembre 2026)
 
-> Stato: ✅ **ESEGUITA il 16 settembre 2026**. **Nessuna migrazione.**
+> Stato: ✅ **ESEGUITA il 16 settembre 2026**, 📦 **in 1.28.0**. **Nessuna migrazione.**
 > Continua [2026-09-09-testo-ricco-nell-editor.md](2026-09-09-testo-ricco-nell-editor.md), di cui supera la
 > decisione 5 («niente elenchi annidati»).
 
@@ -83,8 +83,10 @@ descrizione degli incarichi; tetto al **60%** dello schermo; **Invio** continua 
 
 ## 5. Da verificare dal vivo
 
-- Scrivere un elenco a 3 livelli con Tab e Invio, salvare, **ricaricare**: il testo c'è (il `change`
-  sintetico, vedi §CL).
+- ✅ **Provato sul pacchetto 1.28.0** con `testo-verifica.js`: Tab/Maiusc+Tab veri, ⇤ ⇥, Invio che continua e
+  che esce, Tab su un capoverso che cambia campo, e un secondo livello fatto col Tab che **sopravvive al
+  ricarico** e si rende `<ul class="md-list md-l2">` dentro la voce.
+- ▶ Resta: scrivere un elenco a 3 livelli a mano, salvare, **ricaricare** (il `change` sintetico, vedi §CL).
 - Simboli dei cinque livelli nel documento e in stampa.
 - Campo che cresce: dentro una sezione chiusa che si apre; dopo aver trascinato la maniglia; a fine pagina
   (nessun salto di scorrimento).

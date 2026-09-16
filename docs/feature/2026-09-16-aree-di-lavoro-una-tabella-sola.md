@@ -1,6 +1,6 @@
 # Aree di lavoro — una tabella sola, con la riga che si apre (16 settembre 2026)
 
-> Stato: ✅ **ESEGUITA il 16 settembre 2026**. `dotnet build -c Release` verde su net8 e net10.
+> Stato: ✅ **ESEGUITA il 16 settembre 2026**, 📦 **in 1.28.0**. `dotnet build -c Release` verde su net8 e net10.
 > **Nessuna migrazione.** Tocca solo i vSOP militari: ACC, APP e vLOA restano come sono.
 > Gemella di [2026-09-09-aree-boat.md](2026-09-09-aree-boat.md), che ha dato a «Bassa quota (BOAT)» la stessa
 > terna mappa + elenco + tabella.
@@ -72,8 +72,16 @@ chiusa e a tutta larghezza, attributi per il JS e riga di dettaglio **non** cont
 scope, pallino/tipo/senza forma, e il contratto testuale con `vipi-ui.js` e `vipi-aor.js`.
 `RegulatedAreasTests` invariato: ACC, APP e vLOA disegnano ancora le schede.
 
-## 5. Da verificare dal vivo
+## 5. Verificato dal vivo — sul pacchetto 1.28.0
 
-- Chip spenta → riga sparita e conteggio aggiornato; chip riaccesa → riga chiusa.
-- Anteprima di stampa di un vSOP con aree scelte: dettagli aperti, nessuna freccetta.
-- Editor militare: la freccetta apre la riga anche lì (circuito interattivo, stessa delega).
+✅ Con `aree-mil-verifica.js` (skill `verifica-live`) su LIBG: tabella sola e nessuna scheda; ▸ apre il
+dettaglio e `aria-expanded` lo dice; chip spenta → riga **e** dettaglio via, conteggio 3→2; riaccesa → riga
+chiusa; in stampa dettagli aperti e freccette nascoste; la vIPI ACC tiene le schede.
+
+⚠️ **La foto ha trovato due difetti che la suite non vedeva**, corretti in `4fd8ed7`:
+- pallino, tipo e nome **attaccati** nella cella («TSADonald East»): Razor toglie gli spazi fra gli elementi e
+  la scheda li separava col `gap` di un inline-flex che la cella non ha → margini CSS;
+- nella sezione BOAT senza aree, «Aree accese: 0 di 0» sopra «nessuna area scelta» → conteggio solo con
+  almeno un'area (`Senza_aree_niente_conteggio_sopra_la_riga_vuota`).
+
+▶ Resta: la freccetta nell'**editor** militare (circuito interattivo, stessa delega) non è stata guidata.

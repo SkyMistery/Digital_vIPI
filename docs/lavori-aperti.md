@@ -2,9 +2,52 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 📦 A44 — Pacchetto 1.28.0: 30 file, MINOR su 1.27.0, nessuna migrazione — **DA CARICARE** (16 settembre 2026)
+
+Timbro **`1.28.0 · 4fd8ed7`**, zip `artifacts/publish/vipi-1.28.0-solo-file-cambiati.zip` (4,99 MB), sha256
+**`6758c162f10d5063699803bb52addf1c33564a548d7b51a4a8801cdf341cf166`**. Foglio
+[`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.28.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.28.0.md), elenco
+`artifacts/publish/elenco-1.28.0.txt`. Rotazione: 1.27.0 in `publish_old/20260915`.
+
+**Contenuto**: §A39 (profondità 3→5, striscia del gesto perso), §A40 (aree di lavoro in una tabella), §A41
+(elenchi annidati, campo che cresce), §A43 (banco regole: vento sulle piste in uso, ripiego senza frase
+italiana cablata). Il numero segue le consegne: il **net10 diventa 1.29.0**.
+
+**I 30 file**: Domain, Application, **Infrastructure**, Ui, Host (dll+pdb), `en/Vipi.Ui.resources.dll`,
+`endpoints.json`, sei asset di `wwwroot` × 3 (`vipi-aor.js`, `vipi-editor.js`, `vipi-print.css`,
+`vipi-riconnessione.js`, `vipi-theme.css`, `vipi-ui.js`, confermati per sha256 contro il publish di 1.27.0).
+Fuori Hosting, MySqlMigrations, AuroraProfiles, AuroraBridge.Contracts; `deps.json`/`runtimeconfig.json` identici.
+
+- 🔴 **`Vipi.Infrastructure.dll` col sorgente INVARIATO si spedisce lo stesso.** `DocumentSection.MaxDepth` è una
+  **`const`** di Domain, e il compilatore la **copia** dentro chi la usa: `EfEditingRepository` (il controllo che
+  rifiuta la sotto-sezione), `EfDocumentMaintenance`, `PublicDocumentGate`, `DocumentBirth`. Il `.dll` online ha
+  **3 cablato**: col solo Domain nuovo accanto, il difetto di LIED (§A39) sarebbe rimasto in produzione e il tasto
+  «+ Sottosezione» sarebbe stato acceso su un server che rifiuta. Un `git diff -- src` non lo dice: lo dice
+  cercare **chi usa** la costante.
+- Nessuna interfaccia cambiata; nessuno degli assiemi lasciati fuori usa i tipi toccati (`ProtectedText`,
+  `RunwaySuggestionResult`, `VoceDiElenco`).
+
+**Provato sul pacchetto** (publish win-x64 dallo stesso commit su :5199, i sei asset **byte per byte** quelli
+spediti): `pacchetto-verifica.js` **10/10**; `testo-verifica.js` **tutto verde** (annidati con Tab veri, Invio, un
+secondo livello che **sopravvive al ricarico** e si rende `md-l2`); `aree-mil-verifica.js` **tutto verde** (LIBG: tabella
+sola, ▸, chip che spengono righe e dettagli, stampa, l'ACC che tiene le schede); `enhanced-verifica.js` **tutto
+verde** (`DOC=/services/vsop/libb/mil?icao=LIBG`); banco regole di LIBR col riquadro del ripiego.
+
+⚠️ **Il pacchetto è stato rifatto una volta**, e il timbro è cambiato (`76acbed` → `4fd8ed7`): la prima prova sul
+publish ha mostrato a schermo **due difetti che la suite non vedeva** — nella tabella delle aree pallino, tipo e
+nome **attaccati** («TSADonald East», Razor toglie gli spazi e il `gap` delle schede la cella non l'ha) e, nella
+sezione BOAT senza aree, «Aree accese: 0 di 0» sopra «nessuna area scelta». Corretti in `4fd8ed7`, con un test.
+⚠️ E **tre rossi erano dello strumento**, non del prodotto: `testo-verifica.js` si aspettava ancora cinque tasti e
+`1.` (aggiornato, con le prove degli annidati); il controllo «l'ACC tiene le schede» cercava in
+`/services/vsop/libb` invece che in `/vipi`; `enhanced-verifica.js` vuole `DOC=`.
+
+▶ **Dopo il carico**: la Ricerca; un vSOP militare con aree scelte; col login timbro `1.28.0 · 4fd8ed7`,
+`Schema: 0`, un elenco annidato che sopravvive al ricarico, «+ Sottosezione» sotto «Procedure di partenza › VFR»
+sul SOD di Decimomannu.
+
 ### ✅ A43 — Banco regole piste: il riquadro dell'esito dice il vento sulle piste in uso (16 settembre 2026)
 
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.** Tocca l'editor aeroporto **e** l'editor del vSOP
+📦 **In 1.28.0** (§A44). **Nessuna migrazione.** Tocca l'editor aeroporto **e** l'editor del vSOP
 militare (un componente solo, `AirportRunwayRulesEditor`).
 
 Segnalato dal committente: «non li vedo nella riga della prova». Aveva ragione, **visto dal vivo** su LIBR
@@ -56,7 +99,7 @@ attesa di decidere da quale partire**.
 ### ✅ A41 — Elenchi annidati fino a cinque livelli, e il campo che cresce col testo (16 settembre 2026)
 
 Carta: [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md).
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+📦 **In 1.28.0** (§A44). **Nessuna migrazione.**
 
 Livello coi trattini: `- / -- / ---` puntati, `1) / -1) / --1)` numerati, mescolabili; simboli per livello
 (1 · a · I · i · A e • – ◦ ▪ ·). Sintassi in un posto solo, `VoceDiElenco`, letta da renderer e traduzione; la
@@ -70,7 +113,8 @@ apre, Firefox/Safari.
 ### ✅ A40 — Aree di lavoro: una tabella sola, con la riga che si apre (16 settembre 2026)
 
 Carta: [`feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md`](feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md).
-🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+📦 **In 1.28.0** (§A44). **Nessuna migrazione.** ⚠️ Due ritocchi a schermo trovati provando il pacchetto (stacchi
+nella cella del nome, niente conteggio senza aree): `4fd8ed7`.
 
 Nei vSOP militari l'elenco a schede sotto la mappa («Aree di lavoro» e «Bassa quota (BOAT)») ripeteva nome,
 banda e poligono di tiro della tabella, più due frasi che sul catalogo vero hanno **6 e 13 valori distinti su
@@ -82,7 +126,7 @@ aperte. ▶ Da guardare dal vivo: chip → righe, stampa, editor.
 ### ✅ A39 — «Il documento è saturo»: due guasti dietro un sintomo solo (16 settembre 2026)
 
 Carta: [`feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md`](feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md).
-🟡 In `main`, **non in pacchetto**: commit `0635fdd3`, CI verde, **nessuna migrazione**.
+📦 **In 1.28.0** (§A44): commit `0635fdd3`, **nessuna migrazione**. 🔴 Porta con sé `Vipi.Infrastructure.dll`: `MaxDepth` è una `const` copiata dentro chi la usa.
 
 Segnalato dal campo da un administrator che scriveva il **SOD di Decimomannu (LIED)**, documento grosso e pieno
 di immagini: *«se creo una sottosezione, non appare nemmeno; sembra saturo»*. Nessun limite di dimensione

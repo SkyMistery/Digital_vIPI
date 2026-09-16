@@ -113,6 +113,21 @@ ricompilati differiscono per l'MVID anche quando il loro codice non è cambiato.
 
 Ogni `.dll` in più è una rinomina in più su un file che il processo tiene aperto: non è prudenza, è rischio.
 
+🔴 **Ma il `git diff` NON vede le costanti.** Una `const` C# non si legge a runtime dall'assieme che la dichiara:
+il compilatore ne **copia il valore** dentro ogni assieme che la usa. Se una `const` cambia in un progetto, i
+progetti che la usano vanno spediti **anche col sorgente invariato**, o in produzione convivono il valore nuovo
+(nell'assieme che la dichiara) e il vecchio (cablato negli altri).
+
+Il 16 settembre 2026, consegna **1.28.0**: `DocumentSection.MaxDepth` (Domain) passava da 3 a 5, e il controllo
+che rifiuta una sotto-sezione troppo profonda sta in `EfEditingRepository` (Infrastructure, sorgente **non**
+toccato). Col solo Domain nuovo, il difetto per cui la modifica esisteva sarebbe rimasto online. Per ogni `const`
+cambiata nel diff:
+
+```
+git diff <commit-online> HEAD -- src | grep -E '^[-+].*\bconst\b'
+grep -rn "NomeDellaCostante" src --include=*.cs --include=*.razor    # chi la usa, progetto per progetto
+```
+
 ⚠️ **Il diff sceglie, le impronte VERIFICANO.** Le due cose non si sostituiscono: il `git diff` dice quali
 *progetti* guardare, poi si confronta lo `sha256` di ogni candidato con **la copia dentro il pacchetto
 precedente** (`artifacts/publish_old/<data>/solo-N-file-<versione>/`) e si tiene solo ciò che è cambiato
@@ -226,6 +241,7 @@ binario: il timbro nasce dal commit al momento del publish, e va scritto quale.
 |---|---|
 | `main` non è ciò che gira | si parte dal ramo della consegna online |
 | il diff per impronta gonfia | gli assiemi ricompilati differiscono per l'MVID: comanda `git diff -- src` |
+| il diff non vede le `const` | il valore si COPIA negli assiemi che la usano: si spediscono anche col sorgente invariato |
 | `wwwroot` e l'indice | viaggiano **insieme**, o il sito chiede nomi che non esistono |
 | i `.md` | non stanno con i file da caricare: nello zip sono un ramo a parte |
 | i segreti | non entrano in nessun pacchetto. Vanno da soli in `public_atc/segreti/` |
