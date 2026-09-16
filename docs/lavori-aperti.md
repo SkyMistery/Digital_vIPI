@@ -2,6 +2,27 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 📦 A51 — 1.30.0 PRONTO DA CARICARE (16 settembre 2026, notte)
+
+**MINOR su 1.29.0, con UNA migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, §A49). Contiene §A49 e §A50
+(S11 fase A). 🔴 Il net10 (`l13-net10`) diventa **1.31.0**.
+
+- Timbro **`1.30.0 · d083a15`**; zip `artifacts/publish/vipi-1.30.0-solo-file-cambiati.zip` (5,23 MB), sha256
+  `713324d58b8e509ebf19078e728564f86096edd6daff98eec1934883f3b517f5`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.30.0.md`;
+  elenco `artifacts/publish/elenco-1.30.0.txt`. Rotazione: 1.29.0 in `publish_old/20260916b`.
+- **15 file**: Domain, Application, Infrastructure, **MySqlMigrations**, Hosting, Ui (dll+pdb), `en/Vipi.Ui.resources.dll`,
+  Host dll+pdb (timbro). Nessun asset di `wwwroot`, niente `endpoints.json` (identici per impronta). Fuori
+  AuroraProfiles e AuroraBridge.Contracts (solo MVID).
+- Prima: CI verde su `dce98cbb` e `8641d3b7`, build Release 0 avvisi, suite intera verde, conteggi riscritti.
+- **Provato sul pacchetto**: publish win-x64 dalla sua cartella su una copia **fresca** della produzione in MariaDB
+  11.4.10 → migrazione applicata (colonna sparita), «Allineati i pezzi di forma di 280 settori», `SectorShapeParts`
+  = 264 Source + 16 Synthetic + 13 Aip, timbro giusto, `pacchetto-verifica.js` **10/10**, Diagnostica `Schema 0`,
+  `Avvio 0`, nessun disallineamento.
+- ▶ **PRIMA del carico**: «Scarica la copia» dalla Diagnostica + `tools/Vipi.DbBackup verifica` INTERA — tornare a
+  1.29.0 senza ripristinarla non si può.
+- ▶ **Dopo il carico, col login**: timbro; `Schema: 0`; nessun rilievo «Pezzi di forma disallineati», e di nuovo
+  **dopo qualche giorno** di import veri (condizione della fase B). Da fuori: `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`.
+
 ### 🟡 A50 — S11 della shape, fase A: il ponte fra colonne e pezzi (16 settembre 2026, notte)
 
 Il committente approva il piano di §4-bis («procedi pure con questo piano»). Tre fasi, una consegna ciascuna; la
