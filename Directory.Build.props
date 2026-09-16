@@ -1426,7 +1426,14 @@
       ponte che copia le colonne della forma in SectorShapeParts a ogni salvataggio e a ogni avvio, col rilievo di
       Diagnostica sui disallineati (§A50). A schermo non cambia niente. Il net10 (L13, ramo `l13-net10`) diventa 1.31.0.
     -->
-    <VipiVersione>1.30.0</VipiVersione>
+    <!--
+      1.30.1 — PATCH, NESSUNA migrazione. Su 1.30.0 (d083a15, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A52): diagnostica/avvisi-log.txt — Warning, Error e Critical del processo
+      con le ultime dieci richieste e righe informative (RegistroAvvisi). PATCH e non MINOR: nessuna pagina, sezione o
+      indirizzo nuovo, solo un file di diagnostica in più. Tocca il solo Vipi.Host. Il net10 resta 1.31.0.
+    -->
+    <VipiVersione>1.30.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
