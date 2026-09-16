@@ -1,5 +1,6 @@
 // Prova viva della barra di formattazione (§CL). Non prova il markup — quello lo provano gli unit test —
 // prova i GESTI: selezione, fuoco, e il `change` sintetico che riporta il testo nel modello Blazor.
+// Dal 16 settembre 2026 (§A41) anche gli elenchi annidati: i tasti ⇤ ⇥, Tab/Maiusc+Tab e Invio che continua.
 //
 // ⚠️ Due trappole gia' pagate qui dentro:
 //  - i campi stanno in <details> COLLASSATI: `innerText` torna vuoto e `page.type` non arriva.
@@ -58,7 +59,7 @@ async function apri(page) {
   });
   console.log('  ..  tasti nella barra:', JSON.stringify(prep.tasti));
   console.log('  ..  contenuto di partenza:', JSON.stringify(prep.prima));
-  dice(JSON.stringify(prep.tasti) === '["B","I","U","•","1."]', 'la barra ha i cinque tasti attesi');
+  dice(JSON.stringify(prep.tasti) === '["B","I","U","•","1)","⇤","⇥"]', 'la barra ha i sette tasti attesi');
 
   const sel = `#${prep.id}`;
   const valore = () => page.$eval(sel, e => e.value);
@@ -110,9 +111,35 @@ async function apri(page) {
 
   // --- 5. da puntato a numerato, e poi via ---
   await tutto(); await tasto(4);
-  dice(await valore() === '1. uno\n2. due\n3. tre', `elenco numerato → ${JSON.stringify(await valore())}`);
+  dice(await valore() === '1) uno\n2) due\n3) tre', `elenco numerato → ${JSON.stringify(await valore())}`);
   await tutto(); await tasto(4);
   dice(await valore() === 'uno\ndue\ntre', `smarcato → ${JSON.stringify(await valore())}`);
+
+  // --- 5-bis. elenchi annidati (§A41): Tab e Maiusc+Tab VERI, i tasti ⇥ ⇤, e Invio che continua ---
+  await tutto(); await tasto(3);                                    // di nuovo puntato
+  await seleziona(6, 6);                                            // dentro "due"
+  await page.keyboard.press('Tab'); await sleep(500);
+  dice(await valore() === '- uno\n-- due\n- tre', `Tab rientra la voce → ${JSON.stringify(await valore())}`);
+  dice(await page.evaluate(s => document.activeElement === document.querySelector(s), sel),
+       'il Tab su una voce NON porta via il fuoco');
+  await page.keyboard.down('Shift'); await page.keyboard.press('Tab'); await page.keyboard.up('Shift'); await sleep(500);
+  dice(await valore() === '- uno\n- due\n- tre', `Maiusc+Tab la riporta su → ${JSON.stringify(await valore())}`);
+  await seleziona(6, 6); await tasto(6);
+  dice(await valore() === '- uno\n-- due\n- tre', `il tasto ⇥ rientra → ${JSON.stringify(await valore())}`);
+  await seleziona(7, 7); await tasto(5);
+  dice(await valore() === '- uno\n- due\n- tre', `il tasto ⇤ riduce → ${JSON.stringify(await valore())}`);
+  // Invio in fondo a una voce la continua allo stesso livello; Invio sulla voce vuota esce dall'elenco.
+  const v5 = await valore(); await seleziona(v5.length, v5.length);
+  await page.keyboard.press('Enter'); await page.type(sel, 'quattro'); await sleep(300);
+  dice(await valore() === '- uno\n- due\n- tre\n- quattro', `Invio continua l'elenco → ${JSON.stringify(await valore())}`);
+  await page.keyboard.press('Enter'); await page.keyboard.press('Enter'); await sleep(300);
+  dice(await valore() === '- uno\n- due\n- tre\n- quattro\n', `Invio sulla voce vuota esce → ${JSON.stringify(await valore())}`);
+  // Tab su un capoverso fa quel che fa ovunque: cambia campo.
+  await scriviE('solo testo');
+  await page.keyboard.press('Tab'); await sleep(300);
+  dice(await page.evaluate(s => document.activeElement !== document.querySelector(s), sel),
+       'il Tab su un capoverso cambia campo (nessuna trappola da tastiera)');
+  await scriviE('uno\ndue\ntre');
 
   // --- 6. il cursore su UNA riga sola marca solo quella ---
   await seleziona(4, 4);               // dentro "due"
@@ -141,7 +168,12 @@ async function apri(page) {
   await seleziona(0, 7); await tasto(0);                       // grassetto su "foxtrot"
   const v = await valore();
   await seleziona(v.indexOf('hotel'), v.length); await tasto(3);  // elenco sulle ultime due righe
+  // ⚠️ E un secondo livello fatto col TAB: il rientro riscrive il campo da JS come i tasti, quindi deve
+  // passare anche lui dal `change` sintetico — o sparisce al ricarico e nessun unit test se ne accorge.
+  const v8 = await valore(); await seleziona(v8.length, v8.length);
+  await page.keyboard.press('Tab'); await sleep(500);
   const scritto = await valore();
+  dice(scritto.endsWith('- hotel\n-- india'), `secondo livello col Tab → ${JSON.stringify(scritto)}`);
   console.log('  ..  scritto coi soli tasti:', JSON.stringify(scritto));
   await page.evaluate(s => document.querySelector(s).blur(), sel);
   await sleep(3500);
@@ -175,7 +207,8 @@ async function apri(page) {
     };
   });
   console.log('  ..  reso:', JSON.stringify(reso));
-  dice(!!reso.ul && /<li>hotel<\/li><li>india<\/li>/.test(reso.ul), 'l\'elenco è reso come <ul class="md-list">');
+  dice(!!reso.ul && /<li>hotel<ul class="md-list md-l2"><li>india<\/li><\/ul><\/li>/.test(reso.ul),
+       'l\'elenco è reso annidato: <ul class="md-list md-l2"> dentro la voce');
   dice(reso.strong === 'foxtrot', 'il grassetto è reso come <strong>');
 
   await page.screenshot({ path: 'reso.png', fullPage: false });

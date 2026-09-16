@@ -33,10 +33,15 @@
 <div class="milarea-wrap" data-areacards="@Scope">
     @* Conteggio e riga «tutte spente»: arrivano dall'elenco a schede insieme agli attributi, e per la stessa
        ragione — una tabella che si accorcia da quaranta righe a tre senza dire perché sembra rotta. Il
-       FORMATO sta nell'attributo, così la frase resta tradotta anche quando a riscriverla è il browser. *@
-    <p class="muted reg-count" data-areacount="@Scope" data-fmt="@L["Reg_Shown"].Value"
-       style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
-    <p class="muted reg-empty" data-areaempty="@Scope" hidden>@L["Reg_AllOff"]</p>
+       FORMATO sta nell'attributo, così la frase resta tradotta anche quando a riscriverla è il browser.
+       ⚠️ Solo con almeno un'area: senza, la tabella dice già «nessuna area scelta», e sopra compariva
+       «Aree accese: 0 di 0» — due frasi per un vuoto solo (visto dal vivo sul pacchetto 1.28.0, BOAT di LIBG). *@
+    @if (Areas.Count > 0)
+    {
+        <p class="muted reg-count" data-areacount="@Scope" data-fmt="@L["Reg_Shown"].Value"
+           style="font-size:13px;margin:10px 0 6px">@L["Reg_Shown", Areas.Count, Areas.Count]</p>
+        <p class="muted reg-empty" data-areaempty="@Scope" hidden>@L["Reg_AllOff"]</p>
+    }
 
     <table class="res-table mil-table milarea-table" style="--wr:@SpecialAreaColorScheme.WeaponRange">
         <thead>

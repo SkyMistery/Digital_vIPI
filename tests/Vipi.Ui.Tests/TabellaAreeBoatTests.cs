@@ -166,6 +166,22 @@ public class TabellaAreeBoatTests : TestContext
     }
 
     /// <summary>
+    /// Senza aree il conteggio non c'è: la tabella dice già «nessuna area scelta», e sopra usciva «Aree accese:
+    /// 0 di 0» — visto dal vivo sul pacchetto 1.28.0, nella sezione BOAT di LIBG.
+    /// </summary>
+    [Fact]
+    public void Senza_aree_niente_conteggio_sopra_la_riga_vuota()
+    {
+        var c = Render(aree: Array.Empty<AccSpecialAreaView>());
+
+        Assert.Empty(c.FindAll("[data-areacount]"));
+        Assert.Empty(c.FindAll("[data-areaempty]"));
+        Assert.Contains("Area_None", c.Find("tbody td.muted").TextContent);
+        // Con le aree, invece, c'è.
+        Assert.Single(Render().FindAll("[data-areacount]"));
+    }
+
+    /// <summary>
     /// Due tabelle nella stessa pagina non devono condividere gli <c>id</c> delle righe di dettaglio: due
     /// <c>aria-controls</c> uguali puntano allo stesso bersaglio, e la freccetta di BOAT aprirebbe una riga
     /// delle aree di lavoro.

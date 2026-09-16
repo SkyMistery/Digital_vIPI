@@ -3714,6 +3714,12 @@
    stesso vocabolario. Il fondo resta chiaro perché sopra ci scrivono i gettoni A/A - A/G. */
 :where(.vipi-root) .milarea-table tbody tr.wr-row>td{background:color-mix(in srgb,var(--wr) 9%,var(--surface))}
 :where(.vipi-root) .milarea-table tbody tr.wr-row>td:first-child{box-shadow:inset 3px 0 0 var(--wr)}
+/* Pallino e tipo nella cella del nome. ⚠️ Lo stacco è un margine e non uno spazio nel markup: Razor toglie gli
+   spazi fra gli elementi, e nelle schede li separava il `gap` del loro inline-flex, che una cella di tabella non
+   ha. Senza, a schermo usciva «TSADonald East» (visto dal vivo sul pacchetto 1.28.0). */
+:where(.vipi-root) .milarea-table td .reg-dot{margin-right:.45em;vertical-align:-1px}
+:where(.vipi-root) .milarea-table td .reg-type{margin-right:.4em}
+:where(.vipi-root) .milarea-table td .reg-wr,:where(.vipi-root) .milarea-table td .reg-noshape{margin-left:.45em}
 :where(.vipi-root) .res-table.mil-table.thr-table th.c-rwy,:where(.vipi-root) .res-table.mil-table.thr-table td.c-rwy{width:90px}
 :where(.vipi-root) .res-table.mil-table.thr-table th.c-elev,:where(.vipi-root) .res-table.mil-table.thr-table td.c-elev{width:130px}
 :where(.vipi-root) .res-table.mil-table.navadm-table th.c-code,:where(.vipi-root) .res-table.mil-table.navadm-table td.c-code{width:82px}
