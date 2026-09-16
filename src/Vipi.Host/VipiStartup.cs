@@ -205,6 +205,14 @@ internal static class VipiStartup
         // lasciato l'utente con la barra rossa e la cartella diagnostica VUOTA. Vedi DiagnosticaCircuito.
         builder.Logging.AddProvider(new DiagnosticaCircuito());
 
+        // E tutto il resto che il processo dice a voce alta — Warning, Error, Critical — con le ultime dieci richieste
+        // e righe informative per ricostruire il contesto: diagnostica/avvisi-log.txt. Vedi RegistroAvvisi.
+        // ⚠️ I filtri sono DI QUESTO PROVIDER: in produzione Microsoft.AspNetCore sta a Warning, e senza la sua regola
+        // le richieste non arriverebbero mai.
+        builder.Logging.AddProvider(new RegistroAvvisi());
+        foreach (var (categoria, livello) in RegistroAvvisi.Filtri)
+            builder.Logging.AddFilter<RegistroAvvisi>(categoria, livello);
+
         // ⚠️ VIA il registro eventi di Windows. `WebApplication.CreateBuilder` lo aggiunge DA SOLO quando gira
         // su Windows, e non lo vuole nessuno:
         //

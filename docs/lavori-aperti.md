@@ -2,6 +2,31 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 🟡 A52 — Avvisi ed errori del log in `diagnostica/avvisi-log.txt`, col contesto (16 settembre 2026, notte)
+
+Chiesto dal committente dopo aver letto i file di 1.30.0: *«mettere in diagnostica tutti i messaggi di log warning e
+fail, magari insieme alle 10 chiamate precedenti per ricostruire»*. In `main`, **NON in pacchetto**, nessuna
+migrazione: tocca solo `Vipi.Host`.
+
+- `RegistroAvvisi` (`ILoggerProvider`, registrato accanto a `DiagnosticaCircuito`): ogni riga **Warning / Error /
+  Critical** del processo in `diagnostica/avvisi-log.txt`, con **le ultime 10 richieste servite** (dai valori
+  strutturati di «Request finished», evento 2: metodo, percorso **senza query**, esito, durata) e **le ultime 10
+  righe informative `Vipi.*`**. Ping `/vsop/health` e file statici non occupano i posti.
+- 🔴 **Le ripetizioni**: il processo rinasce ogni ~50 s, quindi una **firma** (categoria, evento, modello del
+  messaggio, tipo e punto nostro dell'eccezione) si scrive intera **una volta al giorno**, le ripetizioni sono righe
+  `ANCORA` **al massimo una all'ora**; la memoria sta nel file, non nel processo. Tetto 512 kB con `-precedenti`.
+- Gli errori che hanno già lo stack in `errori-richieste.txt` (richieste fallite, circuito) qui portano il contesto e
+  il rimando, non una seconda copia dello stack.
+- ⚠️ **I filtri sono del provider**: in produzione `Microsoft.AspNetCore` sta a Warning, e senza la regola le richieste
+  non arriverebbero; una regola «Information per tutti» accenderebbe per noi il testo di ogni query EF. Tutt'e due
+  provati guastando il codice: 4 test rossi nel primo caso, 1 nel secondo.
+- ⚠️ Limite: i gesti dentro una pagina interattiva viaggiano sul circuito, non sono richieste HTTP — fra le «10
+  richieste» si vedono le pagine aperte, non i clic.
+- **Dal vivo** sulla copia di produzione: nessun avviso in un minuto di lavoro normale (il file non nasce); avviso
+  provocato (copia del DB da «un altro sito») → voce con 9 richieste e 7 righe informative, il secondo identico non
+  riscritto, `/vsop/health` assente, due query di prova assenti. Visto lì e corretto: un 404 contava due volte
+  (evento 16 «fine della pipeline»).
+
 ### ✅ A51 — 1.30.0 È ONLINE (16 settembre 2026, notte)
 
 ✅ **Caricato**, timbro confermato in barra dal committente. Da fuori `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`
