@@ -1,5 +1,7 @@
 # Pacchetto 1.29.0 — solo i file cambiati
 
+> ✅ **CARICATO il 16 settembre 2026.** Timbro confermato in barra dal committente, e la copia del database scaricata **dalla produzione** (55 MB) è stata verificata e ripristinata: `verifica` INTERA — 62 tabelle, 79.053 righe, istruzione più lunga 4,4 MB — e reimportata col client `mariadb` in un database vuoto con le stesse 79.053 righe e 54 immagini su 54 con lo sha256 giusto. Da fuori: pacchetto tutto verde con la Ricerca, `vipi-theme.css` servito con lo sha256 identico a quello spedito.
+
 > **Timbro:** `1.29.0 · 49a2dd5` (16 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

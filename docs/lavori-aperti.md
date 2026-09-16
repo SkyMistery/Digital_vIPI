@@ -2,7 +2,11 @@
 
 ## Dove siamo — 16 settembre 2026
 
-### 📦 A48 — 1.29.0 PRONTO DA CARICARE (16 settembre 2026, notte)
+### ✅ A48 — 1.29.0 È ONLINE (16 settembre 2026, notte)
+
+✅ **Caricato e controllato.** Timbro confermato in barra dal committente. La copia del database **scaricata dalla produzione** (55 MB, `vipi-copia-2026-09-16-1806Z-1.29.0-49a2dd5.sql.gz`): `verifica` INTERA (62 tabelle, 79.053 righe, istruzione max 4,4 MB, sha256 `9de81c2e…35c0`), e **ripristinata** in un database vuoto sul MariaDB locale con la procedura del foglio: 62 tabelle, 79.053 righe, ultima migrazione giusta, 54/54 immagini con lo sha256 che torna (database di prova poi cancellato). Da fuori: `pacchetto-verifica.js` pubblico tutto verde; `vipi-theme.css` servito = spedito (sha256). La prova Cloudflare+Passenger su un file vero è quindi fatta. ▶ Resta col login: `Schema: 0`, ★ blu su un APP.
+
+Il pacchetto, come preparato:
 
 **MINOR su 1.28.0, NESSUNA migrazione.** Contiene §A45 (★ blu), §A46 (intro MIL chiusa) e §A47 (copia del database,
 con la revisione indipendente e la correzione dello stack overflow latente in `ScopeProprioCheAspetta`). MINOR e
