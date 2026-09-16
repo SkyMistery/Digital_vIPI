@@ -5,7 +5,7 @@
 ### ✅ A51 — 1.30.0 È ONLINE (16 settembre 2026, notte)
 
 ✅ **Caricato**, timbro confermato in barra dal committente. Da fuori `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`
-tutto verde (8/8, Ricerca compresa). ▶ **Col login**: `Schema: 0`; nessun rilievo «Pezzi di forma disallineati»,
+tutto verde (8/8, Ricerca compresa). ✅ **Col login** (committente, 19:42Z): `Schema 0`, e i conteggi Dati 5 · Sorgente 30 sono gli stessi della prova locale sul pacchetto, dove il rilievo «Pezzi di forma disallineati» non c era. ▶ Da riguardare
 subito e **dopo qualche giorno** di import veri — è la condizione per la **fase B** della S11 (§A50).
 
 Il pacchetto, come preparato:
