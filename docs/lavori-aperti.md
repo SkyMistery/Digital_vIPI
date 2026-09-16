@@ -2,6 +2,22 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 🟡 A50 — S11 della shape, fase A: il ponte fra colonne e pezzi (16 settembre 2026, notte)
+
+Il committente approva il piano di §4-bis («procedi pure con questo piano»). Tre fasi, una consegna ciascuna; la
+carta 15 §4-bis ha il dettaglio. In `main`, **NON in pacchetto**, **nessuna migrazione** (la sola distruttiva resta
+quella di §A49).
+
+- **Fase A fatta**: ogni salvataggio che tocca forma, quote, gate o elimina un settore allinea `SectorShapeParts`
+  (`PonteDelleForme`, chiamato da `VipiDbContext`); passata d'avvio fuori dal gate; rilievo di Diagnostica «Pezzi
+  di forma disallineati»; precedenza dell'archivio rovesciata. **Le letture restano sulle colonne: a schermo non
+  cambia niente.**
+- Provata sulla **copia di produzione** su MariaDB: 280 settori allineati al primo avvio (264 `Source` + 16
+  `Synthetic`, i 13 `Aip` intatti), zero al secondo, Diagnostica pulita. Database `vipi_s11` lasciato sul MariaDB
+  locale per la fase B.
+- ▶ **Dopo il carico**: la Diagnostica online non deve mostrare «Pezzi di forma disallineati». È la condizione
+  per la fase B (le letture ai pezzi).
+
 ### 🟡 A49 — Via `Airports.IsMilitaryOnly`, e la S11 della shape riletta (16 settembre 2026, notte)
 
 In `main`, **NON in pacchetto**. 🔴 **Porta una migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, un

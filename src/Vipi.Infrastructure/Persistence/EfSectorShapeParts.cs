@@ -33,11 +33,17 @@ public sealed class EfSectorShapeParts : ISectorShapeParts
     }
 
     /// <summary>
-    /// ⚠️ La precedenza fra fonti sta in UN posto, ed è questo: più specifica vince. Scritta come dato
-    /// (un elenco) e non come catena di <c>if</c>, perché una fonte nuova deve aggiungersi qui e basta.
+    /// ⚠️ La precedenza fra fonti sta in UN posto, ed è questo. Scritta come dato (un elenco) e non come catena
+    /// di <c>if</c>, perché una fonte nuova deve aggiungersi qui e basta.
+    ///
+    /// <para>🔴 <b>Rovesciata il 16 settembre 2026</b> (S11 fase A, carta 15 §4-bis): era
+    /// <c>Aip → Sectorfile → Source → Synthetic</c>, e reggeva solo perché in archivio c'era la sola ATZ
+    /// automatica. Con le fonti di catalogo in archivio l'ATZ avrebbe scavalcato il sectorfile — il difetto che il
+    /// test rosso di §3c aveva già preso una volta. L'ordine è quello dei gradini del risolutore: un confine vero
+    /// del catalogo, poi l'ATZ automatica, poi il cerchio. L'aggancio scelto a mano non sta in archivio.</para>
     /// </summary>
     private static readonly ShapeSource[] Precedenza =
-        { ShapeSource.Aip, ShapeSource.Sectorfile, ShapeSource.Source, ShapeSource.Synthetic };
+        { ShapeSource.Sectorfile, ShapeSource.Source, ShapeSource.Aip, ShapeSource.Synthetic };
 
     public async Task<IReadOnlyDictionary<string, (ShapeSource Source, IReadOnlyList<ShapePart> Parts)>>
         ListInForceByCallsignAsync(IReadOnlyList<string> callsigns, CancellationToken ct = default)

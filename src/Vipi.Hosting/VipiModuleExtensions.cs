@@ -897,6 +897,14 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Portati {Count} aeroporti alla loro categoria (presenza militare cambiata).", categorie);
 
+        // I pezzi di forma dietro le colonne (S11 fase A, carta 15 §4-bis). ⚠️ Fuori dal gate, come la categoria:
+        // ripara il ponte del contesto quando il suo secondo salvataggio cade, e quello succede a runtime.
+        var forme = scope.ServiceProvider.GetRequiredService<Vipi.Application.Content.ISectorCatalogMaintenance>()
+            .AlignShapePartsAsync().GetAwaiter().GetResult();
+        if (forme > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Allineati i pezzi di forma di {Count} settori alle colonne del catalogo.", forme);
+
         // ── Da qui in giù: le DODICI passate sui documenti, e il loro gate ───────────────────────────────
         //
         // Il perché sta nel riepilogo in testa al metodo. Qui la meccanica, che è tutta in queste righe.

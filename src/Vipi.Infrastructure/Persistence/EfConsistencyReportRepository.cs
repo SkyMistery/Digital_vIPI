@@ -139,6 +139,7 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                 .ToHashSet(StringComparer.OrdinalIgnoreCase),
             TransferLadders = await PuntiDiTrasferimentoAsync(ct),
             DocumentiFuoriCategoria = await DocumentiFuoriCategoriaAsync(ct),
+            PezziDiFormaDisallineati = await PonteDelleForme.DisallineatiAsync(_db, ct),
         };
     }
 

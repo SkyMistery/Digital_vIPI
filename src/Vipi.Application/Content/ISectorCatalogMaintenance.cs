@@ -23,4 +23,17 @@ public interface ISectorCatalogMaintenance
     /// sorgente ha cominciato a mandare.</para>
     /// </summary>
     Task<int> MarkManualCatalogRowsAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Allinea i pezzi di forma (<c>SectorShapeParts</c>) alle colonne della forma di ogni riga di catalogo, e
+    /// toglie i pezzi di settori che non esistono più. Torna quanti settori ha corretto; a regime zero.
+    ///
+    /// <para>Fase A di S11 (carta 15 §4-bis). ⚠️ <b>Gira a ogni avvio, fuori dal gate delle passate</b>: ripara
+    /// quel che il ponte del contesto non ha fatto in tempo a scrivere (un secondo salvataggio caduto), e quello
+    /// succede a runtime, non solo alle consegne.</para>
+    /// </summary>
+    Task<int> AlignShapePartsAsync(CancellationToken ct = default);
+
+    /// <summary>I callsign i cui pezzi di forma non dicono quel che dicono le colonne. Solo lettura: la Diagnostica.</summary>
+    Task<IReadOnlyList<string>> ListMisalignedShapePartsAsync(CancellationToken ct = default);
 }

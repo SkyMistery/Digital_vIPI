@@ -52,9 +52,10 @@ public interface ISectorShapeParts
     /// I pezzi <b>in vigore</b> di più callsign in un colpo solo: è la lettura che serve al risolutore, e
     /// quella per cui esiste l'indice <c>(Callsign, State)</c>. Chiave = callsign maiuscolo.
     ///
-    /// <para>Se per uno stesso settore ci fossero pezzi di più fonti, vince la <b>più specifica</b> —
-    /// <c>Aip</c>, poi <c>Sectorfile</c>, poi <c>Source</c>, poi <c>Synthetic</c> — che è l'ordine in cui le
-    /// fonti si scavalcano dappertutto: il cerchio di ripiego perde contro un confine vero.</para>
+    /// <para>Se per uno stesso settore ci fossero pezzi di più fonti, vince <c>Sectorfile</c>, poi
+    /// <c>Source</c>, poi <c>Aip</c> (l'ATZ automatica), poi <c>Synthetic</c>: gli stessi gradini del risolutore,
+    /// dove un confine vero del catalogo sta sopra l'ATZ e il cerchio di ripiego perde contro tutti. Rovesciata il
+    /// 16 settembre 2026 (carta 15 §4-bis): prima l'<c>Aip</c> stava in testa.</para>
     /// </summary>
     Task<IReadOnlyDictionary<string, (ShapeSource Source, IReadOnlyList<ShapePart> Parts)>> ListInForceByCallsignAsync(
         IReadOnlyList<string> callsigns, CancellationToken ct = default);

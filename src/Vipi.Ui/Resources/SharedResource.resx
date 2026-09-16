@@ -582,6 +582,8 @@
   <data name="Diag_Msg_ContornoRipetuto" xml:space="preserve"><value>La shape di sorgente contiene lo stesso anello {0} volte ({1} punti). L'applicazione lo ripara in lettura; senza quella correzione il settore non conterrebbe nulla e il suo traffico sarebbe sempre zero.</value></data>
   <data name="Diag_Cat_ShapeSintetica" xml:space="preserve"><value>Shape sintetica</value></data>
   <data name="Diag_Msg_ShapeSintetica" xml:space="preserve"><value>La sorgente non da il poligono di questa torre: si usa un cerchio di 5 NM. Il traffico attribuito qui e una stima, non una misura.</value></data>
+  <data name="Diag_Cat_PezziDisallineati" xml:space="preserve"><value>Pezzi di forma disallineati</value></data>
+  <data name="Diag_Msg_PezziDisallineati" xml:space="preserve"><value>{0} settori hanno i pezzi di forma diversi dalle colonne del catalogo ({1}). Un riavvio li riallinea; se tornano, c'è un percorso di scrittura che il ponte non vede.</value></data>
   <data name="Diag_Area_Dati" xml:space="preserve"><value>Dati</value></data>
   <data name="Diag_Area_Schema" xml:space="preserve"><value>Schema</value></data>
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>

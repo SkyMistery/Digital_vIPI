@@ -215,6 +215,12 @@ public sealed class ConsistencyDataset
 
     /// <summary>I documenti che la categoria del loro campo non ammette. Vuoto = niente da dire.</summary>
     public IReadOnlyList<DocumentoFuoriCategoriaRow> DocumentiFuoriCategoria { get; init; } = Array.Empty<DocumentoFuoriCategoriaRow>();
+
+    /// <summary>
+    /// I callsign i cui pezzi di forma (<c>SectorShapeParts</c>) non dicono quel che dicono le colonne del catalogo.
+    /// S11 fase A (carta 15 §4-bis): <b>deve essere vuoto</b> in produzione prima che le letture passino ai pezzi.
+    /// </summary>
+    public IReadOnlyList<string> PezziDiFormaDisallineati { get; init; } = Array.Empty<string>();
 }
 
 /// <summary>La banda verticale di un settore, coi limiti <b>grezzi</b> del catalogo (l'unità non è tracciata

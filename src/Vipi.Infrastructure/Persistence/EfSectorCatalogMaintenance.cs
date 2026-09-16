@@ -38,4 +38,10 @@ internal sealed class EfSectorCatalogMaintenance : ISectorCatalogMaintenance
         await _states.MarkSuccessAsync(categoria, DateTime.UtcNow, ct);
         return toccate;
     }
+
+    public Task<int> AlignShapePartsAsync(CancellationToken ct = default) =>
+        PonteDelleForme.AllineaTuttoAsync(_db, ct);
+
+    public Task<IReadOnlyList<string>> ListMisalignedShapePartsAsync(CancellationToken ct = default) =>
+        PonteDelleForme.DisallineatiAsync(_db, ct);
 }

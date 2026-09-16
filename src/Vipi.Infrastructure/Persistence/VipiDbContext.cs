@@ -26,16 +26,48 @@ public class VipiDbContext : DbContext
     // nascono di nuovi. Vedi docs/history/audit-2026-08-14-database-mariadb.md §A1 e
     // ConcorrenzaOttimisticaTests, che prima di questo blocco erano otto test rossi.
 
-    public override int SaveChanges(bool acceptAllChangesOnSuccess)
-    {
-        RuotaTokenDiConcorrenza();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
-    }
+    public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
+        SaveChangesAsync(acceptAllChangesOnSuccess, CancellationToken.None, sincrono: true).GetAwaiter().GetResult();
 
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default) =>
+        SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken, sincrono: false);
+
+    /// <summary>Vero mentre il ponte delle forme salva i suoi pezzi: quel salvataggio non ne riapre un altro.</summary>
+    private bool _ponteInCorso;
+
+    /// <summary>
+    /// Il salvataggio, più il <b>ponte delle forme</b> (S11 fase A, <see cref="PonteDelleForme"/>): se ha toccato
+    /// una riga di catalogo, i pezzi di <c>SectorShapeParts</c> si allineano subito dopo. Un posto solo, perché gli
+    /// scrittori della forma e delle quote sono tredici.
+    /// </summary>
+    private async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken ct, bool sincrono)
     {
         RuotaTokenDiConcorrenza();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        // ⚠️ Con acceptAllChangesOnSuccess=false le modifiche restano pendenti dopo il primo salvataggio, e il
+        // secondo le rifarebbe: lì il ponte non parte, e rimedia la passata d'avvio. Nessuno lo usa (16-set-2026).
+        var toccate = _ponteInCorso || !acceptAllChangesOnSuccess
+            ? new List<PonteDelleForme.Toccata>()
+            : PonteDelleForme.Raccogli(ChangeTracker);
+
+        var n = sincrono
+            ? base.SaveChanges(acceptAllChangesOnSuccess)
+            : await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        if (toccate.Count == 0) return n;
+
+        _ponteInCorso = true;
+        try
+        {
+            await PonteDelleForme.AllineaAsync(this, toccate, ct);
+            if (ChangeTracker.HasChanges())
+                n += sincrono
+                    ? base.SaveChanges(acceptAllChangesOnSuccess)
+                    : await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+        }
+        finally
+        {
+            _ponteInCorso = false;
+        }
+        return n;
     }
 
     /// <summary>

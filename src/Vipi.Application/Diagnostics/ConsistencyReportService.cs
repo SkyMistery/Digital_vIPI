@@ -621,6 +621,22 @@ public sealed class ConsistencyReportService : IConsistencyReportService
 
         findings.AddRange(CallsignAmbigui(d.ValidCallsigns));
         findings.AddRange(ShapeDiSorgente(d.SectorShapes));
+
+        // S11 fase A (carta 15 §4-bis): i pezzi di forma sono la copia delle colonne, scritta dal ponte del contesto
+        // e riparata a ogni avvio. Un disallineamento che sopravvive a un riavvio è un percorso di scrittura che il
+        // ponte non vede — ⚠️ e va capito PRIMA che le letture passino ai pezzi, non dopo.
+        if (d.PezziDiFormaDisallineati.Count > 0)
+        {
+            var nomi = string.Join(", ", d.PezziDiFormaDisallineati.Take(10))
+                       + (d.PezziDiFormaDisallineati.Count > 10 ? ", …" : "");
+            findings.Add(new ConsistencyFinding("Pezzi di forma disallineati", ConsistencySeverity.Warning,
+                "Cataloghi settori",
+                $"{d.PezziDiFormaDisallineati.Count} settori hanno i pezzi di forma diversi dalle colonne del catalogo ({nomi}). " +
+                "Un riavvio li riallinea; se tornano, c'è un percorso di scrittura che il ponte non vede.",
+                ConsistencyArea.Dati, DoveStruttura,
+                CategoryKey: "Diag_Cat_PezziDisallineati", DetailKey: "Diag_Msg_PezziDisallineati",
+                DetailArgs: new object[] { d.PezziDiFormaDisallineati.Count, nomi }));
+        }
         return findings;
     }
 

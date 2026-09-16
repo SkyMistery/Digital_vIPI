@@ -577,6 +577,8 @@
   <data name="Diag_Msg_ContornoRipetuto" xml:space="preserve"><value>The source shape contains the same ring {0} times ({1} points). The application repairs it on read; without that fix the sector would contain nothing and its traffic would always be zero.</value></data>
   <data name="Diag_Cat_ShapeSintetica" xml:space="preserve"><value>Synthetic shape</value></data>
   <data name="Diag_Msg_ShapeSintetica" xml:space="preserve"><value>The source gives no polygon for this tower: a 5 NM circle is used instead. Traffic attributed here is an estimate, not a measurement.</value></data>
+  <data name="Diag_Cat_PezziDisallineati" xml:space="preserve"><value>Misaligned shape parts</value></data>
+  <data name="Diag_Msg_PezziDisallineati" xml:space="preserve"><value>{0} sectors have shape parts that differ from the catalog columns ({1}). A restart realigns them; if they come back, some write path is not seen by the bridge.</value></data>
   <data name="Diag_Area_Dati" xml:space="preserve"><value>Data</value></data>
   <data name="Diag_Area_Schema" xml:space="preserve"><value>Schema</value></data>
   <data name="Diag_Area_Server" xml:space="preserve"><value>Server</value></data>

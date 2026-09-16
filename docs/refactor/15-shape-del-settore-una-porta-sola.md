@@ -345,8 +345,43 @@ di ogni fonte non-AIP di quel settore, o il disegno resta sulle quote di prima *
 **Il piano, ricontato:** backfill (1) · scritture di forma (8, come sopra) · scritture di quote (5) ·
 letture (16) · promozione e gate · togliere i rami di conversione · la migrazione che droppa, **una release
 dopo**. È un **capitolo di sei-otto consegne**, non una slice, e il guadagno è di pulizia: nessun difetto
-visibile oggi dipende da S11. ▶ **Decisione chiesta al committente il 16 settembre 2026**: farla adesso con
-questo piano, o parcheggiarla.
+visibile oggi dipende da S11. ✅ **Il committente, 16 settembre 2026: «procedi pure con questo piano».**
+
+### Come si esegue: tre fasi, e nessuna cambia lo schermo prima che i dati lo dicano
+
+La scelta che regge tutto: **nel catalogo le tre fonti non convivono**. Una riga porta *una* forma — l'anagrafica
+sovrascrive il sectorfile e ne azzera il gate, il sectorfile scrive sopra il cerchio — e il risolutore ci mette
+sopra l'ATZ dell'AIP dall'archivio. S11 **non cambia questa semantica**: la sposta. Dentro l'archivio le fonti di
+catalogo (`Source`, `Sectorfile`, `Synthetic`) restano **esclusive fra loro**, e `Aip` non la tocca mai nessuno
+di loro. Con questa regola la precedenza `Sectorfile → Source → Aip → Synthetic` dà esattamente i quattro gradini
+di §3c, e il risolutore a pezzi è **equivalente** a quello di oggi — verificabile, non da credere.
+
+| Fase | Che cosa | Il segno che è finita |
+|---|---|---|
+| **A — il ponte** | Una funzione pura dice quali pezzi corrispondono a una riga di catalogo (anello, quote, `InForce`/`Pending` col ciclo e la forzatura). Il contesto la applica a **ogni** salvataggio che tocca forma, quote, gate o elimina un settore — un posto solo, così nessuno scrittore può dimenticarsene; una passata d'avvio riallinea tutto; la Diagnostica conta le righe **disallineate**. La precedenza dell'archivio si rovescia. **Le letture restano sulle colonne.** | in produzione, righe disallineate = **0** |
+| **B — le letture** | Le sedici letture, il risolutore, il congelamento e l'avviso di chi pubblica passano ai pezzi: «corrente» = `Pending` se c'è, altrimenti `InForce`; «per il ciclo C» = la regola di `ShapeAiracGate`. Le colonne si scrivono ancora (il ponte resta). | pubblicazione vera sulla copia del DB, AoR identica a prima |
+| **C — gli scrittori** | Gli scrittori scrivono i pezzi, il ponte se ne va, e la migrazione toglie `RegionMapPolygon`, `RegionMapPolygonInForce`, `ShapeAiracCycle`, `ShapeForcePublished`, `ShapeSource`, `IsShapeSynthetic`. `LowerLimit`/`UpperLimit` **restano**: sono dati dell'anagrafica che la pagina Struttura modifica, e i pezzi ne portano la copia. | una release dopo B |
+
+### ✅ Fase A — fatta il 16 settembre 2026 (in `main`, non in pacchetto)
+
+- `CatalogShapeMirror` (Application, pura): riga di catalogo → una fonte, l'insieme in vigore e, dove il gate
+  potrebbe differire, quello in attesa col ciclo e la forzatura.
+- `PonteDelleForme` (Infrastructure): raccoglie dal change-tracker le righe aggiunte, eliminate o modificate in
+  forma/quote/gate/callsign, e dopo il salvataggio allinea i pezzi — fonti di catalogo esclusive, `Aip` toccato
+  solo per seguire un callsign rinominato, tutto via per un settore eliminato. Chiamato da `VipiDbContext` a ogni
+  salvataggio: **un posto solo** per tredici scrittori.
+- Passata d'avvio `ISectorCatalogMaintenance.AlignShapePartsAsync`, **fuori dal gate** (toglie anche gli orfani);
+  rilievo di Diagnostica «Pezzi di forma disallineati».
+- `EfSectorShapeParts.Precedenza` rovesciata: `Sectorfile → Source → Aip → Synthetic`.
+- Test: 13 sul ponte (10 cadono col ponte spento; quello sulla precedenza cade con l'ordine vecchio), 10 sulla
+  funzione pura, 2 sul rilievo. Suite intera verde.
+- **Dal vivo, due archivi, due avvii ciascuno.** Copia SQLite di sviluppo: 285 settori allineati, poi zero.
+  **Copia di produzione del 16 settembre** ripristinata su MariaDB 11.4.10: prima 137+127 righe `Source` e 16
+  sintetiche con forma, 13 pezzi `Aip`; dopo il primo avvio **280 settori allineati** e in archivio
+  **264 `Source` + 16 `Synthetic` + 13 `Aip`**, cioè esattamente le righe; al secondo avvio zero correzioni, e la
+  Diagnostica senza rilievo. Nessuna riga differita in produzione (`ShapeAiracCycle` nullo ovunque).
+- ▶ **Il segno che A è finita** va guardato **online dopo il carico**: Diagnostica senza «Pezzi di forma
+  disallineati» dopo qualche giorno di import veri.
 
 ### Il piano del 30 agosto
 
