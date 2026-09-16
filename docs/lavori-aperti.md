@@ -200,12 +200,12 @@ attesa di decidere da quale partire**.
    aggiornarne il piano.
    - ▶ Legata: le **13 torri ATZ** con forma `Aip` non sono mai state guardate dal vivo — le 13 righe devono
      diventare pezzi e la colonna tornare libera. Si guarda al primo deploy che le converte.
-2. ▶ **Togliere il presidio della finestra** — `tests/Vipi.Infrastructure.Tests/MigrazioniDellaFinestraCiecaTests.cs`
-   e la deroga `RevisionateAMano`. La carta dice **cancellarlo, non spostare le date**: tenuto, diventa una regola
-   permanente travestita da eccezione. ⚠️ **Da confermare col committente** prima: il presidio ha fermato un
-   `AlterColumn` vero il 10 settembre (§CO), e una regola «migrazioni solo additive» potrebbe valere la pena
-   tenerla — ma allora va **riscritta come regola**, senza date.
-   ⚠️ Toglie test: `tests/conteggi-attesi.txt` va riscritto nello stesso commit.
+2. ✅ **Presidio della finestra TOLTO** (16 settembre 2026, notte). Il committente conferma: «non siamo più in
+   finestra cieca». Cancellati `MigrazioniDellaFinestraCiecaTests` e la deroga `RevisionateAMano` (5 test, solo
+   net8), riscritto `tests/conteggi-attesi.txt`; aggiornati i commenti che lo nominavano (`Anagrafica`,
+   `VipiDbContext`, `IDocumentMaintenance`), la spec del modello dati e il runbook dei pacchetti. Non riscritto
+   come regola permanente: la rete per una migrazione distruttiva oggi è la **copia del database** (§A47).
+   ▶ Ora si può: togliere la colonna in pensione `Airports.IsMilitaryOnly` (con migrazione doppia).
 3. ▶ **Feedback a due canali** (§CJ, memoria «feedback due canali»): carta pronta (`piano-segnalazioni.md` §10),
    codice zero, rimandato «a dopo il 16 settembre» per la taglia del cambio al database. Il nodo resta: lo
    sviluppatore non vede il database di produzione.

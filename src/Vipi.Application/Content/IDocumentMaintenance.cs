@@ -163,7 +163,7 @@ public interface IDocumentMaintenance
     /// <para>⚠️ <b>Solo dove il pubblico è ancora <c>Both</c>.</b> E qui c'è un limite dichiarato, non un
     /// dettaglio: <c>Both</c> vuol dire due cose che non si distinguono — «nessuno l'ha mai toccata» e
     /// «qualcuno ha deciso così». Non c'è una colonna che le separi, e aggiungerla vorrebbe dire una
-    /// migrazione dello schema dentro la finestra cieca del 16 settembre 2026, per un caso che forse non
+    /// migrazione dello schema dentro la finestra cieca (chiusa il 16 settembre 2026), per un caso che forse non
     /// esiste (la marcatura a mano è di dieci giorni fa). Si accetta: chi avesse scelto <c>Both</c> su una
     /// di quelle sezioni se lo rivede ribaltato una volta sola, e lo rimette con un clic. Sta nel runbook
     /// della consegna, perché non lo scopra a schermo.</para>
@@ -197,8 +197,8 @@ public interface IDocumentMaintenance
     /// travaso dal booleano in pensione <c>IsMilitaryOnly</c>, più l'invariante con la presenza militare.
     /// Ritorna quanti aeroporti sono cambiati. Idempotente: a regime tocca zero righe.
     ///
-    /// <para>⚠️ Sta qui e non in una migrazione per due ragioni: la finestra cieca vieta l'SQL nelle migrazioni
-    /// MySQL fino al 16 settembre 2026, e su Postgres la colonna la aggiunge il riconciliatore, che non travasa
+    /// <para>⚠️ Sta qui e non in una migrazione per due ragioni: quando è nata, la finestra cieca vietava l'SQL
+    /// nelle migrazioni MySQL (fino al 16 settembre 2026), e su Postgres la colonna la aggiunge il riconciliatore, che non travasa
     /// niente. ⚠️ Deve girare DOPO <see cref="LinkAirportDocumentsAsync"/>: il travaso guarda il vSOP dello
     /// scalo, e un legame non ancora scritto lo farebbe sembrare assente.</para>
     /// </summary>

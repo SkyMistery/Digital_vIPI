@@ -238,7 +238,7 @@ public class VipiDbContext : DbContext
             e.Property(x => x.SectorCallsign).IsRequired().HasMaxLength(32);
             // ⚠️ Resta obbligatorio: una riga di rinvio porta la stringa VUOTA, e a dire che non è un
             // callsign mancante è TargetKind. Renderlo nullable sarebbe stato un AlterColumn, vietato nella
-            // finestra cieca (MigrazioniDellaFinestraCiecaTests).
+            // finestra cieca (31 agosto → 16 settembre 2026) quando la scelta è stata fatta.
             e.Property(x => x.TargetCallsign).IsRequired().HasMaxLength(32);
             e.Property(x => x.TargetKind).HasDefaultValue(FallbackTargetKind.Callsign);
             // L'indice è (settore, ordine): si legge sempre «tutte le righe di X, in ordine».
@@ -685,7 +685,8 @@ public class VipiDbContext : DbContext
         // --- Categoria dell'aeroporto (carta 2026-09-11-categorie-aeroporto.md) ---
         // Stessa ragione dell'edizione qui sopra: default DICHIARATO NEL MODELLO, e `Civil` è lo zero. Le righe
         // già in tabella nascono Civil; la passata d'avvio le porta alla categoria giusta
-        // (IDocumentMaintenance.ReconcileAirportCategoriesAsync), perché la finestra cieca vieta l'SQL in migrazione.
+        // (IDocumentMaintenance.ReconcileAirportCategoriesAsync), perché la finestra cieca (chiusa il 16-set-2026)
+        // vietava l'SQL in migrazione.
         b.Entity<Airport>()
             .Property(x => x.Category)
             .HasDefaultValue(AirportCategory.Civil);

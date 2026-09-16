@@ -34,9 +34,13 @@ regola si applica davvero.
 sono fotografie e non si toccano, ma una riga che afferma un fatto **al presente** è quella su cui qualcuno
 prende una decisione fra sei mesi.
 
-🔒 **Dentro la finestra cieca** (nessuno amministra il database di Ivao.It) un MAJOR **non si spedisce**:
-in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL non transazionale, senza nessuno che
-possa ripristinare. Presidio: `MigrazioniDellaFinestraCiecaTests`.
+🔓 **La finestra cieca è CHIUSA dal 16 settembre 2026** (dal 31 agosto nessuno amministrava il database di
+Ivao.It: un MAJOR non si spediva, e un test fermava le migrazioni distruttive). Il test è stato **cancellato**,
+non spostato in avanti con le date: tenuto, sarebbe diventato una regola permanente travestita da eccezione.
+⚠️ **Resta vero il fatto da cui nasceva**: in produzione `Database.Migrate()` gira all'avvio, da solo, su DDL
+non transazionale. Una migrazione distruttiva si spedisce **con gli occhi aperti**: chi amministra il database
+lo sa prima, e c'è una copia fresca — da 1.29.0 la scarica un Admin dalla Diagnostica
+(`tools/Vipi.DbBackup verifica` per controllarla).
 
 🔴 **Una migrazione ADDITIVA invece si spedisce, e queste due righe dicevano il contrario.** Fino al
 3 settembre 2026 qui c'era scritto «e una migrazione nuova nemmeno», nominando quel test come presidio. Il
@@ -50,8 +54,8 @@ già in produzione da **1.3.0** (31 agosto), cioè dentro la finestra — verifi
 scritta in un runbook che si apre quando si è di fretta, è peggio di nessuna regola: si scavalca, e con lei
 si scavalca l'abitudine di leggerlo.
 
-**La domanda vera, prima di spedire uno schema in finestra**, resta una sola e la risponde il test:
-*quella migrazione può lasciare il database in uno stato da cui l'applicazione non riparte?* Additiva = no.
+**La domanda vera, prima di spedire uno schema**, resta una sola: *quella migrazione può lasciare il database
+in uno stato da cui l'applicazione non riparte?* Additiva = no. Distruttiva = forse, e allora prima la copia.
 
 ## Il ramo: si parte da quel che GIRA, non da `main`
 

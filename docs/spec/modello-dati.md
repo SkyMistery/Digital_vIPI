@@ -563,9 +563,9 @@ default `'Civil'`) che **prende il posto di `IsMilitaryOnly`**: `Civil` · `Mili
 solo il vSOP, militare-con-presenza-civile tutti e due in qualunque ordine. ⚠️ **Invariante**: senza
 `HasMilitaryPresence` è `Civil`, con la presenza non lo è mai; la tengono il giro dell'anagrafica, il comando della
 pagina Aeroporti e la passata d'avvio `ReconcileAirportCategoriesAsync` (che fa anche il travaso). ⚠️
-**`IsMilitaryOnly` è IN PENSIONE ma resta in tabella** fino alla prima migrazione dopo la finestra cieca del 16
-settembre 2026: nessuno la legge tranne il travaso, e il setter di `Category` la scrive come specchio
-(`Category == MilitaryOnly`) per un eventuale ritorno a 1.21.x.
+**`IsMilitaryOnly` è IN PENSIONE ma resta in tabella**: la finestra cieca (chiusa il 16 settembre 2026) vietava di
+toglierla, e ora si può fare con una migrazione (non ancora fatta). Nessuno la legge tranne il travaso, e il setter
+di `Category` la scrive come specchio (`Category == MilitaryOnly`) per un eventuale ritorno a 1.21.x.
 
 `Iata` normalizzato: la sorgente manda **stringa vuota**, non null, per i 73 aeroporti che non ne hanno uno.
 
@@ -756,8 +756,8 @@ Il livello di un trasferimento può variare per **pista in uso**, **area attiva*
 Migrazioni: `AddTransferPointCondition` (impianto iniziale, poi rimosso `ConditionKind`), `AddTransferPointConditionArea` (colonna area), **`SplitTransferConditionColumns`** (22 lug 2026: **droppa `ConditionKind`**, aggiunge `ConditionCustomLabel`, backfilla Area/Custom nelle rispettive colonne). L'enum `TransferConditionKind` è **rimosso**. **`CondizioneAreaNonAttiva`** (10 set 2026: `AddColumn` additiva
 per i due provider, nessun backfill — `false` su tutte le righe esistenti *è* «attiva»).
 **`PiuAreeNellaCondizione`** (10 set 2026: `AddColumn ConditionAreaAll` + su MySQL `AlterColumn`
-`ConditionAreaLabel` 80→200. ⚠️ L'`AlterColumn` cade nella finestra cieca e sta in `RevisionateAMano` di
-`MigrazioniDellaFinestraCiecaTests` con la ragione scritta: è un **allargamento** su una tabella di 60 righe,
+`ConditionAreaLabel` 80→200. ⚠️ L'`AlterColumn` cadeva nella finestra cieca ed è stato ammesso a mano dal presidio
+di allora (test tolto il 16 settembre 2026, a finestra chiusa) con la ragione scritta: è un **allargamento** su una tabella di 60 righe,
 e l'avviso «loss of data» dello scaffolding parla della `Down`, che stringe e in produzione non gira).
 
 Frase (`CoordinationSentenceComposer`): compone la clausola di ciascuna dimensione presente e le unisce con `Condition.Join` («e»/EN «and»). Pista+area insieme usano la forma dedicata `Condition.RunwayAndArea` («con pista X in uso e Y attiva»); poi eventuale «e in condizione Z». Template IT/EN.

@@ -324,10 +324,10 @@ public class Airport
 
     /// <summary>
     /// ⚠️ <b>IN PENSIONE dall'11 settembre 2026</b> (carta <c>2026-09-11-categorie-aeroporto.md</c>): il suo posto
-    /// l'ha preso <see cref="Category"/>. Resta nel modello solo perché la finestra cieca vieta di togliere
-    /// colonne fino al 16 settembre. Nessuno la legge tranne il travaso d'avvio; la scrive il setter di
+    /// l'ha preso <see cref="Category"/>. È rimasta nel modello perché la finestra cieca (chiusa il 16 settembre
+    /// 2026) vietava di togliere colonne. Nessuno la legge tranne il travaso d'avvio; la scrive il setter di
     /// <see cref="Category"/>, come <b>specchio</b>, perché una versione precedente — in caso di ritorno
-    /// indietro — trovi il dato giusto. ▶ La prima migrazione dopo il 16 settembre la toglie.
+    /// indietro — trovi il dato giusto. ▶ Ora si può togliere, con una migrazione (non ancora fatta).
     /// </summary>
     public bool IsMilitaryOnly { get; set; }
 
@@ -520,11 +520,11 @@ public class SectorFallback
     /// <see cref="FallbackTargetKind.Coverage"/>: lì il nome non esiste finché non c'è un punto a cui
     /// chiederlo, e a dire perché è vuota è il <i>genere</i>, non il campo.
     ///
-    /// <para>⚠️ <b>Non è nullable, ed è una scelta della finestra cieca.</b> Renderla tale avrebbe voluto
-    /// dire un <c>AlterColumn</c>, che su MariaDB riscrive la tabella: fino al 16 settembre 2026 le
-    /// migrazioni girano da sole all'avvio in produzione, il DDL non è transazionale e nessuno può
-    /// ripristinare il database. Il presidio
-    /// <c>MigrazioniDellaFinestraCiecaTests</c> l'ha fermato — non una rilettura, un test.</para>
+    /// <para>⚠️ <b>Non è nullable, ed è stata una scelta della finestra cieca</b> (31 agosto → 16 settembre
+    /// 2026). Renderla tale avrebbe voluto dire un <c>AlterColumn</c>, che su MariaDB riscrive la tabella, in
+    /// giorni in cui le migrazioni giravano da sole all'avvio e nessuno poteva ripristinare il database. Il
+    /// presidio di allora (un test, tolto a finestra chiusa) l'ha fermato. La stringa vuota con
+    /// <see cref="TargetKind"/> funziona: cambiarla non è più vietato, ma nemmeno necessario.</para>
     /// </summary>
     public string TargetCallsign { get; set; } = "";
 
