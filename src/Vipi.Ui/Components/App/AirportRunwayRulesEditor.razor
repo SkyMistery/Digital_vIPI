@@ -184,12 +184,26 @@
                 <div class="callout success" style="margin-top:8px"><span class="cic">✓</span><div>
                     <b>@L["Ape_TestRuleN", _vincente.RuleIndex + 1]@(string.IsNullOrWhiteSpace(_vincente.RuleName) ? "" : $" · {_vincente.RuleName}")</b> —
                     DEP <b>@_vincente.Dep</b> · ARR <b>@_vincente.Arr</b>@if (!string.IsNullOrWhiteSpace(_vincente.Note)) { <text> (@_vincente.Note)</text> }
+                    @VentoSullePiste(PisteInUso())
                 </div></div>
             }
             else
             {
                 <div class="callout warning" style="margin-top:8px"><span class="cic">⚠️</span><div>
-                    @L["Ape_TestNoRule"] @(_ripiego?.Note ?? "—")
+                    @if (_ripiego?.Best is not null)
+                    {
+                        @* ⚠️ Con una pista scelta, la frase del ripiego NON si mostra più: `RunwaySuggestion.Suggest` la
+                           scrive in italiano cablato, e usciva tale e quale anche nell'interfaccia inglese («No rule
+                           applies → best headwind fallback: Headwind 13 kt su 13, vento traverso 3 kt»). Le stesse
+                           informazioni arrivano qui sotto dalle risorse: piste in uso, tailwind e vento traverso. *@
+                        <span>@L["Ape_TestNoRule"] DEP <b>@_ripiego.DepIdent</b> · ARR <b>@_ripiego.ArrIdent</b></span>
+                        @VentoSullePiste(PisteInUso())
+                    }
+                    else
+                    {
+                        @* Senza pista scelta (vento calmo, nessuna pista nota) la nota è l'unica cosa da dire. *@
+                        @L["Ape_TestNoRule"] @(_ripiego?.Note ?? "—")
+                    }
                 </div></div>
             }
 
@@ -288,6 +302,65 @@
         RuleVerdict.Crosswind => L["Ape_TestVerdictCross", e.WorstCrosswindKt, r.MaxCross ?? 0],
         _ => "",
     };
+
+    /// <summary>
+    /// Il vento sulle piste IN USO, dentro il riquadro dell'esito: una riga per pista, tailwind e vento traverso.
+    ///
+    /// <para>Richiesta del committente (16 settembre 2026): i numeri stavano solo nelle schede per regola sotto,
+    /// dove la pista che vince si mescola con quelle delle regole scartate — e il riquadro che dice «vince la
+    /// regola #1, DEP 31 · ARR 31» non diceva con che vento.</para>
+    /// <para>⚠️ Terminologia: «Tailwind» resta tale anche in italiano, il traverso è «Vento traverso», e
+    /// «headwind» non si traduce mai (le stesse risorse delle colonne delle schede).</para>
+    /// </summary>
+    private RenderFragment VentoSullePiste(IReadOnlyList<(string Ident, string Ruolo, int Tail, int Cross)> piste) => __builder =>
+    {
+        if (piste.Count == 0) return;
+        <div class="rule-prova-inuso">
+            @foreach (var p in piste)
+            {
+                <span><b>@p.Ident</b>@if (!string.IsNullOrEmpty(p.Ruolo)) { <span class="muted">@p.Ruolo</span> } —
+                    @L["Ape_TestColTail"] <b>@p.Tail kt</b> · @L["Ape_TestColCross"] <b>@p.Cross kt</b></span>
+            }
+        </div>
+    };
+
+    /// <summary>
+    /// Le piste in uso con le loro componenti.
+    ///
+    /// <para>⚠️ Con una regola vincente i numeri sono quelli di <see cref="RunwaySuggestion.ExplainRules"/> per
+    /// QUELLA regola — gli stessi della sua scheda sotto — e non un calcolo rifatto qui: se il riquadro e la
+    /// scheda dicessero due numeri diversi il banco mentirebbe proprio su quello che serve a capire.</para>
+    /// <para>Senza regola vincente la pista la sceglie il ripiego (miglior headwind), che porta headwind e
+    /// traverso per estremità: il tailwind è <c>max(0, -headwind)</c>, la stessa regola del motore delle regole.</para>
+    /// </summary>
+    private IReadOnlyList<(string Ident, string Ruolo, int Tail, int Cross)> PisteInUso()
+    {
+        if (_vincente is not null)
+        {
+            var e = _spiegazione.FirstOrDefault(x => x.RuleIndex == _vincente.RuleIndex);
+            var r = _vincente.RuleIndex < Rows.Count ? Rows[_vincente.RuleIndex] : null;
+            if (e is null || r is null) return Array.Empty<(string, string, int, int)>();
+            return e.Runways.Select(p => (p.Ident, Ruolo(r, p.Ident), p.TailwindKt, p.CrosswindKt)).ToList();
+        }
+
+        if (_ripiego?.Best is null) return Array.Empty<(string, string, int, int)>();
+        var dep = _ripiego.DepIdent ?? _ripiego.Best.Ident;
+        var arr = _ripiego.ArrIdent ?? _ripiego.Best.Ident;
+        return new[] { dep, arr }
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(id => _ripiego.Ranked.FirstOrDefault(x => string.Equals(x.Ident, id, StringComparison.OrdinalIgnoreCase)))
+            .Where(p => p is not null)
+            .Select(p => (p!.Ident,
+                          (string.Equals(p.Ident, dep, StringComparison.OrdinalIgnoreCase), string.Equals(p.Ident, arr, StringComparison.OrdinalIgnoreCase)) switch
+                          {
+                              (true, true) => "DEP · ARR",
+                              (true, false) => "DEP",
+                              (false, true) => "ARR",
+                              _ => "",
+                          },
+                          Math.Max(0, -p.Headwind), p.Crosswind))
+            .ToList();
+    }
 
     /// <summary>In che veste la pista sta nella regola: DEP, ARR o tutt'e due.</summary>
     private static string Ruolo(RuleEdit r, string ident) =>

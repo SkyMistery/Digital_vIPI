@@ -2,6 +2,26 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### ✅ A43 — Banco regole piste: il riquadro dell'esito dice il vento sulle piste in uso (16 settembre 2026)
+
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.** Tocca l'editor aeroporto **e** l'editor del vSOP
+militare (un componente solo, `AirportRunwayRulesEditor`).
+
+Segnalato dal committente: «non li vedo nella riga della prova». Aveva ragione, **visto dal vivo** su LIBR
+(310/15): il riquadro verde diceva solo «Regola #1 — DEP 31 · ARR 31»; tailwind e vento traverso stavano
+solo nelle **schede per regola** sotto, mescolati alle regole scartate. Ora sotto la riga dell'esito c'è una
+riga **per pista in uso** — ident, ruolo (DEP/ARR), Tailwind, Vento traverso.
+
+- Con una regola vincente i numeri sono **quelli del motore per quella regola** (`ExplainRules`), gli stessi
+  della sua scheda: un test lo pretende.
+- Senza regola vincente la riga viene dal **ripiego** (miglior headwind): piste DEP/ARR scelte, tailwind =
+  `max(0, -headwind)` come nel motore. ⚠️ La frase del ripiego (`RunwaySuggestion.Suggest`, **italiano
+  cablato**) non si mostra più quando una pista è scelta: usciva tale e quale nell'interfaccia inglese.
+  Resta solo per vento calmo / nessuna pista nota — ▶ **lì è ancora italiano cablato** (difetto preesistente).
+- Visto dal vivo: «31DEP» senza spazio (Razor mangia lo spazio in testa allo `<span>`) → margine CSS.
+- Terminologia: headwind mai tradotto; «Tailwind» e «Vento traverso» dalle stesse risorse delle schede.
+- `BancoRegoleVentoSullePisteTests` (3).
+
 ### ▶ A42 — DA FARE: quel che aspettava la fine della finestra cieca (16 settembre 2026)
 
 La finestra cieca (§A14, più sotto) chiude oggi. Tre lavori erano stati

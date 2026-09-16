@@ -2611,6 +2611,12 @@
 :where(.vipi-root) .rule-head{ display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
 :where(.vipi-root) .rule-ord{ font-family: var(--font-head); font-weight: 700; font-size: 13px; letter-spacing: .03em;color:var(--brand-ink); }
 /* Banco di prova: come lavora ogni regola col vento di prova (tailwind e vento traverso per pista). */
+/* Il vento sulle piste in uso, dentro il riquadro dell'esito: una pista per riga su schermi stretti, in fila
+   dove c'e' posto. */
+:where(.vipi-root) .rule-prova-inuso{ display: flex; flex-wrap: wrap; gap: 2px 18px; margin-top: 4px; font-size: 13px; }
+/* ⚠️ Lo stacco fra ident e ruolo e' un margine e non uno spazio nel markup: Razor toglie lo spazio in testa
+   allo <span>, e a schermo usciva «31DEP · ARR» (visto dal vivo il 16 settembre 2026). */
+:where(.vipi-root) .rule-prova-inuso .muted{ margin-left: .35em; }
 :where(.vipi-root) .rule-prova{ display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin-top: 10px; }
 :where(.vipi-root) .rule-prova-regola{ border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); font-size: 12.5px; }
 :where(.vipi-root) .rule-prova-regola.vince{ border-color: var(--ivao-blue); box-shadow: 0 0 0 1px var(--ivao-blue); }
