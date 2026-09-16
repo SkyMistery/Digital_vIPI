@@ -3453,6 +3453,8 @@
   <data name="Rta_UnderlineLetter" xml:space="preserve"><value>S</value></data>
   <data name="Rta_Bullets" xml:space="preserve"><value>Elenco puntato</value></data>
   <data name="Rta_Numbers" xml:space="preserve"><value>Elenco numerato</value></data>
+  <data name="Rta_Indent" xml:space="preserve"><value>Rientra la voce di un livello (Tab)</value></data>
+  <data name="Rta_Outdent" xml:space="preserve"><value>Riduci il rientro della voce (Maiusc+Tab)</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>Le soglie con cui questo scalo entra e esce dalle procedure di bassa visibilità. Il confronto usa l'RVR del bollettino, o la visibilità quando l'RVR non c'è.</value></data>
   <data name="Lvp_Fase" xml:space="preserve"><value>Fase</value></data>
   <data name="Lvp_Soffitto" xml:space="preserve"><value>Soffitto</value></data>

@@ -303,6 +303,46 @@ public class TranslationFillUseCaseTests
         Assert.Equal(0, rapporto.Tradotti);
     }
 
+    // ---- Gli elenchi (16 settembre 2026) --------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 Il giro VERO, non solo il protettore: i marcatori non arrivano al motore, e la traduzione salvata li
+    /// ha di nuovo, ognuno sulla sua riga. Se il giro usasse il ripristino dei soli segnaposto, questo test
+    /// vedrebbe in memoria un capoverso senza più elenco.
+    /// </summary>
+    [Fact]
+    public async Task Un_elenco_annidato_parte_senza_marcatori_e_torna_col_suo_livello()
+    {
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreFinto(traduci: t => string.Join("\n", t.Split('\n').Select(r => "EN " + r)));
+        const string sorgente = "- Contatta la torre\n-- riporta sottovento\n-1) poi atterra";
+
+        var rapporto = await Giro(new CorpusFinto(sorgente), memoria, motore).EseguiAsync("it", "en");
+
+        Assert.Equal(1, rapporto.Tradotti);
+        var spedito = Assert.Single(motore.Ricevuti);
+        Assert.DoesNotContain("--", spedito, StringComparison.Ordinal);
+        Assert.DoesNotContain("-1)", spedito, StringComparison.Ordinal);
+
+        var (src, tgt) = Assert.Single(memoria.Scritte);
+        // ⚠️ Il sorgente in memoria è quello scritto, marcatori compresi: la sua impronta non cambia, e le
+        // traduzioni già salvate prima di questa modifica restano valide.
+        Assert.Equal(sorgente, src);
+        Assert.Equal("- EN Contatta la torre\n-- EN riporta sottovento\n-1) EN poi atterra", tgt);
+    }
+
+    [Fact]
+    public async Task Un_elenco_tornato_con_le_righe_fuse_si_butta()
+    {
+        var memoria = new MemoriaFinta();
+        var motore = new MotoreFinto(traduci: t => t.Replace('\n', ' '));
+
+        var rapporto = await Giro(new CorpusFinto("- uno\n-- due"), memoria, motore).EseguiAsync("it", "en");
+
+        Assert.Equal(1, rapporto.Scartati);
+        Assert.Empty(memoria.Scritte);
+    }
+
     [Fact]
     public async Task Una_traduzione_che_perde_un_segnaposto_si_butta_e_le_altre_si_salvano()
     {

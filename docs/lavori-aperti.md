@@ -2,6 +2,20 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A41 — Elenchi annidati fino a cinque livelli, e il campo che cresce col testo (16 settembre 2026)
+
+Carta: [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md).
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+
+Livello coi trattini: `- / -- / ---` puntati, `1) / -1) / --1)` numerati, mescolabili; simboli per livello
+(1 · a · I · i · A e • – ◦ ▪ ·). Sintassi in un posto solo, `VoceDiElenco`, letta da renderer e traduzione; la
+copia JS è presidiata da un test che confronta il testo delle regex. In traduzione i marcatori **non
+partono** e si rimettono riga per riga (righe cambiate → scartata); impronte invariate, niente da
+rispendere. Editor: tasti ⇤ ⇥, Tab/Maiusc+Tab solo se spostano una voce, Invio che continua. Campi
+`data-adatta` crescono fino al 60% dello schermo, la maniglia fissa il minimo. ⚠️ Supera la decisione
+«niente annidati» di §CL. ▶ Da guardare dal vivo: ricarico dopo Tab/Invio, stampa, sezione chiusa che si
+apre, Firefox/Safari.
+
 ### ✅ A40 — Aree di lavoro: una tabella sola, con la riga che si apre (16 settembre 2026)
 
 Carta: [`feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md`](feature/2026-09-16-aree-di-lavoro-una-tabella-sola.md).

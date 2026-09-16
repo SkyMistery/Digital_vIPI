@@ -51,9 +51,11 @@ attraversano il dispatch e il markup del callout.
    ci sono **zero** occorrenze di `__`, quindi la sintassi non ruba niente a nessuno.
 4. **La barra è sempre nel DOM e si accende col fuoco in CSS**, non in C#. Vedi sotto: è la decisione con più
    ragioni dietro di tutta la carta.
-5. **Niente elenchi annidati.** Una voce rientrata è una voce come le altre. Annidare vuol dire portarsi
+5. ~~**Niente elenchi annidati.** Una voce rientrata è una voce come le altre. Annidare vuol dire portarsi
    dentro l'ambiguità dei livelli a spazi, e nei documenti operativi un elenco a due livelli non è mai
-   servito.
+   servito.~~ ⏭ **Superata il 16 settembre 2026** su richiesta del committente: elenchi annidati fino a cinque
+   livelli, col livello scritto coi **trattini** e non con gli spazi — che toglie l'ambiguità per cui questa
+   decisione era stata presa. Vedi [2026-09-16-elenchi-annidati-e-campo-che-cresce.md](2026-09-16-elenchi-annidati-e-campo-che-cresce.md).
 
 ## Perché la barra non compare col fuoco
 

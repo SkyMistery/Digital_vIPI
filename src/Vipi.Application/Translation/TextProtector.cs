@@ -1,5 +1,6 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
+using Vipi.Application.Content;
 
 namespace Vipi.Application.Translation;
 
@@ -11,10 +12,13 @@ namespace Vipi.Application.Translation;
 /// <param name="Tokens">Ciò che è stato tolto, nell'ordine dei segnaposto.</param>
 /// <param name="Safe">Falso se dopo la protezione resta qualcosa che <b>somiglia a un dato personale</b>.
 /// Un segmento non sicuro <b>non si spedisce</b>: si marca «da tradurre a mano».</param>
+/// <param name="Marcatori">I marcatori di elenco tolti a inizio riga, uno per riga del testo (<c>""</c> dove la
+/// riga non era una voce); null se nessuna riga lo era. Vedi <see cref="TextProtector.TryRestore(string?, ProtectedText, out string)"/>.</param>
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
 // compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
-public sealed record ProtectedText(string Text, IReadOnlyList<string> Tokens, bool Safe);
+public sealed record ProtectedText(
+    string Text, IReadOnlyList<string> Tokens, bool Safe, IReadOnlyList<string>? Marcatori = null);
 
 /// <summary>
 /// Toglie dal testo ciò che non va tradotto — e, prima ancora, ciò che non deve <b>uscire di qui</b>
@@ -211,6 +215,10 @@ public sealed partial class TextProtector
         var s = TranslationText.Normalize(testo);
         var tokens = new List<string>();
 
+        // 00. I MARCATORI DI ELENCO si tolgono per primi, e non con un segnaposto: il motore non li vede
+        //     proprio. Vedi `TogliMarcatori`.
+        var marcatori = TogliMarcatori(ref s);
+
         // ⚠️ La domanda «questo testo è prosa?» si fa ORA, sull'originale. I segnaposto contengono minuscole
         // (`<x id="0"/>`), quindi chiederlo dopo direbbe «prosa» anche di una cella tutta maiuscola in cui
         // sia stata protetta una frequenza — e da lì in poi ogni parola di quella cella verrebbe scambiata
@@ -223,7 +231,7 @@ public sealed partial class TextProtector
         if (UnaParolaSolaMaiuscola(s))
             // Safe: in una parola sola tutta maiuscola non c'è niente di personale — e comunque il testo
             // protetto resta VUOTO, quindi il segmento non parte affatto.
-            return new ProtectedText(Deposita(s, tokens, Riservatezza.Intraducibile), tokens, Safe: true);
+            return new ProtectedText(Deposita(s, tokens, Riservatezza.Intraducibile), tokens, Safe: true, marcatori);
 
         // 1. DATI PERSONALI, per primi e sempre: se una regola successiva ne spezzasse uno, quello che
         //    resta uscirebbe in chiaro.
@@ -264,7 +272,44 @@ public sealed partial class TextProtector
         //    stare, la stessa frase esce intera e con gli asterischi al loro posto: per il motore in
         //    modalita' marcatura un asterisco e' testo, non struttura, e non ha motivo di spostarlo.
 
-        return new ProtectedText(s, tokens, Safe: !RestaQualcosaDiPersonale(s));
+        return new ProtectedText(s, tokens, Safe: !RestaQualcosaDiPersonale(s), marcatori);
+    }
+
+    /// <summary>
+    /// Toglie a ogni riga il suo marcatore di elenco (<c>- </c>, <c>-- </c>, <c>-1) </c>, <c>• </c>…) e lo mette
+    /// da parte, posizione per posizione. Null se nessuna riga era una voce: il testo resta com'era.
+    ///
+    /// <para>
+    /// ⚠️ <b>Perché toglierli e non proteggerli con un segnaposto</b> (16 settembre 2026, elenchi annidati).
+    /// Il livello di una voce sta TUTTO nel marcatore: <c>--</c> è il secondo livello, <c>-1)</c> un numerato di
+    /// secondo livello. Spediti, il motore li tratterebbe come punteggiatura — un <c>--</c> che torna «–» o
+    /// «—» fa crollare la voce al primo livello, o la fa uscire dall'elenco, e nessuno se ne accorge perché la
+    /// frase è tradotta benissimo. Col segnaposto il rischio è l'altro, già misurato sui grassetti (vedi il
+    /// punto 3 di <see cref="Protect"/>): il motore sposta le parole dentro i tag. Tolti, il motore riceve
+    /// frasi pulite e non ha niente da rovinare; il prezzo è una sola condizione al ritorno — lo stesso numero
+    /// di righe — che i motori rispettano (misurato su §CL: zero unità multi-riga appiattite).
+    /// </para>
+    /// <para>
+    /// ⚠️ Il testo SORGENTE salvato in memoria non cambia: questa è solo la forma che parte. L'impronta resta
+    /// quella di prima, quindi le traduzioni già in memoria restano valide e non si rispende niente.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<string>? TogliMarcatori(ref string s)
+    {
+        var righe = s.Split('\n');
+        string[]? marcatori = null;
+        for (var i = 0; i < righe.Length; i++)
+        {
+            if (!VoceDiElenco.Prova(righe[i], out var v)) continue;
+            marcatori ??= new string[righe.Length];
+            marcatori[i] = v.Marcatore;
+            righe[i] = v.Testo;
+        }
+        if (marcatori is null) return null;
+
+        for (var i = 0; i < marcatori.Length; i++) marcatori[i] ??= "";
+        s = string.Join('\n', righe);
+        return marcatori;
     }
 
     /// <summary>
@@ -292,6 +337,36 @@ public sealed partial class TextProtector
     /// buttata invece che salvata.</para>
     /// </summary>
     public static bool TryRestore(string? tradotto, IReadOnlyList<string> tokens, out string risultato)
+        => RipristinaSegnaposti(tradotto, tokens, out risultato);
+
+    /// <summary>
+    /// Il ripristino completo di un testo protetto: i segnaposto, e poi i <b>marcatori di elenco</b> tolti
+    /// prima di spedire (<see cref="ProtectedText.Marcatori"/>). È questa la forma da usare per il testo
+    /// tornato dal motore.
+    ///
+    /// <para>⚠️ Torna <c>false</c> anche se il motore ha restituito un numero di righe <b>diverso</b>: non si
+    /// saprebbe più a quale riga va quale marcatore, e rimetterli a caso sposterebbe voci da un livello
+    /// all'altro — una procedura con i passi mescolati. Si butta come un segnaposto perso, e il giro dopo
+    /// ci riprova.</para>
+    /// </summary>
+    public static bool TryRestore(string? tradotto, ProtectedText protetto, out string risultato)
+    {
+        if (!RipristinaSegnaposti(tradotto, protetto.Tokens, out risultato)) return false;
+        if (protetto.Marcatori is not { } marcatori) return true;
+
+        var righe = risultato.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        if (righe.Length != marcatori.Count) return false;
+
+        for (var i = 0; i < righe.Length; i++)
+            // Il motore può restituire la riga con uno spazio in testa: attaccato al marcatore (che lo spazio
+            // ce l'ha già) farebbe «--  voce». Si toglie solo dove un marcatore c'è.
+            if (marcatori[i].Length > 0) righe[i] = marcatori[i] + righe[i].TrimStart();
+
+        risultato = string.Join('\n', righe);
+        return true;
+    }
+
+    private static bool RipristinaSegnaposti(string? tradotto, IReadOnlyList<string> tokens, out string risultato)
     {
         risultato = tradotto ?? "";
         if (tokens.Count == 0) return true;

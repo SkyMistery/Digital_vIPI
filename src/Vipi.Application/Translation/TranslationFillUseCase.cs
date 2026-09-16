@@ -142,7 +142,7 @@ public sealed class TranslationFillUseCase
                 // una cella che è tutta una voce di glossario NO: lì il ripristino mette la resa inglese,
                 // mentre ricopiare il sorgente scriverebbe in memoria l'ITALIANO spacciandolo per inglese, e
                 // lo scriverebbe come voce definitiva che nessun giro successivo riproverebbe.
-                identiche.Add(TextProtector.TryRestore(protetto.Text, protetto.Tokens, out var comeVa)
+                identiche.Add(TextProtector.TryRestore(protetto.Text, protetto, out var comeVa)
                     ? (s, comeVa)
                     : (s, TranslationText.Normalize(s)));
                 continue;
@@ -227,7 +227,9 @@ public sealed class TranslationFillUseCase
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
-            if (TextProtector.TryRestore(riuscito.Texts![i], protetto.Tokens, out var tradotto))
+            // ⚠️ Il ripristino COMPLETO, non solo i segnaposto: i marcatori di elenco sono stati tolti prima di
+            // spedire, e senza rimetterli la traduzione di un elenco tornerebbe un capoverso qualunque.
+            if (TextProtector.TryRestore(riuscito.Texts![i], protetto, out var tradotto))
                 // ⚠️ Il grassetto si ripara PRIMA di salvare, non alla resa: quel che entra in memoria è
                 // quello che leggeranno tutti finché una persona non lo corregge.
                 buone.Add((originale, TranslationText.RiparaGrassetto(originale, tradotto)));

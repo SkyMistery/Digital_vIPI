@@ -1,4 +1,6 @@
-@* Campo di testo markdown con la barra di formattazione: grassetto, corsivo, sottolineato, i due elenchi.
+﻿@* Campo di testo markdown con la barra di formattazione: grassetto, corsivo, sottolineato, i due elenchi e il
+   loro rientro (fino a cinque livelli, dal 16 settembre 2026). Il campo cresce col testo (`data-adatta`, in
+   vipi-editor.js).
    È la PORTA SOLA dei campi di prosa dell'editor — paragrafo, callout, nota d'allegato, didascalia, intro
    VFR. Una barra scritta due volte diventerebbe due barre diverse al primo ritocco.
 
@@ -28,10 +30,16 @@
         @Tasto("__", "__", L["Rta_Underline"].Value + " (Ctrl+U)", L["Rta_UnderlineLetter"].Value, "rta-u")
         <span class="rta-sep" aria-hidden="true"></span>
         @TastoElenco(false, L["Rta_Bullets"].Value, "•")
-        @TastoElenco(true, L["Rta_Numbers"].Value, "1.")
+        @TastoElenco(true, L["Rta_Numbers"].Value, "1)")
+        @* Il rientro. ⚠️ Tasti E scorciatoia, non solo la scorciatoia: Tab dentro un campo non lo indovina
+           nessuno, e su un tablet non c'è. E un tasto che non si vede non esiste (vedi l'aiuto sotto il campo
+           dell'import tabelle). La scorciatoia sta nel titolo. *@
+        @TastoRientro(-1, L["Rta_Outdent"].Value, "⇤")
+        @TastoRientro(1, L["Rta_Indent"].Value, "⇥")
     </div>
+    @* `data-adatta`: il campo cresce col testo fino al 60% dello schermo, e la maniglia resta (vipi-editor.js). *@
     <textarea @ref="_ta" id="@_id" class="app-ta" rows="@Rows" value="@Value" placeholder="@Placeholder"
-              @onchange="Cambiato"></textarea>
+              data-adatta @onchange="Cambiato"></textarea>
 </div>
 
 @code {
@@ -64,7 +72,16 @@
                 @onmousedown:preventDefault="true" @onclick="() => Lista(ordinato)">@segno</button>
     };
 
+    private RenderFragment TastoRientro(int delta, string titolo, string segno) => __builder =>
+    {
+        <button type="button" class="rta-btn" title="@titolo" aria-label="@titolo"
+                @onmousedown:preventDefault="true" @onclick="() => Rientro(delta)">@segno</button>
+    };
+
     private Task Wrap(string pre, string post) => JS.InvokeVoidAsync("vipiMdWrap", _ta, pre, post).AsTask();
 
     private Task Lista(bool ordinato) => JS.InvokeVoidAsync("vipiMdList", _ta, ordinato).AsTask();
+
+    // `vipiMdRientro` torna vero/falso (serve al Tab per decidere se tenersi il tasto): dal tasto non interessa.
+    private Task Rientro(int delta) => JS.InvokeAsync<bool>("vipiMdRientro", _ta, delta).AsTask();
 }

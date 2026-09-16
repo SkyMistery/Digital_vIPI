@@ -3445,6 +3445,8 @@
   <data name="Rta_UnderlineLetter" xml:space="preserve"><value>U</value></data>
   <data name="Rta_Bullets" xml:space="preserve"><value>Bulleted list</value></data>
   <data name="Rta_Numbers" xml:space="preserve"><value>Numbered list</value></data>
+  <data name="Rta_Indent" xml:space="preserve"><value>Indent the item one level (Tab)</value></data>
+  <data name="Rta_Outdent" xml:space="preserve"><value>Outdent the item (Shift+Tab)</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>The thresholds this airport uses to enter and leave low visibility procedures. The comparison uses the RVR from the bulletin, or the visibility when there is no RVR.</value></data>
   <data name="Lvp_Fase" xml:space="preserve"><value>Phase</value></data>
   <data name="Lvp_Soffitto" xml:space="preserve"><value>Ceiling</value></data>

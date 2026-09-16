@@ -1,4 +1,4 @@
-using Vipi.Application.Translation;
+﻿using Vipi.Application.Translation;
 
 namespace Vipi.Application.Tests;
 
@@ -31,7 +31,7 @@ public class TextProtectorTests
     private static string GiroCompleto(TextProtector p, string testo)
     {
         var protetto = p.Protect(testo);
-        Assert.True(TextProtector.TryRestore(protetto.Text, protetto.Tokens, out var tornato));
+        Assert.True(TextProtector.TryRestore(protetto.Text, protetto, out var tornato));
         return tornato;
     }
 
@@ -309,6 +309,56 @@ public class TextProtectorTests
         var p = new TextProtector(Array.Empty<string>());
         Assert.False(TextProtector.SoloSegnaposti(p.Protect("Note").Text));
         Assert.False(TextProtector.SoloSegnaposti(p.Protect("Rilevamento").Text));
+    }
+
+    // ---- I marcatori di elenco (16 settembre 2026) ------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 Il livello di una voce sta tutto nel marcatore, e il motore non deve vederlo: un <c>--</c> tornato
+    /// «–» farebbe crollare la voce al primo livello senza che nessuno se ne accorga.
+    /// </summary>
+    [Fact]
+    public void I_marcatori_di_elenco_non_partono_e_tornano_al_loro_posto()
+    {
+        const string testo = "- Contatta la torre\n-- riporta sottovento\n-1) poi atterra\nTesto normale";
+        var protetto = Nudo.Protect(testo);
+
+        Assert.Equal("Contatta la torre\nriporta sottovento\npoi atterra\nTesto normale", protetto.Text);
+        Assert.Equal(new[] { "- ", "-- ", "-1) ", "" }, protetto.Marcatori);
+        Assert.Equal(testo, GiroCompleto(Nudo, testo));
+    }
+
+    [Fact]
+    public void Senza_elenchi_non_ci_sono_marcatori_da_ricordare()
+    {
+        Assert.Null(Nudo.Protect("Contatta la torre\nriporta sottovento").Marcatori);
+    }
+
+    /// <summary>
+    /// ⚠️ Righe fuse o spezzate dal motore: non si sa più a quale riga va quale marcatore, e rimetterli a caso
+    /// sposterebbe i passi di una procedura da un livello all'altro. Si butta.
+    /// </summary>
+    [Fact]
+    public void Se_il_motore_cambia_il_numero_di_righe_la_traduzione_si_butta()
+    {
+        var protetto = Nudo.Protect("- uno\n-- due");
+        Assert.False(TextProtector.TryRestore("one two", protetto, out _));
+        Assert.False(TextProtector.TryRestore("one\ntwo\nthree", protetto, out _));
+        Assert.True(TextProtector.TryRestore("one\n two", protetto, out var ok));
+        Assert.Equal("- one\n-- two", ok);      // lo spazio in testa del motore non raddoppia lo stacco
+    }
+
+    /// <summary>
+    /// Tolto il marcatore, una voce che è solo il nome di un punto torna ad essere quel che è — una parola
+    /// sola maiuscola — e non parte più: prima «- MARTE» aveva uno spazio, e il motore la traduceva «MARS».
+    /// </summary>
+    [Fact]
+    public void Una_voce_che_e_solo_un_identificatore_non_parte()
+    {
+        var protetto = Nudo.Protect("- MARTE");
+        Assert.True(TextProtector.SoloSegnaposti(protetto.Text));
+        Assert.True(TextProtector.TryRestore(protetto.Text, protetto, out var tornato));
+        Assert.Equal("- MARTE", tornato);
     }
 
     [Fact]

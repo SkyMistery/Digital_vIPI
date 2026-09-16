@@ -109,7 +109,7 @@
                             @* ⚠️ `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco, non a
                                ogni tasto. Una nota è prosa — un giro di salvataggio per carattere sarebbe cento
                                scritture per riga, e il campo perderebbe il fuoco a ogni ridisegno. *@
-                            <textarea class="in-note" rows="2" value="@NotaDi(a.IvaoId)"
+                            <textarea class="in-note" rows="2" value="@NotaDi(a.IvaoId)" data-adatta
                                       @onchange="e => ScriviNota(a.IvaoId, e.Value?.ToString())"
                                       placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
                         }

@@ -106,34 +106,281 @@
         vipiMdFine(el, s + pre.length, s + pre.length + dentro.length);
     };
 
-    // Marca/smarca come elenco le righe TOCCATE dalla selezione (anche solo sfiorate: il cursore su una
-    // riga basta). Se sono già tutte marcate dello stesso tipo, le smarca — stesso interruttore di sopra.
+    // ---- Elenchi annidati (16 settembre 2026) ----------------------------------------------------------
+    //
+    // Il livello si scrive coi TRATTINI: `- voce`, `-- voce`… per i puntati, `1) voce`, `-1) voce`… per i
+    // numerati, fino a cinque livelli.
+    //
+    // 🔴 Le tre regex sono la COPIA JS di `VoceDiElenco.cs` (Vipi.Application), che è la regola del renderer e
+    // del protettore della traduzione. Una terza copia non si evita — il gesto sta nel browser — ma si
+    // presidia: `ElenchiNellEditorTests` confronta il TESTO di queste tre regex con quello delle tre C#, e
+    // cade appena una delle due parti impara un marcatore che l'altra non conosce.
+    var RX_VOCE_NUMERATA = /^([ \t]*(-*)(\d{1,3})[.)][ \t]+)(.*)$/;
+    var RX_VOCE_TRATTINI = /^([ \t]*(-+)[ \t]+)(.*)$/;
+    var RX_VOCE_SIMBOLO = /^([ \t]*[*+•][ \t]+)(.*)$/;
+    var LIVELLI_ELENCO = 5;
+
+    function vipiLivello(n) { return Math.max(1, Math.min(LIVELLI_ELENCO, n)); }
+
+    // La riga è una voce? { livello, ordinata, numero, marcatore, testo } oppure null. Riga = marcatore + testo.
+    function vipiVoce(riga) {
+        var m = RX_VOCE_NUMERATA.exec(riga);
+        if (m) return { livello: vipiLivello(m[2].length + 1), ordinata: true, numero: parseInt(m[3], 10), marcatore: m[1], testo: m[4] };
+        m = RX_VOCE_TRATTINI.exec(riga);
+        if (m) return { livello: vipiLivello(m[2].length), ordinata: false, numero: 1, marcatore: m[1], testo: m[3] };
+        m = RX_VOCE_SIMBOLO.exec(riga);
+        if (m) return { livello: 1, ordinata: false, numero: 1, marcatore: m[1], testo: m[2] };
+        return null;
+    }
+
+    // Il marcatore canonico: un trattino per livello nei puntati, uno per livello OLTRE il primo nei numerati.
+    // ⚠️ Il numerato si scrive `1)` e non `1.`: col trattino davanti, `-1.` si legge «meno uno punto».
+    function vipiMarcatore(livello, ordinata, numero) {
+        return ordinata ? '-'.repeat(livello - 1) + numero + ') ' : '-'.repeat(livello) + ' ';
+    }
+
+    function vipiRigaDi(testo, pos) { return testo.substring(0, pos).split('\n').length - 1; }
+
+    function vipiInizioRiga(righe, k) {
+        var o = 0;
+        for (var j = 0; j < k; j++) o += righe[j].length + 1;
+        return o;
+    }
+
+    // Rinumera i numerati dell'elenco contiguo [a, b]: ogni livello conta per conto suo, e una voce meno
+    // profonda azzera i contatori di quelli sotto — è così che il renderer li apre e li chiude.
+    // ⚠️ Il numero di PARTENZA di un elenco si rispetta sulle righe che il gesto non ha toccato: chi ha scritto
+    // «3)» sta continuando un elenco interrotto da una tabella, e un Tab due righe più sotto non deve
+    // riportarglielo a 1. Una riga appena spostata di livello, invece, riparte da 1: il suo vecchio numero
+    // parlava di un altro elenco.
+    function vipiRinumera(righe, a, b, toccate) {
+        var conta = [], tipo = [];
+        for (var i = a; i <= b; i++) {
+            var x = vipiVoce(righe[i]);
+            if (!x) continue;
+            var L = x.livello;
+            for (var k = L + 1; k <= LIVELLI_ELENCO; k++) { conta[k] = 0; tipo[k] = null; }
+            if (!x.ordinata) { tipo[L] = 'u'; conta[L] = 0; continue; }
+            if (tipo[L] !== 'o') conta[L] = (toccate[i] ? 1 : x.numero) - 1;
+            tipo[L] = 'o';
+            conta[L]++;
+            righe[i] = x.marcatore.replace(/\d{1,3}/, String(conta[L])) + x.testo;
+        }
+    }
+
+    // Applica `cambia(voce, riga)` alle righe TOCCATE dalla selezione (anche solo sfiorate: il cursore su una
+    // riga basta), rinumera l'elenco in cui stanno e riscrive il campo. Torna true se qualcosa è cambiato.
+    //
+    // ⚠️ «Cambiato» si decide sulle righe toccate PRIMA di rinumerare. Il Tab si consuma solo se sposta
+    // davvero una voce: a livello 5 (o Maiusc+Tab al primo) deve tornare a fare quel che fa sempre — cambiare
+    // campo — e un elenco numerato male non deve «mangiarsi» il tasto per rimettere a posto i numeri.
+    function vipiRiscriviRighe(el, cambia) {
+        var v = el.value, s0 = el.selectionStart, e0 = el.selectionEnd;
+        var e = (e0 > s0 && v.charAt(e0 - 1) === '\n') ? e0 - 1 : e0;   // selezione di righe intere
+        var prima = v.split('\n');
+        var righe = prima.slice();
+        var p = vipiRigaDi(v, s0), u = vipiRigaDi(v, e);
+
+        var toccate = {}, cambiato = false;
+        for (var i = p; i <= u; i++) {
+            righe[i] = cambia(vipiVoce(righe[i]), righe[i]);
+            if (righe[i] !== prima[i]) { toccate[i] = true; cambiato = true; }
+        }
+        if (!cambiato) return false;
+
+        var a = p; while (a > 0 && vipiVoce(righe[a - 1])) a--;
+        var b = u; while (b < righe.length - 1 && vipiVoce(righe[b + 1])) b++;
+        vipiRinumera(righe, a, b, toccate);
+
+        el.value = righe.join('\n');
+        if (s0 === e0) {
+            // Cursore su una riga sola: resta nel TESTO, allo stesso punto — spostato solo di quanto è
+            // cambiato il marcatore davanti.
+            var vecchia = vipiVoce(prima[p]), nuova = vipiVoce(righe[p]);
+            var mv = vecchia ? vecchia.marcatore.length : 0, mn = nuova ? nuova.marcatore.length : 0;
+            var dentro = s0 - vipiInizioRiga(prima, p);
+            var q = vipiInizioRiga(righe, p) + Math.max(mn, mn + dentro - mv);
+            vipiMdFine(el, q, q);
+        } else {
+            vipiMdFine(el, vipiInizioRiga(righe, p), vipiInizioRiga(righe, u) + righe[u].length);
+        }
+        return true;
+    }
+
+    // Tasto «elenco puntato» / «elenco numerato». Marca le righe toccate col tipo scelto, TENENDO il livello
+    // di quelle che già erano voci; se erano già tutte di quel tipo, le smarca (il tasto è un interruttore).
     window.vipiMdList = function (el, ordinato) {
         if (!el) return;
-        var v = el.value;
-        var ini = v.lastIndexOf('\n', Math.max(0, el.selectionStart - 1)) + 1;
-        var fin = v.indexOf('\n', el.selectionEnd);
-        if (fin < 0) fin = v.length;
-
-        var righe = v.substring(ini, fin).split('\n');
-        var puntata = /^[ \t]*[-*+•][ \t]+/;
-        var numerata = /^[ \t]*\d{1,3}[.)][ \t]+/;
-        var mia = ordinato ? numerata : puntata;
-
-        var tutteMie = righe.every(function (r) { return r.trim() === '' || mia.test(r); });
-        var n = 0;
-        var nuove = righe.map(function (r) {
+        var v = el.value, s0 = el.selectionStart, e0 = el.selectionEnd;
+        var e = (e0 > s0 && v.charAt(e0 - 1) === '\n') ? e0 - 1 : e0;
+        var righe = v.split('\n').slice(vipiRigaDi(v, s0), vipiRigaDi(v, e) + 1);
+        var tutteMie = righe.every(function (r) {
+            if (r.trim() === '') return true;
+            var x = vipiVoce(r);
+            return !!x && x.ordinata === ordinato;
+        });
+        vipiRiscriviRighe(el, function (x, r) {
             if (r.trim() === '') return r;
-            var nudo = r.replace(puntata, '').replace(numerata, '');
-            if (tutteMie) return nudo;                        // erano già mie: le smarco
-            n++;
-            return (ordinato ? n + '. ' : '- ') + nudo;
+            if (tutteMie) return x ? x.testo : r;
+            return vipiMarcatore(x ? x.livello : 1, ordinato, 1) + (x ? x.testo : r);
+        });
+    };
+
+    // Rientra (delta +1) o riduce il rientro (delta -1) delle VOCI toccate. Le righe che non sono voci non si
+    // toccano: un rientro su un capoverso non vuol dire niente, e inventargli un pallino sarebbe peggio.
+    // Torna true se ha spostato qualcosa (serve al Tab per decidere se consumare il tasto).
+    window.vipiMdRientro = function (el, delta) {
+        if (!el) return false;
+        return vipiRiscriviRighe(el, function (x, r) {
+            if (!x) return r;
+            var L = vipiLivello(x.livello + delta);
+            return L === x.livello ? r : vipiMarcatore(L, x.ordinata, x.numero) + x.testo;
+        });
+    };
+
+    // Scrive come se lo battesse chi scrive: `insertText` tiene l'annulla (Ctrl+Z) e marca il campo come
+    // toccato, così il `change` all'uscita parte davvero. `setRangeText` è il ripiego dove non c'è, e lì il
+    // `change` va mandato a mano — scrivere da JS non ne fa partire nessuno (vedi `vipiMdFine`).
+    function vipiInserisci(el, testo) {
+        var ok = false;
+        try { ok = document.execCommand(testo === '' ? 'delete' : 'insertText', false, testo); } catch (err) { ok = false; }
+        if (ok) return;
+        el.setRangeText(testo, el.selectionStart, el.selectionEnd, 'end');
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Tab / Maiusc+Tab e Invio dentro un campo di prosa.
+    //
+    // ⚠️ Delegato sul documento come Ctrl+B, e per la stessa ragione: un `@onkeydown` di Blazor sarebbe un giro
+    // di rete a ogni tasto battuto.
+    //
+    // ⚠️ Il TAB è anche il modo di girare la pagina con la sola tastiera. Qui si consuma SOLO se il cursore sta
+    // su una voce e il livello cambia davvero: su un capoverso, al quinto livello, o con Maiusc+Tab al primo,
+    // il tasto fa quel che fa ovunque. Nessuna casella in cui si entra e non si esce.
+    if (!window.__vipiMdElenchi) {
+        window.__vipiMdElenchi = true;
+        document.addEventListener('keydown', function (e) {
+            var el = e.target;
+            if (!el || !el.matches || !el.matches('textarea.app-ta') || !el.closest('.rta')) return;
+            if (e.ctrlKey || e.altKey || e.metaKey || e.isComposing) return;
+
+            if (e.key === 'Tab') {
+                if (window.vipiMdRientro(el, e.shiftKey ? -1 : 1)) e.preventDefault();
+                return;
+            }
+            if (e.key !== 'Enter' || e.shiftKey || el.selectionStart !== el.selectionEnd) return;
+
+            // Invio su una voce la continua: stessa voce, stesso livello, numero dopo.
+            var v = el.value, pos = el.selectionStart;
+            var ini = pos === 0 ? 0 : v.lastIndexOf('\n', pos - 1) + 1;
+            var fin = v.indexOf('\n', pos);
+            if (fin < 0) fin = v.length;
+            var x = vipiVoce(v.substring(ini, fin));
+            // Cursore DENTRO il marcatore (o prima): è un a capo normale, chi scrive sta spostando la voce giù.
+            if (!x || pos - ini < x.marcatore.length) return;
+            e.preventDefault();
+
+            if (x.testo.trim() === '') {
+                // Invio su una voce VUOTA: si esce di un livello, e dal primo si esce dall'elenco. È il gesto di
+                // ogni editor di testo — il secondo Invio chiude quel che il primo aveva aperto.
+                el.setSelectionRange(ini, fin);
+                vipiInserisci(el, x.livello > 1 ? vipiMarcatore(x.livello - 1, x.ordinata, 1) : '');
+                return;
+            }
+            vipiInserisci(el, '\n' + vipiMarcatore(x.livello, x.ordinata, x.numero + 1));
+        });
+    }
+
+    // ---- Il campo che si adatta al testo (16 settembre 2026) --------------------------------------------
+    //
+    // Vale per le textarea marcate `data-adatta`: i campi di prosa (RichTextArea), le note delle aree di lavoro,
+    // la descrizione di un incarico. NON per gli incolla-tabella, il convertitore o i poligoni: quelli sono
+    // grandi apposta.
+    //
+    // Le regole, e il perché di ognuna:
+    //   • cresce col testo fino al 60% dello schermo, poi scorre dentro: oltre, la barra di formattazione
+    //     sopra il campo uscirebbe dalla vista mentre si scrive in fondo;
+    //   • non scende sotto le righe che il campo dichiara (`rows`): misurando con `height:auto` il browser le
+    //     rispetta da solo;
+    //   • ⚠️ la maniglia resta: l'altezza trascinata a mano diventa il MINIMO. Senza, il primo tasto battuto
+    //     rimangerebbe il gesto di chi ha allargato il campo per vederci meglio.
+    //
+    // ⚠️ Perché JS e non la sola `field-sizing: content`: Firefox non la conosce, e dove c'è smette di adattarsi
+    // appena si trascina la maniglia. ⚠️ Perché la misura aspetta: un campo dentro una sezione CHIUSA non ha
+    // altezza (`offsetParent` nullo), e misurato lì resterebbe a zero righe. Si misura quando compare — un
+    // `toggle` che apre la sezione, o un nodo nuovo che Blazor mette in pagina.
+    // Lo stato sta in PROPRIETÀ dell'elemento e non in `data-*`: la navigazione arricchita cancella gli
+    // attributi che non ha scritto lei e tiene il nodo (vedi il T-070 in vipi-ui.js).
+    var TETTO_ALTEZZA = 0.6;
+
+    function vipiAdattabile(el) {
+        return !!el && el.tagName === 'TEXTAREA' && el.hasAttribute('data-adatta');
+    }
+
+    window.vipiAdatta = function (el) {
+        if (!vipiAdattabile(el) || !el.isConnected || el.offsetParent === null) return;
+        // ⚠️ `height:auto` per misurare accorcia il campo per un istante, e se il campo sta sopra la parte di
+        // pagina che si vede la pagina SALTA. Si rimette lo scorrimento dov'era.
+        var sc = document.scrollingElement || document.documentElement;
+        var y = sc.scrollTop;
+        var cs = window.getComputedStyle(el);
+        el.style.height = 'auto';
+        var contenuto = cs.boxSizing === 'border-box'
+            ? el.scrollHeight + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth)
+            : el.scrollHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+        var tetto = Math.round(window.innerHeight * TETTO_ALTEZZA);
+        var h = Math.max(Math.min(contenuto, tetto), el.__vipiMinimo || 0);
+        el.style.height = h + 'px';
+        el.style.overflowY = contenuto > h + 1 ? 'auto' : 'hidden';
+        el.__vipiAltezza = el.offsetHeight;
+        el.__vipiAdattato = true;
+        sc.scrollTop = y;
+    };
+
+    function vipiAdattaNuovi() {
+        document.querySelectorAll('textarea[data-adatta]').forEach(function (el) {
+            if (!el.__vipiAdattato) window.vipiAdatta(el);
+        });
+    }
+
+    if (!window.__vipiAdattaWired) {
+        window.__vipiAdattaWired = true;
+
+        document.addEventListener('input', function (e) { if (vipiAdattabile(e.target)) window.vipiAdatta(e.target); });
+
+        // La maniglia: se l'altezza al rilascio non è quella che le abbiamo dato noi, l'ha scelta chi scrive.
+        document.addEventListener('pointerup', function (e) {
+            var el = e.target;
+            if (!vipiAdattabile(el) || !el.__vipiAltezza) return;
+            if (Math.abs(el.offsetHeight - el.__vipiAltezza) <= 2) return;
+            el.__vipiMinimo = el.offsetHeight;
+            el.__vipiAltezza = el.offsetHeight;
+            el.style.overflowY = 'auto';
         });
 
-        var testo = nuove.join('\n');
-        el.value = v.substring(0, ini) + testo + v.substring(fin);
-        vipiMdFine(el, ini, ini + testo.length);
-    };
+        // Una sezione che si apre: i campi dentro compaiono adesso. `toggle` non fa bubbling → cattura.
+        document.addEventListener('toggle', function () { vipiAdattaNuovi(); }, true);
+
+        // La larghezza cambia gli a capo, quindi l'altezza giusta. A riposo, non a ogni pixel.
+        var attesaResize = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(attesaResize);
+            attesaResize = setTimeout(function () {
+                document.querySelectorAll('textarea[data-adatta]').forEach(function (el) { el.__vipiAdattato = false; });
+                vipiAdattaNuovi();
+            }, 150);
+        });
+
+        // I campi che Blazor mette in pagina dopo: un editor che si apre, un blocco aggiunto, una navigazione.
+        var attesaNodi = null;
+        new MutationObserver(function () {
+            if (attesaNodi) return;
+            attesaNodi = setTimeout(function () { attesaNodi = null; vipiAdattaNuovi(); }, 100);
+        }).observe(document.documentElement, { childList: true, subtree: true });
+
+        vipiAdattaNuovi();
+    }
 
     // Ctrl/Cmd+B/I/U dentro una textarea markdown. ⚠️ Delegato sul documento e NON legato al componente:
     // un `@onkeydown` di Blazor sarebbe un giro di rete a OGNI tasto battuto, su ogni campo dell'editor.

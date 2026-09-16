@@ -458,12 +458,24 @@
               <ul>
                 <li><b>Prosa</b> — testo libero (paragrafi, elenchi).</li>
                 <li><b>Come si scrive il testo</b> — sopra ogni campo di prosa c'è una barra: <b>G</b> grassetto,
-                    <b>C</b> corsivo, <b>S</b> sottolineato, <b>•</b> elenco puntato, <b>1.</b> elenco numerato.
+                    <b>C</b> corsivo, <b>S</b> sottolineato, <b>•</b> elenco puntato, <b>1)</b> elenco numerato,
+                    <b>⇤ ⇥</b> rientro della voce.
                     Agiscono sul testo <b>selezionato</b>, e premuti una seconda volta tolgono quel che hanno messo.
                     Da tastiera: <b>Ctrl+B</b>, <b>Ctrl+I</b>, <b>Ctrl+U</b>. A mano si scrive
                     <code>**grassetto**</code>, <code>*corsivo*</code>, <code>__sottolineato__</code>; una voce di
-                    elenco è una riga che comincia con <code>- </code> oppure con <code>1. </code>.
+                    elenco è una riga che comincia con <code>- </code> oppure con <code>1) </code>.
                     <b>Gli a capo si leggono come li scrivi</b>, e una riga vuota apre un capoverso nuovo.</li>
+                <li><b>Elenchi dentro elenchi</b> — fino a <b>cinque livelli</b>, e il livello si scrive coi
+                    <b>trattini</b>: <code>- voce</code>, <code>-- sotto-voce</code>, <code>--- sotto-sotto-voce</code>
+                    per i puntati; <code>1) voce</code>, <code>-1) sotto-voce</code>, <code>--1) …</code> per i
+                    numerati. Si mescolano: un <code>-1)</code> sotto un <code>- voce</code> è un elenco numerato
+                    dentro uno puntato. Nel documento i livelli si distinguono dal simbolo — numerati
+                    <b>1 · a · I · i · A</b>, puntati <b>• – ◦ ▪ ·</b>. Non serve contare i trattini: sulla voce,
+                    <b>Tab</b> la sposta un livello più in dentro e <b>Maiusc+Tab</b> più in fuori (fuori da una
+                    voce, Tab cambia campo come sempre); <b>Invio</b> apre la voce dopo allo stesso livello, e
+                    Invio su una voce vuota risale di un livello. I numeri si rimettono in ordine da soli.</li>
+                <li><b>Il campo cresce col testo</b> fino a poco più di metà dello schermo, poi scorre dentro. La
+                    maniglia in basso a destra resta: l'altezza che dai a mano diventa il minimo.</li>
                 <li><b>Tabella</b> — righe/colonne, per limiti, frequenze, quote.</li>
                 <li><b>Callout / Tip</b> — riquadro evidenziato (nota, attenzione, suggerimento).</li>
                 <li><b>Immagine</b> — una foto o uno schema: scegli il file dal dispositivo <b>oppure trascinalo</b>
@@ -498,12 +510,24 @@
               <ul>
                 <li><b>Prose</b> — free text (paragraphs, lists).</li>
                 <li><b>How to format text</b> — every prose field has a toolbar above it: <b>B</b> bold,
-                    <b>I</b> italic, <b>U</b> underline, <b>•</b> bulleted list, <b>1.</b> numbered list.
+                    <b>I</b> italic, <b>U</b> underline, <b>•</b> bulleted list, <b>1)</b> numbered list,
+                    <b>⇤ ⇥</b> item indent.
                     They act on the <b>selected</b> text, and pressing one again removes what it added.
                     From the keyboard: <b>Ctrl+B</b>, <b>Ctrl+I</b>, <b>Ctrl+U</b>. By hand you write
                     <code>**bold**</code>, <code>*italic*</code>, <code>__underline__</code>; a list item is a line
-                    starting with <code>- </code> or with <code>1. </code>.
+                    starting with <code>- </code> or with <code>1) </code>.
                     <b>Line breaks show up as you type them</b>, and a blank line starts a new paragraph.</li>
+                <li><b>Lists inside lists</b> — up to <b>five levels</b>, and the level is written with
+                    <b>dashes</b>: <code>- item</code>, <code>-- sub-item</code>, <code>--- sub-sub-item</code> for
+                    bullets; <code>1) item</code>, <code>-1) sub-item</code>, <code>--1) …</code> for numbers. They
+                    mix: a <code>-1)</code> under a <code>- item</code> is a numbered list inside a bulleted one. In
+                    the document each level has its own marker — numbers <b>1 · a · I · i · A</b>, bullets
+                    <b>• – ◦ ▪ ·</b>. No need to count dashes: on an item, <b>Tab</b> moves it one level in and
+                    <b>Shift+Tab</b> one level out (outside an item, Tab moves to the next field as usual);
+                    <b>Enter</b> starts the next item at the same level, and Enter on an empty item goes up one
+                    level. Numbers put themselves back in order.</li>
+                <li><b>The field grows with the text</b> up to a little over half the screen, then scrolls inside.
+                    The handle at the bottom right stays: the height you set by hand becomes the minimum.</li>
                 <li><b>Table</b> — rows/columns, for limits, frequencies, altitudes.</li>
                 <li><b>Callout / Tip</b> — a highlighted box (note, warning, tip).</li>
                 <li><b>Image</b> — a photo or diagram: pick the file from your device <b>or drag it</b> onto the

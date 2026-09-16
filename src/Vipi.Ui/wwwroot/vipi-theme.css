@@ -2544,6 +2544,27 @@
    ultimi due non hanno `.prose` sopra. Un aggancio solo che vale in tutti e tre i posti.
    `padding-left` in em: rientra col testo anche quando lo zoom della pagina cambia il corpo. */
 :where(.vipi-root) .md-list{margin:.5em 0;padding-left:1.6em}
+/* Gli elenchi annidati (16 settembre 2026). Rientro un po' piu' stretto del primo livello: a cinque livelli
+   il testo dell'ultimo partirebbe altrimenti a otto em dal bordo, e dentro un callout non ne resta molto. */
+:where(.vipi-root) .md-list .md-list{margin:.15em 0;padding-left:1.4em}
+/* Il simbolo per LIVELLO e per TIPO. Sta sulla classe `md-lN` scritta dal renderer e non si conta dagli
+   antenati: un numerato dentro un puntato e' al secondo livello anche se non ha un <ol> sopra, e un
+   selettore come `ol ol` lo prenderebbe per un primo livello.
+   Numerati 1 → a → I → i → A: si alternano cifre, lettere e romani, cosi' due livelli vicini non si
+   scambiano mai. Puntati • → – → ◦ → ▪ → ·: pieno, trattino, vuoto, quadro, punto. Il trattino e il
+   punto sono STRINGHE, perche' fra le parole chiave del CSS non ci sono; scritte come escape (\2013 e'
+   il trattino medio, \B7 il punto a mezza altezza) e non come caratteri, cosi' non dipendono dalla
+   codifica con cui il foglio arriva. Il primo spazio chiude l'escape, il secondo e' lo stacco dal testo. */
+:where(.vipi-root) ol.md-l1{list-style-type:decimal}
+:where(.vipi-root) ol.md-l2{list-style-type:lower-alpha}
+:where(.vipi-root) ol.md-l3{list-style-type:upper-roman}
+:where(.vipi-root) ol.md-l4{list-style-type:lower-roman}
+:where(.vipi-root) ol.md-l5{list-style-type:upper-alpha}
+:where(.vipi-root) ul.md-l1{list-style-type:disc}
+:where(.vipi-root) ul.md-l2{list-style-type:"\2013  "}
+:where(.vipi-root) ul.md-l3{list-style-type:circle}
+:where(.vipi-root) ul.md-l4{list-style-type:square}
+:where(.vipi-root) ul.md-l5{list-style-type:"\B7  "}
 :where(.vipi-root) .md-list:first-child{margin-top:0}
 :where(.vipi-root) .md-list:last-child{margin-bottom:0}
 :where(.vipi-root) .md-list li{margin:.15em 0}

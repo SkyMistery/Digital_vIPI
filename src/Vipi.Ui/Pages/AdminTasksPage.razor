@@ -219,7 +219,7 @@
                                 </select>
                             </div>
                             <div class="field"><label>@L["AdminTasks_DescOptional"]</label>
-                                <textarea class="app-in" rows="3" @bind="_desc" placeholder="@L["AdminTasks_DescPlaceholder"]"></textarea></div>
+                                <textarea class="app-in" rows="3" @bind="_desc" data-adatta placeholder="@L["AdminTasks_DescPlaceholder"]"></textarea></div>
                             @* Il tasto sta DOVE FINISCE quello che gli serve, e il perché di un tasto spento
                                gli sta accanto (regola 170). *@
                             <button class="btn primary perm-go" disabled="@(_busy || !PuoCreare)" @onclick="Create">
