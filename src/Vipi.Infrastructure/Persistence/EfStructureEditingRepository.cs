@@ -358,11 +358,10 @@ public sealed class EfStructureEditingRepository : IStructureEditingRepository
             var before = (apt.HasMilitaryPresence, apt.Category, apt.Iata, apt.ElevationFt, apt.MagneticVariation);
             apt.HasMilitaryPresence = src.HasMilitaryPresence;
             // L'invariante della categoria: presenza caduta ⇒ Civile; presenza comparsa su un campo ancora
-            // Civile ⇒ il travaso (o il default). Una scelta già fatta da una persona su un campo che resta
-            // militare NON si tocca. ⚠️ Stessa funzione della passata d'avvio: vedi AirportCategoryTransfer.
-            // ⚠️ Si assegna solo se cambia: il setter riscrive anche lo specchio in pensione.
-            var categoria = AirportCategoryTransfer.Attesa(apt);
-            if (categoria != apt.Category) apt.Category = categoria;
+            // Civile ⇒ il default (o «militare con presenza civile» se ha già un vSOP). Una scelta già fatta da
+            // una persona su un campo che resta militare NON si tocca. ⚠️ Stessa funzione della passata d'avvio:
+            // vedi AirportCategoryTransfer.
+            apt.Category = AirportCategoryTransfer.Attesa(apt);
             apt.Iata = src.Iata;
             apt.ElevationFt = src.ElevationFt;
             apt.MagneticVariation = src.MagneticVariation;

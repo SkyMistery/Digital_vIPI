@@ -2,6 +2,30 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### 🟡 A49 — Via `Airports.IsMilitaryOnly`, e la S11 della shape riletta (16 settembre 2026, notte)
+
+In `main`, **NON in pacchetto**. 🔴 **Porta una migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, un
+`DropColumn` nelle due serie): il prossimo pacchetto spedisce `MySqlMigrations.dll`, e prima del carico si scarica
+una copia fresca del database (§A47).
+
+- **La colonna in pensione se ne va.** Misurato prima sulla copia di produzione del 16 settembre (93 aeroporti):
+  nessuna riga con presenza militare ancora `Civil`, e lo specchio uguale a `Category == MilitaryOnly` su tutte.
+  `Airport.Category` torna un'auto-proprietà; `AirportCategoryTransfer` perde il ramo del travaso e tiene la
+  regola «presenza comparsa con un vSOP già scritto ⇒ militare con presenza civile». Il `Down` ricrea la colonna
+  **coi dati**. Tolti due test che pinnavano lo specchio, riscritti tre sul travaso; atteso dei conteggi
+  riscritto (Domain −1, Infrastructure −1 per TFM). Build Release 0 avvisi, suite intera verde.
+- **S11 riletta contro il codice** (carta 15, §4-bis in testa): il piano del 30 agosto era corto. Letture dirette
+  delle colonne **sedici, non quattro** (fra cui la vLOA che legge ancora la colonna, statistiche, gerarchia,
+  confinanti esteri, rapporto di consistenza); **cinque scritture di quote** che col pezzo diventano scritture di
+  forma; la **precedenza dell'archivio** da rovesciare (oggi l'ATZ automatica scavalcherebbe il sectorfile); e
+  «corrente» contro «in vigore» da dire per ogni lettura. ✅ Le 13 torri ATZ in produzione sono già pezzi (zero
+  `'Aip'` in colonna). ▶ **Chiesto al committente** se farla con questo piano (sei-otto consegne, guadagno di
+  pulizia) o parcheggiarla. Codice S11: zero.
+- **Keep-alive con un cronjob** (proposta del committente, perché `passenger_min_instances` non si può avere):
+  ⚠️ la misura del 4 settembre dice che i ping **arrivano** e il processo muore lo stesso (SIGTERM, vita ~50 s,
+  anche con un ping ogni 10 s dal Worker Cloudflare). L'unico processo vissuto 90 minuti aveva un circuito
+  SignalR aperto. ▶ Da provare, se si vuole: non una GET corta ma una **connessione lunga** tenuta aperta.
+
 ### ✅ A48 — 1.29.0 È ONLINE (16 settembre 2026, notte)
 
 ✅ **Caricato e controllato.** Timbro confermato in barra dal committente. La copia del database **scaricata dalla produzione** (55 MB, `vipi-copia-2026-09-16-1806Z-1.29.0-49a2dd5.sql.gz`): `verifica` INTERA (62 tabelle, 79.053 righe, istruzione max 4,4 MB, sha256 `9de81c2e…35c0`), e **ripristinata** in un database vuoto sul MariaDB locale con la procedura del foglio: 62 tabelle, 79.053 righe, ultima migrazione giusta, 54/54 immagini con lo sha256 che torna (database di prova poi cancellato). Da fuori: `pacchetto-verifica.js` pubblico tutto verde; `vipi-theme.css` servito = spedito (sha256). La prova Cloudflare+Passenger su un file vero è quindi fatta. ▶ Resta col login: `Schema: 0`, ★ blu su un APP.
@@ -197,7 +221,9 @@ attesa di decidere da quale partire**.
    del **congelamento di release** (`ReleaseService`, `ShapeAiracGate`, `EfShapeGateRepository`), un backfill e
    **due migrazioni**. Sbagliarla non si vede a schermo: si vede quando qualcuno pubblica. ▶ Prima di toccare
    codice: **rileggere §4-bis** contro il codice di oggi (dal 30 agosto sono passate 1.1.0 → 1.27.0) e
-   aggiornarne il piano.
+   aggiornarne il piano. ✅ **Riletta il 16 settembre** (§A49): il piano era corto — sedici letture invece di
+   quattro, cinque scritture di quote in più, la precedenza dell'archivio da rovesciare. ▶ Decisione del
+   committente: farla con quel piano o parcheggiarla.
    - ▶ Legata: le **13 torri ATZ** con forma `Aip` non sono mai state guardate dal vivo — le 13 righe devono
      diventare pezzi e la colonna tornare libera. Si guarda al primo deploy che le converte.
 2. ✅ **Presidio della finestra TOLTO** (16 settembre 2026, notte). Il committente conferma: «non siamo più in
@@ -205,7 +231,7 @@ attesa di decidere da quale partire**.
    net8), riscritto `tests/conteggi-attesi.txt`; aggiornati i commenti che lo nominavano (`Anagrafica`,
    `VipiDbContext`, `IDocumentMaintenance`), la spec del modello dati e il runbook dei pacchetti. Non riscritto
    come regola permanente: la rete per una migrazione distruttiva oggi è la **copia del database** (§A47).
-   ▶ Ora si può: togliere la colonna in pensione `Airports.IsMilitaryOnly` (con migrazione doppia).
+   ✅ Tolta la colonna in pensione `Airports.IsMilitaryOnly`: §A49.
 3. ▶ **Feedback a due canali** (§CJ, memoria «feedback due canali»): carta pronta (`piano-segnalazioni.md` §10),
    codice zero, rimandato «a dopo il 16 settembre» per la taglia del cambio al database. Il nodo resta: lo
    sviluppatore non vede il database di produzione.

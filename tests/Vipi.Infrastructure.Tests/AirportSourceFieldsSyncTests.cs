@@ -110,7 +110,6 @@ public class AirportSourceFieldsSyncTests : IAsyncLifetime
         var apt = await LoadAsync("LIPA");
         Assert.False(apt.HasMilitaryPresence);
         Assert.Equal(AirportCategory.Civil, apt.Category);
-        Assert.False(apt.IsMilitaryOnly);   // lo specchio in pensione segue
     }
 
     /// <summary>La presenza militare che COMPARE porta lo scalo al default (decisione del committente dell'11
@@ -124,32 +123,6 @@ public class AirportSourceFieldsSyncTests : IAsyncLifetime
         });
 
         Assert.Equal(AirportCategory.CivilWithMilitaryPresence, (await LoadAsync("LIPA")).Category);
-    }
-
-    /// <summary>
-    /// 🔴 Il caso per cui il giro usa la STESSA funzione della passata d'avvio. Una riga mai travasata —
-    /// categoria ancora al valore di nascita della colonna, specchio «solo militare» acceso — se il giro
-    /// normalizzasse col solo default diventerebbe «civile con presenza militare», e la scelta di una persona
-    /// sparirebbe in silenzio. Succede se la passata d'avvio fallisce: è isolata, il sito parte lo stesso.
-    /// </summary>
-    [Fact]
-    public async Task Il_giro_travasa_lo_specchio_se_la_passata_d_avvio_non_e_girata()
-    {
-        await _repo.SyncAirportSourceFieldsAsync(new[]
-        {
-            new SourceAirport("LIPA", "Aviano", "LIPP", null, null, HasMilitaryPresence: true),
-        });
-        // La riga com'è subito dopo la migrazione: Category = Civil (default della colonna), specchio vero.
-        await _db.Database.ExecuteSqlRawAsync(
-            "UPDATE Airports SET Category = 'Civil', IsMilitaryOnly = 1 WHERE Icao = 'LIPA'");
-        _db.ChangeTracker.Clear();
-
-        await _repo.SyncAirportSourceFieldsAsync(new[]
-        {
-            new SourceAirport("LIPA", "Aviano", "LIPP", null, null, HasMilitaryPresence: true),
-        });
-
-        Assert.Equal(AirportCategory.MilitaryOnly, (await LoadAsync("LIPA")).Category);
     }
 
     [Fact]

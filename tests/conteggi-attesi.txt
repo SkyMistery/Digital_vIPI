@@ -7,12 +7,12 @@ Vipi.Assets.Tests.dll net8.0 61
 Vipi.AuroraBridge.Tests.dll net8.0 80
 Vipi.AuroraProfiles.Tests.dll net10.0 65
 Vipi.AuroraProfiles.Tests.dll net8.0 65
-Vipi.Domain.Tests.dll net10.0 153
-Vipi.Domain.Tests.dll net8.0 153
+Vipi.Domain.Tests.dll net10.0 152
+Vipi.Domain.Tests.dll net8.0 152
 Vipi.E2E.Tests.dll net8.0 356
 Vipi.Hosting.Tests.dll net10.0 68
 Vipi.Hosting.Tests.dll net8.0 68
-Vipi.Infrastructure.Tests.dll net10.0 1519
-Vipi.Infrastructure.Tests.dll net8.0 1528
+Vipi.Infrastructure.Tests.dll net10.0 1518
+Vipi.Infrastructure.Tests.dll net8.0 1527
 Vipi.Ui.Tests.dll net10.0 1603
 Vipi.Ui.Tests.dll net8.0 1603

@@ -47,18 +47,4 @@ public class AirportCategoriesTests
     {
         Assert.Equal(dopo, AirportCategories.Normalize(presenza, prima));
     }
-
-    /// <summary>
-    /// ⚠️ Lo specchio in pensione lo scrive il setter, così nessun chiamante se ne può dimenticare: vale finché
-    /// la colonna vive (fino alla prima migrazione dopo il 16 settembre 2026).
-    /// </summary>
-    [Fact]
-    public void Il_setter_della_categoria_tiene_lo_specchio()
-    {
-        var a = new Airport { Category = AirportCategory.MilitaryOnly };
-        Assert.True(a.IsMilitaryOnly);
-
-        a.Category = AirportCategory.MilitaryWithCivilPresence;
-        Assert.False(a.IsMilitaryOnly);
-    }
 }

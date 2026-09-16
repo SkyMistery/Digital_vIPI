@@ -296,6 +296,60 @@ forma dell'anagrafica. È la gemella della trappola del `bool` che nasce `false`
 
 ## 4-bis. S11 — le colonne gemelle, e perché non è una slice
 
+### 🔴 Riletta contro il codice il 16 settembre 2026: il piano qui sotto è CORTO
+
+Il piano del 30 agosto contava otto scritture e quattro letture. Rimisurato con `grep` sul codice di `main`
+(`9a3f6e93`), fuori dalle migrazioni e dai commenti: **le letture dirette delle colonne sono sedici, non
+quattro**, e **le quote hanno scritture proprie** che il piano non nomina.
+
+**Letture dirette che il piano non elenca** (oltre a `SectorPolygonsRawByCallsignAsync`, al gate e al
+risolutore):
+
+| # | Dove | Che cosa ne fa |
+|---|---|---|
+| L1 | `EfAccDerivationRepository.SelectableSectorShapesAsync` | il picker delle shape extra: «ha un poligono» |
+| L2 | `EfAppDerivationRepository.GetAorPolygonRawAsync` | il poligono grezzo di un APP |
+| L3 | `EfVloaDerivationRepository.GetBoundaryPolygonsAsync` | ⚠️ i confini della vLOA **dalla colonna**, non dal risolutore (S7 ne ha spostato un altro percorso) |
+| L4 | `EfAtcStatsQueries.AeroportiPerSettoreAsync` | aeroporti dentro un settore, per le statistiche |
+| L5 | `EfHierarchyEditingService.ComputeConfiningForeignCallsignsAsync` | confinanti esteri della gerarchia |
+| L6 | `EfNeighbourRepository.ListDomesticSectorPolygonsAsync` | filtro «ha forma» sulla colonna, e **ripiego** sulla colonna |
+| L7 | `EfNeighbourRepository.ListForeignAccDataAsync` | i settori **esteri** (anche loro in `AccSectors`) |
+| L8 | `EfAirportSectorRepository.ListNonSyntheticPolygonsAsync` | poligoni veri delle posizioni d'aeroporto |
+| L9 | `EfAirportSectorRepository` (elenco di struttura, riga 59) · `EfAccAdminRepository` (riga 60) | il flag `HasShape` delle pagine |
+| L10 | `EfAirportSectorRepository` (`TwrShapeRow`) → `AtzTowerShapeService`, `GithubTowerShapeService` | chi può sostituire un cerchio |
+| L11 | `EfConsistencyReportRepository` | il rapporto di consistenza |
+| L12 | `EfSectorShapeResolver.SinteticheAsync` | `IsShapeSynthetic` per il quarto gradino |
+
+**Le quote hanno scritture loro**, e con i pezzi diventano scritture di forma: `EfAccAdminRepository`
+(modifica a mano, riga 104, e upsert, righe 316-337), `EfAirportSectorRepository` (modifica a mano, riga 79,
+e import, righe 256-289), `EfNeighbourRepository` (esteri, righe 142-162). Oggi un amministratore che cambia
+il tetto di un settore cambia **una colonna**; col pezzo che porta le quote dentro, deve **riscrivere i pezzi**
+di ogni fonte non-AIP di quel settore, o il disegno resta sulle quote di prima **senza nessun errore**.
+
+**Tre cose del modello che il piano non dice:**
+
+1. 🔴 **La precedenza in archivio è sbagliata per il dopo.** `EfSectorShapeParts.Precedenza` mette `Aip` prima
+   di `Sectorfile` e `Source`. Oggi in archivio c'è solo l'ATZ automatica, e il catalogo le passa davanti nel
+   risolutore; quando anche sectorfile e anagrafica scriveranno pezzi, **l'ATZ automatica scavalcherebbe il
+   sectorfile** — il difetto che il test rosso di §3c aveva già preso una volta. L'ordine diventa
+   `Sectorfile → Source → Aip (automatica) → Synthetic`; l'aggancio a mano resta fuori dall'archivio.
+2. 🔴 **«Corrente» non è «in vigore».** Fuori dal congelamento le colonne danno la geometria **più recente**
+   (anche se in attesa del ciclo: è quel che vede l'editor), mentre `ListInForceByCallsignAsync` dà solo
+   `InForce`. Portare le letture sui pezzi senza dirlo cambia **tutte le pagine** nei giorni fra il sectorfile
+   nuovo e il ciclo. Serve una lettura «corrente» = `Pending` se c'è, altrimenti `InForce`, per fonte.
+3. ⚠️ **Il cerchio da 5 NM e l'ATZ in colonna.** `SetAipShapeAsync`/`ClearAipShapeAsync` scrivono ancora la
+   colonna con `ShapeSource='Aip'`: è il ramo di conversione delle 13 torri di S3. ✅ **Misurato sulla copia
+   di produzione del 16 settembre**: zero `AirportSectors` con `'Aip'` in colonna e 13 righe in
+   `SectorShapeParts` — la conversione in produzione è avvenuta, e il ramo si può togliere.
+
+**Il piano, ricontato:** backfill (1) · scritture di forma (8, come sopra) · scritture di quote (5) ·
+letture (16) · promozione e gate · togliere i rami di conversione · la migrazione che droppa, **una release
+dopo**. È un **capitolo di sei-otto consegne**, non una slice, e il guadagno è di pulizia: nessun difetto
+visibile oggi dipende da S11. ▶ **Decisione chiesta al committente il 16 settembre 2026**: farla adesso con
+questo piano, o parcheggiarla.
+
+### Il piano del 30 agosto
+
 **Misurato il 30 agosto 2026, non stimato.** Le colonne del catalogo spariscono solo se **ogni** fonte scrive
 i pezzi: finché una sola continua a scrivere `RegionMapPolygon`, il risolutore deve continuare a leggerlo, e
 la coppia `RegionMapPolygon`/`RegionMapPolygonInForce` resta dov'è.

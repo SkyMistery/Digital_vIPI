@@ -311,25 +311,11 @@ public class Airport
     /// <see cref="AirportCategory.Civil"/> la dà la sorgente (nessuna presenza militare); le altre tre le sceglie
     /// un amministratore dalla pagina Aeroporti, e solo dove <see cref="HasMilitaryPresence"/> è vero. L'import la
     /// tocca solo per tenere l'invariante: presenza caduta ⇒ Civil, presenza comparsa ⇒ il default.
-    /// <para>⚠️ Il setter scrive anche lo specchio <see cref="IsMilitaryOnly"/>: così nessun chiamante se ne può
-    /// dimenticare. EF invece materializza dal campo <c>_category</c> (convenzione del campo di appoggio), quindi
-    /// leggere una riga <b>non</b> riscrive lo specchio — ed è quel che serve al travaso, che lo legge.</para>
+    /// <para>ℹ️ Fino al 16 settembre 2026 accanto a lei viveva lo specchio <c>IsMilitaryOnly</c>, il booleano che
+    /// ha sostituito: la finestra cieca vietava di togliere colonne. Tolto con la migrazione
+    /// <c>SpecchioSoloMilitareInPensione</c>.</para>
     /// </summary>
-    public AirportCategory Category
-    {
-        get => _category;
-        set { _category = value; IsMilitaryOnly = value == AirportCategory.MilitaryOnly; }
-    }
-    private AirportCategory _category;
-
-    /// <summary>
-    /// ⚠️ <b>IN PENSIONE dall'11 settembre 2026</b> (carta <c>2026-09-11-categorie-aeroporto.md</c>): il suo posto
-    /// l'ha preso <see cref="Category"/>. È rimasta nel modello perché la finestra cieca (chiusa il 16 settembre
-    /// 2026) vietava di togliere colonne. Nessuno la legge tranne il travaso d'avvio; la scrive il setter di
-    /// <see cref="Category"/>, come <b>specchio</b>, perché una versione precedente — in caso di ritorno
-    /// indietro — trovi il dato giusto. ▶ Ora si può togliere, con una migrazione (non ancora fatta).
-    /// </summary>
-    public bool IsMilitaryOnly { get; set; }
+    public AirportCategory Category { get; set; }
 
     /// <summary>Nascosto dall'admin: l'aeroporto resta nel DB ma la sua pagina e l'elenco pubblico non lo mostrano. Default false = visibile.
     /// La visibilità pubblica effettiva è inoltre negata quando l'aeroporto non ha nemmeno un settore.</summary>

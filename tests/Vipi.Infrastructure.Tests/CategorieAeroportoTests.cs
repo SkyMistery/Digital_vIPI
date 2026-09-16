@@ -11,12 +11,12 @@ namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
 /// Le quattro categorie d'aeroporto dal lato dell'<b>archivio</b> (carta
-/// <c>docs/feature/2026-09-11-categorie-aeroporto.md</c>): il travaso d'avvio dal booleano in pensione, il comando
-/// che tiene l'invariante, e la lettura della Diagnostica sui documenti fuori categoria.
+/// <c>docs/feature/2026-09-11-categorie-aeroporto.md</c>): la passata d'avvio che tiene l'invariante con la
+/// presenza militare, il comando della pagina Aeroporti, e la lettura della Diagnostica sui documenti fuori
+/// categoria.
 ///
-/// <para>⚠️ Il travaso è la parte che non si può riparare dopo: gira da solo all'avvio in produzione, e fino al
-/// 16 settembre 2026 nessuno può rimettere a posto il database. Si prova sui casi che l'archivio vero contiene
-/// (misurati sul <c>vipi.db</c> di sviluppo: 6 solo militari, 2 con presenza e vSOP, 26 con presenza e basta).</para>
+/// <para>ℹ️ Fino al 16 settembre 2026 la passata d'avvio faceva anche il travaso dal booleano
+/// <c>IsMilitaryOnly</c>; la colonna è stata tolta (migrazione <c>SpecchioSoloMilitareInPensione</c>).</para>
 /// </summary>
 public class CategorieAeroportoTests : IAsyncLifetime
 {
@@ -72,38 +72,33 @@ public class CategorieAeroportoTests : IAsyncLifetime
     }
 
     /// <summary>
-    /// Mette una riga nello stato in cui la lascia la migrazione: categoria al valore di nascita della colonna
-    /// (<c>Civil</c>) e specchio in pensione com'era. Scritto in SQL apposta — il setter di <c>Category</c>
-    /// riscriverebbe lo specchio, e la riga non sarebbe quella che la migrazione lascia.
+    /// Riporta la categoria a <c>Civil</c> su un campo con presenza militare: la riga come la trova l'avvio quando
+    /// la presenza è comparsa e nessuno l'ha ancora riallineata. In SQL, fuori dal tracker.
     /// </summary>
-    private async Task ComeDopoLaMigrazione(string icao, bool soloMilitare)
+    private async Task CategoriaAncoraCivile(string icao)
     {
-        await _db.Database.ExecuteSqlRawAsync(
-            "UPDATE Airports SET Category = 'Civil', IsMilitaryOnly = {0} WHERE Icao = {1}", soloMilitare, icao);
+        await _db.Database.ExecuteSqlRawAsync("UPDATE Airports SET Category = 'Civil' WHERE Icao = {0}", icao);
         _db.ChangeTracker.Clear();
     }
 
     private Task<Airport> Rileggi(string icao) => _db.Airports.AsNoTracking().SingleAsync(a => a.Icao == icao);
 
-    // ---- Il travaso d'avvio --------------------------------------------------------------------------
+    // ---- La passata d'avvio ---------------------------------------------------------------------------
 
     [Fact]
-    public async Task Il_travaso_porta_ogni_riga_alla_sua_categoria()
+    public async Task La_passata_porta_ogni_riga_alla_sua_categoria()
     {
-        await Campo("LIPA", presenza: true);
         var liml = await Campo("LIML", presenza: true);
         await Campo("LIMC", presenza: true);
         await Campo("LIPZ", presenza: false);
         await Documento(liml, DocumentEdition.Military);
-        await ComeDopoLaMigrazione("LIPA", soloMilitare: true);
-        await ComeDopoLaMigrazione("LIML", soloMilitare: false);
-        await ComeDopoLaMigrazione("LIMC", soloMilitare: false);
+        await CategoriaAncoraCivile("LIML");
+        await CategoriaAncoraCivile("LIMC");
 
         var cambiati = await new EfDocumentMaintenance(_db).ReconcileAirportCategoriesAsync();
 
-        Assert.Equal(3, cambiati);
-        Assert.Equal(AirportCategory.MilitaryOnly, (await Rileggi("LIPA")).Category);
-        // ⚠️ Chi ha già un vSOP va in 4: nessun documento esistente finisce fuori categoria per il travaso.
+        Assert.Equal(2, cambiati);
+        // ⚠️ Chi ha già un vSOP va in 4: nessun documento esistente finisce fuori categoria.
         Assert.Equal(AirportCategory.MilitaryWithCivilPresence, (await Rileggi("LIML")).Category);
         Assert.Equal(AirportCategory.CivilWithMilitaryPresence, (await Rileggi("LIMC")).Category);
         Assert.Equal(AirportCategory.Civil, (await Rileggi("LIPZ")).Category);
@@ -111,7 +106,7 @@ public class CategorieAeroportoTests : IAsyncLifetime
 
     /// <summary>Gira a ogni avvio: al secondo giro non deve toccare niente — né la scelta di una persona.</summary>
     [Fact]
-    public async Task Il_travaso_e_idempotente_e_non_tocca_una_scelta_gia_fatta()
+    public async Task La_passata_e_idempotente_e_non_tocca_una_scelta_gia_fatta()
     {
         await Campo("LIRP", presenza: true, AirportCategory.MilitaryWithCivilPresence);
         await Campo("LIMC", presenza: true, AirportCategory.CivilWithMilitaryPresence);
@@ -122,7 +117,7 @@ public class CategorieAeroportoTests : IAsyncLifetime
 
     /// <summary>Lo stato che nessuno digita: la presenza è caduta ma la categoria è rimasta militare.</summary>
     [Fact]
-    public async Task Il_travaso_ripara_una_categoria_militare_senza_presenza()
+    public async Task La_passata_ripara_una_categoria_militare_senza_presenza()
     {
         var a = await Campo("LIPA", presenza: true, AirportCategory.MilitaryOnly);
         a.HasMilitaryPresence = false;
@@ -131,22 +126,18 @@ public class CategorieAeroportoTests : IAsyncLifetime
         Assert.Equal(1, await new EfDocumentMaintenance(_db).ReconcileAirportCategoriesAsync());
         var dopo = await Rileggi("LIPA");
         Assert.Equal(AirportCategory.Civil, dopo.Category);
-        Assert.False(dopo.IsMilitaryOnly);
     }
 
     // ---- Il comando della pagina Aeroporti ------------------------------------------------------------
 
     [Fact]
-    public async Task Il_comando_scrive_la_categoria_e_lo_specchio()
+    public async Task Il_comando_scrive_la_categoria()
     {
         var a = await Campo("LIPA", presenza: true, AirportCategory.CivilWithMilitaryPresence);
 
         await new EfStructureEditingRepository(_db).SetAirportCategoryAsync("LIPP", a.Id, AirportCategory.MilitaryOnly);
 
-        var dopo = await Rileggi("LIPA");
-        Assert.Equal(AirportCategory.MilitaryOnly, dopo.Category);
-        // Lo specchio in pensione: se si tornasse a 1.21.x, quella versione troverebbe il dato giusto.
-        Assert.True(dopo.IsMilitaryOnly);
+        Assert.Equal(AirportCategory.MilitaryOnly, (await Rileggi("LIPA")).Category);
     }
 
     [Fact]

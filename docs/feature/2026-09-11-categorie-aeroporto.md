@@ -133,7 +133,10 @@ tutti e due i documenti): LIBB 4 schede (LIBG solo vSOP), LIMM 3 (LIML e LIMS so
 aprono i due documenti), ogni filtro mostra solo la sua categoria e ricliccato torna a tutti, italiano e
 inglese, tema scuro, 400px senza scorrimento orizzontale, zero errori in console.
 
-## ▶ Dopo il 16 settembre 2026
+## ✅ Dopo il 16 settembre 2026 — fatto
 
-Una migrazione toglie `Airports.IsMilitaryOnly`; `AirportCategoryTransfer` perde il ramo del travaso e resta
-`AirportCategories.Normalize`; il setter di `Airport.Category` torna un'auto-proprietà.
+La migrazione `SpecchioSoloMilitareInPensione` toglie `Airports.IsMilitaryOnly` (lavori aperti §A49);
+`AirportCategoryTransfer` ha perso il ramo del travaso, e `Airport.Category` è un'auto-proprietà. ⚠️ Non è
+diventata la sola `AirportCategories.Normalize`: resta la regola «presenza comparsa su un campo che ha già un vSOP
+⇒ militare con presenza civile», che non è un travaso ma un invariante e vale anche a regime. Prima di togliere la
+colonna si è misurato sulla copia di produzione: nessuna riga da travasare.

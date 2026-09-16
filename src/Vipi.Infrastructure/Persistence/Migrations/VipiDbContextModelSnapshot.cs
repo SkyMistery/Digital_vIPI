@@ -363,9 +363,6 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsHidden")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("IsMilitaryOnly")
-                        .HasColumnType("INTEGER");
-
                     b.Property<DateTime?>("LastSeenAtUtc")
                         .HasColumnType("TEXT");
 

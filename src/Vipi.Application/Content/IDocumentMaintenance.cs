@@ -194,7 +194,8 @@ public interface IDocumentMaintenance
 
     /// <summary>
     /// Porta ogni aeroporto alla <b>categoria</b> che deve avere (carta 2026-09-11-categorie-aeroporto.md): il
-    /// travaso dal booleano in pensione <c>IsMilitaryOnly</c>, più l'invariante con la presenza militare.
+    /// l'invariante con la presenza militare (fino al 16 settembre 2026 anche il travaso dal booleano
+    /// <c>IsMilitaryOnly</c>, poi tolto).
     /// Ritorna quanti aeroporti sono cambiati. Idempotente: a regime tocca zero righe.
     ///
     /// <para>⚠️ Sta qui e non in una migrazione per due ragioni: quando è nata, la finestra cieca vietava l'SQL

@@ -562,10 +562,13 @@ default `'Civil'`) che **prende il posto di `IsMilitaryOnly`**: `Civil` · `Mili
 (`AirportCategories.AllowsCivil`/`AllowsMilitary`): Civile e civile-con-presenza-militare solo la vIPI, solo-militare
 solo il vSOP, militare-con-presenza-civile tutti e due in qualunque ordine. ⚠️ **Invariante**: senza
 `HasMilitaryPresence` è `Civil`, con la presenza non lo è mai; la tengono il giro dell'anagrafica, il comando della
-pagina Aeroporti e la passata d'avvio `ReconcileAirportCategoriesAsync` (che fa anche il travaso). ⚠️
-**`IsMilitaryOnly` è IN PENSIONE ma resta in tabella**: la finestra cieca (chiusa il 16 settembre 2026) vietava di
-toglierla, e ora si può fare con una migrazione (non ancora fatta). Nessuno la legge tranne il travaso, e il setter
-di `Category` la scrive come specchio (`Category == MilitaryOnly`) per un eventuale ritorno a 1.21.x.
+pagina Aeroporti e la passata d'avvio `ReconcileAirportCategoriesAsync`.
+
+**`IsMilitaryOnly` tolta (2026-09-16, migrazione `SpecchioSoloMilitareInPensione`).** Era rimasta in tabella come
+specchio di `Category == MilitaryOnly` perché la finestra cieca vietava di togliere colonne. Misurato prima sulla
+copia di produzione del 16 settembre: nessuna riga da travasare, specchio sempre uguale alla categoria. Il `Down`
+la ricrea **coi dati** (`UPDATE … WHERE Category = 'MilitaryOnly'`), così una versione precedente ritrova i solo
+militari.
 
 `Iata` normalizzato: la sorgente manda **stringa vuota**, non null, per i 73 aeroporti che non ne hanno uno.
 
