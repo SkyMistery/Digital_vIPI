@@ -1,5 +1,10 @@
 # Pacchetto 1.27.0 — solo i file cambiati
 
+> ✅ **CARICATO il 16 settembre 2026.** Controlli da fuori (soli GET anonimi): pacchetto 8/8, vAWOS 15/15,
+> navigazione enhanced 6/6; i quattro file di `wwwroot` serviti hanno lo **sha256 identico** a quelli spediti.
+> Restano da fare **col login**: timbro `1.27.0 · f6cbea3` e riga `Schema` = `0`. E il lavoro di **dati**:
+> ripubblicare gli APP non remotizzati (misurato: LIBA_APP, LICT_APP, LIRP_APP hanno ancora il vecchio indice).
+
 > **Timbro:** `1.27.0 · f6cbea3` (15 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

@@ -2,7 +2,7 @@
 
 ## Dove siamo — 15 settembre 2026
 
-### 📦 A38 — Pacchetto 1.27.0: 28 file, MINOR su 1.26.1, TRE migrazioni additive — ⏳ **PRONTO, non ancora caricato**
+### ✅ A38 — Pacchetto 1.27.0: 28 file, MINOR su 1.26.1, TRE migrazioni additive — ✅ **ONLINE** (16 settembre 2026)
 
 Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cambiati.zip` (5,28 MB), sha256
 `da9e6a1c67b81119ce12cfd75403106f45af04d5e2a35a2ed137000814ef67b5`, foglio
@@ -23,8 +23,27 @@ Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cam
 - ⚠️ **1.27.0 non è il net10**: il numero è andato a questo pacchetto, partito prima. `l13-net10` diventerà
   **1.28.0** e va riallineato a main (tre migrazioni).
 
-▶ **Dopo il carico**: Ricerca; vAWOS di LIMC/LIRF a blocchi; da anonimo niente «from»; col login timbro e
-**`Schema: 0`**. ▶ **Dati**: stazione METAR di LIRJ (LIRS); ripubblicare gli APP non remotizzati.
+✅ **Caricato il 16 settembre**, controllato da fuori con soli GET anonimi:
+
+- `pacchetto-verifica` **8/8** (Ricerca compresa), `awos-verifica` **15/15**, `enhanced-verifica` **6/6**
+  (`DOC=/services/vsop/lirr/mil?icao=LIBA`).
+- 🔴 **I quattro asset di `wwwroot` serviti hanno lo sha256 IDENTICO a quelli spediti** (`vipi-awos.css/.js`,
+  `vipi-editor.js`, `vipi-theme.css`): sono arrivati con `endpoints.json`, o la pagina chiederebbe nomi che non esistono.
+- **vAWOS**: LIMC due blocchi e LIRF **tre** (`awos-multi`, barre `RWY 07/25`, `16L/34R`, `16R/34L`); su LIBA,
+  che non ha RVR nel METAR, le quattro celle dicono **P2000**; le frecce di LIMC puntano a sinistra con 35R/35L
+  in uso, cioè nel senso di marcia.
+- **Provenienza**: da anonimo la riga è «RWY IN USE: 29R» e nel JSON `dettaglio` è **null** (`sorgente` resta,
+  senza nome) — la meccanica di servizio non esce più al pubblico.
+- **Migrazioni entrate** (prova indiretta, `Schema: 0` vuole il login): la pagina di **LIRJ** dice «non emette un
+  METAR suo: METAR e TAF sono quelli di LIRS» e il quadro vAWOS porta la pastiglia **METAR LIRS** — la colonna
+  `MetarStationIcao` c'è ed è pure già compilata; le pagine d'aeroporto con SID e i documenti con sotto-sezioni
+  rispondono 200 (senza le colonne nuove il modello le pretenderebbe e cadrebbero).
+- **`/services`**: la scheda «Vedi chi è online ora» c'è.
+- ℹ️ `/vsop/health` = **Degraded**: come in 1.26.1, sono i severe dei **dati** (documentazione), non il pacchetto.
+
+▶ **Restano col login**: timbro **`1.27.0 · f6cbea3`** e riga **`Schema` = 0**.
+▶ **Dati**: ✅ LIRJ→LIRS fatto; 🔴 **ripubblicare gli APP non remotizzati** — misurato il 16-set: LIBA_APP,
+LICT_APP e LIRP_APP mostrano ancora il vecchio indice (VFR a sé, niente «Gestione del traffico»).
 ▶ Far riprovare il bug del suggerimento SID. ▶ THE EYE: chiedere a chi lo sviluppa centro/zoom nell'indirizzo.
 
 ### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — 📦 **in 1.27.0** (§A38), niente migrazione
