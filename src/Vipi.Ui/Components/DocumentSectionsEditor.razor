@@ -229,6 +229,30 @@ else
     private static string AsString(object? v) => v as string ?? "";
 
     // ---- sezioni ----
+
+    /// <summary>
+    /// Vero se sotto questa sezione ci sta ancora un livello. La domanda è la stessa che fa
+    /// <c>EfEditingRepository.AddSectionAsync</c> — figlia a <c>s.Depth + 1</c>, tetto
+    /// <see cref="DocumentSection.MaxDepth"/> — e deve restarlo: un tasto acceso che poi viene rifiutato è
+    /// una promessa non mantenuta.
+    ///
+    /// <para>⚠️ <c>s.Depth</c> è la profondità ASSOLUTA nel documento, non la <c>relDepth</c> con cui questo
+    /// componente disegna. È voluto: il tetto lo tiene il modello, e la vIPI ACC — che passa come radici le
+    /// figlie di un blocco — ha radici a <c>Depth 1</c> che devono contare per quel che sono.</para>
+    /// </summary>
+    private static bool PuoAnnidare(EditableSection s) => s.Depth + 1 <= DocumentSection.MaxDepth;
+
+    /// <summary>
+    /// Il <c>title</c> del tasto «+ Sottosezione»: l'etichetta normale finché si può, il MOTIVO quando è
+    /// spento.
+    /// <para>⚠️ Un <c>disabled</c> muto si legge «non hai il permesso» (regole-ui-pagine-admin): qui il
+    /// permesso c'è ed è la profondità a essere finita, e sono due cose che si rimediano in modi diversi.
+    /// Il rifiuto del motore arriverebbe lo stesso, ma si disegna in cima alla pagina — su un documento
+    /// lungo, fuori campo. Segnalato dal campo su Decimomannu, 16 settembre 2026.</para>
+    /// </summary>
+    private string TitoloSottosezione(EditableSection s, string quandoSiPuo) =>
+        PuoAnnidare(s) ? quandoSiPuo : L["Dse_AddSubsectionMaxDepth"].Value;
+
     private Task AddSection(int? parentId) => Run(async () =>
     {
         await Editing.AddSectionAsync(Doc.VersionId, parentId, "Nuova sezione", BlockSection.Other);
@@ -500,7 +524,8 @@ else
                        @onchange="e => RenameSection(s.Id, AsString(e.Value))" />
                 <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => FrecciaSezione(s, -1)">↑</button>
                 <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => FrecciaSezione(s, 1)">↓</button>
-                <button class="btn ghost" title="@L["Dse_AddSubsectionTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
+                <button class="btn ghost" disabled="@(!PuoAnnidare(s))" title="@TitoloSottosezione(s, L["Dse_AddSubsectionTitle"].Value)"
+                        @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
                 <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Dse_DeleteSection"]" TriggerTitle="@L["Dse_DeleteSection"]"
                                Prompt="@L["Dse_DeleteSectionPrompt"]" OnConfirm="() => DeleteSection(s.Id)"><Trigger><Icon Name="x" /></Trigger></InlineConfirm>
             }
@@ -517,7 +542,8 @@ else
                 {
                     <button class="btn ghost" title="@L["Common_Up"]" @onclick="() => FrecciaSezione(s, -1)">↑</button>
                     <button class="btn ghost" title="@L["Common_Down"]" @onclick="() => FrecciaSezione(s, 1)">↓</button>
-                    <button class="btn ghost" title="@L["Dse_AddSubsectionExtraTitle"]" @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
+                    <button class="btn ghost" disabled="@(!PuoAnnidare(s))" title="@TitoloSottosezione(s, L["Dse_AddSubsectionExtraTitle"].Value)"
+                            @onclick="() => AddSection(s.Id)">+ @L["Dse_Subsection"]</button>
                 }
             }
             @if (IsRenderModeToggleable?.Invoke(s) == true)

@@ -1,4 +1,4 @@
-@using System.Globalization
+﻿@using System.Globalization
 @using Microsoft.Extensions.Localization
 @using Vipi.Application.Content
 @using Vipi.Ui
@@ -109,6 +109,25 @@
             <p class="vipi-rec-p vipi-rec-fallita">@L["Reconnect_Failed"]</p>
             <button id="vipi-riconnessione-ricarica" class="vipi-rec-b" type="button">@L["Reconnect_Reload"]</button>
         </div>
+    </div>
+    @* L'avviso che si legge DOPO una ricarica automatica: il circuito era morto, quindi l'ultimo gesto —
+       il click su «+ Sottosezione», la cella appena scritta — non è mai arrivato al server, e la pagina è
+       tornata su senza dirlo. Fino al 16 settembre 2026 quel gesto spariva in silenzio: chi scriveva il SOD
+       di Decimomannu premeva, non succedeva niente, e leggeva «il documento è saturo».
+
+       ⚠️ Markup qui e non in un componente Blazor: lo accende `vipi-riconnessione.js` PRIMA che il circuito
+       esista — è il caso in cui un circuito, per definizione, non c'è. Per la stessa ragione i testi stanno
+       nei resx e non nel .js: tradotti dal server, come il riquadro qui sopra.
+
+       ⚠️ `hidden` e non `display:none` in linea: lo si toglie con `el.hidden = false`, e il reset di pagina
+       garantisce `[hidden]{display:none}` anche quando il CSS del tema non è ancora arrivato. *@
+    <div id="vipi-gesto-perso" class="vipi-perso" role="status" aria-live="polite" hidden>
+        <span class="vipi-perso-i" aria-hidden="true">⚠️</span>
+        <div class="vipi-perso-t">
+            <strong>@L["Lost_Title"]</strong>
+            <span>@L["Lost_Body"]</span>
+        </div>
+        <button id="vipi-gesto-perso-chiudi" class="vipi-perso-x" type="button" aria-label="@L["Common_Close"]">✕</button>
     </div>
     @* ⚠️ `autostart="false"`: chi avvia Blazor è vipi-riconnessione.js, la riga dopo, perché i tempi di
        riconnessione e quelli del canale SignalR si possono scrivere SOLO passandoli a `Blazor.start`.

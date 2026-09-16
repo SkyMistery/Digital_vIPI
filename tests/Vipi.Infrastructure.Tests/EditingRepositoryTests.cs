@@ -706,21 +706,30 @@ public class EditingRepositoryTests : IAsyncLifetime
         public void EnsureAdmin() { }
     }
 
+    /// <summary>
+    /// Si scende fino al tetto e poi si sbatte. ⚠️ Il numero di livelli lo chiede a
+    /// <c>DocumentSection.MaxDepth</c> e non lo srotola a mano (L0…L3, com'era fino al 16 settembre 2026):
+    /// alzare il tetto da 3 a 5 faceva cadere questo test senza che la guardia avesse niente che non andasse
+    /// — provava il NUMERO invece della regola.
+    /// </summary>
     [Fact]
     public async Task AddSection_Respects_MaxDepth()
     {
+        const int Tetto = Vipi.Domain.Entities.DocumentSection.MaxDepth;
+
         var docId = await AccDocIdAsync();
         var draftId = await _repo.CreateDraftAsync(docId, authorUserId: 1);
 
-        var l0 = await _repo.AddSectionAsync(draftId, null, "L0", Vipi.Domain.BlockSection.Other);
-        var l1 = await _repo.AddSectionAsync(draftId, l0, "L1", Vipi.Domain.BlockSection.Other);
-        var l2 = await _repo.AddSectionAsync(draftId, l1, "L2", Vipi.Domain.BlockSection.Other);
-        var l3 = await _repo.AddSectionAsync(draftId, l2, "L3", Vipi.Domain.BlockSection.Other); // depth 3 = OK
+        int? padre = null;
+        for (var profondita = 0; profondita <= Tetto; profondita++)
+        {
+            padre = await _repo.AddSectionAsync(draftId, padre, $"L{profondita}", Vipi.Domain.BlockSection.Other);
+            Assert.True(padre > 0);
+        }
 
-        Assert.True(l3 > 0);
-        // depth 4 → rifiutato
+        // Il gradino dopo il tetto: rifiutato.
         await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            _repo.AddSectionAsync(draftId, l3, "L4", Vipi.Domain.BlockSection.Other));
+            _repo.AddSectionAsync(draftId, padre, $"L{Tetto + 1}", Vipi.Domain.BlockSection.Other));
     }
 
     [Fact]

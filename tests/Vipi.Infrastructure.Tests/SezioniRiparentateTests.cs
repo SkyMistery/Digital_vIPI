@@ -1,4 +1,4 @@
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Domain;
 using Vipi.Domain.Services;
@@ -148,26 +148,42 @@ public class SezioniRiparentateTests : IAsyncLifetime
     }
 
     /// <summary>Guardia: la profondità si misura sul SOTTOALBERO. A ha una figlia con una figlia, quindi ne
-    /// porta due: sotto una sezione già profonda uno non ci sta.</summary>
+    /// porta due: l'ultimo padre che se la può prendere è quello a cui restano due gradini sotto.
+    /// <para>⚠️ Scritto contro <c>DocumentSection.MaxDepth</c> e non contro i numeri 1-2-3-4, che è come
+    /// stava fino al 16 settembre 2026: alzare il tetto da 3 a 5 ha fatto cadere questo test pur avendo la
+    /// guardia intatta, perché «B1, profondità 1» era il bordo solo finché il bordo era 3. Ora la scala di
+    /// bersagli si costruisce da sé, e il test dice quel che vuole dire: il sottoalbero conta.</para></summary>
     [Fact]
     public async Task Rifiuta_se_il_sottoalbero_sfora_la_profondita()
     {
+        const int Tetto = Vipi.Domain.Entities.DocumentSection.MaxDepth;
+
         var draft = await BozzaAsync();
+        // A si porta dietro DUE livelli: A → A1 → A1a.
         var a = await SezioneAsync(draft, null, "A");
         var a1 = await SezioneAsync(draft, a, "A1");
-        await SezioneAsync(draft, a1, "A1a");
+        var a1a = await SezioneAsync(draft, a1, "A1a");
 
-        var b = await SezioneAsync(draft, null, "B");
-        var b1 = await SezioneAsync(draft, b, "B1");
-        var b1a = await SezioneAsync(draft, b1, "B1a");
+        // Una scala di bersagli B0…B(Tetto-2), uno per profondità. A finisce a «profondità del padre + 1» e
+        // scende di altri due, quindi ci sta finché padre + 3 ≤ Tetto.
+        var scala = new List<int>();
+        int? corrente = null;
+        for (var profondita = 0; profondita <= Tetto - 2; profondita++)
+        {
+            corrente = await SezioneAsync(draft, corrente, $"B{profondita}");
+            scala.Add(corrente.Value);
+        }
 
-        // A (altezza 2) sotto B1 (profondità 1) darebbe un livello 4: rifiutata.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.MoveSectionToParentAsync(a, b1, null));
-        // La stessa A sotto B (profondità 0) ci sta esatta: 1 + 2 = 3, il massimo.
-        await _repo.MoveSectionToParentAsync(a, b, null);
-        Assert.Equal(b, await PadreAsync(a));
-        // ...e la figlia di B1, che non c'entra, non l'ha toccata nessuno.
-        Assert.Equal(2, await ProfonditaAsync(b1a));
+        var troppoGiu = scala[Tetto - 2];     // A ci finirebbe a Tetto + 1
+        var ultimoBuono = scala[Tetto - 3];   // A ci arriva esatta al Tetto
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _repo.MoveSectionToParentAsync(a, troppoGiu, null));
+
+        await _repo.MoveSectionToParentAsync(a, ultimoBuono, null);
+        Assert.Equal(ultimoBuono, await PadreAsync(a));
+        // La nipote è scesa con lei, e si è fermata ESATTO sul tetto: è questo che rende «ci sta» un fatto
+        // e non una coincidenza.
+        Assert.Equal(Tetto, await ProfonditaAsync(a1a));
     }
 
     /// <summary>Guardia: un riferimento che non è del gruppo di destinazione vuol dire albero vecchio in mano

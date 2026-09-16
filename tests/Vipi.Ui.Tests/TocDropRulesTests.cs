@@ -1,3 +1,4 @@
+﻿using Vipi.Domain.Entities;
 using Vipi.Ui.Components;
 using Xunit;
 
@@ -89,19 +90,32 @@ public class TocDropRulesTests
         Assert.False(TocDropRules.Accetta(Albero, A, A1));
     }
 
-    /// <summary>Guardia della profondità: si guarda dove finirebbe la sezione (la profondità del bersaglio)
-    /// più quel che si porta dietro.</summary>
+    /// <summary>Guardia della profondità: si guarda dove finirebbe la sezione (la profondità del bersaglio,
+    /// di cui diventa SORELLA) più quel che si porta dietro.
+    /// <para>⚠️ I bersagli si costruiscono da <c>DocumentSection.MaxDepth</c> e non si scrivono «A1a,
+    /// profondità 2»: fino al 16 settembre 2026 quella voce ERA il bordo, perché il tetto era 3. Alzandolo
+    /// a 5 il test è caduto con la guardia intatta — misurava il numero, non la regola.</para></summary>
     [Fact]
     public void Non_si_lascia_dove_il_sottoalbero_non_ci_sta()
     {
-        // B porta con sé una figlia: lasciata su A1a (profondità 2) finirebbe a 2 + 1 = 3 figlie comprese: sta.
-        Assert.True(TocDropRules.Accetta(Albero, B, A1a));
+        const int Tetto = DocumentSection.MaxDepth;
 
-        // Una sezione che porta DUE livelli, sulla stessa voce, sforerebbe.
-        var alta = Voce(5, null, altezza: 2);
-        var albero = new[] { A, A1, A1a, B, B1, alta };
-        Assert.False(TocDropRules.Accetta(albero, alta, A1a));
-        Assert.True(TocDropRules.Accetta(albero, alta, A1));   // a profondità 1 ci sta esatta
+        // Due bersagli, sul fondo e un gradino sopra. Padri diversi da quello della sezione mossa: fra
+        // fratelli il drop è un riordino e la profondità non si guarda nemmeno.
+        var fondo = Voce(80, 8, profondita: Tetto);
+        var unGradinoSopra = Voce(81, 9, profondita: Tetto - 1);
+
+        // Si porta dietro una figlia: lei finisce dove finisce il bersaglio, la figlia un gradino sotto.
+        var conFiglia = Voce(5, null, altezza: 1);
+        var albero = new[] { A, A1, A1a, B, B1, conFiglia, fondo, unGradinoSopra };
+
+        Assert.False(TocDropRules.Accetta(albero, conFiglia, fondo));            // Tetto + 1: sfora
+        Assert.True(TocDropRules.Accetta(albero, conFiglia, unGradinoSopra));    // Tetto esatto: ci sta
+
+        // Una foglia non porta niente, quindi sul fondo ci sta.
+        var foglia = Voce(6, null);
+        var conFoglia = new[] { A, A1, A1a, B, B1, foglia, fondo };
+        Assert.True(TocDropRules.Accetta(conFoglia, foglia, fondo));
     }
 
     [Fact]

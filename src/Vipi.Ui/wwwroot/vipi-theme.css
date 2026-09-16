@@ -4737,6 +4737,31 @@
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:block}
 .vipi-rec.vipi-riconnessione-arresa .vipi-rec-b{display:inline-block}
 
+/* ── «L'ultimo comando potrebbe non essere arrivato» ────────────────────────────────
+   Il riquadro sopra dice «sta succedendo adesso»; questo dice «e' successo, mentre non guardavi». Compare
+   DOPO una ricarica automatica, quando il gesto appena fatto non e' mai arrivato al server.
+
+   ⚠️ Una STRISCIA in basso, non un modale: non c'e' niente da decidere e niente da aspettare: la pagina e'
+   gia' usabile, e un modale la bloccherebbe per dare una notizia. Sta in basso perche' in alto litigherebbe
+   con la testata sticky, che su queste pagine c'e' sempre.
+
+   ⚠️ La riga `[hidden]` sotto SERVE, e non e' una ripetizione della regola del browser: un `display` scritto
+   da noi vince su quello della UA stylesheet, quindi `.vipi-perso{display:flex}` da solo terrebbe la
+   striscia accesa SEMPRE, `hidden` o no. E' la stessa trappola gia' pagata in vipi-awos.css, e il prezzo
+   qui sarebbe un avviso «l'ultimo comando e' andato perso» su ogni pagina del sito. */
+.vipi-perso{position:fixed;left:50%;transform:translateX(-50%);z-index:2900;display:flex;align-items:flex-start;
+  gap:10px;max-width:min(560px,calc(100vw - 32px));padding:11px 13px;
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  background:var(--surface);color:var(--ink);border:1px solid var(--line-strong);border-radius:11px;
+  box-shadow:0 14px 34px rgba(0,0,0,.24);font-family:var(--font-body);font-size:13px;line-height:1.5}
+.vipi-perso-i{flex:0 0 auto;font-size:15px;line-height:1.35}
+.vipi-perso-t{flex:1 1 auto;display:flex;flex-direction:column;gap:2px}
+.vipi-perso-t>span{color:var(--ink-soft)}
+.vipi-perso-x{flex:0 0 auto;align-self:flex-start;padding:0 6px;border:0;border-radius:6px;background:transparent;
+  color:var(--ink-faint);font-size:13px;line-height:1.6;cursor:pointer}
+.vipi-perso-x:hover{background:var(--surface-muted);color:var(--ink)}
+.vipi-perso[hidden]{display:none}
+
 
 
 /* ── Scegliere un file, con l'aspetto dell'applicazione ─────────────────────────────────────────────────

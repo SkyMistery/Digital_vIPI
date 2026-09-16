@@ -1,4 +1,4 @@
-@* Il SOMMARIO: uno solo, per i cinque documenti E per gli editor.
+﻿@* Il SOMMARIO: uno solo, per i cinque documenti E per gli editor.
 
    Fino al 6 settembre 2026 erano TRE implementazioni. Questa serviva quattro famiglie (aeroporto, APP,
    vLOA, vSOP militare); la vIPI ACC ne aveva una tutta sua, scritta nella pagina, perché le sue sezioni
@@ -82,8 +82,11 @@
     [Parameter(CaptureUnmatchedValues = true)] public IDictionary<string, object>? Extra { get; set; }
 
     /// <summary>
-    /// Una voce e, sotto, le sue figlie. Ricorsiva: le sezioni arrivano a tre livelli
-    /// (<c>DocumentSection.MaxDepth</c>), e un ciclo scritto a mano per due li perderebbe.
+    /// Una voce e, sotto, le sue figlie. Ricorsiva, e senza fondo scritto: quanto si scenda lo decide
+    /// <c>DocumentSection.MaxDepth</c> (3 fino al 16 settembre 2026, oggi 5), e un ciclo srotolato a mano
+    /// per due livelli perderebbe tutto il resto.
+    /// <para>⚠️ Il RIENTRO invece un fondo ce l'ha: <see cref="Rientro"/> si ferma a <c>lvl4</c>, quindi
+    /// dal secondo livello in giù le voci si leggono tutte allo stesso rientro.</para>
     /// </summary>
     private RenderFragment Voce(TocVoce v, int livello) => __builder =>
     {

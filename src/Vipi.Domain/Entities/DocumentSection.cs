@@ -1,4 +1,4 @@
-namespace Vipi.Domain.Entities;
+﻿namespace Vipi.Domain.Entities;
 
 /// <summary>Sezione ad albero (annidamento max 3 livelli). Genera la TOC dinamica. SPEC §7.1.</summary>
 public class DocumentSection
@@ -72,6 +72,21 @@ public class DocumentSection
     public ICollection<DocumentSection> Children { get; set; } = new List<DocumentSection>();
     public ICollection<ContentBlock> Blocks { get; set; } = new List<ContentBlock>();
 
-    /// <summary>Profondità massima consentita per l'albero delle sezioni (SPEC §7.1).</summary>
-    public const int MaxDepth = 3;
+    /// <summary>
+    /// Profondità massima consentita per l'albero delle sezioni (SPEC §7.1). Si conta da <b>zero</b>: le
+    /// radici stanno a 0, quindi il numero qui sotto è l'indice dell'ultimo livello, non quanti sono.
+    ///
+    /// <para>⚠️ Era 3 fino al 16 settembre 2026, e il profilo militare ci stava <b>appoggiato</b>: «Aree di
+    /// lavoro › Procedure generali › Procedure di partenza › VFR» arriva esatto a 3, quindi sotto quelle
+    /// foglie non si poteva più annidare niente. Su un SOD grosso (Decimomannu) è saltato fuori dal campo:
+    /// il tasto «+ Sottosezione» c'era, il rifiuto arrivava, e il messaggio si disegnava in cima a una
+    /// pagina lunga tre schermate — cioè non si vedeva. Alzarlo costa una costante: tutte le ricorsioni
+    /// (viewer, editor, sommario, stampa) non hanno mai avuto un fondo scritto a mano.</para>
+    ///
+    /// <para>⚠️ Quel che NON cresce è la <b>resa</b>: dal livello 2 in giù viewer, editor e sommario usano
+    /// gli stessi stili (<c>coord-sub2</c>, <c>lvl4</c>), quindi due livelli diversi si leggono uguali.
+    /// Annidare fin quaggiù è permesso, ma non si <i>vede</i>: è una scelta editoriale da fare con gli
+    /// occhi, non un invito.</para>
+    /// </summary>
+    public const int MaxDepth = 5;
 }

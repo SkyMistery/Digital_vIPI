@@ -2,6 +2,57 @@
 
 ## Dove siamo — 15 settembre 2026
 
+### ✅ A39 — «Il documento è saturo»: due guasti dietro un sintomo solo (16 settembre 2026)
+
+Segnalato dal campo da un administrator che scriveva il **SOD di Decimomannu (LIED)**, documento grosso e pieno
+di immagini: *«se creo una sottosezione, non appare nemmeno; sembra saturo»*. Nessun limite di dimensione
+c'entrava — erano **due guasti distinti** che davano lo stesso sintomo: il gesto non fa niente, e nessuno dice
+perché.
+
+**1. La profondità.** `DocumentSection.MaxDepth` si conta da zero ed era **3**. Il catalogo militare ci stava
+appoggiato: `regulated` → `operationaltechnique` → `departureprocedures` → `:vfr`/`:ifr` arriva **esatto a 3**,
+ed è il ramo in cui stava lavorando. Il motore rifiutava correttamente; il **tasto «+ Sottosezione» restava
+acceso**, e il rifiuto si disegna nel callout d'errore che sta **in cima alla pagina** — su un documento lungo,
+fuori campo.
+
+- `MaxDepth` **3 → 5**. Costa una costante: nessuna ricorsione (viewer, editor, sommario, stampa) aveva un
+  fondo scritto a mano. ⚠️ Quel che **non** cresce è la resa: dal livello 2 in giù viewer, editor e sommario
+  usano gli stessi stili (`coord-sub2`, `lvl4`), quindi livelli diversi si leggono uguali.
+- Tasto spento sul fondo, col **motivo** nel `title` (`Dse_AddSubsectionMaxDepth`) e non muto: un `disabled`
+  senza spiegazione, qui, si legge «non ti è permesso». Presidiato da `SottosezioneAlFondoTests`.
+- 🔴 **Quattro test pinnavano il NUMERO e non la regola** e sono caduti con le guardie intatte
+  (`AddSection_Respects_MaxDepth`, `Rifiuta_se_il_sottoalbero_sfora_la_profondita`,
+  `Non_si_lascia_dove_il_sottoalbero_non_ci_sta`, `Il_profilo_TOCCA_il_limite`). Riscritti contro `MaxDepth`,
+  o contro il `3` letterale dove il fatto era il **ramo** del catalogo e non il tetto.
+- ▶ **Resta aperto**: l'errore dell'editor nasce lontano da dove si preme, in tutti e quattro gli editor.
+
+**2. Il circuito che muore.** `diagnostica/avvii.txt` della mattina del 16-set: **ARRESTO ogni 16 s – 6 min**,
+sempre `fermato da SIGTERM`, sempre `svegliato da /vsop/health/ready`. 🔴 Il numero che conta è
+**«ultima richiesta 0-9 s fa»**: il processo muore entro ~10 secondi dall'ultima richiesta, non dopo i «pochi
+minuti» che il codice presume. Il circuito Blazor muore di continuo e il gesto appena fatto non arriva mai al
+server — senza errore e senza badge. Vale per **tutti** gli editor; il mattone lo rende solo visibile.
+
+- Lato app: dopo una ricarica da circuito morto compare la striscia **«L'ultimo comando potrebbe non essere
+  arrivato»** (`#vipi-gesto-perso` in `App.razor`, accesa da `vipi-riconnessione.js` con una bandierina in
+  `sessionStorage`). Anche il tasto «Ricarica la pagina» ci passa — ma **senza** il conteggio anti-ciclo, che
+  su un tasto lo spegnerebbe proprio quando è l'unica cosa rimasta da premere.
+- ⚠️ `.vipi-perso[hidden]{display:none}` **serve**: un `display:flex` scritto da noi vince su `[hidden]` della
+  UA stylesheet. Stessa trappola già pagata in `vipi-awos.css`.
+- 🔴 **`COLPETTO_MS = 150000` è quindi inefficace**: il colpetto anti-spegnimento arriva ogni 2,5 minuti su una
+  finestra di 10 secondi. Non toccato qui — va deciso insieme alla configurazione dell'host.
+- ▶ **Al committente**: `passenger_min_instances ≥ 1` e l'idle timeout in Plesk. È la stessa voce che ricorre
+  da agosto (§O3, §Q5 «processo fermato ogni ~46 s»).
+
+**3. Le immagini — non c'entravano.** Ma un tetto per-documento **esiste, ed è l'unico di tutto il sistema**:
+`MediaOptions.MaxBytesPerDocument = 25 MB`, per le immagini, configurabile con `Media__MaxBytesPerDocument`
+(upload singolo 3 MB, lato lungo ridotto a 2000 px dal browser). Quando scatta **lo dice** e blocca solo
+l'upload. I byte non pesano sull'editor: tabella `MediaAssets` a parte, il blocco porta solo lo sha, servite da
+`/vsop/media/{sha}` come `immutable`. Tutto il resto del testo è `longtext`: nessun limite di sezioni, blocchi
+o caratteri.
+
+⚠️ La copia locale di `diagnostica/` era **vecchia di tre giorni** (`errori-richieste.txt` fermo al 13-set): per
+un caso di oggi va riscaricata dall'host prima di cercarci dentro.
+
 ### ✅ A38 — Pacchetto 1.27.0: 28 file, MINOR su 1.26.1, TRE migrazioni additive — ✅ **ONLINE** (16 settembre 2026)
 
 Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cambiati.zip` (5,28 MB), sha256

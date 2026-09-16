@@ -58,6 +58,11 @@
     var RICARICHE_MASSIME = 3;
     var FINESTRA_RICARICHE_MS = 60000;
 
+    // La bandierina che sopravvive alla ricarica: la si pianta prima di ricaricare e la si raccoglie al
+    // caricamento dopo. `sessionStorage` e non `localStorage`: vale per QUESTA scheda e muore con lei —
+    // un avviso raccolto domani in un'altra finestra parlerebbe di un gesto che nessuno ricorda.
+    var CHIAVE_PERSO = "vipi.gesto-perso";
+
     // ── 1. L'avvio di Blazor, con i nostri tempi ─────────────────────────────────────────────────────
     if (window.Blazor && typeof window.Blazor.start === "function") {
         try {
@@ -109,11 +114,18 @@
 
     // Il tasto del riquadro: ricarica, non `Blazor.reconnect()`. Riconnettersi è quel che si è già provato
     // cinquantacinque volte; ricaricare è la sola mossa che funziona in entrambi i casi.
+    // ⚠️ Passa da `ricarica()` e non da `location.reload()` diretto: anche questa ricarica butta via il
+    // gesto che l'utente aveva appena fatto, e chi la chiede a mano merita l'avviso quanto chi se la trova
+    // fatta. CHIESTA, però: il conteggio anti-ciclo non la tocca. Quel conteggio esiste per non ricaricare
+    // all'infinito da soli; applicato a un tasto, lo spegnerebbe proprio quando è l'unica cosa rimasta da
+    // premere — e un tasto che non fa niente è il difetto da cui è nato tutto questo file.
     var tasto = document.getElementById("vipi-riconnessione-ricarica");
-    if (tasto) tasto.addEventListener("click", function () { location.reload(); });
+    if (tasto) tasto.addEventListener("click", function () { ricarica(true); });
 
     /// Ricarica, contando le ricariche recenti per non entrare in un ciclo.
-    function ricarica() {
+    /// <param>`chiesta`: la ricarica l'ha premuta un essere umano — si fa e basta, senza conteggio.</param>
+    function ricarica(chiesta) {
+        if (chiesta) { piantaLaBandierina(); location.reload(); return; }
         try {
             var chiave = "vipi.ricariche";
             var adesso = Date.now();
@@ -135,7 +147,42 @@
             // non un permesso — vedi vipi-zoom.js, che sullo stesso storage ha lo stesso patto.
         }
 
+        piantaLaBandierina();
         location.reload();
+    }
+
+    /// La traccia che sopravvive alla ricarica. ⚠️ Try suo, separato da quello del conteggio: quello
+    /// protegge una PROTEZIONE (il ciclo di ricariche), questa è l'unica cosa che resta del gesto perduto,
+    /// e scrivendole insieme un solo storage negato le spegnerebbe tutte e due.
+    function piantaLaBandierina() {
+        try { sessionStorage.setItem(CHIAVE_PERSO, "1"); } catch (e) { /* storage negato: nessun avviso */ }
+    }
+
+    // ── 2-bis. «L'ultimo comando potrebbe non essere arrivato» ───────────────────────────────────────
+    //
+    // Quando il circuito muore, il gesto che l'utente aveva appena fatto NON è arrivato al server: il
+    // click su «+ Sottosezione», la cella appena scritta, la freccia premuta. La pagina però torna su da
+    // sola (`ricarica()`) e si ripresenta pulita, come se non fosse successo niente — e chi stava
+    // lavorando conclude che il gesto non funziona, o che il documento è rotto. È successo davvero: sul
+    // SOD di Decimomannu, 16 settembre 2026, letto come «il documento è saturo».
+    //
+    // Il riquadro sta in App.razor (testi tradotti dal server); qui si accende soltanto. Non si chiude da
+    // solo: chi torna alla scheda dopo un minuto deve trovarlo, o l'avviso vale per chi non serviva.
+    var avviso = document.getElementById("vipi-gesto-perso");
+    if (avviso) {
+        var perso = false;
+        try {
+            perso = sessionStorage.getItem(CHIAVE_PERSO) === "1";
+            // Si raccoglie SEMPRE, anche se poi non si mostra: una bandierina lasciata lì tornerebbe a
+            // parlare alla ricarica successiva, quella voluta, di un gesto perso mezz'ora prima.
+            if (perso) sessionStorage.removeItem(CHIAVE_PERSO);
+        } catch (e) {
+            perso = false;
+        }
+        if (perso) avviso.hidden = false;
+
+        var chiudi = document.getElementById("vipi-gesto-perso-chiudi");
+        if (chiudi) chiudi.addEventListener("click", function () { avviso.hidden = true; });
     }
 
     // ── 3. Il colpetto che tiene sveglio il processo ─────────────────────────────────────────────────

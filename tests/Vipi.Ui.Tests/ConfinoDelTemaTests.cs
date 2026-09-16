@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using Xunit;
 
 namespace Vipi.Ui.Tests;
@@ -29,6 +29,9 @@ public class ConfinoDelTemaTests
     /// per esempio il riquadro della riconnessione).</item>
     /// <item><c>.vipi-rec</c> — quel riquadro: sta in <c>App.razor</c> FUORI dal layout, perché Blazor cerca
     /// <c>#components-reconnect-modal</c> per nome e a circuito morto la pagina potrebbe non esserci.</item>
+    /// <item><c>.vipi-perso</c> — la striscia «l'ultimo comando potrebbe non essere arrivato»: sta accanto al
+    /// riquadro qui sopra, per la stessa ragione. La accende <c>vipi-riconnessione.js</c> PRIMA che Blazor
+    /// parta, quindi prima che esista un <c>.vipi-root</c> da cui discendere.</item>
     /// <item><c>.vipi-root</c> e <c>.vipi-dense .vipi-root</c> — il contenitore stesso e chi lo governa da un
     /// antenato: confinarli darebbe selettori che non trovano niente.</item>
     /// </list>
@@ -39,7 +42,8 @@ public class ConfinoDelTemaTests
         return s.Length == 0
             || s.Contains(".vipi-root", StringComparison.Ordinal)
             || s.StartsWith(":root", StringComparison.Ordinal)
-            || s.StartsWith(".vipi-rec", StringComparison.Ordinal);
+            || s.StartsWith(".vipi-rec", StringComparison.Ordinal)
+            || s.StartsWith(".vipi-perso", StringComparison.Ordinal);
     }
 
     /// <summary>

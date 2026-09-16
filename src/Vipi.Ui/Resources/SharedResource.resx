@@ -1919,6 +1919,7 @@
   <data name="Dse_AddSection" xml:space="preserve"><value>+ Aggiungi sezione</value></data>
   <data name="Dse_AddSubsectionTitle" xml:space="preserve"><value>Aggiungi sotto-sezione</value></data>
   <data name="Dse_AddSubsectionExtraTitle" xml:space="preserve"><value>Aggiungi sotto-sezione (extra)</value></data>
+  <data name="Dse_AddSubsectionMaxDepth" xml:space="preserve"><value>Livello di annidamento massimo raggiunto: qui sotto non ci stanno altre sotto-sezioni. Aggiungi un blocco.</value></data>
   <data name="Dse_Subsection" xml:space="preserve"><value>sotto-sez</value></data>
   <data name="Dse_DeleteSection" xml:space="preserve"><value>Elimina sezione</value></data>
   <data name="Dse_DeleteSectionPrompt" xml:space="preserve"><value>Eliminare la sezione e i suoi blocchi?</value></data>
@@ -3294,6 +3295,8 @@
   <data name="Reconnect_Rejected" xml:space="preserve"><value>Il server è ripartito: ricarico la pagina.</value></data>
   <data name="Reconnect_Failed" xml:space="preserve"><value>Non riesco a ricollegarmi. Controlla la connessione, poi ricarica la pagina.</value></data>
   <data name="Reconnect_Reload" xml:space="preserve"><value>Ricarica la pagina</value></data>
+  <data name="Lost_Title" xml:space="preserve"><value>L'ultimo comando potrebbe non essere arrivato.</value></data>
+  <data name="Lost_Body" xml:space="preserve"><value>Il collegamento col server si era interrotto e la pagina è stata ricaricata da sola. Controlla l'ultima modifica: se non c'è, rifalla.</value></data>
   <!-- Import di una tabella: incolla, CSV, XLSX, anteprima -->
   <data name="Imp_Export" xml:space="preserve"><value>Esporta CSV</value></data>
   <data name="Imp_ExportTitle" xml:space="preserve"><value>Scarica la tabella come CSV, da sistemare nel foglio di calcolo e reimportare</value></data>

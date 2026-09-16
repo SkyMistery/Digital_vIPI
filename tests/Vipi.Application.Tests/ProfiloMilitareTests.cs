@@ -78,9 +78,9 @@ public class ProfiloMilitareTests
     /// Le SID stanno in «Dati generali», <b>subito dopo le piste</b> — deciso dal committente. Dall'11
     /// settembre 2026 fra le due ci sono le regole piste, sempre per decisione del committente.
     /// <para>🔴 SORELLA e non figlia: è una scelta d'indice. ⚠️ Qui c'era scritto che una figlia «porterebbe il
-    /// profilo oltre <c>MaxDepth</c>»: non è vero — «Dati generali › Piste › figlia» sta a profondità 2, come
-    /// le soglie, e il limite è 3. Il test lo pinna perché la differenza fra le due si vede solo scendendo
-    /// nell'albero.</para>
+    /// profilo oltre <c>MaxDepth</c>»: non è vero — «Dati generali › Piste › figlia» sta a profondità 2, e il
+    /// limite non l'ha mai sfiorato (era 3, dal 16 settembre 2026 è 5). Il test lo pinna perché la differenza
+    /// fra le due si vede solo scendendo nell'albero.</para>
     /// </summary>
     [Fact]
     public void Le_SID_stanno_subito_DOPO_le_piste_dentro_i_dati_generali()
@@ -143,18 +143,19 @@ public class ProfiloMilitareTests
     }
 
     [Fact]
-    public void Il_profilo_TOCCA_il_limite_di_profondita_e_non_e_un_caso()
+    public void Il_ramo_piu_profondo_del_profilo_scende_di_tre_e_non_e_un_caso()
     {
-        // ⚠️ Dal 6 settembre 2026 il profilo sta ESATTO sul bordo: «Aree di lavoro» → «Procedure generali» →
-        // «Procedure di partenza» → «VFR» è profondità 3, e 3 è il massimo. Non c'è margine, e chi volesse
-        // annidare sotto quelle quattro foglie non può — `DocumentBirth.Semina` alza un'eccezione alla
-        // NASCITA del documento, che è il posto giusto per accorgersene.
-        // Il test di sopra dice «non sfora»; questo dice «ci sta appoggiato». Sono due fatti diversi: il
-        // primo resterebbe verde anche se un domani il ramo si accorciasse per sbaglio, e allora nessuno
-        // saprebbe più che quel limite era una decisione.
+        // «Aree di lavoro» → «Procedure generali» → «Procedure di partenza» → «VFR» è profondità 3, ed è il
+        // ramo più basso di tutto il catalogo militare: il TRE è una decisione d'indice, non un caso.
+        //
+        // ⚠️ Il numero è scritto a mano, e prima era `DocumentSection.MaxDepth`. Fino al 16 settembre 2026
+        // le due cose coincidevano — il limite era 3 e il profilo ci stava appoggiato — e legarle sembrava
+        // economia. Non lo era: erano due fatti diversi scritti con lo stesso numero, e alzando il limite a
+        // 5 questo test sarebbe diventato verde per il motivo sbagliato (il ramo non è cresciuto, il tetto
+        // sì). Il test di sopra guarda il tetto; questo guarda il RAMO.
         static int Prof(SectionDescriptor d) =>
             d.Children is { Count: > 0 } f ? 1 + f.Max(Prof) : 0;
-        Assert.Equal(Vipi.Domain.Entities.DocumentSection.MaxDepth, Mil.Max(Prof));
+        Assert.Equal(3, Mil.Max(Prof));
 
         var aree = Mil.Single(d => d.Key == "regulated").Children!.Single(d => d.Key == "operationaltechnique");
         Assert.Equal(

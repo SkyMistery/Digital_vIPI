@@ -447,10 +447,12 @@ public static class SectionCatalog
                     // aeroporto): questi quattro discendenti vivono nel SOLO registro militare, perche'
                     // `Children` e' per profilo. Lo pretende un test -- gli altri quattro documenti non
                     // devono vedersi comparire delle procedure di partenza.
-                    // ⚠️ PROFONDITA' 3, cioe' il LIMITE (DocumentSection.MaxDepth):
-                    // «arrivalprocedures:vfr» sta esatto sul bordo. Chi volesse annidare sotto queste non
-                    // puo', e deve saperlo prima di provarci -- alla nascita sarebbe un'eccezione, non un
-                    // documento storto.
+                    // ⚠️ PROFONDITA' 3: «arrivalprocedures:vfr» e le sue tre sorelle sono le foglie piu'
+                    // BASSE di tutto il catalogo. Fino al 16 settembre 2026 erano anche il bordo — il
+                    // limite era 3 — e sotto di loro non si poteva annidare niente: su Decimomannu l'ha
+                    // preso in faccia chi scriveva il SOD. Oggi `DocumentSection.MaxDepth` e' 5, quindi
+                    // due livelli di margine ci sono. Il numero qui NON e' piu' il limite: se serve
+                    // saperlo, si legge di la'.
                     D("operationaltechnique", "Procedure generali", 1, en: "General procedures", children: new[]
                     {
                         D(SectionKeys.DepartureProcedures, "Procedure di partenza", 1,
