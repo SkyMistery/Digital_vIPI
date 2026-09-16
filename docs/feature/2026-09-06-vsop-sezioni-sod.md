@@ -37,6 +37,14 @@ quattro documenti non li vedono — e c'è un test che lo dimostra.
 vale 3. Ci sta esatto, senza margine: il prossimo che vuole annidare sotto quelle non può, e deve saperlo
 prima di provarci.
 
+> **Aggiornato il 16 settembre 2026 — il margine adesso c'è.** «Il prossimo» è arrivato dopo dieci giorni: un
+> administrator che scriveva il SOD di **Decimomannu** ha provato ad annidare sotto quelle foglie, e quel che
+> ha visto non è stato un limite — è stato **niente**. Il tasto «+ Sottosezione» era acceso, il motore
+> rifiutava correttamente, e il rifiuto si disegnava nel callout in cima a una pagina lunga tre schermate: da
+> fuori sembrava un documento rotto («sembra saturo»). `MaxDepth` è passato a **5** e il tasto ora si spegne
+> sul fondo dicendo perché. La profondità del profilo resta **3**, e resta una decisione d'indice.
+> Vedi `docs/lavori-aperti.md` §A39.
+
 ### 1b. QRA / Scramble esce
 
 Non è nei quindici PDF — l'avevamo aggiunta noi il 27 agosto, e il SOD non la vuole. Esce dal catalogo, e
@@ -89,6 +97,9 @@ per i vSOP nuovi e per nessun altro, finché non lo si porta a mano.
 `AddMissingCatalogSectionsAsync` copre già i vSOP militari, scende nelle sotto-sezioni e inserisce nella
 posizione che il catalogo prevede, rinumerando i fratelli. Va solo **provato fino alla profondità 3**: il
 ramo più fondo che abbia mai attraversato finora era il 2.
+
+> ℹ️ Dal 16 settembre 2026 il tetto è 5, ma il **catalogo** non è sceso: il ramo più fondo che questa passata
+> attraversa resta il 3. Sotto ci vanno solo le sotto-sezioni scritte a mano.
 
 ### 3b. `RemoveMilQraSectionsAsync` — nuovo, prudente
 

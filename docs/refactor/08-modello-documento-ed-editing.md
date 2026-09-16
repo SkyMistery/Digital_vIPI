@@ -18,7 +18,8 @@
 >
 > **Design locks (2026-07-10):**
 > 1. **Editor editoriale unico** su `DocumentSection`+`ContentBlock`: blocchi `Prose`/`Table`/`Callout`
->    + **sotto-sezioni** (albero `DocumentSection`, `MaxDepth`=3). Un solo componente editor + un solo
+>    + **sotto-sezioni** (albero `DocumentSection`, profondità fino a `DocumentSection.MaxDepth` — 3 fino
+>    al 16 settembre 2026, **5** da allora). Un solo componente editor + un solo
 >    viewer, condivisi da tutti i tipi. Il modello `Document` regge già tutto questo (verificato).
 > 2. **Config ricca anche in APP**, pool = **settori dell'aeroporto dell'APP** (es. `LIRP_APP` →
 >    settori di `LIRP`); accorpamento calcolato come per l'ACC. `configurations` resta nella membership APP.

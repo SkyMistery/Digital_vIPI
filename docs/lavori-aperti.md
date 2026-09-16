@@ -4,6 +4,9 @@
 
 ### ✅ A39 — «Il documento è saturo»: due guasti dietro un sintomo solo (16 settembre 2026)
 
+Carta: [`feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md`](feature/2026-09-16-sottosezione-al-fondo-e-gesti-persi.md).
+🟡 In `main`, **non in pacchetto**: commit `0635fdd3`, CI verde, **nessuna migrazione**.
+
 Segnalato dal campo da un administrator che scriveva il **SOD di Decimomannu (LIED)**, documento grosso e pieno
 di immagini: *«se creo una sottosezione, non appare nemmeno; sembra saturo»*. Nessun limite di dimensione
 c'entrava — erano **due guasti distinti** che davano lo stesso sintomo: il gesto non fa niente, e nessuno dice

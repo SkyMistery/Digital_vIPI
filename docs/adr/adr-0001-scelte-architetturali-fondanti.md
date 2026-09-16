@@ -39,7 +39,7 @@ Database SQLite, accesso via EF Core, enum salvati come stringa, concorrenza ott
 
 ### D4 — Modello a contenuto strutturato (ContentBlock taggati)
 
-I documenti non sono blob: sono alberi di `DocumentSection` (annidamento fino a 3 livelli) che contengono `ContentBlock` taggati con `Tier` (Reduced/Extended), `Visibility` (Operational/Handoff/Always), `ScopeSectorId` e formato (`Table`, `Prose`, `Image`, `List`, `AorMap`, `Callout`).
+I documenti non sono blob: sono alberi di `DocumentSection` (annidamento fino a `DocumentSection.MaxDepth`; **aggiornato il 2026-09-16**: era 3 dalla stesura, ora **5** — vedi `docs/lavori-aperti.md` §A39) che contengono `ContentBlock` taggati con `Tier` (Reduced/Extended), `Visibility` (Operational/Handoff/Always), `ScopeSectorId` e formato (`Table`, `Prose`, `Image`, `List`, `AorMap`, `Callout`).
 
 **Perché:** è ciò che abilita le due viste, il collasso per AoR, le tabelle filtrabili e la TOC dinamica. Senza struttura, RF-3 e RF-6 non sono realizzabili.
 

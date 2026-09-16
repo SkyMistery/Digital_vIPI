@@ -31,7 +31,7 @@ Manca **solo**: la sezione nel catalogo, il `case` nel corpo militare, e la port
 ## Dove va: sotto Runways, in Dati generali
 
 **Deciso dal committente.** Sorella di `runways`, subito dopo — **non** figlia (lì c'è già «Coordinate delle
-soglie», e il profilo militare **tocca già `MaxDepth=3`**).
+soglie», e il profilo militare **scende già fino a profondità 3**, che allora *era* `MaxDepth` — dal 16 settembre 2026 il tetto è 5, ma il profilo non si è mosso).
 
 ```
 Dati generali

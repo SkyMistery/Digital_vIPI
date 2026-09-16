@@ -74,7 +74,7 @@ repository. Un elenco di destinazioni sbagliato deve dare una mossa **rifiutata*
 | Stessa **versione** | una sezione non cambia mai documento; fra i membri di un documento unito nemmeno |
 | **Bozza** (`RequireDraftAsync`) | come ogni altra mutazione di sezione |
 | Non dentro il **proprio sottoalbero** | è il ciclo: un padre figlio di sé stesso sparisce dall'albero e non torna |
-| **Profondità** del sottoalbero ≤ `DocumentSection.MaxDepth` (3) | si misura il **sottoalbero**, non la sola sezione mossa: una figlia con figlie ne porta due |
+| **Profondità** del sottoalbero ≤ `DocumentSection.MaxDepth` (3 quando questa carta è stata scritta; **5** dal 16 settembre 2026, §A39) | si misura il **sottoalbero**, non la sola sezione mossa: una figlia con figlie ne porta due |
 | Solo sezioni **libere** | decisione 1 |
 
 ⚠️ `Depth` è una **colonna**, non un calcolo: va riscritta su **tutto** il sottoalbero, ricorsivamente.

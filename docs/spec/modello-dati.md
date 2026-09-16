@@ -377,7 +377,7 @@ enum SectorState { Covered, Online }
 
 Queste modifiche recepiscono il flusso e le decisioni in `../history/review-flusso-gap.md`. Dove indicato, **sostituiscono** quanto sopra.
 
-### 7.1 `DocumentSection` (nuova entità ad albero) — sezioni annidate fino a 3 livelli
+### 7.1 `DocumentSection` (nuova entità ad albero) — sezioni annidate ad albero
 
 Sostituisce l'uso di `ContentBlock.Section` come enum piatto. Le sezioni diventano un albero per versione di documento; la TOC dinamica si genera percorrendolo.
 
@@ -388,10 +388,18 @@ Sostituisce l'uso di `ContentBlock.Section` come enum piatto. Le sezioni diventa
 | `ParentSectionId` | int? FK→DocumentSection | null = sezione radice |
 | `Title` | string(200) | |
 | `Order` | int | ordine tra fratelli |
-| `Depth` | int | 0 = radice … max **3** (vincolo applicativo) |
+| `Depth` | int | 0 = radice … max `DocumentSection.MaxDepth` (vincolo applicativo, **non** del database) |
 | `SectionKind` | enum `BlockSection` | semantica della sezione (Aor, Coordination, …) |
 
-Vincoli: `Depth ≤ 3`; nessun ciclo; `(DocumentVersionId, ParentSectionId, Order)` ordinato.
+Vincoli: `Depth ≤ DocumentSection.MaxDepth`; nessun ciclo; `(DocumentVersionId, ParentSectionId, Order)` ordinato.
+
+⚠️ **Il tetto è una costante, non un numero scritto qui.** Era **3** dalla stesura fino al **16 settembre
+2026**, quando è passato a **5** perché il catalogo militare ci stava appoggiato e sotto «Procedure di
+partenza › VFR» non si poteva più annidare niente (`docs/lavori-aperti.md` §A39). Chi ha bisogno del valore
+lo legge da `DocumentSection.MaxDepth`: il vincolo è **applicativo** — lo applicano `DocumentBirth.Semina`,
+`EfEditingRepository.AddSectionAsync` e `MoveSectionToParentAsync` — e il database non ne sa nulla.
+
+⚠️ **`Depth` si conta da ZERO**: le radici stanno a 0, quindi `MaxDepth = 5` vuol dire **sei** livelli.
 
 ### 7.2 `ContentBlock` — modifiche
 
