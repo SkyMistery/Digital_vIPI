@@ -2,7 +2,21 @@
 
 ## Dove siamo — 16 settembre 2026
 
-### 🟡 A52 — Avvisi ed errori del log in `diagnostica/avvisi-log.txt`, col contesto (16 settembre 2026, notte)
+### 📦 A53 — 1.30.1 PRONTO DA CARICARE (16 settembre 2026, notte)
+
+**PATCH su 1.30.0, NESSUNA migrazione.** Contiene §A52. Timbro **`1.30.1 · be9a612`**; zip
+`artifacts/publish/vipi-1.30.1-solo-file-cambiati.zip` (0,10 MB), sha256
+`9d641583b92ca760b518f94640aea14dc89968eaa0409510da7d3508e724c77d`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.30.1.md`;
+elenco `artifacts/publish/elenco-1.30.1.txt`. Rotazione: 1.30.0 in `publish_old/20260916c`.
+
+- **2 file**: `Vipi.Host.dll` + `.pdb`. Tutto il resto identico o diverso solo per MVID.
+- **Provato sul pacchetto** (win-x64 su copia prod in MariaDB): timbro giusto, `pacchetto-verifica.js` 10/10, avviso
+  provocato scritto col contesto vero. 🔴 **La prima prova ha trovato un difetto**: con un browser vero sei posti su
+  dieci andavano a `/_blazor/initializers|negotiate|disconnect`. Corretto (`be9a612a`), E2E verde, ripubblicato e
+  riprovato — per questo il timbro non è il commit del numero (`85d17c3b`).
+- ▶ Dopo il carico: timbro, Ricerca, `Schema 0`; da fuori `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`.
+
+### ✅ A52 — Avvisi ed errori del log in `diagnostica/avvisi-log.txt`, col contesto (16 settembre 2026, notte) — in 1.30.1
 
 Chiesto dal committente dopo aver letto i file di 1.30.0: *«mettere in diagnostica tutti i messaggi di log warning e
 fail, magari insieme alle 10 chiamate precedenti per ricostruire»*. In `main`, **NON in pacchetto**, nessuna
