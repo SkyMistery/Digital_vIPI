@@ -175,6 +175,26 @@ public class IntroDiPaginaTests : TestContext
         Assert.Contains("Leggere prima di controllare.", cut.Markup);
     }
 
+    /// <summary>
+    /// Le sezioni dell'intro nascono CHIUSE (16 settembre 2026, richiesta del committente): aperte, sull'elenco
+    /// dei vSOP militari spingevano l'elenco due schermate più giù. Il titolo resta, il contenuto è nella pagina
+    /// (si apre senza giri di rete) e `data-persist` ricorda chi le apre a mano.
+    /// </summary>
+    [Fact]
+    public void Le_sezioni_nascono_chiuse_col_titolo_in_vista()
+    {
+        Monta(new DepositoFinto(Sezione("Abbreviazioni", "ATZ: zona di traffico"), Sezione("Simboli", "▲ ostacolo")));
+
+        var cut = RenderComponent<PageIntroZone>(p => p.Add(x => x.Pagina, "mil"));
+
+        var sezioni = cut.FindAll("details[id^='pi-']");
+        Assert.Equal(2, sezioni.Count);
+        Assert.All(sezioni, d => Assert.False(d.HasAttribute("open")));
+        Assert.All(sezioni, d => Assert.False(string.IsNullOrEmpty(d.GetAttribute("data-persist"))));
+        Assert.Contains("Abbreviazioni", cut.Find("details#pi-1 summary").TextContent);
+        Assert.Contains("ATZ: zona di traffico", cut.Markup);   // chiusa, ma il contenuto è già lì
+    }
+
     /// <summary>⚠️ È la richiesta del SOD, e cade in silenzio: una frase non tradotta si legge lo stesso, in
     /// italiano, e nessun avviso lo dice a chi guarda la pagina inglese.</summary>
     [Fact]

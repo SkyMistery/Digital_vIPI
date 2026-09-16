@@ -2,6 +2,23 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### ✅ A46 — L'intro dei vSOP militari parte con le sezioni chiuse (16 settembre 2026)
+
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+
+Richiesta del committente su `/services/vsop/mil`: le sezioni dell'intro (§AC) partivano **aperte** — in produzione
+quattro, ABBREVIATIONS, CHARTS SYMBOLS, EXPLANATION OF LANDING MINIMA, GENERAL OPERATIONS WARNING — e spingevano
+l'elenco dei campi sotto. Ora nascono **chiuse**, col titolo in vista.
+
+- `SectionNode` prende `InitiallyOpen` (nullable: null = decide il catalogo, come prima per i documenti);
+  `PageIntroZone` passa `false`. I documenti non cambiano.
+- ⚠️ **Misurato in produzione prima di toccare**: la sola visita **non** scrive niente in `localStorage`
+  (`vipi-collapse:pi-*` vuoto dopo due caricamenti). Quindi il nuovo default vale per tutti, tranne chi ha aperto o
+  chiuso a mano — che ritrova la sua scelta (`data-persist`), com'è giusto.
+- Visto dal vivo in locale (intro seminata nella copia del DB: in sviluppo non ce n'è): tre sezioni chiuse, niente
+  in memoria dopo due visite.
+- `IntroDiPaginaTests.Le_sezioni_nascono_chiuse_col_titolo_in_vista`.
+
 ### ✅ A45 — La frequenza principale (★) è blu in tutte le tabelle (16 settembre 2026)
 
 🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**

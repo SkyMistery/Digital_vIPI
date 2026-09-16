@@ -15,7 +15,7 @@
 else if (depth <= 0)
 {
     @* Alcune sezioni nascono collassate nel documento (doc 11 §3i): il catalogo sa quali. *@
-    <CollapsibleBlock Id="@Section.Id" InitiallyOpen="@(!SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))">
+    <CollapsibleBlock Id="@Section.Id" InitiallyOpen="@(InitiallyOpen ?? !SectionCatalog.IsInitiallyCollapsed(Section.SectionKey))">
         <Header>
             <h3 style="margin-top:0">
                 @Section.Title
@@ -94,4 +94,12 @@ else
     /// <summary>Vista bozza: le sezioni nascoste si vedono, marcate. ⚠️ Il default <c>false</c> è quello
     /// prudente — chi dimentica di passarlo <b>nasconde</b>, non pubblica per sbaglio.</summary>
     [Parameter] public bool IsDraft { get; set; }
+
+    /// <summary>
+    /// Se la sezione RADICE nasce aperta. Null = decide il catalogo (le sezioni di documento che nascono
+    /// collassate le conosce lui). Lo passa chi non è un documento e sa da sé come vuole le sue sezioni: l'intro
+    /// dei vSOP militari le vuole chiuse (16 settembre 2026, richiesta del committente).
+    /// <para>⚠️ Vale come stato di PARTENZA: chi apre o chiude a mano se lo ritrova (`data-persist`).</para>
+    /// </summary>
+    [Parameter] public bool? InitiallyOpen { get; set; }
 }

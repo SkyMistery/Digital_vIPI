@@ -114,9 +114,13 @@ else
         }
         else if (_vista.Count > 0)
         {
+            @* ⚠️ Chiuse alla partenza (16 settembre 2026, richiesta del committente): sull'elenco dei vSOP militari
+               quattro sezioni aperte — abbreviazioni, simboli delle carte… — spingevano l'elenco due schermate più
+               giù, cioè sotto la cosa che chi arriva cerca. Il titolo basta a dire che c'è; chi le apre a mano le
+               ritrova aperte (`data-persist`), e la sola visita non scrive niente — misurato in produzione. *@
             @foreach (var s in _vista)
             {
-                <SectionNode Section="s" />
+                <SectionNode Section="s" InitiallyOpen="false" />
             }
         }
         else
