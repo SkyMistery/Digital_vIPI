@@ -1,5 +1,9 @@
 # Pacchetto 1.30.0 — solo i file cambiati
 
+> ✅ **CARICATO il 16 settembre 2026.** Timbro confermato in barra dal committente. Da fuori: `pacchetto-verifica.js`
+> pubblico tutto verde, Ricerca compresa. ▶ Restano col login: `Schema: 0` e nessun «Pezzi di forma disallineati»
+> (subito e dopo qualche giorno).
+
 > **Timbro:** `1.30.0 · d083a15` (16 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

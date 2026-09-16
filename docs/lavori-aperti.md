@@ -2,7 +2,13 @@
 
 ## Dove siamo — 16 settembre 2026
 
-### 📦 A51 — 1.30.0 PRONTO DA CARICARE (16 settembre 2026, notte)
+### ✅ A51 — 1.30.0 È ONLINE (16 settembre 2026, notte)
+
+✅ **Caricato**, timbro confermato in barra dal committente. Da fuori `pacchetto-verifica.js` con `SOLO_PUBBLICO=1`
+tutto verde (8/8, Ricerca compresa). ▶ **Col login**: `Schema: 0`; nessun rilievo «Pezzi di forma disallineati»,
+subito e **dopo qualche giorno** di import veri — è la condizione per la **fase B** della S11 (§A50).
+
+Il pacchetto, come preparato:
 
 **MINOR su 1.29.0, con UNA migrazione DISTRUTTIVA** (`SpecchioSoloMilitareInPensione`, §A49). Contiene §A49 e §A50
 (S11 fase A). 🔴 Il net10 (`l13-net10`) diventa **1.31.0**.
