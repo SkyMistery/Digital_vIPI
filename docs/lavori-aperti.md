@@ -27,7 +27,7 @@ Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cam
 **`Schema: 0`**. ▶ **Dati**: stazione METAR di LIRJ (LIRS); ripubblicare gli APP non remotizzati.
 ▶ Far riprovare il bug del suggerimento SID. ▶ THE EYE: chiedere a chi lo sviluppa centro/zoom nell'indirizzo.
 
-### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — in main, niente migrazione
+### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — 📦 **in 1.27.0** (§A38), niente migrazione
 
 Tutto dopo §A36, commit `5e063170` → `1864983b`. Racconto intero nella carta
 `docs/feature/2026-09-12-vawos-e-minimi-lvp.md` §15.
@@ -46,7 +46,7 @@ Tutto dopo §A36, commit `5e063170` → `1864983b`. Racconto intero nella carta
   della mappa non si può passare: THE EYE non la legge dall'indirizzo — serve una modifica lato suo.
 - Test: `AwosRvrTests`, `AwosProvenienzaTests`, tre su `ExplainRules`, uno sul collegamento esterno.
 
-### ✅ A36 — Stazione METAR di riferimento dello scalo — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
+### ✅ A36 — Stazione METAR di riferimento dello scalo — 📦 **in 1.27.0** (§A38) — 🔴 **con UNA migrazione additiva**
 
 Richiesta del committente: LIRJ non emette un METAR suo.
 - `Airport.MetarStationIcao` (varchar(4), nullable) sull'**anagrafica**, non nel documento: lo stesso METAR decide
@@ -60,7 +60,7 @@ Richiesta del committente: LIRJ non emette un METAR suo.
 - Provato dal vivo su copia di `vipi.db`: LIRJ → LIRS dall'editor, viewer bozza col METAR di LIRS, vAWOS con la pastiglia.
 - ⚠️ Visto in prova, preesistente: se NOAA salta il METAR ma dà il TAF, il vuoto resta in cache per il TTL pieno.
 
-### ✅ A35 — Sotto-sezioni fra i blocchi del padre — in main, NON in pacchetto — 🔴 **con UNA migrazione additiva**
+### ✅ A35 — Sotto-sezioni fra i blocchi del padre — 📦 **in 1.27.0** (§A38) — 🔴 **con UNA migrazione additiva**
 
 Richiesta del committente: «sottosezione, blocco, sottosezione, blocco». Vale per tutti i documenti.
 - Il corpo di una sezione è **una fila** (`CorpoDiSezione`): figlie «in testa» → scheda della pagina → blocchi e
@@ -76,7 +76,7 @@ Richiesta del committente: «sottosezione, blocco, sottosezione, blocco». Vale 
 - Provato dal vivo su copia di `vipi.db` (LIBP_APP, «Tecnica operativa»): due paragrafi e due sotto-sezioni,
   frecce su sotto-sezione e blocco → `S B S B`, e il viewer bozza mostra la stessa sequenza.
 
-### ✅ A34 — APP non remotizzato: «Gestione del traffico» e «Tecnica operativa» — in main, NON in pacchetto, niente migrazione EF
+### ✅ A34 — APP non remotizzato: «Gestione del traffico» e «Tecnica operativa» — 📦 **in 1.27.0** (§A38), niente migrazione EF
 
 Richiesta del committente. Indice nuovo del profilo `App` (e `AppMil`, che lo rimanda):
 Separazioni · Configurazioni · AOR · Frequenze · MRVA · **Gestione del traffico** (IFR, VFR) · Coordinamenti ·
@@ -94,7 +94,7 @@ Separazioni · Configurazioni · AOR · Frequenze · MRVA · **Gestione del traf
 - ⚠️ **Release già pubblicate**: indice vecchio finché l'APP non si ripubblica; e se un VFR pubblicato aveva la
   tabella, in pubblico sparisce subito (il payload non lo disegna più nessuno) e torna alla ripubblicazione.
 
-### ✅ A33 — SID: tre segnalazioni dal campo, in main e NON in pacchetto — 🔴 **con UNA migrazione additiva**
+### ✅ A33 — SID: tre segnalazioni dal campo — 📦 **in 1.27.0** (§A38) — 🔴 **con UNA migrazione additiva**
 
 Tutto dopo 1.26.1 (`fae666e`), CI verde su `812d3acc`.
 
