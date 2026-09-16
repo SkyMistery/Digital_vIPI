@@ -41,10 +41,16 @@ Timbro **`1.27.0 · f6cbea3`**, zip `artifacts/publish/vipi-1.27.0-solo-file-cam
 - **`/services`**: la scheda «Vedi chi è online ora» c'è.
 - ℹ️ `/vsop/health` = **Degraded**: come in 1.26.1, sono i severe dei **dati** (documentazione), non il pacchetto.
 
-▶ **Restano col login**: timbro **`1.27.0 · f6cbea3`** e riga **`Schema` = 0**.
-▶ **Dati**: ✅ LIRJ→LIRS fatto; 🔴 **ripubblicare gli APP non remotizzati** — misurato il 16-set: LIBA_APP,
-LICT_APP e LIRP_APP mostrano ancora il vecchio indice (VFR a sé, niente «Gestione del traffico»).
-▶ Far riprovare il bug del suggerimento SID. ▶ THE EYE: chiedere a chi lo sviluppa centro/zoom nell'indirizzo.
+✅ **Timbro confermato dal committente** in barra il 16 settembre. ▶ Resta col login la riga **`Schema` = 0**
+(prova diretta delle tre migrazioni; quella indiretta — LIRJ col METAR di LIRS e le pagine con SID a 200 — è già
+verde).
+▶ **Dati**: ✅ LIRJ→LIRS fatto; 🟡 **ripubblicare gli APP non remotizzati** — il committente lo farà con calma;
+misurato il 16-set: LIBA_APP, LICT_APP e LIRP_APP mostrano ancora il vecchio indice (VFR a sé, niente «Gestione
+del traffico»), ed è previsto: la release è una fotografia.
+▶ Far riprovare il bug del suggerimento SID.
+▶ 🟡 **THE EYE**: il committente ha **scritto a chi lo sviluppa** per centro e zoom nell'indirizzo (oggi la
+scheda apre la vista iniziale del sito). In attesa di risposta: quando arriva, basta cambiare l'indirizzo della
+scheda in `ServicesHome.razor` — il commento accanto al link lo dice.
 
 ### ✅ A37 — vAWOS per numero di piste, sei decisioni del committente, banco regole e THE EYE — 📦 **in 1.27.0** (§A38), niente migrazione
 
