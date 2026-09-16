@@ -2,6 +2,29 @@
 
 ## Dove siamo — 16 settembre 2026
 
+### ✅ A45 — La frequenza principale (★) è blu in tutte le tabelle (16 settembre 2026)
+
+🟡 In `main`, **non in pacchetto**. **Nessuna migrazione.**
+
+Segnalato dal committente: «alcune di quelle con la stellina non sono evidenziate di blu, altre sì». **Misurato in
+produzione** (sfondo calcolato delle righe ★): vIPI ACC LIBB e APP LIBV **0/1** evidenziate; vIPI aeroporto LIBD e
+vSOP militare LIBV **2/2**.
+
+- **Causa**: la regola è `.freq-table tr.primary td` e vuole `freq-table` su un **antenato** della riga.
+  `AppFrequencies` — il componente di **APP, vIPI ACC, vLOA e pagina Live** — la metteva sulla riga stessa
+  (`<tr class="freq-table primary">`) e la tabella non l'aveva: il selettore non combaciava mai. `AirportFrequencies`
+  e `AirportFrequenciesEditor` (aeroporto e militare) la mettono sulla tabella, e lì il blu c'era.
+- `freq-table` spostata sulla tabella (porta con sé solo le due regole della riga principale: nient'altro cambia).
+- Tolta `.freq-edit tr.primary td` (sfondo `--tint-atmos`): veniva dopo con la stessa specificità, e in modifica la
+  riga ★ di ACC/APP/vLOA era una tinta chiara mentre l'editor aeroporto la mostrava blu.
+- `TableBlock` (tabelle salvate nei blocchi): `star` e `primary` sono due flag del JSON e una riga con la sola
+  stella usciva senza blu. Nessun corpo li usa nel DB di sviluppo; allineato lo stesso — stella = riga blu.
+- Dopo, **dal vivo** in locale sulle stesse quattro pagine: tutte le righe ★ blu con la barretta.
+- `FrequenzaPrincipaleEvidenziataTests` (8): ogni ★ sta in una `tr.primary` dentro `table.freq-table` e non sulla
+  riga — il selettore scritto come asserzione — su tutti e quattro i disegnatori, in lettura e in modifica; più il
+  foglio senza la regola che ricopriva il blu.
+- ℹ️ Non toccato: la ★ sta **dopo la frequenza** in ACC/APP/vLOA e **prima del nome** in aeroporto/militare.
+
 ### ✅ A44 — Pacchetto 1.28.0: 30 file, MINOR su 1.27.0, nessuna migrazione — ✅ **ONLINE** (16 settembre 2026)
 
 ✅ **ONLINE dal 16 settembre 2026, controllato da fuori** (soli GET anonimi e clic, niente scritture): timbro

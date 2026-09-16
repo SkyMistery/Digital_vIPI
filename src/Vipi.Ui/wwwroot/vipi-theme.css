@@ -1368,7 +1368,10 @@
 :where(.vipi-root) .freq-table tr.primary td:first-child{box-shadow:inset 4px 0 0 var(--ivao-blue)}
 :where(.vipi-root) .freq-key{color:var(--line-yellow);font-size:13px;text-shadow:0 0 1px rgba(0,0,0,.15)}
 :where(.vipi-root) .freq-edit{font-size:13px;margin-top:4px}
-:where(.vipi-root) .freq-edit tr.primary td{background:var(--tint-atmos);font-weight:600}
+/* ⚠️ Qui c'era una regola `.freq-edit tr.primary td` con sfondo `--tint-atmos`, tolta il 16 settembre
+   2026: veniva DOPO la regola del blu con la stessa specificità, e in modifica la riga ★ di ACC/APP/vLOA prendeva
+   una tinta chiara mentre l'editor aeroporto — che non usa `.freq-edit` — la mostrava blu. La riga principale è
+   blu dappertutto, in lettura e in modifica. */
 :where(.vipi-root) .freq-edit td,:where(.vipi-root) .freq-edit th{padding:7px 9px}
 /* configurazioni: cella unificata per gruppo + stacco tra gruppi */
 :where(.vipi-root) .cfg-table .uni{vertical-align:middle;text-align:center;font-family:var(--font-head);font-weight:800;font-size:18px;color:var(--brand-ink);background:var(--tint-atmos);border-right:2px solid var(--on-dark-soft)}

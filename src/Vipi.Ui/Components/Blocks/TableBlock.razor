@@ -74,7 +74,11 @@
                         : Array.Empty<string>();
                     var primary = r.TryGetProperty("primary", out var p) && p.GetBoolean();
                     var star = r.TryGetProperty("star", out var st) && st.GetBoolean();
-                    if (primary) _hasPrimary = true;
+                    // ⚠️ La ★ basta a rendere la riga blu (16 settembre 2026): `star` e `primary` sono due flag del
+                    // JSON, e una riga con la sola stella usciva senza evidenziazione — il difetto segnalato sulle
+                    // tabelle frequenze, qui in forma di dato. Nessun corpo salvato oggi li usa, ma una tabella
+                    // importata o scritta a mano li può portare separati.
+                    if (primary || star) _hasPrimary = true;
                     _rows.Add(new Row(
                         r.TryGetProperty("r", out var rv) ? rv.GetString() : null,
                         r.TryGetProperty("group", out var gv) ? gv.GetString() : null,
@@ -97,7 +101,7 @@
     {
         var cls = new List<string>();
         if (startsGroup && _unified) cls.Add("grp-start");
-        if (row.Primary) cls.Add("primary");
+        if (row.Primary || row.Star) cls.Add("primary");
         return string.Join(' ', cls);
     }
 

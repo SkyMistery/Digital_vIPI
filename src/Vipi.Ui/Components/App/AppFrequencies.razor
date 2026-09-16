@@ -30,8 +30,14 @@
    diretto di una tabella (`.wrap *:has(> table)`, fondo di vipi-theme.css) prendeva il corpo della sezione,
    dove sotto la tabella c'e' anche il campo «Collega frequenza»: `overflow-x:auto` rende `auto` anche l'asse
    verticale, e la tendina dei suggerimenti restava chiusa dentro la sezione — si leggeva solo scorrendo. *@
+@* 🔴 `freq-table` sta sulla TABELLA, non sulla riga (16 settembre 2026, segnalato dal committente: «alcune
+   frequenze con la stellina non sono evidenziate di blu»). La regola del foglio è `.freq-table tr.primary td`,
+   cioè vuole la classe su un ANTENATO della riga; qui stava sulla riga stessa (`<tr class="freq-table primary">`)
+   e non combaciava mai: APP, vIPI ACC, vLOA e la pagina Live mostravano la ★ senza il blu, mentre vIPI
+   aeroporto e vSOP militare — che la mettono sulla tabella — l'avevano. `.freq-table` porta con sé solo le
+   regole della riga principale: aggiungerla non cambia nient'altro. *@
 <div class="freq-scroll">
-<table class="@(grouped ? "cfg-table" : null) @(Editing ? "freq-edit" : null)">
+<table class="freq-table @(grouped ? "cfg-table" : null) @(Editing ? "freq-edit" : null)">
     <thead>
         <tr>
             @if (grouped) { <th>@L["AppFreq_UniSector"]</th> }
@@ -48,7 +54,7 @@
         {
             var idx = i;
             var row = rowsList[idx];
-            <tr class="@(row.IsPrimary ? "freq-table primary" : null) @(Editing && DragIndex == idx ? "app-sec-drag" : null) @(grouped && gFirst[idx] ? "grp-start" : null)"
+            <tr class="@(row.IsPrimary ? "primary" : null) @(Editing && DragIndex == idx ? "app-sec-drag" : null) @(grouped && gFirst[idx] ? "grp-start" : null)"
                 style="@(IsDimmed?.Invoke(row) == true ? "opacity:.45" : null)"
                 @ondragover:preventDefault="Editing" @ondragenter="() => OnDragEnter.InvokeAsync(idx)"
                 @ondrop="OnDrop" @ondragend="OnDragEnd">
