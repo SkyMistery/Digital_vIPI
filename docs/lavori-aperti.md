@@ -2,7 +2,7 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — in 1.31.2, PRONTO DA CARICARE
 
 Dal committente, a 1.31.1 online: «il campo note non ha lo stesso stile del resto della UI; guarda i 5 editor». Misurato
 invece che cercato a occhio: `campi-verifica.js` legge lo stile calcolato di **566 campi** in modifica nei 5 editor, tema
@@ -21,6 +21,11 @@ scuro e chiaro. Trovati **7 punti** vestiti dal browser (grigio `rgb(59,59,59)`,
 
 Dopo: **0** campi con lo stile del browser in entrambi i temi. Nella tabella spazi aerei la colonna del nome era a 73px in
 modifica (nome spezzato): note 38%→30%, quote 130→118, classe 100→80. Il vLOA era già pulito.
+
+📦 **1.31.2** (PATCH): timbro `1.31.2 · 2c64512`, 8 file (Ui, Host dll+pdb; `vipi-theme.css` +br/gz con `endpoints.json`),
+zip `vipi-1.31.2-solo-file-cambiati.zip` sha256 `8d2aafbcb16eda19d1fbd03b8c14f4a82f78cc92ef270321deea265be73eb370`, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.31.2.md`. Provato sul pacchetto: 10/10; `campi-verifica.js` 0 in scuro e chiaro;
+`spazi-aerei-verifica.js` verde. ▶ Dopo il carico: timbro, Ricerca, `Schema 0`, tabella Spazi aerei in modifica dopo Ctrl+F5.
 
 ### 📦 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — ✅ ONLINE in 1.31.1
 
