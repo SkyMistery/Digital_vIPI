@@ -46,10 +46,12 @@ Una riga della tabella piste è **una soglia** (`AirportRunway.Ident` = «16», 
 - **Trasporto**: `RunwayRow` (anagrafica), `AirportRunwayRowView` (sezione, quindi **si congela con la release**; gli
   snapshot di prima valgono «nessuna esclusione»), `RwEdit` (editor, conversione unica `Da`/`AllaRiga`). Ognuno ha
   `Esclusioni(...)`, che è il dato passato al motore.
-- **Chi passa che cosa**: documenti (`PistaInUso`) la sezione mostrata; **vAWOS la sezione Piste della release in vigore**
-  (`AwosService.DalPubblicatoAsync`, accanto a regole e LVP), l'anagrafica viva solo senza documento pubblicato o con la
-  sezione in Live; banco di prova le righe in modifica; vista rapida ed elenco aeroporti l'anagrafica viva (come per le
-  regole: preesistente, §A68).
+- **Chi passa che cosa**: documenti (`PistaInUso`) la sezione mostrata; banco di prova le righe in modifica; **vAWOS,
+  vista rapida ed elenco aeroporti la release in vigore** attraverso una porta sola, `IPisteDalPubblicato` (regole, LVP e
+  soglie escluse dalle sezioni congelate; l'anagrafica viva solo senza documento pubblicato o con la sezione in Live).
+  ⚠️ Fino al 17-set-2026 vista rapida ed elenco leggevano regole e flag dal vivo: decisione del committente di allinearli.
+  L'elenco fa una lettura di release per scalo, in fila nel caricamento — non nel giro del meteo, che gira fuori dal
+  render e sovrapporrebbe letture sullo stesso DbContext.
 - ⚠️ **Il salvataggio delle piste cancella e riscrive le righe**: i flag passano dall'editor, quindi viaggiano con la riga.
 - ⚠️ **Il merge da IVAO** li tiene, e una riga orfana con un flag acceso **conta come lavoro editoriale**.
 - **Editor**: nella tabella piste una colonna «Mai usare» con due caselle, DEP e ARR; in lettura «DEP», «ARR», «DEP · ARR».
@@ -66,4 +68,6 @@ Una riga della tabella piste è **una soglia** (`AirportRunway.Ident` = «16», 
   (dal vivo avrebbe dato nessuna pista in partenza): legge davvero il pubblicato.
 - ⚠️ La **pagina** vAWOS subito dopo la pubblicazione mostrava ancora il vecchio: cache breve della pagina, non un difetto
   del calcolo (l'API nello stesso istante era giusta).
-- Sonda `.claude/skills/verifica-live/mai-usare-verifica.js`.
+- Vista rapida ed elenco aeroporti (vento reale 080/13): con le caselle **vive** che escludono entrambe le soglie in tutti e
+  due i versi — dai vivi uscirebbe «—» — mostrano «25 dep · 07 arr» come vAWOS e documento pubblicato.
+- Sonde `.claude/skills/verifica-live/mai-usare-verifica.js` e `pannelli-pubblicato-verifica.js`.

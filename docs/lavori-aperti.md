@@ -24,8 +24,9 @@ Diagnostica.** ▶ Dopo: timbro, Ricerca, `Schema 0`, colonna Mai usare dopo Ctr
 - Editor aeroporto e militare: due caselle DEP/ARR nella tabella piste; avvisi `Ape_IssueRuleNeverDepRw`/`…ArrRw`.
 - vAWOS: `DalPubblicatoAsync` prende le esclusioni dalla sezione Piste congelata (`runways`), il vivo solo in mancanza.
 - Provato dal vivo (vedi carta §4), compresa la prova che una casella non pubblicata non cambia il vAWOS.
-- 🟡 **Aperto, preesistente**: vista rapida (`AirportQuickPanel`) ed elenco aeroporti (`AirportListPanel`) leggono regole e flag
-  dall'**anagrafica viva**, non dal pubblicato. Chiesto al committente se allinearli; nessuna risposta ancora.
+- ✅ **Chiuso lo stesso giorno** (decisione del committente): anche vista rapida (`AirportQuickPanel`) ed elenco aeroporti
+  (`AirportListPanel`) decidono sul pubblicato. La regola è uscita da `AwosService` in una porta sola, `IPisteDalPubblicato`,
+  usata dai tre. Provato: caselle vive che escludono tutto → i tre mostrano la pista del pubblicato.
 
 ### ✅ A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — ONLINE in 1.31.2 (timbro e Schema 0 confermati)
 
