@@ -2,7 +2,22 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A59 — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A60 — 1.30.3 PRONTO DA CARICARE (17 settembre 2026)
+
+**PATCH su 1.30.2, NESSUNA migrazione.** Contiene §A59. Timbro **`1.30.3 · b5be0ff`**; zip
+`artifacts/publish/vipi-1.30.3-solo-file-cambiati.zip` (0,10 MB), sha256
+`de4a8db63f98f4246479e26bcc9e2c53e985054a61eb6d33db9aa0c10226bcee`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.30.3.md`;
+elenco `artifacts/publish/elenco-1.30.3.txt`. Rotazione: 1.30.2 in `publish_old/20260917`.
+
+- **2 file**: `Vipi.Host.dll`+`.pdb`. Contro il publish di 1.30.2 wwwroot, endpoints.json, deps.json e runtimeconfig.json
+  identici per sha256; gli altri assiemi diversi solo per MVID. Le const nuove stanno e si usano solo in Vipi.Host.
+- **Provato sul pacchetto** (win-x64, copia prod 17-set in MariaDB `vipi_pacchetto`): timbro giusto,
+  `pacchetto-verifica.js` 10/10, `richieste-*.tsv` e `log-*.txt` nati con rotte, circuiti e stream giusti, script li legge.
+  ⚠️ `autenticato` non provato a 1: in locale l'utente di sviluppo non passa dal cookie.
+- ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`; via FTP i due file del giorno con `1.30.3 · b5be0ff` nella colonna
+  versione, e `autenticato` = 1 sulle richieste di chi ha fatto login.
+
+### 📦 A59 — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (17 settembre 2026) — in 1.30.3 (pronto)
 
 Domanda del committente: *«conviene salvare in diagnostica tutto il log, un file per giorno, per 7 giorni?»*. Risposta:
 non tutto il log (EF a Information = testo di ogni query), ma due file mirati e uno script. Carta
@@ -25,7 +40,7 @@ non tutto il log (EF a Information = testo di ogni query), ma due file mirati e 
 - **Dal vivo** (Development, copia del `vipi.db`): 8 indirizzi + una pagina interattiva aperta 4 s con Edge → 9 righe
   giuste (rotte `{Acc}`/`{Icao}`, 404 con `-`, `?code=` assente, CSS e ping assenti, `/_blazor` 101 da 4 047 ms), 7 righe
   di log; lo script le legge.
-- ▶ **Pacchetto**: `Vipi.Host.dll`+`.pdb`. ▶ Dopo qualche giorno online: scaricare `diagnostica/` e far girare lo script.
+- 📦 **In 1.30.3** (§A60). ▶ Dopo qualche giorno online: scaricare `diagnostica/` e far girare lo script.
 
 ### ▶ A58 — Aperti dopo 1.30.2 (17 settembre 2026)
 
