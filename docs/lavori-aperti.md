@@ -12,10 +12,12 @@ pubblicato** come regole e LVP.
 - `AirportRunway.NeverDeparture` / `NeverArrival`, **migrazione ADDITIVA `PisteMaiUsarePerVerso`** (SQLite + MySQL: due
   `AddColumn`).
 
-📦 **1.32.0** (MINOR, una migrazione additiva): timbro `1.32.0 · eb3547e`, **17 file** (Domain, Application, Infrastructure,
+📦 **1.32.0** (MINOR, una migrazione additiva): timbro `1.32.0 · c1eddc9`, **17 file** (Domain, Application, Infrastructure,
 **MySqlMigrations**, Ui, Host dll+pdb; `en/Vipi.Ui.resources.dll`; `vipi-theme.css` +br/gz con `endpoints.json`), zip
-`vipi-1.32.0-solo-file-cambiati.zip` sha256 `30c80b3e56bd58e4144f870e97b66acc7bf7bb1a70fc77d064a05f18eb16cd63`, foglio
+`vipi-1.32.0-solo-file-cambiati.zip` sha256 `e94fcd9d8a660b370cb3580086224c8bbccc248ec3f0f26125db877a1fb9c4de`, foglio
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.32.0.md`. Dentro anche la **Guida** (AoR «Spazi aerei (AIP)», colonna Mai usare, ripiego).
+E **vista rapida ed elenco aeroporti sul pubblicato** (`IPisteDalPubblicato`). ⚠️ Il primo 1.32.0 (`eb3547e`, zip `30c80b3e…`)
+non è mai stato caricato: superato, sta in `artifacts/publish_old/20260917g-non-spedito/`.
 Provato su copia **fresca** della produzione: migrazione applicata all'avvio (212 piste a falso), 10/10, `Schema 0`, sonda
 `mai-usare-verifica.js` e vAWOS dal pubblicato verdi, `campi-verifica.js` 0. ▶ **Prima del carico: copia del database dalla
 Diagnostica.** ▶ Dopo: timbro, Ricerca, `Schema 0`, colonna Mai usare dopo Ctrl+F5. 🔴 net10 = **1.33.0**.

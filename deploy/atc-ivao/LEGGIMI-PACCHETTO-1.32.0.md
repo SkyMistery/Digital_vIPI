@@ -1,6 +1,6 @@
 # Pacchetto 1.32.0 — solo i file cambiati
 
-> **Timbro:** `1.32.0 · eb3547e` (17 settembre 2026). È quel che compare nella barra in alto agli
+> **Timbro:** `1.32.0 · c1eddc9` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
 > **Su 1.31.2** (`2c64512`, online dal 17 settembre). **MINOR, UNA migrazione ADDITIVA**
@@ -24,8 +24,10 @@ non sceglie mai quella soglia in quel verso — una pista usata solo per atterra
 
 - Le **regole** che nominano la soglia restano valide; l'editor delle regole mostra un avviso.
 - Il lettore del documento **non vede** le caselle; vede l'effetto sulla pista in uso.
-- Vale sulla pista in uso del documento e del **vAWOS dopo aver pubblicato**, come le regole: una casella spuntata e non
-  pubblicata non cambia niente in pubblico.
+- Vale sulla pista in uso del documento, del **vAWOS**, della **vista rapida** e dell'**elenco aeroporti** dopo aver
+  pubblicato, come le regole: una casella spuntata e non pubblicata non cambia niente in pubblico.
+- **Vista rapida ed elenco aeroporti** decidono ora la pista consigliata sulle regole del **documento pubblicato**, come già
+  il vAWOS: prima leggevano le regole dell'editor anche se non pubblicate.
 - La **Guida** spiega la colonna e la tabella «Spazi aerei (AIP)» sotto la mappa AoR (arrivata con 1.31.x).
 
 ## I 17 file, e l'ordine
@@ -73,7 +75,7 @@ resto di `wwwroot`, `Vipi.Host.deps.json` e `Vipi.Host.runtimeconfig.json`: iden
 
 Col login da amministratore:
 
-- il timbro in barra: **`1.32.0 · eb3547e`**;
+- il timbro in barra: **`1.32.0 · c1eddc9`**;
 - `services/vsop/admin/diagnostics`: **`Schema` = `0`** — dice che le due colonne nuove ci sono;
 - **dopo Ctrl+F5**, un editor d'aeroporto → *Modifica* → sezione Piste: colonna **Mai usare** con DEP e ARR per ogni soglia;
   nelle Regole piste il banco di prova, con un vento che favorisce una soglia marcata DEP, propone l'altra in partenza.
@@ -89,7 +91,11 @@ node .claude/skills/verifica-live/pacchetto-verifica.js
 
 Publish win-x64 avviato dalla sua cartella su una copia **fresca** della produzione del 17-set in MariaDB 11.4.10 (senza la
 migrazione): `Applying migration '20260917150418_PisteMaiUsarePerVerso'` all'avvio, 212 piste tutte a falso, timbro
-`1.32.0 · commit eb3547e`, `pacchetto-verifica.js` **10/10**, Diagnostica **`Schema 0`**. Sullo stesso binario
+`1.32.0 · commit c1eddc9`, `pacchetto-verifica.js` **10/10**, Diagnostica **`Schema 0`**. Sullo stesso binario
 `mai-usare-verifica.js` su LIBD (vento 070/12): 07 marcata DEP → banco «DEP 25 · ARR 07», caselle rilette dopo il ricarico;
-pubblicato → vAWOS (API, METAR di prova) «DEP 25 · ARR 07». `campi-verifica.js` sugli editor aeroporto e militare: nessun
-campo con lo stile del browser. Nessun errore in console.
+pubblicato → vAWOS (API, METAR di prova) «DEP 25 · ARR 07». Poi, nell'anagrafica **viva**, entrambe le soglie escluse in
+tutti e due i versi (dai vivi uscirebbe «—»): col vento vero 080/13 vAWOS, **elenco aeroporti** («Departures 25 · Arrivals
+07») e **vista rapida** («25 dep · 07 arr») seguono il pubblicato. `campi-verifica.js` sugli editor aeroporto e militare
+(sul primo giro del pacchetto): nessun campo con lo stile del browser. Nessun errore in console.
+⚠️ Un primo pacchetto 1.32.0 (`eb3547e`, zip `30c80b3e…`) era pronto ma **non è mai stato caricato**: superato da questo,
+che aggiunge vista rapida ed elenco sul pubblicato. È in `artifacts/publish_old/20260917g-non-spedito/`.
