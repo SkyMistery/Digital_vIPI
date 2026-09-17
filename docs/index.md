@@ -342,6 +342,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-16-copia-del-database.md`](feature/2026-09-16-copia-del-database.md) — La copia del database si scarica dalla Diagnostica (§A47) ✅ online in 1.29.0
 - [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md) — Elenchi annidati fino a cinque livelli e campo che cresce col testo (§A41) ✅ online in 1.28.0
 - [`feature/2026-09-17-registro-del-giorno.md`](feature/2026-09-17-registro-del-giorno.md) — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (§A59) 🟡 in main
+- [`feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`](feature/2026-09-17-tabella-spazi-aerei-nell-aor.md) — Spazi aerei dell'AIP: la tabella sotto l'AoR (§A65) 🟡 in main
 
 ### `guide`
 

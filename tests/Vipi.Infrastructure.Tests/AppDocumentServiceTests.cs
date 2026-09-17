@@ -143,6 +143,68 @@ public class AppDocumentServiceTests : IAsyncLifetime
     }
 
     /// <summary>
+    /// La tabella «spazi aerei» sotto l'AoR (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md): una riga per zona
+    /// agganciata, con base e tetto nella grafia del file, e classe e nota scritte a mano che sopravvivono a un
+    /// salvataggio dei colori — stanno nello stesso JSON, e uno potrebbe cancellare l'altro.
+    /// </summary>
+    [Fact]
+    public async Task AorView_Tabella_Spazi_Aerei_Con_Classe_E_Nota_Scritte_A_Mano()
+    {
+        var volumi = await AgganciaZoneAsync(
+            ("PESCARA CTR Z1", "GND", "4500 FT AMSL", 10.4),
+            ("PESCARA CTR Z2", "4500 FT AMSL", "FL135", 10.6));
+        var z1 = volumi.Single(v => v.Name == "PESCARA CTR Z1").NaturalKey;
+
+        var prima = await _service.GetAorViewAsync(App);
+        Assert.Equal(new[] { "PESCARA CTR Z1", "PESCARA CTR Z2" }, prima.AirspaceRows.Select(r => r.Name).ToArray());
+        Assert.Equal("4500 FT AMSL", prima.AirspaceRows[1].BaseRaw);
+        Assert.Equal("FL135", prima.AirspaceRows[1].TopRaw);
+        Assert.All(prima.AirspaceRows, r => Assert.Null(r.Class));   // il file non la dà sui CTR
+
+        await _service.SaveAorCustomizationAsync(App, new AorExtraShapes
+        {
+            AirspaceEdits = { [z1] = new AorAirspaceEdit { Class = " d ", Note = " Attiva H24 " } },
+        });
+        // Un colore salvato dopo, portando le correzioni come fa l'editor: la nota resta.
+        var custom = await _service.GetAorCustomizationAsync(App);
+        custom.Colors[App] = "#123456";
+        await _service.SaveAorCustomizationAsync(App, custom);
+
+        var dopo = await _service.GetAorViewAsync(App);
+        var riga = dopo.AirspaceRows.Single(r => r.VolumeKey == z1);
+        Assert.Equal("D", riga.Class);
+        Assert.Equal("Attiva H24", riga.Note);
+        Assert.Null(dopo.AirspaceRows.Single(r => r.VolumeKey != z1).Note);
+
+        // Classe fuori da A…G e nota vuota = correzione tolta.
+        custom = await _service.GetAorCustomizationAsync(App);
+        custom.AirspaceEdits[z1] = new AorAirspaceEdit { Class = "CTR", Note = "  " };
+        await _service.SaveAorCustomizationAsync(App, custom);
+        Assert.Empty((await _service.GetAorCustomizationAsync(App)).AirspaceEdits);
+    }
+
+    /// <summary>
+    /// ⚠️ La vista si congela con la release: uno snapshot di PRIMA della tabella (senza il campo) si legge con zero
+    /// righe, e uno di dopo le rilegge uguali — la classe mostrata non si serializza, si ricalcola.
+    /// </summary>
+    [Fact]
+    public void AorView_Snapshot_Vecchio_E_Nuovo_Si_Rileggono()
+    {
+        var vecchio = System.Text.Json.JsonSerializer.Deserialize<AccAorView>("{\"Sectors\":[],\"Configs\":[]}")!;
+        Assert.Empty(vecchio.AirspaceRows);
+
+        var vista = new AccAorView(Array.Empty<AccSectorAor>(), Array.Empty<AccConfigSelection>(),
+            new[] { new AorAirspaceRow("CTR|X|GND|FL100", "X", "GND", "FL100", null, "D", "nota") });
+        var json = System.Text.Json.JsonSerializer.Serialize(vista);
+        var riletta = System.Text.Json.JsonSerializer.Deserialize<AccAorView>(json)!;
+        Assert.Equal("D", Assert.Single(riletta.AirspaceRows).Class);
+        Assert.DoesNotContain("AirspaceRows", json);
+
+        // ⚠️ Nello snapshot ACC questo JSON sta dove l'assemblatore legge un AorExtraShapes: non deve rompersi.
+        Assert.NotNull(System.Text.Json.JsonSerializer.Deserialize<AorExtraShapes>(json));
+    }
+
+    /// <summary>
     /// ⚠️ Un aggancio che non si risolve NON cancella l'area che il settore già mostrava: si torna alla
     /// forma di IVAO. Il caso vero è un file nuovo che non contiene più quel volume.
     /// </summary>

@@ -7,13 +7,18 @@ namespace Vipi.Application.Airspace;
 ///
 /// <para>⚠️ Le quote non sono un parametro accanto: stanno <b>dentro</b>. È così che «laterale da una fonte,
 /// verticale da un'altra» smette di essere una disciplina e diventa una cosa che non si può scrivere.</para>
+///
+/// <para><paramref name="Name"/> e <paramref name="AirspaceClass"/> li porta solo un pezzo dell'<b>aggancio</b>
+/// all'AIP: sono le righe della tabella sotto l'AoR (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md). Così
+/// la tabella dice esattamente quel che la mappa disegna, senza una seconda lettura degli agganci.</para>
 /// </summary>
 public sealed record ShapePart(
     string PolygonJson,
     int? BaseFeet, int? TopFeet,
     AirspaceDatum BaseDatum, AirspaceDatum TopDatum,
     string BaseRaw, string TopRaw,
-    string? SourceRef = null);
+    string? SourceRef = null,
+    string? Name = null, string? AirspaceClass = null);
 
 /// <summary>
 /// Esito di una scrittura. <paramref name="SourceSilent"/> = la sorgente non ha detto niente (elenco vuoto):

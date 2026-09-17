@@ -223,8 +223,7 @@ public sealed class AccDocumentService : IAccDocumentService
     public Task SaveAorCustomizationAsync(string accCode, int aorSectionId, AorExtraShapes data, CancellationToken ct = default)
     {
         var clean = AorCustomizationCleaner.Clean(data);
-        var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
-        return SaveJsonAsync(accCode, aorSectionId, empty ? null : clean, ct);
+        return SaveJsonAsync(accCode, aorSectionId, AorCustomizationCleaner.IsEmpty(clean) ? null : clean, ct);
     }
 
     public Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default)

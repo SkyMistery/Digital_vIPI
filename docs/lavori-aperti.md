@@ -2,6 +2,15 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — in main, NON in pacchetto
+
+Richiesta del committente: per i settori agganciati ai volumi del KMZ (es. `LIBP_APP`), sotto la mappa AoR di vIPI APP
+e vIPI ACC una tabella nome · base · tetto · classe · note; **classe e note scrivibili** da chi aggiorna il documento
+(la classe perché il KMZ non la dà su 113 CTR su 114). Carta `feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`.
+**Nessuna migrazione.** Pacchetto: Application, Infrastructure, Ui dll + `vipi-theme.css`.
+▶ Dopo il carico: **ripubblicare** gli APP agganciati (LIBA, LIPH, LIPY, LICR, LIEE, LIRZ, LIBP) perché il pubblico
+veda la tabella — lo snapshot congelato non la porta. Ramo ACC non provato dal vivo (nessun ACC agganciato).
+
 ### ▶ A64 — DA FARE, dopo 1.30.4 (17 settembre 2026, fine giornata) — l'elenco da cui ripartire
 
 In main non resta codice fuori pacchetto: 1.30.4 (`a10d350`) è online. Sostituisce §A58, che resta sotto come storia.

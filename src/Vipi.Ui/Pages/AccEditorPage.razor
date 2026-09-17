@@ -585,6 +585,12 @@ else
         await SaveAorCustomization(blk);
     });
 
+    private Task SaveAorAirspace(AccAssembledBlock blk, (string VolumeKey, string? Class, string? Note) e) => _shell.GuardAsync(async () =>
+    {
+        blk.Block.AorAirspaceEdits[e.VolumeKey] = new AorAirspaceEdit { Class = e.Class, Note = e.Note };
+        await SaveAorCustomization(blk);
+    });
+
     private Task SaveAorColor(AccAssembledBlock blk, (string Callsign, string? Hex) pick) => _shell.GuardAsync(async () =>
     {
         if (pick.Hex is null) blk.Block.AorColorOverrides.Remove(pick.Callsign);
@@ -595,7 +601,11 @@ else
     private async Task SaveAorCustomization(AccAssembledBlock blk)
     {
         await AccDoc.SaveAorCustomizationAsync(Acc, ChildId(blk, "aor"),
-            new AorExtraShapes { Callsigns = blk.Block.ExtraAorCallsigns, Colors = blk.Block.AorColorOverrides });
+            new AorExtraShapes
+            {
+                Callsigns = blk.Block.ExtraAorCallsigns, Colors = blk.Block.AorColorOverrides,
+                AirspaceEdits = blk.Block.AorAirspaceEdits,   // ⚠️ stesso JSON: senza, un colore cancellerebbe le note
+            });
         await LoadAsync();
     }
 
@@ -661,7 +671,8 @@ else
                                    ConfirmRemove="ConfirmRemoveConfig" />
                 break;
             case "aor":
-                <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")" />
+                <AccAor @key="@($"aor-{bsId}")" View="_aors.GetValueOrDefault(bsId) ?? AccAorView.Empty" Id="@($"b{bsId}")"
+                        Editing="_shell.IsEditing" OnSetAirspace="e => SaveAorAirspace(blk, e)" />
                 @if (_shell.IsEditing)
                 {
                     @* Titolo e «?» in riga: il paragrafo che stava sempre a schermo si legge al clic, con la sua

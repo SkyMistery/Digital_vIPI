@@ -71,6 +71,10 @@ public sealed class AccBlock
     /// (<see cref="Vipi.Application.Aor.AorColorScheme"/>). Storage: sezione figlia <c>aor</c>.</summary>
     public Dictionary<string, string> AorColorOverrides { get; set; } = new();
 
+    /// <summary>Classe e nota scritte a mano per i volumi dell'AIP agganciati ai settori del blocco (chiave naturale →
+    /// correzione). Storage: sezione figlia <c>aor</c>. Carta 2026-09-17-tabella-spazi-aerei-nell-aor.md.</summary>
+    public Dictionary<string, AorAirspaceEdit> AorAirspaceEdits { get; set; } = new();
+
     // editoriale
     public List<AppSeparationRow> Separations { get; set; } = new();
     public string? VfrJson { get; set; }
@@ -133,6 +137,38 @@ public sealed class AorExtraShapes
 {
     public List<string> Callsigns { get; set; } = new();
     public Dictionary<string, string> Colors { get; set; } = new();
+
+    /// <summary>
+    /// Classe e nota dei volumi dell'AIP agganciati, per <b>chiave naturale</b> (<c>FAMIGLIA|NOME|BASE|TETTO</c>):
+    /// un KMZ ricaricato rifà le righe ma non la chiave, e la nota sopravvive.
+    ///
+    /// <para>⚠️ Non chiamarlo <c>Airspaces</c>: negli snapshot ACC questo stesso JSON contiene l'<see cref="AccAorView"/>
+    /// (che ha un <c>Airspaces</c> a lista), e <c>AccDocumentAssembler</c> ci legge sopra questa classe — due campi
+    /// omonimi di forma diversa farebbero fallire la lettura.</para>
+    /// </summary>
+    public Dictionary<string, AorAirspaceEdit> AirspaceEdits { get; set; } = new();
+}
+
+/// <summary>Quel che chi aggiorna il documento scrive su un volume dell'AIP: la classe (quando il file non la dà, o la
+/// dà sbagliata) e una nota libera. Null = niente di scritto.</summary>
+public sealed class AorAirspaceEdit
+{
+    public string? Class { get; set; }
+    public string? Note { get; set; }
+}
+
+/// <summary>
+/// Una riga della tabella «spazi aerei» sotto l'AoR: un volume dell'AIP agganciato a un settore del documento.
+/// <paramref name="FileClass"/> è la classe del KMZ (quasi sempre null sui CTR), <paramref name="EditedClass"/> quella
+/// scritta a mano; si mostra <see cref="Class"/>.
+/// </summary>
+public sealed record AorAirspaceRow(
+    string VolumeKey, string Name, string BaseRaw, string TopRaw,
+    string? FileClass, string? EditedClass, string? Note)
+{
+    /// <summary>La classe da mostrare: quella scritta a mano vince su quella del file.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? Class => EditedClass ?? FileClass;
 }
 
 /// <summary>Normalizza la personalizzazione AoR prima del salvataggio: callsign trimmati/dedup, colori solo per
@@ -152,7 +188,27 @@ internal static class AorCustomizationCleaner
             var hex = (kv.Value ?? "").Trim();
             if (cs.Length > 0 && hex.Length > 0) colors[cs] = hex;
         }
-        return new AorExtraShapes { Callsigns = callsigns, Colors = colors };
+        var edits = new Dictionary<string, AorAirspaceEdit>(StringComparer.Ordinal);
+        foreach (var kv in data.AirspaceEdits ?? new())
+        {
+            var key = (kv.Key ?? "").Trim();
+            var cls = CleanClass(kv.Value?.Class);
+            var note = string.IsNullOrWhiteSpace(kv.Value?.Note) ? null : kv.Value!.Note!.Trim();
+            if (key.Length > 0 && (cls is not null || note is not null))
+                edits[key] = new AorAirspaceEdit { Class = cls, Note = note };
+        }
+        return new AorExtraShapes { Callsigns = callsigns, Colors = colors, AirspaceEdits = edits };
+    }
+
+    /// <summary>Vero se non resta niente da salvare: la sezione torna senza JSON.</summary>
+    public static bool IsEmpty(AorExtraShapes clean) =>
+        clean.Callsigns.Count == 0 && clean.Colors.Count == 0 && clean.AirspaceEdits.Count == 0;
+
+    /// <summary>Classe ICAO di spazio aereo: una lettera A…G, maiuscola. Qualunque altra cosa = nessuna classe.</summary>
+    internal static string? CleanClass(string? value)
+    {
+        var v = (value ?? "").Trim().ToUpperInvariant();
+        return v.Length == 1 && v[0] is >= 'A' and <= 'G' ? v : null;
     }
 }
 
@@ -245,7 +301,15 @@ public sealed record AccConfigTableRow(
 public sealed record AccConfigTableView(string ConfigKey, string ConfigName, IReadOnlyList<AccConfigTableRow> Rows);
 
 /// <summary>Vista AoR del blocco: settori (anelli toggleabili) + configurazioni selezionabili. Una sola mappa.</summary>
-public sealed record AccAorView(IReadOnlyList<AccSectorAor> Sectors, IReadOnlyList<AccConfigSelection> Configs)
+/// <param name="Airspaces">Righe della tabella «spazi aerei» sotto la mappa: i volumi dell'AIP agganciati ai settori del
+/// documento. Null = nessuno (e negli snapshot di prima del 17-set-2026, dove il campo non c'è).</param>
+public sealed record AccAorView(
+    IReadOnlyList<AccSectorAor> Sectors, IReadOnlyList<AccConfigSelection> Configs,
+    IReadOnlyList<AorAirspaceRow>? Airspaces = null)
 {
     public static AccAorView Empty { get; } = new(Array.Empty<AccSectorAor>(), Array.Empty<AccConfigSelection>());
+
+    /// <summary>Le righe della tabella, mai null.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<AorAirspaceRow> AirspaceRows => Airspaces ?? Array.Empty<AorAirspaceRow>();
 }

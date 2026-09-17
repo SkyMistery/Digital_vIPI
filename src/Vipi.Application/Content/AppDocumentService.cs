@@ -339,7 +339,10 @@ public sealed class AppDocumentService : IAppDocumentService
         var selections = configs.Count > 0
             ? configs.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.ToList())).ToList()
             : new List<AccConfigSelection> { new("all", "Tutti i settori", sectors.Select(s => s.Callsign).ToList()) };
-        return new AccAorView(sectors, selections);
+
+        // Tabella «spazi aerei» sotto la mappa: i volumi dell'AIP dei SOLI settori APP del dominio, non delle extra.
+        var airspaces = Aor.AorAirspaceTable.Build(appCsList, forme, custom.AirspaceEdits);
+        return new AccAorView(sectors, selections, airspaces);
     }
 
 
@@ -360,8 +363,7 @@ public sealed class AppDocumentService : IAppDocumentService
     {
         var docId = await EnsureWritableAsync(appCallsign, ct);   // ruolo + Document + lock (T-004)
         var clean = AorCustomizationCleaner.Clean(data);
-        var empty = clean.Callsigns.Count == 0 && clean.Colors.Count == 0;
-        var json = empty ? null : JsonSerializer.Serialize(clean);
+        var json = AorCustomizationCleaner.IsEmpty(clean) ? null : JsonSerializer.Serialize(clean);
         await _editing.SaveSectionBlockJsonAsync(docId, "aor", json, _authz.CurrentUserId ?? 0, ct);
     }
 

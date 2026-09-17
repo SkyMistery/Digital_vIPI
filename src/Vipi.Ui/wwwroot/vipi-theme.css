@@ -3711,6 +3711,17 @@
    `resize` orizzontale dentro una tabella a colonne fisse non allarga niente, sposta e basta. */
 :where(.vipi-root) .res-table.mil-table.milarea-table th.c-note,:where(.vipi-root) .res-table.mil-table.milarea-table td.c-note{vertical-align:top}
 :where(.vipi-root) .milarea-table .in-note{width:100%;box-sizing:border-box;resize:vertical;min-height:44px;font:inherit;line-height:1.35}
+/* Tabella «spazi aerei» sotto l'AoR (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md). Stessa tabella admin
+   delle aree di lavoro. ⚠️ `table-layout:fixed`: le quote hanno una larghezza VERA («4500 FT AMSL» ci sta in 130px)
+   e non `c-nowrap`, perche' una cella troppo stretta non allarga la colonna, sborda sopra quella accanto. Il nome
+   e la nota si prendono quel che avanza. */
+:where(.vipi-root) .aorasp-wrap{margin-top:14px}
+:where(.vipi-root) .aorasp-title{margin:0 0 6px;font-size:14px}
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-alt,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-alt{width:130px}
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-cls,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-cls{width:100px}
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-note,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-note{width:38%;vertical-align:top}
+:where(.vipi-root) .aorasp-table .in-note{width:100%;box-sizing:border-box;resize:vertical;min-height:44px;font:inherit;line-height:1.35}
+:where(.vipi-root) .aorasp-table .aorasp-cls{width:100%;box-sizing:border-box;font:inherit}
 /* Le righe dei poligoni di tiro. Tinta e barretta si COSTRUISCONO da `--wr`, non da un colore proprio: così
    il giorno che l'arancione cambia nella costante C#, cambiano insieme il poligono, la targhetta e la riga.
    Barretta a sinistra come le righe modificate delle SID: due segni diversi per due cose diverse, ma lo

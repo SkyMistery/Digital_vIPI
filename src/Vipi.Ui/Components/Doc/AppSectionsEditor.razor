@@ -380,6 +380,7 @@ else
     // Shape AoR extra (settori DB scelti a mano) + override colore per settore + catalogo globale del picker.
     private List<string> _aorExtras = new();
     private Dictionary<string, string> _aorColors = new(StringComparer.OrdinalIgnoreCase);
+    private Dictionary<string, AorAirspaceEdit> _aorAirspaceEdits = new(StringComparer.Ordinal);   // classe/nota dei volumi AIP
     private IReadOnlyList<SectorShapePick> _shapeCatalog = Array.Empty<SectorShapePick>();
 
     private IReadOnlyList<LinkableFrequencyRow> _linkable = Array.Empty<LinkableFrequencyRow>();
@@ -471,6 +472,7 @@ else
         var aorCustom = await AppDoc.GetAorCustomizationAsync(_app);
         _aorExtras = aorCustom.Callsigns.ToList();
         _aorColors = new Dictionary<string, string>(aorCustom.Colors, StringComparer.OrdinalIgnoreCase);
+        _aorAirspaceEdits = new Dictionary<string, AorAirspaceEdit>(aorCustom.AirspaceEdits, StringComparer.Ordinal);
         _aorView = await AppDoc.GetAorViewAsync(_app);
         _minima = await AppDoc.DeriveMinimaAsync(_app);
         _configs = (await AppDoc.GetConfigurationsAsync(_app)).ToList();
@@ -522,9 +524,18 @@ else
         await SaveAorCustomization();
     });
 
+    // ⚠️ Classe e nota viaggiano nello STESSO JSON di extra e colori: ogni salvataggio li porta tutti, o uno
+    // cancellerebbe l'altro.
+    private Task SaveAorAirspace((string VolumeKey, string? Class, string? Note) e) => _shell.GuardAsync(async () =>
+    {
+        _aorAirspaceEdits[e.VolumeKey] = new AorAirspaceEdit { Class = e.Class, Note = e.Note };
+        await SaveAorCustomization();
+    });
+
     private async Task SaveAorCustomization()
     {
-        await AppDoc.SaveAorCustomizationAsync(_app, new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors });
+        await AppDoc.SaveAorCustomizationAsync(_app,
+            new AorExtraShapes { Callsigns = _aorExtras, Colors = _aorColors, AirspaceEdits = _aorAirspaceEdits });
         _aorView = await AppDoc.GetAorViewAsync(_app);   // ri-deriva gli anelli sulla mappa
     }
 
@@ -619,7 +630,7 @@ else
                                    MapScope="@($"app-aor-{_app}")" ConfigsChanged="SaveConfigs" ConfirmRemove="ConfirmRemoveConfig" />
                 break;
             case "aor":
-                <AccAor View="_aorView" Id="@($"app-aor-{_app}")" />
+                <AccAor View="_aorView" Id="@($"app-aor-{_app}")" Editing="_shell.IsEditing" OnSetAirspace="SaveAorAirspace" />
                 @if (_shell.IsEditing)
                 {
                     <div class="block" style="margin-top:10px">

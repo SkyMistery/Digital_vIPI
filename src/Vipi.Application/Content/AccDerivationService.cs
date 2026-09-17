@@ -229,7 +229,9 @@ public sealed class AccDerivationService : IAccDerivationService
             AppendExtraShapes(sectors, block.ExtraAorCallsigns, extra, names, block.AorColorOverrides);
         }
 
-        return new AccAorView(sectors, configs);
+        // Tabella «spazi aerei» sotto la mappa: i volumi dell'AIP dei settori del blocco, non delle shape extra.
+        var airspaces = Aor.AorAirspaceTable.Build(callsigns, forme, block.AorAirspaceEdits);
+        return new AccAorView(sectors, configs, airspaces);
     }
 
 

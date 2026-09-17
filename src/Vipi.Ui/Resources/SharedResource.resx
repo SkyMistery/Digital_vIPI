@@ -186,6 +186,12 @@
   <data name="Reg_AllOff" xml:space="preserve"><value>Nessuna area accesa: accendine una fra le chip sopra la mappa.</value></data>
   <data name="Reg_Shown" xml:space="preserve"><value>Aree accese: {0} su {1}.</value></data>
   <data name="Aor_3dHint" xml:space="preserve"><value>Ogni settore è estruso sulla sua banda di livelli (FL). Clicca una voce in legenda per mostrarlo/nasconderlo.</value></data>
+  <data name="Aor_AirspacesTitle" xml:space="preserve"><value>Spazi aerei (AIP)</value></data>
+  <data name="Aor_AirspaceName" xml:space="preserve"><value>Nome</value></data>
+  <data name="Aor_AirspaceBase" xml:space="preserve"><value>Base</value></data>
+  <data name="Aor_AirspaceTop" xml:space="preserve"><value>Tetto</value></data>
+  <data name="Aor_AirspaceClass" xml:space="preserve"><value>Classe</value></data>
+  <data name="Aor_AirspaceClassFromFile" xml:space="preserve"><value>{0} (AIP)</value></data>
   <data name="Aor_3dUnavailable" xml:space="preserve"><value>Vista 3D non disponibile (WebGL non attivo su questo dispositivo).</value></data>
   <data name="Aor_NoShapeTitle" xml:space="preserve"><value>Shape AOR non disponibile</value></data>
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>Nessun poligono per i settori del blocco (non ancora importati o non leggibili).</value></data>

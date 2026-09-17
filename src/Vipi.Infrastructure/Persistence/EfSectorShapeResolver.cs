@@ -87,7 +87,8 @@ public sealed class EfSectorShapeResolver : ISectorShapeResolver
 
         var pezzi = a.Volumes
             .Select(v => new ShapePart(
-                v.PolygonJson, v.BaseFeet, v.TopFeet, v.BaseDatum, v.TopDatum, v.BaseRaw, v.TopRaw, v.NaturalKey))
+                v.PolygonJson, v.BaseFeet, v.TopFeet, v.BaseDatum, v.TopDatum, v.BaseRaw, v.TopRaw, v.NaturalKey,
+                v.Name, v.AirspaceClass))
             .ToList();
 
         return new SectorShape(cs, ShapeSource.Aip, pezzi, scoperti);

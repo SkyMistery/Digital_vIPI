@@ -81,6 +81,7 @@ public static class AccDocumentAssembler
                 Configurations = configs,
                 ExtraAorCallsigns = aorCustom.Callsigns ?? new(),
                 AorColorOverrides = aorCustom.Colors ?? new(),
+                AorAirspaceEdits = aorCustom.AirspaceEdits ?? new(),
                 Regulated = regulated,
                 Separations = separations,
                 VfrJson = vfrJson,
