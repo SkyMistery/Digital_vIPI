@@ -2,6 +2,23 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A62 — Il giro delle traduzioni faceva OTTO passate invece di due (17 settembre 2026) — in main, NON in pacchetto
+
+Il primo `log-2026-09-17.txt` di produzione (§A59) mostra ogni giro così: it→en, it→en, en→it, en→it, e poi ancora le
+stesse quattro righe. A ogni passata i segmenti che Azure rende rotti si ripagano: **3 528 caratteri a giro invece di
+882** (385 «IAFs ILS14» × 4 + 497 «37th WING» × 4).
+
+- **Causa**: il legame della configurazione **aggiunge** gli elementi di un array a quelli già presenti. `TranslationOptions.Targets`
+  aveva il default `{ it, en }` e `appsettings.json` dice `[ "it", "en" ]` → `it, en, it, en`; il giro percorre ogni
+  coppia → 8 passate. Stessa cosa per `Order` (`azure, deepl, azure, deepl`). La trappola era già scritta nel commento di
+  `Auth` in `appsettings.json`, non era stata vista qui.
+- **Correzione**: i setter di `Targets` e `Order` tolgono i doppioni (ordine della prima comparsa, senza distinguere
+  maiuscole). Un posto solo, da cui passa ogni fonte. Vale anche per `ReleaseService` (congelamento delle traduzioni).
+- Test `Le_lingue_e_i_motori_non_si_raddoppiano_col_legame` col legame vero di `appsettings.json`: senza la correzione
+  esce `["it","en","it","en"]`.
+- ▶ Resta §A58 punto 2: i due segmenti rotti si ripagano comunque, una volta per verso a giro (882 caratteri ogni quarto d'ora).
+- ▶ Pacchetto: `Vipi.Application.dll`+`.pdb` (nessuna `const` cambiata).
+
 ### 🟡 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in main, NON in pacchetto
 
 Segnalato da un admin: nella colonna Tipo delle radioassistenze, scegliendo ILS, «Something went wrong» (12:12 locali).

@@ -40,6 +40,33 @@ public sealed class ConfigurazioneTraduzioneTests
     }
 
     /// <summary>
+    /// 🔴 Il legame AGGIUNGE gli elementi di un array a quelli di default: prima del 17 settembre 2026 le lingue erano
+    /// <c>it, en, it, en</c> e il giro traduceva ogni verso quattro volte, ripagando ogni volta i segmenti rotti.
+    /// Anche un secondo file (come <c>appsettings.Production.json</c>) che ripete la lista non deve raddoppiarla.
+    /// </summary>
+    [Fact]
+    public void Le_lingue_e_i_motori_non_si_raddoppiano_col_legame()
+    {
+        Assert.Equal(new[] { "it", "en" }, DalPacchetto().Targets);
+        Assert.Equal(new[] { "azure", "deepl" }, DalPacchetto().Order);
+
+        var config = new ConfigurationBuilder()
+            .SetBasePath(AppContext.BaseDirectory)
+            .AddJsonFile("appsettings.json", optional: false)
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Translation:Targets:0"] = "IT", ["Translation:Targets:1"] = "en",
+                ["Translation:Order:0"] = "azure",
+            })
+            .Build();
+        var o = new TranslationOptions();
+        config.GetSection(TranslationOptions.SectionName).Bind(o);
+
+        Assert.Equal(new[] { "it", "en" }, o.Targets);
+        Assert.Equal(new[] { "azure", "deepl" }, o.Order);
+    }
+
+    /// <summary>
     /// Ogni chiave del file arriva davvero a una proprietà. Il legame è per nome e in silenzio: una chiave
     /// che non corrisponde a niente viene semplicemente ignorata, e il valore che si legge nel file non è
     /// quello che l'applicazione usa.

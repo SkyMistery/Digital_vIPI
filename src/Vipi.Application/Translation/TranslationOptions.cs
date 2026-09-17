@@ -23,8 +23,17 @@ public sealed class TranslationOptions
     /// Lingue in cui si offre la lettura, oltre a quella sorgente del documento. ⚠️ Codici brevi
     /// (<c>it</c>, <c>en</c>): la traduzione fra le due direzioni è la stessa macchina, perché la vLOA nasce
     /// in inglese e per lei l'italiano è il bersaglio.
+    ///
+    /// <para>🔴 <b>Senza doppioni, qualunque cosa arrivi</b> (17 settembre 2026). Il legame della configurazione
+    /// <b>AGGIUNGE</b> gli elementi di un array a quelli che la proprietà ha già: il default <c>{ it, en }</c> più
+    /// <c>"Targets": [ "it", "en" ]</c> di <c>appsettings.json</c> facevano <c>it, en, it, en</c>. Il giro dei quindici
+    /// minuti percorre ogni coppia, quindi faceva <b>otto</b> passate invece di due — e i segmenti che Azure rende
+    /// rotti si ripagavano quattro volte a giro (3 528 caratteri invece di 882). Visto nel primo
+    /// <c>log-2026-09-17.txt</c> di produzione, §A59. La difesa sta nel setter perché è l'unico posto da cui passa
+    /// ogni fonte — file, variabile d'ambiente, segreti.</para>
     /// </summary>
-    public string[] Targets { get; set; } = { "it", "en" };
+    public string[] Targets { get => _targets; set => _targets = SenzaDoppioni(value); }
+    private string[] _targets = { "it", "en" };
 
     /// <summary>
     /// I motori da provare, <b>in ordine di preferenza</b>, per nome (<c>ITranslationEngine.Name</c>).
@@ -42,7 +51,18 @@ public sealed class TranslationOptions
     /// quale motore ha prodotto ogni voce.
     /// </para>
     /// </summary>
-    public string[] Order { get; set; } = { "azure", "deepl" };
+    /// <para>⚠️ Senza doppioni per la stessa ragione di <see cref="Targets"/>: <c>azure, deepl, azure, deepl</c>
+    /// ritenterebbe due volte ogni motore che non risponde.</para>
+    public string[] Order { get => _order; set => _order = SenzaDoppioni(value); }
+    private string[] _order = { "azure", "deepl" };
+
+    /// <summary>L'ordine della prima comparsa, senza distinguere maiuscole: «IT» e «it» sono la stessa lingua.</summary>
+    private static string[] SenzaDoppioni(string[]? valori) =>
+        (valori ?? Array.Empty<string>())
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Select(v => v.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
 
     public AzureOptions Azure { get; set; } = new();
 
