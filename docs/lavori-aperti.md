@@ -2,14 +2,19 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — in 1.31.0, PRONTO DA CARICARE
 
 Richiesta del committente: per i settori agganciati ai volumi del KMZ (es. `LIBP_APP`), sotto la mappa AoR di vIPI APP
 e vIPI ACC una tabella nome · base · tetto · classe · note; **classe e note scrivibili** da chi aggiorna il documento
 (la classe perché il KMZ non la dà su 113 CTR su 114). Carta `feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`.
-**Nessuna migrazione.** Pacchetto: Application, Infrastructure, Ui dll + `vipi-theme.css`.
-▶ Dopo il carico: **ripubblicare** gli APP agganciati (LIBA, LIPH, LIPY, LICR, LIEE, LIRZ, LIBP) perché il pubblico
-veda la tabella — lo snapshot congelato non la porta. Ramo ACC non provato dal vivo (nessun ACC agganciato).
+**Nessuna migrazione.**
+
+📦 **1.31.0** (MINOR): timbro `1.31.0 · 68265f9`, 13 file (Application, Infrastructure, Ui, Host dll+pdb;
+`en/Vipi.Ui.resources.dll`; `vipi-theme.css` +br/gz con `endpoints.json`), zip `vipi-1.31.0-solo-file-cambiati.zip`
+sha256 `d9de8fc5126c03685242ecef181c103f3326a06343f33777cc48cb0dfd9bb54a`, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.31.0.md`.
+Provato sul pacchetto (win-x64, copia prod in MariaDB): 10/10, tabella in editor/bozza/pubblico dopo pubblicazione.
+▶ Dopo il carico: timbro, Ricerca, `Schema 0`, tabella su LIBP_APP in editor dopo Ctrl+F5; **ripubblicare LIBA_APP**
+(unico APP agganciato con una release, AoR congelata senza tabella). Ramo ACC non provato dal vivo. 🔴 net10 = **1.32.0**.
 
 ### ▶ A64 — DA FARE, dopo 1.30.4 (17 settembre 2026, fine giornata) — l'elenco da cui ripartire
 
@@ -31,7 +36,7 @@ In main non resta codice fuori pacchetto: 1.30.4 (`a10d350`) è online. Sostitui
 5. **S11 fase B** (ex §A58.4) dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati».
 6. **Leggere il registro del giorno** (§A59) dopo qualche giorno pieno: `python tools/registro-del-giorno.py`. Primo sguardo
    17-set: nessuna pagina lenta (massimo l'editor militare LIRR, 1,6 s); la lettura vera vuole traffico di più giorni.
-7. **Feedback a due canali** (carta pronta). **net10 = 1.31.0**.
+7. **Feedback a due canali** (carta pronta). **net10 = 1.32.0** (1.31.0 è andato a §A65).
 
 **Pulizie piccole, trovate oggi (nessuna urgente):**
 8. `tools/indice-doc.py` **riscrive** l'elenco carte di `docs/index.md` e **cancella le annotazioni a mano** («✅ online in

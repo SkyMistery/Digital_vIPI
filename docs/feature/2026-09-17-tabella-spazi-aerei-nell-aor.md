@@ -1,6 +1,6 @@
 # Spazi aerei dell'AIP: la tabella sotto l'AoR (17 settembre 2026)
 
-> Stato: 🟡 **in main, NON in pacchetto** (§A65 di `docs/lavori-aperti.md`). **Nessuna migrazione**: le correzioni
+> Stato: 📦 **in 1.31.0**, pronto da caricare (§A65 di `docs/lavori-aperti.md`). **Nessuna migrazione**: le correzioni
 > stanno nel JSON della sezione `aor`. `dotnet build -c Release` verde su net8 e net10, suite intera verde.
 > Gemella di [2026-09-16-aree-di-lavoro-una-tabella-sola.md](2026-09-16-aree-di-lavoro-una-tabella-sola.md)
 > (nome e limiti dal catalogo, nota scritta a mano) e figlia di
@@ -55,8 +55,11 @@ Copia di produzione del 17-set 06:28Z ripristinata su MariaDB locale (`vipi_aora
 - «Modifica»: tendina e campo nota su ogni riga; Z1 → classe **D**, Z2 → nota scritta e campo lasciato;
 - ricarico dell'editor e lettore in bozza (`as=draft`): classe e nota **ci sono**; zero errori in console;
 - JSON salvato: `{"Callsigns":["LIBP_TWR"],"Colors":{},"AirspaceEdits":{…}}` — la shape extra resta;
-- lettore pubblicato: **nessuna riga** — la release di `LIBP_APP` ha congelato l'AoR prima della tabella (atteso,
-  §5); `LIPR_APP` senza aggancio: nessuna tabella.
+- lettore pubblicato: **nessuna riga** — 🔴 corretto dopo: non per uno snapshot vecchio, ma perché `LIBP_APP`
+  **non aveva nessuna release**. Pubblicato sulla copia (sul binario di 1.31.0), lo snapshot porta le righe e il
+  lettore pubblico mostra la tabella. `LIPR_APP` senza aggancio: nessuna tabella.
+- In produzione (copia 17-set) degli APP agganciati **solo `LIBA_APP` è pubblicato**, con l'AoR congelata senza
+  tabella: va ripubblicato.
 - ⚠️ **Il ramo ACC non è provato dal vivo**: in produzione nessun settore di ACC è agganciato. Lo copre la stessa
   `AorAirspaceTable.Build` e la compilazione dell'editor ACC.
 
