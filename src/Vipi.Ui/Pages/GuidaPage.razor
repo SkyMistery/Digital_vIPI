@@ -698,13 +698,19 @@
                     giorni, parità e stagione si provano prima di pubblicare invece di aspettare lunedì notte.
                     Sotto l'esito, per <b>ogni</b> regola: tailwind e vento traverso su ciascuna delle sue piste,
                     i massimi con cui si confrontano (in rosso quelli superati) e il primo vincolo che la fa
-                    cadere — o «si applicherebbe, ma vince la #n». Se nessuna vale, decide il miglior headwind.
+                    cadere — o «si applicherebbe, ma vince la #n». Se nessuna vale, decide il miglior headwind,
+                    <b>senza</b> le soglie che nella tabella Piste sono marcate «mai in partenza» o «mai in arrivo»
+                    (nel loro verso). Una regola che nomina una di quelle soglie vale lo stesso, e l'editor lo avvisa.
                     ⚠️ Se l'orario di fine è <b>prima</b> di quello d'inizio la finestra scavalca la mezzanotte —
                     il campo lo dice con «giorno dopo» — e la regola resta legata al giorno in cui è
                     <b>cominciata</b>: «lunedì 22:00–05:00» vale fino alle 05:00 di martedì.</li>
                 <li><b>Quote di transizione</b> — Transition Altitude e livelli per fascia QNH.</li>
                 <li><b>Piste</b> — importate da IVAO per singolo aeroporto; le regole pista/area guidano le condizioni
-                    di trasferimento.</li>
+                    di trasferimento. La colonna <b>Mai usare</b> ha due caselle per soglia, <b>DEP</b> e <b>ARR</b>:
+                    quando nessuna regola pista vale, il ripiego sul vento non sceglie mai quella soglia per le partenze
+                    e/o per gli arrivi (una pista usata solo per atterrare si marca DEP). Non si vede nel documento
+                    pubblicato; conta sulla pista in uso del documento e del vAWOS <b>dopo aver pubblicato</b>, come
+                    le regole.</li>
                 <li><b>Frequenze</b> — sezione derivata dai settori ATC dell'aeroporto.</li>
                 <li><b>SID</b> — importate da Aurora, e <b>in vigore dal ciclo AIRAC che la sorgente dichiara</b>
                     (il sectorfile tiene un changelog per ciclo). Finché quel ciclo non arriva la riga resta in
@@ -744,7 +750,11 @@
             @"<p>Opens the airport profile: general data, shared block sections, plus the specific parts.</p>
               <ul>
                 <li><b>Runways</b> — imported from IVAO per single airport; the runway/area rules drive the transfer
-                    conditions.</li>
+                    conditions. The <b>Never use</b> column has two boxes per runway end, <b>DEP</b> and <b>ARR</b>:
+                    when no runway rule applies, the wind fallback never picks that end for departures and/or
+                    arrivals (a runway used only for landing is marked DEP). Rules that name it still apply, and the
+                    rules editor warns about it. It is not shown in the published document; it drives the runway in
+                    use of the document and of the vAWOS <b>once published</b>, like the rules.</li>
                 <li><b>Frequencies</b> — a section derived from the airport's ATC sectors.</li>
                 <li><b>SIDs</b> — imported from Aurora, and <b>in force from the AIRAC cycle the source itself
                     declares</b> (the sector file keeps a changelog per cycle). Until that cycle arrives the row
@@ -1009,11 +1019,25 @@
             @"<p>La mappa AOR mostra gli anelli dei settori del blocco. Puoi <b>aggiungere shape di altri enti</b>
                presi dal database (anche esteri o torri): compaiono come anelli accendibili e sono selezionabili
                nelle configurazioni. Il <b>colore</b> è per tipo di ente (le torri in rosso, ecc.) e si può cambiare
-               per singolo settore; «default» rimette quello del tipo.</p>",
+               per singolo settore; «default» rimette quello del tipo.</p>
+              <p><b>Spazi aerei (AIP).</b> Se un settore del documento è agganciato ai volumi del file KMZ dell'AIP
+                 (dall'amministrazione degli spazi aerei), sotto la mappa compare una tabella con <b>nome, base, tetto,
+                 classe e note</b>. Nome e quote vengono dal file; <b>classe e note le scrivi tu</b> in modifica — la
+                 classe da una tendina A–G, perché il file non la dà quasi mai sui CTR. Il <b>quadratino</b> a inizio
+                 riga accende e spegne quello spazio sulla mappa 2D e 3D; passando col mouse su una riga il suo
+                 poligono si evidenzia, e sul poligono compaiono nome e quote. ⚠️ La tabella fa parte della mappa: sul
+                 documento pubblicato si vede aggiornata <b>dopo aver ripubblicato</b>.</p>",
             @"<p>The AOR map shows the rings of the block's sectors. You can <b>add shapes of other units</b> taken
                from the database (foreign ones or towers too): they appear as toggleable rings and can be selected in
                the configurations. The <b>colour</b> comes from the unit type (towers in red, and so on) and can be
-               changed per sector; «default» restores the type's colour.</p>"),
+               changed per sector; «default» restores the type's colour.</p>
+              <p><b>Airspaces (AIP).</b> When a sector of the document is bound to the volumes of the AIP KMZ file
+                 (from the airspace administration page), a table appears below the map with <b>name, base, top,
+                 class and notes</b>. Name and levels come from the file; <b>you write class and notes</b> while
+                 editing — the class from an A–G list, because the file almost never gives it for CTRs. The
+                 <b>square</b> at the start of a row turns that airspace on and off on the 2D and 3D map; hovering a
+                 row highlights its polygon, and hovering the polygon shows its name and levels. ⚠️ The table is part
+                 of the map: the published document shows it updated <b>after republishing</b>.</p>"),
 
         new Sec("accordi", "refresh",
             @"<p>Un <b>accordo</b> lega <b>due elenchi di enti</b> per un tipo di traffico, su <b>tutti gli
