@@ -126,7 +126,7 @@ public static partial class AwosComposition
     public static AwosActive PistaAttiva(
         IReadOnlyList<RunwayRuleRow> regole, IReadOnlyList<string> piste, ParsedMetar? metar,
         IReadOnlyList<string>? atisDep = null, IReadOnlyList<string>? atisArr = null, string? daChi = null,
-        IReadOnlyList<string>? maiUsare = null)
+        RunwayExclusions? escluse = null)
     {
         if (atisDep is { Count: > 0 } || atisArr is { Count: > 0 })
         {
@@ -153,9 +153,11 @@ public static partial class AwosComposition
 
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt, maiUsare);   // senza le soglie «mai usare»
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, escluse);   // senza le soglie escluse per verso
+            // ⚠️ Niente ripiego su Best: un verso senza soglie ammesse resta vuoto (carta pista-mai-usare).
             if (s.Best is not null)
-                return new AwosActive(new[] { s.DepIdent ?? s.Best.Ident }, new[] { s.ArrIdent ?? s.Best.Ident },
+                return new AwosActive(s.DepIdent is { } pd ? new[] { pd } : Array.Empty<string>(),
+                                      s.ArrIdent is { } pa ? new[] { pa } : Array.Empty<string>(),
                                       AwosRunwaySource.Vento, null);
         }
 

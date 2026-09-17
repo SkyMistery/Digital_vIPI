@@ -54,10 +54,10 @@ public class PisteOrfaneTests : IAsyncLifetime
         _db.ChangeTracker.Clear();
     }
 
-    // ---- «Mai usare» (carta 2026-09-17-pista-mai-usare.md) -------------------------------------------
+    // ---- «Mai in partenza» / «mai in arrivo» (carta 2026-09-17-pista-mai-usare.md) --------------------
 
     /// <summary>
-    /// Il flag è una scelta di una persona quanto un TORA: il merge lo conserva sulla pista che resta, e una pista
+    /// I flag sono una scelta di una persona quanto un TORA: il merge lo conserva sulla pista che resta, e una pista
     /// orfana che lo porta non se ne va da sola. E il salvataggio dell'editor, che riscrive le righe, lo riporta.
     /// </summary>
     [Fact]
@@ -65,22 +65,25 @@ public class PisteOrfaneTests : IAsyncLifetime
     {
         await _airports.MergeFromSourceAsync("LIPR", null, new[] { Rw("13"), Rw("31") });
         var righe = (await _airports.LoadAsync("LIPR"))!.Runways;
-        await _airports.SaveRunwaysAsync("LIPR", righe.Select(r => r with { NeverUse = r.Ident == "31" }).ToList());
+        await _airports.SaveRunwaysAsync("LIPR", righe.Select(r => r with
+        {
+            NeverDeparture = r.Ident == "31", NeverArrival = r.Ident == "13",
+        }).ToList());
         _db.ChangeTracker.Clear();
 
         var dopoSalvataggio = (await _airports.LoadAsync("LIPR"))!.Runways;
-        Assert.True(dopoSalvataggio.Single(r => r.Ident == "31").NeverUse);
-        Assert.False(dopoSalvataggio.Single(r => r.Ident == "13").NeverUse);
+        Assert.Equal((true, false), (dopoSalvataggio.Single(r => r.Ident == "31").NeverDeparture, dopoSalvataggio.Single(r => r.Ident == "31").NeverArrival));
+        Assert.Equal((false, true), (dopoSalvataggio.Single(r => r.Ident == "13").NeverDeparture, dopoSalvataggio.Single(r => r.Ident == "13").NeverArrival));
 
         // Stesso nome dalla sorgente: il flag resta.
         await _airports.MergeFromSourceAsync("LIPR", null, new[] { Rw("13"), Rw("31") });
         _db.ChangeTracker.Clear();
-        Assert.True((await _airports.LoadAsync("LIPR"))!.Runways.Single(r => r.Ident == "31").NeverUse);
+        Assert.True((await _airports.LoadAsync("LIPR"))!.Runways.Single(r => r.Ident == "31").NeverDeparture);
 
-        // Ri-denominazione: la 13 (vuota) se ne va, la 31 (col flag) resta e viene nominata.
+        // Ri-denominazione: tutte e due portano un flag, quindi restano e vengono nominate.
         var esito = await _airports.MergeFromSourceAsync("LIPR", null, new[] { Rw("12"), Rw("30") });
         Assert.Contains("31", esito.OrphansWithData);
-        Assert.DoesNotContain("13", await IdentiInOrdine());
+        Assert.Contains("13", esito.OrphansWithData);
     }
 
     // ---- Il caso LIPR --------------------------------------------------------------------------------

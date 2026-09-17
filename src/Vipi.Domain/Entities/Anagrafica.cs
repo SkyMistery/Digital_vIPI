@@ -588,13 +588,18 @@ public class AirportRunway
     public string? Circling { get; set; }
 
     /// <summary>
-    /// «Mai usare»: la soglia non esce mai dal <b>ripiego sul vento</b> quando nessuna regola pista vale
-    /// (carta <c>docs/feature/2026-09-17-pista-mai-usare.md</c>). ⚠️ Le regole che la nominano restano valide: il
-    /// flag non tocca <c>EvaluateRules</c>, e l'editor delle regole lo segnala. Editoriale come le colonne sopra:
-    /// il merge da IVAO lo conserva, e una riga orfana che lo porta non si cancella da sola.
+    /// «Mai in partenza»: quando nessuna regola pista vale, il <b>ripiego sul vento</b> non sceglie mai questa soglia
+    /// per le partenze (carta <c>docs/feature/2026-09-17-pista-mai-usare.md</c>). Con <see cref="NeverArrival"/> la
+    /// soglia è esclusa del tutto. ⚠️ Le regole che la nominano restano valide: il flag non tocca
+    /// <c>EvaluateRules</c>, e l'editor delle regole lo segnala. Editoriale come le colonne sopra: il merge da IVAO
+    /// lo conserva, e una riga orfana che lo porta non si cancella da sola.
     /// <para>Nasce <c>false</c> (usabile), ed è il default giusto: è un flag opt-IN.</para>
     /// </summary>
-    public bool NeverUse { get; set; }
+    public bool NeverDeparture { get; set; }
+
+    /// <summary>«Mai in arrivo»: gemello di <see cref="NeverDeparture"/> per gli arrivi (es. una soglia usata solo
+    /// per decollare). Si possono marcare tutti e due.</summary>
+    public bool NeverArrival { get; set; }
 }
 
 /// <summary>

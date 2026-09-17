@@ -45,10 +45,20 @@ public enum SuggestionReason
     NoDirection,
 
     /// <summary>
-    /// Le piste ci sono, ma sono <b>tutte</b> marcate «mai usare»: il ripiego non ha niente fra cui scegliere.
-    /// ⚠️ Distinto da <see cref="NoRunways"/>: lì la tabella è vuota, qui la tabella c'è e l'ha svuotata una scelta.
+    /// Le piste ci sono, ma sono <b>tutte</b> escluse sia in partenza sia in arrivo: il ripiego non ha niente fra cui
+    /// scegliere. ⚠️ Distinto da <see cref="NoRunways"/>: lì la tabella è vuota, qui la tabella c'è e l'ha svuotata una
+    /// scelta.
     /// </summary>
     AllNeverUse,
+}
+
+/// <summary>
+/// Le soglie che il ripiego sul vento non sceglie mai, per verso (carta 2026-09-17-pista-mai-usare.md): una soglia
+/// può essere esclusa solo dalle partenze, solo dagli arrivi, o da tutti e due.
+/// </summary>
+public sealed record RunwayExclusions(IReadOnlyCollection<string> Departures, IReadOnlyCollection<string> Arrivals)
+{
+    public static RunwayExclusions None { get; } = new(Array.Empty<string>(), Array.Empty<string>());
 }
 
 /// <summary>
@@ -125,23 +135,30 @@ public static partial class RunwaySuggestion
         return TimeZoneInfo.ConvertTimeToUtc(l, ItalyTimeZone);
     }
 
-    /// <param name="neverUse">
-    /// Le soglie marcate «mai usare» (carta 2026-09-17-pista-mai-usare.md): il ripiego non le sceglie mai.
+    /// <param name="exclusions">
+    /// Le soglie che il ripiego non sceglie mai, per verso (carta 2026-09-17-pista-mai-usare.md).
     /// <para>⚠️ <b>La regola sta QUI, e solo qui</b>: il ripiego si calcola in cinque posti (documenti, vAWOS, vista
     /// rapida, elenco aeroporti, banco di prova) e ognuno passa soltanto il dato. Filtrare nei chiamanti vorrebbe
     /// dire cinque copie, e il giorno che una manca il vAWOS direbbe una pista e il documento un'altra.</para>
+    /// <para>⚠️ <see cref="RunwaySuggestionResult.DepIdent"/> e <see cref="RunwaySuggestionResult.ArrIdent"/> si
+    /// scelgono <b>ciascuno fra le soglie ammesse in quel verso</b>, e possono essere null (tutte escluse in quel
+    /// verso). I chiamanti NON devono ripiegare su <see cref="RunwaySuggestionResult.Best"/>: sarebbe proporre per
+    /// gli arrivi una soglia marcata «mai in arrivo».</para>
     /// </param>
     public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt,
-        IEnumerable<string>? neverUse = null)
+        RunwayExclusions? exclusions = null)
     {
-        var escluse = new HashSet<string>((neverUse ?? Array.Empty<string>()).Select(i => (i ?? "").Trim()),
-            StringComparer.OrdinalIgnoreCase);
+        static HashSet<string> Insieme(IEnumerable<string>? v) =>
+            new((v ?? Array.Empty<string>()).Select(i => (i ?? "").Trim()), StringComparer.OrdinalIgnoreCase);
+        var noDep = Insieme(exclusions?.Departures);
+        var noArr = Insieme(exclusions?.Arrivals);
         var tutte = runwayIdents
             .Select(i => (Ident: i.Trim().ToUpperInvariant(), M: IdentRe().Match(i.Trim())))
             .Where(x => x.M.Success)
             .Select(x => (x.Ident, Heading: int.Parse(x.M.Groups[1].Value) * 10))
             .ToList();
-        var ends = tutte.Where(e => !escluse.Contains(e.Ident)).ToList();
+        // Fuori dal ripiego solo le soglie escluse in TUTTI E DUE i versi: le altre servono almeno a uno.
+        var ends = tutte.Where(e => !(noDep.Contains(e.Ident) && noArr.Contains(e.Ident))).ToList();
 
         if (ends.Count == 0)
             return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(),
@@ -165,11 +182,20 @@ public static partial class RunwaySuggestion
             .ToList();
 
         var best = ranked[0];
-        // Piste parallele nella direzione del vento (stesso heading): split arrivi/partenze (sinistra=arrivi, destra=partenze).
-        var parallels = ranked.Where(p => p.Heading == best.Heading).OrderBy(p => p.Ident, StringComparer.Ordinal).ToList();
-        var (depIdent, arrIdent) = parallels.Count >= 2
-            ? (parallels[^1].Ident, parallels[0].Ident)   // ARR = prima (es. 35L), DEP = ultima (es. 35R)
-            : (best.Ident, best.Ident);
+        // Ogni verso sceglie fra le SUE soglie ammesse. Piste parallele nella direzione del vento (stesso heading):
+        // split arrivi/partenze (sinistra = arrivi, destra = partenze). Senza esclusioni i due insiemi coincidono con
+        // `ranked` e l'esito è quello di sempre.
+        static string? Scegli(IReadOnlyList<RunwayPick> ammesse, bool arrivi)
+        {
+            if (ammesse.Count == 0) return null;
+            var parallele = ammesse.Where(p => p.Heading == ammesse[0].Heading)
+                .OrderBy(p => p.Ident, StringComparer.Ordinal).ToList();
+            return parallele.Count >= 2
+                ? (arrivi ? parallele[0].Ident : parallele[^1].Ident)   // ARR = prima (es. 35L), DEP = ultima (es. 35R)
+                : ammesse[0].Ident;
+        }
+        var depIdent = Scegli(ranked.Where(p => !noDep.Contains(p.Ident)).ToList(), arrivi: false);
+        var arrIdent = Scegli(ranked.Where(p => !noArr.Contains(p.Ident)).ToList(), arrivi: true);
 
         var motivo = best.Headwind < 0 ? SuggestionReason.Tailwind : SuggestionReason.Headwind;
         return new RunwaySuggestionResult(best, ranked, motivo, depIdent, arrIdent);

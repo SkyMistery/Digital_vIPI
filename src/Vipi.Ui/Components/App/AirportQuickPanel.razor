@@ -290,8 +290,8 @@ else
         }
         if (_runways.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, RunwayRow.MaiUsare(_profile.Runways));
-            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
+            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, RunwayRow.Esclusioni(_profile.Runways));
+            if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);
     }

@@ -567,7 +567,10 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                     b.Property<int?>("LengthM")
                         .HasColumnType("INTEGER");
 
-                    b.Property<bool>("NeverUse")
+                    b.Property<bool>("NeverArrival")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("NeverDeparture")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("Order")

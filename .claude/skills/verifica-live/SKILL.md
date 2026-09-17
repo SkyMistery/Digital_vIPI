@@ -1,4 +1,4 @@
-﻿---
+---
 name: verifica-live
 description: Lancia la vIPI in locale (dotnet run su una copia del DB) e la guida in un browser reale con Edge+puppeteer-core, per verificare a schermo una modifica UI. Usare quando serve provare l'app davvero — non i test — su viewer, editor, pannello release.
 ---
@@ -116,7 +116,7 @@ Accanto a `driver.js` ci sono altri script, che non si adattano: si lanciano cos
 | `chiavi-verifica.js` | le **chiavi API**: la pagina crea una chiave e la mostra una volta, l'archivio risponde 200 con la chiave (Bearer e X-Api-Key) e 401 con una inventata, la chiave sparisce dopo il ricarico, 401 dopo la revoca. ⚠️ **Scrive** nel DB: solo su una copia, lo script rifiuta `ivao.aero` | quando si tocca `PortaDelleApi`, `ChiaviApi.cs` o `AdminApiKeysPage`, e a ogni consegna che li contiene |
 | `spazi-aerei-verifica.js` | la tabella **Spazi aerei (AIP)** sotto l'AoR (§A66): il pallino spegne il singolo volume sulla mappa, la chip del settore NON lo riaccende, hover riga ↔ poligono col tooltip, la 3D nasce con gli spazi già spenti. `DOC=/services/vsop/libb/apps/vipi?app=LIBP_APP&as=draft` su una copia di produzione (LIBP_APP agganciato a PESCARA CTR Z1…Z5) | quando si tocca `AorAirspaceTable`, `AccAor`, `AccAor3d`, `vipi-aor.js` o `vipi-aor3d.js` |
 | `campi-verifica.js` | lo stile CALCOLATO di ogni input/select/textarea dei **5 editor** in modifica (ACC, APP, aeroporto, vSOP militare, vLOA), raggruppato per firma: un campo col grigio del browser (`rgb(59,59,59)`, bordo `rgb(133,133,133)`, angoli vivi, Arial) o con la freccia di sistema (`appearance:auto`) è uno che nessuna regola di casa veste. `TEMA=dark|light`, `EDITORI='NOME|/percorso;…'`. §A67 | quando si aggiunge un campo a un editor, o si tocca `.app-in`/`.app-ta`/`.se-row`/`.res-table` nel foglio |
-| `mai-usare-verifica.js` | la soglia **«mai usare»** (§A68): nell'editor aeroporto la casella della colonna, il banco di prova che col vento favorevole alla soglia marcata ripiega sull'altra, il flag riletto dopo il ricarico, l'avviso sulle regole che la nominano. `DOC=…/airports/editor?icao=LIBD SOGLIA=07 VENTO=70` su una copia (scrive nel DB) | quando si tocca `RunwaySuggestion.Suggest`, `AirportRunwaysEditor`, `RwEdit` o `AirportRuleValidation` |
+| `mai-usare-verifica.js` | le soglie **«mai in partenza» / «mai in arrivo»** (§A68): nell'editor aeroporto la casella DEP, il banco di prova che tiene la soglia per gli arrivi e la toglie dalle partenze, e il **vAWOS** col METAR di prova che non cambia finché non si pubblica e cambia dopo «Publish now». ⚠️ Scrive e PUBBLICA: solo su una copia (rifiuta `ivao.aero`). `ACC=libb ICAO=LIBD SOGLIA=07 VENTO=70`. ⚠️ La pagina vAWOS ha una cache breve: per una lettura sicura usare l'API `/services/vawos/api/LIBD?test=…` con un METAR diverso a ogni chiamata | quando si tocca `RunwaySuggestion.Suggest`, `AirportRunwaysEditor`, `RwEdit`, `AirportRuleValidation` o `AwosService.DalPubblicatoAsync` |
 
 ```powershell
 node sweep.js

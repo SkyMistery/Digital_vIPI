@@ -5,13 +5,20 @@
 namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 {
     /// <inheritdoc />
-    public partial class PistaMaiUsare : Migration
+    public partial class PisteMaiUsarePerVerso : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
-                name: "NeverUse",
+                name: "NeverArrival",
+                table: "AirportRunways",
+                type: "tinyint(1)",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "NeverDeparture",
                 table: "AirportRunways",
                 type: "tinyint(1)",
                 nullable: false,
@@ -22,7 +29,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "NeverUse",
+                name: "NeverArrival",
+                table: "AirportRunways");
+
+            migrationBuilder.DropColumn(
+                name: "NeverDeparture",
                 table: "AirportRunways");
         }
     }

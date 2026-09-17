@@ -1053,7 +1053,7 @@ else
     /// e col banco di prova, che è suo (doc 14 §3g).</summary>
     private RenderFragment RulesEditor => __builder =>
     {
-        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" NeverUseIdents="RwEdit.MaiUsare(_rwys)"
+        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" Exclusions="RwEdit.Esclusioni(_rwys)"
                                   Editing="_shell.IsEditing" RowsChanged="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
     };

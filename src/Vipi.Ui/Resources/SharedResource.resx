@@ -2313,12 +2313,14 @@
   <data name="Ape_IssueRwDup" xml:space="preserve"><value>Pista «{0}» duplicata: usa un ident unico.</value></data>
   <data name="Ape_IssueRuleNoRw" xml:space="preserve"><value>Regola #{0}: seleziona almeno una pista DEP o ARR.</value></data>
   <data name="Ape_IssueRuleUnknownRw" xml:space="preserve"><value>Regola #{0}: pista «{1}» non è tra le piste dell'aeroporto.</value></data>
+  <data name="Ape_RwNeverUseTitle" xml:space="preserve"><value>Quando nessuna regola pista vale, il ripiego sul vento non sceglie mai questa soglia per le partenze (DEP) e/o per gli arrivi (ARR). Le regole che la nominano restano valide.</value></data>
+  <data name="Ape_RwNeverDepFor" xml:space="preserve"><value>{0}: mai in partenza nel ripiego sul vento</value></data>
+  <data name="Ape_RwNeverArrFor" xml:space="preserve"><value>{0}: mai in arrivo nel ripiego sul vento</value></data>
+  <data name="Ape_IssueRuleNeverDepRw" xml:space="preserve"><value>Regola #{0}: la pista «{1}» è in partenza ma è marcata «mai in partenza». La regola vale lo stesso: il flag conta solo quando nessuna regola vale.</value></data>
+  <data name="Ape_IssueRuleNeverArrRw" xml:space="preserve"><value>Regola #{0}: la pista «{1}» è in arrivo ma è marcata «mai in arrivo». La regola vale lo stesso: il flag conta solo quando nessuna regola vale.</value></data>
+  <data name="Ape_TestReasonAllNeverUse" xml:space="preserve"><value>tutte le piste sono escluse sia in partenza sia in arrivo.</value></data>
+  <data name="Ape_TestNoneExcluded" xml:space="preserve"><value>nessuna (tutte escluse)</value></data>
   <data name="Ape_RwNeverUse" xml:space="preserve"><value>Mai usare</value></data>
-  <data name="Ape_RwNeverUseYes" xml:space="preserve"><value>mai</value></data>
-  <data name="Ape_RwNeverUseTitle" xml:space="preserve"><value>Quando nessuna regola pista vale, il ripiego sul vento non sceglie mai questa soglia. Le regole che la nominano restano valide.</value></data>
-  <data name="Ape_RwNeverUseFor" xml:space="preserve"><value>{0}: mai usare nel ripiego sul vento</value></data>
-  <data name="Ape_IssueRuleNeverUseRw" xml:space="preserve"><value>Regola #{0}: la pista «{1}» è marcata «mai usare». La regola vale lo stesso: il flag conta solo quando nessuna regola vale.</value></data>
-  <data name="Ape_TestReasonAllNeverUse" xml:space="preserve"><value>tutte le piste sono marcate «mai usare».</value></data>
   <data name="Ape_IssueRuleTimeWin" xml:space="preserve"><value>Regola #{0}: finestra orario incompleta (manca inizio o fine).</value></data>
   <data name="Common_Print" xml:space="preserve"><value>Stampa</value></data>
   <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Stampato il</value></data>

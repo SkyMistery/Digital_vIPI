@@ -38,7 +38,7 @@ public sealed class EfAirportRepository : IAirportRepository
         var rwys = await _db.AirportRunways.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
             .Select(x => new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns,
-                x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt, x.NeverUse))
+                x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt, x.NeverDeparture, x.NeverArrival))
             .ToListAsync(ct);
         var rules = await _db.AirportRunwayRules.AsNoTracking().Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
@@ -114,7 +114,7 @@ public sealed class EfAirportRepository : IAirportRepository
                 .Where(x => id.Contains(x.AirportId))
                 .OrderBy(x => x.AirportId).ThenBy(x => x.Order)
                 .Select(x => new { x.AirportId, Riga = new RunwayRow(x.Id, x.Ident, x.LengthM, x.Bearing, x.ToraM, x.LdaM, x.AppProcedures, x.Patterns,
-                    x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt, x.NeverUse) })
+                    x.Circling, x.ThresholdLat, x.ThresholdLon, x.ThresholdElevationFt, x.NeverDeparture, x.NeverArrival) })
                 .ToListAsync(ct))
             .GroupBy(x => x.AirportId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<RunwayRow>)g.Select(x => x.Riga).ToList());
@@ -216,7 +216,7 @@ public sealed class EfAirportRepository : IAirportRepository
             {
                 AirportId = id, Order = i, Ident = ident, LengthM = r.LengthM, Bearing = r.Bearing,
                 ToraM = r.ToraM, LdaM = r.LdaM, AppProcedures = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
-                NeverUse = r.NeverUse,   // editoriale: passa dall'editor, quindi viaggia con la riga
+                NeverDeparture = r.NeverDeparture, NeverArrival = r.NeverArrival,   // editoriali: dall'editor, con la riga
                 ThresholdLat = prima?.ThresholdLat, ThresholdLon = prima?.ThresholdLon,
                 ThresholdElevationFt = prima?.ThresholdElevationFt,
             });
@@ -508,12 +508,12 @@ public sealed class EfAirportRepository : IAirportRepository
     }
 
     /// <summary>Vero se sulla pista non c'è nulla che una persona abbia scritto: le cinque colonne editoriali
-    /// sono tutte vuote e non è marcata «mai usare». È l'unica condizione che autorizza il merge a togliere una riga.
+    /// sono tutte vuote e non è marcata «mai in partenza» né «mai in arrivo». È l'unica condizione che autorizza il merge a togliere una riga.
     /// ⚠️ Il flag conta come lavoro: è una scelta di una persona quanto un TORA scritto a mano.</summary>
     private static bool SenzaLavoroEditoriale(AirportRunway r) =>
         string.IsNullOrWhiteSpace(r.ToraM) && string.IsNullOrWhiteSpace(r.LdaM)
         && string.IsNullOrWhiteSpace(r.AppProcedures) && string.IsNullOrWhiteSpace(r.Patterns)
-        && string.IsNullOrWhiteSpace(r.Circling) && !r.NeverUse;
+        && string.IsNullOrWhiteSpace(r.Circling) && !r.NeverDeparture && !r.NeverArrival;
 
     public async Task<int> EnsureDocumentAsync(string icao, CancellationToken ct = default)
     {

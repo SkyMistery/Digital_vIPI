@@ -234,8 +234,8 @@ else
         var piste = profilo?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt, RunwayRow.MaiUsare(profilo?.Runways));
-            if (s.Best is not null) return (Norm(s.DepIdent ?? s.Best.Ident), Norm(s.ArrIdent ?? s.Best.Ident));
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, RunwayRow.Esclusioni(profilo?.Runways));
+            if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);
     }

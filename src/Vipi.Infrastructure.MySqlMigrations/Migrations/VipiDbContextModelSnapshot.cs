@@ -661,7 +661,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Property<int?>("LengthM")
                         .HasColumnType("int");
 
-                    b.Property<bool>("NeverUse")
+                    b.Property<bool>("NeverArrival")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("NeverDeparture")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<int>("Order")

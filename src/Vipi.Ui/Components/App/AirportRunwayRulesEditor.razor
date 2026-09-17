@@ -31,7 +31,7 @@
         </HelpHint>
     </div>
 
-    @{ var problemi = AirportRuleValidation.Issues(Rows, RunwayIdents, NeverUseIdents); }
+    @{ var problemi = AirportRuleValidation.Issues(Rows, RunwayIdents, Exclusions); }
     @if (problemi.Errors.Count > 0)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var e in problemi.Errors) { <div>@L[e.Key, e.Args]</div> }</div></div>
@@ -196,7 +196,8 @@
                            `RunwaySuggestion.Suggest`, in italiano cablato anche nell'interfaccia inglese («No rule
                            applies → best headwind fallback: Headwind 13 kt su 13, vento traverso 3 kt»): ora il
                            motore dice solo il MOTIVO, e le componenti stanno nella riga per pista qui sotto. *@
-                        <span>@L["Ape_TestNoRule"] DEP <b>@_ripiego.DepIdent</b> · ARR <b>@_ripiego.ArrIdent</b></span>
+                        @* Un verso con tutte le soglie escluse non ha pista: si dice, invece di lasciare il vuoto. *@
+                        <span>@L["Ape_TestNoRule"] DEP <b>@(_ripiego.DepIdent ?? L["Ape_TestNoneExcluded"].Value)</b> · ARR <b>@(_ripiego.ArrIdent ?? L["Ape_TestNoneExcluded"].Value)</b></span>
                         @if (_ripiego.Reason == SuggestionReason.Tailwind)
                         {
                             @* Il vento è in coda su tutte le piste: la «migliore» è la meno peggio, e va detto. *@
@@ -273,9 +274,9 @@
     /// <summary>Il documento è in modifica e il lock è nostro: solo allora ci sono i campi.</summary>
     [Parameter] public bool Editing { get; set; }
 
-    /// <summary>Le soglie marcate «mai usare» nella tabella piste (anche non ancora salvate): il banco di prova ripiega
-    /// senza di loro, e una regola che le nomina riceve un avviso.</summary>
-    [Parameter] public IReadOnlyList<string> NeverUseIdents { get; set; } = Array.Empty<string>();
+    /// <summary>Le soglie «mai in partenza» / «mai in arrivo» della tabella piste (anche non ancora salvate): il banco
+    /// di prova ripiega senza di loro nel loro verso, e una regola che le nomina in quel verso riceve un avviso.</summary>
+    [Parameter] public RunwayExclusions Exclusions { get; set; } = RunwayExclusions.None;
 
     /// <summary>Le regole sono cambiate — un campo, un chip, l'ordine: l'host le salva subito.</summary>
     [Parameter] public EventCallback RowsChanged { get; set; }
@@ -354,9 +355,11 @@
         }
 
         if (_ripiego?.Best is null) return Array.Empty<(string, string, int, int)>();
-        var dep = _ripiego.DepIdent ?? _ripiego.Best.Ident;
-        var arr = _ripiego.ArrIdent ?? _ripiego.Best.Ident;
+        // ⚠️ Niente ripiego su Best: un verso senza soglie ammesse non ha pista (carta pista-mai-usare).
+        var dep = _ripiego.DepIdent;
+        var arr = _ripiego.ArrIdent;
         return new[] { dep, arr }
+            .OfType<string>()
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .Select(id => _ripiego.Ranked.FirstOrDefault(x => string.Equals(x.Ident, id, StringComparison.OrdinalIgnoreCase)))
             .Where(p => p is not null)
@@ -525,7 +528,7 @@
         var quando = RunwaySuggestion.AUtc(_provaQuando);
         _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
         _spiegazione = RunwaySuggestion.ExplainRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
-        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt, NeverUseIdents) : null;
+        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt, Exclusions) : null;
         _provaFatta = true;
     }
 }

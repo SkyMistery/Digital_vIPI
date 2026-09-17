@@ -84,18 +84,23 @@ public sealed record AirportFreqView(IReadOnlyList<AirportFreqRowView> Rows)
 /// release: una release deve fotografare quel che si legge, non due numeri da ri-formattare al view — e la
 /// formattazione può cambiare.
 /// </param>
-/// <param name="NeverUse">
-/// «Mai usare» nel ripiego sul vento. ⚠️ Non si MOSTRA al lettore (decisione del committente, 17-set-2026): sta qui
-/// perché la pista in uso di un documento si calcola sulla sezione mostrata, e congelata la sezione si congela anche
-/// questo, come le regole. Gli snapshot di prima non lo hanno: vale falso.
+/// <param name="NeverDeparture">
+/// «Mai in partenza» nel ripiego sul vento (con <paramref name="NeverArrival"/>, «mai in arrivo»). ⚠️ Non si MOSTRANO
+/// al lettore (decisione del committente, 17-set-2026): stanno qui perché la pista in uso di un documento — e il vAWOS,
+/// che legge il pubblicato — si calcola sulla sezione mostrata, e congelata la sezione si congelano anche loro, come le
+/// regole. Gli snapshot di prima non li hanno: valgono falso.
 /// </param>
 public sealed record AirportRunwayRowView(string Ident, int? LengthM, string Tora, string Lda,
     string AppProcedures, string Patterns, string Circling,
-    string Threshold = "", int? ThresholdElevationFt = null, bool NeverUse = false)
+    string Threshold = "", int? ThresholdElevationFt = null, bool NeverDeparture = false, bool NeverArrival = false)
 {
-    /// <summary>Le soglie «mai usare» di una sezione Piste.</summary>
-    public static IReadOnlyList<string> MaiUsare(IEnumerable<AirportRunwayRowView>? rows) =>
-        (rows ?? Array.Empty<AirportRunwayRowView>()).Where(r => r.NeverUse).Select(r => r.Ident.Trim()).ToList();
+    /// <summary>Le esclusioni di una sezione Piste.</summary>
+    public static Weather.RunwayExclusions Esclusioni(IEnumerable<AirportRunwayRowView>? rows)
+    {
+        var r = (rows ?? Array.Empty<AirportRunwayRowView>()).ToList();
+        return new(r.Where(x => x.NeverDeparture).Select(x => x.Ident.Trim()).ToList(),
+                   r.Where(x => x.NeverArrival).Select(x => x.Ident.Trim()).ToList());
+    }
 }
 
 /// <summary>
@@ -228,7 +233,7 @@ public static class AirportSectionProjection
                 // TORA e LDA sono testo editoriale; se non compilati vale la lunghezza d'anagrafica.
                 Fallback(r.ToraM, r.LengthM), Fallback(r.LdaM, r.LengthM),
                 Dash(r.AppProcedures), Dash(r.Patterns), Dash(r.Circling),
-                NavaidText.Coordinate(r.ThresholdLat, r.ThresholdLon), r.ThresholdElevationFt, r.NeverUse))
+                NavaidText.Coordinate(r.ThresholdLat, r.ThresholdLon), r.ThresholdElevationFt, r.NeverDeparture, r.NeverArrival))
             .ToList());
     }
 

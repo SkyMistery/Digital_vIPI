@@ -2187,6 +2187,9 @@
 /* ⚠️ Fondo e inchiostro DICHIARATI: senza, nel tema scuro il campo prendeva il grigio del browser (rgb 59,59,59) —
    misurato il 17-set-2026 sui campi METAR, ricerca frequenze e regole avanzate degli editor aeroporto e militare. */
 :where(.vipi-root) .se-row input:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
+/* «Mai usare» per verso nella tabella piste dell'editor: due caselle affiancate, DEP e ARR (carta 2026-09-17-pista-mai-usare.md). */
+:where(.vipi-root) .rw-mai{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:10px;white-space:nowrap;cursor:pointer}
+:where(.vipi-root) .rw-mai input[type=checkbox]{padding:0;margin:0}
 :where(.vipi-root) .se-row select{border:1px solid var(--line);border-radius:7px;padding:6px 28px 6px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s}
 :where(.vipi-root) .se-row select:hover{border-color:var(--line-ocean)}
 :where(.vipi-root) .se-row select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}

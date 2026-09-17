@@ -183,7 +183,7 @@ public sealed class AirportMemberLoader
         var regole = derived.Rules.Regole;
         var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
         var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive,
-            AirportRunwayRowView.MaiUsare(derived.Runways.Rows));
+            AirportRunwayRowView.Esclusioni(derived.Runways.Rows));
         var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------

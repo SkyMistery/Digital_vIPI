@@ -77,11 +77,16 @@
                         <td><RunwayChoiceChips Choices="RunwayChoices.App" @bind-Value="r.App" @bind-Value:after="Cambiato" /></td>
                         <td><RunwayChoiceChips Choices="RunwayChoices.Patterns" @bind-Value="r.Patterns" @bind-Value:after="Cambiato" /></td>
                         <td><RunwayChoiceChips Choices="RunwayChoices.Circling" @bind-Value="r.Circling" @bind-Value:after="Cambiato" /></td>
-                        @* «Mai usare»: il ripiego sul vento non sceglie mai questa soglia quando nessuna regola vale. Le
-                           regole che la nominano restano valide, e l'editor delle regole lo segnala (carta
-                           2026-09-17-pista-mai-usare.md). Non si mostra al lettore del documento. *@
-                        <td class="col-mai"><input type="checkbox" @bind="r.NeverUse" @bind:after="Cambiato"
-                                                   aria-label="@L["Ape_RwNeverUseFor", r.Ident ?? ""]" title="@L["Ape_RwNeverUseTitle"]" /></td>
+                        @* «Mai usare», per verso: quando nessuna regola vale, il ripiego sul vento non sceglie mai questa
+                           soglia per le partenze (DEP) e/o per gli arrivi (ARR). Le regole che la nominano restano
+                           valide, e l'editor delle regole lo segnala (carta 2026-09-17-pista-mai-usare.md). Non si mostra
+                           al lettore del documento. *@
+                        <td class="col-mai">
+                            <label class="rw-mai" title="@L["Ape_RwNeverUseTitle"]"><input type="checkbox" @bind="r.NeverDep" @bind:after="Cambiato"
+                                   aria-label="@L["Ape_RwNeverDepFor", r.Ident ?? ""]" /> DEP</label>
+                            <label class="rw-mai" title="@L["Ape_RwNeverUseTitle"]"><input type="checkbox" @bind="r.NeverArr" @bind:after="Cambiato"
+                                   aria-label="@L["Ape_RwNeverArrFor", r.Ident ?? ""]" /> ARR</label>
+                        </td>
                         <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
                     }
                     else
@@ -91,7 +96,7 @@
                         <td>@AirportRunwayLists.Format(r.App)</td>
                         <td>@Testo(r.Patterns)</td>
                         <td>@Testo(r.Circling)</td>
-                        <td class="col-mai">@(r.NeverUse ? L["Ape_RwNeverUseYes"].Value : "—")</td>
+                        <td class="col-mai">@((r.NeverDep, r.NeverArr) switch { (true, true) => "DEP · ARR", (true, false) => "DEP", (false, true) => "ARR", _ => "—" })</td>
                     }
                 </tr>
             }

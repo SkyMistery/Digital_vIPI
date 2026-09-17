@@ -858,7 +858,7 @@ else
                l'editor civile e qui resta il rimando. Stesso componente, col suo banco di prova: chi scrive
                una regola vede subito quale pista sceglierebbe con un vento dato. *@
             case "runwayrules":
-                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()" NeverUseIdents="RwEdit.MaiUsare(_rwys)"
+                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()" Exclusions="RwEdit.Esclusioni(_rwys)"
                                           Editing="_shell.IsEditing" RowsChanged="SalvaRegole"
                                           ConfirmRemove="ConfermaRimozioneRegola" />
                 break;

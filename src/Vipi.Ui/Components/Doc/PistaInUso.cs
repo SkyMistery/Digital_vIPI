@@ -48,12 +48,12 @@ public static class PistaInUso
     /// </param>
     /// <param name="viveDiRipiego">Le regole dell'anagrafica di adesso, usate solo quando <paramref name="regole"/> è null.</param>
     /// <param name="runways">Gli identificativi delle piste, per il ripiego sul vento quando nessuna regola vale.</param>
-    /// <param name="maiUsare">Le soglie «mai usare» della sezione mostrata: il ripiego non le sceglie
-    /// (carta 2026-09-17-pista-mai-usare.md). Le regole non le guardano.</param>
+    /// <param name="escluse">Le soglie «mai in partenza» / «mai in arrivo» della sezione mostrata: il ripiego non le
+    /// sceglie in quel verso (carta 2026-09-17-pista-mai-usare.md). Le regole non le guardano.</param>
     public static PistaInUsoAdesso Calcola(IReadOnlyList<RunwayRuleRow>? regole, AirportSidView sids,
                                            IReadOnlyList<string> runways, int? windDir, int windKt,
                                            ParsedMetar? metar, IReadOnlyList<RunwayRuleRow>? viveDiRipiego = null,
-                                           IReadOnlyList<string>? maiUsare = null)
+                                           RunwayExclusions? escluse = null)
     {
         var mostrate = regole is not null;
         var daValutare = regole ?? viveDiRipiego ?? Array.Empty<RunwayRuleRow>();
@@ -63,7 +63,7 @@ public static class PistaInUso
             ? RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(daValutare),
                                              windDir, windKt, wet, DateTime.UtcNow)
             : null;
-        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt, maiUsare);
+        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt, escluse);
 
         var dep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var arr = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -74,8 +74,9 @@ public static class PistaInUso
         }
         else if (sugg.Best is not null)
         {
-            dep.Add((sugg.DepIdent ?? sugg.Best.Ident).Trim());
-            arr.Add((sugg.ArrIdent ?? sugg.Best.Ident).Trim());
+            // ⚠️ Niente ripiego su Best: un verso senza soglie ammesse resta vuoto (carta pista-mai-usare).
+            if (sugg.DepIdent is { } d) dep.Add(d.Trim());
+            if (sugg.ArrIdent is { } a) arr.Add(a.Trim());
         }
 
         // Seme del filtro SID = pista in uso in partenza (se ha SID), altrimenti la prima pista con SID.

@@ -2,24 +2,22 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A68 — Soglia «mai usare» nel ripiego sul vento (17 settembre 2026) — in main, NON in pacchetto
+### 🟡 A68 — Soglie «mai in partenza» / «mai in arrivo» nel ripiego sul vento (17 settembre 2026) — in main, NON in pacchetto
 
-Richiesta del committente: marcare una pista come «mai usare», così che quando nessuna regola pista vale non venga mai
-scelta. Carta `feature/2026-09-17-pista-mai-usare.md`. Decisioni: il flag vale **solo per il ripiego** (le regole che
-nominano la soglia restano valide, l'editor delle regole avvisa) e **non si mostra al lettore**.
+Richiesta del committente: marcare una soglia come «mai usare» nel ripiego sul vento, poi **per verso** (una pista usata solo
+per gli arrivi). Carta `feature/2026-09-17-pista-mai-usare.md`. Decisioni: il flag vale **solo per il ripiego** (le regole che
+nominano la soglia restano valide, l'editor avvisa nel verso escluso), **non si mostra al lettore**, e il **vAWOS lo legge dal
+pubblicato** come regole e LVP.
 
-- `AirportRunway.NeverUse`, **migrazione ADDITIVA `PistaMaiUsare`** (SQLite + MySQL: solo `AddColumn`, default falso =
-  usabile). ▶ Pacchetto MINOR con `Vipi.Infrastructure.MySqlMigrations.dll`.
-- La regola sta in **un posto**: `RunwaySuggestion.Suggest(…, neverUse)`, con motivo nuovo `AllNeverUse`. I cinque che
-  ripiegano passano solo il dato: documenti (`PistaInUso`, sulla sezione mostrata, quindi congelato con la release),
-  vAWOS, vista rapida, elenco aeroporti, banco di prova.
-- Editor: colonna «Mai usare» (casella) nella tabella piste di aeroporto e vSOP militare; conversione riga unica
-  `RwEdit.Da`/`AllaRiga` (erano due costruttori scritti a mano); avviso `Ape_IssueRuleNeverUseRw` nelle regole.
-- Salvataggio che riscrive le righe: il flag viaggia con la riga. Merge IVAO: lo conserva, e un'orfana col flag **non** si
-  cancella (conta come lavoro editoriale).
-- Provato dal vivo su copia prod (MariaDB): migrazione applicata all'avvio; LIBD vento 070/12 → banco «DEP 07», spuntata la
-  07 → «DEP 25, vento in coda su tutte»; flag riletto dopo il ricarico, `NeverUse=1` e TORA intatto; LIBP 22 marcata →
-  avviso sulla regola #1. Sonda `.claude/skills/verifica-live/mai-usare-verifica.js`.
+- `AirportRunway.NeverDeparture` / `NeverArrival`, **migrazione ADDITIVA `PisteMaiUsarePerVerso`** (SQLite + MySQL: due
+  `AddColumn`). ▶ Pacchetto MINOR **1.32.0** (→ net10 1.33.0) con `Vipi.Infrastructure.MySqlMigrations.dll`.
+- Motore: `RunwaySuggestion.Suggest(…, RunwayExclusions)` sceglie partenze e arrivi **ciascuno fra le soglie ammesse**; un verso
+  tutto escluso resta senza pista (i chiamanti non ripiegano più su `Best`); senza esclusioni esito identico a prima.
+- Editor aeroporto e militare: due caselle DEP/ARR nella tabella piste; avvisi `Ape_IssueRuleNeverDepRw`/`…ArrRw`.
+- vAWOS: `DalPubblicatoAsync` prende le esclusioni dalla sezione Piste congelata (`runways`), il vivo solo in mancanza.
+- Provato dal vivo (vedi carta §4), compresa la prova che una casella non pubblicata non cambia il vAWOS.
+- 🟡 **Aperto, preesistente**: vista rapida (`AirportQuickPanel`) ed elenco aeroporti (`AirportListPanel`) leggono regole e flag
+  dall'**anagrafica viva**, non dal pubblicato. Chiesto al committente se allinearli; nessuna risposta ancora.
 
 ### ✅ A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — ONLINE in 1.31.2 (timbro e Schema 0 confermati)
 

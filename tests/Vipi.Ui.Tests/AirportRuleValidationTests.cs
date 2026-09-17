@@ -37,30 +37,38 @@ public class AirportRuleValidationTests
     // ---------------------------------------------------------------------------------------------------
 
     /// <summary>
-    /// Carta 2026-09-17-pista-mai-usare.md: una regola che nomina una soglia «mai usare» resta valida (decisione del
-    /// committente) ma riceve un AVVISO — mai un errore, che bloccherebbe il salvataggio.
+    /// Carta 2026-09-17-pista-mai-usare.md: una regola che nomina una soglia NEL VERSO in cui è esclusa resta valida
+    /// (decisione del committente) ma riceve un AVVISO — mai un errore, che bloccherebbe il salvataggio. Nel verso non
+    /// escluso non dice niente: «16L mai in partenza» usata negli arrivi è esattamente il caso d'uso.
     /// </summary>
     [Fact]
-    public void Una_regola_che_nomina_una_soglia_mai_usare_riceve_un_avviso_non_un_errore()
+    public void Una_regola_che_nomina_una_soglia_nel_verso_escluso_riceve_un_avviso_non_un_errore()
     {
-        var esito = AirportRuleValidation.Issues(new[] { Regola(dep: new[] { "16L" }, arr: new[] { "16R" }) },
-            PisteDiRoma, neverUse: new[] { "16l" });
+        var escluse = new RunwayExclusions(new[] { "16l" }, new[] { "16R" });
+        var esito = AirportRuleValidation.Issues(new[]
+        {
+            Regola(dep: new[] { "16L" }, arr: new[] { "16R" }),   // tutte e due nel verso escluso
+            Regola(dep: new[] { "16R" }, arr: new[] { "16L" }),   // tutte e due nel verso ammesso
+        }, PisteDiRoma, escluse);
 
         Assert.Empty(esito.Errors);
-        var avviso = Assert.Single(esito.Warnings);
-        Assert.Equal("Ape_IssueRuleNeverUseRw", avviso.Key);
-        Assert.Equal("16L", avviso.Args[1]);
+        Assert.Equal(new[] { ("Ape_IssueRuleNeverDepRw", "16L"), ("Ape_IssueRuleNeverArrRw", "16R") },
+            esito.Warnings.Select(w => (w.Key, (string)w.Args[1])).ToArray());
+        Assert.All(esito.Warnings, w => Assert.Equal(1, w.Args[0]));
     }
 
     /// <summary>Un posto solo per la conversione riga d'editor ↔ anagrafica: il flag fa andata e ritorno.</summary>
     [Fact]
     public void Il_flag_mai_usare_fa_andata_e_ritorno_fra_editor_e_anagrafica()
     {
-        var riga = new Vipi.Application.Content.RunwayRow(7, "34R", 3900, 340, "3800", null, "ILS", "L", null, NeverUse: true);
+        var riga = new Vipi.Application.Content.RunwayRow(7, "34R", 3900, 340, "3800", null, "ILS", "L", null,
+            NeverDeparture: true, NeverArrival: false);
 
         var edit = RwEdit.Da(riga);
-        Assert.True(edit.NeverUse);
-        Assert.Equal(new[] { "34R" }, RwEdit.MaiUsare(new[] { edit, RwEdit.Da(riga with { Ident = "16L", NeverUse = false }) }));
+        Assert.Equal((true, false), (edit.NeverDep, edit.NeverArr));
+        var e = RwEdit.Esclusioni(new[] { edit, RwEdit.Da(riga with { Ident = "16L", NeverDeparture = false, NeverArrival = true }) });
+        Assert.Equal(new[] { "34R" }, e.Departures);
+        Assert.Equal(new[] { "16L" }, e.Arrivals);
 
         var ritorno = edit.AllaRiga();
         Assert.Equal(riga with { ThresholdLat = null, ThresholdLon = null, ThresholdElevationFt = null }, ritorno);

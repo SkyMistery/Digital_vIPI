@@ -58,24 +58,29 @@ public sealed class LvpEdit
 
 /// <summary>Riga in scrittura.</summary>
 public sealed class RwEdit { public int Id; public string? Ident; public int? LengthM; public int? Bearing; public string? Tora; public string? Lda; public string? App; public string? Patterns; public string? Circling;
-    /// <summary>«Mai usare» nel ripiego sul vento (carta 2026-09-17-pista-mai-usare.md).</summary>
-    public bool NeverUse;
+    /// <summary>«Mai in partenza» / «mai in arrivo» nel ripiego sul vento (carta 2026-09-17-pista-mai-usare.md).</summary>
+    public bool NeverDep, NeverArr;
 
     /// <summary>La riga come la salva l'anagrafica. ⚠️ Un posto solo per i due editor (aeroporto e militare): erano due
     /// costruttori scritti a mano, e una colonna nuova dimenticata in uno è un flag che si perde al salvataggio.</summary>
-    public RunwayRow AllaRiga() => new(Id, Ident ?? "", LengthM, Bearing, Tora, Lda, App, Patterns, Circling, NeverUse: NeverUse);
+    public RunwayRow AllaRiga() => new(Id, Ident ?? "", LengthM, Bearing, Tora, Lda, App, Patterns, Circling,
+        NeverDeparture: NeverDep, NeverArrival: NeverArr);
 
     /// <summary>La riga d'anagrafica in scrittura. Gemello di <see cref="AllaRiga"/>.</summary>
     public static RwEdit Da(RunwayRow r) => new()
     {
         Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
         Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
-        NeverUse = r.NeverUse,
+        NeverDep = r.NeverDeparture, NeverArr = r.NeverArrival,
     };
 
-    /// <summary>Le soglie «mai usare» fra quelle in scrittura.</summary>
-    public static IReadOnlyList<string> MaiUsare(IEnumerable<RwEdit> rows) =>
-        rows.Where(r => r.NeverUse && !string.IsNullOrWhiteSpace(r.Ident)).Select(r => r.Ident!.Trim()).ToList();
+    /// <summary>Le esclusioni fra le righe in scrittura (anche non ancora salvate): le passa il banco di prova.</summary>
+    public static RunwayExclusions Esclusioni(IEnumerable<RwEdit> rows)
+    {
+        var r = rows.Where(x => !string.IsNullOrWhiteSpace(x.Ident)).ToList();
+        return new(r.Where(x => x.NeverDep).Select(x => x.Ident!.Trim()).ToList(),
+                   r.Where(x => x.NeverArr).Select(x => x.Ident!.Trim()).ToList());
+    }
 }
 /// <summary>Riga in scrittura.</summary>
 public sealed class RuleEdit
@@ -337,16 +342,17 @@ internal static class AirportRuleValidation
     /// <param name="knownIdents">Le piste che lo scalo ha davvero: una regola può nominarne una che non
     /// esiste — un refuso, o una pista tolta dopo — ed è un avviso, non un errore, perché la regola resta
     /// salvabile e va corretta da chi sa quale intendeva.</param>
-    /// <param name="neverUse">Le soglie marcate «mai usare». Una regola che ne nomina una resta valida (decisione del
-    /// committente, 17-set-2026): è un avviso, perché il flag vale solo per il ripiego sul vento e chi legge la
-    /// tabella piste potrebbe aspettarsi il contrario.</param>
+    /// <param name="escluse">Le soglie «mai in partenza» / «mai in arrivo». Una regola che ne nomina una NEL VERSO
+    /// escluso resta valida (decisione del committente, 17-set-2026): è un avviso, perché il flag vale solo per il
+    /// ripiego sul vento e chi legge la tabella piste potrebbe aspettarsi il contrario.</param>
     public static AirportRuleIssues Issues(IReadOnlyList<RuleEdit> rows, IEnumerable<string> knownIdents,
-        IEnumerable<string>? neverUse = null)
+        RunwayExclusions? escluse = null)
     {
         var errors = new List<AirportTlIssue>();
         var warnings = new List<AirportTlIssue>();
         var note = knownIdents.ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var mai = (neverUse ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var maiDep = (escluse?.Departures ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var maiArr = (escluse?.Arrivals ?? Array.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
         for (var i = 0; i < rows.Count; i++)
         {
@@ -360,8 +366,10 @@ internal static class AirportRuleValidation
             foreach (var id in r.Dep.Concat(r.Arr).Where(id => !note.Contains(id)).Distinct())
                 warnings.Add(new AirportTlIssue("Ape_IssueRuleUnknownRw", new object[] { n, id }));
 
-            foreach (var id in r.Dep.Concat(r.Arr).Where(mai.Contains).Distinct())
-                warnings.Add(new AirportTlIssue("Ape_IssueRuleNeverUseRw", new object[] { n, id }));
+            foreach (var id in r.Dep.Where(maiDep.Contains))
+                warnings.Add(new AirportTlIssue("Ape_IssueRuleNeverDepRw", new object[] { n, id }));
+            foreach (var id in r.Arr.Where(maiArr.Contains))
+                warnings.Add(new AirportTlIssue("Ape_IssueRuleNeverArrRw", new object[] { n, id }));
 
             // Mezza finestra oraria non è una finestra: «dalle 06:00» senza un «fino a» non si sa dove finisce.
             if (r.TimeFrom is not null ^ r.TimeTo is not null)

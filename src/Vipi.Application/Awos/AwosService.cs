@@ -105,10 +105,9 @@ public sealed class AwosService : IAwosService
             .ToList();
 
         var atis = AwosGate.Atis(_online.GetCurrent().Details, id);
-        var (regole, minimiLvp) = await DalPubblicatoAsync(id, vipi, vsop, scalo.Rules, scalo.Lvp, ct);
+        var (regole, minimiLvp, escluse) = await DalPubblicatoAsync(id, vipi, vsop, scalo, ct);
         var attiva = AwosComposition.PistaAttiva(regole, identificativi, metar,
-            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign,
-            RunwayRow.MaiUsare(scalo.Runways));
+            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse);
 
         return new AwosResult(new AwosView(
             Icao: id,
@@ -131,7 +130,12 @@ public sealed class AwosService : IAwosService
     }
 
     /// <summary>
-    /// Regole di scelta pista e minimi LVP su cui decidere: quelli della <b>release pubblicata</b>, non i vivi.
+    /// Regole di scelta pista, minimi LVP e soglie escluse dal ripiego su cui decidere: quelli della <b>release
+    /// pubblicata</b>, non i vivi.
+    ///
+    /// <para>⚠️ Le esclusioni («mai in partenza» / «mai in arrivo», carta 2026-09-17-pista-mai-usare.md) vengono dalla
+    /// sezione Piste congelata, con la stessa regola delle regole: una casella spuntata nell'editor e non pubblicata
+    /// non deve cambiare la pista sul quadro prima che la cambi nel documento.</para>
     ///
     /// <para>🔴 Fino al 15 settembre 2026 il quadro leggeva l'anagrafica viva: una regola o un minimo scritti
     /// nell'editor e non ancora pubblicati cambiavano subito la pista in uso e lo stato LVP sul quadro pubblico.
@@ -147,16 +151,18 @@ public sealed class AwosService : IAwosService
     /// <para>⚠️ Una sezione LVP congelata SENZA minimi (<c>Minimi</c> null) vale «pubblicata senza minimi», e il
     /// quadro ricade sullo standard dichiarandolo: NON si torna ai vivi, che sarebbero proprio i non pubblicati.</para>
     /// </summary>
-    private async Task<(IReadOnlyList<RunwayRuleRow> Regole, LvpRow? Lvp)> DalPubblicatoAsync(
-        string icao, bool vipi, bool vsop, IReadOnlyList<RunwayRuleRow> regoleVive, LvpRow? lvpVivi,
-        CancellationToken ct)
+    private async Task<(IReadOnlyList<RunwayRuleRow> Regole, LvpRow? Lvp, RunwayExclusions Escluse)> DalPubblicatoAsync(
+        string icao, bool vipi, bool vsop, AirportData scalo, CancellationToken ct)
     {
-        if (!vipi && !vsop) return (regoleVive, lvpVivi);
+        var escluseVive = RunwayRow.Esclusioni(scalo.Runways);
+        if (!vipi && !vsop) return (scalo.Rules, scalo.Lvp, escluseVive);
         var edizione = vipi ? ReleaseTargetType.Airport : ReleaseTargetType.AirportMil;
-        var snapshot = await _congelate.LoadAsync(edizione, icao, ct);   // una lettura per tutt'e due
-        var regole = snapshot.Get<AirportRulesView>("runwayrules")?.Regole ?? regoleVive;
-        var lvp = snapshot.Get<AirportLvpView>("lvp") is { } congelata ? congelata.Minimi : lvpVivi;
-        return (regole, lvp);
+        var snapshot = await _congelate.LoadAsync(edizione, icao, ct);   // una lettura per tutte
+        var regole = snapshot.Get<AirportRulesView>("runwayrules")?.Regole ?? scalo.Rules;
+        var lvp = snapshot.Get<AirportLvpView>("lvp") is { } congelata ? congelata.Minimi : scalo.Lvp;
+        var escluse = snapshot.Get<AirportRunwaysView>("runways") is { } piste
+            ? AirportRunwayRowView.Esclusioni(piste.Rows) : escluseVive;
+        return (regole, lvp, escluse);
     }
 
     public async Task<IReadOnlyList<AwosAirport>> ElencoAsync(CancellationToken ct = default) =>
