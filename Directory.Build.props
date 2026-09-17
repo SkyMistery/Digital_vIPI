@@ -1466,7 +1466,15 @@
       MINOR e non PATCH: è una sezione di pagina nuova. Tocca Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi
       e vipi-theme.css) e Vipi.Host per il timbro. Il net10 slitta a 1.32.0.
     -->
-    <VipiVersione>1.31.0</VipiVersione>
+    <!--
+      1.31.1 — PATCH, NESSUNA migrazione. Su 1.31.0 (68265f9, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A66): nella tabella «Spazi aerei (AIP)» sotto l'AoR un pallino per riga
+      accende e spegne il singolo volume sulla mappa 2D e 3D, e l'hover lega riga e poligono. PATCH e non MINOR: nessuna
+      pagina, sezione o indirizzo nuovo, un comando in più su una tabella che c'è già. Tocca Vipi.Application, Vipi.Ui
+      (+ frasi, vipi-aor.js, vipi-aor3d.js, vipi-theme.css, vipi-print.css) e Vipi.Host per il timbro. Il net10 resta 1.32.0.
+    -->
+    <VipiVersione>1.31.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
