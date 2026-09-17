@@ -2,7 +2,7 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — in 1.31.2, PRONTO DA CARICARE
+### ✅ A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — ONLINE in 1.31.2 (timbro e Schema 0 confermati)
 
 Dal committente, a 1.31.1 online: «il campo note non ha lo stesso stile del resto della UI; guarda i 5 editor». Misurato
 invece che cercato a occhio: `campi-verifica.js` legge lo stile calcolato di **566 campi** in modifica nei 5 editor, tema
