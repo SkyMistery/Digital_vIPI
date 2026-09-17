@@ -2,7 +2,11 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A63 — 1.30.4 PRONTO DA CARICARE (17 settembre 2026)
+### ✅ A63 — 1.30.4 È ONLINE (17 settembre 2026)
+
+✅ **Caricato**: timbro e `Schema 0` confermati dal committente; da fuori `pacchetto-verifica.js` pubblico tutto verde con la
+Ricerca, e le pagine chiedono `vipi-editor.js?v=54914c5f` (l'impronta del file spedito). ▶ Resta: la riprova di ILS
+dell'admin che aveva segnalato (chiesta dal committente), e le due righe di traduzione a giro in `log-*.txt`.
 
 ✅ **1.30.3 è online** (timbro confermato dal committente) e il registro del giorno funziona: `autenticato` = 1 visto sulle
 richieste dello staff. Al primo scarico i due file mancavano solo perché il client FTP mostrava l'elenco vecchio.
@@ -21,7 +25,7 @@ elenco `artifacts/publish/elenco-1.30.4.txt`. Rotazione: 1.30.3 in `publish_old/
 - ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`; l'admin che aveva segnalato riprova ILS **dopo Ctrl+F5**; in
   `log-*.txt` due righe «Traduzione … (azure)» a giro, non otto.
 
-### 📦 A62 — Il giro delle traduzioni faceva OTTO passate invece di due (17 settembre 2026) — in 1.30.4 (pronto)
+### 📦 A62 — Il giro delle traduzioni faceva OTTO passate invece di due (17 settembre 2026) — in 1.30.4 (online)
 
 Il primo `log-2026-09-17.txt` di produzione (§A59) mostra ogni giro così: it→en, it→en, en→it, en→it, e poi ancora le
 stesse quattro righe. A ogni passata i segmenti che Azure rende rotti si ripagano: **3 528 caratteri a giro invece di
@@ -38,7 +42,7 @@ stesse quattro righe. A ogni passata i segmenti che Azure rende rotti si ripagan
 - ▶ Resta §A58 punto 2: i due segmenti rotti si ripagano comunque, una volta per verso a giro (882 caratteri ogni quarto d'ora).
 - ▶ Pacchetto: `Vipi.Application.dll`+`.pdb` (nessuna `const` cambiata).
 
-### 📦 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in 1.30.4 (pronto)
+### 📦 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in 1.30.4 (online)
 
 Segnalato da un admin: nella colonna Tipo delle radioassistenze, scegliendo ILS, «Something went wrong» (12:12 locali).
 In `errori-richieste.txt` sei voci fra le 10:09 e le 10:14Z (sotto 1.30.2), sia dall'editor vSOP militare

@@ -1,5 +1,8 @@
 # Pacchetto 1.30.4 — solo i file cambiati
 
+> ✅ **CARICATO il 17 settembre 2026.** Timbro e `Schema 0` confermati dal committente; da fuori `pacchetto-verifica.js`
+> pubblico tutto verde, Ricerca compresa, e `vipi-editor.js` servito con l'impronta del file spedito.
+
 > **Timbro:** `1.30.4 · a10d350` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
