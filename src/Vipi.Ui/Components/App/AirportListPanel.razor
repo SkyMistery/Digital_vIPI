@@ -136,6 +136,9 @@ else
     // per leggerne due liste. Contate: 36 query per un elenco di TRE righe.
     private IReadOnlyDictionary<string, PisteDiAeroporto> _piste =
         new Dictionary<string, PisteDiAeroporto>(StringComparer.OrdinalIgnoreCase);
+    // Regole e soglie escluse su cui decidere la pista consigliata: quelle del documento PUBBLICATO, come il vAWOS
+    // (IPisteDalPubblicato). Fino al 17-set-2026 qui si usavano le vive di `_piste`.
+    private readonly Dictionary<string, PisteDecisive> _decisive = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, (string? Wind, int? Qnh, string? Dep, string? Arr)> _meteo = new(StringComparer.OrdinalIgnoreCase);
     private bool _meteoInArrivo;
     private string? _caricato;
@@ -145,12 +148,14 @@ else
     private IStructureEditingService _struttura = default!;
     private IDocumentAdminService _documenti = default!;
     private IAirportEditingService _profilo = default!;
+    private IPisteDalPubblicato _pubblicato = default!;
 
     protected override void OnInitialized()
     {
         _struttura = ScopedServices.GetRequiredService<IStructureEditingService>();
         _documenti = ScopedServices.GetRequiredService<IDocumentAdminService>();
         _profilo = ScopedServices.GetRequiredService<IAirportEditingService>();
+        _pubblicato = ScopedServices.GetRequiredService<IPisteDalPubblicato>();
     }
 
     protected override async Task OnParametersSetAsync()
@@ -160,16 +165,23 @@ else
         _caricato = acc;
 
         var data = await _struttura.LoadAsync(acc);
+        IReadOnlyList<ManagedDoc> documenti = Array.Empty<ManagedDoc>();
         // Gli scali con almeno un documento pubblico, vIPI o vSOP militare: la regola sta in AeroportiDellAcc,
         // la stessa che conta gli aeroporti nella landing dell'ACC.
         _aeroporti = data is null
             ? Array.Empty<AeroportoInElenco>()
-            : AeroportiDellAcc.Elenco(data.Airports, await _documenti.ListAsync(), acc);
+            : AeroportiDellAcc.Elenco(data.Airports, documenti = await _documenti.ListAsync(), acc);
 
         // Piste e regole di TUTTI gli scali in una volta: servono alla pista consigliata. Il METAR (HTTP,
         // lento) NON si aspetta qui — la lista si disegna subito e il meteo arriva dopo. È la ragione per
         // cui questa è un'isola.
         _piste = await _profilo.ListRunwayDataAsync(_aeroporti.Select(x => x.Scalo.Icao).ToList());
+
+        // ⚠️ In fila e QUI, non dentro il giro del meteo: quello gira fuori dal render, e due letture insieme sullo
+        // stesso DbContext dello scope sono la corsa già pagata. Una release per scalo, sull'elenco già letto.
+        _decisive.Clear();
+        foreach (var (icao, p) in _piste)
+            _decisive[icao] = await _pubblicato.PerScaloAsync(icao, p.Rules, null, p.Runways, documenti);
 
         _meteo.Clear();
         _meteoInArrivo = _aeroporti.Count > 0;
@@ -220,21 +232,22 @@ else
     private (string? Dep, string? Arr) PisteConsigliate(string icao, ParsedMetar m)
     {
         var profilo = _piste.GetValueOrDefault(icao);
+        var decisive = _decisive.GetValueOrDefault(icao);
         int? dir = m.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         var kt = m.Wind?.SpeedKt ?? 0;
 
-        if (profilo is { Rules.Count: > 0 })
+        if (decisive is { Regole.Count: > 0 })
         {
             var bagnata = m.HasRain || m.HasSnow;
             var vincente = RunwaySuggestion.EvaluateRules(
-                RegoleDiPista.Valutabili(profilo.Rules), dir, kt, bagnata, DateTime.UtcNow);
+                RegoleDiPista.Valutabili(decisive.Regole), dir, kt, bagnata, DateTime.UtcNow);
             if (vincente is not null) return (Norm(vincente.Dep), Norm(vincente.Arr));
         }
 
         var piste = profilo?.Runways.Select(r => r.Ident).ToList() ?? new List<string>();
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt, RunwayRow.Esclusioni(profilo?.Runways));
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, decisive?.Escluse);
             if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);

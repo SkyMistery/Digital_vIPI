@@ -169,6 +169,7 @@ else
 
     private DocumentView? _view;                    // documento PUBBLICO (release-aware): fonte di TA/TL
     private AirportData? _profile;           // profilo LIVE: fonte di piste/SID (come /airports)
+    private PisteDecisive? _decisive;        // regole e soglie escluse del documento PUBBLICATO (come il vAWOS)
     private int? _ta;
     private List<(string Range, string Level)> _tlRows = new();
     private int? _qnh;
@@ -197,8 +198,10 @@ else
     private IVipiViewService ViewService = default!;
     private IAirportEditingService AirportProfile = default!;
     private IAirportSidDerivationService SidView = default!;
+    private IPisteDalPubblicato PisteDalPubblicato = default!;
     protected override void OnInitialized()
     {
+        PisteDalPubblicato = ScopedServices.GetRequiredService<IPisteDalPubblicato>();
         ViewService = ScopedServices.GetRequiredService<IVipiViewService>();
         AirportProfile = ScopedServices.GetRequiredService<IAirportEditingService>();
         SidView = ScopedServices.GetRequiredService<IAirportSidDerivationService>();
@@ -209,7 +212,7 @@ else
         if (string.Equals(_loadedIcao, Icao, StringComparison.OrdinalIgnoreCase)) return;
         _loadedIcao = Icao;
 
-        _view = null; _profile = null; _ta = null; _tlRows = new();
+        _view = null; _profile = null; _decisive = null; _ta = null; _tlRows = new();
         _qnh = null; _wind = null; _sugg = (null, null); _runways = new(); _selRwy = "all";
         _sids = Array.Empty<AirportSidRowView>(); Azzera();   // aeroporto diverso: il campo si svuota davvero
 
@@ -221,6 +224,10 @@ else
 
         _profile = await AirportProfile.LoadForViewAsync(Icao);
         _runways = _profile?.Runways.Select(r => r.Ident.Trim()).Where(s => s.Length > 0).Distinct().ToList() ?? new();
+        // La pista suggerita si decide su regole e soglie escluse del documento PUBBLICATO, non sulle vive: la porta è
+        // la stessa del vAWOS e dell'elenco aeroporti (decisione del committente, 17-set-2026).
+        if (_profile is not null)
+            _decisive = await PisteDalPubblicato.PerScaloAsync(Icao, _profile.Rules, _profile.Lvp, _profile.Runways);
 
         // La tabella SID è la STESSA del documento completo: stesse colonne, stesso filtro AIRAC, stesso
         // ordine. Al ciclo corrente, che qui è sempre «adesso»: il pannello rapido non ha anteprime.
@@ -279,18 +286,18 @@ else
     // ---- Piste suggerite dal profilo (come AeroportoPage): regole se presenti, altrimenti miglior headwind ----
     private (string? Dep, string? Arr) SuggestRwy(ParsedMetar? m)
     {
-        if (_profile is null) return (null, null);
+        if (_profile is null || _decisive is null) return (null, null);
         int? windDir = m?.Wind is { Calm: false, DirectionDeg: int d } ? d : null;
         int windKt = m?.Wind?.SpeedKt ?? 0;
-        if (_profile.Rules.Count > 0)
+        if (_decisive.Regole.Count > 0)
         {
             var wet = (m?.HasRain ?? false) || (m?.HasSnow ?? false);
-            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_profile.Rules), windDir, windKt, wet, DateTime.UtcNow);
+            var rr = RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(_decisive.Regole), windDir, windKt, wet, DateTime.UtcNow);
             if (rr is not null) return (Norm(rr.Dep), Norm(rr.Arr));
         }
         if (_runways.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, RunwayRow.Esclusioni(_profile.Runways));
+            var s = RunwaySuggestion.Suggest(_runways, windDir, windKt, _decisive.Escluse);
             if (s.Best is not null) return (Norm(s.DepIdent), Norm(s.ArrIdent));   // un verso escluso resta vuoto
         }
         return (null, null);

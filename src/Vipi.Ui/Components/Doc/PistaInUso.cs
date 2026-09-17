@@ -28,8 +28,9 @@ public sealed record PistaInUsoAdesso(RunwayRuleResult? Regola, HashSet<string> 
 ///
 /// <para>⚠️ Un posto solo per i due DOCUMENTI, non ancora per tutto il sito: <c>AirportQuickPanel</c> e
 /// <c>AirportListPanel</c> (la vista rapida e l'elenco degli aeroporti) hanno ancora una copia loro dello
-/// stesso calcolo, con le piste lette dall'anagrafica viva invece che dalle derivate. Preesistente, rilevato
-/// dalla revisione dell'11 settembre 2026.</para>
+/// stesso calcolo (rilevato dalla revisione dell'11 settembre 2026). Dal 17 settembre 2026 però decidono sugli
+/// stessi DATI del documento pubblicato — regole e soglie escluse da <c>IPisteDalPubblicato</c>, come il vAWOS —
+/// e non più sull'anagrafica viva.</para>
 ///
 /// <para>⚠️ <b>Si valuta sulle regole che il lettore sta guardando</b>, non su quelle vive: la tabella segue
 /// la sezione (Frozen = la fotografia della release, Live = adesso) e dal 12 settembre 2026 il verdetto la
