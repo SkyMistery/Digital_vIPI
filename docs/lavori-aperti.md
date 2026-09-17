@@ -2,6 +2,22 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### ▶ A58 — Aperti dopo 1.30.2 (17 settembre 2026)
+
+1. **Azure**: confermare `Translation:Azure:BaseUrl` = `https://ivao-it-translator.cognitiveservices.azure.com/` nel file
+   dei segreti; al prossimo scarico `avvio-diagnostica.txt` dice l'endpoint e `avvisi-log.txt` non ha più `HTTP 401`.
+2. **Segmenti ripagati a ogni giro** (Azure li rende con un identificatore cambiato): it→en «Se presente LIBN_G_APP e
+   assente Lecce APP, Brindisi ACC/MIL coordinerà… IAFs ILS14» (385 car.), en→it tre segmenti «37th WING A/A TRAINING
+   AREA» (497 car.). Da capire quale identificatore rompe (probabile «IAFs») e metterli in memoria o a mano.
+3. **Ripieghi shape dell'import muti**: in `AirportSectorImportHostedService` GitHub/sectorfile/ATZ/cerchi finiscono
+   in `LogDebug` se falliscono — il 16-set sono usciti tutti a zero senza una riga in `avvisi-log.txt`. Portarli a Warning.
+4. **S11 fase B** dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati» con 1.30.2 online.
+5. Dati: punto `N047.42.27.000;E017.04.60.000` (secondi = 60) nel sectorfile LOVV → tre shape estere senza area. Loro.
+6. Feedback a due canali (carta pronta). net10 = 1.31.0.
+
+ℹ️ Il ping ogni minuto su `/vsop/health/ready` è il keep-alive del Worker `atc-archiver`: ~60 avvii/ora, processo caldo
+~72% del tempo. Resta acceso.
+
 ### ✅ A57 — 1.30.2 È ONLINE (17 settembre 2026)
 
 ✅ **Caricato**, `Schema 0` confermato dal committente; da fuori `pacchetto-verifica.js` pubblico tutto verde con la
