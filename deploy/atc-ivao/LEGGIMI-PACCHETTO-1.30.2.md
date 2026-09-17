@@ -1,5 +1,8 @@
 # Pacchetto 1.30.2 — solo i file cambiati
 
+> ✅ **CARICATO il 17 settembre 2026.** `Schema 0` confermato dal committente; da fuori `pacchetto-verifica.js`
+> pubblico tutto verde, Ricerca compresa.
+
 > **Timbro:** `1.30.2 · 76aceb3` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

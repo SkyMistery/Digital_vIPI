@@ -2,7 +2,11 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A57 — 1.30.2 PRONTO DA CARICARE (17 settembre 2026)
+### ✅ A57 — 1.30.2 È ONLINE (17 settembre 2026)
+
+✅ **Caricato**, `Schema 0` confermato dal committente; da fuori `pacchetto-verifica.js` pubblico tutto verde con la
+Ricerca, e `vipi-theme.css` servito con lo stesso sha256 di quello spedito. CI verde. ▶ Resta il passo `BaseUrl` di
+Azure nei segreti, e al prossimo scarico niente `HTTP 401` in `avvisi-log.txt`.
 
 **PATCH su 1.30.1, NESSUNA migrazione.** Contiene §A54, §A55, §A56. Timbro **`1.30.2 · 76aceb3`**; zip
 `artifacts/publish/vipi-1.30.2-solo-file-cambiati.zip` (1,41 MB), sha256
@@ -18,7 +22,7 @@ elenco `artifacts/publish/elenco-1.30.2.txt`. Rotazione: 1.30.1 in `publish_old/
   in `avvisi-log.txt` niente più `HTTP 401`.
 - ⚠️ Resta: i segmenti che Azure restituisce rotti si ripagano a ogni giro («IAFs ILS14», «37th WING A/A TRAINING AREA»).
 
-### 🟡 A56 — Azure: l'endpoint della risorsa si può usare (17 settembre 2026) — in main, NON in pacchetto
+### ✅ A56 — Azure: l'endpoint della risorsa si può usare (17 settembre 2026) — in 1.30.2 (online)
 
 Dal 17-set 03:34Z Azure rispondeva 401. Il committente ha creato chiavi nuove sulla risorsa `ivao-it-translator`:
 provata con `curl`, la chiave rifiuta l'endpoint globale in OGNI regione (401) e risponde 200 solo su
@@ -31,7 +35,7 @@ provata con `curl`, la chiave rifiuta l'endpoint globale in OGNI regione (401) e
 - ▶ **In produzione, DOPO il carico**: `Translation:Azure:BaseUrl` = `https://ivao-it-translator.cognitiveservices.azure.com/`
   nel file della cartella `segreti`, accanto alla chiave nuova.
 
-### 🟡 A55 — Il ponte delle forme non fa cadere chi salva, quando un altro processo lo precede (17 settembre 2026) — in main, NON in pacchetto
+### ✅ A55 — Il ponte delle forme non fa cadere chi salva, quando un altro processo lo precede (17 settembre 2026) — in 1.30.2 (online)
 
 Dal primo `avvisi-log.txt` di produzione: il 16-set alle 20:44Z l'import AirportSector è caduto con
 `DbUpdateConcurrencyException` nel **secondo salvataggio del ponte** (`VipiDbContext`, S11 fase A). Poiché l'import
@@ -50,7 +54,7 @@ sectorfile, ATZ, cerchi).
 - Suite intera verde, due TFM; conteggi riscritti. ▶ Prossimo pacchetto: `Vipi.Infrastructure.dll`.
 - ▶ **S11 fase B resta ferma** finché questo non è online e la Diagnostica non resta pulita.
 
-### 🟡 A54 — Diagnostica: a zoom alto la scheda della copia del database perdeva il tasto (17 settembre 2026) — in main, NON in pacchetto
+### ✅ A54 — Diagnostica: a zoom alto la scheda della copia del database perdeva il tasto (17 settembre 2026) — in 1.30.2 (online)
 
 `2c9f21ac`, solo `vipi-theme.css`. Colonna destra alta quanto lo schermo, schede con `min-height:0` e
 `overflow:hidden`: a 2560x1600 zoom 175% la scheda si fermava a 121 px. Ora si stringe solo chi scorre dentro, e se
