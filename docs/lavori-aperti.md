@@ -2,6 +2,31 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A59 — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (17 settembre 2026) — in main, NON in pacchetto
+
+Domanda del committente: *«conviene salvare in diagnostica tutto il log, un file per giorno, per 7 giorni?»*. Risposta:
+non tutto il log (EF a Information = testo di ogni query), ma due file mirati e uno script. Carta
+`docs/feature/2026-09-17-registro-del-giorno.md`. Tocca solo `Vipi.Host`, nessuna migrazione.
+
+- **`diagnostica/richieste-AAAA-MM-GG.tsv`** (`RegistroRichieste`, middleware subito dopo `TracciaRichieste`): una riga a
+  risposta finita — ora, pid, versione, metodo, **rotta dall'endpoint** (`/services/vsop/{Acc}`), percorso senza query,
+  esito, ms, autenticato 0/1. Ping, statici e `/_blazor/*` esclusi con la regola di `RegistroAvvisi`.
+- **`diagnostica/log-AAAA-MM-GG.txt`** (`RegistroInformativo`): le righe `Vipi.*` da Information, una per voce, eccezione
+  solo tipo+messaggio. Filtri **del provider**: tutto il resto spento.
+- **`RegistroGiornaliero`** comune: file per giorno UTC, **7 giorni** (pulizia al primo scritto del giorno, solo il suo
+  prefisso), **tetto 5 MB** letto dalla lunghezza vera del file (due processi non lo raddoppiano), riga `# troncato:`
+  una volta sola. Misurato prima: ~4 000 richieste/giorno ping compresi → ~0,5 MB/giorno.
+- **`python tools/registro-del-giorno.py [cartella] [--dal AAAA-MM-GG] [--versione X]`**: per giorno, dove va il tempo
+  per rotta e versione (p50/p95/max/totale), connessioni lunghe, le più lente, per ora UTC, righe di log contate.
+- 🔴 **Corretto dalla prova**: `/vsop/live/atc` è lo **stream SSE** della vista live: i 50 s visti in `avvisi-log.txt`
+  erano la vita della connessione, non lentezza. Lo script tiene a parte lui e `/_blazor` (101).
+- Test: 7 in `RegistroDelGiornoTests` (scrittore su cartella vera, host vero per la rotta, filtri di produzione).
+  Mutazioni: filtro «spento per tutti» tolto → rosso; riga di troncamento senza il controllo in coda → rosso.
+- **Dal vivo** (Development, copia del `vipi.db`): 8 indirizzi + una pagina interattiva aperta 4 s con Edge → 9 righe
+  giuste (rotte `{Acc}`/`{Icao}`, 404 con `-`, `?code=` assente, CSS e ping assenti, `/_blazor` 101 da 4 047 ms), 7 righe
+  di log; lo script le legge.
+- ▶ **Pacchetto**: `Vipi.Host.dll`+`.pdb`. ▶ Dopo qualche giorno online: scaricare `diagnostica/` e far girare lo script.
+
 ### ▶ A58 — Aperti dopo 1.30.2 (17 settembre 2026)
 
 1. ✅ **Azure**: `Translation:Azure:BaseUrl` messo dal committente il 17-set. ▶ Verificare = `https://ivao-it-translator.cognitiveservices.azure.com/` nel file
