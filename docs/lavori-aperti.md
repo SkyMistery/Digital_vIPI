@@ -2,7 +2,7 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — in 1.31.1, PRONTO DA CARICARE
 
 Richiesta del committente a 1.31.0 online: «nella mappa attivare o disattivare i singoli spazi, così l'utente capisce
 quale spazio copre cosa». A inizio riga della tabella «Spazi aerei (AIP)» un pallino col colore del settore accende e
@@ -13,6 +13,13 @@ ed evidenzia la riga. Visibile = settore acceso E spazio acceso. Carta `feature/
 Provato dal vivo su copia prod (LIBP_APP, bozza): spegni Z2/Z4 → 4 poligoni su 6; chip APP off/on → torna 4, non 6;
 hover riga/poligono; 3D con `_aorSetVol`. ⚠️ Negli snapshot congelati prima di questa modifica i poligoni non hanno la
 chiave: lì il pallino non fa niente finché non si ripubblica.
+
+📦 **1.31.1** (PATCH): timbro `1.31.1 · ab20c46`, 20 file (Application, Ui, Host dll+pdb; `en/Vipi.Ui.resources.dll`;
+`vipi-aor.js`, `vipi-aor3d.js`, `vipi-theme.css`, `vipi-print.css` +br/gz con `endpoints.json`), zip
+`vipi-1.31.1-solo-file-cambiati.zip` sha256 `ef65da8590413ba18fcb077d8b67d4352ccaf987ea2ca960330e97a55a56c2cd`, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.31.1.md`. Provato sul pacchetto: 10/10, sonda spazi verde; pubblico con release di
+1.31.0 → pallino inerte, ripubblicato → funziona. ▶ Dopo il carico: timbro, Ricerca, `Schema 0`, prova su LIBP_APP dopo
+Ctrl+F5; **ripubblicare gli APP agganciati pubblicati sotto 1.31.0** (LIBA_APP).
 
 ### ✅ A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — ONLINE in 1.31.0
 
