@@ -64,6 +64,14 @@ Sul secondo tranello il codice si difende da sé: se `Translation:DeepL:BaseUrl`
 corpo della risposta: `403000` è la **chiave** (va rigenerata), `403001` è la **quota** (va aspettato il
 mese, o va usato l'altro motore). Il rapporto del giro riporta il dettaglio così com'è arrivato.
 
+🔴 **Il secondo 401 di Azure: la chiave di una risorsa NUOVA vuole il SUO endpoint** (17 settembre 2026).
+La risorsa `ivao-it-translator` rifiuta la sua chiave sull'endpoint globale `api.cognitive.microsofttranslator.com`
+(401 in ogni regione) e la accetta solo su `https://ivao-it-translator.cognitiveservices.azure.com/`. Va scritto in
+`Translation:Azure:BaseUrl`, accanto a chiave e regione; il percorso `/translator/text/v3.0` lo aggiunge il codice
+(da 1.30.2 — prima quell'endpoint non si poteva usare). La riga d'avvio in `avvio-diagnostica.txt` dice quale
+endpoint è in uso. Prova in un minuto, senza il sito:
+`curl -X POST "https://<nome>.cognitiveservices.azure.com/translator/text/v3.0/translate?api-version=3.0&from=it&to=en" -H "Ocp-Apim-Subscription-Key: …" -H "Ocp-Apim-Subscription-Region: italynorth" -H "Content-Type: application/json" -d "[{\"Text\":\"ciao\"}]"`
+
 **Ne basta uno.** Con una chiave sola la catena funziona, semplicemente non ha una riserva.
 
 ## Che cosa fare, in cinque minuti
@@ -88,7 +96,8 @@ del database e le credenziali IVAO, quello dal nome non indovinabile
   "Ivao":     { "ClientId": "…", "ClientSecret": "…" },
 
   "Translation": {
-    "Azure": { "ApiKey": "LA-CHIAVE-VERA", "Region": "italynorth" }
+    "Azure": { "ApiKey": "LA-CHIAVE-VERA", "Region": "italynorth",
+               "BaseUrl": "https://ivao-it-translator.cognitiveservices.azure.com/" }
   }
 }
 ```

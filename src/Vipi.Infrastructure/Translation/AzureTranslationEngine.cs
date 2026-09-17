@@ -95,19 +95,37 @@ public sealed class AzureTranslationEngine : ITranslationEngine
         return TranslationBatch.Ok(risultato, Name);
     }
 
+    /// <summary>
+    /// L'indirizzo intero, a partire dalla base configurata.
+    ///
+    /// <para>🔴 17 settembre 2026: una risorsa multi-servizio (o creata di recente) accetta la chiave SOLO sul suo
+    /// endpoint, <c>https://&lt;nome&gt;.cognitiveservices.azure.com/translator/text/v3.0/</c> — sul globale 401,
+    /// senza il percorso 404. Qui c'era <c>BaseAddress</c> + <c>"/translate"</c>: la barra iniziale scarta il
+    /// percorso della base, quindi quell'endpoint non si poteva usare. Il percorso del Translator lo aggiunge il
+    /// codice se la base è l'host nudo: il portale mostra così l'endpoint, ed è quello che si copierà.</para>
+    /// </summary>
+    internal static Uri Indirizzo(string? baseUrl, string relativo)
+    {
+        var b = string.IsNullOrWhiteSpace(baseUrl) ? "https://api.cognitive.microsofttranslator.com" : baseUrl.Trim();
+        var baseUri = new Uri(b.TrimEnd('/') + "/");
+        if (baseUri.Host.EndsWith(".cognitiveservices.azure.com", StringComparison.OrdinalIgnoreCase)
+            && baseUri.AbsolutePath == "/")
+            baseUri = new Uri(baseUri, "translator/text/v3.0/");
+        return new Uri(baseUri, relativo);
+    }
+
     private async Task<TranslationBatch> UnLottoAsync(
         IReadOnlyList<string> lotto, string sourceLang, string targetLang, CancellationToken ct)
     {
         var da = CodiceLingua(sourceLang);
         var a = CodiceLingua(targetLang);
-        var url = $"/translate?api-version=3.0&from={da}&to={a}&textType=html";
+        var url = Indirizzo(_opt.Azure.BaseUrl, $"translate?api-version=3.0&from={da}&to={a}&textType=html");
 
         HttpResponseMessage risposta;
         string corpoGrezzo;
         try
         {
             var http = _factory.CreateClient(HttpClientName);
-            http.BaseAddress ??= new Uri(_opt.Azure.BaseUrl);
 
             using var richiesta = new HttpRequestMessage(HttpMethod.Post, url)
             {

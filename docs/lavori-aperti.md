@@ -2,6 +2,19 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A56 — Azure: l'endpoint della risorsa si può usare (17 settembre 2026) — in main, NON in pacchetto
+
+Dal 17-set 03:34Z Azure rispondeva 401. Il committente ha creato chiavi nuove sulla risorsa `ivao-it-translator`:
+provata con `curl`, la chiave rifiuta l'endpoint globale in OGNI regione (401) e risponde 200 solo su
+`https://ivao-it-translator.cognitiveservices.azure.com/translator/text/v3.0/` (senza percorso: 404).
+
+- 🔴 **Il motore non poteva usarlo**: `BaseAddress` + `"/translate"` — la barra iniziale scarta il percorso della base.
+  Ora `AzureTranslationEngine.Indirizzo` costruisce l'URL intero e, su un host `*.cognitiveservices.azure.com` nudo,
+  aggiunge `/translator/text/v3.0/`. Cinque casi di test.
+- `avvio-diagnostica.txt` dice l'endpoint in uso; `segreti.esempio.json` e `LEGGIMI-TRADUZIONE.md` aggiornati.
+- ▶ **In produzione, DOPO il carico**: `Translation:Azure:BaseUrl` = `https://ivao-it-translator.cognitiveservices.azure.com/`
+  nel file della cartella `segreti`, accanto alla chiave nuova.
+
 ### 🟡 A55 — Il ponte delle forme non fa cadere chi salva, quando un altro processo lo precede (17 settembre 2026) — in main, NON in pacchetto
 
 Dal primo `avvisi-log.txt` di produzione: il 16-set alle 20:44Z l'import AirportSector è caduto con

@@ -17,7 +17,8 @@
     "Enabled": true,
     "Azure": {
       "ApiKey": "METTI-QUI-LA-CHIAVE-MICROSOFT",
-      "Region": "italynorth"
+      "Region": "italynorth",
+      "BaseUrl": "https://ivao-it-translator.cognitiveservices.azure.com/"
     }
   }
 }

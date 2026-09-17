@@ -93,6 +93,33 @@ public class AzureTranslationEngineTests
         Assert.Equal(1, esito.BilledTexts);
     }
 
+    // ---- L'indirizzo ---------------------------------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 17 settembre 2026: la risorsa nuova («ivao-it-translator», multi-servizio) rifiuta la sua chiave
+    /// sull'endpoint globale (401) e la accetta solo sul suo, sotto <c>/translator/text/v3.0</c> — senza il
+    /// percorso, 404. Il motore chiedeva <c>"/translate"</c> con la barra davanti, che il percorso della base lo
+    /// BUTTA VIA: con l'endpoint personalizzato non poteva funzionare in nessun modo.
+    /// </summary>
+    [Theory]
+    [InlineData("https://api.cognitive.microsofttranslator.com", "https://api.cognitive.microsofttranslator.com/translate")]
+    [InlineData("https://api.cognitive.microsofttranslator.com/", "https://api.cognitive.microsofttranslator.com/translate")]
+    [InlineData("https://ivao-it-translator.cognitiveservices.azure.com/", "https://ivao-it-translator.cognitiveservices.azure.com/translator/text/v3.0/translate")]
+    [InlineData("https://ivao-it-translator.cognitiveservices.azure.com", "https://ivao-it-translator.cognitiveservices.azure.com/translator/text/v3.0/translate")]
+    [InlineData("https://ivao-it-translator.cognitiveservices.azure.com/translator/text/v3.0/", "https://ivao-it-translator.cognitiveservices.azure.com/translator/text/v3.0/translate")]
+    public async Task L_endpoint_personalizzato_tiene_il_suo_percorso(string baseUrl, string atteso)
+    {
+        var spia = new SpiaHandler(HttpStatusCode.OK, Risposta("x"));
+        await new AzureTranslationEngine(new StubFactory(spia), Options.Create(new TranslationOptions
+        {
+            Enabled = true,
+            Azure = new AzureOptions { ApiKey = "chiave-finta", Region = "italynorth", BaseUrl = baseUrl },
+        })).TranslateAsync(new[] { "Testo" }, "it", "en");
+
+        Assert.Equal(atteso, spia.UltimaUri!.GetLeftPart(UriPartial.Path));
+        Assert.Contains("api-version=3.0", spia.UltimaUri.Query);
+    }
+
     // ---- Le due trappole -----------------------------------------------------------------------------
 
     [Fact]

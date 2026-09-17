@@ -132,7 +132,7 @@ public static class StartupDiagnostics
         // apre un documento e si sa che cosa aspettarsi.
         var traduzioneAccesa = string.Equals(cfg["Translation:Enabled"], "true", StringComparison.OrdinalIgnoreCase);
         sb.AppendLine($"  Translation:Enabled ........ {Mostra(cfg["Translation:Enabled"], "assente ⇒ FALSO: i documenti restano nella lingua sorgente")}");
-        sb.AppendLine($"  Translation:Azure:ApiKey ... {Presenza(cfg["Translation:Azure:ApiKey"])}  (regione: {Mostra(cfg["Translation:Azure:Region"], "non impostata")})");
+        sb.AppendLine($"  Translation:Azure:ApiKey ... {Presenza(cfg["Translation:Azure:ApiKey"])}  (regione: {Mostra(cfg["Translation:Azure:Region"], "non impostata")}; endpoint: {Mostra(cfg["Translation:Azure:BaseUrl"], "globale")})");
         sb.AppendLine($"  Translation:DeepL:ApiKey ... {Presenza(cfg["Translation:DeepL:ApiKey"])}");
 
         // Enabled senza chiave è il modo silenzioso di sbagliare: il giro parte ogni quarto d'ora, non ha
