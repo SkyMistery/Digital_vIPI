@@ -1474,7 +1474,15 @@
       pagina, sezione o indirizzo nuovo, un comando in più su una tabella che c'è già. Tocca Vipi.Application, Vipi.Ui
       (+ frasi, vipi-aor.js, vipi-aor3d.js, vipi-theme.css, vipi-print.css) e Vipi.Host per il timbro. Il net10 resta 1.32.0.
     -->
-    <VipiVersione>1.31.1</VipiVersione>
+    <!--
+      1.31.2 — PATCH, NESSUNA migrazione. Su 1.31.1 (ab20c46, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A67): sette campi degli editor vestiti dal browser (grigio, angoli vivi,
+      freccia di sistema) portati allo stile di casa, trovati misurando lo stile calcolato di 566 campi nei 5 editor; la
+      regola delle tendine nelle tabelle della struttura non cancella più la freccia. Tocca Vipi.Ui (+ vipi-theme.css) e
+      Vipi.Host per il timbro. Il net10 resta 1.32.0.
+    -->
+    <VipiVersione>1.31.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
