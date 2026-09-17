@@ -1,6 +1,6 @@
 # Una soglia «mai usare» nel ripiego sul vento (17 settembre 2026)
 
-> Stato: 🟡 **in lavorazione** (§A68 di `docs/lavori-aperti.md`). **Migrazione ADDITIVA** (una colonna booleana).
+> Stato: 🟡 **in main, NON in pacchetto** (§A68 di `docs/lavori-aperti.md`). **Migrazione ADDITIVA** `PistaMaiUsare` (una colonna booleana). Provata dal vivo su copia di produzione.
 
 **La richiesta del committente:** nell'editor marcare una pista come «mai usare», così che **quando nessuna regola
 pista vale** quella pista non venga comunque mai scelta.
