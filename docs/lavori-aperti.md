@@ -2,7 +2,26 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A62 — Il giro delle traduzioni faceva OTTO passate invece di due (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A63 — 1.30.4 PRONTO DA CARICARE (17 settembre 2026)
+
+✅ **1.30.3 è online** (timbro confermato dal committente) e il registro del giorno funziona: `autenticato` = 1 visto sulle
+richieste dello staff. Al primo scarico i due file mancavano solo perché il client FTP mostrava l'elenco vecchio.
+
+**PATCH su 1.30.3, NESSUNA migrazione.** Contiene §A61 e §A62. Timbro **`1.30.4 · a10d350`**; zip
+`artifacts/publish/vipi-1.30.4-solo-file-cambiati.zip` (3,54 MB), sha256
+`0d5f36374befc8fa407e608815f6337236688063eb309f159bcc56c750150404`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.30.4.md`;
+elenco `artifacts/publish/elenco-1.30.4.txt`. Rotazione: 1.30.3 in `publish_old/20260917b`.
+
+- **10 file**: `Vipi.Application`, `Vipi.Ui`, `Vipi.Host` dll+pdb; `vipi-editor.js` (+`.br`/`.gz`) con
+  `Vipi.Host.staticwebassets.endpoints.json`. Resto identico per sha256; `en/Vipi.Ui.resources.dll` fuori (nessun .resx).
+- **Provato sul pacchetto** (win-x64, copia prod 17-set in MariaDB): timbro, `pacchetto-verifica.js` 10/10. Sonda nuova
+  `ils-verifica.js` (cinque coppie di `change` sul Tipo dell'anagrafica) **sui due codici**: 1.30.3 (worktree di `b5be0ff`)
+  → barra d'errore e lo stesso stack di produzione; 1.30.4 → nessun errore, `errori-richieste.txt` non nasce.
+- ⚠️ La metà JS di §A61 non si prova pilotando il browser; §A62 dal vivo si vede solo con la chiave Azure (online).
+- ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`; l'admin che aveva segnalato riprova ILS **dopo Ctrl+F5**; in
+  `log-*.txt` due righe «Traduzione … (azure)» a giro, non otto.
+
+### 📦 A62 — Il giro delle traduzioni faceva OTTO passate invece di due (17 settembre 2026) — in 1.30.4 (pronto)
 
 Il primo `log-2026-09-17.txt` di produzione (§A59) mostra ogni giro così: it→en, it→en, en→it, en→it, e poi ancora le
 stesse quattro righe. A ogni passata i segmenti che Azure rende rotti si ripagano: **3 528 caratteri a giro invece di
@@ -19,7 +38,7 @@ stesse quattro righe. A ogni passata i segmenti che Azure rende rotti si ripagan
 - ▶ Resta §A58 punto 2: i due segmenti rotti si ripagano comunque, una volta per verso a giro (882 caratteri ogni quarto d'ora).
 - ▶ Pacchetto: `Vipi.Application.dll`+`.pdb` (nessuna `const` cambiata).
 
-### 🟡 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in 1.30.4 (pronto)
 
 Segnalato da un admin: nella colonna Tipo delle radioassistenze, scegliendo ILS, «Something went wrong» (12:12 locali).
 In `errori-richieste.txt` sei voci fra le 10:09 e le 10:14Z (sotto 1.30.2), sia dall'editor vSOP militare
