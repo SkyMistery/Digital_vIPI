@@ -334,6 +334,7 @@
   .vipi-root .milarea-more[hidden] { display: table-row !important; }
   .vipi-root .milarea-exp { display: none !important; }
   .vipi-root .milarea-table th.c-exp, .vipi-root .milarea-table td.c-exp { width: 0; padding: 0; }
+  .vipi-root .aorasp-table th.c-vis, .vipi-root .aorasp-table td.c-vis { display: none; }
 }
 
 /* ---- Documenti UNITI (carta 2026-09-03) --------------------------------------------------------

@@ -38,7 +38,9 @@ public static class AorShapeProjection
             var proiettato = AorPolygonProjector.Project(p.PolygonJson);
             if (proiettato is null) continue;   // ⚠️ un anello rotto non porta via gli altri sei
             var (bottom, top) = AorFlBand.ForSource(shape.Source, p.BaseFeet, p.TopFeet);   // T-046: l'AIP è in piedi
-            poligoni.Add(proiettato with { LowerFl = bottom, UpperFl = top });
+            // `Ref` = la chiave del volume: lega il poligono alla sua riga nella tabella «spazi aerei», che lo
+            // accende e lo spegne da sola (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6).
+            poligoni.Add(proiettato with { LowerFl = bottom, UpperFl = top, Ref = p.SourceRef });
         }
 
         if (poligoni.Count == 0) return Projected.Empty;

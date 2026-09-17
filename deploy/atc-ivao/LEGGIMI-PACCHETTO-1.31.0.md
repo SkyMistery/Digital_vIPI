@@ -1,5 +1,7 @@
 # Pacchetto 1.31.0 — solo i file cambiati
 
+> ✅ **CARICATO il 17 settembre 2026** (conferma del committente).
+
 > **Timbro:** `1.31.0 · 68265f9` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

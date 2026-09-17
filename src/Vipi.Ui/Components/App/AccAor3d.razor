@@ -73,6 +73,8 @@
             label = s.Label,
             color = s.Color,
             rings = s.Polygons.Select(p => p.Points),
+            // Parallelo a `rings`: la chiave del volume, per accendere e spegnere il singolo spazio dalla tabella.
+            refs = s.Polygons.Select(p => p.Ref),
             fl = new[] { s.LowerFl ?? AorFlBand.Ground, s.UpperFl ?? AorFlBand.Unlimited },
             // ⚠️ Il testo della banda, quando chi ha costruito la vista sa l'unità vera: il JS scriveva
             // «FL» davanti ai due numeri, e per un'area a 150 piedi diceva una cosa falsa. Assente = il JS

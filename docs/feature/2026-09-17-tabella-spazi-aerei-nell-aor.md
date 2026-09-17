@@ -1,6 +1,6 @@
 # Spazi aerei dell'AIP: la tabella sotto l'AoR (17 settembre 2026)
 
-> Stato: 📦 **in 1.31.0**, pronto da caricare (§A65 di `docs/lavori-aperti.md`). **Nessuna migrazione**: le correzioni
+> Stato: ✅ **§1–§5 online in 1.31.0** (§A65). 🟡 **§6** (spazi accesi e spenti dalla tabella) in main, NON in pacchetto (§A66). **Nessuna migrazione**: le correzioni
 > stanno nel JSON della sezione `aor`. `dotnet build -c Release` verde su net8 e net10, suite intera verde.
 > Gemella di [2026-09-16-aree-di-lavoro-una-tabella-sola.md](2026-09-16-aree-di-lavoro-una-tabella-sola.md)
 > (nome e limiti dal catalogo, nota scritta a mano) e figlia di
@@ -62,6 +62,23 @@ Copia di produzione del 17-set 06:28Z ripristinata su MariaDB locale (`vipi_aora
   tabella: va ripubblicato.
 - ⚠️ **Il ramo ACC non è provato dal vivo**: in produzione nessun settore di ACC è agganciato. Lo copre la stessa
   `AorAirspaceTable.Build` e la compilazione dell'editor ACC.
+
+## 6. Seconda richiesta, a 1.31.0 online: accendere e spegnere i singoli spazi
+
+**Il committente (17-set):** «nella mappa attivare o disattivare i singoli spazi, così l'utente capisce più facilmente
+quale spazio copre cosa». Le chip lavorano per **settore**; un APP a cinque zone è una chip sola.
+
+- **Il comando sta nella tabella**, non in cinque chip in più: la barra delle chip resta per settore (e le
+  configurazioni lavorano su quella), la riga della tabella è già «lo spazio». A inizio riga un pallino col colore
+  del settore, `aria-pressed`: acceso/spento. Vale per la **2D e la 3D**.
+- **Hover**: la riga evidenzia il suo poligono; il poligono dice nome e banda e evidenzia la riga.
+- **Legame poligono ↔ riga**: `AppAorPolygon.Ref` = chiave naturale del volume (la porta unica la conosce già,
+  `ShapePart.SourceRef`). Nel JSON della mappa `refs[]` parallelo a `rings[]`.
+- **Visibile = settore acceso E spazio acceso**: la chip del settore non riaccende uno spazio spento dalla riga.
+- **Lo stato vive nel DOM della tabella** (`aria-pressed`): una mappa che si ricrea (colori, navigazione enhanced) o
+  la 3D aperta dopo lo rileggono all'avvio, invece di ripartire tutta accesa sotto righe spente.
+- Snapshot congelati di 1.31.0: niente `Ref` → i poligoni non si legano e il pallino non fa niente finché non si
+  ripubblica (solo LIBA_APP).
 
 ## 5. Limiti accettati
 

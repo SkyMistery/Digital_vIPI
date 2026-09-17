@@ -39,5 +39,21 @@ public class AorAirspaceTableTests
         Assert.Equal("nota", righe[0].Note);
         Assert.Equal("C", righe[1].Class);          // dal file, normalizzata
         Assert.Null(righe[1].EditedClass);
+        Assert.Equal("A_APP", righe[1].Callsign);   // il PRIMO settore che lo disegna: dà il colore al pallino
+    }
+
+    /// <summary>
+    /// Carta §6: ogni poligono proiettato porta la chiave del suo volume, ed è così che la riga della tabella accende e
+    /// spegne proprio quello. Un anello rotto non sposta le chiavi degli altri.
+    /// </summary>
+    [Fact]
+    public void Ogni_Poligono_Porta_La_Chiave_Del_Suo_Volume()
+    {
+        var rotto = Pezzo("ROTTO") with { PolygonJson = "[]" };
+        var forma = new SectorShape("A_APP", ShapeSource.Aip, new[] { Pezzo("Z1"), rotto, Pezzo("Z2") }, Array.Empty<string>());
+
+        var proiettati = AorShapeProjection.Project(forma).Polygons;
+
+        Assert.Equal(new[] { "CTR|Z1|GND|4500 FT AMSL", "CTR|Z2|GND|4500 FT AMSL" }, proiettati.Select(p => p.Ref).ToArray());
     }
 }

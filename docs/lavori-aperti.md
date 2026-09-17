@@ -2,7 +2,19 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — in 1.31.0, PRONTO DA CARICARE
+### 🟡 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — in main, NON in pacchetto
+
+Richiesta del committente a 1.31.0 online: «nella mappa attivare o disattivare i singoli spazi, così l'utente capisce
+quale spazio copre cosa». A inizio riga della tabella «Spazi aerei (AIP)» un pallino col colore del settore accende e
+spegne quel volume sulla mappa 2D **e** 3D; hover sulla riga evidenzia il poligono, hover sul poligono dice nome e banda
+ed evidenzia la riga. Visibile = settore acceso E spazio acceso. Carta `feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`
+§6. Nessuna migrazione. Tocca Application (`AppAorPolygon.Ref`, `AorAirspaceRow.Callsign`), Ui (tabella, `AccAor`,
+`AccAor3d`), `vipi-aor.js`, `vipi-aor3d.js`, `vipi-theme.css`, `vipi-print.css`, frasi.
+Provato dal vivo su copia prod (LIBP_APP, bozza): spegni Z2/Z4 → 4 poligoni su 6; chip APP off/on → torna 4, non 6;
+hover riga/poligono; 3D con `_aorSetVol`. ⚠️ Negli snapshot congelati prima di questa modifica i poligoni non hanno la
+chiave: lì il pallino non fa niente finché non si ripubblica.
+
+### ✅ A65 — Tabella «spazi aerei» sotto l'AoR (17 settembre 2026) — ONLINE in 1.31.0
 
 Richiesta del committente: per i settori agganciati ai volumi del KMZ (es. `LIBP_APP`), sotto la mappa AoR di vIPI APP
 e vIPI ACC una tabella nome · base · tetto · classe · note; **classe e note scrivibili** da chi aggiorna il documento

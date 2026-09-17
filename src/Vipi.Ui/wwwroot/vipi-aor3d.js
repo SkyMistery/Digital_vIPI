@@ -261,6 +261,10 @@
                 var edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: edgeCol, transparent: true, opacity: 0.9 }));
                 mesh.position.z = rBottom * flz; edges.position.z = rBottom * flz;
                 secGroup.add(mesh); secGroup.add(edges); s._edges.push(edges);
+                // La chiave del volume dell'AIP (o null): la riga della tabella «spazi aerei» accende e spegne QUESTO
+                // prisma, dentro il gruppo del settore (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6).
+                s._parts = s._parts || [];
+                s._parts.push({ ref: (s.refs && s.refs[ri]) || null, mesh: mesh, edges: edges });
                 pts.forEach(function (p) { cxSum += p[0]; cySum += p[1]; n++; });
             });
             if (n === 0) return;
@@ -468,6 +472,26 @@
         }
         // Stessa interfaccia del contenitore Leaflet: così le chip del 2D pilotano anche il 3D senza logica duplicata.
         stage._aorSetSec = setSec;
+
+        // I singoli spazi dell'AIP, dalla tabella sotto la mappa. Il prisma si spegne DENTRO il gruppo del settore:
+        // visibile = settore acceso E spazio acceso, come nel 2D. `render` è una dichiarazione più sotto (hoisting).
+        function perRef(ref, fn) {
+            sectors.forEach(function (s) { (s._parts || []).forEach(function (p) { if (p.ref === ref) fn(p); }); });
+        }
+        stage._aorSetVol = function (ref, on) {
+            perRef(ref, function (p) { p.mesh.visible = on; p.edges.visible = on; });
+            render();
+        };
+        stage._aorHilite = function (ref, on) {
+            perRef(ref, function (p) { p.mesh.material.opacity = on ? 0.42 : 0.16; });
+            render();
+        };
+        // ⚠️ Il 3D nasce DOPO (alla prima apertura del tab): gli spazi già spenti dalla tabella si rileggono ora.
+        var blocco3d = stage.closest('.aor-block');
+        var spenti = window.vipiAorSpenti ? window.vipiAorSpenti(blocco3d ? (blocco3d.dataset.aor || '') : '') : {};
+        Object.keys(spenti).forEach(function (ref) {
+            perRef(ref, function (p) { p.mesh.visible = false; p.edges.visible = false; });
+        });
         // Le etichette si posizionano DOPO il render (matrici mondo fresche) e solo lì: render() è on-demand
         // (drag, zoom, toggle), non un loop raf, quindi il costo del declutter è trascurabile.
         var labels = buildLabels(stage, sectors, function (s) { setSec(s.sec, !(s._g && s._g.visible)); });

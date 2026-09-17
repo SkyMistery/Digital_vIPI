@@ -192,6 +192,8 @@
   <data name="Aor_AirspaceTop" xml:space="preserve"><value>Tetto</value></data>
   <data name="Aor_AirspaceClass" xml:space="preserve"><value>Classe</value></data>
   <data name="Aor_AirspaceClassFromFile" xml:space="preserve"><value>{0} (AIP)</value></data>
+  <data name="Aor_AirspaceToggle" xml:space="preserve"><value>Mostra o nascondi sulla mappa</value></data>
+  <data name="Aor_AirspaceToggleFor" xml:space="preserve"><value>{0}: mostra o nascondi sulla mappa</value></data>
   <data name="Aor_3dUnavailable" xml:space="preserve"><value>Vista 3D non disponibile (WebGL non attivo su questo dispositivo).</value></data>
   <data name="Aor_NoShapeTitle" xml:space="preserve"><value>Shape AOR non disponibile</value></data>
   <data name="Aor_NoShapeBody" xml:space="preserve"><value>Nessun poligono per i settori del blocco (non ancora importati o non leggibili).</value></data>

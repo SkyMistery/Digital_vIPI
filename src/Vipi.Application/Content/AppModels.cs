@@ -131,11 +131,14 @@ public sealed class AppCoordination
 /// <para><c>null</c> su tutt'e due = «la banda la dice il settore», ed è il caso di ogni forma che viene
 /// dalle colonne del catalogo. ⚠️ Sono in coda e facoltativi <b>di proposito</b>: gli snapshot di release
 /// già congelati non li hanno, e devono continuare a leggersi.</para>
+///
+/// <para><c>Ref</c> = la chiave naturale del volume dell'AIP da cui viene il poligono (null per le forme di IVAO):
+/// lega il poligono alla sua riga nella tabella «spazi aerei», che lo accende e lo spegne.</para>
 /// </summary>
 public sealed record AppAorPolygon(
     string ViewBox, string Path, IReadOnlyList<double[]> Points,
     double MinLat, double MinLon, double MaxLat, double MaxLon, double CenterLat, double CenterLon,
-    int? LowerFl = null, int? UpperFl = null);
+    int? LowerFl = null, int? UpperFl = null, string? Ref = null);
 
 /// <summary>Riga della tabella VFR (trasferimento VFR APP↔torre): situazione → procedura.</summary>
 public sealed record AppVfrRow(string Situation, string Procedure);

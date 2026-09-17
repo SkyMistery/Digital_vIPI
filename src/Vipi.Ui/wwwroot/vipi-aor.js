@@ -327,19 +327,39 @@
         el._leafletMap = map;
         addBasemap(map);
 
-        // sec (upper) → { layers:[L.polygon], on:bool }
+        // Spazi dell'AIP spenti dalla tabella «spazi aerei» sotto la mappa (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md
+        // §6). ⚠️ Si RILEGGONO dalla tabella a ogni nascita della mappa: una mappa ricreata (colori cambiati, navigazione
+        // enhanced) che ripartisse tutta accesa sotto righe spente direbbe il contrario di quel che la tabella mostra.
+        var blocco = el.closest('.aor-block');
+        var scope = blocco ? (blocco.dataset.aor || '') : '';
+        var spenti = spentiDallaTabella(scope);
+
+        // sec (upper) → { layers:[L.polygon], on:bool }. Ogni layer porta `_ref`, la chiave del volume (o null).
         var secMap = {};
         sectors.forEach(function (s) {
-            var layers = (s.rings || []).filter(function (r) { return r && r.length >= 3; }).map(function (r) {
+            var layers = [];
+            (s.rings || []).forEach(function (r, ri) {
+                if (!r || r.length < 3) return;
                 // ⚠️ anche qui il colore puo' essere il NOME di un token (lo manda ConfinantiAdminPage):
                 // va risolto, perche' Leaflet lo scrive in un attributo SVG che non sostituisce var().
                 var sc = aorColor(s.color, '--ivao-lightblue');
                 // `dash` (facoltativo): la forma si disegna TRATTEGGIATA e quasi senza riempimento. Serve al
                 // convertitore di coordinate, che sovrappone alla forma di partenza quella riconvertita: se le
                 // due non combaciano si vede a occhio, e senza il tratteggio la seconda coprirebbe la prima.
-                return L.polygon(r, s.dash
+                var stile = s.dash
                     ? { color: sc, weight: 2, dashArray: '5,4', fillColor: sc, fillOpacity: 0.05 }
-                    : { color: sc, weight: 2, fillColor: sc, fillOpacity: 0.16 });
+                    : { color: sc, weight: 2, fillColor: sc, fillOpacity: 0.16 };
+                var l = L.polygon(r, stile);
+                l._base = { weight: stile.weight, fillOpacity: stile.fillOpacity };
+                l._ref = (s.refs && s.refs[ri]) || null;
+                var tip = s.tips && s.tips[ri];
+                if (tip) l.bindTooltip(tip, { sticky: true, direction: 'top' });
+                if (l._ref) {
+                    // Il poligono evidenzia la sua riga, e la riga il poligono: «quale spazio copre cosa».
+                    l.on('mouseover', function () { evidenziaRiga(scope, l._ref, true); evidenziaLayer(l, true); });
+                    l.on('mouseout', function () { evidenziaRiga(scope, l._ref, false); evidenziaLayer(l, false); });
+                }
+                layers.push(l);
             });
             secMap[(s.sec || '').toUpperCase()] = { layers: layers, on: false };
         });
@@ -358,19 +378,107 @@
         }
         el._aorRefit = refit;
 
+        // ⚠️ Visibile = settore acceso E spazio acceso: la chip del settore non riaccende uno spazio spento dalla riga.
         function setSec(sec, on) {
             var e = secMap[(sec || '').toUpperCase()];
             if (!e) return;
             e.on = on;
-            e.layers.forEach(function (l) { on ? l.addTo(map) : map.removeLayer(l); });
+            e.layers.forEach(function (l) { (on && !spenti[l._ref]) ? l.addTo(map) : map.removeLayer(l); });
         }
         el._aorSetSec = setSec;
+
+        // Un singolo spazio, dalla sua riga in tabella. Niente refit: chi spegne uno spazio sta guardando quel punto.
+        el._aorSetVol = function (ref, on) {
+            if (on) delete spenti[ref]; else spenti[ref] = true;
+            Object.keys(secMap).forEach(function (k) {
+                var e = secMap[k];
+                e.layers.forEach(function (l) {
+                    if (l._ref !== ref) return;
+                    (e.on && on) ? l.addTo(map) : map.removeLayer(l);
+                });
+            });
+        };
+        el._aorHilite = function (ref, on) {
+            Object.keys(secMap).forEach(function (k) {
+                secMap[k].layers.forEach(function (l) { if (l._ref === ref) evidenziaLayer(l, on); });
+            });
+        };
 
         // Tutti accesi all'avvio.
         Object.keys(secMap).forEach(function (k) { setSec(k, true); });
         refit();
         setTimeout(function () { map.invalidateSize(); refit(); }, 60);
     }
+
+    // ── Tabella «spazi aerei» (carta 2026-09-17-tabella-spazi-aerei-nell-aor.md §6) ─────────────────────────────
+    // La tabella sta FUORI dal .aor-block: la lega alla mappa lo scope (`data-aorasp` = `data-aor` del blocco 2D; il
+    // 3D è lo stesso con «-3d»). Le chiavi dei volumi contengono «|» e spazi: si confrontano leggendo, non in un selettore.
+    function tabellaDi(scope) {
+        if (!scope) return null;
+        var tutte = document.querySelectorAll('[data-aorasp]');
+        for (var i = 0; i < tutte.length; i++) if (tutte[i].dataset.aorasp === scope) return tutte[i];
+        return null;
+    }
+    function righeDi(scope, ref) {
+        var t = tabellaDi((scope || '').replace(/-3d$/, ''));
+        if (!t) return [];
+        return [].slice.call(t.querySelectorAll('tr[data-volref]')).filter(function (tr) {
+            return ref == null || tr.dataset.volref === ref;
+        });
+    }
+    function spentiDallaTabella(scope) {
+        var spenti = {};
+        righeDi(scope, null).forEach(function (tr) {
+            var b = tr.querySelector('.aorasp-vis');
+            if (b && b.getAttribute('aria-pressed') === 'false') spenti[tr.dataset.volref] = true;
+        });
+        return spenti;
+    }
+    window.vipiAorSpenti = spentiDallaTabella;   // la vista 3D la usa quando nasce
+    function evidenziaRiga(scope, ref, on) {
+        righeDi(scope, ref).forEach(function (tr) { tr.classList.toggle('aorasp-hl', on); });
+    }
+    function evidenziaLayer(l, on) {
+        l.setStyle(on ? { weight: 4, fillOpacity: 0.4 } : l._base);
+        if (on && l._map) l.bringToFront();
+    }
+    // Le mappe (2D e 3D) di uno scope: sono loro a sapere accendere uno spazio (`_aorSetVol`) ed evidenziarlo.
+    function mappeDi(scope) {
+        return [].slice.call(document.querySelectorAll('[data-aor]')).filter(function (b) {
+            return b.dataset.aor === scope || b.dataset.aor === scope + '-3d';
+        }).map(function (b) { return b.querySelector('.aor-leaflet, .aor3d-stage'); }).filter(Boolean);
+    }
+    function onSpazioClick(ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('.aorasp-vis') : null;
+        if (!btn) return;
+        var wrap = btn.closest('[data-aorasp]'), tr = btn.closest('tr[data-volref]');
+        if (!wrap || !tr) return;
+        var on = btn.getAttribute('aria-pressed') !== 'true';
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        tr.classList.toggle('aorasp-off', !on);
+        mappeDi(wrap.dataset.aorasp).forEach(function (m) {
+            if (m._aorSetVol) { m._aorSetVol(tr.dataset.volref, on); return; }
+            // Ripiego SVG (Leaflet non ancora caricato): i path portano la chiave.
+            m.querySelectorAll('svg [data-ref]').forEach(function (p) {
+                if (p.getAttribute('data-ref') === tr.dataset.volref) p.style.display = on ? '' : 'none';
+            });
+        });
+    }
+    document.addEventListener('click', onSpazioClick);
+    // Passaggio del mouse su una riga: UNO stato «riga evidenziata» per la pagina, così mouseover/mouseout fra celle
+    // della STESSA riga non fanno lampeggiare il poligono.
+    var rigaEvidenziata = null;
+    document.addEventListener('mouseover', function (ev) {
+        var tr = ev.target && ev.target.closest ? ev.target.closest('.aorasp-table tr[data-volref]') : null;
+        if (tr === rigaEvidenziata) return;
+        [rigaEvidenziata, tr].forEach(function (r, i) {
+            if (!r) return;
+            var wrap = r.closest('[data-aorasp]');
+            if (!wrap) return;
+            mappeDi(wrap.dataset.aorasp).forEach(function (m) { if (m._aorHilite) m._aorHilite(r.dataset.volref, i === 1); });
+        });
+        rigaEvidenziata = tr;
+    });
 
     // Interazione chip via EVENT DELEGATION (installato una volta): robusto a qualsiasi re-render di Blazor,
     // niente listener per-elemento da riattaccare. Funziona con Leaflet o col fallback SVG.

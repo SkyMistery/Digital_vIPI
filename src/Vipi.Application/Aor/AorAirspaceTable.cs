@@ -37,7 +37,7 @@ public static class AorAirspaceTable
                 rows.Add(new AorAirspaceRow(
                     p.SourceRef, p.Name ?? NameFromKey(p.SourceRef), p.BaseRaw, p.TopRaw,
                     AorCustomizationCleaner.CleanClass(p.AirspaceClass), AorCustomizationCleaner.CleanClass(edit?.Class),
-                    string.IsNullOrWhiteSpace(edit?.Note) ? null : edit!.Note));
+                    string.IsNullOrWhiteSpace(edit?.Note) ? null : edit!.Note, cs));
             }
         }
         return rows;

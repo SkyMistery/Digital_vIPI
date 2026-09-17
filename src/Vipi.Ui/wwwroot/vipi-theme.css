@@ -3722,6 +3722,16 @@
 :where(.vipi-root) .res-table.mil-table.aorasp-table th.c-note,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-note{width:38%;vertical-align:top}
 :where(.vipi-root) .aorasp-table .in-note{width:100%;box-sizing:border-box;resize:vertical;min-height:44px;font:inherit;line-height:1.35}
 :where(.vipi-root) .aorasp-table .aorasp-cls{width:100%;box-sizing:border-box;font:inherit}
+/* Il pallino che accende e spegne lo spazio sulla mappa (carta §6). Stesso segno della chip del settore: il quadratino
+   col colore del settore, pieno se acceso e quasi vuoto se spento; `aria-pressed` e' la verita', la classe sulla riga
+   solo il suo riflesso. La riga spenta sbiadisce: si legge ancora, ma non si confonde con quelle sulla mappa. */
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-vis,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-vis{width:34px;padding-left:8px;padding-right:0;text-align:center}
+:where(.vipi-root) .aorasp-vis{appearance:none;width:16px;height:16px;margin:0;padding:0;border-radius:4px;cursor:pointer;
+  border:2px solid var(--sw);background:color-mix(in srgb,var(--sw) 45%,transparent);transition:background .12s ease,opacity .12s ease}
+:where(.vipi-root) .aorasp-vis[aria-pressed="false"]{background:transparent;opacity:.55}
+:where(.vipi-root) .aorasp-vis:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+:where(.vipi-root) .aorasp-table tr.aorasp-off>td:not(.c-vis){opacity:.5}
+:where(.vipi-root) .aorasp-table tr.aorasp-hl>td{background:color-mix(in srgb,var(--ivao-lightblue) 12%,var(--surface))}
 /* Le righe dei poligoni di tiro. Tinta e barretta si COSTRUISCONO da `--wr`, non da un colore proprio: così
    il giorno che l'arancione cambia nella costante C#, cambiano insieme il poligono, la targhetta e la riga.
    Barretta a sinistra come le righe modificate delle SID: due segni diversi per due cose diverse, ma lo

@@ -32,7 +32,7 @@
                     {
                         @foreach (var p in s.Polygons)
                         {
-                            <path data-sec="@s.Callsign" d="@p.Path" fill="@s.Color" fill-opacity="0.16" stroke="@s.Color" stroke-width="2" stroke-linejoin="round" />
+                            <path data-sec="@s.Callsign" data-ref="@p.Ref" d="@p.Path" fill="@s.Color" fill-opacity="0.16" stroke="@s.Color" stroke-width="2" stroke-linejoin="round" />
                         }
                     }
                 </svg>
@@ -58,7 +58,7 @@
         <p class="muted" style="font-size:12.5px;margin:6px 0 0">@L["Aor_3dHint"]</p>
     </div>
     @* Fuori dalle due viste: la tabella vale per la 2D e per la 3D. Vuota (nessun aggancio all'AIP) non disegna niente. *@
-    <AorAirspaceTable Rows="View.AirspaceRows" Editing="Editing" OnSet="OnSetAirspace" />
+    <AorAirspaceTable Rows="View.AirspaceRows" Editing="Editing" OnSet="OnSetAirspace" Scope="@Id" Colors="SectorColors()" />
 }
 else
 {
@@ -110,6 +110,21 @@ else
             name = s.Name,
             color = s.Color,
             dash = s.Dashed,
-            rings = s.Polygons.Select(p => p.Points)
+            rings = s.Polygons.Select(p => p.Points),
+            // Paralleli a `rings`: la chiave del volume (lega il poligono alla riga della tabella «spazi aerei») e il
+            // testo che il poligono dice al passaggio del mouse. Null dove il poligono non viene da un volume in tabella.
+            refs = s.Polygons.Select(p => p.Ref),
+            tips = s.Polygons.Select(p => Tip(p.Ref)),
         }));
+
+    private string? Tip(string? volumeRef) =>
+        volumeRef is null ? null
+            : View.AirspaceRows.FirstOrDefault(r => r.VolumeKey == volumeRef) is { } r ? $"{r.Name} · {r.BaseRaw} → {r.TopRaw}" : null;
+
+    private IReadOnlyDictionary<string, string> SectorColors()
+    {
+        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var s in View.Sectors) d.TryAdd(s.Callsign, s.Color);
+        return d;
+    }
 }

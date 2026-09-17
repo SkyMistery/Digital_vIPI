@@ -160,11 +160,12 @@ public sealed class AorAirspaceEdit
 /// <summary>
 /// Una riga della tabella «spazi aerei» sotto l'AoR: un volume dell'AIP agganciato a un settore del documento.
 /// <paramref name="FileClass"/> è la classe del KMZ (quasi sempre null sui CTR), <paramref name="EditedClass"/> quella
-/// scritta a mano; si mostra <see cref="Class"/>.
+/// scritta a mano; si mostra <see cref="Class"/>. <paramref name="Callsign"/> = il settore che lo disegna (il primo, se
+/// sono più d'uno): dà il colore al pallino che accende e spegne lo spazio sulla mappa. Null negli snapshot di 1.31.0.
 /// </summary>
 public sealed record AorAirspaceRow(
     string VolumeKey, string Name, string BaseRaw, string TopRaw,
-    string? FileClass, string? EditedClass, string? Note)
+    string? FileClass, string? EditedClass, string? Note, string? Callsign = null)
 {
     /// <summary>La classe da mostrare: quella scritta a mano vince su quella del file.</summary>
     [System.Text.Json.Serialization.JsonIgnore]
