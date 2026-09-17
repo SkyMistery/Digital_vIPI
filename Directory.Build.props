@@ -1442,7 +1442,15 @@
       suo percorso, e l'avvio dice quale endpoint è in uso (§A56). Tocca Vipi.Infrastructure, Vipi.Host e
       vipi-theme.css. Il net10 resta 1.31.0.
     -->
-    <VipiVersione>1.30.2</VipiVersione>
+    <!--
+      1.30.3 — PATCH, NESSUNA migrazione. Su 1.30.2 (76aceb3, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A59): il registro del giorno in diagnostica/ — richieste-AAAA-MM-GG.tsv (una
+      riga per richiesta: rotta, esito, ms) e log-AAAA-MM-GG.txt (righe Vipi.* da Information), sette giorni, tetto 5 MB
+      per file. PATCH e non MINOR come 1.30.1: nessuna pagina, sezione o indirizzo nuovo, solo file di diagnostica in
+      più. Tocca il solo Vipi.Host. Il net10 resta 1.31.0.
+    -->
+    <VipiVersione>1.30.3</VipiVersione>
   </PropertyGroup>
 
 </Project>
