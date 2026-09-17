@@ -1482,7 +1482,17 @@
       regola delle tendine nelle tabelle della struttura non cancella più la freccia. Tocca Vipi.Ui (+ vipi-theme.css) e
       Vipi.Host per il timbro. Il net10 resta 1.32.0.
     -->
-    <VipiVersione>1.31.2</VipiVersione>
+    <!--
+      1.32.0 — MINOR, UNA migrazione ADDITIVA (PisteMaiUsarePerVerso: due colonne booleane in AirportRunways). Su
+      1.31.2 (2c64512, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A68): nella tabella piste degli editor aeroporto e militare ogni soglia si
+      marca «mai in partenza» e/o «mai in arrivo»; quando nessuna regola pista vale il ripiego sul vento non la sceglie
+      in quel verso, e il vAWOS legge i flag dal pubblicato come regole e LVP. Più la Guida (AoR spazi aerei, piste).
+      Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui (+ frasi,
+      vipi-theme.css) e Vipi.Host per il timbro. Il net10 slitta a 1.33.0.
+    -->
+    <VipiVersione>1.32.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
