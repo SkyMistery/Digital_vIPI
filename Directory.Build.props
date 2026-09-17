@@ -1458,7 +1458,15 @@
       traduzioni fa due passate invece di otto, perché il legame della configurazione raddoppiava lingue e motori
       (§A62). Tocca Vipi.Ui (+ vipi-editor.js), Vipi.Application e Vipi.Host per il timbro. Il net10 resta 1.31.0.
     -->
-    <VipiVersione>1.30.4</VipiVersione>
+    <!--
+      1.31.0 — MINOR, NESSUNA migrazione. Su 1.30.4 (a10d350, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A65): sotto la mappa AoR di vIPI APP e ACC, la tabella degli spazi aerei
+      agganciati al KMZ — nome, base, tetto, classe, note — con classe e note scrivibili da chi aggiorna il documento.
+      MINOR e non PATCH: è una sezione di pagina nuova. Tocca Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi
+      e vipi-theme.css) e Vipi.Host per il timbro. Il net10 slitta a 1.32.0.
+    -->
+    <VipiVersione>1.31.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
