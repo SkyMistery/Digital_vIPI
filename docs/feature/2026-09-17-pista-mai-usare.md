@@ -1,6 +1,6 @@
 # Soglie «mai in partenza» e «mai in arrivo» nel ripiego sul vento (17 settembre 2026)
 
-> Stato: 🟡 **in main, NON in pacchetto** (§A68 di `docs/lavori-aperti.md`). **Migrazione ADDITIVA** `PisteMaiUsarePerVerso` (due colonne booleane). Provata dal vivo su copia di produzione.
+> Stato: 📦 **in 1.32.0**, pronto da caricare (§A68 di `docs/lavori-aperti.md`). **Migrazione ADDITIVA** `PisteMaiUsarePerVerso` (due colonne booleane). Provata dal vivo su copia di produzione.
 
 **La richiesta del committente:** nell'editor marcare una pista come «mai usare», così che **quando nessuna regola
 pista vale** quella pista non venga comunque mai scelta; poi, per verso: «mai in partenza» e «mai in arrivo».

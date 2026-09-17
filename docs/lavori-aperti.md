@@ -2,7 +2,7 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A68 — Soglie «mai in partenza» / «mai in arrivo» nel ripiego sul vento (17 settembre 2026) — in main, NON in pacchetto
+### 📦 A68 — Soglie «mai in partenza» / «mai in arrivo» nel ripiego sul vento (17 settembre 2026) — in 1.32.0, PRONTO DA CARICARE
 
 Richiesta del committente: marcare una soglia come «mai usare» nel ripiego sul vento, poi **per verso** (una pista usata solo
 per gli arrivi). Carta `feature/2026-09-17-pista-mai-usare.md`. Decisioni: il flag vale **solo per il ripiego** (le regole che
@@ -10,7 +10,15 @@ nominano la soglia restano valide, l'editor avvisa nel verso escluso), **non si 
 pubblicato** come regole e LVP.
 
 - `AirportRunway.NeverDeparture` / `NeverArrival`, **migrazione ADDITIVA `PisteMaiUsarePerVerso`** (SQLite + MySQL: due
-  `AddColumn`). ▶ Pacchetto MINOR **1.32.0** (→ net10 1.33.0) con `Vipi.Infrastructure.MySqlMigrations.dll`.
+  `AddColumn`).
+
+📦 **1.32.0** (MINOR, una migrazione additiva): timbro `1.32.0 · eb3547e`, **17 file** (Domain, Application, Infrastructure,
+**MySqlMigrations**, Ui, Host dll+pdb; `en/Vipi.Ui.resources.dll`; `vipi-theme.css` +br/gz con `endpoints.json`), zip
+`vipi-1.32.0-solo-file-cambiati.zip` sha256 `30c80b3e56bd58e4144f870e97b66acc7bf7bb1a70fc77d064a05f18eb16cd63`, foglio
+`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.32.0.md`. Dentro anche la **Guida** (AoR «Spazi aerei (AIP)», colonna Mai usare, ripiego).
+Provato su copia **fresca** della produzione: migrazione applicata all'avvio (212 piste a falso), 10/10, `Schema 0`, sonda
+`mai-usare-verifica.js` e vAWOS dal pubblicato verdi, `campi-verifica.js` 0. ▶ **Prima del carico: copia del database dalla
+Diagnostica.** ▶ Dopo: timbro, Ricerca, `Schema 0`, colonna Mai usare dopo Ctrl+F5. 🔴 net10 = **1.33.0**.
 - Motore: `RunwaySuggestion.Suggest(…, RunwayExclusions)` sceglie partenze e arrivi **ciascuno fra le soglie ammesse**; un verso
   tutto escluso resta senza pista (i chiamanti non ripiegano più su `Best`); senza esclusioni esito identico a prima.
 - Editor aeroporto e militare: due caselle DEP/ARR nella tabella piste; avvisi `Ape_IssueRuleNeverDepRw`/`…ArrRw`.
@@ -97,7 +105,7 @@ In main non resta codice fuori pacchetto: 1.30.4 (`a10d350`) è online. Sostitui
 5. **S11 fase B** (ex §A58.4) dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati».
 6. **Leggere il registro del giorno** (§A59) dopo qualche giorno pieno: `python tools/registro-del-giorno.py`. Primo sguardo
    17-set: nessuna pagina lenta (massimo l'editor militare LIRR, 1,6 s); la lettura vera vuole traffico di più giorni.
-7. **Feedback a due canali** (carta pronta). **net10 = 1.32.0** (1.31.0 è andato a §A65).
+7. **Feedback a due canali** (carta pronta). **net10 = 1.33.0** (1.31.0 è andato a §A65, 1.32.0 a §A68).
 
 **Pulizie piccole, trovate oggi (nessuna urgente):**
 8. `tools/indice-doc.py` **riscrive** l'elenco carte di `docs/index.md` e **cancella le annotazioni a mano** («✅ online in

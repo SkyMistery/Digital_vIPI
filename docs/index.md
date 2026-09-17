@@ -343,7 +343,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md`](feature/2026-09-16-elenchi-annidati-e-campo-che-cresce.md) — Elenchi annidati fino a cinque livelli e campo che cresce col testo (§A41) ✅ online in 1.28.0
 - [`feature/2026-09-17-registro-del-giorno.md`](feature/2026-09-17-registro-del-giorno.md) — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (§A59) 🟡 in main
 - [`feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`](feature/2026-09-17-tabella-spazi-aerei-nell-aor.md) — Spazi aerei dell'AIP: la tabella sotto l'AoR (§A65, §A66, §A67) ✅ online in 1.31.0–1.31.2
-- [`feature/2026-09-17-pista-mai-usare.md`](feature/2026-09-17-pista-mai-usare.md) — Una soglia «mai usare» nel ripiego sul vento (§A68) 🟡 in main
+- [`feature/2026-09-17-pista-mai-usare.md`](feature/2026-09-17-pista-mai-usare.md) — Soglie «mai in partenza» e «mai in arrivo» nel ripiego sul vento (§A68) 📦 in 1.32.0
 
 ### `guide`
 
