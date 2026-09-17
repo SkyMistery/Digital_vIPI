@@ -4,7 +4,7 @@
 
 ### ▶ A58 — Aperti dopo 1.30.2 (17 settembre 2026)
 
-1. **Azure**: confermare `Translation:Azure:BaseUrl` = `https://ivao-it-translator.cognitiveservices.azure.com/` nel file
+1. ✅ **Azure**: `Translation:Azure:BaseUrl` messo dal committente il 17-set. ▶ Verificare = `https://ivao-it-translator.cognitiveservices.azure.com/` nel file
    dei segreti; al prossimo scarico `avvio-diagnostica.txt` dice l'endpoint e `avvisi-log.txt` non ha più `HTTP 401`.
 2. **Segmenti ripagati a ogni giro** (Azure li rende con un identificatore cambiato): it→en «Se presente LIBN_G_APP e
    assente Lecce APP, Brindisi ACC/MIL coordinerà… IAFs ILS14» (385 car.), en→it tre segmenti «37th WING A/A TRAINING
