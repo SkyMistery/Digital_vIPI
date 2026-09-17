@@ -3887,6 +3887,14 @@
 :where(.vipi-root) .struct .diag-side>*{min-height:0}
 :where(.vipi-root) .struct .diag-side .panel,:where(.vipi-root) .struct .diag-side .block{margin:0;padding:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
 :where(.vipi-root) .struct .diag-side .st-scroll{margin:0}
+/* 🔴 Le schede SENZA scorrimento interno non si stringono: con min-height:0 e overflow:hidden una colonna
+   alta quanto lo schermo le tagliava in silenzio, e a 2560x1600 con zoom 175% (914px CSS) il tasto della
+   copia del database spariva (17 settembre 2026). Si stringe solo chi scorre dentro (i codici staff), con un
+   pavimento; se nemmeno cosi' basta, scorre la colonna — mai un contenuto tagliato. */
+:where(.vipi-root) .struct .diag-side{overflow-y:auto}
+:where(.vipi-root) .struct .diag-side>.panel{flex:none}
+:where(.vipi-root) .struct .diag-side>.panel:has(>.st-scroll){flex:1 1 auto;min-height:160px}
+:where(.vipi-root) .struct.pw-900 .diag-side{overflow:visible}
 /* La testata della scheda e' la stessa delle pagine, in piccolo: titolo e «?» su una riga. */
 :where(.vipi-root) .struct .diag-card-head{margin-bottom:10px}
 :where(.vipi-root) .struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
