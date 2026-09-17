@@ -2,7 +2,35 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 🟡 A69 — «Mai usare» come chip rosse (17 settembre 2026) — in main, NON in pacchetto
+### ▶ A70 — DA FARE, dopo 1.32.0 (17 settembre 2026, notte) — l'elenco da cui ripartire
+
+**Online: 1.32.0** (`c1eddc9`, timbro e `Schema 0` confermati). Sostituisce §A64 come punto di ripresa; le voci aperte di §A64
+restano valide e sono richiamate qui sotto. 🔴 net10 = **1.33.0**.
+
+**In main, NON in pacchetto — va col PROSSIMO pacchetto (decisione del committente):**
+1. **§A69** «Mai usare» come chip rosse (`sh-chip.no`) al posto delle caselle. Solo `Vipi.Ui.dll` + `vipi-theme.css` (+br/gz,
+   `endpoints.json`) + Guida; nessuna migrazione. Da solo sarebbe PATCH **1.32.1**; il numero si decide col contenuto del
+   pacchetto vero. Non preparare niente finché non lo chiede il committente.
+
+**Da fare in produzione (nessun codice):**
+2. **Ripubblicare gli APP agganciati al KMZ** (§A65, §A66): **LIBA_APP** (la sua release non ha la tabella «Spazi aerei») e
+   ogni APP agganciato pubblicato mentre era online 1.31.0 (lì il quadratino non toglie il poligono). Conviene prima
+   scrivere classe e note.
+3. **«Mai in partenza / in arrivo»** (§A68) vale sul pubblico **dopo aver ripubblicato** lo scalo, come le regole.
+
+**Da §A64, ancora aperti:** conferma ILS dell'admin (§A61); due righe di traduzione a giro al prossimo scarico (§A62); segmenti
+ripagati a ogni giro; ripieghi shape dell'import a `LogDebug` → Warning; S11 fase B; leggere il registro del giorno; feedback a
+due canali; le pulizie 8–12 (indice-doc.py, `Ruota` senza suffisso, `IcaoPrefixes` doppio, `/vsop/ping` nel registro, LOVV).
+
+**Note utili alla ripresa:**
+- Le verifiche di oggi girano su MariaDB locale (`D:\Programmazione\IVAO_Test\_mariadb`, porta 3399, il server va avviato a
+  mano); copie: `vipi_aorasp` (usata per le prove, sporca), `vipi_1320b` (copia prod del 17-set con la migrazione 1.32.0).
+- Sonde nuove nella skill `verifica-live`: `spazi-aerei-verifica.js`, `campi-verifica.js`, `mai-usare-verifica.js`,
+  `pannelli-pubblicato-verifica.js`.
+- ⚠️ La **pagina** vAWOS ha una cache breve: per leggere la pista in uso con certezza usare l'API
+  `/services/vawos/api/ICAO?test=<METAR sempre diverso>`.
+
+### 🟡 A69 — «Mai usare» come chip rosse (17 settembre 2026) — in main, NON in pacchetto: va col prossimo pacchetto
 
 Dal committente, a 1.32.0 online (timbro e `Schema 0` confermati, colonna presente in vIPI e vSOP): «allinea la UI di quelle
 caselle al resto: falle come chip che se cliccate diventano rosse». Le due caselle DEP/ARR diventano due `sh-chip` come le
@@ -99,7 +127,7 @@ Provato sul pacchetto (win-x64, copia prod in MariaDB): 10/10, tabella in editor
 ▶ Dopo il carico: timbro, Ricerca, `Schema 0`, tabella su LIBP_APP in editor dopo Ctrl+F5; **ripubblicare LIBA_APP**
 (unico APP agganciato con una release, AoR congelata senza tabella). Ramo ACC non provato dal vivo. 🔴 net10 = **1.32.0**.
 
-### ▶ A64 — DA FARE, dopo 1.30.4 (17 settembre 2026, fine giornata) — l'elenco da cui ripartire
+### A64 — DA FARE, dopo 1.30.4 (17 settembre 2026, fine giornata) — ⤴ sostituito da §A70 (le voci aperte vi sono richiamate)
 
 In main non resta codice fuori pacchetto: 1.30.4 (`a10d350`) è online. Sostituisce §A58, che resta sotto come storia.
 
