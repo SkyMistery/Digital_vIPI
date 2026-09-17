@@ -57,17 +57,59 @@ public class VipiDbContext : DbContext
         _ponteInCorso = true;
         try
         {
-            await PonteDelleForme.AllineaAsync(this, toccate, ct);
-            if (ChangeTracker.HasChanges())
-                n += sincrono
-                    ? base.SaveChanges(acceptAllChangesOnSuccess)
-                    : await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+            // 🔴 Produzione, 16 settembre 2026 20:44Z: due processi con la stessa scadenza d'import riscrivevano
+            // INSIEME i pezzi dello stesso settore, e il DELETE di uno toccava zero righe. L'eccezione faceva cadere
+            // chi aveva GIÀ salvato le colonne, e lasciava i pezzi pendenti nel contesto a ritentare a ogni
+            // salvataggio dopo (i ripieghi shape dell'import, tutti a zero). Ora: si scarta, si rilegge
+            // dall'archivio, si riprova; se l'altro vince ancora, i pezzi restano alla passata d'avvio e alla
+            // Diagnostica — che è quel che il ponte promette — e chi ha salvato non ne sa niente.
+            for (var tentativo = 1; ; tentativo++)
+            {
+                try
+                {
+                    if (tentativo == 1) await PonteDelleForme.AllineaAsync(this, toccate, ct);
+                    else await PonteDelleForme.RiallineaDallArchivioAsync(this, toccate, ct);
+
+                    if (ChangeTracker.HasChanges())
+                        n += sincrono
+                            ? base.SaveChanges(acceptAllChangesOnSuccess)
+                            : await base.SaveChangesAsync(acceptAllChangesOnSuccess, ct);
+                    break;
+                }
+                catch (DbUpdateException ex)
+                {
+                    PonteDelleForme.ScartaPezzi(this);
+                    if (tentativo < TentativiDelPonte) continue;
+
+                    Avvisa(ex, toccate.Count);
+                    break;
+                }
+            }
         }
         finally
         {
             _ponteInCorso = false;
         }
         return n;
+    }
+
+    private const int TentativiDelPonte = 3;
+
+    /// <summary>Un Warning, non un'eccezione: finisce in avvisi-log.txt, dove una persona lo vede.</summary>
+    private void Avvisa(Exception ex, int settori)
+    {
+        try
+        {
+            Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                Microsoft.EntityFrameworkCore.Infrastructure.AccessorExtensions
+                    .GetService<Microsoft.Extensions.Logging.ILoggerFactory>(this)
+                    .CreateLogger("Vipi.Infrastructure.Persistence.PonteDelleForme"),
+                ex,
+                "Ponte delle forme: dopo {Tentativi} tentativi un altro scrittore ha riscritto gli stessi pezzi ({Settori} settori). " +
+                "Le colonne sono salvate; i pezzi li rimette a posto la passata d'avvio, e intanto la Diagnostica li conta.",
+                TentativiDelPonte, settori);
+        }
+        catch (Exception) { /* senza logger non si fa cadere un salvataggio riuscito */ }
     }
 
     /// <summary>

@@ -21,9 +21,11 @@ namespace Vipi.Infrastructure.Persistence;
 /// settore <b>eliminato</b> perde tutti i suoi pezzi: è il gesto esplicito della pagina che elimina.</para>
 ///
 /// <para>⚠️ <b>Non è atomico col salvataggio che lo scatena</b>: le righe nuove non hanno un id finché non sono
-/// salvate. Se il secondo salvataggio cadesse, la passata d'avvio (<see cref="AllineaTuttoAsync"/>) rimette a
-/// posto, e la Diagnostica conta le righe disallineate. Dentro una transazione esplicita i due salvataggi ci
-/// stanno entrambi.</para>
+/// salvate. Se il secondo salvataggio cade — e cade davvero: due processi che riscrivono gli stessi pezzi, 16
+/// settembre 2026 — il contesto scarta i pezzi, rilegge dall'archivio (<see cref="RiallineaDallArchivioAsync"/>)
+/// e riprova; dopo tre tentativi lascia fare alla passata d'avvio (<see cref="AllineaTuttoAsync"/>), e la
+/// Diagnostica conta le righe disallineate. Il salvataggio che l'ha scatenato NON cade mai per colpa del ponte.
+/// Dentro una transazione esplicita i due salvataggi ci stanno entrambi.</para>
 ///
 /// <para>▶ Se ne va in fase C, con le colonne.</para>
 /// </summary>
@@ -95,6 +97,39 @@ internal static class PonteDelleForme
     }
 
     /// <summary>
+    /// Il secondo tentativo, dopo che un ALTRO scrittore ha riscritto gli stessi pezzi fra la lettura e il
+    /// salvataggio del ponte (due processi con la stessa scadenza d'import: produzione, 16 settembre 2026). Le
+    /// righe si rileggono dall'ARCHIVIO e non dalle entità in memoria: le colonne può averle scritte per ultimo
+    /// l'altro, e i pezzi devono dire quel che dicono le colonne, non quel che credeva questo contesto. Un id che
+    /// in archivio non c'è più perde i suoi pezzi. Non salva: chi chiama salva.
+    /// </summary>
+    internal static async Task RiallineaDallArchivioAsync(VipiDbContext db, IReadOnlyList<Toccata> toccate, CancellationToken ct)
+    {
+        var soli = toccate
+            .GroupBy(t => t.Catalogo)
+            .ToDictionary(g => g.Key, g => g.Select(t => t.Eliminata ? t.IdSeEliminata : Id(t.Entita)).Distinct().ToList());
+        var (righe, pezzi) = await CaricaTuttoAsync(db, tracciati: true, ct, soli);
+
+        var perSettore = pezzi.ToLookup(p => (p.Catalog, p.SectorId));
+        var ora = DateTime.UtcNow;
+        foreach (var r in righe)
+            Applica(db, r.Catalogo, r.Id, r.Callsign, r.Riga, perSettore[(r.Catalogo, r.Id)].ToList(), ora);
+
+        var vivi = righe.Select(r => (r.Catalogo, r.Id)).ToHashSet();
+        db.SectorShapeParts.RemoveRange(pezzi.Where(p => !vivi.Contains((p.Catalog, p.SectorId))));
+    }
+
+    /// <summary>
+    /// Toglie dal contesto ogni pezzo: quelli di un salvataggio del ponte caduto (che altrimenti ritenterebbe ogni
+    /// salvataggio dopo, di chiunque) e quelli letti prima, che possono non esistere più. Il prossimo giro li rilegge.
+    /// </summary>
+    internal static void ScartaPezzi(VipiDbContext db)
+    {
+        foreach (var e in db.ChangeTracker.Entries<SectorShapePart>().ToList())
+            e.State = EntityState.Detached;
+    }
+
+    /// <summary>
     /// La passata d'avvio: ogni riga di catalogo, e i pezzi orfani di settori che non esistono più. Torna quanti
     /// settori ha dovuto correggere. Idempotente: a regime zero, e non scrive niente.
     /// </summary>
@@ -143,14 +178,21 @@ internal static class PonteDelleForme
 
     private sealed record RigaDiCatalogo(SourceCatalog Catalogo, int Id, string Callsign, CatalogShapeRow Riga);
 
+    /// <param name="soli">Null = tutto l'archivio; altrimenti solo questi id, per catalogo (righe E pezzi).</param>
     private static async Task<(List<RigaDiCatalogo>, List<SectorShapePart>)> CaricaTuttoAsync(
-        VipiDbContext db, bool tracciati, CancellationToken ct)
+        VipiDbContext db, bool tracciati, CancellationToken ct,
+        IReadOnlyDictionary<SourceCatalog, List<int>>? soli = null)
     {
+        var idAcc = soli is null ? null : soli.GetValueOrDefault(SourceCatalog.Subcenter) ?? new List<int>();
+        var idApt = soli is null ? null : soli.GetValueOrDefault(SourceCatalog.AirportPosition) ?? new List<int>();
+
         var acc = await db.AccSectors.AsNoTracking()
+            .Where(x => idAcc == null || idAcc.Contains(x.Id))
             .Select(x => new { x.Id, x.ComposePosition, x.RegionMapPolygon, x.RegionMapPolygonInForce, x.ShapeAiracCycle,
                 x.ShapeSource, x.ShapeForcePublished, x.LowerLimit, x.UpperLimit })
             .ToListAsync(ct);
         var apt = await db.AirportSectors.AsNoTracking()
+            .Where(x => idApt == null || idApt.Contains(x.Id))
             .Select(x => new { x.Id, x.ComposePosition, x.RegionMapPolygon, x.RegionMapPolygonInForce, x.ShapeAiracCycle,
                 x.ShapeSource, x.ShapeForcePublished, x.IsShapeSynthetic, x.LowerLimit, x.UpperLimit })
             .ToListAsync(ct);
@@ -164,6 +206,9 @@ internal static class PonteDelleForme
             .ToList();
 
         var query = tracciati ? db.SectorShapeParts : db.SectorShapeParts.AsNoTracking();
+        if (soli is not null)
+            query = query.Where(p => (p.Catalog == SourceCatalog.Subcenter && idAcc!.Contains(p.SectorId))
+                                     || (p.Catalog == SourceCatalog.AirportPosition && idApt!.Contains(p.SectorId)));
         return (righe, await query.ToListAsync(ct));
     }
 

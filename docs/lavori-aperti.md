@@ -1,5 +1,32 @@
 # Lavori aperti — elenco unico
 
+## Dove siamo — 17 settembre 2026
+
+### 🟡 A55 — Il ponte delle forme non fa cadere chi salva, quando un altro processo lo precede (17 settembre 2026) — in main, NON in pacchetto
+
+Dal primo `avvisi-log.txt` di produzione: il 16-set alle 20:44Z l'import AirportSector è caduto con
+`DbUpdateConcurrencyException` nel **secondo salvataggio del ponte** (`VipiDbContext`, S11 fase A). Poiché l'import
+usa un solo scope, il contesto sporco ha poi fatto uscire a zero, in silenzio, tutti i ripieghi shape (GitHub,
+sectorfile, ATZ, cerchi).
+
+- **Causa, provata**: DUE processi. `LastSuccessUtc` di AirportSector (scritto solo da `GatedImportLoop`, servizio
+  registrato una volta) dice 20:44:35, otto secondi DOPO il fallimento; il processo 1.30.0 delle 19:42:31 non ha mai
+  scritto il suo ARRESTO. Con la stessa scadenza (15-set 20:44 + 24 h) i due giri partono insieme e il ponte
+  cancella-e-reinserisce gli stessi pezzi: nella copia del 17-set i 5 settori riscritti alle 20:44 occupano **7 id**.
+- **Non riproducibile in locale sui dati di oggi** (due host insieme su `vipi_17set`: verdi): l'import non cambia
+  forme, quindi il ponte non scrive. Il test lo riproduce con un interceptor, rosso con la stessa eccezione.
+- **Correzione**: al `DbUpdateException` del ponte si scartano i pezzi dal contesto, si rilegge dall'ARCHIVIO
+  (`RiallineaDallArchivioAsync`: le colonne può averle scritte per ultimo l'altro) e si riprova; dopo tre tentativi un
+  Warning, e restano passata d'avvio e Diagnostica. Il salvataggio che l'ha scatenato non cade mai.
+- Suite intera verde, due TFM; conteggi riscritti. ▶ Prossimo pacchetto: `Vipi.Infrastructure.dll`.
+- ▶ **S11 fase B resta ferma** finché questo non è online e la Diagnostica non resta pulita.
+
+### 🟡 A54 — Diagnostica: a zoom alto la scheda della copia del database perdeva il tasto (17 settembre 2026) — in main, NON in pacchetto
+
+`2c9f21ac`, solo `vipi-theme.css`. Colonna destra alta quanto lo schermo, schede con `min-height:0` e
+`overflow:hidden`: a 2560x1600 zoom 175% la scheda si fermava a 121 px. Ora si stringe solo chi scorre dentro, e se
+non basta scorre la colonna. Misurato con Edge prima/dopo; a 1920x1080 invariato.
+
 ## Dove siamo — 16 settembre 2026
 
 ### ✅ A53 — 1.30.1 È ONLINE (16 settembre 2026, notte)

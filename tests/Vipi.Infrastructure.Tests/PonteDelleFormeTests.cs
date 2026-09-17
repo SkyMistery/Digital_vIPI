@@ -262,6 +262,92 @@ public class PonteDelleFormeTests : IAsyncLifetime
         Assert.Equal(5_500, Assert.Single(await PezziAsync()).BaseFeet);
     }
 
+    /// <summary>
+    /// 🔴 Visto in produzione il 16 settembre 2026, 20:44Z: due processi (Passenger ne teneva vivo uno della
+    /// versione prima) con la stessa scadenza d'import riscrivono INSIEME i pezzi dello stesso settore. Uno
+    /// cancella la riga che l'altro ha appena letto, il DELETE dell'altro tocca zero righe, e il
+    /// <c>DbUpdateConcurrencyException</c> del ponte faceva cadere l'import — che aveva già salvato le colonne — e
+    /// lasciava il contesto sporco a tutti i ripieghi dopo. Il ponte deve rileggere dall'ARCHIVIO (le colonne le
+    /// ha scritte per ultimo l'altro) e allineare a quelle, senza far cadere chi ha salvato.
+    /// </summary>
+    [Fact]
+    public async Task Se_un_altro_scrittore_riscrive_i_pezzi_nel_mezzo_il_ponte_riallinea_all_archivio()
+    {
+        var s = await CtrAsync();
+        await _db.DisposeAsync();
+
+        var altroScrittore = new AltroScrittoreNelMezzo(async () =>
+        {
+            await using var altro = Contesto();
+            var riga = await altro.AccSectors.SingleAsync(x => x.Id == s.Id);
+            riga.LowerLimit = 5_500;
+            await altro.SaveChangesAsync();
+        });
+        _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn)
+            .AddInterceptors(altroScrittore).Options);
+
+        var mia = await _db.AccSectors.SingleAsync(x => x.Id == s.Id);
+        mia.UpperLimit = 24_500;
+        await _db.SaveChangesAsync();   // ⚠️ non deve lanciare: le colonne sono già salvate
+
+        Assert.True(altroScrittore.Entrato);
+        _db.ChangeTracker.Clear();
+        var p = Assert.Single(await PezziAsync());
+        Assert.Equal((5_500, 24_500), (p.BaseFeet, p.TopFeet));
+        Assert.Empty(await new EfSectorCatalogMaintenance(_db, new EfImportStateStore(_db)).ListMisalignedShapePartsAsync());
+    }
+
+    /// <summary>
+    /// Se il salvataggio dei pezzi cade OGNI volta, il ponte si arrende dopo tre tentativi: chi ha scritto le
+    /// colonne non ne sa niente, i pezzi pendenti non restano nel contesto, la Diagnostica li conta e la passata
+    /// d'avvio li rimette a posto.
+    /// </summary>
+    [Fact]
+    public async Task Se_i_pezzi_non_si_salvano_mai_il_salvataggio_regge_e_la_passata_d_avvio_ripara()
+    {
+        var s = await CtrAsync();
+        await _db.DisposeAsync();
+
+        var altroScrittore = new AltroScrittoreNelMezzo(
+            () => throw new DbUpdateException("simulato: un altro scrittore ha vinto"), sempre: true);
+        _db = new VipiDbContext(new DbContextOptionsBuilder<VipiDbContext>().UseSqlite(_conn)
+            .AddInterceptors(altroScrittore).Options);
+
+        var mia = await _db.AccSectors.SingleAsync(x => x.Id == s.Id);
+        mia.UpperLimit = 24_500;
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(3, altroScrittore.Volte);
+        await using var pulito = Contesto();
+        Assert.Equal(24_500, (await pulito.AccSectors.SingleAsync(x => x.Id == s.Id)).UpperLimit);
+        Assert.False(pulito.ChangeTracker.HasChanges());
+        Assert.False(_db.ChangeTracker.Entries<SectorShapePart>().Any(), "i pezzi del ponte caduto non restano nel contesto");
+
+        var manutenzione = new EfSectorCatalogMaintenance(pulito, new EfImportStateStore(pulito));
+        Assert.Equal(new[] { "LIRR_TS_CTR" }, await manutenzione.ListMisalignedShapePartsAsync());
+        Assert.Equal(1, await manutenzione.AlignShapePartsAsync());
+        Assert.Empty(await manutenzione.ListMisalignedShapePartsAsync());
+    }
+
+    /// <summary>Entra nel salvataggio del PONTE (quello che cancella pezzi), prima che parta: una volta, o sempre.</summary>
+    private sealed class AltroScrittoreNelMezzo(Func<Task> scrivi, bool sempre = false) : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public int Volte { get; private set; }
+        public bool Entrato => Volte > 0;
+
+        public override async ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result, CancellationToken ct = default)
+        {
+            if ((sempre || !Entrato) && eventData.Context!.ChangeTracker.Entries<SectorShapePart>().Any(e => e.State == EntityState.Deleted))
+            {
+                Volte++;
+                await scrivi();
+            }
+            return result;
+        }
+    }
+
     // ---- La precedenza in archivio --------------------------------------------------------------------------
 
     /// <summary>
