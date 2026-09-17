@@ -213,6 +213,13 @@ internal static class VipiStartup
         foreach (var (categoria, livello) in RegistroAvvisi.Filtri)
             builder.Logging.AddFilter<RegistroAvvisi>(categoria, livello);
 
+        // Le righe nostre (Vipi.*, da Information) nel file del giorno, diagnostica/log-AAAA-MM-GG.txt, sette giorni.
+        // ⚠️ Anche qui i filtri sono DI QUESTO PROVIDER: tutto spento tranne Vipi. Vedi RegistroInformativo (§A59).
+        builder.Logging.AddProvider(new RegistroInformativo());
+        foreach (var (categoria, livello) in RegistroInformativo.Filtri)
+            builder.Logging.AddFilter<RegistroInformativo>(categoria, livello);
+        builder.Services.AddSingleton<RegistroRichieste>();
+
         // ⚠️ VIA il registro eventi di Windows. `WebApplication.CreateBuilder` lo aggiunge DA SOLO quando gira
         // su Windows, e non lo vuole nessuno:
         //
@@ -321,6 +328,10 @@ internal static class VipiStartup
             TracciaRichieste.Segna(context.Request.Path.Value ?? "/");
             await next();
         });
+
+        // Una riga per richiesta nel file del giorno, diagnostica/richieste-AAAA-MM-GG.tsv: rotta, esito, millisecondi.
+        // Subito dopo, perché i millisecondi contino tutto il resto della pipeline. Vedi RegistroRichieste (§A59).
+        app.Use(app.Services.GetRequiredService<RegistroRichieste>().Misura);
 
         // Intestazioni di sicurezza. Non chiudono una falla nota ma rendono innocuo l'errore di domani, che è la
         // difesa che costa meno di tutte. Prima di UseStaticFiles, così valgono anche per gli asset.
