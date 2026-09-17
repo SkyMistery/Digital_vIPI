@@ -31,7 +31,7 @@
         </HelpHint>
     </div>
 
-    @{ var problemi = AirportRuleValidation.Issues(Rows, RunwayIdents); }
+    @{ var problemi = AirportRuleValidation.Issues(Rows, RunwayIdents, NeverUseIdents); }
     @if (problemi.Errors.Count > 0)
     {
         <div class="callout danger"><span class="cic"><Icon Name="octagon" Size="18" /></span><div>@foreach (var e in problemi.Errors) { <div>@L[e.Key, e.Args]</div> }</div></div>
@@ -273,6 +273,10 @@
     /// <summary>Il documento è in modifica e il lock è nostro: solo allora ci sono i campi.</summary>
     [Parameter] public bool Editing { get; set; }
 
+    /// <summary>Le soglie marcate «mai usare» nella tabella piste (anche non ancora salvate): il banco di prova ripiega
+    /// senza di loro, e una regola che le nomina riceve un avviso.</summary>
+    [Parameter] public IReadOnlyList<string> NeverUseIdents { get; set; } = Array.Empty<string>();
+
     /// <summary>Le regole sono cambiate — un campo, un chip, l'ordine: l'host le salva subito.</summary>
     [Parameter] public EventCallback RowsChanged { get; set; }
 
@@ -374,6 +378,7 @@
         SuggestionReason.NoRunways => L["Ape_TestReasonNoRunways"],
         SuggestionReason.Calm => L["Ape_TestReasonCalm"],
         SuggestionReason.NoDirection => L["Ape_TestReasonNoDirection"],
+        SuggestionReason.AllNeverUse => L["Ape_TestReasonAllNeverUse"],
         _ => "—",
     };
 
@@ -520,7 +525,7 @@
         var quando = RunwaySuggestion.AUtc(_provaQuando);
         _vincente = RunwaySuggestion.EvaluateRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
         _spiegazione = RunwaySuggestion.ExplainRules(regole, _provaDir, _provaKt, _provaBagnata, quando);
-        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt) : null;
+        _ripiego = _vincente is null ? RunwaySuggestion.Suggest(RunwayIdents, _provaDir, _provaKt, NeverUseIdents) : null;
         _provaFatta = true;
     }
 }

@@ -607,11 +607,7 @@ else
         _stazioneMeteo = dati.MetarStationIcao;
         _tls = dati.TransitionLevels
             .Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
-        _rwys = dati.Runways.Select(r => new RwEdit
-        {
-            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
-            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
-        }).ToList();
+        _rwys = dati.Runways.Select(RwEdit.Da).ToList();
         _rules = dati.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _lvp = LvpEdit.Da(dati.Lvp);
         _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
@@ -862,7 +858,7 @@ else
                l'editor civile e qui resta il rimando. Stesso componente, col suo banco di prova: chi scrive
                una regola vede subito quale pista sceglierebbe con un vento dato. *@
             case "runwayrules":
-                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()"
+                <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="IdentPiste()" NeverUseIdents="RwEdit.MaiUsare(_rwys)"
                                           Editing="_shell.IsEditing" RowsChanged="SalvaRegole"
                                           ConfirmRemove="ConfermaRimozioneRegola" />
                 break;
@@ -951,8 +947,7 @@ else
     /// LIPR quel lavoro è andato perso davvero.</summary>
     private Task SalvaPiste() => AirportSaveGate.Runways(_rwys)
         ? _shell.GuardedAsync(() => Scalo.SaveRunwaysAsync(_icao,
-            _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing,
-                r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()))
+            _rwys.Select(r => r.AllaRiga()).ToList()))
         : Task.CompletedTask;
 
     private Task SalvaLink() => _shell.GuardedAsync(() => Scalo.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));

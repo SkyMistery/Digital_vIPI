@@ -610,11 +610,7 @@ else
         _ta = _data.TransitionAltitudeFt;
         _stazioneMeteo = _data.MetarStationIcao;
         _tls = _data.TransitionLevels.Select(t => new TlEdit { Id = t.Id, From = t.QnhFrom, To = t.QnhTo, Level = t.Level }).ToList();
-        _rwys = _data.Runways.Select(r => new RwEdit
-        {
-            Id = r.Id, Ident = r.Ident, LengthM = r.LengthM, Bearing = r.Bearing,
-            Tora = r.ToraM, Lda = r.LdaM, App = r.AppProcedures, Patterns = r.Patterns, Circling = r.Circling,
-        }).ToList();
+        _rwys = _data.Runways.Select(RwEdit.Da).ToList();
         _rules = _data.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _lvp = LvpEdit.Da(_data.Lvp);
         var cyc = Airac.GetCycle(DateTime.UtcNow);
@@ -767,7 +763,7 @@ else
     /// </summary>
     private Task SaveRwys() => AirportSaveGate.Runways(_rwys)
         ? Guarded(() => Profile.SaveRunwaysAsync(_icao,
-            _rwys.Select(r => new RunwayRow(r.Id, r.Ident ?? "", r.LengthM, r.Bearing, r.Tora, r.Lda, r.App, r.Patterns, r.Circling)).ToList()))
+            _rwys.Select(r => r.AllaRiga()).ToList()))
         : Task.CompletedTask;
 
     private Task SaveRules() => AirportSaveGate.Rules(_rules)
@@ -1057,7 +1053,7 @@ else
     /// e col banco di prova, che è suo (doc 14 §3g).</summary>
     private RenderFragment RulesEditor => __builder =>
     {
-        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()"
+        <AirportRunwayRulesEditor Rows="_rules" RunwayIdents="RwIdents()" NeverUseIdents="RwEdit.MaiUsare(_rwys)"
                                   Editing="_shell.IsEditing" RowsChanged="SaveRules"
                                   ConfirmRemove="ConfermaRimozioneRegola" />
     };

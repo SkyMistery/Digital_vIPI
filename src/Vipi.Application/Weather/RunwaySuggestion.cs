@@ -43,6 +43,12 @@ public enum SuggestionReason
 
     /// <summary>Vento senza direzione (variabile o non noto).</summary>
     NoDirection,
+
+    /// <summary>
+    /// Le piste ci sono, ma sono <b>tutte</b> marcate «mai usare»: il ripiego non ha niente fra cui scegliere.
+    /// ⚠️ Distinto da <see cref="NoRunways"/>: lì la tabella è vuota, qui la tabella c'è e l'ha svuotata una scelta.
+    /// </summary>
+    AllNeverUse,
 }
 
 /// <summary>
@@ -119,16 +125,27 @@ public static partial class RunwaySuggestion
         return TimeZoneInfo.ConvertTimeToUtc(l, ItalyTimeZone);
     }
 
-    public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt)
+    /// <param name="neverUse">
+    /// Le soglie marcate «mai usare» (carta 2026-09-17-pista-mai-usare.md): il ripiego non le sceglie mai.
+    /// <para>⚠️ <b>La regola sta QUI, e solo qui</b>: il ripiego si calcola in cinque posti (documenti, vAWOS, vista
+    /// rapida, elenco aeroporti, banco di prova) e ognuno passa soltanto il dato. Filtrare nei chiamanti vorrebbe
+    /// dire cinque copie, e il giorno che una manca il vAWOS direbbe una pista e il documento un'altra.</para>
+    /// </param>
+    public static RunwaySuggestionResult Suggest(IEnumerable<string> runwayIdents, int? windDir, int windKt,
+        IEnumerable<string>? neverUse = null)
     {
-        var ends = runwayIdents
+        var escluse = new HashSet<string>((neverUse ?? Array.Empty<string>()).Select(i => (i ?? "").Trim()),
+            StringComparer.OrdinalIgnoreCase);
+        var tutte = runwayIdents
             .Select(i => (Ident: i.Trim().ToUpperInvariant(), M: IdentRe().Match(i.Trim())))
             .Where(x => x.M.Success)
             .Select(x => (x.Ident, Heading: int.Parse(x.M.Groups[1].Value) * 10))
             .ToList();
+        var ends = tutte.Where(e => !escluse.Contains(e.Ident)).ToList();
 
         if (ends.Count == 0)
-            return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(), SuggestionReason.NoRunways);
+            return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(),
+                tutte.Count > 0 ? SuggestionReason.AllNeverUse : SuggestionReason.NoRunways);
 
         if (windDir is null || windKt <= 2)
             return new RunwaySuggestionResult(null, Array.Empty<RunwayPick>(),

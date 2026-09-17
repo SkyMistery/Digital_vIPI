@@ -2305,6 +2305,12 @@
   <data name="Ape_IssueRwDup" xml:space="preserve"><value>Runway «{0}» duplicated: use a unique ident.</value></data>
   <data name="Ape_IssueRuleNoRw" xml:space="preserve"><value>Rule #{0}: select at least one DEP or ARR runway.</value></data>
   <data name="Ape_IssueRuleUnknownRw" xml:space="preserve"><value>Rule #{0}: runway «{1}» is not among the airport's runways.</value></data>
+  <data name="Ape_RwNeverUse" xml:space="preserve"><value>Never use</value></data>
+  <data name="Ape_RwNeverUseYes" xml:space="preserve"><value>never</value></data>
+  <data name="Ape_RwNeverUseTitle" xml:space="preserve"><value>When no runway rule applies, the wind fallback never picks this runway end. Rules that name it still apply.</value></data>
+  <data name="Ape_RwNeverUseFor" xml:space="preserve"><value>{0}: never use in the wind fallback</value></data>
+  <data name="Ape_IssueRuleNeverUseRw" xml:space="preserve"><value>Rule #{0}: runway «{1}» is marked «never use». The rule still applies: the flag only matters when no rule applies.</value></data>
+  <data name="Ape_TestReasonAllNeverUse" xml:space="preserve"><value>every runway is marked «never use».</value></data>
   <data name="Ape_IssueRuleTimeWin" xml:space="preserve"><value>Rule #{0}: incomplete time window (start or end missing).</value></data>
   <data name="Common_Print" xml:space="preserve"><value>Print</value></data>
   <data name="Print_PrintedAtLabel" xml:space="preserve"><value>Printed on</value></data>

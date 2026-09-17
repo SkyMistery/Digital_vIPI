@@ -182,7 +182,8 @@ public sealed class AirportMemberLoader
         // sulle regole vive — il comportamento di prima — chiedendo l'anagrafica SOLO in quel caso.
         var regole = derived.Rules.Regole;
         var vive = regole is null ? (await _profile.LoadForViewAsync(code, ct))?.Rules : null;
-        var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive);
+        var inUso = PistaInUso.Calcola(regole, derived.Sids, runways, windDir, windKt, metar, vive,
+            AirportRunwayRowView.MaiUsare(derived.Runways.Rows));
         var lvp = ValutaLvp(derived.Lvp, metar);
 
         // ---- Lettura bilingue (carta 2026-08-27 §7) --------------------------------------------------

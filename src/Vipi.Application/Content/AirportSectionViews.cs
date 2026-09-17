@@ -84,9 +84,19 @@ public sealed record AirportFreqView(IReadOnlyList<AirportFreqRowView> Rows)
 /// release: una release deve fotografare quel che si legge, non due numeri da ri-formattare al view — e la
 /// formattazione può cambiare.
 /// </param>
+/// <param name="NeverUse">
+/// «Mai usare» nel ripiego sul vento. ⚠️ Non si MOSTRA al lettore (decisione del committente, 17-set-2026): sta qui
+/// perché la pista in uso di un documento si calcola sulla sezione mostrata, e congelata la sezione si congela anche
+/// questo, come le regole. Gli snapshot di prima non lo hanno: vale falso.
+/// </param>
 public sealed record AirportRunwayRowView(string Ident, int? LengthM, string Tora, string Lda,
     string AppProcedures, string Patterns, string Circling,
-    string Threshold = "", int? ThresholdElevationFt = null);
+    string Threshold = "", int? ThresholdElevationFt = null, bool NeverUse = false)
+{
+    /// <summary>Le soglie «mai usare» di una sezione Piste.</summary>
+    public static IReadOnlyList<string> MaiUsare(IEnumerable<AirportRunwayRowView>? rows) =>
+        (rows ?? Array.Empty<AirportRunwayRowView>()).Where(r => r.NeverUse).Select(r => r.Ident.Trim()).ToList();
+}
 
 /// <summary>
 /// Una colonna a elenco della tabella piste — le procedure d'avvicinamento — letta come elenco: le voci si
@@ -218,7 +228,7 @@ public static class AirportSectionProjection
                 // TORA e LDA sono testo editoriale; se non compilati vale la lunghezza d'anagrafica.
                 Fallback(r.ToraM, r.LengthM), Fallback(r.LdaM, r.LengthM),
                 Dash(r.AppProcedures), Dash(r.Patterns), Dash(r.Circling),
-                NavaidText.Coordinate(r.ThresholdLat, r.ThresholdLon), r.ThresholdElevationFt))
+                NavaidText.Coordinate(r.ThresholdLat, r.ThresholdLon), r.ThresholdElevationFt, r.NeverUse))
             .ToList());
     }
 

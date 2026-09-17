@@ -15,9 +15,15 @@ public sealed record TlRow(int Id, int? QnhFrom, int? QnhTo, string Level);
 /// mano non deve doversene ricordare. E chi salva non deve <b>poterle perdere</b>: la conservazione vera sta
 /// in <c>EfAirportRepository.SaveRunwaysAsync</c>, che le riporta per ident qualunque cosa arrivi.</para>
 /// </param>
+/// <param name="NeverUse">«Mai usare» nel ripiego sul vento (carta 2026-09-17-pista-mai-usare.md).</param>
 public sealed record RunwayRow(int Id, string Ident, int? LengthM, int? Bearing,
     string? ToraM, string? LdaM, string? AppProcedures, string? Patterns, string? Circling,
-    double? ThresholdLat = null, double? ThresholdLon = null, int? ThresholdElevationFt = null);
+    double? ThresholdLat = null, double? ThresholdLon = null, int? ThresholdElevationFt = null, bool NeverUse = false)
+{
+    /// <summary>Le soglie «mai usare» di un elenco di piste: il dato che il ripiego sul vento riceve.</summary>
+    public static IReadOnlyList<string> MaiUsare(IEnumerable<RunwayRow>? rows) =>
+        (rows ?? Array.Empty<RunwayRow>()).Where(r => r.NeverUse).Select(r => r.Ident.Trim()).ToList();
+}
 
 /// <summary>
 /// Che cosa ha fatto il merge da IVAO alle piste di UN aeroporto.

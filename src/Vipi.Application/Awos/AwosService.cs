@@ -107,7 +107,8 @@ public sealed class AwosService : IAwosService
         var atis = AwosGate.Atis(_online.GetCurrent().Details, id);
         var (regole, minimiLvp) = await DalPubblicatoAsync(id, vipi, vsop, scalo.Rules, scalo.Lvp, ct);
         var attiva = AwosComposition.PistaAttiva(regole, identificativi, metar,
-            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign);
+            AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign,
+            RunwayRow.MaiUsare(scalo.Runways));
 
         return new AwosResult(new AwosView(
             Icao: id,

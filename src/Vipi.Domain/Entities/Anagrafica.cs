@@ -586,6 +586,15 @@ public class AirportRunway
     public string? AppProcedures { get; set; }
     public string? Patterns { get; set; }
     public string? Circling { get; set; }
+
+    /// <summary>
+    /// «Mai usare»: la soglia non esce mai dal <b>ripiego sul vento</b> quando nessuna regola pista vale
+    /// (carta <c>docs/feature/2026-09-17-pista-mai-usare.md</c>). ⚠️ Le regole che la nominano restano valide: il
+    /// flag non tocca <c>EvaluateRules</c>, e l'editor delle regole lo segnala. Editoriale come le colonne sopra:
+    /// il merge da IVAO lo conserva, e una riga orfana che lo porta non si cancella da sola.
+    /// <para>Nasce <c>false</c> (usabile), ed è il default giusto: è un flag opt-IN.</para>
+    /// </summary>
+    public bool NeverUse { get; set; }
 }
 
 /// <summary>

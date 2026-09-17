@@ -48,9 +48,12 @@ public static class PistaInUso
     /// </param>
     /// <param name="viveDiRipiego">Le regole dell'anagrafica di adesso, usate solo quando <paramref name="regole"/> è null.</param>
     /// <param name="runways">Gli identificativi delle piste, per il ripiego sul vento quando nessuna regola vale.</param>
+    /// <param name="maiUsare">Le soglie «mai usare» della sezione mostrata: il ripiego non le sceglie
+    /// (carta 2026-09-17-pista-mai-usare.md). Le regole non le guardano.</param>
     public static PistaInUsoAdesso Calcola(IReadOnlyList<RunwayRuleRow>? regole, AirportSidView sids,
                                            IReadOnlyList<string> runways, int? windDir, int windKt,
-                                           ParsedMetar? metar, IReadOnlyList<RunwayRuleRow>? viveDiRipiego = null)
+                                           ParsedMetar? metar, IReadOnlyList<RunwayRuleRow>? viveDiRipiego = null,
+                                           IReadOnlyList<string>? maiUsare = null)
     {
         var mostrate = regole is not null;
         var daValutare = regole ?? viveDiRipiego ?? Array.Empty<RunwayRuleRow>();
@@ -60,7 +63,7 @@ public static class PistaInUso
             ? RunwaySuggestion.EvaluateRules(RegoleDiPista.Valutabili(daValutare),
                                              windDir, windKt, wet, DateTime.UtcNow)
             : null;
-        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt);
+        var sugg = RunwaySuggestion.Suggest(runways, windDir, windKt, maiUsare);
 
         var dep = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var arr = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

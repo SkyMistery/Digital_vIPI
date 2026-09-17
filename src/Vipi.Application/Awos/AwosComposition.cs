@@ -125,7 +125,8 @@ public static partial class AwosComposition
     /// <param name="daChi">Il callsign da citare quando la pista viene dall'ATIS.</param>
     public static AwosActive PistaAttiva(
         IReadOnlyList<RunwayRuleRow> regole, IReadOnlyList<string> piste, ParsedMetar? metar,
-        IReadOnlyList<string>? atisDep = null, IReadOnlyList<string>? atisArr = null, string? daChi = null)
+        IReadOnlyList<string>? atisDep = null, IReadOnlyList<string>? atisArr = null, string? daChi = null,
+        IReadOnlyList<string>? maiUsare = null)
     {
         if (atisDep is { Count: > 0 } || atisArr is { Count: > 0 })
         {
@@ -152,7 +153,7 @@ public static partial class AwosComposition
 
         if (piste.Count > 0)
         {
-            var s = RunwaySuggestion.Suggest(piste, dir, kt);
+            var s = RunwaySuggestion.Suggest(piste, dir, kt, maiUsare);   // senza le soglie «mai usare»
             if (s.Best is not null)
                 return new AwosActive(new[] { s.DepIdent ?? s.Best.Ident }, new[] { s.ArrIdent ?? s.Best.Ident },
                                       AwosRunwaySource.Vento, null);

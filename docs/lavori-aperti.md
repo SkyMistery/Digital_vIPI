@@ -2,6 +2,25 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A68 — Soglia «mai usare» nel ripiego sul vento (17 settembre 2026) — in main, NON in pacchetto
+
+Richiesta del committente: marcare una pista come «mai usare», così che quando nessuna regola pista vale non venga mai
+scelta. Carta `feature/2026-09-17-pista-mai-usare.md`. Decisioni: il flag vale **solo per il ripiego** (le regole che
+nominano la soglia restano valide, l'editor delle regole avvisa) e **non si mostra al lettore**.
+
+- `AirportRunway.NeverUse`, **migrazione ADDITIVA `PistaMaiUsare`** (SQLite + MySQL: solo `AddColumn`, default falso =
+  usabile). ▶ Pacchetto MINOR con `Vipi.Infrastructure.MySqlMigrations.dll`.
+- La regola sta in **un posto**: `RunwaySuggestion.Suggest(…, neverUse)`, con motivo nuovo `AllNeverUse`. I cinque che
+  ripiegano passano solo il dato: documenti (`PistaInUso`, sulla sezione mostrata, quindi congelato con la release),
+  vAWOS, vista rapida, elenco aeroporti, banco di prova.
+- Editor: colonna «Mai usare» (casella) nella tabella piste di aeroporto e vSOP militare; conversione riga unica
+  `RwEdit.Da`/`AllaRiga` (erano due costruttori scritti a mano); avviso `Ape_IssueRuleNeverUseRw` nelle regole.
+- Salvataggio che riscrive le righe: il flag viaggia con la riga. Merge IVAO: lo conserva, e un'orfana col flag **non** si
+  cancella (conta come lavoro editoriale).
+- Provato dal vivo su copia prod (MariaDB): migrazione applicata all'avvio; LIBD vento 070/12 → banco «DEP 07», spuntata la
+  07 → «DEP 25, vento in coda su tutte»; flag riletto dopo il ricarico, `NeverUse=1` e TORA intatto; LIBP 22 marcata →
+  avviso sulla regola #1. Sonda `.claude/skills/verifica-live/mai-usare-verifica.js`.
+
 ### ✅ A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — ONLINE in 1.31.2 (timbro e Schema 0 confermati)
 
 Dal committente, a 1.31.1 online: «il campo note non ha lo stesso stile del resto della UI; guarda i 5 editor». Misurato
