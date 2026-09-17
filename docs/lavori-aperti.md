@@ -2,6 +2,42 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### ▶ A64 — DA FARE, dopo 1.30.4 (17 settembre 2026, fine giornata) — l'elenco da cui ripartire
+
+In main non resta codice fuori pacchetto: 1.30.4 (`a10d350`) è online. Sostituisce §A58, che resta sotto come storia.
+
+**Conferme in attesa (niente codice finché non arrivano):**
+1. **ILS nelle radioassistenze (§A61)**: l'admin che aveva segnalato riprova — Ctrl+F5, poi Tipo = «ILS» scelto
+   **dall'elenco dei suggerimenti**, nell'anagrafica e nell'editor vSOP militare. Se si blocca ancora: in
+   `errori-richieste.txt` cercare «second operation»; se non c'è, il guasto è altrove (la metà JS non è provata dal vivo).
+2. **Passate di traduzione (§A62)**: al prossimo scarico, `log-AAAA-MM-GG.txt` dopo il riavvio delle ~11:30Z deve avere
+   **2** righe «Traduzione … (azure)» a giro, non 8.
+
+**Lavori aperti:**
+3. **Segmenti ripagati a ogni giro** (ex §A58.2): «Se presente LIBN_G_APP … IAFs ILS14» it→en (385 car.) e tre «37th WING
+   A/A TRAINING AREA» en→it (497 car.) tornano con un identificatore cambiato → 882 caratteri ogni quarto d'ora. Capire
+   quale identificatore rompe e metterli in memoria o a mano.
+4. **Ripieghi shape dell'import muti** (ex §A58.3): in `AirportSectorImportHostedService` GitHub/sectorfile/ATZ/cerchi
+   falliscono a `LogDebug`. Portarli a Warning.
+5. **S11 fase B** (ex §A58.4) dopo qualche giorno di Diagnostica senza «Pezzi di forma disallineati».
+6. **Leggere il registro del giorno** (§A59) dopo qualche giorno pieno: `python tools/registro-del-giorno.py`. Primo sguardo
+   17-set: nessuna pagina lenta (massimo l'editor militare LIRR, 1,6 s); la lettura vera vuole traffico di più giorni.
+7. **Feedback a due canali** (carta pronta). **net10 = 1.31.0**.
+
+**Pulizie piccole, trovate oggi (nessuna urgente):**
+8. `tools/indice-doc.py` **riscrive** l'elenco carte di `docs/index.md` e **cancella le annotazioni a mano** («✅ online in
+   1.29.0»…): il 17-set l'ho annullato e aggiunto una riga a mano. O il generatore conserva il suffisso, o le annotazioni
+   escono dall'elenco generato.
+9. `tools/prepara-pacchetto.ps1 -Azione Ruota` si ferma se `publish_old/<data>` esiste già (seconda consegna nello stesso
+   giorno): oggi rinominata a mano la cartella `linux-x64-<data>` con suffisso `b`. Far scegliere il suffisso allo script.
+10. Stessa trappola di §A62 su `Division:IcaoPrefixes` (`LI, LI`) e forse `HostIdentityOptions.NameClaims`: innocua oggi,
+    da togliere con lo stesso setter senza doppioni se si tocca quella configurazione.
+11. `/vsop/ping` (ping delle pagine aperte, 204) entra in `richieste-*.tsv` e nella tabella dei tempi: valutare se
+    escluderlo come `/vsop/health`.
+12. Dati, loro: punto `N047.42.27.000;E017.04.60.000` (secondi = 60) nel sectorfile LOVV → tre shape estere senza area.
+
+✅ Chiuso da §A58: **Azure** risponde di nuovo con l'endpoint della risorsa (nel `log-2026-09-17.txt` il giro traduce, niente 401).
+
 ### ✅ A63 — 1.30.4 È ONLINE (17 settembre 2026)
 
 ✅ **Caricato**: timbro e `Schema 0` confermati dal committente; da fuori `pacchetto-verifica.js` pubblico tutto verde con la
@@ -101,7 +137,7 @@ non tutto il log (EF a Information = testo di ogni query), ma due file mirati e 
   di log; lo script le legge.
 - 📦 **In 1.30.3** (§A60). ▶ Dopo qualche giorno online: scaricare `diagnostica/` e far girare lo script.
 
-### ▶ A58 — Aperti dopo 1.30.2 (17 settembre 2026)
+### A58 — Aperti dopo 1.30.2 (17 settembre 2026) — ⤴ sostituito da §A64
 
 1. ✅ **Azure**: `Translation:Azure:BaseUrl` messo dal committente il 17-set. ▶ Verificare = `https://ivao-it-translator.cognitiveservices.azure.com/` nel file
    dei segreti; al prossimo scarico `avvio-diagnostica.txt` dice l'endpoint e `avvisi-log.txt` non ha più `HTTP 401`.
