@@ -1,5 +1,7 @@
 # Pacchetto 1.32.0 — solo i file cambiati
 
+> ✅ **CARICATO il 17 settembre 2026.** Timbro e `Schema 0` confermati dal committente; colonna «Mai usare» presente in vIPI e vSOP.
+
 > **Timbro:** `1.32.0 · c1eddc9` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

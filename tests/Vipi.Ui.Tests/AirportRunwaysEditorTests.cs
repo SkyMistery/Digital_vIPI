@@ -249,4 +249,48 @@ public class AirportRunwaysEditorTests : TestContext
         Assert.DoesNotContain("Ape_RwMissingFromSource", c.Markup);
         Assert.DoesNotContain("Ape_RwMissingRow", c.Markup);
     }
+
+    // ---- «Mai usare» per verso: chip rosse (carta 2026-09-17-pista-mai-usare.md) --------------------------
+
+    /// <summary>
+    /// Il clic sulla chip DEP accende «mai in partenza» di QUELLA soglia, la fa rossa (`no`), lo dice ad
+    /// `aria-pressed` e salva; ARR resta spenta. Un secondo clic la spegne.
+    /// </summary>
+    [Fact]
+    public void La_chip_dep_accende_mai_in_partenza_la_fa_rossa_e_salva()
+    {
+        var righe = new List<RwEdit> { Rw("07"), Rw("25") };
+        var salvataggi = 0;
+        var c = Rendi(righe, suCambio: () => salvataggi++);
+
+        c.Find("button[aria-label='Ape_RwNeverDepFor:07']").Click();
+
+        Assert.True(righe[0].NeverDep);
+        Assert.False(righe[0].NeverArr);
+        Assert.False(righe[1].NeverDep);
+        Assert.Equal(1, salvataggi);
+        var dep = c.Find("button[aria-label='Ape_RwNeverDepFor:07']");
+        Assert.Contains("no", dep.ClassList);
+        Assert.Equal("true", dep.GetAttribute("aria-pressed"));
+        var arr = c.Find("button[aria-label='Ape_RwNeverArrFor:07']");
+        Assert.DoesNotContain("no", arr.ClassList);
+        Assert.Equal("false", arr.GetAttribute("aria-pressed"));
+
+        c.Find("button[aria-label='Ape_RwNeverDepFor:07']").Click();
+        Assert.False(righe[0].NeverDep);
+        Assert.Equal(2, salvataggi);
+    }
+
+    /// <summary>In lettura: le sole chip accese, rosse e senza gesto; «—» quando la soglia non è esclusa.</summary>
+    [Fact]
+    public void In_lettura_solo_le_chip_accese_senza_gesto()
+    {
+        var righe = new List<RwEdit> { new() { Ident = "07", NeverArr = true }, Rw("25") };
+        var c = RenderComponent<AirportRunwaysEditor>(p => p.Add(x => x.Rows, righe).Add(x => x.Editing, false));
+
+        var celle = c.FindAll("td.col-mai").ToList();
+        Assert.Equal(new[] { "ARR" }, celle[0].QuerySelectorAll("span.sh-chip.no").Select(x => x.TextContent).ToArray());
+        Assert.Empty(celle[0].QuerySelectorAll("button"));
+        Assert.Equal("—", celle[1].TextContent.Trim());
+    }
 }

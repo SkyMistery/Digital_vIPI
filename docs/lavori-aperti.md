@@ -2,7 +2,18 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A68 — Soglie «mai in partenza» / «mai in arrivo» nel ripiego sul vento (17 settembre 2026) — in 1.32.0, PRONTO DA CARICARE
+### 🟡 A69 — «Mai usare» come chip rosse (17 settembre 2026) — in main, NON in pacchetto
+
+Dal committente, a 1.32.0 online (timbro e `Schema 0` confermati, colonna presente in vIPI e vSOP): «allinea la UI di quelle
+caselle al resto: falle come chip che se cliccate diventano rosse». Le due caselle DEP/ARR diventano due `sh-chip` come le
+colonne accanto, con la variante nuova **`sh-chip.no`** (rosso pieno red-600, testo bianco) quando accese; in lettura le sole
+chip accese. Guida e carta aggiornate. Solo `Vipi.Ui` + `vipi-theme.css`: nessuna migrazione.
+Controlli: 2 test bUnit (clic → `NeverDep`, classe `no`, `aria-pressed`, salvataggio; lettura) **provati per mutazione** (tolta la
+classe rossa → test rosso); dal vivo su copia prod (LIBD): chip rossa, banco «DEP 25 · ARR 07», stato riletto dopo il ricarico,
+vAWOS dal pubblicato «DEP 25 · ARR 07»; scatti in scuro e chiaro, modifica e lettura, editor militare (LIBA); contrasto misurato
+5,56:1 accesa, ≥ 5,13:1 spenta; nessun errore in console. Sonda `mai-usare-verifica.js` aggiornata ai pulsanti.
+
+### ✅ A68 — Soglie «mai in partenza» / «mai in arrivo» nel ripiego sul vento (17 settembre 2026) — ONLINE in 1.32.0 (timbro e Schema 0 confermati)
 
 Richiesta del committente: marcare una soglia come «mai usare» nel ripiego sul vento, poi **per verso** (una pista usata solo
 per gli arrivi). Carta `feature/2026-09-17-pista-mai-usare.md`. Decisioni: il flag vale **solo per il ripiego** (le regole che

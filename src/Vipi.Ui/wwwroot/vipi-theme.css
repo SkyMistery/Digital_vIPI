@@ -2187,9 +2187,6 @@
 /* ⚠️ Fondo e inchiostro DICHIARATI: senza, nel tema scuro il campo prendeva il grigio del browser (rgb 59,59,59) —
    misurato il 17-set-2026 sui campi METAR, ricerca frequenze e regole avanzate degli editor aeroporto e militare. */
 :where(.vipi-root) .se-row input:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
-/* «Mai usare» per verso nella tabella piste dell'editor: due caselle affiancate, DEP e ARR (carta 2026-09-17-pista-mai-usare.md). */
-:where(.vipi-root) .rw-mai{display:inline-flex;align-items:center;gap:4px;font-size:12px;margin-right:10px;white-space:nowrap;cursor:pointer}
-:where(.vipi-root) .rw-mai input[type=checkbox]{padding:0;margin:0}
 :where(.vipi-root) .se-row select{border:1px solid var(--line);border-radius:7px;padding:6px 28px 6px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s}
 :where(.vipi-root) .se-row select:hover{border-color:var(--line-ocean)}
 :where(.vipi-root) .se-row select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
@@ -2452,6 +2449,11 @@
 :where(.vipi-root) .sh-chip.warn{background:var(--tint-yellow);color:var(--warn-ink);border-color:var(--line-yellow)}
 :where(.vipi-root) button.sh-chip.warn:hover{background:var(--tint-gold)}
 :where(.vipi-root) .sh-chip.on{background:var(--ivao-blue);color:var(--on-brand);border-color:var(--ivao-blue)}
+/* Chip accesa che dice un DIVIETO, non una scelta: «mai in partenza» / «mai in arrivo» delle piste (carta
+   2026-09-17-pista-mai-usare.md). Rosso pieno dal token di brand, testo bianco: 5,6:1 su red-600, sopra AA in tutti e due i
+   temi perché il fondo non dipende dalla superficie. */
+:where(.vipi-root) .sh-chip.no{background:var(--ivao-color-semantic-red-600);color:#fff;border-color:var(--ivao-color-semantic-red-600)}
+:where(.vipi-root) button.sh-chip.no:hover{background:var(--ivao-color-semantic-red-700);border-color:var(--ivao-color-semantic-red-700)}
 /* Le chip delle colonne a scelta della tabella piste (APP procedures, Patterns, Circling): piu' strette dei
    filtri di testata, perche' stanno in una cella e ce ne sono fino a nove. La chip gialla e' una voce scritta
    col vecchio testo libero: porta la sua ✕ dentro. `.struct` davanti, o `.res-table td` vince. */

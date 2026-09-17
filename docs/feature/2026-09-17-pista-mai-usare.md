@@ -1,6 +1,6 @@
 # Soglie «mai in partenza» e «mai in arrivo» nel ripiego sul vento (17 settembre 2026)
 
-> Stato: 📦 **in 1.32.0**, pronto da caricare (§A68 di `docs/lavori-aperti.md`). **Migrazione ADDITIVA** `PisteMaiUsarePerVerso` (due colonne booleane). Provata dal vivo su copia di produzione.
+> Stato: ✅ **online in 1.32.0** (§A68). 🟡 Le chip rosse al posto delle caselle (§A69) in main, NON in pacchetto.
 
 **La richiesta del committente:** nell'editor marcare una pista come «mai usare», così che **quando nessuna regola
 pista vale** quella pista non venga comunque mai scelta; poi, per verso: «mai in partenza» e «mai in arrivo».
@@ -54,7 +54,7 @@ Una riga della tabella piste è **una soglia** (`AirportRunway.Ident` = «16», 
   render e sovrapporrebbe letture sullo stesso DbContext.
 - ⚠️ **Il salvataggio delle piste cancella e riscrive le righe**: i flag passano dall'editor, quindi viaggiano con la riga.
 - ⚠️ **Il merge da IVAO** li tiene, e una riga orfana con un flag acceso **conta come lavoro editoriale**.
-- **Editor**: nella tabella piste una colonna «Mai usare» con due caselle, DEP e ARR; in lettura «DEP», «ARR», «DEP · ARR».
+- **Editor**: nella tabella piste una colonna «Mai usare» con due **chip**, DEP e ARR (`sh-chip`, come APP procedures, Patterns e Circling), **rosse** quando accese (`sh-chip.no`, red-600 con testo bianco, 5,56:1); in lettura le sole chip accese, rosse e senza gesto. ⚠️ Fino a 1.32.0 erano caselle: il committente le ha chieste allineate al resto (17-set, §A69).
   Nell'editor delle regole: avvisi `Ape_IssueRuleNeverDepRw` / `Ape_IssueRuleNeverArrRw`, **solo nel verso escluso**; il
   banco di prova scrive «nessuna (tutte escluse)» per un verso senza pista.
 

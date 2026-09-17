@@ -80,12 +80,18 @@
                         @* «Mai usare», per verso: quando nessuna regola vale, il ripiego sul vento non sceglie mai questa
                            soglia per le partenze (DEP) e/o per gli arrivi (ARR). Le regole che la nominano restano
                            valide, e l'editor delle regole lo segnala (carta 2026-09-17-pista-mai-usare.md). Non si mostra
-                           al lettore del documento. *@
+                           al lettore del documento.
+                           ⚠️ Chip e non caselle (committente, 17-set-2026): lo stesso gesto delle colonne accanto, ma ROSSE
+                           quando accese — dicono un divieto, non una scelta. `aria-pressed` è la verità per chi ascolta. *@
                         <td class="col-mai">
-                            <label class="rw-mai" title="@L["Ape_RwNeverUseTitle"]"><input type="checkbox" @bind="r.NeverDep" @bind:after="Cambiato"
-                                   aria-label="@L["Ape_RwNeverDepFor", r.Ident ?? ""]" /> DEP</label>
-                            <label class="rw-mai" title="@L["Ape_RwNeverUseTitle"]"><input type="checkbox" @bind="r.NeverArr" @bind:after="Cambiato"
-                                   aria-label="@L["Ape_RwNeverArrFor", r.Ident ?? ""]" /> ARR</label>
+                            <div class="rw-chips">
+                                <button type="button" class="sh-chip @(r.NeverDep ? "no" : "")" aria-pressed="@(r.NeverDep ? "true" : "false")"
+                                        title="@L["Ape_RwNeverUseTitle"]" aria-label="@L["Ape_RwNeverDepFor", r.Ident ?? ""]"
+                                        @onclick="() => Commuta(r, partenze: true)">DEP</button>
+                                <button type="button" class="sh-chip @(r.NeverArr ? "no" : "")" aria-pressed="@(r.NeverArr ? "true" : "false")"
+                                        title="@L["Ape_RwNeverUseTitle"]" aria-label="@L["Ape_RwNeverArrFor", r.Ident ?? ""]"
+                                        @onclick="() => Commuta(r, partenze: false)">ARR</button>
+                            </div>
                         </td>
                         <td><button class="btn ghost" @onclick="() => Rimuovi(r)" title="@L["Ape_RwRemoveTitle"]">✕</button></td>
                     }
@@ -96,7 +102,17 @@
                         <td>@AirportRunwayLists.Format(r.App)</td>
                         <td>@Testo(r.Patterns)</td>
                         <td>@Testo(r.Circling)</td>
-                        <td class="col-mai">@((r.NeverDep, r.NeverArr) switch { (true, true) => "DEP · ARR", (true, false) => "DEP", (false, true) => "ARR", _ => "—" })</td>
+                        <td class="col-mai">
+                            @if (!r.NeverDep && !r.NeverArr) { @("—") }
+                            else
+                            {
+                                @* In lettura le stesse chip rosse, ma senza gesto: sono uno stato, non un comando. *@
+                                <div class="rw-chips">
+                                    @if (r.NeverDep) { <span class="sh-chip no" title="@L["Ape_RwNeverUseTitle"]">DEP</span> }
+                                    @if (r.NeverArr) { <span class="sh-chip no" title="@L["Ape_RwNeverUseTitle"]">ARR</span> }
+                                </div>
+                            }
+                        </td>
                     }
                 </tr>
             }
@@ -137,6 +153,13 @@
     /// <summary>Una casella ha cambiato valore. Unico punto d'uscita del componente: ci arrivano sia le
     /// modifiche alle celle sia l'aggiunta e la rimozione di una riga.</summary>
     private Task Cambiato() => RowsChanged.InvokeAsync();
+
+    /// <summary>Accende o spegne «mai in partenza» / «mai in arrivo» di una soglia, e salva come ogni altra cella.</summary>
+    private Task Commuta(RwEdit r, bool partenze)
+    {
+        if (partenze) r.NeverDep = !r.NeverDep; else r.NeverArr = !r.NeverArr;
+        return Cambiato();
+    }
 
     /// <summary>Il valore di una colonna editoriale in sola lettura.</summary>
     private static string Testo(string? v) => string.IsNullOrWhiteSpace(v) ? "—" : v!;

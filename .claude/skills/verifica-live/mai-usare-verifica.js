@@ -38,9 +38,11 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
     await p.evaluate(() => document.querySelectorAll('details:not([open])').forEach(d => d.open = true));
     await sleep(1500);
   };
+  // Dal 17-set-2026 sono CHIP (pulsanti con aria-pressed), non caselle: rosse (`no`) quando accese.
   const caselle = (s) => p.evaluate((s) => {
-    const cbs = [...document.querySelectorAll('td.col-mai input[type=checkbox]')].filter(c => (c.getAttribute('aria-label') || '').startsWith(s + ':'));
-    return cbs.map(c => (/depart|partenz/i.test(c.getAttribute('aria-label')) ? 'DEP' : 'ARR') + '=' + c.checked).join(' ');
+    const bs = [...document.querySelectorAll('td.col-mai button.sh-chip')].filter(c => (c.getAttribute('aria-label') || '').startsWith(s + ':'));
+    return bs.map(c => (/depart|partenz/i.test(c.getAttribute('aria-label')) ? 'DEP' : 'ARR') + '=' + c.getAttribute('aria-pressed')
+      + (c.classList.contains('no') ? '(rossa)' : '')).join(' ');
   }, s);
   const banco = async () => {
     await p.evaluate((v) => {
@@ -57,7 +59,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
   await editor(); await modifica();
   console.log('caselle prima     :', await caselle(SOGLIA));
   console.log('banco prima       :', await banco());
-  await p.evaluate((s) => [...document.querySelectorAll('td.col-mai input[type=checkbox]')]
+  await p.evaluate((s) => [...document.querySelectorAll('td.col-mai button.sh-chip')]
     .find(c => (c.getAttribute('aria-label') || '').startsWith(s + ':') && /depart|partenz/i.test(c.getAttribute('aria-label'))).click(), SOGLIA);
   await sleep(2500);
   console.log('caselle dopo clic :', await caselle(SOGLIA));
