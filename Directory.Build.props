@@ -1433,7 +1433,16 @@
       con le ultime dieci richieste e righe informative (RegistroAvvisi). PATCH e non MINOR: nessuna pagina, sezione o
       indirizzo nuovo, solo un file di diagnostica in più. Tocca il solo Vipi.Host. Il net10 resta 1.31.0.
     -->
-    <VipiVersione>1.30.1</VipiVersione>
+    <!--
+      1.30.2 — PATCH, NESSUNA migrazione. Su 1.30.1 (be9a612, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A54…§A56): la Diagnostica a zoom alto non taglia più la scheda della copia
+      del database (§A54, solo CSS); il ponte delle forme non fa cadere chi salva quando un altro processo riscrive
+      gli stessi pezzi — il guasto del 16-set 20:44Z (§A55); il motore Azure può usare l'endpoint della risorsa col
+      suo percorso, e l'avvio dice quale endpoint è in uso (§A56). Tocca Vipi.Infrastructure, Vipi.Host e
+      vipi-theme.css. Il net10 resta 1.31.0.
+    -->
+    <VipiVersione>1.30.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
