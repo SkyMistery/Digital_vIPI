@@ -2,6 +2,22 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 📦 A57 — 1.30.2 PRONTO DA CARICARE (17 settembre 2026)
+
+**PATCH su 1.30.1, NESSUNA migrazione.** Contiene §A54, §A55, §A56. Timbro **`1.30.2 · 76aceb3`**; zip
+`artifacts/publish/vipi-1.30.2-solo-file-cambiati.zip` (1,41 MB), sha256
+`bca3cdcfb19381ca3c94fdb23bfe613fa58d70a75c1e653391578bb1cf03a9a3`; foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.30.2.md`;
+elenco `artifacts/publish/elenco-1.30.2.txt`. Rotazione: 1.30.1 in `publish_old/20260916d`.
+
+- **8 file**: `Vipi.Infrastructure` dll+pdb, `Vipi.Host` dll+pdb, `vipi-theme.css` (+`.br`/`.gz`) con
+  `Vipi.Host.staticwebassets.endpoints.json`. `Vipi.Ui.dll` fuori: l'impronta degli asset si calcola a runtime.
+- **Provato sul pacchetto** (win-x64, copia prod 17-set 06:28Z in MariaDB): timbro giusto, `pacchetto-verifica.js`
+  tutto verde, Diagnostica a 1463x914 con la scheda intera, traduzione VERA con la chiave nuova sull'endpoint della
+  risorsa («1 nuove», nessun 401).
+- ▶ **Dopo il carico**: `Translation:Azure:BaseUrl` nel file `segreti` (vedi foglio); timbro, Ricerca, `Schema 0`;
+  in `avvisi-log.txt` niente più `HTTP 401`.
+- ⚠️ Resta: i segmenti che Azure restituisce rotti si ripagano a ogni giro («IAFs ILS14», «37th WING A/A TRAINING AREA»).
+
 ### 🟡 A56 — Azure: l'endpoint della risorsa si può usare (17 settembre 2026) — in main, NON in pacchetto
 
 Dal 17-set 03:34Z Azure rispondeva 401. Il committente ha creato chiavi nuove sulla risorsa `ivao-it-translator`:
