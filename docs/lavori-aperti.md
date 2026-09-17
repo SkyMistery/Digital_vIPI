@@ -2,6 +2,25 @@
 
 ## Dove siamo — 17 settembre 2026
 
+### 🟡 A61 — Radioassistenze: scegliere «ILS» dal suggerimento faceva morire la pagina (17 settembre 2026) — in main, NON in pacchetto
+
+Segnalato da un admin: nella colonna Tipo delle radioassistenze, scegliendo ILS, «Something went wrong» (12:12 locali).
+In `errori-richieste.txt` sei voci fra le 10:09 e le 10:14Z (sotto 1.30.2), sia dall'editor vSOP militare
+(`MilNavaidsEditor` → `MilSectionsEditor.ScriviRadioassistenza`) sia dall'anagrafica (`AdminNavaidsPage.Scrivi`):
+«A second operation was started» in `EfNavaidCatalog.ScriviAsync`, poi `ObjectDisposedException` sul contesto.
+
+- **Causa**: la scelta da `<datalist>` manda DUE `change` — quello sintetico aggiunto in §A33 (`vipi-editor.js`) e quello
+  del browser. Il commento di §A33 diceva «chi riceve ignori il valore invariato»: non basta, la prima scrittura è ancora
+  in volo quando parte la seconda, sullo stesso `DbContext` del circuito.
+- **Correzione, due porte**: (1) le scritture passano **una alla volta** — nell'editor militare dal tornello che c'era
+  già (`_shell.InFilaAsync`), nell'anagrafica con un `SemaphoreSlim`; la seconda trova il valore scritto e torna
+  «invariato». (2) `vipi-editor.js`: il primo `change` vero con lo stesso valore di quello sintetico si mangia (segno
+  `__vipiAtteso`, ascoltatore in cattura su `window`, prima di Blazor). Vale anche per le datalist dell'editor SID.
+- Test `Due_change_di_fila_sul_tipo_scrivono_uno_dopo_l_altro` (bUnit, anagrafica): rosso senza la fila (2 in volo), verde con.
+- ⚠️ Non provato dal vivo: il popup nativo della datalist non si pilota da puppeteer (come in §A33).
+- ▶ Pacchetto: `Vipi.Ui.dll`+`.pdb`, `vipi-editor.js` con `.br`/`.gz` e `Vipi.Host.staticwebassets.endpoints.json`
+  (+ `Vipi.Host.dll` per il timbro).
+
 ### 📦 A60 — 1.30.3 PRONTO DA CARICARE (17 settembre 2026)
 
 **PATCH su 1.30.2, NESSUNA migrazione.** Contiene §A59. Timbro **`1.30.3 · b5be0ff`**; zip

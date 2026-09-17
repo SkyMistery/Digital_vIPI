@@ -411,22 +411,35 @@
     // guarda riprova col suggerimento — finché un clic altrove fa uscire dal campo e il valore «va».
     // Qui la scelta dall'elenco diventa un `change` subito. Solo per quel tipo di `input` e solo se il valore
     // è davvero una voce dell'elenco: chi scrive a mano continua a salvare all'uscita, come prima.
-    // ⚠️ Se il browser manda anche il suo `change` all'uscita, il valore è lo stesso: chi riceve deve
-    // ignorare un valore invariato (lo fanno l'editor SID e i salvataggi, che sono idempotenti).
+    // 🔴 E il `change` del browser che RIPETE quello sintetico non passa (17 settembre 2026). La riga qui sopra
+    // diceva «chi riceve ignori il valore invariato», e non bastava: i due `change` arrivano uno dietro l'altro,
+    // la prima scrittura è ancora in volo quando parte la seconda, e sullo stesso DbContext del circuito è
+    // «A second operation was started» — la pagina muore. Visto in produzione scegliendo «ILS» nella colonna
+    // Tipo delle radioassistenze (vSOP militare e anagrafica). Il segno `__vipiAtteso` dice «ho già mandato
+    // questo valore»: il primo `change` vero con quel valore si mangia, qualunque altra cosa lo cancella.
     if (!window.__vipiDatalistPick) {
         window.__vipiDatalistPick = true;
         document.addEventListener('input', function (e) {
             var el = e.target;
             if (!el || el.tagName !== 'INPUT' || !el.list) return;
-            if (e.inputType && e.inputType !== 'insertReplacementText') return;
+            if (e.inputType && e.inputType !== 'insertReplacementText') { el.__vipiAtteso = undefined; return; }
             var v = el.value;
             var voci = el.list.options;
             for (var i = 0; i < voci.length; i++) {
                 if (voci[i].value === v) {
+                    el.__vipiAtteso = v;
                     el.dispatchEvent(new Event('change', { bubbles: true }));
                     return;
                 }
             }
+        }, true);
+        // Su `window` e in cattura: arriva prima dell'ascoltatore di Blazor, che sta sul documento.
+        window.addEventListener('change', function (e) {
+            var el = e.target;
+            if (!el || el.__vipiAtteso === undefined || !e.isTrusted) return;
+            var atteso = el.__vipiAtteso;
+            el.__vipiAtteso = undefined;
+            if (el.value === atteso) e.stopImmediatePropagation();
         }, true);
     }
 

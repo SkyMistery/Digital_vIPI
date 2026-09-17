@@ -67,8 +67,24 @@ public class PaginaRadioassistenzeTests : TestContext
             Task.FromResult(NavaidDelete.Ok);
         public Task<IReadOnlyList<string>> CitataDaAsync(int id, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<string>>(Array.Empty<string>());
-        public Task<NavaidWrite> SetTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default) =>
-            Task.FromResult(NavaidWrite.Ok);
+        /// <summary>Se c'è, la scrittura del tipo aspetta qui: serve a tenerne una in volo mentre ne arriva un'altra.</summary>
+        public TaskCompletionSource? Freno { get; set; }
+        /// <summary>Quante scritture del tipo erano in volo INSIEME, al massimo: con un DbContext vero, più di una muore.</summary>
+        public int MassimoInVolo { get; private set; }
+        public int Scritture { get; private set; }
+        private int _inVolo;
+
+        public async Task<NavaidWrite> SetTypeAsync(int id, string? tipo, int userId, CancellationToken ct = default)
+        {
+            MassimoInVolo = Math.Max(MassimoInVolo, ++_inVolo);
+            try
+            {
+                if (Freno is { } f) await f.Task;
+                Scritture++;
+                return NavaidWrite.Ok;
+            }
+            finally { _inVolo--; }
+        }
         public Task<NavaidWrite> SetFrequencyAsync(int id, string? f, int userId, CancellationToken ct = default) =>
             Task.FromResult(NavaidWrite.Ok);
         public Task<NavaidWrite> SetChannelAsync(int id, string? c, int userId, CancellationToken ct = default) =>
@@ -359,6 +375,28 @@ public class PaginaRadioassistenzeTests : TestContext
     private static NavaidRow ConFrequenza(int id, string code, string? freq) =>
         new(id, code, "VHF", null, freq, null, null, null,
             NavaidFieldOrigin.Manual, NavaidFieldOrigin.Manual, NavaidFieldOrigin.Manual, null, null);
+
+    /// <summary>
+    /// 🔴 Due <c>change</c> di fila sul tipo — il sintetico di <c>vipi-editor.js</c> e quello del browser, scegliendo
+    /// «ILS» dal suggerimento — non devono diventare due scritture <b>insieme</b>: sullo stesso <c>DbContext</c> del
+    /// circuito è «A second operation was started» e la pagina muore. Visto in produzione il 17 settembre 2026.
+    /// </summary>
+    [Fact]
+    public async Task Due_change_di_fila_sul_tipo_scrivono_uno_dopo_l_altro()
+    {
+        var anagrafica = new AnagraficaFinta(Nostra(1, "AMD")) { Freno = new TaskCompletionSource() };
+        var cut = Render(anagrafica, new ImportatoreFinto(new NavaidImportReport(null, NavaidImportSkip.SorgenteMuta, 0)));
+
+        var campo = cut.Find("table.navadm-table td.c-type input");
+        var primo = campo.ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" });
+        var secondo = campo.ChangeAsync(new Microsoft.AspNetCore.Components.ChangeEventArgs { Value = "ILS" });
+
+        anagrafica.Freno.SetResult();
+        await Task.WhenAll(primo, secondo);
+
+        Assert.Equal(2, anagrafica.Scritture);
+        Assert.Equal(1, anagrafica.MassimoInVolo);
+    }
 
     /// <summary>Chi non è Editor non vede la tabella: il rifiuto, non una pagina che non risponde.</summary>
     [Fact]

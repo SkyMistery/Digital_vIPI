@@ -1208,19 +1208,29 @@ else
     /// si racconta a chi ha appena provato a scrivere, e un salvataggio muto lascerebbe credere che il valore
     /// sia passato.
     /// </summary>
+    ///
+    /// <para>🔴 <b>In fila al tornello, dal 17 settembre 2026.</b> Scegliere «ILS» dal suggerimento della colonna Tipo
+    /// mandava DUE <c>change</c> — quello sintetico di <c>vipi-editor.js</c> (§A33) e quello del browser — cioè due
+    /// scritture partite insieme sullo stesso <c>DbContext</c>: «A second operation was started», poi il contesto
+    /// smaltito e la pagina morta («Something went wrong»). Visto in produzione alle 10:09–10:14Z. In fila, la
+    /// seconda trova il valore già scritto e torna «invariato».</para>
     private async Task<NavaidWrite> ScriviRadioassistenza(int navaidId, NavaidCampo campo, string? valore)
     {
-        var utente = Authz.CurrentUserId ?? 0;
-        var esito = campo switch
+        var esito = NavaidWrite.NonTrovata;
+        await _shell.InFilaAsync(async () =>
         {
-            NavaidCampo.Tipo => await Radioassistenze.SetTypeAsync(navaidId, valore, utente),
-            NavaidCampo.Frequenza => await Radioassistenze.SetFrequencyAsync(navaidId, valore, utente),
-            NavaidCampo.Canale => await Radioassistenze.SetChannelAsync(navaidId, valore, utente),
-            _ => await Radioassistenze.SetCoordinatesAsync(navaidId, valore, utente),
-        };
-        // Si ricarica anche quando la scrittura è stata rifiutata: la casella deve tornare al valore vero,
-        // altrimenti a schermo resta quel che l'utente ha battuto e sembra salvato.
-        await CaricaRadioassistenzeAsync();
+            var utente = Authz.CurrentUserId ?? 0;
+            esito = campo switch
+            {
+                NavaidCampo.Tipo => await Radioassistenze.SetTypeAsync(navaidId, valore, utente),
+                NavaidCampo.Frequenza => await Radioassistenze.SetFrequencyAsync(navaidId, valore, utente),
+                NavaidCampo.Canale => await Radioassistenze.SetChannelAsync(navaidId, valore, utente),
+                _ => await Radioassistenze.SetCoordinatesAsync(navaidId, valore, utente),
+            };
+            // Si ricarica anche quando la scrittura è stata rifiutata: la casella deve tornare al valore vero,
+            // altrimenti a schermo resta quel che l'utente ha battuto e sembra salvato.
+            await CaricaRadioassistenzeAsync();
+        });
         return esito;
     }
 

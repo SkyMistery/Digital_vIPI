@@ -439,31 +439,44 @@
         finally { _busy = false; }
     }
 
+    /// <summary>
+    /// Una scrittura alla volta. 🔴 Dal 17 settembre 2026: scegliere un tipo dal suggerimento mandava DUE <c>change</c>
+    /// (il sintetico di <c>vipi-editor.js</c> e quello del browser), cioè due scritture insieme sullo stesso
+    /// <c>DbContext</c> del circuito — «A second operation was started» e la pagina morta. In fila, la seconda trova il
+    /// valore già scritto e torna «invariato».
+    /// </summary>
+    private readonly SemaphoreSlim _scritture = new(1, 1);
+
     private async Task Scrivi(NavaidRow r, NavaidCampo campo, string? valore)
     {
-        _note.Remove(r.Id);
-        var utente = Authz.CurrentUserId ?? 0;
-        var esito = campo switch
+        await _scritture.WaitAsync();
+        try
         {
-            NavaidCampo.Tipo => await Anagrafica.SetTypeAsync(r.Id, valore, utente),
-            NavaidCampo.Frequenza => await Anagrafica.SetFrequencyAsync(r.Id, valore, utente),
-            NavaidCampo.Canale => await Anagrafica.SetChannelAsync(r.Id, valore, utente),
-            _ => await Anagrafica.SetCoordinatesAsync(r.Id, valore, utente),
-        };
+            _note.Remove(r.Id);
+            var utente = Authz.CurrentUserId ?? 0;
+            var esito = campo switch
+            {
+                NavaidCampo.Tipo => await Anagrafica.SetTypeAsync(r.Id, valore, utente),
+                NavaidCampo.Frequenza => await Anagrafica.SetFrequencyAsync(r.Id, valore, utente),
+                NavaidCampo.Canale => await Anagrafica.SetChannelAsync(r.Id, valore, utente),
+                _ => await Anagrafica.SetCoordinatesAsync(r.Id, valore, utente),
+            };
 
-        var msg = esito switch
-        {
-            NavaidWrite.DallaSorgente => L["Nav_RefusedSource"].Value,
-            NavaidWrite.NonValido => campo == NavaidCampo.Coordinate ? L["Nav_BadCoords"].Value
-                : campo == NavaidCampo.Canale ? L["Nav_BadChannel"].Value : L["Nav_BadValue"].Value,
-            NavaidWrite.NonTrovata => L["Nav_Gone"].Value,
-            _ => null,
-        };
-        if (msg is not null) _note[r.Id] = msg;
+            var msg = esito switch
+            {
+                NavaidWrite.DallaSorgente => L["Nav_RefusedSource"].Value,
+                NavaidWrite.NonValido => campo == NavaidCampo.Coordinate ? L["Nav_BadCoords"].Value
+                    : campo == NavaidCampo.Canale ? L["Nav_BadChannel"].Value : L["Nav_BadValue"].Value,
+                NavaidWrite.NonTrovata => L["Nav_Gone"].Value,
+                _ => null,
+            };
+            if (msg is not null) _note[r.Id] = msg;
 
-        // Si ricarica anche dopo un rifiuto: la casella deve tornare al valore vero, o a schermo resta quel
-        // che si è battuto e sembra salvato.
-        await CaricaAsync();
+            // Si ricarica anche dopo un rifiuto: la casella deve tornare al valore vero, o a schermo resta quel
+            // che si è battuto e sembra salvato.
+            await CaricaAsync();
+        }
+        finally { _scritture.Release(); }
     }
 
     /// <summary>
