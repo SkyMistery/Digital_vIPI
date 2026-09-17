@@ -1450,7 +1450,15 @@
       per file. PATCH e non MINOR come 1.30.1: nessuna pagina, sezione o indirizzo nuovo, solo file di diagnostica in
       più. Tocca il solo Vipi.Host. Il net10 resta 1.31.0.
     -->
-    <VipiVersione>1.30.3</VipiVersione>
+    <!--
+      1.30.4 — PATCH, NESSUNA migrazione. Su 1.30.3 (b5be0ff, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A61, §A62): scegliere il tipo di una radioassistenza dal suggerimento non
+      fa più morire la pagina — due change e due scritture insieme sul DbContext del circuito (§A61); il giro delle
+      traduzioni fa due passate invece di otto, perché il legame della configurazione raddoppiava lingue e motori
+      (§A62). Tocca Vipi.Ui (+ vipi-editor.js), Vipi.Application e Vipi.Host per il timbro. Il net10 resta 1.31.0.
+    -->
+    <VipiVersione>1.30.4</VipiVersione>
   </PropertyGroup>
 
 </Project>
