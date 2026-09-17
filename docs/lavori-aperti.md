@@ -2,7 +2,27 @@
 
 ## Dove siamo — 17 settembre 2026
 
-### 📦 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — in 1.31.1, PRONTO DA CARICARE
+### 🟡 A67 — Campi degli editor con lo stile del browser (17 settembre 2026) — in main, NON in pacchetto
+
+Dal committente, a 1.31.1 online: «il campo note non ha lo stesso stile del resto della UI; guarda i 5 editor». Misurato
+invece che cercato a occhio: `campi-verifica.js` legge lo stile calcolato di **566 campi** in modifica nei 5 editor, tema
+scuro e chiaro. Trovati **7 punti** vestiti dal browser (grigio `rgb(59,59,59)`, angoli vivi, Arial o freccia di sistema):
+
+1. nota della tabella **Spazi aerei (AIP)** (APP/ACC) → `app-ta`; la sua tendina della classe → `app-in`;
+2. nota delle tabelle **Aree di lavoro** e **BOAT** del vSOP militare (stesso difetto, da §A40) → `app-ta`;
+3. filtro per ente delle **Aree regolamentate** (ACC, APP, militare) → `app-in`;
+4. campi in `.se-row` di aeroporto e militare (stazione METAR, ricerca frequenze, regole avanzate: numero, data-ora):
+   bordo e raggio sì, **fondo e inchiostro no** → dichiarati, più il fuoco;
+5. tendina della famiglia nella riga d'aggiunta **Radioassistenze** (militare) → freccia di casa;
+6. tendina «scegli» delle citazioni in radioassistenze e alternati (compare solo con candidati) → `app-in`;
+7. 🔴 **causa comune della freccia mancante**: `.struct .res-table select` scriveva `background` per intero e cancellava la
+   freccia a ogni tendina nelle tabelle della struttura, anche con `.app-in` → freccia aggiunta lì (vale anche per le
+   tabelle admin di Struttura/Aeroporti). Più: `htree-search` non dichiarava l'inchiostro.
+
+Dopo: **0** campi con lo stile del browser in entrambi i temi. Nella tabella spazi aerei la colonna del nome era a 73px in
+modifica (nome spezzato): note 38%→30%, quote 130→118, classe 100→80. Il vLOA era già pulito.
+
+### 📦 A66 — Accendere e spegnere i singoli spazi sulla mappa (17 settembre 2026) — ✅ ONLINE in 1.31.1
 
 Richiesta del committente a 1.31.0 online: «nella mappa attivare o disattivare i singoli spazi, così l'utente capisce
 quale spazio copre cosa». A inizio riga della tabella «Spazi aerei (AIP)» un pallino col colore del settore accende e

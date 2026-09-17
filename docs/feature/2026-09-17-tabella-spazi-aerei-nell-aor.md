@@ -1,6 +1,6 @@
 # Spazi aerei dell'AIP: la tabella sotto l'AoR (17 settembre 2026)
 
-> Stato: ✅ **§1–§5 online in 1.31.0** (§A65). 📦 **§6** (spazi accesi e spenti dalla tabella) in 1.31.1, pronto da caricare (§A66). **Nessuna migrazione**: le correzioni
+> Stato: ✅ **§1–§5 online in 1.31.0** (§A65). ✅ **§6** (spazi accesi e spenti dalla tabella) online in 1.31.1 (§A66). Stile dei campi corretto in §A67. **Nessuna migrazione**: le correzioni
 > stanno nel JSON della sezione `aor`. `dotnet build -c Release` verde su net8 e net10, suite intera verde.
 > Gemella di [2026-09-16-aree-di-lavoro-una-tabella-sola.md](2026-09-16-aree-di-lavoro-una-tabella-sola.md)
 > (nome e limiti dal catalogo, nota scritta a mano) e figlia di

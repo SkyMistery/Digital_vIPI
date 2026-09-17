@@ -1,5 +1,7 @@
 # Pacchetto 1.31.1 — solo i file cambiati
 
+> ✅ **CARICATO il 17 settembre 2026** (conferma del committente: il quadratino funziona).
+
 > **Timbro:** `1.31.1 · ab20c46` (17 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 

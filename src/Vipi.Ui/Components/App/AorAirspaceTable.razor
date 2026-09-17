@@ -48,7 +48,7 @@
                                 @* ⚠️ Una tendina e non un campo libero: la classe ICAO è una lettera A…G, e un «d»,
                                    un «CTR» o un «D (H24)» scritti a mano sarebbero dati che la stampa ripete. La
                                    voce vuota dice la classe del FILE quando c'è: scegliere «vuoto» torna a quella. *@
-                                <select class="aorasp-cls" aria-label="@L["Aor_AirspaceClass"]"
+                                <select class="app-in aorasp-cls" aria-label="@L["Aor_AirspaceClass"]"
                                         @onchange="e => OnSet.InvokeAsync((row.VolumeKey, e.Value?.ToString(), row.Note))">
                                     <option value="" selected="@(row.EditedClass is null)">@(row.FileClass is { } f ? L["Aor_AirspaceClassFromFile", f].Value : "—")</option>
                                     @foreach (var c in Classi)
@@ -67,7 +67,7 @@
                             {
                                 @* `@onchange` e non `@oninput`: si salva quando il campo perde il fuoco (come in
                                    `MilWorkingAreas`), non un giro di salvataggio per carattere. *@
-                                <textarea class="in-note" rows="2" value="@row.Note" data-adatta
+                                <textarea class="app-ta in-note" rows="2" value="@row.Note" data-adatta
                                           @onchange="e => OnSet.InvokeAsync((row.VolumeKey, row.EditedClass, e.Value?.ToString()))"
                                           placeholder="@L["Area_NotesPlaceholder"]" aria-label="@L["Area_Notes"]"></textarea>
                             }

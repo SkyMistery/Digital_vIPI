@@ -148,7 +148,7 @@
     @if (_scelta is { Count: > 0 } cand)
     {
         <div class="mil-cite-pick">
-            <select aria-label="@L["Nav_Pick"]" @onchange="e => Scegli(e.Value?.ToString())">
+            <select class="app-in" aria-label="@L["Nav_Pick"]" @onchange="e => Scegli(e.Value?.ToString())">
                 <option value="">@L["Nav_Pick"]</option>
                 @for (var c = 0; c < cand.Count; c++)
                 {

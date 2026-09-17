@@ -124,7 +124,7 @@
             @* Le aree di altri ACC sono centinaia: senza il filtro per ente la ricerca libera è l'unico modo di
                trovarne una, e l'elenco tagliato non dice quante ne sta nascondendo. *@
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <select style="width:auto;flex:none;min-width:150px" value="@_extraAcc"
+                <select class="app-in" style="width:auto;flex:none;min-width:150px" value="@_extraAcc"
                         @onchange="e => _extraAcc = AsString(e.Value)">
                     <option value="">@L["Acc_AllAccs"]</option>
                     @foreach (var accCode in OtherAccCodes())

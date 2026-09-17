@@ -2182,7 +2182,11 @@
 :where(.vipi-root) .se-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 :where(.vipi-root) .se-row:last-child{margin-bottom:0}
 :where(.vipi-root) .se-row label{font-size:11.5px;font-weight:600;color:var(--ink-soft);font-family:var(--font-head);text-transform:uppercase;letter-spacing:.03em;min-width:92px}
-:where(.vipi-root) .se-row input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:var(--font-body);font-size:13px;flex:1}
+:where(.vipi-root) .se-row input{border:1px solid var(--line);border-radius:7px;padding:6px 9px;font-family:var(--font-body);font-size:13px;flex:1;
+  background:var(--surface);color:var(--ink)}
+/* ⚠️ Fondo e inchiostro DICHIARATI: senza, nel tema scuro il campo prendeva il grigio del browser (rgb 59,59,59) —
+   misurato il 17-set-2026 sui campi METAR, ricerca frequenze e regole avanzate degli editor aeroporto e militare. */
+:where(.vipi-root) .se-row input:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
 :where(.vipi-root) .se-row select{border:1px solid var(--line);border-radius:7px;padding:6px 28px 6px 10px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center;color:var(--ink);cursor:pointer;-webkit-appearance:none;appearance:none;transition:.12s}
 :where(.vipi-root) .se-row select:hover{border-color:var(--line-ocean)}
 :where(.vipi-root) .se-row select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
@@ -2280,7 +2284,7 @@
 :where(.vipi-root) .st-scroll{flex:1;min-height:0;overflow:auto;margin:0 -4px;padding:0 4px}
 :where(.vipi-root) .wrap.pw-900 .st-pane{overflow:visible}:where(.vipi-root) .wrap.pw-900 .st-scroll{overflow:visible}
 /* campo di ricerca dell'albero, stile brand */
-:where(.vipi-root) .htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:var(--font-body);font-size:13px;background:var(--surface) url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
+:where(.vipi-root) .htree-search{width:100%;margin-bottom:12px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-family:var(--font-body);font-size:13px;color:var(--ink);background:var(--surface) url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%237a86a8' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 11px 50%;background-size:15px;padding-left:34px;transition:.12s}
 :where(.vipi-root) .htree-search:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
 :where(.vipi-root) .htree-search::placeholder{color:var(--ink-soft)}
 /* select filtro nazione: stesso look dell'input di ricerca (bordo/raggio/font + chevron custom) */
@@ -2490,6 +2494,11 @@
 :where(.vipi-root) .struct .res-table th{font-family:var(--font-head);text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--ink-soft)}
 :where(.vipi-root) .struct .res-table td{vertical-align:middle}
 :where(.vipi-root) .struct .res-table select,:where(.vipi-root) .struct .res-table input{border:1px solid var(--line);border-radius:7px;padding:5px 9px;font-family:var(--font-body);font-size:12.5px;background:var(--surface);color:var(--ink);max-width:100%;cursor:pointer;transition:.12s}
+/* ⚠️ La freccia di casa, e sta QUI e non su `select.app-in`: la regola sopra scrive `background` per intero con
+   specificità più alta, e cancellava la freccia a ogni tendina dentro queste tabelle (anche a quelle con `.app-in`).
+   Visto il 17-set-2026 sulla classe della tabella «Spazi aerei (AIP)». Il `:disabled` sotto la toglie, ed è giusto. */
+:where(.vipi-root) .struct .res-table select{padding-right:28px;-webkit-appearance:none;appearance:none;
+  background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center}
 :where(.vipi-root) .struct .res-table select:hover{border-color:var(--line-ocean)}
 :where(.vipi-root) .struct .res-table select:focus,:where(.vipi-root) .struct .res-table input:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
 :where(.vipi-root) .struct .res-table select:disabled{background:var(--bg);color:var(--ink-dim);cursor:not-allowed}
@@ -3717,9 +3726,11 @@
    e la nota si prendono quel che avanza. */
 :where(.vipi-root) .aorasp-wrap{margin-top:14px}
 :where(.vipi-root) .aorasp-title{margin:0 0 6px;font-size:14px}
-:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-alt,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-alt{width:130px}
-:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-cls,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-cls{width:100px}
-:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-note,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-note{width:38%;vertical-align:top}
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-alt,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-alt{width:118px}
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-cls,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-cls{width:80px}
+/* ⚠️ Il nome si prende quel che avanza: con note al 38% e le altre colonne più larghe, nell'editor (tabella da ~750px
+   fra sommario e pannello) restavano 73px e «PESCARA CTR Z1» andava a capo sillaba per sillaba. */
+:where(.vipi-root) .res-table.mil-table.aorasp-table th.c-note,:where(.vipi-root) .res-table.mil-table.aorasp-table td.c-note{width:30%;vertical-align:top}
 :where(.vipi-root) .aorasp-table .in-note{width:100%;box-sizing:border-box;resize:vertical;min-height:44px;font:inherit;line-height:1.35}
 :where(.vipi-root) .aorasp-table .aorasp-cls{width:100%;box-sizing:border-box;font:inherit}
 /* Il pallino che accende e spegne lo spazio sulla mappa (carta §6). Stesso segno della chip del settore: il quadratino
@@ -3772,6 +3783,11 @@
   font-family:var(--font-body);font-size:13px;background:var(--surface);color:var(--ink)}
 :where(.vipi-root) .mil-add .w-code{width:112px}
 :where(.vipi-root) .mil-add .w-band{width:118px}
+/* La tendina della riga d'aggiunta si veste come le altre di casa (`.se-row select`, `select.app-in`): senza
+   `appearance:none` teneva la freccia del sistema operativo. */
+:where(.vipi-root) .mil-add select{padding-right:28px;cursor:pointer;-webkit-appearance:none;appearance:none;
+  background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6470' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>") no-repeat right 9px center}
+:where(.vipi-root) .mil-add input:focus,:where(.vipi-root) .mil-add select:focus{outline:0;border-color:var(--ivao-blue);box-shadow:0 0 0 2px var(--line-atmos-soft)}
 /* L'esito di un tentativo rifiutato sta ACCANTO al tasto che l'ha provocato, non in una fascia sopra la
    tabella: e' la stessa regola per cui l'esito delle pagine admin e' un chip in testata (regola 5). */
 :where(.vipi-root) .mil-err{color:var(--danger-ink);font-size:12px;align-self:center}
