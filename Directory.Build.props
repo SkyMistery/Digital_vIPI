@@ -1511,7 +1511,14 @@
       Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi, vipi-editor.js, vipi-theme.css) e Vipi.Host per il
       timbro. Il net10 slitta a 1.35.0.
     -->
-    <VipiVersione>1.34.0</VipiVersione>
+    <!--
+      1.34.1 — PATCH, NESSUNA migrazione. Su 1.34.0 (9d3530e). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A75): la frase di coordinamento nomina TUTTI i punti della clausola
+      («su BUDIN o ANC»), anche nella vLOA e nell'anteprima dell'editor accordi. Tocca Vipi.Application e Vipi.Host
+      per il timbro.
+    -->
+    <VipiVersione>1.34.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
