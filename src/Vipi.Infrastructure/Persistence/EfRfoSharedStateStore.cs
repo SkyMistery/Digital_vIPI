@@ -49,8 +49,30 @@ public sealed class EfRfoSharedStateStore : IRfoSharedStateStore
         var adesso = DateTime.UtcNow;
         var ora = new DateTime(adesso.Ticks - adesso.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
 
+        // Creazione su un documento che c'è già — il caso di ogni postazione che parte da zero a evento avviato:
+        // 409 subito, senza tentare l'INSERT. Non decide niente: la gara vera (due creazioni nello stesso istante)
+        // la decide sempre la chiave primaria, qui sotto. Serve a non far scrivere a EF un «Failed executing
+        // DbCommand» in avvisi-log.txt per una risposta normale — visto sul pacchetto 1.33.0, passo 4 del contratto.
+        var scritto = expectedVersion == 0 && await EsisteAsync(eventId, ct).ConfigureAwait(false)
+            ? false
+            : await ScriviAsync(eventId, expectedVersion, data, updatedBy, ora, ct).ConfigureAwait(false);
+
+        if (scritto)
+            return new RfoWriteResult(RfoWriteOutcome.Scritto, new RfoStateRow(expectedVersion + 1, data, updatedBy, ora));
+
+        // Fuori dalla transazione, così la lettura vede l'ultima scrittura confermata.
+        var attuale = await LoadAsync(eventId, ct).ConfigureAwait(false);
+        return attuale is null
+            ? new RfoWriteResult(RfoWriteOutcome.NonTrovato, null)
+            : new RfoWriteResult(RfoWriteOutcome.Conflitto, attuale);
+    }
+
+    /// <summary>La scrittura condizionata: vero se ha scritto, falso se la condizione non reggeva più.</summary>
+    private Task<bool> ScriviAsync(string eventId, long expectedVersion, string data, string? updatedBy, DateTime ora,
+        CancellationToken ct)
+    {
         var strategia = _db.Database.CreateExecutionStrategy();
-        var scritto = await strategia.ExecuteAsync(async token =>
+        return strategia.ExecuteAsync(async token =>
         {
             _db.ChangeTracker.Clear();
             await using var tx = await _db.Database.BeginTransactionAsync(token).ConfigureAwait(false);
@@ -89,16 +111,7 @@ public sealed class EfRfoSharedStateStore : IRfoSharedStateStore
 
             await tx.CommitAsync(token).ConfigureAwait(false);
             return true;
-        }, ct).ConfigureAwait(false);
-
-        if (scritto)
-            return new RfoWriteResult(RfoWriteOutcome.Scritto, new RfoStateRow(expectedVersion + 1, data, updatedBy, ora));
-
-        // Fuori dalla transazione, così la lettura vede l'ultima scrittura confermata.
-        var attuale = await LoadAsync(eventId, ct).ConfigureAwait(false);
-        return attuale is null
-            ? new RfoWriteResult(RfoWriteOutcome.NonTrovato, null)
-            : new RfoWriteResult(RfoWriteOutcome.Conflitto, attuale);
+        }, ct);
     }
 
     private Task<bool> EsisteAsync(string eventId, CancellationToken ct) =>
