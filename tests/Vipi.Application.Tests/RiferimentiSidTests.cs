@@ -84,14 +84,30 @@ public class RiferimentiSidTests
     /// <summary>L'unica radice ambigua della copia di produzione: LIBG, ROBO1H e ROBO5H vive insieme. Vince la
     /// revisione più alta, e la coppia resta segnata per l'editor.</summary>
     [Fact]
-    public void Due_revisioni_vive_vince_la_piu_alta()
+    public void Due_revisioni_vive_vince_quella_citata_se_c_e_ancora()
     {
+        // 🔴 Deciso dal committente il 18 settembre 2026: il nome citato, se è ancora vivo, resta. Prima vinceva
+        // sempre la cifra più alta, e questo testo diceva ROBO5H.
         var nomi = Nomi("LIBG", "ROBO5H", "ROBO1H");
-        Assert.Equal("ROBO5H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO1H]]", nomi));
+        Assert.Equal("ROBO1H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO1H]]", nomi));
+        Assert.Equal("ROBO5H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO5H]]", nomi));
         Assert.True(nomi.Ambigua("LIBG", "ROBO?H"));
+    }
 
-        var alRovescio = Nomi("LIBG", "ROBO1H", "ROBO5H");
-        Assert.Equal("ROBO5H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO1H]]", alRovescio));
+    /// <summary>Il nome citato non c'è più: fra le revisioni vive resta la cifra più alta, in qualunque ordine arrivino.</summary>
+    [Fact]
+    public void Nome_citato_sparito_fra_due_revisioni_vive_vince_la_piu_alta()
+    {
+        Assert.Equal("ROBO5H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO3H]]", Nomi("LIBG", "ROBO5H", "ROBO1H")));
+        Assert.Equal("ROBO5H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO3H]]", Nomi("LIBG", "ROBO1H", "ROBO5H")));
+    }
+
+    /// <summary>Il caso che ha deciso la regola: i numeri ricominciano dopo il 9. Con ROBO9H vecchia e ROBO1H nuova
+    /// vive insieme, chi cita la nuova vede la nuova.</summary>
+    [Fact]
+    public void Al_giro_dei_numeri_chi_cita_la_nuova_vede_la_nuova()
+    {
+        Assert.Equal("ROBO1H", RiferimentiSid.Sostituisci("[[SID LIBG ROBO1H]]", Nomi("LIBG", "ROBO9H", "ROBO1H")));
     }
 
     [Fact]
@@ -229,7 +245,7 @@ public class RiferimentiSidTests
         var r = Assert.Single(ControlloSidCitate.Controlla(new (string, string?)[] { ("Note", "[[SID LIBG ROBO1H]]") }, nomi));
 
         Assert.Equal(SidDaRivedereTipo.Ambigua, r.Tipo);
-        Assert.Equal("ROBOT 5H", r.Esce);
+        Assert.Equal("ROBOT 1H", r.Esce);   // quella citata, ancora viva
         Assert.Equal(new[] { "ROBOT 1H", "ROBOT 5H" }, r.Alternative);
     }
 

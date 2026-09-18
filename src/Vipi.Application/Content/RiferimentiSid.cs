@@ -117,7 +117,7 @@ public static class RiferimentiSid
         return Riferimento.Replace(testo!, m =>
         {
             var ultimo = m.Groups[2].Value;
-            return nomi?.Nome(m.Groups[1].Value, Radice(ultimo)) ?? ultimo;
+            return nomi?.NomePer(m.Groups[1].Value, ultimo) ?? ultimo;
         });
     }
 
@@ -140,6 +140,8 @@ public sealed class NomiSid
     private readonly Dictionary<(string Icao, string Radice), (string Codice, string Esteso)> _nomi = new();
     // Solo per le radici con più di un nome vivo: TUTTI i nomi, come si scrivono. Servono all'avviso dell'editor.
     private readonly Dictionary<(string Icao, string Radice), SortedSet<string>> _ambigue = new();
+    // Ogni nome vivo, esatto → come si scrive. Serve a preferire il nome CITATO quando è ancora vivo.
+    private readonly Dictionary<(string Icao, string Codice), string> _perCodice = new();
 
     public static NomiSid Vuoto { get; } = new(new Dictionary<string, AirportSidView>());
 
@@ -155,11 +157,13 @@ public sealed class NomiSid
                 if (nome.Length == 0) continue;
                 var chiave = (scalo, RiferimentiSid.Radice(nome));
                 var voce = (nome, RiferimentiSid.NomeEsteso(riga.Fix, nome));
+                _perCodice.TryAdd((scalo, nome), voce.Item2);
                 if (!_nomi.TryGetValue(chiave, out var gia)) { _nomi[chiave] = voce; continue; }
                 if (gia.Codice == nome) continue;
 
                 // Due nomi diversi per la stessa radice: due revisioni vive insieme (LIBG ROBO1H e ROBO5H, misurato
-                // il 18 settembre 2026 — una su 1258). Vince la revisione più alta, e la coppia si ricorda.
+                // il 18 settembre 2026 — una su 1258). Per la radice vince la revisione più alta, e la coppia si
+                // ricorda; ma un riferimento che cita un nome ancora vivo tiene il SUO (`NomePer`).
                 if (!_ambigue.TryGetValue(chiave, out var tutti))
                     _ambigue[chiave] = tutti = new SortedSet<string>(StringComparer.Ordinal) { gia.Esteso };
                 tutti.Add(voce.Item2);
@@ -178,6 +182,23 @@ public sealed class NomiSid
     public string? Nome(string icao, string radice) =>
         _nomi.TryGetValue((RiferimentiSid.Norm(icao), radice), out var nome) ? nome.Esteso : null;
 
+    /// <summary>
+    /// Il nome da scrivere per una SID CITATA col codice <paramref name="codiceCitato"/>: quel nome stesso se è
+    /// ancora vivo nella tabella, altrimenti il nome di oggi della sua radice. <c>null</c> = non si trova.
+    /// <para>🔴 Deciso dal committente il 18 settembre 2026. Con due revisioni vive della stessa SID (LIBG ROBO1H e
+    /// ROBO5H) vinceva sempre la cifra più alta: ma i numeri ricominciano dopo il 9, e con ROBO9H vecchia e ROBO1H
+    /// nuova avrebbe vinto la vecchia. Il nome citato, se c'è ancora, è la scelta di chi ha scritto e non si indovina
+    /// niente; la cifra più alta resta solo per il caso in cui il nome citato è sparito. L'editor segnala comunque
+    /// la radice ambigua.</para>
+    /// </summary>
+    public string? NomePer(string icao, string codiceCitato)
+    {
+        var codice = RiferimentiSid.Norm(codiceCitato);
+        return _perCodice.TryGetValue((RiferimentiSid.Norm(icao), codice), out var esteso)
+            ? esteso
+            : Nome(icao, RiferimentiSid.Radice(codice));
+    }
+
     /// <summary>Vero se per quella radice lo scalo ha più di un nome vivo.</summary>
     public bool Ambigua(string icao, string radice) => _ambigue.ContainsKey((RiferimentiSid.Norm(icao), radice));
 }
@@ -188,7 +209,8 @@ public enum SidDaRivedereTipo
     /// <summary>Lo scalo non ha più una SID con quel nome: nel documento esce l'ultimo nome visto, così com'è.</summary>
     NonTrovata,
 
-    /// <summary>Due revisioni vive con lo stesso nome: esce la più alta, e chi scrive deve sapere che c'era una scelta.</summary>
+    /// <summary>Due revisioni vive con lo stesso nome: esce quella citata se c'è ancora, altrimenti la più alta — e
+    /// chi scrive deve sapere che c'era una scelta.</summary>
     Ambigua,
 }
 
@@ -232,7 +254,7 @@ public static class ControlloSidCitate
                                                        .ThenBy(d => d.Key.Codice, StringComparer.Ordinal))
         {
             var radice = RiferimentiSid.Radice(codice);
-            var nome = nomi.Nome(icao, radice);
+            var nome = nomi.NomePer(icao, codice);
             if (nome is null)
                 esito.Add(new SidDaRivedere(icao, codice, SidDaRivedereTipo.NonTrovata, sezioni, codice, Array.Empty<string>()));
             else if (nomi.Ambigua(icao, radice))

@@ -38,7 +38,9 @@ Perché non la `StableKey` (i quattro motivi sono tutti misurati o letti nel cod
 
 Sulla copia di produzione le radici sono **1258, ambigua UNA sola**: `LIBG ROBO?H` = `ROBO1H` e `ROBO5H`, due
 righe vive nello stesso file. Regola: vince la riga **pubblica al ciclo** e non nascosta; se ne restano più
-d'una, la cifra più alta, e l'editor lo segnala.
+d'una, **quella citata se è ancora viva**, altrimenti la cifra più alta; e l'editor lo segnala.
+✅ «Quella citata» deciso dal committente il 18 settembre 2026 (revisione indipendente): la sola cifra più alta
+sbagliava al giro dei numeri — `ROBO9H` vecchia e `ROBO1H` nuova, vinceva la vecchia. `NomiSid.NomePer`.
 
 ## 3. Il formato nel testo
 
@@ -176,7 +178,7 @@ volo: niente tabella, niente `DocumentImpact` persistito per ora.
 
 ✅ **Com'è andata la slice 4 (18 settembre 2026):** `ControlloSidCitate.Controlla` (puro) sui testi delle sezioni,
 coi nomi della BOZZA: una voce per riferimento con le sezioni che lo citano, **non trovata** (esce l'ultimo nome
-visto) o **ambigua** (esce la revisione più alta; `NomiSid.Alternative` dice quali sono vive). L'avviso sta in
+visto) o **ambigua** (esce quella citata se viva, altrimenti la più alta; `NomiSid.Alternative` dice quali sono vive). L'avviso sta in
 cima a `DocumentSectionsEditor`, in lettura e in modifica, e si ricalcola a ogni documento ricaricato — cioè dopo
 ogni salvataggio. Nella vIPI ACC l'editor è montato per blocco: ognuno controlla le SUE sezioni (`RootSections`).
 Il pubblico non segnala niente. Dal vivo su LIBD: rinominata nella copia la SID citata, avviso con «(Remarks)».

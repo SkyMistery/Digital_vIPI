@@ -59,8 +59,10 @@
     in `CDC6A/CDC6B`, negli URL, nei composti), celle convertite sul JSON originale (★, primario, gruppo restano).
   - Tasto «SID» tolto dall'intro VFR dell'APP (lì il nome non si aggiornerebbe); ricerca del pannello solo quando
     i blocchi cambiano.
-  - ▶ Da decidere col committente: fra due revisioni vive vince la cifra più ALTA, ma al giro 9 → 1 vincerebbe la
-    vecchia. E la ricerca indicizza il codice (`BANA8A`), non il nome completo che si legge (`BANAV 8A`).
+  - ✅ Deciso col committente: fra due revisioni vive esce **quella citata** se è ancora viva, altrimenti la cifra più
+    alta (prima vinceva sempre la più alta, e al giro 9 → 1 avrebbe vinto la vecchia). `NomiSid.NomePer`.
+    ✅ La ricerca indicizza il codice (`BANA8A`), non il nome completo (`BANAV 8A`): **resta così**, deciso
+    dal committente il 18-set.
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 
