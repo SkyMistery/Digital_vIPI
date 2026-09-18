@@ -13,7 +13,7 @@
 - Correzione: `data-enhance-nav="false"` sui 4 link. Test sul sorgente (`LoginSenzaNavigazioneAvanzataTests`: ogni link
   `/auth/login|logout` in ogni `.razor`), rosso sul codice di prima. **Dal vivo** (Edge, login IVAO vero acceso): codice
   di prima «fetch + document» = 2 richieste; dopo = 1.
-- ⚠️ Il 17-set l'avevo classificato «caso isolato»: era il sintomo che l'utente vede. Il «nonce» nel registro si legge così.
+- ⚠️ Leggendo la diagnostica l'avevo classificato «caso isolato»: era il sintomo che l'utente vede. Il «nonce» nel registro si legge così.
 
 ### ✅ A77 — Pacchetto 1.34.2 ONLINE (18 settembre 2026, notte): timbro confermato, da fuori `pacchetto-verifica.js` verde; ▶ al prossimo scarico «messe in memoria: 3» nel log
 
