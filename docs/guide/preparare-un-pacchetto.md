@@ -255,3 +255,4 @@ binario: il timbro nasce dal commit al momento del publish, e va scritto quale.
 | il riavvio | `tmp/restart.txt` **e poi si apre il sito una volta**, o Passenger non se ne accorge |
 | il timbro non basta | dice quale versione è partita, non che il sito risponda: il controllo è **la Ricerca** |
 | un 200 su una pagina riservata | i cancelli si **disegnano**: si guarda il corpo, non lo stato HTTP |
+| la Guida | sta DENTRO `Vipi.Ui.dll` (`GuidaPage.razor`): si scrive **prima** del publish. Su 1.34.0 il primo publish ne era senza, e si è rifatto tutto (timbro, impronte, zip, prova) |

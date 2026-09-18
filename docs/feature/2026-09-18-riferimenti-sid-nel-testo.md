@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: ✅ **tutte e cinque le slice in main** (18 settembre 2026). Da consegnare col prossimo pacchetto (§A73).
+> Stato: 📦 **in 1.34.0, pronto da caricare** (18 settembre 2026), tutte e cinque le slice + revisione (§A73, §A74).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato

@@ -2,10 +2,30 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### ✅ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026) — in main, da consegnare
+### 📦 A74 — Pacchetto 1.34.0 PRONTO DA CARICARE (18 settembre 2026, sera)
 
-- 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md), codice
-  zero. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
+- MINOR su 1.33.0 (`7d25267`), **nessuna migrazione**, niente segreti nuovi. Timbro **`1.34.0 · 9d3530e`**.
+- **16 file**: `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Ui` (dll+pdb), `en/Vipi.Ui.resources.dll` (frasi nuove),
+  `Vipi.Host` (dll+pdb, per il timbro), `Vipi.Host.staticwebassets.endpoints.json`, `vipi-editor.js` e `vipi-theme.css`
+  con `.br`/`.gz`. Fuori, per impronta: Domain, Hosting, MySqlMigrations, AuroraBridge.Contracts, AuroraProfiles
+  (ricompilati, sorgente invariato; Hosting registra i loader per tipo). Nessuna `const` usata fuori da ciò che parte.
+- Zip `artifacts/publish/vipi-1.34.0-solo-file-cambiati.zip` sha256 `ceca76928b64cbf7e69877c7e1746c914a26de2a5189a06009c47951b95f801a`,
+  foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.34.0.md`, elenco `artifacts/publish/elenco-1.34.0.txt`. Publish
+  `linux-x64-20260918c`; 1.33.0 ruotata in `publish_old/20260918b`.
+- Contenuto: **§A73** (SID citate nel testo, cinque slice + revisione indipendente + voce nella **Guida**, IT/EN) e
+  la **callout con titolo** che non entrava nell'editor. ⚠️ Il primo publish (`f7a3b4a`) non aveva la Guida: rifatto,
+  mai spedito, cancellato.
+- ✅ Provato sul PACCHETTO (publish win-x64, :5199, copia della produzione in MariaDB): `pacchetto-verifica.js` 10/10
+  con la Ricerca; conversione su LIBV (`conv.js`) e tasto «SID» su LIBD (`sid-verifica.js`) verdi; console pulita.
+- ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, tasto «SID» in un editor dopo Ctrl+F5; da fuori
+  `pacchetto-verifica.js` con `BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1`.
+- ▶ Agli AOD: la vSOP MIL di **LIBV** cita revisioni vecchie (`ROBOT6A/B` → `ROBO5A/B`, `DOGUS5A/B` → `DOGU6A`/`DOGU5B`).
+- 🔴 net10 slitta a **1.35.0**.
+
+### ✅ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026) — 📦 in 1.34.0
+
+- 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md),
+  cinque slice fatte. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
 - Chiave = **radice del nome** (`OST1E` → `OST?E`), non la `StableKey`. Formato `[[SID LIRF OST1E]]`, risolto dopo la
   traduzione. Nessuna migrazione, 5 slice. ✅ Deciso: il pubblico segue la **tabella SID pubblica** dello scalo citato (Live o Freeze), l'editor l'anagrafica viva.
   ✅ Nel testo il nome esce **completo**: punto + designatore (`BANAV 9A`), non il codice troncato.
@@ -42,7 +62,7 @@
   pannello ha trovato che quel documento cita **revisioni vecchie**: `ROBOT6A/B` (oggi `ROBO5A/B`), `DOGUS5A/B` (oggi
   `DOGU6A`/`DOGU5B`), più `CDC6A/B`, `VIE6A/B`, `VICTOR6A/B` da sistemare a mano. Il nome completo non si compone
   con un punto che non è fatto di sole lettere (`BV-VICTOR` → resta `VICTOR6A`).
-  **§A73 chiusa**, tutte e cinque le slice. Da consegnare col prossimo pacchetto.
+  **§A73 chiusa**, tutte e cinque le slice. 📦 In 1.34.0 (§A74).
 - ✅ **Revisione indipendente** (18-set, due revisori senza contesto, ogni rilievo verificato prima di toccare):
   - 🔴 ALTO: l'editor leggeva i nomi SID sullo STESSO DbContext di `Editing`, fuori dal tornello, a ogni ricarico →
     «Converti tutte» su più blocchi (o chi salva il campo dopo) poteva dare «second operation»; e l'editor chiuso
