@@ -2,7 +2,7 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### 📦 A77 — Pacchetto 1.34.2 PRONTO DA CARICARE (18 settembre 2026, notte)
+### ✅ A77 — Pacchetto 1.34.2 ONLINE (18 settembre 2026, notte): timbro confermato, da fuori `pacchetto-verifica.js` verde; ▶ al prossimo scarico «messe in memoria: 3» nel log
 
 - PATCH su 1.34.1 (`902e41e`), **nessuna migrazione**. Timbro **`1.34.2 · 277b89c`**. **6 file**: `Vipi.Application`,
   `Vipi.Infrastructure`, `Vipi.Host` (dll+pdb); wwwroot, endpoints, deps, runtimeconfig, appsettings identici.
