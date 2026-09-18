@@ -160,10 +160,11 @@ Lavoro NUOVO e parallelo ad A70 (che resta il punto di ripresa per la produzione
 **Online: 1.32.0** (`c1eddc9`, timbro e `Schema 0` confermati). Sostituisce §A64 come punto di ripresa; le voci aperte di §A64
 restano valide e sono richiamate qui sotto. 🔴 net10 = **1.33.0**.
 
-**In main, NON in pacchetto — va col PROSSIMO pacchetto (decisione del committente):**
-1. **§A69** «Mai usare» come chip rosse (`sh-chip.no`) al posto delle caselle. Solo `Vipi.Ui.dll` + `vipi-theme.css` (+br/gz,
-   `endpoints.json`) + Guida; nessuna migrazione. Da solo sarebbe PATCH **1.32.1**; il numero si decide col contenuto del
-   pacchetto vero. Non preparare niente finché non lo chiede il committente.
+**✅ Chiuso il 18-set notte:**
+1. **§A69** «Mai usare» come chip rosse: era GIÀ in 1.33.0 (`07d4012` antenato di `7d25267`), quindi online. La riga «va col
+   prossimo pacchetto» era rimasta indietro.
+- ✅ ILS nelle radioassistenze (§A61): confermato dal committente, funziona.
+- ✅ Passate di traduzione (§A62): per ora passano tutte.
 
 **Da fare in produzione (nessun codice):**
 2. **Ripubblicare gli APP agganciati al KMZ** (§A65, §A66): **LIBA_APP** (la sua release non ha la tabella «Spazi aerei») e
@@ -171,7 +172,7 @@ restano valide e sono richiamate qui sotto. 🔴 net10 = **1.33.0**.
    scrivere classe e note.
 3. **«Mai in partenza / in arrivo»** (§A68) vale sul pubblico **dopo aver ripubblicato** lo scalo, come le regole.
 
-**Da §A64, ancora aperti:** conferma ILS dell'admin (§A61); due righe di traduzione a giro al prossimo scarico (§A62); segmenti
+**Da §A64, ancora aperti:** segmenti
 ripagati a ogni giro; ripieghi shape dell'import a `LogDebug` → Warning; S11 fase B; leggere il registro del giorno; feedback a
 due canali; le pulizie 8–12 (indice-doc.py, `Ruota` senza suffisso, `IcaoPrefixes` doppio, `/vsop/ping` nel registro, LOVV).
 
