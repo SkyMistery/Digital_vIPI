@@ -219,11 +219,20 @@ col sectorfile che già gira.
 
 ## §8 — Decisioni ancora aperte (proposta tra parentesi)
 
-1. Metadati nei file: `//@` di B o file `.asdx` di A? (**nessuno dei due, per ora**: il sector è condiviso e si edita a mano)
-2. Marcatori `//Start`/`//End` di A? (**toglierli**: sporcano ogni diff)
-3. `.vrt` e `.hold` subito? (**sì, in F2**: meno di 200 righe)
-4. Dove vive il codice del Lab? (**stesso repo di vIPI**, progetti nuovi accanto al Bridge, libreria di A portata dentro)
-5. Motore della mappa? (**Leaflet canvas**, §4)
+1. ✅ **Metadati `//@` nei file** (committente, 18-set, contro la proposta «nessuno»): servono a portare **valori in
+   più** che il formato Aurora non ha (es. l'**initial climb** delle SID), perché **sistemi esterni come vIPI** li
+   estraggano e le informazioni stiano **in un posto solo**. Si adotta la convenzione già scritta in B
+   (`SPECIFICA_FORMATI.md` §metadati): solo **righe intere** `//@chiave=valore` (mai in coda a una riga dati: Aurora
+   in alcune sezioni le leggerebbe come dato), a livello di **file** (prime righe) o di **record** (subito sopra la
+   riga). Chiavi già previste da B: `@initialclimb`, `@fix` (nome intero del fix), `@source` (ciclo AIRAC), `@note`,
+   `@id`, `@locked`, `@gen`, `@extra`. ⚠️ Da decidere nella carta di F2: un `//@` resta **orfano** se un AOD cancella a
+   mano la riga sotto, e si attacca alla successiva → proposta: la riga porta il nome del record
+   (`//@XIBR5A initialclimb=5000`) e il validatore segnala se non combacia. Il **catalogo delle chiavi** è un contratto
+   fra il Lab (scrive) e vIPI (legge).
+2. ✅ Marcatori `//Start`/`//End` di A: **fuori** (li sostituiscono i `//@`; sporcherebbero ogni diff).
+3. ✅ `.vrt` e `.hold`: **in F2, subito**.
+4. ▶ Dove vive il codice del Lab: proposta **stesso repo di vIPI** — in discussione (il committente ha chiesto il perché).
+5. ✅ Motore della mappa: **Leaflet canvas** (§4).
 
 ## §9 — Il materiale scaricato per F0-bis (`RealDOCS`, 155 file, 138 MB)
 
