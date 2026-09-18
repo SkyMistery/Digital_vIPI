@@ -2,6 +2,20 @@
 
 ## Dove siamo — 18 settembre 2026
 
+### 📦 A77 — Pacchetto 1.34.2 PRONTO DA CARICARE (18 settembre 2026, notte)
+
+- PATCH su 1.34.1 (`902e41e`), **nessuna migrazione**. Timbro **`1.34.2 · 277b89c`**. **6 file**: `Vipi.Application`,
+  `Vipi.Infrastructure`, `Vipi.Host` (dll+pdb); wwwroot, endpoints, deps, runtimeconfig, appsettings identici.
+- Contenuto: aree D del 37° Stormo in memoria (`FrasiAreeIvao`, §A64.3), ripieghi shape ad avviso (§A64.4), `/vsop/ping`
+  fuori dai registri (§A64.11).
+- Zip `artifacts/publish/vipi-1.34.2-solo-file-cambiati.zip` sha256
+  `79758b462974e75c079bc340e031a1528d5de86cd021660eeecb58c6b40b2a0e`, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.34.2.md`,
+  publish `linux-x64-20260918e`.
+- ✅ Provato sul PACCHETTO (win-x64, copia prod, traduzione ACCESA): `pacchetto-verifica.js` verde; log «Descrizioni di
+  aree IVAO messe in memoria: 3», tre righe Human in `TranslationUnits`; giro en→it senza spesa (prima 497 car., 3 scarti);
+  it→en scarta solo il testo LIBN (385 car.) — quello tocca al committente dal pannello traduzioni di LIBN_APP.
+- ▶ Dopo il carico: timbro, Ricerca, `Schema 0`; al primo giro il log dice «Descrizioni di aree IVAO messe in memoria: 3».
+
 ### ✅ A76 — Pacchetto 1.34.1 ONLINE (18 settembre 2026, notte): timbro visto, da fuori `pacchetto-verifica.js` verde; ▶ ripubblicare i documenti coi coordinamenti a più punti
 
 - PATCH su 1.34.0 (`9d3530e`), **nessuna migrazione**. Timbro **`1.34.1 · 902e41e`**. 🔴 1.34.0 va caricato PRIMA
