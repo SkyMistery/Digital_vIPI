@@ -4,7 +4,10 @@
 
 ### ▶ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026)
 
-- ✅ In main, **pacchetto 1.33.0** con migrazione additiva `PonteRfo` (porta `MySqlMigrations.dll`; entra anche A69).
+- 📦 **Pacchetto 1.33.0 PRONTO DA CARICARE**: timbro `1.33.0 · 7d25267`, 18 file (Hosting DENTRO, MySqlMigrations
+  DENTRO), zip `artifacts/publish/vipi-1.33.0-solo-file-cambiati.zip` sha256 `0651b7ca…70cf8a2`, foglio
+  `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.33.0.md`. Migrazione additiva `PonteRfo`; entra anche A69. Serve anche un file NUOVO
+  in `segreti/` con la chiave. Primo tentativo `f43229b` mai spedito (ERRORE EF sul 409 di creazione, corretto).
   🔴 net10 slitta a **1.34.0**. Carta [`feature/2026-09-18-ponte-rfo-gate-manager.md`](feature/2026-09-18-ponte-rfo-gate-manager.md).
 - `GET`/`PUT /api/rfo/events/{eventId}/state`, contratto `docs/SYNC-API.md` di SkyMistery/RFO-Stand-Manager seguito
   alla lettera: scrittura condizionata atomica (una INSERT o una UPDATE `WHERE version = …`), 409 con la busta,

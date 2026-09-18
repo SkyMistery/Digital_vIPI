@@ -72,6 +72,10 @@ comportamento:
 - **Retry dei guasti transitori** (MariaDB/Postgres): la transazione sta dentro `CreateExecutionStrategy()`. Se la
   connessione cade dopo un commit riuscito, il nuovo tentativo risponde 409 con la busta che contiene già la
   scrittura: il client riapplica la sua modifica su quella, innocuo.
+- **Creazione su un documento che c'è già**: 409 subito, senza tentare l'INSERT. Il controllo non decide la gara (la
+  decide la chiave primaria): serve a non far scrivere a EF un «Failed executing DbCommand» come ERRORE in
+  `avvisi-log.txt` per una risposta normale. Trovato sul primo pacchetto 1.33.0 (`f43229b`, mai spedito); una gara
+  vera fra due creazioni nello stesso istante lo scrive ancora, ed è giusto che si veda.
 - **`Cache-Control: private, no-cache`** sulla busta: nessun proxy la tiene senza rivalidare.
 - **Storia** (facoltativa nel contratto, scelta dal committente): `rfo_shared_state_history`, una riga per ogni
   scrittura riuscita, **nella stessa transazione**. Chiave `id` propria: se il documento si svuota a mano la
