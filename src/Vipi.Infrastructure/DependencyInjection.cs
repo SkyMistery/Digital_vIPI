@@ -273,6 +273,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IGlossaryStore, EfGlossaryStore>();
         services.AddScoped<Vipi.Application.Abstractions.IRoleOverrideStore, EfRoleOverrideStore>();
         services.AddScoped<Vipi.Application.Abstractions.IApiClientStore, EfApiClientStore>();
+        services.AddScoped<Vipi.Application.Abstractions.IRfoSharedStateStore, EfRfoSharedStateStore>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslatableCorpus, EfTranslatableCorpus>();
         services.AddScoped<Vipi.Application.Translation.DocumentTranslator>();
         // La vIPI ACC non arriva alla pagina come DocumentView (vive a blocchi): stessa memoria, stessa

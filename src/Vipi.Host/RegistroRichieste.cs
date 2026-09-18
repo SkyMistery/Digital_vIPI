@@ -66,6 +66,8 @@ public sealed class RegistroRichieste
         {
             try
             {
+                if (PollingVuoto(percorso, context.Response.StatusCode)) return Task.CompletedTask;
+
                 var ms = Stopwatch.GetElapsedTime(inizio).TotalMilliseconds;
                 var ora = DateTime.UtcNow;
                 var rotta = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText;
@@ -81,6 +83,15 @@ public sealed class RegistroRichieste
     }
 
     internal static bool DaNonRicordare(string percorso) => RegistroAvvisi.DaNonRicordare(percorso);
+
+    /// <summary>
+    /// Il «niente di nuovo» del ponte RFO: ogni postazione chiede ogni tre secondi, e con dieci postazioni sono
+    /// dodicimila righe l'ora tutte uguali, che riempirebbero il tetto del file a metà evento e zittirebbero il resto
+    /// del giorno (committente, 18 settembre 2026). Restano le letture col corpo, le scritture, i 409 e gli errori.
+    /// </summary>
+    internal static bool PollingVuoto(string percorso, int esito) =>
+        esito == StatusCodes.Status304NotModified
+        && percorso.StartsWith(Vipi.Hosting.PonteRfo.PrefissoRotta, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>La riga, separata dall'I/O perché si provi da sola. I tab e gli a capo nei valori diventano spazi.</summary>
     internal static string Riga(DateTime ora, int pid, string versione, string metodo, string? rotta, string percorso,
@@ -105,7 +116,7 @@ public sealed class RegistroRichieste
         # rotta = il modello della pagina ({"{Icao}"} al posto dell'aeroporto), «-» se nessuna (404). percorso senza query.
         # ora = quando la risposta è FINITA (l'inizio è ora - ms). ms = dall'arrivo alla fine della risposta.
         # ⚠️ Per GET /_blazor (esito 101, il circuito) e GET /vsop/live/atc (stream SSE) ms è la VITA della connessione.
-        # Ping (/vsop/health), file statici e /_blazor/* non si scrivono. pid: due processi vivi insieme succedono.
+        # Ping (/vsop/health), file statici, /_blazor/* e i 304 del ponte RFO non si scrivono. pid: due processi vivi insieme succedono.
         # Il file si tiene {RegistroGiornaliero.GiorniTenuti} giorni; oltre {RegistroGiornaliero.TettoByte / 1024 / 1024} MB il resto del giorno tace.
         {Colonne}
 

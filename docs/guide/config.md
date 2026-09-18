@@ -36,6 +36,7 @@ Carta: `docs/feature/2026-08-28-autorizzazioni-a-livelli.md`.
 | `Auth:AdminRoles` | string[] | `["DIR","ADIR","WM","AWM","AOC","AOAC","SOC","SOAC"]` | Suffissi dei ruoli di **direzione**: codice finale `^{Division:Code}-{ruolo}$`. Chi ha un `IT-…` fuori da questo elenco è `DivisionStaff`, non admin. |
 | `Auth:ApiKeyIssuerRoles` | string[] | `["DIR","ADIR","WM","AWM"]` | Chi può **emettere, vedere e revocare le chiavi API** (HQ e WD), oltre ai `Auth:FounderVids`. Codice `^{Division:Code}-{ruolo}$` **e** livello Admin. Il binder aggiunge ai default. Carta `docs/feature/2026-09-13-chiavi-api.md`. |
 | `Api:RichiediChiave` | bool | `false` | Se `true` l'archivio `GET /vsop/api/v1/atc/sessions` risponde **401** a chi non porta una chiave. Spento = periodo di passaggio: chi non porta chiave passa come prima, una chiave presentata si verifica comunque (sbagliata/revocata → 401, non abilitata → 403). Il bridge chiede la chiave **sempre**. Header `Authorization: Bearer vipi_…` o `X-Api-Key`. |
+| `Rfo:Chiavi:<nome>:Chiave` / `…:Eventi` | string / string | *(nessuna)* | Chiavi del **ponte RFO Gate Manager** (`/api/rfo/events/{eventId}/state`), **nei segreti**, NON nella tabella `ApiClients`. `Eventi` = eventi separati da virgola, `*` = tutti, vuoto = nessuno (403). Chiave < 32 caratteri = ignorata. Dizionario per nome e non array: il binder somma gli array. Header `x-api-key`. Carta `docs/feature/2026-09-18-ponte-rfo-gate-manager.md`. |
 | `Auth:EditorAccRoles` | string[] | `["CH","ACH"]` | Suffissi dei ruoli **ACC-scoped** che valgono `Editor`: codice finale `^{prefissoIcao}[A-Z0-9]+-{ruolo}$` per ogni `Division:IcaoPrefixes`. |
 | `Auth:AdminStaffCodes` | string[] | *(vuoto)* | Pattern regex **completi** che sostituiscono in blocco quelli dell'admin. È l'unica lista che **sostituisce** invece di sommare: la via per **restringere** senza ricompilare. |
 
@@ -428,6 +429,7 @@ In sviluppo (`useDevIdentity:true`) si usa l'utente fittizio e questa sezione è
 
 ## 9. Endpoint operativi
 - `GET /vsop/health` — health del modulo (`Healthy`/`Degraded` se la cache ATC non è fresca/`Unhealthy` se il DB è giù).
+- `GET`/`PUT /api/rfo/events/{eventId}/state` — ponte fra le copie di «RFO Gate Manager» di un evento RFO, con chiave `Rfo:Chiavi`. Carta `docs/feature/2026-09-18-ponte-rfo-gate-manager.md`.
 - `GET /services/vsop/admin/audit` — viewer audit (admin): pubblicazioni e modifiche permessi.
 - `GET /services/vsop/admin/sources` — **policy di import** (admin): decide quali categorie (TA, Piste, Settori) arrivano dalla sorgente (sola lettura) o restano manuali. Vedi §10.
 

@@ -2,6 +2,17 @@
 
 ## Dove siamo — 18 settembre 2026
 
+### ▶ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026)
+
+- ✅ In main, **pacchetto 1.33.0** con migrazione additiva `PonteRfo` (porta `MySqlMigrations.dll`; entra anche A69).
+  🔴 net10 slitta a **1.34.0**. Carta [`feature/2026-09-18-ponte-rfo-gate-manager.md`](feature/2026-09-18-ponte-rfo-gate-manager.md).
+- `GET`/`PUT /api/rfo/events/{eventId}/state`, contratto `docs/SYNC-API.md` di SkyMistery/RFO-Stand-Manager seguito
+  alla lettera: scrittura condizionata atomica (una INSERT o una UPDATE `WHERE version = …`), 409 con la busta,
+  storia in `rfo_shared_state_history`. Chiavi in `Rfo:Chiavi` nei **segreti**.
+- ✅ Provato su MariaDB (copia prod): curl del contratto esatti, 50/50 coppie di PUT paralleli = 200+409.
+- ▶ **Dopo il carico**: file dei segreti con la chiave (`Eventi: "lirn-20260919, prova-ponte-rfo"`), poi curl e prova
+  in parallelo **da fuori** su `prova-ponte-rfo` (non sull'evento vero). Dice anche se Cloudflare lascia passare.
+
 ### ▶ A71 — Aurora Sector Lab: F0 e F0-bis fatte, §8 chiuso, carta di F1 scritta (18 settembre 2026)
 
 - ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.

@@ -2754,6 +2754,83 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("NeighbourCandidates");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedState", b =>
+                {
+                    b.Property<string>("EventId")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("event_id")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("data")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("rfo_shared_state", (string)null);
+                });
+
+            modelBuilder.Entity("Vipi.Domain.Entities.RfoSharedStateHistory", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .HasColumnName("data")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("EventId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("event_id")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("updated_by")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EventId", "Version")
+                        .HasDatabaseName("ix_rfo_shared_state_history_event_version");
+
+                    b.ToTable("rfo_shared_state_history", (string)null);
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.RoleOverride", b =>
                 {
                     b.Property<int>("UserId")

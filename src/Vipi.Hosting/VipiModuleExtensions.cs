@@ -134,6 +134,8 @@ public static class VipiModuleExtensions
         // Bridge Aurora (F1): matching read-only + limitatore dell'endpoint (con chiave API dal 13 settembre 2026).
         services.Configure<AuroraBridgeOptions>(configuration.GetSection(AuroraBridgeOptions.SectionName));
         services.Configure<ApiOptions>(configuration.GetSection(ApiOptions.SectionName));
+        // Ponte RFO Gate Manager: le chiavi stanno nei segreti, sezione «Rfo» (carta 2026-09-18-ponte-rfo-gate-manager.md).
+        services.Configure<RfoOptions>(configuration.GetSection(RfoOptions.SectionName));
         services.AddSingleton<RequestRateLimiter>();
         services.AddSingleton<GlobalTopologyCache>();
         services.AddScoped<Vipi.Application.Content.ITransferMatchService>(sp =>
@@ -443,6 +445,10 @@ public static class VipiModuleExtensions
             // sarebbe questo.
             return Results.Json(payload, AwosJson);
         });
+
+        // Ponte fra le copie di «RFO Gate Manager» delle postazioni di un evento RFO: un documento JSON per
+        // evento, con la versione. Contratto del programma, seguito alla lettera: vedi PonteRfo.
+        endpoints.MapPonteRfo();
 
         // Archivio delle connessioni ATC, per le macchine (carta docs/feature/2026-08-28-archivio-atc-mondiale.md).
         // Dal 28 agosto 2026 il poller registra TUTTE le postazioni aperte, non le sole italiane: questo

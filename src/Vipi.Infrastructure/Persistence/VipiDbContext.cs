@@ -176,6 +176,10 @@ public class VipiDbContext : DbContext
 
     /// <summary>I programmi con una chiave per le API. Carta del 13 settembre 2026 (T-017).</summary>
     public DbSet<ApiClient> ApiClients => Set<ApiClient>();
+
+    /// <summary>Il documento condiviso di ogni evento RFO e la sua storia. Carta del 18 settembre 2026.</summary>
+    public DbSet<RfoSharedState> RfoSharedStates => Set<RfoSharedState>();
+    public DbSet<RfoSharedStateHistory> RfoSharedStateHistory => Set<RfoSharedStateHistory>();
     public DbSet<StaffMember> StaffMembers => Set<StaffMember>();
     public DbSet<AirportTransitionLevel> AirportTransitionLevels => Set<AirportTransitionLevel>();
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
@@ -603,6 +607,33 @@ public class VipiDbContext : DbContext
             // Unico: è la domanda di ogni chiamata («di chi è questa chiave?»), e due righe con la stessa
             // impronta vorrebbero dire una chiave con due padroni.
             e.HasIndex(x => x.ImprontaSha256).IsUnique();
+        });
+
+        // Ponte RFO Gate Manager: nomi di tabella e colonne come nel contratto del programma (SYNC-API.md),
+        // tutti minuscoli e senza virgolette, perché le istruzioni condizionate di EfRfoSharedStateStore sono
+        // SQL scritto a mano e devono girare uguali su SQLite, MariaDB e Postgres.
+        b.Entity<RfoSharedState>(e =>
+        {
+            e.ToTable("rfo_shared_state");
+            e.HasKey(x => x.EventId);
+            e.Property(x => x.EventId).HasColumnName("event_id").HasMaxLength(RfoLimits.EventId).ValueGeneratedNever();
+            e.Property(x => x.Version).HasColumnName("version").ValueGeneratedNever();
+            e.Property(x => x.Data).HasColumnName("data").IsRequired();
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(RfoLimits.UpdatedBy);
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+        });
+
+        b.Entity<RfoSharedStateHistory>(e =>
+        {
+            e.ToTable("rfo_shared_state_history");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.EventId).HasColumnName("event_id").HasMaxLength(RfoLimits.EventId).IsRequired();
+            e.Property(x => x.Version).HasColumnName("version");
+            e.Property(x => x.Data).HasColumnName("data").IsRequired();
+            e.Property(x => x.UpdatedBy).HasColumnName("updated_by").HasMaxLength(RfoLimits.UpdatedBy);
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => new { x.EventId, x.Version }).HasDatabaseName("ix_rfo_shared_state_history_event_version");
         });
 
         // --- Profilo strutturato aeroporto: tutte FK→Airport con cascade + ordinamento (AirportId, Order). ---
