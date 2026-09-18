@@ -44,7 +44,7 @@
   con la Ricerca; conversione su LIBV (`conv.js`) e tasto «SID» su LIBD (`sid-verifica.js`) verdi; console pulita.
 - ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, tasto «SID» in un editor dopo Ctrl+F5; da fuori
   `pacchetto-verifica.js` con `BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1`.
-- ▶ Agli AOD: la vSOP MIL di **LIBV** cita revisioni vecchie (`ROBOT6A/B` → `ROBO5A/B`, `DOGUS5A/B` → `DOGU6A`/`DOGU5B`).
+- ✅ AOD avvisati il 18-set: la vSOP MIL di **LIBV** cita revisioni vecchie (`ROBOT6A/B` → `ROBO5A/B`, `DOGUS5A/B` → `DOGU6A`/`DOGU5B`).
 - 🔴 net10 slitta a **1.35.0**.
 
 ### ✅ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026) — 📦 in 1.34.0
