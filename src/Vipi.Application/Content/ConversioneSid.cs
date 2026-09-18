@@ -44,7 +44,8 @@ public sealed record EsitoRicercaSid(IReadOnlyList<PropostaSid> Proposte, IReadO
 public static class ConversioneSid
 {
     private static readonly Regex Compatta = new(
-        @"(?<![A-Z0-9])([A-Z]{2,7})([0-9])([A-Z])(?:/[0-9]?[A-Z])+(?![A-Z0-9])",
+        // `CDC6A/B`, `ROZHU5A/5B`, e anche `CDC6A/CDC6B` (due SID intere con la barra in mezzo).
+        @"(?<![A-Z0-9])([A-Z]{2,7})([0-9])([A-Z])(?:/(?:[A-Z]{2,7})?[0-9]?[A-Z])+(?![A-Z0-9])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     public static EsitoRicercaSid Cerca(IEnumerable<BloccoDaCercare> blocchi, IReadOnlyList<SidCitabile> sids)
@@ -57,7 +58,9 @@ public static class ConversioneSid
         foreach (var s in sids)
             foreach (var f in FormeDi(s))
                 forme.TryAdd(f, s);
-        var ordinate = forme.Keys.OrderByDescending(f => f.Length).ToList();
+        // Una regex per forma, costruita UNA volta: dentro il giro sui blocchi e sulle celle sarebbero decine di
+        // migliaia di costruzioni su un documento grande (revisione del 18 settembre 2026).
+        var ordinate = forme.Keys.OrderByDescending(f => f.Length).Select(f => (Forma: f, Re: Occorrenze(f))).ToList();
 
         var radici = new HashSet<string>(sids.SelectMany(s => FormeDi(s)).Select(RiferimentiSid.Radice), StringComparer.Ordinal);
 
@@ -66,13 +69,13 @@ public static class ConversioneSid
         foreach (var b in blocchi)
         {
             var campi = CampiDi(b).ToList();
-            foreach (var forma in ordinate)
+            foreach (var (forma, re) in ordinate)
             {
                 var volte = 0;
                 string? contesto = null;
                 foreach (var campo in campi)
                 {
-                    foreach (Match m in Occorrenze(forma).Matches(campo))
+                    foreach (Match m in re.Matches(campo))
                     {
                         if (m.Groups["rif"].Success) continue;   // dentro un riferimento già fatto
                         volte++;
@@ -97,10 +100,12 @@ public static class ConversioneSid
     /// </summary>
     public static (string? Body, string? BodyJson) Converti(BloccoDaCercare b, IEnumerable<PropostaSid> scelte)
     {
-        var mie = scelte.Where(p => p.BloccoId == b.Id).OrderByDescending(p => p.Trovato.Length).ToList();
+        var mie = scelte.Where(p => p.BloccoId == b.Id).OrderByDescending(p => p.Trovato.Length)
+            .Select(p => (Re: Occorrenze(p.Trovato), p.Sid.Riferimento)).ToList();
         if (mie.Count == 0) return (null, null);
 
-        string Applica(string testo) => mie.Aggregate(testo, (t, p) => Sostituisci(t, p.Trovato, p.Sid.Riferimento));
+        string Applica(string testo) => mie.Aggregate(testo, (t, p) =>
+            p.Re.Replace(t, m => m.Groups["rif"].Success ? m.Value : p.Riferimento));
 
         string? body = null;
         if (!string.IsNullOrEmpty(b.Body))
@@ -111,18 +116,38 @@ public static class ConversioneSid
 
         string? json = null;
         if (HaCelle(b))
-        {
-            var (colonne, righe) = TabellaGenerica.Leggi(b.BodyJson);
-            var cambiata = false;
-            foreach (var riga in righe)
-                for (var i = 0; i < riga.Count; i++)
-                {
-                    var nuova = Applica(riga[i]);
-                    if (nuova != riga[i]) { riga[i] = nuova; cambiata = true; }
-                }
-            if (cambiata) json = TabellaGenerica.Scrivi(colonne, righe.Select(r => (IReadOnlyList<string>)r).ToList());
-        }
+            json = ConvertiCelle(b.BodyJson!, Applica);
         return (body, json);
+    }
+
+    /// <summary>
+    /// Le celle convertite SUL POSTO nel JSON originale, o <c>null</c> se nessuna cambia.
+    /// <para>⚠️ Non con <c>TabellaGenerica.Leggi/Scrivi</c> (revisione del 18 settembre 2026): quelle tengono solo
+    /// colonne e celle, e una tabella di contenuto porta anche <c>tableId</c>, <c>unified</c> e, per riga,
+    /// <c>primary</c>, <c>star</c>, <c>group</c>, <c>r</c> — che <c>TableBlock</c> legge. Un clic su «Converti tutte»
+    /// avrebbe tolto la ★ alle frequenze e il raggruppamento alle tabelle unificate, senza dirlo.</para>
+    /// </summary>
+    private static string? ConvertiCelle(string bodyJson, Func<string, string> applica)
+    {
+        System.Text.Json.Nodes.JsonNode? radice;
+        try { radice = System.Text.Json.Nodes.JsonNode.Parse(bodyJson); }
+        catch (System.Text.Json.JsonException) { return null; }
+        if (radice?["rows"] is not System.Text.Json.Nodes.JsonArray righe) return null;
+
+        var cambiata = false;
+        foreach (var riga in righe)
+        {
+            if (riga?["cells"] is not System.Text.Json.Nodes.JsonArray celle) continue;
+            for (var i = 0; i < celle.Count; i++)
+            {
+                if (celle[i] is not System.Text.Json.Nodes.JsonValue v || !v.TryGetValue<string>(out var testo)) continue;
+                var nuova = applica(testo);
+                if (nuova == testo) continue;
+                celle[i] = nuova;
+                cambiata = true;
+            }
+        }
+        return cambiata ? radice.ToJsonString() : null;
     }
 
     /// <summary>Le forme in cui una SID si scrive a mano.</summary>
@@ -130,14 +155,13 @@ public static class ConversioneSid
         new[] { s.Codice, s.Esteso, s.Esteso.Replace(" ", ""), s.Codice.Replace(" ", "") }
             .Where(f => f.Length >= 3).Distinct(StringComparer.Ordinal);
 
-    // Un riferimento già fatto (gruppo «rif», da saltare) o la forma a parola intera. ⚠️ Non seguita da «/»: quella
-    // è una forma compatta, e va fra le cose da sistemare a mano, non convertita a metà.
+    // Un riferimento già fatto (gruppo «rif», da saltare) o la forma a parola intera. ⚠️ Né «/» né «-» ATTACCATI, da
+    // tutti e due i lati (revisione del 18 settembre 2026): `CDC6A/B` è una forma compatta da sistemare a mano;
+    // `CDC6A/CDC6B` si convertiva a metà; `…/CDC6A.pdf` in un indirizzo diventava un riferimento e rompeva il link;
+    // e il pezzo di un composto (`ARL1K` in `BRL1Z-ARL1K`) si proponeva da solo.
     private static Regex Occorrenze(string forma) => new(
-        @"(?<rif>\[\[SID [^\]]*\]\])|(?<![A-Z0-9])" + Regex.Escape(forma) + @"(?![A-Z0-9/])",
+        @"(?<rif>\[\[SID [^\]]*\]\])|(?<![A-Z0-9/\-])" + Regex.Escape(forma) + @"(?![A-Z0-9/\-])",
         RegexOptions.CultureInvariant);
-
-    private static string Sostituisci(string testo, string forma, string riferimento) =>
-        Occorrenze(forma).Replace(testo, m => m.Groups["rif"].Success ? m.Value : riferimento);
 
     private static IEnumerable<string> CampiDi(BloccoDaCercare b)
     {

@@ -84,7 +84,15 @@
 
     private ISidReferenceResolver Risolutore => ScopedServices.GetRequiredService<ISidReferenceResolver>();
 
-    protected override void OnParametersSet() => Ricalcola();
+    private IReadOnlyList<BloccoDaCercare>? _blocchiVisti;
+
+    // Si ricerca solo quando i blocchi CAMBIANO (l'editor passa la stessa lista finché non ricarica il documento).
+    protected override void OnParametersSet()
+    {
+        if (ReferenceEquals(Blocchi, _blocchiVisti)) return;
+        _blocchiVisti = Blocchi;
+        Ricalcola();
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

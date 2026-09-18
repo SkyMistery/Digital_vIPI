@@ -242,6 +242,17 @@ public class RiferimentiSidTests
         }, Nomi("LIRF", "OST2E")));
     }
 
+    /// <summary>LICZ ha `NELD6V(NSY)` in produzione (revisione del 18 settembre 2026): senza le parentesi nella regola
+    /// il riferimento inserito dal selettore usciva GREZZO in pagina.</summary>
+    [Fact]
+    public void Un_nome_con_le_parentesi_si_riconosce_e_segue_la_revisione()
+    {
+        var nomi = Nomi("LICZ", "NELD7V(NSY)");
+        Assert.Equal("NELD?V(NSY)", RiferimentiSid.Radice("NELD6V(NSY)"));
+        Assert.Equal("Via NELD7V(NSY).", RiferimentiSid.Sostituisci("Via [[SID LICZ NELD6V(NSY)]].", nomi));
+        Assert.Equal("NELD6V(NSY)", RiferimentiSid.Sostituisci(RiferimentiSid.Scrivi("LICZ", "NELD6V(NSY)"), null));
+    }
+
     [Fact]
     public void Scrivi_e_Sostituisci_fanno_andata_e_ritorno()
     {

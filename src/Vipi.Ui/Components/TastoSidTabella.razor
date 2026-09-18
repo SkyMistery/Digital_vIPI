@@ -26,18 +26,20 @@
     private ElementReference _tasto;
     private bool _aperto;
     private bool _senzaCella;
+    private string _gettone = "";   // vedi `vipiSidPrendi`: due selettori aperti non si scambiano il campo
 
     private async Task Apri()
     {
         if (_aperto) { _aperto = false; return; }
-        var preso = await JS.InvokeAsync<bool>("vipiSidPrendiDa", _tasto);
-        _senzaCella = !preso;
-        _aperto = preso;
+        _gettone = await JS.InvokeAsync<string>("vipiSidPrendiDa", _tasto) ?? "";
+        _senzaCella = _gettone.Length == 0;
+        _aperto = !_senzaCella;
     }
 
     private async Task Inserisci(SidCitabile s)
     {
         _aperto = false;
-        await JS.InvokeAsync<bool>("vipiSidInserisci", s.Riferimento);
+        _senzaCella = false;
+        await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, s.Riferimento);
     }
 }

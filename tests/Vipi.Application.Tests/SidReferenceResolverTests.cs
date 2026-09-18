@@ -148,6 +148,17 @@ public class SidReferenceResolverTests
         Assert.Equal("VIENNA 6B", elenco[1].Esteso);
     }
 
+    /// <summary>Il selettore offre solo nomi che il riferimento sa portare: uno che la regola non riconosce uscirebbe
+    /// grezzo in pagina (revisione del 18 settembre 2026).</summary>
+    [Fact]
+    public async Task Il_selettore_non_offre_nomi_che_il_riferimento_non_sa_portare()
+    {
+        var vive = new SidVive { Tabelle = { ["LICZ"] = Tabella("NELD6V(NSY)", "VFR NORD/SUD", "ALFA.1") } };
+        var elenco = await new SidReferenceResolver(vive, new Congelate()).ElencoAsync("LICZ");
+
+        Assert.Equal("NELD6V(NSY)", Assert.Single(elenco).Codice);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("LIR")]

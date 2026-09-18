@@ -105,6 +105,48 @@ public class ConversioneSidTests
         Assert.Equal(new[] { "DANTO", "[[SID LIBV CDC6A]]", "CDC6A/B" }, righe[0]);
     }
 
+    // ---- dalla revisione del 18 settembre 2026 ----------------------------------------------------------
+
+    /// <summary>Le proprietà della tabella che non sono celle — ★, primario, gruppo, unificata, id — restano: la
+    /// conversione tocca le celle sul JSON originale.</summary>
+    [Fact]
+    public void Convertire_una_cella_lascia_le_altre_proprieta_della_tabella()
+    {
+        const string json = """{"tableId":"cfg-ops","unified":true,"columns":["Punto","SID"],"rows":[{"group":"Nord","primary":true,"star":true,"r":"x1","cells":["DANTO","CDC6A"]}]}""";
+        var b = new BloccoDaCercare(3, "Punti", BlockFormat.Table, null, json);
+
+        var (_, nuovo) = ConversioneSid.Converti(b, ConversioneSid.Cerca(new[] { b }, Libv).Proposte);
+
+        using var doc = System.Text.Json.JsonDocument.Parse(nuovo!);
+        var r = doc.RootElement;
+        Assert.Equal("cfg-ops", r.GetProperty("tableId").GetString());
+        Assert.True(r.GetProperty("unified").GetBoolean());
+        var riga = r.GetProperty("rows")[0];
+        Assert.Equal(("Nord", true, true, "x1"),
+            (riga.GetProperty("group").GetString(), riga.GetProperty("primary").GetBoolean(),
+             riga.GetProperty("star").GetBoolean(), riga.GetProperty("r").GetString()));
+        Assert.Equal("[[SID LIBV CDC6A]]", riga.GetProperty("cells")[1].GetString());
+    }
+
+    /// <summary>Due SID intere con la barra in mezzo: prima se ne convertiva una sola, e il testo restava a metà.</summary>
+    [Fact]
+    public void Due_SID_con_la_barra_in_mezzo_si_elencano_e_non_si_convertono_a_meta()
+    {
+        var esito = ConversioneSid.Cerca(new[] { Prosa(1, "Expect CDC6A/CDC6B.") }, Libv);
+
+        Assert.Empty(esito.Proposte);
+        Assert.Equal("CDC6A/CDC6B", Assert.Single(esito.DaSistemare).Trovato);
+    }
+
+    [Theory]
+    [InlineData("Carta: https://example.org/carte/CDC6A.pdf")]   // dentro un indirizzo
+    [InlineData("Via XCDC-CDC6A.")]                              // pezzo di un composto
+    [InlineData("Via CDC6A-EXT.")]
+    public void Attaccata_a_una_barra_o_a_un_trattino_non_e_una_SID_da_convertire(string testo)
+    {
+        Assert.Empty(ConversioneSid.Cerca(new[] { Prosa(1, testo) }, Libv).Proposte);
+    }
+
     [Fact]
     public void Senza_scelte_per_il_blocco_non_cambia_niente()
     {

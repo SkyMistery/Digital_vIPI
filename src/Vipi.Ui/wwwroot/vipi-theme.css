@@ -3482,10 +3482,10 @@
    sfondo su sfondo non si vedrebbe. */
 :where(.vipi-root) .struct .res-table.sid-edit input.nav-unknown{border-color:var(--line-yellow);box-shadow:inset 0 0 0 1px var(--line-yellow)}
 /* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
-:where(.vipi-root) .struct .res-table td.sidref-pick{cursor:ns-resize;user-select:none;text-align:center}
+:where(.vipi-root) .struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
 :where(.vipi-root) .struct .res-table.sid-edit td.dbl-pick{user-select:none}
 :where(.vipi-root) .struct .res-table.sid-edit tbody tr:hover td.dbl-pick{text-decoration:underline dotted var(--ivao-lightblue);text-underline-offset:3px}
-:where(.vipi-root) .struct .res-table td.sidref-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+:where(.vipi-root) .struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
 /* Due stati diversi, due segni diversi: scelta (blu, la riga intera) e modificata-non-salvata (giallo, come
    la cella `lim-dirty` della pagina ACC). Una riga può essere entrambe le cose. */
 :where(.vipi-root) .struct .res-table tbody tr.row-dirty>td{background:var(--tint-yellow-soft)}

@@ -127,8 +127,10 @@ public sealed class IndiceDelleRelease
     /// un allegato titolo e nota (il JSON porta lo slug): né lo sha né lo slug devono pescare risultati, né
     /// finire in un estratto.
     /// <para>Una SID citata (§A73) si indicizza col suo ultimo nome visto, non come <c>[[SID …]]</c>: il codice
-    /// del riferimento non deve finire in un estratto. ⚠️ Il nome di OGGI qui non si sa senza una query per
-    /// scalo, e l'indice non ne fa: se la SID è stata aggiornata, la si trova col nome di quando è stata citata.</para>
+    /// del riferimento non deve finire in un estratto. ⚠️ Due limiti, noti e accettati: il nome di OGGI qui non si
+    /// sa senza una query per scalo, e l'indice non ne fa — se la SID è stata aggiornata, la si trova col nome di
+    /// quando è stata citata; ed è il CODICE (<c>BANA8A</c>), non il nome completo che il lettore vede
+    /// (<c>BANAV 8A</c>): cercando quest'ultimo il testo non si trova.</para>
     /// </summary>
     private static (string? Primo, string? Secondo) TestiDi(RawBlock b) => b.Format switch
     {

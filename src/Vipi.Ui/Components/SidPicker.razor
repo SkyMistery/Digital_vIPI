@@ -79,8 +79,13 @@
         if (icao.Length != 4)
             icao = RiferimentiSid.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
         await CaricaAsync(icao);
+        // 🔴 Chiuso mentre caricava (doppio clic sul tasto, Esc): il campo di ricerca non c'è più, e il fuoco su un
+        // elemento sparito alza un'eccezione JS che, uscita da qui, chiude il circuito (revisione del 18 settembre 2026).
+        if (Chiusa) return;
         StateHasChanged();
-        await _cerca.FocusAsync();
+        try { await _cerca.FocusAsync(); }
+        catch (JSException) { }                  // sparito fra il disegno e il fuoco: niente da mettere a fuoco
+        catch (InvalidOperationException) { }    // riferimento non ancora legato: stessa risposta
     }
 
     private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiSid.Norm(e.Value as string));

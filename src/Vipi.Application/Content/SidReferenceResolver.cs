@@ -82,6 +82,9 @@ public sealed class SidReferenceResolver : ISidReferenceResolver
             .GroupBy(r => RiferimentiSid.Norm(r.Name))
             .Select(g => new SidCitabile(scalo, g.Key, RiferimentiSid.NomeEsteso(g.First().Fix, g.Key),
                 string.Join(", ", g.Select(r => r.Runway).Where(p => p != "—").Distinct().OrderBy(p => p, StringComparer.Ordinal))))
+            // Solo nomi che il riferimento sa portare: uno che la regola non riconosce uscirebbe GREZZO in pagina,
+            // e non lo proteggerebbe nemmeno la traduzione.
+            .Where(s => RiferimentiSid.Contiene(s.Riferimento))
             .OrderBy(s => s.Esteso, StringComparer.Ordinal)
             .ToList();
     }

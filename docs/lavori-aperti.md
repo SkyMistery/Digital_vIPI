@@ -43,6 +43,24 @@
   `DOGU6A`/`DOGU5B`), più `CDC6A/B`, `VIE6A/B`, `VICTOR6A/B` da sistemare a mano. Il nome completo non si compone
   con un punto che non è fatto di sole lettere (`BV-VICTOR` → resta `VICTOR6A`).
   **§A73 chiusa**, tutte e cinque le slice. Da consegnare col prossimo pacchetto.
+- ✅ **Revisione indipendente** (18-set, due revisori senza contesto, ogni rilievo verificato prima di toccare):
+  - 🔴 ALTO: l'editor leggeva i nomi SID sullo STESSO DbContext di `Editing`, fuori dal tornello, a ogni ricarico →
+    «Converti tutte» su più blocchi (o chi salva il campo dopo) poteva dare «second operation»; e l'editor chiuso
+    durante la lettura si portava via il contesto. Ora la lettura ha uno scope SUO e scarta l'esito di un documento
+    vecchio.
+  - 🔴 Colpa della slice 3: la rinomina `sid-pick` → `sidref-*` aveva preso anche le due regole PREESISTENTI delle
+    caselle di `AirportSidsEditor` (la ricerca era troncata da un `head`): rimesse, verificato lo stile a schermo.
+  - Selettore chiuso durante il caricamento → fuoco su un campo sparito → circuito chiuso: guardia + try/catch.
+  - Segno del campo globale → con due selettori aperti la scelta finiva nel campo sbagliato: ora un GETTONE per
+    apertura. Le intestazioni di tabella non si prendono; l'anteprima risolve anche le intestazioni.
+  - `LICZ NELD6V(NSY)` in produzione: il riferimento non la riconosceva e usciva grezzo → parentesi ammesse, e il
+    selettore offre solo nomi che il riferimento sa portare.
+  - Conversione: una regex per forma (non una per cella), confini che escludono `/` e `-` (niente mezze conversioni
+    in `CDC6A/CDC6B`, negli URL, nei composti), celle convertite sul JSON originale (★, primario, gruppo restano).
+  - Tasto «SID» tolto dall'intro VFR dell'APP (lì il nome non si aggiornerebbe); ricerca del pannello solo quando
+    i blocchi cambiano.
+  - ▶ Da decidere col committente: fra due revisioni vive vince la cifra più ALTA, ma al giro 9 → 1 vincerebbe la
+    vecchia. E la ricerca indicizza il codice (`BANA8A`), non il nome completo che si legge (`BANAV 8A`).
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 

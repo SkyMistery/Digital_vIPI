@@ -118,31 +118,41 @@
     //      nel modello.
     // Il segno è un attributo sul campo e non un riferimento in una variabile: il campo può essere ridisegnato
     // da Blazor fra i due tempi, e l'attributo — che Blazor non gestisce — resta sull'elemento che sopravvive.
+    //
+    // 🔴 Il segno porta un GETTONE, uno per ogni apertura (revisione del 18 settembre 2026). Era un segno solo per
+    // tutta la pagina: con due selettori aperti — blocco A e blocco B — la scelta fatta in A finiva nel campo di
+    // B, e lo salvava. Ora `vipiSidPrendi` torna il gettone (vuoto = nessun campo) e `vipiSidInserisci` scrive
+    // solo nel campo che lo porta. ⚠️ La posizione resta quella del clic sul tasto: chi torna nel campo e sposta
+    // il cursore col selettore aperto, riceve il riferimento dove stava prima.
+    var sidGettoni = 0;
     window.vipiSidPrendi = function (contenitore) {
-        if (!contenitore) return false;
+        if (!contenitore) return '';
         var campo = function (x) { return x && (x.tagName === 'TEXTAREA' || (x.tagName === 'INPUT' && x.type === 'text')); };
         var el = campo(contenitore) ? contenitore : document.activeElement;
-        if (!campo(el) || (el !== contenitore && !contenitore.contains(el))) return false;
-        document.querySelectorAll('[data-sid-bersaglio]').forEach(function (x) { x.removeAttribute('data-sid-bersaglio'); });
+        if (!campo(el) || (el !== contenitore && !contenitore.contains(el))) return '';
+        // Le intestazioni di una tabella non sono celle: il riferimento lì non si risolverebbe nelle anteprime.
+        if (el !== contenitore && el.closest('thead')) return '';
         // Un campo che non ha il fuoco (il tasto premuto senza aver mai cliccato nel testo) riceve in CODA, non
         // in testa: il cursore «a zero» di un campo mai toccato non è una scelta di chi scrive.
         var n = el.value.length;
         var s = el === document.activeElement ? el.selectionStart : n;
         var e = el === document.activeElement ? el.selectionEnd : n;
-        el.setAttribute('data-sid-bersaglio', s + ',' + e);
-        return true;
+        var gettone = 'g' + (++sidGettoni);
+        el.setAttribute('data-sid-bersaglio', gettone + '|' + s + ',' + e);
+        return gettone;
     };
 
     // Dal tasto sotto una tabella: il contenitore è il blocco marcato `data-sid-host`, e il campo è la cella
-    // che ha il fuoco lì dentro. Falso = nessuna cella selezionata (il tasto lo dice).
+    // che ha il fuoco lì dentro. Vuoto = nessuna cella selezionata (il tasto lo dice).
     window.vipiSidPrendiDa = function (tasto) {
         return window.vipiSidPrendi(tasto && tasto.closest ? tasto.closest('[data-sid-host]') : null);
     };
 
-    window.vipiSidInserisci = function (testo) {
-        var el = document.querySelector('[data-sid-bersaglio]');
+    window.vipiSidInserisci = function (gettone, testo) {
+        if (!gettone) return false;
+        var el = document.querySelector('[data-sid-bersaglio^="' + gettone + '|"]');
         if (!el) return false;
-        var p = el.getAttribute('data-sid-bersaglio').split(',');
+        var p = el.getAttribute('data-sid-bersaglio').split('|')[1].split(',');
         el.removeAttribute('data-sid-bersaglio');
         var v = el.value, s = Math.min(+p[0] || 0, v.length), e = Math.min(+p[1] || s, v.length);
         // Uno spazio ai lati se manca: «Expect[[SID …]]then» si legge male anche risolto.

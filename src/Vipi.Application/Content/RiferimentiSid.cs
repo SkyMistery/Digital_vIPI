@@ -27,8 +27,11 @@ public static class RiferimentiSid
     /// riferimento vive anche dentro le stringhe del JSON delle tabelle, e si sostituisce sul testo del JSON.
     /// <para>⚠️ <c>internal</c> perché la protezione dalla traduzione (<c>TextProtector</c>) usa la STESSA regola:
     /// un riferimento che il renderer riconosce e la protezione no partirebbe verso il motore.</para></remarks>
+    // ⚠️ Le parentesi sono ammesse (revisione del 18 settembre 2026): LICZ ha `NELD6V(NSY)` e `NELD6Z(NSY)` in
+    // produzione, e senza la regola il selettore inseriva un riferimento che poi nessuno riconosceva — in pagina
+    // usciva grezzo. Il selettore offre comunque solo nomi che questa regola accetta (`ElencoAsync`).
     internal static readonly Regex Riferimento = new(
-        @"\[\[SID ([A-Z]{4}) ([A-Z0-9](?:[A-Z0-9 \-]{0,38}[A-Z0-9])?)\]\]",
+        @"\[\[SID ([A-Z]{4}) ([A-Z0-9](?:[A-Z0-9 \-()]{0,38}[A-Z0-9)])?)\]\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>

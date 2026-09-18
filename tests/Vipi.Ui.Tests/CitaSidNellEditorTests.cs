@@ -60,7 +60,7 @@ public class CitaSidNellEditorTests : TestContext
     [Fact]
     public void Dalla_barra_si_sceglie_una_SID_e_nel_campo_va_il_riferimento()
     {
-        JSInterop.Setup<bool>("vipiSidPrendi", _ => true).SetResult(true);
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
         JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
         var c = CampoDiLIBD();
 
@@ -74,14 +74,14 @@ public class CitaSidNellEditorTests : TestContext
         c.FindAll(".sidref-pick-row").First().Click();
 
         var scritto = Assert.Single(JSInterop.Invocations["vipiSidInserisci"]);
-        Assert.Equal("[[SID LIBD BANA8A]]", scritto.Arguments[0]);
+        Assert.Equal("[[SID LIBD BANA8A]]", scritto.Arguments[1]);
         Assert.Empty(c.FindAll(".sidref-pick"));   // scelto, il selettore si chiude
     }
 
     [Fact]
     public void La_ricerca_filtra_e_Invio_sceglie_la_prima()
     {
-        JSInterop.Setup<bool>("vipiSidPrendi", _ => true).SetResult(true);
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
         JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
         var c = CampoDiLIBD();
         c.Find("button.rta-sid").Click();
@@ -92,14 +92,14 @@ public class CitaSidNellEditorTests : TestContext
         Assert.Single(c.FindAll(".sidref-pick-row"));
         cerca.KeyDown("Enter");
 
-        Assert.Equal("[[SID LIBD TOPN9A]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[0]);
+        Assert.Equal("[[SID LIBD TOPN9A]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 
     /// <summary>Il tasto segna il campo PRIMA di aprire: aperto il selettore, il fuoco va nella sua ricerca.</summary>
     [Fact]
     public void Il_campo_si_segna_al_clic_sul_tasto()
     {
-        JSInterop.Setup<bool>("vipiSidPrendi", _ => true).SetResult(true);
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
         var c = CampoDiLIBD();
 
         c.Find("button.rta-sid").Click();
@@ -111,7 +111,7 @@ public class CitaSidNellEditorTests : TestContext
     [Fact]
     public void Sotto_una_tabella_senza_cella_selezionata_lo_dice()
     {
-        JSInterop.Setup<bool>("vipiSidPrendiDa", _ => true).SetResult(false);
+        JSInterop.Setup<string>("vipiSidPrendiDa", _ => true).SetResult("");
         var c = RenderComponent<TastoSidTabella>();
 
         c.Find("button").Click();
@@ -123,7 +123,7 @@ public class CitaSidNellEditorTests : TestContext
     [Fact]
     public void Sotto_una_tabella_con_la_cella_selezionata_si_sceglie()
     {
-        JSInterop.Setup<bool>("vipiSidPrendiDa", _ => true).SetResult(true);
+        JSInterop.Setup<string>("vipiSidPrendiDa", _ => true).SetResult("g1");
         JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
         var c = RenderComponent<TastoSidTabella>(p => p.AddCascadingValue("IcaoDelDocumento", "LIBD"));
 
@@ -131,7 +131,44 @@ public class CitaSidNellEditorTests : TestContext
         c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
         c.FindAll(".sidref-pick-row").ElementAt(1).Click();
 
-        Assert.Equal("[[SID LIBD TOPN9A]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[0]);
+        Assert.Equal("[[SID LIBD TOPN9A]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    /// <summary>🔴 Revisione del 18 settembre 2026: l'inserimento porta il GETTONE di quell'apertura. Con un segno
+    /// solo per la pagina, due selettori aperti si scambiavano il campo — la scelta fatta in A finiva in B.</summary>
+    [Fact]
+    public void L_inserimento_porta_il_gettone_di_chi_ha_aperto()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g7");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+        c.FindAll(".sidref-pick-row").First().Click();
+
+        Assert.Equal("g7", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[0]);
+    }
+
+    /// <summary>Nessun campo segnato (il JS torna un gettone vuoto): il selettore non si apre.</summary>
+    [Fact]
+    public void Senza_un_campo_segnato_il_selettore_non_si_apre()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("");
+        var c = CampoDiLIBD();
+
+        c.Find("button.rta-sid").Click();
+
+        Assert.Empty(c.FindAll(".sidref-pick"));
+    }
+
+    /// <summary>Dove il testo non passa da un disegno che risolve i nomi (l'intro VFR dell'APP), il tasto non c'è:
+    /// prometterebbe un nome che si aggiorna e non si aggiornerebbe.</summary>
+    [Fact]
+    public void Dove_il_nome_non_si_aggiornerebbe_il_tasto_non_c_e()
+    {
+        var c = RenderComponent<RichTextArea>(p => p.Add(x => x.CitaSid, false));
+        Assert.Empty(c.FindAll("button.rta-sid"));
     }
 
     /// <summary>🔴 Le funzioni che la UI chiama esistono nel JS con QUEL nome: un nome sbagliato qui è un tasto
