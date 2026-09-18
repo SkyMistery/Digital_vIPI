@@ -2,7 +2,21 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### 🔧 A75 — Coordinamenti: la frase nomina TUTTI i punti della clausola (18 settembre 2026, notte) — NON in 1.34.0
+### 📦 A76 — Pacchetto 1.34.1 PRONTO DA CARICARE (18 settembre 2026, notte)
+
+- PATCH su 1.34.0 (`9d3530e`), **nessuna migrazione**. Timbro **`1.34.1 · 902e41e`**. 🔴 1.34.0 va caricato PRIMA
+  se non è ancora online (zip ruotato in `artifacts/publish_old/20260918c/`).
+- **4 file**: `Vipi.Application` e `Vipi.Host` (dll+pdb). Tutto il resto identico per impronta o diverso solo per
+  ricompilazione; `endpoints.json` e `wwwroot` identici. `PointsOr` è una proprietà init col default: Hosting non serve.
+- Zip `artifacts/publish/vipi-1.34.1-solo-file-cambiati.zip` sha256
+  `46682aa21e0208b37a346db2a78a0d35b2625c9e4a28bc81c9ad36839872bd3f`, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.34.1.md`,
+  publish `linux-x64-20260918d`.
+- ✅ Provato sul PACCHETTO (win-x64, :5199, copia della produzione): `pacchetto-verifica.js` tutto verde; LIRR bozza
+  «via KAPIL, MEGAN, PAN, PIVOP o ADUKA» / «or ADUKA».
+- ▶ Dopo il carico: timbro, Ricerca, `Schema 0`, la frase su una vIPI ACC; ripubblicare i documenti con coordinamenti
+  congelati a più punti.
+
+### ✅ A75 — Coordinamenti: la frase nomina TUTTI i punti della clausola (18 settembre 2026, notte) — in 1.34.1
 
 - Difetto dal campo: riga «BUDIN, ANC» → una frase sola con «su BUDIN». Causa: `CoordTable.Sentences()` tiene UNA
   frase per `ClauseId` (quella della prima riga) e ogni riga componeva la frase col suo `p.Cop` singolo.
@@ -11,8 +25,7 @@
   (`VloaDerivationService`) e anteprima dell'editor accordi (`AgreementPreview`). Un punto solo: invariato.
 - Test: 5 in `CoordinationSentenceComposerTests` (rossi sul codice di prima). Live su copia di produzione (LIRR bozza):
   «via KAPIL, MEGAN, PAN, PIVOP o ADUKA», «via GIANO, PAL o PRS».
-- ⚠️ Le sezioni congelate cambiano solo alla **ripubblicazione**. ▶ Serve un pacchetto (1.34.1, o 1.34.0 rifatto se
-  non ancora caricato).
+- ⚠️ Le sezioni congelate cambiano solo alla **ripubblicazione**. Spedita in 1.34.1 (§A76).
 
 ### 📦 A74 — Pacchetto 1.34.0 PRONTO DA CARICARE (18 settembre 2026, sera)
 
