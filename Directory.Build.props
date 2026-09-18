@@ -1492,7 +1492,16 @@
       Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui (+ frasi,
       vipi-theme.css) e Vipi.Host per il timbro. Il net10 slitta a 1.33.0.
     -->
-    <VipiVersione>1.32.0</VipiVersione>
+    <!--
+      1.33.0 — MINOR, UNA migrazione ADDITIVA (PonteRfo: tabelle rfo_shared_state e rfo_shared_state_history). Su
+      1.32.0 (c1eddc9, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A72 e §A69): il ponte RFO Gate Manager, GET/PUT
+      /api/rfo/events/{eventId}/state con chiavi Rfo:Chiavi nei segreti, per l'evento LIRN del 19 settembre; e le
+      soglie «Mai usare» come chip rosse. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Hosting, Vipi.Ui (+ vipi-theme.css) e Vipi.Host. Il net10 slitta a 1.34.0.
+    -->
+    <VipiVersione>1.33.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
