@@ -52,6 +52,15 @@ public static class AttachmentRules
     /// </summary>
     public const string TokenPrefix = "allegato:";
 
+    /// <summary>
+    /// Il link inline a un allegato nella prosa, <c>[LoA Marseille](allegato:loa-lirr-lfmm)</c>: gruppo 1 il
+    /// testo, gruppo 2 lo slug. Lo slug è vincolato alla sua forma — minuscole, cifre, trattini singoli.
+    /// <para>⚠️ Una regola sola per chi lo DISEGNA (<c>MarkdownLite</c>) e chi lo PROTEGGE dalla traduzione
+    /// (<c>TextProtector</c>): due copie divergerebbero, e un link che il renderer riconosce ma la protezione
+    /// no finirebbe al motore, che tradurrebbe «allegato» e lo spezzerebbe in silenzio.</para>
+    /// </summary>
+    public const string LinkPattern = @"\[([^\]\r\n]+)\]\(allegato:([a-z0-9]+(?:-[a-z0-9]+)*)\)";
+
     /// <summary>La rotta che serve questo allegato. L'unica cosa che un documento deve contenere.</summary>
     public static string UrlDi(string slug) => UrlPrefix + slug;
 

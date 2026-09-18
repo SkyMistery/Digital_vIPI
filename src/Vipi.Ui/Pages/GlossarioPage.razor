@@ -1190,6 +1190,13 @@
     private async Task SalvaFraseAsync(TranslationReviewRow r)
     {
         if (string.IsNullOrWhiteSpace(_bozzaTr)) return;
+        // Le SID citate e i link agli allegati (§A73) restano quelli del sorgente: stesso controllo, e stessa
+        // frase, del pannello di revisione del documento.
+        if (!Vipi.Application.Translation.TextProtector.StessiRiferimenti(r.SourceText, _bozzaTr))
+        {
+            _msg = Vipi.Application.Translation.DocumentTranslationReview.RiferimentiCambiati;
+            return;
+        }
         var quanti = Usi(r.SourceText).Count;
         _busy = true;
         try

@@ -62,8 +62,7 @@ public static class MarkdownLite
     /// diventato testo prima, e resta testo dentro l'ancora.</para>
     /// </summary>
     private static readonly Regex LinkAllegato = new(
-        @"\[([^\]\r\n]+)\]\(allegato:([a-z0-9]+(?:-[a-z0-9]+)*)\)",
-        RegexOptions.Compiled | RegexOptions.CultureInvariant);
+        AttachmentRules.LinkPattern, RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly Regex Grassetto = new(
         @"\*\*(.+?)\*\*", RegexOptions.Compiled | RegexOptions.CultureInvariant);

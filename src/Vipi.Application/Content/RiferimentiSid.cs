@@ -24,8 +24,10 @@ public static class RiferimentiSid
     /// <summary>Il riferimento nel testo: <c>[[SID</c>, quattro lettere di scalo, il nome, <c>]]</c>.</summary>
     /// <remarks>Il nome ammette solo maiuscole, cifre, spazi e trattini — le forme vere dell'archivio
     /// (<c>OST1E</c>, <c>BRL1Z-ARL1K</c>, <c>GOLF 1</c>). ⚠️ Nessuna virgoletta né barra rovescia: il
-    /// riferimento vive anche dentro le stringhe del JSON delle tabelle, e si sostituisce sul testo del JSON.</remarks>
-    private static readonly Regex Riferimento = new(
+    /// riferimento vive anche dentro le stringhe del JSON delle tabelle, e si sostituisce sul testo del JSON.
+    /// <para>⚠️ <c>internal</c> perché la protezione dalla traduzione (<c>TextProtector</c>) usa la STESSA regola:
+    /// un riferimento che il renderer riconosce e la protezione no partirebbe verso il motore.</para></remarks>
+    internal static readonly Regex Riferimento = new(
         @"\[\[SID ([A-Z]{4}) ([A-Z0-9](?:[A-Z0-9 \-]{0,38}[A-Z0-9])?)\]\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 

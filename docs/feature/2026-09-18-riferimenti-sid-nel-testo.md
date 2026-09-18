@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: 🟡 **slice 1 in main** (18 settembre 2026): risoluzione e disegno. Slice 2-5 da fare (§A73).
+> Stato: 🟡 **slice 1-2 in main** (18 settembre 2026): risoluzione, disegno, traduzione. Slice 3-5 da fare (§A73).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato
@@ -126,6 +126,20 @@ controlla che i riferimenti della resa siano **gli stessi** del sorgente.
 ⚠️ **Trovato strada facendo, fuori da questa carta:** i link `[testo](allegato:slug)` **non sono protetti** nella
 traduzione. Il motore li riceve grezzi e potrebbe tradurre «allegato», rompendo il link in silenzio. Voce
 separata in §A73; la regola nuova la può coprire con la stessa riga.
+
+✅ **Com'è andata la slice 2 (18 settembre 2026):**
+- `TextProtector.ProteggiRiferimenti`, passo **0-bis**: dopo «una parola sola maiuscola», **prima** dei dati
+  personali. Prima di loro perché un VID-sembrante dentro uno slug (`carta-202609`) spezzava il link.
+- **SID**: tutta in un tag **vuoto**. Col valore dentro, il motore avrebbe visto le parentesi quadre e un «[[»
+  toccato fa buttare la frase al ripristino a ogni giro.
+- **Allegato**: il **testo** del link si traduce; si proteggono i due bordi, `[` e `](allegato:slug)`.
+- Una regola sola: `AttachmentRules.LinkPattern` la usano `MarkdownLite` e il protettore;
+  `RiferimentiSid.Riferimento` è `internal` per lo stesso motivo.
+- **Resa scritta a mano**: `TextProtector.StessiRiferimenti` nelle due porte che salvano una resa umana — il
+  pannello del documento (`DocumentTranslationReview.CorreggiAsync`, `ValidationException`) e il Registro
+  (`GlossarioPage`). Una voce di glossario con un riferimento è rifiutata (`ContieneIdentificatori`).
+- Misurato su `vipi_1330`: **zero** link `allegato:` in linea, nei testi e nella memoria. Il difetto era
+  latente, nessuna traduzione da rifare.
 
 ## 7. Editor
 

@@ -233,6 +233,12 @@ public sealed partial class TextProtector
             // protetto resta VUOTO, quindi il segmento non parte affatto.
             return new ProtectedText(Deposita(s, tokens, Riservatezza.Intraducibile), tokens, Safe: true, marcatori);
 
+        // 0-bis. I RIFERIMENTI del nostro formato, prima di ogni altra regola: sono SINTASSI, non testo, e una
+        //    regola successiva ne prenderebbe dei pezzi — `SiglaMaiuscola` farebbe di «[[SID LIRF OST1E]]» due
+        //    segnaposto e un «[[SID» spedito al motore, e un VID-sembrante dentro uno slug lo spezzerebbe.
+        //    Vedi `ProteggiRiferimenti` (§A73, 18 settembre 2026).
+        s = ProteggiRiferimenti(s, tokens);
+
         // 1. DATI PERSONALI, per primi e sempre: se una regola successiva ne spezzasse uno, quello che
         //    resta uscirebbe in chiaro.
         foreach (var nome in _nomi)
@@ -326,6 +332,54 @@ public sealed partial class TextProtector
         // «non sicuro» — quindi non traducibile — ogni blocco che parla di attraversamenti.
         return _nomi.Any(n => TrovaParolaIntera(testoProtetto, n));
     }
+
+    /// <summary>Il link inline a un allegato: la stessa regola del renderer, <see cref="AttachmentRules.LinkPattern"/>.</summary>
+    private static readonly Regex LinkAllegato = new(AttachmentRules.LinkPattern, RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Mette da parte i due riferimenti del nostro formato, che il motore non deve toccare.
+    ///
+    /// <list type="bullet">
+    /// <item><b>Una SID citata</b>, <c>[[SID LIRF OST1E]]</c> (§A73): intera, in un tag <b>vuoto</b>. Col valore
+    ///   dentro il motore riceverebbe le parentesi quadre, e un «[[» toccato vuol dire frase scartata al
+    ///   ripristino — a ogni giro. Vuoto non si scarta mai; si perde solo l'ancora di un nome, come per un VID.</item>
+    /// <item><b>Un link a un allegato</b>, <c>[LoA Marseille](allegato:loa-lirr-lfmm)</c>: il TESTO del link si
+    ///   traduce, si proteggono i due bordi — la <c>[</c> e la coda <c>](allegato:slug)</c>. ⚠️ Fino al 18
+    ///   settembre 2026 il link partiva così com'era: il motore poteva tradurre «allegato» («attachment:») e il
+    ///   link diventava testo in silenzio, perché il renderer riconosce solo lo schema <c>allegato:</c>.</item>
+    /// </list>
+    /// <para>⚠️ Il testo SORGENTE salvato non cambia: questa è solo la forma che parte, quindi l'impronta del
+    /// segmento — e la memoria di traduzione — resta quella di prima.</para>
+    /// </summary>
+    private static string ProteggiRiferimenti(string s, List<string> tokens)
+    {
+        if (s.Contains("[[SID ", StringComparison.Ordinal))
+            s = RiferimentiSid.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
+
+        if (s.Contains(AttachmentRules.TokenPrefix, StringComparison.Ordinal))
+            s = LinkAllegato.Replace(s, m =>
+                Deposita("[", tokens, Riservatezza.Intraducibile)
+                + m.Groups[1].Value
+                + Deposita($"]({AttachmentRules.TokenDi(m.Groups[2].Value)})", tokens, Riservatezza.Intraducibile));
+
+        return s;
+    }
+
+    /// <summary>
+    /// Vero se la traduzione porta <b>gli stessi riferimenti</b> del sorgente: le stesse SID citate e gli stessi
+    /// allegati, quante volte compaiono. Serve a chi scrive una resa A MANO (pannello di revisione, Registro):
+    /// il motore i riferimenti non li vede, una persona sì, e può rovinarne uno — «[[SID LIRF OST1E]]» diventato
+    /// «OST1E», o un «allegato:» tradotto — e il link o la SID aggiornata sparirebbero solo in quella lingua.
+    /// </summary>
+    public static bool StessiRiferimenti(string? sorgente, string? tradotto) =>
+        Riferimenti(sorgente).SequenceEqual(Riferimenti(tradotto));
+
+    private static IEnumerable<string> Riferimenti(string? testo) =>
+        string.IsNullOrEmpty(testo)
+            ? Enumerable.Empty<string>()
+            : RiferimentiSid.Riferimento.Matches(testo).Select(m => m.Value)
+                .Concat(LinkAllegato.Matches(testo).Select(m => AttachmentRules.TokenDi(m.Groups[2].Value)))
+                .OrderBy(r => r, StringComparer.Ordinal);
 
     // ---- Ripristino ----------------------------------------------------------------------------------
 
@@ -641,7 +695,11 @@ public sealed partial class TextProtector
     {
         if (string.IsNullOrWhiteSpace(testo)) return false;
 
-        return VidAnnunciato().IsMatch(testo)
+        // I riferimenti del nostro formato per primi: una voce di glossario che ne contenesse uno se lo
+        // inghiottirebbe, e la SID o l'allegato resterebbero cablati nella resa.
+        return RiferimentiSid.Riferimento.IsMatch(testo)
+               || LinkAllegato.IsMatch(testo)
+               || VidAnnunciato().IsMatch(testo)
                || ForseUnVid().IsMatch(testo)
                || Callsign().IsMatch(testo)
                || CanaleTacan().IsMatch(testo)

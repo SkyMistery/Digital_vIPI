@@ -171,10 +171,20 @@ public sealed class DocumentTranslationReview : IDocumentTranslationReview
                 "Questa è la lingua in cui il documento è scritto: si corregge nell'editor, non qui.",
                 "This is the language the document is written in: it is corrected in the editor, not here."));
 
+        // Le SID citate e i link agli allegati (§A73) devono restare quelli del sorgente: sono sintassi, non
+        // parole, e una resa che li perde li perde solo in questa lingua.
+        if (!TextProtector.StessiRiferimenti(sorgente, tradotto))
+            throw new Aor.ValidationException(RiferimentiCambiati);
+
         await _memoria.SaveHumanAsync(sourceLang, targetLang,
             TranslationText.Normalize(sorgente), TranslationText.Normalize(tradotto),
             _authz.CurrentUserId ?? 0, ct).ConfigureAwait(false);
     }
+
+    /// <summary>Il rifiuto di una resa scritta a mano che ha perso o cambiato un riferimento (§A73).</summary>
+    public static string RiferimentiCambiati => Messaggio.Lingua(
+        "La traduzione deve lasciare identici i riferimenti del testo originale: le SID citate ([[SID …]]) e i link agli allegati (allegato:…). Copiali così come sono.",
+        "The translation must keep the references of the original text unchanged: cited SIDs ([[SID …]]) and attachment links (allegato:…). Copy them as they are.");
 
     /// <summary>Le frasi di una sezione e delle sue figlie, ognuna col nome della sezione in cui sta.</summary>
     private static void Raccogli(EditableSection sezione, string dove, List<(string, string)> dentro)

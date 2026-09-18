@@ -13,7 +13,10 @@
   (tutti i tipi di blocco) con i nomi a cascata da 6 pagine (aeroporto, militare, APP, vLOA, ACC, intro); rete in
   `MarkdownLite` e nella ricerca (ultimo nome visto, mai `[[SID …]]`). Test + mutazione; dal vivo su copia: LIBD (SID
   Live) pubblica e bozza `BANAV 9A`, LIBC (SID Freeze) pubblica `CDC 2L` come la sua tabella, bozza `CDC 3L`.
-  ⚠️ Nessuno scrive ancora riferimenti: il tasto arriva con la slice 3. ▶ Prossimo: slice 2 (traduzione + `allegato:`).
+  ⚠️ Nessuno scrive ancora riferimenti: il tasto arriva con la slice 3.
+- ✅ **Slice 2 in main** (18-set): SID e link `allegato:` protetti dal motore (passo 0-bis di `TextProtector`),
+  resa a mano con gli stessi riferimenti (pannello + Registro). Link `allegato:` in produzione: zero, difetto
+  latente. ▶ Prossimo: slice 3 (tasto «SID» in prosa e tabelle + anteprime dell'editor risolte).
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 
