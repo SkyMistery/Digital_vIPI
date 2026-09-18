@@ -111,14 +111,16 @@
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 
-### ▶ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026)
+### ✅ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026) — FUNZIONA in produzione
+
+- ✅ **18-set notte**: l'altro agente conferma da fuori curl **404** su `prova-ponte-rfo` con la chiave, e la sua prova
+  del ponte funziona. Chiuso.
 
 - ✅ **1.33.0 ONLINE (18-set)**: da fuori `pacchetto-verifica.js` 8/8, endpoint vivo (400 su evento non valido), Cloudflare
   lascia passare (`cf-cache-status: DYNAMIC`, risposte del nostro processo). 🔴 **Con la chiave giusta: 401.** Diagnosi
   del pomeriggio: **il file con `Rfo` non era mai stato messo** in `segreti/` (avvio-diagnostica: «1 file letti», quello
   vecchio). NON era il riavvio: Passenger riaccende il processo ogni minuto circa (`avvii.txt`). L'header arriva (registro:
-  «chiave sconosciuta», non «mancante»). File messo il 18-set. ▶ Confermare «2 file letti» + curl 404 dall'altro agente,
-  poi la prova in parallelo su `prova-ponte-rfo`. Timbro e `Schema 0` col login: da confermare.
+  «chiave sconosciuta», non «mancante»). File messo il 18-set; curl 404 e prova confermati dall'altro agente. Timbro e `Schema 0` col login: da confermare.
 - Pacchetto: timbro `1.33.0 · 7d25267`, 18 file (Hosting DENTRO, MySqlMigrations
   DENTRO), zip `artifacts/publish/vipi-1.33.0-solo-file-cambiati.zip` sha256 `0651b7ca…70cf8a2`, foglio
   `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.33.0.md`. Migrazione additiva `PonteRfo`; entra anche A69. Serve anche un file NUOVO
