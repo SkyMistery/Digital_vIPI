@@ -2,7 +2,15 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### ▶ A71 — Aurora Sector Lab: F0 fatta, si riparte da F0-bis (18 settembre 2026)
+### ▶ A71 — Aurora Sector Lab: F0 e F0-bis fatte, §8 chiuso, carta di F1 scritta (18 settembre 2026)
+
+- ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.
+- ✅ §8 chiuso: metadati e tag `//@` (quali e dove: da discutere prima di F2), `.vrt`/`.hold` in F2, Leaflet canvas,
+  codice nel repo vIPI. Niente archivio dei PDF del ciclo prima; il militare lo cura il SOD.
+- ▶ **Prossimo: F1** — carta [`feature/2026-09-18-f1-archi-convertitore.md`](feature/2026-09-18-f1-archi-convertitore.md)
+  (archi, cerchi e frasi AIP IT/EN nel convertitore; 10 slice; nessun dato toccato). Da far leggere al committente.
+
+(storia del giorno, sotto)
 
 Lavoro NUOVO e parallelo ad A70 (che resta il punto di ripresa per la produzione). Carta:
 [`feature/2026-09-18-aurora-sector-lab.md`](feature/2026-09-18-aurora-sector-lab.md) — si legge TUTTA prima di cominciare.

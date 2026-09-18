@@ -3,7 +3,8 @@
 > **Stato: F0 ✅ FATTA** (quattro prove, tutte passate). **Nessuna riga nel prodotto, nessun dato toccato.**
 > Prossimo passo: **F0-bis**, l'inventario dei PDF AIP scaricati (§9), poi la **carta di F1** (archi sul sito).
 > F0-bis, prova 5 ✅ (§10): dalla **Cover Page** dell'AIRAC alla **checklist** del sector, controprovata sul 2609 vero.
-> F0-bis ✅ (§11): inventario dei 154 PDF + confronto oggetto per oggetto col sector. ▶ Prossimo: **carta di F1**.
+> F0-bis ✅ (§11): inventario dei 154 PDF + confronto oggetto per oggetto col sector. §8 chiuso.
+> ▶ **F1**: carta scritta, [`2026-09-18-f1-archi-convertitore.md`](2026-09-18-f1-archi-convertitore.md).
 > Materiale delle prove, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\sector-lab-f0\`.
 > PDF AIP, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\RealDOCS\`.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Parte da [`2026-08-29-convertitore-coordinate.md`](2026-08-29-convertitore-coordinate.md).
@@ -229,7 +230,11 @@ col sectorfile che già gira.
    mano la riga sotto, e si attacca alla successiva → proposta: la riga porta il nome del record
    (`//@XIBR5A initialclimb=5000`) e il validatore segnala se non combacia. Il **catalogo delle chiavi** è un contratto
    fra il Lab (scrive) e vIPI (legge).
-2. ✅ Marcatori `//Start`/`//End` di A: **fuori** (li sostituiscono i `//@`; sporcherebbero ogni diff).
+2. ✅ **Tag di apertura e chiusura di ogni pezzo: SÌ** (committente, 18-set: aiutano i siti e l'app a trovare i
+   confini di ogni oggetto). Non i `//Start`/`//End` di A, ma **dentro il namespace `//@`**, come le direttive
+   strutturali di B (`//@<NOME>` · `//@START` · `//@END [<NOME>]`, `CONVENZIONE_SETTORI.md`). ▶ **Quali tag e
+   metadati, e in quali file: da discutere insieme, prima della carta di F2.** Vincolo: opt-in per file (un file
+   senza tag si legge come oggi) e ogni tag cambia solo le righe dove compare.
 3. ✅ `.vrt` e `.hold`: **in F2, subito**.
 4. ✅ **Stesso repo di vIPI** (committente, 18-set): chi manutiene vIPI manutiene anche il Lab, oggi e in futuro —
    non ci sarà chi cura uno solo dei due. Progetti nuovi accanto al Bridge, motori in `Vipi.Application` /
