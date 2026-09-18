@@ -1501,7 +1501,17 @@
       soglie «Mai usare» come chip rosse. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
       Vipi.Infrastructure.MySqlMigrations, Vipi.Hosting, Vipi.Ui (+ vipi-theme.css) e Vipi.Host. Il net10 slitta a 1.34.0.
     -->
-    <VipiVersione>1.33.0</VipiVersione>
+    <!--
+      1.34.0 — MINOR, NESSUNA migrazione. Su 1.33.0 (7d25267, online). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A73): le SID citate nel testo — riferimento [[SID ICAO NOME]] in prosa e
+      nelle celle, col nome che segue la SID quando si aggiorna dal sectorfile (completo: «BANAV 9A»); tasto «SID»
+      nell'editor, avviso delle citate da ricontrollare, conversione di quelle scritte a mano; riferimenti e link
+      agli allegati protetti dalla traduzione. Più la callout con titolo che non entrava nell'editor. Tocca
+      Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi, vipi-editor.js, vipi-theme.css) e Vipi.Host per il
+      timbro. Il net10 slitta a 1.35.0.
+    -->
+    <VipiVersione>1.34.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
