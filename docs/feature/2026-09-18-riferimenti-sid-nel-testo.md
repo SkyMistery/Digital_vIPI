@@ -55,17 +55,28 @@ d'una, la cifra più alta, e l'editor lo segnala.
 - Nella pagina esce il **nome e basta**, come testo normale, in prosa e nelle celle (`TableBlock` le rende come
   testo semplice: dopo la sostituzione non serve altro).
 
-## 4. A quale ciclo si risolve — DA CONFERMARE
+## 4. Da dove si prende il nome — DECISO dal committente (18 settembre 2026)
 
-**Proposta: al ciclo di chi guarda, con la stessa regola della sezione SID viva.** Pagina pubblica e bozza =
-ciclo corrente; anteprima di una release = ciclo della release. Nascoste (`IsHidden`) e non ancora in vigore
-(`IsPublicAt`) non contano.
+**La pubblica guarda la pubblica, l'editor guarda l'editor.** Il riferimento segue il Live/Freeze **della
+tabella SID dello scalo citato**, non quello della sezione in cui sta il testo.
 
-⚠️ **Il caso scomodo, dichiarato:** se la sezione SID di una release è **congelata**, la tabella SID mostra il
-nome congelato e il testo quello di oggi. Congelare anche i riferimenti vorrebbe una voce nuova in
-`FrozenSections` e una `AirportSidRowView` che porti la radice: si può fare dopo, se serve. Oggi le SID di una
-release entrano al loro ciclo d'entrata (§AW2), quindi i due nomi divergono solo fra un reimport e la release
-successiva.
+| chi guarda | nome preso da |
+|---|---|
+| editor e bozza | anagrafica viva, ciclo corrente (come la tabella SID dell'editor) |
+| pagina pubblica | la tabella SID **pubblica** dello scalo citato: se la sua sezione `sids` è **Live**, derivata ora; se è **Freeze**, le righe congelate nella release in vigore di quello scalo |
+| anteprima di una release | per lo scalo del documento, la stessa tabella SID dell'anteprima (ciclo della release); per gli altri scali, la loro pubblica |
+| scalo senza vIPI pubblicata o senza sezione `sids` | anagrafica viva, ciclo corrente |
+
+Nascoste (`IsHidden`) e non ancora in vigore (`IsPublicAt`) non contano, perché non sono nella tabella.
+
+**Perché non «segue la sezione del testo»** (proposta del committente, scartata insieme a lui): l'interruttore
+Live/Freeze esiste solo sulle sezioni **derivate** (`SectionCatalog.IsRenderModeToggleable`). Le editoriali, dove
+sta quasi ogni citazione, sono sempre congelate nello snapshot. Il pubblico avrebbe detto `OST1E` mentre la
+tabella SID, che nasce Live, diceva `OST2E`.
+
+✅ **La radice sul nome paga due volte:** le righe congelate (`AirportSidRowView`) non portano né `StableKey` né
+`Id`, ma portano il **nome**, e dal nome si calcola la radice. Quindi **nessuna voce nuova in `FrozenSections`**:
+si confronta il riferimento con la tabella che il pubblico vede già.
 
 ## 5. Dove si aggancia (mappa del codice, 18 settembre)
 
@@ -77,7 +88,7 @@ ricostruisce. La risoluzione va quindi **dopo la traduzione, nei caricatori**, c
   note), raccoglie gli ICAO, sostituisce con una mappa radice → nome. Nessun IO.
 - `ISidReferenceResolver` (Application): con gli ICAO del documento fa **una** query (gemella di
   `IAirportProfileReader.ListRunwayDataAsync`: una `ListSidsAsync(icaos)` nuova, **non** allargare quella
-  esistente) e applica la regola del §2 al ciclo del §4.
+  esistente) e applica la regola del §2 alla fonte decisa nel §4 (per il pubblico: la tabella SID pubblica dello scalo citato).
 - Chiamata nei caricatori, dopo la traduzione: `AirportMemberLoader`, `MilMemberLoader`, `AppMemberLoader`,
   `VloaListPage`, `AccVipiPage`, `PageIntroZone`. E nelle **anteprime dell'editor**
   (`DocumentSectionsEditor`, `DocumentBlocksEditor`), che oggi rendono il testo grezzo.

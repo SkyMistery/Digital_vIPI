@@ -7,7 +7,7 @@
 - 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md), codice
   zero. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
 - Chiave = **radice del nome** (`OST1E` → `OST?E`), non la `StableKey`. Formato `[[SID LIRF OST1E]]`, risolto dopo la
-  traduzione. Nessuna migrazione, 5 slice. ▶ Da confermare: risoluzione al ciclo di chi guarda (§4 della carta).
+  traduzione. Nessuna migrazione, 5 slice. ✅ Deciso: il pubblico segue la **tabella SID pubblica** dello scalo citato (Live o Freeze), l'editor l'anagrafica viva. ▶ Prossimo: slice 1.
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 
