@@ -2,7 +2,7 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### 📦 A76 — Pacchetto 1.34.1 PRONTO DA CARICARE (18 settembre 2026, notte)
+### ✅ A76 — Pacchetto 1.34.1 ONLINE (18 settembre 2026, notte): timbro visto, da fuori `pacchetto-verifica.js` verde; ▶ ripubblicare i documenti coi coordinamenti a più punti
 
 - PATCH su 1.34.0 (`9d3530e`), **nessuna migrazione**. Timbro **`1.34.1 · 902e41e`**. 🔴 1.34.0 va caricato PRIMA
   se non è ancora online (zip ruotato in `artifacts/publish_old/20260918c/`).
@@ -27,7 +27,7 @@
   «via KAPIL, MEGAN, PAN, PIVOP o ADUKA», «via GIANO, PAL o PRS».
 - ⚠️ Le sezioni congelate cambiano solo alla **ripubblicazione**. Spedita in 1.34.1 (§A76).
 
-### 📦 A74 — Pacchetto 1.34.0 PRONTO DA CARICARE (18 settembre 2026, sera)
+### ✅ A74 — Pacchetto 1.34.0 ONLINE (18 settembre 2026, sera; sotto 1.34.1)
 
 - MINOR su 1.33.0 (`7d25267`), **nessuna migrazione**, niente segreti nuovi. Timbro **`1.34.0 · 9d3530e`**.
 - **16 file**: `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Ui` (dll+pdb), `en/Vipi.Ui.resources.dll` (frasi nuove),
