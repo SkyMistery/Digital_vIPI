@@ -2,6 +2,18 @@
 
 ## Dove siamo — 18 settembre 2026
 
+### 🔧 A75 — Coordinamenti: la frase nomina TUTTI i punti della clausola (18 settembre 2026, notte) — NON in 1.34.0
+
+- Difetto dal campo: riga «BUDIN, ANC» → una frase sola con «su BUDIN». Causa: `CoordTable.Sentences()` tiene UNA
+  frase per `ClauseId` (quella della prima riga) e ogni riga componeva la frase col suo `p.Cop` singolo.
+- Correzione: `CoordinationDerivation.PuntiDellaFrase` passa i `Cops` della clausola; `ResolvePoint` li elenca
+  con virgole e `PointsOr` prima dell'ultimo («su BUDIN o ANC», «over BUDIN or ANC»). Stessa strada per vLOA
+  (`VloaDerivationService`) e anteprima dell'editor accordi (`AgreementPreview`). Un punto solo: invariato.
+- Test: 5 in `CoordinationSentenceComposerTests` (rossi sul codice di prima). Live su copia di produzione (LIRR bozza):
+  «via KAPIL, MEGAN, PAN, PIVOP o ADUKA», «via GIANO, PAL o PRS».
+- ⚠️ Le sezioni congelate cambiano solo alla **ripubblicazione**. ▶ Serve un pacchetto (1.34.1, o 1.34.0 rifatto se
+  non ancora caricato).
+
 ### 📦 A74 — Pacchetto 1.34.0 PRONTO DA CARICARE (18 settembre 2026, sera)
 
 - MINOR su 1.33.0 (`7d25267`), **nessuna migrazione**, niente segreti nuovi. Timbro **`1.34.0 · 9d3530e`**.

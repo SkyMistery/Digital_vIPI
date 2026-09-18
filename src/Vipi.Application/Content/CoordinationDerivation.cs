@@ -99,6 +99,16 @@ public static class CoordinationDerivation
             x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated,
                                      x.ConditionAreaAll, x.ConditionCustomLabel));
 
+    /// <summary>
+    /// I punti che la FRASE di una riga nomina: tutti quelli della sua clausola (<see cref="TransferPointRow.Cops"/>),
+    /// perché la tabella richiude la clausola in una riga sola e ne tiene una frase sola. Senza clausola — una
+    /// release congelata prima del 16 agosto 2026 — il punto della riga, com'era.
+    /// <para>⚠️ Fino al 18 settembre 2026 la frase usava il punto della riga: con «BUDIN, ANC» diceva «su BUDIN».
+    /// Lo usano anche la vLOA e l'anteprima dell'editor: la domanda è una, e sta qui.</para>
+    /// </summary>
+    public static string PuntiDellaFrase(TransferPointRow p) =>
+        p.ClauseId is not null && !string.IsNullOrWhiteSpace(p.Cops) ? p.Cops! : p.Cop;
+
     /// <summary>La riga di cui <paramref name="p"/> è un'eccezione, o <c>null</c>. Serve anche alla TABELLA
     /// dell'editor, che deve dire di quale riga una condizione è l'eccezione.</summary>
     public static TransferPointRow? ParentOf(IReadOnlyList<TransferPointRow> flowPoints, TransferPointRow p) =>
@@ -124,7 +134,7 @@ public static class CoordinationDerivation
         string? Compose(string sender, string receiver, TransferFlowRow flow, TransferPointRow p, TransferFlowKind kind, bool isIncoming)
             => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver,
                 flow.AirportIcao,
-                p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, kind,
+                p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, PuntiDellaFrase(p), kind,
                 ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p), isIncoming);
 
         // La frase CAPOFILA: chi trasferisce a chi e che traffico, senza livello ne' punto — quelli sono cio' che

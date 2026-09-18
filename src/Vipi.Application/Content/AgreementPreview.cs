@@ -27,7 +27,9 @@ public static class AgreementPreview
         var receiver = agreement.Receiver(section.Direction);
 
         var airport = section.Airports.OrderBy(x => x.Order).FirstOrDefault();
-        var cop = CopList.Parse(clause.Cops)[0];
+        // TUTTI i punti della clausola, come la frase del documento (`CoordinationDerivation.PuntiDellaFrase`):
+        // fino al 18 settembre 2026 l'anteprima prendeva il primo, e diceva «su BUDIN» per «BUDIN, ANC».
+        var cop = CopList.Format(CopList.Parse(clause.Cops));
 
         // La catena si legge sulle clausole della STESSA SEZIONE: quelle di un'altra non sono antenati, sono
         // un'altra tabella.

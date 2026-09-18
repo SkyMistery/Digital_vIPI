@@ -100,6 +100,12 @@ public sealed class CoordinationSentenceTemplate
     public string FallbackAllToward { get; init; } = "tutti i punti verso {dest}";
 
     /// <summary>
+    /// La congiunzione dell'ultimo punto quando una clausola ne ha più d'uno: «su BUDIN o ANC», «su DINOB, RUTOM,
+    /// LORNO o BELIX» (18 settembre 2026). Il traffico passa da UNO di quei punti, quindi «o» e non «e».
+    /// </summary>
+    public string PointsOr { get; init; } = "o";
+
+    /// <summary>
     /// La frase CAPOFILA: una sola, che introduce l'intera tabella invece di descriverne una riga. È la forma dei
     /// documenti veri — «TS EXE trasferisce a US1 EXE il traffico secondo la seguente tabella:» — e serve alle
     /// sezioni dove le righe sono tante e la prosa, ripetuta per ognuna, si legge due volte per scoprire che
@@ -208,6 +214,7 @@ public sealed class CoordinationSentenceTemplate
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",
+        PointsOr = "or",
     };
 }
 

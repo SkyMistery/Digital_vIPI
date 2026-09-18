@@ -349,6 +349,21 @@ public static class CoordinationSentenceComposer
 
     private static string ResolvePoint(string cop, CoordinationSentenceTemplate tpl)
     {
+        // Più punti nella clausola («BUDIN, ANC»): la frase li nomina TUTTI, «su BUDIN o ANC» — «su DINOB, RUTOM,
+        // LORNO o BELIX». ⚠️ Fino al 18 settembre 2026 la frase nasceva per punto e la tabella, richiudendo la
+        // clausola in una riga sola, teneva quella del PRIMO: la riga diceva «BUDIN, ANC», la prosa «su BUDIN».
+        var punti = CopList.Parse(cop);
+        if (punti.Count > 1)
+        {
+            var resi = punti.Select(p => ResolveOne(p, tpl)).ToList();
+            return string.Join(", ", resi.Take(resi.Count - 1)) + " " + tpl.PointsOr + " " + resi[^1];
+        }
+        return ResolveOne(cop, tpl);
+    }
+
+    private static string ResolveOne(string cop, CoordinationSentenceTemplate tpl)
+    {
+        cop = cop.Trim();
         if (cop.Length == 0) return tpl.FallbackMissingPoint;
         var m = AllPointsPattern.Match(cop);
         if (!m.Success) return cop;

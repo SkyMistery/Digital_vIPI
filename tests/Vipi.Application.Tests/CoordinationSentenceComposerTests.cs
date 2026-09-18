@@ -86,6 +86,57 @@ public class CoordinationSentenceComposerTests
         Assert.DoesNotContain("in discesa", s);
     }
 
+    // ---- più punti in una clausola (18 settembre 2026) --------------------------------------------------
+    // Segnalato dal committente su LIBB: la riga diceva «BUDIN, ANC», la frase «su BUDIN».
+
+    [Fact]
+    public void Due_punti_si_nominano_tutti_e_due()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 210, "BUDIN, ANC",
+            TransferFlowKind.Departure);
+        Assert.EndsWith("a livello 210 o livello inferiore su BUDIN o ANC.", s);
+    }
+
+    [Fact]
+    public void Piu_punti_virgole_e_o_prima_dell_ultimo()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 140, "DINOB, RUTOM,LORNO , BELIX");
+        Assert.EndsWith("su DINOB, RUTOM, LORNO o BELIX.", s);
+    }
+
+    [Fact]
+    public void In_inglese_or()
+    {
+        var s = CoordinationSentences.Compose(CoordinationSentenceTemplate.English, Types, Names, Codes, Airports, Atc,
+            "LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.AtOrBelow, 210, LevelUnit.Fl, null, LevelParity.Any,
+            "BUDIN, ANC", TransferFlowKind.Departure);
+        Assert.EndsWith("at level 210 or below over BUDIN or ANC.", s);
+    }
+
+    private static TransferPointRow Riga(string cop, string? cops, int? clausola) => new()
+    {
+        Id = 1, Order = 1, Cop = cop, Cops = cops, ClauseId = clausola,
+        LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.Exact, LevelText = "FL210",
+    };
+
+    /// <summary>La derivazione, la vLOA e l'anteprima chiedono qui quali punti nomina la frase: tutti quelli della
+    /// clausola. Senza clausola (release congelata prima del 16 agosto 2026) il punto della riga, com'era.</summary>
+    [Fact]
+    public void La_frase_di_una_riga_nomina_i_punti_della_sua_clausola()
+    {
+        Assert.Equal("BUDIN, ANC", CoordinationDerivation.PuntiDellaFrase(Riga("BUDIN", "BUDIN, ANC", 7)));
+        Assert.Equal("ANC", CoordinationDerivation.PuntiDellaFrase(Riga("ANC", null, null)));
+        Assert.Equal("ANC", CoordinationDerivation.PuntiDellaFrase(Riga("ANC", "  ", 7)));
+    }
+
+    [Fact]
+    public void Un_punto_solo_resta_com_era()
+    {
+        var s = Compose("LIRR_NE_CTR", "LIMM_WS2", "LIRF", LevelConstraint.Exact, 140, "PISIP");
+        Assert.EndsWith("su PISIP.", s);
+        Assert.DoesNotContain(" o ", s!.Split("su ")[^1]);
+    }
+
     [Fact]
     public void Departure_uses_origin_wording_not_destination()
     {

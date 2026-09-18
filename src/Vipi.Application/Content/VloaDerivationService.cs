@@ -260,7 +260,8 @@ internal sealed class VloaDerivationService : IVloaDerivationService
                 if (!isH2F && !isF2H) continue;
 
                 var sentence = CoordinationSentences.Compose(tpl, types, atcMap, codeMap, airportMap, atcMap,
-                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, p.Cop, flow.Kind,
+                    owner, next!, flow.AirportIcao, p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity,
+                    CoordinationDerivation.PuntiDellaFrase(p), flow.Kind,
                     // La vLOA è già stata dimenticata una volta (il flow.Kind mancante che azzerava i sorvoli):
                     // catena delle condizioni e faccetta passano esplicitamente da qui, non per analogia con l'ACC.
                     CoordinationDerivation.ConditionChain(flow.Points, p), p.VerticalState,
