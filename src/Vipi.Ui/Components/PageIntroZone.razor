@@ -118,10 +118,12 @@ else
                quattro sezioni aperte — abbreviazioni, simboli delle carte… — spingevano l'elenco due schermate più
                giù, cioè sotto la cosa che chi arriva cerca. Il titolo basta a dire che c'è; chi le apre a mano le
                ritrova aperte (`data-persist`), e la sola visita non scrive niente — misurato in produzione. *@
-            @foreach (var s in _vista)
-            {
-                <SectionNode Section="s" InitiallyOpen="false" />
-            }
+            <CascadingValue Value="_nomiSid">
+                @foreach (var s in _vista)
+                {
+                    <SectionNode Section="s" InitiallyOpen="false" />
+                }
+            </CascadingValue>
         }
         else
         {
@@ -145,6 +147,7 @@ else
 
     /// <summary>Le sezioni come si LEGGONO: tradotte nella lingua di chi guarda.</summary>
     private IReadOnlyList<SectionView> _vista = Array.Empty<SectionView>();
+    private NomiSid? _nomiSid;
 
     private bool _modifica;    // questa sessione tiene il lock
     private bool _sporco;
@@ -189,6 +192,11 @@ else
         var lettore = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         var tradotto = await Traduttore.TranslateAsync(view, PageIntro.Sorgente, lettore);
         _vista = tradotto.View.Sections;
+
+        // Le SID citate nel testo (§A73). L'intro non ha bozza né release: quel che si salva è pubblico
+        // subito, quindi i nomi vengono dalle tabelle pubbliche.
+        _nomiSid = await ScopedServices.GetRequiredService<ISidReferenceResolver>()
+            .PerVistaAsync(_vista, pubblica: true);
     }
 
     /// <summary>

@@ -15,9 +15,12 @@
 @using Vipi.Application.Content
 
 <div lang="@Doc.Bloccata">
-    <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.App"
-                          IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
-                          AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+    @* §A73: i nomi delle SID citate nel testo, a ogni BlockRenderer della pagina. *@
+    <CascadingValue Value="Doc.NomiSid">
+        <DocumentSectionsView Sections="Doc.View.Sections" Profile="SectionProfile.App"
+                              IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
+                              AnchorOf="AnchorOf" DerivedContent="CorpoDerivato" />
+    </CascadingValue>
 </div>
 
 @code {

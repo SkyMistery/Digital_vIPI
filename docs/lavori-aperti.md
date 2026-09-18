@@ -7,7 +7,13 @@
 - 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md), codice
   zero. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
 - Chiave = **radice del nome** (`OST1E` → `OST?E`), non la `StableKey`. Formato `[[SID LIRF OST1E]]`, risolto dopo la
-  traduzione. Nessuna migrazione, 5 slice. ✅ Deciso: il pubblico segue la **tabella SID pubblica** dello scalo citato (Live o Freeze), l'editor l'anagrafica viva. ▶ Prossimo: slice 1.
+  traduzione. Nessuna migrazione, 5 slice. ✅ Deciso: il pubblico segue la **tabella SID pubblica** dello scalo citato (Live o Freeze), l'editor l'anagrafica viva.
+  ✅ Nel testo il nome esce **completo**: punto + designatore (`BANAV 9A`), non il codice troncato.
+- ✅ **Slice 1 in main** (18-set): `RiferimentiSid`/`NomiSid`/`SidReferenceResolver`, sostituzione in `BlockRenderer`
+  (tutti i tipi di blocco) con i nomi a cascata da 6 pagine (aeroporto, militare, APP, vLOA, ACC, intro); rete in
+  `MarkdownLite` e nella ricerca (ultimo nome visto, mai `[[SID …]]`). Test + mutazione; dal vivo su copia: LIBD (SID
+  Live) pubblica e bozza `BANAV 9A`, LIBC (SID Freeze) pubblica `CDC 2L` come la sua tabella, bozza `CDC 3L`.
+  ⚠️ Nessuno scrive ancora riferimenti: il tasto arriva con la slice 3. ▶ Prossimo: slice 2 (traduzione + `allegato:`).
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 

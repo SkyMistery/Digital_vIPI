@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: 📝 **carta, codice zero** (§A73). Da approvare prima della slice 1.
+> Stato: 🟡 **slice 1 in main** (18 settembre 2026): risoluzione e disegno. Slice 2-5 da fare (§A73).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato
@@ -54,6 +54,12 @@ d'una, la cifra più alta, e l'editor lo segnala.
   traduzione, invece, cambierebbe l'impronta a ogni revisione.
 - Nella pagina esce il **nome e basta**, come testo normale, in prosa e nelle celle (`TableBlock` le rende come
   testo semplice: dopo la sostituzione non serve altro).
+- ✅ **Il nome si scrive COMPLETO** (committente, 18 settembre 2026): punto per esteso + designatore, `BANAV 9A`
+  e non il codice troncato `BANA9A`. Il punto è quello della tabella, cioè quello **effettivo** (la correzione
+  a mano, se c'è: LIRF «SIV» → `SOSIV 1E`). `RiferimentiSid.NomeEsteso`. Solo per la forma semplice: un
+  composto (`BRL1Z-ARL1K`) e un nome militare (`GOLF 1`) non hanno un punto unico e restano come sono.
+  ⚠️ La **chiave** resta il codice: il nome completo è solo ciò che si scrive. Dove i nomi non sono risolti
+  (anteprime dell'editor finché non c'è la slice 3, ricerca) esce il codice dell'ultimo nome visto.
 
 ## 4. Da dove si prende il nome — DECISO dal committente (18 settembre 2026)
 

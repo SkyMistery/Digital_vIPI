@@ -95,6 +95,11 @@ public static class MarkdownLite
     {
         if (string.IsNullOrWhiteSpace(markdown)) return new MarkupString(string.Empty);
 
+        // Una SID citata (§A73) arrivata fin qui senza passare da `BlockRenderer` — la nota di un allegato,
+        // l'intro VFR, le anteprime dell'editor — esce col suo ultimo nome visto, mai come `[[SID …]]`.
+        // Dove i blocchi passano da `BlockRenderer` il nome è già quello di oggi e questa riga non trova niente.
+        markdown = RiferimentiSid.Sostituisci(markdown, null)!;
+
         // Fine riga a uno stile solo PRIMA di qualunque taglio: è la stessa forma canonica che si dà al
         // testo prima di tradurlo (TranslationText.Normalize), e per la stessa ragione — «una riga» non
         // deve voler dire due cose diverse a seconda di chi ha battuto il testo.

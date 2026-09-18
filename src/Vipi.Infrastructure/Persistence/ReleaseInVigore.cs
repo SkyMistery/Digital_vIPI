@@ -126,11 +126,14 @@ public sealed class IndiceDelleRelease
     /// Il testo cercabile di un blocco. Un'immagine ha per testo alternativo e didascalia (il JSON porta lo sha),
     /// un allegato titolo e nota (il JSON porta lo slug): né lo sha né lo slug devono pescare risultati, né
     /// finire in un estratto.
+    /// <para>Una SID citata (§A73) si indicizza col suo ultimo nome visto, non come <c>[[SID …]]</c>: il codice
+    /// del riferimento non deve finire in un estratto. ⚠️ Il nome di OGGI qui non si sa senza una query per
+    /// scalo, e l'indice non ne fa: se la SID è stata aggiornata, la si trova col nome di quando è stata citata.</para>
     /// </summary>
     private static (string? Primo, string? Secondo) TestiDi(RawBlock b) => b.Format switch
     {
         BlockFormat.Image => (MediaRef.TextOf(b.BodyJson, b.Body), null),
         BlockFormat.Attachment => (AttachmentRef.TextOf(b.BodyJson, b.Body), null),
-        _ => (b.Body, b.BodyJson),
+        _ => (RiferimentiSid.Sostituisci(b.Body, null), RiferimentiSid.Sostituisci(b.BodyJson, null)),
     };
 }

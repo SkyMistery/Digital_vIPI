@@ -22,11 +22,14 @@
 @inject IEditAuthorizationService Authz
 
 <div lang="@Doc.Bloccata">
-    <DocumentSectionsView Sections="Doc.Sezioni" Profile="SectionProfile.Airport"
-                          IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
-                          AnchorOf="AnchorOf"
-                          ExtraClass="ClasseExtra" HeaderContent="Intestazione"
-                          DerivedContent="CorpoDerivato" />
+    @* §A73: i nomi delle SID citate nel testo, a ogni BlockRenderer della pagina. *@
+    <CascadingValue Value="Doc.NomiSid">
+        <DocumentSectionsView Sections="Doc.Sezioni" Profile="SectionProfile.Airport"
+                              IsDraft="@(Doc.Mode.Kind == PreviewKind.Draft)"
+                              AnchorOf="AnchorOf"
+                              ExtraClass="ClasseExtra" HeaderContent="Intestazione"
+                              DerivedContent="CorpoDerivato" />
+    </CascadingValue>
 </div>
 
 @code {

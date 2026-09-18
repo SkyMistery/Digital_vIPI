@@ -10,6 +10,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject StringheDelSito Sito
 @inject Vipi.Application.Translation.AccVipiTranslator Translator
+@inject ISidReferenceResolver SidRefs
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using System.Globalization
@@ -87,6 +88,8 @@ else
 
                 @* `lang` sul CONTENITORE dei blocchi: il chrome parla la lingua del sito, il documento la sua. *@
                 <div lang="@_bloccata">
+                @* §A73: i nomi delle SID citate nel testo, a ogni BlockRenderer del documento. *@
+                <CascadingValue Value="_nomiSid">
                 @foreach (var block in _data.Blocks)
                 {
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
@@ -111,6 +114,7 @@ else
                         </CollapsibleBlock>
                     }
                 }
+                </CascadingValue>
                 </div>
             </div>
 
@@ -162,6 +166,7 @@ else
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
     private PreviewMode _mode;
+    private NomiSid? _nomiSid;
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
 
@@ -301,6 +306,12 @@ else
         _haMarcate = _data.Blocks.Any(b => b.Sections.Any(
             s => s.Audience != Vipi.Domain.SectionAudience.Both
                  || (s.Editorial is not null && AudienceFilter.HaSezioniMarcate(s.Editorial.Children))));
+
+        // Le SID citate nel testo (§A73): una vIPI ACC non ha uno scalo suo, ogni scalo citato si legge dalla
+        // sua tabella pubblica (o viva, in bozza). DOPO la traduzione, che riscrive i blocchi sul posto.
+        _nomiSid = await SidRefs.PerVistaAsync(
+            _data.Blocks.SelectMany(b => b.Sections).Where(s => s.Editorial is not null).Select(s => s.Editorial!),
+            pubblica: _mode.Kind != PreviewKind.Draft);
     }
 
     // Vista pubblica dal modello ACC: dati + blocchi con Id sezione, e abilita la lettura frozen. model null (nessuna

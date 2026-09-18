@@ -26,7 +26,7 @@ $env:ASPNETCORE_ENVIRONMENT = "Development"
 $env:VipiAuth__Enabled      = "false"                        # OBBLIGATORIO, vedi sotto
 $env:ConnectionStrings__Vipi = "Data Source=$sc\vipi.db"
 $env:ASPNETCORE_URLS        = "http://localhost:5034"
-$env:Sectorfile__RawBaseUrl = ""                             # spegne l'import SID da GitHub
+$env:Sectorfile__RawBaseUrl = " "                            # spegne l'import SID da GitHub — UNO SPAZIO, vedi sotto
 dotnet run --project src/Vipi.Host --no-launch-profile
 ```
 
@@ -74,7 +74,13 @@ possono solo **alzare** il livello (`o > daStaff`).
 Il log lo dice all'avvio: `DevCurrentUserProvider: identità da config, VID …, posizioni …` — leggerlo prima
 di misurare, o si misura il livello sbagliato credendolo giusto.
 
-`Sectorfile__RawBaseUrl=""` evita che il job d'avvio richiami GitHub: la verifica non deve dipendere dalla rete.
+`Sectorfile__RawBaseUrl` vuoto evita che il job d'avvio richiami GitHub: la verifica non deve dipendere dalla rete.
+
+🔴 **In PowerShell `$env:X = ""` NON mette la variabile vuota: la CANCELLA** (18 settembre 2026). Vale allora
+l'indirizzo di `appsettings`, e l'import SID parte lo stesso — il log lo dice con righe `SID LIBD: 39 estratti`.
+Costato un giro: una prova che rinominava una SID nella copia se l'è vista **riscrivere** dall'import a metà
+verifica, e il primo controllo e la foto dicevano due nomi diversi. Si mette **uno spazio** (`" "`): il codice
+lo tratta come vuoto (`IsNullOrWhiteSpace`). Controllo: `grep -c "estratti" app.log` deve dare **0**.
 
 ⚠️ **Deroga**: se è proprio il sectorfile che si sta verificando (catalogo dei punti, import SID, shape TWR),
 `Sectorfile__RawBaseUrl` va lasciato **acceso** — spento, il catalogo arriva vuoto e non si verifica niente.

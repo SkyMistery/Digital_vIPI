@@ -28,7 +28,9 @@ public sealed record AppMemberDocument(
     bool HaMarcate,
     SectionAudience? Vista,
     AppViewDerived Derived,
-    IReadOnlyList<AccSpecialAreaView> Areas)
+    IReadOnlyList<AccSpecialAreaView> Areas,
+    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiSid"/>.</summary>
+    NomiSid? NomiSid = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -59,12 +61,14 @@ public sealed class AppMemberLoader
     private readonly IEditAuthorizationService _authz;
     private readonly DocumentTranslator _translator;
     private readonly ReadingLanguageContext _lingua;
+    private readonly ISidReferenceResolver _sidRefs;
 
     public AppMemberLoader(IVipiViewService viewService, IAppDocumentService appDoc,
                            IAppViewDerivationService appView, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
-                           ReadingLanguageContext lingua)
+                           ReadingLanguageContext lingua, ISidReferenceResolver sidRefs)
     {
+        _sidRefs = sidRefs;
         _viewService = viewService;
         _appDoc = appDoc;
         _appView = appView;
@@ -164,8 +168,12 @@ public sealed class AppMemberLoader
         var haMarcate = AudienceFilter.HaSezioniMarcate(view.Sections);
         view = SezioniDocumentali.ConSezioni(view, AudienceFilter.Filtra(view.Sections, letturaVista));
 
+        // Le SID citate nel testo (§A73). Un APP non ha uno scalo suo: ogni scalo citato si legge dalla sua
+        // tabella pubblica (o viva, in bozza).
+        var nomiSid = await _sidRefs.PerVistaAsync(view.Sections, pubblica: mode.Kind != PreviewKind.Draft, ct: ct);
+
         return new AppMemberDocument(app, displayName, view, mode, relCycle, bloccata, tradotto.Coverage,
-                                     haMarcate, letturaVista, derived, areas);
+                                     haMarcate, letturaVista, derived, areas, nomiSid);
     }
 
     // Vista PUBBLICA (doc 11 §3d): documento e derivate frozen si impostano INSIEME. È anche il degrado di

@@ -57,7 +57,9 @@ public sealed record MilMemberDocument(
     int WindKt,
     /// <summary>Lo stato LVP suggerito sui minimi che la sezione mostra. Stesso calcolo della vIPI civile
     /// (<see cref="AirportMemberLoader.ValutaLvp"/>): è lo stesso campo, e la risposta dev'essere una.</summary>
-    LvpValutazione? Lvp = null)
+    LvpValutazione? Lvp = null,
+    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiSid"/>.</summary>
+    NomiSid? NomiSid = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -90,13 +92,16 @@ public sealed class MilMemberLoader
     /// <summary>L'anagrafica dello scalo, per le sole regole piste <b>vive</b>: la pista in uso adesso non è un
     /// dato di release. È la stessa porta da cui la legge la vIPI d'aeroporto.</summary>
     private readonly IAirportEditingService _scalo;
+    private readonly ISidReferenceResolver _sidRefs;
 
     public MilMemberLoader(IVipiViewService viewService, IAirportViewDerivationService airportView,
                            IMilitaryDocumentService militari, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
                            IWeatherProvider weather, IStationResolver stations,
-                           ReadingLanguageContext lingua, IAirportEditingService scalo)
+                           ReadingLanguageContext lingua, IAirportEditingService scalo,
+                           ISidReferenceResolver sidRefs)
     {
+        _sidRefs = sidRefs;
         _viewService = viewService;
         _airportView = airportView;
         _militari = militari;
@@ -234,11 +239,16 @@ public sealed class MilMemberLoader
         var haMarcate = AudienceFilter.HaSezioniMarcate(view.Sections);
         view = SezioniDocumentali.ConSezioni(view, AudienceFilter.Filtra(view.Sections, letturaVista));
 
+        // Le SID citate nel testo (§A73): per questo scalo la tabella della release MILITARE che la pagina
+        // mostra (`derivate.Sids`), non quella civile — la stessa ragione dell'edizione `AirportMil` qui sopra.
+        var nomiSid = await _sidRefs.PerVistaAsync(view.Sections, pubblica: mode.Kind != PreviewKind.Draft,
+                                                   code, derivate.Sids, ct);
+
         return new MilMemberDocument(code, view, mode, relCycle, bloccata, tradotto.Coverage, haMarcate,
                                      letturaVista, civile, derivate, station, wx, metar, taf, aree,
                                      radioassistenze, alternati, attivita, noteAree, nominativi, parcheggi,
                                      areeBoat, attivitaBoat, noteBoat, inUso, windDir, windKt,
-                                     AirportMemberLoader.ValutaLvp(derivate.Lvp, metar));
+                                     AirportMemberLoader.ValutaLvp(derivate.Lvp, metar), nomiSid);
     }
 
     /// <summary>Vista PUBBLICA: documento e derivate congelate si impostano INSIEME (doc 11 §3d).</summary>

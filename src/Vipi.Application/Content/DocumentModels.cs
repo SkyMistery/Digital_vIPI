@@ -154,4 +154,23 @@ public sealed class BlockView
     public string? Body { get; init; }
     public string? BodyJson { get; init; }
     public CalloutKind? CalloutKind { get; init; }
+
+    /// <summary>
+    /// Lo stesso blocco con <see cref="Body"/> e <see cref="BodyJson"/> passati da <paramref name="testo"/>, o
+    /// <b>questa stessa istanza</b> se nessuno dei due cambia. Serve alle SID citate nel testo (§A73), che si
+    /// sostituiscono al momento di disegnare.
+    /// <para>⚠️ Sta QUI apposta: chi aggiunge una proprietà a questa classe la deve aggiungere anche alla copia,
+    /// o il blocco la perde proprio quando cita una SID.</para>
+    /// </summary>
+    public BlockView ConTesti(Func<string?, string?> testo)
+    {
+        var body = testo(Body);
+        var json = testo(BodyJson);
+        if (ReferenceEquals(body, Body) && ReferenceEquals(json, BodyJson)) return this;
+        return new BlockView
+        {
+            Id = Id, Order = Order, Format = Format, State = State, CollapseLabel = CollapseLabel,
+            Body = body, BodyJson = json, CalloutKind = CalloutKind,
+        };
+    }
 }

@@ -10,6 +10,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject StringheDelSito Sito
 @inject Vipi.Application.Translation.DocumentTranslator Translator
+@inject ISidReferenceResolver SidRefs
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using Vipi.Ui.Shared
@@ -46,12 +47,15 @@ else if (_foreign.Length > 0)
                titolo, che è dentro VloaDocumentView: qui si passano i dati, non si disegna niente. *@
             @* `lang` sul CONTENITORE: il chrome parla la lingua del sito, il documento la sua. *@
             <div lang="@_bloccata">
+                @* §A73: i nomi delle SID citate nel testo, a ogni BlockRenderer del documento. *@
+                <CascadingValue Value="_nomiSid">
                 <VloaDocumentView View="_view" DocId="_viewDocId" UseFrozen="_useFrozen" IsDraft="@(_mode.Kind == PreviewKind.Draft)"
                                   ReleaseId="@(_mode.Kind == PreviewKind.Release ? _mode.ReleaseId : null)"
                                   Subtitle="@_viewSubtitle" HomeAcc="@_acc.Code" ForeignAcc="@_foreign"
                                   Coverage="_copertura" Bloccata="@_bloccata"
                                   AudienceVisibile="_haMarcate" AudienceVista="_vista"
                                   AudienceHref="@($"/services/vsop/{Acc.ToLowerInvariant()}/vloa?acc={_foreign}" + (_mode.Kind == PreviewKind.Draft ? "&as=draft" : ""))" />
+                </CascadingValue>
             </div>
         </div>
     }
@@ -109,6 +113,7 @@ else
     private AccInfo? _acc;
     private string _foreign = "";
     private DocumentView? _view;
+    private NomiSid? _nomiSid;
     private int? _viewDocId;
     private string? _viewSubtitle;
     private bool _useFrozen;   // vista pubblica vLOA: derivate frozen dalla release effettiva (doc 10 §3d)
@@ -144,7 +149,7 @@ else
         _visibleVloas = _vloas.Where(v => publishedVloas.Contains(v.DocId)).ToList();
 
         _foreign = (Neighbour ?? "").Trim().ToUpperInvariant();
-        _view = null; _viewDocId = null; _viewSubtitle = null;
+        _view = null; _viewDocId = null; _viewSubtitle = null; _nomiSid = null;
         if (_foreign.Length == 0) return;
 
         // Risolve il documento per coppia (Home ACC dalla route + vicino dal ?acc=).
@@ -228,6 +233,11 @@ else
                         Translations = _view.Translations,
                     };
             }
+
+            // Le SID citate nel testo (§A73): una vLOA non ha uno scalo suo, ogni scalo citato si legge dalla sua
+            // tabella pubblica (o viva, in bozza). DOPO traduzione e filtro, come negli altri documenti.
+            if (_view is not null)
+                _nomiSid = await SidRefs.PerVistaAsync(_view.Sections, pubblica: _mode.Kind != PreviewKind.Draft);
 
             _viewDocId = row.DocId;
             _viewSubtitle = $"{_acc.Name} ↔ {row.Neighbour ?? _foreign}";

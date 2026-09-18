@@ -49,7 +49,10 @@ public sealed record AirportMemberDocument(
     /// <summary>Lo stato LVP suggerito dal METAR corrente sui minimi che la sezione mostra. Null = non
     /// valutabile. ⚠️ Si valuta sui minimi <b>della sezione</b>, non su quelli vivi: la stessa regola del
     /// verdetto sulle regole piste, e per la stessa ragione.</summary>
-    LvpValutazione? Lvp = null)
+    LvpValutazione? Lvp = null,
+    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): la pagina li passa ai blocchi a cascata.
+    /// Null = nessun riferimento, o nessuno ha risolto: esce l'ultimo nome visto.</summary>
+    NomiSid? NomiSid = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -90,13 +93,15 @@ public sealed class AirportMemberLoader
     private readonly IWeatherProvider _weather;
     private readonly IStationResolver _stations;
     private readonly ReadingLanguageContext _lingua;
+    private readonly ISidReferenceResolver _sidRefs;
 
     public AirportMemberLoader(IVipiViewService viewService, IAirportEditingService profile,
                                IAirportViewDerivationService airportView, IReleaseService releases,
                                IEditAuthorizationService authz, DocumentTranslator translator,
                                IWeatherProvider weather, IStationResolver stations,
-                               ReadingLanguageContext lingua)
+                               ReadingLanguageContext lingua, ISidReferenceResolver sidRefs)
     {
+        _sidRefs = sidRefs;
         _viewService = viewService;
         _profile = profile;
         _airportView = airportView;
@@ -208,10 +213,18 @@ public sealed class AirportMemberLoader
         var letturaVista = AudienceFilter.Leggi(vista);
         var haMarcate = AudienceFilter.HaSezioniMarcate(sezioni);
 
+        var mostrate = AudienceFilter.Filtra(sezioni, letturaVista);
+
+        // Le SID citate nel testo (§A73) prendono il nome dalla tabella che il lettore vede: per questo scalo
+        // è `derived.Sids`, la stessa che la pagina disegna (congelata o viva, al ciclo dell'anteprima).
+        var nomiSid = await _sidRefs.PerVistaAsync(mostrate, pubblica: mode.Kind != PreviewKind.Draft,
+                                                   code, derived.Sids, ct);
+
         return new AirportMemberDocument(
-            code, view, AudienceFilter.Filtra(sezioni, letturaVista), mode, relCycle, bloccata,
+            code, view, mostrate, mode, relCycle, bloccata,
             tradotto.Coverage, haMarcate, letturaVista, derived, station, wx, metar, taf,
-            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy, inUso.SulleRegoleMostrate, lvp);
+            inUso.Regola, inUso.Dep, inUso.Arr, windDir, windKt, inUso.SidRwy, inUso.SulleRegoleMostrate, lvp,
+            nomiSid);
     }
 
     /// <summary>
