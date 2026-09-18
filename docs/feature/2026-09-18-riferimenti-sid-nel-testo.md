@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: 🟡 **slice 1-4 in main** (18 settembre 2026): risoluzione, disegno, traduzione, tasto e avviso nell'editor. Slice 5 da fare (§A73).
+> Stato: ✅ **tutte e cinque le slice in main** (18 settembre 2026). Da consegnare col prossimo pacchetto (§A73).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato
@@ -192,6 +192,21 @@ Nell'editor, a richiesta: «Cerca SID citate». Propone i nomi **esatti** che co
 del documento (poi di qualunque scalo, se il nome è unico), **uno per uno con conferma**. Le forme compatte
 (`CDC6A/B`, `ROZHU5A/5B`) e quelle che non corrispondono (`SID GOLF1` ≠ `GOLF 1`) si **elencano** come «da
 sistemare a mano», senza toccarle.
+
+✅ **Com'è andata la slice 5 (18 settembre 2026):**
+- **Uno scalo alla volta**, non «poi di qualunque scalo»: leggere le SID di tutti gli scali è una derivazione per
+  scalo, una sessantina. Il pannello parte dallo scalo del documento (o dall'ultimo usato) e l'ICAO si cambia.
+- `ConversioneSid.Cerca` (puro): a parola intera e in maiuscolo, il codice (`BANA8A`), il nome completo
+  (`BANAV 8A`) e il nome completo senza spazio (`BANAV8A`); dentro un riferimento già fatto non si guarda. Le forme
+  compatte si elencano solo se la radice è di una SID dello scalo (`ROZHU5A/5B` è una STAR: ignorata).
+- `ConversioneSid.Converti`: UN salvataggio per blocco con tutte le scelte di quel blocco — due di fila sullo stesso
+  blocco porterebbero la stessa RowVersion. Le celle si toccano solo nelle tabelle di contenuto.
+- Dal vivo sulla vSOP MIL LIBV (copia di produzione su MariaDB): `CDC6A` e `CDC6B` convertite in un gesto, bozza
+  «Expect CDC 6A». Il pannello ha trovato che il documento cita **revisioni vecchie** — `ROBOT6A/B` (oggi
+  `ROBO5A/B`), `DOGUS5A/B` (oggi `DOGU6A`/`DOGU5B`) — più `CDC6A/B`, `VIE6A/B`, `VICTOR6A/B`: da sistemare a mano.
+- Dai dati di LIBV: il nome completo si compone solo con un punto di sole lettere (`BV-VICTOR` → resta `VICTOR6A`).
+- Fuori perimetro ma corretto nello stesso giro: le callout con titolo non entravano nell'editor
+  (`SectionPayload.EEditoriale`, vedi lavori-aperti §A73).
 
 ## 11. Slice
 

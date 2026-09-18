@@ -3476,6 +3476,13 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>No SIDs for {0}.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cite a SID in the selected cell</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>First click in the cell where the SID goes.</value></data>
+  <data name="Sid_Conv_Open" xml:space="preserve"><value>Find SIDs written by hand</value></data>
+  <data name="Sid_Conv_Title" xml:space="preserve"><value>SIDs written by hand</value></data>
+  <data name="Sid_Conv_Help" xml:space="preserve"><value>SIDs written by hand in the text that match the airport's table: converted into a reference, the name updates by itself when the SID changes. Nothing is converted without a click.</value></data>
+  <data name="Sid_Conv_One" xml:space="preserve"><value>Convert</value></data>
+  <data name="Sid_Conv_All" xml:space="preserve"><value>Convert all ({0})</value></data>
+  <data name="Sid_Conv_None" xml:space="preserve"><value>No {0} SID written by hand in this document.</value></data>
+  <data name="Sid_Conv_Manual" xml:space="preserve"><value>To fix by hand (several SIDs in one form: cite them one by one with the «SID» button):</value></data>
   <data name="Sid_Check_Title" xml:space="preserve"><value>Cited SIDs to check</value></data>
   <data name="Sid_Check_Missing" xml:space="preserve"><value>no SID with this name in today's table: the document shows “{0}”, the last name seen. Cite the new SID or remove the reference.</value></data>
   <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>the table has more than one live revision ({0}): the highest is shown, “{1}”. Check it is the right one.</value></data>

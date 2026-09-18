@@ -2752,6 +2752,14 @@
 /* L'avviso delle SID citate da ricontrollare, in cima all'editor (slice 4). */
 :where(.vipi-root) .sidref-check{margin:0 0 14px}
 :where(.vipi-root) .sidref-check ul{margin:4px 0 0}
+/* La conversione dei testi già scritti (slice 5): stesso pannello del selettore, una riga per proposta. */
+:where(.vipi-root) .sidref-conv{margin:0 0 14px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-soft)}
+:where(.vipi-root) .sidref-conv-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+:where(.vipi-root) .sidref-conv-list li{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:center;padding:3px 6px;
+  border-radius:6px}
+:where(.vipi-root) .sidref-conv-list li:hover{background:var(--tint-atmos-soft)}
+:where(.vipi-root) .sidref-conv-list li .btn{margin-left:auto}
 :where(.vipi-root) .app-linkpick{position:relative;margin-top:10px;max-width:420px}
 :where(.vipi-root) .app-linkpick .sector-pick{position:absolute;z-index:20;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.12);overflow:hidden;margin-top:4px}
 :where(.vipi-root) .app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}

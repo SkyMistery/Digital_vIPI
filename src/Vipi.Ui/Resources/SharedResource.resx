@@ -3484,6 +3484,13 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>Nessuna SID per {0}.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cita una SID nella cella selezionata</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>Clicca prima nella cella dove va la SID.</value></data>
+  <data name="Sid_Conv_Open" xml:space="preserve"><value>Cerca SID scritte a mano</value></data>
+  <data name="Sid_Conv_Title" xml:space="preserve"><value>SID scritte a mano</value></data>
+  <data name="Sid_Conv_Help" xml:space="preserve"><value>Le SID scritte a mano nel testo che corrispondono alla tabella dello scalo: convertite in riferimento, il nome si aggiorna da solo quando la SID cambia. Niente si converte senza un clic.</value></data>
+  <data name="Sid_Conv_One" xml:space="preserve"><value>Converti</value></data>
+  <data name="Sid_Conv_All" xml:space="preserve"><value>Converti tutte ({0})</value></data>
+  <data name="Sid_Conv_None" xml:space="preserve"><value>Nessuna SID di {0} scritta a mano in questo documento.</value></data>
+  <data name="Sid_Conv_Manual" xml:space="preserve"><value>Da sistemare a mano (più SID in una forma sola: cita le SID una per una col tasto «SID»):</value></data>
   <data name="Sid_Check_Title" xml:space="preserve"><value>SID citate da ricontrollare</value></data>
   <data name="Sid_Check_Missing" xml:space="preserve"><value>nessuna SID con questo nome nella tabella di oggi: nel documento esce «{0}», l'ultimo nome visto. Cita la SID nuova o togli il riferimento.</value></data>
   <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>nella tabella ci sono più revisioni vive ({0}): esce la più alta, «{1}». Controlla che sia quella giusta.</value></data>

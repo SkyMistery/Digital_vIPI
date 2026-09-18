@@ -2,7 +2,7 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### ▶ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026)
+### ✅ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026) — in main, da consegnare
 
 - 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md), codice
   zero. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
@@ -27,12 +27,22 @@
   le citano. `ControlloSidCitate` (puro), `NomiSid.Alternative`. Nella vIPI ACC ogni blocco controlla le sue sezioni.
   Il pubblico non segnala niente, apposta. Dal vivo su LIBD: SID rinominata → avviso con «(Remarks)».
   ▶ Prossimo: slice 5 (conversione dell'esistente).
-- 🐞 **Trovato, NON corretto** (fuori perimetro, c'era già: provato sul codice di prima): una **callout con titolo**
-  (`BodyJson {"title":…}`) **non compare nell'editor**. `BlocchiInFila` scarta ogni blocco per cui
-  `BlockJson.EStruttura` è vero, e `SectionPayload.EEditoriale` riconosce solo `mediaId`/`ref`/`columns`: il titolo
-  della callout passa per «payload». Il pubblico la mostra (lì si scartano solo le TABELLE-payload), l'editor no:
-  non si può modificare né cancellare. Copia di produzione: **1** callout così («Reduced coordination»), sviluppo:
-  le 5 di LIBD Remarks. Da decidere col committente.
+- ✅ **Corretto** (18-set, col sì del committente): una **callout con titolo** (`BodyJson {"title":…}`) **non
+  compariva nell'editor** — c'era già, provato sul codice di prima. `SectionPayload.EEditoriale` riconosceva solo
+  `mediaId`/`ref`/`columns`, quindi il titolo passava per «payload»: l'editor la scartava (né modifica né cancella)
+  e — peggio — in una sezione resa dalla pagina la SCRITTURA della scheda (`EfEditingRepository`, stesso filtro)
+  l'avrebbe presa come suo blocco e ci avrebbe scritto sopra. Quella forma la scrive il travaso delle sezioni extra
+  d'aeroporto nelle callout (`EfDocumentMaintenance.ToContentBlock`): 5 in sviluppo (LIBD Remarks), 1 in produzione
+  («Reduced coordination»). Ora un oggetto col SOLO `title` testuale è contenuto; il test che lo diceva payload era
+  sbagliato ed è rovesciato. Dal vivo: le 5 callout di LIBD tornano nell'editor.
+- ✅ **Slice 5 in main** (18-set): «Cerca SID scritte a mano» in cima all'editor, in modifica. `ConversioneSid`
+  (puro): codice, nome completo e nome senza spazio a parola intera; forme compatte (`CDC6A/B`) ELENCATE, mai
+  convertite; «Converti» per voce e «Converti tutte», UN salvataggio per blocco (RowVersion). Dal vivo sulla vSOP MIL
+  LIBV (copia di produzione su MariaDB): convertite `CDC6A` e `CDC6B`, la bozza dice «Expect CDC 6A». 🔴 E il
+  pannello ha trovato che quel documento cita **revisioni vecchie**: `ROBOT6A/B` (oggi `ROBO5A/B`), `DOGUS5A/B` (oggi
+  `DOGU6A`/`DOGU5B`), più `CDC6A/B`, `VIE6A/B`, `VICTOR6A/B` da sistemare a mano. Il nome completo non si compone
+  con un punto che non è fatto di sole lettere (`BV-VICTOR` → resta `VICTOR6A`).
+  **§A73 chiusa**, tutte e cinque le slice. Da consegnare col prossimo pacchetto.
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 

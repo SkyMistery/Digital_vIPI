@@ -1,0 +1,124 @@
+@* La conversione dei testi già scritti (§A73, slice 5): trova le SID scritte a mano che corrispondono alla tabella
+   di uno scalo e le propone come riferimenti, una per una. Niente si converte da solo: ogni voce ha il suo tasto,
+   e «Converti tutte» converte solo quel che è elencato.
+
+   Il pannello cerca e propone; SALVA l'editor (`OnConverti`), che ha i blocchi con la loro RowVersion. Quando
+   l'editor ricarica il documento i blocchi cambiano e la ricerca si rifà da sola, sulle SID già lette.
+
+   ⚠️ `ScopeProprioCheAspetta` per la stessa ragione di `SidPicker`: si chiude il pannello mentre l'elenco arriva. *@
+@using Microsoft.Extensions.DependencyInjection
+@inherits ScopeProprioCheAspetta
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+<div class="sidref-conv">
+    <div class="sidref-pick-head">
+        <b>@L["Sid_Conv_Title"]</b>
+        <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO" value="@_icao" @onchange="CambiaIcao" />
+        @if (_esito.Proposte.Count > 1)
+        {
+            <button type="button" class="btn primary" disabled="@_occupato" @onclick="() => Converti(_esito.Proposte)">
+                @string.Format(L["Sid_Conv_All"].Value, _esito.Proposte.Count)
+            </button>
+        }
+        <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
+    </div>
+    <p class="help" style="margin:0 0 6px">@L["Sid_Conv_Help"]</p>
+    @if (_icao.Length != 4)
+    {
+        <p class="muted" style="margin:0">@L["Sid_Pick_NeedIcao"]</p>
+    }
+    else if (_sids is null)
+    {
+        <p class="muted" style="margin:0">…</p>
+    }
+    else if (_esito.Proposte.Count == 0 && _esito.DaSistemare.Count == 0)
+    {
+        <p class="muted" style="margin:0">@string.Format(L["Sid_Conv_None"].Value, _icao)</p>
+    }
+    else
+    {
+        @if (_esito.Proposte.Count > 0)
+        {
+            <ul class="sidref-conv-list">
+                @foreach (var p in _esito.Proposte)
+                {
+                    <li>
+                        <span>«<b>@p.Trovato</b>» → @p.Sid.Esteso <span class="muted">(@p.Sid.Piste)</span></span>
+                        <span class="muted">@p.Dove@(p.Volte > 1 ? $" · ×{p.Volte}" : "") · @p.Contesto</span>
+                        <button type="button" class="btn ghost" disabled="@_occupato" @onclick="() => Converti(new[] { p })">@L["Sid_Conv_One"]</button>
+                    </li>
+                }
+            </ul>
+        }
+        @if (_esito.DaSistemare.Count > 0)
+        {
+            <p style="margin:8px 0 2px"><b>@L["Sid_Conv_Manual"]</b></p>
+            <ul class="sidref-conv-list">
+                @foreach (var d in _esito.DaSistemare)
+                {
+                    <li><span>«<b>@d.Trovato</b>»</span><span class="muted">@d.Dove</span></li>
+                }
+            </ul>
+        }
+    }
+</div>
+
+@code {
+    /// <summary>I blocchi dell'editor. Cambiano quando l'editor ricarica: la ricerca si rifà.</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<BloccoDaCercare> Blocchi { get; set; } = Array.Empty<BloccoDaCercare>();
+
+    [Parameter] public string? IcaoIniziale { get; set; }
+
+    /// <summary>Le proposte scelte: l'editor le applica e salva, un salvataggio per blocco.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<PropostaSid>> OnConverti { get; set; }
+
+    [Parameter] public EventCallback OnChiudi { get; set; }
+
+    private const string ChiaveIcao = "vipi.sid.icao";
+
+    private string _icao = "";
+    private IReadOnlyList<SidCitabile>? _sids;
+    private EsitoRicercaSid _esito = EsitoRicercaSid.Vuoto;
+    private bool _occupato;
+
+    private ISidReferenceResolver Risolutore => ScopedServices.GetRequiredService<ISidReferenceResolver>();
+
+    protected override void OnParametersSet() => Ricalcola();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var icao = RiferimentiSid.Norm(IcaoIniziale);
+        if (icao.Length != 4)
+            icao = RiferimentiSid.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
+        await CaricaAsync(icao);
+        StateHasChanged();
+    }
+
+    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiSid.Norm(e.Value as string));
+
+    private async Task CaricaAsync(string icao)
+    {
+        _icao = icao;
+        _sids = null;
+        _esito = EsitoRicercaSid.Vuoto;
+        if (icao.Length != 4) return;
+        IReadOnlyList<SidCitabile>? letti = null;
+        await InFilaAsync(async () => { letti = await Risolutore.ElencoAsync(icao); });
+        if (Chiusa) return;
+        _sids = letti ?? Array.Empty<SidCitabile>();
+        Ricalcola();
+        await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
+    }
+
+    private void Ricalcola() =>
+        _esito = _sids is null ? EsitoRicercaSid.Vuoto : ConversioneSid.Cerca(Blocchi, _sids);
+
+    private async Task Converti(IReadOnlyList<PropostaSid> scelte)
+    {
+        _occupato = true;
+        try { await OnConverti.InvokeAsync(scelte); }
+        finally { _occupato = false; }
+    }
+}

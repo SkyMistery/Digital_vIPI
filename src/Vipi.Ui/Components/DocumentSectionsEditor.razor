@@ -229,6 +229,23 @@ else
             </div>
         }
 
+        @* §A73, slice 5: le SID già scritte a mano, da convertire in riferimenti. Solo in modifica: converte e salva. *@
+        @if (IsEditing)
+        {
+            @if (_conversioneAperta)
+            {
+                <ConversioneSidPanel Blocchi="BlocchiDaCercare()" IcaoIniziale="@IcaoDelDocumento"
+                                     OnConverti="ConvertiSid" OnChiudi="() => _conversioneAperta = false" />
+            }
+            else
+            {
+                <div style="margin:0 0 10px">
+                    <button type="button" class="btn ghost" title="@L["Sid_Conv_Help"]"
+                            @onclick="() => _conversioneAperta = true">@L["Sid_Conv_Open"]</button>
+                </div>
+            }
+        }
+
         var (roots, offsets) = PrologoDelCorpo();
         foreach (var s in roots)
         {
@@ -284,6 +301,49 @@ else
     }
 
     private string? ConNomi(string? testo) => RiferimentiSid.Sostituisci(testo, _nomiSid);
+
+    // ---- conversione dei testi già scritti (§A73, slice 5) ----
+
+    /// <summary>Lo scalo del documento, dall'editor che ne ha uno (aeroporto, militare).</summary>
+    [CascadingParameter(Name = "IcaoDelDocumento")] public string? IcaoDelDocumento { get; set; }
+
+    private bool _conversioneAperta;
+
+    private IReadOnlyList<BloccoDaCercare> BlocchiDaCercare()
+    {
+        var blocchi = new List<BloccoDaCercare>();
+        void Scendi(IEnumerable<EditableSection> sezioni, string? padre)
+        {
+            foreach (var s in sezioni)
+            {
+                var dove = string.IsNullOrWhiteSpace(s.Title) ? padre ?? "" : s.Title;
+                foreach (var b in s.Blocks) blocchi.Add(new BloccoDaCercare(b.Id, dove, b.Format, b.Body, b.BodyJson));
+                Scendi(s.Children, dove);
+            }
+        }
+        Scendi(RootSections ?? Doc.Sections, null);
+        return blocchi;
+    }
+
+    /// <summary>
+    /// Applica le scelte: UN salvataggio per blocco, con tutte le scelte di quel blocco insieme. ⚠️ Due salvataggi
+    /// dello stesso blocco di fila andrebbero in conflitto: il secondo porterebbe la RowVersion di prima del primo.
+    /// Blocchi diversi hanno RowVersion diverse, e l'ordine non conta.
+    /// </summary>
+    private async Task ConvertiSid(IReadOnlyList<PropostaSid> scelte)
+    {
+        var perId = Tutti(RootSections ?? Doc.Sections).ToDictionary(b => b.Id);
+        foreach (var gruppo in scelte.GroupBy(p => p.BloccoId))
+        {
+            if (!perId.TryGetValue(gruppo.Key, out var b)) continue;
+            var (body, json) = ConversioneSid.Converti(new BloccoDaCercare(b.Id, "", b.Format, b.Body, b.BodyJson), gruppo);
+            if (body is null && json is null) continue;
+            await SaveBlock(b, body: body, bodyJson: json);
+        }
+
+        static IEnumerable<EditableBlock> Tutti(IEnumerable<EditableSection> sezioni) =>
+            sezioni.SelectMany(s => s.Blocks.Concat(Tutti(s.Children)));
+    }
 
     private static string AsString(object? v) => v as string ?? "";
 

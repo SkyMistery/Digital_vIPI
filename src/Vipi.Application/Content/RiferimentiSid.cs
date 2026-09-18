@@ -57,7 +57,9 @@ public static class RiferimentiSid
         var n = Norm(nome);
         var f = Norm(fix);
         var m = Semplice.Match(n);
-        if (!m.Success || f.Length == 0 || f == "—" || f.Contains(' ')) return n;
+        // ⚠️ Solo un punto fatto di LETTERE: i punti VFR militari hanno un prefisso — `BV-VICTOR` per la SID
+        // `VICTOR6A` di LIBV, misurato il 18 settembre 2026 — e «BV-VICTOR 6A» non è il nome di nessuna procedura.
+        if (!m.Success || f.Length == 0 || !f.All(c => c is >= 'A' and <= 'Z')) return n;
         return $"{f} {m.Groups[1].Value}";
     }
 

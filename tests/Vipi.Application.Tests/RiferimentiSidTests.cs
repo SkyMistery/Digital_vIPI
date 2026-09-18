@@ -194,6 +194,7 @@ public class RiferimentiSidTests
     [InlineData("ARLAK", "BRL1Z-ARL1K", "BRL1Z-ARL1K")]
     [InlineData("VIL LORIS KILO", "GOLF 1", "GOLF 1")]
     [InlineData("CDC", "CDC3L", "CDC 3L")]
+    [InlineData("BV-VICTOR", "VICTOR6A", "VICTOR6A")]   // LIBV: punto VFR militare col prefisso
     public void Senza_un_punto_unico_resta_il_codice(string fix, string nome, string atteso)
     {
         Assert.Equal(atteso, RiferimentiSid.NomeEsteso(fix, nome));
