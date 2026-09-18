@@ -92,13 +92,23 @@ ricostruisce. La risoluzione va quindi **dopo la traduzione, nei caricatori**, c
 
 - `RiferimentiSid` (Application, puro): trova i riferimenti in `Body` e nelle stringhe di `BodyJson` (celle,
   note), raccoglie gli ICAO, sostituisce con una mappa radice → nome. Nessun IO.
-- `ISidReferenceResolver` (Application): con gli ICAO del documento fa **una** query (gemella di
-  `IAirportProfileReader.ListRunwayDataAsync`: una `ListSidsAsync(icaos)` nuova, **non** allargare quella
-  esistente) e applica la regola del §2 alla fonte decisa nel §4 (per il pubblico: la tabella SID pubblica dello scalo citato).
+- `ISidReferenceResolver` (Application) applica la fonte decisa nel §4.
 - Chiamata nei caricatori, dopo la traduzione: `AirportMemberLoader`, `MilMemberLoader`, `AppMemberLoader`,
-  `VloaListPage`, `AccVipiPage`, `PageIntroZone`. E nelle **anteprime dell'editor**
-  (`DocumentSectionsEditor`, `DocumentBlocksEditor`), che oggi rendono il testo grezzo.
+  `VloaListPage`, `AccVipiPage`, `PageIntroZone`. Le **anteprime dell'editor** (`DocumentSectionsEditor`,
+  `DocumentBlocksEditor`) vanno con la slice 3.
 - Regola del 2: sei posti chiamano **la stessa** funzione; nessuno `switch` per tipo di documento.
+
+✅ **Com'è andata la slice 1 (18 settembre 2026)** — due scostamenti da quanto scritto sopra, entrambi voluti:
+- **Nessuna `ListSidsAsync` nuova.** Il risolutore chiede `IAirportSidDerivationService.DeriveAsync` e le righe
+  congelate: cioè le **stesse righe della tabella**. Una seconda lettura con i suoi filtri sarebbe stata una
+  seconda derivazione, il difetto già pagato con la vista rapida (§BR). Il costo è una lettura del profilo per
+  scalo citato **diverso** da quello del documento: raro, e zero query se il testo non cita niente.
+- **La sostituzione non tocca i modelli**: i caricatori calcolano solo `NomiSid`, la pagina lo passa a cascata e
+  `BlockRenderer` sostituisce al disegno (`BlockView.ConTesti`), una volta per tutti i tipi di blocco. È comunque
+  dopo la traduzione. Dove nessuno passa i nomi, `MarkdownLite` e l'indice di ricerca scrivono l'ultimo nome
+  visto: un riferimento non esce **mai** grezzo.
+- Verificato dal vivo su copia del DB: LIBD (SID Live) pubblica e bozza `BANAV 9A`; LIBC con la tabella SID
+  congelata a `CDC2L` e l'anagrafica a `CDC3L` → pubblica `CDC 2L` (come la sua tabella), bozza `CDC 3L`.
 
 **Fuori perimetro, dichiarato:** i payload militari strutturati (`MilTablePayload`: callsign, parcheggi), resi da
 componenti propri e non da `TableBlock`. Un riferimento scritto lì uscirebbe grezzo: l'editor non lo offre.
