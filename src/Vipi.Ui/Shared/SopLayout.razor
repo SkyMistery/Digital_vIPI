@@ -64,12 +64,17 @@
                 {
                     @* ⚠️ Dopo il login e dopo il logout si torna alla PORTA D'INGRESSO, non alla vSOP (committente,
                        12 settembre 2026): chi entra o esce si ritrova davanti tutte le porte. Il percorso sta in
-                       VsopRoutes.ServicesHome, e non a mano, perche' lo legge anche l'host. *@
-                    <a href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
+                       VsopRoutes.ServicesHome, e non a mano, perche' lo legge anche l'host.
+                       🔴 `data-enhance-nav="false"` su login e logout (18 settembre 2026): la navigazione avanzata
+                       intercetta il clic, fa una fetch dell'endpoint, riceve il rimando a IVAO (un altro dominio)
+                       e ripete la richiesta a pagina piena — DUE avvii del login per un clic, ognuno col suo nonce.
+                       Visto in produzione: `/auth/login` due volte a 0,3 s, il ritorno fallisce per «nonce», la
+                       pagina d'errore, e al ricarico si è dentro. *@
+                    <a href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")" data-enhance-nav="false"><Icon Name="log-in" /> @L["Chrome_Login"]</a>
                 }
                 else
                 {
-                    <a href="/services/vsop/auth/logout"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
+                    <a href="/services/vsop/auth/logout" data-enhance-nav="false"><Icon Name="log-out" /> @L["Chrome_Logout"]</a>
                 }
             </div>
         </details>
@@ -217,12 +222,13 @@
                     <a class="avatar" href="/services/vsop/tasks"
                        title="@u.Name · @L["Chrome_MyTasks"]" aria-label="@L["Chrome_MyTasks"]">@Initials(u.Name)</a>
                     @* Logout standalone: no-op se l'endpoint non è montato (embedded). *@
-                    <a class="editor-btn icon-only" href="/services/vsop/auth/logout" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
+                    <a class="editor-btn icon-only" href="/services/vsop/auth/logout" data-enhance-nav="false" title="@L["Chrome_Logout"]" aria-label="@L["Chrome_Logout"]"><Icon Name="log-out" /></a>
                 </div>
             }
             else
             {
-                <a class="editor-btn" href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
+                @* `data-enhance-nav="false"`: vedi il login del menù «☰» qui sopra (due avvii per un clic). *@
+                <a class="editor-btn" href="@($"{VsopRoutes.Prefix}/auth/login?returnUrl={VsopRoutes.ServicesHome}")" data-enhance-nav="false" title="@L["Chrome_LoginTitle"]"><Icon Name="log-in" /> <span class="eb-t">@L["Chrome_Login"]</span></a>
             }
         </div>
     </header>

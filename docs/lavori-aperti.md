@@ -2,6 +2,19 @@
 
 ## Dove siamo — 18 settembre 2026
 
+### 🔧 A78 — Login: un clic avviava DUE login (18 settembre 2026, notte) — in main, NON in pacchetto
+
+- Dal campo (committente): un utente fa login, esce la pagina d'errore «torna al documento», al ricarico è dentro.
+  Nel registro del giorno delle 11:39Z: `/services/vsop/auth/login` **due volte a 0,3 s**, `/signin-oidc` fallito per
+  **nonce** (`avvisi-log`: «Stato del giro recuperato: True»), pagina `accesso-non-riuscito`; dal suo «Riprova» (HTML
+  semplice) il login parte una volta sola e riesce. Stesso doppio avvio alle 07:41 (lì riuscito due volte).
+- Causa: i link Login/Logout di `SopLayout` sono `<a>` normali → la **navigazione avanzata** di Blazor fa una fetch
+  dell'endpoint, riceve il rimando a IVAO (altro dominio) e ripete a pagina piena: due giri, due nonce.
+- Correzione: `data-enhance-nav="false"` sui 4 link. Test sul sorgente (`LoginSenzaNavigazioneAvanzataTests`: ogni link
+  `/auth/login|logout` in ogni `.razor`), rosso sul codice di prima. **Dal vivo** (Edge, login IVAO vero acceso): codice
+  di prima «fetch + document» = 2 richieste; dopo = 1.
+- ⚠️ Il 17-set l'avevo classificato «caso isolato»: era il sintomo che l'utente vede. Il «nonce» nel registro si legge così.
+
 ### ✅ A77 — Pacchetto 1.34.2 ONLINE (18 settembre 2026, notte): timbro confermato, da fuori `pacchetto-verifica.js` verde; ▶ al prossimo scarico «messe in memoria: 3» nel log
 
 - PATCH su 1.34.1 (`902e41e`), **nessuna migrazione**. Timbro **`1.34.2 · 277b89c`**. **6 file**: `Vipi.Application`,
