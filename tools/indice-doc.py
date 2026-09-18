@@ -51,7 +51,20 @@ def titolo_di(percorso: str) -> str:
     return os.path.basename(percorso)[:-3]
 
 
-def blocco(base: str) -> str:
+def righe_esistenti(testo: str) -> dict:
+    """Le righe dell'elenco com'è oggi, per carta. Servono a non cancellare le annotazioni scritte a mano in coda
+    al titolo («✅ online in 1.29.0», «🟡 in main»): il 17 settembre 2026 una rigenerazione le ha tolte tutte."""
+    if INIZIO not in testo or FINE not in testo:
+        return {}
+    sezione = testo[testo.index(INIZIO):testo.index(FINE)]
+    esistenti = {}
+    for riga in sezione.splitlines():
+        if riga.startswith("- [`") and "`](" in riga:
+            esistenti[riga[4:riga.index("`](")]] = riga
+    return esistenti
+
+
+def blocco(base: str, esistenti: dict) -> str:
     righe = [INIZIO, "", INTESTAZIONE, ""]
     ultima = None
 
@@ -65,7 +78,10 @@ def blocco(base: str) -> str:
             ultima = cartella
 
         titolo = titolo_di(os.path.join(base, "docs", rel))
-        righe.append(f"- [`{rel}`]({rel}) — {titolo}")
+        # Una carta già in elenco tiene la SUA riga: chi l'ha ritoccata a mano (titolo più corto, «✅ online in
+        # 1.29.0») ha scritto un giudizio, e il generatore non ne sa di più. Il fatto che il comando garantisce è
+        # un altro: ci sono TUTTE le carte, e solo quelle, nell'ordine.
+        righe.append(esistenti.get(rel) or f"- [`{rel}`]({rel}) — {titolo}")
 
     righe += ["", FINE]
     return "\n".join(righe)
@@ -75,7 +91,7 @@ def main() -> int:
     base = radice()
     indice = os.path.join(base, "docs", "index.md")
     testo = open(indice, encoding="utf-8").read()
-    nuovo_blocco = blocco(base)
+    nuovo_blocco = blocco(base, righe_esistenti(testo))
 
     if INIZIO in testo and FINE in testo:
         a = testo.index(INIZIO)

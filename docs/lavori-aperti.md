@@ -174,7 +174,9 @@ restano valide e sono richiamate qui sotto. 🔴 net10 = **1.33.0**.
 
 **Da §A64, ancora aperti:** segmenti
 ripagati a ogni giro; ripieghi shape dell'import a `LogDebug` → Warning; S11 fase B; leggere il registro del giorno; feedback a
-due canali; le pulizie 8–12 (indice-doc.py, `Ruota` senza suffisso, `IcaoPrefixes` doppio, `/vsop/ping` nel registro, LOVV).
+due canali; le pulizie 9, 10, 12 (`Ruota` senza suffisso — aggirato dando la lettera alla cartella di publish —,
+`IcaoPrefixes` doppio, LOVV coi secondi a 60: lasciate così di proposito). ✅ 18-set notte: **8** `indice-doc.py` tiene la riga
+esistente di ogni carta (annotazioni a mano salve), **11** `/vsop/ping` fuori dai registri (`RegistroAvvisi.DaNonRicordare`).
 
 **Note utili alla ripresa:**
 - Le verifiche di oggi girano su MariaDB locale (`D:\Programmazione\IVAO_Test\_mariadb`, porta 3399, il server va avviato a

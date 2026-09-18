@@ -200,8 +200,12 @@ public sealed class RegistroAvvisi : ILoggerProvider
     /// su dieci con <c>initializers</c>, <c>negotiate</c> e <c>disconnect</c>. Resta <c>GET /_blazor</c> (101): è il
     /// circuito, e la sua durata dice quanto la pagina è rimasta aperta.</para>
     /// </summary>
+    /// <para>Anche <c>/vsop/ping</c> (dal 18 settembre 2026): è il colpetto di <c>vipi-riconnessione.js</c>, uno ogni due
+    /// minuti e mezzo per ogni pagina aperta, 204 e nessun lavoro. Entrava nel registro del giorno e nella tabella dei
+    /// tempi senza dire niente di una pagina.</para>
     internal static bool DaNonRicordare(string percorso) =>
         percorso.StartsWith("/vsop/health", StringComparison.OrdinalIgnoreCase)
+        || percorso.Equals("/vsop/ping", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_blazor/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_framework/", StringComparison.OrdinalIgnoreCase)
         || percorso.StartsWith("/_content/", StringComparison.OrdinalIgnoreCase)

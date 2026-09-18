@@ -117,6 +117,7 @@ public sealed class RegistroDelGiornoTests : IDisposable
         var client = fabbrica.CreateClient();
 
         await client.GetAsync("/vsop/health/ready");
+        await client.GetAsync("/vsop/ping");                    // il colpetto delle pagine aperte
         await client.GetAsync("/services/vsop/LIRR?code=SEGRETISSIMO");
 
         for (var i = 0; i < 100 && !righe.Any(r => r.Contains("LIRR")); i++) await Task.Delay(50);
@@ -128,7 +129,7 @@ public sealed class RegistroDelGiornoTests : IDisposable
         Assert.Equal("/services/vsop/{Acc}", c[4]);
         Assert.Equal("/services/vsop/LIRR", c[5]);
         Assert.Equal("0", c[8]);
-        Assert.DoesNotContain(righe, r => r.Contains("SEGRETISSIMO") || r.Contains("/vsop/health"));
+        Assert.DoesNotContain(righe, r => r.Contains("SEGRETISSIMO") || r.Contains("/vsop/health") || r.Contains("/vsop/ping"));
     }
 
     /// <summary>

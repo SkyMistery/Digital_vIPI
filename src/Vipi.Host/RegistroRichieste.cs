@@ -116,7 +116,7 @@ public sealed class RegistroRichieste
         # rotta = il modello della pagina ({"{Icao}"} al posto dell'aeroporto), «-» se nessuna (404). percorso senza query.
         # ora = quando la risposta è FINITA (l'inizio è ora - ms). ms = dall'arrivo alla fine della risposta.
         # ⚠️ Per GET /_blazor (esito 101, il circuito) e GET /vsop/live/atc (stream SSE) ms è la VITA della connessione.
-        # Ping (/vsop/health), file statici, /_blazor/* e i 304 del ponte RFO non si scrivono. pid: due processi vivi insieme succedono.
+        # Ping (/vsop/health, /vsop/ping), file statici, /_blazor/* e i 304 del ponte RFO non si scrivono. pid: due processi vivi insieme succedono.
         # Il file si tiene {RegistroGiornaliero.GiorniTenuti} giorni; oltre {RegistroGiornaliero.TettoByte / 1024 / 1024} MB il resto del giorno tace.
         {Colonne}
 
