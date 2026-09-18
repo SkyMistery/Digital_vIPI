@@ -140,6 +140,8 @@ else
                 <div class="callout @(_rwyOrfane.Count > 0 ? "warning" : "success")"><span class="cic">@(_rwyOrfane.Count > 0 ? "⚠️" : "✓")</span><div style="flex:1">@_esito</div><button class="btn ghost" style="padding:0 6px" @onclick="() => _esito = null" title="@L["Common_Close"]">✕</button></div>
             }
 
+            @* §A73: lo scalo del documento, per il selettore delle SID citate nel testo. *@
+            <CascadingValue Name="IcaoDelDocumento" Value="_icao">
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
                                     DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.AirportMil"
@@ -192,6 +194,7 @@ else
                     @AfterSections
                 </AfterSections>
             </DocumentSectionsEditor>
+            </CascadingValue>
         }
     </div>
 }

@@ -226,6 +226,32 @@ else
     protected override void OnInitialized()
         => Editing = ScopedServices.GetRequiredService<IEditingService>();
 
+    // ---- SID citate nelle anteprime (§A73) ----
+    //
+    // Fuori dalla modifica i blocchi si vedono come nel documento: le SID citate col nome di OGGI, dalla bozza
+    // — l'editor guarda l'editor. Si calcola una volta per documento caricato, e solo in lettura: in modifica
+    // si vede il riferimento, che è quel che si scrive.
+    private NomiSid? _nomiSid;
+    private EditableDocument? _docDeiNomi;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (IsEditing || ReferenceEquals(Doc, _docDeiNomi)) return;
+        _docDeiNomi = Doc;
+        _nomiSid = await ScopedServices.GetRequiredService<ISidReferenceResolver>().PerTestiAsync(TestiDi(Doc.Sections));
+    }
+
+    private static IEnumerable<string?> TestiDi(IEnumerable<EditableSection> sezioni)
+    {
+        foreach (var s in sezioni)
+        {
+            foreach (var b in s.Blocks) { yield return b.Body; yield return b.BodyJson; }
+            foreach (var t in TestiDi(s.Children)) yield return t;
+        }
+    }
+
+    private string? ConNomi(string? testo) => RiferimentiSid.Sostituisci(testo, _nomiSid);
+
     private static string AsString(object? v) => v as string ?? "";
 
     // ---- sezioni ----
@@ -795,7 +821,7 @@ else
             case BlockFormat.Callout:
                 <div class="callout @((b.CalloutKind ?? CalloutKind.Info).ToString().ToLowerInvariant())">
                     <span class="cic"><Icon Name="@CalloutIcon(b.CalloutKind ?? CalloutKind.Info)" Size="18" /></span>
-                    <div>@MarkdownLite.Render(b.Body)</div>
+                    <div>@MarkdownLite.Render(ConNomi(b.Body))</div>
                 </div>
                 break;
             case BlockFormat.Table:
@@ -808,7 +834,7 @@ else
                 <AttachmentLink Reference="AttachmentRef.Parse(b.BodyJson)" Note="@b.Body" />
                 break;
             default:
-                @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(b.Body)</div> }
+                @if (!string.IsNullOrWhiteSpace(b.Body)) { <div class="prose">@MarkdownLite.Render(ConNomi(b.Body))</div> }
                 break;
         }
     };
@@ -872,6 +898,8 @@ else
     private RenderFragment TableEditor(EditableBlock b) => __builder =>
     {
         var (cols, rows) = ParseTable(b.BodyJson);
+        @* `data-sid-host`: il tasto «SID» qui sotto cerca la cella col fuoco dentro questo contenitore (§A73). *@
+        <div data-sid-host>
         <table class="cfg-table">
             <thead>
                 <tr>
@@ -904,12 +932,14 @@ else
                 }
             </tbody>
         </table>
-        <div style="display:flex;gap:6px;margin-top:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
             @* ⚠️ L'import sta ACCANTO a «+ riga»: e' l'alternativa allo scriverle una per una, ed e' li' che
                se ne sente il bisogno. *@
             <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
             <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
+            <TastoSidTabella />
+        </div>
         </div>
         @if (_importBlockId == b.Id)
         {
@@ -966,7 +996,7 @@ else
                 <tbody>
                     @foreach (var r in rows)
                     {
-                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? r[i] : "")</td> }</tr>
+                        <tr>@for (var i = 0; i < cols.Count; i++) { <td>@(i < r.Count ? ConNomi(r[i]) : "")</td> }</tr>
                     }
                 </tbody>
             </table>

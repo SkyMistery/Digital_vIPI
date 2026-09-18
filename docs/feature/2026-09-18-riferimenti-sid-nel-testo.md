@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: 🟡 **slice 1-2 in main** (18 settembre 2026): risoluzione, disegno, traduzione. Slice 3-5 da fare (§A73).
+> Stato: 🟡 **slice 1-3 in main** (18 settembre 2026): risoluzione, disegno, traduzione, tasto nell'editor. Slice 4-5 da fare (§A73).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato
@@ -151,6 +151,22 @@ separata in §A73; la regola nuova la può coprire con la stessa riga.
   già scrivere in un `input`.
 - Il modello da copiare per l'elenco è la ricerca di `AttachmentBlockEditor` (con il trucco `@key="_gen"`) e il
   filtro `SidFiltro` di `AirportSidsEditor`.
+
+✅ **Com'è andata la slice 3 (18 settembre 2026):**
+- **Non `vipiInserisci`**: è interna al modulo e vuole il fuoco nel campo, ma il selettore ha una sua ricerca e il
+  fuoco se ne va. Due tempi: `vipiSidPrendi` al clic sul tasto segna il campo (attributo `data-sid-bersaglio` con la
+  selezione, e un campo mai toccato riceve in CODA); `vipiSidInserisci` alla scelta scrive lì e chiude col `change`
+  sintetico di `vipiMdFine`. Uno spazio ai lati se manca.
+- **Celle**: `TastoSidTabella`, un componente per i due editor di tabelle; il contenitore è marcato
+  `data-sid-host` e il tasto cerca la cella col fuoco lì dentro (`vipiSidPrendiDa`). Senza cella: lo dice.
+- **Selettore** `SidPicker` (scope DI proprio): `ISidReferenceResolver.ElencoAsync` — la tabella VIVA, una voce per
+  nome con le piste accanto. ICAO a cascata (`IcaoDelDocumento`) dagli editor d'aeroporto e militare; altrove
+  l'ultimo usato, che il browser ricorda. Invio nella ricerca sceglie la prima voce, Esc chiude.
+- **Anteprime** di `DocumentSectionsEditor` (in lettura): `PerTestiAsync` sulla bozza, nome completo.
+- 🔴 La classe `sid-pick` **esisteva già** (le caselle di `AirportSidsEditor`): il CSS del selettore le avrebbe
+  ridisegnate. Presa dalla prova dal vivo — il controllo «il selettore si chiude» contava decine di `.sid-pick` —,
+  classi rinominate `sidref-*`.
+- Prova dal vivo: `.claude/skills/verifica-live/sid-verifica.js`, tutta verde su LIBD.
 
 ## 8. Riferimento che non si trova più
 

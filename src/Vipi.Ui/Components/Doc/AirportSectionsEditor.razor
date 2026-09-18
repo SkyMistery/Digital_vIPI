@@ -139,6 +139,8 @@ else
 
                ⚠️ Il corpo delle sezioni FISSE lo rende questa pagina (DerivedContent): sono i sei editor
                strutturati di sotto. Le sezioni libere passano dai blocchi, come nelle altre famiglie. *@
+            @* §A73: lo scalo del documento, per il selettore delle SID citate nel testo. *@
+            <CascadingValue Name="IcaoDelDocumento" Value="_icao">
             <DocumentSectionsEditor Doc="_shell.Doc" IsEditing="_shell.IsEditing" Run="_shell.GuardAsync" OnChanged="LoadAsync"
                                     DerivedContent="DerivedSection"
                                     IsMandatory="IsMandatory" Profile="SectionProfile.Airport"
@@ -218,6 +220,7 @@ else
                     @AfterSections
                 </AfterSections>
             </DocumentSectionsEditor>
+            </CascadingValue>
         }
     </div>
 

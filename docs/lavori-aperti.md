@@ -16,7 +16,19 @@
   ⚠️ Nessuno scrive ancora riferimenti: il tasto arriva con la slice 3.
 - ✅ **Slice 2 in main** (18-set): SID e link `allegato:` protetti dal motore (passo 0-bis di `TextProtector`),
   resa a mano con gli stessi riferimenti (pannello + Registro). Link `allegato:` in produzione: zero, difetto
-  latente. ▶ Prossimo: slice 3 (tasto «SID» in prosa e tabelle + anteprime dell'editor risolte).
+  latente.
+- ✅ **Slice 3 in main** (18-set): tasto «SID» nella barra dei campi di prosa (`RichTextArea`) e sotto le tabelle
+  (`TastoSidTabella`, cella col fuoco), selettore `SidPicker` (tabella viva, una voce per nome, ICAO a cascata dagli
+  editor d'aeroporto e militare, altrove l'ultimo usato), anteprime di `DocumentSectionsEditor` col nome completo.
+  Dal vivo con `sid-verifica.js` su LIBD: tutto verde, sopravvive al ricarico. 🔴 Presa di striscio: la classe
+  `sid-pick` esisteva già (caselle di `AirportSidsEditor`) → classi rinominate `sidref-*` prima di spedire.
+  ▶ Prossimo: slice 4 (riferimenti che non si trovano più) e 5 (conversione dell'esistente).
+- 🐞 **Trovato, NON corretto** (fuori perimetro, c'era già: provato sul codice di prima): una **callout con titolo**
+  (`BodyJson {"title":…}`) **non compare nell'editor**. `BlocchiInFila` scarta ogni blocco per cui
+  `BlockJson.EStruttura` è vero, e `SectionPayload.EEditoriale` riconosce solo `mediaId`/`ref`/`columns`: il titolo
+  della callout passa per «payload». Il pubblico la mostra (lì si scartano solo le TABELLE-payload), l'editor no:
+  non si può modificare né cancellare. Copia di produzione: **1** callout così («Reduced coordination»), sviluppo:
+  le 5 di LIBD Remarks. Da decidere col committente.
 - ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
   «allegato» e rompere il link). Da chiudere con la slice 2.
 

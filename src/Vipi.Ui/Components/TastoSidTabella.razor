@@ -1,0 +1,43 @@
+@* Il tasto «SID» sotto una tabella dell'editor (§A73): cita una SID nella cella che ha il fuoco. Serve ai due
+   editor di tabelle (DocumentSectionsEditor, DocumentBlocksEditor) — un componente e non due copie.
+
+   ⚠️ Il contenitore della tabella va marcato `data-sid-host`: è lì che il tasto cerca la cella. Le celle sono
+   `<input>` senza barra, e un tasto per cella affollerebbe la tabella: vale l'ULTIMA cella col fuoco.
+   ⚠️ `@onmousedown:preventDefault`: senza, il clic sul tasto toglierebbe il fuoco alla cella prima che lo si
+   possa leggere. *@
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+<button type="button" class="btn ghost" @ref="_tasto" title="@L["Sid_Cell"]" aria-label="@L["Sid_Cell"]"
+        aria-expanded="@(_aperto ? "true" : "false")"
+        @onmousedown:preventDefault="true" @onclick="Apri">SID</button>
+@if (_senzaCella)
+{
+    <span class="muted" style="font-size:12px;align-self:center">@L["Sid_Cell_NoFocus"]</span>
+}
+@if (_aperto)
+{
+    <SidPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="Inserisci" OnChiudi="() => _aperto = false" />
+}
+
+@code {
+    [CascadingParameter(Name = "IcaoDelDocumento")] public string? IcaoDelDocumento { get; set; }
+
+    private ElementReference _tasto;
+    private bool _aperto;
+    private bool _senzaCella;
+
+    private async Task Apri()
+    {
+        if (_aperto) { _aperto = false; return; }
+        var preso = await JS.InvokeAsync<bool>("vipiSidPrendiDa", _tasto);
+        _senzaCella = !preso;
+        _aperto = preso;
+    }
+
+    private async Task Inserisci(SidCitabile s)
+    {
+        _aperto = false;
+        await JS.InvokeAsync<bool>("vipiSidInserisci", s.Riferimento);
+    }
+}

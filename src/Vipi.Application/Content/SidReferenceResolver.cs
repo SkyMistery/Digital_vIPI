@@ -29,6 +29,27 @@ public interface ISidReferenceResolver
     /// <param name="propriaTabella">La tabella SID che la pagina mostra per <paramref name="proprioIcao"/>.</param>
     Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
         string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default);
+
+    /// <summary>Come <see cref="PerVistaAsync"/>, su testi qualunque: le anteprime dell'editor, che hanno i
+    /// blocchi di lavoro e non una vista. Sempre alla BOZZA — l'editor guarda l'editor.</summary>
+    Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default);
+
+    /// <summary>
+    /// Le SID che si possono citare di uno scalo, per il selettore dell'editor: una voce per NOME (una SID su
+    /// due piste è una voce sola, con le piste accanto), dalla tabella viva — quella che la bozza mostra.
+    /// </summary>
+    Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default);
+}
+
+/// <summary>Una SID che si può citare nel testo.</summary>
+/// <param name="Icao">Lo scalo.</param>
+/// <param name="Codice">Il nome nell'archivio, <c>BANA8A</c>: è quello che va nel riferimento.</param>
+/// <param name="Esteso">Come si scrive nel testo, <c>BANAV 8A</c>.</param>
+/// <param name="Piste">Le piste su cui vale, <c>07, 25</c>.</param>
+public sealed record SidCitabile(string Icao, string Codice, string Esteso, string Piste)
+{
+    /// <summary>Il riferimento da inserire nel testo.</summary>
+    public string Riferimento => RiferimentiSid.Scrivi(Icao, Codice);
 }
 
 /// <inheritdoc cref="ISidReferenceResolver"/>
@@ -43,10 +64,32 @@ public sealed class SidReferenceResolver : ISidReferenceResolver
         _frozen = frozen;
     }
 
-    public async Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-        string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default)
+    public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+        string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
+        RisolviAsync(RiferimentiSid.TestiDi(sezioni), pubblica, proprioIcao, propriaTabella, ct);
+
+    public Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
+        RisolviAsync(testi, pubblica: false, null, null, ct);
+
+    public async Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default)
     {
-        var scali = RiferimentiSid.ScaliCitati(RiferimentiSid.TestiDi(sezioni));
+        var scalo = RiferimentiSid.Norm(icao);
+        if (scalo.Length != 4) return Array.Empty<SidCitabile>();
+
+        var tabella = await _sids.DeriveAsync(scalo, null, ct);
+        return tabella.Rows
+            .Where(r => RiferimentiSid.Norm(r.Name).Length > 0)
+            .GroupBy(r => RiferimentiSid.Norm(r.Name))
+            .Select(g => new SidCitabile(scalo, g.Key, RiferimentiSid.NomeEsteso(g.First().Fix, g.Key),
+                string.Join(", ", g.Select(r => r.Runway).Where(p => p != "—").Distinct().OrderBy(p => p, StringComparer.Ordinal))))
+            .OrderBy(s => s.Esteso, StringComparer.Ordinal)
+            .ToList();
+    }
+
+    private async Task<NomiSid> RisolviAsync(IEnumerable<string?> testi, bool pubblica,
+        string? proprioIcao, AirportSidView? propriaTabella, CancellationToken ct)
+    {
+        var scali = RiferimentiSid.ScaliCitati(testi);
         // La via breve, ed è quella di quasi ogni pagina: nessun riferimento, nessuna query.
         if (scali.Count == 0) return NomiSid.Vuoto;
 

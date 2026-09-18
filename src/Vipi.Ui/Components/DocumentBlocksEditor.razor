@@ -198,6 +198,8 @@
     private RenderFragment TableEditor(ExtraBlock b) => __builder =>
     {
         var (cols, rows) = ParseTable(b.TableJson);
+        @* `data-sid-host`: il tasto «SID» qui sotto cerca la cella col fuoco dentro questo contenitore (§A73). *@
+        <div data-sid-host>
         <table class="cfg-table">
             <thead>
                 <tr>
@@ -230,12 +232,14 @@
                 }
             </tbody>
         </table>
-        <div style="display:flex;gap:6px;margin-top:6px">
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
             @* ⚠️ L'import sta ACCANTO a «+ riga» e non altrove: e' l'alternativa allo scriverle una per una,
                ed e' li' che se ne sente il bisogno. *@
             <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
             <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
+            <TastoSidTabella />
+        </div>
         </div>
         @if (ReferenceEquals(_importBlock, b))
         {

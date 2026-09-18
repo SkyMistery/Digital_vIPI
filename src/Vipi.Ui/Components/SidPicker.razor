@@ -1,0 +1,115 @@
+@* Il selettore delle SID da citare nel testo (§A73, carta docs/feature/2026-09-18-riferimenti-sid-nel-testo.md).
+   Lo aprono il tasto «SID» della barra di formattazione (prosa) e quello sotto una tabella (celle): chi lo apre
+   ha già segnato il campo di destinazione (`vipiSidPrendi`), qui si sceglie e basta.
+
+   ⚠️ Scope DI proprio, non @inject: il selettore si apre dentro un editor che salva a ogni gesto, e due query
+   sullo stesso DbContext di circuito sono il guasto «second operation» già pagato. E `ScopeProprioCheAspetta`,
+   non `OwningComponentBase`: una scelta fatta mentre l'elenco sta arrivando SMONTA il selettore, e senza l'attesa
+   lo scope si porterebbe via il DbContext sotto la query (la «terza porta», TerzaPortaTests).
+
+   ⚠️ L'elenco è la tabella VIVA dello scalo — quella che la bozza mostra —, una voce per nome: una SID su due
+   piste è una voce sola. Nel testo va il riferimento, e il nome che il lettore vedrà si decide al disegno. *@
+@using Microsoft.Extensions.DependencyInjection
+@inherits ScopeProprioCheAspetta
+@inject IJSRuntime JS
+@inject IStringLocalizer<SharedResource> L
+
+<div class="sidref-pick" role="dialog" aria-label="@L["Sid_Pick_Title"]" @onkeydown="Tasto">
+    <div class="sidref-pick-head">
+        <b>@L["Sid_Pick_Title"]</b>
+        <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO"
+               value="@_icao" @onchange="CambiaIcao" />
+        <input class="app-in cerca" placeholder="@L["Sid_Pick_Search"]" aria-label="@L["Sid_Pick_Search"]"
+               @ref="_cerca" @bind="_filtro" @bind:event="oninput" @onkeydown="InvioSceglie" />
+        <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
+    </div>
+    @if (_icao.Length != 4)
+    {
+        <p class="muted" style="margin:0">@L["Sid_Pick_NeedIcao"]</p>
+    }
+    else if (_caricando)
+    {
+        <p class="muted" style="margin:0">…</p>
+    }
+    else if (Filtrate.Count == 0)
+    {
+        <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_None"].Value, _icao)</p>
+    }
+    else
+    {
+        <div class="sidref-pick-list">
+            @foreach (var s in Filtrate)
+            {
+                <button type="button" class="sidref-pick-row" title="@s.Riferimento" @onclick="() => OnScegli.InvokeAsync(s)">
+                    <span>@s.Esteso</span><span class="rwy">@s.Piste</span>
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    /// <summary>Lo scalo del documento, se il documento ne ha uno (vIPI d'aeroporto, vSOP militare). Vuoto =
+    /// l'ultimo usato, che il browser ricorda.</summary>
+    [Parameter] public string? IcaoIniziale { get; set; }
+
+    [Parameter] public EventCallback<SidCitabile> OnScegli { get; set; }
+    [Parameter] public EventCallback OnChiudi { get; set; }
+
+    private const string ChiaveIcao = "vipi.sid.icao";
+
+    private string _icao = "";
+    private string _filtro = "";
+    private bool _caricando;
+    private IReadOnlyList<SidCitabile> _elenco = Array.Empty<SidCitabile>();
+    private ElementReference _cerca;
+
+    private ISidReferenceResolver Risolutore => ScopedServices.GetRequiredService<ISidReferenceResolver>();
+
+    private IReadOnlyList<SidCitabile> Filtrate =>
+        string.IsNullOrWhiteSpace(_filtro)
+            ? _elenco
+            : _elenco.Where(s => s.Esteso.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
+                              || s.Codice.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var icao = RiferimentiSid.Norm(IcaoIniziale);
+        if (icao.Length != 4)
+            icao = RiferimentiSid.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
+        await CaricaAsync(icao);
+        StateHasChanged();
+        await _cerca.FocusAsync();
+    }
+
+    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiSid.Norm(e.Value as string));
+
+    private async Task CaricaAsync(string icao)
+    {
+        _icao = icao;
+        _elenco = Array.Empty<SidCitabile>();
+        if (icao.Length != 4) return;
+        _caricando = true;
+        try
+        {
+            await InFilaAsync(async () => { _elenco = await Risolutore.ElencoAsync(icao); });
+            if (Chiusa) return;
+            await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
+        }
+        finally { _caricando = false; }
+    }
+
+    // Esc chiude, da qualunque punto del pannello.
+    private async Task Tasto(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") await OnChiudi.InvokeAsync();
+    }
+
+    // Invio nella ricerca sceglie la prima voce che resta: cercando «BANAV 9» si arriva con due tasti.
+    // ⚠️ Solo nella ricerca: nel campo ICAO l'Invio conferma lo scalo, e sceglierebbe dall'elenco VECCHIO.
+    private async Task InvioSceglie(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && Filtrate.Count > 0) await OnScegli.InvokeAsync(Filtrate[0]);
+    }
+}

@@ -143,14 +143,6 @@ public class IntroDiPaginaTests : TestContext
         Blocks = new List<ExtraBlock> { new() { Format = BlockFormat.Prose, Text = testo } },
     };
 
-    /// <summary>Le SID citate nel testo (§A73): l'intro le risolve dopo la traduzione. Qui nessuna ne cita.</summary>
-    private sealed class NessunaSid : ISidReferenceResolver
-    {
-        public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-            string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
-            Task.FromResult(NomiSid.Vuoto);
-    }
-
     private void Monta(IPageIntroStore deposito, ITranslationMemory? memoria = null)
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
@@ -158,7 +150,7 @@ public class IntroDiPaginaTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new Pubblico());
         Services.AddScoped(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(memoria ?? new MemoriaFinta()));
-        Services.AddScoped<ISidReferenceResolver, NessunaSid>();
+        Services.AddScoped<ISidReferenceResolver, NessunaSidCitata>();
     }
 
     /// <summary>⚠️ Vuota, per il pubblico non si rende NIENTE — nemmeno un contenitore. Un riquadro vuoto in
@@ -238,7 +230,7 @@ public class IntroDiPaginaTests : TestContext
         Services.AddScoped<IResourceLockService>(_ => new LockFinto());
         Services.AddScoped<IPageIntroStore>(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(new MemoriaFinta()));
-        Services.AddScoped<ISidReferenceResolver, NessunaSid>();
+        Services.AddScoped<ISidReferenceResolver, NessunaSidCitata>();
         return deposito;
     }
 

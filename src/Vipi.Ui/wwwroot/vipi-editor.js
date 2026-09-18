@@ -106,6 +106,54 @@
         vipiMdFine(el, s + pre.length, s + pre.length + dentro.length);
     };
 
+    // ---- SID citata nel testo (§A73, 18 settembre 2026) ------------------------------------------------
+    //
+    // Due tempi, perché fra il tasto e la scelta il fuoco se ne va: il selettore ha un SUO campo di ricerca.
+    //   1. `vipiSidPrendi(contenitore)`, al clic sul tasto: segna il campo di destinazione e ci scrive la
+    //      selezione. Il campo è il contenitore stesso (la textarea della prosa) oppure quello che, dentro il
+    //      contenitore, ha il fuoco (la cella della tabella). ⚠️ Il tasto ha `@onmousedown:preventDefault`: il
+    //      fuoco resta nel campo fino al clic, ed è per questo che qui c'è ancora.
+    //   2. `vipiSidInserisci(testo)`, alla scelta: scrive nel campo segnato, alla selezione salvata, e chiude
+    //      col `change` SINTETICO di `vipiMdFine` — senza, il riferimento resterebbe a schermo e non tornerebbe
+    //      nel modello.
+    // Il segno è un attributo sul campo e non un riferimento in una variabile: il campo può essere ridisegnato
+    // da Blazor fra i due tempi, e l'attributo — che Blazor non gestisce — resta sull'elemento che sopravvive.
+    window.vipiSidPrendi = function (contenitore) {
+        if (!contenitore) return false;
+        var campo = function (x) { return x && (x.tagName === 'TEXTAREA' || (x.tagName === 'INPUT' && x.type === 'text')); };
+        var el = campo(contenitore) ? contenitore : document.activeElement;
+        if (!campo(el) || (el !== contenitore && !contenitore.contains(el))) return false;
+        document.querySelectorAll('[data-sid-bersaglio]').forEach(function (x) { x.removeAttribute('data-sid-bersaglio'); });
+        // Un campo che non ha il fuoco (il tasto premuto senza aver mai cliccato nel testo) riceve in CODA, non
+        // in testa: il cursore «a zero» di un campo mai toccato non è una scelta di chi scrive.
+        var n = el.value.length;
+        var s = el === document.activeElement ? el.selectionStart : n;
+        var e = el === document.activeElement ? el.selectionEnd : n;
+        el.setAttribute('data-sid-bersaglio', s + ',' + e);
+        return true;
+    };
+
+    // Dal tasto sotto una tabella: il contenitore è il blocco marcato `data-sid-host`, e il campo è la cella
+    // che ha il fuoco lì dentro. Falso = nessuna cella selezionata (il tasto lo dice).
+    window.vipiSidPrendiDa = function (tasto) {
+        return window.vipiSidPrendi(tasto && tasto.closest ? tasto.closest('[data-sid-host]') : null);
+    };
+
+    window.vipiSidInserisci = function (testo) {
+        var el = document.querySelector('[data-sid-bersaglio]');
+        if (!el) return false;
+        var p = el.getAttribute('data-sid-bersaglio').split(',');
+        el.removeAttribute('data-sid-bersaglio');
+        var v = el.value, s = Math.min(+p[0] || 0, v.length), e = Math.min(+p[1] || s, v.length);
+        // Uno spazio ai lati se manca: «Expect[[SID …]]then» si legge male anche risolto.
+        var prima = s > 0 && !/\s/.test(v.charAt(s - 1)) ? ' ' : '';
+        var dopo = e < v.length && !/[\s.,;:)]/.test(v.charAt(e)) ? ' ' : '';
+        var dentro = prima + testo + dopo;
+        el.value = v.substring(0, s) + dentro + v.substring(e);
+        vipiMdFine(el, s + dentro.length, s + dentro.length);
+        return true;
+    };
+
     // ---- Elenchi annidati (16 settembre 2026) ----------------------------------------------------------
     //
     // Il livello si scrive coi TRATTINI: `- voce`, `-- voce`… per i puntati, `1) voce`, `-1) voce`… per i

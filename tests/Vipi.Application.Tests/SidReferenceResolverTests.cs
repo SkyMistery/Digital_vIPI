@@ -123,6 +123,55 @@ public class SidReferenceResolverTests
         Assert.Empty(congelate.Chieste);
     }
 
+    /// <summary>Il selettore dell'editor: una voce per nome — una SID su due piste è una voce sola —, col nome
+    /// completo e il riferimento da inserire.</summary>
+    [Fact]
+    public async Task L_elenco_per_il_selettore_ha_una_voce_per_nome()
+    {
+        var vive = new SidVive
+        {
+            Tabelle =
+            {
+                ["LIBV"] = new(new[]
+                {
+                    new AirportSidRowView("14R", "CDC", "CDC6A", "—", "—", "—", "—", "—", "—"),
+                    new AirportSidRowView("14L", "CDC", "CDC6A", "—", "—", "—", "—", "—", "—"),
+                    new AirportSidRowView("32L", "VIENNA", "VIE6B", "—", "—", "—", "—", "—", "—"),
+                }),
+            },
+        };
+        var elenco = await new SidReferenceResolver(vive, new Congelate()).ElencoAsync("libv");
+
+        Assert.Equal(2, elenco.Count);
+        var cdc = elenco[0];
+        Assert.Equal(("CDC 6A", "14L, 14R", "[[SID LIBV CDC6A]]"), (cdc.Esteso, cdc.Piste, cdc.Riferimento));
+        Assert.Equal("VIENNA 6B", elenco[1].Esteso);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("LIR")]
+    [InlineData("LIRFX")]
+    public async Task Senza_un_ICAO_valido_l_elenco_e_vuoto_e_non_si_interroga(string icao)
+    {
+        var vive = new SidVive();
+        Assert.Empty(await new SidReferenceResolver(vive, new Congelate()).ElencoAsync(icao));
+        Assert.Empty(vive.Chieste);
+    }
+
+    /// <summary>Le anteprime dell'editor: la bozza, mai il congelato.</summary>
+    [Fact]
+    public async Task Sui_testi_dell_editor_si_guarda_la_bozza()
+    {
+        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E") } };
+        var congelate = new Congelate { Tabelle = { ["LIRF"] = Tabella("OST2E") } };
+        var nomi = await new SidReferenceResolver(vive, congelate)
+            .PerTestiAsync(new[] { null, "Expect [[SID LIRF OST1E]]." });
+
+        Assert.Equal("OST3E", nomi.Nome("LIRF", "OST?E"));
+        Assert.Empty(congelate.Chieste);
+    }
+
     [Fact]
     public async Task I_riferimenti_nelle_sotto_sezioni_e_nelle_tabelle_si_trovano()
     {

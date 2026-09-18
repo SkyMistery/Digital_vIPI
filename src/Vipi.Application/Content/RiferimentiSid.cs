@@ -116,8 +116,8 @@ public static class RiferimentiSid
         });
     }
 
-    /// <summary>Maiuscolo, spazi ridotti a uno, niente spazi ai bordi.</summary>
-    internal static string Norm(string? s) => Spazi.Replace((s ?? "").Trim(), " ").ToUpperInvariant();
+    /// <summary>Maiuscolo, spazi ridotti a uno, niente spazi ai bordi. Vale per ICAO e nomi.</summary>
+    public static string Norm(string? s) => Spazi.Replace((s ?? "").Trim(), " ").ToUpperInvariant();
 
     /// <summary>Le cifre di revisione di un nome, in fila: servono a scegliere fra due righe con la stessa radice.</summary>
     internal static string Revisione(string nome) =>

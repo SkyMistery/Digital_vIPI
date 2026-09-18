@@ -59,7 +59,8 @@ async function apri(page) {
   });
   console.log('  ..  tasti nella barra:', JSON.stringify(prep.tasti));
   console.log('  ..  contenuto di partenza:', JSON.stringify(prep.prima));
-  dice(JSON.stringify(prep.tasti) === '["B","I","U","•","1)","⇤","⇥"]', 'la barra ha i sette tasti attesi');
+  // Dal 18 settembre 2026 (§A73) c'e' anche «SID», in coda: lo prova `sid-verifica.js`, qui basta che ci sia.
+  dice(JSON.stringify(prep.tasti) === '["B","I","U","•","1)","⇤","⇥","SID"]', 'la barra ha gli otto tasti attesi');
 
   const sel = `#${prep.id}`;
   const valore = () => page.$eval(sel, e => e.value);

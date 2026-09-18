@@ -3477,6 +3477,13 @@
   <data name="Rta_Numbers" xml:space="preserve"><value>Elenco numerato</value></data>
   <data name="Rta_Indent" xml:space="preserve"><value>Rientra la voce di un livello (Tab)</value></data>
   <data name="Rta_Outdent" xml:space="preserve"><value>Riduci il rientro della voce (Maiusc+Tab)</value></data>
+  <data name="Rta_Sid" xml:space="preserve"><value>Cita una SID: il nome si aggiorna da solo quando la SID cambia</value></data>
+  <data name="Sid_Pick_Title" xml:space="preserve"><value>Cita una SID</value></data>
+  <data name="Sid_Pick_Search" xml:space="preserve"><value>Cerca per nome o punto</value></data>
+  <data name="Sid_Pick_NeedIcao" xml:space="preserve"><value>Scrivi l'ICAO dello scalo.</value></data>
+  <data name="Sid_Pick_None" xml:space="preserve"><value>Nessuna SID per {0}.</value></data>
+  <data name="Sid_Cell" xml:space="preserve"><value>Cita una SID nella cella selezionata</value></data>
+  <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>Clicca prima nella cella dove va la SID.</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>Le soglie con cui questo scalo entra e esce dalle procedure di bassa visibilità. Il confronto usa l'RVR del bollettino, o la visibilità quando l'RVR non c'è.</value></data>
   <data name="Lvp_Fase" xml:space="preserve"><value>Fase</value></data>
   <data name="Lvp_Soffitto" xml:space="preserve"><value>Soffitto</value></data>

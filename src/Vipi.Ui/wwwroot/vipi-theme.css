@@ -2733,6 +2733,22 @@
 :where(.vipi-root) .rta-i{font-style:italic}
 :where(.vipi-root) .rta-u{text-decoration:underline}
 :where(.vipi-root) .rta-sep{width:1px;height:16px;background:var(--line);margin:0 5px}
+:where(.vipi-root) .rta-sid{font-size:11px;letter-spacing:.04em}
+
+/* ---- Il selettore delle SID citate nel testo (§A73, 18 settembre 2026) ----
+   Un pannello NEL FLUSSO, sotto la barra o sotto la tabella, e non un popup sospeso: nell'editor ci sono
+   venti blocchi uno sotto l'altro, e un popup posizionato a mano va rincorso a ogni scorrimento. */
+:where(.vipi-root) .sidref-pick{margin:6px 0;padding:8px 10px;border:1px solid var(--line);border-radius:10px;
+  background:var(--surface-soft);flex-basis:100%}   /* flex-basis: sotto una tabella sta nella fila dei tasti, e va a capo */
+:where(.vipi-root) .sidref-pick-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+:where(.vipi-root) .sidref-pick-head .app-in.icao{width:6.5em;text-transform:uppercase}
+:where(.vipi-root) .sidref-pick-head .app-in.cerca{flex:1;min-width:10em}
+:where(.vipi-root) .sidref-pick-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px 8px;
+  max-height:220px;overflow:auto}
+:where(.vipi-root) .sidref-pick-row{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border:0;border-radius:6px;
+  background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-width:0}
+:where(.vipi-root) .sidref-pick-row:hover,:where(.vipi-root) .sidref-pick-row:focus-visible{background:var(--tint-atmos);outline:0}
+:where(.vipi-root) .sidref-pick-row .rwy{color:var(--ink-mid);font-size:12px;white-space:nowrap}
 :where(.vipi-root) .app-linkpick{position:relative;margin-top:10px;max-width:420px}
 :where(.vipi-root) .app-linkpick .sector-pick{position:absolute;z-index:20;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.12);overflow:hidden;margin-top:4px}
 :where(.vipi-root) .app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}
@@ -3455,10 +3471,10 @@
    sfondo su sfondo non si vedrebbe. */
 :where(.vipi-root) .struct .res-table.sid-edit input.nav-unknown{border-color:var(--line-yellow);box-shadow:inset 0 0 0 1px var(--line-yellow)}
 /* Cella di scelta: il comando è la cella (mouse e tastiera), la casella dentro è solo il segno. */
-:where(.vipi-root) .struct .res-table td.sid-pick{cursor:ns-resize;user-select:none;text-align:center}
+:where(.vipi-root) .struct .res-table td.sidref-pick{cursor:ns-resize;user-select:none;text-align:center}
 :where(.vipi-root) .struct .res-table.sid-edit td.dbl-pick{user-select:none}
 :where(.vipi-root) .struct .res-table.sid-edit tbody tr:hover td.dbl-pick{text-decoration:underline dotted var(--ivao-lightblue);text-underline-offset:3px}
-:where(.vipi-root) .struct .res-table td.sid-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
+:where(.vipi-root) .struct .res-table td.sidref-pick:focus-visible{outline:2px solid var(--ivao-blue);outline-offset:-2px}
 /* Due stati diversi, due segni diversi: scelta (blu, la riga intera) e modificata-non-salvata (giallo, come
    la cella `lim-dirty` della pagina ACC). Una riga può essere entrambe le cose. */
 :where(.vipi-root) .struct .res-table tbody tr.row-dirty>td{background:var(--tint-yellow-soft)}

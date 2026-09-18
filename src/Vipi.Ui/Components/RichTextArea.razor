@@ -36,7 +36,17 @@
            dell'import tabelle). La scorciatoia sta nel titolo. *@
         @TastoRientro(-1, L["Rta_Outdent"].Value, "⇤")
         @TastoRientro(1, L["Rta_Indent"].Value, "⇥")
+        <span class="rta-sep" aria-hidden="true"></span>
+        @* §A73: una SID citata, col nome che segue la SID. Stesso `preventDefault` degli altri tasti: al clic il
+           fuoco — e con lui la posizione del cursore — deve essere ancora nel campo. *@
+        <button type="button" class="rta-btn rta-sid" title="@L["Rta_Sid"]" aria-label="@L["Rta_Sid"]"
+                aria-expanded="@(_sidAperto ? "true" : "false")"
+                @onmousedown:preventDefault="true" @onclick="ApriSid">SID</button>
     </div>
+    @if (_sidAperto)
+    {
+        <SidPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="InserisciSid" OnChiudi="() => _sidAperto = false" />
+    }
     @* `data-adatta`: il campo cresce col testo fino al 60% dello schermo, e la maniglia resta (vipi-editor.js). *@
     <textarea @ref="_ta" id="@_id" class="app-ta" rows="@Rows" value="@Value" placeholder="@Placeholder"
               data-adatta @onchange="Cambiato"></textarea>
@@ -84,4 +94,23 @@
 
     // `vipiMdRientro` torna vero/falso (serve al Tab per decidere se tenersi il tasto): dal tasto non interessa.
     private Task Rientro(int delta) => JS.InvokeAsync<bool>("vipiMdRientro", _ta, delta).AsTask();
+
+    /// <summary>Lo scalo del documento che si sta scrivendo, dall'editor che ne ha uno (§A73). Null = il
+    /// selettore propone l'ultimo usato.</summary>
+    [CascadingParameter(Name = "IcaoDelDocumento")] public string? IcaoDelDocumento { get; set; }
+
+    private bool _sidAperto;
+
+    // Il campo e la posizione del cursore si segnano ADESSO: aperto il selettore, il fuoco va nella sua ricerca.
+    private async Task ApriSid()
+    {
+        if (_sidAperto) { _sidAperto = false; return; }
+        _sidAperto = await JS.InvokeAsync<bool>("vipiSidPrendi", _ta);
+    }
+
+    private async Task InserisciSid(SidCitabile s)
+    {
+        _sidAperto = false;
+        await JS.InvokeAsync<bool>("vipiSidInserisci", s.Riferimento);
+    }
 }
