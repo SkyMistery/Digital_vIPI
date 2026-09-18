@@ -2,6 +2,7 @@
 
 > **Stato: F0 ✅ FATTA** (quattro prove, tutte passate). **Nessuna riga nel prodotto, nessun dato toccato.**
 > Prossimo passo: **F0-bis**, l'inventario dei PDF AIP scaricati (§9), poi la **carta di F1** (archi sul sito).
+> F0-bis, prova 5 ✅ (§10): dalla **Cover Page** dell'AIRAC alla **checklist** del sector, controprovata sul 2609 vero.
 > Materiale delle prove, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\sector-lab-f0\`.
 > PDF AIP, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\RealDOCS\`.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Parte da [`2026-08-29-convertitore-coordinate.md`](2026-08-29-convertitore-coordinate.md).
@@ -238,3 +239,52 @@ col sectorfile che già gira.
 
 ⚠️ I PDF **non vanno in git** (peso, copyright ENAV). ⚠️ Verificare che siano **dello stesso ciclo**: le date di pagina
 servono solo così (e le prime pagine di ENR 5.1.x oggi vanno dal 2023 al 2026, il che è normale — ogni pagina ha la sua).
+
+## §10 — F0-bis, prova 5: dalla «Cover Page» alla checklist dell'AIRAC (18 settembre)
+
+Il committente ha aggiunto `RealDOCS\LI-Cover Page.pdf`: la copertina dell'**AIRAC AMDT A09/26** (pubblicato 23 JUL
+2026, in vigore **03 SEP 2026** = ciclo **2609**). Contiene due cose: l'**elenco delle modifiche** (26 voci, IT a
+sinistra, EN a destra) e l'elenco **pagine da distruggere / da inserire** (83 documenti).
+
+Prototipo: `sector-lab-f0\airac\checklist.py` (pdfplumber + git). Legge la Cover, legge il sector **da git**
+(`origin/master`, mai scritto), scrive `airac\out\checklist-A09-26.md` con: checklist per voce, pagine cambiate
+**non annunciate**, bozza di `CHANGELOG/2609.txt` nel formato degli AOD, e — se c'è già — il changelog vero.
+
+**Fatti misurati.**
+- Capitoli di AD 2 (dai PDF di LIRF/LIME e dalle voci del ciclo): **1** testo AD 2.x · **2** carte a terra (ADC/APDC) ·
+  **3** carte ostacoli · **4** STAR · **5** avvicinamenti **e** carte a vista (VRP) · **6** SID · **8** ATC SMAC (→ `.mva`).
+  Il 7 non c'è nei PDF scaricati.
+- ENR 3.4.1 = attese in rotta (→ `HOLDENR.hold`), 3.4.2 = radioassistenze. Mappe CTR/ATZ stanno nel `<icao>.str`
+  (`LIRV;MAPS;LIRV ATZ`); i `.str` portano STAR **e** parte degli avvicinamenti (`ILSZ36`, `RNP04L`).
+- Nome → ICAO: `OTHER/itap.ap` usa il **secondo** nome (`FERTILIA`, `COSTA SMERALDA`, `TESSERA`); FIR da `OTHER/<fir>.ap`
+  (⚠️ LIMP sta sia in `limm.ap` sia in `lipp.ap`).
+- ⚠️ **L'elenco delle modifiche NON è completo**: 13 aeroporti hanno pagine cambiate senza voce (LICJ **−12 pagine**
+  di capitolo 5, LIPO −6, LIME/LIMG/LIPK/LIPQ/LIRI/LIRN/LIRQ −4: avvicinamenti **ritirati**), più ENR 3.4.1/3.4.2.
+  Chi legge solo le voci li perde.
+
+**Lo stato («fatto?») si deduce dai commit dopo la pubblicazione, con due regole imparate sbagliando:**
+1. 🔴 Un commit **di massa** (es. `cdc3b9c` «tag RNAV», 41 `.str`) tocca i file di mezza Italia: non prova niente → 🟡.
+2. 🔴 Un file **condiviso** (`itfreq.frq`, `DYNAMIC_SEC/*`, `GEO/italy.restrict`) conta solo se il **diff** contiene
+   l'ICAO o il nome della voce. Prima versione: RIACI CAPO risultava «fatto» per un commit su **LIRU** che toccava
+   `VFR_NASCOSTI.fix`; CEPOLISPE «fatta» per la revisione della TSA626.
+   E se il nome **c'è** nel sector ma nessun diff lo tocca → ⬜ (RIACI CAPO: stesse coordinate dal 2024).
+
+**Controprova col lavoro vero degli AOD** (il remoto ha già `2609.txt`, scritto a mano):
+
+| | Voci |
+|---|---|
+| ✅ trovate fatte (4/4 delle voci AIP del changelog vero) | LIEA, LIEO, LICG SID/STAR · LIRU VRP |
+| ⬜ candidate **mancanti** | LIRV ATZ e CTR (voci 3, 4, 26: `lirv.str` fermo al 12-2025) · LICR VRP RIACI CAPO · LILE piste/frequenze · ENR 3.4.1 attese (12 pagine) |
+| 🟡 solo commit di massa | LIPZ STAR/SID · avvicinamenti di LIMZ, LIMJ, LIMP, LIMF, LIPX, LIRA · 10 aeroporti «silenziosi» |
+| ❔ il sector non ha il nome: ci va? | aree FMC, Milano CTA zona 18 «MONTE BIANCO», zone UA/APR, laser, lanci, aeroclub |
+| fuori dall'AIP (la checklist non può saperle) | LIBV/LIBA MIL gates, VFR routes LIBV/LICZ |
+
+⚠️ ⬜ vuol dire «nessuno l'ha toccato», **non** «è sbagliato»: la nota di classificazione del CTR di Viterbo nel
+sector forse non esiste. La checklist **indirizza lo sguardo**; il giudizio resta all'AOD.
+
+**Limite vero:** la Cover dice *dove* è cambiato, non *che cosa*. Per il *che cosa* serve la pagina **vecchia**:
+ENAV pubblica solo il ciclo corrente → il Lab (F6) deve **archiviare i PDF di ogni ciclo** e confrontare
+(per ENR 5.1/5.2, 3.4, 2.1 il nostro estrattore dà già aree e coordinate: il diff diventa esatto).
+
+**Dove va:** è la porta d'ingresso di F6 e del ramo `airac/AYYMM` (decisione 6): Cover → checklist → ramo → PR con
+`CHANGELOG/AYYMM.txt` precompilato (decisione 12). Non richiede F1-F5: si può anticipare come comando dell'app.
