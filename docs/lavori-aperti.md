@@ -22,7 +22,11 @@
   editor d'aeroporto e militare, altrove l'ultimo usato), anteprime di `DocumentSectionsEditor` col nome completo.
   Dal vivo con `sid-verifica.js` su LIBD: tutto verde, sopravvive al ricarico. 🔴 Presa di striscio: la classe
   `sid-pick` esisteva già (caselle di `AirportSidsEditor`) → classi rinominate `sidref-*` prima di spedire.
-  ▶ Prossimo: slice 4 (riferimenti che non si trovano più) e 5 (conversione dell'esistente).
+- ✅ **Slice 4 in main** (18-set): in cima all'editor, in lettura e in modifica, «SID citate da ricontrollare» — quelle
+  che non si trovano più (esce l'ultimo nome visto) e quelle ambigue (esce la revisione più alta), con le sezioni che
+  le citano. `ControlloSidCitate` (puro), `NomiSid.Alternative`. Nella vIPI ACC ogni blocco controlla le sue sezioni.
+  Il pubblico non segnala niente, apposta. Dal vivo su LIBD: SID rinominata → avviso con «(Remarks)».
+  ▶ Prossimo: slice 5 (conversione dell'esistente).
 - 🐞 **Trovato, NON corretto** (fuori perimetro, c'era già: provato sul codice di prima): una **callout con titolo**
   (`BodyJson {"title":…}`) **non compare nell'editor**. `BlocchiInFila` scarta ogni blocco per cui
   `BlockJson.EStruttura` è vero, e `SectionPayload.EEditoriale` riconosce solo `mediaId`/`ref`/`columns`: il titolo

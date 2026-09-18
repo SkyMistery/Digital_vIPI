@@ -3476,6 +3476,9 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>No SIDs for {0}.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cite a SID in the selected cell</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>First click in the cell where the SID goes.</value></data>
+  <data name="Sid_Check_Title" xml:space="preserve"><value>Cited SIDs to check</value></data>
+  <data name="Sid_Check_Missing" xml:space="preserve"><value>no SID with this name in today's table: the document shows “{0}”, the last name seen. Cite the new SID or remove the reference.</value></data>
+  <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>the table has more than one live revision ({0}): the highest is shown, “{1}”. Check it is the right one.</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>The thresholds this airport uses to enter and leave low visibility procedures. The comparison uses the RVR from the bulletin, or the visibility when there is no RVR.</value></data>
   <data name="Lvp_Fase" xml:space="preserve"><value>Phase</value></data>
   <data name="Lvp_Soffitto" xml:space="preserve"><value>Ceiling</value></data>

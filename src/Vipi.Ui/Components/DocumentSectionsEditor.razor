@@ -205,6 +205,30 @@ else
 
     private RenderFragment SectionsBody => __builder =>
     {
+        @* §A73: le SID citate da ricontrollare, in cima — in lettura e in modifica. Fuori da qui nessuno lo dice:
+           la pagina pubblica mostra l'ultimo nome visto senza segni, apposta. *@
+        @if (_sidDaRivedere.Count > 0)
+        {
+            <div class="callout warning sidref-check" role="status">
+                <span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["Sid_Check_Title"]</p>
+                    <ul class="md-list">
+                        @foreach (var r in _sidDaRivedere)
+                        {
+                            <li>
+                                <b>@r.Icao @r.Codice</b> —
+                                @(r.Tipo == SidDaRivedereTipo.NonTrovata
+                                    ? string.Format(L["Sid_Check_Missing"].Value, r.Esce)
+                                    : string.Format(L["Sid_Check_Ambiguous"].Value, string.Join(", ", r.Alternative), r.Esce))
+                                <span class="muted">(@string.Join(", ", r.Dove))</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
         var (roots, offsets) = PrologoDelCorpo();
         foreach (var s in roots)
         {
@@ -226,27 +250,36 @@ else
     protected override void OnInitialized()
         => Editing = ScopedServices.GetRequiredService<IEditingService>();
 
-    // ---- SID citate nelle anteprime (§A73) ----
+    // ---- SID citate: anteprime e controllo (§A73) ----
     //
     // Fuori dalla modifica i blocchi si vedono come nel documento: le SID citate col nome di OGGI, dalla bozza
-    // — l'editor guarda l'editor. Si calcola una volta per documento caricato, e solo in lettura: in modifica
-    // si vede il riferimento, che è quel che si scrive.
+    // — l'editor guarda l'editor. In modifica si vede il riferimento, che è quel che si scrive.
+    // In cima, in tutti e due i modi, le SID da ricontrollare (slice 4): quelle che non si trovano più e quelle
+    // ambigue. Si ricalcola a ogni documento nuovo — cioè dopo ogni salvataggio, che ricarica — ed è gratis se il
+    // documento non cita niente: nessuna query.
+    // ⚠️ Le sezioni sono quelle che QUESTA istanza mostra (`RootSections` nella vIPI ACC, un editor per blocco):
+    // col documento intero, l'avviso si ripeterebbe uguale sopra ogni blocco.
     private NomiSid? _nomiSid;
+    private IReadOnlyList<SidDaRivedere> _sidDaRivedere = Array.Empty<SidDaRivedere>();
     private EditableDocument? _docDeiNomi;
 
     protected override async Task OnParametersSetAsync()
     {
-        if (IsEditing || ReferenceEquals(Doc, _docDeiNomi)) return;
+        if (ReferenceEquals(Doc, _docDeiNomi)) return;
         _docDeiNomi = Doc;
-        _nomiSid = await ScopedServices.GetRequiredService<ISidReferenceResolver>().PerTestiAsync(TestiDi(Doc.Sections));
+        var testi = TestiDi(RootSections ?? Doc.Sections, null).ToList();
+        _nomiSid = await ScopedServices.GetRequiredService<ISidReferenceResolver>().PerTestiAsync(testi.Select(t => t.Testo));
+        _sidDaRivedere = ControlloSidCitate.Controlla(testi, _nomiSid);
     }
 
-    private static IEnumerable<string?> TestiDi(IEnumerable<EditableSection> sezioni)
+    // Ogni testo col titolo della sua sezione; una sezione senza titolo prende quello del padre.
+    private static IEnumerable<(string Dove, string? Testo)> TestiDi(IEnumerable<EditableSection> sezioni, string? padre)
     {
         foreach (var s in sezioni)
         {
-            foreach (var b in s.Blocks) { yield return b.Body; yield return b.BodyJson; }
-            foreach (var t in TestiDi(s.Children)) yield return t;
+            var dove = string.IsNullOrWhiteSpace(s.Title) ? padre ?? "" : s.Title;
+            foreach (var b in s.Blocks) { yield return (dove, b.Body); yield return (dove, b.BodyJson); }
+            foreach (var t in TestiDi(s.Children, dove)) yield return t;
         }
     }
 

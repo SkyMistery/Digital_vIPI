@@ -2749,6 +2749,9 @@
   background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;min-width:0}
 :where(.vipi-root) .sidref-pick-row:hover,:where(.vipi-root) .sidref-pick-row:focus-visible{background:var(--tint-atmos);outline:0}
 :where(.vipi-root) .sidref-pick-row .rwy{color:var(--ink-mid);font-size:12px;white-space:nowrap}
+/* L'avviso delle SID citate da ricontrollare, in cima all'editor (slice 4). */
+:where(.vipi-root) .sidref-check{margin:0 0 14px}
+:where(.vipi-root) .sidref-check ul{margin:4px 0 0}
 :where(.vipi-root) .app-linkpick{position:relative;margin-top:10px;max-width:420px}
 :where(.vipi-root) .app-linkpick .sector-pick{position:absolute;z-index:20;left:0;right:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(0,0,0,.12);overflow:hidden;margin-top:4px}
 :where(.vipi-root) .app-linkpick .sp-item{display:flex;gap:8px;align-items:center;width:100%;text-align:left;padding:8px 11px;background:none;border:0;border-bottom:1px solid var(--line);cursor:pointer}

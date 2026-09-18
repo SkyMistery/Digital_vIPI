@@ -1,6 +1,6 @@
 # Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
 
-> Stato: 🟡 **slice 1-3 in main** (18 settembre 2026): risoluzione, disegno, traduzione, tasto nell'editor. Slice 4-5 da fare (§A73).
+> Stato: 🟡 **slice 1-4 in main** (18 settembre 2026): risoluzione, disegno, traduzione, tasto e avviso nell'editor. Slice 5 da fare (§A73).
 
 **La richiesta del committente:** nei testi dei documenti (prosa e celle delle tabelle) si citano SID per
 procedure particolari. Quando la SID si aggiorna dal sectorfile su GitHub (`OST1E` → `OST2E`), il nome citato
@@ -173,6 +173,13 @@ separata in §A73; la regola nuova la può coprire con la stessa riga.
 Nella pagina esce l'**ultimo nome visto**, senza segni per il lettore. L'editor elenca, in cima al documento,
 i riferimenti che non si risolvono al ciclo corrente («`LIRF OST?E`: nessuna SID pubblica»), calcolati al
 volo: niente tabella, niente `DocumentImpact` persistito per ora.
+
+✅ **Com'è andata la slice 4 (18 settembre 2026):** `ControlloSidCitate.Controlla` (puro) sui testi delle sezioni,
+coi nomi della BOZZA: una voce per riferimento con le sezioni che lo citano, **non trovata** (esce l'ultimo nome
+visto) o **ambigua** (esce la revisione più alta; `NomiSid.Alternative` dice quali sono vive). L'avviso sta in
+cima a `DocumentSectionsEditor`, in lettura e in modifica, e si ricalcola a ogni documento ricaricato — cioè dopo
+ogni salvataggio. Nella vIPI ACC l'editor è montato per blocco: ognuno controlla le SUE sezioni (`RootSections`).
+Il pubblico non segnala niente. Dal vivo su LIBD: rinominata nella copia la SID citata, avviso con «(Remarks)».
 
 ## 9. Ricerca
 

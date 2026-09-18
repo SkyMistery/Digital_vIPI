@@ -3484,6 +3484,9 @@
   <data name="Sid_Pick_None" xml:space="preserve"><value>Nessuna SID per {0}.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cita una SID nella cella selezionata</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>Clicca prima nella cella dove va la SID.</value></data>
+  <data name="Sid_Check_Title" xml:space="preserve"><value>SID citate da ricontrollare</value></data>
+  <data name="Sid_Check_Missing" xml:space="preserve"><value>nessuna SID con questo nome nella tabella di oggi: nel documento esce «{0}», l'ultimo nome visto. Cita la SID nuova o togli il riferimento.</value></data>
+  <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>nella tabella ci sono più revisioni vive ({0}): esce la più alta, «{1}». Controlla che sia quella giusta.</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>Le soglie con cui questo scalo entra e esce dalle procedure di bassa visibilità. Il confronto usa l'RVR del bollettino, o la visibilità quando l'RVR non c'è.</value></data>
   <data name="Lvp_Fase" xml:space="preserve"><value>Fase</value></data>
   <data name="Lvp_Soffitto" xml:space="preserve"><value>Soffitto</value></data>

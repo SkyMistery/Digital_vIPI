@@ -133,7 +133,8 @@ public sealed class NomiSid
 {
     // Per radice, il CODICE che ha vinto (serve a scegliere fra due revisioni) e il nome da scrivere.
     private readonly Dictionary<(string Icao, string Radice), (string Codice, string Esteso)> _nomi = new();
-    private readonly HashSet<(string Icao, string Radice)> _ambigue = new();
+    // Solo per le radici con più di un nome vivo: TUTTI i nomi, come si scrivono. Servono all'avviso dell'editor.
+    private readonly Dictionary<(string Icao, string Radice), SortedSet<string>> _ambigue = new();
 
     public static NomiSid Vuoto { get; } = new(new Dictionary<string, AirportSidView>());
 
@@ -154,12 +155,18 @@ public sealed class NomiSid
 
                 // Due nomi diversi per la stessa radice: due revisioni vive insieme (LIBG ROBO1H e ROBO5H, misurato
                 // il 18 settembre 2026 — una su 1258). Vince la revisione più alta, e la coppia si ricorda.
-                _ambigue.Add(chiave);
+                if (!_ambigue.TryGetValue(chiave, out var tutti))
+                    _ambigue[chiave] = tutti = new SortedSet<string>(StringComparer.Ordinal) { gia.Esteso };
+                tutti.Add(voce.Item2);
                 if (string.CompareOrdinal(RiferimentiSid.Revisione(nome), RiferimentiSid.Revisione(gia.Codice)) > 0)
                     _nomi[chiave] = voce;
             }
         }
     }
+
+    /// <summary>I nomi vivi di una radice ambigua, come si scrivono; vuoto se la radice non è ambigua.</summary>
+    public IReadOnlyCollection<string> Alternative(string icao, string radice) =>
+        _ambigue.TryGetValue((RiferimentiSid.Norm(icao), radice), out var tutti) ? tutti : Array.Empty<string>();
 
     /// <summary>Il nome di oggi come si scrive (<c>BANAV 9A</c>), o <c>null</c> se lo scalo non ha una SID con
     /// quella radice.</summary>
@@ -167,5 +174,65 @@ public sealed class NomiSid
         _nomi.TryGetValue((RiferimentiSid.Norm(icao), radice), out var nome) ? nome.Esteso : null;
 
     /// <summary>Vero se per quella radice lo scalo ha più di un nome vivo.</summary>
-    public bool Ambigua(string icao, string radice) => _ambigue.Contains((RiferimentiSid.Norm(icao), radice));
+    public bool Ambigua(string icao, string radice) => _ambigue.ContainsKey((RiferimentiSid.Norm(icao), radice));
+}
+
+/// <summary>Perché una SID citata va ricontrollata.</summary>
+public enum SidDaRivedereTipo
+{
+    /// <summary>Lo scalo non ha più una SID con quel nome: nel documento esce l'ultimo nome visto, così com'è.</summary>
+    NonTrovata,
+
+    /// <summary>Due revisioni vive con lo stesso nome: esce la più alta, e chi scrive deve sapere che c'era una scelta.</summary>
+    Ambigua,
+}
+
+/// <summary>
+/// Una SID citata che l'editor segnala in cima al documento (§A73, slice 4).
+/// </summary>
+/// <param name="Icao">Lo scalo.</param>
+/// <param name="Codice">L'ultimo nome visto, scritto nel riferimento (<c>BANA8A</c>).</param>
+/// <param name="Tipo">Perché va ricontrollata.</param>
+/// <param name="Dove">Le sezioni in cui compare, per titolo.</param>
+/// <param name="Esce">Il nome che il documento mostra oggi al suo posto.</param>
+/// <param name="Alternative">Per una radice ambigua, tutti i nomi vivi; altrimenti vuoto.</param>
+public sealed record SidDaRivedere(
+    string Icao, string Codice, SidDaRivedereTipo Tipo, IReadOnlyList<string> Dove, string Esce,
+    IReadOnlyList<string> Alternative);
+
+/// <summary>Il controllo delle SID citate in un documento: quali non si trovano più, quali sono ambigue.</summary>
+public static class ControlloSidCitate
+{
+    /// <summary>
+    /// Le SID da ricontrollare nei testi dati, ognuno con la sezione in cui sta. Una voce per riferimento (scalo
+    /// + codice), con tutte le sezioni che lo citano. ⚠️ Solo i nomi del documento contano: una SID sparita
+    /// dall'anagrafica ma non citata non è affare di questo documento.
+    /// </summary>
+    public static IReadOnlyList<SidDaRivedere> Controlla(IEnumerable<(string Dove, string? Testo)> testi, NomiSid nomi)
+    {
+        var dove = new Dictionary<(string Icao, string Codice), List<string>>();
+        foreach (var (sezione, testo) in testi)
+        {
+            if (!RiferimentiSid.Contiene(testo)) continue;
+            foreach (System.Text.RegularExpressions.Match m in RiferimentiSid.Riferimento.Matches(testo!))
+            {
+                var chiave = (m.Groups[1].Value, m.Groups[2].Value);
+                if (!dove.TryGetValue(chiave, out var sezioni)) dove[chiave] = sezioni = new List<string>();
+                if (!sezioni.Contains(sezione)) sezioni.Add(sezione);
+            }
+        }
+
+        var esito = new List<SidDaRivedere>();
+        foreach (var ((icao, codice), sezioni) in dove.OrderBy(d => d.Key.Icao, StringComparer.Ordinal)
+                                                       .ThenBy(d => d.Key.Codice, StringComparer.Ordinal))
+        {
+            var radice = RiferimentiSid.Radice(codice);
+            var nome = nomi.Nome(icao, radice);
+            if (nome is null)
+                esito.Add(new SidDaRivedere(icao, codice, SidDaRivedereTipo.NonTrovata, sezioni, codice, Array.Empty<string>()));
+            else if (nomi.Ambigua(icao, radice))
+                esito.Add(new SidDaRivedere(icao, codice, SidDaRivedereTipo.Ambigua, sezioni, nome, nomi.Alternative(icao, radice).ToList()));
+        }
+        return esito;
+    }
 }

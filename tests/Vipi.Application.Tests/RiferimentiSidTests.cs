@@ -199,6 +199,48 @@ public class RiferimentiSidTests
         Assert.Equal(atteso, RiferimentiSid.NomeEsteso(fix, nome));
     }
 
+    // ---- il controllo dell'editor (slice 4) ------------------------------------------------------------
+
+    [Fact]
+    public void Una_SID_che_non_c_e_piu_si_segnala_con_le_sezioni_che_la_citano()
+    {
+        var nomi = Nomi("LIRF", "RATI1D");
+        var esito = ControlloSidCitate.Controlla(new (string, string?)[]
+        {
+            ("Remarks", "Expect [[SID LIRF OST1E]]."),
+            ("Procedure", """{"rows":[{"cells":["[[SID LIRF OST1E]]"]}]}"""),
+            ("Remarks", "Again [[SID LIRF OST1E]]."),
+            ("Remarks", "And [[SID LIRF RATI1D]]."),
+        }, nomi);
+
+        var r = Assert.Single(esito);
+        Assert.Equal(("LIRF", "OST1E", SidDaRivedereTipo.NonTrovata, "OST1E"), (r.Icao, r.Codice, r.Tipo, r.Esce));
+        Assert.Equal(new[] { "Remarks", "Procedure" }, r.Dove);
+    }
+
+    [Fact]
+    public void Una_radice_ambigua_si_segnala_con_tutte_le_revisioni_vive()
+    {
+        var nomi = new NomiSid(new Dictionary<string, AirportSidView>
+        {
+            ["LIBG"] = new(new[] { Riga("ROBO1H", "07", "ROBOT"), Riga("ROBO5H", "25", "ROBOT") }),
+        });
+        var r = Assert.Single(ControlloSidCitate.Controlla(new (string, string?)[] { ("Note", "[[SID LIBG ROBO1H]]") }, nomi));
+
+        Assert.Equal(SidDaRivedereTipo.Ambigua, r.Tipo);
+        Assert.Equal("ROBOT 5H", r.Esce);
+        Assert.Equal(new[] { "ROBOT 1H", "ROBOT 5H" }, r.Alternative);
+    }
+
+    [Fact]
+    public void Le_SID_che_si_trovano_non_si_segnalano()
+    {
+        Assert.Empty(ControlloSidCitate.Controlla(new (string, string?)[]
+        {
+            ("Note", "Expect [[SID LIRF OST1E]]."), ("Note", null), ("Note", "niente"),
+        }, Nomi("LIRF", "OST2E")));
+    }
+
     [Fact]
     public void Scrivi_e_Sostituisci_fanno_andata_e_ritorno()
     {
