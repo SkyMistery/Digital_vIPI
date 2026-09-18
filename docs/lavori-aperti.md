@@ -4,7 +4,11 @@
 
 ### ▶ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026)
 
-- 📦 **Pacchetto 1.33.0 PRONTO DA CARICARE**: timbro `1.33.0 · 7d25267`, 18 file (Hosting DENTRO, MySqlMigrations
+- ✅ **1.33.0 ONLINE (18-set)**: da fuori `pacchetto-verifica.js` 8/8, endpoint vivo (400 su evento non valido), Cloudflare
+  lascia passare (`cf-cache-status: DYNAMIC`, risposte del nostro processo). 🔴 **Con la chiave giusta: 401** → il file
+  `segreti/` non è stato letto: si legge SOLO all'avvio. ▶ Riavviare dopo averlo messo, poi rifare i curl su
+  `prova-ponte-rfo` e la prova in parallelo. Timbro e `Schema 0` col login: da confermare.
+- Pacchetto: timbro `1.33.0 · 7d25267`, 18 file (Hosting DENTRO, MySqlMigrations
   DENTRO), zip `artifacts/publish/vipi-1.33.0-solo-file-cambiati.zip` sha256 `0651b7ca…70cf8a2`, foglio
   `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.33.0.md`. Migrazione additiva `PonteRfo`; entra anche A69. Serve anche un file NUOVO
   in `segreti/` con la chiave. Primo tentativo `f43229b` mai spedito (ERRORE EF sul 409 di creazione, corretto).

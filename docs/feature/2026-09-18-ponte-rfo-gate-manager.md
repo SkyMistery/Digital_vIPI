@@ -102,8 +102,12 @@ scelto da chi installa:
 - Una chiave più corta di 32 caratteri **non apre niente**: una «prova» dimenticata nei segreti non diventa una porta.
 - Confronto a tempo costante (impronte SHA-256, `FixedTimeEquals`), percorrendo sempre tutte le chiavi.
 - Si generano con 32 byte casuali in base64url: `rfo_` + 43 caratteri. **Non si scrivono nel repo.**
-- La configurazione si rilegge a caldo (`IOptionsMonitor`): aggiungere o togliere una chiave non chiede un riavvio
-  se il file cambia sul disco — ma su Passenger il processo si ricicla comunque spesso.
+- 🔴 **Una chiave nuova vuole un RIAVVIO.** `SegretiFuoriDalWeb` elenca i file di `segreti/` una volta sola, all'avvio,
+  con `reloadOnChange: false`: un file caricato dopo il riavvio **non esiste** per il processo, e ogni chiamata è 401.
+  (Qui c'era scritto che si rileggeva a caldo per via di `IOptionsMonitor`: falso, ed è costato il primo controllo da
+  fuori di 1.33.0, 18 settembre 2026 — endpoint vivo, 400 sull'evento non valido, 401 con la chiave giusta.)
+  Dopo aver messo o cambiato il file: `tmp/restart.txt` **e poi si apre il sito una volta**. `avvio-diagnostica.txt`
+  dice **quanti** file di segreti ha letto: deve essere uno in più di prima.
 - 401 finisce in `log-*.txt` (Information, categoria `Vipi.Api`), 403 anche in `avvisi-log.txt` (Warning).
 
 Lato programma, in `secrets/booking.json` di ogni postazione:

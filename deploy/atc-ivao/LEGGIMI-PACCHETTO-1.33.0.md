@@ -1,5 +1,10 @@
 # Pacchetto 1.33.0 — solo i file cambiati
 
+> ✅ **CARICATO il 18 settembre 2026.** Da fuori: `pacchetto-verifica.js` 8/8 pubblico, endpoint `/api/rfo/…` vivo (400
+> sull'evento non valido). 🔴 Al primo controllo **ogni chiamata con la chiave giusta rispondeva 401**: i file di
+> `segreti/` si leggono **solo all'avvio** — un file messo dopo il riavvio non conta. Dopo aver messo il file:
+> `tmp/restart.txt` e aprire il sito una volta. (Il punto 1 dell'ordine qui sotto era giusto; la carta diceva il falso.)
+
 > **Timbro:** `1.33.0 · 7d25267` (18 settembre 2026). È quel che compare nella barra in alto agli
 > amministratori, e nella riga `Versione` di `diagnostica/avvio-diagnostica.txt`.
 
