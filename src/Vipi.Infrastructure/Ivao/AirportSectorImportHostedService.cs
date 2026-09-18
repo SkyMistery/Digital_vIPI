@@ -81,7 +81,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             var gh = sp.GetRequiredService<Vipi.Application.Content.IGithubTowerShapeService>();
             githubShapes = await gh.ApplyAsync(ct: ct);
         }
-        catch (Exception ex) { _log.LogDebug(ex, "Shape TWR da GitHub saltate."); }
+        catch (Exception ex) { RipiegoFallito(_log, ex, "Shape TWR da GitHub saltate."); }
 
         // Shape di SETTORE (CTR/APP/MIL/FSS) dai file DYNAMIC_SEC del sectorfile: il ripiego per gli enti che
         // non sono torri, e che dall'anagrafica IVAO non ricevono più un poligono. Isolato come gli altri.
@@ -97,7 +97,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
                     "Shape settori: il punto {Punto} non è nel catalogo navaid — restano senza area {Callsigns}.",
                     punto, callsigns);
         }
-        catch (Exception ex) { _log.LogDebug(ex, "Ripiego shape settori saltato."); }
+        catch (Exception ex) { RipiegoFallito(_log, ex, "Ripiego shape settori saltato."); }
 
         // ATZ dell'AIP per le TWR ancora senza area: un confine vero al posto del cerchio. Fonte SECONDARIA,
         // quindi dopo il sectorfile e prima del cerchio. Isolato come gli altri: senza catalogo caricato non
@@ -114,7 +114,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
                     "ATZ dell'AIP: {Icao} hanno più di una zona nel file, agganciate tutte.",
                     string.Join(", ", atz.MultiZone));
         }
-        catch (Exception ex) { _log.LogDebug(ex, "Ripiego ATZ dall'AIP saltato."); }
+        catch (Exception ex) { RipiegoFallito(_log, ex, "Ripiego ATZ dall'AIP saltato."); }
 
         // Fallback shape tonda 5 NM per le TWR senza poligono (marcata sintetica; mai sovrascrive shape reali).
         int circles = 0;
@@ -123,7 +123,7 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
             var fallback = sp.GetRequiredService<Vipi.Application.Content.ITowerShapeFallbackService>();
             circles = await fallback.ApplyAsync(ct: ct);
         }
-        catch (Exception ex) { _log.LogDebug(ex, "Fallback shape TWR saltato."); }
+        catch (Exception ex) { RipiegoFallito(_log, ex, "Fallback shape TWR saltato."); }
 
         _log.LogInformation(
             "Import settori aeroporto automatico: {Airports} aeroporti, settori {Created}/{Updated}, shape TWR GitHub {Github}, "
@@ -134,5 +134,20 @@ internal sealed class AirportSectorImportHostedService : BackgroundService
 
         guastoDellaSorgente?.Throw();
         return !nonConfigurata;
+    }
+
+    /// <summary>
+    /// Un ripiego delle shape che lancia è un GUASTO: senza sectorfile configurato i quattro servizi tornano vuoti e non
+    /// lanciano. Fino al 18 settembre 2026 finivano a <c>LogDebug</c>, cioè in nessun file letto in produzione: una
+    /// shape che smette di arrivare restava muta (§A64.4). L'annullamento allo spegnimento resta a Debug: non è un guasto.
+    /// </summary>
+    internal static void RipiegoFallito(ILogger log, Exception ex, string cosa)
+    {
+        // Il testo fa da MODELLO, non da valore: il registro degli avvisi riconosce un avviso dal modello, e con un
+        // «{Cosa}» comune i quattro ripieghi sembrerebbero lo stesso guasto. Sono quattro costanti senza graffe.
+#pragma warning disable CA2254
+        if (ex is OperationCanceledException) log.LogDebug(ex, cosa);
+        else log.LogWarning(ex, cosa);
+#pragma warning restore CA2254
     }
 }
