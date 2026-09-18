@@ -2,12 +2,23 @@
 
 ## Dove siamo — 18 settembre 2026
 
+### ▶ A73 — Riferimenti SID nel testo: il nome si aggiorna da solo (18 settembre 2026)
+
+- 📝 Carta [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md), codice
+  zero. Decisioni del committente: solo SID (STAR dopo, a parte), anche nelle celle, sì alla conversione dell'esistente.
+- Chiave = **radice del nome** (`OST1E` → `OST?E`), non la `StableKey`. Formato `[[SID LIRF OST1E]]`, risolto dopo la
+  traduzione. Nessuna migrazione, 5 slice. ▶ Da confermare: risoluzione al ciclo di chi guarda (§4 della carta).
+- ⚠️ Trovato mappando: i link `[x](allegato:slug)` **non sono protetti** nella traduzione (il motore può tradurre
+  «allegato» e rompere il link). Da chiudere con la slice 2.
+
 ### ▶ A72 — Ponte RFO Gate Manager, per l'evento LIRN di domani (18 settembre 2026)
 
 - ✅ **1.33.0 ONLINE (18-set)**: da fuori `pacchetto-verifica.js` 8/8, endpoint vivo (400 su evento non valido), Cloudflare
-  lascia passare (`cf-cache-status: DYNAMIC`, risposte del nostro processo). 🔴 **Con la chiave giusta: 401** → il file
-  `segreti/` non è stato letto: si legge SOLO all'avvio. ▶ Riavviare dopo averlo messo, poi rifare i curl su
-  `prova-ponte-rfo` e la prova in parallelo. Timbro e `Schema 0` col login: da confermare.
+  lascia passare (`cf-cache-status: DYNAMIC`, risposte del nostro processo). 🔴 **Con la chiave giusta: 401.** Diagnosi
+  del pomeriggio: **il file con `Rfo` non era mai stato messo** in `segreti/` (avvio-diagnostica: «1 file letti», quello
+  vecchio). NON era il riavvio: Passenger riaccende il processo ogni minuto circa (`avvii.txt`). L'header arriva (registro:
+  «chiave sconosciuta», non «mancante»). File messo il 18-set. ▶ Confermare «2 file letti» + curl 404 dall'altro agente,
+  poi la prova in parallelo su `prova-ponte-rfo`. Timbro e `Schema 0` col login: da confermare.
 - Pacchetto: timbro `1.33.0 · 7d25267`, 18 file (Hosting DENTRO, MySqlMigrations
   DENTRO), zip `artifacts/publish/vipi-1.33.0-solo-file-cambiati.zip` sha256 `0651b7ca…70cf8a2`, foglio
   `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.33.0.md`. Migrazione additiva `PonteRfo`; entra anche A69. Serve anche un file NUOVO
