@@ -231,7 +231,12 @@ col sectorfile che già gira.
    fra il Lab (scrive) e vIPI (legge).
 2. ✅ Marcatori `//Start`/`//End` di A: **fuori** (li sostituiscono i `//@`; sporcherebbero ogni diff).
 3. ✅ `.vrt` e `.hold`: **in F2, subito**.
-4. ▶ Dove vive il codice del Lab: proposta **stesso repo di vIPI** — in discussione (il committente ha chiesto il perché).
+4. ✅ **Stesso repo di vIPI** (committente, 18-set): chi manutiene vIPI manutiene anche il Lab, oggi e in futuro —
+   non ci sarà chi cura uno solo dei due. Progetti nuovi accanto al Bridge, motori in `Vipi.Application` /
+   `Vipi.Infrastructure/Sectorfile` (già ci sono coordinate e 14 lettori del sector), libreria di A portata dentro.
+   Motivo: i motori sono condivisi e il catalogo `//@` è un contratto Lab (scrive) ↔ vIPI (legge): un commit, una CI.
+   Da ricordare: il repo è **pubblico** (niente segreti, niente PDF ENAV); la CI è Ubuntu → il guscio
+   `net8.0-windows` compila con `EnableWindowsTargeting`, i motori restano multipiattaforma.
 5. ✅ Motore della mappa: **Leaflet canvas** (§4).
 
 ## §9 — Il materiale scaricato per F0-bis (`RealDOCS`, 155 file, 138 MB)
