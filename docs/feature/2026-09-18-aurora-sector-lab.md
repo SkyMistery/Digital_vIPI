@@ -3,6 +3,7 @@
 > **Stato: F0 ✅ FATTA** (quattro prove, tutte passate). **Nessuna riga nel prodotto, nessun dato toccato.**
 > Prossimo passo: **F0-bis**, l'inventario dei PDF AIP scaricati (§9), poi la **carta di F1** (archi sul sito).
 > F0-bis, prova 5 ✅ (§10): dalla **Cover Page** dell'AIRAC alla **checklist** del sector, controprovata sul 2609 vero.
+> F0-bis ✅ (§11): inventario dei 154 PDF + confronto oggetto per oggetto col sector. ▶ Prossimo: **carta di F1**.
 > Materiale delle prove, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\sector-lab-f0\`.
 > PDF AIP, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\RealDOCS\`.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Parte da [`2026-08-29-convertitore-coordinate.md`](2026-08-29-convertitore-coordinate.md).
@@ -282,9 +283,71 @@ Prototipo: `sector-lab-f0\airac\checklist.py` (pdfplumber + git). Legge la Cover
 ⚠️ ⬜ vuol dire «nessuno l'ha toccato», **non** «è sbagliato»: la nota di classificazione del CTR di Viterbo nel
 sector forse non esiste. La checklist **indirizza lo sguardo**; il giudizio resta all'AOD.
 
-**Limite vero:** la Cover dice *dove* è cambiato, non *che cosa*. Per il *che cosa* serve la pagina **vecchia**:
-ENAV pubblica solo il ciclo corrente → il Lab (F6) deve **archiviare i PDF di ogni ciclo** e confrontare
-(per ENR 5.1/5.2, 3.4, 2.1 il nostro estrattore dà già aree e coordinate: il diff diventa esatto).
+**Limite accettato:** la Cover dice *dove* è cambiato, non *che cosa*. ✅ **Decisione del committente (18-set):
+NON si archiviano i PDF del ciclo precedente**; la checklist dice *cosa guardare*, il *che cosa è cambiato* lo trova
+l'AOD aprendo il file. ✅ **Il militare lo cura il SOD**: MIL gates, VFR routes militari e simili restano fuori dalla
+checklist AIRAC.
+
+## §11 — F0-bis: inventario dei PDF e confronto col sector di oggi (18 settembre)
+
+Prototipi in `sector-lab-f0\airac\`: `inventario.py` (livello 1, per file) e `confronto.py` (livello 2, per oggetto).
+Uscite: `out\inventario.md` (una riga per PDF) e `out\confronto.md` (+ `.json` con gli elenchi completi).
+Sector letto da `origin/master` (c1de948, ciclo 2610).
+
+**Il materiale è tutto del ciclo 2609**: GEN 0.4 e le pagine più recenti di ogni file portano 03 SEP 2026.
+154 PDF (esclusa la Cover), **1 664 pagine**, letti in **16 s** con `pdftotext`. ⚠️ pdfplumber ci metteva ~1 minuto
+per PDF sulle carte: va bene per le tabelle difficili (ENR 5.1), non per lo scandaglio.
+
+**Livello 1 — cosa c'è, per gruppo.** «Solo immagine» = pagina senza testo estraibile (carta disegnata).
+
+| Gruppo | PDF | Pagine | Solo immagine | Coordinate | File del sector |
+|---|---|---|---|---|---|
+| GEN | 7 | 64 | 5 | 0 | — (GEN 0.4 = indice delle pagine) |
+| ENR 2.1.1 FIR/CTA/TMA | 11 | 96 | 7 | 2 258 | `LOW_/HI_AIRSPACE`, `ACC`, `DYNAMIC_SEC` |
+| ENR 2.1.2 CTR | 45 | 156 | 26 | 1 037 | `<icao>.str` (MAPS «CTR») |
+| ENR 2.1.3 / 2.2 ATZ, RMZ | 3 | 22 | 1 | 308 | `<icao>.str` (MAPS «ATZ») |
+| ENR 3.2 rotte (29 scaricate) | 29 | 64 | 22 | 226 | `AIRWAY/*.lairway/.hairway` |
+| ENR 3.4.1 attese · 3.4.2 radioassistenze | 2 | 32 | 1 | 0 | `HOLDENR.hold` · `NAVAIDS` |
+| ENR 4.1 radioassistenze | 2 | 18 | 1 | 91 | `itvor.vor`, `itndb.ndb` |
+| ENR 4.4 punti | 1 | 158 | 0 | 1 254 | `NAVAIDS/*.fix` |
+| ENR 5.1 P/R/D/TSA | 5 | 124 | 5 | 2 215 | `GEO/italy.*` |
+| ENR 5.2 militari | 10 | 72 | 20 | 674 | `GEO/italy.restrict` (militare = SOD) |
+| ENR 5.3 altri pericoli, 4.5 luci | 5 | 16 | 5 | 38 | — |
+| AD 2 cap. 1 testo | 5 | 180 | 4 | 240 | `itap.ap`, `itrw.rw`, `itfreq.frq`, `.vfi`, `.atis` |
+| AD 2 cap. 2 carte a terra · 3 ostacoli | 10 | 106 | **94** | 0 | `GND_LAYOUT`, `.gts`, `.txi` · — |
+| AD 2 cap. 4 STAR · 6 SID | 10 | 346 | 158 | 296 | `.str` · `.sid` — **140 pagine di tabelle ARINC** in chiaro |
+| AD 2 cap. 5 IAC/VAC | 5 | 178 | **134** | 125 | `.str`, `.vfi` |
+| AD 2 cap. 8 ATC SMAC | 5 | 32 | 13 | 1 122 | `.mva` (⚠️ LIMC/LIME/LIRF: `ENRMVA`?) |
+
+⚠️ `itap.ap` chiama gli aeroporti col **secondo** nome: 33 CTR su 45 non si agganciano per nome (Alghero ≠
+FERTILIA); l'ICAO più frequente nel testo del PDF li aggancia (Alghero → LIEA ×4).
+
+**Livello 2 — l'AIP contro il sector, oggetto per oggetto** (numeri di `out\confronto.md`):
+
+| Sezione | AIP | Sector | Comuni | Cosa esce | Affidabilità |
+|---|---|---|---|---|---|
+| ENR 4.4 punti ↔ `*.fix` | 1 116 | 2 182 | 1 116 | 0 mancanti; **TIMOV** (350 NM) e **XOPTA** (260 NM) sono **altri punti** nell'AIP | buona (1 116 su ~1 250 nomi) |
+| ENR 5.1 aree ↔ `GEO/italy.*` | 540 | 550 | 526 | mancano **P343, P739, P92, R107A-D, R11, R167, R362, TSA421B**; il sector ha **P167** (R167?) e TSA74A/B (AIP: TSA74 ×2) | buona |
+| ENR 3.2 rotte ↔ `AIRWAY` (29) | — | — | 18 identiche | **M616, Q985, T543, T678, Y651** assenti; 11 con punti in più nel sector (spesso i tratti esteri) | buona |
+| ENR 3.4.1 attese ↔ `HOLDENR.hold` + `HLD-` dei `.str` | 162 | 239 | 113 | 49 attese AIP senza disegno; 6 con verso/rotta diversi | media (colonna fix rumorosa) |
+| SID/STAR dei 5 aeroporti ↔ `.sid/.str` | 404 | 343 | 324 | LIRN: tutte le 7G/1A-1C ci sono, mancano **7H/8J/1B/1D**; LIRF: 4 STAR solo nel sector (GILI3T, LUNA3T, MOP3K, RITE4D) | buona sui nomi, **non** sui percorsi |
+| ENR 4.1 radioassistenze | 30 | 131 | 30 | 6 posizioni diverse (PAN 0,3 NM, OST 0,1 NM…) | ⚠️ **parziale**: 30 su ~110 |
+| VRP (cap. 1 e 5) | 14 | 51 | 14 | nessun VRP AIP mancante | ⚠️ LICA e LIRF: VRP solo nelle carte (immagine) |
+
+**Cose imparate (vanno nel motore di F6):**
+- 🔴 Nel sector i designatori hanno **tre convenzioni**: `XIBR5A` (LIRF, LIRN), `IRK7A-PEP2X` (LIMC, LIME, SID +
+  transizione), `BAGIX3R` (LICA, nome intero) — e LIRF le ha **tutte e due** (`EKLO8M` ed `EKL8M`). Confronto:
+  stesso suffisso + nome del sector = **inizio** del nome AIP. Prima prova a 3 lettere: SOSA e SOSI collidevano.
+- 🔴 Contorni del sector che valgono per **più aree** AIP: `R18A/B`, `D35BC`, `R405AC`, `D75` (= D75A+B+C).
+- 🔴 Le attese vicine agli aeroporti stanno nei `<icao>.str` (`HLD-GIKIN`), non in `HOLDENR.hold`.
+- pdftotext: grado = `U+FFFD` o `°`, secondi = `''`; nelle rotte i punti hanno davanti `▲`/`∆`.
+- 🔴 Le trappole della shell sui sorgenti: heredoc + Python hanno scritto `\b` e `\f` come caratteri di controllo
+  VERI (backspace, form feed) dentro le regex — la regex non trovava niente, **senza errore**. Modifiche ai `.py`
+  solo con l'editor.
+
+**Cosa NON si estrae (serve l'occhio dell'AOD):** carte a terra e ostacoli (94/106 pagine immagine), avvicinamenti
+(134/178), VRP di chi li ha solo in carta, confini/costa delle aree. Per queste la checklist (§10) dice *dove*
+guardare, e basta.
 
 **Dove va:** è la porta d'ingresso di F6 e del ramo `airac/AYYMM` (decisione 6): Cover → checklist → ramo → PR con
 `CHANGELOG/AYYMM.txt` precompilato (decisione 12). Non richiede F1-F5: si può anticipare come comando dell'app.
