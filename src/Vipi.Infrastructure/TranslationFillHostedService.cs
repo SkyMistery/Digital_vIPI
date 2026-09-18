@@ -165,6 +165,12 @@ internal sealed class TranslationFillHostedService : BackgroundService
         if (semiVloa > 0)
             _log.LogInformation("Frasi di partenza delle vLOA messe in memoria: {Quante}.", semiVloa);
 
+        // ⚠️ E tre descrizioni di aree IVAO che il motore rende rotte a ogni giro (§A64.3, 497 caratteri ogni
+        // quarto d'ora): il testo è di IVAO, quindi non si corregge alla sorgente e non ha una porta a mano.
+        var semiAree = await FrasiAreeIvao.SeminaAsync(memoria, ct).ConfigureAwait(false);
+        if (semiAree > 0)
+            _log.LogInformation("Descrizioni di aree IVAO messe in memoria: {Quante}.", semiAree);
+
         var glossarioStore = sp.GetRequiredService<IGlossaryStore>();
         var semiGlossario = await GlossarioFraseologia
             .SeminaAsync(glossarioStore, ct: ct).ConfigureAwait(false);

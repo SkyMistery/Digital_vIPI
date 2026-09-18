@@ -175,8 +175,8 @@ restano valide e sono richiamate qui sotto. 🔴 net10 = **1.33.0**.
 **Da §A64, ancora aperti:** segmenti
 ripagati a ogni giro — 🔎 18-set causa MISURATA con Azure vero: non un identificatore rotto ma parole comuni in maiuscolo
 prese per sigle (`LIBERO`→FREE; `WING`/`TRAINING`/`AREA`→STORMO/ADDESTRAMENTO/ZONA), il ripristino butta la frase. Scelta del
-committente: traduzioni a mano. LIBN_APP dal pannello traduzioni (a lui); le 3 aree D del 37° Stormo (testo IVAO) non hanno
-una porta a mano — proposto seme fisso come `FrasiVloa` ✅ ripieghi shape dell'import ora a Warning (18-set, `RipiegoFallito`,
+committente: traduzioni a mano. LIBN_APP dal pannello traduzioni (a lui, 385 car.); le 3 aree D del 37° Stormo (testo IVAO,
+nessuna porta a mano) ✅ seminate da `FrasiAreeIvao` (en→it, 497 car.; impronte verificate 3/3 sui byte di produzione; non in pacchetto) ✅ ripieghi shape dell'import ora a Warning (18-set, `RipiegoFallito`,
 2 test; non in pacchetto); S11 fase B; leggere il registro del giorno; feedback a
 due canali; le pulizie 9, 10, 12 (`Ruota` senza suffisso — aggirato dando la lettera alla cartella di publish —,
 `IcaoPrefixes` doppio, LOVV coi secondi a 60: lasciate così di proposito). ✅ 18-set notte: **8** `indice-doc.py` tiene la riga
