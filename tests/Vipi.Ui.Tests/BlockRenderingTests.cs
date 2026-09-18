@@ -243,6 +243,7 @@ public class BlockRenderingTests : TestContext
     [InlineData("""{"columns":["A"],"rows":[{"cells":["x"]}]}""", true)]              // tabella a mano
     [InlineData("""{"mediaId":"abc","alt":null}""", true)]                            // immagine
     [InlineData("""{"ref":"allegato-1"}""", true)]                                    // allegato
+    [InlineData("""{"title":""}""", true)]                                            // callout (§A73: era payload)
     public void L_editor_e_il_payload_rispondono_alla_STESSA_domanda(string json, bool eContenuto)
     {
         // Quel che il viewer/editor considerano contenuto...

@@ -77,6 +77,14 @@ public static class SectionPayload
             var root = doc.RootElement;
             if (root.TryGetProperty("mediaId", out _)) return true;
             if (root.TryGetProperty("ref", out _)) return true;
+            // Il titolo di una CALLOUT (`CalloutBlock` lo legge da qui): `{"title":"Reduced coordination"}`.
+            // ⚠️ Fino al 18 settembre 2026 mancava, e una callout con titolo passava per payload: l'editor non la
+            // mostrava (né modificabile né cancellabile) e — peggio — in una sezione resa dalla pagina la scheda
+            // l'avrebbe presa come suo blocco e ci avrebbe SCRITTO SOPRA. Trovato lavorando alle SID citate
+            // (§A73): 1 callout in produzione, 5 in sviluppo. Solo il titolo e nient'altro: nessun payload ha
+            // questa forma, e un oggetto con altro accanto resta una domanda per le regole sotto.
+            if (root.TryGetProperty("title", out var titolo) && titolo.ValueKind == JsonValueKind.String
+                && root.EnumerateObject().Count() == 1) return true;
             return root.TryGetProperty("columns", out _) && !root.TryGetProperty("variant", out _);
         }
         catch (JsonException)

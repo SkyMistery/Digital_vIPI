@@ -28,10 +28,24 @@ public class SectionPayloadTests
     [InlineData(PayloadMil)]
     [InlineData(PayloadApp)]
     [InlineData(PayloadAree)]        // forma storica delle aree: la radice è un ARRAY, non un oggetto
-    [InlineData("{\"title\":\"\"}")]
     [InlineData("{\"OwnAuto\":false,\"OwnIds\":[\"1161\"]}")]
+    [InlineData("{\"title\":\"x\",\"rows\":[]}")]   // il titolo con ALTRO accanto non basta a dirlo contenuto
     public void I_payload_delle_schede_restano_payload(string json) =>
         Assert.False(SectionPayload.EEditoriale(json));
+
+    /// <summary>
+    /// 🔴 Il titolo di una CALLOUT. Fino al 18 settembre 2026 questo test diceva il contrario — `{"title":""}` fra i
+    /// payload — ed era sbagliato: quella forma la scrive il travaso delle sezioni extra d'aeroporto nelle callout
+    /// (<c>EfDocumentMaintenance.ToContentBlock</c>), e `CalloutBlock` ne legge il titolo. Da payload, la callout
+    /// spariva dall'editor (niente modifica, niente cancella) e in una sezione resa dalla pagina la scheda ci
+    /// avrebbe scritto sopra. Trovato lavorando alle SID citate (§A73): le 5 di LIBD Remarks in sviluppo,
+    /// «Reduced coordination» in produzione.
+    /// </summary>
+    [Theory]
+    [InlineData("{\"title\":\"\"}")]
+    [InlineData("{\"title\":\"Reduced coordination\"}")]
+    public void Il_titolo_di_una_callout_e_contenuto(string json) =>
+        Assert.True(SectionPayload.EEditoriale(json));
 
     [Fact]
     public void Una_tabella_di_struttura_ha_la_variante_e_non_si_confonde_con_quella_a_mano()
