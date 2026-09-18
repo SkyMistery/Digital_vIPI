@@ -1,6 +1,20 @@
 # Lavori aperti — elenco unico
 
-## Dove siamo — 17 settembre 2026
+## Dove siamo — 18 settembre 2026
+
+### ▶ A71 — Aurora Sector Lab: F0 fatta, si riparte da F0-bis (18 settembre 2026)
+
+Lavoro NUOVO e parallelo ad A70 (che resta il punto di ripresa per la produzione). Carta:
+[`feature/2026-09-18-aurora-sector-lab.md`](feature/2026-09-18-aurora-sector-lab.md) — si legge TUTTA prima di cominciare.
+
+- App desktop per i 3 AOD (Blazor locale in WebView2, git locale, mappa nostra) + archi AIP sul sito. **Nessun dato di
+  vIPI si tocca**; nessuna riga nel prodotto finora.
+- **F0 ✅**: guscio (interattivo in ~570 ms, 4 trappole pagate), mappa (sector intero in Leaflet canvas, 55 ms),
+  PDF AIP (580/580 aree), progetti fermi (il C# «Drawer» ha 21 parser e 310 test da ereditare).
+- **Prossimo: F0-bis** = inventario di tutti i PDF in `RealDOCS` (GEN 0/2.4, ENR 2/3/4/5, AD 2 di LIME, LIRN, LICA,
+  LIRF, LIMC): sezione → file del sector → estraibile → differenze col sector di oggi. Poi la **carta di F1** (archi).
+- **Aperte**: le 5 decisioni di §8 della carta (proposte già scritte, da confermare col committente).
+- Prove e prototipi, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\sector-lab-f0\`.
 
 ### ▶ A70 — DA FARE, dopo 1.32.0 (17 settembre 2026, notte) — l'elenco da cui ripartire
 
