@@ -2,7 +2,17 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### 📦 A79 — Pacchetto 1.34.3 PRONTO DA CARICARE (19 settembre 2026)
+### ✅ A79 — Pacchetto 1.34.3 ONLINE (19 settembre 2026)
+
+- ✅ Committente: timbro, Ricerca, `Schema 0`, login ok. Diagnostica delle 14:32Z: su 1.34.3 tre login, ognuno con **una
+  sola** `/auth/login` prima del `/signin-oidc`, nessun «nonce». Un logout doppio (14:29:41, il secondo già da fuori:
+  doppio clic, innocuo — il logout non ha nonce). Zero 5xx il 18 e il 19; 521 chiamate RFO senza errori; era 1.34.2:
+  50 254 richieste, 0 voci. `FrasiAreeIvao` seminata il 18-set 17:41Z, da allora en→it senza scarti.
+- ⚠️ Da tenere d'occhio: `ConnectionError` di EF su MariaDB **3 volte** in 36 ore (18-set 09:02 e 18:44, 19-set 08:35 in
+  una raffica di letture RFO), nessuna richiesta fallita. Se cresce: pool (`MaximumPoolSize=20`) e `max_connections`.
+- ▶ Resta: resa a mano di LIBN_APP (385 car. ogni quarto d'ora).
+
+### (storia) Pacchetto 1.34.3 — la preparazione
 
 - PATCH su 1.34.2 (`277b89c`), **nessuna migrazione**. Timbro **`1.34.3 · f95d923`**. **4 file**: `Vipi.Ui` e `Vipi.Host`
   (dll+pdb). `en/Vipi.Ui.resources.dll` fuori (frasi ferme); wwwroot, endpoints, deps, runtimeconfig, appsettings identici.
