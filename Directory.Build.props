@@ -1526,7 +1526,13 @@
       falliscono diventano avvisi; /vsop/ping fuori dai registri. Tocca Vipi.Application, Vipi.Infrastructure e
       Vipi.Host.
     -->
-    <VipiVersione>1.34.2</VipiVersione>
+    <!--
+      1.34.3 — PATCH, NESSUNA migrazione. Su 1.34.2 (277b89c). Ancora net8.
+
+      Il contenuto (docs/lavori-aperti.md §A78): i link Login/Logout escono dalla navigazione avanzata — un clic
+      avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
+    -->
+    <VipiVersione>1.34.3</VipiVersione>
   </PropertyGroup>
 
 </Project>
