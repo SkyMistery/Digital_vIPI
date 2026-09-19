@@ -2,7 +2,20 @@
 
 ## Dove siamo — 18 settembre 2026
 
-### 🔧 A78 — Login: un clic avviava DUE login (18 settembre 2026, notte) — in main, NON in pacchetto
+### 📦 A79 — Pacchetto 1.34.3 PRONTO DA CARICARE (19 settembre 2026)
+
+- PATCH su 1.34.2 (`277b89c`), **nessuna migrazione**. Timbro **`1.34.3 · f95d923`**. **4 file**: `Vipi.Ui` e `Vipi.Host`
+  (dll+pdb). `en/Vipi.Ui.resources.dll` fuori (frasi ferme); wwwroot, endpoints, deps, runtimeconfig, appsettings identici.
+- Contenuto: §A78 (login con un solo avvio).
+- Zip `artifacts/publish/vipi-1.34.3-solo-file-cambiati.zip` sha256
+  `325330b55f8f7c482888697f6ab7ce8e5c7330a9e868db97ed2410c99f05b35e`, foglio `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.34.3.md`,
+  publish `linux-x64-20260919`; 1.34.2 ruotata in `publish_old/20260918e`.
+- ✅ Provato sul PACCHETTO (win-x64, login IVAO vero acceso): un clic su Login = 1 richiesta `document` (prima
+  `fetch` + `document`); `pacchetto-verifica.js` SOLO_PUBBLICO tutto verde.
+- ▶ Dopo il carico: timbro, Ricerca, `Schema 0`; esci e rientra dal tasto Login; nel `richieste-*.tsv` UNA `/auth/login`
+  prima di ogni `/signin-oidc`.
+
+### ✅ A78 — Login: un clic avviava DUE login (18 settembre 2026, notte) — in 1.34.3
 
 - Dal campo (committente): un utente fa login, esce la pagina d'errore «torna al documento», al ricarico è dentro.
   Nel registro del giorno delle 11:39Z: `/services/vsop/auth/login` **due volte a 0,3 s**, `/signin-oidc` fallito per
