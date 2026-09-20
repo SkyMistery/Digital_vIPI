@@ -153,4 +153,32 @@ public class ConversioneSidTests
     {
         Assert.Equal((null, null), ConversioneSid.Converti(Prosa(1, "Expect CDC6A."), Array.Empty<PropostaSid>()));
     }
+
+    /// <summary>
+    /// 🔴 Un nome che è di TUTTI E DUE i versi non si converte da solo. Il riferimento porta il verso
+    /// (<c>[[SID …]]</c> / <c>[[STAR …]]</c>) e la conversione guarda solo le partenze: scrivere «partenza»
+    /// dove nel testo c'era un arrivo farebbe uscire in pagina il nome di UN'ALTRA procedura. Finisce
+    /// nell'elenco di quel che sistema chi scrive, come le forme compatte.
+    /// </summary>
+    [Fact]
+    public void Un_nome_che_e_anche_una_STAR_si_elenca_e_non_si_propone()
+    {
+        var arrivi = new[] { new ProceduraCitabile(ProcedureKind.Star, "LIBV", "CDC6A", "CDC 6A", "14L") };
+
+        var esito = ConversioneSid.Cerca(new[] { Prosa(1, "Expect CDC6A, then VIE6A.") }, Libv, arrivi);
+
+        // La partenza che non è anche un arrivo si propone come sempre.
+        Assert.Equal("VIE6A", Assert.Single(esito.Proposte).Trovato);
+        Assert.Equal("CDC6A", Assert.Single(esito.DaSistemare).Trovato);
+    }
+
+    /// <summary>Senza l'elenco degli arrivi non cambia niente: è il comportamento di prima.</summary>
+    [Fact]
+    public void Senza_gli_arrivi_la_ricerca_resta_quella_di_prima()
+    {
+        var esito = ConversioneSid.Cerca(new[] { Prosa(1, "Expect CDC6A.") }, Libv);
+
+        Assert.Equal("CDC6A", Assert.Single(esito.Proposte).Trovato);
+        Assert.Empty(esito.DaSistemare);
+    }
 }

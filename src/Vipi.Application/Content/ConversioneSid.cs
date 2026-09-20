@@ -48,19 +48,37 @@ public static class ConversioneSid
         @"(?<![A-Z0-9])([A-Z]{2,7})([0-9])([A-Z])(?:/(?:[A-Z]{2,7})?[0-9]?[A-Z])+(?![A-Z0-9])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public static EsitoRicercaSid Cerca(IEnumerable<BloccoDaCercare> blocchi, IReadOnlyList<ProceduraCitabile> sids)
+    /// <param name="arrivi">
+    /// Le STAR dello stesso scalo, se si conoscono. ⚠️ Non si convertono — la conversione dei testi già
+    /// scritti resta sulle sole partenze — ma servono a sapere quando un nome è di TUTTI E DUE i versi:
+    /// il riferimento porta il verso, e scriverlo come partenza quando nel testo era un arrivo darebbe, in
+    /// pagina, il nome di un'altra procedura. Una forma così non si propone: si ELENCA, e sceglie chi scrive.
+    /// </param>
+    public static EsitoRicercaSid Cerca(IEnumerable<BloccoDaCercare> blocchi, IReadOnlyList<ProceduraCitabile> sids,
+        IReadOnlyList<ProceduraCitabile>? arrivi = null)
     {
         if (sids.Count == 0) return EsitoRicercaSid.Vuoto;
+
+        // Le forme che i due versi hanno IN COMUNE: ambigue per definizione, e nessuno può indovinarle.
+        var ambigue = new HashSet<string>(StringComparer.Ordinal);
+        if (arrivi is not null)
+        {
+            var formeArrivi = new HashSet<string>(arrivi.SelectMany(FormeDi), StringComparer.Ordinal);
+            foreach (var f in sids.SelectMany(FormeDi))
+                if (formeArrivi.Contains(f)) ambigue.Add(f);
+        }
 
         // Ogni forma scritta → la sua SID. Le più lunghe prima: «BANAV 8A» va cercato prima di un eventuale nome
         // più corto che ne fosse un pezzo.
         var forme = new Dictionary<string, ProceduraCitabile>(StringComparer.Ordinal);
         foreach (var s in sids)
             foreach (var f in FormeDi(s))
-                forme.TryAdd(f, s);
+                if (!ambigue.Contains(f))
+                    forme.TryAdd(f, s);
         // Una regex per forma, costruita UNA volta: dentro il giro sui blocchi e sulle celle sarebbero decine di
         // migliaia di costruzioni su un documento grande (revisione del 18 settembre 2026).
         var ordinate = forme.Keys.OrderByDescending(f => f.Length).Select(f => (Forma: f, Re: Occorrenze(f))).ToList();
+        var ambigueRe = ambigue.Select(Occorrenze).ToList();
 
         var radici = new HashSet<string>(sids.SelectMany(s => FormeDi(s)).Select(RiferimentiProcedura.Radice), StringComparer.Ordinal);
 
@@ -90,6 +108,15 @@ public static class ConversioneSid
                     if (radici.Contains(RiferimentiProcedura.Radice(m.Groups[1].Value + m.Groups[2].Value + m.Groups[3].Value))
                         && !daSistemare.Any(d => d.BloccoId == b.Id && d.Trovato == m.Value))
                         daSistemare.Add(new FormaDaSistemare(b.Id, b.Dove, m.Value));
+
+            // Un nome che è SID e STAR insieme: stesso elenco delle forme compatte, stessa ragione — il
+            // riferimento porta il verso, e qui il verso non si deduce dal testo.
+            foreach (var re in ambigueRe)
+                foreach (var campo in campi)
+                    foreach (Match m in re.Matches(campo))
+                        if (!m.Groups["rif"].Success
+                            && !daSistemare.Any(d => d.BloccoId == b.Id && d.Trovato == m.Value))
+                            daSistemare.Add(new FormaDaSistemare(b.Id, b.Dove, m.Value));
         }
         return new EsitoRicercaSid(proposte, daSistemare);
     }

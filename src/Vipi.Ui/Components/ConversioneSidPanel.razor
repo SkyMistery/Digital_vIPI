@@ -1,4 +1,4 @@
-@* La conversione dei testi già scritti (§A73, slice 5): trova le SID scritte a mano che corrispondono alla tabella
+﻿@* La conversione dei testi già scritti (§A73, slice 5): trova le SID scritte a mano che corrispondono alla tabella
    di uno scalo e le propone come riferimenti, una per una. Niente si converte da solo: ogni voce ha il suo tasto,
    e «Converti tutte» converte solo quel che è elencato.
 
@@ -79,6 +79,7 @@
 
     private string _icao = "";
     private IReadOnlyList<ProceduraCitabile>? _sids;
+    private IReadOnlyList<ProceduraCitabile> _stars = Array.Empty<ProceduraCitabile>();
     private EsitoRicercaSid _esito = EsitoRicercaSid.Vuoto;
     private bool _occupato;
 
@@ -110,18 +111,28 @@
     {
         _icao = icao;
         _sids = null;
+        _stars = Array.Empty<ProceduraCitabile>();
         _esito = EsitoRicercaSid.Vuoto;
         if (icao.Length != 4) return;
         IReadOnlyList<ProceduraCitabile>? letti = null;
-        await InFilaAsync(async () => { letti = await Risolutore.ElencoAsync(icao); });
+        IReadOnlyList<ProceduraCitabile>? arrivi = null;
+        // ⚠️ Anche gli ARRIVI, che non si convertono: servono a riconoscere i nomi che appartengono a tutti
+        // e due i versi. Il riferimento porta il verso, e scriverne uno come partenza quando nel testo era
+        // un arrivo darebbe in pagina il nome di un'altra procedura. In fila, non in parallelo: stesso scope.
+        await InFilaAsync(async () =>
+        {
+            letti = await Risolutore.ElencoAsync(icao);
+            arrivi = await Risolutore.ElencoAsync(icao, ProcedureKind.Star);
+        });
         if (Chiusa) return;
         _sids = letti ?? Array.Empty<ProceduraCitabile>();
+        _stars = arrivi ?? Array.Empty<ProceduraCitabile>();
         Ricalcola();
         await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
     }
 
     private void Ricalcola() =>
-        _esito = _sids is null ? EsitoRicercaSid.Vuoto : ConversioneSid.Cerca(Blocchi, _sids);
+        _esito = _sids is null ? EsitoRicercaSid.Vuoto : ConversioneSid.Cerca(Blocchi, _sids, _stars);
 
     private async Task Converti(IReadOnlyList<PropostaSid> scelte)
     {

@@ -233,7 +233,8 @@
                         }
                         @if (iview.Count == 0)
                         {
-                            <tr><td colspan="12" class="muted">@L[K("Ape_SidNoMatch")]</td></tr>
+                            @* ⚠️ Una colonna in meno sugli arrivi: `Initial climb` non c'è. *@
+                            <tr><td colspan="@(Arrivi ? 11 : 12)" class="muted">@L[K("Ape_SidNoMatch")]</td></tr>
                         }
                     </tbody>
                 </table>
@@ -385,7 +386,7 @@
                     }
                     @if (mview.Count == 0)
                     {
-                        <tr><td colspan="13" class="muted">@(Manual.Count == 0 ? L[K("Ape_SidNoManual")] : L[K("Ape_SidNoRowMatch")])</td></tr>
+                        <tr><td colspan="@(Arrivi ? 12 : 13)" class="muted">@(Manual.Count == 0 ? L[K("Ape_SidNoManual")] : L[K("Ape_SidNoRowMatch")])</td></tr>
                     }
                 </tbody>
             </table>

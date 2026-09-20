@@ -41,8 +41,13 @@ public class ConversioneSidEditorTests : TestContext
             Task.FromResult(NomiProcedura.Vuoto);
         public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
             Task.FromResult(NomiProcedura.Vuoto);
+        /// <summary>
+        /// ⚠️ Il VERSO conta: il pannello chiede anche gli arrivi, per sapere quali nomi appartengono a tutti
+        /// e due — e LIBV, di STAR, non ne ha. Una prova che rispondesse lo stesso elenco ai due versi
+        /// direbbe che ogni partenza è anche un arrivo, e non si proporrebbe più niente.
+        /// </summary>
         public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<ProceduraCitabile>>(icao == "LIBV"
+            Task.FromResult<IReadOnlyList<ProceduraCitabile>>(icao == "LIBV" && kind == ProcedureKind.Sid
                 ? new[] { new ProceduraCitabile(ProcedureKind.Sid, "LIBV", "CDC6A", "CDC 6A", "14L, 14R"), new ProceduraCitabile(ProcedureKind.Sid, "LIBV", "CDC6B", "CDC 6B", "32L") }
                 : Array.Empty<ProceduraCitabile>());
     }

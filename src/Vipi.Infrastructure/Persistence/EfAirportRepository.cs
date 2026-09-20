@@ -340,7 +340,11 @@ public sealed class EfAirportRepository : IAirportRepository
         // Le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer. Gli arrivi partono
         // più in alto delle partenze: ogni lettura filtra comunque per verso, ma una tabella guardata a mano —
         // in diagnostica, in una copia del database — resta leggibile.
-        var baseOrder = kind == ProcedureKind.Star ? 2000 : 1000;
+        // ⚠️ Lo scaglione degli arrivi sta LARGO: con 1000 e 2000 bastava uno scalo con più di mille partenze
+        // perché gli ordini dei due versi si accavallassero. Nessuna lettura ne soffrirebbe — filtrano tutte
+        // per verso — ma una tabella guardata a mano, in diagnostica o su una copia, diventerebbe illeggibile
+        // proprio quando serve. Misurato: 206 SID a LIRF, il massimo dell'archivio.
+        var baseOrder = kind == ProcedureKind.Star ? 1_000_000 : 1_000;
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
