@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using Vipi.Application.Translation;
 
 namespace Vipi.Application.Tests;
@@ -27,6 +27,25 @@ public class TraduzioneRiferimentiTests
         // ⚠️ Tag VUOTO: col valore dentro il motore vedrebbe le parentesi, e un «[[» toccato butterebbe la frase.
         Assert.DoesNotContain("SID", p.Text);
         Assert.True(p.Safe);
+    }
+
+    /// <summary>
+    /// 🔴 Il gemello degli ARRIVI (§A80). La guardia veloce del protettore cercava «[[SID » cablato: la regex
+    /// riconosceva già <c>[[STAR …]]</c>, la guardia no, e un riferimento d'arrivo partiva verso il motore —
+    /// un difetto muto, che si vede solo leggendo una traduzione.
+    /// </summary>
+    [Fact]
+    public void Una_STAR_citata_non_arriva_al_motore()
+    {
+        var p = Protettore.Protect("Expect [[STAR LIRF ELKA3A]] inbound.");
+
+        Assert.Equal("Expect @ inbound.", Fuori(p.Text));
+        Assert.DoesNotContain("STAR", p.Text);
+        Assert.True(p.Safe);
+
+        var dalMotore = p.Text.Replace("Expect", "Prevedere").Replace("inbound", "in arrivo");
+        Assert.True(TextProtector.TryRestore(dalMotore, p, out var tornato));
+        Assert.Equal("Prevedere [[STAR LIRF ELKA3A]] in arrivo.", tornato);
     }
 
     [Fact]

@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using Vipi.Application.Content;
 
@@ -340,7 +340,8 @@ public sealed partial class TextProtector
     /// Mette da parte i due riferimenti del nostro formato, che il motore non deve toccare.
     ///
     /// <list type="bullet">
-    /// <item><b>Una SID citata</b>, <c>[[SID LIRF OST1E]]</c> (§A73): intera, in un tag <b>vuoto</b>. Col valore
+    /// <item><b>Una procedura citata</b>, <c>[[SID LIRF OST1E]]</c> o <c>[[STAR LIRF ELKA3A]]</c> (§A73,
+    ///   §A80): intera, in un tag <b>vuoto</b>. Col valore
     ///   dentro il motore riceverebbe le parentesi quadre, e un «[[» toccato vuol dire frase scartata al
     ///   ripristino — a ogni giro. Vuoto non si scarta mai; si perde solo l'ancora di un nome, come per un VID.</item>
     /// <item><b>Un link a un allegato</b>, <c>[LoA Marseille](allegato:loa-lirr-lfmm)</c>: il TESTO del link si
@@ -353,7 +354,10 @@ public sealed partial class TextProtector
     /// </summary>
     private static string ProteggiRiferimenti(string s, List<string> tokens)
     {
-        if (s.Contains("[[SID ", StringComparison.Ordinal))
+        // ⚠️ La guardia veloce la fa `Contiene`, che conosce i due gettoni. Cablare qui «[[SID » — com'era fino
+        // al 20 settembre 2026 — lascia partire verso il motore ogni riferimento di un verso nuovo: la regex lo
+        // riconosce, la guardia no, e il difetto è muto finché qualcuno non legge una traduzione.
+        if (RiferimentiProcedura.Contiene(s))
             s = RiferimentiProcedura.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
 
         if (s.Contains(AttachmentRules.TokenPrefix, StringComparison.Ordinal))
