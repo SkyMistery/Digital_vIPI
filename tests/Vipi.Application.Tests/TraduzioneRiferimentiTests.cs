@@ -48,6 +48,21 @@ public class TraduzioneRiferimentiTests
         Assert.Equal("Prevedere [[STAR LIRF ELKA3A]] in arrivo.", tornato);
     }
 
+    /// <summary>I riferimenti ai DATI: sintassi come gli altri, e per la stessa ragione.</summary>
+    [Fact]
+    public void Un_dato_citato_non_arriva_al_motore()
+    {
+        var p = Protettore.Protect("Contact [[ATC LIRR_CTR]] on [[FREQ LIRF_TWR]].");
+
+        Assert.Equal("Contact @ on @.", Fuori(p.Text));
+        Assert.DoesNotContain("FREQ", p.Text);
+        Assert.True(p.Safe);
+
+        var dalMotore = p.Text.Replace("Contact", "Contatta").Replace(" on ", " su ");
+        Assert.True(TextProtector.TryRestore(dalMotore, p, out var tornato));
+        Assert.Equal("Contatta [[ATC LIRR_CTR]] su [[FREQ LIRF_TWR]].", tornato);
+    }
+
     [Fact]
     public void Il_motore_traduce_intorno_e_il_riferimento_torna_intatto()
     {

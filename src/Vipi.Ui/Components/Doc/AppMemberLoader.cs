@@ -29,8 +29,8 @@ public sealed record AppMemberDocument(
     SectionAudience? Vista,
     AppViewDerived Derived,
     IReadOnlyList<AccSpecialAreaView> Areas,
-    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiProcedura"/>.</summary>
-    NomiProcedura? NomiProcedura = null)
+    /// <summary>Quel che il testo cita e la pagina ha risolto: procedure e dati (§A73, §A80, riferimenti ai dati).</summary>
+    RiferimentiRisolti? Risolti = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -61,12 +61,12 @@ public sealed class AppMemberLoader
     private readonly IEditAuthorizationService _authz;
     private readonly DocumentTranslator _translator;
     private readonly ReadingLanguageContext _lingua;
-    private readonly IProcedureReferenceResolver _sidRefs;
+    private readonly IRiferimentiResolver _sidRefs;
 
     public AppMemberLoader(IVipiViewService viewService, IAppDocumentService appDoc,
                            IAppViewDerivationService appView, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
-                           ReadingLanguageContext lingua, IProcedureReferenceResolver sidRefs)
+                           ReadingLanguageContext lingua, IRiferimentiResolver sidRefs)
     {
         _sidRefs = sidRefs;
         _viewService = viewService;
@@ -168,8 +168,8 @@ public sealed class AppMemberLoader
         var haMarcate = AudienceFilter.HaSezioniMarcate(view.Sections);
         view = SezioniDocumentali.ConSezioni(view, AudienceFilter.Filtra(view.Sections, letturaVista));
 
-        // Le SID citate nel testo (§A73). Un APP non ha uno scalo suo: ogni scalo citato si legge dalla sua
-        // tabella pubblica (o viva, in bozza).
+        // I riferimenti del testo (§A73, §A80, dati). Un APP non ha uno scalo suo: ogni scalo citato si legge
+        // dalla sua tabella pubblica (o viva, in bozza).
         var nomiSid = await _sidRefs.PerVistaAsync(view.Sections, pubblica: mode.Kind != PreviewKind.Draft, ct: ct);
 
         return new AppMemberDocument(app, displayName, view, mode, relCycle, bloccata, tradotto.Coverage,

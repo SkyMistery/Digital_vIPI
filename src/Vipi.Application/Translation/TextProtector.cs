@@ -360,6 +360,11 @@ public sealed partial class TextProtector
         if (RiferimentiProcedura.Contiene(s))
             s = RiferimentiProcedura.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
 
+        // I riferimenti ai DATI (frequenze, nominativi, piste, punti): stessa ragione e stessa forma. Un
+        // «[[FREQ LIRF_TWR]]» tradotto sarebbe una frase scartata al ripristino, a ogni giro.
+        if (RiferimentiDato.Contiene(s))
+            s = RiferimentiDato.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
+
         if (s.Contains(AttachmentRules.TokenPrefix, StringComparison.Ordinal))
             s = LinkAllegato.Replace(s, m =>
                 Deposita("[", tokens, Riservatezza.Intraducibile)
@@ -382,6 +387,7 @@ public sealed partial class TextProtector
         string.IsNullOrEmpty(testo)
             ? Enumerable.Empty<string>()
             : RiferimentiProcedura.Riferimento.Matches(testo).Select(m => m.Value)
+                .Concat(RiferimentiDato.Riferimento.Matches(testo).Select(m => m.Value))
                 .Concat(LinkAllegato.Matches(testo).Select(m => AttachmentRules.TokenDi(m.Groups[2].Value)))
                 .OrderBy(r => r, StringComparer.Ordinal);
 
@@ -702,6 +708,7 @@ public sealed partial class TextProtector
         // I riferimenti del nostro formato per primi: una voce di glossario che ne contenesse uno se lo
         // inghiottirebbe, e la SID o l'allegato resterebbero cablati nella resa.
         return RiferimentiProcedura.Riferimento.IsMatch(testo)
+               || RiferimentiDato.Riferimento.IsMatch(testo)
                || LinkAllegato.IsMatch(testo)
                || VidAnnunciato().IsMatch(testo)
                || ForseUnVid().IsMatch(testo)

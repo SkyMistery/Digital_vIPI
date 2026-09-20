@@ -26,7 +26,7 @@ public class AvvisoSidCitateTests : TestContext
     private sealed class EditingMuto : EditingServiceStub { }
 
     /// <summary>Il risolutore con la tabella di LIRF data dal test: la bozza, come nell'editor.</summary>
-    private sealed class TabellaDiLirf : IProcedureReferenceResolver
+    private sealed class TabellaDiLirf : IProcedureReferenceResolver, IRiferimentiResolver
     {
         private readonly string[] _nomi;
         public TabellaDiLirf(params string[] nomi) => _nomi = nomi;
@@ -46,6 +46,14 @@ public class AvvisoSidCitateTests : TestContext
 
         public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyList<ProceduraCitabile>>(Array.Empty<ProceduraCitabile>());
+
+        // La porta sola: l'editor chiede questa. Nessun dato citato in queste prove — solo procedure.
+        Task<RiferimentiRisolti> IRiferimentiResolver.PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao, AirportSidView? propriaTabella, AirportSidView? propriaTabellaStar, CancellationToken ct) =>
+            Task.FromResult(RiferimentiRisolti.Di(Nomi));
+
+        Task<RiferimentiRisolti> IRiferimentiResolver.PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct) =>
+            Task.FromResult(RiferimentiRisolti.Di(Nomi));
     }
 
     public AvvisoSidCitateTests()
@@ -88,6 +96,7 @@ public class AvvisoSidCitateTests : TestContext
     public void Una_SID_che_non_c_e_piu_si_segnala_in_cima_con_la_sua_sezione()
     {
         Services.AddScoped<IProcedureReferenceResolver>(_ => new TabellaDiLirf("RATI1D"));
+        Services.AddScoped<IRiferimentiResolver>(_ => new TabellaDiLirf("RATI1D"));
         var c = Editor(inModifica: true);
 
         var avviso = c.Find(".sidref-check");
@@ -100,6 +109,7 @@ public class AvvisoSidCitateTests : TestContext
     public void Una_SID_che_si_trova_non_si_segnala_e_l_anteprima_dice_il_nome_di_oggi()
     {
         Services.AddScoped<IProcedureReferenceResolver>(_ => new TabellaDiLirf("OST2E"));
+        Services.AddScoped<IRiferimentiResolver>(_ => new TabellaDiLirf("OST2E"));
         var c = Editor(inModifica: false);
 
         Assert.Empty(c.FindAll(".sidref-check"));

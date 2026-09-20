@@ -1,10 +1,10 @@
-@* Dispatch del blocco al componente giusto in base a Format + variant del BodyJson.
+﻿@* Dispatch del blocco al componente giusto in base a Format + variant del BodyJson.
 
    ⚠️ Le SID citate nel testo (§A73) si sostituiscono QUI, una volta per tutti i tipi di blocco: prosa, callout,
    tabelle (il riferimento sta nelle stringhe del JSON, e il JSON resta valido), suggerimenti, separazioni,
    didascalie. I nomi li passa la pagina come valore a cascata; senza, esce l'ultimo nome visto. *@
 @{
-    var Block = this.Block.ConTesti(t => RiferimentiProcedura.Sostituisci(t, NomiProcedura));
+    var Block = this.Block.ConTesti(t => Riferimenti.Sostituisci(t, Risolti));
     var variant = BlockJson.Variant(Block.BodyJson);
 }
 @switch (Block.Format)
@@ -47,5 +47,7 @@
     [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
 
     /// <summary>I nomi di oggi delle SID citate (§A73), dalla pagina. Null = l'ultimo nome visto.</summary>
-    [CascadingParameter] public NomiProcedura? NomiProcedura { get; set; }
+    /// <summary>Quel che la pagina ha risolto per questo documento: i nomi delle procedure citate e i valori
+    /// dei dati citati. Null = nessuno ha risolto niente, e i riferimenti escono col loro ripiego.</summary>
+    [CascadingParameter] public RiferimentiRisolti? Risolti { get; set; }
 }

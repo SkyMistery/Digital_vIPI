@@ -1,4 +1,4 @@
-using AngleSharp.Dom;
+﻿using AngleSharp.Dom;
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -50,6 +50,7 @@ public class MenuSpostaInTests : TestContext
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => _spia);
         Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
     }
 
     private static EditableSection Sez(int id, string titolo, int depth, string? chiave = null,

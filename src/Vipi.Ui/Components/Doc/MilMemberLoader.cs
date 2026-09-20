@@ -58,8 +58,8 @@ public sealed record MilMemberDocument(
     /// <summary>Lo stato LVP suggerito sui minimi che la sezione mostra. Stesso calcolo della vIPI civile
     /// (<see cref="AirportMemberLoader.ValutaLvp"/>): è lo stesso campo, e la risposta dev'essere una.</summary>
     LvpValutazione? Lvp = null,
-    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiProcedura"/>.</summary>
-    NomiProcedura? NomiProcedura = null)
+    /// <summary>Quel che il testo cita e la pagina ha risolto: procedure e dati (§A73, §A80, riferimenti ai dati).</summary>
+    RiferimentiRisolti? Risolti = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -92,14 +92,14 @@ public sealed class MilMemberLoader
     /// <summary>L'anagrafica dello scalo, per le sole regole piste <b>vive</b>: la pista in uso adesso non è un
     /// dato di release. È la stessa porta da cui la legge la vIPI d'aeroporto.</summary>
     private readonly IAirportEditingService _scalo;
-    private readonly IProcedureReferenceResolver _sidRefs;
+    private readonly IRiferimentiResolver _sidRefs;
 
     public MilMemberLoader(IVipiViewService viewService, IAirportViewDerivationService airportView,
                            IMilitaryDocumentService militari, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
                            IWeatherProvider weather, IStationResolver stations,
                            ReadingLanguageContext lingua, IAirportEditingService scalo,
-                           IProcedureReferenceResolver sidRefs)
+                           IRiferimentiResolver sidRefs)
     {
         _sidRefs = sidRefs;
         _viewService = viewService;

@@ -29,10 +29,14 @@ public class RiferimentiSidRenderTests : TestContext
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
     }
 
-    private static readonly NomiProcedura Oggi = new(new Dictionary<(ProcedureKind, string), AirportSidView>
-    {
-        [(ProcedureKind.Sid, "LIRF")] = new(new[] { new AirportSidRowView("16L", "OSTIA", "OST2E", "—", "—", "—", "—", "—", "—") }),
-    });
+    // ⚠️ In cascata va `RiferimentiRisolti` — la porta sola dei riferimenti — e non i soli nomi: il
+    // `BlockRenderer` chiede quello, e un valore del tipo vecchio non verrebbe raccolto. Senza errori: il
+    // riferimento uscirebbe col suo ripiego, ed è il difetto che queste prove hanno preso al primo giro.
+    private static readonly RiferimentiRisolti Oggi = RiferimentiRisolti.Di(
+        new NomiProcedura(new Dictionary<(ProcedureKind, string), AirportSidView>
+        {
+            [(ProcedureKind.Sid, "LIRF")] = new(new[] { new AirportSidRowView("16L", "OSTIA", "OST2E", "—", "—", "—", "—", "—", "—") }),
+        }));
 
     private static BlockView Blocco(BlockFormat format, string? body = null, string? json = null,
         CalloutKind? callout = null) => new()
@@ -40,7 +44,7 @@ public class RiferimentiSidRenderTests : TestContext
         Id = 1, Format = format, State = RenderState.Expanded, Body = body, BodyJson = json, CalloutKind = callout,
     };
 
-    private IRenderedComponent<BlockRenderer> Disegna(BlockView blocco, NomiProcedura? nomi) =>
+    private IRenderedComponent<BlockRenderer> Disegna(BlockView blocco, RiferimentiRisolti? nomi) =>
         nomi is null
             ? RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, blocco))
             : RenderComponent<BlockRenderer>(p => p.Add(x => x.Block, blocco).AddCascadingValue(nomi));
@@ -84,6 +88,6 @@ public class RiferimentiSidRenderTests : TestContext
     public void Un_blocco_senza_riferimenti_passa_identico()
     {
         var blocco = Blocco(BlockFormat.Prose, body: "Niente SID qui.");
-        Assert.Same(blocco, blocco.ConTesti(t => RiferimentiProcedura.Sostituisci(t, Oggi)));
+        Assert.Same(blocco, blocco.ConTesti(t => Riferimenti.Sostituisci(t, Oggi)));
     }
 }

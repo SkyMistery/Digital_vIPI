@@ -229,6 +229,27 @@ else
             </div>
         }
 
+        @* I DATI citati che non si trovano più: stesso riquadro delle procedure, perché è lo stesso guaio —
+           un riferimento che esce con la sua chiave invece che col valore. *@
+        @if (_datiDaRivedere.Count > 0)
+        {
+            <div class="callout warning sidref-check" role="status">
+                <span class="cic"><Icon Name="warning" Size="18" /></span>
+                <div>
+                    <p class="ct">@L["Dato_Check_Title"]</p>
+                    <ul class="md-list">
+                        @foreach (var d in _datiDaRivedere)
+                        {
+                            <li>
+                                <b>@d.Parola @d.Chiave</b> — @L["Dato_Check_Missing"]
+                                <span class="muted">(@string.Join(", ", d.Dove))</span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+
         @* §A73, slice 5: le SID già scritte a mano, da convertire in riferimenti. Solo in modifica: converte e salva. *@
         @if (IsEditing)
         {
@@ -276,8 +297,10 @@ else
     // documento non cita niente: nessuna query.
     // ⚠️ Le sezioni sono quelle che QUESTA istanza mostra (`RootSections` nella vIPI ACC, un editor per blocco):
     // col documento intero, l'avviso si ripeterebbe uguale sopra ogni blocco.
-    private NomiProcedura? _nomiSid;
+    private RiferimentiRisolti? _nomiSid;
     private IReadOnlyList<ProceduraDaRivedere> _sidDaRivedere = Array.Empty<ProceduraDaRivedere>();
+    /// <summary>I dati citati che non si trovano più: stesso riquadro delle procedure, stessa ragione.</summary>
+    private IReadOnlyList<DatoDaRivedere> _datiDaRivedere = Array.Empty<DatoDaRivedere>();
     private EditableDocument? _docDeiNomi;
 
     protected override async Task OnParametersSetAsync()
@@ -285,10 +308,11 @@ else
         if (ReferenceEquals(Doc, _docDeiNomi)) return;
         var doc = _docDeiNomi = Doc;
         var testi = TestiDi(RootSections ?? Doc.Sections, null).ToList();
-        if (!testi.Any(t => RiferimentiProcedura.Contiene(t.Testo)))
+        if (!testi.Any(t => Riferimenti.Contiene(t.Testo)))
         {
-            _nomiSid = NomiProcedura.Vuoto;
+            _nomiSid = RiferimentiRisolti.Vuoto;
             _sidDaRivedere = Array.Empty<ProceduraDaRivedere>();
+            _datiDaRivedere = Array.Empty<DatoDaRivedere>();
             return;
         }
 
@@ -297,14 +321,15 @@ else
         // salvataggio — e il salvataggio dopo («Converti tutte» su più blocchi, o chi passa al campo seguente) le
         // arrivava addosso: «A second operation was started on this context instance». E l'editor chiuso durante
         // la lettura si portava via il contesto sotto la query. Qui niente di tutto questo: lo scope è della chiamata.
-        NomiProcedura nomi;
+        RiferimentiRisolti nomi;
         await using (var scope = ScopedServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope())
-            nomi = await scope.ServiceProvider.GetRequiredService<IProcedureReferenceResolver>().PerTestiAsync(testi.Select(t => t.Testo));
+            nomi = await scope.ServiceProvider.GetRequiredService<IRiferimentiResolver>().PerTestiAsync(testi.Select(t => t.Testo));
 
         // Un documento più nuovo è arrivato mentre si leggeva: questo esito è di quello vecchio, e si butta.
         if (!ReferenceEquals(doc, Doc)) return;
         _nomiSid = nomi;
-        _sidDaRivedere = ControlloProcedureCitate.Controlla(testi, nomi);
+        _sidDaRivedere = ControlloProcedureCitate.Controlla(testi, nomi.Procedure);
+        _datiDaRivedere = ControlloDatiCitati.Controlla(testi, nomi.Dati);
     }
 
     // Ogni testo col titolo della sua sezione; una sezione senza titolo prende quello del padre.
@@ -318,7 +343,7 @@ else
         }
     }
 
-    private string? ConNomi(string? testo) => RiferimentiProcedura.Sostituisci(testo, _nomiSid);
+    private string? ConNomi(string? testo) => Riferimenti.Sostituisci(testo, _nomiSid);
 
     // ---- conversione dei testi già scritti (§A73, slice 5) ----
 

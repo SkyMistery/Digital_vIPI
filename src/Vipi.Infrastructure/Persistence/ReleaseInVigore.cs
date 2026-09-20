@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Vipi.Application.Content;
@@ -136,6 +136,6 @@ public sealed class IndiceDelleRelease
     {
         BlockFormat.Image => (MediaRef.TextOf(b.BodyJson, b.Body), null),
         BlockFormat.Attachment => (AttachmentRef.TextOf(b.BodyJson, b.Body), null),
-        _ => (RiferimentiProcedura.Sostituisci(b.Body, null), RiferimentiProcedura.Sostituisci(b.BodyJson, null)),
+        _ => (Riferimenti.Sostituisci(b.Body, null), Riferimenti.Sostituisci(b.BodyJson, null)),
     };
 }

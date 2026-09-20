@@ -3505,6 +3505,8 @@
   <data name="Sid_Conv_None" xml:space="preserve"><value>No {0} SID written by hand in this document.</value></data>
   <data name="Sid_Conv_Manual" xml:space="preserve"><value>To fix by hand (several SIDs in one form: cite them one by one with the «SID» button):</value></data>
   <data name="Sid_Check_Title" xml:space="preserve"><value>Cited SIDs to check</value></data>
+  <data name="Dato_Check_Missing" xml:space="preserve"><value>is no longer in the archive: the document shows the key as it is.</value></data>
+  <data name="Dato_Check_Title" xml:space="preserve"><value>Cited data to review</value></data>
   <data name="Sid_Check_Missing" xml:space="preserve"><value>no SID with this name in today's table: the document shows “{0}”, the last name seen. Cite the new SID or remove the reference.</value></data>
   <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>the table has more than one live revision ({0}): “{1}” is shown — the cited one if it still exists, otherwise the highest. Check it is the right one.</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>The thresholds this airport uses to enter and leave low visibility procedures. The comparison uses the RVR from the bulletin, or the visibility when there is no RVR.</value></data>

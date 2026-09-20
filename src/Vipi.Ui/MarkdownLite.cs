@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Components;
@@ -97,7 +97,7 @@ public static class MarkdownLite
         // Una SID citata (§A73) arrivata fin qui senza passare da `BlockRenderer` — la nota di un allegato,
         // l'intro VFR, le anteprime dell'editor — esce col suo ultimo nome visto, mai come `[[SID …]]`.
         // Dove i blocchi passano da `BlockRenderer` il nome è già quello di oggi e questa riga non trova niente.
-        markdown = RiferimentiProcedura.Sostituisci(markdown, null)!;
+        markdown = Riferimenti.Sostituisci(markdown, null)!;
 
         // Fine riga a uno stile solo PRIMA di qualunque taglio: è la stessa forma canonica che si dà al
         // testo prima di tradurlo (TranslationText.Normalize), e per la stessa ragione — «una riga» non

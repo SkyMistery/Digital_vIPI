@@ -119,6 +119,9 @@ public static class DependencyInjection
         services.AddScoped<IAirportViewDerivationService, AirportViewDerivationService>();
         // §A73: le SID citate nel testo prendono il nome dalla tabella che il lettore vede.
         services.AddScoped<IProcedureReferenceResolver, ProcedureReferenceResolver>();
+        services.AddScoped<IFrequenzeDegliEnti, FrequenzeDegliEnti>();
+        // La porta sola dei riferimenti: procedure e dati insieme (carta 2026-09-20-riferimenti-ai-dati).
+        services.AddScoped<IRiferimentiResolver, RiferimentiResolver>();
         // Il timbro di «Validità e revisione»: ciclo, data e chi ha pubblicato. Vale per tutte e quattro le
         // famiglie, quindi sta con i servizi documentali e non dentro una di loro.
         services.AddScoped<IDocumentValidityService, DocumentValidityService>();

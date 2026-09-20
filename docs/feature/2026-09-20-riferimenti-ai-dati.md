@@ -1,6 +1,8 @@
-# Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)
+﻿# Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)
 
-> Stato: 🟡 **carta** — decisa la forma, si comincia dalle frequenze. Gemella di
+> Stato: 🟡 **6a e 6b fatte** — il meccanismo c'è, `[[FREQ …]]` e `[[ATC …]]` escono col valore di oggi
+> (verificati a schermo su LIBD: `118.300` e «Bari Tower»). Restano piste e punti (6c) e il selettore (6d).
+> Gemella di
 > [riferimenti alle procedure](2026-09-18-riferimenti-sid-nel-testo.md) (§A73) e
 > [STAR](2026-09-20-star-e-altri-riferimenti.md) (§A80), da cui eredita il meccanismo.
 
@@ -49,11 +51,32 @@ che ha tenuto il costo delle SID a zero su ogni pagina che non le cita.
 
 ## 4. Le slice
 
-1. **6a — il meccanismo e le frequenze**: `RiferimentiDato`, la risoluzione, la protezione dalla traduzione,
-   `[[FREQ …]]` reso in pagina e nell'editor, l'avviso per quel che non si trova più.
-2. **6b — i nominativi**: `[[ATC …]]`, stessa sorgente e stessa query.
+1. ✅ **6a — il meccanismo e le frequenze** e ✅ **6b — i nominativi** (insieme: stessa sorgente, stessa
+   query, e dividerli avrebbe voluto dire chiedere due volte la stessa cosa).
+   🔴 **Una porta sola per la sostituzione**: `Riferimenti.Sostituisci`. I riferimenti si risolvono in cinque
+   punti — disegno dei blocchi, anteprima dell'editor, resa Markdown, indice della ricerca, release in vigore —
+   e un meccanismo nuovo che entrasse per conto suo dovrebbe ricordarsi di entrare in tutti e cinque. In
+   cascata passa `RiferimentiRisolti` (procedure + dati), non più i soli nomi.
+   ⚠️ **Il cambio del tipo in cascata è una regressione silenziosa**: il compilatore non dice niente, il
+   parametro resta `null` e i riferimenti escono col ripiego. Se ne sono accorti i test di resa, che erano
+   scritti apposta.
+   ⚠️ `IFrequenzeDegliEnti`: una porta **ristretta** sullo stesso dato di `ListLinkableFrequenciesAsync` — chi
+   risolve i riferimenti non ha niente a che fare con le trenta scritture dell'anagrafica, e una prova non deve
+   implementarne trenta per arrivare a una.
+   ⚠️ **Piste e punti non entrano nell'avviso** finché non hanno la loro sorgente: la loro chiave è il valore,
+   esce sempre giusta, e segnalarla sarebbe un falso allarme a ogni riga.
 3. **6c — piste e punti**: `[[RWY …]]` e `[[FIX …]]`, che escono com'è scritto e valgono per l'avviso.
 4. **6d — il selettore**: un tasto che li inserisce senza scriverli a mano, come per le procedure.
+
+## 4-bis. Verifica
+
+- **A schermo** (`dato-verifica.js`, copia del `vipi.db`, LIBD): scritto `[[FREQ LIBD_TWR]] … [[ATC LIBD_TWR]]`
+  in un campo di prosa, dopo il ricarico l'anteprima dell'editor **e** il documento dicono «Su **118.300** con
+  **Bari Tower**», nessun gettone grezzo, zero errori in console.
+- 10 test in `RiferimentiDatoTests` (la forma del gettone, il valore di oggi, il ripiego alla chiave, la chiave
+  di due pezzi, l'avviso che elenca solo quel che non si trova, piste e punti fuori dall'avviso, le due
+  famiglie nello stesso testo, il catalogo chiesto **una volta sola**, la via breve) e 1 in
+  `TraduzioneRiferimentiTests` (un dato citato non arriva al motore).
 
 ## 5. Che cosa NON si fa
 

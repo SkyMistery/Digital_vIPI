@@ -52,7 +52,7 @@ public sealed record AirportMemberDocument(
     LvpValutazione? Lvp = null,
     /// <summary>I nomi di oggi delle SID citate nel testo (§A73): la pagina li passa ai blocchi a cascata.
     /// Null = nessun riferimento, o nessuno ha risolto: esce l'ultimo nome visto.</summary>
-    NomiProcedura? NomiProcedura = null)
+    RiferimentiRisolti? Risolti = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -93,13 +93,13 @@ public sealed class AirportMemberLoader
     private readonly IWeatherProvider _weather;
     private readonly IStationResolver _stations;
     private readonly ReadingLanguageContext _lingua;
-    private readonly IProcedureReferenceResolver _sidRefs;
+    private readonly IRiferimentiResolver _sidRefs;
 
     public AirportMemberLoader(IVipiViewService viewService, IAirportEditingService profile,
                                IAirportViewDerivationService airportView, IReleaseService releases,
                                IEditAuthorizationService authz, DocumentTranslator translator,
                                IWeatherProvider weather, IStationResolver stations,
-                               ReadingLanguageContext lingua, IProcedureReferenceResolver sidRefs)
+                               ReadingLanguageContext lingua, IRiferimentiResolver sidRefs)
     {
         _sidRefs = sidRefs;
         _viewService = viewService;

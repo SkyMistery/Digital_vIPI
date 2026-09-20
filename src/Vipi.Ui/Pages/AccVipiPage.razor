@@ -10,7 +10,7 @@
 @inject IStringLocalizer<SharedResource> L
 @inject StringheDelSito Sito
 @inject Vipi.Application.Translation.AccVipiTranslator Translator
-@inject IProcedureReferenceResolver SidRefs
+@inject IRiferimentiResolver SidRefs
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
 @using System.Globalization
@@ -166,7 +166,7 @@ else
     private IReadOnlyList<AccTreeRoot> _roots = Array.Empty<AccTreeRoot>();
     private string? _root;
     private PreviewMode _mode;
-    private NomiProcedura? _nomiSid;
+    private RiferimentiRisolti? _nomiSid;
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
 

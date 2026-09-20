@@ -1,4 +1,4 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
@@ -38,6 +38,7 @@ public class SezioniReseDallaPaginaTests : TestContext
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => new EditingMuto());
         Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
     }
 
     private static EditableSection Sez(int id, string titolo, int depth, string? chiave = null,

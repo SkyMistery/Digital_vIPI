@@ -151,6 +151,7 @@ public class IntroDiPaginaTests : TestContext
         Services.AddScoped(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(memoria ?? new MemoriaFinta()));
         Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
     }
 
     /// <summary>⚠️ Vuota, per il pubblico non si rende NIENTE — nemmeno un contenitore. Un riquadro vuoto in
@@ -231,6 +232,7 @@ public class IntroDiPaginaTests : TestContext
         Services.AddScoped<IPageIntroStore>(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(new MemoriaFinta()));
         Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
         return deposito;
     }
 

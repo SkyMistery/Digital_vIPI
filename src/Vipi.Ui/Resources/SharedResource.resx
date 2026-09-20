@@ -3513,6 +3513,8 @@
   <data name="Sid_Conv_None" xml:space="preserve"><value>Nessuna SID di {0} scritta a mano in questo documento.</value></data>
   <data name="Sid_Conv_Manual" xml:space="preserve"><value>Da sistemare a mano (più SID in una forma sola: cita le SID una per una col tasto «SID»):</value></data>
   <data name="Sid_Check_Title" xml:space="preserve"><value>SID citate da ricontrollare</value></data>
+  <data name="Dato_Check_Missing" xml:space="preserve"><value>non si trova più nell'archivio: nel documento esce la chiave così com'è.</value></data>
+  <data name="Dato_Check_Title" xml:space="preserve"><value>Dati citati da ricontrollare</value></data>
   <data name="Sid_Check_Missing" xml:space="preserve"><value>nessuna SID con questo nome nella tabella di oggi: nel documento esce «{0}», l'ultimo nome visto. Cita la SID nuova o togli il riferimento.</value></data>
   <data name="Sid_Check_Ambiguous" xml:space="preserve"><value>nella tabella ci sono più revisioni vive ({0}): esce «{1}» — quella citata, se c'è ancora, altrimenti la più alta. Controlla che sia quella giusta.</value></data>
   <data name="Lvp_Lead" xml:space="preserve"><value>Le soglie con cui questo scalo entra e esce dalle procedure di bassa visibilità. Il confronto usa l'RVR del bollettino, o la visibilità quando l'RVR non c'è.</value></data>
