@@ -104,10 +104,9 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
         // Le procedure dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una
         // sesta volta. I due versi si chiedono separati, come sono separate le loro sezioni.
         return new AirportDerived(rules, transition, freqs, runways,
-            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ProcedureKind.Sid, atCycle, ct), lvp)
-        {
-            Stars = frozen.Get<AirportSidView>("stars") ?? await _sids.DeriveAsync(icao, ProcedureKind.Star, atCycle, ct),
-        };
+            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ProcedureKind.Sid, atCycle, ct),
+            frozen.Get<AirportSidView>("stars") ?? await _sids.DeriveAsync(icao, ProcedureKind.Star, atCycle, ct),
+            lvp);
     }
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();

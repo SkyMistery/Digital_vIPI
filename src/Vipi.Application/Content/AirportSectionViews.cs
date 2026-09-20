@@ -148,17 +148,20 @@ public sealed record AirportRunwaysView(IReadOnlyList<AirportRunwayRowView> Rows
 /// <see cref="SectionCatalog.IsAlwaysLive"/>, non si congela e la pagina la chiede al provider meteo — un METAR
 /// dentro uno snapshot di release sarebbe meteo scaduto spacciato per attuale.
 /// </summary>
+/// <param name="Sids">Le partenze.</param>
+/// <param name="Stars">
+/// Gli ARRIVI. ⚠️ <b>Posizionale come gli altri, e non una proprietà <c>init</c> con un default</b>: con un
+/// default, la prossima derivazione che nascesse senza riempirlo compilerebbe in silenzio e la sezione STAR
+/// uscirebbe VUOTA in pagina — nessun errore, nessun test rosso. Posizionale, chi costruisce la vista deve
+/// dire da dove vengono gli arrivi, oggi che il punto di costruzione è uno solo e domani che saranno due.
+/// </param>
 public sealed record AirportDerived(
     AirportRulesView Rules, AirportTransitionView Transition, AirportFreqView Frequencies,
-    AirportRunwaysView Runways, AirportSidView Sids, AirportLvpView Lvp)
+    AirportRunwaysView Runways, AirportSidView Sids, AirportSidView Stars, AirportLvpView Lvp)
 {
-    /// <summary>Gli ARRIVI. In coda e con un default, perché una vista che gli arrivi non li guarda —
-    /// l'elenco degli aeroporti, una prova — non deve dire niente in più di prima.</summary>
-    public AirportSidView Stars { get; init; } = AirportSidView.Empty;
-
     public static AirportDerived Empty { get; } = new(
         AirportRulesView.Empty, AirportTransitionView.Empty, AirportFreqView.Empty,
-        AirportRunwaysView.Empty, AirportSidView.Empty, AirportLvpView.Empty);
+        AirportRunwaysView.Empty, AirportSidView.Empty, AirportSidView.Empty, AirportLvpView.Empty);
 }
 
 /// <summary>

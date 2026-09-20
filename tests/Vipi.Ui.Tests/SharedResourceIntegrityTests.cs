@@ -119,6 +119,51 @@ public sealed class SharedResourceIntegrityTests
     }
 
     /// <summary>
+    /// L'altra famiglia composta a runtime, e non nasce da un enum: le chiavi del VERSO nell'editor delle
+    /// procedure. <c>AirportSidsEditor</c> è montato due volte — partenze e arrivi — e chiede le sue frasi
+    /// con <c>L[K("Ape_SidQualcosa")]</c>, dove <c>K</c> scambia <c>_Sid</c> con <c>_Star</c> sugli arrivi.
+    ///
+    /// <para>🔴 <b>Erano fuori da TUTTE le guardie.</b> <see cref="Ogni_chiave_usata_nel_codice_esiste_nelle_risorse"/>
+    /// cerca il letterale <c>L["…"]</c> e <c>L[K("…")]</c> non lo è; <see cref="Ogni_valore_di_enum_reso_a_schermo_ha_la_sua_chiave"/>
+    /// parte da un enum e qui di enum non ce n'è. Restavano scoperte 17 chiavi per verso: una gemella
+    /// dimenticata non lancia niente — stampa il NOME DELLA CHIAVE in testa alla tabella.</para>
+    ///
+    /// <para>⚠️ Si pretende anche di averne TROVATE: un controllo che non trova niente non prova niente, e
+    /// una regex che smettesse di combaciare (il giorno che <c>K</c> si chiama altrimenti) passerebbe verde
+    /// per sempre.</para>
+    /// </summary>
+    [Fact]
+    public void Ogni_chiave_composta_col_verso_esiste_nelle_due_forme()
+    {
+        var it = Chiavi(PercorsoIt).ToHashSet(StringComparer.Ordinal);
+        var en = Chiavi(PercorsoEn).ToHashSet(StringComparer.Ordinal);
+        var radice = RadiceDelRepo();
+
+        var usate = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        foreach (var file in Directory
+                     .EnumerateFiles(Path.Combine(radice, "src", "Vipi.Ui"), "*.razor", SearchOption.AllDirectories)
+                     .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")))
+            foreach (Match m in Regex.Matches(File.ReadAllText(file), @"\bL\[K\(""([A-Za-z0-9_]+)""\)"))
+                usate.TryAdd(m.Groups[1].Value, Path.GetRelativePath(radice, file));
+
+        Assert.True(usate.Count > 0, "nessuna chiave composta con K(\"…\") trovata: la regex non combacia più.");
+
+        var mancanti = new List<string>();
+        foreach (var (chiave, dove) in usate)
+            foreach (var forma in new[] { chiave, chiave.Replace("_Sid", "_Star", StringComparison.Ordinal) })
+            {
+                if (!it.Contains(forma)) mancanti.Add($"{forma}  (it, da {dove})");
+                if (!en.Contains(forma)) mancanti.Add($"{forma}  (en, da {dove})");
+            }
+
+        foreach (var m in mancanti) _out.WriteLine(m);
+
+        Assert.True(mancanti.Count == 0,
+            $"{mancanti.Count} forme di chiavi composte col verso assenti dalle risorse: sulla tabella del " +
+            "verso che le chiede comparirebbe il nome della chiave.\n  " + string.Join("\n  ", mancanti));
+    }
+
+    /// <summary>
     /// Le famiglie di chiavi che si compongono a runtime da un <b>enum</b>: prefisso e vocabolario che lo
     /// riempie. È dichiarativa apposta — se un domani si aggiunge un enum reso con
     /// <c>L["Prefisso_" + valore]</c>, si aggiunge una riga qui.
