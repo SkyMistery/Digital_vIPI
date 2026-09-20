@@ -5,6 +5,8 @@
 > non a ricostruire il contesto.
 >
 > Nulla di tutto questo è ancora **consegnato**: sta in `main`, e la consegna ha un avvertimento suo (§7).
+> Che cosa serve sapere per preparare il pacchetto sta in `docs/lavori-aperti.md`, nel blocco **«PROSSIMO»** in
+> testa — compreso il file che non si può dimenticare.
 >
 > ✅ **La review è stata fatta** il 20 settembre 2026, su tutti e dieci i commit, leggendo il codice come se
 > l'avesse scritto qualcun altro. **Nove difetti**, nessuno dei quali fermava un test: stanno in §8, con dove
@@ -120,7 +122,9 @@ E2E 401, Domain 152, Hosting 68, Assets 61, AuroraBridge 80, AuroraProfiles 65.
 
 Nove difetti, in ordine di gravità. **Nessuno faceva cadere un test**, e due su nove non avrebbero fatto
 cadere nemmeno la build di produzione: si sarebbero visti in faccia solo al deploy o leggendo una pagina.
-Tutti corretti in cinque commit sul ramo `review-a80-difetti`, ognuno con la sua prova.
+Tutti corretti in cinque commit (`7dddd41a` → `f5b456f8`, più `0817fbd4` per i documenti), **fusi in `main`**
+il 20 settembre, ognuno con la sua prova. CI verde, compreso il job che applica le migrazioni su un MariaDB
+vero e ne verifica lo schema.
 
 | # | Dove | Che cosa | Come si sarebbe visto |
 |---|---|---|---|

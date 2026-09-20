@@ -2,11 +2,53 @@
 
 ## Dove siamo — 20 settembre 2026
 
-### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — ramo `review-a80-difetti`
+### ▶ PROSSIMO — il pacchetto di A80+A81: che cosa serve sapere prima di cominciare
+
+Tutto quel che segue è in **`main`** (ultimo commit `0817fbd4`) e **non è ancora consegnato**. Online c'è
+**1.34.3** (`f95d923`). Si parte dal runbook [`guide/preparare-un-pacchetto.md`](guide/preparare-un-pacchetto.md),
+che non si salta; qui c'è solo quel che questo pacchetto ha di suo.
+
+🔴 **È la prima consegna con una MIGRAZIONE dal 1.27.0.** Tre conseguenze, e nessuna è formale:
+
+1. **Non è una PATCH**: serve un numero nuovo. ⚠️ **Decisione aperta**: `1.35.0` era **prenotato per il
+   passaggio a net10** (§A67 e il commento in `Directory.Build.props`). O il pacchetto prende 1.35.0 e net10
+   slitta ancora, o si sceglie un altro numero: **lo decide il committente**, non chi prepara.
+2. **Copia di sicurezza del database PRIMA del carico**, e la riga della migrazione nel foglio del pacchetto,
+   come nel `LEGGIMI-PACCHETTO-1.27.0`.
+3. 🔴 **`Vipi.Infrastructure.MySqlMigrations.dll` DEVE stare nel pacchetto.** È la lezione della 1.19.0: senza
+   quel file la colonna non nasce, il pacchetto **sembra funzionare** e la funzione resta spenta finché
+   qualcuno non prova a usarla — nessun segnale. La prova da fuori è la riga **`Schema 0`** in
+   `admin/diagnostics`: se è zero, modello e schema fisico coincidono, cioè la colonna c'è.
+
+**I progetti toccati da 1.34.3 a oggi** (`git diff --name-only f95d9238..HEAD -- src`): `Vipi.Application`,
+`Vipi.Infrastructure`, `Vipi.Infrastructure.MySqlMigrations`, `Vipi.Domain`, `Vipi.Ui` — e dentro `Vipi.Ui`
+anche **le frasi (IT+EN)** e **`vipi-theme.css`**, quindi `en/Vipi.Ui.resources.dll` e `wwwroot` viaggiano
+(con `staticwebassets.endpoints.json`, che va **insieme** a `wwwroot`). `Vipi.Host` non ha sorgenti cambiate
+ma porta il **timbro**, che nasce dal commit. ⚠️ L'elenco definitivo si decide col diff e si **verifica con le
+impronte** contro il pacchetto precedente: il diff dice quali progetti guardare, lo sha256 quali file sono
+cambiati davvero.
+
+⚠️ **Il contenuto da scrivere nel foglio**: §A80 (STAR dal sectorfile: parser, archivio `AirportProcedures`
+con `Kind`, import, editor, sezione «STAR», `[[STAR …]]`) + i riferimenti ai dati (`[[FREQ]]`, `[[ATC]]`,
+`[[RWY]]`, `[[FIX]]` col selettore a sei chip) + §A81 (le nove correzioni della review).
+
+**Dopo il carico**, oltre ai controlli soliti (timbro, Ricerca, `Schema 0`):
+- la sezione «STAR» compare nei documenti **pubblicati** solo dalla **prossima release** di ciascuno — è lo
+  snapshot che fa il suo mestiere, non un difetto;
+- le STAR importate restano in attesa del **ciclo d'entrata** dichiarato dalla sorgente (LIBD: `2610`).
+
+▶ **Prima del pacchetto**, se si vuole chiudere il gate della verifica live: le due chip nuove del selettore
+(RWY e FIX) hanno i test ma **non** la prova a schermo. Vedi §A81.
+
+### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — in `main`, NON in pacchetto
 
 Riletti i dieci commit di A80 come se li avesse scritti qualcun altro. **Nessuno dei nove difetti faceva
 cadere un test**, e due non avrebbero fatto cadere nemmeno la build. L'elenco intero, con «che cosa NON è
 stato trovato», sta nel [foglio di review](review/2026-09-20-a80-star-e-riferimenti.md) §8.
+
+Sei commit (`7dddd41a` → `0817fbd4`), fusi in `main` il 20 settembre; CI verde, **compreso il job che applica
+le migrazioni su un MariaDB vero e ne verifica lo schema** — cioè il difetto §8.1 è stato corretto sotto
+quella rete, non solo sotto i test.
 
 I due che contano davvero, tutti e due sul percorso **Postgres** (Render+Neon), dove lo schema non lo allineano
 le migrazioni ma `PostgresSchemaReconciler`:
@@ -31,8 +73,10 @@ e la conversione dei testi già scritti che non guardava il verso.
 
 - **Suite**: Application 2733, Ui 1644, Infrastructure 1578/1569, E2E 401 — tutte verdi su entrambi i TFM;
   `dotnet build Vipi.slnx -c Release --no-incremental` verde.
-- ▶ **Resta**: la verifica **dal vivo** delle due chip nuove su una copia del `vipi.db`, con traccia. E la
-  consegna di A80 resta quella di sotto — è ancora la prima con una migrazione dal 1.27.0.
+- ▶ **Resta**: la verifica **dal vivo** delle due chip nuove (RWY e FIX) su una copia del `vipi.db`, con
+  traccia. I test le coprono, ma il gate del progetto dice che le regressioni Blazor sono **mute coi test
+  verdi**, e quel gate non si salta per due chip.
+- ▶ La consegna è nel blocco «PROSSIMO» qui sopra.
 
 ### ✅ A80 — STAR dal sectorfile, e i riferimenti ai dati (20 settembre 2026) — in `main`, NON in pacchetto
 
