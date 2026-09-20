@@ -360,7 +360,7 @@ public class AirportFrozenAndViewTests
         /// <summary>A quale ciclo e' stata chiesta l'ultima derivazione (null = «adesso»).</summary>
         public string? CicloChiesto { get; private set; }
 
-        public Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default)
+        public Task<AirportSidView> DeriveAsync(string icao, Vipi.Domain.Entities.ProcedureKind kind = Vipi.Domain.Entities.ProcedureKind.Sid, string? atCycle = null, CancellationToken ct = default)
         {
             CicloChiesto = atCycle;
             return Task.FromResult(Sid("ALAXI"));

@@ -303,8 +303,9 @@ public class ParcheggiNeiDatiGeneraliTests : IAsyncLifetime
         // non solo in quelli nuovi. Senza, la funzione sarebbe accesa solo per i vSOP futuri.
         // 🔴 Idem per «runwayrules» (11 settembre 2026, committente), fra le piste e le SID: stessa prova,
         // stesso significato — un vSOP già scritto la riceve all'avvio, nel posto giusto.
+        // 🔴 Idem per «stars» (20 settembre 2026, §A80), subito dopo le SID: stessa prova, stesso significato.
         Assert.Equal(
-            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
+            new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "stars", "transition",
                     "callsigns", "airportlayout", "parkings" },
             Figli(ver, "generaldata").Select(x => x.SectionKey));
         Assert.Equal(new[] { "enginestart", "taxiing", "arming" }, Figli(ver, "groundprocedures").Select(x => x.SectionKey));

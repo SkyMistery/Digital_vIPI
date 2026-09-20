@@ -1,5 +1,6 @@
 ﻿using Vipi.Application.Abstractions;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Content;
 
@@ -100,9 +101,13 @@ public sealed class AirportViewDerivationService : IAirportViewDerivationService
             await _sectors.ListByAirportAsync(icao, ct), data?.Links);
         lvp ??= AirportSectionProjection.Lvp(data);
 
-        // Le SID dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una sesta volta.
+        // Le procedure dallo STESSO lotto: chiamare qui il metodo pubblico rileggerebbe lo snapshot una
+        // sesta volta. I due versi si chiedono separati, come sono separate le loro sezioni.
         return new AirportDerived(rules, transition, freqs, runways,
-            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, atCycle, ct), lvp);
+            frozen.Get<AirportSidView>("sids") ?? await _sids.DeriveAsync(icao, ProcedureKind.Sid, atCycle, ct), lvp)
+        {
+            Stars = frozen.Get<AirportSidView>("stars") ?? await _sids.DeriveAsync(icao, ProcedureKind.Star, atCycle, ct),
+        };
     }
 
     private static string Norm(string? icao) => (icao ?? "").Trim().ToUpperInvariant();

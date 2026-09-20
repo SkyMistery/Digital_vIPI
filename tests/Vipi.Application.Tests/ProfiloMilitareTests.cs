@@ -34,7 +34,8 @@ public class ProfiloMilitareTests
         // ⚠️ QUARANTAQUATTRO dal 10 settembre 2026: le SID (committente).
         // ⚠️ QUARANTACINQUE dall'11 settembre 2026: le regole piste (committente).
         // ⚠️ QUARANTASEI dal 12 settembre 2026: i minimi LVP (committente), subito dopo le regole piste.
-        Assert.Equal(46, Tutte(Mil).Count());
+        // ⚠️ QUARANTASETTE dal 20 settembre 2026: le STAR (§A80), subito dopo le SID.
+        Assert.Equal(47, Tutte(Mil).Count());
     }
 
     // ---- Le regole piste (carta 2026-09-11-regole-piste-nel-vsop-militare.md) --------------------------
@@ -87,8 +88,8 @@ public class ProfiloMilitareTests
     {
         var generali = Mil.Single(d => d.Key == "generaldata").Children!.OrderBy(d => d.Order).Select(d => d.Key).ToList();
 
-        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "transition",
-                             "callsigns", SectionKeys.AirportLayout, "parkings" }, generali);
+        Assert.Equal(new[] { "navaids", "frequencies", "diversion", "runways", "runwayrules", "sids", "stars",
+                             "transition", "callsigns", SectionKeys.AirportLayout, "parkings" }, generali);
         // E non è figlia di «Piste»: là sotto c'è solo la sotto-sezione delle soglie.
         var piste = Mil.Single(d => d.Key == "generaldata").Children!.Single(d => d.Key == "runways");
         Assert.Equal(new[] { SectionKeys.RunwayThresholds }, piste.Children!.Select(d => d.Key));
@@ -125,7 +126,7 @@ public class ProfiloMilitareTests
         // ⚠️ È la ragione per cui DocumentBirth ha imparato a ricorrere. Senza figli, questo profilo
         // darebbe ventiquattro sezioni di primo livello invece di sei con dentro le loro.
         Assert.Equal(8, Mil.Count);   // sette contenitori più «lvp», che figlie non ne ha
-        Assert.Equal(10, Mil.Single(d => d.Key == "generaldata").Children!.Count);
+        Assert.Equal(11, Mil.Single(d => d.Key == "generaldata").Children!.Count);
         Assert.Equal(5, Mil.Single(d => d.Key == "charts").Children!.Count);
         Assert.Equal(3, Mil.Single(d => d.Key == "groundprocedures").Children!.Count);
         Assert.Equal(9, Mil.Single(d => d.Key == "flightprocedures").Children!.Count);
@@ -286,7 +287,7 @@ public class ProfiloMilitareTests
 
         var chiavi = Tutte(SectionCatalog.For(SectionProfile.AirportMil)).Select(d => d.Key).ToList();
 
-        Assert.Equal(46, chiavi.Count);
+        Assert.Equal(47, chiavi.Count);
         Assert.All(chiavi, k => Assert.True(SectionCatalog.IsFixed(SectionProfile.AirportMil, k), k));
     }
 

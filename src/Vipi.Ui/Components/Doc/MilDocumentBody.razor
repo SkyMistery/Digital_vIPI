@@ -1,4 +1,4 @@
-@* Il CORPO di un vSOP militare d'aeroporto: le sezioni, con il corpo derivato che questa famiglia disegna
+﻿@* Il CORPO di un vSOP militare d'aeroporto: le sezioni, con il corpo derivato che questa famiglia disegna
    per chiave.
 
    Sta fuori da `MilDocumentPage` perché lo stesso documento va reso in due posti — la sua pagina, e la
@@ -122,6 +122,12 @@
             case "sids":
                 <AirportSids View="Doc.Derivate.Sids" InitialRunway="@Doc.InUso.SidRwy" Lingua="@Doc.Bloccata"
                              DepIdents="Doc.InUso.Dep.ToArray()"
+                             TransitionAltitudeFt="Doc.Derivate.Transition.TransitionAltitudeFt" />;
+                break;
+            @* Gli ARRIVI: stesso componente e stesso verso del vSOP civile, col seme preso dalle piste in ARRIVO. *@
+            case "stars":
+                <AirportSids Kind="ProcedureKind.Star" View="Doc.Derivate.Stars" Lingua="@Doc.Bloccata"
+                             InitialRunway="@Doc.InUso.Arr.FirstOrDefault()" ArrIdents="Doc.InUso.Arr.ToArray()"
                              TransitionAltitudeFt="Doc.Derivate.Transition.TransitionAltitudeFt" />;
                 break;
             @* Le aree di lavoro: è la mappa dell'AoR con le chip, cioè esattamente ciò che il PDF disegna a

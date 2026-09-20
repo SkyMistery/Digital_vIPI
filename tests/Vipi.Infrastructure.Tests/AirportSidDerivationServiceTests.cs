@@ -41,6 +41,45 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     private static ImportedProcedure Imp(string name, string fix, string key) =>
         new(Runway: "07", Fix: fix, Name: name, Transition: null, Type: "RNAV", StableKey: key, NeedsFixReview: false);
 
+    // --- I due versi: stessa derivazione, tabelle separate ---------------------------------------------
+
+    [Fact]
+    public async Task La_Derivazione_Da_Il_Verso_Che_Le_Si_Chiede()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2001");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
+            new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A|") }, "2001");
+
+        var partenze = await _sut.DeriveAsync("LIRF", ProcedureKind.Sid);
+        var arrivi = await _sut.DeriveAsync("LIRF", ProcedureKind.Star);
+
+        Assert.Equal("ALAX7G", Assert.Single(partenze.Rows).Name);
+        Assert.Equal("GILI3A", Assert.Single(arrivi.Rows).Name);
+    }
+
+    [Fact]
+    public async Task Gli_Arrivi_Nascosti_E_In_Attesa_Si_Comportano_Come_Le_Partenze()
+    {
+        var cicli = new AiracService();
+        var oggi = cicli.GetCycle(DateTime.UtcNow);
+        var prossimo = cicli.NextCycles(DateTime.UtcNow, 2)[1].Cycle;
+
+        // Una STAR che entra al ciclo PROSSIMO: oggi non si vede, al suo ciclo sì.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
+            new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A|") }, prossimo);
+
+        Assert.Empty((await _sut.DeriveAsync("LIRF", ProcedureKind.Star, oggi)).Rows);
+        var riga = Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Star, prossimo)).Rows);
+        Assert.Equal("GILIO", riga.Fix);
+
+        // Nascosta dallo staff: fuori a qualunque ciclo, come una SID.
+        var sezione = await _db.AirportProcedures.SingleAsync(x => x.Kind == ProcedureKind.Star);
+        sezione.IsHidden = true;
+        await _db.SaveChangesAsync();
+        Assert.Empty((await _sut.DeriveAsync("LIRF", ProcedureKind.Star, prossimo)).Rows);
+    }
+
     [Fact]
     public async Task Manual_Public_Imported_Deferred_Then_Forced()
     {
@@ -118,8 +157,8 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
         Assert.Empty((await _sut.DeriveAsync("LIRF")).Rows);                       // «adesso»: non ancora
-        Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // idem, chiedendolo per nome
-        Assert.Equal("ALAXI", Assert.Single((await _sut.DeriveAsync("LIRF", prossimo)).Rows).Fix);
+        Assert.Empty((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, oggi)).Rows);                 // idem, chiedendolo per nome
+        Assert.Equal("ALAXI", Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, prossimo)).Rows).Fix);
     }
 
     /// <summary>
@@ -137,8 +176,8 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
 
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
-        Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // al ciclo di oggi ancora no
-        Assert.Single((await _sut.DeriveAsync("LIRF", prossimo)).Rows);            // al SUO ciclo, sì
-        Assert.Single((await _sut.DeriveAsync("LIRF", cicli[2].Cycle)).Rows);      // e ci resta
+        Assert.Empty((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, oggi)).Rows);                 // al ciclo di oggi ancora no
+        Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, prossimo)).Rows);            // al SUO ciclo, sì
+        Assert.Single((await _sut.DeriveAsync("LIRF", ProcedureKind.Sid, cicli[2].Cycle)).Rows);      // e ci resta
     }
 }

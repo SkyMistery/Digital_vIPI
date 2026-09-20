@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Content;
 
@@ -97,7 +98,8 @@ public sealed class AirportFrozenSectionProvider : IFrozenSectionProvider
                 "runways" => AirportSectionProjection.Runways(data),
                 "frequencies" => AirportSectionProjection.Frequencies(await _sectors.ListByAirportAsync(key, ct), data?.Links),
                 // ⚠️ Al ciclo della RELEASE, non a quello di oggi (vedi _cicloDiRilascio).
-                "sids" => await _sids.DeriveAsync(key, _cicloDiRilascio?.Cycle, ct),
+                "sids" => await _sids.DeriveAsync(key, ProcedureKind.Sid, _cicloDiRilascio?.Cycle, ct),
+                "stars" => await _sids.DeriveAsync(key, ProcedureKind.Star, _cicloDiRilascio?.Cycle, ct),
                 // ⚠️ L'unica sezione congelata i cui valori NON stanno nel documento né nel profilo dello
                 // scalo: il documento dice quali radioassistenze cita, l'anagrafica dice quanto valgono. Senza
                 // questa cattura una frequenza corretta oggi cambierebbe da sola un SOP pubblicato al ciclo

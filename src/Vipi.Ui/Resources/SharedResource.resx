@@ -397,7 +397,9 @@
   <data name="Airport_RwyArrTip" xml:space="preserve"><value>Consigliata per gli arrivi</value></data>
   <data name="Airport_RwyInUse" xml:space="preserve"><value>Pista in uso</value></data>
   <data name="Airport_NoSidsTitle" xml:space="preserve"><value>SID non ancora inserite</value></data>
+  <data name="Airport_NoStarsTitle" xml:space="preserve"><value>STAR non ancora inserite</value></data>
   <data name="Airport_NoSidsBody" xml:space="preserve"><value>Aggiungile dall'editor aeroporto o importale dal sectorfile.</value></data>
+  <data name="Airport_NoStarsBody" xml:space="preserve"><value>Aggiungile dall'editor aeroporto o importale dal sectorfile.</value></data>
   <data name="Airport_NoFrequencies" xml:space="preserve"><value>Nessuna frequenza per questo aeroporto.</value></data>
   <data name="Airport_NoRunways" xml:space="preserve"><value>Nessuna pista inserita.</value></data>
   <data name="Airport_RulesLead" xml:space="preserve"><value>Si applica la prima regola le cui condizioni sono soddisfatte; se nessuna si applica, vale la pista col miglior headwind.</value></data>

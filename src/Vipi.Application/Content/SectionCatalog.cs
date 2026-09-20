@@ -24,6 +24,7 @@ public static class SectionCatalog
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
             ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
+            ["stars"] = SectionKind.Derived,  // aeroporto (§A80): gli ARRIVI, stessa tabella e stessa derivazione
             // Aeroporto (carta 2026-08-26): il contenuto sta nelle tabelle del profilo e si deriva a view-time,
             // esattamente come «aor»/«frequencies» sull'APP. Prima erano tabelle Markdown cotte nei blocchi.
             ["weather"] = SectionKind.Derived,        // METAR/TAF live dal NOAA
@@ -308,14 +309,20 @@ public static class SectionCatalog
                     H("runwayrules", "Regole piste", 1, en: "Runway selection rules"),
                 }),
                 H("sids", "SID", 5),
-                D("operationaltechnique", "Procedure generali", 6, en: "General procedures"),
+                // ✚ 20 settembre 2026 (§A80): gli ARRIVI. Sezione sua e non una seconda tabella dentro le SID —
+                // chi legge un vSOP cerca gli arrivi nell'indice, e li cerca sotto il loro nome. Il dato sta
+                // nell'ANAGRAFICA dello scalo (`AirportProcedures`, colonna `Kind`), come le partenze: qui c'è
+                // solo la porta. ⚠️ Ai documenti GIÀ SCRITTI la aggiunge la manutenzione d'avvio, che rinumera
+                // il gruppo: il catalogo decide la struttura alla nascita, non dopo.
+                H("stars", "STAR", 6),
+                D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
                 // ✚ Non c'era (12 settembre 2026, committente): i minimi di bassa visibilita'. Sta SUBITO
                 // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
                 // vengono dopo la prosa che descrive come si opera. Come le regole piste, il dato sta
                 // nell'ANAGRAFICA dello scalo: qui c'è solo la porta.
-                H("lvp", "LVP", 7),
-            }.Concat(CarteAeroportuali(8)).Append(
-                HB("validity", "Validità e revisione", 9, en: "Validity and revision")).ToArray(),
+                H("lvp", "LVP", 8),
+            }.Concat(CarteAeroportuali(9)).Append(
+                HB("validity", "Validità e revisione", 10, en: "Validity and revision")).ToArray(),
 
             // --- vSOP MILITARE d'aeroporto (carta 2026-08-27) ------------------------------------------
             //
@@ -371,11 +378,15 @@ public static class SectionCatalog
                     // ⚠️ `H` e non `HB`: derivata pura, senza blocchi. Le code per campo -- il «Combat
                     // departure» di Gioia -- restano sezioni LIBERE, come dice la nota in testa al profilo.
                     H("sids", "SID", 6),
+                    // ✚ 20 settembre 2026 (§A80): gli ARRIVI, gemelli delle partenze e dalla stessa tabella
+                    // dell'anagrafica (`AirportProcedures`, colonna `Kind`). Sezione sua per la stessa ragione
+                    // del profilo civile: nell'indice gli arrivi si cercano sotto il loro nome.
+                    H("stars", "STAR", 7),
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
-                    H("transition", "Quote di transizione", 7, en: "Transition altitude and levels"),
+                    H("transition", "Quote di transizione", 8, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la
                     // release lo fotografa già copiando i blocchi — non c'è nessuna derivazione da congelare.
-                    HB("callsigns", "Nominativi", 8, en: "Callsigns", aud: Piloti),
+                    HB("callsigns", "Nominativi", 9, en: "Callsigns", aud: Piloti),
                     // ⚠️ IN CODA AI DATI GENERALI dal 3 settembre 2026, e prima stava in testa alle Procedure
                     // di terra. Richiesta del committente: i parcheggi sono un DATO dello scalo — un piazzale
                     // e i suoi stalli — non una procedura che si esegue, e stanno accanto a piste,
@@ -385,11 +396,11 @@ public static class SectionCatalog
                     // motore di riordino sposta solo fra FRATELLI, apposta.
                     // NON e' la carta d'aerodromo, che sta in «Carte aeroportuali»: quella e' un allegato,
                     // questa e' la descrizione dello scalo che i SOP scrivono a parole.
-                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 9, en: "Airport layout"),
+                    D(SectionKeys.AirportLayout, "Planimetria dell'aeroporto", 10, en: "Airport layout"),
                     // ⚠️ I parcheggi CHIUDONO i dati generali, ed e' una decisione del 3 settembre 2026 che
                     // il SOD conferma: la sua planimetria viene prima. Un test lo pretende -- e ha gia'
                     // fermato questa modifica una volta, quando la planimetria era finita in coda.
-                    HB("parkings", "Parcheggi", 10, en: "Parking", aud: Piloti, children: new[]
+                    HB("parkings", "Parcheggi", 11, en: "Parking", aud: Piloti, children: new[]
                     {
                         D(SectionKeys.ApronFlow, "Flusso di rullaggio sui piazzali", 1,
                           en: "Aprons taxi flow", aud: Piloti),

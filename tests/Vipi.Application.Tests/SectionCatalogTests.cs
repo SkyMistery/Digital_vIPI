@@ -1,4 +1,4 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -103,7 +103,7 @@ public class SectionCatalogTests
         // ricorsivamente (`Find` → `Cerca`) — e la riga qui sotto lo pretende, o il difetto sarebbe silenzioso:
         // una sezione che smette di essere «della pagina» si mette a mostrare blocchi editoriali vuoti.
         Assert.Equal(
-            new[] { "frequencies", "lvp", "runways", "sids", "transition", "validity", "weather" },
+            new[] { "frequencies", "lvp", "runways", "sids", "stars", "transition", "validity", "weather" },
             Host(SectionProfile.Airport));
         Assert.True(SectionCatalog.IsHostRendered(SectionProfile.Airport, "runwayrules"));
     }
@@ -212,8 +212,10 @@ public class SectionCatalogTests
         // ⚠️ Dal 12 settembre 2026 (sera, committente) le RADICI sono queste: «runwayrules» è scesa dentro
         // «Piste» — una regola dice quale pista si usa, quindi sta con le piste — e «lvp» è andata subito
         // DOPO le «Procedure generali», sorella e non figlia.
+        // ⚠️ «stars» è arrivata il 20 settembre 2026 (§A80), SUBITO dopo le SID: gli arrivi si cercano
+        // nell'indice accanto alle partenze, non in fondo.
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", "operationaltechnique", "lvp", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
             keys);
 
         // E le regole piste stanno DENTRO le Piste, prime e sole.

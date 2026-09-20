@@ -21,7 +21,7 @@ public class SidReferenceResolverTests
         public Dictionary<string, AirportSidView> Tabelle { get; } = new();
         public List<string> Chieste { get; } = new();
 
-        public Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default)
+        public Task<AirportSidView> DeriveAsync(string icao, Vipi.Domain.Entities.ProcedureKind kind = Vipi.Domain.Entities.ProcedureKind.Sid, string? atCycle = null, CancellationToken ct = default)
         {
             Chieste.Add(icao);
             return Task.FromResult(Tabelle.GetValueOrDefault(icao) ?? AirportSidView.Empty);

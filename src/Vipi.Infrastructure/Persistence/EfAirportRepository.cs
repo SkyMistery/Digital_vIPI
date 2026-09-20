@@ -615,9 +615,13 @@ public sealed class EfAirportRepository : IAirportRepository
     /// governato dal gate d'import, non dalla release.
     /// </para>
     /// </summary>
-    /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le SID (scelta editoriale storica).</summary>
+    /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le procedure — SID e STAR —
+    /// per la stessa scelta editoriale storica. ⚠️ Gli arrivi nascono come le partenze: sono la stessa
+    /// tabella, e due nascite diverse vorrebbero dire due comportamenti da spiegare.</summary>
     private static bool BornLive(string key) =>
-        SectionCatalog.IsAlwaysLive(key) || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase);
+        SectionCatalog.IsAlwaysLive(key)
+        || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(key, "stars", StringComparison.OrdinalIgnoreCase);
 
             public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {

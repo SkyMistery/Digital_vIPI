@@ -1,4 +1,4 @@
-@* Il CORPO di una vIPI d'aeroporto: le sezioni nell'ordine del documento, con il corpo derivato che questa
+﻿@* Il CORPO di una vIPI d'aeroporto: le sezioni nell'ordine del documento, con il corpo derivato che questa
    famiglia disegna per chiave.
 
    Sta fuori da `AeroportoPage` perché lo stesso documento va reso in due posti — la sua pagina, e la pagina
@@ -106,6 +106,12 @@
             case "sids":
                 <AirportSids View="Doc.Derived.Sids" InitialRunway="@Doc.SidRwy" Lingua="@Doc.Bloccata"
                              DepIdents="Doc.DepIdents.ToArray()" TransitionAltitudeFt="Doc.Derived.Transition.TransitionAltitudeFt" />;
+                break;
+            @* Gli ARRIVI: stesso componente, verso diverso, e il seme è la pista in uso in ARRIVO. *@
+            case "stars":
+                <AirportSids Kind="ProcedureKind.Star" View="Doc.Derived.Stars" InitialRunway="@Doc.ArrIdents.FirstOrDefault()"
+                             Lingua="@Doc.Bloccata" ArrIdents="Doc.ArrIdents.ToArray()"
+                             TransitionAltitudeFt="Doc.Derived.Transition.TransitionAltitudeFt" />;
                 break;
             case "validity": <ValidityStamp Target="ReleaseTargetType.Airport" Key="@Doc.Icao" ReleaseId="@Doc.ReleaseIdShown" />; break;
         }

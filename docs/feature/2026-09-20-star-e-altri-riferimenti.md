@@ -1,9 +1,8 @@
 ﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: 🟡 **slice 1, 2a, 2b e 3 fatte** — il parser delle STAR è misurato sui file veri, l'archivio le ospita
-> (`AirportProcedures` + `Kind`, migrazione provata su una copia di produzione), **l'import le prende davvero**
-> dal sectorfile e **l'editor le mostra** (verificato a schermo su LIBD). Restano la sezione pubblica e il
-> riferimento nel testo.
+> Stato: 🟡 **slice 1→4 fatte** — parser misurato sui file veri, archivio (`AirportProcedures` + `Kind`,
+> migrazione provata su una copia di produzione), import dal sectorfile, editor, e **la sezione «STAR» nel
+> documento**, derivata e congelabile come le SID (verificata a schermo su LIBD). Resta il riferimento nel testo.
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se
@@ -104,7 +103,19 @@ Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `Sou
    alla resa pubblica. Fino ad allora l'indice dice «SID» e gli arrivi stanno lì sotto.
    ⚠️ `SaveSidsAsync` e il caricamento della scheda prendono anch'essi il verso: salvare le manuali degli
    arrivi non deve poter cancellare quelle delle partenze.
-4. **sezione pubblica** — la tabella STAR nel documento d'aeroporto, con il congelamento alla release.
+4. ✅ **sezione pubblica** — sezione di catalogo **`stars`**, sua e non una seconda tabella dentro le SID:
+   `SectionKind.Derived`, subito dopo `sids` nei profili civile e militare. La derivazione prende il verso
+   (`DeriveAsync(icao, kind, atCycle)`), `AirportDerived` porta `Stars` accanto a `Sids`, e la cattura di
+   release congela `"stars"` al **ciclo della release** come fa per `"sids"`. Il visualizzatore è lo stesso
+   componente con `Kind`: colonna **STAR**, niente *Initial climb*, e la chip marca la pista in **arrivo**
+   (🛬) invece che in partenza.
+   ⚠️ **Nasce Live** come le SID (`BornLive`): sono la stessa tabella, e due nascite diverse sarebbero due
+   comportamenti da spiegare.
+   ⚠️ **Ai documenti già scritti la semina la manutenzione d'avvio** (`AddMissingCatalogSectionsAsync`), che
+   la mette al posto giusto e rinumera il gruppo. Misurato sulla copia del `vipi.db`: 17 sezioni `stars`
+   create al primo avvio.
+   🔴 **Nel documento PUBBLICATO la sezione compare solo dalla prossima release**: quel che è pubblico è lo
+   snapshot di allora, e uno snapshot non si riscrive. Nella bozza c'è subito.
 5. **riferimento nel testo** — `[[STAR LIRF ELKA3A]]`, sulle stesse cinque slice già pagate per le SID:
    il codice di `RiferimentiSid` è **già generico sulla radice del nome**, cambia il gettone e la tabella da cui
    si leggono i nomi.
@@ -133,6 +144,9 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 
 ## 5. Verifica
 
+- 4 test in `SezioneStarPubblicaTests` (colonna STAR, niente Initial climb, la chip marca la pista in
+  ARRIVO, il riquadro «non ce ne sono» con le parole degli arrivi) e 2 in `AirportSidDerivationServiceTests`
+  (la derivazione dà il verso chiesto; nascoste e in attesa si comportano come le partenze).
 - 5 test in `EditorStarTests` (l'etichetta della colonna, la colonna Initial climb che non c'è, i titoli
   degli arrivi, il reimport solo sulle partenze, gli id degli elenchi diversi fra i due montaggi), 2 in più in
   `StarImportTests` (la scheda porta gli arrivi a parte; le manuali di un verso non toccano l'altro).
@@ -143,6 +157,11 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 - Misura dal vivo sui 90 `.str` veri della copia di lavoro del sectorfile: 54 scali, 865 righe, 136 da
   rivedere, 522 RNAV — prova usa-e-getta, non committata, rifattibile in due minuti.
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite intera verde.
+- **Sezione pubblica provata a schermo** (bozza di LIBD): «STAR» nell'indice fra «SID» e «General
+  procedures», tabella con RWY · FIX · **STAR** · TRANSITION · TYPE · CAT. · WTC · CONDITION — senza *Initial
+  climb* —, chip di pista 07/25, nessun id doppio, console pulita. ⚠️ Le 38 STAR appena importate sono in
+  attesa del ciclo d'entrata **2610** dichiarato dalla sorgente: la sezione diceva «STAR non ancora inserite»
+  finché non se ne sono forzate (`ForcePublished`), ed è il gate AIRAC che funziona, non un difetto.
 - **Editor provato a schermo** (Edge+puppeteer sulla copia del `vipi.db` di sviluppo, LIBD, 20 settembre):
   «STARs imported from the sectorfile 38» con le colonne FIX · STAR · RWY · TRANS. · TYPE · CAT. · WTC ·
   CONDITION · PRIORITY · STATUS — **senza Initial climb**, che resta sulle SID —, i triangoli sui punti da

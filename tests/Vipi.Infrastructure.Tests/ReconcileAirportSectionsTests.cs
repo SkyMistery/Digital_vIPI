@@ -231,10 +231,11 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         var chiavi = (await _db.DocumentSections.Where(s => s.ParentSectionId == null)
             .OrderBy(s => s.Order).ToListAsync()).Select(s => s.SectionKey).ToList();
         // weather, runwayrules, lvp, operationaltechnique, validity, charts + le cinque raccolte di charts
-        Assert.Equal(11, aggiunte);
+        // ⚠️ Dodici dal 20 settembre 2026: anche «stars» (§A80) va seminata nei documenti già scritti.
+        Assert.Equal(12, aggiunte);
         // ⚠️ «runwayrules» non è più fra le radici dal 12 settembre 2026 (sera): nasce FIGLIA di «Piste».
         Assert.Equal(
-            new[] { "weather", "transition", "frequencies", "runways", "sids", "operationaltechnique", "lvp", "charts", "validity" },
+            new[] { "weather", "transition", "frequencies", "runways", "sids", "stars", "operationaltechnique", "lvp", "charts", "validity" },
             chiavi);
         var pisteSez = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "runways");
         Assert.Equal(
@@ -307,10 +308,10 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         lvp.ParentSectionId = null;
         lvp.Depth = 0;
         var radici = tutte.Where(x => x.SectionKey is "weather" or "runwayrules" or "lvp" or "transition"
-                                      or "frequencies" or "runways" or "sids" or "operationaltechnique"
+                                      or "frequencies" or "runways" or "sids" or "stars" or "operationaltechnique"
                                       or "charts" or "validity").ToList();
         var vecchio = new[] { "weather", "runwayrules", "lvp", "transition", "frequencies", "runways", "sids",
-                              "operationaltechnique", "charts", "validity" };
+                              "stars", "operationaltechnique", "charts", "validity" };
         foreach (var r in radici) r.Order = Array.IndexOf(vecchio, r.SectionKey) + 1;
         await _db.SaveChangesAsync();
 
@@ -327,7 +328,7 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
 
         // 2. Le LVP sono SORELLE, subito dopo le Procedure generali.
         var chiavi = dopo.Where(x => x.ParentSectionId is null).OrderBy(x => x.Order).Select(x => x.SectionKey).ToList();
-        Assert.Equal(new[] { "weather", "transition", "frequencies", "runways", "sids",
+        Assert.Equal(new[] { "weather", "transition", "frequencies", "runways", "sids", "stars",
                              "operationaltechnique", "lvp", "charts", "validity" }, chiavi);
 
         // 3. Le radici non hanno buchi: Order è una posizione.

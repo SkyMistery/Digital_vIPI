@@ -21,7 +21,7 @@
                 var pista = rw;
                 <button type="button" class="cfg-btn @(string.Equals(_scelta, pista, StringComparison.OrdinalIgnoreCase) ? "on" : "")"
                         @onclick="() => _scelta = pista">
-                    @pista @if (DepIdents.Contains(pista, StringComparer.OrdinalIgnoreCase)) { <span title="@T("Airport_RwyInUse")">🛫</span> }
+                    @pista @if (PisteInUso.Contains(pista, StringComparer.OrdinalIgnoreCase)) { <span title="@T("Airport_RwyInUse")">@(Arrivi ? "🛬" : "🛫")</span> }
                 </button>
             }
         </div>
@@ -31,11 +31,11 @@
        cambio pista, perché le colonne quasi vuote (Condition tutta «—» su una pista, piena sull'altra) si
        afflosciavano e le altre si allargavano. *@
     <table class="res-table sid-table sid-view">
-        <thead><tr><th class="col-rwy">@T("Airport_RunwayAbbr")</th><th class="col-fix">FIX</th><th class="col-sid">SID</th><th class="col-trans">Transition</th><th class="col-climb">Initial climb</th><th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th></tr></thead>
+        <thead><tr><th class="col-rwy">@T("Airport_RunwayAbbr")</th><th class="col-fix">FIX</th><th class="col-sid">@Etichetta</th><th class="col-trans">Transition</th>@if (!Arrivi) { <th class="col-climb">Initial climb</th> }<th class="col-type">Type</th><th class="col-cat">Cat.</th><th class="col-wtc">WTC</th><th class="col-cond">Condition</th></tr></thead>
         <tbody>
             @foreach (var r in Shown())
             {
-                <tr><td class="col-rwy">@r.Runway</td><td class="col-fix">@r.Fix</td><td class="col-sid">@r.Name</td><td class="col-trans">@r.Transition</td><td class="col-climb">@AirportViewFormat.InitialClimb(r.InitialClimb, TransitionAltitudeFt)</td><td class="col-type">@r.Type</td><td class="col-cat">@r.Cat</td><td class="col-wtc">@r.Wtc</td><td class="col-cond">@r.Condition</td></tr>
+                <tr><td class="col-rwy">@r.Runway</td><td class="col-fix">@r.Fix</td><td class="col-sid">@r.Name</td><td class="col-trans">@r.Transition</td>@if (!Arrivi) { <td class="col-climb">@AirportViewFormat.InitialClimb(r.InitialClimb, TransitionAltitudeFt)</td> }<td class="col-type">@r.Type</td><td class="col-cat">@r.Cat</td><td class="col-wtc">@r.Wtc</td><td class="col-cond">@r.Condition</td></tr>
             }
         </tbody>
     </table>
@@ -43,7 +43,7 @@
 }
 else
 {
-    <div class="callout info"><span class="cic"><Icon Name="refresh" Size="18" /></span><div><p class="ct">@T("Airport_NoSidsTitle")</p>@T("Airport_NoSidsBody")</div></div>
+    <div class="callout info"><span class="cic"><Icon Name="refresh" Size="18" /></span><div><p class="ct">@T(Arrivi ? "Airport_NoStarsTitle" : "Airport_NoSidsTitle")</p>@T(Arrivi ? "Airport_NoStarsBody" : "Airport_NoSidsBody")</div></div>
 }
 
 @code {
@@ -86,6 +86,22 @@ else
     /// <summary>Piste in partenza adesso: marcano il chip della pista in uso. Dato LIVE.
     /// ⚠️ Un array e non un HashSet: attraversa il confine SSR→interattivo e dev'essere serializzabile.</summary>
     [Parameter] public string[] DepIdents { get; set; } = Array.Empty<string>();
+
+    /// <summary>Piste in arrivo adesso: le stesse chip, per la tabella degli arrivi.</summary>
+    [Parameter] public string[] ArrIdents { get; set; } = Array.Empty<string>();
+
+    /// <summary>
+    /// Partenze (default) o arrivi. <b>Una tabella sola per le due famiglie</b>: hanno le stesse colonne e lo
+    /// stesso filtro per pista, e quel che cambia è il nome della colonna del codice, l'<c>Initial climb</c>
+    /// che su un arrivo non vuol dire niente, e quale pista in uso marca la chip.
+    /// </summary>
+    [Parameter] public ProcedureKind Kind { get; set; } = ProcedureKind.Sid;
+
+    private bool Arrivi => Kind == ProcedureKind.Star;
+    private string Etichetta => Arrivi ? "STAR" : "SID";
+
+    /// <summary>Le piste in uso che contano per questa tabella: in partenza per le SID, in arrivo per le STAR.</summary>
+    private string[] PisteInUso => Arrivi ? ArrIdents : DepIdents;
 
     /// <summary>TA dello scalo: serve a rendere l'initial climb come quota o come livello.</summary>
     [Parameter] public int? TransitionAltitudeFt { get; set; }

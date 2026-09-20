@@ -1,4 +1,5 @@
 ﻿using Vipi.Application.Abstractions;
+using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
 
 namespace Vipi.Application.Content;
@@ -8,7 +9,8 @@ public sealed record AirportSidRowView(
     string Runway, string Fix, string Name, string Transition, string InitialClimb,
     string Type, string Cat, string Wtc, string Condition);
 
-/// <summary>Sezione SID derivata dell'aeroporto (doc 10 §3e): merge editoriali+importate già filtrato/ordinato.</summary>
+/// <summary>Sezione di procedure derivata dell'aeroporto (doc 10 §3e): merge editoriali+importate già
+/// filtrato/ordinato. Stessa forma per le partenze e per gli arrivi — la tabella è la stessa.</summary>
 public sealed record AirportSidView(IReadOnlyList<AirportSidRowView> Rows)
 {
     public static AirportSidView Empty { get; } = new(Array.Empty<AirportSidRowView>());
@@ -40,7 +42,10 @@ public interface IAirportSidDerivationService
     /// L'attesa la decide una volta sola <see cref="SidStampCycle"/>, scrivendo il ciclo d'entrata (carta
     /// 2026-09-02 §AW2).</para>
     /// </param>
-    Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default);
+    /// <param name="kind">Quale famiglia: partenze (<c>Sid</c>) o arrivi (<c>Star</c>). Stessa derivazione,
+    /// stesso filtro di ciclo, stesso ordine — cambia solo quale metà della tabella si guarda.</param>
+    Task<AirportSidView> DeriveAsync(string icao, ProcedureKind kind = ProcedureKind.Sid,
+        string? atCycle = null, CancellationToken ct = default);
 }
 
 /// <inheritdoc cref="IAirportSidDerivationService"/>
@@ -72,7 +77,8 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
         _airac = airac;
     }
 
-    public async Task<AirportSidView> DeriveAsync(string icao, string? atCycle = null, CancellationToken ct = default)
+    public async Task<AirportSidView> DeriveAsync(string icao, ProcedureKind kind = ProcedureKind.Sid,
+        string? atCycle = null, CancellationToken ct = default)
     {
         var data = await _repo.LoadAsync((icao ?? "").Trim().ToUpperInvariant(), ct);
         if (data is null) return AirportSidView.Empty;
@@ -83,7 +89,8 @@ public sealed class AirportSidDerivationService : IAirportSidDerivationService
         // di FIX e priorità. Le importate compaiono dal ciclo da cui valgono (o se forzate): IsPublicAt.
         // Nascosta dallo staff = fuori, qualunque sia il ciclo o la forzatura. E il punto e la transition sono
         // quelli PUBBLICATI: la correzione a mano, se c'è, prima della sorgente.
-        var rows = data.Sids
+        var righe = kind == ProcedureKind.Star ? data.Stars : data.Sids;
+        var rows = righe
             .Where(s => !s.IsHidden && s.IsPublicAt(cycle, _airac))
             .OrderBy(s => s.EffectiveFix, StringComparer.OrdinalIgnoreCase)
             .ThenBy(s => s.Priority ?? int.MaxValue)

@@ -902,18 +902,17 @@ else
                                    PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
                                    PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
                                    ConfirmAsync="Conferma" />
-                @* Gli arrivi, sotto le partenze: stesso componente, `Kind` diverso. Compaiono se ce ne sono
-                   o se si sta scrivendo — a un campo senza STAR non si mostra una tabella vuota. *@
-                @if (_starsImportate.Count > 0 || _stars.Count > 0 || _shell.IsEditing)
-                {
-                    <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImportate" Manual="_stars" RunwayIdents="IdentPiste()"
-                                       Navaids="_catalogoNavaid" Icao="@_icao" Editing="_shell.IsEditing"
-                                       Wide="_sidLarghe" WideChanged="v => _sidLarghe = v"
-                                       ManualChanged="SalvaStar"
-                                       PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
-                                       PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
-                                       ConfirmAsync="Conferma" />
-                }
+                break;
+            @* Gli ARRIVI, nella loro sezione: stesso componente, `Kind` diverso. *@
+            case "stars":
+                <NavaidDatalist Entries="_catalogoNavaid.Entries" />
+                <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImportate" Manual="_stars" RunwayIdents="IdentPiste()"
+                                   Navaids="_catalogoNavaid" Icao="@_icao" Editing="_shell.IsEditing"
+                                   Wide="_sidLarghe" WideChanged="v => _sidLarghe = v"
+                                   ManualChanged="SalvaStar"
+                                   PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
+                                   PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
+                                   ConfirmAsync="Conferma" />
                 break;
         }
     };

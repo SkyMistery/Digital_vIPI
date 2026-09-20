@@ -1,4 +1,5 @@
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Content;
 
@@ -76,7 +77,7 @@ public sealed class SidReferenceResolver : ISidReferenceResolver
         var scalo = RiferimentiSid.Norm(icao);
         if (scalo.Length != 4) return Array.Empty<SidCitabile>();
 
-        var tabella = await _sids.DeriveAsync(scalo, null, ct);
+        var tabella = await _sids.DeriveAsync(scalo, ProcedureKind.Sid, null, ct);
         return tabella.Rows
             .Where(r => RiferimentiSid.Norm(r.Name).Length > 0)
             .GroupBy(r => RiferimentiSid.Norm(r.Name))
@@ -106,7 +107,7 @@ public sealed class SidReferenceResolver : ISidReferenceResolver
             AirportSidView? tabella = null;
             if (pubblica)
                 tabella = (await _frozen.LoadAsync(ReleaseTargetType.Airport, icao, ct)).Get<AirportSidView>("sids");
-            tabelle[icao] = tabella ?? await _sids.DeriveAsync(icao, null, ct);
+            tabelle[icao] = tabella ?? await _sids.DeriveAsync(icao, ProcedureKind.Sid, null, ct);
         }
         return new NomiSid(tabelle);
     }

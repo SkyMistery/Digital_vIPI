@@ -1,4 +1,4 @@
-using Vipi.Domain;
+﻿using Vipi.Domain;
 
 namespace Vipi.Application.Content;
 
@@ -152,6 +152,10 @@ public sealed record AirportDerived(
     AirportRulesView Rules, AirportTransitionView Transition, AirportFreqView Frequencies,
     AirportRunwaysView Runways, AirportSidView Sids, AirportLvpView Lvp)
 {
+    /// <summary>Gli ARRIVI. In coda e con un default, perché una vista che gli arrivi non li guarda —
+    /// l'elenco degli aeroporti, una prova — non deve dire niente in più di prima.</summary>
+    public AirportSidView Stars { get; init; } = AirportSidView.Empty;
+
     public static AirportDerived Empty { get; } = new(
         AirportRulesView.Empty, AirportTransitionView.Empty, AirportFreqView.Empty,
         AirportRunwaysView.Empty, AirportSidView.Empty, AirportLvpView.Empty);

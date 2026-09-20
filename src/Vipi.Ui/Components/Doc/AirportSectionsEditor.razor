@@ -1036,6 +1036,7 @@ else
         "frequencies" => FrequenciesEditor,
         "runways" => RunwaysEditor,
         "sids" => SidsEditor,
+        "stars" => StarsEditor,
         "validity" => ValidityEditor,
         _ => _ => { },
     };
@@ -1132,19 +1133,18 @@ else
                            PersistImported="PersistImported" RunGuarded="Guarded"
                            PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
                            ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
-        @* Gli ARRIVI, sotto le partenze e nella stessa sezione: stesso componente, `Kind` diverso. La tabella
-           compare quando ci sono STAR o quando si sta scrivendo: a uno scalo che non ne ha — 36 dei 90 file
-           del sectorfile — non si mostra una tabella vuota. *@
-        @if (_starsImported.Count > 0 || _stars.Count > 0 || _shell.IsEditing)
-        {
-            <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImported" Manual="_stars" RunwayIdents="RwIdents()"
-                               Navaids="_navaids" Icao="@_icao" Editing="_shell.IsEditing"
-                               Wide="_wide" WideChanged="v => _wide = v"
-                               ManualChanged="SaveStars"
-                               PersistImported="PersistImported" RunGuarded="Guarded"
-                               PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
-                               ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
-        }
+    };
+
+    /// <summary>La sezione «STAR»: lo stesso editor delle partenze, montato sugli arrivi.</summary>
+    private RenderFragment StarsEditor => __builder =>
+    {
+        <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImported" Manual="_stars" RunwayIdents="RwIdents()"
+                           Navaids="_navaids" Icao="@_icao" Editing="_shell.IsEditing"
+                           Wide="_wide" WideChanged="v => _wide = v"
+                           ManualChanged="SaveStars"
+                           PersistImported="PersistImported" RunGuarded="Guarded"
+                           PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
+                           ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
     };
 
     /// <summary>Il riquadro informativo in cima («applicato a N righe», «pubblicate N»): lo possiede questa
