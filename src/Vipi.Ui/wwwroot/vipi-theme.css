@@ -2714,7 +2714,13 @@
 :where(.vipi-root) select.app-in:hover{border-color:var(--line-ocean)}
 :where(.vipi-root) .app-lbl{display:block;font-size:13px;color:var(--ink-soft,var(--ink-mid));margin:8px 0}
 :where(.vipi-root) .app-block-edit{display:flex;gap:6px;align-items:flex-start;margin-bottom:6px}
-:where(.vipi-root) .app-block-edit .app-ta{flex:1}
+/* 🔴 Qui stava `.app-block-edit .app-ta{flex:1}`, e dal 16 settembre 2026 era il motivo per cui il campo
+   NON si adattava al testo (`data-adatta`, vipi-editor.js). La regola nacque quando la textarea era figlia
+   DIRETTA di questa riga e le serviva la larghezza; da quando c'è `RichTextArea` la textarea sta dentro
+   `.rta`, che è un flex a COLONNA — e lì `flex:1` vale `flex:1 1 0%` sull'ALTEZZA, cioè una base che
+   SCAVALCA l'altezza in linea. Misurato: altezza chiesta 252px, altezza calcolata 54px. La larghezza non la
+   perde nessuno (`.app-ta{width:100%}` più lo `stretch` della colonna), e `.app-ta` non è figlia diretta di
+   `.app-block-edit` in nessuna pagina: la regola non aveva più nessun altro bersaglio. */
 /* Campo markdown con barra (RichTextArea). La barra è SEMPRE nel flusso e si accende col fuoco: nessuno
    stato in C#, nessun giro di rete a ogni fuoco, e soprattutto nessun salto di layout — comparendo,
    farebbe scivolare in giù tutti i blocchi sotto. Attenuata, non nascosta: `visibility`/`display` la
