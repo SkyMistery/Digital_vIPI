@@ -108,9 +108,82 @@ public static class PostgresSchemaReconciler
 
         foreach (var (vecchio, nuovo) in TabelleRinominate)
         {
-            if (!presenti.Contains(vecchio) || presenti.Contains(nuovo)) continue;
-            TryExec(conn, $"ALTER TABLE \"{vecchio}\" RENAME TO \"{nuovo}\"", log, $"rinomina {vecchio} → {nuovo}");
+            if (presenti.Contains(vecchio) && !presenti.Contains(nuovo))
+                TryExec(conn, $"ALTER TABLE \"{vecchio}\" RENAME TO \"{nuovo}\"", log, $"rinomina {vecchio} → {nuovo}");
+
+            // ⚠️ Gli oggetti si rinominano SEMPRE, non solo nel giro che rinomina la tabella: un processo
+            // caduto fra i due passi lascerebbe indici e vincoli col nome di prima per sempre. Ripetuto è a
+            // vuoto — le due query non trovano più niente.
+            if (presenti.Contains(nuovo) || presenti.Contains(vecchio))
+                RinominaOggettiDellaTabella(conn, log, vecchio, nuovo);
         }
+    }
+
+    /// <summary>
+    /// 🔴 <c>ALTER TABLE … RENAME TO</c> <b>non tocca</b> i nomi di indici e vincoli: dopo la rinomina restano
+    /// <c>IX_AirportSids_…</c> e <c>FK_AirportSids_…</c> su una tabella che non si chiama più così. Nessuna
+    /// delle due conseguenze è cosmetica: <see cref="EnsureModelIndexes"/> non trova il nome che il modello si
+    /// aspetta e crea un <b>secondo indice identico</b>, e la prima migrazione futura che prova a lasciar
+    /// cadere quel vincolo per nome fallisce — è la stessa ragione per cui la gemella MySQL li rinomina a mano.
+    /// </summary>
+    private static void RinominaOggettiDellaTabella(IDbConnection conn, ILogger? log, string vecchio, string nuovo)
+    {
+        // I nomi arrivano da `TabelleRinominate`, una costante di questo file: non sono input utente.
+        var vincoli = Nomi(conn,
+            $"SELECT conname FROM pg_constraint WHERE conrelid = to_regclass('public.\"{nuovo}\"') AND strpos(conname, '{vecchio}') > 0");
+        var indici = Nomi(conn,
+            $"SELECT indexname FROM pg_indexes WHERE schemaname = 'public' AND tablename = '{nuovo}' AND strpos(indexname, '{vecchio}') > 0");
+
+        foreach (var sql in RinomineDiOggetti(vecchio, nuovo, vincoli, indici))
+            TryExec(conn, sql, log, $"rinomina oggetto di {nuovo}");
+    }
+
+    /// <summary>
+    /// Le <c>ALTER</c> che riportano al nome nuovo gli oggetti rimasti col vecchio. Funzione pura: è il pezzo
+    /// verificabile senza un Postgres vivo, come <see cref="CreateTableStatements"/>, ed è per questo pubblica.
+    /// <para>⚠️ I <b>vincoli prima degli indici</b>: rinominare un vincolo rinomina anche l'indice che lo
+    /// sostiene (una PK, un UNIQUE), e nell'ordine opposto il secondo passo cercherebbe un nome che non c'è
+    /// più. Per questo un indice già coperto da un vincolo omonimo non si rinomina due volte.</para>
+    /// </summary>
+    public static IReadOnlyList<string> RinomineDiOggetti(
+        string vecchio, string nuovo, IEnumerable<string> vincoli, IEnumerable<string> indici)
+    {
+        var sql = new List<string>();
+        var fatti = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var nome in vincoli)
+        {
+            var rinominato = nome.Replace(vecchio, nuovo, StringComparison.Ordinal);
+            if (rinominato == nome || !fatti.Add(nome)) continue;
+            sql.Add($"ALTER TABLE \"{nuovo}\" RENAME CONSTRAINT \"{nome}\" TO \"{rinominato}\"");
+        }
+
+        foreach (var nome in indici)
+        {
+            var rinominato = nome.Replace(vecchio, nuovo, StringComparison.Ordinal);
+            if (rinominato == nome || !fatti.Add(nome)) continue;
+            sql.Add($"ALTER INDEX \"{nome}\" RENAME TO \"{rinominato}\"");
+        }
+
+        return sql;
+    }
+
+    /// <summary>I nomi tornati da una query a una colonna sola.</summary>
+    private static IReadOnlyList<string> Nomi(IDbConnection conn, string sql)
+    {
+        var nomi = new List<string>();
+        try
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) nomi.Add(r.GetString(0));
+        }
+        catch
+        {
+            // Best-effort come il resto del file: se il catalogo non si legge, non si rinomina niente.
+        }
+        return nomi;
     }
 
     // --- Tabelle ---
@@ -262,7 +335,33 @@ public static class PostgresSchemaReconciler
             var declared = mapping.Property.GetDefaultValue();
             if (declared is not null) return Literal(declared, col.StoreType);
         }
+
+        // 🔴 Gli ENUM prima del ripiego per tipo store. Si salvano come STRINGA (SPEC §6) e si rileggono in
+        // modo NON tollerante — `AuditAction` è l'unica eccezione, e la nota in `VipiDbContext` spiega perché.
+        // La stringa vuota di <see cref="DefaultLiteral"/> non è il nome di nessun valore: le righe backfillate
+        // così non danno un valore sbagliato, fanno ESPLODERE la prima lettura della tabella. Qui vale il
+        // valore di partenza dell'enum — non è detto che sia quello giusto per il dominio (per quello c'è
+        // `HasDefaultValue`, che scavalca questo ramo), ma è sempre leggibile.
+        foreach (var mapping in col.PropertyMappings)
+        {
+            var t = Nullable.GetUnderlyingType(mapping.Property.ClrType) ?? mapping.Property.ClrType;
+            if (t.IsEnum && ValoreDiPartenza(t) is { } v) return Literal(v, col.StoreType);
+        }
+
         return DefaultLiteral(col.StoreType);
+    }
+
+    /// <summary>
+    /// Il valore con cui nasce un enum: quello a zero se è dichiarato, altrimenti il primo dichiarato. Un enum
+    /// senza nemmeno un valore non esiste in pratica, ma non si dà per scontato: <c>null</c> e si ricade sul
+    /// ripiego per tipo store.
+    /// </summary>
+    private static object? ValoreDiPartenza(Type enumType)
+    {
+        var zero = Enum.ToObject(enumType, 0);
+        if (Enum.IsDefined(enumType, zero)) return zero;
+        var tutti = Enum.GetValues(enumType);
+        return tutti.Length > 0 ? tutti.GetValue(0) : null;
     }
 
     // Valore .NET del modello → letterale SQL. Solo i tipi che un default dichiarato può avere (bool/numeri/stringhe);

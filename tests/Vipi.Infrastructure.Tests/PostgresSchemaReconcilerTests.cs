@@ -57,4 +57,77 @@ public class PostgresSchemaReconcilerTests
 
         Assert.Equal(TablesOf(db).Count, sql.Count(s => s.Contains("CREATE TABLE", StringComparison.Ordinal)));
     }
+
+    private static Microsoft.EntityFrameworkCore.Metadata.IColumn Colonna(DbContext db, string tabella, string colonna) =>
+        db.Model.GetRelationalModel().Tables.Single(t => t.Name == tabella).Columns.Single(c => c.Name == colonna);
+
+    /// <summary>
+    /// 🔴 Il verso delle procedure. Su questo percorso la colonna <c>Kind</c> la aggiunge il reconciler, non una
+    /// migrazione, e le righe che c'erano già sono tutte SID: se nascessero con un valore che l'enum non sa
+    /// rileggere, la prima lettura della tabella esploderebbe — con le ~1470 righe ancora tutte al loro posto.
+    /// </summary>
+    [Fact]
+    public void Il_verso_delle_procedure_si_backfilla_con_Sid()
+    {
+        using var db = NpgsqlModel();
+
+        Assert.Equal("'Sid'", PostgresSchemaReconciler.BackfillLiteral(Colonna(db, "AirportProcedures", "Kind")));
+    }
+
+    /// <summary>
+    /// La guardia di CLASSE, e non del caso singolo: gli enum si salvano come stringa (SPEC §6) e si rileggono
+    /// in modo non tollerante, quindi il ripiego per tipo store — la stringa vuota — non è il nome di nessun
+    /// valore. Una colonna enum NOT NULL aggiunta a una tabella che ha già righe deve nascere con un nome che
+    /// l'enum conosce, o il guasto non è un dato sbagliato: è la tabella illeggibile.
+    /// </summary>
+    [Fact]
+    public void Nessuna_colonna_enum_si_backfilla_con_la_stringa_vuota()
+    {
+        using var db = NpgsqlModel();
+
+        var colpevoli = db.Model.GetRelationalModel().Tables
+            .SelectMany(t => t.Columns.Select(c => (Tabella: t.Name, Colonna: c)))
+            .Where(x => !x.Colonna.IsNullable)
+            .Where(x => x.Colonna.PropertyMappings.Any(m =>
+                (Nullable.GetUnderlyingType(m.Property.ClrType) ?? m.Property.ClrType).IsEnum))
+            .Where(x => PostgresSchemaReconciler.BackfillLiteral(x.Colonna) == "''")
+            .Select(x => $"{x.Tabella}.{x.Colonna.Name}")
+            .ToList();
+
+        Assert.True(colpevoli.Count == 0,
+            "colonne enum che nascerebbero con una stringa vuota: " + string.Join(", ", colpevoli));
+    }
+
+    /// <summary>
+    /// Una tabella rinominata si porta dietro indici e vincoli col NOME VECCHIO: senza rinominarli il passo
+    /// degli indici ne crea un secondo identico, e la prima migrazione futura che prova a lasciar cadere quel
+    /// vincolo per nome fallisce.
+    /// </summary>
+    [Fact]
+    public void Rinominare_una_tabella_rinomina_indici_e_vincoli_rimasti_col_nome_vecchio()
+    {
+        var sql = PostgresSchemaReconciler.RinomineDiOggetti(
+            "AirportSids", "AirportProcedures",
+            vincoli: new[] { "FK_AirportSids_Airports_AirportId", "PK_AirportSids" },
+            indici: new[] { "IX_AirportSids_AirportId_Order", "PK_AirportSids" });
+
+        Assert.Equal(new[]
+        {
+            // I vincoli PRIMA: rinominare un vincolo rinomina anche l'indice che lo sostiene.
+            "ALTER TABLE \"AirportProcedures\" RENAME CONSTRAINT \"FK_AirportSids_Airports_AirportId\" TO \"FK_AirportProcedures_Airports_AirportId\"",
+            "ALTER TABLE \"AirportProcedures\" RENAME CONSTRAINT \"PK_AirportSids\" TO \"PK_AirportProcedures\"",
+            "ALTER INDEX \"IX_AirportSids_AirportId_Order\" RENAME TO \"IX_AirportProcedures_AirportId_Order\"",
+        }, sql);
+    }
+
+    [Fact]
+    public void Un_oggetto_che_non_cita_il_nome_vecchio_si_lascia_stare()
+    {
+        var sql = PostgresSchemaReconciler.RinomineDiOggetti(
+            "AirportSids", "AirportProcedures",
+            vincoli: Array.Empty<string>(),
+            indici: new[] { "IX_AirportProcedures_AirportId_Order", "un_indice_a_mano" });
+
+        Assert.Empty(sql);
+    }
 }

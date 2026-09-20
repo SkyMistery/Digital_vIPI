@@ -578,7 +578,9 @@ namespace Vipi.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("Kind")
                         .IsRequired()
-                        .HasColumnType("TEXT");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("Sid");
 
                     b.Property<string>("Name")
                         .IsRequired()

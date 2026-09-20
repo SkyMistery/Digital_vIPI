@@ -673,8 +673,10 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.Property<string>("Kind")
                         .IsRequired()
+                        .ValueGeneratedOnAdd()
                         .HasMaxLength(32)
                         .HasColumnType("varchar(32)")
+                        .HasDefaultValue("Sid")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
                     b.Property<string>("Name")

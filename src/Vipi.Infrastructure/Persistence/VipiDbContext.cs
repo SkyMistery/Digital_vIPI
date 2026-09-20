@@ -663,6 +663,12 @@ public class VipiDbContext : DbContext
         b.Entity<AirportProcedure>(e =>
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
+            // 🔴 Il default sta NEL MODELLO e non solo nelle due migrazioni, per la stessa ragione di
+            // `Acc.SpecialAreasEnabled` qui sopra: su Postgres la colonna la aggiunge PostgresSchemaReconciler,
+            // che legge di qui il valore con cui backfillare le righe che c'erano già. Senza, le ~1470 righe
+            // SID nascevano con `Kind` = stringa VUOTA — e un enum si rilegge in modo NON tollerante (vedi
+            // `LeggiAzione`, l'unica eccezione): ogni lettura delle procedure sarebbe esplosa.
+            e.Property(x => x.Kind).HasDefaultValue(ProcedureKind.Sid);
             // NON aggiungere un indice unico su (AirportId, StableKey): la StableKey esclude di proposito la cifra
             // della revisione, quindi un file .sid con due revisioni della stessa SID (es. ROBOT1H e ROBOT2H)
             // produce legittimamente due righe con la stessa chiave. Misurato sul DB di sviluppo: 20 coppie così

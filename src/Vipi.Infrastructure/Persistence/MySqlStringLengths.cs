@@ -162,6 +162,10 @@ public static class MySqlStringLengths
             // questo — non perché entrino in un indice. Il valore più lungo è `Sectorfile` (10).
             [("AccSector", "ShapeSource")] = EnumChars,
             [("AirportSector", "ShapeSource")] = EnumChars,
+            // Il verso della procedura (`Sid`/`Star`). Stessa ragione: ha un DEFAULT dichiarato — che su
+            // Postgres è il valore con cui il reconciler backfilla le righe già in tabella — e senza voce
+            // esplicita qui il presidio lo segnala. Il valore più lungo è `Star` (4).
+            [("AirportProcedure", "Kind")] = EnumChars,
 
             // --- Chiavi composte e identificatori ------------------------------------------------------
             // TargetKey è `{acc}|{root}`, cioè codice ACC + separatore + callsign: 16+1+32 = 49 nel caso
