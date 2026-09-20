@@ -103,6 +103,19 @@ public sealed record FrequencyLinkRow(int Id, int SourceSectorId, string Label, 
 public sealed record LinkableFrequencyRow(int SectorId, string? Icao, string Callsign, string FrequencyMhz, string? AtcCallsign = null);
 
 /// <summary>
+/// Un ente col suo nominativo radio, <b>frequenza o no</b>.
+///
+/// <para>⚠️ Non è una seconda forma di <see cref="LinkableFrequencyRow"/>: quella elenca i settori
+/// <b>linkabili</b>, cioè quelli che una frequenza ce l'hanno, ed è la domanda giusta per il pannello dei
+/// link e per <c>[[FREQ …]]</c>. Il NOMINATIVO non dipende dall'avere una frequenza — un ente senza
+/// frequenza dichiarata ha comunque un nome alla radio — e chiederlo a quell'elenco lo rendeva incitabile,
+/// e faceva sparire dal testo un <c>[[ATC …]]</c> già scritto il giorno che a quel settore si cancellava
+/// la frequenza.</para>
+/// </summary>
+/// <param name="AtcCallsign">Il nominativo dal catalogo IVAO; <c>null</c> dove manca, e allora vale il callsign.</param>
+public sealed record EnteRow(int SectorId, string? Icao, string Callsign, string? AtcCallsign);
+
+/// <summary>
 /// L'anagrafica militare di uno scalo più i due legami documentali, letti INSIEME: è tutto ciò che serve a
 /// decidere quale edizione si può creare (carta vSOP militari §5-bis).
 ///

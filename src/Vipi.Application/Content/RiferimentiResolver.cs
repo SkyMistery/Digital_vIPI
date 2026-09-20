@@ -36,6 +36,14 @@ public interface IFrequenzeDegliEnti
 {
     Task<IReadOnlyList<LinkableFrequencyRow>> TutteAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Gli enti col loro nominativo radio, <b>frequenza o no</b>: è la domanda di <c>[[ATC …]]</c>, e non è
+    /// la stessa di <see cref="TutteAsync"/>. Un ente senza frequenza dichiarata ha comunque un nome alla
+    /// radio; chiederlo all'elenco delle frequenze lo rendeva incitabile, e trasformava la cancellazione di
+    /// una frequenza nella sparizione di un nominativo già scritto in un documento.
+    /// </summary>
+    Task<IReadOnlyList<EnteRow>> NominativiAsync(CancellationToken ct = default);
+
     /// <summary>Le soglie degli scali chiesti, per ICAO: quel poco che serve a dire se una pista citata esiste.</summary>
     Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
         IReadOnlyCollection<string> icaos, CancellationToken ct = default);
@@ -58,6 +66,9 @@ public sealed class FrequenzeDegliEnti : IFrequenzeDegliEnti
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> TutteAsync(CancellationToken ct = default) =>
         _repo.ListLinkableFrequenciesAsync(ct);
+
+    public Task<IReadOnlyList<EnteRow>> NominativiAsync(CancellationToken ct = default) =>
+        _repo.ListSectorCallsignsAsync(ct);
 
     public async Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
         IReadOnlyCollection<string> icaos, CancellationToken ct = default)
@@ -118,37 +129,49 @@ public sealed class RiferimentiResolver : IRiferimentiResolver
         var citati = RiferimentiDato.Citati(testi);
         if (citati.Count == 0) return ValoriDato.Vuoto;
 
-        // Frequenze e nominativi vengono dalla STESSA domanda — il catalogo dei settori con la loro frequenza
-        // — quindi si chiede una volta sola, e solo se il testo cita almeno uno dei due.
-        var servonoEnti = citati.Any(c => c.Tipo is TipoDato.Frequenza or TipoDato.Nominativo);
         var voci = new List<(TipoDato, string, string)>();
         var guardate = new List<TipoDato>();
-        if (servonoEnti)
+        var mute = new List<(TipoDato, string)>();
+
+        // ⚠️ Le FREQUENZE e i NOMINATIVI sono due domande diverse, e chiederne una sola è stato un difetto:
+        // l'elenco delle frequenze contiene i soli settori che una frequenza ce l'hanno, mentre il nome alla
+        // radio ce l'hanno tutti. Si chiede solo quel che il testo cita, quindi quasi sempre una sola delle due.
+        if (citati.Any(c => c.Tipo == TipoDato.Frequenza))
         {
             var enti = await _enti.TutteAsync(ct);
             // ⚠️ Un catalogo vuoto non si dichiara guardato: sarebbe «tutte le frequenze sono sparite».
-            if (enti.Count > 0) { guardate.Add(TipoDato.Frequenza); guardate.Add(TipoDato.Nominativo); }
-            foreach (var f in enti)
-            {
-                voci.Add((TipoDato.Frequenza, f.Callsign, f.FrequencyMhz));
-                // Il nominativo è quello del catalogo IVAO; dove manca vale il callsign, che è sempre vero.
-                voci.Add((TipoDato.Nominativo, f.Callsign, string.IsNullOrWhiteSpace(f.AtcCallsign) ? f.Callsign : f.AtcCallsign!));
-            }
+            if (enti.Count > 0) guardate.Add(TipoDato.Frequenza);
+            foreach (var f in enti) voci.Add((TipoDato.Frequenza, f.Callsign, f.FrequencyMhz));
+        }
+
+        if (citati.Any(c => c.Tipo == TipoDato.Nominativo))
+        {
+            var enti = await _enti.NominativiAsync(ct);
+            if (enti.Count > 0) guardate.Add(TipoDato.Nominativo);
+            // Il nominativo è quello del catalogo IVAO; dove manca vale il callsign, che è sempre vero.
+            foreach (var e in enti)
+                voci.Add((TipoDato.Nominativo, e.Callsign,
+                    string.IsNullOrWhiteSpace(e.AtcCallsign) ? e.Callsign : e.AtcCallsign!));
         }
 
         // Le PISTE: la chiave è «ICAO SOGLIA», e quel che esce è la soglia com'è scritta — un rinomino per
         // deriva magnetica non si indovina. Si guardano solo gli scali citati.
         var scaliCitati = citati.Where(c => c.Tipo == TipoDato.Pista)
-            .Select(c => c.Chiave.Split(' ')[0]).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            .Select(c => RiferimentiDato.ScopoDi(TipoDato.Pista, c.Chiave))
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (scaliCitati.Count > 0)
         {
             var piste = await _enti.PisteAsync(scaliCitati, ct);
-            var soglie = piste.SelectMany(p => p.Value.Select(i => (Icao: p.Key, Ident: i))).ToList();
-            // ⚠️ «Guardata» vuol dire che qualcosa è tornato DAVVERO: uno scalo che risponde con zero soglie
-            // è un'anagrafica non ancora importata, non un aeroporto senza piste.
-            if (soglie.Count > 0) guardate.Add(TipoDato.Pista);
-            foreach (var (icao, ident) in soglie)
-                voci.Add((TipoDato.Pista, $"{icao} {ident}", ident));
+            // ⚠️ La famiglia è guardata appena la domanda È STATA FATTA, e il «non lo so» si dichiara per
+            // SCALO. Prima era tutto per famiglia, e le due domande sbagliavano insieme: un ICAO inventato
+            // — che non torna con nessuna soglia — non veniva segnalato affatto, mentre uno scalo vero senza
+            // piste in anagrafica faceva scattare l'avviso appena un ALTRO scalo del testo le aveva.
+            guardate.Add(TipoDato.Pista);
+            foreach (var (icao, idents) in piste)
+            {
+                if (idents.Count == 0) mute.Add((TipoDato.Pista, icao));   // scalo senza soglie importate
+                foreach (var ident in idents) voci.Add((TipoDato.Pista, $"{icao} {ident}", ident));
+            }
         }
 
         // I PUNTI: stessa regola, dal catalogo del sectorfile — che è tenuto in cache di processo.
@@ -161,6 +184,6 @@ public sealed class RiferimentiResolver : IRiferimentiResolver
                     voci.Add((TipoDato.Punto, chiave, chiave));
         }
 
-        return new ValoriDato(voci, guardate);
+        return new ValoriDato(voci, guardate, mute);
     }
 }

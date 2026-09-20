@@ -177,14 +177,21 @@
     /// </summary>
     private async Task<IReadOnlyList<Voce>> EntiAsync(TipoDato tipo)
     {
+        // ⚠️ Due domande diverse, e non una sola come fino al 20 settembre 2026: le FREQUENZE sono i settori
+        // che ne hanno una dichiarata, i NOMINATIVI sono tutti — un ente senza frequenza ha comunque un nome
+        // alla radio, e chiedendolo all'elenco delle frequenze non si poteva citare.
+        var righe = tipo == TipoDato.Nominativo
+            ? (await Enti.NominativiAsync()).Select(e => (e.Icao, e.Callsign,
+                Etichetta: string.IsNullOrWhiteSpace(e.AtcCallsign) ? e.Callsign : e.AtcCallsign!,
+                Dettaglio: e.Callsign))
+            : (await Enti.TutteAsync()).Select(f => (f.Icao, f.Callsign,
+                Etichetta: f.Callsign, Dettaglio: f.FrequencyMhz));
+
         var mio = RiferimentiProcedura.Norm(IcaoIniziale);
-        return (await Enti.TutteAsync())
-            .OrderByDescending(f => mio.Length == 4 && string.Equals(f.Icao, mio, StringComparison.OrdinalIgnoreCase))
-            .ThenBy(f => f.Callsign, StringComparer.Ordinal)
-            .Select(f => new Voce(
-                RiferimentiDato.Scrivi(tipo, f.Callsign),
-                tipo == TipoDato.Nominativo && !string.IsNullOrWhiteSpace(f.AtcCallsign) ? f.AtcCallsign! : f.Callsign,
-                tipo == TipoDato.Nominativo ? f.Callsign : f.FrequencyMhz))
+        return righe
+            .OrderByDescending(r => mio.Length == 4 && string.Equals(r.Icao, mio, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(r => r.Callsign, StringComparer.Ordinal)
+            .Select(r => new Voce(RiferimentiDato.Scrivi(tipo, r.Callsign), r.Etichetta, r.Dettaglio))
             .ToList();
     }
 

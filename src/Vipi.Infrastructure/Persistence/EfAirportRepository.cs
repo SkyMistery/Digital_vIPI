@@ -156,6 +156,19 @@ public sealed class EfAirportRepository : IAirportRepository
             atc.TryGetValue(s.Callsign, out var n) ? n : null)).ToList();
     }
 
+    public async Task<IReadOnlyList<EnteRow>> ListSectorCallsignsAsync(CancellationToken ct = default)
+    {
+        // ⚠️ Nessun filtro sulla frequenza, ed è tutta la differenza con ListLinkableFrequenciesAsync: il
+        // nominativo di un ente non dipende dall'avergliene dichiarata una.
+        var raw = await _db.Sectors.AsNoTracking()
+            .OrderBy(s => s.AirportIcao).ThenBy(s => s.Callsign)
+            .Select(s => new { s.Id, s.AirportIcao, s.Callsign })
+            .ToListAsync(ct);
+        var atc = await EfAccDerivationRepository.BuildAtcNameMapAsync(_db, ct);
+        return raw.Select(s => new EnteRow(s.Id, s.AirportIcao, s.Callsign,
+            atc.TryGetValue(s.Callsign, out var n) ? n : null)).ToList();
+    }
+
     public async Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default)
     {
         var a = await _db.Airports.Include(x => x.TransitionLevels)

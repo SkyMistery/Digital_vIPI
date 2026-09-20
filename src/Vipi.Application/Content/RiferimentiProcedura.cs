@@ -75,8 +75,9 @@ public static class RiferimentiProcedura
         var m = Semplice.Match(n);
         // ⚠️ Solo un punto fatto di LETTERE: i punti VFR militari hanno un prefisso — `BV-VICTOR` per la SID
         // `VICTOR6A` di LIBV, misurato il 18 settembre 2026 — e «BV-VICTOR 6A» non è il nome di nessuna procedura.
-        if (!m.Success || f.Length == 0 || !f.All(c => c is >= 'A' and <= 'Z')) return n;
-        return $"{f} {m.Groups[1].Value}";
+        // Il nome esce dall'archivio e va a finire anche dentro il JSON delle tabelle: vedi ValoreScrivibile.
+        if (!m.Success || f.Length == 0 || !f.All(c => c is >= 'A' and <= 'Z')) return ValoreScrivibile(n);
+        return ValoreScrivibile($"{f} {m.Groups[1].Value}");
     }
 
     /// <summary>Il testo del riferimento per quel verso, quello scalo e quel nome.</summary>
@@ -144,6 +145,19 @@ public static class RiferimentiProcedura
 
     /// <summary>Maiuscolo, spazi ridotti a uno, niente spazi ai bordi. Vale per ICAO e nomi.</summary>
     public static string Norm(string? s) => Spazi.Replace((s ?? "").Trim(), " ").ToUpperInvariant();
+
+    /// <summary>
+    /// Il valore come si può SCRIVERE al posto di un riferimento: senza virgolette doppie né barre rovesce.
+    ///
+    /// <para>🔴 Un riferimento si sostituisce anche <b>dentro il JSON</b> dei blocchi tabella — è per questo
+    /// che la sua forma non ammette quei due caratteri — ma il <b>valore</b> che prende il suo posto arriva
+    /// dall'archivio, e uno di quei campi è testo libero di sorgente esterna: il nominativo radio viene dal
+    /// catalogo IVAO. Una virgoletta lì dentro spaccherebbe il JSON del blocco, che smetterebbe di rendersi
+    /// — in una pagina sola, senza un errore che lo dica. Nessun nominativo, nessuna frequenza e nessun nome
+    /// di procedura le contiene davvero: toglierle non perde niente di vero.</para>
+    /// </summary>
+    public static string ValoreScrivibile(string? s) =>
+        (s ?? "").Trim().Replace("\"", "", StringComparison.Ordinal).Replace("\\", "", StringComparison.Ordinal);
 
     /// <summary>Le cifre di revisione di un nome, in fila: servono a scegliere fra due righe con la stessa radice.</summary>
     internal static string Revisione(string nome) =>

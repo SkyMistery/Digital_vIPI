@@ -124,8 +124,17 @@ public class RiferimentiDatoTests
     {
         public int Chiamate { get; private set; }
 
+        public int ChiamateNominativi { get; private set; }
         public int ChiamatePiste { get; private set; }
         public int ChiamatePunti { get; private set; }
+
+        /// <summary>⚠️ Un ente SENZA frequenza: il suo nominativo esiste lo stesso, e si deve poter citare.</summary>
+        public IReadOnlyList<EnteRow> Enti { get; set; } = new[]
+        {
+            new EnteRow(1, "LIRF", "LIRF_TWR", "Fiumicino Tower"),
+            new EnteRow(2, null, "LIRR_CTR", null),
+            new EnteRow(3, "LIRF", "LIRF_DEL", "Fiumicino Delivery"),
+        };
 
         /// <summary>Le soglie di LIRF: la 16L c'è, la 17L no — è il caso della deriva magnetica.</summary>
         public IReadOnlyList<string> Piste { get; set; } = new[] { "16L", "16R" };
@@ -139,6 +148,12 @@ public class RiferimentiDatoTests
                 new LinkableFrequencyRow(1, "LIRF", "LIRF_TWR", "118.700", "Fiumicino Tower"),
                 new LinkableFrequencyRow(2, null, "LIRR_CTR", "124.850", null),
             });
+        }
+
+        public Task<IReadOnlyList<EnteRow>> NominativiAsync(CancellationToken ct = default)
+        {
+            ChiamateNominativi++;
+            return Task.FromResult(Enti);
         }
 
         public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
@@ -228,8 +243,90 @@ public class RiferimentiDatoTests
         var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
 
         Assert.Empty(ControlloDatiCitati.Controlla(new[] { ("Dove", (string?)testi[0]) }, risolti.Dati));
+        // Il catalogo dei punti è una sorgente sola: o risponde o non risponde.
         Assert.False(risolti.Dati.Guardata(TipoDato.Punto));
-        Assert.False(risolti.Dati.Guardata(TipoDato.Pista));
+        // Le piste invece si chiedono per SCALO. La domanda è stata fatta — quindi la famiglia è guardata —
+        // ma LIRF non ha nemmeno una soglia in anagrafica: per quello scalo è «non lo so», non «non c'è».
+        Assert.True(risolti.Dati.Guardata(TipoDato.Pista));
+        Assert.True(risolti.Dati.Muta(TipoDato.Pista, "LIRF 16L"));
+    }
+
+    /// <summary>
+    /// 🔴 L'altra metà, e prima mancava del tutto: uno scalo che <b>non esiste</b>. Con «guardata» dichiarata
+    /// per famiglia, un ICAO inventato tornava senza soglie esattamente come uno scalo vero non ancora
+    /// importato: se era l'unico citato la famiglia non risultava guardata e l'avviso <b>non compariva</b>,
+    /// mentre se il testo citava anche uno scalo vero l'avviso arrivava. Stesso testo, due comportamenti.
+    /// </summary>
+    [Fact]
+    public async Task Uno_Scalo_Che_Non_Esiste_Si_Segnala_Anche_Da_Solo()
+    {
+        var catalogo = new Catalogo();   // l'anagrafica risponde solo per LIRF
+        var testi = new[] { "Da [[RWY LIZZ 07]]." };
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        var d = Assert.Single(ControlloDatiCitati.Controlla(new[] { ("Piste", (string?)testi[0]) }, risolti.Dati));
+        Assert.Equal("LIZZ 07", d.Chiave);
+    }
+
+    /// <summary>
+    /// La pista vuole tutti e due i gettoni. Con il secondo facoltativo, un <c>[[RWY LIRF]]</c> scritto a mano
+    /// entrava fra i citati, non si risolveva mai — la chiave delle piste è «scalo soglia» — e la testata
+    /// diceva «non si trova più nell'archivio» di un dato che c'è.
+    /// </summary>
+    [Fact]
+    public async Task Una_Pista_Senza_Soglia_Non_E_Un_Riferimento()
+    {
+        var catalogo = new Catalogo();
+        var testi = new[] { "Da [[RWY LIRF]]." };
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        Assert.Empty(RiferimentiDato.Citati(testi));
+        Assert.Equal(testi[0], Riferimenti.Sostituisci(testi[0], risolti));   // il testo resta com'è
+        Assert.Empty(ControlloDatiCitati.Controlla(new[] { ("Piste", (string?)testi[0]) }, risolti.Dati));
+    }
+
+    /// <summary>
+    /// 🔴 Il nominativo non dipende dall'avere una frequenza. <c>LIRF_DEL</c> non ne ha una dichiarata — non
+    /// è nell'elenco delle linkabili — e prima il suo <c>[[ATC …]]</c> usciva col ripiego e per giunta
+    /// segnalato come sparito dall'archivio.
+    /// </summary>
+    [Fact]
+    public async Task Un_Ente_Senza_Frequenza_Ha_Comunque_Un_Nominativo()
+    {
+        var catalogo = new Catalogo();
+        var testi = new[] { "Chiama [[ATC LIRF_DEL]]." };
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        Assert.Equal("Chiama Fiumicino Delivery.", Riferimenti.Sostituisci(testi[0], risolti));
+        Assert.Empty(ControlloDatiCitati.Controlla(new[] { ("Enti", (string?)testi[0]) }, risolti.Dati));
+        // ⚠️ E non si è chiesto l'elenco delle frequenze: sono due domande diverse.
+        Assert.Equal(0, catalogo.Chiamate);
+        Assert.Equal(1, catalogo.ChiamateNominativi);
+    }
+
+    /// <summary>
+    /// Il valore prende il posto del riferimento anche DENTRO il JSON dei blocchi tabella: una virgoletta
+    /// arrivata dal catalogo IVAO spaccherebbe il JSON, e il blocco smetterebbe di rendersi in una pagina
+    /// sola, senza un errore che lo dica.
+    /// </summary>
+    [Fact]
+    public async Task Un_Nominativo_Con_Una_Virgoletta_Non_Spacca_Il_Json()
+    {
+        var catalogo = new Catalogo
+        {
+            Enti = new[] { new EnteRow(1, "LIRF", "LIRF_TWR", "Fiumicino \"Tower\"") },
+        };
+        var json = "{\"cells\":[\"Su [[ATC LIRF_TWR]]\"]}";
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo)
+            .PerTestiAsync(new[] { json });
+
+        var reso = Riferimenti.Sostituisci(json, risolti)!;
+        Assert.Equal("{\"cells\":[\"Su Fiumicino Tower\"]}", reso);
+        System.Text.Json.JsonDocument.Parse(reso);   // resta JSON valido: è tutto il punto
     }
 
     /// <summary>La via breve: un testo che non cita dati non fa nessuna domanda.</summary>

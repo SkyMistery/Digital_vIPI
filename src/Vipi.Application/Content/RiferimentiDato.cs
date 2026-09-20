@@ -49,8 +49,15 @@ public static class RiferimentiDato
     /// STESSA regola, e un riferimento che il renderer riconosce e la protezione no partirebbe verso il
     /// motore.</para>
     /// </remarks>
+    /// <remarks>
+    /// ⚠️ La <b>pista vuole tutti e due</b> i gettoni, e non è pignoleria: con il secondo facoltativo un
+    /// <c>[[RWY LIRF]]</c> scritto a mano entrava fra i citati, non si risolveva mai — la chiave delle piste
+    /// è «scalo soglia» — e finiva nella testata dell'editor come «non si trova più nell'archivio». Che è
+    /// falso: il dato c'è, è il riferimento a essere scritto male. Non riconoscerlo lascia il testo com'è,
+    /// che è la verità.
+    /// </remarks>
     internal static readonly Regex Riferimento = new(
-        @"\[\[(FREQ|ATC|RWY|FIX) ([A-Z0-9_]{2,16})(?: ([A-Z0-9]{1,4}))?\]\]",
+        @"\[\[(?:(?<tipo>FREQ|ATC|FIX) (?<chiave>[A-Z0-9_]{2,16})|(?<tipo>RWY) (?<chiave>[A-Z]{4}) (?<soglia>[A-Z0-9]{1,4}))\]\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>La parola del tipo, come si scrive nel riferimento.</summary>
@@ -62,7 +69,7 @@ public static class RiferimentiDato
         _ => "FIX",
     };
 
-    private static TipoDato TipoDi(Match m) => m.Groups[1].Value switch
+    private static TipoDato TipoDi(Match m) => m.Groups["tipo"].Value switch
     {
         "FREQ" => TipoDato.Frequenza,
         "ATC" => TipoDato.Nominativo,
@@ -72,14 +79,23 @@ public static class RiferimentiDato
 
     /// <summary>La chiave come la si confronta: i due gettoni uniti da uno spazio, in maiuscolo.</summary>
     private static string ChiaveDi(Match m) =>
-        m.Groups[3].Success ? $"{m.Groups[2].Value} {m.Groups[3].Value}" : m.Groups[2].Value;
+        m.Groups["soglia"].Success ? $"{m.Groups["chiave"].Value} {m.Groups["soglia"].Value}" : m.Groups["chiave"].Value;
+
+    /// <summary>
+    /// Lo <b>scopo</b> di una chiave: la parte che dice a quale sorgente appartiene. Per una pista è lo scalo
+    /// — <c>LIRF 16L</c> vive nell'anagrafica di <c>LIRF</c> —, per le altre famiglie è la chiave intera.
+    /// Serve a dire «questa sorgente non ha risposto» senza spegnere gli avvisi di tutte le altre.
+    /// </summary>
+    public static string ScopoDi(TipoDato tipo, string chiave) =>
+        tipo == TipoDato.Pista ? RiferimentiProcedura.Norm(chiave).Split(' ')[0] : RiferimentiProcedura.Norm(chiave);
 
     /// <summary>
     /// Il ripiego quando il valore non si trova: <b>il pezzo che si legge</b>, non la chiave intera. Su
     /// <c>[[RWY LIRF 16L]]</c> è <c>16L</c> — lo scalo è il contesto della frase, e «da LIRF 16L» in mezzo a un
     /// paragrafo che parla già di LIRF si legge male.
     /// </summary>
-    private static string RipiegoDi(Match m) => m.Groups[3].Success ? m.Groups[3].Value : m.Groups[2].Value;
+    private static string RipiegoDi(Match m) =>
+        m.Groups["soglia"].Success ? m.Groups["soglia"].Value : m.Groups["chiave"].Value;
 
     /// <summary>Il testo del riferimento per quel tipo e quella chiave.</summary>
     public static string Scrivi(TipoDato tipo, string chiave) =>
@@ -126,6 +142,7 @@ public sealed class ValoriDato
 {
     private readonly Dictionary<(TipoDato Tipo, string Chiave), string> _valori = new();
     private readonly HashSet<TipoDato> _guardate;
+    private readonly HashSet<(TipoDato Tipo, string Scopo)> _mute;
 
     public static ValoriDato Vuoto { get; } = new(Array.Empty<(TipoDato, string, string)>());
 
@@ -136,15 +153,26 @@ public sealed class ValoriDato
     /// giù, sectorfile spento in una prova — ogni <c>[[FIX …]]</c> del documento sembrerebbe sparito, e
     /// l'editor riempirebbe la testata di avvisi falsi. Quel che non si è potuto guardare non si segnala.</para>
     /// </param>
+    /// <param name="mute">
+    /// Le sorgenti che, <b>dentro</b> una famiglia guardata, non hanno risposto: per le piste lo scalo che
+    /// esiste ma non ha ancora nemmeno una soglia in anagrafica. Senza questa distinzione «guardata» era una
+    /// risposta sola per tutta la famiglia, e le due domande sbagliavano insieme: uno scalo citato con un
+    /// ICAO che non esiste non veniva segnalato (nessuna soglia, famiglia non guardata), mentre uno scalo
+    /// senza piste importate faceva scattare l'avviso appena un ALTRO scalo del testo le aveva.
+    /// </param>
     public ValoriDato(IEnumerable<(TipoDato Tipo, string Chiave, string Valore)> voci,
-        IEnumerable<TipoDato>? guardate = null)
+        IEnumerable<TipoDato>? guardate = null,
+        IEnumerable<(TipoDato Tipo, string Scopo)>? mute = null)
     {
         _guardate = guardate is null ? new HashSet<TipoDato>() : new HashSet<TipoDato>(guardate);
+        _mute = mute is null
+            ? new HashSet<(TipoDato, string)>()
+            : new HashSet<(TipoDato, string)>(mute.Select(m => (m.Tipo, RiferimentiProcedura.Norm(m.Scopo))));
         foreach (var (tipo, chiave, valore) in voci)
         {
             var k = RiferimentiProcedura.Norm(chiave);
             if (k.Length == 0 || string.IsNullOrWhiteSpace(valore)) continue;
-            _valori[(tipo, k)] = valore.Trim();
+            _valori[(tipo, k)] = RiferimentiProcedura.ValoreScrivibile(valore);
         }
     }
 
@@ -157,6 +185,13 @@ public sealed class ValoriDato
 
     /// <summary>Vero se quella famiglia è stata guardata davvero, e quindi «non trovato» vuol dire qualcosa.</summary>
     public bool Guardata(TipoDato tipo) => _guardate.Contains(tipo);
+
+    /// <summary>
+    /// Vero se la sorgente di QUELLA chiave non ha risposto, dentro una famiglia pure guardata: «non lo so»,
+    /// quindi niente avviso. Vedi il parametro <c>mute</c> del costruttore.
+    /// </summary>
+    public bool Muta(TipoDato tipo, string chiave) =>
+        _mute.Contains((tipo, RiferimentiDato.ScopoDi(tipo, chiave)));
 }
 
 /// <summary>Un dato citato che l'editor segnala in cima al documento: non si trova più.</summary>
@@ -190,9 +225,10 @@ public static class ControlloDatiCitati
             }
         }
 
-        // ⚠️ Solo le famiglie GUARDATE: una sorgente che non ha risposto non dice «non c'è», dice «non lo so»,
-        // e riempire la testata di avvisi falsi è il modo più rapido per far smettere di leggerli.
-        return dove.Where(d => valori.Guardata(d.Key.Tipo))
+        // ⚠️ Solo le famiglie GUARDATE, e dentro quelle solo le sorgenti che hanno risposto: una sorgente
+        // muta non dice «non c'è», dice «non lo so», e riempire la testata di avvisi falsi è il modo più
+        // rapido per far smettere di leggerli.
+        return dove.Where(d => valori.Guardata(d.Key.Tipo) && !valori.Muta(d.Key.Tipo, d.Key.Chiave))
             .Where(d => valori.Valore(d.Key.Tipo, d.Key.Chiave) is null)
             .OrderBy(d => d.Key.Tipo)
             .ThenBy(d => d.Key.Chiave, StringComparer.Ordinal)

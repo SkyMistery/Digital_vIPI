@@ -57,6 +57,15 @@ public class CitaDallArchivioTests : TestContext
                 new LinkableFrequencyRow(2, "LIBD", "LIBD_TWR", "118.300", "Bari Tower"),
             });
 
+        /// <summary>⚠️ LIBD_APP non ha frequenza: il suo NOMINATIVO si deve poter citare lo stesso.</summary>
+        public Task<IReadOnlyList<EnteRow>> NominativiAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<EnteRow>>(new[]
+            {
+                new EnteRow(1, "LIRF", "LIRF_TWR", "Fiumicino Tower"),
+                new EnteRow(2, "LIBD", "LIBD_TWR", "Bari Tower"),
+                new EnteRow(3, "LIBD", "LIBD_APP", "Bari Approach"),
+            });
+
         public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
             IReadOnlyCollection<string> icaos, CancellationToken ct = default) =>
             Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<string>>>(
@@ -163,12 +172,20 @@ public class CitaDallArchivioTests : TestContext
         c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
 
         c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "ATC").Click();
-        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+        // 🔴 TRE, non due: l'elenco dei nominativi non è quello delle frequenze. `LIBD_APP` non ha una
+        // frequenza dichiarata, quindi non è fra le linkabili — ma un nome alla radio ce l'ha, e fino al
+        // 20 settembre 2026 non si poteva citare.
+        c.WaitForAssertion(() => Assert.Equal(3, c.FindAll(".sidref-pick-row").Count));
 
+        var righe = c.FindAll(".sidref-pick-row").Select(r => r.TextContent).ToList();
+        // Lo scalo del documento per primo, e dentro lo scalo per callsign.
+        Assert.Contains("Bari Approach", righe[0]);
         // Nell'elenco si legge il NOMINATIVO, col callsign accanto: è quello che si sta citando.
-        Assert.Contains("Bari Tower", c.FindAll(".sidref-pick-row").First().TextContent);
+        Assert.Contains("Bari Tower", righe[1]);
 
-        c.FindAll(".sidref-pick-row").First().Click();
+        // ⚠️ `Skip(1).First()` e non l'indicizzatore: quello di bUnit chiama un membro di AngleSharp che a
+        // runtime non si risolve (`MissingMethodException`), e il test cadrebbe per la ragione sbagliata.
+        c.FindAll(".sidref-pick-row").Skip(1).First().Click();
         Assert.Equal("[[ATC LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 

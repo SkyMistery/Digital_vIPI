@@ -51,6 +51,12 @@ public interface IAirportRepository : IAirportProfileReader
     /// <summary>Tutti i settori con frequenza nel DB (per il picker di link), con ICAO/callsign.</summary>
     Task<IReadOnlyList<LinkableFrequencyRow>> ListLinkableFrequenciesAsync(CancellationToken ct = default);
 
+    /// <summary>
+    /// Tutti i settori col loro nominativo radio, <b>frequenza o no</b>: è la domanda dei riferimenti
+    /// <c>[[ATC …]]</c>. Vedi <see cref="EnteRow"/> per perché non è <see cref="ListLinkableFrequenciesAsync"/>.
+    /// </summary>
+    Task<IReadOnlyList<EnteRow>> ListSectorCallsignsAsync(CancellationToken ct = default);
+
     Task SetTransitionAltitudeAsync(string icao, int? ta, CancellationToken ct = default);
 
     /// <summary>Scrive la stazione METAR di riferimento dello scalo; <c>null</c> = il suo ICAO.</summary>
