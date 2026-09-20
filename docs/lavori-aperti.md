@@ -2,6 +2,38 @@
 
 ## Dove siamo — 20 settembre 2026
 
+### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — ramo `review-a80-difetti`
+
+Riletti i dieci commit di A80 come se li avesse scritti qualcun altro. **Nessuno dei nove difetti faceva
+cadere un test**, e due non avrebbero fatto cadere nemmeno la build. L'elenco intero, con «che cosa NON è
+stato trovato», sta nel [foglio di review](review/2026-09-20-a80-star-e-riferimenti.md) §8.
+
+I due che contano davvero, tutti e due sul percorso **Postgres** (Render+Neon), dove lo schema non lo allineano
+le migrazioni ma `PostgresSchemaReconciler`:
+
+- 🔴 **La colonna `Kind` nasceva con la stringa VUOTA.** Il reconciler backfilla col default dichiarato nel
+  **modello**, e `AirportProcedure.Kind` non ne aveva uno: cadeva sul ripiego per tipo store. Ma gli enum si
+  salvano come stringa e si rileggono in modo **non tollerante** — `''` non è il nome di nessun valore, e la
+  prima lettura delle procedure sarebbe esplosa **con le ~1470 righe ancora tutte al loro posto**. Stesso
+  inciampo già pagato con `ImportPolicy.ImportSids` e con `Acc.SpecialAreasEnabled`. Corretto nel modello, e
+  con una rete per la prossima colonna enum (`BackfillLiteral` usa il valore di partenza dell'enum) presidiata
+  da un test di **classe**, non del caso singolo.
+- 🔴 **`ALTER TABLE … RENAME TO` non rinomina indici e vincoli.** Restavano `IX_AirportSids_…` e
+  `FK_AirportSids_…`: il passo degli indici ne creava un secondo identico, e la prima migrazione futura che
+  avesse provato a lasciar cadere quel vincolo per nome sarebbe fallita. Su MySQL era stato fatto a mano, qui
+  no.
+
+Gli altri sette: gli arrivi resi posizionali in `AirportDerived` (con un default, la prossima derivazione
+sarebbe nata muta), le 17+17 chiavi `K("…_Sid")` fuori da ogni guardia, `[[ATC …]]` risolto dall'elenco delle
+frequenze (un ente senza frequenza non si poteva citare), le chip **RWY** e **FIX** che mancavano al
+selettore, «sorgente muta» per famiglia invece che per scalo, il valore che entrava nel JSON senza ripulitura,
+e la conversione dei testi già scritti che non guardava il verso.
+
+- **Suite**: Application 2733, Ui 1644, Infrastructure 1578/1569, E2E 401 — tutte verdi su entrambi i TFM;
+  `dotnet build Vipi.slnx -c Release --no-incremental` verde.
+- ▶ **Resta**: la verifica **dal vivo** delle due chip nuove su una copia del `vipi.db`, con traccia. E la
+  consegna di A80 resta quella di sotto — è ancora la prima con una migrazione dal 1.27.0.
+
 ### ✅ A80 — STAR dal sectorfile, e i riferimenti ai dati (20 settembre 2026) — in `main`, NON in pacchetto
 
 Due filoni chiusi, sette commit, tutto verificato a schermo su una copia del `vipi.db`.

@@ -5,6 +5,11 @@
 > non a ricostruire il contesto.
 >
 > Nulla di tutto questo è ancora **consegnato**: sta in `main`, e la consegna ha un avvertimento suo (§7).
+>
+> ✅ **La review è stata fatta** il 20 settembre 2026, su tutti e dieci i commit, leggendo il codice come se
+> l'avesse scritto qualcun altro. **Nove difetti**, nessuno dei quali fermava un test: stanno in §8, con dove
+> sono stati corretti. Il più grave — il percorso Postgres — avrebbe reso illeggibile la tabella delle
+> procedure al primo deploy su Render, con tutte le righe ancora al loro posto.
 
 ## 1. Che cosa è stato chiesto
 
@@ -110,3 +115,40 @@ E2E 401, Domain 152, Hosting 68, Assets 61, AuroraBridge 80, AuroraProfiles 65.
 - dopo il carico, la sezione «STAR» compare nei documenti **pubblicati** solo dalla **prossima release** di
   ciascuno: è lo snapshot che fa il suo mestiere, non un difetto;
 - le STAR importate restano in attesa del **ciclo d'entrata** dichiarato dalla sorgente.
+
+## 8. L'esito della review (20 settembre 2026)
+
+Nove difetti, in ordine di gravità. **Nessuno faceva cadere un test**, e due su nove non avrebbero fatto
+cadere nemmeno la build di produzione: si sarebbero visti in faccia solo al deploy o leggendo una pagina.
+Tutti corretti in cinque commit sul ramo `review-a80-difetti`, ognuno con la sua prova.
+
+| # | Dove | Che cosa | Come si sarebbe visto |
+|---|---|---|---|
+| 8.1 🔴 | `VipiDbContext` + `PostgresSchemaReconciler` | `Kind` senza default nel modello: sul percorso Postgres la colonna nasceva con la **stringa vuota** | la prima lettura delle procedure ESPLODE — enum non tollerante — con le ~1470 righe ancora al loro posto |
+| 8.2 🔴 | `PostgresSchemaReconciler` | la rinomina della tabella non portava con sé **indici e vincoli** | un secondo indice identico creato dal passo indici, e la prima migrazione futura che tocca quel vincolo per nome fallisce |
+| 8.3 🟠 | `AirportDerived` | gli arrivi erano una proprietà `init` **con un default**, non un membro posizionale | la prossima derivazione che nascesse senza riempirli: sezione STAR **vuota** in pagina, zero errori |
+| 8.4 🟠 | `SharedResourceIntegrityTests` | le chiavi composte con `K("…_Sid")` erano fuori da **tutte** le guardie (17 per verso) | una gemella `_Star` dimenticata stampa il NOME DELLA CHIAVE in testa alla tabella |
+| 8.5 🟡 | `RiferimentiResolver` | `[[ATC …]]` risolto dall'elenco delle **frequenze linkabili** | un ente senza frequenza non si può citare; cancellare una frequenza fa «sparire» un nominativo già scritto |
+| 8.6 🟡 | `RiferimentoPicker` | piste e punti si risolvevano e si segnalavano ma **non si potevano inserire** | si scrivono a mano, e la chiave sbagliata torna come «il dato non c'è più» |
+| 8.7 🟡 | `RiferimentiDato` / `RiferimentiResolver` | «sorgente muta» dichiarata **per famiglia**, e il secondo gettone della pista facoltativo | un ICAO inventato non veniva segnalato affatto; `[[RWY LIRF]]` segnalato a torto |
+| 8.8 🟡 | `Riferimenti.Sostituisci` | il **valore** entrava nel JSON delle tabelle senza ripulitura | una virgoletta nel nominativo IVAO spacca il JSON: il blocco smette di rendersi, in una pagina sola |
+| 8.9 🟢 | `ConversioneSid` | la conversione dei testi già scritti non guardava il **verso** | un nome che è SID *e* STAR convertito in partenza anche dov'era un arrivo — e scrive nei documenti |
+
+Minuzie nello stesso giro: il `colspan` della riga «nessuna corrispondenza» sulle tabelle degli arrivi (11 e
+12 colonne, non 12 e 13) e gli scaglioni di `Order` delle importate, che con 1000 e 2000 si accavallavano
+oltre le mille partenze per scalo.
+
+**Che cosa la review NON ha trovato** — vale quanto l'elenco sopra, perché dice dove non serve tornare: le due
+migrazioni scritte a mano (ordine FK→indice→rinomina→colonna corretto, `Down` che cancella le STAR prima della
+rinomina in entrambe), i filtri `Kind` nel repository (nove letture più le due scritture, tutti per verso), la
+`StableKey` delle STAR (prefisso `STAR|`, quella delle SID **invariata**), la protezione dalla traduzione, il
+tipo del valore in cascata nei sei punti che lo passano, il rename propagato (zero occorrenze residue dei nomi
+vecchi) e le chiavi `_Star` nei due resx.
+
+**Stato delle suite dopo le correzioni**: Application 2733, Ui 1644, Infrastructure 1578 (net8) / 1569
+(net10), E2E 401, Domain 152, Hosting 68, Assets 61, AuroraBridge 80, AuroraProfiles 65 — tutte verdi su
+entrambi i TFM, `dotnet build Vipi.slnx -c Release` verde.
+
+▶ **Resta da fare**: la verifica **dal vivo** delle due chip nuove (RWY e FIX) e del selettore su una copia
+del `vipi.db`, con traccia. I test le coprono, ma questa carta ha un gate suo — «le regressioni Blazor sono
+silenziose coi test verdi» — e quel gate non si salta.

@@ -80,6 +80,15 @@ tabella rinominata la vedrebbe come una tabella **nuova e vuota**, lasciando i d
 aggiunto un passo di rinomina idempotente (`TabelleRinominate`), da tenere per sempre: è l'unica memoria del
 cambio su quel provider.
 
+🔴 **E non bastava: due difetti su quel percorso, trovati dalla review** (vedi il
+[foglio di review](../review/2026-09-20-a80-star-e-riferimenti.md) §8.1 e §8.2). La colonna `Kind` nasceva con
+la **stringa vuota** — il reconciler backfilla col default dichiarato nel modello, e `AirportProcedure.Kind`
+non ne aveva uno — e un enum si rilegge in modo non tollerante: la prima lettura delle procedure sarebbe
+esplosa, con le ~1470 righe ancora tutte al loro posto. E `ALTER TABLE … RENAME TO` **non rinomina** indici e
+vincoli, esattamente come su MySQL: restavano `IX_AirportSids_…` e `FK_AirportSids_…`, il passo degli indici
+ne creava un secondo identico, e la prima migrazione futura che avesse provato a lasciar cadere quel vincolo
+per nome sarebbe fallita.
+
 Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `SourceSid`) con `ProcedureKind`.
 
 ### Slice previste (dopo la decisione)
@@ -133,6 +142,10 @@ Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `Sou
    `SidDaRivedere`→`ProceduraDaRivedere`.
    ⚠️ **Non fatto, e di proposito**: la conversione dell'esistente (`ConversioneSid`) resta sulle sole SID —
    i documenti scritti finora non citano STAR, perché in vIPI non esistevano.
+   🔴 Ma **il verso le serve lo stesso** (review §8.9): un nome che a quello scalo è sia partenza sia arrivo
+   sarebbe stato convertito in `[[SID …]]` anche dove nel testo era un arrivo, e in pagina sarebbe uscito il
+   nome di un'altra procedura — su un gesto che scrive nei documenti e non si disfa. Ora il pannello legge
+   anche gli arrivi e le forme comuni ai due versi si **elencano**, non si propongono.
 
 ## 4. Che altro può seguire la sorgente
 
