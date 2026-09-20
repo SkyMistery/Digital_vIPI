@@ -1,4 +1,34 @@
-# Lavori aperti — elenco unico
+﻿# Lavori aperti — elenco unico
+
+## Dove siamo — 20 settembre 2026
+
+### ✅ A80 — STAR dal sectorfile, e i riferimenti ai dati (20 settembre 2026) — in `main`, NON in pacchetto
+
+Due filoni chiusi, sette commit, tutto verificato a schermo su una copia del `vipi.db`.
+
+**Le STAR** (carta `docs/feature/2026-09-20-star-e-altri-riferimenti.md`):
+
+- **parser** dei `.str` — 645 STAR su 54 scali. Il file non è un file di STAR: un quarto è menu mappe, e due
+  filtri lo separano (almeno una pista vera nel campo 2, tipo vuoto nel campo 6).
+- **archivio**: `AirportSid` → **`AirportProcedure`** con la colonna `Kind`. 🔴 **C'è una MIGRAZIONE**, e il suo
+  corpo è **scritto a mano**: lo scaffolding proponeva `DropTable` + `CreateTable`, cioè le 1469 righe SID di
+  produzione buttate. Provata su una copia di produzione (rename + colonna, e il dietrofront).
+- **import** `.str` nello stesso giro delle SID, **editor** (stesso componente, `Kind` diverso), **sezione
+  «STAR»** nel documento (catalogo, derivazione, congelamento).
+- 🔴 Nel documento **pubblicato** la sezione compare solo **dalla prossima release**; nella bozza subito. E le
+  STAR appena importate aspettano il **ciclo d'entrata** che la sorgente dichiara (LIBD: 2610).
+- `[[STAR LIRF ELKA3A]]` nel testo, accanto a `[[SID …]]`.
+
+**I riferimenti ai dati** (carta `docs/feature/2026-09-20-riferimenti-ai-dati.md`): `[[FREQ LIBD_TWR]]`,
+`[[ATC LIBD_TWR]]`, `[[RWY LIBD 07]]`, `[[FIX BANAV]]`, con l'avviso in testata all'editor per quel che non si
+trova più, e **un selettore solo** a quattro chip (SID · STAR · FREQ · ATC; il tasto si chiama «Cita»).
+
+🔴 **Difetto trovato e corretto nello stesso giro**: la protezione dalla traduzione cercava `[[SID ` cablato, e
+dalla slice delle STAR ogni riferimento d'arrivo **partiva verso il motore**. Muto: test verdi, e si sarebbe
+visto solo leggendo una traduzione.
+
+▶ **Da fare alla consegna**: è la prima consegna con una **migrazione** dal 1.27.0 — foglio del pacchetto con
+la riga della migrazione, e copia di sicurezza del database **prima** del carico.
 
 ## Dove siamo — 18 settembre 2026
 
