@@ -348,6 +348,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-18-f1-archi-convertitore.md`](feature/2026-09-18-f1-archi-convertitore.md) — F1 — Archi, cerchi e frasi dell'AIP nel convertitore di coordinate (§A71)
 - [`feature/2026-09-18-ponte-rfo-gate-manager.md`](feature/2026-09-18-ponte-rfo-gate-manager.md) — Ponte RFO Gate Manager: il documento condiviso delle postazioni di un evento RFO (§A72) ✅ online in 1.33.0
 - [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md) — SID citate nel testo: il nome segue la SID quando si aggiorna (§A73) ✅ online in 1.34.0
+- [`feature/2026-09-20-star-e-altri-riferimenti.md`](feature/2026-09-20-star-e-altri-riferimenti.md) — STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
 ### `guide`
 

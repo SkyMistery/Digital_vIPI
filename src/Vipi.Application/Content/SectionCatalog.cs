@@ -364,7 +364,7 @@ public static class SectionCatalog
                     // ⚠️ Sorella e non figlia di «Piste», come le SID: stessa scelta, stesso indice leggibile.
                     H("runwayrules", "Regole piste", 5, en: "Runway selection rules"),
                     // Derivata, come la sorella civile: le SID stanno nell'ANAGRAFICA dello scalo
-                    // (`AirportSids`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
+                    // (`AirportProcedures`, importate dal sectorfile), non nel documento — la vIPI civile e' solo
                     // la porta di SCRITTURA. Quindi qui non c'e' nessun ramo da fare: il vSOP legge
                     // dall'aeroporto, misto o solo militare che sia.
                     // ⚠️ Sorella di «Piste» e non figlia: una scelta di indice, decisa dal committente.

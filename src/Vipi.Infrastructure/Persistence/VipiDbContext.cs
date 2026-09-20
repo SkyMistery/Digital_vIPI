@@ -185,7 +185,7 @@ public class VipiDbContext : DbContext
     public DbSet<AirportRunway> AirportRunways => Set<AirportRunway>();
     public DbSet<AirportRunwayRule> AirportRunwayRules => Set<AirportRunwayRule>();
     public DbSet<AirportLvpMinima> AirportLvpMinima => Set<AirportLvpMinima>();
-    public DbSet<AirportSid> AirportSids => Set<AirportSid>();
+    public DbSet<AirportProcedure> AirportProcedures => Set<AirportProcedure>();
     public DbSet<SidFixAlias> SidFixAliases => Set<SidFixAlias>();
     public DbSet<AirportFrequencyLink> AirportFrequencyLinks => Set<AirportFrequencyLink>();
     public DbSet<AirportExtraSection> AirportExtraSections => Set<AirportExtraSection>();
@@ -660,7 +660,7 @@ public class VipiDbContext : DbContext
             e.HasOne(x => x.Airport).WithMany(a => a.LvpMinima).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
             e.Property(x => x.Note).HasMaxLength(2000);
         });
-        b.Entity<AirportSid>(e =>
+        b.Entity<AirportProcedure>(e =>
         {
             e.HasIndex(x => new { x.AirportId, x.Order });
             // NON aggiungere un indice unico su (AirportId, StableKey): la StableKey esclude di proposito la cifra
@@ -668,7 +668,7 @@ public class VipiDbContext : DbContext
             // produce legittimamente due righe con la stessa chiave. Misurato sul DB di sviluppo: 20 coppie così
             // su 1478 righe. Vedi ReplaceImportedSidsAsync, che per questo indicizza le righe precedenti con una
             // regola first-wins e non con un dizionario a chiave unica.
-            e.HasOne(x => x.Airport).WithMany(a => a.Sids).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Airport).WithMany(a => a.Procedures).HasForeignKey(x => x.AirportId).OnDelete(DeleteBehavior.Cascade);
         });
         b.Entity<AirportFrequencyLink>(e =>
         {

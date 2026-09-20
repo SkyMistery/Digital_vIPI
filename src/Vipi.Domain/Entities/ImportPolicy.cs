@@ -19,7 +19,7 @@ public class ImportPolicy
     // elevazione — arrivano nella stessa risposta e sono di sorgente come gli altri tre.
     public bool ImportRunways { get; set; } = true;
     public bool ImportSectors { get; set; } = true;               // Sector.Callsign/Type/DefaultFrequency
-    public bool ImportSids { get; set; } = true;                  // AirportSid dal sectorfile Aurora (GitHub)
+    public bool ImportSids { get; set; } = true;                  // AirportProcedure dal sectorfile Aurora (GitHub)
     public bool ImportSpecialAreas { get; set; } = true;          // SpecialArea (aree regolamentate per ACC)
 
     /// <summary>

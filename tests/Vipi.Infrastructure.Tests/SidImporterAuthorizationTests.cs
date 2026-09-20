@@ -83,7 +83,7 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
     }
 
     private async Task<int> SidImportateAsync() =>
-        await _db.AirportSids.CountAsync(s => s.IsImported);
+        await _db.AirportProcedures.CountAsync(s => s.IsImported);
 
     /// <summary>L'ingresso della UI chiede il permesso sulla ACC dell'aeroporto.</summary>
     [Fact]

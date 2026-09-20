@@ -1,4 +1,5 @@
 using Vipi.Application.Abstractions;
+using Vipi.Domain.Entities;
 using Vipi.Infrastructure.Sectorfile;
 using Xunit;
 

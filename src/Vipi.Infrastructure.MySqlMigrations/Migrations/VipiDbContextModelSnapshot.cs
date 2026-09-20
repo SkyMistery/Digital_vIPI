@@ -627,6 +627,105 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("AirportLvpMinima");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportProcedure", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AirportId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Cat")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Condition")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Fix")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("FixOverride")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("ForcePublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("InitialClimb")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("InitialClimbByApp")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<bool>("NeedsFixReview")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Runway")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceAiracCycle")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("StableKey")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Transition")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("TransitionOverride")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Type")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("Wtc")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AirportId", "Order");
+
+                    b.ToTable("AirportProcedures");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
                 {
                     b.Property<int>("Id")
@@ -882,99 +981,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.HasIndex("ParentCallsign");
 
                     b.ToTable("AirportSectors");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("AirportId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Cat")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Condition")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Fix")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("FixOverride")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("ForcePublished")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("InitialClimb")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("InitialClimbByApp")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsHidden")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<bool>("IsImported")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<bool>("NeedsFixReview")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Runway")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("SourceAiracCycle")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("StableKey")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Transition")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("TransitionOverride")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Type")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.Property<string>("Wtc")
-                        .HasColumnType("longtext")
-                        .UseCollation("utf8mb4_uca1400_as_cs");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AirportId", "Order");
-
-                    b.ToTable("AirportSids");
                 });
 
             modelBuilder.Entity("Vipi.Domain.Entities.AirportTransitionLevel", b =>
@@ -3636,6 +3642,17 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.Navigation("Airport");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.AirportProcedure", b =>
+                {
+                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
+                        .WithMany("Procedures")
+                        .HasForeignKey("AirportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Airport");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.AirportRunway", b =>
                 {
                     b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
@@ -3675,17 +3692,6 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .IsRequired();
 
                     b.Navigation("Acc");
-
-                    b.Navigation("Airport");
-                });
-
-            modelBuilder.Entity("Vipi.Domain.Entities.AirportSid", b =>
-                {
-                    b.HasOne("Vipi.Domain.Entities.Airport", "Airport")
-                        .WithMany("Sids")
-                        .HasForeignKey("AirportId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Airport");
                 });
@@ -4027,13 +4033,13 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.Navigation("LvpMinima");
 
+                    b.Navigation("Procedures");
+
                     b.Navigation("RunwayRules");
 
                     b.Navigation("Runways");
 
                     b.Navigation("Sectors");
-
-                    b.Navigation("Sids");
 
                     b.Navigation("TransitionLevels");
                 });

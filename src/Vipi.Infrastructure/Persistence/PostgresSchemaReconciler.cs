@@ -52,6 +52,9 @@ public static class PostgresSchemaReconciler
             try
             {
                 db.Database.EnsureCreated();
+                // Le RINOMINE prima di tutto: una tabella rinominata nel modello, qui, sarebbe una tabella
+                // «assente» — il passo sotto ne creerebbe una nuova e VUOTA lasciando i dati nella vecchia.
+                EnsureRenamedTables(conn, log);
                 // Prima le tabelle: colonne e indici di una tabella appena creata sono già dentro il CREATE TABLE,
                 // e i due passi successivi la trovano allineata.
                 EnsureModelTables(db, conn, log);
@@ -75,6 +78,40 @@ public static class PostgresSchemaReconciler
 
     private static bool IsNpgsql(DbContext db) =>
         db.Database.ProviderName?.Contains("Npgsql", StringComparison.OrdinalIgnoreCase) == true;
+
+    // --- Rinomine ---
+
+    /// <summary>
+    /// Le tabelle che hanno cambiato nome nel modello, <c>vecchio → nuovo</c>. Su questo percorso non ci sono
+    /// migrazioni che lo raccontino: senza questa lista una tabella rinominata si ripresenterebbe come una
+    /// tabella nuova e vuota, coi dati fermi in quella vecchia.
+    /// <para>Una voce si aggiunge quando il modello rinomina una tabella e <b>ci resta per sempre</b>: è la sola
+    /// memoria del cambio su questo provider. La rinomina si esegue una sola volta — quando la vecchia c'è e la
+    /// nuova no — quindi ripeterla è a vuoto.</para>
+    /// </summary>
+    private static readonly (string Vecchio, string Nuovo)[] TabelleRinominate =
+    {
+        // 20 settembre 2026: SID e STAR nella stessa tabella (`Kind`), carta 2026-09-20-star-e-altri-riferimenti.
+        ("AirportSids", "AirportProcedures"),
+    };
+
+    /// <summary>Applica <see cref="TabelleRinominate"/>: solo dove la vecchia esiste e la nuova ancora no.</summary>
+    private static void EnsureRenamedTables(IDbConnection conn, ILogger? log)
+    {
+        var presenti = new HashSet<string>(StringComparer.Ordinal);
+        using (var read = conn.CreateCommand())
+        {
+            read.CommandText = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'";
+            using var r = read.ExecuteReader();
+            while (r.Read()) presenti.Add(r.GetString(0));
+        }
+
+        foreach (var (vecchio, nuovo) in TabelleRinominate)
+        {
+            if (!presenti.Contains(vecchio) || presenti.Contains(nuovo)) continue;
+            TryExec(conn, $"ALTER TABLE \"{vecchio}\" RENAME TO \"{nuovo}\"", log, $"rinomina {vecchio} → {nuovo}");
+        }
+    }
 
     // --- Tabelle ---
 

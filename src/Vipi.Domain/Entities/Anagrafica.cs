@@ -109,7 +109,7 @@ public class AccSector
     /// Il ciclo AIRAC (YYNN) dal quale <see cref="RegionMapPolygon"/> entra in vigore. null = è già in vigore.
     /// <para>Lo stampa il ripiego dal sectorfile quando vede una geometria <b>nuova</b>, col ciclo
     /// <b>successivo</b> a quello corrente — la stessa regola del differimento delle SID
-    /// (<c>AirportSid.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
+    /// (<c>AirportProcedure.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
     /// lavoro schedulato, nessuna magia sull'orologio.</para>
     /// </summary>
     public string? ShapeAiracCycle { get; set; }
@@ -119,7 +119,7 @@ public class AccSector
 
     /// <summary>
     /// Pubblica la shape nuova <b>subito</b>, scavalcando il differimento. Gemello di
-    /// <c>AirportSid.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
+    /// <c>AirportProcedure.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
     /// di un errore, e un meccanismo che la trattiene 28 giorni sarebbe peggio del problema che risolve.
     /// </summary>
     public bool ShapeForcePublished { get; set; }
@@ -196,7 +196,7 @@ public class AirportSector
     /// Il ciclo AIRAC (YYNN) dal quale <see cref="RegionMapPolygon"/> entra in vigore. null = è già in vigore.
     /// <para>Lo stampa il ripiego dal sectorfile quando vede una geometria <b>nuova</b>, col ciclo
     /// <b>successivo</b> a quello corrente — la stessa regola del differimento delle SID
-    /// (<c>AirportSid.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
+    /// (<c>AirportProcedure.SourceAiracCycle</c>). L'import lo azzera da sé quando il ciclo è arrivato: nessun
     /// lavoro schedulato, nessuna magia sull'orologio.</para>
     /// </summary>
     public string? ShapeAiracCycle { get; set; }
@@ -206,7 +206,7 @@ public class AirportSector
 
     /// <summary>
     /// Pubblica la shape nuova <b>subito</b>, scavalcando il differimento. Gemello di
-    /// <c>AirportSid.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
+    /// <c>AirportProcedure.ForcePublished</c>, e per la stessa ragione: un aggiornamento può essere la correzione
     /// di un errore, e un meccanismo che la trattiene 28 giorni sarebbe peggio del problema che risolve.
     /// </summary>
     public bool ShapeForcePublished { get; set; }
@@ -395,7 +395,9 @@ public class Airport
     /// dichiarati» — non uno zero.</para>
     /// </summary>
     public ICollection<AirportLvpMinima> LvpMinima { get; set; } = new List<AirportLvpMinima>();
-    public ICollection<AirportSid> Sids { get; set; } = new List<AirportSid>();
+    /// <summary>Le procedure strumentali dello scalo, partenze <b>e</b> arrivi: si distinguono per
+    /// <see cref="AirportProcedure.Kind"/>, non per tabella.</summary>
+    public ICollection<AirportProcedure> Procedures { get; set; } = new List<AirportProcedure>();
     public ICollection<AirportFrequencyLink> FrequencyLinks { get; set; } = new List<AirportFrequencyLink>();
 
     /// <summary>Sezioni editoriali libere (testo) mostrate nella colonna destra del documento (sotto le SID su schermi stretti).</summary>
@@ -685,16 +687,40 @@ public class AirportLvpMinima
     public string? Note { get; set; }
 }
 
-/// <summary>Riga SID (editabile a mano oppure importata dal sectorfile Aurora, con merge che preserva le manuali).</summary>
-public class AirportSid
+/// <summary>Che procedura è una riga: partenza o arrivo.</summary>
+/// <remarks>⚠️ Un tipo SOLO, non due modelli gemelli: i file <c>&lt;icao&gt;.sid</c> e <c>&lt;icao&gt;.str</c> del
+/// sectorfile hanno lo stesso formato e gli stessi campi, e il gate «modello gemello» di
+/// <c>docs/FEATURE-PROCESS.md</c> vieta di affiancare una seconda tabella alla prima per la stessa cosa.</remarks>
+public enum ProcedureKind
+{
+    /// <summary>Partenza strumentale (SID), da <c>&lt;icao&gt;.sid</c>.</summary>
+    Sid = 0,
+
+    /// <summary>Arrivo strumentale (STAR), da <c>&lt;icao&gt;.str</c>.</summary>
+    Star = 1,
+}
+
+/// <summary>
+/// Riga di procedura strumentale — <b>SID o STAR</b>, e le due stanno nella stessa tabella perché hanno gli
+/// stessi campi e la stessa vita (import per <see cref="StableKey"/>, pubblicazione differita al ciclo AIRAC,
+/// correzioni a mano che sopravvivono al reimport). Editabile a mano oppure importata dal sectorfile Aurora,
+/// col merge che preserva le manuali.
+/// <para>⚠️ Chi legge <b>una sola</b> delle due famiglie filtra su <see cref="Kind"/>: senza filtro una STAR
+/// esce dove il lettore si aspetta una partenza.</para>
+/// </summary>
+public class AirportProcedure
 {
     public int Id { get; set; }
     public int AirportId { get; set; }
     public Airport? Airport { get; set; }
     public int Order { get; set; }
+
+    /// <summary>Partenza (<c>Sid</c>) o arrivo (<c>Star</c>). Le righe nate prima della colonna sono SID.</summary>
+    public ProcedureKind Kind { get; set; } = ProcedureKind.Sid;
+
     public string? Runway { get; set; }                // pista di validità (filtro nel viewer)
     public string Fix { get; set; } = default!;
-    public string Name { get; set; } = default!;       // nome SID
+    public string Name { get; set; } = default!;       // nome della procedura
     public string? Transition { get; set; }
     public string? InitialClimb { get; set; }
     /// <summary>La quota di initial climb va concordata con l'APP (non imposta d'ufficio). Flag editoriale.</summary>

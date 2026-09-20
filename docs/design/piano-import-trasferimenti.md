@@ -1,4 +1,4 @@
-# Importare i trasferimenti — le tabelle degli IPI dentro gli accordi
+﻿# Importare i trasferimenti — le tabelle degli IPI dentro gli accordi
 
 > Carta prima del codice ([FEATURE-PROCESS](../FEATURE-PROCESS.md)). Decisa il **3 settembre 2026**.
 > Stato: 🟡 **da eseguire**. Sorella minore di [piano-import-tabelle](piano-import-tabelle.md), che ha già
@@ -73,7 +73,7 @@ da **324/494 (66%)** a **~430/494 (87%)**. Le altre colonne, misurate allo stess
 
 **1. Modello.** Nessun modello nuovo per gli accordi: si scrive in `CoordinationAgreement` /
 `AgreementSection` / `AgreementClause` così come sono, e **nella parte A non c'è nessuna migrazione**. La
-parte B aggiunge un catalogo (`AirportStar`) che è il gemello dichiarato di `AirportSid`: perché sia un
+parte B aggiunge le STAR all'archivio (dal 20-set: `AirportProcedure.Kind`, non un catalogo a parte): perché sia un
 catalogo e non un flag sta in §B2.
 ⚠️ Nessun **secondo** meccanismo d'incolla: `ClausePaste` e il suo `PasteForm` **spariscono** dentro
 `ImportaTabella` (fetta A6). Due caselle che fanno la stessa cosa erano già il difetto che la carta
@@ -229,6 +229,15 @@ aeroporti coperti**, stessa intestazione dei `.sid`.
 shape di CTR e ATZ vivono dentro i file «STAR» — e si riconoscono dal campo pista, che vale `MAPS` o
 `MAPS:07`. Il filtro va dove si legge il file, non a valle.
 
+🔴 **Superato il 20 settembre 2026 — decisione del committente**: le STAR stanno nella **stessa tabella**
+delle SID, che si chiama ora `AirportProcedures` (entità `AirportProcedure`) e porta una colonna `Kind`
+(`Sid`/`Star`). Il parser `ParseStars` e la migrazione ci sono; carta
+[2026-09-20-star-e-altri-riferimenti.md](../feature/2026-09-20-star-e-altri-riferimenti.md). Il terzo
+argomento qui sotto — «un flag su un'entità che si chiama `Sid` è un nome che mente» — è stato risolto
+rinominando l'entità, non duplicandola; il primo e il secondo restano veri e si pagano coi **filtri su
+`Kind`** a ogni lettura. Quel che segue è il ragionamento originale, tenuto perché dice che cosa si è scelto
+di NON fare.
+
 **Perché un catalogo e non un flag su `AirportSid`** (pre-flight §1): SID e STAR hanno lo stesso *formato*
 ma non sono la stessa cosa — una parte da un fix e sale, l'altra arriva a un fix e scende; i consumatori
 sono diversi (partenze vs arrivi); e un flag su un'entità che si chiama `Sid` sarebbe un nome che mente. Si
@@ -295,7 +304,7 @@ dato vecchio.
 | # | fetta | che cosa consegna |
 |---|---|---|
 | **B0** | misura sul `.str` vero | tre file scaricati e contati: quante righe, quante `MAPS`, come sono fatte le righe di tracciato. **Prima** del parser |
-| **B1** | catalogo STAR | `AirportStar` + `ParseStars` (condiviso col `.sid`) + filtro `MAPS` + importer + gate del ciclo + policy d'import |
+| **B1** | STAR nell'archivio | ~~`AirportStar`~~ → `AirportProcedure.Kind` (20-set) + `ParseStars` ✅ + filtro `MAPS` ✅ + importer + gate del ciclo + policy d'import |
 | **B2** | le STAR nel documento d'aeroporto | dove ci sono già le SID. È qui che il catalogo si ripaga |
 | **B3** | il legame | tre colonne nullable, risoluzione al ciclo, regola di scelta sulla chiave ripetuta, ripiego sul testo |
 | **B4** | `TipoCella.Procedura` nell'import | la colonna `AUTORIZZAZIONI` si aggancia invece di essere copiata; l'anteprima mostra il designator **risolto** |

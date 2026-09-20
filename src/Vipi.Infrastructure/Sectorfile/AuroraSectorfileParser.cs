@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using Vipi.Application.Abstractions;
 using Vipi.Application.Coordinates;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Infrastructure.Sectorfile;
 

@@ -1,18 +1,6 @@
+using Vipi.Domain.Entities;
+
 namespace Vipi.Application.Abstractions;
-
-/// <summary>Che procedura è una riga prelevata dal sectorfile: partenza o arrivo.</summary>
-/// <remarks>⚠️ Un tipo SOLO, non due DTO gemelli: i file <c>&lt;icao&gt;.sid</c> e <c>&lt;icao&gt;.str</c> hanno lo
-/// stesso formato a punto e virgola, gli stessi campi e la stessa risoluzione del punto. Quel che cambia è il
-/// verso della procedura — e due modelli per la stessa cosa sono esattamente ciò che il gate «modello gemello»
-/// di <c>docs/FEATURE-PROCESS.md</c> vieta.</remarks>
-public enum ProcedureKind
-{
-    /// <summary>Partenza strumentale, da <c>&lt;icao&gt;.sid</c>.</summary>
-    Sid = 0,
-
-    /// <summary>Arrivo strumentale, da <c>&lt;icao&gt;.str</c>.</summary>
-    Star = 1,
-}
 
 /// <summary>Procedura prelevata dalla sorgente (sectorfile), già estratta e col punto completato. DTO neutro (ADR-0006).</summary>
 public sealed record SourceProcedure(

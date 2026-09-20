@@ -1,7 +1,8 @@
-# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
+﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: 🟡 **slice 1 fatta** — il parser delle STAR c'è ed è misurato sui file veri. Il resto (entità, import,
-> editor, tabella pubblica, riferimenti nel testo) è **in attesa di una decisione**, §3.
+> Stato: 🟡 **slice 1 e 2a fatte** — il parser delle STAR è misurato sui file veri, e l'archivio le può
+> ospitare: `AirportSids` è diventata `AirportProcedures` con la colonna `Kind`, migrazione provata su una
+> copia di produzione. Restano import `.str`, editor, sezione pubblica, riferimento nel testo.
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se
@@ -43,27 +44,49 @@ righe su 645 — e sono STAR quanto `ELKA3A`. Il punto irrisolto si **segnala** 
 Il resto — completamento del punto troncato (`GILI3A` → `GILIO`) dal catalogo navaid, alias autoritativi,
 designatore, `StableKey`, espansione per pista — è **identico alle SID**, e infatti è lo stesso codice.
 
-## 3. La decisione aperta: una colonna, non una tabella gemella
+## 3. La decisione presa: una colonna, e la tabella cambia nome
 
 Il gate «modello gemello» di [FEATURE-PROCESS](../FEATURE-PROCESS.md) dice: *mai affiancare un secondo modello
 a uno esistente per la stessa cosa*. SID e STAR hanno gli stessi campi (scalo, pista, punto, nome, transition,
 tipo, revisione, priorità, nascosta, ciclo AIRAC, correzioni a mano) e la stessa vita (import, merge per
 `StableKey`, pubblicazione differita al ciclo, editor, tabella congelata).
 
-**Raccomandazione:** una colonna `Kind` (`Sid`/`Star`) su `AirportSid`, **non** una tabella `AirportStar`.
-- costa: una migrazione (colonna con default `Sid`), e ogni query esistente sulle SID va filtrata `Kind = Sid`
-  — censimento **intero** prima di toccare, mai un `grep` troncato da `head`;
-- risparmia: un importer, un merge, un editor, una derivazione, una sezione pubblica, un meccanismo di
-  riferimento, una migrazione di congelamento — tutti in **doppia copia** per sempre, se si separano.
-- il DTO di sorgente è **già** unificato in questa slice: `SourceProcedure` (era `SourceSid`) con `ProcedureKind`.
+✅ **Decisione del committente, 20 settembre 2026**: una tabella sola, e col nome giusto — `AirportSid`
+diventa **`AirportProcedure`** (tabella `AirportProcedures`) con la colonna **`Kind`** (`Sid`/`Star`).
+Rinominare toglie di mezzo l'obiezione che teneva in piedi il catalogo separato nel
+[piano import trasferimenti](piano-import-trasferimenti.md) §B2 — «un flag su un'entità che si chiama `Sid`
+è un nome che mente»: l'entità non si chiama più così.
 
-Se la decisione è «tabella a parte», questa carta va riscritta prima di scrivere codice: è il bivio.
+Che cosa è costato davvero (censimento **intero**, non un `grep` troncato da `head`):
+
+| | |
+|---|---|
+| Il tipo `AirportSid` | **12** occorrenze, 5 file |
+| Il `DbSet` e la navigazione | **11** occorrenze, 2 file (+ il componente UI `AirportSids`, che NON si tocca: rende la tabella SID) |
+| Query da filtrare `Kind = Sid` | **9**, tutte in `EfAirportRepository` — il resto del codice passa di lì |
+| Migrazioni | **2** (SQLite + MySQL), col corpo **scritto a mano** |
+| Documenti da correggere | la spec del modello dati, il piano import trasferimenti §B2, questa carta |
+
+🔴 **La trappola, e costava l'archivio.** Lo scaffolding di `dotnet ef migrations add` ha proposto, in
+**entrambi** i provider, `DropTable("AirportSids")` + `CreateTable("AirportProcedures")`: applicata così, la
+migrazione avrebbe **cancellato le 1469 righe SID di produzione** — priorità, pubblicazioni forzate,
+correzioni del punto — e il database sarebbe risultato «aggiornato». I due corpi sono riscritti a mano con
+`RenameTable` + `AddColumn` (e su MySQL anche il rename di indice e chiave esterna: un vincolo che cita una
+tabella che non esiste più fa fallire la prima migrazione futura che prova a lasciarlo cadere).
+
+🔴 **Il percorso Postgres non ha migrazioni**: lì lo schema lo allinea `PostgresSchemaReconciler`, che una
+tabella rinominata la vedrebbe come una tabella **nuova e vuota**, lasciando i dati nella vecchia. Ci si è
+aggiunto un passo di rinomina idempotente (`TabelleRinominate`), da tenere per sempre: è l'unica memoria del
+cambio su quel provider.
+
+Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `SourceSid`) con `ProcedureKind`.
 
 ### Slice previste (dopo la decisione)
 
-1. ✅ **parser** — `AuroraSectorfileParser.ParseStars` + `SourceProcedure.Kind` + 8 test (questa slice).
-2. **sorgente e import** — `<icao>.str` nel provider, `Kind` nell'entità e nel merge, policy e ciclo AIRAC
-   come le SID (una STAR nuova esce al ciclo che il changelog dichiara).
+1. ✅ **parser** — `AuroraSectorfileParser.ParseStars` + `SourceProcedure.Kind` + 8 test.
+2. ✅ **2a — l'archivio** — `AirportProcedure` + `Kind` + le due migrazioni + i filtri `Kind = Sid` sulle
+   letture esistenti. ▶ **2b — l'import**: `<icao>.str` nel provider, merge e gate del ciclo AIRAC come le SID
+   (una STAR nuova esce al ciclo che il changelog dichiara), policy d'import.
 3. **editor** — la tabella STAR accanto a quella SID nell'editor aeroporto, stessi gesti (priorità, nascondi,
    correggi il punto, crea alias).
 4. **sezione pubblica** — la tabella STAR nel documento d'aeroporto, con il congelamento alla release.
@@ -71,7 +94,11 @@ Se la decisione è «tabella a parte», questa carta va riscritta prima di scriv
    il codice di `RiferimentiSid` è **già generico sulla radice del nome**, cambia il gettone e la tabella da cui
    si leggono i nomi.
 
-## 4. Che altro può seguire la sorgente (proposte, da scegliere)
+## 4. Che altro può seguire la sorgente
+
+✅ **Scelte dal committente il 20 settembre 2026, tutte e quattro**: frequenze, piste, nominativi ATC, punti e
+VOR — nell'ordine della tabella, che è quello del guadagno. Restano proposte non decise le quote di
+transizione e le aree speciali.
 
 Il meccanismo è sempre lo stesso: **nel testo si scrive un riferimento stabile, in pagina esce il dato di oggi**,
 e l'editor avvisa quando un riferimento non si risolve più. Vale la pena solo dove il dato **cambia** e dove il
@@ -94,4 +121,8 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 - 8 test nuovi in `AuroraStarParserTests` (righe reali di `lirf.str`, `lipa.str`, `lizz.str`, `lipc.str`).
 - Misura dal vivo sui 90 `.str` veri della copia di lavoro del sectorfile: 54 scali, 865 righe, 136 da
   rivedere, 522 RNAV — prova usa-e-getta, non committata, rifattibile in due minuti.
-- `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite Infrastructure 1560 verde.
+- `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite intera verde.
+- **Migrazione provata su una copia di produzione** (MariaDB locale, porta 3399, `vipi_1330` → `vipi_star`):
+  dopo l'`update` la tabella `AirportProcedures` ha **1469 righe, tutte `Kind = 'Sid'`**, 1467 importate,
+  indice e chiave esterna col nome nuovo; il dietrofront (`database update <migrazione precedente>`) riporta
+  `AirportSids` con le stesse 1469 righe.

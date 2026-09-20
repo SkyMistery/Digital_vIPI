@@ -59,7 +59,7 @@ public interface IShapeGateNoticeService
 /// l'unica strada era aspettare il ciclo.</para>
 ///
 /// <para>Qui l'informazione viene a galla nel posto dove si pubblica, con l'interruttore accanto: è il
-/// gemello di <c>AirportSid.ForcePublished</c>, che a schermo un interruttore ce l'ha già.</para>
+/// gemello di <c>AirportProcedure.ForcePublished</c>, che a schermo un interruttore ce l'ha già.</para>
 ///
 /// <para>⚠️ <b>Nessuna regola nuova.</b> La domanda «è differita?» la fa <see cref="ShapeAiracGate"/>, la
 /// stessa che usa il congelamento: se le due divergessero, l'avviso mentirebbe.</para>

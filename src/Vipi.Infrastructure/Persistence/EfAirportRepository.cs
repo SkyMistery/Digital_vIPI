@@ -47,7 +47,10 @@ public sealed class EfAirportRepository : IAirportRepository
                 x.TimeFromLocalMin, x.TimeToLocalMin, x.DaysOfWeekMask, x.DateParity,
                 x.DateFromMonthDay, x.DateToMonthDay))
             .ToListAsync(ct);
-        var sids = await _db.AirportSids.AsNoTracking().Where(x => x.AirportId == airport.Id)
+        // ⚠️ Solo le SID: la tabella tiene anche le STAR (`Kind`), e senza questo filtro uscirebbero nella
+        // sezione delle partenze. Gli arrivi hanno il loro caricamento.
+        var sids = await _db.AirportProcedures.AsNoTracking()
+            .Where(x => x.AirportId == airport.Id && x.Kind == ProcedureKind.Sid)
             .OrderBy(x => x.Order)
             .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
                 x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp,
@@ -268,13 +271,15 @@ public sealed class EfAirportRepository : IAirportRepository
     {
         var id = await AirportIdAsync(icao, ct);
         // Origin-aware: sostituisce SOLO le righe manuali; le importate (IsImported=true) restano intatte.
-        _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && !x.IsImported));
+        _db.AirportProcedures.RemoveRange(_db.AirportProcedures
+            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && !x.IsImported));
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
-            _db.AirportSids.Add(new AirportSid
+            _db.AirportProcedures.Add(new AirportProcedure
             {
-                AirportId = id, Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
+                AirportId = id, Kind = ProcedureKind.Sid,
+                Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
                 Transition = r.Transition, InitialClimb = r.InitialClimb, InitialClimbByApp = r.InitialClimbByApp,
                 Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,
                 // La priorità fra SID dello stesso punto vale anche per le righe a mano: la colonna esisteva
@@ -300,8 +305,8 @@ public sealed class EfAirportRepository : IAirportRepository
         // chiave da indicizzare) e ogni successivo fallliva, quindi l'import restava rotto per sempre su quegli
         // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
         // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
-        var priorRows = await _db.AirportSids.AsNoTracking()
-            .Where(x => x.AirportId == id && x.StableKey != null)
+        var priorRows = await _db.AirportProcedures.AsNoTracking()
+            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && x.StableKey != null)
             .OrderBy(x => x.Id)
             .ToListAsync(ct);
         var prior = new Dictionary<string, PriorSid>();
@@ -311,7 +316,8 @@ public sealed class EfAirportRepository : IAirportRepository
                     x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp,
                     x.IsHidden, x.FixOverride, x.TransitionOverride));
 
-        _db.AirportSids.RemoveRange(_db.AirportSids.Where(x => x.AirportId == id && x.IsImported));
+        _db.AirportProcedures.RemoveRange(_db.AirportProcedures
+            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && x.IsImported));
 
         var baseOrder = 1000;   // le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer
         for (var i = 0; i < rows.Count; i++)
@@ -335,9 +341,10 @@ public sealed class EfAirportRepository : IAirportRepository
                 needsReview = false;
             }
 
-            _db.AirportSids.Add(new AirportSid
+            _db.AirportProcedures.Add(new AirportProcedure
             {
-                AirportId = id, Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
+                AirportId = id, Kind = ProcedureKind.Sid,
+                Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
                 Transition = r.Transition, Type = r.Type,
                 IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
                 NeedsFixReview = needsReview,
@@ -372,7 +379,7 @@ public sealed class EfAirportRepository : IAirportRepository
         var ids = sidIds.Distinct().ToList();
         // ⚠️ Filtrate per SCALO oltre che per id: il lock garantito dal service è quello di questo ICAO, e un id
         // di un altro aeroporto non deve poter passare di qui.
-        var righe = await _db.AirportSids
+        var righe = await _db.AirportProcedures
             .Where(x => x.AirportId == id && x.IsImported && ids.Contains(x.Id))
             .ToListAsync(ct);
         foreach (var s in righe) s.IsHidden = hidden;
@@ -383,7 +390,7 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task SetImportedSidOverridesAsync(string icao, int sidId, string? fixOverride, string? transitionOverride, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.AirportId == id && x.IsImported, ct);
+        var s = await _db.AirportProcedures.FirstOrDefaultAsync(x => x.Id == sidId && x.AirportId == id && x.IsImported, ct);
         if (s is null) return;
         // Uguale alla sorgente = nessuna correzione: si torna a seguire la sorgente, anche quando cambierà.
         var fix = Blank(fixOverride)?.ToUpperInvariant();
@@ -396,7 +403,7 @@ public sealed class EfAirportRepository : IAirportRepository
     public async Task UpdateImportedSidAsync(int sidId, int? priority, bool forcePublished, string? resolvedFix,
         string? initialClimb, bool initialClimbByApp, string? cat, string? wtc, string? condition, CancellationToken ct = default)
     {
-        var s = await _db.AirportSids.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
+        var s = await _db.AirportProcedures.FirstOrDefaultAsync(x => x.Id == sidId && x.IsImported, ct);
         if (s is null) return;
         s.Priority = priority;
         s.ForcePublished = forcePublished;
