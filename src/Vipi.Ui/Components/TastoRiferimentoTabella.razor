@@ -17,7 +17,7 @@
 }
 @if (_aperto)
 {
-    <SidPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="Inserisci" OnChiudi="() => _aperto = false" />
+    <RiferimentoPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="Inserisci" OnChiudi="() => _aperto = false" />
 }
 
 @code {

@@ -150,8 +150,8 @@ public class IntroDiPaginaTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new Pubblico());
         Services.AddScoped(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(memoria ?? new MemoriaFinta()));
-        Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
-        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
+        Services.AddScoped<IProcedureReferenceResolver, NessunRiferimentoCitato>();
+        Services.AddScoped<IRiferimentiResolver, NessunRiferimentoCitato>();
     }
 
     /// <summary>⚠️ Vuota, per il pubblico non si rende NIENTE — nemmeno un contenitore. Un riquadro vuoto in
@@ -231,8 +231,8 @@ public class IntroDiPaginaTests : TestContext
         Services.AddScoped<IResourceLockService>(_ => new LockFinto());
         Services.AddScoped<IPageIntroStore>(_ => deposito);
         Services.AddScoped(_ => new DocumentTranslator(new MemoriaFinta()));
-        Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
-        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
+        Services.AddScoped<IProcedureReferenceResolver, NessunRiferimentoCitato>();
+        Services.AddScoped<IRiferimentiResolver, NessunRiferimentoCitato>();
         return deposito;
     }
 

@@ -16,7 +16,7 @@ namespace Vipi.Ui.Tests;
 /// <c>vipi-editor.js</c> e qui non gira: si prova il contratto con le funzioni JS — chi si chiama, con che cosa.
 /// Il resto lo prova la verifica dal vivo.</para>
 /// </summary>
-public class CitaSidNellEditorTests : TestContext
+public class CitaDallArchivioTests : TestContext
 {
     private sealed class KeyLocalizer : IStringLocalizer<SharedResource>
     {
@@ -68,7 +68,7 @@ public class CitaSidNellEditorTests : TestContext
 
     private readonly ElencoFinto _elenco = new();
 
-    public CitaSidNellEditorTests()
+    public CitaDallArchivioTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IProcedureReferenceResolver>(_ => _elenco);
@@ -189,7 +189,7 @@ public class CitaSidNellEditorTests : TestContext
     public void Sotto_una_tabella_senza_cella_selezionata_lo_dice()
     {
         JSInterop.Setup<string>("vipiSidPrendiDa", _ => true).SetResult("");
-        var c = RenderComponent<TastoSidTabella>();
+        var c = RenderComponent<TastoRiferimentoTabella>();
 
         c.Find("button").Click();
 
@@ -202,7 +202,7 @@ public class CitaSidNellEditorTests : TestContext
     {
         JSInterop.Setup<string>("vipiSidPrendiDa", _ => true).SetResult("g1");
         JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
-        var c = RenderComponent<TastoSidTabella>(p => p.AddCascadingValue("IcaoDelDocumento", "LIBD"));
+        var c = RenderComponent<TastoRiferimentoTabella>(p => p.AddCascadingValue("IcaoDelDocumento", "LIBD"));
 
         c.Find("button").Click();
         c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));

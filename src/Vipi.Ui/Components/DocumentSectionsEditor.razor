@@ -1086,7 +1086,7 @@ else
                se ne sente il bisogno. *@
             <button class="btn ghost" @onclick="() => ApriImport(b)">⤓ @L["Imp_Open"]</button>
             <EsportaCsv Nome="tabella" Colonne="cols" Righe="rows.Select(r => (IReadOnlyList<string>)r).ToList()" />
-            <TastoSidTabella />
+            <TastoRiferimentoTabella />
         </div>
         </div>
         @if (_importBlockId == b.Id)

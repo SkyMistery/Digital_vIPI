@@ -415,6 +415,10 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`reference/api-aurora-bridge.md`](reference/api-aurora-bridge.md) — API bridge Aurora — `/vsop/api/v1/transfers/resolve` 🟢
 - [`reference/sector-map.md`](reference/sector-map.md) — Sector map — ACC Roma (LIRR)
 
+### `review`
+
+- [`review/2026-09-20-a80-star-e-riferimenti.md`](review/2026-09-20-a80-star-e-riferimenti.md) — Review A80 — STAR dal sectorfile e riferimenti nel testo (20 settembre 2026)
+
 ### `spec`
 
 - [`spec/logica-aor.md`](spec/logica-aor.md) — Specifica della Logica AoR e Visibilità — vIPI/vLOA Interactive

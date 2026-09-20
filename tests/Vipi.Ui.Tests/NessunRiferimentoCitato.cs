@@ -10,7 +10,7 @@ namespace Vipi.Ui.Tests;
 /// <para>⚠️ Serve le DUE porte: quella delle sole procedure (il selettore la usa per l'elenco) e quella unica
 /// (i caricatori e l'editor).</para>
 /// </summary>
-internal sealed class NessunaSidCitata : IProcedureReferenceResolver, IRiferimentiResolver
+internal sealed class NessunRiferimentoCitato : IProcedureReferenceResolver, IRiferimentiResolver
 {
     Task<RiferimentiRisolti> IRiferimentiResolver.PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
         string? proprioIcao, AirportSidView? propriaTabella, AirportSidView? propriaTabellaStar, CancellationToken ct) =>

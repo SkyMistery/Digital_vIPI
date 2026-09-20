@@ -48,7 +48,7 @@
     </div>
     @if (_sidAperto)
     {
-        <SidPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="InserisciSid" OnChiudi="() => _sidAperto = false" />
+        <RiferimentoPicker IcaoIniziale="@IcaoDelDocumento" OnScegli="InserisciSid" OnChiudi="() => _sidAperto = false" />
     }
     @* `data-adatta`: il campo cresce col testo fino al 60% dello schermo, e la maniglia resta (vipi-editor.js). *@
     <textarea @ref="_ta" id="@_id" class="app-ta" rows="@Rows" value="@Value" placeholder="@Placeholder"

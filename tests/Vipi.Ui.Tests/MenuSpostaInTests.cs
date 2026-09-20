@@ -49,8 +49,8 @@ public class MenuSpostaInTests : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => _spia);
-        Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
-        Services.AddScoped<IRiferimentiResolver, NessunaSidCitata>();
+        Services.AddScoped<IProcedureReferenceResolver, NessunRiferimentoCitato>();
+        Services.AddScoped<IRiferimentiResolver, NessunRiferimentoCitato>();
     }
 
     private static EditableSection Sez(int id, string titolo, int depth, string? chiave = null,

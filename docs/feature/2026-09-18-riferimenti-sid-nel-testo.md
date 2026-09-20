@@ -1,4 +1,13 @@
-# Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
+﻿# Riferimenti SID nel testo: il nominativo si aggiorna da solo (18 settembre 2026)
+
+> ⚠️ **I nomi citati in questa carta sono cambiati il 20 settembre 2026** (§A80, carta
+> [STAR e riferimenti](2026-09-20-star-e-altri-riferimenti.md) e [riferimenti ai dati](2026-09-20-riferimenti-ai-dati.md)):
+> il meccanismo non è più delle sole SID. `RiferimentiSid` → `RiferimentiProcedura`, `NomiSid` → `NomiProcedura`,
+> `SidReferenceResolver` → `ProcedureReferenceResolver`, `SidCitabile` → `ProceduraCitabile`,
+> `ControlloSidCitate` → `ControlloProcedureCitate`, `SidDaRivedere` → `ProceduraDaRivedere`,
+> `SidPicker` → `RiferimentoPicker`, `TastoSidTabella` → `TastoRiferimentoTabella`. La sostituzione passa ora
+> da **una porta sola**, `Riferimenti.Sostituisci`, e in cascata viaggia `RiferimentiRisolti`.
+> Quel che questa carta racconta — la radice del nome, l'ultimo nome visto, le cinque slice — resta vero.
 
 > Stato: 📦 **in 1.34.0, pronto da caricare** (18 settembre 2026), tutte e cinque le slice + revisione (§A73, §A74).
 

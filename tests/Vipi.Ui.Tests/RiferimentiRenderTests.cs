@@ -14,7 +14,7 @@ namespace Vipi.Ui.Tests;
 /// riferimento col nome che la pagina gli passa a cascata, in ogni tipo di blocco. Senza nomi, esce l'ultimo
 /// nome visto — mai il codice <c>[[SID …]]</c>.
 /// </summary>
-public class RiferimentiSidRenderTests : TestContext
+public class RiferimentiRenderTests : TestContext
 {
     private sealed class ChiaveComeValore : IStringLocalizer<SharedResource>
     {
@@ -23,7 +23,7 @@ public class RiferimentiSidRenderTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    public RiferimentiSidRenderTests()
+    public RiferimentiRenderTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new ChiaveComeValore());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
