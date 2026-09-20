@@ -3503,7 +3503,8 @@
   <data name="Sid_Pick_Kind" xml:space="preserve"><value>Che cosa citare</value></data>
   <data name="Sid_Pick_Search" xml:space="preserve"><value>cerca…</value></data>
   <data name="Sid_Pick_NeedIcao" xml:space="preserve"><value>Scrivi l'ICAO dello scalo.</value></data>
-  <data name="Sid_Pick_None" xml:space="preserve"><value>Nessuna SID per {0}.</value></data>
+  <data name="Sid_Pick_None" xml:space="preserve"><value>Niente da citare per {0}.</value></data>
+  <data name="Sid_Pick_TooMany" xml:space="preserve"><value>Solo le prime {0}: affina la ricerca.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cita dall'archivio nella cella selezionata</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>Clicca prima nella cella dove va la SID.</value></data>
   <data name="Sid_Conv_Open" xml:space="preserve"><value>Cerca SID scritte a mano</value></data>

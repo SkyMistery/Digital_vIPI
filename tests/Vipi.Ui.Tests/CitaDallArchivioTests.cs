@@ -66,22 +66,32 @@ public class CitaDallArchivioTests : TestContext
                 new EnteRow(3, "LIBD", "LIBD_APP", "Bari Approach"),
             });
 
+        /// <summary>Gli scali chiesti: serve a dire che le piste si chiedono per lo SCALO del documento.</summary>
+        public List<string> ScaliChiesti { get; } = new();
+
         public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
-            IReadOnlyCollection<string> icaos, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<string>>>(
-                new Dictionary<string, IReadOnlyList<string>>());
+            IReadOnlyCollection<string> icaos, CancellationToken ct = default)
+        {
+            ScaliChiesti.AddRange(icaos);
+            var d = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var i in icaos)
+                if (string.Equals(i, "LIBD", StringComparison.OrdinalIgnoreCase)) d[i] = new[] { "07", "25" };
+            return Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<string>>>(d);
+        }
 
         public Task<IReadOnlySet<string>> PuntiAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+            Task.FromResult<IReadOnlySet<string>>(
+                new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "BANAV", "TOPNO" });
     }
 
     private readonly ElencoFinto _elenco = new();
+    private readonly EntiFinti _enti = new();
 
     public CitaDallArchivioTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IProcedureReferenceResolver>(_ => _elenco);
-        Services.AddScoped<IFrequenzeDegliEnti, EntiFinti>();
+        Services.AddScoped<IFrequenzeDegliEnti>(_ => _enti);
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -127,18 +137,22 @@ public class CitaDallArchivioTests : TestContext
     }
 
     /// <summary>
-    /// Le quattro chip del selettore: SID, STAR, FREQ, ATC. Un gesto solo per tutte le famiglie — quattro
-    /// tasti in barra sarebbero quattro decisioni prima ancora di aprire l'elenco.
+    /// Le chip del selettore: <b>tutte e sei</b> le famiglie che il testo sa citare. Un gesto solo per tutte
+    /// — sei tasti in barra sarebbero sei decisioni prima ancora di aprire l'elenco.
+    ///
+    /// <para>🔴 Erano quattro fino al 20 settembre 2026: piste e punti si risolvevano e si segnalavano, ma
+    /// non si potevano inserire. Una famiglia che il renderer riconosce e il selettore no si scrive a mano,
+    /// e una chiave scritta a mano sbaglia.</para>
     /// </summary>
     [Fact]
-    public void Il_selettore_ha_le_quattro_famiglie()
+    public void Il_selettore_ha_tutte_le_famiglie_citabili()
     {
         JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
         var c = CampoDiLIBD();
         c.Find("button.rta-sid").Click();
         c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
 
-        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC" },
+        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC", "RWY", "FIX" },
             c.FindAll(".sidref-pick-kind button").Select(b => b.TextContent.Trim()).ToArray());
     }
 
@@ -187,6 +201,51 @@ public class CitaDallArchivioTests : TestContext
         // runtime non si risolve (`MissingMethodException`), e il test cadrebbe per la ragione sbagliata.
         c.FindAll(".sidref-pick-row").Skip(1).First().Click();
         Assert.Equal("[[ATC LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    /// <summary>
+    /// 🔴 La chip RWY. Fino al 20 settembre 2026 piste e punti si risolvevano nel testo e si segnalavano
+    /// quando sparivano, ma non si potevano <b>inserire</b>: restava scriverli a mano, che è il modo di
+    /// sbagliare la chiave e farsi dire dalla testata che un dato che c'è «non si trova più».
+    /// </summary>
+    [Fact]
+    public void Con_la_chip_RWY_si_cita_una_soglia_dello_scalo()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "RWY").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+
+        // Le soglie si chiedono all'anagrafica dello SCALO DEL DOCUMENTO, ed escono come sono scritte.
+        Assert.Contains("LIBD", _enti.ScaliChiesti);
+        Assert.Contains("07", c.FindAll(".sidref-pick-row").First().TextContent);
+
+        c.FindAll(".sidref-pick-row").First().Click();
+        Assert.Equal("[[RWY LIBD 07]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    /// <summary>La chip FIX: il catalogo dei punti è di tutta la divisione, quindi niente ICAO.</summary>
+    [Fact]
+    public void Con_la_chip_FIX_si_cita_un_punto_del_catalogo()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "FIX").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+
+        // I punti non vivono dentro uno scalo: il campo ICAO non si mostra nemmeno.
+        Assert.Empty(c.FindAll("input.icao"));
+
+        c.FindAll(".sidref-pick-row").First().Click();
+        Assert.Equal("[[FIX BANAV]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 
     /// <summary>Il tasto segna il campo PRIMA di aprire: aperto il selettore, il fuoco va nella sua ricerca.</summary>

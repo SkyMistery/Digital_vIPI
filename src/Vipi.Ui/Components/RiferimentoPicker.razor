@@ -22,8 +22,9 @@
 <div class="sidref-pick" role="dialog" aria-label="@L["Sid_Pick_Title"]" @onkeydown="Tasto">
     <div class="sidref-pick-head">
         <b>@L["Sid_Pick_Title"]</b>
-        @* L'ICAO serve alle sole procedure: gli enti si cercano per callsign, che è già unico. *@
-        @if (!Dato)
+        @* L'ICAO serve a quel che vive DENTRO uno scalo — procedure e piste; gli enti si cercano per
+           callsign, che è già unico, e i punti sono di tutta la divisione. *@
+        @if (ServeIcao)
         {
             <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO"
                    value="@_icao" @onchange="CambiaIcao" />
@@ -43,7 +44,8 @@
                @ref="_cerca" @bind="_filtro" @bind:event="oninput" @onkeydown="InvioSceglie" />
         <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
     </div>
-    @if (!Dato && _icao.Length != 4)
+    @{ var trovate = Filtrate; }
+    @if (ServeIcao && _icao.Length != 4)
     {
         <p class="muted" style="margin:0">@L["Sid_Pick_NeedIcao"]</p>
     }
@@ -51,14 +53,17 @@
     {
         <p class="muted" style="margin:0">…</p>
     }
-    else if (Filtrate.Count == 0)
+    else if (trovate.Count == 0)
     {
-        <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_None"].Value, Dato ? _famiglia.Parola : _icao)</p>
+        <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_None"].Value, ServeIcao ? _icao : _famiglia.Parola)</p>
     }
     else
     {
         <div class="sidref-pick-list">
-            @foreach (var v in Filtrate)
+            @* ⚠️ Non si disegnano tutte: il catalogo dei PUNTI è di tutta la divisione — migliaia di voci —
+               e un elenco così lungo non si scorre, si cerca. Le famiglie legate a uno scalo non arrivano
+               nemmeno vicino al tetto (misurato: 206 SID a LIRF, il massimo dell'archivio). *@
+            @foreach (var v in trovate.Take(MaxVoci))
             {
                 var voce = v;
                 <button type="button" class="sidref-pick-row" title="@voce.Riferimento"
@@ -67,6 +72,10 @@
                 </button>
             }
         </div>
+        @if (trovate.Count > MaxVoci)
+        {
+            <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_TooMany"].Value, MaxVoci)</p>
+        }
     }
 </div>
 
@@ -78,15 +87,28 @@
     private sealed record Voce(string Riferimento, string Etichetta, string Dettaglio);
 
     /// <summary>Una famiglia citabile: la parola della chip e come si costruisce il suo elenco.</summary>
-    private sealed record Famiglia(string Parola, ProcedureKind? Procedura = null, TipoDato? Dato = null);
+    /// <param name="ConIcao">Vero se quel che si cita vive DENTRO uno scalo, e quindi serve l'ICAO.</param>
+    private sealed record Famiglia(string Parola, ProcedureKind? Procedura = null, TipoDato? Dato = null,
+        bool ConIcao = false);
 
+    /// <summary>
+    /// Le sei famiglie, nell'ordine delle chip. ⚠️ <b>Tutte e sei, non quattro</b>: fino al 20 settembre 2026
+    /// piste e punti si risolvevano, si segnalavano quando sparivano e non si potevano <b>inserire</b> — si
+    /// scrivevano a mano, che è precisamente il modo di sbagliare la chiave e farsi dire dalla testata che un
+    /// dato che c'è «non si trova più».
+    /// </summary>
     private static readonly Famiglia[] Famiglie =
     {
-        new("SID", Procedura: ProcedureKind.Sid),
-        new("STAR", Procedura: ProcedureKind.Star),
+        new("SID", Procedura: ProcedureKind.Sid, ConIcao: true),
+        new("STAR", Procedura: ProcedureKind.Star, ConIcao: true),
         new("FREQ", Dato: TipoDato.Frequenza),
         new("ATC", Dato: TipoDato.Nominativo),
+        new("RWY", Dato: TipoDato.Pista, ConIcao: true),
+        new("FIX", Dato: TipoDato.Punto),
     };
+
+    /// <summary>Quante voci si disegnano al massimo. Vedi la nota nell'elenco.</summary>
+    private const int MaxVoci = 300;
 
     /// <summary>Lo scalo del documento, se il documento ne ha uno (vIPI d'aeroporto, vSOP militare). Vuoto =
     /// l'ultimo usato, che il browser ricorda.</summary>
@@ -100,8 +122,8 @@
     /// riferimenti scritti, e chi cita altro lo sa e cambia chip.</summary>
     private Famiglia _famiglia = Famiglie[0];
 
-    /// <summary>Vero se si sta citando un DATO (frequenza, nominativo): niente ICAO, elenco di enti.</summary>
-    private bool Dato => _famiglia.Dato is not null;
+    /// <summary>Vero se la famiglia in corso vive dentro uno scalo, e quindi il campo ICAO conta.</summary>
+    private bool ServeIcao => _famiglia.ConIcao;
 
     private async Task CambiaFamiglia(Famiglia f)
     {
@@ -153,19 +175,49 @@
     {
         _icao = icao;
         _elenco = Array.Empty<Voce>();
-        if (!Dato && icao.Length != 4) return;
+        if (ServeIcao && icao.Length != 4) return;
         _caricando = true;
         try
         {
             await InFilaAsync(async () =>
             {
-                _elenco = Dato ? await EntiAsync(_famiglia.Dato!.Value) : await ProcedureAsync(icao, _famiglia.Procedura!.Value);
+                _elenco = _famiglia.Procedura is { } verso
+                    ? await ProcedureAsync(icao, verso)
+                    : _famiglia.Dato!.Value switch
+                    {
+                        TipoDato.Pista => await PisteAsync(icao),
+                        TipoDato.Punto => await PuntiAsync(),
+                        var tipo => await EntiAsync(tipo),
+                    };
             });
             if (Chiusa) return;
-            if (!Dato) await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
+            if (ServeIcao) await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
         }
         finally { _caricando = false; }
     }
+
+    /// <summary>
+    /// Le soglie dello scalo, dalla sua anagrafica. ⚠️ Escono <b>come sono scritte</b>: la chiave di una
+    /// pista è il suo valore, e un rinomino per deriva magnetica non si indovina (vedi <c>RiferimentiDato</c>).
+    /// </summary>
+    private async Task<IReadOnlyList<Voce>> PisteAsync(string icao)
+    {
+        var piste = await Enti.PisteAsync(new[] { icao });
+        if (!piste.TryGetValue(icao, out var soglie)) return Array.Empty<Voce>();
+        return soglie
+            .Select(p => new Voce(RiferimentiDato.Scrivi(TipoDato.Pista, $"{icao} {p}"), p, icao))
+            .ToList();
+    }
+
+    /// <summary>
+    /// I punti del catalogo della divisione. Sono migliaia e non hanno uno scalo: si trovano cercando, ed è
+    /// per loro che l'elenco ha un tetto.
+    /// </summary>
+    private async Task<IReadOnlyList<Voce>> PuntiAsync() =>
+        (await Enti.PuntiAsync())
+            .OrderBy(p => p, StringComparer.Ordinal)
+            .Select(p => new Voce(RiferimentiDato.Scrivi(TipoDato.Punto, p), p, ""))
+            .ToList();
 
     private async Task<IReadOnlyList<Voce>> ProcedureAsync(string icao, ProcedureKind kind) =>
         (await Procedure.ElencoAsync(icao, kind))
@@ -205,6 +257,7 @@
     // ⚠️ Solo nella ricerca: nel campo ICAO l'Invio conferma lo scalo, e sceglierebbe dall'elenco VECCHIO.
     private async Task InvioSceglie(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && Filtrate.Count > 0) await OnScegli.InvokeAsync(Filtrate[0].Riferimento);
+        var trovate = Filtrate;
+        if (e.Key == "Enter" && trovate.Count > 0) await OnScegli.InvokeAsync(trovate[0].Riferimento);
     }
 }

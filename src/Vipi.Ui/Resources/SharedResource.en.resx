@@ -3495,7 +3495,8 @@
   <data name="Sid_Pick_Kind" xml:space="preserve"><value>What to cite</value></data>
   <data name="Sid_Pick_Search" xml:space="preserve"><value>search…</value></data>
   <data name="Sid_Pick_NeedIcao" xml:space="preserve"><value>Type the airport ICAO.</value></data>
-  <data name="Sid_Pick_None" xml:space="preserve"><value>No SIDs for {0}.</value></data>
+  <data name="Sid_Pick_None" xml:space="preserve"><value>Nothing to cite for {0}.</value></data>
+  <data name="Sid_Pick_TooMany" xml:space="preserve"><value>First {0} only: refine your search.</value></data>
   <data name="Sid_Cell" xml:space="preserve"><value>Cite from the archive in the selected cell</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>First click in the cell where the SID goes.</value></data>
   <data name="Sid_Conv_Open" xml:space="preserve"><value>Find SIDs written by hand</value></data>
