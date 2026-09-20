@@ -53,10 +53,10 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
     /// <summary>Una SID sola: qui conta chi può scrivere, non che cosa si scrive.</summary>
     private sealed class UnaSid : ISidProvider
     {
-        public Task<IReadOnlyList<SourceSid>> GetSidsAsync(string icao, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<SourceSid>>(new[]
+        public Task<IReadOnlyList<SourceProcedure>> GetSidsAsync(string icao, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SourceProcedure>>(new[]
             {
-                new SourceSid(icao, "16R", "OST", "OST1A", null, "RNAV", $"{icao}|OST|A||16R", false),
+                new SourceProcedure(icao, "16R", "OST", "OST1A", null, "RNAV", $"{icao}|OST|A||16R", false),
             });
     }
 

@@ -6,9 +6,10 @@ using Vipi.Application.Coordinates;
 namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
-/// Parser puro (nessun I/O) del sectorfile Aurora della divisione IT: navaid (itvor/itndb/itfix) e SID per-aeroporto.
-/// Formato SID (semicolon): <c>ICAO;pista[:pista…];CODICE;labelLat;labelLon;type;fixTransition;RNAV;</c>.
-/// Il CODICE è <c>SID</c> o <c>SID-TRANS</c>; il fix di partenza è il prefisso troncato del codice (ultime 2
+/// Parser puro (nessun I/O) del sectorfile Aurora della divisione IT: navaid (itvor/itndb/itfix) e procedure
+/// per-aeroporto — SID dai <c>.sid</c>, STAR dai <c>.str</c>.
+/// Formato (semicolon, lo stesso per i due file): <c>ICAO;pista[:pista…];CODICE;labelLat;labelLon;type;fixTransition;RNAV;</c>.
+/// Il CODICE è <c>SID</c> o <c>SID-TRANS</c>; il fix è il prefisso troncato del codice (ultime 2
 /// char = designatore cifra+lettera) da completare via navaid o alias.
 /// </summary>
 public static class AuroraSectorfileParser
@@ -118,13 +119,52 @@ public static class AuroraSectorfileParser
     private static readonly Regex FormaFrequenza = new(@"^\d{2,3}(\.\d{1,3})?$", RegexOptions.Compiled);
     private static readonly Regex FormaCanale = new(@"^\d{1,3}[XY]$", RegexOptions.Compiled);
 
-    /// <summary>Parsa un file <c>&lt;icao&gt;.sid</c> in una lista di <see cref="SourceSid"/> risolti.</summary>
-    public static IReadOnlyList<SourceSid> ParseSids(
+    /// <summary>Parsa un file <c>&lt;icao&gt;.sid</c> in una lista di <see cref="SourceProcedure"/> risolti.</summary>
+    public static IReadOnlyList<SourceProcedure> ParseSids(
         string icao, string? sidFile,
         IReadOnlySet<string> navNames,
-        IReadOnlyDictionary<string, string> aliasMap)
+        IReadOnlyDictionary<string, string> aliasMap) =>
+        ParseProcedures(icao, sidFile, navNames, aliasMap, ProcedureKind.Sid);
+
+    /// <summary>
+    /// Parsa un file <c>&lt;icao&gt;.str</c> in una lista di STAR risolte. Stesso formato del <c>.sid</c> — stesse
+    /// colonne, stessa risoluzione del punto — con <b>due filtri in più</b>, perché il file non contiene solo STAR:
+    /// <list type="number">
+    /// <item><b>almeno una pista vera</b> nel campo 2. Un quarto del contenuto dei <c>.str</c> sono voci del menu
+    /// mappe: la parola <c>MAPS</c> al posto della pista (<c>LIRF;MAPS;LIRF CTR; ; ;1;</c> è la shape del CTR), e
+    /// sull'ICAO finto <c>LIZZ</c> ci sono piste che non lo sono affatto (<c>BULL</c>, <c>AAR</c>, <c>AEW</c>).
+    /// Si tengono solo i gettoni di forma pista — due cifre più <c>L</c>/<c>R</c>/<c>C</c> — e la riga senza
+    /// nemmeno uno si scarta. ⚠️ <c>MAPS</c> può stare <b>dentro</b> l'elenco (<c>LIPA;05:MAPS;ROSK1E;…</c>: una
+    /// STAR vera che è anche voce di menu): il gettone si butta, la riga no.</item>
+    /// <item><b>tipo vuoto</b> (campo 6). È il campo che dice che cosa disegna la riga: <c>1</c> CTR, <c>2</c>
+    /// attesa (<c>HLD-ELVAD</c>), <c>3</c> IAP (<c>RNP25</c>), <c>4</c> FAP, <c>5</c> ATZ — nessuna di queste è una
+    /// STAR, e tutte convivono con una pista vera nel campo 2. Le STAR lasciano quel campo vuoto; si tollera
+    /// <c>0</c> perché è il «niente» che i <c>.sid</c> scrivono nella stessa colonna.</item>
+    /// </list>
+    /// <para>Misura del 20 settembre 2026 sui 90 <c>.str</c> della divisione: 645 righe STAR su 54 aeroporti
+    /// (865 contando le piste separate), il resto — attese, IAP, FAP, shape — resta fuori.</para>
+    /// </summary>
+    public static IReadOnlyList<SourceProcedure> ParseStars(
+        string icao, string? starFile,
+        IReadOnlySet<string> navNames,
+        IReadOnlyDictionary<string, string> aliasMap) =>
+        ParseProcedures(icao, starFile, navNames, aliasMap, ProcedureKind.Star);
+
+    /// <summary>Forma di una pista: due cifre più l'eventuale lato. Decide quali gettoni del campo 2 sono piste.</summary>
+    private static readonly Regex FormaPista = new(@"^\d{2}[LRC]?$", RegexOptions.Compiled | RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Il cuore comune di <see cref="ParseSids"/> e <see cref="ParseStars"/>: i due file hanno lo stesso formato
+    /// (<c>ICAO;pista[:pista…];CODICE;labelLat;labelLon;tipo;transition;RNAV;</c>) e la stessa risoluzione del
+    /// punto. Cambia solo che cosa si scarta — vedi <see cref="ParseStars"/>.
+    /// </summary>
+    private static IReadOnlyList<SourceProcedure> ParseProcedures(
+        string icao, string? sidFile,
+        IReadOnlySet<string> navNames,
+        IReadOnlyDictionary<string, string> aliasMap,
+        ProcedureKind kind)
     {
-        var result = new List<SourceSid>();
+        var result = new List<SourceProcedure>();
         if (string.IsNullOrEmpty(sidFile)) return result;
         icao = icao.Trim().ToUpperInvariant();
 
@@ -147,6 +187,15 @@ public static class AuroraSectorfileParser
             var transition = c.Length > 6 ? Blank(c[6]) : null;
             var rnav = c.Length > 7 && c[7].Trim() == "1";
 
+            // Il TIPO (campo 6) è quel che separa una STAR da una shape, un'attesa o una procedura d'avvicinamento
+            // dentro lo stesso file. Nei `.sid` la colonna porta "" o "0" e non distingue niente: si guarda solo
+            // per le STAR.
+            if (kind == ProcedureKind.Star)
+            {
+                var tipo = c.Length > 5 ? c[5].Trim() : "";
+                if (tipo.Length != 0 && tipo != "0") continue;
+            }
+
             // Codice = SID o SID-TRANS: il fix di partenza si estrae dalla sola parte SID.
             var sidPart = code.Split('-')[0].Trim();
             var (prefix, letter) = SplitDesignator(sidPart);
@@ -158,13 +207,25 @@ public static class AuroraSectorfileParser
                     .Select(r => (string?)r).ToList();
             if (runways.Count == 0) runways.Add(null);
 
+            // Le STAR vivono per pista: si tengono i soli gettoni di forma pista (via `MAPS`, via `BULL` di LIZZ)
+            // e la riga che non ne ha nemmeno uno non è una STAR.
+            if (kind == ProcedureKind.Star)
+            {
+                runways = runways.Where(r => r is not null && FormaPista.IsMatch(r.ToUpperInvariant())).ToList();
+                if (runways.Count == 0) continue;
+            }
+
             foreach (var rwy in runways)
             {
+                // ⚠️ La chiave delle SID resta ESATTAMENTE quella di prima: sta scritta nel database e ci si
+                // riagganciano priorità, pubblicazione forzata e correzioni a mano. Le STAR portano davanti la
+                // loro parola, o una STAR e una SID dello stesso punto e stessa lettera sarebbero la stessa riga.
                 var stableKey = string.Join('|', icao, fix.ToUpperInvariant(), letter.ToUpperInvariant(),
                     (transition ?? "").ToUpperInvariant(), (rwy ?? "").ToUpperInvariant());
-                result.Add(new SourceSid(
+                if (kind == ProcedureKind.Star) stableKey = "STAR|" + stableKey;
+                result.Add(new SourceProcedure(
                     Icao: icao, Runway: rwy, Fix: fix, Name: code, Transition: transition,
-                    Type: rnav ? "RNAV" : "CONV", StableKey: stableKey, NeedsFixReview: needsReview));
+                    Type: rnav ? "RNAV" : "CONV", StableKey: stableKey, NeedsFixReview: needsReview, Kind: kind));
             }
         }
         return result;

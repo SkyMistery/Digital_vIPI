@@ -19,7 +19,7 @@ public class AuroraSectorfileParserTests
 
     private static IReadOnlyDictionary<string, string> NoAlias => new Dictionary<string, string>();
 
-    private static IReadOnlyList<Application.Abstractions.SourceSid> Parse(string sid,
+    private static IReadOnlyList<Application.Abstractions.SourceProcedure> Parse(string sid,
         IReadOnlyDictionary<string, string>? alias = null)
     {
         var nav = AuroraSectorfileParser.ParseNavaids(Fix, Vor);

@@ -27,12 +27,12 @@ internal sealed class AuroraSidProvider : ISidProvider
         _log = log;
     }
 
-    public async Task<IReadOnlyList<SourceSid>> GetSidsAsync(string icao, CancellationToken ct = default)
+    public async Task<IReadOnlyList<SourceProcedure>> GetSidsAsync(string icao, CancellationToken ct = default)
     {
-        if (string.IsNullOrWhiteSpace(_opt.RawBaseUrl)) return Array.Empty<SourceSid>();
+        if (string.IsNullOrWhiteSpace(_opt.RawBaseUrl)) return Array.Empty<SourceProcedure>();
 
         var sidText = await GetTextOrNullAsync($"{icao.Trim().ToLowerInvariant()}.sid", ct);
-        if (sidText is null) return Array.Empty<SourceSid>();   // aeroporto senza file SID: nessun import
+        if (sidText is null) return Array.Empty<SourceProcedure>();   // aeroporto senza file SID: nessun import
 
         var nav = await _navaids.GetAsync(ct);
         var aliasMap = await _aliases.GetMapAsync(ct);
