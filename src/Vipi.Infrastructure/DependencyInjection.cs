@@ -322,7 +322,7 @@ public static class DependencyInjection
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
         });
-        services.AddHttpClient<Vipi.Application.Abstractions.ISidProvider, Sectorfile.AuroraSidProvider>(c =>
+        services.AddHttpClient<Vipi.Application.Abstractions.IProcedureProvider, Sectorfile.AuroraProcedureProvider>(c =>
         {
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
@@ -337,7 +337,7 @@ public static class DependencyInjection
             c.DefaultRequestHeaders.UserAgent.ParseAdd("vIPI-IVAO-Italy/1.0");
             c.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         });
-        services.AddHostedService<Sectorfile.SidImportHostedService>();
+        services.AddHostedService<Sectorfile.ProcedureImportHostedService>();
         // Le radioassistenze escono dagli STESSI file delle SID (§12b): stessa cadenza, chiave di stato sua.
         services.AddHostedService<Sectorfile.NavaidImportHostedService>();
 

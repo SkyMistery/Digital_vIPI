@@ -374,7 +374,7 @@ else
     /// </summary>
     private IStationResolver Stations = default!;
     private Vipi.Application.Airspace.ISectorShapeResolver Forme = default!;
-    private ISidImporter SidImporter = default!;
+    private IProcedureImporter ProcedureImporter = default!;
     private ISidFixAliasRepository SidAliases = default!;
 
     protected override void OnInitialized()
@@ -385,7 +385,7 @@ else
         Profile = ScopedServices.GetRequiredService<IAirportEditingService>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
         Forme = ScopedServices.GetRequiredService<Vipi.Application.Airspace.ISectorShapeResolver>();
-        SidImporter = ScopedServices.GetRequiredService<ISidImporter>();
+        ProcedureImporter = ScopedServices.GetRequiredService<IProcedureImporter>();
         SidAliases = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         _shell = new DocumentEditorShell(Editing, JS, L, Logger, "aeroporto", "Ape_NoEditPerm",
             // ⚠️ Il ridisegno avvisa anche l'OSPITE: in un editor unito la testata (versione, lock) e' sua.
@@ -823,13 +823,16 @@ else
         ProgrammaChiusuraInformativa();
     }
 
-    // --- Import SID dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
+    // --- Import delle procedure dal sectorfile: rimpiazza le importate, preserva manuali/priorità/forzatura ---
+    // ⚠️ Dal 20 settembre 2026 il giro porta anche le STAR (stessa tabella, colonna Kind). Il tasto continua a
+    // dire «SID» perché è quello che questa pagina MOSTRA: la tabella degli arrivi arriva con la sua slice, e
+    // un tasto che promette qualcosa che non si vede sarebbe peggio del nome parziale.
     // ImportForCurrentUserAsync e non ImportAsync: quest'ultimo è l'ingresso del job periodico, che gira
-    // senza utente e quindi senza controllo di autorizzazione. Vedi ISidImporter.
+    // senza utente e quindi senza controllo di autorizzazione. Vedi IProcedureImporter.
     // ⚠️ Ricarica i buffer dal DB: le righe toccate e non salvate sparirebbero in silenzio. Prima si chiede.
     private async Task ReimportSids()
     {
-        if (await Guarded(() => SidImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync();
+        if (await Guarded(() => ProcedureImporter.ImportForCurrentUserAsync(_icao))) await LoadAsync();
     }
 
     // «Salvate 1 SID» è il genere di dettaglio che fa sembrare la pagina scritta da nessuno: le chiavi con un

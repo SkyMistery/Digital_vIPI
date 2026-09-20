@@ -28,7 +28,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private static ImportedSid Imp(string name, string fix, string key, string? rwy = "07") =>
+    private static ImportedProcedure Imp(string name, string fix, string key, string? rwy = "07") =>
         new(Runway: rwy, Fix: fix, Name: name, Transition: null, Type: "RNAV", StableKey: key, NeedsFixReview: false);
 
     [Fact]
@@ -38,7 +38,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
 
         // Primo import: due righe.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
         {
             Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|"),
             Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|"),
@@ -54,7 +54,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Secondo import: il codice cambia revisione (7G→8G) ma la StableKey resta → priorità/forzatura preservate.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
         {
             Imp("ALAX8G", "ALAXI", "LIRF|ALAXI|G|"),
             Imp("ALAX7J", "ALAXI", "LIRF|ALAXI|J|"),
@@ -84,10 +84,10 @@ public class SidImportRepositoryTests : IAsyncLifetime
             Imp("ROBO2H", "ROBOT", "LIRF|ROBOT|H||07"),
         };
 
-        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
         Assert.Equal(2, (await _repo.LoadAsync("LIRF"))!.Sids.Count(s => s.IsImported));
 
-        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2607");   // prima lanciava ArgumentException
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");   // prima lanciava ArgumentException
 
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
         Assert.Equal(2, sids.Count);                                          // nessuna riga persa né duplicata
@@ -102,14 +102,14 @@ public class SidImportRepositoryTests : IAsyncLifetime
             Imp("ROBO1H", "ROBOT", "LIRF|ROBOT|H||07"),
             Imp("ROBO2H", "ROBOT", "LIRF|ROBOT|H||07"),
         };
-        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
 
         // Arricchimento editoriale sulla prima riga della coppia.
         var first = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).OrderBy(s => s.Id).First();
         await _repo.UpdateImportedSidAsync(first.Id, priority: 3, forcePublished: true, resolvedFix: null,
             initialClimb: "5000ft", initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
-        await _repo.ReplaceImportedSidsAsync("LIRF", due, "2607");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");
 
         // Regola first-wins: l'arricchimento associato alla chiave torna su TUTTE le righe che la condividono.
         // Non è ambiguo per l'utente — la chiave È l'identità editoriale, la revisione no.
@@ -127,8 +127,8 @@ public class SidImportRepositoryTests : IAsyncLifetime
         // ciclo la SID diventa pubblica (IsPublicAt) e ci RESTA — il re-timbro non la ri-nasconde. Vale anche
         // dopo la carta §AW2, che ha cambiato che cosa significa il valore ma non questa regola: solo un
         // contenuto CAMBIATO riparte dal ciclo d'entrata nuovo.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
 
         var s = (await _repo.LoadAsync("LIRF"))!.Sids.Single(x => x.IsImported);
         Assert.Equal("2606", s.SourceAiracCycle);
@@ -138,9 +138,9 @@ public class SidImportRepositoryTests : IAsyncLifetime
     public async Task Reimport_Preserves_Manually_Resolved_Fix()
     {
         // Import con fix non risolto (prefisso grezzo, da verificare).
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
         {
-            new ImportedSid("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
+            new ImportedProcedure("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
         }, "2606");
         var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
         Assert.True(imp.NeedsFixReview);
@@ -150,9 +150,9 @@ public class SidImportRepositoryTests : IAsyncLifetime
             initialClimb: null, initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         // Reimport: la sorgente ripropone ancora il prefisso grezzo → la risoluzione manuale va conservata.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
         {
-            new ImportedSid("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
+            new ImportedProcedure("07", "ZZZ", "ZZZ5A", null, "RNAV", "LIRF|ZZZ|A||07", NeedsFixReview: true),
         }, "2607");
 
         var after = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
@@ -163,7 +163,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task Editorial_Enrichments_On_Imported_Persist_And_Survive_Reimport()
     {
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
         var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
 
         // L'operatore aggiunge gli arricchimenti editoriali che la sorgente non fornisce.
@@ -178,7 +178,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.Equal("solo notte", saved.Condition);
 
         // Reimport della stessa riga (StableKey invariata): gli arricchimenti a mano non vanno persi.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2607");
         var after = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
         Assert.Equal("5000", after.InitialClimb);
         Assert.True(after.InitialClimbByApp);
@@ -191,14 +191,14 @@ public class SidImportRepositoryTests : IAsyncLifetime
     public async Task Nascosta_E_Corretta_A_Mano_Sopravvivono_Al_Reimport()
     {
         // LIRF, segnalato dal campo: il parser risolve «SIV» in SIVIL, ed è SOSIV.
-        var riga = new ImportedSid("25", "SIVIL", "SIV5A", "ESINO", "RNAV", "LIRF|SIVIL|A|ESINO|25", NeedsFixReview: false);
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { riga }, "2606");
+        var riga = new ImportedProcedure("25", "SIVIL", "SIV5A", "ESINO", "RNAV", "LIRF|SIVIL|A|ESINO|25", NeedsFixReview: false);
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { riga }, "2606");
         var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
 
         await _repo.SetImportedSidOverridesAsync("LIRF", imp.Id, "sosiv", "ELKAP");
         Assert.Equal(1, await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { imp.Id }, hidden: true));
 
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { riga }, "2607");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { riga }, "2607");
 
         var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
         Assert.True(dopo.IsHidden);
@@ -212,7 +212,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task Correzione_Uguale_Alla_Sorgente_Torna_A_Seguire_La_Sorgente()
     {
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
         var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
 
         await _repo.SetImportedSidOverridesAsync("LIRF", imp.Id, "SOSIV", null);
@@ -229,7 +229,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
         var acc = _db.Accs.Single();
         _db.Airports.Add(new Airport { Icao = "LIRA", Name = "Ciampino", Acc = acc });
         await _db.SaveChangesAsync();
-        await _repo.ReplaceImportedSidsAsync("LIRA", new[] { Imp("ALAX7G", "ALAXI", "LIRA|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRA", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRA|ALAXI|G|") }, "2606");
         var altra = (await _repo.LoadAsync("LIRA"))!.Sids.Single();
 
         Assert.Equal(0, await _repo.SetImportedSidsHiddenAsync("LIRF", new[] { altra.Id }, hidden: true));
@@ -246,7 +246,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task SaveManualSids_Does_Not_Touch_Imported()
     {
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
         await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null) });
 
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids;

@@ -1,8 +1,8 @@
 ﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: 🟡 **slice 1 e 2a fatte** — il parser delle STAR è misurato sui file veri, e l'archivio le può
-> ospitare: `AirportSids` è diventata `AirportProcedures` con la colonna `Kind`, migrazione provata su una
-> copia di produzione. Restano import `.str`, editor, sezione pubblica, riferimento nel testo.
+> Stato: 🟡 **slice 1, 2a e 2b fatte** — il parser delle STAR è misurato sui file veri, l'archivio le ospita
+> (`AirportProcedures` + `Kind`, migrazione provata su una copia di produzione) e **l'import le prende davvero**
+> dal sectorfile. Restano editor, sezione pubblica, riferimento nel testo.
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se
@@ -85,8 +85,13 @@ Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `Sou
 
 1. ✅ **parser** — `AuroraSectorfileParser.ParseStars` + `SourceProcedure.Kind` + 8 test.
 2. ✅ **2a — l'archivio** — `AirportProcedure` + `Kind` + le due migrazioni + i filtri `Kind = Sid` sulle
-   letture esistenti. ▶ **2b — l'import**: `<icao>.str` nel provider, merge e gate del ciclo AIRAC come le SID
-   (una STAR nuova esce al ciclo che il changelog dichiara), policy d'import.
+   letture esistenti.
+   ✅ **2b — l'import** — `IProcedureProvider.GetAsync(icao, kind)` sceglie il file (`.sid`/`.str`),
+   `ReplaceImportedProceduresAsync` prende il verso e cancella **solo quello**, e `ProcedureImporter` fa un giro
+   solo per i due versi, con un ciclo AIRAC solo (stesso sectorfile, stessa release). Una categoria d'import
+   sola: `ImportCategory.Sids` copre le procedure, non si è aggiunto un secondo interruttore.
+   🔴 **Zero righe non è «non ce n'è più»**: 36 dei 90 `.str` non portano nessuna STAR e la rete può cadere —
+   un verso senza righe non tocca l'archivio. È il test che lo tiene fermo.
 3. **editor** — la tabella STAR accanto a quella SID nell'editor aeroporto, stessi gesti (priorità, nascondi,
    correggi il punto, crea alias).
 4. **sezione pubblica** — la tabella STAR nel documento d'aeroporto, con il congelamento alla release.
@@ -118,10 +123,17 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 
 ## 5. Verifica
 
-- 8 test nuovi in `AuroraStarParserTests` (righe reali di `lirf.str`, `lipa.str`, `lizz.str`, `lipc.str`).
+- 8 test in `AuroraStarParserTests`, 4 in `AuroraProcedureProviderTests` (quale file per quale verso, il file
+  che non c'è, la sorgente non configurata), 6 in `StarImportTests` (i due versi non si toccano, la scheda SID
+  non vede gli arrivi, il salvataggio delle manuali non li cancella, priorità e forzatura si riapplicano dentro
+  il verso, un giro importa entrambi, un verso vuoto non cancella niente) (righe reali di `lirf.str`, `lipa.str`, `lizz.str`, `lipc.str`).
 - Misura dal vivo sui 90 `.str` veri della copia di lavoro del sectorfile: 54 scali, 865 righe, 136 da
   rivedere, 522 RNAV — prova usa-e-getta, non committata, rifattibile in due minuti.
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite intera verde.
+- **Import provato dal vivo sulla sorgente vera** (GitHub raw, 20 settembre): LIRF 292 righe (206 SID + 86
+  STAR, 14 da rivedere), LIBD 77 (39 + 38), LIPO 52 (22 + 30), ciclo d'entrata `2610` timbrato dal changelog
+  della sorgente, punti risolti (`GILIO`, `BANAV`, `DOLON`); secondo giro idempotente, i conteggi non
+  raddoppiano. Prova usa-e-getta, non committata.
 - **Migrazione provata su una copia di produzione** (MariaDB locale, porta 3399, `vipi_1330` → `vipi_star`):
   dopo l'`update` la tabella `AirportProcedures` ha **1469 righe, tutte `Kind = 'Sid'`**, 1467 importate,
   indice e chiave esterna col nome nuovo; il dietrofront (`database update <migrazione precedente>`) riporta

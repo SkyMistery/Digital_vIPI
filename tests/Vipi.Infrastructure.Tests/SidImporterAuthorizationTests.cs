@@ -11,7 +11,7 @@ using Xunit;
 namespace Vipi.Infrastructure.Tests;
 
 /// <summary>
-/// I due ingressi di <see cref="ISidImporter"/>. L'importatore riscrive righe — <c>ReplaceImportedSidsAsync</c>
+/// I due ingressi di <see cref="IProcedureImporter"/>. L'importatore riscrive righe — <c>ReplaceImportedProceduresAsync</c>
 /// fa delete+add — ed era, fino all'11 agosto 2026, l'unico percorso di scrittura del progetto senza
 /// <c>EnsureCanEdit*</c>: oltre sessanta chiamate su venti servizi, e questa mancava. Non era sfruttabile
 /// (Blazor consegna solo gli eventi dell'albero renderizzato, e il bottone sta dietro il controllo di editing
@@ -50,14 +50,15 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
         public CurrentUser? Get() => User;
     }
 
-    /// <summary>Una SID sola: qui conta chi può scrivere, non che cosa si scrive.</summary>
-    private sealed class UnaSid : ISidProvider
+    /// <summary>Una SID sola, e nessun arrivo: qui conta chi può scrivere, non che cosa si scrive. I due versi
+    /// dell'import stanno in <see cref="StarImportTests"/>.</summary>
+    private sealed class UnaSid : IProcedureProvider
     {
-        public Task<IReadOnlyList<SourceProcedure>> GetSidsAsync(string icao, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<SourceProcedure>>(new[]
-            {
-                new SourceProcedure(icao, "16R", "OST", "OST1A", null, "RNAV", $"{icao}|OST|A||16R", false),
-            });
+        public Task<IReadOnlyList<SourceProcedure>> GetAsync(string icao, ProcedureKind kind,
+            CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SourceProcedure>>(kind == ProcedureKind.Sid
+                ? new[] { new SourceProcedure(icao, "16R", "OST", "OST1A", null, "RNAV", $"{icao}|OST|A||16R", false, kind) }
+                : Array.Empty<SourceProcedure>());
     }
 
     private sealed class TuttoImportato : IImportPolicyStore
@@ -72,13 +73,13 @@ public class SidImporterAuthorizationTests : IAsyncLifetime
             Task.CompletedTask;
     }
 
-    private SidImporter Build(CurrentUser? user)
+    private ProcedureImporter Build(CurrentUser? user)
     {
         var provider = new FakeUser { User = user };
         var authz = new EditAuthorizationService(provider,
             new Vipi.Application.Auth.RoleResolver(new Vipi.Application.Auth.AuthOptions(), new Vipi.Application.DivisionOptions()), SenzaPromozioni.Instance);
 
-        return new SidImporter(new UnaSid(), new EfAirportRepository(_db, new EfMediaMaintenance(_db)),
+        return new ProcedureImporter(new UnaSid(), new EfAirportRepository(_db, new EfMediaMaintenance(_db)),
             new TuttoImportato(), new AiracService(), authz);
     }
 

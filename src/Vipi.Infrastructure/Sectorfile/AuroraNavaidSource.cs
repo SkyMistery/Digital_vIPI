@@ -22,7 +22,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// non è raggiungibile o non cita nessun file di punti: un catalogo ridotto è meglio di nessun catalogo.</para>
 /// </summary>
 /// <remarks>
-/// È l'UNICO posto che scarica i file navaid. <see cref="AuroraSidProvider"/> passava di qui prima ancora che
+/// È l'UNICO posto che scarica i file navaid. <see cref="AuroraProcedureProvider"/> passava di qui prima ancora che
 /// esistessero i suggerimenti: due discese dello stesso file avrebbero significato due cache, due momenti di
 /// aggiornamento diversi e la possibilità che l'editor consideri sbagliato un fix che l'import considera giusto.
 /// </remarks>

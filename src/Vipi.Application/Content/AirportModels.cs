@@ -93,7 +93,7 @@ public sealed record SidRow(int Id, string? Runway, string Fix, string Name, str
 }
 
 /// <summary>Riga SID importata dal sectorfile (input del merge). Priority/ForcePublished sono riapplicati dal repo per StableKey.</summary>
-public sealed record ImportedSid(string? Runway, string Fix, string Name, string? Transition,
+public sealed record ImportedProcedure(string? Runway, string Fix, string Name, string? Transition,
     string? Type, string StableKey, bool NeedsFixReview);
 
 /// <summary>Frequenza linkata (riferimento vivo): valore risolto da Sector.DefaultFrequency al momento del load/rebuild.</summary>

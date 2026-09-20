@@ -116,7 +116,7 @@ public sealed class NavaidCatalog
 }
 
 /// <summary>Porta neutra: il catalogo dei punti della divisione dalla sorgente esterna (impl. sectorfile
-/// Aurora su GitHub in Infrastructure). Gemella di <see cref="ISidProvider"/> e <see cref="ITowerShapeSource"/>.</summary>
+/// Aurora su GitHub in Infrastructure). Gemella di <see cref="IProcedureProvider"/> e <see cref="ITowerShapeSource"/>.</summary>
 public interface INavaidSource
 {
     /// <summary>Il catalogo. <see cref="NavaidCatalog.Empty"/> se la sorgente non è configurata.</summary>

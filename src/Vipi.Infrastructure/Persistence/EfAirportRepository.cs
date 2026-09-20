@@ -292,7 +292,8 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default)
+    public async Task ReplaceImportedProceduresAsync(string icao, ProcedureKind kind,
+        IReadOnlyList<ImportedProcedure> rows, string airacCycle, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
         // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
@@ -306,7 +307,7 @@ public sealed class EfAirportRepository : IAirportRepository
         // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
         // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
         var priorRows = await _db.AirportProcedures.AsNoTracking()
-            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && x.StableKey != null)
+            .Where(x => x.AirportId == id && x.Kind == kind && x.StableKey != null)
             .OrderBy(x => x.Id)
             .ToListAsync(ct);
         var prior = new Dictionary<string, PriorSid>();
@@ -317,9 +318,12 @@ public sealed class EfAirportRepository : IAirportRepository
                     x.IsHidden, x.FixOverride, x.TransitionOverride));
 
         _db.AirportProcedures.RemoveRange(_db.AirportProcedures
-            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && x.IsImported));
+            .Where(x => x.AirportId == id && x.Kind == kind && x.IsImported));
 
-        var baseOrder = 1000;   // le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer
+        // Le importate dopo le manuali; l'ordine di resa reale è per fix/priorità nel viewer. Gli arrivi partono
+        // più in alto delle partenze: ogni lettura filtra comunque per verso, ma una tabella guardata a mano —
+        // in diagnostica, in una copia del database — resta leggibile.
+        var baseOrder = kind == ProcedureKind.Star ? 2000 : 1000;
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
@@ -343,7 +347,7 @@ public sealed class EfAirportRepository : IAirportRepository
 
             _db.AirportProcedures.Add(new AirportProcedure
             {
-                AirportId = id, Kind = ProcedureKind.Sid,
+                AirportId = id, Kind = kind,
                 Order = baseOrder + i, Runway = r.Runway, Fix = fix, Name = r.Name.Trim(),
                 Transition = r.Transition, Type = r.Type,
                 IsImported = true, StableKey = r.StableKey, SourceAiracCycle = sourceCycle,
@@ -362,7 +366,7 @@ public sealed class EfAirportRepository : IAirportRepository
 
     // "Contenuto invariato" = stessi campi che definiscono la SID lato sorgente (codice con revisione, transition, tipo).
     // Fix/pista fanno parte della StableKey, quindi qui non si riconfrontano.
-    private static bool ContentUnchanged(PriorSid p, ImportedSid r) =>
+    private static bool ContentUnchanged(PriorSid p, ImportedProcedure r) =>
         string.Equals(p.Name, r.Name.Trim(), StringComparison.Ordinal)
         && string.Equals(p.Transition ?? "", r.Transition ?? "", StringComparison.Ordinal)
         && string.Equals(p.Type ?? "", r.Type ?? "", StringComparison.Ordinal);

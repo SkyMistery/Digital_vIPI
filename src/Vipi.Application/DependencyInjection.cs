@@ -161,7 +161,7 @@ public static class DependencyInjection
         services.AddScoped<IAirportSectorImporter, AirportSectorImporter>();
         services.AddScoped<IAirportImportUseCase, AirportImportUseCase>();
         services.AddScoped<IAirportDataImportUseCase, AirportDataImportUseCase>();
-        services.AddScoped<ISidImporter, SidImporter>();
+        services.AddScoped<IProcedureImporter, ProcedureImporter>();
         services.AddScoped<INavaidImporter, NavaidImporter>();
         // Dove stanno i punti scrivibili in un CoP: anagrafica (VOR/NDB, coordinate anche a mano) + catalogo
         // punti del sectorfile (i fix). Nessuna anagrafica nuova — vedi ICopPositions.

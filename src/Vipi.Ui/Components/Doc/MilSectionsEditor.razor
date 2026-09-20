@@ -421,7 +421,7 @@ else
     /// guardava vedeva il riquadro «ricarica la pagina» e da lì in poi nessun clic funzionava.</para>
     /// </summary>
     private Vipi.Application.Abstractions.INavaidCatalog Radioassistenze = default!;
-    private ISidImporter ImportatoreSid = default!;
+    private IProcedureImporter ImportatoreSid = default!;
     private ISidFixAliasRepository AliasSid = default!;
 
     /// <summary>Gli aeroporti noti, per gli alternati: <b>stesso scope</b>, e per la stessa ragione — si
@@ -456,7 +456,7 @@ else
         Radioassistenze = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.INavaidCatalog>();
         // ⚠️ Dallo scope PROPRIO come tutti gli altri: leggono e scrivono nel database dentro il
         // caricamento della pagina, cioè dentro il tornello. Vale parola per parola il blocco qui sopra.
-        ImportatoreSid = ScopedServices.GetRequiredService<ISidImporter>();
+        ImportatoreSid = ScopedServices.GetRequiredService<IProcedureImporter>();
         AliasSid = ScopedServices.GetRequiredService<ISidFixAliasRepository>();
         Aeroporti = ScopedServices.GetRequiredService<Vipi.Application.Abstractions.IAirportNameLookup>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();

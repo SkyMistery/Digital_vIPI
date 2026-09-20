@@ -22,7 +22,7 @@ public sealed record SidSourceRelease(string? DeclaredCycle, DateTime? LastChang
 /// <summary>
 /// Porta di lettura di <see cref="SidSourceRelease"/>.
 ///
-/// <para><b>Perché una porta e non una chiamata dentro il provider.</b> <c>ISidProvider</c> risponde «quali
+/// <para><b>Perché una porta e non una chiamata dentro il provider.</b> <c>IProcedureProvider</c> risponde «quali
 /// SID ci sono per questo ICAO», e questa è una domanda sulla <i>sorgente nel suo insieme</i>: la risposta
 /// non dipende dall'aeroporto, e la fanno l'import e chi racconta lo stato dei giri. Tenerla lì dentro
 /// vorrebbe dire chiedere le SID di uno scalo per sapere una cosa che non ne riguarda nessuno.</para>

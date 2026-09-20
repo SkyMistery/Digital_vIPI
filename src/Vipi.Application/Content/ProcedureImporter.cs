@@ -1,15 +1,16 @@
 ﻿using System.Collections.Concurrent;
 using Vipi.Application.Abstractions;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using Vipi.Domain.Services;
 using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
 
-/// <inheritdoc cref="ISidImporter"/>
-public sealed class SidImporter : ISidImporter
+/// <inheritdoc cref="IProcedureImporter"/>
+public sealed class ProcedureImporter : IProcedureImporter
 {
-    // Serializza gli import sullo stesso aeroporto (job periodico + bottone editor): ReplaceImportedSidsAsync fa
+    // Serializza gli import sullo stesso aeroporto (job periodico + bottone editor): ReplaceImportedProceduresAsync fa
     // delete+add, quindi due run concorrenti tenterebbero di scrivere due volte le stesse righe.
     //
     // ATTENZIONE: è un lock DI PROCESSO, e copre il deploy attuale (Render, istanza singola) ma non due repliche.
@@ -19,7 +20,7 @@ public sealed class SidImporter : ISidImporter
     // Il dizionario è limitato dal numero di aeroporti in catalogo (decine), quindi non richiede sfoltimento.
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> _locks = new(StringComparer.OrdinalIgnoreCase);
 
-    private readonly ISidProvider _provider;
+    private readonly IProcedureProvider _provider;
     private readonly IAirportRepository _repo;
     private readonly IImportPolicyStore _policy;
     private readonly IAiracService _airac;
@@ -32,7 +33,7 @@ public sealed class SidImporter : ISidImporter
     /// <summary>L'ultimo giro riuscito, ultimo ripiego. Opzionale come sopra.</summary>
     private readonly IImportStateStore? _stati;
 
-    public SidImporter(ISidProvider provider, IAirportRepository repo, IImportPolicyStore policy,
+    public ProcedureImporter(IProcedureProvider provider, IAirportRepository repo, IImportPolicyStore policy,
         IAiracService airac, Vipi.Application.Auth.IEditAuthorizationService authz,
         ISidSourceRelease? sorgente = null, IImportStateStore? stati = null)
     {
@@ -60,29 +61,47 @@ public sealed class SidImporter : ISidImporter
     {
         icao = icao.Trim().ToUpperInvariant();
         var policy = await _policy.GetAsync(ct);
-        if (!policy.IsImported(ImportCategory.Sids)) return 0;   // categoria disattivata: non toccare le SID
-
-        var source = await _provider.GetSidsAsync(icao, ct);
-        if (source.Count == 0) return 0;                          // nessun file/righe: non azzerare le importate esistenti
+        if (!policy.IsImported(ImportCategory.Sids)) return 0;   // categoria disattivata: non toccare le procedure
 
         // ⚠️ Si scrive il ciclo DAL QUALE la riga vale, e lo dichiara la SORGENTE: non è più «il ciclo in
         // cui è capitato di girare» più uno. Il giro è ogni 24 ore, con ritardo d'avvio e ritentativi, e da
         // quel valore dipendeva di un MESE quando la SID diventa pubblica (SidRow.IsPublicAt). I tre gradini
         // — e perché i ripieghi sbagliano apposta in avanti — stanno in SidStampCycle. Carta §AW2.
+        //
+        // Si calcola UNA volta per i due versi: vengono dallo stesso sectorfile, quindi dallo stesso ciclo.
         var cycle = SidStampCycle.Scegli(
             _airac, DateTime.UtcNow,
             _sorgente is null ? SidSourceRelease.Muta : await _sorgente.ReadAsync(ct),
             _stati is null ? null : await _stati.GetLastSuccessAsync(ImportCategories.Sid, ct));
 
-        var rows = source.Select(s => new ImportedSid(
+        var scritte = 0;
+        foreach (var kind in new[] { ProcedureKind.Sid, ProcedureKind.Star })
+            scritte += await ImportaVersoAsync(icao, kind, cycle, ct);
+        return scritte;
+    }
+
+    /// <summary>
+    /// Un verso solo. ⚠️ <b>Zero righe dalla sorgente = non si tocca niente</b>: il file può mancare (36 dei 90
+    /// <c>.str</c> non portano nemmeno una STAR), la rete può essere caduta, e in nessuno dei due casi «non è
+    /// arrivato niente» significa «non c'è più niente». Un <c>ReplaceImported…</c> con la lista vuota
+    /// cancellerebbe le importate esistenti.
+    /// </summary>
+    private async Task<int> ImportaVersoAsync(string icao, ProcedureKind kind, string cycle, CancellationToken ct)
+    {
+        var source = await _provider.GetAsync(icao, kind, ct);
+        if (source.Count == 0) return 0;
+
+        var rows = source.Select(s => new ImportedProcedure(
             Runway: s.Runway, Fix: s.Fix, Name: s.Name, Transition: s.Transition,
             Type: s.Type, StableKey: s.StableKey, NeedsFixReview: s.NeedsFixReview)).ToList();
 
         // Solo la scrittura DB è serializzata (il fetch di rete resta concorrente): due run finiscono per riscrivere
         // gli stessi dati in sequenza (idempotente), senza duplicare righe.
+        // ⚠️ Il lucchetto è per AEROPORTO e non per (aeroporto, verso): i due versi dello stesso scalo scrivono
+        // nella stessa tabella, e due giri concorrenti si passerebbero davanti a metà merge.
         var gate = _locks.GetOrAdd(icao, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(ct);
-        try { await _repo.ReplaceImportedSidsAsync(icao, rows, cycle, ct); }
+        try { await _repo.ReplaceImportedProceduresAsync(icao, kind, rows, cycle, ct); }
         finally { gate.Release(); }
         return rows.Count;
     }

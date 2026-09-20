@@ -8,18 +8,18 @@ using Vipi.Application.Content;
 namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
-/// Import automatico delle SID dal sectorfile GitHub (default 24h), oltre al bottone manuale nell'editor.
-/// Gated (<see cref="GatedImportLoop"/>): non richiama la sorgente a ogni riavvio se ancora fresco. Job di
-/// sistema (nessuna authz utente): rimpiazza le SID importate preservando manuali/priorità.
+/// Import automatico delle procedure — SID <b>e</b> STAR — dal sectorfile GitHub (default 24h), oltre al
+/// bottone manuale nell'editor. Gated (<see cref="GatedImportLoop"/>): non richiama la sorgente a ogni riavvio
+/// se ancora fresco. Job di sistema (nessuna authz utente): rimpiazza le importate preservando manuali/priorità.
 /// </summary>
-internal sealed class SidImportHostedService : BackgroundService
+internal sealed class ProcedureImportHostedService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopes;
     private readonly SectorfileOptions _opt;
-    private readonly ILogger<SidImportHostedService> _log;
+    private readonly ILogger<ProcedureImportHostedService> _log;
 
-    public SidImportHostedService(
-        IServiceScopeFactory scopes, IOptions<SectorfileOptions> opt, ILogger<SidImportHostedService> log)
+    public ProcedureImportHostedService(
+        IServiceScopeFactory scopes, IOptions<SectorfileOptions> opt, ILogger<ProcedureImportHostedService> log)
     {
         _scopes = scopes;
         _opt = opt.Value;
@@ -36,7 +36,7 @@ internal sealed class SidImportHostedService : BackgroundService
     private async Task<bool> RunOnceAsync(IServiceProvider sp, CancellationToken ct)
     {
         var repo = sp.GetRequiredService<IAirportSectorRepository>();
-        var importer = sp.GetRequiredService<ISidImporter>();
+        var importer = sp.GetRequiredService<IProcedureImporter>();
 
         // Il ciclo riparte dai file, non dalla copia in memoria: la cache di processo non scade da sola, e senza
         // questa riga un'applicazione che resta su per settimane completerebbe le SID (e suggerirebbe i punti agli
@@ -59,18 +59,18 @@ internal sealed class SidImportHostedService : BackgroundService
             {
                 // Warning, non Debug: a Debug un fallimento per-aeroporto era invisibile in produzione, e ha
                 // tenuto nascosto per cicli interi un import rotto sugli scali principali (vedi la nota in
-                // EfAirportRepository.ReplaceImportedSidsAsync sulle revisioni con StableKey condivisa).
+                // EfAirportRepository.ReplaceImportedProceduresAsync sulle revisioni con StableKey condivisa).
                 failed++;
-                _log.LogWarning(ex, "Import SID {Icao} fallito; gli altri aeroporti proseguono.", icao);
+                _log.LogWarning(ex, "Import procedure {Icao} fallito; gli altri aeroporti proseguono.", icao);
             }
         }
         await WarnStaleAliasesAsync(sp, ct);
 
         if (failed > 0)
-            _log.LogWarning("Import SID automatico: {Airports} aeroporti, {Sids} SID, {Failed} FALLITI su {Total}.",
+            _log.LogWarning("Import procedure automatico: {Airports} aeroporti, {Sids} righe, {Failed} FALLITI su {Total}.",
                 airports, sids, failed, icaos.Count);
         else
-            _log.LogInformation("Import SID automatico: {Airports} aeroporti, {Sids} SID.", airports, sids);
+            _log.LogInformation("Import procedure automatico: {Airports} aeroporti, {Sids} righe (SID + STAR).", airports, sids);
         return true;
     }
 

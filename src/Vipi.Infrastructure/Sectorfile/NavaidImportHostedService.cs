@@ -9,7 +9,7 @@ namespace Vipi.Infrastructure.Sectorfile;
 
 /// <summary>
 /// Import automatico delle radioassistenze dal sectorfile (default 24h), gemello di
-/// <see cref="SidImportHostedService"/>: stessa sorgente, stessa cadenza, stesso giro gestito.
+/// <see cref="ProcedureImportHostedService"/>: stessa sorgente, stessa cadenza, stesso giro gestito.
 ///
 /// <para>
 /// ⚠️ <b>Perché un servizio suo e non una riga dentro quello delle SID</b>, visto che i file sono gli stessi.

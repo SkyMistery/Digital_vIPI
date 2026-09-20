@@ -12,7 +12,7 @@ namespace Vipi.Infrastructure.Tests;
 /// Derivazione a view-time della sezione SID (doc 10 §3e): merge editoriali+importate, importate in attesa
 /// finché il ciclo non raggiunge quello DA CUI valgono (o forzate), ordine per FIX + priorità. Fu la PRIMA
 /// sezione d'aeroporto a smettere di essere cotta nel documento; dalla carta 2026-08-26 lo sono tutte.
-/// <para>⚠️ Dalla carta 2026-09-02 §AW2 il ciclo passato a <c>ReplaceImportedSidsAsync</c> è «il ciclo DAL
+/// <para>⚠️ Dalla carta 2026-09-02 §AW2 il ciclo passato a <c>ReplaceImportedProceduresAsync</c> è «il ciclo DAL
 /// QUALE la riga vale», non «il ciclo in cui l'ho presa»: il buffer di uno non si somma più qui — lo decide
 /// <c>SidStampCycle</c>, e solo dove la sorgente il ciclo non lo dichiara.</para>
 /// </summary>
@@ -38,7 +38,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
 
     public async Task DisposeAsync() { await _db.DisposeAsync(); await _conn.DisposeAsync(); }
 
-    private static ImportedSid Imp(string name, string fix, string key) =>
+    private static ImportedProcedure Imp(string name, string fix, string key) =>
         new(Runway: "07", Fix: fix, Name: name, Transition: null, Type: "RNAV", StableKey: key, NeedsFixReview: false);
 
     [Fact]
@@ -46,7 +46,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     {
         // Manuale (sempre pubblica) + importata che entra a un ciclo FUTURO (in attesa: non ancora pubblica).
         await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "3512");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "3512");
 
         var v = await _sut.DeriveAsync("LIRF");
         var row = Assert.Single(v.Rows);
@@ -70,7 +70,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         {
             new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true),
         });
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[]
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
         {
             Imp("SIV5A", "SIVIL", "LIRF|SIVIL|A|"),
             Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|"),
@@ -115,7 +115,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         var prossimo = cicli[1].Cycle;
 
         // In vigore DAL ciclo prossimo.
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
         Assert.Empty((await _sut.DeriveAsync("LIRF")).Rows);                       // «adesso»: non ancora
         Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // idem, chiedendolo per nome
@@ -135,7 +135,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
         var oggi = cicli[0].Cycle;
         var prossimo = cicli[1].Cycle;
 
-        await _repo.ReplaceImportedSidsAsync("LIRF", new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, prossimo);
 
         Assert.Empty((await _sut.DeriveAsync("LIRF", oggi)).Rows);                 // al ciclo di oggi ancora no
         Assert.Single((await _sut.DeriveAsync("LIRF", prossimo)).Rows);            // al SUO ciclo, sì

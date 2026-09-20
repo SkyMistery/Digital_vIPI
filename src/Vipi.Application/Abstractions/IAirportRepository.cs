@@ -1,5 +1,6 @@
 ﻿using Vipi.Application.Content;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Abstractions;
 
@@ -63,9 +64,12 @@ public interface IAirportRepository : IAirportProfileReader
     /// <summary>Salva le sole SID MANUALI dell'aeroporto (IsImported=false): sostituisce l'intera lista manuale, non tocca le importate.</summary>
     Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
 
-    /// <summary>Merge SID importate: rimuove le sole righe importate precedenti e inserisce le nuove, riapplicando
-    /// Priority e ForcePublished per StableKey. Le righe manuali restano intatte.</summary>
-    Task ReplaceImportedSidsAsync(string icao, IReadOnlyList<ImportedSid> rows, string airacCycle, CancellationToken ct = default);
+    /// <summary>Merge delle procedure importate <b>di quel verso</b>: rimuove le sole righe importate precedenti
+    /// dello stesso <paramref name="kind"/> e inserisce le nuove, riapplicando Priority e ForcePublished per
+    /// StableKey. Le righe manuali restano intatte, e le procedure dell'altro verso non si toccano — importare
+    /// gli arrivi non deve poter cancellare le partenze.</summary>
+    Task ReplaceImportedProceduresAsync(string icao, ProcedureKind kind, IReadOnlyList<ImportedProcedure> rows,
+        string airacCycle, CancellationToken ct = default);
 
     /// <summary>Aggiorna i campi editabili di UNA riga SID importata: priorità, forzatura pubblicazione, fix risolto a
     /// mano e gli arricchimenti editoriali (initial climb, CAT, WTC, condition) sovrapposti alla riga di sorgente.</summary>
