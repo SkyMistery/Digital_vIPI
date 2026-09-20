@@ -139,5 +139,13 @@ public sealed class AirportData
     /// <c>Declared=false</c>, che invece dice «qui le LVP non si fanno».</para></summary>
     public LvpRow? Lvp { get; init; }
     public required IReadOnlyList<SidRow> Sids { get; init; }
+
+    /// <summary>
+    /// Le STAR dello scalo, stessa forma delle SID (stessa tabella, colonna <c>Kind</c>).
+    /// <para>⚠️ Non è <c>required</c>: nasce vuota, così chi costruisce un <see cref="AirportData"/> per una
+    /// prova o per una vista che gli arrivi non li guarda non deve dire niente.</para>
+    /// </summary>
+    public IReadOnlyList<SidRow> Stars { get; init; } = Array.Empty<SidRow>();
+
     public required IReadOnlyList<FrequencyLinkRow> Links { get; init; }
 }

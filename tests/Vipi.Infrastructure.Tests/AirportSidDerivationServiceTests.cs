@@ -45,7 +45,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     public async Task Manual_Public_Imported_Deferred_Then_Forced()
     {
         // Manuale (sempre pubblica) + importata che entra a un ciclo FUTURO (in attesa: non ancora pubblica).
-        await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "3512");
 
         var v = await _sut.DeriveAsync("LIRF");
@@ -66,7 +66,7 @@ public class AirportSidDerivationServiceTests : IAsyncLifetime
     [Fact]
     public async Task Nascosta_Esce_Anche_Se_Forzata_E_La_Correzione_Si_Pubblica()
     {
-        await _repo.SaveSidsAsync("LIRF", new[]
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[]
         {
             new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true),
         });

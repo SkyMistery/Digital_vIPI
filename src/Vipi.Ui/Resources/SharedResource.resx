@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -2076,27 +2076,38 @@
   <data name="Ape_SectorsNoteAria" xml:space="preserve"><value>Aiuto sui settori ATC</value></data>
   <data name="Ape_SidRenderHelpAria" xml:space="preserve"><value>Aiuto sulla modalità di resa delle SID</value></data>
   <data name="Ape_SidImportedHelpAria" xml:space="preserve"><value>Aiuto sulle SID importate</value></data>
+  <data name="Ape_StarImportedHelpAria" xml:space="preserve"><value>Aiuto sulle STAR importate</value></data>
   <data name="Ape_SidManualHelpAria" xml:space="preserve"><value>Aiuto sulle SID manuali</value></data>
+  <data name="Ape_StarManualHelpAria" xml:space="preserve"><value>Aiuto sulle STAR manuali</value></data>
   <data name="Ape_SidImportedCountTitle" xml:space="preserve"><value>SID importate mostrate rispetto al totale</value></data>
+  <data name="Ape_StarImportedCountTitle" xml:space="preserve"><value>STAR importate mostrate rispetto al totale</value></data>
   <data name="Ape_SidSelectHint" xml:space="preserve"><value>Nella colonna di sinistra: clic per scegliere una riga, Shift o Ctrl+clic per un intervallo, trascina in giù per scegliere e in su per togliere. Da tastiera, Invio o Spazio sulla cella.</value></data>
   <data name="Ed_Wide" xml:space="preserve"><value>Larghezza piena</value></data>
   <data name="Ed_Narrow" xml:space="preserve"><value>Riduci</value></data>
   <data name="Ed_WideTitle" xml:space="preserve"><value>Nascondi indice e rail: la tabella usa tutta la larghezza della pagina</value></data>
   <data name="Ed_NarrowTitle" xml:space="preserve"><value>Rimetti indice e rail</value></data>
   <data name="Ape_SidSearchPh" xml:space="preserve"><value>cerca fix, SID o pista…</value></data>
+  <data name="Ape_StarSearchPh" xml:space="preserve"><value>cerca fix, STAR o pista…</value></data>
   <data name="Ape_SidManualSearchPh" xml:space="preserve"><value>cerca fix, nome o pista…</value></data>
+  <data name="Ape_StarManualSearchPh" xml:space="preserve"><value>cerca fix, nome o pista…</value></data>
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>da verificare {0}</value></data>
   <data name="Ape_SidReviewChipTitle" xml:space="preserve"><value>Mostra solo le SID il cui punto va confermato a mano</value></data>
+  <data name="Ape_StarReviewChipTitle" xml:space="preserve"><value>Mostra solo le STAR il cui punto va confermato a mano</value></data>
   <data name="Ape_SidRwChipTitle" xml:space="preserve"><value>Mostra solo le SID di questa pista</value></data>
+  <data name="Ape_StarRwChipTitle" xml:space="preserve"><value>Mostra solo le STAR di questa pista</value></data>
   <data name="Ape_SidDirtyNOne" xml:space="preserve"><value>1 modificata</value></data>
   <data name="Ape_SidSelectAll" xml:space="preserve"><value>Scegli tutte</value></data>
   <data name="Ape_SidUnselectAll" xml:space="preserve"><value>Togli tutte</value></data>
   <data name="Ape_SidPublishSel" xml:space="preserve"><value>Pubblica scelte</value></data>
   <data name="Ape_SidPublishSelTitle" xml:space="preserve"><value>Forza la pubblicazione immediata delle SID scelte</value></data>
+  <data name="Ape_StarPublishSelTitle" xml:space="preserve"><value>Forza la pubblicazione immediata delle STAR scelte</value></data>
   <data name="Ape_SidPickTitle" xml:space="preserve"><value>Clic per scegliere · trascina per un intervallo · Invio o Spazio da tastiera</value></data>
   <data name="Ape_SidNoMatch" xml:space="preserve"><value>Nessuna SID importata corrisponde al filtro.</value></data>
+  <data name="Ape_StarNoMatch" xml:space="preserve"><value>Nessuna STAR importata corrisponde al filtro.</value></data>
   <data name="Ape_SidNoManual" xml:space="preserve"><value>Nessuna SID manuale.</value></data>
+  <data name="Ape_StarNoManual" xml:space="preserve"><value>Nessuna STAR manuale.</value></data>
   <data name="Ape_SidNoRowMatch" xml:space="preserve"><value>Nessuna riga corrisponde al filtro.</value></data>
+  <data name="Ape_StarNoRowMatch" xml:space="preserve"><value>Nessuna riga corrisponde al filtro.</value></data>
   <data name="Ape_Alias" xml:space="preserve"><value>alias</value></data>
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Quota imposta in ft (solo numero)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>La quota va concordata con l'APP</value></data>
@@ -2126,8 +2137,10 @@
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Pubblicata 1 SID.</value></data>
   <data name="Ape_SidHideSel" xml:space="preserve"><value>Nascondi scelte</value></data>
   <data name="Ape_SidHideSelTitle" xml:space="preserve"><value>Nasconde al pubblico le SID scelte: con la sezione Live spariscono subito, con la sezione congelata alla prossima pubblicazione</value></data>
+  <data name="Ape_StarHideSelTitle" xml:space="preserve"><value>Nasconde al pubblico le STAR scelte: con la sezione Live spariscono subito, con la sezione congelata alla prossima pubblicazione</value></data>
   <data name="Ape_SidShowSel" xml:space="preserve"><value>Mostra scelte</value></data>
   <data name="Ape_SidShowSelTitle" xml:space="preserve"><value>Rende di nuovo visibili al pubblico le SID scelte</value></data>
+  <data name="Ape_StarShowSelTitle" xml:space="preserve"><value>Rende di nuovo visibili al pubblico le STAR scelte</value></data>
   <data name="Ape_SidHiddenN" xml:space="preserve"><value>Nascoste {0} SID. Con la sezione Live spariscono subito; con la sezione congelata alla prossima pubblicazione.</value></data>
   <data name="Ape_SidHiddenNOne" xml:space="preserve"><value>Nascosta 1 SID. Con la sezione Live sparisce subito; con la sezione congelata alla prossima pubblicazione.</value></data>
   <data name="Ape_SidShownN" xml:space="preserve"><value>Di nuovo visibili {0} SID.</value></data>
@@ -2237,9 +2250,11 @@
   <data name="Ape_MakeAlwaysLive" xml:space="preserve"><value>Rendi sempre live</value></data>
   <data name="Ape_SidRenderHelp" xml:space="preserve"><value>&lt;b&gt;Live&lt;/b&gt; (default): le SID pubbliche si aggiornano sempre dai dati (import inclusi), anche senza ripubblicare — utile per dati di riferimento IVAO. &lt;b&gt;Congelata&lt;/b&gt;: la sezione è fotografata al momento della pubblicazione, come il resto del documento (nessun AIRAC misto in pagina).</value></data>
   <data name="Ape_SidImportedTitle" xml:space="preserve"><value>SID importate dal sectorfile</value></data>
+  <data name="Ape_StarImportedTitle" xml:space="preserve"><value>STAR importate dal sectorfile</value></data>
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Ripreleva le SID dal sectorfile GitHub</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-importa SID</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Righe da sorgente: imposti &lt;b&gt;priorità per punto&lt;/b&gt;, il &lt;b&gt;fix&lt;/b&gt; se «da verificare», e la &lt;b&gt;pubblicazione&lt;/b&gt; (di default dal ciclo d'entrata). Punto e transition trovati dal parser si possono &lt;b&gt;correggere&lt;/b&gt; (con conferma; la matita indica il valore corretto a mano), e le SID scelte si possono &lt;b&gt;nascondere&lt;/b&gt; al pubblico. Le correzioni restano anche ai prossimi import.</value></data>
+  <data name="Ape_StarImportedHelp" xml:space="preserve"><value>Righe da sorgente, dal file &lt;b&gt;.str&lt;/b&gt; dello scalo: stessi gesti delle SID — &lt;b&gt;priorità per punto&lt;/b&gt;, &lt;b&gt;fix&lt;/b&gt; se «da verificare», &lt;b&gt;pubblicazione&lt;/b&gt; dal ciclo d'entrata, correzioni che restano ai prossimi import. Le voci del menu mappe del sectorfile (&lt;b&gt;MAPS&lt;/b&gt;), le attese e gli avvicinamenti non entrano: non sono STAR.</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Condition" xml:space="preserve"><value>Condizione</value></data>
   <data name="Ape_Transition" xml:space="preserve"><value>Transizione</value></data>
@@ -2256,7 +2271,9 @@
   <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>pubblica automaticamente dal ciclo {0}</value></data>
   <data name="Ape_Now" xml:space="preserve"><value>ora</value></data>
   <data name="Ape_SidManualTitle" xml:space="preserve"><value>SID manuali</value></data>
+  <data name="Ape_StarManualTitle" xml:space="preserve"><value>STAR manuali</value></data>
   <data name="Ape_SidManualHelp" xml:space="preserve"><value>Righe aggiunte a mano dallo staff: preservate dagli import. Campi non presenti nel sectorfile (Initial climb / Cat / WTC / Condition) vanno qui.</value></data>
+  <data name="Ape_StarManualHelp" xml:space="preserve"><value>Righe aggiunte a mano dallo staff: preservate dagli import. Campi non presenti nel sectorfile (Cat / WTC / Condition) vanno qui.</value></data>
   <data name="Ape_ExtraTitle" xml:space="preserve"><value>Sezioni extra</value></data>
   <data name="Ape_ExtraHelp" xml:space="preserve"><value>Sezioni editoriali libere (titolo + testo). Nel documento compaiono nella &lt;b&gt;colonna libera di destra&lt;/b&gt; su schermo desktop e &lt;b&gt;sotto le SID&lt;/b&gt; su schermi stretti/cellulare. Si valutano nell'ordine in cui le metti.</value></data>
   <data name="Ape_ExtraTitlePh" xml:space="preserve"><value>es. Note operative</value></data>
@@ -2285,6 +2302,7 @@
   <data name="Ape_RemoveRowConfirm" xml:space="preserve"><value>Rimuovere questa riga?</value></data>
   <data name="Ape_RemoveRwConfirm" xml:space="preserve"><value>Rimuovere questa pista?</value></data>
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Rimuovere questa SID?</value></data>
+  <data name="Ape_RemoveStarConfirm" xml:space="preserve"><value>Rimuovere questa STAR?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Rimuovere questa sezione?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude e settori? I campi importati dalla sorgente verranno sovrascritti.</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>mese</value></data>

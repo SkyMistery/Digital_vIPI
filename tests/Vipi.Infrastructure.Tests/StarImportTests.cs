@@ -83,12 +83,50 @@ public class StarImportTests : IAsyncLifetime
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
             new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A||16L") }, "2606");
 
-        await _repo.SaveSidsAsync("LIRF", new[]
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[]
         {
             new SidRow(0, "16L", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null),
         });
 
         Assert.Equal(1, await ConteggioAsync(ProcedureKind.Star));
+    }
+
+    [Fact]
+    public async Task La_Scheda_Porta_Gli_Arrivi_A_Parte()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid,
+            new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G||16L") }, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Star,
+            new[] { Imp("GILI3A", "GILIO", "STAR|LIRF|GILIO|A||16L") }, "2606");
+
+        var dati = (await _repo.LoadAsync("LIRF"))!;
+
+        Assert.Equal("ALAX7G", Assert.Single(dati.Sids).Name);
+        Assert.Equal("GILI3A", Assert.Single(dati.Stars).Name);
+    }
+
+    [Fact]
+    public async Task Le_Manuali_Di_Un_Verso_Non_Toccano_L_Altro()
+    {
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new SidRow(0, "16L", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null),
+        });
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Star, new[]
+        {
+            new SidRow(0, "16L", "GILIO", "GILI3A", null, null, "RNAV", null, null, null),
+        });
+
+        var dati = (await _repo.LoadAsync("LIRF"))!;
+        Assert.Equal("OST7A", Assert.Single(dati.Sids).Name);
+        Assert.Equal("GILI3A", Assert.Single(dati.Stars).Name);
+
+        // Riscrivere le manuali degli arrivi non si porta via quelle delle partenze.
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Star, Array.Empty<SidRow>());
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!;
+        Assert.Single(dopo.Sids);
+        Assert.Empty(dopo.Stars);
     }
 
     [Fact]

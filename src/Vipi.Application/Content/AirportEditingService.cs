@@ -2,6 +2,7 @@
 using Vipi.Application.Aor;
 using Vipi.Application.Auth;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using static Vipi.Application.Messaggio;
 
 namespace Vipi.Application.Content;
@@ -55,7 +56,8 @@ public interface IAirportEditingService
 
     /// <summary>Scrive i minimi LVP dello scalo; <c>null</c> li toglie. ACC-gated come le altre scritture.</summary>
     Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
-    Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
+    /// <summary>Le procedure manuali di un verso (SID o STAR): sostituiscono l'intera lista manuale di quel verso.</summary>
+    Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
     /// <summary>Aggiorna priorità/forzatura pubblicazione/fix risolto e arricchimenti editoriali (initial climb, CAT,
     /// WTC, condition) di UNA riga SID importata (ACC-gated).</summary>
     Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,
@@ -233,15 +235,22 @@ public sealed class AirportEditingService : IAirportEditingService
         await _repo.SaveLvpAsync(Norm(icao), row, ct);
     }
 
-    public async Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
+    public async Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
     {
         await EnsureLockMineAsync(icao, ct);
+        var arrivo = kind == ProcedureKind.Star;
         foreach (var r in rows)
         {
-            if (string.IsNullOrWhiteSpace(r.Name)) throw new ValidationException(Lingua("Nome SID obbligatorio.", "The SID name is required."));
-            if (string.IsNullOrWhiteSpace(r.Fix)) throw new ValidationException(Lingua("FIX obbligatorio per ogni SID.", "A FIX is required on every SID."));
+            if (string.IsNullOrWhiteSpace(r.Name))
+                throw new ValidationException(arrivo
+                    ? Lingua("Nome STAR obbligatorio.", "The STAR name is required.")
+                    : Lingua("Nome SID obbligatorio.", "The SID name is required."));
+            if (string.IsNullOrWhiteSpace(r.Fix))
+                throw new ValidationException(arrivo
+                    ? Lingua("FIX obbligatorio per ogni STAR.", "A FIX is required on every STAR.")
+                    : Lingua("FIX obbligatorio per ogni SID.", "A FIX is required on every SID."));
         }
-        await _repo.SaveSidsAsync(Norm(icao), rows, ct);
+        await _repo.SaveSidsAsync(Norm(icao), kind, rows, ct);
     }
 
     public async Task UpdateImportedSidAsync(string icao, int sidId, int? priority, bool forcePublished, string? resolvedFix,

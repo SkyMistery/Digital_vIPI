@@ -35,7 +35,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     public async Task Import_Preserves_Manual_And_Reapplies_Priority()
     {
         // Una SID manuale.
-        await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, "5000ft", "CONV", null, null, null) });
 
         // Primo import: due righe.
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
@@ -239,7 +239,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task Manuale_Nascosta_Resta_Nascosta_Dopo_Il_Salvataggio()
     {
-        await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true) });
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null, IsHidden: true) });
         Assert.True((await _repo.LoadAsync("LIRF"))!.Sids.Single().IsHidden);
     }
 
@@ -247,7 +247,7 @@ public class SidImportRepositoryTests : IAsyncLifetime
     public async Task SaveManualSids_Does_Not_Touch_Imported()
     {
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[] { Imp("ALAX7G", "ALAXI", "LIRF|ALAXI|G|") }, "2606");
-        await _repo.SaveSidsAsync("LIRF", new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null) });
+        await _repo.SaveSidsAsync("LIRF", ProcedureKind.Sid, new[] { new SidRow(0, "07", "OSTIA", "OST7A", null, null, null, null, null, null) });
 
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids;
         Assert.Single(sids, s => s.IsImported);             // importata ancora presente

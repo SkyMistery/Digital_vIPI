@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
     <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
@@ -2071,27 +2071,38 @@
   <data name="Ape_SectorsNoteAria" xml:space="preserve"><value>Help on ATC sectors</value></data>
   <data name="Ape_SidRenderHelpAria" xml:space="preserve"><value>Help on how SIDs are rendered</value></data>
   <data name="Ape_SidImportedHelpAria" xml:space="preserve"><value>Help on imported SIDs</value></data>
+  <data name="Ape_StarImportedHelpAria" xml:space="preserve"><value>Help on imported STARs</value></data>
   <data name="Ape_SidManualHelpAria" xml:space="preserve"><value>Help on manual SIDs</value></data>
+  <data name="Ape_StarManualHelpAria" xml:space="preserve"><value>Help on manual STARs</value></data>
   <data name="Ape_SidImportedCountTitle" xml:space="preserve"><value>Imported SIDs shown out of the total</value></data>
+  <data name="Ape_StarImportedCountTitle" xml:space="preserve"><value>Imported STARs shown out of the total</value></data>
   <data name="Ape_SidSelectHint" xml:space="preserve"><value>In the left column: click to pick a row, Shift or Ctrl+click for a range, drag down to pick and up to unpick. From the keyboard, Enter or Space on the cell.</value></data>
   <data name="Ed_Wide" xml:space="preserve"><value>Full width</value></data>
   <data name="Ed_Narrow" xml:space="preserve"><value>Shrink</value></data>
   <data name="Ed_WideTitle" xml:space="preserve"><value>Hide the index and the rail: the table uses the full page width</value></data>
   <data name="Ed_NarrowTitle" xml:space="preserve"><value>Bring back the index and the rail</value></data>
   <data name="Ape_SidSearchPh" xml:space="preserve"><value>search fix, SID or runway…</value></data>
+  <data name="Ape_StarSearchPh" xml:space="preserve"><value>search fix, STAR or runway…</value></data>
   <data name="Ape_SidManualSearchPh" xml:space="preserve"><value>search fix, name or runway…</value></data>
+  <data name="Ape_StarManualSearchPh" xml:space="preserve"><value>search fix, name or runway…</value></data>
   <data name="Ape_SidReviewChip" xml:space="preserve"><value>to verify {0}</value></data>
   <data name="Ape_SidReviewChipTitle" xml:space="preserve"><value>Show only the SIDs whose point must be confirmed by hand</value></data>
+  <data name="Ape_StarReviewChipTitle" xml:space="preserve"><value>Shows only the STARs whose point must be confirmed by hand</value></data>
   <data name="Ape_SidRwChipTitle" xml:space="preserve"><value>Show only the SIDs of this runway</value></data>
+  <data name="Ape_StarRwChipTitle" xml:space="preserve"><value>Shows only the STARs for this runway</value></data>
   <data name="Ape_SidDirtyNOne" xml:space="preserve"><value>1 changed</value></data>
   <data name="Ape_SidSelectAll" xml:space="preserve"><value>Pick all</value></data>
   <data name="Ape_SidUnselectAll" xml:space="preserve"><value>Unpick all</value></data>
   <data name="Ape_SidPublishSel" xml:space="preserve"><value>Publish picked</value></data>
   <data name="Ape_SidPublishSelTitle" xml:space="preserve"><value>Force immediate publication of the picked SIDs</value></data>
+  <data name="Ape_StarPublishSelTitle" xml:space="preserve"><value>Forces immediate publication of the picked STARs</value></data>
   <data name="Ape_SidPickTitle" xml:space="preserve"><value>Click to pick · drag for a range · Enter or Space from the keyboard</value></data>
   <data name="Ape_SidNoMatch" xml:space="preserve"><value>No imported SID matches the filter.</value></data>
+  <data name="Ape_StarNoMatch" xml:space="preserve"><value>No imported STAR matches the filter.</value></data>
   <data name="Ape_SidNoManual" xml:space="preserve"><value>No manual SID.</value></data>
+  <data name="Ape_StarNoManual" xml:space="preserve"><value>No manual STAR.</value></data>
   <data name="Ape_SidNoRowMatch" xml:space="preserve"><value>No row matches the filter.</value></data>
+  <data name="Ape_StarNoRowMatch" xml:space="preserve"><value>No row matches the filter.</value></data>
   <data name="Ape_Alias" xml:space="preserve"><value>alias</value></data>
   <data name="Ape_ClimbTitle" xml:space="preserve"><value>Assigned altitude in ft (number only)</value></data>
   <data name="Ape_ClimbByAppTitle" xml:space="preserve"><value>The altitude must be agreed with the APP</value></data>
@@ -2121,8 +2132,10 @@
   <data name="Ape_SidPublishedNOne" xml:space="preserve"><value>Published 1 SID.</value></data>
   <data name="Ape_SidHideSel" xml:space="preserve"><value>Hide picked</value></data>
   <data name="Ape_SidHideSelTitle" xml:space="preserve"><value>Hides the picked SIDs from the public: with a Live section they disappear at once, with a frozen section at the next publication</value></data>
+  <data name="Ape_StarHideSelTitle" xml:space="preserve"><value>Hides the picked STARs from the public: with a Live section they disappear at once, with a frozen one at the next publication</value></data>
   <data name="Ape_SidShowSel" xml:space="preserve"><value>Show picked</value></data>
   <data name="Ape_SidShowSelTitle" xml:space="preserve"><value>Makes the picked SIDs visible to the public again</value></data>
+  <data name="Ape_StarShowSelTitle" xml:space="preserve"><value>Makes the picked STARs visible to the public again</value></data>
   <data name="Ape_SidHiddenN" xml:space="preserve"><value>Hid {0} SIDs. With a Live section they disappear at once; with a frozen section at the next publication.</value></data>
   <data name="Ape_SidHiddenNOne" xml:space="preserve"><value>Hid 1 SID. With a Live section it disappears at once; with a frozen section at the next publication.</value></data>
   <data name="Ape_SidShownN" xml:space="preserve"><value>{0} SIDs visible again.</value></data>
@@ -2229,9 +2242,11 @@
   <data name="Ape_MakeAlwaysLive" xml:space="preserve"><value>Make always live</value></data>
   <data name="Ape_SidRenderHelp" xml:space="preserve"><value>&lt;b&gt;Live&lt;/b&gt; (default): public SIDs always update from the data (imports included), even without republishing — useful for IVAO reference data. &lt;b&gt;Frozen&lt;/b&gt;: the section is snapshotted at publication time, like the rest of the document (no mixed AIRAC on the page).</value></data>
   <data name="Ape_SidImportedTitle" xml:space="preserve"><value>SIDs imported from the sectorfile</value></data>
+  <data name="Ape_StarImportedTitle" xml:space="preserve"><value>STARs imported from the sectorfile</value></data>
   <data name="Ape_ReimportSidTitle" xml:space="preserve"><value>Re-fetch the SIDs from the GitHub sectorfile</value></data>
   <data name="Ape_ReimportSid" xml:space="preserve"><value>Re-import SIDs</value></data>
   <data name="Ape_SidImportedHelp" xml:space="preserve"><value>Rows from source: you set &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», and the &lt;b&gt;publication&lt;/b&gt; (by default from the effective cycle). The point and transition found by the parser can be &lt;b&gt;corrected&lt;/b&gt; (with a confirmation; the pencil marks a value corrected by hand), and the picked SIDs can be &lt;b&gt;hidden&lt;/b&gt; from the public. Corrections survive future imports.</value></data>
+  <data name="Ape_StarImportedHelp" xml:space="preserve"><value>Rows from source, from the airport's &lt;b&gt;.str&lt;/b&gt; file: same gestures as the SIDs — &lt;b&gt;priority per point&lt;/b&gt;, the &lt;b&gt;fix&lt;/b&gt; if «to verify», &lt;b&gt;publication&lt;/b&gt; from the effective cycle, corrections that survive future imports. The sectorfile's map menu entries (&lt;b&gt;MAPS&lt;/b&gt;), holdings and approaches do not come in: they are not STARs.</value></data>
   <data name="Ape_PointFix" xml:space="preserve"><value>FIX</value></data>
   <data name="Ape_Condition" xml:space="preserve"><value>Condition</value></data>
   <data name="Ape_Transition" xml:space="preserve"><value>Transition</value></data>
@@ -2248,7 +2263,9 @@
   <data name="Ape_AutoPublishTitle" xml:space="preserve"><value>publishes automatically from cycle {0}</value></data>
   <data name="Ape_Now" xml:space="preserve"><value>now</value></data>
   <data name="Ape_SidManualTitle" xml:space="preserve"><value>Manual SIDs</value></data>
+  <data name="Ape_StarManualTitle" xml:space="preserve"><value>Manual STARs</value></data>
   <data name="Ape_SidManualHelp" xml:space="preserve"><value>Rows added by hand by the staff: preserved from imports. Fields not present in the sectorfile (Initial climb / Cat / WTC / Condition) go here.</value></data>
+  <data name="Ape_StarManualHelp" xml:space="preserve"><value>Rows added by hand by the staff: preserved from imports. Fields not present in the sectorfile (Cat / WTC / Condition) go here.</value></data>
   <data name="Ape_ExtraTitle" xml:space="preserve"><value>Extra sections</value></data>
   <data name="Ape_ExtraHelp" xml:space="preserve"><value>Free editorial sections (title + text). In the document they appear in the &lt;b&gt;free right column&lt;/b&gt; on desktop and &lt;b&gt;below the SIDs&lt;/b&gt; on narrow/mobile screens. They are evaluated in the order you put them.</value></data>
   <data name="Ape_ExtraTitlePh" xml:space="preserve"><value>e.g. Operational notes</value></data>
@@ -2277,6 +2294,7 @@
   <data name="Ape_RemoveRowConfirm" xml:space="preserve"><value>Remove this row?</value></data>
   <data name="Ape_RemoveRwConfirm" xml:space="preserve"><value>Remove this runway?</value></data>
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Remove this SID?</value></data>
+  <data name="Ape_RemoveStarConfirm" xml:space="preserve"><value>Remove this STAR?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
   <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude and sectors from IVAO? The fields imported from the source will be overwritten.</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>month</value></data>

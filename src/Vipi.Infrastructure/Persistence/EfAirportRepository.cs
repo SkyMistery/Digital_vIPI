@@ -47,15 +47,18 @@ public sealed class EfAirportRepository : IAirportRepository
                 x.TimeFromLocalMin, x.TimeToLocalMin, x.DaysOfWeekMask, x.DateParity,
                 x.DateFromMonthDay, x.DateToMonthDay))
             .ToListAsync(ct);
-        // ⚠️ Solo le SID: la tabella tiene anche le STAR (`Kind`), e senza questo filtro uscirebbero nella
-        // sezione delle partenze. Gli arrivi hanno il loro caricamento.
-        var sids = await _db.AirportProcedures.AsNoTracking()
-            .Where(x => x.AirportId == airport.Id && x.Kind == ProcedureKind.Sid)
+        // ⚠️ Le due famiglie si leggono SEPARATE e per verso: stessa tabella, stessa forma di riga, ma chi
+        // guarda le partenze non deve vedere gli arrivi. Una lettura sola da spacchettare dopo costerebbe la
+        // stessa query e darebbe a ogni chiamante l'occasione di scordarsi il filtro.
+        var procedure = await _db.AirportProcedures.AsNoTracking()
+            .Where(x => x.AirportId == airport.Id)
             .OrderBy(x => x.Order)
-            .Select(x => new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
+            .Select(x => new { x.Kind, Riga = new SidRow(x.Id, x.Runway, x.Fix, x.Name, x.Transition, x.InitialClimb, x.Type, x.Cat, x.Wtc, x.Condition,
                 x.IsImported, x.Priority, x.StableKey, x.SourceAiracCycle, x.ForcePublished, x.NeedsFixReview, x.InitialClimbByApp,
-                x.IsHidden, x.FixOverride, x.TransitionOverride))
+                x.IsHidden, x.FixOverride, x.TransitionOverride) })
             .ToListAsync(ct);
+        var sids = procedure.Where(x => x.Kind == ProcedureKind.Sid).Select(x => x.Riga).ToList();
+        var stars = procedure.Where(x => x.Kind == ProcedureKind.Star).Select(x => x.Riga).ToList();
 
         // I minimi LVP: zero o una riga. L'assenza e' un fatto — «nessuno li ha dichiarati» — e non si
         // sostituisce con dei valori di comodo.
@@ -81,7 +84,7 @@ public sealed class EfAirportRepository : IAirportRepository
             AirportId = airport.Id, Icao = airport.Icao, Name = airport.Name, AccCode = airport.Acc!.Code,
             TransitionAltitudeFt = airport.TransitionAltitudeFt,
             MetarStationIcao = airport.MetarStationIcao,
-            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Links = links, Lvp = lvp,
+            TransitionLevels = tls, Runways = rwys, Rules = rules, Sids = sids, Stars = stars, Links = links, Lvp = lvp,
         };
     }
 
@@ -267,18 +270,19 @@ public sealed class EfAirportRepository : IAirportRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
+    public async Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        // Origin-aware: sostituisce SOLO le righe manuali; le importate (IsImported=true) restano intatte.
+        // Origin-aware: sostituisce SOLO le righe manuali DI QUEL VERSO; le importate (IsImported=true) e le
+        // procedure dell'altro verso restano intatte.
         _db.AirportProcedures.RemoveRange(_db.AirportProcedures
-            .Where(x => x.AirportId == id && x.Kind == ProcedureKind.Sid && !x.IsImported));
+            .Where(x => x.AirportId == id && x.Kind == kind && !x.IsImported));
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
             _db.AirportProcedures.Add(new AirportProcedure
             {
-                AirportId = id, Kind = ProcedureKind.Sid,
+                AirportId = id, Kind = kind,
                 Order = i, Runway = r.Runway, Fix = r.Fix.Trim(), Name = r.Name.Trim(),
                 Transition = r.Transition, InitialClimb = r.InitialClimb, InitialClimbByApp = r.InitialClimbByApp,
                 Type = r.Type, Cat = r.Cat, Wtc = r.Wtc, Condition = r.Condition,

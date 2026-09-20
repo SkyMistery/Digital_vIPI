@@ -61,8 +61,9 @@ public interface IAirportRepository : IAirportProfileReader
 
     /// <summary>Scrive (o cancella, con <c>null</c>) i minimi LVP dello scalo: al massimo una riga.</summary>
     Task SaveLvpAsync(string icao, LvpRow? row, CancellationToken ct = default);
-    /// <summary>Salva le sole SID MANUALI dell'aeroporto (IsImported=false): sostituisce l'intera lista manuale, non tocca le importate.</summary>
-    Task SaveSidsAsync(string icao, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
+    /// <summary>Salva le sole procedure MANUALI dello scalo <b>di quel verso</b> (IsImported=false):
+    /// sostituisce l'intera lista manuale di quel verso, non tocca le importate né l'altro verso.</summary>
+    Task SaveSidsAsync(string icao, ProcedureKind kind, IReadOnlyList<SidRow> rows, CancellationToken ct = default);
 
     /// <summary>Merge delle procedure importate <b>di quel verso</b>: rimuove le sole righe importate precedenti
     /// dello stesso <paramref name="kind"/> e inserisce le nuove, riapplicando Priority e ForcePublished per

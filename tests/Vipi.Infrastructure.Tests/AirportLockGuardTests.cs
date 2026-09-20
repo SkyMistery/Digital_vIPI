@@ -147,7 +147,7 @@ public class AirportLockGuardTests : IAsyncLifetime
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveRunwaysAsync("LIPZ", Array.Empty<RunwayRow>()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveTransitionLevelsAsync("LIPZ", UnLivello()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveRunwayRulesAsync("LIPZ", Array.Empty<RunwayRuleRow>()));
-        await Assert.ThrowsAsync<EditConflictException>(() => s.SaveSidsAsync("LIPZ", Array.Empty<SidRow>()));
+        await Assert.ThrowsAsync<EditConflictException>(() => s.SaveSidsAsync("LIPZ", ProcedureKind.Sid, Array.Empty<SidRow>()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SaveFrequencyLinksAsync("LIPZ", Array.Empty<int>()));
         await Assert.ThrowsAsync<EditConflictException>(() => s.UpdateImportedSidAsync("LIPZ", 1, null, false, null, null, false, null, null, null));
         await Assert.ThrowsAsync<EditConflictException>(() => s.SetImportedSidsHiddenAsync("LIPZ", new[] { 1 }, true));

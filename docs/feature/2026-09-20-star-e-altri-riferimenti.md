@@ -1,8 +1,9 @@
 ﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: 🟡 **slice 1, 2a e 2b fatte** — il parser delle STAR è misurato sui file veri, l'archivio le ospita
-> (`AirportProcedures` + `Kind`, migrazione provata su una copia di produzione) e **l'import le prende davvero**
-> dal sectorfile. Restano editor, sezione pubblica, riferimento nel testo.
+> Stato: 🟡 **slice 1, 2a, 2b e 3 fatte** — il parser delle STAR è misurato sui file veri, l'archivio le ospita
+> (`AirportProcedures` + `Kind`, migrazione provata su una copia di produzione), **l'import le prende davvero**
+> dal sectorfile e **l'editor le mostra** (verificato a schermo su LIBD). Restano la sezione pubblica e il
+> riferimento nel testo.
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se
@@ -92,8 +93,17 @@ Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `Sou
    sola: `ImportCategory.Sids` copre le procedure, non si è aggiunto un secondo interruttore.
    🔴 **Zero righe non è «non ce n'è più»**: 36 dei 90 `.str` non portano nessuna STAR e la rete può cadere —
    un verso senza righe non tocca l'archivio. È il test che lo tiene fermo.
-3. **editor** — la tabella STAR accanto a quella SID nell'editor aeroporto, stessi gesti (priorità, nascondi,
-   correggi il punto, crea alias).
+3. ✅ **editor** — la tabella STAR sotto quella SID, **lo stesso componente montato due volte**
+   (`<AirportSidsEditor Kind="ProcedureKind.Star">`): stessi gesti — priorità, nascondi, correggi il punto,
+   crea alias, pubblica subito — perché è la stessa riga con un verso diverso. Quel che cambia col verso si
+   conta sulle dita: i titoli e le frasi che nominano la famiglia (chiavi `Ape_Star*`), l'etichetta della
+   colonna del nome, la colonna **Initial climb** che su un arrivo non vuol dire niente e quindi non c'è, il
+   tasto di reimport che sta **solo** sulle partenze (il giro porta i due versi insieme), e gli id dei due
+   elenchi a discesa, che con due montaggi nella stessa pagina non possono coincidere.
+   ⚠️ La tabella sta **dentro la sezione SID** del documento: una sezione «STAR» sua è la slice 4, insieme
+   alla resa pubblica. Fino ad allora l'indice dice «SID» e gli arrivi stanno lì sotto.
+   ⚠️ `SaveSidsAsync` e il caricamento della scheda prendono anch'essi il verso: salvare le manuali degli
+   arrivi non deve poter cancellare quelle delle partenze.
 4. **sezione pubblica** — la tabella STAR nel documento d'aeroporto, con il congelamento alla release.
 5. **riferimento nel testo** — `[[STAR LIRF ELKA3A]]`, sulle stesse cinque slice già pagate per le SID:
    il codice di `RiferimentiSid` è **già generico sulla radice del nome**, cambia il gettone e la tabella da cui
@@ -123,6 +133,9 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 
 ## 5. Verifica
 
+- 5 test in `EditorStarTests` (l'etichetta della colonna, la colonna Initial climb che non c'è, i titoli
+  degli arrivi, il reimport solo sulle partenze, gli id degli elenchi diversi fra i due montaggi), 2 in più in
+  `StarImportTests` (la scheda porta gli arrivi a parte; le manuali di un verso non toccano l'altro).
 - 8 test in `AuroraStarParserTests`, 4 in `AuroraProcedureProviderTests` (quale file per quale verso, il file
   che non c'è, la sorgente non configurata), 6 in `StarImportTests` (i due versi non si toccano, la scheda SID
   non vede gli arrivi, il salvataggio delle manuali non li cancella, priorità e forzatura si riapplicano dentro
@@ -130,6 +143,14 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 - Misura dal vivo sui 90 `.str` veri della copia di lavoro del sectorfile: 54 scali, 865 righe, 136 da
   rivedere, 522 RNAV — prova usa-e-getta, non committata, rifattibile in due minuti.
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite intera verde.
+- **Editor provato a schermo** (Edge+puppeteer sulla copia del `vipi.db` di sviluppo, LIBD, 20 settembre):
+  «STARs imported from the sectorfile 38» con le colonne FIX · STAR · RWY · TRANS. · TYPE · CAT. · WTC ·
+  CONDITION · PRIORITY · STATUS — **senza Initial climb**, che resta sulle SID —, i triangoli sui punti da
+  confermare (BIRS, DOGU), «Manual STARs 0 · No manual STAR.», **nessun id doppio** in pagina, nessun errore
+  in console. ⚠️ Il primo giro aveva scoperto una frase rimasta indietro: sotto gli arrivi c'era scritto «No
+  manual SID.» — da lì le chiavi `Ape_Star*` per tutte le frasi che nominano la famiglia.
+- **La migrazione gira anche su SQLite di sviluppo**: la copia del `vipi.db` è passata a `AirportProcedures`
+  tenendo le sue 1469 righe SID.
 - **Import provato dal vivo sulla sorgente vera** (GitHub raw, 20 settembre): LIRF 292 righe (206 SID + 86
   STAR, 14 da rivedere), LIBD 77 (39 + 38), LIPO 52 (22 + 30), ciclo d'entrata `2610` timbrato dal changelog
   della sorgente, punti risolti (`GILIO`, `BANAV`, `DOLON`); secondo giro idempotente, i conteggi non

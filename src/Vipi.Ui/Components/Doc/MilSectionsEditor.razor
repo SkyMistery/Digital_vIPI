@@ -349,6 +349,9 @@ else
     // scalo, e qui c'è un secondo OSPITE di `<AirportSidsEditor>`, non un secondo editor.
     private List<SidEdit> _sids = new();
     private List<ImportedSidEdit> _sidsImportate = new();
+    // Gli ARRIVI: stessi buffer delle partenze, perche' e' lo stesso editor montato due volte.
+    private List<SidEdit> _stars = new();
+    private List<ImportedSidEdit> _starsImportate = new();
     private NavaidCatalog _catalogoNavaid = NavaidCatalog.Empty;
     private bool _sidLarghe;
 
@@ -615,27 +618,38 @@ else
         _lvp = LvpEdit.Da(dati.Lvp);
         _linkIds = dati.Links.Select(l => l.SourceSectorId).ToList();
 
-        // Le SID, dallo STESSO `AirportData` degli altri tre: una lettura sola per tutta l'anagrafica.
+        // Le procedure, dallo STESSO `AirportData` degli altri tre: una lettura sola per tutta l'anagrafica.
+        // Partenze e arrivi passano per le stesse due funzioni — e' la stessa riga, con un verso diverso.
         var ciclo = Airac.GetCycle(DateTime.UtcNow);
-        _sids = dati.Sids.Where(x => !x.IsImported).Select(x => new SidEdit
-        {
-            Runway = x.Runway, Fix = x.Fix, Name = x.Name, Transition = x.Transition, InitialClimb = x.InitialClimb,
-            InitialClimbByApp = x.InitialClimbByApp, Type = x.Type, Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
-            Priority = x.Priority, IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
-            IsHidden = x.IsHidden,
-        }).ToList();
+        _sids = dati.Sids.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
         _sidsImportate = dati.Sids.Where(x => x.IsImported)
             .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
-            .Select(x => new ImportedSidEdit
-            {
-                Id = x.Id, Fix = x.Fix, Name = x.Name, Runway = x.Runway, Transition = x.Transition, Type = x.Type,
-                Priority = x.Priority, ForcePublished = x.ForcePublished, NeedsReview = x.NeedsFixReview,
-                IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
-                InitialClimb = x.InitialClimb, InitialClimbByApp = x.InitialClimbByApp,
-                Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
-                IsHidden = x.IsHidden,
-            }.WithOverrides(x.FixOverride, x.TransitionOverride)).ToList();
+            .Select(x => Importata(x, ciclo)).ToList();
+        _stars = dati.Stars.Where(x => !x.IsImported).Select(x => Manuale(x, ciclo)).ToList();
+        _starsImportate = dati.Stars.Where(x => x.IsImported)
+            .OrderBy(x => x.Fix).ThenBy(x => x.Priority ?? int.MaxValue).ThenBy(x => x.Name)
+            .Select(x => Importata(x, ciclo)).ToList();
     }
+
+    /// <summary>Una riga manuale (SID o STAR) come la vuole l'editor.</summary>
+    private SidEdit Manuale(SidRow x, string ciclo) => new()
+    {
+        Runway = x.Runway, Fix = x.Fix, Name = x.Name, Transition = x.Transition, InitialClimb = x.InitialClimb,
+        InitialClimbByApp = x.InitialClimbByApp, Type = x.Type, Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
+        Priority = x.Priority, IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
+        IsHidden = x.IsHidden,
+    };
+
+    /// <summary>Una riga importata (SID o STAR) come la vuole l'editor, con le correzioni a mano gia' sopra.</summary>
+    private ImportedSidEdit Importata(SidRow x, string ciclo) => new ImportedSidEdit
+    {
+        Id = x.Id, Fix = x.Fix, Name = x.Name, Runway = x.Runway, Transition = x.Transition, Type = x.Type,
+        Priority = x.Priority, ForcePublished = x.ForcePublished, NeedsReview = x.NeedsFixReview,
+        IsPublicNow = x.IsPublicAt(ciclo, Airac), PublishFromCycle = DaCiclo(x.SourceAiracCycle),
+        InitialClimb = x.InitialClimb, InitialClimbByApp = x.InitialClimbByApp,
+        Cat = x.Cat, Wtc = x.Wtc, Condition = x.Condition,
+        IsHidden = x.IsHidden,
+    }.WithOverrides(x.FixOverride, x.TransitionOverride);
 
     /// <summary>
     /// ⚠️ Il caricamento passa dal <b>tornello</b> del guscio (<c>InFilaAsync</c>): su questo contesto ci sta
@@ -888,6 +902,18 @@ else
                                    PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
                                    PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
                                    ConfirmAsync="Conferma" />
+                @* Gli arrivi, sotto le partenze: stesso componente, `Kind` diverso. Compaiono se ce ne sono
+                   o se si sta scrivendo — a un campo senza STAR non si mostra una tabella vuota. *@
+                @if (_starsImportate.Count > 0 || _stars.Count > 0 || _shell.IsEditing)
+                {
+                    <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImportate" Manual="_stars" RunwayIdents="IdentPiste()"
+                                       Navaids="_catalogoNavaid" Icao="@_icao" Editing="_shell.IsEditing"
+                                       Wide="_sidLarghe" WideChanged="v => _sidLarghe = v"
+                                       ManualChanged="SalvaStar"
+                                       PersistImported="ScriviSidImportata" RunGuarded="_shell.GuardedAsync"
+                                       PersistOverrides="ScriviCorrezioniSid" SetImportedHidden="NascondiSid"
+                                       ConfirmAsync="Conferma" />
+                }
                 break;
         }
     };
@@ -986,9 +1012,13 @@ else
         catch (ArgumentException) { return "—"; }
     }
 
-    private Task SalvaSid() => AirportSaveGate.Sids(_sids)
-        ? _shell.GuardedAsync(() => Scalo.SaveSidsAsync(_icao,
-            _sids.Select(x => new SidRow(0, x.Runway, x.Fix ?? "", x.Name ?? "", x.Transition, x.InitialClimb,
+    private Task SalvaSid() => SalvaManuali(ProcedureKind.Sid, _sids);
+    private Task SalvaStar() => SalvaManuali(ProcedureKind.Star, _stars);
+
+    /// <summary>Le manuali di un verso: stesso cancello delle partenze — una riga a meta' non si salva.</summary>
+    private Task SalvaManuali(ProcedureKind kind, List<SidEdit> righe) => AirportSaveGate.Sids(righe)
+        ? _shell.GuardedAsync(() => Scalo.SaveSidsAsync(_icao, kind,
+            righe.Select(x => new SidRow(0, x.Runway, x.Fix ?? "", x.Name ?? "", x.Transition, x.InitialClimb,
                 x.Type, x.Cat, x.Wtc, x.Condition, Priority: x.Priority,
                 InitialClimbByApp: x.InitialClimbByApp, IsHidden: x.IsHidden)).ToList()))
         : Task.CompletedTask;

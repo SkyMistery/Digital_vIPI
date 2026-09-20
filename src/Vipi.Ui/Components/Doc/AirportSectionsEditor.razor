@@ -414,6 +414,28 @@ else
 
     private List<SidEdit> _sids = new();
     private List<ImportedSidEdit> _imported = new();
+    // Gli ARRIVI: stessi tipi di buffer delle partenze — è lo stesso editor, montato due volte.
+    private List<SidEdit> _stars = new();
+    private List<ImportedSidEdit> _starsImported = new();
+
+    /// <summary>Una riga manuale (SID o STAR) come la vuole l'editor.</summary>
+    private SidEdit Manuale(SidRow s, string cyc) => new()
+    {
+        Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
+        InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+        Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
+        IsHidden = s.IsHidden,
+    };
+
+    /// <summary>Una riga importata (SID o STAR) come la vuole l'editor, con le correzioni a mano gia' sopra.</summary>
+    private ImportedSidEdit Importata(SidRow s, string cyc) => new ImportedSidEdit
+    {
+        Id = s.Id, Fix = s.Fix, Name = s.Name, Runway = s.Runway, Transition = s.Transition, Type = s.Type,
+        Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
+        IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
+        InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
+        IsHidden = s.IsHidden,
+    }.WithOverrides(s.FixOverride, s.TransitionOverride);
 // filtro tabella importate (fix/pista)
 // mostra solo le importate col fix da verificare
 // filtro tabella manuali
@@ -616,24 +638,17 @@ else
         _rwys = _data.Runways.Select(RwEdit.Da).ToList();
         _rules = _data.Rules.Select(AirportRuleMapping.FromRow).ToList();
         _lvp = LvpEdit.Da(_data.Lvp);
+        // Partenze e arrivi si mappano con le STESSE due funzioni: sono la stessa riga, e due copie della
+        // stessa proiezione andrebbero tenute allineate a mano per sempre.
         var cyc = Airac.GetCycle(DateTime.UtcNow);
-        _sids = _data.Sids.Where(s => !s.IsImported).Select(s => new SidEdit
-        {
-            Runway = s.Runway, Fix = s.Fix, Name = s.Name, Transition = s.Transition, InitialClimb = s.InitialClimb,
-            InitialClimbByApp = s.InitialClimbByApp, Type = s.Type, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-            Priority = s.Priority, IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
-            IsHidden = s.IsHidden,
-        }).ToList();
-        _imported = _data.Sids.Where(s => s.IsImported)
-            .OrderBy(s => s.Fix).ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
-            .Select(s => new ImportedSidEdit
-            {
-                Id = s.Id, Fix = s.Fix, Name = s.Name, Runway = s.Runway, Transition = s.Transition, Type = s.Type,
-                Priority = s.Priority, ForcePublished = s.ForcePublished, NeedsReview = s.NeedsFixReview,
-                IsPublicNow = s.IsPublicAt(cyc, Airac), PublishFromCycle = PublishFromOf(s.SourceAiracCycle),
-                InitialClimb = s.InitialClimb, InitialClimbByApp = s.InitialClimbByApp, Cat = s.Cat, Wtc = s.Wtc, Condition = s.Condition,
-                IsHidden = s.IsHidden,
-            }.WithOverrides(s.FixOverride, s.TransitionOverride)).ToList();
+        _sids = _data.Sids.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
+        _imported = _data.Sids.Where(s => s.IsImported).OrderBy(s => s.Fix)
+            .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
+            .Select(s => Importata(s, cyc)).ToList();
+        _stars = _data.Stars.Where(s => !s.IsImported).Select(s => Manuale(s, cyc)).ToList();
+        _starsImported = _data.Stars.Where(s => s.IsImported).OrderBy(s => s.Fix)
+            .ThenBy(s => s.Priority ?? int.MaxValue).ThenBy(s => s.Name)
+            .Select(s => Importata(s, cyc)).ToList();
         // ⚠️ La selezione e le righe non salvate NON si azzerano qui: le possiede <AirportSidsEditor>, che
         // se ne accorge da sé quando i buffer cambiano (doc 14 §3g).
         _linkIds = _data.Links.Select(l => l.SourceSectorId).ToList();
@@ -783,9 +798,13 @@ else
         return SaveLvp();
     }
 
-    private Task SaveSids() => AirportSaveGate.Sids(_sids)
-        ? Guarded(() => Profile.SaveSidsAsync(_icao,
-            _sids.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
+    private Task SaveSids() => SalvaManuali(ProcedureKind.Sid, _sids);
+    private Task SaveStars() => SalvaManuali(ProcedureKind.Star, _stars);
+
+    /// <summary>Le manuali di un verso: il cancello e' lo stesso delle partenze — una riga a meta' non si salva.</summary>
+    private Task SalvaManuali(ProcedureKind kind, List<SidEdit> righe) => AirportSaveGate.Sids(righe)
+        ? Guarded(() => Profile.SaveSidsAsync(_icao, kind,
+            righe.Select(s => new SidRow(0, s.Runway, s.Fix ?? "", s.Name ?? "", s.Transition, s.InitialClimb, s.Type,
                 s.Cat, s.Wtc, s.Condition, Priority: s.Priority, InitialClimbByApp: s.InitialClimbByApp, IsHidden: s.IsHidden)).ToList()))
         : Task.CompletedTask;
 
@@ -1113,6 +1132,19 @@ else
                            PersistImported="PersistImported" RunGuarded="Guarded"
                            PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
                            ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
+        @* Gli ARRIVI, sotto le partenze e nella stessa sezione: stesso componente, `Kind` diverso. La tabella
+           compare quando ci sono STAR o quando si sta scrivendo: a uno scalo che non ne ha — 36 dei 90 file
+           del sectorfile — non si mostra una tabella vuota. *@
+        @if (_starsImported.Count > 0 || _stars.Count > 0 || _shell.IsEditing)
+        {
+            <AirportSidsEditor Kind="ProcedureKind.Star" Imported="_starsImported" Manual="_stars" RunwayIdents="RwIdents()"
+                               Navaids="_navaids" Icao="@_icao" Editing="_shell.IsEditing"
+                               Wide="_wide" WideChanged="v => _wide = v"
+                               ManualChanged="SaveStars"
+                               PersistImported="PersistImported" RunGuarded="Guarded"
+                               PersistOverrides="PersistSidOverrides" SetImportedHidden="SetSidsHidden"
+                               ConfirmAsync="Confirm" OnInfo="MostraInformativa" />
+        }
     };
 
     /// <summary>Il riquadro informativo in cima («applicato a N righe», «pubblicate N»): lo possiede questa
