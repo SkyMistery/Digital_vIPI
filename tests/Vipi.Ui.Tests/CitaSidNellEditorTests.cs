@@ -47,12 +47,32 @@ public class CitaSidNellEditorTests : TestContext
         }
     }
 
+    /// <summary>Gli enti col loro nominativo: due, uno dello scalo del documento e uno no.</summary>
+    private sealed class EntiFinti : IFrequenzeDegliEnti
+    {
+        public Task<IReadOnlyList<LinkableFrequencyRow>> TutteAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<LinkableFrequencyRow>>(new[]
+            {
+                new LinkableFrequencyRow(1, "LIRF", "LIRF_TWR", "118.700", "Fiumicino Tower"),
+                new LinkableFrequencyRow(2, "LIBD", "LIBD_TWR", "118.300", "Bari Tower"),
+            });
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
+            IReadOnlyCollection<string> icaos, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<string>>>(
+                new Dictionary<string, IReadOnlyList<string>>());
+
+        public Task<IReadOnlySet<string>> PuntiAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlySet<string>>(new HashSet<string>());
+    }
+
     private readonly ElencoFinto _elenco = new();
 
     public CitaSidNellEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddScoped<IProcedureReferenceResolver>(_ => _elenco);
+        Services.AddScoped<IFrequenzeDegliEnti, EntiFinti>();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
@@ -95,6 +115,61 @@ public class CitaSidNellEditorTests : TestContext
         cerca.KeyDown("Enter");
 
         Assert.Equal("[[SID LIBD TOPN9A]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    /// <summary>
+    /// Le quattro chip del selettore: SID, STAR, FREQ, ATC. Un gesto solo per tutte le famiglie — quattro
+    /// tasti in barra sarebbero quattro decisioni prima ancora di aprire l'elenco.
+    /// </summary>
+    [Fact]
+    public void Il_selettore_ha_le_quattro_famiglie()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC" },
+            c.FindAll(".sidref-pick-kind button").Select(b => b.TextContent.Trim()).ToArray());
+    }
+
+    [Fact]
+    public void Con_la_chip_FREQ_si_cita_una_frequenza()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "FREQ").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+
+        // ⚠️ Lo scalo del documento PRIMA: chi scrive la vIPI di LIBD cita quasi sempre un ente di LIBD.
+        Assert.Contains("LIBD_TWR", c.FindAll(".sidref-pick-row").First().TextContent);
+        Assert.Contains("118.300", c.FindAll(".sidref-pick-row").First().TextContent);
+
+        c.FindAll(".sidref-pick-row").First().Click();
+        Assert.Equal("[[FREQ LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    [Fact]
+    public void Con_la_chip_ATC_si_cita_il_nominativo()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "ATC").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+
+        // Nell'elenco si legge il NOMINATIVO, col callsign accanto: è quello che si sta citando.
+        Assert.Contains("Bari Tower", c.FindAll(".sidref-pick-row").First().TextContent);
+
+        c.FindAll(".sidref-pick-row").First().Click();
+        Assert.Equal("[[ATC LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 
     /// <summary>Il tasto segna il campo PRIMA di aprire: aperto il selettore, il fuoco va nella sua ricerca.</summary>

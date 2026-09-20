@@ -502,18 +502,28 @@
                     <b>Allegati</b> mostra accanto a ogni voce, pronto da copiare. È l'<b>unico</b> link che
                     la prosa riconosce: un indirizzo qualunque resta testo, e non per dimenticanza — è quel
                     che impedisce a un link scritto in un documento di portare dove non deve.</li>
-                <li><b>Una SID dentro il testo</b> — in un paragrafo o in una callout il tasto <b>SID</b> in fondo alla
-                    barra apre «Cita una SID»: lo scalo è già quello del documento (altrove lo scrivi tu), cerchi per
-                    nome o per punto e scegli. Nelle <b>tabelle</b> clicchi prima nella cella, poi sul tasto
-                    <b>SID</b> sotto la tabella. Nel campo resta un riferimento come
-                    <code>[[SID LIBD BANA8A]]</code>; nel documento esce il nome <b>completo e di oggi</b>
+                <li><b>Citare dall'archivio</b> — in un paragrafo o in una callout il tasto <b>Cita</b> in fondo alla
+                    barra apre il selettore, con quattro chip: <b>SID</b>, <b>STAR</b>, <b>FREQ</b> e <b>ATC</b>.
+                    Per le procedure lo scalo è già quello del documento (altrove lo scrivi tu), cerchi per
+                    nome o per punto e scegli; per frequenze e nominativi cerchi il nominativo dell'ente, e
+                    quelli dello scalo del documento vengono per primi. Nelle <b>tabelle</b> clicchi prima nella
+                    cella, poi sul tasto <b>Cita</b> sotto la tabella. Nel campo resta un riferimento come
+                    <code>[[SID LIBD BANA8A]]</code>, <code>[[STAR LIBD BANA1F]]</code> o
+                    <code>[[FREQ LIBD_TWR]]</code>; nel documento esce il valore <b>di oggi</b> — per una
+                    procedura il nome <b>completo</b>
                     («BANAV 8A»), e quando la SID si aggiorna dal sectorfile il nome <b>segue da solo</b> — non
                     c'è niente da riscrivere, e la traduzione non si rifà. La pagina pubblica usa la tabella SID
                     <b>pubblicata</b> dello scalo; editor e bozza quella di oggi. In cima all'editor due aiuti:
                     <b>«SID citate da ricontrollare»</b> elenca quelle che non si trovano più (nel documento resta
                     l'ultimo nome) o che hanno due revisioni vive; <b>«Cerca SID scritte a mano»</b> trova le SID
                     già scritte nel testo e le converte in riferimento, una per una o tutte insieme. Le forme
-                    compatte come <code>CDC6A/B</code> le elenca soltanto: vanno citate una per una.</li>
+                    compatte come <code>CDC6A/B</code> le elenca soltanto: vanno citate una per una.
+                    Per i <b>dati</b> — frequenze e nominativi — un secondo riquadro, <b>«Dati citati da
+                    ricontrollare»</b>, elenca quelli che non si trovano più: nel documento resta la chiave
+                    (<code>LIBD_TWR</code>), che dice comunque a chi ci si rivolge. Si possono citare anche una
+                    <b>pista</b> (<code>[[RWY LIBD 07]]</code>) e un <b>punto</b> (<code>[[FIX BANAV]]</code>)
+                    scrivendoli a mano: quelli escono sempre come li scrivi — un rinomino non si indovina — e
+                    servono proprio per essere avvisati quando spariscono dall'archivio.</li>
                 <li><b>Separazioni</b> — regole di separazione formattate.</li>
                 <li><b>Mappa AOR / Area</b> — porzione di spazio aereo resa graficamente.</li>
               </ul>
@@ -566,18 +576,28 @@
                     <b>Attachments</b> page shows next to each entry, ready to copy. It is the <b>only</b>
                     link prose recognises: any other address stays plain text, and not by oversight — that is
                     what stops a link written in a document from leading somewhere it should not.</li>
-                <li><b>A SID inside the text</b> — in a paragraph or a callout, the <b>SID</b> button at the end of
-                    the toolbar opens “Cite a SID”: the airport is already the document's (elsewhere you type it),
-                    you search by name or fix and pick. In <b>tables</b> you first click in the cell, then on the
-                    <b>SID</b> button under the table. The field keeps a reference such as
-                    <code>[[SID LIBD BANA8A]]</code>; the document shows the <b>full, current</b> name
+                <li><b>Citing from the archive</b> — in a paragraph or a callout, the <b>Cite</b> button at the end
+                    of the toolbar opens the picker, with four chips: <b>SID</b>, <b>STAR</b>, <b>FREQ</b> and
+                    <b>ATC</b>. For procedures the airport is already the document's (elsewhere you type it) and
+                    you search by name or fix; for frequencies and callsigns you search the unit, and those of
+                    the document's airport come first. In <b>tables</b> you first click in the cell, then on the
+                    <b>Cite</b> button under the table. The field keeps a reference such as
+                    <code>[[SID LIBD BANA8A]]</code>, <code>[[STAR LIBD BANA1F]]</code> or
+                    <code>[[FREQ LIBD_TWR]]</code>; the document shows the <b>current</b> value — for a
+                    procedure the <b>full</b> name
                     (“BANAV 8A”), and when the SID is updated from the sector file the name <b>follows by
                     itself</b> — nothing to rewrite, and no new translation. The public page uses the airport's
                     <b>published</b> SID table; editor and draft use today's. At the top of the editor there are
                     two aids: <b>“Cited SIDs to check”</b> lists those that can no longer be found (the document
                     keeps the last name) or that have two live revisions; <b>“Find SIDs written by hand”</b> finds
                     SIDs already typed in the text and turns them into references, one by one or all at once.
-                    Compact forms such as <code>CDC6A/B</code> are only listed: cite them one by one.</li>
+                    Compact forms such as <code>CDC6A/B</code> are only listed: cite them one by one.
+                    For <b>data</b> — frequencies and callsigns — a second box, <b>“Cited data to review”</b>,
+                    lists what can no longer be found: the document keeps the key (<code>LIBD_TWR</code>), which
+                    still says who to call. You can also cite a <b>runway</b> (<code>[[RWY LIBD 07]]</code>) and
+                    a <b>point</b> (<code>[[FIX BANAV]]</code>) by typing them: those always come out as you
+                    wrote them — a rename cannot be guessed — and exist precisely to warn you when they
+                    disappear from the archive.</li>
                 <li><b>Separations</b> — formatted separation rules.</li>
                 <li><b>AOR / Area map</b> — a portion of airspace rendered graphically.</li>
               </ul>

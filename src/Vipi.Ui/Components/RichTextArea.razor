@@ -43,7 +43,7 @@
                fuoco — e con lui la posizione del cursore — deve essere ancora nel campo. *@
             <button type="button" class="rta-btn rta-sid" title="@L["Rta_Sid"]" aria-label="@L["Rta_Sid"]"
                     aria-expanded="@(_sidAperto ? "true" : "false")"
-                    @onmousedown:preventDefault="true" @onclick="ApriSid">SID/STAR</button>
+                    @onmousedown:preventDefault="true" @onclick="ApriSid">@L["Sid_Btn"]</button>
         }
     </div>
     @if (_sidAperto)
@@ -123,9 +123,9 @@
         _sidAperto = _gettone.Length > 0;
     }
 
-    private async Task InserisciSid(ProceduraCitabile s)
+    private async Task InserisciSid(string riferimento)
     {
         _sidAperto = false;
-        await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, s.Riferimento);
+        await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, riferimento);
     }
 }

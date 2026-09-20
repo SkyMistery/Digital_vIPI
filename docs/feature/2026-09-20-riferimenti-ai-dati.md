@@ -1,7 +1,7 @@
 ﻿# Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)
 
-> Stato: 🟡 **6a e 6b fatte** — il meccanismo c'è, `[[FREQ …]]` e `[[ATC …]]` escono col valore di oggi
-> (verificati a schermo su LIBD: `118.300` e «Bari Tower»). Restano piste e punti (6c) e il selettore (6d).
+> Stato: ✅ **chiusa** (6a→6d) — `[[FREQ]]`, `[[ATC]]`, `[[RWY]]`, `[[FIX]]` nel testo, con l'avviso per quel
+> che sparisce e **un selettore solo** a quattro chip. Verificata a schermo su LIBD.
 > Gemella di
 > [riferimenti alle procedure](2026-09-18-riferimenti-sid-nel-testo.md) (§A73) e
 > [STAR](2026-09-20-star-e-altri-riferimenti.md) (§A80), da cui eredita il meccanismo.
@@ -65,11 +65,28 @@ che ha tenuto il costo delle SID a zero su ogni pagina che non le cita.
    implementarne trenta per arrivare a una.
    ⚠️ **Piste e punti non entrano nell'avviso** finché non hanno la loro sorgente: la loro chiave è il valore,
    esce sempre giusta, e segnalarla sarebbe un falso allarme a ogni riga.
-3. **6c — piste e punti**: `[[RWY …]]` e `[[FIX …]]`, che escono com'è scritto e valgono per l'avviso.
-4. **6d — il selettore**: un tasto che li inserisce senza scriverli a mano, come per le procedure.
+2. ✅ **6c — piste e punti**: `[[RWY LIBD 07]]` e `[[FIX BANAV]]`. Escono **come sono scritti** — un rinomino
+   per deriva magnetica non si indovina — e il guadagno è l'avviso.
+   🔴 **Il ripiego è il pezzo che si legge, non la chiave intera**: su `[[RWY LIBD 07]]` esce `07`, non
+   «LIBD 07» — lo scalo è il contesto della frase. Preso da un test al primo giro.
+   🔴 **Sorgente muta ≠ dato sparito**: `ValoriDato` sa quali famiglie ha **davvero guardato**, e una sorgente
+   che risponde a vuoto — catalogo dei punti non raggiungibile, anagrafica piste non ancora importata — non
+   genera nessun avviso. Senza questa regola un guasto di rete riempirebbe la testata dell'editor di allarmi
+   falsi, che è il modo più rapido per far smettere di leggerli.
+3. ✅ **6d — il selettore**: **uno solo**, con quattro chip — SID · STAR · FREQ · ATC. Quattro tasti in barra
+   sarebbero quattro decisioni prima ancora di aprire l'elenco; il gesto invece è sempre lo stesso, «cito
+   qualcosa che vive nell'archivio». Il tasto si chiama ora **Cita**.
+   ⚠️ Per gli enti l'elenco mette **prima quelli dello scalo del documento**: chi scrive la vIPI di LIBD cita
+   quasi sempre un ente di LIBD.
+   ⚠️ Il contratto del selettore è ora **il testo del riferimento** (una stringa), non la procedura scelta: è
+   tutto quel che serve a chi lo inserisce, e vale per ogni famiglia presente e futura.
 
 ## 4-bis. Verifica
 
+- **Il selettore a schermo** (`selettore-verifica.js`): le chip escono nell'ordine `SID STAR FREQ ATC`, la
+  chip FREQ carica gli enti con **LIBD per primo**, la scelta scrive `[[FREQ LIBD_CS0_APP]]` dove stava il
+  cursore e chiude il selettore; scritto a mano `[[RWY LIBD 99X]]`, la testata dell'editor dice «RWY LIBD 99X
+  — is no longer in the archive», con la sezione fra parentesi. Nessun gettone grezzo, zero errori in console.
 - **A schermo** (`dato-verifica.js`, copia del `vipi.db`, LIBD): scritto `[[FREQ LIBD_TWR]] … [[ATC LIBD_TWR]]`
   in un campo di prosa, dopo il ricarico l'anteprima dell'editor **e** il documento dicono «Su **118.300** con
   **Bari Tower**», nessun gettone grezzo, zero errori in console.

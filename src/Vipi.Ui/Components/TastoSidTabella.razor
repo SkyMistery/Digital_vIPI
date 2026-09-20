@@ -10,7 +10,7 @@
 
 <button type="button" class="btn ghost" @ref="_tasto" title="@L["Sid_Cell"]" aria-label="@L["Sid_Cell"]"
         aria-expanded="@(_aperto ? "true" : "false")"
-        @onmousedown:preventDefault="true" @onclick="Apri">SID/STAR</button>
+        @onmousedown:preventDefault="true" @onclick="Apri">@L["Sid_Btn"]</button>
 @if (_senzaCella)
 {
     <span class="muted" style="font-size:12px;align-self:center">@L["Sid_Cell_NoFocus"]</span>
@@ -36,10 +36,10 @@
         _aperto = !_senzaCella;
     }
 
-    private async Task Inserisci(ProceduraCitabile s)
+    private async Task Inserisci(string riferimento)
     {
         _aperto = false;
         _senzaCella = false;
-        await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, s.Riferimento);
+        await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, riferimento);
     }
 }

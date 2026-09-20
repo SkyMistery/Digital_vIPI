@@ -1,14 +1,19 @@
-﻿@* Il selettore delle SID da citare nel testo (§A73, carta docs/feature/2026-09-18-riferimenti-sid-nel-testo.md).
-   Lo aprono il tasto «SID» della barra di formattazione (prosa) e quello sotto una tabella (celle): chi lo apre
-   ha già segnato il campo di destinazione (`vipiSidPrendi`), qui si sceglie e basta.
+@* Il selettore dei RIFERIMENTI da citare nel testo: le procedure (§A73, §A80) e i dati — frequenze e
+   nominativi (carta docs/feature/2026-09-20-riferimenti-ai-dati.md).
+   Lo aprono il tasto della barra di formattazione (prosa) e quello sotto una tabella (celle): chi lo apre ha
+   già segnato il campo di destinazione (`vipiSidPrendi`), qui si sceglie e basta.
+
+   ⚠️ UN selettore per tutte le famiglie, con le chip: il gesto è lo stesso — «cito qualcosa che vive
+   nell'archivio» — e quattro tasti in barra sarebbero quattro decisioni prima ancora di aprire l'elenco.
 
    ⚠️ Scope DI proprio, non @inject: il selettore si apre dentro un editor che salva a ogni gesto, e due query
    sullo stesso DbContext di circuito sono il guasto «second operation» già pagato. E `ScopeProprioCheAspetta`,
    non `OwningComponentBase`: una scelta fatta mentre l'elenco sta arrivando SMONTA il selettore, e senza l'attesa
    lo scope si porterebbe via il DbContext sotto la query (la «terza porta», TerzaPortaTests).
 
-   ⚠️ L'elenco è la tabella VIVA dello scalo — quella che la bozza mostra —, una voce per nome: una SID su due
-   piste è una voce sola. Nel testo va il riferimento, e il nome che il lettore vedrà si decide al disegno. *@
+   ⚠️ L'elenco delle procedure è la tabella VIVA dello scalo — quella che la bozza mostra —, una voce per nome:
+   una SID su due piste è una voce sola. Nel testo va il riferimento, e il valore che il lettore vedrà si decide
+   al disegno. *@
 @using Microsoft.Extensions.DependencyInjection
 @inherits ScopeProprioCheAspetta
 @inject IJSRuntime JS
@@ -17,24 +22,28 @@
 <div class="sidref-pick" role="dialog" aria-label="@L["Sid_Pick_Title"]" @onkeydown="Tasto">
     <div class="sidref-pick-head">
         <b>@L["Sid_Pick_Title"]</b>
-        <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO"
-               value="@_icao" @onchange="CambiaIcao" />
-        @* Il verso: partenze o arrivi. Due chip e non due tasti in barra — il gesto è lo stesso, e quello che
-           cambia è dentro il selettore, dove si sta già guardando un elenco. *@
+        @* L'ICAO serve alle sole procedure: gli enti si cercano per callsign, che è già unico. *@
+        @if (!Dato)
+        {
+            <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO"
+                   value="@_icao" @onchange="CambiaIcao" />
+        }
+        @* Che cosa si cita. Chip e non tasti in barra: il gesto è lo stesso, e quel che cambia sta dentro il
+           selettore, dove si sta già guardando un elenco. *@
         <div class="sidref-pick-kind" role="group" aria-label="@L["Sid_Pick_Kind"]">
-            @foreach (var k in new[] { ProcedureKind.Sid, ProcedureKind.Star })
+            @foreach (var f in Famiglie)
             {
-                var verso = k;
-                <button type="button" class="sh-chip @(_kind == verso ? "on" : "")"
-                        aria-pressed="@((_kind == verso).ToString().ToLowerInvariant())"
-                        @onclick="() => CambiaVerso(verso)">@RiferimentiProcedura.Parola(verso)</button>
+                var scelta = f;
+                <button type="button" class="sh-chip @(_famiglia == scelta ? "on" : "")"
+                        aria-pressed="@((_famiglia == scelta).ToString().ToLowerInvariant())"
+                        @onclick="() => CambiaFamiglia(scelta)">@scelta.Parola</button>
             }
         </div>
         <input class="app-in cerca" placeholder="@L["Sid_Pick_Search"]" aria-label="@L["Sid_Pick_Search"]"
                @ref="_cerca" @bind="_filtro" @bind:event="oninput" @onkeydown="InvioSceglie" />
         <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
     </div>
-    @if (_icao.Length != 4)
+    @if (!Dato && _icao.Length != 4)
     {
         <p class="muted" style="margin:0">@L["Sid_Pick_NeedIcao"]</p>
     }
@@ -44,15 +53,17 @@
     }
     else if (Filtrate.Count == 0)
     {
-        <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_None"].Value, _icao)</p>
+        <p class="muted" style="margin:0">@string.Format(L["Sid_Pick_None"].Value, Dato ? _famiglia.Parola : _icao)</p>
     }
     else
     {
         <div class="sidref-pick-list">
-            @foreach (var s in Filtrate)
+            @foreach (var v in Filtrate)
             {
-                <button type="button" class="sidref-pick-row" title="@s.Riferimento" @onclick="() => OnScegli.InvokeAsync(s)">
-                    <span>@s.Esteso</span><span class="rwy">@s.Piste</span>
+                var voce = v;
+                <button type="button" class="sidref-pick-row" title="@voce.Riferimento"
+                        @onclick="() => OnScegli.InvokeAsync(voce.Riferimento)">
+                    <span>@voce.Etichetta</span><span class="rwy">@voce.Dettaglio</span>
                 </button>
             }
         </div>
@@ -60,23 +71,42 @@
 </div>
 
 @code {
+    /// <summary>Una voce dell'elenco, qualunque famiglia sia: quel che si legge, quel che si scrive.</summary>
+    /// <param name="Riferimento">Il testo che finisce nel campo, <c>[[SID LIRF OST1E]]</c> o <c>[[FREQ LIRF_TWR]]</c>.</param>
+    /// <param name="Etichetta">Come si legge nell'elenco: il nome esteso, o il callsign.</param>
+    /// <param name="Dettaglio">La colonna di destra: le piste, o la frequenza.</param>
+    private sealed record Voce(string Riferimento, string Etichetta, string Dettaglio);
+
+    /// <summary>Una famiglia citabile: la parola della chip e come si costruisce il suo elenco.</summary>
+    private sealed record Famiglia(string Parola, ProcedureKind? Procedura = null, TipoDato? Dato = null);
+
+    private static readonly Famiglia[] Famiglie =
+    {
+        new("SID", Procedura: ProcedureKind.Sid),
+        new("STAR", Procedura: ProcedureKind.Star),
+        new("FREQ", Dato: TipoDato.Frequenza),
+        new("ATC", Dato: TipoDato.Nominativo),
+    };
+
     /// <summary>Lo scalo del documento, se il documento ne ha uno (vIPI d'aeroporto, vSOP militare). Vuoto =
     /// l'ultimo usato, che il browser ricorda.</summary>
     [Parameter] public string? IcaoIniziale { get; set; }
 
-    [Parameter] public EventCallback<ProceduraCitabile> OnScegli { get; set; }
+    /// <summary>Il testo del riferimento scelto: è tutto quel che serve a chi lo inserisce.</summary>
+    [Parameter] public EventCallback<string> OnScegli { get; set; }
     [Parameter] public EventCallback OnChiudi { get; set; }
 
-    /// <summary>Il verso che si sta citando. Nasce sulle partenze: sono la stragrande maggioranza dei
-    /// riferimenti scritti, e chi cita un arrivo lo sa e cambia chip.</summary>
-    private ProcedureKind _kind = ProcedureKind.Sid;
+    /// <summary>La famiglia che si sta citando. Nasce sulle partenze: sono la stragrande maggioranza dei
+    /// riferimenti scritti, e chi cita altro lo sa e cambia chip.</summary>
+    private Famiglia _famiglia = Famiglie[0];
 
-    /// <summary>Cambia verso e ricarica l'elenco. ⚠️ L'elenco è di UNO scalo e di UN verso: tenerli insieme in
-    /// una lista sola vorrebbe dire mostrare due volte lo stesso nome quando lo scalo ce l'ha in tutti e due.</summary>
-    private async Task CambiaVerso(ProcedureKind kind)
+    /// <summary>Vero se si sta citando un DATO (frequenza, nominativo): niente ICAO, elenco di enti.</summary>
+    private bool Dato => _famiglia.Dato is not null;
+
+    private async Task CambiaFamiglia(Famiglia f)
     {
-        if (_kind == kind) return;
-        _kind = kind;
+        if (_famiglia == f) return;
+        _famiglia = f;
         await CaricaAsync();
     }
 
@@ -85,16 +115,18 @@
     private string _icao = "";
     private string _filtro = "";
     private bool _caricando;
-    private IReadOnlyList<ProceduraCitabile> _elenco = Array.Empty<ProceduraCitabile>();
+    private IReadOnlyList<Voce> _elenco = Array.Empty<Voce>();
     private ElementReference _cerca;
 
-    private IProcedureReferenceResolver Risolutore => ScopedServices.GetRequiredService<IProcedureReferenceResolver>();
+    private IProcedureReferenceResolver Procedure => ScopedServices.GetRequiredService<IProcedureReferenceResolver>();
+    private IFrequenzeDegliEnti Enti => ScopedServices.GetRequiredService<IFrequenzeDegliEnti>();
 
-    private IReadOnlyList<ProceduraCitabile> Filtrate =>
+    private IReadOnlyList<Voce> Filtrate =>
         string.IsNullOrWhiteSpace(_filtro)
             ? _elenco
-            : _elenco.Where(s => s.Esteso.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
-                              || s.Codice.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
+            : _elenco.Where(v => v.Etichetta.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
+                              || v.Riferimento.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
+                              || v.Dettaglio.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -114,22 +146,46 @@
 
     private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiProcedura.Norm(e.Value as string));
 
-    /// <summary>Ricarica lo scalo che c'è già: serve al cambio di verso.</summary>
+    /// <summary>Ricarica quel che c'è già: serve al cambio di famiglia.</summary>
     private Task CaricaAsync() => CaricaAsync(_icao);
 
     private async Task CaricaAsync(string icao)
     {
         _icao = icao;
-        _elenco = Array.Empty<ProceduraCitabile>();
-        if (icao.Length != 4) return;
+        _elenco = Array.Empty<Voce>();
+        if (!Dato && icao.Length != 4) return;
         _caricando = true;
         try
         {
-            await InFilaAsync(async () => { _elenco = await Risolutore.ElencoAsync(icao, _kind); });
+            await InFilaAsync(async () =>
+            {
+                _elenco = Dato ? await EntiAsync(_famiglia.Dato!.Value) : await ProcedureAsync(icao, _famiglia.Procedura!.Value);
+            });
             if (Chiusa) return;
-            await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
+            if (!Dato) await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
         }
         finally { _caricando = false; }
+    }
+
+    private async Task<IReadOnlyList<Voce>> ProcedureAsync(string icao, ProcedureKind kind) =>
+        (await Procedure.ElencoAsync(icao, kind))
+            .Select(p => new Voce(p.Riferimento, p.Esteso, p.Piste)).ToList();
+
+    /// <summary>
+    /// Gli enti con frequenza. ⚠️ Lo scalo del documento PRIMA: chi scrive la vIPI di LIRF cita quasi sempre un
+    /// ente di LIRF, e farglielo cercare in mezzo a tutta la divisione sarebbe un elenco lungo per niente.
+    /// </summary>
+    private async Task<IReadOnlyList<Voce>> EntiAsync(TipoDato tipo)
+    {
+        var mio = RiferimentiProcedura.Norm(IcaoIniziale);
+        return (await Enti.TutteAsync())
+            .OrderByDescending(f => mio.Length == 4 && string.Equals(f.Icao, mio, StringComparison.OrdinalIgnoreCase))
+            .ThenBy(f => f.Callsign, StringComparer.Ordinal)
+            .Select(f => new Voce(
+                RiferimentiDato.Scrivi(tipo, f.Callsign),
+                tipo == TipoDato.Nominativo && !string.IsNullOrWhiteSpace(f.AtcCallsign) ? f.AtcCallsign! : f.Callsign,
+                tipo == TipoDato.Nominativo ? f.Callsign : f.FrequencyMhz))
+            .ToList();
     }
 
     // Esc chiude, da qualunque punto del pannello.
@@ -142,6 +198,6 @@
     // ⚠️ Solo nella ricerca: nel campo ICAO l'Invio conferma lo scalo, e sceglierebbe dall'elenco VECCHIO.
     private async Task InvioSceglie(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && Filtrate.Count > 0) await OnScegli.InvokeAsync(Filtrate[0]);
+        if (e.Key == "Enter" && Filtrate.Count > 0) await OnScegli.InvokeAsync(Filtrate[0].Riferimento);
     }
 }

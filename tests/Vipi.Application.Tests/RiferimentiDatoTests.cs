@@ -12,7 +12,10 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class RiferimentiDatoTests
 {
-    private static ValoriDato Valori(params (TipoDato, string, string)[] voci) => new(voci);
+    /// <summary>I valori dati a mano: le famiglie che compaiono si considerano GUARDATE, che è quel che fa il
+    /// risolutore quando una sorgente risponde.</summary>
+    private static ValoriDato Valori(params (TipoDato, string, string)[] voci) =>
+        new(voci, voci.Select(v => v.Item1).Distinct());
 
     [Fact]
     public void Il_Gettone_Si_Scrive_Col_Tipo_E_La_Chiave()
@@ -50,8 +53,8 @@ public class RiferimentiDatoTests
 
         Assert.Contains((TipoDato.Pista, "LIRF 16L"), citati);
         Assert.Contains((TipoDato.Punto, "OST"), citati);
-        // Escono come sono scritti: la chiave è il valore.
-        Assert.Equal("Pista LIRF 16L e punto OST.",
+        // Esce il pezzo che si legge: la soglia, non «LIRF 16L» — lo scalo è il contesto della frase.
+        Assert.Equal("Pista 16L e punto OST.",
             RiferimentiDato.Sostituisci("Pista [[RWY LIRF 16L]] e punto [[FIX OST]].", null));
     }
 
@@ -82,8 +85,8 @@ public class RiferimentiDatoTests
     }
 
     /// <summary>
-    /// ⚠️ Piste e punti NON si segnalano: la loro chiave è il valore, esce sempre giusta, e un avviso a ogni
-    /// riga sarebbe rumore. Il loro controllo arriva con la loro sorgente.
+    /// ⚠️ Senza sorgente guardata non si segnala niente: `ValoriDato.Vuoto` non ha guardato nessuna famiglia,
+    /// e «non lo so» non è «non c'è».
     /// </summary>
     [Fact]
     public void Piste_E_Punti_Non_Finiscono_Nell_Avviso()
@@ -121,6 +124,13 @@ public class RiferimentiDatoTests
     {
         public int Chiamate { get; private set; }
 
+        public int ChiamatePiste { get; private set; }
+        public int ChiamatePunti { get; private set; }
+
+        /// <summary>Le soglie di LIRF: la 16L c'è, la 17L no — è il caso della deriva magnetica.</summary>
+        public IReadOnlyList<string> Piste { get; set; } = new[] { "16L", "16R" };
+        public IReadOnlySet<string> Punti { get; set; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "OST", "ELKAP" };
+
         public Task<IReadOnlyList<LinkableFrequencyRow>> TutteAsync(CancellationToken ct = default)
         {
             Chiamate++;
@@ -129,6 +139,21 @@ public class RiferimentiDatoTests
                 new LinkableFrequencyRow(1, "LIRF", "LIRF_TWR", "118.700", "Fiumicino Tower"),
                 new LinkableFrequencyRow(2, null, "LIRR_CTR", "124.850", null),
             });
+        }
+
+        public Task<IReadOnlyDictionary<string, IReadOnlyList<string>>> PisteAsync(
+            IReadOnlyCollection<string> icaos, CancellationToken ct = default)
+        {
+            ChiamatePiste++;
+            var d = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+            foreach (var i in icaos) if (string.Equals(i, "LIRF", StringComparison.OrdinalIgnoreCase)) d[i] = Piste;
+            return Task.FromResult<IReadOnlyDictionary<string, IReadOnlyList<string>>>(d);
+        }
+
+        public Task<IReadOnlySet<string>> PuntiAsync(CancellationToken ct = default)
+        {
+            ChiamatePunti++;
+            return Task.FromResult(Punti);
         }
     }
 
@@ -159,6 +184,52 @@ public class RiferimentiDatoTests
         Assert.Equal("Fiumicino Tower", risolti.Dati.Valore(TipoDato.Nominativo, "LIRF_TWR"));
         // Senza nominativo IVAO vale il callsign, che è sempre vero.
         Assert.Equal("LIRR_CTR", risolti.Dati.Valore(TipoDato.Nominativo, "LIRR_CTR"));
+    }
+
+    [Fact]
+    public async Task Una_Pista_Che_Non_Ce_Piu_Si_Segnala()
+    {
+        var catalogo = new Catalogo();   // LIRF ha 16L e 16R
+        var testi = new[] { "Da [[RWY LIRF 16L]] e da [[RWY LIRF 17L]]." };
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        // Escono com'è scritto, tutte e due: un rinomino non si indovina.
+        Assert.Equal("Da 16L e da 17L.", Riferimenti.Sostituisci(testi[0], risolti));
+
+        // Ma l'avviso dice quale non c'è più.
+        var daRivedere = ControlloDatiCitati.Controlla(new[] { ("Piste", (string?)testi[0]) }, risolti.Dati);
+        var d = Assert.Single(daRivedere);
+        Assert.Equal("LIRF 17L", d.Chiave);
+        Assert.Equal("RWY", d.Parola);
+        Assert.Equal(1, catalogo.ChiamatePiste);
+    }
+
+    [Fact]
+    public async Task Un_Punto_Che_Il_Catalogo_Non_Ha_Si_Segnala()
+    {
+        var catalogo = new Catalogo();   // il catalogo ha OST e ELKAP
+        var testi = new[] { "Via [[FIX OST]] poi [[FIX ZZZZ]]." };
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        Assert.Equal("Via OST poi ZZZZ.", Riferimenti.Sostituisci(testi[0], risolti));
+        var d = Assert.Single(ControlloDatiCitati.Controlla(new[] { ("Punti", (string?)testi[0]) }, risolti.Dati));
+        Assert.Equal("ZZZZ", d.Chiave);
+    }
+
+    /// <summary>
+    /// 🔴 Sorgente muta ≠ dato sparito. Col catalogo dei punti vuoto — rete giù, sectorfile spento — ogni
+    /// `[[FIX …]]` sembrerebbe sparito, e la testata dell'editor si riempirebbe di avvisi falsi.
+    /// </summary>
+    [Fact]
+    public async Task Una_Sorgente_Che_Non_Risponde_Non_Fa_Allarmi()
+    {
+        var catalogo = new Catalogo { Punti = new HashSet<string>(), Piste = Array.Empty<string>() };
+        var testi = new[] { "[[FIX OST]] e [[RWY LIRF 16L]]" };
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        Assert.Empty(ControlloDatiCitati.Controlla(new[] { ("Dove", (string?)testi[0]) }, risolti.Dati));
+        Assert.False(risolti.Dati.Guardata(TipoDato.Punto));
+        Assert.False(risolti.Dati.Guardata(TipoDato.Pista));
     }
 
     /// <summary>La via breve: un testo che non cita dati non fa nessuna domanda.</summary>

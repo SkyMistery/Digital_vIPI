@@ -74,6 +74,13 @@ public static class RiferimentiDato
     private static string ChiaveDi(Match m) =>
         m.Groups[3].Success ? $"{m.Groups[2].Value} {m.Groups[3].Value}" : m.Groups[2].Value;
 
+    /// <summary>
+    /// Il ripiego quando il valore non si trova: <b>il pezzo che si legge</b>, non la chiave intera. Su
+    /// <c>[[RWY LIRF 16L]]</c> è <c>16L</c> — lo scalo è il contesto della frase, e «da LIRF 16L» in mezzo a un
+    /// paragrafo che parla già di LIRF si legge male.
+    /// </summary>
+    private static string RipiegoDi(Match m) => m.Groups[3].Success ? m.Groups[3].Value : m.Groups[2].Value;
+
     /// <summary>Il testo del riferimento per quel tipo e quella chiave.</summary>
     public static string Scrivi(TipoDato tipo, string chiave) =>
         $"[[{Parola(tipo)} {RiferimentiProcedura.Norm(chiave)}]]";
@@ -105,8 +112,7 @@ public static class RiferimentiDato
         if (!Contiene(testo)) return testo;
         return Riferimento.Replace(testo!, m =>
         {
-            var chiave = ChiaveDi(m);
-            return valori?.Valore(TipoDi(m), chiave) ?? chiave;
+            return valori?.Valore(TipoDi(m), ChiaveDi(m)) ?? RipiegoDi(m);
         });
     }
 }
@@ -119,12 +125,21 @@ public static class RiferimentiDato
 public sealed class ValoriDato
 {
     private readonly Dictionary<(TipoDato Tipo, string Chiave), string> _valori = new();
+    private readonly HashSet<TipoDato> _guardate;
 
     public static ValoriDato Vuoto { get; } = new(Array.Empty<(TipoDato, string, string)>());
 
     /// <param name="voci">Tipo, chiave e valore di oggi. Le chiavi si normalizzano qui, una volta sola.</param>
-    public ValoriDato(IEnumerable<(TipoDato Tipo, string Chiave, string Valore)> voci)
+    /// <param name="guardate">
+    /// Le famiglie la cui sorgente ha <b>davvero risposto</b>.
+    /// <para>🔴 Serve a non trasformare un guasto in un allarme: se il catalogo dei punti non è arrivato — rete
+    /// giù, sectorfile spento in una prova — ogni <c>[[FIX …]]</c> del documento sembrerebbe sparito, e
+    /// l'editor riempirebbe la testata di avvisi falsi. Quel che non si è potuto guardare non si segnala.</para>
+    /// </param>
+    public ValoriDato(IEnumerable<(TipoDato Tipo, string Chiave, string Valore)> voci,
+        IEnumerable<TipoDato>? guardate = null)
     {
+        _guardate = guardate is null ? new HashSet<TipoDato>() : new HashSet<TipoDato>(guardate);
         foreach (var (tipo, chiave, valore) in voci)
         {
             var k = RiferimentiProcedura.Norm(chiave);
@@ -139,6 +154,9 @@ public sealed class ValoriDato
 
     /// <summary>Vero se non c'è niente da sostituire: la via breve dei chiamanti.</summary>
     public bool Vuota => _valori.Count == 0;
+
+    /// <summary>Vero se quella famiglia è stata guardata davvero, e quindi «non trovato» vuol dire qualcosa.</summary>
+    public bool Guardata(TipoDato tipo) => _guardate.Contains(tipo);
 }
 
 /// <summary>Un dato citato che l'editor segnala in cima al documento: non si trova più.</summary>
@@ -172,10 +190,9 @@ public static class ControlloDatiCitati
             }
         }
 
-        // ⚠️ Solo i tipi che si RISOLVONO: per una pista o un punto la chiave è il valore, esce sempre giusta,
-        // e segnalarla come «non trovata» sarebbe un falso allarme a ogni riga. Il loro controllo arriva con la
-        // loro sorgente (slice 6c della carta).
-        return dove.Where(d => d.Key.Tipo is TipoDato.Frequenza or TipoDato.Nominativo)
+        // ⚠️ Solo le famiglie GUARDATE: una sorgente che non ha risposto non dice «non c'è», dice «non lo so»,
+        // e riempire la testata di avvisi falsi è il modo più rapido per far smettere di leggerli.
+        return dove.Where(d => valori.Guardata(d.Key.Tipo))
             .Where(d => valori.Valore(d.Key.Tipo, d.Key.Chiave) is null)
             .OrderBy(d => d.Key.Tipo)
             .ThenBy(d => d.Key.Chiave, StringComparer.Ordinal)
