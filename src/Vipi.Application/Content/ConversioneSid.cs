@@ -18,7 +18,7 @@ public sealed record BloccoDaCercare(int Id, string Dove, BlockFormat Format, st
 /// <param name="Sid">La SID della tabella che le corrisponde.</param>
 /// <param name="Volte">Quante volte compare in quel blocco.</param>
 /// <param name="Contesto">Un pezzo di testo attorno alla prima occorrenza, per riconoscerla.</param>
-public sealed record PropostaSid(int BloccoId, string Dove, string Trovato, SidCitabile Sid, int Volte, string Contesto);
+public sealed record PropostaSid(int BloccoId, string Dove, string Trovato, ProceduraCitabile Sid, int Volte, string Contesto);
 
 /// <summary>Una forma compatta (<c>CDC6A/B</c>) che nessun riconoscimento può convertire da solo.</summary>
 /// <param name="BloccoId">Il blocco in cui sta.</param>
@@ -48,13 +48,13 @@ public static class ConversioneSid
         @"(?<![A-Z0-9])([A-Z]{2,7})([0-9])([A-Z])(?:/(?:[A-Z]{2,7})?[0-9]?[A-Z])+(?![A-Z0-9])",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
-    public static EsitoRicercaSid Cerca(IEnumerable<BloccoDaCercare> blocchi, IReadOnlyList<SidCitabile> sids)
+    public static EsitoRicercaSid Cerca(IEnumerable<BloccoDaCercare> blocchi, IReadOnlyList<ProceduraCitabile> sids)
     {
         if (sids.Count == 0) return EsitoRicercaSid.Vuoto;
 
         // Ogni forma scritta → la sua SID. Le più lunghe prima: «BANAV 8A» va cercato prima di un eventuale nome
         // più corto che ne fosse un pezzo.
-        var forme = new Dictionary<string, SidCitabile>(StringComparer.Ordinal);
+        var forme = new Dictionary<string, ProceduraCitabile>(StringComparer.Ordinal);
         foreach (var s in sids)
             foreach (var f in FormeDi(s))
                 forme.TryAdd(f, s);
@@ -62,7 +62,7 @@ public static class ConversioneSid
         // migliaia di costruzioni su un documento grande (revisione del 18 settembre 2026).
         var ordinate = forme.Keys.OrderByDescending(f => f.Length).Select(f => (Forma: f, Re: Occorrenze(f))).ToList();
 
-        var radici = new HashSet<string>(sids.SelectMany(s => FormeDi(s)).Select(RiferimentiSid.Radice), StringComparer.Ordinal);
+        var radici = new HashSet<string>(sids.SelectMany(s => FormeDi(s)).Select(RiferimentiProcedura.Radice), StringComparer.Ordinal);
 
         var proposte = new List<PropostaSid>();
         var daSistemare = new List<FormaDaSistemare>();
@@ -87,7 +87,7 @@ public static class ConversioneSid
 
             foreach (var campo in campi)
                 foreach (Match m in Compatta.Matches(campo))
-                    if (radici.Contains(RiferimentiSid.Radice(m.Groups[1].Value + m.Groups[2].Value + m.Groups[3].Value))
+                    if (radici.Contains(RiferimentiProcedura.Radice(m.Groups[1].Value + m.Groups[2].Value + m.Groups[3].Value))
                         && !daSistemare.Any(d => d.BloccoId == b.Id && d.Trovato == m.Value))
                         daSistemare.Add(new FormaDaSistemare(b.Id, b.Dove, m.Value));
         }
@@ -151,7 +151,7 @@ public static class ConversioneSid
     }
 
     /// <summary>Le forme in cui una SID si scrive a mano.</summary>
-    private static IEnumerable<string> FormeDi(SidCitabile s) =>
+    private static IEnumerable<string> FormeDi(ProceduraCitabile s) =>
         new[] { s.Codice, s.Esteso, s.Esteso.Replace(" ", ""), s.Codice.Replace(" ", "") }
             .Where(f => f.Length >= 3).Distinct(StringComparer.Ordinal);
 

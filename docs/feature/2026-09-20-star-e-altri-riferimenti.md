@@ -1,8 +1,9 @@
 ﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: 🟡 **slice 1→4 fatte** — parser misurato sui file veri, archivio (`AirportProcedures` + `Kind`,
-> migrazione provata su una copia di produzione), import dal sectorfile, editor, e **la sezione «STAR» nel
-> documento**, derivata e congelabile come le SID (verificata a schermo su LIBD). Resta il riferimento nel testo.
+> Stato: ✅ **il filone STAR è chiuso** (slice 1→5): parser, archivio (`AirportProcedures` + `Kind`, migrazione
+> provata su una copia di produzione), import dal sectorfile, editor, sezione «STAR» nel documento e
+> **`[[STAR …]]` nel testo** — tutto verificato a schermo su LIBD. Restano i quattro riferimenti di §4
+> (`[[FREQ]]`, `[[RWY]]`, `[[ATC]]`, `[[FIX]]`).
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se
@@ -116,9 +117,22 @@ Il DTO di sorgente era già unificato nella slice 1: `SourceProcedure` (era `Sou
    create al primo avvio.
    🔴 **Nel documento PUBBLICATO la sezione compare solo dalla prossima release**: quel che è pubblico è lo
    snapshot di allora, e uno snapshot non si riscrive. Nella bozza c'è subito.
-5. **riferimento nel testo** — `[[STAR LIRF ELKA3A]]`, sulle stesse cinque slice già pagate per le SID:
-   il codice di `RiferimentiSid` è **già generico sulla radice del nome**, cambia il gettone e la tabella da cui
-   si leggono i nomi.
+5. ✅ **riferimento nel testo** — `[[STAR LIRF ELKA3A]]`. Il meccanismo delle SID regge così com'è (radice del
+   nome, ultimo nome visto come ripiego, protezione dalla traduzione, selettore, avviso in editor): quel che
+   cambia è che **il verso sta nel riferimento**, e le due famiglie si cercano in **due tabelle diverse**.
+   🔴 **La chiave porta il verso** (`NomiProcedura`, `TabelleCitate`, `ControlloProcedureCitate`): lo stesso
+   scalo può avere la stessa radice nei due versi — misurato a LIBD, `BANAV 5Z` in partenza e `BANAV 1F` in
+   arrivo — e una chiave senza verso darebbe a un riferimento d'arrivo **il nome di una partenza**, che
+   leggendo sembra giusto. È la prova che regge la slice.
+   ⚠️ In pubblica ogni verso legge **la sua** sezione congelata (`sids` / `stars`).
+   ⚠️ Un tasto solo, `SID/STAR`, e due chip dentro il selettore: il gesto è lo stesso, e quel che cambia sta
+   dove si sta già guardando un elenco.
+   ⚠️ Rinominati, perché il meccanismo non è più solo delle SID: `RiferimentiSid`→`RiferimentiProcedura`,
+   `NomiSid`→`NomiProcedura`, `SidReferenceResolver`→`ProcedureReferenceResolver`,
+   `SidCitabile`→`ProceduraCitabile`, `ControlloSidCitate`→`ControlloProcedureCitate`,
+   `SidDaRivedere`→`ProceduraDaRivedere`.
+   ⚠️ **Non fatto, e di proposito**: la conversione dell'esistente (`ConversioneSid`) resta sulle sole SID —
+   i documenti scritti finora non citano STAR, perché in vIPI non esistevano.
 
 ## 4. Che altro può seguire la sorgente
 
@@ -144,6 +158,10 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 
 ## 5. Verifica
 
+- 7 test in `RiferimentiStarTests` (la parola del gettone, il nome dalla tabella degli arrivi, **la stessa
+  radice nei due versi**, l'arrivo sparito che esce com'era, le tabelle citate una per verso, l'avviso che dice
+  il verso, la via breve) e 2 in `ProcedureReferenceResolverTests` (in pubblica gli arrivi vengono da `stars`;
+  le due tabelle proprie valgono per i due versi).
 - 4 test in `SezioneStarPubblicaTests` (colonna STAR, niente Initial climb, la chip marca la pista in
   ARRIVO, il riquadro «non ce ne sono» con le parole degli arrivi) e 2 in `AirportSidDerivationServiceTests`
   (la derivazione dà il verso chiesto; nascoste e in attesa si comportano come le partenze).
@@ -157,6 +175,11 @@ Fuori dal meccanismo, per scelta: il METAR e la pista in uso (sono **già** dina
 - Misura dal vivo sui 90 `.str` veri della copia di lavoro del sectorfile: 54 scali, 865 righe, 136 da
   rivedere, 522 RNAV — prova usa-e-getta, non committata, rifattibile in due minuti.
 - `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM; suite intera verde.
+- **Il riferimento provato a schermo** (`sid-verifica.js` della skill, aggiornato per i due versi): il tasto
+  `SID/STAR` di un campo di prosa apre il selettore, la chip **STAR** ricarica l'elenco, la scelta scrive
+  `[[STAR LIBD BANA1F]]` dove stava il cursore, il riferimento **sopravvive al ricarico**, e l'anteprima legge
+  «… Then **BANAV 5Z** e poi **BANAV 1F**» — la partenza e l'arrivo dello stesso punto, ciascuno col suo nome,
+  e mai un `[[SID`/`[[STAR` grezzo a schermo. Zero errori in console.
 - **Sezione pubblica provata a schermo** (bozza di LIBD): «STAR» nell'indice fra «SID» e «General
   procedures», tabella con RWY · FIX · **STAR** · TRANSITION · TYPE · CAT. · WTC · CONDITION — senza *Initial
   climb* —, chip di pista 07/25, nessun id doppio, console pulita. ⚠️ Le 38 STAR appena importate sono in

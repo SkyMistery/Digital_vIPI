@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
@@ -11,34 +11,40 @@ namespace Vipi.Application.Tests;
 /// la pubblica guarda la tabella pubblica dello scalo citato — congelata se la sua release la congela, viva
 /// altrimenti —, la bozza guarda la tabella viva, e lo scalo del documento quella che la pagina sta mostrando.
 /// </summary>
-public class SidReferenceResolverTests
+public class ProcedureReferenceResolverTests
 {
     private static AirportSidView Tabella(params string[] nomi) =>
         new(nomi.Select(n => new AirportSidRowView("16", "—", n, "—", "—", "—", "—", "—", "—")).ToList());
 
     private sealed class SidVive : IAirportSidDerivationService
     {
-        public Dictionary<string, AirportSidView> Tabelle { get; } = new();
-        public List<string> Chieste { get; } = new();
+        // La chiave porta il VERSO: il fake deve poter dire cose diverse per le partenze e per gli arrivi
+        // dello stesso scalo, che è esattamente la prova che conta.
+        public Dictionary<(ProcedureKind Kind, string Icao), AirportSidView> Tabelle { get; } = new();
+        public List<(ProcedureKind Kind, string Icao)> Chieste { get; } = new();
 
-        public Task<AirportSidView> DeriveAsync(string icao, Vipi.Domain.Entities.ProcedureKind kind = Vipi.Domain.Entities.ProcedureKind.Sid, string? atCycle = null, CancellationToken ct = default)
+        public Task<AirportSidView> DeriveAsync(string icao, ProcedureKind kind = ProcedureKind.Sid,
+            string? atCycle = null, CancellationToken ct = default)
         {
-            Chieste.Add(icao);
-            return Task.FromResult(Tabelle.GetValueOrDefault(icao) ?? AirportSidView.Empty);
+            Chieste.Add((kind, icao));
+            return Task.FromResult(Tabelle.GetValueOrDefault((kind, icao)) ?? AirportSidView.Empty);
         }
     }
 
     private sealed class Congelate : IFrozenSectionReader
     {
         public Dictionary<string, AirportSidView> Tabelle { get; } = new();
+        /// <summary>Le sezioni STAR congelate, per scalo: la release ne porta due, una per verso.</summary>
+        public Dictionary<string, AirportSidView> Arrivi { get; } = new();
         public List<(ReleaseTargetType Tipo, string Chiave)> Chieste { get; } = new();
 
         public Task<FrozenSections> LoadAsync(ReleaseTargetType type, string key, CancellationToken ct = default)
         {
             Chieste.Add((type, key));
-            return Task.FromResult(Tabelle.TryGetValue(key, out var t)
-                ? FrozenSections.FromKeys(new Dictionary<string, string> { ["sids"] = JsonSerializer.Serialize(t) })
-                : FrozenSections.Empty);
+            var sezioni = new Dictionary<string, string>();
+            if (Tabelle.TryGetValue(key, out var t)) sezioni["sids"] = JsonSerializer.Serialize(t);
+            if (Arrivi.TryGetValue(key, out var a)) sezioni["stars"] = JsonSerializer.Serialize(a);
+            return Task.FromResult(sezioni.Count > 0 ? FrozenSections.FromKeys(sezioni) : FrozenSections.Empty);
         }
     }
 
@@ -55,15 +61,58 @@ public class SidReferenceResolverTests
         },
     };
 
+    /// <summary>
+    /// 🔴 In pubblica ogni verso legge la SUA sezione congelata: gli arrivi da <c>stars</c>, le partenze da
+    /// <c>sids</c>. Leggerli dalla stessa sezione darebbe al riferimento d'arrivo il nome di una partenza.
+    /// </summary>
+    [Fact]
+    public async Task In_pubblica_gli_arrivi_vengono_dalla_sezione_stars()
+    {
+        var vive = new SidVive
+        {
+            Tabelle =
+            {
+                [(ProcedureKind.Sid, "LIRF")] = Tabella("OST9E"),
+                [(ProcedureKind.Star, "LIRF")] = Tabella("OST8E"),
+            },
+        };
+        var congelate = new Congelate
+        {
+            Tabelle = { ["LIRF"] = Tabella("OST2E") },
+            Arrivi = { ["LIRF"] = Tabella("OST7E") },
+        };
+
+        var nomi = await new ProcedureReferenceResolver(vive, congelate)
+            .PerVistaAsync(Sezioni("[[SID LIRF OST1E]] e [[STAR LIRF OST1E]]"), pubblica: true);
+
+        Assert.Equal("OST2E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
+        Assert.Equal("OST7E", nomi.Nome(ProcedureKind.Star, "LIRF", "OST?E"));
+        Assert.Empty(vive.Chieste);   // niente derivazione: la release ha già tutt'e due
+    }
+
+    /// <summary>Lo scalo del documento: le due tabelle che la pagina mostra, una per verso.</summary>
+    [Fact]
+    public async Task Le_due_tabelle_proprie_valgono_per_i_due_versi()
+    {
+        var vive = new SidVive();
+        var nomi = await new ProcedureReferenceResolver(vive, new Congelate()).PerVistaAsync(
+            Sezioni("[[SID LIRF OST1E]] e [[STAR LIRF OST1E]]"), pubblica: false,
+            proprioIcao: "LIRF", propriaTabella: Tabella("OST3E"), propriaTabellaStar: Tabella("OST5E"));
+
+        Assert.Equal("OST3E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
+        Assert.Equal("OST5E", nomi.Nome(ProcedureKind.Star, "LIRF", "OST?E"));
+        Assert.Empty(vive.Chieste);
+    }
+
     [Fact]
     public async Task In_pubblica_vince_la_tabella_congelata_dello_scalo_citato()
     {
-        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E") } };
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIRF")] = Tabella("OST3E") } };
         var congelate = new Congelate { Tabelle = { ["LIRF"] = Tabella("OST2E") } };
-        var nomi = await new SidReferenceResolver(vive, congelate)
+        var nomi = await new ProcedureReferenceResolver(vive, congelate)
             .PerVistaAsync(Sezioni("[[SID LIRF OST1E]]"), pubblica: true);
 
-        Assert.Equal("OST2E", nomi.Nome("LIRF", "OST?E"));
+        Assert.Equal("OST2E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
         Assert.Equal((ReleaseTargetType.Airport, "LIRF"), Assert.Single(congelate.Chieste));
         Assert.Empty(vive.Chieste);
     }
@@ -73,22 +122,22 @@ public class SidReferenceResolverTests
     [Fact]
     public async Task In_pubblica_senza_congelato_si_deriva_adesso()
     {
-        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E") } };
-        var nomi = await new SidReferenceResolver(vive, new Congelate())
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIRF")] = Tabella("OST3E") } };
+        var nomi = await new ProcedureReferenceResolver(vive, new Congelate())
             .PerVistaAsync(Sezioni("[[SID LIRF OST1E]]"), pubblica: true);
 
-        Assert.Equal("OST3E", nomi.Nome("LIRF", "OST?E"));
+        Assert.Equal("OST3E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
     }
 
     [Fact]
     public async Task In_bozza_non_si_guarda_il_congelato()
     {
-        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E") } };
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIRF")] = Tabella("OST3E") } };
         var congelate = new Congelate { Tabelle = { ["LIRF"] = Tabella("OST2E") } };
-        var nomi = await new SidReferenceResolver(vive, congelate)
+        var nomi = await new ProcedureReferenceResolver(vive, congelate)
             .PerVistaAsync(Sezioni("[[SID LIRF OST1E]]"), pubblica: false);
 
-        Assert.Equal("OST3E", nomi.Nome("LIRF", "OST?E"));
+        Assert.Equal("OST3E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
         Assert.Empty(congelate.Chieste);
     }
 
@@ -97,16 +146,16 @@ public class SidReferenceResolverTests
     [Fact]
     public async Task Lo_scalo_proprio_usa_la_tabella_della_pagina()
     {
-        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E"), ["LIRA"] = Tabella("TIBER7A") } };
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIRF")] = Tabella("OST3E"), [(ProcedureKind.Sid, "LIRA")] = Tabella("TIBER7A") } };
         var congelate = new Congelate { Tabelle = { ["LIRF"] = Tabella("OST2E") } };
-        var nomi = await new SidReferenceResolver(vive, congelate).PerVistaAsync(
+        var nomi = await new ProcedureReferenceResolver(vive, congelate).PerVistaAsync(
             Sezioni("[[SID LIRF OST1E]] e [[SID LIRA TIBER6A]]"), pubblica: true,
             proprioIcao: "lirf", propriaTabella: Tabella("OST9E"));
 
-        Assert.Equal("OST9E", nomi.Nome("LIRF", "OST?E"));
-        Assert.Equal("TIBER7A", nomi.Nome("LIRA", "TIBER?A"));
+        Assert.Equal("OST9E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
+        Assert.Equal("TIBER7A", nomi.Nome(ProcedureKind.Sid, "LIRA", "TIBER?A"));
         Assert.DoesNotContain(congelate.Chieste, c => c.Chiave == "LIRF");
-        Assert.DoesNotContain("LIRF", vive.Chieste);
+        Assert.DoesNotContain(vive.Chieste, c => c.Icao == "LIRF");
     }
 
     /// <summary>La via di quasi ogni pagina: nessun riferimento, nessuna query.</summary>
@@ -115,10 +164,10 @@ public class SidReferenceResolverTests
     {
         var vive = new SidVive();
         var congelate = new Congelate();
-        var nomi = await new SidReferenceResolver(vive, congelate)
+        var nomi = await new ProcedureReferenceResolver(vive, congelate)
             .PerVistaAsync(Sezioni("OST1E scritto a mano."), pubblica: true);
 
-        Assert.Same(NomiSid.Vuoto, nomi);
+        Assert.Same(NomiProcedura.Vuoto, nomi);
         Assert.Empty(vive.Chieste);
         Assert.Empty(congelate.Chieste);
     }
@@ -132,7 +181,7 @@ public class SidReferenceResolverTests
         {
             Tabelle =
             {
-                ["LIBV"] = new(new[]
+                [(ProcedureKind.Sid, "LIBV")] = new(new[]
                 {
                     new AirportSidRowView("14R", "CDC", "CDC6A", "—", "—", "—", "—", "—", "—"),
                     new AirportSidRowView("14L", "CDC", "CDC6A", "—", "—", "—", "—", "—", "—"),
@@ -140,7 +189,7 @@ public class SidReferenceResolverTests
                 }),
             },
         };
-        var elenco = await new SidReferenceResolver(vive, new Congelate()).ElencoAsync("libv");
+        var elenco = await new ProcedureReferenceResolver(vive, new Congelate()).ElencoAsync("libv");
 
         Assert.Equal(2, elenco.Count);
         var cdc = elenco[0];
@@ -153,8 +202,8 @@ public class SidReferenceResolverTests
     [Fact]
     public async Task Il_selettore_non_offre_nomi_che_il_riferimento_non_sa_portare()
     {
-        var vive = new SidVive { Tabelle = { ["LICZ"] = Tabella("NELD6V(NSY)", "VFR NORD/SUD", "ALFA.1") } };
-        var elenco = await new SidReferenceResolver(vive, new Congelate()).ElencoAsync("LICZ");
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LICZ")] = Tabella("NELD6V(NSY)", "VFR NORD/SUD", "ALFA.1") } };
+        var elenco = await new ProcedureReferenceResolver(vive, new Congelate()).ElencoAsync("LICZ");
 
         Assert.Equal("NELD6V(NSY)", Assert.Single(elenco).Codice);
     }
@@ -166,7 +215,7 @@ public class SidReferenceResolverTests
     public async Task Senza_un_ICAO_valido_l_elenco_e_vuoto_e_non_si_interroga(string icao)
     {
         var vive = new SidVive();
-        Assert.Empty(await new SidReferenceResolver(vive, new Congelate()).ElencoAsync(icao));
+        Assert.Empty(await new ProcedureReferenceResolver(vive, new Congelate()).ElencoAsync(icao));
         Assert.Empty(vive.Chieste);
     }
 
@@ -174,19 +223,19 @@ public class SidReferenceResolverTests
     [Fact]
     public async Task Sui_testi_dell_editor_si_guarda_la_bozza()
     {
-        var vive = new SidVive { Tabelle = { ["LIRF"] = Tabella("OST3E") } };
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIRF")] = Tabella("OST3E") } };
         var congelate = new Congelate { Tabelle = { ["LIRF"] = Tabella("OST2E") } };
-        var nomi = await new SidReferenceResolver(vive, congelate)
+        var nomi = await new ProcedureReferenceResolver(vive, congelate)
             .PerTestiAsync(new[] { null, "Expect [[SID LIRF OST1E]]." });
 
-        Assert.Equal("OST3E", nomi.Nome("LIRF", "OST?E"));
+        Assert.Equal("OST3E", nomi.Nome(ProcedureKind.Sid, "LIRF", "OST?E"));
         Assert.Empty(congelate.Chieste);
     }
 
     [Fact]
     public async Task I_riferimenti_nelle_sotto_sezioni_e_nelle_tabelle_si_trovano()
     {
-        var vive = new SidVive { Tabelle = { ["LIBV"] = Tabella("CDC7A") } };
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Sid, "LIBV")] = Tabella("CDC7A") } };
         var figlia = new SectionView
         {
             Id = "s-2", Title = "Tabella", Depth = 2, SectionKey = "custom",
@@ -206,7 +255,7 @@ public class SidReferenceResolverTests
             Blocks = Array.Empty<BlockView>(), Children = new[] { figlia },
         };
 
-        var nomi = await new SidReferenceResolver(vive, new Congelate()).PerVistaAsync(new[] { padre }, pubblica: false);
-        Assert.Equal("CDC7A", nomi.Nome("LIBV", "CDC?A"));
+        var nomi = await new ProcedureReferenceResolver(vive, new Congelate()).PerVistaAsync(new[] { padre }, pubblica: false);
+        Assert.Equal("CDC7A", nomi.Nome(ProcedureKind.Sid, "LIBV", "CDC?A"));
     }
 }

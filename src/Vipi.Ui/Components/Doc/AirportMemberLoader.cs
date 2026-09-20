@@ -52,7 +52,7 @@ public sealed record AirportMemberDocument(
     LvpValutazione? Lvp = null,
     /// <summary>I nomi di oggi delle SID citate nel testo (§A73): la pagina li passa ai blocchi a cascata.
     /// Null = nessun riferimento, o nessuno ha risolto: esce l'ultimo nome visto.</summary>
-    NomiSid? NomiSid = null)
+    NomiProcedura? NomiProcedura = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -93,13 +93,13 @@ public sealed class AirportMemberLoader
     private readonly IWeatherProvider _weather;
     private readonly IStationResolver _stations;
     private readonly ReadingLanguageContext _lingua;
-    private readonly ISidReferenceResolver _sidRefs;
+    private readonly IProcedureReferenceResolver _sidRefs;
 
     public AirportMemberLoader(IVipiViewService viewService, IAirportEditingService profile,
                                IAirportViewDerivationService airportView, IReleaseService releases,
                                IEditAuthorizationService authz, DocumentTranslator translator,
                                IWeatherProvider weather, IStationResolver stations,
-                               ReadingLanguageContext lingua, ISidReferenceResolver sidRefs)
+                               ReadingLanguageContext lingua, IProcedureReferenceResolver sidRefs)
     {
         _sidRefs = sidRefs;
         _viewService = viewService;
@@ -215,10 +215,11 @@ public sealed class AirportMemberLoader
 
         var mostrate = AudienceFilter.Filtra(sezioni, letturaVista);
 
-        // Le SID citate nel testo (§A73) prendono il nome dalla tabella che il lettore vede: per questo scalo
-        // è `derived.Sids`, la stessa che la pagina disegna (congelata o viva, al ciclo dell'anteprima).
+        // Le procedure citate nel testo (§A73, §A80) prendono il nome dalla tabella che il lettore vede: per
+        // questo scalo sono `derived.Sids` e `derived.Stars`, le stesse che la pagina disegna (congelate o vive,
+        // al ciclo dell'anteprima).
         var nomiSid = await _sidRefs.PerVistaAsync(mostrate, pubblica: mode.Kind != PreviewKind.Draft,
-                                                   code, derived.Sids, ct);
+                                                   code, derived.Sids, derived.Stars, ct);
 
         return new AirportMemberDocument(
             code, view, mostrate, mode, relCycle, bloccata,

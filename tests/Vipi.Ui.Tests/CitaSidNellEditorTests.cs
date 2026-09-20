@@ -1,7 +1,8 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 using Vipi.Ui.Components;
 using Xunit;
 
@@ -24,23 +25,24 @@ public class CitaSidNellEditorTests : TestContext
         public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures) => Enumerable.Empty<LocalizedString>();
     }
 
-    private sealed class ElencoFinto : ISidReferenceResolver
+    private sealed class ElencoFinto : IProcedureReferenceResolver
     {
         public List<string> Chiesti { get; } = new();
 
-        public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-            string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
-            Task.FromResult(NomiSid.Vuoto);
+        public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao = null, AirportSidView? propriaTabella = null,
+            AirportSidView? propriaTabellaStar = null, CancellationToken ct = default) =>
+            Task.FromResult(NomiProcedura.Vuoto);
 
-        public Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
-            Task.FromResult(NomiSid.Vuoto);
+        public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
+            Task.FromResult(NomiProcedura.Vuoto);
 
-        public Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default)
+        public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default)
         {
             Chiesti.Add(icao);
-            IReadOnlyList<SidCitabile> elenco = icao == "LIBD"
-                ? new[] { new SidCitabile("LIBD", "BANA8A", "BANAV 8A", "07"), new SidCitabile("LIBD", "TOPN9A", "TOPNO 9A", "07") }
-                : Array.Empty<SidCitabile>();
+            IReadOnlyList<ProceduraCitabile> elenco = icao == "LIBD"
+                ? new[] { new ProceduraCitabile(ProcedureKind.Sid, "LIBD", "BANA8A", "BANAV 8A", "07"), new ProceduraCitabile(ProcedureKind.Sid, "LIBD", "TOPN9A", "TOPNO 9A", "07") }
+                : Array.Empty<ProceduraCitabile>();
             return Task.FromResult(elenco);
         }
     }
@@ -50,7 +52,7 @@ public class CitaSidNellEditorTests : TestContext
     public CitaSidNellEditorTests()
     {
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
-        Services.AddScoped<ISidReferenceResolver>(_ => _elenco);
+        Services.AddScoped<IProcedureReferenceResolver>(_ => _elenco);
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

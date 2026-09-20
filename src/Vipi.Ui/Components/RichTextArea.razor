@@ -1,4 +1,4 @@
-@* Campo di testo markdown con la barra di formattazione: grassetto, corsivo, sottolineato, i due elenchi e il
+﻿@* Campo di testo markdown con la barra di formattazione: grassetto, corsivo, sottolineato, i due elenchi e il
    loro rientro (fino a cinque livelli, dal 16 settembre 2026). Il campo cresce col testo (`data-adatta`, in
    vipi-editor.js).
    È la PORTA SOLA dei campi di prosa dell'editor — paragrafo, callout, nota d'allegato, didascalia, intro
@@ -43,7 +43,7 @@
                fuoco — e con lui la posizione del cursore — deve essere ancora nel campo. *@
             <button type="button" class="rta-btn rta-sid" title="@L["Rta_Sid"]" aria-label="@L["Rta_Sid"]"
                     aria-expanded="@(_sidAperto ? "true" : "false")"
-                    @onmousedown:preventDefault="true" @onclick="ApriSid">SID</button>
+                    @onmousedown:preventDefault="true" @onclick="ApriSid">SID/STAR</button>
         }
     </div>
     @if (_sidAperto)
@@ -123,7 +123,7 @@
         _sidAperto = _gettone.Length > 0;
     }
 
-    private async Task InserisciSid(SidCitabile s)
+    private async Task InserisciSid(ProceduraCitabile s)
     {
         _sidAperto = false;
         await JS.InvokeAsync<bool>("vipiSidInserisci", _gettone, s.Riferimento);

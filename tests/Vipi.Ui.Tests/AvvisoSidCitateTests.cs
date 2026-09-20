@@ -1,7 +1,8 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 using Vipi.Domain;
 using Vipi.Ui.Components;
 using Xunit;
@@ -25,25 +26,26 @@ public class AvvisoSidCitateTests : TestContext
     private sealed class EditingMuto : EditingServiceStub { }
 
     /// <summary>Il risolutore con la tabella di LIRF data dal test: la bozza, come nell'editor.</summary>
-    private sealed class TabellaDiLirf : ISidReferenceResolver
+    private sealed class TabellaDiLirf : IProcedureReferenceResolver
     {
         private readonly string[] _nomi;
         public TabellaDiLirf(params string[] nomi) => _nomi = nomi;
 
-        private NomiSid Nomi => new(new Dictionary<string, AirportSidView>
+        private NomiProcedura Nomi => new(new Dictionary<(ProcedureKind, string), AirportSidView>
         {
-            ["LIRF"] = new(_nomi.Select(n => new AirportSidRowView("16L", "OSTIA", n, "—", "—", "—", "—", "—", "—")).ToList()),
+            [(ProcedureKind.Sid, "LIRF")] = new(_nomi.Select(n => new AirportSidRowView("16L", "OSTIA", n, "—", "—", "—", "—", "—", "—")).ToList()),
         });
 
-        public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-            string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
+        public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao = null, AirportSidView? propriaTabella = null,
+            AirportSidView? propriaTabellaStar = null, CancellationToken ct = default) =>
             Task.FromResult(Nomi);
 
-        public Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
+        public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
             Task.FromResult(Nomi);
 
-        public Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<SidCitabile>>(Array.Empty<SidCitabile>());
+        public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ProceduraCitabile>>(Array.Empty<ProceduraCitabile>());
     }
 
     public AvvisoSidCitateTests()
@@ -85,7 +87,7 @@ public class AvvisoSidCitateTests : TestContext
     [Fact]
     public void Una_SID_che_non_c_e_piu_si_segnala_in_cima_con_la_sua_sezione()
     {
-        Services.AddScoped<ISidReferenceResolver>(_ => new TabellaDiLirf("RATI1D"));
+        Services.AddScoped<IProcedureReferenceResolver>(_ => new TabellaDiLirf("RATI1D"));
         var c = Editor(inModifica: true);
 
         var avviso = c.Find(".sidref-check");
@@ -97,7 +99,7 @@ public class AvvisoSidCitateTests : TestContext
     [Fact]
     public void Una_SID_che_si_trova_non_si_segnala_e_l_anteprima_dice_il_nome_di_oggi()
     {
-        Services.AddScoped<ISidReferenceResolver>(_ => new TabellaDiLirf("OST2E"));
+        Services.AddScoped<IProcedureReferenceResolver>(_ => new TabellaDiLirf("OST2E"));
         var c = Editor(inModifica: false);
 
         Assert.Empty(c.FindAll(".sidref-check"));

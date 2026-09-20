@@ -4,7 +4,7 @@
    tabelle (il riferimento sta nelle stringhe del JSON, e il JSON resta valido), suggerimenti, separazioni,
    didascalie. I nomi li passa la pagina come valore a cascata; senza, esce l'ultimo nome visto. *@
 @{
-    var Block = this.Block.ConTesti(t => RiferimentiSid.Sostituisci(t, NomiSid));
+    var Block = this.Block.ConTesti(t => RiferimentiProcedura.Sostituisci(t, NomiProcedura));
     var variant = BlockJson.Variant(Block.BodyJson);
 }
 @switch (Block.Format)
@@ -47,5 +47,5 @@
     [Parameter, EditorRequired] public BlockView Block { get; set; } = default!;
 
     /// <summary>I nomi di oggi delle SID citate (§A73), dalla pagina. Null = l'ultimo nome visto.</summary>
-    [CascadingParameter] public NomiSid? NomiSid { get; set; }
+    [CascadingParameter] public NomiProcedura? NomiProcedura { get; set; }
 }

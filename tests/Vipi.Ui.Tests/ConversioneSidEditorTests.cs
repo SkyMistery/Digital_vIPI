@@ -1,7 +1,8 @@
-using Bunit;
+﻿using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Localization;
 using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 using Vipi.Domain;
 using Vipi.Ui.Components;
 using Xunit;
@@ -32,17 +33,18 @@ public class ConversioneSidEditorTests : TestContext
         }
     }
 
-    private sealed class SidDiLibv : ISidReferenceResolver
+    private sealed class SidDiLibv : IProcedureReferenceResolver
     {
-        public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-            string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
-            Task.FromResult(NomiSid.Vuoto);
-        public Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
-            Task.FromResult(NomiSid.Vuoto);
-        public Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<SidCitabile>>(icao == "LIBV"
-                ? new[] { new SidCitabile("LIBV", "CDC6A", "CDC 6A", "14L, 14R"), new SidCitabile("LIBV", "CDC6B", "CDC 6B", "32L") }
-                : Array.Empty<SidCitabile>());
+        public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+            string? proprioIcao = null, AirportSidView? propriaTabella = null,
+            AirportSidView? propriaTabellaStar = null, CancellationToken ct = default) =>
+            Task.FromResult(NomiProcedura.Vuoto);
+        public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
+            Task.FromResult(NomiProcedura.Vuoto);
+        public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ProceduraCitabile>>(icao == "LIBV"
+                ? new[] { new ProceduraCitabile(ProcedureKind.Sid, "LIBV", "CDC6A", "CDC 6A", "14L, 14R"), new ProceduraCitabile(ProcedureKind.Sid, "LIBV", "CDC6B", "CDC 6B", "32L") }
+                : Array.Empty<ProceduraCitabile>());
     }
 
     private readonly EditingSpia _spia = new();
@@ -52,7 +54,7 @@ public class ConversioneSidEditorTests : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => _spia);
-        Services.AddScoped<ISidReferenceResolver, SidDiLibv>();
+        Services.AddScoped<IProcedureReferenceResolver, SidDiLibv>();
         JSInterop.Mode = JSRuntimeMode.Loose;
     }
 

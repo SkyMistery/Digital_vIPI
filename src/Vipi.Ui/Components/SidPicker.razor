@@ -1,4 +1,4 @@
-@* Il selettore delle SID da citare nel testo (§A73, carta docs/feature/2026-09-18-riferimenti-sid-nel-testo.md).
+﻿@* Il selettore delle SID da citare nel testo (§A73, carta docs/feature/2026-09-18-riferimenti-sid-nel-testo.md).
    Lo aprono il tasto «SID» della barra di formattazione (prosa) e quello sotto una tabella (celle): chi lo apre
    ha già segnato il campo di destinazione (`vipiSidPrendi`), qui si sceglie e basta.
 
@@ -19,6 +19,17 @@
         <b>@L["Sid_Pick_Title"]</b>
         <input class="app-in icao" maxlength="4" placeholder="ICAO" aria-label="ICAO"
                value="@_icao" @onchange="CambiaIcao" />
+        @* Il verso: partenze o arrivi. Due chip e non due tasti in barra — il gesto è lo stesso, e quello che
+           cambia è dentro il selettore, dove si sta già guardando un elenco. *@
+        <div class="sidref-pick-kind" role="group" aria-label="@L["Sid_Pick_Kind"]">
+            @foreach (var k in new[] { ProcedureKind.Sid, ProcedureKind.Star })
+            {
+                var verso = k;
+                <button type="button" class="sh-chip @(_kind == verso ? "on" : "")"
+                        aria-pressed="@((_kind == verso).ToString().ToLowerInvariant())"
+                        @onclick="() => CambiaVerso(verso)">@RiferimentiProcedura.Parola(verso)</button>
+            }
+        </div>
         <input class="app-in cerca" placeholder="@L["Sid_Pick_Search"]" aria-label="@L["Sid_Pick_Search"]"
                @ref="_cerca" @bind="_filtro" @bind:event="oninput" @onkeydown="InvioSceglie" />
         <button type="button" class="btn ghost" @onclick="OnChiudi">@L["Common_Close"]</button>
@@ -53,20 +64,33 @@
     /// l'ultimo usato, che il browser ricorda.</summary>
     [Parameter] public string? IcaoIniziale { get; set; }
 
-    [Parameter] public EventCallback<SidCitabile> OnScegli { get; set; }
+    [Parameter] public EventCallback<ProceduraCitabile> OnScegli { get; set; }
     [Parameter] public EventCallback OnChiudi { get; set; }
+
+    /// <summary>Il verso che si sta citando. Nasce sulle partenze: sono la stragrande maggioranza dei
+    /// riferimenti scritti, e chi cita un arrivo lo sa e cambia chip.</summary>
+    private ProcedureKind _kind = ProcedureKind.Sid;
+
+    /// <summary>Cambia verso e ricarica l'elenco. ⚠️ L'elenco è di UNO scalo e di UN verso: tenerli insieme in
+    /// una lista sola vorrebbe dire mostrare due volte lo stesso nome quando lo scalo ce l'ha in tutti e due.</summary>
+    private async Task CambiaVerso(ProcedureKind kind)
+    {
+        if (_kind == kind) return;
+        _kind = kind;
+        await CaricaAsync();
+    }
 
     private const string ChiaveIcao = "vipi.sid.icao";
 
     private string _icao = "";
     private string _filtro = "";
     private bool _caricando;
-    private IReadOnlyList<SidCitabile> _elenco = Array.Empty<SidCitabile>();
+    private IReadOnlyList<ProceduraCitabile> _elenco = Array.Empty<ProceduraCitabile>();
     private ElementReference _cerca;
 
-    private ISidReferenceResolver Risolutore => ScopedServices.GetRequiredService<ISidReferenceResolver>();
+    private IProcedureReferenceResolver Risolutore => ScopedServices.GetRequiredService<IProcedureReferenceResolver>();
 
-    private IReadOnlyList<SidCitabile> Filtrate =>
+    private IReadOnlyList<ProceduraCitabile> Filtrate =>
         string.IsNullOrWhiteSpace(_filtro)
             ? _elenco
             : _elenco.Where(s => s.Esteso.Contains(_filtro.Trim(), StringComparison.OrdinalIgnoreCase)
@@ -75,9 +99,9 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        var icao = RiferimentiSid.Norm(IcaoIniziale);
+        var icao = RiferimentiProcedura.Norm(IcaoIniziale);
         if (icao.Length != 4)
-            icao = RiferimentiSid.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
+            icao = RiferimentiProcedura.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
         await CaricaAsync(icao);
         // 🔴 Chiuso mentre caricava (doppio clic sul tasto, Esc): il campo di ricerca non c'è più, e il fuoco su un
         // elemento sparito alza un'eccezione JS che, uscita da qui, chiude il circuito (revisione del 18 settembre 2026).
@@ -88,17 +112,20 @@
         catch (InvalidOperationException) { }    // riferimento non ancora legato: stessa risposta
     }
 
-    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiSid.Norm(e.Value as string));
+    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiProcedura.Norm(e.Value as string));
+
+    /// <summary>Ricarica lo scalo che c'è già: serve al cambio di verso.</summary>
+    private Task CaricaAsync() => CaricaAsync(_icao);
 
     private async Task CaricaAsync(string icao)
     {
         _icao = icao;
-        _elenco = Array.Empty<SidCitabile>();
+        _elenco = Array.Empty<ProceduraCitabile>();
         if (icao.Length != 4) return;
         _caricando = true;
         try
         {
-            await InFilaAsync(async () => { _elenco = await Risolutore.ElencoAsync(icao); });
+            await InFilaAsync(async () => { _elenco = await Risolutore.ElencoAsync(icao, _kind); });
             if (Chiusa) return;
             await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
         }

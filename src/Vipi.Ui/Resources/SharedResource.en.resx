@@ -3490,11 +3490,12 @@
   <data name="Rta_Indent" xml:space="preserve"><value>Indent the item one level (Tab)</value></data>
   <data name="Rta_Outdent" xml:space="preserve"><value>Outdent the item (Shift+Tab)</value></data>
   <data name="Rta_Sid" xml:space="preserve"><value>Cite a SID: its name updates by itself when the SID changes</value></data>
-  <data name="Sid_Pick_Title" xml:space="preserve"><value>Cite a SID</value></data>
+  <data name="Sid_Pick_Title" xml:space="preserve"><value>Cite a SID or a STAR</value></data>
+  <data name="Sid_Pick_Kind" xml:space="preserve"><value>Departures or arrivals</value></data>
   <data name="Sid_Pick_Search" xml:space="preserve"><value>Search by name or fix</value></data>
   <data name="Sid_Pick_NeedIcao" xml:space="preserve"><value>Type the airport ICAO.</value></data>
   <data name="Sid_Pick_None" xml:space="preserve"><value>No SIDs for {0}.</value></data>
-  <data name="Sid_Cell" xml:space="preserve"><value>Cite a SID in the selected cell</value></data>
+  <data name="Sid_Cell" xml:space="preserve"><value>Cite a SID or a STAR in the selected cell</value></data>
   <data name="Sid_Cell_NoFocus" xml:space="preserve"><value>First click in the cell where the SID goes.</value></data>
   <data name="Sid_Conv_Open" xml:space="preserve"><value>Find SIDs written by hand</value></data>
   <data name="Sid_Conv_Title" xml:space="preserve"><value>SIDs written by hand</value></data>

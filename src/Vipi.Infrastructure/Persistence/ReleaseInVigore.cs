@@ -136,6 +136,6 @@ public sealed class IndiceDelleRelease
     {
         BlockFormat.Image => (MediaRef.TextOf(b.BodyJson, b.Body), null),
         BlockFormat.Attachment => (AttachmentRef.TextOf(b.BodyJson, b.Body), null),
-        _ => (RiferimentiSid.Sostituisci(b.Body, null), RiferimentiSid.Sostituisci(b.BodyJson, null)),
+        _ => (RiferimentiProcedura.Sostituisci(b.Body, null), RiferimentiProcedura.Sostituisci(b.BodyJson, null)),
     };
 }

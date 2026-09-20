@@ -1,4 +1,4 @@
-@* Il tasto «SID» sotto una tabella dell'editor (§A73): cita una SID nella cella che ha il fuoco. Serve ai due
+﻿@* Il tasto «SID» sotto una tabella dell'editor (§A73): cita una SID nella cella che ha il fuoco. Serve ai due
    editor di tabelle (DocumentSectionsEditor, DocumentBlocksEditor) — un componente e non due copie.
 
    ⚠️ Il contenitore della tabella va marcato `data-sid-host`: è lì che il tasto cerca la cella. Le celle sono
@@ -10,7 +10,7 @@
 
 <button type="button" class="btn ghost" @ref="_tasto" title="@L["Sid_Cell"]" aria-label="@L["Sid_Cell"]"
         aria-expanded="@(_aperto ? "true" : "false")"
-        @onmousedown:preventDefault="true" @onclick="Apri">SID</button>
+        @onmousedown:preventDefault="true" @onclick="Apri">SID/STAR</button>
 @if (_senzaCella)
 {
     <span class="muted" style="font-size:12px;align-self:center">@L["Sid_Cell_NoFocus"]</span>
@@ -36,7 +36,7 @@
         _aperto = !_senzaCella;
     }
 
-    private async Task Inserisci(SidCitabile s)
+    private async Task Inserisci(ProceduraCitabile s)
     {
         _aperto = false;
         _senzaCella = false;

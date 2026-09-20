@@ -40,7 +40,7 @@ public class SottosezioniCollassabiliTests : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => new EditingMuto());
-        Services.AddScoped<ISidReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
     }
 
     private static EditableSection Sez(int id, string titolo, int depth, bool nascosta = false,

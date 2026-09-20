@@ -41,7 +41,7 @@ public class SottosezioneAlFondoTests : TestContext
         Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
         Services.AddSingleton<Vipi.Ui.StringheDelSito>();
         Services.AddScoped<IEditingService>(_ => new EditingMuto());
-        Services.AddScoped<ISidReferenceResolver, NessunaSidCitata>();
+        Services.AddScoped<IProcedureReferenceResolver, NessunaSidCitata>();
     }
 
     /// <summary>Una scala di sezioni annidate, da profondità 0 fino al fondo consentito.</summary>

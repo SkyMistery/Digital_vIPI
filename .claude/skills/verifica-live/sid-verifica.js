@@ -1,11 +1,12 @@
-// Prova viva delle SID citate nel testo (§A73, slice 3): il tasto «SID» di un campo di prosa e quello sotto una
-// tabella. Non prova il nome risolto — quello lo provano gli unit test e la pagina — prova i GESTI: il cursore
-// segnato al clic, il selettore col suo fuoco, il riferimento scritto nel campo e il `change` sintetico che lo
-// riporta nel modello (cioè: SOPRAVVIVE A UN RICARICO). E che le anteprime mostrino il nome, mai `[[SID`.
+﻿// Prova viva delle procedure citate nel testo (§A73 slice 3, §A80 per gli ARRIVI): il tasto «SID/STAR» di un
+// campo di prosa e quello sotto una tabella. Non prova il nome risolto — quello lo provano gli unit test e la
+// pagina — prova i GESTI: il cursore segnato al clic, il selettore col suo fuoco e le sue due chip, il
+// riferimento scritto nel campo e il `change` sintetico che lo riporta nel modello (cioè: SOPRAVVIVE A UN
+// RICARICO). E che le anteprime mostrino il nome, mai `[[SID` né `[[STAR`.
 //
 //   node sid-verifica.js "http://localhost:5034/services/vsop/libb/airports/editor?icao=LIBD" BANAV
 //
-// Il secondo argomento è il punto da cercare nel selettore: la prima SID che lo contiene va nel testo.
+// Il secondo argomento è il punto da cercare nel selettore: la prima procedura che lo contiene va nel testo.
 // ⚠️ SCRIVE nel documento (un paragrafo e una tabella nuova): solo su una COPIA del DB. Rifiuta ivao.aero.
 const puppeteer = require('puppeteer-core');
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
@@ -36,12 +37,25 @@ async function inModifica(page) {
   return true;
 }
 
-// Il selettore aperto: aspetta le righe, cerca il punto, Invio. Torna il riferimento che la riga promette.
-async function scegli(page) {
+// Il selettore aperto: sceglie il verso, aspetta le righe, cerca il punto, Invio. Torna il riferimento che la
+// riga promette. ⚠️ Il verso si cambia PRIMA di cercare: la chip ricarica l'elenco, e un filtro scritto prima
+// resterebbe su un elenco che non c'è più.
+async function scegli(page, verso = 'SID') {
   await page.waitForSelector('.sidref-pick-row', { timeout: 20000 });
+  if (verso !== 'SID') {
+    const chip = await page.evaluateHandle(v =>
+      [...document.querySelectorAll('.sidref-pick-kind button')].find(b => b.textContent.trim() === v), verso);
+    await chip.click();
+    await sleep(2500);
+    const premuta = await page.evaluate(v =>
+      [...document.querySelectorAll('.sidref-pick-kind button')]
+        .some(b => b.textContent.trim() === v && b.getAttribute('aria-pressed') === 'true'), verso);
+    dice(premuta, `il selettore è passato agli arrivi (chip ${verso})`);
+    await page.waitForSelector('.sidref-pick-row', { timeout: 20000 });
+  }
   const icao = await page.$eval('.sidref-pick input.icao', e => e.value);
   const attivo = await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('cerca'));
-  dice(attivo, 'aperto il selettore, il fuoco è nella sua ricerca');
+  dice(attivo || verso !== 'SID', 'aperto il selettore, il fuoco è nella sua ricerca');
   await page.type('.sidref-pick input.cerca', punto);
   await sleep(700);
   const rif = await page.$eval('.sidref-pick-row', e => e.getAttribute('title'));
@@ -110,6 +124,20 @@ async function scegli(page) {
   if (aperti.length) { console.log('  ..  selettori ancora aperti:', aperti); await page.screenshot({ path: 'sid-ancora-aperto.png' }); }
   dice(aperti.length === 0, 'scelta fatta, il selettore si chiude');
 
+  // ---- 1-bis. un ARRIVO nello stesso campo (§A80) -------------------------------------------------------
+  // Stesso gesto, chip STAR: il riferimento che esce deve cominciare per `[[STAR`, o il verso non è arrivato
+  // fino al testo.
+  await page.click(sel);
+  await page.keyboard.down('Control'); await page.keyboard.press('End'); await page.keyboard.up('Control');
+  await page.keyboard.type(' e poi ');
+  const tastoStar = await page.evaluateHandle(s2 => document.querySelector(s2).closest('.rta').querySelector('.rta-sid'), sel);
+  await tastoStar.click();
+  const arrivo = await scegli(page, 'STAR');
+  console.log(`  ..  selettore arrivi: scelta ${arrivo.rif}`);
+  dice(/^\[\[STAR /.test(arrivo.rif), `il riferimento dell'arrivo porta la sua parola: ${arrivo.rif}`);
+  const dopoStar = await page.$eval(sel, e => e.value);
+  dice(dopoStar.endsWith(' e poi ' + arrivo.rif), `l'arrivo è in coda: …${JSON.stringify(dopoStar.slice(-40))}`);
+
   // ---- 2. una cella di tabella ------------------------------------------------------------------------
   // Una tabella nuova nella stessa sezione: il «+ Blocco» che segue il campo.
   const aggiunta = await page.evaluate(s => {
@@ -142,7 +170,7 @@ async function scegli(page) {
   dice(cella !== null, 'la tabella ha una cella');
   await cella.click();
   await page.keyboard.type('via ');
-  const tastoSid = await page.evaluateHandle(() => [...document.querySelectorAll('#tab-prova button')].find(b => b.textContent.trim() === 'SID'));
+  const tastoSid = await page.evaluateHandle(() => [...document.querySelectorAll('#tab-prova button')].find(b => b.textContent.trim() === 'SID/STAR'));
   await tastoSid.click();
   const scelta2 = await scegli(page);
   const valCella = await page.$eval('#tab-prova tbody input', e => e.value);
@@ -155,6 +183,7 @@ async function scegli(page) {
   const tutti = await page.evaluate(() =>
     [...document.querySelectorAll('textarea, input')].map(e => e.value).join('\n'));
   dice(tutti.includes(' Then ' + rif), 'dopo il ricarico il riferimento nel campo di prosa c\'è ancora');
+  dice(tutti.includes(' e poi ' + arrivo.rif), 'dopo il ricarico il riferimento dell\'ARRIVO c\'è ancora');
   dice(tutti.includes('via ' + scelta2.rif), 'dopo il ricarico il riferimento nella cella c\'è ancora');
 
   // ---- 4. le anteprime: il nome, mai il codice del riferimento ----------------------------------------
@@ -163,6 +192,7 @@ async function scegli(page) {
   await sleep(1000);
   const lettura = await page.evaluate(() => document.body.innerText);
   dice(!lettura.includes('[[SID'), 'anteprima dell\'editor: nessun [[SID a schermo');
+  dice(!lettura.includes('[[STAR'), 'anteprima dell\'editor: nessun [[STAR a schermo');
   const riga = (lettura.split('\n').find(l => l.includes('Then')) || '').trim();
   console.log('  ..  anteprima editor: ' + riga);
   dice(new RegExp(punto + ' \\d[A-Z]').test(riga), `anteprima dell'editor: la SID col nome completo (${punto} …)`);

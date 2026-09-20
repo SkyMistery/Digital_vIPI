@@ -217,8 +217,8 @@ else
                         @foreach (var r in _sidDaRivedere)
                         {
                             <li>
-                                <b>@r.Icao @r.Codice</b> —
-                                @(r.Tipo == SidDaRivedereTipo.NonTrovata
+                                <b>@r.Parola @r.Icao @r.Codice</b> —
+                                @(r.Tipo == ProceduraDaRivedereTipo.NonTrovata
                                     ? string.Format(L["Sid_Check_Missing"].Value, r.Esce)
                                     : string.Format(L["Sid_Check_Ambiguous"].Value, string.Join(", ", r.Alternative), r.Esce))
                                 <span class="muted">(@string.Join(", ", r.Dove))</span>
@@ -276,8 +276,8 @@ else
     // documento non cita niente: nessuna query.
     // ⚠️ Le sezioni sono quelle che QUESTA istanza mostra (`RootSections` nella vIPI ACC, un editor per blocco):
     // col documento intero, l'avviso si ripeterebbe uguale sopra ogni blocco.
-    private NomiSid? _nomiSid;
-    private IReadOnlyList<SidDaRivedere> _sidDaRivedere = Array.Empty<SidDaRivedere>();
+    private NomiProcedura? _nomiSid;
+    private IReadOnlyList<ProceduraDaRivedere> _sidDaRivedere = Array.Empty<ProceduraDaRivedere>();
     private EditableDocument? _docDeiNomi;
 
     protected override async Task OnParametersSetAsync()
@@ -285,10 +285,10 @@ else
         if (ReferenceEquals(Doc, _docDeiNomi)) return;
         var doc = _docDeiNomi = Doc;
         var testi = TestiDi(RootSections ?? Doc.Sections, null).ToList();
-        if (!testi.Any(t => RiferimentiSid.Contiene(t.Testo)))
+        if (!testi.Any(t => RiferimentiProcedura.Contiene(t.Testo)))
         {
-            _nomiSid = NomiSid.Vuoto;
-            _sidDaRivedere = Array.Empty<SidDaRivedere>();
+            _nomiSid = NomiProcedura.Vuoto;
+            _sidDaRivedere = Array.Empty<ProceduraDaRivedere>();
             return;
         }
 
@@ -297,14 +297,14 @@ else
         // salvataggio — e il salvataggio dopo («Converti tutte» su più blocchi, o chi passa al campo seguente) le
         // arrivava addosso: «A second operation was started on this context instance». E l'editor chiuso durante
         // la lettura si portava via il contesto sotto la query. Qui niente di tutto questo: lo scope è della chiamata.
-        NomiSid nomi;
+        NomiProcedura nomi;
         await using (var scope = ScopedServices.GetRequiredService<IServiceScopeFactory>().CreateAsyncScope())
-            nomi = await scope.ServiceProvider.GetRequiredService<ISidReferenceResolver>().PerTestiAsync(testi.Select(t => t.Testo));
+            nomi = await scope.ServiceProvider.GetRequiredService<IProcedureReferenceResolver>().PerTestiAsync(testi.Select(t => t.Testo));
 
         // Un documento più nuovo è arrivato mentre si leggeva: questo esito è di quello vecchio, e si butta.
         if (!ReferenceEquals(doc, Doc)) return;
         _nomiSid = nomi;
-        _sidDaRivedere = ControlloSidCitate.Controlla(testi, nomi);
+        _sidDaRivedere = ControlloProcedureCitate.Controlla(testi, nomi);
     }
 
     // Ogni testo col titolo della sua sezione; una sezione senza titolo prende quello del padre.
@@ -318,7 +318,7 @@ else
         }
     }
 
-    private string? ConNomi(string? testo) => RiferimentiSid.Sostituisci(testo, _nomiSid);
+    private string? ConNomi(string? testo) => RiferimentiProcedura.Sostituisci(testo, _nomiSid);
 
     // ---- conversione dei testi già scritti (§A73, slice 5) ----
 

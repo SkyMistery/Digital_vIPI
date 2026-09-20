@@ -147,7 +147,7 @@ else
 
     /// <summary>Le sezioni come si LEGGONO: tradotte nella lingua di chi guarda.</summary>
     private IReadOnlyList<SectionView> _vista = Array.Empty<SectionView>();
-    private NomiSid? _nomiSid;
+    private NomiProcedura? _nomiSid;
 
     private bool _modifica;    // questa sessione tiene il lock
     private bool _sporco;
@@ -195,7 +195,7 @@ else
 
         // Le SID citate nel testo (§A73). L'intro non ha bozza né release: quel che si salva è pubblico
         // subito, quindi i nomi vengono dalle tabelle pubbliche.
-        _nomiSid = await ScopedServices.GetRequiredService<ISidReferenceResolver>()
+        _nomiSid = await ScopedServices.GetRequiredService<IProcedureReferenceResolver>()
             .PerVistaAsync(_vista, pubblica: true);
     }
 

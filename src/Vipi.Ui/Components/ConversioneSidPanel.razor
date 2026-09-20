@@ -78,11 +78,11 @@
     private const string ChiaveIcao = "vipi.sid.icao";
 
     private string _icao = "";
-    private IReadOnlyList<SidCitabile>? _sids;
+    private IReadOnlyList<ProceduraCitabile>? _sids;
     private EsitoRicercaSid _esito = EsitoRicercaSid.Vuoto;
     private bool _occupato;
 
-    private ISidReferenceResolver Risolutore => ScopedServices.GetRequiredService<ISidReferenceResolver>();
+    private IProcedureReferenceResolver Risolutore => ScopedServices.GetRequiredService<IProcedureReferenceResolver>();
 
     private IReadOnlyList<BloccoDaCercare>? _blocchiVisti;
 
@@ -97,14 +97,14 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
-        var icao = RiferimentiSid.Norm(IcaoIniziale);
+        var icao = RiferimentiProcedura.Norm(IcaoIniziale);
         if (icao.Length != 4)
-            icao = RiferimentiSid.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
+            icao = RiferimentiProcedura.Norm(await JS.InvokeAsync<string?>("vipiStoreGet", ChiaveIcao));
         await CaricaAsync(icao);
         StateHasChanged();
     }
 
-    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiSid.Norm(e.Value as string));
+    private Task CambiaIcao(ChangeEventArgs e) => CaricaAsync(RiferimentiProcedura.Norm(e.Value as string));
 
     private async Task CaricaAsync(string icao)
     {
@@ -112,10 +112,10 @@
         _sids = null;
         _esito = EsitoRicercaSid.Vuoto;
         if (icao.Length != 4) return;
-        IReadOnlyList<SidCitabile>? letti = null;
+        IReadOnlyList<ProceduraCitabile>? letti = null;
         await InFilaAsync(async () => { letti = await Risolutore.ElencoAsync(icao); });
         if (Chiusa) return;
-        _sids = letti ?? Array.Empty<SidCitabile>();
+        _sids = letti ?? Array.Empty<ProceduraCitabile>();
         Ricalcola();
         await JS.InvokeVoidAsync("vipiStoreSet", ChiaveIcao, icao);
     }

@@ -2743,6 +2743,8 @@
 :where(.vipi-root) .sidref-pick-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
 :where(.vipi-root) .sidref-pick-head .app-in.icao{width:6.5em;text-transform:uppercase}
 :where(.vipi-root) .sidref-pick-head .app-in.cerca{flex:1;min-width:10em}
+/* Le due chip del verso (SID/STAR) nel selettore: restano unite e non si allargano come i campi. */
+:where(.vipi-root) .sidref-pick-kind{display:flex;gap:4px;flex:0 0 auto}
 :where(.vipi-root) .sidref-pick-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:2px 8px;
   max-height:220px;overflow:auto}
 :where(.vipi-root) .sidref-pick-row{display:flex;justify-content:space-between;gap:8px;padding:3px 6px;border:0;border-radius:6px;

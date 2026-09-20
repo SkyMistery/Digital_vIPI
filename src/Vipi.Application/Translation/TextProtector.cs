@@ -354,7 +354,7 @@ public sealed partial class TextProtector
     private static string ProteggiRiferimenti(string s, List<string> tokens)
     {
         if (s.Contains("[[SID ", StringComparison.Ordinal))
-            s = RiferimentiSid.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
+            s = RiferimentiProcedura.Riferimento.Replace(s, m => Deposita(m.Value, tokens, Riservatezza.Intraducibile));
 
         if (s.Contains(AttachmentRules.TokenPrefix, StringComparison.Ordinal))
             s = LinkAllegato.Replace(s, m =>
@@ -377,7 +377,7 @@ public sealed partial class TextProtector
     private static IEnumerable<string> Riferimenti(string? testo) =>
         string.IsNullOrEmpty(testo)
             ? Enumerable.Empty<string>()
-            : RiferimentiSid.Riferimento.Matches(testo).Select(m => m.Value)
+            : RiferimentiProcedura.Riferimento.Matches(testo).Select(m => m.Value)
                 .Concat(LinkAllegato.Matches(testo).Select(m => AttachmentRules.TokenDi(m.Groups[2].Value)))
                 .OrderBy(r => r, StringComparer.Ordinal);
 
@@ -697,7 +697,7 @@ public sealed partial class TextProtector
 
         // I riferimenti del nostro formato per primi: una voce di glossario che ne contenesse uno se lo
         // inghiottirebbe, e la SID o l'allegato resterebbero cablati nella resa.
-        return RiferimentiSid.Riferimento.IsMatch(testo)
+        return RiferimentiProcedura.Riferimento.IsMatch(testo)
                || LinkAllegato.IsMatch(testo)
                || VidAnnunciato().IsMatch(testo)
                || ForseUnVid().IsMatch(testo)

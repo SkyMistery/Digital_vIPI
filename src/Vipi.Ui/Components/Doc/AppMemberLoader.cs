@@ -29,8 +29,8 @@ public sealed record AppMemberDocument(
     SectionAudience? Vista,
     AppViewDerived Derived,
     IReadOnlyList<AccSpecialAreaView> Areas,
-    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiSid"/>.</summary>
-    NomiSid? NomiSid = null)
+    /// <summary>I nomi di oggi delle SID citate nel testo (§A73): vedi <see cref="AirportMemberDocument.NomiProcedura"/>.</summary>
+    NomiProcedura? NomiProcedura = null)
 {
     /// <summary>La release che questa vista mostra: quella dell'anteprima, o null = la effettiva adesso.</summary>
     public int? ReleaseIdShown => Mode.Kind == PreviewKind.Release ? Mode.ReleaseId : null;
@@ -61,12 +61,12 @@ public sealed class AppMemberLoader
     private readonly IEditAuthorizationService _authz;
     private readonly DocumentTranslator _translator;
     private readonly ReadingLanguageContext _lingua;
-    private readonly ISidReferenceResolver _sidRefs;
+    private readonly IProcedureReferenceResolver _sidRefs;
 
     public AppMemberLoader(IVipiViewService viewService, IAppDocumentService appDoc,
                            IAppViewDerivationService appView, IReleaseService releases,
                            IEditAuthorizationService authz, DocumentTranslator translator,
-                           ReadingLanguageContext lingua, ISidReferenceResolver sidRefs)
+                           ReadingLanguageContext lingua, IProcedureReferenceResolver sidRefs)
     {
         _sidRefs = sidRefs;
         _viewService = viewService;

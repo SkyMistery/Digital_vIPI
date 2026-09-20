@@ -1,4 +1,5 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Ui.Tests;
 
@@ -7,15 +8,16 @@ namespace Vipi.Ui.Tests;
 /// scegliere. Lo chiedono i componenti che disegnano testo di documento — l'editor delle sezioni per le sue
 /// anteprime, l'intro di pagina — e senza una registrazione il contenitore alza «No service for type».
 /// </summary>
-internal sealed class NessunaSidCitata : ISidReferenceResolver
+internal sealed class NessunaSidCitata : IProcedureReferenceResolver
 {
-    public Task<NomiSid> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
-        string? proprioIcao = null, AirportSidView? propriaTabella = null, CancellationToken ct = default) =>
-        Task.FromResult(NomiSid.Vuoto);
+    public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
+        string? proprioIcao = null, AirportSidView? propriaTabella = null,
+            AirportSidView? propriaTabellaStar = null, CancellationToken ct = default) =>
+        Task.FromResult(NomiProcedura.Vuoto);
 
-    public Task<NomiSid> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
-        Task.FromResult(NomiSid.Vuoto);
+    public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
+        Task.FromResult(NomiProcedura.Vuoto);
 
-    public Task<IReadOnlyList<SidCitabile>> ElencoAsync(string icao, CancellationToken ct = default) =>
-        Task.FromResult<IReadOnlyList<SidCitabile>>(Array.Empty<SidCitabile>());
+    public Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<ProceduraCitabile>>(Array.Empty<ProceduraCitabile>());
 }

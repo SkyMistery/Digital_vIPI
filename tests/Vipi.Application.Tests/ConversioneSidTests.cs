@@ -1,4 +1,5 @@
-using Vipi.Application.Content;
+﻿using Vipi.Application.Content;
+using Vipi.Domain.Entities;
 using Vipi.Domain;
 using Xunit;
 
@@ -10,11 +11,11 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class ConversioneSidTests
 {
-    private static readonly SidCitabile[] Libv =
+    private static readonly ProceduraCitabile[] Libv =
     {
-        new("LIBV", "CDC6A", "CDC 6A", "14L, 14R"),
-        new("LIBV", "CDC6B", "CDC 6B", "32L, 32R"),
-        new("LIBV", "VIE6A", "VIENNA 6A", "14L, 14R"),
+        new(ProcedureKind.Sid, "LIBV", "CDC6A", "CDC 6A", "14L, 14R"),
+        new(ProcedureKind.Sid, "LIBV", "CDC6B", "CDC 6B", "32L, 32R"),
+        new(ProcedureKind.Sid, "LIBV", "VIE6A", "VIENNA 6A", "14L, 14R"),
     };
 
     private static BloccoDaCercare Prosa(int id, string testo, string dove = "Partenze") =>
