@@ -2,13 +2,31 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-🟡 **In `main`, NON in pacchetto: §A88–§A95**, CI verde, **nessuna migrazione EF** (i passi d'avvio sistemano i
-documenti). Il committente ha chiesto di farli **prima** del prossimo pacchetto, che si prepara **quando lo
-chiede**. ⚠️ È un **MINOR** (funzioni nuove): se 1.38.0, **net10 slitta a 1.39.0**. Il pacchetto porta anche
-`Vipi.Infrastructure` e `Vipi.Hosting` (passi d'avvio), `en/` resources e `vipi-editor.js`.
-▶ **Dopo il carico**, oltre a timbro/Ricerca/`Schema 0`: 🔴 **ripubblicare le quattro vIPI ACC** — SCCAM/FIC
-(§A90/§A93) e la «Gestione del traffico» dei gruppi APP (§A95) sono nella bozza dal primo avvio, ma la copia
-pubblica è congelata. Nel log d'avvio: «Spostato il VFR … gruppi APP delle vIPI ACC» e «Aggiunte N sezioni».
+### 📦 A96 — Pacchetto 1.38.0 **PRONTO DA CARICARE** (21 settembre 2026)
+
+**MINOR, NESSUNA migrazione EF.** Su 1.37.0 (`2ad1790`, online dal 21 settembre). Timbro **`1.38.0 · d267c1d`**,
+**15 file**, zip `00d3d964…979a` (5,07 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.38.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.38.0.md). Contenuto: §A88–§A95.
+🔴 **net10 slitta a 1.39.0.**
+
+**I 15 file**: `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Hosting`, `Vipi.Ui` coi `.pdb`,
+`en/Vipi.Ui.resources.dll` (due frasi), `Vipi.Host` per il timbro, `vipi-editor.js` con `.br`/`.gz` e
+`endpoints.json` che viaggia con lui. Fuori `Domain`, `MySqlMigrations` e i due Aurora (solo ricompilazione;
+nessuno referenzia Application né implementa le interfacce toccate). Contro il publish di 1.37.0: 466 file,
+443 identici, 23 diversi.
+
+⚠️ **Niente migrazione, ma i passi d'AVVIO scrivono nei documenti** (sezioni aggiunte alle vIPI ACC, VFR dei
+gruppi APP spostato e travasato): **copia di sicurezza del database prima del carico**.
+
+✅ **Provato sul PACCHETTO** (win-x64 dalla sua cartella, :5199, copia fresca del `vipi.db`):
+`pacchetto-verifica.js` **10/10**; timbro in `avvio-diagnostica.txt`; `Schema 0`; nel log «Spostato il VFR … in 2»
+e «Aggiunte 29 sezioni»; su LIBB SCCAM/FIC attorno alle aree con l'AoR principale pulita, gruppo APP con
+«Gestione del traffico» → IFR, VFR e «Tecnica operativa», selettore «Cita» a otto chip; console pulita.
+
+▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, le due righe dei passi d'avvio nel log del giorno. 🔴 Poi
+**ripubblicare le quattro vIPI ACC** (la copia pubblica è congelata) e scrivere IFR e «Tecnica operativa» dei
+gruppi APP, che nascono vuote. ▶ Le **STAR fra i punti** dei trasferimenti si vedono per la prima volta in
+produzione (in locale non ci sono).
 
 ### ✅ A95 — Cita: le aree regolamentate, `[[AREA 1242]]` (21 settembre 2026) — `1236efab`
 

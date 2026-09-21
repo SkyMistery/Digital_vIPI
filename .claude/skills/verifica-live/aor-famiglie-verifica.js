@@ -1,5 +1,5 @@
 // Settori militari e FSS nelle LORO sezioni della vIPI di ACC (21 settembre 2026). Legge la pagina e dice:
-//   - l'ordine delle sezioni del blocco Aerovia (MIL prima delle aree regolamentate, FSS dopo);
+//   - l'ordine delle sezioni del blocco Aerovia (SCCAM prima delle aree regolamentate, FIC dopo);
 //   - i chip di ciascuna mappa AoR: la principale senza *_MIL_* e *_FSS, le due nuove con i soli loro.
 //   node aor-famiglie-verifica.js [url]        default: vIPI di LIRR in locale (bozza)
 //   EDITOR=1 node aor-famiglie-verifica.js     la stessa lettura sull'editor ACC
@@ -25,11 +25,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       id: m.getAttribute('data-aor'),
       chip: [...m.querySelectorAll('.aor-chip[data-sec]')].map((c) => c.getAttribute('data-sec')),
     }));
-    const note = [...document.querySelectorAll('p.muted')].map((p) => p.textContent.trim()).filter((t) => /militar|FSS/i.test(t));
+    const note = [...document.querySelectorAll('p.muted')].map((p) => p.textContent.trim()).filter((t) => /SCCAM|FIC/i.test(t));
     return { titoli, mappe, note };
   });
   console.log('URL', URL);
-  console.log('sezioni:', r.titoli.filter((t) => /settori|sectors|regolament|regulated|AoR|responsab/i.test(t)).join(' | '));
+  console.log('sezioni:', r.titoli.filter((t) => /SCCAM|FIC|regolament|regulated|AoR|responsab/i.test(t)).join(' | '));
   for (const m of r.mappe) console.log(`mappa ${m.id}: ${m.chip.length} chip ->`, m.chip.join(', '));
   if (r.note.length) console.log('note:', r.note.join(' | '));
   const principale = r.mappe.find((m) => m.id === 'aerovia');
