@@ -1532,7 +1532,30 @@
       Il contenuto (docs/lavori-aperti.md §A78): i link Login/Logout escono dalla navigazione avanzata — un clic
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.34.3</VipiVersione>
+    <!--
+      1.35.0 — MINOR, UNA migrazione (ProcedureKindEStarNellaStessaTabella: AirportSids → AirportProcedures,
+      colonna Kind). Su 1.34.3 (f95d923, online). Ancora net8.
+
+      ⚠️ 1.35.0 era il numero messo da parte per il salto a net10 (L13). Come per 1.27.0, 1.29.0, 1.30.0, 1.32.0,
+      1.33.0 e 1.34.0, il numero segue l'ordine delle CONSEGNE e non dei piani: deciso dal committente il
+      21 settembre 2026. Il net10 slitta a 1.36.0.
+
+      🔴 PRIMA CONSEGNA CON MIGRAZIONE DAL 1.27.0. Tre conseguenze: copia di sicurezza del database prima del
+      carico; la riga della migrazione nel foglio del pacchetto; e Vipi.Infrastructure.MySqlMigrations.dll DEVE
+      entrare nel pacchetto — senza, la colonna non nasce e il pacchetto SEMBRA funzionare (lezione della 1.19.0).
+      La prova da fuori è la riga «Schema 0» in admin/diagnostics.
+      ⚠️ La migrazione è additiva ma il suo corpo è SCRITTO A MANO: lo scaffolding proponeva DropTable+CreateTable,
+      cioè le 1469 righe SID di produzione buttate. Rename + AddColumn, provata su una copia di produzione.
+
+      Il contenuto (docs/lavori-aperti.md §A80, §A81 e §A82): le STAR dal sectorfile — parser dei .str, archivio
+      AirportProcedures con Kind, import nello stesso giro delle SID, editor, sezione «STAR» nel documento,
+      [[STAR ICAO NOME]] nel testo; i riferimenti ai DATI nel testo — [[FREQ]], [[ATC]], [[RWY]], [[FIX]] con un
+      selettore solo a sei chip e l'avviso in testata per quel che non si trova più; le nove correzioni della
+      review (due sul percorso Postgres); e il campo di prosa che torna ad adattarsi al testo. Tocca
+      Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
+      (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
+    -->
+    <VipiVersione>1.35.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
