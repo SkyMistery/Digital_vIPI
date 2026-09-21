@@ -13,6 +13,8 @@
 @inject IRiferimentiResolver SidRefs
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject EnglishStrings En
+@inject IDocLinkService Collegamenti
+@inject ILogger<AccVipiPage> Log
 @using System.Globalization
 @using Vipi.Ui.Shared
 
@@ -39,7 +41,7 @@ else
                primo livello — la sotto-sezione «Nuova sezione» non compariva da nessuna parte (misurato).
                I blocchi sono diventati GRUPPI, che è la stessa forma con cui una pagina unita mostra i
                propri membri. *@
-            <DocumentToc Gruppi="@Sommario()" />
+            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, true, Array.Empty<MembroUnito>(), Sito)" />
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
@@ -92,6 +94,15 @@ else
                 <CascadingValue Value="_nomiSid">
                 @foreach (var block in _data.Blocks)
                 {
+                    @* §A109: l'ancora di ogni APP remotizzato del gruppo, dove atterra il link «LIRR vIPI · LIRN_US0_APP»
+                       dei documenti d'aeroporto. Una per membro, perché il link nomina l'APP e non il gruppo. *@
+                    @if (block.Kind == AccBlockKind.AppGroup)
+                    {
+                        @foreach (var cs in block.MemberCallsigns)
+                        {
+                            <span id="@DocumentiCollegati.AncoraApp(cs)" class="acc-app-anchor"></span>
+                        }
+                    }
                     <h2 class="acc-block-h">@(block.Kind == AccBlockKind.Aerovia ? L["AccVipi_AirwaySectors"] : block.Title)</h2>
                     @foreach (var s in VisibleSections(block))
                     {
@@ -169,6 +180,7 @@ else
     private string? _root;
     private PreviewMode _mode;
     private RiferimentiRisolti? _nomiSid;
+    private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();   // §A109
     private string? _relCycle;      // anteprima release: ciclo di quella release
     private string? _docCycle;      // vista pubblica: ciclo della release effettiva da cui viene lo snapshot
 
@@ -246,6 +258,12 @@ else
                 break;
         }
         _canEdit = Authz.IsEditor;
+
+        // §A109: APP e aeroporti sotto questo ACC. La chiave è quella della release («LIBB|<radice>»), la stessa
+        // con cui AccViewDerivationService legge il congelato.
+        _collegati = _root is null
+            ? Array.Empty<ResolvedDocLink>()
+            : await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AccVipi, $"{_acc.Code}|{_root}", _mode);
 
         // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
         // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,

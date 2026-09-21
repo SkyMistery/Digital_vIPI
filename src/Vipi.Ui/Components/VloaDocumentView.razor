@@ -6,12 +6,15 @@
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
+@inject StringheDelSito Sito
+@inject ILogger<VloaDocumentView> Log
 @* Vloa e VloaView risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 <div class="doc-layout">
     @* ⚠️ `SenzaDirezioni` va al sommario **e** al corpo, con la stessa funzione: le due direzioni le
        disegna il corpo da sé, e nel sommario sarebbero due voci verso un id che non esiste. *@
-    <DocumentToc Gruppi="@TocGruppo.Uno(View.Sections, IsDraft, figlieDi: SenzaDirezioni)" />
+    <DocumentToc Gruppi="@TocGruppo.Uno(View.Sections, IsDraft, figlieDi: SenzaDirezioni)"
+                 Collegati="@TocCollegati.Gruppi(_collegati, false, Array.Empty<MembroUnito>(), Sito)" />
 
     <div>
         <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage"
@@ -137,11 +140,16 @@
     // Risolti dallo scope proprio (OwningComponentBase): context isolato dal circuito.
     private IVloaDerivationService Vloa = default!;
     private IVloaViewDerivationService VloaView = default!;
+    private IDocLinkService Collegamenti = default!;
     protected override void OnInitialized()
     {
         Vloa = ScopedServices.GetRequiredService<IVloaDerivationService>();
         VloaView = ScopedServices.GetRequiredService<IVloaViewDerivationService>();
+        Collegamenti = ScopedServices.GetRequiredService<IDocLinkService>();
     }
+
+    /// <summary>I documenti collegati (§A109): la vIPI degli ACC italiani della coppia.</summary>
+    private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();
 
     /// <summary>Sottotitolo del documento; in mancanza, la dicitura di default della lettera d'accordo.</summary>
     private string SubtitleOrDefault() =>
@@ -297,6 +305,12 @@
         _aor = d.Aor;
         _freq = d.Freq;
         _coord = d.Coord;
+
+        // Dentro la stessa guardia delle derivate: stesso contesto, e la stessa ragione per non ripartire a ogni giro.
+        var modo = IsDraft ? new PreviewMode(PreviewKind.Draft, 0)
+            : ReleaseId is int rel ? new PreviewMode(PreviewKind.Release, rel)
+            : new PreviewMode(PreviewKind.Public, 0);
+        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Vloa, docId.ToString(), modo);
     }
 
     /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>

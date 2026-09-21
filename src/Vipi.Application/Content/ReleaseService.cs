@@ -191,8 +191,10 @@ public sealed class ReleaseService : IReleaseService
         IOptions<Translation.TranslationOptions>? traduzione = null,
         ReadingLanguageContext? linguaProsa = null,
         Lazy<IImpactDriftUseCase>? deriva = null,
-        IImportStateStore? stati = null)
+        IImportStateStore? stati = null,
+        IDocLinkService? collegamenti = null)
     {
+        _collegamenti = collegamenti;
         _stati = stati;
         _deriva = deriva;
         _linguaProsa = linguaProsa;
@@ -240,6 +242,11 @@ public sealed class ReleaseService : IReleaseService
     /// <summary>Dove resta scritto se la riconciliazione alla pubblicazione riesce. Opzionale: senza, il
     /// guasto torna a essere invisibile — vedi <see cref="AnnotaEsitoAsync"/>.</summary>
     private readonly IImportStateStore? _stati;
+
+    /// <summary>I documenti collegati (§A109), congelati nella release SOLO quando la si scrive: la deriva e le
+    /// anteprime rifanno lo snapshot a ogni apertura d'editor, e la firma del diff non li guarda. Null = i banchi
+    /// che costruiscono il servizio a mano: la release esce senza il campo, e la pagina li calcola dal vivo.</summary>
+    private readonly IDocLinkService? _collegamenti;
 
     public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) =>
         _repo.ListAsync(type, key, ct);
@@ -488,7 +495,7 @@ public sealed class ReleaseService : IReleaseService
             if (await _repo.GetEffectiveAsync(d.ReleaseTarget, d.ReleaseKey, now, ct) is not null) continue;   // già coperto → idempotente
 
             // Riusa il path di cattura (§3d); tollera i documenti senza contenuto (null) senza esplodere.
-            var finalJson = await BuildSnapshotJsonAsync(d.ReleaseTarget, d.ReleaseKey, cycle, ct);
+            var finalJson = await BuildSnapshotJsonAsync(d.ReleaseTarget, d.ReleaseKey, cycle, ct, conCollegamenti: true);
             if (finalJson is null) continue;
             await _repo.SaveReleaseAsync(d.ReleaseTarget, d.ReleaseKey, cycle, now,
                 finalJson, createdByUserId: 0, note: "backfill migrazione A (doc 10)", ct);
@@ -759,7 +766,7 @@ public sealed class ReleaseService : IReleaseService
 
     private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
     {
-        var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct)
+        var finalJson = await BuildSnapshotJsonAsync(type, key, cycle, ct, conCollegamenti: true)
             ?? throw new Aor.ValidationException(Lingua(
                 "Nessun contenuto da pubblicare: crea prima il documento (bozza).",
                 "There is nothing to publish: create the document first (as a draft)."));
@@ -800,7 +807,8 @@ public sealed class ReleaseService : IReleaseService
     // Snapshot totale (doc 10 §3c): struttura congelata + OUTPUT delle sezioni derivate in modalità Frozen, così il
     // pubblico vede una fotografia completa (le sezioni Live restano fuori: il viewer le deriva sul momento). Ritorna il
     // JSON del payload pronto per SaveReleaseAsync, o null se il documento non ha contenuto (nessuna versione di lavoro).
-    private async Task<string?> BuildSnapshotJsonAsync(ReleaseTargetType type, string key, string cycle, CancellationToken ct)
+    private async Task<string?> BuildSnapshotJsonAsync(ReleaseTargetType type, string key, string cycle, CancellationToken ct,
+        bool conCollegamenti = false)
     {
         var json = await _repo.SnapshotWorkingAsync(type, key, cycle, ct);
         if (json is null) return null;
@@ -824,6 +832,10 @@ public sealed class ReleaseService : IReleaseService
         foreach (var kv in frozen) payload.FrozenSections[kv.Key] = kv.Value;
 
         payload.Doc = await ConTraduzioniCongelateAsync(payload.Doc, ct).ConfigureAwait(false);
+
+        // La STRUTTURA di oggi, con tutti i candidati: chi di loro si vede lo decide la pagina (§A109, scelta A).
+        if (conCollegamenti && _collegamenti is not null)
+            payload.Collegamenti = await _collegamenti.CaptureAsync(type, key, ct).ConfigureAwait(false);
         return JsonSerializer.Serialize(payload);
     }
 

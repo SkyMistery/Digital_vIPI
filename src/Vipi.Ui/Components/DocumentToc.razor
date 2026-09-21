@@ -30,28 +30,27 @@
    *default* del clic su un summary. Vale già, senza una riga in più, ma è un appoggio da sapere. *@
 @inject StringheDelSito Sito
 
-@if (Gruppi.Any(g => g.Voci.Count > 0))
+@if (Gruppi.Any(g => g.Voci.Count > 0) || Collegati.Any(g => g.Voci.Count > 0))
 {
     <aside class="toc @ExtraClass" aria-label="@Sito["Doc_TocAria"]" @attributes="Extra">
-        <p class="toc-h">@Sito["Common_Contents"]</p>
+        @* §A109: i documenti collegati stanno SOPRA il sommario, nello stesso riquadro — un secondo <aside>
+           impilato rifarebbe il difetto dello sticky raccontato qui sopra. *@
+        @if (Collegati.Any(g => g.Voci.Count > 0))
+        {
+            <p class="toc-h">@Sito["Doc_RelatedDocs"]</p>
+            @foreach (var g in Collegati.Where(g => g.Voci.Count > 0))
+            {
+                @Gruppo(g)
+            }
+        }
+        @if (Gruppi.Any(g => g.Voci.Count > 0))
+        {
+            <p class="toc-h">@Sito["Common_Contents"]</p>
+        }
         @Sotto
         @foreach (var g in Gruppi)
         {
-            @if (g.Titolo is { Length: > 0 })
-            {
-                @* Un gruppo INTESTATO si chiude tutto intero (richiesta del committente, 21 settembre 2026):
-                   in una pagina unita o in una vIPI ACC con settori di aerovia e APP remotizzati, chiudere i
-                   documenti che non servono è il modo di cercare in uno lungo. Nasce APERTO: le voci dentro
-                   nascono già chiuse, e chiudere anche il gruppo lascerebbe un indice di sole intestazioni. *@
-                <details class="toc-grp-d" open>
-                    <summary class="toc-grp">@g.Titolo</summary>
-                    @Elenco(g)
-                </details>
-            }
-            else
-            {
-                @Elenco(g)
-            }
+            @Gruppo(g)
         }
         @if (Footer is not null)
         {
@@ -68,6 +67,9 @@
     /// lasciare una colonna vuota accanto al corpo.</para>
     /// </summary>
     [Parameter, EditorRequired] public IReadOnlyList<TocGruppo> Gruppi { get; set; } = Array.Empty<TocGruppo>();
+
+    /// <summary>I documenti collegati (§A109), sopra il sommario. Vuoto = niente blocco, nemmeno l'intestazione.</summary>
+    [Parameter] public IReadOnlyList<TocGruppo> Collegati { get; set; } = Array.Empty<TocGruppo>();
 
     /// <summary>Come si disegna il link di una voce. Null = un <c>&lt;a&gt;</c> al suo ancoraggio, che è
     /// quel che vogliono i documenti. Gli editor lo rimpiazzano per appenderci il trascinamento e il
@@ -116,6 +118,26 @@
         </li>
     };
 
+    private RenderFragment Gruppo(TocGruppo g) => __builder =>
+    {
+        @if (g.Titolo is { Length: > 0 })
+        {
+            @* Un gruppo INTESTATO si chiude tutto intero (richiesta del committente, 21 settembre 2026):
+               in una pagina unita o in una vIPI ACC con settori di aerovia e APP remotizzati, chiudere i
+               documenti che non servono è il modo di cercare in uno lungo. Nasce APERTO: le voci dentro
+               nascono già chiuse, e chiudere anche il gruppo lascerebbe un indice di sole intestazioni.
+               ⚠️ Tranne chi lo chiede (`Chiuso`): i gruppi APP e Aeroporti dei documenti collegati. *@
+            <details class="toc-grp-d" open="@(!g.Chiuso)">
+                <summary class="toc-grp">@g.Titolo</summary>
+                @Elenco(g)
+            </details>
+        }
+        else
+        {
+            @Elenco(g)
+        }
+    };
+
     private RenderFragment Elenco(TocGruppo g) => __builder =>
     {
         <ul>
@@ -128,7 +150,7 @@
 
     private RenderFragment Disegna(TocLink l) => Link is not null
         ? Link(l)
-        : @<a class="@l.Classe" href="#@l.Voce.Ancora">@l.Voce.Titolo</a>;
+        : @<a class="@l.Classe" href="@(l.Voce.Href ?? "#" + l.Voce.Ancora)">@l.Voce.Titolo</a>;
 
     /// <summary>Il rientro per livello. Il primo non ne ha: sotto l'intestazione di un gruppo una voce di
     /// primo livello è già al suo posto, e rientrarla la farebbe sembrare figlia di qualcosa.</summary>

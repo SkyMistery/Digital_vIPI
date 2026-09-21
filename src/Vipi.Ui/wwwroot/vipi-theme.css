@@ -1170,6 +1170,8 @@
 :where(.vipi-root) .rail-card .onl-badge{padding:3px 9px;font-size:11px}
 :where(.vipi-root) .toc{position:sticky;top:84px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);font-size:13.5px;max-height:calc(100vh - 110px);overflow:auto}
 :where(.vipi-root) .toc .toc-h{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;padding-left:8px}
+/* §A109: «Sommario» sotto «Documenti collegati» — la seconda testata stacca, o si legge come un'altra voce. */
+:where(.vipi-root) .toc * + .toc-h{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 :where(.vipi-root) .toc ul{list-style:none;margin:0;padding:0}
 :where(.vipi-root) .toc a{display:block;color:var(--ink-soft);padding:6px 8px;border-radius:7px;border-left:2px solid transparent}
 :where(.vipi-root) .toc a:hover{background:var(--tint-atmos-soft);color:var(--brand-ink)}
@@ -1293,6 +1295,8 @@
 :where(.vipi-root) .cb-sub>.cb-body,:where(.vipi-root) .cb-sub2>.cb-body{padding:12px 14px}
 :where(.vipi-root) .block>h3{margin-top:0;scroll-margin-top:84px}
 :where(.vipi-root) .block>h4{scroll-margin-top:84px}
+/* §A109: dove atterra «LIRR vIPI · LIRN_US0_APP» — un'ancora per APP remotizzato, subito sopra il suo gruppo. */
+:where(.vipi-root) .acc-app-anchor{display:block;height:0;scroll-margin-top:84px}
 /* Casella degli impatti: una riga per fatto, dentro il callout. Il pulsante di chiusura sta sulla riga
    della frase perche la domanda e per-riga («questa l ho vista»), non per-documento. */
 :where(.vipi-root) .impact-list{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}

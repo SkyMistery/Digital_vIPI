@@ -173,6 +173,7 @@ public static class DependencyInjection
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTarget, Persistence.ReleaseTargets.AppMilReleaseTarget>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseTargetRegistry, Vipi.Application.Content.ReleaseTargetRegistry>();
         services.AddScoped<Vipi.Application.Abstractions.IReleaseRepository, EfReleaseRepository>();
+        services.AddScoped<Vipi.Application.Content.IDocLinkStructureSource, EfDocLinkStructureSource>();
         services.AddScoped<Vipi.Application.Abstractions.IEditorTaskRepository, EfEditorTaskRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IDocumentImpactRepository, EfDocumentImpactRepository>();
         services.AddScoped<Vipi.Application.Abstractions.IOrphanSectorRepository, EfOrphanSectorRepository>();

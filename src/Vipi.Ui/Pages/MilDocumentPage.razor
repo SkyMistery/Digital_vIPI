@@ -1,6 +1,8 @@
 ﻿@page "/services/vsop/{Acc}/mil"
 @layout SopLayout
 @inject MilMemberLoader Loader
+@inject IDocLinkService Collegamenti
+@inject ILogger<MilDocumentPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
 @inject NavigationManager Nav
@@ -67,7 +69,7 @@
                genitore, e quel <div> era alto esattamente quanto la barra (890 px, misurati) — quindi il
                sommario se ne andava in cima appena si scorreva. I membri sono GRUPPI dentro lo stesso
                riquadro. *@
-            <DocumentToc Gruppi="@Sommario()" />
+            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, false, _altri, Sito)" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
@@ -305,5 +307,10 @@
         _altri = unione?.Di(ReleaseTargetType.AirportMil, _icao) is { } mio
             ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista, Cycle())
             : Array.Empty<MembroUnito>();
+
+        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AirportMil, _icao, _doc.Mode);
     }
+
+    /// <summary>I documenti collegati (§A109): vIPI ACC, APP che controlla lo scalo, vIPI dello stesso scalo.</summary>
+    private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();
 }

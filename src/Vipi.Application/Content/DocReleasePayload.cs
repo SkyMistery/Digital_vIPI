@@ -16,4 +16,10 @@ public sealed class DocReleasePayload
     /// renderizzato (frequenze/AoR/coord/…), serializzato dal <c>IFrozenSectionProvider</c> della famiglia. Le sezioni
     /// in modalità Live NON compaiono qui: il viewer le deriva sul momento. Vuoto = nessuna sezione derivabile congelata.</summary>
     public Dictionary<int, string> FrozenSections { get; set; } = new();
+
+    /// <summary>I documenti collegati (§A109): la STRUTTURA congelata alla pubblicazione, con tutti i candidati;
+    /// quali si vedono lo decide il disegno (<see cref="DocumentiCollegati.Resolve"/>).
+    /// <para>⚠️ <c>null</c> = release di prima del 21 settembre 2026: i collegamenti si calcolano dalla struttura
+    /// di adesso, così non bisogna ripubblicare tutto per vederli.</para></summary>
+    public DocLinkSnapshot? Collegamenti { get; set; }
 }

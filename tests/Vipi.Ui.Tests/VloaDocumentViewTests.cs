@@ -91,6 +91,17 @@ public class VloaDocumentViewTests : TestContext
         Services.AddSingleton<IEditAuthorizationService>(new NoEditor());
         Services.AddSingleton<IVloaDerivationService>(fake);
         Services.AddSingleton<IVloaViewDerivationService>(fake);
+        Services.AddSingleton<IDocLinkService>(new NessunCollegamento());
+    }
+
+    /// <summary>I documenti collegati (§A109) non sono l'oggetto di questi test: nessun link.</summary>
+    private sealed class NessunCollegamento : IDocLinkService
+    {
+        public Task<DocLinkSnapshot> CaptureAsync(Vipi.Domain.ReleaseTargetType type, string key, CancellationToken ct = default) =>
+            Task.FromResult(new DocLinkSnapshot());
+        public Task<IReadOnlyList<ResolvedDocLink>> ForPageAsync(Vipi.Domain.ReleaseTargetType type, string key, int? releaseId,
+            bool bozza, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<ResolvedDocLink>>(Array.Empty<ResolvedDocLink>());
     }
 
     private static SectionView Section(string id, string key, string title,

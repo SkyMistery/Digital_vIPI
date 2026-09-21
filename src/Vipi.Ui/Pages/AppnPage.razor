@@ -3,6 +3,8 @@
 @inject IStationResolver Stations
 @inject IEditAuthorizationService Authz
 @inject AppMemberLoader Loader
+@inject IDocLinkService Collegamenti
+@inject ILogger<AppnPage> Log
 @inject IDocumentUnionService Unioni
 @inject UnionLoader Membri
 @inject NavigationManager Nav
@@ -36,7 +38,7 @@ else
                e comincia l'altro, è un indice che non aiuta a cercare.
                ⚠️ Un solo <aside>, figlio DIRETTO della griglia: i due indici impilati stavano in un <div>
                alto quanto loro, e uno `sticky` appeso lì dentro non ha dove scorrere. *@
-            <DocumentToc Gruppi="@Sommario()" />
+            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, false, _altri, Sito)" />
             <div>
                 <PrintMeta Title="@_doc.DisplayName" Subtitle="@($"{_app} · {Sito["Appn_Subtitle"]}")"
                            AiracCycle="@Cycle()" Coverage="_doc.Copertura" Bloccata="@_doc.Bloccata" />
@@ -202,7 +204,12 @@ else
         _altri = unione?.Di(ReleaseTargetType.App, _app) is { } mio
             ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista, Cycle())
             : Array.Empty<MembroUnito>();
+
+        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.App, _app, _doc.Mode);
     }
+
+    /// <summary>I documenti collegati (§A109): vIPI ACC, vIPI e vSOP degli scali sotto questo APP.</summary>
+    private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();
 
     // ATC online per l'APP: callsign _APP/_DEP la cui testa è l'ICAO d'aeroporto del callsign (es. LIRP_APP → LIRP).
     private int OnlineApp()

@@ -2,6 +2,26 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 🟡 A109 — Documenti collegati nel riquadro di sinistra (21 settembre 2026, notte) — in `main`, NON in un pacchetto
+
+Chiesto dal committente. Carta: [`2026-09-21-documenti-collegati.md`](feature/2026-09-21-documenti-collegati.md)
+(decisioni prese in chat, lì come contratto). Sopra il «Sommario», un blocco «Documenti collegati»:
+vIPI ACC → gruppi **APP** e **Aeroporti** (chiusi); APP → vIPI ACC + vIPI/vSOP degli scali sotto; vIPI/vSOP
+d'aeroporto → vIPI ACC, APP che lo controlla (remotizzato = `LIRR vIPI · LIRN_US0_APP`, ancora `#app-<CS>`),
+l'altra edizione; vLOA → vIPI degli ACC coinvolti. Solo documenti pubblici; dentro una pagina unita = `#doc-N`.
+- **Scelta A**: alla pubblicazione si congelano in `DocReleasePayload.Collegamenti` i POSTI con tutte le
+  alternative; al disegno vince la prima pubblica adesso (l'APP senza documento pubblico cede a quello sopra).
+  Release di prima (campo assente) e bozza: calcolo dalla struttura di adesso, in cache 2 minuti.
+- Regole pure in `DocumentiCollegati` (10 test); struttura da `EfDocLinkStructureSource` sulle stesse righe
+  dell'albero effettivo, estratte in `EffectiveHierarchyRows` (prima erano due copie). Nessuna migrazione.
+- ✅ Verificato dal vivo su copia del DB: LIBD (remotizzato → atterra su «Brindisi CS0»), LIML vIPI/vSOP (anche
+  unite: `#doc-25`), LIBG vSOP, vIPI LIBB/LIMM coi gruppi chiusi, vLOA LIBB–LGGG; release nuova col campo, e la
+  pagina pubblica legge il congelato (etichetta alterata nella copia → a schermo), la bozza il vivo.
+- 🔎 **Da decidere col committente**: l'ACC si risolve dalla STRUTTURA. LIBC (anagrafica LIBB) sta sotto
+  `LICA_ES0_APP`, remotizzato di LIRR → i suoi collegamenti portano alla vIPI **LIRR**, e compare fra gli
+  aeroporti di LIRR e non di LIBB.
+- ▶ Dopo il carico: i link compaiono subito (calcolo dal vivo); ripubblicando si congelano.
+
 ### 🟡 A108 — `blazor.web.js` con l'impronta, `immutable` (21 settembre 2026, sera) — in `main`, NON in un pacchetto
 
 Commit `48a36a46`. Chiude il ▶ di §A107. **Nessun pacchetto dedicato**: guadagno piccolo (una rivalidazione da

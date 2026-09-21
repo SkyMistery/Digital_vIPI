@@ -125,6 +125,8 @@ public static class DependencyInjection
         // Il timbro di «Validità e revisione»: ciclo, data e chi ha pubblicato. Vale per tutte e quattro le
         // famiglie, quindi sta con i servizi documentali e non dentro una di loro.
         services.AddScoped<IDocumentValidityService, DocumentValidityService>();
+        // §A109: i documenti collegati — congelati pubblicando, risolti leggendo.
+        services.AddScoped<IDocLinkService, DocLinkService>();
         services.AddScoped<IReleaseService, ReleaseService>();
         services.AddScoped<IEditorTaskService, EditorTaskService>();
         services.AddScoped<IEditorTaskLinksService, EditorTaskLinksService>();

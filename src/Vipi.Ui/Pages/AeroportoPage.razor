@@ -31,6 +31,7 @@
 @inject EnglishStrings En
 @inject Vipi.Application.Content.ReadingLanguageContext Lingua
 @inject NavigationManager Nav
+@inject ILogger<AeroportoPage> Log
 
 @if (_acc is null)
 {
@@ -70,7 +71,7 @@ else
                ⚠️ E è FIGLIO DIRETTO della griglia: avvolto in un <div> (com'era fino al 6 settembre 2026)
                lo `sticky` si appende a quel <div>, alto esattamente quanto la barra — e il sommario se ne
                andava in cima appena si scorreva. *@
-            <DocumentToc Gruppi="@Sommario()" />
+            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, false, _altri, Sito)" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
@@ -197,6 +198,10 @@ else
     /// <summary>Gli ALTRI documenti dell'unione, se questo è l'ospite. Vuoto = documento solo.</summary>
     private IReadOnlyList<MembroUnito> _altri = Array.Empty<MembroUnito>();
 
+    /// <summary>I documenti collegati (§A109): vIPI ACC, APP che controlla lo scalo, vSOP dello stesso scalo.</summary>
+    private IReadOnlyList<ResolvedDocLink> _collegati = Array.Empty<ResolvedDocLink>();
+    private IDocLinkService Collegamenti = default!;
+
     /// <summary>Vero se questo scalo ha anche un vSOP MILITARE: allora nel riquadro dei collegamenti compare
     /// il ponte verso l'altra edizione. Senza il controllo, il collegamento porterebbe a una pagina vuota —
     /// peggio che non averlo.</summary>
@@ -238,6 +243,7 @@ else
         Unioni = ScopedServices.GetRequiredService<IDocumentUnionService>();
         Militari = ScopedServices.GetRequiredService<IMilitaryDocumentService>();
         Stations = ScopedServices.GetRequiredService<IStationResolver>();
+        Collegamenti = ScopedServices.GetRequiredService<IDocLinkService>();
         // ⚠️ Anche il caricatore dei membri esce dallo scope della pagina: dentro istanzia i caricatori di
         // famiglia, e uno di quelli è proprio quello d'aeroporto — che sul circuito non deve stare.
         Membri = ActivatorUtilities.CreateInstance<UnionLoader>(ScopedServices);
@@ -302,6 +308,8 @@ else
             ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista,
                                             _doc.RelCycle ?? _doc.View.AiracCycle, Lingua)
             : Array.Empty<MembroUnito>();
+
+        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Airport, _icao, _doc.Mode);
     }
 
     /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

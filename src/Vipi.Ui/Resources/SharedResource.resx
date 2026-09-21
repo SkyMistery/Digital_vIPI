@@ -2718,6 +2718,7 @@
   <data name="Struct_CrossAcc" xml:space="preserve"><value>cross-ACC</value></data>
   <data name="Ape_WindCalm" xml:space="preserve"><value>calmo</value></data>
   <data name="Doc_RailAria" xml:space="preserve"><value>Informazioni sul documento</value></data>
+  <data name="Doc_RelatedDocs" xml:space="preserve"><value>Documenti collegati</value></data>
   <data name="Doc_TocAria" xml:space="preserve"><value>Indice del documento</value></data>
   <data name="Stats_Period" xml:space="preserve"><value>Periodo</value></data>
   <data name="Stats_P30" xml:space="preserve"><value>30 giorni</value></data>
