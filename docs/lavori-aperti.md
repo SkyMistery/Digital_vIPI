@@ -2,7 +2,17 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### 📦 A104 — Pacchetto 1.39.1 (21 settembre 2026) — pronto, NON ancora caricato
+### ✅ A105 — 1.39.1 **ONLINE** (21 settembre 2026, notte)
+
+✅ Il committente conferma: **timbro 1.39.1**, **`Schema 0`**, sommari funzionanti. Da fuori subito dopo:
+`pacchetto-verifica.js` verde (SOLO_PUBBLICO); `gruppi-toc-verifica.js` sulla vIPI pubblica di LIBB verde (2 gruppi,
+«Airway sectors» si chiude e riapre, la pagina non si sposta, console pulita).
+ℹ️ Su `airports?icao=LIBV` pubblica lo script trova **0 gruppi**: in pubblico lì c'è un documento solo (l'unione
+non è in pubblico), quindi il sommario è l'elenco nudo — comportamento voluto, non un difetto. In bozza locale
+LIBV unita era verde.
+In `main` non resta codice fuori pacchetto. 🔴 **net10 = 1.40.0, da sola.**
+
+### 📦 A104 — Pacchetto 1.39.1 (21 settembre 2026) — ✅ online, vedi §A105
 
 **PATCH, nessuna migrazione.** Su 1.39.0 (`1b25c4f`). Timbro **`1.39.1 · 4df91c0`**, **8 file**, zip
 `05ec35a4…f38da` (2,65 MB). Foglio: [`LEGGIMI-PACCHETTO-1.39.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.39.1.md).
@@ -23,7 +33,7 @@ cartella `solo-8-file-1.39.1`.
 - ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, e il clic su «Settori di aerovia» nel sommario di LIBB. Niente
   da ripubblicare: il sommario non sta nella copia pubblica.
 
-### ✅ A103 — Sommario: un gruppo intestato si chiude tutto intero (21 settembre 2026) — in main (`57293ebe`), 📦 in 1.39.1
+### ✅ A103 — Sommario: un gruppo intestato si chiude tutto intero (21 settembre 2026) — ✅ online in 1.39.1
 
 Chiesto dal committente: nei sommari con più documenti (pagine unite) e nelle vIPI ACC (settori di aerovia, APP
 remotizzati) si deve poter chiudere o aprire l'intera voce di un documento, così un indice lungo torna usabile.
