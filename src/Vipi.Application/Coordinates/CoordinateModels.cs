@@ -61,6 +61,12 @@ public enum CoordinateIssueKind
     /// solo al controllo); senza gli altri no.
     /// </summary>
     ArcoIncompleto,
+
+    /// <summary>
+    /// Testo AIP: archi e cerchi avrebbero superato <see cref="AipGeometryReader.MaxPuntiGenerati"/>. Quelli oltre
+    /// il tetto sono disegnati alla densità minima. <c>Dettaglio</c> = il tetto.
+    /// </summary>
+    TroppiPunti,
 }
 
 /// <summary>Una segnalazione, ancorata alla <paramref name="Riga"/> (1-based; 0 = riguarda tutto l'ingresso).</summary>

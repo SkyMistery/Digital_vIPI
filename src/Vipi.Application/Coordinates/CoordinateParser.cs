@@ -84,7 +84,9 @@ public static class CoordinateParser
     ];
 
     /// <summary>Legge il testo. Non lancia mai: ciò che non si capisce esce come segnalazione.</summary>
-    public static CoordinateReadResult Parse(string? testo)
+    /// <param name="puntiPerGrado">Densità di archi e cerchi, quando il testo è AIP. Negli altri formati non
+    /// cambia niente.</param>
+    public static CoordinateReadResult Parse(string? testo, double puntiPerGrado = ArcGeometry.DensitaBase)
     {
         if (string.IsNullOrWhiteSpace(testo)) return CoordinateReadResult.Vuoto;
 
@@ -100,6 +102,11 @@ public static class CoordinateParser
             var daJson = PolygonGeometry.ParsePoints(testo);
             if (daJson.Count > 0) return DaPunti(daJson, testo);
         }
+
+        // Il testo dell'AIP, archi e frasi: un ramo in più QUI, dove si decide già il formato (carta F1 §7.2).
+        // ⚠️ Scatta solo con una frase LUNGA del vocabolario («arc of circle», «point of origin», «circular
+        // area»…): ogni testo che oggi si legge bene non la contiene, e resta al lettore a righe identico.
+        if (AipGeometryReader.Riconosce(testo)) return AipGeometryReader.Leggi(testo, puntiPerGrado);
 
         var righe = testo.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var segnalazioni = new List<CoordinateIssue>();

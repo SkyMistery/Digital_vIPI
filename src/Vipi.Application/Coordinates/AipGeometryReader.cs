@@ -144,6 +144,13 @@ public static class AipGeometryReader
 
     private static readonly char[] Separatori = [' ', '\t', ';', ',', '/'];
 
+    /// <summary>
+    /// Il tetto dei punti che archi e cerchi possono GENERARE in un ingresso (carta F1 §8). Come
+    /// <see cref="CoordinateParser.MaxRighe"/> non difende il disco ma il circuito Blazor, da cui passano i punti:
+    /// 20 000 sono cinque cerchi a 10 pt/°, e più di tutti gli archi dell'AIP messi insieme a 1 pt/°.
+    /// </summary>
+    public const int MaxPuntiGenerati = 20_000;
+
     /// <summary>Il testo parla la lingua dell'AIP? Solo con una frase lunga del vocabolario.</summary>
     public static bool Riconosce(string? testo)
     {
@@ -349,6 +356,21 @@ public static class AipGeometryReader
         (double Lat, double Lon) centro = default;
         var rigaCentro = 0;
         var rigaArco = 0;
+        var generati = 0;
+        var tettoDetto = false;
+
+        // Oltre il tetto non si butta niente: l'arco si disegna rado, e lo si dice UNA volta.
+        bool OltreIlTetto(int punti)
+        {
+            if (generati + punti <= MaxPuntiGenerati) return false;
+            if (!tettoDetto)
+            {
+                tettoDetto = true;
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.TroppiPunti, 0, "",
+                    MaxPuntiGenerati.ToString(CultureInfo.InvariantCulture)));
+            }
+            return true;
+        }
 
         void ChiudiArea(bool dichiarata)
         {
@@ -364,6 +386,9 @@ public static class AipGeometryReader
             // controllarli. Ma lo si dice.
             if (raggio is null) Incompleto(rigaArco, "raggio");
             var arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, densita);
+            if (OltreIlTetto(arco.Punti.Count))
+                arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, ArcGeometry.DensitaMinima);
+            generati += arco.Punti.Count;
             if (raggio is not null && arco.RaggioIncoerente)
                 segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RaggioIncoerente, rigaCentro,
                     originali[rigaCentro - 1].Trim(),
@@ -422,6 +447,13 @@ public static class AipGeometryReader
 
             if (f.RaggioNm is { } rf) raggio = rf;
 
+            // 🔴 Una frase può CHIUDERE una cosa e APRIRNE un'altra: fra due cerchi di seguito le parole
+            // «within a 1.0 NM radius. Circular area centered on» sono una frase sola. Chiudere e poi saltare il
+            // resto (`continue`) perdeva l'apertura, e il cerchio dopo usciva come un'area di UN punto — trovato
+            // dal test del tetto. Quindi chi chiude prosegue; e il raggio, se l'ha speso la chiusura, non passa
+            // alla cosa nuova.
+            var raggioDellaFrase = f.RaggioNm;
+
             // Quello che si stava aspettando, e una frase al suo posto.
             switch (attesa)
             {
@@ -429,7 +461,7 @@ public static class AipGeometryReader
                     Arco(vertici[0], finoAllOrigine: true);
                     attesa = Attesa.Niente;
                     ChiudiArea(dichiarata: true);
-                    continue;
+                    break;
                 case Attesa.FineDellArco when sensi.Contains(Senso.FinoAlPunto):
                     attesa = Attesa.PuntoDiFine;
                     continue;
@@ -444,7 +476,8 @@ public static class AipGeometryReader
                     break;
                 case Attesa.CentroDelCerchio when rigaCentro > 0 && f.RaggioNm is { } rc:
                     EmettiCerchio(rc);
-                    continue;
+                    raggioDellaFrase = null;
+                    break;
                 case Attesa.CentroDelCerchio:
                     Incompleto(rigaArco, rigaCentro == 0 ? "centro" : "raggio");
                     attesa = Attesa.Niente;
@@ -455,7 +488,7 @@ public static class AipGeometryReader
             {
                 ChiudiArea(dichiarata: false);
                 attesa = Attesa.CentroDelCerchio;
-                raggio = f.RaggioNm;
+                raggio = raggioDellaFrase;
                 rigaCentro = 0;
                 rigaArco = f.Riga;
                 continue;
@@ -466,7 +499,7 @@ public static class AipGeometryReader
                 rigaArco = f.Riga;
                 if (vertici.Count == 0) { Incompleto(rigaArco, "inizio"); continue; }
                 orario = !sensi.Contains(Senso.Antiorario);
-                raggio = f.RaggioNm;
+                raggio = raggioDellaFrase;
                 if (sensi.Contains(Senso.Centro)) attesa = Attesa.CentroDellArco;
                 else Incompleto(rigaArco, "centro");
                 continue;
@@ -493,7 +526,10 @@ public static class AipGeometryReader
 
         void EmettiCerchio(double r)
         {
-            aree.Add(new CoordinateArea(null, ArcGeometry.Cerchio(centro, r, densita), AnelloChiuso: true));
+            var cerchio = ArcGeometry.Cerchio(centro, r, densita);
+            if (OltreIlTetto(cerchio.Count)) cerchio = ArcGeometry.Cerchio(centro, r, ArcGeometry.DensitaMinima);
+            generati += cerchio.Count;
+            aree.Add(new CoordinateArea(null, cerchio, AnelloChiuso: true));
             attesa = Attesa.Niente;
             raggio = null;
             rigaCentro = 0;

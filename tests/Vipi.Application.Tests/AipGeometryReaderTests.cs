@@ -245,6 +245,36 @@ public class AipGeometryReaderTests
             Assert.InRange(ArcGeometry.DistanzaNm((45, 9), p), raggioNm * 0.9999, raggioNm * 1.0001));
     }
 
+    /// <summary>
+    /// 🔴 Fra due cerchi, «within a 1.0 NM radius. Circular area centered on» è UNA frase: chiude il primo e
+    /// apre il secondo. Prima il secondo usciva come un'area di un punto; e il raggio del primo non deve
+    /// passare al secondo.
+    /// </summary>
+    [Fact]
+    public void Due_Cerchi_Di_Seguito_Ognuno_Col_Suo_Raggio()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "Circular area centered on 45°00'00\"N 009°00'00\"E within a 1.0 NM radius.\n" +
+            "Circular area centered on 46°00'00\"N 010°00'00\"E within a 2.0 NM radius.");
+
+        Assert.Empty(esito.Segnalazioni);
+        Assert.Equal(2, esito.Aree.Count);
+        Assert.InRange(ArcGeometry.DistanzaNm((45, 9), esito.Aree[0].Punti[0]), 0.999, 1.001);
+        Assert.InRange(ArcGeometry.DistanzaNm((46, 10), esito.Aree[1].Punti[0]), 1.999, 2.001);
+    }
+
+    /// <summary>Lo stesso con un arco: «till point of origin. Circular area centred on» chiude e apre.</summary>
+    [Fact]
+    public void Un_Arco_Che_Chiude_Sull_Origine_E_Un_Cerchio_Nella_Stessa_Frase()
+    {
+        var esito = AipGeometryReader.Leggi(
+            CagliariZona3 + " Circular area centered on 45°00'00\"N 009°00'00\"E within a 1.0 NM radius.");
+
+        Assert.Empty(esito.Segnalazioni);
+        Assert.Equal(2, esito.Aree.Count);
+        Assert.Equal(360, esito.Aree[1].Punti.Count);
+    }
+
     /// <summary>Stessi estremi, verso opposto: i due archi insieme fanno il giro.</summary>
     [Fact]
     public void L_Antiorario_Fa_L_Altro_Giro()
