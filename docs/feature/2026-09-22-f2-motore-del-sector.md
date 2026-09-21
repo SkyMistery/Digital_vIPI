@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 📝 CARTA, da far leggere al committente.** Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0 fatta. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -183,7 +183,10 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 - [ ] Prova di concordanza col lettore di vIPI verde.
 - [ ] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato.
 
-## §9 — Da decidere col committente prima della slice 0
+Commit: slice 0 = questo (progetto e test vuoti; l'unico test, `NessunaDipendenzaTests`, è stato provato
+**rosso** aggiungendo per un momento un riferimento a `Vipi.Domain`: fa il nome dell'assieme estraneo).
+
+## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 
 1. **Progetto nuovo `Vipi.Sectorfile`** (proposta) invece di allargare `Vipi.Infrastructure/Sectorfile`.
 2. **Campioni veri in repo + albero intero in locale** (proposta) invece di scaricare il sector in CI.

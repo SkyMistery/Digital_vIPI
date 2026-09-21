@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Il motore del sector di Aurora Sector Lab (F2, docs/feature/2026-09-22-f2-motore-del-sector.md): legge
+    ogni file del sector, ne capisce le righe, le valida e le riscrive identiche byte per byte in tutto
+    quello che non è stato toccato.
+
+    ZERO dipendenze, ed è una decisione (carta F2 §2.1): lo useranno l'app desktop del Lab e, più avanti,
+    l'import di vIPI. Il Lab non deve trascinarsi dietro EF, MySQL e il resto dell'host, e un motore che non
+    dipende da niente si prova da solo. Lo difende un test (NessunaDipendenzaTests).
+
+    Non entra nel pacchetto del sito: nessun progetto di src/ lo referenzia, per ora.
+  -->
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <!-- ⚠️ Il RID si dichiara come in tutte le librerie di src/: senza, il packages.lock.json cambia forma a
+         seconda di chi lo restora (vedi Vipi.AuroraProfiles.csproj e Directory.Build.props). -->
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vipi.Sectorfile.Tests" />
+  </ItemGroup>
+
+</Project>
