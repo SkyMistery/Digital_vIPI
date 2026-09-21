@@ -376,13 +376,32 @@ public static class CoordinateParser
 
         var angoli = new List<Angolo>();
         var etichette = new List<string>();
+        int? senzaEmisfero = null;   // l'angolo appena letto, se non ha detto l'emisfero
 
         foreach (var pezzo in riga.Split(Separatori, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
         {
             var token = pezzo.Trim('"', '\'', '[', ']', '(', ')');
             if (token.Length == 0) continue;
 
-            if (ProvaToken(token, angoli)) continue;
+            // 🔴 L'emisfero STACCATO, come lo scrive l'AIP: `44°51'24" N 008°14'57" E`. Da solo `N` non è una
+            // coordinata, e finiva fra le etichette: il primo faceva da tipo, l'ultimo da nome (l'area si
+            // chiamava «E»), e un `S` o un `W` si perdevano in silenzio. Trovato scrivendo la caratterizzazione
+            // della carta F1 (21 settembre 2026). ⚠️ Solo SUBITO DOPO un angolo che non l'ha già detto: altrove
+            // una lettera sola resta quello che era.
+            if (senzaEmisfero is { } i && token.Length == 1 && token[0] is 'N' or 'S' or 'E' or 'W')
+            {
+                angoli[i] = angoli[i] with { Emisfero = token[0] };
+                senzaEmisfero = null;
+                continue;
+            }
+
+            var prima = angoli.Count;
+            if (ProvaToken(token, angoli))
+            {
+                senzaEmisfero = angoli.Count == prima + 1 && angoli[prima].Emisfero is null ? prima : null;
+                continue;
+            }
+            senzaEmisfero = null;
             etichette.Add(pezzo);
         }
 
