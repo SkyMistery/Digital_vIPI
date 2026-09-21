@@ -12,9 +12,13 @@
    tipografici diversi si leggono come due livelli, e non lo sono. E l'introduzione — tre righe di prosa che
    spiegano il MECCANISMO — sta nel «?» come su tutte le pagine del giro (regola 7): serve a chi si chiede
    perché un'immagine risulti inutilizzata, non a chi guarda quante sono. *@
-<div class="panel diag-card">
+@* La scheda si piega insieme alle altre della colonna: vedi DiagFold. Nel <summary> va il solo titolo — il
+   «?» è un `<details>` e il tasto «Analizza» è un comando: tutt'e due dentro un `<summary>` sarebbero, il
+   primo HTML non valido e il secondo un clic che apre e chiude la scheda invece di analizzare. *@
+<DiagFold>
+    <Titolo><Icon Name="copy" Size="15" /> @L["MediaClean_Title"]</Titolo>
+    <ChildContent>
     <div class="doc-head st-head diag-card-head">
-        <h3 class="st-h2"><Icon Name="copy" Size="15" /> @L["MediaClean_Title"]</h3>
         <HelpHint AriaLabel="@L["MediaClean_Title"]" ExtraClass="wide">@L["MediaClean_Intro"]</HelpHint>
         <nav class="struct-nav">
             <button class="btn ghost" disabled="@_busy" @onclick="AnalyzeAsync">
@@ -90,7 +94,8 @@
             <div>@messaggio</div>
         </div>
     }
-</div>
+    </ChildContent>
+</DiagFold>
 
 @code {
     private IMediaMaintenance _media = default!;

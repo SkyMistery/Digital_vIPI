@@ -6,11 +6,12 @@
    (titoli = Poppins) erano diventate quelle sbagliate. Vale anche qui la regola di
    docs/design/regole-brand.md: niente colori e niente famiglie scritte a mano, solo token. */
 
-/* Tab 2D/3D del blocco AoR (toggle client-side in vipi-aor3d.js). */
-:where(.vipi-root) .aor-viewmode{ display: inline-flex; background: var(--tint-atmos); border-radius: 9px; padding: 3px; margin-bottom: 12px; }
-:where(.vipi-root) .aor-vm-btn{ border: 0; background: transparent; color: var(--brand-ink-2); padding: 7px 16px; border-radius: 7px; cursor: pointer; font-family: var(--font-head); font-size: 13px; font-weight: 500; }
-:where(.vipi-root) .aor-vm-btn.on{ background: var(--ivao-blue); color: var(--on-brand); font-weight: 600; }
-:where(.vipi-root) .aor-view[hidden]{ display: none; }
+/* 🔴 Il tab 2D/3D NON sta piu' qui: e' andato in vipi-theme.css il 21 settembre 2026.
+   Questo foglio arriva PIGRO — lo inietta vipi-aor3d.js — e puo' quindi vestire solo cio' che compare
+   INSIEME a lui, cioe' lo stage 3D da qui in giu'. Il toggle invece lo rende il server (AccAor.razor) e si
+   vede al primo disegno: vestendolo da qui, chi apriva un documento con una AoR vedeva ogni tanto due
+   bottoni nudi. Segnalato dal campo. Se aggiungi una regola qui, chiediti prima se quel che vesti esiste
+   in pagina PRIMA del gesto: in quel caso va nel tema. */
 
 :where(.vipi-root) .aor3d-bar{ display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 :where(.vipi-root) .aor3d-bar .btn.ghost.on{ background: var(--ivao-blue); color: var(--on-brand); }

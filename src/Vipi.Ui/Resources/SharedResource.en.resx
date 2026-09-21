@@ -2057,7 +2057,7 @@
   <data name="Ape_PublishedTitle" xml:space="preserve"><value>A release is effective: the document is public</value></data>
   <data name="Ape_DraftTitle" xml:space="preserve"><value>No release effective: publish from the «Versions» section</value></data>
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-import from IVAO</value></data>
-  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude and the ATC sector catalogue (respects the «Data sources» policy)</value></data>
+  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Re-fetch from IVAO everything this airport takes from the source: runways, Transition Altitude, the ATC sector catalogue and SID/STAR procedures (respects the «Data sources» policy)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Help on the airport editor</value></data>
   <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;The airport profile editor: every section opens and closes. Fields can be written only after «Edit», while you hold the lock.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Every change saves itself&lt;/b&gt; to the &lt;b&gt;draft&lt;/b&gt;: there is no «Save» button, and the header says «Saved». The public sees it only after publishing, in «Versions».&lt;/li&gt;&lt;li&gt;An &lt;b&gt;incomplete&lt;/b&gt; row is not saved: a warning appears and the last valid state stays.&lt;/li&gt;&lt;li&gt;Whatever comes from the source carries the lock and is not edited here: the policy lives in «Data sources».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Help on runway selection rules</value></data>
@@ -2182,7 +2182,7 @@
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>No unit found.</value></data>
   <data name="Ape_AlreadyAdded" xml:space="preserve"><value>already added</value></data>
   <data name="Ape_Linked" xml:space="preserve"><value>linked</value></data>
-  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import from IVAO completed: {0} runways, sectors {1} new / {2} updated.</value></data>
+  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import from IVAO completed: {0} runways, sectors {1} new / {2} updated, {3} SID/STAR procedures.</value></data>
   <data name="Ape_LastImportTitle" xml:space="preserve"><value>Last import of the ATC sector catalogue from IVAO</value></data>
   <data name="Ape_NotFound" xml:space="preserve"><value>Airport not found or no profile. Generate the document first from «Airport management».</value></data>
   <data name="Ape_ReadOnly" xml:space="preserve"><value>Read-only: you do not have permission to edit ACC {0}.</value></data>
@@ -2298,7 +2298,7 @@
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Remove this SID?</value></data>
   <data name="Ape_RemoveStarConfirm" xml:space="preserve"><value>Remove this STAR?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Remove this section?</value></data>
-  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude and sectors from IVAO? The fields imported from the source will be overwritten.</value></data>
+  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-import runways, Transition Altitude, sectors and SID/STAR procedures from IVAO? The fields imported from the source will be overwritten; manually added procedures, priorities and overrides stay.</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>month</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Mon</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Tue</value></data>

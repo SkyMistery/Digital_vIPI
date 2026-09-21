@@ -2062,7 +2062,7 @@
   <data name="Ape_PublishedTitle" xml:space="preserve"><value>Una release è in vigore: il documento è pubblico</value></data>
   <data name="Ape_DraftTitle" xml:space="preserve"><value>Nessuna release in vigore: pubblica dalla sezione «Versioni»</value></data>
   <data name="Ape_ReimportIvao" xml:space="preserve"><value>Re-importa da IVAO</value></data>
-  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude e catalogo settori (rispetta la policy in «Sorgenti dati»)</value></data>
+  <data name="Ape_ReimportIvaoTitle" xml:space="preserve"><value>Ri-scarica da IVAO tutto ciò che questo aeroporto prende dalla sorgente: piste, Transition Altitude, catalogo settori e procedure SID/STAR (rispetta la policy in «Sorgenti dati»)</value></data>
   <data name="Ape_HelpAria" xml:space="preserve"><value>Aiuto sull'editor aeroporto</value></data>
   <data name="Ape_HelpBody" xml:space="preserve"><value>&lt;p&gt;L'editor del profilo aeroporto: ogni sezione si apre e si chiude. I campi si scrivono solo dopo «Modifica», col lock tuo.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;b&gt;Ogni gesto scrive da solo&lt;/b&gt; nella &lt;b&gt;bozza&lt;/b&gt;: non c'è un tasto «Salva», e la testata dice «Salvato». Il pubblico vede solo dopo la pubblicazione, in «Versioni».&lt;/li&gt;&lt;li&gt;Una riga &lt;b&gt;incompleta&lt;/b&gt; non si salva: compare un avviso e resta l'ultimo stato valido.&lt;/li&gt;&lt;li&gt;Ciò che arriva dalla sorgente porta il lucchetto e non si tocca qui: la policy sta in «Sorgenti dati».&lt;/li&gt;&lt;/ul&gt;</value></data>
   <data name="Ape_RwRulesHelpAria" xml:space="preserve"><value>Aiuto sulle regole di scelta pista</value></data>
@@ -2187,7 +2187,7 @@
   <data name="Ape_NoUnitFound" xml:space="preserve"><value>Nessun ente trovato.</value></data>
   <data name="Ape_AlreadyAdded" xml:space="preserve"><value>già aggiunto</value></data>
   <data name="Ape_Linked" xml:space="preserve"><value>collegata</value></data>
-  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import da IVAO completato: {0} piste, settori {1} nuovi / {2} aggiornati.</value></data>
+  <data name="Ape_ReimportDone" xml:space="preserve"><value>Import da IVAO completato: {0} piste, settori {1} nuovi / {2} aggiornati, {3} procedure SID/STAR.</value></data>
   <!-- Il ↧ è la data d'import del CATALOGO SETTORI (il più recente): è l'unico pezzo di sorgente che porta
        un timestamp per riga. Prima l'etichetta diceva solo «ultimo import da IVAO» e sembrava riferita al
        bottone accanto, che allora non toccava i settori — ora li importa, quindi la data si muove davvero. -->
@@ -2306,7 +2306,7 @@
   <data name="Ape_RemoveSidConfirm" xml:space="preserve"><value>Rimuovere questa SID?</value></data>
   <data name="Ape_RemoveStarConfirm" xml:space="preserve"><value>Rimuovere questa STAR?</value></data>
   <data name="Ape_RemoveSectionConfirm" xml:space="preserve"><value>Rimuovere questa sezione?</value></data>
-  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude e settori? I campi importati dalla sorgente verranno sovrascritti.</value></data>
+  <data name="Ape_ReimportConfirm" xml:space="preserve"><value>Re-importare da IVAO piste, Transition Altitude, settori e procedure SID/STAR? I campi importati dalla sorgente verranno sovrascritti; le procedure aggiunte a mano, le priorità e le forzature restano.</value></data>
   <data name="Ape_Month" xml:space="preserve"><value>mese</value></data>
   <data name="Ape_Mon" xml:space="preserve"><value>Lun</value></data>
   <data name="Ape_Tue" xml:space="preserve"><value>Mar</value></data>

@@ -1,0 +1,54 @@
+@* Una scheda della colonna destra della Diagnostica, che si apre e si chiude — e che CHIUDE LE SORELLE.
+
+   Chiesto dal committente il 21 settembre 2026: le quattro schede («Chi può editare», «Documenti da
+   rivedere», la copia del database, le immagini) stavano tutte aperte una sotto l'altra, e per arrivare
+   all'ultima si scorrevano le altre tre.
+
+   🔴 L'esclusività è NATIVA, non scritta da noi: `<details name="…">` fa sì che aprirne una chiuda le altre
+   dello stesso nome. Zero JavaScript, zero stato da tenere, e funziona anche se il circuito Blazor non è
+   ancora partito — che su questa pagina, che è la pagina dove si va quando qualcosa non va, è esattamente la
+   condizione in cui la si apre. Dove il browser non conoscesse `name`, le schede restano collassabili e
+   semplicemente non si chiudono a vicenda: si degrada verso il comportamento utile.
+
+   ⚠️ Nel <summary> ci stanno SOLO il chevron e il titolo. Il «?» e i comandi della scheda scendono nel
+   corpo, e non è pigrizia: `HelpHint` è a sua volta un `<details>`, e un `<details>` dentro un `<summary>`
+   non è HTML valido — per di più il clic sul «?» aprirebbe e chiuderebbe la scheda che lo contiene.
+   L'alternativa era il `@@onclick:preventDefault` che usa `dse-head` negli editor; là i comandi DEVONO stare
+   in testata perché la sezione si sposta e si rinomina da lì, qui invece servono solo a scheda aperta.
+
+   ⚠️ Niente `data-persist`, al contrario di CollapsibleBlock: ricordare quale scheda era aperta e insieme
+   pretendere che ne resti aperta una sola sono due regole che litigano al primo ricarico. Qui apre la prima
+   e basta. *@
+<details class="panel diag-card diag-fold" name="@Gruppo" open="@Aperta">
+    <summary class="diag-fold-head">
+        <span class="cb-chev" aria-hidden="true">▸</span>
+        <h3 class="st-h2">@Titolo</h3>
+        @if (!string.IsNullOrWhiteSpace(Contatore))
+        {
+            @* Il numero resta visibile a scheda CHIUSA: è la sola cosa che dice se vale la pena aprirla. *@
+            <span class="diag-fold-n">@Contatore</span>
+        }
+    </summary>
+    <div class="diag-fold-body">@ChildContent</div>
+</details>
+
+@code {
+    /// <summary>Il titolo, come frammento: ci sta dentro l'icona che le schede avevano già.</summary>
+    [Parameter] public RenderFragment? Titolo { get; set; }
+
+    /// <summary>Il corpo: «?», comandi e contenuto.</summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>Un numero da mostrare accanto al titolo, visibile anche da chiusa. Vuoto = niente.</summary>
+    [Parameter] public string? Contatore { get; set; }
+
+    /// <summary>
+    /// Se nasce aperta. ⚠️ <b>Una sola per gruppo</b>: con <c>name</c> il browser tiene aperta l'ultima che
+    /// trova con <c>open</c> e chiude le altre, quindi dichiararne due non è un errore visibile — è una
+    /// scheda che si apre e non si sa perché quell'altra no.
+    /// </summary>
+    [Parameter] public bool Aperta { get; set; }
+
+    /// <summary>Il gruppo dell'accordion: le schede con lo stesso nome si escludono a vicenda.</summary>
+    [Parameter] public string Gruppo { get; set; } = "diag";
+}

@@ -180,9 +180,11 @@
                    confermare che i pattern siano quelli giusti, non solo a segnalare quando non lo sono. *@
                 @if (_admin is not null)
                 {
-                    <div class="panel diag-card">
+                    @* ⚠️ È questa a nascere aperta, ed è l'unica del gruppo che può: vedi DiagFold.Aperta. *@
+                    <DiagFold Aperta="true" Contatore="@(_admin.RosterEmpty ? null : _admin.Rows.Count.ToString())">
+                        <Titolo><Icon Name="key" Size="15" /> @L["Diag_AdminTitle"]</Titolo>
+                        <ChildContent>
                         <div class="doc-head st-head diag-card-head">
-                            <h2 class="h-sect st-h2"><Icon Name="key" Size="15" /> @L["Diag_AdminTitle"]</h2>
                             @* I pattern sono espressioni regolari: due righe di configurazione sempre a
                                schermo, che servono QUANDO qualcosa non torna. Nel «?», col loro perché. *@
                             <HelpHint AriaLabel="@L["Diag_AdminHelpAria"]" ExtraClass="wide">
@@ -241,16 +243,18 @@
                                 </div>
                             }
                         }
-                    </div>
+                        </ChildContent>
+                    </DiagFold>
                 }
 
                 @* La casella degli impatti: che cosa, a monte, ha toccato i documenti. Sta QUI e non nella
                    pagina Sorgenti perché il giro che la alimenta non interroga nessuna sorgente — quell'elenco
                    si intitola «stato degli import», e una riga che non importa niente lì dentro mentirebbe
                    (è la stessa ragione per cui ne resta fuori la riconciliazione delle aree estere). *@
-                <div class="panel diag-card">
+                <DiagFold Contatore="@(_impatti.Count == 0 ? null : _impatti.Values.Sum().ToString())">
+                    <Titolo><Icon Name="warning" Size="15" /> @L["Diag_ImpactsTitle"]</Titolo>
+                    <ChildContent>
                     <div class="doc-head st-head diag-card-head">
-                        <h2 class="h-sect st-h2"><Icon Name="warning" Size="15" /> @L["Diag_ImpactsTitle"]</h2>
                         <HelpHint AriaLabel="@L["Diag_ImpactsTitle"]" ExtraClass="wide">
                             <p style="margin:0">@L["Diag_ImpactsHint"]</p>
                         </HelpHint>
@@ -331,7 +335,8 @@
                             <span class="help">@esito</span>
                         }
                     </div>
-                </div>
+                    </ChildContent>
+                </DiagFold>
 
                 @* Manutenzione del deposito immagini: sta qui perché è la pagina delle azioni di manutenzione
                    ed è già riservata agli admin. Il quadro di consistenza può essere pulito e lo spazio da

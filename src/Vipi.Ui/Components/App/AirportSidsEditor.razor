@@ -394,7 +394,9 @@
             @if (Editing)
             {
                 <div style="margin-top:10px;display:flex;gap:8px;align-items:center">
-                    <button class="btn ghost" @onclick="AddSid">+ SID</button>
+                    @* ⚠️ `Etichetta` e non «SID» cablato: questa stessa tabella serve i due versi, e sugli
+                       ARRIVI il tasto diceva «+ SID». Segnalato dal campo il 21 settembre 2026. *@
+                    <button class="btn ghost" @onclick="AddSid">+ @Etichetta</button>
                     @if (!AirportSaveGate.Sids(Manual)) { <span class="muted">@L["Ape_RowIncomplete"]</span> }
                 </div>
             }

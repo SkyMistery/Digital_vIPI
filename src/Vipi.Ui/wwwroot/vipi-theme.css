@@ -2906,6 +2906,27 @@
    spento e' --ink-soft, che il foglio ha gia' misurato a 5,89:1 (vedi il blocco dei token). */
 :where(.vipi-root) .aor-chip .sw{width:13px;height:13px;border-radius:3px;border:1.5px solid var(--ivao-lightblue);display:inline-block;opacity:.45;transition:.18s}
 
+/* ── Tab 2D/3D del blocco AoR ──────────────────────────────────────────────────
+   🔴 STANNO QUI, e ci sono arrivate dal foglio del 3D il 21 settembre 2026. Il toggle e' reso dal SERVER
+   (AccAor.razor) e si vede al PRIMO disegno, mentre `vipi-aor3d.css` e' un foglio PIGRO: lo inietta
+   `vipi-aor3d.js` dopo. Chi apriva un documento con una AoR vedeva ogni tanto due bottoni nudi al posto
+   del toggle — segnalato dal campo, ed e' una corsa fra il primo disegno e la rete, quindi si vede solo
+   quando la rete e' lenta o la cache fredda.
+
+   ⚠️ Il ragionamento che le aveva messe la' non era sbagliato, era PARZIALE: «lo stage 3D compare dopo un
+   gesto, quindi non c'e' nessun primo disegno da rovinare» vale per lo stage — dalla riga .aor3d-bar in
+   giu' — e NON per il toggle, che il gesto lo deve ancora ricevere. E' la stessa lezione di `.print-only`,
+   che per la stessa ragione era gia' uscita da vipi-print.css.
+
+   REGOLA: un foglio caricato pigro puo' vestire solo cio' che COMPARE col gesto che lo carica. Quel che
+   sta in pagina prima va vestito da un foglio che sta nel <head>. */
+:where(.vipi-root) .aor-viewmode{display:inline-flex;background:var(--tint-atmos);border-radius:9px;padding:3px;margin-bottom:12px}
+:where(.vipi-root) .aor-vm-btn{border:0;background:transparent;color:var(--brand-ink-2);padding:7px 16px;border-radius:7px;cursor:pointer;font-family:var(--font-head);font-size:13px;font-weight:500}
+:where(.vipi-root) .aor-vm-btn.on{background:var(--ivao-blue);color:var(--on-brand);font-weight:600}
+/* ⚠️ Anche questa: senza, la vista 3D nascosta si vedrebbe sotto la 2D finche' il foglio pigro non arriva.
+   L'attributo `hidden` ha il suo default nel foglio del browser, ma qui la riga e' esplicita e costa nulla. */
+:where(.vipi-root) .aor-view[hidden]{display:none}
+
 /* ── HelpHint: "?" contestuale (popover nativo <details>) ─────────────────────── */
 :where(.vipi-root) .help-hint{display:inline-block;position:relative;vertical-align:middle}
 :where(.vipi-root) .help-hint>summary{list-style:none;cursor:help;display:inline-flex;align-items:center;color:var(--ink-soft);line-height:1}
@@ -3973,6 +3994,26 @@
 :where(.vipi-root) .struct .diag-side>.panel:has(>.st-scroll){flex:1 1 auto;min-height:160px}
 :where(.vipi-root) .struct.pw-900 .diag-side{overflow:visible}
 /* La testata della scheda e' la stessa delle pagine, in piccolo: titolo e «?» su una riga. */
+/* ── Schede della Diagnostica, pieghevoli a fisarmonica (DiagFold) ─────────────
+   L'esclusività la fa `<details name>` nativo: qui c'è solo l'aspetto. La testata si legge come le altre
+   `.diag-card-head` — stesso peso, stessa dimensione — perché sono le stesse schede di prima, non un
+   livello nuovo. */
+:where(.vipi-root) .struct .diag-side>.diag-fold{display:block;padding:16px;overflow:hidden}
+:where(.vipi-root) .diag-fold>.diag-fold-head{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;margin:0}
+:where(.vipi-root) .diag-fold>.diag-fold-head::-webkit-details-marker{display:none}
+:where(.vipi-root) .diag-fold>.diag-fold-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px;margin:0;flex:1;min-width:0}
+:where(.vipi-root) .diag-fold>.diag-fold-head .cb-chev{flex:none;color:var(--brand-ink);font-size:15px;line-height:1;padding:2px 4px;transition:transform .18s;border-radius:6px}
+:where(.vipi-root) .diag-fold>.diag-fold-head:hover .cb-chev{background:var(--tint-atmos)}
+:where(.vipi-root) .diag-fold[open]>.diag-fold-head .cb-chev{transform:rotate(90deg)}
+/* Il contatore resta leggibile da chiusa: e' la sola cosa che dice se vale la pena aprire. */
+:where(.vipi-root) .diag-fold>.diag-fold-head .diag-fold-n{flex:none;font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);background:var(--surface-soft);border:1px solid var(--line);border-radius:999px;padding:1px 8px}
+:where(.vipi-root) .diag-fold>.diag-fold-body{margin-top:12px;min-width:0}
+/* ⚠️ La scheda CHIUSA non deve reggere l'altezza di una aperta: la colonna e' un flex, e senza questa riga
+   una fisarmonica chiusa lasciava il suo buco. Aperta torna a crescere. */
+:where(.vipi-root) .struct .diag-side>.diag-fold:not([open]){flex:none}
+:where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll){flex:1 1 auto;min-height:160px;display:flex;flex-direction:column}
+:where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll)>.diag-fold-body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+
 :where(.vipi-root) .struct .diag-card-head{margin-bottom:10px}
 :where(.vipi-root) .struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
 :where(.vipi-root) .struct .diag-admin{min-width:0}

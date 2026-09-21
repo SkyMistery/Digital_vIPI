@@ -811,9 +811,24 @@ else
     private Task SaveLinks() => Guarded(() => Profile.SaveFrequencyLinksAsync(_icao, _linkIds.ToList()));
 
     /// <summary>«Re-import from IVAO»: tutto quello che l'aeroporto prende dalla sorgente, in un colpo —
-    /// piste + Transition Altitude (secondo la policy «Sorgenti dati») E catalogo settori. Prima faceva solo
-    /// le prime due e non lasciava traccia: il ↧ accanto al bottone è la data d'import dei SETTORI, quindi
-    /// non si muoveva mai e sembrava che il bottone non facesse niente. L'esito ora è scritto nel callout.</summary>
+    /// piste + Transition Altitude (secondo la policy «Sorgenti dati»), catalogo settori E procedure
+    /// (SID + STAR). Prima faceva solo le prime due e non lasciava traccia: il ↧ accanto al bottone è la data
+    /// d'import dei SETTORI, quindi non si muoveva mai e sembrava che il bottone non facesse niente. L'esito
+    /// ora è scritto nel callout.
+    ///
+    /// <para>🔴 <b>Le PROCEDURE sono entrate qui il 21 settembre 2026, e la ragione è il campo.</b> Un
+    /// controllore ha aperto LICB, ha premuto questo tasto — che dice «tutto ciò che questo aeroporto prende
+    /// dalla sorgente» — e le STAR non sono arrivate. Non era un guasto: le procedure le portava solo il
+    /// tasto dentro la tabella delle SID, e sulla tabella degli ARRIVI quel tasto per disegno non c'è.
+    /// Quindi chi guardava le STAR non aveva, da dove stava, nessuna strada per importarle. LICB le ha
+    /// (quattro: ENEP1T, LIBR1T, NOTR1T, NELD1T) e restavano fuori.</para>
+    ///
+    /// <para>⚠️ <b>Il nome era già una promessa</b>, e la promessa era falsa: un tasto che dice «tutto» e ne
+    /// fa due terzi non è un tasto da rinominare, è un tasto da completare. Quello dentro la tabella SID
+    /// resta: serve a chi vuole rifare le sole procedure senza toccare piste e settori.</para>
+    ///
+    /// <para>⚠️ L'import delle procedure <b>rimpiazza le importate e preserva</b> manuali, priorità e
+    /// forzature — lo stesso che faceva già dall'altro tasto. La domanda di conferma lo dice.</para></summary>
     private async Task Reimport()
     {
         // ⚠️ Le due domande su «hai roba non salvata?» sono cadute con i buffer: `LoadAsync()` qui sotto
@@ -824,10 +839,15 @@ else
 
         AirportSectorImportResult? sectors = null;
         RunwayMergeOutcome? piste = null;
+        var procedure = 0;
         var ok = await Guarded(async () =>
         {
             piste = await Profile.ReimportFromSourceAsync(_icao);
             sectors = await Sectors.ImportFromSourceAsync(_icao);
+            // ⚠️ `ImportForCurrentUserAsync` e non `ImportAsync`: quest'ultimo è l'ingresso del giro
+            // periodico, che gira senza utente e quindi senza controllo di autorizzazione. Qui c'è una
+            // persona che ha premuto. Vedi IProcedureImporter.
+            procedure = await ProcedureImporter.ImportForCurrentUserAsync(_icao);
         });
         if (!ok) return;
 
@@ -835,7 +855,7 @@ else
         // Dopo LoadAsync, che azzera i buffer: l'esito del merge è l'unica cosa che sa quali piste la
         // sorgente non nomina più, e va riposato sopra il caricamento, non prima.
         _rwyOrfane = piste?.OrphansWithData ?? Array.Empty<string>();
-        _saveInfo = L["Ape_ReimportDone", _rwys.Count, sectors?.Created ?? 0, sectors?.Updated ?? 0].Value;
+        _saveInfo = L["Ape_ReimportDone", _rwys.Count, sectors?.Created ?? 0, sectors?.Updated ?? 0, procedure].Value;
         if (_rwyOrfane.Count > 0)
             _saveInfo += " " + L["Ape_ReimportOrphans", string.Join(", ", _rwyOrfane)].Value;
         _saveInfoWarn = _rwyOrfane.Count > 0;

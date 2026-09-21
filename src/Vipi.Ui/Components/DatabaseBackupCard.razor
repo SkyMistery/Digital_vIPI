@@ -9,9 +9,13 @@
 @inherits ScopeProprioCheAspetta
 @inject IStringLocalizer<SharedResource> L
 
-<div class="panel diag-card">
+@* La scheda si piega insieme alle altre della colonna: vedi DiagFold. Il titolo va nel <summary>, il «?»
+   resta qui nel corpo — un `HelpHint` è un `<details>`, e un `<details>` dentro un `<summary>` non è HTML
+   valido. *@
+<DiagFold>
+    <Titolo><Icon Name="download" Size="15" /> @L["Backup_Title"]</Titolo>
+    <ChildContent>
     <div class="doc-head st-head diag-card-head">
-        <h3 class="st-h2"><Icon Name="download" Size="15" /> @L["Backup_Title"]</h3>
         <HelpHint AriaLabel="@L["Backup_Title"]" ExtraClass="wide">
             <p style="margin:0 0 6px">@L["Backup_Intro"]</p>
             <p style="margin:0 0 6px">@L["Backup_Excluded"]</p>
@@ -67,7 +71,8 @@
             }
         </p>
     }
-</div>
+    </ChildContent>
+</DiagFold>
 
 @code {
     private IDatabaseBackup _backup = default!;

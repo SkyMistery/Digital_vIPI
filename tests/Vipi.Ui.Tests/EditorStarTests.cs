@@ -62,6 +62,25 @@ public class EditorStarTests : TestContext
         Assert.Contains("col-climb", Rendi(ProcedureKind.Sid).Markup);
     }
 
+    /// <summary>
+    /// 🔴 Segnalato dal campo il 21 settembre 2026: sulla tabella degli ARRIVI il tasto «aggiungi» diceva
+    /// <b>«+ SID»</b>. Era una stringa <b>cablata</b> nel markup, mentre due metri più sotto il componente
+    /// aveva già <c>Etichetta =&gt; Arrivi ? "STAR" : "SID"</c> e la usava dappertutto.
+    ///
+    /// <para>⚠️ Nessun test l'aveva preso perché tutti guardavano le <b>chiavi</b> di traduzione, e quella
+    /// stringa non era una chiave: era testo nudo, quindi invisibile anche al presidio che pretende che le
+    /// frasi stiano nei resx. Qui si guarda il testo reso.</para>
+    /// </summary>
+    [Fact]
+    public void Il_Tasto_Aggiungi_Dice_Il_Verso_Giusto()
+    {
+        Assert.Contains("+ STAR", Rendi(ProcedureKind.Star).Markup);
+        Assert.DoesNotContain("+ SID", Rendi(ProcedureKind.Star).Markup);
+
+        Assert.Contains("+ SID", Rendi(ProcedureKind.Sid).Markup);
+        Assert.DoesNotContain("+ STAR", Rendi(ProcedureKind.Sid).Markup);
+    }
+
     [Fact]
     public void I_Titoli_Sono_Quelli_Degli_Arrivi()
     {
