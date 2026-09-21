@@ -76,7 +76,11 @@
                ma contenuto — qui non serve un registro né un'altra consegna per sapere com'è andata. *@
             @if (_tempi.Count > 0)
             {
-                <span class="muted diag-quando diag-tempi" title="@L["Diag_TimingsTitle"]">
+                @* Il dettaglio dei controlli, sonda per sonda, sta nel `title` e non in testata: serve quando
+                   «controlli» pesa, non a ogni apertura. *@
+                <span class="muted diag-quando diag-tempi"
+                      title="@(L["Diag_TimingsTitle"].Value + (_tempiControlli.Count == 0 ? "" : "\n\n" + string.Join("\n", _tempiControlli.Select(t => $"{t.Key}: {t.Value} ms"))))"
+                      data-controlli="@string.Join(" · ", _tempiControlli.Select(t => $"{t.Key} {t.Value}"))">
                     @string.Join(" · ", _tempi.Select(t => $"{t.Key} {t.Value} ms"))
                 </span>
             }
@@ -381,6 +385,9 @@
     /// </summary>
     private IReadOnlyDictionary<string, long> _tempi = new Dictionary<string, long>();
 
+    /// <summary>«controlli» sonda per sonda: vedi <c>IConsistencyReportService.UltimiTempi</c>.</summary>
+    private IReadOnlyDictionary<string, long> _tempiControlli = new Dictionary<string, long>();
+
     // La casella degli impatti: quante righe aperte per tipo, e quando ha girato l'ultima volta il controllo.
     private IReadOnlyDictionary<Vipi.Domain.ImpactKind, int> _impatti = new Dictionary<Vipi.Domain.ImpactKind, int>();
     private DateTime? _ultimaDeriva;
@@ -474,6 +481,7 @@
             var all = await Consistency.RunAsync();
             _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
             Segna("controlli");
+            _tempiControlli = Consistency.UltimiTempi;
 
             _admin = await AdminCoverage.DescribeAsync();
             Segna("admin");

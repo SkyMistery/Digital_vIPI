@@ -73,6 +73,49 @@ public class CollassoDelleClaimTests
         claims.FirstOrDefault(c => c.Volume.Callsign.Equals(settore, StringComparison.OrdinalIgnoreCase))
             .SessionCallsign;
 
+    // ---- La memoria dei volumi (21 settembre 2026) -------------------------------------------------------
+
+    /// <summary>
+    /// 🔴 <b>Con la memoria dei volumi le pretese sono le STESSE.</b> Misurato il 21 settembre 2026: ricostruire
+    /// i volumi dal JSON dei poligoni a ogni chiamata era il 90% del tempo della Diagnostica. La memoria non deve
+    /// cambiare nessuna risposta — né il padrone, né la profondità, né il volume — solo quante volte si calcola.
+    /// </summary>
+    [Fact]
+    public void Con_la_memoria_dei_volumi_le_pretese_non_cambiano()
+    {
+        var memoria = new Dictionary<SectorVolumeRow, SectorVolume?>(ReferenceEqualityComparer.Instance);
+        foreach (var quota in new[] { 10000, 35000 })
+            foreach (var online in new[] { Online(Ws5, Es2), Online(Ws2), Online(Es5, Ws2) })
+            {
+                var senza = SectorVolumeMap.BuildClaims(Milano, online, CatenaA(quota, online));
+                var con = SectorVolumeMap.BuildClaims(Milano, online, CatenaA(quota, online), memoria);
+
+                Assert.Equal(
+                    senza.Select(c => (c.SessionCallsign, c.Volume.Callsign, c.Depth, c.Volume.BottomFl, c.Volume.TopFl)),
+                    con.Select(c => (c.SessionCallsign, c.Volume.Callsign, c.Depth, c.Volume.BottomFl, c.Volume.TopFl)));
+            }
+
+        // Una voce per riga, non una per chiamata: sei chiamate, quattro righe.
+        Assert.Equal(Milano.Count, memoria.Count);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>La memoria si CONSULTA</b>, e non si limita a riempirsi. Un volume già in memoria deve uscire tale e
+    /// quale — lo stesso oggetto — invece di essere ricostruito: senza questa prova, una memoria scritta e mai
+    /// letta passerebbe il test di sopra lasciando il tempo esattamente dov'era.
+    /// </summary>
+    [Fact]
+    public void Un_volume_gia_in_memoria_non_si_ricostruisce()
+    {
+        var memoria = new Dictionary<SectorVolumeRow, SectorVolume?>(ReferenceEqualityComparer.Instance);
+        var online = Online(Ws2, Es2, Ws5, Es5);
+        var prima = SectorVolumeMap.BuildClaims(Milano, online, null, memoria);
+        var seconda = SectorVolumeMap.BuildClaims(Milano, online, null, memoria);
+
+        foreach (var (a, b) in prima.Zip(seconda))
+            Assert.Same(a.Volume, b.Volume);
+    }
+
     [Fact]
     public void Senza_collassatore_ES5_chiuso_finisce_al_PADRE_e_la_riga_dichiarata_non_conta()
     {

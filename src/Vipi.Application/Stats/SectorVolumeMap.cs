@@ -32,9 +32,26 @@ public static class SectorVolumeMap
     /// la domanda è «di chi era quell'aereo», e la catena di ripiego non c'entra. Vedi
     /// <c>docs/feature/2026-08-31-ricaduta-verticale-e-cicli.md</c> §2 e la carta del 10 settembre 2026.</para>
     /// </param>
+    /// <param name="volumi">
+    /// Una memoria dei volumi già costruiti, per riga, che il chiamante tiene e passa a ogni chiamata sullo
+    /// <b>stesso</b> elenco di settori. Omessa ⇒ ogni volume si ricostruisce, com'era.
+    ///
+    /// <para>🔴 <b>Perché esiste, misurato il 21 settembre 2026.</b> Il volume di un settore si costruisce
+    /// analizzando il JSON del suo poligono (<see cref="SectorVolume.From"/>), e dipende SOLO dalla riga e
+    /// dall'elenco — mai da chi è online, mai dalla quota. Eppure si rifaceva a ogni chiamata: la Diagnostica
+    /// chiede le pretese per ogni coppia (settori aperti, quota) dei suoi punti di trasferimento, e ogni volta
+    /// rianalizzava i poligoni di tutti i settori. Era il 90% di «controlli»: ~400 ms su ~470 a caldo, pagati
+    /// due volte a ogni apertura della pagina.</para>
+    ///
+    /// <para>⚠️ Si tiene per riga e per <b>riferimento</b>, non per valore: <see cref="SectorVolumeRow"/> è un
+    /// record, e l'uguaglianza per valore confronterebbe ogni volta l'elenco dei pezzi per trovare la stessa
+    /// riga che si ha già in mano. E la memoria appartiene al chiamante, non a questa classe: una cache
+    /// statica sopravvivrebbe ai cataloghi che cambiano.</para>
+    /// </param>
     public static IReadOnlyList<SectorClaim> BuildClaims(
         IReadOnlyList<SectorVolumeRow> settori, IReadOnlySet<string> online,
-        Func<string, string?>? proprietarioDi = null)
+        Func<string, string?>? proprietarioDi = null,
+        IDictionary<SectorVolumeRow, SectorVolume?>? volumi = null)
     {
         if (settori.Count == 0 || online.Count == 0) return Array.Empty<SectorClaim>();
 
@@ -52,7 +69,9 @@ public static class SectorVolumeMap
         {
             if (proprietarioDi(s.Callsign) is not { Length: > 0 } padrone) continue;
 
-            var volume = VolumeOf(s, settori);
+            SectorVolume? volume;
+            if (volumi is null) volume = VolumeOf(s, settori);
+            else if (!volumi.TryGetValue(s, out volume)) volumi[s] = volume = VolumeOf(s, settori);
             if (volume is null) continue;   // niente poligono utilizzabile: non rivendica nulla
 
             claims.Add(new SectorClaim(padrone, volume, profondita[s.Callsign], s.Type));

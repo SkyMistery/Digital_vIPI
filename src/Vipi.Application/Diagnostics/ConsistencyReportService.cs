@@ -12,6 +12,20 @@ namespace Vipi.Application.Diagnostics;
 public interface IConsistencyReportService
 {
     Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Quanto ha impiegato ogni pezzo dell'ultimo <see cref="RunAsync"/> di questa istanza, in millisecondi,
+    /// nell'ordine in cui è girato. Vuoto prima del primo giro.
+    ///
+    /// <para>🔴 <b>Perché esiste.</b> Il 21 settembre 2026 la Diagnostica mostrava «controlli 708 ms» in
+    /// produzione, e lo stesso ordine di grandezza in locale — mentre il carico dei dati a caldo ne costa
+    /// 60-87. Il tempo stava quindi fra le otto sonde, e dall'esterno non si poteva dire in quale. È
+    /// [[dividi-il-totale]]: la pagina lo mostra, così la prossima domanda ha già la risposta.</para>
+    ///
+    /// <para>⚠️ Non passa da un registro, ed è una scelta: questo livello non dipende dal logging, e non ci
+    /// si mette una dipendenza per una misura che serve a una pagina sola.</para>
+    /// </summary>
+    IReadOnlyDictionary<string, long> UltimiTempi { get; }
 }
 
 /// <inheritdoc />
@@ -116,8 +130,25 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// </summary>
     private const string DoveDocumenti = "/services/vsop/versions";
 
+    /// <summary>Vedi <see cref="IConsistencyReportService.UltimiTempi"/>. Ordinato per inserimento: l'ordine è
+    /// quello in cui le sonde sono girate, che è anche l'ordine in cui si leggono.</summary>
+    private readonly List<KeyValuePair<string, long>> _tempi = new();
+
+    public IReadOnlyDictionary<string, long> UltimiTempi =>
+        _tempi.GroupBy(t => t.Key).ToDictionary(g => g.Key, g => g.Sum(t => t.Value));
+
+    /// <summary>Esegue e cronometra un passo dentro un pezzo: serve a spezzare quello dei dati, che fa carico,
+    /// punti, rinvio e analisi in una lambda sola.</summary>
+    private async Task<T> Misura<T>(string nome, Func<Task<T>> passo)
+    {
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try { return await passo(); }
+        finally { _tempi.Add(new(nome, sw.ElapsedMilliseconds)); }
+    }
+
     public async Task<IReadOnlyList<ConsistencyFinding>> RunAsync(CancellationToken ct = default)
     {
+        _tempi.Clear();
         var findings = new List<ConsistencyFinding>();
 
         // ⚠️ Ogni pezzo nel proprio try, e il guasto diventa un RILIEVO invece di travolgere il resto.
@@ -134,10 +165,16 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         // applicata alle sonde di chi quel registro lo legge.
         // ⚠️ Il guasto eredita l'AREA del pezzo che non è riuscito: è l'area di cui il report non sa più dire
         // niente, ed è la sola cosa che rende quel rilievo utile a chi guarda i conteggi per area.
+        // ⚠️ Spezzato in quattro passi misurati: tutto insieme era «controlli 708 ms» e basta, e il carico —
+        // l'indiziato ovvio — a caldo ne costa 60-87. Vedi UltimiTempi.
         await Raccogli(findings, "incongruenze dei dati", "Diag_Pezzo_Dati", ConsistencyArea.Dati,
-            async () => Analyze(await _repo.LoadAsync(ct),
-                _punti is null ? null : await _punti.GetAsync(ct),
-                await ContestoDelRinvioAsync(ct)), ct);
+            async () =>
+            {
+                var dataset = await Misura("dati·carico", () => _repo.LoadAsync(ct));
+                var punti = _punti is null ? null : await Misura("dati·punti", () => _punti.GetAsync(ct));
+                var rinvio = await Misura("dati·rinvio", () => ContestoDelRinvioAsync(ct));
+                return await Misura("dati·analisi", () => Task.FromResult(Analyze(dataset, punti, rinvio)));
+            }, ct);
         if (_schema is not null)
             await Raccogli(findings, "drift di schema", "Diag_Pezzo_Schema", ConsistencyArea.Schema, () => _schema.RunAsync(ct), ct);
         if (_admin is not null)
@@ -167,9 +204,12 @@ public sealed class ConsistencyReportService : IConsistencyReportService
     /// <summary>
     /// Esegue un pezzo del report e ne accoda i rilievi; se lancia, accoda <b>il guasto</b> e prosegue.
     /// </summary>
-    private static async Task Raccogli(List<ConsistencyFinding> findings, string pezzo, string pezzoKey,
+    private async Task Raccogli(List<ConsistencyFinding> findings, string pezzo, string pezzoKey,
         ConsistencyArea area, Func<Task<IReadOnlyList<ConsistencyFinding>>> esegui, CancellationToken ct)
     {
+        // ⚠️ Il tempo si scrive anche quando la sonda lancia: una sonda che fallisce dopo dieci secondi di
+        // timeout è esattamente quella che si vuole vedere in questa riga.
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
             findings.AddRange(await esegui());
@@ -190,6 +230,7 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 DetailArgs: new object[] { ex.GetType().Name, ex.Message },
                 EntityKey: pezzoKey));
         }
+        finally { _tempi.Add(new(pezzo, sw.ElapsedMilliseconds)); }
     }
 
     /// <summary>
@@ -542,6 +583,9 @@ public sealed class ConsistencyReportService : IConsistencyReportService
         if (rinvio is not null && d.TransferLadders.Count > 0)
         {
             var perAcc = new SortedDictionary<string, SortedSet<string>>(StringComparer.OrdinalIgnoreCase);
+            // ⚠️ Fuori dal ciclo: `TuttiISettori` costruisce un insieme nuovo a ogni lettura.
+            var tutti = rinvio.TuttiISettori;
+            var senzaDi = new Dictionary<string, Content.CoverageFallbackContext>(StringComparer.OrdinalIgnoreCase);
             foreach (var t in d.TransferLadders)
             {
                 if (string.IsNullOrWhiteSpace(t.NextSectorCallsign)) continue;
@@ -558,7 +602,16 @@ public sealed class ConsistencyReportService : IConsistencyReportService
                 //
                 // Il difetto è un altro: quel punto lo copre QUALCUN ALTRO, e la catena non ci arriva. È il
                 // caso di `LIRR_MIL_CTR`, sovrapposto ai civili di Roma e però radice.
-                var chiAltro = rinvio.Con(SenzaDiLui(rinvio.TuttiISettori, t.NextSectorCallsign!))
+                // Un contesto per ricevente escluso, e non uno per punto: i punti che escludono lo stesso
+                // ricevente chiedono lo stesso contesto, e le sue cache (per quota, per cedente) sono funzioni
+                // pure dei suoi ingressi — riusarlo non cambia nessuna risposta. Misurato il 21 settembre 2026 su
+                // produzione di sviluppo: 43 punti su UNICOM, 8 riceventi, 16 coppie (ricevente, quota).
+                // ⚠️ NON era questo il grosso della Diagnostica lenta, anche se la prima misura lo faceva
+                // sembrare: il costo stava dentro le pretese, che ricostruivano i volumi dal JSON dei poligoni
+                // a ogni chiamata. Vedi il parametro `volumi` di `SectorVolumeMap.BuildClaims`.
+                if (!senzaDi.TryGetValue(t.NextSectorCallsign!, out var contestoSenza))
+                    senzaDi[t.NextSectorCallsign!] = contestoSenza = rinvio.Con(SenzaDiLui(tutti, t.NextSectorCallsign!));
+                var chiAltro = contestoSenza
                     .Risolvi(t.Cop, t.LevelFeet, t.OwningSectorCallsign, t.NextSectorCallsign);
                 if (chiAltro.Outcome != Content.CoverageFallbackOutcome.Resolved) continue;
 

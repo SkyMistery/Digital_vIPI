@@ -41,13 +41,33 @@ public sealed class CoverageFallbackContext
     private readonly Dictionary<string, IReadOnlySet<string>> _dominii =
         new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// I volumi dei settori, costruiti una volta e <b>condivisi</b> con ogni contesto derivato con
+    /// <see cref="Con"/>: dipendono solo dalle righe, e le righe sono le stesse. Vedi il parametro
+    /// <c>volumi</c> di <see cref="SectorVolumeMap.BuildClaims"/> per la misura che l'ha fatta nascere.
+    /// </summary>
+    private readonly Dictionary<SectorVolumeRow, SectorVolume?> _volumi;
+
     public CoverageFallbackContext(
         IReadOnlyList<SectorVolumeRow> settori,
         IReadOnlySet<string> online,
         CopPositions punti,
         IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> dichiarate,
         Func<string, string?> padreDi)
+        : this(settori, online, punti, dichiarate, padreDi,
+            new Dictionary<SectorVolumeRow, SectorVolume?>(ReferenceEqualityComparer.Instance))
     {
+    }
+
+    private CoverageFallbackContext(
+        IReadOnlyList<SectorVolumeRow> settori,
+        IReadOnlySet<string> online,
+        CopPositions punti,
+        IReadOnlyDictionary<string, IReadOnlyList<FallbackRow>> dichiarate,
+        Func<string, string?> padreDi,
+        Dictionary<SectorVolumeRow, SectorVolume?> volumi)
+    {
+        _volumi = volumi;
         _settori = settori;
         _online = online;
         _punti = punti;
@@ -70,9 +90,13 @@ public sealed class CoverageFallbackContext
     /// <para>⚠️ Serve alla <b>scala di risalita</b>, che simula per eliminazione: chiude il vincitore e
     /// richiede. Le pretese dipendono da chi è online — è il motivo per cui non si possono riusare, ed è
     /// anche il motivo per cui la cache è per QUOTA e non globale.</para>
+    ///
+    /// <para>🔴 <b>«I volumi si riusano» era scritto qui e non era vero</b> fino al 21 settembre 2026: il
+    /// contesto nuovo passava le stesse RIGHE, ma i volumi si ricostruivano dal JSON dei poligoni a ogni
+    /// richiesta di pretese. Ora la memoria dei volumi passa al contesto derivato insieme alle righe.</para>
     /// </summary>
     public CoverageFallbackContext Con(IReadOnlySet<string> online) =>
-        new(_settori, online, _punti, _dichiarate, _padreDi);
+        new(_settori, online, _punti, _dichiarate, _padreDi, _volumi);
 
     /// <summary>I callsign di tutti i settori che hanno un volume: l'insieme «tutti aperti».</summary>
     public IReadOnlySet<string> TuttiISettori =>
@@ -114,7 +138,8 @@ public sealed class CoverageFallbackContext
         // ⚠️ `resolveCoverage` NON passato: dentro la risoluzione di un rinvio i rinvii non si consultano.
         var claims = SectorVolumeMap.BuildClaims(_settori, _online,
             cs => TransferOnlineResolver.FirstOnline(
-                FallbackChain.Candidates(cs, quotaFt, _dichiarate, _padreDi), _online));
+                FallbackChain.Candidates(cs, quotaFt, _dichiarate, _padreDi), _online),
+            _volumi);
 
         _claimsPerQuota[quotaFt] = claims;
         return claims;
