@@ -2,7 +2,19 @@
 
 ## Dove siamo — 21 settembre 2026
 
-### 📦 A82 — Pacchetto 1.35.0 PRONTO DA CARICARE (21 settembre 2026)
+### ✅ A82 — Pacchetto 1.35.0 **ONLINE** (21 settembre 2026)
+
+> ✅ **CARICATO il 21 settembre 2026.** Il committente conferma: **copia di sicurezza del database scaricata
+> prima del carico**, timbro **`1.35.0`** in barra, riga **`Schema` = `0`** — cioè la migrazione è entrata e
+> `Vipi.Infrastructure.MySqlMigrations.dll` è arrivato.
+>
+> ✅ **Controlli da fuori** (soli GET anonimi, subito dopo il carico): `pacchetto-verifica.js` **8/8**, con la
+> **Ricerca** che risponde e la console pulita. E `vipi-theme.css` servito dal sito ha lo **sha256 identico** a
+> quello spedito (`b64a6ede…b193`, 247 212 B), con la regola `.app-block-edit .app-ta` non più presente: il
+> file giusto è arrivato, non uno rimasto in cache.
+>
+> ▶ **Resta da fare (dati, non codice)**: **ripubblicare i documenti** perché la sezione «STAR» compaia nelle
+> copie pubbliche — nella bozza c'è già.
 
 **MINOR con UNA migrazione.** Su 1.34.3 (`f95d923`, online dal 19 settembre). Timbro **`1.35.0 · b38359b`**,
 **17 file**, zip `eb4cad97…4381` (5,43 MB). Foglio:
@@ -43,13 +55,14 @@ che hanno guadagnato un membro (le uniche implementazioni stanno in Application 
 ⚠️ **Il riavvio del processo non è stato riprovato**: `vipi-riconnessione.js` è **byte per byte identico** a
 quello online (non è fra i 23 file diversi), quindi non c'è niente che questa consegna possa averne rotto.
 
-▶ **Dopo il carico**: timbro, Ricerca, **`Schema 0`**, e in un editor di aeroporto dopo Ctrl+F5 la tabella
-STAR, il tasto «Cita» con sei chip e il campo che si allunga. Da fuori:
-`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node .claude/skills/verifica-live/pacchetto-verifica.js`.
+✅ **Dopo il carico**: timbro e **`Schema 0`** confermati dal committente; da fuori 8/8 con la Ricerca.
+▶ Resta **col login**, quando capita: in un editor di aeroporto dopo Ctrl+F5, la tabella STAR, il tasto
+«Cita» con sei chip e il campo di prosa che si allunga. Nessuno dei tre si può vedere da anonimo.
 
-▶ **Dopo il carico, cose da sapere**: la sezione «STAR» compare nei documenti **pubblicati** solo dalla
-**prossima release** di ciascuno (è lo snapshot, non un difetto), e le STAR importate restano in attesa del
-**ciclo d'entrata** dichiarato dalla sorgente (LIBD: `2610`).
+▶ **Cose da sapere adesso che è online**: la sezione «STAR» compare nei documenti **pubblicati** solo dalla
+**prossima release** di ciascuno (è lo snapshot, non un difetto) — quindi per vederla in pubblico i documenti
+vanno **ripubblicati**; e le STAR importate restano in attesa del **ciclo d'entrata** dichiarato dalla
+sorgente (LIBD: `2610`).
 
 ⚠️ Resta da tenere d'occhio, non toccato qui: `ConnectionError` di EF su MariaDB, 3 volte in 36 ore fra il 18
 e il 19 settembre, senza richieste fallite.
