@@ -111,14 +111,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // 4. Una pagina di editor: e' li' che vivevano le corse di §AM.
     await page.goto(BASE + '/services/vsop/libb/editor', { waitUntil: 'networkidle2' });
     for (let i = 0; i < 60; i++) { if (await page.evaluate(() => !!window.Blazor)) break; await sleep(1000); }
+    // 🔴 IL CANCELLO SI DISEGNA, non si restituisce come stato HTTP: una pagina «Accesso riservato» torna 200,
+    // ha il suo `.wrap` e non contiene nessuna delle due frasi d'errore — quindi passava per «editor aperto»,
+    // e poi il controllo dopo suonava perche' il pannello ovviamente non c'era. Preso il 21 settembre 2026
+    // avviando il publish in `Production`, dove l'utente e' anonimo. Vedi il runbook, «un 200 su una pagina
+    // riservata». Se scatta questa riga: riavviare con ASPNETCORE_ENVIRONMENT=Development.
+    const cancello = await page.evaluate(() =>
+      /Accesso riservato|Restricted access|Access reserved|Non autorizzato|Not authorized/i.test(document.body.innerText));
     const editorVivo = await page.evaluate(() =>
       !document.body.innerText.includes('second operation') &&
       !document.body.innerText.includes('This page did not open') &&
-      document.querySelectorAll('.wrap').length > 0);
+      document.querySelectorAll('.wrap').length > 0) && !cancello;
     // ⚠️ Per PREFISSO: dal 6 settembre 2026 l'id porta il documento (`tr-review-<id>`), perche' in un
     // editor unito i pannelli sono uno per membro e un id ripetuto non e' un DOM valido.
     const pannelloTr = await page.evaluate(() => !!document.querySelector('[id^="tr-review"]'));
-    nota('editor ACC LIBB si apre', editorVivo, editorVivo ? 'nessuna pagina d\'errore' : 'PAGINA D\'ERRORE');
+    nota('editor ACC LIBB si apre', editorVivo,
+      cancello ? 'CANCELLO: «Accesso riservato» — utente anonimo, serve ASPNETCORE_ENVIRONMENT=Development'
+        : editorVivo ? 'nessuna pagina d\'errore' : 'PAGINA D\'ERRORE');
     nota('pannello traduzioni presente', pannelloTr, pannelloTr ? '[id^=tr-review] nel DOM' : 'pannello traduzioni assente');
     }
 

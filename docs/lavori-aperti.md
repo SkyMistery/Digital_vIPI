@@ -1,44 +1,99 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 20 settembre 2026
+## Dove siamo — 21 settembre 2026
 
-### ▶ PROSSIMO — il pacchetto di A80+A81: che cosa serve sapere prima di cominciare
+### 📦 A82 — Pacchetto 1.35.0 PRONTO DA CARICARE (21 settembre 2026)
 
-Tutto quel che segue è in **`main`** (ultimo commit `0817fbd4`) e **non è ancora consegnato**. Online c'è
-**1.34.3** (`f95d923`). Si parte dal runbook [`guide/preparare-un-pacchetto.md`](guide/preparare-un-pacchetto.md),
-che non si salta; qui c'è solo quel che questo pacchetto ha di suo.
+**MINOR con UNA migrazione.** Su 1.34.3 (`f95d923`, online dal 19 settembre). Timbro **`1.35.0 · b38359b`**,
+**17 file**, zip `eb4cad97…4381` (5,43 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.35.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.35.0.md).
 
-🔴 **È la prima consegna con una MIGRAZIONE dal 1.27.0.** Tre conseguenze, e nessuna è formale:
+**Il numero**: `1.35.0` era prenotato per net10, e **il committente ha deciso il 21 settembre** di darlo a
+questo pacchetto — come le sei volte precedenti, il numero segue l'ordine delle **consegne** e non dei piani.
+🔴 **Il net10 slitta a 1.36.0.**
 
-1. **Non è una PATCH**: serve un numero nuovo. ⚠️ **Decisione aperta**: `1.35.0` era **prenotato per il
-   passaggio a net10** (§A67 e il commento in `Directory.Build.props`). O il pacchetto prende 1.35.0 e net10
-   slitta ancora, o si sceglie un altro numero: **lo decide il committente**, non chi prepara.
-2. **Copia di sicurezza del database PRIMA del carico**, e la riga della migrazione nel foglio del pacchetto,
-   come nel `LEGGIMI-PACCHETTO-1.27.0`.
-3. 🔴 **`Vipi.Infrastructure.MySqlMigrations.dll` DEVE stare nel pacchetto.** È la lezione della 1.19.0: senza
-   quel file la colonna non nasce, il pacchetto **sembra funzionare** e la funzione resta spenta finché
-   qualcuno non prova a usarla — nessun segnale. La prova da fuori è la riga **`Schema 0`** in
-   `admin/diagnostics`: se è zero, modello e schema fisico coincidono, cioè la colonna c'è.
+**Contenuto**: §A80 (STAR dal sectorfile: parser, archivio `AirportProcedures` con `Kind`, import, editor,
+sezione «STAR», `[[STAR …]]`; più i riferimenti ai dati `[[FREQ]]`, `[[ATC]]`, `[[RWY]]`, `[[FIX]]` con un
+selettore solo a sei chip), §A81 (le nove correzioni della review) e il **campo di prosa che torna ad
+adattarsi al testo** (qui sotto).
 
-**I progetti toccati da 1.34.3 a oggi** (`git diff --name-only f95d9238..HEAD -- src`): `Vipi.Application`,
-`Vipi.Infrastructure`, `Vipi.Infrastructure.MySqlMigrations`, `Vipi.Domain`, `Vipi.Ui` — e dentro `Vipi.Ui`
-anche **le frasi (IT+EN)** e **`vipi-theme.css`**, quindi `en/Vipi.Ui.resources.dll` e `wwwroot` viaggiano
-(con `staticwebassets.endpoints.json`, che va **insieme** a `wwwroot`). `Vipi.Host` non ha sorgenti cambiate
-ma porta il **timbro**, che nasce dal commit. ⚠️ L'elenco definitivo si decide col diff e si **verifica con le
-impronte** contro il pacchetto precedente: il diff dice quali progetti guardare, lo sha256 quali file sono
-cambiati davvero.
+🔴 **È la prima consegna con una MIGRAZIONE dal 1.27.0**, e questo cambia due cose per chi carica:
+**copia di sicurezza del database prima**, e **`Vipi.Infrastructure.MySqlMigrations.dll` dentro il pacchetto**
+(lezione della 1.19.0: senza, la tabella resta col nome vecchio e le pagine che leggono le procedure vanno in
+errore). Prova da fuori: la riga **`Schema 0`**.
 
-⚠️ **Il contenuto da scrivere nel foglio**: §A80 (STAR dal sectorfile: parser, archivio `AirportProcedures`
-con `Kind`, import, editor, sezione «STAR», `[[STAR …]]`) + i riferimenti ai dati (`[[FREQ]]`, `[[ATC]]`,
-`[[RWY]]`, `[[FIX]]` col selettore a sei chip) + §A81 (le nove correzioni della review).
+**I 17 file**, scelti col diff e **verificati per impronta** (466 file confrontati col publish di 1.34.3: 443
+identici, 23 diversi): `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`,
+`Vipi.Infrastructure.MySqlMigrations`, `Vipi.Ui` coi `.pdb`, `en/Vipi.Ui.resources.dll` (110 chiavi cambiate
+nei due resx), `Vipi.Host` per il timbro, `endpoints.json` e `vipi-theme.css` (+`.br`/`.gz`).
+⚠️ **Fuori** `Vipi.Hosting`, `Vipi.AuroraProfiles` e `Vipi.AuroraBridge.Contracts`: diversi solo per
+ricompilazione. Controllato quel che il runbook chiede di controllare prima di lasciarli fuori — le due
+`const` cambiate sono **private** dentro `Vipi.Ui`, e nessuno dei tre implementa una delle cinque interfacce
+che hanno guadagnato un membro (le uniche implementazioni stanno in Application e Infrastructure, spediti).
 
-**Dopo il carico**, oltre ai controlli soliti (timbro, Ricerca, `Schema 0`):
-- la sezione «STAR» compare nei documenti **pubblicati** solo dalla **prossima release** di ciascuno — è lo
-  snapshot che fa il suo mestiere, non un difetto;
-- le STAR importate restano in attesa del **ciclo d'entrata** dichiarato dalla sorgente (LIBD: `2610`).
+✅ **Provato sul PACCHETTO** (publish win-x64 avviato dalla sua cartella, :5199, copia del `vipi.db`):
+- `pacchetto-verifica.js` **10/10** con la Ricerca, console pulita;
+- 🔴 la **migrazione è entrata davvero**: la copia era pre-migrazione e il log dice
+  `Applying migration '20260920115016_ProcedureKindEStarNellaStessaTabella'`;
+- timbro nel file di diagnostica: `Versione 1.35.0 · commit b38359b del 2026-09-21`;
+- le tre novità che il foglio promette: tabella **STAR** nell'editor (senza «Initial climb»), tabella SID
+  ancora al suo posto, tasto **«Cita»** e selettore a **sei** chip nell'ordine `SID STAR FREQ ATC RWY FIX`;
+- il campo di prosa che **cresce** (68 → 415 px) sul CSS **minificato del pacchetto**.
 
-▶ **Prima del pacchetto**, se si vuole chiudere il gate della verifica live: le due chip nuove del selettore
-(RWY e FIX) hanno i test ma **non** la prova a schermo. Vedi §A81.
+⚠️ **Il riavvio del processo non è stato riprovato**: `vipi-riconnessione.js` è **byte per byte identico** a
+quello online (non è fra i 23 file diversi), quindi non c'è niente che questa consegna possa averne rotto.
+
+▶ **Dopo il carico**: timbro, Ricerca, **`Schema 0`**, e in un editor di aeroporto dopo Ctrl+F5 la tabella
+STAR, il tasto «Cita» con sei chip e il campo che si allunga. Da fuori:
+`BASE=https://atc.it.ivao.aero SOLO_PUBBLICO=1 node .claude/skills/verifica-live/pacchetto-verifica.js`.
+
+▶ **Dopo il carico, cose da sapere**: la sezione «STAR» compare nei documenti **pubblicati** solo dalla
+**prossima release** di ciascuno (è lo snapshot, non un difetto), e le STAR importate restano in attesa del
+**ciclo d'entrata** dichiarato dalla sorgente (LIBD: `2610`).
+
+⚠️ Resta da tenere d'occhio, non toccato qui: `ConnectionError` di EF su MariaDB, 3 volte in 36 ore fra il 18
+e il 19 settembre, senza richieste fallite.
+
+### ✅ A82 — Il campo di prosa torna ad adattarsi al testo (21 settembre 2026) — 📦 in 1.35.0
+
+Il meccanismo c'era dal 16 settembre (`data-adatta` + `window.vipiAdatta` in `vipi-editor.js`) e nei campi di
+prosa **non mordeva**. Il difetto non stava nel JavaScript, che girava e scriveva l'altezza giusta.
+
+🔴 **Stava in `.app-block-edit .app-ta{flex:1}`.** La regola nacque quando la textarea era figlia **diretta**
+della riga `.app-block-edit` e le serviva la larghezza; da quando c'è `RichTextArea` la textarea sta dentro
+`.rta`, che è un flex a **COLONNA** — e lì `flex:1` vale `flex:1 1 0%` **sull'ALTEZZA**, cioè una base che
+**scavalca l'altezza in linea**. `vipiAdatta` scriveva `height:415px` e il browser ne rendeva 67,6.
+
+▶ **La regola generale, buona per la prossima volta**: quando un'altezza (o una larghezza) scritta da JS «non
+fa niente», si guarda se l'elemento è un **flex item** e che `flex-basis` gli sia stata data
+(`getComputedStyle(el).flexBasis`). Una proprietà in linea perde contro `flex-basis`, e non c'è nessun
+`!important` da cercare.
+
+- **Regola tolta, non ristretta**: censite tutte e quattro le occorrenze di `.app-ta` del progetto
+  (`RichTextArea`, `AorAirspaceTable`, `MilWorkingAreas`, `GlossarioPage`), **nessuna** è figlia diretta di
+  `.app-block-edit` — la regola poteva colpire solo il bersaglio sbagliato. La larghezza non la perde nessuno.
+- ✅ **Misurato dal vivo con la controprova** (editor LIBD, copia del `vipi.db`): col foglio di oggi 68 → 415px,
+  rimettendo la regola a mano chiede 415px e ne ottiene 67,6. Una prova che non distingue non prova niente.
+- Prova viva: **`adatta-verifica.js`** nella skill `verifica-live`, che fa da sé tutt'e due le misure.
+- ⚠️ I campi **fuori** da `.app-block-edit` (note delle aree di lavoro, descrizione di un incarico) si
+  adattavano già: erano spenti solo i blocchi di prosa, i callout e la nota d'allegato.
+- Ramo `campo-che-si-adatta` (`88a0363b`), fuso in `main` il 21 settembre; CI verde.
+
+### ✅ A82-bis — Chiuso il gate delle chip RWY e FIX, e un difetto della prova del pacchetto
+
+- ✅ **`dato-verifica.js`** (nuovo nella skill) chiude il gate che §A81 lasciava aperto: le due chip nuove
+  avevano i test ma non la prova a schermo. Verde su LIBD — `[[RWY LIBD 07]]` e `[[FIX BANAV]]` scritti dove
+  stava il cursore, vivi dopo un ricarico, e nell'anteprima resi come `07` e `BANAV`, mai il codice.
+- 🔴 **Per la chip FIX l'app va avviata con `Sectorfile:RawBaseUrl` VERO**: il catalogo dei punti arriva dal
+  sectorfile, non dal `vipi.db`. Con la ricetta di `SKILL.md §2`, che spegne la rete, l'elenco è vuoto **per
+  disegno** e la prova non può dire niente. Scritto in testa al file.
+- ⚠️ Il selettore mette il fuoco nella ricerca alla sola **prima** apertura: dopo un cambio chip il gesto vero
+  è il **clic sulla voce**, non Invio. Non è un difetto, ma è il motivo per cui la prima stesura falliva.
+- 🔴 **Difetto trovato in `pacchetto-verifica.js`**: il controllo «editor ACC LIBB si apre» passava anche sulla
+  pagina **«Accesso riservato»** — 200, il suo `.wrap`, nessuna delle due frasi d'errore cercate. Preso
+  avviando il publish in `Production`, dove l'utente è anonimo. È esattamente la trappola che il runbook
+  nomina («un 200 su una pagina riservata non vuol dire che sia aperta»): ora il cancello si riconosce, e il
+  messaggio dice che serve `ASPNETCORE_ENVIRONMENT=Development`.
 
 ### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — in `main`, NON in pacchetto
 
