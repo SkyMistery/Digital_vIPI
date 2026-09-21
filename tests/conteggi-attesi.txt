@@ -1,8 +1,8 @@
 # Test eseguiti per assieme e TFM. Il confronto è ESATTO: un calo o una salita non dichiarati fermano
 # la CI. Si riscrive nello stesso commit che aggiunge o toglie test, così la decisione si vede nel diff.
 # Rigenerare: tools/conta-test.sh <log di dotnet test> --scrivi
-Vipi.Application.Tests.dll net10.0 2778
-Vipi.Application.Tests.dll net8.0 2778
+Vipi.Application.Tests.dll net10.0 2780
+Vipi.Application.Tests.dll net8.0 2780
 Vipi.Assets.Tests.dll net8.0 63
 Vipi.AuroraBridge.Tests.dll net8.0 80
 Vipi.AuroraProfiles.Tests.dll net10.0 65

@@ -24,6 +24,16 @@ public class AccFamigliaAorTests
     public void La_famiglia_si_legge_dal_callsign(string? callsign, FamigliaAor attesa) =>
         Assert.Equal(attesa, AccFamigliaAorRegola.Di(callsign));
 
+    [Theory]
+    [InlineData("it")]
+    [InlineData("en")]
+    public void Le_due_sezioni_portano_le_sigle_degli_enti_in_tutte_e_due_le_lingue(string lingua)
+    {
+        var catalogo = SectionCatalog.For(SectionProfile.AccAerovia);
+        Assert.Equal("SCCAM", catalogo.Single(d => d.Key == SectionKeys.AorMil).TitleIn(lingua));
+        Assert.Equal("FIC", catalogo.Single(d => d.Key == SectionKeys.AorFss).TitleIn(lingua));
+    }
+
     [Fact]
     public void Nel_blocco_Aerovia_il_militare_sta_prima_delle_regolamentate_e_il_FSS_dopo()
     {

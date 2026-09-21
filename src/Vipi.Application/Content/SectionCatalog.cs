@@ -265,9 +265,11 @@ public static class SectionCatalog
                 // qui decide anche dove la riconciliazione d'avvio li infila nelle vIPI già scritte: prima della
                 // prima sorella con un ordine più alto (`AddMissingCatalogSectionsAsync`). Per questo i numeri
                 // dopo «coordination» sono stati spostati, e non affiancati con un decimale che l'intero non ha.
-                H(SectionKeys.AorMil, "Settori militari", 8, en: "Military sectors"),
+                // I titoli sono le sigle degli enti, uguali nelle due lingue (chiesto dal committente, stesso
+                // giorno): SCCAM per i settori militari, FIC per gli FSS.
+                H(SectionKeys.AorMil, "SCCAM", 8, en: "SCCAM"),
                 H("regulated", "Aree regolamentate", 9, en: "Regulated areas"),
-                H(SectionKeys.AorFss, "Settori FSS", 10, en: "FSS sectors"),
+                H(SectionKeys.AorFss, "FIC", 10, en: "FIC"),
                 D("operationaltechnique", "Procedure generali", 11, en: "General procedures"),
                 HB("validity", "Validità e revisione", 12, en: "Validity and revision"),
             },
