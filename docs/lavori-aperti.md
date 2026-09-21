@@ -2,6 +2,26 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### ✅ A112 — 1.41.1 ONLINE (21 settembre 2026, notte) — in `main` non resta codice fuori pacchetto
+
+✅ Il committente conferma: timbro `1.41.1 · bd668a7`, `Schema 0`, «Documenti collegati» a destra sotto «Link».
+Conferma anche che l'ACC di uno scalo si prende dalla **struttura** (catena dei settori), non dall'anagrafica.
+Da fuori subito dopo: `pacchetto-verifica.js` (SOLO_PUBBLICO) **8/8**; riquadro a destra su LIBN vSOP
+(`LIBB vIPI`, `LIBN_APP`) e sulla vIPI LIBB (APP: LIBN_APP, LIBV_APP; Aeroporti: LIBC, LIBD, LIBG, LIBN, LIBR,
+LIBV). CI verde su tutti i commit.
+- 🔎 **§A108 in produzione vale a metà.** La pagina chiede `blazor.web.js?v=532c5c1a` (l'impronta c'è, e cambia
+  col file), ma la risposta **non ha `Cache-Control`**: su net10 `blazor.web.js` è un FILE in `wwwroot/_framework`,
+  e in produzione i file statici li serve **nginx**, non l'app (misurato il 12-set, audit §CZ) — il middleware di
+  `VipiStartup.cs` non gira mai. Cloudflare lo tiene lo stesso in cache (`HIT`, TTL di default). Per avere
+  `immutable` serve una direttiva nginx o una Cache Rule Cloudflare: lavoro del **committente**, stessa voce
+  dell'audit del 12-set. Non è una regressione: su 1.40.0 era già così.
+- ⚠️ Un rosso CI su un commit di soli documenti (`bd668a72`): `MANCA Vipi.Domain.Tests.dll (net8.0)`, ma i 152
+  test erano girati — nel log parallelo la riga «Passed! … 282 ms» è stata **spezzata** dall'uscita di un altro
+  assieme e `tools/conta-test.sh` non l'ha riconosciuta. Rilanciata: verde. ▶ Se si ripete, rendere il
+  conteggio robusto alle righe interlacciate (non è un guasto dei test).
+- ▶ **Resta**: ripubblicare le vIPI ACC e gli scali (congela anche i collegamenti); LIRR, LIMM, LIPP senza vIPI
+  pubblicata → i loro scali non hanno il link all'ACC finché non la hanno.
+
 ### 📦 A111 — 1.41.0 ONLINE; i documenti collegati passano a DESTRA (21 settembre 2026, notte) — pacchetto 1.41.1
 
 ✅ 1.41.0 caricata: il committente conferma timbro e `Schema 0`, e i link ci sono. Da fuori, cliccati in
@@ -13,7 +33,7 @@ Ma il blocco era nel posto sbagliato: il committente lo voleva nella **colonna d
   `DocumentToc.Collegati`, `TocVoce.Href/Collegamento`, `TocGruppo.Chiuso` e la regola CSS della doppia testata:
   `DocumentToc`/`TocModels` tornano identici a prima di §A109. Test: 3 bUnit sul riquadro al posto dei 2 sul sommario.
 - Verificato a schermo a 1600 px su copia: LIBD, vIPI LIBB (gruppo Aeroporti), LIML vSOP unita (`#doc-39`).
-- 📦 **1.41.1 PRONTO DA CARICARE**: PATCH, **8 file** (Vipi.Ui + Vipi.Host dll/pdb, `vipi-theme.css` br/gz +
+- ✅ **1.41.1 ONLINE** (§A112): PATCH, **8 file** (Vipi.Ui + Vipi.Host dll/pdb, `vipi-theme.css` br/gz +
   `endpoints.json`; en/ fuori). Timbro **`1.41.1 · bd668a7`**, zip `vipi-1.41.1-solo-file-cambiati.zip`
   `84a93c90…9c0c`. Foglio [`LEGGIMI-PACCHETTO-1.41.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.41.1.md). 1.41.0
   ruotata in `publish_old/20260921h`. Provato sul pacchetto win-x64 su `vipi_1410` (MariaDB): 10/10, riquadro a
