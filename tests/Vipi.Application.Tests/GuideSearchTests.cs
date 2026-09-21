@@ -65,6 +65,19 @@ public class GuideSearchTests
         Assert.Equal(anchors.Count, anchors.Distinct().Count());
     }
 
+    /// <summary>
+    /// Carta F1, slice 8: chi cerca come si incolla un'area dall'AIP arriva al convertitore, in tutte e due le
+    /// lingue e con le parole che userebbe davvero.
+    /// </summary>
+    [Theory]
+    [InlineData("arco")]
+    [InlineData("aip")]
+    [InlineData("raggio")]
+    [InlineData("arc of circle")]
+    [InlineData("radius")]
+    public void L_Area_Dall_AIP_Porta_Al_Convertitore(string query) =>
+        Assert.Contains(GuideSearchCatalog.Match(query), e => e.Anchor == "convertitore-coordinate");
+
     // ---- La Guida risponde nella lingua di chi ha cercato ---------------------------------------------
 
     [Fact]

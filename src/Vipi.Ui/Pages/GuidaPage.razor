@@ -267,6 +267,24 @@
                     l'<b>andata e ritorno</b> in metri. <b>Inverti</b> cambia il verso dell'anello,
                     <b>Ruota</b> sposta il vertice da cui l'elenco comincia.</li>
               </ul>
+              <p><b>Un'area dall'AIP, archi compresi.</b> Si incollano i <b>limiti laterali</b> come stanno nel
+               PDF — in inglese, in italiano o nella forma bilingue di ENR 2.1.1.1 — e il convertitore li legge
+               come testo AIP appena trova una frase come <i>arc of circle</i>, <i>point of origin</i>,
+               <i>circular area</i> (o <i>arco di cerchio</i>, <i>punto di origine</i>, <i>area circolare</i>):</p>
+              <ul>
+                <li>l'<b>arco</b> diventa vertici lungo il cerchio, e passa <b>esattamente</b> per i due punti
+                    dichiarati; il <b>centro</b> non &egrave; un vertice. Se un estremo non sta alla distanza
+                    dichiarata (pi&ugrave; di 0,1 NM di scarto) lo segnala: di solito &egrave; il centro sbagliato;</li>
+                <li>il <b>cerchio</b> (<i>circular area centred on &hellip; within a 1.0 NM radius</i>) diventa un
+                    anello; il raggio si legge in NM, M o KM;</li>
+                <li>la <b>densit&agrave; degli archi</b> (punti per grado, 1 di base) compare solo quando ci sono
+                    archi o cerchi; la casella <b>&laquo;mostra i centri&raquo;</b> li mette sulla mappa come
+                    crocette;</li>
+                <li><b>confine, costa e fiume</b> non hanno una forma nel testo: i due capi sono uniti con una
+                    retta, e la pagina lo dice. Anche le parole che non capisce &mdash; il nome di una zona fra
+                    due aree, per esempio &laquo;Zona/Zone '2'&raquo; &mdash; escono in fondo, e non spostano
+                    le aree.</li>
+              </ul>
               <p>Le righe che non si riescono a leggere <b>non spariscono</b>: escono in fondo col loro numero di
                riga. Il convertitore non scrive niente in banca dati e non ricorda nulla fra una visita e
                l'altra.</p>",
@@ -290,6 +308,24 @@
                 <li>Under each output: how many points, whether the ring is closed, perimeter, area and the
                     <b>round trip</b> in metres. <b>Reverse</b> flips the ring direction, <b>Rotate</b> moves the
                     vertex the list starts from.</li>
+              </ul>
+              <p><b>An area from the AIP, arcs included.</b> Paste the <b>lateral limits</b> as they are in the
+               PDF — in English, in Italian or in the bilingual form of ENR 2.1.1.1 — and the converter reads them
+               as AIP text as soon as it finds a phrase such as <i>arc of circle</i>, <i>point of origin</i>,
+               <i>circular area</i> (or <i>arco di cerchio</i>, <i>punto di origine</i>, <i>area circolare</i>):</p>
+              <ul>
+                <li>the <b>arc</b> becomes vertices along the circle and runs <b>exactly</b> through the two
+                    stated points; the <b>centre</b> is not a vertex. If one end is not at the stated distance
+                    (more than 0.1 NM off) you get a notice: usually the centre is wrong;</li>
+                <li>the <b>circle</b> (<i>circular area centred on &hellip; within a 1.0 NM radius</i>) becomes a
+                    ring; the radius is read in NM, M or KM;</li>
+                <li>the <b>arc density</b> (points per degree, 1 by default) appears only when there are arcs or
+                    circles; the <b>&laquo;show the centres&raquo;</b> box puts them on the map as small
+                    crosses;</li>
+                <li><b>borders, coasts and rivers</b> have no shape in the text: the two ends are joined with a
+                    straight line, and the page says so. Words it does not understand &mdash; a zone name
+                    between two areas, say &laquo;Zona/Zone '2'&raquo; &mdash; are listed at the bottom too, and
+                    do not move the areas.</li>
               </ul>
               <p>Lines that cannot be read <b>do not vanish</b>: they are listed at the bottom with their line
                number. The converter writes nothing to the database and remembers nothing between visits.</p>"),
