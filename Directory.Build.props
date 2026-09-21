@@ -1533,6 +1533,18 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.40.0 — MINOR, NESSUNA migrazione. Su 1.39.1 (4df91c0, online dal 21 settembre 2026). IL SALTO A net10
+      (L13, T-059; ADR-0007 §D4-quater), DA SOLO: nessuna funzione nuova dentro, così un guasto dopo il carico
+      ha una causa sola. Vipi.Host passa a net10.0 con EF Core 8 + Pomelo 8.0.3 invariati; SDK 10.0.401,
+      runtime 10.0.12 dentro il pacchetto self-contained. La copia del database (MySqlDumpSource) esce da
+      #if NET8_0 insieme al resto del ramo MariaDB.
+
+      ⚠️ MINOR e non PATCH: non è una correzione, cambia il runtime intero.
+      🔴 NON è una lista di file: si carica il PUBLISH COMPLETO (libcoreclr, CoreLib, ogni assieme del
+      framework), con 1.39.1 intera messa da parte sul server per tornare indietro. Foglio:
+      deploy/atc-ivao/LEGGIMI-PACCHETTO-1.40.0.md.
+    -->
+    <!--
       1.39.1 — PATCH, nessuna migrazione. Su 1.39.0 (1b25c4f, online dal 21 settembre 2026). Ancora net8:
       il committente ha scelto di NON mettere net10 nello stesso pacchetto (un guasto dopo il carico deve
       avere una causa sola), quindi net10 resta 1.40.0.
@@ -1637,7 +1649,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.39.1</VipiVersione>
+    <VipiVersione>1.40.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

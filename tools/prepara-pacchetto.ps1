@@ -105,6 +105,7 @@ switch ($Azione) {
 
         $daSpostare = @($pubDir.FullName)
         $daSpostare += (Get-ChildItem $publish -Directory -Filter 'solo-*' | ForEach-Object { $_.FullName })
+        $daSpostare += (Get-ChildItem $publish -Directory -Filter 'completo-*' | ForEach-Object { $_.FullName })
         $daSpostare += (Get-ChildItem $publish -File -Filter 'vipi-*.zip*' | ForEach-Object { $_.FullName })
         $docs = Join-Path $publish 'docs'
         if (Test-Path $docs) { $daSpostare += $docs }
@@ -193,7 +194,10 @@ switch ($Azione) {
             Fermati 'un file del pacchetto sembra contenere credenziali. Toglilo dalla cartella e rifai lo zip. Se e'' un falso allarme, guardalo con i tuoi occhi prima di forzare.'
         }
 
-        $zip = Join-Path $publish "vipi-$Versione-solo-file-cambiati.zip"
+        # Un pacchetto COMPLETO (cartella completo-<versione>, es. il salto a net10 di 1.40.0) non e' «solo i file
+        # cambiati»: il nome dello zip lo dice, perche' chi lo apre decide da li' come caricarlo.
+        $genere = if ($Pacchetto -like 'completo-*') { 'completo' } else { 'solo-file-cambiati' }
+        $zip = Join-Path $publish "vipi-$Versione-$genere.zip"
         Write-Host ''
         Write-Host "Zip: $($dichiarati.Count) file dichiarati + IMPRONTE.txt + $((Get-ChildItem $docs -File).Count) fogli in docs/" -ForegroundColor Cyan
         if ($SoloProva) { Write-Host '(prova: nessuno zip scritto)' -ForegroundColor Yellow; break }
