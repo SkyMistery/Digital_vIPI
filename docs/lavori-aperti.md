@@ -2,6 +2,42 @@
 
 ## Dove siamo — 21 settembre 2026
 
+### ✅ A86 — Cinque segnalazioni dal campo dopo 1.36.0 (21 settembre 2026) — in `main`, NON in pacchetto
+
+Tre commit, CI verde su tutti: `29805ef0`, `128a67c2`, `d8bd88fe`. Nessuna migrazione.
+
+1. **Chip 2D/3D della AoR ogni tanto nude.** Vestite da `vipi-aor3d.css`, foglio PIGRO iniettato da
+   `vipi-aor3d.js` dopo il primo disegno, mentre il toggle lo rende il server e si vede subito. Le cinque
+   regole sono passate in `vipi-theme.css`. Presidio `FoglioPigroVesteSoloIlSuoTests`, a scatto nei due
+   sensi. Provato dal vivo **bloccando** `vipi-aor3d*` in rete: le chip restano vestite. È la seconda volta
+   (la prima fu `.print-only` in `vipi-print.css`): un foglio pigro veste solo ciò che compare col gesto che
+   lo carica.
+2. **Diagnostica lenta.** Il registro: p50 **3 794 ms** contro i 322 di `/services`, e **0 su 7** aperture
+   erano la prima richiesta del processo — non è l'avvio a freddo. Misurato in locale, la misura ha
+   **smentito due ipotesi**: le cinque letture per tabella dei settori costano 27 ms; `LoadAsync` fa 816 ms
+   solo la prima volta (modello EF) e 51-87 a caldo. Il divario sta in qualcosa che su SQLite in-processo non
+   si vede. Quindi: la pagina **mostra quanto ha impiegato ogni pezzo** (controlli · admin · impatti · giri)
+   accanto all'ora, e `AdminCoverageService.DescribeAsync` — che girava **due volte** per apertura — ora
+   risponde una volta per scope.
+   ▶ **Dopo il carico**: aprire la Diagnostica e leggere i quattro numeri. Da lì si decide dove intervenire.
+   ▶ Trovato e NON toccato: in `sector-structure` `RicaricaOrfaniAsync` fa **due query per orfano** in un
+   `foreach` — lo stesso N+1 che il repository degli orfani aveva già pagato una volta. Il costo dipende da
+   quanti orfani ci sono in produzione.
+3. **Diagnostica a fisarmonica.** Le quattro schede si piegano e aprirne una chiude le altre, con
+   `<details name>` **nativo** (`DiagFold`). Nel `<summary>` solo chevron e titolo: `HelpHint` è un
+   `<details>` e dentro un `<summary>` sarebbe HTML non valido. Il contatore resta visibile da chiusa.
+4. **STAR e `Re-import from IVAO`.** LICB ha 4 STAR alla sorgente; il tasto faceva piste e settori, le
+   procedure le portava solo il gemello dentro la tabella SID, che sugli arrivi non c'è. Ora il tasto importa
+   anche SID+STAR. Censite le 90 sorgenti: **53 aeroporti con STAR, 643 procedure**. E il tasto «+ SID»
+   cablato sulla tabella degli arrivi ora dice «+ STAR».
+5. **`[[POS LIRR_NE]]`**: il codice della postazione, accanto a `[[ATC LIRR_NE]]` che ne dà il nominativo.
+   Chip POS nel selettore (ora sette), una lettura sola del catalogo per le due facce, avviso se la
+   postazione sparisce.
+
+🔴 **Frasi cambiate** (conferma e esito del re-import, titolo dei tempi della Diagnostica): il prossimo
+pacchetto porta `en/Vipi.Ui.resources.dll`, e `vipi-theme.css` + `vipi-aor3d.css` con i `.br`/`.gz` e
+**l'indice degli asset**.
+
 ### ✅ A85 — Pacchetto 1.36.0 **ONLINE** (21 settembre 2026)
 
 > ✅ **CARICATO il 21 settembre 2026.** Il committente conferma: **timbro corretto** e riga **`Schema` = `0`**
