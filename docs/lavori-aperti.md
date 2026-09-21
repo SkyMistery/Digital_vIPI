@@ -2,12 +2,43 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-🟡 **In `main`, NON in pacchetto: §A88–§A91**, quattro commit, CI verde, **nessuna migrazione**. Il committente
-ha chiesto di farli **prima** del prossimo pacchetto, che si prepara **quando lo chiede**. ⚠️ È un **MINOR**
-(due funzioni nuove, §A90 e §A91): il numero va deciso allora — se 1.38.0, **net10 slitta a 1.39.0**.
-▶ **Dopo il carico**, oltre a timbro/Ricerca/`Schema 0`: 🔴 **ripubblicare le quattro vIPI ACC** — le due
-sezioni di §A90 sono nella bozza dal primo avvio, ma la copia pubblica è congelata e le mostra solo dalla
-release successiva.
+🟡 **In `main`, NON in pacchetto: §A88–§A95**, CI verde, **nessuna migrazione EF** (i passi d'avvio sistemano i
+documenti). Il committente ha chiesto di farli **prima** del prossimo pacchetto, che si prepara **quando lo
+chiede**. ⚠️ È un **MINOR** (funzioni nuove): se 1.38.0, **net10 slitta a 1.39.0**. Il pacchetto porta anche
+`Vipi.Infrastructure` e `Vipi.Hosting` (passi d'avvio), `en/` resources e `vipi-editor.js`.
+▶ **Dopo il carico**, oltre a timbro/Ricerca/`Schema 0`: 🔴 **ripubblicare le quattro vIPI ACC** — SCCAM/FIC
+(§A90/§A93) e la «Gestione del traffico» dei gruppi APP (§A95) sono nella bozza dal primo avvio, ma la copia
+pubblica è congelata. Nel log d'avvio: «Spostato il VFR … gruppi APP delle vIPI ACC» e «Aggiunte N sezioni».
+
+### ✅ A95 — Cita: le aree regolamentate, `[[AREA 1242]]` (21 settembre 2026) — `1236efab`
+
+Chiesto dal committente. Rende il nome di **oggi** dall'import IVAO («LI R49B - Zita»); la chiave è l'**id**
+IVAO, stabile, come FREQ/ATC. Area sparita = esce l'id e la testata dell'editor la segnala. Ottava chip AREA nel
+selettore «Cita» (senza ICAO, tipo e centri a destra), Guida IT/EN. La protezione dalla traduzione usa la stessa
+regex: nessuna riga in più. Dal vivo su LIBB: in pagina il nome, l'avviso per un id inventato, 242 aree nella chip.
+
+### ✅ A94 — vIPI ACC: il gruppo APP come l'APP non remotizzato (21 settembre 2026) — `859f4fa2`
+
+Scelta del committente «come l'APP intero»: nel gruppo APP «Gestione del traffico» (IFR, VFR a blocchi) sopra i
+Coordinamenti e «Tecnica operativa» sotto; tolti il VFR a tabella fissa (`AppVfr`, `SaveVfrAsync`,
+`AccBlock.VfrJson`). Vite esistenti: `ReparentAppTrafficManagementAsync` sposta anche il VFR dei gruppi e travasa la
+vecchia tabella in prosa + tabella. 🔴 Due difetti trovati strada facendo: la presenza delle sezioni contata sulle
+sole figlie del blocco (il VFR spostato sembrava mancare → un secondo VFR) e la chiave della sezione del gruppo, che
+è **`appgroup`** e non `grp:…` (quella è del blockmeta). Nascita del blocco ora ricorsiva. Dal vivo su LIBB, bozza
+ed editor.
+
+### ✅ A93 — SID/STAR nei trasferimenti col nome di oggi (21 settembre 2026) — `abb765a0`
+
+Correzione di §A91 chiesta dal committente: una procedura fra i punti segue l'archivio **come nelle tabelle e
+nelle citazioni**. «BANA9A» esce «BANAV 9A»; rinominata la SID in BANA1A, esce «BANAV 1A» senza toccare la
+clausola. Stesso meccanismo delle citazioni (`NomiProcedura`, radice del nome), che ora legge anche il nome esteso
+scritto a mano. Le due porte di lettura di `AgreementService` (editor; vIPI/APP/vLOA/ponte) passano dai nomi di
+oggi. ⚠️ Nel documento pubblicato la frase è congelata: segue il nome nuovo alla ripubblicazione, come le
+tabelle SID. Dal vivo: clausola `BANA5Z`, rinominata la SID in `BANA1Z` → in pagina «BANAV 1Z».
+
+### ✅ A92 — Le sezioni MIL/FSS si chiamano SCCAM e FIC (21 settembre 2026) — `b620db79`
+
+Sigle degli enti, uguali in IT ed EN. Solo catalogo: in produzione le sezioni non esistono ancora.
 
 ### ✅ A91 — Trasferimenti: SID e STAR fra i punti, frase «autorizzato via» (21 settembre 2026) — `98b8bb75`
 
