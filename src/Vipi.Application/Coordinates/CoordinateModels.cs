@@ -34,6 +34,13 @@ public enum CoordinateIssueKind
     /// riuniti in un'area sola. <c>Dettaglio</c> = quanti blocchi.
     /// </summary>
     RigheVuoteIgnorate,
+
+    /// <summary>
+    /// Testo AIP: un estremo dell'arco dista dal centro più di <see cref="ArcGeometry.SogliaIncoerenzaNm"/> oltre
+    /// il raggio dichiarato. L'arco si disegna lo stesso, passando per gli estremi. <c>Dettaglio</c> = lo scarto
+    /// in NM.
+    /// </summary>
+    RaggioIncoerente,
 }
 
 /// <summary>Una segnalazione, ancorata alla <paramref name="Riga"/> (1-based; 0 = riguarda tutto l'ingresso).</summary>

@@ -7,6 +7,13 @@
     <ProjectReference Include="..\Vipi.AuroraBridge.Contracts\Vipi.AuroraBridge.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Il vocabolario del lettore AIP (AipGeometryReader.Classifica) è interno ma si prova da solo: una frase
+         nuova vista in un PDF deve avere il suo test senza passare da un'area intera. Stessa scelta già presa
+         per Vipi.Infrastructure, Vipi.AuroraBridge.Core, Vipi.AuroraProfiles e Vipi.Host. -->
+    <InternalsVisibleTo Include="Vipi.Application.Tests" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.*" />

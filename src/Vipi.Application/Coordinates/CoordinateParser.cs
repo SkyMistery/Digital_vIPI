@@ -370,9 +370,7 @@ public static class CoordinateParser
         // «41 59 26 N» diventerebbe quattro pezzi e nessuno di loro sarebbe una coordinata.
         riga = NormalizzaSegni(riga.ToUpperInvariant());
         riga = VirgolaDecimale(riga);
-        riga = RxSpaziEmisferoDietro.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"{m.Groups["h"].Value}");
-        riga = RxSpaziEmisferoDavanti.Replace(riga, m => $"{m.Groups["h"].Value}{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
-        riga = RxDuePunti.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
+        riga = RiscriviFormeSpezzate(riga);
 
         var angoli = new List<Angolo>();
         var etichette = new List<string>();
@@ -383,32 +381,56 @@ public static class CoordinateParser
             var token = pezzo.Trim('"', '\'', '[', ']', '(', ')');
             if (token.Length == 0) continue;
 
-            // 🔴 L'emisfero STACCATO, come lo scrive l'AIP: `44°51'24" N 008°14'57" E`. Da solo `N` non è una
-            // coordinata, e finiva fra le etichette: il primo faceva da tipo, l'ultimo da nome (l'area si
-            // chiamava «E»), e un `S` o un `W` si perdevano in silenzio. Trovato scrivendo la caratterizzazione
-            // della carta F1 (21 settembre 2026). ⚠️ Solo SUBITO DOPO un angolo che non l'ha già detto: altrove
-            // una lettera sola resta quello che era.
-            if (senzaEmisfero is { } i && token.Length == 1 && token[0] is 'N' or 'S' or 'E' or 'W')
-            {
-                angoli[i] = angoli[i] with { Emisfero = token[0] };
-                senzaEmisfero = null;
-                continue;
-            }
-
-            var prima = angoli.Count;
-            if (ProvaToken(token, angoli))
-            {
-                senzaEmisfero = angoli.Count == prima + 1 && angoli[prima].Emisfero is null ? prima : null;
-                continue;
-            }
-            senzaEmisfero = null;
+            if (ProvaPezzo(token, angoli, ref senzaEmisfero)) continue;
             etichette.Add(pezzo);
         }
 
         return (angoli, etichette);
     }
 
-    private static readonly Regex RxVirgolaFraCifre = new(@"(?<=\d),(?=\d)", Opzioni);
+    /// <summary>
+    /// Un pezzo già ripulito → un angolo, oppure l'emisfero dell'angolo appena letto. False = né l'uno né
+    /// l'altro (per il parser a righe è un'etichetta, per il lettore AIP una parola).
+    ///
+    /// <para>🔴 <b>L'emisfero STACCATO</b>, come lo scrive l'AIP: <c>44°51'24" N 008°14'57" E</c>. Da solo
+    /// <c>N</c> non è una coordinata, e finiva fra le etichette: il primo faceva da tipo, l'ultimo da nome
+    /// (l'area si chiamava «E»), e un <c>S</c> o un <c>W</c> si perdevano in silenzio. Trovato scrivendo la
+    /// caratterizzazione della carta F1 (21 settembre 2026). ⚠️ Solo SUBITO DOPO un angolo che non l'ha già
+    /// detto: altrove una lettera sola resta quello che era.</para>
+    /// </summary>
+    /// <param name="senzaEmisfero">L'indice dell'ultimo angolo letto se non ha detto l'emisfero; lo aggiorna.</param>
+    internal static bool ProvaPezzo(string token, List<Angolo> angoli, ref int? senzaEmisfero)
+    {
+        if (senzaEmisfero is { } i && token.Length == 1 && token[0] is 'N' or 'S' or 'E' or 'W')
+        {
+            angoli[i] = angoli[i] with { Emisfero = token[0] };
+            senzaEmisfero = null;
+            return true;
+        }
+
+        var prima = angoli.Count;
+        if (ProvaToken(token, angoli))
+        {
+            senzaEmisfero = angoli.Count == prima + 1 && angoli[prima].Emisfero is null ? prima : null;
+            return true;
+        }
+        senzaEmisfero = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Le forme a spazi e a due punti (<c>41 59 26 N</c>, <c>N 41 59 26</c>, <c>41:59:26</c>) riscritte in
+    /// simboli, così che spezzando sugli spazi restino UN pezzo. Vuole il testo già in maiuscolo.
+    /// </summary>
+    /// <remarks><c>internal</c>: la usa anche il lettore dei testi AIP (carta F1).</remarks>
+    internal static string RiscriviFormeSpezzate(string riga)
+    {
+        riga = RxSpaziEmisferoDietro.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"{m.Groups["h"].Value}");
+        riga = RxSpaziEmisferoDavanti.Replace(riga, m => $"{m.Groups["h"].Value}{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
+        return RxDuePunti.Replace(riga, m => $"{m.Groups["d"].Value}°{m.Groups["m"].Value}'{m.Groups["s"].Value}\"");
+    }
+
+    private static readonly Regex RxVirgolaFraCifre =new(@"(?<=\d),(?=\d)", Opzioni);
 
     /// <summary>
     /// 🔴 T-049 (revisione del 13 settembre 2026): la virgola decimale all'italiana. <c>41,9906 12,4964</c> si
