@@ -61,6 +61,25 @@
             {
                 <span class="muted diag-quando">@L["Diag_AsOf", q.ToString("HH:mm:ss 'UTC'")]</span>
             }
+            @* 🔴 QUANTO CI HA MESSO, pezzo per pezzo. Segnalato dal committente il 21 settembre 2026: questa
+               pagina è più lenta delle altre, e il registro gli dava ragione — p50 3 794 ms contro i 322 di
+               `/services`, con punte di 11 932, e 0 su 7 di quelle aperture era la prima richiesta del suo
+               processo, quindi non è l'avvio a freddo.
+
+               ⚠️ Misurato in locale, a modello EF caldo, il carico dei dati sta in 60-87 ms: il tempo che
+               l'utente aspetta NON è lì. In sviluppo però il database è SQLite in-processo, in produzione è
+               MariaDB su socket — e nessuna misura presa qui può dire quale pezzo paga quel divario.
+               Invece di indovinare, la pagina lo dice. È [[dividi-il-totale]] messo a schermo: un totale che
+               allarma si divide per le operazioni che lo compongono.
+
+               ⚠️ E sta su una pagina di DIAGNOSTICA, che è il posto dove un numero del genere non è rumore
+               ma contenuto — qui non serve un registro né un'altra consegna per sapere com'è andata. *@
+            @if (_tempi.Count > 0)
+            {
+                <span class="muted diag-quando diag-tempi" title="@L["Diag_TimingsTitle"]">
+                    @string.Join(" · ", _tempi.Select(t => $"{t.Key} {t.Value} ms"))
+                </span>
+            }
         }
     </div>
 
@@ -355,6 +374,13 @@
     private IReadOnlyList<ConsistencyFinding> _findings = Array.Empty<ConsistencyFinding>();
     private AdminCoverage? _admin;
 
+    /// <summary>
+    /// Quanto ha impiegato ogni pezzo del carico, in millisecondi. Si mostra accanto all'ora del controllo.
+    /// <para>⚠️ È una misura, non una promessa: i numeri cambiano col carico del server e col fatto che il
+    /// processo sia appena partito. Servono a dire QUALE pezzo pesa, non a certificarne uno.</para>
+    /// </summary>
+    private IReadOnlyDictionary<string, long> _tempi = new Dictionary<string, long>();
+
     // La casella degli impatti: quante righe aperte per tipo, e quando ha girato l'ultima volta il controllo.
     private IReadOnlyDictionary<Vipi.Domain.ImpactKind, int> _impatti = new Dictionary<Vipi.Domain.ImpactKind, int>();
     private DateTime? _ultimaDeriva;
@@ -440,10 +466,17 @@
         {
             await InFilaAsync(async () =>
             {
+            var tempi = new Dictionary<string, long>();
+            var cron = System.Diagnostics.Stopwatch.StartNew();
+            void Segna(string pezzo) { tempi[pezzo] = cron.ElapsedMilliseconds; cron.Restart(); }
+
             // Grave prima, poi per categoria: la lista più urgente in cima.
             var all = await Consistency.RunAsync();
             _findings = all.OrderByDescending(f => f.Severity).ThenBy(f => f.Category).ToList();
+            Segna("controlli");
+
             _admin = await AdminCoverage.DescribeAsync();
+            Segna("admin");
 
             var aperti = new Dictionary<Vipi.Domain.ImpactKind, int>();
             foreach (var k in Enum.GetValues<Vipi.Domain.ImpactKind>())
@@ -452,9 +485,12 @@
                 if (n > 0) aperti[k] = n;
             }
             _impatti = aperti;
+            Segna("impatti");
 
             // Una lettura sola per due chiavi: il giro giornaliero e la riconciliazione della pubblicazione.
             var stati = await ImportStates.GetAllAsync();
+            Segna("giri");
+            _tempi = tempi;
             var stato = stati
                 .FirstOrDefault(x => x.Category == Vipi.Application.Abstractions.ImportCategories.ImpactDrift);
             _ultimaDeriva = stato?.LastSuccessUtc == default ? null : stato?.LastSuccessUtc;

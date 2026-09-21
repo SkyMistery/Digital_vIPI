@@ -647,6 +647,7 @@
   <data name="Diag_Refresh" xml:space="preserve"><value>Refresh</value></data>
   <data name="Diag_RefreshTitle" xml:space="preserve"><value>Run the checks again now</value></data>
   <data name="Diag_AsOf" xml:space="preserve"><value>checked at {0}</value></data>
+  <data name="Diag_TimingsTitle" xml:space="preserve"><value>How long each part of the load took. It tells you WHICH part is heavy when this page is slow: the numbers move with server load and with how old the process is.</value></data>
   <data name="Diag_SearchPh" xml:space="preserve"><value>Search the findings…</value></data>
   <data name="Diag_ChipTitle" xml:space="preserve"><value>Show only the «{0}» area</value></data>
   <data name="Diag_Clear" xml:space="preserve"><value>Clear the filters</value></data>

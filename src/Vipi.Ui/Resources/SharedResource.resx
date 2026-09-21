@@ -652,6 +652,7 @@
   <data name="Diag_Refresh" xml:space="preserve"><value>Aggiorna</value></data>
   <data name="Diag_RefreshTitle" xml:space="preserve"><value>Riesegue i controlli adesso</value></data>
   <data name="Diag_AsOf" xml:space="preserve"><value>controllato alle {0}</value></data>
+  <data name="Diag_TimingsTitle" xml:space="preserve"><value>Quanto ha impiegato ogni pezzo del carico. Serve a dire QUALE pesa quando questa pagina è lenta: i numeri cambiano col carico del server e con quanto è vecchio il processo.</value></data>
   <data name="Diag_SearchPh" xml:space="preserve"><value>Cerca fra i rilievi…</value></data>
   <data name="Diag_ChipTitle" xml:space="preserve"><value>Mostra solo l’area «{0}»</value></data>
   <data name="Diag_Clear" xml:space="preserve"><value>Togli i filtri</value></data>

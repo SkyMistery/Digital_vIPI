@@ -26,8 +26,14 @@ public class AdminCoverageTests
         public RosterFinto(params (int Vid, string[] Codes)[] righe) =>
             _righe = righe.Select(r => new StaffRosterEntry(r.Vid, $"Tizio {r.Vid}", "ACC", r.Codes, DateTime.UtcNow)).ToList();
 
-        public Task<IReadOnlyList<StaffRosterEntry>> ListActiveAsync(CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<StaffRosterEntry>>(_righe);
+        /// <summary>Quante volte il roster e' stato letto: serve a provare che non si legge due volte.</summary>
+        public int Letture { get; private set; }
+
+        public Task<IReadOnlyList<StaffRosterEntry>> ListActiveAsync(CancellationToken ct = default)
+        {
+            Letture++;
+            return Task.FromResult<IReadOnlyList<StaffRosterEntry>>(_righe);
+        }
 
         public Task UpsertLoginAsync(int userId, string? displayName, IReadOnlyList<string> positions, CancellationToken ct = default) => Task.CompletedTask;
         public Task<IReadOnlyList<int>> ListAllUserIdsAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
@@ -39,6 +45,34 @@ public class AdminCoverageTests
 
     private static AdminCoverageService Servizio(IStaffRosterRepository roster) =>
         new(roster, new RoleResolver(new AuthOptions(), new DivisionOptions()), SenzaPromozioni.Instance);
+
+    /// <summary>
+    /// 🔴 <b>Il roster si legge UNA volta per scope.</b> La pagina di Diagnostica lo faceva leggere due volte
+    /// a ogni apertura: una dentro <c>ConsistencyReportService.RunAsync</c> — che chiama
+    /// <see cref="AdminCoverageService.RunAsync"/>, che chiama <c>DescribeAsync</c> — e una da sé, per
+    /// disegnare la tabella «Chi può editare». Due letture e due giri di pattern sugli stessi dati, nello
+    /// stesso istante.
+    ///
+    /// <para>⚠️ Trovato il 21 settembre 2026 <b>misurando</b> perché quella pagina fosse lenta, non
+    /// leggendo il codice: è la ragione per cui la misura viene prima. Da sola questa non è la lentezza —
+    /// il roster è piccolo — ma è lavoro che nessuno aveva chiesto due volte.</para>
+    ///
+    /// <para>⚠️ E l'ordine conta: si prova nei DUE sensi, perché a memorizzare solo dentro
+    /// <c>DescribeAsync</c> chi entra da <c>RunAsync</c> potrebbe saltarla.</para>
+    /// </summary>
+    [Theory]
+    [InlineData(true)]   // prima RunAsync (com'è nel report), poi DescribeAsync (com'è nella pagina)
+    [InlineData(false)]  // e il contrario
+    public async Task Il_roster_si_legge_una_volta_sola_per_scope(bool primaIlReport)
+    {
+        var roster = new RosterFinto((1, new[] { "IT-DIR" }), (2, new[] { "IT-T03" }));
+        var svc = Servizio(roster);
+
+        if (primaIlReport) { await svc.RunAsync(); await svc.DescribeAsync(); }
+        else { await svc.DescribeAsync(); await svc.RunAsync(); }
+
+        Assert.Equal(1, roster.Letture);
+    }
 
     [Fact]
     public async Task Un_codice_di_divisione_vero_risulta_admin()

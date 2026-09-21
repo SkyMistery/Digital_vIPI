@@ -83,8 +83,23 @@ public sealed class AdminCoverageService : IAdminCoverageService
         _promozioni = promozioni;
     }
 
+    /// <summary>
+    /// 🔴 La stessa risposta, una volta sola per scope. Questo servizio è <c>Scoped</c>, cioè vive quanto una
+    /// richiesta, e la pagina di Diagnostica lo faceva lavorare <b>due volte</b> per ogni apertura: una
+    /// dentro <c>ConsistencyReportService.RunAsync</c> (che chiama <see cref="RunAsync"/>, che chiama questo)
+    /// e una da sé, per disegnare la tabella. Due letture del roster e due giri di pattern sugli stessi dati,
+    /// nello stesso istante, per due domande diverse sulla stessa risposta.
+    ///
+    /// <para>⚠️ Non è una cache: non ha scadenza e non attraversa le richieste. È la memoria di una risposta
+    /// già data <b>dentro lo stesso scope</b>, dove i dati per definizione non cambiano sotto i piedi — e
+    /// dove quindi due letture non possono nemmeno dare due risposte diverse.</para>
+    /// </summary>
+    private AdminCoverage? _gia;
+
     public async Task<AdminCoverage> DescribeAsync(CancellationToken ct = default)
     {
+        if (_gia is { } fatto) return fatto;
+
         var righe = (await _roster.ListActiveAsync(ct))
             .Select(s =>
             {
@@ -100,7 +115,7 @@ public sealed class AdminCoverageService : IAdminCoverageService
             })
             .ToList();
 
-        return new AdminCoverage(
+        return _gia = new AdminCoverage(
             _resolver.AdminPatterns, _resolver.EditorPatterns, _resolver.DivisionStaffPatterns, righe);
     }
 
