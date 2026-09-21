@@ -59,7 +59,37 @@ public static class AipGeometryReader
         ("WITHIN A", Senso.Connettivo),
         ("THEN", Senso.Connettivo),
         ("IN", Senso.Connettivo),
+
+        // L'italiano: nell'AIP sta quasi sempre in forma BILINGUE mescolata («centrato in/centered on»), e la
+        // barra spezza le due lingue in parole. Il raggio, lì, è solo nella metà inglese; in italiano puro è
+        // «di raggio 5.0 NM» (vedi RxRaggio).
+        ("ARCO DI CERCHIO", Senso.Arco),
+        ("IN SENSO ANTIORARIO", Senso.Antiorario),
+        ("ANTIORARIO", Senso.Antiorario),
+        ("IN SENSO ORARIO", Senso.Orario),
+        ("ORARIO", Senso.Orario),
+        ("CENTRATO IN", Senso.Centro),
+        ("CENTRATO SU", Senso.Centro),
+        ("CENTRATA IN", Senso.Centro),
+        ("CENTRATA SU", Senso.Centro),
+        ("CENTRATO", Senso.Centro),
+        ("FINO AL PUNTO DI ORIGINE", Senso.PuntoDiOrigine),
+        ("AL PUNTO DI ORIGINE", Senso.PuntoDiOrigine),
+        ("PUNTO DI ORIGINE", Senso.PuntoDiOrigine),
+        ("FINO AL PUNTO", Senso.FinoAlPunto),
+        ("AREA CIRCOLARE", Senso.AreaCircolare),
+        ("QUINDI LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
+        ("POI LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
+        ("LINEA CONGIUNGENTE I PUNTI", Senso.Connettivo),
+        ("DI RAGGIO", Senso.Connettivo),
+        ("QUINDI", Senso.Connettivo),
+        ("POI", Senso.Connettivo),
+
+        // I separatori fra i vertici, quando stanno da soli: «0091308E - 453115N». Il trattino lungo arriva
+        // dai PDF di ENR 2.1.1.1 al posto di quello corto.
         ("-", Senso.Connettivo),
+        ("–", Senso.Connettivo),
+        ("—", Senso.Connettivo),
     ];
 
     /// <summary>
@@ -67,7 +97,11 @@ public static class AipGeometryReader
     /// <c>from</c> stanno anche nei commenti degli AOD, e un sectorfile commentato non deve cambiare lettore
     /// (carta F1 §8).
     /// </summary>
-    private static readonly string[] FrasiDiAccensione = ["ARC OF CIRCLE", "POINT OF ORIGIN", "CIRCULAR AREA"];
+    private static readonly string[] FrasiDiAccensione =
+    [
+        "ARC OF CIRCLE", "POINT OF ORIGIN", "CIRCULAR AREA",
+        "ARCO DI CERCHIO", "PUNTO DI ORIGINE", "AREA CIRCOLARE",
+    ];
 
     private const RegexOptions Opzioni = RegexOptions.CultureInvariant | RegexOptions.ExplicitCapture;
 
@@ -75,9 +109,13 @@ public static class AipGeometryReader
     /// Il raggio: <b>numero + unità subito dopo</b> <c>radius</c>, o fra <c>within a</c> e <c>radius</c>. Le unità
     /// si leggono SOLO qui: altrove <c>M</c> e <c>NM</c> non vogliono dire niente, e il <c>17</c> del raggio letto
     /// come un angolo era proprio il difetto di partenza (carta F1 §0).
+    ///
+    /// <para>In italiano: <c>di raggio 5.0 NM</c>, <c>di raggio di 60 NM</c>. Nel bilingue <c>di raggio/then arc
+    /// … radius 5.0 NM</c> dopo «raggio» c'è la barra e non un numero: il raggio lo prende la metà inglese.</para>
     /// </summary>
     private static readonly Regex RxRaggio = new(
-        @"\bRADIUS\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b|\bWITHIN\s+A\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+RADIUS\b",
+        @"\b(?:RADIUS|RAGGIO(?:\s+DI)?)\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b" +
+        @"|\bWITHIN\s+A\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+RADIUS\b",
         Opzioni);
 
     private static readonly Regex RxSegnaposto = new(@"^⟦R(?<k>\d+)⟧$", Opzioni);

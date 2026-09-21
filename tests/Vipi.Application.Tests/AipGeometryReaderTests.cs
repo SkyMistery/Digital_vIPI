@@ -41,8 +41,84 @@ public class AipGeometryReaderTests
         "then arc of circle in clockwise direction radius\n18.5 NM centred on\n38°16'00\"N 012°07'00\"E till point\n" +
         "38°27'56\"N 012°25'00\"E;\nto point of origin.";
 
+    /// <summary>
+    /// ENR 2.1.1.1 (Milano, frequenza VFR), alla lettera come esce dal PDF: italiano e inglese mescolati, la
+    /// barra fra le lingue, coordinate compatte, il trattino fra i vertici e la virgola dopo il punto d'arrivo.
+    /// Si ferma prima del tratto «lungo il fiume Po», che è la slice 5.
+    /// </summary>
+    private const string MilanoBilingue =
+        "455000N\n0091500E -\n454500N\n0091500E -\n453636N\n0091303E -\n453450N\n0091241E -\n453450N\n" +
+        "0091308E -\n453115N\n0091308E -\n453030N\n0091225E quindi\narco di cerchio in\nsenso antiorario\n" +
+        "di raggio/then\narc of circle\nin anti-clockwise\ndirection radius\n5.0 NM centrato\nin/centered on\n" +
+        "452630N\n0091640E fino\nal punto/till\npoint 452335N\n0091054E,\nquindi linea\ncongiungente i\n" +
+        "punti/then line\njoining points\n451529N\n0091132E -\n450743N\n0090939E";
+
+    [Fact]
+    public void Il_Bilingue_Di_ENR_2_1_1_1_Alla_Lettera()
+    {
+        var esito = AipGeometryReader.Leggi(MilanoBilingue);
+
+        Assert.Empty(esito.Segnalazioni);
+        var area = Assert.Single(esito.Aree);
+        var centro = Dms(45, 26, 30, 9, 16, 40);
+        Assert.Equal(-1, IndiceDi(area.Punti, centro));
+
+        var inizio = IndiceDi(area.Punti, Dms(45, 30, 30, 9, 12, 25));
+        var fine = IndiceDi(area.Punti, Dms(45, 23, 35, 9, 10, 54));
+        Assert.Equal(6, inizio);                                 // sette vertici prima dell'arco
+        Assert.True(fine - inizio > 10);
+        for (var k = inizio; k <= fine; k++)
+            Assert.InRange(ArcGeometry.DistanzaNm(centro, area.Punti[k]), 4.9, 5.1);
+
+        // Antiorario: da nord-ovest del centro a sud-ovest passando per OVEST, l'arco corto.
+        Assert.InRange(fine - inizio, 60, 120);
+        Assert.Equal(fine + 3, area.Punti.Count);                // poi i due vertici della linea
+        Assert.Equal(Dms(45, 7, 43, 9, 9, 39).Item1, area.Punti[^1].Lat, 9);
+    }
+
+    [Fact]
+    public void L_Italiano_Da_Solo()
+    {
+        const string testo =
+            "453030N 0091225E quindi arco di cerchio in senso antiorario di raggio 5.0 NM centrato in " +
+            "452630N 0091640E fino al punto 452335N 0091054E; 451529N 0091132E fino al punto di origine.";
+
+        var esito = AipGeometryReader.Leggi(testo);
+
+        Assert.Empty(esito.Segnalazioni);
+        var area = Assert.Single(esito.Aree);
+        Assert.True(area.AnelloChiuso);
+        Assert.Equal(-1, IndiceDi(area.Punti, Dms(45, 26, 30, 9, 16, 40)));
+        Assert.InRange(area.Punti.Count, 60, 125);
+    }
+
+    /// <summary>«di raggio di 60 NM»: la forma di ENR 2.1.1.1 per i cerchi radar.</summary>
+    [Fact]
+    public void Il_Raggio_Italiano_Col_Di()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "area circolare centrata su 453714N 0084348E di raggio di 60 NM.");
+
+        Assert.Empty(esito.Segnalazioni);
+        var area = Assert.Single(esito.Aree);
+        Assert.InRange(ArcGeometry.DistanzaNm(Dms(45, 37, 14, 8, 43, 48), area.Punti[0]), 59.99, 60.01);
+    }
+
+    /// <summary>I separatori fra i vertici: trattino corto e lungo, virgola, punto e virgola.</summary>
+    [Fact]
+    public void I_Separatori_Fra_I_Vertici()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "455000N 0091500E - 454500N 0091500E – 453636N 0091303E, 453450N 0091241E; to point of origin.");
+
+        Assert.Empty(esito.Segnalazioni);
+        Assert.Equal(4, Assert.Single(esito.Aree).Punti.Count);
+    }
+
     [Theory]
     [InlineData(EsempioDelCommittente, true)]
+    [InlineData(MilanoBilingue, true)]
+    [InlineData("453030N 0091225E; 452335N 0091054E; 451529N 0091132E fino al punto di origine", true)]
     [InlineData("Circular area centered on 45°00'00\"N 009°00'00\"E within a 1.0 NM radius.", true)]
     [InlineData("44°51'24\"N 008°14'57\"E; 44°41'08\"N 008°04'34\"E; to point\nof origin.", true)]
     [InlineData("N042.00.28.000;E011.58.06.000;\nN041.59.26.000;E011.59.00.000;", false)]
@@ -217,14 +293,21 @@ public class AipGeometryReaderTests
     [InlineData("THEN ARC OF CIRCLE IN ANTI-CLOCKWISE DIRECTION CENTRED ON", "")]
     [InlineData("TILL POINT OF ORIGIN", "")]
     [InlineData("TILL POINT", "")]
+    [InlineData("ARCO DI CERCHIO IN SENSO ANTIORARIO DI RAGGIO THEN ARC OF CIRCLE IN ANTI-CLOCKWISE DIRECTION CENTRATO IN CENTERED ON", "")]
+    [InlineData("FINO AL PUNTO TILL POINT", "")]
+    [InlineData("QUINDI LINEA CONGIUNGENTE I PUNTI THEN LINE JOINING POINTS", "")]
+    [InlineData("- –", "")]
     [InlineData("ZONA ZONE", "ZONA ZONE")]
     public void Il_Vocabolario_Toglie_Quello_Che_Riconosce(string frase, string avanzo) =>
         Assert.Equal(avanzo, AipGeometryReader.Classifica(frase).Avanzo);
 
-    [Fact]
-    public void Anti_Clockwise_Non_Lascia_Dietro_Un_Clockwise()
+    [Theory]
+    [InlineData("ARC OF CIRCLE IN ANTI-CLOCKWISE DIRECTION")]
+    [InlineData("ARCO DI CERCHIO IN SENSO ANTIORARIO")]
+    [InlineData("ARCO DI CERCHIO ANTIORARIO")]
+    public void L_Antiorario_Non_Lascia_Dietro_Un_Orario(string frase)
     {
-        var (sensi, _) = AipGeometryReader.Classifica("ARC OF CIRCLE IN ANTI-CLOCKWISE DIRECTION");
+        var (sensi, _) = AipGeometryReader.Classifica(frase);
 
         Assert.Contains(AipGeometryReader.Senso.Antiorario, sensi);
         Assert.DoesNotContain(AipGeometryReader.Senso.Orario, sensi);
