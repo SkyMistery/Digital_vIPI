@@ -95,6 +95,10 @@ public static class StartupDiagnostics
         // e Passenger ne fa da solo, per inattività — quindi da sola non prova che sia arrivata la
         // versione nuova. Vedi VersioneBuild.
         sb.AppendLine($"Versione ..................... {VersioneBuild.Leggi().Dettaglio}");
+        // Il runtime che gira DAVVERO, non quello per cui si è compilato: dal salto a net10 (1.40.0) il pacchetto
+        // porta il suo runtime, ma Passenger lo lancia col `dotnet` del server (8). È la riga che dice se il
+        // carico completo è arrivato intero.
+        sb.AppendLine($"Runtime .NET ................. {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
         sb.AppendLine($"Ambiente ..................... {builder.Environment.EnvironmentName}");
         sb.AppendLine($"Cartella dell'applicazione ... {AppContext.BaseDirectory}");
         sb.AppendLine();
