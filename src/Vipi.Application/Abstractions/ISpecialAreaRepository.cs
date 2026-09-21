@@ -18,4 +18,7 @@ public interface ISpecialAreaRepository
 
     /// <summary>Aree speciali per IvaoId (per il viewer), con shape grezza.</summary>
     Task<IReadOnlyList<SpecialAreaDetail>> GetSpecialAreasByIdsAsync(IReadOnlyList<string> ivaoIds, CancellationToken ct = default);
+
+    /// <summary>Tutte le aree, ordinate per nome: le aree citabili nel testo (<c>[[AREA …]]</c>, 21 settembre 2026).</summary>
+    Task<IReadOnlyList<SpecialAreaPick>> ListAllSpecialAreasAsync(CancellationToken ct = default);
 }

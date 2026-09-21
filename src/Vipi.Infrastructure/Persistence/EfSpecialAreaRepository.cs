@@ -25,6 +25,9 @@ public sealed class EfSpecialAreaRepository : ISpecialAreaRepository
     public Task<IReadOnlyList<SpecialAreaPick>> ListSpecialAreasExcludingAccAsync(string accCode, CancellationToken ct = default) =>
         PicksAsync(a => !a.Centers.Any(c => c.CenterId == accCode), ct);
 
+    public Task<IReadOnlyList<SpecialAreaPick>> ListAllSpecialAreasAsync(CancellationToken ct = default) =>
+        PicksAsync(a => true, ct);
+
     // Una sola query con i legami inclusi: l'ordinamento finale è per nome (il picker mostra i primi N e conta il resto).
     private async Task<IReadOnlyList<SpecialAreaPick>> PicksAsync(
         System.Linq.Expressions.Expression<Func<Domain.Entities.SpecialArea, bool>> filter, CancellationToken ct)

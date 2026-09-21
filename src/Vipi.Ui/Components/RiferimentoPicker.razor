@@ -92,7 +92,7 @@
         bool ConIcao = false);
 
     /// <summary>
-    /// Le sette famiglie, nell'ordine delle chip (sei fino al 21 settembre 2026, quando è entrata POS).
+    /// Le otto famiglie, nell'ordine delle chip (sei fino al 21 settembre 2026, quando sono entrate POS e AREA).
     /// ⚠️ <b>Tutte, non quattro</b>: fino al 20 settembre 2026
     /// piste e punti si risolvevano, si segnalavano quando sparivano e non si potevano <b>inserire</b> — si
     /// scrivevano a mano, che è precisamente il modo di sbagliare la chiave e farsi dire dalla testata che un
@@ -109,6 +109,9 @@
         new("POS", Dato: TipoDato.Postazione),
         new("RWY", Dato: TipoDato.Pista, ConIcao: true),
         new("FIX", Dato: TipoDato.Punto),
+        // Le aree regolamentate (21 settembre 2026, committente): di tutta la divisione come i punti, quindi
+        // senza ICAO; in pagina esce il nome di oggi.
+        new("AREA", Dato: TipoDato.Area),
     };
 
     /// <summary>Quante voci si disegnano al massimo. Vedi la nota nell'elenco.</summary>
@@ -191,6 +194,7 @@
                     {
                         TipoDato.Pista => await PisteAsync(icao),
                         TipoDato.Punto => await PuntiAsync(),
+                        TipoDato.Area => await AreeAsync(),
                         var tipo => await EntiAsync(tipo),
                     };
             });
@@ -221,6 +225,16 @@
         (await Enti.PuntiAsync())
             .OrderBy(p => p, StringComparer.Ordinal)
             .Select(p => new Voce(RiferimentiDato.Scrivi(TipoDato.Punto, p), p, ""))
+            .ToList();
+
+    /// <summary>
+    /// Le aree regolamentate, per nome. A destra il tipo e i centri che le elencano: due aree con nomi simili
+    /// si distinguono lì, e chi scrive la vIPI di un ACC riconosce le sue.
+    /// </summary>
+    private async Task<IReadOnlyList<Voce>> AreeAsync() =>
+        (await Enti.AreeAsync())
+            .Select(a => new Voce(RiferimentiDato.Scrivi(TipoDato.Area, a.IvaoId), a.Name,
+                string.Join(" · ", new[] { a.Type ?? "", a.CentersText }.Where(x => x.Length > 0))))
             .ToList();
 
     private async Task<IReadOnlyList<Voce>> ProcedureAsync(string icao, ProcedureKind kind) =>

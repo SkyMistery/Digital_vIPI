@@ -82,6 +82,13 @@ public class CitaDallArchivioTests : TestContext
         public Task<IReadOnlySet<string>> PuntiAsync(CancellationToken ct = default) =>
             Task.FromResult<IReadOnlySet<string>>(
                 new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "BANAV", "TOPNO" });
+
+        public Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SpecialAreaPick>>(new[]
+            {
+                new SpecialAreaPick("1242", "LI R49B - Zita", "R", null, null, new[] { "LIRR" }),
+                new SpecialAreaPick("1416", "LI TRA613", "TRA", null, null, new[] { "LIBB" }),
+            });
     }
 
     private readonly ElencoFinto _elenco = new();
@@ -152,9 +159,9 @@ public class CitaDallArchivioTests : TestContext
         c.Find("button.rta-sid").Click();
         c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
 
-        // ⚠️ SETTE dal 21 settembre 2026: POS, il codice della postazione, accanto ad ATC che ne dà il
-        // nominativo — sono la stessa riga vista dai due lati.
-        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC", "POS", "RWY", "FIX" },
+        // ⚠️ OTTO dal 21 settembre 2026: POS, il codice della postazione, accanto ad ATC che ne dà il
+        // nominativo — sono la stessa riga vista dai due lati —, e AREA in coda, le aree regolamentate.
+        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC", "POS", "RWY", "FIX", "AREA" },
             c.FindAll(".sidref-pick-kind button").Select(b => b.TextContent.Trim()).ToArray());
     }
 
@@ -183,6 +190,28 @@ public class CitaDallArchivioTests : TestContext
 
         c.FindAll(".sidref-pick-row").Skip(1).First().Click();
         Assert.Equal("[[POS LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
+    }
+
+    /// <summary>La chip AREA cita un'area regolamentata per id (21 settembre 2026, committente): nell'elenco si
+    /// legge il nome, a destra tipo e centri; nel campo va l'id, e in pagina uscirà il nome di oggi.</summary>
+    [Fact]
+    public void Con_la_chip_AREA_si_cita_un_area_regolamentata()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "AREA").Click();
+        c.WaitForAssertion(() => Assert.Equal(2, c.FindAll(".sidref-pick-row").Count));
+        // Niente ICAO: le aree sono della divisione, come i punti.
+        Assert.Empty(c.FindAll(".sidref-pick-head input.icao"));
+
+        var zita = c.FindAll(".sidref-pick-row").First(r => r.TextContent.Contains("Zita"));
+        Assert.Contains("R · LIRR", zita.TextContent);
+        zita.Click();
+        Assert.Equal("[[AREA 1242]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 
     [Fact]

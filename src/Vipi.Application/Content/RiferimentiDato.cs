@@ -30,6 +30,16 @@ public enum TipoDato
     /// resto del progetto — l'ordine delle chip lo decide il selettore, non questo elenco.</para>
     /// </summary>
     Postazione,
+
+    /// <summary>
+    /// Un'area regolamentata, per id IVAO: <c>[[AREA 1242]]</c> → <c>LI R49B - Zita</c>. Chiesta dal committente il
+    /// 21 settembre 2026. È della famiglia di <see cref="Frequenza"/> e <see cref="Nominativo"/>: sotto una chiave
+    /// stabile esce il valore di OGGI, quindi un'area rinominata dall'import IVAO si legge col nome nuovo.
+    /// <para>⚠️ La chiave è l'id e non il nome: il nome ha spazi, trattini e punti che il gettone non porta, e
+    /// cambia — l'id no. Il ripiego, se l'area sparisce dal catalogo, è l'id: si legge male, ed è giusto che la
+    /// testata dell'editor lo segnali.</para>
+    /// </summary>
+    Area,
 }
 
 /// <summary>
@@ -71,7 +81,7 @@ public static class RiferimentiDato
     /// che è la verità.
     /// </remarks>
     internal static readonly Regex Riferimento = new(
-        @"\[\[(?:(?<tipo>FREQ|ATC|POS|FIX) (?<chiave>[A-Z0-9_]{2,16})|(?<tipo>RWY) (?<chiave>[A-Z]{4}) (?<soglia>[A-Z0-9]{1,4}))\]\]",
+        @"\[\[(?:(?<tipo>FREQ|ATC|POS|FIX|AREA) (?<chiave>[A-Z0-9_]{2,16})|(?<tipo>RWY) (?<chiave>[A-Z]{4}) (?<soglia>[A-Z0-9]{1,4}))\]\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>La parola del tipo, come si scrive nel riferimento.</summary>
@@ -81,6 +91,7 @@ public static class RiferimentiDato
         TipoDato.Nominativo => "ATC",
         TipoDato.Postazione => "POS",
         TipoDato.Pista => "RWY",
+        TipoDato.Area => "AREA",
         _ => "FIX",
     };
 
@@ -90,6 +101,7 @@ public static class RiferimentiDato
         "ATC" => TipoDato.Nominativo,
         "POS" => TipoDato.Postazione,
         "RWY" => TipoDato.Pista,
+        "AREA" => TipoDato.Area,
         _ => TipoDato.Punto,
     };
 

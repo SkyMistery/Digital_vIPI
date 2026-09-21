@@ -50,6 +50,14 @@ public interface IFrequenzeDegliEnti
 
     /// <summary>I nomi del catalogo dei punti, o vuoto se la sorgente non è raggiungibile.</summary>
     Task<IReadOnlySet<string>> PuntiAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Le aree regolamentate della divisione, per <c>[[AREA …]]</c> (21 settembre 2026). Il corpo di ripiego
+    /// («nessuna») serve ai finti dei test che non citano aree: una famiglia che risponde a vuoto non si dichiara
+    /// guardata, quindi non segnala niente.
+    /// </summary>
+    Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<SpecialAreaPick>>(Array.Empty<SpecialAreaPick>());
 }
 
 /// <inheritdoc cref="IFrequenzeDegliEnti"/>
@@ -57,12 +65,17 @@ public sealed class FrequenzeDegliEnti : IFrequenzeDegliEnti
 {
     private readonly IAirportRepository _repo;
     private readonly INavaidSource? _punti;
+    private readonly ISpecialAreaRepository? _aree;
 
-    public FrequenzeDegliEnti(IAirportRepository repo, INavaidSource? punti = null)
+    public FrequenzeDegliEnti(IAirportRepository repo, INavaidSource? punti = null, ISpecialAreaRepository? aree = null)
     {
         _repo = repo;
         _punti = punti;
+        _aree = aree;
     }
+
+    public async Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default) =>
+        _aree is null ? Array.Empty<SpecialAreaPick>() : await _aree.ListAllSpecialAreasAsync(ct);
 
     public Task<IReadOnlyList<LinkableFrequencyRow>> TutteAsync(CancellationToken ct = default) =>
         _repo.ListLinkableFrequenciesAsync(ct);
@@ -197,6 +210,14 @@ public sealed class RiferimentiResolver : IRiferimentiResolver
             foreach (var (_, chiave) in citati.Where(c => c.Tipo == TipoDato.Punto))
                 if (punti.Contains(chiave))
                     voci.Add((TipoDato.Punto, chiave, chiave));
+        }
+
+        // Le AREE regolamentate: esce il nome di oggi dall'import IVAO, sotto l'id che non cambia.
+        if (citati.Any(c => c.Tipo == TipoDato.Area))
+        {
+            var aree = await _enti.AreeAsync(ct);
+            if (aree.Count > 0) guardate.Add(TipoDato.Area);
+            foreach (var a in aree) voci.Add((TipoDato.Area, a.IvaoId, a.Name));
         }
 
         return new ValoriDato(voci, guardate, mute);

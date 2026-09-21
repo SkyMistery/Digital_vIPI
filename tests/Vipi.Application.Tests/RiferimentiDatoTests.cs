@@ -170,6 +170,21 @@ public class RiferimentiDatoTests
             ChiamatePunti++;
             return Task.FromResult(Punti);
         }
+
+        public int ChiamateAree { get; private set; }
+
+        /// <summary>Due aree del catalogo IVAO, col nome come lo scrive l'import.</summary>
+        public IReadOnlyList<SpecialAreaPick> Aree { get; set; } = new[]
+        {
+            new SpecialAreaPick("1242", "LI R49B - Zita", "R", null, null, new[] { "LIRR" }),
+            new SpecialAreaPick("1416", "LI TRA613", "TRA", null, null, new[] { "LIBB" }),
+        };
+
+        public Task<IReadOnlyList<SpecialAreaPick>> AreeAsync(CancellationToken ct = default)
+        {
+            ChiamateAree++;
+            return Task.FromResult(Aree);
+        }
     }
 
     private sealed class NienteProcedure : IProcedureReferenceResolver
@@ -231,6 +246,40 @@ public class RiferimentiDatoTests
         Assert.Equal("[[POS LIRR_NE]]", RiferimentiDato.Scrivi(TipoDato.Postazione, "lirr_ne"));
         Assert.Equal("Da LIRR_NE.",
             RiferimentiDato.Sostituisci("Da [[POS LIRR_NE]].", Valori((TipoDato.Postazione, "LIRR_NE", "LIRR_NE"))));
+    }
+
+    /// <summary>
+    /// Le aree regolamentate citate nel testo (21 settembre 2026, committente): sotto l'id esce il nome di OGGI,
+    /// quindi un'area rinominata dall'import si legge col nome nuovo; un'area sparita si segnala.
+    /// </summary>
+    [Fact]
+    public async Task Un_Area_Regolamentata_Esce_Col_Nome_Di_Oggi_E_Si_Segnala_Se_Sparisce()
+    {
+        var catalogo = new Catalogo();
+        var testi = new[] { "Attiva [[AREA 1242]] e [[AREA 99999]]." };
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+        Assert.Equal("Attiva LI R49B - Zita e 99999.", Riferimenti.Sostituisci(testi[0], risolti));
+        Assert.Equal(1, catalogo.ChiamateAree);
+
+        var avviso = Assert.Single(ControlloDatiCitati.Controlla(new[] { ("Aree", (string?)testi[0]) }, risolti.Dati));
+        Assert.Equal(TipoDato.Area, avviso.Tipo);
+        Assert.Equal("99999", avviso.Chiave);
+        Assert.Equal("AREA", avviso.Parola);
+
+        // Rinominata dall'import: stesso id, nome nuovo, e il testo non si tocca.
+        catalogo.Aree = new[] { new SpecialAreaPick("1242", "LI R49B - Zita Nord", "R", null, null, new[] { "LIRR" }) };
+        var dopo = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+        Assert.StartsWith("Attiva LI R49B - Zita Nord e", Riferimenti.Sostituisci(testi[0], dopo));
+    }
+
+    [Fact]
+    public async Task Un_Testo_Senza_Aree_Non_Chiede_Il_Catalogo_Delle_Aree()
+    {
+        var catalogo = new Catalogo();
+        await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(new[] { "[[FREQ LIRF_TWR]]" });
+        Assert.Equal(0, catalogo.ChiamateAree);
+        Assert.Equal("[[AREA 1242]]", RiferimentiDato.Scrivi(TipoDato.Area, "1242"));
     }
 
     [Fact]
