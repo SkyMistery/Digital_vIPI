@@ -62,6 +62,13 @@ public static class AccDocumentAssembler
                 childIds.TryAdd(c.SectionKey, c.Id);
 
             var configs = Deserialize<List<AccConfiguration>>(ChildBodyJson(blockSection, "configurations")) ?? new();
+            // ⚠️ Nel blocco Aerovia i settori MIL e FSS stanno nelle loro sezioni (SCCAM/FIC), non nelle configurazioni
+            // (chiesto dal committente il 21 settembre 2026). Le configurazioni scritte PRIMA li portano ancora: si
+            // tolgono qui, alla lettura, così editor, chip della mappa e tabelle d'accorpamento li perdono tutti
+            // insieme — anche nelle release vecchie — e il primo salvataggio dell'editor scrive la lista pulita.
+            if (kind == AccBlockKind.Aerovia)
+                foreach (var cfg in configs)
+                    cfg.Open.RemoveAll(o => AccFamigliaAorRegola.Di(o.Callsign) != FamigliaAor.Ordinaria);
             var regulated = RegulatedSelectionJson.Parse(ChildBodyJson(blockSection, "regulated"));
             var separations = Deserialize<List<AppSeparationRow>>(ChildBodyJson(blockSection, "separations")) ?? new();
             // Shape AoR extra + override colore dalla sezione figlia "aor" (editoriale). Negli snapshot frozen quel

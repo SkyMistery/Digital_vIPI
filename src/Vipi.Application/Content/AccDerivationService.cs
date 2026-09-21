@@ -130,8 +130,10 @@ public sealed class AccDerivationService : IAccDerivationService
     {
         accCode = Norm(accCode);
         // ACC-wide: il pool Aerovia è l'intero insieme dei CTR dell'ACC (tutti gli alberi). Una vIPI per ACC.
+        // ⚠️ Senza i MIL e i FSS: hanno le loro sezioni e non si aprono in una configurazione (vedi AccDocumentAssembler).
         if (block.Kind == AccBlockKind.Aerovia)
-            return await _repo.ListCtrSectorsAsync(accCode, ct);
+            return (await _repo.ListCtrSectorsAsync(accCode, ct))
+                .Where(s => AccFamigliaAorRegola.Di(s.Callsign) == FamigliaAor.Ordinaria).ToList();
 
         // Gruppo-APP: i membri scelti (con nome dal catalogo APP dell'ACC).
         var apps = await _repo.ListAppSectorsAsync(accCode, ct);
@@ -304,7 +306,9 @@ public sealed class AccDerivationService : IAccDerivationService
         if (block.Kind == AccBlockKind.Aerovia)
         {
             roots = (await _repo.ListTreeRootsAsync(accCode, ct)).Select(r => r.Callsign).ToList();
-            pool = new HashSet<string>((await _repo.ListCtrSectorsAsync(accCode, ct)).Select(s => s.Callsign), StringComparer.OrdinalIgnoreCase);
+            // Senza MIL e FSS: nemmeno fra gli «assorbiti» di un settore aperto (hanno le loro sezioni).
+            pool = new HashSet<string>((await _repo.ListCtrSectorsAsync(accCode, ct)).Select(s => s.Callsign)
+                .Where(cs => AccFamigliaAorRegola.Di(cs) == FamigliaAor.Ordinaria), StringComparer.OrdinalIgnoreCase);
         }
         else
         {

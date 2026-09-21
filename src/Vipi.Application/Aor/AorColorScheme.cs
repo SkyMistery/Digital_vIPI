@@ -29,12 +29,35 @@ public static class AorColorScheme
             ["GND"] = "#5B8C5A",   // verde
             ["DEL"] = "#8E5BA6",   // viola
             ["ATIS"] = "#7EA2D6",  // azzurro chiaro
-            ["FSS"] = "#5B8C5A",   // verde
+            ["FSS"] = "#D4A017",   // ambra (prima verde: il verde ora è dei militari)
         };
 
-    /// <summary>Colore di default per un callsign, in base al suffisso di tipo. <see cref="Fallback"/> se ignoto.</summary>
-    public static string DefaultForCallsign(string? callsign) =>
-        Defaults.TryGetValue(SuffixOf(callsign), out var c) ? c : Fallback;
+    /// <summary>
+    /// Il colore dei settori MILITARI, qualunque sia il tipo: <c>LIRR_MIL_CTR</c>, <c>LIEE_MIL_APP</c>,
+    /// <c>LIEF_MIL_TWR</c>. Chiesto dal committente il 21 settembre 2026: «tutti i settori che hanno MIL nel nome
+    /// devono essere verdi». Più scuro del verde dei GND, che resta il suo.
+    /// </summary>
+    public const string Mil = "#2E7D32";
+
+    /// <summary>Colore di default per un callsign: verde se militare, altrimenti in base al suffisso di tipo.
+    /// <see cref="Fallback"/> se ignoto.</summary>
+    public static string DefaultForCallsign(string? callsign)
+    {
+        var suffix = SuffixOf(callsign);
+        // I FSS restano FSS anche con MIL in mezzo (stessa precedenza di AccFamigliaAorRegola).
+        if (suffix != "FSS" && IsMil(callsign)) return Mil;
+        return Defaults.TryGetValue(suffix, out var c) ? c : Fallback;
+    }
+
+    /// <summary>Militare = un pezzo dopo l'ICAO dell'ente contiene <c>MIL</c> (il primo pezzo è l'ICAO).</summary>
+    private static bool IsMil(string? callsign)
+    {
+        if (string.IsNullOrWhiteSpace(callsign)) return false;
+        var pezzi = callsign.Trim().ToUpperInvariant().Split('_', StringSplitOptions.RemoveEmptyEntries);
+        for (var i = 1; i < pezzi.Length; i++)
+            if (pezzi[i].Contains("MIL", StringComparison.Ordinal)) return true;
+        return false;
+    }
 
     /// <summary>Colore risolto: override manuale (se presente e <b>valido</b>) altrimenti default per tipo.</summary>
     public static string Resolve(string callsign, IReadOnlyDictionary<string, string>? overrides) =>

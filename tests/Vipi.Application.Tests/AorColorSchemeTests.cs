@@ -26,6 +26,24 @@ public class AorColorSchemeTests
         Assert.Equal(AorColorScheme.DefaultForCallsign("LIRF_TWR"), AorColorScheme.DefaultForCallsign("LIML_TWR"));
     }
 
+    [Theory]
+    [InlineData("LIRR_MIL_CTR")]
+    [InlineData("LIEE_MIL_APP")]
+    [InlineData("LIEF_MIL_TWR")]
+    public void DefaultForCallsign_Mil_Is_Green_Whatever_The_Type(string callsign) =>
+        Assert.Equal(AorColorScheme.Mil, AorColorScheme.DefaultForCallsign(callsign));
+
+    [Fact]
+    public void DefaultForCallsign_Fss_Has_Its_Own_Color_Not_Green()
+    {
+        Assert.Equal(AorColorScheme.Defaults["FSS"], AorColorScheme.DefaultForCallsign("LIRR_FSS"));
+        Assert.Equal(AorColorScheme.Defaults["FSS"], AorColorScheme.DefaultForCallsign("LIRR_PLN_FSS"));
+        Assert.NotEqual(AorColorScheme.Mil, AorColorScheme.Defaults["FSS"]);
+        Assert.NotEqual(AorColorScheme.Defaults["GND"], AorColorScheme.Defaults["FSS"]);
+        // L'ICAO dell'ente non conta: un ente che si chiamasse «MILx» non fa militari i suoi settori.
+        Assert.Equal(AorColorScheme.Defaults["CTR"], AorColorScheme.DefaultForCallsign("MILA_NE_CTR"));
+    }
+
     [Fact]
     public void DefaultForCallsign_Unknown_Suffix_Falls_Back()
     {

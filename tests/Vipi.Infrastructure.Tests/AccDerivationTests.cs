@@ -275,6 +275,40 @@ public class AccProfileTests : IAsyncLifetime
         }
     }
 
+    /// <summary>
+    /// Fuori anche dalle configurazioni (21 settembre 2026): l'editor non li offre fra i settori da aprire, e la
+    /// tabella d'accorpamento non li mostra né come unificati né come assorbiti.
+    /// </summary>
+    [Fact]
+    public async Task Configurazioni_Aerovia_senza_militari_e_fss()
+    {
+        var accId = (await _db.Accs.FirstAsync(a => a.Code == Acc)).Id;
+        var ne = await _db.Sectors.FirstAsync(s => s.Callsign == "LIRR_NE_CTR");
+        _db.Sectors.AddRange(Ctr(accId, "LIRR_MIL_CTR"), Ctr(accId, "LIRR_FSS"));
+        var figlioMil = Ctr(accId, "LIRR_NE_MIL_CTR");
+        figlioMil.ParentSectorId = ne.Id;
+        _db.Sectors.Add(figlioMil);
+        await _db.SaveChangesAsync();
+
+        var pool = await _service.GetBlockPoolAsync(Acc, new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia });
+        Assert.Contains(pool, p => p.Callsign == "LIRR_NE_CTR");
+        Assert.DoesNotContain(pool, p => p.Callsign.Contains("MIL") || p.Callsign.EndsWith("FSS"));
+
+        var block = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "Tutti",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_MIL_CTR" },
+                             new AccConfigOpen { Callsign = "LIRR_FSS" } } },
+            },
+        };
+        var t = Assert.Single(await _service.DeriveConfigTableAsync(Acc, block));
+        Assert.Equal(new[] { "LIRR_NE_CTR" }, t.Rows.Select(r => r.UnifiedCallsign));
+        Assert.DoesNotContain(t.Rows.SelectMany(r => r.Absorbed), cs => cs.Contains("MIL") || cs.EndsWith("FSS"));
+    }
+
     [Fact]
     public async Task AorView_blocco_APP_non_si_smista()
     {

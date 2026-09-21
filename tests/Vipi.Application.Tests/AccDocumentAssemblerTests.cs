@@ -169,6 +169,32 @@ public class AccDocumentAssemblerTests
     }
 
     [Fact]
+    public void Aerovia_Configurations_Lose_Mil_And_Fss_But_AppGroup_Keeps_Them()
+    {
+        // Configurazione scritta PRIMA di SCCAM/FIC (è la «Conf 1» di LIBB sul vipi.db): apriva anche MIL e FSS.
+        static string Cfg(params string[] aperti) => JsonSerializer.Serialize(new List<AccConfiguration>
+        {
+            new() { Key = "cfg:1", Name = "Conf 1", Open = aperti.Select(a => new AccConfigOpen { Callsign = a }).ToList() },
+        });
+        var meta = new AccBlockMeta { Key = "grp:1", Kind = AccBlockKind.AppGroup, MemberCallsigns = new() { "LIEE_MIL_APP" } };
+        var doc = Doc(
+            Sec(1, "aerovia", "Aerovia", 1, ownJson: null, children: new[]
+            {
+                Sec(2, "configurations", "Configurazioni", 1, ownJson: Cfg("LIBB_ES_CTR", "LIBB_FSS", "LIBB_MIL_CTR")),
+            }),
+            Sec(3, "appgroup", "Gruppo APP", 2, ownJson: JsonSerializer.Serialize(meta), children: new[]
+            {
+                Sec(4, "configurations", "Configurazioni", 1, ownJson: Cfg("LIEE_APP", "LIEE_MIL_APP")),
+            }));
+
+        var blocks = AccDocumentAssembler.Assemble(doc);
+
+        Assert.Equal(new[] { "LIBB_ES_CTR" }, blocks[0].Block.Configurations.Single().OpenCallsigns);
+        // Nel gruppo APP un MIL è un APP militare dell'aeroporto: resta.
+        Assert.Equal(new[] { "LIEE_APP", "LIEE_MIL_APP" }, blocks[1].Block.Configurations.Single().OpenCallsigns);
+    }
+
+    [Fact]
     public void Regulated_Object_Schema_RoundTrips()
     {
         var sel = new RegulatedSelection { OwnAuto = false, OwnIds = new() { "a1" }, ExtraIds = new() { "x9" } };
