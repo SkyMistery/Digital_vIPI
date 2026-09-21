@@ -2,7 +2,26 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### 📦 A96 — Pacchetto 1.38.0 **PRONTO DA CARICARE** (21 settembre 2026)
+### ✅ A97 — 1.38.0 **ONLINE** (21 settembre 2026) · ▶ una cosa da correggere, detta dal committente nella prossima chat
+
+✅ Il committente conferma: **timbro 1.38**, **`Schema 0`**, vIPI ACC con SCCAM e FIC, STAR nella sezione
+aeroporti e richiamate nei trasferimenti. Da fuori subito dopo: `pacchetto-verifica.js` **8/8** con la Ricerca,
+console pulita. ▶ **C'è «una cosa da correggere»**: il committente la dice nella chat nuova — **chiederla per
+prima cosa**, non indovinarla.
+
+🔎 **Visto da fuori, e da tenere presente** (può essere o no la cosa da correggere): nella vIPI **pubblica** di
+LIBB le sezioni nuove sono **accodate in fondo** a ogni blocco — Aerovia: `… Regulated areas · General procedures
+· Validity and revision · SCCAM · FIC`; gruppo APP: `… VFR (ancora RADICE) … Validity and revision · Traffic
+management · Operating technique`. È la forma della **rete a view-time dell'assembler** (`AccDocumentAssembler`
+accoda le sezioni di catalogo assenti dal documento) su una **release vecchia**: la copia pubblica non è stata
+ancora ripubblicata dopo il carico, mentre la BOZZA — sistemata dai passi d'avvio — dovrebbe avere l'ordine del
+catalogo (così era sulla prova del pacchetto). **Da verificare col login**: l'editor di LIBB (ordine giusto?) e,
+nel log del giorno di produzione, le righe «Spostato il VFR … in N» e «Aggiunte N sezioni». Se la bozza è giusta,
+basta **ripubblicare**; se no, il difetto è nei passi d'avvio sul database di produzione (MariaDB). ⚠️ Domanda
+aperta di prodotto: una release vecchia dovrebbe mostrare sezioni che non esistevano quando è stata pubblicata?
+Oggi sì (accodate), e in pubblico si vede uno stato misto — SCCAM/FIC nuovi accanto al VFR vecchio.
+
+### 📦 A96 — Pacchetto 1.38.0 (21 settembre 2026) — ✅ online, vedi §A97
 
 **MINOR, NESSUNA migrazione EF.** Su 1.37.0 (`2ad1790`, online dal 21 settembre). Timbro **`1.38.0 · d267c1d`**,
 **15 file**, zip `00d3d964…979a` (5,07 MB). Foglio:
