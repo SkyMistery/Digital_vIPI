@@ -2,7 +2,11 @@
 
 ## Dove siamo — 22 settembre 2026 (notte)
 
-### 📦 A114 — Pacchetto 1.42.1: i chief d'ACC nel roster degli staffisti (22 settembre 2026, notte) — DA CARICARE
+### ✅ A114 — 1.42.1 ONLINE: i chief d'ACC nel roster degli staffisti (22 settembre 2026, notte)
+
+✅ Il committente conferma: timbro `1.42.1`, `Schema 0`, e il primo dei due chief (`LIPP-CH`) **già in «Chi può
+editare»**; l'altro comparirà al suo prossimo accesso. Da fuori subito dopo: `pacchetto-verifica.js` (SOLO_PUBBLICO)
+**8/8**, Ricerca compresa. In `main` non resta codice fuori pacchetto.
 
 **Dal campo**: due chief appena nominati si erano loggati e non comparivano in Diagnostica («Chi può editare»).
 Diagnosi sui dati veri, non sul codice: nella copia del database di produzione (21-set 23:09Z) la tabella
