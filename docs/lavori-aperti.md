@@ -2,6 +2,62 @@
 
 ## Dove siamo — 21 settembre 2026
 
+### ✅ A83 — `DocReviewBar`: l'ultima famiglia viva del registro ha preso la terza porta (21 settembre 2026)
+
+**Da dove esce**: lo scarico di diagnostica del **21 settembre 02:50**, letto per ere secondo
+[`diagnostica-di-produzione`]. Il quadro è buono — l'era **1.34.3** chiude con **zero voci su 5990
+richieste** in 596 accensioni, e le voci al giorno scendono da 51 (4 set) a 1 — ma quel che resta ha un nome
+solo.
+
+🔴 **`DocReviewBar` è la catena più nominata di `errori-richieste.txt`: quaranta voci.** Due facce della
+stessa radice, `ObjectDisposedException` su `VipiDbContext` e su `MySqlConnection`, sempre nella stessa
+catena: `DocReviewBar.OnParametersSetAsync` → `CaricaAsync` → `WorkListService.PerDocumentoAsync` →
+`EfEditorTaskRepository.ListAllAsync` / `EfDocumentAdminRepository.DescriviAsync`.
+
+🔴 **E non è più rumore, perché ha colpito un utente vero.** Il **19 settembre alle 19:48:50** ha prodotto
+l'**unico 500 del periodo** (cinque giorni di registro, 2612 richieste): `GET /services/vsop/lirr/apps/editor`,
+utente **VID 201143**, pagina `/Error` in faccia. E il **21 settembre alle 00:38:57** è l'**unica voce
+dell'era 1.35.0** — cioè, chiuso tutto il resto, era rimasta lei.
+
+⚠️ **Aveva già lo scope proprio** (`@inherits OwningComponentBase`, dal giorno in cui è nata) **e** la
+sentinella di rientro (`if (DocumentId == _loadedFor) return;`). È esattamente il verdetto di **§CF**: lo
+scope proprio protegge dagli ALTRI, la sentinella da SÉ STESSI, **nessuna delle due protegge dal TEMPO**.
+L'utente chiude l'editor, Blazor smonta il componente, `OwningComponentBase` chiude lo scope e si porta via
+il `DbContext` **sotto la query ancora aperta**.
+
+🔴 **Stava nel debito scritto, ed è la seconda volta che succede.** `DocReviewBar` era nell'elenco
+`SenzaAttesaNoto` di `TerzaPortaTests` dall'8 settembre. È la stessa storia di `AdminRolesPage` quella sera:
+**quando la produzione nomina una riga di quella lista, quella riga non è più un debito, è un guasto** — si
+converte, non si aggiorna la data.
+
+✅ **Fatto**: `@inherits ScopeProprioCheAspetta`, caricamento dentro `InFilaAsync`, e la riga tolta
+dall'elenco (21 → **20**).
+- I **gesti** (`Chiudi`, `Avvia`) passano anche loro dalla porta: scrivono sullo **stesso** `DbContext` dello
+  scope, e un salvataggio in volo alla chiusura è lo stesso guasto del caricamento. Il `CaricaAsync` annidato
+  non si rimette in fila dietro sé stesso — se ne accorge l'`AsyncLocal` della base.
+- `OnResolved` resta **fuori** dalla porta: avvisa l'ospite, che ricarica tutto l'editor, e tenere la nostra
+  porta per la durata del lavoro altrui vorrebbe dire far scadere il tetto dei 15 s per colpa di un terzo.
+  L'ordine visto dall'utente non cambia.
+- Lo stato (`_righe`) e `StateHasChanged` si scrivono **dopo** l'`await` e **solo da vivi** (`if (!Chiusa)`).
+- ⚠️ Il corpo della lambda è un **blocco**, non un'espressione: scritto `async () => _righe = await …` il
+  compilatore sceglie l'overload `InFilaAsync<T>` — che richiama questo — ed è la ricorsione infinita già
+  pagata il 16 settembre dalla scheda della copia del database.
+
+⚠️ **La firma pubblica non cambia**: i sei ospiti che tengono il `@ref` (`AirportSectionsEditor`,
+`AppSectionsEditor`, `MilSectionsEditor`, `VloaEditor`, `AccEditorPage`) chiamano `RicaricaAsync()` come
+prima. Nessun ospite toccato.
+
+✅ **La prova distingue** ([`prova-che-non-distingue`]): rimesso il solo `.razor` com'era,
+`TerzaPortaTests` va **rosso** (1 su 3); ripristinato, verde. I presidi si reggono da sé — chi converte
+senza togliere la riga, o toglie la riga senza convertire, trova il rosso.
+
+✅ **Verde**: `Vipi.Ui.Tests` **1644/1644** su **net8.0 e net10.0**, e
+`dotnet build Vipi.slnx -c Release --no-incremental` **0 warning, 0 errori** (il gate dell'audit dell'11
+agosto: `dotnet test` verde non vuol dire build verde).
+
+▶ **La prova vera è il prossimo scarico**: 1.35.0 nel file di oggi ha **126 richieste e 11 accensioni** —
+un'era senza traffico non assolve nessuno. Da guardare: che la catena `DocReviewBar` non compaia più.
+
 ### ✅ A82 — Pacchetto 1.35.0 **ONLINE** (21 settembre 2026)
 
 > ✅ **CARICATO il 21 settembre 2026.** Il committente conferma: **copia di sicurezza del database scaricata

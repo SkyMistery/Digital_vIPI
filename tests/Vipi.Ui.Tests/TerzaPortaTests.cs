@@ -25,7 +25,8 @@ namespace Vipi.Ui.Tests;
 public sealed class TerzaPortaTests
 {
     /// <summary>
-    /// Chi ha uno scope proprio e <b>non aspetta</b>: ventuno file, misurati l'8 settembre 2026.
+    /// Chi ha uno scope proprio e <b>non aspetta</b>: ventuno file misurati l'8 settembre 2026, <b>venti</b>
+    /// dal 21 settembre — <c>DocReviewBar</c> è uscita perché la produzione l'ha nominata (vedi sotto).
     ///
     /// <para>⚠️ Come <c>DebitoNoto</c> in <c>ScopeProprioDellePagineTests</c>, questo elenco <b>non</b> è un
     /// obiettivo raggiunto: è un debito <b>scritto</b>, e serve a una cosa sola — che non ne nascano di nuovi
@@ -37,12 +38,18 @@ public sealed class TerzaPortaTests
     /// volte nel registro degli errori: la lista diceva «non ne nascano di nuovi», e intanto una vecchia
     /// era diventata un guasto. Quando un nome di qui compare in <c>errori-richieste.txt</c>, la riga si
     /// converte — non si aggiorna la data.</para>
+    ///
+    /// <para>🔴 <b>Ed è successo di nuovo, il 21 settembre 2026.</b> <c>DocReviewBar</c> stava qui dal 8, e
+    /// nello scarico di quel giorno era la catena <b>più nominata di tutte</b>: quaranta voci, l'unico 500
+    /// del periodo (19 settembre 19:48:50, a un utente vero) e l'<b>unica</b> voce dell'era 1.35.0, cioè
+    /// l'ultima famiglia rimasta viva dopo che 1.34.3 aveva chiuso il resto con zero voci su 5990 richieste.
+    /// Convertita: la riga è uscita da qui, non è stata riscritta.</para>
     /// </summary>
     private static readonly string[] SenzaAttesaNoto =
     {
         "AccLanding", "AeroportoEditorPage", "AeroportoPage", "AirportListPanel", "AirportQuickPanel",
         "AppEditorPage", "AtcWorldArchivePage", "AttachmentBlockEditor", "CoordinateConverterPage",
-        "DocReviewBar", "DocumentSectionsEditor", "EditLockBar", "ImageBlockEditor", "ImportaTabella",
+        "DocumentSectionsEditor", "EditLockBar", "ImageBlockEditor", "ImportaTabella",
         "MediaCleanupCard", "MilEditorPage", "MilListPage", "NewDocumentPage", "PageIntroZone",
         "UnionPanel", "VloaDocumentView",
     };

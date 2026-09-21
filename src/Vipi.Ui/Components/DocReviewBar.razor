@@ -11,10 +11,23 @@
 @using Vipi.Application.Content
 @using Vipi.Domain
 @using Microsoft.Extensions.DependencyInjection
-@inherits OwningComponentBase
+@inherits ScopeProprioCheAspetta
 @inject IStringLocalizer<SharedResource> L
 @* Servizi risolti dallo scope DI proprio (VipiDbContext isolato dal circuito): evita il crash "second
-   operation" quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. [[EditLockBar]] *@
+   operation" quando questo sidecar carica mentre la pagina genitore ha ancora una query in volo. [[EditLockBar]]
+
+   🔴 Lo scope proprio NON bastava, e l'ha detto la produzione. Dal 4 al 21 settembre 2026 questa barra è la
+   catena più nominata di `errori-richieste.txt` — QUARANTA voci — con due facce della stessa radice:
+   `ObjectDisposedException` su `VipiDbContext` e su `MySqlConnection`, sempre dentro
+   `WorkListService.PerDocumentoAsync` chiamata da `CaricaAsync`. Il 19 settembre alle 19:48:50 ha prodotto
+   l'UNICO 500 del periodo, servito in faccia a un utente vero su `/services/vsop/lirr/apps/editor`; il 21
+   settembre è l'unica voce dell'era 1.35.0.
+
+   Mancava la TERZA porta: lo scope proprio protegge dagli ALTRI, la sentinella di `OnParametersSetAsync`
+   protegge da SÉ STESSI, e nessuna delle due protegge dal TEMPO. L'utente chiude l'editor, Blazor smonta il
+   componente, `OwningComponentBase` chiude lo scope — e si porta via il `DbContext` mentre la query è ancora
+   aperta. Da qui `ScopeProprioCheAspetta`, coi caricamenti dentro `InFilaAsync`: prima la porta, poi
+   l'attesa. Vedi docs/lavori-aperti.md §CF. *@
 
 @if (_righe.Count > 0)
 {
@@ -74,38 +87,73 @@
     public async Task RicaricaAsync()
     {
         await CaricaAsync();
-        StateHasChanged();
+        // ⚠️ Solo se siamo ancora vivi: l'ospite può chiamarci mentre l'utente se ne sta già andando, e
+        // `StateHasChanged` su un componente smontato è l'eccezione che abbatte il circuito.
+        if (!Chiusa) StateHasChanged();
     }
 
-    private async Task CaricaAsync() =>
-        _righe = DocumentId is int id
+    /// <summary>
+    /// Il caricamento, dentro la terza porta: la chiusura sa che c'è qualcuno dentro e lo <b>aspetta</b>
+    /// (tetto 15 s) prima di smaltire lo scope col <c>DbContext</c>.
+    ///
+    /// <para>🔴 <b>Il corpo della lambda è un BLOCCO, e deve restarlo.</b> Scritto come espressione
+    /// (<c>async () =&gt; _righe = await ...</c>) l'assegnazione ha un valore, la lambda diventa un
+    /// <c>Func&lt;Task&lt;T&gt;&gt;</c>, il compilatore sceglie l'overload <see cref="ScopeProprioCheAspetta.InFilaAsync{T}"/>
+    /// — che richiama questo — e sono ricorsione infinita e stack overflow, cioè il PROCESSO, cioè il sito
+    /// per tutti. È la trappola già pagata il 16 settembre 2026 dalla scheda della copia del database.</para>
+    /// </summary>
+    private Task CaricaAsync() => InFilaAsync(async () =>
+    {
+        var righe = DocumentId is int id
             ? await Lavoro.PerDocumentoAsync(id)
             : Array.Empty<WorkItem>();
 
+        // ⚠️ Lo stato si scrive DOPO l'await e solo da vivi. La porta garantisce che la chiusura ci aspetti,
+        // non che valga la pena ridipingere un componente che nel frattempo se n'è andato.
+        if (!Chiusa) _righe = righe;
+    });
+
     /// <summary>Chiudere una riga vuol dire due cose diverse secondo la sua natura, e il read-model lo dice:
-    /// un fatto del sistema si spunta, un incarico passa a «Fatto».</summary>
+    /// un fatto del sistema si spunta, un incarico passa a «Fatto».
+    ///
+    /// <para>⚠️ Anche il gesto passa dalla porta: scrive sullo STESSO <c>DbContext</c> dello scope proprio, e
+    /// un salvataggio in volo quando l'editor si chiude è lo stesso guasto del caricamento. Il
+    /// <see cref="CaricaAsync"/> qui dentro non si rimette in fila dietro sé stesso — se ne accorge
+    /// l'<c>AsyncLocal</c> della base.</para>
+    ///
+    /// <para>⚠️ <see cref="OnResolved"/> sta FUORI dalla porta: avvisa l'ospite, che ricarica tutto l'editor,
+    /// e tenere la nostra porta per la durata del lavoro altrui vorrebbe dire far scadere il tetto dei 15 s
+    /// su una chiusura che non è colpa nostra. L'ordine visto dall'utente non cambia.</para></summary>
     private async Task Chiudi(WorkItem r)
     {
         _busy = true;
         try
         {
-            if (r.TaskId is int taskId) await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.Done);
-            else if (r.ImpactId is int impactId) await Impacts.ClearAsync(impactId);
+            await InFilaAsync(async () =>
+            {
+                if (r.TaskId is int taskId) await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.Done);
+                else if (r.ImpactId is int impactId) await Impacts.ClearAsync(impactId);
 
-            await CaricaAsync();
-            await OnResolved.InvokeAsync();
+                await CaricaAsync();
+            });
+
+            if (!Chiusa) await OnResolved.InvokeAsync();
         }
         finally { _busy = false; }
     }
 
+    /// <inheritdoc cref="Chiudi"/>
     private async Task Avvia(WorkItem r)
     {
         if (r.TaskId is not int taskId) return;
         _busy = true;
         try
         {
-            await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.InProgress);
-            await CaricaAsync();
+            await InFilaAsync(async () =>
+            {
+                await Incarichi.UpdateStatusAsync(taskId, EditorTaskStatus.InProgress);
+                await CaricaAsync();
+            });
         }
         finally { _busy = false; }
     }
