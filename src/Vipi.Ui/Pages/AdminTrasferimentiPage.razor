@@ -8,6 +8,7 @@
 @inject INeighbourReader Neighbours
 @inject IAirportEditingService Airports
 @inject IAccDerivationService AccDeriv
+@inject IProcedureReferenceResolver Procedure
 @inject Vipi.Application.Abstractions.INavaidSource Navaids
 @inject Vipi.Application.Abstractions.ISectorVolumeCatalog Volumi
 @inject Vipi.Application.Abstractions.ICopPositions PuntiCop
@@ -610,7 +611,29 @@
 
     private sealed class ClauseForm
     {
-        public string Points { get; set; } = "";
+        private string _points = "";
+
+        /// <summary>
+        /// I punti. Scrivere una SID o una STAR dove prima non ce n'erano porta il luogo di trasferimento al
+        /// confine dell'AoR, se non ne era scelto uno (vedi <see cref="ProceduraNeiPunti"/>): è il default che la
+        /// frase «autorizzato via» vuole, e si vede nel pannello invece di comparire solo nel documento.
+        /// <para>⚠️ Solo col GESTO: <see cref="LoadFrom"/> e <see cref="Reset"/> scrivono il campo sotto, o
+        /// aprire una clausola la segnerebbe «modificata» prima di averla toccata.</para>
+        /// </summary>
+        public string Points
+        {
+            get => _points;
+            set
+            {
+                if (Facet.Kind == TransferHandoffKind.Unspecified
+                    && ProceduraNeiPunti.Contiene(value) && !ProceduraNeiPunti.Contiene(_points))
+                {
+                    Facet.Kind = TransferHandoffKind.AorBoundary;
+                    Facet.LevelConstraint = LevelConstraint.Exact;
+                }
+                _points = value ?? "";
+            }
+        }
         public LevelConstraint Constraint { get; set; } = LevelConstraint.AtOrBelow;
         public int? Value { get; set; }
         public LevelUnit Unit { get; set; } = LevelUnit.Fl;
@@ -654,7 +677,7 @@
 
         public void Reset()
         {
-            Points = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
+            _points = ""; Constraint = LevelConstraint.AtOrBelow; Value = null; Unit = LevelUnit.Fl; Special = "";
             Parity = LevelParity.Any; VState = TransferVerticalState.Unspecified;
             Rwys = Array.Empty<string>(); Aree.Clear(); AreaText = ""; AreaNegated = false; AreaAll = false;
             CustomLabel = "";
@@ -663,7 +686,7 @@
 
         public void LoadFrom(AgreementClauseRow c, Func<string?, string[]> parseRwys)
         {
-            Points = c.Cops; Constraint = c.LevelConstraint; Value = c.LevelValue; Unit = c.LevelUnit;
+            _points = c.Cops; Constraint = c.LevelConstraint; Value = c.LevelValue; Unit = c.LevelUnit;
             Special = c.LevelSpecial ?? ""; Parity = c.Parity; VState = c.VerticalState;
             Rwys = parseRwys(c.ConditionLabel);
             Aree.Clear(); Aree.AddRange(TransferConditionText.SpezzaAree(c.ConditionAreaLabel));
@@ -753,6 +776,9 @@
     /// può avere più scali: le piste si uniscono, e quando gli scali sono più d'uno la sigla porta il suo ICAO —
     /// «16R» su due aeroporti diversi sono due piste diverse.</summary>
     private IReadOnlyList<RunwayOption> _condRunways = Array.Empty<RunwayOption>();
+
+    /// <summary>Le SID/STAR degli scali della sezione aperta, per i suggerimenti dei punti (vedi PointItems).</summary>
+    private IReadOnlyList<ProceduraCitabile> _procedureSezione = Array.Empty<ProceduraCitabile>();
 
     /// <summary>Una pista selezionabile: come si legge, e l'id per il soft-ref. L'etichetta porta l'ICAO quando
     /// l'accordo ha piu' di un aeroporto — «16R» su Fiumicino e su Malpensa sono due piste diverse.</summary>
@@ -2228,8 +2254,10 @@
         {
         <div class="xt-row2">
             <div class="field"><label>@L["Xfer_HandoffWhere"]</label>
+                @* Con una SID/STAR fra i punti «come l'ingresso» non esiste: la frase è «autorizzato via», e senza
+                   una scelta il documento direbbe comunque il confine dell'AoR (ProceduraNeiPunti). *@
                 <select @bind="form.Facet.Kind">
-                    <option value="@TransferHandoffKind.Unspecified">@L["Xfer_HandoffSameAsEntry"]</option>
+                    <option value="@TransferHandoffKind.Unspecified" disabled="@ProceduraNeiPunti.Contiene(form.Points)">@L["Xfer_HandoffSameAsEntry"]</option>
                     <option value="@TransferHandoffKind.AorBoundary">@L["Xfer_HandoffAor"]</option>
                     <option value="@TransferHandoffKind.Point">@L["Xfer_HandoffPoint"]</option>
                     <option value="@TransferHandoffKind.Custom">@L["Xfer_HandoffCustom"]</option>
@@ -2739,12 +2767,26 @@
         var token = CopList.LastToken(raw);
         if (token.Length == 0) return Array.Empty<TypeaheadPicker.Item>();
 
-        return _navaids.Entries
+        // Le SID e le STAR degli scali della sezione (21 settembre 2026), PRIMA dei punti: sono poche, e chi
+        // scrive «BAN» in un arrivo a Bari cerca più facilmente la procedura che un fix omonimo di un altro ACC.
+        // Si cercano sul nome scritto («BANAV 9A») e su quello d'archivio («BANA9A»).
+        var procedure = _procedureSezione
+            .Where(p => p.Esteso.Contains(token, StringComparison.OrdinalIgnoreCase)
+                        || p.Codice.Contains(token, StringComparison.OrdinalIgnoreCase))
+            .OrderBy(p => p.Esteso.StartsWith(token, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+            .ThenBy(p => p.Esteso, StringComparer.Ordinal)
+            .Take(6)
+            .Select(p => new TypeaheadPicker.Item(p.Esteso,
+                $"{(p.Kind == Vipi.Domain.Entities.ProcedureKind.Star ? "STAR" : "SID")} {p.Icao}{(p.Piste.Length > 0 ? " · " + p.Piste : "")}"))
+            .ToList();
+
+        return procedure.Concat(_navaids.Entries
             .Where(e => e.Name.Contains(token, StringComparison.OrdinalIgnoreCase))
             .OrderBy(e => e.Name.StartsWith(token, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
             .Take(12)
-            .Select(e => new TypeaheadPicker.Item(e.Name, KindLabel(e.Kind)))
+            .Select(e => new TypeaheadPicker.Item(e.Name, KindLabel(e.Kind))))
+            .Take(12)
             .ToList();
     }
 
@@ -2891,6 +2933,39 @@
             }
         }
         _condRunways = list;
+    }
+
+    /// <summary>
+    /// Le SID e le STAR che si possono scrivere fra i punti (21 settembre 2026): degli scali della sezione, del
+    /// verso del traffico — gli arrivi arrivano per STAR, le partenze partono per SID; gli altri tipi le hanno
+    /// entrambe. In fila dopo le piste: i servizi condividono il contesto del circuito.
+    /// </summary>
+    private async Task LoadProceduresAsync(AgreementSectionRow? sec)
+    {
+        _procedureSezione = Array.Empty<ProceduraCitabile>();
+        if (sec is null || sec.Airports.Count == 0) return;
+
+        var versi = sec.Kind switch
+        {
+            TransferFlowKind.Arrival => new[] { Vipi.Domain.Entities.ProcedureKind.Star },
+            TransferFlowKind.Departure => new[] { Vipi.Domain.Entities.ProcedureKind.Sid },
+            _ => new[] { Vipi.Domain.Entities.ProcedureKind.Sid, Vipi.Domain.Entities.ProcedureKind.Star },
+        };
+        var list = new List<ProceduraCitabile>();
+        foreach (var apt in sec.Airports.OrderBy(x => x.Order))
+        {
+            if (!IsKnownApt(apt.Icao)) continue;
+            foreach (var verso in versi)
+            {
+                try { list.AddRange(await Procedure.ElencoAsync(apt.Icao, verso)); }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Come le piste: l'elenco resta più corto, ma il guasto si scrive (T-075).
+                    Logger.LogWarning(ex, "Trasferimenti: {Verso} di {Icao} non lette per i punti", verso, apt.Icao);
+                }
+            }
+        }
+        _procedureSezione = list;
     }
 
     // ---- Stato in URL e preferenze ------------------------------------------------------------------
@@ -3399,6 +3474,7 @@
         ResetPanelSections(_addClause);
         _formOpenedAs = _addClause.Signature();
         await LoadRunwaysAsync(sec);
+        await LoadProceduresAsync(sec);
         _focusPanel = true;
     }
 
@@ -3413,6 +3489,7 @@
         ResetPanelSections(_editClause);
         _formOpenedAs = _editClause.Signature();
         await LoadRunwaysAsync(sec);
+        await LoadProceduresAsync(sec);
         _focusPanel = true;
     }
 

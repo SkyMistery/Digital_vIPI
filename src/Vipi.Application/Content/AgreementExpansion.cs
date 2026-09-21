@@ -115,7 +115,8 @@ public static class AgreementExpansion
             ConditionAreaNegated = c.ConditionAreaNegated,
             ConditionAreaAll = c.ConditionAreaAll,
             ConditionCustomLabel = c.ConditionCustomLabel,
-            HandoffKind = c.HandoffKind,
+            // Una SID/STAR fra i punti e nessun luogo scritto: il confine dell'AoR (vedi ProceduraNeiPunti).
+            HandoffKind = ProceduraNeiPunti.Consegna(c.HandoffKind, c.Cops),
             HandoffLabel = c.HandoffLabel,
             HandoffLevelValue = c.HandoffLevelValue,
             HandoffLevelUnit = c.HandoffLevelUnit,

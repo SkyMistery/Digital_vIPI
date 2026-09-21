@@ -433,7 +433,9 @@ public static class CoordinationSentences
         // nell'editor si sta scrivendo l'accordo da quel lato, e la vLOA ha due alberi separati per verso.
         bool isIncoming = false)
     {
-        facet ??= TransferHandoffFacet.None;
+        // Una SID/STAR fra i punti si dice «autorizzato via», e quella frase la sceglie la faccetta: vedi
+        // ProceduraNeiPunti. Qui passano l'anteprima dell'editor, la vIPI e la vLOA.
+        facet = ProceduraNeiPunti.Faccetta(facet ?? TransferHandoffFacet.None, cop);
         // Chi trasferisce, a chi, su quale aeroporto: la parte che non dipende dalla riga. null = dati
         // incompleti, e il contratto e' «dati incompleti -> nessuna frase».
         var b = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,

@@ -168,14 +168,14 @@ public sealed class AgreementService : IAgreementService
     {
         await StrutturaAsync(ct);
         ValidateClause(input);
-        return await _repo.AddClauseAsync(accCode, sectionId, input, ct);
+        return await _repo.AddClauseAsync(accCode, sectionId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
     public async Task UpdateClauseAsync(string accCode, int clauseId, AgreementClauseInput input, CancellationToken ct = default)
     {
         await StrutturaAsync(ct);
         ValidateClause(input);
-        await _repo.UpdateClauseAsync(accCode, clauseId, input, ct);
+        await _repo.UpdateClauseAsync(accCode, clauseId, ProceduraNeiPunti.Normalizza(input), ct);
     }
 
     public async Task DeleteClauseAsync(string accCode, int clauseId, CancellationToken ct = default)
