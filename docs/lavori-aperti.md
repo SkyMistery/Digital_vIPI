@@ -2,6 +2,61 @@
 
 ## Dove siamo — 21 settembre 2026
 
+### 📦 A85 — Pacchetto 1.36.0 **PRONTO DA CARICARE** (21 settembre 2026)
+
+**MINOR con UNA migrazione.** Su 1.35.0 (`b38359b`, online dal 21 settembre). Timbro **`1.36.0 · 0493ef5`**,
+**12 file**, zip `d9cc681c…9475` (5,24 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.36.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.36.0.md).
+
+**Contenuto**: §A83 (`DocReviewBar` prende la terza porta) e §A84 (il freno della traduzione). Due
+correzioni, nessuna pagina nuova.
+
+⚠️ **MINOR e non PATCH, e non è una scelta di gusto**: la tabella del runbook dice «PATCH = solo correzioni,
+**nessuna migrazione**». Il contenuto sono due sole correzioni, ma una porta uno schema — e la regola guarda
+quello, perché è quello che cambia il **modo di caricare**.
+🔴 **1.36.0 era il numero messo da parte per net10** (L13). Come per le sette volte precedenti, il numero
+segue l'ordine delle **consegne** e non dei piani. **Il net10 slitta a 1.37.0.**
+
+🔴 **Seconda consegna con migrazione di fila** (`FrenoTraduzioneQuarantena`): copia di sicurezza del database
+prima del carico, e `Vipi.Infrastructure.MySqlMigrations.dll` **dentro il pacchetto**.
+⚠️ **E qui il guasto sarebbe più silenzioso che in 1.35.0**: là senza quel file le pagine delle procedure
+andavano in errore e si vedeva. Qui non si rompe niente — il freno semplicemente **non frena**, e l'unico
+modo di accorgersene è la bolletta. Prova da fuori: la riga **`Schema 0`**.
+✅ Additiva e col corpo **generato**: solo `CreateTable` più l'indice unico sulla terna. Letta nei due
+provider: nessun `RenameColumn`, nessun dato toccato.
+
+**I 12 file**, tutti in **radice**: `Vipi.Domain`, `Vipi.Application`, `Vipi.Infrastructure`,
+`Vipi.Infrastructure.MySqlMigrations`, `Vipi.Ui` e `Vipi.Host` per il timbro, ognuno col suo `.pdb`.
+✅ **Niente `wwwroot`**, e quindi **niente `endpoints.json`**: nessun foglio di stile, nessun JavaScript è
+cambiato — l'indice viaggia solo insieme a un asset che cambia, e stavolta non ce n'è nessuno.
+✅ **Fuori `en/Vipi.Ui.resources.dll`**: nessun `.resx` è nel diff. Quel file cambia impronta a ogni
+ricompilazione anche a frasi ferme, quindi lì comanda il diff e non l'impronta.
+⚠️ **Fuori** `Vipi.Hosting`, `Vipi.AuroraProfiles` e `Vipi.AuroraBridge.Contracts`: diversi solo per
+ricompilazione. Fatta la domanda del runbook — nessuno dei tre nomina un tipo cambiato né implementa
+`ITranslationQuarantine`, e l'unica `const` toccata (`TranslationQuarantena.Soglia`) è **nuova**, quindi non
+c'è nessun valore vecchio cablato altrove; i suoi due utenti stanno in Application e Infrastructure, spediti.
+Contro il publish di 1.35.0: **466 file, 447 identici, 19 diversi**.
+
+✅ **Provato sul PACCHETTO** (publish win-x64 avviato dalla sua cartella, :5199, copia del `vipi.db`):
+- `pacchetto-verifica.js` **10/10** con la Ricerca, console pulita;
+- 🔴 la **migrazione è entrata davvero**: nel log
+  `Applying migration '20260921011610_FrenoTraduzioneQuarantena'`;
+- riga **`Schema 0`** nella Diagnostica, e timbro `1.36.0 · 0493ef5` nei metadati dell'assieme, in
+  `diagnostica/avvio-diagnostica.txt` e nel chip di versione;
+- l'editor che ospita `DocReviewBar` si apre senza pagina d'errore.
+- ⚠️ **Una prova mia era sbagliata, non il pacchetto**: pretendevo che il chip della versione fosse
+  `display != none`. La spia della versione è la **prima** cosa che esce dalla barra quando lo spazio manca
+  (scaglione `tb-2`, deciso misurando da `vipi-ui.js`), ed era in `tb-2` anche a 1600 px. Il timbro si
+  controlla nel testo e nel `title`, non nella disposizione.
+
+⚠️ **Il riavvio del processo non è stato riprovato**: `vipi-riconnessione.js` è **byte per byte identico** a
+quello online (non è fra i 19 diversi), quindi non c'è niente che questa consegna possa averne rotto.
+
+▶ **Dopo il carico**: timbro, **la Ricerca**, `Schema 0`, e un editor qualunque che si apre con la barra
+gialla in cima.
+▶ **Resta lavoro di DATI**: le due frasi ferme vogliono comunque una resa a mano — `«37th WING …»` viene da
+IVAO (seme nel codice), `«Se presente LIBN_G_APP …»` dal pannello traduzioni.
+
 ### ✅ A84 — Il freno: i segmenti che il motore non sa rendere smettono di partire (21 settembre 2026) — 🔴 UNA MIGRAZIONE
 
 **Da dove esce**: lo stesso scarico di §A83. Il registro del giro dice, ogni quarto d'ora, sempre la stessa
