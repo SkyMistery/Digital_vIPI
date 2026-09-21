@@ -138,7 +138,9 @@ runtime che va in produzione è quella dell'SDK che pubblica — con un SDK di t
 un runtime senza tre patch di sicurezza, ed è successo il 13 settembre 2026 (ADR-0007 §D4-quater, punto 5).
 
 🔴 **Eccezione: il primo pacchetto dopo il salto a net10 (L13, ADR-0007 §D4-quater) NON è una lista di
-file.** Cambia il runtime intero — `libcoreclr.so`, `libhostpolicy.so`, `System.Private.CoreLib.dll` e ogni
+file.** (✅ Fatto con **1.40.0** il 21 settembre 2026: cartella `completo-1.40.0`, carico per spostamento di
+cartelle sul server, vedi `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.40.0.md`. Vale di nuovo al prossimo cambio di
+runtime.) Cambia il runtime intero — `libcoreclr.so`, `libhostpolicy.so`, `System.Private.CoreLib.dll` e ogni
 assieme del framework — più i pacchetti ri-risolti. Un carico parziale lascerebbe sul server un runtime 8 con
 assiemi 10, o il contrario: il processo non parte, e il messaggio non somiglia alla causa. Si carica il
 **publish completo**, con il vecchio zip pronto per tornare indietro, rispettando le quattro cose che l'FTP

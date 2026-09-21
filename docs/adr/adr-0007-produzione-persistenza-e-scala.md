@@ -359,3 +359,14 @@ patch di sicurezza è proprio il pezzo esposto: Kestrel, `OpenIdConnect`, DataPr
   un carico completo, non una manciata di file, con il vecchio zip pronto per tornare indietro.
 - ⚠️ **Debian 11 è uscito dal supporto LTS il 31 agosto 2026**: `apt` sui mirror normali non installa più
   pacchetti bullseye (visto nella prova). Non blocca .NET 10, ma è un'informazione per chi gestisce il server.
+
+### ✅ In produzione dal 21 settembre 2026 (1.40.0)
+
+Consegnato **da solo**, senza funzioni nuove, come pacchetto **completo** (480 file) caricato per spostamento di
+cartelle (`deploy/atc-ivao/LEGGIMI-PACCHETTO-1.40.0.md`, `docs/lavori-aperti.md` §A106–§A107). Sul server
+Passenger lancia `dotnet Vipi.Host.dll` col `dotnet` 8.0.28 installato, e `avvio-diagnostica.txt` dice
+**`Runtime .NET 10.0.12`**: la prova del container è confermata sulla macchina vera. `Schema 0`, login OIDC e
+key-ring di DataProtection passati da 8 a 10 senza che nessuno perdesse la sessione.
+⚠️ Il giorno del carico Cloudflare aveva in magazzino il `blazor.web.js` di net8: l'indirizzo non porta
+l'impronta, e la durata di un giorno lo riallinea da sola. Su net10 quel file sta in `wwwroot/_framework/` e può
+prendere l'impronta da `AssetVersion` — da fare prima del prossimo salto di .NET.

@@ -2,6 +2,54 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### ✅ A107 — 1.40.0 **ONLINE**: il sito gira su .NET 10 (21 settembre 2026, sera)
+
+✅ Il committente conferma: in `avvio-diagnostica.txt` **`Runtime .NET 10.0.12`**, **timbro `1.40.0 · fb19094`**,
+**`Schema 0`**, login e Ricerca senza errori. Da fuori subito dopo: `pacchetto-verifica.js` **8/8**
+(SOLO_PUBBLICO), console pulita. Il carico per **spostamento di cartelle** (§A106) ha funzionato al primo giro.
+🟡 **Cloudflare serve ancora il `blazor.web.js` di net8** (`cf-cache-status: HIT`, `last-modified` del 30 agosto):
+l'indirizzo `/_framework/blazor.web.js` non porta l'impronta, e la durata di un giorno (`VipiStartup.cs`, commento
+«UN GIORNO, e NON immutable») esiste proprio per questo caso — si riallinea da solo entro 24 ore. Il client 8 col
+server 10 è quello che ha dato 8/8 da fuori. Con `?v=x` l'origine risponde `MISS` col file del 21 settembre.
+▶ **Migliorìa possibile**: su net10 il file sta in `wwwroot/_framework/`, quindi `AssetVersion.Url` può dargli
+l'impronta in `App.razor` — al prossimo aggiornamento di .NET il problema non si ripresenterebbe.
+▶ **Sul server, fra qualche giorno buono**: cancellare `vecchio-1.39.1/` (il ritorno indietro) e `nuovo-1.40.0/`
+(vuota). Dal prossimo pacchetto si torna alla lista corta di file.
+
+### 📦 A106 — Pacchetto 1.40.0: il salto a net10, da solo (21 settembre 2026) — ✅ online, vedi §A107
+
+**MINOR, nessuna migrazione, nessuna funzione nuova.** Su 1.39.1 (`4df91c0`). Timbro **`1.40.0 · fb19094`**,
+pacchetto **COMPLETO** da **480 file** (136 MB), zip `vipi-1.40.0-completo.zip` `82bc78af…342e` (56,7 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.40.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.40.0.md). ADR-0007 §D4-quater (L13, T-059).
+- **Il riporto**: il ramo `l13-net10` (3 commit, 13 settembre) era **202 commit indietro**. Ramo nuovo
+  `net10-1-40` da `main`, cherry-pick, conflitti solo in documenti e conteggi; poi fast-forward in `main`.
+  CI verde 4/4. SDK **10.0.401** = ancora l'ultimo (runtime 10.0.12, patch di sicurezza dell'8 settembre).
+- 🔴 **Trappola del riporto**: `MySqlDumpSource` (la copia del database, §A47, nata DOPO il ramo) stava sotto
+  `#if NET8_0`; col ramo MariaDB non più condizionato, sull'host net10 non compilava. Guardia tolta. A ogni
+  riporto di un ramo vecchio: cercare `NET8_0` nel codice nato dopo.
+- **Riga nuova in `avvio-diagnostica.txt`: `Runtime .NET`** (`RuntimeInformation.FrameworkDescription`). È la
+  prova del carico leggibile via FTP: il pacchetto porta il suo runtime, ma Passenger lo lancia col `dotnet` del
+  server (8.0.28).
+- **`blazor.web.js` ora è un FILE** in `wwwroot/_framework/` (su net8 lo serviva il framework): servito da
+  `UseStaticFiles`, messo fra le dimensioni da controllare nel foglio.
+- **Fuori dal pacchetto**: `appsettings.Development.json` (non serve in produzione) e `appsettings.json`
+  (identico byte per byte a 1.39.1; la rete dei segreti suonava sui NOMI delle chiavi — falso allarme noto,
+  risolto togliendo il file invece di scavalcare la rete).
+- **Il carico**: niente rinomine file per file. `nuovo-1.40.0/` caricata a sito acceso → l'applicazione 1.39.1
+  spostata in blocco in `vecchio-1.39.1/` (tranne `segreti/`, `appsettings*.json`, `vipi-keys/`, `tmp/`,
+  `diagnostica/`) → contenuto di `nuovo-1.40.0/` portato in radice → `tmp/restart.txt`. Spostare sul server è
+  rinominare: non tronca nessun file aperto. Ritorno indietro: due spostamenti.
+- `prepara-pacchetto.ps1` conosce i pacchetti `completo-*`: lo zip si chiama `…-completo.zip` e `Ruota` li
+  archivia.
+- ✅ **Provato sul PACCHETTO** (win-x64 :5199, copia di produzione del 21-set 00:34Z in MariaDB `vipi_1400`): le
+  tre migrazioni 1.35→1.39 applicate sull'host net10; `pacchetto-verifica.js` **10/10**; `Schema 0`;
+  `mappa-foglio` 8/8; vAWOS e sommari a gruppi verdi; copia del database scaricata intera (90 MB, 65 tabelle,
+  `Vipi.DbBackup verifica` = impronta che torna). ⚠️ `copia-verifica.js` rosso = il download di Edge headless,
+  non il server (curl scarica); T-015 di `enhanced-verifica.js` non applicabile (nessuna pagina con chip
+  `?vista=` e mappe in questa copia).
+- Conteggi: Infrastructure net10 1576 → **1585** (i test del ramo MySql girano anche su net10), Ui 1647 → 1648
+  (questo era il rosso della CI di `main` su 1.39.1).
+
 ### ✅ A105 — 1.39.1 **ONLINE** (21 settembre 2026, notte)
 
 ✅ Il committente conferma: **timbro 1.39.1**, **`Schema 0`**, sommari funzionanti. Da fuori subito dopo:
