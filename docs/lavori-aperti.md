@@ -2,7 +2,22 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### 🟡 A109 — Documenti collegati nel riquadro di sinistra (21 settembre 2026, notte) — in `main`, NON in un pacchetto
+### 📦 A110 — Pacchetto 1.41.0: §A108 + §A109 (21 settembre 2026, notte) — PRONTO DA CARICARE
+
+**MINOR, nessuna migrazione.** Su 1.40.0 (`fb19094`, net10). Timbro **`1.41.0 · 235a15d`**. Stesso runtime:
+torna la lista corta. **13 file**: Application, Infrastructure, Ui, Host (dll+pdb), `en/Vipi.Ui.resources.dll`
+(frase nuova), `vipi-theme.css` br/gz + `endpoints.json`. Zip `vipi-1.41.0-solo-file-cambiati.zip`
+`b1ee6f55…1026` (5,1 MB). Foglio: [`LEGGIMI-PACCHETTO-1.41.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.41.0.md).
+1.40.0 ruotata in `publish_old/20260921g`.
+- Provato sul pacchetto win-x64 :5199 su copia di produzione in MariaDB (`vipi_1410`, clonata da `vipi_1400`):
+  `pacchetto-verifica.js` **10/10**, timbro e `Runtime .NET 10.0.12` in `avvio-diagnostica.txt`. Documenti
+  collegati sui dati veri: LIBN vSOP → `LIBB vIPI`, `LIBN_APP` (risale oltre LIBN_G_APP); vIPI LIBB con APP
+  (LIBN_APP, LIBV_APP) e 5 scali; LIBV_APP → `LIBB vIPI`, `LIBV vSOP` (la vIPI di LIBV non è pubblica). LIRR,
+  LIMM, LIPP senza vIPI pubblicata in quella copia → i loro scali non hanno il link all'ACC, giusto così.
+- ▶ **Alla ripresa**: chiedere se caricato → timbro, `Schema 0`, Ricerca, riquadro di LIBB/LIBN/LIBD (foglio);
+  da fuori `pacchetto-verifica.js` e il `?v=` di `blazor.web.js` (§A108).
+
+### 📦 A109 — Documenti collegati nel riquadro di sinistra (21 settembre 2026, notte) — nel pacchetto 1.41.0
 
 Chiesto dal committente. Carta: [`2026-09-21-documenti-collegati.md`](feature/2026-09-21-documenti-collegati.md)
 (decisioni prese in chat, lì come contratto). Sopra il «Sommario», un blocco «Documenti collegati»:
@@ -21,8 +36,9 @@ l'altra edizione; vLOA → vIPI degli ACC coinvolti. Solo documenti pubblici; de
   `LICA_ES0_APP`, remotizzato di LIRR → i suoi collegamenti portano alla vIPI **LIRR**, e compare fra gli
   aeroporti di LIRR e non di LIBB.
 - ▶ Dopo il carico: i link compaiono subito (calcolo dal vivo); ripubblicando si congelano.
+- ✅ Provato anche sul pacchetto su copia di produzione (§A110).
 
-### 🟡 A108 — `blazor.web.js` con l'impronta, `immutable` (21 settembre 2026, sera) — in `main`, NON in un pacchetto
+### 📦 A108 — `blazor.web.js` con l'impronta, `immutable` (21 settembre 2026, sera) — nel pacchetto 1.41.0
 
 Commit `48a36a46`. Chiude il ▶ di §A107. **Nessun pacchetto dedicato**: guadagno piccolo (una rivalidazione da
 ~95 ms dopo 24 ore), si accoda al prossimo rilascio. Cambia solo `Vipi.Host.dll` (dll+pdb).
