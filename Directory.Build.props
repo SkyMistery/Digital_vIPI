@@ -1533,8 +1533,35 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
-      1.35.0 — MINOR, UNA migrazione (ProcedureKindEStarNellaStessaTabella: AirportSids → AirportProcedures,
-      colonna Kind). Su 1.34.3 (f95d923, online). Ancora net8.
+      1.36.0 — MINOR, UNA migrazione (FrenoTraduzioneQuarantena: tabella TranslationQuarantines, nuova).
+      Su 1.35.0 (b38359b, online dal 21 settembre 2026). Ancora net8.
+
+      ⚠️ MINOR e non PATCH, e non è una scelta di gusto: la tabella qui sopra dice «PATCH = solo correzioni,
+      NESSUNA migrazione». Il contenuto sono due sole correzioni, ma una porta uno schema — e la regola
+      guarda quello, perché è quello che cambia il modo di caricare.
+
+      ⚠️ 1.36.0 era il numero messo da parte per il salto a net10 (L13). Come per 1.27.0, 1.29.0, 1.30.0,
+      1.32.0, 1.33.0, 1.34.0 e 1.35.0, il numero segue l'ordine delle CONSEGNE e non dei piani.
+      Il net10 slitta a 1.37.0.
+
+      🔴 SECONDA CONSEGNA CON MIGRAZIONE DI FILA, e valgono le stesse tre conseguenze della 1.35.0: copia di
+      sicurezza del database prima del carico; la riga della migrazione nel foglio; e
+      Vipi.Infrastructure.MySqlMigrations.dll DENTRO il pacchetto — senza, la tabella non nasce, il freno non
+      frena e nessuno se ne accorge finché non arriva la bolletta. Prova da fuori: la riga «Schema 0».
+      ✅ Qui la migrazione è additiva e il corpo è quello generato: solo CreateTable più l'indice unico sulla
+      terna. Letta in tutt'e due i provider: nessun RenameColumn, nessun dato toccato.
+
+      Il contenuto (docs/lavori-aperti.md §A83 e §A84), due correzioni nate dalle diagnostiche del 21
+      settembre: DocReviewBar prende la TERZA PORTA (era la catena più nominata di errori-richieste.txt, 40
+      voci, l'unico 500 del periodo e l'unica voce dell'era 1.35.0 — aveva già scope proprio e sentinella, le
+      mancava l'attesa); e il FRENO della traduzione (due frasi bruciavano 170 506 caratteri in cinque
+      giorni, ~1 M al mese, in 410 spedizioni tornate rotte tutte e 410: dalla terza rottura il segmento
+      smette di partire). Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Ui e Vipi.Host per il timbro.
+      ⚠️ NESSUNA frase nuova: i due resx non si toccano, quindi en/Vipi.Ui.resources.dll resta FUORI.
+
+      (storia) 1.35.0 — MINOR, UNA migrazione (ProcedureKindEStarNellaStessaTabella: AirportSids →
+      AirportProcedures, colonna Kind). Su 1.34.3 (f95d923). Ancora net8.
 
       ⚠️ 1.35.0 era il numero messo da parte per il salto a net10 (L13). Come per 1.27.0, 1.29.0, 1.30.0, 1.32.0,
       1.33.0 e 1.34.0, il numero segue l'ordine delle CONSEGNE e non dei piani: deciso dal committente il
@@ -1555,7 +1582,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.35.0</VipiVersione>
+    <VipiVersione>1.36.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
