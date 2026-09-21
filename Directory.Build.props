@@ -1533,6 +1533,14 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.42.0 — MINOR, NESSUNA migrazione. Su 1.41.1 (bd668a7, online dal 21 settembre 2026). Aurora Sector Lab F1
+      (docs/feature/2026-09-18-f1-archi-convertitore.md, lavori aperti §A71/§A113): /services/coordinates legge i
+      limiti laterali dell'AIP — archi, cerchi, «point of origin», inglese/italiano/bilingue — con densità degli
+      archi, conto, crocette dei centri, cinque segnalazioni nuove, e l'emisfero staccato (24" N) che non diventa
+      più il nome dell'area. Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN: en/ DENTRO) e Vipi.Host per il timbro.
+      Nessun file di wwwroot: endpoints.json FUORI.
+    -->
+    <!--
       1.41.1 — PATCH, NESSUNA migrazione. Su 1.41.0 (235a15d, online dal 21 settembre 2026). I documenti collegati
       (§A109) passano dal riquadro di sinistra a un riquadro della colonna di DESTRA, sotto «Link» (§A111). Tocca
       Vipi.Ui (+ vipi-theme.css) e Vipi.Host per il timbro. Nessuna frase nuova: en/ FUORI.
@@ -1663,7 +1671,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.41.1</VipiVersione>
+    <VipiVersione>1.42.0</VipiVersione>
   </PropertyGroup>
 
 </Project>

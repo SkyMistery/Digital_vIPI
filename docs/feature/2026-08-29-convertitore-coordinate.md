@@ -1,5 +1,10 @@
 # Il convertitore di coordinate — carta (29 agosto 2026)
 
+> **Estensione, 21 settembre 2026 (1.42.0):** il convertitore legge anche i **limiti laterali dell'AIP** —
+> archi, cerchi, «point of origin», in inglese, italiano o bilingue. Carta a parte:
+> [`2026-09-18-f1-archi-convertitore.md`](2026-09-18-f1-archi-convertitore.md) (Aurora Sector Lab, F1). Il ramo
+> AIP scatta solo con una frase lunga del vocabolario: tutto quello che questa carta descrive resta identico.
+
 > **Stato: ✅ ESEGUITA il 29 agosto 2026**, ramo `convertitore-coordinate`. Dieci slice, **143 test nuovi**,
 > `dotnet build Vipi.slnx -c Release --no-incremental` verde su net8 e net10 con **0 avvisi**, suite a
 > **3 984** su nove progetti (baseline 3 841). Verifica dal vivo fatta, e ha trovato **cinque difetti** che
