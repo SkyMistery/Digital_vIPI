@@ -71,7 +71,7 @@ else
                ⚠️ E è FIGLIO DIRETTO della griglia: avvolto in un <div> (com'era fino al 6 settembre 2026)
                lo `sticky` si appende a quel <div>, alto esattamente quanto la barra — e il sommario se ne
                andava in cima appena si scorreva. *@
-            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, false, _altri, Sito)" />
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@($"{Sito["Airport_SubtitlePrefix"]} · {_acc.Name}")"
@@ -150,6 +150,8 @@ else
                         }
                     </ul>
                 </div>
+                @* §A109: sotto «Link», come chiesto dal committente. *@
+                <DocumentiCollegatiCard Link="_collegati" Unione="_altri" />
             </aside>
         </div>
     </div>
@@ -309,7 +311,7 @@ else
                                             _doc.RelCycle ?? _doc.View.AiracCycle, Lingua)
             : Array.Empty<MembroUnito>();
 
-        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Airport, _icao, _doc.Mode);
+        _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Airport, _icao, _doc.Mode);
     }
 
     /// <summary>Gli ATC su questo scalo, ATIS escluso: un ATIS acceso non è una posizione presidiata.

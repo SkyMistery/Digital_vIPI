@@ -6,15 +6,13 @@
 @inject IOnlineAtcProvider Online
 @inject IEditAuthorizationService Authz
 @inject IStringLocalizer<SharedResource> L
-@inject StringheDelSito Sito
 @inject ILogger<VloaDocumentView> Log
 @* Vloa e VloaView risolti dallo scope DI proprio (VipiDbContext isolato dal circuito). Vedi [[EditLockBar]]. *@
 
 <div class="doc-layout">
     @* ⚠️ `SenzaDirezioni` va al sommario **e** al corpo, con la stessa funzione: le due direzioni le
        disegna il corpo da sé, e nel sommario sarebbero due voci verso un id che non esiste. *@
-    <DocumentToc Gruppi="@TocGruppo.Uno(View.Sections, IsDraft, figlieDi: SenzaDirezioni)"
-                 Collegati="@TocCollegati.Gruppi(_collegati, false, Array.Empty<MembroUnito>(), Sito)" />
+    <DocumentToc Gruppi="@TocGruppo.Uno(View.Sections, IsDraft, figlieDi: SenzaDirezioni)" />
 
     <div>
         <PrintMeta Title="@View.Title" AiracCycle="@View.AiracCycle" Subtitle="@SubtitleOrDefault()" Coverage="Coverage"
@@ -83,6 +81,8 @@
                 </ul>
             </div>
         }
+        @* §A109: sotto «Link», come chiesto dal committente. *@
+        <DocumentiCollegatiCard Link="_collegati" />
     </aside>
 </div>
 
@@ -310,7 +310,7 @@
         var modo = IsDraft ? new PreviewMode(PreviewKind.Draft, 0)
             : ReleaseId is int rel ? new PreviewMode(PreviewKind.Release, rel)
             : new PreviewMode(PreviewKind.Public, 0);
-        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Vloa, docId.ToString(), modo);
+        _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.Vloa, docId.ToString(), modo);
     }
 
     /// <summary>Le righe di un lato della coppia, scartato l'involucro di visibilità della vLOA.</summary>

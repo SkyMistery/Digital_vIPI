@@ -4,7 +4,9 @@
 
 ## 1. Che cosa si vede
 
-Nel riquadro di sinistra dei documenti pubblici, **sopra** il «Sommario», un blocco «Documenti collegati».
+Nella **colonna di destra** dei documenti pubblici, un riquadro «Documenti collegati» **sotto «Link»**.
+⚠️ In 1.41.0 stava nel riquadro di sinistra, sopra il «Sommario»; il committente l'ha voluto qui (1.41.1). La
+colonna di destra si vede da 1500 px in su: sotto quella larghezza il riquadro non c'è (scelta del committente).
 Ordine sempre: **vIPI ACC → documenti APP → documenti d'aeroporto**. Solo documenti **pubblici** (release in
 vigore e non nascosti), anche in anteprima e nell'editor.
 
@@ -59,4 +61,5 @@ della pagina Struttura, costruito dalle **stesse righe** — la lettura è estra
    sceglie i link per famiglia è **una** (`DocLinkRules.Capture`), pura e testata.
 3. **Ingressi + verifica**: niente da creare. Verifica dal vivo su copia del DB: LIBN vSOP (risalita fino a
    LIBB), LIRN vIPI (APP remotizzato), LIBV (vIPI + vSOP + APP), vIPI ACC LIBB/LIRR (gruppi chiusi).
-4. **Propagazione**: additiva. `TocVoce` prende un `Href` facoltativo, `TocGruppo` un `Chiuso` facoltativo.
+4. **Propagazione**: additiva. (In 1.41.0 `TocVoce.Href`, `TocGruppo.Chiuso` e `DocumentToc.Collegati`; tolti in
+   1.41.1 insieme al blocco nel sommario — il riquadro è `DocumentiCollegatiCard`, l'aiuto `Collegati`.)

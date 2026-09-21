@@ -1167,11 +1167,13 @@
 :where(.vipi-root) .rail-links li{padding:4px 0}
 :where(.vipi-root) .rail-links a{color:var(--brand-ink-2);font-size:13.5px;font-weight:600}
 :where(.vipi-root) .rail-links a:hover{text-decoration:underline}
+/* §A109: i gruppi «APP» e «Aeroporti» dei documenti collegati nella vIPI ACC — chiusi, si aprono col titolo. */
+:where(.vipi-root) .rail-grp{margin:2px 0}
+:where(.vipi-root) .rail-grp>summary{cursor:pointer;padding:4px 0;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-mid)}
+:where(.vipi-root) .rail-grp>.rail-links{padding-left:12px}
 :where(.vipi-root) .rail-card .onl-badge{padding:3px 9px;font-size:11px}
 :where(.vipi-root) .toc{position:sticky;top:84px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 14px;box-shadow:var(--shadow);font-size:13.5px;max-height:calc(100vh - 110px);overflow:auto}
 :where(.vipi-root) .toc .toc-h{font-family:var(--font-head);font-weight:800;color:var(--brand-ink);font-size:12px;text-transform:uppercase;letter-spacing:.05em;margin:0 0 10px;padding-left:8px}
-/* §A109: «Sommario» sotto «Documenti collegati» — la seconda testata stacca, o si legge come un'altra voce. */
-:where(.vipi-root) .toc * + .toc-h{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 :where(.vipi-root) .toc ul{list-style:none;margin:0;padding:0}
 :where(.vipi-root) .toc a{display:block;color:var(--ink-soft);padding:6px 8px;border-radius:7px;border-left:2px solid transparent}
 :where(.vipi-root) .toc a:hover{background:var(--tint-atmos-soft);color:var(--brand-ink)}

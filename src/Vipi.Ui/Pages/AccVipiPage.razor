@@ -41,7 +41,7 @@ else
                primo livello — la sotto-sezione «Nuova sezione» non compariva da nessuna parte (misurato).
                I blocchi sono diventati GRUPPI, che è la stessa forma con cui una pagina unita mostra i
                propri membri. *@
-            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, true, Array.Empty<MembroUnito>(), Sito)" />
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@($"vIPI — {_data.AccName}")" Subtitle="@Sito["AccVipi_Subtitle"]"
@@ -152,6 +152,8 @@ else
                         <li><a href="/services/vsop/@Acc.ToLowerInvariant()/vloa">vLoA</a></li>
                     </ul>
                 </div>
+                @* §A109: sotto «Link», come chiesto dal committente. *@
+                <DocumentiCollegatiCard Link="_collegati" PerAcc="true" />
             </aside>
         </div>
     </div>
@@ -263,7 +265,7 @@ else
         // con cui AccViewDerivationService legge il congelato.
         _collegati = _root is null
             ? Array.Empty<ResolvedDocLink>()
-            : await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AccVipi, $"{_acc.Code}|{_root}", _mode);
+            : await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AccVipi, $"{_acc.Code}|{_root}", _mode);
 
         // ---- In che lingua si legge QUESTA vIPI (carta 2026-08-31-lingua-bloccata.md §3-4) --------------
         // ⚠️ PRIMA delle derivazioni, che qui sono parecchie e compongono prosa: frasi di coordinamento,

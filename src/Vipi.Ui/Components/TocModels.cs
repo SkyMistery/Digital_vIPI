@@ -24,16 +24,6 @@ public sealed record TocVoce(string Titolo, string Ancora, IReadOnlyList<TocVoce
         new(titolo, ancora, Array.Empty<TocVoce>());
 
     /// <summary>
-    /// L'indirizzo INTERO del link, quando la voce porta fuori dalla pagina (i documenti collegati, §A109).
-    /// Null = l'ancora dentro questa pagina, cioè <c>#</c> + <see cref="Ancora"/>.
-    /// </summary>
-    public string? Href { get; init; }
-
-    /// <summary>Una voce che porta a un altro documento (o, dentro una pagina unita, a un altro membro).</summary>
-    public static TocVoce Collegamento(string titolo, string href) =>
-        new(titolo, "", Array.Empty<TocVoce>()) { Href = href };
-
-    /// <summary>
     /// Una voce da una sezione del documento, con le sue figlie. È la mappatura che usano quattro famiglie
     /// su cinque.
     /// </summary>
@@ -86,10 +76,6 @@ public sealed record TocLink(TocVoce Voce, int Livello, string? Classe);
 /// <param name="Voci">Le voci del gruppo.</param>
 public sealed record TocGruppo(string? Titolo, IReadOnlyList<TocVoce> Voci)
 {
-    /// <summary>Il gruppo intestato nasce CHIUSO. Serve ai gruppi «APP» e «Aeroporti» della vIPI ACC (§A109),
-    /// che possono essere lunghi quanto il sommario — il committente li ha chiesti richiudibili per questo.</summary>
-    public bool Chiuso { get; init; }
-
     /// <summary>Il caso normale: un gruppo solo, senza intestazione, dalle sezioni del documento.</summary>
     public static IReadOnlyList<TocGruppo> Uno(
         IReadOnlyList<SectionView> sezioni, bool bozza,

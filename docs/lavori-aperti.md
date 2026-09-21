@@ -2,6 +2,19 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 📦 A111 — 1.41.0 ONLINE; i documenti collegati passano a DESTRA (21 settembre 2026, notte) — pacchetto 1.41.1
+
+✅ 1.41.0 caricata: il committente conferma timbro e `Schema 0`, e i link ci sono. Da fuori, cliccati in
+produzione: portano ai documenti (LIBN vSOP → `LIBN_APP` «Lecce Approach», LIBB → `LIBD vIPI`, `LIBB vIPI`).
+Ma il blocco era nel posto sbagliato: il committente lo voleva nella **colonna di destra, sotto «Link»**
+(scelto fra tre proposte, sapendo che sotto 1500 px quella colonna non si vede).
+- Nuovo `DocumentiCollegatiCard` (rail-card; vIPI ACC: gruppi APP e Aeroporti chiusi, col conteggio); `TocCollegati`
+  → `Collegati` (caricamento + `Href`, l'ancora `#doc-N` dentro le unioni). **Tolti** dal sommario il blocco,
+  `DocumentToc.Collegati`, `TocVoce.Href/Collegamento`, `TocGruppo.Chiuso` e la regola CSS della doppia testata:
+  `DocumentToc`/`TocModels` tornano identici a prima di §A109. Test: 3 bUnit sul riquadro al posto dei 2 sul sommario.
+- Verificato a schermo a 1600 px su copia: LIBD, vIPI LIBB (gruppo Aeroporti), LIML vSOP unita (`#doc-39`).
+- 📦 **1.41.1** PATCH, vedi foglio `LEGGIMI-PACCHETTO-1.41.1.md`.
+
 ### 📦 A110 — Pacchetto 1.41.0: §A108 + §A109 (21 settembre 2026, notte) — PRONTO DA CARICARE
 
 **MINOR, nessuna migrazione.** Su 1.40.0 (`fb19094`, net10). Timbro **`1.41.0 · 235a15d`**. Stesso runtime:

@@ -69,7 +69,7 @@
                genitore, e quel <div> era alto esattamente quanto la barra (890 px, misurati) — quindi il
                sommario se ne andava in cima appena si scorreva. I membri sono GRUPPI dentro lo stesso
                riquadro. *@
-            <DocumentToc Gruppi="@Sommario()" Collegati="@TocCollegati.Gruppi(_collegati, false, _altri, Sito)" />
+            <DocumentToc Gruppi="@Sommario()" />
 
             <div>
                 <PrintMeta Title="@_doc.View.Title" Subtitle="@Sottotitolo()" AiracCycle="@Cycle()"
@@ -184,6 +184,8 @@
                         }
                     </ul>
                 </div>
+                @* §A109: sotto «Link», come chiesto dal committente. *@
+                <DocumentiCollegatiCard Link="_collegati" Unione="_altri" />
             </aside>
         </div>
     }
@@ -308,7 +310,7 @@
             ? await Membri.AltriMembriAsync(unione, mio.DocumentId, _doc.Mode, Vista, Cycle())
             : Array.Empty<MembroUnito>();
 
-        _collegati = await TocCollegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AirportMil, _icao, _doc.Mode);
+        _collegati = await Collegati.CaricaAsync(Collegamenti, Log, ReleaseTargetType.AirportMil, _icao, _doc.Mode);
     }
 
     /// <summary>I documenti collegati (§A109): vIPI ACC, APP che controlla lo scalo, vIPI dello stesso scalo.</summary>

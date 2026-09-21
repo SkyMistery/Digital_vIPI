@@ -1,0 +1,58 @@
+@* I DOCUMENTI COLLEGATI (§A109): un riquadro della colonna di destra, subito sotto «Link».
+
+   ⚠️ Stava nel riquadro di SINISTRA, sopra il sommario, fino al giorno stesso in cui è nato (21 settembre 2026):
+   il committente lo voleva qui, sotto i link di sempre. Conseguenza voluta e dichiarata: la colonna di destra
+   si vede solo da 1500 px in su (`.doc-rail`), e sotto quella larghezza questi link non ci sono.
+
+   Nessun link = nessun riquadro. La vIPI ACC ha due gruppi CHIUSI, «APP» e «Aeroporti», che possono essere
+   lunghi quanto il sommario; gli altri documenti un elenco solo, nell'ordine ACC → APP → aeroporti. *@
+@using Vipi.Application.Content
+@inject StringheDelSito Sito
+
+@if (Link.Count > 0)
+{
+    <div class="rail-card rail-collegati">
+        <h5><Icon Name="file" /> @Sito["Doc_RelatedDocs"]</h5>
+        @if (PerAcc)
+        {
+            @Gruppo("APP", Link.Where(l => l.Group == DocLinkGroup.App).ToList())
+            @Gruppo(Sito["AccLanding_Airports"], Link.Where(l => l.Group == DocLinkGroup.Airport).ToList())
+        }
+        else
+        {
+            @Elenco(Link)
+        }
+    </div>
+}
+
+@code {
+    /// <summary>I link già risolti (<see cref="Collegati.CaricaAsync"/>).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<ResolvedDocLink> Link { get; set; } = Array.Empty<ResolvedDocLink>();
+
+    /// <summary>vIPI ACC: due gruppi chiusi invece di un elenco solo.</summary>
+    [Parameter] public bool PerAcc { get; set; }
+
+    /// <summary>Gli altri membri della pagina unita: un bersaglio che sta QUI diventa un salto alla sua sezione.</summary>
+    [Parameter] public IReadOnlyList<MembroUnito> Unione { get; set; } = Array.Empty<MembroUnito>();
+
+    private RenderFragment Gruppo(string titolo, IReadOnlyList<ResolvedDocLink> voci) => __builder =>
+    {
+        @if (voci.Count > 0)
+        {
+            <details class="rail-grp">
+                <summary>@titolo <span class="muted">(@voci.Count)</span></summary>
+                @Elenco(voci)
+            </details>
+        }
+    };
+
+    private RenderFragment Elenco(IReadOnlyList<ResolvedDocLink> voci) => __builder =>
+    {
+        <ul class="rail-links">
+            @foreach (var l in voci)
+            {
+                <li><a href="@Collegati.Href(l, Unione)">@l.Target.Label</a></li>
+            }
+        </ul>
+    };
+}

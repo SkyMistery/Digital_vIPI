@@ -235,36 +235,4 @@ public class DocumentTocTests : TestContext
         Assert.Empty(cut.FindAll("details.toc-sub").ToList());
         Assert.Equal("#s-1", cut.Find("a").GetAttribute("href"));
     }
-
-    /// <summary>§A109: i documenti collegati stanno SOPRA il sommario, nello stesso riquadro, e portano fuori
-    /// dalla pagina con l'indirizzo intero — non con un'ancora.</summary>
-    [Fact]
-    public void I_documenti_collegati_stanno_sopra_il_sommario_e_portano_fuori()
-    {
-        var cut = RenderComponent<DocumentToc>(p => p
-            .Add(x => x.Gruppi, TocGruppo.Uno(new[] { Sez("s-1", "METAR & TAF") }, false))
-            .Add(x => x.Collegati, new[] { new TocGruppo(null, new[] { TocVoce.Collegamento("LIBB vIPI", "/services/vsop/libb/vipi") }) }));
-
-        Assert.Single(cut.FindAll("aside.toc").ToList());
-        var sito = Services.GetRequiredService<Vipi.Ui.StringheDelSito>();
-        Assert.Equal(new[] { sito["Doc_RelatedDocs"], sito["Common_Contents"] }, cut.FindAll("p.toc-h").Select(h => h.TextContent.Trim()));
-        Assert.Equal(new[] { "/services/vsop/libb/vipi", "#s-1" }, cut.FindAll("a").Select(a => a.GetAttribute("href")));
-    }
-
-    /// <summary>§A109: i gruppi APP e Aeroporti della vIPI ACC nascono chiusi; gli altri gruppi intestati aperti.
-    /// Senza collegamenti, nessuna testata in più.</summary>
-    [Fact]
-    public void Un_gruppo_chiuso_nasce_chiuso_e_senza_collegamenti_non_c_e_testata()
-    {
-        var cut = RenderComponent<DocumentToc>(p => p
-            .Add(x => x.Gruppi, new[] { new TocGruppo("Aerovia", TocVoce.Da(new[] { Sez("s-1", "AoR") }, false)) })
-            .Add(x => x.Collegati, new[] { new TocGruppo("APP", new[] { TocVoce.Collegamento("LIBV_APP", "/x") }) { Chiuso = true } }));
-
-        var gruppi = cut.FindAll("details.toc-grp-d").ToList();
-        Assert.False(gruppi[0].HasAttribute("open"));
-        Assert.True(gruppi[1].HasAttribute("open"));
-
-        var solo = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi, TocGruppo.Uno(new[] { Sez("s-1", "AoR") }, false)));
-        Assert.Equal(new[] { Services.GetRequiredService<Vipi.Ui.StringheDelSito>()["Common_Contents"] }, solo.FindAll("p.toc-h").Select(h => h.TextContent.Trim()));
-    }
 }
