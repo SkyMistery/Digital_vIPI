@@ -560,6 +560,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 // Come alla nascita: una sezione che arriva dopo deve nascere col pubblico che il catalogo
                 // le da', o le dodici marcate dal SOD sarebbero marcate solo sui documenti nuovi.
                 Audience = desc.Audience,
+                IsHidden = desc.BornHidden,
             };
             // Inserita PRIMA della prima sezione fissa che nel catalogo viene dopo di lei; se non ce n'è, in
             // coda. Accodarle e basta metterebbe «Purpose» in fondo a una lettera d'accordo.

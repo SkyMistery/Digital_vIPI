@@ -171,10 +171,11 @@ public static class SectionCatalog
                                        SectionAudience aud = SectionAudience.Both) =>
         new(key, title, order, KindOf(key), SectionBodySource.Blocks, children, en, aud);
 
+    /// <param name="nascosta">La sezione nasce nascosta (<see cref="SectionDescriptor.BornHidden"/>).</param>
     private static SectionDescriptor H(string key, string title, int order,
                                        IReadOnlyList<SectionDescriptor>? children = null, string? en = null,
-                                       SectionAudience aud = SectionAudience.Both) =>
-        new(key, title, order, KindOf(key), SectionBodySource.Host, children, en, aud);
+                                       SectionAudience aud = SectionAudience.Both, bool nascosta = false) =>
+        new(key, title, order, KindOf(key), SectionBodySource.Host, children, en, aud, nascosta);
 
     /// <summary>Scheda dalla pagina IN TESTA, e sotto i blocchi editoriali della sezione.</summary>
     private static SectionDescriptor HB(string key, string title, int order,
@@ -336,7 +337,8 @@ public static class SectionCatalog
                 // nell'ANAGRAFICA dello scalo (`AirportProcedures`, colonna `Kind`), come le partenze: qui c'è
                 // solo la porta. ⚠️ Ai documenti GIÀ SCRITTI la aggiunge la manutenzione d'avvio, che rinumera
                 // il gruppo: il catalogo decide la struttura alla nascita, non dopo.
-                H("stars", "STAR", 6),
+                // Nasce NASCOSTA (21 settembre 2026, committente): la si accende dall'editor dove serve.
+                H("stars", "STAR", 6, nascosta: true),
                 D("operationaltechnique", "Procedure generali", 7, en: "General procedures"),
                 // ✚ Non c'era (12 settembre 2026, committente): i minimi di bassa visibilita'. Sta SUBITO
                 // DOPO le «Procedure generali» — sorella, NON figlia: le LVP sono un modo di operare, e
@@ -403,7 +405,7 @@ public static class SectionCatalog
                     // ✚ 20 settembre 2026 (§A80): gli ARRIVI, gemelli delle partenze e dalla stessa tabella
                     // dell'anagrafica (`AirportProcedures`, colonna `Kind`). Sezione sua per la stessa ragione
                     // del profilo civile: nell'indice gli arrivi si cercano sotto il loro nome.
-                    H("stars", "STAR", 7),
+                    H("stars", "STAR", 7, nascosta: true),   // nasce nascosta, come nel civile
                     // ✚ Non e' nel PDF: TA e tabella dei livelli per fascia QNH.
                     H("transition", "Quote di transizione", 8, en: "Transition altitude and levels"),
                     // Scheda + blocchi. ⚠️ Restano EDITORIALI: il contenuto è tutto nel payload, quindi la

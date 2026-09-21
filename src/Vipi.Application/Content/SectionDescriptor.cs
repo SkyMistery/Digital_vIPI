@@ -66,10 +66,15 @@ public enum SectionBodySource
 /// vede più parcheggi, nominativi e alternati — deciso sapendolo, perché la vista di default è «tutto» e
 /// nel filtro non ci si finisce per caso.</para>
 /// </param>
+/// <param name="BornHidden">
+/// La sezione <b>nasce nascosta</b> (21 settembre 2026, committente: «le STAR nascoste di default, se le vogliamo
+/// vedere l'editor le metterà visibili»). Come <paramref name="Audience"/> è un default di NASCITA: vale quando la
+/// sezione si crea (documento nuovo o manutenzione d'avvio che la aggiunge), e poi decide il documento.
+/// </param>
 public sealed record SectionDescriptor(
     string Key, string Title, int Order, SectionKind Kind, SectionBodySource BodySource,
     IReadOnlyList<SectionDescriptor>? Children = null, string? TitleEn = null,
-    SectionAudience Audience = SectionAudience.Both)
+    SectionAudience Audience = SectionAudience.Both, bool BornHidden = false)
 {
     /// <summary>
     /// Il titolo nella lingua in cui si sta leggendo. Sconosciuta o senza traduzione ⇒ quello italiano: un

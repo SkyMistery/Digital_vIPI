@@ -125,6 +125,7 @@ public static class DocumentBirth
             // sezione ne aveva uno e il campo prendeva il default della colonna: chi voleva le marcature
             // del SOP doveva metterle a mano su dodici sezioni, un documento per volta.
             Audience = d.Audience,
+            IsHidden = d.BornHidden,
         };
         version.Sections.Add(section);
         db.DocumentSections.Add(section);

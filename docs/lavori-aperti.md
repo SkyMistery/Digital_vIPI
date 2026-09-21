@@ -2,6 +2,25 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### ✅ A100 — Le sezioni STAR degli aeroporti nascoste di default (21 settembre 2026) — in main, NON in pacchetto · 🔴 MIGRAZIONE EF
+
+Chiesto dal committente: «tutte le sezioni STAR nascoste di default; se le vogliamo vedere l'editor le metterà
+visibili». Vale per il profilo civile e per il militare.
+- **Esistenti**: la migrazione `StarNascosteDiDefault` (SQLite e MySQL) esegue `UPDATE DocumentSections SET
+  IsHidden = 1 WHERE SectionKey = 'stars'` su tutte le versioni. È una migrazione e non un passo d'avvio
+  apposta: gira **una volta**, mentre un passo d'avvio rispegnerebbe a ogni riavvio la STAR accesa da un
+  editore. Il `Down` non fa niente.
+- **Nuove**: `SectionDescriptor.BornHidden` (`H(…, nascosta: true)` sulle due `stars`), letto sia da
+  `DocumentBirth` sia da `AddMissingCatalogSectionsAsync`.
+- 🔴 **Copie pubbliche**: stanno negli snapshot di release, quindi la STAR sparisce dal pubblico alla prossima
+  pubblicazione di ogni scalo. Solo le vIPI ripubblicate dopo 1.35.0 la mostrano oggi.
+- ⚠️ **Postgres** non ha migrazioni: lì le STAR già esistenti restano visibili, le nuove nascono nascoste. In
+  produzione il database è MariaDB.
+- **Prove**: il catalogo nasconde **solo** le `stars` (test su tutti i profili); la manutenzione le semina
+  nascoste. Dal vivo su una copia del DB: la migrazione è applicata all'avvio e le STAR passano da 17 visibili
+  a 17 nascoste; `star-nascoste-verifica.js` 4/4 su LIBD.
+- **Pacchetto**: porta `Vipi.Infrastructure.MySqlMigrations`. Copia di sicurezza del database prima del carico.
+
 ### ✅ A99 — Mappe a pezzi arrivando da un'altra pagina (21 settembre 2026) — in main, NON in pacchetto
 
 Segnalato dal campo con foto (editor LIBB, produzione 1.38.0): arrivando su un documento da un'altra pagina le

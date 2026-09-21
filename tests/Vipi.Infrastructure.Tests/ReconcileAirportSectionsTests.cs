@@ -252,6 +252,10 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
         // Il meteo non deve nascere Frozen nemmeno arrivando da qui: un METAR congelato è meteo scaduto.
         var meteo = await _db.DocumentSections.SingleAsync(s => s.SectionKey == "weather");
         Assert.Equal(RenderMode.Live, meteo.RenderMode);
+
+        // Le STAR nascono NASCOSTE anche arrivando da qui (21 settembre 2026, committente); le altre no.
+        var nascoste = await _db.DocumentSections.Where(s => s.IsHidden).Select(s => s.SectionKey).ToListAsync();
+        Assert.Equal(new[] { "stars" }, nascoste);
     }
 
     [Fact]
