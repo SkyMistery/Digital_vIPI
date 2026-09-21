@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 
@@ -27,17 +28,41 @@ internal sealed class StaffRosterService : IStaffRosterService
 {
     private readonly IStaffRosterRepository _repo;
     private readonly IUserDirectory _ivao;
-    private readonly string _divPrefix;   // es. "IT-"
+    private readonly Regex _codiceDellaDivisione;
 
     public StaffRosterService(IStaffRosterRepository repo, IUserDirectory ivao, IOptions<DivisionOptions> division)
     {
         _repo = repo;
         _ivao = ivao;
-        _divPrefix = $"{division.Value.Code}-";
+        _codiceDellaDivisione = CodiceDellaDivisione(division.Value);
     }
 
-    private bool IsDivisionStaffCode(string code) =>
-        code.StartsWith(_divPrefix, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Un codice staff «della divisione»: quelli di divisione (<c>IT-AOA1</c>) <b>e</b> quelli d'ACC
+    /// (<c>LIBB-CH</c>, <c>LIRR-CHA1</c>).
+    ///
+    /// <para>🔴 <b>Perché anche i secondi (22 settembre 2026).</b> Si guardava il solo prefisso <c>IT-</c>, e i
+    /// chief d'ACC hanno il prefisso dell'ACC: <see cref="RoleResolver"/> li faceva Redattori, ma nel roster non
+    /// entravano mai — né in Diagnostica, né nel picker dei permessi. Due chief nominati il 21-set
+    /// (<c>LIPP-CH</c>, <c>LIBB-CH</c>) si sono loggati e non comparivano da nessuna parte; e la
+    /// verifica giornaliera, per la stessa ragione, avrebbe disattivato un chief che ci fosse entrato.</para>
+    ///
+    /// <para>Il criterio qui è l'<b>appartenenza</b>, non il livello: un <c>LIRR-CHA1</c> che nessun pattern fa
+    /// Redattore resta nel roster, ed è proprio in Diagnostica che si vede che non combacia. Fuori restano i
+    /// codici di altre divisioni e quelli del quartier generale (<c>HPM</c>).</para>
+    /// </summary>
+    internal static Regex CodiceDellaDivisione(DivisionOptions division)
+    {
+        var acc = division.IcaoPrefixes
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => Regex.Escape(p.Trim()) + "[A-Z0-9]+")
+            .Distinct(StringComparer.OrdinalIgnoreCase);
+        var prefissi = new[] { Regex.Escape(division.Code) }.Concat(acc);
+        return new Regex($"^({string.Join("|", prefissi)})-[A-Z0-9]+$",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private bool IsDivisionStaffCode(string code) => _codiceDellaDivisione.IsMatch(code.Trim());
 
     public async Task RecordLoginAsync(CurrentUser user, CancellationToken ct = default)
     {
