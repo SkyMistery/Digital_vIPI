@@ -41,6 +41,26 @@ public enum CoordinateIssueKind
     /// in NM.
     /// </summary>
     RaggioIncoerente,
+
+    /// <summary>
+    /// Testo AIP: confine, costa o fiume. Il testo nomina la geometria ma non la dà: i due capi sono uniti con
+    /// una retta provvisoria. <c>Dettaglio</c> = la frase.
+    /// </summary>
+    TrattoNonDisegnabile,
+
+    /// <summary>
+    /// Testo AIP: parole che non sono né coordinate né frasi del vocabolario. 🔴 È la guardia di F0: gli
+    /// identificativi fuori standard (<c>EUC 60</c>, <c>Zona '29'</c>) saldavano un'area alla precedente senza
+    /// errore. <c>Dettaglio</c> = le parole avanzate.
+    /// </summary>
+    FraseNonRiconosciuta,
+
+    /// <summary>
+    /// Testo AIP: all'arco (o al cerchio) manca un pezzo. <c>Dettaglio</c> = che cosa: <c>inizio</c>,
+    /// <c>centro</c>, <c>fine</c>, <c>raggio</c>. Senza raggio l'arco si disegna lo stesso (il raggio serve
+    /// solo al controllo); senza gli altri no.
+    /// </summary>
+    ArcoIncompleto,
 }
 
 /// <summary>Una segnalazione, ancorata alla <paramref name="Riga"/> (1-based; 0 = riguarda tutto l'ingresso).</summary>

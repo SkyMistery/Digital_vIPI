@@ -28,6 +28,12 @@ public static class AipGeometryReader
         PuntoDiOrigine,
         AreaCircolare,
 
+        /// <summary>
+        /// Confine di stato, costa, fiume: una geometria che il testo NOMINA ma non dà. Si unisce con una retta
+        /// e si dice (carta F1 §3.6): la geometria vera sta in <c>GEO/itgeo.geo</c>, ed è lavoro del Lab (F6).
+        /// </summary>
+        TrattoNonDisegnabile,
+
         /// <summary>Parole che legano e non dicono niente di geometrico: si tolgono e basta.</summary>
         Connettivo,
     }
@@ -85,6 +91,20 @@ public static class AipGeometryReader
         ("QUINDI", Senso.Connettivo),
         ("POI", Senso.Connettivo),
 
+        // Le geometrie nominate e non date. Basta UNA di queste parole perché la frase intera sia il tratto:
+        // «Italian northern geographical border till point», «line at 500 m from coast», «lungo il fiume Po».
+        ("GEOGRAPHICAL BORDER", Senso.TrattoNonDisegnabile),
+        ("BORDER", Senso.TrattoNonDisegnabile),
+        ("BOUNDARY", Senso.TrattoNonDisegnabile),
+        ("COASTLINE", Senso.TrattoNonDisegnabile),
+        ("COAST", Senso.TrattoNonDisegnabile),
+        ("RIVER", Senso.TrattoNonDisegnabile),
+        ("ALONG", Senso.TrattoNonDisegnabile),
+        ("CONFINE", Senso.TrattoNonDisegnabile),
+        ("COSTA", Senso.TrattoNonDisegnabile),
+        ("FIUME", Senso.TrattoNonDisegnabile),
+        ("LUNGO", Senso.TrattoNonDisegnabile),
+
         // I separatori fra i vertici, quando stanno da soli: «0091308E - 453115N». Il trattino lungo arriva
         // dai PDF di ENR 2.1.1.1 al posto di quello corto.
         ("-", Senso.Connettivo),
@@ -114,7 +134,7 @@ public static class AipGeometryReader
     /// … radius 5.0 NM</c> dopo «raggio» c'è la barra e non un numero: il raggio lo prende la metà inglese.</para>
     /// </summary>
     private static readonly Regex RxRaggio = new(
-        @"\b(?:RADIUS|RAGGIO(?:\s+DI)?)\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b" +
+        @"\b(?:RADIUS|(?:DI\s+)?RAGGIO(?:\s+DI)?)\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\b" +
         @"|\bWITHIN\s+A\s+(?<v>\d+(?:[.,]\d+)?)\s*(?<u>NM|KM|M)\s+RADIUS\b",
         Opzioni);
 
@@ -216,6 +236,28 @@ public static class AipGeometryReader
             senzaEmisfero = null;
         }
 
+        void AggiungiParola(string parola, int riga)
+        {
+            ChiudiAngoli();
+            if (parole.Count == 0 && raggio is null) rigaParole = riga;
+            parole.Add(parola);
+        }
+
+        // 🔴 LA GUARDIA DI F0: nell'AIP ogni coordinata DICHIARA l'emisfero (`452630N`, `44°51'24"N`, anche
+        // staccato: `24" N`). Un numero che non lo dichiara non è una coordinata ma una parola: `Zona '29'`,
+        // `EUC 60`, il `500` di «line at 500 m from coast». Letti come angoli, saldavano un'area alla precedente
+        // senza errore. L'angolo senza emisfero resta SOSPESO per un pezzo, il tempo di vedere se il pezzo dopo
+        // è la sua lettera; se no torna parola.
+        (string Testo, int Riga)? sospeso = null;
+        void RendiParolaIlSospeso()
+        {
+            if (sospeso is not { } s) return;
+            sospeso = null;
+            angoli.RemoveAt(angoli.Count - 1);
+            senzaEmisfero = null;
+            AggiungiParola(s.Testo, s.Riga);
+        }
+
         var righe = intero.Split('\n');
         for (var i = 0; i < righe.Length; i++)
         {
@@ -225,6 +267,7 @@ public static class AipGeometryReader
                 var segnaposto = RxSegnaposto.Match(pezzo);
                 if (segnaposto.Success)
                 {
+                    RendiParolaIlSospeso();
                     ChiudiAngoli();
                     if (parole.Count == 0) rigaParole = i + 1;
                     raggio = raggi[int.Parse(segnaposto.Groups["k"].Value, CultureInfo.InvariantCulture)];
@@ -235,17 +278,20 @@ public static class AipGeometryReader
                 var token = pezzo.Trim('"', '\'', '[', ']', '(', ')').TrimEnd('.');
                 if (token.Length == 0) continue;
 
+                var emisfero = token.Length == 1 && token[0] is 'N' or 'S' or 'E' or 'W';
+                if (!emisfero) RendiParolaIlSospeso();
+
                 if (CoordinateParser.ProvaPezzo(token, angoli, ref senzaEmisfero))
                 {
                     if (angoli.Count == 1) rigaAngoli = i + 1;
+                    sospeso = senzaEmisfero is null ? null : (token, i + 1);
                     continue;
                 }
 
-                ChiudiAngoli();
-                if (parole.Count == 0 && raggio is null) rigaParole = i + 1;
-                parole.Add(token);
+                AggiungiParola(token, i + 1);
             }
         }
+        RendiParolaIlSospeso();
         ChiudiAngoli();
         ChiudiFrase();
 
@@ -302,6 +348,7 @@ public static class AipGeometryReader
         double? raggio = null;
         (double Lat, double Lon) centro = default;
         var rigaCentro = 0;
+        var rigaArco = 0;
 
         void ChiudiArea(bool dichiarata)
         {
@@ -313,6 +360,9 @@ public static class AipGeometryReader
 
         void Arco((double Lat, double Lon) fine, bool finoAllOrigine)
         {
+            // Senza raggio l'arco si disegna lo stesso: passa per gli estremi, e il raggio serviva solo a
+            // controllarli. Ma lo si dice.
+            if (raggio is null) Incompleto(rigaArco, "raggio");
             var arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, densita);
             if (raggio is not null && arco.RaggioIncoerente)
                 segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RaggioIncoerente, rigaCentro,
@@ -335,43 +385,70 @@ public static class AipGeometryReader
                         centro = p.Valore;
                         rigaCentro = p.Riga;
                         attesa = Attesa.FineDellArco;
-                        break;
+                        continue;
+
+                    // La fine senza «till point» davanti si prende lo stesso: il punto è lì, al suo posto.
+                    case Attesa.FineDellArco:
                     case Attesa.PuntoDiFine:
                         Arco(p.Valore, finoAllOrigine: false);
                         attesa = Attesa.Niente;
-                        break;
-                    case Attesa.CentroDelCerchio:
+                        continue;
+
+                    case Attesa.CentroDelCerchio when rigaCentro == 0:
                         centro = p.Valore;
                         rigaCentro = p.Riga;
-                        if (raggio is { } r) { EmettiCerchio(r); }
-                        break;
-                    default:
-                        if (vertici.Count == 0 || !Stesso(vertici[^1], p.Valore)) vertici.Add(p.Valore);
+                        if (raggio is { } r) EmettiCerchio(r);
+                        continue;
+
+                    // Un secondo punto mentre il cerchio aspetta il raggio: il raggio non arriverà più.
+                    case Attesa.CentroDelCerchio:
+                        Incompleto(rigaArco, "raggio");
+                        attesa = Attesa.Niente;
                         break;
                 }
+                if (vertici.Count == 0 || !Stesso(vertici[^1], p.Valore)) vertici.Add(p.Valore);
                 continue;
             }
 
             var f = (Frase)el;
-            var (sensi, _) = Classifica(f.Testo);
+            var (sensi, avanzo) = Classifica(f.Testo);
+
+            // ⚠️ Nulla si scarta in silenzio. Un tratto si dice con la frase intera (le parole attorno a
+            // «border» — «Italian northern geographical» — sono il suo nome, non un avanzo da segnalare a parte).
+            if (sensi.Contains(Senso.TrattoNonDisegnabile))
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.TrattoNonDisegnabile, f.Riga, Originale(f.Riga), f.Testo));
+            else if (avanzo.Length > 0)
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.FraseNonRiconosciuta, f.Riga, Originale(f.Riga), avanzo));
+
             if (f.RaggioNm is { } rf) raggio = rf;
 
-            if (attesa == Attesa.FineDellArco)
+            // Quello che si stava aspettando, e una frase al suo posto.
+            switch (attesa)
             {
-                if (sensi.Contains(Senso.PuntoDiOrigine) && vertici.Count > 0)
-                {
+                case Attesa.FineDellArco when sensi.Contains(Senso.PuntoDiOrigine) && vertici.Count > 0:
                     Arco(vertici[0], finoAllOrigine: true);
                     attesa = Attesa.Niente;
                     ChiudiArea(dichiarata: true);
                     continue;
-                }
-                if (sensi.Contains(Senso.FinoAlPunto)) { attesa = Attesa.PuntoDiFine; continue; }
-            }
-
-            if (attesa == Attesa.CentroDelCerchio && f.RaggioNm is { } rc && rigaCentro > 0)
-            {
-                EmettiCerchio(rc);
-                continue;
+                case Attesa.FineDellArco when sensi.Contains(Senso.FinoAlPunto):
+                    attesa = Attesa.PuntoDiFine;
+                    continue;
+                case Attesa.FineDellArco:
+                case Attesa.PuntoDiFine:
+                    Incompleto(rigaArco, "fine");
+                    attesa = Attesa.Niente;
+                    break;
+                case Attesa.CentroDellArco:
+                    Incompleto(rigaArco, "centro");
+                    attesa = Attesa.Niente;
+                    break;
+                case Attesa.CentroDelCerchio when rigaCentro > 0 && f.RaggioNm is { } rc:
+                    EmettiCerchio(rc);
+                    continue;
+                case Attesa.CentroDelCerchio:
+                    Incompleto(rigaArco, rigaCentro == 0 ? "centro" : "raggio");
+                    attesa = Attesa.Niente;
+                    break;
             }
 
             if (sensi.Contains(Senso.AreaCircolare))
@@ -380,22 +457,39 @@ public static class AipGeometryReader
                 attesa = Attesa.CentroDelCerchio;
                 raggio = f.RaggioNm;
                 rigaCentro = 0;
+                rigaArco = f.Riga;
                 continue;
             }
 
-            if (sensi.Contains(Senso.Arco) && vertici.Count > 0)
+            if (sensi.Contains(Senso.Arco))
             {
+                rigaArco = f.Riga;
+                if (vertici.Count == 0) { Incompleto(rigaArco, "inizio"); continue; }
                 orario = !sensi.Contains(Senso.Antiorario);
                 raggio = f.RaggioNm;
-                attesa = sensi.Contains(Senso.Centro) ? Attesa.CentroDellArco : Attesa.Niente;
+                if (sensi.Contains(Senso.Centro)) attesa = Attesa.CentroDellArco;
+                else Incompleto(rigaArco, "centro");
                 continue;
             }
 
             if (sensi.Contains(Senso.PuntoDiOrigine)) ChiudiArea(dichiarata: true);
         }
 
+        // Il testo finisce mentre un arco o un cerchio aspettava ancora un pezzo.
+        switch (attesa)
+        {
+            case Attesa.CentroDellArco: Incompleto(rigaArco, "centro"); break;
+            case Attesa.FineDellArco or Attesa.PuntoDiFine: Incompleto(rigaArco, "fine"); break;
+            case Attesa.CentroDelCerchio: Incompleto(rigaArco, rigaCentro == 0 ? "centro" : "raggio"); break;
+        }
+
         ChiudiArea(dichiarata: false);
         return aree;
+
+        string Originale(int riga) => riga >= 1 && riga <= originali.Length ? originali[riga - 1].Trim() : "";
+
+        void Incompleto(int riga, string manca) =>
+            segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.ArcoIncompleto, riga, Originale(riga), manca));
 
         void EmettiCerchio(double r)
         {

@@ -289,6 +289,119 @@ public class AipGeometryReaderTests
         Assert.All(esito.Aree, a => Assert.True(a.AnelloChiuso));
     }
 
+    // ---- Slice 5: la guardia, i tratti non disegnabili, gli archi incompleti ----
+
+    /// <summary>Zone '18' Monte Bianco (AIP ENR 2.1.1.4.1): quattro tratti di confine di stato.</summary>
+    private const string MonteBianco =
+        "45°53'00\"N 007°05'46\"E\nItalian northern geographical border till point\n45°56'19\"N 007°26'30\"E;\n" +
+        "45°56'41\"N 007°28'03\"E;\n45°51'37\"N 007°23'47\"E;\n45°47'47\"N 007°20'45\"E;\n45°39'10\"N 007°12'29\"E;\n" +
+        "45°28'37\"N 007°02'49\"E;\n45°28'41\"N 007°02'47\"E\nItalian northern geographical border till point\n" +
+        "45°48'22\"N 006°48'46\"E;\n45°48'29\"N 006°48'43\"E\nItalian northern geographical border till point\n" +
+        "45°55'20\"N 007°02'41\"E\nItalian northern geographical border till point\n45°53'08\"N 007°05'34\"E;\n" +
+        "to point of origin.";
+
+    /// <summary>
+    /// Il confine si unisce con una retta e si DICE, una segnalazione per tratto, con la frase. I vertici ci sono
+    /// tutti: il tratto non ne mangia nessuno.
+    /// </summary>
+    [Fact]
+    public void Monte_Bianco_Quattro_Tratti_Di_Confine()
+    {
+        var esito = AipGeometryReader.Leggi(MonteBianco);
+
+        var tratti = esito.Segnalazioni.Where(s => s.Kind == CoordinateIssueKind.TrattoNonDisegnabile).ToList();
+        Assert.Equal(4, tratti.Count);
+        Assert.Equal(esito.Segnalazioni.Count, tratti.Count);
+        Assert.Equal([2, 10, 13, 15], tratti.Select(s => s.Riga));
+        Assert.All(tratti, s => Assert.Contains("BORDER", s.Dettaglio));
+
+        var area = Assert.Single(esito.Aree);
+        Assert.True(area.AnelloChiuso);
+        Assert.Equal(12, area.Punti.Count);                     // i 12 vertici dichiarati, né uno di più né uno di meno
+    }
+
+    /// <summary>
+    /// LI R12: «line at 500 m from coast to point of origin». Il 500 NON è un angolo (non dichiara l'emisfero),
+    /// la costa è un tratto, e il punto di origine chiude.
+    /// </summary>
+    [Fact]
+    public void La_Costa_E_Un_Tratto_E_Il_500_Non_E_Un_Angolo()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "38°06'21\"N 013°24'12\"E;\n38°05'30\"N 013°23'34\"E;\n38°05'00\"N 013°19'41\"E;\n38°09'00\"N 013°19'41\"E;\n" +
+            "38°12'47\"N 013°16'51\"E\nline at 500 m from coast\nto point of origin.");
+
+        var s = Assert.Single(esito.Segnalazioni);
+        Assert.Equal(CoordinateIssueKind.TrattoNonDisegnabile, s.Kind);
+        Assert.Equal(6, s.Riga);
+        var area = Assert.Single(esito.Aree);
+        Assert.True(area.AnelloChiuso);
+        Assert.Equal(5, area.Punti.Count);
+    }
+
+    /// <summary>
+    /// 🔴 La guardia di F0: gli identificativi fra un'area e l'altra. Cagliari CTR intera, con «Zona/Zone '2'»
+    /// davanti a ogni zona: il 2 letto come angolo SALDAVA la zona alla precedente senza errore. Ora tre aree
+    /// chiuse, e le etichette dette.
+    /// </summary>
+    [Fact]
+    public void Cagliari_Intera_Le_Etichette_Delle_Zone_Non_Saldano_Le_Aree()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "Zona/Zone '1' 39°30'00\"N 008°46'47\"E; 39°31'30\"N 008°59'00\"E; 39°10'00\"N 009°15'00\"E; " +
+            "39°03'00\"N 009°04'10\"E; 39°04'00\"N 008°50'30\"E; to point of origin. Zona/Zone '2' " + CagliariZona2 +
+            " Zona/Zone '3' " + CagliariZona3);
+
+        Assert.Equal(3, esito.Aree.Count);
+        Assert.All(esito.Aree, a => Assert.True(a.AnelloChiuso));
+        Assert.Equal(5, esito.Aree[0].Punti.Count);
+        Assert.All(esito.Segnalazioni, s => Assert.Equal(CoordinateIssueKind.FraseNonRiconosciuta, s.Kind));
+        Assert.Equal(["ZONA ZONE 1", "ZONA ZONE 2", "ZONA ZONE 3"], esito.Segnalazioni.Select(s => s.Dettaglio));
+    }
+
+    [Theory]
+    [InlineData("EUC 60 ", "EUC 60")]
+    [InlineData("Zona '29' ", "ZONA 29")]
+    [InlineData("LI R48 A ", "LI R48 A")]
+    public void Un_Identificativo_Davanti_Si_Segnala_E_Non_Diventa_Un_Vertice(string davanti, string avanzo)
+    {
+        var esito = AipGeometryReader.Leggi(
+            davanti + "45°00'00\"N 009°00'00\"E; 45°10'00\"N 009°00'00\"E; 45°10'00\"N 009°10'00\"E; to point of origin.");
+
+        var s = Assert.Single(esito.Segnalazioni);
+        Assert.Equal(CoordinateIssueKind.FraseNonRiconosciuta, s.Kind);
+        Assert.Equal(avanzo, s.Dettaglio);
+        Assert.Equal(3, Assert.Single(esito.Aree).Punti.Count);
+    }
+
+    [Theory]
+    // Arco senza un vertice prima: non c'è da dove partire.
+    [InlineData("then arc of circle in clockwise direction radius 5 NM centred on 45°00'00\"N 009°00'00\"E till point 45°05'00\"N 009°00'00\"E", "inizio")]
+    // Arco senza centro.
+    [InlineData("45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction radius 5 NM till point 45°00'00\"N 009°07'00\"E", "centro")]
+    // Il testo finisce dopo il centro.
+    [InlineData("45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction radius 5 NM centred on 45°00'00\"N 009°00'00\"E till point", "fine")]
+    // Arco senza raggio: si disegna lo stesso, ma si dice.
+    [InlineData("45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction centred on 45°00'00\"N 009°00'00\"E till point 45°00'00\"N 009°07'04\"E", "raggio")]
+    // Cerchio senza raggio.
+    [InlineData("Circular area centered on 45°00'00\"N 009°00'00\"E.", "raggio")]
+    public void L_Arco_Incompleto_Dice_Che_Cosa_Manca(string testo, string manca)
+    {
+        var esito = AipGeometryReader.Leggi(testo);
+
+        Assert.Contains(esito.Segnalazioni, s => s.Kind == CoordinateIssueKind.ArcoIncompleto && s.Dettaglio == manca);
+    }
+
+    [Fact]
+    public void L_Arco_Senza_Raggio_Si_Disegna_Lo_Stesso()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction centred on 45°00'00\"N 009°00'00\"E " +
+            "till point 45°00'00\"N 009°07'04\"E");
+
+        Assert.True(Assert.Single(esito.Aree).Punti.Count > 80);
+    }
+
     [Theory]
     [InlineData("THEN ARC OF CIRCLE IN ANTI-CLOCKWISE DIRECTION CENTRED ON", "")]
     [InlineData("TILL POINT OF ORIGIN", "")]
