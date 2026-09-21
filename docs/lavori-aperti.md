@@ -1,12 +1,13 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 21 settembre 2026 (sera)
+## Dove siamo — 22 settembre 2026 (notte)
 
 ### ✅ A113 — 1.42.0 ONLINE: Aurora Sector Lab F1, i testi AIP nel convertitore (21 settembre 2026, notte)
 
 ✅ Il committente conferma: timbro `1.42.0`, `Schema 0`, il convertitore legge i testi AIP. Da fuori subito dopo:
 `pacchetto-verifica.js` (SOLO_PUBBLICO) **8/8**, Ricerca compresa. In `main` non resta codice fuori pacchetto.
-- ▶ **Resta**: dire agli AOD di **R47** (sotto); poi, per il Lab, la discussione sui metadati `//@` prima di F2.
+- ✅ Tag e metadati `//@` **decisi** col committente (carta madre Sector Lab §8.2, vedi §A71).
+- ▶ **Resta**: dire agli AOD di **R47** (sotto); per il Lab, **scrivere la carta di F2**.
 
 MINOR, **nessuna migrazione**, su 1.41.1 (`bd668a7`). Timbro **`1.42.0 · c1aaf4b`**. **7 file**: `Vipi.Application`,
 `Vipi.Ui` e `Vipi.Host` (dll + pdb) e `en/Vipi.Ui.resources.dll`; niente `wwwroot`, `endpoints.json` fuori.
