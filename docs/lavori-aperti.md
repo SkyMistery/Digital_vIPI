@@ -1,8 +1,80 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 21 settembre 2026
+## Dove siamo — 21 settembre 2026 (sera)
 
-### 📦 A87 — Pacchetto 1.37.0 **PRONTO DA CARICARE** (21 settembre 2026)
+🟡 **In `main`, NON in pacchetto: §A88–§A91**, quattro commit, CI verde, **nessuna migrazione**. Il committente
+ha chiesto di farli **prima** del prossimo pacchetto, che si prepara **quando lo chiede**. ⚠️ È un **MINOR**
+(due funzioni nuove, §A90 e §A91): il numero va deciso allora — se 1.38.0, **net10 slitta a 1.39.0**.
+▶ **Dopo il carico**, oltre a timbro/Ricerca/`Schema 0`: 🔴 **ripubblicare le quattro vIPI ACC** — le due
+sezioni di §A90 sono nella bozza dal primo avvio, ma la copia pubblica è congelata e le mostra solo dalla
+release successiva.
+
+### ✅ A91 — Trasferimenti: SID e STAR fra i punti, frase «autorizzato via» (21 settembre 2026) — `98b8bb75`
+
+Richiesta dal campo: nei punti di una clausola si può scrivere anche una **SID o una STAR**; allora la frase è
+**per forza** «autorizzato via *procedura*» e il luogo di trasferimento di default diventa **«al confine
+dell'AoR»**.
+
+- **Come si riconosce**: dalla FORMA del nome (`ProceduraNeiPunti`: 2–5 lettere, spazio facoltativo, cifra,
+  lettera — `BANAV 9A`, `BANA9A`). Un fix non ha cifre; e la frase la compongono anche la vLOA e il ponte, che le
+  tabelle SID non le hanno.
+- **Tre porte**, perché sono tre strade verso la stessa frase: il **salvataggio** (`AgreementEditingService`
+  normalizza l'input: nel database va `AorBoundary`), la **frase composta** (`CoordinationSentences.Compose`:
+  anteprima, vIPI, vLOA) e la **riga espansa** (`AgreementExpansion`: colonna «trasferimento» della tabella e
+  ponte). Una clausola vecchia o importata dice lo stesso. Una scelta scritta (su un punto, testo libero) resta.
+- **Editor**: i suggerimenti dei punti portano **prima** le procedure degli scali della sezione — STAR sugli
+  arrivi, SID sulle partenze, entrambe sugli altri tipi — con verso, scalo e piste accanto. Scrivere una
+  procedura porta il luogo al confine dell'AoR (solo col gesto: aprire una clausola non la segna modificata) e
+  **spegne** «coincide con l'ingresso».
+- **Prove**: 22 test (`ProceduraNeiPuntiTests`); sabotata la porta della frase, il caso STAR cade. Dal vivo
+  con `procedura-nei-punti-verifica.js` su LIBD in partenza: SID suggerite, luogo `AorBoundary`, «coincide con
+  l'ingresso» spenta, anteprima «*… cleared via BANAV 5Z, at the AoR boundary.*». ⚠️ In locale le STAR **non
+  ci sono** (vengono dal sectorfile, spento): gli arrivi si provano in produzione.
+
+### ✅ A90 — vIPI ACC: settori militari e FSS nelle loro sezioni (21 settembre 2026) — `f93501ef`
+
+Richiesta dal campo: ogni ACC ha almeno un settore **FSS** e uno **MIL** (parte di mezzo del callsign con
+`MIL`); devono avere **due sezioni proprie con la loro AoR** e uscire dall'AoR in cima. MIL **prima** delle
+aree regolamentate, FSS **dopo**.
+
+- `AccFamigliaAorRegola`: la famiglia si legge dal **nome** — i FSS nella proiezione hanno tipo `Ctr` come
+  gli altri (misurato sul `vipi.db`). MIL = un pezzo **di mezzo** contiene `MIL`; FSS = l'ultimo pezzo è `FSS`.
+- Due sezioni di catalogo nuove nel profilo `AccAerovia`: `aor-mil` «Settori militari» (ordine 8) e `aor-fss`
+  «Settori FSS» (10), attorno a `regulated` (9). Derivate e **congelate alla pubblicazione** come l'AoR.
+- `DeriveAorViewAsync(…, FamigliaAor, …)`: lo smistamento vale **solo sul blocco Aerovia** — in un gruppo APP
+  un `LIEE_MIL_APP` è un APP militare dell'aeroporto e resta nella sua AoR. Le forme extra restano all'AoR
+  principale. Una famiglia vuota dice «Nessun settore militare/FSS in questo ACC», non una sezione muta.
+- **Riconciliazione all'avvio**: le vIPI ACC esistenti ricevono le due sezioni **nel posto del catalogo**
+  (prima questo passo le vIPI ACC non le guardava affatto; la rete a view-time dell'assembler le ACCODAVA).
+  🔴 Il test ha trovato un ritorno anticipato: senza documenti APP/vLOA/aeroporto il passo ACC si saltava.
+- Editor ACC: le due sezioni in sola lettura, stesso corpo della pagina (`AccSectionBody`).
+- **Prove**: regola, ordine del catalogo, derivazione (con e senza configurazioni), riconciliazione; sabotato
+  il filtro, la derivazione cade. Dal vivo con `aor-famiglie-verifica.js` su LIRR e LIBB, bozza ed editor:
+  ordine giusto, AoR principale senza MIL/FSS, `LIRR_MIL_CTR` e `LIRR_FSS` nelle loro mappe. ℹ️
+  `LIRR_PLN_FSS` non ha poligono: non si disegna, come prima.
+
+### ✅ A89 — «Cita» scrive dove sta il cursore (21 settembre 2026) — `e800faaa`
+
+Segnalato dal campo: il riferimento finiva **sempre in coda**. `vipiSidPrendi` mandava in coda ogni campo
+senza fuoco al clic su «Cita» — regola nata per il campo MAI toccato, che prendeva anche quello che aveva perso
+il fuoco per un clic altrove. Ora un ascoltatore segna al primo fuoco ogni campo (`data-sid-toccato`, aggancio
+unico con un segno in una proprietà di `window`); il campo toccato usa il cursore che il browser ricorda.
+Provato dal vivo nei tre casi con `cita-cursore-verifica.js`.
+
+### ✅ A88 — Diagnostica: i poligoni si analizzavano decine di volte per apertura (21 settembre 2026) — `95b86458`
+
+I tempi mandati dopo il carico di 1.37.0 (**controlli 708 ms** · admin 0 · impatti 16 · giri 0) dicevano che
+il carico dei dati non c'entrava. Banco in-processo sonda per sonda: il 90% era l'analisi, e dentro le pretese
+di copertura del rilievo «trasferimento senza ripiego» — `SectorVolumeMap.BuildClaims` ricostruiva ogni volume
+dal JSON a **ogni** coppia (settori aperti, quota). Ora una memoria dei volumi per riga, condivisa dai contesti
+derivati: analisi **491 → 184 ms**, report **543 → 279 ms** (mediane su 20 giri). La Diagnostica mostra anche
+«controlli» sonda per sonda nel `title` della riga dei tempi. Cinque ipotesi cadute alla misura, scritte nel
+commit. Il doppio giro del prerender resta, per decisione del committente («va bene per quello a cui serve»).
+
+### ✅ A87 — Pacchetto 1.37.0 **ONLINE** (21 settembre 2026)
+
+✅ Il committente conferma **timbro** e **`Schema 0`**, e manda i quattro tempi (vedi §A88). Sotto, la
+preparazione.
 
 **MINOR, NESSUNA migrazione.** Su 1.36.0 (`0493ef5`, online dal 21 settembre). Timbro **`1.37.0 · 2ad1790`**,
 **14 file**, zip `fa63471c…0d6a` (3,85 MB). Foglio:
