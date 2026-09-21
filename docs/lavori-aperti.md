@@ -108,7 +108,7 @@ fa niente», si guarda se l'elemento è un **flex item** e che `flex-basis` gli 
   nomina («un 200 su una pagina riservata non vuol dire che sia aperta»): ora il cancello si riconosce, e il
   messaggio dice che serve `ASPNETCORE_ENVIRONMENT=Development`.
 
-### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — in `main`, NON in pacchetto
+### ✅ A81 — Review di A80 a mente fresca: nove difetti, tutti corretti (20 settembre 2026) — 📦 online in 1.35.0
 
 Riletti i dieci commit di A80 come se li avesse scritti qualcun altro. **Nessuno dei nove difetti faceva
 cadere un test**, e due non avrebbero fatto cadere nemmeno la build. L'elenco intero, con «che cosa NON è
@@ -141,12 +141,11 @@ e la conversione dei testi già scritti che non guardava il verso.
 
 - **Suite**: Application 2733, Ui 1644, Infrastructure 1578/1569, E2E 401 — tutte verdi su entrambi i TFM;
   `dotnet build Vipi.slnx -c Release --no-incremental` verde.
-- ▶ **Resta**: la verifica **dal vivo** delle due chip nuove (RWY e FIX) su una copia del `vipi.db`, con
-  traccia. I test le coprono, ma il gate del progetto dice che le regressioni Blazor sono **mute coi test
-  verdi**, e quel gate non si salta per due chip.
-- ▶ La consegna è nel blocco «PROSSIMO» qui sopra.
+- ✅ **Gate chiuso il 21 settembre**: le due chip nuove (RWY e FIX) hanno ora la prova **dal vivo**
+  (`dato-verifica.js` nella skill), e non i soli test — le regressioni Blazor sono mute coi test verdi.
+- ✅ Consegnato in **1.35.0**, online dal 21 settembre: vedi §A82.
 
-### ✅ A80 — STAR dal sectorfile, e i riferimenti ai dati (20 settembre 2026) — in `main`, NON in pacchetto
+### ✅ A80 — STAR dal sectorfile, e i riferimenti ai dati (20 settembre 2026) — 📦 online in 1.35.0
 
 Due filoni chiusi, sette commit, tutto verificato a schermo su una copia del `vipi.db`.
 
@@ -171,8 +170,10 @@ trova più, e **un selettore solo** a quattro chip (SID · STAR · FREQ · ATC; 
 dalla slice delle STAR ogni riferimento d'arrivo **partiva verso il motore**. Muto: test verdi, e si sarebbe
 visto solo leggendo una traduzione.
 
-▶ **Da fare alla consegna**: è la prima consegna con una **migrazione** dal 1.27.0 — foglio del pacchetto con
-la riga della migrazione, e copia di sicurezza del database **prima** del carico.
+✅ **Consegnato in 1.35.0** il 21 settembre, ed era la prima consegna con una **migrazione** dal 1.27.0: la
+riga della migrazione nel foglio e la copia di sicurezza del database prima del carico sono state fatte
+(§A82). ▶ Resta, ed è lavoro di **dati**: ripubblicare i documenti perché la sezione «STAR» compaia nelle
+copie pubbliche.
 
 ## Dove siamo — 18 settembre 2026
 
@@ -414,7 +415,7 @@ esistente di ogni carta (annotazioni a mano salve), **11** `/vsop/ping` fuori da
 - ⚠️ La **pagina** vAWOS ha una cache breve: per leggere la pista in uso con certezza usare l'API
   `/services/vawos/api/ICAO?test=<METAR sempre diverso>`.
 
-### 🟡 A69 — «Mai usare» come chip rosse (17 settembre 2026) — in main, NON in pacchetto: va col prossimo pacchetto
+### ✅ A69 — «Mai usare» come chip rosse (17 settembre 2026) — 📦 online in 1.33.0 (vedi §A76.1)
 
 Dal committente, a 1.32.0 online (timbro e `Schema 0` confermati, colonna presente in vIPI e vSOP): «allinea la UI di quelle
 caselle al resto: falle come chip che se cliccate diventano rosse». Le due caselle DEP/ARR diventano due `sh-chip` come le

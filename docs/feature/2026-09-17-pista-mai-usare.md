@@ -1,6 +1,6 @@
 # Soglie «mai in partenza» e «mai in arrivo» nel ripiego sul vento (17 settembre 2026)
 
-> Stato: ✅ **online in 1.32.0** (§A68). 🟡 Le chip rosse al posto delle caselle (§A69) in main, NON in pacchetto.
+> Stato: ✅ **online in 1.32.0** (§A68). ✅ Le chip rosse al posto delle caselle (§A69) **online in 1.33.0**.
 
 **La richiesta del committente:** nell'editor marcare una pista come «mai usare», così che **quando nessuna regola
 pista vale** quella pista non venga comunque mai scelta; poi, per verso: «mai in partenza» e «mai in arrivo».

@@ -1,9 +1,12 @@
 ﻿# STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 
-> Stato: ✅ **il filone STAR è chiuso** (slice 1→5): parser, archivio (`AirportProcedures` + `Kind`, migrazione
-> provata su una copia di produzione), import dal sectorfile, editor, sezione «STAR» nel documento e
-> **`[[STAR …]]` nel testo** — tutto verificato a schermo su LIBD. Restano i quattro riferimenti di §4
-> (`[[FREQ]]`, `[[RWY]]`, `[[ATC]]`, `[[FIX]]`).
+> Stato: ✅ **chiusa e ONLINE in 1.35.0** (21 settembre 2026). Il filone STAR (slice 1→5): parser, archivio
+> (`AirportProcedures` + `Kind`, migrazione provata su una copia di produzione), import dal sectorfile,
+> editor, sezione «STAR» nel documento e **`[[STAR …]]` nel testo** — tutto verificato a schermo su LIBD.
+> ✅ Anche i quattro riferimenti di §4 (`[[FREQ]]`, `[[RWY]]`, `[[ATC]]`, `[[FIX]]`) sono fatti: stanno nella
+> carta gemella [riferimenti ai dati](2026-09-20-riferimenti-ai-dati.md).
+> ⚠️ Nel documento **pubblicato** la sezione STAR compare solo dalla **prossima release**: i documenti vanno
+> ripubblicati.
 
 **La richiesta del committente (20 settembre 2026):** ora che il riferimento alle SID nel testo funziona
 (§A73, [carta del 18 settembre](2026-09-18-riferimenti-sid-nel-testo.md)), estenderlo alle **STAR** — «vedi se

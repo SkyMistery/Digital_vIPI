@@ -1,7 +1,8 @@
 ﻿# Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)
 
-> Stato: ✅ **chiusa** (6a→6d, più la revisione §6) — `[[FREQ]]`, `[[ATC]]`, `[[RWY]]`, `[[FIX]]` nel testo,
-> con l'avviso per quel che sparisce e **un selettore solo**, a **sei** chip. Verificata a schermo su LIBD.
+> Stato: ✅ **chiusa e ONLINE in 1.35.0** (21 settembre 2026) — `[[FREQ]]`, `[[ATC]]`, `[[RWY]]`, `[[FIX]]`
+> nel testo, con l'avviso per quel che sparisce e **un selettore solo**, a **sei** chip. Verificata a schermo
+> su LIBD; le due chip nuove (RWY e FIX) hanno la prova viva `dato-verifica.js` nella skill `verifica-live`.
 > Gemella di
 > [riferimenti alle procedure](2026-09-18-riferimenti-sid-nel-testo.md) (§A73) e
 > [STAR](2026-09-20-star-e-altri-riferimenti.md) (§A80), da cui eredita il meccanismo.
