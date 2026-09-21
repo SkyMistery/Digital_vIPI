@@ -2,6 +2,21 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 🟡 A108 — `blazor.web.js` con l'impronta, `immutable` (21 settembre 2026, sera) — in `main`, NON in un pacchetto
+
+Commit `48a36a46`. Chiude il ▶ di §A107. **Nessun pacchetto dedicato**: guadagno piccolo (una rivalidazione da
+~95 ms dopo 24 ore), si accoda al prossimo rilascio. Cambia solo `Vipi.Host.dll` (dll+pdb).
+- `App.razor`: `<script src="@AssetVersion.Url("_framework/blazor.web.js")" autostart="false">`. Su net10 il file
+  viene dal pacchetto `Microsoft.AspNetCore.App.Internal.Assets` e `WebRootFileProvider` lo vede (publish:
+  `wwwroot/_framework/`; sviluppo: manifesto degli static web asset), quindi l'impronta è lo SHA dei byte serviti.
+- `VipiStartup.cs`, middleware di `blazor.web.js`: con `?v=` → `public, max-age=31536000, immutable`; URL nudo
+  (pagine di prima ancora in cache) → il giorno di sempre. Il commento «UN GIORNO, e NON immutable» resta come
+  storia, con sotto il perché su net10 non vale più.
+- Test in `RiconnessioneTests`: impronta nel markup = SHA del file servito (distingue dal ripiego MVID); `immutable`
+  solo con `?v=`. **Rossi tutti e due sul codice di prima**. E2E 404/404.
+- ▶ **Col prossimo pacchetto, da fuori**: la pagina chiede `blazor.web.js?v=<8 hex>`; `curl -I` su quell'URL →
+  `immutable`; Cloudflare `MISS` poi `HIT`. Metterlo fra le prove del foglio.
+
 ### ✅ A107 — 1.40.0 **ONLINE**: il sito gira su .NET 10 (21 settembre 2026, sera)
 
 ✅ Il committente conferma: in `avvio-diagnostica.txt` **`Runtime .NET 10.0.12`**, **timbro `1.40.0 · fb19094`**,
@@ -11,8 +26,7 @@
 l'indirizzo `/_framework/blazor.web.js` non porta l'impronta, e la durata di un giorno (`VipiStartup.cs`, commento
 «UN GIORNO, e NON immutable») esiste proprio per questo caso — si riallinea da solo entro 24 ore. Il client 8 col
 server 10 è quello che ha dato 8/8 da fuori. Con `?v=x` l'origine risponde `MISS` col file del 21 settembre.
-▶ **Migliorìa possibile**: su net10 il file sta in `wwwroot/_framework/`, quindi `AssetVersion.Url` può dargli
-l'impronta in `App.razor` — al prossimo aggiornamento di .NET il problema non si ripresenterebbe.
+✅ **Migliorìa fatta in `main`** (§A108): l'impronta c'è, arriva col prossimo pacchetto.
 ▶ **Sul server, fra qualche giorno buono**: cancellare `vecchio-1.39.1/` (il ritorno indietro) e `nuovo-1.40.0/`
 (vuota). Dal prossimo pacchetto si torna alla lista corta di file.
 

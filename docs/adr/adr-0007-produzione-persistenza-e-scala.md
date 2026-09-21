@@ -370,3 +370,5 @@ key-ring di DataProtection passati da 8 a 10 senza che nessuno perdesse la sessi
 ⚠️ Il giorno del carico Cloudflare aveva in magazzino il `blazor.web.js` di net8: l'indirizzo non porta
 l'impronta, e la durata di un giorno lo riallinea da sola. Su net10 quel file sta in `wwwroot/_framework/` e può
 prendere l'impronta da `AssetVersion` — da fare prima del prossimo salto di .NET.
+✅ **Fatto il 21 settembre 2026** (`48a36a46`, `docs/lavori-aperti.md` §A108): `App.razor` lo cita con
+`AssetVersion.Url`, e con `?v=` la risposta è `immutable`. Arriva col prossimo pacchetto.
