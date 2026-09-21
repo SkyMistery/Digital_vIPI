@@ -2,6 +2,30 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 📦 A101 — Pacchetto 1.39.0 (21 settembre 2026) — pronto da caricare
+
+**MINOR, UNA migrazione di soli dati** (`StarNascosteDiDefault`). Su 1.38.0 (`d267c1d`). Timbro **`1.39.0 ·
+1b25c4f`**, **12 file**, zip `ba3ad79a…028af` (2,77 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.39.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.39.0.md). Contenuto: §A98–§A100.
+🔴 **net10 slitta a 1.40.0.**
+
+**I 12 file**: `Vipi.Application`, `Vipi.Infrastructure`, `Vipi.Infrastructure.MySqlMigrations`, `Vipi.Host` coi
+`.pdb`, `vipi-aor.js` con `.br`/`.gz` e `endpoints.json` che viaggia con lui. Fuori Ui, Hosting, Domain (solo
+ricompilazione): Ui chiama `AorColorScheme.DefaultForCallsign` con la firma invariata, nessuna interfaccia toccata,
+l'unica `const` nuova (`AorColorScheme.Mil`) è usata solo da Application. Nessuna frase cambiata: `en/` fuori.
+
+🔴 **Copia di sicurezza del database prima del carico**, e `MySqlMigrations.dll` dentro: senza, le STAR restano
+visibili in silenzio.
+
+✅ **Provato sul PACCHETTO** (win-x64 dalla sua cartella, :5199, copia fresca del `vipi.db`): migrazione nel log e
+«Aggiunte 29 sezioni»; timbro in `avvio-diagnostica.txt`; `pacchetto-verifica.js` 10/10; `mappa-foglio-verifica.js`
+8/8 su vIPI ed editor; `star-nascoste-verifica.js` 4/4; `aor-famiglie-verifica.js` AoR principale pulita; «Conf 1»
+di LIBB col solo `LIBB_ES_CTR`; poligoni MIL `#2E7D32` e FSS `#138D90`.
+
+▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, la riga «Applying migration …StarNascosteDiDefault» nel log
+del giorno. Poi **ripubblicare le vIPI ACC** (AoR, configurazioni, colori) e **gli scali ripubblicati dopo
+1.35.0** (STAR fuori dal pubblico).
+
 ### ✅ A100 — Le sezioni STAR degli aeroporti nascoste di default (21 settembre 2026) — in main, NON in pacchetto · 🔴 MIGRAZIONE EF
 
 Chiesto dal committente: «tutte le sezioni STAR nascoste di default; se le vogliamo vedere l'editor le metterà
