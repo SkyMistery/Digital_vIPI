@@ -44,6 +44,52 @@ public sealed class RiconnessioneTests : IClassFixture<SmokeTests.VipiAppFactory
     }
 
     /// <summary>
+    /// <c>blazor.web.js</c> porta l'impronta del <b>suo contenuto</b>, non il MVID di ripiego: da net10 il
+    /// file sta nel wwwroot e <c>AssetVersion</c> lo legge. Si confronta l'impronta nel markup con lo SHA dei
+    /// byte che il server consegna davvero — se <c>AssetVersion</c> non trovasse il file, ricadrebbe sul MVID
+    /// e i due numeri non coinciderebbero.
+    /// </summary>
+    [Fact]
+    public async Task Blazor_web_js_porta_limpronta_del_suo_contenuto()
+    {
+        var client = _factory.CreateClient();
+        var html = await client.GetStringAsync("/services");
+
+        var trovato = System.Text.RegularExpressions.Regex.Match(html, @"_framework/blazor\.web\.js\?v=([0-9a-f]{8})""");
+        Assert.True(trovato.Success, "blazor.web.js è nel markup senza ?v=<impronta>");
+
+        var byte_ = await client.GetByteArrayAsync("/_framework/blazor.web.js");
+        var atteso = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(byte_))[..8].ToLowerInvariant();
+        Assert.Equal(atteso, trovato.Groups[1].Value);
+    }
+
+    /// <summary>
+    /// Con l'impronta, un anno e <c>immutable</c>; senza (una pagina di prima ancora in cache), il giorno di
+    /// sempre. ⚠️ Il secondo caso conta quanto il primo: l'URL nudo non ha impronta, e un «per sempre» lì
+    /// terrebbe in giro un client vecchio dopo un aggiornamento di .NET.
+    /// </summary>
+    [Theory]
+    [InlineData("/_framework/blazor.web.js?v=12345678", true)]
+    [InlineData("/_framework/blazor.web.js", false)]
+    public async Task Blazor_web_js_e_immutable_solo_con_limpronta(string percorso, bool immutable)
+    {
+        var res = await _factory.CreateClient().GetAsync(percorso);
+
+        Assert.Equal(HttpStatusCode.OK, res.StatusCode);
+        var cache = res.Headers.CacheControl?.ToString() ?? "";
+        if (immutable)
+        {
+            Assert.Contains("immutable", cache);
+            Assert.Contains("max-age=31536000", cache);
+        }
+        else
+        {
+            Assert.DoesNotContain("immutable", cache);
+            Assert.Contains("max-age=86400", cache);
+        }
+    }
+
+    /// <summary>
     /// Il riquadro è nostro, ma i tre id li cerca Blazor per nome: senza, torna a disegnare il suo — in
     /// inglese, fuori dal tema, e con un tasto che riprova invece di ricaricare. Non lo direbbe nessun
     /// errore.

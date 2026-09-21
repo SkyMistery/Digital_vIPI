@@ -479,6 +479,22 @@ internal static class VipiStartup
         // solo, senza che nessuno debba svuotare niente dal pannello.
         //
         // ⚠️ Nient'altro che 200 e 304: su un 404 o un 500 la freschezza non è una cosa che vogliamo dire.
+        //
+        // ── Dal 21 settembre 2026 (host net10): l'impronta c'è, e con lei `immutable` ────────────────────
+        //
+        // Il «⚠️ UN GIORNO» qui sopra valeva su net8, quando il file stava dentro un assembly del framework.
+        // Da net10 arriva come static web asset (pacchetto Microsoft.AspNetCore.App.Internal.Assets): il
+        // publish lo scrive in `wwwroot/_framework/`, in sviluppo lo risolve il manifesto degli static web
+        // asset, e in tutti e due i casi `WebRootFileProvider` lo vede. Quindi App.razor lo cita con
+        // `AssetVersion.Url(...)` e l'URL porta lo SHA del contenuto: un aggiornamento di .NET cambia il
+        // file, il file cambia l'URL, e il client vecchio non può più restare in giro. Il rischio che teneva
+        // la durata a un giorno non esiste più, e l'anno + `immutable` toglie anche la rivalidazione di chi
+        // torna dopo ventiquattr'ore. Cloudflare mette la query nella chiave (vedi `?x=12345` sopra: MISS),
+        // quindi l'impronta vale anche sul bordo.
+        //
+        // ⚠️ `immutable` SOLO se la richiesta porta `?v=`. L'URL nudo lo chiede chi ha in mano una pagina
+        // di prima (in cache, o sul bordo per le letture anonime) e resta al giorno: quello NON ha impronta,
+        // e dirgli «per sempre» sarebbe rifare l'errore che la regola di sopra evitava.
         app.Use(async (context, next) =>
         {
             if (context.Request.Path.StartsWithSegments("/_framework", StringComparison.OrdinalIgnoreCase)
@@ -486,9 +502,12 @@ internal static class VipiStartup
             {
                 context.Response.OnStarting(static stato =>
                 {
-                    var risposta = ((HttpContext)stato).Response;
+                    var http = (HttpContext)stato;
+                    var risposta = http.Response;
                     if (risposta.StatusCode is StatusCodes.Status200OK or StatusCodes.Status304NotModified)
-                        risposta.Headers.CacheControl = "public, max-age=86400";
+                        risposta.Headers.CacheControl = http.Request.Query.ContainsKey("v")
+                            ? "public, max-age=31536000, immutable"
+                            : "public, max-age=86400";
                     return Task.CompletedTask;
                 }, context);
             }

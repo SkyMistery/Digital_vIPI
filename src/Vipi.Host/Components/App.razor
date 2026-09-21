@@ -139,8 +139,11 @@
     @* ⚠️ `autostart="false"`: chi avvia Blazor è vipi-riconnessione.js, la riga dopo, perché i tempi di
        riconnessione e quelli del canale SignalR si possono scrivere SOLO passandoli a `Blazor.start`.
        Le due righe vanno insieme: separarle — o caricare un pacchetto senza il secondo file — lascia un
-       sito che si vede e non risponde a niente, senza un errore in pagina. *@
-    <script src="_framework/blazor.web.js" autostart="false"></script>
+       sito che si vede e non risponde a niente, senza un errore in pagina.
+       Passa da AssetVersion come gli altri: da net10 il file sta nel wwwroot (arriva dal pacchetto
+       Microsoft.AspNetCore.App.Internal.Assets), quindi l'impronta è quella del contenuto vero — e cambia
+       il giorno che cambia .NET. Vedi VipiStartup, «blazor.web.js». *@
+    <script src="@AssetVersion.Url("_framework/blazor.web.js")" autostart="false"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-riconnessione.js")"></script>
     <script src="@AssetVersion.Url("_content/Vipi.Ui/vipi-ui.js")"></script>
     @* Ora locale del lettore accanto agli orari UTC. Non serve riagganciarlo da vipi-boot.js: si tiene
