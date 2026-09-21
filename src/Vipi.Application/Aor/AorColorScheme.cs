@@ -29,7 +29,7 @@ public static class AorColorScheme
             ["GND"] = "#5B8C5A",   // verde
             ["DEL"] = "#8E5BA6",   // viola
             ["ATIS"] = "#7EA2D6",  // azzurro chiaro
-            ["FSS"] = "#D4A017",   // ambra (prima verde: il verde ora è dei militari)
+            ["FSS"] = "#138D90",   // petrolio (prima verde: il verde ora è dei militari)
         };
 
     /// <summary>

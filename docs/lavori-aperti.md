@@ -2,7 +2,7 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### ✅ A98 — MIL/FSS fuori dalle configurazioni; MIL verdi, FSS ambra (21 settembre 2026) — in main, NON in pacchetto
+### ✅ A98 — MIL/FSS fuori dalle configurazioni; MIL verdi, FSS petrolio (21 settembre 2026) — in main, NON in pacchetto
 
 Chiesto dal committente (la «cosa da correggere» di §A97, più i colori).
 - **Configurazioni del blocco Aerovia senza MIL/FSS**: l'assembler li toglie dagli `Open` alla LETTURA (vale anche
@@ -12,7 +12,7 @@ Chiesto dal committente (la «cosa da correggere» di §A97, più i colori).
 - **AoR in cima**: la bozza era già pulita da §A90. In pubblico si vedono ancora perché l'AoR è **congelata** nella
   release: ▶ **ripubblicare** le vIPI ACC.
 - **Colori** (`AorColorScheme`): ogni settore con `MIL` in un pezzo dopo l'ICAO è **verde `#2E7D32`**, qualunque
-  il tipo (CTR/APP/TWR); gli FSS passano da verde (uguale ai GND) ad **ambra `#D4A017`**. Un override manuale
+  il tipo (CTR/APP/TWR); gli FSS passano da verde (uguale ai GND) a **petrolio `#138D90`**. Un override manuale
   per settore vince ancora. Le mappe congelate prendono i colori nuovi alla ripubblicazione.
 - Prove: assembler (Aerovia pulita, gruppo APP intatto), pool + tabella (sabotato il filtro, il test cade), colori.
 
