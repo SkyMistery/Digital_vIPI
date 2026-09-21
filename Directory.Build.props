@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!--
     Impostazioni comuni a TUTTI i progetti del repository (src, tests, tools): MSBuild importa questo file
@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.41.0 — MINOR, NESSUNA migrazione. Su 1.40.0 (fb19094, online dal 21 settembre 2026, net10). Torna la lista
+      corta di file: stesso runtime.
+
+      Il contenuto (docs/lavori-aperti.md §A108, §A109): blazor.web.js con l'impronta e cache immutable (Vipi.Host);
+      i DOCUMENTI COLLEGATI nel riquadro di sinistra (Application, Infrastructure, Ui + frase nuova in en/, CSS).
+      Il campo nuovo DocReleasePayload.Collegamenti sta nel JSON della release: nessuna colonna. Foglio:
+      deploy/atc-ivao/LEGGIMI-PACCHETTO-1.41.0.md.
+    -->
+    <!--
       1.40.0 — MINOR, NESSUNA migrazione. Su 1.39.1 (4df91c0, online dal 21 settembre 2026). IL SALTO A net10
       (L13, T-059; ADR-0007 §D4-quater), DA SOLO: nessuna funzione nuova dentro, così un guasto dopo il carico
       ha una causa sola. Vipi.Host passa a net10.0 con EF Core 8 + Pomelo 8.0.3 invariati; SDK 10.0.401,
@@ -1649,7 +1658,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.40.0</VipiVersione>
+    <VipiVersione>1.41.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
