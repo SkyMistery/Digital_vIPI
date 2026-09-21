@@ -343,8 +343,10 @@ public static class CoordinateParser
     ///
     /// <para>⚠️ L'ordine conta: i due apostrofi diventano una virgoletta <b>dopo</b> che gli apici curvi sono
     /// diventati dritti, altrimenti <c>24’’N</c> resta fuori.</para>
+    /// <para>⚠️ <c>internal</c>: lo usa anche il lettore dei testi AIP (carta F1, slice 0), che legge a flusso e
+    /// non a righe ma deve vedere gli stessi segni.</para>
     /// </summary>
-    private static string NormalizzaSegni(string riga)
+    internal static string NormalizzaSegni(string riga)
     {
         foreach (var (strano, giusto) in SegniEquivalenti)
             if (riga.IndexOf(strano) >= 0) riga = riga.Replace(strano, giusto);
@@ -352,15 +354,15 @@ public static class CoordinateParser
         return riga.Contains("''", StringComparison.Ordinal) ? riga.Replace("''", "\"") : riga;
     }
 
-    /// <summary>Angolo letto: il valore assoluto in gradi e l'emisfero se dichiarato (null = da dedurre).</summary>
     /// <summary>
-    /// Un angolo letto da un pezzo di riga.
+    /// Un angolo letto da un pezzo di riga: il valore assoluto in gradi e l'emisfero se dichiarato (null = da
+    /// dedurre).
     /// <para><paramref name="FuoriIntervallo"/> = il token era scritto bene ma il valore non ci sta
     /// (<c>N041.<b>99</b>.28.965</c>): entra lo stesso, perché il posto dove dirlo è la segnalazione della
     /// coppia — scartarlo qui lo farebbe diventare un'etichetta e la risposta sarebbe «angolo spaiato»,
     /// che manda a cercare un'altra cosa.</para>
     /// </summary>
-    private readonly record struct Angolo(double Gradi, char? Emisfero, bool Negativo, bool FuoriIntervallo = false);
+    internal readonly record struct Angolo(double Gradi, char? Emisfero, bool Negativo, bool FuoriIntervallo = false);
 
     private static (List<Angolo> Angoli, List<string> Etichette) LeggiRiga(string riga)
     {
@@ -405,7 +407,9 @@ public static class CoordinateParser
     }
 
     /// <summary>Un pezzo di riga → uno o due angoli. False = non è una coordinata (allora è un'etichetta).</summary>
-    private static bool ProvaToken(string token, List<Angolo> angoli)
+    /// <remarks><c>internal</c> col suo compagno <see cref="ProvaCoppia"/>: le coordinate dentro un testo AIP le
+    /// riconosce questo stesso codice, non un secondo riconoscitore (carta F1 §3.2).</remarks>
+    internal static bool ProvaToken(string token, List<Angolo> angoli)
     {
         if (RxAuroraPuntata.IsMatch(token) || RxAuroraCompatta.IsMatch(token))
         {
@@ -505,7 +509,7 @@ public static class CoordinateParser
     /// (<b>latitudine prima</b>: DB IVAO, Google Maps, sectorfile), e se il primo numero non può essere una
     /// latitudine i due si scambiano — dichiarandolo.
     /// </summary>
-    private static bool ProvaCoppia(Angolo a, Angolo b,
+    internal static bool ProvaCoppia(Angolo a, Angolo b,
         out (double Lat, double Lon) punto, out CoordinateIssueKind? avviso)
     {
         punto = default;
