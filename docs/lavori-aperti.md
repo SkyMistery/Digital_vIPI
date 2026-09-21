@@ -2,7 +2,17 @@
 
 ## Dove siamo — 21 settembre 2026
 
-### 📦 A85 — Pacchetto 1.36.0 **PRONTO DA CARICARE** (21 settembre 2026)
+### ✅ A85 — Pacchetto 1.36.0 **ONLINE** (21 settembre 2026)
+
+> ✅ **CARICATO il 21 settembre 2026.** Il committente conferma: **timbro corretto** e riga **`Schema` = `0`**
+> — la migrazione è entrata e `Vipi.Infrastructure.MySqlMigrations.dll` è arrivato.
+>
+> ✅ **Controlli da fuori** (soli GET anonimi, subito dopo il carico): `pacchetto-verifica.js` **8/8**, con la
+> **Ricerca** che risponde e la console pulita. `vipi-riconnessione.js` servito a 2962 caratteri, identico a
+> quello provato sul pacchetto — coerente col fatto che non era fra i file spediti.
+>
+> ▶ **La prova vera di questa consegna non è una schermata: è il PROSSIMO scarico di `diagnostica/`.** Le due
+> correzioni si vedono solo lì, e si vedono per ASSENZA — vedi «Che cosa guardare» in fondo.
 
 **MINOR con UNA migrazione.** Su 1.35.0 (`b38359b`, online dal 21 settembre). Timbro **`1.36.0 · 0493ef5`**,
 **12 file**, zip `d9cc681c…9475` (5,24 MB). Foglio:
@@ -52,10 +62,26 @@ Contro il publish di 1.35.0: **466 file, 447 identici, 19 diversi**.
 ⚠️ **Il riavvio del processo non è stato riprovato**: `vipi-riconnessione.js` è **byte per byte identico** a
 quello online (non è fra i 19 diversi), quindi non c'è niente che questa consegna possa averne rotto.
 
-▶ **Dopo il carico**: timbro, **la Ricerca**, `Schema 0`, e un editor qualunque che si apre con la barra
-gialla in cima.
-▶ **Resta lavoro di DATI**: le due frasi ferme vogliono comunque una resa a mano — `«37th WING …»` viene da
-IVAO (seme nel codice), `«Se presente LIBN_G_APP …»` dal pannello traduzioni.
+✅ **Dopo il carico**: timbro e **`Schema 0`** confermati dal committente; da fuori **8/8** con la Ricerca.
+
+#### 🔴 Che cosa guardare nel PROSSIMO scarico di `diagnostica/` — e si guarda per ASSENZA
+
+Nessuna delle due correzioni si vede a schermo. La prova sta nei file, e sono tre righe da cercare:
+
+| dove | che cosa deve succedere |
+|---|---|
+| `errori-richieste.txt` | **la catena `DocReviewBar` non compare più.** Era 40 voci, l'unica dell'era 1.35.0. ⚠️ Si conta **per era** (regola 5): il file non si azzera, e senza tagliare sugli orari di `avvii.txt` si ricontano le voci vecchie e sembra che nulla sia cambiato |
+| `avvisi-log.txt` | **una riga sola**, la prima volta che il freno scatta: «*N segmenti hanno smesso di partire dopo 3 tentativi… Sono: …*». ⚠️ Se quella riga si **ripete**, il passaggio di stato è calcolato male ed è un difetto |
+| `log-AAAA-MM-GG.txt` | le righe «*caratteri spesi per N segmenti tornati rotti*» **si fermano** dopo tre giri per segmento. Erano ~70-130 al giorno: devono diventare **zero** |
+
+⚠️ **E un'era senza traffico non assolve nessuno** (regola 6): se lo scarico arriva poco dopo il carico,
+1.36.0 avrà quattro richieste e novanta secondi di vita, e non dirà niente. Serve una giornata.
+
+▶ **Resta lavoro di DATI**: le due frasi ferme vogliono comunque una resa a mano — il freno smette di
+pagarle, non le traduce. `«37th WING …»` viene da IVAO (seme nel codice, `FrasiAreeIvao`), `«Se presente
+LIBN_G_APP …»` dal pannello traduzioni.
+▶ E resta da **ripubblicare i documenti** per la sezione «STAR» di 1.35.0, che non c'entra con questa
+consegna ma è ancora aperta.
 
 ### ✅ A84 — Il freno: i segmenti che il motore non sa rendere smettono di partire (21 settembre 2026) — 🔴 UNA MIGRAZIONE
 
