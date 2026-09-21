@@ -345,7 +345,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-17-registro-del-giorno.md`](feature/2026-09-17-registro-del-giorno.md) — Il registro del giorno: richieste e righe nostre, un file al giorno per sette giorni (§A59) 🟡 in main
 - [`feature/2026-09-17-tabella-spazi-aerei-nell-aor.md`](feature/2026-09-17-tabella-spazi-aerei-nell-aor.md) — Spazi aerei dell'AIP: la tabella sotto l'AoR (§A65, §A66, §A67) ✅ online in 1.31.0–1.31.2
 - [`feature/2026-09-18-aurora-sector-lab.md`](feature/2026-09-18-aurora-sector-lab.md) — Aurora Sector Lab — carta di progetto e risultati di F0 (§A71)
-- [`feature/2026-09-18-f1-archi-convertitore.md`](feature/2026-09-18-f1-archi-convertitore.md) — F1 — Archi, cerchi e frasi dell'AIP nel convertitore di coordinate (§A71, §A113) ✅ eseguita, pacchetto 1.42.0
+- [`feature/2026-09-18-f1-archi-convertitore.md`](feature/2026-09-18-f1-archi-convertitore.md) — F1 — Archi, cerchi e frasi dell'AIP nel convertitore di coordinate (§A71, §A113) ✅ online in 1.42.0
 - [`feature/2026-09-18-ponte-rfo-gate-manager.md`](feature/2026-09-18-ponte-rfo-gate-manager.md) — Ponte RFO Gate Manager: il documento condiviso delle postazioni di un evento RFO (§A72) ✅ online in 1.33.0
 - [`feature/2026-09-18-riferimenti-sid-nel-testo.md`](feature/2026-09-18-riferimenti-sid-nel-testo.md) — SID citate nel testo: il nome segue la SID quando si aggiorna (§A73) ✅ online in 1.34.0
 - [`feature/2026-09-20-riferimenti-ai-dati.md`](feature/2026-09-20-riferimenti-ai-dati.md) — Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)

@@ -2,7 +2,11 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### 📦 A113 — pacchetto 1.42.0 PRONTO: Aurora Sector Lab F1, i testi AIP nel convertitore (21 settembre 2026, notte)
+### ✅ A113 — 1.42.0 ONLINE: Aurora Sector Lab F1, i testi AIP nel convertitore (21 settembre 2026, notte)
+
+✅ Il committente conferma: timbro `1.42.0`, `Schema 0`, il convertitore legge i testi AIP. Da fuori subito dopo:
+`pacchetto-verifica.js` (SOLO_PUBBLICO) **8/8**, Ricerca compresa. In `main` non resta codice fuori pacchetto.
+- ▶ **Resta**: dire agli AOD di **R47** (sotto); poi, per il Lab, la discussione sui metadati `//@` prima di F2.
 
 MINOR, **nessuna migrazione**, su 1.41.1 (`bd668a7`). Timbro **`1.42.0 · c1aaf4b`**. **7 file**: `Vipi.Application`,
 `Vipi.Ui` e `Vipi.Host` (dll + pdb) e `en/Vipi.Ui.resources.dll`; niente `wwwroot`, `endpoints.json` fuori.
@@ -31,7 +35,6 @@ Zip `vipi-1.42.0-solo-file-cambiati.zip` `38c7b79f…a159c`, foglio
 
 Prove: 580 aree AIP vere pulite; 20 aree con archi contro `italy.restrict`, mediana 0,020 NM. 🔴 **R47** (Rieti)
 nel sector ha l'arco a 12,51 NM, l'AIP dice 20 km: **da dire agli AOD**.
-- ▶ Alla ripresa: chiedere se caricato → timbro, `Schema 0`, e l'esempio del foglio su `services/coordinates`.
 
 ### ✅ A112 — 1.41.1 ONLINE (21 settembre 2026, notte) — in `main` non resta codice fuori pacchetto
 
@@ -1074,10 +1077,10 @@ copie pubbliche.
 
 ### ▶ A71 — Aurora Sector Lab: F0 e F0-bis fatte, §8 chiuso, carta di F1 scritta (18 settembre 2026)
 
-- ✅ **21 settembre 2026: F1 FATTA** (slice 0-9, più la 1-bis chiesta dal committente), in main, NON in pacchetto.
+- ✅ **21 settembre 2026: F1 FATTA** (slice 0-9, più la 1-bis chiesta dal committente), ✅ **online in 1.42.0** (§A113).
   `/services/coordinates` legge i limiti laterali dell'AIP — archi, cerchi, «point of origin», IT/EN/bilingue —
   con densità, conto, crocette dei centri e segnalazioni tradotte. Traccia e scostamenti: §9-§10 della carta.
-  Nessuna migrazione: va col prossimo pacchetto che il committente chiede.
+  Nessuna migrazione.
 - 🔴 **Da dire agli AOD**: `R47` (Rieti) in `italy.restrict` ha l'arco disegnato fino a 12,51 NM dal centro,
   l'AIP dice 20 km = 10,80 NM (carta F1 §10.2). Più le candidate del confronto F0-bis già elencate sotto.
 - ▶ **Prossimo: discutere col committente i metadati e tag `//@`** (quali, in quali file) — PRIMA della carta di F2.

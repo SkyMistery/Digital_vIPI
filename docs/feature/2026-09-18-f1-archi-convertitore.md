@@ -1,6 +1,7 @@
 # F1 — Archi, cerchi e frasi dell'AIP nel convertitore di coordinate (18 settembre 2026)
 
-> **Stato: CARTA — nessuna riga di codice.** Prima fase «sul sito» di Aurora Sector Lab
+> **Stato: ✅ ESEGUITA il 21 settembre 2026 e ONLINE in 1.42.0** (slice 0-9 più la 1-bis; traccia in §9-§10,
+> lavori aperti §A113). Prima fase «sul sito» di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7). Estende il convertitore
 > ([`2026-08-29-convertitore-coordinate.md`](2026-08-29-convertitore-coordinate.md)), non lo affianca.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni,
