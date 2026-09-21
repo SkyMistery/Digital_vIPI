@@ -22,10 +22,16 @@ namespace Vipi.Application.Translation;
 /// <param name="Motore">Chi ha tradotto davvero. Con una catena non e' scontato che sia il primo: se Azure
 /// ha finito la quota, qui c'e' scritto «deepl», ed e' l'informazione che dice all'amministratore che il
 /// primario e' fermo <b>senza</b> che il servizio si sia fermato con lui.</param>
+/// <param name="InQuarantena">Segmenti che <b>non sono partiti</b> perché il motore li aveva già resi rotti
+/// abbastanza volte (<see cref="TranslationQuarantena.Soglia"/>). ⚠️ Non sono né tradotti né scartati: non
+/// hanno mai lasciato casa, e non sono costati niente. È il numero che dice quanto sta risparmiando il freno.</param>
+/// <param name="AppenaFermati">I segmenti che con <b>questo</b> giro hanno raggiunto la soglia e da adesso
+/// non partono più. ⚠️ Solo il passaggio di stato, non l'elenco di quelli fermi: è il passaggio a volere un
+/// avviso: uno che si ripete a ogni giro è il rumore che il freno esiste per spegnere.</param>
 public sealed record TranslationFillReport(
     int Segmenti, int GiaInMemoria, int Tradotti, int DaTradurreAMano, int Scartati,
     TranslationOutcome Esito, string? Dettaglio = null, string? Motore = null, long CaratteriScartati = 0,
-    IReadOnlyList<string>? Rotti = null)
+    IReadOnlyList<string>? Rotti = null, int InQuarantena = 0, IReadOnlyList<string>? AppenaFermati = null)
 {
     /// <summary>Quanti mancano ancora, dopo questo giro.</summary>
     public int Mancanti => Segmenti - GiaInMemoria - Tradotti;
@@ -50,17 +56,24 @@ public sealed class TranslationFillUseCase
 {
     private readonly ITranslatableCorpus _corpus;
     private readonly ITranslationMemory _memoria;
+    private readonly ITranslationQuarantine _quarantena;
     private readonly IReadOnlyList<ITranslationEngine> _catena;
     private readonly TextProtector _protettore;
     private readonly TranslationOptions _opt;
 
     /// <param name="motori">I motori <b>in ordine di preferenza</b>. Il primo che risponde vince.</param>
+    /// <param name="quarantena">Il freno dei segmenti che il motore non sa rendere.
+    /// <para>🔴 <b>Obbligatorio, e non con un valore di comodo.</b> Un parametro facoltativo che di default
+    /// non frena vuol dire che una registrazione dimenticata nel contenitore spegne il freno <b>in
+    /// silenzio</b>, e il modo in cui ce ne accorgeremmo sarebbe la bolletta fra un mese. Chi costruisce
+    /// questo giro deve dire esplicitamente chi frena.</para></param>
     public TranslationFillUseCase(
         ITranslatableCorpus corpus, ITranslationMemory memoria, IEnumerable<ITranslationEngine> motori,
-        TextProtector protettore, TranslationOptions opt)
+        TextProtector protettore, TranslationOptions opt, ITranslationQuarantine quarantena)
     {
         _corpus = corpus;
         _memoria = memoria;
+        _quarantena = quarantena;
         _protettore = protettore;
         _opt = opt;
 
@@ -120,6 +133,33 @@ public sealed class TranslationFillUseCase
         if (mancanti.Count == 0)
             return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, 0, 0, TranslationOutcome.Ok);
 
+        // ---- Cancello 0: il freno. Prima di tutto, protettore compreso. ----
+        // ⚠️ PRIMA del protettore e non dopo, e non è un'inversione dell'ordine che la carta dichiara non
+        // negoziabile: quell'ordine riguarda ciò che PARTE — prima il protettore, poi il budget, poi la
+        // rete — e di qui non parte niente. Un segmento fermo non va nemmeno protetto: sarebbe lavoro per
+        // decidere di non fare lavoro.
+        var strike = await _quarantena
+            .StrikeAsync(sourceLang, targetLang, mancanti.Select(s => impronte[s]).ToList(), ct)
+            .ConfigureAwait(false);
+
+        var inQuarantena = 0;
+        if (strike.Count > 0)
+        {
+            var prima = mancanti.Count;
+            // ⚠️ `Where` e non `Except`: Except è un'operazione d'insieme, riordina e toglie i doppioni —
+            // qui l'ordine dei segmenti è quello in cui partono al motore, e cambiarlo cambierebbe i lotti.
+            mancanti = mancanti
+                .Where(s => !(strike.TryGetValue(impronte[s], out var n) && n >= TranslationQuarantena.Soglia))
+                .ToList();
+            inQuarantena = prima - mancanti.Count;
+        }
+
+        // Tutto quel che mancava è fermo: non c'è niente da chiedere a nessuno, e soprattutto niente da
+        // pagare. È il caso normale una volta che il freno ha fatto il suo lavoro.
+        if (mancanti.Count == 0)
+            return new TranslationFillReport(
+                segmenti.Count, giaInMemoria, 0, 0, 0, TranslationOutcome.Ok, InQuarantena: inQuarantena);
+
         // ---- Cancello 1: i dati personali. Prima di tutto, budget compreso. ----
         var daSpedire = new List<(string Originale, ProtectedText Protetto)>();
 
@@ -158,7 +198,8 @@ public sealed class TranslationFillUseCase
                 : await _memoria.SaveMachineAsync(sourceLang, targetLang, "nessuno", identiche, ct).ConfigureAwait(false);
             // «nessuno» e non null: il registro dice CHI ha tradotto, e «(null)» non lo dice a nessuno.
             return new TranslationFillReport(
-                segmenti.Count, giaInMemoria, soleIdentiche, aMano, 0, TranslationOutcome.Ok, null, "nessuno");
+                segmenti.Count, giaInMemoria, soleIdentiche, aMano, 0, TranslationOutcome.Ok, null, "nessuno",
+                InQuarantena: inQuarantena);
         }
 
         // ---- Cancello 2 e la catena: si prova un motore per volta, in ordine di preferenza. ----
@@ -208,7 +249,12 @@ public sealed class TranslationFillUseCase
         }
 
         if (riuscito is null)
-            return new TranslationFillReport(segmenti.Count, giaInMemoria, 0, aMano, 0, ultimoEsito, ultimoDettaglio);
+            // ⚠️ Nessuno strike: il motore non ha risposto, quindi non ha reso rotto niente. Contarlo come
+            // tentativo fallito del SEGMENTO vorrebbe dire condannare frasi sane per un disservizio di rete
+            // — e bastarebbero tre quarti d'ora di Azure giù per fermare mezzo corpus.
+            return new TranslationFillReport(
+                segmenti.Count, giaInMemoria, 0, aMano, 0, ultimoEsito, ultimoDettaglio,
+                InQuarantena: inQuarantena);
 
         // ⚠️ Chi ha tradotto DAVVERO, non chi e' stato chiamato per primo: la voce in memoria e il contatore
         // dei caratteri appartengono a lui, o il tetto di un motore verrebbe consumato dal lavoro dell'altro.
@@ -224,6 +270,8 @@ public sealed class TranslationFillUseCase
         var caratteriScartati = 0L;
         // ⚠️ E QUALI sono: il testo ce l'abbiamo qui, e senza portarlo fuori l'avviso resta inservibile.
         var rotti = new List<string>();
+        // Gli stessi, nella forma che il freno registra: impronta, testo e caratteri buttati.
+        var tentativiRotti = new List<TentativoRotto>();
         for (var i = 0; i < daSpedire.Count; i++)
         {
             var (originale, protetto) = daSpedire[i];
@@ -239,9 +287,13 @@ public sealed class TranslationFillUseCase
                 // lo e'. Non si salva, cosi' il giro dopo ci riprova.
                 // ⚠️ E siccome ci riprova ogni quarto d'ora, questi caratteri si ripagano ogni volta senza
                 // comparire da nessuna parte: qui si contano almeno, o la perdita resta invisibile.
+                // ⚠️ E dalla terza volta non ci riprova più: il guasto è deterministico (§A64.3), quindi
+                // «il giro dopo ci riprova» era una speranza che costava 170 506 caratteri in cinque
+                // giorni. Vedi TranslationQuarantine.
                 scartati++;
                 caratteriScartati += protetto.Text.Length;
                 rotti.Add(originale);
+                tentativiRotti.Add(new TentativoRotto(impronte[originale], originale, protetto.Text.Length));
             }
         }
 
@@ -260,8 +312,28 @@ public sealed class TranslationFillUseCase
             scritte += await _memoria.SaveMachineAsync(sourceLang, targetLang, "nessuno", identiche, ct)
                 .ConfigureAwait(false);
 
+        // ---- Il freno: si impara da com'è andata. ----
+        var adesso = DateTime.UtcNow;
+
+        IReadOnlyList<string> appenaFermati = Array.Empty<string>();
+        if (tentativiRotti.Count > 0)
+            appenaFermati = await _quarantena
+                .SegnaRottiAsync(sourceLang, targetLang, tentativiRotti, motoreUsato, adesso, ct)
+                .ConfigureAwait(false);
+
+        // ⚠️ E chi è tornato INTERO si perdona: un ripristino può fallire una volta per un motivo
+        // passeggero, e tre incidenti sparsi in tre mesi non sono un segmento irrecuperabile. Si chiede al
+        // database solo per chi aveva davvero una storia — il giro normale non ne ha nessuna, e qui non
+        // deve pagare niente.
+        var risanati = buone
+            .Select(b => impronte[b.Item1])
+            .Where(strike.ContainsKey)
+            .ToList();
+        if (risanati.Count > 0)
+            await _quarantena.DimenticaAsync(sourceLang, targetLang, risanati, ct).ConfigureAwait(false);
+
         return new TranslationFillReport(
             segmenti.Count, giaInMemoria, scritte, aMano, scartati, TranslationOutcome.Ok, null, motoreUsato,
-            caratteriScartati, rotti);
+            caratteriScartati, rotti, inQuarantena, appenaFermati);
     }
 }

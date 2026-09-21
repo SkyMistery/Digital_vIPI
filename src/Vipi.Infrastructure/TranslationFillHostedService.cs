@@ -204,7 +204,8 @@ internal sealed class TranslationFillHostedService : BackgroundService
                     memoria,
                     motori,
                     protettore,
-                    opzioni);
+                    opzioni,
+                    sp.GetRequiredService<ITranslationQuarantine>());
 
                 var esito = await giro.EseguiAsync(sorgente, bersaglio, ct).ConfigureAwait(false);
 
@@ -216,17 +217,33 @@ internal sealed class TranslationFillHostedService : BackgroundService
                 {
                     // Si registra solo quando c'è qualcosa da dire: un giro che non ha trovato niente da
                     // fare è il caso normale, e riempirne il registro nasconderebbe quelli che contano.
-                    if (esito.Tradotti > 0 || esito.DaTradurreAMano > 0 || esito.Scartati > 0)
+                    if (esito.Tradotti > 0 || esito.DaTradurreAMano > 0 || esito.Scartati > 0 ||
+                        esito.InQuarantena > 0)
                         _log.LogInformation(
                             "Traduzione {Da}→{A} ({Motore}): {Tradotti} nuove, {Cache} già in memoria, " +
-                            "{AMano} da tradurre a mano, {Scartati} scartate perché il motore ha cambiato un identificatore.",
+                            "{AMano} da tradurre a mano, {Scartati} scartate perché il motore ha cambiato un " +
+                            "identificatore, {Fermi} ferme dal freno (non sono partite, non sono costate).",
                             sorgente, bersaglio, esito.Motore, esito.Tradotti, esito.GiaInMemoria,
-                            esito.DaTradurreAMano, esito.Scartati);
+                            esito.DaTradurreAMano, esito.Scartati, esito.InQuarantena);
 
-                    // ⚠️ Le scartate si RIPAGANO a ogni giro: non finiscono in memoria, quindi il conto della
-                    // spesa non le vede e il giro dopo le rispedisce — ogni quarto d'ora, per sempre. Finché
-                    // sono zero non c'è niente da dire; quando non lo sono, questa riga è l'unico posto in cui
-                    // la perdita si vede. È un Warning perché vuole una persona: vedi lavori-aperti §Q16.
+                    // 🔴 E quando una smette DAVVERO di partire, si dice UNA volta sola. È il passaggio di
+                    // stato a volere una persona — la frase vuole una resa a mano — e lo stato no: ripetere
+                    // «è ferma» a ogni giro sarebbe tornare alle novantasei righe al giorno che il freno
+                    // esiste per spegnere. Vedi TranslationQuarantine e lavori-aperti §A84.
+                    if (esito.AppenaFermati is { Count: > 0 } fermati)
+                        _log.LogWarning(
+                            "Traduzione {Da}→{A} ({Motore}): {Quanti} segmenti hanno smesso di partire dopo " +
+                            "{Soglia} tentativi andati male. Il motore non sa renderli e riprovare costa e " +
+                            "basta: vogliono una resa a mano (pannello traduzioni, o un seme se il testo " +
+                            "viene da IVAO). Questo avviso non si ripete. Sono: {Fermati}",
+                            sorgente, bersaglio, esito.Motore, fermati.Count, TranslationQuarantena.Soglia,
+                            Elenca(fermati));
+
+                    // ⚠️ Le scartate si ripagano a ogni giro FINCHÉ il freno non scatta: non finiscono in
+                    // memoria, quindi il conto della spesa non le vede e il giro dopo le rispedisce. Ora è
+                    // una perdita LIMITATA — al massimo `TranslationQuarantena.Soglia` giri per segmento —
+                    // ma resta una perdita, e questa riga è l'unico posto in cui si vede.
+                    // Vedi lavori-aperti §Q16 (la misura) e §A84 (il freno).
                     if (esito.CaratteriScartati > 0)
                         // ⚠️ E si dice QUALI, per esteso. «1 segmento tornato rotto» non si puo' cercare: il
                         // corpus ne ha decine, e per trovare quello giusto bisognava interrogare il database a
@@ -234,10 +251,10 @@ internal sealed class TranslationFillHostedService : BackgroundService
                         // (FrasiVloa). Il testo si taglia a 120 caratteri: serve a riconoscerlo, non a rileggerlo.
                         _log.LogWarning(
                             "Traduzione {Da}→{A} ({Motore}): {Caratteri} caratteri spesi per {Scartati} segmenti " +
-                            "tornati rotti. Non entrano nel conto della spesa e il prossimo giro li rispedisce. " +
-                            "Sono: {Rotti}",
+                            "tornati rotti. Il prossimo giro li rispedisce, ma non all'infinito: dopo {Soglia} " +
+                            "tentativi il freno li ferma. Sono: {Rotti}",
                             sorgente, bersaglio, esito.Motore, esito.CaratteriScartati, esito.Scartati,
-                            Elenca(esito.Rotti));
+                            TranslationQuarantena.Soglia, Elenca(esito.Rotti));
                     continue;
                 }
 

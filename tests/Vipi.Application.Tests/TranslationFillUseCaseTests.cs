@@ -145,14 +145,15 @@ public class TranslationFillUseCaseTests
     private static TranslationFillUseCase Giro(
         CorpusFinto corpus, MemoriaFinta memoria, MotoreFinto motore,
         TranslationOptions? opt = null, string[]? roster = null,
-        GlossarioFraseologia? glossario = null) =>
-        Catena(corpus, memoria, opt ?? new TranslationOptions(), roster, glossario, motore);
+        GlossarioFraseologia? glossario = null, QuarantenaFinta? quarantena = null) =>
+        Catena(corpus, memoria, opt ?? new TranslationOptions(), roster, glossario, quarantena, motore);
 
     /// <summary>Il giro con piu' motori: l'ordine di preferenza lo detta `opt.Order`.</summary>
     private static TranslationFillUseCase Catena(
         CorpusFinto corpus, MemoriaFinta memoria, TranslationOptions opt, string[]? roster,
-        GlossarioFraseologia? glossario, params MotoreFinto[] motori) =>
-        new(corpus, memoria, motori, new TextProtector(roster, glossario), opt);
+        GlossarioFraseologia? glossario, QuarantenaFinta? quarantena, params MotoreFinto[] motori) =>
+        new(corpus, memoria, motori, new TextProtector(roster, glossario), opt,
+            quarantena ?? new QuarantenaFinta());
 
     // ---- Il dedup che si vede -------------------------------------------------------------------------
 
@@ -168,7 +169,8 @@ public class TranslationFillUseCaseTests
         var motore = new MotoreAMeta();
 
         var rapporto = await new TranslationFillUseCase(new CorpusFinto("Contatta la torre.", "Riporta sottovento."),
-                memoria, new ITranslationEngine[] { motore }, new TextProtector(null, null), new TranslationOptions())
+                memoria, new ITranslationEngine[] { motore }, new TextProtector(null, null), new TranslationOptions(),
+                new QuarantenaFinta())
             .EseguiAsync("it", "en");
 
         Assert.Equal(TranslationOutcome.PermanentFailure, rapporto.Esito);
@@ -238,7 +240,7 @@ public class TranslationFillUseCaseTests
         var protettoreCieco = new TextProtector();
         var giro = new TranslationFillUseCase(
             new CorpusFinto("Contatta la torre."), new MemoriaFinta(), new[] { motore }, protettoreCieco,
-            new TranslationOptions());
+            new TranslationOptions(), new QuarantenaFinta());
 
         // Caso di controllo: senza dati personali passa.
         var ok = await giro.EseguiAsync("it", "en");
@@ -366,6 +368,139 @@ public class TranslationFillUseCaseTests
         Assert.Equal(new[] { "Contatta LIRF_TWR" }, rapporto.Rotti);
     }
 
+    // ---- Il freno: chi non si sa rendere smette di partire (§A84) ------------------------------------
+
+    /// <summary>Il motore che mangia il segnaposto: la frase col callsign torna sempre rotta.</summary>
+    private static MotoreFinto MotoreCheRompeIlCallsign() =>
+        new(traduci: t => t.Contains("<x id=", StringComparison.Ordinal) ? "Contact the tower" : "EN:" + t);
+
+    /// <summary>
+    /// 🔴 <b>La prova che il freno esiste.</b> Il 21 settembre 2026 due soli segmenti avevano bruciato
+    /// 170 506 caratteri in cinque giorni, 410 spedizioni tornate rotte tutte e 410: «il giro dopo ci
+    /// riprova» era una speranza, perché il guasto è deterministico (§A64.3). Qui la stessa frase parte tre
+    /// volte e poi <b>non parte più</b>.
+    /// </summary>
+    [Fact]
+    public async Task Dopo_tre_giri_rotti_il_segmento_smette_di_partire()
+    {
+        var memoria = new MemoriaFinta();
+        var quarantena = new QuarantenaFinta();
+        var corpus = new CorpusFinto("Contatta LIRF_TWR", "Riporta sottovento.");
+
+        // I tre tentativi concessi: la frase col callsign parte e torna rotta ogni volta.
+        for (var giro = 1; giro <= TranslationQuarantena.Soglia; giro++)
+        {
+            var motore = MotoreCheRompeIlCallsign();
+            var rapporto = await Giro(corpus, memoria, motore, quarantena: quarantena).EseguiAsync("it", "en");
+
+            Assert.Equal(2, motore.Ricevuti.Count);        // finché ha tentativi, parte
+            Assert.Equal(1, rapporto.Scartati);
+            Assert.Equal(0, rapporto.InQuarantena);
+
+            // ⚠️ L'avviso esce UNA volta sola, all'ultimo tentativo: è il passaggio di stato a volere una
+            // persona, non lo stato. Un avviso a ogni giro sarebbe il rumore che il freno spegne.
+            var atteso = giro == TranslationQuarantena.Soglia ? 1 : 0;
+            Assert.Equal(atteso, rapporto.AppenaFermati?.Count ?? 0);
+        }
+
+        // Il quarto giro: la frase rotta non parte più, l'altra sì.
+        var dopo = MotoreCheRompeIlCallsign();
+        var ultimo = await Giro(corpus, memoria, dopo, quarantena: quarantena).EseguiAsync("it", "en");
+
+        Assert.Single(dopo.Ricevuti);
+        Assert.DoesNotContain(dopo.Ricevuti, t => t.Contains("<x id=", StringComparison.Ordinal));
+        Assert.Equal(1, ultimo.InQuarantena);
+        Assert.Equal(0, ultimo.Scartati);
+        Assert.Empty(ultimo.AppenaFermati!);              // già fermata: non si riannuncia
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Un segmento fermo non ferma gli altri.</b> Il freno è per frase, non per giro: fermare la
+    /// passata intera perché una frase non si rende vorrebbe dire che un solo testo rotto spegne la
+    /// traduzione di tutto il corpus.
+    /// </summary>
+    [Fact]
+    public async Task Un_segmento_fermo_non_costa_niente_e_non_ferma_gli_altri()
+    {
+        var memoria = new MemoriaFinta();
+        var quarantena = new QuarantenaFinta();
+        quarantena.Ferma("it", "en", TranslationText.Hash("Contatta LIRF_TWR"), "Contatta LIRF_TWR");
+
+        var motore = MotoreCheRompeIlCallsign();
+        var rapporto = await Giro(new CorpusFinto("Contatta LIRF_TWR", "Riporta sottovento."), memoria, motore,
+            quarantena: quarantena).EseguiAsync("it", "en");
+
+        Assert.Single(motore.Ricevuti);
+        Assert.Equal(1, rapporto.InQuarantena);
+        Assert.Equal(1, rapporto.Tradotti);
+
+        // 🔴 E soprattutto: quei caratteri non si pagano. È tutto il punto.
+        var spesa = Assert.NotNull(memoria.Spesa);
+        Assert.Equal(1, spesa.Segmenti);
+        Assert.Equal(0, spesa.Scartati);
+        Assert.Equal(0, spesa.CaratteriScartati);
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Chi torna intero si perdona.</b> Un ripristino può fallire una volta per un motivo passeggero —
+    /// un lotto tornato corto, il motore di riserva entrato a metà giro — e tre incidenti sparsi in tre mesi
+    /// non sono un segmento irrecuperabile. Senza questa riga il freno sarebbe un accumulatore che prima o
+    /// poi ferma tutto.
+    /// </summary>
+    [Fact]
+    public async Task Il_segmento_che_torna_intero_dimentica_i_tentativi_andati_male()
+    {
+        var impronta = TranslationText.Hash("Contatta LIRF_TWR");
+        var quarantena = new QuarantenaFinta();
+        quarantena.Ferma("it", "en", impronta, "Contatta LIRF_TWR", strikes: TranslationQuarantena.Soglia - 1);
+
+        // Stavolta il motore rende il segnaposto come si deve.
+        var rapporto = await Giro(new CorpusFinto("Contatta LIRF_TWR"), new MemoriaFinta(), new MotoreFinto(),
+            quarantena: quarantena).EseguiAsync("it", "en");
+
+        Assert.Equal(1, rapporto.Tradotti);
+        Assert.Equal(0, rapporto.InQuarantena);
+        Assert.Equal(0, quarantena.StrikeDi("it", "en", impronta));
+        Assert.Contains(impronta, quarantena.Perdonati);
+    }
+
+    /// <summary>
+    /// 🔴 <b>Un disservizio del motore non è colpa della frase.</b> Se il motore non risponde — quota finita,
+    /// chiave rifiutata, rete giù — non ha reso rotto niente: contarlo come tentativo del segmento vorrebbe
+    /// dire che tre quarti d'ora di Azure fermo condannano mezzo corpus a una resa a mano.
+    /// </summary>
+    [Fact]
+    public async Task Un_guasto_del_motore_non_conta_come_tentativo_del_segmento()
+    {
+        var impronta = TranslationText.Hash("Contatta LIRF_TWR");
+        var quarantena = new QuarantenaFinta();
+
+        var rapporto = await Giro(new CorpusFinto("Contatta LIRF_TWR"), new MemoriaFinta(),
+            new MotoreFinto(TranslationOutcome.QuotaExceeded), quarantena: quarantena).EseguiAsync("it", "en");
+
+        Assert.Equal(TranslationOutcome.QuotaExceeded, rapporto.Esito);
+        Assert.Equal(0, quarantena.StrikeDi("it", "en", impronta));
+    }
+
+    /// <summary>
+    /// ⚠️ <b>Il verso conta.</b> La stessa frase può rompersi it→en e andare bene en→it: la chiave della
+    /// quarantena porta le due lingue, come quella della memoria. Senza, una condanna emessa in un verso
+    /// spegnerebbe in silenzio la traduzione nell'altro.
+    /// </summary>
+    [Fact]
+    public async Task La_condanna_di_un_verso_non_vale_per_l_altro()
+    {
+        var quarantena = new QuarantenaFinta();
+        quarantena.Ferma("it", "en", TranslationText.Hash("Contatta LIRF_TWR"), "Contatta LIRF_TWR");
+
+        var motore = new MotoreFinto();
+        var rapporto = await Giro(new CorpusFinto("Contatta LIRF_TWR"), new MemoriaFinta(), motore,
+            quarantena: quarantena).EseguiAsync("en", "it");
+
+        Assert.Single(motore.Ricevuti);
+        Assert.Equal(0, rapporto.InQuarantena);
+    }
+
     /// <summary>
     /// ⚠️ <b>La spesa si registra su quel che e' PARTITO, rotto compreso.</b> E' tutta la ragione per cui il
     /// registro esiste invece di dedurre il conto da quel che e' rimasto in memoria: una frase tornata rotta
@@ -410,7 +545,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Single(azure.Ricevuti);
@@ -433,7 +568,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal(TranslationOutcome.Ok, rapporto.Esito);
@@ -451,7 +586,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal("deepl", rapporto.Motore);
@@ -473,7 +608,7 @@ public class TranslationFillUseCaseTests
             DeepL = { MaxCaratteriTotali = 1000 },
         };
 
-        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria, opt, null, null, azure, deepl)
+        var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria, opt, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Empty(deepl.Ricevuti);            // saltato PRIMA di spendere
@@ -490,7 +625,7 @@ public class TranslationFillUseCaseTests
 
         // Registrati azure-poi-deepl, ma la configurazione dice il contrario.
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
-            new TranslationOptions { Order = new[] { "deepl", "azure" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "deepl", "azure" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal("deepl", rapporto.Motore);
@@ -505,7 +640,7 @@ public class TranslationFillUseCaseTests
         var memoria = new MemoriaFinta();
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), memoria,
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Equal(TranslationOutcome.AuthFailed, rapporto.Esito);
@@ -520,7 +655,7 @@ public class TranslationFillUseCaseTests
         var deepl = new MotoreFinto(nome: "deepl");
 
         var rapporto = await Catena(new CorpusFinto("Contatta la torre."), new MemoriaFinta(),
-            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, azure, deepl)
+            new TranslationOptions { Order = new[] { "azure", "deepl" } }, null, null, null, azure, deepl)
             .EseguiAsync("it", "en");
 
         Assert.Empty(azure.Ricevuti);

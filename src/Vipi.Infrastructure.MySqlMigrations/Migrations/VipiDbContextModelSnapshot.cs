@@ -3376,6 +3376,62 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                     b.ToTable("StatsSettings");
                 });
 
+            modelBuilder.Entity("Vipi.Domain.Entities.TranslationQuarantine", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<long>("CharactersWasted")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Engine")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<DateTime>("FirstUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime>("LastUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SourceHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("SourceText")
+                        .IsRequired()
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<int>("Strikes")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TargetLang")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varchar(8)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SourceLang", "TargetLang", "SourceHash")
+                        .IsUnique();
+
+                    b.ToTable("TranslationQuarantines");
+                });
+
             modelBuilder.Entity("Vipi.Domain.Entities.TranslationSpend", b =>
                 {
                     b.Property<int>("Id")

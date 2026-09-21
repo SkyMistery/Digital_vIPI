@@ -224,6 +224,11 @@ public class VipiDbContext : DbContext
     /// ⚠️ Esiste perché la spesa DEDOTTA dalla memoria non vede i segmenti tornati rotti (§Q16b).</summary>
     public DbSet<TranslationSpend> TranslationSpends => Set<TranslationSpend>();
 
+    /// <summary>I segmenti che il motore non sa rendere e che hanno smesso di partire: il FRENO.
+    /// ⚠️ Il registro della spesa fa VEDERE la perdita, questa tabella la ferma — due soli segmenti avevano
+    /// bruciato 170 506 caratteri in cinque giorni (§A84).</summary>
+    public DbSet<TranslationQuarantine> TranslationQuarantines => Set<TranslationQuarantine>();
+
     /// <summary>Il glossario di fraseologia: una riga per FORMULA, che vive dentro le frasi. §Q3.</summary>
     public DbSet<GlossaryTerm> GlossaryTerms => Set<GlossaryTerm>();
 
@@ -833,6 +838,25 @@ public class VipiDbContext : DbContext
 
             // L'elenco «cosa manca ancora di rivedere», che è la query della vista e del badge.
             e.HasIndex(x => new { x.TargetLang, x.ReviewedUtc });
+        });
+
+        // --- Il freno: i segmenti che il motore non sa rendere (§A84) ------------------------------------
+        // Accanto alla memoria e distinta da lei, e la distinzione è la ragione per cui questa tabella
+        // esiste invece di una colonna là: in memoria c'è quel che SI SA DIRE, qui quel che si è imparato
+        // PROVANDO. Mescolarle vorrebbe dire righe di memoria senza traduzione — e LoadAllAsync, che serve
+        // le descrizioni delle aree, renderebbe un paragrafo BIANCO invece del ripiego nella lingua sorgente.
+        b.Entity<TranslationQuarantine>(e =>
+        {
+            // ⚠️ UNICO sulla stessa terna della memoria, e per la stessa ragione: due righe per lo stesso
+            // segmento sarebbero due contatori, e il freno scatterebbe al doppio dei tentativi — cioè a
+            // metà velocità, senza che niente lo dica.
+            e.HasIndex(x => new { x.SourceLang, x.TargetLang, x.SourceHash }).IsUnique();
+
+            // Le stesse lunghezze della memoria: senza, MySQL non costruisce l'indice unico su testo.
+            e.Property(x => x.SourceLang).HasMaxLength(8);
+            e.Property(x => x.TargetLang).HasMaxLength(8);
+            e.Property(x => x.SourceHash).HasMaxLength(64);
+            e.Property(x => x.Engine).HasMaxLength(32);
         });
 
         // --- Glossario di fraseologia (lavori-aperti §Q3) ------------------------------------------------

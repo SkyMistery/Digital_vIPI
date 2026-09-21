@@ -270,6 +270,7 @@ public static class DependencyInjection
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.AzureTranslationEngine>();
         services.AddSingleton<Vipi.Application.Abstractions.ITranslationEngine, Translation.DeepLTranslationEngine>();
         services.AddScoped<Vipi.Application.Abstractions.ITranslationMemory, EfTranslationMemory>();
+        services.AddScoped<Vipi.Application.Abstractions.ITranslationQuarantine, EfTranslationQuarantine>();
         services.AddScoped<Vipi.Application.Abstractions.IGlossaryStore, EfGlossaryStore>();
         services.AddScoped<Vipi.Application.Abstractions.IRoleOverrideStore, EfRoleOverrideStore>();
         services.AddScoped<Vipi.Application.Abstractions.IApiClientStore, EfApiClientStore>();

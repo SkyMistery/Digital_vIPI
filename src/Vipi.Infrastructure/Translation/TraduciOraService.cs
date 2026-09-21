@@ -73,8 +73,12 @@ public sealed class TraduciOraService : ITraduciOra
             .ProtettoreAsync(sp.GetRequiredService<IGlossaryStore>(), nomi, mancanti.Da, mancanti.A, ct)
             .ConfigureAwait(false);
 
+        // ⚠️ Il freno vale anche per il tasto, e non è una svista da correggere: chi preme «traduci ora» su
+        // un documento che contiene un segmento irrecuperabile lo ripagherebbe a ogni pressione, e la
+        // pressione è proprio il gesto di chi sta guardando quel documento — cioè quello che si ripete.
         var giro = new TranslationFillUseCase(
-            sp.GetRequiredService<ITranslatableCorpus>(), memoria, motori, protettore, _opzioni);
+            sp.GetRequiredService<ITranslatableCorpus>(), memoria, motori, protettore, _opzioni,
+            sp.GetRequiredService<ITranslationQuarantine>());
 
         // ⚠️ Si passano TUTTI i segmenti del documento e non i soli mancanti: il confronto con la memoria lo
         // fa il giro, ed è lo stesso confronto di ogni quarto d'ora. Due modi di decidere «che cosa manca»

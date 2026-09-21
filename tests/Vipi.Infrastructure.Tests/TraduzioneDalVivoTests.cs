@@ -130,8 +130,11 @@ public class TraduzioneDalVivoTests : IAsyncLifetime
         var roster = await db.StaffMembers.AsNoTracking()
             .Where(s => s.DisplayName != null).Select(s => s.DisplayName!).ToListAsync();
 
+        // ⚠️ La quarantena VERA e non un doppio: questa prova gira col motore vero sul corpus vero, ed è
+        // l'unico posto in cui si vedrebbe un freno che frena quel che non deve.
         var giro = new TranslationFillUseCase(corpus, memoria, new[] { motore },
-                                              new TextProtector(roster), opzioni.Value);
+                                              new TextProtector(roster), opzioni.Value,
+                                              new EfTranslationQuarantine(db));
 
         // La vLOA nasce in inglese: per lei l'italiano e' il bersaglio. E' il verso piu' rappresentato nel
         // corpus di sviluppo, quindi e' quello che prova qualcosa.

@@ -2,6 +2,82 @@
 
 ## Dove siamo — 21 settembre 2026
 
+### ✅ A84 — Il freno: i segmenti che il motore non sa rendere smettono di partire (21 settembre 2026) — 🔴 UNA MIGRAZIONE
+
+**Da dove esce**: lo stesso scarico di §A83. Il registro del giro dice, ogni quarto d'ora, sempre la stessa
+cosa.
+
+🔴 **Due frasi avevano bruciato 170 506 caratteri in cinque giorni.** Circa **34 000 al giorno**, cioè un
+milione al mese, in **410 spedizioni tornate rotte tutte e 410**:
+
+| giorno | caratteri | giri |
+|---|---|---|
+| 17-set | 53 802 | 122 |
+| 18-set | 56 259 | 131 |
+| 19-set | 32 340 | 84 |
+| 20-set | 26 950 | 70 |
+
+Le frasi sono **due sole**: `«Se presente LIBN_G_APP e assente Lecce APP, Brindisi ACC/MIL coordinerà…»`
+(297 giri, it→en) e `«• 37th WING A/A TRAINING AREA · …»` (113 giri, en→it).
+
+⚠️ **La causa era già misurata e non è un guasto: è una regola.** §A64.3, col motore vero il 18 settembre:
+`SiglaMaiuscola` protegge in prosa ogni parola maiuscola di almeno quattro lettere — LIBERO, WING, TRAINING,
+AREA — Azure la traduce lo stesso, il ripristino non ritrova il segnaposto, la frase si butta. **Quindi il
+ritentativo non può funzionare**: riprovare novantasei volte al giorno una cosa deterministica costa e basta.
+
+🔴 **E il codice lo sapeva.** Il commento nel giro diceva, testualmente, «le scartate si RIPAGANO a ogni giro
+… ogni quarto d'ora, per sempre. È un Warning perché vuole una persona». Il 30 agosto (§Q16b) lo stesso
+difetto — 155 caratteri ogni quindici minuti — aveva prodotto il **registro della spesa**, cioè lo strumento
+per **vedere** la perdita. Vederla per tre settimane non l'ha fermata: **misurare non è frenare**.
+
+✅ **Fatto**: `TranslationQuarantine`, una riga per (verso, impronta), con i tentativi andati male e i
+caratteri bruciati. Alla **terza** rottura il segmento smette di partire.
+- 🔴 **Sta nel database e non in un campo**, e non è pigrizia: su questo host il processo non vive. Misurato
+  sul 19 settembre — **84 giri di traduzione su 130 processi**, meno di un giro per processo. Un contatore in
+  memoria non arriverebbe **mai** a tre, e il freno sarebbe una funzione che sembra esserci.
+- **Tre e non uno**: un ripristino può fallire per un motivo passeggero, e condannare al primo incidente
+  vorrebbe dire chiedere una resa a mano per qualcosa che il giro dopo andava bene. **Tre e non trenta**: il
+  guasto è deterministico, ogni tentativo dopo il primo è una conferma. Sui due segmenti misurati: circa
+  **1 200 caratteri invece di 170 506**.
+- 🔴 **Soglia costante, non chiave di configurazione**: §A62 — `Translation:Targets` divenne `it,en,it,en`
+  sommandosi fra file e il giro fece otto passate invece di due. Una soglia sbagliata qui non si vedrebbe:
+  si vedrebbe solo la bolletta.
+- **Si esce** in tre modi: una persona scrive la resa (la frase entra in memoria e il giro non la cerca più —
+  è il rimedio che il committente aveva già scelto il 18 settembre); il testo cambia (impronta nuova,
+  tentativi da zero); `SvuotaAsync` a mano, per quando cambia il motore.
+- **Chi torna intero si perdona**: gli strike si cancellano, o il freno sarebbe un accumulatore che prima o
+  poi ferma tutto.
+- **Un guasto del MOTORE non conta come tentativo del segmento**: se Azure non risponde non ha reso rotto
+  niente, e contarlo vorrebbe dire che tre quarti d'ora di disservizio condannano mezzo corpus.
+- **Il freno vale anche per il tasto «traduci ora»**: è il gesto di chi sta guardando quel documento, cioè
+  quello che si ripete.
+- **L'avviso diventa un evento**: si scrive **una volta sola**, quando il segmento smette di partire. Prima
+  era una riga ogni quarto d'ora; ripetere «è ferma» sarebbe il rumore che il freno esiste per spegnere.
+
+⚠️ **Due scorciatoie scartate, per ragioni già scritte nel codice**: scrivere la **sorgente come traduzione**
+(come fanno le `identiche`) — vietato dal commento del caso d'uso, scriverebbe l'italiano spacciato per
+inglese come voce definitiva; e un **`TargetText` vuoto** come sentinella — `LoadAllAsync` serve le
+descrizioni delle aree, e renderebbe un **paragrafo bianco** invece del ripiego nella lingua sorgente.
+
+🔴 **Questa consegna ha UNA MIGRAZIONE** (`FrenoTraduzioneQuarantena`, emessa nei due provider). Vale quel
+che valeva per 1.35.0: **copia di sicurezza del database prima**, e
+`Vipi.Infrastructure.MySqlMigrations.dll` **dentro il pacchetto**. Prova da fuori: la riga `Schema 0`.
+✅ Lette tutt'e due: solo `CreateTable` più l'indice unico — nessun `RenameColumn`, nessun dato toccato.
+
+✅ **Provata dal vivo**: migrazione applicata a un SQLite pulito (68 migrazioni, l'ultima è questa), schema
+verificato, doppione sulla terna **respinto**, verso opposto **passa**.
+✅ **La prova distingue**: spento il cancello (soglia a `int.MaxValue`), due delle cinque prove nuove vanno
+**rosse**; riacceso, verdi.
+✅ **Verde**: suite intera **15 assiemi, 0 rosse** su net8.0 e net10.0 (`Vipi.Application.Tests` 2738),
+e `dotnet build Vipi.slnx -c Release --no-incremental` **0 warning**.
+
+▶ **Resta da fare, ed è lavoro di DATI non di codice**: le due frasi di oggi vogliono comunque una resa a
+mano, o resteranno in inglese/italiano com'erano. `«37th WING …»` viene da IVAO → seme `FrasiAreeIvao`;
+`«Se presente LIBN_G_APP …»` è testo di documento → pannello traduzioni.
+▶ **Non c'è ancora una pagina** che mostri che cosa è fermo: `ITranslationQuarantine.FermiAsync` esiste e
+risponde ordinata dalla più costosa, ma nessuno la chiama. Per ora lo dice il registro, una volta per
+segmento.
+
 ### ✅ A83 — `DocReviewBar`: l'ultima famiglia viva del registro ha preso la terza porta (21 settembre 2026)
 
 **Da dove esce**: lo scarico di diagnostica del **21 settembre 02:50**, letto per ere secondo
