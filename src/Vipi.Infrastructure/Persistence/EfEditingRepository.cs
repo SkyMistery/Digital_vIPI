@@ -375,6 +375,36 @@ public sealed class EfEditingRepository : IEditingRepository
 
     /// <summary>Come nasce una sezione: Live se la sua derivazione è vera solo adesso (il meteo, il timbro di
     /// validità), Frozen altrimenti — perché quello è il senso di pubblicare.</summary>
+    /// <summary>
+    /// Le sezioni di catalogo di un blocco, e ricorsivamente le loro figlie: la nascita della vIPI di ACC e il
+    /// «+ gruppo APP» passano entrambi da qui.
+    /// <para>⚠️ Ricorsiva dal 21 settembre 2026, quando il gruppo APP ha preso «Gestione del traffico» con IFR e
+    /// VFR dentro: prima nasceva solo il primo livello, e il contenitore sarebbe nato VUOTO. È la stessa lezione
+    /// di <c>DocumentBirth.Semina</c> (28 agosto 2026), che però fa nascere un documento intero e non un blocco.</para>
+    /// </summary>
+    private void SeminaFiglie(DocumentVersion version, DocumentSection padre, SectionProfile profile,
+        IReadOnlyList<SectionDescriptor> descrittori)
+    {
+        var ordine = 1;
+        foreach (var d in descrittori.OrderBy(d => d.Order))
+        {
+            var child = new DocumentSection
+            {
+                DocumentVersion = version,
+                ParentSection = padre,
+                Title = d.Title,
+                Order = ordine++,
+                Depth = padre.Depth + 1,
+                SectionKey = d.Key,
+                RowVersion = Guid.NewGuid().ToByteArray(),
+                RenderMode = ModoAllaNascita(d.Key),
+            };
+            _db.DocumentSections.Add(child);
+            AggiungiPlaceholderSeServe(version, child, profile, d.Key);
+            if (d.Children is { Count: > 0 } figli) SeminaFiglie(version, child, profile, figli);
+        }
+    }
+
     private static RenderMode ModoAllaNascita(string key) =>
         SectionCatalog.IsAlwaysLive(key) ? RenderMode.Live : RenderMode.Frozen;
 
@@ -430,25 +460,7 @@ public sealed class EfEditingRepository : IEditingRepository
             };
             _db.DocumentSections.Add(blockSection);
 
-            var childOrder = 1;
-            foreach (var d in SectionCatalog.For(block.Profile).OrderBy(d => d.Order))
-            {
-                var key = d.Key;
-                var child = new DocumentSection
-                {
-                    DocumentVersion = version,
-                    ParentSection = blockSection,
-                    Title = d.Title,
-                    Order = childOrder++,
-                    Depth = 1,
-                    SectionKey = key,
-                    RowVersion = Guid.NewGuid().ToByteArray(),
-                    RenderMode = ModoAllaNascita(key),
-                };
-                _db.DocumentSections.Add(child);
-
-                AggiungiPlaceholderSeServe(version, child, block.Profile, key);
-            }
+            SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
         }
         await _db.SaveChangesAsync(ct);
 
@@ -488,23 +500,7 @@ public sealed class EfEditingRepository : IEditingRepository
         _db.DocumentSections.Add(blockSection);
 
         var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
-        var childOrder = 1;
-        foreach (var d in SectionCatalog.For(block.Profile).OrderBy(d => d.Order))
-        {
-            var child = new DocumentSection
-            {
-                DocumentVersion = version,
-                ParentSection = blockSection,
-                Title = d.Title,
-                Order = childOrder++,
-                Depth = 1,
-                SectionKey = d.Key,
-                RowVersion = Guid.NewGuid().ToByteArray(),
-                RenderMode = ModoAllaNascita(d.Key),
-            };
-            _db.DocumentSections.Add(child);
-            AggiungiPlaceholderSeServe(version, child, block.Profile, d.Key);
-        }
+        SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
         await _db.SaveChangesAsync(ct);
         return blockSection.Id;
     }

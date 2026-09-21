@@ -47,6 +47,12 @@ public static class SectionKeys
     /// è la stessa stringa.</summary>
     public const string AccBloccoAerovia = "aerovia";
 
+    /// <summary>La chiave della SEZIONE di un gruppo APP di una vIPI di ACC: ce ne sono tante, una per gruppo, tutte
+    /// con questa chiave. ⚠️ Non è <c>grp:1a2b3c4d</c>: quella è la chiave del BLOCCO, e sta nel suo blockmeta
+    /// (misurato sul <c>vipi.db</c>: 6 sezioni <c>appgroup</c>, nessuna <c>grp:</c>). Nasce scritta a mano in
+    /// <c>AccDocumentService.AddGroupAsync</c>; è la stessa stringa.</summary>
+    public const string AccBloccoApp = "appgroup";
+
     /// <summary>L'AoR dei settori militari del blocco Aerovia (<see cref="FamigliaAor.Mil"/>).</summary>
     public const string AorMil = "aor-mil";
 

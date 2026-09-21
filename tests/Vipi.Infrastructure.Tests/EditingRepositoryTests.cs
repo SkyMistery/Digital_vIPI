@@ -247,10 +247,17 @@ public class EditingRepositoryTests : IAsyncLifetime
 
         // Idempotente: seconda chiamata ritorna lo stesso documento senza duplicare sezioni.
         Assert.Equal(docId, await _repo.EnsureVipiDocumentTreeAsync(sec, "altro", Language.It, blocks, authorUserId: 3));
+        // ⚠️ A ogni profondità (21 settembre 2026): il gruppo APP ha «Gestione del traffico» con IFR e VFR dentro, e
+        // contando le sole figlie del catalogo il contenitore sarebbe potuto nascere vuoto senza che nessuno lo vedesse.
+        static int Tutte(IEnumerable<SectionDescriptor> d) => d.Sum(x => 1 + Tutte(x.Children ?? Array.Empty<SectionDescriptor>()));
         var atteseSezioni = 2   // le due sezioni-blocco
-            + SectionCatalog.For(SectionProfile.AccAerovia).Count
-            + SectionCatalog.For(SectionProfile.AccAppBlock).Count;
+            + Tutte(SectionCatalog.For(SectionProfile.AccAerovia))
+            + Tutte(SectionCatalog.For(SectionProfile.AccAppBlock));
         Assert.Equal(atteseSezioni, await _db.DocumentSections.CountAsync(s => s.DocumentVersionId == ver.Id));
+        var traffico = await _db.DocumentSections.AsNoTracking()
+            .SingleAsync(s => s.DocumentVersionId == ver.Id && s.SectionKey == SectionKeys.TrafficManagement);
+        Assert.Equal(new[] { SectionKeys.TrafficManagementIfr, "vfr" }, await _db.DocumentSections.AsNoTracking()
+            .Where(s => s.ParentSectionId == traffico.Id).OrderBy(s => s.Order).Select(s => s.SectionKey).ToListAsync());
     }
 
     [Fact]

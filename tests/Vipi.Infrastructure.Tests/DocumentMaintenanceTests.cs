@@ -355,7 +355,7 @@ public class DocumentMaintenanceTests : IAsyncLifetime
     {
         var ver = await SeedVersionAsync();
         var aerovia = Section(ver, SectionKeys.AccBloccoAerovia, 1);
-        var gruppo = Section(ver, "grp:1", 2);
+        var gruppo = Section(ver, SectionKeys.AccBloccoApp, 2);
         _db.DocumentSections.AddRange(aerovia, gruppo);
         await _db.SaveChangesAsync();
         var vecchie = SectionCatalog.For(SectionProfile.AccAerovia).OrderBy(d => d.Order)
@@ -367,14 +367,17 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         _db.DocumentSections.AddRange(Child(ver, gruppo, "aor", "aor", 1), Child(ver, gruppo, "regulated", "regulated", 2));
         await _db.SaveChangesAsync();
 
-        Assert.Equal(2, await _maintenance.AddMissingCatalogSectionsAsync());
+        // Due nell'Aerovia; il gruppo APP, che aveva solo AOR e aree, riceve tutto il resto del suo catalogo.
+        static int Tutte(IEnumerable<SectionDescriptor> d) => d.Sum(x => 1 + Tutte(x.Children ?? Array.Empty<SectionDescriptor>()));
+        Assert.Equal(2 + Tutte(SectionCatalog.For(SectionProfile.AccAppBlock)) - 2, await _maintenance.AddMissingCatalogSectionsAsync());
 
         var figlie = _db.DocumentSections.Where(x => x.ParentSectionId == aerovia.Id).OrderBy(x => x.Order)
             .Select(x => x.SectionKey).ToList();
         Assert.Equal(SectionCatalog.For(SectionProfile.AccAerovia).OrderBy(d => d.Order).Select(d => d.Key), figlie);
         Assert.True(figlie.IndexOf(SectionKeys.AorMil) < figlie.IndexOf("regulated"));
         Assert.True(figlie.IndexOf(SectionKeys.AorFss) > figlie.IndexOf("regulated"));
-        Assert.Equal(2, _db.DocumentSections.Count(x => x.ParentSectionId == gruppo.Id));
+        Assert.Equal(SectionCatalog.For(SectionProfile.AccAppBlock).OrderBy(d => d.Order).Select(d => d.Key),
+            _db.DocumentSections.Where(x => x.ParentSectionId == gruppo.Id).OrderBy(x => x.Order).Select(x => x.SectionKey).ToList());
         Assert.Equal(0, await _maintenance.AddMissingCatalogSectionsAsync());
     }
 

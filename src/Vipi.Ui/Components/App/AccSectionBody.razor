@@ -48,7 +48,6 @@ else if (Editorial is not null)
             case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
             @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
             case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
-            case "vfr": <AppVfr Content="ParseVfr(Block.VfrJson)" /> break;
             case "coordination": <AccCoordinationView Coord="Coord ?? AccCoordination.Empty" LeadSentence="@(Editorial?.LeadSentence ?? false)" /> break;
             @* Come l'AoR: la chiave del blocco fa da scope alla mappa (e al legame chip→descrizione), e il @key
                include l'albero così al cambio root il nodo mappa è ricreato e vipi-aor.js re-inizializza. *@
@@ -127,11 +126,4 @@ else if (Editorial is not null)
     [Parameter] public IReadOnlyList<AccSpecialAreaView>? Areas { get; set; }
     [Parameter] public MinimaView? Minima { get; set; }
     [Parameter] public IReadOnlyList<AccConfigTableView>? ConfigTables { get; set; }
-
-    private static AppVfrContent ParseVfr(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
-        try { return System.Text.Json.JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
-        catch (System.Text.Json.JsonException) { return AppVfrContent.Empty; }
-    }
 }

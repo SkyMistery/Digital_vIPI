@@ -1010,7 +1010,7 @@ public static class VipiModuleExtensions
         var traffico = maintenance.ReparentAppTrafficManagementAsync().GetAwaiter().GetResult();
         if (traffico > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Spostato il VFR sotto «Gestione del traffico» in {Count} vIPI di APP non remotizzato.", traffico);
+                log, "Spostato il VFR sotto «Gestione del traffico» in {Count} fra vIPI di APP non remotizzato e gruppi APP delle vIPI ACC.", traffico);
 
         // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari e dai blocchi Aerovia delle vIPI ACC già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();

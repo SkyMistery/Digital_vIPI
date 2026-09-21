@@ -77,7 +77,6 @@ public sealed class AccBlock
 
     // editoriale
     public List<AppSeparationRow> Separations { get; set; } = new();
-    public string? VfrJson { get; set; }
     public RegulatedSelection Regulated { get; set; } = new();                    // #8: aree speciali (proprio ACC auto/manuale + extra altri-ACC)
 
     // frequenze

@@ -127,8 +127,11 @@ public interface IDocumentMaintenance
     ///
     /// <para>⚠️ Si tocca solo un VFR ancora <b>radice</b>: è ciò che rende il passo idempotente. Le release già
     /// pubblicate non si toccano: il pubblico vede l'indice di prima finché quell'APP non si ripubblica.</para>
+    ///
+    /// <para>Dal 21 settembre 2026 anche i <b>gruppi APP delle vIPI di ACC</b>: lì il VFR è figlio del blocco, e
+    /// il contenitore prende il suo posto fra le figlie del blocco.</para>
     /// </summary>
-    /// <returns>Quanti documenti sono stati sistemati.</returns>
+    /// <returns>Quanti VFR sono stati sistemati (un documento APP, o un gruppo APP di una vIPI ACC).</returns>
     Task<int> ReparentAppTrafficManagementAsync(CancellationToken ct = default);
 
     /// <summary>

@@ -84,7 +84,7 @@ public class SectionCatalogTests
             .Where(d => SectionCatalog.IsHostRendered(p, d.Key)).Select(d => d.Key).OrderBy(k => k).ToArray();
 
         // ⚠️ Dal 15 settembre 2026 il VFR dell'APP non remotizzato non è più della pagina: è una sezione a
-        // blocchi dentro «Gestione del traffico». Nel blocco APP della vIPI ACC (sotto) lo resta.
+        // blocchi dentro «Gestione del traffico». Dal 21 settembre anche nel blocco APP della vIPI ACC (sotto).
         Assert.Equal(
             new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
             Host(SectionProfile.App));
@@ -93,8 +93,9 @@ public class SectionCatalogTests
             new[] { "aor", "aor-fss", "aor-mil", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
             Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR, e ha le AoR militare e FSS (21-set)
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity", "vfr" },
-            Host(SectionProfile.AccAppBlock));
+            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
+            Host(SectionProfile.AccAppBlock));   // dal 21-set il VFR del gruppo APP è a blocchi, come nell'APP
+        Assert.False(SectionCatalog.IsHostRendered(SectionProfile.AccAppBlock, "vfr"));
         Assert.Equal(
             new[] { "aor", "coordination", "frequencies", "validity" },
             Host(SectionProfile.Vloa));   // sulla vLOA «regulated» è testo bilaterale, non un picker
@@ -270,7 +271,8 @@ public class SectionCatalogTests
 
         Assert.Contains("configurations", Keys(SectionProfile.App));   // config aggiunta ad APP
         Assert.Contains("minima", Keys(SectionProfile.AccAppBlock));    // minima aggiunta ad AppBlock
-        Assert.Contains("vfr", Keys(SectionProfile.AccAppBlock));
+        // Dal 21-set dentro «Gestione del traffico», come nell'APP non remotizzato: `Find` scende nei figli.
+        Assert.NotNull(SectionCatalog.Find(SectionProfile.AccAppBlock, "vfr"));
         Assert.DoesNotContain("vfr", Keys(SectionProfile.AccAerovia));  // Aerovia senza VFR
         Assert.DoesNotContain("separations", Keys(SectionProfile.Vloa)); // vLOA senza separazioni
     }

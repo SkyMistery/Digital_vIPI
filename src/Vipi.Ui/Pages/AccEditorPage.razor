@@ -524,11 +524,6 @@ else
         await LoadAsync();
     });
 
-    private Task SaveVfr(AccAssembledBlock blk, AppVfrContent content) => _shell.GuardAsync(async () =>
-    {
-        await AccDoc.SaveVfrAsync(Acc, ChildId(blk, "vfr"), content);
-        await LoadAsync();
-    });
 
     // ---- frequenze (override ordine + link, nel blockmeta) ----
     private Task MoveFreq(AccAssembledBlock blk, (int Index, int Dir) m) => _shell.GuardAsync(async () =>
@@ -711,9 +706,6 @@ else
                                 OnDrop="() => FreqDragDrop(blk)" OnDragEnd="() => FreqDragDrop(blk)" />
                 @if (_shell.IsEditing) { @FreqLinkEditor(blk) }
                 break;
-            case "vfr":
-                <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_shell.IsEditing" ContentChanged="c => SaveVfr(blk, c)" />
-                break;
             @* Le AoR dei settori militari e FSS (21 settembre 2026): sola lettura anche in modifica, come la carta
                delle MRVA — i settori sono quelli del catalogo, e le scelte (forme extra, colori) si fanno sull'AoR
                principale. Stessa resa della pagina pubblica: il corpo è AccSectionBody, non una seconda copia. *@
@@ -789,11 +781,4 @@ else
             </div>
         </div>
     };
-
-    private static AppVfrContent ParseVfr(string? json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return AppVfrContent.Empty;
-        try { return JsonSerializer.Deserialize<AppVfrContent>(json) ?? AppVfrContent.Empty; }
-        catch (JsonException) { return AppVfrContent.Empty; }
-    }
 }

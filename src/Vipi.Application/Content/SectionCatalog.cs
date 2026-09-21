@@ -204,7 +204,7 @@ public static class SectionCatalog
         // ✚ 15 settembre 2026 (committente): «Gestione del traffico» SOPRA i Coordinamenti, con IFR e VFR
         // dentro. Il VFR c'era già come radice resa dalla pagina (tabella situazione → procedura): qui è
         // una sezione a BLOCCHI e nasce vuota, come le «Procedure generali» — la tabella fissa non serve più.
-        // ⚠️ Solo nell'APP non remotizzato: il blocco APP della vIPI ACC (`AccAppBlock`) tiene il suo VFR.
+        // ⚠️ Dal 21 settembre 2026 anche il blocco APP della vIPI ACC (`AccAppBlock`) ha la stessa struttura.
         // ⚠️ Nei documenti GIÀ SCRITTI il catalogo non sposta niente: lo fa
         // `IDocumentMaintenance.ReparentAppTrafficManagementAsync` all'avvio.
         D(SectionKeys.TrafficManagement, "Gestione del traffico", 6, en: "Traffic management", children: new[]
@@ -280,11 +280,21 @@ public static class SectionCatalog
                 H("aor", "AOR", 3),
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
-                H("vfr", "VFR", 6),
+                // ✚ 21 settembre 2026 (committente): il blocco APP della vIPI ACC si scrive COME l'APP non
+                // remotizzato — «Gestione del traffico» con IFR e VFR a blocchi sopra i Coordinamenti, «Tecnica
+                // operativa» subito sotto. Fino a oggi teneva il VFR come tabella fissa resa dalla pagina.
+                // ⚠️ Nelle vIPI già scritte il VFR lo sposta `ReparentAppTrafficManagementAsync` all'avvio, e le
+                // sezioni nuove le aggiunge la riconciliazione del catalogo.
+                D(SectionKeys.TrafficManagement, "Gestione del traffico", 6, en: "Traffic management", children: new[]
+                {
+                    D(SectionKeys.TrafficManagementIfr, "IFR", 1),
+                    D("vfr", "VFR", 2),
+                }),
                 H("coordination", "Coordinamenti", 7, en: "Coordination"),
-                H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
-                D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
-                HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
+                D(SectionKeys.OperatingTechnique, "Tecnica operativa", 8, en: "Operating technique"),
+                H("regulated", "Aree regolamentate", 9, en: "Regulated areas"),
+                D("operationaltechnique", "Procedure generali", 10, en: "General procedures"),
+                HB("validity", "Validità e revisione", 11, en: "Validity and revision"),
             },
             // vLOA: titoli e ORDINE sono quelli del documento reale (doc 13 §3c). Fino al doc 13 questo profilo non
             // lo leggeva nessuno — la struttura nasceva da VloaSections — e i due elenchi erano divergenti: mancava

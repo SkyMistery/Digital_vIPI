@@ -457,7 +457,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     /// <c>frequencies</c> e le altre compaiono una volta per blocco, e contandole a livello di versione una sezione
     /// mancante nell'Aerovia risulterebbe «presente» perché c'è in un blocco APP.</para>
     ///
-    /// <para>Solo il blocco Aerovia: i blocchi APP hanno il loro profilo, e le due sezioni nuove lì non esistono.</para>
+    /// <para>Ogni blocco col SUO profilo: l'Aerovia con <c>AccAerovia</c>, i gruppi APP con <c>AccAppBlock</c> (dal
+    /// 21 settembre 2026, quando hanno preso «Gestione del traffico» e «Tecnica operativa» dell'APP non
+    /// remotizzato). Il VFR esistente lo sposta prima <c>ReparentAppTrafficManagementAsync</c>.</para>
     /// </summary>
     private async Task<int> AggiungiMancantiNelleVipiAccAsync(CancellationToken ct)
     {
@@ -476,20 +478,42 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
             var tutte = await _db.DocumentSections.Where(x => x.DocumentVersionId == version.Id)
                 .OrderBy(x => x.Order).ToListAsync(ct);
-            // L'ultima versione, e non una qualunque che avesse il blocco: la storia non si ritocca.
-            var blocco = tutte.FirstOrDefault(x => x.ParentSectionId is null
-                && string.Equals(x.SectionKey, SectionKeys.AccBloccoAerovia, StringComparison.OrdinalIgnoreCase));
-            if (blocco is null) continue;
-
-            var present = tutte.Where(x => x.ParentSectionId == blocco.Id).Select(x => x.SectionKey)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
             var lingua = await _db.Documents.Where(d => d.Id == docId)
                 .Select(d => d.Language).FirstOrDefaultAsync(ct) == Vipi.Domain.Language.En ? "en" : "it";
 
-            added += AggiungiMancantiNelGruppo(version, SectionProfile.AccAerovia, blocco,
-                SectionCatalog.For(SectionProfile.AccAerovia), tutte, present, lingua);
+            // L'ultima versione, e non una qualunque che avesse il blocco: la storia non si ritocca.
+            // Tutti i blocchi, ciascuno col SUO profilo: l'Aerovia e i gruppi APP (questi dal 21 settembre 2026,
+            // quando il loro VFR è diventato «Gestione del traffico» come nell'APP non remotizzato).
+            foreach (var blocco in tutte.Where(x => x.ParentSectionId is null).ToList())
+            {
+                SectionProfile? profilo =
+                    string.Equals(blocco.SectionKey, SectionKeys.AccBloccoAerovia, StringComparison.OrdinalIgnoreCase)
+                        ? SectionProfile.AccAerovia
+                    : string.Equals(blocco.SectionKey, SectionKeys.AccBloccoApp, StringComparison.OrdinalIgnoreCase)
+                        ? SectionProfile.AccAppBlock
+                    : null;
+                if (profilo is not SectionProfile p) continue;
+
+                // 🔴 Presenza su TUTTO il sottoalbero del blocco, non sulle sole figlie: il VFR dei gruppi APP sta
+                // dentro «Gestione del traffico», e contato fra le figlie sembrerebbe mancare — ne nascerebbe un
+                // secondo. Solo del blocco, però: un altro blocco ha le stesse chiavi e non conta.
+                var present = Discendenti(blocco, tutte).Select(x => x.SectionKey)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                added += AggiungiMancantiNelGruppo(version, p, blocco, SectionCatalog.For(p), tutte, present, lingua);
+            }
         }
         return added;
+    }
+
+    /// <summary>Le sezioni sotto <paramref name="radice"/>, a ogni profondità.</summary>
+    private static IEnumerable<DocumentSection> Discendenti(DocumentSection radice, IReadOnlyList<DocumentSection> tutte)
+    {
+        foreach (var f in tutte.Where(x => ReferenceEquals(x.ParentSection, radice)
+                                           || (radice.Id != 0 && x.ParentSectionId == radice.Id)))
+        {
+            yield return f;
+            foreach (var n in Discendenti(f, tutte)) yield return n;
+        }
     }
 
     /// <summary>
@@ -650,7 +674,91 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             mosse++;
         }
 
+        mosse += await RiparentaVfrDeiBlocchiAppAccAsync(ct);
+
         if (mosse > 0) await _db.SaveChangesAsync(ct);
+        return mosse;
+    }
+
+    /// <summary>
+    /// Lo stesso spostamento nei gruppi APP delle vIPI di ACC (21 settembre 2026, chiesto dal committente): il VFR,
+    /// figlio del blocco, va dentro «Gestione del traffico», che prende il suo posto fra le figlie del blocco. IFR e
+    /// «Tecnica operativa» le aggiunge poi la riconciliazione del catalogo, col profilo <c>AccAppBlock</c>.
+    /// <para>⚠️ Il gruppo è il BLOCCO, non il documento: una vIPI di ACC ne ha uno per gruppo APP, ciascuno col suo
+    /// VFR. Idempotente come il passo sopra: un VFR che non è più figlio del blocco non si tocca.</para>
+    /// </summary>
+    private async Task<int> RiparentaVfrDeiBlocchiAppAccAsync(CancellationToken ct)
+    {
+        const string vfrKey = "vfr";
+        var gruppo = SectionCatalog.Find(SectionProfile.AccAppBlock, SectionKeys.TrafficManagement)!;
+
+        var docIds = await (
+            from s in _db.DocumentSections
+            join v in _db.DocumentVersions on s.DocumentVersionId equals v.Id
+            where s.ParentSectionId == null && s.SectionKey == SectionKeys.AccBloccoApp
+            select v.DocumentId).Distinct().ToListAsync(ct);
+
+        var mosse = 0;
+        foreach (var docId in docIds)
+        {
+            var version = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
+            if (version is null) continue;
+            var lingua = await _db.Documents.Where(d => d.Id == docId)
+                .Select(d => d.Language).FirstOrDefaultAsync(ct) == Vipi.Domain.Language.En ? "en" : "it";
+
+            var tutte = await _db.DocumentSections
+                .Where(x => x.DocumentVersionId == version.Id).OrderBy(x => x.Order).ToListAsync(ct);
+            var blocchi = tutte.Where(x => x.ParentSectionId is null
+                && string.Equals(x.SectionKey, SectionKeys.AccBloccoApp, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            foreach (var blocco in blocchi)
+            {
+                var figlie = tutte.Where(x => x.ParentSectionId == blocco.Id).OrderBy(x => x.Order).ThenBy(x => x.Id).ToList();
+                var vfr = figlie.FirstOrDefault(x => string.Equals(x.SectionKey, vfrKey, StringComparison.OrdinalIgnoreCase));
+                if (vfr is null) continue;
+
+                var posto = figlie.IndexOf(vfr);
+                figlie.RemoveAt(posto);
+
+                var padre = figlie.FirstOrDefault(x =>
+                    string.Equals(x.SectionKey, SectionKeys.TrafficManagement, StringComparison.OrdinalIgnoreCase));
+                if (padre is null)
+                {
+                    padre = new DocumentSection
+                    {
+                        DocumentVersion = version,
+                        ParentSection = blocco,
+                        Title = gruppo.TitleIn(lingua),
+                        Depth = blocco.Depth + 1,
+                        SectionKey = gruppo.Key,
+                        RenderMode = RenderMode.Frozen,
+                        Audience = gruppo.Audience,
+                        RowVersion = Guid.NewGuid().ToByteArray(),
+                    };
+                    _db.DocumentSections.Add(padre);
+                    figlie.Insert(posto, padre);
+                }
+
+                var nipoti = tutte.Where(x => padre.Id != 0 && x.ParentSectionId == padre.Id).ToList();
+                vfr.ParentSection = padre;
+                vfr.Depth = padre.Depth + 1;
+                vfr.Order = nipoti.Count == 0 ? 1 : nipoti.Max(x => x.Order) + 1;
+                vfr.RowVersion = Guid.NewGuid().ToByteArray();
+
+                for (var i = 0; i < figlie.Count; i++)
+                {
+                    if (figlie[i].Order == i + 1) continue;
+                    figlie[i].Order = i + 1;
+                    figlie[i].RowVersion = Guid.NewGuid().ToByteArray();
+                }
+
+                // Il payload della vecchia tabella diventa prosa + tabella generica: su una sezione a blocchi non
+                // lo disegnerebbe più nessuno.
+                await SvuotaVfrStrutturatoAsync(vfr, ct);
+                mosse++;
+            }
+        }
         return mosse;
     }
 

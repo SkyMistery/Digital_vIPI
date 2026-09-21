@@ -53,8 +53,6 @@ public interface IAccDocumentService
     /// <summary>Salva le righe Separazioni nel <c>BodyJson</c> della sezione figlia <c>separations</c>. ACC-gated.</summary>
     Task SaveSeparationsAsync(string accCode, int separationsSectionId, IReadOnlyList<AppSeparationRow> rows, CancellationToken ct = default);
 
-    /// <summary>Salva il contenuto VFR nel <c>BodyJson</c> della sezione figlia <c>vfr</c>. ACC-gated.</summary>
-    Task SaveVfrAsync(string accCode, int vfrSectionId, AppVfrContent content, CancellationToken ct = default);
 
     /// <summary>Aggiunge un blocco gruppo APP (sezione radice + sezioni-catalogo AccAppBlock) alla versione bozza. ACC-gated. Ritorna l'Id della sezione-blocco.</summary>
     Task<int> AddGroupAsync(string accCode, int versionId, string title, CancellationToken ct = default);
@@ -233,12 +231,6 @@ public sealed class AccDocumentService : IAccDocumentService
                 string.IsNullOrWhiteSpace(r.Applicability) ? null : r.Applicability!.Trim()))
             .ToList();
         return SaveJsonAsync(accCode, separationsSectionId, clean.Count == 0 ? null : clean, ct);
-    }
-
-    public Task SaveVfrAsync(string accCode, int vfrSectionId, AppVfrContent content, CancellationToken ct = default)
-    {
-        var empty = content is null || (string.IsNullOrWhiteSpace(content.Intro) && content.Rows.Count == 0);
-        return SaveJsonAsync(accCode, vfrSectionId, empty ? null : content, ct);
     }
 
     // Serializza (null/vuoto azzera) e scrive il BodyJson della sezione, dopo la porta: ruolo, documento, lock.

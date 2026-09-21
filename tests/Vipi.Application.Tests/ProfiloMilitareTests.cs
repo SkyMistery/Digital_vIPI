@@ -300,7 +300,7 @@ public class ProfiloMilitareTests
         static bool HaFigli(IEnumerable<SectionDescriptor> d) =>
             d.Any(x => x.Children is { Count: > 0 } || HaFigli(x.Children ?? Array.Empty<SectionDescriptor>()));
 
-        foreach (var p in new[] { SectionProfile.AccAerovia, SectionProfile.AccAppBlock, SectionProfile.Vloa })
+        foreach (var p in new[] { SectionProfile.AccAerovia, SectionProfile.Vloa })
             Assert.False(HaFigli(SectionCatalog.For(p)), p.ToString());
 
         // ⚠️ Dal 3 settembre 2026 i profili annidati sono DUE: il militare e la vIPI d'aeroporto, che ha preso
@@ -314,6 +314,10 @@ public class ProfiloMilitareTests
         // ricorrono, e le tre sezioni sono a blocchi — `IsHostRendered` falso comunque.
         Assert.True(HaFigli(SectionCatalog.For(SectionProfile.App)));
         Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AppMil)));
+        // ⚠️ Dal 21 settembre 2026 anche il gruppo APP della vIPI di ACC, con la stessa «Gestione del traffico».
+        // Riletto: la nascita del blocco ricorre (`EfEditingRepository.SeminaFiglie`), la riconciliazione conta la
+        // presenza su tutto il sottoalbero del blocco, e le tre sezioni sono a blocchi.
+        Assert.True(HaFigli(SectionCatalog.For(SectionProfile.AccAppBlock)));
     }
 
     [Fact]

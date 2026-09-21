@@ -97,7 +97,6 @@ public class AccDocumentAssemblerTests
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);
         Assert.Equal("1000 ft", Assert.Single(aerovia.Block.Separations).Vertical);
-        Assert.Contains("intro", aerovia.Block.VfrJson);
 
         // Editoriale generico: la figlia porta la vista di resa condivisa (blocchi veri, non prosa appiattita).
         var custom = Assert.Single(aerovia.Block.Sections, s => s.Key == "operationaltechnique");
