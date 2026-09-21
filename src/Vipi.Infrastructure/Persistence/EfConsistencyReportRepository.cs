@@ -59,20 +59,8 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
 
         // L'albero EFFETTIVO, dalla porta unica: è quello su cui si cercano gli anelli. Costruirlo qui a mano
         // sarebbe la terza copia della scaletta, cioè il terzo posto da cui la divergenza può ricominciare.
-        var righeGerarchia = new List<HierarchyCatalogRow>();
-        righeGerarchia.AddRange((await _db.AccSectors.AsNoTracking()
-                .Select(x => new { x.ComposePosition, x.ParentCallsign }).ToListAsync(ct))
-            .Select(x => new HierarchyCatalogRow(x.ComposePosition, x.ParentCallsign, null, SectorType.Ctr, false)));
-        righeGerarchia.AddRange((await _db.AirportSectors.AsNoTracking()
-                .Where(x => x.Position == null || x.Position.ToUpper() != "ATIS")
-                .Select(x => new { x.ComposePosition, x.ParentCallsign, x.AirportIcao, x.Position, x.IsHidden })
-                .ToListAsync(ct))
-            .Select(x => new HierarchyCatalogRow(x.ComposePosition, x.ParentCallsign, x.AirportIcao,
-                EffectiveHierarchy.TypeOfPosition(x.Position), x.IsHidden)));
-
-        var padreScalo = (await _db.Airports.AsNoTracking()
-                .Select(a => new { a.Icao, a.ParentCallsign }).ToListAsync(ct))
-            .ToDictionary(a => a.Icao, a => a.ParentCallsign, StringComparer.OrdinalIgnoreCase);
+        // E dalle stesse RIGHE: vedi EffectiveHierarchyRows.
+        var (righeGerarchia, padreScalo) = await EffectiveHierarchyRows.LoadAsync(_db, null, ct);
 
         // ⚠️ I doppioni escono di qui invece di essere sovrascritti in silenzio: lo stesso callsign può
         // stare in tutti e due i cataloghi (due indici unici, due tabelle) e l'albero effettivo ne tiene uno.

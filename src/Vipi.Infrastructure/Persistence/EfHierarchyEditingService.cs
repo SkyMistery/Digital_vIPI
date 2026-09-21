@@ -323,27 +323,8 @@ public sealed class EfHierarchyEditingService : IHierarchyEditingService
         string? PadreDi(HierarchyNodeKind kind, int id, string? scritto) =>
             modifica is not null && modifica.Kind == kind && modifica.NodeId == id ? modifica.Parent : scritto;
 
-        var righe = new List<HierarchyCatalogRow>();
-
-        foreach (var s in await _db.AccSectors.AsNoTracking()
-                     .Select(s => new { s.Id, s.ComposePosition, s.ParentCallsign }).ToListAsync(ct))
-            righe.Add(new HierarchyCatalogRow(s.ComposePosition,
-                PadreDi(HierarchyNodeKind.Acc, s.Id, s.ParentCallsign), null, SectorType.Ctr, IsHidden: false));
-
-        // Le stesse righe di LoadTreeAsync: l'ATIS non è una posizione di controllo e non è un nodo.
-        foreach (var s in await _db.AirportSectors.AsNoTracking()
-                     .Where(s => s.Position == null || s.Position.ToUpper() != "ATIS")
-                     .Select(s => new { s.Id, s.ComposePosition, s.AirportIcao, s.Position, s.ParentCallsign, s.IsHidden })
-                     .ToListAsync(ct))
-            righe.Add(new HierarchyCatalogRow(s.ComposePosition,
-                PadreDi(HierarchyNodeKind.AirportPosition, s.Id, s.ParentCallsign),
-                s.AirportIcao, EffectiveHierarchy.TypeOfPosition(s.Position), s.IsHidden));
-
-        var padreScalo = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var a in await _db.Airports.AsNoTracking()
-                     .Select(a => new { a.Id, a.Icao, a.ParentCallsign }).ToListAsync(ct))
-            padreScalo[a.Icao] = PadreDi(HierarchyNodeKind.Airport, a.Id, a.ParentCallsign);
-
+        // Le stesse righe di LoadTreeAsync, lette dalla porta unica: vedi EffectiveHierarchyRows.
+        var (righe, padreScalo) = await EffectiveHierarchyRows.LoadAsync(_db, PadreDi, ct);
         return EffectiveHierarchy.ParentMap(righe, padreScalo);
     }
 
