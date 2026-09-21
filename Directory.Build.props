@@ -1533,7 +1533,24 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
-      1.37.0 — MINOR, NESSUNA migrazione. Su 1.36.0 (0493ef5, online dal 21 settembre 2026). Ancora net8.
+      1.38.0 — MINOR, NESSUNA migrazione EF. Su 1.37.0 (2ad1790, online dal 21 settembre 2026). Ancora net8.
+
+      ⚠️ MINOR e non PATCH: sezioni nuove (SCCAM e FIC nelle vIPI ACC, «Gestione del traffico» e «Tecnica
+      operativa» nei gruppi APP), un gettone nuovo ([[AREA …]], ottava chip) e SID/STAR fra i punti dei
+      trasferimenti. ⚠️ 1.38.0 era il numero messo da parte per net10: il numero segue le CONSEGNE, il net10
+      slitta a 1.39.0.
+
+      Il contenuto (docs/lavori-aperti.md §A88–§A95): Diagnostica veloce (i poligoni non si rianalizzano a ogni
+      coppia settori/quota); «Cita» al cursore anche col fuoco perso; settori MIL e FSS nelle loro sezioni
+      SCCAM e FIC; SID/STAR fra i punti dei trasferimenti, frase «autorizzato via» e nome di oggi dall'archivio;
+      il gruppo APP della vIPI ACC come l'APP non remotizzato; [[AREA …]] nel «Cita». Tocca Vipi.Application,
+      Vipi.Infrastructure e Vipi.Hosting (i passi d'avvio che sistemano i documenti), Vipi.Ui (+ frasi IT/EN,
+      vipi-editor.js) e Vipi.Host per il timbro.
+      ⚠️ Niente migrazione EF, ma i passi d'AVVIO scrivono nei documenti (sezioni aggiunte, VFR spostato):
+      copia di sicurezza del database prima del carico, come buona regola.
+      Dopo il carico: ripubblicare le quattro vIPI ACC.
+
+      (storia) 1.37.0 — MINOR, NESSUNA migrazione. Su 1.36.0 (0493ef5, online dal 21 settembre 2026). Ancora net8.
 
       ⚠️ MINOR e non PATCH: c'è una funzione nuova — il gettone [[POS …]] e la settima chip del selettore
       «Cita» — e una PATCH è «solo correzioni, nessuna pagina o sezione nuova». Il resto sono correzioni.
@@ -1597,7 +1614,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.37.0</VipiVersione>
+    <VipiVersione>1.38.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
