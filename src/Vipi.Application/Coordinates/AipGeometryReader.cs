@@ -177,12 +177,40 @@ public static class AipGeometryReader
 
     // ---- 1. Il flusso: punti e frasi, con la riga da cui vengono ----
 
-    private abstract record Elemento(int Riga);
+    /// <summary>
+    /// Dove sta un pezzo: la riga (1-based) e la colonna, circa, nella riga. La colonna serve all'estratto delle
+    /// segnalazioni quando il testo è incollato su UNA riga sola (<see cref="Estratto"/>): è contata sulla riga
+    /// già normalizzata, e per un estratto di 120 caratteri basta.
+    /// </summary>
+    private readonly record struct Posto(int Riga, int Colonna);
 
-    private sealed record Punto(int Riga, (double Lat, double Lon) Valore) : Elemento(Riga);
+    private abstract record Elemento(Posto Dove)
+    {
+        public int Riga => Dove.Riga;
+    }
+
+    private sealed record Punto(Posto Dove, (double Lat, double Lon) Valore) : Elemento(Dove);
 
     /// <summary>Le parole fra due punti, già in maiuscolo; <paramref name="RaggioNm"/> se contenevano un raggio.</summary>
-    private sealed record Frase(int Riga, string Testo, double? RaggioNm) : Elemento(Riga);
+    private sealed record Frase(Posto Dove, string Testo, double? RaggioNm) : Elemento(Dove);
+
+    /// <summary>Quanto testo dell'ingresso accompagna una segnalazione.</summary>
+    private const int MaxEstratto = 120;
+
+    /// <summary>
+    /// Il testo della riga da mostrare con una segnalazione. 🔴 Dal vivo (verifica della carta F1, 21 settembre
+    /// 2026): Cagliari CTR incollata su una riga sola dava tre segnalazioni, e ognuna ripeteva l'INTERO
+    /// paragrafo delle tre zone. Oltre <see cref="MaxEstratto"/> caratteri si mostra la finestra attorno al
+    /// pezzo, coi puntini dove si taglia.
+    /// </summary>
+    private static string Estratto(string[] originali, Posto dove)
+    {
+        if (dove.Riga < 1 || dove.Riga > originali.Length) return "";
+        var t = originali[dove.Riga - 1].Trim();
+        if (t.Length <= MaxEstratto) return t;
+        var da = Math.Clamp(dove.Colonna - MaxEstratto / 4, 0, t.Length - MaxEstratto);
+        return (da > 0 ? "…" : "") + t.Substring(da, MaxEstratto).Trim() + (da + MaxEstratto < t.Length ? "…" : "");
+    }
 
     private static (List<Elemento> Elementi, int RigheConPunti) Spezza(string[] originali, List<CoordinateIssue> segnalazioni)
     {
@@ -207,17 +235,17 @@ public static class AipGeometryReader
 
         var elementi = new List<Elemento>();
         var angoli = new List<CoordinateParser.Angolo>();
-        var rigaAngoli = 0;
+        var postoAngoli = default(Posto);
         int? senzaEmisfero = null;
         var parole = new List<string>();
-        var rigaParole = 0;
+        var postoParole = default(Posto);
         double? raggio = null;
         var righeConPunti = new HashSet<int>();
 
         void ChiudiFrase()
         {
             if (parole.Count == 0 && raggio is null) return;
-            elementi.Add(new Frase(rigaParole, string.Join(' ', parole), raggio));
+            elementi.Add(new Frase(postoParole, string.Join(' ', parole), raggio));
             parole.Clear();
             raggio = null;
         }
@@ -225,29 +253,30 @@ public static class AipGeometryReader
         void ChiudiAngoli()
         {
             if (angoli.Count == 0) return;
-            var testoRiga = originali[rigaAngoli - 1].Trim();
+            var testoRiga = Estratto(originali, postoAngoli);
+            var riga = postoAngoli.Riga;
             for (var k = 0; k + 1 < angoli.Count; k += 2)
             {
                 if (!CoordinateParser.ProvaCoppia(angoli[k], angoli[k + 1], out var p, out var avviso))
                 {
-                    segnalazioni.Add(new CoordinateIssue(avviso ?? CoordinateIssueKind.RigaNonLetta, rigaAngoli, testoRiga));
+                    segnalazioni.Add(new CoordinateIssue(avviso ?? CoordinateIssueKind.RigaNonLetta, riga, testoRiga));
                     continue;
                 }
-                if (avviso is { } a) segnalazioni.Add(new CoordinateIssue(a, rigaAngoli, testoRiga));
+                if (avviso is { } a) segnalazioni.Add(new CoordinateIssue(a, riga, testoRiga));
                 ChiudiFrase();
-                elementi.Add(new Punto(rigaAngoli, p));
-                righeConPunti.Add(rigaAngoli);
+                elementi.Add(new Punto(postoAngoli, p));
+                righeConPunti.Add(riga);
             }
             if (angoli.Count % 2 != 0)
-                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.AngoloSpaiato, rigaAngoli, testoRiga));
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.AngoloSpaiato, riga, testoRiga));
             angoli.Clear();
             senzaEmisfero = null;
         }
 
-        void AggiungiParola(string parola, int riga)
+        void AggiungiParola(string parola, Posto dove)
         {
             ChiudiAngoli();
-            if (parole.Count == 0 && raggio is null) rigaParole = riga;
+            if (parole.Count == 0 && raggio is null) postoParole = dove;
             parole.Add(parola);
         }
 
@@ -256,28 +285,33 @@ public static class AipGeometryReader
         // `EUC 60`, il `500` di «line at 500 m from coast». Letti come angoli, saldavano un'area alla precedente
         // senza errore. L'angolo senza emisfero resta SOSPESO per un pezzo, il tempo di vedere se il pezzo dopo
         // è la sua lettera; se no torna parola.
-        (string Testo, int Riga)? sospeso = null;
+        (string Testo, Posto Dove)? sospeso = null;
         void RendiParolaIlSospeso()
         {
             if (sospeso is not { } s) return;
             sospeso = null;
             angoli.RemoveAt(angoli.Count - 1);
             senzaEmisfero = null;
-            AggiungiParola(s.Testo, s.Riga);
+            AggiungiParola(s.Testo, s.Dove);
         }
 
         var righe = intero.Split('\n');
         for (var i = 0; i < righe.Length; i++)
         {
             var riga = CoordinateParser.RiscriviFormeSpezzate(CoordinateParser.NormalizzaSegni(righe[i]));
+            var cursore = 0;
             foreach (var pezzo in riga.Split(Separatori, StringSplitOptions.RemoveEmptyEntries))
             {
+                var colonna = riga.IndexOf(pezzo, cursore, StringComparison.Ordinal);
+                cursore = colonna + pezzo.Length;
+                var dove = new Posto(i + 1, colonna);
+
                 var segnaposto = RxSegnaposto.Match(pezzo);
                 if (segnaposto.Success)
                 {
                     RendiParolaIlSospeso();
                     ChiudiAngoli();
-                    if (parole.Count == 0) rigaParole = i + 1;
+                    if (parole.Count == 0) postoParole = dove;
                     raggio = raggi[int.Parse(segnaposto.Groups["k"].Value, CultureInfo.InvariantCulture)];
                     continue;
                 }
@@ -291,12 +325,12 @@ public static class AipGeometryReader
 
                 if (CoordinateParser.ProvaPezzo(token, angoli, ref senzaEmisfero))
                 {
-                    if (angoli.Count == 1) rigaAngoli = i + 1;
-                    sospeso = senzaEmisfero is null ? null : (token, i + 1);
+                    if (angoli.Count == 1) postoAngoli = dove;
+                    sospeso = senzaEmisfero is null ? null : (token, dove);
                     continue;
                 }
 
-                AggiungiParola(token, i + 1);
+                AggiungiParola(token, dove);
             }
         }
         RendiParolaIlSospeso();
@@ -356,8 +390,8 @@ public static class AipGeometryReader
         var orario = true;
         double? raggio = null;
         (double Lat, double Lon) centro = default;
-        var rigaCentro = 0;
-        var rigaArco = 0;
+        var postoCentro = default(Posto);
+        var postoArco = default(Posto);
         var generati = 0;
         var tettoDetto = false;
 
@@ -386,15 +420,15 @@ public static class AipGeometryReader
         {
             // Senza raggio l'arco si disegna lo stesso: passa per gli estremi, e il raggio serviva solo a
             // controllarli. Ma lo si dice.
-            if (raggio is null) Incompleto(rigaArco, "raggio");
+            if (raggio is null) Incompleto(postoArco, "raggio");
             var arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, densita);
             if (OltreIlTetto(arco.Punti.Count))
                 arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, ArcGeometry.DensitaMinima);
             generati += arco.Punti.Count;
             centri.Add(new CentroAip(centro.Lat, centro.Lon, Cerchio: false));
             if (raggio is not null && arco.RaggioIncoerente)
-                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RaggioIncoerente, rigaCentro,
-                    originali[rigaCentro - 1].Trim(),
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RaggioIncoerente, postoCentro.Riga,
+                    Estratto(originali, postoCentro),
                     arco.ScartoNm.ToString("0.00", CultureInfo.InvariantCulture)));
 
             // Il primo punto dell'arco è l'ultimo vertice, che c'è già; l'ultimo è la fine, che entra come
@@ -411,7 +445,7 @@ public static class AipGeometryReader
                 {
                     case Attesa.CentroDellArco:
                         centro = p.Valore;
-                        rigaCentro = p.Riga;
+                        postoCentro = p.Dove;
                         attesa = Attesa.FineDellArco;
                         continue;
 
@@ -422,15 +456,15 @@ public static class AipGeometryReader
                         attesa = Attesa.Niente;
                         continue;
 
-                    case Attesa.CentroDelCerchio when rigaCentro == 0:
+                    case Attesa.CentroDelCerchio when postoCentro.Riga == 0:
                         centro = p.Valore;
-                        rigaCentro = p.Riga;
+                        postoCentro = p.Dove;
                         if (raggio is { } r) EmettiCerchio(r);
                         continue;
 
                     // Un secondo punto mentre il cerchio aspetta il raggio: il raggio non arriverà più.
                     case Attesa.CentroDelCerchio:
-                        Incompleto(rigaArco, "raggio");
+                        Incompleto(postoArco, "raggio");
                         attesa = Attesa.Niente;
                         break;
                 }
@@ -444,9 +478,9 @@ public static class AipGeometryReader
             // ⚠️ Nulla si scarta in silenzio. Un tratto si dice con la frase intera (le parole attorno a
             // «border» — «Italian northern geographical» — sono il suo nome, non un avanzo da segnalare a parte).
             if (sensi.Contains(Senso.TrattoNonDisegnabile))
-                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.TrattoNonDisegnabile, f.Riga, Originale(f.Riga), f.Testo));
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.TrattoNonDisegnabile, f.Riga, Estratto(originali, f.Dove), f.Testo));
             else if (avanzo.Length > 0)
-                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.FraseNonRiconosciuta, f.Riga, Originale(f.Riga), avanzo));
+                segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.FraseNonRiconosciuta, f.Riga, Estratto(originali, f.Dove), avanzo));
 
             if (f.RaggioNm is { } rf) raggio = rf;
 
@@ -470,19 +504,19 @@ public static class AipGeometryReader
                     continue;
                 case Attesa.FineDellArco:
                 case Attesa.PuntoDiFine:
-                    Incompleto(rigaArco, "fine");
+                    Incompleto(postoArco, "fine");
                     attesa = Attesa.Niente;
                     break;
                 case Attesa.CentroDellArco:
-                    Incompleto(rigaArco, "centro");
+                    Incompleto(postoArco, "centro");
                     attesa = Attesa.Niente;
                     break;
-                case Attesa.CentroDelCerchio when rigaCentro > 0 && f.RaggioNm is { } rc:
+                case Attesa.CentroDelCerchio when postoCentro.Riga > 0 && f.RaggioNm is { } rc:
                     EmettiCerchio(rc);
                     raggioDellaFrase = null;
                     break;
                 case Attesa.CentroDelCerchio:
-                    Incompleto(rigaArco, rigaCentro == 0 ? "centro" : "raggio");
+                    Incompleto(postoArco, postoCentro.Riga == 0 ? "centro" : "raggio");
                     attesa = Attesa.Niente;
                     break;
             }
@@ -492,19 +526,19 @@ public static class AipGeometryReader
                 ChiudiArea(dichiarata: false);
                 attesa = Attesa.CentroDelCerchio;
                 raggio = raggioDellaFrase;
-                rigaCentro = 0;
-                rigaArco = f.Riga;
+                postoCentro = default;
+                postoArco = f.Dove;
                 continue;
             }
 
             if (sensi.Contains(Senso.Arco))
             {
-                rigaArco = f.Riga;
-                if (vertici.Count == 0) { Incompleto(rigaArco, "inizio"); continue; }
+                postoArco = f.Dove;
+                if (vertici.Count == 0) { Incompleto(postoArco, "inizio"); continue; }
                 orario = !sensi.Contains(Senso.Antiorario);
                 raggio = raggioDellaFrase;
                 if (sensi.Contains(Senso.Centro)) attesa = Attesa.CentroDellArco;
-                else Incompleto(rigaArco, "centro");
+                else Incompleto(postoArco, "centro");
                 continue;
             }
 
@@ -514,18 +548,17 @@ public static class AipGeometryReader
         // Il testo finisce mentre un arco o un cerchio aspettava ancora un pezzo.
         switch (attesa)
         {
-            case Attesa.CentroDellArco: Incompleto(rigaArco, "centro"); break;
-            case Attesa.FineDellArco or Attesa.PuntoDiFine: Incompleto(rigaArco, "fine"); break;
-            case Attesa.CentroDelCerchio: Incompleto(rigaArco, rigaCentro == 0 ? "centro" : "raggio"); break;
+            case Attesa.CentroDellArco: Incompleto(postoArco, "centro"); break;
+            case Attesa.FineDellArco or Attesa.PuntoDiFine: Incompleto(postoArco, "fine"); break;
+            case Attesa.CentroDelCerchio: Incompleto(postoArco, postoCentro.Riga == 0 ? "centro" : "raggio"); break;
         }
 
         ChiudiArea(dichiarata: false);
         return aree;
 
-        string Originale(int riga) => riga >= 1 && riga <= originali.Length ? originali[riga - 1].Trim() : "";
 
-        void Incompleto(int riga, string manca) =>
-            segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.ArcoIncompleto, riga, Originale(riga), manca));
+        void Incompleto(Posto dove, string manca) =>
+            segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.ArcoIncompleto, dove.Riga, Estratto(originali, dove), manca));
 
         void EmettiCerchio(double r)
         {
@@ -536,7 +569,7 @@ public static class AipGeometryReader
             aree.Add(new CoordinateArea(null, cerchio, AnelloChiuso: true));
             attesa = Attesa.Niente;
             raggio = null;
-            rigaCentro = 0;
+            postoCentro = default;
         }
     }
 

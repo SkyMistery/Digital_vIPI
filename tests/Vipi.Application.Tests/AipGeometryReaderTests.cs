@@ -406,6 +406,28 @@ public class AipGeometryReaderTests
         Assert.Equal(["ZONA ZONE 1", "ZONA ZONE 2", "ZONA ZONE 3"], esito.Segnalazioni.Select(s => s.Dettaglio));
     }
 
+    /// <summary>
+    /// 🔴 Dal vivo (slice 9): Cagliari incollata su UNA riga dava tre segnalazioni che ripetevano ognuna l'intero
+    /// paragrafo. Ora ognuna porta un estratto corto, attorno alla SUA etichetta.
+    /// </summary>
+    [Fact]
+    public void Su_Una_Riga_Sola_Ogni_Segnalazione_Porta_Il_Suo_Estratto()
+    {
+        var esito = AipGeometryReader.Leggi(
+            "Zona/Zone '1' 39°30'00\"N 008°46'47\"E; 39°31'30\"N 008°59'00\"E; 39°10'00\"N 009°15'00\"E; " +
+            "39°03'00\"N 009°04'10\"E; 39°04'00\"N 008°50'30\"E; to point of origin. Zona/Zone '2' " + CagliariZona2 +
+            " Zona/Zone '3' " + CagliariZona3);
+
+        Assert.Equal(3, esito.Segnalazioni.Count);
+        for (var i = 0; i < 3; i++)
+        {
+            var s = esito.Segnalazioni[i];
+            Assert.InRange(s.Testo.Length, 20, 122);
+            Assert.Contains($"Zone '{i + 1}'", s.Testo);
+        }
+        Assert.StartsWith("…", esito.Segnalazioni[1].Testo);
+    }
+
     [Theory]
     [InlineData("EUC 60 ", "EUC 60")]
     [InlineData("Zona '29' ", "ZONA 29")]

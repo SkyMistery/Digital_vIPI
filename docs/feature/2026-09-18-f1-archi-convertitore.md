@@ -183,14 +183,63 @@ del §1.
 
 ## §9 — Definition of done
 
-- [ ] Slice 0-8 fatte, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
-- [ ] I test del convertitore di prima **verdi senza modifiche** (salvo quello di caratterizzazione, ribaltato
-      di proposito in slice 3 e scritto nel commit).
-- [ ] I 64 archi veri passano dal lettore senza `RaggioIncoerente`; fuori repo, confronto coi contorni di `italy.*`.
-- [ ] **Verificato live** (skill `verifica-live`): l'esempio del committente, Cagliari CTR, il blocco italiano di
-      ENR 2.1.1.1 — con traccia qui sotto.
-- [ ] Nessun dato di vIPI toccato; nessuna migrazione.
+- [x] Slice 0-8 fatte, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
+      In più, chiesta dal committente: **slice 1-bis** (`90ad9c33`), l'emisfero staccato dell'AIP (`24" N`)
+      finiva fra le etichette e dava all'area tipo «N» e nome «E».
+- [x] I test del convertitore di prima **verdi senza modifiche**, salvo quello di caratterizzazione: ribaltato
+      di proposito nella **slice 6** (non la 3: il lettore entra in `Parse` lì), scritto nel commit `8a03af7b`.
+- [x] I 64 archi veri passano dal lettore senza `RaggioIncoerente`; fuori repo, confronto coi contorni di
+      `italy.restrict` (§10.2).
+- [x] **Verificato live** (skill `verifica-live`): l'esempio del committente, Cagliari CTR, il blocco italiano di
+      ENR 2.1.1.1 — traccia qui sotto.
+- [x] Nessun dato di vIPI toccato; nessuna migrazione.
+
+Commit: slice 0 `d45d10e1` · 1 `43ce1f53` · 1-bis `90ad9c33` · 2 `e50e27ac` · 3 `469656fc` · 4 `e3575a8d` ·
+5 `9d030d91` · 6 `8a03af7b` · 7 `51361d0b` · 8 `d37a74c7` · 9 questo.
+
+**Scostamenti dalla carta, decisi strada facendo:**
+- **La guardia** (slice 5) è una regola sola: nel lettore AIP un numero **senza emisfero** è una parola. Nell'AIP
+  ogni coordinata lo dichiara, anche staccato; così `Zona '29'`, `EUC 60` e il `500` di «line at 500 m from
+  coast» non diventano angoli, e nessuna area si salda alla precedente.
+- **Tetto dei punti** (§8): 20 000 per ingresso; oltre, archi e cerchi escono alla densità minima (0,1 pt/°) e
+  `TroppiPunti` si dice una volta. Codice in più rispetto alla tabella del §3.
+- **La riga di conto** dice «Archi convertiti: 2 · cerchi: 1 · punti: 184», non «2 archi e 1 cerchio»: la forma
+  regge l'uno, come le altre righe della pagina.
+- **Crocette dei centri**: una forma grigia sola («Centri»), poligoni a «+» di 0,6 NM di braccio; nessun
+  segnaposto nuovo nel motore della mappa.
+- Bug presi dai test e dal vivo, entrambi nel lettore: una frase che **chiude e apre** («…radius. Circular area
+  centered on») perdeva l'apertura (slice 6); su un testo incollato **in una riga sola** ogni segnalazione
+  ripeteva il paragrafo intero, ora porta un estratto di 120 caratteri attorno al suo pezzo (slice 9).
 
 ## §10 — Verifica live
 
-*(da scrivere a lavoro fatto)*
+### 10.1 La pagina (21 settembre 2026)
+
+vIPI in locale su una copia del `vipi.db` di sviluppo (`VipiAuth__Enabled=false`, sectorfile spento), Edge +
+puppeteer-core; script fuori repo `scratchpad/live/f1-verifica.js`. Interfaccia in inglese (lingua del browser).
+
+| ingresso | esito a schermo |
+|---|---|
+| esempio del committente (§0) | 1 arco, 45 punti, primo punto `N044.51.24.000;E008.14.57.000;` esatto; nessuna segnalazione; campo densità presente; casella dei centri spenta → accesa, la crocetta compare a NO dell'arco |
+| stesso, densità 2 | 89 punti, «round trip exact»; le aree restano accese |
+| Cagliari CTR intera, una riga, con «Zona/Zone 'n'» | 3 chip, 3 aree chiuse (5 · 342 · 112 punti), 3 archi; 3 «Unrecognised words» con estratto della propria zona e dettaglio `ZONA ZONE n` |
+| Milano ENR 2.1.1.1 bilingue alla lettera, col tratto del Po | 1 arco da 5 NM attorno a Linate, 189 punti; 1 «Segment that cannot be drawn» alla riga 35 con la frase |
+| elenco di vertici DMS Aurora, niente AIP | nessun campo densità, nessun conto archi, nessuna casella centri |
+
+Nessun `pageerror`, nessun errore in console, nessun «errore imprevisto» in pagina. Le forme sulla mappa (foto in
+`scratchpad/live/f1-*.png`) sono quelle attese: i tre archi di Cagliari da 17, 25 e 27 NM, l'anello chiuso delle
+zone, la retta provvisoria del Po.
+
+### 10.2 Il confronto col sector (fuori repo)
+
+`scratchpad/prova-archi` (console net10 sul `Vipi.Application` vero):
+- **Tutte le 580 aree** con geometria di ENR 5.1.x e 2.1.1.4.1 (`out2.json` di F0): ognuna una sola area chiusa;
+  come segnalazioni solo i **16 tratti veri** (15 confini di stato, 1 costa); zero frasi non riconosciute.
+  (`MILANO CTA` ha la geometria vuota già nell'estrattore di F0.)
+- **Le 20 aree con archi che hanno una gemella in `italy.restrict`** (`origin/master`), distanza di Hausdorff fra
+  il contorno convertito e i segmenti del sector: **mediana 0,020 NM**, 19 su 20 sotto 0,1 NM.
+- 🔴 **LI R47 (Rieti), 1,72 NM: l'errore è del SECTOR.** Nell'AIP l'arco è da 20 km (10,80 NM); i due estremi
+  stanno a 10,80 e 10,79 NM dal centro, e il convertitore li rispetta. I punti d'arco di `R47` in `italy.restrict`
+  arrivano fino a **12,51 NM** dal centro. Da segnalare agli AOD; il convertitore non si tocca.
+- Senza gemella nel sector (nome diverso o assenti): P52, R167, D40/A-C, D69, TRA424, TRA600/A-C e le Zone di
+  ENR 2.1.1.4.1 — il confronto per nome lì non si fa, e resta a F6.
