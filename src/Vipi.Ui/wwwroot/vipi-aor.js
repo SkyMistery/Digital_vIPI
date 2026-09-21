@@ -18,6 +18,26 @@
     /// Carica Leaflet una sola volta. La promise è memorizzata anche se fallisce: niente tempeste di retry,
     /// e il ripiego SVG resta quello che si vede — che è il comportamento di prima quando la CDN non
     /// rispondeva, salvo che ora i byte sono nostri e il caso non dovrebbe capitare.
+    /// Il foglio di Leaflet, se in pagina non c'è. Si chiede a OGNI giro di initAll, non una volta sola.
+    ///
+    /// 🔴 Il difetto riferito dal campo il 21 settembre 2026 («arrivo su un documento da un'altra pagina e la
+    /// mappa è a pezzi; ricarico ed è a posto»): la navigazione enhanced di Blazor riallinea il <head> a quello
+    /// della pagina nuova e TOGLIE i `link` messi da uno script. `window.L` invece resta — e prima il foglio si
+    /// metteva solo quando `L` mancava. Così dalla seconda pagina con una mappa le tessere uscivano come
+    /// immagini in fila, senza posizioni né poligoni. Stessa classe delle chip 2D/3D nude di §A86.
+    ///
+    /// Sul sito il foglio sta ora nel <head> di App.razor, e qui non si fa niente; questo resta per chi incorpora
+    /// la vIPI con un <head> suo (ivao.it), dove il <head> non lo porta nessuno.
+    function foglioLeaflet() {
+        if (!LEAFLET_CSS) return;
+        if (document.querySelector('link[data-leaflet-css], link[href*="leaflet/leaflet.css"]')) return;
+        var l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = LEAFLET_CSS;
+        l.setAttribute('data-leaflet-css', '');
+        document.head.appendChild(l);
+    }
+
     function caricaLeaflet() {
         if (window.L) return Promise.resolve();
         if (leafletPromise) return leafletPromise;
@@ -25,13 +45,7 @@
             if (!LEAFLET_SRC) { reject(new Error('data-leaflet-src assente sul tag di vipi-aor.js')); return; }
             // Il foglio prima dello script: Leaflet misura il contenitore appena parte, e senza le sue
             // regole quel contenitore ha l'altezza sbagliata.
-            if (LEAFLET_CSS && !document.querySelector('link[data-leaflet-css]')) {
-                var l = document.createElement('link');
-                l.rel = 'stylesheet';
-                l.href = LEAFLET_CSS;
-                l.setAttribute('data-leaflet-css', '');
-                document.head.appendChild(l);
-            }
+            foglioLeaflet();
             var s = document.createElement('script');
             s.src = LEAFLET_SRC;
             s.onload = function () {
@@ -741,7 +755,6 @@
 
     function initAll() {
         // Le chip AoR usano event delegation (onAorClick), nessun wiring per-elemento.
-        if (window.L) { accendiMappe(); if (window.vipiInitMva) window.vipiInitMva(); return; }
         // ⚠️ Si chiede Leaflet solo se in pagina c'è davvero una mappa: questa funzione gira a ogni render
         // di Blazor e a ogni navigazione, cioè anche sulle pagine che una mappa non ce l'hanno.
         //
@@ -749,6 +762,9 @@
         // aspettano `window.L`. Una pagina la cui unica mappa è la carta delle minime (un APP senza shape
         // AoR) restava per sempre col ripiego SVG, e nessun refresh la salvava.
         if (!document.querySelector('.aor-leaflet, .mva-leaflet')) return;
+        // 🔴 PRIMA del ramo `window.L`: dopo una navigazione enhanced `L` c'è ma il foglio no (vedi foglioLeaflet).
+        foglioLeaflet();
+        if (window.L) { accendiMappe(); if (window.vipiInitMva) window.vipiInitMva(); return; }
         caricaLeaflet().then(function () {
             accendiMappe();
             if (window.vipiInitMva) window.vipiInitMva();

@@ -2,6 +2,22 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### ✅ A99 — Mappe a pezzi arrivando da un'altra pagina (21 settembre 2026) — in main, NON in pacchetto
+
+Segnalato dal campo con foto (editor LIBB, produzione 1.38.0): arrivando su un documento da un'altra pagina le
+mappe uscivano a pezzi, con le tessere in fila e senza poligoni; col ricarico tornavano a posto. **Causa**: la
+navigazione enhanced di Blazor riallinea il `<head>` a quello della pagina nuova e **toglie** il `link` a
+`leaflet.css` che `vipi-aor.js` aveva aggiunto. `window.L` invece resta, e il foglio si rimetteva solo quando `L`
+mancava. È la stessa classe di difetto delle chip 2D/3D nude di §A86.
+- `leaflet.css` ora sta nel `<head>` di `App.razor` per tutte le pagine (~3 KB compressi, in cache). Leaflet.js
+  resta pigro.
+- `vipi-aor.js` rimette il foglio a ogni `initAll` che trova una mappa, prima del ramo `window.L`: serve a chi
+  incorpora la vIPI con un `<head>` suo.
+- **Prova dal vivo** con `mappa-foglio-verifica.js` (pagina → documento → pagina → documento): sul codice di
+  PRIMA 0 fogli e **126/126 tessere fuori posto**, cioè la foto; col rimedio 8/8 sulla vIPI e 8/8 sull'editor.
+  `lazy-verifica.js` è ancora a posto: guida e hub non scaricano i moduli delle mappe.
+- Nella diagnostica di produzione non c'è traccia di questo difetto, e non può esserci: è tutto nel browser.
+
 ### ✅ A98 — MIL/FSS fuori dalle configurazioni; MIL verdi, FSS petrolio (21 settembre 2026) — in main, NON in pacchetto
 
 Chiesto dal committente (la «cosa da correggere» di §A97, più i colori).

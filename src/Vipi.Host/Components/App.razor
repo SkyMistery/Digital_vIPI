@@ -18,6 +18,13 @@
          da dentro vipi-fonts.css, quindi non passano da @@Assets: restano serviti col nome originale. -->
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-fonts.css")" />
     <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vipi-theme.css")" />
+    @* 🔴 Il foglio di Leaflet sta qui, per TUTTE le pagine, dal 21 settembre 2026. Prima lo metteva vipi-aor.js
+       alla prima mappa, ma la navigazione enhanced riallinea il <head> a quello della pagina nuova e toglie i
+       `link` aggiunti da uno script: arrivando su un documento da un'altra pagina le mappe uscivano a pezzi
+       (tessere in fila, niente poligoni) fino al ricarico. Un foglio che il server scrive nel <head> di ogni
+       pagina non lo toglie nessuno. Costa ~3 KB compressi, in cache dopo la prima volta. Leaflet.js invece
+       resta pigro: uno script caricato non si perde con la navigazione. *@
+    <link rel="stylesheet" href="@AssetVersion.Url("_content/Vipi.Ui/vendor/leaflet/leaflet.css")" />
     @* Il foglio del visualizzatore 3D è uscito da qui il 12 settembre 2026: erano 807 byte compressi su
        OGNI schermata — ricerca, elenchi, guida, login — per servire il solo stage 3D. Ora lo porta con sé
        `vipi-aor3d.js`, che a sua volta arriva solo dove c'è uno stage (`data-aor3d-css` su vipi-boot.js).
