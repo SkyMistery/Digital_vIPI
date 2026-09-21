@@ -1083,7 +1083,7 @@ copie pubbliche.
   Nessuna migrazione.
 - 🔴 **Da dire agli AOD**: `R47` (Rieti) in `italy.restrict` ha l'arco disegnato fino a 12,51 NM dal centro,
   l'AIP dice 20 km = 10,80 NM (carta F1 §10.2). Più le candidate del confronto F0-bis già elencate sotto.
-- ▶ **Prossimo: discutere col committente i metadati e tag `//@`** (quali, in quali file) — PRIMA della carta di F2.
+- ✅ **21-set: tag e metadati `//@` decisi** (carta madre §8.2): aggancio col nome, verità dell'initial climb nel sector, prima ondata solo `.sid`/`.str`, conversione graduale. ▶ **Prossimo: la carta di F2.**
 
 - ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.
 - ✅ §8 chiuso: metadati e tag `//@` (quali e dove: da discutere prima di F2), `.vrt`/`.hold` in F2, Leaflet canvas,

@@ -232,9 +232,29 @@ col sectorfile che già gira.
    fra il Lab (scrive) e vIPI (legge).
 2. ✅ **Tag di apertura e chiusura di ogni pezzo: SÌ** (committente, 18-set: aiutano i siti e l'app a trovare i
    confini di ogni oggetto). Non i `//Start`/`//End` di A, ma **dentro il namespace `//@`**, come le direttive
-   strutturali di B (`//@<NOME>` · `//@START` · `//@END [<NOME>]`, `CONVENZIONE_SETTORI.md`). ▶ **Quali tag e
-   metadati, e in quali file: da discutere insieme, prima della carta di F2.** Vincolo: opt-in per file (un file
-   senza tag si legge come oggi) e ogni tag cambia solo le righe dove compare.
+   strutturali di B (`//@<NOME>` · `//@START` · `//@END [<NOME>]`, `CONVENZIONE_SETTORI.md`). Vincolo: opt-in
+   per file (un file senza tag si legge come oggi) e ogni tag cambia solo le righe dove compare.
+
+   ✅ **Quali tag, dove e come (committente, 21-set)** — base per la carta di F2:
+   - **Stato di fatto misurato**: su `origin/master` le righe `//@` sono **zero**; gli AOD usano commenti liberi
+     (`////////////`, «Poligono sen…», «***Twys***»). vIPI ha già due problemi che i metadati chiudono: i nomi SID
+     **troncati** a 6 caratteri (`BANA6W` = BANAV → tabella `ISidFixAliasRepository`) e l'**initial climb**, che
+     il formato non ha e vive solo nel DB di vIPI (`InitialClimbByApp`).
+   - **Aggancio col NOME del record**: `//@BANA6W fix=BANAV initialclimb=5000`, una riga per record con più chiavi,
+     subito sopra la riga dati. Se il record sotto non ha quel nome, il validatore lo segnala: niente metadati
+     che si attaccano in silenzio al vicino quando un AOD cancella una riga a mano. (Diverso da B, che scrive una
+     chiave nuda per riga.)
+   - **Verità dell'initial climb: il SECTOR.** Il valore vive nel `//@`, vIPI lo legge all'import come le SID;
+     dove c'è, in vIPI il campo è di sola lettura, con un rimando al Lab.
+   - **Prima ondata: solo `.sid` e `.str`** (149 file): tag di blocco per procedura (`//@NOME` · `//@START` ·
+     `//@END NOME`) + `@fix` + `@initialclimb`, e a livello di file `@source=AIRAC<ciclo>`. **Fuori** per ora: i
+     settori (`.tfl`/`.hartcc`/`.lartcc`), `.vrt`/`.hold` (restano in F2 come funzione, **senza** tag) e i file a
+     terra (`.geo`/`.pol`).
+   - **Conversione GRADUALE**: il Lab scrive i tag solo sui pezzi che un AOD tocca; nessun commit di massa.
+     ⚠️ Conseguenza da reggere in F2: per mesi convivono SID con e senza tag. Dove il `//@` c'è comanda il
+     sector; dove manca vale ciò che vIPI ha oggi, e la tabella degli alias dei fix resta finché serve. Toccando
+     una SID senza tag, il Lab **propone** i valori che vIPI conosce già (initial climb, fix intero), così quel
+     che è stato curato finora non si perde.
 3. ✅ `.vrt` e `.hold`: **in F2, subito**.
 4. ✅ **Stesso repo di vIPI** (committente, 18-set): chi manutiene vIPI manutiene anche il Lab, oggi e in futuro —
    non ci sarà chi cura uno solo dei due. Progetti nuovi accanto al Bridge, motori in `Vipi.Application` /
