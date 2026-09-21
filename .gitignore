@@ -500,3 +500,6 @@ src/Vipi.Host/r.html
 
 # Copie di sicurezza del DB di sviluppo (vipi.db.bak-...): restano in locale, non nel repo.
 vipi.db.bak-*
+
+# Gli screenshot delle prove vive sono esiti di una corsa, non sorgenti: ogni corsa ne riscrive uno.
+.claude/skills/verifica-live/*.png
