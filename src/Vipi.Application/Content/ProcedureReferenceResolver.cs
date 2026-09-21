@@ -41,6 +41,15 @@ public interface IProcedureReferenceResolver
     Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default);
 
     /// <summary>
+    /// I nomi di oggi di tabelle date, senza passare da un testo: i punti dei trasferimenti (21 settembre 2026).
+    /// Tabelle VIVE, come la bozza: la frase di un accordo si congela nella release che la pubblica.
+    /// <para>Il corpo di ripiego («nessun nome») serve ai finti dei test, che guardano il testo e non i
+    /// trasferimenti: con lui un punto esce come è scritto, cioè il comportamento di prima.</para>
+    /// </summary>
+    Task<NomiProcedura> PerTabelleAsync(IReadOnlySet<(ProcedureKind Kind, string Icao)> tabelle,
+        CancellationToken ct = default) => Task.FromResult(NomiProcedura.Vuoto);
+
+    /// <summary>
     /// Le procedure di un verso che si possono citare di uno scalo, per il selettore dell'editor: una voce per
     /// NOME (una procedura su due piste è una voce sola, con le piste accanto), dalla tabella viva — quella che
     /// la bozza mostra.
@@ -80,6 +89,21 @@ public sealed class ProcedureReferenceResolver : IProcedureReferenceResolver
 
     public Task<NomiProcedura> PerTestiAsync(IEnumerable<string?> testi, CancellationToken ct = default) =>
         RisolviAsync(testi, pubblica: false, null, null, null, ct);
+
+    public async Task<NomiProcedura> PerTabelleAsync(IReadOnlySet<(ProcedureKind Kind, string Icao)> tabelle,
+        CancellationToken ct = default)
+    {
+        if (tabelle.Count == 0) return NomiProcedura.Vuoto;
+        var viste = new Dictionary<(ProcedureKind Kind, string Icao), AirportSidView>();
+        // In fila: i servizi condividono il DbContext dello scope (vedi RisolviAsync).
+        foreach (var (kind, icao) in tabelle)
+        {
+            var scalo = RiferimentiProcedura.Norm(icao);
+            if (scalo.Length != 4) continue;
+            viste[(kind, scalo)] = await _sids.DeriveAsync(scalo, kind, null, ct);
+        }
+        return new NomiProcedura(viste);
+    }
 
     public async Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao,
         ProcedureKind kind = ProcedureKind.Sid, CancellationToken ct = default)

@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 
 namespace Vipi.Application.Content;
 
@@ -25,7 +26,9 @@ namespace Vipi.Application.Content;
 /// </summary>
 public static partial class ProceduraNeiPunti
 {
-    [GeneratedRegex(@"^[A-Z]{2,5} ?[0-9][A-Z]$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    // Fino a SETTE lettere come il pezzo di `RiferimentiProcedura` (`SALENTO5A`): un fix ne ha al più cinque e
+    // nessuna cifra, quindi allargare non prende nessun punto per una procedura.
+    [GeneratedRegex(@"^[A-Z]{2,7} ?[0-9][A-Z]$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex Forma();
 
     /// <summary>Il singolo punto è il nome di una SID o di una STAR.</summary>
@@ -47,6 +50,67 @@ public static partial class ProceduraNeiPunti
         // riparte da «passando», come fa il form quando apre la faccetta.
         return k == f.Kind ? f : f with { Kind = k, LevelConstraint = LevelConstraint.Exact };
     }
+
+    // ---- Il nome di OGGI (21 settembre 2026, chiesto dal committente) ----
+    //
+    // Una SID o una STAR in un trasferimento segue l'archivio come nelle tabelle degli aeroporti e nelle
+    // citazioni: scritta «BANA9A» esce «BANAV 9A»; rinominata la procedura in BANA1A, esce «BANAV 1A» senza
+    // toccare la clausola. Il meccanismo è quello delle citazioni (`NomiProcedura`: radice del nome, il nome
+    // scritto vince se è ancora vivo) — non una seconda regola.
+    // ⚠️ Nel database resta quel che è stato scritto: come il riferimento nel testo, è l'ultimo nome visto, e
+    // una procedura che non si trova più esce così com'è.
+
+    /// <summary>In quale verso si cerca una procedura: gli arrivi arrivano per STAR, le partenze partono per SID;
+    /// gli altri flussi non lo dicono, e si prova prima la SID poi la STAR.</summary>
+    public static IReadOnlyList<ProcedureKind> Versi(TransferFlowKind kind) => kind switch
+    {
+        TransferFlowKind.Arrival => new[] { ProcedureKind.Star },
+        TransferFlowKind.Departure => new[] { ProcedureKind.Sid },
+        _ => new[] { ProcedureKind.Sid, ProcedureKind.Star },
+    };
+
+    /// <summary>Le tabelle da leggere per gli accordi dati: una per verso e scalo, solo dove una clausola scrive
+    /// una procedura. La via breve è la regola: quasi nessun accordo ne ha, e allora non si legge niente.</summary>
+    public static IReadOnlySet<(ProcedureKind Kind, string Icao)> TabelleCitate(IEnumerable<AgreementRow> accordi)
+    {
+        var tabelle = new HashSet<(ProcedureKind, string)>();
+        foreach (var s in accordi.SelectMany(a => a.Sections))
+        {
+            if (s.Airports.Count == 0 || !s.Clauses.Any(c => Contiene(c.Cops))) continue;
+            foreach (var apt in s.Airports)
+                foreach (var verso in Versi(s.Kind))
+                    tabelle.Add((verso, RiferimentiProcedura.Norm(apt.Icao)));
+        }
+        return tabelle;
+    }
+
+    /// <summary>I punti con ogni procedura scritta col suo nome di oggi, cercata negli scali della sezione nel
+    /// verso del flusso. Un punto che non è una procedura, o che non si trova, resta com'è.</summary>
+    public static string Risolvi(string? punti, IEnumerable<string> scali, TransferFlowKind kind, NomiProcedura nomi)
+    {
+        if (!Contiene(punti)) return punti ?? "";
+        var elenco = scali.ToList();
+        return CopList.Format(CopList.Parse(punti).Select(p =>
+        {
+            if (!E(p)) return p;
+            foreach (var verso in Versi(kind))
+                foreach (var icao in elenco)
+                    if (nomi.NomeDelPunto(verso, icao, p) is { } oggi) return oggi;
+            return p;
+        }));
+    }
+
+    /// <summary>Gli accordi con i nomi di oggi nei punti. Stesse istanze dove non cambia niente.</summary>
+    public static IReadOnlyList<AgreementRow> ConNomiDiOggi(IReadOnlyList<AgreementRow> accordi, NomiProcedura nomi) =>
+        accordi.Select(a => !a.Sections.Any(s => s.Clauses.Any(c => Contiene(c.Cops))) ? a : a with
+        {
+            Sections = a.Sections.Select(s => s.Airports.Count == 0 || !s.Clauses.Any(c => Contiene(c.Cops)) ? s : s with
+            {
+                Clauses = s.Clauses.Select(c => Contiene(c.Cops)
+                    ? c with { Cops = Risolvi(c.Cops, s.Airports.OrderBy(x => x.Order).Select(x => x.Icao), s.Kind, nomi) }
+                    : c).ToList(),
+            }).ToList(),
+        }).ToList();
 
     /// <summary>L'input di salvataggio con il luogo che vale davvero: nel database va il dato già giusto.</summary>
     public static AgreementClauseInput Normalizza(AgreementClauseInput i)

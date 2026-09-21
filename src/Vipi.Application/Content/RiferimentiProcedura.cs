@@ -179,6 +179,10 @@ public sealed class NomiProcedura
     private readonly Dictionary<(ProcedureKind Kind, string Icao, string Radice), SortedSet<string>> _ambigue = new();
     // Ogni nome vivo, esatto → come si scrive. Serve a preferire il nome CITATO quando è ancora vivo.
     private readonly Dictionary<(ProcedureKind Kind, string Icao, string Codice), string> _perCodice = new();
+    // Il nome ESTESO (`BANAV 9A`) → la radice del codice (`BANA?A`), per chi lo scrive per esteso a mano: i punti
+    // dei trasferimenti (21 settembre 2026). Il riferimento nel testo porta sempre il codice e non ne ha bisogno.
+    private readonly Dictionary<(ProcedureKind Kind, string Icao, string Esteso), string> _perEsteso = new();
+    private readonly Dictionary<(ProcedureKind Kind, string Icao, string RadiceEstesa), string> _radiceEstesa = new();
 
     public static NomiProcedura Vuoto { get; } =
         new(new Dictionary<(ProcedureKind, string), AirportSidView>());
@@ -196,6 +200,8 @@ public sealed class NomiProcedura
                 var chiave = (kind, scalo, RiferimentiProcedura.Radice(nome));
                 var voce = (nome, RiferimentiProcedura.NomeEsteso(riga.Fix, nome));
                 _perCodice.TryAdd((kind, scalo, nome), voce.Item2);
+                _perEsteso.TryAdd((kind, scalo, voce.Item2), voce.Item2);
+                _radiceEstesa.TryAdd((kind, scalo, RiferimentiProcedura.Radice(Compatto(voce.Item2))), chiave.Item3);
                 if (!_nomi.TryGetValue(chiave, out var gia)) { _nomi[chiave] = voce; continue; }
                 if (gia.Codice == nome) continue;
 
@@ -236,6 +242,26 @@ public sealed class NomiProcedura
             ? esteso
             : Nome(kind, icao, RiferimentiProcedura.Radice(codice));
     }
+
+    /// <summary>
+    /// Il nome di oggi di una procedura scritta A MANO come punto di un trasferimento, nella forma d'archivio
+    /// (<c>BANA9A</c>) o per esteso (<c>BANAV 9A</c>). Stessa scelta di <see cref="NomePer"/>: il nome scritto se è
+    /// ancora vivo, altrimenti quello di oggi della sua radice. <c>null</c> = lo scalo non ce l'ha in quel verso.
+    /// </summary>
+    public string? NomeDelPunto(ProcedureKind kind, string icao, string punto)
+    {
+        var scalo = RiferimentiProcedura.Norm(icao);
+        var n = RiferimentiProcedura.Norm(punto);
+        if (_perEsteso.TryGetValue((kind, scalo, n), out var vivo)) return vivo;
+        if (NomePer(kind, scalo, n) is { } daCodice) return daCodice;
+        // «BANAV 1A» scritto a mano quando in archivio c'è BANA9A: la radice del nome esteso porta a quella del codice.
+        return _radiceEstesa.TryGetValue((kind, scalo, RiferimentiProcedura.Radice(Compatto(n))), out var radice)
+            ? Nome(kind, scalo, radice)
+            : null;
+    }
+
+    /// <summary>Il nome senza spazi: <c>BANAV 9A</c> → <c>BANAV9A</c>, così la radice si calcola come sul codice.</summary>
+    private static string Compatto(string nome) => nome.Replace(" ", "", StringComparison.Ordinal);
 
     /// <summary>Vero se per quella radice, in quel verso, lo scalo ha più di un nome vivo.</summary>
     public bool Ambigua(ProcedureKind kind, string icao, string radice) =>

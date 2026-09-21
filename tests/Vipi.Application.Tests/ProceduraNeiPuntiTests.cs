@@ -1,5 +1,6 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
+using Vipi.Domain.Entities;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -95,6 +96,76 @@ public class ProceduraNeiPuntiTests
     public void Con_un_fix_la_frase_resta_quella_breve()
     {
         Assert.EndsWith("a livello 120 o livello inferiore su MAREL.", Frase("MAREL"));
+    }
+
+    // ---- il nome di oggi: come nelle tabelle e nelle citazioni ----
+
+    private static AirportSidRowView Riga(string nome, string fix) => new("07", fix, nome, "—", "—", "—", "—", "—", "—");
+
+    private static NomiProcedura Archivio(ProcedureKind kind, string icao, params (string Nome, string Fix)[] righe) =>
+        new(new Dictionary<(ProcedureKind, string), AirportSidView>
+        {
+            [(kind, icao)] = new(righe.Select(r => Riga(r.Nome, r.Fix)).ToList()),
+        });
+
+    [Theory]
+    [InlineData("BANA9A")]      // il codice d'archivio
+    [InlineData("BANAV 9A")]    // il nome per esteso, scritto a mano o dal suggerimento
+    [InlineData("bana9a")]
+    public void Una_STAR_scritta_esce_col_nome_per_esteso(string scritto)
+    {
+        var nomi = Archivio(ProcedureKind.Star, "LIBD", ("BANA9A", "BANAV"));
+        Assert.Equal("BANAV 9A", ProceduraNeiPunti.Risolvi(scritto, new[] { "LIBD" }, TransferFlowKind.Arrival, nomi));
+    }
+
+    [Theory]
+    [InlineData("BANA9A")]
+    [InlineData("BANAV 9A")]
+    public void Rinominata_nell_archivio_la_procedura_segue_senza_toccare_la_clausola(string scritto)
+    {
+        // Il nuovo ciclo porta BANA1A al posto di BANA9A: stessa radice, la clausola non si riscrive.
+        var nomi = Archivio(ProcedureKind.Star, "LIBD", ("BANA1A", "BANAV"));
+        Assert.Equal("BANAV 1A", ProceduraNeiPunti.Risolvi(scritto, new[] { "LIBD" }, TransferFlowKind.Arrival, nomi));
+    }
+
+    [Fact]
+    public void Il_verso_conta_e_i_fix_restano_come_sono()
+    {
+        var sid = Archivio(ProcedureKind.Sid, "LIBD", ("BANA9A", "BANAV"));
+        // Un arrivo cerca fra le STAR: una SID omonima non è sua.
+        Assert.Equal("BANA9A, MAREL", ProceduraNeiPunti.Risolvi("BANA9A, MAREL", new[] { "LIBD" }, TransferFlowKind.Arrival, sid));
+        Assert.Equal("BANAV 9A, MAREL", ProceduraNeiPunti.Risolvi("BANA9A, MAREL", new[] { "LIBD" }, TransferFlowKind.Departure, sid));
+    }
+
+    [Fact]
+    public void Una_procedura_sparita_resta_l_ultimo_nome_scritto()
+    {
+        var nomi = Archivio(ProcedureKind.Star, "LIBD", ("DIVK8A", "DIVKU"));
+        Assert.Equal("BANAV 9A", ProceduraNeiPunti.Risolvi("BANAV 9A", new[] { "LIBD" }, TransferFlowKind.Arrival, nomi));
+    }
+
+    [Fact]
+    public void Gli_accordi_escono_coi_nomi_di_oggi_e_le_tabelle_sono_solo_quelle_citate()
+    {
+        var clausola = new AgreementClauseRow { Id = 1, SectionId = 1, Order = 1, Cops = "BANA9A", LevelUnit = LevelUnit.Fl, LevelConstraint = LevelConstraint.AtOrBelow };
+        var fix = clausola with { Id = 2, Order = 2, Cops = "MAREL" };
+        AgreementSectionRow Sezione(int id, TransferFlowKind kind, AgreementClauseRow c) => new()
+        {
+            Id = id, Kind = kind, Direction = AgreementDirection.AtoB, Order = id,
+            Airports = new[] { new AgreementAirportRow("LIBD", null, 1) }, Clauses = new[] { c },
+        };
+        var accordo = new AgreementRow
+        {
+            Id = 1, OwnerAccCode = "LIBB", Order = 1, SideA = new(1, "LIBB_ES_CTR"), SideB = new(2, "LIBD_CS0_APP"),
+            Sections = new[] { Sezione(1, TransferFlowKind.Arrival, clausola), Sezione(2, TransferFlowKind.Departure, fix) },
+        };
+
+        // Solo la sezione con una procedura chiede una tabella, e nel suo verso.
+        Assert.Equal(new[] { (ProcedureKind.Star, "LIBD") }, ProceduraNeiPunti.TabelleCitate(new[] { accordo }));
+
+        var oggi = ProceduraNeiPunti.ConNomiDiOggi(new[] { accordo }, Archivio(ProcedureKind.Star, "LIBD", ("BANA1A", "BANAV")));
+        Assert.Equal("BANAV 1A", oggi[0].Sections[0].Clauses[0].Cops);
+        Assert.Same(accordo.Sections[1], oggi[0].Sections[1]);   // niente da risolvere: stessa istanza
     }
 
     [Fact]

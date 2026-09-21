@@ -23,8 +23,10 @@ public sealed class AgreementService : IAgreementService
     /// produzione li inietta il contenitore; nei test che la ricaduta non la guardano non si montano.
     /// </param>
     public AgreementService(IAgreementRepository repo, IEditAuthorizationService authz, ITopologyProvider topology,
-        IResourceLockService locks, ISectorVolumeCatalog? volumi = null, ICopPositions? punti = null)
+        IResourceLockService locks, ISectorVolumeCatalog? volumi = null, ICopPositions? punti = null,
+        IProcedureReferenceResolver? procedure = null)
     {
+        _procedure = procedure;
         _repo = repo;
         _authz = authz;
         _locks = locks;
@@ -34,6 +36,10 @@ public sealed class AgreementService : IAgreementService
     }
 
     private readonly IResourceLockService _locks;
+
+    /// <summary>Chi dà il nome di oggi alle SID/STAR scritte fra i punti. Null (i test di prima) = i punti escono
+    /// come sono scritti.</summary>
+    private readonly IProcedureReferenceResolver? _procedure;
 
     /// <summary>
     /// La porta di ogni scrittura degli accordi: ruolo <b>e lock della struttura</b> (T-025, revisione del 13
@@ -47,11 +53,23 @@ public sealed class AgreementService : IAgreementService
         await _locks.EnsureHeldAsync(ResourceLockKeys.Structure, ct);
     }
 
-    public Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string accCode, CancellationToken ct = default) =>
-        _repo.ListByAccAsync(accCode, ct);
+    // 🔴 Le DUE porte di lettura passano dai nomi di oggi (21 settembre 2026): la prima serve all'editor (form,
+    // tabelle, anteprima), la seconda a vIPI ACC, APP, vLOA e ponte. Una SID/STAR scritta fra i punti esce col nome
+    // che ha oggi nell'archivio, come nelle tabelle degli aeroporti e nelle citazioni (ProceduraNeiPunti).
+    public async Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string accCode, CancellationToken ct = default) =>
+        await ConNomiDiOggiAsync(await _repo.ListByAccAsync(accCode, ct), ct);
 
     public async Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string accCode, CancellationToken ct = default) =>
-        AgreementExpansion.Expand(await _repo.ListByAccAsync(accCode, ct));
+        AgreementExpansion.Expand(await ListByAccAsync(accCode, ct));
+
+    private async Task<IReadOnlyList<AgreementRow>> ConNomiDiOggiAsync(IReadOnlyList<AgreementRow> accordi, CancellationToken ct)
+    {
+        if (_procedure is null) return accordi;
+        var tabelle = ProceduraNeiPunti.TabelleCitate(accordi);
+        // La via breve, ed è quella di quasi ogni ACC: nessuna procedura fra i punti, nessuna tabella da derivare.
+        if (tabelle.Count == 0) return accordi;
+        return ProceduraNeiPunti.ConNomiDiOggi(accordi, await _procedure.PerTabelleAsync(tabelle, ct));
+    }
 
     public async Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
         string accCode, IReadOnlySet<string> online, CancellationToken ct = default)
