@@ -92,7 +92,7 @@ public class AccDocumentAssemblerTests
         Assert.Empty(aerovia.Block.Regulated.ExtraIds);
         // Ordine del documento, poi le sezioni-catalogo mancanti accodate al loro posto (doc 11 §3b).
         Assert.Equal(
-            new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique", "frequencies", "minima", "coordination", "validity" },
+            new[] { "separations", "configurations", "aor", "regulated", "vfr", "operationaltechnique", "frequencies", "minima", "coordination", "aor-mil", "aor-fss", "validity" },
             aerovia.Block.Sections.Select(s => s.Key).ToArray());
         Assert.Equal(12, aerovia.ChildSectionIdsByKey["configurations"]);
         Assert.Equal(14, aerovia.ChildSectionIdsByKey["regulated"]);

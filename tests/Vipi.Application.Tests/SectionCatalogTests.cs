@@ -90,8 +90,8 @@ public class SectionCatalogTests
             Host(SectionProfile.App));
         Assert.False(SectionCatalog.IsHostRendered(SectionProfile.App, "vfr"));
         Assert.Equal(
-            new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
-            Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR
+            new[] { "aor", "aor-fss", "aor-mil", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity" },
+            Host(SectionProfile.AccAerovia));   // l'Aerovia non ha il VFR, e ha le AoR militare e FSS (21-set)
         Assert.Equal(
             new[] { "aor", "configurations", "coordination", "frequencies", "minima", "regulated", "separations", "validity", "vfr" },
             Host(SectionProfile.AccAppBlock));

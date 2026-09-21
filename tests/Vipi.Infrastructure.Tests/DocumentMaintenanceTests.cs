@@ -346,6 +346,38 @@ public class DocumentMaintenanceTests : IAsyncLifetime
         Assert.Equal(0, await _maintenance.AddMissingCatalogSectionsAsync());
     }
 
+    /// <summary>
+    /// Le AoR dei settori militari e FSS (21 settembre 2026) arrivano anche nelle vIPI di ACC già nate: nel blocco
+    /// Aerovia, il militare prima delle aree regolamentate e il FSS dopo; il blocco APP non si tocca.
+    /// </summary>
+    [Fact]
+    public async Task Una_vipi_di_ACC_riceve_le_AoR_militare_e_FSS_nel_blocco_Aerovia()
+    {
+        var ver = await SeedVersionAsync();
+        var aerovia = Section(ver, SectionKeys.AccBloccoAerovia, 1);
+        var gruppo = Section(ver, "grp:1", 2);
+        _db.DocumentSections.AddRange(aerovia, gruppo);
+        await _db.SaveChangesAsync();
+        var vecchie = SectionCatalog.For(SectionProfile.AccAerovia).OrderBy(d => d.Order)
+            .Where(d => d.Key is not (SectionKeys.AorMil or SectionKeys.AorFss)).Select(d => d.Key).ToList();
+        var n = 1;
+        foreach (var key in vecchie) _db.DocumentSections.Add(Child(ver, aerovia, key, key, n++));
+        // Il blocco APP ha già un'AoR e le regolamentate: se la presenza si contasse sulla versione, l'Aerovia
+        // sembrerebbe a posto anche senza le sue.
+        _db.DocumentSections.AddRange(Child(ver, gruppo, "aor", "aor", 1), Child(ver, gruppo, "regulated", "regulated", 2));
+        await _db.SaveChangesAsync();
+
+        Assert.Equal(2, await _maintenance.AddMissingCatalogSectionsAsync());
+
+        var figlie = _db.DocumentSections.Where(x => x.ParentSectionId == aerovia.Id).OrderBy(x => x.Order)
+            .Select(x => x.SectionKey).ToList();
+        Assert.Equal(SectionCatalog.For(SectionProfile.AccAerovia).OrderBy(d => d.Order).Select(d => d.Key), figlie);
+        Assert.True(figlie.IndexOf(SectionKeys.AorMil) < figlie.IndexOf("regulated"));
+        Assert.True(figlie.IndexOf(SectionKeys.AorFss) > figlie.IndexOf("regulated"));
+        Assert.Equal(2, _db.DocumentSections.Count(x => x.ParentSectionId == gruppo.Id));
+        Assert.Equal(0, await _maintenance.AddMissingCatalogSectionsAsync());
+    }
+
     [Fact]
     public async Task Free_sections_are_left_where_they_are()
     {

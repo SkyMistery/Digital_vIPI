@@ -8,6 +8,7 @@
    che stava dentro la scheda.
    Blocchi propri solo per «validity» (il testo scritto a mano sotto il timbro): per le altre strutturate il
    blocco porta il payload. *@
+@inject IStringLocalizer<SharedResource> L
 @if (IsStructured(Key) && Editorial is not null)
 {
     <SectionBody Section="Editorial" ShowBlocks="@(Key == "validity")" Scheda="Scheda" DepthOffset="-1" IsDraft="IsDraft" />
@@ -40,6 +41,10 @@ else if (Editorial is not null)
                 @* @key include l'albero: al cambio root l'elemento mappa è ricreato e il JS Leaflet re-inizializza. *@
                 <AccAor @key="@(Block.Key + ":" + Root)" View="Aor ?? AccAorView.Empty" Id="@Block.Key" />
                 break;
+            @* Le AoR dei settori militari e FSS (21 settembre 2026): la stessa mappa, coi soli settori della famiglia.
+               ⚠️ Id propri: il JS lega chip e mappa per Id, e due mappe col Id del blocco si pesterebbero. *@
+            case SectionKeys.AorMil: @AorDiFamiglia(AorMil, "mil") break;
+            case SectionKeys.AorFss: @AorDiFamiglia(AorFss, "fss") break;
             case "frequencies": <AppFrequencies Rows="Freqs ?? Array.Empty<AppFreqRow>()" /> break;
             @* Una mappa per file .mva: @key sull'albero come per l'AoR, così al cambio root il JS re-inizializza. *@
             case "minima": <MinimaSection @key="@(Block.Key + ":minima:" + Root)" View="Minima ?? MinimaView.Empty" Aor="Aor" /> break;
@@ -97,6 +102,28 @@ else if (Editorial is not null)
     [Parameter] public IReadOnlyList<AppFreqRow>? Freqs { get; set; }
     [Parameter] public AccCoordination? Coord { get; set; }
     [Parameter] public AccAorView? Aor { get; set; }
+
+    /// <summary>L'AoR dei settori militari del blocco (sezione <see cref="SectionKeys.AorMil"/>).</summary>
+    [Parameter] public AccAorView? AorMil { get; set; }
+
+    /// <summary>L'AoR dei settori FSS del blocco (sezione <see cref="SectionKeys.AorFss"/>).</summary>
+    [Parameter] public AccAorView? AorFss { get; set; }
+
+    /// <summary>
+    /// La mappa di una famiglia, o una riga che dice che non c'è niente da disegnare. ⚠️ Vuota non vuol dire
+    /// guasto: un ACC estero può non avere un settore militare, e una sezione muta si legge come «non ha caricato».
+    /// </summary>
+    private RenderFragment AorDiFamiglia(AccAorView? view, string famiglia) => __builder =>
+    {
+        if (view is { Sectors.Count: > 0 })
+        {
+            <AccAor @key="@(Block.Key + ":" + famiglia + ":" + Root)" View="view" Id="@(Block.Key + "-" + famiglia)" />
+        }
+        else
+        {
+            <p class="muted">@L[famiglia == "mil" ? "AccAor_NoMil" : "AccAor_NoFss"]</p>
+        }
+    };
     [Parameter] public IReadOnlyList<AccSpecialAreaView>? Areas { get; set; }
     [Parameter] public MinimaView? Minima { get; set; }
     [Parameter] public IReadOnlyList<AccConfigTableView>? ConfigTables { get; set; }

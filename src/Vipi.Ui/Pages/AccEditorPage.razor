@@ -347,6 +347,9 @@ else
     private readonly Dictionary<int, List<AppFreqRow>> _freqs = new();
     private readonly Dictionary<int, AccCoordination> _coord = new();
     private readonly Dictionary<int, AccAorView> _aors = new();
+    // Le AoR dei settori militari e FSS del blocco Aerovia, nelle loro sezioni (21 settembre 2026).
+    private readonly Dictionary<int, AccAorView> _aorsMil = new();
+    private readonly Dictionary<int, AccAorView> _aorsFss = new();
     private readonly Dictionary<int, MinimaView> _minima = new();
     private readonly Dictionary<int, IReadOnlyList<AccConfigTableView>> _configTables = new();
 
@@ -425,7 +428,7 @@ else
             if (_shell.Doc is null || _model is null) { _denied = true; return; }
             _shell.IsEditing = _shell.IsEditing && _shell.Doc.IsEditable;
 
-            _freqs.Clear(); _coord.Clear(); _aors.Clear(); _configTables.Clear(); _minima.Clear();
+            _freqs.Clear(); _coord.Clear(); _aors.Clear(); _aorsMil.Clear(); _aorsFss.Clear(); _configTables.Clear(); _minima.Clear();
             foreach (var b in _model.Blocks) await RefreshBlockDerived(b);
         }
         catch (EditNotAllowedException) { _denied = true; }
@@ -436,6 +439,8 @@ else
         _freqs[b.BlockSectionId] = (await Profile.DeriveFrequenciesAsync(Acc, b.Block, _root)).ToList();
         _coord[b.BlockSectionId] = await Profile.DeriveCoordinationAsync(Acc, b.Block, _root);
         _aors[b.BlockSectionId] = await Profile.DeriveAorViewAsync(Acc, b.Block, _root);
+        _aorsMil[b.BlockSectionId] = await Profile.DeriveAorViewAsync(Acc, b.Block, FamigliaAor.Mil, _root);
+        _aorsFss[b.BlockSectionId] = await Profile.DeriveAorViewAsync(Acc, b.Block, FamigliaAor.Fss, _root);
         _minima[b.BlockSectionId] = await Profile.DeriveMinimaAsync(Acc, b.Block, _root);
         _configTables[b.BlockSectionId] = await Profile.DeriveConfigTableAsync(Acc, b.Block, _root);
     }
@@ -708,6 +713,14 @@ else
                 break;
             case "vfr":
                 <AppVfr Content="ParseVfr(blk.Block.VfrJson)" Editing="_shell.IsEditing" ContentChanged="c => SaveVfr(blk, c)" />
+                break;
+            @* Le AoR dei settori militari e FSS (21 settembre 2026): sola lettura anche in modifica, come la carta
+               delle MRVA — i settori sono quelli del catalogo, e le scelte (forme extra, colori) si fanno sull'AoR
+               principale. Stessa resa della pagina pubblica: il corpo è AccSectionBody, non una seconda copia. *@
+            case SectionKeys.AorMil:
+            case SectionKeys.AorFss:
+                <AccSectionBody Block="blk.Block" Key="@section.SectionKey" Root="@_root"
+                                AorMil="_aorsMil.GetValueOrDefault(bsId)" AorFss="_aorsFss.GetValueOrDefault(bsId)" />
                 break;
             case "minima":
                 @* Sola lettura anche in modifica: la carta viene dal sectorfile, non si scrive da qui. Ciò che

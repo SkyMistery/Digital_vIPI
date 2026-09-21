@@ -43,4 +43,8 @@ public sealed record AccDerivedSections(
     IReadOnlyDictionary<string, IReadOnlyList<AppFreqRow>> Freqs,
     IReadOnlyDictionary<string, AccCoordination> Coord,
     IReadOnlyDictionary<string, AccAorView> Aor,
-    IReadOnlyDictionary<string, MinimaView> Minima);
+    IReadOnlyDictionary<string, MinimaView> Minima,
+    // Le AoR dei settori militari e FSS del blocco Aerovia (21 settembre 2026). Facoltative in costruzione, così
+    // chi assembla una vista parziale non le deve inventare: assenti = nessuna mappa, mai un'eccezione.
+    IReadOnlyDictionary<string, AccAorView>? AorMil = null,
+    IReadOnlyDictionary<string, AccAorView>? AorFss = null);

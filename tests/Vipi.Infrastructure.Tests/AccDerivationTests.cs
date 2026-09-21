@@ -234,6 +234,62 @@ public class AccProfileTests : IAsyncLifetime
         Assert.Single(view.Sectors, s => s.Callsign == "LIRR_NE_CTR");   // no duplicati per l'extra già presente
     }
 
+    /// <summary>
+    /// Militari e FSS hanno la LORO sezione (21 settembre 2026): l'AoR in cima al documento non li disegna più,
+    /// e ciascuna delle due sezioni disegna solo i suoi — anche quando una configurazione li apre.
+    /// </summary>
+    [Fact]
+    public async Task AorView_Aerovia_smista_militari_e_fss_nelle_loro_sezioni()
+    {
+        var accId = (await _db.Accs.FirstAsync(a => a.Code == Acc)).Id;
+        _db.Sectors.AddRange(Ctr(accId, "LIRR_MIL_CTR"), Ctr(accId, "LIRR_FSS"));
+        _db.AccSectors.AddRange(
+            AcSec("LIRR_MIL_CTR", "[[10.0,40.0],[14.0,40.0],[14.0,44.0],[10.0,44.0]]"),
+            AcSec("LIRR_FSS", "[[10.0,40.0],[14.0,40.0],[14.0,44.0],[10.0,44.0]]"));
+        await _db.SaveChangesAsync();
+
+        var senzaConfig = new AccBlock { Key = "aerovia", Kind = AccBlockKind.Aerovia };
+        var conConfig = new AccBlock
+        {
+            Key = "aerovia", Kind = AccBlockKind.Aerovia,
+            Configurations =
+            {
+                new AccConfiguration { Key = "c1", Name = "Tutti",
+                    Open = { new AccConfigOpen { Callsign = "LIRR_NE_CTR" }, new AccConfigOpen { Callsign = "LIRR_MIL_CTR" },
+                             new AccConfigOpen { Callsign = "LIRR_FSS" } } },
+            },
+        };
+
+        foreach (var block in new[] { senzaConfig, conConfig })
+        {
+            var ordinaria = await _service.DeriveAorViewAsync(Acc, block);
+            Assert.Contains(ordinaria.Sectors, s => s.Callsign == "LIRR_NE_CTR");
+            Assert.DoesNotContain(ordinaria.Sectors, s => s.Callsign is "LIRR_MIL_CTR" or "LIRR_FSS");
+            Assert.All(ordinaria.Configs, c => Assert.DoesNotContain(c.OpenCallsigns, cs => cs is "LIRR_MIL_CTR" or "LIRR_FSS"));
+
+            var mil = await _service.DeriveAorViewAsync(Acc, block, FamigliaAor.Mil);
+            Assert.Equal(new[] { "LIRR_MIL_CTR" }, mil.Sectors.Select(s => s.Callsign));
+
+            var fss = await _service.DeriveAorViewAsync(Acc, block, FamigliaAor.Fss);
+            Assert.Equal(new[] { "LIRR_FSS" }, fss.Sectors.Select(s => s.Callsign));
+        }
+    }
+
+    [Fact]
+    public async Task AorView_blocco_APP_non_si_smista()
+    {
+        // In un gruppo-APP un «MIL» nel callsign è un APP militare dell'aeroporto: resta nella sua AoR.
+        var block = new AccBlock { Key = "grp:1", Kind = AccBlockKind.AppGroup, MemberCallsigns = { "LIRP_APP" } };
+        Assert.Empty((await _service.DeriveAorViewAsync(Acc, block, FamigliaAor.Mil)).Sectors);
+        Assert.Empty((await _service.DeriveAorViewAsync(Acc, block, FamigliaAor.Fss)).Sectors);
+    }
+
+    private static Sector Ctr(int accId, string callsign) => new()
+    {
+        Callsign = callsign, Name = callsign, AccId = accId, Type = SectorType.Ctr,
+        Kind = SectorKind.Acc, CoverageOrder = 90, IsActive = true,
+    };
+
     [Fact]
     public async Task DeriveAorView_Colors_Default_By_Type_And_Honor_Override()
     {

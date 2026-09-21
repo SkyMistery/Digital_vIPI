@@ -37,6 +37,22 @@ public static class SectionKeys
     /// <summary>Sezione padre dei coordinamenti (il corpo lo produce la pagina, non i blocchi).</summary>
     public const string Coordination = "coordination";
 
+    // ---- vIPI di ACC: le AoR dei settori militari e FSS (21 settembre 2026) ----
+    // ⚠️ Chiavi proprie e non «mil»/«fss»: il catalogo decide la natura di una sezione per CHIAVE e per tutti i
+    // profili insieme (`SectionCatalog.KindOf`), e una chiave corta rischia di incontrare quella di un altro
+    // documento. Il prefisso «aor-» dice anche che cosa c'è dentro.
+
+    /// <summary>La chiave del blocco Aerovia di una vIPI di ACC: la sezione di primo livello che contiene le altre.
+    /// ⚠️ Altrove nel codice compare ancora scritta a mano (<c>AccDocumentService</c>, <c>AccDocumentAssembler</c>);
+    /// è la stessa stringa.</summary>
+    public const string AccBloccoAerovia = "aerovia";
+
+    /// <summary>L'AoR dei settori militari del blocco Aerovia (<see cref="FamigliaAor.Mil"/>).</summary>
+    public const string AorMil = "aor-mil";
+
+    /// <summary>L'AoR dei settori FSS del blocco Aerovia (<see cref="FamigliaAor.Fss"/>).</summary>
+    public const string AorFss = "aor-fss";
+
     /// <summary>Direzione Home → vicino.</summary>
     public const string CoordinationOut = "coordination:out";
 

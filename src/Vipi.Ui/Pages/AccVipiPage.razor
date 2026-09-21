@@ -107,6 +107,8 @@ else
                                                 Freqs="_freqs.GetValueOrDefault(block.Key)"
                                                 Coord="_coord.GetValueOrDefault(block.Key)"
                                                 Aor="_aors.GetValueOrDefault(block.Key)"
+                                                AorMil="_aorsMil.GetValueOrDefault(block.Key)"
+                                                AorFss="_aorsFss.GetValueOrDefault(block.Key)"
                                                 Areas="_areas.GetValueOrDefault(block.Key)"
                                                 Minima="_minima.GetValueOrDefault(block.Key)"
                                                 ConfigTables="_configTables.GetValueOrDefault(block.Key)" />
@@ -191,6 +193,9 @@ else
     private readonly Dictionary<string, List<AppFreqRow>> _freqs = new();
     private readonly Dictionary<string, AccCoordination> _coord = new();
     private readonly Dictionary<string, AccAorView> _aors = new();
+    // Le AoR dei settori militari e FSS del blocco Aerovia, nelle loro sezioni (21 settembre 2026).
+    private readonly Dictionary<string, AccAorView> _aorsMil = new();
+    private readonly Dictionary<string, AccAorView> _aorsFss = new();
     private readonly Dictionary<string, MinimaView> _minima = new();
     private readonly Dictionary<string, IReadOnlyList<AccSpecialAreaView>> _areas = new();
     private readonly Dictionary<string, IReadOnlyList<AccConfigTableView>> _configTables = new();
@@ -249,7 +254,7 @@ else
         var lettore = LinguaDelDocumento.Prepara(Lingua, _bloccato, _lingua, Vipi.Domain.Language.It);
         _bloccata = _bloccato ? lettore : null;
 
-        _freqs.Clear(); _coord.Clear(); _aors.Clear(); _areas.Clear(); _configTables.Clear();
+        _freqs.Clear(); _coord.Clear(); _aors.Clear(); _aorsMil.Clear(); _aorsFss.Clear(); _areas.Clear(); _configTables.Clear();
         if (_blocks is not null)
         {
             // freq/coord/aor risolti dal service (frozen se pubblica + release effettiva, sennò live); aree/config-table
@@ -260,6 +265,8 @@ else
                 _freqs[b.Key] = derived.Freqs.GetValueOrDefault(b.Key)?.ToList() ?? new();
                 _coord[b.Key] = derived.Coord.GetValueOrDefault(b.Key) ?? AccCoordination.Empty;
                 _aors[b.Key] = derived.Aor.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
+                _aorsMil[b.Key] = derived.AorMil?.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
+                _aorsFss[b.Key] = derived.AorFss?.GetValueOrDefault(b.Key) ?? AccAorView.Empty;
                 _minima[b.Key] = derived.Minima.GetValueOrDefault(b.Key) ?? MinimaView.Empty;
                 _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);
@@ -273,6 +280,8 @@ else
                 _freqs[b.Key] = (await Profile.DeriveFrequenciesAsync(Acc, b, _root)).ToList();
                 _coord[b.Key] = await Profile.DeriveCoordinationAsync(Acc, b, _root);
                 _aors[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, _root);
+                _aorsMil[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, FamigliaAor.Mil, _root);
+                _aorsFss[b.Key] = await Profile.DeriveAorViewAsync(Acc, b, FamigliaAor.Fss, _root);
                 _minima[b.Key] = await Profile.DeriveMinimaAsync(Acc, b, _root);
                 _areas[b.Key] = await Profile.GetAttachedSpecialAreasAsync(Acc, b);
                 _configTables[b.Key] = await Profile.DeriveConfigTableAsync(Acc, b, _root);

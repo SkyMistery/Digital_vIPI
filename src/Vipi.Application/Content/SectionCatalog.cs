@@ -21,6 +21,9 @@ public static class SectionCatalog
         new Dictionary<string, SectionKind>(StringComparer.OrdinalIgnoreCase)
         {
             ["aor"] = SectionKind.Derived,
+            // vIPI di ACC (21 settembre 2026): le AoR dei settori militari e FSS, tolte da quella principale.
+            [SectionKeys.AorMil] = SectionKind.Derived,
+            [SectionKeys.AorFss] = SectionKind.Derived,
             ["frequencies"] = SectionKind.Derived,
             ["coordination"] = SectionKind.Derived,
             ["sids"] = SectionKind.Derived,   // aeroporto (doc 10 §3e): SID derivata a view-time, non più cotta
@@ -257,9 +260,16 @@ public static class SectionCatalog
                 H("frequencies", "Frequenze", 4, en: "Frequencies"),
                 H("minima", "MRVA", 5),
                 H("coordination", "Coordinamenti", 7, en: "Coordination"),
-                H("regulated", "Aree regolamentate", 8, en: "Regulated areas"),
-                D("operationaltechnique", "Procedure generali", 9, en: "General procedures"),
-                HB("validity", "Validità e revisione", 10, en: "Validity and revision"),
+                // 🔴 21 settembre 2026, chiesto dal committente: i settori MIL e FSS dell'ACC escono dall'AoR in
+                // cima e hanno ognuno la sua sezione — il MIL PRIMA delle aree regolamentate, l'FSS DOPO. L'ordine
+                // qui decide anche dove la riconciliazione d'avvio li infila nelle vIPI già scritte: prima della
+                // prima sorella con un ordine più alto (`AddMissingCatalogSectionsAsync`). Per questo i numeri
+                // dopo «coordination» sono stati spostati, e non affiancati con un decimale che l'intero non ha.
+                H(SectionKeys.AorMil, "Settori militari", 8, en: "Military sectors"),
+                H("regulated", "Aree regolamentate", 9, en: "Regulated areas"),
+                H(SectionKeys.AorFss, "Settori FSS", 10, en: "FSS sectors"),
+                D("operationaltechnique", "Procedure generali", 11, en: "General procedures"),
+                HB("validity", "Validità e revisione", 12, en: "Validity and revision"),
             },
             [SectionProfile.AccAppBlock] = new[]
             {

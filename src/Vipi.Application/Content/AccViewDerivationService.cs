@@ -49,9 +49,19 @@ internal sealed class AccViewDerivationService : IAccViewDerivationService
         var coord = new Dictionary<string, AccCoordination>(StringComparer.OrdinalIgnoreCase);
         var aor = new Dictionary<string, AccAorView>(StringComparer.OrdinalIgnoreCase);
         var minima = new Dictionary<string, MinimaView>(StringComparer.OrdinalIgnoreCase);
+        var aorMil = new Dictionary<string, AccAorView>(StringComparer.OrdinalIgnoreCase);
+        var aorFss = new Dictionary<string, AccAorView>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var ab in blocks)
         {
+            // ⚠️ Solo dove la sezione C'È: un documento pubblicato prima del 21 settembre 2026 non ha le due sezioni
+            // nel suo snapshot, e derivarle live comunque le farebbe comparire senza essere mai state pubblicate.
+            if (ab.ChildSectionIdsByKey.ContainsKey(SectionKeys.AorMil))
+                aorMil[ab.Block.Key] = Congelata<AccAorView>(ab, SectionKeys.AorMil)
+                    ?? await _deriv.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Mil, root, ct);
+            if (ab.ChildSectionIdsByKey.ContainsKey(SectionKeys.AorFss))
+                aorFss[ab.Block.Key] = Congelata<AccAorView>(ab, SectionKeys.AorFss)
+                    ?? await _deriv.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Fss, root, ct);
             freqs[ab.Block.Key] = Congelata<List<AppFreqRow>>(ab, "frequencies")
                 ?? (await _deriv.DeriveFrequenciesAsync(accCode, ab.Block, root, ct)).ToList();
             // ⚠️ Solo la PROSA guarda la lingua: freq, aor e minime restano congelate comunque, perche' sono
@@ -63,7 +73,7 @@ internal sealed class AccViewDerivationService : IAccViewDerivationService
             minima[ab.Block.Key] = Congelata<MinimaView>(ab, "minima")
                 ?? await _deriv.DeriveMinimaAsync(accCode, ab.Block, root, ct);
         }
-        return new AccDerivedSections(freqs, coord, aor, minima);
+        return new AccDerivedSections(freqs, coord, aor, minima, aorMil, aorFss);
 
         // Frozen della sotto-sezione, keyato per Id (== RawSection.Id catturato); null se non catturata (Live/assente).
         T? Congelata<T>(AccAssembledBlock ab, string key) where T : class =>

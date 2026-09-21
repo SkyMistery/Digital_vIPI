@@ -176,6 +176,8 @@
   <data name="Common_None" xml:space="preserve"><value>Nessuno</value></data>
   <data name="Aor_View2d" xml:space="preserve"><value>Mappa 2D</value></data>
   <data name="Aor_View3d" xml:space="preserve"><value>Vista 3D</value></data>
+  <data name="AccAor_NoMil" xml:space="preserve"><value>Nessun settore militare in questo ACC.</value></data>
+  <data name="AccAor_NoFss" xml:space="preserve"><value>Nessun settore FSS in questo ACC.</value></data>
   <data name="Aor_ConfigLabel" xml:space="preserve"><value>Configurazione:</value></data>
   <data name="Aor_Clear" xml:space="preserve"><value>azzera</value></data>
   <data name="Aor_MapHint" xml:space="preserve"><value>Accendi/spegni i settori sopra la mappa; scegli una configurazione sotto per applicarne l'assetto.</value></data>

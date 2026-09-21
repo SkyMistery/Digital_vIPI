@@ -1012,11 +1012,11 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Spostato il VFR sotto «Gestione del traffico» in {Count} vIPI di APP non remotizzato.", traffico);
 
-        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari già creati (doc 13 §3d).
+        // Sezioni fisse del catalogo assenti dai documenti APP/vLOA/aeroporto/militari e dai blocchi Aerovia delle vIPI ACC già creati (doc 13 §3d).
         var catalog = maintenance.AddMissingCatalogSectionsAsync().GetAwaiter().GetResult();
         if (catalog > 0 && log is not null)
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
-                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari.", catalog);
+                log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari e ai blocchi Aerovia delle vIPI ACC.", catalog);
 
         // QRA/Scramble fuori dai vSOP militari (indice del SOD, 6 settembre 2026). ⚠️ DOPO
         // AddMissingCatalogSections: quel passo misura la presenza per CHIAVE su tutta la versione, e con la

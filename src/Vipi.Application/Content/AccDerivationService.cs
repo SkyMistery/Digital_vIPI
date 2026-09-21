@@ -45,6 +45,14 @@ public interface IAccDerivationService
     /// <summary>Vista AoR del blocco: anelli per-settore (toggleabili) + configurazioni selezionabili. Una sola mappa.</summary>
     Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
 
+    /// <summary>
+    /// L'AoR di una <see cref="FamigliaAor"/> del blocco: <see cref="FamigliaAor.Ordinaria"/> è quella in cima al
+    /// documento, SENZA i settori militari e FSS; le altre due sono le loro sezioni. Vedi <see cref="AccFamigliaAorRegola"/>.
+    /// <para>⚠️ Lo smistamento vale per il solo blocco Aerovia: in un blocco APP la famiglia ordinaria è l'AoR di
+    /// sempre e le altre due sono vuote.</para>
+    /// </summary>
+    Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, FamigliaAor famiglia, string? rootCallsign = null, CancellationToken ct = default);
+
     /// <summary>Carte MRVA del blocco, dal sectorfile: Aerovia → l'enroute dell'ACC; gruppo-APP → una carta per
     /// aeroporto membro che abbia il file. Vuota se la sorgente non è configurata o nessun membro ha il file.</summary>
     Task<MinimaView> DeriveMinimaAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default);
@@ -188,18 +196,43 @@ public sealed class AccDerivationService : IAccDerivationService
             CoordinationSentenceTemplate.For(_lingua?.Corrente, _sentence.Current));
     }
 
-    public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default)
+    public Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, string? rootCallsign = null, CancellationToken ct = default) =>
+        DeriveAorViewAsync(accCode, block, FamigliaAor.Ordinaria, rootCallsign, ct);
+
+    public async Task<AccAorView> DeriveAorViewAsync(string accCode, AccBlock block, FamigliaAor famiglia, string? rootCallsign = null, CancellationToken ct = default)
     {
         accCode = Norm(accCode);
 
-        // Configurazioni selezionabili (RowIndices riempite in #2 dalla tabella config).
-        var configs = block.Configurations.Count > 0
-            ? block.Configurations.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.ToList())).ToList()
-            : new List<AccConfigSelection> { new("all", "Tutti i settori", (await MembersOfAsync(accCode, block, rootCallsign, ct)).ToList()) };
+        // 🔴 Lo smistamento per famiglia vale SOLO sul blocco Aerovia (vedi AccFamigliaAorRegola): nei blocchi APP
+        // `LIEE_MIL_APP` è un APP come gli altri, e toglierlo dalla loro mappa sarebbe un errore.
+        var smista = block.Kind == AccBlockKind.Aerovia;
+        if (!smista && famiglia != FamigliaAor.Ordinaria) return AccAorView.Empty;
+        bool DiQuesta(string cs) => !smista || AccFamigliaAorRegola.Di(cs) == famiglia;
 
-        // Union dei settori referenziati; fallback ai membri del blocco.
-        var callsigns = configs.SelectMany(c => c.OpenCallsigns).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-        if (callsigns.Count == 0) callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).ToList();
+        List<AccConfigSelection> configs;
+        List<string> callsigns;
+        if (famiglia == FamigliaAor.Ordinaria)
+        {
+            // Configurazioni selezionabili (RowIndices riempite in #2 dalla tabella config). ⚠️ I settori MIL e FSS
+            // escono anche dalle configurazioni: una chip che accende un settore che la mappa non disegna non
+            // accenderebbe niente, e il lettore penserebbe a un guasto.
+            configs = block.Configurations.Count > 0
+                ? block.Configurations.Select(c => new AccConfigSelection(c.Key, c.Name, c.OpenCallsigns.Where(DiQuesta).ToList())).ToList()
+                : new List<AccConfigSelection> { new("all", "Tutti i settori", (await MembersOfAsync(accCode, block, rootCallsign, ct)).Where(DiQuesta).ToList()) };
+
+            // Union dei settori referenziati; fallback ai membri del blocco.
+            callsigns = configs.SelectMany(c => c.OpenCallsigns).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (callsigns.Count == 0) callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).Where(DiQuesta).ToList();
+        }
+        else
+        {
+            // Le sezioni MIL e FSS non hanno configurazioni: sono uno o due settori, e un selettore per accenderli
+            // sarebbe un gesto che non serve a nessuno. I settori sono quelli della famiglia fra i membri del blocco.
+            configs = new List<AccConfigSelection>();
+            callsigns = (await MembersOfAsync(accCode, block, rootCallsign, ct)).Where(DiQuesta)
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            if (callsigns.Count == 0) return AccAorView.Empty;
+        }
 
         var names = await NameMapAsync(accCode, ct);
 
@@ -221,7 +254,9 @@ public sealed class AccDerivationService : IAccDerivationService
 
         // Shape extra scelte a mano (settori DB, anche esteri): appese come anelli toggleabili dopo i settori
         // principali, dedup su quanto già presente. Nome = da NameMap se noto, altrimenti il callsign.
-        if (block.ExtraAorCallsigns.Count > 0)
+        // ⚠️ Solo sull'AoR principale: le shape extra si scelgono dalla sua sezione nell'editor, e comparire anche
+        // sotto «Settori militari» vorrebbe dire la stessa area in due mappe per una scelta fatta in una.
+        if (famiglia == FamigliaAor.Ordinaria && block.ExtraAorCallsigns.Count > 0)
         {
             // Le shape extra passano dalla STESSA porta: se una di quelle è agganciata, si disegna la forma
             // agganciata anche lì — altrimenti la stessa area direbbe due cose in due punti della pagina.

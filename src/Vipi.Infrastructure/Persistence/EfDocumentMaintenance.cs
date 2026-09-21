@@ -384,9 +384,10 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
 
     public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
     {
-        // APP standalone, vLOA, AEROPORTI (carta 2026-08-26) e vSOP MILITARI (3 settembre 2026). Resta fuori la
-        // sola vIPI ACC, che ha le sezioni sotto i BLOCCHI: lì la rete a view-time dell'assembler continua a
-        // coprirla, e serve anche agli snapshot di release vecchi, che non si riscrivono.
+        // APP standalone, vLOA, AEROPORTI (carta 2026-08-26) e vSOP MILITARI (3 settembre 2026). La vIPI ACC, che
+        // ha le sezioni sotto i BLOCCHI, ha il suo passo in coda (21 settembre 2026): la rete a view-time
+        // dell'assembler le ACCODA, e una sezione accodata sta nel posto sbagliato. Quella rete resta per gli
+        // snapshot di release vecchi, che non si riscrivono.
         var airportDocIds = await _db.Airports.Where(a => a.DocumentId != null)
             .Select(a => a.DocumentId!.Value).ToListAsync(ct);
         var milDocIds = await _db.Airports.Where(a => a.MilDocumentId != null)
@@ -401,8 +402,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                         || d.Sectors.Any(x => x.IsPrimary && x.Type == SectorType.App
                                               && x.ApproachKind == ApproachKind.Standalone))
             .ToListAsync(ct);
-        if (docs.Count == 0) return 0;
-
+        // ⚠️ Niente ritorno anticipato a elenco vuoto: il passo delle vIPI ACC, in coda, sta FUORI da questo
+        // elenco, e un database con le sole vIPI ACC lo avrebbe saltato. L'ha visto il test, non il sito.
         var added = 0;
         foreach (var doc in docs)
         {
@@ -437,7 +438,57 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 version, profile, genitore: null, SectionCatalog.For(profile), tutte, present, lingua);
         }
 
+        added += await AggiungiMancantiNelleVipiAccAsync(ct);
+
         if (added > 0) await _db.SaveChangesAsync(ct);
+        return added;
+    }
+
+    /// <summary>
+    /// Le vIPI di ACC, che questo passo non guardava affatto fino al 21 settembre 2026: le sezioni di catalogo
+    /// aggiunte dopo la loro nascita non ci arrivavano mai. Se n'è accorti aggiungendo le AoR dei settori militari e
+    /// FSS (<see cref="SectionKeys.AorMil"/>, <see cref="SectionKeys.AorFss"/>): senza questo ramo sarebbero comparse
+    /// solo nelle vIPI di ACC nate da quel giorno — cioè in nessuna delle quattro che esistono.
+    ///
+    /// <para>⚠️ Il gruppo è il BLOCCO Aerovia, non il documento: una vIPI di ACC ha al primo livello i suoi blocchi
+    /// (<c>aerovia</c>, <c>grp:…</c>) e le sezioni di catalogo sono loro figlie.</para>
+    ///
+    /// <para>🔴 La presenza si misura fra le figlie DEL BLOCCO, non nella versione intera: <c>aor</c>,
+    /// <c>frequencies</c> e le altre compaiono una volta per blocco, e contandole a livello di versione una sezione
+    /// mancante nell'Aerovia risulterebbe «presente» perché c'è in un blocco APP.</para>
+    ///
+    /// <para>Solo il blocco Aerovia: i blocchi APP hanno il loro profilo, e le due sezioni nuove lì non esistono.</para>
+    /// </summary>
+    private async Task<int> AggiungiMancantiNelleVipiAccAsync(CancellationToken ct)
+    {
+        var docIds = await (
+            from s in _db.DocumentSections
+            join v in _db.DocumentVersions on s.DocumentVersionId equals v.Id
+            where s.ParentSectionId == null && s.SectionKey == SectionKeys.AccBloccoAerovia
+            select v.DocumentId).Distinct().ToListAsync(ct);
+
+        var added = 0;
+        foreach (var docId in docIds)
+        {
+            var version = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
+            if (version is null) continue;
+
+            var tutte = await _db.DocumentSections.Where(x => x.DocumentVersionId == version.Id)
+                .OrderBy(x => x.Order).ToListAsync(ct);
+            // L'ultima versione, e non una qualunque che avesse il blocco: la storia non si ritocca.
+            var blocco = tutte.FirstOrDefault(x => x.ParentSectionId is null
+                && string.Equals(x.SectionKey, SectionKeys.AccBloccoAerovia, StringComparison.OrdinalIgnoreCase));
+            if (blocco is null) continue;
+
+            var present = tutte.Where(x => x.ParentSectionId == blocco.Id).Select(x => x.SectionKey)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var lingua = await _db.Documents.Where(d => d.Id == docId)
+                .Select(d => d.Language).FirstOrDefaultAsync(ct) == Vipi.Domain.Language.En ? "en" : "it";
+
+            added += AggiungiMancantiNelGruppo(version, SectionProfile.AccAerovia, blocco,
+                SectionCatalog.For(SectionProfile.AccAerovia), tutte, present, lingua);
+        }
         return added;
     }
 

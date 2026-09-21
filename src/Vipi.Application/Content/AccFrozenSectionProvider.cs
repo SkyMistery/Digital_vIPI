@@ -28,12 +28,16 @@ internal sealed class AccFrozenSectionProvider : IFrozenSectionProvider
 
         foreach (var ab in AccDocumentAssembler.Assemble(doc))
         {
-            foreach (var secKey in new[] { "aor", "frequencies", "coordination", "minima" })
+            // ⚠️ Le AoR dei settori MIL e FSS (21 settembre 2026) si congelano come quella principale: sono geometrie,
+            // e un documento pubblicato che le mostrasse vive direbbe «oggi» accanto a una AoR che dice «allora».
+            foreach (var secKey in new[] { "aor", SectionKeys.AorMil, SectionKeys.AorFss, "frequencies", "coordination", "minima" })
             {
                 if (!ab.ChildSectionIdsByKey.TryGetValue(secKey, out var sid) || !frozenIds.Contains(sid)) continue;
                 object vm = secKey switch
                 {
                     "aor" => await _acc.DeriveAorViewAsync(accCode, ab.Block, root, ct),
+                    SectionKeys.AorMil => await _acc.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Mil, root, ct),
+                    SectionKeys.AorFss => await _acc.DeriveAorViewAsync(accCode, ab.Block, FamigliaAor.Fss, root, ct),
                     "frequencies" => await _acc.DeriveFrequenciesAsync(accCode, ab.Block, root, ct),
                     "minima" => await _acc.DeriveMinimaAsync(accCode, ab.Block, root, ct),
                     _ => await _acc.DeriveCoordinationAsync(accCode, ab.Block, root, ct),
