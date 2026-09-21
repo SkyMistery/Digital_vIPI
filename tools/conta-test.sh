@@ -12,7 +12,7 @@
 # Uso:
 #   dotnet test Vipi.slnx ... | tee corsa.log
 #   tools/conta-test.sh corsa.log                 # confronta con tests/conteggi-attesi.txt
-#   tools/conta-test.sh corsa.log --tfm net8.0    # solo quel TFM: per il job che gira la sola produzione
+#   tools/conta-test.sh corsa.log --tfm net8.0    # solo quel TFM: per il job che gira il solo ramo embedding
 #   tools/conta-test.sh corsa.log --scrivi        # RISCRIVE l'atteso (dopo aver aggiunto dei test)
 #
 # ATTENZIONE: `--tfm` si DICHIARA, non si deduce dal log. Dedurlo vorrebbe dire che una corsa in cui il
@@ -69,7 +69,7 @@ SALITI=0
 while read -r assieme tfm atteso; do
   case "$assieme" in \#*|"") continue;; esac
 
-  # Il job che gira la sola produzione esegue i soli assiemi net8.0: le attese sugli altri TFM non
+  # Il job del ramo embedding (net8, dal 13-set non piu' la produzione) esegue i soli assiemi net8.0: le attese sugli altri TFM non
   # riguardano quella corsa, e vanno saltate DICENDOLO.
   if [ "$MODO" = "--tfm" ] && [ "$tfm" != "$TFM_SOLO" ]; then
     echo "salto   $assieme ($tfm): questa corsa e' limitata a $TFM_SOLO"

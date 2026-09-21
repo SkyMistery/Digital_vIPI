@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <!-- net8.0 come Vipi.Host: questo attrezzo gira DENTRO il publish di quel progetto, e farlo girare su
-         un runtime che sulla macchina di chi pubblica potrebbe non esserci sarebbe un modo nuovo di far
-         fallire il pacchetto. -->
+    <!-- net8.0 anche con Vipi.Host su net10 (L13): questo attrezzo gira DENTRO il publish di quel progetto
+         come processo a se' (`dotnet run`), quindi il suo TFM non segue quello dell'host. Chi pubblica ha
+         comunque il runtime 8: serve ai test multi-target. -->
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
