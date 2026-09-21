@@ -2,6 +2,37 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 📦 A113 — pacchetto 1.42.0 PRONTO: Aurora Sector Lab F1, i testi AIP nel convertitore (21 settembre 2026, notte)
+
+MINOR, **nessuna migrazione**, su 1.41.1 (`bd668a7`). Timbro **`1.42.0 · c1aaf4b`**. **7 file**: `Vipi.Application`,
+`Vipi.Ui` e `Vipi.Host` (dll + pdb) e `en/Vipi.Ui.resources.dll`; niente `wwwroot`, `endpoints.json` fuori.
+Zip `vipi-1.42.0-solo-file-cambiati.zip` `38c7b79f…a159c`, foglio
+[`LEGGIMI-PACCHETTO-1.42.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.42.0.md). 1.41.1 ruotata in
+`publish_old/20260921i`. Provato sul pacchetto win-x64 (copia del DB di sviluppo): `pacchetto-verifica.js`
+**10/10** e i quattro casi di F1 come dal sorgente.
+
+**Le funzioni aggiunte** (carta [F1](feature/2026-09-18-f1-archi-convertitore.md), slice 0-9):
+- **Testo AIP nel convertitore** (`/services/coordinates`): archi (orari e antiorari), cerchi, «till point»,
+  «till point of origin», «to point of origin», più aree di seguito — in inglese, italiano e bilingue di
+  ENR 2.1.1.1. Lettura a flusso (la frase va a capo ovunque), vocabolario a tabella; si accende solo con una
+  frase lunga (`arc of circle`, `point of origin`, `circular area` e le italiane), altrimenti tutto come prima.
+- **Arco sul cerchio massimo** (`ArcGeometry`): passa esattamente per gli estremi, raggio interpolato, il centro
+  NON è un vertice. Raggio in NM, M, KM.
+- **Densità degli archi** 0,5–10 punti per grado (1 di base), campo solo se ci sono archi o cerchi; tetto di
+  20 000 punti per ingresso, oltre si disegna rado.
+- **Conto** «Archi convertiti · cerchi · punti» e **crocette dei centri** sulla mappa (spente di base).
+- **Cinque segnalazioni nuove**, IT+EN: raggio incoerente (> 0,1 NM), tratto non disegnabile (confine, costa,
+  fiume, unito con una retta), parole non riconosciute (la guardia: `Zona '2'`, `EUC 60` non saldano più le
+  aree), arco incompleto (inizio/centro/fine/raggio), troppi punti. Su un testo in una riga sola, l'estratto
+  mostrato è quello del pezzo, non la riga intera.
+- **Correzione per tutti i testi**: l'emisfero staccato (`24" N`) diventava un'etichetta, e l'area prendeva tipo
+  «N» e nome «E» (una `S` o una `W` si perdevano).
+- **Guida**: paragrafo «Un'area dall'AIP, archi compresi»; la ricerca lo trova.
+
+Prove: 580 aree AIP vere pulite; 20 aree con archi contro `italy.restrict`, mediana 0,020 NM. 🔴 **R47** (Rieti)
+nel sector ha l'arco a 12,51 NM, l'AIP dice 20 km: **da dire agli AOD**.
+- ▶ Alla ripresa: chiedere se caricato → timbro, `Schema 0`, e l'esempio del foglio su `services/coordinates`.
+
 ### ✅ A112 — 1.41.1 ONLINE (21 settembre 2026, notte) — in `main` non resta codice fuori pacchetto
 
 ✅ Il committente conferma: timbro `1.41.1 · bd668a7`, `Schema 0`, «Documenti collegati» a destra sotto «Link».
