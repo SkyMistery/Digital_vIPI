@@ -82,6 +82,38 @@ public class ConvertedAreasMapTests
         Assert.NotEqual(vista.Sectors[0].Color, vista.Sectors[1].Color);
     }
 
+    /// <summary>
+    /// I centri degli archi AIP (carta F1 §4): UNA forma in più, grigia, con una crocetta per centro — non una
+    /// forma per centro, che moltiplicherebbe le chip.
+    /// </summary>
+    [Fact]
+    public void I_Centri_Sono_Una_Forma_Sola_Con_Una_Crocetta_Ciascuno()
+    {
+        CentroAip[] centri = [new(42.0, 11.2, false), new(42.2, 11.3, true)];
+
+        var vista = ConvertedAreasMap.Build(Una(Triangolo()), i => "R14A", centri: centri, etichettaCentri: "Centri");
+
+        Assert.Equal(2, vista.Sectors.Count);
+        var croci = vista.Sectors[1];
+        Assert.Equal("centri", croci.Callsign);
+        Assert.Equal("Centri", croci.Label);
+        Assert.Equal(2, croci.Polygons.Count);
+    }
+
+    [Fact]
+    public void Senza_Centri_Nessuna_Forma_In_Piu() =>
+        Assert.Single(ConvertedAreasMap.Build(Una(Triangolo()), i => "R14A", centri: []).Sectors);
+
+    /// <summary>La crocetta sta attorno al centro: dodici vertici, nessuno oltre il mezzo braccio (e un po').</summary>
+    [Fact]
+    public void La_Crocetta_Sta_Attorno_Al_Suo_Centro()
+    {
+        var croce = ConvertedAreasMap.Croce(42.0, 11.0);
+
+        Assert.Equal(12, croce.Count);
+        Assert.All(croce, p => Assert.InRange(ArcGeometry.DistanzaNm((42.0, 11.0), p), 0.07, ConvertedAreasMap.BraccioCroceNm * 1.01));
+    }
+
     [Fact]
     public void Senza_Aree_La_Vista_E_Vuota() =>
         Assert.Empty(ConvertedAreasMap.Build([], i => "x").Sectors);

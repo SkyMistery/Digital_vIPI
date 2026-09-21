@@ -68,6 +68,22 @@
                               placeholder="@L["Conv_InputHint"]"
                               value="@_testo" @oninput="OnTesto" aria-label="@L["Conv_InputTitle"]"></textarea>
 
+                    @* La densità degli archi (carta F1 §4): compare SOLO se il testo ha archi o cerchi. Un campo
+                       che non cambia niente di ciò che si vede non c'è — la regola di questa pagina. *@
+                    @if (_esito.CentriAip.Count > 0)
+                    {
+                        <label class="conv-opt conv-densita">
+                            <span>@L["Conv_Density"]</span>
+                            <select value="@_densita.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                    @onchange="OnDensita">
+                                @foreach (var d in Densita)
+                                {
+                                    <option value="@d.ToString(System.Globalization.CultureInfo.InvariantCulture)">@L["Conv_DensityOpt", d]</option>
+                                }
+                            </select>
+                        </label>
+                    }
+
                     <label class="conv-drop">
                         <InputFile OnChange="CaricaFile" accept=".kml,.kmz" aria-label="@L["Conv_LoadFile"]" />
                         <span>@L["Conv_LoadFile"]</span>
@@ -287,6 +303,15 @@
                        qui e' proprio la buona notizia, ma va detto. *@
                     <p class="muted conv-hint">@L["Conv_CompareHint"]</p>
                 }
+                @* I centri degli archi come crocette, SPENTI di base: chi controlla un'area AIP vede subito un
+                   centro messo male, chi non ne ha bisogno non si trova la mappa sporca. *@
+                @if (_esito.CentriAip.Count > 0)
+                {
+                    <label class="conv-opt conv-opt-check conv-centri">
+                        <input type="checkbox" checked="@_centri" @onchange="e => _centri = (bool?)e.Value ?? false" />
+                        <span>@L["Conv_ShowCentres"]</span>
+                    </label>
+                }
 
                 <div @key="FirmaMappa()">
                     <AccAor View="Vista()" Id="conv" Hint="@L["Conv_MapHint"].Value" />
@@ -303,6 +328,10 @@
                 @* ⚠️ Tre numeri, non due: «letti 4 punti su 4 righe» non dice niente quando le righe erano
                    sei. E la forma è quella che regge anche l'uno: «Punti: 1» non è sgrammaticato, «1 punti» sì. *@
                 <p class="conv-count">@L["Conv_Read", _esito.PuntiTotali, _esito.RigheLette, _esito.RigheTotali]</p>
+                @if (_esito.CentriAip.Count > 0)
+                {
+                    <p class="conv-count conv-archi">@L["Conv_ArcsRead", _esito.Archi, _esito.Cerchi, _esito.PuntiTotali]</p>
+                }
 
                 @if (_esito.TuttoFuoriItalia)
                 {
@@ -321,7 +350,7 @@
                                 <span class="pill">@(s.Riga > 0 ? L["Conv_Line", s.Riga].Value : "—")</span>
                                 <b>@Descrivi(s.Kind)</b>
                                 @if (!string.IsNullOrWhiteSpace(s.Testo)) { <code>@s.Testo</code> }
-                                @if (!string.IsNullOrWhiteSpace(s.Dettaglio)) { <span class="muted">@s.Dettaglio</span> }
+                                @if (!string.IsNullOrWhiteSpace(s.Dettaglio)) { <span class="muted">@Dettaglio(s)</span> }
                             </li>
                         }
                     </ul>
@@ -462,8 +491,33 @@
     {
         _testo = e.Value?.ToString() ?? "";
         _fileNome = null;
-        _esito = CoordinateParser.Parse(_testo);
+        _esito = CoordinateParser.Parse(_testo, _densita);
         Riaccendi();
+    }
+
+    /// <summary>Punti per grado d'arco: la scelta di base è 1 (carta madre, decisione 13).</summary>
+    private double _densita = ArcGeometry.DensitaBase;
+
+    private static readonly double[] Densita = [0.5, 1, 2, 5, 10];
+
+    /// <summary>Le crocette dei centri sulla mappa: spente di base.</summary>
+    private bool _centri;
+
+    /// <summary>
+    /// Rilegge lo stesso testo con l'altra densità. ⚠️ Le aree sono le stesse, cambiano solo i punti degli
+    /// archi: la scelta di quali sono accese resta. I gesti (verso, rotazione) no — la rotazione conta i
+    /// vertici, e i vertici sono cambiati.
+    /// </summary>
+    private void OnDensita(ChangeEventArgs e)
+    {
+        if (!double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var d)) return;
+        _densita = d;
+        var prima = _esito.Aree.Count;
+        _esito = CoordinateParser.Parse(_testo, _densita);
+        _gesti.Clear();
+        _copiata = null;
+        if (_esito.Aree.Count != prima) Riaccendi();
     }
 
     private void OnDecimali(ChangeEventArgs e) =>
@@ -613,7 +667,8 @@
     private void OnConfronto(ChangeEventArgs e) => _confronto = (bool?)e.Value ?? false;
 
     /// <summary>La vista mappa: le aree accese, più le riconvertite quando il confronto è acceso.</summary>
-    private AccAorView Vista() => ConvertedAreasMap.Build(Accese, Etichetta, _confronto ? Riconvertite() : null);
+    private AccAorView Vista() => ConvertedAreasMap.Build(Accese, Etichetta, _confronto ? Riconvertite() : null,
+        _centri ? _esito.CentriAip : null, L["Conv_Centres"]);
 
     /// <summary>
     /// Ogni area riletta dalla PROPRIA uscita: è il giro completo (punti → testo → punti), non una copia dei
@@ -636,7 +691,7 @@
     /// </summary>
     private string FirmaMappa()
     {
-        var sb = new System.Text.StringBuilder(_confronto ? "c" : "s");
+        var sb = new System.Text.StringBuilder(_confronto ? "c" : "s").Append(_centri ? "+" : "-");
         foreach (var (idx, area) in Accese)
         {
             sb.Append('|').Append(idx).Append(':').Append(area.Punti.Count);
@@ -657,6 +712,31 @@
         CoordinateIssueKind.TroppeRighe => L["Conv_IssueTooMany"],
         CoordinateIssueKind.FileNonLetto => L["Conv_IssueFile"],
         CoordinateIssueKind.RigheVuoteIgnorate => L["Conv_IssueBlankLines"],
+        CoordinateIssueKind.RaggioIncoerente => L["Conv_IssueRadius"],
+        CoordinateIssueKind.TrattoNonDisegnabile => L["Conv_IssueSegment"],
+        CoordinateIssueKind.FraseNonRiconosciuta => L["Conv_IssuePhrase"],
+        CoordinateIssueKind.ArcoIncompleto => L["Conv_IssueArc"],
+        CoordinateIssueKind.TroppiPunti => L["Conv_IssuePointsCap"],
         _ => k.ToString(),
+    };
+
+    /// <summary>
+    /// Il dettaglio come si legge. ⚠️ Il motore scrive CODICI (<c>centro</c>, uno scarto in NM, un tetto) e non
+    /// frasi, perché le frasi sono in due lingue: qui diventano testo. Il resto (una riga, le parole avanzate)
+    /// è già testo dell'ingresso e passa com'è.
+    /// </summary>
+    private string Dettaglio(CoordinateIssue s) => s.Kind switch
+    {
+        CoordinateIssueKind.ArcoIncompleto => s.Dettaglio switch
+        {
+            "inizio" => L["Conv_ArcMissingStart"],
+            "centro" => L["Conv_ArcMissingCentre"],
+            "fine" => L["Conv_ArcMissingEnd"],
+            "raggio" => L["Conv_ArcMissingRadius"],
+            _ => s.Dettaglio ?? "",
+        },
+        CoordinateIssueKind.RaggioIncoerente => L["Conv_ArcOffBy", s.Dettaglio ?? ""],
+        CoordinateIssueKind.TroppiPunti => L["Conv_PointsCap", s.Dettaglio ?? ""],
+        _ => s.Dettaglio ?? "",
     };
 }

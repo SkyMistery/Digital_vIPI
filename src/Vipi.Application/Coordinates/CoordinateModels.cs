@@ -69,6 +69,13 @@ public enum CoordinateIssueKind
     TroppiPunti,
 }
 
+/// <summary>
+/// Il centro di un arco (o di un cerchio) disegnato da un testo AIP. Non è un vertice — era proprio il difetto
+/// di partenza della carta F1 — ma chi controlla vuole vederlo: un centro messo male si vede sulla mappa prima
+/// che nei numeri.
+/// </summary>
+public sealed record CentroAip(double Lat, double Lon, bool Cerchio);
+
 /// <summary>Una segnalazione, ancorata alla <paramref name="Riga"/> (1-based; 0 = riguarda tutto l'ingresso).</summary>
 public sealed record CoordinateIssue(CoordinateIssueKind Kind, int Riga, string Testo, string? Dettaglio = null);
 
@@ -109,12 +116,20 @@ public sealed record CoordinateReadResult(
     IReadOnlyList<CoordinateArea> Aree,
     IReadOnlyList<CoordinateIssue> Segnalazioni,
     int RigheLette,
-    int RigheTotali)
+    int RigheTotali,
+    IReadOnlyList<CentroAip>? Centri = null)
 {
     public static CoordinateReadResult Vuoto { get; } =
         new(Array.Empty<CoordinateArea>(), Array.Empty<CoordinateIssue>(), 0, 0);
 
     public int PuntiTotali => Aree.Sum(a => a.Punti.Count);
+
+    /// <summary>I centri degli archi e dei cerchi disegnati da un testo AIP; vuoto per ogni altro ingresso.</summary>
+    public IReadOnlyList<CentroAip> CentriAip => Centri ?? Array.Empty<CentroAip>();
+
+    public int Archi => CentriAip.Count(c => !c.Cerchio);
+
+    public int Cerchi => CentriAip.Count(c => c.Cerchio);
 
     /// <summary>
     /// Tutti i punti cadono fuori da un riquadro largo attorno all'Italia. Non è un errore — l'attrezzo serve

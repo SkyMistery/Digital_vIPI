@@ -49,10 +49,17 @@ public static class ConvertedAreasMap
     /// tratteggiata sopra l'originale: se le due non combaciano, la conversione ha perso qualcosa e si vede
     /// prima ancora di leggere l'errore in metri.
     /// </param>
+    /// <param name="centri">
+    /// I centri di archi e cerchi di un testo AIP, da disegnare come crocette (carta F1 §4). Una forma sola, per
+    /// tutti: sono un aiuto al controllo, non aree.
+    /// </param>
+    /// <param name="etichettaCentri">Il testo della chip delle crocette.</param>
     public static AccAorView Build(
         IReadOnlyList<(int Indice, CoordinateArea Area)> aree,
         Func<int, string> etichetta,
-        IReadOnlyDictionary<int, IReadOnlyList<(double Lat, double Lon)>>? riconvertite = null)
+        IReadOnlyDictionary<int, IReadOnlyList<(double Lat, double Lon)>>? riconvertite = null,
+        IReadOnlyList<CentroAip>? centri = null,
+        string etichettaCentri = "")
     {
         if (aree.Count == 0) return AccAorView.Empty;
 
@@ -79,7 +86,48 @@ public static class ConvertedAreasMap
             }
         }
 
+        if (centri is { Count: > 0 })
+        {
+            var croci = new List<AppAorPolygon>(centri.Count);
+            foreach (var c in centri)
+                if (AorPolygonProjector.Project(Json(Croce(c.Lat, c.Lon))) is { } poly) croci.Add(poly);
+            settori.Add(new AccSectorAor(
+                Callsign: "centri",
+                Name: etichettaCentri,
+                Color: ColoreCentri,
+                Polygons: croci,
+                Label: etichettaCentri));
+        }
+
         return new AccAorView(settori, Array.Empty<AccConfigSelection>());
+    }
+
+    /// <summary>Grigio: una crocetta non è un'area, e non deve prendere il colore di nessuna.</summary>
+    private const string ColoreCentri = "#555555";
+
+    /// <summary>Mezzo braccio della crocetta, in NM: si vede alle scale di una CTR senza coprire l'arco.</summary>
+    public const double BraccioCroceNm = 0.6;
+
+    /// <summary>
+    /// Una crocetta come poligono di dodici vertici (un «+» sottile): il motore della mappa disegna poligoni, e
+    /// un segnaposto nuovo sarebbe un pezzo di motore in più per un aiuto (carta F1 §4: se complica, si toglie).
+    /// </summary>
+    internal static IReadOnlyList<(double Lat, double Lon)> Croce(double lat, double lon)
+    {
+        const double b = BraccioCroceNm;
+        const double s = BraccioCroceNm / 8;
+        (double X, double Y)[] forma =
+        [
+            (s, s), (s, b), (-s, b), (-s, s), (-b, s), (-b, -s),
+            (-s, -s), (-s, -b), (s, -b), (s, -s), (b, -s), (b, s),
+        ];
+        var punti = new List<(double Lat, double Lon)>(forma.Length);
+        foreach (var (x, y) in forma)
+        {
+            var rotta = Math.Atan2(x, y) * 180.0 / Math.PI;
+            punti.Add(ArcGeometry.Destinazione((lat, lon), rotta, Math.Sqrt(x * x + y * y)));
+        }
+        return punti;
     }
 
     /// <summary>

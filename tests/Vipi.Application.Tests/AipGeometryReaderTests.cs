@@ -275,6 +275,23 @@ public class AipGeometryReaderTests
         Assert.Equal(360, esito.Aree[1].Punti.Count);
     }
 
+    /// <summary>L'esito porta i centri, per il conto e per le crocette della pagina; nessuno è un vertice.</summary>
+    [Fact]
+    public void L_Esito_Porta_I_Centri_Di_Archi_E_Cerchi()
+    {
+        var esito = AipGeometryReader.Leggi(
+            CagliariZona2 + " Circular area centered on 45°00'00\"N 009°00'00\"E within a 1.0 NM radius.");
+
+        Assert.Equal(2, esito.Archi);
+        Assert.Equal(1, esito.Cerchi);
+        Assert.Equal(Dms(39, 6, 16, 9, 30, 58).Item1, esito.CentriAip[0].Lat, 9);
+        Assert.True(esito.CentriAip[2].Cerchio);
+    }
+
+    [Fact]
+    public void Il_Parser_A_Righe_Non_Ha_Centri() =>
+        Assert.Empty(CoordinateParser.Parse("42.00777778:11.96833333\n41.975:11.92").CentriAip);
+
     /// <summary>Stessi estremi, verso opposto: i due archi insieme fanno il giro.</summary>
     [Fact]
     public void L_Antiorario_Fa_L_Altro_Giro()

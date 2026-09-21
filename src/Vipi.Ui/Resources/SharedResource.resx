@@ -3069,7 +3069,7 @@
   <data name="Conv_InputTitle" xml:space="preserve"><value>Coordinate in ingresso</value></data>
   <data name="Conv_OutputTitle" xml:space="preserve"><value>Uscita</value></data>
   <data name="Conv_InputHint" xml:space="preserve"><value>Incolla qui le coordinate, in qualunque formato…</value></data>
-  <data name="Conv_Formats" xml:space="preserve"><value>Il formato lo riconosce da solo: DMS Aurora (puntato e compatto), DMS coi simboli, gradi e primi decimali, ARINC, decimali con segno o emisfero, lat:lon del DB, CSV, righe di sectorfile, JSON e KML.</value></data>
+  <data name="Conv_Formats" xml:space="preserve"><value>Il formato lo riconosce da solo: DMS Aurora (puntato e compatto), DMS coi simboli, gradi e primi decimali, ARINC, decimali con segno o emisfero, lat:lon del DB, CSV, righe di sectorfile, JSON e KML. E i limiti laterali dell'AIP, archi e cerchi compresi, in inglese, in italiano o bilingui.</value></data>
   <data name="Conv_LoadFile" xml:space="preserve"><value>Carica un KML o un KMZ</value></data>
   <data name="Conv_Clear" xml:space="preserve"><value>Togli</value></data>
   <data name="Conv_Db" xml:space="preserve"><value>DB IVAO</value></data>
@@ -3101,6 +3101,22 @@
   <data name="Conv_IssueTooMany" xml:space="preserve"><value>Troppe righe: il resto non è stato letto</value></data>
   <data name="Conv_IssueFile" xml:space="preserve"><value>File non letto</value></data>
   <data name="Conv_IssueBlankLines" xml:space="preserve"><value>Righe vuote ignorate: ogni blocco aveva un punto solo, e un punto non è un'area. I vertici sono stati riuniti in un'area sola.</value></data>
+  <data name="Conv_IssueRadius" xml:space="preserve"><value>Raggio incoerente: un estremo dell'arco non sta alla distanza dichiarata dal centro. L'arco passa comunque per i due estremi; controlla il centro.</value></data>
+  <data name="Conv_IssueSegment" xml:space="preserve"><value>Tratto non disegnabile (confine, costa o fiume): il testo lo nomina ma non ne dà la forma. I due capi sono uniti con una retta provvisoria.</value></data>
+  <data name="Conv_IssuePhrase" xml:space="preserve"><value>Parole non riconosciute: non sono coordinate né frasi dell'AIP, e non entrano nella forma.</value></data>
+  <data name="Conv_IssueArc" xml:space="preserve"><value>Arco incompleto</value></data>
+  <data name="Conv_IssuePointsCap" xml:space="preserve"><value>Troppi punti: oltre il tetto, gli archi e i cerchi sono disegnati radi, un punto ogni 10°.</value></data>
+  <data name="Conv_ArcMissingStart" xml:space="preserve"><value>manca il punto di partenza: l'arco non è disegnato</value></data>
+  <data name="Conv_ArcMissingCentre" xml:space="preserve"><value>manca il centro: l'arco non è disegnato</value></data>
+  <data name="Conv_ArcMissingEnd" xml:space="preserve"><value>manca il punto d'arrivo: l'arco non è disegnato</value></data>
+  <data name="Conv_ArcMissingRadius" xml:space="preserve"><value>manca il raggio: l'arco è disegnato passando per i due estremi</value></data>
+  <data name="Conv_ArcOffBy" xml:space="preserve"><value>scarto {0} NM</value></data>
+  <data name="Conv_PointsCap" xml:space="preserve"><value>tetto {0} punti</value></data>
+  <data name="Conv_Density" xml:space="preserve"><value>Densità degli archi</value></data>
+  <data name="Conv_DensityOpt" xml:space="preserve"><value>{0} punti per grado</value></data>
+  <data name="Conv_ArcsRead" xml:space="preserve"><value>Archi convertiti: {0} · cerchi: {1} · punti: {2}.</value></data>
+  <data name="Conv_ShowCentres" xml:space="preserve"><value>Mostra i centri di archi e cerchi</value></data>
+  <data name="Conv_Centres" xml:space="preserve"><value>Centri</value></data>
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinate in qualsiasi formato, riscritte per il DB di IVAO o per il sectorfile.</value></data>
   <data name="Services_StaffSection" xml:space="preserve"><value>Staff di divisione</value></data>
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} aree accese su {1}.</value></data>

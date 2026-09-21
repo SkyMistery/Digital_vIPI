@@ -257,6 +257,80 @@ public class CoordinateConverterPageTests
         Assert.Equal("/services", cut.Find(".breadcrumb a").GetAttribute("href"));
     }
 
+    // ---- I testi AIP (carta F1, slice 7) ----
+
+    /// <summary>L'esempio del committente (carta F1 §0): un arco, e il suo centro che non è un vertice.</summary>
+    private const string ArcoAip =
+        "44°51'24\" N 008°14'57\" E\n" +
+        "then arc of circle in clockwise direction radius 17 NM centred on\n" +
+        "44°55'29\" N 007°51'43\" E\n" +
+        "till point\n" +
+        "44°41'08\" N 008°04'34\" E";
+
+    /// <summary>Senza archi né cerchi, densità, conto degli archi e crocette non ci sono: non cambierebbero niente.</summary>
+    [Fact]
+    public void Senza_Archi_Il_Campo_Densita_Non_C_E()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input("42.00777778:11.96833333\n41.975:11.92\n41.9:11.99");
+
+        Assert.Empty(cut.FindAll(".conv-densita"));
+        Assert.Empty(cut.FindAll(".conv-archi"));
+        Assert.Empty(cut.FindAll(".conv-centri"));
+    }
+
+    [Fact]
+    public void Con_Un_Arco_Compaiono_Densita_Conto_E_Crocette_Spente()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(ArcoAip);
+
+        Assert.Single(cut.FindAll(".conv-densita select"));
+        Assert.Contains("Conv_ArcsRead", cut.Find(".conv-archi").TextContent);
+        Assert.False(cut.Find(".conv-centri input").HasAttribute("checked"));
+    }
+
+    [Fact]
+    public void La_Densita_Rilegge_L_Arco_Con_Piu_Punti()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+        cut.Find("textarea.conv-ta").Input(ArcoAip);
+        var prima = cut.Find("textarea.conv-out").TextContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+
+        cut.Find(".conv-densita select").Change("2");
+
+        var dopo = cut.Find("textarea.conv-out").TextContent.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length;
+        Assert.InRange(dopo, 2 * prima - 4, 2 * prima);
+    }
+
+    /// <summary>
+    /// Le segnalazioni nuove hanno il loro testo, e il dettaglio di «arco incompleto» si traduce: il motore dice
+    /// «centro», la pagina lo dice nella lingua di chi legge. Il nome del codice non deve mai arrivare a schermo.
+    /// </summary>
+    [Fact]
+    public void Le_Segnalazioni_AIP_Hanno_Il_Loro_Testo()
+    {
+        using var ctx = new Contesto();
+        var cut = ctx.Apri(VipiRole.DivisionStaff);
+
+        cut.Find("textarea.conv-ta").Input(
+            "EUC 60 45°05'00\"N 009°00'00\"E then arc of circle in clockwise direction radius 5 NM till point " +
+            "45°00'00\"N 009°07'00\"E Italian northern geographical border till point 44°55'00\"N 009°00'00\"E; to point of origin.");
+
+        Assert.Contains("Conv_IssuePhrase", cut.Markup);
+        Assert.Contains("Conv_IssueArc", cut.Markup);
+        Assert.Contains("Conv_ArcMissingCentre", cut.Markup);
+        Assert.Contains("Conv_IssueSegment", cut.Markup);
+        Assert.DoesNotContain("ArcoIncompleto", cut.Markup);
+        Assert.DoesNotContain("FraseNonRiconosciuta", cut.Markup);
+        Assert.DoesNotContain("TrattoNonDisegnabile", cut.Markup);
+    }
+
     // ---- Il selettore delle aree (slice 6) ----
 
     /// <summary>Due aree con nome nello stesso incolla: due righe di italy.restrict con nomi diversi.</summary>

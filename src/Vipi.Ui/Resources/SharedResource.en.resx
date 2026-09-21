@@ -3061,7 +3061,7 @@
   <data name="Conv_InputTitle" xml:space="preserve"><value>Coordinates in</value></data>
   <data name="Conv_OutputTitle" xml:space="preserve"><value>Output</value></data>
   <data name="Conv_InputHint" xml:space="preserve"><value>Paste your coordinates here, in any format…</value></data>
-  <data name="Conv_Formats" xml:space="preserve"><value>The format is detected for you: Aurora DMS (dotted and packed), DMS with symbols, degrees and decimal minutes, ARINC, decimals with sign or hemisphere, the database lat:lon, CSV, sectorfile lines, JSON and KML.</value></data>
+  <data name="Conv_Formats" xml:space="preserve"><value>The format is detected for you: Aurora DMS (dotted and packed), DMS with symbols, degrees and decimal minutes, ARINC, decimals with sign or hemisphere, the database lat:lon, CSV, sectorfile lines, JSON and KML. And the AIP lateral limits, arcs and circles included, in English, Italian or both.</value></data>
   <data name="Conv_LoadFile" xml:space="preserve"><value>Load a KML or KMZ</value></data>
   <data name="Conv_Clear" xml:space="preserve"><value>Remove</value></data>
   <data name="Conv_Db" xml:space="preserve"><value>IVAO database</value></data>
@@ -3093,6 +3093,22 @@
   <data name="Conv_IssueTooMany" xml:space="preserve"><value>Too many lines: the rest was not read</value></data>
   <data name="Conv_IssueFile" xml:space="preserve"><value>File not read</value></data>
   <data name="Conv_IssueBlankLines" xml:space="preserve"><value>Blank lines ignored: every block held a single point, and one point is not an area. The vertices were joined into one area.</value></data>
+  <data name="Conv_IssueRadius" xml:space="preserve"><value>Radius mismatch: one end of the arc is not at the stated distance from the centre. The arc still runs through both ends; check the centre.</value></data>
+  <data name="Conv_IssueSegment" xml:space="preserve"><value>Segment that cannot be drawn (border, coast or river): the text names it but gives no shape. The two ends are joined with a provisional straight line.</value></data>
+  <data name="Conv_IssuePhrase" xml:space="preserve"><value>Unrecognised words: neither coordinates nor AIP phrases, and they are left out of the shape.</value></data>
+  <data name="Conv_IssueArc" xml:space="preserve"><value>Incomplete arc</value></data>
+  <data name="Conv_IssuePointsCap" xml:space="preserve"><value>Too many points: past the cap, arcs and circles are drawn sparse, one point every 10°.</value></data>
+  <data name="Conv_ArcMissingStart" xml:space="preserve"><value>the starting point is missing: the arc is not drawn</value></data>
+  <data name="Conv_ArcMissingCentre" xml:space="preserve"><value>the centre is missing: the arc is not drawn</value></data>
+  <data name="Conv_ArcMissingEnd" xml:space="preserve"><value>the end point is missing: the arc is not drawn</value></data>
+  <data name="Conv_ArcMissingRadius" xml:space="preserve"><value>the radius is missing: the arc is drawn through both ends</value></data>
+  <data name="Conv_ArcOffBy" xml:space="preserve"><value>off by {0} NM</value></data>
+  <data name="Conv_PointsCap" xml:space="preserve"><value>cap {0} points</value></data>
+  <data name="Conv_Density" xml:space="preserve"><value>Arc density</value></data>
+  <data name="Conv_DensityOpt" xml:space="preserve"><value>{0} points per degree</value></data>
+  <data name="Conv_ArcsRead" xml:space="preserve"><value>Arcs converted: {0} · circles: {1} · points: {2}.</value></data>
+  <data name="Conv_ShowCentres" xml:space="preserve"><value>Show the centres of arcs and circles</value></data>
+  <data name="Conv_Centres" xml:space="preserve"><value>Centres</value></data>
   <data name="Services_ConvDesc" xml:space="preserve"><value>Coordinates in any format, rewritten for the IVAO database or for the sectorfile.</value></data>
   <data name="Services_StaffSection" xml:space="preserve"><value>Division staff</value></data>
   <data name="Conv_AreasOn" xml:space="preserve"><value>{0} of {1} areas on.</value></data>

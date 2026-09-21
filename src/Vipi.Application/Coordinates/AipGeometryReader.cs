@@ -170,8 +170,9 @@ public static class AipGeometryReader
         var segnalazioni = new List<CoordinateIssue>();
         var originali = testo.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         var (elementi, righeConPunti) = Spezza(originali, segnalazioni);
-        var aree = Componi(elementi, originali, puntiPerGrado, segnalazioni);
-        return new CoordinateReadResult(aree, segnalazioni, righeConPunti, originali.Length);
+        var centri = new List<CentroAip>();
+        var aree = Componi(elementi, originali, puntiPerGrado, segnalazioni, centri);
+        return new CoordinateReadResult(aree, segnalazioni, righeConPunti, originali.Length, centri);
     }
 
     // ---- 1. Il flusso: punti e frasi, con la riga da cui vengono ----
@@ -346,7 +347,8 @@ public static class AipGeometryReader
     private enum Attesa { Niente, CentroDellArco, FineDellArco, PuntoDiFine, CentroDelCerchio }
 
     private static List<CoordinateArea> Componi(
-        List<Elemento> elementi, string[] originali, double densita, List<CoordinateIssue> segnalazioni)
+        List<Elemento> elementi, string[] originali, double densita, List<CoordinateIssue> segnalazioni,
+        List<CentroAip> centri)
     {
         var aree = new List<CoordinateArea>();
         var vertici = new List<(double Lat, double Lon)>();
@@ -389,6 +391,7 @@ public static class AipGeometryReader
             if (OltreIlTetto(arco.Punti.Count))
                 arco = ArcGeometry.Arco(vertici[^1], fine, centro, orario, raggio ?? 0, ArcGeometry.DensitaMinima);
             generati += arco.Punti.Count;
+            centri.Add(new CentroAip(centro.Lat, centro.Lon, Cerchio: false));
             if (raggio is not null && arco.RaggioIncoerente)
                 segnalazioni.Add(new CoordinateIssue(CoordinateIssueKind.RaggioIncoerente, rigaCentro,
                     originali[rigaCentro - 1].Trim(),
@@ -529,6 +532,7 @@ public static class AipGeometryReader
             var cerchio = ArcGeometry.Cerchio(centro, r, densita);
             if (OltreIlTetto(cerchio.Count)) cerchio = ArcGeometry.Cerchio(centro, r, ArcGeometry.DensitaMinima);
             generati += cerchio.Count;
+            centri.Add(new CentroAip(centro.Lat, centro.Lon, Cerchio: true));
             aree.Add(new CoordinateArea(null, cerchio, AnelloChiuso: true));
             attesa = Attesa.Niente;
             raggio = null;
