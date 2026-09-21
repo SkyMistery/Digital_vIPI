@@ -371,6 +371,12 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
     ///
     /// <para>⚠️ Il test guarda gli attributi che ESEGUONO (<c>src</c>, <c>href</c>): un <c>data-*</c> che
     /// porta lo stesso URL è una consegna, non un caricamento, ed è esattamente ciò che deve restare.</para>
+    ///
+    /// <para>🔴 Dal 21 settembre 2026 il FOGLIO <c>leaflet.css</c> sta invece nel &lt;head&gt; di ogni pagina, e
+    /// questo test guarda il solo SCRIPT. Il foglio messo da JavaScript lo toglieva la navigazione enhanced, che
+    /// riallinea il &lt;head&gt;: arrivando su un documento da un'altra pagina le mappe uscivano a pezzi fino al
+    /// ricarico (§A99). Sono 15 KB, ~3 KB compressi e in cache; dei 162 KB il peso vero è lo script (147 KB), ed è
+    /// quello che resta pigro.</para>
     /// </summary>
     [Theory]
     [InlineData("/services/vsop")]
@@ -382,6 +388,7 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
         var carica = Regex.Matches(html, @"<(?:script|link)\b[^>]*\b(?:src|href)\s*=\s*[""'](?<url>[^""']+)[""']")
             .Select(m => m.Groups["url"].Value)
             .Where(u => u.Contains("leaflet", StringComparison.OrdinalIgnoreCase))
+            .Where(u => !u.Contains("leaflet.css", StringComparison.OrdinalIgnoreCase))   // il foglio sì, vedi sopra
             .ToList();
 
         Assert.True(carica.Count == 0,
@@ -390,6 +397,10 @@ public sealed class SmokeTests : IClassFixture<SmokeTests.VipiAppFactory>
 
         // …ma l'URL dev'esserci come consegna, o le mappe non si caricherebbero da nessuna parte.
         Assert.Contains("data-leaflet-src", html);
+
+        // …e il foglio sta nel <head> scritto dal server (§A99): tornare a caricarlo da JS riporta le mappe a pezzi.
+        var head = html[..html.IndexOf("</head>", StringComparison.OrdinalIgnoreCase)];
+        Assert.Matches(@"<link\b[^>]*rel=""stylesheet""[^>]*href=""[^""]*leaflet/leaflet\.css", head);
     }
 
     /// <summary>
