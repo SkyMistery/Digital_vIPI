@@ -2,7 +2,22 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
-### 📦 A101 — Pacchetto 1.39.0 (21 settembre 2026) — pronto da caricare
+### ✅ A102 — 1.39.0 **ONLINE** (21 settembre 2026, notte)
+
+✅ Il committente conferma: **timbro 1.39**, **`Schema 0`**, colori MIL/FSS giusti, STAR nascoste. Da fuori subito
+dopo: `pacchetto-verifica.js` **8/8** con la Ricerca, console pulita; `mappa-foglio-verifica.js` sulla vIPI
+pubblica di LIBB **8/8** (pagina → documento → pagina → documento: 0 tessere fuori posto su 86 — la correzione
+§A99 è in produzione); `aor-famiglie-verifica.js`: AoR principale di LIBB senza MIL/FSS.
+
+🔎 **Da guardare alla ripresa**: nella vIPI **pubblica** di LIBB le sezioni SCCAM e FIC dicono «No SCCAM sector
+in this ACC» / «No FIC sector in this ACC». Sono congelate alla pubblicazione, quindi in produzione, quando si è
+pubblicato, la derivazione non ha trovato settori MIL/FSS fra i CTR di LIBB. Sul `vipi.db` locale invece LIBB ha
+`LIBB_MIL_CTR` e `LIBB_FSS`. Da verificare nell'**editor di produzione** (sezione SCCAM di LIBB):
+- se lì i settori ci sono, la release è vecchia → basta ripubblicare;
+- se mancano, in produzione quei settori non sono fra i CTR dell'ACC (tipo, ACC di appartenenza o nascosti) →
+  guardare l'anagrafica settori.
+
+### 📦 A101 — Pacchetto 1.39.0 (21 settembre 2026) — ✅ online, vedi §A102
 
 **MINOR, UNA migrazione di soli dati** (`StarNascosteDiDefault`). Su 1.38.0 (`d267c1d`). Timbro **`1.39.0 ·
 1b25c4f`**, **12 file**, zip `ba3ad79a…028af` (2,77 MB). Foglio:
