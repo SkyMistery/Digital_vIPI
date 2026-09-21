@@ -2,6 +2,27 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### 📦 A104 — Pacchetto 1.39.1 (21 settembre 2026) — pronto, NON ancora caricato
+
+**PATCH, nessuna migrazione.** Su 1.39.0 (`1b25c4f`). Timbro **`1.39.1 · 4df91c0`**, **8 file**, zip
+`05ec35a4…f38da` (2,65 MB). Foglio: [`LEGGIMI-PACCHETTO-1.39.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.39.1.md).
+Contenuto: §A103. Consegna ruotata: 1.39.0 in `publish_old/20260921e`; publish nuovo `linux-x64-20260921f`,
+cartella `solo-8-file-1.39.1`.
+- **Separata da net10 per scelta del committente**: un guasto dopo il carico deve avere una causa sola. net10 resta
+  **1.40.0**, da sola.
+- **Gli 8 file**: `Vipi.Ui`, `Vipi.Host` (timbro) coi `.pdb`, `vipi-theme.css` con `.br`/`.gz` ed `endpoints.json`.
+  Per impronta contro il publish di 1.39.0, in `wwwroot` è cambiato solo il foglio. Nessuna `const`, nessuna
+  interfaccia, nessuna frase: `en/` fuori.
+- ✅ **Provato sul PACCHETTO** (win-x64 dalla sua cartella, :5199, copia del `vipi.db`): timbro in
+  `avvio-diagnostica.txt`; `pacchetto-verifica.js` **10/10**; `gruppi-toc-verifica.js` (nuovo) verde su vIPI LIBB
+  pubblica e bozza, editor ACC LIBB e LIBV unita (vIPI + vSOP MIL): i gruppi nascono aperti, un clic sul titolo ne
+  nasconde tutte le voci, gli altri restano aperti, la pagina non si sposta, il secondo clic riapre.
+  ⚠️ La prima stesura dello script diceva rosso: misurava con `getClientRects`, che Edge continua a riempire
+  dentro un `<details>` chiuso (`content-visibility`). Il gruppo si chiudeva davvero; ora misura con
+  `checkVisibility()`.
+- ▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`, e il clic su «Settori di aerovia» nel sommario di LIBB. Niente
+  da ripubblicare: il sommario non sta nella copia pubblica.
+
 ### ✅ A103 — Sommario: un gruppo intestato si chiude tutto intero (21 settembre 2026) — in main (`57293ebe`), 📦 in 1.39.1
 
 Chiesto dal committente: nei sommari con più documenti (pagine unite) e nelle vIPI ACC (settori di aerovia, APP
