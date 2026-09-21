@@ -2,6 +2,37 @@
 
 ## Dove siamo — 22 settembre 2026 (notte)
 
+### 📦 A114 — Pacchetto 1.42.1: i chief d'ACC nel roster degli staffisti (22 settembre 2026, notte) — DA CARICARE
+
+**Dal campo**: due chief appena nominati si erano loggati e non comparivano in Diagnostica («Chi può editare»).
+Diagnosi sui dati veri, non sul codice: nella copia del database di produzione (21-set 23:09Z) la tabella
+`StaffMembers` **non aveva nessuna loro riga**, né attiva né disattivata (la verifica giornaliera dava «0
+disattivati», e `avvisi-log.txt` nessun errore di registrazione); letti i profili su `/v2/users/{vid}` col token
+dell'applicazione, avevano solo codici **d'ACC** (`LIPP-CH` + `HPM`; `LIBB-CH` + `LIRR-CHA1`).
+
+**Il difetto**: `StaffRosterService` accettava solo i codici col prefisso di divisione (`IT-`). Il `RoleResolver`
+faceva i chief già **Redattori** — potevano modificare — ma il roster li scartava: invisibili in Diagnostica, nel
+selettore dei permessi, negli elenchi dello staff; e la verifica giornaliera avrebbe disattivato un chief che ci
+fosse entrato. **Correzione** (`2398ed21`): conta l'**appartenenza** alla divisione, `IT-*` o un codice d'ACC
+`LI????-*`; fuori i codici del quartier generale (`HPM`) e di altre divisioni. 14 test nuovi
+(`StaffRosterChiefAccTests`), conteggi Application 2903. CI verde.
+
+- ✅ **Deciso dal committente**: un codice come `LIRR-CHA1` **non** vale Redattore (i pattern restano `CH|ACH`); chi ha
+  solo quello entra nel roster e si **promuove a mano** dalla pagina dei permessi.
+- ⚠️ **IVAO usa codici d'ACC che nessun pattern prevedeva** (`CHA1`): chi ha solo quelli in Diagnostica compare col
+  livello «Staff IVAO», e i codici si leggono nel `title` della riga.
+
+PATCH, **nessuna migrazione**, su 1.42.0 (`c1aaf4b`). Timbro **`1.42.1 · a66f25e`**. **4 file in radice**:
+`Vipi.Application` e `Vipi.Host` (dll + pdb). Niente frasi, niente `wwwroot`: `en/` ed `endpoints.json` fuori
+(identici per impronta). Zip `vipi-1.42.1-solo-file-cambiati.zip` `f76baed2…82059`, foglio
+[`LEGGIMI-PACCHETTO-1.42.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.42.1.md). 1.42.0 ruotata in
+`publish_old/20260921j`. Provato sul pacchetto win-x64 (copia del DB di sviluppo): `pacchetto-verifica.js`
+**10/10**, e con un'identità di sviluppo da chief (`LIBB-CH`, `LIRR-CHA1`, `HPM`) la riga del roster nasce con
+`LIBB-CH,LIRR-CHA1`.
+
+▶ **Dopo il carico**: timbro, Ricerca, `Schema 0`; i due chief compaiono in Diagnostica al primo accesso (entro
+cinque minuti se erano già dentro). Da fuori `pacchetto-verifica.js` (SOLO_PUBBLICO).
+
 ### ✅ A113 — 1.42.0 ONLINE: Aurora Sector Lab F1, i testi AIP nel convertitore (21 settembre 2026, notte)
 
 ✅ Il committente conferma: timbro `1.42.0`, `Schema 0`, il convertitore legge i testi AIP. Da fuori subito dopo:
