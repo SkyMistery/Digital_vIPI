@@ -144,14 +144,29 @@ public sealed class RiferimentiResolver : IRiferimentiResolver
             foreach (var f in enti) voci.Add((TipoDato.Frequenza, f.Callsign, f.FrequencyMhz));
         }
 
-        if (citati.Any(c => c.Tipo == TipoDato.Nominativo))
+        // ⚠️ Nominativo e Postazione sono DUE facce della stessa riga di catalogo, e si chiedono con UNA
+        // lettura: citarle tutte e due nello stesso testo — «LIRR_NE (Roma Radar)» — non deve costare due
+        // viaggi per la stessa risposta.
+        var voglioNominativo = citati.Any(c => c.Tipo == TipoDato.Nominativo);
+        var voglioPostazione = citati.Any(c => c.Tipo == TipoDato.Postazione);
+        if (voglioNominativo || voglioPostazione)
         {
             var enti = await _enti.NominativiAsync(ct);
-            if (enti.Count > 0) guardate.Add(TipoDato.Nominativo);
-            // Il nominativo è quello del catalogo IVAO; dove manca vale il callsign, che è sempre vero.
+            if (enti.Count > 0)
+            {
+                if (voglioNominativo) guardate.Add(TipoDato.Nominativo);
+                if (voglioPostazione) guardate.Add(TipoDato.Postazione);
+            }
             foreach (var e in enti)
-                voci.Add((TipoDato.Nominativo, e.Callsign,
-                    string.IsNullOrWhiteSpace(e.AtcCallsign) ? e.Callsign : e.AtcCallsign!));
+            {
+                // Il nominativo è quello del catalogo IVAO; dove manca vale il callsign, che è sempre vero.
+                if (voglioNominativo)
+                    voci.Add((TipoDato.Nominativo, e.Callsign,
+                        string.IsNullOrWhiteSpace(e.AtcCallsign) ? e.Callsign : e.AtcCallsign!));
+                // Il codice esce com'è nel catalogo: la chiave È il valore, e il gettone serve per l'avviso.
+                if (voglioPostazione)
+                    voci.Add((TipoDato.Postazione, e.Callsign, e.Callsign));
+            }
         }
 
         // Le PISTE: la chiave è «ICAO SOGLIA», e quel che esce è la soglia com'è scritta — un rinomino per

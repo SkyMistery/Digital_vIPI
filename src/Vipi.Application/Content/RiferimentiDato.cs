@@ -16,6 +16,20 @@ public enum TipoDato
 
     /// <summary>Un punto del catalogo: <c>[[FIX OST]]</c>. Esce com'è scritto — vedi sotto.</summary>
     Punto,
+
+    /// <summary>
+    /// Il <b>codice</b> di una postazione, per callsign: <c>[[POS LIRR_NE]]</c> → <c>LIRR_NE</c>. È il gemello
+    /// di <see cref="Nominativo"/> sulla stessa chiave: quello dice «Roma Radar», questo «LIRR_NE».
+    ///
+    /// <para>Chiesto dal committente il 21 settembre 2026 — «per le postazioni ATC vorrei poter mettere
+    /// LIRR_NE e/o Roma Radar». Fino ad allora il codice si scriveva a mano, e un codice scritto a mano non
+    /// avvisa nessuno quando la postazione sparisce dal catalogo: con <c>POS</c> la chiave è il valore,
+    /// come per <see cref="Pista"/> e <see cref="Punto"/>, e il guadagno è l'avviso.</para>
+    ///
+    /// <para>⚠️ <b>In coda, non accanto a Nominativo</b>: in mezzo a un enum non si aggiunge, come dice il
+    /// resto del progetto — l'ordine delle chip lo decide il selettore, non questo elenco.</para>
+    /// </summary>
+    Postazione,
 }
 
 /// <summary>
@@ -57,7 +71,7 @@ public static class RiferimentiDato
     /// che è la verità.
     /// </remarks>
     internal static readonly Regex Riferimento = new(
-        @"\[\[(?:(?<tipo>FREQ|ATC|FIX) (?<chiave>[A-Z0-9_]{2,16})|(?<tipo>RWY) (?<chiave>[A-Z]{4}) (?<soglia>[A-Z0-9]{1,4}))\]\]",
+        @"\[\[(?:(?<tipo>FREQ|ATC|POS|FIX) (?<chiave>[A-Z0-9_]{2,16})|(?<tipo>RWY) (?<chiave>[A-Z]{4}) (?<soglia>[A-Z0-9]{1,4}))\]\]",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     /// <summary>La parola del tipo, come si scrive nel riferimento.</summary>
@@ -65,6 +79,7 @@ public static class RiferimentiDato
     {
         TipoDato.Frequenza => "FREQ",
         TipoDato.Nominativo => "ATC",
+        TipoDato.Postazione => "POS",
         TipoDato.Pista => "RWY",
         _ => "FIX",
     };
@@ -73,6 +88,7 @@ public static class RiferimentiDato
     {
         "FREQ" => TipoDato.Frequenza,
         "ATC" => TipoDato.Nominativo,
+        "POS" => TipoDato.Postazione,
         "RWY" => TipoDato.Pista,
         _ => TipoDato.Punto,
     };

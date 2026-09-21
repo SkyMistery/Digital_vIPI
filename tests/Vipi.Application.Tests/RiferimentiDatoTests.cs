@@ -201,6 +201,38 @@ public class RiferimentiDatoTests
         Assert.Equal("LIRR_CTR", risolti.Dati.Valore(TipoDato.Nominativo, "LIRR_CTR"));
     }
 
+    /// <summary>
+    /// 🔴 <b>Codice e nominativo della stessa postazione</b>, nello stesso testo, con UNA lettura del
+    /// catalogo. Chiesto dal campo il 21 settembre 2026: «LIRR_NE e/o Roma Radar». Il codice esce com'è —
+    /// la chiave è il valore — e si segnala quando la postazione sparisce, come una pista o un punto.
+    /// </summary>
+    [Fact]
+    public async Task Il_Codice_E_Il_Nominativo_Della_Stessa_Postazione()
+    {
+        var catalogo = new Catalogo();
+        var testi = new[] { "Chiama [[POS LIRF_DEL]] ([[ATC LIRF_DEL]]), poi [[POS LIXX_ZZZ]]." };
+
+        var risolti = await new RiferimentiResolver(new NienteProcedure(), catalogo).PerTestiAsync(testi);
+
+        Assert.Equal("Chiama LIRF_DEL (Fiumicino Delivery), poi LIXX_ZZZ.", Riferimenti.Sostituisci(testi[0], risolti));
+        // ⚠️ Una lettura sola: sono due facce della stessa riga.
+        Assert.Equal(1, catalogo.ChiamateNominativi);
+        // La postazione inventata si segnala; quella vera no.
+        var avvisi = ControlloDatiCitati.Controlla(new[] { ("Enti", (string?)testi[0]) }, risolti.Dati);
+        var avviso = Assert.Single(avvisi);
+        Assert.Equal(TipoDato.Postazione, avviso.Tipo);
+        Assert.Equal("LIXX_ZZZ", avviso.Chiave);
+        Assert.Equal("POS", avviso.Parola);
+    }
+
+    [Fact]
+    public void Il_Gettone_Del_Codice_Si_Scrive_E_Si_Riconosce()
+    {
+        Assert.Equal("[[POS LIRR_NE]]", RiferimentiDato.Scrivi(TipoDato.Postazione, "lirr_ne"));
+        Assert.Equal("Da LIRR_NE.",
+            RiferimentiDato.Sostituisci("Da [[POS LIRR_NE]].", Valori((TipoDato.Postazione, "LIRR_NE", "LIRR_NE"))));
+    }
+
     [Fact]
     public async Task Una_Pista_Che_Non_Ce_Piu_Si_Segnala()
     {

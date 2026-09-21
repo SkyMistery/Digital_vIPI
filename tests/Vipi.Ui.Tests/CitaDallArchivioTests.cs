@@ -152,8 +152,37 @@ public class CitaDallArchivioTests : TestContext
         c.Find("button.rta-sid").Click();
         c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
 
-        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC", "RWY", "FIX" },
+        // ⚠️ SETTE dal 21 settembre 2026: POS, il codice della postazione, accanto ad ATC che ne dà il
+        // nominativo — sono la stessa riga vista dai due lati.
+        Assert.Equal(new[] { "SID", "STAR", "FREQ", "ATC", "POS", "RWY", "FIX" },
             c.FindAll(".sidref-pick-kind button").Select(b => b.TextContent.Trim()).ToArray());
+    }
+
+    /// <summary>
+    /// La chip POS cita il <b>codice</b> della postazione. Chiesto dal campo il 21 settembre 2026: «per le
+    /// postazioni ATC vorrei poter mettere LIRR_NE e/o Roma Radar». Fino ad allora il codice si scriveva a
+    /// mano, e un codice scritto a mano non avvisa quando la postazione sparisce.
+    /// </summary>
+    [Fact]
+    public void Con_la_chip_POS_si_cita_il_codice()
+    {
+        JSInterop.Setup<string>("vipiSidPrendi", _ => true).SetResult("g1");
+        JSInterop.Setup<bool>("vipiSidInserisci", _ => true).SetResult(true);
+        var c = CampoDiLIBD();
+        c.Find("button.rta-sid").Click();
+        c.WaitForAssertion(() => Assert.NotEmpty(c.FindAll(".sidref-pick-kind button")));
+
+        c.FindAll(".sidref-pick-kind button").First(b => b.TextContent.Trim() == "POS").Click();
+        // Gli stessi tre enti di ATC — è lo stesso catalogo — con le colonne scambiate.
+        c.WaitForAssertion(() => Assert.Equal(3, c.FindAll(".sidref-pick-row").Count));
+
+        var righe = c.FindAll(".sidref-pick-row").Select(r => r.TextContent).ToList();
+        // Si legge il CODICE, col nominativo accanto per riconoscerlo.
+        Assert.Contains("LIBD_TWR", righe[1]);
+        Assert.Contains("Bari Tower", righe[1]);
+
+        c.FindAll(".sidref-pick-row").Skip(1).First().Click();
+        Assert.Equal("[[POS LIBD_TWR]]", Assert.Single(JSInterop.Invocations["vipiSidInserisci"]).Arguments[1]);
     }
 
     [Fact]

@@ -92,7 +92,8 @@
         bool ConIcao = false);
 
     /// <summary>
-    /// Le sei famiglie, nell'ordine delle chip. ⚠️ <b>Tutte e sei, non quattro</b>: fino al 20 settembre 2026
+    /// Le sette famiglie, nell'ordine delle chip (sei fino al 21 settembre 2026, quando è entrata POS).
+    /// ⚠️ <b>Tutte, non quattro</b>: fino al 20 settembre 2026
     /// piste e punti si risolvevano, si segnalavano quando sparivano e non si potevano <b>inserire</b> — si
     /// scrivevano a mano, che è precisamente il modo di sbagliare la chiave e farsi dire dalla testata che un
     /// dato che c'è «non si trova più».
@@ -103,6 +104,9 @@
         new("STAR", Procedura: ProcedureKind.Star, ConIcao: true),
         new("FREQ", Dato: TipoDato.Frequenza),
         new("ATC", Dato: TipoDato.Nominativo),
+        // ⚠️ Accanto ad ATC, non in fondo: sono la stessa postazione vista in due modi — «Roma Radar» e
+        // «LIRR_NE» — e chi cerca l'una deve vedere che c'è l'altra. Chiesta dal campo il 21 settembre 2026.
+        new("POS", Dato: TipoDato.Postazione),
         new("RWY", Dato: TipoDato.Pista, ConIcao: true),
         new("FIX", Dato: TipoDato.Punto),
     };
@@ -232,12 +236,19 @@
         // ⚠️ Due domande diverse, e non una sola come fino al 20 settembre 2026: le FREQUENZE sono i settori
         // che ne hanno una dichiarata, i NOMINATIVI sono tutti — un ente senza frequenza ha comunque un nome
         // alla radio, e chiedendolo all'elenco delle frequenze non si poteva citare.
-        var righe = tipo == TipoDato.Nominativo
-            ? (await Enti.NominativiAsync()).Select(e => (e.Icao, e.Callsign,
+        // POS è la stessa domanda di ATC con le due colonne scambiate: l'etichetta è il codice, il dettaglio il
+        // nominativo — così nell'elenco si riconosce la postazione da tutti e due i lati.
+        var righe = tipo switch
+        {
+            TipoDato.Nominativo => (await Enti.NominativiAsync()).Select(e => (e.Icao, e.Callsign,
                 Etichetta: string.IsNullOrWhiteSpace(e.AtcCallsign) ? e.Callsign : e.AtcCallsign!,
-                Dettaglio: e.Callsign))
-            : (await Enti.TutteAsync()).Select(f => (f.Icao, f.Callsign,
-                Etichetta: f.Callsign, Dettaglio: f.FrequencyMhz));
+                Dettaglio: e.Callsign)),
+            TipoDato.Postazione => (await Enti.NominativiAsync()).Select(e => (e.Icao, e.Callsign,
+                Etichetta: e.Callsign,
+                Dettaglio: string.IsNullOrWhiteSpace(e.AtcCallsign) ? "" : e.AtcCallsign!)),
+            _ => (await Enti.TutteAsync()).Select(f => (f.Icao, f.Callsign,
+                Etichetta: f.Callsign, Dettaglio: f.FrequencyMhz)),
+        };
 
         var mio = RiferimentiProcedura.Norm(IcaoIniziale);
         return righe
