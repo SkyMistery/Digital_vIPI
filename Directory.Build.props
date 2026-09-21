@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.39.1 — PATCH, nessuna migrazione. Su 1.39.0 (1b25c4f, online dal 21 settembre 2026). Ancora net8:
+      il committente ha scelto di NON mettere net10 nello stesso pacchetto (un guasto dopo il carico deve
+      avere una causa sola), quindi net10 resta 1.40.0.
+
+      Il contenuto (docs/lavori-aperti.md §A103): nel sommario un gruppo INTESTATO (un documento di una pagina
+      unita, un blocco della vIPI ACC) si chiude e si apre tutto intero. Tocca Vipi.Ui (DocumentToc.razor,
+      vipi-theme.css) e Vipi.Host per il timbro. Nessuna frase nuova: en/ resta FUORI.
+    -->
+    <!--
       1.39.0 — MINOR, UNA migrazione di soli DATI (StarNascosteDiDefault: UPDATE DocumentSections SET IsHidden = 1
       WHERE SectionKey = 'stars'; nessuna colonna, nessuna tabella). Su 1.38.0 (d267c1d, online dal 21 settembre
       2026). Ancora net8. ⚠️ 1.39.0 era il numero messo da parte per net10: slitta a 1.40.0.
@@ -1628,7 +1637,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.39.0</VipiVersione>
+    <VipiVersione>1.39.1</VipiVersione>
   </PropertyGroup>
 
 </Project>

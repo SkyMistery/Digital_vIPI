@@ -2,6 +2,19 @@
 
 ## Dove siamo — 21 settembre 2026 (sera)
 
+### ✅ A103 — Sommario: un gruppo intestato si chiude tutto intero (21 settembre 2026) — in main (`57293ebe`), 📦 in 1.39.1
+
+Chiesto dal committente: nei sommari con più documenti (pagine unite) e nelle vIPI ACC (settori di aerovia, APP
+remotizzati) si deve poter chiudere o aprire l'intera voce di un documento, così un indice lungo torna usabile.
+- In `DocumentToc` un gruppo **con titolo** è `<details class="toc-grp-d" open>` con l'intestazione come
+  `<summary class="toc-grp">` e il chevron delle voci. Clic sul titolo = commuta (non c'è un link dentro, quindi
+  `wireAnchors` non lo ferma).
+- Nasce **aperto**: le voci dentro nascono già chiuse, chiudere anche i gruppi lascerebbe un indice di sole
+  intestazioni. Un gruppo **senza** titolo (documento solo) resta un `<ul>` nudo.
+- Vale anche negli editor, che passano dallo stesso sommario.
+- ⚠️ Selettore: `summary.toc-grp`, non più `p.toc-grp` (due test aggiornati, uno nuovo). `drag-verifica.js`
+  conta `.toc .toc-grp` e regge.
+
 ### ✅ A102 — 1.39.0 **ONLINE** (21 settembre 2026, notte)
 
 ✅ Il committente conferma: **timbro 1.39**, **`Schema 0`**, colori MIL/FSS giusti, STAR nascoste. Da fuori subito
