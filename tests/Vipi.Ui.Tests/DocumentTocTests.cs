@@ -159,8 +159,34 @@ public class DocumentTocTests : TestContext
 
         Assert.Single(cut.FindAll("aside.toc"));
         Assert.Equal(new[] { "Settori di aerovia", "Gruppo APP" },
-                     cut.FindAll("p.toc-grp").Select(e => e.TextContent.Trim()).ToArray());
+                     cut.FindAll("summary.toc-grp").Select(e => e.TextContent.Trim()).ToArray());
         Assert.Equal(2, cut.FindAll("a").Count);
+    }
+
+    /// <summary>
+    /// Un gruppo INTESTATO si chiude tutto intero (21 settembre 2026): in una pagina unita, o in una vIPI ACC
+    /// con settori di aerovia e APP remotizzati, è il modo di cercare in un documento lungo. Nasce aperto —
+    /// le voci dentro nascono già chiuse. Un gruppo SENZA titolo (il documento solo) resta un elenco nudo:
+    /// un interruttore che chiude l'intero indice non serve a niente.
+    /// </summary>
+    [Fact]
+    public void Un_gruppo_intestato_si_chiude_tutto_intero_e_nasce_aperto()
+    {
+        var cut = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi, new[]
+        {
+            new TocGruppo("Settori di aerovia", TocVoce.Da(new[] { Sez("s-1", "Frequenze") }, bozza: false)),
+            new TocGruppo("Gruppo APP", TocVoce.Da(new[] { Sez("s-2", "Separazioni") }, bozza: false)),
+        }));
+
+        var gruppi = cut.FindAll("details.toc-grp-d").ToList();
+        Assert.Equal(2, gruppi.Count);
+        Assert.All(gruppi, g => Assert.True(g.HasAttribute("open")));
+        Assert.Equal("#s-1", gruppi[0].QuerySelector("ul a")!.GetAttribute("href"));
+
+        var solo = RenderComponent<DocumentToc>(p => p.Add(x => x.Gruppi,
+            TocGruppo.Uno(new[] { Sez("s-1", "Frequenze") }, bozza: false)));
+        Assert.Empty(solo.FindAll("details.toc-grp-d"));
+        Assert.Single(solo.FindAll("aside.toc > ul"));
     }
 
     /// <summary>

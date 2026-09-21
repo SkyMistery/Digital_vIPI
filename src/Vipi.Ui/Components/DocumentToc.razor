@@ -39,14 +39,19 @@
         {
             @if (g.Titolo is { Length: > 0 })
             {
-                <p class="toc-grp">@g.Titolo</p>
+                @* Un gruppo INTESTATO si chiude tutto intero (richiesta del committente, 21 settembre 2026):
+                   in una pagina unita o in una vIPI ACC con settori di aerovia e APP remotizzati, chiudere i
+                   documenti che non servono è il modo di cercare in uno lungo. Nasce APERTO: le voci dentro
+                   nascono già chiuse, e chiudere anche il gruppo lascerebbe un indice di sole intestazioni. *@
+                <details class="toc-grp-d" open>
+                    <summary class="toc-grp">@g.Titolo</summary>
+                    @Elenco(g)
+                </details>
             }
-            <ul>
-                @foreach (var v in g.Voci)
-                {
-                    @Voce(v, 0)
-                }
-            </ul>
+            else
+            {
+                @Elenco(g)
+            }
         }
         @if (Footer is not null)
         {
@@ -109,6 +114,16 @@
                 </details>
             }
         </li>
+    };
+
+    private RenderFragment Elenco(TocGruppo g) => __builder =>
+    {
+        <ul>
+            @foreach (var v in g.Voci)
+            {
+                @Voce(v, 0)
+            }
+        </ul>
     };
 
     private RenderFragment Disegna(TocLink l) => Link is not null

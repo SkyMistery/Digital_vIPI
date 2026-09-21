@@ -1197,7 +1197,15 @@
 /* ⚠️ Il PRIMO gruppo si stringe sotto la testata. Era `.toc-grp:first-of-type`, che non ha mai potuto
    mordere: `:first-of-type` guarda il primo <p> fra i fratelli, e il primo <p> e' la testata `.toc-h`.
    Una regola morta non si vede perche' non rompe niente -- si vede solo misurando che cosa applica. */
-:where(.vipi-root) .toc .toc-h + .toc-grp{margin-top:2px}
+:where(.vipi-root) .toc .toc-h + .toc-grp-d>.toc-grp{margin-top:2px}
+/* Il gruppo INTESTATO (un documento di una pagina unita, un blocco della vIPI ACC) si chiude tutto intero:
+   l'intestazione e' il <summary>, col chevron delle voci. Qui il clic sul titolo COMMUTA -- non c'e' un
+   link dentro, quindi nessun preventDefault di `wireAnchors` lo ferma, ed e' quel che si vuole. */
+:where(.vipi-root) .toc .toc-grp-d>summary.toc-grp{display:flex;align-items:center;gap:4px;cursor:pointer;list-style:none;padding-left:6px;border-radius:7px}
+:where(.vipi-root) .toc .toc-grp-d>summary.toc-grp::-webkit-details-marker{display:none}
+:where(.vipi-root) .toc .toc-grp-d>summary.toc-grp::before{content:"▸";flex:0 0 auto;font-size:10px;transition:transform .12s;display:inline-block}
+:where(.vipi-root) .toc .toc-grp-d[open]>summary.toc-grp::before{transform:rotate(90deg)}
+:where(.vipi-root) .toc .toc-grp-d>summary.toc-grp:hover{background:var(--tint-atmos-soft);color:var(--brand-ink)}
 :where(.vipi-root) .doc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:6px}
 /* L'AVVISO DI SIMULAZIONE (SimDisclaimer). Rosso e grassetto, sotto il titolo di ogni documento pubblico,
    della vista live e della mappa degli spazi aerei.

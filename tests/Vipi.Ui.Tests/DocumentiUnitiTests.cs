@@ -112,7 +112,7 @@ public class DocumentiUnitiTests : TestContext
 
         // Un elenco di ventisei voci militari seguito da dieci d'avvicinamento, senza una riga che dica dove
         // finisce l'uno e comincia l'altro, è un indice che non aiuta a cercare — l'unico suo mestiere.
-        var titoli = cut.FindAll("p.toc-grp").Select(e => e.TextContent.Trim()).ToArray();
+        var titoli = cut.FindAll("summary.toc-grp").Select(e => e.TextContent.Trim()).ToArray();
         Assert.Equal(new[] { "vSOP MIL — LIBV", "Avvicinamento" }, titoli);
 
         // 🔴 E un riquadro SOLO: è la metà che conta.
