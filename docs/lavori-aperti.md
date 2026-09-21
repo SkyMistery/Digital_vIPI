@@ -2,7 +2,33 @@
 
 ## Dove siamo — 21 settembre 2026
 
-### ✅ A86 — Cinque segnalazioni dal campo dopo 1.36.0 (21 settembre 2026) — in `main`, NON in pacchetto
+### 📦 A87 — Pacchetto 1.37.0 **PRONTO DA CARICARE** (21 settembre 2026)
+
+**MINOR, NESSUNA migrazione.** Su 1.36.0 (`0493ef5`, online dal 21 settembre). Timbro **`1.37.0 · 2ad1790`**,
+**14 file**, zip `fa63471c…0d6a` (3,85 MB). Foglio:
+[`LEGGIMI-PACCHETTO-1.37.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.37.0.md). Contenuto: §A86.
+
+⚠️ **MINOR e non PATCH**: il gettone `[[POS …]]` e la settima chip sono una funzione nuova. 1.37.0 era
+messo da parte per net10: il numero segue le consegne, **net10 slitta a 1.38.0**.
+
+**I 14 file**: `Vipi.Application`, `Vipi.Ui` coi `.pdb`, `en/Vipi.Ui.resources.dll` (quattro frasi nei due
+resx), `Vipi.Host` per il timbro, `vipi-theme.css` e `vipi-aor3d.css` coi loro `.br`/`.gz`, e
+`endpoints.json` che viaggia con loro. ✅ `MySqlMigrations.dll` **fuori**: nessuna migrazione.
+Fuori anche Domain, Infrastructure, Hosting e i due Aurora — controllato progetto per progetto che nessuno
+nomini `TipoDato`, `RiferimentiDato`, `RiferimentiResolver` o `AdminCoverageService`. Contro il publish di
+1.36.0: 466 file, 440 identici, 26 diversi.
+
+✅ **Provato sul PACCHETTO** (win-x64 dalla sua cartella, :5199, copia del `vipi.db`): `pacchetto-verifica.js`
+**10/10**; timbro in `avvio-diagnostica.txt`; `Schema 0`; i quattro tempi in pagina
+(`controlli 617 · admin 0 · impatti 23 · giri 1`) — ⚠️ **«admin 0 ms» è la prova dal vivo** che la tabella non
+si ricalcola più; la fisarmonica 7/7; le linguette 2D/3D vestite anche **bloccando** `vipi-aor3d*` in rete, sul
+CSS minificato.
+
+▶ **Dopo il carico**: timbro, **la Ricerca**, `Schema 0`, e dopo Ctrl+F5 le quattro schede pieghevoli e i
+**quattro tempi** della Diagnostica. 🔴 **Quei numeri sono la cosa da farsi mandare**: dicono dove sta la
+lentezza della pagina in produzione.
+
+### ✅ A86 — Cinque segnalazioni dal campo dopo 1.36.0 (21 settembre 2026) — 📦 in 1.37.0
 
 Tre commit, CI verde su tutti: `29805ef0`, `128a67c2`, `d8bd88fe`. Nessuna migrazione.
 
