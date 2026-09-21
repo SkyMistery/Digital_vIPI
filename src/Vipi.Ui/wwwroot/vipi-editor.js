@@ -125,6 +125,20 @@
     // solo nel campo che lo porta. ⚠️ La posizione resta quella del clic sul tasto: chi torna nel campo e sposta
     // il cursore col selettore aperto, riceve il riferimento dove stava prima.
     var sidGettoni = 0;
+
+    // Il segno «toccato»: al primo fuoco di un campo di testo, per sapere poi che il suo cursore è una scelta
+    // di chi scrive. ⚠️ Sul DOCUMENTO e una volta sola: il segno di aggancio sta in una proprietà di `window` e
+    // non in un `data-*`, che la navigazione enhanced cancella — e un secondo ascoltatore non farebbe danni, ma
+    // è la regola già pagata (vedi memoria «segno agganciato in proprietà JS»).
+    if (!window.__vipiSidToccato) {
+        window.__vipiSidToccato = true;
+        document.addEventListener('focusin', function (ev) {
+            var t = ev.target;
+            if (t && (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type === 'text')))
+                t.setAttribute('data-sid-toccato', '');
+        }, true);
+    }
+
     window.vipiSidPrendi = function (contenitore) {
         if (!contenitore) return '';
         var campo = function (x) { return x && (x.tagName === 'TEXTAREA' || (x.tagName === 'INPUT' && x.type === 'text')); };
@@ -132,11 +146,20 @@
         if (!campo(el) || (el !== contenitore && !contenitore.contains(el))) return '';
         // Le intestazioni di una tabella non sono celle: il riferimento lì non si risolverebbe nelle anteprime.
         if (el !== contenitore && el.closest('thead')) return '';
-        // Un campo che non ha il fuoco (il tasto premuto senza aver mai cliccato nel testo) riceve in CODA, non
-        // in testa: il cursore «a zero» di un campo mai toccato non è una scelta di chi scrive.
+        // Un campo MAI TOCCATO riceve in CODA, non in testa: il cursore «a zero» di un campo in cui nessuno ha
+        // cliccato non è una scelta di chi scrive.
+        //
+        // 🔴 Ma «non ha il fuoco» non vuol dire «mai toccato», e fino al 21 settembre 2026 le due cose erano la
+        // stessa regola. Segnalato dal campo: «la cite non la inserisce dove ho messo il cursore ma sempre alla
+        // fine». Riprodotto: cursore a metà, poi un qualunque gesto che toglie il fuoco al campo prima del tasto
+        // — un clic altrove, un tocco su schermo (dove il `preventDefault` sul mousedown non vale) — e il
+        // riferimento finiva in coda, mentre il browser il cursore lo ricordava ancora, a metà.
+        // Ora il campo che è stato toccato (`data-sid-toccato`, scritto al primo fuoco) usa il cursore che il
+        // browser ricorda; solo quello mai toccato va in coda.
         var n = el.value.length;
-        var s = el === document.activeElement ? el.selectionStart : n;
-        var e = el === document.activeElement ? el.selectionEnd : n;
+        var ricorda = el === document.activeElement || el.hasAttribute('data-sid-toccato');
+        var s = ricorda ? el.selectionStart : n;
+        var e = ricorda ? el.selectionEnd : n;
         var gettone = 'g' + (++sidGettoni);
         el.setAttribute('data-sid-bersaglio', gettone + '|' + s + ',' + e);
         return gettone;
