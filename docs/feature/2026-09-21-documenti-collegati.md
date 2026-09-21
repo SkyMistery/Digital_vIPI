@@ -1,4 +1,4 @@
-# Documenti collegati nel sommario (§A109) — carta
+# Documenti collegati (§A109, §A111) — carta
 
 > Chiesto dal committente il 21 settembre 2026 (sera). Decisioni prese in chat, riportate qui come contratto.
 
@@ -58,7 +58,7 @@ della pagina Struttura, costruito dalle **stesse righe** — la lettura è estra
 1. **Modello**: nessun gemello. I documenti vengono da `IDocumentAdminRepository.ListAsync` (il descrittore
    unico, con release in vigore e nascosto); la struttura dalla lettura estratta di `EfHierarchyEditingService`.
 2. **Dispatch**: gli indirizzi da `IDocRoutesRegistry.PublicUrl`, nessuno switch nuovo sugli URL. La regola che
-   sceglie i link per famiglia è **una** (`DocLinkRules.Capture`), pura e testata.
+   sceglie i link per famiglia è **una** (`DocumentiCollegati.Capture`), pura e testata.
 3. **Ingressi + verifica**: niente da creare. Verifica dal vivo su copia del DB: LIBN vSOP (risalita fino a
    LIBB), LIRN vIPI (APP remotizzato), LIBV (vIPI + vSOP + APP), vIPI ACC LIBB/LIRR (gruppi chiusi).
 4. **Propagazione**: additiva. (In 1.41.0 `TocVoce.Href`, `TocGruppo.Chiuso` e `DocumentToc.Collegati`; tolti in
