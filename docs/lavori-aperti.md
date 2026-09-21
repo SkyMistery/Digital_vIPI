@@ -13,9 +13,14 @@ Ma il blocco era nel posto sbagliato: il committente lo voleva nella **colonna d
   `DocumentToc.Collegati`, `TocVoce.Href/Collegamento`, `TocGruppo.Chiuso` e la regola CSS della doppia testata:
   `DocumentToc`/`TocModels` tornano identici a prima di §A109. Test: 3 bUnit sul riquadro al posto dei 2 sul sommario.
 - Verificato a schermo a 1600 px su copia: LIBD, vIPI LIBB (gruppo Aeroporti), LIML vSOP unita (`#doc-39`).
-- 📦 **1.41.1** PATCH, vedi foglio `LEGGIMI-PACCHETTO-1.41.1.md`.
+- 📦 **1.41.1 PRONTO DA CARICARE**: PATCH, **8 file** (Vipi.Ui + Vipi.Host dll/pdb, `vipi-theme.css` br/gz +
+  `endpoints.json`; en/ fuori). Timbro **`1.41.1 · bd668a7`**, zip `vipi-1.41.1-solo-file-cambiati.zip`
+  `84a93c90…9c0c`. Foglio [`LEGGIMI-PACCHETTO-1.41.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.41.1.md). 1.41.0
+  ruotata in `publish_old/20260921h`. Provato sul pacchetto win-x64 su `vipi_1410` (MariaDB): 10/10, riquadro a
+  destra su LIBN vSOP e vIPI LIBB.
+- ▶ **Alla ripresa**: chiedere se caricato → timbro, `Schema 0`, Ricerca, riquadro a destra su LIBB e LIBN.
 
-### 📦 A110 — Pacchetto 1.41.0: §A108 + §A109 (21 settembre 2026, notte) — PRONTO DA CARICARE
+### ✅ A110 — Pacchetto 1.41.0: §A108 + §A109 (21 settembre 2026, notte) — ONLINE (vedi §A111)
 
 **MINOR, nessuna migrazione.** Su 1.40.0 (`fb19094`, net10). Timbro **`1.41.0 · 235a15d`**. Stesso runtime:
 torna la lista corta. **13 file**: Application, Infrastructure, Ui, Host (dll+pdb), `en/Vipi.Ui.resources.dll`
