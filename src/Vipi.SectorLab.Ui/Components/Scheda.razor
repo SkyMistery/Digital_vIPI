@@ -48,6 +48,40 @@
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
         }
 
+        @if (CampoDeiVertici(scheda) is { } campoVertici)
+        {
+            var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, campoVertici);
+            <h2>Vertici <span class="lab-nota">@vertici.Count</span></h2>
+
+            <div class="lab-vertici" data-vertici="@vertici.Count">
+                @for (int i = 0; i < vertici.Count; i++)
+                {
+                    int posizione = i;
+                    <div class="lab-vertice">
+                        <span class="lab-numero">@(posizione + 1)</span>
+                        <input class="lab-campo" value="@vertici[posizione]"
+                               @onchange="e => Gesto(scheda, campoVertici, GestoDeiVertici.Cambia, posizione, e.Value?.ToString())"
+                               data-vertice="@posizione" />
+                        <button class="lab-annulla" title="aggiungi un vertice qui sopra"
+                                @onclick="() => Gesto(scheda, campoVertici, GestoDeiVertici.Aggiungi, posizione, vertici[posizione])"
+                                data-aggiungi="@posizione">+</button>
+                        <button class="lab-annulla" title="togli questo vertice"
+                                @onclick="() => Gesto(scheda, campoVertici, GestoDeiVertici.Togli, posizione)"
+                                data-togli="@posizione">−</button>
+                    </div>
+                }
+            </div>
+
+            <details class="lab-incolla">
+                <summary data-incolla="apri">Incolla da testo</summary>
+                @* Il testo dell'AIP (archi compresi) o l'uscita del convertitore del sito: lo legge F1. *@
+                <textarea class="lab-campo" rows="4" @bind="_daIncollare" @bind:event="oninput"
+                          placeholder="Testo AIP, o coordinate una per riga" data-campo="incolla"></textarea>
+                <button class="lab-tasto" disabled="@string.IsNullOrWhiteSpace(_daIncollare)"
+                        @onclick="() => Incolla(scheda, campoVertici)" data-tasto="incolla">Sostituisci i vertici</button>
+            </details>
+        }
+
         <h2>Righe del file</h2>
         <pre class="lab-righe" data-righe="@scheda.Righe.Count">@foreach (var riga in scheda.Righe)
 {<span class="@(riga.DelRecord ? "lab-riga-del-record" : "lab-riga-contesto")" data-riga="@riga.Numero"><span class="lab-numero">@riga.Numero</span> @riga.Testo
@@ -90,6 +124,24 @@ else
 
     private void Cambia(SchedaDelRecord scheda, string campo, string? valore)
         => Lab.CambiaCampo(scheda.File, scheda.Indice, campo, valore);
+
+    private string? _daIncollare;
+
+    /// <summary>
+    /// Il campo che porta i vertici della forma, se c'è. ⚠️ I tracciati a più tratti (le zone dei <c>.str</c>, le
+    /// <c>.sid</c>) tengono i punti dentro i loro segmenti: quelli in slice 7 non si toccano ancora.
+    /// </summary>
+    private string? CampoDeiVertici(SchedaDelRecord scheda)
+        => scheda.Campi.Select(c => c.Nome).FirstOrDefault(nome => Lab.VerticiDi(scheda.File, scheda.Indice, nome).Count > 0);
+
+    private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
+        => Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);
+
+    private void Incolla(SchedaDelRecord scheda, string campo)
+    {
+        if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare))
+            _daIncollare = null;
+    }
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 

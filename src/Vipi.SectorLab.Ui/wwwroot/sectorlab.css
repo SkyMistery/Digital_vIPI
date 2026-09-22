@@ -340,6 +340,50 @@ html, body {
     background: #fffaf0;
 }
 
+.lab-vertici {
+    max-height: 16rem;
+    overflow-y: auto;
+}
+
+.lab-vertice {
+    display: flex;
+    gap: .3rem;
+    align-items: center;
+    padding: .06rem 0;
+}
+
+.lab-vertice .lab-numero {
+    width: 2rem;
+    text-align: right;
+    flex: none;
+}
+
+.lab-vertice .lab-campo {
+    font: 12px/1.5 "Cascadia Mono", Consolas, monospace;
+}
+
+.lab-vertice .lab-annulla {
+    margin: 0;
+    padding: 0 .25rem;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.lab-incolla {
+    margin-top: .5rem;
+}
+
+.lab-incolla summary {
+    cursor: pointer;
+    color: var(--lab-accento);
+}
+
+.lab-incolla textarea {
+    margin: .3rem 0;
+    font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+    resize: vertical;
+}
+
 .lab-modifiche {
     margin-top: 1rem;
     padding-top: .6rem;

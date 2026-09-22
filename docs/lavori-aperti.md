@@ -19,6 +19,12 @@ ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 del
   riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
   🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
   primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
+- **Slice 7**: i **vertici** — cambia, aggiungi, togli, e **«incolla da testo»** col convertitore di F1 (archi
+  compresi). Misura: **154/154** file con elenchi piatti col diff di una riga tolta e una aggiunta; l'esempio AIP del
+  committente su `lsas.tfl` fa 1 023 → 89 vertici in 15 ms. 🔴 Difetto preso dalla misura: `Punto` ha una conversione
+  **implicita** da `Coordinate` e il ternario faceva uscire un `Punto` anche per gli elenchi di coordinate — ogni
+  `.pol` e `.lairway` cadeva. ⚠️ **Da decidere col committente**: i tracciati a più tratti (`.str` a segmenti,
+  `Track` delle `.sid`) la slice 7 non li tocca — serve una slice a parte prima della 8?
 - **Slice 6**: **modifica dei campi** (in memoria; sul disco si scrive dalla slice 9) e **pannello delle modifiche in
   sospeso** col diff. Il diff lo produce lo **scrittore vero** (`FileSaverOrchestrator.Righe`, aggiunto al motore) e
   lo confronta **Myers**. Misura sull'albero: una modifica in ognuno dei 348 file con un campo coordinata →

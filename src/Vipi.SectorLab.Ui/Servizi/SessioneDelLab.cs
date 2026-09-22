@@ -2,8 +2,18 @@ using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Ui.Servizi;
+
+/// <summary>I quattro gesti sui vertici di una forma (slice 7).</summary>
+public enum GestoDeiVertici
+{
+    Cambia,
+    Aggiungi,
+    Togli,
+    Incolla,
+}
 
 /// <summary>Dov'è la sessione: chiusa, in apertura, aperta, o fallita con un motivo.</summary>
 public enum StatoDelLab
@@ -252,7 +262,50 @@ public sealed class SessioneDelLab
         return esito is ModificaDiCampo;
     }
 
-    public void AnnullaModifica(ModificaDiCampo modifica)
+    /// <summary>I vertici di una forma, per l'elenco dell'ispettore (slice 7). Vuoto se quel campo non è vertici.</summary>
+    public IReadOnlyList<string> VerticiDi(string fileRelativo, int record, string campo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return [];
+
+        return ModificheInSospeso.Vertici(file, record, campo) is { } elenco
+            ? [.. elenco.Cast<object>().Select(ComeSiLegge)]
+            : [];
+    }
+
+    /// <summary>Un gesto sui vertici: cambia, aggiungi, togli, incolla. Torna vero se è andato.</summary>
+    public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
+                                int posizione = 0, string? testo = null)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        object esito = gesto switch
+        {
+            GestoDeiVertici.Cambia => Modifiche.CambiaVertice(file, record, campo, posizione, testo, etichetta),
+            GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
+            GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
+            _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta),
+        };
+
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDeiVertici)
+            RifaiLaGeometria(fileRelativo);
+
+        Cambiata?.Invoke();
+        return esito is ModificaDeiVertici;
+    }
+
+    private static string ComeSiLegge(object punto) => punto switch
+    {
+        Coordinate c => CoordinateConverter.ToDottedDms(c),
+        Punto p when p.PerNome => p.Nome == p.NomeLongitudine ? p.Nome! : $"{p.Nome} {p.NomeLongitudine}",
+        Punto p => CoordinateConverter.ToDottedDms(p.Posizione!.Value),
+        _ => punto.ToString() ?? "",
+    };
+
+    public void AnnullaModifica(Modifica modifica)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(modifica.File, out var file))
             return;

@@ -27,7 +27,7 @@
                 {
                     <div class="lab-una-modifica" data-modifica="@modifica.Campo">
                         <span class="lab-etichetta">@(modifica.Etichetta is { Length: > 0 } e ? e : $"record {modifica.Record}")</span>
-                        <span class="lab-nota">@modifica.Campo: @modifica.Prima → @modifica.Dopo</span>
+                        <span class="lab-nota">@modifica.Descrizione</span>
                         <button class="lab-annulla" @onclick="() => Lab.AnnullaModifica(modifica)" data-annulla="@modifica.Campo">annulla</button>
                     </div>
                 }
