@@ -39,6 +39,12 @@ public abstract class FileAperto
 public interface IFileConRecord
 {
     IReadOnlyList<object> RecordDelModello { get; }
+
+    /// <summary>
+    /// Le righe da cui è stato letto un record, col loro numero VERO nel file (da 1), più qualche riga di contesto
+    /// sopra e sotto. Sta qui e non nell'ispettore perché i <c>Chunks</c> sono generici: solo il file sa il suo T.
+    /// </summary>
+    IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -68,6 +74,51 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         RecordChunk<T> record => record.LeadingComments.Length + record.RawLines.Length,
         _ => 0,
     });
+
+    /// <inheritdoc/>
+    public IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto)
+    {
+        // Si contano le righe dall'inizio del file, nell'ordine dei chunk: il numero che ne esce è quello del disco,
+        // lo stesso che cita il validatore. Un record è il chunk n-esimo fra quelli che portano un record.
+        var righe = new List<(int Numero, string Testo)>();
+        int numero = 0;
+        int quale = -1;
+        int primaDelRecord = -1;
+        int dopoIlRecord = -1;
+
+        foreach (var chunk in Letto.Chunks)
+        {
+            switch (chunk)
+            {
+                case RawChunk<T> grezzo:
+                    foreach (string riga in grezzo.Lines)
+                        righe.Add((++numero, riga));
+                    break;
+
+                case RecordChunk<T> record:
+                    quale++;
+                    bool eIlNostro = quale == indice;
+                    foreach (string commento in record.LeadingComments)
+                        righe.Add((++numero, commento));
+                    if (eIlNostro)
+                        primaDelRecord = numero;
+                    foreach (string riga in record.RawLines)
+                        righe.Add((++numero, riga));
+                    if (eIlNostro)
+                        dopoIlRecord = numero;
+                    break;
+            }
+        }
+
+        if (primaDelRecord < 0)
+            return [];
+
+        int da = Math.Max(1, primaDelRecord + 1 - contesto);
+        int a = Math.Min(numero, dopoIlRecord + contesto);
+        return [.. righe
+            .Where(r => r.Numero >= da && r.Numero <= a)
+            .Select(r => new Ispezione.RigaGrezza(r.Numero, r.Testo, r.Numero > primaDelRecord && r.Numero <= dopoIlRecord))];
+    }
 }
 
 /// <summary>

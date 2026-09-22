@@ -30,6 +30,14 @@
         </header>
 
         <div class="lab-corpo">
+            <aside class="lab-colonna lab-colonna-sfoglia">
+                <Sfoglia />
+            </aside>
+
+            <aside class="lab-colonna lab-colonna-ispettore">
+                <Scheda />
+            </aside>
+
             <aside class="lab-strati">
                 <h2>Strati</h2>
                 @foreach (var strato in Lab.Strati)
@@ -48,16 +56,10 @@
 
                 @if (Scelta is { } scelta)
                 {
-                    <div class="lab-scelta" data-scelta="@($"{scelta.File}#{scelta.Record}")">
-                        <h2>Scelto</h2>
-                        <p class="lab-etichetta">@scelta.Etichetta</p>
-                        <p class="lab-nota">@scelta.File · record @scelta.Record · @scelta.Punti.ToString("N0") punti</p>
-                        @if (scelta.NomiNonRisolti.Count > 0)
-                        {
-                            @* Il motivo per cui una forma non si disegna (slice 3b): sta scritto, non sparisce. *@
-                            <p class="lab-irrisolti">Nomi che @Lab.IscScelto non conosce: @string.Join(", ", scelta.NomiNonRisolti)</p>
-                        }
-                    </div>
+                    @* Solo i numeri della forma: chi l'ha scelta la legge per intero nell'ispettore, a sinistra. *@
+                    <p class="lab-nota lab-scelta" data-scelta="@($"{scelta.File}#{scelta.Record}")">
+                        Scelto: <span class="lab-etichetta">@scelta.Etichetta</span> · @scelta.Punti.ToString("N0") punti
+                    </p>
                 }
             </aside>
 

@@ -1,0 +1,26 @@
+@inject SessioneDelLab Lab
+
+@* Una cartella dell'albero, aperta e chiusa col <details> nativo (niente stato da tenere in giro). *@
+<details class="lab-cartella" open="@Aperta">
+    <summary data-cartella="@Nodo.Nome">
+        @Nodo.Nome
+        <span class="lab-nota">@Nodo.FileTotali file · @Nodo.RecordTotali.ToString("N0") record</span>
+    </summary>
+    <div class="lab-dentro">
+        @foreach (var figlia in Nodo.Cartelle)
+        {
+            <Cartella Nodo="figlia" />
+        }
+        @foreach (var file in Nodo.File)
+        {
+            <VoceDiFile File="file" />
+        }
+    </div>
+</details>
+
+@code {
+    [Parameter, EditorRequired] public CartellaDaSfogliare Nodo { get; set; } = null!;
+
+    /// <summary>Aperta se dentro c'è il file scelto: chi arriva da una forma sulla mappa si ritrova al posto giusto.</summary>
+    private bool Aperta => Lab.FileScelto?.StartsWith(Nodo.Percorso + "/", StringComparison.OrdinalIgnoreCase) == true;
+}

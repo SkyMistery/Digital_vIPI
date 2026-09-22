@@ -1,3 +1,4 @@
+using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Sessione;
 
@@ -46,6 +47,15 @@ public sealed class SessioneDelLab
 
     /// <summary>Il record scelto sulla mappa: file e indice, l'aggancio con l'ispettore della slice 5.</summary>
     public (string File, int Record)? Scelta { get; private set; }
+
+    /// <summary>L'albero delle cartelle da sfogliare (slice 5), costruito una volta all'apertura.</summary>
+    public CartellaDaSfogliare? Albero { get; private set; }
+
+    /// <summary>I file che stanno fuori da <c>Include/IT</c>: gli <c>.isc</c>, <c>update.ini</c>, <c>changelog.md</c>.</summary>
+    public IReadOnlyList<FileDaSfogliare> FuoriDaiDati { get; private set; } = [];
+
+    /// <summary>Il file aperto nell'elenco dei record; la scelta di un record lo apre da sé.</summary>
+    public string? FileScelto { get; private set; }
 
     /// <summary>Perché l'apertura non è riuscita: si dice a schermo, non si nasconde.</summary>
     public string? Errore { get; private set; }
@@ -110,7 +120,11 @@ public sealed class SessioneDelLab
             Cataloghi = cataloghi;
             IscScelto = isc;
             Strati = strati;
+            Albero = AlberoDaSfogliare.Di(sessione);
+            FuoriDaiDati = AlberoDaSfogliare.FuoriDaiDati(sessione);
             Scelta = null;
+            FileScelto = null;
+            _etichette.Clear();
             Stato = StatoDelLab.Aperta;
             Errore = null;
             Ricorda(cartella.Radice);
@@ -139,6 +153,8 @@ public sealed class SessioneDelLab
         var sessione = Sessione;
         var catalogo = Cataloghi[isc];
         Strati = await Task.Run(() => StratiDellaMappa.DiSessione(sessione, catalogo), annulla).ConfigureAwait(false);
+        // Le etichette dipendono dal master (un punto per nome che lì non si risolve si chiama diversamente).
+        _etichette.Clear();
         Cambiata?.Invoke();
     }
 
@@ -163,6 +179,10 @@ public sealed class SessioneDelLab
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
         IscScelto = null;
         Scelta = null;
+        Albero = null;
+        FuoriDaiDati = [];
+        FileScelto = null;
+        _etichette.Clear();
         Errore = null;
         Cambiata?.Invoke();
     }
@@ -170,8 +190,46 @@ public sealed class SessioneDelLab
     public void Scegli(string? file, int record)
     {
         Scelta = file is null ? null : (file, record);
+        // Scegliere un record apre il suo file nell'elenco: chi clicca una forma sulla mappa si ritrova nel posto
+        // giusto dell'albero, senza cercarselo.
+        if (file is not null)
+            FileScelto = file;
         Cambiata?.Invoke();
     }
+
+    /// <summary>Apre (o chiude, con null) un file nell'elenco dei record. Non cambia la scelta.</summary>
+    public void ApriFile(string? relativo)
+    {
+        FileScelto = relativo == FileScelto ? null : relativo;
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>Le etichette dei record di un file, calcolate la prima volta che il file si apre e poi tenute.</summary>
+    public IReadOnlyList<string> EtichetteDi(string relativo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(relativo, out var file))
+            return [];
+        if (_etichette.TryGetValue(relativo, out var gia))
+            return gia;
+
+        var etichette = Ispettore.Etichette(file, CatalogoScelto);
+        _etichette[relativo] = etichette;
+        return etichette;
+    }
+
+    /// <summary>La scheda del record scelto: i campi e le righe grezze del file, coi numeri di riga veri.</summary>
+    public SchedaDelRecord? Scheda()
+        => Scelta is { } scelta && Sessione is not null && Sessione.File.TryGetValue(scelta.File, out var file)
+            ? Ispettore.Scheda(file, scelta.Record, CatalogoScelto)
+            : null;
+
+    /// <summary>La ricerca per nome fra le forme della mappa (slice 5).</summary>
+    public IReadOnlyList<Trovato> Cerca(string? testo) => Ricerca.Cerca(Strati, testo);
+
+    private CatalogoDeiPunti? CatalogoScelto
+        => IscScelto is not null && Cataloghi.TryGetValue(IscScelto, out var catalogo) ? catalogo : null;
+
+    private readonly Dictionary<string, IReadOnlyList<string>> _etichette = new(StringComparer.Ordinal);
 
     /// <summary>La forma scelta, se c'è ancora fra gli strati (cambiando master una forma può sparire).</summary>
     public FormaDellaMappa? FormaScelta()

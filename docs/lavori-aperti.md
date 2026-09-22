@@ -19,6 +19,15 @@ ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 del
   riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
   🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
   primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
+- **Slice 5**: sfoglia (albero delle cartelle costruito dai file già aperti), **ricerca per nome** fra le forme della
+  mappa (esatto → comincia → contiene; ⚠️ i record senza geometria, `.frq` e ATIS, non ci sono ancora), e
+  **ispettore in lettura**: i campi per riflessione sul modello del motore (niente tabella per tipo, sarebbe una
+  seconda verità) e le righe grezze col **numero vero del file**, quello che cita il validatore. Albero in 6 ms,
+  ricerca 0-11 ms, etichette del file più grosso (13 560 record) in 6 ms.
+  🔴 Due etichette sbagliate trovate dalla MISURA e non dai test: 201 «AtcPosition» (i `.frq` hanno `Code`) e 13 560
+  «Line» (i `.geo` senza nome hanno il colore). 🔴 Una **prova che non distingueva**: i nomi del test erano in ordine
+  alfabetico *e* di punteggio. 🔴 `bUnit` 1.40 con AngleSharp 1.6: `FindAll(...)[0]` lancia `MissingMethodException`,
+  si usa `.First()`.
 
 - 🔴 **Difetto del motore corretto in F3 (slice 3b), che riguarda anche i dati**: il lettore dei `.rw` riconosceva la
   sezione solo scritta `//PISTE`, e i quattro file di FIR la scrivono `///////PISTE` — **187 righe di pista**

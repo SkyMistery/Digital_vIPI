@@ -172,6 +172,147 @@ html, body {
     color: #b03030;
 }
 
+/* --- sfoglia e ispettore (slice 5) ---------------------------------------------------------------------------- */
+
+.lab-colonna {
+    width: 19rem;
+    padding: .6rem .7rem;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid #dde1e7;
+}
+
+.lab-colonna-ispettore {
+    width: 22rem;
+}
+
+.lab-cerca {
+    width: 100%;
+    box-sizing: border-box;
+    padding: .35rem .5rem;
+    margin-bottom: .5rem;
+    border: 1px solid #c3c8d0;
+    border-radius: 4px;
+    font: inherit;
+}
+
+.lab-albero summary {
+    cursor: pointer;
+    padding: .1rem 0;
+}
+
+.lab-dentro {
+    padding-left: .8rem;
+    border-left: 1px solid #e6e9ee;
+    margin-left: .3rem;
+}
+
+.lab-file,
+.lab-voce,
+.lab-trovato {
+    display: flex;
+    gap: .4rem;
+    align-items: baseline;
+    width: 100%;
+    padding: .15rem .3rem;
+    border: 0;
+    border-radius: 3px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lab-file:hover,
+.lab-voce:hover,
+.lab-trovato:hover {
+    background: #eef2f7;
+}
+
+.lab-scelto {
+    background: #e2ecf7;
+    font-weight: 600;
+}
+
+.lab-file .lab-nota,
+.lab-voce .lab-nota,
+.lab-trovato .lab-nota {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-file-testo {
+    opacity: .6;
+}
+
+.lab-numero {
+    color: var(--lab-tenue);
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-record {
+    margin-top: .8rem;
+    padding-top: .5rem;
+    border-top: 1px solid #dde1e7;
+}
+
+.lab-record h2,
+.lab-ispettore h2 {
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--lab-tenue);
+    margin: .3rem 0 .4rem;
+}
+
+.lab-campi {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.lab-campi th {
+    width: 9rem;
+    text-align: left;
+    font-weight: 500;
+    color: var(--lab-tenue);
+    vertical-align: top;
+    padding: .12rem .4rem .12rem 0;
+}
+
+.lab-campi td {
+    padding: .12rem 0;
+    word-break: break-word;
+}
+
+.lab-righe {
+    margin: 0;
+    padding: .4rem;
+    background: #f7f8fa;
+    border: 1px solid #e6e9ee;
+    border-radius: 4px;
+    overflow-x: auto;
+    font: 12px/1.5 "Cascadia Mono", Consolas, monospace;
+    white-space: pre;
+}
+
+.lab-riga-del-record {
+    display: block;
+    background: #fff5e0;
+}
+
+.lab-riga-contesto {
+    display: block;
+    color: var(--lab-tenue);
+}
+
+.lab-ispettore-vuoto {
+    margin: .6rem .2rem;
+}
+
 .lab-mappa {
     flex: 1;
     min-width: 0;

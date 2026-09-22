@@ -1,0 +1,12 @@
+@inject SessioneDelLab Lab
+
+@* Un file nell'albero: si apre e si chiude, e dice quanti record ha. *@
+<button class="lab-file @(Lab.FileScelto == File.Relativo ? "lab-scelto" : null) @(File.Interpretato ? null : "lab-file-testo")"
+        @onclick="() => Lab.ApriFile(File.Relativo)" data-file="@File.Relativo">
+    @File.Nome
+    <span class="lab-nota">@(File.Interpretato ? File.Record.ToString("N0") : "testo")</span>
+</button>
+
+@code {
+    [Parameter, EditorRequired] public FileDaSfogliare File { get; set; } = null!;
+}
