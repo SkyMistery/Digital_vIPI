@@ -26,8 +26,9 @@ public sealed class GeoParser : LineRecordParser<Line>
             n--;   // ignore the empty field produced by the trailing ';'
         }
 
-        // A segment needs Lat1, Lon1, Lat2, Lon2 and a colour name.
-        if (n < 5 || parts[4].Trim().Length == 0)
+        // A segment needs Lat1, Lon1, Lat2, Lon2 and the colour FIELD — which may be empty (F2 slice 5: 10 real
+        // segments `…;E013.18.35.124;;` in liap.geo & co., «malformed» in A). The empty colour is the validator's business, not a reason to lose the segment.
+        if (n < 5)
         {
             return false;
         }

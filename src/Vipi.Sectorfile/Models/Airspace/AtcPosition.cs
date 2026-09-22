@@ -11,7 +11,7 @@ public sealed class AtcPosition
     public string Code { get; set; } = string.Empty;       // e.g. "LIRR_NE_CTR"
     public decimal FrequencyMhz { get; set; }
     public IList<Transfer> TransferList { get; } = new List<Transfer>();
-    public string Profile { get; set; } = string.Empty;    // .cpr file reference
+    public string? Profile { get; set; }                   // .cpr file reference; null when the line stops at the transfer list
     public string? AtisFile { get; set; }
     public bool BlockCpdlc { get; set; }
     public string? DatisFile { get; set; }

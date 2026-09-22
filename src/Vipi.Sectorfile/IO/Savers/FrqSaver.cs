@@ -24,10 +24,17 @@ public sealed class FrqSaver : IFileSaver<AtcPosition>
             record.Code,
             record.FrequencyMhz.ToString(CultureInfo.InvariantCulture),
             transfers,
-            record.Profile,
-            record.AtisFile ?? string.Empty,
-            record.BlockCpdlc ? "1" : "0",
         };
+
+        // A position with nothing after the transfer list is written as it was read (F2 slice 5).
+        if (record.Profile is null && record.AtisFile is null && !record.BlockCpdlc && record.DatisFile is null)
+        {
+            return new[] { string.Join(";", fields) + ";" };
+        }
+
+        fields.Add(record.Profile ?? string.Empty);
+        fields.Add(record.AtisFile ?? string.Empty);
+        fields.Add(record.BlockCpdlc ? "1" : "0");
 
         if (record.DatisFile is not null)
         {

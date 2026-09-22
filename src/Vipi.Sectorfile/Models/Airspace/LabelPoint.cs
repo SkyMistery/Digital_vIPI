@@ -17,7 +17,7 @@ public enum LabelMode
 /// An ACC fix-label record (from ACC/*.artcc). Serialised as:
 /// FixRef (or CustomName, or "") ; Lat ; Lon ; FontSize ;
 /// </summary>
-public sealed class LabelPoint
+public sealed class LabelPoint : ElementoArtcc
 {
     public LabelMode Mode { get; set; } = LabelMode.FixName;
 

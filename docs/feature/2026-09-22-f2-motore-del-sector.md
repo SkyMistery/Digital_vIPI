@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-4 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-5 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -310,6 +310,43 @@ le SID col tracciato entrano nella misura; lo spostamento prende il primo punto 
 Campioni nuovi: `DYNAMIC_SEC/libb_es_ctr.tfl`, `lied.sid`. Test: 334 su net8 e net10 (31 nuovi: `PuntoTests`,
 `PuntiPerNomeTests`, due misure in `UnaModificaPerRecordTests`); controprova: spenti i nomi nel lettore `.tfl`,
 3 rossi.
+
+**Slice 5 — le forme opache** (commit = il successivo a `3d331045`). Cinque forme legittime, ognuna presa dalla
+specifica di B (§4.3, §5.1, §6.1, §6.2, §6.4) e ricontata sull'albero:
+- **`.fix`**: `DisplayType` e il campo 5 sono **facoltativi** (`int?`, `string?`). 2 032 fix a 4 campi (i
+  nascosti, `BC404;…;3;`) e 9 a 3 (`POE1;lat;lon;`, `VFR_NASCOSTI.fix`). Ribalta §22.3 di A.
+- **`.artcc`**: il record è un'unione, `ElementoArtcc` = `LabelPoint` (`L;`) **o** `StaticBoundaryGroup`
+  (`T;`, lo stesso modello e lo stesso scrittore dei `.hartcc`). Erano 5 041 righe: tutti i bordi di `FRA.artcc`
+  e `FRA-gates.artcc`. Ribalta §19.4 di A. 🔴 Trovato strada facendo, **anche nei `.hartcc`** (latente): una
+  serie di `T;` che **comincia con DUMMY** (`FRA.artcc`: `T;DUMMY;N038.34…` poi `T;LIMITROFI;…`) prendeva
+  «DUMMY» come nome del gruppo, e lo scrittore riscriveva ogni vertice come una riga DUMMY. L'ha visto «una
+  modifica per record» (121 record → 1 901 righe cambiate); ora il nome è quello del primo vertice vero.
+- **`.frq`**: il profilo è facoltativo (`string?`): 35 posizioni si fermano all'elenco dei trasferimenti
+  (`LIZZ_AEW_CTR;136.400;LIMM LIRR …`), e si riscrivono senza campi in più.
+- **`.geo`**: il campo colore può essere **vuoto** (10 segmenti, `…;E013.18.35.124;;`).
+- **`.pol`**: un commento **subito dopo l'intestazione** è il nome del poligono (`STATIC;TAXIWAY;1;TAXIWAY;` poi
+  `//BR_twy_B`) e resta nel blocco. In A chiudeva il poligono a **zero vertici** e i vertici finivano in righe
+  grezze: 30 poligoni invisibili al modello (più 2 davvero vuoti, sotto). Il §1 li contava come «righe vuote»:
+  erano tutti commenti.
+
+Prova sull'albero intero: **righe opache 7 162 → 7**, tutte **errori veri del sector** (da passare agli AOD con
+`R47` di F1; il validatore della slice 8 li riprenderà):
+
+| file:riga | riga | errore |
+|---|---|---|
+| `NAVAIDS/itvor.vor:81` | `GRO;;N042.45.37.200;…` | frequenza vuota |
+| `NAVAIDS/itvor.vor:109` | `KPT;108.40;N047.44.75.000;E010.20.99.000;…` | minuti 75 e 99 |
+| `NAVAIDS/APT.fix:294` | `MG763;N044.03.11.145;E008-11.31.443;3;` | trattino al posto del punto |
+| `NAVAIDS/MIL.fix:96` | `PL-BRAVO;N044.54.40.500;E010.34.072.00;3;` | secondi 72 |
+| `DYNAMIC_SEC/lovv.tfl:48` | `N047.42.27.000;E017.04.60.000;` | secondi 60 |
+| `GND_LAYOUT/eo_ad_gnd.pol:72` | `STATIC;TAXIWAY;1;TAXIWAY;` poi un'altra intestazione | poligono senza vertici |
+| `GND_LAYOUT/ml_ad_gnd.pol:1223` | idem | poligono senza vertici |
+
+Round-trip 681/681, tutto toccato 0, **una modifica per record 102 281 → 102 281**, 0 discordi. Lo strumento ora
+elenca tutte le opache quando sono poche (≤ 50). Campioni nuovi: `NAVAIDS/APT.fix`, `NAVAIDS/VFR_NASCOSTI.fix`,
+`GND_LAYOUT/br_ad_gnd.pol`, `GEO/liap.geo`. Test: 352 su net8 e net10 (`FormeOpacheTests`, cinque misure in
+`UnaModificaPerRecordTests`, §19.4 e §22.3 ribaltati); controprove: tolta la regola del commento nel `.pol` e il
+nome dal primo vertice, 4 rossi.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 

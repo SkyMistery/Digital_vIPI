@@ -8,7 +8,7 @@ namespace Vipi.Sectorfile.Models;
 /// outer boundary formed when multiple sectors operate together; no programmatic link is
 /// maintained to any TflSector.
 /// </summary>
-public sealed class StaticBoundaryGroup
+public sealed class StaticBoundaryGroup : ElementoArtcc
 {
     /// <summary>Verbatim from field 2 of T; lines (e.g. "RR NE", "RR CONF1", "CNF1", "LIRR ES0").</summary>
     public string Name { get; set; } = string.Empty;

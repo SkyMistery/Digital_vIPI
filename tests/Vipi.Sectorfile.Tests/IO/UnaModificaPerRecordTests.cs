@@ -26,6 +26,13 @@ public sealed class UnaModificaPerRecordTests
     [Fact] public void Ap() => Misura(new ApParser(_warnings), new ApSaver(), "OTHER/itap.ap");
     [Fact] public void Hartcc() => Misura(new HartccParser(_warnings), new HartccSaver(), "HI_AIRSPACE/lirr.hartcc");
     [Fact] public void Artcc() => Misura(new ArtccParser(_warnings), new ArtccSaver(), "ACC/FRA.artcc");
+    // Slice 5: i bordi T; degli .artcc (FRA.artcc ha un gruppo che comincia con DUMMY), i fix senza campi in coda,
+    // i segmenti col colore vuoto, i poligoni col nome in commento.
+    [Fact] public void ArtccCoiBordi() => Misura(new ArtccParser(_warnings), new ArtccSaver(), "ACC/FRA-gates.artcc");
+    [Fact] public void FixNascosti() => Misura(new FixParser(_warnings), new FixSaver(), "NAVAIDS/VFR_NASCOSTI.fix");
+    [Fact] public void FixDegliScali() => Misura(new FixParser(_warnings), new FixSaver(), "NAVAIDS/APT.fix");
+    [Fact] public void GeoColColoreVuoto() => Misura(new GeoParser(_warnings), new GeoSaver(), "GEO/liap.geo");
+    [Fact] public void PolColNomeInCommento() => Misura(new PolParser(_warnings), new PolSaver(), "GND_LAYOUT/br_ad_gnd.pol");
     [Fact] public void Tfl() => Misura(new TflParser(_warnings), new TflSaver(), "DYNAMIC_SEC/twrs.tfl");
     [Fact] public void Fic() => Misura(new FicParser(_warnings), new FicSaver(), "DYNAMIC_SEC/limmfic.tfl");
     [Fact] public void MvaDiScalo() => Misura(new MvaAirportParser(_warnings), new MvaSaver(enroute: false), "liba.mva");

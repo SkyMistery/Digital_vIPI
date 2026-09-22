@@ -32,10 +32,16 @@ public sealed class Fix
 {
     public string Name { get; set; } = string.Empty;
     public Coordinate Position { get; set; }
-    public int DisplayType { get; set; }
 
-    /// <summary>Field5, always present in Italian .fix files; purpose unknown; preserved verbatim.</summary>
-    public string ExtraField { get; set; } = string.Empty;
+    /// <summary>Field 4, 0=enroute 1=terminal 2=both 3=hidden; null when the line stops at the longitude.</summary>
+    public int? DisplayType { get; set; }
+
+    /// <summary>
+    /// Field 5 (boundary, 0/1), preserved verbatim; null when absent. In A it was mandatory, and the 2 032 fixes
+    /// written with 4 fields (<c>BC404;N039.05.11.290;E017.03.27.750;3;</c>, hidden) and the 9 with 3 were
+    /// «malformed» (F2 slice 5).
+    /// </summary>
+    public string? ExtraField { get; set; }
 
     public SourceRef Source { get; set; } = null!;
 }

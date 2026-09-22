@@ -101,6 +101,15 @@ foreach (var gruppo in opache
 {
     var primo = gruppo.First();
     Console.WriteLine($"  {gruppo.Count(),6}  {gruppo.Key}   es. {Path.GetFileName(primo.Source)}:{primo.LineNumber} «{primo.RawSnippet}»");
+
+    // Dalla slice 5 le opache sono poche, e sono errori veri del sector: si elencano tutte, per gli AOD.
+    if (opache.Count <= 50)
+    {
+        foreach (var avviso in gruppo.Skip(1))
+        {
+            Console.WriteLine($"{"",10}{Relativo(avviso.Source)}:{avviso.LineNumber} «{avviso.RawSnippet}»");
+        }
+    }
 }
 
 Console.WriteLine($"\nTUTTO TOCCATO: {toccato.Sum(t => t.Cambiate)} righe cambiate su {toccato.Sum(t => t.Righe)}, " +

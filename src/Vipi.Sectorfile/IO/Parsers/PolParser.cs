@@ -99,6 +99,16 @@ public sealed class PolParser : IFileParser<Polygon>
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
+                // A comment right after the header is the polygon's name (`STATIC;TAXIWAY;1;TAXIWAY;` then
+                // `//BR_twy_B`): it stays in the block. In A it closed the polygon with ZERO vertices and its
+                // vertices fell into raw lines — 32 on the master of 22 September 2026 (F2 slice 5). After the
+                // vertices a comment still leads the next block, as in A.
+                if (current is { Vertices.Count: 0 })
+                {
+                    currentLines.Add(line);
+                    continue;
+                }
+
                 FinalizeCurrent();
                 comments.Add(line);
                 continue;

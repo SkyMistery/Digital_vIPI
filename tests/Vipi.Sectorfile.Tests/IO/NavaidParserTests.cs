@@ -83,12 +83,27 @@ public sealed class NavaidParserTests
     public void Fix_Field5_Verbatim()
         => Assert.Equal("1", ParseFix("ABKON;N039.52.20.000;E010.48.24.000;0;1;\r\n").Records[0].ExtraField);
 
-    // §22.3 — Field5 absent (4 fields) → warning, no record.
-    [Fact]
-    public void Fix_NoField5_Warning()
+    // §22.3 — ⚠️ OVERTURNED by F2 slice 5. In A a fix without Field5 was malformed: 2 032 real fixes have 4 fields
+    // (`BC404;…;3;`, hidden) and 9 have 3 (`POE1;N045.28.15.000;E010.28.20.000;`). They are fixes.
+    [Theory]
+    [InlineData("BC404;N039.05.11.290;E017.03.27.750;3;", 3, null)]
+    [InlineData("POE1;N045.28.15.000;E010.28.20.000;", null, null)]
+    public void Fix_OptionalFields(string line, int? displayType, string? field5)
     {
-        var pr = ParseFix("ABKON;N039.52.20.000;E010.48.24.000;0;\r\n");
-        Assert.Empty(pr.Records);
+        var fix = Assert.Single(ParseFix(line + "\r\n").Records);
+        Assert.Equal(displayType, fix.DisplayType);
+        Assert.Equal(field5, fix.ExtraField);
+        Assert.Empty(_warnings.Snapshot());
+        Assert.Equal(line, new FixSaver().Serialize(fix)[0]);
+    }
+
+    // A coordinate that does not read stays malformed: MIL.fix:96 has 72 seconds, APT.fix:294 a dash.
+    [Theory]
+    [InlineData("PL-BRAVO;N044.54.40.500;E010.34.072.00;3;")]
+    [InlineData("MG763;N044.03.11.145;E008-11.31.443;3;")]
+    public void Fix_BadCoordinate_Warning(string line)
+    {
+        Assert.Empty(ParseFix(line + "\r\n").Records);
         Assert.Equal(1, _warnings.Count);
     }
 

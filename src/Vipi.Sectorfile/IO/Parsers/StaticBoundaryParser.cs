@@ -150,6 +150,7 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
                 continue;
             }
 
+            NameFromFirstVertex(current, name);
             if (polygon is null)
             {
                 polygon = new StaticBoundaryPolygon();
@@ -170,7 +171,21 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
         };
     }
 
-    private static StaticBoundaryVertex ParseVertex(string[] parts, int n)
+    /// <summary>
+    /// A run may OPEN with a DUMMY line (FRA.artcc: `T;DUMMY;N038.34…;` then `T;LIMITROFI;…`): the group took
+    /// «DUMMY» as its name, and the saver wrote every vertex as a DUMMY line. The name is that of the first real
+    /// vertex (F2 slice 5).
+    /// </summary>
+    internal static void NameFromFirstVertex(StaticBoundaryGroup group, string vertexName)
+    {
+        if (string.Equals(group.Name, "DUMMY", StringComparison.Ordinal) && group.Polygons.Count == 0)
+        {
+            group.Name = vertexName;
+        }
+    }
+
+    /// <summary>Also used by <see cref="ArtccParser"/> for the <c>T;</c> lines of the .artcc files.</summary>
+    internal static StaticBoundaryVertex ParseVertex(string[] parts, int n)
     {
         string field3 = n > 2 ? parts[2].Trim() : string.Empty;
         string field4 = n > 3 ? parts[3].Trim() : string.Empty;

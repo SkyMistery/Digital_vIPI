@@ -31,8 +31,9 @@ public sealed class FrqParser : LineRecordParser<AtcPosition>
             n--;
         }
 
-        // Code, Frequency, TransferList and Profile are mandatory.
-        if (n < 4 || !decimal.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out decimal freq))
+        // Code, Frequency and TransferList are mandatory. The profile is not (F2 slice 5): 35 real positions stop
+        // after a long transfer list (`LIZZ_AEW_CTR;136.400;LIMM LIRR … LIRA`), and in A they were «malformed».
+        if (n < 3 || !decimal.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out decimal freq))
         {
             return false;
         }
@@ -41,7 +42,7 @@ public sealed class FrqParser : LineRecordParser<AtcPosition>
         {
             Code = parts[0].Trim(),
             FrequencyMhz = freq,
-            Profile = parts[3],   // verbatim (e.g. "PREFS\CTR.cpr")
+            Profile = n >= 4 ? parts[3] : null,   // verbatim (e.g. "PREFS\CTR.cpr")
         };
 
         foreach (string token in parts[2].Split(' ', StringSplitOptions.RemoveEmptyEntries))
