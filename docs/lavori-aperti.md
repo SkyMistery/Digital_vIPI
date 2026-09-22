@@ -8,7 +8,7 @@ Carta [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motor
 per slice, §9 decisioni). Progetto nuovo `src/Vipi.Sectorfile` (senza dipendenze, net8+net10), test
 `tests/Vipi.Sectorfile.Tests` (415, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
 lanciare su una copia dell'albero del sector. **Nessun dato di vIPI toccato, nessuna migrazione, niente pacchetto:
-il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
+il sito non usa ancora il motore.** CI verde fino a `3479a52a`.
 
 - Slice 0-1 (`de0a3cad`, `fda60bfa`): il porto della libreria A. Slice 2 (`d58be224`): il punto letto come il DMS
   di vIPI (0 discordi su 685 561 token). Slice 3 (`449b52ea`): **riga come campi** — un record toccato cambia solo
@@ -32,7 +32,9 @@ il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
 - 🔴 **Per gli AOD, dalla slice 8**: la tabella degli errori nella carta — file citati e assenti (`GCI.tfl` cercato in
   `DYNAMIC_SEC/` dai cinque `.isc`, `lipp_es_ctr.tfl`, `LIPC.cpr`), 21 nomi non risolti, 5 nomi duplicati lontani,
   `lipp.hartcc:2047` (secondi 60), 4 poligoni con meno di 3 vertici — oltre a quelli qui sopra.
-- ▶ **Prossima: slice 9** — concordanza SID/STAR col lettore di vIPI. Poi 10 chiusura.
+- ▶ **Prossima: slice 9** — concordanza SID/STAR e punti col lettore di vIPI. Poi 10 chiusura. Istruzioni complete
+  (albero di prova, comando, numeri attesi, che cosa confrontare, dove vanno i test) nella carta, sezione **«Per la
+  ripresa: slice 9 e 10»** in fondo alla traccia della slice 8.
 - Albero di prova in locale: una `git archive` del master del sector sotto `SectorFiles/Include/IT`
   (`dotnet run -c Release --project tools/Vipi.SectorfileProva -- <cartella>`).
 

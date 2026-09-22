@@ -166,7 +166,8 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 3. **Ingressi + verifica**: nessun ingresso utente in F2. Si verifica con i campioni in CI e l'albero intero in
    locale; il numero delle righe opache è la misura che scende slice dopo slice.
 4. **Propagazione**: niente si rimuove né si rinomina in vIPI. Si **aggiunge** un progetto; `AuroraSectorfileParser`
-   resta, e la sua coesistenza è tenuta onesta dalla prova di concordanza (slice 8) e scritta nei lavori aperti.
+   resta, e la sua coesistenza è tenuta onesta dalla prova di concordanza (slice 9: le slice sono slittate di uno con
+   la 3 nuova) e scritta nei lavori aperti.
 
 ## §7 — Trappole note
 
@@ -184,11 +185,16 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 ## §8 — Definition of done
 
 - [ ] Slice 0-9, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
-- [ ] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri **e**
-      «tutto toccato» a zero righe cambiate (un record toccato ma non cambiato esce com'era).
-- [ ] Validatore: errori veri del sector elencati qui, da passare agli AOD (con `R47` di F1).
-- [ ] Prova di concordanza col lettore di vIPI verde.
-- [ ] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato.
+      *(22 settembre: 0-8 fatte, la 8 in due commit; CI verde fino a `3479a52a`.)*
+- [x] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri **e**
+      «tutto toccato» a zero righe cambiate (un record toccato ma non cambiato esce com'era). *(701/701, 94 opache
+      tutte errori veri, tutto toccato 0 — slice 8.)*
+- [x] Validatore: errori veri del sector elencati qui, da passare agli AOD (con `R47` di F1). *(Tabelle delle slice
+      5, 6 e 8.)*
+- [ ] Prova di concordanza col lettore di vIPI verde. *(Il DMS sì, dalla slice 2; mancano punti per nome e SID/STAR:
+      slice 9, vedi «Per la ripresa» in fondo.)*
+- [x] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato. *(Finora: nessun file di
+      `src/` fuori da `Vipi.Sectorfile` cambiato.)*
 
 Commit: slice 0 `de0a3cad` (progetto e test vuoti; l'unico test, `NessunaDipendenzaTests`, è stato provato
 **rosso** aggiungendo per un momento un riferimento a `Vipi.Domain`: fa il nome dell'assieme estraneo) ·
@@ -473,6 +479,58 @@ sezione `[HIGH AIRWAY]` di ITALY.isc è vuota —, `NAVAIDS/ENR.fix` (vuoto), `F
 
 Test: 415 su net8 e net10 (`ValidatoreTests`, `ValidatoreDellAlberoTests` su un albero piccolo con le forme vere);
 controprova: tolto l'avviso del `T;` dal lettore, 1 rosso.
+
+### ▶ Per la ripresa: slice 9 e 10 (scritto il 22 settembre, a fine slice 8, per una chat nuova)
+
+**Dove siamo.** `main` = `3479a52a`, CI verde, working tree pulito. Slice 0-8 fatte (tracce qui sopra, una per
+slice). Il motore sta tutto in `src/Vipi.Sectorfile` (nessuna dipendenza), i test in `tests/Vipi.Sectorfile.Tests`
+(415 per TFM, campioni veri in `Campioni/`), lo strumento in `tools/Vipi.SectorfileProva`. Nessun file del sito
+toccato, niente pacchetto: il sito non usa il motore.
+
+**L'albero di prova.** Una `git archive` del master `7e761aa` del sector (`ivao-italy/it-aurora-sector`, pubblico),
+con gli `.isc` in `SectorFiles/` e i dati in `SectorFiles/Include/IT`. L'ultima copia stava nello scratchpad di una
+sessione passata (`…\b0edf12a-…\scratchpad\f2-misure\tree`); se non c'è più, si rifà: `git fetch` nel clone locale
+(`D:\Programmazione\IVAO_Test\Refactoring_ItalianSectorFile\it-aurora-sector`, 🔴 leggere SEMPRE `origin/master`,
+il locale è sul ramo `refactoring`) e `git archive 7e761aa | tar -x -C <cartella>`. Si lancia così (argomento = la
+cartella `IT`; gli `.isc` li trova due cartelle sopra):
+
+```
+dotnet run -c Release --project tools/Vipi.SectorfileProva -- <…>/SectorFiles/Include/IT
+```
+
+Numeri attesi a slice 8 (se cambiano senza motivo, prima si capisce perché): round-trip **701 esatti, 0 diversi, 48
+senza lettore**; righe opache **94**; tutto toccato **0 su 271 388**; una modifica per record **115 381 → 115 381, 0
+fuori misura, 0 con più di un campo**; concordanza DMS **685 561 token, 0 discordi**; tag su tutto **2 808/2 808,
+149/149**; validatore **131 errori, 352 avvisi**. Un giro intero dura un paio di minuti.
+
+**Slice 9 — la concordanza col lettore di vIPI** (§2.4, §5). Il lettore di produzione è
+`src/Vipi.Infrastructure/Sectorfile/AuroraSectorfileParser.cs` (statico, lavora sul TESTO dei file): `ParseNavaids`
+(fix/VOR/NDB → `NavaidCatalog`), `ParseSids`/`ParseStars(icao, testo, navNames, aliasMap)` → `SourceProcedure`
+(`Icao`, `Runway`, `Name`, `Fix` completato, `Transition`, `StableKey`…; le STAR solo con una pista vera nel campo 2
+e tipo vuoto o `0`), `ParseSectorShapes`, `ParseMva`, `ParseAirports`, `ParseRunwayEnds`, `ParseAtcPositions`.
+La prova da scrivere, nello strumento (misura 7) e come test sui campioni:
+- **punti**: per ogni fix/VOR/NDB dell'albero, stesso nome e stesse coordinate (entro 1e-4″) nei due lettori; chi
+  ne ha uno che l'altro non ha, lo si elenca (le righe illeggibili del validatore spiegano le differenze attese:
+  `GRO`, `KPT`, `MG763`, `PL-BRAVO`);
+- **SID/STAR**: per ogni `.sid`/`.str`, l'insieme (ICAO, nome, piste) di vIPI contro i record del motore
+  (`SidProcedure.Name`/`Runway`; `StrRecord.ProcedureId`/`RunwaySpec`, applicando GLI STESSI filtri che vIPI applica
+  alle STAR). Il `Fix` completato di vIPI (alias, `NeedsFixReview`) il motore non lo ha: si confronta solo ciò che
+  tutti e due leggono.
+- ⚠️ Lo strumento oggi referenzia `Vipi.Application` (per `DmsCoordinate`): per il lettore di vIPI serve anche
+  `Vipi.Infrastructure` — **solo lo strumento**, mai `Vipi.Sectorfile` (lo tiene onesto `NessunaDipendenzaTests`).
+  Il test sui campioni andrebbe in un progetto che può vedere Infrastructure (p.es. `Vipi.Infrastructure.Tests`), o
+  resta solo nello strumento: da decidere lì, detto nella traccia.
+- Discordi veri = difetti di uno dei due: si capisce quale, e se è di vIPI **non si corregge in F2** (l'import di
+  produzione non cambia, §4): si scrive nei lavori aperti.
+
+**Slice 10 — chiusura.** Stato della carta → ✅, caselle del §8, `docs/lavori-aperti.md` §A115 chiusa, `HANDOFF.md`,
+le memorie (`aurora-sector-lab`, `riprendere`), e il messaggio per gli AOD con tutti gli errori (slice 5, 6, 8, `R47`
+di F1). Poi F3 (l'app) ha bisogno della sua carta.
+
+**Regole che valgono sempre** (le ha pagate questa carta): un commit per slice; `dotnet build Vipi.slnx -c Release
+--no-incremental` verde e `dotnet test tests/Vipi.Sectorfile.Tests -c Release` sui DUE TFM contando i test; test
+nuovi → `tests/conteggi-attesi.txt` nello STESSO commit (o la CI è rossa); ogni regola nuova con la sua controprova
+(toglierla e vedere il rosso); sorgenti solo con l'editor, mai heredoc; `gh run list` dopo ogni push.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 
