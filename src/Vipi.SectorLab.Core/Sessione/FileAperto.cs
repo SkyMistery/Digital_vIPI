@@ -32,8 +32,17 @@ public abstract class FileAperto
     public abstract int Righe { get; }
 }
 
+/// <summary>
+/// I record di un file, qualunque sia il loro tipo: <see cref="FileLetto{T}"/> è generico, e chi lavora su tutti i
+/// formati insieme (il catalogo, la geometria, il validatore) non può nominare il suo T.
+/// </summary>
+public interface IFileConRecord
+{
+    IReadOnlyList<object> RecordDelModello { get; }
+}
+
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
-public sealed class FileLetto<T> : FileAperto
+public sealed class FileLetto<T> : FileAperto, IFileConRecord
     where T : class
 {
     internal FileLetto(string relativo, Impronta impronta, IReadOnlyList<LoadWarning> avvisi,
@@ -48,6 +57,8 @@ public sealed class FileLetto<T> : FileAperto
     public ParseResult<T> Letto { get; }
 
     public IFileSaver<T> Scrittore { get; }
+
+    public IReadOnlyList<object> RecordDelModello => (IReadOnlyList<object>)Letto.Records;
 
     public override int Record => Letto.Records.Count;
 

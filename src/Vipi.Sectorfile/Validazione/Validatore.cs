@@ -314,16 +314,9 @@ public static partial class Validatore
         }
     }
 
-    // Il nome (o i nomi) col quale un record entra in un catalogo: fix, VOR, NDB, scalo, VRP (nome e codice).
-    private static (string Catalogo, Coordinate Posizione, string[] Nomi)? Dichiarato(object record) => record switch
-    {
-        Fix f => ("fix", f.Position, new[] { f.Name.Trim() }),
-        Vor v => ("vor", v.Position, new[] { v.Ident.Trim() }),
-        Ndb n => ("ndb", n.Position, new[] { n.Ident.Trim() }),
-        AirportInfo a => ("scalo", a.Centre, new[] { a.IcaoCode.Trim() }),
-        VfrPoint p => ("vrp", p.Position, new[] { p.Name.Trim(), p.Code.Trim() }),
-        _ => null,
-    };
+    // Il nome (o i nomi) col quale un record entra in un catalogo: sta in Models/Catalog/Cataloghi.cs, perché lo
+    // chiede anche il catalogo dei punti dell'app (carta F3, slice 3).
+    private static NomeDiCatalogo? Dichiarato(object record) => Cataloghi.Dichiarato(record);
 
     /// <summary>
     /// I nomi di punto che un record usa e che vanno risolti nei cataloghi: i <see cref="Punto"/> per nome (tutti e due

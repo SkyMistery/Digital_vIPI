@@ -5,9 +5,6 @@ namespace Vipi.Sectorfile.Validazione;
 
 public static partial class Validatore
 {
-    // Aurora carica da sé, senza F;, i file che portano il codice di uno scalo di [AIRPORT] (SPECIFICA_FORMATI §3 di B).
-    private static readonly string[] EstensioniPerIcao = { "gts", "txi", "sid", "str", "vfi", "vrt", "mva", "tfl", "geo", "atis", "pol" };
-
     // I cataloghi dove si cerca un nome, e quelli dove un nome deve essere unico.
     private static readonly string[] CataloghiUnici = { "fix", "vor", "ndb" };
 
@@ -53,105 +50,23 @@ public static partial class Validatore
         var caricatiDaQualcuno = new HashSet<string>(StringComparer.Ordinal);
         var nonRisolti = new Dictionary<(string File, int Riga, string Nome), (string Testo, List<string> Master)>();
 
-        foreach (string master in Directory.GetFiles(radice, "*.isc").Order(StringComparer.Ordinal))
+        // Che cosa carica ogni .isc lo dice il motore in un posto solo (CarichiDegliIsc): lo chiede anche il catalogo
+        // dei punti dell'app (carta F3, slice 3), e due risposte diverse alla stessa domanda si separerebbero.
+        var carichi = CarichiDegliIsc.Leggi(radice, percorso =>
+            (Esito(percorso)?.Record.OfType<AirportInfo>() ?? Enumerable.Empty<AirportInfo>()).Select(a => a.IcaoCode));
+
+        foreach (var carico in carichi)
         {
-            string nomeMaster = Path.GetFileName(master);
-            var righe = SectorFileReader.Read(master).Lines;
-            var info = new List<string>();
-            var citati = new List<(string Sezione, string Percorso)>();
-            string sezione = string.Empty;
-            var daRisolvere = new List<(string Sezione, string Citato, int Riga, string Testo)>();
-
-            for (int i = 0; i < righe.Count; i++)
+            string nomeMaster = carico.Nome;
+            foreach (var (file, riga, testo, citato) in carico.Mancanti)
             {
-                string t = righe[i].Trim();
-                if (t.Length == 0 || t.StartsWith("//", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (t.StartsWith('[') && t.EndsWith(']'))
-                {
-                    sezione = t[1..^1].Trim().ToUpperInvariant();
-                }
-                else if (sezione == "INFO")
-                {
-                    info.Add(t);
-                }
-                else if (t.StartsWith("F;", StringComparison.OrdinalIgnoreCase))
-                {
-                    daRisolvere.Add((sezione, t[2..].Trim().TrimEnd(';'), i + 1, righe[i]));
-                }
+                problemi.Add(new(Regola.FileCitatoAssente, file, riga, testo,
+                    file.EndsWith(".isc", StringComparison.OrdinalIgnoreCase)
+                        ? $"«{citato}» non c'è sotto Include/{carico.CartellaDati} né sotto Include"
+                        : $"«{citato}» non c'è"));
             }
 
-            string cartellaDati = info.Count >= 6 ? info[5] : "IT";
-            // Il percorso si unisce a mano: `\liml.atis` (itfreq.frq) è relativo alla cartella dei dati, ma per
-            // Path.Combine sarebbe un percorso dalla radice, e su Linux la barra rovescia non separa niente.
-            string? Risolvi(string citato)
-                => indice.GetValueOrDefault(Chiave(cartellaDati + "/" + Chiave(citato)))
-                ?? indice.GetValueOrDefault(Chiave(citato));
-
-            foreach (var (sez, citato, riga, testo) in daRisolvere)
-            {
-                if (Risolvi(citato) is { } trovato)
-                {
-                    citati.Add((sez, trovato));
-                }
-                else
-                {
-                    problemi.Add(new(Regola.FileCitatoAssente, nomeMaster, riga, testo, $"«{citato}» non c'è sotto Include/{cartellaDati} né sotto Include"));
-                }
-            }
-
-            var caricati = new HashSet<string>(citati.Select(c => c.Percorso), StringComparer.Ordinal);
-
-            // Per ICAO: i codici degli scali dei file di [AIRPORT].
-            var scali = citati.Where(c => c.Sezione == "AIRPORT")
-                .SelectMany(c => Esito(c.Percorso)?.Record.OfType<AirportInfo>() ?? Enumerable.Empty<AirportInfo>())
-                .Select(a => a.IcaoCode.Trim())
-                .Where(c => c.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase);
-            foreach (string icao in scali)
-            {
-                foreach (string estensione in EstensioniPerIcao)
-                {
-                    if (Risolvi(icao + "." + estensione) is { } automatico)
-                    {
-                        caricati.Add(automatico);
-                    }
-                }
-            }
-
-            // I file che un .frq caricato nomina: profili .cpr e testi ATIS.
-            foreach (string frq in caricati.Where(p => p.EndsWith(".frq", StringComparison.OrdinalIgnoreCase)).ToList())
-            {
-                var righeFrq = SectorFileReader.Read(frq).Lines;
-                for (int i = 0; i < righeFrq.Count; i++)
-                {
-                    if (righeFrq[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-
-                    foreach (string campo in righeFrq[i].Split(';').Select(c => c.Trim()))
-                    {
-                        if (campo.EndsWith(".cpr", StringComparison.OrdinalIgnoreCase)
-                            || campo.EndsWith(".datis", StringComparison.OrdinalIgnoreCase)
-                            || campo.EndsWith(".atis", StringComparison.OrdinalIgnoreCase))
-                        {
-                            if (Risolvi(campo) is { } nominato)
-                            {
-                                caricati.Add(nominato);
-                            }
-                            else
-                            {
-                                problemi.Add(new(Regola.FileCitatoAssente, Relativo(frq), i + 1, righeFrq[i], $"«{campo}» non c'è"));
-                            }
-                        }
-                    }
-                }
-            }
-
+            var caricati = carico.Caricati;
             caricatiDaQualcuno.UnionWith(caricati);
 
             // I cataloghi di questo .isc.
