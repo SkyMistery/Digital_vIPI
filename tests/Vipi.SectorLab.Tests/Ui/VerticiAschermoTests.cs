@@ -121,6 +121,47 @@ public sealed class VerticiAschermoTests : IDisposable
     }
 
     [Fact]
+    public async Task UnaZonaAPiuTrattiMostraUnElencoPerTratto()
+    {
+        // Slice 7-bis: le zone dei .str tengono i punti dentro i segmenti, e a schermo sono «Tratto 1», «Tratto 2»…
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        string zona = "SectorFiles/Include/IT/lirf.str";
+        int quale = Enumerable.Range(0, _lab.Sessione!.File[zona].Record)
+            .First(i => _lab.ElenchiDiVerticiDi(zona, i).Count(e => e.Quanti > 1) > 1);
+
+        await pagina.InvokeAsync(() => _lab.Scegli(zona, quale));
+
+        pagina.WaitForAssertion(() =>
+        {
+            var elenchi = pagina.FindAll("[data-elenco]");
+            Assert.True(elenchi.Count > 1, $"elenchi a schermo: {elenchi.Count}");
+            Assert.Contains("Tratto 1", elenchi.First().TextContent);
+            Assert.NotEmpty(pagina.FindAll("[data-vertice]"));
+        });
+    }
+
+    [Fact]
+    public async Task UnPuntoDiUnTrattoSiSpostaDaSchermo()
+    {
+        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        string zona = "SectorFiles/Include/IT/lirf.str";
+        int quale = Enumerable.Range(0, _lab.Sessione!.File[zona].Record)
+            .First(i => _lab.ElenchiDiVerticiDi(zona, i).Count(e => e.Quanti > 1) > 1);
+        await pagina.InvokeAsync(() => _lab.Scegli(zona, quale));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-vertice]")));
+
+        pagina.FindAll("[data-vertice]").First().Change("N041.00.00.000 E012.00.00.000");
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Equal(1, _lab.Modifiche.Quante);
+            Assert.Contains("−1 +1", pagina.Find("[data-diff]").TextContent);
+        });
+    }
+
+    [Fact]
     public async Task UnFixNonHaVerticiEIlPezzoNonCompare()
     {
         Assert.True(await _lab.ApriAsync(_albero.Radice));

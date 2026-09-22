@@ -268,10 +268,19 @@ public sealed class SessioneDelLab
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return [];
 
-        return ModificheInSospeso.Vertici(file, record, campo) is { } elenco
-            ? [.. elenco.Cast<object>().Select(ComeSiLegge)]
+        return ElenchiDiVertici.Uno(file, record, campo) is { } elenco
+            ? [.. Enumerable.Range(0, elenco.Quanti).Select(elenco.Scrivi)]
             : [];
     }
+
+    /// <summary>
+    /// Tutti gli elenchi di vertici del record scelto (slice 7-bis): uno per una forma semplice, uno per TRATTO
+    /// in una zona a più tratti.
+    /// </summary>
+    public IReadOnlyList<ElencoDiVertici> ElenchiDiVerticiDi(string fileRelativo, int record)
+        => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file)
+            ? ElenchiDiVertici.Di(file, record)
+            : [];
 
     /// <summary>Un gesto sui vertici: cambia, aggiungi, togli, incolla. Torna vero se è andato.</summary>
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,

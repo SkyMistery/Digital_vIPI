@@ -154,58 +154,50 @@ public sealed class ModificheInSospeso
 
     // --- i vertici di una forma (slice 7) --------------------------------------------------------------------
 
-    /// <summary>L'elenco dei vertici di un record, o null se quel campo non è un elenco di punti.</summary>
+    /// <summary>
+    /// L'elenco dei vertici con quella chiave, o null. La chiave è il nome del campo (<c>Vertices</c>,
+    /// <c>Track</c>) o, per una zona a più tratti, <c>Segments[2].Points</c> (slice 7-bis).
+    /// </summary>
     public static System.Collections.IList? Vertici(FileAperto file, int indice, string campo)
-    {
-        ArgumentNullException.ThrowIfNull(file);
-        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
-            return null;
-
-        object record = conRecord.RecordDelModello[indice];
-        var proprieta = record.GetType().GetProperty(campo, BindingFlags.Public | BindingFlags.Instance);
-        if (proprieta?.GetValue(record) is not System.Collections.IList elenco)
-            return null;
-
-        var dentro = proprieta.PropertyType.IsGenericType ? proprieta.PropertyType.GetGenericArguments()[0] : null;
-        return dentro == typeof(Punto) || dentro == typeof(Coordinate) ? elenco : null;
-    }
+        => ElenchiDiVertici.Uno(file, indice, campo)?.Elenco;
 
     /// <summary>Cambia un vertice: il testo si legge come una coordinata, o come il NOME di un punto del catalogo.</summary>
     public object CambiaVertice(FileAperto file, int indice, string campo, int posizione, string? testo, string etichetta = "")
-        => Gesto(file, indice, campo, etichetta, "vertice spostato", elenco =>
+        => Gesto(file, indice, campo, etichetta, "vertice spostato", vertici =>
         {
-            if (posizione < 0 || posizione >= elenco.Count)
+            if (posizione < 0 || posizione >= vertici.Quanti)
                 return new ModificaRifiutata("Quel vertice non c'è.");
-            if (!LeggiIlPunto(elenco, testo, out object? punto, out string? perche))
+            if (!LeggiIlPunto(vertici, testo, out Punto punto, out string? perche))
                 return new ModificaRifiutata(perche!);
 
-            elenco[posizione] = punto;
+            // L'involucro che c'era si tiene: l'etichetta di una SID non si perde spostando il suo punto.
+            vertici.Elenco[posizione] = vertici.Fabbrica(punto, vertici.Elenco[posizione]);
             return null;
         });
 
     /// <summary>Aggiunge un vertice PRIMA della posizione data (o in fondo, se è quanti ce ne sono).</summary>
     public object AggiungiVertice(FileAperto file, int indice, string campo, int posizione, string? testo, string etichetta = "")
-        => Gesto(file, indice, campo, etichetta, "vertice aggiunto", elenco =>
+        => Gesto(file, indice, campo, etichetta, "vertice aggiunto", vertici =>
         {
-            if (posizione < 0 || posizione > elenco.Count)
+            if (posizione < 0 || posizione > vertici.Quanti)
                 return new ModificaRifiutata("Lì non si può aggiungere un vertice.");
-            if (!LeggiIlPunto(elenco, testo, out object? punto, out string? perche))
+            if (!LeggiIlPunto(vertici, testo, out Punto punto, out string? perche))
                 return new ModificaRifiutata(perche!);
 
-            elenco.Insert(posizione, punto);
+            vertici.Elenco.Insert(posizione, vertici.Fabbrica(punto, vecchio: null));
             return null;
         });
 
     public object TogliVertice(FileAperto file, int indice, string campo, int posizione, string etichetta = "")
-        => Gesto(file, indice, campo, etichetta, "vertice tolto", elenco =>
+        => Gesto(file, indice, campo, etichetta, "vertice tolto", vertici =>
         {
-            if (posizione < 0 || posizione >= elenco.Count)
+            if (posizione < 0 || posizione >= vertici.Quanti)
                 return new ModificaRifiutata("Quel vertice non c'è.");
             // Una forma senza punti non è una forma: chi vuole togliere il record lo toglie (slice 8).
-            if (elenco.Count == 1)
+            if (vertici.Quanti == 1)
                 return new ModificaRifiutata("È l'ultimo vertice: una forma senza punti non si disegna.");
 
-            elenco.RemoveAt(posizione);
+            vertici.Elenco.RemoveAt(posizione);
             return null;
         });
 
@@ -216,7 +208,7 @@ public sealed class ModificheInSospeso
     /// </summary>
     public object IncollaVertici(FileAperto file, int indice, string campo, string? testo, string etichetta = "",
                                  double puntiPerGrado = 1.0)
-        => Gesto(file, indice, campo, etichetta, "vertici incollati", elenco =>
+        => Gesto(file, indice, campo, etichetta, "vertici incollati", vertici =>
         {
             var letto = Vipi.Application.Coordinates.CoordinateParser.Parse(testo, puntiPerGrado);
             var aree = letto.Aree.Where(a => a.Punti.Count > 0).ToList();
@@ -226,19 +218,20 @@ public sealed class ModificheInSospeso
                 return new ModificaRifiutata($"Quel testo contiene {aree.Count} aree: incollane una sola.");
 
             var punti = aree[0].Punti;
-            elenco.Clear();
+            vertici.Elenco.Clear();
             foreach (var (lat, lon) in punti)
-                elenco.Add(PuntoDelTipoGiusto(elenco, new Coordinate(lat, lon)));
+                vertici.Elenco.Add(vertici.Fabbrica(Punto.Da(new Coordinate(lat, lon)), vecchio: null));
 
             return null;
         });
 
     /// <summary>Il giro comune dei gesti sui vertici: trova l'elenco, fotografa com'era, fa il gesto, registra.</summary>
     private object Gesto(FileAperto file, int indice, string campo, string etichetta, string cosa,
-                         Func<System.Collections.IList, ModificaRifiutata?> fai)
+                         Func<ElencoDiVertici, ModificaRifiutata?> fai)
     {
-        if (Vertici(file, indice, campo) is not { } elenco)
+        if (ElenchiDiVertici.Uno(file, indice, campo) is not { } vertici)
             return new ModificaRifiutata($"Il campo «{campo}» non è un elenco di vertici.");
+        var elenco = vertici.Elenco;
 
         var chiave = (file.Relativo, indice, campo);
         // La fotografia si prende UNA volta sola: è l'elenco dell'apertura, non quello di prima di questo gesto.
@@ -246,7 +239,7 @@ public sealed class ModificheInSospeso
             _verticiDiPartenza[chiave] = [.. elenco.Cast<object>()];
 
         int prima = _verticiDiPartenza[chiave].Count;
-        if (fai(elenco) is { } rifiutata)
+        if (fai(vertici) is { } rifiutata)
         {
             if (!_fatte.ContainsKey(chiave))
                 _verticiDiPartenza.Remove(chiave);
@@ -271,9 +264,9 @@ public sealed class ModificheInSospeso
     }
 
     /// <summary>Legge un vertice scritto: una coppia di coordinate, o il nome di un punto (dove il file lo ammette).</summary>
-    private static bool LeggiIlPunto(System.Collections.IList elenco, string? testo, out object? punto, out string? perche)
+    private static bool LeggiIlPunto(ElencoDiVertici vertici, string? testo, out Punto punto, out string? perche)
     {
-        punto = null;
+        punto = default;
         perche = null;
         string scritto = (testo ?? "").Trim();
         if (scritto.Length == 0)
@@ -289,7 +282,7 @@ public sealed class ModificheInSospeso
         {
             // Un punto per NOME lo ammettono solo i file che lo sanno scrivere (i .tfl, le SID…): dove l'elenco è di
             // Coordinate, il nome non si potrebbe riscrivere e va rifiutato subito.
-            if (!AmmetteINomi(elenco))
+            if (!vertici.AmmetteNomi)
             {
                 perche = "Qui un vertice si scrive per coordinate: questo file non sa scrivere i nomi.";
                 return false;
@@ -307,7 +300,7 @@ public sealed class ModificheInSospeso
 
         try
         {
-            punto = PuntoDelTipoGiusto(elenco, CoordinateConverter.ParsePair(pezzi[0], pezzi[1]));
+            punto = Punto.Da(CoordinateConverter.ParsePair(pezzi[0], pezzi[1]));
             return true;
         }
         catch (Exception e) when (e is CoordinateParseException or FormatException)
@@ -316,21 +309,6 @@ public sealed class ModificheInSospeso
             return false;
         }
     }
-
-    private static bool AmmetteINomi(System.Collections.IList elenco)
-        => elenco.GetType().IsGenericType && elenco.GetType().GetGenericArguments()[0] == typeof(Punto);
-
-    /// <summary>
-    /// La coordinata nel tipo che quell'elenco tiene: <see cref="Punto"/> dove i nomi si possono scrivere,
-    /// <see cref="Coordinate"/> dove no.
-    /// <para>🔴 I due <c>(object)</c> non sono decorazione: <see cref="Punto"/> ha una conversione IMPLICITA da
-    /// <see cref="Coordinate"/>, e senza di loro il tipo comune del ternario diventa <c>Punto</c> — anche il ramo
-    /// «no» usciva come Punto, e finiva in un <c>List&lt;Coordinate&gt;</c> con un'eccezione a tempo d'esecuzione.
-    /// L'ha trovato la misura sull'albero vero, dove ogni <c>.pol</c> e ogni <c>.lairway</c> cadeva; i test non
-    /// l'avevano visto perché toccavano i <c>.tfl</c>, che i Punto li tengono davvero.</para>
-    /// </summary>
-    private static object PuntoDelTipoGiusto(System.Collections.IList elenco, Coordinate coordinata)
-        => AmmetteINomi(elenco) ? (object)Punto.Da(coordinata) : (object)coordinata;
 
     /// <summary>Il diff di un file: le righe di adesso contro quelle che uscirebbero, dallo scrittore vero.</summary>
     public Diff.Esito DiffDi(FileAperto file)

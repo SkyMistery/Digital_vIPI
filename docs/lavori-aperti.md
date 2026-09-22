@@ -19,6 +19,12 @@ ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 del
   riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
   🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
   primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
+- **Slice 7-bis** (chiesta dal committente): i **tracciati a più tratti**. `ElenchiDiVertici` mette d'accordo i tre
+  modi in cui il sector scrive «i punti di questa forma» — coordinate, punti che ammettono i nomi, e **involucri**
+  (il `PuntoDelTracciato` delle `.sid` con etichetta e «nuovo tratto», i **segmenti** delle zone `.str`). Una zona a
+  più tratti ha un elenco per tratto e si modifica un tratto per volta. Albero: 4 468 record con vertici, 5 892
+  elenchi, e «un vertice per file» passa da 154 a **244 file, tutti −1 +1**. 🔴 L'etichetta di una SID non si perde
+  spostandone il punto. 🔴 Mancava la guardia sugli **indicizzatori** nel ciclo interno: «Parameter count mismatch».
 - **Slice 7**: i **vertici** — cambia, aggiungi, togli, e **«incolla da testo»** col convertitore di F1 (archi
   compresi). Misura: **154/154** file con elenchi piatti col diff di una riga tolta e una aggiunta; l'esempio AIP del
   committente su `lsas.tfl` fa 1 023 → 89 vertici in 15 ms. 🔴 Difetto preso dalla misura: `Punto` ha una conversione

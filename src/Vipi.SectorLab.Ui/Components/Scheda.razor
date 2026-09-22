@@ -48,10 +48,12 @@
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
         }
 
-        @if (CampoDeiVertici(scheda) is { } campoVertici)
+        @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
+        @foreach (var elenco in Lab.ElenchiDiVerticiDi(scheda.File, scheda.Indice))
         {
-            var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, campoVertici);
-            <h2>Vertici <span class="lab-nota">@vertici.Count</span></h2>
+            string chiave = elenco.Chiave;
+            var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, chiave);
+            <h2 data-elenco="@chiave">@elenco.Nome <span class="lab-nota">@vertici.Count</span></h2>
 
             <div class="lab-vertici" data-vertici="@vertici.Count">
                 @for (int i = 0; i < vertici.Count; i++)
@@ -60,25 +62,26 @@
                     <div class="lab-vertice">
                         <span class="lab-numero">@(posizione + 1)</span>
                         <input class="lab-campo" value="@vertici[posizione]"
-                               @onchange="e => Gesto(scheda, campoVertici, GestoDeiVertici.Cambia, posizione, e.Value?.ToString())"
+                               @onchange="e => Gesto(scheda, chiave, GestoDeiVertici.Cambia, posizione, e.Value?.ToString())"
                                data-vertice="@posizione" />
                         <button class="lab-annulla" title="aggiungi un vertice qui sopra"
-                                @onclick="() => Gesto(scheda, campoVertici, GestoDeiVertici.Aggiungi, posizione, vertici[posizione])"
+                                @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Aggiungi, posizione, vertici[posizione])"
                                 data-aggiungi="@posizione">+</button>
                         <button class="lab-annulla" title="togli questo vertice"
-                                @onclick="() => Gesto(scheda, campoVertici, GestoDeiVertici.Togli, posizione)"
+                                @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Togli, posizione)"
                                 data-togli="@posizione">−</button>
                     </div>
                 }
             </div>
 
             <details class="lab-incolla">
-                <summary data-incolla="apri">Incolla da testo</summary>
+                <summary data-incolla="@chiave">Incolla da testo</summary>
                 @* Il testo dell'AIP (archi compresi) o l'uscita del convertitore del sito: lo legge F1. *@
-                <textarea class="lab-campo" rows="4" @bind="_daIncollare" @bind:event="oninput"
+                <textarea class="lab-campo" rows="4" value="@(_perQuale == chiave ? _daIncollare : null)"
+                          @oninput="e => { _perQuale = chiave; _daIncollare = e.Value?.ToString(); }"
                           placeholder="Testo AIP, o coordinate una per riga" data-campo="incolla"></textarea>
-                <button class="lab-tasto" disabled="@string.IsNullOrWhiteSpace(_daIncollare)"
-                        @onclick="() => Incolla(scheda, campoVertici)" data-tasto="incolla">Sostituisci i vertici</button>
+                <button class="lab-tasto" disabled="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare))"
+                        @onclick="() => Incolla(scheda, chiave)" data-tasto="incolla">Sostituisci i vertici</button>
             </details>
         }
 
@@ -127,12 +130,8 @@ else
 
     private string? _daIncollare;
 
-    /// <summary>
-    /// Il campo che porta i vertici della forma, se c'è. ⚠️ I tracciati a più tratti (le zone dei <c>.str</c>, le
-    /// <c>.sid</c>) tengono i punti dentro i loro segmenti: quelli in slice 7 non si toccano ancora.
-    /// </summary>
-    private string? CampoDeiVertici(SchedaDelRecord scheda)
-        => scheda.Campi.Select(c => c.Nome).FirstOrDefault(nome => Lab.VerticiDi(scheda.File, scheda.Indice, nome).Count > 0);
+    /// <summary>Per quale elenco è il testo da incollare: un record può avere più tratti, ognuno col suo.</summary>
+    private string? _perQuale;
 
     private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
         => Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);
