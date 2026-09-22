@@ -1,6 +1,31 @@
 ﻿# Lavori aperti — elenco unico
 
-## Dove siamo — 22 settembre 2026 (notte)
+## Dove siamo — 22 settembre 2026 (mattina)
+
+### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-5 fatte (22 settembre 2026)
+
+Carta [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) (§8 traccia slice
+per slice, §9 decisioni). Progetto nuovo `src/Vipi.Sectorfile` (senza dipendenze, net8+net10), test
+`tests/Vipi.Sectorfile.Tests` (352, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
+lanciare su una copia dell'albero del sector. **Nessun dato di vIPI toccato, nessuna migrazione, niente pacchetto:
+il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
+
+- Slice 0-1 (`de0a3cad`, `fda60bfa`): il porto della libreria A. Slice 2 (`d58be224`): il punto letto come il DMS
+  di vIPI (0 discordi su 685 561 token). Slice 3 (`449b52ea`): **riga come campi** — un record toccato cambia solo
+  i campi cambiati. Slice 4 (`3d331045`): **`Punto`, coordinate o nome** (`.tfl`, `.mva`, tracciati dei `.sid`).
+  Slice 5 (`57cea85c`): **le forme opache** (`.fix` a 4/3 campi, `T;` degli `.artcc`, `.frq` senza profilo,
+  `.geo` col colore vuoto, nome del `.pol` in commento) e un difetto latente dei `.hartcc` (serie che apre con
+  DUMMY).
+- Sull'albero di `master` `7e761aa`: round-trip 681/681, righe opache **7 579 → 7**, tutto toccato 0, una modifica
+  per record 102 281/102 281.
+- 🔴 **Da dire agli AOD** — le 7 righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
+  5): `itvor.vor:81` (`GRO`, frequenza vuota), `itvor.vor:109` (`KPT`, minuti 75/99), `APT.fix:294` (`MG763`,
+  trattino), `MIL.fix:96` (`PL-BRAVO`, secondi 72), `lovv.tfl:48` (secondi 60), due `.pol` senza vertici
+  (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113).
+- ▶ **Prossima: slice 6** — lettori nuovi `.vrt`, `.hold`, aree P/R/D (`.restrict`/`.prohibit`/`.danger` = il
+  lettore `.geo` con due campi in più). Poi 7 `//@`, 8 validatore, 9 concordanza col lettore di vIPI, 10 chiusura.
+- Albero di prova in locale: una `git archive` del master del sector sotto `SectorFiles/Include/IT`
+  (`dotnet run -c Release --project tools/Vipi.SectorfileProva -- <cartella>`).
 
 ### ✅ A114 — 1.42.1 ONLINE: i chief d'ACC nel roster degli staffisti (22 settembre 2026, notte)
 
@@ -1119,7 +1144,8 @@ copie pubbliche.
   Nessuna migrazione.
 - 🔴 **Da dire agli AOD**: `R47` (Rieti) in `italy.restrict` ha l'arco disegnato fino a 12,51 NM dal centro,
   l'AIP dice 20 km = 10,80 NM (carta F1 §10.2). Più le candidate del confronto F0-bis già elencate sotto.
-- ✅ **21-set: tag e metadati `//@` decisi** (carta madre §8.2): aggancio col nome, verità dell'initial climb nel sector, prima ondata solo `.sid`/`.str`, conversione graduale. ▶ **Prossimo: la carta di F2.**
+- ✅ **21-set: tag e metadati `//@` decisi** (carta madre §8.2): aggancio col nome, verità dell'initial climb nel sector, prima ondata solo `.sid`/`.str`, conversione graduale.
+- 🟡 **22-set: F2 in corso**, carta scritta e approvata, slice 0-5 fatte → **§A115**.
 
 - ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.
 - ✅ §8 chiuso: metadati e tag `//@` (quali e dove: da discutere prima di F2), `.vrt`/`.hold` in F2, Leaflet canvas,
