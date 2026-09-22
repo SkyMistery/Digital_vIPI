@@ -29,6 +29,8 @@
          mano una volta: è un passo del PUBLISH. Se smette di compilare, il pacchetto non si costruisce
          più — e questo dev'essere la CI a dirlo, non chi sta preparando una consegna. -->
     <Project Path="tools/Vipi.Assets/Vipi.Assets.csproj" />
+    <!-- La prova del motore del sector sull albero intero (carta F2 §5): si lancia a mano, ma compila sempre. -->
+    <Project Path="tools/Vipi.SectorfileProva/Vipi.SectorfileProva.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Vipi.Application.Tests/Vipi.Application.Tests.csproj" />

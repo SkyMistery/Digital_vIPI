@@ -1,0 +1,4 @@
+# I campioni sono byte veri del sector, e i test ne confrontano i BYTE (round-trip).
+# Aurora li legge in CRLF; senza questa riga git li salverebbe in LF e la CI Linux li
+# vedrebbe diversi dalla macchina Windows. Qui nessuna conversione, in nessun senso.
+* -text

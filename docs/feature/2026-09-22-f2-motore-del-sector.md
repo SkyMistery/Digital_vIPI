@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0 fatta. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0 e 1 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -183,8 +183,31 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 - [ ] Prova di concordanza col lettore di vIPI verde.
 - [ ] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato.
 
-Commit: slice 0 = questo (progetto e test vuoti; l'unico test, `NessunaDipendenzaTests`, è stato provato
-**rosso** aggiungendo per un momento un riferimento a `Vipi.Domain`: fa il nome dell'assieme estraneo).
+Commit: slice 0 `de0a3cad` (progetto e test vuoti; l'unico test, `NessunaDipendenzaTests`, è stato provato
+**rosso** aggiungendo per un momento un riferimento a `Vipi.Domain`: fa il nome dell'assieme estraneo) ·
+slice 1 = questo.
+
+**Slice 1 — il porto di A** (commit `5761d00` di A; Shared + Models + IO, 82 file; test di IO, Models e
+Shared). Dei sorgenti è cambiato il namespace (`AuroraSectorDrawer` → `Vipi.Sectorfile`) e nient'altro: la
+build Release con avvisi = errori è passata **al primo colpo sui due TFM**. Prova: **236 test verdi** su
+net8 e net10; `tools/Vipi.SectorfileProva` sul `master` `7e761aa` dà **681 esatti, 0 diversi, 68 senza
+lettore, 7 579 righe opache** — la misura del §1, identica.
+
+Scostamenti, decisi strada facendo:
+- **Il pacchetto `System.Text.Encoding.CodePages` di A non serve**: su net8/net10 le code page sono nel
+  runtime. Il motore resta a zero dipendenze.
+- **`ParserRegistry` fuori** (codice morto, §2.2) coi suoi 5 test; due commenti che lo citavano, riscritti.
+- **`WarningCollector` rimandato a F3**: vive nei Services di A e dipende da `ILogger`. I test usano già il
+  loro doppione, e lo strumento il suo.
+- 🔴 **I test su file veri ora falliscono se il file manca.** In A tornavano verdi a vuoto quando l'albero non
+  c'era (cioè sempre in CI): ~30 test che non provavano niente. Qui leggono `tests/Vipi.Sectorfile.Tests/
+  Campioni/` (30 file veri dal `master`, ~1,1 MB, `.gitattributes` senza conversione dei fine riga) e un
+  campione assente è rosso. La regola si è pagata subito: 5 file passati come parametro di Theory erano
+  sfuggiti al censimento, e sono venuti fuori rossi invece che verdi.
+- Fuori per peso `GEO/itgeo.geo` e `GEO/lirf.geo` (1,2 MB, due soli confronti di byte): il loro round-trip
+  lo fa lo strumento. Fuori anche i 7 segnaposto `Skip` di §27.2-§27.9 (aspettavano i caricatori di A, F3).
+- `RealFileIntegrationTests` (§27.1, l'albero intero) è diventato **`tools/Vipi.SectorfileProva`**, nella
+  soluzione perché compili sempre, lanciato a mano.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 
