@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    Il guscio di Aurora Sector Lab (F3, docs/feature/2026-09-22-f3-l-app.md §2.1 e §3): una finestra WinForms con
+    una WebView2 che mostra un server Blazor su 127.0.0.1. Il solo pezzo Windows: la logica sta in
+    Vipi.SectorLab.Core, le pagine in Vipi.SectorLab.Ui.
+
+    EnableWindowsTargeting: la CI gira su Ubuntu e questo progetto lo compila (carta madre §8.4), non lo esegue.
+    Si consegna come release GitHub, dal tag sectorlab-v* (carta F3 §2.5).
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>true</UseWindowsForms>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Solo win-x64: è il bersaglio della consegna, e il lock file deve avere una forma sola (Directory.Build.props). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>VipiSectorLab</AssemblyName>
+    <RootNamespace>Vipi.SectorLab</RootNamespace>
+    <!-- La versione del Lab, sua e non del sito (quella è VipiVersione in Directory.Build.props): va nel titolo della
+         finestra e, dalla slice 11, nel tag della release (sectorlab-v<versione>, carta F3 §2.5). -->
+    <Version>0.1.0</Version>
+    <!-- 🔴 Da .NET 10 blazor.web.js è un asset statico del pacchetto Microsoft.AspNetCore.App.Internal.Assets, e l'SDK
+         lo aggiunge a un progetto web SOLO se il progetto ha dei .razor suoi (Microsoft.NET.Sdk.Web.ProjectSystem.targets).
+         Qui i .razor stanno in Vipi.SectorLab.Ui: senza questa riga la pagina arriva, blazor.web.js va a 404 e il
+         circuito non parte MAI — senza un errore a schermo (slice 1, trovato con l'autoprova). -->
+    <RequiresAspNetWebAssets>true</RequiresAspNetWebAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.SectorLab.Ui\Vipi.SectorLab.Ui.csproj" />
+  </ItemGroup>
+
+  <!-- ⚠️ I target del pacchetto WebView2 (build/Common.targets) aggiungono SEMPRE, per ogni app .NET 5+, anche
+       Microsoft.Web.WebView2.Wpf.dll: con WinForms senza WPF la build avvisa MSB3277 (WindowsBase 4.0 contro 5.0).
+       Qui WPF non c'è, e la DLL si toglie. In un target e non con un Remove statico: i target del pacchetto si
+       importano DOPO il corpo del csproj, e un Remove scritto qui sopra arriverebbe prima dell'Include. -->
+  <!-- 🔴 E il pacchetto che porta blazor.web.js (Microsoft.AspNetCore.App.Internal.Assets, target
+       _AddBlazorFrameworkStaticWebAssets) lo aggiunge solo se OutputType è «Exe»: un'app con finestra è «WinExe», e
+       senza queste due righe il manifesto degli asset resta senza _framework/ — pagina a 200, circuito mai vivo.
+       Il target vede «Exe» solo mentre si risolvono gli asset: si cambia in TESTA alla catena che lo contiene e si
+       rimette com'era subito dopo. ⚠️ Non con BeforeTargets sul target del pacchetto: MSBuild valuta la condizione di un
+       target PRIMA dei suoi BeforeTargets, e la trovava già falsa (provato). E non mettendo «Exe» a tutto il progetto:
+       con l'inferenza di WinForms spenta si avrebbe una console dietro la finestra (GuscioTests lo controlla).
+       Misurato: compilatore e apphost leggono il tipo prima di questo momento, e anche senza il secondo target
+       l'eseguibile resta un'app a finestra. Il secondo target resta perché OutputType dica il vero a chi viene dopo. -->
+  <PropertyGroup>
+    <ResolveStaticWebAssetsInputsDependsOn>BlazorWebJsAncheInWinExePrima;$(ResolveStaticWebAssetsInputsDependsOn)</ResolveStaticWebAssetsInputsDependsOn>
+  </PropertyGroup>
+  <Target Name="BlazorWebJsAncheInWinExePrima" Condition="'$(OutputType)' == 'WinExe'">
+    <PropertyGroup>
+      <_TipoDiUscitaDelLab>$(OutputType)</_TipoDiUscitaDelLab>
+      <OutputType>Exe</OutputType>
+    </PropertyGroup>
+  </Target>
+  <Target Name="BlazorWebJsAncheInWinExeDopo" AfterTargets="_AddBlazorFrameworkStaticWebAssets;ResolveStaticWebAssetsInputs" Condition="'$(_TipoDiUscitaDelLab)' != ''">
+    <PropertyGroup>
+      <OutputType>$(_TipoDiUscitaDelLab)</OutputType>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="TogliWebView2Wpf" BeforeTargets="ResolveAssemblyReferences">
+    <ItemGroup>
+      <Reference Remove="@(Reference)" Condition="'%(Filename)' == 'Microsoft.Web.WebView2.Wpf'" />
+    </ItemGroup>
+  </Target>
+
+</Project>

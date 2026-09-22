@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "Microsoft.AspNetCore.App.Internal.Assets": {
+        "type": "Direct",
+        "requested": "[10.0.12, )",
+        "resolved": "10.0.12",
+        "contentHash": "+sIBo9AMBZH46qHWHQdfzcGMt+RuBaPYrUMOAM9VjA7MQ9QtIez3lq1C3E05+Yroa94KKt3DSWaxmCI4H28a9Q=="
+      },
+      "Microsoft.Web.WebView2": {
+        "type": "Direct",
+        "requested": "[1.0.*, )",
+        "resolved": "1.0.4191.47",
+        "contentHash": "Snb6mlTpuz6ZFjWMwIdg28Xp6kAUMy3zaLUyGbFSaw+/AJKlwoX8EiaWJ1eUMfKyJHksPkFjJHl1LIB7kX+0AQ=="
+      },
+      "vipi.application": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.AuroraBridge.Contracts": "[1.0.0, )",
+          "Vipi.Domain": "[1.0.0, )"
+        }
+      },
+      "vipi.aurorabridge.contracts": {
+        "type": "Project"
+      },
+      "vipi.domain": {
+        "type": "Project"
+      },
+      "vipi.sectorfile": {
+        "type": "Project"
+      },
+      "vipi.sectorlab.core": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.Application": "[1.0.0, )",
+          "Vipi.Sectorfile": "[1.0.0, )"
+        }
+      },
+      "vipi.sectorlab.ui": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.SectorLab.Core": "[1.0.0, )"
+        }
+      }
+    },
+    "net10.0-windows7.0/win-x64": {
+      "Microsoft.Web.WebView2": {
+        "type": "Direct",
+        "requested": "[1.0.*, )",
+        "resolved": "1.0.4191.47",
+        "contentHash": "Snb6mlTpuz6ZFjWMwIdg28Xp6kAUMy3zaLUyGbFSaw+/AJKlwoX8EiaWJ1eUMfKyJHksPkFjJHl1LIB7kX+0AQ=="
+      }
+    }
+  }
+}

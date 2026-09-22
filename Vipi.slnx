@@ -11,6 +11,9 @@
     <Project Path="src/Vipi.Infrastructure/Vipi.Infrastructure.csproj" />
     <Project Path="src/Vipi.Infrastructure.MySqlMigrations/Vipi.Infrastructure.MySqlMigrations.csproj" />
     <Project Path="src/Vipi.Sectorfile/Vipi.Sectorfile.csproj" />
+    <Project Path="src/Vipi.SectorLab.Core/Vipi.SectorLab.Core.csproj" />
+    <Project Path="src/Vipi.SectorLab.Ui/Vipi.SectorLab.Ui.csproj" />
+    <Project Path="src/Vipi.SectorLab/Vipi.SectorLab.csproj" />
     <Project Path="src/Vipi.Ui/Vipi.Ui.csproj" />
   </Folder>
   <Folder Name="/tools/">
@@ -42,6 +45,7 @@
     <Project Path="tests/Vipi.Hosting.Tests/Vipi.Hosting.Tests.csproj" />
     <Project Path="tests/Vipi.Infrastructure.Tests/Vipi.Infrastructure.Tests.csproj" />
     <Project Path="tests/Vipi.Sectorfile.Tests/Vipi.Sectorfile.Tests.csproj" />
+    <Project Path="tests/Vipi.SectorLab.Tests/Vipi.SectorLab.Tests.csproj" />
     <Project Path="tests/Vipi.Ui.Tests/Vipi.Ui.Tests.csproj" />
   </Folder>
 </Solution>

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <!--
+    Le pagine e i componenti Blazor di Aurora Sector Lab, la mappa (sectorlab-mappa.js), il foglio, e il SERVER
+    locale che li serve (ServerDelLab: Kestrel su 127.0.0.1, il cancello) — F3, carta
+    docs/feature/2026-09-22-f3-l-app.md §2.1 e §3.
+
+    Stanno qui e non nell'eseguibile perché si provano in CI: con bUnit i componenti, con un Kestrel vero il
+    server e il cancello. Se stessero nel progetto Windows, anche il progetto di test dovrebbe essere Windows, e su
+    Ubuntu non girerebbe.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Il server intero (Kestrel, SignalR, antiforgery), non solo i componenti: il guscio ci aggiunge la finestra. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vipi.SectorLab.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.SectorLab.Core\Vipi.SectorLab.Core.csproj" />
+  </ItemGroup>
+
+</Project>

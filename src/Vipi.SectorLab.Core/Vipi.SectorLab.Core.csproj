@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    La logica di Aurora Sector Lab (F3, docs/feature/2026-09-22-f3-l-app.md §2.1): la sessione (l'albero aperto),
+    il catalogo dei punti, la geometria per la mappa, le modifiche in sospeso col loro diff, il salvataggio.
+    Senza finestre, perché si prova in CI (Ubuntu) — come Vipi.AuroraBridge.Core per il Bridge.
+
+    Solo net10.0: è la logica di un eseguibile autonomo, che il runtime se lo porta dietro. Il motore
+    (Vipi.Sectorfile) e Vipi.Application restano multitarget com'erano.
+    🔴 Mai Vipi.Infrastructure, EF o l'host del sito: lo tiene vero NessunaDipendenzaDelSitoTests.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- ⚠️ Il RID si dichiara come in tutte le librerie di src/: senza, il packages.lock.json cambia forma a
+         seconda di chi lo restora (Directory.Build.props). -->
+    <RuntimeIdentifiers>linux-x64;win-x64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Vipi.SectorLab.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />    <!-- Il convertitore di F1 (CoordinateParser, AipGeometryReader): il campo «incolla coordinate». Carta madre,
+         decisione 3: un motore solo fra sito e app. -->
+    <ProjectReference Include="..\Vipi.Application\Vipi.Application.csproj" />
+  </ItemGroup>
+
+</Project>

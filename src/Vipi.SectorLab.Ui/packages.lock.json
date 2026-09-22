@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "vipi.application": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.AuroraBridge.Contracts": "[1.0.0, )",
+          "Vipi.Domain": "[1.0.0, )"
+        }
+      },
+      "vipi.aurorabridge.contracts": {
+        "type": "Project"
+      },
+      "vipi.domain": {
+        "type": "Project"
+      },
+      "vipi.sectorfile": {
+        "type": "Project"
+      },
+      "vipi.sectorlab.core": {
+        "type": "Project",
+        "dependencies": {
+          "Vipi.Application": "[1.0.0, )",
+          "Vipi.Sectorfile": "[1.0.0, )"
+        }
+      }
+    },
+    "net10.0/linux-x64": {},
+    "net10.0/win-x64": {}
+  }
+}

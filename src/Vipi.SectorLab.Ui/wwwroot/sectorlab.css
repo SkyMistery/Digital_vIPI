@@ -1,0 +1,34 @@
+/* Aurora Sector Lab — il foglio dell'app. Cresce con le slice di F3 (carta docs/feature/2026-09-22-f3-l-app.md). */
+
+:root {
+    --lab-fondo: #f5f6f8;
+    --lab-testo: #1c2330;
+    --lab-tenue: #5b6474;
+    --lab-accento: #0b5cad;
+    color-scheme: light;
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--lab-fondo);
+    color: var(--lab-testo);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+}
+
+.lab-vuoto {
+    max-width: 40rem;
+    margin: 18vh auto 0;
+    padding: 0 1.5rem;
+}
+
+.lab-vuoto h1 {
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--lab-accento);
+    margin: 0 0 .5rem;
+}
+
+.lab-nota {
+    color: var(--lab-tenue);
+}

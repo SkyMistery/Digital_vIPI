@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aurora Sector Lab</title>
+    @* Nessuna icona di pagina: la finestra ha la sua. Senza questa riga la WebView2 chiede /favicon.ico e il diario
+       d'avvio si riempie di un 404 che non vuol dire niente. *@
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="@Assets["_content/Vipi.SectorLab.Ui/sectorlab.css"]" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="@Assets["_content/Vipi.SectorLab.Ui/sectorlab.js"]"></script>
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <!-- Solo net10, come l'app (carta F3 §2.1). Il job net8 della CI prende solo i progetti che net8 lo dichiarano. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+
+    <!-- SDK web (in testa): i test avviano il server del Lab con un Kestrel vero, e MapStaticAssets vuole il manifesto
+         degli asset dell'assieme d'ingresso, che nasce solo in un progetto web. -->
+    <!-- ⚠️ Niente RequiresAspNetWebAssets qui: blazor.web.js arriva col guscio (sotto), e chiederlo anche qui lo
+         metteva due volte nel manifesto — build ferma con «An item with the same key has already been added». -->
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Parser HTML di bUnit: la 1.2.0 che tira bunit ha una mXSS (GHSA-pgww-w46g-26qg). Come in Vipi.Ui.Tests. -->
+    <PackageReference Include="AngleSharp" Version="1.6.0" />
+    <PackageReference Include="bunit" Version="1.40.0" />
+    <PackageReference Include="coverlet.collector" Version="10.0.1" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Vipi.SectorLab.Core\Vipi.SectorLab.Core.csproj" />
+    <ProjectReference Include="..\..\src\Vipi.SectorLab.Ui\Vipi.SectorLab.Ui.csproj" />
+    <!-- Il guscio Windows NON si referenzia (è net10.0-windows): si fa solo COMPILARE prima dei test, perché GuscioTests
+         ne legga il risultato — il manifesto degli asset e il tipo d'eseguibile, le due trappole della slice 1. -->
+    <ProjectReference Include="..\..\src\Vipi.SectorLab\Vipi.SectorLab.csproj" ReferenceOutputAssembly="false" SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>UscitaDelGuscio</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\..\src\Vipi.SectorLab\bin\$(Configuration)\net10.0-windows'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

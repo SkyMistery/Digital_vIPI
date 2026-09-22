@@ -1,0 +1,32 @@
+@page "/"
+@inject IJSRuntime Js
+
+<PageTitle>Aurora Sector Lab</PageTitle>
+
+<main class="lab-vuoto">
+    <h1>Aurora Sector Lab</h1>
+    <p>Nessuna cartella del sector aperta.</p>
+    <p class="lab-nota">
+        @if (_interattivo)
+        {
+            <span data-stato="interattivo">Pronto.</span>
+        }
+        else
+        {
+            <span data-stato="caricamento">Avvio…</span>
+        }
+    </p>
+</main>
+
+@code {
+    private bool _interattivo;
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!primo) return;
+        _interattivo = true;
+        StateHasChanged();
+        // Dice alla finestra che il circuito è vivo: è il momento che il guscio misura (e la prova d'avvio aspetta).
+        await Js.InvokeVoidAsync("sectorlab.pronto");
+    }
+}

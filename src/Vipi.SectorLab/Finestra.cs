@@ -1,0 +1,121 @@
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+
+namespace Vipi.SectorLab;
+
+// «Application» sarebbe Vipi.Application: vedi Program.cs.
+using WinForms = System.Windows.Forms;
+
+/// <summary>
+/// La finestra: una WebView2 a tutta superficie che mostra il server locale. Nient'altro — le pagine stanno in
+/// Vipi.SectorLab.Ui, la logica in Vipi.SectorLab.Core.
+/// </summary>
+internal sealed class Finestra : Form
+{
+    /// <summary>Oltre questo tempo l'autoprova si dà per fallita: in F0 il circuito era vivo in 0,6 s.</summary>
+    private const int AttesaDellAutoprovaMs = 60_000;
+
+    private readonly WebView2 _vista;
+    private readonly Diario _diario;
+    private readonly bool _autoprova;
+
+    /// <summary>Il codice d'uscita: 0 finché niente va storto; con l'autoprova diventa 0 solo col circuito vivo.</summary>
+    public int Esito { get; private set; }
+
+    public Finestra(Uri ingresso, Diario diario, bool autoprova)
+    {
+        _diario = diario;
+        _autoprova = autoprova;
+        Esito = autoprova ? 1 : 0;
+
+        Text = $"Aurora Sector Lab {Versione.Testo}";
+        Width = 1400;
+        Height = 900;
+        StartPosition = FormStartPosition.CenterScreen;
+        if (Icon.ExtractAssociatedIcon(WinForms.Application.ExecutablePath) is { } icona)
+            Icon = icona;
+
+        _vista = new WebView2
+        {
+            Dock = DockStyle.Fill,
+            // 🔴 Di base la WebView2 tiene i suoi dati ACCANTO all'eseguibile: in una cartella senza permessi di
+            // scrittura (Programmi, una chiavetta protetta) non parte. Carta F3 §7.
+            CreationProperties = new CoreWebView2CreationProperties
+            {
+                UserDataFolder = Path.Combine(Program.CartellaDellUtente, "WebView2"),
+            },
+        };
+        Controls.Add(_vista);
+
+        _vista.CoreWebView2InitializationCompleted += (_, e) =>
+        {
+            if (!e.IsSuccess)
+            {
+                _diario.Scrivi($"WebView2 non partita: {e.InitializationException}");
+                Chiudi(esito: 2);
+                return;
+            }
+            _diario.Scrivi("WebView2 pronta");
+            var impostazioni = _vista.CoreWebView2.Settings;
+            impostazioni.IsStatusBarEnabled = false;
+#if !DEBUG
+            impostazioni.AreDevToolsEnabled = false;
+#endif
+            _vista.CoreWebView2.WebMessageReceived += AllArrivoDiUnMessaggio;
+            // Uno script o un foglio che non arriva non lo dice nessuno: la pagina resta lì, ferma, senza errori
+            // (è la trappola 2 di F0). Ogni risposta andata male finisce nel diario.
+            _vista.CoreWebView2.WebResourceResponseReceived += (_, r) =>
+            {
+                if (r.Response.StatusCode >= 400)
+                    _diario.Scrivi($"risposta {r.Response.StatusCode} per {r.Request.Uri}");
+            };
+            _vista.CoreWebView2.NavigationCompleted += (_, n) =>
+                _diario.Scrivi($"pagina caricata: ok={n.IsSuccess} http={n.HttpStatusCode} {n.WebErrorStatus}");
+            _vista.CoreWebView2.Navigate(ingresso.AbsoluteUri);
+        };
+
+        Load += async (_, _) =>
+        {
+            try
+            {
+                await _vista.EnsureCoreWebView2Async();
+            }
+            catch (Exception ex)
+            {
+                _diario.Scrivi($"WebView2 non partita: {ex}");
+                Chiudi(esito: 2);
+            }
+        };
+
+        if (autoprova)
+        {
+            var sveglia = new System.Windows.Forms.Timer { Interval = AttesaDellAutoprovaMs };
+            sveglia.Tick += (_, _) =>
+            {
+                sveglia.Stop();
+                _diario.Scrivi($"autoprova: circuito non vivo dopo {AttesaDellAutoprovaMs / 1000} s");
+                Chiudi(esito: 1);
+            };
+            sveglia.Start();
+        }
+    }
+
+    private void AllArrivoDiUnMessaggio(object? mittente, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        string testo = e.TryGetWebMessageAsString() ?? "";
+        _diario.Scrivi($"dalla pagina: {testo}");
+
+        if (!_autoprova)
+            return;
+        if (testo == "pronto")
+            Chiudi(esito: 0);
+        else if (testo.StartsWith("errore:", StringComparison.Ordinal))
+            Chiudi(esito: 1);
+    }
+
+    private void Chiudi(int esito)
+    {
+        Esito = esito;
+        BeginInvoke(Close);
+    }
+}
