@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0, 1 e 2 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0, 1, 2 e 3 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -114,6 +114,7 @@ Regole, ognuna con gravità (errore / avviso) e con la riga e il file:
 | campo obbligatorio vuoto | `itvor.vor:81` `GRO;;` |
 | DMS e decimale mescolati sulla stessa riga | (vietato dalla specifica) |
 | **punto per nome non risolto** nei cataloghi dichiarati dall'`.isc` | B ne trovò 1 |
+| punto per nome con **due nomi diversi** (Aurora prende la latitudine dal primo e la longitudine dal secondo) | 7 righe di `.str`: `ALPHA SOUTH;ALPHA SUOTH` (refuso), `MC905;MC904` |
 | nome duplicato dove dev'essere unico (fix, ARTCC) | B: 214 chiavi duplicate |
 | poligono con meno di 3 vertici | |
 | file citato dall'`.isc` e assente / file presente e mai citato | B: 31 orfani |
@@ -139,14 +140,14 @@ coi suoi.
 | 0 | Progetto `Vipi.Sectorfile` vuoto nella soluzione, multitarget, e il suo progetto di test | build Release verde sui due TFM, conta-test aggiornato |
 | 1 | Porto di A **senza cambi di comportamento**, coi suoi test | i test di A verdi; round-trip dell'albero: **681/681** e **7 579** righe opache (la misura di oggi, fissata) |
 | 2 | Il punto unico (4 forme, stile ricordato); il DMS confrontato con quello di vIPI | ogni coordinata dell'albero dà lo stesso valore nei due |
-| 3 | Punti per nome in `.tfl`/`.sid`/`.str`/`.mva` | le righe opache scendono di 417, round-trip sempre esatto |
-| 4 | `.fix` a 4 campi, `T;` degli `.artcc`, `.frq` lunghi, colore vuoto, interruzioni | opache: restano solo le 3 del `.vor` |
-| 4-bis | **Scrittori fedeli** (aggiunta dopo la slice 2, §8): commenti, campi in coda, terminatori, spazi e zeri, precisione dei decimali | «tutto toccato» a **zero** righe cambiate |
-| 5 | `.vrt`, `.hold`, aree P/R/D | tutti i 20 file letti e riscritti uguali, anche tutto toccato |
-| 6 | `//@` in `.sid`/`.str`: lettura e scrittura | un file con tag e uno senza; nome che non combacia segnalato |
-| 7 | Il validatore | le tre righe del `.vor` trovate; i numeri di B rimisurati e scritti qui |
-| 8 | Prova di concordanza col lettore di vIPI | stessi punti e stesse SID/STAR sull'albero intero |
-| 9 | Chiusura: carta, lavori aperti, memorie | |
+| 3 | **Riga come campi** (§9.5): la base fotografata all'apertura, la fusione a tre per righe e per campi | «una modifica per record» = **una riga** cambiata per record, e «tutto toccato» a zero |
+| 4 | Punti per nome in `.tfl`/`.sid`/`.str`/`.mva`, un tipo solo per il punto | le righe opache scendono di 417, round-trip sempre esatto |
+| 5 | `.fix` a 4 campi, `T;` degli `.artcc`, `.frq` lunghi, colore vuoto, interruzioni | opache: restano solo le righe dei `.vor` che sono errori veri |
+| 6 | `.vrt`, `.hold`, aree P/R/D | tutti i 20 file letti e riscritti uguali, anche con una modifica per record |
+| 7 | `//@` in `.sid`/`.str`: lettura e scrittura | un file con tag e uno senza; nome che non combacia segnalato |
+| 8 | Il validatore | le righe del `.vor` trovate; i numeri di B rimisurati e scritti qui |
+| 9 | Prova di concordanza col lettore di vIPI | stessi punti e stesse SID/STAR sull'albero intero |
+| 10 | Chiusura: carta, lavori aperti, memorie | |
 
 Un commit per slice; `dotnet build Vipi.slnx -c Release --no-incremental` verde su entrambi i TFM a ogni commit;
 `conta-test.sh --scrivi` nello stesso commit dei test nuovi.
@@ -255,8 +256,29 @@ niente; appena un AOD modificasse un record:
 | `.frq` | righe lunghe | (troncate) |
 
 Nessuno di questi tocca il sito o l'app di oggi (nessuno scrive ancora con il motore), ma F3 senza questo
-lavoro produrrebbe PR con migliaia di righe cambiate a ogni modifica. Da qui la **slice 4-bis** e la terza
+lavoro produrrebbe PR con migliaia di righe cambiate a ogni modifica. Da qui la decisione del §9.5, la **slice 3** nuova (le slice dopo sono slittate di uno) e la terza
 condizione della definition of done.
+
+**Slice 3 — riga come campi** (§9.5; commit = il successivo a `d58be224`). `IO/Basi.cs` (`FissaLeBasi`: la
+base di ogni record, all'apertura), `IO/FusioneDelRecord.cs` (la fusione a tre), e l'orchestratore che
+**rifiuta** un record toccato senza base. La fusione:
+1. allinea le righe grezze alla base con un'uguaglianza di significato (spazi, zeri davanti, forma della
+   coordinata; i campi in coda della grezza e i campi vuoti della base valgono come «sconosciuti al modello»);
+2. nei buchi che restano, un secondo passo aggancia un record **disattivato** alla sua riga commentata
+   (`//LIBB;00;00;…`) e una riga con **gli stessi punti** alla sua base anche se un campo dedotto dallo
+   scrittore differisce (`L;LIMM;…` contro `L;50;…` dei `.mva` di rotta). Al primo passo sarebbe pericoloso: la
+   versione vecchia tenuta commentata sopra la nuova prenderebbe la modifica;
+3. confronta base e nuove alla lettera e riscrive, delle righe cambiate, **solo i campi cambiati**, nella forma
+   dei punti del record; righe aggiunte nella stessa forma; righe che lo scrittore non produce (commenti,
+   `T;DUMMY`, commenti in coda come `; //3500 SE`) restano dove sono.
+
+Prova sull'albero intero: **tutto toccato 0 righe** (erano 60 750); **una modifica per record: 99 707 record
+spostati, 99 707 righe cambiate, 0 file fuori misura, 0 righe con più di un campo cambiato**. Controprova:
+rimettendo la riscrittura dell'intera riga le righe con più di un campo cambiato tornano 6 484. La strada
+fino allo zero è passata per cinque casi veri, ognuno oggi un test (`FusioneDelRecordTests`): il `;` finale
+contato come campo (`54Y` perso), la coppia decimale non riconosciuta, il record disattivato di `libb.ap` e
+`licz.geo`, l'etichetta dedotta dei `.mva` di rotta, il commento in coda di `lipe.mva`. In CI la stessa misura
+gira su 15 campioni veri (`UnaModificaPerRecordTests`). Test: 303 su net8 e net10.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 
@@ -265,3 +287,17 @@ condizione della definition of done.
 3. **Porto di A adattato**, non riscritto (proposta): le 5 500 righe e i 310 test vengono con la loro storia,
    il primo commit dice da dove.
 4. vIPI **non cambia** in F2 (proposta): la lettura dei `//@` da parte dell'import arriva con F7.
+5. ✅ **Riga come campi** (committente, 22 settembre, dopo la scoperta della slice 2) — **deroga al punto 3**
+   per la sola scrittura. Gli scrittori di A ricostruiscono ogni riga dal modello e perdono ciò che il modello
+   non ha; completarli formato per formato avrebbe riperso ogni campo sconosciuto futuro. Invece:
+   - all'**apertura** ogni record fotografa la sua **base**: le righe che lo scrittore produce dal record ancora
+     intatto;
+   - al **salvataggio** si confronta la base con le righe del record modificato: dove coincidono restano i
+     **byte originali**; dove una riga cambia entra solo il **campo** cambiato (nella forma del file); i campi
+     che il modello non conosce, in coda o no, restano; le righe che il modello non vede (commenti, `T;DUMMY`,
+     righe ignote) restano al loro posto;
+   - un record segnato come toccato ma non cambiato esce **identico per costruzione**. La misura dura diventa
+     «**una modifica per record**»: si sposta di un millesimo di secondo il primo punto di ogni record e si
+     contano le righe cambiate — dev'essere **una** per record.
+
+   I lettori e il modello di A restano; cambia il modo di riscrivere. È la slice 3.

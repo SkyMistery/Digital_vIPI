@@ -75,4 +75,12 @@ public sealed class RecordChunk<T> : FileChunk<T>
     /// (i.e. it was previously saved by this application). False for original Aurora files.
     /// </summary>
     public bool HasMarkers { get; }
+
+    /// <summary>
+    /// The record's BASE: the lines its saver produced from it right after reading, before any change (F2 slice
+    /// 3, «riga come campi»). Null until <c>FissaLeBasi</c> runs. Writing a dirty record needs it: the
+    /// difference between the base and the saver's lines for the changed record is exactly the change, and
+    /// everything else is written back from <see cref="RawLines"/>.
+    /// </summary>
+    public IReadOnlyList<string>? Base { get; internal set; }
 }

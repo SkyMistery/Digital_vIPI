@@ -40,6 +40,18 @@ public sealed class FileSaverOrchestratorTests : IDisposable
         Assert.Equal(new[] { "NEW" }, lines);
     }
 
+    // F2 slice 3 — a dirty record without a base cannot be written: what changed can no longer be told.
+    [Fact]
+    public void DirtyRecord_WithoutBase_IsRefused()
+    {
+        var rec = new FakeRecord("ID1", "NEW");
+        var pr = new ParseResult<FakeRecord>(new[] { rec },
+            new FileChunk<FakeRecord>[] { new RecordChunk<FakeRecord>(rec, new[] { "OLD" }, hasMarkers: false) },
+            new UTF8Encoding(false), HasByteOrderMark: false);
+
+        Assert.Throws<InvalidOperationException>(() => SaveAndReadLines(pr, Dirty(rec)));
+    }
+
     // §26.3 — dirty record that already had markers → markers preserved, not duplicated.
     [Fact]
     public void DirtyRecord_WithMarkers_NotDuplicated()
@@ -167,8 +179,17 @@ public sealed class FileSaverOrchestratorTests : IDisposable
 
     private static ISet<FakeRecord> Dirty(params FakeRecord[] records) => new HashSet<FakeRecord>(records);
 
+    // The fake records are born ALREADY changed (raw lines "OLD", content "NEW"), so their base — what the
+    // saver produced when they were read (F2 slice 3) — is their raw lines.
     private static ParseResult<FakeRecord> WithChunks(IReadOnlyList<FakeRecord> records, params FileChunk<FakeRecord>[] chunks)
-        => new(records, chunks, new UTF8Encoding(false), HasByteOrderMark: false);
+    {
+        foreach (var chunk in chunks.OfType<RecordChunk<FakeRecord>>())
+        {
+            chunk.Base ??= chunk.RawLines;
+        }
+
+        return new(records, chunks, new UTF8Encoding(false), HasByteOrderMark: false);
+    }
 
     private static ParseResult<FakeRecord> FromLines(
         IReadOnlyList<string> lines, string newLine, bool hasFinalNewLine,

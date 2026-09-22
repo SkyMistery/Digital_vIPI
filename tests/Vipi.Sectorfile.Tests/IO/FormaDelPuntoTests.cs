@@ -61,20 +61,22 @@ public sealed class FormaDelPuntoTests
             new[] { "L;X N045.37.45.000;N0453745000;E0133332000;" },
             FormaDelPunto.In(new[] { "L;X N045.37.45.000;N045.37.45.000;E013.33.32.000;" }, FormaDelPunto.Forma.Compatta));
 
-    // Dal vivo, sui campioni: un .vfi è compatto; un record toccato ma non cambiato esce com'era.
+    // Un .vfi è compatto: il punto spostato si riscrive compatto.
     [Fact]
-    public void UnRecordCompattoToccatoEsceCompatto()
+    public void UnRecordCompattoSpostatoEsceCompatto()
     {
         string path = Path.Combine(Path.GetTempPath(), "forma-" + Guid.NewGuid().ToString("N") + ".vfi");
         File.WriteAllText(path, "VICKY;PPE1;N0453745000;E0133332000;\r\n");
         try
         {
             var warnings = new Vipi.Sectorfile.IO.Tests.CollectingWarnings();
-            var letto = new VfiParser(warnings).Parse(path, new ColorPalette());
+            var letto = new VfiParser(warnings).Parse(path, new ColorPalette()).FissaLeBasi(new VfiSaver());
+            var punto = letto.Records[0];
+            punto.Position = new Coordinate(punto.Position.LatitudeDeg + 1 / 3600.0, punto.Position.LongitudeDeg);
 
             new FileSaverOrchestrator().Save(letto, new HashSet<VfrPoint>(letto.Records), new VfiSaver(), path);
 
-            Assert.Equal("VICKY;PPE1;N0453745000;E0133332000;\r\n", File.ReadAllText(path));
+            Assert.Equal("VICKY;PPE1;N0453746000;E0133332000;\r\n", File.ReadAllText(path));
         }
         finally
         {

@@ -4,8 +4,9 @@ using Vipi.Sectorfile.Models;
 namespace Vipi.Sectorfile.IO;
 
 /// <summary>
-/// Writes a file back to disk preserving every unmodified byte verbatim and re-serialising only
-/// the dirty records, in the form their points were written in (<see cref="FormaDelPunto"/>). No
+/// Writes a file back to disk preserving every unmodified byte verbatim. Of a dirty record only what
+/// changed is rewritten (<see cref="FusioneDelRecord"/>, F2 §9.5: the record needs its base, see
+/// <see cref="Basi.FissaLeBasi{T}"/>), in the form its points were written in (<see cref="FormaDelPunto"/>). No
 /// //Start//End markers are added (records that already had them keep them); an empty dirty set
 /// yields a byte-for-byte copy of the original (NFR-04).
 /// </summary>
@@ -77,9 +78,21 @@ public sealed class FileSaverOrchestrator
                         output.Add($"//Start {id}");
                     }
 
-                    output.AddRange(isDirty
-                        ? FormaDelPunto.In(saver.Serialize(record.Record), FormaDelPunto.Di(record.RawLines) ?? formaDelFile.Value)
-                        : record.RawLines);
+                    if (!isDirty)
+                    {
+                        output.AddRange(record.RawLines);
+                    }
+                    else
+                    {
+                        // «Riga come campi» (F2 §9.5): only what changed between the base and the record's
+                        // current lines is written; every other byte comes from RawLines.
+                        var base_ = record.Base ?? throw new InvalidOperationException(
+                            $"Record '{id}' is dirty but has no base: call FissaLeBasi right after reading, " +
+                            "before changing anything, or the change cannot be told from the file.");
+                        output.AddRange(FusioneDelRecord.Unisci(
+                            record.RawLines, base_, saver.Serialize(record.Record),
+                            FormaDelPunto.Di(record.RawLines) ?? formaDelFile.Value));
+                    }
 
                     if (emitMarkers)
                     {
