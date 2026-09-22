@@ -17,7 +17,8 @@ using Vipi.Sectorfile.Shared;
 //      a. TUTTO TOCCATO — ogni record segnato come modificato senza cambiarlo. Con gli scrittori di A (22
 //         settembre) cambiavano 60 750 righe su 257 435; con «riga come campi» (F2 §9.5) zero.
 //      b. UNA MODIFICA PER RECORD — il primo punto di ogni record spostato di un millesimo di secondo: deve
-//         cambiare una riga per record, e in quella riga un campo. Dalla slice 3: 99 707 su 99 707.
+//         cambiare una riga per record, e in quella riga un campo. Dalla slice 3: 99 707 su 99 707; dalla
+//         slice 4 (punti per nome, si sposta il primo punto PER COORDINATE) 100 098 su 100 098.
 //      Il secondo argomento facoltativo è una cartella dove lasciare i file fuori misura, per un diff.
 //   4. CONCORDANZA: ogni token DMS letto dal motore e dal DMS di vIPI, stesso esito e stesso valore.
 //      Esce 1 se ce n'è uno discorde.
@@ -326,16 +327,40 @@ static bool Sposta(object record)
             return true;
         }
 
+        if (p.PropertyType == typeof(Punto) && p.CanWrite && ((Punto)p.GetValue(record)!).Posizione is { } posizione)
+        {
+            p.SetValue(record, Punto.Da(Spostata(posizione)));
+            return true;
+        }
+
         if (p.GetValue(record) is IList<Coordinate> { Count: > 0 } punti)
         {
             punti[0] = Spostata(punti[0]);
             return true;
         }
 
-        if (p.GetValue(record) is System.Collections.IList { Count: > 0 } elenco && elenco[0] is { } primo
-            && primo.GetType().IsClass && primo is not string && Sposta(primo))
+        // Il primo punto PER COORDINATE: un punto per nome non ha niente da spostare (F2 slice 4).
+        if (p.GetValue(record) is IList<Punto> vertici)
         {
-            return true;
+            for (int i = 0; i < vertici.Count; i++)
+            {
+                if (vertici[i].Posizione is { } v)
+                {
+                    vertici[i] = Punto.Da(Spostata(v));
+                    return true;
+                }
+            }
+        }
+
+        if (p.GetValue(record) is System.Collections.IList elenco)
+        {
+            foreach (object? elemento in elenco)
+            {
+                if (elemento is not null && elemento.GetType().IsClass && elemento is not string && Sposta(elemento))
+                {
+                    return true;
+                }
+            }
         }
     }
 

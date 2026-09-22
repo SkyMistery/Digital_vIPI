@@ -17,7 +17,9 @@ public sealed class UnaModificaPerRecordTests
 
     [Fact] public void Geo() => Misura(new GeoParser(_warnings), new GeoSaver(), "RW_MARKINGS/ba_mark.geo");
     [Fact] public void Pol() => Misura(new PolParser(_warnings), new PolSaver(), "GND_LAYOUT/rf_ad_gnd.pol");
-    // Non ci sono .sid né .frq: i campioni (lirf.sid, solo etichette; itfreq.frq) non hanno punti da spostare.
+    // Non c'è .frq: itfreq.frq non ha punti da spostare. Dei .sid solo lied.sid ne ha (i tracciati, slice 4).
+    [Fact] public void Sid() => Misura(new SidParser(_warnings), new SidSaver(), "lied.sid");
+    [Fact] public void TflCoiVerticiPerNome() => Misura(new TflParser(_warnings), new TflSaver(), "DYNAMIC_SEC/libb_es_ctr.tfl");
     [Fact] public void Str() => Misura(new StrParser(_warnings), new StrSaver(), "lirf.str");
     [Fact] public void Vor() => Misura(new VorParser(_warnings), new VorSaver(), "NAVAIDS/itvor.vor");
     [Fact] public void Rw() => Misura(new RwParser(_warnings), new RwSaver(), "OTHER/itrw.rw");
@@ -76,16 +78,40 @@ public sealed class UnaModificaPerRecordTests
                 return true;
             }
 
+            if (p.PropertyType == typeof(Punto) && p.CanWrite && ((Punto)p.GetValue(record)!).Posizione is { } posizione)
+            {
+                p.SetValue(record, Punto.Da(Spostata(posizione)));
+                return true;
+            }
+
             if (p.GetValue(record) is IList<Coordinate> { Count: > 0 } punti)
             {
                 punti[0] = Spostata(punti[0]);
                 return true;
             }
 
-            if (p.GetValue(record) is IList { Count: > 0 } elenco && elenco[0] is { } primo
-                && primo.GetType().IsClass && primo is not string && Sposta(primo))
+            // Il primo punto PER COORDINATE: un punto per nome non ha niente da spostare.
+            if (p.GetValue(record) is IList<Punto> vertici)
             {
-                return true;
+                for (int i = 0; i < vertici.Count; i++)
+                {
+                    if (vertici[i].Posizione is { } v)
+                    {
+                        vertici[i] = Punto.Da(Spostata(v));
+                        return true;
+                    }
+                }
+            }
+
+            if (p.GetValue(record) is IList elenco)
+            {
+                foreach (object? elemento in elenco)
+                {
+                    if (elemento is not null && elemento.GetType().IsClass && elemento is not string && Sposta(elemento))
+                    {
+                        return true;
+                    }
+                }
             }
         }
 

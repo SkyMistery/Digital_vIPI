@@ -40,10 +40,7 @@ public sealed class TflSaver : IFileSaver<TflSector>
 
         foreach (var vertex in record.Vertices)
         {
-            lines.Add(CoordinateConverter.LatitudeToDottedDms(vertex.LatitudeDeg)
-                      + ";"
-                      + CoordinateConverter.LongitudeToDottedDms(vertex.LongitudeDeg)
-                      + ";");
+            lines.Add(vertex.Riga());
         }
 
         return lines;

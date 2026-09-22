@@ -54,8 +54,8 @@ public class TflSector
     /// <summary>Inferred from <see cref="SectorCode"/> + <see cref="FillColor"/>; see <see cref="SectorTypeInference"/>.</summary>
     public SectorType Type => SectorTypeInference.Infer(SectorCode, FillColor);
 
-    /// <summary>Implicitly closed polygon.</summary>
-    public IList<Coordinate> Vertices { get; } = new List<Coordinate>();
+    /// <summary>Implicitly closed polygon. A vertex may be given by name (<c>AMSOR;AMSOR;</c>, F2 slice 4).</summary>
+    public IList<Punto> Vertices { get; } = new List<Punto>();
 
     public SourceRef Source { get; set; } = null!;
 }

@@ -185,7 +185,16 @@ public sealed class StrParser : IFileParser<StrRecord>
             }
 
             currentLines.Add(line);
-            body.Add(ClassifyBody(parts, n));
+            var token = ClassifyBody(parts, n);
+            if (!token.IsCoord && n >= 2 && !Punto.TryLeggi(parts[0], parts[1], out _))
+            {
+                // A body line that is neither a point by coordinates nor by name: a coordinate that does not read
+                // (minutes 75, a lowercase hemisphere…). A turned it into a FIX named «N047.44.75.000» without a
+                // word; it still is one, to keep the model, but now it is said (F2 slice 4).
+                _warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source, "Unparseable STR point", lineNumber, line);
+            }
+
+            body.Add(token);
         }
 
         Finalize();

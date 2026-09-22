@@ -34,20 +34,20 @@ public sealed class MvaSaver : IFileSaver<MvaSector>
 
         foreach (var anchor in record.LabelAnchors)
         {
+            var (anchorLat, anchorLon) = anchor.Campi();
             lines.Add(string.Join(
                 ";",
                 "L",
                 labelField1,
-                CoordinateConverter.LatitudeToDottedDms(anchor.LatitudeDeg),
-                CoordinateConverter.LongitudeToDottedDms(anchor.LongitudeDeg),
+                anchorLat,
+                anchorLon,
                 record.AltLabel,
                 size) + ";");
         }
 
         foreach (var vertex in record.Vertices)
         {
-            string lat = CoordinateConverter.LatitudeToDottedDms(vertex.Position.LatitudeDeg);
-            string lon = CoordinateConverter.LongitudeToDottedDms(vertex.Position.LongitudeDeg);
+            var (lat, lon) = vertex.Position.Campi();
             string ident = vertex.ExtraField ?? record.AltLabel;
 
             lines.Add(vertex.ExtraField is not null

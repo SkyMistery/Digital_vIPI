@@ -8,6 +8,9 @@ Sono i file che i test della libreria A leggevano per nome (carta F2, §5): 30 f
 Fuori, per peso: `GEO/itgeo.geo` e `GEO/lirf.geo` (1,2 MB), che fanno il round-trip con l'albero intero in
 `tools/Vipi.SectorfileProva`.
 
+Aggiunti con la slice 4 (punti per nome), dallo stesso commit: `DYNAMIC_SEC/libb_es_ctr.tfl` (72 vertici per
+nome) e `lied.sid` (le SID col tracciato sotto l'intestazione).
+
 - `.gitattributes` qui accanto: nessuna conversione dei fine riga. Aurora li legge in CRLF.
 - `NAVAIDS/ENR.fix` è **vuoto** anche nel sector: è un caso vero, non un errore della copia.
 - Aggiornarli: si ricopiano interi da un commit del sector e si scrive qui il nuovo commit.

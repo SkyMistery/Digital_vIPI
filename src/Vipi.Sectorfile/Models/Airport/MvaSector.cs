@@ -20,7 +20,7 @@ public sealed class MvaSector
     public int LabelSize { get; set; }
 
     /// <summary>Label anchor positions; airport = exactly 1, enroute = 1 or more.</summary>
-    public IList<Coordinate> LabelAnchors { get; } = new List<Coordinate>();
+    public IList<Punto> LabelAnchors { get; } = new List<Punto>();
 
     /// <summary>Ordered boundary vertices (empty if all T; commented).</summary>
     public IList<MvaVertex> Vertices { get; } = new List<MvaVertex>();
@@ -30,7 +30,8 @@ public sealed class MvaSector
 
 public sealed class MvaVertex
 {
-    public Coordinate Position { get; set; }
+    /// <summary>The vertex, by coordinates or by name (<c>T;LIRR;UTENO;UTENO;LIRR;</c>, F2 slice 4).</summary>
+    public Punto Position { get; set; }
 
     /// <summary>
     /// Field 5 of the T line (= field 2 repeated verbatim: AltLabel or FIR code);

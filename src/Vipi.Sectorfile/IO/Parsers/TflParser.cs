@@ -112,7 +112,7 @@ public abstract class TflParserBase<T> : IFileParser<T>
                 continue;
             }
 
-            if (TryParseVertex(line, out Coordinate vertex))
+            if (TryParseVertex(line, out Punto vertex))
             {
                 if (current is not null)
                 {
@@ -159,7 +159,13 @@ public abstract class TflParserBase<T> : IFileParser<T>
         };
     }
 
-    private static bool TryParseVertex(string line, out Coordinate vertex)
+    /// <remarks>
+    /// A vertex may be given by name (<c>AMSOR;AMSOR;</c>, 315 lines on the master of 22 September 2026, F2 slice
+    /// 4). In A such a line was malformed and CLOSED the sector: the vertices after it fell out of the record. A
+    /// name is only a vertex on a line too short to be a header (fewer than 5 fields): read as names, the two
+    /// first fields of a header (<c>LIBB_ES_CTR LIBB_EU_CTR;CTR;…</c>) would pass for a point.
+    /// </remarks>
+    private static bool TryParseVertex(string line, out Punto vertex)
     {
         vertex = default;
         string[] parts = line.Split(';');
@@ -181,8 +187,9 @@ public abstract class TflParserBase<T> : IFileParser<T>
         }
         catch (CoordinateParseException)
         {
-            return false;
         }
+
+        return n < 5 && Punto.TryLeggi(parts[0], parts[1], out vertex) && vertex.PerNome;
     }
 
     private static bool TryParseHeader(string line, out T sector)

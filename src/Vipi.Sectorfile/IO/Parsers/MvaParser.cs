@@ -174,10 +174,10 @@ public abstract class MvaParser : IFileParser<MvaSector>
             return;
         }
 
-        Coordinate anchor;
+        Punto anchor;
         try
         {
-            anchor = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
+            anchor = Punto.Leggi(parts[2], parts[3]);
         }
         catch (CoordinateParseException)
         {
@@ -221,10 +221,12 @@ public abstract class MvaParser : IFileParser<MvaSector>
             return;
         }
 
-        Coordinate position;
+        // A vertex may be given by name (T;LIRR;UTENO;UTENO;LIRR;, 18 lines of ENRMVA/lirr.mva): in A it was
+        // «Unparseable T; vertex» and the polygon lost the point (F2 slice 4).
+        Punto position;
         try
         {
-            position = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
+            position = Punto.Leggi(parts[2], parts[3]);
         }
         catch (CoordinateParseException)
         {

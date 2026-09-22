@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0, 1, 2 e 3 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-4 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -279,6 +279,37 @@ fino allo zero è passata per cinque casi veri, ognuno oggi un test (`FusioneDel
 contato come campo (`54Y` perso), la coppia decimale non riconosciuta, il record disattivato di `libb.ap` e
 `licz.geo`, l'etichetta dedotta dei `.mva` di rotta, il commento in coda di `lipe.mva`. In CI la stessa misura
 gira su 15 campioni veri (`UnaModificaPerRecordTests`). Test: 303 su net8 e net10.
+
+**Slice 4 — il punto per nome** (commit = il successivo a `449b52ea`). `Shared/Punto.cs`: il tipo unico del
+punto, **coordinate o nome**. Il nome sta in due campi e il punto li tiene tutti e due (`ALPHA SOUTH;ALPHA
+SUOTH`: Aurora prende la latitudine dal primo e la longitudine dal secondo — riscriverne uno solo sposterebbe il
+punto; il refuso lo dirà il validatore). La regola nome/coordinata è quella del §7: un campo che comincia con un
+emisfero e una cifra, o con una cifra o un segno, è una coordinata, e se non si legge resta una coordinata
+**sbagliata**, non diventa un punto chiamato `N047.44.75.000`. `TryRisolvi` lo risolve in un catalogo (F3).
+Dove entra:
+- **`.tfl`**: `TflSector.Vertices` è una lista di `Punto`. 🔴 In A il primo vertice per nome **chiudeva il
+  settore**: i vertici dopo finivano in righe grezze, fuori dal record (`libb_es_ctr.tfl`, 72 righe). Il nome
+  vale solo su una riga di meno di 5 campi: letti come nomi, i primi due campi di un'intestazione
+  (`LIBB_ES_CTR LIBB_EU_CTR;CTR;…`) passerebbero per un vertice (controprova: tolta la guardia, rossi i test delle intestazioni di `.tfl` e fic).
+- **`.mva`**: `MvaVertex.Position` e `LabelAnchors` sono `Punto` (`T;LIRR;UTENO;UTENO;LIRR;`, 18 righe).
+- **`.sid`**: `SidParser` non è più un lettore a riga singola. Una SID può avere un **tracciato** sotto
+  l'intestazione (`SidProcedure.Track`, punti con etichetta facoltativa, `N…;E…;GOLF;`): sono le partenze a
+  vista di `lied.sid` (`QUIRRA DEP34`, `FRASCA DEP34`…), 84 righe. Una riga vuota **fra due punti** del
+  tracciato lo spezza e non chiude la SID (`NORTH DEP16`: `PuntoDelTracciato.NuovoTratto`); prima di
+  un'intestazione separa le SID come prima. I commenti dopo una SID di una riga restano in testa alla successiva,
+  come in A.
+- **`.str`**: i nomi li capiva già (`ProcedureWaypoint`, `HoldingFixPoint`) e il modello resta quello di A. Ma
+  una coordinata che non si legge diventava **in silenzio** un fix chiamato come lei: resta un fix, ora con
+  l'avviso «Unparseable STR point». Sull'albero: zero.
+
+Prova sull'albero intero: **righe opache 7 578 → 7 162** (−416: 314 `.tfl`, 84 `.sid`, 18 `.mva`). La carta
+diceva −417: la riga che manca è **`lovv.tfl:48` `E017.04.60.000`**, secondi a 60 — un errore vero, che stava
+nascosto fra le 315 «per nome» e ora è l'unica opaca dei `.tfl` (per il validatore, slice 8). Round-trip 681/681,
+tutto toccato 0, **una modifica per record 100 098 → 100 098 righe** (erano 99 707: i settori non più spezzati e
+le SID col tracciato entrano nella misura; lo spostamento prende il primo punto **per coordinate**), 0 discordi.
+Campioni nuovi: `DYNAMIC_SEC/libb_es_ctr.tfl`, `lied.sid`. Test: 334 su net8 e net10 (31 nuovi: `PuntoTests`,
+`PuntiPerNomeTests`, due misure in `UnaModificaPerRecordTests`); controprova: spenti i nomi nel lettore `.tfl`,
+3 rossi.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 
