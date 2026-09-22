@@ -19,6 +19,11 @@ ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 del
   riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
   🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
   primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
+- **Slice 6**: **modifica dei campi** (in memoria; sul disco si scrive dalla slice 9) e **pannello delle modifiche in
+  sospeso** col diff. Il diff lo produce lo **scrittore vero** (`FileSaverOrchestrator.Righe`, aggiunto al motore) e
+  lo confronta **Myers**. Misura sull'albero: una modifica in ognuno dei 348 file con un campo coordinata →
+  **348/348 con una riga tolta e una aggiunta**, 0,8 ms per file; «annulla tutto» in 11 ms e i 754 file tornano
+  identici. 🔴 Il «prima» di una modifica è sempre quello **dell'apertura**, non il valore intermedio.
 - **Slice 5**: sfoglia (albero delle cartelle costruito dai file già aperti), **ricerca per nome** fra le forme della
   mappa (esatto → comincia → contiene; ⚠️ i record senza geometria, `.frq` e ATIS, non ci sono ancora), e
   **ispettore in lettura**: i campi per riflessione sul modello del motore (niente tabella per tipo, sarebbe una

@@ -1,5 +1,6 @@
 using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
+using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Sessione;
 
 namespace Vipi.SectorLab.Ui.Servizi;
@@ -225,6 +226,96 @@ public sealed class SessioneDelLab
 
     /// <summary>La ricerca per nome fra le forme della mappa (slice 5).</summary>
     public IReadOnlyList<Trovato> Cerca(string? testo) => Ricerca.Cerca(Strati, testo);
+
+    /// <summary>Le modifiche fatte e non salvate (slice 6). Sul disco non si scrive niente fino alla slice 9.</summary>
+    public ModificheInSospeso Modifiche { get; } = new();
+
+    /// <summary>L'ultimo rifiuto, da dire accanto al campo: sparisce alla modifica buona dopo.</summary>
+    public string? Rifiuto { get; private set; }
+
+    /// <summary>
+    /// Cambia un campo del record scelto. Dopo una modifica la geometria del suo file si rifà: la mappa deve
+    /// mostrare il punto DOV'È ADESSO, non dov'era all'apertura.
+    /// </summary>
+    public bool CambiaCampo(string fileRelativo, int record, string campo, string? valore)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
+        var esito = Modifiche.Cambia(file, record, campo, valore, etichetta);
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDiCampo)
+            RifaiLaGeometria(fileRelativo);
+
+        Cambiata?.Invoke();
+        return esito is ModificaDiCampo;
+    }
+
+    public void AnnullaModifica(ModificaDiCampo modifica)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(modifica.File, out var file))
+            return;
+
+        Modifiche.Annulla(file, modifica);
+        Rifiuto = null;
+        RifaiLaGeometria(modifica.File);
+        Cambiata?.Invoke();
+    }
+
+    public void AnnullaTutte(string? soloQuesto = null)
+    {
+        if (Sessione is null)
+            return;
+
+        var toccati = Modifiche.FileToccati.ToList();
+        Modifiche.AnnullaTutto(f => Sessione.File.GetValueOrDefault(f), soloQuesto);
+        Rifiuto = null;
+        foreach (string file in toccati)
+            RifaiLaGeometria(file);
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>Il diff di un file toccato: righe tolte e aggiunte, prodotte dallo scrittore vero.</summary>
+    public Diff.Esito DiffDi(string fileRelativo)
+        => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file)
+            ? Modifiche.DiffDi(file)
+            : new Diff.Esito([], InBlocco: false);
+
+    /// <summary>
+    /// Rifà le forme del solo file toccato: rifare tutto l'albero costerebbe 48 ms a ogni tasto, e non serve —
+    /// una modifica sta in un file solo.
+    /// </summary>
+    private void RifaiLaGeometria(string fileRelativo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return;
+
+        var tipo = StratiDellaMappa.DiFile(fileRelativo);
+        _etichette.Remove(fileRelativo);
+        if (tipo is null)
+            return;
+
+        var rifatte = Geometria.DelFile(file, CatalogoScelto);
+        Strati = [.. Strati.Select(s => s.Tipo.Id != tipo.Id
+            ? s
+            : s with
+            {
+                // Nell'ordine di sempre (file, poi record): la mappa e l'elenco non si riordinano sotto le mani.
+                Forme = [.. s.Forme.Where(f => f.File != fileRelativo).Concat(rifatte)
+                    .OrderBy(f => f.File, StringComparer.Ordinal).ThenBy(f => f.Record)],
+            })];
+
+        // La mappa ha le coordinate in memoria: finché questo numero non cambia, non ha motivo di richiederle.
+        VersioneDellaGeometria++;
+        StratoDaRidisegnare = tipo.Id;
+    }
+
+    /// <summary>Quante volte la geometria è cambiata: la mappa se ne accorge e ridisegna lo strato toccato.</summary>
+    public int VersioneDellaGeometria { get; private set; }
+
+    /// <summary>Quale strato ha bisogno di essere ripreso dalla mappa.</summary>
+    public string? StratoDaRidisegnare { get; private set; }
 
     private CatalogoDeiPunti? CatalogoScelto
         => IscScelto is not null && Cataloghi.TryGetValue(IscScelto, out var catalogo) ? catalogo : null;

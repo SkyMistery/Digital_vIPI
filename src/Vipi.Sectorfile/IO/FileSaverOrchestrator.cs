@@ -41,6 +41,19 @@ public sealed class FileSaverOrchestrator
         WriteAtomic(filePath, text, parseResult.Encoding, parseResult.HasByteOrderMark);
     }
 
+    /// <summary>
+    /// The lines that <see cref="Save{T}"/> would write, without touching the disk. Added for the Sector Lab's
+    /// pending-changes panel (F3 slice 6): the diff it shows must be produced by the REAL writer, not by a
+    /// simulation that could differ from what lands on disk. Same inputs, same output, no file.
+    /// </summary>
+    public IReadOnlyList<string> Righe<T>(ParseResult<T> parseResult, ISet<T> dirtyRecords, IFileSaver<T> saver)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(dirtyRecords);
+        ArgumentNullException.ThrowIfNull(saver);
+        return BuildLines(parseResult, dirtyRecords, saver);
+    }
+
     private static List<string> BuildLines<T>(ParseResult<T> parseResult, ISet<T> dirtyRecords, IFileSaver<T> saver)
     {
         var uniqueIds = AssignUniqueIdentifiers(parseResult, saver);

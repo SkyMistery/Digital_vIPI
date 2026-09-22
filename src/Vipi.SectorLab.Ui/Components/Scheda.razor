@@ -22,13 +22,31 @@
             <tbody>
                 @foreach (var campo in scheda.Campi)
                 {
-                    <tr data-campo-record="@campo.Nome">
+                    <tr data-campo-record="@campo.Nome" class="@(Toccato(scheda, campo.Nome) ? "lab-campo-toccato" : null)">
                         <th>@campo.Nome</th>
-                        <td>@campo.Valore</td>
+                        <td>
+                            @if (Scrivibile(scheda, campo.Nome))
+                            {
+                                @* La modifica parte quando il campo perde il fuoco o si preme Invio: a ogni tasto
+                                   vorrebbe dire rifiutare mezza coordinata mentre la si scrive. *@
+                                <input class="lab-campo" value="@campo.Valore"
+                                       @onchange="e => Cambia(scheda, campo.Nome, e.Value?.ToString())"
+                                       data-scrivi="@campo.Nome" />
+                            }
+                            else
+                            {
+                                @campo.Valore
+                            }
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
+
+        @if (Lab.Rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
+        }
 
         <h2>Righe del file</h2>
         <pre class="lab-righe" data-righe="@scheda.Righe.Count">@foreach (var riga in scheda.Righe)
@@ -46,6 +64,33 @@ else
 }
 
 @code {
+    /// <summary>
+    /// Quali campi si scrivono in F3 slice 6: quelli semplici del record. Gli elenchi (i vertici) sono la slice 7,
+    /// e si vede dal fatto che il valore li conta invece di mostrarli.
+    /// </summary>
+    private bool Scrivibile(SchedaDelRecord scheda, string campo)
+    {
+        var proprieta = TipoDelRecord(scheda)?.GetProperty(campo);
+        if (proprieta is null || !proprieta.CanWrite || proprieta.SetMethod?.IsPublic != true)
+            return false;
+
+        var tipo = Nullable.GetUnderlyingType(proprieta.PropertyType) ?? proprieta.PropertyType;
+        return tipo.IsPrimitive || tipo.IsEnum || tipo == typeof(string) || tipo == typeof(decimal)
+               || tipo == typeof(Vipi.Sectorfile.Shared.Coordinate);
+    }
+
+    private Type? TipoDelRecord(SchedaDelRecord scheda)
+        => Lab.Sessione?.File.GetValueOrDefault(scheda.File) is IFileConRecord conRecord
+           && scheda.Indice < conRecord.RecordDelModello.Count
+            ? conRecord.RecordDelModello[scheda.Indice].GetType()
+            : null;
+
+    private bool Toccato(SchedaDelRecord scheda, string campo)
+        => Lab.Modifiche.Tutte.Any(m => m.File == scheda.File && m.Record == scheda.Indice && m.Campo == campo);
+
+    private void Cambia(SchedaDelRecord scheda, string campo, string? valore)
+        => Lab.CambiaCampo(scheda.File, scheda.Indice, campo, valore);
+
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
     private void Aggiorna() => InvokeAsync(StateHasChanged);

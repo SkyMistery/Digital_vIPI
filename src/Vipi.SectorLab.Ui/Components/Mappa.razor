@@ -21,6 +21,7 @@
     private bool _dalClic;
     private readonly HashSet<string> _disegnati = new(StringComparer.Ordinal);
     private (string File, int Record)? _evidenziata;
+    private int _versione;
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
@@ -36,6 +37,17 @@
     private async Task Sincronizza()
     {
         if (!_creata) return;
+
+        // Una modifica ha cambiato la geometria di uno strato: la mappa ce l'ha in memoria, va ripresa (slice 6).
+        if (_versione != Lab.VersioneDellaGeometria)
+        {
+            _versione = Lab.VersioneDellaGeometria;
+            if (Lab.StratoDaRidisegnare is { } daRifare && _disegnati.Contains(daRifare))
+            {
+                await Js.InvokeAsync<int>("sectorlab.mappa.strato", daRifare, false);
+                _disegnati.Remove(daRifare);
+            }
+        }
 
         var daAccendere = Lab.Accesi.Where(s => !_disegnati.Contains(s)).ToList();
         foreach (string strato in daAccendere)

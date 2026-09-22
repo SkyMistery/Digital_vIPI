@@ -313,6 +313,99 @@ html, body {
     margin: .6rem .2rem;
 }
 
+/* --- modifiche in sospeso (slice 6) --------------------------------------------------------------------------- */
+
+.lab-campo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: .1rem .3rem;
+    border: 1px solid #d5d9e0;
+    border-radius: 3px;
+    font: inherit;
+    background: #fff;
+}
+
+.lab-campo:focus {
+    border-color: var(--lab-accento);
+    outline: none;
+}
+
+.lab-campo-toccato th {
+    color: #b06a10;
+    font-weight: 600;
+}
+
+.lab-campo-toccato .lab-campo {
+    border-color: #e0a040;
+    background: #fffaf0;
+}
+
+.lab-modifiche {
+    margin-top: 1rem;
+    padding-top: .6rem;
+    border-top: 2px solid #dde1e7;
+}
+
+.lab-modifiche header,
+.lab-ispettore header {
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+}
+
+.lab-modifiche header h2 {
+    flex: 1;
+}
+
+.lab-tasto-tenue {
+    padding: .15rem .5rem;
+    background: none;
+    color: var(--lab-accento);
+}
+
+.lab-file-toccato {
+    margin-bottom: .5rem;
+}
+
+.lab-file-toccato summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.lab-file-toccato summary .lab-nota {
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-una-modifica {
+    display: flex;
+    gap: .4rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    padding: .1rem 0;
+}
+
+.lab-annulla {
+    margin-left: auto;
+    border: 0;
+    background: none;
+    color: var(--lab-accento);
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.lab-riga-tolta {
+    display: block;
+    background: #fdeaea;
+}
+
+.lab-riga-aggiunta {
+    display: block;
+    background: #e9f7ec;
+}
+
 .lab-mappa {
     flex: 1;
     min-width: 0;

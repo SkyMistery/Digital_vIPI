@@ -1,0 +1,70 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il pannello delle modifiche in sospeso (carta F3 §2.2 passo 6, slice 6): quante sono, in quanti file, e il
+    DIFF VERO di ogni file — quello che lo scrittore produrrebbe, non una simulazione. Sul disco non si scrive
+    niente: il salvataggio è la slice 9.
+*@
+@if (Lab.Modifiche.CEQualcosa)
+{
+    <div class="lab-modifiche" data-modifiche="@Lab.Modifiche.Quante">
+        <header>
+            <h2>@Lab.Modifiche.Quante modifiche in @Lab.Modifiche.FileToccati.Count file</h2>
+            <button class="lab-tasto lab-tasto-tenue" @onclick="() => Lab.AnnullaTutte()" data-tasto="annulla-tutto">Annulla tutto</button>
+        </header>
+
+        @foreach (string file in Lab.Modifiche.FileToccati)
+        {
+            var diff = Lab.DiffDi(file);
+            <details class="lab-file-toccato" open data-diff="@file">
+                <summary>
+                    @file[(file.LastIndexOf('/') + 1)..]
+                    <span class="lab-nota">−@diff.Tolte +@diff.Aggiunte</span>
+                </summary>
+
+                @foreach (var modifica in Lab.Modifiche.Tutte.Where(m => m.File == file).OrderBy(m => m.Record))
+                {
+                    <div class="lab-una-modifica" data-modifica="@modifica.Campo">
+                        <span class="lab-etichetta">@(modifica.Etichetta is { Length: > 0 } e ? e : $"record {modifica.Record}")</span>
+                        <span class="lab-nota">@modifica.Campo: @modifica.Prima → @modifica.Dopo</span>
+                        <button class="lab-annulla" @onclick="() => Lab.AnnullaModifica(modifica)" data-annulla="@modifica.Campo">annulla</button>
+                    </div>
+                }
+
+                @if (diff.InBlocco)
+                {
+                    @* Non dovrebbe succedere con una modifica di campo: se succede, è cambiato altro. *@
+                    <p class="lab-errore">Il file è cambiato troppo perché il confronto riga per riga abbia senso.</p>
+                }
+                <pre class="lab-righe">@foreach (var pezzo in diff.Pezzi)
+{<span class="lab-riga-contesto">@@ riga @pezzo.DaPrima
+</span>@foreach (var riga in pezzo.Righe)
+{<span class="@Classe(riga.Segno)">@Segno(riga.Segno)@riga.Testo
+</span>}}</pre>
+            </details>
+        }
+    </div>
+}
+
+@code {
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private static string Classe(SegnoDelDiff segno) => segno switch
+    {
+        SegnoDelDiff.Tolta => "lab-riga-tolta",
+        SegnoDelDiff.Aggiunta => "lab-riga-aggiunta",
+        _ => "lab-riga-contesto",
+    };
+
+    private static string Segno(SegnoDelDiff segno) => segno switch
+    {
+        SegnoDelDiff.Tolta => "− ",
+        SegnoDelDiff.Aggiunta => "+ ",
+        _ => "  ",
+    };
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

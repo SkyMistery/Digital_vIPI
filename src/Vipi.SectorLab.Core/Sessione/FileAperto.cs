@@ -45,6 +45,12 @@ public interface IFileConRecord
     /// sopra e sotto. Sta qui e non nell'ispettore perché i <c>Chunks</c> sono generici: solo il file sa il suo T.
     /// </summary>
     IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto);
+
+    /// <summary>
+    /// Le righe che il file avrebbe sul disco con quei record toccati (nessuno = il file com'è adesso). Le produce
+    /// lo <b>scrittore vero</b> (F2 §9.5): il diff che si mostra è quello che uscirà, non una simulazione.
+    /// </summary>
+    IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -74,6 +80,15 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         RecordChunk<T> record => record.LeadingComments.Length + record.RawLines.Length,
         _ => 0,
     });
+
+    /// <inheritdoc/>
+    public IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi)
+    {
+        ArgumentNullException.ThrowIfNull(sporchi);
+        // Sporchi PER IDENTITA', come vuole lo scrittore: due record uguali campo per campo restano due record.
+        var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
+        return new FileSaverOrchestrator().Righe(Letto, suoi, Scrittore);
+    }
 
     /// <inheritdoc/>
     public IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto)
