@@ -28,15 +28,34 @@ public static partial class Validatore
     /// (di solito il percorso sotto la cartella del sector).
     /// </summary>
     public static IReadOnlyList<ProblemaDelSector> ValidaIlFile(string percorso, string relativo)
+        => LeggiIlFile(percorso, relativo)?.Problemi ?? Array.Empty<ProblemaDelSector>();
+
+    /// <summary>Il file letto per il validatore: i suoi problemi, e i nomi che usa e che dichiara (per le regole dell'albero).</summary>
+    internal sealed record EsitoDelFile(
+        IReadOnlyList<ProblemaDelSector> Problemi,
+        IReadOnlyList<NomeUsato> Usati,
+        IReadOnlyList<NomeDichiarato> Dichiarati,
+        IReadOnlyList<object> Record);
+
+    /// <summary>Un punto per nome, alla riga dove compare.</summary>
+    internal readonly record struct NomeUsato(string Nome, int Riga, string Testo);
+
+    /// <summary>Un nome del catalogo (fix, VOR, NDB, scalo, VRP), col punto e la riga.</summary>
+    internal readonly record struct NomeDichiarato(string Nome, string Catalogo, Coordinate Posizione, int Riga, string Testo);
+
+    /// <summary>Null se il motore non interpreta il file.</summary>
+    internal static EsitoDelFile? LeggiIlFile(string percorso, string relativo)
     {
         ArgumentException.ThrowIfNullOrEmpty(percorso);
         ArgumentException.ThrowIfNullOrEmpty(relativo);
 
         var avvisi = new Avvisi();
-        if (!Formati.Usa(percorso, avvisi, new Lettura(percorso), out var diRecord))
+        if (!Formati.Usa(percorso, avvisi, new Lettura(percorso), out var letto))
         {
-            return Array.Empty<ProblemaDelSector>();
+            return null;
         }
+
+        var diRecord = letto.Problemi;
 
         string estensione = Path.GetExtension(percorso).TrimStart('.').ToLowerInvariant();
         var problemi = new List<ProblemaDelSector>();
@@ -84,7 +103,7 @@ public static partial class Validatore
         // 3. I record.
         problemi.AddRange(diRecord.Select(p => p with { File = relativo }));
 
-        return problemi.OrderBy(p => p.Riga).ThenBy(p => p.Regola).ToList();
+        return letto with { Problemi = problemi.OrderBy(p => p.Riga).ThenBy(p => p.Regola).ToList() };
     }
 
     /// <summary>Le regole sui campi di una riga di dati: coordinate una per una, e le coppie.</summary>
@@ -205,13 +224,15 @@ public static partial class Validatore
     private static partial Regex Decimale();
 
     /// <summary>Le regole sui record: vogliono il file letto, col tipo dei suoi record.</summary>
-    private sealed class Lettura(string percorso) : IUsoDelFormato<IReadOnlyList<ProblemaDelSector>>
+    private sealed class Lettura(string percorso) : IUsoDelFormato<EsitoDelFile>
     {
-        public IReadOnlyList<ProblemaDelSector> Usa<T>(IFileParser<T> lettore, IFileSaver<T> scrittore)
+        public EsitoDelFile Usa<T>(IFileParser<T> lettore, IFileSaver<T> scrittore)
             where T : class
         {
             var letto = lettore.Parse(percorso, new ColorPalette());
             var problemi = new List<ProblemaDelSector>();
+            var usati = new List<NomeUsato>();
+            var dichiarati = new List<NomeDichiarato>();
 
             int numero = 0;
             foreach (var pezzo in letto.Chunks)
@@ -242,6 +263,32 @@ public static partial class Validatore
                     }
                 }
 
+                // I nomi usati, alle righe dove compaiono (non nelle righe disattivate: Aurora non le legge).
+                var nomi = NomiUsati(rec.Record).ToHashSet(StringComparer.Ordinal);
+                for (int i = 0; nomi.Count > 0 && i < rec.RawLines.Length; i++)
+                {
+                    if (rec.RawLines[i].TrimStart().StartsWith("//", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    foreach (string campo in rec.RawLines[i].Split(';').Select(c => c.Trim()).Distinct(StringComparer.Ordinal))
+                    {
+                        if (nomi.Contains(campo))
+                        {
+                            usati.Add(new(campo, numero + i + 1, rec.RawLines[i]));
+                        }
+                    }
+                }
+
+                if (Dichiarato(rec.Record) is { } dichiarato)
+                {
+                    foreach (string nome in dichiarato.Nomi.Where(n => n.Length > 0).Distinct(StringComparer.Ordinal))
+                    {
+                        dichiarati.Add(new(nome, dichiarato.Catalogo, dichiarato.Posizione, primaRiga, rec.RawLines[0]));
+                    }
+                }
+
                 if (rec.Record is TflSector { Vertices.Count: < 3 } settore)
                 {
                     problemi.Add(new(Regola.PoligonoConPochiVertici, string.Empty, primaRiga, rec.RawLines[0],
@@ -261,8 +308,39 @@ public static partial class Validatore
             problemi.AddRange(tag.Select(p => new ProblemaDelSector(
                 p.EUnErrore ? Regola.TagNonValido : Regola.TagFuoriCatalogo, string.Empty, p.Riga, p.Testo, p.Tipo.ToString())));
 
-            return problemi;
+            return new EsitoDelFile(problemi, usati, dichiarati, letto.Records.Cast<object>().ToList());
         }
+    }
+
+    // Il nome (o i nomi) col quale un record entra in un catalogo: fix, VOR, NDB, scalo, VRP (nome e codice).
+    private static (string Catalogo, Coordinate Posizione, string[] Nomi)? Dichiarato(object record) => record switch
+    {
+        Fix f => ("fix", f.Position, new[] { f.Name.Trim() }),
+        Vor v => ("vor", v.Position, new[] { v.Ident.Trim() }),
+        Ndb n => ("ndb", n.Position, new[] { n.Ident.Trim() }),
+        AirportInfo a => ("scalo", a.Centre, new[] { a.IcaoCode.Trim() }),
+        VfrPoint p => ("vrp", p.Position, new[] { p.Name.Trim(), p.Code.Trim() }),
+        _ => null,
+    };
+
+    /// <summary>
+    /// I nomi di punto che un record usa e che vanno risolti nei cataloghi: i <see cref="Punto"/> per nome (tutti e due
+    /// i campi), i punti dei <c>.str</c>, i vertici per nome delle righe <c>T;</c>, le etichette delle aerovie.
+    /// </summary>
+    internal static IEnumerable<string> NomiUsati(object record)
+    {
+        IEnumerable<string> nomi = record switch
+        {
+            ProcedureStrRecord procedura => procedura.Waypoints.SelectMany(p => new[] { p.FixName, p.DisplayLabel }),
+            HoldingStrRecord attesa => attesa.Points.OfType<HoldingFixPoint>().SelectMany(p => new[] { p.FixName, p.DisplayLabel }),
+            StaticBoundaryGroup gruppo => gruppo.Polygons.SelectMany(p => p.Vertices)
+                .Where(v => v.Position is null).SelectMany(v => new[] { v.FixA ?? string.Empty, v.FixB ?? string.Empty }),
+            Airway aerovia => aerovia.FixLabels.Where(l => Punto.TryLeggi(l, l, out var p) && p.PerNome),
+            _ => Punti(record, profondita: 0).Where(p => p.PerNome).SelectMany(p => new[] { p.Nome!, p.NomeLongitudine! }),
+        };
+
+        // Una coordinata sbagliata tenuta come «fix» (N047.25.60.000) non è un nome: la dicono le regole dei campi.
+        return nomi.Select(n => n.Trim()).Where(n => n.Length > 0 && Punto.TryLeggi(n, n, out var p) && p.PerNome);
     }
 
     /// <summary>

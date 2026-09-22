@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-7 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-8 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -113,11 +113,11 @@ Regole, ognuna con gravità (errore / avviso) e con la riga e il file:
 | coppia decimale (legale, ma rara: 38 righe in 4 `.str`) | `41.00850773;16.07432896;` — da segnalare solo come avviso |
 | campo obbligatorio vuoto | `itvor.vor:81` `GRO;;` |
 | DMS e decimale mescolati sulla stessa riga | (vietato dalla specifica) |
-| **punto per nome non risolto** nei cataloghi dichiarati dall'`.isc` | B ne trovò 1 |
+| **punto per nome non risolto** nei cataloghi dichiarati dall'`.isc` | B ne trovò 1 — **oggi 21** (slice 8) |
 | punto per nome con **due nomi diversi** (Aurora prende la latitudine dal primo e la longitudine dal secondo) | 7 righe di `.str`: `ALPHA SOUTH;ALPHA SUOTH` (refuso), `MC905;MC904` |
-| nome duplicato dove dev'essere unico (fix, ARTCC) | B: 214 chiavi duplicate |
+| nome duplicato dove dev'essere unico (fix, ARTCC) | B: 214 chiavi duplicate — **oggi 5 a 0,1 NM o più, 260 sotto** (slice 8) |
 | poligono con meno di 3 vertici | |
-| file citato dall'`.isc` e assente / file presente e mai citato | B: 31 orfani |
+| file citato dall'`.isc` e assente / file presente e mai citato | B: 31 orfani — **oggi 8 citati assenti, 6 mai caricati** (slice 8) |
 | `//@` il cui nome **non** è quello del record sotto | (la guardia decisa il 21-set) |
 | `//@START` senza `//@END`, o `//@END` con un altro nome | |
 
@@ -427,6 +427,52 @@ byte** tolte le righe `//@`. Sull'albero com'è: 0 tag, 0 problemi. Le altre mis
 tutto toccato 0, una modifica per record 115 381, 0 discordi). Controprova: tolta la regola «un `//@` chiude il
 record» dallo `StrParser`, 1 304 su 2 808 e 90 file guasti. Test: 390 su net8 e net10 (`MetadatiTests`); controprove
 sulle due regole dei lettori: 2 e 1 rossi.
+
+**Slice 8 — il validatore** (due commit: 8a `f108b48c` le regole di un file, 8b il successivo le regole dell'albero).
+`Validazione/Validatore.cs` e `ValidatoreDellAlbero.cs`; `IO/Formati.cs` sceglie lettore e scrittore per file in un
+posto solo (prima stava nello strumento, che ora ci passa). Non corregge niente: dice regola, file, riga, testo,
+dettaglio e gravità (errore = Aurora legge male o non legge; avviso = si legge, ma è ambiguo, raro o fuori posto).
+- **Regole di un file** (`ValidaIlFile`): i CAMPI di ogni riga (coordinata fuori campo o illeggibile, spazio al posto
+  del `;`, emisfero minuscolo, frazione dei secondi non a 3 cifre, coppia decimale fuori dai `.txi` — decimali per
+  natura —, DMS e decimale mescolati); le righe che il lettore non capisce e nessuna regola spiega (campo obbligatorio
+  vuoto, o «riga illeggibile» col motivo del lettore); i RECORD (due nomi diversi, alla loro riga; poligoni con meno
+  di 3 vertici; tag `//@` rotti = errori, fuori catalogo = avvisi).
+- **Regole dell'albero** (`ValidaLAlbero(SectorFiles)`): per ogni `.isc`, i file che carica — `F;` dalla cartella di
+  `[INFO]` (`IT`) o, se lì non c'è, da `Include/` (`F;IT\colors\colors.def` di LIBB.isc); per ICAO, i file col codice
+  di uno scalo di `[Airport]` (`gts txi sid str vfi vrt mva tfl geo atis pol`); i `.cpr`/`.datis`/`.atis` che un
+  `.frq` caricato nomina (anche `\liml.atis`, relativo alla cartella dei dati). Poi: file citato assente; file mai
+  caricato (i `.txt`/`.md` no); punto per nome che non si trova nei cataloghi di quell'`.isc` (fix, VOR, NDB, scali,
+  VRP col nome e il codice); stesso nome due volte in fix/VOR/NDB — errore da 0,1 NM in su, avviso sotto (sono
+  arrotondamenti: fra 4 e 150 m).
+- Due difetti trovati strada facendo. 🔴 **Hartcc/lartcc/artcc**: una coordinata che non si legge in una riga `T;`
+  diventava **in silenzio** un vertice «per nome» (`lipp.hartcc:2047` `N047.25.60.000`, secondi 60) — lo stesso
+  difetto di A che lo `.str` aveva alla slice 4; ora il lettore lo dice, e le righe opache passano da 93 a **94**.
+  🔴 La prima misura dava **132 falsi errori**: le aerovie si chiamano `N503`, `W36-Z636`, `S1`. Una coordinata senza
+  punto deve essere compatta (emisfero e almeno sei cifre).
+- `KPT` di `itvor.vor:109` sono **secondi** 75 e 99, non minuti: la tabella della slice 5 lo diceva male.
+
+Prova sull'albero intero (master `7e761aa`, i cinque `.isc`): **131 errori, 352 avvisi**. Le altre misure invariate
+(701/701, tutto toccato 0, una modifica per record 115 381, tag su tutto 2 808/2 808, 0 discordi). Gli errori, **da
+passare agli AOD** (lo strumento li elenca tutti; insieme ai 7 della slice 5, agli 86 della slice 6 e a `R47` di F1):
+
+| regola | quanti | dove |
+|---|---:|---|
+| spazio al posto del `;` | 86 | P154, P219, R107A-D (tabella della slice 6) |
+| coordinata fuori campo | 5 | `itvor.vor:109` (×2, KPT), `MIL.fix:96`, `lovv.tfl:48`, **`lipp.hartcc:2047`** (nuova) |
+| coordinata illeggibile | 1 | `APT.fix:294` (MG763, trattino) |
+| campo vuoto | 1 | `itvor.vor:81` (GRO) |
+| poligono con meno di 3 vertici | 4 | `eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`, `lfmm.tfl:1105` (LFMN_APP, 1 vertice), `limmctr.tfl:1772` (4 settori, 2 vertici: una linea voluta? da chiedere) |
+| file citato assente | 8 | `DYNAMIC_SEC\GCI.tfl` nei cinque `.isc` (il file sta in `OTHER/`), `DYNAMIC_SEC\lipp_es_ctr.tfl` in LIPP.isc, `PREFS\LIPC.cpr` in `itfreq.frq:175` e `lipp.frq:14` |
+| nome non risolto | 21 | **conseguenze** degli errori sopra: `KPT` (aerovia, il VOR illeggibile), `MG763` (`limg.str`), `PL-BRAVO` (`lipl.str`); refusi: `ALPHA SUOTH` (`lied.str` ×2), `MC904` (`limc.str`); assenti dai cataloghi: `MAFRE` (`libg.str` ×5), `BV-PAJOT`, `BV-IRDAG` (`libv.str`), `MC734` (`limc.str`), `HITAC36` (`limf.str`), `HITAC35` (`limn.str`), `HITAC06` (`lipi.str` ×2), `PZN` (`lirn.str`, `lirr.str`), `EDOXI` (`lirr.str`) |
+| nome duplicato | 5 | fix `ABNAT` (4,9 NM) e `SARKI` (556 NM) in `ESTERNI.fix`, `BV-BRAVO` (33,8 NM) in `MIL.fix`, `MJNW1` (5,6 NM) e `PKS1` (19,6 NM) in `VFR_NASCOSTI.fix` |
+
+Avvisi: 260 nomi ripetuti sotto 0,1 NM, 40 coppie decimali (le 38 degli `.str` del §3 e `MIL.fix`), 14 frazioni
+ambigue, 7 punti coi due nomi diversi, 1 emisfero minuscolo, **6 file mai caricati** (`AIRWAY/itawhigh.hairway` — la
+sezione `[HIGH AIRWAY]` di ITALY.isc è vuota —, `NAVAIDS/ENR.fix` (vuoto), `FRA.fix`, `TERM.fix`, `OTHER/GCI.tfl`,
+`PREFS/WW0.cpr`). I numeri di B nel §3 sono rimisurati lì accanto.
+
+Test: 415 su net8 e net10 (`ValidatoreTests`, `ValidatoreDellAlberoTests` su un albero piccolo con le forme vere);
+controprova: tolto l'avviso del `T;` dal lettore, 1 rosso.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 

@@ -221,10 +221,14 @@ foreach (string riga in guastiDeiTag.Take(20))
 
 // 6. IL VALIDATORE (F2 slice 8, carta §3): i problemi del sector per regola, e gli errori uno per uno — sono la lista
 //    da passare agli AOD. Non fa uscire 1: il sector ha errori veri, e dirli è il suo mestiere.
-var problemiDelSector = Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories)
-    .Order(StringComparer.Ordinal)
-    .SelectMany(p => Vipi.Sectorfile.Validazione.Validatore.ValidaIlFile(p, Relativo(p)))
-    .ToList();
+//    Con gli .isc (due cartelle sopra: SectorFiles/Include/IT) anche le regole dell'albero; senza, quelle dei file.
+string cartellaSectorFiles = Path.GetFullPath(Path.Combine(radice, "..", ".."));
+var problemiDelSector = Directory.GetFiles(cartellaSectorFiles, "*.isc").Length > 0
+    ? Vipi.Sectorfile.Validazione.Validatore.ValidaLAlbero(cartellaSectorFiles).ToList()
+    : Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories)
+        .Order(StringComparer.Ordinal)
+        .SelectMany(p => Vipi.Sectorfile.Validazione.Validatore.ValidaIlFile(p, Relativo(p)))
+        .ToList();
 Console.WriteLine($"\nVALIDATORE: {problemiDelSector.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori, " +
     $"{problemiDelSector.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Avviso)} avvisi");
 foreach (var gruppo in problemiDelSector.GroupBy(p => (p.Gravita, p.Regola)).OrderBy(g => g.Key))
@@ -237,6 +241,12 @@ Console.WriteLine("\nERRORI, uno per uno:");
 foreach (var p in problemiDelSector.Where(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore).Take(300))
 {
     Console.WriteLine($"  {p.File}:{p.Riga}  {p.Regola}  {p.Dettaglio}");
+}
+
+Console.WriteLine("\nFILE MAI CITATI:");
+foreach (var p in problemiDelSector.Where(p => p.Regola == Vipi.Sectorfile.Validazione.Regola.FileMaiCitato))
+{
+    Console.WriteLine($"  {p.File}");
 }
 
 return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 ? 0 : 1;

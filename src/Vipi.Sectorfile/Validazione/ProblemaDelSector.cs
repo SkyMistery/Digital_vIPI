@@ -44,6 +44,23 @@ public enum Regola
 
     /// <summary>Un tag <c>//@</c> che si legge ma è fuori catalogo o fuori posto.</summary>
     TagFuoriCatalogo,
+
+    // Le regole dell'albero (slice 8b): vogliono tutti i file e gli .isc che li caricano.
+
+    /// <summary>Un <c>F;</c> di un <c>.isc</c> che non porta a nessun file.</summary>
+    FileCitatoAssente,
+
+    /// <summary>Un file che nessun <c>.isc</c> carica: né <c>F;</c>, né per ICAO, né da un <c>.frq</c>.</summary>
+    FileMaiCitato,
+
+    /// <summary>Un punto per nome che non si trova nei cataloghi (fix, VOR, NDB, scali, VRP) di un <c>.isc</c> che carica il file.</summary>
+    NomeNonRisolto,
+
+    /// <summary>Lo stesso nome due volte nello stesso catalogo, a 0,1 NM o più: quale vale?</summary>
+    NomeDuplicato,
+
+    /// <summary>Lo stesso nome due volte nello stesso catalogo, a meno di 0,1 NM (la distanza è nel dettaglio).</summary>
+    NomeRipetuto,
 }
 
 public enum Gravita
@@ -63,7 +80,7 @@ public static class Regole
     public static Gravita Gravita(Regola regola) => regola switch
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
-            or Regola.TagFuoriCatalogo => Validazione.Gravita.Avviso,
+            or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }
