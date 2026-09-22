@@ -6,9 +6,11 @@
 
 Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **approvata**; consegna con release GitHub
 **pubblica** (tag `sectorlab-v*`) e scheda nella vIPI per Editor e Admin (§2.5, confermato dal committente). Slice 0 e
-1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta).
-Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab` net10.0-windows, i test); il sito non
-li referenzia e non cambia. ▶ Prossimo: slice 2 (la sessione: aprire la cartella e leggere l'albero).
+1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta);
+slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`. **CI verde** su
+tutt'e tre. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab` net10.0-windows, i test:
+83); il sito non li referenzia e non cambia. ▶ Prossima: **slice 4, la mappa** (Leaflet canvas, strati, selezione).
+La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
 
 - 🔴 **Difetto del motore corretto in F3 (slice 3b), che riguarda anche i dati**: il lettore dei `.rw` riconosceva la
   sezione solo scritta `//PISTE`, e i quattro file di FIR la scrivono `///////PISTE` — **187 righe di pista**
