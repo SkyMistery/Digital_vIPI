@@ -143,9 +143,16 @@ public sealed class StrParser : IFileParser<StrRecord>
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
-                if (headerParts is not null)
+                // A //@ line (the Lab's tags, carta madre §8.2) is never body: it closes the open record, so that
+                // `//@END NOME` and the next `//@NOME` stay out of it (F2 slice 7). The master has none.
+                if (headerParts is not null && !Metadati.EUnTag(trimmed))
                 {
                     currentLines.Add(line);   // in-block comment / disabled body line
+                }
+                else if (headerParts is not null)
+                {
+                    Finalize();
+                    comments.Add(line);
                 }
                 else
                 {

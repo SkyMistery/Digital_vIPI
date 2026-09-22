@@ -106,8 +106,9 @@ public sealed class SidParser : IFileParser<SidProcedure>
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
-                // Inside a track the comment belongs to it; after a one-line SID it leads the next record.
-                if (current is { Track.Count: > 0 })
+                // Inside a track the comment belongs to it; after a one-line SID it leads the next record. A //@ tag
+                // is never part of a track: it closes it (F2 slice 7).
+                if (current is { Track.Count: > 0 } && !Metadati.EUnTag(trimmed))
                 {
                     currentLines.Add(line);
                 }

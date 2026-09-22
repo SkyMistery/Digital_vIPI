@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-6 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-7 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -388,6 +388,45 @@ scarti come fa il motore non è provato: lo si vede aprendo il sector.)
 Lo strumento elenca le opache fino a 100 (erano 50). Campioni nuovi: `HOLDENR.hold`, `liba.vrt`, `libv.vrt`, `lirh.vrt`, `GEO/italy.danger`. Test: 367 su net8 e
 net10 (`LettoriNuoviTests`, tre misure in `UnaModificaPerRecordTests`, due nomi e una coordinata in
 `PuntoTests`); controprova: rimessa la regola di prima in `Punto`, 4 rossi.
+
+**Slice 7 — i tag `//@`** (commit = il successivo a `d4ee3048`). `IO/Metadati.cs` (lettura e scrittura in un posto,
+il catalogo delle chiavi accanto) e `Models/Parsing/MetadatiDelFile.cs` (l'esito). Non è un lettore in più: i tag
+sono commenti, e i lettori li lasciano già fra le righe grezze o nei commenti di testa dei record; `Metadati.Leggi`
+li percorre in ordine di file. La forma, per un record:
+
+```
+//@source=AIRAC2610                       del file, nelle prime righe (catalogo: source)
+//@BANA6W fix=BANAV initialclimb=5000     la dichiarazione: il NOME del record, poi le chiavi (catalogo: fix, initialclimb)
+//@START
+LIRF;25;BANA6W;…                          il record: la riga del .sid, o intestazione e corpo del .str
+//@END BANA6W
+```
+
+Scelte strada facendo, dentro quel che il committente ha deciso il 21 settembre:
+- **Le chiavi stanno sulla riga della dichiarazione** che apre il blocco: la carta le mostrava su due righe
+  (`//@BANA6W` per il blocco, `//@BANA6W fix=…` sopra la label), che in un blocco di una riga sola sarebbero state
+  due righe con lo stesso nome una sopra l'altra. In lettura basta anche la dichiarazione subito sopra il record,
+  senza START/END (`Delimitato` = falso); la scrittura mette sempre il blocco intero.
+- **Il nome arriva fino alla prima parola con `=`**: i nomi dei MAPS hanno spazi (`//@LIRF CTR fix=X`).
+- 🔴 **Un `//@` chiude sempre il record aperto** (`StrParser`, e il tracciato in `SidParser`). Un record di `.str` va
+  fino all'intestazione dopo, righe vuote e commenti compresi: senza questa regola `//@END` e la dichiarazione del
+  record seguente finivano DENTRO il record di prima. Sul master nessuna riga `//@`: il round-trip non cambia.
+- Nella scrittura `//@END` va subito dopo l'ultima riga di dati; le righe vuote in coda di un `.str` escono dal record
+  e restano dopo la fine del blocco.
+- **Ciò che non torna** è un problema con la riga: nome che non combacia (la guardia: le chiavi **non** si attaccano
+  al record sotto), dichiarazione orfana (riga vuota, altra dichiarazione o fine file prima del record), START
+  senza dichiarazione o senza END, END senza START o con un altro nome, riga illeggibile — errori; chiave fuori
+  catalogo o chiave di file fuori posto — avvisi (si leggono). **Sopra un file con errori `Scrivi` rifiuta**: prima
+  si sistema. Una chiave fuori catalogo, o un valore vuoto o con spazi, non si scrive.
+- La scrittura restituisce un file **nuovo** (pezzi nuovi, stessa base): quello passato non cambia.
+
+Prova sull'albero intero, misura nuova dello strumento («TAG SU TUTTO»: ogni record di ogni `.sid`/`.str` riceve il
+suo blocco con una chiave e il file il suo `//@source`; si salva, si rilegge, si tolgono le righe `//@`): **2 808
+record ritrovati su 2 808**, tutti delimitati e col loro nome, **0 problemi**, **149 file su 149 identici byte per
+byte** tolte le righe `//@`. Sull'albero com'è: 0 tag, 0 problemi. Le altre misure invariate (701/701, opache 93,
+tutto toccato 0, una modifica per record 115 381, 0 discordi). Controprova: tolta la regola «un `//@` chiude il
+record» dallo `StrParser`, 1 304 su 2 808 e 90 file guasti. Test: 390 su net8 e net10 (`MetadatiTests`); controprove
+sulle due regole dei lettori: 2 e 1 rossi.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 

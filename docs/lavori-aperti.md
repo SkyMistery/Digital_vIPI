@@ -2,11 +2,11 @@
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-6 fatte (22 settembre 2026)
+### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-7 fatte (22 settembre 2026)
 
 Carta [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) (§8 traccia slice
 per slice, §9 decisioni). Progetto nuovo `src/Vipi.Sectorfile` (senza dipendenze, net8+net10), test
-`tests/Vipi.Sectorfile.Tests` (367, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
+`tests/Vipi.Sectorfile.Tests` (390, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
 lanciare su una copia dell'albero del sector. **Nessun dato di vIPI toccato, nessuna migrazione, niente pacchetto:
 il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
 
@@ -17,7 +17,9 @@ il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
   `.geo` col colore vuoto, nome del `.pol` in commento) e un difetto latente dei `.hartcc` (serie che apre con
   DUMMY). Slice 6: **lettori nuovi** `.hold` (`Attesa`), `.vrt` (`RottaVfr`: la rotta finisce dove cambia il
   numero), aree P/R/D (il `.geo` col nome dell'area); il nome di punto può cominciare con una cifra (VRP
-  `2NM NORTH LUCERA`).
+  `2NM NORTH LUCERA`). Slice 7: **i tag `//@`** (`IO/Metadati.cs`): `//@NOME chiavi` + `//@START` … `//@END NOME`,
+  aggancio col nome, `//@source` del file; un `//@` chiude il record aperto nei lettori `.str`/`.sid`. Tag su tutto:
+  2 808/2 808 record, 149/149 file identici tolti i tag.
 - Sull'albero di `master` `7e761aa`: round-trip **701/701**, righe opache **7 579 → 93** (tutte errori veri),
   tutto toccato 0, una modifica per record 115 381/115 381.
 - 🔴 **Da dire agli AOD** — le 7 righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
@@ -26,8 +28,7 @@ il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
   (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113). Più, dalla slice 6, **86 segmenti P/R/D
   con lo SPAZIO al posto del `;`** fra lat e lon: P154 e P219 (28 su 32 ciascuna, `italy.prohibit`), R107A-D
   (**tutti** i 30, `italy.restrict` da riga 1139) — probabile ragione per cui F0-bis dava R107A-D assenti.
-- ▶ **Prossima: slice 7** — `//@` in `.sid`/`.str` (lettura e scrittura). Poi 8 validatore, 9 concordanza col
-  lettore di vIPI, 10 chiusura.
+- ▶ **Prossima: slice 8** — il validatore (§3 della carta). Poi 9 concordanza col lettore di vIPI, 10 chiusura.
 - Albero di prova in locale: una `git archive` del master del sector sotto `SectorFiles/Include/IT`
   (`dotnet run -c Release --project tools/Vipi.SectorfileProva -- <cartella>`).
 
@@ -1149,7 +1150,7 @@ copie pubbliche.
 - 🔴 **Da dire agli AOD**: `R47` (Rieti) in `italy.restrict` ha l'arco disegnato fino a 12,51 NM dal centro,
   l'AIP dice 20 km = 10,80 NM (carta F1 §10.2). Più le candidate del confronto F0-bis già elencate sotto.
 - ✅ **21-set: tag e metadati `//@` decisi** (carta madre §8.2): aggancio col nome, verità dell'initial climb nel sector, prima ondata solo `.sid`/`.str`, conversione graduale.
-- 🟡 **22-set: F2 in corso**, carta scritta e approvata, slice 0-6 fatte → **§A115**.
+- 🟡 **22-set: F2 in corso**, carta scritta e approvata, slice 0-7 fatte → **§A115**.
 
 - ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.
 - ✅ §8 chiuso: metadati e tag `//@` (quali e dove: da discutere prima di F2), `.vrt`/`.hold` in F2, Leaflet canvas,

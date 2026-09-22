@@ -190,7 +190,96 @@ foreach (string riga in discordi.Take(40))
     Console.WriteLine("  " + riga);
 }
 
-return diversi.Count == 0 && discordi.Count == 0 ? 0 : 1;
+// 5. I TAG //@ (F2 slice 7, carta madre §8.2), solo su .sid e .str. Sull'albero com'è: quanti tag e quanti problemi.
+//    Poi TAG SU TUTTO: ogni record riceve il suo blocco (dichiarazione con una chiave, START, END) e il file il suo
+//    //@source; si salva e si rilegge. Ogni record deve ritrovare i suoi tag, delimitati, senza problemi, e tolte
+//    le righe //@ il file deve tornare quello di prima, byte per byte.
+int tagNelFile = 0, problemiNelFile = 0, recordEtichettati = 0, recordRitrovati = 0, fileTornati = 0, fileEtichettati = 0;
+var guastiDeiTag = new List<string>();
+foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    switch (Path.GetExtension(percorso).ToLowerInvariant())
+    {
+        case ".sid":
+            ProvaITag(new SidParser(avvisi), new SidSaver(), Metadati.NomeSid, percorso);
+            break;
+        case ".str":
+            ProvaITag(new StrParser(avvisi), new StrSaver(), Metadati.NomeStr, percorso);
+            break;
+    }
+}
+
+Console.WriteLine($"\nTAG //@ nell'albero: {tagNelFile} record con tag, {problemiNelFile} problemi");
+Console.WriteLine($"TAG SU TUTTO: {recordRitrovati} record ritrovati su {recordEtichettati} etichettati; " +
+    $"{fileTornati} file su {fileEtichettati} tornano identici senza le righe //@; {guastiDeiTag.Count} guasti");
+foreach (string riga in guastiDeiTag.Take(20))
+{
+    Console.WriteLine("  " + riga);
+}
+
+return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 ? 0 : 1;
+
+void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string> nomeDi, string percorso)
+    where T : class
+{
+    var letto = lettore.Parse(percorso, new ColorPalette());
+    var diOggi = Metadati.Leggi(letto, nomeDi);
+    tagNelFile += diOggi.Record.Count;
+    problemiNelFile += diOggi.Problemi.Count;
+
+    var etichettato = Metadati.ScriviSorgente(letto, nomeDi, "AIRAC2610");
+    try
+    {
+        foreach (var record in letto.Records)
+        {
+            etichettato = Metadati.Scrivi(etichettato, record, nomeDi, new Dictionary<string, string> { ["initialclimb"] = "5000" });
+        }
+    }
+    catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+    {
+        guastiDeiTag.Add($"{Relativo(percorso)} — non si scrive: {ex.Message}");
+        return;
+    }
+
+    string temporaneo = Path.Combine(Path.GetTempPath(), "sectorfile-tag-" + Guid.NewGuid().ToString("N") + ".tmp");
+    try
+    {
+        new FileSaverOrchestrator().Save(etichettato, new HashSet<T>(), scrittore, temporaneo);
+        var riletto = lettore.Parse(temporaneo, new ColorPalette());
+        var metadati = Metadati.Leggi(riletto, nomeDi);
+
+        fileEtichettati++;
+        recordEtichettati += riletto.Records.Count;
+        recordRitrovati += riletto.Records.Count(r => metadati.Di(r) is { Delimitato: true } m
+            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("initialclimb") == "5000");
+        if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
+            || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610")
+        {
+            guastiDeiTag.Add($"{Relativo(percorso)} — {letto.Records.Count} record, {riletto.Records.Count} riletti, " +
+                $"{metadati.Record.Count} con tag, problemi: {string.Join(", ", metadati.Problemi.Take(3).Select(p => $"{p.Tipo}@{p.Riga} «{p.Testo}»"))}");
+        }
+
+        // Tolte le righe //@, i byte di prima: i tag non hanno cambiato nient'altro.
+        byte[] originale = File.ReadAllBytes(percorso);
+        var lettura = SectorFileReader.Read(temporaneo);
+        string senzaTag = string.Join(lettura.NewLine, lettura.Lines.Where(r => !Metadati.EUnTag(r.TrimStart())))
+            + (lettura.HasFinalNewLine ? lettura.NewLine : "");
+        byte[] ricostruito = (lettura.HasByteOrderMark ? new byte[] { 0xEF, 0xBB, 0xBF } : Array.Empty<byte>())
+            .Concat(lettura.Encoding.GetBytes(senzaTag)).ToArray();
+        if (originale.AsSpan().SequenceEqual(ricostruito))
+        {
+            fileTornati++;
+        }
+        else
+        {
+            guastiDeiTag.Add($"{Relativo(percorso)} — senza le righe //@ non torna uguale ({originale.Length} → {ricostruito.Length} byte)");
+        }
+    }
+    finally
+    {
+        File.Delete(temporaneo);
+    }
+}
 
 string Relativo(string percorso) => Path.GetRelativePath(radice, percorso);
 
