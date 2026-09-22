@@ -2,6 +2,20 @@
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🟡 A116 — Aurora Sector Lab F3 in corso: l'app (22 settembre 2026)
+
+Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **approvata**; consegna con release GitHub
+**pubblica** (tag `sectorlab-v*`) e scheda nella vIPI per Editor e Admin (§2.5, confermato dal committente). Slice 0 e
+1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta).
+Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab` net10.0-windows, i test); il sito non
+li referenzia e non cambia. ▶ Prossimo: slice 2 (la sessione: aprire la cartella e leggere l'albero).
+
+- 🟡 **Rosso intermittente, visto UNA volta**: `Vipi.Ui.Tests.PaginaAuditUnGiroAllaVoltaTests.Due_cambi_di_periodo_ravvicinati_non_sovrappongono_i_caricamenti`
+  (net10, corsa `35755019021` su `64a33fb0`): `WaitForElement("select.htree-select", 3 s)` scaduto. Mai caduto nelle 25
+  corse fallite prima; verde al rilancio del job. Il commit non tocca `Vipi.Ui`, ma aggiunge alla suite
+  `Vipi.SectorLab.Tests`, che avvia dei Kestrel veri in parallelo: più carico sul runner, concausa possibile. **Se
+  ricapita**: misura sotto zavorra del thread pool (FEATURE-PROCESS, «Un rosso intermittente») prima di toccare.
+
 ### ✅ A115 — Aurora Sector Lab F2 FATTA: il motore del sector, slice 0-10 (22 settembre 2026)
 
 ✅ **Chiusa** con la slice 10. Il messaggio per gli AOD, con tutti gli errori di F1 e F2, è il **§10 della carta**
