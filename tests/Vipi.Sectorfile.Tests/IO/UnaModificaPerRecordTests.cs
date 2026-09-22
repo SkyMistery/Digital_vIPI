@@ -38,6 +38,10 @@ public sealed class UnaModificaPerRecordTests
     [Fact] public void MvaDiScalo() => Misura(new MvaAirportParser(_warnings), new MvaSaver(enroute: false), "liba.mva");
     [Fact] public void MvaDiRotta() => Misura(new MvaEnrouteParser(_warnings), new MvaSaver(enroute: true), "ENRMVA/lirr.mva");
     [Fact] public void Gts() => Misura(new GtsParser(_warnings), new GtsSaver(), "lirf.gts");
+    // Slice 6: i formati nuovi. liba.vrt ha solo punti per nome (niente da spostare): la misura va su libv.vrt.
+    [Fact] public void Hold() => Misura(new HoldParser(_warnings), new HoldSaver(), "HOLDENR.hold");
+    [Fact] public void Vrt() => Misura(new VrtParser(_warnings), new VrtSaver(), "libv.vrt");
+    [Fact] public void AreeDanger() => Misura(new GeoParser(_warnings), new GeoSaver(), "GEO/italy.danger");
     [Fact] public void Lairway() => Misura(new AirwayParser(_warnings), new AirwaySaver(), "AIRWAY/itawlow.lairway");
 
     private static void Misura<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, string campione)

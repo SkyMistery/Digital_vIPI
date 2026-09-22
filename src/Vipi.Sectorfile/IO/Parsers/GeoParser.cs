@@ -7,7 +7,9 @@ namespace Vipi.Sectorfile.IO;
 /// Parses .geo line files (SRS §5.3 / INTERFACE_CONTRACTS §6.2). Each non-comment line is a
 /// directed segment:
 ///   Lat1 ; Lon1 ; Lat2 ; Lon2 ; ColorName ;
-/// The same parser handles airport GEO, RW_MARKINGS and the global itgeo.geo; routing of the
+/// The same parser handles airport GEO, RW_MARKINGS and the global itgeo.geo, and the P/R/D areas
+/// (<c>.restrict</c>, <c>.prohibit</c>, <c>.danger</c>: the same segment with the area name in a 6th field,
+/// F2 slice 6 — <see cref="Line.Nome"/>); routing of the
 /// resulting <see cref="Line"/> records into the right collection is the loaders' job.
 /// </summary>
 public sealed class GeoParser : LineRecordParser<Line>
@@ -49,6 +51,7 @@ public sealed class GeoParser : LineRecordParser<Line>
             Start = start,
             End = end,
             Color = parts[4].Trim(),
+            Nome = n > 5 ? parts[5].Trim() : null,
             Source = new SourceRef(source, lineNumber),
         };
         return true;

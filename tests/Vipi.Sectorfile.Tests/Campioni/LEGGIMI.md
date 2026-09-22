@@ -11,7 +11,10 @@ Fuori, per peso: `GEO/itgeo.geo` e `GEO/lirf.geo` (1,2 MB), che fanno il round-t
 Aggiunti con la slice 4 (punti per nome), dallo stesso commit: `DYNAMIC_SEC/libb_es_ctr.tfl` (72 vertici per
 nome) e `lied.sid` (le SID col tracciato sotto l'intestazione). Con la slice 5 (forme opache):
 `NAVAIDS/APT.fix` e `NAVAIDS/VFR_NASCOSTI.fix` (fix a 4 e a 3 campi), `GND_LAYOUT/br_ad_gnd.pol` (il nome del
-poligono in commento), `GEO/liap.geo` (colore vuoto).
+poligono in commento), `GEO/liap.geo` (colore vuoto). Con la slice 6 (formati nuovi): `HOLDENR.hold` (attese
+di rotta), `liba.vrt` (rotte VFR per nome, VRP con la cifra in testa), `libv.vrt` (per coordinate, numero che
+cambia senza righe vuote, campi in più), `lirh.vrt` (fine riga LF, commento in coda), `GEO/italy.danger` (area
+P/R/D col nome nel sesto campo).
 
 - `.gitattributes` qui accanto: nessuna conversione dei fine riga. Aurora li legge in CRLF.
 - `NAVAIDS/ENR.fix` è **vuoto** anche nel sector: è un caso vero, non un errore della copia.

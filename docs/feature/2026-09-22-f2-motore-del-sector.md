@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-5 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-6 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -176,6 +176,8 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 - ⚠️ In `[GEO]` e nei poligoni una riga vuota o un commento **spezza** il tracciato: non è rumore da saltare.
 - ⚠️ Nome o coordinata: oggi **nessun** nome di punto (`.fix`/`.vor`/`.ndb`/`.vfi`) comincia con un emisfero
   seguito da una cifra, quindi la distinzione è netta. Il validatore lo tiene vero: un nome così è un errore.
+  🔴 Qui c'era scritto anche «o con una cifra»: falso, i VRP dei `.vfi` si chiamano `2NM NORTH LUCERA` (slice 6).
+  Cifra in testa è coordinata solo **senza lettere**.
 - ⚠️ `dotnet test` esce 0 anche rotto: il verde si legge contando i progetti.
 - 🔴 Sorgenti **solo con l'editor**, mai con heredoc (caratteri di controllo nelle regex, già pagato).
 
@@ -347,6 +349,45 @@ elenca tutte le opache quando sono poche (≤ 50). Campioni nuovi: `NAVAIDS/APT.
 `GND_LAYOUT/br_ad_gnd.pol`, `GEO/liap.geo`. Test: 352 su net8 e net10 (`FormeOpacheTests`, cinque misure in
 `UnaModificaPerRecordTests`, §19.4 e §22.3 ribaltati); controprove: tolta la regola del commento nel `.pol` e il
 nome dal primo vertice, 4 rossi.
+
+**Slice 6 — `.vrt`, `.hold`, aree P/R/D** (commit = il successivo a `31f0a97e`). I 20 file senza lettore del §1:
+- **`.hold`** → `Attesa` (`HoldParser`/`HoldSaver`, a riga singola): nome, punto (`Punto`), descrizione. La
+  descrizione resta il dato scritto; fix, rotta di avvicinamento, verso e quota ne sono una **lettura** (null se
+  la forma non è quella solita). Sul master sono **68 attese** (le 71 righe del §1 contano 3 righe vuote), tutte
+  nella forma `ABBOZ/225R-9000`; l'ultima, `HLD-OZE`, senza `;` finale.
+- **`.vrt`** → `RottaVfr` (`VrtParser`/`VrtSaver`): le righe **consecutive con lo stesso numero**, un punto per
+  riga. 🔴 La riga vuota **non** basta a separare le rotte: in 15 file su 16 il numero cambia almeno una volta
+  senza (`libv.vrt`, `limp.vrt`…). Un commento chiude la rotta (`lirh.vrt` ne ha uno in coda: «interruzione
+  obbligata per evitare collegamento con rotte RL»). `libv.vrt` e `licz.vrt` hanno due campi in più (`…;;1;`)
+  che nessuna specifica spiega: restano nella riga, sconosciuti al modello.
+- **`.restrict`/`.prohibit`/`.danger`** → il lettore `.geo`, col **nome dell'area** nel sesto campo
+  (`Line.Nome`, `…;RESTRICT;R4;`); un `.geo` non l'ha e lo scrittore non lo aggiunge.
+- 🔴 **Correzione del §7** («nessun nome comincia con una cifra»): falso per i VRP dei `.vfi`, che i `.vrt`
+  citano — `2NM NORTH LUCERA`, `5.5NM EAST LAMPEDUSA`, 20 nomi. Letti come coordinate sbagliate, erano **7 righe
+  opache**. Ora la regola di `Punto` è: cifra o segno in testa **e nessuna lettera** = coordinata decimale;
+  emisfero + cifra = coordinata come prima (`N047.44.75.000` resta un errore, non un nome).
+
+Prova sull'albero intero: **round-trip 701/701** (681 + i 20 nuovi; restano 48 file senza lettore, tutti testo e
+configurazione del §1), tutto toccato 0 su 271 388 righe, **una modifica per record 115 381 → 115 381**, 0
+discordi. Righe opache **7 → 93**: le 7 di prima, più **86 errori veri** nelle aree P/R/D — lo **spazio al posto
+del `;`** fra latitudine e longitudine (`N038.55.55.424 E016.36.08.523;…`), che fa del segmento una riga illeggibile:
+
+| area | file | segmenti rotti | prima riga |
+|---|---|---:|---|
+| P154 | `GEO/italy.prohibit` | 28 su 32 | 3132 |
+| P219 | `GEO/italy.prohibit` | 28 su 32 | 6249 |
+| R107A | `GEO/italy.restrict` | 3 su 3 | 1139 |
+| R107B | `GEO/italy.restrict` | 9 su 9 | 1143 |
+| R107C | `GEO/italy.restrict` | 9 su 9 | 1153 |
+| R107D | `GEO/italy.restrict` | 9 su 9 | 1163 |
+
+R107A-D non hanno **nemmeno un** segmento leggibile: è la spiegazione probabile del confronto di F0-bis (carta
+madre §11), che le dava **assenti** dal sector. Da passare agli AOD con le 7 della slice 5 e `R47`. (Che Aurora le
+scarti come fa il motore non è provato: lo si vede aprendo il sector.)
+
+Lo strumento elenca le opache fino a 100 (erano 50). Campioni nuovi: `HOLDENR.hold`, `liba.vrt`, `libv.vrt`, `lirh.vrt`, `GEO/italy.danger`. Test: 367 su net8 e
+net10 (`LettoriNuoviTests`, tre misure in `UnaModificaPerRecordTests`, due nomi e una coordinata in
+`PuntoTests`); controprova: rimessa la regola di prima in `Punto`, 4 rossi.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 

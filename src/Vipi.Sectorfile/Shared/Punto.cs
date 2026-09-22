@@ -13,7 +13,7 @@ namespace Vipi.Sectorfile.Shared;
 /// un refuso; <c>MC905;MC904</c>) Aurora prende la latitudine dal primo e la longitudine dal secondo: il punto li
 /// tiene tutti e due, perché riscriverne uno solo cambierebbe il punto. Dirlo è compito del validatore.</para>
 /// <para>Nome o coordinata: un campo che comincia con un emisfero seguito da una cifra, o con una cifra o un
-/// segno, è una coordinata — se non si legge, è una coordinata sbagliata, non un nome (<c>N047.44.75.000</c>
+/// segno e senza lettere, è una coordinata (<c>2NM NORTH LUCERA</c>, un VRP, è un nome) — se non si legge, è una coordinata sbagliata, non un nome (<c>N047.44.75.000</c>
 /// resta un errore). Nell'albero nessun nome di punto comincia così (carta F2 §7).</para>
 /// </remarks>
 public readonly struct Punto : IEquatable<Punto>
@@ -125,9 +125,10 @@ public readonly struct Punto : IEquatable<Punto>
         return true;
     }
 
+    // Una cifra o un segno in testa fanno una coordinata decimale solo senza lettere: i VRP dei .vfi hanno nomi come
+    // `2NM NORTH LUCERA` e `5.5NM EAST LAMPEDUSA`, e i .vrt li citano (F2 slice 6: 7 righe opache prima di questa regola).
     private static bool PareUnaCoordinata(string campo)
-        => char.IsAsciiDigit(campo[0])
-        || campo[0] is '-' or '+'
+        => ((char.IsAsciiDigit(campo[0]) || campo[0] is '-' or '+') && !campo.Any(char.IsAsciiLetter))
         || (campo.Length > 1 && "NSEWnsew".Contains(campo[0]) && char.IsAsciiDigit(campo[1]));
 
     public bool Equals(Punto other)

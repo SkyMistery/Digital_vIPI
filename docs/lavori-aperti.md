@@ -2,11 +2,11 @@
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-5 fatte (22 settembre 2026)
+### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-6 fatte (22 settembre 2026)
 
 Carta [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) (§8 traccia slice
 per slice, §9 decisioni). Progetto nuovo `src/Vipi.Sectorfile` (senza dipendenze, net8+net10), test
-`tests/Vipi.Sectorfile.Tests` (352, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
+`tests/Vipi.Sectorfile.Tests` (367, campioni veri in `Campioni/`), strumento `tools/Vipi.SectorfileProva` da
 lanciare su una copia dell'albero del sector. **Nessun dato di vIPI toccato, nessuna migrazione, niente pacchetto:
 il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
 
@@ -15,15 +15,19 @@ il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
   i campi cambiati. Slice 4 (`3d331045`): **`Punto`, coordinate o nome** (`.tfl`, `.mva`, tracciati dei `.sid`).
   Slice 5 (`57cea85c`): **le forme opache** (`.fix` a 4/3 campi, `T;` degli `.artcc`, `.frq` senza profilo,
   `.geo` col colore vuoto, nome del `.pol` in commento) e un difetto latente dei `.hartcc` (serie che apre con
-  DUMMY).
-- Sull'albero di `master` `7e761aa`: round-trip 681/681, righe opache **7 579 → 7**, tutto toccato 0, una modifica
-  per record 102 281/102 281.
+  DUMMY). Slice 6: **lettori nuovi** `.hold` (`Attesa`), `.vrt` (`RottaVfr`: la rotta finisce dove cambia il
+  numero), aree P/R/D (il `.geo` col nome dell'area); il nome di punto può cominciare con una cifra (VRP
+  `2NM NORTH LUCERA`).
+- Sull'albero di `master` `7e761aa`: round-trip **701/701**, righe opache **7 579 → 93** (tutte errori veri),
+  tutto toccato 0, una modifica per record 115 381/115 381.
 - 🔴 **Da dire agli AOD** — le 7 righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
   5): `itvor.vor:81` (`GRO`, frequenza vuota), `itvor.vor:109` (`KPT`, minuti 75/99), `APT.fix:294` (`MG763`,
   trattino), `MIL.fix:96` (`PL-BRAVO`, secondi 72), `lovv.tfl:48` (secondi 60), due `.pol` senza vertici
-  (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113).
-- ▶ **Prossima: slice 6** — lettori nuovi `.vrt`, `.hold`, aree P/R/D (`.restrict`/`.prohibit`/`.danger` = il
-  lettore `.geo` con due campi in più). Poi 7 `//@`, 8 validatore, 9 concordanza col lettore di vIPI, 10 chiusura.
+  (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113). Più, dalla slice 6, **86 segmenti P/R/D
+  con lo SPAZIO al posto del `;`** fra lat e lon: P154 e P219 (28 su 32 ciascuna, `italy.prohibit`), R107A-D
+  (**tutti** i 30, `italy.restrict` da riga 1139) — probabile ragione per cui F0-bis dava R107A-D assenti.
+- ▶ **Prossima: slice 7** — `//@` in `.sid`/`.str` (lettura e scrittura). Poi 8 validatore, 9 concordanza col
+  lettore di vIPI, 10 chiusura.
 - Albero di prova in locale: una `git archive` del master del sector sotto `SectorFiles/Include/IT`
   (`dotnet run -c Release --project tools/Vipi.SectorfileProva -- <cartella>`).
 
@@ -1145,7 +1149,7 @@ copie pubbliche.
 - 🔴 **Da dire agli AOD**: `R47` (Rieti) in `italy.restrict` ha l'arco disegnato fino a 12,51 NM dal centro,
   l'AIP dice 20 km = 10,80 NM (carta F1 §10.2). Più le candidate del confronto F0-bis già elencate sotto.
 - ✅ **21-set: tag e metadati `//@` decisi** (carta madre §8.2): aggancio col nome, verità dell'initial climb nel sector, prima ondata solo `.sid`/`.str`, conversione graduale.
-- 🟡 **22-set: F2 in corso**, carta scritta e approvata, slice 0-5 fatte → **§A115**.
+- 🟡 **22-set: F2 in corso**, carta scritta e approvata, slice 0-6 fatte → **§A115**.
 
 - ✅ F0-bis (carta madre §10-§11): checklist AIRAC dalla Cover Page; inventario dei 154 PDF; confronto AIP ↔ sector.
 - ✅ §8 chiuso: metadati e tag `//@` (quali e dove: da discutere prima di F2), `.vrt`/`.hold` in F2, Leaflet canvas,

@@ -23,5 +23,12 @@ public sealed class Line
     public Coordinate Start { get; set; }
     public Coordinate End { get; set; }
     public string Color { get; set; } = string.Empty;   // palette name
+
+    /// <summary>
+    /// The area the segment belongs to, in the 6th field of the P/R/D files (<c>…;RESTRICT;R4;</c> in
+    /// <c>italy.restrict</c>, F2 slice 6); null where the field is absent, as in every <c>.geo</c>.
+    /// </summary>
+    public string? Nome { get; set; }
+
     public SourceRef Source { get; set; } = null!;
 }

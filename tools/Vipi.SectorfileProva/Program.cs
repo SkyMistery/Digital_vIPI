@@ -102,8 +102,8 @@ foreach (var gruppo in opache
     var primo = gruppo.First();
     Console.WriteLine($"  {gruppo.Count(),6}  {gruppo.Key}   es. {Path.GetFileName(primo.Source)}:{primo.LineNumber} «{primo.RawSnippet}»");
 
-    // Dalla slice 5 le opache sono poche, e sono errori veri del sector: si elencano tutte, per gli AOD.
-    if (opache.Count <= 50)
+    // Dalla slice 5 le opache sono poche, e sono errori veri del sector: si elencano tutte, per gli AOD (93 dalla slice 6).
+    if (opache.Count <= 100)
     {
         foreach (var avviso in gruppo.Skip(1))
         {
@@ -198,7 +198,10 @@ string Relativo(string percorso) => Path.GetRelativePath(radice, percorso);
 (byte[], byte[])? RoundTrip(string estensione, string percorso) => estensione switch
 {
     "ap" => Prova(new ApParser(avvisi), new ApSaver(), percorso),
-    "geo" => Prova(new GeoParser(avvisi), new GeoSaver(), percorso),
+    // Le aree P/R/D sono segmenti .geo col nome dell'area in più (F2 slice 6).
+    "geo" or "restrict" or "prohibit" or "danger" => Prova(new GeoParser(avvisi), new GeoSaver(), percorso),
+    "hold" => Prova(new HoldParser(avvisi), new HoldSaver(), percorso),
+    "vrt" => Prova(new VrtParser(avvisi), new VrtSaver(), percorso),
     "pol" => Prova(new PolParser(avvisi), new PolSaver(), percorso),
     "txi" => Prova(new TxiParser(avvisi), new TxiSaver(), percorso),
     "gts" => Prova(new GtsParser(avvisi), new GtsSaver(), percorso),

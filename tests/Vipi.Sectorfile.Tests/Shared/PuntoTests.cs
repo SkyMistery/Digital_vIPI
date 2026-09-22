@@ -22,6 +22,8 @@ public sealed class PuntoTests
     [InlineData("CAPO FERRATO")]   // lied.sid
     [InlineData("IAF2-14")]
     [InlineData("NOVEMBER.")]
+    [InlineData("2NM NORTH LUCERA")]        // un VRP di liba.vfi, citato da liba.vrt (slice 6): comincia con una cifra
+    [InlineData("5.5NM EAST LAMPEDUSA")]    // idem, con un punto decimale
     public void UnNomeEUnPuntoPerNome(string nome)
     {
         var punto = Punto.Leggi(nome, nome);
@@ -61,6 +63,7 @@ public sealed class PuntoTests
     [InlineData("N047.42.27.000", "E017.04.60.000")]   // DYNAMIC_SEC/lovv.tfl:48: secondi 60
     [InlineData("N041.00.00.000", "AMSOR")]            // coordinata e nome mescolati
     [InlineData("41.00850773", "E016.00.00.000")]       // decimale e DMS mescolati
+    [InlineData("41.0085.0773", "16.07432896")]         // senza lettere resta una coordinata, sbagliata
     [InlineData("", "AMSOR")]
     [InlineData("//AMSOR", "AMSOR")]
     public void NonEUnPunto(string lat, string lon)
