@@ -14,6 +14,9 @@
     <ProjectReference Include="..\..\src\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />
     <!-- Solo per la concordanza: il DMS di vIPI (DmsCoordinate) contro quello del motore (carta F2 §2.4). -->
     <ProjectReference Include="..\..\src\Vipi.Application\Vipi.Application.csproj" />
+    <!-- Solo per la concordanza dei punti e delle SID/STAR: il lettore di produzione AuroraSectorfileParser
+         (carta F2 slice 9). Lo strumento lo vede, il motore MAI (NessunaDipendenzaTests). -->
+    <ProjectReference Include="..\..\src\Vipi.Infrastructure\Vipi.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

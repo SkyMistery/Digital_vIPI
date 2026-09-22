@@ -48,6 +48,34 @@ public sealed class NavaidParserTests
     public void Vor_Frequency_Decimal()
         => Assert.Equal(111.65m, ParseVor("AEA;111.65;N040.38.17.400;E008.17.30.400;0;2;\r\n").Records[0].Frequency);
 
+    // F2 slice 9 — the TACAN of Grosseto (itvor.vor:81): a channel and no frequency. A called it malformed; vIPI's
+    // import reads it, and the concordance with vIPI found the gap.
+    [Fact]
+    public void Vor_Tacan_SenzaFrequenza()
+    {
+        const string riga = "GRO;;N042.45.37.200;E011.04.38.600;0;3;35Y";
+        var letto = ParseVor(riga + "\r\n");
+
+        var r = Assert.Single(letto.Records);
+        Assert.Null(r.Frequency);
+        Assert.Equal(42.760333, r.Position.LatitudeDeg, 5);
+        Assert.Equal(0, _warnings.Count);
+
+        // The frequency is written back empty. (The channel `35Y` is the 7th field, outside the model: the line as
+        // a whole comes back through «riga come campi», FusioneDelRecordTests.)
+        Assert.StartsWith("GRO;;N042.45.37.200;E011.04.38.600;0;3;", Assert.Single(new VorSaver().Serialize(r)));
+    }
+
+    // …but a frequency that is there and does not read is still malformed.
+    [Fact]
+    public void Vor_FrequenzaIllegibile_ResMalformata()
+    {
+        var letto = ParseVor("GRO;1O9.85;N042.45.39.200;E011.04.38.300;\r\n");
+
+        Assert.Empty(letto.Records);
+        Assert.Equal(1, _warnings.Count);
+    }
+
     // §21.1 — round-trip the real .ndb (TEST_MATRIX names it itandb.ndb; the repo file is itndb.ndb).
     [Fact]
     public void Ndb_RoundTrip_Real()

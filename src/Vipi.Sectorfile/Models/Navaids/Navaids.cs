@@ -6,7 +6,14 @@ namespace Vipi.Sectorfile.Models;
 public sealed class Vor
 {
     public string Ident { get; set; } = string.Empty;
-    public decimal Frequency { get; set; }
+
+    /// <summary>
+    /// Null when the field is empty: a TACAN has a channel and no frequency (<c>GRO;;N042.45.37.200;…;0;3;35Y</c>,
+    /// the TACAN of Grosseto next to its VOR). In A it was mandatory and the line was malformed; vIPI's import
+    /// reads it on purpose, and the concordance with vIPI found the gap (F2 slice 9).
+    /// </summary>
+    public decimal? Frequency { get; set; }
+
     public Coordinate Position { get; set; }
 
     /// <summary>Optional Field5 from the .vor file; purpose unknown; preserved verbatim.</summary>

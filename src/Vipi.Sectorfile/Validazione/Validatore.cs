@@ -17,7 +17,8 @@ namespace Vipi.Sectorfile.Validazione;
 /// </remarks>
 public static partial class Validatore
 {
-    // I campi obbligatori in testa alla riga, dove un campo vuoto rende la riga illeggibile (itvor.vor:81 `GRO;;`).
+    // I campi obbligatori in testa alla riga, dove un campo vuoto rende la riga illeggibile (APT.fix, `;;`). Non la
+    // frequenza dei .vor: vuota è un TACAN (itvor.vor:81 `GRO;;…;35Y`, slice 9).
     private static readonly Dictionary<string, int> CampiObbligatori = new(StringComparer.OrdinalIgnoreCase)
     {
         ["vor"] = 4, ["ndb"] = 4, ["fix"] = 3, ["vfi"] = 4, ["gts"] = 4, ["hold"] = 4,
@@ -200,7 +201,8 @@ public static partial class Validatore
         string[] campi = riga.Split(';');
         for (int i = 0; i < Math.Min(quanti, campi.Length); i++)
         {
-            if (campi[i].Trim().Length == 0)
+            // La frequenza di un .vor vuota è un TACAN (GRO;;…;35Y), non un campo mancante (slice 9).
+            if (campi[i].Trim().Length == 0 && !(i == 1 && estensione.Equals("vor", StringComparison.OrdinalIgnoreCase)))
             {
                 return (i + 1).ToString(System.Globalization.CultureInfo.InvariantCulture);
             }

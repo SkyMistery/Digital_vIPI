@@ -21,22 +21,37 @@ public sealed class ValidatoreTests : IDisposable
         return Validatore.ValidaIlFile(percorso, nome);
     }
 
-    // itvor.vor: i tre errori veri del §1, e l'emisfero minuscolo che la slice 2 ha reso leggibile.
+    // itvor.vor: gli errori veri del §1, e l'emisfero minuscolo che la slice 2 ha reso leggibile. La riga 81 (`GRO;;`)
+    // era «campo 2 vuoto» fino alla slice 9: è il TACAN di Grosseto, un canale senza frequenza, e si legge.
     [Fact]
-    public void IlVorVeroHaITreErroriNoti()
+    public void IlVorVeroHaGliErroriNoti()
     {
         var problemi = Validatore.ValidaIlFile(RealSectorFiles.Path("NAVAIDS/itvor.vor")!, "NAVAIDS/itvor.vor");
 
         Assert.Equal(
             new[]
             {
-                (Regola.CampoVuoto, 81), (Regola.CoordinataFuoriCampo, 109), (Regola.CoordinataFuoriCampo, 109),
+                (Regola.CoordinataFuoriCampo, 109), (Regola.CoordinataFuoriCampo, 109),
                 (Regola.EmisferoMinuscolo, 125),
             },
             problemi.Select(p => (p.Regola, p.Riga)));
         Assert.Contains(problemi, p => p.Dettaglio == "«N047.44.75.000»: secondi 75");
         Assert.Equal(Gravita.Avviso, problemi[^1].Gravita);
     }
+
+    [Fact]
+    public void UnCampoObbligatorioVuotoSiDiceCampoVuoto()
+    {
+        var problemi = Valida("ENR.fix", "ABC;;E011.04.38.600;3;");
+
+        var problema = Assert.Single(problemi);
+        Assert.Equal((Regola.CampoVuoto, "campo 2 vuoto"), (problema.Regola, problema.Dettaglio));
+    }
+
+    // La frequenza vuota di un .vor è un TACAN (slice 9): nessun problema.
+    [Fact]
+    public void UnTacanSenzaFrequenzaNonEUnProblema()
+        => Assert.Empty(Valida("itvor.vor", "GRO;;N042.45.37.200;E011.04.38.600;0;3;35Y"));
 
     [Fact]
     public void UnFixColTrattinoEUnaCoordinataIllegibile()

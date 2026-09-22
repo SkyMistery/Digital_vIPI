@@ -6,7 +6,8 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Parses .vor files. One record per line: <c>Ident ; Frequency(MHz) ; Lat ; Lon ; [Field5] ; [Field6] ;</c>
-/// Field5/Field6 (purpose unknown) are preserved verbatim when present (TEST_MATRIX §20).
+/// Field5/Field6 (purpose unknown) are preserved verbatim when present (TEST_MATRIX §20). The frequency may be
+/// empty: a TACAN (F2 slice 9).
 /// <see cref="Vor"/> has no disabled state, so a <c>//</c> line is always a comment.
 /// </summary>
 public sealed class VorParser : LineRecordParser<Vor>
@@ -29,9 +30,22 @@ public sealed class VorParser : LineRecordParser<Vor>
             n--;
         }
 
-        if (n < 4 || !decimal.TryParse(parts[1].Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out decimal freq))
+        if (n < 4)
         {
             return false;
+        }
+
+        // An empty frequency is a TACAN (channel only, in Field6); a frequency that does not read is malformed.
+        decimal? freq = null;
+        string campoFrequenza = parts[1].Trim();
+        if (campoFrequenza.Length > 0)
+        {
+            if (!decimal.TryParse(campoFrequenza, NumberStyles.Float, CultureInfo.InvariantCulture, out decimal letta))
+            {
+                return false;
+            }
+
+            freq = letta;
         }
 
         Coordinate position;

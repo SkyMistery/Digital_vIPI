@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-8 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-9 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -34,7 +34,7 @@ riscrive uguali. Round-trip perfetto, contenuto invisibile. Divise per forma:
 | 32 | `.pol` | righe vuote dentro un poligono (in Aurora **spezzano** il tracciato) | |
 | 18 | `.mva` | bordi `T;` per nome di punto | `T;LIRR;UTENO;UTENO;LIRR;` |
 | 10 | `.geo` | colore vuoto in coda | `…;E013.18.35.124;;` |
-| 3 | `.vor` | **errori veri** | `KPT;108.40;N047.44.75.000;…` (secondi 75), `n045.44.52.080` minuscolo, `GRO;;` senza frequenza |
+| 3 | `.vor` | **errori veri** | `KPT;108.40;N047.44.75.000;…` (secondi 75), `n045.44.52.080` minuscolo, `GRO;;` senza frequenza (🔴 slice 9: non è un errore, è il TACAN di Grosseto) |
 
 Le tre del `.vor` sono il primo lavoro del validatore; tutte le altre sono **forme legittime** (le documenta la
 specifica di B, `SPECIFICA_FORMATI.md` §1, §4.3, §6) che A non modella. La radice comune è una: **il punto per
@@ -111,7 +111,7 @@ Regole, ognuna con gravità (errore / avviso) e con la riga e il file:
 | emisfero minuscolo o sconosciuto | `itvor.vor:125` `n045.44.52.080` |
 | frazione dei secondi che non ha 3 cifre (si legge, ma è ambigua: chi l'ha scritta intendeva millesimi?) | `N046.34.25.8735` (`lovv.tfl`), `N44.18.55.72` (tre `.rw`), `E015.37.07.1000` (tre `.str`), `N043.49.49.00` (`.hartcc`) — slice 2 |
 | coppia decimale (legale, ma rara: 38 righe in 4 `.str`) | `41.00850773;16.07432896;` — da segnalare solo come avviso |
-| campo obbligatorio vuoto | `itvor.vor:81` `GRO;;` |
+| campo obbligatorio vuoto | `ABC;;E011.04.38.600;` (nel sector di oggi nessuno: `itvor.vor:81` `GRO;;` è un TACAN, slice 9) |
 | DMS e decimale mescolati sulla stessa riga | (vietato dalla specifica) |
 | **punto per nome non risolto** nei cataloghi dichiarati dall'`.isc` | B ne trovò 1 — **oggi 21** (slice 8) |
 | punto per nome con **due nomi diversi** (Aurora prende la latitudine dal primo e la longitudine dal secondo) | 7 righe di `.str`: `ALPHA SOUTH;ALPHA SUOTH` (refuso), `MC905;MC904` |
@@ -185,14 +185,15 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 ## §8 — Definition of done
 
 - [ ] Slice 0-9, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
-      *(22 settembre: 0-8 fatte, la 8 in due commit; CI verde fino a `3479a52a`.)*
+      *(22 settembre: 0-9 fatte, la 8 in due commit.)*
 - [x] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri **e**
       «tutto toccato» a zero righe cambiate (un record toccato ma non cambiato esce com'era). *(701/701, 94 opache
-      tutte errori veri, tutto toccato 0 — slice 8.)*
+      tutte errori veri, tutto toccato 0 — slice 8; 93 dalla slice 9, il TACAN di Grosseto non era un errore.)*
 - [x] Validatore: errori veri del sector elencati qui, da passare agli AOD (con `R47` di F1). *(Tabelle delle slice
       5, 6 e 8.)*
-- [ ] Prova di concordanza col lettore di vIPI verde. *(Il DMS sì, dalla slice 2; mancano punti per nome e SID/STAR:
-      slice 9, vedi «Per la ripresa» in fondo.)*
+- [x] Prova di concordanza col lettore di vIPI verde. *(Il DMS dalla slice 2; punti, SID e STAR dalla slice 9:
+      4 048 punti, 1 515 SID, 863 STAR concordi; una sola differenza, `TAC-06R`, difetto di vIPI scritto nei lavori
+      aperti.)*
 - [x] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato. *(Finora: nessun file di
       `src/` fuori da `Vipi.Sectorfile` cambiato.)*
 
@@ -342,7 +343,7 @@ Prova sull'albero intero: **righe opache 7 162 → 7**, tutte **errori veri del 
 
 | file:riga | riga | errore |
 |---|---|---|
-| `NAVAIDS/itvor.vor:81` | `GRO;;N042.45.37.200;…` | frequenza vuota |
+| ~~`NAVAIDS/itvor.vor:81`~~ | `GRO;;N042.45.37.200;…;0;3;35Y` | ~~frequenza vuota~~ — 🔴 **non è un errore** (slice 9): è il TACAN di Grosseto, canale 35Y e niente frequenza; vIPI lo legge apposta. Da NON passare agli AOD |
 | `NAVAIDS/itvor.vor:109` | `KPT;108.40;N047.44.75.000;E010.20.99.000;…` | secondi 75 e 99 (qui c'era scritto «minuti»: lo ha corretto il validatore, slice 8) |
 | `NAVAIDS/APT.fix:294` | `MG763;N044.03.11.145;E008-11.31.443;3;` | trattino al posto del punto |
 | `NAVAIDS/MIL.fix:96` | `PL-BRAVO;N044.54.40.500;E010.34.072.00;3;` | secondi 72 |
@@ -466,7 +467,7 @@ passare agli AOD** (lo strumento li elenca tutti; insieme ai 7 della slice 5, ag
 | spazio al posto del `;` | 86 | P154, P219, R107A-D (tabella della slice 6) |
 | coordinata fuori campo | 5 | `itvor.vor:109` (×2, KPT), `MIL.fix:96`, `lovv.tfl:48`, **`lipp.hartcc:2047`** (nuova) |
 | coordinata illeggibile | 1 | `APT.fix:294` (MG763, trattino) |
-| campo vuoto | 1 | `itvor.vor:81` (GRO) |
+| ~~campo vuoto~~ | ~~1~~ | ~~`itvor.vor:81` (GRO)~~ — tolto dalla slice 9: è un TACAN (errori 131 → **130**) |
 | poligono con meno di 3 vertici | 4 | `eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`, `lfmm.tfl:1105` (LFMN_APP, 1 vertice), `limmctr.tfl:1772` (4 settori, 2 vertici: una linea voluta? da chiedere) |
 | file citato assente | 8 | `DYNAMIC_SEC\GCI.tfl` nei cinque `.isc` (il file sta in `OTHER/`), `DYNAMIC_SEC\lipp_es_ctr.tfl` in LIPP.isc, `PREFS\LIPC.cpr` in `itfreq.frq:175` e `lipp.frq:14` |
 | nome non risolto | 21 | **conseguenze** degli errori sopra: `KPT` (aerovia, il VOR illeggibile), `MG763` (`limg.str`), `PL-BRAVO` (`lipl.str`); refusi: `ALPHA SUOTH` (`lied.str` ×2), `MC904` (`limc.str`); assenti dai cataloghi: `MAFRE` (`libg.str` ×5), `BV-PAJOT`, `BV-IRDAG` (`libv.str`), `MC734` (`limc.str`), `HITAC36` (`limf.str`), `HITAC35` (`limn.str`), `HITAC06` (`lipi.str` ×2), `PZN` (`lirn.str`, `lirr.str`), `EDOXI` (`lirr.str`) |
@@ -480,7 +481,38 @@ sezione `[HIGH AIRWAY]` di ITALY.isc è vuota —, `NAVAIDS/ENR.fix` (vuoto), `F
 Test: 415 su net8 e net10 (`ValidatoreTests`, `ValidatoreDellAlberoTests` su un albero piccolo con le forme vere);
 controprova: tolto l'avviso del `T;` dal lettore, 1 rosso.
 
-### ▶ Per la ripresa: slice 9 e 10 (scritto il 22 settembre, a fine slice 8, per una chat nuova)
+**Slice 9 — la concordanza col lettore di vIPI.** `tools/Vipi.SectorfileProva/Concordanza.cs`: su UN file, il
+motore contro `AuroraSectorfileParser` (quello dell'import di produzione), e un `Esito` con concordi, discordi, solo
+vIPI, solo motore e **rifiutati da tutti e due**. Punti: stesso nome e stesse coordinate entro 1e-4″, gli omonimi
+dello stesso file appaiati uno a uno (il più vicino prima). SID e STAR: il multinsieme (nome, pista) come lo produce
+vIPI, una voce per pista; al motore GLI STESSI filtri (la riga comincia con l'ICAO del file; per le STAR tipo 0 e
+almeno una pista di forma pista). Il testo a vIPI arriva come in produzione (UTF-8). Il file è **uno**, compilato in
+due posti: nello strumento (misura 7, che ora referenzia `Vipi.Infrastructure` — il motore no, lo tiene onesto
+`NessunaDipendenzaTests`) e, collegato, in `Vipi.Infrastructure.Tests` (`ConcordanzaSectorfileTests`, sui campioni
+del motore, in CI). Deciso lì: il test va in Infrastructure.Tests, che ora vede anche `Vipi.Sectorfile` (solo i
+test; `Vipi.Infrastructure` no).
+
+Prova sull'albero intero (le 8 fonti di punti dell'`ITALY.isc` scelte come le sceglie `AuroraNavaidSource`, i 59
+`.sid` e i 90 `.str`): **punti 4 048 concordi, SID 1 515, STAR 863, 0 discordi**. Tre punti rifiutati da tutti e due
+(`KPT`, `PL-BRAVO`, `MG763`: errori del sector, già nella tabella). Due differenze, una per parte:
+- 🔴 **Difetto del motore, corretto**: `itvor.vor:81` `GRO;;N042.45.37.200;E011.04.38.600;0;3;35Y` è il **TACAN di
+  Grosseto** — canale 35Y, nessuna frequenza — accanto al VOR omonimo (riga 25). vIPI lo legge apposta (l'anagrafica
+  delle radioassistenze, 30 agosto); il motore, come A, lo chiamava malformato e il validatore «campo 2 vuoto».
+  Ora `Vor.Frequency` è `decimal?` (vuota = TACAN), il validatore non la chiede, e la riga **non è più un errore da
+  passare agli AOD** (tabelle delle slice 5 e 8 corrette). Opache 94 → **93**; validatore **130 errori, 353 avvisi**
+  (+1 avviso: GRO ripetuto a 62 m, VOR e TACAN — è giusto che lo dica, sotto 0,1 NM è un avviso).
+- 🔴 **Difetto di vIPI, NON corretto** (l'import non cambia in F2, §4): `MIL.fix:235` `TAC-06R;40.98618505;13.75008401;3;`
+  — coppia **decimale**, legale ma rara. Il motore la legge, il DMS di vIPI no: il punto entra nel catalogo senza
+  posizione (per chi disegna non c'è). Scritto nei lavori aperti (§A115); un test lo fissa com'è
+  (`LaCoppiaDecimaleDiUnFixLaLeggeSoloIlMotore`) e cade il giorno in cui vIPI la legge.
+
+Le altre misure: 701/701, tutto toccato 0, una modifica per record **115 382** (+1: il TACAN è un record), DMS 0
+discordi, tag su tutto 2 808/2 808. Test: Sectorfile 419 (+4: il TACAN, la frequenza illeggibile, il campo vuoto che
+prima si provava solo con GRO, il TACAN pulito per il validatore), Infrastructure 1 596 (+11). Controprove: tolto il
+filtro del tipo delle STAR dal lato motore, 2 rossi (`lirf.str` e i filtri); il TACAN era il rosso trovato dalla misura
+stessa. Un campione, `NAVAIDS/ENR.fix`, è **vuoto** (0 byte, da A): non serve alla concordanza.
+
+### ▶ Per la ripresa: slice 9 e 10 (scritto il 22 settembre, a fine slice 8, per una chat nuova — ✅ slice 9 fatta, sopra)
 
 **Dove siamo.** `main` = `3479a52a`, CI verde, working tree pulito. Slice 0-8 fatte (tracce qui sopra, una per
 slice). Il motore sta tutto in `src/Vipi.Sectorfile` (nessuna dipendenza), i test in `tests/Vipi.Sectorfile.Tests`
@@ -501,7 +533,8 @@ dotnet run -c Release --project tools/Vipi.SectorfileProva -- <…>/SectorFiles/
 Numeri attesi a slice 8 (se cambiano senza motivo, prima si capisce perché): round-trip **701 esatti, 0 diversi, 48
 senza lettore**; righe opache **94**; tutto toccato **0 su 271 388**; una modifica per record **115 381 → 115 381, 0
 fuori misura, 0 con più di un campo**; concordanza DMS **685 561 token, 0 discordi**; tag su tutto **2 808/2 808,
-149/149**; validatore **131 errori, 352 avvisi**. Un giro intero dura un paio di minuti.
+149/149**; validatore **131 errori, 352 avvisi**. Un giro intero dura un paio di minuti. *(Dalla slice 9: opache
+93, una modifica 115 382, validatore 130/353, concordanza punti 4 048 · SID 1 515 · STAR 863 con la sola `TAC-06R`.)*
 
 **Slice 9 — la concordanza col lettore di vIPI** (§2.4, §5). Il lettore di produzione è
 `src/Vipi.Infrastructure/Sectorfile/AuroraSectorfileParser.cs` (statico, lavora sul TESTO dei file): `ParseNavaids`

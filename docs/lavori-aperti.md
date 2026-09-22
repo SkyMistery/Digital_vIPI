@@ -2,7 +2,7 @@
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-8 fatte (22 settembre 2026)
+### 🟡 A115 — Aurora Sector Lab F2 in corso: il motore del sector, slice 0-9 fatte (22 settembre 2026)
 
 Carta [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) (§8 traccia slice
 per slice, §9 decisioni). Progetto nuovo `src/Vipi.Sectorfile` (senza dipendenze, net8+net10), test
@@ -23,8 +23,18 @@ il sito non usa ancora il motore.** CI verde fino a `3479a52a`.
   (`Validazione/`), regole di un file e dell'albero coi cinque `.isc`: **131 errori, 352 avvisi** (tabella nella carta).
 - Sull'albero di `master` `7e761aa`: round-trip **701/701**, righe opache **7 579 → 94** (tutte errori veri),
   tutto toccato 0, una modifica per record 115 381/115 381.
-- 🔴 **Da dire agli AOD** — le 7 righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
-  5): `itvor.vor:81` (`GRO`, frequenza vuota), `itvor.vor:109` (`KPT`, secondi 75/99), `APT.fix:294` (`MG763`,
+- Slice 9: **la concordanza col lettore di vIPI** (`tools/Vipi.SectorfileProva/Concordanza.cs`, collegato anche in
+  `Vipi.Infrastructure.Tests`): punti 4 048, SID 1 515, STAR 863 concordi, 0 discordi. Il motore sbagliava il TACAN
+  di Grosseto (`itvor.vor:81`, frequenza vuota, canale 35Y): corretto, **non è un errore del sector**. Opache 93,
+  validatore 130 errori e 353 avvisi.
+- 🔴 **Difetto di vIPI trovato dalla slice 9, NON corretto** (F2 non cambia l'import): `MIL.fix:235`
+  `TAC-06R;40.98618505;13.75008401;3;` — coppia di **gradi decimali**, legale nel formato. Il DMS di vIPI
+  (`DmsCoordinate.TryParse`, via `AuroraSectorfileParser.ParseNavaids`) non la legge e il punto entra nel catalogo
+  **senza posizione**: se un poligono o una SID lo citano, per vIPI non c'è. Da decidere se `ParseNavaids` debba
+  accettare la coppia decimale (come già fa `ParseMva`); quando succede, `LaCoppiaDecimaleDiUnFixLaLeggeSoloIlMotore`
+  cade e si capovolge.
+- 🔴 **Da dire agli AOD** — le righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
+  5): ~~`itvor.vor:81` (`GRO`)~~ (è un TACAN, slice 9), `itvor.vor:109` (`KPT`, secondi 75/99), `APT.fix:294` (`MG763`,
   trattino), `MIL.fix:96` (`PL-BRAVO`, secondi 72), `lovv.tfl:48` (secondi 60), due `.pol` senza vertici
   (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113). Più, dalla slice 6, **86 segmenti P/R/D
   con lo SPAZIO al posto del `;`** fra lat e lon: P154 e P219 (28 su 32 ciascuna, `italy.prohibit`), R107A-D
@@ -32,9 +42,8 @@ il sito non usa ancora il motore.** CI verde fino a `3479a52a`.
 - 🔴 **Per gli AOD, dalla slice 8**: la tabella degli errori nella carta — file citati e assenti (`GCI.tfl` cercato in
   `DYNAMIC_SEC/` dai cinque `.isc`, `lipp_es_ctr.tfl`, `LIPC.cpr`), 21 nomi non risolti, 5 nomi duplicati lontani,
   `lipp.hartcc:2047` (secondi 60), 4 poligoni con meno di 3 vertici — oltre a quelli qui sopra.
-- ▶ **Prossima: slice 9** — concordanza SID/STAR e punti col lettore di vIPI. Poi 10 chiusura. Istruzioni complete
-  (albero di prova, comando, numeri attesi, che cosa confrontare, dove vanno i test) nella carta, sezione **«Per la
-  ripresa: slice 9 e 10»** in fondo alla traccia della slice 8.
+- ▶ **Prossima: slice 10** — chiusura (carta, questa voce, HANDOFF, memorie, messaggio agli AOD). Istruzioni nella
+  carta, sezione **«Per la ripresa: slice 9 e 10»**.
 - Albero di prova in locale: una `git archive` del master del sector sotto `SectorFiles/Include/IT`
   (`dotnet run -c Release --project tools/Vipi.SectorfileProva -- <cartella>`).
 

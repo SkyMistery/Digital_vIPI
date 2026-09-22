@@ -22,6 +22,8 @@ using Vipi.Sectorfile.Shared;
 //      Il secondo argomento facoltativo è una cartella dove lasciare i file fuori misura, per un diff.
 //   4. CONCORDANZA: ogni token DMS letto dal motore e dal DMS di vIPI, stesso esito e stesso valore.
 //      Esce 1 se ce n'è uno discorde.
+//   5. I TAG //@ di .sid e .str (slice 7). 6. IL VALIDATORE (slice 8).
+//   7. CONCORDANZA col lettore di vIPI (slice 9): punti, SID e STAR contro AuroraSectorfileParser (Concordanza.cs).
 //
 // Nato da RealFileIntegrationTests (§27.1) della libreria A, che nei test tornava verde quando l'albero
 // mancava, cioè sempre in CI.
@@ -247,6 +249,58 @@ Console.WriteLine("\nFILE MAI CITATI:");
 foreach (var p in problemiDelSector.Where(p => p.Regola == Vipi.Sectorfile.Validazione.Regola.FileMaiCitato))
 {
     Console.WriteLine($"  {p.File}");
+}
+
+// 7. CONCORDANZA col lettore di vIPI (F2 slice 9, carta §2.4): AuroraSectorfileParser, quello dell'import di
+//    produzione, contro il motore. I punti dei file che l'.isc cita (come li sceglie AuroraNavaidSource), le SID e le
+//    STAR degli <icao>.sid/.str della cartella (come le scarica AuroraProcedureProvider).
+//    Non fa uscire 1: una differenza che è un difetto di vIPI non si corregge in F2 (l'import di produzione non
+//    cambia, carta §4) e resta scritta nei lavori aperti; le differenze si leggono qui, una per una.
+var fileDiPunti = File.Exists(Path.Combine(cartellaSectorFiles, "ITALY.isc"))
+    ? Vipi.Infrastructure.Sectorfile.AuroraNavaidSource.FileDiPunti(File.ReadAllText(Path.Combine(cartellaSectorFiles, "ITALY.isc")))
+    : Array.Empty<(Vipi.Application.Abstractions.NavaidKind Kind, string Path)>();
+var colLettoreDiVipi = new List<(string Cosa, string File, Vipi.SectorfileProva.Concordanza.Esito Esito)>();
+foreach (var (natura, relativo) in fileDiPunti)
+{
+    string percorso = Path.Combine(radice, relativo);
+    if (File.Exists(percorso))
+    {
+        colLettoreDiVipi.Add(("punti", relativo, Vipi.SectorfileProva.Concordanza.DeiPunti(percorso, natura)));
+    }
+}
+
+foreach (string percorso in Directory.GetFiles(radice, "*.sid").Concat(Directory.GetFiles(radice, "*.str")).Order(StringComparer.Ordinal))
+{
+    bool star = percorso.EndsWith(".str", StringComparison.OrdinalIgnoreCase);
+    colLettoreDiVipi.Add((star ? "STAR" : "SID", Relativo(percorso), Vipi.SectorfileProva.Concordanza.DelleProcedure(percorso, star)));
+}
+
+Console.WriteLine($"\nCONCORDANZA col lettore di vIPI: {fileDiPunti.Count} file di punti dall'.isc, " +
+    $"{colLettoreDiVipi.Count(p => p.Cosa == "SID")} .sid, {colLettoreDiVipi.Count(p => p.Cosa == "STAR")} .str");
+foreach (var gruppo in colLettoreDiVipi.GroupBy(p => p.Cosa))
+{
+    Console.WriteLine($"  {gruppo.Key,-6} {gruppo.Sum(p => p.Esito.Concordi),7} concordi, {gruppo.Sum(p => p.Esito.Discordi.Count)} discordi, " +
+        $"{gruppo.Sum(p => p.Esito.SoloVipi.Count)} solo vIPI, {gruppo.Sum(p => p.Esito.SoloMotore.Count)} solo motore, " +
+        $"{gruppo.Sum(p => p.Esito.RifiutatiDaEntrambi.Count)} rifiutati da tutti e due, " +
+        $"{gruppo.Count(p => !p.Esito.Pulito)} file su {gruppo.Count()} con differenze");
+}
+
+foreach (var (cosa, file, esito) in colLettoreDiVipi.Where(p => !p.Esito.Pulito))
+{
+    foreach (string riga in esito.Discordi)
+    {
+        Console.WriteLine($"  {file}  discorde      {riga}");
+    }
+
+    foreach (string riga in esito.SoloVipi)
+    {
+        Console.WriteLine($"  {file}  solo vIPI     {riga}");
+    }
+
+    foreach (string riga in esito.SoloMotore)
+    {
+        Console.WriteLine($"  {file}  solo motore   {riga}");
+    }
 }
 
 return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 ? 0 : 1;

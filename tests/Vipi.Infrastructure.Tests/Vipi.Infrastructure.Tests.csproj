@@ -48,6 +48,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- La concordanza fra il motore del sector e AuroraSectorfileParser (carta F2 slice 9). La regola è UNA, nello
+         strumento che la misura sull'albero intero; qui la stessa, sui campioni, gira in CI. Il motore si vede
+         solo dai test: Vipi.Infrastructure non lo referenzia. -->
+    <Compile Include="..\..\tools\Vipi.SectorfileProva\Concordanza.cs" Link="Sectorfile\Concordanza.cs" />
+    <ProjectReference Include="..\..\src\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Set di migrazioni MariaDB, su entrambi i TFM come Pomelo dal 13 settembre 2026 (L13). Serve a verificare che non resti
          indietro rispetto al modello — il costo dichiarato della scelta (a) in ADR-0007 è "ogni cambio di
          schema va emesso due volte", e senza una guardia quel costo si paga in produzione. -->

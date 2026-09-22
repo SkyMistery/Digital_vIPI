@@ -409,6 +409,9 @@
           "Pomelo.EntityFrameworkCore.MySql": "[8.0.3, )",
           "Vipi.Infrastructure": "[1.0.0, )"
         }
+      },
+      "vipi.sectorfile": {
+        "type": "Project"
       }
     },
     "net8.0": {
@@ -818,6 +821,9 @@
           "Pomelo.EntityFrameworkCore.MySql": "[8.0.3, )",
           "Vipi.Infrastructure": "[1.0.0, )"
         }
+      },
+      "vipi.sectorfile": {
+        "type": "Project"
       }
     }
   }

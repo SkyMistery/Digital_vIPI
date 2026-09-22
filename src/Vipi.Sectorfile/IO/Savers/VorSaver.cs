@@ -18,7 +18,7 @@ public sealed class VorSaver : IFileSaver<Vor>
         var fields = new List<string>
         {
             record.Ident,
-            record.Frequency.ToString(CultureInfo.InvariantCulture),
+            record.Frequency?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,   // empty: a TACAN
             CoordinateConverter.LatitudeToDottedDms(record.Position.LatitudeDeg),
             CoordinateConverter.LongitudeToDottedDms(record.Position.LongitudeDeg),
         };
