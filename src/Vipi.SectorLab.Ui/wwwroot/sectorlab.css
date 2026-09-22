@@ -32,3 +32,149 @@ html, body {
 .lab-nota {
     color: var(--lab-tenue);
 }
+
+.lab-errore {
+    color: #b03030;
+}
+
+.lab-apri {
+    display: flex;
+    gap: .5rem;
+    margin: 1rem 0 .5rem;
+}
+
+.lab-apri input {
+    flex: 1;
+    padding: .4rem .55rem;
+    border: 1px solid #c3c8d0;
+    border-radius: 4px;
+    font: inherit;
+}
+
+.lab-tasto {
+    padding: .4rem .9rem;
+    border: 1px solid var(--lab-accento);
+    border-radius: 4px;
+    background: var(--lab-accento);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+}
+
+.lab-tasto:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+/* --- lo schermo con la mappa (slice 4) ------------------------------------------------------------------------ */
+
+.lab-schermo {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.lab-barra {
+    display: flex;
+    align-items: center;
+    gap: .9rem;
+    padding: .45rem .8rem;
+    background: #fff;
+    border-bottom: 1px solid #dde1e7;
+}
+
+.lab-barra .lab-nota {
+    flex: 1;
+}
+
+.lab-isc select {
+    font: inherit;
+    padding: .2rem .3rem;
+}
+
+.lab-corpo {
+    flex: 1;
+    display: flex;
+    min-height: 0; /* senza, la colonna con la mappa sfonda la pagina invece di scorrere */
+}
+
+.lab-strati {
+    width: 17rem;
+    padding: .6rem .8rem;
+    overflow-y: auto;
+    background: #fff;
+    border-right: 1px solid #dde1e7;
+}
+
+.lab-strati h2 {
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--lab-tenue);
+    margin: .3rem 0 .4rem;
+}
+
+.lab-strato {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    padding: .12rem 0;
+}
+
+.lab-strato .lab-nota {
+    margin-left: auto;
+    font-variant-numeric: tabular-nums;
+}
+
+.lab-strato-vuoto {
+    opacity: .45;
+}
+
+.lab-pallino {
+    width: .7rem;
+    height: .7rem;
+    border-radius: 2px;
+    background: #4a5060;
+}
+
+[data-strato-colore="sfondo"] { background: #8a9099; }
+[data-strato-colore="geo"] { background: #9a7b4f; }
+[data-strato-colore="settori"] { background: #0b5cad; }
+[data-strato-colore="aree"] { background: #b03030; }
+[data-strato-colore="mva"] { background: #7a4fa3; }
+[data-strato-colore="aerovie"] { background: #3f7f7f; }
+[data-strato-colore="procedure"] { background: #1f7a3f; }
+[data-strato-colore="vfr"] { background: #2f8f8f; }
+[data-strato-colore="attese"] { background: #b06a10; }
+[data-strato-colore="terra"] { background: #6b6b6b; }
+[data-strato-colore="piste"] { background: #303030; }
+[data-strato-colore="radioassistenze"] { background: #0b5cad; }
+[data-strato-colore="punti"] { background: #4a5060; }
+
+.lab-scelta {
+    margin-top: 1rem;
+    padding-top: .6rem;
+    border-top: 1px solid #dde1e7;
+}
+
+.lab-etichetta {
+    margin: 0 0 .2rem;
+    font-weight: 600;
+    color: var(--lab-accento);
+}
+
+.lab-scelta p {
+    margin: 0 0 .25rem;
+    word-break: break-word;
+}
+
+.lab-irrisolti {
+    color: #b03030;
+}
+
+.lab-mappa {
+    flex: 1;
+    min-width: 0;
+    /* Nessuno sfondo a tessere: il bianco è il mare, le coste le disegna GEO/itgeo.geo. */
+    background: #eef1f5;
+}

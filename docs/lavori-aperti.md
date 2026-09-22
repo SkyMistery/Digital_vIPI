@@ -7,10 +7,18 @@
 Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **approvata**; consegna con release GitHub
 **pubblica** (tag `sectorlab-v*`) e scheda nella vIPI per Editor e Admin (§2.5, confermato dal committente). Slice 0 e
 1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta);
-slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`. **CI verde** su
-tutt'e tre. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab` net10.0-windows, i test:
-83); il sito non li referenzia e non cambia. ▶ Prossima: **slice 4, la mappa** (Leaflet canvas, strati, selezione).
-La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
+slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`; **slice 4, la mappa**.
+**CI verde** su tutte. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
+net10.0-windows, i test: **120**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 5, sfoglia e
+ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
+
+- **Slice 4**: Leaflet canvas servito da noi, **13 strati** decisi nel `Core` (`StratiDellaMappa`), geometria con una
+  `fetch` a `/mappa/strato/<id>` dietro il cancello (JSON corto, cinque decimali), clic = scelta, evidenza, riquadro
+  col record e coi nomi che il master non risolve. Sull'albero vero: **21 854 forme disegnate in 436 ms**, JSON 5,8 MB
+  in tutto. Il guscio ha ora `--cartella <percorso>` e `--tutti-gli-strati`; con `--autoprova` la prova aspetta la
+  riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
+  🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
+  primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
 
 - 🔴 **Difetto del motore corretto in F3 (slice 3b), che riguarda anche i dati**: il lettore dei `.rw` riconosceva la
   sezione solo scritta `//PISTE`, e i quattro file di FIR la scrivono `///////PISTE` — **187 righe di pista**

@@ -1,0 +1,91 @@
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+@inject SessioneDelLab Lab
+
+@*
+    La mappa (carta F3 §2.2 passo 4, slice 4). Il componente non porta coordinate: dice al JavaScript quali strati
+    accendere, e quello se li prende con una fetch (§3). Così il circuito resta leggero anche con 244 227 punti.
+
+    🔴 Si iscrive da sé a SessioneDelLab.Cambiata, e NON aspetta di essere ridisegnato: un componente senza parametri
+    Blazor non lo rirende quando il padre cambia, e la mappa resterebbe ferma su quello che aveva al primo giro (preso
+    dal test della casella, che vedeva arrivare solo lo sfondo).
+*@
+<div id="@Elemento" class="lab-mappa" data-mappa="@(_creata ? "viva" : "spenta")"></div>
+
+@code {
+    /// <summary>L'id dell'elemento: uno solo per pagina, ma il test ne può creare un altro.</summary>
+    [Parameter] public string Elemento { get; set; } = "lab-mappa";
+
+    private DotNetObjectReference<Mappa>? _riferimento;
+    private bool _creata;
+    private bool _dalClic;
+    private readonly HashSet<string> _disegnati = new(StringComparer.Ordinal);
+    private (string File, int Record)? _evidenziata;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!primo) return;
+        _riferimento = DotNetObjectReference.Create(this);
+        _creata = await Js.InvokeAsync<bool>("sectorlab.mappa.crea", Elemento, _riferimento);
+        await Sincronizza();
+    }
+
+    /// <summary>Porta la mappa dov'è lo stato: gli strati accesi, e l'evidenza sul record scelto.</summary>
+    private async Task Sincronizza()
+    {
+        if (!_creata) return;
+
+        var daAccendere = Lab.Accesi.Where(s => !_disegnati.Contains(s)).ToList();
+        foreach (string strato in daAccendere)
+        {
+            await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, true);
+            _disegnati.Add(strato);
+        }
+
+        // Quando tutto quel che era da accendere è arrivato, il totale va nel diario: è la misura del primo disegno.
+        if (daAccendere.Count > 0)
+            await Js.InvokeVoidAsync("sectorlab.mappa.disegnata");
+
+        foreach (string strato in _disegnati.Where(s => !Lab.Accesi.Contains(s)).ToList())
+        {
+            await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
+            _disegnati.Remove(strato);
+        }
+
+        if (_evidenziata != Lab.Scelta)
+        {
+            _evidenziata = Lab.Scelta;
+            // Si inquadra solo se la scelta NON viene dalla mappa: chi ha appena cliccato una forma non vuole che
+            // la mappa gli salti sotto il dito.
+            await Js.InvokeAsync<bool>("sectorlab.mappa.evidenzia", _evidenziata?.File, _evidenziata?.Record ?? 0, !_dalClic);
+            _dalClic = false;
+        }
+    }
+
+    private void Aggiorna() => _ = InvokeAsync(Sincronizza);
+
+    /// <summary>Il clic su una forma: la sceglie. La chiama il JavaScript della mappa.</summary>
+    [JSInvokable]
+    public void SceltaDallaMappa(string file, int record)
+    {
+        _dalClic = true;
+        Lab.Scegli(file, record);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Lab.Cambiata -= Aggiorna;
+        try
+        {
+            if (_creata) await Js.InvokeVoidAsync("sectorlab.mappa.chiudi");
+        }
+        catch (JSDisconnectedException)
+        {
+            // La finestra se n'è andata: non c'è più nessuno a cui dirlo.
+        }
+
+        _riferimento?.Dispose();
+    }
+}

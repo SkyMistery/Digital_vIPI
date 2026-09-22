@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Web.WebView2.Core;
 using Vipi.SectorLab.Ui.Server;
+using Vipi.SectorLab.Ui.Servizi;
 
 namespace Vipi.SectorLab;
 
@@ -12,6 +14,9 @@ using WinForms = System.Windows.Forms;
 /// L'ingresso di Aurora Sector Lab (carta F3 §2.1, §3): avvia il server Blazor locale e apre la finestra che lo mostra.
 /// <para><c>--autoprova</c>: parte, aspetta che il circuito sia vivo e si chiude, con codice d'uscita 0 se tutto è
 /// andato e 1 se no. È la prova d'avvio della slice 1, e si rifà su ogni consegna (lanciata da un'altra cartella).</para>
+/// <para><c>--cartella &lt;percorso&gt;</c>: apre subito quella cartella del sector, senza passare dalla schermata
+/// d'apertura (un collegamento per l'AOD, e la misura della mappa sull'albero vero). Con <c>--tutti-gli-strati</c> li
+/// accende tutti; con <c>--autoprova</c> la prova aspetta la riga «mappa disegnata» invece di «pronto».</para>
 /// </summary>
 internal static class Program
 {
@@ -26,6 +31,8 @@ internal static class Program
         Directory.CreateDirectory(CartellaDellUtente);
         var diario = new Diario(Path.Combine(CartellaDellUtente, "avvio.txt"), orologio);
         bool autoprova = args.Contains("--autoprova", StringComparer.OrdinalIgnoreCase);
+        string? cartellaDaAprire = Valore(args, "--cartella");
+        bool tuttiGliStrati = args.Contains("--tutti-gli-strati", StringComparer.OrdinalIgnoreCase);
         diario.Scrivi($"Aurora Sector Lab {Versione.Testo} · .NET {Environment.Version} · cartella {AppContext.BaseDirectory} · lavoro {Environment.CurrentDirectory}");
 
         WinForms.Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
@@ -58,14 +65,31 @@ internal static class Program
         }
         diario.Scrivi($"WebView2 Runtime {runtime}");
 
-        var server = ServerDelLab.Crea(new SegretoDelLab(), typeof(Program).Assembly.GetName().Name);
+        var server = ServerDelLab.Crea(new SegretoDelLab(), typeof(Program).Assembly.GetName().Name, CartellaDellUtente);
         server.StartAsync().GetAwaiter().GetResult();
         diario.Scrivi($"server in ascolto su {ServerDelLab.Indirizzo(server)}");
+
+        bool cartellaAperta = false;
+        if (cartellaDaAprire is not null)
+        {
+            var lab = server.Services.GetRequiredService<SessioneDelLab>();
+            var quanto = Stopwatch.StartNew();
+            cartellaAperta = lab.ApriAsync(cartellaDaAprire).GetAwaiter().GetResult();
+            diario.Scrivi(cartellaAperta
+                ? $"cartella aperta: {cartellaDaAprire} · {lab.Sessione!.File.Count} file · " +
+                  $"{lab.Strati.Sum(s => s.Forme.Count):N0} forme · {lab.Strati.Sum(s => s.Punti):N0} punti · {quanto.ElapsedMilliseconds} ms"
+                : $"cartella NON aperta: {lab.Errore}");
+            if (cartellaAperta && tuttiGliStrati)
+            {
+                foreach (var strato in lab.Strati.Where(s => s.Forme.Count > 0))
+                    lab.Accendi(strato.Id, acceso: true);
+            }
+        }
 
         int esito;
         try
         {
-            using var finestra = new Finestra(ServerDelLab.Ingresso(server), diario, autoprova);
+            using var finestra = new Finestra(ServerDelLab.Ingresso(server), diario, autoprova, attendeLaMappa: cartellaAperta);
             WinForms.Application.Run(finestra);
             esito = finestra.Esito;
         }
@@ -75,5 +99,12 @@ internal static class Program
             diario.Scrivi("chiuso");
         }
         return esito;
+    }
+
+    /// <summary>Il valore di un argomento con un valore: <c>--cartella D:\…</c>. Nullo se non c'è o è l'ultimo.</summary>
+    private static string? Valore(string[] args, string nome)
+    {
+        int dove = Array.FindIndex(args, a => string.Equals(a, nome, StringComparison.OrdinalIgnoreCase));
+        return dove >= 0 && dove + 1 < args.Length ? args[dove + 1] : null;
     }
 }

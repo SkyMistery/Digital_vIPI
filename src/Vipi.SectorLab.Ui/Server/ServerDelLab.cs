@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Vipi.SectorLab.Ui.Components;
+using Vipi.SectorLab.Ui.Servizi;
 
 namespace Vipi.SectorLab.Ui.Server;
 
@@ -28,7 +29,10 @@ public static class ServerDelLab
     /// <param name="segreto">Il segreto di questo avvio: il cancello lo chiede a ogni richiesta.</param>
     /// <param name="nomeApplicazione">L'assieme dell'eseguibile: col suo nome si trova il manifesto degli asset
     /// (<c>&lt;nome&gt;.staticwebassets.endpoints.json</c>). Di base l'assieme d'ingresso.</param>
-    public static WebApplication Crea(SegretoDelLab segreto, string? nomeApplicazione = null)
+    /// <param name="cartellaDeiDati">Dove l'app tiene le sue cose (l'ultima cartella aperta, e dalla slice 9 i
+    /// backup): di base <c>%LOCALAPPDATA%\VipiSectorLab</c>. I test ne passano una temporanea, perché una corsa in
+    /// CI non deve scrivere nella cartella vera di chi la lancia.</param>
+    public static WebApplication Crea(SegretoDelLab segreto, string? nomeApplicazione = null, string? cartellaDeiDati = null)
     {
         ArgumentNullException.ThrowIfNull(segreto);
 
@@ -49,6 +53,8 @@ public static class ServerDelLab
         builder.Logging.ClearProviders();
 
         builder.Services.AddSingleton(segreto);
+        // La cartella aperta è dell'applicazione, non della pagina: un Ctrl+F5 non rilegge 102 MB d'albero.
+        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.Configure<HubOptions>(o => o.MaximumReceiveMessageSize = TettoDelMessaggio);
 
@@ -59,6 +65,8 @@ public static class ServerDelLab
         // 🔴 F0, trappola 1: senza, ogni pagina interattiva risponde 500 e non dice perché.
         app.UseAntiforgery();
         app.MapStaticAssets();
+        // La geometria della mappa con una fetch, non col circuito (§3): dietro lo stesso cancello.
+        MappaDelLab.MappaLaMappa(app);
         app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
 
         return app;

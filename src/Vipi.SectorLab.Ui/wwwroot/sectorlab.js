@@ -13,6 +13,9 @@
 
     window.sectorlab = {
         /// Il circuito Blazor è vivo: lo chiama la pagina iniziale al primo render interattivo.
-        pronto: function () { allaFinestra('pronto'); }
+        pronto: function () { allaFinestra('pronto'); },
+
+        /// Una riga nel diario d'avvio della finestra: i tempi della mappa, e quel che si vuole misurare dal vivo.
+        diario: function (testo) { allaFinestra(String(testo)); }
     };
 })();

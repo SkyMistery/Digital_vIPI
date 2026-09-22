@@ -19,13 +19,17 @@ internal sealed class Finestra : Form
     private readonly Diario _diario;
     private readonly bool _autoprova;
 
+    /// <summary>Con una cartella aperta all'avvio, l'autoprova aspetta che la MAPPA abbia disegnato, non solo il circuito.</summary>
+    private readonly bool _attendeLaMappa;
+
     /// <summary>Il codice d'uscita: 0 finché niente va storto; con l'autoprova diventa 0 solo col circuito vivo.</summary>
     public int Esito { get; private set; }
 
-    public Finestra(Uri ingresso, Diario diario, bool autoprova)
+    public Finestra(Uri ingresso, Diario diario, bool autoprova, bool attendeLaMappa = false)
     {
         _diario = diario;
         _autoprova = autoprova;
+        _attendeLaMappa = attendeLaMappa;
         Esito = autoprova ? 1 : 0;
 
         Text = $"Aurora Sector Lab {Versione.Testo}";
@@ -107,7 +111,12 @@ internal sealed class Finestra : Form
 
         if (!_autoprova)
             return;
-        if (testo == "pronto")
+        // Con una cartella aperta all'avvio la prova non finisce col circuito vivo: finisce quando la mappa ha
+        // disegnato, perché è quella la cosa che si sta misurando (slice 4).
+        bool finita = _attendeLaMappa
+            ? testo.StartsWith("mappa disegnata", StringComparison.Ordinal)
+            : testo == "pronto";
+        if (finita)
             Chiudi(esito: 0);
         else if (testo.StartsWith("errore:", StringComparison.Ordinal))
             Chiudi(esito: 1);

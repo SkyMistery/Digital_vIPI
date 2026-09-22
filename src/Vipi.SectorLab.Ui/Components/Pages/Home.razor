@@ -1,25 +1,122 @@
 @page "/"
+@implements IDisposable
 @inject IJSRuntime Js
+@inject SessioneDelLab Lab
 
 <PageTitle>Aurora Sector Lab</PageTitle>
 
-<main class="lab-vuoto">
-    <h1>Aurora Sector Lab</h1>
-    <p>Nessuna cartella del sector aperta.</p>
-    <p class="lab-nota">
-        @if (_interattivo)
+@if (Lab.Stato is StatoDelLab.Aperta)
+{
+    <div class="lab-schermo">
+        <header class="lab-barra">
+            <strong>Aurora Sector Lab</strong>
+            <span class="lab-nota" data-barra="numeri">
+                @Lab.Sessione!.File.Count file · @Lab.Sessione.RecordTotali.ToString("N0") record ·
+                @Forme.ToString("N0") forme · @Punti.ToString("N0") punti · @Lab.Durata.TotalSeconds.ToString("0.0") s
+            </span>
+            @if (Lab.Cataloghi.Count > 1)
+            {
+                <label class="lab-isc">
+                    Nomi risolti con
+                    <select value="@Lab.IscScelto" @onchange="CambiaIsc" data-campo="isc">
+                        @foreach (var isc in Lab.Cataloghi.OrderBy(c => c.Key, StringComparer.Ordinal))
+                        {
+                            <option value="@isc.Key" selected="@(isc.Key == Lab.IscScelto)">@isc.Key (@isc.Value.Punti.ToString("N0") punti)</option>
+                        }
+                    </select>
+                </label>
+            }
+            <button class="lab-tasto" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
+        </header>
+
+        <div class="lab-corpo">
+            <aside class="lab-strati">
+                <h2>Strati</h2>
+                @foreach (var strato in Lab.Strati)
+                {
+                    <label class="lab-strato @(strato.Forme.Count == 0 ? "lab-strato-vuoto" : null)">
+                        <input type="checkbox"
+                               checked="@Lab.Accesi.Contains(strato.Id)"
+                               disabled="@(strato.Tipo.Sfondo || strato.Forme.Count == 0)"
+                               @onchange="e => Accendi(strato.Id, e)"
+                               data-strato="@strato.Id" />
+                        <span class="lab-pallino" data-strato-colore="@strato.Id"></span>
+                        <span>@strato.Tipo.Nome</span>
+                        <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
+                    </label>
+                }
+
+                @if (Scelta is { } scelta)
+                {
+                    <div class="lab-scelta" data-scelta="@($"{scelta.File}#{scelta.Record}")">
+                        <h2>Scelto</h2>
+                        <p class="lab-etichetta">@scelta.Etichetta</p>
+                        <p class="lab-nota">@scelta.File · record @scelta.Record · @scelta.Punti.ToString("N0") punti</p>
+                        @if (scelta.NomiNonRisolti.Count > 0)
+                        {
+                            @* Il motivo per cui una forma non si disegna (slice 3b): sta scritto, non sparisce. *@
+                            <p class="lab-irrisolti">Nomi che @Lab.IscScelto non conosce: @string.Join(", ", scelta.NomiNonRisolti)</p>
+                        }
+                    </div>
+                }
+            </aside>
+
+            <Mappa />
+        </div>
+    </div>
+}
+else
+{
+    <main class="lab-vuoto">
+        <h1>Aurora Sector Lab</h1>
+        <p>Apri la cartella del clone del sector: quella che contiene <code>SectorFiles/</code>.</p>
+        <div class="lab-apri">
+            <input type="text" @bind="_percorso" @bind:event="oninput" placeholder="D:\…\it-aurora-sector"
+                   disabled="@(Lab.Stato is StatoDelLab.InApertura)" data-campo="cartella" />
+            <button class="lab-tasto" @onclick="Apri"
+                    disabled="@(Lab.Stato is StatoDelLab.InApertura || string.IsNullOrWhiteSpace(_percorso))"
+                    data-tasto="apri">Apri</button>
+        </div>
+
+        @if (Lab.Stato is StatoDelLab.InApertura)
         {
-            <span data-stato="interattivo">Pronto.</span>
+            <p class="lab-nota" data-stato="apertura">Lettura dell'albero…</p>
+        }
+        else if (Lab.Errore is { } errore)
+        {
+            <p class="lab-errore" data-stato="errore">@errore</p>
         }
         else
         {
-            <span data-stato="caricamento">Avvio…</span>
+            <p class="lab-nota">
+                @if (_interattivo)
+                {
+                    <span data-stato="interattivo">Pronto.</span>
+                }
+                else
+                {
+                    <span data-stato="caricamento">Avvio…</span>
+                }
+            </p>
         }
-    </p>
-</main>
+    </main>
+}
 
 @code {
     private bool _interattivo;
+    private string? _percorso;
+
+    private int Forme => Lab.Strati.Sum(s => s.Forme.Count);
+
+    private int Punti => Lab.Strati.Sum(s => s.Punti);
+
+    private FormaDellaMappa? Scelta => Lab.FormaScelta();
+
+    protected override void OnInitialized()
+    {
+        Lab.Cambiata += Aggiorna;
+        _percorso = Lab.UltimaCartella();
+    }
 
     protected override async Task OnAfterRenderAsync(bool primo)
     {
@@ -29,4 +126,16 @@
         // Dice alla finestra che il circuito è vivo: è il momento che il guscio misura (e la prova d'avvio aspetta).
         await Js.InvokeVoidAsync("sectorlab.pronto");
     }
+
+    private Task Apri() => Lab.ApriAsync(_percorso);
+
+    private void Chiudi() => Lab.Chiudi();
+
+    private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);
+
+    private Task CambiaIsc(ChangeEventArgs e) => Lab.ScegliIscAsync(e.Value?.ToString() ?? "");
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
 }
