@@ -158,6 +158,10 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
             }
 
             polygon.Vertices.Add(ParseVertex(parts, n));
+            if (CoordinataCheNonSiLegge(parts, n))
+            {
+                Warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source, "Unparseable T; vertex", lineNumber, line);
+            }
         }
 
         Finalize();
@@ -201,6 +205,14 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
             return new StaticBoundaryVertex { FixA = field3, FixB = field4 };
         }
     }
+
+    /// <summary>
+    /// Vero se i campi 3-4 sono una coordinata che non si legge (<c>lipp.hartcc:2047</c> <c>N047.25.60.000</c>, secondi
+    /// 60). <see cref="ParseVertex"/> ne fa lo stesso una coppia di fix, per non perdere il vertice, ma A lo faceva IN
+    /// SILENZIO: un vertice chiamato «N047.25.60.000». Ora il lettore lo dice (F2 slice 8, come lo .str alla slice 4).
+    /// </summary>
+    internal static bool CoordinataCheNonSiLegge(string[] parts, int n)
+        => n > 3 && !Punto.TryLeggi(parts[2], parts[3], out _);
 }
 
 /// <summary>Parses HI_AIRSPACE/*.hartcc files into <see cref="StaticBoundaryGroup"/> records.</summary>

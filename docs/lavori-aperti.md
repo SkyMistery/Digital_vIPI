@@ -23,7 +23,7 @@ il sito non usa ancora il motore.** CI verde fino a `57cea85c`.
 - Sull'albero di `master` `7e761aa`: round-trip **701/701**, righe opache **7 579 → 93** (tutte errori veri),
   tutto toccato 0, una modifica per record 115 381/115 381.
 - 🔴 **Da dire agli AOD** — le 7 righe opache rimaste sono **errori veri del sector** (tabella nella carta, slice
-  5): `itvor.vor:81` (`GRO`, frequenza vuota), `itvor.vor:109` (`KPT`, minuti 75/99), `APT.fix:294` (`MG763`,
+  5): `itvor.vor:81` (`GRO`, frequenza vuota), `itvor.vor:109` (`KPT`, secondi 75/99), `APT.fix:294` (`MG763`,
   trattino), `MIL.fix:96` (`PL-BRAVO`, secondi 72), `lovv.tfl:48` (secondi 60), due `.pol` senza vertici
   (`eo_ad_gnd.pol:72`, `ml_ad_gnd.pol:1223`). Più `R47` di F1 (§A113). Più, dalla slice 6, **86 segmenti P/R/D
   con lo SPAZIO al posto del `;`** fra lat e lon: P154 e P219 (28 su 32 ciascuna, `italy.prohibit`), R107A-D

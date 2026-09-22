@@ -154,6 +154,11 @@ public sealed class ArtccParser : IFileParser<ElementoArtcc>
                 }
 
                 polygon.Vertices.Add(StaticBoundaryParser.ParseVertex(parts, n));
+                if (StaticBoundaryParser.CoordinataCheNonSiLegge(parts, n))
+                {
+                    _warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source, "Unparseable T; vertex", lineNumber, line);
+                }
+
                 continue;
             }
 

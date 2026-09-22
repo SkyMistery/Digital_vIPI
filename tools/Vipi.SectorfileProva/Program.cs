@@ -51,7 +51,9 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
     (byte[] Originale, byte[] Riscritto)? esito;
     try
     {
-        esito = RoundTrip(estensione, percorso);
+        esito = Formati.Usa(percorso, avvisi, new ProvaDelFile(percorso, Relativo(percorso), cartellaFuoriMisura, toccato, modifica, piuDiUnCampo), out var prova)
+            ? prova
+            : null;
     }
     catch (Exception ex)
     {
@@ -217,6 +219,26 @@ foreach (string riga in guastiDeiTag.Take(20))
     Console.WriteLine("  " + riga);
 }
 
+// 6. IL VALIDATORE (F2 slice 8, carta §3): i problemi del sector per regola, e gli errori uno per uno — sono la lista
+//    da passare agli AOD. Non fa uscire 1: il sector ha errori veri, e dirli è il suo mestiere.
+var problemiDelSector = Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories)
+    .Order(StringComparer.Ordinal)
+    .SelectMany(p => Vipi.Sectorfile.Validazione.Validatore.ValidaIlFile(p, Relativo(p)))
+    .ToList();
+Console.WriteLine($"\nVALIDATORE: {problemiDelSector.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori, " +
+    $"{problemiDelSector.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Avviso)} avvisi");
+foreach (var gruppo in problemiDelSector.GroupBy(p => (p.Gravita, p.Regola)).OrderBy(g => g.Key))
+{
+    var primo = gruppo.First();
+    Console.WriteLine($"  {gruppo.Count(),6}  {gruppo.Key.Gravita,-7} {gruppo.Key.Regola,-24} es. {primo.File}:{primo.Riga} {primo.Dettaglio}");
+}
+
+Console.WriteLine("\nERRORI, uno per uno:");
+foreach (var p in problemiDelSector.Where(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore).Take(300))
+{
+    Console.WriteLine($"  {p.File}:{p.Riga}  {p.Regola}  {p.Dettaglio}");
+}
+
 return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 ? 0 : 1;
 
 void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string> nomeDi, string percorso)
@@ -283,189 +305,167 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
 
 string Relativo(string percorso) => Path.GetRelativePath(radice, percorso);
 
-// Il lettore e lo scrittore per estensione: la stessa scelta di A (§27.1), nome del file compreso.
-(byte[], byte[])? RoundTrip(string estensione, string percorso) => estensione switch
+/// <summary>Le misure 1 e 3 su un file, col lettore e lo scrittore che sceglie <see cref="Formati"/>.</summary>
+sealed class ProvaDelFile(
+    string percorso,
+    string relativo,
+    string? cartellaFuoriMisura,
+    List<(string File, int Righe, int Cambiate, string? Esempio)> toccato,
+    List<(string File, int Spostati, int Cambiate, string? Esempio)> modifica,
+    List<string> piuDiUnCampo) : IUsoDelFormato<(byte[], byte[])>
 {
-    "ap" => Prova(new ApParser(avvisi), new ApSaver(), percorso),
-    // Le aree P/R/D sono segmenti .geo col nome dell'area in più (F2 slice 6).
-    "geo" or "restrict" or "prohibit" or "danger" => Prova(new GeoParser(avvisi), new GeoSaver(), percorso),
-    "hold" => Prova(new HoldParser(avvisi), new HoldSaver(), percorso),
-    "vrt" => Prova(new VrtParser(avvisi), new VrtSaver(), percorso),
-    "pol" => Prova(new PolParser(avvisi), new PolSaver(), percorso),
-    "txi" => Prova(new TxiParser(avvisi), new TxiSaver(), percorso),
-    "gts" => Prova(new GtsParser(avvisi), new GtsSaver(), percorso),
-    "sid" => Prova(new SidParser(avvisi), new SidSaver(), percorso),
-    "vfi" => Prova(new VfiParser(avvisi), new VfiSaver(), percorso),
-    "atis" => Prova(new AtisParser(avvisi), new AtisSaver(), percorso),
-    "vor" => Prova(new VorParser(avvisi), new VorSaver(), percorso),
-    "ndb" => Prova(new NdbParser(avvisi), new NdbSaver(), percorso),
-    "fix" => Prova(new FixParser(avvisi), new FixSaver(), percorso),
-    "lairway" or "hairway" => Prova(new AirwayParser(avvisi), new AirwaySaver(), percorso),
-    "frq" => Prova(new FrqParser(avvisi), new FrqSaver(), percorso),
-    "rw" => Prova(new RwParser(avvisi), new RwSaver(), percorso),
-    "str" => Prova(new StrParser(avvisi), new StrSaver(), percorso),
-    "hartcc" => Prova(new HartccParser(avvisi), new HartccSaver(), percorso),
-    "lartcc" => Prova(new LartccParser(avvisi), new LartccSaver(), percorso),
-    "artcc" => Prova(new ArtccParser(avvisi), new ArtccSaver(), percorso),
-    "tfl" => Path.GetFileName(percorso).EndsWith("fic.tfl", StringComparison.OrdinalIgnoreCase)
-        ? Prova(new FicParser(avvisi), new FicSaver(), percorso)
-        : Prova(new TflParser(avvisi), new TflSaver(), percorso),
-    "mva" => percorso.Replace('\\', '/').Contains("/ENRMVA/", StringComparison.OrdinalIgnoreCase)
-        ? Prova(new MvaEnrouteParser(avvisi), new MvaSaver(enroute: true), percorso)
-        : Prova(new MvaAirportParser(avvisi), new MvaSaver(enroute: false), percorso),
-    _ => null,
-};
-
-(byte[], byte[]) Prova<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, string percorso)
-{
-    byte[] originale = File.ReadAllBytes(percorso);
-    var letto = lettore.Parse(percorso, new ColorPalette()).FissaLeBasi(scrittore);
-    string temporaneo = Path.Combine(Path.GetTempPath(), "sectorfile-prova-" + Guid.NewGuid().ToString("N") + ".tmp");
-    try
+    public (byte[], byte[]) Usa<T>(IFileParser<T> lettore, IFileSaver<T> scrittore)
+        where T : class
     {
-        new FileSaverOrchestrator().Save(letto, new HashSet<T>(), scrittore, temporaneo);
-        byte[] riscritto = File.ReadAllBytes(temporaneo);
-
-        // 3a. TUTTO TOCCATO: ogni record segnato come modificato senza cambiarlo. Con «riga come campi» (F2
-        //     §9.5) deve uscire identico per costruzione; è il controllo che la costruzione regge.
-        var prima = File.ReadAllLines(percorso);
-        new FileSaverOrchestrator().Save(letto, new HashSet<T>(letto.Records), scrittore, temporaneo);
-        var (cambiate, esempio) = Differenze(prima, File.ReadAllLines(temporaneo));
-        toccato.Add((Relativo(percorso), prima.Length, cambiate, esempio));
-
-        // 3b. UNA MODIFICA PER RECORD: il primo punto di ogni record spostato di un millesimo di secondo d'arco
-        //     in latitudine. Ogni record spostato deve cambiare UNA riga, e nient'altro deve cambiare.
-        var spostati = new HashSet<T>(letto.Records.Where(r => r is not null && Sposta(r)));
-        new FileSaverOrchestrator().Save(letto, spostati, scrittore, temporaneo);
-        var dopoLoSpostamento = File.ReadAllLines(temporaneo);
-        var (cambiateSpostando, esempioSpostando) = Differenze(prima, dopoLoSpostamento);
-        modifica.Add((Relativo(percorso), spostati.Count, cambiateSpostando, esempioSpostando));
-
-        // …e in ogni riga cambiata deve cambiare UN campo, la latitudine spostata.
-        if (prima.Length == dopoLoSpostamento.Length)
+        byte[] originale = File.ReadAllBytes(percorso);
+        var letto = lettore.Parse(percorso, new ColorPalette()).FissaLeBasi(scrittore);
+        string temporaneo = Path.Combine(Path.GetTempPath(), "sectorfile-prova-" + Guid.NewGuid().ToString("N") + ".tmp");
+        try
         {
-            foreach (var (riga, nuova) in prima.Zip(dopoLoSpostamento).Where(c => c.First != c.Second))
+            new FileSaverOrchestrator().Save(letto, new HashSet<T>(), scrittore, temporaneo);
+            byte[] riscritto = File.ReadAllBytes(temporaneo);
+
+            // 3a. TUTTO TOCCATO: ogni record segnato come modificato senza cambiarlo. Con «riga come campi» (F2
+            //     §9.5) deve uscire identico per costruzione; è il controllo che la costruzione regge.
+            var prima = File.ReadAllLines(percorso);
+            new FileSaverOrchestrator().Save(letto, new HashSet<T>(letto.Records), scrittore, temporaneo);
+            var (cambiate, esempio) = Differenze(prima, File.ReadAllLines(temporaneo));
+            toccato.Add((relativo, prima.Length, cambiate, esempio));
+
+            // 3b. UNA MODIFICA PER RECORD: il primo punto di ogni record spostato di un millesimo di secondo d'arco
+            //     in latitudine. Ogni record spostato deve cambiare UNA riga, e nient'altro deve cambiare.
+            var spostati = new HashSet<T>(letto.Records.Where(r => r is not null && Sposta(r)));
+            new FileSaverOrchestrator().Save(letto, spostati, scrittore, temporaneo);
+            var dopoLoSpostamento = File.ReadAllLines(temporaneo);
+            var (cambiateSpostando, esempioSpostando) = Differenze(prima, dopoLoSpostamento);
+            modifica.Add((relativo, spostati.Count, cambiateSpostando, esempioSpostando));
+
+            // …e in ogni riga cambiata deve cambiare UN campo, la latitudine spostata.
+            if (prima.Length == dopoLoSpostamento.Length)
             {
-                string[] a = riga.Split(';'), b = nuova.Split(';');
-                if (a.Length != b.Length || a.Zip(b).Count(c => c.First != c.Second) != 1)
+                foreach (var (riga, nuova) in prima.Zip(dopoLoSpostamento).Where(c => c.First != c.Second))
                 {
-                    piuDiUnCampo.Add($"{Relativo(percorso)}: «{riga}» → «{nuova}»");
+                    string[] a = riga.Split(';'), b = nuova.Split(';');
+                    if (a.Length != b.Length || a.Zip(b).Count(c => c.First != c.Second) != 1)
+                    {
+                        piuDiUnCampo.Add($"{relativo}: «{riga}» → «{nuova}»");
+                    }
                 }
             }
-        }
-        if (cartellaFuoriMisura is not null && cambiateSpostando != spostati.Count)
-        {
-            string copia = Path.Combine(cartellaFuoriMisura, Relativo(percorso));
-            Directory.CreateDirectory(Path.GetDirectoryName(copia)!);
-            File.Copy(temporaneo, copia, overwrite: true);
-        }
-
-        return (originale, riscritto);
-    }
-    finally
-    {
-        if (File.Exists(temporaneo))
-        {
-            File.Delete(temporaneo);
-        }
-    }
-}
-
-// Le righe cambiate fra due versioni di un file, e la prima coppia diversa come esempio. Stessa lunghezza:
-// riga per riga; lunghezze diverse: tutte le righe fuori dalla testa e dalla coda comuni.
-static (int Cambiate, string? Esempio) Differenze(string[] prima, string[] dopo)
-{
-    int testa = 0;
-    while (testa < prima.Length && testa < dopo.Length && prima[testa] == dopo[testa])
-    {
-        testa++;
-    }
-
-    if (testa == prima.Length && testa == dopo.Length)
-    {
-        return (0, null);
-    }
-
-    string esempio = $"«{(testa < prima.Length ? prima[testa] : "")}» → «{(testa < dopo.Length ? dopo[testa] : "")}»";
-    if (prima.Length == dopo.Length)
-    {
-        return (prima.Zip(dopo).Count(c => c.First != c.Second), esempio);
-    }
-
-    int coda = 0;
-    while (coda < prima.Length - testa && coda < dopo.Length - testa && prima[^(coda + 1)] == dopo[^(coda + 1)])
-    {
-        coda++;
-    }
-
-    return (Math.Max(prima.Length, dopo.Length) - testa - coda, esempio);
-}
-
-// Sposta di un millesimo di secondo d'arco il PRIMO punto del record, dovunque stia: una proprietà Coordinate
-// (o Coordinate? valorizzata), il primo elemento di una lista di Coordinate, o il primo elemento di una lista
-// di oggetti che ne hanno una. Falso se il record non ha punti.
-static bool Sposta(object record)
-{
-    const double UnMillesimo = 1 / 3_600_000.0;
-    static Coordinate Spostata(Coordinate c) => new(c.LatitudeDeg + UnMillesimo, c.LongitudeDeg);
-
-    foreach (var p in record.GetType().GetProperties())
-    {
-        if (p.GetIndexParameters().Length > 0)
-        {
-            continue;
-        }
-
-        if (p.PropertyType == typeof(Coordinate) && p.CanWrite)
-        {
-            p.SetValue(record, Spostata((Coordinate)p.GetValue(record)!));
-            return true;
-        }
-
-        if (p.PropertyType == typeof(Coordinate?) && p.CanWrite && p.GetValue(record) is Coordinate c)
-        {
-            p.SetValue(record, Spostata(c));
-            return true;
-        }
-
-        if (p.PropertyType == typeof(Punto) && p.CanWrite && ((Punto)p.GetValue(record)!).Posizione is { } posizione)
-        {
-            p.SetValue(record, Punto.Da(Spostata(posizione)));
-            return true;
-        }
-
-        if (p.GetValue(record) is IList<Coordinate> { Count: > 0 } punti)
-        {
-            punti[0] = Spostata(punti[0]);
-            return true;
-        }
-
-        // Il primo punto PER COORDINATE: un punto per nome non ha niente da spostare (F2 slice 4).
-        if (p.GetValue(record) is IList<Punto> vertici)
-        {
-            for (int i = 0; i < vertici.Count; i++)
+            if (cartellaFuoriMisura is not null && cambiateSpostando != spostati.Count)
             {
-                if (vertici[i].Posizione is { } v)
-                {
-                    vertici[i] = Punto.Da(Spostata(v));
-                    return true;
-                }
+                string copia = Path.Combine(cartellaFuoriMisura, relativo);
+                Directory.CreateDirectory(Path.GetDirectoryName(copia)!);
+                File.Copy(temporaneo, copia, overwrite: true);
             }
-        }
 
-        if (p.GetValue(record) is System.Collections.IList elenco)
+            return (originale, riscritto);
+        }
+        finally
         {
-            foreach (object? elemento in elenco)
+            if (File.Exists(temporaneo))
             {
-                if (elemento is not null && elemento.GetType().IsClass && elemento is not string && Sposta(elemento))
-                {
-                    return true;
-                }
+                File.Delete(temporaneo);
             }
         }
     }
 
-    return false;
+    // Le righe cambiate fra due versioni di un file, e la prima coppia diversa come esempio. Stessa lunghezza:
+    // riga per riga; lunghezze diverse: tutte le righe fuori dalla testa e dalla coda comuni.
+    static (int Cambiate, string? Esempio) Differenze(string[] prima, string[] dopo)
+    {
+        int testa = 0;
+        while (testa < prima.Length && testa < dopo.Length && prima[testa] == dopo[testa])
+        {
+            testa++;
+        }
+
+        if (testa == prima.Length && testa == dopo.Length)
+        {
+            return (0, null);
+        }
+
+        string esempio = $"«{(testa < prima.Length ? prima[testa] : "")}» → «{(testa < dopo.Length ? dopo[testa] : "")}»";
+        if (prima.Length == dopo.Length)
+        {
+            return (prima.Zip(dopo).Count(c => c.First != c.Second), esempio);
+        }
+
+        int coda = 0;
+        while (coda < prima.Length - testa && coda < dopo.Length - testa && prima[^(coda + 1)] == dopo[^(coda + 1)])
+        {
+            coda++;
+        }
+
+        return (Math.Max(prima.Length, dopo.Length) - testa - coda, esempio);
+    }
+
+    // Sposta di un millesimo di secondo d'arco il PRIMO punto del record, dovunque stia: una proprietà Coordinate
+    // (o Coordinate? valorizzata), il primo elemento di una lista di Coordinate, o il primo elemento di una lista
+    // di oggetti che ne hanno una. Falso se il record non ha punti.
+    static bool Sposta(object record)
+    {
+        const double UnMillesimo = 1 / 3_600_000.0;
+        static Coordinate Spostata(Coordinate c) => new(c.LatitudeDeg + UnMillesimo, c.LongitudeDeg);
+
+        foreach (var p in record.GetType().GetProperties())
+        {
+            if (p.GetIndexParameters().Length > 0)
+            {
+                continue;
+            }
+
+            if (p.PropertyType == typeof(Coordinate) && p.CanWrite)
+            {
+                p.SetValue(record, Spostata((Coordinate)p.GetValue(record)!));
+                return true;
+            }
+
+            if (p.PropertyType == typeof(Coordinate?) && p.CanWrite && p.GetValue(record) is Coordinate c)
+            {
+                p.SetValue(record, Spostata(c));
+                return true;
+            }
+
+            if (p.PropertyType == typeof(Punto) && p.CanWrite && ((Punto)p.GetValue(record)!).Posizione is { } posizione)
+            {
+                p.SetValue(record, Punto.Da(Spostata(posizione)));
+                return true;
+            }
+
+            if (p.GetValue(record) is IList<Coordinate> { Count: > 0 } punti)
+            {
+                punti[0] = Spostata(punti[0]);
+                return true;
+            }
+
+            // Il primo punto PER COORDINATE: un punto per nome non ha niente da spostare (F2 slice 4).
+            if (p.GetValue(record) is IList<Punto> vertici)
+            {
+                for (int i = 0; i < vertici.Count; i++)
+                {
+                    if (vertici[i].Posizione is { } v)
+                    {
+                        vertici[i] = Punto.Da(Spostata(v));
+                        return true;
+                    }
+                }
+            }
+
+            if (p.GetValue(record) is System.Collections.IList elenco)
+            {
+                foreach (object? elemento in elenco)
+                {
+                    if (elemento is not null && elemento.GetType().IsClass && elemento is not string && Sposta(elemento))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 }
 
 /// <summary>Raccoglie gli avvisi dei lettori: sono loro a dire quali righe il motore non ha capito.</summary>

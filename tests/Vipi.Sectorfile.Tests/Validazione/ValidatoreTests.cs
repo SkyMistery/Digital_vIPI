@@ -1,0 +1,145 @@
+using Vipi.Sectorfile.Validazione;
+
+namespace Vipi.Sectorfile.IO.Tests;
+
+/// <summary>
+/// Carta F2, slice 8: il validatore, regola per regola. Gli esempi sono quelli veri del sector (master <c>7e761aa</c>);
+/// sui campioni si controlla che trovi gli errori noti e non ne inventi.
+/// </summary>
+public sealed class ValidatoreTests : IDisposable
+{
+    private readonly string _cartella = Path.Combine(Path.GetTempPath(), "validatore-" + Guid.NewGuid().ToString("N"));
+
+    public ValidatoreTests() => Directory.CreateDirectory(_cartella);
+
+    public void Dispose() => Directory.Delete(_cartella, recursive: true);
+
+    private IReadOnlyList<ProblemaDelSector> Valida(string nome, params string[] righe)
+    {
+        string percorso = Path.Combine(_cartella, nome);
+        File.WriteAllText(percorso, string.Join("\r\n", righe) + "\r\n");
+        return Validatore.ValidaIlFile(percorso, nome);
+    }
+
+    // itvor.vor: i tre errori veri del §1, e l'emisfero minuscolo che la slice 2 ha reso leggibile.
+    [Fact]
+    public void IlVorVeroHaITreErroriNoti()
+    {
+        var problemi = Validatore.ValidaIlFile(RealSectorFiles.Path("NAVAIDS/itvor.vor")!, "NAVAIDS/itvor.vor");
+
+        Assert.Equal(
+            new[]
+            {
+                (Regola.CampoVuoto, 81), (Regola.CoordinataFuoriCampo, 109), (Regola.CoordinataFuoriCampo, 109),
+                (Regola.EmisferoMinuscolo, 125),
+            },
+            problemi.Select(p => (p.Regola, p.Riga)));
+        Assert.Contains(problemi, p => p.Dettaglio == "«N047.44.75.000»: secondi 75");
+        Assert.Equal(Gravita.Avviso, problemi[^1].Gravita);
+    }
+
+    [Fact]
+    public void UnFixColTrattinoEUnaCoordinataIllegibile()
+    {
+        var problemi = Validatore.ValidaIlFile(RealSectorFiles.Path("NAVAIDS/APT.fix")!, "NAVAIDS/APT.fix");
+
+        var problema = Assert.Single(problemi);
+        Assert.Equal((Regola.CoordinataIllegibile, 294), (problema.Regola, problema.Riga));
+    }
+
+    // Lo spazio al posto del `;` (slice 6): una regola sola, non anche «riga illeggibile».
+    [Fact]
+    public void LoSpazioAlPostoDelPuntoEVirgolaSiDiceUnaVolta()
+    {
+        var problemi = Valida("italy.prohibit", "N038.55.55.424 E016.36.08.523;N038.55.53.716;E016.36.15.757;PROHIBIT;P154;");
+
+        Assert.Equal(Regola.SeparatoreSbagliato, Assert.Single(problemi).Regola);
+    }
+
+    // Le aerovie si chiamano N503, W36-Z636, S1: nomi, non coordinate (132 falsi errori nella prima misura).
+    [Fact]
+    public void IlNomeDiUnAeroviaNonEUnaCoordinata()
+    {
+        Assert.Empty(Valida("itawlow.lairway", "L;N503;N045.00.00.000;E010.00.00.000;", "T;W36-Z636;BRADA;BRADA;", "T;S1;BRADA;BRADA;"));
+    }
+
+    [Theory]
+    [InlineData("lirr.hartcc", "T;RR;N043.49.49.00;E011.00.00.000;", Regola.FrazioneAmbigua)]
+    [InlineData("lipp.hartcc", "T;PP CE;N047.25.60.000;E009.38.40.556;", Regola.CoordinataFuoriCampo)]
+    [InlineData("lirf.geo", "N041.00.00.000;12.50000000;N041.00.01.000;E012.00.01.000;COAST;", Regola.DmsEDecimaleMescolati)]
+    [InlineData("liba.str", "LIBA;MAPS;ZONA; ; ;0;", Regola.CoppiaDecimale, "41.00850773;16.07432896;")]
+    public void UnaRegolaDeiCampi(string file, string riga, Regola attesa, string? seconda = null)
+    {
+        var problemi = seconda is null ? Valida(file, riga) : Valida(file, riga, seconda);
+
+        var problema = Assert.Single(problemi);
+        Assert.Equal(attesa, problema.Regola);
+    }
+
+    // I .txi sono decimali per natura: lì una coppia decimale è la forma del file.
+    [Fact]
+    public void NeiTxiLaCoppiaDecimaleEDiCasa()
+    {
+        Assert.DoesNotContain(Validatore.ValidaIlFile(RealSectorFiles.Path("lirf.txi")!, "lirf.txi"), p => p.Regola == Regola.CoppiaDecimale);
+    }
+
+    // Il refuso di lied.str (`ALPHA SOUTH;ALPHA SUOTH`): la riga esatta, non quella dell'intestazione.
+    [Fact]
+    public void DueNomiDiversiSulLaLoroRiga()
+    {
+        var problemi = Valida("x.tfl", "LIXX_CTR;CTR;1;CTR;0;", "AMSOR;AMSOR;", "ALPHA SOUTH;ALPHA SUOTH;", "N041.00.00.000;E012.00.00.000;");
+
+        var problema = Assert.Single(problemi);
+        Assert.Equal((Regola.DueNomiDiversi, 3, Gravita.Avviso), (problema.Regola, problema.Riga, problema.Gravita));
+    }
+
+    [Fact]
+    public void UnSettoreConDueVerticiNonEUnPoligono()
+    {
+        var problemi = Valida("x.tfl", "LIXX_CTR;CTR;1;CTR;0;", "ABREG;ABREG;", "N046.10.53.000;E009.11.40.000;");
+
+        Assert.Equal((Regola.PoligonoConPochiVertici, 1), (Assert.Single(problemi).Regola, problemi[0].Riga));
+    }
+
+    [Fact]
+    public void ITagRottiSonoErroriEQuelliFuoriCatalogoAvvisi()
+    {
+        var problemi = Valida("lirf.sid", "//@BANA6W initialclimb=5000", "LIRF;25;SOSA5A;;;;;1;", "//@XIBR5A colore=rosso", "LIRF;25;XIBR5A;;;;;1;");
+
+        Assert.Equal(new[] { (Regola.TagNonValido, 1, Gravita.Errore), (Regola.TagFuoriCatalogo, 3, Gravita.Avviso) },
+            problemi.Select(p => (p.Regola, p.Riga, p.Gravita)));
+    }
+
+    // lipp.hartcc:2047: A ne faceva in silenzio un vertice «per nome» chiamato N047.25.60.000. Ora il lettore lo dice.
+    [Fact]
+    public void IlLettoreDiceIlVerticeTCheNonSiLegge()
+    {
+        string percorso = Path.Combine(_cartella, "lipp.hartcc");
+        File.WriteAllText(percorso, "T;PP CE;N047.25.22.020;E009.38.59.337;\r\nT;PP CE;N047.25.60.000;E009.38.40.556;\r\nT;PP CE;NILTO;NILTO;\r\n");
+        var avvisi = new CollectingWarnings();
+
+        new HartccParser(avvisi).Parse(percorso, new Vipi.Sectorfile.Shared.ColorPalette());
+
+        var avviso = Assert.Single(avvisi.Snapshot());
+        Assert.Equal(("Unparseable T; vertex", 2), (avviso.Message, avviso.LineNumber));
+    }
+
+    [Fact]
+    public void IFileCheIlMotoreNonInterpretaNonSiGuardano()
+    {
+        Assert.Empty(Valida("note.txt", "N047.44.75.000;;;"));
+    }
+
+    // Campioni puliti: il validatore non inventa errori (solo avvisi dove il sector ne ha davvero).
+    [Theory]
+    [InlineData("lirf.sid")]
+    [InlineData("lirf.str")]
+    [InlineData("DYNAMIC_SEC/limmfic.tfl")]
+    [InlineData("OTHER/itap.ap")]
+    [InlineData("AIRWAY/itawhigh.hairway")]
+    [InlineData("HOLDENR.hold")]
+    public void UnCampionePulitoNonHaErrori(string campione)
+    {
+        Assert.DoesNotContain(Validatore.ValidaIlFile(RealSectorFiles.Path(campione)!, campione), p => p.Gravita == Gravita.Errore);
+    }
+}

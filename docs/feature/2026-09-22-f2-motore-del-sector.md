@@ -34,7 +34,7 @@ riscrive uguali. Round-trip perfetto, contenuto invisibile. Divise per forma:
 | 32 | `.pol` | righe vuote dentro un poligono (in Aurora **spezzano** il tracciato) | |
 | 18 | `.mva` | bordi `T;` per nome di punto | `T;LIRR;UTENO;UTENO;LIRR;` |
 | 10 | `.geo` | colore vuoto in coda | `…;E013.18.35.124;;` |
-| 3 | `.vor` | **errori veri** | `KPT;108.40;N047.44.75.000;…` (minuti 75), `n045.44.52.080` minuscolo, `GRO;;` senza frequenza |
+| 3 | `.vor` | **errori veri** | `KPT;108.40;N047.44.75.000;…` (secondi 75), `n045.44.52.080` minuscolo, `GRO;;` senza frequenza |
 
 Le tre del `.vor` sono il primo lavoro del validatore; tutte le altre sono **forme legittime** (le documenta la
 specifica di B, `SPECIFICA_FORMATI.md` §1, §4.3, §6) che A non modella. La radice comune è una: **il punto per
@@ -337,7 +337,7 @@ Prova sull'albero intero: **righe opache 7 162 → 7**, tutte **errori veri del 
 | file:riga | riga | errore |
 |---|---|---|
 | `NAVAIDS/itvor.vor:81` | `GRO;;N042.45.37.200;…` | frequenza vuota |
-| `NAVAIDS/itvor.vor:109` | `KPT;108.40;N047.44.75.000;E010.20.99.000;…` | minuti 75 e 99 |
+| `NAVAIDS/itvor.vor:109` | `KPT;108.40;N047.44.75.000;E010.20.99.000;…` | secondi 75 e 99 (qui c'era scritto «minuti»: lo ha corretto il validatore, slice 8) |
 | `NAVAIDS/APT.fix:294` | `MG763;N044.03.11.145;E008-11.31.443;3;` | trattino al posto del punto |
 | `NAVAIDS/MIL.fix:96` | `PL-BRAVO;N044.54.40.500;E010.34.072.00;3;` | secondi 72 |
 | `DYNAMIC_SEC/lovv.tfl:48` | `N047.42.27.000;E017.04.60.000;` | secondi 60 |
