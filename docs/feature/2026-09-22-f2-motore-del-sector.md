@@ -1,6 +1,7 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0-9 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: ✅ FATTA (22 settembre 2026)** — le quattro proposte del §9 approvate dal committente il 22 settembre;
+> slice 0-10 fatte. Il messaggio per gli AOD sta nel §10. ▶ Prossimo: la carta di F3 (l'app). Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -184,8 +185,8 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 
 ## §8 — Definition of done
 
-- [ ] Slice 0-9, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
-      *(22 settembre: 0-9 fatte, la 8 in due commit.)*
+- [x] Slice 0-9, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
+      *(22 settembre: 0-9 fatte, la 8 in due commit; la 10 è questa chiusura.)*
 - [x] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri **e**
       «tutto toccato» a zero righe cambiate (un record toccato ma non cambiato esce com'era). *(701/701, 94 opache
       tutte errori veri, tutto toccato 0 — slice 8; 93 dalla slice 9, il TACAN di Grosseto non era un errore.)*
@@ -512,7 +513,10 @@ prima si provava solo con GRO, il TACAN pulito per il validatore), Infrastructur
 filtro del tipo delle STAR dal lato motore, 2 rossi (`lirf.str` e i filtri); il TACAN era il rosso trovato dalla misura
 stessa. Un campione, `NAVAIDS/ENR.fix`, è **vuoto** (0 byte, da A): non serve alla concordanza.
 
-### ▶ Per la ripresa: slice 9 e 10 (scritto il 22 settembre, a fine slice 8, per una chat nuova — ✅ slice 9 fatta, sopra)
+**Slice 10 — chiusura.** Stato ✅, caselle del §8, il messaggio per gli AOD (§10, tutti gli errori di F1 e F2 in un
+posto), §A115 chiusa in `docs/lavori-aperti.md` (resta aperto lì il difetto di vIPI `TAC-06R`), `HANDOFF.md`, memorie.
+
+### Per la ripresa: slice 9 e 10 (scritto il 22 settembre, a fine slice 8, per una chat nuova — ✅ tutte e due fatte, sopra; resta come traccia)
 
 **Dove siamo.** `main` = `3479a52a`, CI verde, working tree pulito. Slice 0-8 fatte (tracce qui sopra, una per
 slice). Il motore sta tutto in `src/Vipi.Sectorfile` (nessuna dipendenza), i test in `tests/Vipi.Sectorfile.Tests`
@@ -586,3 +590,50 @@ nuovi → `tests/conteggi-attesi.txt` nello STESSO commit (o la CI è rossa); og
      contano le righe cambiate — dev'essere **una** per record.
 
    I lettori e il modello di A restano; cambia il modo di riscrivere. È la slice 3.
+
+## §10 — Il messaggio per gli AOD (slice 10, 22 settembre)
+
+Tutto quel che F1 e F2 hanno trovato di sbagliato nel sector, in un posto, pronto da incollare. Misurato sul
+`master` `7e761aa` con `tools/Vipi.SectorfileProva` (validatore + righe opache) e, per `R47`, col convertitore di F1.
+Nessuna riga è stata corretta da noi: il Lab (F3) le mostrerà, la correzione è vostra.
+
+> **Errori nel sector italiano (master `7e761aa`, 22 settembre 2026)**
+>
+> **1. Coordinate scritte male** — la riga non si legge, il punto o il vertice manca:
+> - `NAVAIDS/itvor.vor:109` **KPT** — `N047.44.75.000;E010.20.99.000`, secondi 75 e 99. Si porta dietro l'aerovia
+>   di `AIRWAY/itawlow.lairway:832`, che cita KPT.
+> - `NAVAIDS/MIL.fix:96` **PL-BRAVO** — `E010.34.072.00`, secondi 72. Lo cita `lipl.str:69`.
+> - `NAVAIDS/APT.fix:294` **MG763** — `E008-11.31.443`, un trattino al posto del punto. Lo cita `limg.str:155`.
+> - `DYNAMIC_SEC/lovv.tfl:48` — `E017.04.60.000`, secondi 60.
+> - `HI_AIRSPACE/lipp.hartcc:2047` — `N047.25.60.000`, secondi 60.
+>
+> **2. Uno spazio al posto del `;` fra latitudine e longitudine** (`N038.55.55.424 E016.36.08.523;…`): 86 segmenti.
+> P154 (28 su 32, `GEO/italy.prohibit` da riga 3132), P219 (28 su 32, da riga 6249), R107A, R107B, R107C, R107D
+> (**tutti** i 30, `GEO/italy.restrict` da riga 1139 — non ne resta un segmento leggibile).
+>
+> **3. Arco sbagliato**: `R47` (Rieti) in `GEO/italy.restrict` arriva a 12,51 NM dal centro; l'AIP dice 20 km = 10,80 NM.
+>
+> **4. Poligoni con meno di tre vertici**: `GND_LAYOUT/eo_ad_gnd.pol:72` e `GND_LAYOUT/ml_ad_gnd.pol:1223` (nessun
+> vertice), `DYNAMIC_SEC/lfmm.tfl:1105` LFMN_APP (uno), `DYNAMIC_SEC/limmctr.tfl:1772`
+> LIMM_WS2/WS5/ES2/ES5_CTR (due: è una linea voluta?).
+>
+> **5. File citati che non ci sono**: `DYNAMIC_SEC\GCI.tfl` nei cinque `.isc` (il file sta in `OTHER/`),
+> `DYNAMIC_SEC\lipp_es_ctr.tfl` in `LIPP.isc:130`, `PREFS\LIPC.cpr` in `OTHER/itfreq.frq:175` e `OTHER/lipp.frq:14`.
+>
+> **6. Punti citati per nome che non esistono** nei cataloghi caricati da quell'`.isc`: `ALPHA SUOTH` (refuso di
+> ALPHA SOUTH, `lied.str:179` e `:183`), `MC904` (`limc.str:878`), `MC734` (`limc.str:914`), `MAFRE` (`libg.str`
+> righe 223, 229, 233, 237, 310), `BV-PAJOT` e `BV-IRDAG` (`libv.str:266`, `:268`), `HITAC36` (`limf.str:498`),
+> `HITAC35` (`limn.str:206`), `HITAC06` (`lipi.str:127`, `:128`), `PZN` (`lirn.str:240`, `lirr.str:158`),
+> `EDOXI` (`lirr.str:264`). Più KPT, PL-BRAVO e MG763 del punto 1.
+>
+> **7. Stesso nome, punti lontani**: `ABNAT` (4,9 NM) e `SARKI` (556 NM) in `NAVAIDS/ESTERNI.fix`, `BV-BRAVO`
+> (33,8 NM) in `NAVAIDS/MIL.fix`, `MJNW1` (5,6 NM) e `PKS1` (19,6 NM) in `NAVAIDS/VFR_NASCOSTI.fix`.
+>
+> **Da guardare, non per forza errori**: 7 righe di `.str` con due nomi diversi nello stesso punto (Aurora prende la
+> latitudine dal primo e la longitudine dal secondo: `ALPHA SOUTH;ALPHA SUOTH`, `MC905;MC904`); 6 file che nessun
+> `.isc` carica (`AIRWAY/itawhigh.hairway`, `NAVAIDS/ENR.fix` vuoto, `NAVAIDS/FRA.fix`, `NAVAIDS/TERM.fix`,
+> `OTHER/GCI.tfl`, `PREFS/WW0.cpr`); `NAVAIDS/itvor.vor:125` emisfero minuscolo `n045.44.52.080`; 14 secondi con
+> due o quattro decimali invece di tre.
+
+**Non** vanno nel messaggio: `itvor.vor:81` (`GRO;;…;35Y`), che è il TACAN di Grosseto e non un errore (slice 9);
+`MIL.fix:235` (`TAC-06R`, gradi decimali), che è legale — è vIPI a non leggerlo (§A115).
