@@ -7,11 +7,17 @@ using Vipi.Sectorfile.Shared;
 //
 //   dotnet run --project tools/Vipi.SectorfileProva -- <cartella SectorFiles/Include/IT>
 //
-// Due misure, e servono tutte e due:
+// Quattro misure, e nessuna basta da sola:
 //   1. ROUND-TRIP: ogni file letto e riscritto deve uscire identico byte per byte. Esce 1 se uno non lo è.
 //   2. RIGHE OPACHE: quelle che il motore conserva senza capirle («Skipping malformed line» e simili).
 //      🔴 Un round-trip perfetto non prova la lettura: il 22 settembre 2026 erano 681/681 file esatti e
-//      7 579 righe opache. È questa la misura che deve scendere slice dopo slice.
+//      7 579 righe opache.
+//   3. TUTTO TOCCATO: ogni record segnato come modificato e riscritto dallo scrittore. 🔴 Un round-trip
+//      perfetto non prova nemmeno la SCRITTURA: riscrive le righe com'erano solo perché nessuno le tocca.
+//      Il 22 settembre, tutto toccato, cambiavano 60 750 righe su 257 435 (commenti riattivati, campi in
+//      coda persi, terminatori spariti). È questa, con la 2, la misura che deve scendere a zero.
+//   4. CONCORDANZA: ogni token DMS letto dal motore e dal DMS di vIPI, stesso esito e stesso valore.
+//      Esce 1 se ce n'è uno discorde.
 //
 // Nato da RealFileIntegrationTests (§27.1) della libreria A, che nei test tornava verde quando l'albero
 // mancava, cioè sempre in CI.
@@ -26,6 +32,7 @@ string radice = Path.GetFullPath(args[0]);
 var avvisi = new Avvisi();
 var perEstensione = new SortedDictionary<string, (int Esatti, int Diversi, int SenzaLettore)>();
 var diversi = new List<string>();
+var toccato = new List<(string File, int Righe, int Cambiate, string? Esempio)>();
 
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
 {
@@ -87,7 +94,66 @@ foreach (var gruppo in opache
     Console.WriteLine($"  {gruppo.Count(),6}  {gruppo.Key}   es. {Path.GetFileName(primo.Source)}:{primo.LineNumber} «{primo.RawSnippet}»");
 }
 
-return diversi.Count == 0 ? 0 : 1;
+Console.WriteLine($"\nTUTTO TOCCATO: {toccato.Sum(t => t.Cambiate)} righe cambiate su {toccato.Sum(t => t.Righe)}, " +
+    $"in {toccato.Count(t => t.Cambiate > 0)} file su {toccato.Count}");
+foreach (var gruppo in toccato.Where(t => t.Cambiate > 0)
+    .GroupBy(t => Path.GetExtension(t.File))
+    .OrderByDescending(g => g.Sum(t => t.Cambiate)))
+{
+    var peggiore = gruppo.MaxBy(t => t.Cambiate);
+    Console.WriteLine($"  {gruppo.Key,-8} {gruppo.Sum(t => t.Cambiate),7} righe in {gruppo.Count(),3} file   es. {peggiore.File}: {peggiore.Esempio}");
+}
+
+// 4. CONCORDANZA: vIPI legge il sector col suo DMS (Vipi.Application/Coordinates/DmsCoordinate), il motore col
+//    suo. Due lettori dello stesso formato devono dire la stessa cosa su OGNI token dell'albero: tutti e due
+//    lo accettano con lo stesso valore (entro un decimillesimo di secondo d'arco), o tutti e due lo rifiutano.
+var discordi = new List<string>();
+int tokenDms = 0;
+foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    int numero = 0;
+    foreach (string riga in File.ReadLines(percorso))
+    {
+        numero++;
+        foreach (string campo in riga.Split(';'))
+        {
+            string token = campo.Trim();
+            if (token.Length < 2 || "NSEWnsew".IndexOf(token[0]) < 0 || !char.IsAsciiDigit(token[1]))
+            {
+                continue;
+            }
+
+            tokenDms++;
+            bool perVipi = Vipi.Application.Coordinates.DmsCoordinate.TryParse(token, out double valoreVipi);
+            bool perMotore;
+            double valoreMotore;
+            try
+            {
+                var letto = CoordinateConverter.Parse(token);
+                valoreMotore = char.ToUpperInvariant(token[0]) is 'N' or 'S' ? letto.LatitudeDeg : letto.LongitudeDeg;
+                perMotore = true;
+            }
+            catch (CoordinateParseException)
+            {
+                valoreMotore = double.NaN;
+                perMotore = false;
+            }
+
+            if (perVipi != perMotore || (perVipi && Math.Abs(valoreVipi - valoreMotore) > 1e-4 / 3600))
+            {
+                discordi.Add($"{Relativo(percorso)}:{numero} «{token}» — vIPI {(perVipi ? valoreVipi.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : "rifiuta")}, motore {(perMotore ? valoreMotore.ToString("R", System.Globalization.CultureInfo.InvariantCulture) : "rifiuta")}");
+            }
+        }
+    }
+}
+
+Console.WriteLine($"\nCONCORDANZA col DMS di vIPI: {tokenDms} token DMS, {discordi.Count} discordi");
+foreach (string riga in discordi.Take(40))
+{
+    Console.WriteLine("  " + riga);
+}
+
+return diversi.Count == 0 && discordi.Count == 0 ? 0 : 1;
 
 string Relativo(string percorso) => Path.GetRelativePath(radice, percorso);
 
@@ -121,7 +187,7 @@ string Relativo(string percorso) => Path.GetRelativePath(radice, percorso);
     _ => null,
 };
 
-static (byte[], byte[]) Prova<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, string percorso)
+(byte[], byte[]) Prova<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, string percorso)
 {
     byte[] originale = File.ReadAllBytes(percorso);
     var letto = lettore.Parse(percorso, new ColorPalette());
@@ -129,7 +195,21 @@ static (byte[], byte[]) Prova<T>(IFileParser<T> lettore, IFileSaver<T> scrittore
     try
     {
         new FileSaverOrchestrator().Save(letto, new HashSet<T>(), scrittore, temporaneo);
-        return (originale, File.ReadAllBytes(temporaneo));
+        byte[] riscritto = File.ReadAllBytes(temporaneo);
+
+        // 3. TUTTO TOCCATO: ogni record segnato come modificato, e riscritto dallo scrittore. Un record toccato
+        //    ma non cambiato dovrebbe uscire com'era; le righe che non lo fanno sono quelle che un AOD vedrebbe
+        //    cambiate nella PR senza averle cambiate.
+        new FileSaverOrchestrator().Save(letto, new HashSet<T>(letto.Records), scrittore, temporaneo);
+        var prima = File.ReadAllLines(percorso);
+        var dopo = File.ReadAllLines(temporaneo);
+        int cambiate = prima.Length == dopo.Length
+            ? prima.Zip(dopo).Count(c => c.First != c.Second)
+            : Math.Max(prima.Length, dopo.Length);
+        toccato.Add((Relativo(percorso), prima.Length, cambiate,
+            prima.Zip(dopo).Where(c => c.First != c.Second).Select(c => $"«{c.First}» → «{c.Second}»").FirstOrDefault()));
+
+        return (originale, riscritto);
     }
     finally
     {

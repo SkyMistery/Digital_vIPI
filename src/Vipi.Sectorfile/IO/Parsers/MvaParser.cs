@@ -177,9 +177,7 @@ public abstract class MvaParser : IFileParser<MvaSector>
         Coordinate anchor;
         try
         {
-            var lat = CoordinateConverter.Parse(parts[2].Trim());
-            var lon = CoordinateConverter.Parse(parts[3].Trim());
-            anchor = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            anchor = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
         }
         catch (CoordinateParseException)
         {
@@ -226,9 +224,7 @@ public abstract class MvaParser : IFileParser<MvaSector>
         Coordinate position;
         try
         {
-            var lat = CoordinateConverter.Parse(parts[2].Trim());
-            var lon = CoordinateConverter.Parse(parts[3].Trim());
-            position = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            position = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
         }
         catch (CoordinateParseException)
         {

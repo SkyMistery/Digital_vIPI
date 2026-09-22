@@ -176,9 +176,7 @@ public sealed class AirwayParser : IFileParser<Airway>
 
             try
             {
-                var lat = CoordinateConverter.Parse(parts[2].Trim());
-                var lon = CoordinateConverter.Parse(parts[3].Trim());
-                coord = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+                coord = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
             }
             catch (CoordinateParseException)
             {

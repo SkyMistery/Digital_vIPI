@@ -27,17 +27,17 @@ public sealed class FileSaverOrchestratorTests : IDisposable
         Assert.Equal(original, File.ReadAllBytes(path));
     }
 
-    // §26.2 — dirty record without markers → output gains //Start / //End and the new body.
+    // §26.2 — REVERSED in vIPI (F2 slice 2, carta madre §8): a dirty record gets its new body and NO
+    // //Start / //End markers. In A it gained them: the file of the sector would have filled up with them.
     [Fact]
-    public void DirtyRecord_WithoutMarkers_GainsMarkers()
+    public void DirtyRecord_WithoutMarkers_StaysWithoutMarkers()
     {
         var rec = new FakeRecord("ID1", "NEW");
         var pr = WithChunks(new[] { rec }, new RecordChunk<FakeRecord>(rec, new[] { "OLD" }, hasMarkers: false));
 
         var lines = SaveAndReadLines(pr, Dirty(rec));
 
-        Assert.Equal(new[] { "//Start ID1", "NEW", "//End ID1" }, lines);
-        Assert.DoesNotContain("OLD", lines);
+        Assert.Equal(new[] { "NEW" }, lines);
     }
 
     // §26.3 — dirty record that already had markers → markers preserved, not duplicated.
@@ -77,12 +77,12 @@ public sealed class FileSaverOrchestratorTests : IDisposable
         Assert.Equal(new[] { "OLD" }, lines);
     }
 
-    // §26.6 — LeadingComments written before //Start.
+    // §26.6 — LeadingComments written before the record (and before //Start, where a record already has it).
     [Fact]
-    public void LeadingComments_WrittenBeforeStartMarker()
+    public void LeadingComments_WrittenBeforeTheRecord()
     {
         var rec = new FakeRecord("ID1", "NEW");
-        var chunk = new RecordChunk<FakeRecord>(rec, new[] { "OLD" }, hasMarkers: false, leadingComments: new[] { "// hi", "// there" });
+        var chunk = new RecordChunk<FakeRecord>(rec, new[] { "OLD" }, hasMarkers: true, leadingComments: new[] { "// hi", "// there" });
         var pr = WithChunks(new[] { rec }, chunk);
 
         var lines = SaveAndReadLines(pr, Dirty(rec));

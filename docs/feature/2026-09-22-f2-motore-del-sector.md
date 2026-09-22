@@ -1,6 +1,6 @@
 # F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
-> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0 e 1 fatte. Seconda fase di Aurora Sector Lab
+> **Stato: 🟡 IN CORSO** — le quattro proposte del §9 **approvate dal committente il 22 settembre**; slice 0, 1 e 2 fatte. Seconda fase di Aurora Sector Lab
 > ([carta madre](2026-09-18-aurora-sector-lab.md), §7 e §8.2). Nessuna interfaccia: F2 è la libreria che F3
 > (l'app) userà per aprire, mostrare e scrivere i file. Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 > 🔴 **Nessun dato di vIPI si tocca**: niente migrazioni, niente tabelle, l'import di vIPI resta com'è.
@@ -109,6 +109,8 @@ Regole, ognuna con gravità (errore / avviso) e con la riga e il file:
 |---|---|
 | coordinata fuori campo (minuti o secondi ≥ 60, gradi oltre il limite) | `itvor.vor:109` `N047.44.75.000` |
 | emisfero minuscolo o sconosciuto | `itvor.vor:125` `n045.44.52.080` |
+| frazione dei secondi che non ha 3 cifre (si legge, ma è ambigua: chi l'ha scritta intendeva millesimi?) | `N046.34.25.8735` (`lovv.tfl`), `N44.18.55.72` (tre `.rw`), `E015.37.07.1000` (tre `.str`), `N043.49.49.00` (`.hartcc`) — slice 2 |
+| coppia decimale (legale, ma rara: 38 righe in 4 `.str`) | `41.00850773;16.07432896;` — da segnalare solo come avviso |
 | campo obbligatorio vuoto | `itvor.vor:81` `GRO;;` |
 | DMS e decimale mescolati sulla stessa riga | (vietato dalla specifica) |
 | **punto per nome non risolto** nei cataloghi dichiarati dall'`.isc` | B ne trovò 1 |
@@ -139,7 +141,8 @@ coi suoi.
 | 2 | Il punto unico (4 forme, stile ricordato); il DMS confrontato con quello di vIPI | ogni coordinata dell'albero dà lo stesso valore nei due |
 | 3 | Punti per nome in `.tfl`/`.sid`/`.str`/`.mva` | le righe opache scendono di 417, round-trip sempre esatto |
 | 4 | `.fix` a 4 campi, `T;` degli `.artcc`, `.frq` lunghi, colore vuoto, interruzioni | opache: restano solo le 3 del `.vor` |
-| 5 | `.vrt`, `.hold`, aree P/R/D | tutti i 20 file letti e riscritti uguali |
+| 4-bis | **Scrittori fedeli** (aggiunta dopo la slice 2, §8): commenti, campi in coda, terminatori, spazi e zeri, precisione dei decimali | «tutto toccato» a **zero** righe cambiate |
+| 5 | `.vrt`, `.hold`, aree P/R/D | tutti i 20 file letti e riscritti uguali, anche tutto toccato |
 | 6 | `//@` in `.sid`/`.str`: lettura e scrittura | un file con tag e uno senza; nome che non combacia segnalato |
 | 7 | Il validatore | le tre righe del `.vor` trovate; i numeri di B rimisurati e scritti qui |
 | 8 | Prova di concordanza col lettore di vIPI | stessi punti e stesse SID/STAR sull'albero intero |
@@ -178,14 +181,15 @@ girano i campioni; l'albero intero si prova a ogni slice del motore, a mano, e i
 ## §8 — Definition of done
 
 - [ ] Slice 0-9, un commit ciascuna, build Release verde sui due TFM, suite verde contando i progetti.
-- [ ] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri.
+- [ ] Albero intero di `master`: round-trip a zero differenze **e** righe opache = solo gli errori veri **e**
+      «tutto toccato» a zero righe cambiate (un record toccato ma non cambiato esce com'era).
 - [ ] Validatore: errori veri del sector elencati qui, da passare agli AOD (con `R47` di F1).
 - [ ] Prova di concordanza col lettore di vIPI verde.
 - [ ] Nessun dato di vIPI toccato; nessuna migrazione; l'import di produzione invariato.
 
 Commit: slice 0 `de0a3cad` (progetto e test vuoti; l'unico test, `NessunaDipendenzaTests`, è stato provato
 **rosso** aggiungendo per un momento un riferimento a `Vipi.Domain`: fa il nome dell'assieme estraneo) ·
-slice 1 = questo.
+slice 1 `fda60bfa`.
 
 **Slice 1 — il porto di A** (commit `5761d00` di A; Shared + Models + IO, 82 file; test di IO, Models e
 Shared). Dei sorgenti è cambiato il namespace (`AuroraSectorDrawer` → `Vipi.Sectorfile`) e nient'altro: la
@@ -208,6 +212,51 @@ Scostamenti, decisi strada facendo:
   lo fa lo strumento. Fuori anche i 7 segnaposto `Skip` di §27.2-§27.9 (aspettavano i caricatori di A, F3).
 - `RealFileIntegrationTests` (§27.1, l'albero intero) è diventato **`tools/Vipi.SectorfileProva`**, nella
   soluzione perché compili sempre, lanciato a mano.
+
+**Slice 2 — il punto** (commit = il successivo a `fda60bfa`). Tre cose, tutte sul punto:
+
+1. **La lettura si allinea al DMS di vIPI.** La concordanza (nuova misura dello strumento: ogni token DMS
+   dell'albero letto da `DmsCoordinate` di vIPI e dal motore) dava **8 discordi su 685 561** col convertitore
+   di A. Quattro difetti veri di A, tutti da una radice: la parte dopo il terzo punto letta come
+   **millisecondi interi** invece che come frazione dei secondi —
+   `N046.34.25.8735` (`lovv.tfl:70`) spostato di 8,7 s, ~270 m; `N44.18.55.72` (una soglia pista in
+   `limm.rw`, `lipp.rw`, `lirr.rw`) di 0,65 s, ~20 m; `E015.37.07.1000` (`libf.str`, `licc.str`, `lipk.str`)
+   di 0,9 s — e l'emisfero minuscolo `n045.44.52.080` (`itvor.vor:125`), che faceva perdere il VOR VBA. In più
+   il tetto dei gradi (90/180), che A non controllava. Dopo: **0 discordi**. La controprova si è fatta
+   rimettendo il convertitore di A: gli 8 ricompaiono.
+2. **Il punto si legge come COPPIA** (`CoordinateConverter.ParsePair`), in tutti i 16 lettori. A leggeva i due
+   token da soli e ricomponeva: una coppia **decimale** (`41.00850773;16.07432896;`, 38 righe di
+   `liba/libd/lict/lire.str`) usciva con **longitudine 0**, un punto nel golfo di Guinea, senza avvisi; e una
+   coppia con gli assi scambiati diventava 0,0. Ora la coppia decide insieme: due decimali, o N/S + E/W;
+   decimale e DMS mescolati si rifiutano (il formato lo vieta).
+3. **La scrittura**: niente più `//Start`/`//End` aggiunti (chi li ha li tiene; nell'albero nessuno), e una
+   riga toccata esce **nella forma dei suoi punti** — puntata, compatta o decimale (`IO/FormaDelPunto.cs`); se
+   le sue righe non ne dicono nessuna, in quella prevalente del file.
+
+Prova: 267 test (31 nuovi) su net8 e net10; strumento: 681 esatti, 7 578 righe opache (VBA ora si legge),
+0 discordi.
+
+🔴 **Scoperta della slice 2, che cambia il piano: A non sa SCRIVERE.** Lo strumento ha una misura nuova,
+«tutto toccato»: segna come modificati tutti i record e li fa riscrivere. Un record toccato ma non cambiato
+dovrebbe uscire com'era. Escono diverse **60 750 righe su 257 435 (23,6%), in 210 file su 681** — erano
+67 025 in 330 file prima della regola della forma. Il round-trip di A è perfetto solo perché nessuno tocca
+niente; appena un AOD modificasse un record:
+
+| dove | che cosa si perde | esempio |
+|---|---|---|
+| `.str` 39 944 righe | spazi dei campi vuoti | `LIZZ;BULL;LEVIS; ; ;3;` → `…;;;3;` |
+| `.mva`, `.lartcc` | i terminatori `T;DUMMY` | la riga sparisce |
+| `.hartcc` | la frazione a due cifre | `N043.49.49.00` → `…49.000` |
+| `.tfl`, `.geo` | 🔴 **righe commentate che tornano attive** | `//GARDA` → un vertice; `//N037…;PIER;` → una linea sulla mappa |
+| `.sid` | campi vuoti in coda | `LIRF;07;OST1E;;;;;1;` → `LIRF;07;OST1E;;;` |
+| `.vor`, `.fix`, `.gts`, `.ndb` | 🔴 **campi in coda** | il canale TACAN `54Y`; il rimando all'attesa `HLD-ABBOZ`; il tipo di gate `M` |
+| `.rw`, `.ap` | gli zeri davanti | `095` → `95` |
+| `.txi` | precisione dei decimali | `45.49980413` → `45.49980417` |
+| `.frq` | righe lunghe | (troncate) |
+
+Nessuno di questi tocca il sito o l'app di oggi (nessuno scrive ancora con il motore), ma F3 senza questo
+lavoro produrrebbe PR con migliaia di righe cambiate a ogni modifica. Da qui la **slice 4-bis** e la terza
+condizione della definition of done.
 
 ## §9 — Decise col committente prima della slice 0 (✅ tutte e quattro, 22 settembre)
 

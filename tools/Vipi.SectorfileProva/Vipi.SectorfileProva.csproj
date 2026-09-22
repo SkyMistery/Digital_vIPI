@@ -12,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Vipi.Sectorfile\Vipi.Sectorfile.csproj" />
+    <!-- Solo per la concordanza: il DMS di vIPI (DmsCoordinate) contro quello del motore (carta F2 §2.4). -->
+    <ProjectReference Include="..\..\src\Vipi.Application\Vipi.Application.csproj" />
   </ItemGroup>
 
 </Project>

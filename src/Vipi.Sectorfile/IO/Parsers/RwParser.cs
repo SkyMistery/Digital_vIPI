@@ -162,12 +162,8 @@ public sealed class RwParser : IFileParser<Runway>
         Coordinate threshold1, threshold2;
         try
         {
-            var lat1 = CoordinateConverter.Parse(parts[7].Trim());
-            var lon1 = CoordinateConverter.Parse(parts[8].Trim());
-            var lat2 = CoordinateConverter.Parse(parts[9].Trim());
-            var lon2 = CoordinateConverter.Parse(parts[10].Trim());
-            threshold1 = new Coordinate(lat1.LatitudeDeg, lon1.LongitudeDeg);
-            threshold2 = new Coordinate(lat2.LatitudeDeg, lon2.LongitudeDeg);
+            threshold1 = CoordinateConverter.ParsePair(parts[7].Trim(), parts[8].Trim());
+            threshold2 = CoordinateConverter.ParsePair(parts[9].Trim(), parts[10].Trim());
         }
         catch (CoordinateParseException)
         {

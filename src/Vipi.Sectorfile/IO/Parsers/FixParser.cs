@@ -39,9 +39,7 @@ public sealed class FixParser : LineRecordParser<Fix>
         Coordinate position;
         try
         {
-            var lat = CoordinateConverter.Parse(parts[1].Trim());
-            var lon = CoordinateConverter.Parse(parts[2].Trim());
-            position = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            position = CoordinateConverter.ParsePair(parts[1].Trim(), parts[2].Trim());
         }
         catch (CoordinateParseException)
         {

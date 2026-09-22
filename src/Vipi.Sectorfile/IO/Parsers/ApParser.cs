@@ -40,9 +40,7 @@ public sealed class ApParser : LineRecordParser<AirportInfo>
         Coordinate centre;
         try
         {
-            var lat = CoordinateConverter.Parse(parts[3].Trim());
-            var lon = CoordinateConverter.Parse(parts[4].Trim());
-            centre = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            centre = CoordinateConverter.ParsePair(parts[3].Trim(), parts[4].Trim());
         }
         catch (CoordinateParseException)
         {

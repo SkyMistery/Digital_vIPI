@@ -40,9 +40,7 @@ public sealed class VfiParser : LineRecordParser<VfrPoint>
         Coordinate position;
         try
         {
-            var lat = CoordinateConverter.Parse(parts[2].Trim());
-            var lon = CoordinateConverter.Parse(parts[3].Trim());
-            position = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            position = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
         }
         catch (CoordinateParseException)
         {

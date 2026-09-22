@@ -174,9 +174,7 @@ public sealed class PolParser : IFileParser<Polygon>
 
         try
         {
-            var lat = CoordinateConverter.Parse(parts[0].Trim());
-            var lon = CoordinateConverter.Parse(parts[1].Trim());
-            vertex = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg);
+            vertex = CoordinateConverter.ParsePair(parts[0].Trim(), parts[1].Trim());
             return true;
         }
         catch (CoordinateParseException)

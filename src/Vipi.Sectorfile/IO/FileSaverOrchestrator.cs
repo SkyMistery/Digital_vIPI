@@ -5,8 +5,9 @@ namespace Vipi.Sectorfile.IO;
 
 /// <summary>
 /// Writes a file back to disk preserving every unmodified byte verbatim and re-serialising only
-/// the dirty records. Dirty records (and records that already had //Start//End markers) are wrapped
-/// in markers; an empty dirty set yields a byte-for-byte copy of the original (NFR-04).
+/// the dirty records, in the form their points were written in (<see cref="FormaDelPunto"/>). No
+/// //Start//End markers are added (records that already had them keep them); an empty dirty set
+/// yields a byte-for-byte copy of the original (NFR-04).
 /// </summary>
 public sealed class FileSaverOrchestrator
 {
@@ -44,6 +45,14 @@ public sealed class FileSaverOrchestrator
         var uniqueIds = AssignUniqueIdentifiers(parseResult, saver);
         var output = new List<string>();
 
+        // The file's prevailing form, for a dirty record whose own lines declare none (all names of points).
+        var formaDelFile = new Lazy<FormaDelPunto.Forma>(() => FormaDelPunto.Di(parseResult.Chunks.SelectMany(c => c switch
+        {
+            RawChunk<T> raw => raw.Lines,
+            RecordChunk<T> rec => rec.RawLines,
+            _ => Array.Empty<string>(),
+        })) ?? FormaDelPunto.Forma.Puntata);
+
         foreach (var chunk in parseResult.Chunks)
         {
             switch (chunk)
@@ -56,7 +65,11 @@ public sealed class FileSaverOrchestrator
                     output.AddRange(record.LeadingComments);
 
                     bool isDirty = dirtyRecords.Contains(record.Record);
-                    bool emitMarkers = isDirty || record.HasMarkers;
+
+                    // ⚠️ Changed in vIPI (F2 slice 2): markers are NEVER added. A wrapped every dirty record in
+                    // //Start / //End; the Lab's structure tags are //@ lines, and only on .sid/.str (carta
+                    // madre §8.2). A record that already has markers keeps them, so no byte is lost.
+                    bool emitMarkers = record.HasMarkers;
                     string id = uniqueIds[record];
 
                     if (emitMarkers)
@@ -64,7 +77,9 @@ public sealed class FileSaverOrchestrator
                         output.Add($"//Start {id}");
                     }
 
-                    output.AddRange(isDirty ? saver.Serialize(record.Record) : record.RawLines);
+                    output.AddRange(isDirty
+                        ? FormaDelPunto.In(saver.Serialize(record.Record), FormaDelPunto.Di(record.RawLines) ?? formaDelFile.Value)
+                        : record.RawLines);
 
                     if (emitMarkers)
                     {

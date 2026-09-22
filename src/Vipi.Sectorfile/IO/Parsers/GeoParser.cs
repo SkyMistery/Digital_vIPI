@@ -35,12 +35,8 @@ public sealed class GeoParser : LineRecordParser<Line>
         Coordinate start, end;
         try
         {
-            var lat1 = CoordinateConverter.Parse(parts[0].Trim());
-            var lon1 = CoordinateConverter.Parse(parts[1].Trim());
-            var lat2 = CoordinateConverter.Parse(parts[2].Trim());
-            var lon2 = CoordinateConverter.Parse(parts[3].Trim());
-            start = new Coordinate(lat1.LatitudeDeg, lon1.LongitudeDeg);
-            end = new Coordinate(lat2.LatitudeDeg, lon2.LongitudeDeg);
+            start = CoordinateConverter.ParsePair(parts[0].Trim(), parts[1].Trim());
+            end = CoordinateConverter.ParsePair(parts[2].Trim(), parts[3].Trim());
         }
         catch (CoordinateParseException)
         {

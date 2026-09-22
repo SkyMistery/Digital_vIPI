@@ -212,9 +212,7 @@ public sealed class StrParser : IFileParser<StrRecord>
         {
             try
             {
-                var lat = CoordinateConverter.Parse(parts[0].Trim());
-                var lon = CoordinateConverter.Parse(parts[1].Trim());
-                return new BodyToken(new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg), hasBr, suffix);
+                return new BodyToken(CoordinateConverter.ParsePair(parts[0].Trim(), parts[1].Trim()), hasBr, suffix);
             }
             catch (CoordinateParseException)
             {

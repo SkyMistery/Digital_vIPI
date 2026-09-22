@@ -179,9 +179,7 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
         // than a first-char N/S/E/W test) avoids mis-reading fixes like NILTO/VEGAN as coordinates.
         try
         {
-            var lat = CoordinateConverter.Parse(field3);
-            var lon = CoordinateConverter.Parse(field4);
-            return new StaticBoundaryVertex { Position = new Coordinate(lat.LatitudeDeg, lon.LongitudeDeg) };
+            return new StaticBoundaryVertex { Position = CoordinateConverter.ParsePair(field3, field4) };
         }
         catch (CoordinateParseException)
         {
