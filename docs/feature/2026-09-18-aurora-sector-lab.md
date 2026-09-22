@@ -5,6 +5,8 @@
 > F0-bis, prova 5 ✅ (§10): dalla **Cover Page** dell'AIRAC alla **checklist** del sector, controprovata sul 2609 vero.
 > F0-bis ✅ (§11): inventario dei 154 PDF + confronto oggetto per oggetto col sector. §8 chiuso.
 > ▶ **F1**: carta scritta, [`2026-09-18-f1-archi-convertitore.md`](2026-09-18-f1-archi-convertitore.md).
+> ✅ F1 e F2 fatte ([`2026-09-22-f2-motore-del-sector.md`](2026-09-22-f2-motore-del-sector.md)).
+> ▶ **F3**, l'app: carta in bozza, [`2026-09-22-f3-l-app.md`](2026-09-22-f3-l-app.md) (da approvare, §9).
 > Materiale delle prove, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\sector-lab-f0\`.
 > PDF AIP, fuori dal repo: `D:\Programmazione\IVAO_Test\vIPI Ivao Italy\RealDOCS\`.
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Parte da [`2026-08-29-convertitore-coordinate.md`](2026-08-29-convertitore-coordinate.md).
