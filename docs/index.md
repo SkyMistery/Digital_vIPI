@@ -351,6 +351,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-20-riferimenti-ai-dati.md`](feature/2026-09-20-riferimenti-ai-dati.md) — Riferimenti ai dati nel testo: frequenze, nominativi, piste, punti (20 settembre 2026)
 - [`feature/2026-09-20-star-e-altri-riferimenti.md`](feature/2026-09-20-star-e-altri-riferimenti.md) — STAR dal sectorfile, e che altro può seguire la sorgente (20 settembre 2026)
 - [`feature/2026-09-21-documenti-collegati.md`](feature/2026-09-21-documenti-collegati.md) — Documenti collegati nel sommario (§A109) — carta
+- [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) — F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 
 ### `guide`
 
