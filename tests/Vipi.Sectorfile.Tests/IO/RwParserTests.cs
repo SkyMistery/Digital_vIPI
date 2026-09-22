@@ -93,6 +93,37 @@ public sealed class RwParserTests
         Assert.Equal(109.5f, r.TrueHeading1);
     }
 
+    /// <summary>
+    /// 🔴 Trovato in F3 (slice 3b), disegnando le piste sulla mappa: i quattro .rw di FIR scrivono l'intestazione con
+    /// sette barre (<c>///////PISTE</c>), e A guardava solo <c>//PISTE</c>. Le loro 187 righe di pista restavano righe
+    /// grezze: round-trip perfetto, piste invisibili al modello, nessun avviso. Sull'albero «una modifica per record»
+    /// è salita da 115 382 a 115 569, cioè esattamente quelle righe.
+    /// </summary>
+    [Fact]
+    public void Parse_IntestazioneConPiuBarre_LeggeLePiste()
+    {
+        var pr = Parse("///////PISTE\r\nLIAA;09;27;113;113;095;275;N042.34.24.770;E012.34.54.460;N042.34.23.170;E012.35.19.600;\r\n");
+
+        Assert.Single(pr.Records);
+        Assert.Equal("LIAA", pr.Records[0].IcaoCode);
+    }
+
+    /// <summary>E il file vero coi sette slash: prima zero record, ora le sue piste.</summary>
+    [Fact]
+    public void Parse_LirrRw_LeggeLePisteDelFirDiRoma()
+    {
+        string? path = RealSectorFiles.Path("OTHER/lirr.rw");
+        if (path is null)
+        {
+            return;
+        }
+
+        var pr = Parser.Parse(path, new ColorPalette());
+
+        Assert.NotEmpty(pr.Records);
+        Assert.Contains(pr.Records, r => r.IcaoCode == "LIRF" && r.Designator1 == "16L");
+    }
+
     // §15.9 — malformed line inside //PISTE → RawChunk + warning.
     [Fact]
     public void Parse_MalformedPisteLine_RawChunkAndWarning()

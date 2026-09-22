@@ -70,7 +70,10 @@ public sealed class RwParser : IFileParser<Runway>
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
-                string header = trimmed[2..].Trim().ToUpperInvariant();
+                // 🔴 Le barre in più contano: A guardava solo `//PISTE`, e i quattro .rw di FIR scrivono
+                // `///////PISTE`. Le loro 187 righe di pista restavano righe grezze — round-trip perfetto e piste
+                // invisibili al modello, senza nemmeno un avviso (trovato in F3, slice 3b, disegnando le piste).
+                string header = trimmed.TrimStart('/').Trim().ToUpperInvariant();
                 if (header is "MENU MAPPE" or "PISTE" or "ACC")
                 {
                     OrphanComments();

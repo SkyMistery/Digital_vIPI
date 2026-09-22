@@ -10,6 +10,10 @@ Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **appr
 Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab` net10.0-windows, i test); il sito non
 li referenzia e non cambia. ▶ Prossimo: slice 2 (la sessione: aprire la cartella e leggere l'albero).
 
+- 🔴 **Difetto del motore corretto in F3 (slice 3b), che riguarda anche i dati**: il lettore dei `.rw` riconosceva la
+  sezione solo scritta `//PISTE`, e i quattro file di FIR la scrivono `///////PISTE` — **187 righe di pista**
+  (`libb.rw` 18, `limm.rw` 47, `lipp.rw` 50, `lirr.rw` 72) restavano invisibili al modello, senza avvisi. Non è un
+  errore del sector (Aurora le legge) e **non va nel messaggio agli AOD**; era un buco nostro, ereditato da A.
 - 🟡 **Rosso intermittente, visto UNA volta**: `Vipi.Ui.Tests.PaginaAuditUnGiroAllaVoltaTests.Due_cambi_di_periodo_ravvicinati_non_sovrappongono_i_caricamenti`
   (net10, corsa `35755019021` su `64a33fb0`): `WaitForElement("select.htree-select", 3 s)` scaduto. Mai caduto nelle 25
   corse fallite prima; verde al rilancio del job. Il commit non tocca `Vipi.Ui`, ma aggiunge alla suite

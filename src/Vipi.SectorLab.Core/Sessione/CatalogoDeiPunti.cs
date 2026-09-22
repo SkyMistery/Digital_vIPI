@@ -19,7 +19,7 @@ public readonly record struct PuntoDelCatalogo(string Nome, string Catalogo, Coo
 /// dichiarati pure (<see cref="Cataloghi.Dichiarato"/>). Qui si mettono insieme, usando i record GIÀ LETTI dalla
 /// sessione: l'albero non si rilegge.</para>
 /// </summary>
-public sealed class CatalogoDeiPunti
+public sealed class CatalogoDeiPunti : IFixResolver
 {
     private readonly Dictionary<string, PuntoDelCatalogo> _perNome;
 
@@ -46,6 +46,22 @@ public sealed class CatalogoDeiPunti
         => _perNome.TryGetValue(nome.Trim(), out var punto) ? punto : null;
 
     public bool Risolve(string nome) => Cerca(nome) is not null;
+
+    /// <summary>
+    /// Come lo chiede il motore (<see cref="Sectorfile.Shared.Punto.TryRisolvi"/>), che con due nomi diversi fa come
+    /// Aurora: la latitudine dal primo, la longitudine dal secondo.
+    /// </summary>
+    public bool TryResolve(string ident, out Coordinate position)
+    {
+        if (Cerca(ident) is { } punto)
+        {
+            position = punto.Posizione;
+            return true;
+        }
+
+        position = default;
+        return false;
+    }
 
     /// <summary>Un catalogo per ogni <c>.isc</c> della cartella, per nome del master.</summary>
     public static IReadOnlyDictionary<string, CatalogoDeiPunti> PerOgniIsc(SessioneAperta sessione)
