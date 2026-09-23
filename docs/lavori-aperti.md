@@ -27,6 +27,9 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
   (`UnioneCambiata` → `_editor.RicaricaAsync`; nessuno chiama `_membri.RicaricaAsync`). Vale per le tre pagine
   ospite. Aggiungerlo non è banale: `UnionMembersEditor` non toglie dall'elenco i membri smontati.
 - ▶ Va nel **prossimo pacchetto del sito** (nessun pacchetto preparato).
+- ⚠️ **Strumento in comune toccato**: `tools/conta-test.sh` dava un «MANCA» falso quando la testa di un riepilogo
+  e la sua coda erano separate da un ALTRO riepilogo completo (corsa 35849102486). Corretto sul ramo; CI verde
+  (35849871249). Alla fusione in `main`, se il Lab ha cambiato lo stesso script, tenere tutt'e due le correzioni.
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
