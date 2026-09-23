@@ -33,6 +33,21 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A119 — Pacchetto 1.43.1: S2 + S3 del sito (23 settembre 2026) — PRONTO DA CARICARE, prima del 1° ottobre
+
+PATCH, **nessuna migrazione**, su 1.43.0 (`54355eb`). Timbro **`1.43.1 · a8a1cea`**. Il dettaglio dei due lavori sta
+in [`filoni/sito.md`](filoni/sito.md): **S2** dopo «Hide» nelle sezioni in comune si ricaricano anche i membri
+(`RegistroMembri`); **S3** i punti dei trasferimenti e «Cita» guardano al ciclo ENTRANTE (STAR timbrate 2610, es.
+ERIKA 1A a LIRN) — 🔴 serve online **prima del 1° ottobre**, dopo non cambia niente.
+
+**6 file in radice**: Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). Fuori: Infrastructure, MySqlMigrations,
+Domain, Hosting (solo ricompilati), `en/`, `endpoints.json`, `wwwroot` (identici per impronta). Il costruttore di
+`ProcedureReferenceResolver` cambia, ma lo costruisce solo la registrazione dentro `Vipi.Application`. Zip
+`vipi-1.43.1-solo-file-cambiati.zip` `3e7c266e…16499`, foglio
+[`LEGGIMI-PACCHETTO-1.43.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.43.1.md). 1.43.0 ruotata in
+`publish_old/20260923a`. Build Release 0 avvisi, 18/18 assiemi verdi. Prova locale del pacchetto saltata:
+`wwwroot` identico.
+
 ### ✅ A118 — 1.43.0 ONLINE: §A117 + §S1 (23 settembre 2026)
 
 ✅ Il committente conferma timbro `1.43.0 · 54355eb` e `Schema 0`. Avvio 12:10:41 UTC, «migrazione del database»
