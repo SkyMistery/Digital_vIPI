@@ -430,6 +430,11 @@ html, body {
     padding: .1rem 0;
 }
 
+/* F3-bis slice 2: la copia gemella lasciata com'era sta sotto la sua modifica, rientrata. */
+.lab-copia-lasciata {
+    padding-left: 1rem;
+}
+
 .lab-annulla {
     margin-left: auto;
     border: 0;

@@ -15,7 +15,8 @@
   file; **58** aggregati (non ~20), 16 con tratti disallineati; regola dei troncati «primo punto già disegnato»
   (102/139); il `<br>` sulle righe per nome si perde nel modello (da sistemare in slice 3-4). D7 chiusa (`1` = RNAV).
   ✅ D8-D10 decise come proposte. ✅ **slice 1** (gemelli nel motore + `Core/Copie`, regola `CopieDiverse`: 17 chiavi
-  sul fork). ▶ **slice 2** = propagazione dei campi ai gemelli. ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
+  sul fork). ✅ **slice 2** (propagazione: una voce, più diff, annulla insieme, «allinea anche questo»). ▶ **slice 3**
+  = grammatica dei nomi con spazi nei tag e chiave `composta` (motore, `Metadati`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
   (`CopieGemelle.cs`, `Regola.CopieDiverse`), il sito non lo usa.
 - Prove sul fork: eseguibile in `D:\Programmazione\IVAO_Test\SectorLab-prova\`, clone
   `D:\Programmazione\IVAO_Test\it-aurora-sector-test` (può avere modifiche delle prove: `git checkout -- .`).

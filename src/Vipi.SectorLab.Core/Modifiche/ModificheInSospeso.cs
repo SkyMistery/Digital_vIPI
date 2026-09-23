@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Reflection;
+using Vipi.SectorLab.Core.Copie;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Shared;
 
@@ -16,7 +17,32 @@ public abstract record Modifica(string File, int Record, string Etichetta, strin
 public sealed record ModificaDiCampo(string File, int Record, string Etichetta, string Campo, string Prima, string Dopo)
     : Modifica(File, Record, Etichetta, Campo)
 {
-    public override string Descrizione => $"{Campo}: {Prima} → {Dopo}";
+    /// <summary>
+    /// Se è la stessa modifica portata su una copia gemella (carta F3-bis §2.1, slice 2): il record da cui è partita.
+    /// Nel pannello non è una voce a sé: si mostra e si annulla con quella principale.
+    /// </summary>
+    public RecordDelFile? CopiaDi { get; init; }
+
+    /// <summary>
+    /// Le copie gemelle che in quel campo avevano già un altro valore, e che quindi non sono state toccate (D2): il
+    /// pannello le dice, e l'AOD può allinearle una per una.
+    /// </summary>
+    public IReadOnlyList<CopiaNonToccata> NonToccate { get; init; } = [];
+
+    public override string Descrizione => CopiaDi is { } da
+        ? $"{Campo}: {Prima} → {Dopo}, come in {NomeDelFile(da.File)}"
+        : $"{Campo}: {Prima} → {Dopo}";
+
+    internal static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+}
+
+/// <summary>Un record di un file aperto: il percorso relativo e l'indice del record.</summary>
+public readonly record struct RecordDelFile(string File, int Record);
+
+/// <summary>Una copia gemella lasciata com'era, col valore che ha in quel campo.</summary>
+public sealed record CopiaNonToccata(string File, int Record, string Valore)
+{
+    public string Descrizione => $"in {ModificaDiCampo.NomeDelFile(File)} ha {Valore}: non cambiato";
 }
 
 /// <summary>
@@ -73,9 +99,36 @@ public sealed class ModificheInSospeso
     /// <summary>I record toccati, per file e per indice: dall'indice si arriva all'oggetto, che è ciò che vuole lo scrittore.</summary>
     private readonly Dictionary<string, Dictionary<int, object>> _sporchi = new(StringComparer.Ordinal);
 
+    /// <summary>Tutte le modifiche, copie gemelle comprese: ognuna è un campo cambiato in un file.</summary>
     public IReadOnlyCollection<Modifica> Tutte => _fatte.Values;
 
-    public int Quante => _fatte.Count;
+    /// <summary>
+    /// Le voci del pannello: le modifiche senza le copie gemelle, che vanno con la loro principale (F3-bis slice 2).
+    /// Una copia la cui principale non c'è più (salvata a parte, record tolto) torna una voce a sé.
+    /// </summary>
+    public IReadOnlyList<Modifica> Voci => [.. _fatte.Values.Where(m => Principale(m) is null)];
+
+    /// <summary>Quante voci: una modifica portata su tre copie è una.</summary>
+    public int Quante => _fatte.Values.Count(m => Principale(m) is null);
+
+    /// <summary>Le copie gemelle toccate insieme a una modifica (vuoto per le altre).</summary>
+    public IReadOnlyList<ModificaDiCampo> CopieDi(Modifica principale)
+    {
+        ArgumentNullException.ThrowIfNull(principale);
+        return [.. _fatte.Values.OfType<ModificaDiCampo>()
+            .Where(m => m.Campo == principale.Campo && m.CopiaDi == new RecordDelFile(principale.File, principale.Record))
+            .OrderBy(m => m.File, StringComparer.Ordinal)];
+    }
+
+    /// <summary>La modifica principale di una copia gemella, se c'è ancora; null per le altre.</summary>
+    public ModificaDiCampo? Principale(Modifica modifica)
+        => modifica is ModificaDiCampo { CopiaDi: { } da }
+           && _fatte.GetValueOrDefault((da.File, da.Record, modifica.Campo)) is ModificaDiCampo principale
+            ? principale
+            : null;
+
+    /// <summary>I file delle copie gemelle toccate: annullare una voce li rimette, e lì serve l'oggetto del file.</summary>
+    private readonly Dictionary<string, FileAperto> _fileDelleCopie = new(StringComparer.Ordinal);
 
     /// <summary>
     /// I file con qualcosa in sospeso. Si legge dalle MODIFICHE, non dai record toccati: un file dove si è solo
@@ -136,8 +189,97 @@ public sealed class ModificheInSospeso
         return modifica;
     }
 
-    /// <summary>Annulla una modifica: rimette com'era all'apertura il campo, o l'elenco dei vertici.</summary>
-    public bool Annulla(FileAperto file, Modifica modifica)
+    /// <summary>
+    /// Cambia un campo e porta lo stesso cambio sulle copie gemelle (carta F3-bis §2.1, slice 2): quelle che in quel
+    /// campo avevano <b>lo stesso valore</b> del record prima del cambio. Quelle che ne avevano un altro non si toccano
+    /// e restano nella modifica (<see cref="ModificaDiCampo.NonToccate"/>), perché l'AOD decida (D2). Quelle che
+    /// avevano già il valore nuovo non c'entrano. Torna la modifica principale, o il rifiuto.
+    /// </summary>
+    /// <param name="cercaIlFile">Dal percorso di una copia al suo file aperto.</param>
+    public object CambiaAncheLeCopie(FileAperto file, int indice, string campo, string? valore, GemelliDellaSessione gemelli,
+                                     Func<string, FileAperto?> cercaIlFile, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(gemelli);
+        ArgumentNullException.ThrowIfNull(cercaIlFile);
+
+        string? primaDelCambio = file is IFileConRecord conRecord && indice >= 0 && indice < conRecord.RecordDelModello.Count
+            ? ValoreScritto(conRecord.RecordDelModello[indice], campo)
+            : null;
+        var esito = Cambia(file, indice, campo, valore, etichetta);
+        if (esito is not ModificaDiCampo principale || primaDelCambio is null)
+            return esito;
+
+        var nonToccate = new List<CopiaNonToccata>();
+        foreach (var copia in gemelli.AltreCopie(file.Relativo, indice))
+        {
+            if (cercaIlFile(copia.File) is not { } fileDellaCopia || ValoreScritto(copia.Record, campo) is not { } suo)
+                continue;
+            if (suo == principale.Dopo)
+                continue;
+            if (suo != primaDelCambio)
+            {
+                nonToccate.Add(new CopiaNonToccata(copia.File, copia.Indice, suo));
+                continue;
+            }
+
+            if (Cambia(fileDellaCopia, copia.Indice, campo, valore, etichetta) is ModificaDiCampo)
+                SegnaComeCopia(fileDellaCopia, copia.Indice, campo, file.Relativo, indice);
+        }
+
+        // Il cambio ha riportato il record al valore dell'apertura: non c'è più una voce su cui appendere le copie.
+        var chiave = (file.Relativo, indice, campo);
+        if (_fatte.GetValueOrDefault(chiave) is not ModificaDiCampo registrata)
+            return principale;
+
+        var aggiornata = registrata with { NonToccate = nonToccate };
+        _fatte[chiave] = aggiornata;
+        return aggiornata;
+    }
+
+    /// <summary>
+    /// Porta il valore nuovo di una modifica anche su una copia gemella che era stata lasciata com'era («allinea anche
+    /// questo», D2): da lì in avanti va con la voce principale, e si annulla con lei.
+    /// </summary>
+    public object AllineaLaCopia(Modifica principale, CopiaNonToccata copia, Func<string, FileAperto?> cercaIlFile)
+    {
+        ArgumentNullException.ThrowIfNull(principale);
+        ArgumentNullException.ThrowIfNull(copia);
+        ArgumentNullException.ThrowIfNull(cercaIlFile);
+        var chiave = (principale.File, principale.Record, principale.Campo);
+        if (_fatte.GetValueOrDefault(chiave) is not ModificaDiCampo registrata || !registrata.NonToccate.Contains(copia))
+            return new ModificaRifiutata("Questa copia non è più fra quelle da allineare.");
+        if (cercaIlFile(copia.File) is not { } fileDellaCopia)
+            return new ModificaRifiutata("Il file della copia non è aperto.");
+
+        var esito = Cambia(fileDellaCopia, copia.Record, principale.Campo, registrata.Dopo, principale.Etichetta);
+        if (esito is ModificaDiCampo)
+            SegnaComeCopia(fileDellaCopia, copia.Record, principale.Campo, principale.File, principale.Record);
+        if (esito is ModificaDiCampo || esito is ModificaRifiutata { Motivo: "Il valore è già questo." })
+            _fatte[chiave] = registrata with { NonToccate = [.. registrata.NonToccate.Where(c => c != copia)] };
+        return esito;
+    }
+
+    private void SegnaComeCopia(FileAperto fileDellaCopia, int indice, string campo, string filePrincipale, int recordPrincipale)
+    {
+        var chiave = (fileDellaCopia.Relativo, indice, campo);
+        if (_fatte.GetValueOrDefault(chiave) is ModificaDiCampo fatta)
+            _fatte[chiave] = fatta with { CopiaDi = new RecordDelFile(filePrincipale, recordPrincipale) };
+        _fileDelleCopie[fileDellaCopia.Relativo] = fileDellaCopia;
+    }
+
+    /// <summary>Il valore di un campo come lo scrive il pannello, o null se il record non ha quel campo.</summary>
+    private static string? ValoreScritto(object record, string campo)
+        => record.GetType().GetProperty(campo, BindingFlags.Public | BindingFlags.Instance) is { } proprieta
+            ? Scrivi(proprieta.GetValue(record))
+            : null;
+
+    /// <summary>
+    /// Annulla una modifica: rimette com'era all'apertura il campo, o l'elenco dei vertici. Una voce con copie gemelle
+    /// si annulla tutta insieme, e annullare una copia annulla la sua voce (F3-bis slice 2).
+    /// </summary>
+    /// <param name="cercaIlFile">Dal percorso al file aperto, per le copie; senza, quelli visti quando sono state fatte.</param>
+    public bool Annulla(FileAperto file, Modifica modifica, Func<string, FileAperto?>? cercaIlFile = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         ArgumentNullException.ThrowIfNull(modifica);
@@ -145,8 +287,22 @@ public sealed class ModificheInSospeso
         if (!_fatte.ContainsKey(chiave))
             return false;
 
+        FileAperto? Cerca(string relativo)
+            => relativo == file.Relativo ? file : cercaIlFile?.Invoke(relativo) ?? _fileDelleCopie.GetValueOrDefault(relativo);
+
+        if (Principale(_fatte[chiave]) is { } suaPrincipale && Cerca(suaPrincipale.File) is { } fileDellaPrincipale)
+            return Annulla(fileDellaPrincipale, suaPrincipale, cercaIlFile);
+
         if (modifica is ModificaDiCampo campo)
+        {
+            foreach (var copia in CopieDi(modifica))
+            {
+                if (Cerca(copia.File) is { } fileDellaCopia)
+                    Cambia(fileDellaCopia, copia.Record, copia.Campo, copia.Prima, copia.Etichetta);
+            }
+
             return Cambia(file, modifica.Record, modifica.Campo, campo.Prima, modifica.Etichetta) is ModificaDiCampo;
+        }
 
         // 🔴 La struttura si annulla per ULTIMA: rimettere i record com'erano rinumera tutto, e le modifiche che
         // pendono sugli altri record di questo file non avrebbero più un indice buono. Si annullano prima loro —
@@ -204,6 +360,7 @@ public sealed class ModificheInSospeso
             _verticiDiPartenza.Remove(chiave);
         _sporchi.Remove(file);
         _strutturaDiPartenza.Remove(file);
+        _fileDelleCopie.Remove(file);
         UltimoAggiunto = null;
     }
 
@@ -288,6 +445,22 @@ public sealed class ModificheInSospeso
             _ => modifica,
         });
         Rinumera(_verticiDiPartenza, file, daIncluso, scarto, (_, elenco) => elenco);
+
+        // Le copie gemelle e le copie lasciate com'erano puntano a record di ALTRI file (F3-bis slice 2): se il record
+        // a cui puntano è in questo file, il suo numero è cambiato anche per loro.
+        int Sposta(int record) => record >= daIncluso ? record + scarto : record;
+        foreach (var (chiave, modifica) in _fatte.ToList())
+        {
+            if (modifica is not ModificaDiCampo m)
+                continue;
+            var rifatta = m;
+            if (m.CopiaDi is { } da && da.File == file)
+                rifatta = rifatta with { CopiaDi = da with { Record = Sposta(da.Record) } };
+            if (m.NonToccate.Any(c => c.File == file))
+                rifatta = rifatta with { NonToccate = [.. m.NonToccate.Select(c => c.File == file ? c with { Record = Sposta(c.Record) } : c)] };
+            if (!ReferenceEquals(rifatta, m))
+                _fatte[chiave] = rifatta;
+        }
 
         if (!_sporchi.TryGetValue(file, out var suoi))
             return;

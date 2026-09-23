@@ -193,3 +193,20 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   gemelli. E le righe `MAPS` dei `.rw` non sono record (stanno sotto `//MENU MAPPE`): 63 piste gemelle nei campioni, non
   106 → corretto il §2.1.
 - Test: motore 427 → **437** (net8 e net10), Lab 262 → **266**.
+
+**Slice 2 — la propagazione ai gemelli** (23 settembre).
+
+- `ModificheInSospeso.CambiaAncheLeCopie`: il cambio va sulle copie che in quel campo avevano **lo stesso valore del
+  record prima del cambio** (non quello dell'apertura: due cambi di fila portano le copie tutte e due le volte). Quelle
+  che avevano già il valore nuovo non c'entrano, quelle con un altro valore restano in `ModificaDiCampo.NonToccate` (D2).
+- La modifica di una copia è una modifica di campo **vera** del suo file (diff, salvataggio, scheda la vedono come
+  tutte le altre) col segno `CopiaDi`. Il pannello conta le **voci** (`Voci`, `Quante`): la principale con le sue
+  copie. Annullare una copia annulla la sua voce; una copia la cui principale non c'è più torna voce a sé.
+  `AllineaLaCopia` = «allinea anche questo». Un record aggiunto o tolto rinumera anche i riferimenti delle copie.
+- Pannello: «…, anche in itap.ap» sulla voce, «come in lirr.ap» sulla riga della copia, e sotto la voce una riga per
+  ogni copia lasciata («in itap.ap ha 182: non cambiato») col tasto **allinea anche questo**.
+- **Sul fork** (console di prova, `ModificheInSospeso` sull'albero vero): LIRF in `lirr.ap` → **−1 +1 in due file**
+  (`itap.ap`, `lirr.ap`); LIBA → `lirr.ap` e `libb.ap` (185), `itap.ap` (182) lasciato e detto; LIZZ → −1 +1 in 5 file.
+  «Annulla tutto» → nessun diff. Indice dei gemelli: 458 gruppi in 16 ms.
+- La prova della rinumerazione **distingue**: senza, `LaCopiaSegueLaPrincipaleQuandoIRecordScorrono` è rosso.
+- Test Lab 266 → **277** (8 del `Core`, 3 bUnit).

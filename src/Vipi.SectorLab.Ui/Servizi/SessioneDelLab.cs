@@ -1,3 +1,4 @@
+using Vipi.SectorLab.Core.Copie;
 using Vipi.SectorLab.Core.Disco;
 using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
@@ -650,11 +651,23 @@ public sealed class SessioneDelLab
             return false;
 
         string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
-        var esito = Modifiche.Cambia(file, record, campo, valore, etichetta);
+        // Il cambio va anche sulle copie gemelle che avevano lo stesso valore (carta F3-bis §2.1, slice 2).
+        var esito = Modifiche.CambiaAncheLeCopie(file, record, campo, valore, GemelliDellaSessione.Di(Sessione),
+            f => Sessione.File.GetValueOrDefault(f), etichetta);
         Registro.Scrivi("modifica", $"{fileRelativo}#{record} {campo} = «{valore}»: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
-        if (esito is ModificaDiCampo)
+        if (esito is ModificaDiCampo fatta)
+        {
             RifaiLaGeometria(fileRelativo);
+            foreach (var copia in Modifiche.CopieDi(fatta))
+            {
+                Registro.Scrivi("modifica", $"  anche {copia.File}#{copia.Record}");
+                RifaiLaGeometria(copia.File);
+            }
+
+            foreach (var lasciata in fatta.NonToccate)
+                Registro.Scrivi("modifica", $"  non {lasciata.File}#{lasciata.Record}: ha {lasciata.Valore}");
+        }
 
         RicontrollaLeModifiche();
         Cambiata?.Invoke();
@@ -788,10 +801,27 @@ public sealed class SessioneDelLab
         if (Sessione is null || !Sessione.File.TryGetValue(modifica.File, out var file))
             return;
 
-        Modifiche.Annulla(file, modifica);
+        // Con le copie gemelle i file toccati sono più d'uno: si rifà la geometria di tutti quelli che c'erano prima.
+        var toccati = Modifiche.FileToccati.ToList();
+        Modifiche.Annulla(file, modifica, f => Sessione.File.GetValueOrDefault(f));
         Registro.Scrivi("annulla", $"{modifica.File}#{modifica.Record} {modifica.Descrizione}");
         Rifiuto = null;
-        RifaiLaGeometria(modifica.File);
+        foreach (string toccato in toccati.Except(Modifiche.FileToccati).Append(modifica.File).Distinct())
+            RifaiLaGeometria(toccato);
+        RicontrollaLeModifiche();
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>«Allinea anche questo» (F3-bis D2): il valore nuovo anche sulla copia gemella che era stata lasciata.</summary>
+    public void AllineaLaCopia(Modifica principale, CopiaNonToccata copia)
+    {
+        if (Sessione is null)
+            return;
+
+        var esito = Modifiche.AllineaLaCopia(principale, copia, f => Sessione.File.GetValueOrDefault(f));
+        Registro.Scrivi("allinea", $"{copia.File}#{copia.Record} {principale.Campo}: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        RifaiLaGeometria(copia.File);
         RicontrollaLeModifiche();
         Cambiata?.Invoke();
     }

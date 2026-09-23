@@ -39,11 +39,24 @@
 
                 @foreach (var modifica in Lab.Modifiche.Tutte.Where(m => m.File == file).OrderBy(m => m.Record))
                 {
-                    <div class="lab-una-modifica" data-modifica="@modifica.Campo">
+                    var copie = Lab.Modifiche.CopieDi(modifica);
+                    <div class="lab-una-modifica" data-modifica="@modifica.Campo" data-copia="@(Lab.Modifiche.Principale(modifica) is null ? null : "si")">
                         <span class="lab-etichetta">@(modifica.Etichetta is { Length: > 0 } e ? e : $"record {modifica.Record}")</span>
-                        <span class="lab-nota">@modifica.Descrizione</span>
+                        <span class="lab-nota">@modifica.Descrizione@(copie.Count > 0 ? ", anche in " + string.Join(", ", copie.Select(c => NomeDelFile(c.File))) : "")</span>
+                        @* Sulla riga di una copia gemella, «annulla» toglie la voce intera: la copia va con la sua principale. *@
                         <button class="lab-annulla" @onclick="() => Lab.AnnullaModifica(modifica)" data-annulla="@modifica.Campo">annulla</button>
                     </div>
+                    @if (modifica is ModificaDiCampo { NonToccate.Count: > 0 } campo)
+                    {
+                        @foreach (var lasciata in campo.NonToccate)
+                        {
+                            <div class="lab-una-modifica lab-copia-lasciata" data-lasciata="@lasciata.File">
+                                <span class="lab-nota">@lasciata.Descrizione</span>
+                                <button class="lab-annulla" @onclick="() => Lab.AllineaLaCopia(campo, lasciata)"
+                                        title="Porta @campo.Dopo anche qui" data-allinea="@lasciata.File">allinea anche questo</button>
+                            </div>
+                        }
+                    }
                 }
 
                 @if (diff.InBlocco)
@@ -75,4 +88,6 @@
     private void Aggiorna() => InvokeAsync(StateHasChanged);
 
     public void Dispose() => Lab.Cambiata -= Aggiorna;
+
+    private static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
 }
