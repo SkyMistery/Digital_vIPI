@@ -10,8 +10,8 @@ namespace Vipi.Sectorfile.IO;
 ///   Geometric body: <c>Lat ; Lon ;</c> — the first point of each segment after the first carries
 ///                   a trailing <c>&lt;br&gt;</c> (ARCHITECTURE §3.3: &lt;br&gt; marks the FIRST point
 ///                   of a new segment).
-///   Procedure body: <c>Fix ; Display ; [Suffix ;]</c>
-///   Holding  body:  fix → <c>Fix ; Display ; [Suffix ;]</c>; coord → <c>Lat ; Lon ; [Suffix ;]</c>
+///   Procedure body: <c>Fix ; Display ; [Suffix ;]</c>, or <c>Fix ; Display ; &lt;br&gt;</c> for a segment start
+///   Holding  body:  fix → as a procedure; coord → <c>Lat ; Lon ; [Suffix ;]</c> or <c>Lat ; Lon ; &lt;br&gt;</c>
 /// Only invoked for dirty records — non-dirty records round-trip via verbatim RawLines, so the exact
 /// original spacing, inline comments and disabled lines are preserved regardless of this canonical form.
 /// </summary>
@@ -52,7 +52,7 @@ public sealed class StrSaver : IFileSaver<StrRecord>
             case ProcedureStrRecord procedure:
                 foreach (var wp in procedure.Waypoints)
                 {
-                    lines.Add(FixLine(wp.FixName, wp.DisplayLabel, wp.SuffixCode));
+                    lines.Add(FixLine(wp.FixName, wp.DisplayLabel, wp.SuffixCode, wp.IniziaUnTratto));
                 }
 
                 break;
@@ -62,8 +62,8 @@ public sealed class StrSaver : IFileSaver<StrRecord>
                 {
                     lines.Add(point switch
                     {
-                        HoldingFixPoint fix => FixLine(fix.FixName, fix.DisplayLabel, fix.SuffixCode),
-                        HoldingCoordPoint coord => Coord(coord.Position) + Suffix(coord.SuffixCode),
+                        HoldingFixPoint fix => FixLine(fix.FixName, fix.DisplayLabel, fix.SuffixCode, fix.IniziaUnTratto),
+                        HoldingCoordPoint coord => Coord(coord.Position) + (coord.IniziaUnTratto ? "<br>" : Suffix(coord.SuffixCode)),
                         _ => string.Empty,
                     });
                 }
@@ -86,8 +86,9 @@ public sealed class StrSaver : IFileSaver<StrRecord>
            + CoordinateConverter.LongitudeToDottedDms(c.LongitudeDeg)
            + ";";
 
-    private static string FixLine(string fix, string display, string? suffix)
-        => $"{fix};{display};{(suffix is null ? string.Empty : suffix + ";")}";
+    // <br> and a suffix share the third field: a point that starts a segment writes <br>, like the files do.
+    private static string FixLine(string fix, string display, string? suffix, bool iniziaUnTratto)
+        => iniziaUnTratto ? $"{fix};{display};<br>" : $"{fix};{display};{(suffix is null ? string.Empty : suffix + ";")}";
 
     private static string Suffix(string? suffix) => suffix is null ? string.Empty : suffix + ";";
 }

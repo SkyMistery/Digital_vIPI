@@ -31,7 +31,9 @@ Dalle prove a mano di F3, due richieste del committente:
   `STAR RNAV(ALL)`). Mappe che sono **aggregati di procedure** fatti a mano: ~20 secondo la prima stima,
   **58** secondo la misura della slice 0 (§8).
 - I tag `//@` ci sono già (F2 slice 7, `IO/Metadati.cs`): `//@NOME chiave=valore …` sopra il record, **agganciato al
-  nome**. ⚠️ Il nome si legge fino al primo spazio: `STAR RNAV(ALL)` oggi **non si può dichiarare** (§5, D4).
+  nome**. ~~Il nome si legge fino al primo spazio~~: **sbagliato** (slice 3). Il nome arrivava già fino alla prima
+  parola con `=`, e `//@LIRF CTR fix=X` era testato da F2. D4 resta, per scelta del committente: con le virgolette
+  nome e chiavi si distinguono meglio.
 
 ## §2 — Cosa si fa
 
@@ -210,3 +212,22 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   «Annulla tutto» → nessun diff. Indice dei gemelli: 458 gruppi in 16 ms.
 - La prova della rinumerazione **distingue**: senza, `LaCopiaSegueLaPrincipaleQuandoIRecordScorrono` è rosso.
 - Test Lab 266 → **277** (8 del `Core`, 3 bUnit).
+
+**Slice 3 — le virgolette, `composta`, il `<br>` nel modello** (23 settembre).
+
+- 🔴 La premessa di D4 era falsa: il motore leggeva già i nomi con spazi (fino alla prima parola con `=`), e va bene
+  per tutti i **273** nomi `MAPS` del fork (nessuno ha `=`, virgolette, o è `START`/`END`). Chiesto di nuovo al
+  committente: **virgolette sì**, «la differenza fra nome ed elemento del metadato è più netta».
+- `Metadati` (motore, codice comune): si scrive `//@"NOME" chiavi…` e `//@END "NOME"` (anche per le SID: sul master
+  non c'è nessun tag, nessun file cambia forma); si legge con e senza virgolette. Virgolette rotte (non chiuse,
+  attaccate alla chiave, nome vuoto, una parola senza `=` dopo il nome) = riga illeggibile. Un nome con `"` non si
+  dichiara. Chiave `composta` nel catalogo, `Metadati.ElencoDellaComposta` → `ProceduraDellaComposta(Pista?, Nome)`.
+- `<br>` nel modello: `IniziaUnTratto` su `ProcedureWaypoint`, `HoldingFixPoint`, `HoldingCoordPoint` (anche le
+  coordinate di un record misto lo perdevano); `StrSaver` lo riscrive (`P;P;<br>`, `lat;lon;<br>`).
+- **Sul fork** (`tools/Vipi.SectorfileProva`, esteso: `composta` sulle MAPS e conteggio dei `<br>`): round-trip 701
+  esatti · **545 `<br>` nelle righe, 545 dal modello** · tag su tutto: **2782 record ritrovati su 2782**, 148 file su
+  148 identici senza le righe `//@` · concordanza con vIPI invariata (0 discordi).
+- 🟡 Un guasto nella prova, che **non** viene da qui: `limf.sid:28` `LIMF18;TOP1B LAG2L; ; ;0;LAGEN;` (manca il `;` fra
+  `LIMF` e `18`, dal commit del fork «LIMF: Revisione SIDs»): la SID ha il nome vuoto e non si può dichiarare. Il
+  validatore oggi non lo dice → da dire al committente; una regola possibile per dopo.
+- Test motore 437 → **452** (net8 e net10); aggiornati i due test di F2 che si aspettavano la scrittura senza virgolette.

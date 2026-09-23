@@ -58,6 +58,12 @@ public sealed class ProcedureWaypoint
     public string FixName { get; set; } = string.Empty;      // e.g. "ELKAP"
     public string DisplayLabel { get; set; } = string.Empty; // usually = FixName
     public string? SuffixCode { get; set; }                  // optional 3rd field, e.g. "3A"
+
+    /// <summary>
+    /// Vero se la riga porta <c>&lt;br&gt;</c> al terzo campo: il punto comincia un tratto nuovo (F3-bis slice 3). Le mappe
+    /// che raccolgono procedure (<c>ODINA;ODINA;&lt;br&gt;</c> in <c>lime.str</c>) separano così una procedura dall'altra.
+    /// </summary>
+    public bool IniziaUnTratto { get; set; }
 }
 
 /// <summary>Type C — holding pattern (mix of fix references and bare coordinates).</summary>
@@ -74,10 +80,22 @@ public sealed class HoldingFixPoint : HoldingPoint
     public string FixName { get; set; } = string.Empty;
     public string DisplayLabel { get; set; } = string.Empty;
     public string? SuffixCode { get; set; }
+
+    /// <summary>
+    /// Vero se la riga porta <c>&lt;br&gt;</c> al terzo campo: il punto comincia un tratto nuovo (F3-bis slice 3). Le mappe
+    /// che raccolgono procedure (<c>ODINA;ODINA;&lt;br&gt;</c> in <c>lime.str</c>) separano così una procedura dall'altra.
+    /// </summary>
+    public bool IniziaUnTratto { get; set; }
 }
 
 public sealed class HoldingCoordPoint : HoldingPoint
 {
     public Coordinate Position { get; set; }
     public string? SuffixCode { get; set; }   // optional, e.g. "3T"
+
+    /// <summary>
+    /// Vero se la riga porta <c>&lt;br&gt;</c> al terzo campo: il punto comincia un tratto nuovo (F3-bis slice 3). Le mappe
+    /// che raccolgono procedure (<c>ODINA;ODINA;&lt;br&gt;</c> in <c>lime.str</c>) separano così una procedura dall'altra.
+    /// </summary>
+    public bool IniziaUnTratto { get; set; }
 }

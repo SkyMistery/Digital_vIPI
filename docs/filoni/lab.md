@@ -15,9 +15,11 @@
   file; **58** aggregati (non ~20), 16 con tratti disallineati; regola dei troncati «primo punto già disegnato»
   (102/139); il `<br>` sulle righe per nome si perde nel modello (da sistemare in slice 3-4). D7 chiusa (`1` = RNAV).
   ✅ D8-D10 decise come proposte. ✅ **slice 1** (gemelli nel motore + `Core/Copie`, regola `CopieDiverse`: 17 chiavi
-  sul fork). ✅ **slice 2** (propagazione: una voce, più diff, annulla insieme, «allinea anche questo»). ▶ **slice 3**
-  = grammatica dei nomi con spazi nei tag e chiave `composta` (motore, `Metadati`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
-  (`CopieGemelle.cs`, `Regola.CopieDiverse`), il sito non lo usa.
+  sul fork). ✅ **slice 2** (propagazione: una voce, più diff, annulla insieme, «allinea anche questo»). ✅ **slice 3** (tag fra virgolette, `composta`,
+  `<br>` nel modello: 545/545 e 2782/2782 sul fork). ▶ **slice 4** = rigenerazione delle mappe composte (D8, D9) e
+  regole del validatore. 🟡 Dire al committente: `limf.sid:28` `LIMF18;…` (manca un `;`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
+  (`CopieGemelle.cs`, `Regola.CopieDiverse`), `IO/Metadati.cs` (virgolette, `composta`), `StrRecord`/`StrParser`/`StrSaver`
+  (`IniziaUnTratto`), `tools/Vipi.SectorfileProva` (sezione 5b).
 - Prove sul fork: eseguibile in `D:\Programmazione\IVAO_Test\SectorLab-prova\`, clone
   `D:\Programmazione\IVAO_Test\it-aurora-sector-test` (può avere modifiche delle prove: `git checkout -- .`).
 - Conteggi del filone: `tests/conteggi/Vipi.SectorLab.Tests.txt` e, se si tocca il motore, `Vipi.Sectorfile.Tests.txt`.

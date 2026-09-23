@@ -12,23 +12,53 @@ namespace Vipi.Sectorfile.IO;
 /// <para>La forma di un blocco, per un record:</para>
 /// <code>
 /// //@source=AIRAC2610                       (del file, nelle prime righe)
-/// //@BANA6W fix=BANAV initialclimb=5000     (la dichiarazione: il NOME del record, poi le chiavi)
+/// //@"BANA6W" fix=BANAV initialclimb=5000   (la dichiarazione: il NOME del record, poi le chiavi)
 /// //@START
 /// LIRF;25;BANA6W;…                          (il record: una riga di .sid, o intestazione e corpo di .str)
-/// //@END BANA6W
+/// //@END "BANA6W"
 /// </code>
 /// <para>La dichiarazione si aggancia col NOME: se il record sotto ne ha un altro è un errore, e le chiavi non gli
 /// si attaccano (un AOD che cancella una riga a mano non sposta i metadati sul vicino). <c>//@START</c>/<c>//@END</c>
 /// sono facoltativi per la lettura (una dichiarazione subito sopra il record basta); la scrittura li mette sempre.
-/// Il nome può avere spazi (<c>LIRF CTR</c> dei MAPS): arriva fino alla prima parola con <c>=</c>.</para>
+/// Il nome si scrive <b>fra virgolette</b> (F3-bis D4, 23 settembre 2026: il nome e le chiavi si distinguono a occhio,
+/// e i nomi delle mappe hanno spazi, <c>//@"STAR RNAV(ALL)" composta=…</c>). Si legge anche senza, come lo scriveva
+/// F2: allora il nome arriva fino alla prima parola con <c>=</c> (<c>//@LIRF CTR fix=X</c>).</para>
 /// <para>I tag sono commenti per Aurora e per i lettori: stanno fra le righe grezze o nei commenti di testa dei
 /// record, e un <c>//@</c> chiude sempre il record aperto (<c>StrParser</c>, <c>SidParser</c>). Un file senza tag
 /// si legge come prima: sul master del 22 settembre 2026 le righe <c>//@</c> sono zero.</para>
 /// </remarks>
 public static partial class Metadati
 {
-    /// <summary>Le chiavi di un record: il nome intero del fix (<c>BANA6W</c> è BANAV) e l'initial climb.</summary>
-    public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb" };
+    /// <summary>
+    /// Le chiavi di un record: il nome intero del fix (<c>BANA6W</c> è BANAV), l'initial climb, e le procedure di una
+    /// mappa composta (F3-bis §2.2: <c>composta=ODINA4E,25:NENI5A</c>, vedi <see cref="ElencoDellaComposta"/>).
+    /// </summary>
+    public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb", "composta" };
+
+    /// <summary>
+    /// Le procedure di una mappa composta, dal valore di <c>composta</c> (F3-bis D5): nomi separati da virgola, nell'ordine
+    /// in cui si disegnano; <c>25:NENI5A</c> sceglie la procedura della pista 25, il nome da solo le prende tutte.
+    /// Null se il valore non si legge (una voce vuota, una pista vuota).
+    /// </summary>
+    public static IReadOnlyList<ProceduraDellaComposta>? ElencoDellaComposta(string valore)
+    {
+        ArgumentNullException.ThrowIfNull(valore);
+        var elenco = new List<ProceduraDellaComposta>();
+        foreach (string voce in valore.Split(','))
+        {
+            int duePunti = voce.IndexOf(':', StringComparison.Ordinal);
+            string pista = duePunti < 0 ? string.Empty : voce[..duePunti];
+            string nome = duePunti < 0 ? voce : voce[(duePunti + 1)..];
+            if (nome.Length == 0 || (duePunti >= 0 && pista.Length == 0) || nome.Contains(':', StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            elenco.Add(new ProceduraDellaComposta(pista.Length == 0 ? null : pista, nome));
+        }
+
+        return elenco;
+    }
 
     /// <summary>Le chiavi del file: il ciclo AIRAC da cui vengono i dati.</summary>
     public static IReadOnlyList<string> ChiaviDelFile { get; } = new[] { "source" };
@@ -265,12 +295,12 @@ public static partial class Metadati
 
         int pezzo = IndiceDel(letto, record);
         string nome = nomeDi(record);
-        if (nome.Length == 0 || nome.Contains('=', StringComparison.Ordinal) || Analizza(nome).Tipo != TipoDiTag.Dichiarazione)
+        if (nome.Length == 0 || nome.Contains('"', StringComparison.Ordinal) || nome.Trim() != nome)
         {
             throw new InvalidOperationException($"Il nome '{nome}' non si può dichiarare in un tag //@.");
         }
 
-        string dichiarazione = "//@" + nome + string.Concat(chiavi
+        string dichiarazione = "//@" + FraVirgolette(nome) + string.Concat(chiavi
             .OrderBy(c => ChiaviDelRecord.ToList().IndexOf(c.Key))
             .Select(c => " " + c.Key + "=" + c.Value));
 
@@ -386,7 +416,7 @@ public static partial class Metadati
     // righe vuote fino all'intestazione dopo) escono dal record e vanno dopo la fine del blocco.
     private static void MettiLaFine<T>(List<FileChunk<T>> pezzi, int pezzo, string nome)
     {
-        string fine = "//@END " + nome;
+        string fine = "//@END " + FraVirgolette(nome);
         var rec = (RecordChunk<T>)pezzi[pezzo];
         int vuoteInCoda = rec.RawLines.Reverse().TakeWhile(r => r.Trim().Length == 0).Count();
 
@@ -437,7 +467,39 @@ public static partial class Metadati
         if (corpo == "END" || corpo.StartsWith("END ", StringComparison.Ordinal))
         {
             string nomeEnd = corpo[3..].Trim();
+            if (nomeEnd.StartsWith('"'))
+            {
+                if (nomeEnd.Length < 3 || !nomeEnd.EndsWith('"') || nomeEnd[1..^1].Contains('"', StringComparison.Ordinal))
+                {
+                    return new(TipoDiTag.Illegibile, null, nessuna);
+                }
+
+                nomeEnd = nomeEnd[1..^1];
+            }
+
             return new(TipoDiTag.End, nomeEnd.Length > 0 ? nomeEnd : null, nessuna);
+        }
+
+        // Il nome fra virgolette (D4): tutto fino alla virgoletta che chiude, poi solo chiavi.
+        if (corpo.StartsWith('"'))
+        {
+            int chiude = corpo.IndexOf('"', 1);
+            if (chiude <= 1 || (chiude + 1 < corpo.Length && !char.IsWhiteSpace(corpo[chiude + 1])))
+            {
+                return new(TipoDiTag.Illegibile, null, nessuna);
+            }
+
+            var chiaviDopo = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (Match parola in Parole().Matches(corpo[(chiude + 1)..]))
+            {
+                int uguale = parola.Value.IndexOf('=', StringComparison.Ordinal);
+                if (uguale <= 0 || uguale == parola.Value.Length - 1 || !chiaviDopo.TryAdd(parola.Value[..uguale], parola.Value[(uguale + 1)..]))
+                {
+                    return new(TipoDiTag.Illegibile, null, nessuna);
+                }
+            }
+
+            return new(TipoDiTag.Dichiarazione, corpo[1..chiude], chiaviDopo);
         }
 
         var parole = Parole().Matches(corpo);
@@ -470,6 +532,8 @@ public static partial class Metadati
         string nome = primaChiave < 0 ? corpo : corpo[..parole[primaChiave].Index].TrimEnd();
         return new(TipoDiTag.Dichiarazione, nome, chiavi);
     }
+
+    private static string FraVirgolette(string nome) => "\"" + nome + "\"";
 
     [GeneratedRegex(@"\S+")]
     private static partial Regex Parole();

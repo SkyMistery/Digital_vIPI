@@ -105,3 +105,9 @@ public enum TipoDiProblemaDeiMetadati
 
 /// <summary>Dove sta una riga di tag fra i pezzi del file: nelle righe grezze o nei commenti di testa di un record.</summary>
 internal readonly record struct PosizioneDelTag(int Pezzo, bool InTesta, int Indice);
+
+/// <summary>
+/// Una procedura dell'elenco di una mappa composta (F3-bis D5): il nome, e la pista se l'elenco la sceglie
+/// (<c>25:NENI5A</c>); senza pista vale per tutte quelle che hanno quel nome.
+/// </summary>
+public sealed record ProceduraDellaComposta(string? Pista, string Nome);

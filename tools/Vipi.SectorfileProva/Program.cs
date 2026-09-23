@@ -97,6 +97,35 @@ foreach (string riga in diversi)
     Console.WriteLine("  " + riga);
 }
 
+// 5b. Il <br> nel modello (F3-bis slice 3): in ogni record di .str/.sid per nome o misto, i <br> delle righe di corpo
+//     devono essere tanti quanti ne scrive lo scrittore dal modello. Fino alla slice 3 si perdevano.
+int brNelleRighe = 0, brDalModello = 0, recordConBrDiversi = 0;
+foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
+{
+    if (Path.GetExtension(percorso).ToLowerInvariant() is not (".str" or ".sid"))
+    {
+        continue;
+    }
+
+    foreach (var pezzo in new StrParser(avvisi).Parse(percorso, new ColorPalette()).Chunks.OfType<RecordChunk<StrRecord>>())
+    {
+        if (pezzo.Record is not (ProcedureStrRecord or HoldingStrRecord))
+        {
+            continue;
+        }
+
+        int nelleRighe = pezzo.RawLines.Skip(1).Count(r => !r.TrimStart().StartsWith("//", StringComparison.Ordinal)
+            && r.Split(';') is { Length: >= 3 } campi && campi[2].Trim() == "<br>");
+        int dalModello = new StrSaver().Serialize(pezzo.Record).Skip(1).Count(r => r.EndsWith("<br>", StringComparison.Ordinal));
+        brNelleRighe += nelleRighe;
+        brDalModello += dalModello;
+        recordConBrDiversi += nelleRighe == dalModello ? 0 : 1;
+    }
+}
+
+Console.WriteLine($"<br> NEL MODELLO (record per nome e misti): {brNelleRighe} nelle righe, {brDalModello} dal modello, " +
+    $"{recordConBrDiversi} record diversi");
+
 var opache = avvisi.Snapshot();
 Console.WriteLine($"\nRIGHE OPACHE (avvisi del lettore): {opache.Count}");
 foreach (var gruppo in opache
@@ -197,7 +226,8 @@ foreach (string riga in discordi.Take(40))
 // 5. I TAG //@ (F2 slice 7, carta madre §8.2), solo su .sid e .str. Sull'albero com'è: quanti tag e quanti problemi.
 //    Poi TAG SU TUTTO: ogni record riceve il suo blocco (dichiarazione con una chiave, START, END) e il file il suo
 //    //@source; si salva e si rilegge. Ogni record deve ritrovare i suoi tag, delimitati, senza problemi, e tolte
-//    le righe //@ il file deve tornare quello di prima, byte per byte.
+//    le righe //@ il file deve tornare quello di prima, byte per byte. Le MAPS dei .str ricevono anche `composta`
+//    (F3-bis slice 3): i loro nomi hanno spazi, e si scrivono fra virgolette.
 int tagNelFile = 0, problemiNelFile = 0, recordEtichettati = 0, recordRitrovati = 0, fileTornati = 0, fileEtichettati = 0;
 var guastiDeiTag = new List<string>();
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
@@ -303,7 +333,7 @@ foreach (var (cosa, file, esito) in colLettoreDiVipi.Where(p => !p.Esito.Pulito)
     }
 }
 
-return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 ? 0 : 1;
+return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 && recordConBrDiversi == 0 ? 0 : 1;
 
 void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string> nomeDi, string percorso)
     where T : class
@@ -318,7 +348,13 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
     {
         foreach (var record in letto.Records)
         {
-            etichettato = Metadati.Scrivi(etichettato, record, nomeDi, new Dictionary<string, string> { ["initialclimb"] = "5000" });
+            var chiavi = new Dictionary<string, string> { ["initialclimb"] = "5000" };
+            if (record is StrRecord { RunwaySpec: "MAPS" })
+            {
+                chiavi["composta"] = "ODINA4E,25:NENI5A";
+            }
+
+            etichettato = Metadati.Scrivi(etichettato, record, nomeDi, chiavi);
         }
     }
     catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
@@ -337,7 +373,8 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         fileEtichettati++;
         recordEtichettati += riletto.Records.Count;
         recordRitrovati += riletto.Records.Count(r => metadati.Di(r) is { Delimitato: true } m
-            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("initialclimb") == "5000");
+            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("initialclimb") == "5000"
+            && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault("composta") == "ODINA4E,25:NENI5A"));
         if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
             || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610")
         {

@@ -120,7 +120,7 @@ public sealed class MetadatiTests
         string[] prima = File.ReadAllLines(percorso);
 
         int i = Array.IndexOf(dopo, "LIRF;25;XIBR5A;;;;;1;");
-        Assert.Equal(new[] { "//@XIBR5A fix=XIBRU initialclimb=5000", "//@START", "LIRF;25;XIBR5A;;;;;1;", "//@END XIBR5A" }, dopo[(i - 2)..(i + 2)]);
+        Assert.Equal(new[] { "//@\"XIBR5A\" fix=XIBRU initialclimb=5000", "//@START", "LIRF;25;XIBR5A;;;;;1;", "//@END \"XIBR5A\"" }, dopo[(i - 2)..(i + 2)]);
         Assert.Equal(prima, dopo.Where(r => !r.StartsWith("//@", StringComparison.Ordinal)));
         Assert.DoesNotContain("//@", string.Concat(File.ReadAllLines(percorso)));   // il file passato non cambia
 
@@ -129,7 +129,7 @@ public sealed class MetadatiTests
         var ancora = Metadati.Scrivi(riletto, riletto.Records.Single(s => s.Name == "XIBR5A"), Metadati.NomeSid,
             new Dictionary<string, string> { ["initialclimb"] = "6000" });
         string[] ultimo = Salva(ancora);
-        Assert.Equal("//@XIBR5A initialclimb=6000", Assert.Single(ultimo.Where((r, k) => r != dopo[k])));
+        Assert.Equal("//@\"XIBR5A\" initialclimb=6000", Assert.Single(ultimo.Where((r, k) => r != dopo[k])));
     }
 
     // .str: il nome con lo spazio (MAPS «LIRF CTR») e il record che tiene le righe vuote fino all'intestazione dopo:
@@ -150,8 +150,8 @@ public sealed class MetadatiTests
 
         Assert.Equal(new[]
         {
-            "//@LIRF CTR fix=X", "//@START", "LIRF;MAPS;LIRF CTR; ; ;1;", "N042.02.22.000;E012.21.18.000;",
-            "N041.56.25.000;E011.52.10.000;", "//@END LIRF CTR", "", "LIRF;16L;BULL1A; ; ;0;", "BULL;BULL;",
+            "//@\"LIRF CTR\" fix=X", "//@START", "LIRF;MAPS;LIRF CTR; ; ;1;", "N042.02.22.000;E012.21.18.000;",
+            "N041.56.25.000;E011.52.10.000;", "//@END \"LIRF CTR\"", "", "LIRF;16L;BULL1A; ; ;0;", "BULL;BULL;",
         }, dopo);
 
         var riletto = Str(string.Join("\r\n", dopo) + "\r\n");

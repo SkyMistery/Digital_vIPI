@@ -21,6 +21,9 @@ namespace Vipi.Sectorfile.IO;
 /// &lt;br&gt; semantics (official, ARCHITECTURE §3.3): when "&lt;br&gt;" is the 3rd field of a body
 /// coordinate line, that point is the FIRST point of a NEW segment — it does NOT belong to the
 /// previous segment. <see cref="GeometricStrRecord"/> therefore starts a new segment at every &lt;br&gt;.
+/// 🔴 F3-bis slice 3: a named point can carry it too (<c>ODINA;ODINA;&lt;br&gt;</c>, the maps that gather
+/// procedures), and so can a coordinate inside a mixed record: until then only the geometric records kept it,
+/// and the other two dropped it silently (<see cref="ProcedureWaypoint.IniziaUnTratto"/>).
 /// </summary>
 public sealed class StrParser : IFileParser<StrRecord>
 {
@@ -52,11 +55,12 @@ public sealed class StrParser : IFileParser<StrRecord>
             Display = string.Empty;
         }
 
-        public BodyToken(string fix, string display, string? suffix)
+        public BodyToken(string fix, string display, bool hasBr, string? suffix)
         {
             IsCoord = false;
             Fix = fix;
             Display = display;
+            HasBr = hasBr;
             Suffix = suffix;
         }
 
@@ -238,7 +242,7 @@ public sealed class StrParser : IFileParser<StrRecord>
 
         string fix = parts[0].Trim();
         string display = n >= 2 ? parts[1].Trim() : fix;
-        return new BodyToken(fix, display, suffix);
+        return new BodyToken(fix, display, hasBr, suffix);
     }
 
     private static StrRecord BuildRecord(string[] header, List<BodyToken> body, string source, int lineNumber)
@@ -292,6 +296,7 @@ public sealed class StrParser : IFileParser<StrRecord>
                 FixName = token.Fix,
                 DisplayLabel = token.Display,
                 SuffixCode = token.Suffix,
+                IniziaUnTratto = token.HasBr,
             });
         }
 
@@ -304,8 +309,8 @@ public sealed class StrParser : IFileParser<StrRecord>
         foreach (var token in body)
         {
             record.Points.Add(token.IsCoord
-                ? new HoldingCoordPoint { Position = token.Coord, SuffixCode = token.Suffix }
-                : new HoldingFixPoint { FixName = token.Fix, DisplayLabel = token.Display, SuffixCode = token.Suffix });
+                ? new HoldingCoordPoint { Position = token.Coord, SuffixCode = token.Suffix, IniziaUnTratto = token.HasBr }
+                : new HoldingFixPoint { FixName = token.Fix, DisplayLabel = token.Display, SuffixCode = token.Suffix, IniziaUnTratto = token.HasBr });
         }
 
         return record;
