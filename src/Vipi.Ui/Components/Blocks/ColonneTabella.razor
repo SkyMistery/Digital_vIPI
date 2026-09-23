@@ -1,0 +1,54 @@
+@* Le larghezze delle colonne di una tabella generica (S4): un `<colgroup>` da mettere come PRIMO figlio della
+   `<table>`, che accanto porta la classe `Classe(...)`.
+
+   ⚠️ Un posto solo per quattro tabelle — la pagina pubblicata, l'anteprima e l'editor, nei due editor — perche'
+   e' la stessa scelta di chi scrive, vista in quattro schermate: quattro copie avrebbero dato quattro tabelle
+   che si somigliano.
+
+   ⚠️ La classe serve perche' `cfg-table` cabla 26/38/18/18% sulle prime quattro celle (vedi il foglio, § .cfg-table):
+   con un `<col>` la colonna prende la sua larghezza, ma le colonne lasciate automatiche prenderebbero ancora
+   quelle di un'altra tabella. `tab-larg` le rimette ad `auto`. Senza larghezze non esce niente, e la tabella
+   resta quella di prima della S4. *@
+
+@if (Ci(Larghezze))
+{
+    <colgroup>
+        @foreach (var w in Larghezze)
+        {
+            <col style="@(w is int n ? $"width:{n}%" : null)" />
+        }
+        @if (Coda is not null)
+        {
+            <col style="@Coda" />
+        }
+    </colgroup>
+}
+
+@code {
+    /// <summary>Una per colonna, in percento; <c>null</c> = automatica (<c>TabellaGenerica.Larghezze</c>).</summary>
+    [Parameter, EditorRequired] public IReadOnlyList<int?> Larghezze { get; set; } = Array.Empty<int?>();
+
+    /// <summary>Lo stile di una colonna in piu' in fondo — quella dei tasti, nell'editor.</summary>
+    [Parameter] public string? Coda { get; set; }
+
+    /// <summary>C'e' almeno una larghezza scritta.</summary>
+    public static bool Ci(IReadOnlyList<int?>? larghezze) => larghezze?.Any(x => x is not null) == true;
+
+    /// <summary>
+    /// La somma delle larghezze quando la pagina NON le potra' rispettare alla lettera, altrimenti <c>null</c>:
+    /// se sono tutte scritte e non fanno 100 il browser le allarga (o stringe) in proporzione, e se passano
+    /// 100 le colonne automatiche restano senza spazio. ⚠️ Nell'editor non si vedrebbe: lo spazio avanzato
+    /// lo prende la colonna dei tasti, e la tabella sembra giusta mentre la pagina esce diversa.
+    /// </summary>
+    public static int? SommaCheNonTorna(IReadOnlyList<int?>? larghezze)
+    {
+        if (!Ci(larghezze)) return null;
+        var somma = larghezze!.Sum(x => x ?? 0);
+        var tutte = larghezze!.All(x => x is not null);
+        return somma > 100 || (tutte && somma != 100) ? somma : null;
+    }
+
+    /// <summary>La classe della `<table>`, con le classi che ha gia'.</summary>
+    public static string Classe(string classi, IReadOnlyList<int?>? larghezze) =>
+        Ci(larghezze) ? classi + " tab-larg" : classi;
+}

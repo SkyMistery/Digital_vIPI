@@ -1969,6 +1969,9 @@
   <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Eliminare il blocco?</value></data>
   <data name="Dse_RemoveColumn" xml:space="preserve"><value>Rimuovi colonna</value></data>
   <data name="Dse_AddColumn" xml:space="preserve"><value>Aggiungi colonna</value></data>
+  <data name="Dse_ColumnWidth" xml:space="preserve"><value>Larghezza della colonna (%)</value></data>
+  <data name="Dse_ColumnWidthHint" xml:space="preserve"><value>Larghezza della colonna in percento della tabella. Vuota = automatica.</value></data>
+  <data name="Dse_ColumnWidthSum" xml:space="preserve"><value>Le larghezze sommano a {0}%: nella pagina le colonne si allargano o si stringono in proporzione. Lascia almeno una colonna vuota (automatica), o fai tornare 100.</value></data>
   <data name="Dse_RemoveRow" xml:space="preserve"><value>Rimuovi riga</value></data>
   <data name="Dse_Row" xml:space="preserve"><value>Riga</value></data>
   <data name="Ed_Saving" xml:space="preserve"><value>Salvataggio…</value></data>

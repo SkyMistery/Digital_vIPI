@@ -1964,6 +1964,9 @@
   <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Delete the block?</value></data>
   <data name="Dse_RemoveColumn" xml:space="preserve"><value>Remove column</value></data>
   <data name="Dse_AddColumn" xml:space="preserve"><value>Add column</value></data>
+  <data name="Dse_ColumnWidth" xml:space="preserve"><value>Column width (%)</value></data>
+  <data name="Dse_ColumnWidthHint" xml:space="preserve"><value>Column width as a percentage of the table. Empty = automatic.</value></data>
+  <data name="Dse_ColumnWidthSum" xml:space="preserve"><value>The widths add up to {0}%: on the page the columns grow or shrink proportionally. Leave at least one column empty (automatic), or make them add up to 100.</value></data>
   <data name="Dse_RemoveRow" xml:space="preserve"><value>Remove row</value></data>
   <data name="Dse_Row" xml:space="preserve"><value>Row</value></data>
   <data name="Ed_Saving" xml:space="preserve"><value>Saving…</value></data>

@@ -3016,6 +3016,12 @@
 :where(.vipi-root) .cfg-table th:nth-child(2),:where(.vipi-root) .cfg-table td:nth-child(2){width:38%}
 :where(.vipi-root) .cfg-table th:nth-child(3),:where(.vipi-root) .cfg-table td:nth-child(3){width:18%}
 :where(.vipi-root) .cfg-table th:nth-child(4),:where(.vipi-root) .cfg-table td:nth-child(4){width:18%}
+/* S4: tabella generica con le larghezze scelte da chi scrive (`ColonneTabella`): le decide il `<colgroup>`, e le
+   colonne lasciate automatiche NON prendono le percentuali qui sopra, che sono di un'altra tabella. ⚠️ Sta DOPO:
+   stessa specificita', vince l'ordine. */
+:where(.vipi-root) .cfg-table.tab-larg :is(th,td){width:auto}
+:where(.vipi-root) .tab-larg-in{display:flex;gap:3px;align-items:center;margin-top:3px;font-size:12px;font-weight:400;color:var(--ink-soft,var(--ink-mid))}
+:where(.vipi-root) .tab-larg-in input{width:4.5em;padding:2px 4px;font-size:12px}
 :where(.vipi-root) .cfg-table td{overflow-wrap:anywhere}
 
 /* Blocco «carta d'area» del corpo editoriale (AreaMapBlock): shape disegnata + banda quota accanto.

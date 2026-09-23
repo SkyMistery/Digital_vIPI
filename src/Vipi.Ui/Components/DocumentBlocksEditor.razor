@@ -144,63 +144,78 @@
     // ---- editor tabella (columns + rows di celle) ----
     //
     // La forma del payload sta in UN posto solo (`TabellaGenerica`), condivisa con `DocumentSectionsEditor`.
-    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
-        TabellaGenerica.Leggi(json);
+    //
+    // S4: le larghezze delle colonne viaggiano CON la tabella. ⚠️ Ogni mutazione le rilegge e le riscrive: una
+    // `Scrivi` senza larghezze le cancellerebbe al primo clic su una cella.
+    private static (List<string> Cols, List<List<string>> Rows, List<int?> Widths) ParseTable(string? json)
+    {
+        var (cols, rows) = TabellaGenerica.Leggi(json);
+        return (cols, rows, TabellaGenerica.Larghezze(json));
+    }
 
-    private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        TabellaGenerica.Scrivi(cols, rows);
+    private static string SerializeTable(List<string> cols, List<List<string>> rows, List<int?> widths) =>
+        TabellaGenerica.Scrivi(cols, rows, widths);
 
     private Task SetTableCol(ExtraBlock b, int ci, string val)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         if (ci < cols.Count) cols[ci] = val;
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
+        return Changed();
+    }
+    private Task SetTableWidth(ExtraBlock b, int ci, string val)
+    {
+        var (cols, rows, larg) = ParseTable(b.TableJson);
+        if (ci < larg.Count) larg[ci] = TabellaGenerica.LarghezzaDa(val);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
     private Task RemoveTableCol(ExtraBlock b, int ci)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         if (ci < cols.Count) cols.RemoveAt(ci);
+        if (ci < larg.Count) larg.RemoveAt(ci);
         foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
     private Task AddTableCol(ExtraBlock b)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         cols.Add($"Colonna {cols.Count + 1}");
         foreach (var r in rows) r.Add("");
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
     private Task SetTableCell(ExtraBlock b, int ri, int ci, string val)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
     private Task AddTableRow(ExtraBlock b)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
     private Task RemoveTableRow(ExtraBlock b, int ri)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         if (ri < rows.Count) rows.RemoveAt(ri);
-        b.TableJson = SerializeTable(cols, rows);
+        b.TableJson = SerializeTable(cols, rows, larg);
         return Changed();
     }
 
     private RenderFragment TableEditor(ExtraBlock b) => __builder =>
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         @* `data-sid-host`: il tasto «SID» qui sotto cerca la cella col fuoco dentro questo contenitore (§A73). *@
         <div data-sid-host>
-        <table class="cfg-table">
+        <table class="@ColonneTabella.Classe("cfg-table", larg)">
+            <ColonneTabella Larghezze="larg" Coda="width:70px" />
             <thead>
                 <tr>
                     @for (var ci = 0; ci < cols.Count; ci++)
@@ -211,6 +226,13 @@
                                 <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
                                 <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
                             </div>
+                            @* S4: la larghezza della colonna, in percento; vuota = automatica. *@
+                            <label class="tab-larg-in" title="@L["Dse_ColumnWidthHint"]">
+                                <input class="app-in" type="number" min="@TabellaGenerica.LarghezzaMin" max="@TabellaGenerica.LarghezzaMax"
+                                       placeholder="auto" aria-label="@L["Dse_ColumnWidth"]"
+                                       value="@(larg[cidx]?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                       @onchange="e => SetTableWidth(b, cidx, AsString(e.Value))" />%
+                            </label>
                         </th>
                     }
                     <th style="width:42px"><button class="btn ghost" title="@L["Dse_AddColumn"]" @onclick="() => AddTableCol(b)">＋</button></th>
@@ -232,6 +254,10 @@
                 }
             </tbody>
         </table>
+        @if (ColonneTabella.SommaCheNonTorna(larg) is int somma)
+        {
+            <div class="muted" style="font-size:12px;margin-top:4px">⚠️ @string.Format(L["Dse_ColumnWidthSum"], somma)</div>
+        }
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
             @* ⚠️ L'import sta ACCANTO a «+ riga» e non altrove: e' l'alternativa allo scriverle una per una,
@@ -266,7 +292,7 @@
     /// </summary>
     private Task Importa(ExtraBlock b, RichiestaImport r)
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
 
         // Le COLONNE arrivano da chi incolla in due casi: se la tabella non ne ha ancora, e se chi importa ha
         // detto che la prima riga E' l'intestazione.
@@ -282,17 +308,18 @@
         var nuove = r.Proposta.Buone.Select(x => (IReadOnlyList<string>)x.Celle.Select(c => c.Valore).ToList());
         var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
 
-        b.TableJson = TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count));
+        b.TableJson = TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count), larg);
         _importBlock = null;
         return OnChanged.InvokeAsync();
     }
 
     private RenderFragment RenderTablePreview(ExtraBlock b) => __builder =>
     {
-        var (cols, rows) = ParseTable(b.TableJson);
+        var (cols, rows, larg) = ParseTable(b.TableJson);
         @if (cols.Count > 0 || rows.Count > 0)
         {
-            <table class="cfg-table">
+            <table class="@ColonneTabella.Classe("cfg-table", larg)">
+                <ColonneTabella Larghezze="larg" />
                 <thead><tr>@foreach (var c in cols) { <th>@c</th> }</tr></thead>
                 <tbody>
                     @foreach (var r in rows)
