@@ -233,6 +233,26 @@ public class ProcedureReferenceResolverTests
         Assert.NotEqual(airac.GetCycle(DateTime.UtcNow), chiesto);
     }
 
+    /// <summary>S5: l'avviso delle procedure non trovate negli accordi confronta col ciclo ENTRANTE e sa quando entra
+    /// in vigore; i nomi di lettura restano quelli di OGGI.</summary>
+    [Fact]
+    public async Task Le_tabelle_entranti_chiedono_il_ciclo_entrante_e_ne_danno_la_data()
+    {
+        var airac = new AiracService();
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Star, "LIRN")] = Tabella("ERIK1A") } };
+        var resolver = new ProcedureReferenceResolver(vive, new Congelate(), airac);
+        var tabelle = new HashSet<(ProcedureKind, string)> { (ProcedureKind.Star, "LIRN") };
+
+        var entrante = await resolver.PerTabelleEntrantiAsync(tabelle);
+        var prossimo = airac.NextCycles(DateTime.UtcNow, 2)[1];
+        Assert.Equal(prossimo.Cycle, Assert.Single(vive.Cicli));
+        Assert.Equal(prossimo.EffectiveUtc, entrante.CambioUtc);
+        Assert.NotNull(entrante.Nomi.NomeDelPunto(ProcedureKind.Star, "LIRN", "ERIK1A"));
+
+        await resolver.PerTabelleAsync(tabelle);
+        Assert.Null(vive.Cicli[1]);   // la lettura: oggi
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("LIR")]

@@ -2,7 +2,8 @@
 
 > Assegnato dall'integratore il 23 settembre 2026 (`docs/filoni/da-fare.md`, sezione Sito). Filone sito, **S5**
 > (S4 è la larghezza delle colonne delle tabelle, fatta lo stesso giorno). Carta breve: tre decisioni del
-> committente PRIMA del codice. ✅ **Decise il 23 settembre 2026** (§0), il resto della carta è il ragionamento.
+> committente PRIMA del codice. ✅ **Decise il 23 settembre 2026** (§0), il resto della carta è il ragionamento. ✅ **Fatto** lo stesso giorno
+> (stato in `docs/filoni/sito.md`).
 
 ## 0. Decisioni del committente (contratto)
 

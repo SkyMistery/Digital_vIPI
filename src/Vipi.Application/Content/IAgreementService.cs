@@ -16,6 +16,15 @@ public interface IAgreementService
     /// fra i suoi settori.</summary>
     Task<IReadOnlyList<AgreementRow>> ListByAccAsync(string accCode, CancellationToken ct = default);
 
+    /// <summary>
+    /// Le SID/STAR scritte fra i punti di <paramref name="accordi"/> che negli scali della sezione non si trovano
+    /// (S5, <see cref="ProceduraNeiPunti.NonTrovate"/>): l'avviso dell'editor dei trasferimenti. Gli accordi sono
+    /// quelli che l'editor ha già in mano, così non si rilegge niente.
+    /// <para>Il corpo di ripiego (nessun avviso) serve ai finti dei test.</para>
+    /// </summary>
+    Task<IReadOnlyList<ProceduraNonTrovata>> ProcedureNonTrovateAsync(IReadOnlyList<AgreementRow> accordi,
+        CancellationToken ct = default) => Task.FromResult<IReadOnlyList<ProceduraNonTrovata>>(Array.Empty<ProceduraNonTrovata>());
+
     /// <summary>Le righe piatte proiettate dagli accordi della ACC: la forma che i cinque consumatori a valle
     /// hanno sempre letto.</summary>
     Task<IReadOnlyList<TransferFlowRow>> ListFlowsByAccAsync(string accCode, CancellationToken ct = default);

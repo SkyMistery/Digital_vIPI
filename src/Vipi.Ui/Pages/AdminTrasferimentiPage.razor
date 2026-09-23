@@ -179,6 +179,14 @@
                 <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_Gaps"]">
                     @((MarkupString)L["Xfer_GapsHelp"].Value)
                 </HelpHint>
+                @* S5: le SID/STAR scritte fra i punti che negli scali della sezione non si trovano più. Sempre
+                   presente e spento a zero, come i due accanto (la posizione di un comando è memoria). *@
+                <button class="btn @(_procOpen ? "primary" : "ghost")" disabled="@(_nonTrovate.Count == 0)"
+                        title="@L["Xfer_ProcTitle"]"
+                        @onclick="() => _procOpen = !_procOpen">⚠ @L["Xfer_Proc"] (@_nonTrovate.Count)</button>
+                <HelpHint Href="/services/vsop/guide#accordi" AriaLabel="@L["Xfer_Proc"]">
+                    @((MarkupString)L["Xfer_ProcHelp"].Value)
+                </HelpHint>
                 @if (_filtering) { <button class="btn ghost" @onclick="ResetFilters">↺ @L["Xfer_Reset"]</button> }
                 <span class="ln xt-grow"></span>
                 @* I due filtri diagnostici attraversano gli accordi: in ALBERO si trova l'accordo e si apre, in
@@ -286,6 +294,41 @@
                                 }
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            }
+
+            @* ---- Procedure non trovate (S5) ----
+               Carta 2026-09-23-procedure-non-trovate-negli-accordi. Come le lacune: il pannello se ne va da sé
+               quando l'ultima è corretta. *@
+            @if (_procOpen && _nonTrovate.Count > 0)
+            {
+                <div class="callout warning xt-bulk">
+                    <span class="cic">⚠</span>
+                    <div class="xt-bulkbody xt-gaps">
+                        <b>@L["Xfer_ProcHeading"]</b>
+                        <table class="res-table">
+                            <tbody>
+                                @foreach (var n in _nonTrovate)
+                                {
+                                    <tr>
+                                        <td><b>@n.Nome</b></td>
+                                        <td>@n.Accordo.SideA.Callsign ↔ @n.Accordo.SideB.Callsign</td>
+                                        <td>@KindLabel(n.Sezione.Kind) · @n.Sezione.AirportsLabel</td>
+                                        <td class="muted">@n.Clausola.Cops</td>
+                                        <td class="muted">@(n.SparisceIl is DateTime il
+                                            ? L["Xfer_ProcGoing", il.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)]
+                                            : L["Xfer_ProcMissing"])</td>
+                                        <td>
+                                            <button class="btn ghost" title="@L["Xfer_GoToGroupTitle"]"
+                                                    @onclick="() => GoToProc(n)">↗</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        @* D3: le copie pubbliche hanno «Coordinamenti» congelata. *@
+                        <p class="muted" style="margin:6px 0 0">@L["Xfer_ProcFrozen"]</p>
                     </div>
                 </div>
             }
@@ -891,6 +934,21 @@
         var n = 0;
         await Guarded(async () => { n = await Agreements.MergeSectionsAsync(_acc!.Code, keepId, absorbId); }, null);
         if (_error is null) _status = string.Format(L["Xfer_Merged"].Value, n);
+    }
+
+    // ---- Procedure non trovate fra i punti (S5) --------------------------------------------------------
+
+    private IReadOnlyList<ProceduraNonTrovata> _nonTrovate = Array.Empty<ProceduraNonTrovata>();
+    private bool _procOpen;
+
+    /// <summary>Apre l'accordo e la sezione della procedura, come il ↗ delle lacune.</summary>
+    private void GoToProc(ProceduraNonTrovata n)
+    {
+        SetView(XferView.Tree);
+        SelectAgreement(n.Accordo.Id);
+        _collapsedSections.Remove(n.Sezione.Id);
+        _focusSectionId = n.Sezione.Id;
+        _procOpen = false;
     }
 
     // ---- La scala di risalita (carta 2026-09-10, Parte 10) ----
@@ -3151,6 +3209,7 @@
         if (_acc is null)
         {
             _agreements = Array.Empty<AgreementRow>();
+            _nonTrovate = Array.Empty<ProceduraNonTrovata>();
             _areas = Array.Empty<SpecialAreaPick>();
             _preview = null;
             return;
@@ -3177,6 +3236,9 @@
     private async Task LoadAsync(bool withPreview = true)
     {
         _agreements = await Agreements.ListByAccAsync(_acc!.Code);
+        // S5: dopo ogni ricarico, cioè dopo ogni scrittura: correggere la clausola fa sparire la voce. In fila,
+        // non in parallelo: stesso DbContext.
+        _nonTrovate = await Agreements.ProcedureNonTrovateAsync(_agreements);
         if (withPreview) _preview = await AccDeriv.GetPreviewContextAsync(_acc.Code);
         CollapseAllButSelected();
     }
