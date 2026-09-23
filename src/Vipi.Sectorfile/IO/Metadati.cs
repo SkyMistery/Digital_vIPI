@@ -37,6 +37,14 @@ public static partial class Metadati
     public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb", "composta", "intere" };
 
     /// <summary>
+    /// Vero se una procedura con quel nome può stare nell'elenco di <c>composta</c>: niente spazi (il valore di un tag
+    /// non ne ha), virgole e due punti (separano le voci e la pista), virgolette e <c>=</c>. Sul fork 63 procedure su
+    /// 1169 non possono (<c>RNP10 UPETI</c> di <c>lica.str</c>, le rotte <c>AAR …</c> di <c>lizz.str</c>).
+    /// </summary>
+    public static bool NomeElencabile(string nome)
+        => !string.IsNullOrEmpty(nome) && !nome.Any(c => char.IsWhiteSpace(c) || c is ',' or ':' or '"' or '=');
+
+    /// <summary>
     /// Le procedure di una mappa composta, dal valore di <c>composta</c> (F3-bis D5): nomi separati da virgola, nell'ordine
     /// in cui si disegnano; <c>25:NENI5A</c> sceglie la procedura della pista 25, il nome da solo le prende tutte.
     /// Null se il valore non si legge (una voce vuota, una pista vuota).
@@ -326,6 +334,36 @@ public static partial class Metadati
     }
 
     /// <summary>
+    /// Toglie i metadati di <paramref name="record"/>: la dichiarazione, <c>//@START</c> e <c>//@END</c> (F3-bis slice 5:
+    /// una mappa che non è più composta). Le altre righe restano com'erano, e un file al quale si mette e poi si toglie
+    /// un tag torna uguale byte per byte. Restituisce il file nuovo; se il record non ha tag, quello di prima.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Il file ha tag che non valgono: toglierne uno lo romperebbe di più.</exception>
+    public static ParseResult<T> Togli<T>(ParseResult<T> letto, T record, Func<T, string> nomeDi)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        var metadati = Leggi(letto, nomeDi);
+        RifiutaSeRotto(metadati);
+        if (metadati.Di(record) is not { } esistenti)
+        {
+            return letto;
+        }
+
+        var pezzi = letto.Chunks.ToList();
+        int pezzo = IndiceDel(letto, record);
+
+        // Prima la fine (dopo il record), poi la dichiarazione (prima): togliere righe non sposta i pezzi.
+        if (esistenti.Delimitato)
+        {
+            TogliLaFine(pezzi, pezzo);
+        }
+
+        TogliLaRiga(pezzi, esistenti.Dichiarazione, ancheLoStartSotto: esistenti.Delimitato);
+        return letto with { Chunks = pezzi };
+    }
+
+    /// <summary>
     /// Scrive il ciclo AIRAC del file (<c>//@source=AIRAC2610</c>): cambia la riga se c'è, o la mette in cima.
     /// Restituisce il file nuovo.
     /// </summary>
@@ -410,6 +448,42 @@ public static partial class Metadati
             RecordChunk<T> rec when dove.InTesta => Copia(rec, testa: Nuove(rec.LeadingComments).ToArray()),
             RawChunk<T> raw => new RawChunk<T>(Nuove(raw.Lines)),
             _ => throw new InvalidOperationException("Posizione del tag non valida."),
+        };
+    }
+
+    // Toglie la riga in quella posizione e, se c'è subito sotto, il suo //@START.
+    private static void TogliLaRiga<T>(List<FileChunk<T>> pezzi, PosizioneDelTag dove, bool ancheLoStartSotto)
+    {
+        string[] Senza(string[] vecchie)
+        {
+            int quante = ancheLoStartSotto && dove.Indice + 1 < vecchie.Length && vecchie[dove.Indice + 1].Trim() == "//@START" ? 2 : 1;
+            return vecchie.Take(dove.Indice).Concat(vecchie.Skip(dove.Indice + quante)).ToArray();
+        }
+
+        pezzi[dove.Pezzo] = pezzi[dove.Pezzo] switch
+        {
+            RecordChunk<T> rec when dove.InTesta => Copia(rec, testa: Senza(rec.LeadingComments)),
+            RawChunk<T> raw => new RawChunk<T>(Senza(raw.Lines)),
+            _ => throw new InvalidOperationException("Posizione del tag non valida."),
+        };
+    }
+
+    // Toglie il `//@END` che chiude il record: la prima riga del pezzo dopo, come lo mette MettiLaFine.
+    private static void TogliLaFine<T>(List<FileChunk<T>> pezzi, int pezzo)
+    {
+        static bool EUnaFine(string riga) => riga.Trim().StartsWith("//@END", StringComparison.Ordinal);
+
+        if (pezzo + 1 >= pezzi.Count)
+        {
+            return;
+        }
+
+        pezzi[pezzo + 1] = pezzi[pezzo + 1] switch
+        {
+            RawChunk<T> raw when raw.Lines.Length > 0 && EUnaFine(raw.Lines[0]) => new RawChunk<T>(raw.Lines.Skip(1)),
+            RecordChunk<T> rec when rec.LeadingComments.Length > 0 && EUnaFine(rec.LeadingComments[0])
+                => Copia(rec, testa: rec.LeadingComments[1..]),
+            var altro => altro,
         };
     }
 

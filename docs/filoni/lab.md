@@ -18,7 +18,10 @@
   sul fork). ✅ **slice 2** (propagazione: una voce, più diff, annulla insieme, «allinea anche questo»). ✅ **slice 3** (tag fra virgolette, `composta`,
   `<br>` nel modello: 545/545 e 2782/2782 sul fork). ✅ **slice 4** (rigenerazione, `intere=si` = D8 rivista
   per mappa, regole `CompostaConProceduraAssente`/`CompostaNonAllineata`, STAR dei `.str` modificabili; `lime.str` sul
-  fork: STAR spostata → −2 +2). ▶ **slice 5** = scheda «Composta da» con le caselle, mappa nuova, forma scelta da sola. 🟡 Dire al committente: `limf.sid:28` `LIMF18;…` (manca un `;`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
+  fork: STAR spostata → −2 +2). ✅ **slice 5** (scheda «Composta da», «Composta da quello che disegna oggi»: 20/55
+  aggregati del fork adottati col solo tag; mappa nuova + rinomina col tag; nomi con spazi esclusi). ▶ **slice 6** =
+  prove a mano del committente (Aurora compresa), eseguibile da ripubblicare in `SectorLab-prova`. ❓ Aperta: nomi di
+  procedura con spazi nell'elenco (63/1169, solo `lica` `RNP10` fra gli aggregati). 🟡 Dire al committente: `limf.sid:28` `LIMF18;…` (manca un `;`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
   (`CopieGemelle.cs`, `Regola.CopieDiverse`), `IO/Metadati.cs` (virgolette, `composta`, `intere`), `IO/MappeComposte.cs`, `Regola.Composta*`, `StrRecord`/`StrParser`/`StrSaver`
   (`IniziaUnTratto`), `tools/Vipi.SectorfileProva` (sezione 5b).
 - Prove sul fork: eseguibile in `D:\Programmazione\IVAO_Test\SectorLab-prova\`, clone

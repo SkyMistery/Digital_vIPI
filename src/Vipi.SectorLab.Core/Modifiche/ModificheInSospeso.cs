@@ -89,6 +89,18 @@ public sealed record ModificaDellaComposta(string File, int Record, string Etich
     public override string Descrizione => $"rigenerata dalle sue procedure ({Prima} → {Dopo} punti)";
 }
 
+/// <summary>
+/// L'elenco di una mappa composta cambiato dalla scheda (F3-bis §2.2, slice 5): il tag <c>//@"NOME" composta=…</c>
+/// scritto, riscritto o tolto. La mappa si rigenera con lui.
+/// </summary>
+public sealed record ModificaDellaDichiarazione(string File, int Record, string Etichetta, string Prima, string Dopo)
+    : Modifica(File, Record, Etichetta, Campo: Chiave)
+{
+    internal const string Chiave = "§composta-elenco";
+
+    public override string Descrizione => $"composta da: {Prima} → {Dopo}";
+}
+
 /// <summary>Perché una modifica non si è potuta fare. Il campo resta com'era.</summary>
 public sealed record ModificaRifiutata(string Motivo);
 
@@ -178,7 +190,8 @@ public sealed class ModificheInSospeso
         if (Equals(prima, dopo))
             return new ModificaRifiutata("Il valore è già questo.");
 
-        proprieta.SetValue(record, dopo);
+        if (!CambiaColSuoTag(file, record, campo, dopo, () => proprieta.SetValue(record, dopo), out string? rotto))
+            return new ModificaRifiutata(rotto!);
 
         var chiave = (file.Relativo, indice, campo);
         // Se il campo era già stato cambiato, il «prima» resta quello DELL'APERTURA: sennò annullare due modifiche
@@ -309,7 +322,8 @@ public sealed class ModificheInSospeso
 
             var elencate = MappeComposte.ProcedureElencate(composta.Elenco, record)
                 .Select(p => IndiceDi(record, p)).ToHashSet();
-            bool cambiate = _fatte.Keys.Any(k => k.File == file.Relativo && elencate.Contains(k.Record));
+            bool cambiate = _fatte.Keys.Any(k => k.File == file.Relativo
+                && (elencate.Contains(k.Record) || (k.Record == indice && k.Campo == ModificaDellaDichiarazione.Chiave)));
             if (!cambiate)
             {
                 RimettiLaMappa(file, indice);
@@ -339,7 +353,99 @@ public sealed class ModificheInSospeso
                 _sporchi[file.Relativo] = suoi = [];
             suoi[indice] = composta.Mappa;
         }
+
+        // Una mappa rigenerata che non è più composta (la scheda ha tolto il tag) torna com'era all'apertura.
+        var composte = MappeComposte.Di(str.Letto).Select(c => IndiceDi(record, c.Mappa)).ToHashSet();
+        foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file.Relativo && !composte.Contains(k.Record)).ToList())
+            RimettiLaMappa(file, chiave.Record);
     }
+
+    /// <summary>Il tag di ogni mappa com'era all'apertura: annullare lo rimette, o lo toglie se non c'era.</summary>
+    private readonly Dictionary<(string File, int Record), (string? Composta, bool Intere)> _dichiarazioniDiPartenza = [];
+
+    /// <summary>
+    /// Cambia l'elenco di una mappa composta (F3-bis §2.2, slice 5): scrive, riscrive o toglie (elenco vuoto) il tag
+    /// <c>//@"NOME" composta=… [intere=si]</c> e rigenera la mappa. Se la mappa diventa composta adesso e
+    /// <paramref name="intere"/> non è dato, la forma è quella che la lascia com'è (<see cref="IntereLaLascianoComE"/>).
+    /// </summary>
+    public object CambiaLaComposta(FileAperto file, int indice, IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere = null)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(elenco);
+        if (file is not FileLetto<StrRecord> str || indice < 0 || indice >= str.Letto.Records.Count)
+            return new ModificaRifiutata("Una mappa composta sta in un .str.");
+        var mappa = str.Letto.Records[indice];
+        if (mappa.RunwaySpec != "MAPS")
+            return new ModificaRifiutata("Solo una mappa MAPS può essere composta.");
+        if (elenco.FirstOrDefault(v => !Metadati.NomeElencabile(v.Nome)) is { } nonElencabile)
+            return new ModificaRifiutata($"«{nonElencabile.Nome}» non può stare nell'elenco: il nome ha uno spazio, una virgola, due punti o virgolette.");
+
+        var metadati = Metadati.Leggi(str.Letto, Metadati.NomeStr);
+        if (metadati.Problemi.FirstOrDefault(p => p.EUnErrore) is { } rotto)
+            return new ModificaRifiutata($"Il file ha tag //@ che non valgono (riga {rotto.Riga}): vanno sistemati prima.");
+
+        var chiaviOggi = metadati.Di(mappa)?.Chiavi ?? new Dictionary<string, string>();
+        string? compostaOggi = chiaviOggi.GetValueOrDefault("composta");
+        bool intereOggi = chiaviOggi.GetValueOrDefault("intere") == "si";
+        string? valore = elenco.Count == 0 ? null : string.Join(",", elenco.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome));
+        bool intereNuove = valore is not null && (intere ?? (compostaOggi is null ? IntereLaLascianoComE(mappa, elenco, str.Letto.Records) : intereOggi));
+        if (valore == compostaOggi && intereNuove == intereOggi)
+            return new ModificaRifiutata("La mappa è già composta così.");
+
+        var chiave = (file.Relativo, indice);
+        if (!_dichiarazioniDiPartenza.ContainsKey(chiave))
+            _dichiarazioniDiPartenza[chiave] = (compostaOggi, intereOggi);
+        Fotografa(file, str);
+
+        var altre = chiaviOggi.Where(c => c.Key is not ("composta" or "intere")).ToDictionary(c => c.Key, c => c.Value);
+        if (valore is not null)
+        {
+            altre["composta"] = valore;
+            if (intereNuove)
+                altre["intere"] = "si";
+        }
+
+        str.RipristinaLaStruttura(altre.Count == 0
+            ? Metadati.Togli(str.Letto, mappa, Metadati.NomeStr)
+            : Metadati.Scrivi(str.Letto, mappa, Metadati.NomeStr, altre));
+
+        var partenza = _dichiarazioniDiPartenza[chiave];
+        var voce = (file.Relativo, indice, ModificaDellaDichiarazione.Chiave);
+        var modifica = new ModificaDellaDichiarazione(file.Relativo, indice, Metadati.NomeStr(mappa),
+            Scritto(partenza.Composta, partenza.Intere), Scritto(valore, intereNuove));
+        if (valore == partenza.Composta && intereNuove == partenza.Intere)
+        {
+            // Tornato l'elenco dell'apertura. Se nel file non è cambiata altra struttura, si rimettono le sue righe
+            // com'erano: il tag scritto di nuovo potrebbe non essere identico a quello di prima (virgolette, ordine).
+            _fatte.Remove(voce);
+            _dichiarazioniDiPartenza.Remove(chiave);
+            if (!_fatte.Keys.Any(k => k.File == file.Relativo && k.Campo is ModificaDiStruttura.Chiave or ModificaDellaDichiarazione.Chiave)
+                && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
+            {
+                str.RipristinaLaStruttura(comEra);
+            }
+        }
+        else
+        {
+            _fatte[voce] = modifica;
+            if (!_sporchi.ContainsKey(file.Relativo))
+                _sporchi[file.Relativo] = [];
+        }
+
+        RigeneraLeComposte(file);
+        return modifica;
+    }
+
+    /// <summary>
+    /// La forma per una mappa che diventa composta adesso: intera se così, e non troncata, la mappa resta com'è oggi
+    /// (7 mappe del fork, <c>lirs</c>, <c>libp</c>…); troncata in ogni altro caso (D8 rivista).
+    /// </summary>
+    public static bool IntereLaLascianoComE(StrRecord mappa, IReadOnlyList<ProceduraDellaComposta> elenco, IReadOnlyList<StrRecord> recordDelFile)
+        => !MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, recordDelFile).Punti)
+           && MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, recordDelFile, intere: true).Punti);
+
+    private static string Scritto(string? composta, bool intere)
+        => composta is null ? "—" : composta.Replace(",", ", ", StringComparison.Ordinal) + (intere ? " (intere)" : "");
 
     /// <summary>La mappa com'era all'apertura, e via la sua voce.</summary>
     private void RimettiLaMappa(FileAperto file, int indice)
@@ -363,6 +469,48 @@ public sealed class ModificheInSospeso
         }
 
         return -1;
+    }
+
+    /// <summary>
+    /// Il nome di un record di <c>.str</c> è quello a cui si aggancia il suo tag <c>//@</c>: rinominarlo senza riscrivere
+    /// il tag lo lascerebbe al nome vecchio, e il file avrebbe un tag che non combacia (F3-bis slice 5: una mappa nuova
+    /// nasce col nome della vicina, e l'AOD la rinomina anche dopo averla composta). Qui il tag segue il nome.
+    /// </summary>
+    private bool CambiaColSuoTag(FileAperto file, object record, string campo, object? dopo, Action cambia, out string? perche)
+    {
+        perche = null;
+        if (campo != nameof(StrRecord.ProcedureId) || file is not FileLetto<StrRecord> str || record is not StrRecord conNome)
+        {
+            cambia();
+            return true;
+        }
+
+        var metadati = Metadati.Leggi(str.Letto, Metadati.NomeStr);
+        if (metadati.Di(conNome) is not { } suoi)
+        {
+            cambia();
+            return true;
+        }
+
+        string nuovo = dopo as string ?? string.Empty;
+        if (nuovo.Trim().Length == 0 || nuovo.Contains('"', StringComparison.Ordinal) || nuovo.Trim() != nuovo)
+        {
+            perche = "Questo record ha un tag //@: il nome non può essere vuoto, avere virgolette o spazi in testa e in coda.";
+            return false;
+        }
+
+        if (metadati.Problemi.FirstOrDefault(p => p.EUnErrore) is { } rotto)
+        {
+            perche = $"Il file ha tag //@ che non valgono (riga {rotto.Riga}): vanno sistemati prima.";
+            return false;
+        }
+
+        var chiavi = suoi.Chiavi.ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
+        Fotografa(file, str);
+        var senza = Metadati.Togli(str.Letto, conNome, Metadati.NomeStr);
+        cambia();
+        str.RipristinaLaStruttura(Metadati.Scrivi(senza, conNome, Metadati.NomeStr, chiavi));
+        return true;
     }
 
     /// <summary>Il valore di un campo come lo scrive il pannello, o null se il record non ha quel campo.</summary>
@@ -426,6 +574,14 @@ public sealed class ModificheInSospeso
             return true;
         }
 
+        // L'elenco torna quello dell'apertura (o il tag sparisce, se all'apertura non c'era).
+        if (modifica is ModificaDellaDichiarazione
+            && _dichiarazioniDiPartenza.TryGetValue((modifica.File, modifica.Record), out var tagDiPartenza))
+        {
+            return CambiaLaComposta(file, modifica.Record,
+                tagDiPartenza.Composta is null ? [] : Metadati.ElencoDellaComposta(tagDiPartenza.Composta) ?? [], tagDiPartenza.Intere) is Modifica;
+        }
+
         // I vertici non si annullano rifacendo i gesti al contrario: si rimette l'elenco com'era all'apertura.
         if (!_verticiDiPartenza.TryGetValue(chiave, out var comErano) || Vertici(file, modifica.Record, modifica.Campo) is not { } elenco)
             return false;
@@ -469,6 +625,8 @@ public sealed class ModificheInSospeso
         _fileDelleCopie.Remove(file);
         foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file).ToList())
             _mappeDiPartenza.Remove(chiave);
+        foreach (var chiave in _dichiarazioniDiPartenza.Keys.Where(k => k.File == file).ToList())
+            _dichiarazioniDiPartenza.Remove(chiave);
         UltimoAggiunto = null;
     }
 
@@ -551,6 +709,7 @@ public sealed class ModificheInSospeso
             ModificaDiCampo m => m with { Record = chiave.Record },
             ModificaDeiVertici m => m with { Record = chiave.Record },
             ModificaDellaComposta m => m with { Record = chiave.Record },
+            ModificaDellaDichiarazione m => m with { Record = chiave.Record },
             _ => modifica,
         });
         Rinumera(_verticiDiPartenza, file, daIncluso, scarto, (_, elenco) => elenco);
@@ -559,6 +718,13 @@ public sealed class ModificheInSospeso
         {
             _mappeDiPartenza[(file, chiave.Record + scarto)] = _mappeDiPartenza[chiave];
             _mappeDiPartenza.Remove(chiave);
+        }
+
+        foreach (var chiave in _dichiarazioniDiPartenza.Keys.Where(k => k.File == file && k.Record >= daIncluso)
+                     .OrderBy(k => k.Record * -scarto).ToList())
+        {
+            _dichiarazioniDiPartenza[(file, chiave.Record + scarto)] = _dichiarazioniDiPartenza[chiave];
+            _dichiarazioniDiPartenza.Remove(chiave);
         }
 
         // Le copie gemelle e le copie lasciate com'erano puntano a record di ALTRI file (F3-bis slice 2): se il record
@@ -601,6 +767,8 @@ public sealed class ModificheInSospeso
     /// <summary>Le modifiche in sospeso di un record che sta per sparire: spariscono con lui.</summary>
     private void ScordaQuelChePendeSu(string file, int indice)
     {
+        _mappeDiPartenza.Remove((file, indice));
+        _dichiarazioniDiPartenza.Remove((file, indice));
         foreach (var chiave in _fatte.Keys.Where(k => k.File == file && k.Record == indice).ToList())
         {
             _fatte.Remove(chiave);

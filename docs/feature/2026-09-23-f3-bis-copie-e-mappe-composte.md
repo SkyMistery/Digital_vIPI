@@ -262,3 +262,25 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   ME872 → OBGET → **−2 +2** (la STAR e la mappa), «Annulla tutto» → nessun diff. Validatore dell'albero invariato
   (125 errori, 382 avvisi: nel fork nessuna mappa è ancora composta); round-trip 701, `<br>` 545/545, tag 2782/2782.
 - Test motore 452 → **462** (net8 e net10), Lab 277 → **283**.
+
+**Slice 5 — «Composta da» nella scheda** (23 settembre).
+
+- Scheda di una mappa `MAPS` di un `.str`: una casella per ogni record del file che non è una mappa, **prima le STAR**,
+  gli altri col loro tipo accanto (avvicinamento, attesa…: nei `.str` ci sono tutti; `libd.str` ne ha 51). Spuntare
+  riscrive il tag e rigenera la mappa; la casella «procedure intere» cambia la forma.
+- 🔴 Spuntando una casella alla volta, già la prima rigenerava la mappa con una STAR sola, e l'ordine delle spunte
+  decideva il disegno: per adottare un aggregato esistente serviva altro. → tasto **«Composta da quello che disegna
+  oggi»** (`MappeComposte.ProcedureCheDisegna`: le procedure dei tratti, nell'ordine dei tratti) e la forma scelta da
+  sola (`IntereLaLascianoComE`). Adozione di **tutti** gli aggregati del fork attraverso il Lab: **20 su 55 col solo
+  tag** (+3 righe, di cui 6 con `intere=si` scelto da solo), 35 rigenerati, «Annulla tutto» → nessun diff.
+- `ModificaDellaDichiarazione` («composta da: — → ODIN4E, EKLI4E») è una modifica di struttura del file (come aggiungere
+  un record): il diff è contro le righe dell'apertura; annullarla rimette il tag di prima o lo toglie
+  (`Metadati.Togli`, nel motore: mettere e togliere un tag riporta il file identico byte per byte).
+- 🔴 Una mappa nuova nasce da «+ Record come questo» col nome della vicina: rinominare un record con tag ora riscrive
+  anche il tag (prima restava al nome vecchio = `NomeNonCombacia`).
+- 🔴 Trovato dalla misura: **63 procedure su 1169** hanno nel nome uno spazio (`RNP10 UPETI` di `lica.str`, le rotte `AAR …`
+  e `AEW TRACK …` di `lizz.str`) e il valore di `composta` non può averne: `Metadati.Scrivi` lanciava un'eccezione.
+  Ora `Metadati.NomeElencabile`: casella spenta col motivo, «quello che disegna oggi» le salta (i loro tratti restano
+  liberi, in fondo), `CambiaLaComposta` rifiuta con un messaggio. ❓ Per il committente: allargare la grammatica
+  (nomi fra virgolette anche nell'elenco) o lasciarle fuori? Fra i 58 aggregati le usa solo `lica` `RNP10`.
+- Test motore 462 → **471** (net8 e net10), Lab 283 → **298**.

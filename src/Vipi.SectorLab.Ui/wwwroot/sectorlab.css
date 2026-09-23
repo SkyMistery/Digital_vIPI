@@ -430,6 +430,31 @@ html, body {
     padding: .1rem 0;
 }
 
+/* F3-bis slice 5: le procedure di una mappa composta, una casella ciascuna, a colonne. */
+.lab-composta {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: .2rem .8rem;
+    margin-bottom: .8rem;
+}
+
+.lab-casella {
+    display: flex;
+    gap: .35rem;
+    align-items: baseline;
+}
+
+.lab-adotta {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
+.lab-intere {
+    grid-column: 1 / -1;
+    padding-top: .3rem;
+    border-top: 1px solid #dde1e7;
+}
+
 /* F3-bis slice 2: la copia gemella lasciata com'era sta sotto la sua modifica, rientrata. */
 .lab-copia-lasciata {
     padding-left: 1rem;

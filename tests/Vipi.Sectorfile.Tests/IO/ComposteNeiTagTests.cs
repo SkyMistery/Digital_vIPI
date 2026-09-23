@@ -144,6 +144,32 @@ public sealed class ComposteNeiTagTests
         Assert.Equal(2, new StrSaver().Serialize(perNome).Count(r => r.EndsWith("<br>", StringComparison.Ordinal)));
     }
 
+    // Slice 5: una mappa che non è più composta perde il tag, e il file torna com'era byte per byte — anche con la
+    // procedura dopo e le righe vuote che il record teneva fino all'intestazione successiva.
+    [Fact]
+    public void TogliereIlTagRimetteIlFileComEra()
+    {
+        string[] righe = [.. Mappa, "", "LIME;28:10;ODIN4E;;;;;1;", "ODINA;ODINA;4E;", "OBFUL;OBFUL;"];
+        var letto = Str(Righe(righe));
+
+        var scritto = Metadati.Scrivi(letto, letto.Records[0], Metadati.NomeStr, new Dictionary<string, string> { ["composta"] = "ODIN4E" });
+        var riletto = Str(string.Join("\r\n", Salva(scritto)) + "\r\n");
+        var tolto = Metadati.Togli(riletto, riletto.Records[0], Metadati.NomeStr);
+
+        Assert.Equal(righe, Salva(tolto));
+        Assert.Empty(Metadati.Leggi(tolto, Metadati.NomeStr).Record);
+        // Anche sul file appena scritto, senza rileggerlo: i pezzi sono quelli di Scrivi.
+        Assert.Equal(righe, Salva(Metadati.Togli(scritto, letto.Records[0], Metadati.NomeStr)));
+    }
+
+    [Fact]
+    public void TogliereDaUnRecordSenzaTagNonCambiaNiente()
+    {
+        var letto = Str(Righe(Mappa));
+
+        Assert.Same(letto, Metadati.Togli(letto, letto.Records[0], Metadati.NomeStr));
+    }
+
     private static string[] Salva<T>(ParseResult<T> letto)
     {
         string temporaneo = Path.Combine(Path.GetTempPath(), "composte-" + Guid.NewGuid().ToString("N") + ".tmp");

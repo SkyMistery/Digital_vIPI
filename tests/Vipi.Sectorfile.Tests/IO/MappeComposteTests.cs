@@ -108,6 +108,31 @@ public sealed class MappeComposteTests : IDisposable
         Assert.Equal(["|ODINA", "ODINA/4E", "ME872", "OBFUL", "TIXUM"], Chiavi(rigenerata.Punti.Take(5)));
     }
 
+    // Slice 5: l'elenco con cui un aggregato fatto a mano diventa composto è quello dei suoi tratti, nel loro ordine
+    // (non in quello del file), e ricomposto dà la mappa di oggi.
+    [Fact]
+    public void LeProcedureCheDisegnaSonoNellOrdineDeiTratti()
+    {
+        string[] invertite = [.. Procedure[6..], "", .. Procedure[..5]];   // nel file EKLI4E viene prima di ODIN4E
+        var letto = Str([.. Mappa, "", .. invertite]);
+        var mappa = letto.Records[0];
+
+        var elenco = MappeComposte.ProcedureCheDisegna(mappa, letto.Records);
+
+        Assert.Equal([new ProceduraDellaComposta(null, "ODIN4E"), new ProceduraDellaComposta(null, "EKLI4E")], elenco);
+        Assert.True(MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, letto.Records).Punti));
+    }
+
+    [Theory]
+    [InlineData("ODIN4E", true)]
+    [InlineData("RNP10 UPETI", false)]
+    [InlineData("AAR ZOE (FR)", false)]
+    [InlineData("A,B", false)]
+    [InlineData("25:X", false)]
+    [InlineData("", false)]
+    public void UnNomeConSpaziNonStaNellElenco(string nome, bool elencabile)
+        => Assert.Equal(elencabile, Metadati.NomeElencabile(nome));
+
     [Fact]
     public void UnaMappaDiSoliNomiNonPrendeUnaCoordinata()
     {

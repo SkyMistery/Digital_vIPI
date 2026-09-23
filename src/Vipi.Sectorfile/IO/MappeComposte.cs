@@ -203,6 +203,37 @@ public static class MappeComposte
         }
     }
 
+    /// <summary>
+    /// Le procedure che la mappa disegna oggi, nell'ordine dei suoi tratti: l'elenco con cui un aggregato fatto a mano
+    /// diventa composto senza cambiare (F3-bis slice 5). Il nome da solo se nel file è unico, se no con la sua prima
+    /// pista (<c>25:NENI5A</c>). I tratti che non sono una procedura del file restano fuori: sono quelli liberi (D9); e
+    /// così quelli di una procedura il cui nome non può stare nell'elenco (<see cref="Metadati.NomeElencabile"/>).
+    /// </summary>
+    public static IReadOnlyList<ProceduraDellaComposta> ProcedureCheDisegna(StrRecord mappa, IReadOnlyList<StrRecord> recordDelFile)
+    {
+        ArgumentNullException.ThrowIfNull(mappa);
+        ArgumentNullException.ThrowIfNull(recordDelFile);
+        var procedure = recordDelFile.Where(r => r.RunwaySpec != "MAPS").ToList();
+        var elenco = new List<ProceduraDellaComposta>();
+        foreach (var tratto in Tratti(PuntiDi(mappa)))
+        {
+            if (DiQualeProcedura(tratto, procedure) is not { } procedura || !Metadati.NomeElencabile(procedura.ProcedureId.Trim()))
+            {
+                continue;
+            }
+
+            string nome = procedura.ProcedureId.Trim();
+            bool unico = procedure.Count(p => p.ProcedureId.Trim() == nome) == 1;
+            var voce = new ProceduraDellaComposta(unico ? null : procedura.RunwaySpec.Split(':')[0].Trim(), nome);
+            if (!elenco.Contains(voce))
+            {
+                elenco.Add(voce);
+            }
+        }
+
+        return elenco;
+    }
+
     /// <summary>Vero se la voce dell'elenco nomina quella procedura: stesso nome, e la pista se la voce la sceglie.</summary>
     public static bool Nomina(ProceduraDellaComposta voce, StrRecord procedura)
         => procedura.ProcedureId.Trim() == voce.Nome
@@ -230,6 +261,9 @@ public static class MappeComposte
     /// (<c>ODINA</c> + <c>4E</c> = <c>ODIN4E</c>); senza suffisso, se i suoi punti sono l'inizio di quelli della procedura.
     /// </summary>
     private static bool EDiUnaProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<StrRecord> procedure)
+        => DiQualeProcedura(tratto, procedure) is not null;
+
+    private static StrRecord? DiQualeProcedura(List<PuntoDellaMappa> tratto, IReadOnlyList<StrRecord> procedure)
     {
         var chiavi = tratto.Select(p => p.Chiave).ToList();
         if (chiavi.Count >= 2 && chiavi[0] == chiavi[1])
@@ -238,7 +272,7 @@ public static class MappeComposte
         }
 
         string? suffisso = tratto.Select(p => p.Suffisso).FirstOrDefault(s => s is not null);
-        return procedure.Any(procedura =>
+        return procedure.FirstOrDefault(procedura =>
         {
             var suoi = PuntiDi(procedura);
             if (suoi.Count == 0 || suoi[0].Chiave != chiavi[0])

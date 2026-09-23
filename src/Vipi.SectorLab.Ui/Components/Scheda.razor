@@ -55,6 +55,44 @@
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
         }
 
+        @* F3-bis slice 5: una mappa MAPS di un .str può essere composta dalle procedure dello stesso file. Spuntare
+           riscrive il tag //@ e rigenera la mappa; la prima volta il Lab sceglie da solo se disegnarle intere. *@
+        @if (Lab.CompostaDi(scheda.File, scheda.Indice) is { } composta)
+        {
+            <h2 data-composta="@composta.Elenco.Count">Composta da <span class="lab-nota">@composta.Elenco.Count</span></h2>
+            <div class="lab-composta">
+                @if (composta.Caselle.Count == 0)
+                {
+                    <p class="lab-nota">In questo file non ci sono procedure da raccogliere.</p>
+                }
+                @if (composta.Elenco.Count == 0 && composta.DaQuelloCheDisegna.Count > 0)
+                {
+                    @* Un aggregato fatto a mano diventa composto così com'è: l'elenco e la forma li ricava il Lab. *@
+                    <button class="lab-tasto lab-tasto-tenue lab-adotta" data-tasto="adotta"
+                            title="@string.Join(", ", composta.DaQuelloCheDisegna.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome))"
+                            @onclick="() => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.DaQuelloCheDisegna)">
+                        Composta da quello che disegna oggi (@composta.DaQuelloCheDisegna.Count)
+                    </button>
+                }
+                @foreach (var casella in composta.Caselle)
+                {
+                    <label class="lab-casella" title="@(casella.Elencabile ? null : "Il nome ha uno spazio, una virgola o due punti: non può stare nell'elenco")">
+                        <input type="checkbox" checked="@casella.Scelta" data-procedura="@casella.Testo" disabled="@(!casella.Elencabile)"
+                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Con(casella, e.Value is true))" />
+                        @casella.Testo <span class="lab-nota">@casella.Piste @(casella.Tipo == "STAR" ? "" : "· " + casella.Tipo)</span>
+                    </label>
+                }
+                @if (composta.Elenco.Count > 0)
+                {
+                    <label class="lab-casella lab-intere" title="Ogni procedura intera, anche dove ripassa su un tratto già disegnato">
+                        <input type="checkbox" checked="@composta.Intere" data-intere="si"
+                               @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Elenco, e.Value is true)" />
+                        procedure intere
+                    </label>
+                }
+            </div>
+        }
+
         @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
         @foreach (var elenco in Lab.ElenchiDiVerticiDi(scheda.File, scheda.Indice))
         {

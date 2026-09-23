@@ -5,6 +5,7 @@ using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Problemi;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Ui.Servizi;
@@ -672,6 +673,31 @@ public sealed class SessioneDelLab
         RicontrollaLeModifiche();
         Cambiata?.Invoke();
         return esito is ModificaDiCampo;
+    }
+
+    /// <summary>«Composta da» per la scheda (F3-bis slice 5): null se il record non è una mappa MAPS di un .str.</summary>
+    public SchedaDellaComposta? CompostaDi(string fileRelativo, int record)
+        => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file) ? SchedaDellaComposta.Di(file, record) : null;
+
+    /// <summary>
+    /// Spunta o toglie una procedura dall'elenco di una mappa composta, o cambia se si disegnano intere: il tag si
+    /// riscrive e la mappa si rigenera, tutto nelle modifiche in sospeso.
+    /// </summary>
+    public bool CambiaLaComposta(string fileRelativo, int record, IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere = null)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        var esito = Modifiche.CambiaLaComposta(file, record, elenco, intere);
+        Registro.Scrivi("composta", $"{fileRelativo}#{record} = «{string.Join(",", elenco.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome))}»" +
+            (intere is { } i ? $" intere={i}" : "") + $": {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is Modifica)
+            RifaiLaGeometria(fileRelativo);
+
+        RicontrollaLeModifiche();
+        Cambiata?.Invoke();
+        return esito is Modifica;
     }
 
     /// <summary>I vertici di una forma, per l'elenco dell'ispettore (slice 7). Vuoto se quel campo non è vertici.</summary>
