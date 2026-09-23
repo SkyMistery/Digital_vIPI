@@ -349,12 +349,14 @@
     /// <summary>
     /// Carica le sezioni comuni e apre la scheda. ⚠️ Costa una lettura per membro, quindi si fa quando si
     /// apre — non a ogni ridisegno del pannello per poterne mostrare il numero in un'etichetta.
+    /// <para>⚠️ Non avvisa l'host: aprire la scheda LEGGE e basta. Avvisarlo gli faceva ricaricare la pagina
+    /// intera — documento e membri — per un gesto che non ha cambiato niente.</para>
     /// </summary>
     private Task ApriComuni() => EseguiAsync(async () =>
     {
         await CaricaComuniAsync();
         _scheda = true;
-    });
+    }, avvisaLHost: false);
 
     private async Task CaricaComuniAsync()
     {
@@ -429,7 +431,7 @@
     /// sapere — «questo documento è già unito ad altri» col nome di quali — e lasciarla cadere darebbe un
     /// tasto che a volte non fa niente senza dire perché.</para>
     /// </summary>
-    private async Task EseguiAsync(Func<Task> gesto)
+    private async Task EseguiAsync(Func<Task> gesto, bool avvisaLHost = true)
     {
         if (_busy) return;
         _busy = true;
@@ -451,7 +453,7 @@
                 _scheda = _comuni.Count > 0;
             }
             else if (_scheda) await CaricaComuniAsync();
-            await Changed.InvokeAsync();
+            if (avvisaLHost) await Changed.InvokeAsync();
         }
         catch (Vipi.Application.Aor.ValidationException ex) { _errore = ex.Message; }
         // 🔴 Il conflitto di lock si MOSTRA, non fa cadere il circuito: la scheda delle sezioni in comune
