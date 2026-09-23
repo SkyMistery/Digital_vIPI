@@ -1969,6 +1969,10 @@
   <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Eliminare il blocco?</value></data>
   <data name="Dse_RemoveColumn" xml:space="preserve"><value>Rimuovi colonna</value></data>
   <data name="Dse_AddColumn" xml:space="preserve"><value>Aggiungi colonna</value></data>
+  <data name="Dse_ColumnWidth" xml:space="preserve"><value>Larghezza della colonna (%)</value></data>
+  <data name="Dse_ColumnWidthHint" xml:space="preserve"><value>Larghezza della colonna in percento della tabella. Vuota = automatica.</value></data>
+  <data name="Dse_ColumnWidthSum" xml:space="preserve"><value>Le larghezze sommano a {0}%: nella pagina le colonne si allargano o si stringono in proporzione. Lascia almeno una colonna vuota (automatica), o fai tornare 100.</value></data>
+  <data name="Dse_ColumnGrip" xml:space="preserve"><value>Trascina per cambiare la larghezza della colonna. Doppio clic: automatica.</value></data>
   <data name="Dse_RemoveRow" xml:space="preserve"><value>Rimuovi riga</value></data>
   <data name="Dse_Row" xml:space="preserve"><value>Riga</value></data>
   <data name="Ed_Saving" xml:space="preserve"><value>Salvataggio…</value></data>
@@ -2571,6 +2575,13 @@
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>Cosa manca in questo ACC, in ordine di gravita&apos;. Nessuna e&apos; un errore: sono cose che probabilmente andrebbero scritte.</value></data>
   <data name="Xfer_ToReviewHelp" xml:space="preserve"><value>Clausole scritte &lt;b&gt;prima&lt;/b&gt; che esistesse la faccetta del trasferimento: non dicono &lt;b&gt;dove&lt;/b&gt; avviene il passaggio, e vanno riviste a mano una per una. Il tasto le &lt;b&gt;filtra&lt;/b&gt;: premilo per vedere solo quelle, ripremilo per tornare a tutte.</value></data>
   <data name="Xfer_GapsHelp" xml:space="preserve"><value>Cose che &lt;b&gt;probabilmente&lt;/b&gt; andrebbero scritte, non errori: confini senza accordo (quel traffico oggi va a UNICOM), sezioni gemelle da unire, accordi senza aeroporto. Il tasto apre l'elenco, e da ogni voce si salta al punto in cui si lavora.</value></data>
+  <data name="Xfer_Proc" xml:space="preserve"><value>Procedure non trovate</value></data>
+  <data name="Xfer_ProcTitle" xml:space="preserve"><value>SID/STAR scritte fra i punti che negli scali della sezione non si trovano più.</value></data>
+  <data name="Xfer_ProcHelp" xml:space="preserve"><value>Una SID o una STAR scritta fra i punti segue l'archivio da sola quando cambia solo il numero (ERIKA 1A → ERIKA 2A). Se il nome cambia davvero (ERIKA 1A → ERIKA 1B), non si trova più e in pagina esce così com'è scritta: qui si vede quali. Una procedura che il ciclo AIRAC entrante toglie compare negli ultimi &lt;b&gt;3 giorni&lt;/b&gt; prima del cambio.</value></data>
+  <data name="Xfer_ProcHeading" xml:space="preserve"><value>Procedure fra i punti che non si trovano: in pagina escono così come sono scritte. Correggi la clausola.</value></data>
+  <data name="Xfer_ProcMissing" xml:space="preserve"><value>non si trova negli scali della sezione</value></data>
+  <data name="Xfer_ProcGoing" xml:space="preserve"><value>sparisce col ciclo AIRAC del {0}</value></data>
+  <data name="Xfer_ProcFrozen" xml:space="preserve"><value>Le vIPI ACC/APP e le vLOA già pubblicate mostrano il nome vecchio fino alla prossima pubblicazione.</value></data>
   <data name="Xfer_PreviewHelp" xml:space="preserve"><value>Mostra sotto ogni clausola la &lt;b&gt;frase&lt;/b&gt; che il documento pubblicato scriverà: è il modo di accorgersi che una clausola dice una cosa diversa da quella che si voleva, &lt;b&gt;prima&lt;/b&gt; di rilasciarla.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Dove lavorare</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>versi diversi</value></data>

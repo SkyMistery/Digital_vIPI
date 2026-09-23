@@ -1964,6 +1964,10 @@
   <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Delete the block?</value></data>
   <data name="Dse_RemoveColumn" xml:space="preserve"><value>Remove column</value></data>
   <data name="Dse_AddColumn" xml:space="preserve"><value>Add column</value></data>
+  <data name="Dse_ColumnWidth" xml:space="preserve"><value>Column width (%)</value></data>
+  <data name="Dse_ColumnWidthHint" xml:space="preserve"><value>Column width as a percentage of the table. Empty = automatic.</value></data>
+  <data name="Dse_ColumnWidthSum" xml:space="preserve"><value>The widths add up to {0}%: on the page the columns grow or shrink proportionally. Leave at least one column empty (automatic), or make them add up to 100.</value></data>
+  <data name="Dse_ColumnGrip" xml:space="preserve"><value>Drag to change the column width. Double-click: automatic.</value></data>
   <data name="Dse_RemoveRow" xml:space="preserve"><value>Remove row</value></data>
   <data name="Dse_Row" xml:space="preserve"><value>Row</value></data>
   <data name="Ed_Saving" xml:space="preserve"><value>Saving…</value></data>
@@ -2563,6 +2567,13 @@
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>What is missing in this ACC, worst first. None of these is an error: they are things that probably ought to be written.</value></data>
   <data name="Xfer_ToReviewHelp" xml:space="preserve"><value>Clauses written &lt;b&gt;before&lt;/b&gt; the transfer facet existed: they do not say &lt;b&gt;where&lt;/b&gt; the handover happens, and each needs reviewing by hand. The button &lt;b&gt;filters&lt;/b&gt; them: press it to see only those, press again for all.</value></data>
   <data name="Xfer_GapsHelp" xml:space="preserve"><value>Things that &lt;b&gt;probably&lt;/b&gt; should be written, not errors: borders with no agreement (that traffic goes to UNICOM today), twin sections to merge, agreements with no airport. The button opens the list, and each entry jumps to where the work is.</value></data>
+  <data name="Xfer_Proc" xml:space="preserve"><value>Procedures not found</value></data>
+  <data name="Xfer_ProcTitle" xml:space="preserve"><value>SIDs/STARs written among the points that can no longer be found at the section's airports.</value></data>
+  <data name="Xfer_ProcHelp" xml:space="preserve"><value>A SID or STAR written among the points follows the archive by itself when only the number changes (ERIKA 1A → ERIKA 2A). If the name really changes (ERIKA 1A → ERIKA 1B), it is no longer found and the page shows it as written: this lists which ones. A procedure removed by the incoming AIRAC cycle shows up in the last &lt;b&gt;3 days&lt;/b&gt; before the change.</value></data>
+  <data name="Xfer_ProcHeading" xml:space="preserve"><value>Procedures among the points that cannot be found: the page shows them as written. Fix the clause.</value></data>
+  <data name="Xfer_ProcMissing" xml:space="preserve"><value>not found at the section's airports</value></data>
+  <data name="Xfer_ProcGoing" xml:space="preserve"><value>disappears with the AIRAC cycle of {0}</value></data>
+  <data name="Xfer_ProcFrozen" xml:space="preserve"><value>vIPI ACC/APP and vLOA documents already published show the old name until they are published again.</value></data>
   <data name="Xfer_PreviewHelp" xml:space="preserve"><value>Shows, under every clause, the &lt;b&gt;sentence&lt;/b&gt; the published document will carry: it is how you notice a clause saying something other than what you meant, &lt;b&gt;before&lt;/b&gt; releasing it.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Where to work</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>directions differ</value></data>

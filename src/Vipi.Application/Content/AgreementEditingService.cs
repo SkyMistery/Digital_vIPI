@@ -71,6 +71,19 @@ public sealed class AgreementService : IAgreementService
         return ProceduraNeiPunti.ConNomiDiOggi(accordi, await _procedure.PerTabelleAsync(tabelle, ct));
     }
 
+    public async Task<IReadOnlyList<ProceduraNonTrovata>> ProcedureNonTrovateAsync(IReadOnlyList<AgreementRow> accordi,
+        CancellationToken ct = default)
+    {
+        if (_procedure is null) return Array.Empty<ProceduraNonTrovata>();
+        var tabelle = ProceduraNeiPunti.TabelleCitate(accordi);
+        // La via breve, come in lettura: nessuna procedura fra i punti, nessuna tabella da derivare.
+        if (tabelle.Count == 0) return Array.Empty<ProceduraNonTrovata>();
+        // ⚠️ In fila: i due cicli leggono dallo stesso DbContext.
+        var oggi = await _procedure.PerTabelleAsync(tabelle, ct);
+        var entrante = await _procedure.PerTabelleEntrantiAsync(tabelle, ct);
+        return ProceduraNeiPunti.NonTrovate(accordi, oggi, entrante, DateTime.UtcNow);
+    }
+
     public async Task<IReadOnlyList<ResolvedTransferFlow>> ResolveForAccAsync(
         string accCode, IReadOnlySet<string> online, CancellationToken ct = default)
     {

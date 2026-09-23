@@ -6,7 +6,7 @@
 
 ## Sito
 
-### Avviso «procedura non trovata» nell'editor degli accordi — ⏳ da prendere (assegnato il 23 settembre 2026)
+### Avviso «procedura non trovata» nell'editor degli accordi — ✋ preso dal sito come **S5** il 23 settembre 2026 (S4 era già la larghezza delle colonne) · carta [`2026-09-23-procedure-non-trovate-negli-accordi.md`](../feature/2026-09-23-procedure-non-trovate-negli-accordi.md)
 
 **Cosa.** Una SID o una STAR scritta fra i punti di un trasferimento segue l'archivio per **radice** del nome
 (`ProceduraNeiPunti.ConNomiDiOggi`, [`ProceduraNeiPunti.cs`](../../src/Vipi.Application/Content/ProceduraNeiPunti.cs)):

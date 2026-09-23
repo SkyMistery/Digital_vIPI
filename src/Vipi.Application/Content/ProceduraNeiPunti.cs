@@ -112,6 +112,58 @@ public static partial class ProceduraNeiPunti
             }).ToList(),
         }).ToList();
 
+    // ---- Le procedure che non si trovano più (S5, 23 settembre 2026) ----
+    //
+    // Il nome segue l'archivio per RADICE (ERIKA 1A → ERIKA 2A esce da sé). Se il sectorfile cambia il nome davvero
+    // (ERIKA 1A → ERIKA 1B), la radice non si trova e il punto esce com'è scritto: in silenzio, finché questo
+    // controllo non lo dice all'editor. Carta: `docs/feature/2026-09-23-procedure-non-trovate-negli-accordi.md`.
+
+    /// <summary>
+    /// Quanti giorni prima del cambio ciclo si segnala una procedura che c'è oggi e il ciclo entrante toglie.
+    /// 🔴 Deciso dal committente: «2–3 giorni prima, non settimane». Il sectorfile del ciclo che viene arriva molto
+    /// prima, e un avviso per un nome che la pagina mostra ancora giusto, per settimane, si impara a ignorarlo.
+    /// </summary>
+    public const int GiorniDiAnticipo = 3;
+
+    /// <summary>
+    /// Le procedure scritte fra i punti che non si trovano, una voce per punto, nell'ordine degli accordi.
+    /// <list type="bullet">
+    /// <item>manca oggi e nel ciclo entrante → sempre (<c>SparisceIl</c> = <c>null</c>);</item>
+    /// <item>c'è oggi, manca nell'entrante → solo negli ultimi <see cref="GiorniDiAnticipo"/> giorni prima del
+    /// cambio (<c>SparisceIl</c> = la data del cambio);</item>
+    /// <item>c'è nell'entrante → mai: è quel che i suggerimenti del form propongono (S3).</item>
+    /// </list>
+    /// Una sezione senza scali non si controlla: non c'è dove cercare, e il punto esce com'è anche in lettura.
+    /// </summary>
+    public static IReadOnlyList<ProceduraNonTrovata> NonTrovate(IReadOnlyList<AgreementRow> accordi,
+        NomiProcedura oggi, NomiAlCambio entrante, DateTime adessoUtc)
+    {
+        var anticipo = entrante.CambioUtc is DateTime cambio && cambio - adessoUtc <= TimeSpan.FromDays(GiorniDiAnticipo);
+        var esito = new List<ProceduraNonTrovata>();
+        foreach (var a in accordi)
+            foreach (var s in a.Sections)
+            {
+                if (s.Airports.Count == 0) continue;
+                var scali = s.Airports.OrderBy(x => x.Order).Select(x => x.Icao).ToList();
+                foreach (var c in s.Clauses)
+                {
+                    if (!Contiene(c.Cops)) continue;
+                    foreach (var p in CopList.Parse(c.Cops).Where(E))
+                    {
+                        if (Trovata(p, scali, s.Kind, entrante.Nomi)) continue;
+                        if (!Trovata(p, scali, s.Kind, oggi))
+                            esito.Add(new ProceduraNonTrovata(a, s, c, p.Trim(), null));
+                        else if (anticipo)
+                            esito.Add(new ProceduraNonTrovata(a, s, c, p.Trim(), entrante.CambioUtc));
+                    }
+                }
+            }
+        return esito;
+    }
+
+    private static bool Trovata(string punto, IReadOnlyList<string> scali, TransferFlowKind kind, NomiProcedura nomi) =>
+        Versi(kind).Any(verso => scali.Any(icao => nomi.NomeDelPunto(verso, icao, punto) is not null));
+
     /// <summary>L'input di salvataggio con il luogo che vale davvero: nel database va il dato già giusto.</summary>
     public static AgreementClauseInput Normalizza(AgreementClauseInput i)
     {
@@ -119,3 +171,15 @@ public static partial class ProceduraNeiPunti
         return k == i.HandoffKind ? i : i with { HandoffKind = k, HandoffLevelConstraint = LevelConstraint.Exact };
     }
 }
+
+/// <summary>I nomi delle procedure al ciclo entrante, con la data in cui entra in vigore (<c>null</c> = non si sa).</summary>
+public sealed record NomiAlCambio(NomiProcedura Nomi, DateTime? CambioUtc);
+
+/// <summary>
+/// Una procedura scritta fra i punti di una clausola che non si trova negli scali della sezione (S5).
+/// </summary>
+/// <param name="Nome">Il punto come sta nella clausola: in pagina esce così.</param>
+/// <param name="SparisceIl">La data del cambio ciclo se oggi c'è ancora e il ciclo entrante la toglie; <c>null</c>
+/// se non si trova già adesso.</param>
+public sealed record ProceduraNonTrovata(AgreementRow Accordo, AgreementSectionRow Sezione, AgreementClauseRow Clausola,
+    string Nome, DateTime? SparisceIl);

@@ -1,8 +1,10 @@
 @using System.Text.Json
+@using Vipi.Application.Content
 
 @if (_columns is not null)
 {
-    <table class="cfg-table@(_hasPrimary ? " freq-table" : "")" id="@_tableId">
+    <table class="@ColonneTabella.Classe(_hasPrimary ? "cfg-table freq-table" : "cfg-table", _larghezze)" id="@_tableId">
+        <ColonneTabella Larghezze="_larghezze" />
         <thead>
             <tr>@foreach (var c in _columns) { <th>@c</th> }</tr>
         </thead>
@@ -44,11 +46,16 @@
     private bool _unified;
     private bool _hasPrimary;
     private List<Row> _rows = new();
+    private IReadOnlyList<int?> _larghezze = Array.Empty<int?>();
 
     protected override void OnParametersSet()
     {
         _tableId = null; _columns = null; _unified = false; _hasPrimary = false; _rows = new();
+        _larghezze = Array.Empty<int?>();
         if (string.IsNullOrWhiteSpace(Block.BodyJson)) return;
+        // S4: le larghezze scelte da chi scrive. ⚠️ Solo senza `unified`: la cella di gruppo in `rowspan` e' una
+        // colonna in PIU' rispetto a `columns`, e le larghezze finirebbero spostate di uno.
+        _larghezze = TabellaGenerica.Larghezze(Block.BodyJson);
         try
         {
             using var doc = JsonDocument.Parse(Block.BodyJson);
@@ -87,6 +94,7 @@
             }
         }
         catch (JsonException) { _columns = null; }
+        if (_unified) _larghezze = Array.Empty<int?>();
     }
 
     private int GroupSpan(int i)
