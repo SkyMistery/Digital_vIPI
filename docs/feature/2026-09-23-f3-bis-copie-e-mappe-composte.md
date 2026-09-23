@@ -284,3 +284,12 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   liberi, in fondo), `CambiaLaComposta` rifiuta con un messaggio. ❓ Per il committente: allargare la grammatica
   (nomi fra virgolette anche nell'elenco) o lasciarle fuori? Fra i 58 aggregati le usa solo `lica` `RNP10`.
 - Test motore 462 → **471** (net8 e net10), Lab 283 → **298**.
+
+**Slice 6 — prove a mano del committente** (in corso dal 23 settembre, sera).
+
+- Eseguibile in `SectorLab-prova`, prove 12-22 (F3-bis) e 23-27 (correzioni) in `PROVE.md`. Il committente riporta i
+  risultati in una chat nuova. Prove 1 e 2 di F3: ✅.
+- Correzioni di F3 trovate dalle prove: i record del file si vedono sotto il file (`ad26a3b4`); la cartella non si
+  chiude togliendo la scelta del file (`bea96c8c`); le STAR «(ALL)» si spezzano al `<br>` anche sulla **mappa**
+  (`Geometria`: la slice 3 l'aveva portato nel modello, ma il disegno non lo usava ancora); zoom fino a 20.
+- Chiesti dal committente e fatti: **due schermi** (`/pannelli` in una seconda finestra del guscio).
