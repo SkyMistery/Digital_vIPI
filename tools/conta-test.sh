@@ -38,11 +38,16 @@ TFM_SOLO="${3:-}"
 # sul runner del 14 settembre 2026 è uscita «Passed! ... Duration: 5 s» e, alla riga dopo, « - Vipi.Application
 # .Tests.dll (net8.0)». Il cancello ha dato «MANCA» su una corsa verde. Qui le due metà si ricuciono prima
 # di contare: una riga di riepilogo senza «.dll (» prende la riga che segue, se comincia con « - ».
-CORSA="$(awk '
+#
+# ⚠️ E può arrivare INCOLLATA in coda a un'altra: il 23 settembre 2026 (corsa 35829372818, e prima il 21) è uscita
+# «A total of 1 test files matched the specified pattern.Passed!  - Failed: 0, Passed: 68, … Hosting.Tests.dll
+# (net8.0)», e il cancello ha dato «MANCA» su una corsa verde. Qui un riepilogo che comincia a metà riga si porta
+# a capo prima di tutto il resto.
+CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
     pend != "" { if ($0 ~ /^ *- /) { print pend $0; pend = ""; next } print pend; pend = "" }
     /^(Passed|Failed)!/ && $0 !~ /\.dll \(/ { pend = $0; next }
     { print }
-    END { if (pend != "") print pend }' "$LOG" \
+    END { if (pend != "") print pend }' \
   | grep -E '^(Passed|Failed)!' \
   | sed -E 's/.*Passed: *([0-9]+),.*- (Vipi[^ ]+\.dll) \((net[0-9.]+)\).*/\2 \3 \1/' \
   | sort)"
