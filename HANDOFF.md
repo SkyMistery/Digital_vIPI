@@ -1,8 +1,12 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+> **📦 Integrazione (23-set):** `sito/lavori` e PR #16 fusi in `main`. **Pacchetto 1.43.0 PRONTO DA CARICARE**
+> (§A118): la vista `v_share_atc_sessions` per l'hub (§A117, migrazione additiva) + S1. 8 file, timbro
+> `1.43.0 · 54355eb`, zip `6eaacc47…`. Il `GRANT` all'utente dell'hub si fa quando l'hub c'è.
+>
 > **🌐 Sito (ramo `sito/lavori`, worktree `vIPI-sito`, agente del sito):** 23-set — ✅ **S1** l'editor APP unito
 > non ricarica più la pagina premendo «sezioni comuni» (LIRE): guardia sulla chiave in `AppSectionsEditor`, come
-> gli altri due editor. Dettaglio in `docs/lavori-aperti.md` §S1. Nessun pacchetto preparato; va nel prossimo.
+> gli altri due editor. Dettaglio in `docs/lavori-aperti.md` §S1. Nel pacchetto 1.43.0.
 
 **Ultimo aggiornamento:** 23 settembre 2026 — 🟡 **Aurora Sector Lab F3 in corso, slice 0-10 fatte** (§A116, carta [`docs/feature/2026-09-22-f3-l-app.md`](docs/feature/2026-09-22-f3-l-app.md) **approvata**, traccia slice per slice nel §8). `main` = slice 10 (vedi `git log`), CI verde fino alla slice 9. Quattro progetti nuovi: `src/Vipi.SectorLab.Core` (logica), `src/Vipi.SectorLab.Ui` (pagine Blazor e il server locale), `src/Vipi.SectorLab` (il guscio Windows, `net10.0-windows`), `tests/Vipi.SectorLab.Tests` (248 test, girano in CI su Ubuntu). **Il sito non li referenzia e non cambia**; nessun dato di vIPI toccato, nessuna migrazione, niente pacchetto.
 - **Slice 1, il guscio**: finestra WebView2 + Kestrel su `127.0.0.1`, cancello col segreto (403 senza, anche su `/_blazor`), dati della WebView2 e **diario d'avvio** in `%LOCALAPPDATA%\VipiSectorLab\`, controllo del WebView2 Runtime, e **`VipiSectorLab.exe --autoprova`** (parte, aspetta il circuito, esce con un codice). Circuito vivo in **0,7-1,0 s** da un'altra cartella e da pubblicato. 🔴 Due trappole di .NET 10: `blazor.web.js` entra solo nei progetti con `.razor` propri **e** con `OutputType=Exe` — il csproj del guscio le aggira, `GuscioTests` le controlla.

@@ -5,7 +5,7 @@
 > Sezione dell'agente che lavora sul SITO nel worktree `vIPI-sito`. Le voci qui sotto hanno il prefisso **S**
 > per non incrociare la numerazione §A del Sector Lab, che lavora su `main`. Si fonde in `main` a lavoro finito.
 
-### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — NON in un pacchetto
+### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — fuso, nel pacchetto 1.43.0 (§A118)
 
 Segnalato su **LIRE** (APP unito al vSOP militare): premendo il tasto delle sezioni in comune la pagina si
 ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposedException` su `VipiDbContext` in
@@ -33,7 +33,23 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 🟡 A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026) — in PR, non in pacchetto
+### 📦 A118 — Pacchetto 1.43.0: §A117 + §S1 (23 settembre 2026) — PRONTO DA CARICARE
+
+MINOR, **una migrazione additiva** solo MySQL (`20260923100945_VistaCondivisaSessioniAtc`: crea la vista, nessuna
+tabella toccata), su 1.42.1 (`a66f25e`). Timbro **`1.43.0 · 54355eb`**. **8 file in radice**: Vipi.Ui,
+Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Host (dll/pdb). Fuori: `en/`, `endpoints.json` e
+`wwwroot` (identici per impronta), Application/Domain/Hosting (solo ricompilati), `Vipi.Sectorfile` (non sta nel
+sito). Zip `vipi-1.43.0-solo-file-cambiati.zip` `6eaacc47…6d29c`, foglio
+[`LEGGIMI-PACCHETTO-1.43.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.43.0.md). 1.42.1 ruotata in
+`publish_old/20260922a`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ `CREATE VIEW` per l'utente della vIPI: verificato dal committente il 23 settembre.
+- ⚠️ Prova del pacchetto in locale (runbook §6) **saltata**: `wwwroot` e `endpoints.json` identici a 1.42.1 per
+  impronta, quindi niente JS minificato nuovo; la migrazione è solo MySQL e l'ha provata la CI `mariadb-schema`.
+- ▶ Dopo il carico: timbro, `Schema 0`, riga «Applying migration …VistaCondivisaSessioniAtc» nel log, la Ricerca.
+- ⏸ Il `GRANT SELECT` all'utente dell'hub: quando l'hub va in produzione (l'utente oggi non esiste).
+
+### 📦 A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026) — PR #16 fusa, nel pacchetto 1.43.0 (§A118)
 
 Carta [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md).
 L'hub (un altro sito, database suo sullo stesso MariaDB) legge l'archivio delle sessioni ATC da una **vista**, non da
