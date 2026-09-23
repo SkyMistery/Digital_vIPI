@@ -24,6 +24,11 @@
   procedura con spazi nell'elenco (63/1169, solo `lica` `RNP10` fra gli aggregati). 🟡 Dire al committente: `limf.sid:28` `LIMF18;…` (manca un `;`). ⚠️ Codice comune: `Vipi.Sectorfile/Validazione`
   (`CopieGemelle.cs`, `Regola.CopieDiverse`), `IO/Metadati.cs` (virgolette, `composta`, `intere`), `IO/MappeComposte.cs`, `Regola.Composta*`, `StrRecord`/`StrParser`/`StrSaver`
   (`IniziaUnTratto`), `tools/Vipi.SectorfileProva` (sezione 5b).
+- **Dalle prove del committente** (23 settembre, slice 6 in corso): record del file sotto il file (`ad26a3b4`), la
+  cartella non si chiude togliendo la scelta (`bea96c8c`), STAR (ALL) spezzate al `<br>` e zoom fino a 20 con coordinate
+  a 6 decimali, **due schermi** (`/pannelli` in una seconda finestra del guscio, sull'altro schermo). Prove 12-27 in
+  `SectorLab-prova\PROVE.md`. La **consegna** (slice 11 di F3) la decide il committente: prima vuole qualcosa da
+  presentare agli AOD.
 - Prove sul fork: eseguibile in `D:\Programmazione\IVAO_Test\SectorLab-prova\`, clone
   `D:\Programmazione\IVAO_Test\it-aurora-sector-test` (può avere modifiche delle prove: `git checkout -- .`).
 - Conteggi del filone: `tests/conteggi/Vipi.SectorLab.Tests.txt` e, se si tocca il motore, `Vipi.Sectorfile.Tests.txt`.
