@@ -54,7 +54,7 @@ Dalle prove a mano di F3, due richieste del committente:
   come tratto a sé (il modo in cui gli aggregati di oggi separano le procedure si **misura** nella slice 0 e si
   rispetta, D7). Si rigenera quando una procedura elencata cambia: la mappa entra nelle **stesse** modifiche in
   sospeso, col suo diff, e si salva insieme.
-- **Nella scheda** del record `MAPS`: «Composta da», l'elenco delle procedure dello scalo (SID e STAR, D6) con una
+- **Nella scheda** del record `MAPS`: «Composta da», l'elenco delle procedure **dello stesso file `.str`** (D5-D6) con una
   casella ciascuna. Spuntare e togliere riscrive il tag e rigenera la mappa. Una mappa nuova: «+ Record come questo»
   su una `MAPS`, poi si spuntano le procedure.
 - **Il validatore**: *procedura elencata che non c'è* (errore), *mappa composta non allineata alle sue procedure*
@@ -84,6 +84,11 @@ Dalle prove a mano di F3, due richieste del committente:
 Un commit per slice, come F3. La **slice 11 di F3** (consegna) viene dopo, e porta anche questo.
 
 ## §5 — Da decidere col committente prima della slice 0 (proposta fra parentesi)
+
+✅ **Decise dal committente il 23 settembre**: D1, D2, D3, D4 come proposte. **D5-D7 modificate**: le procedure di una
+mappa composta stanno **nello stesso file `.str`** della mappa (niente SID, niente altri file), e la mappa rigenerata
+si scrive **in quel `.str`**. L'elenco resta com'era proposto (nomi separati da virgola, `25:NENI5A` per una pista
+sola). Aggiornati di conseguenza §2.2 e le slice. ❓ Resta aperta la domanda sull'ultimo campo `1` (D7).
 
 - **D1 — Quando**: (**adesso, prima della consegna di F3**: la consegna aspetta comunque che il lavoro sul sito sia
   fuso in `main`, e gli AOD ricevono il Lab con le copie allineate).
