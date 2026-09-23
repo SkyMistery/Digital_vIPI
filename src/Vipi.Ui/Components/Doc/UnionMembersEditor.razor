@@ -16,21 +16,23 @@
 
 @foreach (var m in Membri)
 {
-    <section id="@MembroUnito.AncoraDi(m.DocumentId)" class="union-part">
+    @* ⚠️ `@key` sul DOCUMENTO: senza, dopo «Sposta» il componente in prima posizione riceveva i parametri
+       dell'altro membro e si ricaricava con un documento diverso — sotto la voce del registro che era sua. *@
+    <section @key="m.DocumentId" id="@MembroUnito.AncoraDi(m.DocumentId)" class="union-part">
         <h2 class="union-part-h">@m.Doc.Title</h2>
         @switch (m.Doc.ReleaseTarget)
         {
             case ReleaseTargetType.App:
                 <AppSectionsEditor Acc="@AccDi(m)" App="@m.Doc.ReleaseKey" Chrome="false"
-                                   Registrati="Registra" StatoCambiato="MembroCambiato" />
+                                   Registrati="@((IMembroEditor e) => Registra(m.DocumentId, e))" StatoCambiato="MembroCambiato" />
                 break;
             case ReleaseTargetType.Airport:
                 <AirportSectionsEditor Acc="@AccDi(m)" Icao="@m.Doc.ReleaseKey" Chrome="false"
-                                       Registrati="Registra" StatoCambiato="MembroCambiato" />
+                                       Registrati="@((IMembroEditor e) => Registra(m.DocumentId, e))" StatoCambiato="MembroCambiato" />
                 break;
             case ReleaseTargetType.AirportMil:
                 <MilSectionsEditor Acc="@AccDi(m)" Icao="@m.Doc.ReleaseKey" Chrome="false"
-                                   Registrati="Registra" StatoCambiato="MembroCambiato" />
+                                   Registrati="@((IMembroEditor e) => Registra(m.DocumentId, e))" StatoCambiato="MembroCambiato" />
                 break;
             @* ⚠️ Nessun `default`: le famiglie ammesse le decide `DocumentUnionService.FamiglieAmmesse`, e
                un membro di un'altra non può esistere in archivio. Disegnare una scatola vuota che nessuno
@@ -68,17 +70,32 @@
     /// <summary>Il lock di un membro è di un altro: il nome di chi lo tiene, per l'avviso dell'ospite.</summary>
     [Parameter] public EventCallback<string> LockNegato { get; set; }
 
-    private readonly List<IMembroEditor> _editor = new();
+    /// <summary>Gli editor dei membri, per documento. Vedi <see cref="RegistroMembri"/>.</summary>
+    private readonly RegistroMembri _registro = new();
 
-    /// <summary>Gli editor dei membri, nell'ordine in cui si sono registrati.</summary>
+    /// <summary>Gli editor dei membri che ci sono adesso, nell'ordine dell'unione.</summary>
+    private IReadOnlyList<IMembroEditor> _editor = Array.Empty<IMembroEditor>();
+
+    /// <summary>Gli editor dei membri, nell'ordine dell'unione.</summary>
     public IReadOnlyList<IMembroEditor> Editor => _editor;
 
-    private async Task Registra(IMembroEditor e)
+    /// <summary>
+    /// 🔴 Chi non è più membro esce dall'elenco, e ci resta chi c'è, nell'ordine dell'unione. Prima i membri
+    /// si aggiungevano e basta: uno tolto restava dentro con lo scope chiuso, e ogni gesto su «tutti» — il
+    /// lock, la pubblicazione, il ricarico — passava anche da lui.
+    /// </summary>
+    protected override void OnParametersSet()
     {
-        // ⚠️ Idempotente: `OnInitialized` gira una volta per istanza, ma un membro tolto e rimesso
-        // riregistrerebbe lo stesso oggetto — e un doppione vorrebbe dire prendere due volte lo stesso lock.
-        if (_editor.Contains(e)) return;
-        _editor.Add(e);
+        if (_registro.TieniSolo(Membri.Select(m => m.DocumentId).ToList())) _editor = _registro.Editor;
+    }
+
+    private async Task Registra(int documentId, IMembroEditor e)
+    {
+        // ⚠️ Idempotente: `OnInitialized` gira una volta per istanza, e registrarsi due volte vorrebbe dire
+        // prendere due volte lo stesso lock. Un editor NUOVO per lo stesso documento prende il posto del vecchio.
+        if (!_registro.Registra(documentId, e)) return;
+        _registro.TieniSolo(Membri.Select(m => m.DocumentId).ToList());
+        _editor = _registro.Editor;
 
         StateHasChanged();
         await MembroCambiato();
@@ -194,10 +211,16 @@
         return true;
     }
 
-    /// <summary>Ricarica tutti i membri.</summary>
-    public async Task RicaricaAsync()
+    /// <summary>
+    /// Ricarica i membri dei documenti <paramref name="documentIds"/>: quelli dell'unione come l'ospite l'ha
+    /// appena riletta.
+    /// <para>⚠️ L'insieme arriva da fuori perché questo componente riceve i membri nuovi solo al prossimo
+    /// ridisegno: un membro appena tolto è ancora registrato, e ricaricarlo mentre lo si smonta è la corsa
+    /// di §S1. Chi è appena entrato non c'è ancora, e si carica da sé montandosi.</para>
+    /// </summary>
+    public async Task RicaricaAsync(IReadOnlyCollection<int> documentIds)
     {
-        foreach (var e in _editor) await e.RicaricaAsync();
+        foreach (var e in _registro.Di(documentIds)) await e.RicaricaAsync();
     }
 
     /// <summary>
