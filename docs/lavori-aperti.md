@@ -33,7 +33,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A120 — Pacchetto 1.44.0: S4 + S5 del sito (23 settembre 2026) — PRONTO DA CARICARE
+### ✅ A120 — 1.44.0 ONLINE: S4 + S5 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.44.0 · 3561423`, `Schema 0` e le funzioni nuove. Avvio 16:55:23 UTC; da fuori
+`pacchetto-verifica.js` SOLO_PUBBLICO **tutto verde**.
+
+- 🔎 **«Il sito è crollato aggiungendo una riga a una tabella»** (committente, subito dopo il carico). Nei log
+  **nessuna eccezione** del processo 1.44.0 e nessun `CircuitUnhandledException`. Le DUE connessioni Blazor del suo
+  browser (editor aeroporto LIBB + trasferimenti) si sono chiuse nello **stesso istante**, 16:57:22 UTC, e alle
+  16:57:33 Passenger ha avviato un SECONDO processo 1.44.0 (1803150) mentre il primo (1779624) scriveva ancora il log
+  fino alle 16:57:42. Quindi: cambio di processo, non un errore di S4. **Non riprodotto** sul pacchetto in locale
+  (tabella strutturata e generica, larghezza al 30%, «+ Riga» ×3: nessun errore, nessuna disconnessione).
+- 🔎 Terzo caso dello stesso schema (13:56 e 16:56-57): Passenger apre un secondo processo mentre l'altro è vivo, e
+  i processi 1.43.x sono stati fermati dopo **esattamente 1:00:00**. Da capire a parte (impostazioni di Passenger su
+  Plesk?).
 
 MINOR, **nessuna migrazione**, su 1.43.1 (`a8a1cea`). Timbro **`1.44.0 · 3561423`**. Dettaglio in
 [`filoni/sito.md`](filoni/sito.md): **S4** larghezza delle colonne delle tabelle (campo «%» e trascinamento del bordo,
