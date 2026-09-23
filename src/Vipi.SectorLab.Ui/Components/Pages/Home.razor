@@ -29,47 +29,32 @@
                     </select>
                 </label>
             }
+            @if (Lab.PannelliInUnAltraFinestra)
+            {
+                <button class="lab-tasto lab-tasto-tenue" @onclick="RiportaIPannelli" data-tasto="riporta"
+                        title="Chiude la finestra dei pannelli e li rimette qui, accanto alla mappa">Pannelli qui</button>
+            }
+            else
+            {
+                <button class="lab-tasto lab-tasto-tenue" @onclick="StaccaIPannelli" data-tasto="stacca"
+                        title="Sfoglia, Problemi, la scheda e le modifiche in un'altra finestra (per esempio sull'altro schermo); qui resta la mappa">Pannelli in un'altra finestra</button>
+            }
             <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ApriIlRegistro" data-tasto="registro"
                     title="Apre la cartella del registro: @Lab.Registro.Cartella — il file di oggi racconta ogni gesto e ogni errore">Registro</button>
             <button class="lab-tasto" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
         </header>
 
         <div class="lab-corpo">
-            <aside class="lab-colonna lab-colonna-sfoglia">
-                <nav class="lab-linguette" role="tablist">
-                    <button role="tab" aria-selected="@(!_problemi)" class="@(!_problemi ? "lab-linguetta-scelta" : null)"
-                            @onclick="() => _problemi = false" data-linguetta="sfoglia">Sfoglia</button>
-                    <button role="tab" aria-selected="@_problemi" class="@(_problemi ? "lab-linguetta-scelta" : null)"
-                            @onclick="() => _problemi = true" data-linguetta="problemi">
-                        Problemi
-                        @if (Lab.StaValidando)
-                        {
-                            <span class="lab-nota">…</span>
-                        }
-                        else
-                        {
-                            <span class="lab-nota">@Errori · @Avvisi</span>
-                        }
-                        @if (Lab.ProblemiDelleModifiche.Count > 0 || Lab.RecordCheSiFondono.Count > 0)
-                        {
-                            <span class="lab-segno-nuovi" title="Le modifiche in sospeso introducono dei problemi" data-segno="nuovi">!</span>
-                        }
-                    </button>
-                </nav>
-                @if (_problemi)
-                {
-                    <PannelloDeiProblemi />
-                }
-                else
-                {
-                    <Sfoglia />
-                }
-            </aside>
+            @* Coi due schermi i pannelli stanno nell'altra finestra (/pannelli): qui restano mappa e strati. *@
+            @if (!Lab.PannelliInUnAltraFinestra)
+            {
+                <ColonnaDiSinistra />
 
-            <aside class="lab-colonna lab-colonna-ispettore">
-                <Scheda />
-                <Modifiche />
-            </aside>
+                <aside class="lab-colonna lab-colonna-ispettore">
+                    <Scheda />
+                    <Modifiche />
+                </aside>
+            }
 
             <aside class="lab-strati">
                 <h2>Strati</h2>
@@ -141,9 +126,6 @@ else
     private bool _interattivo;
     private string? _percorso;
 
-    /// <summary>La colonna di sinistra mostra i problemi invece di Sfoglia (slice 10).</summary>
-    private bool _problemi;
-
     private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
 
     private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
@@ -172,6 +154,15 @@ else
     private Task Apri() => Lab.ApriAsync(_percorso);
 
     private void Chiudi() => Lab.Chiudi();
+
+    /// <summary>
+    /// La finestra dei pannelli la apre il guscio (una window.open che la WebView2 gli passa); in un browser qualunque
+    /// si apre come scheda nuova, e funziona lo stesso: lo stato è del server.
+    /// </summary>
+    private async Task StaccaIPannelli() => await Js.InvokeVoidAsync("sectorlab.staccaIPannelli");
+
+    /// <summary>Chiede al guscio di chiudere la finestra dei pannelli: sarà lui, chiudendola, a dire «di nuovo qui».</summary>
+    private async Task RiportaIPannelli() => await Js.InvokeVoidAsync("sectorlab.riportaIPannelli");
 
     private void Accendi(string strato, ChangeEventArgs e) => Lab.Accendi(strato, e.Value is true);
 

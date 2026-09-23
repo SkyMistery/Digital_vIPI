@@ -104,7 +104,8 @@ internal static class Program
         int esito;
         try
         {
-            using var finestra = new Finestra(ServerDelLab.Ingresso(server), diario, autoprova, attendeLaMappa: cartellaAperta);
+            using var finestra = new Finestra(ServerDelLab.Ingresso(server), diario, autoprova, attendeLaMappa: cartellaAperta,
+                lab: server.Services.GetRequiredService<SessioneDelLab>());
             WinForms.Application.Run(finestra);
             esito = finestra.Esito;
         }

@@ -71,6 +71,12 @@
             }).setView([42.0, 12.5], 6);
 
             stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {} };
+            // Il riquadro della mappa cambia misura quando i pannelli vanno nell'altra finestra (e tornano): Leaflet
+            // non se ne accorge da solo, e disegnerebbe solo nella parte che aveva prima.
+            if (typeof ResizeObserver !== 'undefined') {
+                stato.osservatore = new ResizeObserver(function () { mappa.invalidateSize(); });
+                stato.osservatore.observe(nodo);
+            }
             return true;
         },
 
@@ -158,6 +164,7 @@
 
         chiudi: function () {
             if (!stato) return;
+            if (stato.osservatore) stato.osservatore.disconnect();
             stato.mappa.remove();
             stato = null;
         }

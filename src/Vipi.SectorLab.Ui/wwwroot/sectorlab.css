@@ -186,6 +186,17 @@ html, body {
     width: 22rem;
 }
 
+/* Due schermi: nella finestra dei pannelli le tre colonne si dividono tutta la larghezza (la mappa è nell'altra). */
+.lab-pannelli .lab-colonna {
+    flex: 1 1 0;
+    width: auto;
+    min-width: 16rem;
+}
+
+.lab-pannelli .lab-colonna-modifiche {
+    flex-grow: 1.4;   /* il diff ha righe lunghe */
+}
+
 .lab-cerca {
     width: 100%;
     box-sizing: border-box;

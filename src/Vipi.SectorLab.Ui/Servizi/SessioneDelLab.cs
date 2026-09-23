@@ -105,6 +105,24 @@ public sealed class SessioneDelLab
     /// <summary>Il file aperto nell'elenco dei record; la scelta di un record lo apre da sé.</summary>
     public string? FileScelto { get; private set; }
 
+    /// <summary>
+    /// Vero mentre Sfoglia, Problemi, la scheda e le modifiche stanno in un'altra finestra (due schermi, chiesto dal
+    /// committente il 23 settembre): la finestra principale allora mostra solo mappa e strati. Lo dice il guscio, che
+    /// apre e chiude quella finestra; lo stato di tutto il resto è questo stesso servizio, e le due finestre lo vedono
+    /// uguale.
+    /// </summary>
+    public bool PannelliInUnAltraFinestra { get; private set; }
+
+    /// <summary>Il guscio ha aperto (o chiuso) la finestra dei pannelli.</summary>
+    public void PannelliAperti(bool aperti)
+    {
+        if (PannelliInUnAltraFinestra == aperti)
+            return;
+        PannelliInUnAltraFinestra = aperti;
+        Registro.Scrivi("finestre", aperti ? "pannelli in un'altra finestra" : "pannelli di nuovo qui");
+        Cambiata?.Invoke();
+    }
+
     /// <summary>Perché l'apertura non è riuscita: si dice a schermo, non si nasconde.</summary>
     public string? Errore { get; private set; }
 

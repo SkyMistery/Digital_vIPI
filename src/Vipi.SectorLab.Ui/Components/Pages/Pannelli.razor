@@ -1,0 +1,45 @@
+@page "/pannelli"
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    La finestra dei pannelli, per lavorare con due schermi (chiesto dal committente il 23 settembre): Sfoglia e
+    Problemi, la scheda del record scelto, le modifiche in sospeso col diff. La mappa e gli strati restano nella finestra
+    principale. Lo stato è uno solo, SessioneDelLab: una forma scelta sulla mappa si apre qui, un record scelto qui si
+    evidenzia là. La apre e la chiude il guscio (Finestra.cs), che dice al Lab quando c'è.
+*@
+<PageTitle>Aurora Sector Lab — pannelli</PageTitle>
+
+@if (Lab.Stato is StatoDelLab.Aperta)
+{
+    <div class="lab-schermo">
+        <header class="lab-barra">
+            <strong>Aurora Sector Lab</strong>
+            <span class="lab-nota">pannelli · la mappa è nella finestra principale</span>
+        </header>
+        <div class="lab-corpo lab-pannelli" data-pannelli="si">
+            <ColonnaDiSinistra />
+            <aside class="lab-colonna lab-colonna-ispettore">
+                <Scheda />
+            </aside>
+            <aside class="lab-colonna lab-colonna-modifiche">
+                <Modifiche />
+            </aside>
+        </div>
+    </div>
+}
+else
+{
+    <main class="lab-vuoto">
+        <h1>Aurora Sector Lab</h1>
+        <p class="lab-nota" data-stato="senza-cartella">Apri la cartella del sector dalla finestra principale: i pannelli la seguono.</p>
+    </main>
+}
+
+@code {
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

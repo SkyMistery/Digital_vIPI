@@ -16,6 +16,13 @@
         pronto: function () { allaFinestra('pronto'); },
 
         /// Una riga nel diario d'avvio della finestra: i tempi della mappa, e quel che si vuole misurare dal vivo.
-        diario: function (testo) { allaFinestra(String(testo)); }
+        diario: function (testo) { allaFinestra(String(testo)); },
+
+        /// Due schermi: i pannelli in un'altra finestra. Nella WebView2 la window.open arriva al guscio, che apre la sua
+        /// finestra (solo per /pannelli); in un browser qualunque è una scheda nuova, e funziona lo stesso.
+        staccaIPannelli: function () { window.open('/pannelli', 'sectorlab-pannelli'); },
+
+        /// Chiede al guscio di chiudere la finestra dei pannelli; chiudendola, lui dice al Lab «di nuovo qui».
+        riportaIPannelli: function () { allaFinestra('pannelli: chiudi'); }
     };
 })();

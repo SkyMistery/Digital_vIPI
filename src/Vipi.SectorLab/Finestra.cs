@@ -1,5 +1,6 @@
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
+using Vipi.SectorLab.Ui.Servizi;
 
 namespace Vipi.SectorLab;
 
@@ -25,9 +26,17 @@ internal sealed class Finestra : Form
     /// <summary>Il codice d'uscita: 0 finché niente va storto; con l'autoprova diventa 0 solo col circuito vivo.</summary>
     public int Esito { get; private set; }
 
-    public Finestra(Uri ingresso, Diario diario, bool autoprova, bool attendeLaMappa = false)
+    /// <summary>Il Lab, per dirgli quando i pannelli sono in un'altra finestra (due schermi). Nullo: niente seconda finestra.</summary>
+    private readonly SessioneDelLab? _lab;
+
+    private readonly Uri _ingresso;
+    private FinestraDeiPannelli? _pannelli;
+
+    public Finestra(Uri ingresso, Diario diario, bool autoprova, bool attendeLaMappa = false, SessioneDelLab? lab = null)
     {
         _diario = diario;
+        _lab = lab;
+        _ingresso = ingresso;
         _autoprova = autoprova;
         _attendeLaMappa = attendeLaMappa;
         Esito = autoprova ? 1 : 0;
@@ -66,6 +75,7 @@ internal sealed class Finestra : Form
             impostazioni.AreDevToolsEnabled = false;
 #endif
             _vista.CoreWebView2.WebMessageReceived += AllArrivoDiUnMessaggio;
+            _vista.CoreWebView2.NewWindowRequested += AllaRichiestaDiUnaFinestra;
             // Uno script o un foglio che non arriva non lo dice nessuno: la pagina resta lì, ferma, senza errori
             // (è la trappola 2 di F0). Ogni risposta andata male finisce nel diario.
             _vista.CoreWebView2.WebResourceResponseReceived += (_, r) =>
@@ -104,10 +114,56 @@ internal sealed class Finestra : Form
         }
     }
 
+    /// <summary>
+    /// Una window.open della pagina. L'unica finestra che il Lab apre è quella dei pannelli, sul suo stesso server
+    /// (<c>/pannelli</c>): tutto il resto si ferma qui, e nella WebView2 non si apre niente.
+    /// </summary>
+    private void AllaRichiestaDiUnaFinestra(object? mittente, CoreWebView2NewWindowRequestedEventArgs e)
+    {
+        e.Handled = true;
+        if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var indirizzo)
+            || Uri.Compare(indirizzo, _ingresso, UriComponents.SchemeAndServer, UriFormat.Unescaped, StringComparison.OrdinalIgnoreCase) != 0
+            || !string.Equals(indirizzo.AbsolutePath, "/pannelli", StringComparison.OrdinalIgnoreCase)
+            || _lab is null)
+        {
+            _diario.Scrivi($"finestra nuova rifiutata: {e.Uri}");
+            return;
+        }
+
+        if (_pannelli is { IsDisposed: false })
+        {
+            _pannelli.Activate();
+            return;
+        }
+
+        _pannelli = new FinestraDeiPannelli(indirizzo, _diario, this);
+        _pannelli.FormClosed += (_, _) =>
+        {
+            _pannelli = null;
+            _lab.PannelliAperti(false);
+        };
+        _pannelli.Show();
+        _lab.PannelliAperti(true);
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // I pannelli senza la mappa non servono a niente: si chiudono con lei.
+        _pannelli?.Close();
+        base.OnFormClosing(e);
+    }
+
     private void AllArrivoDiUnMessaggio(object? mittente, CoreWebView2WebMessageReceivedEventArgs e)
     {
         string testo = e.TryGetWebMessageAsString() ?? "";
         _diario.Scrivi($"dalla pagina: {testo}");
+
+        // «Pannelli qui»: chiudendo la finestra, il FormClosed dice al Lab che i pannelli sono tornati.
+        if (testo == "pannelli: chiudi")
+        {
+            _pannelli?.Close();
+            return;
+        }
 
         if (!_autoprova)
             return;

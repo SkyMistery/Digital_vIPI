@@ -1,0 +1,52 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Sfoglia o Problemi, con le loro linguette (slice 5 e 10). Sta nella finestra principale o, coi due schermi, in quella
+    dei pannelli: lo stesso componente, così le due non si separano. Si iscrive da sé a Cambiata (vedi Mappa.razor).
+*@
+<aside class="lab-colonna lab-colonna-sfoglia">
+    <nav class="lab-linguette" role="tablist">
+        <button role="tab" aria-selected="@(!_problemi)" class="@(!_problemi ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _problemi = false" data-linguetta="sfoglia">Sfoglia</button>
+        <button role="tab" aria-selected="@_problemi" class="@(_problemi ? "lab-linguetta-scelta" : null)"
+                @onclick="() => _problemi = true" data-linguetta="problemi">
+            Problemi
+            @if (Lab.StaValidando)
+            {
+                <span class="lab-nota">…</span>
+            }
+            else
+            {
+                <span class="lab-nota">@Errori · @Avvisi</span>
+            }
+            @if (Lab.ProblemiDelleModifiche.Count > 0 || Lab.RecordCheSiFondono.Count > 0)
+            {
+                <span class="lab-segno-nuovi" title="Le modifiche in sospeso introducono dei problemi" data-segno="nuovi">!</span>
+            }
+        </button>
+    </nav>
+    @if (_problemi)
+    {
+        <PannelloDeiProblemi />
+    }
+    else
+    {
+        <Sfoglia />
+    }
+</aside>
+
+@code {
+    /// <summary>La colonna mostra i problemi invece di Sfoglia (slice 10).</summary>
+    private bool _problemi;
+
+    private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
+
+    private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}
