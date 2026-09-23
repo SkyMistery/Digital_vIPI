@@ -14,6 +14,12 @@ public sealed class SalvataggioAschermoTests : IDisposable
 {
     private const string Fix = "SectorFiles/Include/IT/NAVAIDS/APT.fix";
 
+    /// <summary>
+    /// Salvare valida, scrive, rilegge e rifà cataloghi e strati: sul runner della CI ci vuole più del secondo che
+    /// bUnit aspetta di base (i tre test sono caduti così alla prima corsa, «Check count: 4»; con 20 ms cadono anche in locale).
+    /// </summary>
+    private static readonly TimeSpan Attesa = TimeSpan.FromSeconds(15);
+
     private readonly AlberoDiProva _albero = new();
     private readonly TestContext _contesto = new();
     private readonly SessioneDelLab _lab;
@@ -54,7 +60,7 @@ public sealed class SalvataggioAschermoTests : IDisposable
 
         pagina.Find("[data-tasto='salva']").Click();
 
-        pagina.WaitForAssertion(() =>
+        pagina.WaitForAssertion(timeout: Attesa, assertion: () =>
         {
             var esito = pagina.Find("[data-salvataggio]");
             Assert.Equal(nameof(StatoDelSalvataggio.Salvato), esito.GetAttribute("data-salvataggio"));
@@ -75,7 +81,7 @@ public sealed class SalvataggioAschermoTests : IDisposable
 
         pagina.Find("[data-tasto='salva']").Click();
 
-        pagina.WaitForAssertion(() =>
+        pagina.WaitForAssertion(timeout: Attesa, assertion: () =>
         {
             Assert.Equal(nameof(StatoDelSalvataggio.DaConfermare), pagina.Find("[data-salvataggio]").GetAttribute("data-salvataggio"));
             Assert.NotEmpty(pagina.FindAll("[data-problema]"));
@@ -84,7 +90,7 @@ public sealed class SalvataggioAschermoTests : IDisposable
 
         pagina.Find("[data-tasto='salva-lo-stesso']").Click();
 
-        pagina.WaitForAssertion(() =>
+        pagina.WaitForAssertion(timeout: Attesa, assertion: () =>
             Assert.Equal(nameof(StatoDelSalvataggio.Salvato), pagina.Find("[data-salvataggio]").GetAttribute("data-salvataggio")));
         Assert.Contains("BC;404", System.Text.Encoding.UTF8.GetString(SulDisco()), StringComparison.Ordinal);
     }
@@ -98,12 +104,12 @@ public sealed class SalvataggioAschermoTests : IDisposable
 
         pagina.Find("[data-tasto='salva']").Click();
 
-        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll($"[data-conflitto='{Fix}']")));
+        pagina.WaitForAssertion(timeout: Attesa, assertion: () => Assert.NotEmpty(pagina.FindAll($"[data-conflitto='{Fix}']")));
         Assert.Equal(delCollega, SulDisco());
 
         pagina.Find($"[data-ricarica='{Fix}']").Click();
 
-        pagina.WaitForAssertion(() =>
+        pagina.WaitForAssertion(timeout: Attesa, assertion: () =>
         {
             Assert.False(_lab.Modifiche.CEQualcosa);
             // L'esito fermo se ne va (il conflitto non c'è più), il diff perso resta.
