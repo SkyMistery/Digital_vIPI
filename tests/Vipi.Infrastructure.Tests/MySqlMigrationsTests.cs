@@ -125,6 +125,49 @@ public class MySqlMigrationsTests
     }
 
     /// <summary>
+    /// La vista che legge l'IVAO Division Hub (carta <c>docs/feature/2026-09-23-vista-condivisa-sessioni-atc.md</c>).
+    /// I dieci nomi a destra di <c>AS</c> sono il contratto: l'hub li legge per nome, e un cambio qui lo lascerebbe
+    /// senza dati senza che nessun test di questo repository se ne accorga — se non questo. Il lato sinistro invece
+    /// deve nominare colonne che <c>AtcSessions</c> ha davvero nel modello: se una si rinomina, la vista va riscritta
+    /// (con una migrazione nuova), e il test lo dice prima che lo dica la migrazione su MariaDB.
+    ///
+    /// <para>Che la vista nasca e si legga su un MariaDB vero lo prova la CI (<c>mariadb-schema</c>, verifica 4).</para>
+    /// </summary>
+    [Fact]
+    public void La_vista_per_l_hub_porta_i_nomi_del_contratto_e_legge_colonne_che_esistono()
+    {
+        using var db = Contesto();
+        var sql = db.GetService<IMigrator>().GenerateScript();
+
+        var inizio = sql.IndexOf("SQL SECURITY DEFINER VIEW v_share_atc_sessions AS", StringComparison.Ordinal);
+        Assert.True(inizio >= 0, "nessuna migrazione MySQL crea v_share_atc_sessions");
+        var fine = sql.IndexOf("FROM AtcSessions;", inizio, StringComparison.Ordinal);
+        Assert.True(fine > inizio, "la vista non legge da AtcSessions");
+
+        var coppie = System.Text.RegularExpressions.Regex.Matches(sql[inizio..fine], @"(\w+)\s+AS\s+(\w+)")
+            .Select(m => (Colonna: m.Groups[1].Value, Nome: m.Groups[2].Value))
+            .Where(c => c.Colonna != "v_share_atc_sessions")
+            .ToList();
+
+        Assert.Equal(
+            new[]
+            {
+                "session_id", "vid", "callsign", "position", "frequency",
+                "start_utc", "end_utc", "duration_seconds", "rating", "is_outside_division",
+            },
+            coppie.Select(c => c.Nome));
+
+        var tabella = db.Model.GetEntityTypes().Single(e => e.ClrType == typeof(Vipi.Domain.Entities.AtcSession));
+        Assert.Equal("AtcSessions", tabella.GetTableName());
+        var colonne = tabella.GetProperties()
+            .Select(p => p.GetColumnName(StoreObjectIdentifier.Table("AtcSessions", null)))
+            .ToHashSet(StringComparer.Ordinal);
+        var mancanti = coppie.Where(c => !colonne.Contains(c.Colonna)).Select(c => c.Colonna).ToList();
+        Assert.True(mancanti.Count == 0,
+            "la vista legge colonne che AtcSessions non ha più: " + string.Join(", ", mancanti));
+    }
+
+    /// <summary>
     /// Cerca la definizione di una colonna <b>dentro il blocco della sua tabella</b>. Cercarla nell'intero
     /// script per solo nome dà falsi positivi: <c>Status</c>, <c>Type</c> e <c>AiracCycle</c> esistono in
     /// più tabelle, indicizzate in una e libere in un'altra, e la prima riga trovata è quella sbagliata.

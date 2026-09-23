@@ -188,7 +188,39 @@ jobs:
           minuscola=$(sql "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='itivao_atc' AND TABLE_NAME='accs';")
           { [ "$esatta" = "1" ] && [ "$minuscola" = "0" ]; } || fallisci "la tabella è nata come 'accs' invece che 'Accs': EF cercherebbe quella con le maiuscole"
 
-          echo "tutte e tre le verifiche passate."
+          echo "4. la vista per l'hub: le dieci colonne del contratto, nell'ordine, e un utente che legge solo lei"
+          # Carta docs/feature/2026-09-23-vista-condivisa-sessioni-atc.md. I nomi sono quelli che l'IVAO Division
+          # Hub legge: se cambiano qui, l'hub resta senza dati e non lo dice nessun test di questo repository.
+          colonne=$(sql "SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY ORDINAL_POSITION) FROM information_schema.COLUMNS
+                         WHERE TABLE_SCHEMA='itivao_atc' AND TABLE_NAME='v_share_atc_sessions';")
+          attese="session_id,vid,callsign,position,frequency,start_utc,end_utc,duration_seconds,rating,is_outside_division"
+          [ "$colonne" = "$attese" ] || fallisci "v_share_atc_sessions ha le colonne '$colonne' invece di '$attese'"
+          # Il GRANT che in produzione fa chi amministra il server, qui fatto da root: l'utente dell'hub legge la
+          # vista (SQL SECURITY DEFINER) e non la tabella sotto.
+          root() {
+            docker run --rm --network host mariadb:11.4.10 \
+              mariadb -h 127.0.0.1 -P 3306 -u root -pradice-di-prova --batch --skip-column-names -e "$1"
+          }
+          root "CREATE USER 'hub_lettore'@'%' IDENTIFIED BY 'lettore-di-ci';
+                GRANT SELECT ON itivao_atc.v_share_atc_sessions TO 'hub_lettore'@'%';"
+          hub() {
+            docker run --rm --network host mariadb:11.4.10 \
+              mariadb -h 127.0.0.1 -P 3306 -u hub_lettore -plettore-di-ci itivao_atc --batch --skip-column-names -e "$1"
+          }
+          sql "INSERT INTO AtcSessions (SessionId,UserId,Callsign,StartUtc,DurationSeconds,IsOutsideDivision,Source,ShiftKey,TrafficCount,MovementCount,TrafficMinutes)
+               VALUES (1,704798,'LIRF_TWR','2026-09-20 10:00:00',3600,0,'Poller',1,0,0,0);"
+          # La domanda dell'hub (T12): chi era online nell'intervallo, con due giorni di margine all'indietro.
+          letta=$(hub "SELECT callsign FROM v_share_atc_sessions
+                       WHERE start_utc <= '2026-09-21' AND start_utc >= DATE_SUB('2026-09-20 11:00', INTERVAL 2 DAY)
+                         AND (end_utc IS NULL OR end_utc >= '2026-09-20 11:00');")
+          [ "$letta" = "LIRF_TWR" ] || fallisci "l'utente dell'hub legge '$letta' dalla vista invece di 'LIRF_TWR'"
+          if hub "SELECT COUNT(*) FROM AtcSessions;" 2>/dev/null; then
+            fallisci "l'utente dell'hub legge AtcSessions: il GRANT sulla sola vista non basta a tenerlo fuori"
+          fi
+          sql "DELETE FROM AtcSessions;"
+          root "DROP USER 'hub_lettore'@'%';"
+
+          echo "tutte e quattro le verifiche passate."
 
       # La copia del database che l'Admin scarica da Diagnostica (§A47): scritta col codice del sito, reimportata
       # col client `mariadb` in un database vuoto, confrontata con CHECKSUM TABLE tabella per tabella. I test

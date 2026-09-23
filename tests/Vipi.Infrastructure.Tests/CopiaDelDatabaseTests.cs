@@ -264,6 +264,69 @@ public class CopiaDelDatabaseTests
         Assert.Equal(s.LongestStatementBytes, v.Found.LongestStatementBytes);
     }
 
+    // ---- Le viste condivise (v_share_, dal 23 settembre 2026) --------------------------------------------
+
+    /// <summary>
+    /// La <c>CREATE</c> vera che MariaDB 11.4.10 dà per la vista dell'hub (copiata da <c>SHOW CREATE VIEW</c>).
+    /// Ripristinata con un DEFINER che non è chi ripristina, chiede <c>SET USER</c>: provato con un utente che ha
+    /// tutto sul suo database e nient'altro, «Access denied; you need … SET USER». Senza, la vista nasce sua.
+    /// </summary>
+    [Fact]
+    public void La_vista_esce_senza_DEFINER_e_con_tutto_il_resto()
+    {
+        const string vera = "CREATE ALGORITHM=UNDEFINED DEFINER=`itivao_atc`@`%` SQL SECURITY DEFINER VIEW " +
+            "`v_share_atc_sessions` AS select `AtcSessions`.`SessionId` AS `session_id` from `AtcSessions`";
+
+        Assert.Equal(
+            "CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_share_atc_sessions` AS select " +
+            "`AtcSessions`.`SessionId` AS `session_id` from `AtcSessions`",
+            MySqlDumpSource.WithoutDefiner(vera));
+
+        // Un utente col backtick nel nome (raddoppiato da MariaDB) non lascia pezzi di clausola.
+        Assert.Equal("CREATE SQL SECURITY DEFINER VIEW `v` AS select 1",
+            MySqlDumpSource.WithoutDefiner("CREATE DEFINER=`a``b`@`localhost` SQL SECURITY DEFINER VIEW `v` AS select 1"));
+    }
+
+    [Theory]
+    [InlineData("v_share_atc_sessions", true)]
+    [InlineData("v_share_", true)]
+    [InlineData("V_SHARE_atc_sessions", false)]
+    [InlineData("v_sharex", false)]
+    [InlineData("vista_qualunque", false)]
+    public void La_copia_porta_solo_le_viste_condivise(string nome, bool portata) =>
+        Assert.Equal(portata, MySqlDumpSource.IsSharedView(nome));
+
+    /// <summary>
+    /// La vista esce dopo le tabelle, non conta come tabella nella chiusura, e il file resta una copia che il
+    /// verificatore dichiara INTERA (formato 1: il verificatore di prima la legge uguale).
+    /// </summary>
+    [Fact]
+    public async Task La_vista_esce_dopo_le_tabelle_e_la_copia_resta_intera()
+    {
+        using var ms = new MemoryStream();
+        using (var w = new SqlDumpWriter(ms))
+        {
+            await w.WriteHeaderAsync(Testata);
+            await w.BeginTableAsync("AtcSessions", "CREATE TABLE `AtcSessions` (`SessionId` bigint)", new[] { "SessionId" });
+            await w.WriteRowAsync(new object?[] { 1L });
+            await w.EndTableAsync();
+            await w.WriteViewAsync("v_share_atc_sessions",
+                "CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `v_share_atc_sessions` AS select 1 AS `x`");
+            var s = await w.FinishAsync();
+            Assert.Equal(1, s.Tables);
+        }
+
+        var righe = Encoding.UTF8.GetString(ms.ToArray()).Split('\n');
+        var tabella = Array.FindIndex(righe, r => r.StartsWith("-- vipi-tabella `AtcSessions`", StringComparison.Ordinal));
+        var drop = Array.IndexOf(righe, "DROP VIEW IF EXISTS `v_share_atc_sessions`;");
+        Assert.True(tabella >= 0 && drop > tabella, "la vista deve uscire dopo la tabella che legge");
+        Assert.EndsWith("AS select 1 AS `x`;", righe[drop + 1]);
+
+        var v = await SqlDumpVerifier.VerifyAsync(new MemoryStream(ms.ToArray()));
+        Assert.True(v.Ok, v.Problem);
+        Assert.Equal(1, v.Found.Tables);
+    }
+
     [Fact]
     public async Task Il_ripristino_gira_in_strict_mode_e_la_testata_dice_come_si_fa()
     {
