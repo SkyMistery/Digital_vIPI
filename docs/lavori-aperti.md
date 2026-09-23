@@ -5,7 +5,7 @@
 > Sezione dell'agente che lavora sul SITO nel worktree `vIPI-sito`. Le voci qui sotto hanno il prefisso **S**
 > per non incrociare la numerazione §A del Sector Lab, che lavora su `main`. Si fonde in `main` a lavoro finito.
 
-### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — fuso, nel pacchetto 1.43.0 (§A118)
+### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — ONLINE in 1.43.0 (§A118)
 
 Segnalato su **LIRE** (APP unito al vSOP militare): premendo il tasto delle sezioni in comune la pagina si
 ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposedException` su `VipiDbContext` in
@@ -33,7 +33,16 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A118 — Pacchetto 1.43.0: §A117 + §S1 (23 settembre 2026) — PRONTO DA CARICARE
+### ✅ A118 — 1.43.0 ONLINE: §A117 + §S1 (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.43.0 · 54355eb` e `Schema 0`. Avvio 12:10:41 UTC, «migrazione del database»
+3199 ms, nessun errore d'avvio. Nuovo processo: 9 richieste, nessun 5xx. Da fuori `pacchetto-verifica.js`
+SOLO_PUBBLICO **tutto verde** (la Ricerca risponde, console pulita).
+
+- ℹ️ 12:10:28–34, processo VECCHIO: `BadImageFormatException` ×3 + un `InvalidCastException` nel poll, durante le
+  rinomine (il processo 1.42.1 caricava pigramente assiemi già sostituiti). Finestra del carico, spariti col riavvio.
+- ✅ I due `ObjectDisposedException` delle 09:18 e 11:56 su `/services/vsop/lirr/apps/editor`
+  (`UnionPanel.RicaricaAsync`) sono quelli di §S1, su 1.42.1: da ricontrollare in un prossimo scarico che non tornino.
 
 MINOR, **una migrazione additiva** solo MySQL (`20260923100945_VistaCondivisaSessioniAtc`: crea la vista, nessuna
 tabella toccata), su 1.42.1 (`a66f25e`). Timbro **`1.43.0 · 54355eb`**. **8 file in radice**: Vipi.Ui,
@@ -49,7 +58,7 @@ sito). Zip `vipi-1.43.0-solo-file-cambiati.zip` `6eaacc47…6d29c`, foglio
 - ▶ Dopo il carico: timbro, `Schema 0`, riga «Applying migration …VistaCondivisaSessioniAtc» nel log, la Ricerca.
 - ⏸ Il `GRANT SELECT` all'utente dell'hub: quando l'hub va in produzione (l'utente oggi non esiste).
 
-### 📦 A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026) — PR #16 fusa, nel pacchetto 1.43.0 (§A118)
+### ✅ A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026) — ONLINE in 1.43.0 (§A118)
 
 Carta [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md).
 L'hub (un altro sito, database suo sullo stesso MariaDB) legge l'archivio delle sessioni ATC da una **vista**, non da

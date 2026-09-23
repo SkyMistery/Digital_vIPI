@@ -2,7 +2,8 @@
 
 > **📦 Integrazione (23-set):** `sito/lavori` e PR #16 fusi in `main`. **Pacchetto 1.43.0 PRONTO DA CARICARE**
 > (§A118): la vista `v_share_atc_sessions` per l'hub (§A117, migrazione additiva) + S1. 8 file, timbro
-> `1.43.0 · 54355eb`, zip `6eaacc47…`. Il `GRANT` all'utente dell'hub si fa quando l'hub c'è.
+> `1.43.0 · 54355eb`, zip `6eaacc47…`. ✅ **ONLINE** (timbro, Schema 0, da fuori tutto verde). Il `GRANT`
+> all'utente dell'hub si fa quando l'hub c'è.
 >
 > **🌐 Sito (ramo `sito/lavori`, worktree `vIPI-sito`, agente del sito):** 23-set — ✅ **S1** l'editor APP unito
 > non ricarica più la pagina premendo «sezioni comuni» (LIRE): guardia sulla chiave in `AppSectionsEditor`, come
