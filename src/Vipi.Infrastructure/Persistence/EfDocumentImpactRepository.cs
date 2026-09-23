@@ -400,12 +400,29 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
     {
         var sourceKey = (input.SourceKey ?? "").Trim();
 
+        var argomenti = input.ReasonArgs is { Count: > 0 } ? JsonSerializer.Serialize(input.ReasonArgs) : null;
+
         var esistente = await _db.DocumentImpacts
             .Where(i => i.DocumentId == input.DocumentId && i.Kind == input.Kind
                         && i.SourceKey == sourceKey && i.ClearedUtc == DocumentImpact.Aperto)
-            .Select(i => (int?)i.Id)
             .FirstOrDefaultAsync(ct);
-        if (esistente is int id) return id;
+        if (esistente is not null)
+        {
+            // ⚠️ Lo stesso fatto, ma raccontato con i dati di OGGI. Fino al 23 settembre 2026 si tornava la riga
+            // com'era: il riassunto «da ripubblicare» restava quello del primo giorno — la vIPI Brindisi elencava
+            // a settembre le sezioni cambiate il 25 agosto — e i giorni di silenzio di uno stantio non crescevano
+            // mai (verifica dell'11 settembre, difetto 2). L'identità della riga e la sua età (`RaisedUtc`) non
+            // si toccano: cambia la frase, non il fatto. Il non-evento non si scrive.
+            if (esistente.ReasonArgsJson != argomenti || esistente.IsPublicNow != input.IsPublicNow
+                || esistente.ReasonKey != input.ReasonKey)
+            {
+                esistente.ReasonKey = input.ReasonKey;
+                esistente.ReasonArgsJson = argomenti;
+                esistente.IsPublicNow = input.IsPublicNow;
+                await _db.SaveChangesAsync(ct);
+            }
+            return esistente.Id;
+        }
 
         var riga = new DocumentImpact
         {
@@ -413,7 +430,7 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             Kind = input.Kind,
             SourceKey = sourceKey,
             ReasonKey = input.ReasonKey,
-            ReasonArgsJson = input.ReasonArgs is { Count: > 0 } ? JsonSerializer.Serialize(input.ReasonArgs) : null,
+            ReasonArgsJson = argomenti,
             IsPublicNow = input.IsPublicNow,
             RaisedUtc = DateTime.UtcNow,
             ClearedUtc = DocumentImpact.Aperto,
@@ -442,6 +459,7 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
         // ⚠️ Mai la sentinella: una chiusura registrata a `0001-01-01` sarebbe una riga che risulta ancora aperta.
         riga.ClearedUtc = whenUtc == DocumentImpact.Aperto ? DateTime.UtcNow : whenUtc;
         riga.ClearedByUserId = byUserId;
+        await ChiudiIncarichiNatiDaAsync(new[] { riga.Id }, byUserId, riga.ClearedUtc, ct);
         await _db.SaveChangesAsync(ct);
     }
 
@@ -459,8 +477,45 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
 
         var quando = whenUtc == DocumentImpact.Aperto ? DateTime.UtcNow : whenUtc;
         foreach (var r in righe) { r.ClearedUtc = quando; r.ClearedByUserId = byUserId; }
+        await ChiudiIncarichiNatiDaAsync(righe.Select(r => r.Id).ToList(), byUserId, quando, ct);
         await _db.SaveChangesAsync(ct);
         return righe.Count;
+    }
+
+    /// <summary>
+    /// Gli incarichi nati da queste segnalazioni («prendi in carico») passano a <b>Done</b>, nello stesso
+    /// salvataggio della chiusura.
+    ///
+    /// <para>⚠️ Senza, l'incarico sopravviveva al suo motivo: si ripubblicava, la segnalazione si chiudeva, e
+    /// l'incarico restava «da fare» — e peggio di prima, perché perduta l'origine la riga ricadeva sul titolo
+    /// del documento ripetuto e su urgenza normale (verifica dell'11 settembre 2026, difetto 1). La carta
+    /// della lista unica prometteva «l'incarico lo sa» (§2/D5): qui lo sa. Sta nel repository, cioè nell'unica
+    /// porta da cui passa <b>ogni</b> chiusura — ✓ di una persona, riconciliazione, ripubblicazione — e non in
+    /// uno dei suoi chiamanti.</para>
+    /// </summary>
+    private async Task ChiudiIncarichiNatiDaAsync(IReadOnlyCollection<int> impactIds, int actorUserId,
+        DateTime quando, CancellationToken ct)
+    {
+        if (impactIds.Count == 0) return;
+        var ids = impactIds.ToList();
+        var incarichi = await _db.EditorTasks
+            .Where(t => t.FromImpactId != null && ids.Contains(t.FromImpactId.Value)
+                        && t.Status != EditorTaskStatus.Done)
+            .ToListAsync(ct);
+        foreach (var t in incarichi) ChiudiIncarico(t, actorUserId, quando);
+    }
+
+    private void ChiudiIncarico(EditorTask t, int actorUserId, DateTime quando)
+    {
+        var prima = t.Status;
+        t.Status = EditorTaskStatus.Done;
+        t.UpdatedUtc = quando;
+        t.CompletedUtc = quando;
+        // Il registro dice PERCHÉ si è chiuso: chi apre l'incarico e lo trova concluso senza averlo toccato
+        // deve poter leggere che l'ha chiuso la segnalazione, non un collega.
+        AuditScribe.Write(_db, actorUserId, AuditAction.Update, "EditorTask", t.Id.ToString(),
+            new { Title = t.Title, Da = prima.ToString(), A = EditorTaskStatus.Done.ToString(),
+                  ImpactId = t.FromImpactId, Motivo = "SegnalazioneChiusa" });
     }
 
     public async Task<DocumentImpactRow?> GetOpenAsync(int impactId, CancellationToken ct = default) =>
@@ -591,8 +646,25 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
         return live.Where(versionePubblica.ContainsKey).Select(v => versionePubblica[v]).ToHashSet();
     }
 
+    /// <remarks>
+    /// Prima di potare, chiude gli incarichi rimasti aperti la cui segnalazione d'origine non è più aperta
+    /// (chiusa o già potata). Sono quelli nati prima che la chiusura li trascinasse con sé
+    /// (<see cref="ChiudiIncarichiNatiDaAsync"/>): il giro notturno passa di qui ogni giorno, e li risana senza
+    /// una migrazione di dati.
+    /// </remarks>
     public async Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default)
     {
+        var orfani = await _db.EditorTasks
+            .Where(t => t.FromImpactId != null && t.Status != EditorTaskStatus.Done
+                        && !_db.DocumentImpacts.Any(i => i.Id == t.FromImpactId && i.ClearedUtc == DocumentImpact.Aperto))
+            .ToListAsync(ct);
+        if (orfani.Count > 0)
+        {
+            var adesso = DateTime.UtcNow;
+            foreach (var t in orfani) ChiudiIncarico(t, actorUserId: 0, adesso);
+            await _db.SaveChangesAsync(ct);
+        }
+
         var vecchie = await _db.DocumentImpacts
             .Where(i => i.ClearedUtc != DocumentImpact.Aperto && i.ClearedUtc < cutoffUtc)
             .ToListAsync(ct);
