@@ -110,7 +110,8 @@ sola). Aggiornati di conseguenza §2.2 e le slice. ❓ Resta aperta la domanda s
   [`2026-09-20-star-e-altri-riferimenti.md`](2026-09-20-star-e-altri-riferimenti.md): `…;tipo;transition;RNAV;`;
   `StrParser` lo legge in `IsRnav`). Sta su 1087 procedure e 47 mappe `MAPS`. La rigenerazione **non tocca l'intestazione**.
 
-🟡 **Nate dalle misure della slice 0 (§8), da decidere col committente prima della slice 1** (proposta fra parentesi):
+✅ **Nate dalle misure della slice 0 (§8). Il committente il 23 settembre le ha decise tutte e tre come proposte**
+(fra parentesi):
 
 - **D8 — Una procedura che si innesta su un tratto già disegnato**: (si **ferma sul primo punto già disegnato,
   compreso**: è la regola che spiega 102 dei 139 tratti troncati di oggi) — oppure la si disegna sempre **intera**,

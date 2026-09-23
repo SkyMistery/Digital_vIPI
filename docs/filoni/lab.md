@@ -14,7 +14,7 @@
   approvata): ✅ **slice 0 = misure** fatta (carta §8 «Traccia»). Gemelli 3/13/1, più chiavi ripetute nello stesso
   file; **58** aggregati (non ~20), 16 con tratti disallineati; regola dei troncati «primo punto già disegnato»
   (102/139); il `<br>` sulle righe per nome si perde nel modello (da sistemare in slice 3-4). D7 chiusa (`1` = RNAV).
-  🟡 **D8-D10 (carta §5) da far decidere al committente prima della slice 1.**
+  ✅ D8-D10 decise come proposte. ▶ **slice 1** (famiglie e gemelli nel `Core`, regola *copie diverse*).
 - Prove sul fork: eseguibile in `D:\Programmazione\IVAO_Test\SectorLab-prova\`, clone
   `D:\Programmazione\IVAO_Test\it-aurora-sector-test` (può avere modifiche delle prove: `git checkout -- .`).
 - Conteggi del filone: `tests/conteggi/Vipi.SectorLab.Tests.txt` e, se si tocca il motore, `Vipi.Sectorfile.Tests.txt`.
