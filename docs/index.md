@@ -5,6 +5,9 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 **Stato:** 🟢 Autorevole (corrente) · 🔵 Reference (config/integrazione) · 🟣 Design · ⚪ Storico.
 
 ## Ordine di lettura consigliato (nuova chat)
+⚠️ **Più agenti al lavoro insieme?** Prima di tutto [filoni/come-si-lavora-in-parallelo.md](filoni/come-si-lavora-in-parallelo.md):
+chi lavora in quale cartella e ramo, e chi scrive quale file.
+
 0. **[lavori-aperti.md](lavori-aperti.md)** — 📋 elenco unico di **cosa manca da fare**, con il blocco di
    ciascuna voce. Se l'obiettivo è lavorare e non capire, si parte da qui.
 1. `../README.md` — cos'è il progetto, architettura, build/run.
@@ -355,6 +358,12 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md) — F3 — L'app: aprire il sector, vederlo sulla mappa, modificarlo e salvarlo senza danni (22 settembre 2026)
 - [`feature/2026-09-23-f3-bis-copie-e-mappe-composte.md`](feature/2026-09-23-f3-bis-copie-e-mappe-composte.md) — F3-bis — Le copie che restano uguali e le mappe composte (23 settembre 2026)
 - [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md) — §A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026)
+
+### `filoni`
+
+- [`filoni/come-si-lavora-in-parallelo.md`](filoni/come-si-lavora-in-parallelo.md) — Più agenti in parallelo: chi scrive dove 🟢
+- [`filoni/lab.md`](filoni/lab.md) — Filone Sector Lab — stato
+- [`filoni/sito.md`](filoni/sito.md) — Filone sito vIPI — stato
 
 ### `guide`
 

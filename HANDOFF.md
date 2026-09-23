@@ -1,5 +1,9 @@
 ﻿# HANDOFF — vIPI/vLOA Interactive
 
+> **🔀 Dal 23-set si lavora per FILONI** ([`docs/filoni/come-si-lavora-in-parallelo.md`](docs/filoni/come-si-lavora-in-parallelo.md)):
+> Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
+> e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
+>
 > **📦 Integrazione (23-set):** `sito/lavori` e PR #16 fusi in `main`. **Pacchetto 1.43.0 PRONTO DA CARICARE**
 > (§A118): la vista `v_share_atc_sessions` per l'hub (§A117, migrazione additiva) + S1. 8 file, timbro
 > `1.43.0 · 54355eb`, zip `6eaacc47…`. ✅ **ONLINE** (timbro, Schema 0, da fuori tutto verde). Il `GRANT`

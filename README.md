@@ -39,7 +39,7 @@ In sviluppo (`useDevIdentity:true`) è attivo `DevCurrentUserProvider` (admin `I
 
 ```bash
 dotnet build Vipi.slnx            # gli avvisi sono ERRORI (Directory.Build.props)
-dotnet test  Vipi.slnx            # su net8 e net10: il numero atteso per assieme sta in tests/conteggi-attesi.txt
+dotnet test  Vipi.slnx            # su net8 e net10: il numero atteso sta in tests/conteggi/, un file per assieme
 dotnet run --project src/Vipi.Host --urls http://localhost:5034   # poi apri /services/vsop
 ```
 
