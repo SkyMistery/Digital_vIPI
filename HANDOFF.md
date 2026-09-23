@@ -10,7 +10,7 @@
 >
 > **✅ 1.44.0 ONLINE (23-set, §A120)**: S4 (larghezza delle colonne) + S5 (procedure non trovate negli
 > accordi), MINOR senza migrazione, 14 file (6 in `wwwroot`), timbro `1.44.0 · 3561423`, zip `3f8b8f4f…`.
-> 🔎 Una disconnessione dopo il carico = cambio di processo di Passenger, non un errore (§A120).
+> 🔎 Una disconnessione dopo il carico = evento esterno a hh:56 (Plesk/Passenger), non un errore (§A120; scritto a Ivao.It).
 >
 > **✅ 1.43.1 ONLINE (23-set, §A119)**: S2 + S3 del sito, PATCH senza migrazione, 6 file, timbro
 > `1.43.1 · a8a1cea`, zip `3e7c266e…`. Timbro, Schema 0, STAR fra i punti, da fuori tutto verde. In `main` non

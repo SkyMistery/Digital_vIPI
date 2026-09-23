@@ -67,9 +67,13 @@ Fuori: Vipi.Ui (cambia solo il CSS; l'impronta degli asset la calcola `AssetVers
   16:57:33 Passenger ha avviato un SECONDO processo 1.44.0 (1803150) mentre il primo (1779624) scriveva ancora il log
   fino alle 16:57:42. Quindi: cambio di processo, non un errore di S4. **Non riprodotto** sul pacchetto in locale
   (tabella strutturata e generica, larghezza al 30%, «+ Riga» ×3: nessun errore, nessuna disconnessione).
-- 🔎 Terzo caso dello stesso schema (13:56 e 16:56-57): Passenger apre un secondo processo mentre l'altro è vivo, e
-  i processi 1.43.x sono stati fermati dopo **esattamente 1:00:00**. Da capire a parte (impostazioni di Passenger su
-  Plesk?).
+- 🔎 Terzo caso dello stesso schema (13:56 e 16:56-57). ✅ **Indagato lo stesso giorno**: le morti silenziose cadono
+  TUTTE a **hh:56–57** (22 e 23 settembre, non ogni ora): a quell'istante si chiudono insieme tutte le connessioni
+  lunghe del processo, il vecchio logga ancora 5–20 s (i «due poll insieme»), Passenger ne avvia uno nuovo al ping
+  dopo, e il vecchio sparisce senza riga `ARRESTO`. La «vita di 1:00:00» sono solo due eventi :56 di fila. Nel
+  nostro codice niente gira a :56 → causa **fuori** (Plesk/nginx/Passenger): scritto a Ivao.It il 23 sera, si aspetta
+  risposta. Ai carichi il «⚠ NON spento in modo ordinato» di `avvii.txt` è un falso allarme (sovrapposizione
+  normale). Nessun pacchetto serve.
 
 MINOR, **nessuna migrazione**, su 1.43.1 (`a8a1cea`). Timbro **`1.44.0 · 3561423`**. Dettaglio in
 [`filoni/sito.md`](filoni/sito.md): **S4** larghezza delle colonne delle tabelle (campo «%» e trascinamento del bordo,
