@@ -67,6 +67,15 @@ public enum Regola
     /// nel file nazionale e in quello della FIR (<c>LIBA</c> a 182 ft in <c>itap.ap</c>, a 185 in <c>libb.ap</c>).
     /// </summary>
     CopieDiverse,
+
+    /// <summary>Una mappa composta elenca una procedura che nel suo <c>.str</c> non c'è (F3-bis §2.2), o un elenco che non si legge.</summary>
+    CompostaConProceduraAssente,
+
+    /// <summary>
+    /// Una mappa composta diversa da come la rigenererebbe il Lab: qualcuno l'ha cambiata a mano, o una procedura è
+    /// cambiata fuori dal Lab (F3-bis §2.2).
+    /// </summary>
+    CompostaNonAllineata,
 }
 
 public enum Gravita
@@ -87,7 +96,7 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse => Validazione.Gravita.Avviso,
+            or Regola.CopieDiverse or Regola.CompostaNonAllineata => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

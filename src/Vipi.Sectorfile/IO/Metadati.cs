@@ -30,10 +30,11 @@ namespace Vipi.Sectorfile.IO;
 public static partial class Metadati
 {
     /// <summary>
-    /// Le chiavi di un record: il nome intero del fix (<c>BANA6W</c> è BANAV), l'initial climb, e le procedure di una
-    /// mappa composta (F3-bis §2.2: <c>composta=ODINA4E,25:NENI5A</c>, vedi <see cref="ElencoDellaComposta"/>).
+    /// Le chiavi di un record: il nome intero del fix (<c>BANA6W</c> è BANAV), l'initial climb, le procedure di una
+    /// mappa composta (F3-bis §2.2: <c>composta=ODINA4E,25:NENI5A</c>, vedi <see cref="ElencoDellaComposta"/>) e come
+    /// si disegnano (<c>intere=si</c>: ognuna intera, anche dove ripassa su un tratto già disegnato; D8 rivista).
     /// </summary>
-    public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb", "composta" };
+    public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb", "composta", "intere" };
 
     /// <summary>
     /// Le procedure di una mappa composta, dal valore di <c>composta</c> (F3-bis D5): nomi separati da virgola, nell'ordine

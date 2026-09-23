@@ -120,6 +120,10 @@ sola). Aggiornati di conseguenza §2.2 e le slice. ❓ Resta aperta la domanda s
 - **D8 — Una procedura che si innesta su un tratto già disegnato**: (si **ferma sul primo punto già disegnato,
   compreso**: è la regola che spiega 102 dei 139 tratti troncati di oggi) — oppure la si disegna sempre **intera**,
   come nelle 22 mappe fatte solo di procedure intere. Oppure una scelta per mappa.
+  🔴 **Rivista nella slice 4** (23 settembre): la frase «le mappe tutte intere non contraddicono la regola» era falsa,
+  7 disegnano intere anche procedure che si toccano (`lirs` ×3, `libp` ×2, `lipz` LAREN, `lirv`). Il committente ha
+  scelto la **scelta per mappa**: di norma troncata, `intere=si` nel tag la disegna intera; quando una mappa diventa
+  composta, il Lab sceglie la forma che la lascia com'è oggi (slice 5).
 - **D9 — I tratti che non sono una procedura** (l'arco a coordinate di `lime.str`, 19 tratti senza procedura
   corrispondente): (**restano in fondo alla mappa, com'erano**, e la rigenerazione riscrive solo i tratti delle
   procedure elencate) — oppure una mappa composta contiene solo procedure, e il resto va in un'altra `MAPS`.
@@ -231,3 +235,30 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   `LIMF` e `18`, dal commit del fork «LIMF: Revisione SIDs»): la SID ha il nome vuoto e non si può dichiarare. Il
   validatore oggi non lo dice → da dire al committente; una regola possibile per dopo.
 - Test motore 437 → **452** (net8 e net10); aggiornati i due test di F2 che si aspettavano la scrittura senza virgolette.
+
+**Slice 4 — la rigenerazione** (23 settembre).
+
+- Motore (codice comune): `IO/MappeComposte.cs`. `PuntoDellaMappa` = un punto del corpo in forma neutra (per nome o
+  per coordinate, suffisso, `<br>`); `Componi` = le procedure elencate nell'ordine dell'elenco, una per tratto
+  (`P;P;<br>` + i punti della procedura col suffisso sul primo), troncate al primo punto già disegnato salvo
+  `intere=si` (D8 rivista), poi i tratti liberi di oggi in fondo (D9: un tratto è «di una procedura» se comincia dal suo
+  primo punto col suo suffisso). La testa del primo tratto tiene la forma che ha oggi: i file la scrivono in tre modi
+  (`P;P;<br>`+`P;P;4E;` in `lime`, `P;P;`+`P;P;3Z;` in `liea`, solo `P;P;1J;` in `limj`). `Applica` rimette i punti
+  nel modello (una mappa di soli nomi non prende coordinate). Chiave `intere` nel catalogo.
+- Validatore: `CompostaConProceduraAssente` (errore: una voce dell'elenco che nel `.str` non c'è, o un elenco che non si
+  legge) e `CompostaNonAllineata` (avviso), sull'intestazione della mappa (il clic porta al record).
+- Lab: `ModificheInSospeso` rigenera le composte del file dopo ogni cambio (campo, vertici, annullamento) se una
+  procedura elencata ha qualcosa in sospeso; la voce `ModificaDellaComposta` («rigenerata dalle sue procedure») ha il
+  suo diff e si salva insieme; quando le procedure tornano com'erano, la mappa torna com'era all'apertura. Una mappa
+  già disallineata all'apertura non si tocca finché non cambia una sua procedura.
+- Per spostare una STAR serviva poterla modificare: `ElenchiDiVertici` ora prende anche i `ProcedureWaypoint` dei `.str`
+  («Punti», solo per nome; suffisso e `<br>` restano). 🔴 E un nome di una parola che comincia per N/S/E/W (`NELAB`,
+  `SOKVO`, `EKLIB`) veniva preso per una coordinata e rifiutato, anche nei `.tfl` e nelle SID: ora è coordinata solo
+  se dopo la lettera viene una cifra.
+- **Misura di adozione sul fork** (ogni aggregato dichiarato composto con le procedure che disegna oggi): su 56, identici
+  **14** troncando, **15** intere, **21** scegliendo per mappa; 35 cambiano comunque (le 16 disallineate e i tratti fatti
+  a mano).
+- **Sul fork, di punta** (copia del clone): `lime.str` dichiarata composta con le sue 9 STAR → 0 problemi; ODIN4E
+  ME872 → OBGET → **−2 +2** (la STAR e la mappa), «Annulla tutto» → nessun diff. Validatore dell'albero invariato
+  (125 errori, 382 avvisi: nel fork nessuna mappa è ancora composta); round-trip 701, `<br>` 545/545, tag 2782/2782.
+- Test motore 452 → **462** (net8 e net10), Lab 277 → **283**.

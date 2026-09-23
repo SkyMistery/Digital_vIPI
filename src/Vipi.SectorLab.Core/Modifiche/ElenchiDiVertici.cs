@@ -12,7 +12,8 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// <see cref="Coordinate"/> (<c>.pol</c>, <c>.lairway</c>), un elenco di <see cref="Punto"/> che ammette anche i
 /// nomi (<c>.tfl</c>, <c>.mva</c>, <c>.vrt</c>), e un elenco di <b>involucri</b> che portano il punto più altro:
 /// <see cref="PuntoDelTracciato"/> delle <c>.sid</c> (etichetta e «nuovo tratto») e i <b>segmenti</b> delle zone
-/// <c>.str</c>, che sono elenchi dentro un elenco.</para>
+/// <c>.str</c>, che sono elenchi dentro un elenco. Dalla F3-bis (slice 4) anche i punti di una procedura <c>.str</c>
+/// (<see cref="ProcedureWaypoint"/>), che sono solo per nome e portano il suffisso e il «nuovo tratto».</para>
 /// <para>Chi modifica un vertice non deve sapere quale dei tre: qui si legge e si scrive un punto, e quel che
 /// l'involucro porta in più <b>resta</b> — l'etichetta di una SID non si perde spostando il suo punto.</para>
 /// </summary>
@@ -39,7 +40,13 @@ public sealed class ElencoDiVertici
     public int Quanti => Elenco.Count;
 
     /// <summary>Vero dove un vertice si può scrivere per NOME: il file lo sa riscrivere.</summary>
-    public bool AmmetteNomi => _dentro == typeof(Punto) || _dentro == typeof(PuntoDelTracciato);
+    public bool AmmetteNomi => _dentro == typeof(Punto) || _dentro == typeof(PuntoDelTracciato) || _dentro == typeof(ProcedureWaypoint);
+
+    /// <summary>
+    /// Vero dove un vertice si può scrivere per coordinate. Non nei punti di una procedura <c>.str</c>: il record è
+    /// fatto di nomi, e una coordinata ne cambierebbe il tipo (F3-bis slice 4).
+    /// </summary>
+    public bool AmmetteCoordinate => _dentro != typeof(ProcedureWaypoint);
 
     /// <summary>Il vertice in posizione data, come si scrive a schermo.</summary>
     public string Scrivi(int posizione)
@@ -50,6 +57,7 @@ public sealed class ElencoDiVertici
             Coordinate c => CoordinateConverter.ToDottedDms(c),
             Punto p => ScriviIlPunto(p),
             PuntoDelTracciato t => ScriviIlPunto(t.Punto),
+            ProcedureWaypoint w => w.FixName == w.DisplayLabel ? w.FixName : $"{w.FixName} {w.DisplayLabel}",
             _ => "",
         };
     }
@@ -89,6 +97,19 @@ public sealed class ElencoDiVertici
 
         if (_dentro == typeof(Punto))
             return punto;
+
+        if (_dentro == typeof(ProcedureWaypoint))
+        {
+            // Il suffisso che fa da etichetta (`4E`) e il «nuovo tratto» restano: si sposta il punto, non la sua forma.
+            var prima = vecchio as ProcedureWaypoint;
+            return new ProcedureWaypoint
+            {
+                FixName = punto.Nome ?? throw new InvalidOperationException("Qui un punto va per nome."),
+                DisplayLabel = punto.NomeLongitudine ?? punto.Nome,
+                SuffixCode = prima?.SuffixCode,
+                IniziaUnTratto = prima?.IniziaUnTratto ?? false,
+            };
+        }
 
         return new PuntoDelTracciato
         {
@@ -157,7 +178,7 @@ public static class ElenchiDiVertici
         => Di(file, indice).FirstOrDefault(e => e.Chiave == chiave);
 
     private static bool EUnPunto(Type tipo)
-        => tipo == typeof(Coordinate) || tipo == typeof(Punto) || tipo == typeof(PuntoDelTracciato);
+        => tipo == typeof(Coordinate) || tipo == typeof(Punto) || tipo == typeof(PuntoDelTracciato) || tipo == typeof(ProcedureWaypoint);
 
     private static Type? TipoDentro(Type tipoDellaProprieta)
         => tipoDellaProprieta.IsGenericType ? tipoDellaProprieta.GetGenericArguments().FirstOrDefault() : null;
@@ -168,6 +189,7 @@ public static class ElenchiDiVertici
         "Vertices" => "Vertici",
         "Punti" => "Punti",
         "Points" => "Punti",
+        "Waypoints" => "Punti",
         "Coordinates" => "Punti",
         "LabelAnchors" => "Ancore delle etichette",
         _ => campo,

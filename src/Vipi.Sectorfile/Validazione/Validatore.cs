@@ -237,6 +237,7 @@ public static partial class Validatore
             var dichiarati = new List<NomeDichiarato>();
 
             int numero = 0;
+            var intestazioni = new Dictionary<object, (int Riga, string Testo)>(ReferenceEqualityComparer.Instance);
             foreach (var pezzo in letto.Chunks)
             {
                 if (pezzo is RawChunk<T> grezze)
@@ -248,6 +249,7 @@ public static partial class Validatore
                 var rec = (RecordChunk<T>)pezzo;
                 numero += rec.LeadingComments.Length + (rec.HasMarkers ? 1 : 0);
                 int primaRiga = numero + 1;
+                intestazioni[rec.Record] = (primaRiga, rec.RawLines.Length > 0 ? rec.RawLines[0] : string.Empty);
 
                 // Due nomi diversi: la riga esatta si trova fra quelle del record, cercando la coppia di campi.
                 var coppie = NomiDiversi(rec.Record).ToHashSet();
@@ -309,6 +311,36 @@ public static partial class Validatore
             };
             problemi.AddRange(tag.Select(p => new ProblemaDelSector(
                 p.EUnErrore ? Regola.TagNonValido : Regola.TagFuoriCatalogo, string.Empty, p.Riga, p.Testo, p.Tipo.ToString())));
+
+            // Le mappe composte (F3-bis slice 4): l'elenco deve nominare procedure del file, e la mappa deve essere
+            // come la rigenererebbe il Lab. Il problema sta sull'intestazione della mappa: il clic porta al record.
+            if (letto is ParseResult<StrRecord> deiStr)
+            {
+                foreach (var composta in MappeComposte.Di(deiStr))
+                {
+                    var (riga, testo) = intestazioni.GetValueOrDefault(composta.Mappa, (composta.Riga, string.Empty));
+                    string nome = Metadati.NomeStr(composta.Mappa);
+                    if (composta.Elenco is null)
+                    {
+                        problemi.Add(new(Regola.CompostaConProceduraAssente, string.Empty, riga, testo,
+                            $"«{nome}»: l'elenco «{composta.Valore}» non si legge"));
+                        continue;
+                    }
+
+                    var rigenerata = composta.Componi(deiStr.Records);
+                    foreach (var mancante in rigenerata.Mancanti)
+                    {
+                        problemi.Add(new(Regola.CompostaConProceduraAssente, string.Empty, riga, testo,
+                            $"«{nome}»: «{(mancante.Pista is null ? "" : mancante.Pista + ":")}{mancante.Nome}» non c'è in questo file"));
+                    }
+
+                    if (!MappeComposte.Uguale(composta.Mappa, rigenerata.Punti))
+                    {
+                        problemi.Add(new(Regola.CompostaNonAllineata, string.Empty, riga, testo,
+                            $"«{nome}»: {MappeComposte.PuntiDi(composta.Mappa).Count} punti, rigenerata ne avrebbe {rigenerata.Punti.Count}"));
+                    }
+                }
+            }
 
             return new EsitoDelFile(problemi, usati, dichiarati, letto.Records.Cast<object>().ToList());
         }

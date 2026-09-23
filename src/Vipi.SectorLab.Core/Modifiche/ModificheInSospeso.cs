@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Reflection;
 using Vipi.SectorLab.Core.Copie;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.IO;
+using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
 
 namespace Vipi.SectorLab.Core.Modifiche;
@@ -73,6 +75,18 @@ public sealed record ModificaDeiVertici(
     public override string Descrizione => Prima == Dopo
         ? $"{Campo}: {Cosa} ({Dopo} vertici)"
         : $"{Campo}: {Cosa} ({Prima} → {Dopo} vertici)";
+}
+
+/// <summary>
+/// Una mappa composta rigenerata perché è cambiata una delle sue procedure (F3-bis §2.2, slice 4): si salva insieme,
+/// col suo diff, e torna com'era all'apertura quando le sue procedure tornano com'erano.
+/// </summary>
+public sealed record ModificaDellaComposta(string File, int Record, string Etichetta, int Prima, int Dopo)
+    : Modifica(File, Record, Etichetta, Campo: Chiave)
+{
+    internal const string Chiave = "§composta";
+
+    public override string Descrizione => $"rigenerata dalle sue procedure ({Prima} → {Dopo} punti)";
 }
 
 /// <summary>Perché una modifica non si è potuta fare. Il campo resta com'era.</summary>
@@ -179,6 +193,7 @@ public sealed class ModificheInSospeso
             // Rimesso a mano il valore di partenza: non è una modifica, è un ritorno. (È anche come si annulla.)
             _fatte.Remove(chiave);
             Ripulisci(file.Relativo);
+            RigeneraLeComposte(file);
             return modifica;
         }
 
@@ -186,6 +201,7 @@ public sealed class ModificheInSospeso
         if (!_sporchi.TryGetValue(file.Relativo, out var suoi))
             _sporchi[file.Relativo] = suoi = [];
         suoi[indice] = record;
+        RigeneraLeComposte(file);
         return modifica;
     }
 
@@ -268,6 +284,87 @@ public sealed class ModificheInSospeso
         _fileDelleCopie[fileDellaCopia.Relativo] = fileDellaCopia;
     }
 
+    // --- le mappe composte (F3-bis slice 4) ---------------------------------------------------------------------
+
+    /// <summary>I punti delle mappe composte com'erano all'apertura: la mappa ci torna quando le sue procedure tornano.</summary>
+    private readonly Dictionary<(string File, int Record), IReadOnlyList<PuntoDellaMappa>> _mappeDiPartenza = [];
+
+    /// <summary>
+    /// Dopo un cambio in un <c>.str</c>: ogni mappa composta del file che ha una procedura elencata con qualcosa in
+    /// sospeso si rigenera (e il suo diff entra nel pannello); una mappa le cui procedure sono tornate tutte com'erano
+    /// torna com'era all'apertura. Le altre non si toccano: una mappa già disallineata all'apertura resta com'è finché
+    /// non cambia una sua procedura (lo dice il validatore).
+    /// </summary>
+    private void RigeneraLeComposte(FileAperto file)
+    {
+        if (file is not FileLetto<StrRecord> str)
+            return;
+
+        var record = str.Letto.Records;
+        foreach (var composta in MappeComposte.Di(str.Letto))
+        {
+            int indice = IndiceDi(record, composta.Mappa);
+            if (indice < 0 || composta.Elenco is null)
+                continue;
+
+            var elencate = MappeComposte.ProcedureElencate(composta.Elenco, record)
+                .Select(p => IndiceDi(record, p)).ToHashSet();
+            bool cambiate = _fatte.Keys.Any(k => k.File == file.Relativo && elencate.Contains(k.Record));
+            if (!cambiate)
+            {
+                RimettiLaMappa(file, indice);
+                continue;
+            }
+
+            var chiave = (file.Relativo, indice);
+            if (!_mappeDiPartenza.ContainsKey(chiave))
+                _mappeDiPartenza[chiave] = MappeComposte.PuntiDi(composta.Mappa);
+            var partenza = _mappeDiPartenza[chiave];
+
+            // Si compone dalla mappa com'era all'apertura: i suoi tratti liberi (D9) e la forma della sua testa.
+            MappeComposte.Applica(composta.Mappa, partenza);
+            var rigenerata = composta.Componi(record);
+            if (rigenerata.Punti.SequenceEqual(partenza))
+            {
+                RimettiLaMappa(file, indice);
+                continue;
+            }
+
+            if (!MappeComposte.Applica(composta.Mappa, rigenerata.Punti))
+                continue;
+
+            _fatte[(file.Relativo, indice, ModificaDellaComposta.Chiave)] = new ModificaDellaComposta(
+                file.Relativo, indice, Metadati.NomeStr(composta.Mappa), partenza.Count, rigenerata.Punti.Count);
+            if (!_sporchi.TryGetValue(file.Relativo, out var suoi))
+                _sporchi[file.Relativo] = suoi = [];
+            suoi[indice] = composta.Mappa;
+        }
+    }
+
+    /// <summary>La mappa com'era all'apertura, e via la sua voce.</summary>
+    private void RimettiLaMappa(FileAperto file, int indice)
+    {
+        if (_mappeDiPartenza.Remove((file.Relativo, indice), out var partenza) && file is IFileConRecord conRecord
+            && conRecord.RecordDelModello[indice] is StrRecord mappa)
+        {
+            MappeComposte.Applica(mappa, partenza);
+        }
+
+        _fatte.Remove((file.Relativo, indice, ModificaDellaComposta.Chiave));
+        Ripulisci(file.Relativo);
+    }
+
+    private static int IndiceDi(IReadOnlyList<StrRecord> record, StrRecord cercato)
+    {
+        for (int i = 0; i < record.Count; i++)
+        {
+            if (ReferenceEquals(record[i], cercato))
+                return i;
+        }
+
+        return -1;
+    }
+
     /// <summary>Il valore di un campo come lo scrive il pannello, o null se il record non ha quel campo.</summary>
     private static string? ValoreScritto(object record, string campo)
         => record.GetType().GetProperty(campo, BindingFlags.Public | BindingFlags.Instance) is { } proprieta
@@ -321,6 +418,14 @@ public sealed class ModificheInSospeso
             return true;
         }
 
+        // La mappa rigenerata torna com'era all'apertura. Se le sue procedure restano cambiate, sarà di nuovo
+        // rigenerata al prossimo cambio di una di loro: annullarla vuol dire «per ora lasciala com'era».
+        if (modifica is ModificaDellaComposta)
+        {
+            RimettiLaMappa(file, modifica.Record);
+            return true;
+        }
+
         // I vertici non si annullano rifacendo i gesti al contrario: si rimette l'elenco com'era all'apertura.
         if (!_verticiDiPartenza.TryGetValue(chiave, out var comErano) || Vertici(file, modifica.Record, modifica.Campo) is not { } elenco)
             return false;
@@ -332,6 +437,7 @@ public sealed class ModificheInSospeso
         _fatte.Remove(chiave);
         _verticiDiPartenza.Remove(chiave);
         Ripulisci(modifica.File);
+        RigeneraLeComposte(file);
         return true;
     }
 
@@ -361,6 +467,8 @@ public sealed class ModificheInSospeso
         _sporchi.Remove(file);
         _strutturaDiPartenza.Remove(file);
         _fileDelleCopie.Remove(file);
+        foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file).ToList())
+            _mappeDiPartenza.Remove(chiave);
         UltimoAggiunto = null;
     }
 
@@ -442,9 +550,16 @@ public sealed class ModificheInSospeso
         {
             ModificaDiCampo m => m with { Record = chiave.Record },
             ModificaDeiVertici m => m with { Record = chiave.Record },
+            ModificaDellaComposta m => m with { Record = chiave.Record },
             _ => modifica,
         });
         Rinumera(_verticiDiPartenza, file, daIncluso, scarto, (_, elenco) => elenco);
+        foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file && k.Record >= daIncluso)
+                     .OrderBy(k => k.Record * -scarto).ToList())
+        {
+            _mappeDiPartenza[(file, chiave.Record + scarto)] = _mappeDiPartenza[chiave];
+            _mappeDiPartenza.Remove(chiave);
+        }
 
         // Le copie gemelle e le copie lasciate com'erano puntano a record di ALTRI file (F3-bis slice 2): se il record
         // a cui puntano è in questo file, il suo numero è cambiato anche per loro.
@@ -602,6 +717,7 @@ public sealed class ModificheInSospeso
             _fatte.Remove(chiave);
             _verticiDiPartenza.Remove(chiave);
             Ripulisci(file.Relativo);
+            RigeneraLeComposte(file);
             return new ModificaDeiVertici(file.Relativo, indice, etichetta, campo, prima, elenco.Count, cosa);
         }
 
@@ -610,6 +726,7 @@ public sealed class ModificheInSospeso
         if (!_sporchi.TryGetValue(file.Relativo, out var suoi))
             _sporchi[file.Relativo] = suoi = [];
         suoi[indice] = ((IFileConRecord)file).RecordDelModello[indice];
+        RigeneraLeComposte(file);
         return modifica;
     }
 
@@ -626,7 +743,11 @@ public sealed class ModificheInSospeso
         }
 
         string[] pezzi = scritto.Split([' ', '\t', ',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        bool perNome = pezzi.Length is 1 or 2 && pezzi.All(p => !char.IsAsciiDigit(p[0]) && !"NSEW+-".Contains(p[0]));
+        // Sembra una coordinata un pezzo che comincia con una cifra, un segno, o N/S/E/W seguito da una cifra
+        // (N041.53…). 🔴 Prima bastava la lettera: NELAB, SOKVO, EKLIB — nomi di punto veri — cadevano fra le
+        // coordinate e venivano rifiutati (trovato nella F3-bis, slice 4, spostando le STAR dei .str).
+        bool perNome = pezzi.Length is 1 or 2 && pezzi.All(p => !char.IsAsciiDigit(p[0]) && !"+-".Contains(p[0])
+            && !("NSEWnsew".Contains(p[0]) && p.Length > 1 && char.IsAsciiDigit(p[1])));
 
         if (perNome)
         {
@@ -640,6 +761,12 @@ public sealed class ModificheInSospeso
 
             punto = Punto.Nominato(pezzi[0], pezzi.Length == 2 ? pezzi[1] : null);
             return true;
+        }
+
+        if (!vertici.AmmetteCoordinate)
+        {
+            perche = "Qui un punto si scrive per nome: una procedura del .str è fatta di nomi.";
+            return false;
         }
 
         if (pezzi.Length != 2)
