@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.44.0 — MINOR, NESSUNA migrazione. Su 1.43.1 (a8a1cea, online dal 23 settembre 2026). Due lavori del filone
+      sito (docs/filoni/sito.md): S4, la larghezza delle colonne delle tabelle si sceglie da chi scrive (campo e
+      trascinamento del bordo, TabellaGenerica + ColonneTabella + vipi-editor.js); S5, l'editor dei trasferimenti
+      avvisa delle SID/STAR scritte fra i punti che non si trovano più (carta
+      docs/feature/2026-09-23-procedure-non-trovate-negli-accordi.md: ciclo entrante con 3 giorni d'anticipo, tasto
+      sulla barra, riga fissa). Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN, vipi-editor.js, vipi-theme.css,
+      Guida) e Vipi.Host per il timbro.
+    -->
+    <!--
       1.43.1 — PATCH, NESSUNA migrazione. Su 1.43.0 (54355eb, online dal 23 settembre 2026). Due correzioni del
       filone sito (docs/filoni/sito.md): S2, dopo «Hide» nelle sezioni in comune si ricaricano anche i membri
       dell'unione (RegistroMembri, tre pagine ospite); S3, fra i punti dei trasferimenti e nel selettore «Cita»
@@ -1694,7 +1703,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.43.1</VipiVersione>
+    <VipiVersione>1.44.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
