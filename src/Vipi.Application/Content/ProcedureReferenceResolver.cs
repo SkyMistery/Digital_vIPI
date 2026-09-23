@@ -1,5 +1,6 @@
 ﻿using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 
 namespace Vipi.Application.Content;
 
@@ -50,9 +51,15 @@ public interface IProcedureReferenceResolver
         CancellationToken ct = default) => Task.FromResult(NomiProcedura.Vuoto);
 
     /// <summary>
-    /// Le procedure di un verso che si possono citare di uno scalo, per il selettore dell'editor: una voce per
-    /// NOME (una procedura su due piste è una voce sola, con le piste accanto), dalla tabella viva — quella che
-    /// la bozza mostra.
+    /// Le procedure di un verso che si possono citare di uno scalo, per il selettore dell'editor e per i punti
+    /// dei trasferimenti: una voce per NOME (una procedura su due piste è una voce sola, con le piste accanto),
+    /// dalla tabella viva — <b>vista dal ciclo entrante</b>.
+    /// <para>🔴 Dal ciclo ENTRANTE e non da quello di oggi (§S3 del filone sito, 23 settembre 2026): chi scrive un
+    /// accordo o cita una procedura scrive per i giorni che vengono. Guardando a oggi, ERIKA 1A di LIRN non si
+    /// trovava fra i punti: le STAR il sito le legge dal 21 settembre, al primo import sono righe NUOVE e
+    /// prendono il ciclo che il sectorfile dichiara (2610, in vigore dal 1° ottobre) — tutte fuori fino ad allora.
+    /// Dal ciclo entrante si vede anche tutto quel che vale oggi: <c>IsPublicAt</c> confronta con <c>&gt;=</c>, e una
+    /// procedura tolta dalla sorgente esce dalla tabella già adesso.</para>
     /// </summary>
     Task<IReadOnlyList<ProceduraCitabile>> ElencoAsync(string icao, ProcedureKind kind = ProcedureKind.Sid,
         CancellationToken ct = default);
@@ -76,10 +83,16 @@ public sealed class ProcedureReferenceResolver : IProcedureReferenceResolver
     private readonly IAirportSidDerivationService _sids;
     private readonly IFrozenSectionReader _frozen;
 
-    public ProcedureReferenceResolver(IAirportSidDerivationService sids, IFrozenSectionReader frozen)
+    /// <summary>Per il ciclo entrante di <see cref="ElencoAsync"/>. Facoltativo come in <c>ProcedureImporter</c>:
+    /// senza, l'elenco guarda al ciclo di oggi — il comportamento di prima, che serve ai finti dei test.</summary>
+    private readonly IAiracService? _airac;
+
+    public ProcedureReferenceResolver(IAirportSidDerivationService sids, IFrozenSectionReader frozen,
+        IAiracService? airac = null)
     {
         _sids = sids;
         _frozen = frozen;
+        _airac = airac;
     }
 
     public Task<NomiProcedura> PerVistaAsync(IEnumerable<SectionView> sezioni, bool pubblica,
@@ -111,7 +124,8 @@ public sealed class ProcedureReferenceResolver : IProcedureReferenceResolver
         var scalo = RiferimentiProcedura.Norm(icao);
         if (scalo.Length != 4) return Array.Empty<ProceduraCitabile>();
 
-        var tabella = await _sids.DeriveAsync(scalo, kind, null, ct);
+        var entrante = _airac?.NextCycles(DateTime.UtcNow, 2)[1].Cycle;
+        var tabella = await _sids.DeriveAsync(scalo, kind, entrante, ct);
         return tabella.Rows
             .Where(r => RiferimentiProcedura.Norm(r.Name).Length > 0)
             .GroupBy(r => RiferimentiProcedura.Norm(r.Name))
