@@ -353,6 +353,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-21-documenti-collegati.md`](feature/2026-09-21-documenti-collegati.md) — Documenti collegati nel sommario (§A109) — carta
 - [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) — F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 - [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md) — F3 — L'app: aprire il sector, vederlo sulla mappa, modificarlo e salvarlo senza danni (22 settembre 2026)
+- [`feature/2026-09-23-f3-bis-copie-e-mappe-composte.md`](feature/2026-09-23-f3-bis-copie-e-mappe-composte.md) — F3-bis — Le copie che restano uguali e le mappe composte (23 settembre 2026)
 
 ### `guide`
 
