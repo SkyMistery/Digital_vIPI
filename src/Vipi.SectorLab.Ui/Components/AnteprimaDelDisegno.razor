@@ -1,0 +1,109 @@
+@using System.Globalization
+@using System.Text
+
+@*
+    L'anteprima di «incolla da testo» dentro la scheda (chiesta dal committente il 23 settembre): la forma di oggi in
+    grigio, quella che uscirebbe in verde tratteggiato (l'arancio è già della forma scelta), i centri degli archi come crocette. Si ridisegna a ogni tasto
+    e a ogni cambio della densità: è così che si vede come cambia un arco. La stessa anteprima va anche sulla mappa,
+    che però può stare sull'altro schermo — qui la si vede accanto al testo.
+    Proiezione piatta con la longitudine accorciata dal coseno della latitudine: per una forma di qualche decina di
+    miglia è la stessa cosa che si vede sulla mappa.
+*@
+@if (Letto is { } letto)
+{
+    <div class="lab-anteprima" data-anteprima="@(letto.Rifiuto is null ? letto.Punti.Count : "rifiuto")">
+        @if (letto.Rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore">@rifiuto</p>
+        }
+        else
+        {
+            <p class="lab-nota">
+                Anteprima: <strong data-anteprima-punti="@letto.Punti.Count">@letto.Punti.Count vertici</strong>
+                @if (letto.Archi > 0)
+                {
+                    <span> · @letto.Archi @(letto.Archi == 1 ? "arco" : "archi")</span>
+                }
+                @if (letto.Cerchi > 0)
+                {
+                    <span> · @letto.Cerchi @(letto.Cerchi == 1 ? "cerchio" : "cerchi")</span>
+                }
+                @if (Oggi is { Count: > 0 })
+                {
+                    <span> · oggi @Oggi.Sum(t => t.Count)</span>
+                }
+            </p>
+            <svg class="lab-anteprima-disegno" viewBox="@Riquadro" preserveAspectRatio="xMidYMid meet" role="img"
+                 aria-label="La forma di oggi in grigio, quella incollata in verde">
+                @if (Oggi is not null)
+                {
+                    @foreach (var tratto in Oggi.Where(t => t.Count > 1))
+                    {
+                        <polyline class="lab-anteprima-oggi" points="@Punti(tratto.Select(c => (c.LatitudeDeg, c.LongitudeDeg)))" />
+                    }
+                }
+                <polyline class="lab-anteprima-nuova" points="@Punti(letto.Punti)" />
+                @foreach (var centro in letto.Centri)
+                {
+                    var (x, y) = Proietta(centro.Lat, centro.Lon);
+                    <path class="lab-anteprima-centro" d="@Croce(x, y)" />
+                }
+            </svg>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Il testo letto; null = niente anteprima.</summary>
+    [Parameter] public Vipi.SectorLab.Core.Modifiche.TestoDaIncollare? Letto { get; set; }
+
+    /// <summary>I tratti della forma di oggi, per confronto; null se il record non ha geometria sulla mappa.</summary>
+    [Parameter] public IReadOnlyList<IReadOnlyList<Vipi.Sectorfile.Shared.Coordinate>>? Oggi { get; set; }
+
+    private double _cos = 1, _minX, _minY, _larghezza = 1, _altezza = 1;
+
+    protected override void OnParametersSet()
+    {
+        if (Letto is null)
+            return;
+
+        var tutti = Letto.Punti.Concat(Letto.Centri)
+            .Concat(Oggi?.SelectMany(t => t.Select(c => (c.LatitudeDeg, c.LongitudeDeg))) ?? [])
+            .ToList();
+        if (tutti.Count == 0)
+            return;
+
+        _cos = Math.Cos(tutti.Average(p => p.Item1) * Math.PI / 180);
+        var xs = tutti.Select(p => p.Item2 * _cos).ToList();
+        var ys = tutti.Select(p => -p.Item1).ToList();
+        double margine = Math.Max(Math.Max(xs.Max() - xs.Min(), ys.Max() - ys.Min()) * 0.06, 1e-4);
+        _minX = xs.Min() - margine;
+        _minY = ys.Min() - margine;
+        _larghezza = xs.Max() - xs.Min() + 2 * margine;
+        _altezza = ys.Max() - ys.Min() + 2 * margine;
+    }
+
+    private string Riquadro => string.Join(' ', new[] { _minX, _minY, _larghezza, _altezza }.Select(Num));
+
+    private (double X, double Y) Proietta(double lat, double lon) => (lon * _cos, -lat);
+
+    private string Punti(IEnumerable<(double Lat, double Lon)> punti)
+    {
+        var testo = new StringBuilder();
+        foreach (var (lat, lon) in punti)
+        {
+            var (x, y) = Proietta(lat, lon);
+            testo.Append(Num(x)).Append(',').Append(Num(y)).Append(' ');
+        }
+
+        return testo.ToString();
+    }
+
+    private string Croce(double x, double y)
+    {
+        double l = Math.Max(_larghezza, _altezza) * 0.015;
+        return $"M{Num(x - l)} {Num(y)}H{Num(x + l)}M{Num(x)} {Num(y - l)}V{Num(y + l)}";
+    }
+
+    private static string Num(double valore) => valore.ToString("0.######", CultureInfo.InvariantCulture);
+}

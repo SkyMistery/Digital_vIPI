@@ -12,9 +12,18 @@ namespace Vipi.SectorLab;
 internal sealed class FinestraDeiPannelli : Form
 {
     private readonly WebView2 _vista;
+    private readonly Form _principale;
+
+    /// <summary>Cliccati i pannelli, la mappa risale con loro (<see cref="FinestreInsieme"/>).</summary>
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        FinestreInsieme.PortaDietro(this, _principale);
+    }
 
     public FinestraDeiPannelli(Uri indirizzo, Diario diario, Form principale)
     {
+        _principale = principale;
         Text = $"Aurora Sector Lab {Versione.Testo} — pannelli";
         Icon = principale.Icon;
         Width = 1200;

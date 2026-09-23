@@ -837,14 +837,12 @@ public sealed class ModificheInSospeso
                                  double puntiPerGrado = 1.0)
         => Gesto(file, indice, campo, etichetta, "vertici incollati", vertici =>
         {
-            var letto = Vipi.Application.Coordinates.CoordinateParser.Parse(testo, puntiPerGrado);
-            var aree = letto.Aree.Where(a => a.Punti.Count > 0).ToList();
-            if (aree.Count == 0)
-                return new ModificaRifiutata("In quel testo non c'è nessuna coordinata che si possa leggere.");
-            if (aree.Count > 1)
-                return new ModificaRifiutata($"Quel testo contiene {aree.Count} aree: incollane una sola.");
+            // La stessa lettura dell'anteprima: quel che la scheda mostrava è quel che si incolla.
+            var letto = TestoDaIncollare.Leggi(testo, puntiPerGrado);
+            if (letto.Rifiuto is { } rifiuto)
+                return new ModificaRifiutata(rifiuto);
 
-            var punti = aree[0].Punti;
+            var punti = letto.Punti;
             // Se l'elenco di prima si chiudeva ripetendo il primo punto in fondo (è la forma dei .tfl del sector),
             // si chiude così anche quello incollato: il testo AIP di solito non ripete il punto di partenza, e il file
             // perdeva la sua forma (prove a mano del committente, 23 settembre).

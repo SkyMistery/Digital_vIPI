@@ -21,7 +21,9 @@
     private bool _dalClic;
     private readonly HashSet<string> _disegnati = new(StringComparer.Ordinal);
     private (string File, int Record)? _evidenziata;
-    private int _versione;
+    /// <summary>La versione di ogni strato quando l'ha disegnato: se il Lab ne ha una più nuova, lo strato si riprende.</summary>
+    private readonly Dictionary<string, int> _versioni = new(StringComparer.Ordinal);
+    private int _versioneDellAnteprima;
     private int _inquadrature;
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
@@ -41,24 +43,32 @@
 
         // Una modifica ha cambiato la geometria di uno strato: la mappa ce l'ha in memoria, va ripresa (slice 6).
         // Senza strato indicato si riprendono tutti: dopo un salvataggio i cataloghi sono rifatti (slice 9).
+        // Si riprende ogni strato la cui geometria non è più quella disegnata: un gesto sulle copie gemelle ne tocca più d'uno.
         bool ridisegnato = false;
-        if (_versione != Lab.VersioneDellaGeometria)
+        foreach (string strato in _disegnati.Where(s => Lab.VersioneDelloStrato(s) != _versioni.GetValueOrDefault(s)).ToList())
         {
-            _versione = Lab.VersioneDellaGeometria;
-            List<string> daRifare = Lab.StratoDaRidisegnare is { } uno ? [uno] : [.. _disegnati];
-            foreach (string strato in daRifare.Where(_disegnati.Contains))
-            {
-                await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
-                _disegnati.Remove(strato);
-                ridisegnato = true;
-            }
+            await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
+            _disegnati.Remove(strato);
+            ridisegnato = true;
         }
 
         var daAccendere = Lab.Accesi.Where(s => !_disegnati.Contains(s)).ToList();
         foreach (string strato in daAccendere)
         {
+            _versioni[strato] = Lab.VersioneDelloStrato(strato);
             await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, true);
             _disegnati.Add(strato);
+        }
+
+        // L'anteprima di «incolla da testo», tratteggiata sopra la forma di oggi. Le coordinate passano dal circuito:
+        // sono centinaia di punti al più, e vanno dal server alla pagina (il tetto dei 32 KB è nell'altro verso).
+        if (_versioneDellAnteprima != Lab.VersioneDellAnteprima)
+        {
+            _versioneDellAnteprima = Lab.VersioneDellAnteprima;
+            var anteprima = Lab.Anteprima;
+            double[] punti = anteprima is null ? [] : [.. anteprima.Letto.Punti.SelectMany(p => new[] { p.Lat, p.Lon })];
+            double[] centri = anteprima is null ? [] : [.. anteprima.Letto.Centri.SelectMany(p => new[] { p.Lat, p.Lon })];
+            await Js.InvokeVoidAsync("sectorlab.mappa.anteprima", punti, centri);
         }
 
         // Quando tutto quel che era da accendere è arrivato, il totale va nel diario: è la misura del primo disegno.

@@ -1,0 +1,15 @@
+@inject IJSRuntime Js
+
+@*
+    Il tema: automatico (come Windows) → chiaro → scuro (chiesto dal committente il 23 settembre). La scelta la tiene
+    sectorlab-tema.js su <html> e nel localStorage; il segno lo sceglie il CSS dallo stato di <html>, così il tasto non
+    ha stato suo e le due finestre non si contraddicono.
+*@
+<button class="lab-tasto lab-tasto-tenue lab-tasto-segno lab-tema" @onclick="Cambia" data-tasto="tema"
+        title="Tema: automatico (come Windows) → chiaro → scuro" aria-label="Cambia il tema">
+    <span class="lab-tema-auto">◐</span><span class="lab-tema-chiaro">☀</span><span class="lab-tema-scuro">☾</span>
+</button>
+
+@code {
+    private async Task Cambia() => await Js.InvokeVoidAsync("sectorlab.cambiaTema");
+}

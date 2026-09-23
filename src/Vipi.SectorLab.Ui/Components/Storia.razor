@@ -1,0 +1,49 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+@inject IJSRuntime Js
+
+@*
+    Annulla e ripeti l'ultimo gesto (chiesti dal committente il 23 settembre), coi tasti di Windows: Ctrl+Z, Ctrl+Y e
+    Ctrl+Maiusc+Z. Sta nella barra di tutt'e due le finestre: la storia è una sola, della sessione. Il suggerimento dice
+    QUALE gesto si annulla, perché con due schermi il gesto può essere stato fatto nell'altra finestra.
+*@
+<span class="lab-storia">
+    <button class="lab-tasto lab-tasto-tenue lab-tasto-segno" disabled="@(!Lab.SiPuoAnnullare)" @onclick="Lab.Annulla"
+            title="@(Lab.DaAnnullare is { } a ? $"Annulla: {a} (Ctrl+Z)" : "Niente da annullare")"
+            aria-label="Annulla" data-tasto="annulla-gesto">↶</button>
+    <button class="lab-tasto lab-tasto-tenue lab-tasto-segno" disabled="@(!Lab.SiPuoRipetere)" @onclick="Lab.Ripeti"
+            title="@(Lab.DaRipetere is { } r ? $"Ripeti: {r} (Ctrl+Y)" : "Niente da ripetere")"
+            aria-label="Ripeti" data-tasto="ripeti-gesto">↷</button>
+</span>
+
+@code {
+    private DotNetObjectReference<Storia>? _riferimento;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!primo)
+            return;
+        _riferimento = DotNetObjectReference.Create(this);
+        await Js.InvokeVoidAsync("sectorlab.tasti", _riferimento);
+    }
+
+    /// <summary>Ctrl+Z / Ctrl+Y fuori dai campi di testo: la chiama sectorlab.js.</summary>
+    [JSInvokable]
+    public Task Tasto(string cosa) => InvokeAsync(() =>
+    {
+        if (cosa == "annulla")
+            Lab.Annulla();
+        else if (cosa == "ripeti")
+            Lab.Ripeti();
+    });
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        Lab.Cambiata -= Aggiorna;
+        _riferimento?.Dispose();
+    }
+}

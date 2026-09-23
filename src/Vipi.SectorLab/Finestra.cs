@@ -146,6 +146,13 @@ internal sealed class Finestra : Form
         _lab.PannelliAperti(true);
     }
 
+    /// <summary>Cliccata la mappa, i pannelli (se ci sono) risalgono con lei.</summary>
+    protected override void OnActivated(EventArgs e)
+    {
+        base.OnActivated(e);
+        FinestreInsieme.PortaDietro(this, _pannelli);
+    }
+
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
         // I pannelli senza la mappa non servono a niente: si chiudono con lei.

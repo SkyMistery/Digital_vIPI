@@ -123,16 +123,24 @@
                 <summary data-incolla="@chiave">Incolla da testo</summary>
                 @* Il testo dell'AIP (archi compresi) o l'uscita del convertitore del sito: lo legge F1. *@
                 <textarea class="lab-campo" rows="4" value="@(_perQuale == chiave ? _daIncollare : null)"
-                          @oninput="e => { _perQuale = chiave; _daIncollare = e.Value?.ToString(); }"
+                          @oninput="e => Scritto(scheda, chiave, e.Value?.ToString())"
                           placeholder="Testo AIP, o coordinate una per riga" data-campo="incolla"></textarea>
-                @* Gli archi del testo si disegnano fitti come quelli che il file ha già: la stima la fa il Lab, l'AOD la cambia. *@
+                @* Gli archi del testo si disegnano fitti come quelli che il file ha già: la stima la fa il Lab, l'AOD la
+                   cambia, e l'anteprima segue a ogni scatto (oninput, non onchange). Il «°» sta attaccato al numero:
+                   prima andava a capo da solo (prove del committente, 23 settembre). *@
                 <label class="lab-nota lab-densita">
-                    Archi: un punto ogni
-                    <input type="number" min="0.1" max="10" step="0.5" class="lab-campo"
-                           value="@GradiPerPunto(scheda).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)"
-                           @onchange="e => _gradi = double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double g) && g > 0 ? g : null"
-                           data-campo="gradi-per-punto" /> °
+                    <span>Archi: un punto ogni</span>
+                    <span class="lab-densita-valore">
+                        <input type="number" min="0.1" max="10" step="0.5" class="lab-campo"
+                               value="@GradiPerPunto(scheda).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)"
+                               @oninput="e => Densita(scheda, chiave, e.Value?.ToString())"
+                               data-campo="gradi-per-punto" /><span>°</span>
+                    </span>
                 </label>
+                @if (Lab.Anteprima is { } anteprima && anteprima.File == scheda.File && anteprima.Record == scheda.Indice && anteprima.Campo == chiave)
+                {
+                    <AnteprimaDelDisegno Letto="anteprima.Letto" Oggi="scheda.Forma?.Tratti" />
+                }
                 <button class="lab-tasto" disabled="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare))"
                         title="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare) ? "Incolla prima il testo qui sopra" : null)"
                         @onclick="() => Incolla(scheda, chiave)" data-tasto="incolla">Sostituisci i vertici</button>
@@ -230,6 +238,25 @@ else
         if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare,
                                 puntiPerGrado: puntiPerGrado))
             _daIncollare = null;
+    }
+
+    /// <summary>Un tasto nel testo da incollare: l'anteprima si rifà (scheda e mappa).</summary>
+    private void Scritto(SchedaDelRecord scheda, string campo, string? testo)
+    {
+        _perQuale = campo;
+        _daIncollare = testo;
+        Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, testo, 1 / GradiPerPunto(scheda));
+    }
+
+    /// <summary>La densità degli archi cambiata: l'anteprima si rifà subito, così si vede come cambia la forma.</summary>
+    private void Densita(SchedaDelRecord scheda, string campo, string? scritto)
+    {
+        // A metà scrittura (campo vuoto, «0») il valore di prima resta: rimettere la stima riscriverebbe il campo sotto le dita.
+        if (!double.TryParse(scritto, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double g) || g <= 0)
+            return;
+        _gradi = g;
+        if (_perQuale == campo && !string.IsNullOrWhiteSpace(_daIncollare))
+            Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, _daIncollare, 1 / GradiPerPunto(scheda));
     }
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;

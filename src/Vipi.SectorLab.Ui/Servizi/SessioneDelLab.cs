@@ -19,6 +19,9 @@ public enum GestoDeiVertici
     Incolla,
 }
 
+/// <summary>L'anteprima di «incolla da testo»: per quale elenco, con che densità, e che cosa ne esce.</summary>
+public sealed record AnteprimaDiIncolla(string File, int Record, string Campo, double PuntiPerGrado, TestoDaIncollare Letto);
+
 /// <summary>Dov'è la sessione: chiusa, in apertura, aperta, o fallita con un motivo.</summary>
 public enum StatoDelLab
 {
@@ -120,7 +123,7 @@ public sealed class SessioneDelLab
             return;
         PannelliInUnAltraFinestra = aperti;
         Registro.Scrivi("finestre", aperti ? "pannelli in un'altra finestra" : "pannelli di nuovo qui");
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Perché l'apertura non è riuscita: si dice a schermo, non si nasconde.</summary>
@@ -130,6 +133,13 @@ public sealed class SessioneDelLab
     public TimeSpan Durata { get; private set; }
 
     public event Action? Cambiata;
+
+    /// <summary>Dice alle pagine che qualcosa è cambiato; mentre si rigiocano i gesti (annulla, ripeti) si tace: lo dice una volta alla fine.</summary>
+    private void Avvisa()
+    {
+        if (!_rigioco)
+            Cambiata?.Invoke();
+    }
 
     /// <summary>L'ultima cartella aperta, ricordata fra un avvio e l'altro. Null se non c'è, o se il file non si legge.</summary>
     public string? UltimaCartella()
@@ -163,7 +173,7 @@ public sealed class SessioneDelLab
 
         Stato = StatoDelLab.InApertura;
         Errore = null;
-        Cambiata?.Invoke();
+        Avvisa();
 
         var orologio = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -194,6 +204,8 @@ public sealed class SessioneDelLab
             _densita.Clear();
             // Le modifiche e gli esiti di un'altra cartella non valgono per questa: nomi uguali, file diversi.
             Modifiche = new();
+            ScordaLaStoria();
+            TogliLAnteprima();
             UltimoSalvataggio = null;
             _perse.Clear();
             ScordaIProblemi();
@@ -211,7 +223,7 @@ public sealed class SessioneDelLab
         finally
         {
             Durata = orologio.Elapsed;
-            Cambiata?.Invoke();
+            Avvisa();
         }
 
         // Il validatore dell'albero costa 1,7-2,0 s: l'app è già aperta, i numeri arrivano quando ci sono (slice 10).
@@ -229,9 +241,10 @@ public sealed class SessioneDelLab
         var sessione = Sessione;
         var catalogo = Cataloghi[isc];
         Strati = await Task.Run(() => StratiDellaMappa.DiSessione(sessione, catalogo), annulla).ConfigureAwait(false);
+        TuttiGliStratiCambiati();
         // Le etichette dipendono dal master (un punto per nome che lì non si risolve si chiama diversamente).
         _etichette.Clear();
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     public void Accendi(string strato, bool acceso)
@@ -243,7 +256,7 @@ public sealed class SessioneDelLab
             _accesi.Add(strato);
         else
             _accesi.Remove(strato);
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Chiude la cartella: si torna alla schermata d'apertura, e l'albero si lascia andare.</summary>
@@ -261,16 +274,24 @@ public sealed class SessioneDelLab
         _etichette.Clear();
         Errore = null;
         Modifiche = new();
+        ScordaLaStoria();
+        TogliLAnteprima();
         UltimoSalvataggio = null;
         _perse.Clear();
         ScordaIProblemi();
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     public void Scegli(string? file, int record)
     {
         Scelta = file is null ? null : (file, record);
         RigaSegnalata = null;
+        // L'anteprima era di un altro record: la sua textarea non c'è più.
+        if (Anteprima is { } anteprima && (anteprima.File != file || anteprima.Record != record))
+        {
+            Anteprima = null;
+            VersioneDellAnteprima++;
+        }
         Registro.Scrivi("scelta", file is null ? "nessuna" : $"{file}#{record}");
         // Scegliere un record apre il suo file nell'elenco: chi clicca una forma sulla mappa si ritrova nel posto
         // giusto dell'albero, senza cercarselo.
@@ -285,7 +306,7 @@ public sealed class SessioneDelLab
             Inquadrature++;
         }
 
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Quante volte si è chiesto di portare la mappa sul record scelto: la mappa lo confronta col suo.</summary>
@@ -298,7 +319,7 @@ public sealed class SessioneDelLab
     public void ApriFile(string? relativo)
     {
         FileScelto = relativo == FileScelto ? null : relativo;
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Le etichette dei record di un file, calcolate la prima volta che il file si apre e poi tenute.</summary>
@@ -355,7 +376,7 @@ public sealed class SessioneDelLab
             return;
 
         StaSalvando = true;
-        Cambiata?.Invoke();
+        Avvisa();
         try
         {
             var salvataggio = new Salvataggio(Sessione, Modifiche, Path.Combine(_cartellaDeiDati, "backup"));
@@ -379,7 +400,7 @@ public sealed class SessioneDelLab
         {
             StaSalvando = false;
             RicontrollaLeModifiche();
-            Cambiata?.Invoke();
+            Avvisa();
         }
     }
 
@@ -427,7 +448,7 @@ public sealed class SessioneDelLab
         int giro = ++_giroDellaValidazione;
         StaValidando = true;
         ErroreDellaValidazione = null;
-        Cambiata?.Invoke();
+        Avvisa();
         return Validazione = Task.Run(async () =>
         {
             IReadOnlyList<ProblemaNelLab>? problemi = null;
@@ -451,7 +472,7 @@ public sealed class SessioneDelLab
             ProblemiDellAlbero = problemi ?? [];
             ErroreDellaValidazione = errore;
             StaValidando = false;
-            Cambiata?.Invoke();
+            Avvisa();
         });
     }
 
@@ -508,7 +529,7 @@ public sealed class SessioneDelLab
             ProblemiDelleModifiche = nuovi;
             RecordCheSiFondono = fusi;
             if (!uguale)
-                Cambiata?.Invoke();
+                Avvisa();
         }
     }
 
@@ -532,7 +553,7 @@ public sealed class SessioneDelLab
         }
 
         RigaSegnalata = problema.Problema.Riga > 0 ? (problema.File, problema.Problema.Riga) : null;
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Le righe del disco intorno alla riga segnalata: per i problemi che non stanno in un record.</summary>
@@ -605,7 +626,7 @@ public sealed class SessioneDelLab
             // Sparito: si dice, e le modifiche restano dove sono (non c'è un file nuovo a cui rinunciare per lui).
             _perse.Remove(fileRelativo);
             Rifiuto = $"«{fileRelativo}» non si rilegge: {e.Message}";
-            Cambiata?.Invoke();
+            Avvisa();
             return;
         }
 
@@ -618,7 +639,7 @@ public sealed class SessioneDelLab
 
         await DopoLaRiletturaAsync().ConfigureAwait(false);
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>Toglie dallo schermo l'esito del salvataggio, e i diff delle modifiche perse.</summary>
@@ -626,7 +647,7 @@ public sealed class SessioneDelLab
     {
         UltimoSalvataggio = null;
         _perse.Clear();
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     /// <summary>
@@ -653,8 +674,9 @@ public sealed class SessioneDelLab
         _etichette.Clear();
         if (Scelta is { } scelta && (!sessione.File.TryGetValue(scelta.File, out var file) || scelta.Record >= file.Record))
             Scelta = null;
-        VersioneDellaGeometria++;
-        StratoDaRidisegnare = null;
+        TuttiGliStratiCambiati();
+        // Rigiocare dei gesti su record riletti dal disco vorrebbe dire rifare modifiche già salvate, o già perse.
+        ScordaLaStoria();
     }
 
     /// <summary>L'ultimo rifiuto, da dire accanto al campo: sparisce alla modifica buona dopo.</summary>
@@ -665,6 +687,9 @@ public sealed class SessioneDelLab
     /// mostrare il punto DOV'È ADESSO, non dov'era all'apertura.
     /// </summary>
     public bool CambiaCampo(string fileRelativo, int record, string campo, string? valore)
+        => NellaStoria($"{campo} di {EtichettaDi(fileRelativo, record)}", () => CambiaCampoAdesso(fileRelativo, record, campo, valore));
+
+    private bool CambiaCampoAdesso(string fileRelativo, int record, string campo, string? valore)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
@@ -689,7 +714,7 @@ public sealed class SessioneDelLab
         }
 
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
         return esito is ModificaDiCampo;
     }
 
@@ -702,6 +727,9 @@ public sealed class SessioneDelLab
     /// riscrive e la mappa si rigenera, tutto nelle modifiche in sospeso.
     /// </summary>
     public bool CambiaLaComposta(string fileRelativo, int record, IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere = null)
+        => NellaStoria($"composizione di {EtichettaDi(fileRelativo, record)}", () => CambiaLaCompostaAdesso(fileRelativo, record, elenco, intere));
+
+    private bool CambiaLaCompostaAdesso(string fileRelativo, int record, IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
@@ -714,7 +742,7 @@ public sealed class SessioneDelLab
             RifaiLaGeometria(fileRelativo);
 
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
         return esito is Modifica;
     }
 
@@ -766,6 +794,25 @@ public sealed class SessioneDelLab
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
                                 int posizione = 0, string? testo = null, double? puntiPerGrado = null)
     {
+        // La densità si fissa ADESSO: rigiocato più tardi, il gesto deve dare gli stessi punti anche se la stima è cambiata.
+        double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record) : null;
+        string cosa = gesto switch
+        {
+            GestoDeiVertici.Cambia => "vertice spostato",
+            GestoDeiVertici.Aggiungi => "vertice aggiunto",
+            GestoDeiVertici.Togli => "vertice tolto",
+            _ => "vertici incollati",
+        };
+        bool fatto = NellaStoria($"{cosa} in {EtichettaDi(fileRelativo, record)}",
+            () => GestoSuiVerticiAdesso(fileRelativo, record, campo, gesto, posizione, testo, densita));
+        if (fatto && gesto == GestoDeiVertici.Incolla)
+            TogliLAnteprima();
+        return fatto;
+    }
+
+    private bool GestoSuiVerticiAdesso(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
+                                       int posizione, string? testo, double? puntiPerGrado)
+    {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
 
@@ -787,7 +834,7 @@ public sealed class SessioneDelLab
             RifaiLaGeometria(fileRelativo);
 
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
         return esito is ModificaDeiVertici;
     }
 
@@ -804,14 +851,16 @@ public sealed class SessioneDelLab
     /// vicini, e l'AOD cambia quel che deve.
     /// </summary>
     public bool AggiungiRecord(string fileRelativo, int record)
-        => GestoDiStruttura(fileRelativo, () => Sessione!.File[fileRelativo] is { } file
-            ? Modifiche.AggiungiRecord(file, record)
-            : new ModificaRifiutata("Questo file non è aperto."));
+        => NellaStoria($"record aggiunto in {NomeDelFile(fileRelativo)}", () => GestoDiStruttura(fileRelativo,
+            () => Sessione!.File[fileRelativo] is { } file
+                ? Modifiche.AggiungiRecord(file, record)
+                : new ModificaRifiutata("Questo file non è aperto.")));
 
     public bool TogliRecord(string fileRelativo, int record)
-        => GestoDiStruttura(fileRelativo, () => Sessione!.File[fileRelativo] is { } file
-            ? Modifiche.TogliRecord(file, record)
-            : new ModificaRifiutata("Questo file non è aperto."));
+        => NellaStoria($"{EtichettaDi(fileRelativo, record)} tolto", () => GestoDiStruttura(fileRelativo,
+            () => Sessione!.File[fileRelativo] is { } file
+                ? Modifiche.TogliRecord(file, record)
+                : new ModificaRifiutata("Questo file non è aperto.")));
 
     private bool GestoDiStruttura(string fileRelativo, Func<object> fai)
     {
@@ -823,7 +872,7 @@ public sealed class SessioneDelLab
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         if (esito is not ModificaDiStruttura)
         {
-            Cambiata?.Invoke();
+            Avvisa();
             return false;
         }
 
@@ -836,44 +885,70 @@ public sealed class SessioneDelLab
                 : Scelta;
 
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
         return true;
     }
 
     public void AnnullaModifica(Modifica modifica)
     {
+        ArgumentNullException.ThrowIfNull(modifica);
+        var (file, record, campo) = (modifica.File, modifica.Record, modifica.Campo);
+        // Rigiocata, la modifica è un altro oggetto (quello delle modifiche rifatte): si ritrova per chiave.
+        NellaStoria($"annullata: {modifica.Descrizione} ({EtichettaDi(file, record)})",
+            () => Modifiche.Tutte.FirstOrDefault(m => m.File == file && m.Record == record && m.Campo == campo) is { } adesso
+                  && AnnullaModificaAdesso(adesso));
+    }
+
+    private bool AnnullaModificaAdesso(Modifica modifica)
+    {
         if (Sessione is null || !Sessione.File.TryGetValue(modifica.File, out var file))
-            return;
+            return false;
 
         // Con le copie gemelle i file toccati sono più d'uno: si rifà la geometria di tutti quelli che c'erano prima.
         var toccati = Modifiche.FileToccati.ToList();
-        Modifiche.Annulla(file, modifica, f => Sessione.File.GetValueOrDefault(f));
+        if (!Modifiche.Annulla(file, modifica, f => Sessione.File.GetValueOrDefault(f)))
+            return false;
         Registro.Scrivi("annulla", $"{modifica.File}#{modifica.Record} {modifica.Descrizione}");
         Rifiuto = null;
         foreach (string toccato in toccati.Except(Modifiche.FileToccati).Append(modifica.File).Distinct())
             RifaiLaGeometria(toccato);
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
+        return true;
     }
 
     /// <summary>«Allinea anche questo» (F3-bis D2): il valore nuovo anche sulla copia gemella che era stata lasciata.</summary>
     public void AllineaLaCopia(Modifica principale, CopiaNonToccata copia)
     {
+        ArgumentNullException.ThrowIfNull(principale);
+        var (file, record, campo) = (principale.File, principale.Record, principale.Campo);
+        NellaStoria($"{campo} allineato anche in {NomeDelFile(copia.File)}",
+            () => Modifiche.Tutte.FirstOrDefault(m => m.File == file && m.Record == record && m.Campo == campo) is { } adesso
+                  && AllineaLaCopiaAdesso(adesso, copia));
+    }
+
+    private bool AllineaLaCopiaAdesso(Modifica principale, CopiaNonToccata copia)
+    {
         if (Sessione is null)
-            return;
+            return false;
 
         var esito = Modifiche.AllineaLaCopia(principale, copia, f => Sessione.File.GetValueOrDefault(f));
         Registro.Scrivi("allinea", $"{copia.File}#{copia.Record} {principale.Campo}: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         RifaiLaGeometria(copia.File);
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
+        return esito is Modifica;
     }
 
     public void AnnullaTutte(string? soloQuesto = null)
+        => NellaStoria(soloQuesto is null ? "annullate tutte le modifiche" : $"annullate le modifiche di {NomeDelFile(soloQuesto)}",
+            () => AnnullaTutteAdesso(soloQuesto));
+
+    private bool AnnullaTutteAdesso(string? soloQuesto)
     {
-        if (Sessione is null)
-            return;
+        if (Sessione is null || !Modifiche.FileToccati.Any(f => soloQuesto is null || f == soloQuesto))
+            return false;
 
         var toccati = Modifiche.FileToccati.ToList();
         Registro.Scrivi("annulla", $"tutto ({Modifiche.Quante} modifiche" + (soloQuesto is null ? ")" : $" di {soloQuesto})"));
@@ -882,7 +957,8 @@ public sealed class SessioneDelLab
         foreach (string file in toccati)
             RifaiLaGeometria(file);
         RicontrollaLeModifiche();
-        Cambiata?.Invoke();
+        Avvisa();
+        return true;
     }
 
     /// <summary>Il diff di un file toccato: righe tolte e aggiunte, prodotte dallo scrittore vero.</summary>
@@ -891,12 +967,166 @@ public sealed class SessioneDelLab
             ? Modifiche.DiffDi(file)
             : new Diff.Esito([], InBlocco: false);
 
+    // --- l'anteprima di «incolla da testo» (chiesta dal committente il 23 settembre) -----------------------------
+
+    /// <summary>
+    /// Il testo che l'AOD sta per incollare, già letto, e per quale elenco: la scheda ne mostra il disegno, la mappa lo
+    /// sovrappone alla forma di oggi (tratteggiato). Sta qui e non nella scheda perché scheda e mappa possono stare in
+    /// due finestre diverse (due schermi).
+    /// </summary>
+    public AnteprimaDiIncolla? Anteprima { get; private set; }
+
+    /// <summary>Quante volte l'anteprima è cambiata: la mappa la ridisegna quando il numero non è più il suo.</summary>
+    public int VersioneDellAnteprima { get; private set; }
+
+    /// <summary>Legge il testo e ne fa l'anteprima; un testo vuoto la toglie.</summary>
+    public void MostraLAnteprima(string fileRelativo, int record, string campo, string? testo, double puntiPerGrado)
+    {
+        if (string.IsNullOrWhiteSpace(testo) || puntiPerGrado <= 0)
+        {
+            TogliLAnteprima();
+            return;
+        }
+
+        Anteprima = new AnteprimaDiIncolla(fileRelativo, record, campo, puntiPerGrado, TestoDaIncollare.Leggi(testo, puntiPerGrado));
+        VersioneDellAnteprima++;
+        Avvisa();
+    }
+
+    public void TogliLAnteprima()
+    {
+        if (Anteprima is null)
+            return;
+        Anteprima = null;
+        VersioneDellAnteprima++;
+        Avvisa();
+    }
+
+    // --- annulla e ripeti (chiesti dal committente il 23 settembre) ---------------------------------------------
+
+    /// <summary>
+    /// I gesti fatti dall'apertura (o dall'ultimo salvataggio), in ordine, ognuno col modo di rifarlo. Annullare NON è
+    /// «fare il contrario» di un gesto — per le copie gemelle, le mappe composte e i record aggiunti il contrario non è
+    /// uno solo —: si rimette tutto com'era all'apertura (lo sanno già fare le modifiche in sospeso, 754 file identici
+    /// sull'albero vero) e si rigiocano i gesti tranne l'ultimo. Ripetere rigioca il gesto annullato. Un gesto costa
+    /// millisecondi: anche cento, rigiocati, non si sentono.
+    /// </summary>
+    private readonly List<GestoNellaStoria> _storia = [];
+
+    /// <summary>Quanti gesti della storia sono fatti: gli altri, dopo, sono quelli annullati che si possono ripetere.</summary>
+    private int _fatti;
+
+    /// <summary>Vero mentre si rigiocano i gesti: niente storia nuova, niente avvisi, la geometria si rifà alla fine.</summary>
+    private bool _rigioco;
+
+    private readonly HashSet<string> _daRifareDopoIlRigioco = new(StringComparer.Ordinal);
+
+    private sealed record GestoNellaStoria(string Cosa, Func<bool> Rifai);
+
+    public bool SiPuoAnnullare => _fatti > 0;
+
+    public bool SiPuoRipetere => _fatti < _storia.Count;
+
+    /// <summary>Che cosa annullerebbe «Annulla»: va nel suggerimento del tasto.</summary>
+    public string? DaAnnullare => _fatti > 0 ? _storia[_fatti - 1].Cosa : null;
+
+    public string? DaRipetere => _fatti < _storia.Count ? _storia[_fatti].Cosa : null;
+
+    /// <summary>Fa un gesto e, se è andato, lo mette nella storia: i gesti annullati dopo di lui non si ripetono più.</summary>
+    private bool NellaStoria(string cosa, Func<bool> gesto)
+    {
+        bool fatto = gesto();
+        if (!fatto || _rigioco)
+            return fatto;
+
+        _storia.RemoveRange(_fatti, _storia.Count - _fatti);
+        _storia.Add(new GestoNellaStoria(cosa, gesto));
+        _fatti = _storia.Count;
+        Avvisa();
+        return true;
+    }
+
+    /// <summary>Annulla l'ultimo gesto (Ctrl+Z).</summary>
+    public void Annulla()
+    {
+        if (Sessione is null || _fatti == 0)
+            return;
+
+        Registro.Scrivi("storia", $"annulla: {_storia[_fatti - 1].Cosa}");
+        Rigioca(_fatti - 1);
+    }
+
+    /// <summary>Ripete il gesto annullato (Ctrl+Y).</summary>
+    public void Ripeti()
+    {
+        if (Sessione is null || _fatti >= _storia.Count)
+            return;
+
+        Registro.Scrivi("storia", $"ripeti: {_storia[_fatti].Cosa}");
+        Rigioca(_fatti + 1);
+    }
+
+    /// <summary>Tutto com'era all'apertura, poi i primi <paramref name="quanti"/> gesti della storia, di nuovo.</summary>
+    private void Rigioca(int quanti)
+    {
+        var sessione = Sessione!;
+        var scelta = Scelta;
+        _daRifareDopoIlRigioco.UnionWith(Modifiche.FileToccati);
+        _rigioco = true;
+        try
+        {
+            Modifiche.AnnullaTutto(f => sessione.File.GetValueOrDefault(f));
+            // Quel che le modifiche ricordano oltre ai valori (fotografie, l'ultimo aggiunto) riparte pulito.
+            Modifiche = new();
+            for (int i = 0; i < quanti; i++)
+            {
+                if (!_storia[i].Rifai())
+                    Registro.Scrivi("storia", $"  non rifatto: {_storia[i].Cosa}");
+            }
+        }
+        finally
+        {
+            _rigioco = false;
+            _fatti = quanti;
+        }
+
+        // La scelta resta dov'era, se quel record c'è ancora.
+        Scelta = scelta is { } s && sessione.File.TryGetValue(s.File, out var file) && s.Record < file.Record ? s : null;
+        Rifiuto = null;
+        _daRifareDopoIlRigioco.UnionWith(Modifiche.FileToccati);
+        foreach (string toccato in _daRifareDopoIlRigioco.ToList())
+            RifaiLaGeometria(toccato);
+        _daRifareDopoIlRigioco.Clear();
+        RicontrollaLeModifiche();
+        Avvisa();
+    }
+
+    /// <summary>La storia vale per i record di adesso: dopo un salvataggio o una rilettura dal disco sono altri oggetti.</summary>
+    private void ScordaLaStoria()
+    {
+        _storia.Clear();
+        _fatti = 0;
+    }
+
+    private string EtichettaDi(string fileRelativo, int record)
+        => EtichetteDi(fileRelativo).ElementAtOrDefault(record) is { Length: > 0 } etichetta
+            ? etichetta
+            : $"{NomeDelFile(fileRelativo)} #{record}";
+
+    private static string NomeDelFile(string fileRelativo) => fileRelativo[(fileRelativo.LastIndexOf('/') + 1)..];
+
     /// <summary>
     /// Rifà le forme del solo file toccato: rifare tutto l'albero costerebbe 48 ms a ogni tasto, e non serve —
     /// una modifica sta in un file solo.
     /// </summary>
     private void RifaiLaGeometria(string fileRelativo)
     {
+        if (_rigioco)
+        {
+            _daRifareDopoIlRigioco.Add(fileRelativo);
+            return;
+        }
+
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return;
 
@@ -917,17 +1147,28 @@ public sealed class SessioneDelLab
                     .OrderBy(f => f.File, StringComparer.Ordinal).ThenBy(f => f.Record)],
             })];
 
-        // La mappa ha le coordinate in memoria: finché questo numero non cambia, non ha motivo di richiederle.
-        VersioneDellaGeometria++;
-        StratoDaRidisegnare = tipo.Id;
+        // La mappa ha le coordinate in memoria: finché il numero del suo strato non cambia, non ha motivo di
+        // richiederle. Un numero PER STRATO: un gesto con le copie gemelle tocca file di strati diversi, e con un
+        // numero solo la mappa riprendeva solo l'ultimo.
+        _versioniDegliStrati[tipo.Id] = ++VersioneDellaGeometria;
         FileRifatto = fileRelativo;
     }
 
-    /// <summary>Quante volte la geometria è cambiata: la mappa se ne accorge e ridisegna lo strato toccato.</summary>
+    /// <summary>Tutti gli strati sono da riprendere: i cataloghi sono rifatti (salvataggio, rilettura, master cambiato).</summary>
+    private void TuttiGliStratiCambiati()
+    {
+        VersioneDellaGeometria++;
+        foreach (var strato in Strati)
+            _versioniDegliStrati[strato.Tipo.Id] = VersioneDellaGeometria;
+    }
+
+    /// <summary>Quante volte la geometria è cambiata, in tutto.</summary>
     public int VersioneDellaGeometria { get; private set; }
 
-    /// <summary>Quale strato ha bisogno di essere ripreso dalla mappa.</summary>
-    public string? StratoDaRidisegnare { get; private set; }
+    /// <summary>La versione della geometria di uno strato: la mappa lo riprende quando non è più quella che ha disegnato.</summary>
+    public int VersioneDelloStrato(string strato) => _versioniDegliStrati.GetValueOrDefault(strato);
+
+    private readonly Dictionary<string, int> _versioniDegliStrati = new(StringComparer.Ordinal);
 
     private CatalogoDeiPunti? CatalogoScelto
         => IscScelto is not null && Cataloghi.TryGetValue(IscScelto, out var catalogo) ? catalogo : null;
@@ -950,7 +1191,7 @@ public sealed class SessioneDelLab
         Cataloghi = new Dictionary<string, CatalogoDeiPunti>();
         IscScelto = null;
         Scelta = null;
-        Cambiata?.Invoke();
+        Avvisa();
     }
 
     private void Ricorda(string radice)

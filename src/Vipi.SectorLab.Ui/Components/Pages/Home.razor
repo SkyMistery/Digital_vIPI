@@ -29,6 +29,7 @@
                     </select>
                 </label>
             }
+            <Storia />
             @if (Lab.PannelliInUnAltraFinestra)
             {
                 <button class="lab-tasto lab-tasto-tenue" @onclick="RiportaIPannelli" data-tasto="riporta"
@@ -41,6 +42,7 @@
             }
             <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ApriIlRegistro" data-tasto="registro"
                     title="Apre la cartella del registro: @Lab.Registro.Cartella — il file di oggi racconta ogni gesto e ogni errore">Registro</button>
+            <TastoDelTema />
             <button class="lab-tasto" @onclick="Chiudi" data-tasto="cambia-cartella">Cambia cartella…</button>
         </header>
 
@@ -49,11 +51,14 @@
             @if (!Lab.PannelliInUnAltraFinestra)
             {
                 <ColonnaDiSinistra />
+                @* Ogni divisore allarga o stringe la colonna alla sua SINISTRA (sectorlab.js): il nome è la chiave della larghezza. *@
+                <div class="lab-divisore" data-divide="sfoglia" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
 
                 <aside class="lab-colonna lab-colonna-ispettore">
                     <Scheda />
                     <Modifiche />
                 </aside>
+                <div class="lab-divisore" data-divide="ispettore" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
             }
 
             <aside class="lab-strati">
@@ -80,6 +85,7 @@
                     </p>
                 }
             </aside>
+            <div class="lab-divisore" data-divide="strati" title="Trascina per allargare; doppio clic per la larghezza di base"></div>
 
             <Mappa />
         </div>

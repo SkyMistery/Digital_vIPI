@@ -7,22 +7,17 @@
 (function () {
     'use strict';
 
-    // Un colore per strato: gli stessi gruppi delle caselle. Tenui, perché sopra ci va l'evidenza.
-    var COLORI = {
-        sfondo: '#8a9099',
-        geo: '#9a7b4f',
-        settori: '#0b5cad',
-        aree: '#b03030',
-        mva: '#7a4fa3',
-        aerovie: '#3f7f7f',
-        procedure: '#1f7a3f',
-        vfr: '#2f8f8f',
-        attese: '#b06a10',
-        terra: '#6b6b6b',
-        piste: '#303030',
-        radioassistenze: '#0b5cad',
-        punti: '#4a5060'
-    };
+    // Un colore per strato: gli stessi gruppi delle caselle, presi dal FOGLIO (--lab-strato-<id>), così cambiano col
+    // tema chiaro/scuro e la verità è una sola. Tenui, perché sopra ci va l'evidenza.
+    function colore(id) {
+        var valore = getComputedStyle(document.documentElement).getPropertyValue('--lab-strato-' + id).trim();
+        return valore || '#4a5060';
+    }
+
+    function token(nome, riserva) {
+        var valore = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+        return valore || riserva;
+    }
 
     var stato = null;
 
@@ -91,7 +86,7 @@
             }
             if (vivo) { vivo.addTo(stato.mappa); return Promise.resolve(0); }
 
-            var colore = COLORI[id] || '#4a5060';
+            var tinta = colore(id);
             var partenza = performance.now();
             return fetch('/mappa/strato/' + encodeURIComponent(id), { credentials: 'same-origin' })
                 .then(function (r) { return r.ok ? r.json() : { f: [] }; })
@@ -99,7 +94,7 @@
                     var gruppo = L.layerGroup();
                     for (var i = 0; i < dati.f.length; i++) {
                         var forma = dati.f[i];
-                        var disegnata = disegna(forma, colore);
+                        var disegnata = disegna(forma, tinta);
                         if (!disegnata) continue;
                         disegnata.sectorlab = forma;
                         disegnata.on('click', (function (f) { return function (e) { L.DomEvent.stop(e); scelta(f); }; })(forma));
@@ -143,7 +138,7 @@
             forma.sectorlabStile = forma.sectorlabStile || {
                 color: forma.options.color, weight: forma.options.weight, fillOpacity: forma.options.fillOpacity
             };
-            forma.setStyle({ color: '#e06000', weight: 3, fillOpacity: forma.sectorlab.t === 'a' ? .15 : forma.options.fillOpacity });
+            forma.setStyle({ color: token('--lab-evidenza', '#e26e17'), weight: 3, fillOpacity: forma.sectorlab.t === 'a' ? .15 : forma.options.fillOpacity });
             if (forma.bringToFront) forma.bringToFront();
             stato.evidenza = forma;
 
@@ -162,6 +157,52 @@
                 (stato.forme_disegnate || 0) + ' forme in ' + (stato.tempo || 0) + ' ms');
         },
 
+        /// L'anteprima di «incolla da testo»: la forma che uscirebbe, tratteggiata sopra quella di oggi, e i centri
+        /// degli archi. Senza punti si toglie. La prima volta che compare, la mappa ci si porta sopra; poi, mentre l'AOD
+        /// scrive o cambia la densità, resta ferma — si vede la forma cambiare, non la mappa saltare.
+        anteprima: function (punti, centri) {
+            if (!stato) return;
+            var cera = !!stato.anteprima;
+            if (stato.anteprima) { stato.mappa.removeLayer(stato.anteprima); stato.anteprima = null; }
+            if (!punti || punti.length < 2) return;
+
+            var tinta = token('--lab-anteprima', '#196b35');
+            var gruppo = L.layerGroup();
+            var tratto = coppie(punti);
+            if (tratto.length > 1) {
+                gruppo.addLayer(L.polyline(tratto, { color: tinta, weight: 2, opacity: 1, dashArray: '6,4', interactive: false }));
+            }
+            var centriInCoppia = coppie(centri || []);
+            for (var i = 0; i < centriInCoppia.length; i++) {
+                gruppo.addLayer(L.circleMarker(centriInCoppia[i], { radius: 3, color: tinta, weight: 1, fillOpacity: 1, interactive: false }));
+            }
+            gruppo.addTo(stato.mappa);
+            stato.anteprima = gruppo;
+
+            if (!cera) {
+                var bordi = L.latLngBounds(tratto);
+                if (bordi.isValid() && !stato.mappa.getBounds().contains(bordi)) stato.mappa.fitBounds(bordi.pad(.3));
+            }
+        },
+
+        /// Il tema è cambiato: ogni strato riprende il suo colore dal foglio (le coordinate non si richiedono).
+        ricolora: function () {
+            if (!stato) return;
+            for (var id in stato.strati) {
+                if (!Object.prototype.hasOwnProperty.call(stato.strati, id)) continue;
+                var tinta = colore(id);
+                stato.strati[id].eachLayer(function (l) {
+                    if (l.sectorlabStile) l.sectorlabStile.color = tinta;
+                    if (l !== stato.evidenza && l.setStyle) l.setStyle({ color: tinta });
+                });
+            }
+            if (stato.evidenza && stato.evidenza.setStyle) stato.evidenza.setStyle({ color: token('--lab-evidenza', '#e26e17') });
+            if (stato.anteprima) {
+                var anteprima = token('--lab-anteprima', '#196b35');
+                stato.anteprima.eachLayer(function (l) { if (l.setStyle) l.setStyle({ color: anteprima }); });
+            }
+        },
+
         chiudi: function () {
             if (!stato) return;
             if (stato.osservatore) stato.osservatore.disconnect();
@@ -169,4 +210,13 @@
             stato = null;
         }
     };
+
+    // Il tema cambia col tasto (l'attributo su <html>, anche dall'altra finestra) o con Windows (automatico).
+    new MutationObserver(function () { window.sectorlab.mappa.ricolora(); })
+        .observe(document.documentElement, { attributes: true, attributeFilter: ['data-tema'] });
+    if (window.matchMedia) {
+        var buio = window.matchMedia('(prefers-color-scheme: dark)');
+        var segui = function () { window.sectorlab.mappa.ricolora(); };
+        if (buio.addEventListener) buio.addEventListener('change', segui); else if (buio.addListener) buio.addListener(segui);
+    }
 })();

@@ -10,6 +10,8 @@
     @* Leaflet servito da noi (carta madre §3, trappola 4): l'app non chiede niente alla rete. *@
     <link rel="stylesheet" href="@Assets["_content/Vipi.SectorLab.Ui/vendor/leaflet/leaflet.css"]" />
     <link rel="stylesheet" href="@Assets["_content/Vipi.SectorLab.Ui/sectorlab.css"]" />
+    @* Tema e larghezze delle colonne su <html> prima del primo disegno: senza defer, di proposito. *@
+    <script src="@Assets["_content/Vipi.SectorLab.Ui/sectorlab-tema.js"]"></script>
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
 <body>
