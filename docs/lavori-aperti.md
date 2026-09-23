@@ -7,10 +7,13 @@
 Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **approvata**; consegna con release GitHub
 **pubblica** (tag `sectorlab-v*`) e scheda nella vIPI per Editor e Admin (§2.5, confermato dal committente). Slice 0 e
 1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta);
-slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`; **slice 4, la mappa**.
+slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`; **4** la mappa
+`5ee4714a`; **5** sfoglia e ispettore `cc71e3be`; **6** modifica dei campi `430453b9`; **7** i vertici `01feffb6`;
+**7-bis** i tracciati a più tratti `a3ab2397`; **8** aggiungi e togli un record `3ddd68b4`.
 **CI verde** su tutte. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
-net10.0-windows, i test: **120**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 5, sfoglia e
-ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
+net10.0-windows, i test: **213**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 9, il salvataggio** —
+confini, conflitto d'impronta, backup fuori dal clone, scrittura atomica, rilettura: è la prima che **scrive sul
+disco**. La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
 
 - **Slice 4**: Leaflet canvas servito da noi, **13 strati** decisi nel `Core` (`StratiDellaMappa`), geometria con una
   `fetch` a `/mappa/strato/<id>` dietro il cancello (JSON corto, cinque decimali), clic = scelta, evidenza, riquadro
