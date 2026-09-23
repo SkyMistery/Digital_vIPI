@@ -140,7 +140,7 @@ public sealed class ArtccParser : IFileParser<ElementoArtcc>
 
                 groupLines.Add(line);
 
-                if (string.Equals(name, "DUMMY", StringComparison.Ordinal))
+                if (string.Equals(name, "DUMMY", StringComparison.OrdinalIgnoreCase))
                 {
                     polygon = null;   // polygon separator; its coordinates are never read
                     continue;

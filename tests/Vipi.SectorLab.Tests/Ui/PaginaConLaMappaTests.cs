@@ -124,6 +124,59 @@ public sealed class PaginaConLaMappaTests : IDisposable
     }
 
     [Fact]
+    public async Task SceglierlodallElenco_AccendeIlSuoStrato_EUnSecondoClicReinquadra()
+    {
+        // Prove a mano del 23 settembre: i punti sono spenti di base, e un fix scelto dall'elenco non si vedeva; un
+        // secondo clic sullo stesso record non riportava la mappa lì.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        var forma = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Punti > 0);
+        Assert.DoesNotContain("punti", _lab.Accesi);
+
+        await pagina.InvokeAsync(() => _lab.Scegli(forma.File, forma.Record));
+
+        Assert.Contains("punti", _lab.Accesi);
+        pagina.WaitForAssertion(() =>
+        {
+            var chiamata = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Last();
+            Assert.Equal(forma.File, chiamata.Arguments[0]);
+            Assert.Equal(true, chiamata.Arguments[2]);
+        });
+        int prima = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count;
+
+        await pagina.InvokeAsync(() => _lab.Scegli(forma.File, forma.Record));
+
+        pagina.WaitForAssertion(() =>
+        {
+            var chiamate = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"];
+            Assert.True(chiamate.Count > prima);
+            Assert.Equal(true, chiamate.Last().Arguments[2]);
+        });
+    }
+
+    [Fact]
+    public async Task SpostatoIlFixScelto_LaMappaLoSegue()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        var forma = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
+        await pagina.InvokeAsync(() => _lab.Scegli(forma.File, forma.Record));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(_contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"]));
+        int prima = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"].Count;
+
+        await pagina.InvokeAsync(() => _lab.CambiaCampo(forma.File, forma.Record, "Position", "N041.00.00.000 E012.00.00.000"));
+
+        // Lo strato si ridisegna e l'evidenza torna sul punto, inquadrandolo dov'è adesso.
+        pagina.WaitForAssertion(() =>
+        {
+            var chiamate = _contesto.JSInterop.Invocations["sectorlab.mappa.evidenzia"];
+            Assert.True(chiamate.Count > prima);
+            Assert.Equal(forma.File, chiamate.Last().Arguments[0]);
+            Assert.Equal(true, chiamate.Last().Arguments[2]);
+        });
+    }
+
+    [Fact]
     public async Task UnaFormaCheNonSiDisegnaDiceQualeNomeManca()
     {
         _albero.Scrivi("SectorFiles/Include/IT/DYNAMIC_SEC/prova.tfl", """

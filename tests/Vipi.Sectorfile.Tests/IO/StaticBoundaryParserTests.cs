@@ -62,7 +62,24 @@ public sealed class StaticBoundaryParserTests
         Assert.Single(g.Polygons[1].Vertices);
     }
 
-    // §17.4 — DUMMY is case-sensitive: lowercase "dummy" is a normal vertex, not a separator.
+    // F3 slice 10 — a "dummy" in the NAME field (2) is a separator in any case, as Aurora reads it: FRA-gates.artcc
+    // and three more files write T;dummy;N000.00.00.000;E000.00.00.000; (100 rows). Read as a vertex, every COP
+    // circle of FRA-gates drew a line to N0 E0 on the Lab's map.
+    [Fact]
+    public void LowercaseDummyInTheNameField_IsASeparator_AndIsWrittenBackAsItWas()
+    {
+        var pr = Hartcc(
+            "T;RR NE;N041.00.00.000;E012.00.00.000;\r\n" +
+            "T;dummy;N000.00.00.000;E000.00.00.000;\r\n" +
+            "T;RR NE;N041.10.00.000;E012.10.00.000;\r\n");
+        var g = pr.Records[0];
+
+        Assert.Equal(2, g.Polygons.Count);
+        Assert.DoesNotContain(g.Polygons.SelectMany(p => p.Vertices), v => v.Position is { LatitudeDeg: 0, LongitudeDeg: 0 });
+        Assert.Contains(FirstRecord(pr).RawLines, l => l.StartsWith("T;dummy;", StringComparison.Ordinal));
+    }
+
+    // §17.4 — "dummy" as a FIX name (fields 3 and 4) is a fix-pair vertex, not a separator: only field 2 separates.
     [Fact]
     public void LowercaseDummy_IsNormalVertex()
     {

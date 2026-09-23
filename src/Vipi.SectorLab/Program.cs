@@ -69,6 +69,21 @@ internal static class Program
         server.StartAsync().GetAwaiter().GetResult();
         diario.Scrivi($"server in ascolto su {ServerDelLab.Indirizzo(server)}");
 
+        // Il registro (chiesto alle prove a mano, 23 settembre): l'avvio, e ogni errore che nessuno raccoglie — un
+        // gestore WinForms, un filo, un task che nessuno aspetta. Senza, un'eccezione così sparisce con l'app.
+        var registro = server.Services.GetRequiredService<Registro>();
+        registro.Scrivi("avvio", $"Aurora Sector Lab {Versione.Testo} · .NET {Environment.Version} · WebView2 {runtime} · " +
+                                 $"{AppContext.BaseDirectory} · argomenti «{string.Join(' ', args)}»");
+        WinForms.Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        WinForms.Application.ThreadException += (_, e) => registro.Errore("finestra", e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (_, e) =>
+            registro.Scrivi("ERRORE", $"non gestito (l'app si chiude: {e.IsTerminating}): {e.ExceptionObject}");
+        TaskScheduler.UnobservedTaskException += (_, e) =>
+        {
+            registro.Errore("task non osservato", e.Exception);
+            e.SetObserved();
+        };
+
         bool cartellaAperta = false;
         if (cartellaDaAprire is not null)
         {
@@ -97,6 +112,7 @@ internal static class Program
         {
             server.StopAsync().GetAwaiter().GetResult();
             diario.Scrivi("chiuso");
+            server.Services.GetRequiredService<Registro>().Scrivi("avvio", "chiuso");
         }
         return esito;
     }

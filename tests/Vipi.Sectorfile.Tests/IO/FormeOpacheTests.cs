@@ -39,10 +39,13 @@ public sealed class FormeOpacheTests
 
         Assert.Empty(_warnings.Snapshot());
         int righeT = File.ReadLines(percorso).Count(r => r.StartsWith("T;", StringComparison.Ordinal));
-        int dummy = File.ReadLines(percorso).Count(r => r.StartsWith("T;DUMMY;", StringComparison.Ordinal));
+        // Maiuscolo o minuscolo (F3 slice 10): FRA-gates scrive anche «T;dummy;», e per Aurora è un separatore.
+        int dummy = File.ReadLines(percorso).Count(r => r.StartsWith("T;DUMMY;", StringComparison.OrdinalIgnoreCase));
         var gruppi = letto.Records.OfType<StaticBoundaryGroup>().ToList();
         Assert.Equal(righeT - dummy, gruppi.Sum(g => g.Polygons.Sum(p => p.Vertices.Count)));
-        Assert.DoesNotContain(gruppi, g => g.Name == "DUMMY");
+        // Un gruppo coi vertici non si chiama DUMMY (lo scrittore li riscriverebbe come separatori, F2 slice 5). Una
+        // riga «T;dummy;» da sola fra due righe vuote (FRA-gates:985) è un gruppo SENZA vertici: non disegna niente.
+        Assert.DoesNotContain(gruppi, g => g.Name.Equals("DUMMY", StringComparison.OrdinalIgnoreCase) && g.Polygons.Count > 0);
     }
 
     // .frq: una posizione che si ferma all'elenco dei trasferimenti (35 righe) è una posizione.

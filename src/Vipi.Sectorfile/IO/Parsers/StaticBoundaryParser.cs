@@ -13,7 +13,7 @@ namespace Vipi.Sectorfile.IO;
 ///   <c>T ; DUMMY ; … ;</c>            → a polygon separator: the next vertex opens a new polygon.
 /// Coordinate vs fix-pair is told apart by whether field 3 parses as a coordinate (so a fix such as
 /// NILTO, which starts with 'N', is still treated as a fix and not a malformed coordinate). DUMMY is
-/// recognised by field 2 == "DUMMY" (case-sensitive, Ordinal); its coordinates are never inspected.
+/// recognised by field 2 == "DUMMY" in any case (<c>T;dummy;</c> too, as Aurora reads it: F3 slice 10); its coordinates are never inspected.
 /// Round-trip is guaranteed by verbatim RawLines, so even non-canonical real files round-trip exactly.
 /// </summary>
 public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
@@ -128,7 +128,7 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
             }
 
             string name = parts[1].Trim();
-            bool isDummy = string.Equals(name, "DUMMY", StringComparison.Ordinal);
+            bool isDummy = string.Equals(name, "DUMMY", StringComparison.OrdinalIgnoreCase);
 
             if (current is null)
             {
@@ -182,7 +182,7 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
     /// </summary>
     internal static void NameFromFirstVertex(StaticBoundaryGroup group, string vertexName)
     {
-        if (string.Equals(group.Name, "DUMMY", StringComparison.Ordinal) && group.Polygons.Count == 0)
+        if (string.Equals(group.Name, "DUMMY", StringComparison.OrdinalIgnoreCase) && group.Polygons.Count == 0)
         {
             group.Name = vertexName;
         }

@@ -10,7 +10,7 @@ namespace Vipi.Sectorfile.IO;
 /// plain-text lines (e.g. enroute "EX ETNA") separate blocks and go to RawChunks. Within a block:
 ///   <c>L ; f1 ; Lat ; Lon ; f4 ; Size ;</c> → a LabelAnchor (+ AltLabel/LabelSize from the first L)
 ///   <c>T ; ident ; Lat ; Lon ; [ident] ;</c> → a vertex (ExtraField = field 5 if present)
-/// A <c>T ; DUMMY ; …</c> row (field 2 == "DUMMY", case-sensitive) is a terminator: it is kept in
+/// A <c>T ; DUMMY ; …</c> row (field 2 == "DUMMY", in any case: <c>T;dummy;</c> is one too, as Aurora reads it — F3 slice 10, 100 lowercase rows in 4 files) is a terminator: it is kept in
 /// RawLines and its coordinates are never inspected. AltLabel comes from L field 2 (airport) or
 /// L field 5 (enroute) — the only difference between the two contexts.
 ///
@@ -216,7 +216,7 @@ public abstract class MvaParser : IFileParser<MvaSector>
         }
 
         // DUMMY terminator — case-sensitive; coordinates are never inspected.
-        if (string.Equals(parts[1].Trim(), "DUMMY", StringComparison.Ordinal))
+        if (string.Equals(parts[1].Trim(), "DUMMY", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }

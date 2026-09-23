@@ -22,6 +22,7 @@
     private readonly HashSet<string> _disegnati = new(StringComparer.Ordinal);
     private (string File, int Record)? _evidenziata;
     private int _versione;
+    private int _inquadrature;
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
 
@@ -40,6 +41,7 @@
 
         // Una modifica ha cambiato la geometria di uno strato: la mappa ce l'ha in memoria, va ripresa (slice 6).
         // Senza strato indicato si riprendono tutti: dopo un salvataggio i cataloghi sono rifatti (slice 9).
+        bool ridisegnato = false;
         if (_versione != Lab.VersioneDellaGeometria)
         {
             _versione = Lab.VersioneDellaGeometria;
@@ -48,6 +50,7 @@
             {
                 await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
                 _disegnati.Remove(strato);
+                ridisegnato = true;
             }
         }
 
@@ -68,12 +71,18 @@
             _disegnati.Remove(strato);
         }
 
-        if (_evidenziata != Lab.Scelta)
+        // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic
+        // sull'elenco), e quando lo strato è stato ridisegnato: la forma evidenziata di prima non c'è più.
+        bool richiesta = _inquadrature != Lab.Inquadrature;
+        if (_evidenziata != Lab.Scelta || richiesta || ridisegnato)
         {
             _evidenziata = Lab.Scelta;
+            _inquadrature = Lab.Inquadrature;
             // Si inquadra solo se la scelta NON viene dalla mappa: chi ha appena cliccato una forma non vuole che
-            // la mappa gli salti sotto il dito.
-            await Js.InvokeAsync<bool>("sectorlab.mappa.evidenzia", _evidenziata?.File, _evidenziata?.Record ?? 0, !_dalClic);
+            // la mappa gli salti sotto il dito. Dopo una modifica del record scelto la mappa lo segue dov'è ora.
+            bool segue = ridisegnato && _evidenziata is { } scelta && scelta.File == Lab.FileRifatto;
+            await Js.InvokeAsync<bool>("sectorlab.mappa.evidenzia", _evidenziata?.File, _evidenziata?.Record ?? 0,
+                                       !_dalClic && (richiesta || segue));
             _dalClic = false;
         }
     }

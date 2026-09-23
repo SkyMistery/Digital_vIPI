@@ -51,6 +51,17 @@ public sealed class MvaParserTests
         Assert.Contains(chunk.RawLines, l => l.StartsWith("T;DUMMY"));
     }
 
+    // F3 slice 10 — lowercase "dummy" is a terminator too, as Aurora reads it.
+    [Fact]
+    public void Airport_LowercaseDummy_IsATerminatorToo()
+    {
+        var r = Airport(
+            "L;FL110;N041.00.00.000;E012.00.00.000;FL110;7;\r\n" +
+            "T;FL110;N041.10.00.000;E012.10.00.000;\r\n" +
+            "T;dummy;N000.00.00.000;E000.00.00.000;\r\n").Records[0];
+        Assert.Single(r.Vertices);
+    }
+
     // §12.5 — DUMMY coordinates are never inspected (even absurd ones don't throw or become a vertex).
     [Fact]
     public void Airport_Dummy_AbsurdCoords_Ignored()
@@ -100,16 +111,6 @@ public sealed class MvaParserTests
             "\r\n" +
             "L;FL090;N042.00.00.000;E013.00.00.000;FL090;7;\r\nT;DUMMY;N000.00.00.000;E000.00.00.000;\r\n");
         Assert.Equal(2, pr.Records.Count);
-    }
-
-    // DUMMY is case-sensitive: lowercase "dummy" is a normal vertex, not a terminator.
-    [Fact]
-    public void Airport_LowercaseDummy_IsVertex()
-    {
-        var r = Airport(
-            "L;FL110;N041.00.00.000;E012.00.00.000;FL110;7;\r\n" +
-            "T;dummy;N041.10.00.000;E012.10.00.000;\r\n").Records[0];
-        Assert.Single(r.Vertices);
     }
 
     // ── Enroute (§13) ──────────────────────────────────────────────────────────

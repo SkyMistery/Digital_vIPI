@@ -9,7 +9,7 @@ namespace Vipi.Sectorfile.Models;
 ///     ONE OR MORE L; lines per block (multiple label anchors).
 /// A block with a commented-out L; but active T; lines is valid (AltLabel empty, LabelAnchors empty);
 /// a block with active L; but all T; commented is valid (Vertices empty).
-/// DUMMY terminator rows (field 2 == "DUMMY", case-sensitive) are NOT inspected for coordinates.
+/// DUMMY terminator rows (field 2 == "DUMMY", in any case: <c>T;dummy;</c> is one too, as Aurora reads it — F3 slice 10, 100 lowercase rows in 4 files) are NOT inspected for coordinates.
 /// </summary>
 public sealed class MvaSector
 {

@@ -38,9 +38,40 @@ public sealed class SessioneDelLab
 {
     private readonly string _cartellaDeiDati;
 
-    public SessioneDelLab(string? cartellaDeiDati = null)
-        => _cartellaDeiDati = cartellaDeiDati ?? Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VipiSectorLab");
+    public SessioneDelLab(string? cartellaDeiDati = null, Registro? registro = null)
+    {
+        _cartellaDeiDati = cartellaDeiDati ?? CartellaDeiDatiDiBase;
+        Registro = registro ?? new Registro(_cartellaDeiDati);
+    }
+
+    /// <summary><c>%LOCALAPPDATA%\VipiSectorLab</c>: l'ultima cartella, i backup, il registro.</summary>
+    public static string CartellaDeiDatiDiBase { get; } = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "VipiSectorLab");
+
+    /// <summary>Il registro dei gesti e degli errori (vedi <see cref="Servizi.Registro"/>).</summary>
+    public Registro Registro { get; }
+
+    /// <summary>
+    /// Apre la cartella del registro in Esplora risorse: a un AOD che dice «ha fatto una cosa strana» si chiede di
+    /// allegare il file di oggi. Solo su Windows (i test girano su Ubuntu, e lì non si apre niente).
+    /// </summary>
+    public void ApriIlRegistro()
+    {
+        if (!OperatingSystem.IsWindows())
+            return;
+        try
+        {
+            Directory.CreateDirectory(Registro.Cartella);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{Registro.Cartella}\"")
+            {
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
+        {
+            Registro.Errore("apri il registro", e);
+        }
+    }
 
     public StatoDelLab Stato { get; private set; }
 
@@ -147,6 +178,8 @@ public sealed class SessioneDelLab
             ScordaIProblemi();
             Stato = StatoDelLab.Aperta;
             Errore = null;
+            Registro.Scrivi("apertura", $"{cartella.Radice}: {sessione.File.Count} file, {sessione.RecordTotali} record, "
+                                        + $"{strati.Sum(s => s.Forme.Count)} forme, {orologio.ElapsedMilliseconds} ms");
             Ricorda(cartella.Radice);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
@@ -217,12 +250,28 @@ public sealed class SessioneDelLab
     {
         Scelta = file is null ? null : (file, record);
         RigaSegnalata = null;
+        Registro.Scrivi("scelta", file is null ? "nessuna" : $"{file}#{record}");
         // Scegliere un record apre il suo file nell'elenco: chi clicca una forma sulla mappa si ritrova nel posto
         // giusto dell'albero, senza cercarselo.
         if (file is not null)
+        {
             FileScelto = file;
+            // E accende il suo strato: i punti sono spenti di base, e un fix scelto dall'elenco non si vedeva — sulla
+            // mappa non c'era niente da evidenziare (prove a mano del committente, 23 settembre).
+            if (StratiDellaMappa.DiFile(file) is { } tipo && Strati.Any(s => s.Tipo.Id == tipo.Id))
+                _accesi.Add(tipo.Id);
+            // Ogni scelta chiede di inquadrare, anche quella dello stesso record: il secondo clic sull'elenco riporta lì.
+            Inquadrature++;
+        }
+
         Cambiata?.Invoke();
     }
+
+    /// <summary>Quante volte si è chiesto di portare la mappa sul record scelto: la mappa lo confronta col suo.</summary>
+    public int Inquadrature { get; private set; }
+
+    /// <summary>L'ultimo file di cui si è rifatta la geometria: se è quello scelto, la mappa segue il record spostato.</summary>
+    public string? FileRifatto { get; private set; }
 
     /// <summary>Apre (o chiude, con null) un file nell'elenco dei record. Non cambia la scelta.</summary>
     public void ApriFile(string? relativo)
@@ -292,6 +341,7 @@ public sealed class SessioneDelLab
             // Leggere, validare e scrivere è lavoro sul disco: fuori dal filo del circuito (carta §7).
             var esito = await Task.Run(() => salvataggio.Salva(confermato, DateTime.Now)).ConfigureAwait(false);
             UltimoSalvataggio = esito;
+            Registro.Scrivi("salvataggio", Racconta(esito, confermato));
             if (esito.Salvati.Count + esito.Invariati.Count > 0)
                 await DopoLaRiletturaAsync().ConfigureAwait(false);
             // Il sector sul disco è cambiato: le regole dell'albero (nomi non risolti, file mai citati) si rifanno.
@@ -302,6 +352,7 @@ public sealed class SessioneDelLab
         {
             UltimoSalvataggio = null;
             Rifiuto = "Salvataggio non riuscito: " + e.Message;
+            Registro.Errore("salvataggio", e);
         }
         finally
         {
@@ -360,14 +411,17 @@ public sealed class SessioneDelLab
         {
             IReadOnlyList<ProblemaNelLab>? problemi = null;
             string? errore = null;
+            var orologio = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 problemi = ProblemiDelLab.DellAlbero(sessione);
+                Registro.Scrivi("validazione", $"{problemi.Count} problemi ({problemi.Count(p => p.Gravita == Vipi.Sectorfile.Validazione.Gravita.Errore)} errori) in {orologio.ElapsedMilliseconds} ms");
             }
             catch (Exception e)
             {
-                // Un giro in background che cade non deve portarsi via l'app: si dice nel pannello.
+                // Un giro in background che cade non deve portarsi via l'app: si dice nel pannello, e nel registro.
                 errore = e.Message;
+                Registro.Errore("validazione", e);
             }
 
             await Task.Yield();
@@ -415,8 +469,10 @@ public sealed class SessioneDelLab
                     return;
                 Aggiorna(ProblemiDelLab.Aggancia(sessione, nuovi), fusi);
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            catch (Exception e)
             {
+                // Un giro in background: nessuno aspetta la sua eccezione, e senza questo sparirebbe.
+                Registro.Errore("controllo delle modifiche", e);
                 if (giro == _giroDelControllo)
                     Aggiorna([], []);
             }
@@ -442,6 +498,7 @@ public sealed class SessioneDelLab
         if (Sessione is null || !Sessione.File.ContainsKey(problema.File))
             return;
 
+        Registro.Scrivi("problema", $"{problema.File}:{problema.Problema.Riga} {problema.Problema.Regola}");
         if (problema.Record is { } record && record < Sessione.File[problema.File].Record)
         {
             Scegli(problema.File, record);
@@ -470,6 +527,26 @@ public sealed class SessioneDelLab
         {
             return [];
         }
+    }
+
+    /// <summary>Com'è andato un gesto, in una riga di registro.</summary>
+    private static string Descrivi(object esito) => esito switch
+    {
+        ModificaRifiutata r => "rifiutata — " + r.Motivo,
+        Modifica m => m.Descrizione,
+        _ => esito.ToString() ?? "",
+    };
+
+    /// <summary>Un salvataggio in una riga: stato, file, conflitti, problemi nuovi, backup, errore.</summary>
+    private static string Racconta(EsitoDelSalvataggio esito, bool confermato)
+    {
+        static string Elenco(IEnumerable<string> file) => "[" + string.Join(", ", file) + "]";
+        var c = esito.Controllo;
+        return $"{esito.Stato}{(confermato ? " (confermato)" : "")}: salvati {Elenco(esito.Salvati)}, invariati {Elenco(esito.Invariati)}, "
+               + $"non salvati {Elenco(esito.NonSalvati)}, conflitti {Elenco(c.Conflitti)}, fuori dai confini {Elenco(c.FuoriDaiConfini)}, "
+               + $"errori nuovi {c.ErroriNuovi.Count}, avvisi nuovi {c.ProblemiNuovi.Count - c.ErroriNuovi.Count}, "
+               + $"record che non tornano {c.RecordCheSiFondono.Count}, backup {esito.CartellaDelBackup ?? "-"}"
+               + (esito.Errore is { } errore ? $", errore: {errore}" : "");
     }
 
     private void ScordaIProblemi()
@@ -512,6 +589,7 @@ public sealed class SessioneDelLab
         }
 
         Modifiche.Dimentica(fileRelativo);
+        Registro.Scrivi("ricarica", $"{fileRelativo} riletto dal disco, modifiche lasciate" + (_perse.ContainsKey(fileRelativo) ? " (diff tenuto)" : ""));
         // Ripresi tutti i file in conflitto, l'avviso del salvataggio fermo non ha più niente da dire.
         if (UltimoSalvataggio is { Stato: StatoDelSalvataggio.Fermo } fermo
             && !fermo.Controllo.Conflitti.Intersect(Sessione.CambiatiSulDisco(), StringComparer.Ordinal).Any())
@@ -572,6 +650,7 @@ public sealed class SessioneDelLab
 
         string etichetta = EtichetteDi(fileRelativo).ElementAtOrDefault(record) ?? "";
         var esito = Modifiche.Cambia(file, record, campo, valore, etichetta);
+        Registro.Scrivi("modifica", $"{fileRelativo}#{record} {campo} = «{valore}»: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         if (esito is ModificaDiCampo)
             RifaiLaGeometria(fileRelativo);
@@ -616,6 +695,9 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
             _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta),
         };
+        Registro.Scrivi("vertici", $"{fileRelativo}#{record} {campo} {gesto} {posizione}"
+                                   + (gesto == GestoDeiVertici.Incolla ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
+                                   + $": {Descrivi(esito)}");
 
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         if (esito is ModificaDeiVertici)
@@ -654,6 +736,7 @@ public sealed class SessioneDelLab
             return false;
 
         object esito = fai();
+        Registro.Scrivi("struttura", $"{fileRelativo}: {Descrivi(esito)}");
         Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
         if (esito is not ModificaDiStruttura)
         {
@@ -680,6 +763,7 @@ public sealed class SessioneDelLab
             return;
 
         Modifiche.Annulla(file, modifica);
+        Registro.Scrivi("annulla", $"{modifica.File}#{modifica.Record} {modifica.Descrizione}");
         Rifiuto = null;
         RifaiLaGeometria(modifica.File);
         RicontrollaLeModifiche();
@@ -692,6 +776,7 @@ public sealed class SessioneDelLab
             return;
 
         var toccati = Modifiche.FileToccati.ToList();
+        Registro.Scrivi("annulla", $"tutto ({Modifiche.Quante} modifiche" + (soloQuesto is null ? ")" : $" di {soloQuesto})"));
         Modifiche.AnnullaTutto(f => Sessione.File.GetValueOrDefault(f), soloQuesto);
         Rifiuto = null;
         foreach (string file in toccati)
@@ -733,6 +818,7 @@ public sealed class SessioneDelLab
         // La mappa ha le coordinate in memoria: finché questo numero non cambia, non ha motivo di richiederle.
         VersioneDellaGeometria++;
         StratoDaRidisegnare = tipo.Id;
+        FileRifatto = fileRelativo;
     }
 
     /// <summary>Quante volte la geometria è cambiata: la mappa se ne accorge e ridisegna lo strato toccato.</summary>
@@ -754,6 +840,7 @@ public sealed class SessioneDelLab
 
     private void Fallita(string motivo)
     {
+        Registro.Scrivi("apertura", "fallita: " + motivo);
         Stato = StatoDelLab.Errore;
         Errore = motivo;
         Sessione = null;

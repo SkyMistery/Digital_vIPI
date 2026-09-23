@@ -51,10 +51,15 @@ public static class ServerDelLab
         // Porta a caso, e SOLO l'interfaccia di loopback: dall'esterno della macchina non si arriva.
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
+        // Gli avvisi e gli errori del framework (un'eccezione in un componente, un circuito che muore) finiscono nel
+        // registro del Lab insieme ai gesti dell'AOD: è lì che si guarda quando qualcosa è andato storto.
+        var registro = new Registro(cartellaDeiDati ?? SessioneDelLab.CartellaDeiDatiDiBase);
+        builder.Logging.AddProvider(new PonteDelRegistro(registro));
 
         builder.Services.AddSingleton(segreto);
+        builder.Services.AddSingleton(registro);
         // La cartella aperta è dell'applicazione, non della pagina: un Ctrl+F5 non rilegge 102 MB d'albero.
-        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati));
+        builder.Services.AddSingleton(_ => new SessioneDelLab(cartellaDeiDati, registro));
         builder.Services.AddRazorComponents().AddInteractiveServerComponents();
         builder.Services.Configure<HubOptions>(o => o.MaximumReceiveMessageSize = TettoDelMessaggio);
 

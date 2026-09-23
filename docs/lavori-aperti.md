@@ -15,6 +15,9 @@ net10.0-windows, i test: **248**); il sito non li referenzia e non cambia. ▶ P
 tag `sectorlab-v*`, release, avviso di versione nuova, scheda nella vIPI per Editor e Admin). La traccia di ogni slice, con misure
 e controprove, sta nel §8 della carta.
 
+- **Prove a mano del committente** (23 settembre, su un fork del sector): ✅ Aurora carica il sector salvato dal Lab.
+  Corretti i `T;dummy;` minuscoli (53 linee a N0 E0 sulla mappa: ora separatori, come in Aurora e nel lettore del
+  sito), la mappa che segue la scelta, e il **registro** in `%LOCALAPPDATA%\VipiSectorLab\log\` (carta §8, in fondo).
 - **Slice 10**: **il pannello dei problemi** — il validatore dell'albero in una linguetta, fuori dal circuito
   (1,5 s, 130 errori e 353 avvisi), filtro, clic che sceglie il record della riga (o mostra le righe del disco se la
   riga non è di un record), e «le modifiche in sospeso introducono 1 errore» dopo ogni gesto. Albero vero: 483/483
