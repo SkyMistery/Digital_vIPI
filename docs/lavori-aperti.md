@@ -19,6 +19,12 @@ ispettore**. La traccia di ogni slice, con misure e controprove, sta nel §8 del
   riga «mappa disegnata», e i tempi di ogni strato finiscono nel diario d'avvio.
   🔴 **Un componente Blazor senza parametri non viene ridisegnato quando cambia il padre**: la mappa restava ferma al
   primo giro. Ora `Mappa.razor` si iscrive da sé a `SessioneDelLab.Cambiata`. L'hanno trovato tre test bUnit.
+- **Slice 8**: **aggiungere e togliere un record** (`IO/RecordNuovo` nel motore). Il nuovo **copia il vicino**, così
+  nasce nella forma del file e coi campi di struttura giusti; il suo elenco di vertici è un altro oggetto. 🔴
+  Togliere un record **lascia il commento che ha sopra**: nel sector è quasi sempre l'intestazione di una sezione —
+  in `itgeo.geo` un taglio da una riga ne faceva sparire tre. L'ultimo record di un file non si toglie. I numeri dei
+  record scorrono e le modifiche in sospeso si rinumerano. Misura: **695/695** file con un record aggiunto e
+  **637/637** con uno tolto danno il diff giusto; «annulla tutto» rimette i 754 file identici.
 - **Slice 7-bis** (chiesta dal committente): i **tracciati a più tratti**. `ElenchiDiVertici` mette d'accordo i tre
   modi in cui il sector scrive «i punti di questa forma» — coordinate, punti che ammettono i nomi, e **involucri**
   (il `PuntoDelTracciato` delle `.sid` con etichetta e «nuovo tratto», i **segmenti** delle zone `.str`). Una zona a

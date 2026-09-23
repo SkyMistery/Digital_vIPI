@@ -314,6 +314,45 @@ public sealed class SessioneDelLab
         _ => punto.ToString() ?? "",
     };
 
+    /// <summary>
+    /// Aggiunge un record copiando quello scelto (slice 8) e ci si sposta sopra: il nuovo è già nella forma dei
+    /// vicini, e l'AOD cambia quel che deve.
+    /// </summary>
+    public bool AggiungiRecord(string fileRelativo, int record)
+        => GestoDiStruttura(fileRelativo, () => Sessione!.File[fileRelativo] is { } file
+            ? Modifiche.AggiungiRecord(file, record)
+            : new ModificaRifiutata("Questo file non è aperto."));
+
+    public bool TogliRecord(string fileRelativo, int record)
+        => GestoDiStruttura(fileRelativo, () => Sessione!.File[fileRelativo] is { } file
+            ? Modifiche.TogliRecord(file, record)
+            : new ModificaRifiutata("Questo file non è aperto."));
+
+    private bool GestoDiStruttura(string fileRelativo, Func<object> fai)
+    {
+        if (Sessione is null || !Sessione.File.ContainsKey(fileRelativo))
+            return false;
+
+        object esito = fai();
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is not ModificaDiStruttura)
+        {
+            Cambiata?.Invoke();
+            return false;
+        }
+
+        // I numeri dei record sono scorsi: le etichette si rifanno, e la scelta va dove è finita.
+        RifaiLaGeometria(fileRelativo);
+        Scelta = Modifiche.UltimoAggiunto is { } nuovo
+            ? (fileRelativo, nuovo)
+            : Scelta is { } vecchia && vecchia.File == fileRelativo && vecchia.Record >= Sessione.File[fileRelativo].Record
+                ? null
+                : Scelta;
+
+        Cambiata?.Invoke();
+        return true;
+    }
+
     public void AnnullaModifica(Modifica modifica)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(modifica.File, out var file))

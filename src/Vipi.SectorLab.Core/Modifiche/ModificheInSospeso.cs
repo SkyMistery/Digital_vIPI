@@ -20,6 +20,23 @@ public sealed record ModificaDiCampo(string File, int Record, string Etichetta, 
 }
 
 /// <summary>
+/// I record aggiunti e tolti in un file (slice 8): cambia <b>quanti</b> record ci sono, non il contenuto di uno.
+/// Sono una voce sola per file, come i vertici sono una voce sola per forma: annullarla rimette i record com'erano.
+/// </summary>
+public sealed record ModificaDiStruttura(string File, int Aggiunti, int Tolti)
+    : Modifica(File, Record: -1, Etichetta: "", Campo: Chiave)
+{
+    internal const string Chiave = "§struttura";
+
+    public override string Descrizione => (Aggiunti, Tolti) switch
+    {
+        (> 0, 0) => $"{Aggiunti} record aggiunti",
+        (0, > 0) => $"{Tolti} record tolti",
+        _ => $"{Aggiunti} record aggiunti, {Tolti} tolti",
+    };
+}
+
+/// <summary>
 /// I vertici di una forma, cambiati tutti insieme (slice 7): uno spostato, uno aggiunto, uno tolto, o l'elenco
 /// intero incollato da un testo. Si tiene l'elenco <b>com'era all'apertura</b>, e annullare lo rimette.
 /// </summary>
@@ -60,7 +77,11 @@ public sealed class ModificheInSospeso
 
     public int Quante => _fatte.Count;
 
-    public IReadOnlyList<string> FileToccati => [.. _sporchi.Where(s => s.Value.Count > 0).Select(s => s.Key).Order(StringComparer.Ordinal)];
+    /// <summary>
+    /// I file con qualcosa in sospeso. Si legge dalle MODIFICHE, non dai record toccati: un file dove si è solo
+    /// aggiunto o tolto un record non ha nessun record sporco, e sparirebbe dal pannello pur essendo cambiato.
+    /// </summary>
+    public IReadOnlyList<string> FileToccati => [.. _fatte.Keys.Select(k => k.File).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal)];
 
     public bool CEQualcosa => _fatte.Count > 0;
 
@@ -127,6 +148,23 @@ public sealed class ModificheInSospeso
         if (modifica is ModificaDiCampo campo)
             return Cambia(file, modifica.Record, modifica.Campo, campo.Prima, modifica.Etichetta) is ModificaDiCampo;
 
+        // 🔴 La struttura si annulla per ULTIMA: rimettere i record com'erano rinumera tutto, e le modifiche che
+        // pendono sugli altri record di questo file non avrebbero più un indice buono. Si annullano prima loro —
+        // così i valori tornano quelli dell'apertura — e poi si rimette la struttura.
+        if (modifica is ModificaDiStruttura)
+        {
+            foreach (var altra in _fatte.Values.Where(m => m.File == modifica.File && m is not ModificaDiStruttura).ToList())
+                Annulla(file, altra);
+
+            if (_strutturaDiPartenza.Remove(modifica.File, out object? comEra))
+                ((IFileConRecord)file).RipristinaLaStruttura(comEra);
+
+            _fatte.Remove(chiave);
+            _sporchi.Remove(modifica.File);
+            UltimoAggiunto = null;
+            return true;
+        }
+
         // I vertici non si annullano rifacendo i gesti al contrario: si rimette l'elenco com'era all'apertura.
         if (!_verticiDiPartenza.TryGetValue(chiave, out var comErano) || Vertici(file, modifica.Record, modifica.Campo) is not { } elenco)
             return false;
@@ -150,6 +188,122 @@ public sealed class ModificheInSospeso
             if (cercaIlFile(modifica.File) is { } file)
                 Annulla(file, modifica);
         }
+    }
+
+    // --- aggiungere e togliere un record (slice 8) -----------------------------------------------------------
+
+    /// <summary>La struttura di ogni file com'era prima del primo record aggiunto o tolto: annullare la rimette.</summary>
+    private readonly Dictionary<string, object> _strutturaDiPartenza = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Aggiunge un record <b>copiando il vicino</b> (carta §2.3): nasce già nella forma del file e coi campi di
+    /// struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna la modifica, con l'indice del nuovo in coda.
+    /// </summary>
+    public object AggiungiRecord(FileAperto file, int indice)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta: non ci sono record da aggiungere.");
+        if (indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+
+        Fotografa(file, conRecord);
+        int nuovo = conRecord.AggiungiComeIlVicino(indice);
+        SpostaGliIndici(file.Relativo, daIncluso: nuovo, scarto: +1);
+        UltimoAggiunto = nuovo;
+        return Registra(file, aggiunti: 1, tolti: 0);
+    }
+
+    /// <summary>Toglie un record, con le sue righe e i suoi commenti, e le modifiche che aveva in sospeso.</summary>
+    public object TogliRecord(FileAperto file, int indice)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta.");
+        if (indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        // L'ultimo record di un file no: un file senza record non è più quel file. Si cancella il file, non il record.
+        if (conRecord.RecordDelModello.Count == 1)
+            return new ModificaRifiutata("È l'ultimo record del file: toglierlo lascerebbe un file senza niente.");
+
+        Fotografa(file, conRecord);
+        ScordaQuelChePendeSu(file.Relativo, indice);
+        conRecord.TogliIlRecord(indice);
+        SpostaGliIndici(file.Relativo, daIncluso: indice, scarto: -1);
+        UltimoAggiunto = null;
+        return Registra(file, aggiunti: 0, tolti: 1);
+    }
+
+    /// <summary>L'indice dell'ultimo record aggiunto in quel file, per andarci subito. Null se non ce n'è.</summary>
+    public int? UltimoAggiunto { get; private set; }
+
+    private void Fotografa(FileAperto file, IFileConRecord conRecord)
+    {
+        if (!_strutturaDiPartenza.ContainsKey(file.Relativo))
+            _strutturaDiPartenza[file.Relativo] = conRecord.IstantaneaDellaStruttura();
+    }
+
+    private object Registra(FileAperto file, int aggiunti, int tolti)
+    {
+        var chiave = (file.Relativo, -1, ModificaDiStruttura.Chiave);
+        var prima = _fatte.GetValueOrDefault(chiave) as ModificaDiStruttura;
+        var modifica = new ModificaDiStruttura(
+            file.Relativo, (prima?.Aggiunti ?? 0) + aggiunti, (prima?.Tolti ?? 0) + tolti);
+
+        _fatte[chiave] = modifica;
+        // Il file entra nel pannello anche senza record toccati: il diff lo fa la struttura, non un record sporco.
+        if (!_sporchi.ContainsKey(file.Relativo))
+            _sporchi[file.Relativo] = [];
+        return modifica;
+    }
+
+    /// <summary>
+    /// Un record aggiunto o tolto fa scorrere i numeri degli altri: le modifiche in sospeso che ne avevano uno
+    /// vanno rinumerate, o punterebbero al record sbagliato. 🔴 Vale anche per i record toccati e per le fotografie
+    /// dei vertici.
+    /// </summary>
+    private void SpostaGliIndici(string file, int daIncluso, int scarto)
+    {
+        Rinumera(_fatte, file, daIncluso, scarto, (chiave, modifica) => modifica switch
+        {
+            ModificaDiCampo m => m with { Record = chiave.Record },
+            ModificaDeiVertici m => m with { Record = chiave.Record },
+            _ => modifica,
+        });
+        Rinumera(_verticiDiPartenza, file, daIncluso, scarto, (_, elenco) => elenco);
+
+        if (!_sporchi.TryGetValue(file, out var suoi))
+            return;
+        var rifatti = suoi
+            .Select(s => (Indice: s.Key >= daIncluso ? s.Key + scarto : s.Key, s.Value))
+            .Where(s => s.Indice >= 0)
+            .ToDictionary(s => s.Indice, s => s.Value);
+        _sporchi[file] = rifatti;
+    }
+
+    private static void Rinumera<T>(Dictionary<(string File, int Record, string Campo), T> dove, string file,
+                                    int daIncluso, int scarto, Func<(string File, int Record, string Campo), T, T> rifai)
+    {
+        var daSpostare = dove.Keys.Where(k => k.File == file && k.Record >= daIncluso).OrderBy(k => k.Record * -scarto).ToList();
+        foreach (var chiave in daSpostare)
+        {
+            var nuova = chiave with { Record = chiave.Record + scarto };
+            dove[nuova] = rifai(nuova, dove[chiave]);
+            dove.Remove(chiave);
+        }
+    }
+
+    /// <summary>Le modifiche in sospeso di un record che sta per sparire: spariscono con lui.</summary>
+    private void ScordaQuelChePendeSu(string file, int indice)
+    {
+        foreach (var chiave in _fatte.Keys.Where(k => k.File == file && k.Record == indice).ToList())
+        {
+            _fatte.Remove(chiave);
+            _verticiDiPartenza.Remove(chiave);
+        }
+
+        if (_sporchi.TryGetValue(file, out var suoi))
+            suoi.Remove(indice);
     }
 
     // --- i vertici di una forma (slice 7) --------------------------------------------------------------------
@@ -317,7 +471,13 @@ public sealed class ModificheInSospeso
         if (file is not IFileConRecord conRecord)
             return new Diff.Esito([], InBlocco: false);
 
-        return Diff.Fra(conRecord.RigheDelFile([]), conRecord.RigheDelFile(SporchiDi(file.Relativo)));
+        // Il «prima» è il file com'era all'APERTURA. Se un record è stato aggiunto o tolto, il file di adesso ha
+        // già la struttura nuova: confrontarlo con sé stesso direbbe che non è cambiato niente.
+        var prima = _strutturaDiPartenza.TryGetValue(file.Relativo, out object? comEra)
+            ? conRecord.RigheDi(comEra)
+            : conRecord.RigheDelFile([]);
+
+        return Diff.Fra(prima, conRecord.RigheDelFile(SporchiDi(file.Relativo)));
     }
 
     /// <summary>

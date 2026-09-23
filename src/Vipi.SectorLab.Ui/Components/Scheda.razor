@@ -12,6 +12,13 @@
         <header>
             <p class="lab-etichetta">@scheda.Etichetta</p>
             <p class="lab-nota">@scheda.Tipo · @scheda.File · record @scheda.Indice</p>
+            <p class="lab-gesti-record">
+                @* Slice 8: il nuovo nasce copiando questo, così è già nella forma dei vicini. *@
+                <button class="lab-tasto lab-tasto-tenue" data-tasto="aggiungi-record"
+                        @onclick="() => Lab.AggiungiRecord(scheda.File, scheda.Indice)">+ Record come questo</button>
+                <button class="lab-tasto lab-tasto-tenue" data-tasto="togli-record"
+                        @onclick="() => Lab.TogliRecord(scheda.File, scheda.Indice)">− Togli questo record</button>
+            </p>
             @if (scheda.Forma is { NomiNonRisolti.Count: > 0 } forma)
             {
                 <p class="lab-irrisolti">Nomi che @Lab.IscScelto non conosce: @string.Join(", ", forma.NomiNonRisolti)</p>

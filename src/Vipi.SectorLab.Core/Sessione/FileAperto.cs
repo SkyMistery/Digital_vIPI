@@ -1,3 +1,4 @@
+using Vipi.SectorLab.Core.Modifiche;
 using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
 
@@ -51,6 +52,29 @@ public interface IFileConRecord
     /// lo <b>scrittore vero</b> (F2 §9.5): il diff che si mostra è quello che uscirà, non una simulazione.
     /// </summary>
     IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi);
+
+    /// <summary>
+    /// Aggiunge un record <b>come il vicino</b> (slice 8): si copia il record all'indice dato, così il nuovo nasce
+    /// con la forma e i campi di struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna l'indice del nuovo.
+    /// </summary>
+    int AggiungiComeIlVicino(int indice);
+
+    /// <summary>Toglie un record, con le sue righe e i suoi commenti.</summary>
+    void TogliIlRecord(int indice);
+
+    /// <summary>
+    /// Lo stato della <b>struttura</b> del file (quali record ci sono, e in che ordine), per rimetterlo com'era:
+    /// i record restano gli stessi oggetti, quindi le modifiche ai loro campi non si perdono.
+    /// </summary>
+    object IstantaneaDellaStruttura();
+
+    void RipristinaLaStruttura(object istantanea);
+
+    /// <summary>
+    /// Le righe che il file aveva con QUELLA struttura, senza nessun record toccato: è il «prima» del diff quando
+    /// un record è stato aggiunto o tolto — il file di adesso non serve a confrontarsi con sé stesso.
+    /// </summary>
+    IReadOnlyList<string> RigheDi(object istantanea);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -65,8 +89,11 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         Scrittore = scrittore;
     }
 
-    /// <summary>Il file letto, con le basi fissate (<see cref="Basi.FissaLeBasi{T}"/>).</summary>
-    public ParseResult<T> Letto { get; }
+    /// <summary>
+    /// Il file letto, con le basi fissate (<see cref="Basi.FissaLeBasi{T}"/>). Cambia solo quando si aggiunge o si
+    /// toglie un record (slice 8): i chunk degli altri restano gli stessi oggetti, con le loro righe grezze.
+    /// </summary>
+    public ParseResult<T> Letto { get; private set; }
 
     public IFileSaver<T> Scrittore { get; }
 
@@ -80,6 +107,36 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         RecordChunk<T> record => record.LeadingComments.Length + record.RawLines.Length,
         _ => 0,
     });
+
+    /// <inheritdoc/>
+    public int AggiungiComeIlVicino(int indice)
+    {
+        if (indice < 0 || indice >= Letto.Records.Count)
+            throw new ArgumentOutOfRangeException(nameof(indice));
+
+        var copia = (T)CopiaDelRecord.Di(Letto.Records[indice]);
+        Letto = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice);
+        return indice + 1;
+    }
+
+    /// <inheritdoc/>
+    public void TogliIlRecord(int indice) => Letto = RecordNuovo.Togli(Letto, indice);
+
+    /// <inheritdoc/>
+    public object IstantaneaDellaStruttura() => Letto;
+
+    /// <inheritdoc/>
+    public void RipristinaLaStruttura(object istantanea)
+    {
+        if (istantanea is ParseResult<T> comEra)
+            Letto = comEra;
+    }
+
+    /// <inheritdoc/>
+    public IReadOnlyList<string> RigheDi(object istantanea)
+        => istantanea is ParseResult<T> quella
+            ? new FileSaverOrchestrator().Righe(quella, new HashSet<T>(), Scrittore)
+            : [];
 
     /// <inheritdoc/>
     public IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi)
