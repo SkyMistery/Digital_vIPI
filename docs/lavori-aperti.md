@@ -33,7 +33,15 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A121 — Pacchetto 1.44.1: S4 bis + S6 del sito (23 settembre 2026) — PRONTO DA CARICARE
+### ✅ A121 — 1.44.1 ONLINE: S4 bis + S6 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.44.1 · ce8a59f`, `Schema 0`, «alla STAR» nelle frasi e la linea delle colonne.
+Avvio 17:37:51 UTC, «migrazione del database» 2941 ms; processo nuovo (2048574) senza errori, 6 richieste tutte
+buone. Da fuori `pacchetto-verifica.js` SOLO_PUBBLICO **tutto verde**.
+
+- ℹ️ Carico pulito: il processo vecchio si è spento **in modo ordinato** 6 s prima dell'avvio, e questa volta
+  **nessun secondo processo** in contemporanea. Nella finestra delle rinomine, solo due avvisi del poll IVAO del
+  processo vecchio (`BadImageFormatException`, 17:37:45): la famiglia nota.
 
 PATCH, **nessuna migrazione**, su 1.44.0 (`3561423`). Timbro **`1.44.1 · ce8a59f`**. Dettaglio in
 [`filoni/sito.md`](filoni/sito.md): **S4 bis** la linea fra le colonne sempre visibile nell'editor (solo CSS);
