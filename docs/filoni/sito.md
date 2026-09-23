@@ -85,7 +85,7 @@
 - ✅ **S6** STAR nei trasferimenti: «autorizzato **alla STAR** X» invece di «via» (richiesta del committente, 23-set:
   la STAR la assegna l'APP; le SID restano «via», le autorizza la torre). Pronto da fondere, esce con S4+S5.
   - Nuovo segnaposto `{cleared}` nei quattro template «autorizzato» (IT/EN, uscente/entrante) + parole
-    `ClearedVia` («via {points}») e `ClearedStar` («alla STAR {points}» / EN «for the {points} STAR»),
+    `ClearedVia` («via {points}») e `ClearedStar` («alla STAR {points}» / EN «via the {points} arrival», scelta del committente),
     sovrascrivibili dal file `content/coordination-sentence.json` (`CoordinationSentenceOptions`).
   - Solo negli ARRIVI (`CoordinationSentenceComposer.Cleared`): partenze, sorvoli e altri restano «via».
     Misti: «via MAREL o alla STAR TOPNO 3A»; più nomi → «via MAREL o ELB, o alla STAR PIS 1A o PIS 1B».
@@ -95,6 +95,10 @@
   - Test: +4 in `ProceduraNeiPuntiTests` (2 riscritti). Application 2932 → **2936**. ⚠️ **Codice in comune**:
     `Vipi.Application` (template + composer), `Vipi.Hosting` (opzioni del file).
   - Dal vivo (copia del DB, editor trasferimenti LIBB, anteprima frase): IT «autorizzato via MAREL o alla STAR
-    TOPNO 3A», partenza «autorizzato via PISIP o BANAV 6W»; EN «cleared via MAREL or for the TOPNO 3A STAR».
+    TOPNO 3A», partenza «autorizzato via PISIP o BANAV 6W»; EN «cleared via MAREL or via the TOPNO 3A arrival».
+- ✅ **S4 bis** (23-set, committente: «la linea si vede solo passandoci sopra»): la maniglia `.col-grip` ha una linea
+  SEMPRE visibile, 2px `--brand-ink` al 70%; piena e larga 4px sotto il mouse e mentre si trascina (solo quella
+  presa, `:active`). `--brand-ink` e non `--ivao-lightblue`: sul tema scuro il blu al 60% misurava ~1,5:1 sullo
+  sfondo dell'intestazione, `--brand-ink` ~3,3:1; sul chiaro è il blu IVAO scuro su bianco.
 - ▶ Alla ripresa: se `main` è andata avanti, `git merge main`.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

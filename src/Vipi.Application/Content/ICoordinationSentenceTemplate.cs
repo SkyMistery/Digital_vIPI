@@ -231,7 +231,7 @@ public sealed class CoordinationSentenceTemplate
         FallbackAllToward = "all points toward {dest}",
         PointsOr = "or",
         ClearedVia = "via {points}",
-        ClearedStar = "for the {points} STAR",
+        ClearedStar = "via the {points} arrival",   // forma scelta dal committente il 23-set (ICAO)
     };
 }
 

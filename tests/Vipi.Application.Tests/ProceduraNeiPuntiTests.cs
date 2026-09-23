@@ -91,7 +91,7 @@ public class ProceduraNeiPuntiTests
             "Roma Radar NE trasferisce a Pisa Approach US0 il traffico con destinazione Pisa - San Giusto LIRP "
             + "autorizzato alla STAR PIS 1A a livello 120 o livello inferiore, al confine dell'AoR.",
             Frase("PIS 1A"));
-        Assert.EndsWith("cleared for the PIS 1A STAR at level 120 or below, at the AoR boundary.",
+        Assert.EndsWith("cleared via the PIS 1A arrival at level 120 or below, at the AoR boundary.",
             Frase("PIS 1A", tpl: CoordinationSentenceTemplate.English));
     }
 
@@ -114,7 +114,7 @@ public class ProceduraNeiPuntiTests
     {
         Assert.Contains("autorizzato via MAREL o alla STAR PIS 1A a livello 120", Frase("MAREL, PIS 1A"));
         Assert.Contains("autorizzato via MAREL o ELB, o alla STAR PIS 1A o PIS 1B a livello", Frase("MAREL, PIS 1A, ELB, PIS 1B"));
-        Assert.Contains("cleared via MAREL or for the PIS 1A STAR at level", Frase("MAREL, PIS 1A", tpl: CoordinationSentenceTemplate.English));
+        Assert.Contains("cleared via MAREL or via the PIS 1A arrival at level", Frase("MAREL, PIS 1A", tpl: CoordinationSentenceTemplate.English));
     }
 
     /// <summary>⚠️ Un template scritto nel file prima del 23 settembre («via {point}», senza {cleared}) funziona

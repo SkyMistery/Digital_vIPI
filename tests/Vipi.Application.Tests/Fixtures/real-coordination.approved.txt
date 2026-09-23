@@ -358,10 +358,10 @@
    «Brindisi Radar ES transfers to Roma Radar NC the traffic inbound to Pescara LIBP descending at level 320 or below (even) over Y01-Y12.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL160 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 gruppo=1/0
-   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared for the TOPNO 3A STAR at level 160, at the AoR boundary passing FL140 with runway 04 in use.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via the TOPNO 3A arrival at level 160, at the AoR boundary passing FL140 with runway 04 in use.»
 >> LIBB_ES_CTR | LIBD_CS0_APP (App) | Arrival | LIBP
    cop=TOPNO 3A liv=FL180 next=LIBD_CS0_APP trasf=at the AoR boundary livTrasf=passing FL140 com= vel= cond=04 · area Donald East gruppo=1/0
-   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared for the TOPNO 3A STAR at level 180, at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
+   «Brindisi Radar ES transfers to Brindisi Radar CS0 the traffic inbound to Pescara LIBP cleared via the TOPNO 3A arrival at level 180, at the AoR boundary passing FL140 with runway 04 in use and Donald East active.»
 >> LIBB_ES_CTR | LIRR_NC_CTR (Ctr) | Departure | LIBD
    cop=PISIP liv=FL140 next=LIRR_NC_CTR trasf= livTrasf= com= vel= cond= gruppo=—/0
    «Brindisi Radar ES transfers to Roma Radar NC the traffic departing from Bari Palese LIBD level at level 140 over PISIP.»
