@@ -262,6 +262,47 @@ public class DocumentiUnitiTests : TestContext
         Assert.Contains(".Di(ReleaseTargetType.", sorgente, StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// 🔴 Segnalato il 23 settembre 2026 su LIRE (APP unito al vSOP militare): «premo il tasto delle sezioni
+    /// comuni e la pagina si ricarica». L'editor dell'APP rifaceva il caricamento a OGNI ridisegno del padre,
+    /// e il caricamento comincia con <c>Doc = null</c>: il ramo «caricamento» smontava pannello dell'unione ed
+    /// editor dei membri, i loro scope si chiudevano sotto le operazioni in volo, e il circuito moriva di
+    /// <c>ObjectDisposedException</c>. Gli altri due editor avevano già la guardia sulla chiave.
+    ///
+    /// <para>⚠️ Si guarda il SORGENTE: è una corsa, e la finestra si apre solo con la latenza vera. La
+    /// guardia dice che in ognuno dei tre editor unibili un <c>return</c> sulla chiave già caricata viene
+    /// PRIMA di qualunque cosa azzeri il documento.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("Components/Doc/AppSectionsEditor.razor", "_caricato ==")]
+    [InlineData("Components/Doc/MilSectionsEditor.razor", "_loaded ==")]
+    [InlineData("Components/Doc/AirportSectionsEditor.razor", "_loadedIcao !=")]
+    public void Un_ridisegno_del_padre_non_ricarica_il_membro(string relativo, string guardia)
+    {
+        var sorgente = Leggi(relativo);
+        var inizio = sorgente.IndexOf("private async Task ParametriAsync()", StringComparison.Ordinal);
+        Assert.True(inizio >= 0, $"{relativo}: ParametriAsync non trovata.");
+        var corpo = sorgente[inizio..];
+
+        var dove = corpo.IndexOf(guardia, StringComparison.Ordinal);
+        Assert.True(dove >= 0, $"{relativo}: manca la guardia «{guardia}» sulla chiave già caricata.");
+        var azzera = corpo.IndexOf("_shell.Doc = null", StringComparison.Ordinal);
+        Assert.True(azzera < 0 || dove < azzera,
+            $"{relativo}: il documento si azzera PRIMA della guardia — ogni ridisegno del padre lo smonta.");
+    }
+
+    /// <summary>Aprire la scheda delle comuni LEGGE e basta: non deve far ricaricare la pagina ospite.</summary>
+    [Fact]
+    public void Aprire_la_scheda_delle_comuni_non_ricarica_l_host()
+    {
+        var sorgente = Leggi("Components/Doc/UnionPanel.razor");
+        var apri = System.Text.RegularExpressions.Regex.Match(sorgente,
+            @"private Task ApriComuni\(\) => EseguiAsync\(.*?\}, avvisaLHost: false\);",
+            System.Text.RegularExpressions.RegexOptions.Singleline);
+        Assert.True(apri.Success, "ApriComuni deve passare avvisaLHost: false.");
+        Assert.Contains("if (avvisaLHost) await Changed.InvokeAsync();", sorgente, StringComparison.Ordinal);
+    }
+
     private static string Leggi(string relativo) =>
         File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
 

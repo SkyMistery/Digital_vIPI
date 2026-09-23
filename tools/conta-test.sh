@@ -43,8 +43,17 @@ TFM_SOLO="${3:-}"
 # «A total of 1 test files matched the specified pattern.Passed!  - Failed: 0, Passed: 68, … Hosting.Tests.dll
 # (net8.0)», e il cancello ha dato «MANCA» su una corsa verde. Qui un riepilogo che comincia a metà riga si porta
 # a capo prima di tutto il resto.
+#
+# ⚠️ E le due cose insieme (corsa 35849102486, 23 settembre 2026, agente del sito): «Passed! … 65, Duration: 270
+# ms» con INCOLLATO in coda il riepilogo intero di Assets, e la coda « - Vipi.AuroraProfiles.Tests.dll (net8.0)»
+# alla riga dopo. Portato a capo quel che era incollato, fra la testa e la sua coda si mette un riepilogo
+# COMPLETO: la testa aspetta oltre i riepiloghi completi, e non solo la riga che la segue.
 CORSA="$(sed -E 's/(.)((Passed|Failed)! +- )/\1\n\2/g' "$LOG" | awk '
-    pend != "" { if ($0 ~ /^ *- /) { print pend $0; pend = ""; next } print pend; pend = "" }
+    pend != "" {
+        if ($0 ~ /^ *- /) { print pend $0; pend = ""; next }
+        if ($0 ~ /^(Passed|Failed)!/ && $0 ~ /\.dll \(/) { print; next }
+        print pend; pend = ""
+    }
     /^(Passed|Failed)!/ && $0 !~ /\.dll \(/ { pend = $0; next }
     { print }
     END { if (pend != "") print pend }' \

@@ -405,10 +405,25 @@ else
     /// </summary>
     protected override Task OnParametersSetAsync() => _shell.CaricaInFilaAsync(ParametriAsync);
 
+    /// <summary>ACC e callsign dell'ultimo caricamento: vedi <see cref="ParametriAsync"/>.</summary>
+    private string _caricato = "";
+
     private async Task ParametriAsync()
     {
         _acc = Stations.Resolve(Acc);
         if (_acc is null) return;
+
+        // 🔴 Si ricarica solo quando cambia QUALE documento, come fanno già `MilSectionsEditor` e
+        // `AirportSectionsEditor`. `OnParametersSetAsync` scatta a ogni ridisegno del padre — e in un editor
+        // unito il padre ridisegna spesso (un membro che cambia stato, il pannello dell'unione) — e qui sotto
+        // si mette `Doc = null`: la pagina passava da «caricamento» e SMONTAVA tutto quel che sta in
+        // `AfterSections`, cioè il pannello dell'unione e gli editor dei membri, con i loro scope propri.
+        // Quel che stavano facendo cadeva su un DbContext già chiuso (`ObjectDisposedException`), il circuito
+        // moriva e il browser ricaricava la pagina. Segnalato il 23 settembre 2026 su LIRE: «premo il tasto
+        // delle sezioni comuni e la pagina si ricarica».
+        var chiave = $"{_acc.Code}|{(App ?? "").Trim().ToUpperInvariant()}";
+        if (_caricato == chiave) return;
+        _caricato = chiave;
 
         _notFound = _denied = false;
         _shell.Error = null;
