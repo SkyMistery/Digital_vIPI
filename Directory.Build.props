@@ -1533,6 +1533,14 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.43.1 — PATCH, NESSUNA migrazione. Su 1.43.0 (54355eb, online dal 23 settembre 2026). Due correzioni del
+      filone sito (docs/filoni/sito.md): S2, dopo «Hide» nelle sezioni in comune si ricaricano anche i membri
+      dell'unione (RegistroMembri, tre pagine ospite); S3, fra i punti dei trasferimenti e nel selettore «Cita»
+      compaiono le procedure del ciclo ENTRANTE (le STAR timbrate 2610 non uscivano, es. ERIKA 1A a LIRN: serve
+      online PRIMA del 1° ottobre, dopo si sistema da sé). Tocca Vipi.Application, Vipi.Ui e Vipi.Host per il timbro.
+      Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
       1.43.0 — MINOR, migrazione ADDITIVA solo MySQL (20260923100945_VistaCondivisaSessioniAtc: crea la vista
       v_share_atc_sessions, niente tabelle toccate). Su 1.42.1 (a66f25e, online dal 22 settembre 2026). La vista
       per l'IVAO Division Hub e la copia del database che la porta (lavori aperti §A117); l'editor APP unito che
@@ -1686,7 +1694,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.43.0</VipiVersione>
+    <VipiVersione>1.43.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
