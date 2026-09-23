@@ -54,6 +54,19 @@ public sealed class ElencoDiVertici
         };
     }
 
+    /// <summary>
+    /// Le posizioni dei vertici che ce l'hanno scritta (quelli per nome no: la loro dipende dal catalogo). Servono a
+    /// stimare quanto sono fitti gli archi (<see cref="DensitaDegliArchi"/>).
+    /// </summary>
+    public IReadOnlyList<Coordinate> Posizioni()
+        => [.. Elenco.Cast<object>().Select(v => v switch
+        {
+            Coordinate c => (Coordinate?)c,
+            Punto { PerNome: false } p => p.Posizione,
+            PuntoDelTracciato { Punto.PerNome: false } t => t.Punto.Posizione,
+            _ => null,
+        }).OfType<Coordinate>()];
+
     private static string ScriviIlPunto(Punto p)
         => p.PerNome
             ? p.Nome == p.NomeLongitudine ? p.Nome! : $"{p.Nome} {p.NomeLongitudine}"

@@ -171,6 +171,7 @@ public sealed class SessioneDelLab
             Scelta = null;
             FileScelto = null;
             _etichette.Clear();
+            _densita.Clear();
             // Le modifiche e gli esiti di un'altra cartella non valgono per questa: nomi uguali, file diversi.
             Modifiche = new();
             UltimoSalvataggio = null;
@@ -681,8 +682,32 @@ public sealed class SessioneDelLab
             : [];
 
     /// <summary>Un gesto sui vertici: cambia, aggiungi, togli, incolla. Torna vero se è andato.</summary>
+    /// <summary>
+    /// Quanto sono fitti gli archi di quel record — o, se lui non ne ha, di tutto il suo file; senza archi da misurare,
+    /// un punto per grado (quello di F1). La usa «incolla da testo», e la scheda la mostra perché l'AOD la cambi.
+    /// </summary>
+    public double DensitaDegliArchiDi(string fileRelativo, int record)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return Vipi.Application.Coordinates.ArcGeometry.DensitaBase;
+        if (_densita.TryGetValue((fileRelativo, record), out double gia))
+            return gia;
+
+        var delRecord = ElenchiDiVertici.Di(file, record).Select(e => e.Posizioni());
+        double stima = DensitaDegliArchi.Stima(delRecord)
+                       ?? DensitaDegliArchi.Stima(Enumerable.Range(0, file.Record)
+                              .SelectMany(i => ElenchiDiVertici.Di(file, i)).Select(e => e.Posizioni()))
+                       ?? Vipi.Application.Coordinates.ArcGeometry.DensitaBase;
+        _densita[(fileRelativo, record)] = stima;
+        return stima;
+    }
+
+    private readonly Dictionary<(string File, int Record), double> _densita = [];
+
+    /// <param name="puntiPerGrado">Solo per «incolla»: quanto fitti gli archi; di base la stima del record o del file
+    /// (<see cref="DensitaDegliArchiDi"/>).</param>
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
-                                int posizione = 0, string? testo = null)
+                                int posizione = 0, string? testo = null, double? puntiPerGrado = null)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
@@ -693,7 +718,8 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Cambia => Modifiche.CambiaVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
-            _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta),
+            _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta,
+                                          puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record)),
         };
         Registro.Scrivi("vertici", $"{fileRelativo}#{record} {campo} {gesto} {posizione}"
                                    + (gesto == GestoDeiVertici.Incolla ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
@@ -802,6 +828,8 @@ public sealed class SessioneDelLab
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);
+        foreach (var chiave in _densita.Keys.Where(k => k.File == fileRelativo).ToList())
+            _densita.Remove(chiave);
         if (tipo is null)
             return;
 

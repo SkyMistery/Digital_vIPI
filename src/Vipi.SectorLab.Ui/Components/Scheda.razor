@@ -87,7 +87,16 @@
                 <textarea class="lab-campo" rows="4" value="@(_perQuale == chiave ? _daIncollare : null)"
                           @oninput="e => { _perQuale = chiave; _daIncollare = e.Value?.ToString(); }"
                           placeholder="Testo AIP, o coordinate una per riga" data-campo="incolla"></textarea>
+                @* Gli archi del testo si disegnano fitti come quelli che il file ha già: la stima la fa il Lab, l'AOD la cambia. *@
+                <label class="lab-nota lab-densita">
+                    Archi: un punto ogni
+                    <input type="number" min="0.1" max="10" step="0.5" class="lab-campo"
+                           value="@GradiPerPunto(scheda).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)"
+                           @onchange="e => _gradi = double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double g) && g > 0 ? g : null"
+                           data-campo="gradi-per-punto" /> °
+                </label>
                 <button class="lab-tasto" disabled="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare))"
+                        title="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare) ? "Incolla prima il testo qui sopra" : null)"
                         @onclick="() => Incolla(scheda, chiave)" data-tasto="incolla">Sostituisci i vertici</button>
             </details>
         }
@@ -160,9 +169,28 @@ else
     private void Gesto(SchedaDelRecord scheda, string campo, GestoDeiVertici gesto, int posizione, string? testo = null)
         => Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, gesto, posizione, testo);
 
+    /// <summary>I gradi fra due punti d'arco scritti dall'AOD, per QUEL record; null = la stima del Lab.</summary>
+    private double? _gradi;
+
+    private (string File, int Record)? _gradiDi;
+
+    private double GradiPerPunto(SchedaDelRecord scheda)
+    {
+        // Un altro record ha la sua stima: il valore scritto per il record di prima non lo segue.
+        if (_gradiDi != (scheda.File, scheda.Indice))
+        {
+            _gradiDi = (scheda.File, scheda.Indice);
+            _gradi = null;
+        }
+
+        return _gradi ?? Math.Round(1 / Lab.DensitaDegliArchiDi(scheda.File, scheda.Indice), 1);
+    }
+
     private void Incolla(SchedaDelRecord scheda, string campo)
     {
-        if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare))
+        double puntiPerGrado = 1 / GradiPerPunto(scheda);
+        if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare,
+                                puntiPerGrado: puntiPerGrado))
             _daIncollare = null;
     }
 

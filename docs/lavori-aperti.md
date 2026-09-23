@@ -18,6 +18,8 @@ e controprove, sta nel §8 della carta.
 - **Prove a mano del committente** (23 settembre, su un fork del sector): ✅ Aurora carica il sector salvato dal Lab.
   Corretti i `T;dummy;` minuscoli (53 linee a N0 E0 sulla mappa: ora separatori, come in Aurora e nel lettore del
   sito), la mappa che segue la scelta, e il **registro** in `%LOCALAPPDATA%\VipiSectorLab\log\` (carta §8, in fondo).
+  Seconda tornata: ✅ tutte e dieci; l'«incolla da testo» ora fa gli archi fitti come quelli del file e conserva la
+  chiusura della forma.
 - **Slice 10**: **il pannello dei problemi** — il validatore dell'albero in una linguetta, fuori dal circuito
   (1,5 s, 130 errori e 353 avvisi), filtro, clic che sceglie il record della riga (o mostra le righe del disco se la
   riga non è di un record), e «le modifiche in sospeso introducono 1 errore» dopo ogni gesto. Albero vero: 483/483

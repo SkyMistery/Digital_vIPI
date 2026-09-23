@@ -16,6 +16,6 @@ Vipi.Infrastructure.Tests.dll net10.0 1596
 Vipi.Infrastructure.Tests.dll net8.0 1596
 Vipi.Sectorfile.Tests.dll net10.0 427
 Vipi.Sectorfile.Tests.dll net8.0 427
-Vipi.SectorLab.Tests.dll net10.0 254
+Vipi.SectorLab.Tests.dll net10.0 262
 Vipi.Ui.Tests.dll net10.0 1655
 Vipi.Ui.Tests.dll net8.0 1655

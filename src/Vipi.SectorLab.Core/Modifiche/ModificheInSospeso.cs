@@ -389,9 +389,15 @@ public sealed class ModificheInSospeso
                 return new ModificaRifiutata($"Quel testo contiene {aree.Count} aree: incollane una sola.");
 
             var punti = aree[0].Punti;
+            // Se l'elenco di prima si chiudeva ripetendo il primo punto in fondo (è la forma dei .tfl del sector),
+            // si chiude così anche quello incollato: il testo AIP di solito non ripete il punto di partenza, e il file
+            // perdeva la sua forma (prove a mano del committente, 23 settembre).
+            bool eraChiuso = vertici.Quanti >= 3 && vertici.Scrivi(0) == vertici.Scrivi(vertici.Quanti - 1);
             vertici.Elenco.Clear();
             foreach (var (lat, lon) in punti)
                 vertici.Elenco.Add(vertici.Fabbrica(Punto.Da(new Coordinate(lat, lon)), vecchio: null));
+            if (eraChiuso && vertici.Quanti >= 2 && vertici.Scrivi(0) != vertici.Scrivi(vertici.Quanti - 1))
+                vertici.Elenco.Add(vertici.Fabbrica(Punto.Da(new Coordinate(punti[0].Lat, punti[0].Lon)), vecchio: null));
 
             return null;
         });
