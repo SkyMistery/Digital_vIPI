@@ -4,6 +4,9 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> **📦 1.44.0 PRONTO DA CARICARE (23-set, §A120)**: S4 (larghezza delle colonne) + S5 (procedure non trovate negli
+> accordi), MINOR senza migrazione, 14 file (6 in `wwwroot`), timbro `1.44.0 · 3561423`, zip `3f8b8f4f…`.
+>
 > **✅ 1.43.1 ONLINE (23-set, §A119)**: S2 + S3 del sito, PATCH senza migrazione, 6 file, timbro
 > `1.43.1 · a8a1cea`, zip `3e7c266e…`. Timbro, Schema 0, STAR fra i punti, da fuori tutto verde. In `main` non
 > resta codice del sito fuori pacchetto.

@@ -33,6 +33,26 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A120 — Pacchetto 1.44.0: S4 + S5 del sito (23 settembre 2026) — PRONTO DA CARICARE
+
+MINOR, **nessuna migrazione**, su 1.43.1 (`a8a1cea`). Timbro **`1.44.0 · 3561423`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md): **S4** larghezza delle colonne delle tabelle (campo «%» e trascinamento del bordo,
+chiave `widths` nel JSON della tabella generica); **S5** tasto «⚠ Procedure non trovate (n)» nell'editor dei
+trasferimenti (carta [`2026-09-23-procedure-non-trovate-negli-accordi.md`](feature/2026-09-23-procedure-non-trovate-negli-accordi.md),
+assegnata dalla coda `filoni/da-fare.md`).
+
+**14 file**: 6 in `wwwroot/_content/Vipi.Ui/` (`vipi-editor.js`, `vipi-theme.css` con `.br`/`.gz`) + in radice
+`endpoints.json`, `en/Vipi.Ui.resources.dll` (frasi nuove), Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). Fuori:
+Infrastructure, MySqlMigrations, Domain, Hosting (solo ricompilati), resto di `wwwroot` e `deps.json` (identici per
+impronta). Costanti nuove (`GiorniDiAnticipo`, `LarghezzaMin/Max`) usate solo in Application e Ui, entrambi dentro.
+Zip `vipi-1.44.0-solo-file-cambiati.zip` `3f8b8f4f…d4a44`, foglio
+[`LEGGIMI-PACCHETTO-1.44.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.44.0.md). 1.43.1 ruotata in
+`publish_old/20260923b`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ **Prova del pacchetto in locale** (runbook §6, JS cambiato): publish win-x64 avviato dalla sua cartella su copia
+  del DB, timbro `1.44.0 · 3561423`, `pacchetto-verifica.js` **tutto verde** anche con l'editor; `vipi-editor.js`
+  servito minificato (12,5 KB), sintassi valida, contiene la maniglia `col-grip`; CSS `col-grip` presente.
+
 ### ✅ A119 — 1.43.1 ONLINE: S2 + S3 del sito (23 settembre 2026)
 
 ✅ Il committente conferma timbro `1.43.1 · a8a1cea`, `Schema 0` e, in un accordo, la STAR fra i punti. Avvio
