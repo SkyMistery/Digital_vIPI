@@ -2,7 +2,20 @@
 
 > Assegnato dall'integratore il 23 settembre 2026 (`docs/filoni/da-fare.md`, sezione Sito). Filone sito, **S5**
 > (S4 è la larghezza delle colonne delle tabelle, fatta lo stesso giorno). Carta breve: tre decisioni del
-> committente PRIMA del codice. 🟡 **In attesa delle decisioni.**
+> committente PRIMA del codice. ✅ **Decise il 23 settembre 2026** (§0), il resto della carta è il ragionamento.
+
+## 0. Decisioni del committente (contratto)
+
+- **D1 — ciclo: ENTRANTE, ma l'anticipo è di 2–3 giorni, non settimane.** Regola:
+  | la procedura… | avviso |
+  |---|---|
+  | manca OGGI e manca nell'ENTRANTE | sempre |
+  | c'è oggi, manca nell'entrante (sparisce col ciclo che viene) | solo negli ultimi **3 giorni** prima del cambio ciclo |
+  | manca oggi, c'è nell'entrante (nuova, scelta dai suggerimenti) | mai |
+  I 3 giorni sono UNA costante nominata («2–3» del committente: si prende il margine largo).
+- **D2 — tasto sulla barra**: terzo tasto diagnostico nell'editor dei trasferimenti, «⚠ Procedure non trovate (n)»,
+  sempre presente e spento a zero, elenco accordo · sezione · clausola · nome scritto, clic → clausola. (Opzione A.)
+- **D3 — riga fissa** nell'avviso sulle copie pubbliche congelate. (Opzione A.)
 
 ## 1. Il difetto
 
