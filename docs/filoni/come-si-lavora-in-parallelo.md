@@ -22,6 +22,7 @@ Un filone nuovo: dal clone principale `git worktree add ../<cartella> -b <ramo> 
 | File | Chi |
 |---|---|
 | `docs/filoni/<filone>.md` | **solo** quel filone: lo stato, cosa è fatto, cosa resta, numerazione sua (sito: S1, S2…) |
+| [`docs/filoni/da-fare.md`](da-fare.md) | **l'integratore**: la coda dei lavori assegnati ai filoni. L'agente la legge all'apertura, porta il lavoro nel suo file e qui lo segna «preso» |
 | `tests/conteggi/<Assieme>.txt` | chi aggiunge o toglie test in quell'assieme, **nello stesso commit** dei test: `bash tools/conta-test.sh <log> --scrivi <Assieme>` (il log deve avere TUTTI i TFM dell'assieme) |
 | `docs/index.md` | nessuno a mano fra i marcatori: una carta nuova → `python tools/indice-doc.py` nello stesso commit. Conflitto lì a una fusione → si rigenera |
 | `HANDOFF.md`, `docs/lavori-aperti.md` (le voci §A) | **l'integratore**, quando fonde o consegna: riassume dal file del filone |
@@ -34,7 +35,8 @@ e nel messaggio del commit, perché l'integratore lo guardi alla fusione.
 ## Il rito
 
 - **Apertura** (primo messaggio della chat): «Sei l'agente <filone>. Lavori solo in `<cartella>` sul ramo
-  `<ramo>`. Leggi `docs/filoni/come-si-lavora-in-parallelo.md` e `docs/filoni/<filone>.md`.» Per l'integratore:
+  `<ramo>`. Leggi `docs/filoni/come-si-lavora-in-parallelo.md`, `docs/filoni/<filone>.md` e la tua parte di
+  `docs/filoni/da-fare.md`.» Per l'integratore:
   «Sei l'integratore: stato dei rami, CI, cosa fondere.»
 - **Prima di cominciare**: `git merge main` nel proprio ramo, se `main` è andata avanti.
 - **Chiusura**: commit, push, CI verde sul proprio ramo (`gh run list --branch <ramo>`), `docs/filoni/<filone>.md`
