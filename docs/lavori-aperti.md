@@ -33,6 +33,21 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A121 — Pacchetto 1.44.1: S4 bis + S6 del sito (23 settembre 2026) — PRONTO DA CARICARE
+
+PATCH, **nessuna migrazione**, su 1.44.0 (`3561423`). Timbro **`1.44.1 · ce8a59f`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md): **S4 bis** la linea fra le colonne sempre visibile nell'editor (solo CSS);
+**S6** una STAR di un arrivo si dice «autorizzato alla STAR X» / «cleared via the X arrival», fix e SID restano «via»
+(segnaposto `{cleared}`, `ClearedVia`/`ClearedStar` in `CoordinationSentenceOptions`; nessuna chiave in `appsettings`,
+e un modello senza `{cleared}` dice «via» come prima).
+
+**10 file**: `vipi-theme.css` con `.br`/`.gz` + `endpoints.json`, Vipi.Application, Vipi.Hosting, Vipi.Host (dll/pdb).
+Fuori: Vipi.Ui (cambia solo il CSS; l'impronta degli asset la calcola `AssetVersion` in Host dal file, al volo),
+`en/` (nessun `.resx` cambiato), Infrastructure, Domain e resto (solo ricompilati). Zip
+`vipi-1.44.1-solo-file-cambiati.zip` `0d63017f…0bf61`, foglio
+[`LEGGIMI-PACCHETTO-1.44.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.44.1.md). 1.44.0 ruotata in
+`publish_old/20260923c`. Build Release 0 avvisi, 18/18 assiemi verdi; prova locale del pacchetto tutta verde.
+
 ### ✅ A120 — 1.44.0 ONLINE: S4 + S5 del sito (23 settembre 2026)
 
 ✅ Il committente conferma timbro `1.44.0 · 3561423`, `Schema 0` e le funzioni nuove. Avvio 16:55:23 UTC; da fuori

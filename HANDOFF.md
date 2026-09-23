@@ -4,6 +4,9 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> **📦 1.44.1 PRONTO DA CARICARE (23-set, §A121)**: S4 bis (linea delle colonne) + S6 («autorizzato alla STAR»),
+> PATCH senza migrazione, 10 file (3 in `wwwroot`), timbro `1.44.1 · ce8a59f`, zip `0d63017f…`.
+>
 > **✅ 1.44.0 ONLINE (23-set, §A120)**: S4 (larghezza delle colonne) + S5 (procedure non trovate negli
 > accordi), MINOR senza migrazione, 14 file (6 in `wwwroot`), timbro `1.44.0 · 3561423`, zip `3f8b8f4f…`.
 > 🔎 Una disconnessione dopo il carico = cambio di processo di Passenger, non un errore (§A120).
