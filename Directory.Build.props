@@ -1533,6 +1533,14 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.44.1 — PATCH, NESSUNA migrazione. Su 1.44.0 (3561423, online dal 23 settembre 2026). Filone sito
+      (docs/filoni/sito.md): S4 bis, la linea delle colonne si vede sempre nell'editor delle tabelle (solo
+      vipi-theme.css); S6, nelle frasi dei trasferimenti una STAR di un arrivo si dice «autorizzato alla STAR X»
+      (in inglese «cleared via the X arrival»), le SID e i fix restano «via» — segnaposto {cleared} con due valori
+      nuovi in CoordinationSentenceOptions, e un modello scritto a mano senza {cleared} dice «via» come prima.
+      Tocca Vipi.Application, Vipi.Hosting, vipi-theme.css e Vipi.Host per il timbro. Nessuna frase dell'interfaccia.
+    -->
+    <!--
       1.44.0 — MINOR, NESSUNA migrazione. Su 1.43.1 (a8a1cea, online dal 23 settembre 2026). Due lavori del filone
       sito (docs/filoni/sito.md): S4, la larghezza delle colonne delle tabelle si sceglie da chi scrive (campo e
       trascinamento del bordo, TabellaGenerica + ColonneTabella + vipi-editor.js); S5, l'editor dei trasferimenti
@@ -1703,7 +1711,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.44.0</VipiVersione>
+    <VipiVersione>1.44.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
