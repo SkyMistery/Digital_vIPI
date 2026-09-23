@@ -61,6 +61,12 @@ public enum Regola
 
     /// <summary>Lo stesso nome due volte nello stesso catalogo, a meno di 0,1 NM (la distanza è nel dettaglio).</summary>
     NomeRipetuto,
+
+    /// <summary>
+    /// Una copia gemella diversa dalle altre (carta F3-bis §2.1): lo stesso scalo, pista o posizione con un altro valore
+    /// nel file nazionale e in quello della FIR (<c>LIBA</c> a 182 ft in <c>itap.ap</c>, a 185 in <c>libb.ap</c>).
+    /// </summary>
+    CopieDiverse,
 }
 
 public enum Gravita
@@ -80,7 +86,8 @@ public static class Regole
     public static Gravita Gravita(Regola regola) => regola switch
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
-            or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto => Validazione.Gravita.Avviso,
+            or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
+            or Regola.CopieDiverse => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

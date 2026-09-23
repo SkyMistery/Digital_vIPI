@@ -38,16 +38,18 @@ Dalle prove a mano di F3, due richieste del committente:
 ### 2.1 Le copie gemelle
 
 - **Famiglie**: i file dello stesso formato in `OTHER/` — `.ap`, `.rw`, `.frq`. Due record sono **gemelli** se hanno la
-  stessa **chiave**: l'ICAO per gli scali, scalo + coppia di piste per i `.rw` (`MAPS` compresa), il codice della
-  posizione per le frequenze. Si ricavano dai file aperti, non da un elenco scritto a mano (un file di FIR nuovo
-  entra da solo).
+  stessa **chiave**: l'ICAO per gli scali, scalo + coppia di piste per i `.rw`, il codice della posizione per le
+  frequenze. Le righe `MAPS` dei `.rw` no: stanno sotto `//MENU MAPPE`, il motore le tiene come righe grezze, e sono
+  tutte a coordinate zero (slice 1). Uno scalo commentato (`//LIBB;…`) non ha gemelli: Aurora non lo legge. Si
+  ricavano dai file aperti, non da un elenco scritto a mano (un file di FIR nuovo entra da solo).
 - **Una modifica di campo si propaga**: cambiando un campo di un record, il Lab applica lo stesso cambio ai gemelli
   **che in quel campo avevano lo stesso valore** di partenza. È **una voce sola** nel pannello («LIRF Elevation 13 → 14,
   anche in `itap.ap`»), con i diff di tutti i file, e si annulla tutta insieme.
 - **Un gemello già diverso non si tocca** in silenzio: il pannello lo dice («in `lirr.ap` LIBA ha un altro valore: non
   cambiato») e l'AOD decide (§5, D2).
-- **Il validatore** ha una regola nuova, *copie diverse* (avviso): oggi 3 + 13 + 1, più `LIPY 22/04` diversa dentro `libb.rw` (slice 0, §8). Nel pannello dei problemi, il clic
-  porta al record, e da lì si può allineare.
+- **Il validatore** ha una regola nuova, *copie diverse* (avviso): oggi 3 + 13 + 1 chiavi (`LIPY 22/04` compresa,
+  che è diversa anche dentro `libb.rw`; slice 1, §8). Nel pannello dei problemi, il clic porta al record, e da lì si
+  può allineare.
 
 ### 2.2 Le mappe composte
 
@@ -77,7 +79,7 @@ Dalle prove a mano di F3, due richieste del committente:
 | # | cosa | prova |
 |---|---|---|
 | 0 | **Misure**: gemelli e divergenze per famiglia sull'albero vero; **com'è fatto un aggregato di oggi** (come separa le procedure, se coincide con l'unione delle procedure che nomina) | numeri nel §8 |
-| 1 | **Motore**: famiglie e gemelli (`Core`), regola *copie diverse* nel validatore | test sui campioni; 3/13/1 (+ `LIPY` dentro `libb.rw`) sul fork |
+| 1 | **Motore**: famiglie e gemelli (`Core`), regola *copie diverse* nel validatore | test sui campioni; 3/13/1 chiavi sul fork |
 | 2 | **Propagazione** dei campi ai gemelli: una voce, più diff, annulla insieme; il gemello diverso non si tocca | «cambio LIRF in `lirr.ap`» = −1 +1 in due file |
 | 3 | **Grammatica** dei nomi con spazi nei tag (D4) e chiave `composta` nel catalogo (motore, `Metadati`) | lettura/scrittura, riscrittura identica di tutto l'albero |
 | 4 | **Rigenerazione** delle mappe composte, e dopo ogni modifica di una procedura elencata; regole del validatore | una STAR spostata → la mappa segue, stesso salvataggio |
@@ -175,3 +177,19 @@ fino all'intestazione dopo, un tratto comincia a ogni `<br>`).
   segno). Il salvataggio è identico perché scrive le righe grezze, ma la rigenerazione e il confronto «allineata o no»
   hanno bisogno del segno → da sistemare nel motore nella slice 3 o 4.
 - L'8º campo `1` è `RNAV` (D7, chiusa): 1087 procedure, 47 mappe.
+
+**Slice 1 — famiglie, gemelli, regola *copie diverse*** (23 settembre).
+
+- Motore (codice comune col sito, nessun uso lato sito): `Validazione/CopieGemelle.cs`. Chiave dal modello
+  (`AirportInfo.IcaoCode`, `Runway` scalo + due piste, `AtcPosition.Code`), famiglia = cartella + estensione, D10 per
+  ordine, campi confrontati per riflessione (fuori `Sources`/`HasConflict`), maggioranza per dire chi è fuori posto
+  (senza maggioranza: tutte). Regola `CopieDiverse` (avviso) in `ValidaLAlbero`, una per copia fuori posto, col valore
+  delle altre: «`«LIBA»: qui ElevationFt 182; in lirr.ap:8 ElevationFt 185`».
+- Lab: `Core/Copie/GemelliDellaSessione` (l'indice sui file aperti; `AltreCopie` vuoto se il gruppo non si abbina, D10).
+- **Sul fork**: **17 chiavi** (3 scali, 13 piste, 1 frequenza) = la misura della slice 0; 29 avvisi; validatore
+  dell'albero 1,7-2,2 s come prima.
+- 🔴 Due cose trovate dalla misura, non dai test: `//LIBB;…` è commentato in `itap.ap` e `libb.ap` ma il lettore lo
+  tiene (come `IsDisabled`) e dava una «copia diversa» per uno spazio nel nome → gli scali commentati non hanno
+  gemelli. E le righe `MAPS` dei `.rw` non sono record (stanno sotto `//MENU MAPPE`): 63 piste gemelle nei campioni, non
+  106 → corretto il §2.1.
+- Test: motore 427 → **437** (net8 e net10), Lab 262 → **266**.

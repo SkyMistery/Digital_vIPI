@@ -131,6 +131,30 @@ public static partial class Validatore
             problemi.AddRange(Esito(percorso)?.Problemi ?? Array.Empty<ProblemaDelSector>());
         }
 
+        // Le copie gemelle diverse (carta F3-bis §2.1): uno scalo, una pista, una posizione con un altro valore nel file
+        // nazionale e in quello della FIR. Una per copia fuori posto, col valore che hanno le altre.
+        var famiglie = indice.Values.Where(p => CopieGemelle.Famiglia(p) is not null && Esito(p) is not null)
+            .Select(p => (File: p, Record: Esito(p)!.Record)).ToList();
+        foreach (var gruppo in CopieGemelle.Trova(famiglie))
+        {
+            foreach (var (copia, campi) in CopieGemelle.Divergenti(gruppo))
+            {
+                var suoi = CopieGemelle.Campi(copia.Record).ToDictionary(c => c.Campo, c => c.Valore, StringComparer.Ordinal);
+                var altrove = gruppo.Copie.Where(c => !ReferenceEquals(c, copia)).Select(altra =>
+                {
+                    var loro = CopieGemelle.Campi(altra.Record).ToDictionary(c => c.Campo, c => c.Valore, StringComparer.Ordinal);
+                    var diversi = campi.Where(c => loro.GetValueOrDefault(c) != suoi.GetValueOrDefault(c)).ToList();
+                    return diversi.Count == 0
+                        ? null
+                        : $"{Path.GetFileName(altra.File)}:{altra.Riga} " + string.Join(", ", diversi.Select(c => $"{c} {loro.GetValueOrDefault(c)}"));
+                }).Where(t => t is not null);
+                string qui = string.Join(", ", campi.Select(c => $"{c} {suoi.GetValueOrDefault(c)}"));
+                string ordine = gruppo.PerOrdine ? string.Empty : " (la chiave si ripete in un file: le copie non si abbinano)";
+                problemi.Add(new(Regola.CopieDiverse, Relativo(copia.File), copia.Riga, TestoDellaRiga(copia.File, copia.Riga),
+                    $"«{gruppo.Chiave}»: qui {qui}; in {string.Join("; ", altrove)}{ordine}"));
+            }
+        }
+
         return problemi.Distinct().OrderBy(p => p.File, StringComparer.Ordinal).ThenBy(p => p.Riga).ThenBy(p => p.Regola).ToList();
     }
 
@@ -140,6 +164,12 @@ public static partial class Validatore
         double dy = (a.LatitudeDeg - b.LatitudeDeg) * 111_320;
         double dx = (a.LongitudeDeg - b.LongitudeDeg) * 111_320 * Math.Cos(a.LatitudeDeg * Math.PI / 180);
         return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    private static string TestoDellaRiga(string percorso, int riga)
+    {
+        var righe = SectorFileReader.Read(percorso).Lines;
+        return riga >= 1 && riga <= righe.Count ? righe[riga - 1] : string.Empty;
     }
 
     private static string Chiave(string percorso) => percorso.Replace('\\', '/').Trim('/').ToLowerInvariant();
