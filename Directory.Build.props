@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.43.0 — MINOR, migrazione ADDITIVA solo MySQL (20260923100945_VistaCondivisaSessioniAtc: crea la vista
+      v_share_atc_sessions, niente tabelle toccate). Su 1.42.1 (a66f25e, online dal 22 settembre 2026). La vista
+      per l'IVAO Division Hub e la copia del database che la porta (lavori aperti §A117); l'editor APP unito che
+      non ricarica più la pagina su «sezioni comuni» (§S1). Serve il privilegio CREATE VIEW (verificato dal
+      committente il 23 settembre); il GRANT all'utente dell'hub si fa a mano, quando l'hub c'è. Tocca
+      Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui e Vipi.Host per il timbro. Nessuna frase,
+      nessun file di wwwroot. Vipi.Sectorfile (motore del Sector Lab) NON sta nel sito.
+    -->
+    <!--
       1.42.1 — PATCH, NESSUNA migrazione. Su 1.42.0 (c1aaf4b, online dal 21 settembre 2026). Il roster degli
       staffisti accoglie anche i codici d'ACC (LIxx-CH, LIxx-CHA1), non solo quelli IT-: i chief d'ACC erano
       Redattori ma non comparivano in Diagnostica né nel picker dei permessi (lavori aperti §A114). Tocca
@@ -1677,7 +1686,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.42.1</VipiVersione>
+    <VipiVersione>1.43.0</VipiVersione>
   </PropertyGroup>
 
 </Project>
