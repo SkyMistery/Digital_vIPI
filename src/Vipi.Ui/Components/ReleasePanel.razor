@@ -161,6 +161,27 @@
         </p>
     }
 
+    @* ---- «Segna rilette anche queste» (carta 2026-09-23-da-fare-per-cambiamento, punto 4) --------------
+       Pubblicare chiude da sé la deriva, ma non le segnalazioni «da rileggere» (area cambiata, settore
+       rinominato…): quelle le chiude una persona, e chi pubblica di solito le ha appena rilette. ⚠️ NON
+       preselezionata: pubblicare non vuol dire aver riletto, e un ✓ dato per chi non l'ha deciso è una
+       segnalazione persa. *@
+    @if (_daRileggere.Count > 0)
+    {
+        <div class="rel-rilette">
+            <label>
+                <input type="checkbox" @bind="_segnaRilette" disabled="@_busy" />
+                @L["Rel_MarkReviewedToo", _daRileggere.Count]
+            </label>
+            <ul class="muted">
+                @foreach (var r in _daRileggere)
+                {
+                    <li>@WorkItemText.Frase(r, L)</li>
+                }
+            </ul>
+        </div>
+    }
+
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px">
         <select class="app-in" style="min-width:270px;max-width:340px" @bind="_cycle" @bind:after="RicaricaAvviso">
             @foreach (var c in _upcoming)
@@ -402,6 +423,7 @@
     private async Task Reload()
     {
         await RicaricaTraduzione();
+        await RicaricaDaRileggere();
         _rels = await Releases.ListAsync(Target, Key);
         _uniti = await Releases.BersagliUnitiAsync(Target, Key);
         _cicliDeiMembri = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -504,6 +526,45 @@
         catch (Exception) { _traduzione = null; }
     }
 
+    /// <summary>Le segnalazioni «da rileggere» aperte su questo documento: quelle che si chiudono con un ✓.</summary>
+    private IReadOnlyList<WorkItem> _daRileggere = Array.Empty<WorkItem>();
+
+    /// <summary>La casella «segna rilette anche queste». Nasce spenta a ogni caricamento, anche dopo una
+    /// pubblicazione: la scelta vale per UN atto, non per tutti quelli che seguono.</summary>
+    private bool _segnaRilette;
+
+    /// <summary>
+    /// Quali segnalazioni la casella chiuderebbe. ⚠️ I servizi si RISOLVONO, come per la traduzione qui sopra:
+    /// questo pannello lo montano cinque editor più i test. Assenti, o un guasto ⇒ niente casella, e la
+    /// pubblicazione fa la cosa di sempre.
+    /// </summary>
+    private async Task RicaricaDaRileggere()
+    {
+        _segnaRilette = false;
+        _daRileggere = Array.Empty<WorkItem>();
+        var bersagli = Servizi.GetService(typeof(Vipi.Application.Abstractions.IReleaseTargetRegistry))
+            as Vipi.Application.Abstractions.IReleaseTargetRegistry;
+        if (bersagli is null || Servizi.GetService(typeof(IWorkListService)) is not IWorkListService lavoro) return;
+        try
+        {
+            if (await bersagli.For(Target).ResolveDocumentIdAsync(Key) is not int id) return;
+            _daRileggere = (await lavoro.PerDocumentoAsync(id))
+                .Where(r => r.Origine == WorkOrigin.Sistema && r.SiSpunta && r.ImpactId is not null)
+                .ToList();
+        }
+        catch (Exception) { _daRileggere = Array.Empty<WorkItem>(); }
+    }
+
+    /// <summary>Dopo la pubblicazione, se la casella è accesa: una alla volta, dalla porta di sempre (che
+    /// verifica i permessi e rifiuta le calcolate).</summary>
+    private async Task SegnaRiletteAsync()
+    {
+        if (!_segnaRilette || _daRileggere.Count == 0) return;
+        if (Servizi.GetService(typeof(IDocumentImpactService)) is not IDocumentImpactService impatti) return;
+        foreach (var r in _daRileggere)
+            if (r.ImpactId is int id) await impatti.ClearAsync(id);
+    }
+
     private async Task RicaricaAvviso()
     {
         // ⚠️ Come Reload: qui siamo nel ciclo di vita del componente e un'eccezione abbatterebbe il circuito.
@@ -534,6 +595,7 @@
         // ⚠️ Queste due porte pubblicano DA SOLE tutta l'unione: non c'e' una variante "unita" da ricordarsi
         // di chiamare, ed e' voluto — la porta separata e' durata mezza giornata (vedi IReleaseService.PublishAsync).
         await Releases.PublishAsync(Target, Key, _cycle ?? _currentCycle, _note);
+        await SegnaRiletteAsync();
         return true;
     }, string.Format(L["Rel_PublishedAtCycle"].Value, _cycle ?? _currentCycle), notify: true);
 
@@ -541,6 +603,7 @@
     {
         if (BeforePublishAsync is not null && !await BeforePublishAsync()) return false;
         await Releases.PublishNowAsync(Target, Key, _note);
+        await SegnaRiletteAsync();
         return true;
     }, L["Rel_PublishedNow"], notify: true);
 

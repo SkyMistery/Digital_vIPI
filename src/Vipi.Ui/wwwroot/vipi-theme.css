@@ -1355,6 +1355,17 @@
 :where(.vipi-root) .wi-grp-toggle .wi-why{color:var(--ink)}
 :where(.vipi-root) .wi-grp-toggle:hover .grp-chev{color:var(--brand-ink-2)}
 :where(.vipi-root) .wi-sub{margin:0 0 6px 28px;padding-left:10px;border-left:1px dashed var(--line)}
+/* Da quanto aspetta la riga: sottovoce, e piu' forte oltre un ciclo AIRAC. ⚠️ Il «piu' forte» non e' solo colore:
+   anche il peso, per chi non distingue l'ambra dal grigio. */
+:where(.vipi-root) .wi-age{font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
+:where(.vipi-root) .wi-age.old{color:var(--warn-ink, var(--ink));font-weight:700}
+/* Pannello di pubblicazione: «segna rilette anche queste N», con l'elenco sotto in piccolo. */
+:where(.vipi-root) .rel-rilette{margin:10px 0 0;font-size:13px}
+:where(.vipi-root) .rel-rilette label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+:where(.vipi-root) .rel-rilette ul{margin:4px 0 0 22px;padding:0;font-size:12px}
+/* Il dettaglio «cosa e' cambiato»: sotto la riga, a tutta larghezza, come «prendi in carico». */
+:where(.vipi-root) .wi-diff{grid-column:1 / -1;margin-top:6px;padding:8px 10px;border-radius:8px;
+  background:color-mix(in srgb,var(--ink) 3%,transparent);overflow-x:auto}
 @media (max-width:720px){
   :where(.vipi-root) .wi-grp-head{grid-template-columns:1fr;gap:4px}
   :where(.vipi-root) .wi-sub{margin-left:8px}

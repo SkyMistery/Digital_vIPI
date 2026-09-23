@@ -34,6 +34,11 @@
         {
             <span class="wi-why">@WorkItemText.Frase(Item, L)</span>
         }
+        @* Da quanto aspetta. ⚠️ Oltre un ciclo AIRAC la riga lo dice più forte: una segnalazione che nessuno
+           guarda da un mese è esattamente quella da vedere, e fino al 23 settembre 2026 in lista ce n'erano di
+           vecchie di un mese senza che niente lo dicesse. *@
+        <span class="wi-age @(WorkItemText.EVecchia(Item.Da) ? "old" : "")"
+              title="@Item.Da.ToString("dd/MM/yyyy HH:mm")Z">@WorkItemText.Eta(Item.Da, L)</span>
         @if (Item.Origine == WorkOrigin.Persona && Item.AssegnatarioNome is { Length: > 0 } chi)
         {
             <span class="muted wi-who">@L["Work_AssignedTo", chi]@(Item.ScadenzaCiclo is { Length: > 0 } c ? $" · {c}" : "")</span>
@@ -79,6 +84,15 @@
                 break;
         }
 
+        @* «Cosa è cambiato»: le sezioni della bozza che la copia pubblicata non ha, con la stessa tabella del
+           pannello delle release. Solo sulle righe «da ripubblicare / da preparare»: sono le uniche in cui la
+           domanda ha una risposta calcolabile. *@
+        @if (HaDettaglio)
+        {
+            <button type="button" class="btn ghost @(_dettaglio ? "on" : "")" aria-expanded="@_dettaglio.ToString().ToLowerInvariant()"
+                    title="@L["Work_DiffTitle"]" @onclick="ApriDettaglio">@L["Work_Diff"]</button>
+        }
+
         @* «Prendi in carico»: da fatto del sistema a impegno di una persona. Solo sulle righe di sistema —
            un incarico un assegnatario ce l'ha già. *@
         @if (ShowAssign && Item.Origine == WorkOrigin.Sistema && Item.ImpactId is int)
@@ -94,6 +108,20 @@
        riga su cui si è premuto: lo stato è del componente, e ogni riga è un componente.
        ⚠️ L'assegnatario nasce su ME: «me ne occupo io» è il caso frequente, e chi vuole dare il lavoro a
        un altro lo cambia. Il contrario — una tendina vuota da riempire sempre — costa un gesto a ogni riga. *@
+    @if (_dettaglio)
+    {
+        <div class="wi-diff">
+            @if (_erroreDettaglio is not null)
+            {
+                <p class="help" style="margin:0">@_erroreDettaglio</p>
+            }
+            else
+            {
+                <ReleaseDiffTable Diff="_diff" ShowBaseline="false" />
+            }
+        </div>
+    }
+
     @if (_assegna)
     {
         <span class="wi-assign">
@@ -166,6 +194,44 @@
     private bool _assegna;
     private int _chi;
     private string _entro = "";
+
+    [Inject] private IServiceProvider Servizi { get; set; } = default!;
+
+    private bool _dettaglio;
+    private ReleaseDiff? _diff;
+    private string? _erroreDettaglio;
+
+    /// <summary>La riga dice «la copia pubblicata è indietro» e sa di quale bersaglio: il dettaglio si può chiedere.</summary>
+    private bool HaDettaglio =>
+        Item.Tipo is ImpactKind t && (t.IsDaRipubblicare() || t.IsDaPreparare())
+        && Item.Bersaglio is not null && !string.IsNullOrWhiteSpace(Item.ChiaveRelease);
+
+    /// <summary>
+    /// Apre (o chiude) il dettaglio e lo carica la prima volta. ⚠️ Il servizio delle release si RISOLVE e non
+    /// si inietta, come nel pannello delle release e per la stessa ragione: questa riga la montano tre pagine e
+    /// i loro test, e una dipendenza obbligatoria in più la renderebbe non montabile per chi non l'ha registrata.
+    /// Assente ⇒ il tasto apre una riga che lo dice, non un errore.
+    /// </summary>
+    private async Task ApriDettaglio()
+    {
+        _dettaglio = !_dettaglio;
+        if (!_dettaglio || _diff is not null) return;
+        if (Servizi.GetService(typeof(IReleaseService)) is not IReleaseService rel)
+        {
+            _erroreDettaglio = L["Work_DiffUnavailable"];
+            return;
+        }
+        try
+        {
+            // Per «da preparare» il confronto è col ciclo ENTRANTE, il primo argomento della frase: a oggi la
+            // copia è allineata, e la tabella direbbe «nessuna differenza» proprio sulla riga che ne ha.
+            var ciclo = Item.Tipo == ImpactKind.ReleaseDriftNextCycle && Item.FraseArgs.Count > 0 ? Item.FraseArgs[0] : null;
+            var righe = await rel.DriftFromEffectiveAsync(Item.Bersaglio!.Value, Item.ChiaveRelease!, ciclo);
+            _diff = new ReleaseDiff(true, null, righe);
+            _erroreDettaglio = null;
+        }
+        catch (Exception ex) { _erroreDettaglio = ex.Message; }
+    }
 
     private void ApriAssegna()
     {

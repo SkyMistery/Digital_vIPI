@@ -92,6 +92,8 @@ public enum WorkAction
 /// <param name="Causa">La finestra di modifiche dopo la quale il giro ha visto la deriva (<c>mod:…</c>), se si sa.
 /// Due derive con la stessa causa sono lo stesso lavoro su più documenti (<see cref="FinestraDiModifiche"/>).</param>
 /// <param name="CausaArgs">Gli argomenti della causa: l'istante ISO e le famiglie.</param>
+/// <param name="Bersaglio">Bersaglio e chiave di release del documento: servono a chiedere «che cosa è cambiato»
+/// rispetto alla copia pubblicata (il dettaglio apribile nella riga). <c>null</c> = documento non raggiungibile.</param>
 public sealed record WorkItem(
     WorkOrigin Origine,
     string Chiave,
@@ -114,7 +116,9 @@ public sealed record WorkItem(
     ImpactKind? Tipo = null,
     string? Sorgente = null,
     string? Causa = null,
-    IReadOnlyList<string>? CausaArgs = null)
+    IReadOnlyList<string>? CausaArgs = null,
+    ReleaseTargetType? Bersaglio = null,
+    string? ChiaveRelease = null)
 {
     /// <summary>Il ✓ ha senso su questa riga.</summary>
     public bool SiSpunta => Azione == WorkAction.SegnaFatto;

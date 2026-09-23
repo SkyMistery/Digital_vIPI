@@ -46,6 +46,8 @@
                         <span class="wi-why">@(g.PerCausa ? WorkItemText.FraseCausa(g.Capo, L) : WorkItemText.Frase(g.Capo, L))</span>
                         <span class="pill grey">@L["Work_GroupDocs", g.Righe.Count]</span>
                     }
+                    @{ var piuVecchia = g.Righe.Min(r => r.Da); }
+                    <span class="wi-age @(WorkItemText.EVecchia(piuVecchia) ? "old" : "")">@WorkItemText.Eta(piuVecchia, L)</span>
                 </button>
                 <span class="wi-act">
                     @if (_vista == WorkView.Documento && g.Capo.SiRaggiunge)

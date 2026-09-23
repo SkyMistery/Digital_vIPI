@@ -1,8 +1,10 @@
 # «Da fare» per cambiamento — carta (23 settembre 2026)
 
-> **Stato: ✅ eseguita il 23 settembre 2026** (§3), provata a schermo, sul ramo `dafare/raggruppa` (filone [lista-da-fare](../filoni/lista-da-fare.md)).
-> Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Estende [«Da fare»: una lista sola](2026-08-26-da-fare-una-lista-sola.md)
-> e [Documenti da rivedere](2026-08-25-documenti-da-rivedere.md). Non aggiunge meccanismi.
+> **Stato: ✅ eseguita tutta il 23 settembre 2026** — raggruppamento (§3), causa e deriva dopo il salvataggio (§4),
+> età, dettaglio e casella di pubblicazione (§5) — provata a schermo, sul ramo `dafare/raggruppa` (filone
+> [lista-da-fare](../filoni/lista-da-fare.md)). Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md). Estende
+> [«Da fare»: una lista sola](2026-08-26-da-fare-una-lista-sola.md) e [Documenti da rivedere](2026-08-25-documenti-da-rivedere.md).
+> Nessuna entità nuova. Aggiunge un interceptor e un giro in background (§4) e due colonne a `DocumentImpacts`.
 
 ## La domanda
 
@@ -133,3 +135,30 @@ confrontare il contenuto della copia pubblicata a ogni giro: non vale il costo f
 minuti dopo, «Deriva dopo le modifiche (Testo, dalle 21:15:42Z): 19 documenti». La riga di Brindisi, già indietro
 sulle stesse sezioni, **non** prende la causa: è il limite qui sopra. Chiusa a mano la riga e ripetuta la
 modifica, il giro la riapre con `mod:20260923211831` e argomenti `["2026-09-23T21:18:31.7002145Z","Testo"]`.
+
+## §5 — Le tre aggiunte scelte dal committente (punto 4 del filone)
+
+Scelte il 23 settembre 2026: ✅ età della riga · ✅ dettaglio del cambiamento nella riga · ✅ casella nel
+pannello di pubblicazione. ❌ **Contatore sull'avatar: scartato** (non riproporlo).
+
+- **Età.** Ogni riga dice da quanto aspetta, in giorni interi («oggi», «da 3 g»; l'ora UTC esatta nel
+  suggerimento). Oltre un ciclo AIRAC (28 giorni) lo dice più forte, in ambra **e** in grassetto: il colore da solo
+  non basta a chi non distingue l'ambra. La testata di un gruppo porta l'età della sua riga più vecchia.
+  `WorkItemText.Eta`/`EVecchia`.
+- **«Cosa è cambiato».** Sulle righe «da ripubblicare / da preparare» un tasto apre, sotto la riga, la stessa
+  `ReleaseDiffTable` del pannello delle release: le sezioni della bozza che la copia pubblicata non ha. Per «da
+  preparare» il confronto è col ciclo entrante, perché a oggi la copia è allineata. `WorkItem` porta
+  `Bersaglio`/`ChiaveRelease`, che il documento gestito aveva già: nessuna query in più finché non si apre.
+  Il servizio delle release si **risolve** e non si inietta, come nel pannello: la riga la montano tre pagine e i
+  loro test.
+- **«Segna rilette anche queste N».** Nel pannello di pubblicazione, sopra i due tasti: le segnalazioni
+  **da rileggere** aperte su quel documento (quelle col ✓; la deriva la chiude la pubblicazione da sé), con
+  l'elenco sotto. **Nasce spenta**, e torna spenta dopo ogni pubblicazione: pubblicare non vuol dire aver
+  riletto. Accesa, dopo la pubblicazione chiude una riga alla volta dalla porta di sempre
+  (`IDocumentImpactService.ClearAsync`). Vale per «pubblica ora» e per «programma al ciclo».
+
+**Prova a schermo** (copia del 15 settembre): età su tutte le righe, la deriva del 25 agosto evidenziata («28 d»),
+«What changed» su Pescara apre le sue 8 sezioni, e nell'editor LIBB la casella dice «Also mark the 2 open notices
+on this document as reviewed» con le due aree sotto, spenta. Nessun errore in console.
+
+Test: `WorkItemRowTests` +5, `ReleasePanelTests` +4.

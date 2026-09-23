@@ -9,7 +9,10 @@
 }
 else
 {
-    <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @BaselineLabel()</div>
+    @if (ShowBaseline)
+    {
+        <div class="muted" style="font-size:12px;margin-bottom:4px">@L["Rel_ComparedWith"] @BaselineLabel()</div>
+    }
     @if (Diff.Rows.Count == 0)
     {
         <p class="help" style="margin:0">@L["Rel_NoDiff"]</p>
@@ -35,6 +38,10 @@ else
 @code {
     /// <summary>Diff da mostrare. Null = ancora in caricamento (il chiamante lo risolve in modo asincrono).</summary>
     [Parameter] public ReleaseDiff? Diff { get; set; }
+
+    /// <summary>Dice con che cosa si confronta. No nella riga di «Da fare»: lì il confronto è sempre con la copia
+    /// pubblicata, e lo dice la riga stessa («la copia pubblicata è indietro»).</summary>
+    [Parameter] public bool ShowBaseline { get; set; } = true;
 
     // Il service consegna un enum e dei numeri (doc 13 §3k): tutto ciò che si legge lo compone la UI, quindi
     // segue la lingua della pagina — anche nel diff di una vLOA, che è un documento inglese.

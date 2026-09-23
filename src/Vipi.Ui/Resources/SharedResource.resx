@@ -2902,6 +2902,12 @@
   <data name="ModFam_SpaziAerei" xml:space="preserve"><value>spazi aerei</value></data>
   <data name="ModFam_Radioassistenze" xml:space="preserve"><value>radioassistenze</value></data>
   <data name="ModFam_Allegati" xml:space="preserve"><value>allegati</value></data>
+  <data name="Work_Diff" xml:space="preserve"><value>Cosa è cambiato</value></data>
+  <data name="Work_DiffTitle" xml:space="preserve"><value>Le sezioni della bozza che la copia pubblicata non ha ancora</value></data>
+  <data name="Work_DiffUnavailable" xml:space="preserve"><value>Il confronto con la copia pubblicata non è disponibile qui.</value></data>
+  <data name="Work_AgeToday" xml:space="preserve"><value>oggi</value></data>
+  <data name="Work_AgeDays" xml:space="preserve"><value>da {0} g</value></data>
+  <data name="Rel_MarkReviewedToo" xml:space="preserve"><value>Segna rilette anche le {0} segnalazioni aperte su questo documento</value></data>
   <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Segnare come rilette tutte le {0} righe del gruppo?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola: non c’è niente da tradurre, e quindi niente da rivedere. Il blocco si toglie dal pannello «Versioni e release».</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>

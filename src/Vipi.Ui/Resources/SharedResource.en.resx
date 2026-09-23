@@ -2894,6 +2894,12 @@
   <data name="ModFam_SpaziAerei" xml:space="preserve"><value>airspace</value></data>
   <data name="ModFam_Radioassistenze" xml:space="preserve"><value>navaids</value></data>
   <data name="ModFam_Allegati" xml:space="preserve"><value>attachments</value></data>
+  <data name="Work_Diff" xml:space="preserve"><value>What changed</value></data>
+  <data name="Work_DiffTitle" xml:space="preserve"><value>The draft sections the published copy does not have yet</value></data>
+  <data name="Work_DiffUnavailable" xml:space="preserve"><value>The comparison with the published copy is not available here.</value></data>
+  <data name="Work_AgeToday" xml:space="preserve"><value>today</value></data>
+  <data name="Work_AgeDays" xml:space="preserve"><value>{0} d</value></data>
+  <data name="Rel_MarkReviewedToo" xml:space="preserve"><value>Also mark the {0} open notices on this document as reviewed</value></data>
   <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Mark all {0} items in the group as reviewed?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>This document is read in a single language: there is nothing to translate, and so nothing to review. The lock is released from the “Versions &amp; releases” panel.</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>

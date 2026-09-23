@@ -1,4 +1,4 @@
-# Filone «Da fare»: raggruppare per cambiamento 🟡
+# Filone «Da fare»: raggruppare per cambiamento 🟢
 
 > Aperto il 23 settembre 2026. Cartella `vipi-dafare`, ramo `dafare/raggruppa`. Lo scrive solo questo filone.
 
@@ -14,7 +14,7 @@ cambiamento e si vedono tutti i documenti su cui intervenire. Analisi di partenz
 | 1 | Difetti: (a) l'incarico «preso in carico» si chiude con la sua segnalazione; (b) la frase di una segnalazione si aggiorna quando il fatto si ripresenta | ✅ |
 | 2 | Vista «per cambiamento» (default) · per documento · elenco, con ✓ di gruppo. Zero migrazioni | ✅ carta [2026-09-23-da-fare-per-cambiamento](../feature/2026-09-23-da-fare-per-cambiamento.md) |
 | 3 | Deriva ricalcolata poco dopo un salvataggio, con la causa vera (migrazione). Giro misurato: ~2 s | ✅ carta §4 |
-| 4 | Casella «segna rilette anche queste N» nel pannello di pubblicazione · dettaglio del cambiamento nella riga · età della riga | — |
+| 4 | Casella «segna rilette anche queste N» nel pannello di pubblicazione · dettaglio del cambiamento nella riga · età della riga | ✅ carta §5 |
 
 Scartato dal committente: il contatore sull'avatar.
 
@@ -35,3 +35,8 @@ ModificheInAttesa), `Vipi.Application/DependencyInjection.cs`, `Vipi.Infrastruct
 - 4 test in `DocumentImpactLookupTests`, rossi sul codice di prima. Infrastructure 1604 → 1608.
 
 Codice in comune toccato: `Vipi.Infrastructure/Persistence/EfDocumentImpactRepository.cs`.
+
+## Stato: pronto da fondere (23 settembre 2026, notte)
+
+I quattro punti sono fatti, provati a schermo sulla copia del DB locale e spinti su `dafare/raggruppa`. Resta
+all'integratore: fusione, migrazione `CausaDelleSegnalazioni` nel pacchetto, voce §A in `lavori-aperti.md`.

@@ -55,6 +55,20 @@ public static class WorkItemText
         return l["Work_CauseEdits", quando, famiglie].Value;
     }
 
+    /// <summary>Un ciclo AIRAC: oltre, la riga aspetta da troppo e lo dice più forte.</summary>
+    public static readonly TimeSpan Vecchia = TimeSpan.FromDays(28);
+
+    public static bool EVecchia(DateTime daUtc, DateTime? adessoUtc = null) =>
+        (adessoUtc ?? DateTime.UtcNow) - daUtc > Vecchia;
+
+    /// <summary>Da quanto aspetta la riga, in giorni interi: «oggi», «da 3 g». Giorni e non ore: la lista si
+    /// guarda una volta al giorno, e «da 27 ore» chiede un conto che nessuno vuole fare.</summary>
+    public static string Eta(DateTime daUtc, IStringLocalizer l, DateTime? adessoUtc = null)
+    {
+        var giorni = (int)Math.Floor(((adessoUtc ?? DateTime.UtcNow) - daUtc).TotalDays);
+        return giorni < 1 ? l["Work_AgeToday"].Value : l["Work_AgeDays", giorni].Value;
+    }
+
     private static string FraseDa(WorkItem item, IStringLocalizer l) =>
         item.FraseKey == WorkPhrases.Raw
             ? (item.FraseArgs.Count > 0 ? item.FraseArgs[0] : "")
