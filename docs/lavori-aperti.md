@@ -33,7 +33,17 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A119 — Pacchetto 1.43.1: S2 + S3 del sito (23 settembre 2026) — PRONTO DA CARICARE, prima del 1° ottobre
+### ✅ A119 — 1.43.1 ONLINE: S2 + S3 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.43.1 · a8a1cea`, `Schema 0` e, in un accordo, la STAR fra i punti. Avvio
+15:37:51 UTC, «migrazione del database» 2769 ms, nessun errore del processo nuovo. Da fuori `pacchetto-verifica.js`
+SOLO_PUBBLICO **tutto verde**. Dall'avvio di 1.43.0 (12:10) **zero** `ObjectDisposedException`: S1 tiene.
+
+- ℹ️ Finestra del carico, processo VECCHIO: un `BadImageFormatException` su `/services/vsop/admin/transfers`
+  (15:37:49) e `arresto-errore.txt` (15:38:39, `AtcPollingHostedService.StopAsync`). Stessa famiglia di §A118.
+- 🔎 Da guardare, NON legato ai pacchetti: alle 13:56:37 Passenger ha avviato un secondo processo 1.43.0 (790279)
+  mentre il primo (484850, partito alle 12:56:36) scriveva ancora il log fino alle 13:56:42 → `avvii.txt` lo segna
+  «non spento in modo ordinato». Per qualche secondo due processi hanno fatto il poll IVAO insieme.
 
 PATCH, **nessuna migrazione**, su 1.43.0 (`54355eb`). Timbro **`1.43.1 · a8a1cea`**. Il dettaglio dei due lavori sta
 in [`filoni/sito.md`](filoni/sito.md): **S2** dopo «Hide» nelle sezioni in comune si ricaricano anche i membri

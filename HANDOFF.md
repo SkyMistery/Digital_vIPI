@@ -4,8 +4,9 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> **📦 1.43.1 PRONTO DA CARICARE (23-set, §A119)**: S2 + S3 del sito, PATCH senza migrazione, 6 file, timbro
-> `1.43.1 · a8a1cea`, zip `3e7c266e…`. 🔴 Online PRIMA del 1° ottobre (S3).
+> **✅ 1.43.1 ONLINE (23-set, §A119)**: S2 + S3 del sito, PATCH senza migrazione, 6 file, timbro
+> `1.43.1 · a8a1cea`, zip `3e7c266e…`. Timbro, Schema 0, STAR fra i punti, da fuori tutto verde. In `main` non
+> resta codice del sito fuori pacchetto.
 >
 > **📦 Integrazione (23-set):** `sito/lavori` e PR #16 fusi in `main`. **Pacchetto 1.43.0 PRONTO DA CARICARE**
 > (§A118): la vista `v_share_atc_sessions` per l'hub (§A117, migrazione additiva) + S1. 8 file, timbro
