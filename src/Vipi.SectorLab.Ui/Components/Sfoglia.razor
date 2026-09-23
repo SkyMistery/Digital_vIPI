@@ -40,41 +40,16 @@
         </div>
     }
 
-    @if (Lab.FileScelto is { } aperto && Lab.Sessione?.File.GetValueOrDefault(aperto) is { } file)
+    @* Nell'albero i record del file aperto stanno sotto di lui (RecordDelFile, da VoceDiFile); durante una ricerca
+       l'albero non c'è, e stanno qui sotto i risultati. *@
+    @if (_cercato.Trim().Length >= 2 && Lab.FileScelto is { } aperto)
     {
-        <div class="lab-record" data-file-aperto="@aperto">
-            <h2>@Nome(aperto) <span class="lab-nota">@file.Record.ToString("N0") record</span></h2>
-            @if (file.Record == 0)
-            {
-                <p class="lab-nota">Il motore non interpreta questo file: si vede come testo (slice 5 non lo apre).</p>
-            }
-            else
-            {
-                <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
-                       @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
-                var voci = Voci(aperto);
-                foreach (var voce in voci.Take(Tetto))
-                {
-                    <button class="lab-voce @(Scelto(aperto, voce.Indice) ? "lab-scelto" : null)"
-                            @onclick="() => Lab.Scegli(aperto, voce.Indice)" data-record="@voce.Indice">
-                        <span class="lab-numero">@voce.Indice</span> @voce.Etichetta
-                    </button>
-                }
-                if (voci.Count > Tetto)
-                {
-                    <p class="lab-nota" data-troppi="@voci.Count">@voci.Count.ToString("N0") record: ne vedi @Tetto. Filtra per arrivare agli altri.</p>
-                }
-            }
-        </div>
+        <RecordDelFile Relativo="@aperto" />
     }
 </div>
 
 @code {
-    /// <summary>Quanti record per volta: oltre non si legge, si filtra. (Il resto si trova con la ricerca.)</summary>
-    internal const int Tetto = 200;
-
     private string _cercato = string.Empty;
-    private string _filtro = string.Empty;
     private IReadOnlyList<Trovato> _trovati = [];
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
@@ -90,15 +65,6 @@
         // Andare su una forma accende il suo strato: sennò si sceglie qualcosa che sulla mappa non si vede.
         Lab.Accendi(trovato.Strato, acceso: true);
         Lab.Scegli(trovato.File, trovato.Record);
-    }
-
-    private IReadOnlyList<(int Indice, string Etichetta)> Voci(string file)
-    {
-        var etichette = Lab.EtichetteDi(file);
-        var voci = etichette.Select((e, i) => (Indice: i, Etichetta: e));
-        return _filtro.Trim() is { Length: > 0 } filtro
-            ? [.. voci.Where(v => v.Etichetta.Contains(filtro, StringComparison.OrdinalIgnoreCase))]
-            : [.. voci];
     }
 
     private bool Scelto(string file, int record) => Lab.Scelta == (file, record);

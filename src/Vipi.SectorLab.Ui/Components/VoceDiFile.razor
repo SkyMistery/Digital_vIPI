@@ -6,6 +6,10 @@
     @File.Nome
     <span class="lab-nota">@(File.Interpretato ? File.Record.ToString("N0") : "testo")</span>
 </button>
+@if (Lab.FileScelto == File.Relativo)
+{
+    <RecordDelFile Relativo="@File.Relativo" />
+}
 
 @code {
     [Parameter, EditorRequired] public FileDaSfogliare File { get; set; } = null!;

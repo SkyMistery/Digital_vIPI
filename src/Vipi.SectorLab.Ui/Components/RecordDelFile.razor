@@ -1,0 +1,61 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    I record del file aperto (carta F3 §2.2 passo 2, slice 5). 🔴 Stava in fondo alla colonna Sfoglia, dopo tutto
+    l'albero: con la cartella IT aperta (centinaia di file) finiva fuori dallo schermo, e scegliere OTHER/lirr.ap
+    sembrava non fare niente (prova 12 di F3-bis, 23 settembre). Ora si disegna subito sotto il file scelto.
+    Si iscrive da sé a Cambiata: il suo parametro è una stringa che non cambia, e nessuno lo ridisegnerebbe.
+*@
+@if (Lab.Sessione?.File.GetValueOrDefault(Relativo) is { } file)
+{
+    <div class="lab-record" data-file-aperto="@Relativo">
+        <h2>@Nome(Relativo) <span class="lab-nota">@file.Record.ToString("N0") record</span></h2>
+        @if (file.Record == 0)
+        {
+            <p class="lab-nota">Il motore non interpreta questo file: si vede come testo (slice 5 non lo apre).</p>
+        }
+        else
+        {
+            <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
+                   @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
+            var voci = Voci();
+            foreach (var voce in voci.Take(Tetto))
+            {
+                <button class="lab-voce @(Lab.Scelta == (Relativo, voce.Indice) ? "lab-scelto" : null)"
+                        @onclick="() => Lab.Scegli(Relativo, voce.Indice)" data-record="@voce.Indice">
+                    <span class="lab-numero">@voce.Indice</span> @voce.Etichetta
+                </button>
+            }
+            if (voci.Count > Tetto)
+            {
+                <p class="lab-nota" data-troppi="@voci.Count">@voci.Count.ToString("N0") record: ne vedi @Tetto. Filtra per arrivare agli altri.</p>
+            }
+        }
+    </div>
+}
+
+@code {
+    /// <summary>Quanti record per volta: oltre non si legge, si filtra. (Il resto si trova con la ricerca.)</summary>
+    internal const int Tetto = 200;
+
+    [Parameter, EditorRequired] public string Relativo { get; set; } = null!;
+
+    private string _filtro = string.Empty;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private IReadOnlyList<(int Indice, string Etichetta)> Voci()
+    {
+        var voci = Lab.EtichetteDi(Relativo).Select((e, i) => (Indice: i, Etichetta: e));
+        return _filtro.Trim() is { Length: > 0 } filtro
+            ? [.. voci.Where(v => v.Etichetta.Contains(filtro, StringComparison.OrdinalIgnoreCase))]
+            : [.. voci];
+    }
+
+    private static string Nome(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}
