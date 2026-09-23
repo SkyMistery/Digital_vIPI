@@ -440,6 +440,69 @@ html, body {
     text-decoration: underline;
 }
 
+/* Il salvataggio (slice 9): l'esito sta in cima alle modifiche, col bordo del suo colore. */
+.lab-salvataggio {
+    position: relative;
+    margin: .5rem 0;
+    padding: .4rem .6rem;
+    border-left: 4px solid var(--lab-tenue);
+    background: #fff;
+}
+
+.lab-salvataggio p {
+    margin: .2rem 0;
+}
+
+.lab-salvataggio > .lab-annulla {
+    position: absolute;
+    top: .3rem;
+    right: .5rem;
+}
+
+.lab-salvataggio-buono {
+    border-left-color: #2e7d32;
+}
+
+.lab-salvataggio-attesa {
+    border-left-color: #b26a00;
+}
+
+.lab-salvataggio-fermo {
+    border-left-color: #c62828;
+}
+
+.lab-salvataggio code {
+    overflow-wrap: anywhere;
+}
+
+.lab-azioni,
+.lab-conflitto {
+    display: flex;
+    gap: .5rem;
+    align-items: baseline;
+    flex-wrap: wrap;
+    margin: .3rem 0;
+}
+
+.lab-conflitto p {
+    flex: 1;
+}
+
+.lab-problemi-nuovi {
+    margin: .2rem 0;
+    padding-left: 1.1rem;
+}
+
+.lab-problemi-nuovi code {
+    display: block;
+    font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+    white-space: pre-wrap;
+}
+
+.lab-perse summary {
+    color: var(--lab-tenue);
+}
+
 .lab-riga-tolta {
     display: block;
     background: #fdeaea;

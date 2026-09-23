@@ -39,13 +39,15 @@
         if (!_creata) return;
 
         // Una modifica ha cambiato la geometria di uno strato: la mappa ce l'ha in memoria, va ripresa (slice 6).
+        // Senza strato indicato si riprendono tutti: dopo un salvataggio i cataloghi sono rifatti (slice 9).
         if (_versione != Lab.VersioneDellaGeometria)
         {
             _versione = Lab.VersioneDellaGeometria;
-            if (Lab.StratoDaRidisegnare is { } daRifare && _disegnati.Contains(daRifare))
+            List<string> daRifare = Lab.StratoDaRidisegnare is { } uno ? [uno] : [.. _disegnati];
+            foreach (string strato in daRifare.Where(_disegnati.Contains))
             {
-                await Js.InvokeAsync<int>("sectorlab.mappa.strato", daRifare, false);
-                _disegnati.Remove(daRifare);
+                await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
+                _disegnati.Remove(strato);
             }
         }
 

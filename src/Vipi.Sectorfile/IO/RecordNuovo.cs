@@ -18,7 +18,13 @@ public static class RecordNuovo
     /// Mette <paramref name="record"/> subito dopo il record numero <paramref name="dopoIndice"/> (in fondo se è
     /// l'ultimo, in testa con -1). Il <see cref="ParseResult{T}"/> che torna ha un record in più.
     /// </summary>
-    public static ParseResult<T> Aggiungi<T>(ParseResult<T> letto, IFileSaver<T> saver, T record, int dopoIndice)
+    /// <param name="separatore">
+    /// Righe da mettere fra il vicino e il nuovo (di solito una riga vuota), o nessuna. Serve nei file dove un record
+    /// è un BLOCCO che finisce alla riga vuota (<c>.artcc</c>, <c>.mva</c>…): senza, il nuovo accostato al vicino
+    /// riletto sarebbe un pezzo di lui (F3 slice 9, misurato sull'albero vero). Chi chiama sa se serve: lo prova.
+    /// </param>
+    public static ParseResult<T> Aggiungi<T>(ParseResult<T> letto, IFileSaver<T> saver, T record, int dopoIndice,
+                                             IReadOnlyList<string>? separatore = null)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(letto);
@@ -38,7 +44,10 @@ public static class RecordNuovo
 
         var chunk = letto.Chunks.ToList();
         var record_ = letto.Records.ToList();
-        chunk.Insert(DoveMetterlo(letto, dopoIndice), nuovo);
+        int dove = DoveMetterlo(letto, dopoIndice);
+        chunk.Insert(dove, nuovo);
+        if (separatore is { Count: > 0 })
+            chunk.Insert(dove, new RawChunk<T>(separatore.ToArray()));
         record_.Insert(dopoIndice + 1, record);
 
         return letto with { Records = record_, Chunks = chunk };

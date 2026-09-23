@@ -1,0 +1,27 @@
+@*
+    Le righe di un diff, tolte e aggiunte con tre di contesto (slice 6). Un componente a sé dalla slice 9: lo usano
+    le modifiche in sospeso e quelle perse ricaricando un file dal disco.
+*@
+<pre class="lab-righe">@foreach (var pezzo in Diff.Pezzi)
+{<span class="lab-riga-contesto">@@ riga @pezzo.DaPrima
+</span>@foreach (var riga in pezzo.Righe)
+{<span class="@Classe(riga.Segno)">@Segno(riga.Segno)@riga.Testo
+</span>}}</pre>
+
+@code {
+    [Parameter, EditorRequired] public Diff.Esito Diff { get; set; } = null!;
+
+    private static string Classe(SegnoDelDiff segno) => segno switch
+    {
+        SegnoDelDiff.Tolta => "lab-riga-tolta",
+        SegnoDelDiff.Aggiunta => "lab-riga-aggiunta",
+        _ => "lab-riga-contesto",
+    };
+
+    private static string Segno(SegnoDelDiff segno) => segno switch
+    {
+        SegnoDelDiff.Tolta => "− ",
+        SegnoDelDiff.Aggiunta => "+ ",
+        _ => "  ",
+    };
+}

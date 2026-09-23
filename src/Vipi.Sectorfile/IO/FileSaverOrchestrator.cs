@@ -31,6 +31,20 @@ public sealed class FileSaverOrchestrator
         ArgumentNullException.ThrowIfNull(saver);
         ArgumentException.ThrowIfNullOrEmpty(filePath);
 
+        ScriviAtomico(filePath, Byte(parseResult, dirtyRecords, saver));
+    }
+
+    /// <summary>
+    /// The exact bytes <see cref="Save{T}"/> would write: lines, line endings, final newline, encoding and BOM of the
+    /// file. Added for the Sector Lab's save (F3 slice 9): the bytes are validated BEFORE writing (new errors) and
+    /// compared with the disk AFTER writing (re-read), so they must be the writer's own, not a second rendering.
+    /// </summary>
+    public byte[] Byte<T>(ParseResult<T> parseResult, ISet<T> dirtyRecords, IFileSaver<T> saver)
+    {
+        ArgumentNullException.ThrowIfNull(parseResult);
+        ArgumentNullException.ThrowIfNull(dirtyRecords);
+        ArgumentNullException.ThrowIfNull(saver);
+
         var lines = BuildLines(parseResult, dirtyRecords, saver);
         string text = string.Join(parseResult.NewLine, lines);
         if (parseResult.HasFinalNewLine)
@@ -38,7 +52,14 @@ public sealed class FileSaverOrchestrator
             text += parseResult.NewLine;
         }
 
-        WriteAtomic(filePath, text, parseResult.Encoding, parseResult.HasByteOrderMark);
+        // GetBytes never emits a BOM; we prepend it explicitly when required. UTF-8 is normalised to
+        // a non-BOM-emitting instance; legacy encodings (e.g. Windows-1252) are used as-is.
+        Encoding contentEncoding = parseResult.Encoding.CodePage == Encoding.UTF8.CodePage
+            ? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
+            : parseResult.Encoding;
+
+        byte[] content = contentEncoding.GetBytes(text);
+        return parseResult.HasByteOrderMark ? [.. Utf8Bom, .. content] : content;
     }
 
     /// <summary>
@@ -152,25 +173,22 @@ public sealed class FileSaverOrchestrator
         return ids;
     }
 
-    private static void WriteAtomic(string filePath, string text, Encoding encoding, bool hasByteOrderMark)
+    /// <summary>
+    /// Writes <paramref name="content"/> to <paramref name="filePath"/> atomically: a <c>.tmp</c> beside it, flushed to
+    /// disk, then <see cref="File.Replace(string, string, string?)"/>. On failure the <c>.tmp</c> is removed and the
+    /// exception propagates with the original intact — no retry here: the caller decides (the Lab retries a few times,
+    /// because Aurora or an antivirus may hold the file for a moment, carta F3 §7).
+    /// </summary>
+    public static void ScriviAtomico(string filePath, byte[] content)
     {
-        // GetBytes never emits a BOM; we prepend it explicitly when required. UTF-8 is normalised to
-        // a non-BOM-emitting instance; legacy encodings (e.g. Windows-1252) are used as-is.
-        Encoding contentEncoding = encoding.CodePage == Encoding.UTF8.CodePage
-            ? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)
-            : encoding;
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
+        ArgumentNullException.ThrowIfNull(content);
 
         string tmpPath = filePath + ".tmp";
         try
         {
             using (var stream = new FileStream(tmpPath, FileMode.Create, FileAccess.Write, FileShare.None))
             {
-                if (hasByteOrderMark)
-                {
-                    stream.Write(Utf8Bom, 0, Utf8Bom.Length);
-                }
-
-                byte[] content = contentEncoding.GetBytes(text);
                 stream.Write(content, 0, content.Length);
                 stream.Flush(flushToDisk: true);
             }

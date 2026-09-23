@@ -99,6 +99,25 @@ public sealed class SessioneAperta
             .ToList();
 
     /// <summary>
+    /// Rilegge UN file dal disco e lo mette al posto di quello aperto, con la sua impronta nuova (slice 9): dopo un
+    /// salvataggio — è il passo 5, la rilettura — o dopo un conflitto, quando l'AOD sceglie di prendere il file com'è
+    /// adesso. I record sono oggetti nuovi: chi teneva quelli vecchi (le modifiche in sospeso) deve lasciarli.
+    /// </summary>
+    public FileAperto Rileggi(string relativo)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(relativo);
+        if (!_file.ContainsKey(relativo))
+            throw new ArgumentException($"«{relativo}» non è fra i file aperti.", nameof(relativo));
+
+        string percorso = Cartella.Assoluto(relativo);
+        var file = _file[relativo] is FileNonInterpretato
+            ? new FileNonInterpretato(relativo, Impronta.Di(System.IO.File.ReadAllBytes(percorso)))
+            : LeggiUnFile(Cartella, percorso);
+        _file[relativo] = file;
+        return file;
+    }
+
+    /// <summary>
     /// Un file letto con la sua impronta. ⚠️ L'impronta si prende PRIMA e si ricontrolla DOPO la lettura: il lettore del
     /// motore apre il file per conto suo, e se nel frattempo qualcuno lo riscrive (un <c>git pull</c> a metà apertura)
     /// l'impronta direbbe una cosa e i record un'altra — e il salvataggio non vedrebbe il conflitto. Si riprova.

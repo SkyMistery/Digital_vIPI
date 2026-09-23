@@ -1,3 +1,4 @@
+using Vipi.SectorLab.Core.Disco;
 using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Modifiche;
@@ -136,6 +137,10 @@ public sealed class SessioneDelLab
             Scelta = null;
             FileScelto = null;
             _etichette.Clear();
+            // Le modifiche e gli esiti di un'altra cartella non valgono per questa: nomi uguali, file diversi.
+            Modifiche = new();
+            UltimoSalvataggio = null;
+            _perse.Clear();
             Stato = StatoDelLab.Aperta;
             Errore = null;
             Ricorda(cartella.Radice);
@@ -195,6 +200,9 @@ public sealed class SessioneDelLab
         FileScelto = null;
         _etichette.Clear();
         Errore = null;
+        Modifiche = new();
+        UltimoSalvataggio = null;
+        _perse.Clear();
         Cambiata?.Invoke();
     }
 
@@ -237,8 +245,132 @@ public sealed class SessioneDelLab
     /// <summary>La ricerca per nome fra le forme della mappa (slice 5).</summary>
     public IReadOnlyList<Trovato> Cerca(string? testo) => Ricerca.Cerca(Strati, testo);
 
-    /// <summary>Le modifiche fatte e non salvate (slice 6). Sul disco non si scrive niente fino alla slice 9.</summary>
-    public ModificheInSospeso Modifiche { get; } = new();
+    /// <summary>Le modifiche fatte e non salvate (slice 6): sul disco vanno solo col salvataggio (slice 9).</summary>
+    public ModificheInSospeso Modifiche { get; private set; } = new();
+
+    // --- il salvataggio (slice 9) ------------------------------------------------------------------------------
+
+    /// <summary>Vero mentre si salva: il tasto si spegne, due clic non fanno due salvataggi.</summary>
+    public bool StaSalvando { get; private set; }
+
+    /// <summary>
+    /// Com'è andato l'ultimo salvataggio: resta a schermo finché l'AOD non lo chiude o non salva di nuovo. Se è
+    /// <see cref="StatoDelSalvataggio.DaConfermare"/>, il pannello chiede la conferma con gli errori nuovi davanti.
+    /// </summary>
+    public EsitoDelSalvataggio? UltimoSalvataggio { get; private set; }
+
+    /// <summary>
+    /// Le modifiche perse ricaricando un file cambiato sul disco (carta §2.4 passo 2): il loro diff resta leggibile
+    /// finché la finestra è aperta, così l'AOD può rifarle a mano sul file nuovo.
+    /// </summary>
+    public IReadOnlyDictionary<string, Diff.Esito> ModifichePerse => _perse;
+
+    private readonly Dictionary<string, Diff.Esito> _perse = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Salva tutte le modifiche in sospeso (carta §2.4). Senza <paramref name="confermato"/>, se ci sono errori
+    /// nuovi non scrive niente e lascia l'esito «da confermare»: la conferma la dà l'AOD, con gli errori davanti.
+    /// </summary>
+    public async Task SalvaAsync(bool confermato = false)
+    {
+        if (Sessione is null || StaSalvando)
+            return;
+
+        StaSalvando = true;
+        Cambiata?.Invoke();
+        try
+        {
+            var salvataggio = new Salvataggio(Sessione, Modifiche, Path.Combine(_cartellaDeiDati, "backup"));
+            // Leggere, validare e scrivere è lavoro sul disco: fuori dal filo del circuito (carta §7).
+            var esito = await Task.Run(() => salvataggio.Salva(confermato, DateTime.Now)).ConfigureAwait(false);
+            UltimoSalvataggio = esito;
+            if (esito.Salvati.Count + esito.Invariati.Count > 0)
+                await DopoLaRiletturaAsync().ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            UltimoSalvataggio = null;
+            Rifiuto = "Salvataggio non riuscito: " + e.Message;
+        }
+        finally
+        {
+            StaSalvando = false;
+            Cambiata?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Prende dal disco un file cambiato dopo l'apertura (un conflitto): le sue modifiche si perdono, ma il loro diff
+    /// resta in <see cref="ModifichePerse"/>. Gli altri file non si toccano.
+    /// </summary>
+    public async Task RicaricaDalDiscoAsync(string fileRelativo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return;
+
+        var diff = Modifiche.DiffDi(file);
+        if (diff.Pezzi.Count > 0)
+            _perse[fileRelativo] = diff;
+
+        try
+        {
+            var sessione = Sessione;
+            await Task.Run(() => sessione.Rileggi(fileRelativo)).ConfigureAwait(false);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            // Sparito: si dice, e le modifiche restano dove sono (non c'è un file nuovo a cui rinunciare per lui).
+            _perse.Remove(fileRelativo);
+            Rifiuto = $"«{fileRelativo}» non si rilegge: {e.Message}";
+            Cambiata?.Invoke();
+            return;
+        }
+
+        Modifiche.Dimentica(fileRelativo);
+        // Ripresi tutti i file in conflitto, l'avviso del salvataggio fermo non ha più niente da dire.
+        if (UltimoSalvataggio is { Stato: StatoDelSalvataggio.Fermo } fermo
+            && !fermo.Controllo.Conflitti.Intersect(Sessione.CambiatiSulDisco(), StringComparer.Ordinal).Any())
+            UltimoSalvataggio = null;
+
+        await DopoLaRiletturaAsync().ConfigureAwait(false);
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>Toglie dallo schermo l'esito del salvataggio, e i diff delle modifiche perse.</summary>
+    public void ChiudiIlSalvataggio()
+    {
+        UltimoSalvataggio = null;
+        _perse.Clear();
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>
+    /// Dopo che dei file sono stati riletti dal disco: i loro record sono oggetti nuovi, quindi cataloghi, strati e
+    /// albero si rifanno — un fix salvato in un altro punto deve spostare anche le forme che lo citano per nome.
+    /// Costa quanto l'apertura senza la lettura (cataloghi 39 ms, geometria 42 ms sull'albero vero).
+    /// </summary>
+    private async Task DopoLaRiletturaAsync()
+    {
+        if (Sessione is null)
+            return;
+
+        var sessione = Sessione;
+        string? isc = IscScelto;
+        var (cataloghi, strati) = await Task.Run(() =>
+        {
+            var c = CatalogoDeiPunti.PerOgniIsc(sessione);
+            return (c, StratiDellaMappa.DiSessione(sessione, isc is not null && c.TryGetValue(isc, out var scelto) ? scelto : null));
+        }).ConfigureAwait(false);
+
+        Cataloghi = cataloghi;
+        Strati = strati;
+        Albero = AlberoDaSfogliare.Di(sessione);
+        _etichette.Clear();
+        if (Scelta is { } scelta && (!sessione.File.TryGetValue(scelta.File, out var file) || scelta.Record >= file.Record))
+            Scelta = null;
+        VersioneDellaGeometria++;
+        StratoDaRidisegnare = null;
+    }
 
     /// <summary>L'ultimo rifiuto, da dire accanto al campo: sparisce alla modifica buona dopo.</summary>
     public string? Rifiuto { get; private set; }

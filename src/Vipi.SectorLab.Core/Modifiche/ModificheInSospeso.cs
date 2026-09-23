@@ -190,6 +190,23 @@ public sealed class ModificheInSospeso
         }
     }
 
+    /// <summary>
+    /// Lascia andare tutto quel che pende su un file, SENZA rimettere niente (slice 9): il file è stato salvato, o
+    /// riletto dal disco dopo un conflitto, e i suoi record sono oggetti nuovi — le modifiche parlavano di quelli
+    /// vecchi. Annullare invece rimette i valori dell'apertura: qui non c'è più niente da rimettere.
+    /// </summary>
+    public void Dimentica(string file)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(file);
+        foreach (var chiave in _fatte.Keys.Where(k => k.File == file).ToList())
+            _fatte.Remove(chiave);
+        foreach (var chiave in _verticiDiPartenza.Keys.Where(k => k.File == file).ToList())
+            _verticiDiPartenza.Remove(chiave);
+        _sporchi.Remove(file);
+        _strutturaDiPartenza.Remove(file);
+        UltimoAggiunto = null;
+    }
+
     // --- aggiungere e togliere un record (slice 8) -----------------------------------------------------------
 
     /// <summary>La struttura di ogni file com'era prima del primo record aggiunto o tolto: annullare la rimette.</summary>

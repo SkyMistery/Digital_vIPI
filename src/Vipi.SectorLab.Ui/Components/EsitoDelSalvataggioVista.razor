@@ -1,0 +1,106 @@
+@inject SessioneDelLab Lab
+
+@*
+    Com'è andato il salvataggio (carta F3 §2.4, slice 9), in parole: che cosa è stato scritto e dove sta il backup;
+    oppure perché NON si è scritto niente — un file cambiato sul disco, gli errori nuovi da confermare — e che cosa
+    si può fare. Resta a schermo finché l'AOD non lo chiude.
+*@
+<section class="lab-salvataggio @Classe" data-salvataggio="@Esito.Stato">
+    @switch (Esito.Stato)
+    {
+        case StatoDelSalvataggio.Salvato:
+            <p>
+                <strong>@Salvati(Esito.Salvati.Count)</strong>
+                @if (Esito.Invariati.Count > 0)
+                {
+                    <span> (@Esito.Invariati.Count senza differenze sul disco, non riscritti)</span>
+                }
+            </p>
+            @if (Esito.CartellaDelBackup is { } backup)
+            {
+                <p class="lab-nota" data-backup>Backup di prima in <code>@backup</code> (si tiene 30 giorni).</p>
+            }
+            <p class="lab-nota">Problemi del validatore nei file salvati, riletti dal disco: @Esito.ProblemiDopo.</p>
+            <ProblemiNuovi Problemi="Esito.Controllo.ProblemiNuovi" Titolo="Introdotti da queste modifiche" />
+            break;
+
+        case StatoDelSalvataggio.DaConfermare:
+            @if (Esito.Controllo.ErroriNuovi.Count > 0)
+            {
+                <p><strong>Le modifiche introducono @Errori(Esito.Controllo.ErroriNuovi.Count) che il sector non aveva.</strong></p>
+                <ProblemiNuovi Problemi="Esito.Controllo.ProblemiNuovi" Titolo="" />
+            }
+            @foreach (var fuso in Esito.Controllo.RecordCheSiFondono)
+            {
+                @* Un record copiato che ha ancora la chiave del vicino (il numero di una rotta .vrt, il nome di un'aerovia). *@
+                <p class="lab-errore" data-fuso="@fuso.File">
+                    «@Nome(fuso.File)» riletto dal disco avrebbe @fuso.Riletti record invece di @fuso.InMemoria: un record
+                    aggiunto ha ancora il nome (o il numero) del vicino, e per Aurora sarebbe un pezzo di lui. Cambialo prima
+                    di salvare, se deve restare un record a sé.
+                </p>
+            }
+            <p>Non è stato scritto niente.</p>
+            <div class="lab-azioni">
+                <button class="lab-tasto" @onclick="() => Lab.SalvaAsync(confermato: true)" disabled="@Lab.StaSalvando"
+                        title="@(Lab.StaSalvando ? "Salvataggio in corso" : null)" data-tasto="salva-lo-stesso">Salva lo stesso</button>
+                <button class="lab-tasto lab-tasto-tenue" @onclick="Lab.ChiudiIlSalvataggio" data-tasto="torna">Torna alle modifiche</button>
+            </div>
+            break;
+
+        case StatoDelSalvataggio.Fermo:
+            <p><strong>Non è stato scritto niente.</strong></p>
+            @foreach (string file in Esito.Controllo.FuoriDaiConfini)
+            {
+                <p class="lab-errore" data-fuori="@file">«@file» è fuori dai confini del Lab: non si scrive.</p>
+            }
+            @foreach (string file in Esito.Controllo.Conflitti)
+            {
+                <div class="lab-conflitto" data-conflitto="@file">
+                    <p>«@file» è cambiato sul disco dopo l'apertura (un <code>git pull</code>, un altro editor?).</p>
+                    <button class="lab-tasto lab-tasto-tenue" @onclick="() => Lab.RicaricaDalDiscoAsync(file)"
+                            title="Prende il file com'è adesso sul disco: le sue modifiche si perdono, ma il diff resta qui sotto"
+                            data-ricarica="@file">Ricarica dal disco</button>
+                </div>
+            }
+            break;
+
+        case StatoDelSalvataggio.Interrotto:
+            <p class="lab-errore" data-interrotto>@Esito.Errore</p>
+            @if (Esito.Salvati.Count > 0)
+            {
+                <p>@Salvati(Esito.Salvati.Count) prima dell'intoppo: @string.Join(", ", Esito.Salvati.Select(Nome)).</p>
+            }
+            @if (Esito.CartellaDelBackup is { } dove)
+            {
+                <p class="lab-nota" data-backup>Backup di prima in <code>@dove</code>.</p>
+            }
+            <p class="lab-nota">Le modifiche degli altri file restano in sospeso: si può riprovare.</p>
+            break;
+
+        default:
+            <p class="lab-nota">Niente da salvare.</p>
+            break;
+    }
+
+    @if (Esito.Stato is not StatoDelSalvataggio.DaConfermare)
+    {
+        <button class="lab-annulla" @onclick="Lab.ChiudiIlSalvataggio" data-tasto="chiudi-esito">chiudi</button>
+    }
+</section>
+
+@code {
+    [Parameter, EditorRequired] public EsitoDelSalvataggio Esito { get; set; } = null!;
+
+    private string Classe => Esito.Stato switch
+    {
+        StatoDelSalvataggio.Salvato => "lab-salvataggio-buono",
+        StatoDelSalvataggio.DaConfermare => "lab-salvataggio-attesa",
+        _ => "lab-salvataggio-fermo",
+    };
+
+    private static string Salvati(int quanti) => quanti == 1 ? "1 file salvato" : $"{quanti} file salvati";
+
+    private static string Errori(int quanti) => quanti == 1 ? "1 errore" : $"{quanti} errori";
+
+    private static string Nome(string file) => file[(file.LastIndexOf('/') + 1)..];
+}

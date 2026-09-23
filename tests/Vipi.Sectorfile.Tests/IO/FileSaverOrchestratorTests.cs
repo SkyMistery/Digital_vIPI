@@ -175,6 +175,45 @@ public sealed class FileSaverOrchestratorTests : IDisposable
         Assert.Equal(original, File.ReadAllBytes(path));
     }
 
+    // F3 slice 9 — Byte() is exactly what Save() writes: the Lab validates those bytes before writing and compares
+    // them with the disk after. BOM, encoding, dirty record and final newline all included.
+    [Fact]
+    public void Byte_AreExactlyWhatSaveWrites()
+    {
+        byte[] bom = { 0xEF, 0xBB, 0xBF };
+        var rec = new FakeRecord("ID1", "NEW");
+        var pr = new ParseResult<FakeRecord>(new[] { rec },
+            new FileChunk<FakeRecord>[]
+            {
+                new RawChunk<FakeRecord>(new[] { "//à" }),
+                new RecordChunk<FakeRecord>(rec, new[] { "OLD" }, hasMarkers: false) { Base = new[] { "OLD" } },
+            },
+            new UTF8Encoding(false), HasByteOrderMark: true)
+        {
+            NewLine = "\r\n",
+            HasFinalNewLine = true,
+        };
+        string path = NewTempPath();
+
+        byte[] attesi = _orchestrator.Byte(pr, Dirty(rec), _saver);
+        _orchestrator.Save(pr, Dirty(rec), _saver, path);
+
+        Assert.Equal(attesi, File.ReadAllBytes(path));
+        Assert.Equal(bom.Concat(Encoding.UTF8.GetBytes("//à\r\nNEW\r\n")).ToArray(), attesi);
+    }
+
+    // F3 slice 9 — the atomic write leaves no .tmp behind, either way.
+    [Fact]
+    public void ScriviAtomico_LeavesNoTmp()
+    {
+        string path = WriteTemp(Encoding.UTF8.GetBytes("prima"));
+
+        FileSaverOrchestrator.ScriviAtomico(path, Encoding.UTF8.GetBytes("dopo"));
+
+        Assert.Equal("dopo", File.ReadAllText(path));
+        Assert.False(File.Exists(path + ".tmp"));
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private static ISet<FakeRecord> Dirty(params FakeRecord[] records) => new HashSet<FakeRecord>(records);

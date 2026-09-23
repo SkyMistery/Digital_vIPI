@@ -1,0 +1,27 @@
+@*
+    I problemi che le modifiche aggiungono (carta F3 §9.6): file, riga, regola, e il testo della riga com'uscirebbe.
+    Gli errori prima, gli avvisi dopo.
+*@
+@if (Problemi.Count > 0)
+{
+    @if (Titolo is { Length: > 0 })
+    {
+        <p class="lab-nota">@Titolo:</p>
+    }
+    <ul class="lab-problemi-nuovi">
+        @foreach (var p in Problemi.OrderBy(p => p.Gravita).ThenBy(p => p.File, StringComparer.Ordinal).ThenBy(p => p.Riga))
+        {
+            <li class="@(p.Gravita == Gravita.Errore ? "lab-errore" : "lab-nota")" data-problema="@p.Regola">
+                <strong>@(p.Gravita == Gravita.Errore ? "Errore" : "Avviso")</strong>
+                @p.File[(p.File.LastIndexOf('/') + 1)..]:@p.Riga — @p.Regola: @p.Dettaglio
+                <code>@p.Testo</code>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<ProblemaDelSector> Problemi { get; set; } = [];
+
+    [Parameter] public string Titolo { get; set; } = "";
+}

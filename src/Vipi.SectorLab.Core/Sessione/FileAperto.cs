@@ -54,6 +54,12 @@ public interface IFileConRecord
     IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi);
 
     /// <summary>
+    /// I BYTE che il salvataggio scriverebbe (slice 9): le righe di <see cref="RigheDelFile"/> coi fine riga, la
+    /// codifica e il BOM del file. Li produce lo scrittore vero; si validano prima e si confrontano col disco dopo.
+    /// </summary>
+    byte[] ByteDelFile(IEnumerable<object> sporchi);
+
+    /// <summary>
     /// Aggiunge un record <b>come il vicino</b> (slice 8): si copia il record all'indice dato, così il nuovo nasce
     /// con la forma e i campi di struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna l'indice del nuovo.
     /// </summary>
@@ -115,9 +121,31 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
             throw new ArgumentOutOfRangeException(nameof(indice));
 
         var copia = (T)CopiaDelRecord.Di(Letto.Records[indice]);
-        Letto = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice);
+        var accostato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice);
+
+        // 🔴 Nei file dove un record è un BLOCCO chiuso dalla riga vuota (.artcc, .mva…) la copia accostata al vicino,
+        // riletta, è un pezzo di lui (slice 9: 63 file su 695 dell'albero vero). Se succede, e in questo file i record
+        // non stanno MAI accostati, si mette fra i due la riga vuota che separa anche gli altri: è la forma dei vicini.
+        // Dove invece i record si accostano (.vrt, aerovie: li separa la CHIAVE) si lascia com'è — l'AOD cambia il
+        // numero o il nome, e finché non lo fa il salvataggio lo dice.
+        // Prima la domanda che non costa niente: la rilettura di prova rilegge il file intero (itgeo.geo: 13 560 record).
+        if (!CiSonoRecordAccostati(Letto)
+            && RiletturaDiProva.Record(Relativo, ByteDi(accostato)) is { } riletti && riletti < accostato.Records.Count)
+        {
+            var separato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice, separatore: [""]);
+            if (RiletturaDiProva.Record(Relativo, ByteDi(separato)) == separato.Records.Count)
+                accostato = separato;
+        }
+
+        Letto = accostato;
         return indice + 1;
     }
+
+    private byte[] ByteDi(ParseResult<T> quello) => new FileSaverOrchestrator().Byte(quello, new HashSet<T>(), Scrittore);
+
+    /// <summary>Due record uno dopo l'altro, senza righe fra loro: il formato li distingue senza riga vuota.</summary>
+    private static bool CiSonoRecordAccostati(ParseResult<T> letto)
+        => letto.Chunks.Zip(letto.Chunks.Skip(1)).Any(c => c.First is RecordChunk<T> && c.Second is RecordChunk<T>);
 
     /// <inheritdoc/>
     public void TogliIlRecord(int indice) => Letto = RecordNuovo.Togli(Letto, indice);
@@ -145,6 +173,14 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         // Sporchi PER IDENTITA', come vuole lo scrittore: due record uguali campo per campo restano due record.
         var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
         return new FileSaverOrchestrator().Righe(Letto, suoi, Scrittore);
+    }
+
+    /// <inheritdoc/>
+    public byte[] ByteDelFile(IEnumerable<object> sporchi)
+    {
+        ArgumentNullException.ThrowIfNull(sporchi);
+        var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
+        return new FileSaverOrchestrator().Byte(Letto, suoi, Scrittore);
     }
 
     /// <inheritdoc/>

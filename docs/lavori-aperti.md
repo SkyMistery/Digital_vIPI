@@ -9,11 +9,20 @@ Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **appr
 1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta);
 slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`; **4** la mappa
 `5ee4714a`; **5** sfoglia e ispettore `cc71e3be`; **6** modifica dei campi `430453b9`; **7** i vertici `01feffb6`;
-**7-bis** i tracciati a più tratti `a3ab2397`; **8** aggiungi e togli un record `3ddd68b4`.
-**CI verde** su tutte. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
-net10.0-windows, i test: **213**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 9, il salvataggio** —
-confini, conflitto d'impronta, backup fuori dal clone, scrittura atomica, rilettura: è la prima che **scrive sul
-disco**. La traccia di ogni slice, con misure e controprove, sta nel §8 della carta.
+**7-bis** i tracciati a più tratti `a3ab2397`; **8** aggiungi e togli un record `3ddd68b4`; **9** il salvataggio.
+**CI verde** fino alla 8. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
+net10.0-windows, i test: **236**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 10, il pannello dei
+problemi** del validatore (130/353 sull'albero, clic che porta a riga e mappa). La traccia di ogni slice, con misure
+e controprove, sta nel §8 della carta.
+
+- **Slice 9**: **il salvataggio** (`Core/Disco/Salvataggio`), i cinque passi del §2.4 — confini e conflitto su TUTTI
+  i file prima di scriverne uno, backup in `%LOCALAPPDATA%\VipiSectorLab\backup\<ora>\` (30 giorni, fuori dal
+  clone), scrittura atomica coi byte dello scrittore vero e tre tentativi, rilettura. Errori nuovi (per regola e testo
+  della riga, contati) → conferma. Conflitto → «Ricarica dal disco», e il diff perso resta leggibile. Albero vero: sposto
+  un fix → **una** riga diversa; un record in ognuno dei 695 file salvato → backup rimesso = **754/754** identici.
+  🔴 La misura ha preso un difetto della **slice 8**: nei `.mva`/`.lartcc`/`.hartcc` un record è un blocco chiuso dalla
+  riga vuota, e la copia accostata al vicino riletta era un pezzo di lui (63 file su 695). Ora la copia prende la riga
+  vuota dei vicini; nei `.vrt` e nelle aerovie (separa la CHIAVE, 13 file) resta com'è e il salvataggio avvisa.
 
 - **Slice 4**: Leaflet canvas servito da noi, **13 strati** decisi nel `Core` (`StratiDellaMappa`), geometria con una
   `fetch` a `/mappa/strato/<id>` dietro il cancello (JSON corto, cinque decimali), clic = scelta, evidenza, riquadro
