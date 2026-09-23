@@ -24,6 +24,22 @@ public sealed class GeometriaTests : IDisposable
         return Geometria.DelFile(sessione.File["SectorFiles/Include/IT/" + relativo], catalogo);
     }
 
+    // F3-bis (committente, 23 settembre): in lirn.str la STAR 06(ALL) ricollegava ogni STAR alla successiva. Il <br> di
+    // una mappa per nome, o mista, spezza la linea come quello delle zone a coordinate.
+    [Theory]
+    [InlineData("BC404;BC404;<br>", "BC406;BC406;1A;", "BC408;BC408;<br>", "BC408;BC408;2A;", "BC404;BC404;")]
+    [InlineData("BC404;BC404;", "BC406;BC406;", "N039.00.00.000;E017.00.00.000;<br>", "N039.10.00.000;E017.10.00.000;")]
+    public void IlBrDiUnaMappaPerNomeSpezzaLaLinea(params string[] corpo)
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/zzzz.str", string.Join("\r\n", ["ZZZZ;MAPS;STAR (ALL);;;;;1;", .. corpo]) + "\r\n");
+
+        var forma = Assert.Single(Forme("zzzz.str"));
+
+        Assert.Equal(TipoDiForma.Linea, forma.Tipo);
+        Assert.Equal(2, forma.Tratti.Count);
+        Assert.Empty(forma.NomiNonRisolti);
+    }
+
     [Fact]
     public void UnFixEUnPunto()
     {

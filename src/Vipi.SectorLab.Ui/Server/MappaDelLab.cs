@@ -11,13 +11,17 @@ namespace Vipi.SectorLab.Ui.Server;
 /// La geometria per la mappa, uno strato per volta (carta F3 §3): NON passa dal circuito SignalR, che ha un tetto di
 /// 32 KB in ricezione e porterebbe megabyte di coordinate in messaggi — la pagina la chiede con una <c>fetch</c>, e
 /// il cancello vale anche qui (senza cookie, 403 come tutto il resto).
-/// <para>Il JSON è corto di proposito: chiavi di una lettera e coordinate a <b>cinque</b> decimali (circa un metro).
+/// <para>Il JSON è corto di proposito: chiavi di una lettera e coordinate a <b>sei</b> decimali (circa 11 cm).
 /// L'albero vero è 244 227 punti: scritti per esteso sarebbero decine di MB da serializzare a ogni accensione.</para>
 /// </summary>
 public static class MappaDelLab
 {
-    /// <summary>Quanti decimali di grado: 5 ≈ 1,1 m in latitudine. Il sector stesso non è più preciso di così.</summary>
-    public const int Decimali = 5;
+    /// <summary>
+    /// Quanti decimali di grado: 6 ≈ 11 cm in latitudine, un pixel allo zoom massimo della mappa (20). Erano 5 (1,1 m) con
+    /// lo zoom fermo a 16; il committente ha chiesto di avvicinarsi di più ai layout degli scali (F3-bis, 23 settembre), e
+    /// a 5 decimali i punti avrebbero saltato di un metro. Il sector è più preciso ancora: i millesimi di secondo sono ~3 cm.
+    /// </summary>
+    public const int Decimali = 6;
 
     public static void MappaLaMappa(IEndpointRouteBuilder rotte)
     {

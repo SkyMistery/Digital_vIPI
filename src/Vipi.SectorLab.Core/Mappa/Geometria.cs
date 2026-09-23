@@ -90,21 +90,24 @@ public static class Geometria
                 return Tratti(file, indice, TipoDiForma.Linea, $"{sid.IcaoCode} {sid.Name}",
                     Spezza(sid.Track.Select(p => (p.Punto, p.NuovoTratto)), catalogo, nonRisolti), nonRisolti);
 
+            // 🔴 Il <br> spezza la linea anche qui: le mappe che raccolgono procedure (STAR RNAV(ALL)…) sono per nome o
+            // miste, e fino alla F3-bis il loro <br> si perdeva — ogni STAR si ricollegava alla successiva (committente,
+            // prova 2 del 23 settembre, lirn.str STAR 06(ALL)). Dalla slice 3 il modello lo tiene: IniziaUnTratto.
             case ProcedureStrRecord procedura:
-                return Linea(file, indice, $"{procedura.IcaoCode} {procedura.ProcedureId}",
+                return Tratti(file, indice, TipoDiForma.Linea, $"{procedura.IcaoCode} {procedura.ProcedureId}",
                     // I due campi sono i due nomi del punto: Aurora prende la latitudine dal primo e la longitudine
                     // dal secondo (F2 slice 4), e con un refuso in uno dei due il punto non si disegna.
-                    procedura.Waypoints.Select(w => Sectorfile.Shared.Punto.Nominato(w.FixName, w.DisplayLabel)),
-                    catalogo, nonRisolti);
+                    Spezza(procedura.Waypoints.Select(w => (Sectorfile.Shared.Punto.Nominato(w.FixName, w.DisplayLabel), w.IniziaUnTratto)),
+                        catalogo, nonRisolti), nonRisolti);
 
             case HoldingStrRecord attesa:
-                return Linea(file, indice, $"{attesa.IcaoCode} {attesa.ProcedureId}",
-                    attesa.Points.Select(p => p switch
+                return Tratti(file, indice, TipoDiForma.Linea, $"{attesa.IcaoCode} {attesa.ProcedureId}",
+                    Spezza(attesa.Points.Select(p => p switch
                     {
-                        HoldingFixPoint fisso => Sectorfile.Shared.Punto.Nominato(fisso.FixName, fisso.DisplayLabel),
-                        HoldingCoordPoint coordinata => Sectorfile.Shared.Punto.Da(coordinata.Position),
-                        _ => default,
-                    }), catalogo, nonRisolti);
+                        HoldingFixPoint fisso => (Sectorfile.Shared.Punto.Nominato(fisso.FixName, fisso.DisplayLabel), fisso.IniziaUnTratto),
+                        HoldingCoordPoint coordinata => (Sectorfile.Shared.Punto.Da(coordinata.Position), coordinata.IniziaUnTratto),
+                        _ => (default(Sectorfile.Shared.Punto), false),
+                    }), catalogo, nonRisolti), nonRisolti);
 
             case GeometricStrRecord zona:
                 return Tratti(file, indice, TipoDiForma.Area, $"{zona.IcaoCode} {zona.ProcedureId}",

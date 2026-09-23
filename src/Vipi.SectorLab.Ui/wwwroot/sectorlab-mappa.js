@@ -67,7 +67,7 @@
                 attributionControl: false,
                 zoomControl: true,
                 worldCopyJump: false,
-                maxZoom: 16
+                maxZoom: 20                  // un pixel ≈ 11 cm, come i sei decimali delle coordinate (MappaDelLab)
             }).setView([42.0, 12.5], 6);
 
             stato = { mappa: mappa, riferimento: riferimento, strati: {}, evidenza: null, forme: {} };
