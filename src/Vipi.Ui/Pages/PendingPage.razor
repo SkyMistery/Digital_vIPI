@@ -232,13 +232,8 @@
                 <span class="ln"></span>
             </div>
             <div class="panel">
-                <ul class="wi-list">
-                    @foreach (var r in _daFare)
-                    {
-                        <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="false"
-                                     OnDone="ChiudiRiga" />
-                    }
-                </ul>
+                <WorkItemList Items="_daFare" Busy="_busy" ShowAssign="false" OnDone="ChiudiRiga"
+                              OnDoneMany="ChiudiGruppo" />
             </div>
         }
     }
@@ -311,5 +306,22 @@
         }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
+    }
+
+    /// <summary>Il ✓ di un gruppo intero: una per una, dalla stessa porta del ✓ di riga.</summary>
+    private async Task ChiudiGruppo(IReadOnlyList<WorkItem> righe)
+    {
+        _busy = true;
+        string? errore = null;
+        try
+        {
+            foreach (var r in righe)
+                if (r.ImpactId is int impactId) await Impatti.ClearAsync(impactId);
+        }
+        catch (Exception ex) { errore = ex.Message; }
+        // Si ricarica anche dopo un errore: le righe chiuse prima di lui sono chiuse davvero. ⚠️ Il messaggio
+        // si rimette DOPO, perché il caricamento lo azzera.
+        await CaricaAsync();
+        _msg ??= errore;
     }
 }

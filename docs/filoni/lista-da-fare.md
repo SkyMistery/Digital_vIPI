@@ -12,7 +12,7 @@ cambiamento e si vedono tutti i documenti su cui intervenire. Analisi di partenz
 | # | Cosa | Stato |
 |---|---|---|
 | 1 | Difetti: (a) l'incarico «preso in carico» si chiude con la sua segnalazione; (b) la frase di una segnalazione si aggiorna quando il fatto si ripresenta | ✅ |
-| 2 | Vista «per cambiamento» (default) · per documento · elenco, con ✓ di gruppo. Zero migrazioni | ▶ |
+| 2 | Vista «per cambiamento» (default) · per documento · elenco, con ✓ di gruppo. Zero migrazioni | ✅ carta [2026-09-23-da-fare-per-cambiamento](../feature/2026-09-23-da-fare-per-cambiamento.md) |
 | 3 | Deriva ricalcolata poco dopo un salvataggio, con la causa vera (migrazione). Misurare prima il giro | — |
 | 4 | Casella «segna rilette anche queste N» nel pannello di pubblicazione · dettaglio del cambiamento nella riga · età della riga | — |
 

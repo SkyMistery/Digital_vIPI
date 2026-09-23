@@ -84,6 +84,11 @@ public enum WorkAction
 /// <param name="Titolo">Il titolo del <b>documento</b> su cui si lavora; per un incarico libero, il suo.</param>
 /// <param name="Url">Dove si va a lavorare. <c>null</c> = non raggiungibile (documento sparito, o incarico
 /// libero): la riga resta in lista, ma senza collegamento — è un'informazione, non un difetto da nascondere.</param>
+/// <param name="Tipo">Il tipo della segnalazione da cui viene la riga — la sua, o quella da cui l'incarico è
+/// nato. <c>null</c> = incarico scritto da una persona. Serve a raggruppare (<see cref="WorkGrouping"/>).</param>
+/// <param name="Sorgente">Che cosa, a monte, ha prodotto la segnalazione (<c>DocumentImpact.SourceKey</c>): un
+/// callsign, <c>area:44120</c>, uno slug. Due righe con stesso tipo e stessa sorgente sono lo <b>stesso
+/// cambiamento</b> su due documenti.</param>
 public sealed record WorkItem(
     WorkOrigin Origine,
     string Chiave,
@@ -102,7 +107,9 @@ public sealed record WorkItem(
     bool InRitardo = false,
     int? ImpactId = null,
     int? TaskId = null,
-    EditorTaskStatus? Stato = null)
+    EditorTaskStatus? Stato = null,
+    ImpactKind? Tipo = null,
+    string? Sorgente = null)
 {
     /// <summary>Il ✓ ha senso su questa riga.</summary>
     public bool SiSpunta => Azione == WorkAction.SegnaFatto;

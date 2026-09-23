@@ -2876,6 +2876,15 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>by</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assign</value></data>
+  <data name="Work_ViewAria" xml:space="preserve"><value>How to read the list</value></data>
+  <data name="Work_ViewChange" xml:space="preserve"><value>By change</value></data>
+  <data name="Work_ViewDoc" xml:space="preserve"><value>By document</value></data>
+  <data name="Work_ViewList" xml:space="preserve"><value>List</value></data>
+  <data name="Work_GroupToggle" xml:space="preserve"><value>Show or hide the documents</value></data>
+  <data name="Work_GroupDocs" xml:space="preserve"><value>{0} documents</value></data>
+  <data name="Work_GroupItems" xml:space="preserve"><value>{0} items</value></data>
+  <data name="Work_MarkAll" xml:space="preserve"><value>Mark all reviewed ({0})</value></data>
+  <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Mark all {0} items in the group as reviewed?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>This document is read in a single language: there is nothing to translate, and so nothing to review. The lock is released from the “Versions &amp; releases” panel.</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Callout_Warning" xml:space="preserve"><value>Caution</value></data>

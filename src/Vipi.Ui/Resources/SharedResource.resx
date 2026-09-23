@@ -2884,6 +2884,15 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
+  <data name="Work_ViewAria" xml:space="preserve"><value>Come leggere la lista</value></data>
+  <data name="Work_ViewChange" xml:space="preserve"><value>Per cambiamento</value></data>
+  <data name="Work_ViewDoc" xml:space="preserve"><value>Per documento</value></data>
+  <data name="Work_ViewList" xml:space="preserve"><value>Elenco</value></data>
+  <data name="Work_GroupToggle" xml:space="preserve"><value>Mostra o nascondi i documenti</value></data>
+  <data name="Work_GroupDocs" xml:space="preserve"><value>{0} documenti</value></data>
+  <data name="Work_GroupItems" xml:space="preserve"><value>{0} voci</value></data>
+  <data name="Work_MarkAll" xml:space="preserve"><value>Segna rilette tutte ({0})</value></data>
+  <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Segnare come rilette tutte le {0} righe del gruppo?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola: non c’è niente da tradurre, e quindi niente da rivedere. Il blocco si toglie dal pannello «Versioni e release».</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Callout_Warning" xml:space="preserve"><value>Attenzione</value></data>
