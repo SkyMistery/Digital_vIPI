@@ -54,6 +54,26 @@ for t in $tabelle; do
 done
 echo "   $n definizioni identiche"
 
+echo "5b-bis. le viste condivise (v_share_) sono tornate, leggono il database ripristinato e danno le stesse righe"
+# Le crea una migrazione: un ripristino che le perdesse lascerebbe __EFMigrationsHistory a dire «fatto» su una
+# vista che non c'è. E una vista che puntasse ancora al database di partenza darebbe le righe giuste per sbaglio.
+viste=$(sql -e "SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA='$SORGENTE' ORDER BY TABLE_NAME" | tr -d '\r')
+v=0
+for t in $viste; do
+  c=$(sql -e "SELECT COUNT(*) FROM information_schema.VIEWS WHERE TABLE_SCHEMA='$RIPRISTINO' AND TABLE_NAME='$t'" | tr -d '\r')
+  [ "$c" = "1" ] || fallisci "vista $t: assente dopo il ripristino"
+  def=$(sql -e "SELECT VIEW_DEFINITION FROM information_schema.VIEWS WHERE TABLE_SCHEMA='$RIPRISTINO' AND TABLE_NAME='$t'" | tr -d '\r')
+  case "$def" in *"\`$SORGENTE\`."*) fallisci "vista $t: dopo il ripristino legge ancora il database $SORGENTE";; esac
+  a=$(sql -e "SELECT GROUP_CONCAT(COLUMN_NAME, ':', COLUMN_TYPE ORDER BY ORDINAL_POSITION) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$SORGENTE' AND TABLE_NAME='$t'" | tr -d '\r')
+  b=$(sql -e "SELECT GROUP_CONCAT(COLUMN_NAME, ':', COLUMN_TYPE ORDER BY ORDINAL_POSITION) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA='$RIPRISTINO' AND TABLE_NAME='$t'" | tr -d '\r')
+  [ "$a" = "$b" ] || fallisci "vista $t: colonne diverse dopo il ripristino ($a / $b)"
+  a=$(sql -e "SELECT COUNT(*) FROM \`$SORGENTE\`.\`$t\`" | tr -d '\r')
+  b=$(sql -e "SELECT COUNT(*) FROM \`$RIPRISTINO\`.\`$t\`" | tr -d '\r')
+  [ "$a" = "$b" ] || fallisci "vista $t: $a righe nella sorgente, $b dopo il ripristino"
+  v=$((v+1))
+done
+echo "   $v viste tornate"
+
 echo "5c. la tabella di prova è uscita in più INSERT, e il blob da 3 MB in uno suo"
 inserts=$(gunzip -c "$lavoro/copia.sql.gz" | grep -c '^INSERT INTO `ProvaCopia`' || true)
 [ "$inserts" -ge 3 ] || fallisci "ProvaCopia in $inserts INSERT: la prova non ha spezzato niente, quindi non prova lo spezzare"

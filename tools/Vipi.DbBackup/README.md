@@ -50,6 +50,11 @@ stampa. `DataProtectionKeys` non è nella copia: il sito la ricrea all'avvio, e 
 ⚠️ Su un MariaDB **Windows** (`lower_case_table_names=1`) i nomi delle tabelle diventerebbero minuscoli: si
 ripristina su Linux, o con `lower_case_table_names=2` (vedi `deploy/mariadb/README.md`).
 
+Dal 23 settembre 2026 la copia porta anche le **viste condivise** (`v_share_…`, quelle che legge l'IVAO Division
+Hub: carta `docs/feature/2026-09-23-vista-condivisa-sessioni-atc.md`), dopo le tabelle e **senza `DEFINER`**: le
+ricrea l'utente che ripristina, che deve quindi poter creare viste. Il `GRANT SELECT` all'utente dell'hub non sta
+nella copia: dopo un ripristino si controlla che ci sia ancora (`SHOW GRANTS FOR '<utente dell'hub>'@'<host>'`).
+
 ## Scrivere una copia direttamente dal database
 
 ```sh

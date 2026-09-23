@@ -1,5 +1,7 @@
 using System.Data;
+using System.Text.RegularExpressions;
 using MySqlConnector;
+using Vipi.Infrastructure.Persistence;
 
 namespace Vipi.Infrastructure.DatabaseCopy;
 
@@ -14,7 +16,7 @@ namespace Vipi.Infrastructure.DatabaseCopy;
 /// stringa com'è salvata, non un <c>Guid</c> riformattato in minuscolo) e <c>TreatTinyAsBoolean=false</c> (un
 /// <c>TINYINT(1)</c> torna il numero). Quel che si rilegge dev'essere quel che si reinserisce, byte per byte.</para>
 /// </summary>
-public sealed class MySqlDumpSource : IDatabaseDumpSource
+public sealed partial class MySqlDumpSource : IDatabaseDumpSource
 {
     /// <summary>
     /// Fuori dalla copia, di proposito. <c>DataProtectionKeys</c> sono le chiavi che firmano e cifrano i cookie di
@@ -89,6 +91,17 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
                 creates.Add((t, r.GetString(1)));
             }
 
+            // Le viste condivise (le altre le ha già fermate il controllo): la loro CREATE, senza DEFINER.
+            var views = new List<(string Name, string Create)>();
+            foreach (var v in await ViewNamesAsync(conn, ct))
+            {
+                if (!IsSharedView(v)) continue;
+                await using var cmd = new MySqlCommand($"SHOW CREATE VIEW {SqlLiteral.Identifier(v)}", conn);
+                await using var r = await cmd.ExecuteReaderAsync(ct);
+                if (!await r.ReadAsync(ct)) throw new InvalidOperationException($"SHOW CREATE VIEW {v} non ha risposto.");
+                views.Add((v, WithoutDefiner(r.GetString(1))));
+            }
+
             string? lastMigration = null;
             if (tables.Contains("__EFMigrationsHistory"))
             {
@@ -97,7 +110,7 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
                 lastMigration = await cmd.ExecuteScalarAsync(ct) as string;
             }
 
-            return new Snapshot(conn, conn.ServerVersion, lastMigration, excluded, creates);
+            return new Snapshot(conn, conn.ServerVersion, lastMigration, excluded, creates, views);
         }
         catch
         {
@@ -111,6 +124,9 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
     /// fuori elenco, colonne generate o invisibili (un INSERT con tutte le colonne fallirebbe al ripristino), e
     /// viste, trigger, procedure (la copia porta solo tabelle). Oggi lo schema non ne ha: se un giorno ne avrà,
     /// la copia si rifiuta e dice perché, invece di produrre un file che non torna.
+    /// <para>L'eccezione sono le viste condivise (<see cref="MySqlSchema.SharedViewPrefix"/>, dal 23 settembre
+    /// 2026): le crea una migrazione, e un ripristino che le perdesse lascerebbe la storia delle migrazioni a dire
+    /// «fatto» su una vista che non c'è — e l'hub senza dati. Quelle la copia le porta.</para>
     /// </summary>
     private static async Task ControllaCheSiPossaCopiareAsync(MySqlConnection conn, IReadOnlyList<string> escluse, CancellationToken ct)
     {
@@ -139,9 +155,11 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
             }
         }
 
+        foreach (var v in await ViewNamesAsync(conn, ct))
+            if (!IsSharedView(v)) problemi.Add($"vista {v}");
+
         foreach (var (vista, cosa) in new[]
         {
-            ("SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE()", "vista"),
             ("SELECT TRIGGER_NAME FROM information_schema.TRIGGERS WHERE TRIGGER_SCHEMA = DATABASE()", "trigger"),
             ("SELECT ROUTINE_NAME FROM information_schema.ROUTINES WHERE ROUTINE_SCHEMA = DATABASE()", "procedura"),
         })
@@ -157,6 +175,35 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
                 string.Join("; ", problemi.Take(10)) + (problemi.Count > 10 ? $" (e altre {problemi.Count - 10})" : "") + ".");
     }
 
+    private static async Task<List<string>> ViewNamesAsync(MySqlConnection conn, CancellationToken ct)
+    {
+        var nomi = new List<string>();
+        await using var cmd = new MySqlCommand(
+            "SELECT TABLE_NAME FROM information_schema.VIEWS WHERE TABLE_SCHEMA = DATABASE() ORDER BY TABLE_NAME", conn);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct)) nomi.Add(r.GetString(0));
+        return nomi;
+    }
+
+    /// <summary>Una vista che la copia sa portare: solo quelle condivise, per prefisso esatto.</summary>
+    internal static bool IsSharedView(string name) =>
+        name.StartsWith(MySqlSchema.SharedViewPrefix, StringComparison.Ordinal);
+
+    /// <summary>
+    /// La <c>CREATE</c> di <c>SHOW CREATE VIEW</c> senza la clausola <c>DEFINER=`utente`@`host`</c>.
+    ///
+    /// <para>⚠️ <b>Senza DEFINER, e non per pulizia.</b> Il file si ripristina altrove, con un altro utente: una
+    /// <c>CREATE VIEW</c> che nomina un definer diverso da chi la esegue chiede un privilegio (<c>SET USER</c>) che
+    /// l'utente di un database ospitato non ha, e se il definer non esiste la vista nasce ma non si legge. Tolta la
+    /// clausola, il definer è chi ripristina — lo stesso utente che poi il sito usa. <c>SQL SECURITY DEFINER</c>
+    /// resta com'è. Il nome del database non c'è da togliere: <c>SHOW CREATE VIEW</c> nel database corrente scrive
+    /// le tabelle senza qualificarle (verificato su MariaDB 11.4.10, e lo riprova l'andata e ritorno della CI).</para>
+    /// </summary>
+    internal static string WithoutDefiner(string create) => Definer().Replace(create, " ", 1);
+
+    [GeneratedRegex(@"\s+DEFINER=`(?:[^`]|``)*`@`(?:[^`]|``)*`\s+")]
+    private static partial Regex Definer();
+
     private static async Task ExecAsync(MySqlConnection conn, string sql, CancellationToken ct)
     {
         await using var cmd = new MySqlCommand(sql, conn);
@@ -167,15 +214,18 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
     {
         private readonly MySqlConnection _conn;
         private readonly IReadOnlyList<(string Name, string Create)> _tables;
+        private readonly IReadOnlyList<(string Name, string Create)> _views;
 
         public Snapshot(MySqlConnection conn, string serverVersion, string? lastMigration,
-            IReadOnlyList<string> excluded, IReadOnlyList<(string Name, string Create)> tables)
+            IReadOnlyList<string> excluded, IReadOnlyList<(string Name, string Create)> tables,
+            IReadOnlyList<(string Name, string Create)> views)
         {
             _conn = conn;
             ServerVersion = serverVersion;
             LastMigration = lastMigration;
             Excluded = excluded;
             _tables = tables;
+            _views = views;
         }
 
         public string ServerVersion { get; }
@@ -202,6 +252,10 @@ public sealed class MySqlDumpSource : IDatabaseDumpSource
                 }
                 await writer.EndTableAsync(ct);
             }
+
+            // Le viste DOPO le tabelle: la CREATE VIEW controlla che le tabelle che legge esistano già.
+            foreach (var (name, create) in _views)
+                await writer.WriteViewAsync(name, create, ct);
         }
 
         public async ValueTask DisposeAsync()

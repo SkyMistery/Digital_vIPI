@@ -27,6 +27,14 @@ public static class MySqlSchema
     public static readonly Version DefaultMariaDbVersion = new(11, 4, 10);
 
     /// <summary>
+    /// Il prefisso delle viste che altri siti leggono dal nostro database (oggi l'IVAO Division Hub:
+    /// <c>v_share_atc_sessions</c>, carta <c>docs/feature/2026-09-23-vista-condivisa-sessioni-atc.md</c>). Le crea
+    /// una migrazione MySQL, sono il contratto con chi legge e cambiano solo aggiungendo colonne. La copia del
+    /// database le porta con sé (<c>MySqlDumpSource</c>); ogni altra vista la ferma.
+    /// </summary>
+    public const string SharedViewPrefix = "v_share_";
+
+    /// <summary>
     /// Traduce il valore di configurazione in una <c>ServerVersion</c> per Pomelo. Assume <b>MariaDB</b>,
     /// non MySQL: è quello che gira su <c>atc.it.ivao.aero</c>, e le due famiglie divergono su cose che ci
     /// riguardano — la collation, e il fatto che <c>GET_LOCK(nome, -1)</c> su MariaDB torni NULL.

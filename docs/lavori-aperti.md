@@ -2,6 +2,25 @@
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 🟡 A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026) — in PR, non in pacchetto
+
+Carta [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md).
+L'hub (un altro sito, database suo sullo stesso MariaDB) legge l'archivio delle sessioni ATC da una **vista**, non da
+una copia: contratto deciso dal committente il 14 settembre (nota dell'hub `2026-09-14-dati-condivisi-con-vipi.md`).
+
+- **Migrazione solo MySQL** `20260923100945_VistaCondivisaSessioniAtc`: `CREATE OR REPLACE SQL SECURITY DEFINER VIEW
+  v_share_atc_sessions` con dieci colonne (`session_id`, `vid`, `callsign`, `position`, `frequency`, `start_utc`,
+  `end_utc`, `duration_seconds`, `rating`, `is_outside_division`). Nessuna gemella SQLite (la vista non è nel modello
+  e la legge solo la produzione). 🔴 **È un contratto: cambia solo aggiungendo colonne**, con un'altra migrazione.
+- 🔴 **La copia del database si sarebbe rotta**: si rifiutava davanti a qualunque vista. Ora porta le `v_share_`, dopo
+  le tabelle e senza `DEFINER` (che al ripristino chiederebbe `SET USER`, provato). Formato invariato.
+- Test +8 in `Vipi.Infrastructure.Tests` (per TFM: 1596 → 1604). CI `mariadb-schema`: verifica 4 (colonne, `GRANT` a
+  un utente di sola lettura, la domanda dell'hub, `AtcSessions` negata) e passo 5b-bis dell'andata e ritorno. Tutto
+  provato prima su MariaDB 11.4.10 in Docker.
+- ▶ **Prima del pacchetto che la porta**: confermare che l'utente della vIPI su Plesk possa **creare viste** (lo sta
+  verificando il committente) — senza, la migrazione ferma l'avvio. Poi, a mano, chi amministra il server:
+  `GRANT SELECT ON itivao_atc.v_share_atc_sessions TO '<utente dell'hub>'@'<host>';`. Copia del database prima del carico.
+
 ### 🟡 A116 — Aurora Sector Lab F3 in corso: l'app (22 settembre 2026)
 
 Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **approvata**; consegna con release GitHub

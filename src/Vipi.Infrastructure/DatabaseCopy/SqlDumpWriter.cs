@@ -144,6 +144,21 @@ public sealed class SqlDumpWriter : IDisposable
         _table = null;
     }
 
+    /// <summary>
+    /// Una vista, dopo tutte le tabelle: la cancella e la ricrea. Non ha righe e non entra nel conto delle tabelle
+    /// della chiusura (il formato resta 1: il verificatore la attraversa come ogni istruzione che non è un
+    /// <c>INSERT</c>, e l'impronta la copre).
+    /// </summary>
+    /// <param name="createStatement">La <c>CREATE VIEW</c> già pronta per un altro server (senza <c>DEFINER</c>),
+    /// senza il punto e virgola.</param>
+    public async Task WriteViewAsync(string name, string createStatement, CancellationToken ct = default)
+    {
+        if (_table is not null) throw new InvalidOperationException($"La tabella {_table} non è stata chiusa.");
+        await LineAsync("", ct);
+        await LineAsync($"DROP VIEW IF EXISTS {SqlLiteral.Identifier(name)};", ct);
+        await LineAsync(createStatement.TrimEnd().TrimEnd(';') + ";", ct);
+    }
+
     /// <summary>Rimette le impostazioni della sessione e scrive la riga di chiusura. Da qui in poi il file è
     /// intero.</summary>
     public async Task<DatabaseBackupSummary> FinishAsync(CancellationToken ct = default)

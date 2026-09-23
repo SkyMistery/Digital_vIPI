@@ -23,7 +23,8 @@ public interface IDumpSnapshot : IAsyncDisposable
     /// <summary>Le tabelle che la copia lascia fuori di proposito, per scriverlo in testata.</summary>
     IReadOnlyList<string> Excluded { get; }
 
-    /// <summary>Scrive tutte le tabelle, dalla <c>BeginTable</c> alla <c>EndTable</c>. Non scrive né la
-    /// testata né la chiusura, che sono di chi ha aperto lo scrittore.</summary>
+    /// <summary>Scrive tutte le tabelle, dalla <c>BeginTable</c> alla <c>EndTable</c>, e dopo di loro le viste
+    /// condivise (<c>WriteView</c>). Non scrive né la testata né la chiusura, che sono di chi ha aperto lo
+    /// scrittore.</summary>
     Task WriteTablesAsync(SqlDumpWriter writer, CancellationToken ct = default);
 }

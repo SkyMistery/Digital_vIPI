@@ -71,6 +71,11 @@ SET FOREIGN_KEY_CHECKS=@VIPI_OLD_FK;                  -- le impostazioni tornano
 |---|---|
 | `DataProtectionKeys` | sono le chiavi che decifrano i cookie di accesso: scaricarle è solo rischio |
 | `segreti/`, `vipi-keys/`, `appsettings.Production.json` | non stanno nel database; restano del backup del vhost |
+| il `GRANT` all'utente dell'hub | è un permesso del server, non un dato del database |
+
+**Dentro, dal 23 settembre 2026 (§A117):** le viste condivise `v_share_…`, dopo le tabelle e senza `DEFINER`
+(carta [`2026-09-23-vista-condivisa-sessioni-atc.md`](2026-09-23-vista-condivisa-sessioni-atc.md) §4). Ogni altra
+vista, i trigger e le procedure fermano ancora la copia.
 
 ## 4. Le guardie
 
