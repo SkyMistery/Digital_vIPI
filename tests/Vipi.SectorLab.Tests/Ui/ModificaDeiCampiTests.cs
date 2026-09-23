@@ -30,7 +30,7 @@ public sealed class ModificaDeiCampiTests : IDisposable
 
     private async Task<IRenderedComponent<Home>> ConUnFixScelto()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var forma = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
         await pagina.InvokeAsync(() => _lab.Scegli(forma.File, forma.Record));
@@ -134,7 +134,7 @@ public sealed class ModificaDeiCampiTests : IDisposable
     [Fact]
     public async Task UnCampoChePortaUnElencoNonSiScriveInQuestaSlice()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var settore = _lab.Strati.Single(s => s.Id == "settori").Forme
             .First(f => f.Punti > 3 && f.File.EndsWith("libb_es_ctr.tfl", StringComparison.Ordinal));

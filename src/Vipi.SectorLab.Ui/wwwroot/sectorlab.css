@@ -503,6 +503,117 @@ html, body {
     color: var(--lab-tenue);
 }
 
+/* I problemi (slice 10): linguette in cima alla colonna, un problema per bottone, la riga segnata nell'ispettore. */
+.lab-linguette {
+    display: flex;
+    gap: .25rem;
+    margin-bottom: .5rem;
+    border-bottom: 1px solid #dde1e7;
+}
+
+.lab-linguette button {
+    padding: .3rem .6rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--lab-testo);
+    font: inherit;
+    cursor: pointer;
+}
+
+.lab-linguette .lab-linguetta-scelta {
+    border-bottom-color: var(--lab-accento);
+    font-weight: 600;
+}
+
+.lab-segno-nuovi {
+    display: inline-block;
+    min-width: 1.1em;
+    margin-left: .2rem;
+    border-radius: 50%;
+    background: #c62828;
+    color: #fff;
+    font-size: 11px;
+    text-align: center;
+}
+
+.lab-filtri {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: .4rem 0;
+}
+
+.lab-filtri .lab-cerca {
+    flex: 1 1 12rem;
+}
+
+.lab-elenco-problemi {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.lab-problema {
+    display: block;
+    width: 100%;
+    margin: 0 0 .2rem;
+    padding: .25rem .4rem;
+    border: 0;
+    border-left: 3px solid var(--lab-tenue);
+    background: #fff;
+    color: var(--lab-testo);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.lab-problema:hover {
+    background: #eef3fa;
+}
+
+.lab-problema-errore {
+    border-left-color: #c62828;
+}
+
+.lab-problema-avviso {
+    border-left-color: #b26a00;
+}
+
+.lab-problema-dove {
+    font-weight: 600;
+    margin-right: .4rem;
+}
+
+.lab-problema-regola {
+    margin-right: .4rem;
+}
+
+.lab-problema code {
+    display: block;
+    font: 12px/1.45 "Cascadia Mono", Consolas, monospace;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.lab-problemi-nuovi-sezione {
+    margin-bottom: .6rem;
+    padding: .3rem .5rem;
+    border-left: 4px solid #c62828;
+    background: #fff;
+}
+
+.lab-problemi-nuovi-sezione h2 {
+    font-size: 1em;
+}
+
+.lab-riga-segnalata {
+    display: block;
+    background: #fff3cd;
+    outline: 1px solid #b26a00;
+}
+
 .lab-riga-tolta {
     display: block;
     background: #fdeaea;

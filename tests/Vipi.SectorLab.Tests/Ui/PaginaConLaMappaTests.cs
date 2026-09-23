@@ -55,7 +55,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     [Fact]
     public async Task ApertaLaCartellaCiSonoLeCaselleDegliStratiELaMappa()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
         Assert.Equal(13, pagina.FindAll("[data-strato]").Count);
@@ -71,7 +71,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     [Fact]
     public async Task AccendereUnaCasellaChiedeQuelloStratoAllaMappa()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.Find("[data-strato='punti']").Change(true);
@@ -89,7 +89,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     [Fact]
     public async Task SpegnereLaCasellaToglieLoStratoDallaMappa()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         pagina.Find("[data-strato='punti']").Change(true);
         pagina.WaitForAssertion(() => Assert.Equal(true, _contesto.JSInterop.Invocations["sectorlab.mappa.strato"].Last().Arguments[1]));
@@ -108,7 +108,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     [Fact]
     public async Task IlRecordSceltoSiVedeESiEvidenziaSullaMappa()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var forma = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Punti > 0);
 
@@ -132,7 +132,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
             NOMEFINTO;NOMEFINTO;
 
             """);
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var rotta = _lab.Strati.Single(s => s.Id == "settori").Forme
             .First(f => f.File.EndsWith("prova.tfl", StringComparison.Ordinal));
@@ -145,7 +145,7 @@ public sealed class PaginaConLaMappaTests : IDisposable
     [Fact]
     public async Task CambiareCartellaRiportaAllaSchermataDApertura()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
 
         pagina.Find("[data-tasto='cambia-cartella']").Click();

@@ -33,7 +33,7 @@ public sealed class RecordAschermoTests : IDisposable
 
     private async Task<IRenderedComponent<Home>> ConUnRecordScelto(int indice = 3)
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         await pagina.InvokeAsync(() => _lab.Scegli(Fix, indice));
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-tasto='aggiungi-record']")));

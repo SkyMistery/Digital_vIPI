@@ -1,0 +1,14 @@
+@*
+    Un file che riletto dal disco non ridarebbe i record che l'app ha in memoria (slice 9 e 10). Le cause misurate sono
+    due: un record copiato che ha ancora il nome o il numero del vicino (.vrt, aerovie), e una riga cambiata che il
+    lettore non capisce più (un «;» dentro un nome) — in quel caso l'errore nuovo dice quale riga.
+*@
+<p class="lab-errore" data-fuso="@Fuso.File">
+    «@Fuso.File[(Fuso.File.LastIndexOf('/') + 1)..]» riletto dal disco avrebbe @Fuso.Riletti record invece di
+    @Fuso.InMemoria. O un record aggiunto ha ancora il nome (o il numero) del vicino, e per Aurora sarebbe un pezzo di
+    lui; o una riga cambiata non si legge più, e l'errore nuovo dice quale.
+</p>
+
+@code {
+    [Parameter, EditorRequired] public RecordCheSiFondono Fuso { get; set; } = null!;
+}

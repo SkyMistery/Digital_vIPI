@@ -31,7 +31,7 @@ public sealed class SfogliaEIspettoreTests : IDisposable
 
     private async Task<IRenderedComponent<Home>> Aperta()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         return _contesto.RenderComponent<Home>();
     }
 

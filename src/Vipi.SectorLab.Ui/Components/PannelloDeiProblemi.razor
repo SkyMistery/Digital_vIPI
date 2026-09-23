@@ -1,0 +1,97 @@
+@implements IDisposable
+@inject SessioneDelLab Lab
+
+@*
+    Il pannello dei problemi (carta F3 §2.2 passo 8, slice 10): il validatore del motore sull'albero intero, filtrabile
+    per file, ICAO o regola; un clic porta al file, al record, alla mappa e alla riga. In cima, quel che le modifiche in
+    sospeso AGGIUNGEREBBERO: «la tua modifica introduce 1 errore».
+    Si iscrive da sé a Cambiata: un componente senza parametri non lo ridisegna nessuno (vedi Mappa.razor).
+*@
+<div class="lab-problemi" data-problemi="@Lab.ProblemiDellAlbero.Count">
+    @if (Lab.ProblemiDelleModifiche.Count > 0 || Lab.RecordCheSiFondono.Count > 0)
+    {
+        <section class="lab-problemi-nuovi-sezione" data-nuovi="@Lab.ProblemiDelleModifiche.Count">
+            <h2>@Introducono()</h2>
+            @foreach (var fuso in Lab.RecordCheSiFondono)
+            {
+                <RecordCheNonTornano Fuso="fuso" />
+            }
+            @foreach (var problema in Lab.ProblemiDelleModifiche)
+            {
+                <VoceDelProblema Problema="problema" />
+            }
+        </section>
+    }
+
+    <header>
+        @if (Lab.StaValidando)
+        {
+            <span class="lab-nota" data-stato="validazione">Validazione dell'albero…</span>
+        }
+        else if (Lab.ErroreDellaValidazione is { } errore)
+        {
+            <span class="lab-errore" data-stato="validazione-fallita">La validazione non è riuscita: @errore</span>
+        }
+        else
+        {
+            <span data-conti>@Conta(Gravita.Errore) errori · @Conta(Gravita.Avviso) avvisi</span>
+        }
+    </header>
+
+    <div class="lab-filtri">
+        <input type="search" class="lab-cerca" placeholder="Filtra: file, ICAO, regola, testo…"
+               value="@_filtro" @oninput="Filtra" data-campo="filtro-problemi" />
+        <label><input type="checkbox" checked="@_errori" @onchange="e => _errori = e.Value is true" data-filtro="errori" /> errori</label>
+        <label><input type="checkbox" checked="@_avvisi" @onchange="e => _avvisi = e.Value is true" data-filtro="avvisi" /> avvisi</label>
+    </div>
+
+    @{
+        var visti = ProblemiDelLab.Filtra(Lab.ProblemiDellAlbero, _filtro, _errori, _avvisi).ToList();
+    }
+    <p class="lab-nota" data-visti="@visti.Count">
+        @(visti.Count == Lab.ProblemiDellAlbero.Count ? $"{visti.Count} problemi" : $"{visti.Count} di {Lab.ProblemiDellAlbero.Count}")
+        @if (visti.Count > Tetto)
+        {
+            <span> — i primi @Tetto: stringi il filtro per vedere gli altri</span>
+        }
+    </p>
+    <ul class="lab-elenco-problemi">
+        @foreach (var problema in visti.Take(Tetto))
+        {
+            <li><VoceDelProblema Problema="problema" /></li>
+        }
+    </ul>
+</div>
+
+@code {
+    /// <summary>
+    /// Quanti se ne disegnano: 483 bottoni si disegnano, ma chi ne scorre più di duecento sta cercando, e il filtro
+    /// fa prima. Il conteggio dice sempre quanti sono in tutto.
+    /// </summary>
+    private const int Tetto = 200;
+
+    private string _filtro = "";
+    private bool _errori = true;
+    private bool _avvisi = true;
+
+    protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
+
+    private void Filtra(ChangeEventArgs e) => _filtro = e.Value?.ToString() ?? "";
+
+    private int Conta(Gravita gravita) => Lab.ProblemiDellAlbero.Count(p => p.Gravita == gravita);
+
+    private string Introducono()
+    {
+        int errori = Lab.ProblemiDelleModifiche.Count(p => p.Gravita == Gravita.Errore);
+        int avvisi = Lab.ProblemiDelleModifiche.Count - errori;
+        var pezzi = new List<string>();
+        if (errori > 0) pezzi.Add(errori == 1 ? "1 errore" : $"{errori} errori");
+        if (avvisi > 0) pezzi.Add(avvisi == 1 ? "1 avviso" : $"{avvisi} avvisi");
+        if (Lab.RecordCheSiFondono.Count > 0) pezzi.Add("record che riletti non tornano");
+        return "Le modifiche in sospeso introducono " + string.Join(", ", pezzi);
+    }
+
+    private void Aggiorna() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Lab.Cambiata -= Aggiorna;
+}

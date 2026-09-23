@@ -94,7 +94,21 @@
 
         <h2>Righe del file</h2>
         <pre class="lab-righe" data-righe="@scheda.Righe.Count">@foreach (var riga in scheda.Righe)
-{<span class="@(riga.DelRecord ? "lab-riga-del-record" : "lab-riga-contesto")" data-riga="@riga.Numero"><span class="lab-numero">@riga.Numero</span> @riga.Testo
+{<span class="@(riga.DelRecord ? "lab-riga-del-record" : "lab-riga-contesto") @(Segnalata(scheda.File, riga.Numero) ? "lab-riga-segnalata" : null)" data-riga="@riga.Numero" data-segnalata="@(Segnalata(scheda.File, riga.Numero) ? "si" : null)"><span class="lab-numero">@riga.Numero</span> @riga.Testo
+</span>}</pre>
+    </div>
+}
+else if (Lab.RigaSegnalata is { } segnata)
+{
+    @* Slice 10: un problema che non sta in un record. Niente scheda, ma la riga si vede, dal disco. *@
+    var righe = Lab.RigheIntornoAllaSegnalata();
+    <div class="lab-ispettore" data-ispettore-riga="@($"{segnata.File}:{segnata.Riga}")">
+        <header>
+            <p class="lab-etichetta">@segnata.File[(segnata.File.LastIndexOf('/') + 1)..], riga @segnata.Riga</p>
+            <p class="lab-nota">@segnata.File · la riga non appartiene a un record</p>
+        </header>
+        <pre class="lab-righe">@foreach (var riga in righe)
+{<span class="@(riga.DelRecord ? "lab-riga-segnalata" : "lab-riga-contesto")" data-riga="@riga.Numero" data-segnalata="@(riga.DelRecord ? "si" : null)"><span class="lab-numero">@riga.Numero</span> @riga.Testo
 </span>}</pre>
     </div>
 }
@@ -128,6 +142,9 @@ else
            && scheda.Indice < conRecord.RecordDelModello.Count
             ? conRecord.RecordDelModello[scheda.Indice].GetType()
             : null;
+
+    /// <summary>La riga del problema scelto nel pannello (slice 10).</summary>
+    private bool Segnalata(string file, int numero) => Lab.RigaSegnalata is { } s && s.File == file && s.Riga == numero;
 
     private bool Toccato(SchedaDelRecord scheda, string campo)
         => Lab.Modifiche.Tutte.Any(m => m.File == scheda.File && m.Record == scheda.Indice && m.Campo == campo);

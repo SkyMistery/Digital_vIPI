@@ -14,6 +14,9 @@
                 @Lab.Sessione!.File.Count file · @Lab.Sessione.RecordTotali.ToString("N0") record ·
                 @Forme.ToString("N0") forme · @Punti.ToString("N0") punti · @Lab.Durata.TotalSeconds.ToString("0.0") s
             </span>
+            <span class="lab-nota" data-barra="problemi">
+                @(Lab.StaValidando ? "validazione…" : $"{Errori} errori · {Avvisi} avvisi")
+            </span>
             @if (Lab.Cataloghi.Count > 1)
             {
                 <label class="lab-isc">
@@ -31,7 +34,34 @@
 
         <div class="lab-corpo">
             <aside class="lab-colonna lab-colonna-sfoglia">
-                <Sfoglia />
+                <nav class="lab-linguette" role="tablist">
+                    <button role="tab" aria-selected="@(!_problemi)" class="@(!_problemi ? "lab-linguetta-scelta" : null)"
+                            @onclick="() => _problemi = false" data-linguetta="sfoglia">Sfoglia</button>
+                    <button role="tab" aria-selected="@_problemi" class="@(_problemi ? "lab-linguetta-scelta" : null)"
+                            @onclick="() => _problemi = true" data-linguetta="problemi">
+                        Problemi
+                        @if (Lab.StaValidando)
+                        {
+                            <span class="lab-nota">…</span>
+                        }
+                        else
+                        {
+                            <span class="lab-nota">@Errori · @Avvisi</span>
+                        }
+                        @if (Lab.ProblemiDelleModifiche.Count > 0 || Lab.RecordCheSiFondono.Count > 0)
+                        {
+                            <span class="lab-segno-nuovi" title="Le modifiche in sospeso introducono dei problemi" data-segno="nuovi">!</span>
+                        }
+                    </button>
+                </nav>
+                @if (_problemi)
+                {
+                    <PannelloDeiProblemi />
+                }
+                else
+                {
+                    <Sfoglia />
+                }
             </aside>
 
             <aside class="lab-colonna lab-colonna-ispettore">
@@ -108,6 +138,13 @@ else
 @code {
     private bool _interattivo;
     private string? _percorso;
+
+    /// <summary>La colonna di sinistra mostra i problemi invece di Sfoglia (slice 10).</summary>
+    private bool _problemi;
+
+    private int Errori => Lab.ProblemiDellAlbero.Count(p => p.Gravita == Gravita.Errore);
+
+    private int Avvisi => Lab.ProblemiDellAlbero.Count - Errori;
 
     private int Forme => Lab.Strati.Sum(s => s.Forme.Count);
 

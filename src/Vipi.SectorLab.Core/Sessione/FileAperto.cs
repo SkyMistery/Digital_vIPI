@@ -48,6 +48,12 @@ public interface IFileConRecord
     IReadOnlyList<Ispezione.RigaGrezza> RigheDelRecord(int indice, int contesto);
 
     /// <summary>
+    /// Il record che ha la riga numero <paramref name="riga"/> (da 1, come le cita il validatore) fra le sue righe
+    /// di dati; nullo per un commento, una riga vuota, una riga che il lettore non ha capito (slice 10).
+    /// </summary>
+    int? RecordDellaRiga(int riga);
+
+    /// <summary>
     /// Le righe che il file avrebbe sul disco con quei record toccati (nessuno = il file com'è adesso). Le produce
     /// lo <b>scrittore vero</b> (F2 §9.5): il diff che si mostra è quello che uscirà, non una simulazione.
     /// </summary>
@@ -181,6 +187,36 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         ArgumentNullException.ThrowIfNull(sporchi);
         var suoi = new HashSet<T>(sporchi.OfType<T>(), ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
         return new FileSaverOrchestrator().Byte(Letto, suoi, Scrittore);
+    }
+
+    /// <inheritdoc/>
+    public int? RecordDellaRiga(int riga)
+    {
+        // Si contano le righe come RigheDelRecord: nell'ordine dei chunk, i commenti in testa a un record compresi.
+        int numero = 0;
+        int quale = -1;
+        foreach (var chunk in Letto.Chunks)
+        {
+            switch (chunk)
+            {
+                case RawChunk<T> grezzo:
+                    numero += grezzo.Lines.Length;
+                    break;
+
+                case RecordChunk<T> record:
+                    quale++;
+                    numero += record.LeadingComments.Length;
+                    if (riga > numero && riga <= numero + record.RawLines.Length)
+                        return quale;
+                    numero += record.RawLines.Length;
+                    break;
+            }
+
+            if (numero >= riga)
+                return null;
+        }
+
+        return null;
     }
 
     /// <inheritdoc/>

@@ -2,6 +2,7 @@ using Vipi.SectorLab.Core.Disco;
 using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Modifiche;
+using Vipi.SectorLab.Core.Problemi;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Shared;
 
@@ -29,7 +30,9 @@ public enum StatoDelLab
 /// La cartella aperta, per tutta l'app (carta F3 §2.2). È un <b>singleton</b>, non uno scoped: la sessione è
 /// dell'applicazione, non della pagina — l'albero costa 0,35-0,48 s e 102 MB, e un Ctrl+F5 non deve rileggerlo.
 /// La finestra è una sola e apre una cartella sola (istanza unica, §3).
-/// <para>Le pagine si iscrivono a <see cref="Cambiata"/>; chi la scatena è sempre un gesto dell'AOD, mai un timer.</para>
+/// <para>Le pagine si iscrivono a <see cref="Cambiata"/>; chi la scatena è sempre un gesto dell'AOD, o la fine di un
+/// lavoro che un gesto ha fatto partire (la validazione, il controllo delle modifiche: slice 10), mai un timer.
+/// ⚠️ Quindi può arrivare da un filo che non è quello del circuito: i componenti ridisegnano con InvokeAsync.</para>
 /// </summary>
 public sealed class SessioneDelLab
 {
@@ -141,6 +144,7 @@ public sealed class SessioneDelLab
             Modifiche = new();
             UltimoSalvataggio = null;
             _perse.Clear();
+            ScordaIProblemi();
             Stato = StatoDelLab.Aperta;
             Errore = null;
             Ricorda(cartella.Radice);
@@ -156,6 +160,8 @@ public sealed class SessioneDelLab
             Cambiata?.Invoke();
         }
 
+        // Il validatore dell'albero costa 1,7-2,0 s: l'app è già aperta, i numeri arrivano quando ci sono (slice 10).
+        _ = ValidaLAlberoAsync();
         return true;
     }
 
@@ -203,12 +209,14 @@ public sealed class SessioneDelLab
         Modifiche = new();
         UltimoSalvataggio = null;
         _perse.Clear();
+        ScordaIProblemi();
         Cambiata?.Invoke();
     }
 
     public void Scegli(string? file, int record)
     {
         Scelta = file is null ? null : (file, record);
+        RigaSegnalata = null;
         // Scegliere un record apre il suo file nell'elenco: chi clicca una forma sulla mappa si ritrova nel posto
         // giusto dell'albero, senza cercarselo.
         if (file is not null)
@@ -286,6 +294,9 @@ public sealed class SessioneDelLab
             UltimoSalvataggio = esito;
             if (esito.Salvati.Count + esito.Invariati.Count > 0)
                 await DopoLaRiletturaAsync().ConfigureAwait(false);
+            // Il sector sul disco è cambiato: le regole dell'albero (nomi non risolti, file mai citati) si rifanno.
+            if (esito.Salvati.Count > 0)
+                _ = ValidaLAlberoAsync();
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
@@ -295,8 +306,182 @@ public sealed class SessioneDelLab
         finally
         {
             StaSalvando = false;
+            RicontrollaLeModifiche();
             Cambiata?.Invoke();
         }
+    }
+
+    // --- i problemi del sector (slice 10) ----------------------------------------------------------------------
+
+    /// <summary>I problemi del validatore sull'albero com'è sul DISCO: all'apertura e dopo ogni salvataggio.</summary>
+    public IReadOnlyList<ProblemaNelLab> ProblemiDellAlbero { get; private set; } = [];
+
+    /// <summary>Vero mentre il validatore gira (1,7-2,0 s sull'albero vero): il pannello lo dice invece di mostrare zero.</summary>
+    public bool StaValidando { get; private set; }
+
+    /// <summary>Perché la validazione non è riuscita, se non è riuscita.</summary>
+    public string? ErroreDellaValidazione { get; private set; }
+
+    /// <summary>
+    /// Errori e avvisi che le modifiche in sospeso AGGIUNGEREBBERO (carta §2.2 passo 8): «la tua modifica introduce 1
+    /// errore». Si rifanno dopo ogni gesto, fuori dal circuito; sono le regole di un file, non quelle dell'albero.
+    /// </summary>
+    public IReadOnlyList<ProblemaNelLab> ProblemiDelleModifiche { get; private set; } = [];
+
+    /// <summary>I file che, con le modifiche in sospeso, riletti avrebbero meno record (slice 9).</summary>
+    public IReadOnlyList<RecordCheSiFondono> RecordCheSiFondono { get; private set; } = [];
+
+    /// <summary>L'ultimo controllo delle modifiche partito: chi deve aspettarlo (un test) lo aspetta qui.</summary>
+    public Task ControlloDelleModifiche { get; private set; } = Task.CompletedTask;
+
+    /// <summary>L'ultima validazione dell'albero partita.</summary>
+    public Task Validazione { get; private set; } = Task.CompletedTask;
+
+    /// <summary>La riga di un problema scelto nel pannello: l'ispettore la segna fra le righe grezze.</summary>
+    public (string File, int Riga)? RigaSegnalata { get; private set; }
+
+    private int _giroDellaValidazione;
+    private int _giroDelControllo;
+
+    /// <summary>
+    /// Rifà la validazione dell'albero, fuori dal circuito. Se nel frattempo ne parte un'altra (un salvataggio subito
+    /// dopo l'apertura), vale l'ultima: un giro vecchio che finisce tardi non sovrascrive i numeri nuovi.
+    /// </summary>
+    public Task ValidaLAlberoAsync()
+    {
+        if (Sessione is not { } sessione)
+            return Task.CompletedTask;
+
+        int giro = ++_giroDellaValidazione;
+        StaValidando = true;
+        ErroreDellaValidazione = null;
+        Cambiata?.Invoke();
+        return Validazione = Task.Run(async () =>
+        {
+            IReadOnlyList<ProblemaNelLab>? problemi = null;
+            string? errore = null;
+            try
+            {
+                problemi = ProblemiDelLab.DellAlbero(sessione);
+            }
+            catch (Exception e)
+            {
+                // Un giro in background che cade non deve portarsi via l'app: si dice nel pannello.
+                errore = e.Message;
+            }
+
+            await Task.Yield();
+            if (giro != _giroDellaValidazione || !ReferenceEquals(sessione, Sessione))
+                return;
+            ProblemiDellAlbero = problemi ?? [];
+            ErroreDellaValidazione = errore;
+            StaValidando = false;
+            Cambiata?.Invoke();
+        });
+    }
+
+    /// <summary>
+    /// Dopo ogni gesto: che cosa porterebbero le modifiche in sospeso. I byte si preparano QUI, sul filo del gesto,
+    /// perché i record cambiano sul posto; la validazione va su un altro filo (<see cref="Core.Disco.ControlloDelleModifiche"/>).
+    /// </summary>
+    private void RicontrollaLeModifiche()
+    {
+        int giro = ++_giroDelControllo;
+        if (Sessione is not { } sessione || !Modifiche.CEQualcosa)
+        {
+            ProblemiDelleModifiche = [];
+            RecordCheSiFondono = [];
+            ControlloDelleModifiche = Task.CompletedTask;
+            return;
+        }
+
+        IReadOnlyList<Core.Disco.ControlloDelleModifiche.DaProvare> daProvare;
+        try
+        {
+            daProvare = Core.Disco.ControlloDelleModifiche.Prepara(sessione, Modifiche);
+        }
+        catch (InvalidOperationException)
+        {
+            // Un record senza base (non dovrebbe succedere): il controllo salta, il salvataggio lo dirà.
+            return;
+        }
+
+        ControlloDelleModifiche = Task.Run(() =>
+        {
+            try
+            {
+                var (nuovi, fusi) = Core.Disco.ControlloDelleModifiche.Prova(sessione.Cartella, daProvare);
+                if (giro != _giroDelControllo || !ReferenceEquals(sessione, Sessione))
+                    return;
+                Aggiorna(ProblemiDelLab.Aggancia(sessione, nuovi), fusi);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+            {
+                if (giro == _giroDelControllo)
+                    Aggiorna([], []);
+            }
+        });
+
+        // Si ridisegna solo se l'esito è cambiato: quasi tutti i gesti non portano problemi, e un ridisegno che arriva
+        // da un altro filo a metà di un gesto dell'AOD non serve a nessuno (nei test bUnit rompeva il clic successivo).
+        void Aggiorna(IReadOnlyList<ProblemaNelLab> nuovi, IReadOnlyList<RecordCheSiFondono> fusi)
+        {
+            bool uguale = nuovi.Select(p => p.Problema).SequenceEqual(ProblemiDelleModifiche.Select(p => p.Problema))
+                          && fusi.SequenceEqual(RecordCheSiFondono);
+            ProblemiDelleModifiche = nuovi;
+            RecordCheSiFondono = fusi;
+            if (!uguale)
+                Cambiata?.Invoke();
+        }
+    }
+
+    /// <summary>Il clic su un problema: il suo file nell'albero, il suo record nell'ispettore e sulla mappa, la sua riga segnata.</summary>
+    public void VaiAlProblema(ProblemaNelLab problema)
+    {
+        ArgumentNullException.ThrowIfNull(problema);
+        if (Sessione is null || !Sessione.File.ContainsKey(problema.File))
+            return;
+
+        if (problema.Record is { } record && record < Sessione.File[problema.File].Record)
+        {
+            Scegli(problema.File, record);
+        }
+        else
+        {
+            // Niente record: l'ispettore mostra le righe del disco intorno a quella del problema, non la scelta di prima.
+            Scelta = null;
+            FileScelto = problema.File;
+        }
+
+        RigaSegnalata = problema.Problema.Riga > 0 ? (problema.File, problema.Problema.Riga) : null;
+        Cambiata?.Invoke();
+    }
+
+    /// <summary>Le righe del disco intorno alla riga segnalata: per i problemi che non stanno in un record.</summary>
+    public IReadOnlyList<RigaGrezza> RigheIntornoAllaSegnalata()
+    {
+        if (Sessione is null || RigaSegnalata is not { } segnata)
+            return [];
+        try
+        {
+            return RigheDelDisco.Intorno(Sessione.Cartella.Assoluto(segnata.File), segnata.Riga, contesto: 3);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+    }
+
+    private void ScordaIProblemi()
+    {
+        _giroDellaValidazione++;
+        _giroDelControllo++;
+        ProblemiDellAlbero = [];
+        ProblemiDelleModifiche = [];
+        RecordCheSiFondono = [];
+        StaValidando = false;
+        ErroreDellaValidazione = null;
+        RigaSegnalata = null;
     }
 
     /// <summary>
@@ -333,6 +518,7 @@ public sealed class SessioneDelLab
             UltimoSalvataggio = null;
 
         await DopoLaRiletturaAsync().ConfigureAwait(false);
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
     }
 
@@ -390,6 +576,7 @@ public sealed class SessioneDelLab
         if (esito is ModificaDiCampo)
             RifaiLaGeometria(fileRelativo);
 
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
         return esito is ModificaDiCampo;
     }
@@ -434,6 +621,7 @@ public sealed class SessioneDelLab
         if (esito is ModificaDeiVertici)
             RifaiLaGeometria(fileRelativo);
 
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
         return esito is ModificaDeiVertici;
     }
@@ -481,6 +669,7 @@ public sealed class SessioneDelLab
                 ? null
                 : Scelta;
 
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
         return true;
     }
@@ -493,6 +682,7 @@ public sealed class SessioneDelLab
         Modifiche.Annulla(file, modifica);
         Rifiuto = null;
         RifaiLaGeometria(modifica.File);
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
     }
 
@@ -506,6 +696,7 @@ public sealed class SessioneDelLab
         Rifiuto = null;
         foreach (string file in toccati)
             RifaiLaGeometria(file);
+        RicontrollaLeModifiche();
         Cambiata?.Invoke();
     }
 

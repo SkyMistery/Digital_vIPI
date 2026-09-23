@@ -1,0 +1,21 @@
+@inject SessioneDelLab Lab
+
+@*
+    Un problema, in una riga: gravità, file e riga, regola, dettaglio, e il testo della riga. Il clic porta lì (slice 10).
+*@
+<button class="lab-problema @(Problema.Gravita == Gravita.Errore ? "lab-problema-errore" : "lab-problema-avviso")"
+        @onclick="() => Lab.VaiAlProblema(Problema)"
+        title="@(Problema.Record is null ? "Apre il file" : "Apre il record, sulla mappa e nell'ispettore")"
+        data-problema="@Problema.Problema.Regola" data-file="@Problema.File" data-riga="@Problema.Problema.Riga">
+    <span class="lab-problema-dove">@Problema.Nome@(Problema.Problema.Riga > 0 ? $":{Problema.Problema.Riga}" : "")</span>
+    <span class="lab-problema-regola">@Problema.Problema.Regola</span>
+    <span class="lab-nota">@Problema.Problema.Dettaglio</span>
+    @if (Problema.Problema.Testo.Length > 0)
+    {
+        <code>@Problema.Problema.Testo</code>
+    }
+</button>
+
+@code {
+    [Parameter, EditorRequired] public ProblemaNelLab Problema { get; set; } = null!;
+}

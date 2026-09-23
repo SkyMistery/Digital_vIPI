@@ -36,7 +36,8 @@ public sealed record ControlloDelSalvataggio(
 /// Un file che riletto dal disco avrebbe <paramref name="Riletti"/> record invece dei <paramref name="InMemoria"/>
 /// dell'app. Succede nei formati dove un record è «le righe consecutive con lo stesso nome» (<c>.artcc</c>,
 /// <c>.mva</c>, <c>.vrt</c>, <c>.lairway</c>…): un record aggiunto copiando il vicino ha il suo nome, e finché non lo si
-/// rinomina, per Aurora è un pezzo del vicino (misurato sull'albero vero nella slice 9: 63 file su 695).
+/// rinomina, per Aurora è un pezzo del vicino (misurato sull'albero vero nella slice 9: 63 file su 695). E succede
+/// quando una riga cambiata non si legge più (un «;» scritto dentro un nome, slice 10): il record, riletto, non c'è.
 /// </summary>
 public sealed record RecordCheSiFondono(string File, int InMemoria, int Riletti);
 
@@ -160,7 +161,7 @@ public sealed class Salvataggio
 
             byte[] dopo = conRecord.ByteDelFile(_modifiche.SporchiDi(relativo));
             byteDeiFile[relativo] = (prima, dopo);
-            var (problemi, riletti) = RiletturaDiProva(relativo, percorso, dopo);
+            var (problemi, riletti) = ControlloDelleModifiche.ProvaUnFile(relativo, percorso, dopo);
             nuovi.AddRange(problemi);
             if (riletti is { } quanti && quanti != file.Record)
                 fusi.Add(new RecordCheSiFondono(relativo, file.Record, quanti));
@@ -250,36 +251,6 @@ public sealed class Salvataggio
     private static EsitoDelSalvataggio Esito(StatoDelSalvataggio stato, ControlloDelSalvataggio controllo,
                                              IReadOnlyList<string>? nonSalvati = null)
         => new(stato, controllo, [], [], nonSalvati ?? [], null, null, 0);
-
-    /// <summary>
-    /// Il file coi byte nuovi, letto e validato PRIMA di scrivere (<see cref="RiletturaDiProva"/>: il clone non si
-    /// tocca finché non si salva davvero). Torna i problemi che il file avrebbe DOPO e non ha PRIMA, e quanti record
-    /// ne rilegge il motore.
-    /// <para>I problemi si confrontano per regola e testo della riga, non per numero di riga: un record aggiunto sopra
-    /// fa scorrere i numeri di tutti gli errori vecchi, che non sono nuovi. Si contano, però: un record copiato da un
-    /// vicino che ha un errore porta un errore in più, e quello è nuovo.</para>
-    /// </summary>
-    private static (List<ProblemaDelSector> Nuovi, int? Riletti) RiletturaDiProva(string relativo, string percorso, byte[] dopo)
-    {
-        var prima = Validatore.ValidaIlFile(percorso, relativo);
-        var (poi, riletti) = Sessione.RiletturaDiProva.Con(relativo, dopo, copia =>
-            (Validatore.ValidaIlFile(copia, relativo), Sessione.RiletturaDiProva.QuantiRecord(copia)));
-
-        var restano = prima.GroupBy(Chiave).ToDictionary(g => g.Key, g => g.Count());
-        var nuovi = new List<ProblemaDelSector>();
-        foreach (var problema in poi)
-        {
-            var chiave = Chiave(problema);
-            if (restano.TryGetValue(chiave, out int quanti) && quanti > 0)
-                restano[chiave] = quanti - 1;
-            else
-                nuovi.Add(problema);
-        }
-
-        return (nuovi, riletti);
-
-        static (Regola, string) Chiave(ProblemaDelSector p) => (p.Regola, p.Testo.Trim());
-    }
 
     /// <summary>La scrittura atomica, ritentata: torna nullo se è andata, se no il messaggio dell'ultimo guasto.</summary>
     private string? Scrivi(string percorso, byte[] dopo)

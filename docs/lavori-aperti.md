@@ -9,12 +9,16 @@ Carta [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md), **appr
 1 (il guscio) in `64a33fb0` — 🔴 il commit della slice 0, `74154183`, conteneva solo la carta (traccia nella carta);
 slice 2 (la sessione) in `9e2fcb4f`; slice 3 (catalogo e geometria) in `d683572a` e `9f48490c`; **4** la mappa
 `5ee4714a`; **5** sfoglia e ispettore `cc71e3be`; **6** modifica dei campi `430453b9`; **7** i vertici `01feffb6`;
-**7-bis** i tracciati a più tratti `a3ab2397`; **8** aggiungi e togli un record `3ddd68b4`; **9** il salvataggio.
-**CI verde** fino alla 8. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
-net10.0-windows, i test: **236**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 10, il pannello dei
-problemi** del validatore (130/353 sull'albero, clic che porta a riga e mappa). La traccia di ogni slice, con misure
+**7-bis** i tracciati a più tratti `a3ab2397`; **8** aggiungi e togli un record `3ddd68b4`; **9** il salvataggio; **10** il pannello dei problemi.
+**CI verde** fino alla 9. Quattro progetti nuovi (`Vipi.SectorLab.Core`, `.Ui`, il guscio `Vipi.SectorLab`
+net10.0-windows, i test: **248**); il sito non li referenzia e non cambia. ▶ Prossima: **slice 11, la consegna** (workflow su
+tag `sectorlab-v*`, release, avviso di versione nuova, scheda nella vIPI per Editor e Admin). La traccia di ogni slice, con misure
 e controprove, sta nel §8 della carta.
 
+- **Slice 10**: **il pannello dei problemi** — il validatore dell'albero in una linguetta, fuori dal circuito
+  (1,5 s, 130 errori e 353 avvisi), filtro, clic che sceglie il record della riga (o mostra le righe del disco se la
+  riga non è di un record), e «le modifiche in sospeso introducono 1 errore» dopo ogni gesto. Albero vero: 483/483
+  file ritrovati, 379 record agganciati tutti giusti.
 - **Slice 9**: **il salvataggio** (`Core/Disco/Salvataggio`), i cinque passi del §2.4 — confini e conflitto su TUTTI
   i file prima di scriverne uno, backup in `%LOCALAPPDATA%\VipiSectorLab\backup\<ora>\` (30 giorni, fuori dal
   clone), scrittura atomica coi byte dello scrittore vero e tre tentativi, rilettura. Errori nuovi (per regola e testo

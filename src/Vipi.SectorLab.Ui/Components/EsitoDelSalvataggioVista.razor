@@ -32,12 +32,7 @@
             }
             @foreach (var fuso in Esito.Controllo.RecordCheSiFondono)
             {
-                @* Un record copiato che ha ancora la chiave del vicino (il numero di una rotta .vrt, il nome di un'aerovia). *@
-                <p class="lab-errore" data-fuso="@fuso.File">
-                    «@Nome(fuso.File)» riletto dal disco avrebbe @fuso.Riletti record invece di @fuso.InMemoria: un record
-                    aggiunto ha ancora il nome (o il numero) del vicino, e per Aurora sarebbe un pezzo di lui. Cambialo prima
-                    di salvare, se deve restare un record a sé.
-                </p>
+                <RecordCheNonTornano Fuso="fuso" />
             }
             <p>Non è stato scritto niente.</p>
             <div class="lab-azioni">

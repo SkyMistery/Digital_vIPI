@@ -42,13 +42,15 @@ public sealed class SalvataggioAschermoTests : IDisposable
 
     private async Task<IRenderedComponent<Home>> ConUnFixCambiato(string campo, string valore)
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var forma = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
         await pagina.InvokeAsync(() => _lab.Scegli(forma.File, forma.Record));
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll($"[data-scrivi='{campo}']")));
         pagina.Find($"[data-scrivi='{campo}']").Change(valore);
         pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        // Il controllo delle modifiche (slice 10) ridisegna quando trova un problema nuovo: finisca prima del clic.
+        await _lab.ControlloDelleModifiche;
         return pagina;
     }
 
@@ -125,7 +127,7 @@ public sealed class SalvataggioAschermoTests : IDisposable
     {
         await ConUnFixCambiato("Position", "N041.00.00.000 E012.00.00.000");
 
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
 
         Assert.False(_lab.Modifiche.CEQualcosa);
         Assert.Null(_lab.UltimoSalvataggio);

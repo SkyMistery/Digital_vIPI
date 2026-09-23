@@ -30,7 +30,7 @@ public sealed class VerticiAschermoTests : IDisposable
 
     private async Task<IRenderedComponent<Home>> ConUnSettoreScelto()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var forma = _lab.Strati.Single(s => s.Id == "settori").Forme
             .First(f => f.Punti > 3 && f.File.EndsWith("libb_es_ctr.tfl", StringComparison.Ordinal));
@@ -124,7 +124,7 @@ public sealed class VerticiAschermoTests : IDisposable
     public async Task UnaZonaAPiuTrattiMostraUnElencoPerTratto()
     {
         // Slice 7-bis: le zone dei .str tengono i punti dentro i segmenti, e a schermo sono «Tratto 1», «Tratto 2»…
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         string zona = "SectorFiles/Include/IT/lirf.str";
         int quale = Enumerable.Range(0, _lab.Sessione!.File[zona].Record)
@@ -144,7 +144,7 @@ public sealed class VerticiAschermoTests : IDisposable
     [Fact]
     public async Task UnPuntoDiUnTrattoSiSpostaDaSchermo()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         string zona = "SectorFiles/Include/IT/lirf.str";
         int quale = Enumerable.Range(0, _lab.Sessione!.File[zona].Record)
@@ -164,7 +164,7 @@ public sealed class VerticiAschermoTests : IDisposable
     [Fact]
     public async Task UnFixNonHaVerticiEIlPezzoNonCompare()
     {
-        Assert.True(await _lab.ApriAsync(_albero.Radice));
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
         var pagina = _contesto.RenderComponent<Home>();
         var fix = _lab.Strati.Single(s => s.Id == "punti").Forme.First(f => f.Etichetta == "BC404");
 
