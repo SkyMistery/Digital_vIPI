@@ -76,20 +76,57 @@ public class ProceduraNeiPuntiTests
         ["LIRR_NE_CTR"] = "Roma Radar", ["LIRP_APP"] = "Pisa Approach",
     };
 
-    private static string? Frase(string cop, TransferHandoffFacet? facet = null, CoordinationSentenceTemplate? tpl = null) =>
+    private static string? Frase(string cop, TransferHandoffFacet? facet = null, CoordinationSentenceTemplate? tpl = null,
+        TransferFlowKind kind = TransferFlowKind.Arrival) =>
         CoordinationSentences.Compose(tpl ?? CoordinationSentenceTemplate.Default, Types, Names, Codes, Airports, Atc,
             "LIRR_NE_CTR", "LIRP_APP", "LIRP", LevelConstraint.AtOrBelow, 120, LevelUnit.Fl, null, LevelParity.Any,
-            cop, TransferFlowKind.Arrival, facet: facet);
+            cop, kind, facet: facet);
 
+    /// <summary>🔴 23 settembre 2026, chiesto dal committente: una STAR in un arrivo si dice «autorizzato ALLA
+    /// STAR», non «via» — la assegna l'APP.</summary>
     [Fact]
-    public void Con_una_STAR_la_frase_e_via_procedura_al_confine_dell_AoR()
+    public void Con_una_STAR_in_arrivo_la_frase_e_alla_STAR_al_confine_dell_AoR()
     {
         Assert.Equal(
             "Roma Radar NE trasferisce a Pisa Approach US0 il traffico con destinazione Pisa - San Giusto LIRP "
-            + "autorizzato via PIS 1A a livello 120 o livello inferiore, al confine dell'AoR.",
+            + "autorizzato alla STAR PIS 1A a livello 120 o livello inferiore, al confine dell'AoR.",
             Frase("PIS 1A"));
-        Assert.EndsWith("cleared via PIS 1A at level 120 or below, at the AoR boundary.",
+        Assert.EndsWith("cleared for the PIS 1A STAR at level 120 or below, at the AoR boundary.",
             Frase("PIS 1A", tpl: CoordinationSentenceTemplate.English));
+    }
+
+    /// <summary>Le SID restano «via»: le autorizza la torre.</summary>
+    [Fact]
+    public void Con_una_SID_in_partenza_resta_via()
+    {
+        var s = Frase("PIS 1A", kind: TransferFlowKind.Departure);
+        Assert.Contains("autorizzato via PIS 1A", s);
+        Assert.DoesNotContain("STAR", s);
+    }
+
+    /// <summary>Un sorvolo non dice il verso della procedura: resta «via».</summary>
+    [Fact]
+    public void In_un_sorvolo_una_procedura_resta_via() =>
+        Assert.Contains("autorizzato via PIS 1A", Frase("PIS 1A", kind: TransferFlowKind.Overflight));
+
+    [Fact]
+    public void Fix_e_STAR_insieme_in_arrivo()
+    {
+        Assert.Contains("autorizzato via MAREL o alla STAR PIS 1A a livello 120", Frase("MAREL, PIS 1A"));
+        Assert.Contains("autorizzato via MAREL o ELB, o alla STAR PIS 1A o PIS 1B a livello", Frase("MAREL, PIS 1A, ELB, PIS 1B"));
+        Assert.Contains("cleared via MAREL or for the PIS 1A STAR at level", Frase("MAREL, PIS 1A", tpl: CoordinationSentenceTemplate.English));
+    }
+
+    /// <summary>⚠️ Un template scritto nel file prima del 23 settembre («via {point}», senza {cleared}) funziona
+    /// ancora: dice «via» a tutto, come prima.</summary>
+    [Fact]
+    public void Un_template_vecchio_senza_cleared_resta_via()
+    {
+        var vecchio = new CoordinationSentenceTemplate
+        {
+            TemplateCleared = "{owner} trasferisce a {target} il traffico {airport} autorizzato via {point} {fl}, {handoff} {handoffLevel} {stato}.",
+        };
+        Assert.Contains("autorizzato via PIS 1A", Frase("PIS 1A", tpl: vecchio));
     }
 
     [Fact]
@@ -173,7 +210,7 @@ public class ProceduraNeiPuntiTests
     {
         var suPunto = TransferHandoffFacet.None with { Kind = TransferHandoffKind.Point, Label = "CHI" };
         var s = Frase("PIS 1A", suPunto);
-        Assert.Contains("autorizzato via PIS 1A", s);
+        Assert.Contains("autorizzato alla STAR PIS 1A", s);
         Assert.Contains("su CHI", s);
         Assert.DoesNotContain("confine", s);
     }

@@ -7,7 +7,9 @@ namespace Vipi.Application.Content;
 /// <summary>
 /// Una SID o una STAR scritta fra i punti di una clausola di trasferimento (21 settembre 2026).
 ///
-/// <para>Una procedura non è un punto: il traffico non «passa su BANAV 9A», è <b>autorizzato via</b> BANAV 9A. La
+/// <para>Una procedura non è un punto: il traffico non «passa su BANAV 9A», è <b>autorizzato via</b> BANAV 9A — o,
+/// se è una STAR in un arrivo, <b>autorizzato alla STAR</b> BANAV 9A (23 settembre 2026, chiesto dal committente:
+/// la STAR la assegna l'APP, la SID la torre; vedi <see cref="CoordinationSentenceTemplate.ClearedStar"/>). La
 /// frase deve quindi essere quella con il participio (<see cref="CoordinationSentenceTemplate.TemplateCleared"/>),
 /// e quella frase la sceglie la faccetta trasferimento: quando la clausola non ne dice una, il luogo di
 /// trasferimento diventa <see cref="TransferHandoffKind.AorBoundary"/> — il caso di chi consegna un traffico in

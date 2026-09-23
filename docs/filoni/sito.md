@@ -82,5 +82,19 @@
     ZOPPA 9Z (BANAV 6W è viva), ↗ → `accordo=1&sezione=1`; corretta la clausola DALL'EDITOR («Start editing», 💾)
     → tasto (0) spento. Log senza errori. Il ramo «sparisce col ciclo» solo nei test (in locale un ciclo entrante
     diverso non c'è).
+- ✅ **S6** STAR nei trasferimenti: «autorizzato **alla STAR** X» invece di «via» (richiesta del committente, 23-set:
+  la STAR la assegna l'APP; le SID restano «via», le autorizza la torre). Pronto da fondere, esce con S4+S5.
+  - Nuovo segnaposto `{cleared}` nei quattro template «autorizzato» (IT/EN, uscente/entrante) + parole
+    `ClearedVia` («via {points}») e `ClearedStar` («alla STAR {points}» / EN «for the {points} STAR»),
+    sovrascrivibili dal file `content/coordination-sentence.json` (`CoordinationSentenceOptions`).
+  - Solo negli ARRIVI (`CoordinationSentenceComposer.Cleared`): partenze, sorvoli e altri restano «via».
+    Misti: «via MAREL o alla STAR TOPNO 3A»; più nomi → «via MAREL o ELB, o alla STAR PIS 1A o PIS 1B».
+  - ⚠️ Un template del file SENZA `{cleared}` (la forma vecchia «via {point}») continua a dire «via» a tutto.
+    Il file di produzione oggi non sovrascrive i template «autorizzato».
+  - Caratterizzazione `real-coordination.approved.txt`: cambiano SOLO le 4 righe TOPNO 3A (arrivo LIBP, IT+EN).
+  - Test: +4 in `ProceduraNeiPuntiTests` (2 riscritti). Application 2932 → **2936**. ⚠️ **Codice in comune**:
+    `Vipi.Application` (template + composer), `Vipi.Hosting` (opzioni del file).
+  - Dal vivo (copia del DB, editor trasferimenti LIBB, anteprima frase): IT «autorizzato via MAREL o alla STAR
+    TOPNO 3A», partenza «autorizzato via PISIP o BANAV 6W»; EN «cleared via MAREL or for the TOPNO 3A STAR».
 - ▶ Alla ripresa: se `main` è andata avanti, `git merge main`.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

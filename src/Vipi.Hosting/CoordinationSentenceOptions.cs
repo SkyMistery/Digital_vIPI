@@ -22,6 +22,9 @@ public sealed class CoordinationSentenceOptions
 
     /// <summary>Forma della frase quando autorizzazione e trasferimento sono due eventi (ACC→APP).</summary>
     public string? TemplateCleared { get; set; }
+    /// <summary>{cleared} dei template «autorizzato»: i punti «via {points}», e le STAR di un arrivo «alla STAR {points}».</summary>
+    public string? ClearedVia { get; set; }
+    public string? ClearedStar { get; set; }
 
     // Verso ENTRANTE: chi sovrascrive `Template` vuole quasi sempre sovrascrivere anche la sua gemella, e una
     // sola delle due nel file darebbe un documento che cambia forma a metà nodo.
@@ -94,6 +97,8 @@ internal sealed class CoordinationSentenceTemplateProvider : ICoordinationSenten
                     Level = Fallback(o.Stato?.Level, d.Stato.Level),
                 },
                 TemplateCleared = Fallback(o.TemplateCleared, d.TemplateCleared),
+                ClearedVia = Fallback(o.ClearedVia, d.ClearedVia),
+                ClearedStar = Fallback(o.ClearedStar, d.ClearedStar),
                 TemplateReceive = Fallback(o.TemplateReceive, d.TemplateReceive),
                 TemplateClearedReceive = Fallback(o.TemplateClearedReceive, d.TemplateClearedReceive),
                 GroupWide = Fallback(o.GroupWide, d.GroupWide),
