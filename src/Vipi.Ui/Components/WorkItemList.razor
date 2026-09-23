@@ -43,7 +43,7 @@
                     }
                     else
                     {
-                        <span class="wi-why">@WorkItemText.Frase(g.Capo, L)</span>
+                        <span class="wi-why">@(g.PerCausa ? WorkItemText.FraseCausa(g.Capo, L) : WorkItemText.Frase(g.Capo, L))</span>
                         <span class="pill grey">@L["Work_GroupDocs", g.Righe.Count]</span>
                     }
                 </button>
@@ -73,7 +73,7 @@
                     {
                         <WorkItemRow @key="r.Chiave" Item="r" Busy="Busy" ShowAssign="ShowAssign" Roster="Roster"
                                      Cycles="Cycles" MyUserId="MyUserId" OnDone="OnDone" OnStart="OnStart" OnAssign="OnAssign"
-                                     ShowDoc="_vista != WorkView.Documento" ShowWhy="_vista != WorkView.Cambiamento" />
+                                     ShowDoc="_vista != WorkView.Documento" ShowWhy="_vista != WorkView.Cambiamento || g.PerCausa" />
                     }
                 </ul>
             }

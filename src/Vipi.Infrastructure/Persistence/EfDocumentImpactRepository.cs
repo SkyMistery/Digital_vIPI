@@ -401,6 +401,9 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
         var sourceKey = (input.SourceKey ?? "").Trim();
 
         var argomenti = input.ReasonArgs is { Count: > 0 } ? JsonSerializer.Serialize(input.ReasonArgs) : null;
+        var causa = string.IsNullOrWhiteSpace(input.CauseKey) ? null : input.CauseKey.Trim();
+        var argomentiCausa = causa is not null && input.CauseArgs is { Count: > 0 }
+            ? JsonSerializer.Serialize(input.CauseArgs) : null;
 
         var esistente = await _db.DocumentImpacts
             .Where(i => i.DocumentId == input.DocumentId && i.Kind == input.Kind
@@ -413,12 +416,20 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             // a settembre le sezioni cambiate il 25 agosto — e i giorni di silenzio di uno stantio non crescevano
             // mai (verifica dell'11 settembre, difetto 2). L'identità della riga e la sua età (`RaisedUtc`) non
             // si toccano: cambia la frase, non il fatto. Il non-evento non si scrive.
-            if (esistente.ReasonArgsJson != argomenti || esistente.IsPublicNow != input.IsPublicNow
-                || esistente.ReasonKey != input.ReasonKey)
+            var raccontoCambiato = esistente.ReasonArgsJson != argomenti || esistente.ReasonKey != input.ReasonKey;
+            if (raccontoCambiato || esistente.IsPublicNow != input.IsPublicNow)
             {
                 esistente.ReasonKey = input.ReasonKey;
                 esistente.ReasonArgsJson = argomenti;
                 esistente.IsPublicNow = input.IsPublicNow;
+                // La causa passa alla riga solo se questo giro ne ha cambiato il RACCONTO: una riga aperta e
+                // uguale a ieri non l'ha toccata la finestra di adesso, e tiene la causa che aveva (carta
+                // 2026-09-23 §4). E un giro senza causa non cancella quella che c'è.
+                if (raccontoCambiato && causa is not null)
+                {
+                    esistente.CauseKey = causa;
+                    esistente.CauseArgsJson = argomentiCausa;
+                }
                 await _db.SaveChangesAsync(ct);
             }
             return esistente.Id;
@@ -431,6 +442,8 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
             SourceKey = sourceKey,
             ReasonKey = input.ReasonKey,
             ReasonArgsJson = argomenti,
+            CauseKey = causa,
+            CauseArgsJson = argomentiCausa,
             IsPublicNow = input.IsPublicNow,
             RaisedUtc = DateTime.UtcNow,
             ClearedUtc = DocumentImpact.Aperto,
@@ -552,12 +565,15 @@ public sealed class EfDocumentImpactRepository : IDocumentImpactRepository
                 i.ReasonArgsJson,
                 i.IsPublicNow,
                 i.RaisedUtc,
+                i.CauseKey,
+                i.CauseArgsJson,
             })
             .ToListAsync(ct);
 
         return righe.Select(i => new DocumentImpactRow(
             i.Id, i.DocumentId, i.Titolo ?? "", i.Kind, i.SourceKey, i.ReasonKey,
-            Argomenti(i.ReasonArgsJson), i.IsPublicNow, i.RaisedUtc)).ToList();
+            Argomenti(i.ReasonArgsJson), i.IsPublicNow, i.RaisedUtc,
+            i.CauseKey, i.CauseKey is null ? null : Argomenti(i.CauseArgsJson))).ToList();
     }
 
     private static IReadOnlyList<string> Argomenti(string? json)

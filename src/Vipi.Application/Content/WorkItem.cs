@@ -89,6 +89,9 @@ public enum WorkAction
 /// <param name="Sorgente">Che cosa, a monte, ha prodotto la segnalazione (<c>DocumentImpact.SourceKey</c>): un
 /// callsign, <c>area:44120</c>, uno slug. Due righe con stesso tipo e stessa sorgente sono lo <b>stesso
 /// cambiamento</b> su due documenti.</param>
+/// <param name="Causa">La finestra di modifiche dopo la quale il giro ha visto la deriva (<c>mod:…</c>), se si sa.
+/// Due derive con la stessa causa sono lo stesso lavoro su più documenti (<see cref="FinestraDiModifiche"/>).</param>
+/// <param name="CausaArgs">Gli argomenti della causa: l'istante ISO e le famiglie.</param>
 public sealed record WorkItem(
     WorkOrigin Origine,
     string Chiave,
@@ -109,7 +112,9 @@ public sealed record WorkItem(
     int? TaskId = null,
     EditorTaskStatus? Stato = null,
     ImpactKind? Tipo = null,
-    string? Sorgente = null)
+    string? Sorgente = null,
+    string? Causa = null,
+    IReadOnlyList<string>? CausaArgs = null)
 {
     /// <summary>Il ✓ ha senso su questa riga.</summary>
     public bool SiSpunta => Azione == WorkAction.SegnaFatto;

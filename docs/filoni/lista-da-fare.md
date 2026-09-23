@@ -13,10 +13,16 @@ cambiamento e si vedono tutti i documenti su cui intervenire. Analisi di partenz
 |---|---|---|
 | 1 | Difetti: (a) l'incarico «preso in carico» si chiude con la sua segnalazione; (b) la frase di una segnalazione si aggiorna quando il fatto si ripresenta | ✅ |
 | 2 | Vista «per cambiamento» (default) · per documento · elenco, con ✓ di gruppo. Zero migrazioni | ✅ carta [2026-09-23-da-fare-per-cambiamento](../feature/2026-09-23-da-fare-per-cambiamento.md) |
-| 3 | Deriva ricalcolata poco dopo un salvataggio, con la causa vera (migrazione). Misurare prima il giro | — |
+| 3 | Deriva ricalcolata poco dopo un salvataggio, con la causa vera (migrazione). Giro misurato: ~2 s | ✅ carta §4 |
 | 4 | Casella «segna rilette anche queste N» nel pannello di pubblicazione · dettaglio del cambiamento nella riga · età della riga | — |
 
 Scartato dal committente: il contatore sull'avatar.
+
+⚠️ **Per l'integratore**: il punto 3 porta una **migrazione** (`CausaDelleSegnalazioni`, SQLite + MariaDB: due
+colonne nullable su `DocumentImpacts`) e un **servizio in background nuovo** (`DerivaDopoLeModificheHostedService`),
+più un interceptor montato su tutti e tre i provider (`SegnalaModificheInterceptor`). Codice in comune toccato:
+`Vipi.Application/Content` (WorkItem, WorkListService, WorkGrouping, ImpactDriftUseCase, DocumentImpactService,
+ModificheInAttesa), `Vipi.Application/DependencyInjection.cs`, `Vipi.Infrastructure/DependencyInjection.cs`.
 
 ## 1 — Difetti (fatto)
 

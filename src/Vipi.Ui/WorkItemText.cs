@@ -36,7 +36,26 @@ public static class WorkItemText
     /// rompeva la riga: <b>non faceva partire la pagina</b>. Preso guidando l'editor d'aeroporto il 5 settembre
     /// 2026, con la suite verde.</para>
     /// </summary>
-    public static string Frase(WorkItem item, IStringLocalizer l) =>
+    public static string Frase(WorkItem item, IStringLocalizer l) => FraseDa(item, l);
+
+    /// <summary>
+    /// La frase di una <b>causa</b>: «dopo le modifiche del 23/09 21:04Z (coordinamenti, settori)». Gli argomenti
+    /// sono quelli di <c>FinestraDiModifiche.Argomenti</c>: l'istante ISO, poi le famiglie.
+    /// <para>⚠️ L'ora è UTC e lo dice, con la Z: chi controlla ragiona in UTC, e un'ora locale senza segno è
+    /// un'ora sbagliata per metà dei lettori.</para>
+    /// </summary>
+    public static string FraseCausa(WorkItem item, IStringLocalizer l)
+    {
+        var args = item.CausaArgs ?? Array.Empty<string>();
+        var quando = args.Count > 0 && DateTime.TryParse(args[0], System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.RoundtripKind, out var t)
+            ? t.ToUniversalTime().ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture) + "Z"
+            : "?";
+        var famiglie = string.Join(", ", args.Skip(1).Select(f => l["ModFam_" + f].Value));
+        return l["Work_CauseEdits", quando, famiglie].Value;
+    }
+
+    private static string FraseDa(WorkItem item, IStringLocalizer l) =>
         item.FraseKey == WorkPhrases.Raw
             ? (item.FraseArgs.Count > 0 ? item.FraseArgs[0] : "")
             : item.FraseArgs.Count == 0

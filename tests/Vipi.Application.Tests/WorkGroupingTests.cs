@@ -74,6 +74,34 @@ public class WorkGroupingTests
     }
 
     [Fact]
+    public void Le_derive_con_la_stessa_causa_stanno_insieme_anche_con_sezioni_diverse()
+    {
+        // Carta §4: un trasferimento cambiato fa andare in deriva Roma (sezione Trasferimenti) e Brindisi (sezione
+        // Coordinamenti). Frasi diverse, stessa causa: è UN lavoro su due documenti.
+        var gruppi = WorkGrouping.Raggruppa(new[]
+        {
+            Impatto(ImpactKind.ReleaseDrift, 1, "LIRR", "Trasferimenti") with { Causa = "mod:20260923210400" },
+            Impatto(ImpactKind.ReleaseDrift, 2, "LIBB", "Coordinamenti") with { Causa = "mod:20260923210400" },
+            Impatto(ImpactKind.ReleaseDrift, 3, "LIMM", "Trasferimenti") with { Causa = "mod:20260923220000" },
+            Impatto(ImpactKind.ReleaseDrift, 4, "LIPP", "Trasferimenti"),
+        }, WorkView.Cambiamento);
+
+        var perCausa = gruppi.Single(g => g.IsGruppo);
+        Assert.True(perCausa.PerCausa);
+        Assert.Equal(new[] { 1, 2 }, perCausa.Righe.Select(r => r.DocumentId!.Value).OrderBy(x => x));
+        // L'altra causa e la riga senza causa restano per conto loro, anche se la frase è la stessa.
+        Assert.Equal(3, gruppi.Count);
+    }
+
+    [Fact]
+    public void La_causa_non_raggruppa_gli_eventi()
+    {
+        // Un evento ha già la sua causa nella sorgente: la finestra di modifiche vale solo per le derive.
+        var a = Impatto(ImpactKind.AreaChanged, 1, "area:7", "LI-R7") with { Causa = "mod:1" };
+        Assert.StartsWith("ev:", WorkGrouping.ChiaveCambiamento(a));
+    }
+
+    [Fact]
     public void La_virgola_nelle_sezioni_non_confonde_due_frasi()
     {
         var a = Impatto(ImpactKind.ReleaseDriftNextCycle, 1, "X", "2610", "A, B");

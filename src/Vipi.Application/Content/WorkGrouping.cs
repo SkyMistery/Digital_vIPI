@@ -31,6 +31,10 @@ public sealed record WorkGroup(string Chiave, IReadOnlyList<WorkItem> Righe)
     /// <summary>Più di una riga: c'è una testata da aprire.</summary>
     public bool IsGruppo => Righe.Count > 1;
 
+    /// <summary>Il gruppo nasce da una causa (una finestra di modifiche): la testata dice la causa, e ogni riga
+    /// tiene la sua frase — le sezioni cambiate sono diverse per documento.</summary>
+    public bool PerCausa => Chiave.StartsWith(WorkGrouping.PrefissoCausa, StringComparison.Ordinal);
+
     /// <summary>
     /// Tutte le righe si chiudono col ✓ (§2/D4). ⚠️ Basta una riga da ripubblicare o da sistemare perché il ✓
     /// di gruppo non ci sia: spuntarla sarebbe la promessa che il giro notturno smentisce.
@@ -44,6 +48,10 @@ public sealed record WorkGroup(string Chiave, IReadOnlyList<WorkItem> Righe)
 /// </summary>
 public static class WorkGrouping
 {
+    /// <summary>Il prefisso delle chiavi di gruppo che nascono da una causa: la UI lo riconosce per dare alla testata
+    /// la frase della causa e lasciare a ogni riga la sua.</summary>
+    public const string PrefissoCausa = "causa:";
+
     public static IReadOnlyList<WorkGroup> Raggruppa(IReadOnlyList<WorkItem> righe, WorkView vista)
     {
         var ordinate = WorkOrdering.Ordina(righe);
@@ -78,7 +86,12 @@ public static class WorkGrouping
         // Guasti di UN documento (il suo bersaglio): due documenti rotti non sono lo stesso cambiamento.
         if (tipo.IsRotto()) return $"riga:{r.Chiave}";
 
-        // La deriva non sa la causa: confronta la copia pubblicata con la bozza. Due documenti con la STESSA
+        // Una deriva con la sua CAUSA (la finestra di modifiche dopo la quale il giro l'ha vista, carta §4): lo
+        // stesso lavoro su più documenti, anche se le sezioni cambiate sono diverse per ognuno.
+        if ((tipo.IsDaRipubblicare() || tipo.IsDaPreparare()) && !string.IsNullOrWhiteSpace(r.Causa))
+            return PrefissoCausa + r.Causa;
+
+        // Senza causa la deriva confronta la copia pubblicata con la bozza e basta. Due documenti con la STESSA
         // frase — stesso tipo, stesse sezioni cambiate — sono lo stesso cambiamento letto due volte.
         // ⚠️ Il separatore è un carattere che non compare nei titoli delle sezioni: con la virgola, «A, B» + «C»
         // e «A» + «B, C» farebbero la stessa chiave.

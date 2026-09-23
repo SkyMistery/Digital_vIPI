@@ -31,6 +31,12 @@ public static class DependencyInjection
         static Persistence.BumpCatalogoStazioniInterceptor Bump(IServiceProvider sp) =>
             new(sp.GetRequiredService<Vipi.Application.Content.IStationCatalogVersion>());
 
+        // Dice al giro della deriva che sono cambiati dati che finiscono nei documenti, cosi' «Da fare» si
+        // aggiorna pochi minuti dopo e non il giorno dopo (carta 2026-09-23-da-fare-per-cambiamento §4).
+        // ⚠️ Stessa regola di Bump: su TUTTI E TRE i provider.
+        static Persistence.SegnalaModificheInterceptor Segnala(IServiceProvider sp) =>
+            new(sp.GetRequiredService<Vipi.Application.Content.IModificheInAttesa>());
+
         switch (provider)
         {
             case Persistence.PersistenceProvider.Sqlite:
@@ -39,7 +45,7 @@ public static class DependencyInjection
                     // Query con >1 Include di collection: split in più SELECT (default consigliato MS) invece del
                     // JOIN cartesiano di SingleQuery. Toglie il warning EF 20504 e migliora la perf su tali query.
                     .UseSqlite(connectionString, sql => sql.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-                    .AddInterceptors(new Persistence.SqliteTuningInterceptor(), Tracciante, Bump(sp)));
+                    .AddInterceptors(new Persistence.SqliteTuningInterceptor(), Tracciante, Bump(sp), Segnala(sp)));
                 break;
 
             case Persistence.PersistenceProvider.Postgres:
@@ -54,7 +60,7 @@ public static class DependencyInjection
                         // Retry-safe: EfUnitOfWork avvolge le transazioni in CreateExecutionStrategy() E azzera il
                         // change-tracker a ogni tentativo (il rollback non lo ripulisce). Vedi EfUnitOfWork.
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorCodesToAdd: null))
-                    .AddInterceptors(Tracciante, Bump(sp)));
+                    .AddInterceptors(Tracciante, Bump(sp), Segnala(sp)));
                 break;
 
             case Persistence.PersistenceProvider.MySql:
@@ -90,7 +96,7 @@ public static class DependencyInjection
                         // altrove, rileggere quel file. (La copia di sicurezza ne apre una sua, ma su una
                         // connessione MySqlConnector propria, fuori da EF e dal retry: vedi MySqlDumpSource.)
                         .EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null))
-                    .AddInterceptors(Tracciante, Bump(sp)));
+                    .AddInterceptors(Tracciante, Bump(sp), Segnala(sp)));
                 // La copia di sicurezza sa leggere solo questo provider: sugli altri non si registra, e
                 // IDatabaseBackup.IsSupported risponde di no (carta 2026-09-16-copia-del-database.md).
                 services.AddSingleton<DatabaseCopy.IDatabaseDumpSource>(new DatabaseCopy.MySqlDumpSource(connectionString));

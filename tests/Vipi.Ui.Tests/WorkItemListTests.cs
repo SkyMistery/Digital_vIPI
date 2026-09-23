@@ -115,6 +115,26 @@ public class WorkItemListTests : TestContext
     }
 
     [Fact]
+    public void Il_gruppo_per_causa_dice_la_causa_e_ogni_riga_tiene_la_sua_frase()
+    {
+        var args = new[] { "2026-09-23T21:04:00.0000000Z", "Coordinamenti", "Settori" };
+        var c = Rendi(new[]
+        {
+            Deriva(1, 1) with { Causa = "mod:20260923210400", CausaArgs = args, FraseArgs = new[] { "Trasferimenti" } },
+            Deriva(2, 2) with { Causa = "mod:20260923210400", CausaArgs = args, FraseArgs = new[] { "Coordinamenti" } },
+        });
+
+        var testata = c.Find(".wi-grp-toggle");
+        // Il localizzatore di prova stampa chiave e argomenti: l'ora è UTC col segno, le famiglie tradotte.
+        Assert.Contains("Work_CauseEdits 23/09 21:04Z ModFam_Coordinamenti, ModFam_Settori", testata.TextContent);
+
+        testata.Click();
+        var sotto = c.Find(".wi-sub").TextContent;
+        Assert.Contains("Impact_ReleaseDrift Trasferimenti", sotto);
+        Assert.Contains("Impact_ReleaseDrift Coordinamenti", sotto);
+    }
+
+    [Fact]
     public void Elenco_e_la_lista_di_prima()
     {
         var c = Rendi(Enumerable.Range(1, 3).Select(i => Area(i, i)).ToList());

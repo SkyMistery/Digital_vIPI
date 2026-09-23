@@ -65,6 +65,18 @@ public class DocumentImpact
     /// non ne cambia la natura.</summary>
     public bool IsPublicNow { get; set; }
 
+    /// <summary>
+    /// La <b>causa</b> del fatto, quando si sa: la finestra di modifiche dopo la quale il giro l'ha visto
+    /// (<c>mod:20260923210400</c>). <c>null</c> = causa ignota (giro notturno, righe di prima del 23 settembre 2026).
+    /// Carta <c>docs/feature/2026-09-23-da-fare-per-cambiamento.md</c> §4.
+    /// <para>⚠️ Non entra nella chiave di deduplicazione: è il racconto del fatto, non la sua identità.</para>
+    /// </summary>
+    public string? CauseKey { get; set; }
+
+    /// <summary>Argomenti della causa (array JSON di stringhe), come <see cref="ReasonArgsJson"/>: la frase si
+    /// compone a schermo, nella lingua di chi legge.</summary>
+    public string? CauseArgsJson { get; set; }
+
     public DateTime RaisedUtc { get; set; }
 
     /// <summary>Quando è stato chiuso; <see cref="Aperto"/> finché è aperto.</summary>

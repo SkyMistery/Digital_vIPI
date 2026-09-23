@@ -2884,6 +2884,16 @@
   <data name="Work_GroupDocs" xml:space="preserve"><value>{0} documents</value></data>
   <data name="Work_GroupItems" xml:space="preserve"><value>{0} items</value></data>
   <data name="Work_MarkAll" xml:space="preserve"><value>Mark all reviewed ({0})</value></data>
+  <data name="Work_CauseEdits" xml:space="preserve"><value>After the changes of {0} ({1}): the published copy is behind</value></data>
+  <data name="ModFam_Coordinamenti" xml:space="preserve"><value>coordination</value></data>
+  <data name="ModFam_Settori" xml:space="preserve"><value>sectors</value></data>
+  <data name="ModFam_Aeroporti" xml:space="preserve"><value>airports</value></data>
+  <data name="ModFam_Procedure" xml:space="preserve"><value>procedures</value></data>
+  <data name="ModFam_Testo" xml:space="preserve"><value>document text</value></data>
+  <data name="ModFam_Aree" xml:space="preserve"><value>regulated areas</value></data>
+  <data name="ModFam_SpaziAerei" xml:space="preserve"><value>airspace</value></data>
+  <data name="ModFam_Radioassistenze" xml:space="preserve"><value>navaids</value></data>
+  <data name="ModFam_Allegati" xml:space="preserve"><value>attachments</value></data>
   <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Mark all {0} items in the group as reviewed?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>This document is read in a single language: there is nothing to translate, and so nothing to review. The lock is released from the “Versions &amp; releases” panel.</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>

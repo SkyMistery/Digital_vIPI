@@ -210,7 +210,9 @@ public sealed class WorkListService : IWorkListService
         i.RaisedUtc,
         ImpactId: i.Id,
         Tipo: i.Kind,
-        Sorgente: i.SourceKey);
+        Sorgente: i.SourceKey,
+        Causa: i.CauseKey,
+        CausaArgs: i.CauseArgs);
 
     /// <summary>La segnalazione da cui l'incarico è nato, se è ancora aperta. <c>null</c> = incarico scritto
     /// da una persona, o segnalazione nel frattempo chiusa.</summary>
@@ -263,7 +265,9 @@ public sealed class WorkListService : IWorkListService
             // Con la sua segnalazione, l'incarico sta nello stesso gruppo delle righe sorelle: preso in carico
             // un documento su sei, gli altri cinque non devono finire in un altro gruppo.
             Tipo: origine?.Kind,
-            Sorgente: origine?.SourceKey);
+            Sorgente: origine?.SourceKey,
+            Causa: origine?.CauseKey,
+            CausaArgs: origine?.CauseArgs);
     }
 
     /// <summary>Dove si va a lavorare. <c>null</c> quando il documento non è raggiungibile — e la riga resta

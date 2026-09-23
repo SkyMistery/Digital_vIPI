@@ -22,14 +22,18 @@ public enum ImpactFamily
 }
 
 /// <summary>Richiesta di apertura di un impatto. La frase è una <b>chiave</b> più argomenti: la compone la UI.</summary>
+/// <param name="CauseKey">La causa, se si sa (<see cref="FinestraDiModifiche"/>). Si scrive su una riga nuova, o su
+/// una aperta il cui racconto è cambiato; <c>null</c> non cancella una causa già scritta.</param>
 public sealed record RaiseImpactInput(
     int DocumentId, ImpactKind Kind, string SourceKey, string ReasonKey,
-    IReadOnlyList<string>? ReasonArgs = null, bool IsPublicNow = false);
+    IReadOnlyList<string>? ReasonArgs = null, bool IsPublicNow = false,
+    string? CauseKey = null, IReadOnlyList<string>? CauseArgs = null);
 
 /// <summary>Una riga aperta della casella, come la leggono banner ed elenchi.</summary>
 public sealed record DocumentImpactRow(
     int Id, int DocumentId, string DocumentTitle, ImpactKind Kind, string SourceKey,
-    string ReasonKey, IReadOnlyList<string> ReasonArgs, bool IsPublicNow, DateTime RaisedUtc)
+    string ReasonKey, IReadOnlyList<string> ReasonArgs, bool IsPublicNow, DateTime RaisedUtc,
+    string? CauseKey = null, IReadOnlyList<string>? CauseArgs = null)
 {
     /// <summary>Chiudibile a mano? No per i calcolati: il giro che li produce li riaprirebbe.</summary>
     public bool CanClear => !Kind.IsCalcolato();
