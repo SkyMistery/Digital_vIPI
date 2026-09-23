@@ -108,6 +108,7 @@ public static class CoordinationSentenceComposer
             .Replace("{airport}", airport)
             .Replace("{stato}", stato)
             .Replace("{fl}", fl)
+            .Replace("{cleared}", Cleared((d.Point ?? "").Trim(), d.Kind, tpl))
             .Replace("{point}", point)
             .Replace("{handoff}", hasHandoff ? TransferHandoffText.Place(tpl, d.Facet.Kind, d.Facet.Label) : "")
             .Replace("{handoffLevel}", hasHandoff
@@ -346,6 +347,35 @@ public static class CoordinationSentenceComposer
     //   qualsiasi altro CoP  → il CoP letterale.
     private static readonly Regex AllPointsPattern =
         new(@"^ALL(?:\s+to\s+(?<dest>\S.*))?$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    /// <summary>
+    /// {cleared}: i punti dell'autorizzazione con la loro preposizione. In un ARRIVO le STAR si dicono a parte
+    /// («alla STAR ERIKA 1A»), il resto «via»; negli altri flussi tutto «via», come prima. Vedi
+    /// <see cref="CoordinationSentenceTemplate.ClearedStar"/>.
+    /// <para>⚠️ Solo negli arrivi: una partenza parte per SID (le autorizza la torre), e sorvoli e altri flussi
+    /// non dicono il verso — lì una procedura resta «via».</para>
+    /// </summary>
+    private static string Cleared(string cop, TransferFlowKind kind, CoordinationSentenceTemplate tpl)
+    {
+        var punti = CopList.Parse(cop);
+        var star = kind == TransferFlowKind.Arrival ? punti.Where(ProceduraNeiPunti.E).ToList() : new List<string>();
+        if (star.Count == 0) return tpl.ClearedVia.Replace("{points}", ResolvePoint(cop, tpl));
+
+        var via = punti.Where(p => !ProceduraNeiPunti.E(p)).ToList();
+        var allaStar = tpl.ClearedStar.Replace("{points}", Elenco(star.Select(p => p.Trim()).ToList(), tpl));
+        if (via.Count == 0) return allaStar;
+        // «via MAREL o alla STAR PIS 1A»; con più nomi da una parte o dall'altra la virgola separa i due gruppi,
+        // o le «o» si confondono: «via MAREL o ELB, o alla STAR PIS 1A o PIS 1B».
+        var giunta = via.Count > 1 || star.Count > 1 ? ", " + tpl.PointsOr + " " : " " + tpl.PointsOr + " ";
+        return tpl.ClearedVia.Replace("{points}", Elenco(via.Select(p => ResolveOne(p, tpl)).ToList(), tpl))
+               + giunta + allaStar;
+    }
+
+    /// <summary>«A», «A o B», «A, B o C».</summary>
+    private static string Elenco(IReadOnlyList<string> resi, CoordinationSentenceTemplate tpl) =>
+        resi.Count <= 1
+            ? resi.FirstOrDefault() ?? ""
+            : string.Join(", ", resi.Take(resi.Count - 1)) + " " + tpl.PointsOr + " " + resi[^1];
 
     private static string ResolvePoint(string cop, CoordinationSentenceTemplate tpl)
     {

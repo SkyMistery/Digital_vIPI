@@ -37,7 +37,7 @@ public sealed class CoordinationSentenceTemplate
     /// il verbo principale è già «trasferisce», e «trasferisce … trasferito» balbetta.</para>
     /// </summary>
     public string TemplateCleared { get; init; } =
-        "{owner} trasferisce a {target} il traffico {airport} autorizzato via {point} {fl}, {handoff} {handoffLevel} {stato}.";
+        "{owner} trasferisce a {target} il traffico {airport} autorizzato {cleared} {fl}, {handoff} {handoffLevel} {stato}.";
 
     // ---- Il verso ENTRANTE (24 agosto 2026) ----
     //
@@ -68,7 +68,7 @@ public sealed class CoordinationSentenceTemplate
     /// verbo principale è già «trasferisce», qui è «riceve» e senza quella parola il luogo resterebbe appeso.</para>
     /// </summary>
     public string TemplateClearedReceive { get; init; } =
-        "{target} riceve da {owner} il traffico {airport} autorizzato via {point} {fl}, trasferito {handoff} {handoffLevel} {stato}.";
+        "{target} riceve da {owner} il traffico {airport} autorizzato {cleared} {fl}, trasferito {handoff} {handoffLevel} {stato}.";
 
     public string TargetWithCode { get; init; } = "{name} {code}";
     public string TargetNoCode { get; init; } = "{name}";
@@ -104,6 +104,21 @@ public sealed class CoordinationSentenceTemplate
     /// LORNO o BELIX» (18 settembre 2026). Il traffico passa da UNO di quei punti, quindi «o» e non «e».
     /// </summary>
     public string PointsOr { get; init; } = "o";
+
+    // ---- {cleared}: COME è autorizzato il traffico (23 settembre 2026, chiesto dal committente) ----
+    //
+    // Nei template «autorizzato …» il segnaposto {cleared} dice i punti con la loro preposizione. Una STAR in un
+    // ARRIVO si dice «autorizzato alla STAR ERIKA 1A», non «via»: è l'APP che la assegna, ed è quel che il
+    // traffico riceve al trasferimento. Le SID restano «via»: le autorizza la TORRE, e al trasferimento il
+    // traffico ci sta già sopra. Fix e SID insieme a una STAR: «via PISIP o alla STAR ERIKA 1A».
+    // ⚠️ Un template scritto nel file SENZA {cleared} (quello di prima, «via {point}») continua a funzionare: dice
+    // «via» a tutto, come prima.
+
+    /// <summary>I punti (fix, SID) dell'autorizzazione. Placeholder {points}: «via PISIP o BANAV 6W».</summary>
+    public string ClearedVia { get; init; } = "via {points}";
+
+    /// <summary>Le STAR di un ARRIVO. Placeholder {points}: «alla STAR ERIKA 1A».</summary>
+    public string ClearedStar { get; init; } = "alla STAR {points}";
 
     /// <summary>
     /// La frase CAPOFILA: una sola, che introduce l'intera tabella invece di descriverne una riga. È la forma dei
@@ -153,7 +168,7 @@ public sealed class CoordinationSentenceTemplate
         TemplateReceive = "{target} receives from {owner} the traffic {airport} {stato} {fl} over {point}.",
         TemplateLeadReceive = "{target} receives from {owner} the traffic {airport} as per the table below:",
         TemplateClearedReceive =
-            "{target} receives from {owner} the traffic {airport} cleared via {point} {fl}, transferred {handoff} {handoffLevel} {stato}.",
+            "{target} receives from {owner} the traffic {airport} cleared {cleared} {fl}, transferred {handoff} {handoffLevel} {stato}.",
         AirportArrival = "inbound to {name} {icao}",
         AirportDeparture = "departing from {name} {icao}",
         Stato = new CoordinationSentenceState
@@ -210,11 +225,13 @@ public sealed class CoordinationSentenceTemplate
         },
         GroupWide = "in any case",
         TemplateCleared =
-            "{owner} transfers to {target} the traffic {airport} cleared via {point} {fl}, {handoff} {handoffLevel} {stato}.",
+            "{owner} transfers to {target} the traffic {airport} cleared {cleared} {fl}, {handoff} {handoffLevel} {stato}.",
         FallbackMissingPoint = "—",
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",
         PointsOr = "or",
+        ClearedVia = "via {points}",
+        ClearedStar = "via the {points} arrival",   // forma scelta dal committente il 23-set (ICAO)
     };
 }
 
