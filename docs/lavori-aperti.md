@@ -1,5 +1,33 @@
 ﻿# Lavori aperti — elenco unico
 
+## 🌐 Sito vIPI — ramo `sito/lavori` (agente del sito, dal 23 settembre 2026)
+
+> Sezione dell'agente che lavora sul SITO nel worktree `vIPI-sito`. Le voci qui sotto hanno il prefisso **S**
+> per non incrociare la numerazione §A del Sector Lab, che lavora su `main`. Si fonde in `main` a lavoro finito.
+
+### ✅ S1 — Editor APP unito: «sezioni comuni» ricaricava la pagina (23 settembre 2026) — NON in un pacchetto
+
+Segnalato su **LIRE** (APP unito al vSOP militare): premendo il tasto delle sezioni in comune la pagina si
+ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposedException` su `VipiDbContext` in
+`UnionPanel.RicaricaAsync`, `MilSectionsEditor.PrendiLockAsync` (da `UnionMembersEditor.AssicuraLockAsync`) e un
+500 su `/services/vsop/lirr/apps/editor`.
+
+- **Causa**: `AppSectionsEditor.ParametriAsync` girava a **ogni** ridisegno del padre e comincia con
+  `Doc = null`. Con la latenza vera il ramo «caricamento» si disegnava e **smontava** `AfterSections` — pannello
+  dell'unione ed editor dei membri — chiudendo i loro scope sotto le operazioni in volo. I membri rimontati si
+  ri-registravano, l'ospite ridisegnava, e il giro ricominciava. `MilSectionsEditor` e `AirportSectionsEditor`
+  avevano già la guardia sulla chiave; l'APP no. Il tasto «comuni» lo innescava perché avvisava l'host anche solo
+  **aprendo** la scheda.
+- **Rimedio** (commit sul ramo): guardia `ACC|callsign` in `AppSectionsEditor`; `ApriComuni` non avvisa più
+  l'host. Due guardie sul sorgente in `DocumentiUnitiTests`, rosse sul codice di prima.
+- **Prova dal vivo** su copia del DB (LIBV_APP unito a vIPI + vSOP MIL di LIBV) con un `Task.Delay(400)`
+  temporaneo al posto della latenza: vecchio = ricarichi senza fine (la pagina non arriva a caricarsi); nuovo =
+  scheda aperta, «Hide» su 28 sezioni, zero errori. ⚠️ **Senza latenza, su SQLite, il vecchio NON si riproduce**.
+- 🟡 **Da guardare, non fatto**: dopo «Hide» l'ospite ricarica solo il PROPRIO documento, non i membri
+  (`UnioneCambiata` → `_editor.RicaricaAsync`; nessuno chiama `_membri.RicaricaAsync`). Vale per le tre pagine
+  ospite. Aggiungerlo non è banale: `UnionMembersEditor` non toglie dall'elenco i membri smontati.
+- ▶ Va nel **prossimo pacchetto del sito** (nessun pacchetto preparato).
+
 ## Dove siamo — 22 settembre 2026 (mattina)
 
 ### 🟡 A116 — Aurora Sector Lab F3 in corso: l'app (22 settembre 2026)
