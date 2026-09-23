@@ -65,5 +65,9 @@
     Test: `LarghezzeColonneTests` +4 (bUnit `Sempre` + guardie sul sorgente: bUnit non esegue il JS).
     Ui 1677 → **1681**. Dal vivo: trascinamento VERO col mouse 25% → 50% (salvato nel DB), doppio clic →
     `widths` sparisce dal JSON; da automatica a 25% con anteprima dal vivo a metà gesto (35%); annullamento ok.
+- 🟡 **S5** avviso «procedura non trovata» nell'editor degli accordi (dalla coda `da-fare.md`; il manager diceva S4,
+  ma S4 era già preso). **Carta scritta, codice ZERO**: [`2026-09-23-procedure-non-trovate-negli-accordi.md`](../feature/2026-09-23-procedure-non-trovate-negli-accordi.md).
+  Tre decisioni al committente: D1 ciclo (proposta ENTRANTE), D2 dove (proposta: terzo tasto diagnostico sulla
+  barra dei trasferimenti, accanto a «Da rivedere» e «Lacune»), D3 copie congelate (proposta: una riga fissa).
 - ▶ Alla ripresa: se `main` è andata avanti, `git merge main`.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
