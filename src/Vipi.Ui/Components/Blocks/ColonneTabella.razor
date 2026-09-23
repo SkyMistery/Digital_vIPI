@@ -10,7 +10,7 @@
    quelle di un'altra tabella. `tab-larg` le rimette ad `auto`. Senza larghezze non esce niente, e la tabella
    resta quella di prima della S4. *@
 
-@if (Ci(Larghezze))
+@if (Sempre || Ci(Larghezze))
 {
     <colgroup>
         @foreach (var w in Larghezze)
@@ -27,6 +27,12 @@
 @code {
     /// <summary>Una per colonna, in percento; <c>null</c> = automatica (<c>TabellaGenerica.Larghezze</c>).</summary>
     [Parameter, EditorRequired] public IReadOnlyList<int?> Larghezze { get; set; } = Array.Empty<int?>();
+
+    /// <summary>
+    /// Il colgroup anche senza larghezze: nell'editor serve un `<col>` per colonna da allargare col mouse
+    /// (`.col-grip`, vipi-editor.js). Senza stile non cambia niente: la classe `tab-larg` resta fuori.
+    /// </summary>
+    [Parameter] public bool Sempre { get; set; }
 
     /// <summary>Lo stile di una colonna in piu' in fondo — quella dei tasti, nell'editor.</summary>
     [Parameter] public string? Coda { get; set; }

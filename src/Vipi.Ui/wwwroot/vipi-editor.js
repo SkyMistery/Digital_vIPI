@@ -524,6 +524,71 @@
         }, true);
     }
 
+    // ---- Larghezza delle colonne col mouse (S4, 23 settembre 2026) ------------------------------------
+    //
+    // La maniglia `.col-grip` sta sul bordo destro di ogni intestazione nell'editor di una tabella generica.
+    // Trascinandola la colonna si allarga dal vivo (il suo `<col>` del colgroup, che nell'editor c'è sempre) e il
+    // campo «%» della colonna segue; al rilascio si scrive quel campo e gli si manda un `change`. ⚠️ Nessuna
+    // chiamata nuova verso .NET: il salvataggio è quello del campo, cioè la STESSA strada di chi scrive il numero
+    // a mano — un solo posto dove la larghezza si valida e si salva. Doppio clic = torna automatica.
+    // Il campo non ha il fuoco, quindi il browser non manda un suo `change`: niente doppio salvataggio.
+    // Delegato sul documento e installato UNA volta: la tabella la ridisegna Blazor, e questo file può essere
+    // rieseguito da una navigazione arricchita.
+    if (!window.__vipiColGrip) {
+        window.__vipiColGrip = true;
+        var colDi = function (grip) {
+            var th = grip.closest('th');
+            var table = th && th.closest('table');
+            if (!table) return null;
+            var i = Array.prototype.indexOf.call(th.parentElement.children, th);
+            var col = table.querySelectorAll(':scope > colgroup > col')[i];
+            var campo = th.querySelector('input[type=number]');
+            return col && campo ? { th: th, table: table, col: col, campo: campo } : null;
+        };
+        var salva = function (campo, valore) {
+            campo.value = valore;
+            campo.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        document.addEventListener('pointerdown', function (ev) {
+            var grip = ev.target && ev.target.closest ? ev.target.closest('.col-grip') : null;
+            if (!grip || ev.button !== 0) return;
+            var c = colDi(grip);
+            if (!c) return;
+            ev.preventDefault();
+            var larga = c.table.getBoundingClientRect().width;
+            var x0 = ev.clientX, w0 = c.th.getBoundingClientRect().width;
+            var stile = c.col.getAttribute('style'), prima = c.campo.value, pct = null;
+            try { grip.setPointerCapture(ev.pointerId); } catch (e) { }
+            c.table.classList.add('col-trascina');
+            var muovi = function (e) {
+                pct = Math.max(1, Math.min(100, Math.round((w0 + e.clientX - x0) / larga * 100)));
+                c.col.style.width = pct + '%';
+                c.campo.value = pct;
+            };
+            var fine = function (e) {
+                grip.removeEventListener('pointermove', muovi);
+                grip.removeEventListener('pointerup', fine);
+                grip.removeEventListener('pointercancel', fine);
+                c.table.classList.remove('col-trascina');
+                if (e.type === 'pointerup' && pct !== null && String(pct) !== prima) {
+                    salva(c.campo, pct);      // il ridisegno di Blazor riscrive lo stile del <col>
+                    return;
+                }
+                // Niente di cambiato, o gesto annullato: si rimette com'era.
+                if (stile === null) c.col.removeAttribute('style'); else c.col.setAttribute('style', stile);
+                c.campo.value = prima;
+            };
+            grip.addEventListener('pointermove', muovi);
+            grip.addEventListener('pointerup', fine);
+            grip.addEventListener('pointercancel', fine);
+        });
+        document.addEventListener('dblclick', function (ev) {
+            var grip = ev.target && ev.target.closest ? ev.target.closest('.col-grip') : null;
+            var c = grip && colDi(grip);
+            if (c && c.campo.value !== '') salva(c.campo, '');
+        });
+    }
+
     // Scroll a un'ancora lasciando spazio per la barra sticky (altezza misurata a runtime).
     window.vipiScrollTo = function (id) {
         var el = document.getElementById(id);

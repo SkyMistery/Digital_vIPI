@@ -3022,6 +3022,12 @@
 :where(.vipi-root) .cfg-table.tab-larg :is(th,td){width:auto}
 :where(.vipi-root) .tab-larg-in{display:flex;gap:3px;align-items:center;margin-top:3px;font-size:12px;font-weight:400;color:var(--ink-soft,var(--ink-mid))}
 :where(.vipi-root) .tab-larg-in input{width:4.5em;padding:2px 4px;font-size:12px}
+/* S4: la maniglia sul bordo destro dell'intestazione, per allargare la colonna col mouse (vipi-editor.js).
+   `touch-action:none`: senza, sul tocco il trascinamento diventa uno scorrimento della pagina. */
+:where(.vipi-root) .cfg-table th.col-th{position:relative}
+:where(.vipi-root) .col-grip{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;touch-action:none;z-index:1}
+:where(.vipi-root) .col-grip:hover,:where(.vipi-root) .col-trascina .col-grip:active{background:linear-gradient(to right,transparent 3px,var(--ivao-lightblue) 3px,var(--ivao-lightblue) 5px,transparent 5px)}
+:where(.vipi-root) .col-trascina,:where(.vipi-root) .col-trascina *{cursor:col-resize!important;user-select:none!important}
 :where(.vipi-root) .cfg-table td{overflow-wrap:anywhere}
 
 /* Blocco «carta d'area» del corpo editoriale (AreaMapBlock): shape disegnata + banda quota accanto.

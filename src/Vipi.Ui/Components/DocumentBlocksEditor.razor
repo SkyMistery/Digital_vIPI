@@ -214,14 +214,18 @@
         var (cols, rows, larg) = ParseTable(b.TableJson);
         @* `data-sid-host`: il tasto «SID» qui sotto cerca la cella col fuoco dentro questo contenitore (§A73). *@
         <div data-sid-host>
-        <table class="@ColonneTabella.Classe("cfg-table", larg)">
-            <ColonneTabella Larghezze="larg" Coda="width:70px" />
+        @* ⚠️ `tab-larg` SEMPRE, nell'editor: senza, le colonne automatiche prendevano il 26/38/18/18% di
+           `.cfg-table` e lo spazio avanzato finiva tutto alla colonna dei tasti (246px misurati). *@
+        <table class="cfg-table tab-larg">
+            <ColonneTabella Larghezze="larg" Coda="width:70px" Sempre="true" />
             <thead>
                 <tr>
                     @for (var ci = 0; ci < cols.Count; ci++)
                     {
                         var cidx = ci;
-                        <th>
+                        <th class="col-th">
+                            @* S4: il bordo destro si trascina col mouse (vipi-editor.js); doppio clic = automatica. *@
+                            <span class="col-grip" title="@L["Dse_ColumnGrip"]" aria-hidden="true"></span>
                             <div style="display:flex;gap:4px;align-items:center">
                                 <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
                                 <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>

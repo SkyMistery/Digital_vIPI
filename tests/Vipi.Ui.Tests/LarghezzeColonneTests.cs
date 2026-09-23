@@ -60,6 +60,63 @@ public class LarghezzeColonneTests : TestContext
         Assert.Equal(attesa, ColonneTabella.SommaCheNonTorna(larghezze));
     }
 
+    /// <summary>Nell'editor il colgroup c'e' sempre, anche senza larghezze: la maniglia allarga il suo `<col>`.
+    /// Senza stile e senza `tab-larg`, cioe' la tabella non cambia aspetto.</summary>
+    [Fact]
+    public void Sempre_da_il_colgroup_anche_senza_larghezze()
+    {
+        var cut = RenderComponent<ColonneTabella>(p => p
+            .Add(x => x.Larghezze, new int?[] { null, null })
+            .Add(x => x.Sempre, true)
+            .Add(x => x.Coda, "width:70px"));
+
+        var cols = cut.FindAll("col").ToList();
+        Assert.Equal(3, cols.Count);
+        Assert.Null(cols[0].GetAttribute("style"));
+        Assert.Equal("width:70px", cols[2].GetAttribute("style"));
+    }
+
+    /// <summary>
+    /// ⚠️ La maniglia vive di tre pezzi in tre file: la `<th>` con `.col-grip` e il campo «%» nei DUE editor, il
+    /// colgroup `Sempre`, e il gestore in vipi-editor.js. Se uno cade, la maniglia c'e' e non fa niente — senza
+    /// errori. bUnit non esegue il JS: si presidia il sorgente.
+    /// </summary>
+    [Theory]
+    [InlineData("Components/DocumentSectionsEditor.razor")]
+    [InlineData("Components/DocumentBlocksEditor.razor")]
+    public void Gli_editor_hanno_la_maniglia(string file)
+    {
+        var sorgente = Leggi(file);
+        Assert.Contains("<span class=\"col-grip\"", sorgente, StringComparison.Ordinal);
+        Assert.Contains("Sempre=\"true\"", sorgente, StringComparison.Ordinal);
+        Assert.Contains("type=\"number\"", sorgente, StringComparison.Ordinal);
+        Assert.Contains("<table class=\"cfg-table tab-larg\">", sorgente, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Il_gestore_della_maniglia_c_e()
+    {
+        var js = Leggi("wwwroot/vipi-editor.js");
+        Assert.Contains("closest('.col-grip')", js, StringComparison.Ordinal);
+        Assert.Contains(":scope > colgroup > col", js, StringComparison.Ordinal);
+        Assert.Contains("input[type=number]", js, StringComparison.Ordinal);
+    }
+
+    private static string Leggi(string relativo) =>
+        File.ReadAllText(Path.Combine(Radice(), relativo.Replace('/', Path.DirectorySeparatorChar)));
+
+    private static string Radice()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var c = Path.Combine(dir.FullName, "src", "Vipi.Ui");
+            if (Directory.Exists(Path.Combine(c, "Pages"))) return c;
+            dir = dir.Parent;
+        }
+        throw new DirectoryNotFoundException($"src/Vipi.Ui non trovata risalendo da {AppContext.BaseDirectory}");
+    }
+
     /// <summary>⚠️ Nella tabella unificata la cella di gruppo e' una colonna in PIU' di <c>columns</c>: le
     /// larghezze finirebbero spostate di uno, quindi non si applicano.</summary>
     [Fact]
