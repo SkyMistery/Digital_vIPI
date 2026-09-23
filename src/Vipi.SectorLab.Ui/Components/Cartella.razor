@@ -1,8 +1,14 @@
 @inject SessioneDelLab Lab
 
-@* Una cartella dell'albero, aperta e chiusa col <details> nativo (niente stato da tenere in giro). *@
-<details class="lab-cartella" open="@Aperta">
-    <summary data-cartella="@Nodo.Nome">
+@*
+    Una cartella dell'albero. 🔴 Prima era aperta SOLO se conteneva il file scelto: togliendo la scelta (secondo clic sul
+    file) si chiudeva anche la cartella, e la si perdeva di vista (prova 12 di F3-bis, 23 settembre). Ora ha il suo
+    stato: si apre e si chiude col clic sul nome, si apre da sola quando dentro viene scelto un file (chi arriva da una
+    forma sulla mappa si ritrova al posto giusto), e da sola non si chiude mai. Il clic è gestito qui, non dal <details>
+    nativo: così lo stato è uno solo, e un ridisegno non lo rovescia.
+*@
+<details class="lab-cartella" open="@_aperta" data-aperta="@(_aperta ? "si" : null)">
+    <summary data-cartella="@Nodo.Nome" @onclick="() => _aperta = !_aperta" @onclick:preventDefault>
         @Nodo.Nome
         <span class="lab-nota">@Nodo.FileTotali file · @Nodo.RecordTotali.ToString("N0") record</span>
     </summary>
@@ -21,6 +27,17 @@
 @code {
     [Parameter, EditorRequired] public CartellaDaSfogliare Nodo { get; set; } = null!;
 
-    /// <summary>Aperta se dentro c'è il file scelto: chi arriva da una forma sulla mappa si ritrova al posto giusto.</summary>
-    private bool Aperta => Lab.FileScelto?.StartsWith(Nodo.Percorso + "/", StringComparison.OrdinalIgnoreCase) == true;
+    private bool _aperta;
+    private string? _sceltoVisto;
+
+    /// <summary>Un file scelto nuovo, dentro questa cartella, la apre. Toglierlo non la chiude.</summary>
+    protected override void OnParametersSet()
+    {
+        if (Lab.FileScelto == _sceltoVisto)
+            return;
+
+        _sceltoVisto = Lab.FileScelto;
+        if (Lab.FileScelto?.StartsWith(Nodo.Percorso + "/", StringComparison.OrdinalIgnoreCase) == true)
+            _aperta = true;
+    }
 }

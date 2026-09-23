@@ -53,4 +53,33 @@ public sealed class SceltaDiUnFileApTests : IDisposable
 
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-scrivi='ElevationFt']")));
     }
+
+    // Secondo clic sul file: si chiude l'elenco dei suoi record, ma la cartella resta aperta (committente, 23 settembre).
+    [Fact]
+    public async Task TogliereLaSceltaDelFileNonChiudeLaCartella()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+
+        pagina.Find($"[data-file='{ApFir}']").Click();
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll($"[data-file-aperto='{ApFir}']")));
+
+        pagina.Find($"[data-file='{ApFir}']").Click();
+
+        pagina.WaitForAssertion(() =>
+        {
+            Assert.Empty(pagina.FindAll("[data-file-aperto]"));
+            Assert.Equal("si", Other(pagina).GetAttribute("data-aperta"));
+            Assert.NotEmpty(pagina.FindAll($"[data-file='{ApFir}']"));
+        });
+
+        // E si chiude, e si riapre, col clic sul suo nome.
+        pagina.Find("[data-cartella='OTHER']").Click();
+        pagina.WaitForAssertion(() => Assert.Null(Other(pagina).GetAttribute("data-aperta")));
+        pagina.Find("[data-cartella='OTHER']").Click();
+        pagina.WaitForAssertion(() => Assert.Equal("si", Other(pagina).GetAttribute("data-aperta")));
+    }
+
+    private static AngleSharp.Dom.IElement Other(IRenderedComponent<Home> pagina)
+        => pagina.Find("[data-cartella='OTHER']").ParentElement!;
 }
