@@ -72,3 +72,58 @@ misure: il cerchio `//X07-X08` è **aperto**; `test.artcc` è un file parassita 
 | A8 | **Etichette per riferimento**: `L;ABDAB;ABDAB;ABDAB;8;` invece delle coordinate copiate, così spostare il fix sposta l'etichetta (e l'ultimo avviso di A4 non serve più). Prima una prova in Aurora, in un ramo | F4 (la prova) → poi adozione | ✅ deciso |
 | A9 | Togliere `test.artcc` (file e riga di `ITALY.isc`), in un ramo | F4 | ✅ deciso |
 | A10 | Chiudere il cerchio `//X07-X08` | Subito (dato, non codice: lo segnala A4) | da segnalare agli AOD |
+
+## §2 — `AIRWAY` (`itawlow.lairway`, `itawhigh.hairway`)
+
+### Cosa c'è (misure del 24 settembre, fork `c46226f`)
+
+Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` etichetta, `T` traccia; lat/lon in DMS
+**o** nome di un fix/navaid.
+
+- **`itawhigh.hairway`** (128 righe): tutte commentate, solo etichette di vecchie aerovie «U». **Non incluso** in
+  `ITALY.isc` (`[HIGH AIRWAY]` vuota): in Italia oggi le aerovie di alta non esistono.
+- **`itawlow.lairway`** (3 016 righe), le aerovie di bassa, in quattro parti:
+  - righe 1-18: **KY139** a sé, «inserita manualmente. non presente su IAB. NON CANCVELLARE»;
+  - `//Airway tracks` (20-1422): **247 aerovie**, 1 413 punti, **tutti per nome** e tutti trovati nei NAVAIDS;
+  - `//Airway labels` (1424-2317): **896 etichette, tutte per coordinate**: 821 su 862 a metà di un segmento. Un
+    segmento condiviso ha l'etichetta coi nomi uniti (31, es. `L613-L615`; 19 portano ancora nomi «U» che non
+    esistono più, es. `UL81-L81`). **22 aerovie senza etichetta** (A145, A725, N1, Q482, Y99…);
+  - `//Waypoint references` (2319-3016): 692 righe commentate `//NOME;lat;lon;`, **vecchia**: 73 punti usati non ci
+    sono, 3 hanno coordinate diverse dai NAVAIDS (GOVGO, ABNAT, SARKI), 1 non esiste.
+- **Interruzioni**: `T;BREAK;RIVAM;RIVAM; //discontinuity (creates a break)` — 28 righe, un nome finto che spezza
+  l'aerovia (L81 in tre pezzi). Negli `.artcc` la stessa cosa la fa `T;DUMMY`.
+- Aerovie nascoste in `itawlow`: nessuna (le righe commentate sono la lista dei punti).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| B1 | **Un blocco per aerovia**: `//@"L81"` … `//@END "L81"`, in cima le sue etichette, poi il tracciato. Nel Lab la vista per aerovia (tracciato + etichette + tratti) c'è anche prima di riorganizzare il file | Subito (la vista) | ✅ deciso |
+| B2 | **Livelli e verso PER TRATTO**: ogni tratto ha il suo verso, la sua quota minima e massima (così nel PDF), scritti **come nel PDF, in piedi**. Tag `//@` sul tratto; Aurora li legge come commenti. Scheda coi tratti uno per uno | Subito (tag e scheda) | ✅ deciso |
+| B3 | **Nascondi / mostra**: commenta con `//` ogni riga del blocco, e al contrario; nascosta resta nell'elenco, grigia | Subito — **comune** (§C) | ✅ deciso |
+| B4 | **Etichette calcolate dai tracciati**: una a metà di ogni segmento, coi nomi delle aerovie che lo condividono; la condivisa nel blocco della prima in ordine alfabetico. Sistema le 22 senza etichetta e i nomi «U» | F8 | ✅ deciso |
+| B5 | **Aerovie manuali**: `//@"KY139" manuale` → l'import dai PDF non la tocca né la toglie. **Ma l'utente può sempre cancellarla** dall'app se lo sceglie | Subito (il tag) · F6 (il rispetto nell'import) | ✅ deciso |
+| B6 | **Interruzioni**: gesto «spezza qui / unisci» su un punto (qui scrive `BREAK`, negli `.artcc` `DUMMY`) | Subito — **comune** (§C) | ✅ deciso |
+| B7 | **Punti**: sequenza dei fix con suggerimenti mentre si scrive, «inserisci un punto qui», «inverti» | Subito — **comune** (§C, con A2) | ✅ deciso |
+| B8 | **Import da PDF** ENR 3.1 (rotte ATS di bassa): punti, per tratto verso e quote minima/massima → i tag di B2 | F6 | ✅ deciso |
+| B9 | **Prova in Aurora dell'ordine a blocchi** (etichette `L` fra i tracciati `T` di ogni aerovia): la si fa **col committente**, in un ramo, prima di riscrivere il file | F4 (prova) → riorganizzazione | ✅ deciso |
+| B10 | Via la lista `//Waypoint references` in fondo | F4 (in un ramo) | ✅ deciso |
+| B11 | `itawhigh.hairway`: **si archivia così com'è**, per ora non si tocca | — | ✅ deciso |
+| B12 | Controlli: aerovia senza etichetta, etichetta orfana o con nomi che non esistono, punto che non si trova | Subito | ✅ deciso |
+| B13 | Sulla mappa: frecce del verso, colore per quota | F8 | proposta |
+
+## §C — Meccanismi comuni (raccolti cartella per cartella)
+
+Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
+passate (committente, 24 settembre): così le parti comuni si accorpano e non si fa lavoro doppio.
+
+| Meccanismo | Chiesto da |
+|---|---|
+| **Tipo fisso** della riga (scelta fra i valori ammessi, col significato) | ACC A1 |
+| **Punto = coordinate o nome**, con suggerimenti filtrati dai NAVAIDS; sequenze di punti con inserisci / inverti | ACC A2 · AIRWAY B7 |
+| **Gruppi e parti** con nome (dal nome del record o dal commento sopra), accesi/spenti sulla mappa | ACC A3 · AIRWAY B1 |
+| **Nascondi / mostra** (commentare e scommentare un blocco) | AIRWAY B3 — «può servire un po' ovunque» |
+| **Interruzioni** spezza / unisci (`DUMMY`, `BREAK`) | AIRWAY B6 · ACC (tratti) |
+| **Etichette calcolate** dalla geometria | AIRWAY B4 · ACC A5 (etichetta al centro del gate) |
+| **Tag `//@`** di dati che Aurora non legge (livelli, verso, manuale) | AIRWAY B2, B5 · (F3-bis: composte) |
+| **Rami di prova** per tentativi e prove in Aurora | tutti (§0) · ACC A8, A9 · AIRWAY B9, B10 |
