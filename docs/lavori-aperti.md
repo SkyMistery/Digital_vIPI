@@ -33,6 +33,27 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A125 — 1.46.1 PRONTO DA CARICARE: il Re-import MIL non fa più cadere il circuito (25 settembre 2026)
+
+PATCH, **nessuna migrazione**, su 1.46.0 (`d54dbb0`). Timbro **`1.46.1 · 3a8a3f1`**. Trovato leggendo lo scarico di
+diagnostica di 1.46.0: 2 voci del 23-set (era 1.43.0), `Etichetta «Ape_ReimportDone» non leggibile` in
+`MilSectionsEditor.Reimporta`. La frase chiede 4 argomenti ({3} = procedure SID/STAR) e l'editor militare ne passava
+3. Ora il gesto importa anche le SID/STAR, come l'editor aeroporto (e come prometteva il suo `title`). Fusione
+`049f4c21` di `fix/reimport-mil` (`23e07cac`).
+
+🔴 **Guardia nuova, per la famiglia e non per il caso**: `SharedResourceIntegrityTests.Ogni_chiamata_con_argomenti_ne_passa_quanti_la_frase_ne_chiede`
+conta gli argomenti di ogni `L["Chiave", …]`/`En[…]` in Vipi.Ui e Vipi.Host e li confronta col segnaposto più
+alto della frase in it e in en. Rossa sul codice di prima (trova SOLO questa chiamata), verde dopo; pretende di aver
+controllato più di 50 chiamate. Ui.Tests 1706 → 1707.
+
+**4 file**: Vipi.Ui + Vipi.Host (dll/pdb). Zip `vipi-1.46.1-solo-file-cambiati.zip` `3fb0fb04…38b19b`, foglio
+[`LEGGIMI-PACCHETTO-1.46.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.1.md). 1.46.0 ruotata in
+`publish_old/20260925a`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, rete accesa, porta 5199): editor MIL di LIBG, «Re-import from IVAO»
+  → «Import from IVAO completed: 2 runways, sectors 0 new / 2 updated, 29 SID/STAR procedures.», circuito vivo,
+  zero `FormatException` nel log. ⚠️ Il `confirm()` nativo non si pilota dal browser integrato: sostituito da script.
+
 ### ✅ A124 — 1.46.0 ONLINE: lock dei documenti uniti, «Da sistemare», MIL solo militare (25 settembre 2026)
 
 ✅ Online il 24 settembre 2026 alle 22:51:37 UTC. Il committente conferma timbro `1.46.0 · d54dbb0` e `Schema 0`.
