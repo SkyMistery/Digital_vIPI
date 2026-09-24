@@ -1090,16 +1090,20 @@ else
 
         AirportSectorImportResult? settori = null;
         RunwayMergeOutcome? piste = null;
+        var procedure = 0;
+        // 🔴 Fino a 1.46.0 qui mancavano le SID/STAR, e la frase d'esito ne chiede il numero ({3}): la formattazione
+        // falliva e il circuito cadeva a ogni re-import (2 volte in produzione il 23 settembre 2026).
         if (!await GestoScalo(async () =>
             {
                 piste = await Scalo.ReimportFromSourceAsync(_icao);
                 settori = await Settori.ImportFromSourceAsync(_icao);
+                procedure = await ImportatoreSid.ImportForCurrentUserAsync(_icao);
             }))
             return;
 
         await CaricaDatiScaloAsync();
         _rwyOrfane = piste?.OrphansWithData ?? Array.Empty<string>();
-        _esito = L["Ape_ReimportDone", _rwys.Count, settori?.Created ?? 0, settori?.Updated ?? 0].Value;
+        _esito = L["Ape_ReimportDone", _rwys.Count, settori?.Created ?? 0, settori?.Updated ?? 0, procedure].Value;
         if (_rwyOrfane.Count > 0)
             _esito += " " + L["Ape_ReimportOrphans", string.Join(", ", _rwyOrfane)].Value;
     }
