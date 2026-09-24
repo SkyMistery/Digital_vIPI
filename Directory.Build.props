@@ -1533,6 +1533,12 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.1 — PATCH, NESSUNA migrazione. Su 1.46.0 (d54dbb0, online dal 24 settembre 2026). Il «Re-import da IVAO»
+      dell'editor militare faceva cadere il circuito: Ape_ReimportDone chiede 4 argomenti e ne riceveva 3. Ora importa
+      anche le SID/STAR come l'editor aeroporto e ne passa il numero. Guardia nuova sugli argomenti delle frasi
+      (SharedResourceIntegrityTests). Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
       1.46.0 — MINOR, NESSUNA migrazione. Su 1.45.1 (cb62ebc, online dal 24 settembre 2026). Due filoni fusi.
       Lock uniti (docs/filoni/lock-uniti.md): l'editor dei documenti uniti entra in modifica solo se il lock tornato
       è NOSTRO, e il lock del membro lo decide il database (niente pre-controllo in cache). Lista «Da fare»
@@ -1738,7 +1744,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.0</VipiVersione>
+    <VipiVersione>1.46.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
