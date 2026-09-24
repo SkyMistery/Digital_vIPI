@@ -33,7 +33,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A123 — Pacchetto 1.45.1: la Ricerca parte dal testo, non dal tasto (24 settembre 2026) — PRONTO DA CARICARE
+### ✅ A123 — 1.45.1 ONLINE: la Ricerca parte dal testo, non dal tasto (24 settembre 2026)
+
+✅ Il committente conferma timbro `1.45.1 · cb62ebc`, `Schema 0` e la Ricerca che trova. Avvio 08:36:24 UTC, UN solo
+avvio (nessun avvio fallito questa volta); processo nuovo (3234607) con 12 richieste tutte buone. Nel log del giorno,
+dall'avvio di 1.45.0 (06:36) a quello di 1.45.1: **zero** errori e **zero** avvisi, anche nella finestra del carico.
+Il processo 1.45.0 è vissuto 2 ore passando indenne le 06:56 e le 07:56. In `main` non resta codice del sito fuori
+pacchetto.
 
 PATCH, **nessuna migrazione**, su 1.45.0 (`7bd3bda`). Timbro **`1.45.1 · cb62ebc`**. Dettaglio in
 [`filoni/sito.md`](filoni/sito.md) §S7 (`SearchPage.razor`, `@bind:after`) e §S8 (`pacchetto-verifica.js` pretende
