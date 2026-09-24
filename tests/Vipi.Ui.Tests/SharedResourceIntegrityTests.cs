@@ -119,6 +119,110 @@ public sealed class SharedResourceIntegrityTests
     }
 
     /// <summary>
+    /// Ogni <c>L["Chiave", a, b…]</c> passa ALMENO tanti argomenti quanti la frase ne chiede, in tutte e due le lingue.
+    ///
+    /// <para>🔴 <b>Nasce da un difetto di produzione.</b> <c>Ape_ReimportDone</c> ha quattro segnaposto ({3} = le
+    /// procedure SID/STAR); l'editor militare ne passava tre. <c>string.Format</c> lancia, il localizzatore rilancia,
+    /// e il circuito cadeva a ogni «Re-import da IVAO» (2 volte il 23 settembre 2026, 1.43.0). Nessuna guardia lo
+    /// vedeva: la chiave esisteva, ed è l'unica cosa che <see cref="Ogni_chiave_usata_nel_codice_esiste_nelle_risorse"/>
+    /// controlla.</para>
+    ///
+    /// <para>⚠️ Senza argomenti (<c>L["Chiave"]</c>) non si controlla: il localizzatore non formatta, e c'è chi usa la
+    /// frase come modello. Argomenti IN PIÙ sono innocui (<c>string.Format</c> li ignora), quindi non si contano.</para>
+    /// </summary>
+    [Fact]
+    public void Ogni_chiamata_con_argomenti_ne_passa_quanti_la_frase_ne_chiede()
+    {
+        var it = Segnaposto(PercorsoIt);
+        var en = Segnaposto(PercorsoEn);
+        var radice = RadiceDelRepo();
+
+        var controllate = 0;
+        var corte = new List<string>();
+        foreach (var file in new[] { "Vipi.Ui", "Vipi.Host" }
+                     .Select(p => Path.Combine(radice, "src", p))
+                     .Where(Directory.Exists)
+                     .SelectMany(c => Directory.EnumerateFiles(c, "*.*", SearchOption.AllDirectories))
+                     .Where(f => (f.EndsWith(".razor", StringComparison.OrdinalIgnoreCase) ||
+                                  f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)) &&
+                                 !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}") &&
+                                 !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")))
+        {
+            var testo = File.ReadAllText(file);
+            foreach (Match m in Regex.Matches(testo, @"\b(?:L|En)\[""([A-Za-z0-9_]+)""\s*,"))
+            {
+                var passati = ContaArgomenti(testo, m.Index + m.Length);
+                if (passati < 0) continue;   // non ho trovato la chiusura: meglio tacere che inventare
+                controllate++;
+                var chiave = m.Groups[1].Value;
+                var chiesti = Math.Max(it.GetValueOrDefault(chiave), en.GetValueOrDefault(chiave));
+                if (passati < chiesti)
+                    corte.Add($"{chiave}: {passati} argomenti, la frase ne chiede {chiesti}  " +
+                              $"({Path.GetRelativePath(radice, file)}:{testo[..m.Index].Count(c => c == '\n') + 1})");
+            }
+        }
+
+        foreach (var c in corte) _out.WriteLine(c);
+
+        // Un controllo che non trova niente non prova niente: il giorno che la regex smettesse di combaciare
+        // passerebbe verde per sempre.
+        Assert.True(controllate > 50, $"solo {controllate} chiamate con argomenti trovate: la regex non combacia più?");
+        Assert.True(corte.Count == 0,
+            $"{corte.Count} chiamate passano meno argomenti di quanti ne chiede la frase: string.Format lancia e " +
+            "il circuito cade quando quel ramo gira davvero.\n  " + string.Join("\n  ", corte));
+    }
+
+    /// <summary>Per ogni chiave, quanti argomenti chiede la frase: l'indice di segnaposto più alto + 1.</summary>
+    private static Dictionary<string, int> Segnaposto(string percorsoRelativo)
+    {
+        var percorso = Path.Combine(RadiceDelRepo(), percorsoRelativo.Replace('/', Path.DirectorySeparatorChar));
+        var esito = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var e in XDocument.Load(percorso).Root!.Elements("data"))
+        {
+            var nome = e.Attribute("name")?.Value;
+            var valore = e.Element("value")?.Value;
+            if (string.IsNullOrEmpty(nome) || valore is null) continue;
+            // `{{` e `}}` sono graffe letterali, non segnaposto.
+            var pulito = valore.Replace("{{", "", StringComparison.Ordinal);
+            var massimo = Regex.Matches(pulito, @"\{(\d+)").Select(x => int.Parse(x.Groups[1].Value) + 1)
+                .DefaultIfEmpty(0).Max();
+            esito[nome] = massimo;
+        }
+        return esito;
+    }
+
+    /// <summary>
+    /// Conta gli argomenti dopo la chiave, partendo subito dopo la PRIMA virgola, fino alla <c>]</c> che chiude
+    /// l'indicizzatore. Salta parentesi annidate, stringhe e caratteri. −1 se la chiusura non si trova.
+    /// </summary>
+    private static int ContaArgomenti(string testo, int da)
+    {
+        var argomenti = 1;
+        var profondita = 0;
+        for (var i = da; i < testo.Length; i++)
+        {
+            var c = testo[i];
+            if (c is '"' or '\'')
+            {
+                // Stringa o carattere: si salta fino alla chiusura, rispettando le sequenze di escape.
+                for (i++; i < testo.Length && testo[i] != c; i++)
+                    if (testo[i] == '\\') i++;
+                continue;
+            }
+            if (c is '(' or '[' or '{') profondita++;
+            else if (c is ')' or '}') profondita--;
+            else if (c == ']')
+            {
+                if (profondita == 0) return argomenti;
+                profondita--;
+            }
+            else if (c == ',' && profondita == 0) argomenti++;
+            if (profondita < 0) return -1;
+        }
+        return -1;
+    }
+
+    /// <summary>
     /// L'altra famiglia composta a runtime, e non nasce da un enum: le chiavi del VERSO nell'editor delle
     /// procedure. <c>AirportSidsEditor</c> è montato due volte — partenze e arrivi — e chiede le sue frasi
     /// con <c>L[K("Ape_SidQualcosa")]</c>, dove <c>K</c> scambia <c>_Sid</c> con <c>_Star</c> sugli arrivi.
