@@ -33,7 +33,13 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A124 — 1.46.0 PRONTO DA CARICARE: lock dei documenti uniti, «Da sistemare», MIL solo militare (25 settembre 2026)
+### ✅ A124 — 1.46.0 ONLINE: lock dei documenti uniti, «Da sistemare», MIL solo militare (25 settembre 2026)
+
+✅ Online il 24 settembre 2026 alle 22:51:37 UTC. Il committente conferma timbro `1.46.0 · d54dbb0` e `Schema 0`.
+Nello scarico di diagnostica: i due avvii «non ordinati» delle 22:51:37 e 22:51:47 sono il caricamento stesso, poi
+un avvio ordinato alle 22:51:58. Riconciliazioni concluse per `d54dbb0` senza cambiamenti; nessuna voce di errore
+nell'era 1.46.0, che però ha solo 4 richieste e quindi **non è ancora provata**: la prova è lo scarico successivo.
+
 
 MINOR, **nessuna migrazione**, su 1.45.1 (`cb62ebc`). Timbro **`1.46.0 · d54dbb0`**. Due filoni fusi in `main`:
 `fix/lock-uniti` (dettaglio in [`filoni/lock-uniti.md`](filoni/lock-uniti.md): in modifica solo col lock NOSTRO, il
@@ -50,7 +56,6 @@ per impronta. `ISectorFallbackService` guadagna un membro: implementazione e chi
   `Schema 0`; Diagnostica in inglese con «GRANTED BY» (frasi EN arrivate); «Da sistemare» apre con «Documents to
   review»; Ricerca «Brindisi» (solo evento `input`) → 4 risultati; Struttura, catena di `LIBG_APP` → `LIBB_MIL_CTR`
   «automatic · MIL», poi `LIBB_ES_CTR` padre.
-- ▶ Da confermare dopo il carico: timbro, `Schema 0`, LIRF → documenti.
 - Restano aperti (non in questo pacchetto): «Pubblica versione»/«Scarta bozza» di Versioni su UN solo documento
   anche se unito; tasto «Modifica» del documento singolo spento dal lock letto al caricamento (vedi `filoni/lock-uniti.md`).
 
