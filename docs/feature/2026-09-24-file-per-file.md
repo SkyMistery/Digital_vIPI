@@ -114,6 +114,34 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | B14 | **Aggiungere un'aerovia a mano**: nome + sequenza dei punti (B7); il Lab scrive da sé il blocco, il segno `manuale`, un tag per tratto e le etichette (B4, comprese le condivise). Quote e verso NON si inventano: si scrivono nella scheda per tratto; verso di base «entrambi», quote vuote con avviso «tratto senza quote» | Subito | ✅ deciso |
 | B15 | **Togliere un'aerovia**: via il blocco intero (tracciato, etichette, tag); le etichette condivise perdono solo il suo nome | Subito | ✅ deciso |
 
+## §3 — `CHANGELOG` (e `changelog.md`, `delete.upd`, `update.ini`)
+
+### Cosa c'è (misure del 24 settembre)
+
+- **`IT\changelog.md`**: il changelog del ciclo in corso («**AIRAC A2610 IN VIGORE DAL 01/10/2026»), **Aurora lo
+  mostra agli utenti**. Schema fisso dal 2026: *Generale*, poi LIBB, LIMM, LIPP, LIRR; righe `*ICAO: cosa`, `*NIL` se
+  vuota.
+- **`IT\CHANGELOG\AAMM.txt`**: 22 cicli archiviati. 2023 in forma libera («+++AIRAC 2311 (AIP A10/23)+++»), 2024-2025
+  solo `2401`, dal 2026 lo schema di `changelog.md`. Si scrive, in teoria, **alla fine** del ciclo: oggi `2610.txt` è
+  già indietro rispetto a `changelog.md` (mancano LIPI, LIRL, LIRM).
+- **`SectorFiles\delete.upd`** (95 righe): i file da cancellare nei client all'aggiornamento. Aggiornato a mano ogni
+  tanto (repo originale: 2 giugno 2026 ENR/TERM/FRA.fix, 3 dicembre 2025 MVA/VFI).
+- **`SectorFiles\update.ini`**: i file aggiornati. Fino a febbraio 2021 una riga `IT;1831;`, **vuoto da allora**:
+  «ad oggi non li aggiorna nessuno».
+- Il `changelog.md` nella cartella di Aurora è quello del programma, non del sector: non si tocca.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| C1 | **Righe proposte dal Lab**: da ogni modifica, FIR dal file/scalo (`lirl.sid` → LIRL → LIRR) e testo dal tipo di record («LIRL: aggiunte le SID MASE5L, 8J»). L'AOD **corregge, toglie, aggiunge** righe a mano: il testo lo leggono gli utenti in Aurora | F4 | ✅ deciso |
+| C2 | Ogni PR porta le sue righe nel `changelog.md` del ramo `airac/AAMM`; la prima riga di una sezione toglie il `*NIL`, l'ultima tolta lo rimette | F4 | ✅ deciso |
+| C3 | **Fine ciclo**: `changelog.md` archiviato in `CHANGELOG\AAMM.txt`, poi lo schema vuoto con l'intestazione del ciclo nuovo (ciclo e data dal calendario AIRAC che vIPI calcola già) | F4 | ✅ deciso |
+| C4 | **`delete.upd` scritto dal Lab**: togliere un file aggiunge la sua riga qui e toglie quella di `ITALY.isc` (es. A9 `test.artcc`) | F4 | ✅ deciso |
+| C5 | **`update.ini`**: i file aggiornati del ciclo li sa git (diff col ciclo prima); prima di generarlo va capito cosa legge Aurora (formato `IT;1831;` del 2021) | Da pensare | 🟡 formato da capire |
+| C6 | Controlli: intestazione diversa dal ciclo del ramo, sezione mancante, riga accanto a `*NIL` | F4 | ✅ deciso |
+| C7 | Archivio vecchio (2023 libero, 2024-2025 mancanti) lasciato com'è | — | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -129,3 +157,4 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Etichette calcolate** dalla geometria | AIRWAY B4 · ACC A5 (etichetta al centro del gate) |
 | **Tag `//@`** di dati che Aurora non legge (livelli, verso, manuale) | AIRWAY B2, B5 · (F3-bis: composte) |
 | **Rami di prova** per tentativi e prove in Aurora | tutti (§0) · ACC A8, A9 · AIRWAY B9, B10 |
+| **Ogni modifica lascia una traccia** (riga di changelog proposta, `delete.upd`, `ITALY.isc`) | CHANGELOG C1, C4 · ACC A9 |
