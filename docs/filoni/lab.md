@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 348 (motore 474).
+Lab 351 (motore 474).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -104,6 +104,10 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   (`Diff.Allinea`, `ModificheInSospeso.RigheDellApertura`, `SessioneDelLab.RigaDiAdesso`) e la vista del problema
   mostra le righe di ADESSO. Controllo su tutto il fork: numeri della scheda = righe del file (`NumeriDiRigaTests`,
   `SECTORLAB_ALBERO_VERO=<clone>` per l'albero vero). Lab 348.
+
+- 24 settembre, «chiudi la forma»: l'incolla ora ha la casella (parte da com'è la forma di oggi, `ElencoChiuso`); la
+  chiusura sta in `TestoDaIncollare.Leggi(…, chiudi)`, una sola lettura per anteprima e incolla. Lab 351. Ripubblicato
+  10:14 (PROVE.md 45-46).
 
 ### Aperto, da chiedere o dire al committente
 

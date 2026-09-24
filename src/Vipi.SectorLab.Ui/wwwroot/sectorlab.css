@@ -1156,3 +1156,11 @@ body.lab-trascina * {
 .lab-voce-in-vista .lab-voce {
     flex: 1;
 }
+
+/* «Chiudi la forma» accanto all'incolla (committente, 24 settembre). */
+.lab-chiudi {
+    display: flex;
+    gap: .35rem;
+    align-items: center;
+    margin: 0 0 .5rem;
+}

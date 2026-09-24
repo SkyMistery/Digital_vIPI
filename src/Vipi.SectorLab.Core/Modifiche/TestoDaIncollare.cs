@@ -20,7 +20,10 @@ public sealed record TestoDaIncollare(
     IReadOnlyList<(double Lat, double Lon)> Centri,
     string? Rifiuto)
 {
-    public static TestoDaIncollare Leggi(string? testo, double puntiPerGrado)
+    /// <param name="chiudi">Vero: la forma si chiude ripetendo il primo punto in fondo (come i <c>.tfl</c>); falso: resta
+    /// aperta, e un ultimo punto uguale al primo si toglie; null: com'è nel testo. Lo sceglie l'AOD (committente, 24
+    /// settembre), partendo da com'era la forma di oggi.</param>
+    public static TestoDaIncollare Leggi(string? testo, double puntiPerGrado, bool? chiudi = null)
     {
         var letto = CoordinateParser.Parse(testo, puntiPerGrado);
         var centri = letto.CentriAip.Select(c => (c.Lat, c.Lon)).ToList();
@@ -32,6 +35,20 @@ public sealed record TestoDaIncollare(
             _ => null,
         };
 
-        return new TestoDaIncollare(rifiuto is null ? aree[0].Punti : [], letto.Archi, letto.Cerchi, centri, rifiuto);
+        var punti = rifiuto is null ? aree[0].Punti.ToList() : [];
+        bool chiusa = punti.Count >= 3 && Uguali(punti[0], punti[^1]);
+        if (chiudi == true && punti.Count >= 2 && !chiusa)
+            punti.Add(punti[0]);
+        else if (chiudi == false && chiusa)
+            punti.RemoveAt(punti.Count - 1);
+
+        return new TestoDaIncollare(punti, letto.Archi, letto.Cerchi, centri, rifiuto);
     }
+
+    /// <summary>Lo stesso punto, al millesimo di secondo d'arco con cui il sector scrive le coordinate.</summary>
+    private static bool Uguali((double Lat, double Lon) a, (double Lat, double Lon) b)
+        => Math.Abs(a.Lat - b.Lat) < 1e-7 && Math.Abs(a.Lon - b.Lon) < 1e-7;
+
+    /// <summary>Vero se l'ultimo punto ripete il primo.</summary>
+    public bool Chiusa => Punti.Count >= 3 && Uguali(Punti[0], Punti[^1]);
 }

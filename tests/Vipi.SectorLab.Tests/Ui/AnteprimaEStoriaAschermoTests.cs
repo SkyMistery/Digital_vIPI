@@ -124,6 +124,29 @@ public sealed class AnteprimaEStoriaAschermoTests : IDisposable
     }
 
     [Fact]
+    public async Task LaCasellaChiudiParteDallaFormaDiOggiESiPuoTogliere()
+    {
+        var pagina = await ConUnSettoreScelto();
+        // Il settore dei campioni è chiuso: la casella parte spuntata.
+        Assert.True(pagina.Find("[data-campo='chiudi']").HasAttribute("checked"));
+        pagina.Find("[data-campo='incolla']").Input(TestoAip);
+        int chiusa = 0;
+        pagina.WaitForAssertion(() => chiusa = int.Parse(pagina.Find("[data-anteprima-punti]").GetAttribute("data-anteprima-punti")!));
+
+        pagina.Find("[data-campo='chiudi']").Change(false);
+
+        // L'anteprima perde il punto che chiudeva, e l'incolla la lascia aperta.
+        pagina.WaitForAssertion(() => Assert.Equal(chiusa - 1, int.Parse(pagina.Find("[data-anteprima-punti]").GetAttribute("data-anteprima-punti")!)));
+        pagina.Find("[data-tasto='incolla']").Click();
+        pagina.WaitForAssertion(() =>
+        {
+            var vertici = pagina.FindAll("[data-vertice]");
+            Assert.Equal(chiusa - 1, vertici.Count);
+            Assert.NotEqual(vertici.First().GetAttribute("value"), vertici.Last().GetAttribute("value"));
+        });
+    }
+
+    [Fact]
     public async Task IncollandoLAnteprimaSparisce()
     {
         var pagina = await ConUnSettoreScelto();

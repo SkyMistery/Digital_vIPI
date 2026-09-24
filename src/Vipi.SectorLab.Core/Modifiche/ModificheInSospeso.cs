@@ -940,28 +940,31 @@ public sealed class ModificheInSospeso
     /// delle coordinate una per riga — lo legge il <b>convertitore di F1</b>, lo stesso della vIPI, e diventa
     /// l'elenco dei vertici. Il testo con più di un'area si rifiuta: quale sarebbe questa forma?
     /// </summary>
+    /// <param name="chiudi">Se la forma incollata si chiude (l'ultimo punto ripete il primo). Null: come la forma di
+    /// prima — chiusa se lo era (prove del committente, 23 settembre: il testo AIP non ripete il punto di partenza, e il
+    /// .tfl perdeva la sua forma). La scelta la dà la casella «Chiudi la forma» (24 settembre).</param>
     public object IncollaVertici(FileAperto file, int indice, string campo, string? testo, string etichetta = "",
-                                 double puntiPerGrado = 1.0)
+                                 double puntiPerGrado = 1.0, bool? chiudi = null)
         => Gesto(file, indice, campo, etichetta, "vertici incollati", vertici =>
         {
             // La stessa lettura dell'anteprima: quel che la scheda mostrava è quel che si incolla.
-            var letto = TestoDaIncollare.Leggi(testo, puntiPerGrado);
+            var letto = TestoDaIncollare.Leggi(testo, puntiPerGrado, chiudi ?? ElencoChiuso(vertici));
             if (letto.Rifiuto is { } rifiuto)
                 return new ModificaRifiutata(rifiuto);
 
-            var punti = letto.Punti;
-            // Se l'elenco di prima si chiudeva ripetendo il primo punto in fondo (è la forma dei .tfl del sector),
-            // si chiude così anche quello incollato: il testo AIP di solito non ripete il punto di partenza, e il file
-            // perdeva la sua forma (prove a mano del committente, 23 settembre).
-            bool eraChiuso = vertici.Quanti >= 3 && vertici.Scrivi(0) == vertici.Scrivi(vertici.Quanti - 1);
             vertici.Elenco.Clear();
-            foreach (var (lat, lon) in punti)
+            foreach (var (lat, lon) in letto.Punti)
                 vertici.Elenco.Add(vertici.Fabbrica(Punto.Da(new Coordinate(lat, lon)), vecchio: null));
-            if (eraChiuso && vertici.Quanti >= 2 && vertici.Scrivi(0) != vertici.Scrivi(vertici.Quanti - 1))
-                vertici.Elenco.Add(vertici.Fabbrica(Punto.Da(new Coordinate(punti[0].Lat, punti[0].Lon)), vecchio: null));
 
             return null;
         });
+
+    /// <summary>Vero se l'elenco si chiude ripetendo il primo punto in fondo: è il punto di partenza della casella.</summary>
+    public static bool ElencoChiuso(ElencoDiVertici vertici)
+    {
+        ArgumentNullException.ThrowIfNull(vertici);
+        return vertici.Quanti >= 3 && vertici.Scrivi(0) == vertici.Scrivi(vertici.Quanti - 1);
+    }
 
     /// <summary>Il giro comune dei gesti sui vertici: trova l'elenco, fotografa com'era, fa il gesto, registra.</summary>
     private object Gesto(FileAperto file, int indice, string campo, string etichetta, string cosa,

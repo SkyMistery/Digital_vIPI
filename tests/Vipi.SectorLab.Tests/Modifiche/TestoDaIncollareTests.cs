@@ -59,6 +59,33 @@ public sealed class TestoDaIncollareTests : IDisposable
     }
 
     [Fact]
+    public void ChiudiRipeteIlPrimoPuntoEApertoLoToglie()
+    {
+        // La scelta dell'AOD (committente, 24 settembre): chiusa come un .tfl, o aperta come una mappa di uno .str.
+        var comE = TestoDaIncollare.Leggi(TestoAip, 1.0);
+        var chiusa = TestoDaIncollare.Leggi(TestoAip, 1.0, chiudi: true);
+        var riaperta = TestoDaIncollare.Leggi(string.Join('\n', chiusa.Punti.Select(p =>
+            $"{p.Lat.ToString(System.Globalization.CultureInfo.InvariantCulture)} {p.Lon.ToString(System.Globalization.CultureInfo.InvariantCulture)}")), 1.0, chiudi: false);
+
+        Assert.False(comE.Chiusa);
+        Assert.True(chiusa.Chiusa);
+        Assert.Equal(comE.Punti.Count + 1, chiusa.Punti.Count);
+        Assert.False(riaperta.Chiusa);
+    }
+
+    [Fact]
+    public void UnaFormaChiusaSiPuoIncollareAperta()
+    {
+        var file = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!).File[Settore];
+        var vertici = ElenchiDiVertici.Uno(file, 0, "Vertices")!;
+        Assert.True(ModificheInSospeso.ElencoChiuso(vertici));
+
+        Assert.IsType<ModificaDeiVertici>(new ModificheInSospeso().IncollaVertici(file, 0, "Vertices", TestoAip, puntiPerGrado: 0.5, chiudi: false));
+
+        Assert.False(ModificheInSospeso.ElencoChiuso(vertici));
+    }
+
+    [Fact]
     public void QuelCheSiVedeEQuelCheSiIncolla()
     {
         var file = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!).File[Settore];

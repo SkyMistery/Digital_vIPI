@@ -831,10 +831,13 @@ public sealed class SessioneDelLab
     /// <param name="puntiPerGrado">Solo per «incolla»: quanto fitti gli archi; di base la stima del record o del file
     /// (<see cref="DensitaDegliArchiDi"/>).</param>
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
-                                int posizione = 0, string? testo = null, double? puntiPerGrado = null)
+                                int posizione = 0, string? testo = null, double? puntiPerGrado = null, bool? chiudi = null)
     {
         // La densità si fissa ADESSO: rigiocato più tardi, il gesto deve dare gli stessi punti anche se la stima è cambiata.
         double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record) : null;
+        // Anche la chiusura si fissa adesso: rigiocato dopo altri gesti, l'elenco di partenza potrebbe essere un altro.
+        if (gesto == GestoDeiVertici.Incolla)
+            chiudi ??= ElencoChiuso(fileRelativo, record, campo);
         string cosa = gesto switch
         {
             GestoDeiVertici.Cambia => "vertice spostato",
@@ -843,14 +846,14 @@ public sealed class SessioneDelLab
             _ => "vertici incollati",
         };
         bool fatto = NellaStoria($"{cosa} in {EtichettaDi(fileRelativo, record)}",
-            () => GestoSuiVerticiAdesso(fileRelativo, record, campo, gesto, posizione, testo, densita));
+            () => GestoSuiVerticiAdesso(fileRelativo, record, campo, gesto, posizione, testo, densita, chiudi));
         if (fatto && gesto == GestoDeiVertici.Incolla)
             TogliLAnteprima();
         return fatto;
     }
 
     private bool GestoSuiVerticiAdesso(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
-                                       int posizione, string? testo, double? puntiPerGrado)
+                                       int posizione, string? testo, double? puntiPerGrado, bool? chiudi)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
             return false;
@@ -862,7 +865,7 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
             _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta,
-                                          puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record)),
+                                          puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record), chiudi),
         };
         Registro.Scrivi("vertici", $"{fileRelativo}#{record} {campo} {gesto} {posizione}"
                                    + (gesto == GestoDeiVertici.Incolla ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
@@ -1139,7 +1142,7 @@ public sealed class SessioneDelLab
     public int VersioneDellAnteprima { get; private set; }
 
     /// <summary>Legge il testo e ne fa l'anteprima; un testo vuoto la toglie.</summary>
-    public void MostraLAnteprima(string fileRelativo, int record, string campo, string? testo, double puntiPerGrado)
+    public void MostraLAnteprima(string fileRelativo, int record, string campo, string? testo, double puntiPerGrado, bool? chiudi = null)
     {
         if (string.IsNullOrWhiteSpace(testo) || puntiPerGrado <= 0)
         {
@@ -1147,10 +1150,15 @@ public sealed class SessioneDelLab
             return;
         }
 
-        Anteprima = new AnteprimaDiIncolla(fileRelativo, record, campo, puntiPerGrado, TestoDaIncollare.Leggi(testo, puntiPerGrado));
+        Anteprima = new AnteprimaDiIncolla(fileRelativo, record, campo, puntiPerGrado, TestoDaIncollare.Leggi(testo, puntiPerGrado, chiudi ?? ElencoChiuso(fileRelativo, record, campo)));
         VersioneDellAnteprima++;
         Avvisa();
     }
+
+    /// <summary>Se l'elenco di vertici di oggi è chiuso (l'ultimo punto ripete il primo): la casella «Chiudi la forma» parte da qui.</summary>
+    public bool ElencoChiuso(string fileRelativo, int record, string campo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file && ElenchiDiVertici.Uno(file, record, campo) is { } elenco
+           && ModificheInSospeso.ElencoChiuso(elenco);
 
     public void TogliLAnteprima()
     {

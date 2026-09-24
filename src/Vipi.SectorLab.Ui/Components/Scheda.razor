@@ -142,6 +142,11 @@
                                data-campo="gradi-per-punto" /><span>°</span>
                     </span>
                 </label>
+                @* Chiusa o aperta: la sceglie l'AOD (committente, 24 settembre). Parte da com'è la forma di oggi. *@
+                <label class="lab-nota lab-chiudi" title="La forma si chiude ripetendo il primo punto in fondo, come i settori dei .tfl. Senza, resta una linea aperta (come le mappe degli .str).">
+                    <input type="checkbox" checked="@Chiudi(scheda, chiave)" @onchange="e => CambiaChiudi(scheda, chiave, e.Value is true)" data-campo="chiudi" />
+                    Chiudi la forma (l'ultimo punto ripete il primo)
+                </label>
                 @if (Lab.Anteprima is { } anteprima && anteprima.File == scheda.File && anteprima.Record == scheda.Indice && anteprima.Campo == chiave)
                 {
                     <AnteprimaDelDisegno Letto="anteprima.Letto" Oggi="scheda.Forma?.Tratti" />
@@ -247,7 +252,7 @@ else
     {
         double puntiPerGrado = 1 / GradiPerPunto(scheda);
         if (Lab.GestoSuiVertici(scheda.File, scheda.Indice, campo, GestoDeiVertici.Incolla, testo: _daIncollare,
-                                puntiPerGrado: puntiPerGrado))
+                                puntiPerGrado: puntiPerGrado, chiudi: Chiudi(scheda, campo)))
             _daIncollare = null;
     }
 
@@ -256,7 +261,20 @@ else
     {
         _perQuale = campo;
         _daIncollare = testo;
-        Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, testo, 1 / GradiPerPunto(scheda));
+        Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, testo, 1 / GradiPerPunto(scheda), Chiudi(scheda, campo));
+    }
+
+    /// <summary>La scelta «chiudi la forma» per QUELL'elenco; null = com'è la forma di oggi.</summary>
+    private readonly Dictionary<(string File, int Record, string Campo), bool> _chiudi = [];
+
+    private bool Chiudi(SchedaDelRecord scheda, string campo)
+        => _chiudi.TryGetValue((scheda.File, scheda.Indice, campo), out bool scelto) ? scelto : Lab.ElencoChiuso(scheda.File, scheda.Indice, campo);
+
+    private void CambiaChiudi(SchedaDelRecord scheda, string campo, bool chiudi)
+    {
+        _chiudi[(scheda.File, scheda.Indice, campo)] = chiudi;
+        if (_perQuale == campo && !string.IsNullOrWhiteSpace(_daIncollare))
+            Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, _daIncollare, 1 / GradiPerPunto(scheda), chiudi);
     }
 
     /// <summary>La densità degli archi cambiata: l'anteprima si rifà subito, così si vede come cambia la forma.</summary>
@@ -267,7 +285,7 @@ else
             return;
         _gradi = g;
         if (_perQuale == campo && !string.IsNullOrWhiteSpace(_daIncollare))
-            Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, _daIncollare, 1 / GradiPerPunto(scheda));
+            Lab.MostraLAnteprima(scheda.File, scheda.Indice, campo, _daIncollare, 1 / GradiPerPunto(scheda), Chiudi(scheda, campo));
     }
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
