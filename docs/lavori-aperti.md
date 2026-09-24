@@ -33,7 +33,22 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A122 — Pacchetto 1.45.0: la lista «Da fare» per cambiamento (24 settembre 2026) — PRONTO DA CARICARE
+### ✅ A122 — 1.45.0 ONLINE: la lista «Da fare» per cambiamento (24 settembre 2026)
+
+✅ Il committente conferma timbro `1.45.0 · 7bd3bda`, `Schema 0`, i tre tasti di «Da sistemare» e la Ricerca che
+risponde. Avvio buono 06:36:06 UTC, «migrazione del database» 2552 ms; processo finale (2368144) senza errori né
+avvisi, 11 richieste tutte buone, nessuna voce in `errori-richieste`.
+
+- ⚠️ **Un avvio FALLITO durante il carico** (06:35:42, `avvio-errore.txt`): `FileNotFoundException` su
+  `Vipi.Infrastructure` in `VipiDataProtection.AddVipiDataProtection`. Un ping di Passenger ha avviato il sito
+  mentre `Vipi.Infrastructure.dll` era fra il nome finto e quello vero; seguono due avvii di assestamento (06:35:55,
+  06:36:06). Transitorio, sparito da sé; nessuna azione. Lo stesso rischio vale per ogni carico con più assiemi.
+- 🔎 **Scoperto, NON della 1.45.0: la Ricerca dà sempre «0 results»** (produzione da anonimo: LIRF, PISIP,
+  Brindisi, radar). Stesso esito in locale su 1.44.1 **e** 1.45.0 con la stessa copia del DB (da amministratore):
+  quindi c'era già. La verifica di consegna («la riga sotto il campo cambia») passa lo stesso, perché «0 results for
+  …» è una riga cambiata: **il controllo non distingue una ricerca che trova da una che non trova**. Da indagare
+  (`EfSearchRepository` legge l'indice `IndiceDelleRelease` delle release in vigore).
+- 🔴 `pacchetto-verifica.js` non parte (Edge headless «Code: 0»): verifica da fuori fatta a mano col browser integrato.
 
 MINOR, **una migrazione additiva** (`20260923195956_CausaDelleSegnalazioni`: `CauseKey` + `CauseArgsJson` nullable
 su `DocumentImpacts`, gemella SQLite `20260923195948`), su 1.44.1 (`ce8a59f`). Timbro **`1.45.0 · 7bd3bda`**.
