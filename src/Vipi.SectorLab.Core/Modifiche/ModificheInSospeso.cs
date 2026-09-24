@@ -659,7 +659,8 @@ public sealed class ModificheInSospeso
     /// struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna la modifica, con l'indice del nuovo in coda.
     /// </summary>
     /// <param name="nome">Per i record col nome (<see cref="OrdineAlfabetico"/>): il nome del nuovo, che va al suo posto
-    /// in ordine alfabetico nella sezione del modello invece che subito sotto di lui. Null = sotto il modello.</param>
+    /// in ordine alfabetico nella sezione del suo vicino per nome (non per forza quella del modello, che dà solo la
+    /// forma) invece che subito sotto il modello. Null = sotto il modello.</param>
     public object AggiungiRecord(FileAperto file, int indice, string? nome = null)
     {
         ArgumentNullException.ThrowIfNull(file);
@@ -676,7 +677,9 @@ public sealed class ModificheInSospeso
                 return new ModificaRifiutata("Questi record non hanno un nome da mettere in ordine.");
             if (OrdineAlfabetico.PercheNonVa(nome) is { } perche)
                 return new ModificaRifiutata(perche);
-            (dopo, primaDi) = OrdineAlfabetico.Posto(conRecord, indice, nome);
+            // La sezione la decide il NOME, non il record scelto: «+ Record come questo» da un fix di LIBC chiamato
+            // BD430 va fra i BD di LIBD (prove 40-41 del committente). Dal record scelto si copia solo la forma.
+            (dopo, primaDi) = OrdineAlfabetico.Posto(conRecord, OrdineAlfabetico.NellaSezioneGiusta(conRecord, indice, nome), nome);
             prepara = r => r.GetType().GetProperty(campo)!.SetValue(r, nome);
         }
 

@@ -161,6 +161,34 @@ public sealed class RigaAManoOrdineEVistaTests : IDisposable
     }
 
     [Fact]
+    public async Task ComeQuestoDaUnFixDiUnAltraSezioneVaDoveVaIlNome()
+    {
+        // Prova 40-41 del committente: «+ Record come questo» da un fix di LIBC, nome BD430 → finiva in fondo a LIBC.
+        await Apri();
+        int dilibc = _lab.EtichetteDi(Apt).ToList().FindIndex(e => e.StartsWith("BC", StringComparison.Ordinal));
+
+        Assert.True(_lab.AggiungiRecord(Apt, dilibc, "BD430"));
+
+        var etichette = _lab.EtichetteDi(Apt).ToList();
+        int nuovo = etichette.IndexOf("BD430");
+        Assert.StartsWith("BD", etichette[nuovo - 1], StringComparison.Ordinal);
+        Assert.True(string.CompareOrdinal(etichette[nuovo - 1], "BD430") < 0);
+        Assert.True(string.CompareOrdinal(etichette[nuovo + 1], "BD430") > 0);
+    }
+
+    [Fact]
+    public async Task NuovoDalFilePrimoDellaSezioneNonInFondoAllaPrecedente()
+    {
+        // Prova 40: «+ Nuovo record» BD100 — per alfabeto viene dopo l'ultimo BC, ma il suo posto è sotto //LIBD.
+        await Apri();
+
+        Assert.True(_lab.AggiungiAlFile(Apt, "BD100"));
+
+        var righe = _lab.RigheDiAdesso(Apt).ToList();
+        Assert.StartsWith("BD100;", righe[righe.IndexOf("//LIBD") + 1], StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task PrimoDellaSezioneStaSottoLIntestazione()
     {
         await Apri();

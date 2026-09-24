@@ -901,7 +901,8 @@ public sealed class SessioneDelLab
     /// vicini, e l'AOD cambia quel che deve.
     /// </summary>
     /// <param name="nome">Per i record col nome (fix, VOR, NDB, punti VFR): il nome del nuovo, che va al suo posto in
-    /// ordine alfabetico nella sezione del modello (prova 6 del committente). Null = subito sotto il modello.</param>
+    /// ordine alfabetico nella sezione dove lo mette il nome, anche se il modello sta in un'altra (prove 6 e 40-41 del
+    /// committente). Null = subito sotto il modello.</param>
     public bool AggiungiRecord(string fileRelativo, int record, string? nome = null)
         => NellaStoria(nome is null ? $"record aggiunto in {NomeDelFile(fileRelativo)}" : $"{nome} aggiunto in {NomeDelFile(fileRelativo)}",
             () => GestoDiStruttura(fileRelativo,

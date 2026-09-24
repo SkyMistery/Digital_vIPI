@@ -7,7 +7,8 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// Dove va un record nuovo che ha un nome: in ordine alfabetico, dentro la sua SEZIONE (committente, prova 6 del 23
 /// settembre: «i fix devono essere inseriti in ordine alfabetico, non sotto quello»). La sezione è il gruppo di record
 /// fra due commenti: in <c>APT.fix</c> i fix stanno sotto l'intestazione del loro scalo (<c>//LIBC</c>, <c>//LIBD</c>),
-/// e un fix di LIBD non va fra quelli di LIBC solo perché l'alfabeto lo metterebbe lì.
+/// e un fix di LIBD non va fra quelli di LIBC solo perché l'alfabeto lo metterebbe lì. Quale sezione lo dice il
+/// prefisso del nome (<see cref="NellaSezioneGiusta"/>), non il record da cui si parte.
 /// <para>Per ora solo i punti col nome (fix, VOR, NDB, punti VFR): l'ordine degli altri file si discute file per file
 /// col committente.</para>
 /// </summary>
@@ -56,6 +57,39 @@ public static class OrdineAlfabetico
         }
 
         return Math.Max(vicino, 0);
+    }
+
+    /// <summary>
+    /// Un record della sezione dove va un record chiamato <paramref name="nome"/>: quella i cui nomi hanno in comune
+    /// con lui il PREFISSO più lungo (in <c>APT.fix</c> <c>BD100</c> e <c>BD430</c> vanno sotto <c>//LIBD</c>, anche se
+    /// l'alfabeto metterebbe <c>BD100</c> dopo l'ultimo BC). A parità vince la sezione di <paramref name="modello"/>.
+    /// 🔴 Prove 40-41 del committente: con la sezione del record scelto, BD430 da un fix di LIBC finiva in fondo a LIBC.
+    /// </summary>
+    public static int NellaSezioneGiusta(IFileConRecord file, int modello, string nome)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        var sezioni = file.Sezioni();
+        int scelto = modello, meglio = -1;
+        for (int i = 0; i < file.RecordDelModello.Count; i++)
+        {
+            int suo = Prefisso(Nome(file.RecordDelModello[i]), nome);
+            bool aParitaNelModello = suo == meglio && sezioni[i] == sezioni[modello] && sezioni[scelto] != sezioni[modello];
+            if (suo > meglio || aParitaNelModello)
+            {
+                scelto = i;
+                meglio = suo;
+            }
+        }
+
+        return scelto;
+    }
+
+    private static int Prefisso(string a, string b)
+    {
+        int n = 0;
+        while (n < a.Length && n < b.Length && char.ToUpperInvariant(a[n]) == char.ToUpperInvariant(b[n]))
+            n++;
+        return n;
     }
 
     /// <summary>
