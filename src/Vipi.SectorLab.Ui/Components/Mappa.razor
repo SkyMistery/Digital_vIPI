@@ -109,7 +109,9 @@
         if (_versioneDellaVista != Lab.VersioneDellaVista || ridisegnato || spento || daAccendere.Count > 0)
         {
             _versioneDellaVista = Lab.VersioneDellaVista;
-            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.InVista.ToArray());
+            // 🔴 (object): un string[] passato da solo diventa gli ARGOMENTI (covarianza con object[]), una chiave per
+            // argomento — il JS riceveva una stringa, non un elenco, e la vista restava vuota (committente, 24 settembre).
+            await Js.InvokeVoidAsync("sectorlab.mappa.vista", (object)Lab.InVista.ToArray());
         }
 
         // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic

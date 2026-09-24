@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 355 (motore 479).
+Lab 356 (motore 479).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -121,6 +121,10 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   bUnit con una fetch che non finisce è rosso sul codice di prima. **(a)** archi a 5° di base (`GradiPerPuntoDiBase`), la
   stima dal file resta come indicazione. **(b)** `Sezione.razor`: titoli che chiudono/aprono, stato per CHIAVE nel Lab
   (`SezioneAperta`/`ApriOChiudi`). Lab 355.
+
+- 24 settembre: 🔴 «Solo questo sulla mappa» svuotava la mappa. `InvokeVoidAsync("…vista", string[])`: lo string[] per
+  covarianza diventa l'object[] degli ARGOMENTI → una chiave per argomento, il JS riceveva una stringa. Ora `(object)`;
+  test bUnit sulla forma della chiamata (rosso senza). I test di prima guardavano la sessione, non la chiamata. Lab 356.
 
 ### Aperto, da chiedere o dire al committente
 

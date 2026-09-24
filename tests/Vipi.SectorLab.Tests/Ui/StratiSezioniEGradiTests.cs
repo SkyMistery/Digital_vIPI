@@ -100,6 +100,24 @@ public sealed class StratiSezioniEGradiTests : IDisposable
     }
 
     [Fact]
+    public async Task LaVistaArrivaAllaMappaComeUnElencoSolo()
+    {
+        // 🔴 Il difetto: un string[] passato a InvokeVoidAsync diventava un argomento per chiave; il JS riceveva la prima
+        // chiave come stringa e cercava le forme lettera per lettera — la mappa si svuotava (committente, 24 settembre).
+        var pagina = await ConUnSettoreScelto();
+        var scelta = _lab.Scelta!.Value;
+
+        pagina.Find("[data-tasto='vista-record']").Click();
+
+        pagina.WaitForAssertion(() =>
+        {
+            var chiamata = _contesto.JSInterop.Invocations.Last(i => i.Identifier == "sectorlab.mappa.vista");
+            var chiavi = Assert.IsAssignableFrom<IEnumerable<string>>(Assert.Single(chiamata.Arguments));
+            Assert.Equal([$"{scelta.File}#{scelta.Record}"], chiavi);
+        });
+    }
+
+    [Fact]
     public async Task GliArchiSonoAUnPuntoOgni5GradiDiBase()
     {
         var pagina = await ConUnSettoreScelto();
