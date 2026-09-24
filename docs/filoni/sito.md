@@ -135,5 +135,9 @@
     ogni variante (`headless` new/true/shell, profilo pulito, `pipe` → «Target closed»). Da riga di comando
     `msedge --headless=new --dump-dom` funziona, e nessun criterio di Edge vieta il controllo remoto. È l'ambiente,
     non il codice: sintassi controllata (`node --check`), selettori provati a mano.
+- 🟢 **Stato 24-set: PRONTO DA FONDERE** — S7 (`Ricerca: parte dal cambio del testo`) e S8 (`Verifica di consegna`),
+  CI verde su `sito/lavori` (corse 35973468894, 35974009415). Nessuna migrazione. Nel pacchetto: `Vipi.Ui.dll`
+  (SearchPage). Resta all'integratore: fondere, la frase nuova in `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md` e
+  nel foglio del prossimo pacchetto, voce §A in `lavori-aperti.md`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Nessun lavoro aperto noto nel filone; guardare `da-fare.md`.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
