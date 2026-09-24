@@ -213,7 +213,11 @@ Si avvia l'exe **dalla sua cartella** (la content root è la directory corrente:
 senza CSS né JS) e si guida con Edge — skill `verifica-live`. Cosa guardare, oltre alla schermata:
 
 - il file minificato **arriva** e il circuito si apre;
-- **la Ricerca risponde**: `/services/vsop/search`, due lettere, la riga sotto il campo deve cambiare;
+- **la Ricerca trova**: `/services/vsop/search`, si scrive **`LIRF`** e deve uscire **almeno un documento**
+  (le voci della Guida, col libro, non contano: rispondono anche a database vuoto). ⚠️ Non basta che la riga sotto
+  il campo cambi: anche «0 results for …» è una riga che cambia, e per settimane questo controllo è stato verde su una
+  ricerca che a schermo diceva zero (S8, 24 settembre 2026). `pacchetto-verifica.js` lo fa da sé: il termine è
+  `TERMINE` in cima allo script, col suo perché;
 - il processo **ucciso e riavviato** → la pagina si ricarica da sola;
 - `diagnostica/avvio-diagnostica.txt` dice la **versione giusta**.
 
@@ -228,7 +232,12 @@ node .claude/skills/verifica-live/pacchetto-verifica.js
 
 ⚠️ **Non fermarsi al timbro.** `avvio-diagnostica.txt` dice quale versione è partita, non che il sito
 **funzioni**: da 1.1.0 un caricamento incompleto dà un sito che si vede intero e non risponde a niente, e
-il timbro lì sarebbe giusto lo stesso. Il controllo che conta è **la Ricerca**, perché passa dal server.
+il timbro lì sarebbe giusto lo stesso. Il controllo che conta è **la Ricerca**, perché passa dal server — e deve
+**trovare** (`LIRF` → almeno un documento), non solo rispondere.
+
+⚠️ **Se il controllo dice «termine di prova da cambiare»**, il sito ha risposto: è `LIRF` che non si trova fra i
+documenti pubblici. Se i documenti di Roma e di LIRF sono ancora pubblicati è la ricerca a non trovare (difetto
+da aprire), altrimenti si sceglie un altro termine e si cambia `TERMINE` nello script (o `TERMINE=… node …`).
 
 ⚠️ **E un `200` su una pagina riservata non vuol dire che sia aperta.** In questo prodotto i cancelli si
 **disegnano** — «Accesso riservato» nel corpo, e nessun dato — non si restituiscono come stato HTTP. Chi
@@ -248,6 +257,11 @@ cose che un controllo normale non prende. Per 1.1.0 erano due — non riavviare 
 della lingua è un `<a>`, lo zoom e il tema sono JavaScript di pagina, e **funzionano lo stesso** su un sito
 in cui Blazor non è mai partito. Va scelto un comando che passa dal **server** — oggi la Ricerca — e va
 **provato nei due modi** prima di scriverlo nel foglio.
+
+La frase del foglio, da copiare così dal 24 settembre 2026 (prima diceva «due lettere, la riga deve cambiare»):
+
+> `https://atc.it.ivao.aero/services/vsop/search`, scrivete **`LIRF`**: devono comparire **dei documenti** (vIPI
+> Roma, LIRF…), non solo la riga «N risultati». «0 risultati per LIRF» è un **guasto**, anche se la riga è cambiata.
 
 ### 8. Scrivere dove si è arrivati
 
@@ -270,5 +284,6 @@ binario: il timbro nasce dal commit al momento del publish, e va scritto quale.
 | la prova | si fa sul pacchetto pubblicato, non sul sorgente |
 | il riavvio | `tmp/restart.txt` **e poi si apre il sito una volta**, o Passenger non se ne accorge |
 | il timbro non basta | dice quale versione è partita, non che il sito risponda: il controllo è **la Ricerca** |
+| la Ricerca che «risponde» | «0 results for …» è una riga che cambia: si pretende **almeno un documento** per `LIRF` |
 | un 200 su una pagina riservata | i cancelli si **disegnano**: si guarda il corpo, non lo stato HTTP |
 | la Guida | sta DENTRO `Vipi.Ui.dll` (`GuidaPage.razor`): si scrive **prima** del publish. Su 1.34.0 il primo publish ne era senza, e si è rifatto tutto (timbro, impronte, zip, prova) |

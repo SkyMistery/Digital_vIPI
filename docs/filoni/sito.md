@@ -100,5 +100,44 @@
   SEMPRE visibile, 2px `--brand-ink` al 70%; piena e larga 4px sotto il mouse e mentre si trascina (solo quella
   presa, `:active`). `--brand-ink` e non `--ivao-lightblue`: sul tema scuro il blu al 60% misurava ~1,5:1 sullo
   sfondo dell'intestazione, `--brand-ink` ~3,3:1; sul chiaro è il blu IVAO scuro su bianco.
+- ✅ **S7** la Ricerca «non trova niente» (dalla coda `da-fare.md`, 24-set). **La ricerca non era rotta: partiva solo
+  coi tasti.** `SearchPage` aggiornava il testo a `input` (`@bind:event="oninput"`) ma cercava a `keyup` (`@onkeyup`).
+  Tutto ciò che scrive senza tasti — incolla col mouse, completamento automatico, testo trascinato, e le prove via
+  script col browser integrato (Edge automatico non parte) — lasciava la parola NUOVA col conteggio VECCHIO.
+  - **Misurato in produzione** (da anonimo, sola lettura, 24-set): `?q=Brindisi` → 16; campo con `input`+`keyup` →
+    LIRF 13, radar 19, Brindisi 16; barra in alto → PISIP 1; **solo `input`** → «0 results for Brindisi», e appena
+    arriva un `keyup` → 16. In locale (copia del 15-set) idem: 4 per Brindisi. Indice, `AccCode`, testa della
+    release in vigore: tutti a posto, non c'entravano.
+  - ⚠️ Occhio nelle prove: in pagina ci sono **due** campi con lo stesso segnaposto, quello della barra in alto
+    (`form.top-search`, GET verso `/search?q=`) e quello della pagina (`.wrap input`). Scrivere nel primo non
+    tocca la pagina.
+  - **Correzione**: la ricerca parte da `@bind:after` (il cambio del testo), con la stessa pausa di 200 ms e la
+    stessa porta (`InFilaAsync`, un giro alla volta). Tolto `@onkeyup`.
+  - **Test**: `RicercaUnaAllaVoltaTests.Il_testo_arrivato_senza_tasti_cerca_lo_stesso`, rosso sul codice di prima;
+    quello delle ricerche sovrapposte ora scrive solo con `input`. Ui 1699 → **1700**.
+  - **Dal vivo** (locale, dopo la correzione): solo `input` → «4 risultati per Brindisi», «5 risultati per radar».
+- ✅ **S8** la verifica di consegna pretende un risultato (dalla coda `da-fare.md`, 24-set).
+  - `pacchetto-verifica.js`: scrive **`LIRF`** (costante `TERMINE`, col perché; sovrascrivibile da fuori) e, dopo
+    «la Ricerca risponde», un controllo nuovo **«la Ricerca trova LIRF fra i documenti pubblici»**: conta i
+    `.res-row` che NON portano alla Guida (le voci della Guida escono da un catalogo in memoria e ci sarebbero anche
+    a database vuoto). Zero documenti con la ricerca che ha risposto → «termine di prova da cambiare, oppure la ricerca
+    non trova», non «sito rotto». Prima scriveva `LI`, che trova anche la Guida.
+  - Selettori provati sulla pagina VERA di produzione (browser integrato, sola lettura): LIRF → 13 documenti, 0 Guida.
+  - 🔎 **Trovato strada facendo**: la pagina riconosceva le voci della Guida dal testo «Guida ›», e in inglese la
+    Guida scrive «Guide ›»: in inglese perdevano il libro e sembravano documenti. Ora `IsGuide` guarda l'indirizzo
+    (`/services/vsop/guide`). Test `Una_voce_della_Guida_in_inglese_resta_una_voce_della_Guida`, rosso con la
+    regola di prima. Ui 1700 → **1701**.
+  - Runbook `docs/guide/preparare-un-pacchetto.md` §6, §6-bis, §7 e trappole: «la Ricerca TROVA», e la frase del
+    foglio da copiare. ⚠️ **Per l'integratore** (`deploy/` è suo): `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md`
+    riga «scrivendo `LI` nel campo … deve cambiare» va portata alla frase nuova, e così il foglio del prossimo
+    pacchetto.
+  - ⚠️ `pacchetto-verifica.js` **non l'ho potuto lanciare**: Edge 153 in modalità automatica si chiude subito, con
+    ogni variante (`headless` new/true/shell, profilo pulito, `pipe` → «Target closed»). Da riga di comando
+    `msedge --headless=new --dump-dom` funziona, e nessun criterio di Edge vieta il controllo remoto. È l'ambiente,
+    non il codice: sintassi controllata (`node --check`), selettori provati a mano.
+- 🟢 **Stato 24-set: PRONTO DA FONDERE** — S7 (`Ricerca: parte dal cambio del testo`) e S8 (`Verifica di consegna`),
+  CI verde su `sito/lavori` (corse 35973468894, 35974009415). Nessuna migrazione. Nel pacchetto: `Vipi.Ui.dll`
+  (SearchPage). Resta all'integratore: fondere, la frase nuova in `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md` e
+  nel foglio del prossimo pacchetto, voce §A in `lavori-aperti.md`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Nessun lavoro aperto noto nel filone; guardare `da-fare.md`.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

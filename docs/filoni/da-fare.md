@@ -6,7 +6,7 @@
 
 ## Sito
 
-### La Ricerca non trova niente — ⏳ da prendere (assegnato il 24 settembre 2026, prima dell'altro qui sotto)
+### La Ricerca non trova niente — ✅ preso dal sito come **S7** il 24 settembre 2026 (vedi [`sito.md`](sito.md)): partiva solo coi tasti
 
 **Cosa si è visto** (`docs/lavori-aperti.md` §A122). In produzione, da anonimo, `/services/vsop/search` risponde
 «0 results» a qualunque parola: LIRF, PISIP, Brindisi, radar. In locale, sulla stessa copia del DB di sviluppo e da
@@ -25,7 +25,7 @@ amministratore, **1.44.1 e 1.45.0 danno lo stesso** «0 results for Brindisi»: 
 
 **Da decidere col committente solo se la causa lo chiede** (per esempio: che cosa deve trovare un anonimo).
 
-### Il controllo di consegna deve pretendere un risultato — ⏳ da prendere (assegnato il 24 settembre 2026)
+### Il controllo di consegna deve pretendere un risultato — ✅ preso dal sito come **S8** il 24 settembre 2026 (vedi [`sito.md`](sito.md))
 
 **Cosa.** `.claude/skills/verifica-live/pacchetto-verifica.js` e il passo «la Ricerca» dei fogli
 `deploy/atc-ivao/LEGGIMI-PACCHETTO-*.md` controllano solo che **la riga sotto il campo cambi**. Anche «0 results
