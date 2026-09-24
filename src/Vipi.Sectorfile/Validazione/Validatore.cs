@@ -299,6 +299,12 @@ public static partial class Validatore
                         $"settore {settore.SectorCode}: {settore.Vertices.Count} vertici"));
                 }
 
+                if (EstremiDellaForma(rec.Record) is { } forma && QuasiChiusa(forma.Primo, forma.Ultimo) is { } perche)
+                {
+                    problemi.Add(new(Regola.FormaQuasiChiusa, string.Empty, primaRiga, rec.RawLines[0],
+                        $"{forma.Nome}: primo punto {CoordinateConverter.ToDottedDms(forma.Primo)}, ultimo {CoordinateConverter.ToDottedDms(forma.Ultimo)} — {perche}"));
+                }
+
                 numero += rec.RawLines.Length + (rec.HasMarkers ? 1 : 0);
             }
 
@@ -344,6 +350,42 @@ public static partial class Validatore
 
             return new EsitoDelFile(problemi, usati, dichiarati, letto.Records.Cast<object>().ToList());
         }
+    }
+
+    /// <summary>Il primo e l'ultimo punto delle forme che si chiudono (o dovrebbero): almeno 3 punti, tutti e due per coordinate.</summary>
+    private static (string Nome, Coordinate Primo, Coordinate Ultimo)? EstremiDellaForma(object record)
+    {
+        (string Nome, IReadOnlyList<Coordinate?> Punti)? forma = record switch
+        {
+            TflSector s => (s.SectorCode, s.Vertices.Select(v => v.Posizione).ToList()),
+            GeometricStrRecord z => (z.ProcedureId.Trim(), z.Segments.SelectMany(g => g.Points).Select(c => (Coordinate?)c).ToList()),
+            MvaSector m => (m.AltLabel, m.Vertices.Select(v => v.Position.Posizione).ToList()),
+            Polygon p => (p.FillColor, p.Vertices.Select(c => (Coordinate?)c).ToList()),
+            _ => null,
+        };
+        return forma is { Punti.Count: >= 3 } f && f.Punti[0] is { } primo && f.Punti[^1] is { } ultimo
+            ? (f.Nome, primo, ultimo)
+            : null;
+    }
+
+    /// <summary>
+    /// Perché primo e ultimo punto sembrano voler coincidere senza coincidere: scritti, differiscono per UNA cifra (il
+    /// refuso tipico). Null se coincidono, se la differenza è un arrotondamento, o se sono punti diversi davvero.
+    /// </summary>
+    internal static string? QuasiChiusa(Coordinate primo, Coordinate ultimo)
+    {
+        string a = CoordinateConverter.ToDottedDms(primo);
+        string b = CoordinateConverter.ToDottedDms(ultimo);
+        double metri = Metri(primo, ultimo);
+        // Sotto i 100 m è la stessa chiusura scritta con un arrotondamento (sul fork del 24 settembre: 1 598 forme a pochi
+        // metri, quasi tutte settori .tfl, che Aurora chiude da sé): a vista è chiusa, e segnalarla sarebbe rumore.
+        if (a == b || metri < 100)
+            return null;
+        // Solo il refuso: una cifra. «Vicini ma diversi» (sotto mezzo miglio) dava 367 avvisi sul fork, quasi tutti
+        // settori il cui ultimo lato è corto e basta — un poligono non ripete per forza il primo punto.
+        return a.Length == b.Length && a.Zip(b).Count(c => c.First != c.Second) == 1
+            ? $"differiscono per una sola cifra, a {(metri / 1852).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} NM l'uno dall'altro"
+            : null;
     }
 
     // Il nome (o i nomi) col quale un record entra in un catalogo: sta in Models/Catalog/Cataloghi.cs, perché lo

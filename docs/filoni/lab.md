@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 351 (motore 474).
+Lab 351 (motore 479).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -109,6 +109,11 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   chiusura sta in `TestoDaIncollare.Leggi(…, chiudi)`, una sola lettura per anteprima e incolla. Lab 351. Ripubblicato
   10:14 (PROVE.md 45-46).
 
+- 24 settembre, regola **`FormaQuasiChiusa`** (avviso, codice comune `Validazione/Validatore.cs`): primo e ultimo punto di
+  settori `.tfl`, zone `.str`, MVA e poligoni che scritti differiscono per UNA cifra (sopra i 100 m). Misurata sul fork:
+  «a meno di mezzo miglio» dava 367 avvisi (settori con l'ultimo lato corto), «sotto i 100 m» 1 598 (arrotondamenti);
+  la sola cifra dà **1**: `lirn.str:63` LIRN ATZ, il refuso della prova 10. Motore 479. PROVE.md 47.
+
 ### Aperto, da chiedere o dire al committente
 
 - ❓ **Nomi di procedura con spazi** (63 su 1169: `RNP10 UPETI` di `lica.str`, le rotte `AAR …` di `lizz.str`): oggi
@@ -121,7 +126,7 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 
 `Vipi.Sectorfile`: `Validazione/CopieGemelle.cs`, `Regola.CopieDiverse`, `Regola.CompostaConProceduraAssente`,
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
-`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set). `tools/Vipi.SectorfileProva` (sezione
+`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
 
 ### Dove lavorare

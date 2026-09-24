@@ -48,6 +48,50 @@ public sealed class ValidatoreTests : IDisposable
         Assert.Equal((Regola.CampoVuoto, "campo 2 vuoto"), (problema.Regola, problema.Dettaglio));
     }
 
+    // Il refuso del committente (24 settembre, lirn.str «LIRN ATZ»): il primo punto a N041 invece di N040, e la mappa
+    // che doveva chiudersi resta aperta di 60 NM. Una cifra sola → avviso sull'intestazione.
+    [Fact]
+    public void UnaFormaChiusaPerUnaCifraEQuasiChiusa()
+    {
+        var problemi = Valida("lirn.str",
+            "LIRN;MAPS;LIRN ATZ; ; ;5;",
+            "N041.52.31.000;E014.07.36.000;",
+            "N041.00.28.000;E014.15.47.000;",
+            "N040.47.05.000;E014.20.47.000;",
+            "N040.52.31.000;E014.07.36.000;");
+
+        var problema = Assert.Single(problemi, p => p.Regola == Regola.FormaQuasiChiusa);
+        Assert.Equal((1, Gravita.Avviso), (problema.Riga, problema.Gravita));
+        Assert.Contains("una sola cifra", problema.Dettaglio);
+        Assert.StartsWith("LIRN ATZ:", problema.Dettaglio, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    // chiusa davvero
+    [InlineData("N040.52.31.000;E014.07.36.000;")]
+    // un arrotondamento: 2 m (sul fork 1 598 forme così, chiuse a vista)
+    [InlineData("N040.52.31.030;E014.07.36.000;")]
+    // aperta di proposito: un punto qualunque
+    [InlineData("N040.45.34.000;E014.17.35.000;")]
+    public void NonEQuasiChiusaSeChiusaArrotondataOLontana(string ultimo)
+        => Assert.DoesNotContain(
+            Valida("lirn.str", "LIRN;MAPS;LIRN ATZ; ; ;5;", "N040.52.31.000;E014.07.36.000;", "N041.00.28.000;E014.15.47.000;",
+                   "N040.47.05.000;E014.20.47.000;", ultimo),
+            p => p.Regola == Regola.FormaQuasiChiusa);
+
+    [Fact]
+    public void AncheUnSettoreDelTflSiControlla()
+    {
+        var problemi = Valida("twrs.tfl",
+            "LIRN_TWR;TWR;1;TWR;1;",
+            "N040.52.31.000;E014.07.36.000;",
+            "N041.00.28.000;E014.15.47.000;",
+            "N040.47.05.000;E014.20.47.000;",
+            "N040.52.31.000;E015.07.36.000;");
+
+        Assert.Contains(problemi, p => p.Regola == Regola.FormaQuasiChiusa && p.Dettaglio.StartsWith("LIRN_TWR:", StringComparison.Ordinal));
+    }
+
     // La frequenza vuota di un .vor è un TACAN (slice 9): nessun problema.
     [Fact]
     public void UnTacanSenzaFrequenzaNonEUnProblema()

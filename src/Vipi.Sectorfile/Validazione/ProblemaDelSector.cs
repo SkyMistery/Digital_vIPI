@@ -76,6 +76,13 @@ public enum Regola
     /// cambiata fuori dal Lab (F3-bis §2.2).
     /// </summary>
     CompostaNonAllineata,
+
+    /// <summary>
+    /// Una forma (settore, zona di uno .str, MVA, poligono) il cui ultimo punto QUASI ripete il primo: diverso per una
+    /// sola cifra (<c>N041.52.31</c> contro <c>N040.52.31</c>, il refuso del committente del 24 settembre in
+    /// <c>lirn.str</c> «LIRN ATZ»). Aperta o chiusa per sbaglio: Aurora la disegna com'è.
+    /// </summary>
+    FormaQuasiChiusa,
 }
 
 public enum Gravita
@@ -96,7 +103,7 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse or Regola.CompostaNonAllineata => Validazione.Gravita.Avviso,
+            or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }
