@@ -24,6 +24,7 @@
     /// <summary>La versione di ogni strato quando l'ha disegnato: se il Lab ne ha una più nuova, lo strato si riprende.</summary>
     private readonly Dictionary<string, int> _versioni = new(StringComparer.Ordinal);
     private int _versioneDellAnteprima;
+    private int _versioneDellaVista;
     private int _inquadrature;
 
     protected override void OnInitialized() => Lab.Cambiata += Aggiorna;
@@ -75,10 +76,20 @@
         if (daAccendere.Count > 0)
             await Js.InvokeVoidAsync("sectorlab.mappa.disegnata");
 
+        bool spento = false;
         foreach (string strato in _disegnati.Where(s => !Lab.Accesi.Contains(s)).ToList())
         {
             await Js.InvokeAsync<int>("sectorlab.mappa.strato", strato, false);
             _disegnati.Remove(strato);
+            spento = true;
+        }
+
+        // La vista: solo gli elementi scelti (e le coste). Si riprende anche quando gli strati cambiano: le forme di
+        // uno strato ridisegnato sono oggetti nuovi, e uno strato acceso adesso non deve comparire tutto.
+        if (_versioneDellaVista != Lab.VersioneDellaVista || ridisegnato || spento || daAccendere.Count > 0)
+        {
+            _versioneDellaVista = Lab.VersioneDellaVista;
+            await Js.InvokeVoidAsync("sectorlab.mappa.vista", Lab.InVista.ToArray());
         }
 
         // Si rievidenzia quando cambia la scelta, quando si chiede di nuovo lo stesso record (il secondo clic

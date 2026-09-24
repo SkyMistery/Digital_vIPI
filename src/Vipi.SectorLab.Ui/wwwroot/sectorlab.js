@@ -37,7 +37,11 @@
             document.addEventListener('keydown', function (e) {
                 if (!storia || !(e.ctrlKey || e.metaKey) || e.altKey) return;
                 var t = e.target;
-                if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+                // In un campo del Lab dove NON si sta scrivendo (il valore è quello confermato: dopo Invio il cursore
+                // resta lì) Ctrl+Z va al Lab: lì il browser non avrebbe niente da annullare, e il gesto sembrava non
+                // funzionare (prova 7 del committente). Dove si sta scrivendo, annulla la scrittura come ovunque.
+                var campoFermo = t && t.tagName === 'INPUT' && t.classList.contains('lab-campo') && !t.sectorlabSporco;
+                if (t && !campoFermo && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
                 var tasto = (e.key || '').toLowerCase();
                 var cosa = tasto === 'z' && !e.shiftKey ? 'annulla'
                     : tasto === 'y' || (tasto === 'z' && e.shiftKey) ? 'ripeti' : null;
@@ -50,6 +54,11 @@
 
     var storia = null;
     var tastiAgganciati = false;
+
+    // Un campo «sporco» ha testo scritto e non ancora confermato (Invio o uscita): in una proprietà JS, non in un
+    // data-*, perché Blazor ridisegnando cancellerebbe l'attributo.
+    document.addEventListener('input', function (e) { if (e.target) e.target.sectorlabSporco = true; }, true);
+    document.addEventListener('change', function (e) { if (e.target) e.target.sectorlabSporco = false; }, true);
 
     // Le colonne si allargano trascinando il divisore alla loro destra (il suo data-divide dice quale). Un ascoltatore
     // solo, sul documento: i divisori Blazor li ridisegna e li ricrea, e un ascoltatore attaccato a loro si perderebbe.

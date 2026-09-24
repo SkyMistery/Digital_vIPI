@@ -89,6 +89,25 @@ public sealed class GeometriaTests : IDisposable
     }
 
     [Fact]
+    public void UnaMappaDelloStrNonSiChiudeDaSola()
+    {
+        // Prova 10 del committente: in lirn.str «LIRN ATZ» col primo punto spostato Aurora lascia la linea aperta, e la
+        // nostra mappa la chiudeva (era un'area, e Leaflet chiude i poligoni). Qui il primo e l'ultimo punto differiscono.
+        _albero.Scrivi("SectorFiles/Include/IT/prova.str", """
+            LIRN;MAPS;LIRN ATZ; ; ;5;
+            N041.52.31.000;E014.07.36.000;
+            N041.00.28.000;E014.15.47.000;
+            N040.52.31.000;E014.07.36.000;
+            """.ReplaceLineEndings("\r\n"));
+
+        var forma = Assert.Single(Forme("prova.str"));
+
+        Assert.Equal(TipoDiForma.Linea, forma.Tipo);
+        Assert.Equal(3, forma.Punti);
+        Assert.NotEqual(forma.Tratti[0][0], forma.Tratti[0][^1]);
+    }
+
+    [Fact]
     public void UnaRigaVuotaNelTracciatoDiUnaSidSpezzaIlTratto()
     {
         // Come `NORTH DEP16` di lied.sid (campione vero): una riga vuota FRA due punti spezza il tratto e non chiude

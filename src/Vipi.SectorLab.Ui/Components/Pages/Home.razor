@@ -77,6 +77,33 @@
                     </label>
                 }
 
+                @if (Lab.InVista.Count > 0)
+                {
+                    @* La vista: la mappa mostra solo questi (e le coste). Un clic sulla × toglie; «Tutto» torna agli strati. *@
+                    <div class="lab-vista" data-vista="@Lab.InVista.Count">
+                        <h2>In vista <span class="lab-nota">@Lab.InVista.Count</span>
+                            <button class="lab-annulla" @onclick="Lab.SvuotaLaVista" data-tasto="vista-tutto"
+                                    title="La mappa torna a mostrare tutti gli strati accesi">mostra tutto</button></h2>
+                        @foreach (string chiave in Lab.InVista)
+                        {
+                            int cancelletto = chiave.LastIndexOf('#');
+                            string file = chiave[..cancelletto];
+                            int? record = chiave[(cancelletto + 1)..] is "*" ? null : int.Parse(chiave[(cancelletto + 1)..], System.Globalization.CultureInfo.InvariantCulture);
+                            <p class="lab-voce-in-vista" data-in-vista="@chiave">
+                                @if (record is { } r)
+                                {
+                                    <button class="lab-voce" @onclick="() => Lab.Scegli(file, r)">@Lab.NomeInVista(chiave)</button>
+                                }
+                                else
+                                {
+                                    <span>@Lab.NomeInVista(chiave)</span>
+                                }
+                                <button class="lab-annulla" @onclick="() => Lab.CambiaLaVista(file, record)" title="Toglilo dalla vista">×</button>
+                            </p>
+                        }
+                    </div>
+                }
+
                 @if (Scelta is { } scelta)
                 {
                     @* Solo i numeri della forma: chi l'ha scelta la legge per intero nell'ispettore, a sinistra. *@

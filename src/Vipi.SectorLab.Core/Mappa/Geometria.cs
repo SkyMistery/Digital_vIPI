@@ -109,8 +109,12 @@ public static class Geometria
                         _ => (default(Sectorfile.Shared.Punto), false),
                     }), catalogo, nonRisolti), nonRisolti);
 
+            // 🔴 Linea, non area: Aurora disegna le mappe degli .str punto dopo punto e non le chiude mai. Un'ATZ
+            // col primo punto sbagliato in Aurora resta aperta; da noi Leaflet la chiudeva e l'errore non si vedeva
+            // (committente, prova 10 del 23 settembre: lirn.str «LIRN ATZ»). Chiusa è solo se l'ultimo punto
+            // ripete il primo — e così la disegna anche la linea.
             case GeometricStrRecord zona:
-                return Tratti(file, indice, TipoDiForma.Area, $"{zona.IcaoCode} {zona.ProcedureId}",
+                return Tratti(file, indice, TipoDiForma.Linea, $"{zona.IcaoCode} {zona.ProcedureId}",
                     zona.Segments.Select(s => (IReadOnlyList<Coordinate>)s.Points.ToList())
                         .Where(s => s.Count > 0).ToList(), nonRisolti);
 

@@ -54,6 +54,48 @@ public static class RecordNuovo
     }
 
     /// <summary>
+    /// Mette <paramref name="record"/> subito PRIMA del record numero <paramref name="primaDiIndice"/>, nella stessa
+    /// sezione: se quel record apre la sezione con dei commenti in testa (<c>//LIBD</c> in <c>APT.fix</c>), i commenti
+    /// passano al nuovo e restano sopra tutti e due. I tag <c>//@</c> invece restano al loro record: sono suoi.
+    /// Serve a un record nuovo che va al suo posto in ordine alfabetico, anche primo della sua sezione (Sector Lab,
+    /// prova 6 del committente, 23 settembre).
+    /// </summary>
+    public static ParseResult<T> AggiungiPrimaDi<T>(ParseResult<T> letto, IFileSaver<T> saver, T record, int primaDiIndice)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(letto);
+        ArgumentNullException.ThrowIfNull(saver);
+        ArgumentNullException.ThrowIfNull(record);
+        if (primaDiIndice < 0 || primaDiIndice >= letto.Records.Count)
+            throw new ArgumentOutOfRangeException(nameof(primaDiIndice));
+
+        var forma = FormaDelPunto.Di(letto.Chunks.SelectMany(Righe)) ?? FormaDelPunto.Forma.Puntata;
+        var righe = FusioneDelRecord.Unisci([], [], saver.Serialize(record), forma);
+        var chunk = letto.Chunks.ToList();
+        int dove = PosizioneDelChunk(letto, primaDiIndice);
+        var vicino = (RecordChunk<T>)chunk[dove];
+
+        // I commenti in testa fino al primo tag //@ passano al nuovo; dal primo tag in giù restano al vicino.
+        int primoTag = Array.FindIndex(vicino.LeadingComments, r => r.TrimStart().StartsWith("//@", StringComparison.Ordinal));
+        int quanti = primoTag < 0 ? vicino.LeadingComments.Length : primoTag;
+        var nuovo = new RecordChunk<T>(record, righe, hasMarkers: false, leadingComments: vicino.LeadingComments[..quanti])
+        {
+            Base = righe.ToArray(),
+        };
+        // Un chunk NUOVO per il vicino, non lo stesso cambiato: quello di prima appartiene alla struttura di prima, e
+        // annullare la rimette com'era (Sector Lab, RipristinaLaStruttura).
+        chunk[dove] = new RecordChunk<T>(vicino.Record, vicino.RawLines, vicino.HasMarkers, vicino.LeadingComments[quanti..])
+        {
+            Base = vicino.Base,
+        };
+        chunk.Insert(dove, nuovo);
+
+        var record_ = letto.Records.ToList();
+        record_.Insert(primaDiIndice, record);
+        return letto with { Records = record_, Chunks = chunk };
+    }
+
+    /// <summary>
     /// Toglie il record numero <paramref name="indice"/> con le sue righe.
     /// <para>🔴 I <b>commenti sopra il record restano</b>, come righe grezze al loro posto. Nel sector un commento
     /// prima di un record è quasi sempre l'intestazione di una <b>sezione</b> (<c>//////COAST</c>, <c>//fence</c>,

@@ -1065,3 +1065,94 @@ body.lab-trascina * {
 .lab-mappa .leaflet-tooltip-bottom::before { border-bottom-color: var(--lab-superficie); }
 .lab-mappa .leaflet-tooltip-left::before { border-left-color: var(--lab-superficie); }
 .lab-mappa .leaflet-tooltip-right::before { border-right-color: var(--lab-superficie); }
+
+/* Le righe del file si scrivono a mano (chiesto dal committente il 23 settembre): clic, Invio, conferma. */
+.lab-riga-a-mano {
+    cursor: text;
+}
+
+.lab-riga-a-mano:hover {
+    background: var(--lab-sopra);
+}
+
+.lab-riga-protetta {
+    cursor: not-allowed;
+}
+
+.lab-riga-protetta .lab-numero::after {
+    content: " 🔒";
+}
+
+.lab-riga-campo {
+    width: calc(100% - 3.5rem);
+    font: 12px/1.5 var(--lab-mono);
+}
+
+.lab-conferma {
+    margin: .4rem 0 .6rem;
+    padding: .4rem .6rem;
+    border-left: 4px solid var(--lab-avviso);
+    background: var(--lab-superficie-2);
+}
+
+.lab-conferma p {
+    margin: .1rem 0 .3rem;
+}
+
+.lab-conferma code {
+    display: block;
+    padding: .1rem .3rem;
+    font: 12px/1.5 var(--lab-mono);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+/* Il nome del record nuovo, chiesto prima di aggiungerlo. */
+.lab-nuovo-record {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+    align-items: center;
+}
+
+.lab-nuovo-record .lab-campo {
+    width: 9rem;
+}
+
+.lab-gesti-record {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
+    margin: .3rem 0;
+}
+
+/* La vista: la mappa mostra solo alcuni elementi (chiesta dal committente il 23 settembre). */
+.lab-tasto-acceso {
+    background: var(--lab-scelto);
+    font-weight: 700;
+}
+
+.lab-vista {
+    margin-top: .8rem;
+    padding: .4rem .5rem;
+    border-left: 4px solid var(--lab-accento);
+    background: var(--lab-superficie-2);
+}
+
+.lab-vista h2 {
+    display: flex;
+    gap: .4rem;
+    align-items: baseline;
+}
+
+.lab-voce-in-vista {
+    display: flex;
+    align-items: baseline;
+    gap: .3rem;
+    margin: 0;
+}
+
+.lab-voce-in-vista .lab-voce {
+    flex: 1;
+}

@@ -17,6 +17,15 @@
         }
         else
         {
+            @* Un record nuovo senza sceglierne uno prima (prova 6 del committente, 23 settembre). *@
+            <p class="lab-gesti-record">
+                <NuovoRecord File="@Relativo" />
+                <button class="lab-tasto lab-tasto-tenue @(Lab.EInVista(Relativo, null) ? "lab-tasto-acceso" : null)"
+                        data-tasto="vista-file" @onclick="() => Lab.CambiaLaVista(Relativo, null)"
+                        title="@(Lab.EInVista(Relativo, null) ? "Toglilo da quel che la mappa mostra" : "Sulla mappa solo questo file (e quel che aggiungi alla vista)")">
+                    @(Lab.EInVista(Relativo, null) ? "◉ In vista" : "◎ Solo questo file sulla mappa")
+                </button>
+            </p>
             <input type="search" class="lab-cerca" placeholder="Filtra i record" value="@_filtro"
                    @oninput="e => _filtro = e.Value?.ToString() ?? string.Empty" data-campo="filtra" />
             var voci = Voci();

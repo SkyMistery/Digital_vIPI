@@ -1,0 +1,114 @@
+@inject SessioneDelLab Lab
+
+@*
+    Le righe del file, e una riga alla volta si scrive A MANO (chiesto dal committente il 23 settembre): per quel che i
+    campi non sanno correggere — una riga che il lettore non capisce più, come `BC;518;…` in APT.fix, non è un record e
+    nella scheda non ha campi. Clic sulla riga → si scrive → Invio → il Lab chiede conferma, poi rilegge il file.
+    🔴 I tag //@ sono metadati del Lab: non si toccano da qui (lucchetto), si cambiano dalla scheda.
+*@
+<pre class="lab-righe" data-righe="@Righe.Count">@foreach (var riga in Righe)
+{<span class="@Classe(riga) @(Protetta(riga) ? "lab-riga-protetta" : "lab-riga-a-mano")" data-riga="@riga.Numero" data-segnalata="@(Segnata(riga) ? "si" : null)" title="@(Protetta(riga) ? "Metadati //@ del Lab: si cambiano dalla scheda, non a mano" : "Clic per scrivere questa riga a mano")" @onclick="() => Inizia(riga)"><span class="lab-numero">@riga.Numero</span>@(" ")@if (_numero == riga.Numero)
+{<input class="lab-campo lab-riga-campo" value="@_testo" @ref="_campo" @onchange="e => Proponi(e.Value?.ToString())" @onkeydown="Tasto" @onclick:stopPropagation data-riga-a-mano="@riga.Numero" />}
+else
+{<text>@riga.Testo</text>}
+</span>}</pre>
+@if (_proposta is { } proposta && _numero is { } numero)
+{
+    <div class="lab-conferma" data-conferma-riga="@numero">
+        <p><strong>Riga @numero scritta a mano.</strong> Il file si rilegge con questa riga: controlla prima di confermare.</p>
+        <code class="lab-riga-tolta">@_originale</code>
+        <code class="lab-riga-aggiunta">@proposta</code>
+        <div class="lab-azioni">
+            <button class="lab-tasto" @onclick="Conferma" data-tasto="conferma-riga">Scrivi la riga</button>
+            <button class="lab-tasto lab-tasto-tenue" @onclick="Lascia" data-tasto="lascia-riga">Lascia com'era</button>
+        </div>
+        @if (_rifiuto is { } rifiuto)
+        {
+            <p class="lab-errore" data-rifiuto-riga="1">@rifiuto</p>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    [Parameter, EditorRequired] public IReadOnlyList<RigaGrezza> Righe { get; set; } = [];
+
+    /// <summary>La classe di una riga (del record, di contesto, segnalata): la decide chi la mostra.</summary>
+    [Parameter] public Func<RigaGrezza, string?> Classe { get; set; } = _ => null;
+
+    [Parameter] public Func<RigaGrezza, bool> Segnata { get; set; } = _ => false;
+
+    private int? _numero;
+    private string? _testo;
+    private string? _originale;
+    private string? _proposta;
+    private string? _rifiuto;
+    private ElementReference _campo;
+    private bool _mettiIlFuoco;
+
+    private static bool Protetta(RigaGrezza riga) => riga.Testo.TrimStart().StartsWith("//@", StringComparison.Ordinal);
+
+    private void Inizia(RigaGrezza riga)
+    {
+        if (Protetta(riga) || _numero == riga.Numero)
+            return;
+
+        // Il testo di ADESSO, modifiche in sospeso comprese: è quello che il file avrebbe salvandolo.
+        var adesso = Lab.RigheDiAdesso(File);
+        _numero = riga.Numero;
+        _originale = riga.Numero <= adesso.Count ? adesso[riga.Numero - 1] : riga.Testo;
+        _testo = _originale;
+        _proposta = null;
+        _rifiuto = null;
+        _mettiIlFuoco = true;
+    }
+
+    private void Proponi(string? testo)
+    {
+        _testo = testo ?? "";
+        _proposta = _testo == _originale ? null : _testo;
+        _rifiuto = null;
+    }
+
+    private void Tasto(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape")
+            Lascia();
+    }
+
+    private void Conferma()
+    {
+        if (_numero is not { } numero || _proposta is null)
+            return;
+
+        if (Lab.CambiaRigaAMano(File, numero, _proposta))
+            Lascia();
+        else
+            _rifiuto = Lab.Rifiuto;
+    }
+
+    private void Lascia()
+    {
+        _numero = null;
+        _testo = null;
+        _originale = null;
+        _proposta = null;
+        _rifiuto = null;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!_mettiIlFuoco)
+            return;
+        _mettiIlFuoco = false;
+        try
+        {
+            await _campo.FocusAsync();
+        }
+        catch (InvalidOperationException)
+        {
+            // Nei test (bUnit) non c'è un elemento vero da mettere a fuoco.
+        }
+    }
+}

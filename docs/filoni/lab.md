@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 327.
+Lab 346 (motore 474).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -76,6 +76,29 @@ se i nomi con spazi si leggevano già) e **D8** (per mappa: troncate di norma, `
   ogni scatto. Il «°» della densità non va più a capo.
 - Test Lab 306 → **327**. Eseguibile ripubblicato alle 20:55.
 
+### Prove del 24 settembre mattina (a, b, 6, 7, 10) — PROVE.md 37-44
+
+Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
+
+- **10 ✗ → corretto**: le zone degli `.str` erano **aree** e Leaflet le chiudeva; Aurora le disegna come **linee**
+  (l'ATZ di LIRN col primo punto sbagliato restava aperta in Aurora e chiusa da noi). Ora `Geometria`: linea.
+- **7 ✗ + (b)**: la riga salvata `BC;518;…` riletta non è più un record (riga illeggibile) → dal pannello Problemi si
+  vedeva e non si correggeva. Ora si **scrive una riga a mano** (`RigheAMano`, clic → Invio → conferma):
+  `ModificheInSospeso.CambiaRiga` prende le righe di ADESSO, cambia quella, rilegge il file col motore
+  (`IFileConRecord.LeggiLeRighe`) e lo mette come nuova STRUTTURA (`ModificaDelTesto`, si annulla come
+  `ModificaDiStruttura`: file dell'apertura). Quel che pendeva sul file entra nel testo (i campi si rimettono sui record
+  prima, niente si annulla negli altri file). 🔴 Le righe `//@` hanno il lucchetto, e non se ne scrivono di nuove.
+  Anche: Ctrl+Z in un campo già confermato ora va al Lab (dopo Invio il cursore resta lì e il gesto «non tornava»).
+- **6 → ordine alfabetico**: `OrdineAlfabetico` (per ora fix, VOR, NDB, punti VFR) — il nuovo chiede il NOME e va al suo
+  posto nella SEZIONE (record fra due commenti: `//LIBC`, `//LIBD` di `APT.fix`); primo della sezione = sotto
+  l'intestazione (motore: `RecordNuovo.AggiungiPrimaDi`, i `//@` restano al vicino). **+ Nuovo record** anche dal file.
+  L'ordine degli altri tipi: da decidere col committente file per file.
+- **(a) la vista**: «◎ Solo questo sulla mappa» (record) e «◎ Solo questo file» (Sfoglia), elenco «In vista» sotto gli
+  strati, «mostra tutto». JS `sectorlab.mappa.vista`: toglie i gruppi degli strati e ne fa uno con le sole forme scelte
+  (niente fetch in più); le coste restano. 🟡 Le chiavi sono per indice: aggiungere un record prima di uno in vista lo
+  sposta (da rivedere se dà fastidio).
+- Test Lab 327 → **346**, motore 471 → **474**. Eseguibile ripubblicato 24 settembre 09:23.
+
 ### Aperto, da chiedere o dire al committente
 
 - ❓ **Nomi di procedura con spazi** (63 su 1169: `RNP10 UPETI` di `lica.str`, le rotte `AAR …` di `lizz.str`): oggi
@@ -88,7 +111,7 @@ se i nomi con spazi si leggevano già) e **D8** (per mappa: troncate di norma, `
 
 `Vipi.Sectorfile`: `Validazione/CopieGemelle.cs`, `Regola.CopieDiverse`, `Regola.CompostaConProceduraAssente`,
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
-`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`). `tools/Vipi.SectorfileProva` (sezione
+`IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set). `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
 
 ### Dove lavorare

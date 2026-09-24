@@ -1,0 +1,91 @@
+@inject SessioneDelLab Lab
+
+@*
+    Un record nuovo (slice 8, rivisto dopo la prova 6 del committente, 23 settembre). Dalla scheda copia il record
+    scelto; dal file (senza sceglierne uno) copia il vicino per nome, o l'ultimo. Nei file di punti col nome (fix, VOR,
+    NDB, punti VFR) prima chiede il NOME, e il nuovo nasce già al suo posto in ordine alfabetico nella sua sezione —
+    non sotto quello da cui è partito. Negli altri file va sotto il modello, come prima: l'ordine di ogni tipo di file
+    si decide col committente, file per file.
+*@
+@if (_chiede)
+{
+    <span class="lab-nuovo-record" data-nuovo-record="@(Modello is null ? "file" : "record")">
+        <input class="lab-campo" placeholder="@($"{Campo} del nuovo")" value="@_nome" @ref="_campo"
+               @oninput="e => _nome = e.Value?.ToString()" @onkeydown="Tasto" data-campo="nome-nuovo" />
+        <button class="lab-tasto" @onclick="Aggiungi" disabled="@string.IsNullOrWhiteSpace(_nome)"
+                title="@(string.IsNullOrWhiteSpace(_nome) ? "Scrivi prima il nome" : "Lo mette al suo posto in ordine alfabetico")"
+                data-tasto="aggiungi-con-nome">Aggiungi</button>
+        <button class="lab-annulla" @onclick="() => _chiede = false" data-tasto="non-aggiungere">annulla</button>
+        @if (Lab.Rifiuto is { } rifiuto)
+        {
+            <span class="lab-errore" data-rifiuto-nuovo="1">@rifiuto</span>
+        }
+    </span>
+}
+else
+{
+    <button class="lab-tasto lab-tasto-tenue" @onclick="Comincia"
+            title="@(Modello is null ? "Un record nuovo in questo file, nella forma dei suoi vicini" : "Un record nuovo nella forma di questo")"
+            data-tasto="@(Modello is null ? "aggiungi-al-file" : "aggiungi-record")">@(Modello is null ? "+ Nuovo record" : "+ Record come questo")</button>
+}
+
+@code {
+    [Parameter, EditorRequired] public string File { get; set; } = null!;
+
+    /// <summary>Il record da copiare; null = dal file.</summary>
+    [Parameter] public int? Modello { get; set; }
+
+    private bool _chiede;
+    private string? _nome;
+    private ElementReference _campo;
+    private bool _mettiIlFuoco;
+
+    private string? Campo => Lab.NomeDelRecordNuovo(File);
+
+    private void Comincia()
+    {
+        if (Campo is null)
+        {
+            if (Modello is { } modello)
+                Lab.AggiungiRecord(File, modello);
+            else
+                Lab.AggiungiAlFile(File);
+            return;
+        }
+
+        _chiede = true;
+        _nome = null;
+        _mettiIlFuoco = true;
+    }
+
+    private void Aggiungi()
+    {
+        string nome = (_nome ?? "").Trim();
+        bool fatto = Modello is { } modello ? Lab.AggiungiRecord(File, modello, nome) : Lab.AggiungiAlFile(File, nome);
+        if (fatto)
+            _chiede = false;
+    }
+
+    private void Tasto(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_nome))
+            Aggiungi();
+        else if (e.Key == "Escape")
+            _chiede = false;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool primo)
+    {
+        if (!_mettiIlFuoco)
+            return;
+        _mettiIlFuoco = false;
+        try
+        {
+            await _campo.FocusAsync();
+        }
+        catch (InvalidOperationException)
+        {
+            // Nei test (bUnit) non c'è un elemento vero da mettere a fuoco.
+        }
+    }
+}

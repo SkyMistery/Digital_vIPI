@@ -68,8 +68,18 @@ public interface IFileConRecord
     /// <summary>
     /// Aggiunge un record <b>come il vicino</b> (slice 8): si copia il record all'indice dato, così il nuovo nasce
     /// con la forma e i campi di struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna l'indice del nuovo.
+    /// <para>Con <paramref name="dopo"/> il nuovo va dopo quel record invece che dopo il modello (-1 = in testa), e
+    /// <paramref name="prepara"/> cambia la copia PRIMA che si scriva: un fix nuovo nasce col suo nome, già al suo posto
+    /// in ordine alfabetico (committente, prova 6 del 23 settembre).</para>
     /// </summary>
-    int AggiungiComeIlVicino(int indice);
+    /// <para>Con <paramref name="primaDi"/> invece va subito prima di quel record, nella sua sezione (RecordNuovo.AggiungiPrimaDi).</para>
+    int AggiungiComeIlVicino(int indice, int? dopo = null, Action<object>? prepara = null, int? primaDi = null);
+
+    /// <summary>
+    /// Per ogni record, il numero della sua SEZIONE: si cambia sezione a ogni commento fra due record (le intestazioni
+    /// <c>//LIBC</c> di <c>APT.fix</c>). L'ordine alfabetico di un record nuovo vale dentro la sua sezione.
+    /// </summary>
+    IReadOnlyList<int> Sezioni();
 
     /// <summary>Toglie un record, con le sue righe e i suoi commenti.</summary>
     void TogliIlRecord(int indice);
@@ -87,6 +97,14 @@ public interface IFileConRecord
     /// un record è stato aggiunto o tolto — il file di adesso non serve a confrontarsi con sé stesso.
     /// </summary>
     IReadOnlyList<string> RigheDi(object istantanea);
+
+    /// <summary>
+    /// Il file riletto dal motore da queste righe (una riga cambiata a mano, chiesto dal committente il 23 settembre),
+    /// SENZA metterlo al posto di quello di adesso: torna una struttura da dare a <see cref="RipristinaLaStruttura"/>.
+    /// Le righe diventano byte con la codifica e i fine riga del file, e si leggono col percorso intero (il lettore si
+    /// sceglie anche dalla cartella, <see cref="RiletturaDiProva"/>).
+    /// </summary>
+    object LeggiLeRighe(IReadOnlyList<string> righe);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -121,13 +139,23 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
     });
 
     /// <inheritdoc/>
-    public int AggiungiComeIlVicino(int indice)
+    public int AggiungiComeIlVicino(int indice, int? dopo = null, Action<object>? prepara = null, int? primaDi = null)
     {
         if (indice < 0 || indice >= Letto.Records.Count)
             throw new ArgumentOutOfRangeException(nameof(indice));
+        int dove = dopo ?? indice;
+        if (dove < -1 || dove >= Letto.Records.Count)
+            throw new ArgumentOutOfRangeException(nameof(dopo));
 
         var copia = (T)CopiaDelRecord.Di(Letto.Records[indice]);
-        var accostato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice);
+        prepara?.Invoke(copia);
+        if (primaDi is { } prima)
+        {
+            Letto = RecordNuovo.AggiungiPrimaDi(Letto, Scrittore, copia, prima);
+            return prima;
+        }
+
+        var accostato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, dove);
 
         // 🔴 Nei file dove un record è un BLOCCO chiuso dalla riga vuota (.artcc, .mva…) la copia accostata al vicino,
         // riletta, è un pezzo di lui (slice 9: 63 file su 695 dell'albero vero). Se succede, e in questo file i record
@@ -138,13 +166,13 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         if (!CiSonoRecordAccostati(Letto)
             && RiletturaDiProva.Record(Relativo, ByteDi(accostato)) is { } riletti && riletti < accostato.Records.Count)
         {
-            var separato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, indice, separatore: [""]);
+            var separato = RecordNuovo.Aggiungi(Letto, Scrittore, copia, dove, separatore: [""]);
             if (RiletturaDiProva.Record(Relativo, ByteDi(separato)) == separato.Records.Count)
                 accostato = separato;
         }
 
         Letto = accostato;
-        return indice + 1;
+        return dove + 1;
     }
 
     private byte[] ByteDi(ParseResult<T> quello) => new FileSaverOrchestrator().Byte(quello, new HashSet<T>(), Scrittore);
@@ -171,6 +199,50 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         => istantanea is ParseResult<T> quella
             ? new FileSaverOrchestrator().Righe(quella, new HashSet<T>(), Scrittore)
             : [];
+
+    /// <inheritdoc/>
+    public IReadOnlyList<int> Sezioni()
+    {
+        var sezioni = new List<int>(Letto.Records.Count);
+        int sezione = 0;
+        foreach (var chunk in Letto.Chunks)
+        {
+            switch (chunk)
+            {
+                case RawChunk<T> grezzo when grezzo.Lines.Any(r => r.TrimStart().StartsWith("//", StringComparison.Ordinal)):
+                    sezione++;
+                    break;
+                case RecordChunk<T> record:
+                    if (record.LeadingComments.Length > 0)
+                        sezione++;
+                    sezioni.Add(sezione);
+                    break;
+            }
+        }
+
+        return sezioni;
+    }
+
+    /// <inheritdoc/>
+    public object LeggiLeRighe(IReadOnlyList<string> righe)
+    {
+        ArgumentNullException.ThrowIfNull(righe);
+        // Le righe passano dallo scrittore come UN pezzo grezzo: così i byte hanno la codifica, il BOM, i fine riga e
+        // la riga finale del file, come quelli che il salvataggio scriverebbe.
+        var soloTesto = Letto with { Records = [], Chunks = [new RawChunk<T>(righe.ToArray())] };
+        byte[] byteDelFile = new FileSaverOrchestrator().Byte(soloTesto, new HashSet<T>(), Scrittore);
+        return RiletturaDiProva.Con(Relativo, byteDelFile, percorso =>
+            Formati.Usa(percorso, new RaccoltaDiAvvisi(), new Rilettura(percorso), out var letto) && letto is ParseResult<T> nuovo
+                ? nuovo
+                : throw new InvalidOperationException($"«{Relativo}» riletto non è più un file dello stesso tipo."));
+    }
+
+    private sealed class Rilettura(string percorso) : IUsoDelFormato<object>
+    {
+        public object Usa<TR>(IFileParser<TR> lettore, IFileSaver<TR> scrittore)
+            where TR : class
+            => lettore.Parse(percorso, new Vipi.Sectorfile.Shared.ColorPalette()).FissaLeBasi(scrittore);
+    }
 
     /// <inheritdoc/>
     public IReadOnlyList<string> RigheDelFile(IEnumerable<object> sporchi)

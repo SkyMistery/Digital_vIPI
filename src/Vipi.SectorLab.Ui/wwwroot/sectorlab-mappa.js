@@ -185,6 +185,38 @@
             }
         },
 
+        /// La vista: solo alcuni elementi sulla mappa ('file#3' un record, 'file#*' un file intero) più le coste; vuota,
+        /// si torna agli strati accesi. Le forme restano quelle degli strati (nessuna fetch in più): si tolgono i gruppi
+        /// dalla mappa e se ne fa uno con le sole forme scelte, che restano cliccabili.
+        vista: function (chiavi) {
+            if (!stato) return 0;
+            if (stato.gruppoDellaVista) { stato.mappa.removeLayer(stato.gruppoDellaVista); stato.gruppoDellaVista = null; }
+            var ids = Object.keys(stato.strati);
+
+            if (!chiavi || !chiavi.length) {
+                for (var i = 0; i < ids.length; i++) {
+                    if (!stato.mappa.hasLayer(stato.strati[ids[i]])) stato.strati[ids[i]].addTo(stato.mappa);
+                }
+                return 0;
+            }
+
+            var volute = {};
+            for (var c = 0; c < chiavi.length; c++) volute[chiavi[c]] = true;
+            var gruppo = L.layerGroup();
+            for (var j = 0; j < ids.length; j++) {
+                var strato = stato.strati[ids[j]];
+                if (ids[j] === 'sfondo') { if (!stato.mappa.hasLayer(strato)) strato.addTo(stato.mappa); continue; }
+                stato.mappa.removeLayer(strato);
+                strato.eachLayer(function (l) {
+                    var f = l.sectorlab;
+                    if (f && (volute[f.p + '#' + f.r] || volute[f.p + '#*'])) gruppo.addLayer(l);
+                });
+            }
+            gruppo.addTo(stato.mappa);
+            stato.gruppoDellaVista = gruppo;
+            return gruppo.getLayers().length;
+        },
+
         /// Il tema è cambiato: ogni strato riprende il suo colore dal foglio (le coordinate non si richiedono).
         ricolora: function () {
             if (!stato) return;

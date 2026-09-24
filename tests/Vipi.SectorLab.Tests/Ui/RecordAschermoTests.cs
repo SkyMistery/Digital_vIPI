@@ -40,13 +40,25 @@ public sealed class RecordAschermoTests : IDisposable
         return pagina;
     }
 
+    /// <summary>
+    /// Un fix nuovo chiede il nome e va in ordine alfabetico (prova 6 del committente): «BC411A» cade subito dopo BC411,
+    /// il record 3, cioè dove prima andava da solo — questi test restano quelli della slice 8.
+    /// </summary>
+    private static void AggiungiUnFix(IRenderedComponent<Home> pagina)
+    {
+        pagina.Find("[data-tasto='aggiungi-record']").Click();
+        pagina.WaitForAssertion(() => pagina.Find("[data-campo='nome-nuovo']"));
+        pagina.Find("[data-campo='nome-nuovo']").Input("BC411A");
+        pagina.Find("[data-tasto='aggiungi-con-nome']").Click();
+    }
+
     [Fact]
     public async Task IlTastoAggiungeUnRecordECiPortaSopra()
     {
         var pagina = await ConUnRecordScelto();
         int quanti = _lab.Sessione!.File[Fix].Record;
 
-        pagina.Find("[data-tasto='aggiungi-record']").Click();
+        AggiungiUnFix(pagina);
 
         pagina.WaitForAssertion(() =>
         {
@@ -79,7 +91,7 @@ public sealed class RecordAschermoTests : IDisposable
     {
         var pagina = await ConUnRecordScelto();
         int quanti = _lab.Sessione!.File[Fix].Record;
-        pagina.Find("[data-tasto='aggiungi-record']").Click();
+        AggiungiUnFix(pagina);
         pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-annulla]")));
 
         pagina.FindAll("[data-annulla]").First().Click();
@@ -95,7 +107,7 @@ public sealed class RecordAschermoTests : IDisposable
     public async Task IlRecordNuovoSiModificaSubitoDaSchermo()
     {
         var pagina = await ConUnRecordScelto();
-        pagina.Find("[data-tasto='aggiungi-record']").Click();
+        AggiungiUnFix(pagina);
         pagina.WaitForAssertion(() => Assert.Equal((Fix, 4), _lab.Scelta));
 
         pagina.Find("[data-scrivi='Name']").Change("PROVA9");

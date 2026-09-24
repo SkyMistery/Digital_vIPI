@@ -206,6 +206,8 @@ public sealed class SessioneDelLab
             Modifiche = new();
             ScordaLaStoria();
             TogliLAnteprima();
+            _inVista.Clear();
+            VersioneDellaVista++;
             UltimoSalvataggio = null;
             _perse.Clear();
             ScordaIProblemi();
@@ -276,6 +278,8 @@ public sealed class SessioneDelLab
         Modifiche = new();
         ScordaLaStoria();
         TogliLAnteprima();
+        _inVista.Clear();
+        VersioneDellaVista++;
         UltimoSalvataggio = null;
         _perse.Clear();
         ScordaIProblemi();
@@ -850,11 +854,77 @@ public sealed class SessioneDelLab
     /// Aggiunge un record copiando quello scelto (slice 8) e ci si sposta sopra: il nuovo è già nella forma dei
     /// vicini, e l'AOD cambia quel che deve.
     /// </summary>
-    public bool AggiungiRecord(string fileRelativo, int record)
-        => NellaStoria($"record aggiunto in {NomeDelFile(fileRelativo)}", () => GestoDiStruttura(fileRelativo,
-            () => Sessione!.File[fileRelativo] is { } file
-                ? Modifiche.AggiungiRecord(file, record)
-                : new ModificaRifiutata("Questo file non è aperto.")));
+    /// <param name="nome">Per i record col nome (fix, VOR, NDB, punti VFR): il nome del nuovo, che va al suo posto in
+    /// ordine alfabetico nella sezione del modello (prova 6 del committente). Null = subito sotto il modello.</param>
+    public bool AggiungiRecord(string fileRelativo, int record, string? nome = null)
+        => NellaStoria(nome is null ? $"record aggiunto in {NomeDelFile(fileRelativo)}" : $"{nome} aggiunto in {NomeDelFile(fileRelativo)}",
+            () => GestoDiStruttura(fileRelativo,
+                () => Sessione!.File[fileRelativo] is { } file
+                    ? Modifiche.AggiungiRecord(file, record, nome)
+                    : new ModificaRifiutata("Questo file non è aperto.")));
+
+    /// <summary>
+    /// Un record nuovo dal FILE, senza sceglierne uno prima (prova 6 del committente). Il modello è il vicino per nome
+    /// (quello che in ordine alfabetico viene subito prima), o l'ultimo record per i file senza nomi da ordinare.
+    /// </summary>
+    public bool AggiungiAlFile(string fileRelativo, string? nome = null)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord { RecordDelModello.Count: > 0 } file)
+            return false;
+
+        int modello = nome is not null && NomeDelRecordNuovo(fileRelativo) is not null
+            ? OrdineAlfabetico.IlVicino(file, nome)
+            : file.RecordDelModello.Count - 1;
+        return AggiungiRecord(fileRelativo, modello, NomeDelRecordNuovo(fileRelativo) is null ? null : nome);
+    }
+
+    /// <summary>Il campo che il nuovo record di quel file chiede per primo (il nome), o null se non ne chiede.</summary>
+    public string? NomeDelRecordNuovo(string fileRelativo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord { RecordDelModello.Count: > 0 } file
+            ? OrdineAlfabetico.CampoDelNome(file.RecordDelModello[0])
+            : null;
+
+    // --- una riga scritta a mano (chiesta dal committente il 23 settembre) ---------------------------------------
+
+    /// <summary>Le righe del file com'è adesso, modifiche comprese: il testo da cui parte la riga scritta a mano.</summary>
+    public IReadOnlyList<string> RigheDiAdesso(string fileRelativo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord file
+            ? file.RigheDelFile(Modifiche.SporchiDi(fileRelativo))
+            : [];
+
+    /// <summary>
+    /// Scrive a mano la riga numero <paramref name="numero"/> (confermata dall'AOD) e rilegge il file. Se la riga ora
+    /// appartiene a un record, la scheda va su di lui: chi correggeva una riga illeggibile vede il record che ne è uscito.
+    /// </summary>
+    public bool CambiaRigaAMano(string fileRelativo, int numero, string testo)
+        => NellaStoria($"riga {numero} di {NomeDelFile(fileRelativo)} scritta a mano", () => CambiaRigaAManoAdesso(fileRelativo, numero, testo));
+
+    private bool CambiaRigaAManoAdesso(string fileRelativo, int numero, string testo)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        var esito = Modifiche.CambiaRiga(file, numero, testo);
+        Registro.Scrivi("a mano", $"{fileRelativo}:{numero} «{testo}»: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDelTesto)
+        {
+            RifaiLaGeometria(fileRelativo);
+            if (file is IFileConRecord conRecord && conRecord.RecordDellaRiga(numero) is { } record)
+            {
+                Scelta = (fileRelativo, record);
+                RigaSegnalata = (fileRelativo, numero);
+            }
+            else if (Scelta is { } scelta && scelta.File == fileRelativo && scelta.Record >= file.Record)
+            {
+                Scelta = null;
+            }
+        }
+
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDelTesto;
+    }
 
     public bool TogliRecord(string fileRelativo, int record)
         => NellaStoria($"{EtichettaDi(fileRelativo, record)} tolto", () => GestoDiStruttura(fileRelativo,
@@ -966,6 +1036,60 @@ public sealed class SessioneDelLab
         => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file)
             ? Modifiche.DiffDi(file)
             : new Diff.Esito([], InBlocco: false);
+
+    // --- la vista: solo alcuni elementi sulla mappa (chiesta dal committente il 23 settembre) ----------------------
+
+    /// <summary>
+    /// Gli elementi che la mappa mostra quando non si vuole vedere tutto (solo l'ATZ di LIRN, ATZ e CTR, un'aerovia…):
+    /// un record (<c>file#3</c>) o un file intero (<c>file#*</c>). Vuota = la mappa mostra gli strati accesi, come
+    /// sempre. Le coste restano sempre: senza, non si capisce dove si è.
+    /// </summary>
+    public IReadOnlyList<string> InVista => _inVista;
+
+    private readonly List<string> _inVista = [];
+
+    /// <summary>Quante volte la vista è cambiata: la mappa la riprende quando il numero non è più il suo.</summary>
+    public int VersioneDellaVista { get; private set; }
+
+    public static string ChiaveDellaVista(string file, int? record) => $"{file}#{(record is { } r ? r.ToString(System.Globalization.CultureInfo.InvariantCulture) : "*")}";
+
+    public bool EInVista(string file, int? record) => _inVista.Contains(ChiaveDellaVista(file, record));
+
+    /// <summary>Mette o toglie un record (o un file intero, con <paramref name="record"/> null) dalla vista.</summary>
+    public void CambiaLaVista(string file, int? record)
+    {
+        string chiave = ChiaveDellaVista(file, record);
+        if (!_inVista.Remove(chiave))
+        {
+            _inVista.Add(chiave);
+            // Lo strato del file si accende: senza, sulla mappa non ci sarebbe niente da mostrare.
+            if (StratiDellaMappa.DiFile(file) is { } tipo && Strati.Any(s => s.Tipo.Id == tipo.Id))
+                _accesi.Add(tipo.Id);
+        }
+
+        Registro.Scrivi("vista", $"{(EInVista(file, record) ? "+" : "−")} {chiave} ({_inVista.Count} in vista)");
+        VersioneDellaVista++;
+        Avvisa();
+    }
+
+    /// <summary>Di nuovo tutto quel che è acceso.</summary>
+    public void SvuotaLaVista()
+    {
+        if (_inVista.Count == 0)
+            return;
+        _inVista.Clear();
+        VersioneDellaVista++;
+        Avvisa();
+    }
+
+    /// <summary>Come si chiama a schermo un elemento della vista.</summary>
+    public string NomeInVista(string chiave)
+    {
+        int cancelletto = chiave.LastIndexOf('#');
+        string file = chiave[..cancelletto];
+        string dopo = chiave[(cancelletto + 1)..];
+        return dopo == "*" ? $"{NomeDelFile(file)} (tutto)" : EtichettaDi(file, int.Parse(dopo, System.Globalization.CultureInfo.InvariantCulture));
+    }
 
     // --- l'anteprima di «incolla da testo» (chiesta dal committente il 23 settembre) -----------------------------
 

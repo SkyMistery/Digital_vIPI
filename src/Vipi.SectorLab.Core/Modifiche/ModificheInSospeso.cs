@@ -65,6 +65,22 @@ public sealed record ModificaDiStruttura(string File, int Aggiunti, int Tolti)
 }
 
 /// <summary>
+/// Righe del file cambiate A MANO (chiesto dal committente il 23 settembre: una riga che il lettore non capisce più
+/// — <c>BC;518;…</c> in <c>APT.fix</c> — non è un record, e senza questo non si correggeva dal Lab). Il file si rilegge
+/// dal testo nuovo: come un record aggiunto o tolto, cambia la STRUTTURA, e annullare rimette il file dell'apertura.
+/// </summary>
+/// <param name="Righe">I numeri delle righe cambiate a mano, nel file com'è adesso.</param>
+public sealed record ModificaDelTesto(string File, IReadOnlyList<int> Righe)
+    : Modifica(File, Record: -1, Etichetta: "", Campo: Chiave)
+{
+    internal const string Chiave = "§testo";
+
+    public override string Descrizione => Righe.Count == 1
+        ? $"riga {Righe[0]} scritta a mano"
+        : $"righe {string.Join(", ", Righe)} scritte a mano";
+}
+
+/// <summary>
 /// I vertici di una forma, cambiati tutti insieme (slice 7): uno spostato, uno aggiunto, uno tolto, o l'elenco
 /// intero incollato da un testo. Si tiene l'elenco <b>com'era all'apertura</b>, e annullare lo rimette.
 /// </summary>
@@ -419,7 +435,7 @@ public sealed class ModificheInSospeso
             // com'erano: il tag scritto di nuovo potrebbe non essere identico a quello di prima (virgolette, ordine).
             _fatte.Remove(voce);
             _dichiarazioniDiPartenza.Remove(chiave);
-            if (!_fatte.Keys.Any(k => k.File == file.Relativo && k.Campo is ModificaDiStruttura.Chiave or ModificaDellaDichiarazione.Chiave)
+            if (!_fatte.Keys.Any(k => k.File == file.Relativo && k.Campo is ModificaDiStruttura.Chiave or ModificaDellaDichiarazione.Chiave or ModificaDelTesto.Chiave)
                 && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
             {
                 str.RipristinaLaStruttura(comEra);
@@ -552,15 +568,18 @@ public sealed class ModificheInSospeso
         // 🔴 La struttura si annulla per ULTIMA: rimettere i record com'erano rinumera tutto, e le modifiche che
         // pendono sugli altri record di questo file non avrebbero più un indice buono. Si annullano prima loro —
         // così i valori tornano quelli dell'apertura — e poi si rimette la struttura.
-        if (modifica is ModificaDiStruttura)
+        // Una riga scritta a mano ha riletto il file: è anche lei struttura, e annullarla (o annullare la struttura)
+        // rimette il file dell'apertura — tutt'e due le voci se ne vanno insieme.
+        if (modifica is ModificaDiStruttura or ModificaDelTesto)
         {
-            foreach (var altra in _fatte.Values.Where(m => m.File == modifica.File && m is not ModificaDiStruttura).ToList())
+            foreach (var altra in _fatte.Values.Where(m => m.File == modifica.File && m is not (ModificaDiStruttura or ModificaDelTesto)).ToList())
                 Annulla(file, altra);
 
             if (_strutturaDiPartenza.Remove(modifica.File, out object? comEra))
                 ((IFileConRecord)file).RipristinaLaStruttura(comEra);
 
-            _fatte.Remove(chiave);
+            _fatte.Remove((modifica.File, -1, ModificaDiStruttura.Chiave));
+            _fatte.Remove((modifica.File, -1, ModificaDelTesto.Chiave));
             _sporchi.Remove(modifica.File);
             UltimoAggiunto = null;
             return true;
@@ -639,7 +658,9 @@ public sealed class ModificheInSospeso
     /// Aggiunge un record <b>copiando il vicino</b> (carta §2.3): nasce già nella forma del file e coi campi di
     /// struttura dei suoi vicini, e l'AOD cambia quel che deve. Torna la modifica, con l'indice del nuovo in coda.
     /// </summary>
-    public object AggiungiRecord(FileAperto file, int indice)
+    /// <param name="nome">Per i record col nome (<see cref="OrdineAlfabetico"/>): il nome del nuovo, che va al suo posto
+    /// in ordine alfabetico nella sezione del modello invece che subito sotto di lui. Null = sotto il modello.</param>
+    public object AggiungiRecord(FileAperto file, int indice, string? nome = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         if (file is not IFileConRecord conRecord)
@@ -647,8 +668,20 @@ public sealed class ModificheInSospeso
         if (indice < 0 || indice >= conRecord.RecordDelModello.Count)
             return new ModificaRifiutata("Questo record non c'è.");
 
+        int? dopo = null, primaDi = null;
+        Action<object>? prepara = null;
+        if (nome is not null)
+        {
+            if (OrdineAlfabetico.CampoDelNome(conRecord.RecordDelModello[indice]) is not { } campo)
+                return new ModificaRifiutata("Questi record non hanno un nome da mettere in ordine.");
+            if (OrdineAlfabetico.PercheNonVa(nome) is { } perche)
+                return new ModificaRifiutata(perche);
+            (dopo, primaDi) = OrdineAlfabetico.Posto(conRecord, indice, nome);
+            prepara = r => r.GetType().GetProperty(campo)!.SetValue(r, nome);
+        }
+
         Fotografa(file, conRecord);
-        int nuovo = conRecord.AggiungiComeIlVicino(indice);
+        int nuovo = conRecord.AggiungiComeIlVicino(indice, dopo, prepara, primaDi);
         SpostaGliIndici(file.Relativo, daIncluso: nuovo, scarto: +1);
         UltimoAggiunto = nuovo;
         return Registra(file, aggiunti: 1, tolti: 0);
@@ -672,6 +705,80 @@ public sealed class ModificheInSospeso
         SpostaGliIndici(file.Relativo, daIncluso: indice, scarto: -1);
         UltimoAggiunto = null;
         return Registra(file, aggiunti: 0, tolti: 1);
+    }
+
+    // --- una riga scritta a mano (chiesta dal committente il 23 settembre) -----------------------------------
+
+    /// <summary>
+    /// Cambia a mano la riga numero <paramref name="numero"/> (da 1) del file COM'È ADESSO, modifiche in sospeso
+    /// comprese, e rilegge il file col motore. Quel che pendeva sul file entra nel testo e smette di essere una voce a
+    /// sé (il file rimane uno: il diff dice tutto); le copie gemelle negli altri file restano dove sono.
+    /// <para>🔴 I tag <c>//@</c> (metadati) non si scrivono a mano, né se ne crea uno: si cambiano dalla scheda.</para>
+    /// </summary>
+    public object CambiaRiga(FileAperto file, int numero, string? testo)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta: si cambia con un editor.");
+        string nuova = testo ?? "";
+        if (nuova.Contains('\n', StringComparison.Ordinal) || nuova.Contains('\r', StringComparison.Ordinal))
+            return new ModificaRifiutata("Una riga alla volta: il testo non può andare a capo.");
+
+        var righe = conRecord.RigheDelFile(SporchiDi(file.Relativo)).ToList();
+        if (numero < 1 || numero > righe.Count)
+            return new ModificaRifiutata($"Il file ha {righe.Count} righe: la {numero} non c'è.");
+        string vecchia = righe[numero - 1];
+        if (vecchia == nuova)
+            return new ModificaRifiutata("La riga è già questa.");
+        if (EUnTag(vecchia) || EUnTag(nuova))
+            return new ModificaRifiutata("I tag //@ sono metadati del Lab: non si scrivono a mano, si cambiano dalla scheda.");
+
+        righe[numero - 1] = nuova;
+        object riletto;
+        try
+        {
+            riletto = conRecord.LeggiLeRighe(righe);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
+        {
+            return new ModificaRifiutata($"Il file con quella riga non si rilegge: {e.Message}");
+        }
+
+        var giaAMano = (_fatte.GetValueOrDefault((file.Relativo, -1, ModificaDelTesto.Chiave)) as ModificaDelTesto)?.Righe ?? [];
+        RimettiIlFileDellApertura(file, conRecord);
+        Fotografa(file, conRecord);
+        conRecord.RipristinaLaStruttura(riletto);
+
+        var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Append(numero).Distinct().Order()]);
+        _fatte[(file.Relativo, -1, ModificaDelTesto.Chiave)] = modifica;
+        _sporchi[file.Relativo] = [];
+        UltimoAggiunto = null;
+        return modifica;
+    }
+
+    private static bool EUnTag(string riga) => riga.TrimStart().StartsWith("//@", StringComparison.Ordinal);
+
+    /// <summary>
+    /// Il file torna quello dell'apertura, SENZA annullare niente negli altri file: i valori dei campi si rimettono
+    /// sui record di questo file (e le copie gemelle altrove restano, voci a sé), vertici e mappe composte si annullano,
+    /// la struttura torna quella fotografata.
+    /// </summary>
+    private void RimettiIlFileDellApertura(FileAperto file, IFileConRecord conRecord)
+    {
+        foreach (var campo in _fatte.Values.OfType<ModificaDiCampo>().Where(m => m.File == file.Relativo).ToList())
+            Cambia(file, campo.Record, campo.Campo, campo.Prima, campo.Etichetta);
+        foreach (var altra in _fatte.Values.Where(m => m.File == file.Relativo
+                     && m is ModificaDeiVertici or ModificaDellaComposta or ModificaDellaDichiarazione).ToList())
+        {
+            if (_fatte.ContainsKey((altra.File, altra.Record, altra.Campo)))
+                Annulla(file, altra);
+        }
+
+        if (_strutturaDiPartenza.TryGetValue(file.Relativo, out object? comEra))
+            conRecord.RipristinaLaStruttura(comEra);
+        foreach (var chiave in _fatte.Keys.Where(k => k.File == file.Relativo).ToList())
+            _fatte.Remove(chiave);
+        _sporchi.Remove(file.Relativo);
     }
 
     /// <summary>L'indice dell'ultimo record aggiunto in quel file, per andarci subito. Null se non ce n'è.</summary>
