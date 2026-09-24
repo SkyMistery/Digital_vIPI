@@ -732,7 +732,12 @@
   <data name="Diag_AdminPatterns" xml:space="preserve"><value>Admin patterns in force</value></data>
   <data name="Diag_AdminCodes" xml:space="preserve"><value>Observed staff codes</value></data>
   <data name="Common_Name" xml:space="preserve"><value>Name</value></data>
-  <data name="Diag_AdminIsAdmin" xml:space="preserve"><value>Grants admin</value></data>
+  <data name="Diag_AdminGrantedBy" xml:space="preserve"><value>Granted by</value></data>
+  <data name="Diag_AdminFounder" xml:space="preserve"><value>founder</value></data>
+  <data name="Diag_AdminPromoted" xml:space="preserve"><value>manual promotion</value></data>
+  <data name="Diag_AdminPromotedOver" xml:space="preserve"><value>(from codes: {0})</value></data>
+  <data name="Diag_AdminNoPattern" xml:space="preserve"><value>no recognised code</value></data>
+  <data name="Diag_AdminNoPatternTitle" xml:space="preserve"><value>Has staff codes, but none matches the Admin, Editor or Division staff patterns: stays IVAO staff.</value></data>
   <data name="Diag_AdminNoRoster" xml:space="preserve"><value>Nobody has logged in yet: the roster is filled from logins, so there is nothing to compare.</value></data>
   <data name="Diag_AdminNobody" xml:space="preserve"><value>None of the known staff members is an admin: while this holds nobody can edit or grant permissions, and it cannot be fixed from inside. Correct «Auth:AdminStaffCodes» or the «Division» section.</value></data>
   <data name="Diag_Entity" xml:space="preserve"><value>Entity</value></data>

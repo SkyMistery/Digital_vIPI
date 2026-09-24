@@ -167,4 +167,70 @@ public class AdminCoverageTests
         Assert.Equal(new[] { "ZZ-BOSS" }, c.Rows.Single(r => r.UserId == 10).Matched);
         Assert.Empty(c.Rows.Single(r => r.UserId == 9).Matched);   // IT-DIR non vale più: l'override sostituisce
     }
+
+    // ── «Concesso da»: quale codice staff dà il livello, per chiunque sia in tabella (24 settembre 2026) ───
+
+    private sealed class Promozioni : IRoleOverrides
+    {
+        private readonly Dictionary<int, Vipi.Domain.VipiRole> _m;
+        public Promozioni(params (int Vid, Vipi.Domain.VipiRole Livello)[] p) => _m = p.ToDictionary(x => x.Vid, x => x.Livello);
+        public bool Loaded => true;
+        public Vipi.Domain.VipiRole? For(int userId) => _m.TryGetValue(userId, out var l) ? l : null;
+        public IReadOnlyDictionary<int, Vipi.Domain.VipiRole> All => _m;
+        public Task ReloadAsync(CancellationToken ct = default) => Task.CompletedTask;
+    }
+
+    [Theory]
+    [InlineData("IT-AOC", Vipi.Domain.VipiRole.Admin)]
+    [InlineData("LIRR-CH", Vipi.Domain.VipiRole.Editor)]
+    [InlineData("IT-T03", Vipi.Domain.VipiRole.DivisionStaff)]
+    public async Task Per_ogni_livello_la_riga_dice_il_codice_che_lo_concede(string codice, Vipi.Domain.VipiRole livello)
+    {
+        // Un codice che concede, e accanto uno che nessun pattern riconosce: in «concesso da» va solo il primo.
+        var c = await Servizio(new RosterFinto((5, new[] { "DE-DIR", codice }))).DescribeAsync();
+
+        var r = c.Rows.Single();
+        Assert.Equal(livello, r.DaStaff);
+        Assert.Equal(livello, r.Level);
+        Assert.Equal(new[] { codice }, r.Concedenti);
+        Assert.False(r.Fondatore);
+    }
+
+    [Fact]
+    public async Task Codici_che_nessun_pattern_riconosce_non_concedono_niente()
+    {
+        var r = (await Servizio(new RosterFinto((5, new[] { "DE-DIR" }))).DescribeAsync()).Rows.Single();
+
+        Assert.Equal(Vipi.Domain.VipiRole.IvaoStaff, r.DaStaff);
+        Assert.Empty(r.Concedenti!);
+    }
+
+    [Fact]
+    public async Task Il_fondatore_e_admin_per_elenco_e_non_per_codice()
+    {
+        var svc = new AdminCoverageService(new RosterFinto((704798, new[] { "IT-T03" })),
+            new RoleResolver(new AuthOptions { FounderVids = new List<int> { 704798 } }, new DivisionOptions()),
+            SenzaPromozioni.Instance);
+
+        var r = (await svc.DescribeAsync()).Rows.Single();
+
+        Assert.True(r.Fondatore);
+        Assert.Equal(Vipi.Domain.VipiRole.Admin, r.Level);
+        Assert.Empty(r.Concedenti!);   // IT-T03 c'è, ma non è lui a farlo admin
+    }
+
+    [Fact]
+    public async Task Sotto_una_promozione_resta_detto_che_cosa_danno_i_codici()
+    {
+        var svc = new AdminCoverageService(new RosterFinto((7, new[] { "LIRR-CH" })),
+            new RoleResolver(new AuthOptions(), new DivisionOptions()),
+            new Promozioni((7, Vipi.Domain.VipiRole.Admin)));
+
+        var r = (await svc.DescribeAsync()).Rows.Single();
+
+        Assert.True(r.Promosso);
+        Assert.Equal(Vipi.Domain.VipiRole.Admin, r.Level);
+        Assert.Equal(Vipi.Domain.VipiRole.Editor, r.DaStaff);
+        Assert.Equal(new[] { "LIRR-CH" }, r.Concedenti);
+    }
 }
