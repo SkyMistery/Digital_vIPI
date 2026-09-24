@@ -37,6 +37,9 @@ public sealed class EfSectorFallbackService : ISectorFallbackService
         .Select(r => new FallbackRowEdit(r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind))
         .ToList();
 
+    public async Task<string?> RipiegoAutomaticoAsync(string sectorCallsign, CancellationToken ct = default) =>
+        (await RipieghiMilitariQuery.FratelliAsync(_db, ct)).TryGetValue(sectorCallsign ?? "", out var mil) ? mil : null;
+
     public async Task ReplaceAsync(string sectorCallsign, IReadOnlyList<FallbackRowEdit> rows, CancellationToken ct = default)
     {
         _authz.EnsureAtLeast(VipiRole.Editor);

@@ -27,6 +27,13 @@ public interface ISectorFallbackService
     Task<IReadOnlyList<FallbackRowEdit>> ListAsync(string sectorCallsign, CancellationToken ct = default);
 
     /// <summary>
+    /// Il MIL_CTR che raccoglie automaticamente il traffico di questo settore, se è l'APP di uno scalo «Solo
+    /// militare» (<see cref="RipiegoMilitare"/>). Non è una riga modificabile: la Struttura la mostra nella catena come
+    /// automatica. <c>null</c> = nessuna riga automatica.
+    /// </summary>
+    Task<string?> RipiegoAutomaticoAsync(string sectorCallsign, CancellationToken ct = default);
+
+    /// <summary>
     /// Sostituisce <b>tutte</b> le righe di un settore con quelle date (lista vuota = nessun ripiego
     /// dichiarato, cioè ricaduta per soli padri). Sostituzione e non modifica riga per riga: l'ordine è parte
     /// del significato, e riscriverlo per intero è l'unico modo di non doverlo ricucire.

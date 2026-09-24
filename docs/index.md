@@ -360,6 +360,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-23-f3-bis-copie-e-mappe-composte.md`](feature/2026-09-23-f3-bis-copie-e-mappe-composte.md) — F3-bis — Le copie che restano uguali e le mappe composte (23 settembre 2026)
 - [`feature/2026-09-23-procedure-non-trovate-negli-accordi.md`](feature/2026-09-23-procedure-non-trovate-negli-accordi.md) — Procedure non trovate negli accordi (S5) — carta
 - [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md) — §A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026)
+- [`feature/2026-09-24-mil-solo-traffico-militare.md`](feature/2026-09-24-mil-solo-traffico-militare.md) — Il MIL_CTR raccoglie solo il traffico militare — carta (24 settembre 2026)
 
 ### `filoni`
 

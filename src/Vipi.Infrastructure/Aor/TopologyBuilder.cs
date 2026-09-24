@@ -96,13 +96,17 @@ public sealed class TopologyBuilder : ITopologyProvider
             .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
             .ToListAsync(ct);
 
-        return righe
+        var dichiarate = righe
             .GroupBy(r => r.SectorCallsign, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 g => g.Key,
                 g => (IReadOnlyList<FallbackRow>)g
                     .Select(r => new FallbackRow(r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
                 StringComparer.OrdinalIgnoreCase);
+
+        // + le righe automatiche «APP militare → MIL_CTR fratello» (carta 2026-09-24-mil-solo-traffico-militare):
+        // qui, e non in chi risolve, perché da qui passano la ricaduta dei trasferimenti e il rinvio della Diagnostica.
+        return RipiegoMilitare.ConAutomatiche(dichiarate, await RipieghiMilitariQuery.FratelliAsync(_db, ct));
     }
 
     private static IReadOnlyCollection<string> ParseRequiredOnline(string json)

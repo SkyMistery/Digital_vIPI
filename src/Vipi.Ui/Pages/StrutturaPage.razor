@@ -1081,6 +1081,11 @@
     private List<FallbackRowEdit> _ripieghi = new();
     private List<FallbackRowEdit> _ripieghiSalvati = new();
 
+    /// <summary>Il MIL_CTR che raccoglie da sé il traffico di un APP di scalo «Solo militare»: non è una riga
+    /// dell'editor (non si scrive e non si toglie), ma nella catena disegnata c'è, perché nella ricaduta c'è.
+    /// Carta 2026-09-24-mil-solo-traffico-militare.</summary>
+    private string? _ripiegoAutomatico;
+
     /// <summary>
     /// L'unità con cui si sta scrivendo il piede e il tetto di ogni riga, in passo con <c>_ripieghi</c>.
     ///
@@ -1107,6 +1112,7 @@
 
         _ripieghiSalvati = (await Fallbacks.ListAsync(cs)).ToList();
         _ripieghi = _ripieghiSalvati.ToList();
+        _ripiegoAutomatico = await Fallbacks.RipiegoAutomaticoAsync(cs);
 
         _unita.Clear();
         foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
@@ -1318,6 +1324,13 @@
             dichiarate[sel.Callsign] = _ripieghiSalvati
                 .Where(r => !string.IsNullOrEmpty(r.TargetCallsign) || r.Kind == FallbackTargetKind.Coverage)
                 .Select(r => new FallbackRow(r.TargetCallsign ?? "", r.BaseFeet, r.TopFeet, r.Kind)).ToList();
+        // ⚠️ La riga automatica si aggiunge con la STESSA regola della topologia, non a mano qui: in coda alle
+        // scritte, e solo se nessuna riga scritta nomina già quel MIL_CTR.
+        if (_ripiegoAutomatico is { } mil)
+            dichiarate = new Dictionary<string, IReadOnlyList<FallbackRow>>(
+                RipiegoMilitare.ConAutomatiche(dichiarate,
+                    new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { [sel.Callsign] = mil }),
+                StringComparer.OrdinalIgnoreCase);
 
         string? Padre(string cs) => byCs.TryGetValue(cs, out var n) ? n.EffectiveParentCallsign : null;
 
@@ -1333,7 +1346,8 @@
                     Banda: e.BaseFeet is null && e.TopFeet is null ? null : FasciaTesto(e.BaseFeet, e.TopFeet),
                     DalPadre: e.FromParent,
                     Online: _online.Contains(e.TargetCallsign),
-                    Rinvio: e.Kind == FallbackTargetKind.Coverage);
+                    Rinvio: e.Kind == FallbackTargetKind.Coverage,
+                    Automatica: e.Automatica);
             }).ToList())
             .ToList();
     }

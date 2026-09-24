@@ -789,6 +789,8 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>No fallback and no parent: when this sector is offline, traffic goes to UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>any level</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>parent</value></data>
+  <data name="Struct_Fallback_Seq_Mil" xml:space="preserve"><value>automatic · MIL</value></data>
+  <data name="Struct_Fallback_Seq_MilTitle" xml:space="preserve"><value>Military-only airport: with the APP closed its traffic goes to the military sector with the same parent, and only then to the civil parent. It is not written and cannot be removed.</value></data>
   <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>point coverage</value></data>
   <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>The target is not a name but a question: who covers the transfer point, at that level, right now. It is for overlapping sectors (MIL, FSS), which cover a whole ACC and therefore have no single parent.</value></data>
   <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>The name is decided by the transfer point: nothing to type here.</value></data>

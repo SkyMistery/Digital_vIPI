@@ -132,9 +132,15 @@ public static class CoverageFallback
 
         var soglia = Rango(tipoRicevente);
         var informazioniAmmesse = Informazioni(riceventeCallsign);
+        // ⚠️ Stesso verso dell'FSS: un ente MILITARE raccoglie solo per un ricevente militare. I militari controllano
+        // solo il traffico militare — un MIL_CTR vede i trasferimenti scritti verso di lui, mai quelli di un ente
+        // civile (regola del committente del 24 settembre 2026, carta 2026-09-24-mil-solo-traffico-militare). Senza,
+        // un MIL SFC–UNL «copriva» ogni punto dell'ACC e diventava il ripiego di tutti.
+        var militariAmmessi = RipiegoMilitare.Militare(riceventeCallsign);
         var ammessi = claims.Where(c =>
             Rango(c.Type) >= soglia
             && (informazioniAmmesse || !Informazioni(c.Volume.Callsign))
+            && (militariAmmessi || !RipiegoMilitare.Militare(c.Volume.Callsign))
             && !fuoriGioco.Contains(c.Volume.Callsign)
             && !fuoriGioco.Contains(c.SessionCallsign)).ToList();
 
