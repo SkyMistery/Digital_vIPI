@@ -1533,6 +1533,13 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.45.1 — PATCH, NESSUNA migrazione. Su 1.45.0 (7bd3bda, online dal 24 settembre 2026). Filone sito
+      (docs/filoni/sito.md): S7, la Ricerca parte dal cambio del testo (@bind:after) e non più solo dal tasto
+      rilasciato — incollando, con l'autocompletamento o da uno script restava la parola nuova col conteggio
+      vecchio («0 results»). S8 (solo strumenti): pacchetto-verifica.js pretende che LIRF trovi almeno un documento.
+      Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
       1.45.0 — MINOR, migrazione ADDITIVA (20260923195956_CausaDelleSegnalazioni: due colonne nullable CauseKey e
       CauseArgsJson su DocumentImpacts). Su 1.44.1 (ce8a59f, online dal 23 settembre 2026). Filone «lista Da fare»
       (docs/filoni/lista-da-fare.md, carta docs/feature/2026-09-23-da-fare-per-cambiamento.md): l'incarico si chiude
@@ -1721,7 +1728,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.45.0</VipiVersione>
+    <VipiVersione>1.45.1</VipiVersione>
   </PropertyGroup>
 
 </Project>
