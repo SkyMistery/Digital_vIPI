@@ -33,6 +33,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A123 — Pacchetto 1.45.1: la Ricerca parte dal testo, non dal tasto (24 settembre 2026) — PRONTO DA CARICARE
+
+PATCH, **nessuna migrazione**, su 1.45.0 (`7bd3bda`). Timbro **`1.45.1 · cb62ebc`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md) §S7 (`SearchPage.razor`, `@bind:after`) e §S8 (`pacchetto-verifica.js` pretende
+≥1 documento per `TERMINE`=LIRF, Guida esclusa; runbook §6/§6-bis/§7). Fusione `fd276073`. **4 file**: Vipi.Ui +
+Vipi.Host (dll/pdb); tutto il resto identico per impronta. Zip `vipi-1.45.1-solo-file-cambiati.zip`
+`50b181ec…e5ccc8`, foglio [`LEGGIMI-PACCHETTO-1.45.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.45.1.md). 1.45.0
+ruotata in `publish_old/20260924a`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ Prova locale del pacchetto (win-x64, copia del DB, porta 5288, a mano col browser integrato): «Brindisi»
+  scritto senza `keyup` → **4 risultati** (con 1.45.0, stesso gesto e stesso DB: 0); scritto da script con il solo
+  `input` → 4. «LIRF» dà 0 in locale perché la copia di sviluppo non ha documenti di Fiumicino pubblicati.
+- Il foglio chiede per la prima volta la Ricerca che **trova** (LIRF → documenti), non la riga che cambia.
+
 ### ✅ A122 — 1.45.0 ONLINE: la lista «Da fare» per cambiamento (24 settembre 2026)
 
 ✅ Il committente conferma timbro `1.45.0 · 7bd3bda`, `Schema 0`, i tre tasti di «Da sistemare» e la Ricerca che
@@ -43,11 +57,12 @@ avvisi, 11 richieste tutte buone, nessuna voce in `errori-richieste`.
   `Vipi.Infrastructure` in `VipiDataProtection.AddVipiDataProtection`. Un ping di Passenger ha avviato il sito
   mentre `Vipi.Infrastructure.dll` era fra il nome finto e quello vero; seguono due avvii di assestamento (06:35:55,
   06:36:06). Transitorio, sparito da sé; nessuna azione. Lo stesso rischio vale per ogni carico con più assiemi.
-- 🔎 **Scoperto, NON della 1.45.0: la Ricerca dà sempre «0 results»** (produzione da anonimo: LIRF, PISIP,
-  Brindisi, radar). Stesso esito in locale su 1.44.1 **e** 1.45.0 con la stessa copia del DB (da amministratore):
-  quindi c'era già. La verifica di consegna («la riga sotto il campo cambia») passa lo stesso, perché «0 results for
-  …» è una riga cambiata: **il controllo non distingue una ricerca che trova da una che non trova**. Da indagare
-  (`EfSearchRepository` legge l'indice `IndiceDelleRelease` delle release in vigore).
+- 🔎 **«La Ricerca dà sempre 0 risultati» — diagnosi SBAGLIATA dell'integratore, corretta da §S7 (sito, 24-set).**
+  La ricerca trovava (in produzione LIRF 13, Brindisi 16): il conteggio partiva solo al **rilascio di un tasto**,
+  mentre il testo seguiva ogni `input`. Il browser integrato scrive senza `keyup` → parola nuova, conteggio vecchio
+  «0 results». Lo stesso capita a un utente che incolla o usa l'autocompletamento. Corretto in **1.45.1** (§A123).
+  Resta vero l'altro fatto: il controllo di consegna non distingueva una ricerca che trova da una che non trova →
+  §S8, ora pretende documenti per LIRF.
 - 🔴 `pacchetto-verifica.js` non parte (Edge headless «Code: 0»): verifica da fuori fatta a mano col browser integrato.
 
 MINOR, **una migrazione additiva** (`20260923195956_CausaDelleSegnalazioni`: `CauseKey` + `CauseArgsJson` nullable

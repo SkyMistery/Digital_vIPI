@@ -4,9 +4,12 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> **📦 1.45.1 PRONTO DA CARICARE (24-set, §A123)**: la Ricerca parte dal cambio del testo (S7) + verifica di
+> consegna che pretende documenti per LIRF (S8). PATCH, 4 file, timbro `1.45.1 · cb62ebc`, zip `50b181ec…`.
+>
 > **✅ 1.45.0 ONLINE (24-set, §A122)**: la lista «Da fare» per cambiamento (filone `dafare/raggruppa`, fuso), MINOR
 > con migrazione ADDITIVA, 17 file, timbro `1.45.0 · 7bd3bda`. Timbro, Schema 0, tasti, Ricerca confermati.
-> 🔎 **Aperto, c'era già prima**: la Ricerca dà sempre «0 results», e il controllo di consegna non se ne accorge
+> (La «Ricerca sempre a 0» era il conteggio che partiva solo dal tasto: corretto in 1.45.1, §A123.)
 > (§A122). 🔴 `pacchetto-verifica.js` fermo: Edge headless non parte.
 >
 > **✅ 1.44.1 ONLINE (23-set, §A121)**: S4 bis (linea delle colonne) + S6 («autorizzato alla STAR»),
