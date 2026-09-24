@@ -367,6 +367,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`filoni/da-fare.md`](filoni/da-fare.md) — Lavori assegnati ai filoni — la coda
 - [`filoni/lab.md`](filoni/lab.md) — Filone Sector Lab — stato
 - [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md) — Filone «Da fare»: raggruppare per cambiamento 🟡
+- [`filoni/lock-uniti.md`](filoni/lock-uniti.md) — Filone «lock uniti» — ramo `fix/lock-uniti`
 - [`filoni/sito.md`](filoni/sito.md) — Filone sito vIPI — stato
 
 ### `guide`

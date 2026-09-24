@@ -202,12 +202,13 @@ else
     /// <para>⚠️ L'ospite li chiede a TUTTI i membri e, se anche uno solo risponde con un nome, RILASCIA
     /// quelli gia' presi: mezzo lock preso e' peggio di nessun lock — chi crede di star modificando due
     /// documenti ne starebbe modificando uno.</para>
+    /// <para>🔴 Si chiede al DATABASE, non a <c>_shell.Lock</c>: quello e' il lock letto al caricamento. Il
+    /// collega uscito nel frattempo continuava a bloccare fino al ricarico della pagina (25 settembre 2026).
+    /// Chi tiene il lock adesso lo dice <c>StartEditingAsync</c>, che resta fuori modifica se non e' nostro.</para>
     /// </summary>
     public async Task<string?> PrendiLockAsync()
     {
         if (_shell.Doc is null) return null;   // niente documento, niente da bloccare
-        if (_shell.Lock is { Locked: true, IsMine: false })
-            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
         await _shell.StartEditingAsync(LoadAsync);
         return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
     }

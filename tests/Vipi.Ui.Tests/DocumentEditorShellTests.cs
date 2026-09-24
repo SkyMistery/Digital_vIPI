@@ -66,8 +66,11 @@ public class DocumentEditorShellTests
             return Task.FromResult(1);
         }
 
+        /// <summary>Che cosa torna la presa del lock. Di default: libero, come prima che servisse.</summary>
+        public LockInfo LockPreso { get; init; } = LockInfo.Free();
+
         public Task<LockInfo> AcquireLockAsync(int documentId, CancellationToken ct = default) =>
-            Task.FromResult(LockInfo.Free());
+            Task.FromResult(LockPreso);
 
         // ---- il resto non lo tocca il guscio ----
         private static Exception NonUsato([System.Runtime.CompilerServices.CallerMemberName] string? m = null) =>
@@ -115,6 +118,57 @@ public class DocumentEditorShellTests
             IsEditing = true,
         };
         return (guscio, ridisegni);
+    }
+
+    private static EditableDocument BozzaAperta() => new()
+    {
+        DocumentId = 7,
+        VersionId = 70,
+        VersionNumber = 2,
+        VersionStatus = DocumentStatus.Draft,
+        Title = "Prova",
+        Sections = Array.Empty<EditableSection>(),
+    };
+
+    /// <summary>
+    /// 🔴 <b>Col lock di un altro non si entra in modifica</b>, anche se la bozza è già aperta.
+    ///
+    /// <para>Misurato dal vivo il 25 settembre 2026 su LIBV (vSOP MIL + vIPI uniti): il collega aveva preso
+    /// il lock del membro DOPO il caricamento della pagina, e «Modifica» apriva lo stesso — il membro con tutti
+    /// i tasti accesi, nessun nome a schermo, la prima scrittura respinta con «lock scaduto». La presa del lock
+    /// non solleva col lock altrui, lo TORNA; e contava solo che la bozza fosse aperta.</para>
+    /// </summary>
+    [Fact]
+    public async Task Col_lock_di_un_ALTRO_la_bozza_aperta_non_basta_per_entrare()
+    {
+        var (guscio, _) = Guscio(new EditingFinto
+        {
+            LockPreso = new LockInfo { Locked = true, IsMine = false, ByUserId = 111111, ByName = "Collega" },
+        });
+        guscio.IsEditing = false;
+        guscio.Doc = BozzaAperta();
+
+        await guscio.StartEditingAsync(() => Task.CompletedTask);
+
+        Assert.False(guscio.IsEditing);
+        // E il nome arriva a chi ha premuto: nell'editor unito è la risposta «in modifica da …».
+        Assert.Equal("Collega", guscio.Lock.ByName);
+    }
+
+    /// <summary>Il controllo del test sopra: col lock NOSTRO sulla stessa bozza si entra.</summary>
+    [Fact]
+    public async Task Col_lock_NOSTRO_sulla_bozza_aperta_si_entra()
+    {
+        var (guscio, _) = Guscio(new EditingFinto
+        {
+            LockPreso = new LockInfo { Locked = true, IsMine = true, ByUserId = 704798, ByName = "Io" },
+        });
+        guscio.IsEditing = false;
+        guscio.Doc = BozzaAperta();
+
+        await guscio.StartEditingAsync(() => Task.CompletedTask);
+
+        Assert.True(guscio.IsEditing);
     }
 
     /// <summary>

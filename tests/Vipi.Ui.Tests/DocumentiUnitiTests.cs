@@ -291,6 +291,31 @@ public class DocumentiUnitiTests : TestContext
             $"{relativo}: il documento si azzera PRIMA della guardia — ogni ridisegno del padre lo smonta.");
     }
 
+    /// <summary>
+    /// 🔴 Misurato dal vivo il 25 settembre 2026 su LIBV: tolto il lock del collega, «Modifica» dell'editor
+    /// unito continuava a dire «in modifica da Collega» fino al ricarico della pagina. Il membro decideva sul
+    /// <c>_shell.Lock</c> letto al CARICAMENTO, senza chiedere al database.
+    ///
+    /// <para>⚠️ Si guarda il SORGENTE: la presa del lock di un membro passa sempre da
+    /// <c>StartEditingAsync</c> (che interroga il database e resta fuori modifica se il lock non è nostro), e
+    /// prima di lei non si decide sullo stato in memoria.</para>
+    /// </summary>
+    [Theory]
+    [InlineData("Components/Doc/AppSectionsEditor.razor")]
+    [InlineData("Components/Doc/MilSectionsEditor.razor")]
+    [InlineData("Components/Doc/AirportSectionsEditor.razor")]
+    public void Il_lock_di_un_membro_si_chiede_al_database_non_alla_cache(string relativo)
+    {
+        var sorgente = Leggi(relativo);
+        var inizio = sorgente.IndexOf("public async Task<string?> PrendiLockAsync()", StringComparison.Ordinal);
+        Assert.True(inizio >= 0, $"{relativo}: PrendiLockAsync non trovata.");
+        var corpo = sorgente[inizio..];
+        var presa = corpo.IndexOf("_shell.StartEditingAsync(", StringComparison.Ordinal);
+        Assert.True(presa >= 0, $"{relativo}: il membro non prende il lock da StartEditingAsync.");
+
+        Assert.DoesNotContain("_shell.Lock is", corpo[..presa], StringComparison.Ordinal);
+    }
+
     /// <summary>Aprire la scheda delle comuni LEGGE e basta: non deve far ricaricare la pagina ospite.</summary>
     [Fact]
     public void Aprire_la_scheda_delle_comuni_non_ricarica_l_host()
