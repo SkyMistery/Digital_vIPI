@@ -142,6 +142,16 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | C6 | Controlli: intestazione diversa dal ciclo del ramo, sezione mancante, riga accanto a `*NIL` | F4 | ✅ deciso |
 | C7 | Archivio vecchio (2023 libero, 2024-2025 mancanti) lasciato com'è | — | ✅ deciso |
 
+## §4 — `COLORS` — misurata, **per ora non serve** (committente, 24 settembre)
+
+- `PAR2090.clr` (31 righe `CHIAVE=colore`, colori Delphi `$00BBGGRR` o nomi `clYellow`): i colori del PAR, sezione
+  `[COLORSCHEME]` degli `.isc` (`F;COLORS\PAR2090.clr`).
+- `colors.def` (16 righe `NOME;#RRGGBB;`): i colori dei layout di terra (GRASS, TAXIWAY, RUNWAY, STOPBAR…) e delle
+  aree (TWR, APP, CTR, MIL, GCI, LIMMFIC, LIMMLIM), incluso come `F;IT\colors\colors.def`.
+- Da ricordare se un giorno servirà: i due riferimenti negli `.isc` hanno basi diverse (`COLORS\…` come gli altri
+  file, `IT\colors\…` con `IT` davanti); le combinazioni di colori di Aurora (`ColorSchemes\*.clr`) stanno fuori dal
+  sector. Il Lab potrebbe usare `colors.def` per colorare la mappa come Aurora.
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
