@@ -386,6 +386,9 @@ public static class IvaoServiceCollectionExtensions
         // ⚠️ Non è un import — non interroga nessuna sorgente — ma vive nella stessa lista perché è un giro
         // gestito uguale agli altri, e parte per ultimo: guarda il mondo DOPO che gli import l'hanno aggiornato.
         services.AddHostedService<ImpactDriftHostedService>();
+        // Lo stesso giro, pochi minuti dopo che qualcuno ha scritto dati che finiscono nei documenti: la finestra
+        // di modifiche diventa la CAUSA delle righe «da ripubblicare» (carta 2026-09-23-da-fare-per-cambiamento §4).
+        services.AddHostedService<DerivaDopoLeModificheHostedService>();
         // ⚠️ Nemmeno questo e' un import: ricalcola gli stati delle release e pota quel che e' scaduto.
         // Vive qui perche' e' un giro gestito uguale agli altri, e parte DOPO la deriva -- quella puo'
         // ripuntare release sotto la chiave viva, e potare prima vorrebbe dire potare un archivio che sta

@@ -452,6 +452,9 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) =>
             throw new InvalidOperationException("guasto simulato nel giro della deriva");
 
+        public Task<ImpactDriftResult> RunAfterChangesAsync(FinestraDiModifiche finestra, CancellationToken ct = default) =>
+            throw new InvalidOperationException("guasto simulato nel giro dopo le modifiche");
+
         public Task<ImpactDriftResult> RunForDocumentAsync(int documentId, CancellationToken ct = default) =>
             throw new InvalidOperationException("guasto simulato nella riconciliazione");
     }

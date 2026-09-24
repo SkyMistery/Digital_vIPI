@@ -586,4 +586,117 @@ public class ReleasePanelTests : TestContext
         Assert.Contains("Rel_UnionTitle", cut.Markup);
     }
 
+
+    // ── «Segna rilette anche queste N» (carta 2026-09-23-da-fare-per-cambiamento, punto 4) ─────────────
+
+    private sealed class UnBersaglio : IReleaseTargetRegistry, IReleaseTarget
+    {
+        public IReleaseTarget For(ReleaseTargetType type) => this;
+        public IReadOnlyList<IReleaseTarget> ByDescribeOrder => new[] { this };
+        public ReleaseTargetType Type => ReleaseTargetType.App;
+        public int DescribeOrder => 0;
+        public Task<int?> ResolveDocumentIdAsync(string key, CancellationToken ct = default) => Task.FromResult<int?>(42);
+        public Task<string?> AuthAccCodeAsync(string key, CancellationToken ct = default) => Task.FromResult<string?>("LIRR");
+        public bool TryDescribe(Vipi.Domain.Entities.Document doc, bool hasDraft, out ManagedDoc managed)
+        { managed = default!; return false; }
+    }
+
+    private sealed class LavoroDelDocumento : IWorkListService
+    {
+        public List<WorkItem> Righe { get; } = new();
+        public Task<IReadOnlyList<WorkItem>> MieAsync(CancellationToken ct = default) => Task.FromResult<IReadOnlyList<WorkItem>>(Righe);
+        public Task<IReadOnlyList<WorkItem>> PerDocumentoAsync(int documentId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<WorkItem>>(documentId == 42 ? Righe.ToList() : new List<WorkItem>());
+        public Task<int> PrendiInCaricoAsync(int impactId, int assegnatarioId, string? assegnatarioNome, string? scadenzaCiclo,
+            CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
+    private sealed class ChiusureContate : IDocumentImpactService
+    {
+        public List<int> Chiusi { get; } = new();
+        public Task ClearAsync(int impactId, CancellationToken ct = default) { Chiusi.Add(impactId); return Task.CompletedTask; }
+        public Task<IReadOnlyList<DocumentImpactRow>> ListOpenAsync(int documentId, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<DocumentImpactRow>>(Array.Empty<DocumentImpactRow>());
+        public Task<int> RaiseForSectorAsync(ImpactKind kind, string composePosition, string accCode, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<int>> FindDocumentsForSectorAsync(string composePosition, string accCode, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<int>>(Array.Empty<int>());
+        public Task<int> RaiseForAreaAsync(ImpactKind kind, string ivaoId, string areaName, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<int> RaiseForDocumentsAsync(ImpactKind kind, IReadOnlyCollection<int> documentIds, string sourceKey, IReadOnlyList<string> args, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<RaiseImpactInput>> PrepareForSectorAsync(ImpactKind kind, string composePosition, string accCode, IReadOnlyList<string> args, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<RaiseImpactInput>>(Array.Empty<RaiseImpactInput>());
+        public Task<int> ClearBySourceAsync(IReadOnlyCollection<ImpactKind> kinds, string sourceKey, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<int> ListOpenByKindCountAsync(ImpactKind kind, CancellationToken ct = default) => Task.FromResult(0);
+        public Task<IReadOnlyDictionary<int, ImpactBadge>> CountOpenAsync(IReadOnlyCollection<int> documentIds, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyDictionary<int, ImpactBadge>>(new Dictionary<int, ImpactBadge>());
+        public Task<(int Aperti, int Chiusi)> ReconcileAsync(ImpactKind kind, IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) => Task.FromResult((0, 0));
+        public Task<(int Aperti, int Chiusi)> ReconcileForDocumentAsync(int documentId, IReadOnlyCollection<ImpactKind> kinds,
+            IReadOnlyCollection<RaiseImpactInput> attuali, CancellationToken ct = default) => Task.FromResult((0, 0));
+        public Task<int> PruneClearedBeforeAsync(DateTime cutoffUtc, CancellationToken ct = default) => Task.FromResult(0);
+    }
+
+    private static WorkItem Segnalazione(int id, ImpactKind tipo) =>
+        new(WorkOrigin.Sistema, $"imp:{id}", 42, "Pisa Approach", "LIRR", "/x", $"Impact_{tipo}", new[] { "LI-R7" },
+            tipo.Severita(false), tipo.AzioneCheChiude(), DateTime.UtcNow, ImpactId: id, Tipo: tipo);
+
+    private (LavoroDelDocumento Lavoro, ChiusureContate Impatti) ArrangeRilette(params WorkItem[] righe)
+    {
+        var lavoro = new LavoroDelDocumento();
+        lavoro.Righe.AddRange(righe);
+        var impatti = new ChiusureContate();
+        Services.AddSingleton<IReleaseTargetRegistry>(new UnBersaglio());
+        Services.AddSingleton<IWorkListService>(lavoro);
+        Services.AddSingleton<IDocumentImpactService>(impatti);
+        return (lavoro, impatti);
+    }
+
+    [Fact]
+    public void La_casella_conta_solo_le_segnalazioni_da_rileggere_e_nasce_spenta()
+    {
+        Arrange();
+        ArrangeRilette(
+            Segnalazione(1, ImpactKind.AreaChanged),
+            Segnalazione(2, ImpactKind.SectorRenamed),
+            Segnalazione(3, ImpactKind.ReleaseDrift));   // la chiude la pubblicazione da sé: non si conta
+
+        var cut = Render();
+
+        Assert.Contains("Rel_MarkReviewedToo 2", cut.Markup);
+        Assert.False(cut.Find(".rel-rilette input[type=checkbox]").HasAttribute("checked"));
+    }
+
+    [Fact]
+    public void Spenta_la_pubblicazione_non_chiude_niente()
+    {
+        var rel = Arrange();
+        var (_, impatti) = ArrangeRilette(Segnalazione(1, ImpactKind.AreaChanged));
+
+        var cut = Render();
+        cut.FindAll("button").First(b => b.TextContent.Contains("Rel_PublishNow")).Click();
+
+        Assert.Equal(1, rel.PublishedNow);
+        Assert.Empty(impatti.Chiusi);
+    }
+
+    [Fact]
+    public void Accesa_la_pubblicazione_le_chiude_tutte()
+    {
+        var rel = Arrange();
+        var (_, impatti) = ArrangeRilette(Segnalazione(1, ImpactKind.AreaChanged), Segnalazione(2, ImpactKind.AreaGone));
+
+        var cut = Render();
+        cut.Find(".rel-rilette input[type=checkbox]").Change(true);
+        cut.FindAll("button").First(b => b.TextContent.Contains("Rel_ScheduleAtCycle")).Click();
+
+        Assert.Equal(1, rel.Published);
+        Assert.Equal(new[] { 1, 2 }, impatti.Chiusi);
+    }
+
+    [Fact]
+    public void Senza_segnalazioni_da_rileggere_la_casella_non_c_e()
+    {
+        Arrange();
+        ArrangeRilette(Segnalazione(3, ImpactKind.ReleaseDrift));
+
+        Assert.Empty(Render().FindAll(".rel-rilette"));
+    }
 }

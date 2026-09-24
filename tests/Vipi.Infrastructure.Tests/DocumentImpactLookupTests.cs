@@ -378,4 +378,101 @@ public class DocumentImpactLookupTests : IAsyncLifetime
         Assert.Equal(new[] { "LIRR_TS_CTR" }, riga.ReasonArgs);
         Assert.Equal("vIPI Roma ACC", riga.DocumentTitle);
     }
+
+    // ---- Lo stesso fatto raccontato con i dati di oggi (verifica 11-set, difetto 2) ----
+
+    [Fact]
+    public async Task Riaprire_Con_Argomenti_Nuovi_Aggiorna_La_Frase_Ma_Non_L_Eta()
+    {
+        var repo = Repo;
+        var id = await repo.RaiseAsync(new RaiseImpactInput(_accDoc, ImpactKind.ReleaseDrift, "LIRR",
+            DocumentImpactService.Reasons.ReleaseDrift, new[] { "Frequenze" }));
+        var nata = (await repo.ListOpenAsync(_accDoc)).Single().RaisedUtc;
+
+        var stesso = await repo.RaiseAsync(new RaiseImpactInput(_accDoc, ImpactKind.ReleaseDrift, "LIRR",
+            DocumentImpactService.Reasons.ReleaseDrift, new[] { "Frequenze, Trasferimenti" }, IsPublicNow: true));
+
+        Assert.Equal(id, stesso);
+        var riga = Assert.Single(await repo.ListOpenAsync(_accDoc));
+        Assert.Equal(new[] { "Frequenze, Trasferimenti" }, riga.ReasonArgs);
+        Assert.True(riga.IsPublicNow);
+        Assert.Equal(nata, riga.RaisedUtc);   // l'età è del fatto, non dell'ultima volta che lo si è visto
+    }
+
+    // ---- L'incarico nato da una segnalazione si chiude con lei (verifica 11-set, difetto 1) ----
+
+    private async Task<int> IncaricoDaAsync(int? impactId, EditorTaskStatus stato = EditorTaskStatus.Todo)
+    {
+        var t = new EditorTask
+        {
+            Title = "Rileggi", AssigneeUserId = 704798, Status = stato, FromImpactId = impactId,
+            CreatedUtc = DateTime.UtcNow, UpdatedUtc = DateTime.UtcNow,
+        };
+        _db.EditorTasks.Add(t);
+        await _db.SaveChangesAsync();
+        return t.Id;
+    }
+
+    private async Task<EditorTaskStatus> StatoAsync(int taskId) =>
+        (await _db.EditorTasks.AsNoTracking().SingleAsync(t => t.Id == taskId)).Status;
+
+    [Fact]
+    public async Task Chiudere_La_Segnalazione_Chiude_L_Incarico_Nato_Da_Lei_E_Lo_Scrive_Nel_Registro()
+    {
+        var repo = Repo;
+        var impatto = await repo.RaiseAsync(new RaiseImpactInput(_accDoc, ImpactKind.ReleaseDrift, "LIRR",
+            DocumentImpactService.Reasons.ReleaseDrift, new[] { "Frequenze" }));
+        var suo = await IncaricoDaAsync(impatto, EditorTaskStatus.InProgress);
+        var altro = await IncaricoDaAsync(null);
+
+        await repo.ClearAsync(impatto, byUserId: 0, DateTime.UtcNow);
+
+        Assert.Equal(EditorTaskStatus.Done, await StatoAsync(suo));
+        Assert.Equal(EditorTaskStatus.Todo, await StatoAsync(altro));   // un incarico libero non c'entra
+        var voce = await _db.AuditLogs.AsNoTracking()
+            .SingleAsync(a => a.EntityType == "EditorTask" && a.EntityId == suo.ToString());
+        Assert.Contains("SegnalazioneChiusa", voce.DetailsJson);
+    }
+
+    [Fact]
+    public async Task Chiudere_Per_Sorgente_Chiude_Gli_Incarichi_Di_Tutte_Le_Righe()
+    {
+        var repo = Repo;
+        var a = await repo.RaiseAsync(new RaiseImpactInput(_accDoc, ImpactKind.SectorGone, "LIRR_TS_CTR",
+            DocumentImpactService.Reasons.SectorGone, new[] { "LIRR_TS_CTR" }));
+        var b = await repo.RaiseAsync(new RaiseImpactInput(_vloaDoc, ImpactKind.SectorGone, "LIRR_TS_CTR",
+            DocumentImpactService.Reasons.SectorGone, new[] { "LIRR_TS_CTR" }));
+        var ta = await IncaricoDaAsync(a);
+        var tb = await IncaricoDaAsync(b);
+
+        await repo.ClearBySourceAsync(new[] { ImpactKind.SectorGone }, "LIRR_TS_CTR", 0, DateTime.UtcNow);
+
+        Assert.Equal(EditorTaskStatus.Done, await StatoAsync(ta));
+        Assert.Equal(EditorTaskStatus.Done, await StatoAsync(tb));
+    }
+
+    [Fact]
+    public async Task Il_Giro_Di_Potatura_Risana_Gli_Incarichi_Rimasti_Senza_Segnalazione()
+    {
+        var repo = Repo;
+        var chiusa = await repo.RaiseAsync(new RaiseImpactInput(_accDoc, ImpactKind.SectorGone, "LIRR_TS_CTR",
+            DocumentImpactService.Reasons.SectorGone, new[] { "LIRR_TS_CTR" }));
+        var aperta = await repo.RaiseAsync(new RaiseImpactInput(_vloaDoc, ImpactKind.SectorGone, "LIRR_NE_CTR",
+            DocumentImpactService.Reasons.SectorGone, new[] { "LIRR_NE_CTR" }));
+
+        // Com'era prima della correzione: la segnalazione chiusa e l'incarico rimasto indietro. Si chiude la riga
+        // scrivendola a mano, senza passare dal repository che adesso trascinerebbe l'incarico.
+        var riga = await _db.DocumentImpacts.SingleAsync(i => i.Id == chiusa);
+        riga.ClearedUtc = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        var rimasto = await IncaricoDaAsync(chiusa);
+        var potata = await IncaricoDaAsync(999_999);   // segnalazione già potata: non esiste più
+        var vivo = await IncaricoDaAsync(aperta);
+
+        await repo.PruneClearedBeforeAsync(DateTime.UtcNow.AddDays(-60));
+
+        Assert.Equal(EditorTaskStatus.Done, await StatoAsync(rimasto));
+        Assert.Equal(EditorTaskStatus.Done, await StatoAsync(potata));
+        Assert.Equal(EditorTaskStatus.Todo, await StatoAsync(vivo));
+    }
 }

@@ -84,6 +84,16 @@ public enum WorkAction
 /// <param name="Titolo">Il titolo del <b>documento</b> su cui si lavora; per un incarico libero, il suo.</param>
 /// <param name="Url">Dove si va a lavorare. <c>null</c> = non raggiungibile (documento sparito, o incarico
 /// libero): la riga resta in lista, ma senza collegamento — è un'informazione, non un difetto da nascondere.</param>
+/// <param name="Tipo">Il tipo della segnalazione da cui viene la riga — la sua, o quella da cui l'incarico è
+/// nato. <c>null</c> = incarico scritto da una persona. Serve a raggruppare (<see cref="WorkGrouping"/>).</param>
+/// <param name="Sorgente">Che cosa, a monte, ha prodotto la segnalazione (<c>DocumentImpact.SourceKey</c>): un
+/// callsign, <c>area:44120</c>, uno slug. Due righe con stesso tipo e stessa sorgente sono lo <b>stesso
+/// cambiamento</b> su due documenti.</param>
+/// <param name="Causa">La finestra di modifiche dopo la quale il giro ha visto la deriva (<c>mod:…</c>), se si sa.
+/// Due derive con la stessa causa sono lo stesso lavoro su più documenti (<see cref="FinestraDiModifiche"/>).</param>
+/// <param name="CausaArgs">Gli argomenti della causa: l'istante ISO e le famiglie.</param>
+/// <param name="Bersaglio">Bersaglio e chiave di release del documento: servono a chiedere «che cosa è cambiato»
+/// rispetto alla copia pubblicata (il dettaglio apribile nella riga). <c>null</c> = documento non raggiungibile.</param>
 public sealed record WorkItem(
     WorkOrigin Origine,
     string Chiave,
@@ -102,7 +112,13 @@ public sealed record WorkItem(
     bool InRitardo = false,
     int? ImpactId = null,
     int? TaskId = null,
-    EditorTaskStatus? Stato = null)
+    EditorTaskStatus? Stato = null,
+    ImpactKind? Tipo = null,
+    string? Sorgente = null,
+    string? Causa = null,
+    IReadOnlyList<string>? CausaArgs = null,
+    ReleaseTargetType? Bersaglio = null,
+    string? ChiaveRelease = null)
 {
     /// <summary>Il ✓ ha senso su questa riga.</summary>
     public bool SiSpunta => Azione == WorkAction.SegnaFatto;

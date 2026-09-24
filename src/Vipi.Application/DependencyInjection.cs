@@ -31,6 +31,9 @@ public static class DependencyInjection
         // Singleton: dice a TUTTE le sessioni che il catalogo ACC e' cambiato. Vedi IStationCatalogVersion —
         // senza, la cache del resolver (scoped = per CIRCUITO in Blazor Server) invecchia per ore.
         services.AddSingleton<IStationCatalogVersion, StationCatalogVersion>();
+        // Singleton: le scritture di TUTTI i circuiti e dei giri d'import segnalano nello stesso posto, e il giro
+        // della deriva le prende da li'. Carta docs/feature/2026-09-23-da-fare-per-cambiamento.md §4.
+        services.AddSingleton<IModificheInAttesa, ModificheInAttesa>();
         // Il catalogo vero e proprio: SINGLETON, cioe' una copia per processo. Vedi CatalogoStazioni.
         services.AddSingleton<ICatalogoStazioni, CatalogoStazioni>();
         // Il resolver resta scoped perche' porta il COME si legge (IStationDirectory, che ha il DbContext

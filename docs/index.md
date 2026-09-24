@@ -356,6 +356,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`feature/2026-09-21-documenti-collegati.md`](feature/2026-09-21-documenti-collegati.md) — Documenti collegati nel sommario (§A109) — carta
 - [`feature/2026-09-22-f2-motore-del-sector.md`](feature/2026-09-22-f2-motore-del-sector.md) — F2 — Il motore del sector: leggere, capire, validare e riscrivere l'albero intero (22 settembre 2026)
 - [`feature/2026-09-22-f3-l-app.md`](feature/2026-09-22-f3-l-app.md) — F3 — L'app: aprire il sector, vederlo sulla mappa, modificarlo e salvarlo senza danni (22 settembre 2026)
+- [`feature/2026-09-23-da-fare-per-cambiamento.md`](feature/2026-09-23-da-fare-per-cambiamento.md) — «Da fare» per cambiamento — carta (23 settembre 2026)
 - [`feature/2026-09-23-f3-bis-copie-e-mappe-composte.md`](feature/2026-09-23-f3-bis-copie-e-mappe-composte.md) — F3-bis — Le copie che restano uguali e le mappe composte (23 settembre 2026)
 - [`feature/2026-09-23-procedure-non-trovate-negli-accordi.md`](feature/2026-09-23-procedure-non-trovate-negli-accordi.md) — Procedure non trovate negli accordi (S5) — carta
 - [`feature/2026-09-23-vista-condivisa-sessioni-atc.md`](feature/2026-09-23-vista-condivisa-sessioni-atc.md) — §A117 — La vista `v_share_atc_sessions` per l'IVAO Division Hub (23 settembre 2026)
@@ -365,6 +366,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 - [`filoni/come-si-lavora-in-parallelo.md`](filoni/come-si-lavora-in-parallelo.md) — Più agenti in parallelo: chi scrive dove 🟢
 - [`filoni/da-fare.md`](filoni/da-fare.md) — Lavori assegnati ai filoni — la coda
 - [`filoni/lab.md`](filoni/lab.md) — Filone Sector Lab — stato
+- [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md) — Filone «Da fare»: raggruppare per cambiamento 🟡
 - [`filoni/sito.md`](filoni/sito.md) — Filone sito vIPI — stato
 
 ### `guide`

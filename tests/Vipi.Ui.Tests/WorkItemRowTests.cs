@@ -257,6 +257,106 @@ public class WorkItemRowTests : TestContext
         Assert.Contains("wi-inritardo", Rendi(Riga(WorkSeverity.InRitardo, WorkAction.CambiaStato)).Markup);
     }
 
+    // ── Età della riga e «cosa è cambiato» (carta 2026-09-23-da-fare-per-cambiamento, punto 4) ────────
+
+    [Fact]
+    public void L_eta_si_dice_in_giorni_e_oltre_un_ciclo_AIRAC_si_dice_piu_forte()
+    {
+        var oggi = Rendi(Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto) with { Da = DateTime.UtcNow });
+        Assert.Contains("Work_AgeToday", oggi.Find(".wi-age").TextContent);
+
+        var tre = Rendi(Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto) with { Da = DateTime.UtcNow.AddDays(-3.5) });
+        Assert.Contains("Work_AgeDays 3", tre.Find(".wi-age").TextContent);
+        Assert.DoesNotContain("old", tre.Find(".wi-age").ClassName);
+
+        var vecchia = Rendi(Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto) with { Da = DateTime.UtcNow.AddDays(-40) });
+        Assert.Contains("old", vecchia.Find(".wi-age").ClassName);
+    }
+
+    private static WorkItem Deriva(ImpactKind tipo = ImpactKind.ReleaseDrift, params string[] args) =>
+        Riga(WorkSeverity.DaRipubblicare, WorkAction.Ripubblica) with
+        {
+            Tipo = tipo, FraseArgs = args, Bersaglio = ReleaseTargetType.AccVipi, ChiaveRelease = "LIRR|LIRR_NE_CTR",
+        };
+
+    [Fact]
+    public void Il_dettaglio_c_e_solo_sulle_righe_da_ripubblicare()
+    {
+        Assert.Contains("Work_Diff", Rendi(Deriva()).Markup);
+        Assert.DoesNotContain("Work_Diff", Rendi(Riga(WorkSeverity.DaRileggere, WorkAction.SegnaFatto)
+            with { Tipo = ImpactKind.AreaChanged }).Markup);
+        // Senza bersaglio non c'è niente da confrontare.
+        Assert.DoesNotContain("Work_Diff", Rendi(Deriva() with { Bersaglio = null }).Markup);
+    }
+
+    [Fact]
+    public void Aperto_il_dettaglio_mostra_le_sezioni_cambiate_rispetto_alla_copia_pubblicata()
+    {
+        var rel = new DerivaFinta();
+        Services.AddSingleton<IReleaseService>(rel);
+        var c = Rendi(Deriva());
+
+        c.FindAll("button").First(b => b.TextContent.Contains("Work_Diff")).Click();
+
+        Assert.Contains("Trasferimenti", c.Find(".wi-diff").TextContent);
+        Assert.Equal(("LIRR|LIRR_NE_CTR", (string?)null), rel.Chiesto);
+        Assert.DoesNotContain("Rel_ComparedWith", c.Markup);   // lo dice già la riga
+    }
+
+    [Fact]
+    public void Da_preparare_si_confronta_col_ciclo_entrante()
+    {
+        var rel = new DerivaFinta();
+        Services.AddSingleton<IReleaseService>(rel);
+        var c = Rendi(Deriva(ImpactKind.ReleaseDriftNextCycle, "2610", "Trasferimenti"));
+
+        c.FindAll("button").First(b => b.TextContent.Contains("Work_Diff")).Click();
+
+        Assert.Equal("2610", rel.Chiesto?.Ciclo);
+    }
+
+    [Fact]
+    public void Senza_il_servizio_delle_release_il_dettaglio_lo_dice()
+    {
+        var c = Rendi(Deriva());
+
+        c.FindAll("button").First(b => b.TextContent.Contains("Work_Diff")).Click();
+
+        Assert.Contains("Work_DiffUnavailable", c.Find(".wi-diff").TextContent);
+    }
+
+    private sealed class DerivaFinta : IReleaseService
+    {
+        public (string Chiave, string? Ciclo)? Chiesto;
+
+        public Task<IReadOnlyList<ReleaseDiffRow>> DriftFromEffectiveAsync(ReleaseTargetType type, string key,
+            string? alCiclo = null, CancellationToken ct = default)
+        {
+            Chiesto = (key, alCiclo);
+            return Task.FromResult<IReadOnlyList<ReleaseDiffRow>>(new[]
+            {
+                new ReleaseDiffRow("Trasferimenti", ReleaseChangeKind.Modified, 3, 4),
+            });
+        }
+
+        public Task<IReadOnlyList<ReleaseInfo>> ListAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task PublishAsync(ReleaseTargetType type, string key, string releaseCycle, string? note, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<IReadOnlyList<BersaglioUnito>> BersagliUnitiAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task PublishNowAsync(ReleaseTargetType type, string key, string? note, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<int> BackfillMissingReleasesAsync(CancellationToken ct = default) => throw new NotSupportedException();
+        public Task CancelReleaseAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ReleaseDiff> DiffAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType, string expectedKey, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<ReleaseLocation?> GetLocationAsync(int releaseId, CancellationToken ct = default) => throw new NotSupportedException();
+        public string CurrentCycle() => "2610";
+        public IReadOnlyList<AiracCycleInfo> UpcomingCycles(int count) => Array.Empty<AiracCycleInfo>();
+        public Task<IReadOnlyDictionary<(ReleaseTargetType Type, string Key), ReleaseSummary>> SummariesAsync(
+            IReadOnlyList<(ReleaseTargetType Type, string Key)> targets, CancellationToken ct = default) => throw new NotSupportedException();
+        public Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key, CancellationToken ct = default) => throw new NotSupportedException();
+        public AiracCycleInfo NextCycle() => throw new NotSupportedException();
+        public Task<int> PruneAllAsync(CancellationToken ct = default) => throw new NotSupportedException();
+    }
+
     private IRenderedComponent<WorkItemRow> Rendi(WorkItem item) =>
         RenderComponent<WorkItemRow>(p => p.Add(x => x.Item, item));
 

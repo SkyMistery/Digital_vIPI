@@ -99,15 +99,13 @@
                componente. Qui l'elenco stava nudo sul fondo della pagina: senza bordo, senza ombra e a
                tutta larghezza, mentre ogni altro elenco del sito sta in un riquadro. Due cornici diverse
                per la stessa lista sono due prodotti, non due pagine. *@
+            @* Dal 23 settembre 2026 per cambiamento (predefinita), per documento o come elenco: carta
+               docs/feature/2026-09-23-da-fare-per-cambiamento.md. *@
             <div class="panel">
-                <ul class="wi-list">
-                    @foreach (var r in _lavoro)
-                    {
-                        <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="Authz.IsAdmin"
-                                     Roster="_staff" Cycles="_upcoming" MyUserId="User.Get()?.UserId"
-                                     OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico" />
-                    }
-                </ul>
+                <WorkItemList Items="_lavoro" Busy="_busy" ShowAssign="Authz.IsAdmin"
+                              Roster="_staff" Cycles="_upcoming" MyUserId="User.Get()?.UserId"
+                              OnDone="ChiudiLavoro" OnStart="AvviaLavoro" OnAssign="PrendiInCarico"
+                              OnDoneMany="ChiudiGruppo" />
             </div>
         }
 
@@ -417,6 +415,23 @@
             await Load();
         }
         catch (Exception ex) { _error = ex.Message; }
+        finally { _busy = false; }
+    }
+
+    /// <summary>Il ✓ di un gruppo: ogni riga è una segnalazione da rileggere (il componente lo offre solo così).
+    /// ⚠️ Una per una e non in blocco: la chiusura passa dalla porta di sempre, che verifica i permessi e
+    /// rifiuta le calcolate — una scorciatoia di gruppo sarebbe una seconda porta da tenere uguale.</summary>
+    private async Task ChiudiGruppo(IReadOnlyList<WorkItem> righe)
+    {
+        _busy = true;
+        _error = _status = null;
+        try
+        {
+            foreach (var r in righe)
+                if (r.ImpactId is int impactId) await Impatti.ClearAsync(impactId);
+            await Load();
+        }
+        catch (Exception ex) { _error = ex.Message; await Load(); }
         finally { _busy = false; }
     }
 
