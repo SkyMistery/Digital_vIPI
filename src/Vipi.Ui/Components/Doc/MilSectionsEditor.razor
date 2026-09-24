@@ -231,8 +231,6 @@ else
         if (_shell.Doc is null) return null;
         // Stesso ricontrollo di «Modifica»: in un editor unito il lock lo prende l'ospite, passando di qui.
         await _shell.InFilaAsync(RiallineaScaloAsync);
-        if (_shell.Lock is { Locked: true, IsMine: false })
-            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
         await _shell.StartEditingAsync(LoadAsync);
         return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
     }
