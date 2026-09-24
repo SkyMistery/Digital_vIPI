@@ -4,20 +4,27 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
-## Dove siamo — 23 settembre 2026, sera
+## Dove siamo — 24 settembre 2026, 11:30
 
-**In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
-una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 356 (motore 479).
+**In corso: le prove a mano del committente** (slice 6 di F3-bis, più le sue richieste man mano). `lab/f3` è pulito,
+spinto, **CI verde** su `27a70daf`. Test: motore **479** (net8 e net10), Lab **356**.
 
-- **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
-  settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
-  **12-22 di F3-bis**, **23-27** delle correzioni di oggi. Ripubblicare dopo ogni correzione:
-  `dotnet publish src/Vipi.SectorLab -c Release -r win-x64 --self-contained -o D:\Programmazione\IVAO_Test\SectorLab-prova`.
-  🔴 Prima: `Get-Process VipiSectorLab` — il committente tiene spesso l'app aperta, e le DLL in uso non si sovrascrivono.
-- **Sector di prova**: il clone `D:\Programmazione\IVAO_Test\it-aurora-sector-test`. Ha ancora modifiche locali di
-  prove vecchie (`twrs.tfl`: l'ATZ di LIRN, `APT.fix`) che il committente vede nel `git diff`: si tolgono con
-  `git checkout -- .` (detto al committente il 23 sera: lo fa lui).
+- **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 24 settembre
+  alle 11:30 (tutto `lab/f3`). Il piano è `SectorLab-prova\PROVE.md`, **51 prove**, con in testa la tabella dello stato:
+  ✅ 1-5, 8-12 · 🔧 corrette da rifare (35, 37-38, 40-41, 43, 45, 47, 48, 51) · ⏳ 13-51. Ripubblicare dopo ogni correzione:
+  `dotnet publish src/Vipi.SectorLab -c Release -r win-x64 --self-contained -o D:\Programmazione\IVAO_Test\SectorLab-prova`,
+  poi `VipiSectorLab.exe --autoprova --cartella <clone>` (esito 0). 🔴 Prima: `Get-Process VipiSectorLab` — il
+  committente tiene spesso l'app aperta, e le DLL in uso non si sovrascrivono: si committa e si ripubblica quando la chiude.
+- **Sector di prova**: il clone `D:\Programmazione\IVAO_Test\it-aurora-sector-test`, con le prove SALVATE del committente
+  (`APT.fix`: `BC;518`, `BC420`; `lirn.str`: ATZ a N041; `twrs.tfl`: LIRN_TWR incollato). Servono alle prove 37-38, 43, 47;
+  poi lui fa `git checkout -- .`.
+- **Banco per vedere la UI** (fuori repo): scratchpad della sessione `ba2d7208-…\scratchpadetrina` — progetto
+  `Microsoft.NET.Sdk.Web` con `RequiresAspNetWebAssets` e `OutputType Exe` (senza, `blazor.web.js` va a 404), che apre il
+  clone e stampa l'indirizzo col segreto; si apre nel browser del pannello. Si ferma per riga di comando
+  (`vetrina.dll`), 🔴 mai `taskkill /IM dotnet.exe` (ferma anche i processi degli altri).
+- **Da discutere col committente**: l'ordine dei record e cosa vuol dire «aggiungere un elemento», **file per file** (oggi
+  in ordine alfabetico solo i punti col nome: fix, VOR, NDB, VFR); l'impostazione «salva il tavolo di lavoro all'uscita»
+  (oggi le larghezze delle colonne si ricordano sempre); i nomi di procedura con spazi nelle composte.
 - **La consegna** (slice 11 di F3: workflow `sectorlab-v*`, zip + SHA-256, scheda `/services`) **la decide il
   committente**. Prima vuole qualcosa da presentare agli AOD (è nel team AOD: copre ~80% dei bisogni, il resto dopo).
 
