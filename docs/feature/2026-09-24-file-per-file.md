@@ -152,6 +152,45 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
   file, `IT\colors\…` con `IT` davanti); le combinazioni di colori di Aurora (`ColorSchemes\*.clr`) stanno fuori dal
   sector. Il Lab potrebbe usare `colors.def` per colorare la mappa come Aurora.
 
+## §5 — `DYNAMIC_SEC` (27 `.tfl`, sezione `[FILLCOLOR]` degli `.isc`)
+
+### Cosa c'è (misure del 24 settembre)
+
+Formato (specifica di Aurora): testa `Tipo;Riempimento;Bordo;ColoreBordo;[Opacità];[Filtro]` — Tipo = `Static` o
+lista di posizioni IVAO (**il poligono si vede solo se una di quelle è collegata**); colori RGB o nome di
+`colors.def`; larghezza del bordo; opacità 0/1; filtro (COAST, RUNWAY, GATES, PIER, TAXIWAY, APRON, BUILDING). Poi i
+vertici, in DMS o per nome. **Convenzione italiana: solo il bordo, riempimento vuoto**; Aurora chiude da sola i
+poligoni aperti.
+
+- **181 settori**. Nomi: posizioni separate da spazio (18) o da `:` (56). Colori: TWR 69, APP 57, CTR 40, MIL 5,
+  LIMMFIC 4, LIMMLIM 3 (da `colors.def`), 3 in `#esadecimale`. `1;1` in 177 teste, `1;0` in 4.
+- **Colori di Aurora**: lo schema del committente è `ColorSchemes\LIRR_RDR_V1.0.clr` (156 chiavi: ARTCC,
+  AIRWAYLOW, SID, STAR, FIX, VOR, COAST, TAXIWAY…), fuori da `SectorFiles`.
+- **`.isc`**: `DYNAMIC_SEC\GCI.tfl` incluso ma inesistente (sta in `OTHER\`); `lirrctr.tfl` due volte in
+  `ITALY.isc`; `limmfic.tfl` solo in `LIMM.isc`.
+- **12 settori aperti** (Aurora li chiude: nessun avviso). Nomi ripetuti nello stesso file: `LIBB_FSS`, `LIMM_FSS`.
+- **Posizioni nei `.frq`**: italiane 161 vere, **4 assenti** — il committente le aggiunge: `LIRE_APP` (forse
+  `LIRE_TWR`), `LIBC_TWR` (è `LIBC_I_TWR`), `LIMF_WW0_APP` (da finire), `LIQW_I_TWR` (da vedere). Estere: 20 citate,
+  35 no — **per gli esteri la regola non vale** (situazione particolare).
+- **Forme ripetute**: dei 178 settori con ≥ 4 vertici, **132 hanno la stessa forma in un altro file** (≥ 90% dei
+  vertici): 91 in uno `.str`, 39 in `.hartcc`/`.lartcc`, poi `.mva`, `.geo`, altri `.tfl`. **120 identiche, 12
+  divergenti**: `LIMM_WS2/ES2/WS5/ES5/MIL_CTR` vs `limmfic.tfl`/`limm.hartcc` (11-16 vertici), `LIPP_CE1/NE3/MIL_CTR`
+  vs `lipp.hartcc` (21-23), `LICC_APP` vs `licc.str` (1), `LIRR_MIL_CTR` vs `lirr_ne_ctr.tfl` (1).
+- Vertici condivisi fra settori (copie PARZIALI, confini in comune): 3 653 su 14 778, 535 fra file diversi.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| D1 | **Testa in una scheda**: posizioni come caselle coi suggerimenti dai `.frq`, larghezza, opacità, filtro | Subito | ✅ deciso |
+| D2 | **Selettore di colori** vero, più i nomi di `colors.def` | Subito — comune | ✅ deciso |
+| D3 | **Mappa coi colori di Aurora** dallo schema scelto (`LIRR_RDR_V1.0.clr`), per tutti gli strati; settori dinamici solo bordo | Subito — comune | ✅ deciso |
+| D4 | **Settore italiano legato ai `.frq`**: ogni sua posizione è citata in un `.frq`, come posizione o fra i trasferimenti (anche non primaria). Esteri esclusi | Subito | ✅ deciso — «la cosa più importante» |
+| D5 | **Famiglie di forme**: tag `//@forma="NOME"` (riga propria) uguale in ogni copia; la famiglia la trova il Lab. Modifica propagata alle copie uguali, «allinea anche questa» per le già diverse, «copia la forma da…», avviso «copie di forma diverse». Confronto come ANELLO (inizio e verso qualsiasi), formati diversi | Subito — comune | ✅ deciso: **opzione B** (l'opzione A, link verso gli altri file, scartata: N² link, si rompono coi nomi dei file, le copie si perdono di vista) |
+| D6 | **Adozione**: il Lab propone le famiglie trovate (120 identiche), il committente conferma, i tag si scrivono in un ramo. Le 12 divergenti si sistemano **quando il sistema è pronto** | F4 | ✅ deciso |
+| D7 | Include rotti/doppi negli `.isc`: controllo | Subito — comune (poi correzione in F4) | ✅ deciso |
+| D8 | Copie parziali (confini in comune fra settori) | F8 «saldatura bordi» | come da piano |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -167,5 +206,8 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Etichette calcolate** dalla geometria | AIRWAY B4 · ACC A5 (etichetta al centro del gate) |
 | **Tag `//@`** di dati che Aurora non legge (livelli, verso, manuale) | AIRWAY B2, B5 · (F3-bis: composte) |
 | **Rami di prova** per tentativi e prove in Aurora | tutti (§0) · ACC A8, A9 · AIRWAY B9, B10 |
+| **Famiglie di forme** (`//@forma=`: la stessa forma in più file, modifica propagata, integrità) — estende le copie gemelle di F3-bis dai record alle forme | DYNAMIC_SEC D5, D6 |
+| **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
+| **Controllo degli `.isc`** (file incluso che non c'è, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Ogni modifica lascia una traccia** (riga di changelog proposta, `delete.upd`, `ITALY.isc`) | CHANGELOG C1, C4 · ACC A9 |
 | **Niente commenti in coda** (committente, 24 settembre: «dopo una riga letta da Aurora non vanno commenti `//`»). Oggi **713 righe in 70 file** (`limm.mva` 374 `//Coast`, `limc.sid` 34, `itawlow.lairway` 28 `BREAK`, `FRA.artcc` 18, `GCI.tfl` 19…); `SectorError.log` di Aurora vuoto, quindi non le segnala. 🔴 `limc.sid:…;0;OSKOR; //SUPER-HEAVY-A321`: il commento sta nell'8° campo (`RNAV`). → controllo «commento in coda» · gesto «sposta il commento sopra» (riga o file) · garanzia con test che il Lab non ne scrive mai. **Avviso**, non errore: lo sviluppatore di Aurora dice che una riga col `//` in coda si legge in **circa il doppio del tempo** (lentezza, non dato sbagliato). Pulizia di tutto il sector in un colpo: in un ramo (F4) | tutti |
