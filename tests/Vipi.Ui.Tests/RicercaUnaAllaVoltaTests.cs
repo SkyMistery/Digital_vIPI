@@ -62,12 +62,10 @@ public class RicercaUnaAllaVoltaTests : TestContext
         // elemento trovato una volta sola dà «There is no event handler with ID» (visto nella suite intera).
         // E Find e gesto stanno DENTRO lo stesso InvokeAsync: fuori dal dispatcher il ridisegno di una ricerca che
         // finisce può cadere proprio fra i due (visto il 13-set, solo net8, nella suite intera).
+        // Dal 24 settembre 2026 (S7) la ricerca parte dall'input stesso, non dal keyup: ogni lettera è UN gesto.
         var gesti = new List<Task>();
         foreach (var testo in new[] { "LI", "LIR", "LIRF" })
-        {
-            await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = testo }));
-            gesti.Add(pagina.InvokeAsync(() => pagina.Find("input").KeyUpAsync(new() { Key = "F" })));
-        }
+            gesti.Add(pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = testo })));
         await Task.WhenAll(gesti);
         pagina.WaitForAssertion(() => Assert.Contains("[LIRF]", pagina.Markup), TimeSpan.FromSeconds(3));
 
@@ -76,6 +74,24 @@ public class RicercaUnaAllaVoltaTests : TestContext
         Assert.DoesNotContain("[LIR]", pagina.Markup);
         var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(300));
         if (caduta == Renderer.UnhandledException) Assert.Fail("Eccezione non gestita: " + await Renderer.UnhandledException);
+    }
+
+    /// <summary>
+    /// 🔴 S7 (24 settembre 2026): la ricerca partiva solo al <c>keyup</c>, mentre il testo mostrato seguiva
+    /// l'<c>input</c>. Tutto ciò che scrive nel campo senza tasti — incolla col mouse, completamento automatico del
+    /// browser, testo trascinato, la prova di consegna fatta via script — lasciava a schermo la parola NUOVA col
+    /// conteggio VECCHIO: «0 results for Brindisi» in produzione, con 16 risultati veri. Misurato sul sito: solo
+    /// `input` → 0, più un `keyup` → 16.
+    /// </summary>
+    [Fact]
+    public async Task Il_testo_arrivato_senza_tasti_cerca_lo_stesso()
+    {
+        var (pagina, ricerca) = Apri();
+
+        await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = "Brindisi" }));
+
+        pagina.WaitForAssertion(() => Assert.Contains("[Brindisi]", pagina.Markup), TimeSpan.FromSeconds(3));
+        Assert.True(ricerca.Chiamate >= 1);
     }
 
     /// <summary>La pagina tiene la ricerca su uno scope suo: senza, il DbContext è quello del circuito.</summary>

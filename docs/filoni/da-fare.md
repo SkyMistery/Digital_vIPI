@@ -6,7 +6,7 @@
 
 ## Sito
 
-### La Ricerca non trova niente — ⏳ da prendere (assegnato il 24 settembre 2026, prima dell'altro qui sotto)
+### La Ricerca non trova niente — ✅ preso dal sito come **S7** il 24 settembre 2026 (vedi [`sito.md`](sito.md)): partiva solo coi tasti
 
 **Cosa si è visto** (`docs/lavori-aperti.md` §A122). In produzione, da anonimo, `/services/vsop/search` risponde
 «0 results» a qualunque parola: LIRF, PISIP, Brindisi, radar. In locale, sulla stessa copia del DB di sviluppo e da

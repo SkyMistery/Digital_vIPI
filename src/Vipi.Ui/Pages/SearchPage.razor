@@ -20,7 +20,11 @@
 
     <div class="searchbar" style="background:var(--surface);border:1px solid var(--line);max-width:none;margin:6px 0 16px">
         <span class="ico"><Icon Name="search" /></span>
-        <input @bind="_q" @bind:event="oninput" @onkeyup="OnKey" placeholder="@L["Search_Placeholder"]" style="color:var(--ink)" />
+        @* ⚠️ La ricerca parte dal CAMBIO DEL TESTO (`@bind:after`), non dal tasto. Fino al 24 settembre 2026 partiva
+           a `keyup`, mentre il testo mostrato seguiva `input`: incollando col mouse, col completamento automatico o
+           con una prova via script, la riga diceva la parola nuova col conteggio vecchio — «0 results for Brindisi»
+           in produzione, con 16 risultati veri (S7, docs/filoni/sito.md). *@
+        <input @bind="_q" @bind:event="oninput" @bind:after="DopoIlTesto" placeholder="@L["Search_Placeholder"]" style="color:var(--ink)" />
     </div>
     <div class="apt-quick" style="margin-bottom:18px">
         @foreach (var (labelKey, sc) in _scopes)
@@ -90,7 +94,7 @@
         await RunAsync(pausa: false);
     }
 
-    private Task OnKey(KeyboardEventArgs e) => RunAsync(pausa: true);
+    private Task DopoIlTesto() => RunAsync(pausa: true);
     private Task SetScope(SearchScope sc) { _scope = sc; return RunAsync(pausa: false); }
 
     private async Task RunAsync(bool pausa)
