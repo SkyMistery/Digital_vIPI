@@ -4,6 +4,11 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> **📦 1.46.0 PRONTO DA CARICARE (25-set, §A124)**: fusi `fix/lock-uniti` (in modifica solo col lock NOSTRO) e
+> `dafare/raggruppa` («Da sistemare» richiudibile, Diagnostica «Concesso da», MIL_CTR solo traffico militare). MINOR,
+> nessuna migrazione, 9 file, timbro `1.46.0 · d54dbb0`, zip `6d664dea…`. Provato in locale sul pacchetto. In `main`
+> non resta codice fuori pacchetto (il Lab ha il suo ramo).
+>
 > **✅ 1.45.1 ONLINE (24-set, §A123)**: la Ricerca parte dal cambio del testo (S7) + verifica di consegna che
 > pretende documenti per LIRF (S8). PATCH, 4 file, timbro `1.45.1 · cb62ebc`. Timbro, Schema 0, Ricerca confermati;
 > log puliti. **In `main` non resta codice fuori pacchetto** (il Lab ha il suo ramo `lab/f3`, non dichiarato pronto).

@@ -33,6 +33,27 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A124 — 1.46.0 PRONTO DA CARICARE: lock dei documenti uniti, «Da sistemare», MIL solo militare (25 settembre 2026)
+
+MINOR, **nessuna migrazione**, su 1.45.1 (`cb62ebc`). Timbro **`1.46.0 · d54dbb0`**. Due filoni fusi in `main`:
+`fix/lock-uniti` (dettaglio in [`filoni/lock-uniti.md`](filoni/lock-uniti.md): in modifica solo col lock NOSTRO, il
+lock del membro lo decide il database) e `dafare/raggruppa` (2 commit: «Da sistemare» a sezioni richiudibili con
+«Documenti da rivedere» in cima, Diagnostica «Concesso da»; il MIL_CTR raccoglie solo il traffico militare, carta
+[`2026-09-24-mil-solo-traffico-militare`](feature/2026-09-24-mil-solo-traffico-militare.md)). **9 file**: Vipi.Application,
+Vipi.Infrastructure, Vipi.Ui, Vipi.Host (dll/pdb) + `en/Vipi.Ui.resources.dll`; `wwwroot`, endpoints e deps identici
+per impronta. `ISectorFallbackService` guadagna un membro: implementazione e chiamante negli assiemi spediti. Zip
+`vipi-1.46.0-solo-file-cambiati.zip` `6d664dea…149597`, foglio
+[`LEGGIMI-PACCHETTO-1.46.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.0.md). 1.45.1 ruotata in
+`publish_old/20260924b`. Build Release 0 avvisi, 18/18 assiemi verdi, conteggi identici all'atteso.
+
+- ✅ Prova locale del pacchetto (win-x64, copia del DB, porta 5199, browser integrato): timbro 1.46.0 · d54dbb0,
+  `Schema 0`; Diagnostica in inglese con «GRANTED BY» (frasi EN arrivate); «Da sistemare» apre con «Documents to
+  review»; Ricerca «Brindisi» (solo evento `input`) → 4 risultati; Struttura, catena di `LIBG_APP` → `LIBB_MIL_CTR`
+  «automatic · MIL», poi `LIBB_ES_CTR` padre.
+- ▶ Da confermare dopo il carico: timbro, `Schema 0`, LIRF → documenti.
+- Restano aperti (non in questo pacchetto): «Pubblica versione»/«Scarta bozza» di Versioni su UN solo documento
+  anche se unito; tasto «Modifica» del documento singolo spento dal lock letto al caricamento (vedi `filoni/lock-uniti.md`).
+
 ### ✅ A123 — 1.45.1 ONLINE: la Ricerca parte dal testo, non dal tasto (24 settembre 2026)
 
 ✅ Il committente conferma timbro `1.45.1 · cb62ebc`, `Schema 0` e la Ricerca che trova. Avvio 08:36:24 UTC, UN solo
