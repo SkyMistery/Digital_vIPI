@@ -1067,13 +1067,22 @@ public sealed class ModificheInSospeso
         if (file is not IFileConRecord conRecord)
             return new Diff.Esito([], InBlocco: false);
 
-        // Il «prima» è il file com'era all'APERTURA. Se un record è stato aggiunto o tolto, il file di adesso ha
-        // già la struttura nuova: confrontarlo con sé stesso direbbe che non è cambiato niente.
-        var prima = _strutturaDiPartenza.TryGetValue(file.Relativo, out object? comEra)
+        return Diff.Fra(RigheDellApertura(file), conRecord.RigheDelFile(SporchiDi(file.Relativo)));
+    }
+
+    /// <summary>
+    /// Le righe del file com'era all'APERTURA (o all'ultimo salvataggio): quelle che il validatore dell'albero ha letto
+    /// sul disco. Se un record è stato aggiunto o tolto, il file di adesso ha già la struttura nuova: confrontarlo con
+    /// sé stesso direbbe che non è cambiato niente.
+    /// </summary>
+    public IReadOnlyList<string> RigheDellApertura(FileAperto file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        if (file is not IFileConRecord conRecord)
+            return [];
+        return _strutturaDiPartenza.TryGetValue(file.Relativo, out object? comEra)
             ? conRecord.RigheDi(comEra)
             : conRecord.RigheDelFile([]);
-
-        return Diff.Fra(prima, conRecord.RigheDelFile(SporchiDi(file.Relativo)));
     }
 
     /// <summary>

@@ -47,6 +47,28 @@ public sealed class RigaAManoOrdineEVistaTests : IDisposable
     }
 
     [Fact]
+    public async Task ConUnRecordAggiuntoSopraIlProblemaPortaAllaRigaGiusta()
+    {
+        // Committente, 24 settembre: «clicco la riga 30 e si apre la 29». Il validatore dell'albero numera le righe del
+        // DISCO; con un record aggiunto sopra, nel file di adesso la stessa riga è una più in giù.
+        await Apri();
+        var problema = _lab.ProblemiDellAlbero.First(p => p.File == Prova && p.Problema.Testo.StartsWith("BC;518", StringComparison.Ordinal));
+        Assert.Equal(3, problema.Problema.Riga);
+        Assert.True(_lab.AggiungiRecord(Prova, 0, "BC100"));
+
+        _lab.VaiAlProblema(problema);
+
+        Assert.Equal((Prova, 4), _lab.RigaSegnalata);
+        var segnata = Assert.Single(_lab.RigheIntornoAllaSegnalata(), r => r.DelRecord);
+        Assert.Equal(4, segnata.Numero);
+        Assert.StartsWith("BC;518", segnata.Testo, StringComparison.Ordinal);
+        // E la riga a mano cambia proprio lei.
+        Assert.True(_lab.CambiaRigaAMano(Prova, segnata.Numero, "BC518;N039.05.09.890;E017.12.02.940;3;"));
+        Assert.Contains("BC518;N039.05.09.890;E017.12.02.940;3;", _lab.RigheDiAdesso(Prova));
+        Assert.Contains(_lab.RigheDiAdesso(Prova), r => r.StartsWith("BC100;", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task AnnullareLaRigaAManoRimetteIlFileDellApertura()
     {
         await Apri();

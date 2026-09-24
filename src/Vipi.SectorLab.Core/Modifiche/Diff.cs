@@ -53,6 +53,35 @@ public static class Diff
         return new Esito(Pezzi(righe), inBlocco);
     }
 
+    /// <summary>
+    /// Dove è finita ogni riga di prima: per la riga numero N (da 1) di <paramref name="prima"/>, il suo numero in
+    /// <paramref name="dopo"/>, o null se è stata tolta o cambiata. Serve a un problema del validatore, che dà il numero
+    /// della riga SUL DISCO, quando il file di adesso ha record aggiunti o tolti sopra di lei (committente, 24 settembre:
+    /// clic sulla riga 30, si apriva la 29).
+    /// </summary>
+    public static int?[] Allinea(IReadOnlyList<string> prima, IReadOnlyList<string> dopo)
+    {
+        ArgumentNullException.ThrowIfNull(prima);
+        ArgumentNullException.ThrowIfNull(dopo);
+
+        var dove = new int?[prima.Count + 1];
+        int numeroDopo = 0;
+        foreach (var riga in Confronta(prima, dopo, out _))
+        {
+            switch (riga.Segno)
+            {
+                case SegnoDelDiff.Uguale:
+                    dove[riga.Numero] = ++numeroDopo;
+                    break;
+                case SegnoDelDiff.Aggiunta:
+                    numeroDopo++;
+                    break;
+            }
+        }
+
+        return dove;
+    }
+
     /// <summary>Tutte le righe, nell'ordine, con il loro segno: è la base da cui si ritagliano i pezzi.</summary>
     private static List<RigaDelDiff> Confronta(IReadOnlyList<string> prima, IReadOnlyList<string> dopo, out bool inBlocco)
     {

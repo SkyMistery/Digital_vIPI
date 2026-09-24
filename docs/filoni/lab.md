@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 346 (motore 474).
+Lab 348 (motore 474).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -98,6 +98,12 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   (niente fetch in più); le coste restano. 🟡 Le chiavi sono per indice: aggiungere un record prima di uno in vista lo
   sposta (da rivedere se dà fastidio).
 - Test Lab 327 → **346**, motore 471 → **474**. Eseguibile ripubblicato 24 settembre 09:23.
+
+- 24 settembre, dopo: 🔴 «clic sulla riga 30, si apre la 29». I problemi dell'ALBERO numerano le righe del DISCO; con un
+  record aggiunto sopra (prova 40) nel file di adesso la riga è una più in giù. Ora `VaiAlProblema` traduce col diff
+  (`Diff.Allinea`, `ModificheInSospeso.RigheDellApertura`, `SessioneDelLab.RigaDiAdesso`) e la vista del problema
+  mostra le righe di ADESSO. Controllo su tutto il fork: numeri della scheda = righe del file (`NumeriDiRigaTests`,
+  `SECTORLAB_ALBERO_VERO=<clone>` per l'albero vero). Lab 348.
 
 ### Aperto, da chiedere o dire al committente
 

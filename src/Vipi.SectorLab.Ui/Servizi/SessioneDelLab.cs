@@ -545,19 +545,43 @@ public sealed class SessioneDelLab
             return;
 
         Registro.Scrivi("problema", $"{problema.File}:{problema.Problema.Riga} {problema.Problema.Regola}");
-        if (problema.Record is { } record && record < Sessione.File[problema.File].Record)
+        var file = Sessione.File[problema.File];
+
+        // 🔴 I problemi dell'albero hanno il numero della riga SUL DISCO; quelli delle modifiche, del file di adesso.
+        // Con un record aggiunto o tolto sopra, i due numeri differiscono: il clic apriva la riga di sopra
+        // (committente, 24 settembre). Si porta tutto al file di adesso, che è quello che la scheda mostra.
+        int? riga = problema.Problema.Riga > 0 ? problema.Problema.Riga : null;
+        if (riga is { } delDisco && ProblemiDellAlbero.Contains(problema))
+            riga = RigaDiAdesso(problema.File, delDisco);
+        if (problema.Problema.Riga > 0 && riga is null)
+            Rifiuto = $"La riga {problema.Problema.Riga} del disco è già cambiata fra le modifiche in sospeso: guarda il diff.";
+
+        if (riga is { } adesso && file is IFileConRecord conRecord && conRecord.RecordDellaRiga(adesso) is { } record)
         {
             Scegli(problema.File, record);
         }
         else
         {
-            // Niente record: l'ispettore mostra le righe del disco intorno a quella del problema, non la scelta di prima.
+            // Niente record: l'ispettore mostra le righe intorno a quella del problema, non la scelta di prima.
             Scelta = null;
             FileScelto = problema.File;
         }
 
-        RigaSegnalata = problema.Problema.Riga > 0 ? (problema.File, problema.Problema.Riga) : null;
+        RigaSegnalata = riga is { } segnata ? (problema.File, segnata) : null;
         Avvisa();
+    }
+
+    /// <summary>
+    /// Il numero, nel file di ADESSO, della riga che all'apertura (sul disco) era la numero <paramref name="delDisco"/>;
+    /// null se quella riga è stata tolta o cambiata. Senza modifiche strutturali i due numeri sono uguali.
+    /// </summary>
+    public int? RigaDiAdesso(string fileRelativo, int delDisco)
+    {
+        if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord file)
+            return delDisco;
+        var apertura = Modifiche.RigheDellApertura((FileAperto)file);
+        var allineate = Diff.Allinea(apertura, file.RigheDelFile(Modifiche.SporchiDi(fileRelativo)));
+        return delDisco < allineate.Length ? allineate[delDisco] : null;
     }
 
     /// <summary>Le righe del disco intorno alla riga segnalata: per i problemi che non stanno in un record.</summary>
@@ -565,6 +589,17 @@ public sealed class SessioneDelLab
     {
         if (Sessione is null || RigaSegnalata is not { } segnata)
             return [];
+
+        // Le righe del file di ADESSO (la segnalata ha già il suo numero di adesso, VaiAlProblema): sono quelle che
+        // l'editor della riga a mano cambierebbe. Dal disco solo per i file che il motore non interpreta.
+        var adesso = RigheDiAdesso(segnata.File);
+        if (adesso.Count > 0)
+        {
+            int da = Math.Max(1, segnata.Riga - 3);
+            int a = Math.Min(adesso.Count, segnata.Riga + 3);
+            return [.. Enumerable.Range(da, Math.Max(0, a - da + 1)).Select(n => new RigaGrezza(n, adesso[n - 1], n == segnata.Riga))];
+        }
+
         try
         {
             return RigheDelDisco.Intorno(Sessione.Cartella.Assoluto(segnata.File), segnata.Riga, contesto: 3);
