@@ -36,7 +36,25 @@ ModificheInAttesa), `Vipi.Application/DependencyInjection.cs`, `Vipi.Infrastruct
 
 Codice in comune toccato: `Vipi.Infrastructure/Persistence/EfDocumentImpactRepository.cs`.
 
-## Stato: pronto da fondere (23 settembre 2026, notte)
+## Stato: fuso il 24 settembre 2026 (1.45.0)
 
 I quattro punti sono fatti, provati a schermo sulla copia del DB locale e spinti su `dafare/raggruppa`. Resta
 all'integratore: fusione, migrazione `CausaDelleSegnalazioni` nel pacchetto, voce §A in `lavori-aperti.md`.
+
+## 24 settembre 2026 — due richieste dopo la fusione
+
+- **«Da sistemare»** (`/admin/pending`): «Documenti da rivedere» passa in **cima**, prima degli altri blocchi, e
+  tutte le sezioni si chiudono e si riaprono dalla testata (`.sect-toggle` + chevron, come Struttura). Nascono aperte.
+- **Diagnostica, «Chi può editare»**: la colonna «Vale admin» diventa **«Concesso da»**, per chiunque sia in
+  tabella: il codice staff che dà il livello (`RoleResolver.MatchingCodes` col livello che i codici decidono),
+  oppure «fondatore», oppure «promozione a mano» con accanto il livello che i codici da soli darebbero.
+  `AdminCodeRow` porta `DaStaff`, `Concedenti`, `Fondatore`. Chiave `Diag_AdminIsAdmin` tolta (non la usava più
+  nessuno). Test: `AdminCoverageTests` +6 (Application 2959 → 2965).
+- Verifica a schermo col browser integrato: Edge headless non parte più su questa macchina (lo dice anche il foglio
+  del pacchetto 1.45.0).
+- **Il MIL_CTR raccoglie solo il traffico militare** (carta
+  [2026-09-24-mil-solo-traffico-militare](../feature/2026-09-24-mil-solo-traffico-militare.md)): nel rinvio geometrico
+  un ente militare raccoglie solo per un ricevente militare (sparisce il falso «LIMM_WS2_CTR → LIMM_MIL_CTR»), e l'APP
+  di uno scalo «Solo militare» ha una riga automatica verso il MIL_CTR fratello, prima del padre civile. Codice in
+  comune: `Vipi.Application/Content` (RipiegoMilitare, FallbackChain, CoverageFallback, ISectorFallbackService),
+  `Vipi.Infrastructure` (TopologyBuilder, EfConsistencyReportRepository, EfSectorFallbackService).

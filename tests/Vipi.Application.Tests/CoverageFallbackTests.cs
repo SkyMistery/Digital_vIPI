@@ -233,6 +233,25 @@ public class CoverageFallbackTests
         Assert.Equal(Ws2, senzaFiltro.TargetCallsign);
     }
 
+    /// <summary>
+    /// 🔴 <b>Un MIL non raccoglie per un ricevente civile</b> (regola del committente del 24 settembre 2026: i
+    /// militari controllano solo il traffico militare). È il falso rilievo di Diagnostica «LIMM_WS2_CTR →
+    /// LIMM_MIL_CTR»: WS2 è la radice, chiuso lui il punto a ovest lo «copriva» solo MIL, SFC–UNL su tutta la FIR.
+    /// </summary>
+    [Fact]
+    public void Un_MIL_non_raccoglie_il_traffico_di_un_ricevente_civile()
+    {
+        var online = Online(Mil, Es2);
+
+        var r = Risolvi("MMP", 14000, cedente: Ane, ricevente: Ws2, online);
+        Assert.Equal(CoverageFallbackOutcome.NobodyCovers, r.Outcome);
+
+        // La mutazione: con un ricevente militare lo stesso MIL raccoglie — il filtro è sul ricevente, non sul MIL.
+        var militare = CoverageFallback.Resolve("MMP", 14000, Punti, Claims(online, 14000),
+            SectorType.Ctr, "LIMM", Dominio(Ane), cs => AccDi.GetValueOrDefault(cs), riceventeCallsign: PpMil);
+        Assert.Equal(Mil, militare.TargetCallsign);
+    }
+
     /// <summary>Se pero' il ricevente nominale e' a sua volta un FSS, un FSS puo' raccogliere.</summary>
     [Fact]
     public void Fra_FSS_il_ripiego_su_un_FSS_e_legittimo()

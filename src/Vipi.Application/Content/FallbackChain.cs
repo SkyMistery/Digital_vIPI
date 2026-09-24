@@ -14,9 +14,13 @@ namespace Vipi.Application.Content;
 /// scritte prima del 10 settembre 2026 sono tutte callsign, e ogni chiamante che le costruisce a tre campi
 /// continua a dire la stessa cosa che diceva.
 /// </param>
+/// <param name="Automatica">
+/// La riga non l'ha scritta nessuno: la calcola il sistema (oggi: APP di scalo solo militare → il suo MIL_CTR,
+/// <see cref="RipiegoMilitare"/>). Non si salva e non si modifica; a schermo si dice che è automatica.
+/// </param>
 public readonly record struct FallbackRow(
     string TargetCallsign, int? BaseFeet, int? TopFeet,
-    FallbackTargetKind Kind = FallbackTargetKind.Callsign)
+    FallbackTargetKind Kind = FallbackTargetKind.Callsign, bool Automatica = false)
 {
     /// <summary>
     /// Se la riga vale a quella quota. Il piede è incluso e il tetto escluso: due fasce scritte
@@ -54,7 +58,7 @@ public readonly record struct FallbackRow(
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
 public readonly record struct FallbackStep(
     string TargetCallsign, int? BaseFeet, int? TopFeet, bool FromParent,
-    FallbackTargetKind Kind = FallbackTargetKind.Callsign);
+    FallbackTargetKind Kind = FallbackTargetKind.Callsign, bool Automatica = false);
 
 /// <summary>
 /// La catena di ripiego di un settore <b>a una data quota</b>: i candidati a ricevere il suo traffico, in
@@ -253,7 +257,8 @@ public static class FallbackChain
                         }
 
                         if (!string.IsNullOrWhiteSpace(r.TargetCallsign))
-                            Aggiungi(new FallbackStep(r.TargetCallsign!, r.BaseFeet, r.TopFeet, FromParent: false));
+                            Aggiungi(new FallbackStep(r.TargetCallsign!, r.BaseFeet, r.TopFeet, FromParent: false,
+                                Automatica: r.Automatica));
                     }
 
                 if (parentOf(x) is { Length: > 0 } padre)

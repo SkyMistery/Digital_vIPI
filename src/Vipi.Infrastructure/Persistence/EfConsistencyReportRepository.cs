@@ -94,7 +94,7 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                 .ToListAsync(ct))
             .ToList();
 
-        var ripieghi = (await _db.SectorFallbacks.AsNoTracking()
+        var dichiarate = (await _db.SectorFallbacks.AsNoTracking()
                 .OrderBy(r => r.SectorCallsign).ThenBy(r => r.Order)
                 .Select(r => new { r.SectorCallsign, r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind })
                 .ToListAsync(ct))
@@ -105,6 +105,10 @@ public sealed class EfConsistencyReportRepository : IConsistencyReportRepository
                     .Select(r => new Vipi.Application.Content.FallbackRow(
                         r.TargetCallsign, r.BaseFeet, r.TopFeet, r.TargetKind)).ToList(),
                 StringComparer.OrdinalIgnoreCase);
+        // Le stesse righe automatiche della topologia (APP militare → MIL_CTR fratello): la Diagnostica deve vedere la
+        // catena che vede la ricaduta, o segnalerebbe un ripiego mancante che c'è.
+        var ripieghi = Vipi.Application.Content.RipiegoMilitare.ConAutomatiche(
+            dichiarate, await RipieghiMilitariQuery.FratelliAsync(_db, ct));
 
         // L'albero PROIETTATO, per confrontarlo con quello dei cataloghi.
         var proiettati = await ProjectedParentsAsync(ct);

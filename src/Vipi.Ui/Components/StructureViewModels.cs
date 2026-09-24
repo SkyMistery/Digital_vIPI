@@ -16,4 +16,5 @@ public sealed record CoverageChildRow(string Name, string Badge, string BadgeCla
 /// </param>
 public sealed record FallbackChainRow(
     string Callsign, string Badge, string BadgeClass, string AccCode,
-    string? Banda = null, bool DalPadre = false, bool Online = false, bool Rinvio = false);
+    string? Banda = null, bool DalPadre = false, bool Online = false, bool Rinvio = false,
+    bool Automatica = false);

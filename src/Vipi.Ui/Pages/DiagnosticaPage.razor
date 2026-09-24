@@ -231,7 +231,7 @@
                         {
                             <div class="st-scroll">
                                 <table class="res-table diag-admin">
-                                    <thead><tr><th>VID</th><th>@L["Common_Name"]</th><th>@L["Roles_Level"]</th><th>@L["Diag_AdminIsAdmin"]</th></tr></thead>
+                                    <thead><tr><th>VID</th><th>@L["Common_Name"]</th><th>@L["Roles_Level"]</th><th>@L["Diag_AdminGrantedBy"]</th></tr></thead>
                                     <tbody>
                                         @foreach (var r in _admin.Rows)
                                         {
@@ -246,11 +246,33 @@
                                                 <td title="@(r.Promosso ? L["Roles_FromOverride"] : L["Roles_FromStaff"])">
                                                     @L[$"Roles_Level_{r.Level}"]@(r.Promosso ? " •" : "")
                                                 </td>
+                                                @* PERCHÉ ha quel livello, per chiunque sia in tabella (richiesta del
+                                                   24 settembre 2026; prima la colonna diceva solo quali codici valgono
+                                                   admin). Tre fonti, e si dicono tutte: il fondatore, i codici staff
+                                                   che fanno scattare il livello, la promozione a mano — e sotto una
+                                                   promozione anche il livello che i codici da soli darebbero. *@
                                                 <td>
-                                                    @if (r.Matched.Count > 0)
-                                                    { <span class="pill green">@string.Join(", ", r.Matched)</span> }
-                                                    else
-                                                    { <span class="muted">—</span> }
+                                                    @if (r.Fondatore)
+                                                    {
+                                                        <span class="pill green">@L["Diag_AdminFounder"]</span>
+                                                    }
+                                                    else if (r.Concedenti is { Count: > 0 } c)
+                                                    {
+                                                        <span class="pill @(r.DaStaff >= VipiRole.Admin ? "green" : "blue")"
+                                                              title="@L[$"Roles_Level_{r.DaStaff}"]">@string.Join(", ", c)</span>
+                                                    }
+                                                    else if (!r.Promosso)
+                                                    {
+                                                        <span class="muted" title="@L["Diag_AdminNoPatternTitle"]">@L["Diag_AdminNoPattern"]</span>
+                                                    }
+                                                    @if (r.Promosso)
+                                                    {
+                                                        <span class="pill amber">@L["Diag_AdminPromoted"]</span>
+                                                        @if (r.Concedenti is { Count: > 0 })
+                                                        {
+                                                            <span class="muted"> @L["Diag_AdminPromotedOver", L[$"Roles_Level_{r.DaStaff}"].Value]</span>
+                                                        }
+                                                    }
                                                 </td>
                                             </tr>
                                         }
