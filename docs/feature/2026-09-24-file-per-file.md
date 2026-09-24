@@ -101,7 +101,7 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | B1 | **Un blocco per aerovia**: `//@"L81"` … `//@END "L81"`, in cima le sue etichette, poi il tracciato. Nel Lab la vista per aerovia (tracciato + etichette + tratti) c'è anche prima di riorganizzare il file | Subito (la vista) | ✅ deciso |
 | B2 | **Livelli e verso PER TRATTO**: ogni tratto ha il suo verso, la sua quota minima e massima (così nel PDF), scritti **come nel PDF, in piedi**. Tag `//@` sul tratto; Aurora li legge come commenti. Scheda coi tratti uno per uno | Subito (tag e scheda) | ✅ deciso |
 | B3 | **Nascondi / mostra**: commenta con `//` ogni riga del blocco, e al contrario; nascosta resta nell'elenco, grigia | Subito — **comune** (§C) | ✅ deciso |
-| B4 | **Etichette calcolate dai tracciati**: una a metà di ogni segmento, coi nomi delle aerovie che lo condividono; la condivisa nel blocco della prima in ordine alfabetico. Sistema le 22 senza etichetta e i nomi «U» | F8 | ✅ deciso |
+| B4 | **Etichette calcolate dai tracciati**: una a metà di ogni segmento, coi nomi delle aerovie che lo condividono; la condivisa nel blocco della prima in ordine alfabetico. Sistema le 22 senza etichetta e i nomi «U». Serve già a B14 | Subito (anticipata da F8 per B14) | ✅ deciso |
 | B5 | **Aerovie manuali**: `//@"KY139" manuale` → l'import dai PDF non la tocca né la toglie. **Ma l'utente può sempre cancellarla** dall'app se lo sceglie | Subito (il tag) · F6 (il rispetto nell'import) | ✅ deciso |
 | B6 | **Interruzioni**: gesto «spezza qui / unisci» su un punto (qui scrive `BREAK`, negli `.artcc` `DUMMY`) | Subito — **comune** (§C) | ✅ deciso |
 | B7 | **Punti**: sequenza dei fix con suggerimenti mentre si scrive, «inserisci un punto qui», «inverti» | Subito — **comune** (§C, con A2) | ✅ deciso |
@@ -111,6 +111,8 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | B11 | `itawhigh.hairway`: **si archivia così com'è**, per ora non si tocca | — | ✅ deciso |
 | B12 | Controlli: aerovia senza etichetta, etichetta orfana o con nomi che non esistono, punto che non si trova | Subito | ✅ deciso |
 | B13 | Sulla mappa: frecce del verso, colore per quota | F8 | proposta |
+| B14 | **Aggiungere un'aerovia a mano**: nome + sequenza dei punti (B7); il Lab scrive da sé il blocco, il segno `manuale`, un tag per tratto e le etichette (B4, comprese le condivise). Quote e verso NON si inventano: si scrivono nella scheda per tratto; verso di base «entrambi», quote vuote con avviso «tratto senza quote» | Subito | ✅ deciso |
+| B15 | **Togliere un'aerovia**: via il blocco intero (tracciato, etichette, tag); le etichette condivise perdono solo il suo nome | Subito | ✅ deciso |
 
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
