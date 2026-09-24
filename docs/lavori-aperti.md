@@ -33,6 +33,28 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A122 — Pacchetto 1.45.0: la lista «Da fare» per cambiamento (24 settembre 2026) — PRONTO DA CARICARE
+
+MINOR, **una migrazione additiva** (`20260923195956_CausaDelleSegnalazioni`: `CauseKey` + `CauseArgsJson` nullable
+su `DocumentImpacts`, gemella SQLite `20260923195948`), su 1.44.1 (`ce8a59f`). Timbro **`1.45.0 · 7bd3bda`**.
+Filone [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md), carta
+[`2026-09-23-da-fare-per-cambiamento.md`](feature/2026-09-23-da-fare-per-cambiamento.md): incarico chiuso con la sua
+segnalazione; lista per cambiamento / per documento / elenco; deriva ricalcolata poco dopo un salvataggio
+(`SegnalaModificheInterceptor` → `DerivaDopoLeModificheHostedService`) con la sua causa; «segna rilette anche queste
+N» e «cosa è cambiato» nel pannello di pubblicazione. Fusione `1b7cbf35` (nessun conflitto).
+
+**17 file**: `vipi-theme.css` (+`.br`/`.gz`), `endpoints.json`, `en/Vipi.Ui.resources.dll`, Vipi.Domain,
+Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui, Vipi.Host (dll/pdb). Fuori:
+Vipi.Hosting e resto (solo ricompilati). Zip `vipi-1.45.0-solo-file-cambiati.zip` `fc6408d1…0ffff0`, foglio
+[`LEGGIMI-PACCHETTO-1.45.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.45.0.md). 1.44.1 ruotata in
+`publish_old/20260923d`. Build Release 0 avvisi, 18/18 assiemi verdi, CI verde anche `mariadb-schema`.
+
+- ✅ **Prova del pacchetto in locale** (win-x64 dalla sua cartella, copia del DB, porta 5288): migrazione SQLite
+  applicata all'avvio, Ricerca risponde, «Da sistemare» con le tre viste e cambi di vista senza errori, giro della
+  deriva regolare, nessuna richiesta in errore. ⚠️ `pacchetto-verifica.js` non è partito: Edge in modalità
+  automatica esce subito («Failed to launch the browser process, Code: 0») — la prova è stata fatta a mano col
+  browser integrato. Da guardare prima della prossima consegna (Edge da aggiornare/riavviare?).
+
 ### ✅ A121 — 1.44.1 ONLINE: S4 bis + S6 del sito (23 settembre 2026)
 
 ✅ Il committente conferma timbro `1.44.1 · ce8a59f`, `Schema 0`, «alla STAR» nelle frasi e la linea delle colonne.

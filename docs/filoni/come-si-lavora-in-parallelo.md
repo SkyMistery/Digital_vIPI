@@ -12,6 +12,7 @@
 | Integratore | `vIPI Ivao Italy` (clone principale) | `main` | `HANDOFF.md`, `docs/lavori-aperti.md` |
 | Sector Lab | `vipi-lab` | `lab/f3` | [`lab.md`](lab.md) |
 | Sito vIPI | `vIPI-sito` | `sito/lavori` | [`sito.md`](sito.md) |
+| Lista «Da fare» | `vipi-dafare` | `dafare/raggruppa` | [`lista-da-fare.md`](lista-da-fare.md) |
 
 Un filone nuovo: dal clone principale `git worktree add ../<cartella> -b <ramo> main`, una riga in questa tabella
 (la aggiunge l'integratore) e un file `docs/filoni/<filone>.md`. Mai `cd`, build o test nella cartella di un altro.
