@@ -8,7 +8,7 @@
 
 **In corso: le prove a mano del committente** (slice 6 di F3-bis; PROVE.md 28-36 = richieste della sera). Il committente fa le prove e porta i risultati in
 una chat nuova. `lab/f3` è pulito, spinto, **CI verde** sull'ultimo commit di codice. Test: motore 471 (net8 e net10),
-Lab 351 (motore 479).
+Lab 355 (motore 479).
 
 - **Eseguibile di prova**: `D:\Programmazione\IVAO_Test\SectorLab-prova\VipiSectorLab.exe`, ripubblicato il 23
   settembre alle 18:48 (tutto quello che c'è su `lab/f3`). Le prove sono in `SectorLab-prova\PROVE.md`: 1-11 di F3,
@@ -113,6 +113,14 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
   settori `.tfl`, zone `.str`, MVA e poligoni che scritti differiscono per UNA cifra (sopra i 100 m). Misurata sul fork:
   «a meno di mezzo miglio» dava 367 avvisi (settori con l'ultimo lato corto), «sotto i 100 m» 1 598 (arrotondamenti);
   la sola cifra dà **1**: `lirn.str:63` LIRN ATZ, il refuso della prova 10. Motore 479. PROVE.md 47.
+
+- 24 settembre, osservazioni a–c (prove 10-12 ✅): 🔴 **(c)** SID/STAR/punti non sparivano spegnendo la casella: scegliere
+  un record accende il suo strato e fa partire più `Cambiata` di fila → due `Sincronizza` insieme chiedevano lo stesso
+  strato due volte (lo segnavano disegnato solo DOPO la fetch) → due gruppi, la casella spegneva solo il secondo. Ora
+  `Mappa.InFila` (una sincronizzazione alla volta) e il JS non fa mai due gruppi (`inArrivo`, `giro`, `voluti`). Il test
+  bUnit con una fetch che non finisce è rosso sul codice di prima. **(a)** archi a 5° di base (`GradiPerPuntoDiBase`), la
+  stima dal file resta come indicazione. **(b)** `Sezione.razor`: titoli che chiudono/aprono, stato per CHIAVE nel Lab
+  (`SezioneAperta`/`ApriOChiudi`). Lab 355.
 
 ### Aperto, da chiedere o dire al committente
 

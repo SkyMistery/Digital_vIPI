@@ -79,18 +79,33 @@
         strato: function (id, acceso) {
             if (!stato) return Promise.resolve(0);
             var vivo = stato.strati[id];
+            // 🔴 Quel che si vuole ADESSO: una fetch lenta che arriva dopo uno «spegni» non deve accendere niente, e due
+            // richieste dello stesso strato non devono fare due gruppi — il primo restava sulla mappa, orfano, e la
+            // casella non lo spegneva più (committente, 24 settembre: SID, STAR e punti che non sparivano).
+            stato.voluti = stato.voluti || {};
+            stato.voluti[id] = !!acceso;
 
+            stato.inArrivo = stato.inArrivo || {};
+            stato.giro = stato.giro || {};
             if (!acceso) {
                 if (vivo) { stato.mappa.removeLayer(vivo); delete stato.strati[id]; }
+                // Una fetch ancora in viaggio non vale più: spento, o spento per essere ridisegnato con dati nuovi.
+                delete stato.inArrivo[id];
+                stato.giro[id] = (stato.giro[id] || 0) + 1;
                 return Promise.resolve(0);
             }
             if (vivo) { vivo.addTo(stato.mappa); return Promise.resolve(0); }
+            if (stato.inArrivo[id]) return stato.inArrivo[id];
+            var giro = stato.giro[id] = (stato.giro[id] || 0) + 1;
 
             var tinta = colore(id);
             var partenza = performance.now();
-            return fetch('/mappa/strato/' + encodeURIComponent(id), { credentials: 'same-origin' })
+            var arrivo = fetch('/mappa/strato/' + encodeURIComponent(id), { credentials: 'same-origin' })
                 .then(function (r) { return r.ok ? r.json() : { f: [] }; })
                 .then(function (dati) {
+                    // Arrivata tardi: dopo di lei lo strato è stato spento o richiesto di nuovo. Non si disegna.
+                    if (!stato || stato.giro[id] !== giro) return 0;
+                    delete stato.inArrivo[id];
                     var gruppo = L.layerGroup();
                     for (var i = 0; i < dati.f.length; i++) {
                         var forma = dati.f[i];
@@ -103,6 +118,8 @@
                         stato.forme[forma.p + '#' + forma.r] = disegnata;
                     }
 
+                    if (!stato.voluti[id]) return 0;
+                    if (stato.strati[id]) stato.mappa.removeLayer(stato.strati[id]);
                     stato.strati[id] = gruppo;
                     gruppo.addTo(stato.mappa);
                     // Lo sfondo decide l'inquadratura: la prima volta che arriva, la mappa si mette sull'Italia vera.
@@ -119,7 +136,9 @@
                     stato.tempo = (stato.tempo || 0) + ms;
                     window.sectorlab.diario('strato ' + id + ': ' + dati.f.length + ' forme in ' + ms + ' ms');
                     return dati.f.length;
-                });
+                }, function (e) { if (stato && stato.giro[id] === giro) delete stato.inArrivo[id]; throw e; });
+            stato.inArrivo[id] = arrivo;
+            return arrivo;
         },
 
         /// Evidenzia il record scelto (e toglie l'evidenza da quello di prima). Senza file, toglie e basta.

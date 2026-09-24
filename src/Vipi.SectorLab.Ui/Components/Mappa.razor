@@ -34,7 +34,27 @@
         if (!primo) return;
         _riferimento = DotNetObjectReference.Create(this);
         _creata = await Js.InvokeAsync<bool>("sectorlab.mappa.crea", Elemento, _riferimento);
-        await Sincronizza();
+        await InFila();
+    }
+
+    /// <summary>
+    /// 🔴 Una sincronizzazione alla volta. Scegliere un record accende il suo strato e fa partire più avvisi di fila:
+    /// due giri insieme chiedevano lo stesso strato due volte, perché ognuno lo segnava come disegnato solo DOPO la
+    /// fetch — e la seconda copia restava sulla mappa anche spegnendo la casella (committente, 24 settembre).
+    /// </summary>
+    private readonly SemaphoreSlim _fila = new(1, 1);
+
+    private async Task InFila()
+    {
+        await _fila.WaitAsync();
+        try
+        {
+            await Sincronizza();
+        }
+        finally
+        {
+            _fila.Release();
+        }
     }
 
     /// <summary>Porta la mappa dov'è lo stato: gli strati accesi, e l'evidenza sul record scelto.</summary>
@@ -108,7 +128,7 @@
         }
     }
 
-    private void Aggiorna() => _ = InvokeAsync(Sincronizza);
+    private void Aggiorna() => _ = InvokeAsync(InFila);
 
     /// <summary>Il clic su una forma: la sceglie. La chiama il JavaScript della mappa.</summary>
     [JSInvokable]

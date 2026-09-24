@@ -1,0 +1,38 @@
+@inject SessioneDelLab Lab
+
+@*
+    Una sezione che si chiude e si riapre col clic sul titolo (chiesto dal committente il 24 settembre): i tratti, le
+    righe del file, i campi, gli strati… Chiusa, il suo contenuto non si disegna nemmeno. Lo stato lo tiene il Lab per
+    CHIAVE, non per record: chi chiude «Righe del file» la ritrova chiusa sul record dopo, e nell'altra finestra.
+    Gli attributi in più (data-elenco, data-composta…) vanno sul titolo, dove i test e il resto della UI li cercano.
+*@
+<section class="lab-sezione @(Aperta ? null : "lab-sezione-chiusa")" data-sezione="@Chiave">
+    <h2 @attributes="Attributi">
+        <button type="button" class="lab-sezione-tasto" aria-expanded="@(Aperta ? "true" : "false")"
+                title="@(Aperta ? "Chiudi" : "Apri")" @onclick="() => Lab.ApriOChiudi(Chiave)" data-apri-sezione="@Chiave">
+            <span class="lab-freccia" aria-hidden="true">@(Aperta ? "▾" : "▸")</span>
+            @Titolo
+        </button>
+        @Accanto
+    </h2>
+    @if (Aperta)
+    {
+        @ChildContent
+    }
+</section>
+
+@code {
+    /// <summary>Che sezione è: lo stato aperto/chiuso si ricorda per questa chiave.</summary>
+    [Parameter, EditorRequired] public string Chiave { get; set; } = null!;
+
+    [Parameter, EditorRequired] public RenderFragment Titolo { get; set; } = null!;
+
+    /// <summary>Quel che sta sulla riga del titolo e resta anche a sezione chiusa (tasti, conteggi).</summary>
+    [Parameter] public RenderFragment? Accanto { get; set; }
+
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributi { get; set; }
+
+    private bool Aperta => Lab.SezioneAperta(Chiave);
+}

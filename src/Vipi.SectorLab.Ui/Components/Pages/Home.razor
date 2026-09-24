@@ -62,7 +62,9 @@
             }
 
             <aside class="lab-strati">
-                <h2>Strati</h2>
+                <Sezione Chiave="strati">
+                <Titolo>Strati</Titolo>
+                <ChildContent>
                 @foreach (var strato in Lab.Strati)
                 {
                     <label class="lab-strato @(strato.Forme.Count == 0 ? "lab-strato-vuoto" : null)">
@@ -76,14 +78,20 @@
                         <span class="lab-nota">@strato.Forme.Count.ToString("N0")</span>
                     </label>
                 }
+                </ChildContent>
+                </Sezione>
 
                 @if (Lab.InVista.Count > 0)
                 {
                     @* La vista: la mappa mostra solo questi (e le coste). Un clic sulla × toglie; «Tutto» torna agli strati. *@
                     <div class="lab-vista" data-vista="@Lab.InVista.Count">
-                        <h2>In vista <span class="lab-nota">@Lab.InVista.Count</span>
+                        <Sezione Chiave="vista">
+                        <Titolo>In vista <span class="lab-nota">@Lab.InVista.Count</span></Titolo>
+                        <Accanto>
                             <button class="lab-annulla" @onclick="Lab.SvuotaLaVista" data-tasto="vista-tutto"
-                                    title="La mappa torna a mostrare tutti gli strati accesi">mostra tutto</button></h2>
+                                    title="La mappa torna a mostrare tutti gli strati accesi">mostra tutto</button>
+                        </Accanto>
+                        <ChildContent>
                         @foreach (string chiave in Lab.InVista)
                         {
                             int cancelletto = chiave.LastIndexOf('#');
@@ -101,6 +109,8 @@
                                 <button class="lab-annulla" @onclick="() => Lab.CambiaLaVista(file, record)" title="Toglilo dalla vista">×</button>
                             </p>
                         }
+                        </ChildContent>
+                        </Sezione>
                     </div>
                 }
 

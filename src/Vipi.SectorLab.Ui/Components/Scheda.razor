@@ -30,6 +30,10 @@
             }
         </header>
 
+        @* Le sezioni si chiudono col clic sul titolo (committente, 24 settembre): Sezione.razor. *@
+        <Sezione Chiave="scheda-campi">
+        <Titolo>Campi <span class="lab-nota">@scheda.Campi.Count</span></Titolo>
+        <ChildContent>
         <table class="lab-campi">
             <tbody>
                 @foreach (var campo in scheda.Campi)
@@ -54,6 +58,8 @@
                 }
             </tbody>
         </table>
+        </ChildContent>
+        </Sezione>
 
         @if (Lab.Rifiuto is { } rifiuto)
         {
@@ -64,7 +70,9 @@
            riscrive il tag //@ e rigenera la mappa; la prima volta il Lab sceglie da solo se disegnarle intere. *@
         @if (Lab.CompostaDi(scheda.File, scheda.Indice) is { } composta)
         {
-            <h2 data-composta="@composta.Elenco.Count">Composta da <span class="lab-nota">@composta.Elenco.Count</span></h2>
+            <Sezione Chiave="scheda-composta" data-composta="@composta.Elenco.Count">
+            <Titolo>Composta da <span class="lab-nota">@composta.Elenco.Count</span></Titolo>
+            <ChildContent>
             <div class="lab-composta">
                 @if (composta.Caselle.Count == 0)
                 {
@@ -96,6 +104,8 @@
                     </label>
                 }
             </div>
+            </ChildContent>
+            </Sezione>
         }
 
         @* Una forma semplice ha un elenco solo; una zona a più tratti ne ha uno per tratto (slice 7-bis). *@
@@ -103,7 +113,10 @@
         {
             string chiave = elenco.Chiave;
             var vertici = Lab.VerticiDi(scheda.File, scheda.Indice, chiave);
-            <h2 data-elenco="@chiave">@elenco.Nome <span class="lab-nota">@vertici.Count</span></h2>
+            @* Un tratto per sezione: si chiudono uno per uno, e il nome del tratto è la chiave (Vertices, Tratto 3…). *@
+            <Sezione Chiave="@($"vertici:{elenco.Nome}")" data-elenco="@chiave">
+            <Titolo>@elenco.Nome <span class="lab-nota">@vertici.Count</span></Titolo>
+            <ChildContent>
 
             <div class="lab-vertici" data-vertici="@vertici.Count">
                 @for (int i = 0; i < vertici.Count; i++)
@@ -141,6 +154,11 @@
                                @oninput="e => Densita(scheda, chiave, e.Value?.ToString())"
                                data-campo="gradi-per-punto" /><span>°</span>
                     </span>
+                    @* Di base 5° (committente, 24 settembre); la stima dal file resta come indicazione. *@
+                    @if (Lab.StimaDeiGradiDi(scheda.File, scheda.Indice) is { } stima)
+                    {
+                        <span data-stima-gradi="@stima.ToString(System.Globalization.CultureInfo.InvariantCulture)">(qui gli archi ne hanno uno ogni @stima.ToString("0.#")°)</span>
+                    }
                 </label>
                 @* Chiusa o aperta: la sceglie l'AOD (committente, 24 settembre). Parte da com'è la forma di oggi. *@
                 <label class="lab-nota lab-chiudi" title="La forma si chiude ripetendo il primo punto in fondo, come i settori dei .tfl. Senza, resta una linea aperta (come le mappe degli .str).">
@@ -155,13 +173,19 @@
                         title="@(_perQuale != chiave || string.IsNullOrWhiteSpace(_daIncollare) ? "Incolla prima il testo qui sopra" : null)"
                         @onclick="() => Incolla(scheda, chiave)" data-tasto="incolla">Sostituisci i vertici</button>
             </details>
+            </ChildContent>
+            </Sezione>
         }
 
-        <h2>Righe del file</h2>
+        <Sezione Chiave="scheda-righe">
+        <Titolo>Righe del file</Titolo>
+        <ChildContent>
         @* Clic su una riga: si scrive a mano, con conferma (RigheAMano). *@
         <RigheAMano File="@scheda.File" Righe="scheda.Righe"
                     Classe="@(riga => (riga.DelRecord ? "lab-riga-del-record" : "lab-riga-contesto") + (Segnalata(scheda.File, riga.Numero) ? " lab-riga-segnalata" : ""))"
                     Segnata="@(riga => Segnalata(scheda.File, riga.Numero))" />
+        </ChildContent>
+        </Sezione>
     </div>
 }
 else if (Lab.RigaSegnalata is { } segnata)
@@ -245,7 +269,7 @@ else
             _gradi = null;
         }
 
-        return _gradi ?? Math.Round(1 / Lab.DensitaDegliArchiDi(scheda.File, scheda.Indice), 1);
+        return _gradi ?? SessioneDelLab.GradiPerPuntoDiBase;
     }
 
     private void Incolla(SchedaDelRecord scheda, string campo)

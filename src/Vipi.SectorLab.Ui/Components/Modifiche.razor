@@ -10,24 +10,24 @@
 @if (Lab.Modifiche.CEQualcosa || Lab.UltimoSalvataggio is not null || Lab.ModifichePerse.Count > 0)
 {
     <div class="lab-modifiche" data-modifiche="@Lab.Modifiche.Quante">
+        @if (Lab.UltimoSalvataggio is { } esito)
+        {
+            <EsitoDelSalvataggioVista Esito="esito" />
+        }
+
         @if (Lab.Modifiche.CEQualcosa)
         {
-            <header>
-                <h2>@Lab.Modifiche.Quante modifiche in @Lab.Modifiche.FileToccati.Count file</h2>
+            <Sezione Chiave="modifiche">
+            <Titolo>@Lab.Modifiche.Quante modifiche in @Lab.Modifiche.FileToccati.Count file</Titolo>
+            <Accanto>
                 <button class="lab-tasto" @onclick="() => Lab.SalvaAsync()" disabled="@Lab.StaSalvando"
                         title="@(Lab.StaSalvando ? "Salvataggio in corso" : "Scrive i file nel clone, dopo averne fatto il backup")"
                         data-tasto="salva">@(Lab.StaSalvando ? "Salvo…" : "Salva")</button>
                 <button class="lab-tasto lab-tasto-tenue" @onclick="() => Lab.AnnullaTutte()" disabled="@Lab.StaSalvando"
                         title="@(Lab.StaSalvando ? "Salvataggio in corso" : null)"
                         data-tasto="annulla-tutto">Annulla tutto</button>
-            </header>
-        }
-
-        @if (Lab.UltimoSalvataggio is { } esito)
-        {
-            <EsitoDelSalvataggioVista Esito="esito" />
-        }
-
+            </Accanto>
+            <ChildContent>
         @foreach (string file in Lab.Modifiche.FileToccati)
         {
             var diff = Lab.DiffDi(file);
@@ -66,6 +66,9 @@
                 }
                 <RigheDelDiff Diff="diff" />
             </details>
+        }
+            </ChildContent>
+            </Sezione>
         }
 
         @foreach (var (file, diff) in Lab.ModifichePerse)

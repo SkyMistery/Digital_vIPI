@@ -10,7 +10,9 @@
 @if (Lab.Sessione?.File.GetValueOrDefault(Relativo) is { } file)
 {
     <div class="lab-record" data-file-aperto="@Relativo">
-        <h2>@Nome(Relativo) <span class="lab-nota">@file.Record.ToString("N0") record</span></h2>
+        <Sezione Chiave="file-record">
+        <Titolo>@Nome(Relativo) <span class="lab-nota">@file.Record.ToString("N0") record</span></Titolo>
+        <ChildContent>
         @if (file.Record == 0)
         {
             <p class="lab-nota">Il motore non interpreta questo file: si vede come testo (slice 5 non lo apre).</p>
@@ -41,6 +43,8 @@
                 <p class="lab-nota" data-troppi="@voci.Count">@voci.Count.ToString("N0") record: ne vedi @Tetto. Filtra per arrivare agli altri.</p>
             }
         }
+        </ChildContent>
+        </Sezione>
     </div>
 }
 

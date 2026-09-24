@@ -201,7 +201,7 @@ public sealed class SessioneDelLab
             Scelta = null;
             FileScelto = null;
             _etichette.Clear();
-            _densita.Clear();
+            _stime.Clear();
             // Le modifiche e gli esiti di un'altra cartella non valgono per questa: nomi uguali, file diversi.
             Modifiche = new();
             ScordaLaStoria();
@@ -805,36 +805,44 @@ public sealed class SessioneDelLab
             ? ElenchiDiVertici.Di(file, record)
             : [];
 
-    /// <summary>Un gesto sui vertici: cambia, aggiungi, togli, incolla. Torna vero se è andato.</summary>
     /// <summary>
-    /// Quanto sono fitti gli archi di quel record — o, se lui non ne ha, di tutto il suo file; senza archi da misurare,
-    /// un punto per grado (quello di F1). La usa «incolla da testo», e la scheda la mostra perché l'AOD la cambi.
+    /// Gli archi di «incolla da testo», di base: un punto ogni 5 gradi (committente, 24 settembre). L'AOD lo cambia nella
+    /// scheda; prima era la stima dal file, che ora la scheda dice accanto (<see cref="StimaDeiGradiDi"/>).
     /// </summary>
-    public double DensitaDegliArchiDi(string fileRelativo, int record)
+    public const double GradiPerPuntoDiBase = 5;
+
+    /// <summary>La densità di base, in punti per grado: <see cref="GradiPerPuntoDiBase"/> rovesciato.</summary>
+    public static double DensitaDiBase => 1 / GradiPerPuntoDiBase;
+
+    /// <summary>
+    /// Quanti gradi fra un punto e l'altro hanno gli archi che quel record — o, se lui non ne ha, il suo file — ha già;
+    /// null se non ci sono archi da misurare. La scheda lo dice accanto al campo: è un'indicazione, non il valore.
+    /// </summary>
+    public double? StimaDeiGradiDi(string fileRelativo, int record)
     {
         if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
-            return Vipi.Application.Coordinates.ArcGeometry.DensitaBase;
-        if (_densita.TryGetValue((fileRelativo, record), out double gia))
+            return null;
+        if (_stime.TryGetValue((fileRelativo, record), out double? gia))
             return gia;
 
         var delRecord = ElenchiDiVertici.Di(file, record).Select(e => e.Posizioni());
-        double stima = DensitaDegliArchi.Stima(delRecord)
-                       ?? DensitaDegliArchi.Stima(Enumerable.Range(0, file.Record)
-                              .SelectMany(i => ElenchiDiVertici.Di(file, i)).Select(e => e.Posizioni()))
-                       ?? Vipi.Application.Coordinates.ArcGeometry.DensitaBase;
-        _densita[(fileRelativo, record)] = stima;
-        return stima;
+        double? densita = DensitaDegliArchi.Stima(delRecord)
+                          ?? DensitaDegliArchi.Stima(Enumerable.Range(0, file.Record)
+                                 .SelectMany(i => ElenchiDiVertici.Di(file, i)).Select(e => e.Posizioni()));
+        double? gradi = densita is { } d && d > 0 ? Math.Round(1 / d, 1) : null;
+        _stime[(fileRelativo, record)] = gradi;
+        return gradi;
     }
 
-    private readonly Dictionary<(string File, int Record), double> _densita = [];
+    private readonly Dictionary<(string File, int Record), double?> _stime = [];
 
-    /// <param name="puntiPerGrado">Solo per «incolla»: quanto fitti gli archi; di base la stima del record o del file
-    /// (<see cref="DensitaDegliArchiDi"/>).</param>
+    /// <param name="puntiPerGrado">Solo per «incolla»: quanto fitti gli archi; di base un punto ogni 5 gradi
+    /// (<see cref="GradiPerPuntoDiBase"/>).</param>
     public bool GestoSuiVertici(string fileRelativo, int record, string campo, GestoDeiVertici gesto,
                                 int posizione = 0, string? testo = null, double? puntiPerGrado = null, bool? chiudi = null)
     {
         // La densità si fissa ADESSO: rigiocato più tardi, il gesto deve dare gli stessi punti anche se la stima è cambiata.
-        double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record) : null;
+        double? densita = gesto == GestoDeiVertici.Incolla ? puntiPerGrado ?? DensitaDiBase : null;
         // Anche la chiusura si fissa adesso: rigiocato dopo altri gesti, l'elenco di partenza potrebbe essere un altro.
         if (gesto == GestoDeiVertici.Incolla)
             chiudi ??= ElencoChiuso(fileRelativo, record, campo);
@@ -865,7 +873,7 @@ public sealed class SessioneDelLab
             GestoDeiVertici.Aggiungi => Modifiche.AggiungiVertice(file, record, campo, posizione, testo, etichetta),
             GestoDeiVertici.Togli => Modifiche.TogliVertice(file, record, campo, posizione, etichetta),
             _ => Modifiche.IncollaVertici(file, record, campo, testo, etichetta,
-                                          puntiPerGrado ?? DensitaDegliArchiDi(fileRelativo, record), chiudi),
+                                          puntiPerGrado ?? DensitaDiBase, chiudi),
         };
         Registro.Scrivi("vertici", $"{fileRelativo}#{record} {campo} {gesto} {posizione}"
                                    + (gesto == GestoDeiVertici.Incolla ? $" ({testo?.Length ?? 0} caratteri)" : $" «{testo}»")
@@ -1074,6 +1082,20 @@ public sealed class SessioneDelLab
         => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file)
             ? Modifiche.DiffDi(file)
             : new Diff.Esito([], InBlocco: false);
+
+    // --- le sezioni che si chiudono (chieste dal committente il 24 settembre) --------------------------------------
+
+    /// <summary>Le sezioni chiuse, per chiave (<c>scheda-righe</c>, <c>vertici:Vertices</c>, <c>strati</c>…).</summary>
+    private readonly HashSet<string> _sezioniChiuse = new(StringComparer.Ordinal);
+
+    public bool SezioneAperta(string chiave) => !_sezioniChiuse.Contains(chiave);
+
+    public void ApriOChiudi(string chiave)
+    {
+        if (!_sezioniChiuse.Remove(chiave))
+            _sezioniChiuse.Add(chiave);
+        Avvisa();
+    }
 
     // --- la vista: solo alcuni elementi sulla mappa (chiesta dal committente il 23 settembre) ----------------------
 
@@ -1299,8 +1321,8 @@ public sealed class SessioneDelLab
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);
-        foreach (var chiave in _densita.Keys.Where(k => k.File == fileRelativo).ToList())
-            _densita.Remove(chiave);
+        foreach (var chiave in _stime.Keys.Where(k => k.File == fileRelativo).ToList())
+            _stime.Remove(chiave);
         if (tipo is null)
             return;
 
