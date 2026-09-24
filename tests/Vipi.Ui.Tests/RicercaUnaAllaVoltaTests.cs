@@ -94,6 +94,38 @@ public class RicercaUnaAllaVoltaTests : TestContext
         Assert.True(ricerca.Chiamate >= 1);
     }
 
+    private sealed class SoloGuida : ISearchService
+    {
+        public Task<IReadOnlyList<SearchHit>> SearchAsync(string query, SearchScope scope = SearchScope.All, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<SearchHit>>(new[]
+            {
+                new SearchHit { DocTitle = "Releases", DocType = DocumentType.Vipi, Where = "Guide › Releases", Snippet = "s", Url = "/services/vsop/guide#release" },
+                new SearchHit { DocTitle = "vIPI Roma", DocType = DocumentType.Vipi, Where = "vIPI Roma", Snippet = "s", Url = "/services/vsop/lirr/vipi" },
+            });
+    }
+
+    /// <summary>
+    /// S8 (24 settembre 2026): le voci della Guida si riconoscevano dal testo «Guida ›», e in inglese la Guida scrive
+    /// «Guide ›»: perdevano il libro e sembravano documenti — e la verifica di consegna, che conta i documenti, le
+    /// avrebbe contate. Ora si riconoscono dall'indirizzo.
+    /// </summary>
+    [Fact]
+    public async Task Una_voce_della_Guida_in_inglese_resta_una_voce_della_Guida()
+    {
+        Services.AddSingleton<ISearchService>(new SoloGuida());
+        Services.AddSingleton<IStringLocalizer<SharedResource>>(new KeyLocalizer());
+        Services.AddSingleton<StringheDelSito>();
+        Services.AddSingleton(new EnglishStrings());
+        JSInterop.Mode = JSRuntimeMode.Loose;
+        var pagina = RenderComponent<SearchPage>();
+
+        await pagina.InvokeAsync(() => pagina.Find("input").InputAsync(new() { Value = "release" }));
+
+        pagina.WaitForAssertion(() => Assert.Equal(2, pagina.FindAll("a.res-row").Count), TimeSpan.FromSeconds(3));
+        Assert.Contains("guide", pagina.FindAll("a.res-row").First(a => a.GetAttribute("href")!.Contains("guide")).ClassName);
+        Assert.DoesNotContain("guide", pagina.FindAll("a.res-row").First(a => a.GetAttribute("href")!.Contains("lirr")).ClassName ?? "");
+    }
+
     /// <summary>La pagina tiene la ricerca su uno scope suo: senza, il DbContext è quello del circuito.</summary>
     [Fact]
     public void La_ricerca_ha_uno_scope_suo() =>

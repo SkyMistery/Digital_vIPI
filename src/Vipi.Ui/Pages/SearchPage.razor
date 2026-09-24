@@ -115,8 +115,11 @@
         });
     }
 
-    // Hit della Guida (Where "Guida › …"): mostrati con icona libro. Vedi GuideSearchCatalog.
-    private static bool IsGuide(SearchHit h) => h.Where.StartsWith("Guida ›", StringComparison.Ordinal);
+    // Hit della Guida: mostrati con icona libro. Vedi GuideSearchCatalog.
+    // ⚠️ Si riconoscono dall'INDIRIZZO, non dal testo: fino al 24 settembre 2026 si guardava «Guida ›», e in inglese
+    // la Guida scrive «Guide ›» — le sue voci perdevano il libro e sembravano documenti (S8, docs/filoni/sito.md).
+    private static bool IsGuide(SearchHit h) => h.Url.StartsWith(GuidaUrl, StringComparison.OrdinalIgnoreCase);
+    private const string GuidaUrl = "/services/vsop/guide";
 
     // Evidenziazione sicura: encode dell'HTML, poi <mark> attorno alle occorrenze del termine (no XSS).
     private MarkupString Highlight(string text)
