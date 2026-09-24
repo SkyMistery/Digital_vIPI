@@ -4,7 +4,7 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> **📦 1.46.1 PRONTO DA CARICARE (25-set, §A125)**: il «Re-import da IVAO» dell'editor MIL faceva cadere il circuito
+> **✅ 1.46.1 ONLINE (24-set 23:31 UTC, §A125; timbro e Schema 0 confermati)**: il «Re-import da IVAO» dell'editor MIL faceva cadere il circuito
 > (frase con 4 argomenti, ne passava 3); ora importa anche le SID/STAR. PATCH, 4 file, timbro `1.46.1 · 3a8a3f1`, zip
 > `3fb0fb04…`. Guardia nuova sugli argomenti delle frasi.
 >

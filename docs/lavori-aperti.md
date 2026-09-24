@@ -33,7 +33,15 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A125 — 1.46.1 PRONTO DA CARICARE: il Re-import MIL non fa più cadere il circuito (25 settembre 2026)
+### ✅ A125 — 1.46.1 ONLINE: il Re-import MIL non fa più cadere il circuito (25 settembre 2026)
+
+✅ Online il 24 settembre 2026 alle 23:31:58 UTC (avvio ordinato). Il committente conferma timbro `1.46.1 · 3a8a3f1` e
+`Schema 0`. Nello scarico: zero voci nell'era 1.46.1. Le 3 `BadImageFormatException` di 23:31:53–56
+(`StaffLoginTrackingMiddleware`, processo 1.46.0) sono le dll sostituite sotto il processo vivo durante il carico, e
+`avvio-errore.txt` (22:51:37, `Vipi.Infrastructure` non trovato) è l'istante del carico di 1.46.0: il prezzo noto
+dell'FTP, non un guasto. I riavvii ogni ~50 s (fermati «da dentro», svegliati dal ping) c'erano identici con 1.42.1
+e 1.45.1: è lo spegnimento per inattività di Passenger, non una regressione.
+
 
 PATCH, **nessuna migrazione**, su 1.46.0 (`d54dbb0`). Timbro **`1.46.1 · 3a8a3f1`**. Trovato leggendo lo scarico di
 diagnostica di 1.46.0: 2 voci del 23-set (era 1.43.0), `Etichetta «Ape_ReimportDone» non leggibile` in
