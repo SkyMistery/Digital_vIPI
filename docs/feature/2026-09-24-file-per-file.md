@@ -366,7 +366,33 @@ prestazioni**.
 | I3 | **Ordine di disegno** (vince l'ultimo): erba → cemento → piazzale → taxiway → pista → edifici → buchi; il Lab lo mostra e mette un poligono nuovo al posto del suo tipo | Subito | ✅ deciso |
 | I4 | Controlli: poligono con meno di 3 vertici (43), colore sconosciuto, `.pol` senza `.geo` dello scalo (3) | Subito | ✅ deciso |
 | I5 | L'import/export KML (H4) produce tutte e due le uscite | F6 | ✅ deciso |
-| I6 | **Organizzazione dei file di scalo**: vedi la proposta sotto | Subito (la vista) + F4 (la prova) | 🟡 proposta |
+| I6 | **Vista per scalo nel Lab**: scelto LIRF, tutto quello che lo riguarda da qualunque file (layout di terra, procedure, VFR, txi, gts, MVA, righe di `.ap`/`.rw`/`.frq`); il Lab scrive nei file giusti. Vale con qualunque organizzazione dei file | Subito | ✅ deciso («molto d'accordo») |
+| I7 | **Organizzazione dei file di scalo**: più proposte (sotto), **provate in Aurora dal committente**, che poi dice quale funziona | F4, in rami di prova | 🟡 da provare |
+
+### I7 — Proposte di organizzazione dei file di scalo (da provare)
+
+Oggi: 95 `GEO\lirf.geo` + 93 `GND_LAYOUT\rf_ad_gnd.pol` + 35 `RW_MARKINGS\rf_mark.geo` = **223 righe a mano** in
+`ITALY.isc`; in `Include\IT\` ci sono già ~480 file di scalo (`.sid`, `.str`, `.vfi`, `.txi`, `.gts`…). Il manuale
+IVAO: Aurora carica da sé i file col nome dello scalo nelle cartelle della riga 6 di `[INFO]` (oggi solo `IT`), e per
+la terra prevede un file per tipo (`ICAO.rwy` piste, `.txo` bordi taxiway, `.txc` centro taxiway, `.stp` stop, `.apr`
+piazzali, `.pier`, `.bld` edifici) e `ICAO.tfl` per i riempimenti.
+
+| | Proposta | Come | Pro | Contro |
+|---|---|---|---|---|
+| **A** | Oggi, coi nomi uniformi | stesse cartelle, nomi tutti ICAO (`lirf.geo`, `lirf.pol`, `lirf_mark.geo`), righe negli `.isc` scritte dal Lab | nessun rischio in Aurora | restano 223 righe, un file con tutti i tipi |
+| **B** | Caricamento automatico in una **cartella per tipo** | `IT\GND\LIRF.rwy`, `LIRF.txo`, `LIRF.txc`, `LIRF.stp`, `LIRF.apr`, `LIRF.pier`, `LIRF.bld`, `LIRF.tfl`; riga 6 di `[INFO]` = `IT;IT\GND` | via le 223 righe; la radice non cresce; un file per tipo | ~95 × 8 file in `GND` (fino a ~760, molti piccoli) |
+| **C** | Caricamento automatico in una **cartella per scalo** | `IT\AD\LIRF\` con dentro tutto lo scalo (terra, `.sid`, `.str`, `.vfi`, `.txi`, `.gts`…); riga 6 = `IT;IT\AD\LIAA;IT\AD\LIAP;…` | lo scalo sta tutto in un posto, come lo pensa l'AOD | riga 6 con ~100 cartelle: va provato che Aurora la regga |
+| **D** | Caricamento automatico **nella radice** | i file per tipo direttamente in `Include\IT\` | nessuna modifica alla riga 6 | ❌ centinaia di file in più nella radice (sconsigliata dal committente) |
+
+**Cosa si verifica in Aurora per ogni proposta** (un solo scalo, LIRF, in un ramo `aod/<VID>/prova-organizzazione-X`):
+1. il layout di terra appare **identico** (stessi colori, stesso ordine di disegno, HOLE sopra GRASS);
+2. si accende e spegne per tipo come oggi (TAXI_CENTER, STOPLINE…);
+3. `SectorError.log` vuoto;
+4. tempo di caricamento del sector e fluidità della mappa, prima e dopo;
+5. se i file per tipo si caricano **solo per lo scalo scelto** («toggled per airport» nel manuale).
+
+Il Lab prepara ogni ramo di prova con uno strumento (divide/rinomina/sposta i file dello scalo e aggiorna gli `.isc`);
+la proposta vincente si applica poi a tutti gli scali in un colpo, sempre in un ramo.
 
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
