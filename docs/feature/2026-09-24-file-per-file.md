@@ -425,6 +425,32 @@ si caricano da soli se lo scalo è in `[AIRPORTS]`** → da verificare nelle pro
 | J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso |
 | J6 | **Configurazioni composte**: `//@"RR CONF2" composta=RR NE,RR TS` — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
 
+## §11 — `LOW_AIRSPACE` (15 `.lartcc`, sezione `[ARTCC LOW]`)
+
+### Cosa c'è (misure del 25 settembre)
+
+Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
+
+- **11 file con un settore APP ciascuno** (17-77 righe: `libb_cs0_app` → `LIBB CS0`, `limm_es0/wn0/ws0/ww0_app`,
+  `lipp_ce0/se0_app`, `lirr_es0/ew0/nn0/us0_app`) — in HI invece un file per ACC.
+- **2 file di configurazioni del TMA**: `limm_tma.lartcc` (`MM CONF 1`, `2.1`, `2.2`, `3`; **276 righe commentate**
+  = configurazioni nascoste, da tenere così per ora) e `lirr_tma.lartcc` (`RR CNF1`, `CNF2.1`, `CNF2.2`, `CNF3`).
+  Milano (committente): **CONF 1 = WS2, CONF 2 = WS2 + ES2** (2.1, 2.2, 3 da precisare).
+- **2 file di STAR** (`limc_star.lartcc` `LIMC 35`, `lirf_star.lartcc` `LIRF 16`): **da eliminare a breve**, deciso in AOD.
+- Nomi in più blocchi (pezzi delle configurazioni), nessuna etichetta, 6 commenti in coda, 133 punti per nome tutti
+  trovati. Nomi non uniformi: `RR CONF1` (HI) / `RR CNF1` (LOW) / `MM CONF 2.1`. Le forme APP sono copie di
+  `DYNAMIC_SEC` (es. `LIMF_WN0_APP` = `limm_wn0_app.lartcc` al 100%).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| — | J1-J6 di §10 valgono anche qui (vista, campi, famiglie con `DYNAMIC_SEC`, controlli, file giusto per `_APP`, configurazioni composte) | come in §10 | ✅ deciso |
+| K1 | **Nomi coerenti delle configurazioni** (`CONF`/`CNF`, spazi): il Lab segnala le differenze e propone una forma | Subito (controllo) + F4 (rinomina) | ✅ deciso |
+| K2 | **Un file per ACC anche per gli APP** (`limm.lartcc` coi settori di Milano) invece di un file per settore: **proposta E di organizzazione**, da provare insieme ad A-D (I7) | F4, da provare | 🟡 da provare |
+| K3 | Togliere `limc_star.lartcc` e `lirf_star.lartcc` (file, righe degli `.isc`, `delete.upd` — C4) | F4 (o a mano, quando l'AOD lo fa) | ✅ deciso in AOD |
+| K4 | Configurazioni nascoste di `limm_tma` (276 righe): restano commentate; nel Lab visibili come «nascoste» (B3) | — | ✅ per ora così |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
