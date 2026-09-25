@@ -1533,6 +1533,14 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.2 — PATCH, NESSUNA migrazione. Su 1.46.1 (3a8a3f1, online dal 24 settembre 2026). Filone coordinamenti
+      (docs/filoni/coordinamenti-aeroporti.md): un accordo su più aeroporti diceva nella frase solo il primo («con
+      destinazione Catania Fontanarossa LICC», non anche LICZ); ora li nomina tutti, e nella tabella la colonna
+      «Anche per» diventa «Per» e dice per chi vale ogni riga. Le release già pubblicate tengono la frase congelata.
+      Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro. Vipi.Hosting NON serve: la proprietà
+      nuova (AirportsAnd) sta nella classe del template con il suo default, come PointsOr. Nessun file di wwwroot.
+    -->
+    <!--
       1.46.1 — PATCH, NESSUNA migrazione. Su 1.46.0 (d54dbb0, online dal 24 settembre 2026). Il «Re-import da IVAO»
       dell'editor militare faceva cadere il circuito: Ape_ReimportDone chiede 4 argomenti e ne riceveva 3. Ora importa
       anche le SID/STAR come l'editor aeroporto e ne passa il numero. Guardia nuova sugli argomenti delle frasi
@@ -1744,7 +1752,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.1</VipiVersione>
+    <VipiVersione>1.46.2</VipiVersione>
   </PropertyGroup>
 
 </Project>
