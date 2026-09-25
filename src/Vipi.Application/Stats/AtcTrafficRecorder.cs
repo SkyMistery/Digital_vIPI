@@ -65,6 +65,11 @@ public sealed class AtcTrafficRecorder
         _finestraConsegna = finestra > HandoffWindow ? finestra : HandoffWindow;
     }
 
+    /// <summary>Fra più sessioni con lo stesso nominativo, quella connessa per ultima; a pari ora, l'id più alto
+    /// (le sessioni IVAO crescono nel tempo). Deterministico: lo stesso giro dà sempre la stessa risposta.</summary>
+    public static SourceAtcConnection PiuRecente(IEnumerable<SourceAtcConnection> stessoNominativo) =>
+        stessoNominativo.OrderByDescending(a => a.StartUtc).ThenByDescending(a => a.SessionId).First();
+
     /// <summary>Il gettone che dice «le forme sono cambiate»: vedi <see cref="Airspace.ShapeChangeStamp"/>.</summary>
     private readonly Airspace.ShapeChangeStamp? _forme;
 
@@ -80,7 +85,14 @@ public sealed class AtcTrafficRecorder
         var atcDivisione = snapshot.Atc.Where(a => !a.IsOutsideDivision).ToList();
 
         var online = new HashSet<string>(atcDivisione.Select(a => a.Callsign), StringComparer.OrdinalIgnoreCase);
-        var perCallsign = atcDivisione.ToDictionary(a => a.Callsign, a => a.SessionId, StringComparer.OrdinalIgnoreCase);
+        // 🔴 Lo stesso nominativo può comparire DUE volte nella fotografia IVAO (una sessione vecchia rimasta
+        // appesa accanto a quella nuova): `ToDictionary` sollevava «An item with the same key», e il giro del
+        // minuto saltava intero — quattro volte dal 17 settembre 2026, l'ultima il 25 con LIRF_TW1_APP. Il
+        // traffico va a UNA sessione per nominativo, e la giusta è la connessa per ultima: l'altra è quella che
+        // sta per sparire, e sparendo si chiude qui sotto come ogni sessione che non è più in frequenza.
+        var perCallsign = atcDivisione
+            .GroupBy(a => a.Callsign, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => PiuRecente(g).SessionId, StringComparer.OrdinalIgnoreCase);
 
         // ⚠️ PRIMA di ogni altra cosa: chi non è più in frequenza va salvato e liberato. Stava in fondo, e
         // bastava che gli unici online fossero settori senza poligono — o che non ci fosse nessuno — perché
