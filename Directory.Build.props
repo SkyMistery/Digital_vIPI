@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.5 — PATCH, NESSUNA migrazione. Su 1.46.4 (60e782a, online dal 25 settembre 2026). Due rami fusi:
+      fix/atc-nominativo-doppio (statistiche ATC: lo stesso nominativo due volte nella fotografia IVAO sollevava
+      «An item with the same key» e il giro del minuto saltava intero — firma f45fedc38cea; ora vince la sessione
+      connessa per ultima); fix/versioni-unite (documenti uniti: «Pubblica versione» e «Scarta bozza» di Versioni
+      valgono per tutti i membri, coi lock di tutti presi prima di scrivere; «Modifica» dei cinque editor non resta
+      spento per un lock altrui letto al caricamento). Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN) e Vipi.Host
+      per il timbro.
+    -->
+    <!--
       1.46.4 — PATCH, NESSUNA migrazione. Su 1.46.3 (de5af3a, online dal 25 settembre 2026). Tre rami fusi:
       fix/pubblica-ricarica-membri (dopo «Pubblica» gli editor uniti — aeroporto, APP, vSOP militare — rileggono anche
       i membri: restavano «in modifica» su una versione che bozza non era più, segnalato su Catania);
@@ -1768,7 +1777,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.4</VipiVersione>
+    <VipiVersione>1.46.5</VipiVersione>
   </PropertyGroup>
 
 </Project>
