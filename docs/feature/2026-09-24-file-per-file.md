@@ -394,6 +394,37 @@ piazzali, `.pier`, `.bld` edifici) e `ICAO.tfl` per i riempimenti.
 Il Lab prepara ogni ramo di prova con uno strumento (divide/rinomina/sposta i file dello scalo e aggiorna gli `.isc`);
 la proposta vincente si applica poi a tutti gli scali in un colpo, sempre in un ramo.
 
+## §10 — `HI_AIRSPACE` (4 `.hartcc`, sezione `[ARTCC HIGH]`)
+
+### Cosa c'è (manuale IVAO + misure, 25 settembre)
+
+Formato: `T/L;Identificativo;Lat;Lon;[Font]` (T traccia, L etichetta); punti per coordinate o per nome (consigliato).
+Il manuale chiede nomi tutti diversi. Nell'esempio di `.isc` del manuale: **i file `icao.geo` non si dichiarano,
+si caricano da soli se lo scalo è in `[AIRPORTS]`** → da verificare nelle prove di I7.
+
+- **Cosa ci va** (committente): i **settori di aerovia** (ACC, `…_CTR`); quelli di avvicinamento (`…_APP`) vanno in
+  `LOW_AIRSPACE`. Es. `LIRR_NE_CTR` qui, `LIRN_US0_APP` là.
+- `libb` 2 voci (`BB`, `BB FIC`) · `limm` 3 (`MM WS`, `MM WS-ES`, `MM FIC`) · `lipp` 7 (`PP CE`, `PP CESW`, `PP FIC`,
+  `DEL PP-MM`, `COOR EDMMUU`, `COOR EDUU`, `COOR LSAZ`) · `lirr` 13 (`RR CONF1`, `CONF1M`, `CONF2`, `EW`, `NC`, `NE`, `NW`,
+  `US`, `TS`, `OV`, `SU`, `ES`, `FIC`). Il nome = la voce della finestra di selezione di Aurora; le parti hanno il
+  nome nel commento sopra (`//MILANO-ROMA`, `//ROMA G1-G2`, `//ARLBERG LINE`, `//brindisi/tirana`).
+- Nessuna etichetta `L`. 5 nomi in più blocchi (`BB`, `MM WS`, `PP CE`, `DEL PP-MM`, `RR CONF2`): **voluto**, più pezzi
+  dello stesso settore. 4 voci aperte (linee: `MM WS-ES`, `COOR …`). 15 commenti in coda. 492 punti per nome, tutti
+  trovati. Qui stanno le copie che divergono dai settori dinamici (`limm.hartcc`, `lipp.hartcc`, §5).
+- **Configurazioni di Roma** (committente): `CONF1` = NE; `CONF2` = NE + TS; `CONF2B` = SU + ES; le altre sono
+  divisioni di NE e TS; EW non si divide mai; SU solo in SU + ES.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| J1 | **Vista come la selezione di Aurora**: voci per nome (anche in più pezzi), parti col nome dal commento, accese/spente sulla mappa (come A3) | Subito — comune | ✅ deciso |
+| J2 | Tipo fisso T/L, punti coi suggerimenti, etichetta col font facoltativo | Subito — comune | ✅ deciso |
+| J3 | **Famiglie con `DYNAMIC_SEC`** (D5): settore colorato e confine restano uguali | Subito + F4 (adozione) | ✅ deciso |
+| J4 | Controlli: commento in coda (avviso). Nome in più blocchi **non** è un errore (pezzi dello stesso settore) | Subito | ✅ deciso |
+| J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso |
+| J6 | **Configurazioni composte**: `//@"RR CONF2" composta=RR NE,RR TS` — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
