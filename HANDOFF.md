@@ -4,7 +4,7 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> **📦 1.46.2 PRONTO DA CARICARE (25-set, §A126)**: coordinamenti su più aeroporti, la frase li nomina tutti e la
+> **✅ 1.46.2 ONLINE (25-set 13:14 UTC, §A126; timbro, Schema 0, Ricerca confermati)**: coordinamenti su più aeroporti, la frase li nomina tutti e la
 > colonna è «Per» (filone `fix/coordinamenti-aeroporti`, fuso). PATCH, 7 file, timbro `1.46.2 · f30c036`, zip
 > `77bb0264…`.
 >

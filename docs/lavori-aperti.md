@@ -33,7 +33,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A126 — 1.46.2 PRONTO DA CARICARE: coordinamenti su più aeroporti, la frase li nomina tutti (25 settembre 2026)
+### ✅ A126 — 1.46.2 ONLINE: coordinamenti su più aeroporti, la frase li nomina tutti (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 13:14:41 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.2 (246 richieste) e **1.46.1 chiusa con zero voci su 5276 richieste**: ora è provata.
+`arresto-errore.txt` delle 13:15:26 (`BadImageFormatException`) è il processo 1.46.1 con le dll sostituite sotto:
+prezzo noto dell'FTP.
+
+Due cose trovate nello scarico, fuori pacchetto:
+- 🔴 `AdminTrasferimentiPage` (25-set 08:28, era 1.46.1, lavorando su LICC): «A second operation was started on this
+  context» in `LoadRunwaysAsync` → `EfAirportRepository.LoadAsync`, e la stessa corsa sulle STAR. L'editor mostra
+  meno piste/punti senza dirlo. Stessa firma d'errore già vista il 17, 22 e 23-set. Proposto come lavoro a parte.
+- Traduzione: un segmento («Catania APP DEVE coordinare con Sigonella TWR, tutto il traffico OAT/GAT…») è andato
+  in quarantena dopo 3 tentativi rotti: va reso a mano dal pannello traduzioni.
+
 
 PATCH, **nessuna migrazione**, su 1.46.1 (`3a8a3f1`). Timbro **`1.46.2 · f30c036`**. Filone
 [`coordinamenti-aeroporti`](filoni/coordinamenti-aeroporti.md), fusione `898d3d2e` di `fix/coordinamenti-aeroporti`
