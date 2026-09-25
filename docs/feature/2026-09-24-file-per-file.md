@@ -138,7 +138,7 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | C2 | Ogni PR porta le sue righe nel `changelog.md` del ramo `airac/AAMM`; la prima riga di una sezione toglie il `*NIL`, l'ultima tolta lo rimette | F4 | ✅ deciso |
 | C3 | **Fine ciclo**: `changelog.md` archiviato in `CHANGELOG\AAMM.txt`, poi lo schema vuoto con l'intestazione del ciclo nuovo (ciclo e data dal calendario AIRAC che vIPI calcola già) | F4 | ✅ deciso |
 | C4 | **`delete.upd` scritto dal Lab**: togliere un file aggiunge la sua riga qui e toglie quella di `ITALY.isc` (es. A9 `test.artcc`) | F4 | ✅ deciso |
-| C5 | **`update.ini`**: i file aggiornati del ciclo li sa git (diff col ciclo prima); prima di generarlo va capito cosa legge Aurora (formato `IT;1831;` del 2021) | Da pensare | 🟡 formato da capire |
+| C5 | ~~`update.ini`~~: il manuale IVAO del sector non lo cita (letto il 25 settembre) | — | ❌ tolto dal committente, per ora |
 | C6 | Controlli: intestazione diversa dal ciclo del ramo, sezione mancante, riga accanto a `*NIL` | F4 | ✅ deciso |
 | C7 | Archivio vecchio (2023 libero, 2024-2025 mancanti) lasciato com'è | — | ✅ deciso |
 
@@ -339,6 +339,34 @@ prestazioni**.
 | H7 | **Carta AIP sopra la mappa**: PDF (AD 2.24) → immagine dentro l'app; **aggancio su 3 punti** noti (soglie e ARP dal testo dell'AIP, AD 2.12/2.2) con lo **scarto misurato** (carta «not to scale» = scarto grande, detto subito); trasparenza regolabile, sotto le linee di oggi. Precisione attesa: carta 1:15 000-20 000, un tratto ≈ 5 m | F6 | ✅ deciso — stesso meccanismo del ricalco MVA (E10) |
 | H8 | **Disegnare sulla carta**: linee e poligoni col tipo, il nome, l'aggancio ai vertici vicini | F9 | ✅ deciso |
 | H9 | ~~OSM come base~~ | — | ❌ scartato: si continua a mano |
+
+## §9 — `GND_LAYOUT` (93 `.pol`, i riempimenti dei layout di terra)
+
+### Cosa c'è (misure e manuale IVAO, 25 settembre)
+
+- **I `.pol` sono `.tfl` con un'altra estensione**: il manuale ammette in `[FILLCOLOR]` file con estensione qualsiasi
+  (`F;SCEZ.myext`). Colori anche `#AARRGGBB` (opacità, da Aurora 1.4.1) — funziona solo con *Smooth Drawing*.
+- 93 file, **1 753 poligoni**, 38 763 vertici, tutti `STATIC`, tutti in `ITALY.isc`. Riempimento coi nomi di
+  `colors.def`: BUILDING 626, TAXIWAY 437, CONCRETE 221, APRON 190, RUNWAY 114, GRASS 98, **HOLE 67** (buca un'area già
+  riempita). Generati da un convertitore (`//***Converted Items***`, `//AD_BOUNDARY_Polygon`). **43 poligoni con meno di
+  3 vertici**.
+- **Stessa forma del `.geo`**: 1 585 poligoni su 1 707 (93%) hanno ≥ 90% dei vertici nel `.geo` dello stesso scalo.
+- **Caricamento**: la riga 6 di `[INFO]` di `ITALY.isc` dice solo `IT` → Aurora carica da sé solo i file di scalo in
+  `Include\IT\` (per questo `lirf.sid`, `lirf.vfi`… stanno lì). `.geo`, `.pol` e `RW_MARKINGS` sono elencati a mano:
+  **223 righe** di `ITALY.isc`. Nomi misti: `lirf.geo` ma `rf_ad_gnd.pol` e `rf_mark.geo`.
+- Manuale, `delete.upd`: la cancellazione avviene **dopo** lo scompattamento → mai elencare un file che
+  l'aggiornamento riscrive (controllo per C4).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| I1 | **Scheda del poligono** (come D1): riempimento e bordo da `colors.def` o col selettore, anche `#AARRGGBB` con l'avviso su *Smooth Drawing* | Subito | ✅ deciso |
+| I2 | **Una forma, uscite a scelta**: una forma si disegna/modifica una volta; due caselle, **«bordo» (`.geo`, col suo tipo) e «riempimento» (`.pol`, col suo colore)** — tutte e due o una sola (linea di centro solo `.geo`, erba senza bordo solo `.pol`); legate come famiglia (`//@forma=`, D5). Adozione delle 1 585 coppie in un ramo | Subito (famiglie) + F4 (adozione) | ✅ deciso |
+| I3 | **Ordine di disegno** (vince l'ultimo): erba → cemento → piazzale → taxiway → pista → edifici → buchi; il Lab lo mostra e mette un poligono nuovo al posto del suo tipo | Subito | ✅ deciso |
+| I4 | Controlli: poligono con meno di 3 vertici (43), colore sconosciuto, `.pol` senza `.geo` dello scalo (3) | Subito | ✅ deciso |
+| I5 | L'import/export KML (H4) produce tutte e due le uscite | F6 | ✅ deciso |
+| I6 | **Organizzazione dei file di scalo**: vedi la proposta sotto | Subito (la vista) + F4 (la prova) | 🟡 proposta |
 
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
