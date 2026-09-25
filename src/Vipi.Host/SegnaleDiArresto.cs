@@ -30,11 +30,17 @@ public static class SegnaleDiArresto
     /// <summary>Il segnale arrivato, o <c>null</c> se non ne è arrivato nessuno.</summary>
     public static string? Ricevuto => Volatile.Read(ref _ricevuto);
 
-    /// <summary>Come si legge nel registro.</summary>
+    /// <summary>
+    /// Come si legge nel registro.
+    /// <para>🔴 Prima diceva «fermato DA DENTRO» quando il segnale non era ancora annotato, ed era falso quasi sempre
+    /// (25 settembre 2026): il segnale lo gestisce anche <c>ConsoleLifetime</c>, che fa partire lo spegnimento — e
+    /// con esso la riga ARRESTO — e può farlo PRIMA che il nostro gestore passi. Qui quindi si dice solo quel che si
+    /// sa: la prova vera è la riga <c>SEGNALE</c> (<see cref="RegistroAvvii.RegistraSegnale"/>).</para>
+    /// </summary>
     public static string Riassunto() =>
         Ricevuto is { Length: > 0 } s
             ? $"fermato da {s}"
-            : "fermato DA DENTRO (nessun segnale dal sistema)";
+            : "segnale non ancora visto (se c'è, lo dice la riga SEGNALE di questo pid)";
 
     /// <summary>Comincia ad ascoltare. Va chiamata una volta, all'avvio; chiamarla due volte non fa danno.</summary>
     public static void Ascolta()
@@ -62,6 +68,8 @@ public static class SegnaleDiArresto
             Registrazioni.Add(PosixSignalRegistration.Create(segnale, ctx =>
             {
                 Volatile.Write(ref _ricevuto, nome);
+                // La riga sua, subito: non dipende da chi dei due gestori passa per primo (vedi Riassunto).
+                RegistroAvvii.RegistraSegnale(nome);
                 // ⚠️ `ctx.Cancel` resta falso: si guarda, non si interferisce.
             }));
         }
