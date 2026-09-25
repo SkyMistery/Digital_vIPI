@@ -191,6 +191,46 @@ poligoni aperti.
 | D7 | Include rotti/doppi negli `.isc`: controllo | Subito — comune (poi correzione in F4) | ✅ deciso |
 | D8 | Copie parziali (confini in comune fra settori) | F8 «saldatura bordi» | come da piano |
 
+## §6 — `ENRMVA` (4 `.mva`, uno per ACC; sezione `[MVAENR]`)
+
+### Cosa c'è (misure del 25 settembre)
+
+Formato (specifica di Aurora): `Tipo;Identificativo;Lat;Lon;[Descrizione];[Font]` — `L` etichetta (descrizione = la
+quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto stanno nei `.mva` di `Include\IT`.
+
+| File | Righe | Etichette | Tratti | Nomi di zona già scritti |
+|---|---|---|---|---|
+| `libb.mva` | 214 | 10 | 7 | — |
+| `limm.mva` | 1 535 | 51 | 43 | in coda `//2500NE`, `//FL70NE/TRLNE`, `//FL110`…; righe `//mva LIMM a Torino` |
+| `lipp.mva` | 2 331 | 23 | 20 | — |
+| `lirr.mva` | 526 | 35 | 31 | in coda `//ex brindisi`, `//mista ex brindisi`; righe `//EX ETNA`, `//EX NOMIN` |
+
+- Quota in centinaia di piedi (`25` = 2500 ft), più valori speciali `TRL`, `NO MINIMA`, `*30/40`, `70/TRL`.
+- **Il 5° campo delle `T`** (`LIMM`, 4 100 righe) è il **gruppo della finestra *MVA Selection*** di Aurora (una voce
+  per ACC, accesa/spenta): serve, provato dal committente. 🔴 Nella finestra compare anche **DUMMY** (le righe
+  separatrici `T;DUMMY;…;` senza 5° campo), mentre nella *ACC Selection* no.
+- Etichette e poligoni: 20 etichette su 119 fuori da ogni poligono chiuso, 10 poligoni con più etichette, 1 senza →
+  **la zona non si ricava con sicurezza dalla geometria**. Le 20 vanno controllate (committente: quando l'app è pronta).
+- 355 `//Coast` in coda in `limm.mva`: in realtà punti del confine con la Svizzera (N046 E009).
+- 52 righe di dati commentate (zone nascoste, es. `//L;LIRR;…;100;8; //NAPOLI CTA`).
+- **Fonte**: oggi carte senza coordinate (es. «livelli minimi di vettoramento entro la TMA di Roma»); il committente
+  cerca se esistono le coordinate.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| E1 | **Zona = blocco** `//@zona="Torino"` … `//@END`: etichetta con la quota + i suoi tratti; soprannome facoltativo, **anche ripetuto** (due zone possono chiamarsi uguali). Cosa sta nella zona lo decide l'utente; il Lab propone i tratti intorno all'etichetta | Subito | ✅ deciso |
+| E2 | **Scheda della zona**: quota col significato («25 = 2500 ft»), valori speciali da elenco, font | Subito | ✅ deciso |
+| E3 | **Gruppo scritto dal Lab**: il 5° campo di ogni `T` nuova è il gruppo del file (ACC); avviso se manca o è diverso | Subito | ✅ deciso |
+| E4 | Tipo fisso, punti coi suggerimenti, nascondi/mostra, spezza/unisci | Subito — comuni | ✅ deciso |
+| E5 | Controlli: poligono senza etichetta, etichetta fuori da ogni zona (le 20 di oggi, da rivedere), valore non valido | Subito | ✅ deciso |
+| E6 | **Adozione**: blocchi dall'ordine di oggi + nomi dai commenti che ci sono; via i commenti in coda | F4, in un ramo | ✅ deciso |
+| E7 | La voce **DUMMY** nella *MVA Selection*: capire da cosa viene (forma del separatore?) e se toglierla, con una prova in Aurora | F4, in un ramo | 🟡 da provare |
+| E8 | Tratti lungo il confine della FIR (le 355 «Coast») = copie parziali del confine | F8 (saldatura bordi) | proposta |
+| E9 | Mappa con le zone colorate per quota (buchi e sovrapposizioni a colpo d'occhio) | F8 | proposta |
+| E10 | **Ricalco da immagine**: una carta senza coordinate (PDF o immagine) agganciata alla mappa su 3-4 punti noti, in trasparenza, e le zone disegnate sopra | F6 (aggancio) + F9 (disegno) | proposta — per le carte MVA senza coordinate |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -209,5 +249,8 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Famiglie di forme** (`//@forma=`: la stessa forma in più file, modifica propagata, integrità) — estende le copie gemelle di F3-bis dai record alle forme | DYNAMIC_SEC D5, D6 |
 | **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
 | **Controllo degli `.isc`** (file incluso che non c'è, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
+| **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
+| **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
+| **Ricalco da immagine** (carta senza coordinate agganciata alla mappa) | ENRMVA E10 |
 | **Ogni modifica lascia una traccia** (riga di changelog proposta, `delete.upd`, `ITALY.isc`) | CHANGELOG C1, C4 · ACC A9 |
 | **Niente commenti in coda** (committente, 24 settembre: «dopo una riga letta da Aurora non vanno commenti `//`»). Oggi **713 righe in 70 file** (`limm.mva` 374 `//Coast`, `limc.sid` 34, `itawlow.lairway` 28 `BREAK`, `FRA.artcc` 18, `GCI.tfl` 19…); `SectorError.log` di Aurora vuoto, quindi non le segnala. 🔴 `limc.sid:…;0;OSKOR; //SUPER-HEAVY-A321`: il commento sta nell'8° campo (`RNAV`). → controllo «commento in coda» · gesto «sposta il commento sopra» (riga o file) · garanzia con test che il Lab non ne scrive mai. **Avviso**, non errore: lo sviluppatore di Aurora dice che una riga col `//` in coda si legge in **circa il doppio del tempo** (lentezza, non dato sbagliato). Pulizia di tutto il sector in un colpo: in un ramo (F4) | tutti |
