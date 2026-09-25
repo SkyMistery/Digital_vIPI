@@ -4,7 +4,15 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> ## ▶ Il punto — 25 settembre 2026 sera (prima di un clear)
+> ## ▶ Il punto — 25 settembre 2026 notte
+>
+> **📦 1.46.5 PRONTO, da caricare** (§A129, timbro `1.46.5 · e24557e`, 7 file, zip `299776a8…`, foglio
+> `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.5.md`): chiude gli aperti **2** (nominativo doppio ATC) e **6**
+> (Pubblica/Scarta per tutta l'unione, «Modifica» non resta spento — ▶ da provare a mano su Catania dopo il carico).
+> Fusi `fix/atc-nominativo-doppio` e `fix/versioni-unite`, CI verde su `main`. Worktree e rami fusi tolti (locali e
+> remoti): restano solo `main` e `lab/f3`. Il resto della lista qui sotto vale ancora.
+>
+> ## Il punto — 25 settembre 2026 sera (prima di un clear)
 >
 > **Online: 1.46.4** (`60e782a`). `main` = `a1bd2c44`, pushato; **in `main` non resta codice fuori pacchetto**.
 > Nella giornata sono uscite 1.46.0 → 1.46.4 (§A124–§A128), tutte confermate dal committente (timbro, `Schema 0`,

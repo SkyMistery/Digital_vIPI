@@ -33,6 +33,36 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A129 — 1.46.5 PRONTO (non ancora online): nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
+
+PATCH, **nessuna migrazione**, su 1.46.4 (`60e782a`). Timbro **`1.46.5 · e24557e`**. Due rami fusi, CI verdi
+sui rami e su `main` (run 36173165988):
+
+- `fix/atc-nominativo-doppio` (`c7976ba5`, fuso `7d72475d`): `AtcTrafficRecorder.RecordAsync` faceva `ToDictionary`
+  sul nominativo, e la fotografia IVAO a volte porta la stessa postazione due volte → «An item with the same key», giro
+  del minuto saltato intero (firma `f45fedc38cea`, 4 volte dal 17-set, l'ultima LIRF_TW1_APP). Ora `GroupBy` +
+  `PiuRecente` (StartUtc, poi SessionId). 2 test, controprova: rosso sul prima con lo stesso messaggio.
+- `fix/versioni-unite` (`221c8eef`, fuso `22069f81`): `EditingService` con `IDocumentUnionRepository?`: in
+  Versioni «Pubblica versione»/«Scarta bozza» di un documento unito valgono per le bozze di TUTTI i membri, coi lock
+  di tutti presi prima di scrivere (uno di un collega → non esce niente, i lock presi si mollano); la pagina lo dice
+  (`Ver_UnionDraftsTogether`). «Modifica» dei cinque editor non resta spento per un lock altrui letto al caricamento
+  (`Ed_LockedByOtherRetry`). 4 test in `EditingRepositoryTests`, 3 rossi ignorando i membri.
+
+Conteggi Infrastructure 1616 → **1622** (i due rami in conflitto sul file: risolto con una corsa vera).
+
+**7 file**: `en/Vipi.Ui.resources.dll`, Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). `wwwroot` e indice degli
+asset identici a 1.46.4 per impronta; Domain/Infrastructure cambiano solo per MVID (sorgente invariato); nessuna
+`const`. Zip `vipi-1.46.5-solo-file-cambiati.zip` `299776a8…79f5bd`, foglio
+[`LEGGIMI-PACCHETTO-1.46.5.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.5.md). 1.46.4 ruotata in
+`publish_old/20260925e`. Build Release 0 avvisi.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB di sviluppo, porta 5199): timbro 1.46.5 · e24557e; pagina con lo
+  stile; Ricerca «LIBD» → 5 risultati, «Brindisi» → 4 (⚠️ «LIRF» → 0: in quella copia del 15-set Roma non c'è);
+  dopo un'uccisione secca il riavvio dice «il processo precedente (pid 25280) NON si è spento in modo ordinato» e la
+  pagina si ricarica da sola.
+- ⚠️ Non provati a schermo Pubblica/Scarta su un'unione e il «Modifica» col lock altrui (in locale niente unione
+  con bozze): valgono i test → **prova a mano su Catania dopo il carico** (scritto nel foglio).
+
 ### ✅ A128 — 1.46.4 ONLINE: membri riletti dopo «Pubblica», icone, Diagnostica, arresti (25 settembre 2026)
 
 ✅ Online il 25 settembre 2026 alle 17:16:17 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
