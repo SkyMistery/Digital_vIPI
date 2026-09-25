@@ -192,9 +192,17 @@ coda, e permette di distinguere quel caso da un'applicazione che invece **si rom
 | poche righe, nelle ore vuote, ognuna con «il precedente si era spento in modo ordinato» | è Passenger: fisiologico, non c'è niente da fare |
 | tante righe, o raggruppate nelle ore di punta | qualcosa si rompe: mandatecelo |
 | una riga `AVVIO` con «⚠ il processo precedente NON si è spento in modo ordinato» | il processo di prima è **morto male** — crash, memoria esaurita, oppure una `.dll` sovrascritta mentre girava (vedi la regola in cima a questo foglio). Mandateci anche `avvio-errore.txt` |
+| una riga `SEGNALE` | il sistema (Passenger o l'hosting) ha chiesto al processo di fermarsi. Se dopo non c'è il suo `ARRESTO`, il processo è stato **fermato da fuori** prima di finire di spegnersi |
+| un `AVVIO` che dice che il precedente è «ancora acceso» | due processi accesi insieme per qualche secondo (succede quando Passenger ne apre uno nuovo prima di chiudere il vecchio): non è un guasto |
 
 ⚠️ **Una riga `AVVIO` «non ordinato» subito dopo un aggiornamento è attesa e non è un guasto**: è
 l'applicazione vecchia che è stata sostituita. Contano quelle che arrivano **nei giorni dopo**.
+
+ℹ️ **Da 1.46.4** (25 settembre 2026) ogni riga `AVVIO` e `ARRESTO` porta il **`pid`** del processo, e il verdetto
+guarda il processo dell'ultimo avvio, non semplicemente l'ultima riga: con due processi accesi insieme la versione di
+prima dava per morto un processo vivo. La riga `ARRESTO` porta anche la **memoria** usata e il picco;
+`avvio-diagnostica.txt` dice il tetto di memoria visto dal runtime, e il log del giorno (`log-AAAA-MM-GG.txt`) scrive
+la memoria ogni 5 minuti. Se il sito «va giù», sono le righe che dicono se il processo stava finendo la memoria.
 
 ℹ️ Il file si pota da solo e non supera qualche centinaio di kilobyte: **non va cancellato**, ma se lo
 cancellate non si rompe niente — ricomincia da capo, e si perde solo la storia.

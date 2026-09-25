@@ -33,6 +33,40 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A128 — 1.46.4 PRONTO DA CARICARE: membri riletti dopo «Pubblica», icone, Diagnostica, arresti (25 settembre 2026)
+
+PATCH, **nessuna migrazione**, su 1.46.3 (`de5af3a`). Timbro **`1.46.4 · 60e782a`**. Tre rami fusi, tutti con CI verde:
+
+- `fix/pubblica-ricarica-membri` (`b4678979`, fuso `ea1fea07`): dopo «Pubblica» le tre pagine con l'unione
+  (aeroporto, APP, vSOP militare) rileggono anche i membri, come già faceva `UnioneCambiata`. Restavano «in
+  modifica» su una versione non più bozza → «Modifica consentita solo su una versione in bozza» (campo, Catania).
+  `PubblicaRicaricaIMembriTests` (4, 3 rossi sul prima). Ui.Tests 1711 → 1715.
+- `sito/icone-diagnostica` (`658b75ef`, fuso `a799ecc6`): icone log-in/log-out con la porta sempre a destra
+  (`Icon.razor`); «Chi può editare» in Diagnostica scorre — il contenuto di un `<details>` sta in
+  `::details-content`, che restava alto quanto la tabella (regola a sé in `vipi-theme.css`).
+- `diag/memoria-segnale` (`d0ae6fc1`, fuso `37651a58`): diagnostica degli arresti dopo i due tagli del 25-set
+  (15:01:00 e 15:56:06 UTC, il processo ha scritto 16 s DOPO il taglio: viene da fuori). `MemoriaDelProcesso`
+  (memoria ogni 5 minuti nel log del giorno, uso e picco su ARRESTO, tetto in `avvio-diagnostica.txt`); riga
+  `SEGNALE` del gestore di SIGTERM, indipendente dall'ordine rispetto ad ARRESTO; `pid` su AVVIO/ARRESTO e verdetto
+  sul processo dell'ultimo avvio (non più «morto» un processo vivo accanto a un altro). `RegistroAvviiTests`
+  (11 nuovi, uno riscritto). E2E 404 → 415. Formato ancora leggibile da `errori-per-era.py`.
+
+**8 file**: `vipi-theme.css` (+ `.br`, `.gz`) con `Vipi.Host.staticwebassets.endpoints.json`, Vipi.Ui e Vipi.Host
+(dll/pdb). `deps.json` identico, nessuna frase, nessuna config, nessuna `const` pubblica. Zip
+`vipi-1.46.4-solo-file-cambiati.zip` `2b82a96d…a9afc9`, foglio
+[`LEGGIMI-PACCHETTO-1.46.4.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.4.md); aggiornata la tabella di
+`avvii.txt` in [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](../deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md) §9 (SEGNALE, pid,
+«ancora acceso», memoria). 1.46.3 ruotata in `publish_old/20260925d`. Build Release 0 avvisi, suite intera verde,
+conteggi uguali all'atteso.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): timbro 1.46.4 · 60e782a; «Memoria vista dal runtime»
+  in `avvio-diagnostica.txt`; `avvii.txt` con `pid`, e dopo un'uccisione secca il riavvio dice «il processo
+  precedente (pid 24036) NON si è spento in modo ordinato»; CSS servito con impronta `890bea96` (= IMPRONTE),
+  minificato, con `::details-content`; icona di uscita con porta a destra e freccia verso sinistra; Ricerca
+  «Brindisi» → 4 risultati; log senza errori.
+- ⚠️ Non provato a schermo il ricarico dei membri dopo «Pubblica» (in locale niente unione con bozza da pubblicare):
+  valgono i 4 test.
+
 ### ✅ A127 — 1.46.3 ONLINE: pagina Trasferimenti, una lettura per volta (25 settembre 2026)
 
 ✅ Online il 25 settembre 2026 alle 14:53:11 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:

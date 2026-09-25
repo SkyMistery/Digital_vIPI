@@ -4,6 +4,11 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> **📦 1.46.4 PRONTO DA CARICARE (25-set, §A128)**: fusi `fix/pubblica-ricarica-membri` (membri riletti dopo
+> «Pubblica»), `sito/icone-diagnostica` (icone login/logout, «Chi può editare» scorre) e `diag/memoria-segnale`
+> (memoria, SEGNALE e pid negli arresti). PATCH, 8 file (3 in `wwwroot` + indice), timbro `1.46.4 · 60e782a`, zip
+> `2b82a96d…`.
+>
 > **✅ 1.46.3 ONLINE (25-set 14:53 UTC, §A127; timbro, Schema 0, Ricerca confermati)**: pagina Trasferimenti, una lettura per volta sul DbContext del
 > circuito (corsa su LICC del 25-set). PATCH, 4 file, timbro `1.46.3 · de5af3a`, zip `d4b1d62e…`.
 >
