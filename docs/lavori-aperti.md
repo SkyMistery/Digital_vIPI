@@ -33,6 +33,26 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A127 — 1.46.3 PRONTO DA CARICARE: pagina Trasferimenti, una lettura per volta (25 settembre 2026)
+
+PATCH, **nessuna migrazione**, su 1.46.2 (`f30c036`). Timbro **`1.46.3 · de5af3a`**. Corregge la corsa trovata nello
+scarico di 1.46.1 (§A126): su LICC, aprire una clausola leggeva piste e STAR mentre la pagina leggeva ancora, sullo
+stesso DbContext del circuito. Ramo `fix/trasferimenti-fila` (`8f93a179`), fuso in `20ead090`: fila rientrante
+(`SemaphoreSlim` + `AsyncLocal`) su Guarded, apertura, pannello della clausola, ricarico delle piste, ricerca della
+coppia. `FilaDeiTrasferimentiTests` (3, rossi sul prima), Ui.Tests 1708 → 1711.
+
+⚠️ Controllato il caso §CM («un `AsyncLocal` si eredita»): la pagina non ha `OnParametersSetAsync`, e
+`OnAfterRenderAsync` (l'unico che un render dentro la fila può far partire) non passa dalla fila né dal database.
+Le altre entrate sono gestori di clic, con un contesto nuovo.
+
+**4 file**: Vipi.Ui + Vipi.Host (dll/pdb). Zip `vipi-1.46.3-solo-file-cambiati.zip` `d4b1d62e…3256bf`, foglio
+[`LEGGIMI-PACCHETTO-1.46.3.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.3.md). 1.46.2 ruotata in
+`publish_old/20260925c`. Build Release 0 avvisi, suite intera verde, conteggi uguali all'atteso.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): Trasferimenti LIBB, accordo #5, «Start editing», riga
+  ASPIR aperta nel pannello → Condizione con le piste dei due scali (LIRA 15/33, LIRU 16/34); log senza errori.
+  ⚠️ La corsa su SQLite NON si riproduce (query troppo veloci): la prova vera è il prossimo `avvisi-log.txt`.
+
 ### ✅ A126 — 1.46.2 ONLINE: coordinamenti su più aeroporti, la frase li nomina tutti (25 settembre 2026)
 
 ✅ Online il 25 settembre 2026 alle 13:14:41 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
