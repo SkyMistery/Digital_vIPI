@@ -273,6 +273,42 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 | F6 | Controllo `.isc`: file incluso sotto una sezione che non ha la sua forma | Subito — comune (controllo degli `.isc`) | ✅ deciso |
 | F7 | Sistemare i 9 gemelli diversi, il refuso di `lict.vfi`, i 7 orfani, i 2 doppi | quando il sistema è pronto | da fare coi dati |
 
+## §8 — `GEO`: i file globali (`itgeo.geo`, `italy.danger`, `italy.prohibit`, `italy.restrict`)
+
+I `.geo` degli aeroporti hanno un ragionamento a parte (§8-bis, da fare).
+
+### Cosa c'è (misure del 25 settembre)
+
+Formato (specifica di Aurora, sezione `[GEO]`): a **segmenti**, `LatInizio;LonInizio;LatFine;LonFine;Colore;` — ogni
+punto scritto due volte (fine di un segmento, inizio del successivo); una riga vuota o commentata apre un tratto
+nuovo; un commento per area («raccomandato»). Qui il colore è un NOME (`COAST`, `DANGER`…) e le aree hanno un 6°
+campo col nome (`D5A`, `P1`, `R10A`). La specifica avverte: troppo dettaglio nei file globali **pesa molto sulle
+prestazioni**.
+
+| File | Segmenti | Gruppi | Segmento mediano | Anomalie |
+|---|---|---|---|---|
+| `itgeo.geo` (852 KB) | 13 560 | 128 pezzi di costa (PENISOLA, SARDEGNA, LAGUNA VENETA…), 126 chiusi | 0,40 NM | 66 doppi, 3 nulli; coordinate miste (4 652 compatte, 8 908 col punto) |
+| `italy.danger` | 664 | 54 aree | 0,52 NM | 51 doppi |
+| `italy.prohibit` (760 KB) | 10 143 | 278 aree | **0,086 NM** (2 118 sotto i 90 m) | 6 rotture, **56 righe illeggibili** |
+| `italy.restrict` | 2 209 | 185 aree | 1,1 NM | 265 doppi, 9 nulli, 12 rotture, **30 righe illeggibili** |
+
+- 86 righe illeggibili (`italy.prohibit:3132…`, `italy.restrict:1139…`): **uno spazio al posto del `;`** fra
+  latitudine e longitudine → Aurora le scarta, quelle aree oggi sono a pezzi.
+- **Semplificazione misurata** (Douglas-Peucker, tolleranza = scarto massimo dalla forma): costa 100 m −49%,
+  proibite 50 m −68%, restrict 50 m −25%, danger 50 m −25% → **26 576 → 12 290 segmenti (−54%)**. Altre soglie:
+  costa 50 m −34% / 200 m −63%; proibite 25 m −54% / 100 m −75%.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| G1 | **Vista a linea**: un gruppo = una linea di punti, non N segmenti; cambiare un vertice riscrive i due segmenti che lo toccano (la catena non si rompe) | Subito — comune | ✅ deciso |
+| G2 | **Scheda dell'area**: nome (6° campo), tipo dal file, commento come descrizione, vertici; area nuova con «incolla da testo AIP» (archi, convertitore di F1) | Subito | ✅ deciso |
+| G3 | Controlli: riga illeggibile (con la correzione proposta per lo spazio al posto del `;`), segmento doppio/nullo, catena rotta, area non chiusa | Subito | ✅ deciso |
+| G4 | **Semplifica con tolleranza** (costa 100 m, aree 50 m di partenza), col conto di quanto toglie e la mappa prima/dopo. 🔴 Sulle aree i vertici dichiarati dall'AIP si tengono sempre: si semplificano solo gli archi (pulito con G5) | F8 | ✅ deciso (tolleranze confermate) |
+| G5 | **Quote e forme delle aree dalla fonte primaria**: DB di IVAO o PDF dell'AIP (ENR 5.1), archi rigenerati alla densità scelta; quote come metadato `//@area="P1" da=… a=…`. 🔴 **Mai da vIPI**: niente riferimenti circolari, dati solo dalla fonte primaria | F6 | ✅ deciso |
+| G6 | **Adozione in un ramo**: le 86 righe corrette, via doppi e nulli, **coordinate tutte col punto** (`N045.00.00.000`) | F4 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -295,5 +331,8 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
 | **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
 | **Ricalco da immagine** (carta senza coordinate agganciata alla mappa) | ENRMVA E10 |
+| **Fonte primaria, mai vIPI** (committente, 25 settembre): i dati entrano dal DB di IVAO o dai PDF dell'AIP, non dal sito — niente riferimenti circolari | GEO G5 · AIRWAY B8 · tutto F6 |
+| **Coordinate in una forma sola**: col punto (`N045.00.00.000`), anche dove oggi sono compatte | GEO G6 · (da decidere per `.vfi`/`.tfl`, dove la forma compatta è la regola del file) |
+| **Semplifica / densità** (tolleranza in metri, archi a N gradi) | GEO G4 · F1 archi |
 | **Ogni modifica lascia una traccia** (riga di changelog proposta, `delete.upd`, `ITALY.isc`) | CHANGELOG C1, C4 · ACC A9 |
 | **Niente commenti in coda** (committente, 24 settembre: «dopo una riga letta da Aurora non vanno commenti `//`»). Oggi **713 righe in 70 file** (`limm.mva` 374 `//Coast`, `limc.sid` 34, `itawlow.lairway` 28 `BREAK`, `FRA.artcc` 18, `GCI.tfl` 19…); `SectorError.log` di Aurora vuoto, quindi non le segnala. 🔴 `limc.sid:…;0;OSKOR; //SUPER-HEAVY-A321`: il commento sta nell'8° campo (`RNAV`). → controllo «commento in coda» · gesto «sposta il commento sopra» (riga o file) · garanzia con test che il Lab non ne scrive mai. **Avviso**, non errore: lo sviluppatore di Aurora dice che una riga col `//` in coda si legge in **circa il doppio del tempo** (lentezza, non dato sbagliato). Pulizia di tutto il sector in un colpo: in un ramo (F4) | tutti |
