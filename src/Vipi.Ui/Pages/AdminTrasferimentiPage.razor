@@ -1839,7 +1839,7 @@
             Description = sec.Description,
             Airports = airports,
         }), null);
-        await LoadRunwaysAsync(FocusSection()?.Section);
+        await InFilaAsync(() => LoadRunwaysAsync(FocusSection()?.Section));
     }
 
     /// <summary>
@@ -3132,11 +3132,15 @@
         // Prewarm nel ciclo di vita e non dal markup: il lazy-load durante il render girava sul DbContext del
         // circuito e produceva «A second operation was started», cioe' un circuito morto che a occhio sembra vivo.
         Stations.Prewarm();
-        _all = await Struct.ListSectorNodesAsync();
-        _airports = await Struct.ListAllAirportsAsync();
-        // Coppie confinanti: dicono quali ACC esteri sono confermati, e servono agli avvisi.
-        _candidates = await Neighbours.ListAsync();
-        await RestoreFromUrl();
+        // In fila anche l'apertura: al primo await la pagina si disegna già, e da lì un clic può partire.
+        await InFilaAsync(async () =>
+        {
+            _all = await Struct.ListSectorNodesAsync();
+            _airports = await Struct.ListAllAirportsAsync();
+            // Coppie confinanti: dicono quali ACC esteri sono confermati, e servono agli avvisi.
+            _candidates = await Neighbours.ListAsync();
+            await RestoreFromUrl();
+        });
     }
 
     private bool _prefsRestored;
@@ -3341,7 +3345,8 @@
 
         // ⚠️ Una coppia già scritta non è un errore dell'utente: è una domanda a cui esiste una risposta
         // migliore di «no». Si apre l'accordo che c'è — e le sezioni si aggiungono lì.
-        var esistente = a > 0 && b > 0 ? await Agreements.FindByPairAsync(_acc!.Code, a, b) : null;
+        int? esistente = null;
+        if (a > 0 && b > 0) await InFilaAsync(async () => { esistente = await Agreements.FindByPairAsync(_acc!.Code, a, b); });
         if (esistente is int already)
         {
             _newOpen = false;
@@ -3440,7 +3445,7 @@
             await Agreements.UpdateSectionAsync(_acc!.Code, sec.Id, ToSectionInput(_sectionForm));
             _editSectionId = null;
         }, L["Xfer_SectionUpdated"]);
-        await LoadRunwaysAsync(FocusSection()?.Section);
+        await InFilaAsync(() => LoadRunwaysAsync(FocusSection()?.Section));
     }
 
     private async Task DeleteSection(AgreementRow a, AgreementSectionRow sec)
@@ -3535,8 +3540,7 @@
         _addClause.Facet.Reset(preset: ReceivesApp(a, sec));
         ResetPanelSections(_addClause);
         _formOpenedAs = _addClause.Signature();
-        await LoadRunwaysAsync(sec);
-        await LoadProceduresAsync(sec);
+        await CaricaOpzioniDelPannelloAsync(sec);
         _focusPanel = true;
     }
 
@@ -3550,8 +3554,7 @@
         _editClause.LoadFrom(c, ParseRwys);
         ResetPanelSections(_editClause);
         _formOpenedAs = _editClause.Signature();
-        await LoadRunwaysAsync(sec);
-        await LoadProceduresAsync(sec);
+        await CaricaOpzioniDelPannelloAsync(sec);
         _focusPanel = true;
     }
 
@@ -3863,8 +3866,11 @@
         _error = null; _status = null; _undo = null;
         try
         {
-            await action();
-            if (_acc is not null) await LoadAsync(withPreview);
+            await InFilaAsync(async () =>
+            {
+                await action();
+                if (_acc is not null) await LoadAsync(withPreview);
+            });
             if (ok is not null) _status = ok;
         }
         catch (Vipi.Application.Aor.ValidationException ex)
@@ -3880,4 +3886,53 @@
             _busy = false;
         }
     }
+
+    /// <summary>
+    /// 🔴 <b>La fila della pagina: una lettura per volta sul DbContext del circuito.</b>
+    ///
+    /// <para><c>_busy</c> ferma un gesto che scrive sopra un altro gesto che scrive, e basta: aprire una
+    /// clausola legge piste e SID/STAR <b>fuori</b> da <see cref="Guarded"/>, e partiva mentre la pagina stava
+    /// ancora ricaricando — o mentre un'altra clausola, aperta un attimo prima, leggeva le sue. Misurato in
+    /// produzione il 25 settembre 2026 alle 08:28:43 su LICC: «A second operation was started» sulle piste e,
+    /// undici millesimi dopo, sulle STAR, e il pannello si è aperto con gli elenchi vuoti.</para>
+    ///
+    /// <para>⚠️ Non è lo scope proprio: la pagina prende ancora i servizi dal circuito (è nel debito di
+    /// <c>ScopeProprioDellePagineTests</c>), quindi la fila la protegge da sé stessa, non dagli altri. Gli
+    /// altri a schermo non ci sono: <c>EditLockBar</c> ha già il suo scope.</para>
+    ///
+    /// <para>⚠️ <b>Rientrante</b>, per la stessa ragione di <see cref="ScopeProprioCheAspetta"/>: le catene si
+    /// annidano (<c>OnAccChanged</c> entra da <see cref="Guarded"/>, e all'apertura ci arriva già in fila), e un
+    /// semaforo non rientrante aspetterebbe sé stesso per sempre. <c>AsyncLocal</c> perché un <c>bool</c> di
+    /// campo direbbe «dentro» anche a un altro gesto.</para>
+    ///
+    /// <para>⚠️ Il semaforo non si smaltisce mai: una lettura in volo arriva al suo <c>Release()</c> anche
+    /// dopo che la pagina se n'è andata (vedi <see cref="ScopeProprioCheAspetta"/>).</para>
+    /// </summary>
+    private readonly SemaphoreSlim _fila = new(1, 1);
+    private readonly AsyncLocal<bool> _inFila = new();
+
+    private async Task InFilaAsync(Func<Task> operazione)
+    {
+        if (_inFila.Value) { await operazione(); return; }
+
+        // 🔴 NIENTE ConfigureAwait(false) (§CW): dopo l'attesa l'operazione scrive lo stato della pagina, e
+        // deve farlo sul dispatcher.
+        await _fila.WaitAsync();
+        _inFila.Value = true;
+        try { await operazione(); }
+        finally
+        {
+            _inFila.Value = false;
+            _fila.Release();
+        }
+    }
+
+    /// <summary>Piste e SID/STAR del pannello della clausola, in fila e in quest'ordine: i due servizi
+    /// condividono il contesto del circuito. Un pezzo solo, così due clausole aperte di fila non mescolano
+    /// le piste dell'una con le procedure dell'altra.</summary>
+    private Task CaricaOpzioniDelPannelloAsync(AgreementSectionRow sec) => InFilaAsync(async () =>
+    {
+        await LoadRunwaysAsync(sec);
+        await LoadProceduresAsync(sec);
+    });
 }
