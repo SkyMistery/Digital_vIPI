@@ -1993,7 +1993,8 @@
   <data name="Ed_PublishTitle" xml:space="preserve"><value>Pubblica la bozza corrente</value></data>
   <data name="Ed_Publish" xml:space="preserve"><value>Pubblica</value></data>
   <data name="Ed_Edit" xml:space="preserve"><value>Modifica</value></data>
-  <data name="Ed_LockedByOther" xml:space="preserve"><value>In modifica da un altro editor</value></data>
+  <data name="Ver_UnionDraftsTogether" xml:space="preserve"><value>Documento unito: pubblicare o scartare questa bozza vale per le bozze di tutti e {0} i documenti dell'unione.</value></data>
+  <data name="Ed_LockedByOtherRetry" xml:space="preserve"><value>In modifica da un altro editor, almeno all'apertura della pagina: premi per riprovare</value></data>
   <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Bloccata da {0}{1}. Non puoi salvare finché il lock è attivo.</value></data>
   <data name="Vle_UnknownAcc" xml:space="preserve"><value>ACC sconosciuto</value></data>
   <data name="Vle_EditorTitle" xml:space="preserve"><value>Editor vLOA</value></data>

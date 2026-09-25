@@ -16,11 +16,18 @@ public sealed class EditingService : IEditingService
     private readonly IEditAuthorizationService _authz;
     private readonly ReleaseRetentionOptions _retention;
 
-    public EditingService(IEditingRepository repo, IEditAuthorizationService authz, IOptions<ReleaseRetentionOptions> retention)
+    /// <summary>Le righe delle unioni, per pubblicare e scartare la bozza di tutti i membri insieme. ⚠️ Facoltativo,
+    /// come in <see cref="ReleaseService"/>: senza, un documento si comporta da solo — i test che montano il
+    /// servizio a mano non devono conoscere le unioni.</summary>
+    private readonly IDocumentUnionRepository? _unioni;
+
+    public EditingService(IEditingRepository repo, IEditAuthorizationService authz, IOptions<ReleaseRetentionOptions> retention,
+        IDocumentUnionRepository? unioni = null)
     {
         _repo = repo;
         _authz = authz;
         _retention = retention.Value;
+        _unioni = unioni;
     }
 
     // Lista dei documenti = metadati per il picker dell'editor (non sensibile). Le aperture/modifiche sono ACC-gated.
@@ -266,6 +273,20 @@ public sealed class EditingService : IEditingService
     {
         var docId = await AuthorizeVersionAsync(versionId, ct);
         await EnsureLockAsync(docId, ct);
+
+        // 🔴 Su un documento UNITO si pubblica la bozza di TUTTI i membri (regola del committente, 25 settembre
+        // 2026: «la pubblicazione di uno deve pubblicare anche gli altri» — l'editor e le release lo facevano già,
+        // «Pubblica versione» della pagina Versioni no, e lasciava mezza unione in bozza). Prima i lock di tutti,
+        // poi le scritture: un membro in mano a un collega ferma il gesto prima che qualcosa sia uscito.
+        var altri = await BozzeDegliAltriMembriAsync(docId, ct);
+        await PrendiLockDegliAltriAsync(altri.Select(a => a.DocumentId), ct);
+
+        await PubblicaUnaAsync(docId, versionId, note, ct);
+        foreach (var a in altri) await PubblicaUnaAsync(a.DocumentId, a.Bozza.Id, note, ct);
+    }
+
+    private async Task PubblicaUnaAsync(int docId, int versionId, string? note, CancellationToken ct)
+    {
         await _repo.PublishAsync(versionId, _authz.CurrentUserId ?? 0, note, ct);
         // Retention versioni: dopo l'archiviazione della precedente (in _repo.PublishAsync) → cap Archived esatto, non
         // N+1. Le release non referenziano le versioni (portano la fotografia), quindi potare è sicuro. Stessa regola del
@@ -280,6 +301,31 @@ public sealed class EditingService : IEditingService
         await EnsureLockAsync(docId, ct);
 
         var versions = await _repo.ListVersionsAsync(docId, ct);
+        ControllaScartabile(versions, versionId);
+
+        // 🔴 Come la pubblicazione: su un documento UNITO si scarta la bozza di TUTTI i membri — «Modifica» le apre
+        // insieme, e scartarne una sola lasciava l'unione metà in bozza e metà no. Tutti i controlli PRIMA di
+        // cancellare qualcosa: una bozza che non si può scartare ferma il gesto intero, non a metà.
+        var altri = await BozzeDegliAltriMembriAsync(docId, ct);
+        foreach (var a in altri) ControllaScartabile(a.Versioni, a.Bozza.Id);
+        await PrendiLockDegliAltriAsync(altri.Select(a => a.DocumentId), ct);
+
+        var numero = await ScartaUnaAsync(docId, versionId, ct);
+        foreach (var a in altri) await ScartaUnaAsync(a.DocumentId, a.Bozza.Id, ct);
+        return numero;
+    }
+
+    private async Task<int> ScartaUnaAsync(int docId, int versionId, CancellationToken ct)
+    {
+        var numero = await _repo.DiscardDraftAsync(versionId, _authz.CurrentUserId ?? 0, ct);
+        // Scartare è finire di editare: come la pubblicazione, lascia il documento libero per gli altri.
+        await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct);
+        return numero;
+    }
+
+    /// <summary>Le condizioni per scartare una bozza. Solleva se non si può.</summary>
+    private static void ControllaScartabile(IReadOnlyList<VersionInfo> versions, int versionId)
+    {
         var draft = versions.FirstOrDefault(v => v.Id == versionId)
                     ?? throw new KeyNotFoundException($"Versione {versionId} inesistente.");
 
@@ -297,11 +343,49 @@ public sealed class EditingService : IEditingService
                 "Pubblicala, oppure elimina il documento.",
                 "This draft is the document's only version: discarding it would leave nothing to show. " +
                 "Publish it, or delete the document."));
+    }
 
-        var numero = await _repo.DiscardDraftAsync(versionId, _authz.CurrentUserId ?? 0, ct);
-        // Scartare è finire di editare: come la pubblicazione, lascia il documento libero per gli altri.
-        await _repo.ReleaseLockAsync(docId, _authz.CurrentUserId ?? 0, ct);
-        return numero;
+    /// <summary>
+    /// Le bozze degli ALTRI documenti dell'unione a cui appartiene <paramref name="docId"/>, con le loro versioni.
+    /// Vuoto se il documento non è unito, o se nessun altro membro ha una bozza aperta (allora non c'è niente da
+    /// accompagnare: pubblicare o scartare riguarda lui solo).
+    /// </summary>
+    private async Task<IReadOnlyList<(int DocumentId, VersionInfo Bozza, IReadOnlyList<VersionInfo> Versioni)>> BozzeDegliAltriMembriAsync(
+        int docId, CancellationToken ct)
+    {
+        var esito = new List<(int, VersionInfo, IReadOnlyList<VersionInfo>)>();
+        if (_unioni is null) return esito;
+
+        foreach (var riga in await _unioni.ByDocumentAsync(docId, ct))
+        {
+            if (riga.DocumentId == docId) continue;
+            var versioni = await _repo.ListVersionsAsync(riga.DocumentId, ct);
+            var bozza = versioni.Where(v => v.Status == DocumentStatus.Draft).MaxBy(v => v.VersionNumber);
+            if (bozza is not null) esito.Add((riga.DocumentId, bozza, versioni));
+        }
+        return esito;
+    }
+
+    /// <summary>
+    /// Prende il lock di ogni altro membro, o si ferma. ⚠️ Se uno è di un collega, i lock presi QUI si mollano prima
+    /// di sollevare: un gesto rifiutato non deve lasciare documenti bloccati a nome di chi l'ha tentato. Quelli che
+    /// erano già nostri restano nostri.
+    /// </summary>
+    private async Task PrendiLockDegliAltriAsync(IEnumerable<int> documentIds, CancellationToken ct)
+    {
+        var utente = _authz.CurrentUserId ?? 0;
+        var presiQui = new List<int>();
+        foreach (var id in documentIds)
+        {
+            var prima = await _repo.InspectLockAsync(id, utente, ct);
+            var lk = await _repo.AcquireOrInspectLockAsync(id, utente, _authz.CurrentName, LockTtlMinutes, ct);
+            if (!lk.IsMine)
+            {
+                foreach (var preso in presiQui) await _repo.ReleaseLockAsync(preso, utente, ct);
+                throw LockedByOther(lk);
+            }
+            if (!(prima.Locked && prima.IsMine)) presiQui.Add(id);
+        }
     }
 
     // --- Lock ---

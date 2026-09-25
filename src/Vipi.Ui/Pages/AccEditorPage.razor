@@ -199,7 +199,8 @@ else
                 }
                 else if (_shell.Lock is { Locked: true, IsMine: false })
                 {
-                    <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                    @* Premibile anche così: vedi AirportSectionsEditor (lock letto all'apertura). *@
+                    <button class="btn ghost" title="@L["Ed_LockedByOtherRetry"]" @onclick="() => _shell.StartEditingAsync(LoadAsync)">✎ @L["Ed_Edit"]</button>
                 }
                 else
                 {

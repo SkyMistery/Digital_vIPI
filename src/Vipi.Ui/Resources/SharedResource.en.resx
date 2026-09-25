@@ -1988,7 +1988,8 @@
   <data name="Ed_PublishTitle" xml:space="preserve"><value>Publish the current draft</value></data>
   <data name="Ed_Publish" xml:space="preserve"><value>Publish</value></data>
   <data name="Ed_Edit" xml:space="preserve"><value>Edit</value></data>
-  <data name="Ed_LockedByOther" xml:space="preserve"><value>Being edited by another editor</value></data>
+  <data name="Ver_UnionDraftsTogether" xml:space="preserve"><value>Joined document: publishing or discarding this draft applies to the drafts of all {0} documents in the union.</value></data>
+  <data name="Ed_LockedByOtherRetry" xml:space="preserve"><value>Being edited by another editor, at least when the page was opened: press to try again</value></data>
   <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Locked by {0}{1}. You cannot save while the lock is active.</value></data>
   <data name="Vle_UnknownAcc" xml:space="preserve"><value>Unknown ACC</value></data>
   <data name="Vle_EditorTitle" xml:space="preserve"><value>vLOA editor</value></data>
