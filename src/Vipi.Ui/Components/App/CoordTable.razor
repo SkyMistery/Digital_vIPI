@@ -27,7 +27,11 @@
     var blocks = Blocks(rows);
     var hasCond = rows.Any(x => !string.IsNullOrWhiteSpace(x.ConditionLabel));
     @* Un accordo su piu' aeroporti si legge sotto ognuno di essi: la colonna dice che e' UN accordo, non
-       quattro coincidenze. Compare solo dove qualcuno la compila, come tutte le altre. *@
+       quattro coincidenze. Compare solo dove qualcuno la compila, come tutte le altre.
+       🔴 25 settembre 2026, chiesto dal committente: «Per» e non «Anche per», e con TUTTI gli aeroporti. Nella
+       vIPI APP una tabella di atterraggi mescola gli scali, e «Anche per: LICC · LICZ» accanto a una riga di LICB
+       senza niente si leggeva come se LICB valesse anche per quelli. Ora ogni riga dice per chi vale: l'elenco
+       dell'accordo, o il suo aeroporto se e' uno solo. *@
     var hasAirports = rows.Any(x => !string.IsNullOrWhiteSpace(x.AgreementAirports));
     var hasHandoff = rows.Any(x => !string.IsNullOrWhiteSpace(x.Handoff));
     var hasHandoffLevel = rows.Any(x => !string.IsNullOrWhiteSpace(x.HandoffLevel));
@@ -90,7 +94,7 @@
                 @if (hasComms) { <th class="c-comms">@T("Coord_Comms", "Communications")</th> }
                 @if (hasSpeed) { <th class="c-speed">@T("Coord_Speed", "Speed")</th> }
                 <th class="c-next">@LastColHeader(rows)</th>
-                @if (hasAirports) { <th class="c-apts">@T("Coord_AlsoFor", "Also for")</th> }
+                @if (hasAirports) { <th class="c-apts">@T("Coord_For", "For")</th> }
                 @if (hasCond) { <th class="c-cond">@T("AppCoord_Condition", "Condition")</th> }
             </tr>
         </thead>
@@ -117,7 +121,7 @@
                         @if (hasComms) { <td>@Dash(r.CommsHandoff)</td> }
                         @if (hasSpeed) { <td>@Dash(r.Speed)</td> }
                         @if (first) { <td rowspan="@span">@Dash(r.Next)</td> }
-                        @if (hasAirports) { <td>@Dash(r.AgreementAirports)</td> }
+                        @if (hasAirports) { <td>@Dash(r.AgreementAirports ?? r.AirportIcao)</td> }
                         @* Il marcatore della riga trasversale arriva già dentro ConditionLabel, nella lingua del
                            template (italiana nelle vIPI, inglese nelle vLOA): deve concordare con la frase, non con
                            il chrome della pagina. Qui la riga non ha nulla di speciale da rendere. *@

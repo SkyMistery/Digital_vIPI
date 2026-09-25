@@ -135,14 +135,15 @@ public static class CoordinationDerivation
             => CoordinationSentences.Compose(tpl, types, nameMap, codeMap, airportMap, atcMap, sender, receiver,
                 flow.AirportIcao,
                 p.LevelConstraint, p.LevelValue, p.LevelUnit, p.LevelSpecial, p.Parity, PuntiDellaFrase(p), kind,
-                ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p), isIncoming);
+                ConditionChain(flow.Points, p), p.VerticalState, TransferHandoffFacet.From(p), isIncoming,
+                flow.AirportIcaos);
 
         // La frase CAPOFILA: chi trasferisce a chi e che traffico, senza livello ne' punto — quelli sono cio' che
         // la tabella dice riga per riga. Si compone qui, dove ci sono le mappe, perche' la lingua vive nel
         // template e la vista non deve rimetterla insieme da se'.
         string? Lead(string sender, string receiver, TransferFlowRow flow, TransferFlowKind kind, bool isIncoming)
             => CoordinationSentences.ComposeLead(tpl, types, nameMap, codeMap, airportMap, atcMap,
-                sender, receiver, flow.AirportIcao, kind, isIncoming);
+                sender, receiver, flow.AirportIcao, kind, isIncoming, flow.AirportIcaos);
 
         AppCoordRow Row(TransferPointRow p, string next, TransferFlowRow flow, string sentenceOwner, string sentenceTarget,
             TransferFlowKind kind, bool isIncoming) =>

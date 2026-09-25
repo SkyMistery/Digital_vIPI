@@ -105,6 +105,13 @@ public sealed class CoordinationSentenceTemplate
     /// </summary>
     public string PointsOr { get; init; } = "o";
 
+    /// <summary>
+    /// La congiunzione dell'ultimo aeroporto quando un accordo ne ha più d'uno: «con destinazione Catania
+    /// Fontanarossa LICC e Sigonella LICZ» (25 settembre 2026). «e» e non «o»: l'accordo vale per il traffico
+    /// verso l'uno E verso l'altro. La relazione («con destinazione») si dice una volta sola.
+    /// </summary>
+    public string AirportsAnd { get; init; } = "e";
+
     // ---- {cleared}: COME è autorizzato il traffico (23 settembre 2026, chiesto dal committente) ----
     //
     // Nei template «autorizzato …» il segnaposto {cleared} dice i punti con la loro preposizione. Una STAR in un
@@ -230,6 +237,7 @@ public sealed class CoordinationSentenceTemplate
         FallbackAllPoints = "all points",
         FallbackAllToward = "all points toward {dest}",
         PointsOr = "or",
+        AirportsAnd = "and",
         ClearedVia = "via {points}",
         ClearedStar = "via the {points} arrival",   // forma scelta dal committente il 23-set (ICAO)
     };

@@ -365,6 +365,7 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 ### `filoni`
 
 - [`filoni/come-si-lavora-in-parallelo.md`](filoni/come-si-lavora-in-parallelo.md) — Più agenti in parallelo: chi scrive dove 🟢
+- [`filoni/coordinamenti-aeroporti.md`](filoni/coordinamenti-aeroporti.md) — Filone «coordinamenti su più aeroporti» — ramo `fix/coordinamenti-aeroporti`
 - [`filoni/da-fare.md`](filoni/da-fare.md) — Lavori assegnati ai filoni — la coda
 - [`filoni/lab.md`](filoni/lab.md) — Filone Sector Lab — stato
 - [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md) — Filone «Da fare»: raggruppare per cambiamento 🟡
