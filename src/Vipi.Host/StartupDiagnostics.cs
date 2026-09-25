@@ -99,6 +99,9 @@ public static class StartupDiagnostics
         // porta il suo runtime, ma Passenger lo lancia col `dotnet` del server (8). È la riga che dice se il
         // carico completo è arrivato intero.
         sb.AppendLine($"Runtime .NET ................. {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
+        // Il tetto che il runtime vede: il limite che l'hosting ha messo al processo, se ce n'è uno, sennò la RAM
+        // della macchina. Se è basso, «memoria esaurita» diventa una causa da prendere sul serio. Vedi MemoriaDelProcesso.
+        sb.AppendLine($"Memoria vista dal runtime .... {MemoriaDelProcesso.Tetto()}");
         sb.AppendLine($"Ambiente ..................... {builder.Environment.EnvironmentName}");
         sb.AppendLine($"Cartella dell'applicazione ... {AppContext.BaseDirectory}");
         sb.AppendLine();
