@@ -309,6 +309,37 @@ prestazioni**.
 | G5 | **Quote e forme delle aree dalla fonte primaria**: DB di IVAO o PDF dell'AIP (ENR 5.1), archi rigenerati alla densità scelta; quote come metadato `//@area="P1" da=… a=…`. 🔴 **Mai da vIPI**: niente riferimenti circolari, dati solo dalla fonte primaria | F6 | ✅ deciso |
 | G6 | **Adozione in un ramo**: le 86 righe corrette, via doppi e nulli, **coordinate tutte col punto** (`N045.00.00.000`) | F4 | ✅ deciso |
 
+## §8-bis — `GEO`: i `.geo` degli aeroporti
+
+### Cosa c'è (misure del 25 settembre)
+
+- **95 file**, uno per scalo, tutti inclusi una volta in `ITALY.isc`: 78 118 righe, **69 199 segmenti**. Il più grande
+  `lirf.geo` (5 296), poi `limc.geo` (3 619); mediana 454; il più piccolo `lilg.geo` (4). Coordinate col punto (4
+  compatte), nessuna riga illeggibile, nessun commento in coda.
+- **Il tipo in fondo alla riga** dice cosa si disegna: `TAXI_CENTER` 23 771 segmenti (80 file) · `TAXIWAY` 18 268 (82)
+  · `BUILDING` 12 467 (93) · `PIER` 6 201 (57) · `APRON` 4 184 (67) · `RUNWAY` 3 612 (95) · `STOPLINE` 566 (70) ·
+  `STOPBAR` 120 (10) · **vuoto** 10 (`liap.geo:28…`). `TAXI_CENTER` e `STOPLINE` non sono nello schema colori né in
+  `colors.def`, ma in Aurora si vedono e si accendono/spengono (committente).
+- **Oggi si disegna in Google Earth**: i commenti più frequenti sono «Percorso senza titolo» (338) e «Poligono senza
+  titolo» (226). 🔴 Le immagini satellitari sono **vecchie**: servono le carte dell'AIP. Il confine dello scalo è
+  disegnato come `BUILDING` (`//AD_BOUNDARY`).
+- **OpenStreetMap, misurato su LIRF**: centro taxiway coincidente (mediana 1,1 m, 94% entro 5 m); piste = centro +
+  larghezza; piazzali ed edifici modellati diversamente (mediana 80-145 m). Licenza ODbL (derivato pubblico con la
+  stessa licenza). **Scartato dal committente**: le geometrie di terra si continuano a fare a mano.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| H1 | **Strati per tipo** sulla mappa (TAXI_CENTER, TAXIWAY, BUILDING…), ognuno acceso a sé, coi colori di Aurora; vista a linea (G1) | Subito | ✅ deciso |
+| H2 | **Tipo fisso** da elenco; avviso se vuoto (i 10 di `liap.geo`) o sconosciuto | Subito — comune | ✅ deciso |
+| H3 | **Nome del gruppo** = il commento sopra, cambiato dalla scheda; «Percorso/Poligono senza titolo» segnalati come nome mancante (564) | Subito | ✅ deciso |
+| H4 | **Import/export KML/KMZ** (Google Earth): percorsi e poligoni ↔ gruppi `.geo`, tipo dalla cartella o scelto | F6 | ✅ deciso |
+| H5 | Famiglie `.geo` ↔ `.pol` (bordo e riempimento della stessa forma) | da misurare con `GND_LAYOUT` | 🟡 |
+| H7 | **Carta AIP sopra la mappa**: PDF (AD 2.24) → immagine dentro l'app; **aggancio su 3 punti** noti (soglie e ARP dal testo dell'AIP, AD 2.12/2.2) con lo **scarto misurato** (carta «not to scale» = scarto grande, detto subito); trasparenza regolabile, sotto le linee di oggi. Precisione attesa: carta 1:15 000-20 000, un tratto ≈ 5 m | F6 | ✅ deciso — stesso meccanismo del ricalco MVA (E10) |
+| H8 | **Disegnare sulla carta**: linee e poligoni col tipo, il nome, l'aggancio ai vertici vicini | F9 | ✅ deciso |
+| H9 | ~~OSM come base~~ | — | ❌ scartato: si continua a mano |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -330,7 +361,8 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Controllo degli `.isc`** (file incluso che non c'è, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
 | **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
-| **Ricalco da immagine** (carta senza coordinate agganciata alla mappa) | ENRMVA E10 |
+| **Ricalco da immagine** (carta PDF/immagine agganciata alla mappa su 3 punti, scarto misurato, disegno sopra) | ENRMVA E10 · GEO H7, H8 |
+| **Import/export KML** (Google Earth) | GEO H4 |
 | **Fonte primaria, mai vIPI** (committente, 25 settembre): i dati entrano dal DB di IVAO o dai PDF dell'AIP, non dal sito — niente riferimenti circolari | GEO G5 · AIRWAY B8 · tutto F6 |
 | **Coordinate in una forma sola**: col punto (`N045.00.00.000`), anche dove oggi sono compatte | GEO G6 · (da decidere per `.vfi`/`.tfl`, dove la forma compatta è la regola del file) |
 | **Semplifica / densità** (tolleranza in metri, archi a N gradi) | GEO G4 · F1 archi |
