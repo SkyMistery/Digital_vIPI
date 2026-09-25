@@ -265,7 +265,7 @@ internal sealed class VloaDerivationService : IVloaDerivationService
                     // La vLOA è già stata dimenticata una volta (il flow.Kind mancante che azzerava i sorvoli):
                     // catena delle condizioni e faccetta passano esplicitamente da qui, non per analogia con l'ACC.
                     CoordinationDerivation.ConditionChain(flow.Points, p), p.VerticalState,
-                    TransferHandoffFacet.From(p));
+                    TransferHandoffFacet.From(p), airportIcaos: flow.AirportIcaos);
                 // Stessa riga della derivazione ACC/APP, template inglese: le colonne della faccetta e il gruppo
                 // di varianti arrivano da lì, non da una seconda costruzione a mano che si dimentica un campo.
                 var row = CoordinationDerivation.ToRow(tpl, p, flow, next!, flow.Kind, owner, sentence);

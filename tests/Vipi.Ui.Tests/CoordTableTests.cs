@@ -60,6 +60,27 @@ public class CoordTableTests : TestContext
         Assert.DoesNotContain("Coord_Comms", headers);
     }
 
+    /// <summary>
+    /// 🔴 25 settembre 2026, chiesto dal committente su un APP: la colonna si chiama «Per» (non «Anche per») e
+    /// ogni riga dice per chi vale. Nella vIPI APP una tabella di atterraggi mescola gli scali: «LICC · LICZ»
+    /// accanto a una riga di LICB col trattino si leggeva come se LICB valesse anche per quelli.
+    /// </summary>
+    [Fact]
+    public void La_colonna_Per_dice_per_ogni_riga_gli_aeroporti_per_cui_vale()
+    {
+        var dueScali = Plain("NELDA") with { ClauseId = 1, AirportIcao = "LICC", AgreementAirports = "LICC · LICZ" };
+        var unoScalo = Plain("ENEPA") with { ClauseId = 2, AirportIcao = "LICB" };
+
+        var cut = Render(dueScali, unoScalo);
+        var headers = cut.FindAll("thead th").Select(th => th.TextContent).ToList();
+        Assert.Contains("Coord_For", headers);
+        Assert.DoesNotContain("Coord_AlsoFor", headers);
+
+        var colonna = headers.IndexOf("Coord_For");
+        var celle = cut.FindAll("tbody tr").Select(tr => tr.QuerySelectorAll("td")[colonna].TextContent).ToList();
+        Assert.Equal(new[] { "LICC · LICZ", "LICB" }, celle);
+    }
+
     [Fact]
     public void Cop_header_becomes_via_when_the_transfer_is_elsewhere()
     {

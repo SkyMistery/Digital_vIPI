@@ -159,6 +159,94 @@ public class CoordinationLeadSentenceTests
                    p => Assert.Equal("LIRF · LIRA · LIRU · LIRE", p.AgreementAirports));
     }
 
+    // ---- più aeroporti nella frase (25 settembre 2026) ----------------------------------------------
+
+    /// <summary>
+    /// 🔴 Segnalato dal committente su un APP: un accordo per LICC e LICZ diceva nel testo «con destinazione
+    /// Catania Fontanarossa LICC» e basta — la tabella richiude la clausola in una riga, e la frase sopravvissuta
+    /// era quella del primo flusso. La frase dice TUTTI gli aeroporti, con la relazione una volta sola.
+    /// </summary>
+    [Fact]
+    public void Un_accordo_su_due_aeroporti_li_nomina_tutti_e_due_nella_frase()
+    {
+        var aeroporti = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["LIBD"] = "Bari Palese",
+            ["LIBR"] = "Brindisi Casale",
+        };
+
+        var frase = CoordinationSentences.Compose(It, Types, Names, Codes, aeroporti, Atc,
+            "LIBB_ES_CTR", "LIBD_CS0_APP", "LIBD", LevelConstraint.AtOrBelow, 130, LevelUnit.Fl, null,
+            LevelParity.Any, "BIRSU", TransferFlowKind.Arrival, airportIcaos: new[] { "LIBD", "LIBR" })!;
+        var lead = CoordinationSentences.ComposeLead(It, Types, Names, Codes, aeroporti, Atc,
+            "LIBB_ES_CTR", "LIBD_CS0_APP", "LIBD", TransferFlowKind.Arrival, airportIcaos: new[] { "LIBD", "LIBR" })!;
+
+        Assert.Contains("con destinazione Bari Palese LIBD e Brindisi Casale LIBR", frase);
+        Assert.Contains("con destinazione Bari Palese LIBD e Brindisi Casale LIBR", lead);
+    }
+
+    [Fact]
+    public void Tre_aeroporti_si_elencano_con_la_virgola_e_l_ultimo_con_la_congiunzione_anche_in_inglese()
+    {
+        var aeroporti = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["LICC"] = "Catania Fontanarossa",
+            ["LICZ"] = "Sigonella",
+            ["LICB"] = "Comiso",
+        };
+
+        var lead = CoordinationSentences.ComposeLead(CoordinationSentenceTemplate.English,
+            Types, Names, Codes, aeroporti, Atc, "LIBB_ES_CTR", "LIBD_CS0_APP", "LICC", TransferFlowKind.Arrival,
+            airportIcaos: new[] { "LICC", "LICZ", "LICB" })!;
+
+        Assert.Contains("inbound to Catania Fontanarossa LICC, Sigonella LICZ and Comiso LICB", lead);
+    }
+
+    [Fact]
+    public void Con_un_aeroporto_solo_la_frase_non_cambia()
+    {
+        // Il caso di quasi tutti gli accordi: l'elenco di uno solo non deve spostare una virgola.
+        var prima = CoordinationSentences.ComposeLead(It, Types, Names, Codes, Airports, Atc,
+            "LIBB_ES_CTR", "LIBD_CS0_APP", "LIBD", TransferFlowKind.Arrival);
+        var conElenco = CoordinationSentences.ComposeLead(It, Types, Names, Codes, Airports, Atc,
+            "LIBB_ES_CTR", "LIBD_CS0_APP", "LIBD", TransferFlowKind.Arrival, airportIcaos: new[] { "LIBD" });
+
+        Assert.Equal(prima, conElenco);
+    }
+
+    /// <summary>La strada vera: l'accordo si espande in un flusso per aeroporto, e la frase di OGNUNO li dice
+    /// tutti — così qualunque riga la tabella tenga, il testo è completo.</summary>
+    [Fact]
+    public void Dall_accordo_alla_frase_ogni_flusso_nomina_tutti_gli_aeroporti()
+    {
+        var uno = Agreement(Clause(1, "BIRSU", 130));
+        var due = uno with
+        {
+            Sections = new[]
+            {
+                uno.Sections[0] with
+                {
+                    Airports = new[] { new AgreementAirportRow("LIBD", null, 1), new AgreementAirportRow("LIBR", null, 2) },
+                },
+            },
+        };
+        var aeroporti = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            ["LIBD"] = "Bari Palese",
+            ["LIBR"] = "Brindisi Casale",
+        };
+
+        var flussi = AgreementExpansion.Expand(new[] { due });
+        Assert.Equal(2, flussi.Count);
+        Assert.All(flussi, f => Assert.Equal(new[] { "LIBD", "LIBR" }, f.AirportIcaos));
+
+        var righe = CoordinationDerivation.Build(flussi, new HashSet<string> { "LIBB_ES_CTR" }, Types, Names, Codes,
+            aeroporti, Atc, It);
+        Assert.Equal(2, righe.Count);
+        Assert.All(righe, r =>
+            Assert.Contains("con destinazione Bari Palese LIBD e Brindisi Casale LIBR", r.Row.Sentence));
+    }
+
     // ---- attrezzi ------------------------------------------------------------------------------------
 
     private static AgreementRow Agreement(params AgreementClauseRow[] clauses) => new()

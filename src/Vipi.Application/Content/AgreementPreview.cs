@@ -38,10 +38,13 @@ public static class AgreementPreview
             x => new ConditionClause(x.ConditionLabel, x.ConditionAreaLabel, x.ConditionAreaNegated,
                                      x.ConditionAreaAll, x.ConditionCustomLabel));
 
+        // E TUTTI gli aeroporti, come la frase del documento dal 25 settembre 2026: «con destinazione LICC e LICZ».
+        var tutti = section.Airports.OrderBy(x => x.Order).Select(x => x.Icao).ToList();
+
         return ctx.Compose(
             sender.Callsign, receiver.Callsign, airport?.Icao, section.Kind,
             clause.LevelConstraint, clause.LevelValue, clause.LevelUnit, clause.LevelSpecial,
-            clause.Parity, clause.VerticalState, cop, chain, Facet(clause));
+            clause.Parity, clause.VerticalState, cop, chain, Facet(clause), tutti);
     }
 
     /// <summary>La faccetta trasferimento della clausola, nella forma che il composer si aspetta.</summary>

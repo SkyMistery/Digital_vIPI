@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using Vipi.Domain;
 
@@ -22,6 +23,9 @@ public sealed record CoordinationSentenceData
     public bool OmitTargetCode { get; init; }
     public required string AirportName { get; init; }
     public required string AirportIcao { get; init; }
+    /// <summary>Tutti gli aeroporti dell'accordo (nome, ICAO) quando sono più d'uno: la frase li dice tutti, con
+    /// la relazione una volta sola. Vuoto = il solo <see cref="AirportName"/>/<see cref="AirportIcao"/>.</summary>
+    public IReadOnlyList<(string Name, string Icao)> Airports { get; init; } = Array.Empty<(string, string)>();
     /// <summary>Tipo di flusso: guida la relazione aeroporto (arrivo = «con destinazione», partenza = «in partenza da»).</summary>
     public TransferFlowKind Kind { get; init; } = TransferFlowKind.Arrival;
     public LevelConstraint? Constraint { get; init; }
@@ -143,7 +147,22 @@ public static class CoordinationSentenceComposer
             TransferFlowKind.Arrival => tpl.AirportArrival,
             _ => tpl.Airport,   // overflight/VFR/altro: relazione neutra
         };
-        return t.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
+        if (d.Airports.Count < 2) return t.Replace("{name}", d.AirportName).Replace("{icao}", d.AirportIcao);
+
+        // Più aeroporti: si ripete solo il PEZZO «{name} {icao}», la relazione resta una — «con destinazione A e
+        // B», non «con destinazione A e con destinazione B». Il pezzo va da {name} a {icao} com'è scritto nel
+        // template, così un template personalizzato («{icao} ({name})») si ripete nella sua forma.
+        var da = Math.Min(Idx(t, "{name}"), Idx(t, "{icao}"));
+        var a = Math.Max(End(t, "{name}"), End(t, "{icao}"));
+        if (da == int.MaxValue || a < 0)
+            return t;   // un template senza segnaposti non ha niente da ripetere
+        var pezzo = t[da..a];
+        var resi = d.Airports.Select(x => pezzo.Replace("{name}", x.Name).Replace("{icao}", x.Icao)).ToList();
+        var elenco = string.Join(", ", resi.Take(resi.Count - 1)) + " " + tpl.AirportsAnd + " " + resi[^1];
+        return t[..da] + elenco + t[a..];
+
+        static int Idx(string s, string m) { var i = s.IndexOf(m, StringComparison.Ordinal); return i < 0 ? int.MaxValue : i; }
+        static int End(string s, string m) { var i = s.IndexOf(m, StringComparison.Ordinal); return i < 0 ? -1 : i + m.Length; }
     }
 
     // Le parole del trasferimento stanno in TransferHandoffText: le usa anche la derivazione per riempire le
@@ -461,7 +480,10 @@ public static class CoordinationSentences
         TransferHandoffFacet? facet = null,
         // In coda e facoltativo: l'anteprima dell'editor e la vLOA compongono sempre dal lato di chi cede —
         // nell'editor si sta scrivendo l'accordo da quel lato, e la vLOA ha due alberi separati per verso.
-        bool isIncoming = false)
+        bool isIncoming = false,
+        // Tutti gli aeroporti dell'accordo quando sono più d'uno (TransferFlowRow.AirportIcaos): la frase li
+        // dice tutti. Vuoto o null = il solo `airportIcao`, come prima.
+        IReadOnlyList<string>? airportIcaos = null)
     {
         // Una SID/STAR fra i punti si dice «autorizzato via», e quella frase la sceglie la faccetta: vedi
         // ProceduraNeiPunti. Qui passano l'anteprima dell'editor, la vIPI e la vLOA.
@@ -469,7 +491,7 @@ public static class CoordinationSentences
         // Chi trasferisce, a chi, su quale aeroporto: la parte che non dipende dalla riga. null = dati
         // incompleti, e il contratto e' «dati incompleti -> nessuna frase».
         var b = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,
-            ownerCallsign, targetCallsign, airportIcao, kind);
+            ownerCallsign, targetCallsign, airportIcao, kind, airportIcaos);
         if (b is null) return null;
 
         return CoordinationSentenceComposer.Compose(tpl, b with
@@ -501,7 +523,8 @@ public static class CoordinationSentences
         IReadOnlyDictionary<string, string> codeMap,
         IReadOnlyDictionary<string, string> airportMap,
         IReadOnlyDictionary<string, string> atcMap,
-        string ownerCallsign, string targetCallsign, string? airportIcao, TransferFlowKind kind)
+        string ownerCallsign, string targetCallsign, string? airportIcao, TransferFlowKind kind,
+        IReadOnlyList<string>? airportIcaos)
     {
         if (string.IsNullOrWhiteSpace(ownerCallsign) || string.IsNullOrWhiteSpace(targetCallsign)) return null;
 
@@ -538,6 +561,10 @@ public static class CoordinationSentences
             OmitTargetCode = omit,
             AirportName = hasAirport ? airportMap.GetValueOrDefault(airportIcao!, airportIcao!) : "",
             AirportIcao = airportIcao ?? "",
+            // Con un aeroporto solo l'elenco resta vuoto: la frase non cambia di una virgola.
+            Airports = airportIcaos is { Count: > 1 }
+                ? airportIcaos.Select(i => (airportMap.GetValueOrDefault(i, i), i)).ToList()
+                : Array.Empty<(string, string)>(),
             Kind = kind,
             Point = "",
         };
@@ -556,10 +583,10 @@ public static class CoordinationSentences
         IReadOnlyDictionary<string, string> airportMap,
         IReadOnlyDictionary<string, string> atcMap,
         string ownerCallsign, string targetCallsign, string? airportIcao,
-        TransferFlowKind kind, bool isIncoming = false)
+        TransferFlowKind kind, bool isIncoming = false, IReadOnlyList<string>? airportIcaos = null)
     {
         var d = BuildData(tpl, types, nameMap, codeMap, airportMap, atcMap,
-            ownerCallsign, targetCallsign, airportIcao, kind);
+            ownerCallsign, targetCallsign, airportIcao, kind, airportIcaos);
         return d is null ? null : CoordinationSentenceComposer.ComposeLead(tpl, d with { IsIncoming = isIncoming });
     }
 
