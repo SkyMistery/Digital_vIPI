@@ -494,6 +494,48 @@ Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
 | L5 | Import di fix (ENR 4.4) e navaid (ENR 4.1) dall'AIP, col confronto | F6 | ✅ deciso |
 | L6 | Via `ENR.fix`, `FRA.fix`, `TERM.fix` vuoti | **più avanti**, non ora (committente) | 🕓 rimandato |
 
+## §13 — `OTHER` (`.frq`, `.ap`, `.rw`, CPDLC, `GCI.tfl`)
+
+Fonti: manuale del sector file ([ATC], [AIRPORT], [RUNWAY], [FILLCOLOR]) e la pagina **«Aurora CPDLC Sectorfile»**
+della wiki IVAO (`/en/home/devops/manuals/CPDLC-Sectorfile`) per `.cpdlc`/`.cpdlcnames`. `ITALY.isc` carica i file
+nazionali (`itfreq.frq`, `itap.ap`, `itrw.rw`), ogni `.isc` di FIR i suoi (`libb.frq`…): da qui le copie gemelle di
+F3-bis. Il CPDLC è comune.
+
+### Cosa c'è (misure del 25 settembre)
+
+- **`.frq`** (`Posizione;Frequenza;Trasferimenti;Profilo;ATIS;Blocco CPDLC;LOA;D-ATIS`): `itfreq` 201, `libb` 22, `limm`
+  55, `lipp` 44, `lirr` 101. Frequenze tutte `nnn.nnn`. Manuale: nei trasferimenti **prima gli include, poi gli
+  esclusi** (`-POS`), un include dopo un escluso NON funziona → **51 in `itfreq.frq`** (es. `LIML_TWR`: `LIRO` dopo
+  un escluso) più le copie. File citati inesistenti: `PREFS\LIPC.cpr`, `\liml.atis`. Posizioni italiane citate ma non
+  definite: `LIMM_WN4_CTR`, `LIMM_EN4_CTR` (12 volte ciascuna: **da togliere dai trasferimenti**), `LIMJ_APP`,
+  `LIBB_APP`. CPDLC bloccato su 155 posizioni.
+- **`.ap`** (`ICAO;Elev;TA;Lat;Lon;Nome≤50;[Nascosto];[Tipo 0-4]`): 130 scali in `itap.ap`; «nascosto» e «tipo»
+  (militare, eliporto, privato, non controllato) **mai usati**; TA 0 in 66. `//LIRR;…;Roma Area` commentato.
+- **`.rw`** (`ICAO;Prim 01-18;Opp 19-36;Elev;Elev;Rotta;Rotta;soglie`): 231 righe in `itrw.rw`, di cui **96 piste
+  finte `MAPS`** = il **menu delle cose «generali»** a cui si agganciano le mappe degli `.str` (committente), più voci
+  di settore (`LIRR;NE`, `LIMM;WS2`). Soglie invertite: `LIDW 15` (rotta 149°, coordinate verso 11°), `LIKL 36`
+  (360° contro 176°); `LIDB 05` 049° contro 43° dalle soglie. **Rotte con decimali** (`109.5`, `345.9`, `065.49`,
+  `283.8/104`): 44 in `itrw.rw` + copie — Aurora le accetta ma **rallenta**. **Primaria oltre il 18** in 13 piste
+  (LIMC 35R/17L, LIML 35/17, LIRN 24/06, LIMF 36/18…), contro il manuale.
+- **CPDLC** (`Comando≤128;Risposta WU/AN/R/NE;Gruppo 0-18, 20=DCL;…`): 155 messaggi nei gruppi 0-10 e 20; 3 senza
+  risposta; `ita.cpdlcnames` rinomina solo il gruppo 15 («TWR»), **vuoto**.
+- **`GCI.tfl`** (9 837 righe, 53 settori dinamici `LIZZ_AEW_CTR:LIRO_CRC_CTR:LIVK_CRC_CTR;GCI;…`): gli `.isc` lo
+  cercano in `DYNAMIC_SEC\` e sta in `OTHER\`, ma **in Aurora si colora lo stesso** (committente) → Aurora trova il
+  file per nome: un percorso sbagliato è un avviso, non un guasto.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| M1 | **Scheda della posizione**: frequenza, **trasferimenti in due elenchi (includi / escludi)** → l'ordine è sempre giusto, profilo/ATIS/D-ATIS scelti fra i file che esistono, blocco CPDLC, LOA | Subito | ✅ deciso |
+| M2 | Controlli `.frq`: include dopo escluso (i 51), file citato inesistente, posizione italiana citata e non definita | Subito | ✅ deciso |
+| M3 | **Scheda dello scalo**: nascosto e tipo (militare, eliporto…) proposti | Subito | ✅ deciso |
+| M4 | **Scheda della pista**: la rotta **calcolata dalle soglie** accanto a quella scritta (soglie invertite subito visibili); `MAPS` e le voci di settore mostrate come **voci di menu**, non piste. Avvisi: rotta con decimali (**rallenta Aurora**; gesto «arrotonda al grado», su riga o file, a scelta dell'AOD perché il dato dell'AIP ha il decimale), primaria oltre il 18 | Subito | ✅ deciso |
+| M5 | Scheda dei messaggi CPDLC e dei nomi dei gruppi; avviso: gruppo con nome ma senza messaggi, messaggio senza risposta | Subito | ✅ deciso |
+| M6 | Percorso di include inesistente (`DYNAMIC_SEC\GCI.tfl`): **avviso**, correzione non urgente | Subito (controllo) + F4 | ✅ deciso |
+| M7 | Togliere `LIMM_WN4_CTR` e `LIMM_EN4_CTR` dai trasferimenti | F4, in un ramo | ✅ deciso |
+| M8 | Import di scali, piste (AD 2.2, AD 2.12) e posizioni dall'AIP, col confronto | F6 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -512,7 +554,7 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Famiglie di forme** (`//@forma=`: la stessa forma in più file, modifica propagata, integrità) — estende le copie gemelle di F3-bis dai record alle forme | DYNAMIC_SEC D5, D6 |
 | **Gemelli fra file di tipo diverso** (punto `.vfi` ↔ fix nascosto `.fix`, chiave = codice; il gemello nasce col punto) — estende le copie gemelle di F3-bis | ENRVFI F2 |
 | **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
-| **Controllo degli `.isc`** (file incluso che non c'è, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
+| **Controllo degli `.isc`** (file incluso che non c'è — AVVISO: Aurora trova il file per nome, vedi GCI —, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
 | **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
 | **Ricalco da immagine** (carta PDF/immagine agganciata alla mappa su 3 punti, scarto misurato, disegno sopra) | ENRMVA E10 · GEO H7, H8 |
