@@ -33,6 +33,28 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### 📦 A126 — 1.46.2 PRONTO DA CARICARE: coordinamenti su più aeroporti, la frase li nomina tutti (25 settembre 2026)
+
+PATCH, **nessuna migrazione**, su 1.46.1 (`3a8a3f1`). Timbro **`1.46.2 · f30c036`**. Filone
+[`coordinamenti-aeroporti`](filoni/coordinamenti-aeroporti.md), fusione `898d3d2e` di `fix/coordinamenti-aeroporti`
+(`363bc320`): un accordo per LICC e LICZ diceva solo «con destinazione Catania Fontanarossa LICC»; ora la frase li
+nomina tutti e la colonna «Anche per» diventa «Per». Le release già pubblicate tengono la frase congelata.
+
+**7 file**: Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb) + `en/Vipi.Ui.resources.dll`. `Compose`/`ComposeLead`
+guadagnano un parametro facoltativo (firma nuova): chiamanti solo in Application e Ui, spediti. `AirportsAnd` sta in
+`CoordinationSentenceTemplate` col suo default come `PointsOr`: il provider di Vipi.Hosting non lo copia → Hosting
+fuori. Zip `vipi-1.46.2-solo-file-cambiati.zip` `77bb0264…15d5d6`, foglio
+[`LEGGIMI-PACCHETTO-1.46.2.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.2.md). 1.46.1 ruotata in
+`publish_old/20260925b`. Build Release 0 avvisi, 18/18 assiemi verdi, conteggi uguali all'atteso.
+
+- ⚠️ Nella corsa intera `PaginaAuditUnGiroAllaVoltaTests.Due_cambi_di_periodo_ravvicinati…` è caduto UNA volta su
+  net8 (`UnknownEventHandlerIdException`: la pagina si ridisegna fra `Find` e `ChangeAsync`). Da solo 5/5 verde,
+  Ui.Tests intero ripetuto 1708/1708 sui due runtime. Intermittente del test, non della fusione: proposto come
+  lavoro a parte.
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): editor del vIPI Brindisi, accordo LIBB_ES_CTR →
+  LIRR_US_CTR: «…the traffic inbound to Roma Ciampino LIRA and Roma Urbe LIRU…», colonna «For» con «LIRA · LIRU» e
+  «LIRF · LIRE». Nessun errore nel log.
+
 ### ✅ A125 — 1.46.1 ONLINE: il Re-import MIL non fa più cadere il circuito (25 settembre 2026)
 
 ✅ Online il 24 settembre 2026 alle 23:31:58 UTC (avvio ordinato). Il committente conferma timbro `1.46.1 · 3a8a3f1`,
