@@ -231,6 +231,48 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 | E9 | Mappa con le zone colorate per quota (buchi e sovrapposizioni a colpo d'occhio) | F8 | proposta |
 | E10 | **Ricalco da immagine**: una carta senza coordinate (PDF o immagine) agganciata alla mappa su 3-4 punti noti, in trasparenza, e le zone disegnate sopra | F6 (aggancio) + F9 (disegno) | proposta — per le carte MVA senza coordinate |
 
+## §7 — `ENRVFI` (3 `.vfi`) e le strutture VFR di Aurora
+
+### Le quattro strutture (specifica di Aurora)
+
+| Sezione | File | Riga | Uso |
+|---|---|---|---|
+| `[VFRFIX]` | `.vfi` | `Nome;Quota;Lat;Lon;[Tipo 0-3]` | punti VFR, accesi per aeroporto |
+| `[VFRROUTE]` | `.vrt` | `N° rotta;Lat;Lon;;[Militare]` | rotte VFR di un aeroporto |
+| `[VFRENR]` | `.vfi` | `N° rotta;Lat;Lon;[Gruppo];[Militare]` | rotte en-route, filtro Shift+VFR |
+| `[VFRRTEENR]` | `.vrt` | `Nome rotta;Gruppo;Lat;Lon` | rotte non legate a un aeroporto |
+
+`ICAO.vfi` e `ICAO.vrt` di un aeroporto dichiarato Aurora li carica da sé: negli `.isc` non ci sono `[VFRFIX]`,
+`[VFRROUTE]`, `[VFRRTEENR]` (74 `.vfi`, 16 `.vrt` di scalo).
+
+### Cosa c'è (misure del 25 settembre)
+
+- `ENRVFI\limm.vfi` 21 punti, `lipp.vfi` 8, `lirr.vfi` 4: punti VFR della FIR (messi per ACC: le FIR in Aurora non
+  ci sono). Hanno la forma di **`[VFRFIX]`** ma sono inclusi sotto **`[VFRENR]`** (le rotte): «dovrebbero essere
+  VFRFIX» (committente).
+- **Convenzione italiana**: il 2° campo dei `.vfi` è il **codice** (`MMN1`, `MCW2`), non la quota — voluto: Aurora
+  mostra il nome e sotto il codice, più compatto. I codici NON seguono una regola di direzione.
+- Coordinate compatte (`N0455440000`), nomi con spazi. Le rotte `.vrt` citano i punti **per nome** (`1;ROMAGNANO;ROMAGNANO;`).
+- **Gemello in `NAVAIDS\VFR_NASCOSTI.fix`** (`MMN1;N…;E…;3;`): serve, perché un traffico che mette il punto in
+  rotta viene riconosciuto solo se il punto sta in un `.fix`. Misura su TUTTI i `.vfi` (scali compresi), 530 codici:
+  **496 gemelli uguali · 9 diversi** (piccoli scarti `BNNW1`, `BNSW1`; punti spostati `BNW1`, `MJNW1`, `PKS1` ~20 NM,
+  `RPNE1`; refusi `lipx.vfi` `PXSW1` `E103441000`, `lirn.vfi` `RNNE1` `N40.59.33.000` col punto) · **81 senza
+  gemello** (quasi tutti col 2° campo che non è un codice: `2500` in `liba.vfi`, `BV` in `libv.vfi`, `ED` in
+  `lied.vfi`; un refuso: `lict.vfi` `MAZARA DEL VALLOCTSE3;;` — manca il `;`) · **7 fix nascosti senza punto**
+  (`CTSE3`, `PASE1`, `PASW1`, `PASW2`, `PAW1`, `PHE2`, `PRNW5`) · **2 codici doppi nel `.fix`** (`MJNW1`, `PKS1`).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| F1 | **Scheda per ognuna delle quattro strutture** coi nomi giusti dei campi; nei `.vfi` il 2° campo si chiama «Codice» (convenzione italiana), il tipo 0-3 da elenco (obbligatorio, VFR, eli, area) | Subito | ✅ deciso |
+| F2 | **Gemello `.vfi` ↔ `VFR_NASCOSTI.fix`** (chiave = codice): spostare il punto sposta il gemello, **aggiungere un punto crea il gemello**, togliere il punto propone di togliere il gemello. Estende le copie gemelle di F3-bis | Subito — comune | ✅ deciso |
+| F3 | Punto nuovo in ordine di codice, **codice proposto** = numero libero successivo con lo stesso prefisso (nessuna regola di direzione) | Subito | ✅ deciso |
+| F4 | Controlli: gemello mancante o diverso, fix nascosto senza punto, codice doppio, coordinate scritte male (cifre mancanti, forma diversa dal file), riga con un campo in meno (il `;` mancante di `lict.vfi`) | Subito | ✅ deciso |
+| F5 | **Prova in Aurora**: i tre file di `ENRVFI` sotto `[VFRFIX]` invece di `[VFRENR]` — si vedono? come si accendono senza un aeroporto? | F4, in un ramo | 🟡 da provare |
+| F6 | Controllo `.isc`: file incluso sotto una sezione che non ha la sua forma | Subito — comune (controllo degli `.isc`) | ✅ deciso |
+| F7 | Sistemare i 9 gemelli diversi, il refuso di `lict.vfi`, i 7 orfani, i 2 doppi | quando il sistema è pronto | da fare coi dati |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -247,6 +289,7 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Tag `//@`** di dati che Aurora non legge (livelli, verso, manuale) | AIRWAY B2, B5 · (F3-bis: composte) |
 | **Rami di prova** per tentativi e prove in Aurora | tutti (§0) · ACC A8, A9 · AIRWAY B9, B10 |
 | **Famiglie di forme** (`//@forma=`: la stessa forma in più file, modifica propagata, integrità) — estende le copie gemelle di F3-bis dai record alle forme | DYNAMIC_SEC D5, D6 |
+| **Gemelli fra file di tipo diverso** (punto `.vfi` ↔ fix nascosto `.fix`, chiave = codice; il gemello nasce col punto) — estende le copie gemelle di F3-bis | ENRVFI F2 |
 | **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
 | **Controllo degli `.isc`** (file incluso che non c'è, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
