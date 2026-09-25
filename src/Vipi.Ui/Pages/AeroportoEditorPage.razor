@@ -54,7 +54,7 @@
                               ShowDiff="true" AllowCancel="Authz.IsEditor"
                               BeforePublishAsync="Prepubblicazione"
                               PreviewUrlFactory="ReleasePreviewUrl"
-                              Published="Ricarica" />
+                              Published="Pubblicato" />
             }
         </div>
     </AfterSections>
@@ -196,6 +196,19 @@
     }
 
     private Task Ricarica() => _editor?.RicaricaAsync() ?? Task.CompletedTask;
+
+    /// <summary>
+    /// Dopo «Pubblica»: si rilegge l'ospite <b>e i membri</b>.
+    /// <para>🔴 La pubblicazione è accoppiata: promuove la bozza di OGNI documento dell'unione e molla i lock.
+    /// Prima qui si ricaricava solo l'ospite, e i membri restavano «in modifica» sulla versione di prima — che
+    /// bozza non era più. Il gesto dopo (congelare una sezione resa live un attimo prima) finiva in «Modifica
+    /// consentita solo su una versione in bozza». Segnalato dal campo su Catania, 25 settembre 2026.</para>
+    /// </summary>
+    private async Task Pubblicato()
+    {
+        await Ricarica();
+        if (_membri is not null) await _membri.RicaricaAsync(_altri.Select(a => a.DocumentId).ToList());
+    }
 
     private Task Ridisegna() { StateHasChanged(); return Task.CompletedTask; }
 
