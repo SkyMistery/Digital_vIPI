@@ -1533,6 +1533,13 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.3 — PATCH, NESSUNA migrazione. Su 1.46.2 (f30c036, online dal 25 settembre 2026). Pagina Trasferimenti:
+      aprire una clausola leggeva piste e SID/STAR mentre la pagina stava ancora leggendo, sullo stesso DbContext del
+      circuito («A second operation was started», LICC, 25-set 08:28) e il pannello si apriva con gli elenchi vuoti.
+      Ora una fila rientrante (SemaphoreSlim + AsyncLocal) mette in coda apertura, pannello, ricarichi e salvataggi.
+      Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
       1.46.2 — PATCH, NESSUNA migrazione. Su 1.46.1 (3a8a3f1, online dal 24 settembre 2026). Filone coordinamenti
       (docs/filoni/coordinamenti-aeroporti.md): un accordo su più aeroporti diceva nella frase solo il primo («con
       destinazione Catania Fontanarossa LICC», non anche LICZ); ora li nomina tutti, e nella tabella la colonna
@@ -1752,7 +1759,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.2</VipiVersione>
+    <VipiVersione>1.46.3</VipiVersione>
   </PropertyGroup>
 
 </Project>
