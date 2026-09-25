@@ -33,7 +33,11 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A129 — 1.46.5 PRONTO (non ancora online): nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
+### ✅ A129 — 1.46.5 ONLINE: nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 (sera). Il committente conferma timbro `1.46.5 · e24557e`, `Schema 0` e Ricerca.
+▶ Restano: la prova a mano su Catania (Pubblica/Scarta dalla pagina Versioni, «Modifica» col lock altrui) e, nel
+prossimo scarico, la firma `f45fedc38cea` assente dagli `avvisi-log.txt`.
 
 PATCH, **nessuna migrazione**, su 1.46.4 (`60e782a`). Timbro **`1.46.5 · e24557e`**. Due rami fusi, CI verdi
 sui rami e su `main` (run 36173165988):

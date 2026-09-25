@@ -6,9 +6,10 @@
 >
 > ## ▶ Il punto — 25 settembre 2026 notte
 >
-> **📦 1.46.5 PRONTO, da caricare** (§A129, timbro `1.46.5 · e24557e`, 7 file, zip `299776a8…`, foglio
-> `deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.5.md`): chiude gli aperti **2** (nominativo doppio ATC) e **6**
-> (Pubblica/Scarta per tutta l'unione, «Modifica» non resta spento — ▶ da provare a mano su Catania dopo il carico).
+> **✅ Online: 1.46.5** (§A129, timbro `1.46.5 · e24557e`, 7 file, zip `299776a8…`; timbro, `Schema 0` e Ricerca
+> confermati dal committente): chiude gli aperti **2** (nominativo doppio ATC) e **6** (Pubblica/Scarta per tutta
+> l'unione, «Modifica» non resta spento — ▶ resta la prova a mano su Catania; ▶ firma `f45fedc38cea` assente nel
+> prossimo scarico). **In `main` non resta codice fuori pacchetto.**
 > Fusi `fix/atc-nominativo-doppio` e `fix/versioni-unite`, CI verde su `main`. Worktree e rami fusi tolti (locali e
 > remoti): restano solo `main` e `lab/f3`. Il resto della lista qui sotto vale ancora.
 >
