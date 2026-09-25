@@ -33,7 +33,20 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A128 — 1.46.4 PRONTO DA CARICARE: membri riletti dopo «Pubblica», icone, Diagnostica, arresti (25 settembre 2026)
+### ✅ A128 — 1.46.4 ONLINE: membri riletti dopo «Pubblica», icone, Diagnostica, arresti (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 17:16:17 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.4 (10 richieste: non ancora provata), **1.46.3 chiusa con zero voci su 556 richieste**.
+
+🔎 **La diagnostica nuova funziona in produzione, e dice già una cosa:**
+- `avvio-diagnostica.txt`: «Memoria vista dal runtime 29382 MB» — nessun tetto stretto sul processo;
+- la prima fermata dopo il carico (17:16:46, pid 2310612, acceso 29 s): `ARRESTO … memoria 251 MB (picco 252 MB)`
+  e subito `SEGNALE SIGTERM dal sistema`, poi un avvio **ordinato** col nuovo pid. È Passenger che chiede di fermarsi:
+  il «fermato DA DENTRO» delle righe di prima era il difetto d'ordine, non il codice;
+- ▶ le righe della memoria ogni 5 minuti nel log del giorno non ci sono ancora (scarico un minuto dopo l'avvio). Il
+  prossimo scarico con un taglio come quelli delle 15:01 e 15:56 dirà se prima della morte c'è un SEGNALE (hosting)
+  o la memoria che sale.
+
 
 PATCH, **nessuna migrazione**, su 1.46.3 (`de5af3a`). Timbro **`1.46.4 · 60e782a`**. Tre rami fusi, tutti con CI verde:
 

@@ -4,7 +4,7 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> **📦 1.46.4 PRONTO DA CARICARE (25-set, §A128)**: fusi `fix/pubblica-ricarica-membri` (membri riletti dopo
+> **✅ 1.46.4 ONLINE (25-set 17:16 UTC, §A128; timbro, Schema 0, Ricerca confermati; SIGTERM dal sistema e memoria 251 MB già visibili)**: fusi `fix/pubblica-ricarica-membri` (membri riletti dopo
 > «Pubblica»), `sito/icone-diagnostica` (icone login/logout, «Chi può editare» scorre) e `diag/memoria-segnale`
 > (memoria, SEGNALE e pid negli arresti). PATCH, 8 file (3 in `wwwroot` + indice), timbro `1.46.4 · 60e782a`, zip
 > `2b82a96d…`.
