@@ -4072,6 +4072,13 @@
 :where(.vipi-root) .struct .diag-side>.diag-fold:not([open]){flex:none}
 :where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll){flex:1 1 auto;min-height:160px;display:flex;flex-direction:column}
 :where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll)>.diag-fold-body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+/* 🔴 E fra i due c'è un terzo, che nel markup non si vede: il contenuto di un <details> sta nella scatola
+   `::details-content` del browser, e il `.diag-fold-body` è figlio di LEI, non del <details>. Senza questa
+   riga la scatola restava alta quanto la tabella intera (1 682px per 40 righe, misurato), il `.st-scroll`
+   non aveva niente da scorrere e l'`overflow:hidden` della scheda tagliava in silenzio: «Chi può editare»
+   mostrava le prime righe e le altre non si raggiungevano (25 settembre 2026). In una regola a sé: un browser
+   che non conosce il selettore butta via tutta la regola, e non deve portarsi via anche quella sopra. */
+:where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll)::details-content{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 
 :where(.vipi-root) .struct .diag-card-head{margin-bottom:10px}
 :where(.vipi-root) .struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}
