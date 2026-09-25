@@ -222,11 +222,11 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 |---|---|---|---|
 | E1 | **Zona = blocco** `//@zona="Torino"` … `//@END`: etichetta con la quota + i suoi tratti; soprannome facoltativo, **anche ripetuto** (due zone possono chiamarsi uguali). Cosa sta nella zona lo decide l'utente; il Lab propone i tratti intorno all'etichetta | Subito | ✅ deciso |
 | E2 | **Scheda della zona**: quota col significato («25 = 2500 ft»), valori speciali da elenco, font | Subito | ✅ deciso |
-| E3 | **Gruppo scritto dal Lab**: il 5° campo di ogni `T` nuova è il gruppo del file (ACC); avviso se manca o è diverso | Subito | ✅ deciso |
+| E3 | **Gruppo scritto dal Lab**: il 5° campo di ogni `T` nuova è il gruppo del file (ACC), **anche sulle righe separatrici** (`T;DUMMY;…;LIRR;`); avviso se manca o è diverso | Subito | ✅ deciso |
 | E4 | Tipo fisso, punti coi suggerimenti, nascondi/mostra, spezza/unisci | Subito — comuni | ✅ deciso |
 | E5 | Controlli: poligono senza etichetta, etichetta fuori da ogni zona (le 20 di oggi, da rivedere), valore non valido | Subito | ✅ deciso |
 | E6 | **Adozione**: blocchi dall'ordine di oggi + nomi dai commenti che ci sono; via i commenti in coda | F4, in un ramo | ✅ deciso |
-| E7 | La voce **DUMMY** nella *MVA Selection*: capire da cosa viene (forma del separatore?) e se toglierla, con una prova in Aurora | F4, in un ramo | 🟡 da provare |
+| E7 | La voce **DUMMY** nella *MVA Selection* viene dai separatori `T;DUMMY;…;` **senza 5° campo**: col gruppo in coda (`T;DUMMY;…;LIRR;`) Aurora li attribuisce all'ACC e DUMMY sparisce (provato dal committente, 25 settembre). Adozione: il gruppo sui 104 separatori di oggi | F4, in un ramo (i nuovi: E3) | ✅ risolto |
 | E8 | Tratti lungo il confine della FIR (le 355 «Coast») = copie parziali del confine | F8 (saldatura bordi) | proposta |
 | E9 | Mappa con le zone colorate per quota (buchi e sovrapposizioni a colpo d'occhio) | F8 | proposta |
 | E10 | **Ricalco da immagine**: una carta senza coordinate (PDF o immagine) agganciata alla mappa su 3-4 punti noti, in trasparenza, e le zone disegnate sopra | F6 (aggancio) + F9 (disegno) | proposta — per le carte MVA senza coordinate |
