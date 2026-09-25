@@ -287,6 +287,37 @@ public class AtcTrafficRecorderTests : IAsyncLifetime
         Assert.All(righe, r => Assert.Null(r.HandoffFromSessionId));
     }
 
+    /// <summary>
+    /// 🔴 Il nominativo doppio (25 settembre 2026, LIRF_TW1_APP, quattro volte dal 17): la fotografia IVAO porta la
+    /// stessa postazione DUE volte, una sessione vecchia appesa accanto alla nuova. Il giro sollevava «An item with the
+    /// same key» e saltava intero. Ora non solleva, e il traffico va alla sessione connessa per ultima.
+    /// </summary>
+    [Fact]
+    public async Task Un_nominativo_doppio_non_ferma_il_giro_e_vince_la_sessione_piu_recente()
+    {
+        var vecchia = Atc(100, "LIRR_NE1_CTR") with { StartUtc = T0.AddHours(-2), ConnectedSeconds = 7200 };
+        var nuova = Atc(101, "LIRR_NE1_CTR") with { StartUtc = T0.AddMinutes(-5), ConnectedSeconds = 300 };
+
+        var esito = await Giro(T0, new[] { vecchia, nuova }, new[] { Volo("AZA123", 42.0, 12.0, 35_000) });
+
+        Assert.Equal(1, esito.Attributed);
+        _db.ChangeTracker.Clear();
+        Assert.Equal(101, (await _db.AtcSessionTraffic.SingleAsync()).SessionId);
+    }
+
+    /// <summary>La scelta non dipende dall'ordine in cui la fotografia elenca le due sessioni.</summary>
+    [Fact]
+    public void Fra_due_sessioni_con_lo_stesso_nominativo_vince_la_connessa_per_ultima()
+    {
+        var vecchia = Atc(100, "LIRF_TW1_APP") with { StartUtc = T0.AddHours(-2) };
+        var nuova = Atc(101, "LIRF_TW1_APP") with { StartUtc = T0.AddMinutes(-5) };
+
+        Assert.Equal(101, AtcTrafficRecorder.PiuRecente(new[] { vecchia, nuova }).SessionId);
+        Assert.Equal(101, AtcTrafficRecorder.PiuRecente(new[] { nuova, vecchia }).SessionId);
+        // A pari ora di connessione vince l'id più alto.
+        Assert.Equal(101, AtcTrafficRecorder.PiuRecente(new[] { nuova, vecchia with { StartUtc = nuova.StartUtc } }).SessionId);
+    }
+
     [Fact]
     public async Task Le_fasi_e_le_quote_arrivano_fino_all_archivio()
     {
