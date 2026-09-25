@@ -4,6 +4,40 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
+> ## ▶ Il punto — 25 settembre 2026 sera (prima di un clear)
+>
+> **Online: 1.46.4** (`60e782a`). `main` = `a1bd2c44`, pushato; **in `main` non resta codice fuori pacchetto**.
+> Nella giornata sono uscite 1.46.0 → 1.46.4 (§A124–§A128), tutte confermate dal committente (timbro, `Schema 0`,
+> Ricerca). Era 1.46.1: zero voci su 5276 richieste; 1.46.2: zero su 721; 1.46.3: zero su 556.
+>
+> **Rami.** L'unico con commit propri è `lab/f3` (Sector Lab, 40 commit, CI verde, **non** dichiarato pronto: si
+> consegna quando lo dice il committente). Tutti gli altri sono fusi; i loro worktree si possono togliere:
+> `vipi-coordinamenti`, `vipi-dafare`, `vipi-diag-arresti`, `vipi-icone-diagnostica`, `vipi-lock-uniti`,
+> `vipi-pubblica-membri`, `vipi-trasferimenti-fila` (e `vIPI-sito`, fermo a 1.45.1, senza lavoro aperto).
+>
+> **Aperti, in ordine di peso:**
+> 1. 🔎 **Il sito «va giù»** (tagli del 25-set alle 15:01:00 e 15:56:06 UTC, connessioni tagliate da fuori). Da 1.46.4
+>    `avvii.txt` porta pid e riga `SEGNALE`, `ARRESTO` porta la memoria, il log del giorno la scrive ogni 5 minuti
+>    (§A128). Primo dato: fermata con `SIGTERM dal sistema`, 251 MB su 29 GB. ▶ Al prossimo taglio: SEGNALE senza
+>    ARRESTO = hosting; memoria che sale = limite. Tabella di lettura in `deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md` §9.
+> 2. **Statistiche ATC col nominativo doppio** (firma `f45fedc38cea`, 4 volte dal 17-set, ultima `LIRF_TW1_APP`):
+>    `AtcTrafficRecorder.RecordAsync` fa `ToDictionary` per callsign e la fotografia IVAO può averlo due volte → il
+>    giro del minuto salta (la vista live no). Da correggere scegliendo la sessione più recente.
+> 3. **Pagina Trasferimenti**: la corsa sul DbContext è corretta in 1.46.3, ma su SQLite non si riproduce. ▶ Nel
+>    prossimo `avvisi-log.txt` non devono più esserci «Trasferimenti: … non lette» né «A second operation».
+> 4. **Test intermittente** `PaginaAuditUnGiroAllaVoltaTests.Due_cambi_di_periodo_ravvicinati…` (net8, 1 volta su una
+>    corsa intera, bUnit: il gestore sparisce fra `Find` e `ChangeAsync`). Da rendere deterministico.
+> 5. **Traduzioni da rendere a mano** (in quarantena dopo 3 tentativi): «Catania APP DEVE coordinare con Sigonella
+>    TWR, tutto il traffico OAT/GAT…» e «I voli in VFR prima di entrar…». Pannello traduzioni.
+> 6. **Documenti uniti, lasciati aperti** (`docs/filoni/lock-uniti.md`): «Pubblica versione»/«Scarta bozza» della
+>    pagina Versioni agiscono su UN documento; il tasto «Modifica» del documento singolo resta spento dal lock letto
+>    al caricamento. Non verificata in produzione l'unione di Catania dopo 1.46.4.
+> 7. Fuori dal codice: Edge 153 headless non parte (`pacchetto-verifica.js` fermo, verifiche a mano col browser
+>    integrato) · morti a hh:56, scritto a Ivao.It, si aspetta · GRANT per l'hub quando esiste il suo utente.
+>
+> ⚠️ **Il push lo lancia il committente** (da questa sessione `git push` è vietato dal permesso), e va lanciato dentro
+> il clone: `git -C "vIPI Ivao Italy" push origin main` dalla cartella esterna.
+>
 > **✅ 1.46.4 ONLINE (25-set 17:16 UTC, §A128; timbro, Schema 0, Ricerca confermati; SIGTERM dal sistema e memoria 251 MB già visibili)**: fusi `fix/pubblica-ricarica-membri` (membri riletti dopo
 > «Pubblica»), `sito/icone-diagnostica` (icone login/logout, «Chi può editare» scorre) e `diag/memoria-segnale`
 > (memoria, SEGNALE e pid negli arresti). PATCH, 8 file (3 in `wwwroot` + indice), timbro `1.46.4 · 60e782a`, zip
