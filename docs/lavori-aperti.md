@@ -33,7 +33,19 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
-### 📦 A127 — 1.46.3 PRONTO DA CARICARE: pagina Trasferimenti, una lettura per volta (25 settembre 2026)
+### ✅ A127 — 1.46.3 ONLINE: pagina Trasferimenti, una lettura per volta (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 14:53:11 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.3 (5 richieste: non ancora provata) e **1.46.2 chiusa con zero voci su 721 richieste**.
+Nessun «Trasferimenti: … non lette» dopo quelli delle 08:28 (prima del fix): la conferma vera verrà quando qualcuno
+lavorerà di nuovo sui trasferimenti.
+
+Trovati nello scarico, fuori pacchetto:
+- `AtcTrafficRecorder.RecordAsync` (firma f45fedc38cea, 4 volte dal 17-set, oggi 14:17 con `LIRF_TW1_APP`): lo stesso
+  nominativo due volte nella fotografia IVAO fa fallire `ToDictionary`, e quel minuto di statistiche va perso (la
+  vista live no). Proposto come lavoro a parte.
+- Traduzione: un secondo segmento in quarantena dopo 3 tentativi («I voli in VFR prima di entrar…»): resa a mano.
+
 
 PATCH, **nessuna migrazione**, su 1.46.2 (`f30c036`). Timbro **`1.46.3 · de5af3a`**. Corregge la corsa trovata nello
 scarico di 1.46.1 (§A126): su LICC, aprire una clausola leggeva piste e STAR mentre la pagina leggeva ancora, sullo

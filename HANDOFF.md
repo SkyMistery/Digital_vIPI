@@ -4,7 +4,7 @@
 > Lab in `vipi-lab` su `lab/f3`, sito in `vIPI-sito` su `sito/lavori`; lo stato di ognuno sta in `docs/filoni/<filone>.md`,
 > e questo file lo scrive solo l'integratore. Conteggi dei test: `tests/conteggi/`, un file per assieme.
 >
-> **📦 1.46.3 PRONTO DA CARICARE (25-set, §A127)**: pagina Trasferimenti, una lettura per volta sul DbContext del
+> **✅ 1.46.3 ONLINE (25-set 14:53 UTC, §A127; timbro, Schema 0, Ricerca confermati)**: pagina Trasferimenti, una lettura per volta sul DbContext del
 > circuito (corsa su LICC del 25-set). PATCH, 4 file, timbro `1.46.3 · de5af3a`, zip `d4b1d62e…`.
 >
 > **✅ 1.46.2 ONLINE (25-set 13:14 UTC, §A126; timbro, Schema 0, Ricerca confermati)**: coordinamenti su più aeroporti, la frase li nomina tutti e la
