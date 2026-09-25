@@ -609,6 +609,19 @@
     private string AvvisoUnione(ManagedDoc d) =>
         Unito(d) is int n && n > 1 ? L["Rel_UnionTitle", n].Value : "";
 
+    /// <summary>
+    /// Per «Pubblica versione» e «Scarta bozza»: su un documento unito valgono per le bozze di tutti i membri
+    /// (<c>EditingService</c>, 25 settembre 2026), e la frase lo dice. Vuota se il documento è solo.
+    /// </summary>
+    private string AvvisoBozzeUnite(ManagedDoc d) =>
+        Unito(d) is int n && n > 1 ? L["Ver_UnionDraftsTogether", n].Value : "";
+
+    /// <summary>La domanda prima di scartare, con l'avviso dell'unione quando serve.</summary>
+    private string PromptScarta(ManagedDoc d) =>
+        AvvisoBozzeUnite(d) is { Length: > 0 } avviso
+            ? L["Ver_DiscardPrompt"].Value + " " + avviso
+            : L["Ver_DiscardPrompt"].Value;
+
     /// <summary>La domanda prima di «pubblica ora», con l'avviso dell'unione quando serve.</summary>
     private string PromptPubblicaOra(ManagedDoc d) =>
         AvvisoUnione(d) is { Length: > 0 } avviso
@@ -982,12 +995,13 @@
                     <span class="vact">
                         @if (v.Status == DocumentStatus.Draft)
                         {
-                            <button class="btn primary" disabled="@_busy" @onclick="() => Publish(d, v.Id)">@L["Ver_PublishVersion"]</button>
+                            @* Su un documento unito il tasto pubblica le bozze di TUTTI i membri, e lo dice (25 settembre 2026). *@
+                            <button class="btn primary" disabled="@_busy" title="@AvvisoBozzeUnite(d)" @onclick="() => Publish(d, v.Id)">@L["Ver_PublishVersion"]</button>
                             @* Scartare distrugge lavoro: stessa conferma in linea dell'eliminazione documento. *@
                             @* Etichette passate esplicitamente: i default del componente sono in italiano fisso
                                e direbbero «elimina», mentre qui l'azione è «scarta» — e la pagina può essere in inglese. *@
                             <InlineConfirm TriggerClass="btn ghost" TriggerTitle="@L["Ver_DiscardTitle"]" AriaLabel="@L["Ver_DiscardAria"]"
-                                           Prompt="@L["Ver_DiscardPrompt"]" Disabled="@_busy"
+                                           Prompt="@PromptScarta(d)" Disabled="@_busy"
                                            ConfirmLabel="@L["Ver_DiscardConfirm"]" CancelLabel="@L["Common_Cancel"]"
                                            OnConfirm="() => DiscardDraft(d, v.Id)">
                                 <Trigger><Icon Name="trash" /> @L["Ver_Discard"]</Trigger>
@@ -1117,6 +1131,14 @@
     private async Task RileggiDopoGestoAsync(ManagedDoc d)
     {
         var key = RowKey(d);
+        // Su un documento unito il gesto ha toccato anche gli altri membri: i loro pannelli aperti sarebbero
+        // rimasti sulla bozza che non c'è più. Si dimentica tutto, e si rilegge quello di questa riga.
+        if (Unito(d) is > 1)
+        {
+            _versions.Clear();
+            _releases.Clear();
+            _history.Clear();
+        }
         _versions.Remove(key);
         _releases.Remove(key);
         _history.Remove(key);

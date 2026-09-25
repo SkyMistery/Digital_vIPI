@@ -701,6 +701,103 @@ public class EditingRepositoryTests : IAsyncLifetime
         finally { System.Globalization.CultureInfo.CurrentUICulture = linguaPrima; }
     }
 
+    // ---- 25 settembre 2026: «Pubblica versione» e «Scarta bozza» su un documento UNITO ------------------------
+    // Regola del committente: la pubblicazione di uno pubblica anche gli altri. L'editor e le release lo facevano già;
+    // la pagina Versioni, che passa da qui, lasciava mezza unione in bozza.
+
+    /// <summary>Due documenti uniti (la vIPI e la vLOA del seme), con una bozza aperta ciascuno.</summary>
+    private async Task<(int DocA, int BozzaA, int DocB, int BozzaB, EditingService Svc)> UnitiConBozzeAsync()
+    {
+        var docA = await AccDocIdAsync();
+        var docB = await _db.Documents.Where(d => d.Type == DocumentType.Vloa).Select(d => d.Id).FirstAsync();
+        await new EfDocumentUnionRepository(_db).CreateAsync(docA, docB, createdByUserId: 111);
+
+        var svc = ServizioConUnioni(new AllowAuthz());
+        var bozzaA = await svc.CreateDraftAsync(docA);
+        var bozzaB = await svc.CreateDraftAsync(docB);
+        return (docA, bozzaA, docB, bozzaB, svc);
+    }
+
+    [Fact]
+    public async Task Pubblicare_la_bozza_di_un_documento_unito_pubblica_anche_quella_degli_altri()
+    {
+        var (docA, bozzaA, docB, bozzaB, svc) = await UnitiConBozzeAsync();
+
+        await svc.PublishAsync(bozzaA, note: null);
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaA)).Status);
+        Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaB)).Status);
+        Assert.Equal(bozzaB, (await _db.Documents.SingleAsync(d => d.Id == docB)).CurrentVersionId);
+        // Pubblicato → liberi tutti e due, come dopo il publish di un documento solo.
+        Assert.False((await svc.InspectLockAsync(docA)).Locked);
+        Assert.False((await svc.InspectLockAsync(docB)).Locked);
+    }
+
+    [Fact]
+    public async Task Scartare_la_bozza_di_un_documento_unito_scarta_anche_quella_degli_altri()
+    {
+        var (_, bozzaA, _, bozzaB, svc) = await UnitiConBozzeAsync();
+
+        await svc.DiscardDraftAsync(bozzaA);
+
+        _db.ChangeTracker.Clear();
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == bozzaA));
+        Assert.False(await _db.DocumentVersions.AnyAsync(v => v.Id == bozzaB));
+    }
+
+    /// <summary>
+    /// Tutti o nessuno: se un membro è in mano a un collega, il gesto si ferma PRIMA di scrivere. Nessuna bozza esce
+    /// dalla porta, e il gesto rifiutato non lascia documenti bloccati a nome di chi l'ha tentato.
+    /// </summary>
+    [Fact]
+    public async Task Un_membro_in_mano_a_un_collega_ferma_tutto_prima_di_scrivere()
+    {
+        var (docA, bozzaA, docB, bozzaB, svc) = await UnitiConBozzeAsync();
+        await svc.ReleaseLockAsync(docB);
+        var collega = ServizioConUnioni(new CollegaAuthz());
+        Assert.True((await collega.AcquireLockAsync(docB)).IsMine);
+
+        await Assert.ThrowsAsync<EditConflictException>(() => svc.PublishAsync(bozzaA, note: null));
+        await Assert.ThrowsAsync<EditConflictException>(() => svc.DiscardDraftAsync(bozzaA));
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(DocumentStatus.Draft, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaA)).Status);
+        Assert.Equal(DocumentStatus.Draft, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaB)).Status);
+        Assert.True((await collega.InspectLockAsync(docB)).IsMine);   // il suo lock è rimasto suo
+        Assert.True((await svc.InspectLockAsync(docA)).IsMine);       // e il nostro sul primo, che avevamo già
+    }
+
+    /// <summary>Senza unione (o senza il repository delle unioni) il documento si comporta da solo: la regola di prima.</summary>
+    [Fact]
+    public async Task Un_documento_non_unito_pubblica_solo_la_sua_bozza()
+    {
+        var docA = await AccDocIdAsync();
+        var docB = await _db.Documents.Where(d => d.Type == DocumentType.Vloa).Select(d => d.Id).FirstAsync();
+        var svc = ServizioConUnioni(new AllowAuthz());
+        var bozzaA = await svc.CreateDraftAsync(docA);
+        var bozzaB = await svc.CreateDraftAsync(docB);
+
+        await svc.PublishAsync(bozzaA, note: null);
+
+        _db.ChangeTracker.Clear();
+        Assert.Equal(DocumentStatus.Published, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaA)).Status);
+        Assert.Equal(DocumentStatus.Draft, (await _db.DocumentVersions.SingleAsync(v => v.Id == bozzaB)).Status);
+    }
+
+    private EditingService ServizioConUnioni(Vipi.Application.Auth.IEditAuthorizationService authz) => new(_repo, authz,
+        Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()),
+        new EfDocumentUnionRepository(_db));
+
+    private sealed class CollegaAuthz : Vipi.Application.Auth.IEditAuthorizationService
+    {
+        public bool IsAdmin => true;
+        public VipiRole Role => VipiRole.Admin;
+        public int? CurrentUserId => 222;
+        public string? CurrentName => "collega";
+        public void EnsureAdmin() { }
+    }
+
     private EditingService Servizio() => new(_repo, new AllowAuthz(),
         Microsoft.Extensions.Options.Options.Create(new Vipi.Application.ReleaseRetentionOptions()));
 
