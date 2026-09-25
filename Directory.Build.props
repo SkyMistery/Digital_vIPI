@@ -1533,6 +1533,15 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.4 — PATCH, NESSUNA migrazione. Su 1.46.3 (de5af3a, online dal 25 settembre 2026). Tre rami fusi:
+      fix/pubblica-ricarica-membri (dopo «Pubblica» gli editor uniti — aeroporto, APP, vSOP militare — rileggono anche
+      i membri: restavano «in modifica» su una versione che bozza non era più, segnalato su Catania);
+      sito/icone-diagnostica (icone login/logout distinguibili; in Diagnostica «Chi può editare» scorre invece di
+      tagliarsi, regola su ::details-content in vipi-theme.css); diag/memoria-segnale (diagnostica degli arresti:
+      memoria del processo nel log ogni 5 minuti, riga SEGNALE, pid in AVVIO/ARRESTO, verdetto sul processo giusto).
+      Tocca Vipi.Ui, Vipi.Host (+ timbro) e vipi-theme.css con l'indice degli asset. Nessuna frase.
+    -->
+    <!--
       1.46.3 — PATCH, NESSUNA migrazione. Su 1.46.2 (f30c036, online dal 25 settembre 2026). Pagina Trasferimenti:
       aprire una clausola leggeva piste e SID/STAR mentre la pagina stava ancora leggendo, sullo stesso DbContext del
       circuito («A second operation was started», LICC, 25-set 08:28) e il pannello si apriva con gli elenchi vuoti.
@@ -1759,7 +1768,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.46.3</VipiVersione>
+    <VipiVersione>1.46.4</VipiVersione>
   </PropertyGroup>
 
 </Project>
