@@ -451,6 +451,49 @@ Stesso formato di §10. Qui i **settori di avvicinamento** (`…_APP`).
 | K3 | Togliere `limc_star.lartcc` e `lirf_star.lartcc` (file, righe degli `.isc`, `delete.upd` — C4) | F4 (o a mano, quando l'AOD lo fa) | ✅ deciso in AOD |
 | K4 | Configurazioni nascoste di `limm_tma` (276 righe): restano commentate; nel Lab visibili come «nascoste» (B3) | — | ✅ per ora così |
 
+## §12 — `NAVAIDS` (fix, NDB, VOR; sezioni `[FIXES]`, `[NDB]`, `[VOR]`)
+
+### Formati (manuale IVAO)
+
+- Fix: `Nome (max 5);Lat;Lon;Tipo;Confine;[Attesa]` — tipo 0 ENR, 1 TERM, 2 entrambi, 3 nascosto; confine 0/1; il nome
+  dell'attesa sta nel **6° campo** (il testo del manuale dice «5°», il suo esempio e il sector il 6°).
+- NDB: `Nome;kHz;Lat;Lon;[Visibilità 0/1]`, attesa all'8° campo. VOR: `Nome (max 3);MHz;Lat;Lon;[Visibilità];[Tipo 0
+  VOR, 1 VORDME, 2 VORTAC, 3 TACAN, 4 DME];[Canale TACAN];[Attesa]`.
+- Attese (`[HOLDENR]`, `HOLDENR.hold`): `NOME;Lat;Lon;[Info]`, il nome uguale a quello scritto nel fix/navaid.
+
+### Cosa c'è (misure del 25 settembre)
+
+| File | Dati | Cosa sono |
+|---|---|---|
+| `itfix.fix` | 1 256 | i fix: 444 ENR, 496 TERM, 316 entrambi; 658 di confine; 54 con l'attesa |
+| `APT.fix` | 781 | fix di scalo nascosti, a sezioni `//LIBC` |
+| `ESTERNI.fix` | 641 | fix esteri, nascosti |
+| `secsi.fix` | 527 | **i fix del FRA internazionale**, per poter dare i diretti (committente) |
+| `VFR_NASCOSTI.fix` | 512 | gemelli dei punti VFR (§7) |
+| `MIL.fix` | 186 | militari; 89 nomi oltre i 5 caratteri (`BV-ARGIR`) — **Aurora li accetta** |
+| `itvor.vor` / `itndb.ndb` | 122 / 27 | 14 VOR con l'attesa |
+| `ENR.fix`, `FRA.fix`, `TERM.fix` | vuoti | resti del «file unico dei fix» (giugno 2026), in `delete.upd` |
+
+- **Attese**: 68 citate, 68 definite; **una sbagliata**: il fix `EKLAP` cita `HLD-ELKAP`, la definizione è `HLD-EKLAP`
+  → oggi non si vede. L'info ha una forma fissa: `ABBOZ/225R-9000` (fix/rotta, virata, quota).
+- 5 righe illeggibili: `APT.fix` `MG763` (`E008-11.31.443`), `MIL.fix` `BV-VICTOR` (cifra in meno) e `TAC-06R`
+  (decimale), `VFR_NASCOSTI.fix` `RFS3` (cifra in più), `itvor.vor` `VBA` (`n` minuscola). Refusi: `3:` in `APT.fix`,
+  9 righe di `VFR_NASCOSTI.fix` senza tipo.
+- **269 nomi ripetuti**: 245 nella stessa posizione (doppioni), 24 in posizioni diverse (`SARKI` ×2 in `ESTERNI.fix`
+  a 568 NM, `BV-BRAVO` ×2 in `MIL.fix` a 34 NM, `PKS1`, `MJNW1`…). Doppioni soprattutto `ESTERNI` ↔ `secsi` (121) e
+  `ESTERNI` ↔ `itfix` (72).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| L1 | **Schede tipizzate** (tipo fix, confine, visibilità, tipo VOR, canale TACAN) con l'**attesa collegata** alla sua definizione e l'info `ABBOZ/225R-9000` mostrata a campi | Subito | ✅ deciso |
+| L2 | **«Chi lo usa»**: dove è citato un fix/navaid (aerovie, SID/STAR, settori, ACC, MVA, `.vfi`, attese); **rinominare aggiorna tutti i riferimenti**, spostare avvisa, togliere è impedito se è usato | Subito — comune | ✅ deciso |
+| L3 | **Nome unico**: avviso per i nomi in posizioni diverse (24); i doppioni nella stessa posizione (245, per lo più `ESTERNI` che ripete `secsi`/`itfix`) segnalati, da pulire | Subito (controllo) + F4 (pulizia) | ✅ deciso |
+| L4 | Controlli: coordinate illeggibili (con correzione proposta), attesa citata e non definita o viceversa, campi mancanti. **Nome oltre i 5 caratteri NON è un errore** (Aurora lo accetta) | Subito | ✅ deciso |
+| L5 | Import di fix (ENR 4.4) e navaid (ENR 4.1) dall'AIP, col confronto | F6 | ✅ deciso |
+| L6 | Via `ENR.fix`, `FRA.fix`, `TERM.fix` vuoti | **più avanti**, non ora (committente) | 🕓 rimandato |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -477,5 +520,6 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Fonte primaria, mai vIPI** (committente, 25 settembre): i dati entrano dal DB di IVAO o dai PDF dell'AIP, non dal sito — niente riferimenti circolari | GEO G5 · AIRWAY B8 · tutto F6 |
 | **Coordinate in una forma sola**: col punto (`N045.00.00.000`), anche dove oggi sono compatte | GEO G6 · (da decidere per `.vfi`/`.tfl`, dove la forma compatta è la regola del file) |
 | **Semplifica / densità** (tolleranza in metri, archi a N gradi) | GEO G4 · F1 archi |
+| **«Chi lo usa»**: indice dei riferimenti a un nome (fix, navaid, attesa, punto VFR); rinomina che aggiorna tutto, togliere impedito se usato | NAVAIDS L2 · L1 (attese) · §7 (rotte VFR per nome) |
 | **Ogni modifica lascia una traccia** (riga di changelog proposta, `delete.upd`, `ITALY.isc`) | CHANGELOG C1, C4 · ACC A9 |
 | **Niente commenti in coda** (committente, 24 settembre: «dopo una riga letta da Aurora non vanno commenti `//`»). Oggi **713 righe in 70 file** (`limm.mva` 374 `//Coast`, `limc.sid` 34, `itawlow.lairway` 28 `BREAK`, `FRA.artcc` 18, `GCI.tfl` 19…); `SectorError.log` di Aurora vuoto, quindi non le segnala. 🔴 `limc.sid:…;0;OSKOR; //SUPER-HEAVY-A321`: il commento sta nell'8° campo (`RNAV`). → controllo «commento in coda» · gesto «sposta il commento sopra» (riga o file) · garanzia con test che il Lab non ne scrive mai. **Avviso**, non errore: lo sviluppatore di Aurora dice che una riga col `//` in coda si legge in **circa il doppio del tempo** (lentezza, non dato sbagliato). Pulizia di tutto il sector in un colpo: in un ramo (F4) | tutti |
