@@ -23,9 +23,10 @@ public sealed record CoordinationPreviewContext(
         LevelConstraint constraint, int? levelValue, LevelUnit levelUnit, string? levelSpecial,
         LevelParity parity, TransferVerticalState verticalState, string cop,
         IReadOnlyList<ConditionClause> conditions,
-        TransferHandoffFacet? facet = null) =>
+        TransferHandoffFacet? facet = null,
+        IReadOnlyList<string>? airportIcaos = null) =>
         CoordinationSentences.Compose(Template, Types, Names, Codes, Airports, Atc,
             ownerCallsign, nextCallsign ?? "", airportIcao,
             constraint, levelValue, levelUnit, levelSpecial, parity, cop, kind,
-            conditions, verticalState, facet);
+            conditions, verticalState, facet, airportIcaos: airportIcaos);
 }

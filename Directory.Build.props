@@ -1533,6 +1533,97 @@
       avviava due login, e il ritorno da IVAO falliva per «nonce». Tocca Vipi.Ui e Vipi.Host per il timbro.
     -->
     <!--
+      1.46.5 — PATCH, NESSUNA migrazione. Su 1.46.4 (60e782a, online dal 25 settembre 2026). Due rami fusi:
+      fix/atc-nominativo-doppio (statistiche ATC: lo stesso nominativo due volte nella fotografia IVAO sollevava
+      «An item with the same key» e il giro del minuto saltava intero — firma f45fedc38cea; ora vince la sessione
+      connessa per ultima); fix/versioni-unite (documenti uniti: «Pubblica versione» e «Scarta bozza» di Versioni
+      valgono per tutti i membri, coi lock di tutti presi prima di scrivere; «Modifica» dei cinque editor non resta
+      spento per un lock altrui letto al caricamento). Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN) e Vipi.Host
+      per il timbro.
+    -->
+    <!--
+      1.46.4 — PATCH, NESSUNA migrazione. Su 1.46.3 (de5af3a, online dal 25 settembre 2026). Tre rami fusi:
+      fix/pubblica-ricarica-membri (dopo «Pubblica» gli editor uniti — aeroporto, APP, vSOP militare — rileggono anche
+      i membri: restavano «in modifica» su una versione che bozza non era più, segnalato su Catania);
+      sito/icone-diagnostica (icone login/logout distinguibili; in Diagnostica «Chi può editare» scorre invece di
+      tagliarsi, regola su ::details-content in vipi-theme.css); diag/memoria-segnale (diagnostica degli arresti:
+      memoria del processo nel log ogni 5 minuti, riga SEGNALE, pid in AVVIO/ARRESTO, verdetto sul processo giusto).
+      Tocca Vipi.Ui, Vipi.Host (+ timbro) e vipi-theme.css con l'indice degli asset. Nessuna frase.
+    -->
+    <!--
+      1.46.3 — PATCH, NESSUNA migrazione. Su 1.46.2 (f30c036, online dal 25 settembre 2026). Pagina Trasferimenti:
+      aprire una clausola leggeva piste e SID/STAR mentre la pagina stava ancora leggendo, sullo stesso DbContext del
+      circuito («A second operation was started», LICC, 25-set 08:28) e il pannello si apriva con gli elenchi vuoti.
+      Ora una fila rientrante (SemaphoreSlim + AsyncLocal) mette in coda apertura, pannello, ricarichi e salvataggi.
+      Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
+      1.46.2 — PATCH, NESSUNA migrazione. Su 1.46.1 (3a8a3f1, online dal 24 settembre 2026). Filone coordinamenti
+      (docs/filoni/coordinamenti-aeroporti.md): un accordo su più aeroporti diceva nella frase solo il primo («con
+      destinazione Catania Fontanarossa LICC», non anche LICZ); ora li nomina tutti, e nella tabella la colonna
+      «Anche per» diventa «Per» e dice per chi vale ogni riga. Le release già pubblicate tengono la frase congelata.
+      Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro. Vipi.Hosting NON serve: la proprietà
+      nuova (AirportsAnd) sta nella classe del template con il suo default, come PointsOr. Nessun file di wwwroot.
+    -->
+    <!--
+      1.46.1 — PATCH, NESSUNA migrazione. Su 1.46.0 (d54dbb0, online dal 24 settembre 2026). Il «Re-import da IVAO»
+      dell'editor militare faceva cadere il circuito: Ape_ReimportDone chiede 4 argomenti e ne riceveva 3. Ora importa
+      anche le SID/STAR come l'editor aeroporto e ne passa il numero. Guardia nuova sugli argomenti delle frasi
+      (SharedResourceIntegrityTests). Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
+      1.46.0 — MINOR, NESSUNA migrazione. Su 1.45.1 (cb62ebc, online dal 24 settembre 2026). Due filoni fusi.
+      Lock uniti (docs/filoni/lock-uniti.md): l'editor dei documenti uniti entra in modifica solo se il lock tornato
+      è NOSTRO, e il lock del membro lo decide il database (niente pre-controllo in cache). Lista «Da fare»
+      (docs/filoni/lista-da-fare.md): «Da sistemare» a sezioni richiudibili con «Documenti da rivedere» in cima;
+      Diagnostica «Chi può editare» con la colonna «Concesso da»; e la regola del committente (carta
+      2026-09-24-mil-solo-traffico-militare): il MIL_CTR raccoglie solo il traffico militare, e l'APP di uno scalo
+      «Solo militare» ha una riga AUTOMATICA verso il suo MIL — comportamento nuovo, quindi MINOR. Tocca
+      Vipi.Application, Vipi.Infrastructure, Vipi.Ui (+ frasi IT/EN) e Vipi.Host per il timbro. Nessun file di wwwroot.
+    -->
+    <!--
+      1.45.1 — PATCH, NESSUNA migrazione. Su 1.45.0 (7bd3bda, online dal 24 settembre 2026). Filone sito
+      (docs/filoni/sito.md): S7, la Ricerca parte dal cambio del testo (@bind:after) e non più solo dal tasto
+      rilasciato — incollando, con l'autocompletamento o da uno script restava la parola nuova col conteggio
+      vecchio («0 results»). S8 (solo strumenti): pacchetto-verifica.js pretende che LIRF trovi almeno un documento.
+      Tocca Vipi.Ui e Vipi.Host per il timbro. Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
+      1.45.0 — MINOR, migrazione ADDITIVA (20260923195956_CausaDelleSegnalazioni: due colonne nullable CauseKey e
+      CauseArgsJson su DocumentImpacts). Su 1.44.1 (ce8a59f, online dal 23 settembre 2026). Filone «lista Da fare»
+      (docs/filoni/lista-da-fare.md, carta docs/feature/2026-09-23-da-fare-per-cambiamento.md): l'incarico si chiude
+      con la sua segnalazione; la lista si legge per cambiamento (predefinita), per documento o come elenco; la
+      deriva si ricalcola pochi minuti dopo un salvataggio (SegnalaModificheInterceptor +
+      DerivaDopoLeModificheHostedService) e porta la sua causa; nel pannello di pubblicazione «segna rilette anche
+      queste N» e «cosa è cambiato» nella riga, con l'età. Tocca Vipi.Domain, Vipi.Application, Vipi.Infrastructure,
+      Vipi.Infrastructure.MySqlMigrations, Vipi.Ui (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
+    -->
+    <!--
+      1.44.1 — PATCH, NESSUNA migrazione. Su 1.44.0 (3561423, online dal 23 settembre 2026). Filone sito
+      (docs/filoni/sito.md): S4 bis, la linea delle colonne si vede sempre nell'editor delle tabelle (solo
+      vipi-theme.css); S6, nelle frasi dei trasferimenti una STAR di un arrivo si dice «autorizzato alla STAR X»
+      (in inglese «cleared via the X arrival»), le SID e i fix restano «via» — segnaposto {cleared} con due valori
+      nuovi in CoordinationSentenceOptions, e un modello scritto a mano senza {cleared} dice «via» come prima.
+      Tocca Vipi.Application, Vipi.Hosting, vipi-theme.css e Vipi.Host per il timbro. Nessuna frase dell'interfaccia.
+    -->
+    <!--
+      1.44.0 — MINOR, NESSUNA migrazione. Su 1.43.1 (a8a1cea, online dal 23 settembre 2026). Due lavori del filone
+      sito (docs/filoni/sito.md): S4, la larghezza delle colonne delle tabelle si sceglie da chi scrive (campo e
+      trascinamento del bordo, TabellaGenerica + ColonneTabella + vipi-editor.js); S5, l'editor dei trasferimenti
+      avvisa delle SID/STAR scritte fra i punti che non si trovano più (carta
+      docs/feature/2026-09-23-procedure-non-trovate-negli-accordi.md: ciclo entrante con 3 giorni d'anticipo, tasto
+      sulla barra, riga fissa). Tocca Vipi.Application, Vipi.Ui (+ frasi IT/EN, vipi-editor.js, vipi-theme.css,
+      Guida) e Vipi.Host per il timbro.
+    -->
+    <!--
+      1.43.1 — PATCH, NESSUNA migrazione. Su 1.43.0 (54355eb, online dal 23 settembre 2026). Due correzioni del
+      filone sito (docs/filoni/sito.md): S2, dopo «Hide» nelle sezioni in comune si ricaricano anche i membri
+      dell'unione (RegistroMembri, tre pagine ospite); S3, fra i punti dei trasferimenti e nel selettore «Cita»
+      compaiono le procedure del ciclo ENTRANTE (le STAR timbrate 2610 non uscivano, es. ERIKA 1A a LIRN: serve
+      online PRIMA del 1° ottobre, dopo si sistema da sé). Tocca Vipi.Application, Vipi.Ui e Vipi.Host per il timbro.
+      Nessuna frase, nessun file di wwwroot.
+    -->
+    <!--
       1.43.0 — MINOR, migrazione ADDITIVA solo MySQL (20260923100945_VistaCondivisaSessioniAtc: crea la vista
       v_share_atc_sessions, niente tabelle toccate). Su 1.42.1 (a66f25e, online dal 22 settembre 2026). La vista
       per l'IVAO Division Hub e la copia del database che la porta (lavori aperti §A117); l'editor APP unito che
@@ -1686,7 +1777,7 @@
       Vipi.Domain, Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui
       (+ frasi IT/EN, vipi-theme.css) e Vipi.Host per il timbro.
     -->
-    <VipiVersione>1.43.0</VipiVersione>
+    <VipiVersione>1.46.5</VipiVersione>
   </PropertyGroup>
 
 </Project>

@@ -2005,6 +2005,15 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CauseArgsJson")
+                        .HasColumnType("longtext")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
+                    b.Property<string>("CauseKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<int>("ClearedByUserId")
                         .HasColumnType("int");
 

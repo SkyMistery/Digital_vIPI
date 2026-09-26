@@ -1,41 +1,42 @@
-# Più agenti in parallelo: chi scrive dove 🟢
+# Più chat in parallelo: chi fa cosa 🟢
 
-> Nata il 23 settembre 2026. Quel giorno tre agenti (Sector Lab, sito, vista condivisa per l'hub) hanno lavorato
-> insieme: il codice era a posto, ma `main` era rossa per un commit di sola carta, due rami erano non fusi, e ogni
-> fusione si scontrava su righe vicine di file comuni (conteggi dei test, `HANDOFF.md`, `docs/index.md`). Qui c'è
-> chi scrive dove, perché i conflitti nascano solo quando due lavori toccano davvero la stessa cosa.
+> Nata il 23 settembre 2026, riorganizzata il 26. Il 23 tre agenti avevano lasciato `main` rossa, rami non fusi e
+> conflitti su file comuni; fino al 25 lo stato di ogni filone stava in cinque posti che si sono sfasati, il ruolo
+> di una chat dipendeva dalla frase d'apertura (una chat ha fatto da integratore mentre ce n'era già uno) e si
+> apriva un worktree per ogni correzione. Dal 26: tre chat fisse, tre cartelle fisse, un file di stato ciascuna.
+>
+> Le regole operative per le chat stanno **fuori dal repo**, nella cartella da cui si lanciano: `..\CLAUDE.md` e
+> le skill `..\.claude\skills\{master,sito,lab}` (una chat si apre con `/master`, `/sito` o `/lab`). Qui resta la
+> mappa, per chi legge il repo.
 
-## Un agente = un worktree = un ramo
+## Tre chat, tre cartelle
 
-| Filone | Cartella (sotto `vIPI Ivao Italy\`) | Ramo | Il suo file |
+| Chat | Cartella (sotto `vIPI Ivao Italy\`) | Ramo | Scrive nel repo |
 |---|---|---|---|
-| Integratore | `vIPI Ivao Italy` (clone principale) | `main` | `HANDOFF.md`, `docs/lavori-aperti.md` |
-| Sector Lab | `vipi-lab` | `lab/f3` | [`lab.md`](lab.md) |
-| Sito vIPI | `vIPI-sito` | `sito/lavori` | [`sito.md`](sito.md) |
+| Master (`/master`) | `vIPI Ivao Italy` (clone) | `main` | le fusioni, `HANDOFF.md`, §A di `docs/lavori-aperti.md`, `Directory.Build.props`, `deploy/`, i pacchetti |
+| Sito (`/sito`) | `vipi-sito` | `sito/lavori` (+ `fix/<cosa>` per le urgenze) | [`sito.md`](sito.md) (voci S1, S2…) e il codice del sito |
+| Sector Lab (`/lab`) | `vipi-lab` | `lab/f3` | [`lab.md`](lab.md), le carte del Lab, il codice del Lab |
 
-Un filone nuovo: dal clone principale `git worktree add ../<cartella> -b <ramo> main`, una riga in questa tabella
-(la aggiunge l'integratore) e un file `docs/filoni/<filone>.md`. Mai `cd`, build o test nella cartella di un altro.
-`git stash` è COMUNE a tutti i worktree: niente stash, un commit WIP.
+I worktree restano: dopo una fusione il filone si riallinea con `git merge main`, da solo. Solo il Master porta
+un ramo in `main`, e fonde lo sha che il filone ha dichiarato pronto, con la CI verde. Un'urgenza del sito la fa
+il Sito: mette in pausa il suo lavoro con un commit WIP, corregge su un ramo `fix/<cosa>` nato da `main`, poi
+riprende.
 
-## Chi scrive che cosa
+## File comuni del repo
 
 | File | Chi |
 |---|---|
-| `docs/filoni/<filone>.md` | **solo** quel filone: lo stato, cosa è fatto, cosa resta, numerazione sua (sito: S1, S2…) |
-| `tests/conteggi/<Assieme>.txt` | chi aggiunge o toglie test in quell'assieme, **nello stesso commit** dei test: `bash tools/conta-test.sh <log> --scrivi <Assieme>` (il log deve avere TUTTI i TFM dell'assieme) |
-| `docs/index.md` | nessuno a mano fra i marcatori: una carta nuova → `python tools/indice-doc.py` nello stesso commit. Conflitto lì a una fusione → si rigenera |
-| `HANDOFF.md`, `docs/lavori-aperti.md` (le voci §A) | **l'integratore**, quando fonde o consegna: riassume dal file del filone |
-| `Directory.Build.props` (versione), `deploy/`, i pacchetti | **l'integratore**: un pacchetto lo prepara uno solo |
-| `main` | **l'integratore**: ci si arriva solo per fusione di un ramo verde in CI |
+| `tests/conteggi/<Assieme>.txt` | chi aggiunge o toglie test in quell'assieme, **nello stesso commit**: `bash tools/conta-test.sh <log> --scrivi <Assieme>` (il log deve avere TUTTI i TFM dell'assieme) |
+| `docs/index.md` | nessuno a mano fra i marcatori: carta nuova → `python tools/indice-doc.py` nello stesso commit. Conflitto lì a una fusione → si rigenera |
+| `HANDOFF.md`, §A di `docs/lavori-aperti.md`, `Directory.Build.props`, `deploy/` | il Master, quando fonde o consegna, riassumendo dal file del filone |
 
-Codice in comune (`Vipi.Application`, `Vipi.Sectorfile`, `tools/`): chi lo cambia lo scrive nel suo file di filone
-e nel messaggio del commit, perché l'integratore lo guardi alla fusione.
+Codice in comune (`Vipi.Application`, `Vipi.Sectorfile`, `tools/`): chi lo cambia lo scrive nel file del filone e
+nel messaggio del commit, perché il Master lo guardi alla fusione. `git stash` è comune a tutti i worktree: niente
+stash, un commit WIP.
 
-## Il rito
+## Filoni chiusi
 
-- **Apertura** (primo messaggio della chat): «Sei l'agente <filone>. Lavori solo in `<cartella>` sul ramo
-  `<ramo>`. Leggi `docs/filoni/come-si-lavora-in-parallelo.md` e `docs/filoni/<filone>.md`.» Per l'integratore:
-  «Sei l'integratore: stato dei rami, CI, cosa fondere.»
-- **Prima di cominciare**: `git merge main` nel proprio ramo, se `main` è andata avanti.
-- **Chiusura**: commit, push, CI verde sul proprio ramo (`gh run list --branch <ramo>`), `docs/filoni/<filone>.md`
-  aggiornato con «pronto da fondere» o «in corso».
+[`coordinamenti-aeroporti.md`](coordinamenti-aeroporti.md), [`lista-da-fare.md`](lista-da-fare.md) e
+[`lock-uniti.md`](lock-uniti.md): fusi e online nelle 1.46.x, restano come storia. [`da-fare.md`](da-fare.md), la
+coda dei lavori assegnati ai filoni, è chiusa dal 26 settembre: la coda la tiene il Master nella sua memoria, dove
+un filone la legge senza aspettare una fusione.

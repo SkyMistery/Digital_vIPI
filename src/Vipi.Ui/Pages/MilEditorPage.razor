@@ -40,7 +40,7 @@
                           ShowDiff="true" AllowCancel="Authz.IsEditor"
                           BeforePublishAsync="Prepubblicazione"
                           PreviewUrlFactory="ReleasePreviewUrl"
-                          Published="Ricarica" />
+                          Published="Pubblicato" />
         </div>
     </AfterSections>
 </MilSectionsEditor>
@@ -150,6 +150,10 @@
         _unioneRev++;
         await LeggiUnioneAsync();
         await Ricarica();
+        // 🔴 §S2: anche i MEMBRI. «Hide» nella scheda delle comuni nasconde sezioni in tutti i documenti
+        // dell'unione, e senza questa riga i membri restavano con le sezioni a schermo fino al ricarico della
+        // pagina. Solo quelli che sono ANCORA membri: chi è appena uscito sta per essere smontato.
+        if (_membri is not null) await _membri.RicaricaAsync(_altri.Select(a => a.DocumentId).ToList());
     }
 
     /// <summary>
@@ -169,6 +173,15 @@
     }
 
     private Task Ricarica() => _editor?.RicaricaAsync() ?? Task.CompletedTask;
+
+    /// <summary>Dopo «Pubblica»: l'ospite <b>e i membri</b>. 🔴 La pubblicazione accoppiata promuove le bozze
+    /// di tutti: un membro non riletto resta «in modifica» su una versione che bozza non è più (vedi
+    /// <c>AeroportoEditorPage.Pubblicato</c>, Catania, 25 settembre 2026).</summary>
+    private async Task Pubblicato()
+    {
+        await Ricarica();
+        if (_membri is not null) await _membri.RicaricaAsync(_altri.Select(a => a.DocumentId).ToList());
+    }
 
     private Task Ridisegna() { StateHasChanged(); return Task.CompletedTask; }
 

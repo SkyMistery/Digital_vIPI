@@ -219,6 +219,9 @@ internal static class VipiStartup
         foreach (var (categoria, livello) in RegistroInformativo.Filtri)
             builder.Logging.AddFilter<RegistroInformativo>(categoria, livello);
         builder.Services.AddSingleton<RegistroRichieste>();
+        // Quanta memoria usa il processo, ogni cinque minuti nel log del giorno: di un processo ucciso dall'hosting
+        // resta l'ultima misura. Vedi MemoriaDelProcesso (25 settembre 2026).
+        builder.Services.AddHostedService<MemoriaDelProcesso>();
 
         // ⚠️ VIA il registro eventi di Windows. `WebApplication.CreateBuilder` lo aggiunge DA SOLO quando gira
         // su Windows, e non lo vuole nessuno:

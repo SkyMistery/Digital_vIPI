@@ -194,16 +194,198 @@ public sealed class RegistroAvviiTests
     }
 
     /// <summary>
-    /// E dice chi ha chiesto lo spegnimento. Senza segnale la risposta è «da dentro», ed è quella che manda
-    /// a cercare nel codice invece che nel pannello dell'hosting.
+    /// E dice chi ha chiesto lo spegnimento — ma solo quel che sa. 🔴 Fino al 25 settembre 2026, senza segnale
+    /// annotato diceva «DA DENTRO», e con .NET 10 lo diceva di ~580 spegnimenti al giorno che erano Passenger: il
+    /// segnale arrivava, ma il gestore di .NET faceva scrivere l'ARRESTO prima che il nostro lo annotasse. Ora la
+    /// riga rimanda alla riga SEGNALE, che non dipende dall'ordine.
     /// </summary>
     [Fact]
-    public void La_riga_darresto_dice_chi_ha_chiesto_lo_spegnimento()
+    public void La_riga_darresto_non_accusa_il_codice_senza_prove()
     {
         TracciaRichieste.Azzera();
         SegnaleDiArresto.Azzera();
 
-        Assert.Contains("DA DENTRO", RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), Adesso), StringComparison.Ordinal);
+        var riga = RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), Adesso);
+
+        Assert.DoesNotContain("DA DENTRO", riga, StringComparison.Ordinal);
+        Assert.Contains("riga SEGNALE", riga, StringComparison.Ordinal);
+    }
+
+    // ---- 25 settembre 2026: pid, segnale e memoria --------------------------------------------------------
+
+    private const int Io = 1000, Altro = 2000;
+
+    private static string AvvioDi(int pid, DateTime quando) => RegistroAvvii.RigaAvvio("1.46.3 · de5af3a", "(…)", quando, pid);
+
+    /// <summary>La riga d'arresto di un pid qualunque: <see cref="RegistroAvvii.RigaArresto"/> scrive il pid del
+    /// processo che gira, e qui serve quello di un processo finto.</summary>
+    private static string ArrestoDi(int pid, DateTime quando) =>
+        RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), quando)
+            .Replace($"pid {Environment.ProcessId} ", $"pid {pid} ", StringComparison.Ordinal);
+
+    [Fact]
+    public void Le_righe_portano_il_pid_e_larresto_la_memoria()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+
+        Assert.Contains("pid 1234", RegistroAvvii.RigaAvvio("1.46.3 · de5af3a", "(…)", Adesso, 1234), StringComparison.Ordinal);
+        var arresto = RegistroAvvii.RigaArresto(TimeSpan.FromSeconds(50), Adesso);
+        Assert.Contains($"pid {Environment.ProcessId} ", arresto, StringComparison.Ordinal);
+        Assert.Matches(@"memoria \d+ MB \(picco \d+ MB\)", arresto);
+    }
+
+    /// <summary>⚠️ <c>errori-per-era.py</c> legge la versione subito dopo «AVVIO» e le richieste dall'ARRESTO: il pid
+    /// non deve spostare nessuna delle due. Sono le sue due espressioni regolari, copiate.</summary>
+    [Fact]
+    public void Il_pid_non_rompe_la_lettura_di_errori_per_era()
+    {
+        TracciaRichieste.Azzera();
+        SegnaleDiArresto.Azzera();
+        TracciaRichieste.Segna("/vsop/health/ready");
+
+        var avvio = System.Text.RegularExpressions.Regex.Match(AvvioDi(Io, Adesso), @"(\S+ \S+)Z\s+AVVIO\s+(\S+ · \S+)");
+        var arresto = System.Text.RegularExpressions.Regex.Match(ArrestoDi(Io, Adesso), @"ARRESTO.*richieste (\d+).*svegliato da (\S+)");
+
+        Assert.Equal("1.46.3 · de5af3a", avvio.Groups[2].Value);
+        Assert.Equal("1", arresto.Groups[1].Value);
+        Assert.Equal("/vsop/health/ready", arresto.Groups[2].Value);
+    }
+
+    /// <summary>Il caso del 25 settembre 2026 alle 15:57:07: Passenger accende un secondo processo mentre il primo
+    /// serve ancora. Il primo non ha ARRESTO perché è VIVO, e il verdetto non deve dire che è morto male.</summary>
+    [Fact]
+    public void Due_processi_accesi_insieme_non_sono_un_crash()
+    {
+        var righe = new[] { AvvioDi(Io, Adesso.AddSeconds(-56)) };
+
+        var verdetto = RegistroAvvii.Verdetto(righe, Adesso, vivo: pid => pid == Io);
+
+        Assert.DoesNotContain("⚠", verdetto, StringComparison.Ordinal);
+        Assert.Contains("ancora acceso", verdetto, StringComparison.Ordinal);
+    }
+
+    /// <summary>E se il processo dell'ultimo avvio non c'è più e non ha scritto il suo ARRESTO, è morto male: il caso
+    /// che vale il file, ora con il pid da cercare negli altri registri.</summary>
+    [Fact]
+    public void Un_processo_sparito_senza_arresto_e_morto_male()
+    {
+        var righe = new[] { AvvioDi(Io, Adesso.AddMinutes(-54)) };
+
+        var verdetto = RegistroAvvii.Verdetto(righe, Adesso, vivo: _ => false);
+
+        Assert.Contains("⚠", verdetto, StringComparison.Ordinal);
+        Assert.Contains("pid 1000", verdetto, StringComparison.Ordinal);
+        Assert.Contains("00:54:00", verdetto, StringComparison.Ordinal);
+    }
+
+    /// <summary>L'ARRESTO conta solo se è DELLO STESSO pid: con due processi le righe si intrecciano, e l'arresto
+    /// dell'altro non dice niente su questo.</summary>
+    [Fact]
+    public void Larresto_di_un_altro_processo_non_conta()
+    {
+        var righe = new[]
+        {
+            AvvioDi(Altro, Adesso.AddMinutes(-10)),
+            AvvioDi(Io, Adesso.AddMinutes(-9)),
+            ArrestoDi(Altro, Adesso.AddMinutes(-8)),
+        };
+
+        Assert.Contains("⚠", RegistroAvvii.Verdetto(righe, Adesso, vivo: _ => false), StringComparison.Ordinal);
+
+        var conIlSuo = righe.Append(ArrestoDi(Io, Adesso.AddMinutes(-1))).ToArray();
+        var verdetto = RegistroAvvii.Verdetto(conIlSuo, Adesso, vivo: _ => false);
+        Assert.DoesNotContain("⚠", verdetto, StringComparison.Ordinal);
+        Assert.Contains("in modo ordinato 00:01:00 fa", verdetto, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// La firma dell'hosting: il SEGNALE è arrivato, l'ARRESTO no. Qualcuno da fuori ha chiesto di chiudere e poi
+    /// non ha lasciato il tempo di farlo — il verdetto lo dice, perché manda a cercare fuori dal codice.
+    /// </summary>
+    [Fact]
+    public void Un_segnale_senza_arresto_e_una_uccisione_da_fuori()
+    {
+        var righe = new[]
+        {
+            AvvioDi(Io, Adesso.AddMinutes(-30)),
+            RegistroAvvii.RigaSegnale("SIGTERM", Adesso.AddSeconds(-20), Io),
+        };
+
+        var verdetto = RegistroAvvii.Verdetto(righe, Adesso, vivo: _ => false);
+
+        Assert.Contains("⚠", verdetto, StringComparison.Ordinal);
+        Assert.Contains("fermato da fuori", verdetto, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// 🔴 Il SEGNALE può cadere DOPO l'ARRESTO (è proprio il caso che l'ha fatto nascere). Se contasse come ultimo
+    /// evento, ogni spegnimento ordinato si leggerebbe come un crash all'avvio dopo.
+    /// </summary>
+    [Fact]
+    public void Un_segnale_dopo_larresto_non_trasforma_lo_spegnimento_in_un_crash()
+    {
+        var righe = new[]
+        {
+            AvvioDi(Io, Adesso.AddSeconds(-60)),
+            ArrestoDi(Io, Adesso.AddSeconds(-10)),
+            RegistroAvvii.RigaSegnale("SIGTERM", Adesso.AddSeconds(-10), Io),
+        };
+
+        Assert.True(RegistroAvvii.UltimoEvento(righe)!.Value.Arresto);
+        Assert.DoesNotContain("⚠", RegistroAvvii.Verdetto(righe, Adesso, vivo: _ => false), StringComparison.Ordinal);
+    }
+
+    /// <summary>Le righe scritte prima del 25 settembre 2026 il pid non l'hanno: per loro vale la regola di prima,
+    /// l'ultima riga.</summary>
+    [Fact]
+    public void Le_righe_senza_pid_seguono_la_regola_di_prima()
+    {
+        var vecchie = new[]
+        {
+            "2026-09-25 15:01:39Z  AVVIO    1.46.3 · de5af3a          (il precedente si era spento in modo ordinato 00:00:06 fa)",
+        };
+
+        var verdetto = RegistroAvvii.Verdetto(vecchie, Adesso, vivo: _ => true);
+
+        Assert.Contains("NON si è spento in modo ordinato", verdetto, StringComparison.Ordinal);
+    }
+
+    /// <summary>Il nostro pid non è mai «il precedente vivo» (i pid si riusano), e un pid che non esiste è morto.</summary>
+    [Fact]
+    public void Il_processo_vivo_non_e_mai_se_stesso_ne_un_pid_inesistente()
+    {
+        Assert.False(RegistroAvvii.ProcessoVivo(Environment.ProcessId));
+        Assert.False(RegistroAvvii.ProcessoVivo(int.MaxValue));
+    }
+
+    /// <summary>La riga lunga della memoria, quella del log ogni cinque minuti, dice anche il tetto del runtime.</summary>
+    [Fact]
+    public void La_misura_della_memoria_dice_uso_picco_e_tetto()
+    {
+        var riga = MemoriaDelProcesso.Riassunto();
+
+        Assert.Matches(@"^in uso \d+ MB \(picco \d+ MB\), heap gestito \d+ MB, tetto visto dal runtime \d+ MB$", riga);
+    }
+
+    /// <summary>
+    /// E il giro vero: l'host acceso, il segnale che arriva, la riga SEGNALE nel file col pid di questo processo.
+    /// ⚠️ Il segnale non si manda davvero — su Linux fermerebbe il processo dei test — si chiama quel che chiama il
+    /// gestore. Che il gestore sia AGGANCIATO lo dice la riga di <see cref="SegnaleDiArresto.Ascolta"/>.
+    /// </summary>
+    [Fact]
+    public void Il_segnale_lascia_la_sua_riga_nel_registro()
+    {
+        using var fabbrica = new SmokeTests.VipiAppFactory();
+        fabbrica.CreateClient();
+
+        var percorso = Path.Combine(AppContext.BaseDirectory,
+            StartupDiagnostics.CartellaDiagnostica, RegistroAvvii.FileName);
+        RegistroAvvii.RegistraSegnale("SIGTERM");
+
+        var ultima = File.ReadAllLines(percorso).Last(r => r.Length > 0);
+        Assert.Contains("SEGNALE  SIGTERM", ultima, StringComparison.Ordinal);
+        Assert.Contains($"pid {Environment.ProcessId}", ultima, StringComparison.Ordinal);
     }
 
     /// <summary>⚠️ La riga resta LEGGIBILE dal lettore del file: è più lunga, e il verdetto sul processo

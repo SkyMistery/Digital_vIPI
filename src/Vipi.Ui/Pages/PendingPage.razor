@@ -70,14 +70,28 @@
             </EmptyState>
         }
 
+        @* ---- Documenti che non dicono più quel che direbbero oggi ------------------------------------
+           Dal 26 agosto 2026 questa sezione non è più una tabella di sola lettura: sono le STESSE righe che
+           l'interessato trova in «Da fare» e in cima al suo editor, rese dallo stesso componente e lette
+           dallo stesso read-model. Tre resi diversi della stessa riga erano tre racconti che iniziavano a
+           divergere. Qui la lista è quella dell'admin, quindi copre TUTTI i documenti.
+           Carta: docs/feature/2026-08-26-da-fare-una-lista-sola.md §2/D1.
+           ⚠️ In CIMA dal 24 settembre 2026, su richiesta del committente: è la sezione su cui si lavora ogni
+           giorno, e stava sotto tre tabelle che si guardano di rado. *@
+        @if (_daFare.Count > 0)
+        {
+            @Testata("docs", L["Pend_DocsTitle"], _daFare.Count)
+            <div class="panel" hidden="@Chiusa("docs")">
+                <WorkItemList Items="_daFare" Busy="_busy" ShowAssign="false" OnDone="ChiudiRiga"
+                              OnDoneMany="ChiudiGruppo" />
+            </div>
+        }
+
         @* ---- Aeroporti che la sorgente non conferma più ---- *@
         @if (_dati.Aeroporti.Count > 0)
         {
-            <div class="section-title">
-                <h2 class="h-sect">@L["Pend_AirportsTitle"] <span class="pill amber">@_dati.Aeroporti.Count</span></h2>
-                <span class="ln"></span>
-            </div>
-            <div class="panel">
+            @Testata("aeroporti", L["Pend_AirportsTitle"], _dati.Aeroporti.Count)
+            <div class="panel" hidden="@Chiusa("aeroporti")">
                 <table class="res-table">
                     <thead>
                         <tr>
@@ -138,11 +152,8 @@
            un padre. Questo è il solo posto che li nomina per quello che sono. *@
         @if (_dati.DocumentiFuoriElenco.Count > 0)
         {
-            <div class="section-title">
-                <h2 class="h-sect">@L["Pend_LostDocsTitle"] <span class="pill amber">@_dati.DocumentiFuoriElenco.Count</span></h2>
-                <span class="ln"></span>
-            </div>
-            <div class="panel">
+            @Testata("fuori", L["Pend_LostDocsTitle"], _dati.DocumentiFuoriElenco.Count)
+            <div class="panel" hidden="@Chiusa("fuori")">
                 <p class="muted" style="margin:0 0 10px">@L["Pend_LostDocsHint"]</p>
                 <table class="res-table">
                     <thead>
@@ -173,11 +184,8 @@
         @* ---- Settori orfani, di tutte le ACC ---- *@
         @if (_dati.Orfani.Count > 0)
         {
-            <div class="section-title">
-                <h2 class="h-sect">@L["Orph_Title"] <span class="pill amber">@_dati.Orfani.Count</span></h2>
-                <span class="ln"></span>
-            </div>
-            <div class="panel">
+            @Testata("orfani", L["Orph_Title"], _dati.Orfani.Count)
+            <div class="panel" hidden="@Chiusa("orfani")">
                 <p class="muted" style="margin:0 0 10px">@L["Pend_OrphansHint"]</p>
                 <table class="res-table">
                     <thead>
@@ -219,32 +227,38 @@
             </div>
         }
 
-        @* ---- Documenti che non dicono più quel che direbbero oggi ------------------------------------
-           Dal 26 agosto 2026 questa sezione non è più una tabella di sola lettura: sono le STESSE righe che
-           l'interessato trova in «Da fare» e in cima al suo editor, rese dallo stesso componente e lette
-           dallo stesso read-model. Tre resi diversi della stessa riga erano tre racconti che iniziavano a
-           divergere. Qui la lista è quella dell'admin, quindi copre TUTTI i documenti.
-           Carta: docs/feature/2026-08-26-da-fare-una-lista-sola.md §2/D1. *@
-        @if (_daFare.Count > 0)
-        {
-            <div class="section-title">
-                <h2 class="h-sect">@L["Pend_DocsTitle"] <span class="pill amber">@_daFare.Count</span></h2>
-                <span class="ln"></span>
-            </div>
-            <div class="panel">
-                <ul class="wi-list">
-                    @foreach (var r in _daFare)
-                    {
-                        <WorkItemRow @key="r.Chiave" Item="r" Busy="_busy" ShowAssign="false"
-                                     OnDone="ChiudiRiga" />
-                    }
-                </ul>
-            </div>
-        }
     }
 </div>
 
 @code {
+    /// <summary>
+    /// Le sezioni chiuse, per chiave. ⚠️ Nascono tutte APERTE: chi apre la pagina vuole vedere che cosa c'è, e
+    /// una sezione che nasce chiusa col suo conteggio accanto chiede un clic in più per ogni cosa. Si chiude
+    /// quel che non interessa, e resta chiuso finché si resta sulla pagina.
+    /// </summary>
+    private readonly HashSet<string> _chiuse = new(StringComparer.Ordinal);
+
+    private bool Chiusa(string chiave) => _chiuse.Contains(chiave);
+
+    private void Commuta(string chiave)
+    {
+        if (!_chiuse.Remove(chiave)) _chiuse.Add(chiave);
+    }
+
+    /// <summary>La testata di una sezione, che fa da maniglia: la stessa di Struttura, ACC, Fraseologia e «I miei
+    /// incarichi» (`.sect-toggle` + chevron `.grp-chev`), col conteggio accanto anche a sezione chiusa.</summary>
+    private RenderFragment Testata(string chiave, string titolo, int conta) =>
+        @<div class="section-title">
+            <h2 class="h-sect">
+                <button type="button" class="sect-toggle" aria-expanded="@((!Chiusa(chiave)).ToString().ToLowerInvariant())"
+                        aria-label="@L["Struct_ToggleSection", titolo]" @onclick="() => Commuta(chiave)">
+                    <span class="grp-chev">@(Chiusa(chiave) ? "▸" : "▾")</span>@titolo
+                </button>
+                <span class="pill amber">@conta</span>
+            </h2>
+            <span class="ln"></span>
+        </div>;
+
     private PendingOverview? _dati;
 
     /// <summary>Le righe che il sistema ha aperto sui documenti, lette dal read-model unico. Solo quelle di
@@ -311,5 +325,22 @@
         }
         catch (Exception ex) { _msg = ex.Message; }
         finally { _busy = false; }
+    }
+
+    /// <summary>Il ✓ di un gruppo intero: una per una, dalla stessa porta del ✓ di riga.</summary>
+    private async Task ChiudiGruppo(IReadOnlyList<WorkItem> righe)
+    {
+        _busy = true;
+        string? errore = null;
+        try
+        {
+            foreach (var r in righe)
+                if (r.ImpactId is int impactId) await Impatti.ClearAsync(impactId);
+        }
+        catch (Exception ex) { errore = ex.Message; }
+        // Si ricarica anche dopo un errore: le righe chiuse prima di lui sono chiuse davvero. ⚠️ Il messaggio
+        // si rimette DOPO, perché il caricamento lo azzera.
+        await CaricaAsync();
+        _msg ??= errore;
     }
 }

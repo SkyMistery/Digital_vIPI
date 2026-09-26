@@ -737,7 +737,12 @@
   <data name="Diag_AdminPatterns" xml:space="preserve"><value>Pattern admin in vigore</value></data>
   <data name="Diag_AdminCodes" xml:space="preserve"><value>Codici staff osservati</value></data>
   <data name="Common_Name" xml:space="preserve"><value>Nome</value></data>
-  <data name="Diag_AdminIsAdmin" xml:space="preserve"><value>Vale admin</value></data>
+  <data name="Diag_AdminGrantedBy" xml:space="preserve"><value>Concesso da</value></data>
+  <data name="Diag_AdminFounder" xml:space="preserve"><value>fondatore</value></data>
+  <data name="Diag_AdminPromoted" xml:space="preserve"><value>promozione a mano</value></data>
+  <data name="Diag_AdminPromotedOver" xml:space="preserve"><value>(dai codici: {0})</value></data>
+  <data name="Diag_AdminNoPattern" xml:space="preserve"><value>nessun codice riconosciuto</value></data>
+  <data name="Diag_AdminNoPatternTitle" xml:space="preserve"><value>Ha codici staff, ma nessuno corrisponde ai pattern di Admin, Redattore o Staff di divisione: resta Staff IVAO.</value></data>
   <data name="Diag_AdminNoRoster" xml:space="preserve"><value>Nessuno ha ancora fatto login: il roster si popola dagli accessi, quindi non c'è ancora nulla da confrontare.</value></data>
   <data name="Diag_AdminNobody" xml:space="preserve"><value>Nessuno degli staffisti conosciuti risulta admin: finché è così nessuno può editare né assegnare permessi, e non si sblocca da dentro. Si corregge «Auth:AdminStaffCodes» o la sezione «Division».</value></data>
   <data name="Diag_Entity" xml:space="preserve"><value>Entità</value></data>
@@ -789,6 +794,8 @@
   <data name="Struct_Fallback_Seq_None" xml:space="preserve"><value>Nessun ripiego e nessun padre: se questo settore e' chiuso, il traffico va su UNICOM.</value></data>
   <data name="Struct_Fallback_Seq_AnyLevel" xml:space="preserve"><value>ogni quota</value></data>
   <data name="Struct_Fallback_Seq_FromParent" xml:space="preserve"><value>padre</value></data>
+  <data name="Struct_Fallback_Seq_Mil" xml:space="preserve"><value>automatico · MIL</value></data>
+  <data name="Struct_Fallback_Seq_MilTitle" xml:space="preserve"><value>Scalo solo militare: se l'APP è chiuso, il suo traffico va al settore militare che ha lo stesso padre, e solo dopo al padre civile. Non si scrive e non si toglie.</value></data>
   <data name="Struct_Fallback_Coverage" xml:space="preserve"><value>copertura del punto</value></data>
   <data name="Struct_Fallback_CoverageTitle" xml:space="preserve"><value>Il bersaglio non e' un nome ma una domanda: chi copre il punto di trasferimento, a quella quota, adesso. Serve ai settori sovrapposti (MIL, FSS), che coprono tutto l'ACC e quindi non hanno un padre solo.</value></data>
   <data name="Struct_Fallback_CoverageHint" xml:space="preserve"><value>Il nome lo decide il punto di trasferimento: qui non si scrive.</value></data>
@@ -1969,6 +1976,10 @@
   <data name="Dse_DeleteBlockPrompt" xml:space="preserve"><value>Eliminare il blocco?</value></data>
   <data name="Dse_RemoveColumn" xml:space="preserve"><value>Rimuovi colonna</value></data>
   <data name="Dse_AddColumn" xml:space="preserve"><value>Aggiungi colonna</value></data>
+  <data name="Dse_ColumnWidth" xml:space="preserve"><value>Larghezza della colonna (%)</value></data>
+  <data name="Dse_ColumnWidthHint" xml:space="preserve"><value>Larghezza della colonna in percento della tabella. Vuota = automatica.</value></data>
+  <data name="Dse_ColumnWidthSum" xml:space="preserve"><value>Le larghezze sommano a {0}%: nella pagina le colonne si allargano o si stringono in proporzione. Lascia almeno una colonna vuota (automatica), o fai tornare 100.</value></data>
+  <data name="Dse_ColumnGrip" xml:space="preserve"><value>Trascina per cambiare la larghezza della colonna. Doppio clic: automatica.</value></data>
   <data name="Dse_RemoveRow" xml:space="preserve"><value>Rimuovi riga</value></data>
   <data name="Dse_Row" xml:space="preserve"><value>Riga</value></data>
   <data name="Ed_Saving" xml:space="preserve"><value>Salvataggio…</value></data>
@@ -1982,7 +1993,8 @@
   <data name="Ed_PublishTitle" xml:space="preserve"><value>Pubblica la bozza corrente</value></data>
   <data name="Ed_Publish" xml:space="preserve"><value>Pubblica</value></data>
   <data name="Ed_Edit" xml:space="preserve"><value>Modifica</value></data>
-  <data name="Ed_LockedByOther" xml:space="preserve"><value>In modifica da un altro editor</value></data>
+  <data name="Ver_UnionDraftsTogether" xml:space="preserve"><value>Documento unito: pubblicare o scartare questa bozza vale per le bozze di tutti e {0} i documenti dell'unione.</value></data>
+  <data name="Ed_LockedByOtherRetry" xml:space="preserve"><value>In modifica da un altro editor, almeno all'apertura della pagina: premi per riprovare</value></data>
   <data name="Ed_LockedByOtherBody" xml:space="preserve"><value>Bloccata da {0}{1}. Non puoi salvare finché il lock è attivo.</value></data>
   <data name="Vle_UnknownAcc" xml:space="preserve"><value>ACC sconosciuto</value></data>
   <data name="Vle_EditorTitle" xml:space="preserve"><value>Editor vLOA</value></data>
@@ -2549,7 +2561,7 @@
   <data name="Xfer_DetachTitle" xml:space="preserve"><value>Sfila dal gruppo di varianti (col suo sottoalbero)</value></data>
   <data name="Xfer_Preview" xml:space="preserve"><value>Anteprima</value></data>
   <data name="Xfer_RowSaved" xml:space="preserve"><value>Clausola salvata.</value></data>
-  <data name="Coord_AlsoFor" xml:space="preserve"><value>Anche per</value></data>
+  <data name="Coord_For" xml:space="preserve"><value>Per</value></data>
   <data name="Dse_ProseLead" xml:space="preserve"><value>prosa: capofila</value></data>
   <data name="Dse_ProseSpread" xml:space="preserve"><value>prosa: distesa</value></data>
   <data name="Dse_ProseLeadTitle" xml:space="preserve"><value>Passa alla prosa CAPOFILA: una frase sola che introduce la tabella, come nelle LoA e negli IPI veri. Utile dove le clausole sono tante.</value></data>
@@ -2571,6 +2583,13 @@
   <data name="Xfer_GapsTitle" xml:space="preserve"><value>Cosa manca in questo ACC, in ordine di gravita&apos;. Nessuna e&apos; un errore: sono cose che probabilmente andrebbero scritte.</value></data>
   <data name="Xfer_ToReviewHelp" xml:space="preserve"><value>Clausole scritte &lt;b&gt;prima&lt;/b&gt; che esistesse la faccetta del trasferimento: non dicono &lt;b&gt;dove&lt;/b&gt; avviene il passaggio, e vanno riviste a mano una per una. Il tasto le &lt;b&gt;filtra&lt;/b&gt;: premilo per vedere solo quelle, ripremilo per tornare a tutte.</value></data>
   <data name="Xfer_GapsHelp" xml:space="preserve"><value>Cose che &lt;b&gt;probabilmente&lt;/b&gt; andrebbero scritte, non errori: confini senza accordo (quel traffico oggi va a UNICOM), sezioni gemelle da unire, accordi senza aeroporto. Il tasto apre l'elenco, e da ogni voce si salta al punto in cui si lavora.</value></data>
+  <data name="Xfer_Proc" xml:space="preserve"><value>Procedure non trovate</value></data>
+  <data name="Xfer_ProcTitle" xml:space="preserve"><value>SID/STAR scritte fra i punti che negli scali della sezione non si trovano più.</value></data>
+  <data name="Xfer_ProcHelp" xml:space="preserve"><value>Una SID o una STAR scritta fra i punti segue l'archivio da sola quando cambia solo il numero (ERIKA 1A → ERIKA 2A). Se il nome cambia davvero (ERIKA 1A → ERIKA 1B), non si trova più e in pagina esce così com'è scritta: qui si vede quali. Una procedura che il ciclo AIRAC entrante toglie compare negli ultimi &lt;b&gt;3 giorni&lt;/b&gt; prima del cambio.</value></data>
+  <data name="Xfer_ProcHeading" xml:space="preserve"><value>Procedure fra i punti che non si trovano: in pagina escono così come sono scritte. Correggi la clausola.</value></data>
+  <data name="Xfer_ProcMissing" xml:space="preserve"><value>non si trova negli scali della sezione</value></data>
+  <data name="Xfer_ProcGoing" xml:space="preserve"><value>sparisce col ciclo AIRAC del {0}</value></data>
+  <data name="Xfer_ProcFrozen" xml:space="preserve"><value>Le vIPI ACC/APP e le vLOA già pubblicate mostrano il nome vecchio fino alla prossima pubblicazione.</value></data>
   <data name="Xfer_PreviewHelp" xml:space="preserve"><value>Mostra sotto ogni clausola la &lt;b&gt;frase&lt;/b&gt; che il documento pubblicato scriverà: è il modo di accorgersi che una clausola dice una cosa diversa da quella che si voleva, &lt;b&gt;prima&lt;/b&gt; di rilasciarla.</value></data>
   <data name="Xfer_GapsHeading" xml:space="preserve"><value>Dove lavorare</value></data>
   <data name="Xfer_GapAsymmetric" xml:space="preserve"><value>versi diversi</value></data>
@@ -2873,6 +2892,31 @@
   <data name="Work_AssignMe" xml:space="preserve"><value>me</value></data>
   <data name="Work_AssignDue" xml:space="preserve"><value>entro</value></data>
   <data name="Work_AssignConfirm" xml:space="preserve"><value>Assegna</value></data>
+  <data name="Work_ViewAria" xml:space="preserve"><value>Come leggere la lista</value></data>
+  <data name="Work_ViewChange" xml:space="preserve"><value>Per cambiamento</value></data>
+  <data name="Work_ViewDoc" xml:space="preserve"><value>Per documento</value></data>
+  <data name="Work_ViewList" xml:space="preserve"><value>Elenco</value></data>
+  <data name="Work_GroupToggle" xml:space="preserve"><value>Mostra o nascondi i documenti</value></data>
+  <data name="Work_GroupDocs" xml:space="preserve"><value>{0} documenti</value></data>
+  <data name="Work_GroupItems" xml:space="preserve"><value>{0} voci</value></data>
+  <data name="Work_MarkAll" xml:space="preserve"><value>Segna rilette tutte ({0})</value></data>
+  <data name="Work_CauseEdits" xml:space="preserve"><value>Dopo le modifiche del {0} ({1}): la copia pubblicata è indietro</value></data>
+  <data name="ModFam_Coordinamenti" xml:space="preserve"><value>coordinamenti</value></data>
+  <data name="ModFam_Settori" xml:space="preserve"><value>settori</value></data>
+  <data name="ModFam_Aeroporti" xml:space="preserve"><value>aeroporti</value></data>
+  <data name="ModFam_Procedure" xml:space="preserve"><value>procedure</value></data>
+  <data name="ModFam_Testo" xml:space="preserve"><value>testo dei documenti</value></data>
+  <data name="ModFam_Aree" xml:space="preserve"><value>aree regolamentate</value></data>
+  <data name="ModFam_SpaziAerei" xml:space="preserve"><value>spazi aerei</value></data>
+  <data name="ModFam_Radioassistenze" xml:space="preserve"><value>radioassistenze</value></data>
+  <data name="ModFam_Allegati" xml:space="preserve"><value>allegati</value></data>
+  <data name="Work_Diff" xml:space="preserve"><value>Cosa è cambiato</value></data>
+  <data name="Work_DiffTitle" xml:space="preserve"><value>Le sezioni della bozza che la copia pubblicata non ha ancora</value></data>
+  <data name="Work_DiffUnavailable" xml:space="preserve"><value>Il confronto con la copia pubblicata non è disponibile qui.</value></data>
+  <data name="Work_AgeToday" xml:space="preserve"><value>oggi</value></data>
+  <data name="Work_AgeDays" xml:space="preserve"><value>da {0} g</value></data>
+  <data name="Rel_MarkReviewedToo" xml:space="preserve"><value>Segna rilette anche le {0} segnalazioni aperte su questo documento</value></data>
+  <data name="Work_MarkAllPrompt" xml:space="preserve"><value>Segnare come rilette tutte le {0} righe del gruppo?</value></data>
   <data name="TrEd_Locked" xml:space="preserve"><value>Questo documento si legge in una lingua sola: non c’è niente da tradurre, e quindi niente da rivedere. Il blocco si toglie dal pannello «Versioni e release».</value></data>
   <data name="Callout_Ok" xml:space="preserve"><value>OK</value></data>
   <data name="Callout_Warning" xml:space="preserve"><value>Attenzione</value></data>

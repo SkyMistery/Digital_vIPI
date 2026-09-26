@@ -1,0 +1,150 @@
+@* La lista «Da fare» letta per cambiamento, per documento o come elenco. La usano «Da fare» (/services/vsop/tasks)
+   e «Da sistemare» (/admin/pending): una resa sola della stessa lista, come WorkItemRow lo è della stessa riga.
+   Carta: docs/feature/2026-09-23-da-fare-per-cambiamento.md.
+
+   ⚠️ Il gruppo NON si salva da nessuna parte: si calcola qui, in memoria, dalla lista che la pagina ha già letto
+   (WorkGrouping, puro). Le azioni restano delle pagine, che le ricevono coi callback — questo componente
+   decide come si LEGGE la lista, non che cosa si FA. *@
+@inject IStringLocalizer<SharedResource> L
+@inject IJSRuntime JS
+
+@* Il selettore della vista. Tre bottoni e non una tendina: si vede come si sta leggendo senza aprire niente
+   (lo stesso ragionamento della chip «Tutto · Pilota · ATC»). *@
+<div class="wi-views" role="group" aria-label="@L["Work_ViewAria"]">
+    @foreach (var v in Viste)
+    {
+        <button type="button" class="btn ghost @(v == _vista ? "on" : "")" aria-pressed="@((v == _vista).ToString().ToLowerInvariant())"
+                @onclick="() => ScegliAsync(v)">@EtichettaVista(v)</button>
+    }
+</div>
+
+<ul class="wi-list">
+    @foreach (var g in _gruppi)
+    {
+        if (!g.IsGruppo)
+        {
+            <WorkItemRow @key="g.Chiave" Item="g.Capo" Busy="Busy" ShowAssign="ShowAssign" Roster="Roster"
+                         Cycles="Cycles" MyUserId="MyUserId" OnDone="OnDone" OnStart="OnStart" OnAssign="OnAssign" />
+            continue;
+        }
+
+        var aperto = _aperti.Contains(g.Chiave);
+        var (classe, chiave, titolo) = WorkItemText.Pastiglia(g.Capo.Severita);
+        <li @key="g.Chiave" class="wi-grp wi-@g.Capo.Severita.ToString().ToLowerInvariant() @(aperto ? "open" : "")">
+            <div class="wi-grp-head">
+                <span class="wi-badge"><span class="@($"pill {classe}".TrimEnd())" title="@L[titolo]">@L[chiave]</span></span>
+                <button type="button" class="wi-grp-toggle" aria-expanded="@aperto.ToString().ToLowerInvariant()"
+                        title="@L["Work_GroupToggle"]" @onclick="() => Apri(g.Chiave)">
+                    <span class="grp-chev">@(aperto ? "▾" : "▸")</span>
+                    @if (_vista == WorkView.Documento)
+                    {
+                        <span class="wi-doc">@g.Capo.Titolo</span>
+                        <span class="pill grey">@L["Work_GroupItems", g.Righe.Count]</span>
+                    }
+                    else
+                    {
+                        <span class="wi-why">@(g.PerCausa ? WorkItemText.FraseCausa(g.Capo, L) : WorkItemText.Frase(g.Capo, L))</span>
+                        <span class="pill grey">@L["Work_GroupDocs", g.Righe.Count]</span>
+                    }
+                    @{ var piuVecchia = g.Righe.Min(r => r.Da); }
+                    <span class="wi-age @(WorkItemText.EVecchia(piuVecchia) ? "old" : "")">@WorkItemText.Eta(piuVecchia, L)</span>
+                </button>
+                <span class="wi-act">
+                    @if (_vista == WorkView.Documento && g.Capo.SiRaggiunge)
+                    {
+                        <a class="btn ghost" href="@g.Capo.Url" title="@L["Work_OpenTitle"]">@L["Tasks_OpenDoc"]</a>
+                    }
+                    @* ✓ di gruppo solo se OGNI riga si spunta (carta §2/D4): basta una deriva perché la promessa
+                       non regga, e il giro notturno la smentirebbe stanotte. *@
+                    @if (g.SiSpuntanoTutte && OnDoneMany.HasDelegate)
+                    {
+                        <InlineConfirm TriggerClass="btn ghost" AriaLabel="@L["Work_MarkAll", g.Righe.Count]"
+                                       TriggerTitle="@L["Review_MarkTitle"]"
+                                       Prompt="@L["Work_MarkAllPrompt", g.Righe.Count]" Disabled="@Busy"
+                                       ConfirmLabel="@L["Review_MarkReviewed"]" CancelLabel="@L["Common_Cancel"]"
+                                       Danger="false" OnConfirm="() => OnDoneMany.InvokeAsync(g.Righe)">
+                            <Trigger>✓ @L["Work_MarkAll", g.Righe.Count]</Trigger>
+                        </InlineConfirm>
+                    }
+                </span>
+            </div>
+            @if (aperto)
+            {
+                <ul class="wi-list wi-sub">
+                    @foreach (var r in g.Righe)
+                    {
+                        <WorkItemRow @key="r.Chiave" Item="r" Busy="Busy" ShowAssign="ShowAssign" Roster="Roster"
+                                     Cycles="Cycles" MyUserId="MyUserId" OnDone="OnDone" OnStart="OnStart" OnAssign="OnAssign"
+                                     ShowDoc="_vista != WorkView.Documento" ShowWhy="_vista != WorkView.Cambiamento || g.PerCausa" />
+                    }
+                </ul>
+            }
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired] public IReadOnlyList<WorkItem> Items { get; set; } = Array.Empty<WorkItem>();
+
+    [Parameter] public bool Busy { get; set; }
+    [Parameter] public bool ShowAssign { get; set; }
+    [Parameter] public IReadOnlyList<StaffRosterEntry> Roster { get; set; } = Array.Empty<StaffRosterEntry>();
+    [Parameter] public IReadOnlyList<AiracCycleInfo> Cycles { get; set; } = Array.Empty<AiracCycleInfo>();
+    [Parameter] public int? MyUserId { get; set; }
+
+    [Parameter] public EventCallback<WorkItem> OnDone { get; set; }
+    [Parameter] public EventCallback<WorkItem> OnStart { get; set; }
+    [Parameter] public EventCallback<WorkAssignRequest> OnAssign { get; set; }
+
+    /// <summary>Il ✓ di un gruppo intero. Senza, il gruppo non lo offre.</summary>
+    [Parameter] public EventCallback<IReadOnlyList<WorkItem>> OnDoneMany { get; set; }
+
+    /// <summary>Dove si ricorda la vista scelta: nel browser di chi guarda, come la densità e lo zoom.</summary>
+    private const string ChiaveVista = "vipi.dafare.vista";
+
+    private static readonly WorkView[] Viste = { WorkView.Cambiamento, WorkView.Documento, WorkView.Elenco };
+
+    private WorkView _vista = WorkView.Cambiamento;
+    private IReadOnlyList<WorkGroup> _gruppi = Array.Empty<WorkGroup>();
+
+    /// <summary>I gruppi aperti, per chiave. ⚠️ Per chiave e non per posizione: dopo un ✓ la lista si ricarica,
+    /// e un gruppo aperto deve restare aperto anche se è salito o sceso.</summary>
+    private readonly HashSet<string> _aperti = new(StringComparer.Ordinal);
+
+    protected override void OnParametersSet() => _gruppi = WorkGrouping.Raggruppa(Items, _vista);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        string? salvata = null;
+        try { salvata = await JS.InvokeAsync<string?>("localStorage.getItem", ChiaveVista); }
+        catch (Exception) { return; }   // prerender, circuito chiuso, storage negato: resta la predefinita
+        if (Enum.TryParse<WorkView>(salvata, out var v) && v != _vista)
+        {
+            _vista = v;
+            _gruppi = WorkGrouping.Raggruppa(Items, _vista);
+            StateHasChanged();
+        }
+    }
+
+    private async Task ScegliAsync(WorkView v)
+    {
+        if (v == _vista) return;
+        _vista = v;
+        _gruppi = WorkGrouping.Raggruppa(Items, _vista);
+        try { await JS.InvokeVoidAsync("localStorage.setItem", ChiaveVista, v.ToString()); }
+        catch (Exception) { }
+    }
+
+    private void Apri(string chiave)
+    {
+        if (!_aperti.Remove(chiave)) _aperti.Add(chiave);
+    }
+
+    private string EtichettaVista(WorkView v) => v switch
+    {
+        WorkView.Cambiamento => L["Work_ViewChange"],
+        WorkView.Documento => L["Work_ViewDoc"],
+        _ => L["Work_ViewList"],
+    };
+}

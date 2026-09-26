@@ -33,6 +33,352 @@ ricaricava. Diagnostica di produzione del 23-set, 09:16 e 09:18: `ObjectDisposed
 
 ## Dove siamo — 22 settembre 2026 (mattina)
 
+### ✅ A129 — 1.46.5 ONLINE: nominativo doppio ATC, Versioni per tutta l'unione, «Modifica» (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 (sera). Il committente conferma timbro `1.46.5 · e24557e`, `Schema 0` e Ricerca.
+▶ Restano: la prova a mano su Catania (Pubblica/Scarta dalla pagina Versioni, «Modifica» col lock altrui) e, nel
+prossimo scarico, la firma `f45fedc38cea` assente dagli `avvisi-log.txt`.
+
+PATCH, **nessuna migrazione**, su 1.46.4 (`60e782a`). Timbro **`1.46.5 · e24557e`**. Due rami fusi, CI verdi
+sui rami e su `main` (run 36173165988):
+
+- `fix/atc-nominativo-doppio` (`c7976ba5`, fuso `7d72475d`): `AtcTrafficRecorder.RecordAsync` faceva `ToDictionary`
+  sul nominativo, e la fotografia IVAO a volte porta la stessa postazione due volte → «An item with the same key», giro
+  del minuto saltato intero (firma `f45fedc38cea`, 4 volte dal 17-set, l'ultima LIRF_TW1_APP). Ora `GroupBy` +
+  `PiuRecente` (StartUtc, poi SessionId). 2 test, controprova: rosso sul prima con lo stesso messaggio.
+- `fix/versioni-unite` (`221c8eef`, fuso `22069f81`): `EditingService` con `IDocumentUnionRepository?`: in
+  Versioni «Pubblica versione»/«Scarta bozza» di un documento unito valgono per le bozze di TUTTI i membri, coi lock
+  di tutti presi prima di scrivere (uno di un collega → non esce niente, i lock presi si mollano); la pagina lo dice
+  (`Ver_UnionDraftsTogether`). «Modifica» dei cinque editor non resta spento per un lock altrui letto al caricamento
+  (`Ed_LockedByOtherRetry`). 4 test in `EditingRepositoryTests`, 3 rossi ignorando i membri.
+
+Conteggi Infrastructure 1616 → **1622** (i due rami in conflitto sul file: risolto con una corsa vera).
+
+**7 file**: `en/Vipi.Ui.resources.dll`, Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). `wwwroot` e indice degli
+asset identici a 1.46.4 per impronta; Domain/Infrastructure cambiano solo per MVID (sorgente invariato); nessuna
+`const`. Zip `vipi-1.46.5-solo-file-cambiati.zip` `299776a8…79f5bd`, foglio
+[`LEGGIMI-PACCHETTO-1.46.5.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.5.md). 1.46.4 ruotata in
+`publish_old/20260925e`. Build Release 0 avvisi.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB di sviluppo, porta 5199): timbro 1.46.5 · e24557e; pagina con lo
+  stile; Ricerca «LIBD» → 5 risultati, «Brindisi» → 4 (⚠️ «LIRF» → 0: in quella copia del 15-set Roma non c'è);
+  dopo un'uccisione secca il riavvio dice «il processo precedente (pid 25280) NON si è spento in modo ordinato» e la
+  pagina si ricarica da sola.
+- ⚠️ Non provati a schermo Pubblica/Scarta su un'unione e il «Modifica» col lock altrui (in locale niente unione
+  con bozze): valgono i test → **prova a mano su Catania dopo il carico** (scritto nel foglio).
+
+### ✅ A128 — 1.46.4 ONLINE: membri riletti dopo «Pubblica», icone, Diagnostica, arresti (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 17:16:17 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.4 (10 richieste: non ancora provata), **1.46.3 chiusa con zero voci su 556 richieste**.
+
+🔎 **La diagnostica nuova funziona in produzione, e dice già una cosa:**
+- `avvio-diagnostica.txt`: «Memoria vista dal runtime 29382 MB» — nessun tetto stretto sul processo;
+- la prima fermata dopo il carico (17:16:46, pid 2310612, acceso 29 s): `ARRESTO … memoria 251 MB (picco 252 MB)`
+  e subito `SEGNALE SIGTERM dal sistema`, poi un avvio **ordinato** col nuovo pid. È Passenger che chiede di fermarsi:
+  il «fermato DA DENTRO» delle righe di prima era il difetto d'ordine, non il codice;
+- ▶ le righe della memoria ogni 5 minuti nel log del giorno non ci sono ancora (scarico un minuto dopo l'avvio). Il
+  prossimo scarico con un taglio come quelli delle 15:01 e 15:56 dirà se prima della morte c'è un SEGNALE (hosting)
+  o la memoria che sale.
+
+
+PATCH, **nessuna migrazione**, su 1.46.3 (`de5af3a`). Timbro **`1.46.4 · 60e782a`**. Tre rami fusi, tutti con CI verde:
+
+- `fix/pubblica-ricarica-membri` (`b4678979`, fuso `ea1fea07`): dopo «Pubblica» le tre pagine con l'unione
+  (aeroporto, APP, vSOP militare) rileggono anche i membri, come già faceva `UnioneCambiata`. Restavano «in
+  modifica» su una versione non più bozza → «Modifica consentita solo su una versione in bozza» (campo, Catania).
+  `PubblicaRicaricaIMembriTests` (4, 3 rossi sul prima). Ui.Tests 1711 → 1715.
+- `sito/icone-diagnostica` (`658b75ef`, fuso `a799ecc6`): icone log-in/log-out con la porta sempre a destra
+  (`Icon.razor`); «Chi può editare» in Diagnostica scorre — il contenuto di un `<details>` sta in
+  `::details-content`, che restava alto quanto la tabella (regola a sé in `vipi-theme.css`).
+- `diag/memoria-segnale` (`d0ae6fc1`, fuso `37651a58`): diagnostica degli arresti dopo i due tagli del 25-set
+  (15:01:00 e 15:56:06 UTC, il processo ha scritto 16 s DOPO il taglio: viene da fuori). `MemoriaDelProcesso`
+  (memoria ogni 5 minuti nel log del giorno, uso e picco su ARRESTO, tetto in `avvio-diagnostica.txt`); riga
+  `SEGNALE` del gestore di SIGTERM, indipendente dall'ordine rispetto ad ARRESTO; `pid` su AVVIO/ARRESTO e verdetto
+  sul processo dell'ultimo avvio (non più «morto» un processo vivo accanto a un altro). `RegistroAvviiTests`
+  (11 nuovi, uno riscritto). E2E 404 → 415. Formato ancora leggibile da `errori-per-era.py`.
+
+**8 file**: `vipi-theme.css` (+ `.br`, `.gz`) con `Vipi.Host.staticwebassets.endpoints.json`, Vipi.Ui e Vipi.Host
+(dll/pdb). `deps.json` identico, nessuna frase, nessuna config, nessuna `const` pubblica. Zip
+`vipi-1.46.4-solo-file-cambiati.zip` `2b82a96d…a9afc9`, foglio
+[`LEGGIMI-PACCHETTO-1.46.4.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.4.md); aggiornata la tabella di
+`avvii.txt` in [`LEGGIMI-AGGIORNARE-VIA-FTP.md`](../deploy/atc-ivao/LEGGIMI-AGGIORNARE-VIA-FTP.md) §9 (SEGNALE, pid,
+«ancora acceso», memoria). 1.46.3 ruotata in `publish_old/20260925d`. Build Release 0 avvisi, suite intera verde,
+conteggi uguali all'atteso.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): timbro 1.46.4 · 60e782a; «Memoria vista dal runtime»
+  in `avvio-diagnostica.txt`; `avvii.txt` con `pid`, e dopo un'uccisione secca il riavvio dice «il processo
+  precedente (pid 24036) NON si è spento in modo ordinato»; CSS servito con impronta `890bea96` (= IMPRONTE),
+  minificato, con `::details-content`; icona di uscita con porta a destra e freccia verso sinistra; Ricerca
+  «Brindisi» → 4 risultati; log senza errori.
+- ⚠️ Non provato a schermo il ricarico dei membri dopo «Pubblica» (in locale niente unione con bozza da pubblicare):
+  valgono i 4 test.
+
+### ✅ A127 — 1.46.3 ONLINE: pagina Trasferimenti, una lettura per volta (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 14:53:11 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.3 (5 richieste: non ancora provata) e **1.46.2 chiusa con zero voci su 721 richieste**.
+Nessun «Trasferimenti: … non lette» dopo quelli delle 08:28 (prima del fix): la conferma vera verrà quando qualcuno
+lavorerà di nuovo sui trasferimenti.
+
+Trovati nello scarico, fuori pacchetto:
+- `AtcTrafficRecorder.RecordAsync` (firma f45fedc38cea, 4 volte dal 17-set, oggi 14:17 con `LIRF_TW1_APP`): lo stesso
+  nominativo due volte nella fotografia IVAO fa fallire `ToDictionary`, e quel minuto di statistiche va perso (la
+  vista live no). Proposto come lavoro a parte.
+- Traduzione: un secondo segmento in quarantena dopo 3 tentativi («I voli in VFR prima di entrar…»): resa a mano.
+
+
+PATCH, **nessuna migrazione**, su 1.46.2 (`f30c036`). Timbro **`1.46.3 · de5af3a`**. Corregge la corsa trovata nello
+scarico di 1.46.1 (§A126): su LICC, aprire una clausola leggeva piste e STAR mentre la pagina leggeva ancora, sullo
+stesso DbContext del circuito. Ramo `fix/trasferimenti-fila` (`8f93a179`), fuso in `20ead090`: fila rientrante
+(`SemaphoreSlim` + `AsyncLocal`) su Guarded, apertura, pannello della clausola, ricarico delle piste, ricerca della
+coppia. `FilaDeiTrasferimentiTests` (3, rossi sul prima), Ui.Tests 1708 → 1711.
+
+⚠️ Controllato il caso §CM («un `AsyncLocal` si eredita»): la pagina non ha `OnParametersSetAsync`, e
+`OnAfterRenderAsync` (l'unico che un render dentro la fila può far partire) non passa dalla fila né dal database.
+Le altre entrate sono gestori di clic, con un contesto nuovo.
+
+**4 file**: Vipi.Ui + Vipi.Host (dll/pdb). Zip `vipi-1.46.3-solo-file-cambiati.zip` `d4b1d62e…3256bf`, foglio
+[`LEGGIMI-PACCHETTO-1.46.3.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.3.md). 1.46.2 ruotata in
+`publish_old/20260925c`. Build Release 0 avvisi, suite intera verde, conteggi uguali all'atteso.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): Trasferimenti LIBB, accordo #5, «Start editing», riga
+  ASPIR aperta nel pannello → Condizione con le piste dei due scali (LIRA 15/33, LIRU 16/34); log senza errori.
+  ⚠️ La corsa su SQLite NON si riproduce (query troppo veloci): la prova vera è il prossimo `avvisi-log.txt`.
+
+### ✅ A126 — 1.46.2 ONLINE: coordinamenti su più aeroporti, la frase li nomina tutti (25 settembre 2026)
+
+✅ Online il 25 settembre 2026 alle 13:14:41 UTC. Il committente conferma timbro, `Schema 0` e Ricerca. Nello scarico:
+zero voci nell'era 1.46.2 (246 richieste) e **1.46.1 chiusa con zero voci su 5276 richieste**: ora è provata.
+`arresto-errore.txt` delle 13:15:26 (`BadImageFormatException`) è il processo 1.46.1 con le dll sostituite sotto:
+prezzo noto dell'FTP.
+
+Due cose trovate nello scarico, fuori pacchetto:
+- 🔴 `AdminTrasferimentiPage` (25-set 08:28, era 1.46.1, lavorando su LICC): «A second operation was started on this
+  context» in `LoadRunwaysAsync` → `EfAirportRepository.LoadAsync`, e la stessa corsa sulle STAR. L'editor mostra
+  meno piste/punti senza dirlo. Stessa firma d'errore già vista il 17, 22 e 23-set. Proposto come lavoro a parte.
+- Traduzione: un segmento («Catania APP DEVE coordinare con Sigonella TWR, tutto il traffico OAT/GAT…») è andato
+  in quarantena dopo 3 tentativi rotti: va reso a mano dal pannello traduzioni.
+
+
+PATCH, **nessuna migrazione**, su 1.46.1 (`3a8a3f1`). Timbro **`1.46.2 · f30c036`**. Filone
+[`coordinamenti-aeroporti`](filoni/coordinamenti-aeroporti.md), fusione `898d3d2e` di `fix/coordinamenti-aeroporti`
+(`363bc320`): un accordo per LICC e LICZ diceva solo «con destinazione Catania Fontanarossa LICC»; ora la frase li
+nomina tutti e la colonna «Anche per» diventa «Per». Le release già pubblicate tengono la frase congelata.
+
+**7 file**: Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb) + `en/Vipi.Ui.resources.dll`. `Compose`/`ComposeLead`
+guadagnano un parametro facoltativo (firma nuova): chiamanti solo in Application e Ui, spediti. `AirportsAnd` sta in
+`CoordinationSentenceTemplate` col suo default come `PointsOr`: il provider di Vipi.Hosting non lo copia → Hosting
+fuori. Zip `vipi-1.46.2-solo-file-cambiati.zip` `77bb0264…15d5d6`, foglio
+[`LEGGIMI-PACCHETTO-1.46.2.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.2.md). 1.46.1 ruotata in
+`publish_old/20260925b`. Build Release 0 avvisi, 18/18 assiemi verdi, conteggi uguali all'atteso.
+
+- ⚠️ Nella corsa intera `PaginaAuditUnGiroAllaVoltaTests.Due_cambi_di_periodo_ravvicinati…` è caduto UNA volta su
+  net8 (`UnknownEventHandlerIdException`: la pagina si ridisegna fra `Find` e `ChangeAsync`). Da solo 5/5 verde,
+  Ui.Tests intero ripetuto 1708/1708 sui due runtime. Intermittente del test, non della fusione: proposto come
+  lavoro a parte.
+- ✅ Prova del pacchetto (win-x64, copia del DB, porta 5199): editor del vIPI Brindisi, accordo LIBB_ES_CTR →
+  LIRR_US_CTR: «…the traffic inbound to Roma Ciampino LIRA and Roma Urbe LIRU…», colonna «For» con «LIRA · LIRU» e
+  «LIRF · LIRE». Nessun errore nel log.
+
+### ✅ A125 — 1.46.1 ONLINE: il Re-import MIL non fa più cadere il circuito (25 settembre 2026)
+
+✅ Online il 24 settembre 2026 alle 23:31:58 UTC (avvio ordinato). Il committente conferma timbro `1.46.1 · 3a8a3f1`,
+`Schema 0` e la Ricerca che trova (LIRF → documenti). Nello scarico: zero voci nell'era 1.46.1. Le 3 `BadImageFormatException` di 23:31:53–56
+(`StaffLoginTrackingMiddleware`, processo 1.46.0) sono le dll sostituite sotto il processo vivo durante il carico, e
+`avvio-errore.txt` (22:51:37, `Vipi.Infrastructure` non trovato) è l'istante del carico di 1.46.0: il prezzo noto
+dell'FTP, non un guasto. I riavvii ogni ~50 s (fermati «da dentro», svegliati dal ping) c'erano identici con 1.42.1
+e 1.45.1: è lo spegnimento per inattività di Passenger, non una regressione.
+
+
+PATCH, **nessuna migrazione**, su 1.46.0 (`d54dbb0`). Timbro **`1.46.1 · 3a8a3f1`**. Trovato leggendo lo scarico di
+diagnostica di 1.46.0: 2 voci del 23-set (era 1.43.0), `Etichetta «Ape_ReimportDone» non leggibile` in
+`MilSectionsEditor.Reimporta`. La frase chiede 4 argomenti ({3} = procedure SID/STAR) e l'editor militare ne passava
+3. Ora il gesto importa anche le SID/STAR, come l'editor aeroporto (e come prometteva il suo `title`). Fusione
+`049f4c21` di `fix/reimport-mil` (`23e07cac`).
+
+🔴 **Guardia nuova, per la famiglia e non per il caso**: `SharedResourceIntegrityTests.Ogni_chiamata_con_argomenti_ne_passa_quanti_la_frase_ne_chiede`
+conta gli argomenti di ogni `L["Chiave", …]`/`En[…]` in Vipi.Ui e Vipi.Host e li confronta col segnaposto più
+alto della frase in it e in en. Rossa sul codice di prima (trova SOLO questa chiamata), verde dopo; pretende di aver
+controllato più di 50 chiamate. Ui.Tests 1706 → 1707.
+
+**4 file**: Vipi.Ui + Vipi.Host (dll/pdb). Zip `vipi-1.46.1-solo-file-cambiati.zip` `3fb0fb04…38b19b`, foglio
+[`LEGGIMI-PACCHETTO-1.46.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.1.md). 1.46.0 ruotata in
+`publish_old/20260925a`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ Prova del pacchetto (win-x64, copia del DB, rete accesa, porta 5199): editor MIL di LIBG, «Re-import from IVAO»
+  → «Import from IVAO completed: 2 runways, sectors 0 new / 2 updated, 29 SID/STAR procedures.», circuito vivo,
+  zero `FormatException` nel log. ⚠️ Il `confirm()` nativo non si pilota dal browser integrato: sostituito da script.
+
+### ✅ A124 — 1.46.0 ONLINE: lock dei documenti uniti, «Da sistemare», MIL solo militare (25 settembre 2026)
+
+✅ Online il 24 settembre 2026 alle 22:51:37 UTC. Il committente conferma timbro `1.46.0 · d54dbb0` e `Schema 0`.
+Nello scarico di diagnostica: i due avvii «non ordinati» delle 22:51:37 e 22:51:47 sono il caricamento stesso, poi
+un avvio ordinato alle 22:51:58. Riconciliazioni concluse per `d54dbb0` senza cambiamenti; nessuna voce di errore
+nell'era 1.46.0, che però ha solo 4 richieste e quindi **non è ancora provata**: la prova è lo scarico successivo.
+
+
+MINOR, **nessuna migrazione**, su 1.45.1 (`cb62ebc`). Timbro **`1.46.0 · d54dbb0`**. Due filoni fusi in `main`:
+`fix/lock-uniti` (dettaglio in [`filoni/lock-uniti.md`](filoni/lock-uniti.md): in modifica solo col lock NOSTRO, il
+lock del membro lo decide il database) e `dafare/raggruppa` (2 commit: «Da sistemare» a sezioni richiudibili con
+«Documenti da rivedere» in cima, Diagnostica «Concesso da»; il MIL_CTR raccoglie solo il traffico militare, carta
+[`2026-09-24-mil-solo-traffico-militare`](feature/2026-09-24-mil-solo-traffico-militare.md)). **9 file**: Vipi.Application,
+Vipi.Infrastructure, Vipi.Ui, Vipi.Host (dll/pdb) + `en/Vipi.Ui.resources.dll`; `wwwroot`, endpoints e deps identici
+per impronta. `ISectorFallbackService` guadagna un membro: implementazione e chiamante negli assiemi spediti. Zip
+`vipi-1.46.0-solo-file-cambiati.zip` `6d664dea…149597`, foglio
+[`LEGGIMI-PACCHETTO-1.46.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.46.0.md). 1.45.1 ruotata in
+`publish_old/20260924b`. Build Release 0 avvisi, 18/18 assiemi verdi, conteggi identici all'atteso.
+
+- ✅ Prova locale del pacchetto (win-x64, copia del DB, porta 5199, browser integrato): timbro 1.46.0 · d54dbb0,
+  `Schema 0`; Diagnostica in inglese con «GRANTED BY» (frasi EN arrivate); «Da sistemare» apre con «Documents to
+  review»; Ricerca «Brindisi» (solo evento `input`) → 4 risultati; Struttura, catena di `LIBG_APP` → `LIBB_MIL_CTR`
+  «automatic · MIL», poi `LIBB_ES_CTR` padre.
+- Restano aperti (non in questo pacchetto): «Pubblica versione»/«Scarta bozza» di Versioni su UN solo documento
+  anche se unito; tasto «Modifica» del documento singolo spento dal lock letto al caricamento (vedi `filoni/lock-uniti.md`).
+
+### ✅ A123 — 1.45.1 ONLINE: la Ricerca parte dal testo, non dal tasto (24 settembre 2026)
+
+✅ Il committente conferma timbro `1.45.1 · cb62ebc`, `Schema 0` e la Ricerca che trova. Avvio 08:36:24 UTC, UN solo
+avvio (nessun avvio fallito questa volta); processo nuovo (3234607) con 12 richieste tutte buone. Nel log del giorno,
+dall'avvio di 1.45.0 (06:36) a quello di 1.45.1: **zero** errori e **zero** avvisi, anche nella finestra del carico.
+Il processo 1.45.0 è vissuto 2 ore passando indenne le 06:56 e le 07:56. In `main` non resta codice del sito fuori
+pacchetto.
+
+PATCH, **nessuna migrazione**, su 1.45.0 (`7bd3bda`). Timbro **`1.45.1 · cb62ebc`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md) §S7 (`SearchPage.razor`, `@bind:after`) e §S8 (`pacchetto-verifica.js` pretende
+≥1 documento per `TERMINE`=LIRF, Guida esclusa; runbook §6/§6-bis/§7). Fusione `fd276073`. **4 file**: Vipi.Ui +
+Vipi.Host (dll/pdb); tutto il resto identico per impronta. Zip `vipi-1.45.1-solo-file-cambiati.zip`
+`50b181ec…e5ccc8`, foglio [`LEGGIMI-PACCHETTO-1.45.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.45.1.md). 1.45.0
+ruotata in `publish_old/20260924a`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ Prova locale del pacchetto (win-x64, copia del DB, porta 5288, a mano col browser integrato): «Brindisi»
+  scritto senza `keyup` → **4 risultati** (con 1.45.0, stesso gesto e stesso DB: 0); scritto da script con il solo
+  `input` → 4. «LIRF» dà 0 in locale perché la copia di sviluppo non ha documenti di Fiumicino pubblicati.
+- Il foglio chiede per la prima volta la Ricerca che **trova** (LIRF → documenti), non la riga che cambia.
+
+### ✅ A122 — 1.45.0 ONLINE: la lista «Da fare» per cambiamento (24 settembre 2026)
+
+✅ Il committente conferma timbro `1.45.0 · 7bd3bda`, `Schema 0`, i tre tasti di «Da sistemare» e la Ricerca che
+risponde. Avvio buono 06:36:06 UTC, «migrazione del database» 2552 ms; processo finale (2368144) senza errori né
+avvisi, 11 richieste tutte buone, nessuna voce in `errori-richieste`.
+
+- ⚠️ **Un avvio FALLITO durante il carico** (06:35:42, `avvio-errore.txt`): `FileNotFoundException` su
+  `Vipi.Infrastructure` in `VipiDataProtection.AddVipiDataProtection`. Un ping di Passenger ha avviato il sito
+  mentre `Vipi.Infrastructure.dll` era fra il nome finto e quello vero; seguono due avvii di assestamento (06:35:55,
+  06:36:06). Transitorio, sparito da sé; nessuna azione. Lo stesso rischio vale per ogni carico con più assiemi.
+- 🔎 **«La Ricerca dà sempre 0 risultati» — diagnosi SBAGLIATA dell'integratore, corretta da §S7 (sito, 24-set).**
+  La ricerca trovava (in produzione LIRF 13, Brindisi 16): il conteggio partiva solo al **rilascio di un tasto**,
+  mentre il testo seguiva ogni `input`. Il browser integrato scrive senza `keyup` → parola nuova, conteggio vecchio
+  «0 results». Lo stesso capita a un utente che incolla o usa l'autocompletamento. Corretto in **1.45.1** (§A123).
+  Resta vero l'altro fatto: il controllo di consegna non distingueva una ricerca che trova da una che non trova →
+  §S8, ora pretende documenti per LIRF.
+- 🔴 `pacchetto-verifica.js` non parte (Edge headless «Code: 0»): verifica da fuori fatta a mano col browser integrato.
+
+MINOR, **una migrazione additiva** (`20260923195956_CausaDelleSegnalazioni`: `CauseKey` + `CauseArgsJson` nullable
+su `DocumentImpacts`, gemella SQLite `20260923195948`), su 1.44.1 (`ce8a59f`). Timbro **`1.45.0 · 7bd3bda`**.
+Filone [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md), carta
+[`2026-09-23-da-fare-per-cambiamento.md`](feature/2026-09-23-da-fare-per-cambiamento.md): incarico chiuso con la sua
+segnalazione; lista per cambiamento / per documento / elenco; deriva ricalcolata poco dopo un salvataggio
+(`SegnalaModificheInterceptor` → `DerivaDopoLeModificheHostedService`) con la sua causa; «segna rilette anche queste
+N» e «cosa è cambiato» nel pannello di pubblicazione. Fusione `1b7cbf35` (nessun conflitto).
+
+**17 file**: `vipi-theme.css` (+`.br`/`.gz`), `endpoints.json`, `en/Vipi.Ui.resources.dll`, Vipi.Domain,
+Vipi.Application, Vipi.Infrastructure, Vipi.Infrastructure.MySqlMigrations, Vipi.Ui, Vipi.Host (dll/pdb). Fuori:
+Vipi.Hosting e resto (solo ricompilati). Zip `vipi-1.45.0-solo-file-cambiati.zip` `fc6408d1…0ffff0`, foglio
+[`LEGGIMI-PACCHETTO-1.45.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.45.0.md). 1.44.1 ruotata in
+`publish_old/20260923d`. Build Release 0 avvisi, 18/18 assiemi verdi, CI verde anche `mariadb-schema`.
+
+- ✅ **Prova del pacchetto in locale** (win-x64 dalla sua cartella, copia del DB, porta 5288): migrazione SQLite
+  applicata all'avvio, Ricerca risponde, «Da sistemare» con le tre viste e cambi di vista senza errori, giro della
+  deriva regolare, nessuna richiesta in errore. ⚠️ `pacchetto-verifica.js` non è partito: Edge in modalità
+  automatica esce subito («Failed to launch the browser process, Code: 0») — la prova è stata fatta a mano col
+  browser integrato. Da guardare prima della prossima consegna (Edge da aggiornare/riavviare?).
+
+### ✅ A121 — 1.44.1 ONLINE: S4 bis + S6 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.44.1 · ce8a59f`, `Schema 0`, «alla STAR» nelle frasi e la linea delle colonne.
+Avvio 17:37:51 UTC, «migrazione del database» 2941 ms; processo nuovo (2048574) senza errori, 6 richieste tutte
+buone. Da fuori `pacchetto-verifica.js` SOLO_PUBBLICO **tutto verde**.
+
+- ℹ️ Carico pulito: il processo vecchio si è spento **in modo ordinato** 6 s prima dell'avvio, e questa volta
+  **nessun secondo processo** in contemporanea. Nella finestra delle rinomine, solo due avvisi del poll IVAO del
+  processo vecchio (`BadImageFormatException`, 17:37:45): la famiglia nota.
+
+PATCH, **nessuna migrazione**, su 1.44.0 (`3561423`). Timbro **`1.44.1 · ce8a59f`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md): **S4 bis** la linea fra le colonne sempre visibile nell'editor (solo CSS);
+**S6** una STAR di un arrivo si dice «autorizzato alla STAR X» / «cleared via the X arrival», fix e SID restano «via»
+(segnaposto `{cleared}`, `ClearedVia`/`ClearedStar` in `CoordinationSentenceOptions`; nessuna chiave in `appsettings`,
+e un modello senza `{cleared}` dice «via» come prima).
+
+**10 file**: `vipi-theme.css` con `.br`/`.gz` + `endpoints.json`, Vipi.Application, Vipi.Hosting, Vipi.Host (dll/pdb).
+Fuori: Vipi.Ui (cambia solo il CSS; l'impronta degli asset la calcola `AssetVersion` in Host dal file, al volo),
+`en/` (nessun `.resx` cambiato), Infrastructure, Domain e resto (solo ricompilati). Zip
+`vipi-1.44.1-solo-file-cambiati.zip` `0d63017f…0bf61`, foglio
+[`LEGGIMI-PACCHETTO-1.44.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.44.1.md). 1.44.0 ruotata in
+`publish_old/20260923c`. Build Release 0 avvisi, 18/18 assiemi verdi; prova locale del pacchetto tutta verde.
+
+### ✅ A120 — 1.44.0 ONLINE: S4 + S5 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.44.0 · 3561423`, `Schema 0` e le funzioni nuove. Avvio 16:55:23 UTC; da fuori
+`pacchetto-verifica.js` SOLO_PUBBLICO **tutto verde**.
+
+- 🔎 **«Il sito è crollato aggiungendo una riga a una tabella»** (committente, subito dopo il carico). Nei log
+  **nessuna eccezione** del processo 1.44.0 e nessun `CircuitUnhandledException`. Le DUE connessioni Blazor del suo
+  browser (editor aeroporto LIBB + trasferimenti) si sono chiuse nello **stesso istante**, 16:57:22 UTC, e alle
+  16:57:33 Passenger ha avviato un SECONDO processo 1.44.0 (1803150) mentre il primo (1779624) scriveva ancora il log
+  fino alle 16:57:42. Quindi: cambio di processo, non un errore di S4. **Non riprodotto** sul pacchetto in locale
+  (tabella strutturata e generica, larghezza al 30%, «+ Riga» ×3: nessun errore, nessuna disconnessione).
+- 🔎 Terzo caso dello stesso schema (13:56 e 16:56-57). ✅ **Indagato lo stesso giorno**: le morti silenziose cadono
+  TUTTE a **hh:56–57** (22 e 23 settembre, non ogni ora): a quell'istante si chiudono insieme tutte le connessioni
+  lunghe del processo, il vecchio logga ancora 5–20 s (i «due poll insieme»), Passenger ne avvia uno nuovo al ping
+  dopo, e il vecchio sparisce senza riga `ARRESTO`. La «vita di 1:00:00» sono solo due eventi :56 di fila. Nel
+  nostro codice niente gira a :56 → causa **fuori** (Plesk/nginx/Passenger): scritto a Ivao.It il 23 sera, si aspetta
+  risposta. Ai carichi il «⚠ NON spento in modo ordinato» di `avvii.txt` è un falso allarme (sovrapposizione
+  normale). Nessun pacchetto serve.
+
+MINOR, **nessuna migrazione**, su 1.43.1 (`a8a1cea`). Timbro **`1.44.0 · 3561423`**. Dettaglio in
+[`filoni/sito.md`](filoni/sito.md): **S4** larghezza delle colonne delle tabelle (campo «%» e trascinamento del bordo,
+chiave `widths` nel JSON della tabella generica); **S5** tasto «⚠ Procedure non trovate (n)» nell'editor dei
+trasferimenti (carta [`2026-09-23-procedure-non-trovate-negli-accordi.md`](feature/2026-09-23-procedure-non-trovate-negli-accordi.md),
+assegnata dalla coda `filoni/da-fare.md`).
+
+**14 file**: 6 in `wwwroot/_content/Vipi.Ui/` (`vipi-editor.js`, `vipi-theme.css` con `.br`/`.gz`) + in radice
+`endpoints.json`, `en/Vipi.Ui.resources.dll` (frasi nuove), Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). Fuori:
+Infrastructure, MySqlMigrations, Domain, Hosting (solo ricompilati), resto di `wwwroot` e `deps.json` (identici per
+impronta). Costanti nuove (`GiorniDiAnticipo`, `LarghezzaMin/Max`) usate solo in Application e Ui, entrambi dentro.
+Zip `vipi-1.44.0-solo-file-cambiati.zip` `3f8b8f4f…d4a44`, foglio
+[`LEGGIMI-PACCHETTO-1.44.0.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.44.0.md). 1.43.1 ruotata in
+`publish_old/20260923b`. Build Release 0 avvisi, 18/18 assiemi verdi.
+
+- ✅ **Prova del pacchetto in locale** (runbook §6, JS cambiato): publish win-x64 avviato dalla sua cartella su copia
+  del DB, timbro `1.44.0 · 3561423`, `pacchetto-verifica.js` **tutto verde** anche con l'editor; `vipi-editor.js`
+  servito minificato (12,5 KB), sintassi valida, contiene la maniglia `col-grip`; CSS `col-grip` presente.
+
+### ✅ A119 — 1.43.1 ONLINE: S2 + S3 del sito (23 settembre 2026)
+
+✅ Il committente conferma timbro `1.43.1 · a8a1cea`, `Schema 0` e, in un accordo, la STAR fra i punti. Avvio
+15:37:51 UTC, «migrazione del database» 2769 ms, nessun errore del processo nuovo. Da fuori `pacchetto-verifica.js`
+SOLO_PUBBLICO **tutto verde**. Dall'avvio di 1.43.0 (12:10) **zero** `ObjectDisposedException`: S1 tiene.
+
+- ℹ️ Finestra del carico, processo VECCHIO: un `BadImageFormatException` su `/services/vsop/admin/transfers`
+  (15:37:49) e `arresto-errore.txt` (15:38:39, `AtcPollingHostedService.StopAsync`). Stessa famiglia di §A118.
+- 🔎 Da guardare, NON legato ai pacchetti: alle 13:56:37 Passenger ha avviato un secondo processo 1.43.0 (790279)
+  mentre il primo (484850, partito alle 12:56:36) scriveva ancora il log fino alle 13:56:42 → `avvii.txt` lo segna
+  «non spento in modo ordinato». Per qualche secondo due processi hanno fatto il poll IVAO insieme.
+
+PATCH, **nessuna migrazione**, su 1.43.0 (`54355eb`). Timbro **`1.43.1 · a8a1cea`**. Il dettaglio dei due lavori sta
+in [`filoni/sito.md`](filoni/sito.md): **S2** dopo «Hide» nelle sezioni in comune si ricaricano anche i membri
+(`RegistroMembri`); **S3** i punti dei trasferimenti e «Cita» guardano al ciclo ENTRANTE (STAR timbrate 2610, es.
+ERIKA 1A a LIRN) — 🔴 serve online **prima del 1° ottobre**, dopo non cambia niente.
+
+**6 file in radice**: Vipi.Application, Vipi.Ui, Vipi.Host (dll/pdb). Fuori: Infrastructure, MySqlMigrations,
+Domain, Hosting (solo ricompilati), `en/`, `endpoints.json`, `wwwroot` (identici per impronta). Il costruttore di
+`ProcedureReferenceResolver` cambia, ma lo costruisce solo la registrazione dentro `Vipi.Application`. Zip
+`vipi-1.43.1-solo-file-cambiati.zip` `3e7c266e…16499`, foglio
+[`LEGGIMI-PACCHETTO-1.43.1.md`](../deploy/atc-ivao/LEGGIMI-PACCHETTO-1.43.1.md). 1.43.0 ruotata in
+`publish_old/20260923a`. Build Release 0 avvisi, 18/18 assiemi verdi. Prova locale del pacchetto saltata:
+`wwwroot` identico.
+
 ### ✅ A118 — 1.43.0 ONLINE: §A117 + §S1 (23 settembre 2026)
 
 ✅ Il committente conferma timbro `1.43.0 · 54355eb` e `Schema 0`. Avvio 12:10:41 UTC, «migrazione del database»

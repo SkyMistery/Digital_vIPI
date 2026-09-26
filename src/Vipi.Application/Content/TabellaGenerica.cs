@@ -60,13 +60,72 @@ public static class TabellaGenerica
         return (colonne, righe);
     }
 
-    /// <summary>Il JSON da salvare.</summary>
-    public static string Scrivi(IReadOnlyList<string> colonne, IReadOnlyList<IReadOnlyList<string>> righe) =>
-        JsonSerializer.Serialize(new
+    /// <summary>Larghezza minima e massima di una colonna, in percento della tabella.</summary>
+    public const int LarghezzaMin = 1, LarghezzaMax = 100;
+
+    /// <summary>
+    /// Le larghezze delle colonne (S4, 23 settembre 2026): percento della tabella, <c>null</c> = automatica.
+    /// Sempre <b>una per colonna</b>, allineate a <c>columns</c>: le mancanti sono automatiche, quelle in piu'
+    /// si tagliano, un valore che non e' un numero fra <see cref="LarghezzaMin"/> e <see cref="LarghezzaMax"/>
+    /// torna automatico.
+    /// <para>⚠️ E' una chiave in PIU' nel JSON (<c>widths</c>) e non una colonna nel database: la tabella vive
+    /// gia' tutta nel <c>BodyJson</c>, e la traduzione lascia intatte le chiavi che non sono testo.</para>
+    /// </summary>
+    public static List<int?> Larghezze(string? json)
+    {
+        var quante = Leggi(json).Colonne.Count;
+        var valori = new List<int?>();
+        if (quante > 0)
         {
-            columns = colonne,
-            rows = righe.Select(r => new { cells = r }),
-        });
+            try
+            {
+                using var doc = JsonDocument.Parse(json!);
+                var r = doc.RootElement;
+                if (r.ValueKind == JsonValueKind.Object
+                    && r.TryGetProperty("widths", out var w) && w.ValueKind == JsonValueKind.Array)
+                    valori = w.EnumerateArray()
+                        .Select(e => e.ValueKind == JsonValueKind.Number && e.TryGetInt32(out var n) ? Valida(n) : null)
+                        .ToList();
+            }
+            catch (JsonException) { }
+        }
+        return Allinea(valori, quante);
+    }
+
+    /// <summary>
+    /// La larghezza scritta da chi edita: vuoto, non un numero o fuori dall'intervallo → automatica. Il «%»
+    /// in coda si accetta, perche' e' quel che si scrive naturalmente.
+    /// </summary>
+    public static int? LarghezzaDa(string? testo)
+    {
+        var t = (testo ?? "").Trim().TrimEnd('%').Trim();
+        return int.TryParse(t, System.Globalization.NumberStyles.Integer,
+            System.Globalization.CultureInfo.InvariantCulture, out var n) ? Valida(n) : null;
+    }
+
+    private static int? Valida(int n) => n is >= LarghezzaMin and <= LarghezzaMax ? n : null;
+
+    private static List<int?> Allinea(IEnumerable<int?>? larghezze, int quante)
+    {
+        var l = (larghezze ?? Enumerable.Empty<int?>()).Take(Math.Max(0, quante)).ToList();
+        while (l.Count < quante) l.Add(null);
+        return l;
+    }
+
+    /// <summary>
+    /// Il JSON da salvare. <paramref name="larghezze"/> si allinea alle colonne; se sono tutte automatiche la
+    /// chiave <c>widths</c> non si scrive, e il JSON resta quello di prima della S4.
+    /// <para>⚠️ Chi riscrive una tabella gia' salvata DEVE ripassare le larghezze lette con
+    /// <see cref="Larghezze"/>: senza, un clic su una cella le cancellerebbe.</para>
+    /// </summary>
+    public static string Scrivi(IReadOnlyList<string> colonne, IReadOnlyList<IReadOnlyList<string>> righe,
+        IEnumerable<int?>? larghezze = null)
+    {
+        var l = Allinea(larghezze?.Select(x => x is int n ? Valida(n) : null), colonne.Count);
+        return l.Any(x => x is not null)
+            ? JsonSerializer.Serialize(new { columns = colonne, widths = l, rows = righe.Select(r => new { cells = r }) })
+            : JsonSerializer.Serialize(new { columns = colonne, rows = righe.Select(r => new { cells = r }) });
+    }
 
     /// <summary>
     /// Le righe portate a <paramref name="quante"/> celle: le mancanti si aggiungono vuote, quelle in piu'

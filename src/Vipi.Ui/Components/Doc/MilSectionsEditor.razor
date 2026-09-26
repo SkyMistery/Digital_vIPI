@@ -161,7 +161,8 @@ else
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
-                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                        @* Premibile anche così: vedi AirportSectionsEditor (lock letto all'apertura). *@
+                        <button class="btn ghost" title="@L["Ed_LockedByOtherRetry"]" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     else
                     {
@@ -231,8 +232,6 @@ else
         if (_shell.Doc is null) return null;
         // Stesso ricontrollo di «Modifica»: in un editor unito il lock lo prende l'ospite, passando di qui.
         await _shell.InFilaAsync(RiallineaScaloAsync);
-        if (_shell.Lock is { Locked: true, IsMine: false })
-            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
         await _shell.StartEditingAsync(LoadAsync);
         return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
     }
@@ -1092,16 +1091,20 @@ else
 
         AirportSectorImportResult? settori = null;
         RunwayMergeOutcome? piste = null;
+        var procedure = 0;
+        // 🔴 Fino a 1.46.0 qui mancavano le SID/STAR, e la frase d'esito ne chiede il numero ({3}): la formattazione
+        // falliva e il circuito cadeva a ogni re-import (2 volte in produzione il 23 settembre 2026).
         if (!await GestoScalo(async () =>
             {
                 piste = await Scalo.ReimportFromSourceAsync(_icao);
                 settori = await Settori.ImportFromSourceAsync(_icao);
+                procedure = await ImportatoreSid.ImportForCurrentUserAsync(_icao);
             }))
             return;
 
         await CaricaDatiScaloAsync();
         _rwyOrfane = piste?.OrphansWithData ?? Array.Empty<string>();
-        _esito = L["Ape_ReimportDone", _rwys.Count, settori?.Created ?? 0, settori?.Updated ?? 0].Value;
+        _esito = L["Ape_ReimportDone", _rwys.Count, settori?.Created ?? 0, settori?.Updated ?? 0, procedure].Value;
         if (_rwyOrfane.Count > 0)
             _esito += " " + L["Ape_ReimportOrphans", string.Join(", ", _rwyOrfane)].Value;
     }

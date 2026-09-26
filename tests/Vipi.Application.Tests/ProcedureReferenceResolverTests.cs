@@ -2,6 +2,7 @@
 using Vipi.Application.Content;
 using Vipi.Domain;
 using Vipi.Domain.Entities;
+using Vipi.Domain.Services;
 using Xunit;
 
 namespace Vipi.Application.Tests;
@@ -22,11 +23,14 @@ public class ProcedureReferenceResolverTests
         // dello stesso scalo, che è esattamente la prova che conta.
         public Dictionary<(ProcedureKind Kind, string Icao), AirportSidView> Tabelle { get; } = new();
         public List<(ProcedureKind Kind, string Icao)> Chieste { get; } = new();
+        /// <summary>Il ciclo a cui è stata chiesta ogni tabella, nello stesso ordine di <see cref="Chieste"/>.</summary>
+        public List<string?> Cicli { get; } = new();
 
         public Task<AirportSidView> DeriveAsync(string icao, ProcedureKind kind = ProcedureKind.Sid,
             string? atCycle = null, CancellationToken ct = default)
         {
             Chieste.Add((kind, icao));
+            Cicli.Add(atCycle);
             return Task.FromResult(Tabelle.GetValueOrDefault((kind, icao)) ?? AirportSidView.Empty);
         }
     }
@@ -206,6 +210,47 @@ public class ProcedureReferenceResolverTests
         var elenco = await new ProcedureReferenceResolver(vive, new Congelate()).ElencoAsync("LICZ");
 
         Assert.Equal("NELD6V(NSY)", Assert.Single(elenco).Codice);
+    }
+
+    /// <summary>
+    /// 🔴 §S3 del filone sito (23 settembre 2026): fra i punti di un trasferimento a LIRN non si trovava ERIKA 1A.
+    /// Le STAR, al primo import, prendono il ciclo che il sectorfile dichiara (2610) e la tabella di OGGI (2609) le
+    /// teneva tutte fuori. Chi cita una procedura scrive per i giorni che vengono: l'elenco guarda al ciclo
+    /// ENTRANTE, che contiene anche tutto quel che vale oggi.
+    /// </summary>
+    [Fact]
+    public async Task L_elenco_guarda_al_ciclo_ENTRANTE()
+    {
+        var airac = new AiracService();
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Star, "LIRN")] = Tabella("ERIK1A") } };
+
+        var elenco = await new ProcedureReferenceResolver(vive, new Congelate(), airac)
+            .ElencoAsync("LIRN", ProcedureKind.Star);
+
+        Assert.Equal("ERIK1A", Assert.Single(elenco).Codice);
+        var chiesto = Assert.Single(vive.Cicli);
+        Assert.Equal(airac.NextCycles(DateTime.UtcNow, 2)[1].Cycle, chiesto);
+        Assert.NotEqual(airac.GetCycle(DateTime.UtcNow), chiesto);
+    }
+
+    /// <summary>S5: l'avviso delle procedure non trovate negli accordi confronta col ciclo ENTRANTE e sa quando entra
+    /// in vigore; i nomi di lettura restano quelli di OGGI.</summary>
+    [Fact]
+    public async Task Le_tabelle_entranti_chiedono_il_ciclo_entrante_e_ne_danno_la_data()
+    {
+        var airac = new AiracService();
+        var vive = new SidVive { Tabelle = { [(ProcedureKind.Star, "LIRN")] = Tabella("ERIK1A") } };
+        var resolver = new ProcedureReferenceResolver(vive, new Congelate(), airac);
+        var tabelle = new HashSet<(ProcedureKind, string)> { (ProcedureKind.Star, "LIRN") };
+
+        var entrante = await resolver.PerTabelleEntrantiAsync(tabelle);
+        var prossimo = airac.NextCycles(DateTime.UtcNow, 2)[1];
+        Assert.Equal(prossimo.Cycle, Assert.Single(vive.Cicli));
+        Assert.Equal(prossimo.EffectiveUtc, entrante.CambioUtc);
+        Assert.NotNull(entrante.Nomi.NomeDelPunto(ProcedureKind.Star, "LIRN", "ERIK1A"));
+
+        await resolver.PerTabelleAsync(tabelle);
+        Assert.Null(vive.Cicli[1]);   // la lettura: oggi
     }
 
     [Theory]

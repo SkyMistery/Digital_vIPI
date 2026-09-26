@@ -324,16 +324,25 @@ public sealed class DocumentEditorShell : IDisposable
     /// <summary>
     /// Entra in modifica. Una versione pubblicata non si tocca: si apre una BOZZA — è la regola di tutte e
     /// quattro le famiglie. Su una bozza già aperta basta prendere il lock.
+    ///
+    /// <para>🔴 <b>In modifica solo se il lock è NOSTRO</b> (25 settembre 2026). <c>AcquireLockAsync</c> non
+    /// solleva quando il lock è di un altro: torna il lock altrui. Prima qui contava solo che la bozza fosse
+    /// aperta, e un collega entrato DOPO il caricamento della pagina lasciava entrare anche noi — senza avviso,
+    /// con le scritture poi respinte da «lock scaduto». Nell'editor unito era il membro in mano al collega
+    /// dentro una modifica «presa su tutti». Misurato dal vivo su LIBV.</para>
     /// </summary>
     public async Task StartEditingAsync(Func<Task> ricarica)
     {
         if (DocumentId is not int id) return;
         await GuardCoreAsync(async () =>
         {
+            // CreateDraftAsync col lock altrui SOLLEVA: il guardiano rilegge il lock e resta fuori modifica.
+            LockInfo? preso = null;
             if (Doc is { IsEditable: false }) await _editing.CreateDraftAsync(id);
-            else await _editing.AcquireLockAsync(id);
+            else preso = await _editing.AcquireLockAsync(id);
             await ricarica();
-            IsEditing = Doc?.IsEditable == true;
+            if (preso is { IsMine: false }) Lock = preso;
+            IsEditing = Doc?.IsEditable == true && preso is not { IsMine: false };
         }, silenziosa: true);
     }
 

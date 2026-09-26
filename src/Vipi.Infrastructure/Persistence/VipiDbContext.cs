@@ -732,6 +732,8 @@ public class VipiDbContext : DbContext
             e.HasIndex(x => new { x.DocumentId, x.Kind, x.SourceKey, x.ClearedUtc }).IsUnique();
             // L'elenco «cosa c'è di aperto», che è la query della pagina e del banner.
             e.HasIndex(x => new { x.ClearedUtc, x.RaisedUtc });
+            // «mod:» + un istante a secondi: 18 caratteri. Il margine è per una seconda natura di causa.
+            e.Property(x => x.CauseKey).HasMaxLength(64);
             e.HasOne(x => x.Document).WithMany().HasForeignKey(x => x.DocumentId).OnDelete(DeleteBehavior.Cascade);
         });
 

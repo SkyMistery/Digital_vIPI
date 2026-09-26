@@ -997,68 +997,93 @@ else
     // La forma del payload sta in UN posto solo (`TabellaGenerica`): stava qui e in `DocumentBlocksEditor`,
     // con tanto di commento «stesso formato JSON di», e due copie sono due posti dove correggere la prossima
     // trappola di questo JSON.
-    private static (List<string> Cols, List<List<string>> Rows) ParseTable(string? json) =>
-        TabellaGenerica.Leggi(json);
+    //
+    // S4: le larghezze delle colonne viaggiano CON la tabella. ⚠️ Ogni mutazione le rilegge e le riscrive: una
+    // `Scrivi` senza larghezze le cancellerebbe al primo clic su una cella.
+    private static (List<string> Cols, List<List<string>> Rows, List<int?> Widths) ParseTable(string? json)
+    {
+        var (cols, rows) = TabellaGenerica.Leggi(json);
+        return (cols, rows, TabellaGenerica.Larghezze(json));
+    }
 
-    private static string SerializeTable(List<string> cols, List<List<string>> rows) =>
-        TabellaGenerica.Scrivi(cols, rows);
+    private static string SerializeTable(List<string> cols, List<List<string>> rows, List<int?> widths) =>
+        TabellaGenerica.Scrivi(cols, rows, widths);
 
     // Ogni mutazione ri-parsa il BodyJson corrente, applica, serializza e salva (nessuno stato catturato tra render).
     private Task SetTableCol(EditableBlock b, int ci, string val)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         if (ci < cols.Count) cols[ci] = val;
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
+    }
+    private Task SetTableWidth(EditableBlock b, int ci, string val)
+    {
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
+        if (ci < larg.Count) larg[ci] = TabellaGenerica.LarghezzaDa(val);
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
     private Task RemoveTableCol(EditableBlock b, int ci)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         if (ci < cols.Count) cols.RemoveAt(ci);
+        if (ci < larg.Count) larg.RemoveAt(ci);
         foreach (var r in rows) if (ci < r.Count) r.RemoveAt(ci);
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
     private Task AddTableCol(EditableBlock b)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         cols.Add($"Colonna {cols.Count + 1}");
         foreach (var r in rows) r.Add("");
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
     private Task SetTableCell(EditableBlock b, int ri, int ci, string val)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         if (ri < rows.Count) { while (rows[ri].Count <= ci) rows[ri].Add(""); rows[ri][ci] = val; }
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
     private Task AddTableRow(EditableBlock b)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         rows.Add(Enumerable.Repeat(string.Empty, Math.Max(1, cols.Count)).ToList());
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
     private Task RemoveTableRow(EditableBlock b, int ri)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         if (ri < rows.Count) rows.RemoveAt(ri);
-        return SaveBlock(b, bodyJson: SerializeTable(cols, rows));
+        return SaveBlock(b, bodyJson: SerializeTable(cols, rows, larg));
     }
 
     private RenderFragment TableEditor(EditableBlock b) => __builder =>
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         @* `data-sid-host`: il tasto «SID» qui sotto cerca la cella col fuoco dentro questo contenitore (§A73). *@
         <div data-sid-host>
-        <table class="cfg-table">
+        @* ⚠️ `tab-larg` SEMPRE, nell'editor: senza, le colonne automatiche prendevano il 26/38/18/18% di
+           `.cfg-table` e lo spazio avanzato finiva tutto alla colonna dei tasti (246px misurati). *@
+        <table class="cfg-table tab-larg">
+            <ColonneTabella Larghezze="larg" Coda="width:70px" Sempre="true" />
             <thead>
                 <tr>
                     @for (var ci = 0; ci < cols.Count; ci++)
                     {
                         var cidx = ci;
-                        <th>
+                        <th class="col-th">
+                            @* S4: il bordo destro si trascina col mouse (vipi-editor.js); doppio clic = automatica. *@
+                            <span class="col-grip" title="@L["Dse_ColumnGrip"]" aria-hidden="true"></span>
                             <div style="display:flex;gap:4px;align-items:center">
                                 <input class="app-in" value="@cols[cidx]" @onchange="e => SetTableCol(b, cidx, AsString(e.Value))" />
                                 <button class="btn ghost" title="@L["Dse_RemoveColumn"]" @onclick="() => RemoveTableCol(b, cidx)">✕</button>
                             </div>
+                            @* S4: la larghezza della colonna, in percento; vuota = automatica. *@
+                            <label class="tab-larg-in" title="@L["Dse_ColumnWidthHint"]">
+                                <input class="app-in" type="number" min="@TabellaGenerica.LarghezzaMin" max="@TabellaGenerica.LarghezzaMax"
+                                       placeholder="auto" aria-label="@L["Dse_ColumnWidth"]"
+                                       value="@(larg[cidx]?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
+                                       @onchange="e => SetTableWidth(b, cidx, AsString(e.Value))" />%
+                            </label>
                         </th>
                     }
                     <th style="width:42px"><button class="btn ghost" title="@L["Dse_AddColumn"]" @onclick="() => AddTableCol(b)">＋</button></th>
@@ -1080,6 +1105,10 @@ else
                 }
             </tbody>
         </table>
+        @if (ColonneTabella.SommaCheNonTorna(larg) is int somma)
+        {
+            <div class="muted" style="font-size:12px;margin-top:4px">⚠️ @string.Format(L["Dse_ColumnWidthSum"], somma)</div>
+        }
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
             <button class="btn ghost" @onclick="() => AddTableRow(b)">+ @L["Dse_Row"]</button>
             @* ⚠️ L'import sta ACCANTO a «+ riga»: e' l'alternativa allo scriverle una per una, ed e' li' che
@@ -1114,7 +1143,7 @@ else
     /// </summary>
     private Task Importa(EditableBlock b, RichiestaImport r)
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
 
         // Le COLONNE arrivano da chi incolla in due casi: se la tabella non ne ha ancora, e se chi importa ha
         // detto che la prima riga E' l'intestazione.
@@ -1131,15 +1160,16 @@ else
         var tutte = r.Sostituisci ? nuove.ToList() : rows.Select(x => (IReadOnlyList<string>)x).Concat(nuove).ToList();
 
         _importBlockId = null;
-        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count)));
+        return SaveBlock(b, bodyJson: TabellaGenerica.Scrivi(cols, TabellaGenerica.Pareggia(tutte, cols.Count), larg));
     }
 
     private RenderFragment RenderTablePreview(EditableBlock b) => __builder =>
     {
-        var (cols, rows) = ParseTable(b.BodyJson);
+        var (cols, rows, larg) = ParseTable(b.BodyJson);
         @if (cols.Count > 0 || rows.Count > 0)
         {
-            <table class="cfg-table">
+            <table class="@ColonneTabella.Classe("cfg-table", larg)">
+                <ColonneTabella Larghezze="larg" />
                 <thead><tr>@foreach (var c in cols) { <th>@ConNomi(c)</th> }</tr></thead>
                 <tbody>
                     @foreach (var r in rows)

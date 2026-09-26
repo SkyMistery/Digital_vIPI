@@ -41,6 +41,13 @@ public interface IImpactDriftUseCase
     Task<ImpactDriftResult> RunAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Il giro intero, lanciato poco dopo una finestra di modifiche: le righe «da ripubblicare» che apre o
+    /// racconta diversamente prendono la finestra come <b>causa</b>. Carta
+    /// <c>docs/feature/2026-09-23-da-fare-per-cambiamento.md</c> §4.
+    /// </summary>
+    Task<ImpactDriftResult> RunAfterChangesAsync(FinestraDiModifiche finestra, CancellationToken ct = default);
+
+    /// <summary>
     /// Lo stesso giro, per <b>un documento solo</b> e subito. Lo chiede la pubblicazione appena ha scritto:
     /// senza, la riga «da ripubblicare» la chiudeva solo il giro delle 24 ore, e chi aveva appena pubblicato
     /// continuava a vedersi chiedere il lavoro che aveva finito — senza nessun modo di sapere se fosse
@@ -99,7 +106,12 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     /// cosa era stata segnalata, non tanto da far diventare la tabella un archivio storico.</summary>
     private const int CicliDiRitenzione = 2;
 
-    public async Task<ImpactDriftResult> RunAsync(CancellationToken ct = default)
+    public Task<ImpactDriftResult> RunAsync(CancellationToken ct = default) => RunCoreAsync(null, ct);
+
+    public Task<ImpactDriftResult> RunAfterChangesAsync(FinestraDiModifiche finestra, CancellationToken ct = default) =>
+        RunCoreAsync(finestra, ct);
+
+    private async Task<ImpactDriftResult> RunCoreAsync(FinestraDiModifiche? causa, CancellationToken ct)
     {
         var gestiti = await _admin.ListAsync(ct);
 
@@ -128,7 +140,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         {
             ct.ThrowIfCancellationRequested();
 
-            var (riga, ripuntata) = await ValutaAsync(d, entrante.Cycle, ct);
+            var (riga, ripuntata) = await ValutaAsync(d, entrante.Cycle, causa, ct);
             if (ripuntata) ripuntate++;
             if (riga is null) continue;
 
@@ -186,7 +198,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         var d = (await _admin.ListAsync(ct)).FirstOrDefault(x => x.DocumentId == documentId);
 
         var riga = d is { DocumentId: not null } && d.VaTenutoAggiornato
-            ? (await ValutaAsync(d, _releases.NextCycle().Cycle, ct)).Riga
+            ? (await ValutaAsync(d, _releases.NextCycle().Cycle, causa: null, ct)).Riga
             : null;
 
         var (aperti, chiusi) = await _impacts.ReconcileForDocumentAsync(
@@ -209,7 +221,7 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
     /// qui divergere vorrebbe dire che pubblicare chiude una riga che stanotte si riapre.</para>
     /// </summary>
     private async Task<(RaiseImpactInput? Riga, bool Ripuntata)> ValutaAsync(
-        ManagedDoc d, string entrante, CancellationToken ct)
+        ManagedDoc d, string entrante, FinestraDiModifiche? causa, CancellationToken ct)
     {
         var docId = d.DocumentId!.Value;
 
@@ -274,15 +286,20 @@ public sealed class ImpactDriftUseCase : IImpactDriftUseCase
         if (await _releases.ProgrammataAllineataAsync(d.ReleaseTarget, d.ReleaseKey, ct) is not null)
             return (null, false);
 
+        // La causa va solo alle due derive: sono le righe che una modifica editoriale apre. Un bersaglio rotto
+        // o una chiave spostata hanno la loro causa nel documento stesso. Il repository decide se scriverla
+        // (riga nuova, o racconto cambiato): qui si dice soltanto quale finestra ha preceduto il giro.
         if (righe.Count > 0)
             return (new RaiseImpactInput(
                 docId, ImpactKind.ReleaseDrift, d.ReleaseKey,
-                DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) }), false);
+                DocumentImpactService.Reasons.ReleaseDrift, new[] { Riassunto(righe) },
+                CauseKey: causa?.Chiave, CauseArgs: causa?.Argomenti), false);
 
         return (new RaiseImpactInput(
             docId, ImpactKind.ReleaseDriftNextCycle, d.ReleaseKey,
             DocumentImpactService.Reasons.ReleaseDriftNextCycle,
-            new[] { entrante, Riassunto(prossime) }), false);
+            new[] { entrante, Riassunto(prossime) },
+            CauseKey: causa?.Chiave, CauseArgs: causa?.Argomenti), false);
     }
 
 

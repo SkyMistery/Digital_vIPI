@@ -10,10 +10,20 @@
 // ⚠️ Il controllo che conta e' LA RICERCA: passa dal server, quindi distingue un sito vivo da uno
 // mezzo caricato. Il selettore della lingua, lo zoom e il tema NON valgono — funzionano anche a sito morto.
 // ⚠️ Il campo della Ricerca non dichiara un `type`: si prende `.wrap input`, non `input[type=search]`.
+// ⚠️ E la Ricerca deve TROVARE, non solo rispondere (S8, 24 settembre 2026): «0 results for …» e' una riga che
+// cambia, e per settimane questo controllo e' stato verde su una ricerca che a schermo diceva zero.
 const puppeteer = require('puppeteer-core');
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 const BASE = process.env.BASE || 'http://localhost:5199';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Il TERMINE DI PROVA della Ricerca: un nome che sta di sicuro nei documenti PUBBLICI.
+// Perche' LIRF: e' Fiumicino, il primo scalo della divisione — lo citano la vIPI di Roma, la vIPI d'aeroporto di LIRF
+// e le vLOA di Roma, e smetterebbe di esserci solo se sparissero tutti e tre. Misurato in produzione, da anonimo,
+// il 24 settembre 2026: 13 risultati. Non si usa piu' «LI»: due lettere trovano anche la GUIDA, che risponde a
+// database vuoto, e il controllo non distinguerebbe un sito che trova da uno che non trova niente.
+// Se un giorno il controllo dice «termine di prova da cambiare», si cambia QUI (o con TERMINE=… da fuori).
+const TERMINE = process.env.TERMINE || 'LIRF';
 
 (async () => {
   const esiti = [];
@@ -94,7 +104,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       await page.waitForSelector('.wrap input', { timeout: 30000 });
       const campo = await page.$('.wrap input');
       const prima = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
-      await campo.type('LI', { delay: 120 });
+      await campo.type(TERMINE, { delay: 120 });
       for (let i = 0; i < 30 && !cambiata; i++) {
         await sleep(500);
         const dopo = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
@@ -106,6 +116,31 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       cambiata
         ? (quantiGiri === 1 ? 'la riga sotto il campo e cambiata' : 'la riga e cambiata al SECONDO giro (processo appena avviato)')
         : 'NESSUN cambiamento in due giri: sito mezzo caricato');
+
+    // 3-bis. ...e TROVA. Si contano i risultati che sono DOCUMENTI: i `.res-row` che NON portano alla Guida, perche'
+    // le voci della Guida escono da un catalogo in memoria e ci sarebbero anche a database vuoto. ⚠️ Dall'indirizzo e
+    // non dalla classe `guide`: fino al 24 settembre 2026 la pagina marcava le voci della Guida solo in italiano.
+    // Si aspetta che il numero smetta di cambiare: la pagina aspetta 200 ms dall'ultimo tasto prima di cercare.
+    if (cambiata) {
+      let documenti = -1, fermo = 0;
+      for (let i = 0; i < 20 && fermo < 3; i++) {
+        await sleep(500);
+        const ora = await page.evaluate(() => document.querySelectorAll('.wrap a.res-row:not([href^="/services/vsop/guide"])').length);
+        fermo = ora === documenti ? fermo + 1 : 0;
+        documenti = ora;
+      }
+      const riga = await page.evaluate(() =>
+        [...document.querySelectorAll('.wrap p.muted')].map((p) => p.innerText).find((t) => /result|risultat/i.test(t)) || '');
+      // ⚠️ Zero documenti con la ricerca che RISPONDE non si dice «sito rotto»: il sito ha risposto. Si dice che
+      // il termine di prova non si trova piu' — che e' da cambiare se i documenti ci sono ancora (e allora si
+      // cambia TERMINE qui sopra), oppure che la ricerca non trova niente (e allora e' un difetto da aprire).
+      nota(`la RICERCA trova «${TERMINE}» fra i documenti pubblici`, documenti > 0,
+        documenti > 0
+          ? `${documenti} documenti · «${riga}»`
+          : `ZERO documenti per «${TERMINE}» («${riga}»): la ricerca risponde ma non trova. Se «${TERMINE}» e' ancora ` +
+            `nei documenti pubblici e' la ricerca a non trovare (difetto da aprire); se non c'e' piu', e' il TERMINE DI ` +
+            `PROVA da cambiare (TERMINE in pacchetto-verifica.js)`);
+    }
 
     if (!process.env.SOLO_PUBBLICO) {
     // 4. Una pagina di editor: e' li' che vivevano le corse di §AM.

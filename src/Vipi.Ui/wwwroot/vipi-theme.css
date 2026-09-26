@@ -1338,7 +1338,37 @@
 .vipi-root .wi-assign label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-soft)}
 .vipi-root .wi-assign .app-in{padding:2px 6px;font-size:12.5px;min-width:0;width:auto}
 .vipi-root .wi-assign .btn{padding:2px 10px;font-size:12px}
+/* «Da fare» per cambiamento (23 settembre 2026, WorkItemList). Il selettore della vista e' la grammatica della
+   chip «Tutto · Pilota · ATC»: pieno blu di marca su quello acceso. Il gruppo e' una riga come le altre — stessa
+   griglia, stessa barretta d'urgenza — con una testata che si apre, e sotto le sue righe rientrate. */
+:where(.vipi-root) .wi-views{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+:where(.vipi-root) .wi-views .btn{padding:3px 11px;font-size:12.5px}
+:where(.vipi-root) .wi-views button.btn.on,
+:where(.vipi-root) .wi-views button.btn.on:hover{background:var(--ivao-blue);color:var(--on-brand);font-weight:700}
+:where(.vipi-root) .wi-grp{border-radius:8px}
+:where(.vipi-root) .wi-grp + .wi,:where(.vipi-root) .wi + .wi-grp,:where(.vipi-root) .wi-grp + .wi-grp{border-top:1px solid var(--line)}
+:where(.vipi-root) .wi-grp-head{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;gap:10px;
+  padding:7px 8px;line-height:1.45}
+:where(.vipi-root) .wi-grp-head:hover{background:color-mix(in srgb,var(--ink) 4%,transparent);border-radius:8px}
+:where(.vipi-root) .wi-grp-toggle{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0;
+  background:none;border:0;padding:0;margin:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
+:where(.vipi-root) .wi-grp-toggle .wi-why{color:var(--ink)}
+:where(.vipi-root) .wi-grp-toggle:hover .grp-chev{color:var(--brand-ink-2)}
+:where(.vipi-root) .wi-sub{margin:0 0 6px 28px;padding-left:10px;border-left:1px dashed var(--line)}
+/* Da quanto aspetta la riga: sottovoce, e piu' forte oltre un ciclo AIRAC. ⚠️ Il «piu' forte» non e' solo colore:
+   anche il peso, per chi non distingue l'ambra dal grigio. */
+:where(.vipi-root) .wi-age{font-size:11.5px;color:var(--ink-soft);white-space:nowrap}
+:where(.vipi-root) .wi-age.old{color:var(--warn-ink, var(--ink));font-weight:700}
+/* Pannello di pubblicazione: «segna rilette anche queste N», con l'elenco sotto in piccolo. */
+:where(.vipi-root) .rel-rilette{margin:10px 0 0;font-size:13px}
+:where(.vipi-root) .rel-rilette label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+:where(.vipi-root) .rel-rilette ul{margin:4px 0 0 22px;padding:0;font-size:12px}
+/* Il dettaglio «cosa e' cambiato»: sotto la riga, a tutta larghezza, come «prendi in carico». */
+:where(.vipi-root) .wi-diff{grid-column:1 / -1;margin-top:6px;padding:8px 10px;border-radius:8px;
+  background:color-mix(in srgb,var(--ink) 3%,transparent);overflow-x:auto}
 @media (max-width:720px){
+  :where(.vipi-root) .wi-grp-head{grid-template-columns:1fr;gap:4px}
+  :where(.vipi-root) .wi-sub{margin-left:8px}
   :where(.vipi-root) .wi{grid-template-columns:1fr;gap:4px}
   :where(.vipi-root) .wi-act{flex-wrap:wrap;white-space:normal}
 }
@@ -3016,6 +3046,21 @@
 :where(.vipi-root) .cfg-table th:nth-child(2),:where(.vipi-root) .cfg-table td:nth-child(2){width:38%}
 :where(.vipi-root) .cfg-table th:nth-child(3),:where(.vipi-root) .cfg-table td:nth-child(3){width:18%}
 :where(.vipi-root) .cfg-table th:nth-child(4),:where(.vipi-root) .cfg-table td:nth-child(4){width:18%}
+/* S4: tabella generica con le larghezze scelte da chi scrive (`ColonneTabella`): le decide il `<colgroup>`, e le
+   colonne lasciate automatiche NON prendono le percentuali qui sopra, che sono di un'altra tabella. ⚠️ Sta DOPO:
+   stessa specificita', vince l'ordine. */
+:where(.vipi-root) .cfg-table.tab-larg :is(th,td){width:auto}
+:where(.vipi-root) .tab-larg-in{display:flex;gap:3px;align-items:center;margin-top:3px;font-size:12px;font-weight:400;color:var(--ink-soft,var(--ink-mid))}
+:where(.vipi-root) .tab-larg-in input{width:4.5em;padding:2px 4px;font-size:12px}
+/* S4: la maniglia sul bordo destro dell'intestazione, per allargare la colonna col mouse (vipi-editor.js).
+   `touch-action:none`: senza, sul tocco il trascinamento diventa uno scorrimento della pagina. */
+:where(.vipi-root) .cfg-table th.col-th{position:relative}
+:where(.vipi-root) .col-grip{position:absolute;top:0;right:-4px;width:8px;height:100%;cursor:col-resize;touch-action:none;z-index:1}
+/* La linea si vede SEMPRE (23-set, chiesto dal committente: «ora si vede solo passandoci sopra»): tenue a riposo,
+   piena e più larga sotto il mouse e durante il trascinamento. `--brand-ink` e non il blu IVAO: sul tema scuro il blu al 60% faceva 1,5:1, questo 3,3:1. */
+:where(.vipi-root) .col-grip{background:linear-gradient(to right,transparent 3px,color-mix(in srgb,var(--brand-ink) 70%,transparent) 3px,color-mix(in srgb,var(--brand-ink) 70%,transparent) 5px,transparent 5px)}
+:where(.vipi-root) .col-grip:hover,:where(.vipi-root) .col-grip:active{background:linear-gradient(to right,transparent 2px,var(--brand-ink) 2px,var(--brand-ink) 6px,transparent 6px)}
+:where(.vipi-root) .col-trascina,:where(.vipi-root) .col-trascina *{cursor:col-resize!important;user-select:none!important}
 :where(.vipi-root) .cfg-table td{overflow-wrap:anywhere}
 
 /* Blocco «carta d'area» del corpo editoriale (AreaMapBlock): shape disegnata + banda quota accanto.
@@ -4027,6 +4072,13 @@
 :where(.vipi-root) .struct .diag-side>.diag-fold:not([open]){flex:none}
 :where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll){flex:1 1 auto;min-height:160px;display:flex;flex-direction:column}
 :where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll)>.diag-fold-body{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+/* 🔴 E fra i due c'è un terzo, che nel markup non si vede: il contenuto di un <details> sta nella scatola
+   `::details-content` del browser, e il `.diag-fold-body` è figlio di LEI, non del <details>. Senza questa
+   riga la scatola restava alta quanto la tabella intera (1 682px per 40 righe, misurato), il `.st-scroll`
+   non aveva niente da scorrere e l'`overflow:hidden` della scheda tagliava in silenzio: «Chi può editare»
+   mostrava le prime righe e le altre non si raggiungevano (25 settembre 2026). In una regola a sé: un browser
+   che non conosce il selettore butta via tutta la regola, e non deve portarsi via anche quella sopra. */
+:where(.vipi-root) .struct .diag-side>.diag-fold[open]:has(.st-scroll)::details-content{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
 
 :where(.vipi-root) .struct .diag-card-head{margin-bottom:10px}
 :where(.vipi-root) .struct .diag-card-head .st-h2{font-size:14px;display:flex;align-items:center;gap:6px}

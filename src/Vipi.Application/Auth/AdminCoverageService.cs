@@ -11,8 +11,17 @@ namespace Vipi.Application.Auth;
 // ⚠️ Pubblico perché compare nella FIRMA di un tipo pubblico: chi lo restringe scopre che il
 // compilatore lo dice da sé (CS0050/CS0051/CS0053). È superficie del modulo quanto il tipo che lo
 // espone (ADR-0005 D6, revisione del 6 settembre 2026, R-009).
+/// <param name="DaStaff">Il livello che i soli codici staff gli danno (il «pavimento», senza promozione).</param>
+/// <param name="Concedenti">
+/// Quali dei suoi codici staff gli danno <see cref="DaStaff"/>: la risposta a «quale ruolo staff gli garantisce
+/// quella posizione». Vuoto quando il livello non viene da un codice — fondatore, oppure codici che nessun pattern
+/// riconosce (livello Staff IVAO). Richiesta del committente del 24 settembre 2026: prima la tabella lo diceva solo
+/// per il livello Admin.
+/// </param>
+/// <param name="Fondatore">È nell'elenco dei fondatori (<c>Auth:FounderVids</c>): Admin qualunque codice abbia.</param>
 public sealed record AdminCodeRow(int UserId, string? DisplayName, IReadOnlyList<string> Codes,
-    IReadOnlyList<string> Matched, VipiRole Level, bool Promosso);
+    IReadOnlyList<string> Matched, VipiRole Level, bool Promosso,
+    VipiRole DaStaff = VipiRole.User, IReadOnlyList<string>? Concedenti = null, bool Fondatore = false);
 
 /// <summary>Fotografia di «chi può editare»: i pattern in vigore, per livello, e i codici osservati.</summary>
 public sealed record AdminCoverage(
@@ -107,11 +116,19 @@ public sealed class AdminCoverageService : IAdminCoverageService
                 // guardasse i soli codici direbbe «nessuno è admin» mentre qualcuno lo è per promozione, e
                 // manderebbe a caccia di un guasto che non c'è.
                 var promozione = _promozioni.For(s.UserId);
+                var daStaff = _resolver.Resolve(s.UserId, s.StaffPositions);
+                var fondatore = _resolver.Founders.Contains(s.UserId);
                 return new AdminCodeRow(
                     s.UserId, s.DisplayName, s.StaffPositions,
                     _resolver.MatchingCodes(s.StaffPositions, VipiRole.Admin),
                     _resolver.Effective(s.UserId, s.StaffPositions, promozione),
-                    Promosso: promozione is { } p && p > _resolver.Resolve(s.UserId, s.StaffPositions));
+                    Promosso: promozione is { } p && p > daStaff,
+                    DaStaff: daStaff,
+                    // ⚠️ Si chiede al risolutore con lo STESSO livello che ha deciso, non si ricalcola: i codici
+                    // che danno quel livello sono quelli dei suoi pattern, e un secondo elenco qui divergerebbe
+                    // alla prima modifica della configurazione. Per un fondatore i codici non decidono niente.
+                    Concedenti: fondatore ? Array.Empty<string>() : _resolver.MatchingCodes(s.StaffPositions, daStaff),
+                    Fondatore: fondatore);
             })
             .ToList();
 

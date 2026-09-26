@@ -188,7 +188,10 @@ else
                     }
                     else if (_shell.Lock is { Locked: true, IsMine: false })
                     {
-                        <button class="btn ghost" disabled title="@L["Ed_LockedByOther"]">✎ @L["Ed_Edit"]</button>
+                        @* 🔴 Premibile anche così (25 settembre 2026): il lock qui è quello letto all'APERTURA, e il
+                           collega può essere uscito da un pezzo. Spento, restava spento fino al ricarico della pagina.
+                           Premendo decide il database (StartEditingAsync): se il lock è ancora suo si resta fuori. *@
+                        <button class="btn ghost" title="@L["Ed_LockedByOtherRetry"]" @onclick="Modifica">✎ @L["Ed_Edit"]</button>
                     }
                     else
                     {
@@ -267,8 +270,6 @@ else
     public async Task<string?> PrendiLockAsync()
     {
         if (_shell.Doc is null) return null;
-        if (_shell.Lock is { Locked: true, IsMine: false })
-            return _shell.Lock.ByName ?? L["Lock_AnotherEditor"].Value;
         await _shell.StartEditingAsync(LoadAsync);
         return _shell.IsEditing ? null : (_shell.Lock?.ByName ?? L["Lock_AnotherEditor"].Value);
     }

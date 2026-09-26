@@ -1733,6 +1733,13 @@ namespace Vipi.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("CauseArgsJson")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CauseKey")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ClearedByUserId")
                         .HasColumnType("INTEGER");
 

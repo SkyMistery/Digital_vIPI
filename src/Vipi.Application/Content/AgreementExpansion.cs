@@ -57,6 +57,10 @@ public static class AgreementExpansion
                 // L'elenco degli scali si porta sulle righe solo quando sono PIU' D'UNO: con uno solo
                 // ripeterebbe il nodo sotto cui la riga si legge già.
                 var airportLabel = section.Airports.Count > 1 ? section.AirportsLabel : null;
+                // E la frase li dice TUTTI: ognuno dei flussi sotto porta l'elenco intero (vedi TransferFlowRow).
+                var airportIcaos = section.Airports.Count > 1
+                    ? section.Airports.OrderBy(x => x.Order).Select(x => x.Icao).ToList()
+                    : new List<string>();
 
                 var clauses = section.Clauses.OrderBy(c => c.Order).ThenBy(c => c.Id).ToList();
 
@@ -78,6 +82,7 @@ public static class AgreementExpansion
                         Kind = section.Kind,
                         AirportIcao = icao,
                         AirportName = name,
+                        AirportIcaos = airportIcaos,
                         Description = section.Description,
                         Order = a.Order,
                         Points = points,

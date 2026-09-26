@@ -93,6 +93,55 @@ public class ImpactDriftTests : IAsyncLifetime
         Assert.False(riga.CanClear);   // calcolata: la richiude il giro, non un ✓
     }
 
+    // ── La causa: la finestra di modifiche dopo la quale il giro ha visto la deriva (carta 2026-09-23 §4) ──
+
+    private static FinestraDiModifiche Finestra(int minuto, params string[] famiglie) =>
+        new(new DateTime(2026, 9, 23, 21, minuto, 0, DateTimeKind.Utc), famiglie);
+
+    [Fact]
+    public async Task Dopo_Le_Modifiche_La_Deriva_Porta_La_Sua_Causa()
+    {
+        var rel = new FakeReleaseService { Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) } };
+        var f = Finestra(4, FamiglieDiModifica.Coordinamenti);
+
+        await Giro(new FakeAdmin(Gestito()), rel, new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") },
+            new FakeTargets(_docId)).RunAfterChangesAsync(f);
+
+        var riga = Assert.Single(await _impatti.ListOpenAsync(_docId));
+        Assert.Equal("mod:20260923210400", riga.CauseKey);
+        Assert.Equal(f.Argomenti, riga.CauseArgs);
+    }
+
+    [Fact]
+    public async Task La_Causa_Passa_Solo_A_Chi_La_Finestra_Ha_Cambiato()
+    {
+        var rel = new FakeReleaseService { Righe = new[] { new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4) } };
+        var giro = Giro(new FakeAdmin(Gestito()), rel, new FakeReleaseRepo { Effettiva = Release("LIRR|LIRR_NE_CTR") },
+            new FakeTargets(_docId));
+        async Task<string?> Causa() => Assert.Single(await _impatti.ListOpenAsync(_docId)).CauseKey;
+
+        await giro.RunAfterChangesAsync(Finestra(4, FamiglieDiModifica.Testo));
+        Assert.Equal("mod:20260923210400", await Causa());
+
+        // Una finestra che non cambia il racconto della riga non la tocca: la deriva c'era già, e uguale.
+        await giro.RunAfterChangesAsync(Finestra(10, FamiglieDiModifica.Aree));
+        Assert.Equal("mod:20260923210400", await Causa());
+
+        // Una che lo cambia se la prende.
+        rel.Righe = new[]
+        {
+            new ReleaseDiffRow("AoR", ReleaseChangeKind.Modified, 3, 4),
+            new ReleaseDiffRow("Frequenze", ReleaseChangeKind.Added, null, 2),
+        };
+        await giro.RunAfterChangesAsync(Finestra(20, FamiglieDiModifica.Settori));
+        Assert.Equal("mod:20260923212000", await Causa());
+
+        // E il giro notturno, che una causa non ce l'ha, non cancella quella che c'è.
+        rel.Righe = new[] { new ReleaseDiffRow("Frequenze", ReleaseChangeKind.Added, null, 2) };
+        await giro.RunAsync();
+        Assert.Equal("mod:20260923212000", await Causa());
+    }
+
     /// <summary>
     /// La riga che mancava, e che è il cuore della segnalazione del 2 settembre 2026: la copia in vigore dice
     /// ancora il vero <b>adesso</b>, ma al ciclo entrante no. Prima il giro guardava solo a oggi, e siccome le
