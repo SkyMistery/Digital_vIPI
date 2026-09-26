@@ -700,6 +700,34 @@ STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
 | R4 | **Punti di startup** (committente: non stanno nelle carte, si prendono dalle foto satellitari o se si trovano le posizioni): un **trattino perpendicolare alla taxiway principale** agganciato alla linea di centro, lunghezza fissa modificabile, col nome. **Dove**: proposta del Lab = una mappa `STARTUP` nel `MAPS` dello `.str` dello scalo col **tipo 2 (tasto HOLD)**, l'unico tasto che il `MAPS` non usa oggi (misurato: le 225 voci di tipo 2 stanno TUTTE su piste vere — le attese di scalo come `LIRN;24;HLD-BENTO; ; ;2;` + il circuito punto per punto) → ogni punto un tratto (`<br>`), il nome nell'etichetta del punto. 🔴 Col tasto HOLD la mappa `STARTUP` starebbe nello stesso elenco delle attese della pista (col suo occhio): **prova in Aurora in un ramo** prima di adottarla. Ripiego: `TAXI_CENTER` nel `.geo` | Subito (a mano, coordinate) + F9 (clic sulla mappa) | 🟡 da provare in Aurora |
 | R5 | Stand e taxiway dall'AIP (AD 2.8), col confronto | F6 | ✅ deciso |
 
+## §19 — `.mva` di scalo (24) e `.vrt` (16)
+
+Manuale: `ICAO.mva` (formato `[MVA]`, come §6) e `ICAO.vrt` (`[VFRROUTE]`, `N° rotta;Lat;Lon;;[Militare]`) si caricano
+da sé. Regola degli `.isc` letta qui: **dopo il nome del file niente altri caratteri né `;`** (controllato: tutti a
+posto). Nell'elenco dei file di scalo caricati da sé (gts, txi, sid, str, vfi, vrt, mva, tfl) il `.geo` **non c'è** →
+nelle prove I7.
+
+### Cosa c'è (misure del 26 settembre)
+
+- **`.mva` di scalo, due stili**: 8 file «come le ACC» (`libd`, `lica`, `lieo`, `limf`, `lipq`, `lipx`, `lipz`, `lirn`:
+  un nome per file, `RR`/`MM`/`PP`/`BB`, zone separate da `T;DUMMY`); 16 con **un nome per zona** (`3500`, `ZONA13`,
+  `CERCHIO-BA`, `6000E`, `85TPS`, separate da righe vuote) → ogni zona una voce nella *MVA Selection*, nomi uguali in
+  più scali. Quote in centinaia quasi ovunque, **piene** in `libn`, `libv`, `lict` (`1500`, `2500`, `FL85`). 5° campo
+  sempre vuoto. 7 file con commenti in coda (soprannomi `//Area 6000ft EST`, `//Zona B`, note `//Discrepanza tra i dati
+  e la carta`, `//Arco senso orario 35NM`). Cerchi disegnati a mano (`CERCHIO-EE`, 74 punti).
+- **`.vrt`**: 52 rotte, 123 punti, **puliti** — 83 dal `.vfi` dello scalo, 19 fix/navaid, 8 coordinate, **13 dal `.vfi`
+  di uno scalo vicino** (`licc.vrt` → `licz.vfi`, `lirn.vrt` → `lirm.vfi`), nessuno che manca; 16 punti militari.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| S1 | MVA di scalo con le regole delle ACC (§6): zona = blocco `//@zona="…"` col soprannome, scheda con la quota e il suo significato | Subito | ✅ deciso |
+| S2 | **Tutto nello stile ACC**: un nome per file = **l'ICAO dello scalo** (`LIRN`), zone separate da `T;DUMMY` col gruppo (E3), soprannomi nei tag; **quote tutte in centinaia** (`25` = 2500 ft). Adozione in un ramo: nomi di zona e commenti in coda → soprannomi e note nei tag | Subito (regole) + F4 (adozione) | ✅ deciso |
+| S3 | Controlli: quota in un'unità diversa dal resto, nome del gruppo diverso dall'ICAO, commento in coda | Subito | ✅ deciso |
+| S4 | **Scheda della rotta VFR**: numero, punti in ordine scelti dal `.vfi` dello scalo e **di quelli vicini**, militare; «Chi lo usa» (L2) attraversa gli scali | Subito | ✅ deciso |
+| S5 | Cerchi e archi delle MVA dal convertitore degli archi (F1) invece che a mano | F8 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
