@@ -8,6 +8,7 @@
 
 **Nessun codice in sospeso.** `lab/f3` pulito e spinto; ultimo codice `e06d6f20` (CI verde), dopo solo documenti.
 Test: motore **479**, Lab **358**. Eseguibile di prova ripubblicato il 24 settembre alle 12:54 (= `e06d6f20`).
+Il 26 settembre, all'apertura della chat «vIPI Lab», `lab/f3` si è allineato a `main` (1.46.5 compresa: `d670d606`).
 
 1. **Prove a mano di F3 e F3-bis: FINITE, 52 su 52 ✅** (`SectorLab-prova\PROVE.md`). L'ultima correzione (prove 40-41):
    un fix nuovo va nella sezione del suo NOME (`OrdineAlfabetico.NellaSezioneGiusta`, prefisso più lungo), non in quella
@@ -61,7 +62,7 @@ spinto, **CI verde** su `27a70daf`. Test: motore **479** (net8 e net10), Lab **3
 - **Sector di prova**: il clone `D:\Programmazione\IVAO_Test\it-aurora-sector-test`, con le prove SALVATE del committente
   (`APT.fix`: `BC;518`, `BC420`; `lirn.str`: ATZ a N041; `twrs.tfl`: LIRN_TWR incollato). Servono alle prove 37-38, 43, 47;
   poi lui fa `git checkout -- .`.
-- **Banco per vedere la UI** (fuori repo): scratchpad della sessione `ba2d7208-…\scratchpadetrina` — progetto
+- **Banco per vedere la UI** (fuori repo): scratchpad della sessione `ba2d7208-…\scratchpad\vetrina` — progetto
   `Microsoft.NET.Sdk.Web` con `RequiresAspNetWebAssets` e `OutputType Exe` (senza, `blazor.web.js` va a 404), che apre il
   clone e stampa l'indirizzo col segreto; si apre nel browser del pannello. Si ferma per riga di comando
   (`vetrina.dll`), 🔴 mai `taskkill /IM dotnet.exe` (ferma anche i processi degli altri).
@@ -192,6 +193,25 @@ Esiti: 6 ok ma ordine, 7 ✗, 8 ✅, 9 ✅, 10 ✗.
 `Regola.CompostaNonAllineata`; `IO/Metadati.cs` (virgolette, `composta`, `intere`, `Togli`, `NomeElencabile`);
 `IO/MappeComposte.cs`; `StrRecord`/`StrParser`/`StrSaver` (`IniziaUnTratto`); `IO/RecordNuovo.AggiungiPrimaDi` (24 set); `Regola.FormaQuasiChiusa` (24 set). `tools/Vipi.SectorfileProva` (sezione
 5b, `composta` sulle MAPS). Il sito non usa niente di questo; la build della soluzione è verde.
+
+### Dove sta la storia di prima
+
+Fino al 26 settembre la storia del filone stava anche nella memoria dell'agente; ora sta solo qui e nelle carte:
+F2 → carta [`2026-09-22-f2-motore-del-sector.md`](../feature/2026-09-22-f2-motore-del-sector.md) e §A115; F3 slice
+0-10 (una riga per slice, con lo sha) → `docs/lavori-aperti.md` §A116 e §8 «Traccia» della
+[carta F3](../feature/2026-09-22-f3-l-app.md); F3-bis → §8 della sua carta e la tabella sopra; giro dei file → carta
+«file per file».
+
+### Lezioni del filone che le carte non dicono
+
+- 🔴 Una **proposta** dell'agente non si scrive mai come «decisa dal committente» (successo per D8-D10 di F3-bis,
+  corretto subito): le decisioni hanno la data e la parola del committente.
+- 🔴 bUnit: un attributo `bool` vero diventa un attributo **vuoto** → nei `data-*` si usano stringhe (`"si"`/`null`).
+- 🔴 CI su Ubuntu più lenta: le attese dei test bUnit a 15 s (`Attesa`), sennò rossi a tempo scaduto.
+- 🔴 `Punto` ha una conversione implicita da `Coordinate`: in un ternario servono i due `(object)`, sennò cade ogni
+  `.pol`/`.lairway` (l'ha presa la misura sull'albero, non i test).
+- 🔴 Sorgenti con `\r\n` dentro le stringhe e percorsi Windows nei documenti: solo con gli strumenti di modifica, mai
+  Python o sed passati da heredoc (un `\v` di `scratchpad\vetrina` era diventato un carattere di controllo qui sopra).
 
 ### Dove lavorare
 
