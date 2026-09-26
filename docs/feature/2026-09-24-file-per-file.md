@@ -670,6 +670,36 @@ STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
 | Q6 | Controlli: coordinate non DMS (decimali), voce di un altro scalo, piste inesistenti o combinate male, nome diverso nei due campi di un punto | Subito | ✅ deciso |
 | Q7 | Altre mappe `MAPS` generate (cerchi di distanza, sottovento, aree P/R/D, TMA, circuiti VFR) | — | ❌ non servono (committente). SID (ALL) sta nel `.sid` (P10) |
 
+## §18 — `.txi` e `.gts` (etichette delle taxiway, stand)
+
+### Formato (manuale IVAO)
+
+- `[TAXIWAY]` (`ICAO.txi`, caricato da sé): `Nome;ICAO;Lat;Lon;` — solo l'etichetta.
+- `[GATES]` (`ICAO.gts`): `Nome≤20;ICAO;Lat;Lon;[Tipo L/M/H/S/G];[Slot]` — lo stop point dello stand. **Slot** (6°
+  campo, novità): `t_A320` tipo di aereo, `c_OAL` prefisso del nominativo, `d_LIRF` scalo di partenza, `w_` cargo
+  ammessi (volo cargo = `CARGO` nelle RMK); **E** fra tipi diversi, **O** dentro lo stesso tipo.
+
+### Cosa c'è (misure del 26 settembre)
+
+- **`.txi`**: 65 file, 1 075 etichette, **sulla linea di centro** (mediana 1 m dalla `TAXI_CENTER`, 90% entro 37 m; 27
+  oltre 100 m). Nomi ripetuti (95: una taxiway lunga ha più etichette — normale). Errori: 3 di `lipz.txi` in gradi
+  decimali; `libn.txi` con `LINB`.
+- **`.gts`**: 52 file, 1 672 stand, sullo stand (mediana 1 m, 90% entro 11 m). **Tipo quasi mai** (48 `M`), **slot
+  mai**. Errori: in `libg.gts` uno stand di **LIBP** (a 185 NM: **da togliere**, si rivede in revisione); in
+  `limc.gts` `L3MC`, `L4MC`; 2 nomi ripetuti.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| R1 | Etichette taxiway sulla mappa; controllo «etichetta lontana dalla sua taxiway»; trascinarle lungo la linea di centro | Subito (controllo) + F9 | ✅ deciso |
+| R2 | **Scheda dello stand**: tipo (L/M/H/S/G) da elenco, **slot** coi suggerimenti spiegati (`t_` `c_` `d_` `w_`) — «iniziare a implementarlo» | Subito | ✅ deciso |
+| R2b | **Metadati dello stand** (elenco da confermare col committente, vedi sotto) | Subito | 🟡 elenco da confermare |
+| R3 | Controlli: ICAO diverso dal file, coordinate non DMS, nomi ripetuti, stand lontano dallo scalo | Subito | ✅ deciso |
+| R3b | Via lo stand di LIBP da `libg.gts`; `L3MC`/`L4MC` → `LIMC`; `LINB` → `LIBN` | F4 | ✅ deciso |
+| R4 | **Punti di startup** (committente: non stanno nelle carte, si prendono dalle foto satellitari o se si trovano le posizioni): un **trattino perpendicolare alla taxiway principale** agganciato alla linea di centro, lunghezza fissa modificabile, col nome. **Dove**: proposta del Lab = una mappa `STARTUP` nel `MAPS` dello `.str` dello scalo col **tipo 2 (tasto HOLD)**, l'unico tasto che il `MAPS` non usa oggi → si accende e spegne a parte; ogni punto un tratto (`<br>`), il nome nell'etichetta del punto. Alternativa: `TAXI_CENTER` nel `.geo` (sempre acceso con le linee di centro) | Subito (a mano, coordinate) + F9 (clic sulla mappa) | 🟡 dove: da confermare |
+| R5 | Stand e taxiway dall'AIP (AD 2.8), col confronto | F6 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
