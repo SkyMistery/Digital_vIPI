@@ -592,6 +592,44 @@ mira, frecce della soglia spostata, croci.
 | O4 | **Dove stanno le marcature** (`RW_MARKINGS` o `.geo` dello scalo): lo decidono le prove di organizzazione (I7) | F4, da provare | 🟡 con I7 |
 | O5 | Larghezza, soglia spostata, precisione importate dall'AIP (AD 2.12/2.13/2.14) | F6 | ✅ deciso |
 
+## §16 — `.sid` (59 file nella radice `IT`, sezione `[SID]`, caricati da sé per nome di scalo)
+
+### Formato (manuale IVAO)
+
+Etichetta `ICAO;Piste (più con :);Nome;Lat;Lon;[Tipo 0 SID/1 transizione];[Navaid della transizione, spazi];[RNAV 1]`,
+poi i punti `Lat;Lon;[Info]` (vincoli, `:` va a capo); `<br>` in coda al primo punto apre un tratto nuovo.
+
+### Cosa c'è (misure del 26 settembre)
+
+- **1 305 procedure, quasi senza tracciato**: righe di sola etichetta (`LIRF;25;EKLO8R;;;;;1;`), lat/lon vuote; solo 85
+  punti in tutto (militari `QUIRRA DEP34`, `IP FRASCA`…). L'elenco serve al **menu SID di Aurora, filtrato per pista
+  attiva** (committente). Raggruppate per pista con una riga vuota; 192 per più piste (`14L:14R`); RNAV su 614.
+- **Convenzione italiana** (committente): SID + transizione in un **nome composto con tipo 0** e il navaid nel 7° campo
+  (`SOS5A-ESI8H; ; ;0;ESINO;1;`) — separate, Aurora non le propone unite nel menu. 373 così.
+- 28 righe col 6° campo spostato (`PEMAR`, `VICTOR`, `VEGIM R50 LIR50`…) → **errori**. 11 procedure ripetute (stesso
+  scalo, pista, nome; 5 di LIMC 35R) → **da togliere**. 51 nomi con spazi (militari). Piste tutte nel `.rw`.
+  10 commentate, 34 commenti in coda, `limf.sid:28` senza `;`.
+- **Fix della SID dal nome**: 982/1 305 automatici (694 un solo candidato, 288 il nome è già il navaid), 277 con più
+  candidati (`EKTO6M` → `EKTOL`/`EKTOR`), 48 senza (luoghi e militari). Il navaid della transizione c'è in tutte.
+- **PDF dell'AIP (LIRF, parte 6)**: tabelle SID RNAV **in testo** — path terminator (CA/CF/DF/TF), waypoint, rotta,
+  distanza, vincoli di quota e velocità, RNAV1 — più la **WAYPOINT LIST** con le coordinate e le sezioni «INITIAL
+  CLIMB PROCEDURE RWY …». Il nome intero del fix c'è («EKLOS 8R»). WTC e categorie NON sono in quelle tabelle (note
+  delle carte, o a mano). L'estrazione a volte sposta un valore sulla riga sotto → lettura tollerante + revisione.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| P1 | **Scheda della SID**: scalo, piste (più, fra quelle del `.rw`), nome, tipo, navaid della transizione coi suggerimenti, RNAV, tracciato | Subito | ✅ deciso |
+| P2 | SID nuova nel gruppo della sua pista | Subito | ✅ deciso |
+| P3 | Controlli: procedura ripetuta, 6° campo che non è 0/1 (salvo la convenzione del tipo 0 con transizione), `;` mancante | Subito | ✅ deciso |
+| P3b | Via le 11 ripetute, correzione dei 28 campi spostati | F4, in un ramo | ✅ deciso |
+| P6 | **Metadati** su una riga propria sopra la SID, con **valori di gruppo per pista** (`//@gruppo pista=25 wtc=LMHS cat=ABCD`, poi `//@sid fix=EKLOS trans=ESINO salita=6000ft\|COO APP [wtc=…] [cat=…]`): nome intero del fix e della transizione, salita iniziale (ft o `COO APP`), WTC (L M H S), categoria Vref (A-E) | Subito | ✅ deciso |
+| P7 | Fix proposto dal nome della SID (982 automatici, 277 da scegliere) | Subito | ✅ deciso |
+| P8 | **Lettura delle tabelle SID dai PDF** (punti, coordinate, vincoli, nome intero, salita iniziale), con revisione prima di scrivere | F7 | ✅ deciso |
+| P9 | **Disegno automatico della SID intera** nei suoi punti **dentro il `.sid`** (prima le RNAV) | F7 | ✅ deciso |
+| P10 | **Mappa di gruppo in testa al `.sid`** (voce `MAPS`) che aggrega più SID, **come per le STAR**: stesso meccanismo delle mappe composte di F3-bis (`composta=…`) | F7 (col disegno) | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -612,6 +650,8 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
 | **Controllo degli `.isc`** (file incluso che non c'è — AVVISO: Aurora trova il file per nome, vedi GCI —, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
+| **Metadati con valori di gruppo** (un tag di gruppo vale per le righe sotto finché non si ripete il campo) | SID P6 |
+| **Mappe composte** (una mappa che aggrega più procedure o settori) | F3-bis (STAR) · SID P10 · HI J6 (configurazioni) |
 | **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
 | **Ricalco da immagine** (carta PDF/immagine agganciata alla mappa su 3 punti, scarto misurato, disegno sopra) | ENRMVA E10 · GEO H7, H8 |
 | **Import/export KML** (Google Earth) | GEO H4 |
