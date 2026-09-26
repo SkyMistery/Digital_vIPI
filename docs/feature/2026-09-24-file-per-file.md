@@ -728,6 +728,44 @@ nelle prove I7.
 | S4 | **Scheda della rotta VFR**: numero, punti in ordine scelti dal `.vfi` dello scalo e **di quelli vicini**, militare; «Chi lo usa» (L2) attraversa gli scali | Subito | ✅ deciso |
 | S5 | Cerchi e archi delle MVA dal convertitore degli archi (F1) invece che a mano | F8 | ✅ deciso |
 
+## §20 — `symbols.sym` e `HOLDENR.hold`
+
+### `symbols.sym` (sezione `[SYMBOLS]`)
+
+- Manuale: solo «i simboli si definiscono con questo strumento» — link inesistente, niente altro nella wiki.
+- **Formato** (ricavato): un simbolo per riga, **13 gruppi di 13 cifre separati da `;` = 13 COLONNE da sinistra a
+  destra, ogni cifra un pixel dall'alto in basso** (`1` acceso). Letti come righe vengono ruotati (il FIX punta a
+  sinistra). Commento col nome sopra.
+- **23 simboli**: APT, FIX vuoto/pieno grande/piccolo, TERM, AC_COMB, AC_comb SEL, AC_DUPE, AC_COMB_MODE_S, acft coast,
+  TAC2, VOR/VOR2/VOR3, NDB, VFR, croce X, (senza nome), croce +, croce nel rombo, PAR 2090, PAR2080. Anomalie:
+  **`AC_comb SEL` e `AC_DUPE` senza `//`** (righe di testo lette come dati), il 18° senza nome.
+- **L'ordine conta** (committente), ma il manuale non dice come. Trovato nei profili completi di Aurora
+  (`Profiles\*.cpr`): i simboli **con nome** nello stesso formato — `SYMBOLS_AIRPORT`, `SYMBOLS_HELIPORT`,
+  `SYMBOLS_FIX_ENR/TERM/ENR_TERM/BOUND`, `SYMBOLS_FIX_VOR/VORDME/VORTAC/TACAN/DME/NDB`, `SYMBOLS_FIX_VFR/VFRA/VFRH/VFRN`,
+  `SYMBOLS_HOLD/IAP/FAP/GA`, `SYMBOLS_AC_1…10` — e impostazioni che scelgono un simbolo **per numero**
+  (`AircraftSSRSymbol=3`, `AircraftPSRSymbol=0`, `AircraftCPDLCSymbol=7`, `AircraftExtraPolitedSymbol=8`). Ipotesi: il
+  `.sym` del sector aggiunge simboli scelti per numero = posizione nel file (e le 2 righe senza `//` potrebbero
+  spostare la numerazione). **Da provare in Aurora**.
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| T1 | **Editor a pixel 13×13**: griglia cliccabile, anteprima a grandezza vera e ingrandita su sfondo radar, scrive le colonne nell'ordine giusto, nome sempre nel commento, ordine visibile e spostabile solo di proposito (col suo numero). Lo stesso editor per i simboli con nome dei profili (`SYMBOLS_*` in un `.cpr`, con l'avviso di §14) | Subito | ✅ deciso |
+| T2 | Controlli: simbolo che non è 13×13, nome senza `//`, simbolo senza nome | Subito | ✅ deciso |
+| T3 | **Prova in Aurora dell'ordine**: nella scelta del simbolo dell'aereo, quali simboli compaiono, in che ordine, da che numero partono quelli del sector; se conta la posizione, correggere le 2 righe senza `//` | F4, in un ramo — presto | 🟡 da provare |
+
+### `HOLDENR.hold` (sezione `[HOLDENR]`, le attese in rotta)
+
+- Manuale: `NOME;Lat;Lon;[Info]`, un'attesa = una **sequenza di punti** (l'ovale); il nome uguale a quello scritto nel
+  6° campo del fix (8° di VOR/NDB); tasto HOLD.
+- **68 attese, una riga ciascuna** = solo il punto + l'info in forma fissa `FIX/rotta+virata-quota`
+  (`ABBOZ/225R-9000`, `…L-FL100`): **nessun ovale disegnato**. Diverse dalle attese di scalo degli `.str` (§17).
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| U1 | **Scheda dell'attesa**: fix, rotta di avvicinamento, virata L/R, quota minima (ft o FL) come campi separati dall'info; legata al fix che la cita (controllo nei due versi, es. `EKLAP` → `HLD-ELKAP`) | Subito | ✅ deciso |
+| U2 | **Per ora solo la scritta** (come oggi). Il disegno dell'ovale (fix, rotta, virata, tratto in minuti o NM) **si sceglie attesa per attesa**: all'import dall'AIP o quando se ne scrive/modifica una | F6 (import) + F8 (ovale) | ✅ deciso |
+| U3 | Import dall'AIP ENR 3.6 (attese in rotta), col confronto | F6 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
