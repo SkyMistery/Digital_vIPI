@@ -4,6 +4,22 @@
 > Carte dell'app: [F3](2026-09-22-f3-l-app.md), [F3-bis](2026-09-23-f3-bis-copie-e-mappe-composte.md).
 > Metodo: [FEATURE-PROCESS](../FEATURE-PROCESS.md).
 
+## Stato — 26 settembre 2026
+
+**Giro finito**: §1-§22 coprono tutte le cartelle di `Include\IT` e tutti i tipi di file della radice, ognuno con
+formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e fase. §C raccoglie i meccanismi comuni.
+
+- **Prossimo**: il **lotto «Subito»** — le voci «Subito» raggruppate per meccanismo comune (§C), in slice e in un
+  ordine, in una carta a parte da far leggere al committente prima di cominciare.
+- **Prove in Aurora da fare presto** (committente, in rami di prova): T3 ordine dei simboli · R4 startup col tasto HOLD ·
+  B9 etichette `L` fra i `T` delle aerovie · A8 etichette ACC per riferimento · F5 `ENRVFI` sotto `[VFRFIX]` · I7/K2
+  organizzazioni dei file di scalo A-E.
+- **Pulizie decise** (F4, in un ramo): `limw.pol`, `test.artcc`, `limc_star`/`lirf_star`, SID ripetute e campi spostati,
+  ICAO sbagliati, `LIMM_WN4/EN4_CTR` nei trasferimenti; `.fix` vuoti più avanti.
+- **Da chiedere**: `LL` di `lied.str`; configurazioni di Milano 2.1/2.2/3.
+- **Regole trasversali**: niente commenti in coda · fonte primaria, mai vIPI · `PREFS` solo lo stretto necessario ·
+  rami di prova, niente parassiti · coordinate col punto.
+
 ## §0 — Il metodo
 
 Chiuse le prove a mano di F3 e F3-bis (52 su 52, 24 settembre), il committente ha scelto di passare il sector **per
