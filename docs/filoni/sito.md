@@ -1,8 +1,8 @@
 # Filone sito vIPI — stato
 
-> Scrive **solo** l'agente del sito (cartella `vIPI-sito`, ramo `sito/lavori`). Regole:
-> [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del filone: **S1, S2…**
-> (le voci §A in `docs/lavori-aperti.md` le scrive l'integratore alla consegna).
+> Scrive **solo** la chat Sito (`/sito`: cartella `vipi-sito`, ramo `sito/lavori`; fino al 25 settembre la cartella
+> era `vIPI-sito`). Regole: [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Numerazione del
+> filone: **S1, S2…** (le voci §A in `docs/lavori-aperti.md` le scrive il Master alla consegna).
 
 ## Dove siamo — 23 settembre 2026
 

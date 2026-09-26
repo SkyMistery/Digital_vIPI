@@ -1,5 +1,9 @@
 # Lavori assegnati ai filoni — la coda
 
+> ⚪ **Chiusa il 26 settembre 2026**: la coda la tiene ora il Master nella sua memoria, dove un filone la legge
+> senza aspettare una fusione ([`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md)). Qui sotto
+> resta la storia: tutte le voci erano già prese e online.
+
 > Scrive **solo l'integratore**, su richiesta del committente. Ogni agente la legge all'apertura: quando prende un
 > lavoro, lo porta nel SUO file (`docs/filoni/<filone>.md`) col suo numero (sito: S4, S5…) e qui lo segna «preso».
 > Così l'integratore non tocca mai il file di un filone mentre l'agente ci sta scrivendo.

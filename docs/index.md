@@ -5,8 +5,8 @@ Mappa di tutti i documenti del progetto, con scopo e stato. Entry point in root:
 **Stato:** 🟢 Autorevole (corrente) · 🔵 Reference (config/integrazione) · 🟣 Design · ⚪ Storico.
 
 ## Ordine di lettura consigliato (nuova chat)
-⚠️ **Più agenti al lavoro insieme?** Prima di tutto [filoni/come-si-lavora-in-parallelo.md](filoni/come-si-lavora-in-parallelo.md):
-chi lavora in quale cartella e ramo, e chi scrive quale file.
+⚠️ **Più chat al lavoro insieme?** Prima di tutto [filoni/come-si-lavora-in-parallelo.md](filoni/come-si-lavora-in-parallelo.md):
+le tre chat (Master, Sito, Lab), in quale cartella e ramo lavorano, e chi scrive quale file.
 
 0. **[lavori-aperti.md](lavori-aperti.md)** — 📋 elenco unico di **cosa manca da fare**, con il blocco di
    ciascuna voce. Se l'obiettivo è lavorare e non capire, si parte da qui.
@@ -364,9 +364,9 @@ sopra non nominano. Le sezioni sopra dicono *cosa leggere*; questo elenco dice *
 
 ### `filoni`
 
-- [`filoni/come-si-lavora-in-parallelo.md`](filoni/come-si-lavora-in-parallelo.md) — Più agenti in parallelo: chi scrive dove 🟢
+- [`filoni/come-si-lavora-in-parallelo.md`](filoni/come-si-lavora-in-parallelo.md) — Più chat in parallelo: chi fa cosa 🟢
 - [`filoni/coordinamenti-aeroporti.md`](filoni/coordinamenti-aeroporti.md) — Filone «coordinamenti su più aeroporti» — ramo `fix/coordinamenti-aeroporti`
-- [`filoni/da-fare.md`](filoni/da-fare.md) — Lavori assegnati ai filoni — la coda
+- [`filoni/da-fare.md`](filoni/da-fare.md) — Lavori assegnati ai filoni — la coda ⚪ chiusa il 26 settembre
 - [`filoni/lab.md`](filoni/lab.md) — Filone Sector Lab — stato
 - [`filoni/lista-da-fare.md`](filoni/lista-da-fare.md) — Filone «Da fare»: raggruppare per cambiamento 🟡
 - [`filoni/lock-uniti.md`](filoni/lock-uniti.md) — Filone «lock uniti» — ramo `fix/lock-uniti`
