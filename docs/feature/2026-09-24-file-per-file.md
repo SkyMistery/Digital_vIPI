@@ -566,6 +566,32 @@ connessione** → si mettono **solo le cose strettamente necessarie**. Il profil
 | N3 | Controlli: profilo citato che non esiste (`LIPC`), didascalia con una pista che non esiste o vuota, radiale/elevazione diverse dal `.rw`, **profilo con molte impostazioni** (avviso: sovrascrivono l'utente). NON sono avvisi: profilo non usato (può servire a un settore da venire), PAR di un altro scalo, righe prima delle sezioni | Subito | ✅ deciso |
 | N4 | Il profilo scelto da un elenco nella scheda della posizione (M1), e da lì aperto | Subito | ✅ deciso |
 
+## §15 — `RW_MARKINGS` (le marcature delle piste)
+
+### Cosa c'è (misure del 26 settembre)
+
+Normali `.geo` a segmenti (sezione `[GEO]`), tutti di tipo `RUNWAY`: numero, pettine, linea di centro, segni di
+mira, frecce della soglia spostata, croci.
+
+- **35 file, 8 149 segmenti**, uno per scalo (LIMC due: `mc35L`, `mc35R`); commenti per parte abbastanza regolari
+  (`//DESIGNATOR RW 35L`, `//THRESHOLD MARKS RW 06`, `//AIMING POINT MARKS`, `//DISPLACED THRESHOLD ARROW`,
+  `//RUNWAY STRIPES`).
+- **Le marcature stanno in posti diversi**: 34 scali in `RW_MARKINGS`; **13 nel `.geo` dello scalo** (LIRF, LIRN,
+  LIPZ, LIPE, LIPX, LIAA, LIRA…); **56 con solo il contorno o niente** (LICA, LIEA, LIPH, LIPS…).
+- **LIRN** (`GEO\lirn.geo` 426-641): barra di soglia, pettine di 12 strisce (giusto per 45 m), numero («24» col 4
+  disegnato a metà), frecce prima della soglia, linea di centro, segni di mira, croci alle estremità.
+- **Le croci** (committente): aree della pista **inutilizzabili per le normali operazioni** o, a volte, **piste chiuse**.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| O1 | **Vista per pista**: marcature raggruppate per pista e per parte (dai commenti), dentro la vista per scalo (I6) | Subito | ✅ deciso |
+| O2 | **Generatore di marcature**: dal `.rw` (numero, soglie, direzione) + larghezza, soglia spostata, precisione, aree inutilizzabili/pista chiusa (croci); regole ICAO dell'Annesso 14 **in una tabella modificabile** (strisce per larghezza 18→4, 23→6, 30→8, 45→12, 60→16; numero; linea di centro; segni di mira e zona di contatto per lunghezza; frecce). Scritto in un blocco coi parametri (`//@marcature="LIRN 06" larghezza=45 spostata=0 precisione=si`) che **si ridisegna se la pista cambia** (dipende solo da pista e parametri). **Un pezzo alla volta**: prima barra, pettine, numero, linea di centro; si guarda come va; poi segni di mira, zona di contatto, frecce, croci | F8, a passi | ✅ deciso |
+| O3 | Controlli: strisce diverse da quelle previste per la larghezza, marcature lontane dalle soglie del `.rw`, pista senza marcature (solo informativo) | Subito | ✅ deciso |
+| O4 | **Dove stanno le marcature** (`RW_MARKINGS` o `.geo` dello scalo): lo decidono le prove di organizzazione (I7) | F4, da provare | 🟡 con I7 |
+| O5 | Larghezza, soglia spostata, precisione importate dall'AIP (AD 2.12/2.13/2.14) | F6 | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
