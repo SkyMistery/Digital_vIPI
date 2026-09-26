@@ -536,6 +536,36 @@ F3-bis. Il CPDLC è comune.
 | M7 | Togliere `LIMM_WN4_CTR` e `LIMM_EN4_CTR` dai trasferimenti | F4, in un ramo | ✅ deciso |
 | M8 | Import di scali, piste (AD 2.2, AD 2.12) e posizioni dall'AIP, col confronto | F6 | ✅ deciso |
 
+## §14 — `PREFS` (15 `.cpr`, i profili delle posizioni ATC)
+
+### Cosa sono (manuale IVAO + committente)
+
+Un `.cpr` ha **lo stesso formato dei profili di Aurora** (`Aurora\Profiles`): può contenere tutte quelle impostazioni
+(un profilo completo: ~40 sezioni, **1 447 chiavi** — `[Screens]`, `[LABELS]`, `[Sounds]`, `[Connection]`,
+`[INSET1-8]`…). Ma 🔴 **ogni impostazione di un `.cpr` in `PREFS` sovrascrive quella dell'utente a ogni
+connessione** → si mettono **solo le cose strettamente necessarie**. Il profilo lo sceglie la posizione nel `.frq`
+(4° campo).
+
+### Cosa c'è (misure del 26 settembre)
+
+- **Generici** `TWR` (220 posizioni), `CTR` (54), `APP` (44), `TMA` (40): 2-3 chiavi (`AircraftHorizontal`…) ✅.
+  `WW0` (non usato: **serve a un settore da venire**, `LIMF_WW0_APP`). `LIPC.cpr` citato da un `.frq` ma **non esiste**.
+- **10 profili PAR** (`LIBN`, `LIBV`, `LIPA`, `LIPH`, `LIPI`, `LIPL`, `LIPS`, `LIPX`, `LIRM`, `LIRS`): ogni `[INSETn]` è
+  una finestra PAR (didascalia, pendenza 2,5-3,3°, radiale, elevazione, DA, soglia, distanza 20 NM, **centro del PAR**
+  `Par_Lat`/`Par_Long`). Radiale = rotta del `.rw` (±0,2°), elevazione = soglia del `.rw` (±1 ft). PAR di un altro
+  scalo (`LIPA_APP` → Rivolto, `LIPX_ES0_APP` → Ghedi, Treviso → Istrana): **voluto**, quegli APP servono quei campi.
+  `PAR_VERTICAL_SCAN`/`PAR_HORIZONTAL_SCAN` prima di ogni `[sezione]`: **funzionano**. Didascalia «LIPI 06» (nel `.rw`
+  06L/06R); `LIBN.cpr` INSET3 senza didascalia.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| N1 | **Scheda del profilo**: sezioni e valori leggibili; **ogni impostazione dice che sovrascrive quella dell'utente a ogni connessione**; per aggiungerne una si sceglie dall'elenco delle chiavi di un profilo completo di Aurora (preso dalla cartella `Profiles`), con la sezione giusta | Subito | ✅ deciso |
+| N2 | **PAR**: una finestra per pista (pista dal `.rw`, pendenza, DA, distanza, centro); radiale ed elevazione ricavate dal `.rw` e riallineate se la pista cambia | Subito (coerenza) + F8 (generazione) | ✅ deciso |
+| N3 | Controlli: profilo citato che non esiste (`LIPC`), didascalia con una pista che non esiste o vuota, radiale/elevazione diverse dal `.rw`, **profilo con molte impostazioni** (avviso: sovrascrivono l'utente). NON sono avvisi: profilo non usato (può servire a un settore da venire), PAR di un altro scalo, righe prima delle sezioni | Subito | ✅ deciso |
+| N4 | Il profilo scelto da un elenco nella scheda della posizione (M1), e da lì aperto | Subito | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
