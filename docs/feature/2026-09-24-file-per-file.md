@@ -766,6 +766,19 @@ nelle prove I7.
 | U2 | **Per ora solo la scritta** (come oggi). Il disegno dell'ovale (fix, rotta, virata, tratto in minuti o NM) **si sceglie attesa per attesa**: all'import dall'AIP o quando se ne scrive/modifica una | F6 (import) + F8 (ovale) | ✅ deciso |
 | U3 | Import dall'AIP ENR 3.6 (attese in rotta), col confronto | F6 | ✅ deciso |
 
+## §21 — `limw.pol` (nella radice `IT`)
+
+- Due riempimenti di **LIMW** (Aosta): confine (`STATIC;COAST`) e piazzale. **Nessun `.isc` lo carica** e Aurora non
+  lo carica per nome (`.pol` non è fra le estensioni di scalo). Ultima modifica 16 maggio 2020 («RISCRITTURA COMPLETA
+  SECTORFILE DIVISIONE IN SOTTO CARTELLE»).
+- **Residuo**: i suoi 52 vertici stanno tutti in `GND_LAYOUT\mw_ad_gnd.pol` (incluso, 254 righe: confine come GRASS,
+  piazzale, 2 edifici, taxiway, 5 poligoni di pista).
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| V1 | Togliere `limw.pol` (non serve `delete.upd`: non è caricato), insieme agli altri parassiti (`test.artcc`, `limc_star`/`lirf_star`, i `.fix` vuoti quando si decide) | F4, in un ramo | ✅ proposto |
+| V2 | **Controllo «file orfano»**: file del sector che nessun `.isc` carica e che Aurora non carica per nome di scalo (lo avrebbe trovato da solo); con «è una copia di…» se le sue forme stanno in un altro file | Subito — comune (controllo degli `.isc`) | ✅ proposto |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
