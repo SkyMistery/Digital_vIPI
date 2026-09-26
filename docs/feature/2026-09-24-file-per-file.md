@@ -779,6 +779,36 @@ nelle prove I7.
 | V1 | **Togliere `limw.pol`** (committente: va tolto; non serve `delete.upd`: non è caricato), insieme agli altri parassiti (`test.artcc`, `limc_star`/`lirf_star`, i `.fix` vuoti quando si decide) | F4, in un ramo | ✅ deciso |
 | V2 | **Controllo «file orfano»**: file del sector che nessun `.isc` carica e che Aurora non carica per nome di scalo (lo avrebbe trovato da solo); con «è una copia di…» se le sue forme stanno in un altro file | Subito — comune (controllo degli `.isc`) | ✅ proposto |
 
+## §22 — `.atis`, `.datis`, `atisextra.fds`
+
+Fonti: il manuale del sector per `[ATIS]` rimanda a «ATC Operations Staff: Tools For The Job»
+(`/en/home/atcoperations/tools`), che offre **ATIS Creator** (Google Drive, 2022) e **SYMBOL Creator** (`matrix.zip`),
+più «Quality Standards and tips» e il flusso ufficiale Google Earth → KML → IAB. Scaricati (col permesso del
+committente) nello scratchpad **senza eseguirli**: dentro solo gli eseguibili; dai loro testi:
+- ATIS Creator conosce `STATION_NAME`, `ATIS_LETTER`, `ATIS_TIME`, `ARR`, `DEP`, `DEP_FREQ`, `TA`, `TL`, `METAR`,
+  `REMARK`, nome di file `icao.atis`. Da noi anche `ARR_TYPE` (da `atisextra.fds`), `QFE`, `CPDLC` (più recenti);
+  `DEP_FREQ` e `TA` mai usati.
+- SYMBOL Creator = «MATRIX for FIX SYMBOLS»: dell'ordine dei simboli non dice niente → T3 resta da provare.
+
+### Cosa c'è (misure del 26 settembre)
+
+- **`.atis`** (7): modelli del testo con segnaposto e **parti facoltative fra parentesi annidate** (`[Arrival runway
+  [ARR]]` solo se `ARR` c'è); scritti **per la voce** («aitis», «Q F Echo», «mlpainsa», «lee,NAH,teh») — **voluto**, si
+  correggono a mano se serve. `default`, `arrdep` generici; `lica`, `lied`, `limc`, `liml`, `lipz` col nome dello scalo.
+- **`.datis`** (4): D-ATIS, stesso modello senza pronunce, `[CPDLC]` negli arrivi/partenze; `datis-acc` = solo
+  `CPDLC ID [CPDLC]`; **`datis.datis` vuoto, usato da 90 posizioni: voluto** — solo LIRF e LIMC hanno il D-ATIS.
+- **`atisextra.fds`**: `Type of Approach;[ARR_TYPE];` = un campo in più nella finestra ATIS.
+- Dai `.frq` (§13): `\liml.atis` citato con una barra di troppo.
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| W1 | **Editor dei modelli**: segnaposto da un elenco (quelli di ATIS Creator + quelli dei `.fds` + `QFE`, `CPDLC`), parti facoltative evidenziate, **anteprima riempita** con valori di esempio (un METAR vero, pista, lettera) | Subito | ✅ deciso |
+| W2 | **«Ascolta»**: l'anteprima letta con la voce di Windows (quella di Aurora) per sentire le pronunce | Subito | ✅ deciso |
+| W3 | ATIS ↔ D-ATIS affiancati; avviso se la struttura diverge. Le pronunce NON si correggono da sole | Subito | ✅ deciso |
+| W4 | Controlli: segnaposto sconosciuto, parentesi non bilanciate, file citato inesistente (`\liml.atis`), campo `.fds` che nessun modello usa. `datis.datis` vuoto NON è un avviso | Subito | ✅ deciso |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
