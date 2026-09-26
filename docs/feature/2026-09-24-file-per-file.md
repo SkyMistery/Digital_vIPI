@@ -776,7 +776,7 @@ nelle prove I7.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| V1 | Togliere `limw.pol` (non serve `delete.upd`: non è caricato), insieme agli altri parassiti (`test.artcc`, `limc_star`/`lirf_star`, i `.fix` vuoti quando si decide) | F4, in un ramo | ✅ proposto |
+| V1 | **Togliere `limw.pol`** (committente: va tolto; non serve `delete.upd`: non è caricato), insieme agli altri parassiti (`test.artcc`, `limc_star`/`lirf_star`, i `.fix` vuoti quando si decide) | F4, in un ramo | ✅ deciso |
 | V2 | **Controllo «file orfano»**: file del sector che nessun `.isc` carica e che Aurora non carica per nome di scalo (lo avrebbe trovato da solo); con «è una copia di…» se le sue forme stanno in un altro file | Subito — comune (controllo degli `.isc`) | ✅ proposto |
 
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
