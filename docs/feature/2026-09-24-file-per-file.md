@@ -630,6 +630,46 @@ poi i punti `Lat;Lon;[Info]` (vincoli, `:` va a capo); `<br>` in coda al primo p
 | P9 | **Disegno automatico della SID intera** nei suoi punti **dentro il `.sid`** (prima le RNAV) | F7 | ✅ deciso |
 | P10 | **Mappa di gruppo in testa al `.sid`** (voce `MAPS`) che aggrega più SID, **come per le STAR**: stesso meccanismo delle mappe composte di F3-bis (`composta=…`) | F7 (col disegno) | ✅ deciso |
 
+## §17 — `.str` (90 file nella radice `IT`, sezione `[STAR]`, caricati da sé per nome di scalo)
+
+### Formato (manuale IVAO)
+
+Come la SID: etichetta `ICAO;Piste;Nome;Lat;Lon;[Tipo];[Navaid transizione];[RNAV 1]` e punti `Lat;Lon;[Info]`,
+`<br>` apre un tratto. Il tipo: **0 STAR, 1 transizione, 2 attesa, 3 IAP, 4 FAP, 5 mancato avvicinamento** = i tasti
+STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
+
+### Cosa c'è (misure del 26 settembre)
+
+- **1 504 voci, 35 797 punti** (29 117 per coordinate, 6 680 per nome), 1 971 `<br>`, 1 188 punti con un'etichetta
+  (`1B 6000`, `C1`, `THR26`…), RNAV su 520, 7° campo (navaid della transizione) **mai usato**.
+- **Procedure su piste vere** (1 169): STAR ~390, transizioni 58, **attese di scalo** 225 (`HLD-ELVAD`), IAP 322, FAP 91,
+  GA 86.
+- **Menu `MAPS`** (335): **ATZ** e **CTR** (disegni rapidi: altrimenti andrebbero fatti da `LOW_AIRSPACE`, più lungo e
+  separato), **prolungamenti `RWYxx`** (91), **STAR (ALL)** aggregate (69), `FIX MILITARI`, `WORK AREAS`, `IAFS`, `RNP`,
+  `LL NW/NE/S1/S2` (`lied.str`: probabilmente rotte militari a bassa quota — **da chiedere a chi segue LIED**),
+  `LIPB VFR`. 🔴 **Nel `MAPS` il tipo sceglie il TASTO che accende la mappa**: CTR, WORK AREAS, LL, LIPB VFR → TRANS;
+  ATZ → GA; RWYxx → FAP; FIX MILITARI, IAFS, RNP → IAP; STAR (ALL) → STAR.
+- **Prolungamenti d'asse** (committente: prolungamenti customizzati, tacca corta ogni NM, lunga ogni 5 NM): linea di
+  14 o 29 NM, un punto ogni NM; tacche di lunghezza diversa per scalo (LIBA 1 852/4 630 m, LIBC 463/926 m).
+- Anomalie: **`liba.str` con coordinate in gradi decimali** (`41.00850773;16.07432896;1B 6000;`, 27 punti, fuori
+  dal manuale: probabilmente saltati da Aurora); **`licz.str` con una voce di LICC** (`LICC;10L:10R;LIBR1V`); piste
+  strane `05:12`, `06:24`; **`lied.str` `ALPHA SOUTH;ALPHA SUOTH;`** (nome diverso nei due campi); 119 commenti in coda.
+- `HOLDENR.hold` contiene le **attese in rotta** dall'AIP: **diverse** da quelle di scalo degli `.str` (nessun legame).
+
+### Cosa serve, per fase
+
+| # | Esigenza | Fase | Stato |
+|---|---|---|---|
+| Q1 | **Scheda della voce**: tipo da elenco sulle piste vere (STAR/TRANS/HOLD/IAP/FAP/GA); nel `MAPS` lo stesso campo mostrato come **«si accende col tasto …»** (mai un errore); piste dal `.rw`, RNAV, punti con etichetta. Vista per scalo **per pista e tipo** come la finestra delle procedure di Aurora; `MAPS` a parte | Subito | ✅ deciso |
+| Q2 | **Metadati per punto** su una riga propria sopra il punto: **vincoli di quota e velocità** e **ruolo** (IAF, IF, FAF, MAPt) — `//@punto ruolo=IAF quota=+FL80 vel=-210`. **Mai a schermo in Aurora** (inquinamento visivo): nel Lab al passaggio del mouse e nella scheda | Subito | ✅ deciso |
+| Q2b | Per ogni STAR, come le SID: fix intero, WTC, categoria; **specifica di navigazione** (RNAV1, RNP1, RNP APCH) oltre al flag | Subito | ✅ deciso |
+| Q2c | **Legami fra procedure della stessa pista** (STAR → attesa di scalo → IAP → GA) e controllo «STAR che finisce dove non parte nessuna IAP». ❌ NIENTE legame con `HOLDENR.hold` (attese in rotta, altra cosa) | Subito (legami) | ✅ deciso |
+| Q3 | **Lettura dai PDF** (tabelle «STAR RNAV1 … DESCRIPTION TABLES», come per le SID) e disegno automatico; IAP/FAP/GA dalle carte di avvicinamento (immagini) più tardi | F7 | ✅ deciso |
+| Q4 | **Generatore dei prolungamenti d'asse** dal `.rw`: lunghezza, punto ogni NM, tacca corta ogni NM e lunga ogni 5 NM, lunghezza di ciascuna tacca (parametri per scalo) | F8 | ✅ deciso |
+| Q5 | ATZ/CTR del `MAPS` legati ai settori dinamici (famiglie di forme, D5) | Subito | ✅ deciso (D5) |
+| Q6 | Controlli: coordinate non DMS (decimali), voce di un altro scalo, piste inesistenti o combinate male, nome diverso nei due campi di un punto | Subito | ✅ deciso |
+| Q7 | Altre mappe `MAPS` generate (cerchi di distanza, sottovento, aree P/R/D, TMA, circuiti VFR) | — | ❌ non servono (committente). SID (ALL) sta nel `.sid` (P10) |
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
