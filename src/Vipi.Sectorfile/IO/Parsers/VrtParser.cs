@@ -11,7 +11,8 @@ namespace Vipi.Sectorfile.IO;
 /// <remarks>
 /// La rotta si chiude quando cambia il numero, a una riga vuota, a un commento o a una riga che non si legge.
 /// I commenti subito prima di una rotta sono i suoi commenti di testa; separati da una riga vuota, restano righe
-/// grezze (come in <see cref="LineRecordParser{T}"/>).
+/// grezze (come in <see cref="LineRecordParser{T}"/>). Il tag di un tratto (<c>//@@"PUNTO" dir=… lower=…</c>, lotto
+/// «Subito» slice 1e, «file per file» F8 e S6) non è un commento: sta con la rotta del punto subito sotto.
 /// </remarks>
 public sealed class VrtParser : IFileParser<RottaVfr>
 {
@@ -38,6 +39,16 @@ public sealed class VrtParser : IFileParser<RottaVfr>
         RottaVfr? current = null;
         var currentLines = new List<string>();
         var currentLeading = new List<string>();
+
+        // I //@@ in attesa del loro punto (come in AirwayParser): finché il punto non arriva non sono di nessuno, e
+        // qualunque altra riga li fa tornare commenti, come prima.
+        var tagDeiPunti = new List<string>();
+
+        void TagComeCommenti()
+        {
+            comments.AddRange(tagDeiPunti);
+            tagDeiPunti.Clear();
+        }
 
         void FlushRaw()
         {
@@ -78,14 +89,22 @@ public sealed class VrtParser : IFileParser<RottaVfr>
             if (trimmed.Length == 0)
             {
                 FinalizeCurrent();
+                TagComeCommenti();
                 OrphanComments();
                 raw.Add(line);
+                continue;
+            }
+
+            if (Metadati.EUnTagDiPunto(trimmed))
+            {
+                tagDeiPunti.Add(line);
                 continue;
             }
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 FinalizeCurrent();
+                TagComeCommenti();
                 comments.Add(line);
                 continue;
             }
@@ -93,6 +112,7 @@ public sealed class VrtParser : IFileParser<RottaVfr>
             if (!TryParseLine(line, out string numero, out Punto punto))
             {
                 FinalizeCurrent();
+                TagComeCommenti();
                 _warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source, "Skipping malformed line", i + 1, line);
                 OrphanComments();
                 raw.Add(line);
@@ -113,10 +133,13 @@ public sealed class VrtParser : IFileParser<RottaVfr>
             }
 
             current.Punti.Add(punto);
+            currentLines.AddRange(tagDeiPunti);
+            tagDeiPunti.Clear();
             currentLines.Add(line);
         }
 
         FinalizeCurrent();
+        TagComeCommenti();
         OrphanComments();
         FlushRaw();
 

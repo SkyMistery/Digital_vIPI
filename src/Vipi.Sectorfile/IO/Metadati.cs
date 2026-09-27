@@ -32,7 +32,7 @@ namespace Vipi.Sectorfile.IO;
 /// <c>compose=ODIN4E,25:"RNP10 UPETI"</c>); i valori si conservano come sono scritti (virgolette comprese) e si
 /// leggono con <see cref="Testo"/> e <see cref="ElencoDellaComposta"/>. Le chiavi ammesse dipendono dal tipo di
 /// file (<see cref="CatalogoDeiTag"/>). Le righe <c>//@@</c> sono i tag di un punto dentro il record (SID, STAR,
-/// aerovie): non sono una dichiarazione, e non lo chiudono.</para>
+/// aerovie, rotte VFR): non sono una dichiarazione, e non lo chiudono.</para>
 /// </remarks>
 public static partial class Metadati
 {
@@ -164,7 +164,8 @@ public static partial class Metadati
     /// STAR, <c>LIRN 06/24</c> di una pista (la coppia: un record per riga del <c>.rw</c>), l'ICAO di uno scalo, il
     /// numero di uno stand, il nome di fix, punti VFR e attese, l'identificativo di VOR e NDB, la posizione di un
     /// <c>.frq</c>; nei file a blocchi (slice 1d) il nome dell'aerovia, del settore dinamico, del gruppo dei confini,
-    /// del fix di un'etichetta <c>.artcc</c>, il 2° campo di un blocco MVA, il nome dell'area P/R/D.
+    /// del fix di un'etichetta <c>.artcc</c>, il 2° campo di un blocco MVA, il nome dell'area P/R/D; il numero di una
+    /// rotta VFR (slice 1e).
     /// </summary>
     /// <returns>
     /// Null per un record che non ha un nome suo e prende quello del blocco che lo tiene (§M: «nei file senza nome
@@ -194,6 +195,7 @@ public static partial class Metadati
         MvaSector mva => SeNonVuoto(mva.Nome),
         Line segmento => SeNonVuoto(segmento.Nome),
         Polygon => null,
+        RottaVfr rotta => rotta.Numero.Trim(),
         null => throw new ArgumentNullException(nameof(record)),
         _ => throw new NotSupportedException($"I record di tipo {record.GetType().Name} non portano ancora tag."),
     };
@@ -231,6 +233,7 @@ public static partial class Metadati
         ParseResult<StaticBoundaryGroup> confini => Leggi(confini).Problemi,
         ParseResult<Line> geo => Leggi(geo).Problemi,
         ParseResult<Polygon> pol => Leggi(pol).Problemi,
+        ParseResult<RottaVfr> vrt => Leggi(vrt).Problemi,
         _ => null,
     };
 
@@ -712,22 +715,29 @@ public static partial class Metadati
     /// <summary>
     /// Il nome col quale un <c>//@@</c> aggancia la riga di un punto di un record di tipo <typeparamref name="T"/>: in
     /// un'aerovia il punto sta nel 3° e 4° campo, dopo il tipo e il nome (<c>T;L613;GARGA;GARGA;</c> → GARGA,
-    /// «file per file» B2); negli altri file nei primi due (<see cref="ChiaveDelPunto(string)"/>).
+    /// «file per file» B2); in una rotta VFR nel 2° e 3°, dopo il numero (<c>1;ROGOREDO;ROGOREDO;</c>, F8 e S6); negli
+    /// altri file nei primi due (<see cref="ChiaveDelPunto(string)"/>).
     /// </summary>
     public static string? ChiaveDelPunto<T>(string rigaDelPunto)
     {
         ArgumentNullException.ThrowIfNull(rigaDelPunto);
-        if (typeof(T) != typeof(Airway))
+        int davanti = CampiPrimaDelPunto<T>();
+        if (davanti == 0)
         {
             return ChiaveDelPunto(rigaDelPunto);
         }
 
         string[] campi = rigaDelPunto.Split(';');
-        return campi.Length < 4 ? null : ChiaveDelPunto(string.Join(';', campi.Skip(2)));
+        return campi.Length < davanti + 2 ? null : ChiaveDelPunto(string.Join(';', campi.Skip(davanti)));
     }
 
-    // L'indice della prima riga che può essere un punto: SID e STAR hanno l'intestazione (la riga 0), un'aerovia no.
-    private static int PrimaRigaDiPunto<T>() => typeof(T) == typeof(Airway) ? 0 : 1;
+    // Quanti campi stanno prima del punto: tipo e nome in un'aerovia, il numero in una rotta VFR.
+    private static int CampiPrimaDelPunto<T>()
+        => typeof(T) == typeof(Airway) ? 2 : typeof(T) == typeof(RottaVfr) ? 1 : 0;
+
+    // L'indice della prima riga che può essere un punto: SID e STAR hanno l'intestazione (la riga 0), aerovie e rotte
+    // VFR no.
+    private static int PrimaRigaDiPunto<T>() => CampiPrimaDelPunto<T>() > 0 ? 0 : 1;
 
     /// <summary>
     /// Scrive il tag di un punto (<c>//@@"ELVAD" role=IAF alt=+FL80</c>) subito sopra la riga <paramref name="rigaDelPunto"/>

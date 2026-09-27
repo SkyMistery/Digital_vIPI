@@ -105,6 +105,12 @@ public sealed partial record CatalogoDeiTag(
     /// </summary>
     public static CatalogoDeiTag Aerovia { get; } = new(".lairway/.hairway", [.. Comuni], [], ["dir", "lower", "upper"]);
 
+    /// <summary>
+    /// Rotta VFR di scalo (<c>.vrt</c>, §7 F8, §19 S6; slice 1e): come l'aerovia, verso e quote per tratto sul punto
+    /// che lo apre.
+    /// </summary>
+    public static CatalogoDeiTag Vrt { get; } = new(".vrt", [.. Comuni], [], ["dir", "lower", "upper"]);
+
     /// <summary>Zona MVA (§6 E1, §19 S1): il soprannome, anche ripetuto (<c>//@"LIMM" zone="Torino"</c>).</summary>
     public static CatalogoDeiTag Mva { get; } = new(".mva", [.. Comuni, "zone"], [], []);
 
@@ -148,6 +154,8 @@ public sealed partial record CatalogoDeiTag(
             return Aerovia;
         if (tipo == typeof(MvaSector))
             return Mva;
+        if (tipo == typeof(RottaVfr))
+            return Vrt;
         if (typeof(TflSector).IsAssignableFrom(tipo))
             return Tfl;
         if (tipo == typeof(StaticBoundaryGroup))

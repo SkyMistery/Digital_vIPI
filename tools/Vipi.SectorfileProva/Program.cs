@@ -307,13 +307,17 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
         case ".pol":
             ProvaITag(new PolParser(avvisi), new PolSaver(), r => Metadati.NomeDelRecord(r), percorso);
             break;
+        // Slice 1e: le rotte VFR di scalo, coi //@@ per tratto (F8, S6).
+        case ".vrt":
+            ProvaITag(new VrtParser(avvisi), new VrtSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
     }
 }
 
 Console.WriteLine($"\nTAG //@ nell'albero: {tagNelFile} record con tag, {problemiNelFile} problemi");
 Console.WriteLine($"TAG SU TUTTO: {recordRitrovati} record ritrovati su {recordEtichettati} etichettati; " +
     $"{fileTornati} file su {fileEtichettati} tornano identici senza le righe //@; {guastiDeiTag.Count} guasti");
-Console.WriteLine($"TAG DEI PUNTI: {puntiRitrovati} punti di SID, STAR e aerovie ritrovati coi loro //@@ su {puntiEtichettati} etichettati");
+Console.WriteLine($"TAG DEI PUNTI: {puntiRitrovati} punti di SID, STAR, aerovie e rotte VFR ritrovati coi loro //@@ su {puntiEtichettati} etichettati");
 Console.WriteLine($"BLOCCHI A PIÙ PEZZI: {bloccoRitrovati} record ritrovati nel loro blocco su {bloccoRecord}, in {blocchiScritti} blocchi " +
     $"({blocchiAPiuPezzi} con più di un record); {bloccoFileTornati} file su {bloccoFile} tornano identici senza le righe //@");
 foreach (string riga in guastiDeiTag.Take(20))
@@ -442,10 +446,10 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
 
         // Lotto «Subito» slice 1c: ogni punto di SID e STAR riceve il suo //@@, dal fondo del record verso l'alto
         // (un tag in più non sposta le righe che restano da fare). Slice 1d: anche ogni punto delle aerovie (B2), che
-        // non hanno l'intestazione.
-        if (letto.Records.FirstOrDefault() is SidProcedure or StrRecord or Airway)
+        // non hanno l'intestazione; slice 1e: e delle rotte VFR (F8, S6).
+        if (letto.Records.FirstOrDefault() is SidProcedure or StrRecord or Airway or RottaVfr)
         {
-            bool aerovia = letto.Records[0] is Airway;
+            bool aerovia = letto.Records[0] is Airway or RottaVfr;
             var delPunto = aerovia
                 ? new Dictionary<string, string> { ["dir"] = "both", ["lower"] = "FL95" }
                 : new Dictionary<string, string> { ["alt"] = "+FL80" };
@@ -503,7 +507,7 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
     }
 
     // BLOCCHI A PIÙ PEZZI (slice 1d): solo i file a blocchi, dove un blocco può tenere più record.
-    if (letto.Records[0] is ElementoArtcc or Airway or MvaSector or TflSector or StaticBoundaryGroup or Line or Polygon)
+    if (letto.Records[0] is ElementoArtcc or Airway or MvaSector or TflSector or StaticBoundaryGroup or Line or Polygon or RottaVfr)
     {
         ProvaIBlocchi(letto, lettore, scrittore, nomeDi, percorso);
     }

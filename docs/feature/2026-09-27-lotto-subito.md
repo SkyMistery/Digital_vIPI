@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0 e la slice 1 fino a **1d**; prossimo **1e** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0 e la slice 1 (1a-1e); prossima la **slice 2** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -215,5 +215,13 @@ aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
   stesso nome (o senza) in un blocco solo → **107 152 record su 107 152** ritrovati nel loro blocco, 1 848 blocchi di
   cui 805 con più record, 306 file identici senza le righe `//@`. Resta il solo guasto noto di `limf.sid`. Test rosso
   sul codice di prima: coi sei lettori vecchi 13 test nuovi su 23 cadono. Test: motore 540 → **563**, Lab **358**.
-  🟡 `.vrt` (rotte VFR, F8/S6: `//@@` per tratto) non è in questa slice: il lettore ha un'altra forma di punto; va con
-  la slice 16 (VFR) o con la 1e se il committente lo vuole prima.
+  `.vrt` (rotte VFR, F8/S6) rimandato alla 1e (committente: «mettilo nella 1e»).
+- **1e (27 settembre)** — le rotte VFR di scalo (`.vrt`, F8 e S6) e la prova su tutti i formati. `VrtParser` chiudeva
+  la rotta a ogni commento: ora il `//@@` resta col punto sotto, come nelle aerovie. Nome d'aggancio = il numero della
+  rotta (`//@"1"`); il punto sta dopo il numero (`1;ROGOREDO;ROGOREDO;` → ROGOREDO); catalogo `.vrt` = le comuni, e
+  per tratto `dir`, `lower`, `upper`. Con questo **ogni file che il motore legge porta i tag di §M**, salvo gli `.atis`
+  (modelli di testo, §22: nessun metadato previsto). Prova sull'albero: round-trip 701/701, opache e validatore
+  invariati; tag su tutto **118 469 su 118 469** in **687 file** (+52 rotte in 16 `.vrt`); punti **38 330 su 38 330**
+  (+123 delle rotte VFR); blocchi a più pezzi **107 204 su 107 204** in 321 file. Resta il solo guasto noto di
+  `limf.sid`. Test rosso: col `VrtParser` di prima 3 test nuovi su 6 cadono. Test: motore 563 → **569**, Lab **358**.
+  **Slice 1 chiusa**; prossima la slice 2.

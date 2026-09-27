@@ -190,6 +190,61 @@ public sealed class TagSuiFileABlocchiTests
     public void LaChiaveDelPuntoDiUnAeroviaStaNelTerzoEQuartoCampo(string riga, string? chiave)
         => Assert.Equal(chiave, Metadati.ChiaveDelPunto<Airway>(riga));
 
+    private ParseResult<RottaVfr> Vrt(string testo) => new VrtParser(_warnings).Parse(ParserTestHelpers.Read(testo), "liml.vrt");
+
+    // F8 + S6 (slice 1e): le rotte VFR di scalo hanno verso e quote per tratto come le aerovie; il //@@ non le spezza.
+    [Fact]
+    public void IlTagDiUnTrattoNonSpezzaLaRottaVfr()
+    {
+        var letto = Vrt(Righe(
+            "//@\"1\" note=\"rotta nord\"",
+            "//@@\"ROGOREDO\" dir=fwd upper=1500ft",
+            "1;ROGOREDO;ROGOREDO;",
+            "//@@\"ROZZANO\" dir=both lower=1000ft upper=1500ft",
+            "1;ROZZANO;ROZZANO;",
+            "1;N045.20.00.000;E009.10.00.000;",
+            "2;SPINO D'ADDA;SPINO D'ADDA;"));
+
+        Assert.Equal(["1", "2"], letto.Records.Select(r => r.Numero));
+        Assert.Equal(3, letto.Records[0].Punti.Count);
+        var metadati = Metadati.Leggi(letto);
+        Assert.Empty(metadati.Problemi);
+        Assert.Equal("1", metadati.Record.Single().Nome);
+        Assert.Equal([("ROGOREDO", 1), ("ROZZANO", 3)], metadati.PuntiDi(letto.Records[0]).Select(p => (p.Punto, p.RigaDelPunto)));
+    }
+
+    [Fact]
+    public void IlTagDiUnTrattoVfrSiScriveSulPrimoPuntoESiToglie()
+    {
+        string[] righe = ["2;SPINO D'ADDA;SPINO D'ADDA;", "2;IDROSCALO;IDROSCALO;"];
+        var letto = Vrt(Righe(righe));
+
+        var scritto = Metadati.ScriviIlPunto(letto, letto.Records[0], 0, new Dictionary<string, string> { ["lower"] = "1000ft" });
+        var dopo = new FileSaverOrchestrator().Righe(scritto, new HashSet<RottaVfr>(), new VrtSaver());
+
+        Assert.Equal(["//@@\"SPINO D'ADDA\" lower=1000ft", righe[0], righe[1]], dopo);
+        var riletto = Vrt(Righe([.. dopo]));
+        Assert.Single(riletto.Records);
+        Assert.Equal(righe, new FileSaverOrchestrator().Righe(Metadati.TogliIlPunto(riletto, riletto.Records[0], 1),
+            new HashSet<RottaVfr>(), new VrtSaver()));
+    }
+
+    [Theory]
+    [InlineData("1;ROGOREDO;ROGOREDO;", "ROGOREDO")]
+    [InlineData("1;N045.20.00.000;E009.10.00.000;", "N045.20.00.000;E009.10.00.000")]
+    [InlineData("1;ROGOREDO;", null)]
+    public void LaChiaveDelPuntoDiUnaRottaVfrStaDopoIlNumero(string riga, string? chiave)
+        => Assert.Equal(chiave, Metadati.ChiaveDelPunto<RottaVfr>(riga));
+
+    [Fact]
+    public void UnaRottaVfrHaIlCatalogoDelleAerovie()
+    {
+        Assert.NotNull(Metadati.ProblemiDi(Vrt(Righe("1;ROGOREDO;ROGOREDO;"))));
+        Assert.Equal(TipoDiProblemaDeiMetadati.ChiaveSconosciuta,
+            Assert.Single(Metadati.Leggi(Vrt(Righe("//@@\"ROGOREDO\" alt=+1500", "1;ROGOREDO;ROGOREDO;"))).Problemi).Tipo);
+        MettiETogli(Vrt(Righe("//rotte", "1;ROGOREDO;ROGOREDO;", "1;ROZZANO;ROZZANO;", "2;TEANO;TEANO;")), new VrtSaver());
+    }
+
     private static readonly string[] SettoreLipx =
     [
         "LIPX_ES0_APP;APP;1;APP;1;",

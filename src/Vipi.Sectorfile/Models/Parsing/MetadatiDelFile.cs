@@ -128,8 +128,8 @@ public sealed class MetadatiDelPunto<T>
     public int Riga { get; }
 
     /// <summary>
-    /// L'indice della riga del punto fra le righe del record (in SID e STAR la prima, 0, è l'intestazione; un'aerovia
-    /// non ne ha).
+    /// L'indice della riga del punto fra le righe del record (in SID e STAR la prima, 0, è l'intestazione; aerovie e
+    /// rotte VFR non ne hanno).
     /// </summary>
     public int RigaDelPunto { get; }
 }
@@ -176,7 +176,7 @@ public enum TipoDiProblemaDeiMetadati
     /// <summary>Un <c>//@@"PUNTO"</c> sopra un punto con un altro nome o altre coordinate.</summary>
     PuntoNonCombacia,
 
-    /// <summary>Un <c>//@@</c> fuori da un record: il tag di un punto sta solo dentro una procedura o un'aerovia.</summary>
+    /// <summary>Un <c>//@@</c> fuori da un record: il tag di un punto sta solo dentro una procedura, un'aerovia o una rotta VFR.</summary>
     TagDiPuntoFuoriDalRecord,
 
     /// <summary>
