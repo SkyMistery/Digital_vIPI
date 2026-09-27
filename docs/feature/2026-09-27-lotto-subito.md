@@ -172,3 +172,13 @@ aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
   anche questi file: **11 265 record su 11 265** ritrovati coi loro tag, **366 file su 366** identici senza le righe
   `//@` (erano 2 782 record e 148 file); i `.fix` vuoti si saltano (niente da etichettare), resta il solo guasto noto
   di `limf.sid`. Test: motore 512 → **522**, Lab **358**.
+- **1c (27 settembre)** — i tag dei punti `//@@"PUNTO" …` in `.sid` e `.str`. `SidParser` e `StrParser`: un `//@@`
+  resta nella procedura (un `//@` la chiude ancora), anche sopra il primo punto di una SID e sopra il punto che apre
+  un tratto dopo una riga vuota (🔴 trovato dalla prova sull'albero in `lied.sid`: il lettore lo prendeva per un
+  commento e chiudeva la SID). `Metadati.Leggi` aggancia ogni `//@@` alla riga dati subito sotto (`ChiaveDelPunto`: il
+  nome, o le due coordinate col `;`) → `MetadatiDelFile.Punti`/`PuntiDi`; problemi nuovi `TagDiPuntoOrfano`,
+  `PuntoNonCombacia`, `TagDiPuntoFuoriDalRecord` (errori), chiave fuori dal catalogo dei punti (avviso).
+  `ScriviIlPunto`/`TogliIlPunto` scrivono sopra il punto e tolgono, e il file torna uguale. Prova sull'albero: ogni
+  punto di ogni SID e STAR etichettato → **35 898 su 35 898** ritrovati, ogni record riletto si scrive come prima,
+  366 file identici senza le righe `//@`. Test rosso sul codice di prima: col vecchio `StrParser` 8 test su 17
+  cadono (la STAR si spezzava). Test: motore 522 → **540**, Lab **358**.

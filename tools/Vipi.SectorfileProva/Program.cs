@@ -229,6 +229,7 @@ foreach (string riga in discordi.Take(40))
 //    le righe //@ il file deve tornare quello di prima, byte per byte. Le MAPS dei .str ricevono anche `composta`
 //    (F3-bis slice 3): i loro nomi hanno spazi, e si scrivono fra virgolette.
 int tagNelFile = 0, problemiNelFile = 0, recordEtichettati = 0, recordRitrovati = 0, fileTornati = 0, fileEtichettati = 0;
+int puntiEtichettati = 0, puntiRitrovati = 0;
 var guastiDeiTag = new List<string>();
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
 {
@@ -277,6 +278,7 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
 Console.WriteLine($"\nTAG //@ nell'albero: {tagNelFile} record con tag, {problemiNelFile} problemi");
 Console.WriteLine($"TAG SU TUTTO: {recordRitrovati} record ritrovati su {recordEtichettati} etichettati; " +
     $"{fileTornati} file su {fileEtichettati} tornano identici senza le righe //@; {guastiDeiTag.Count} guasti");
+Console.WriteLine($"TAG DEI PUNTI: {puntiRitrovati} punti di SID e STAR ritrovati coi loro //@@ su {puntiEtichettati} etichettati");
 foreach (string riga in guastiDeiTag.Take(20))
 {
     Console.WriteLine("  " + riga);
@@ -395,6 +397,25 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
 
             etichettato = Metadati.Scrivi(etichettato, record, nomeDi, chiavi);
         }
+
+        // Lotto «Subito» slice 1c: ogni punto di SID e STAR riceve il suo //@@, dal fondo del record verso l'alto
+        // (un tag in più non sposta le righe che restano da fare).
+        if (letto.Records.FirstOrDefault() is SidProcedure or StrRecord)
+        {
+            foreach (var record in letto.Records)
+            {
+                var righe = ((RecordChunk<T>)etichettato.Chunks.First(c => c is RecordChunk<T> r && ReferenceEquals(r.Record, record))).RawLines;
+                for (int i = righe.Length - 1; i >= 1; i--)
+                {
+                    if (righe[i].Trim().Length > 0 && !righe[i].TrimStart().StartsWith("//", StringComparison.Ordinal)
+                        && Metadati.ChiaveDelPunto(righe[i]) is { } punto && !punto.Contains('"', StringComparison.Ordinal))
+                    {
+                        etichettato = Metadati.ScriviIlPunto(etichettato, record, i, new Dictionary<string, string> { ["alt"] = "+FL80" });
+                        puntiEtichettati++;
+                    }
+                }
+            }
+        }
     }
     catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
     {
@@ -408,6 +429,7 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         new FileSaverOrchestrator().Save(etichettato, new HashSet<T>(), scrittore, temporaneo);
         var riletto = lettore.Parse(temporaneo, new ColorPalette());
         var metadati = Metadati.Leggi(riletto, nomeDi);
+        puntiRitrovati += metadati.Punti.Count(m => m.Chiavi.GetValueOrDefault("alt") == "+FL80");
 
         fileEtichettati++;
         recordEtichettati += riletto.Records.Count;
@@ -415,7 +437,9 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
             && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("note") == "\"prova dei tag\""
             && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault(Metadati.Compose) == "ODINA4E,25:NENI5A"));
         if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
-            || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610")
+            || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610"
+            // I //@@ stanno nel record senza cambiarne il modello: ogni record riletto si scrive come quello di prima.
+            || riletto.Records.Zip(letto.Records).Any(c => !scrittore.Serialize(c.First).SequenceEqual(scrittore.Serialize(c.Second))))
         {
             guastiDeiTag.Add($"{Relativo(percorso)} — {letto.Records.Count} record, {riletto.Records.Count} riletti, " +
                 $"{metadati.Record.Count} con tag, problemi: {string.Join(", ", metadati.Problemi.Take(3).Select(p => $"{p.Tipo}@{p.Riga} «{p.Testo}»"))}");

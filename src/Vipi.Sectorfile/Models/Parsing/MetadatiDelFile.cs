@@ -13,14 +13,25 @@ public sealed class MetadatiDelFile<T>
         IReadOnlyDictionary<string, string> delFile,
         IReadOnlyList<MetadatiDelRecord<T>> record,
         IReadOnlyList<ProblemaDeiMetadati> problemi,
-        PosizioneDelTag? sorgente)
+        PosizioneDelTag? sorgente,
+        IReadOnlyList<MetadatiDelPunto<T>>? punti = null)
     {
         DelFile = delFile;
         Record = record;
         Problemi = problemi;
         Sorgente = sorgente;
+        Punti = punti ?? [];
         _perRecord = record.ToDictionary(r => r.Record, ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
     }
+
+    /// <summary>
+    /// I tag dei punti (<c>//@@"PUNTO" …</c>, «file per file» §M regola 4) agganciati al loro punto, in ordine di file.
+    /// </summary>
+    public IReadOnlyList<MetadatiDelPunto<T>> Punti { get; }
+
+    /// <summary>I tag dei punti di <paramref name="record"/>, nell'ordine dei punti.</summary>
+    public IReadOnlyList<MetadatiDelPunto<T>> PuntiDi(T record)
+        => Punti.Where(p => ReferenceEquals(p.Record, record)).ToList();
 
     /// <summary>Le chiavi del file (<c>//@source=AIRAC2610</c> nelle prime righe).</summary>
     public IReadOnlyDictionary<string, string> DelFile { get; }
@@ -66,6 +77,35 @@ public sealed class MetadatiDelRecord<T>
     internal PosizioneDelTag Dichiarazione { get; }
 }
 
+/// <summary>
+/// Il tag di un punto dentro un record (<c>//@@"ELVAD" role=IAF alt=+FL80 spd=-210</c>): il nome del punto come è
+/// scritto (il nome, o le due coordinate con il <c>;</c>), le chiavi, e dove sta il punto fra le righe del record.
+/// </summary>
+public sealed class MetadatiDelPunto<T>
+{
+    internal MetadatiDelPunto(T record, string punto, IReadOnlyDictionary<string, string> chiavi, int riga, int rigaDelPunto)
+    {
+        Record = record;
+        Punto = punto;
+        Chiavi = chiavi;
+        Riga = riga;
+        RigaDelPunto = rigaDelPunto;
+    }
+
+    public T Record { get; }
+
+    /// <summary>Il punto come lo aggancia il tag: <c>ELVAD</c>, o <c>N041.49.12.000;E012.14.03.000</c>.</summary>
+    public string Punto { get; }
+
+    public IReadOnlyDictionary<string, string> Chiavi { get; }
+
+    /// <summary>La riga del tag nel file (da 1).</summary>
+    public int Riga { get; }
+
+    /// <summary>L'indice della riga del punto fra le righe del record (la prima, 0, è l'intestazione).</summary>
+    public int RigaDelPunto { get; }
+}
+
 /// <summary>Un tag <c>//@</c> che non vale, con la sua riga (da 1) e il suo testo.</summary>
 public sealed record ProblemaDeiMetadati(TipoDiProblemaDeiMetadati Tipo, int Riga, string Testo)
 {
@@ -101,6 +141,15 @@ public enum TipoDiProblemaDeiMetadati
 
     /// <summary>Un <c>//@</c> che non si legge: vuoto, chiave senza valore, chiave ripetuta, parola senza <c>=</c> dopo le chiavi.</summary>
     RigaIllegibile,
+
+    /// <summary>Un <c>//@@</c> senza un punto subito sotto: una riga vuota, un commento o la fine del record prima.</summary>
+    TagDiPuntoOrfano,
+
+    /// <summary>Un <c>//@@"PUNTO"</c> sopra un punto con un altro nome o altre coordinate.</summary>
+    PuntoNonCombacia,
+
+    /// <summary>Un <c>//@@</c> fuori da un record: il tag di un punto sta solo dentro una procedura.</summary>
+    TagDiPuntoFuoriDalRecord,
 }
 
 /// <summary>Dove sta una riga di tag fra i pezzi del file: nelle righe grezze o nei commenti di testa di un record.</summary>

@@ -236,6 +236,7 @@ public static partial class Metadati
         var delFile = new Dictionary<string, string>(StringComparer.Ordinal);
         PosizioneDelTag? sorgente = null;
         var perRecord = new List<MetadatiDelRecord<T>>();
+        var punti = new List<MetadatiDelPunto<T>>();
         var problemi = new List<ProblemaDeiMetadati>();
 
         // La dichiarazione in attesa del suo record, e il blocco aperto da //@START.
@@ -265,9 +266,15 @@ public static partial class Metadati
                 return;
             }
 
-            // Il tag di un punto non è una dichiarazione: sta nel record, e lo legge chi legge i punti.
-            if (!EUnTag(t) || EUnTagDiPunto(t))
+            if (!EUnTag(t))
             {
+                return;
+            }
+
+            // Il tag di un punto non è una dichiarazione, e fuori da un record non ha un punto da agganciare.
+            if (EUnTagDiPunto(t))
+            {
+                problemi.Add(new(TipoDiProblemaDeiMetadati.TagDiPuntoFuoriDalRecord, numero, riga));
                 return;
             }
 
@@ -354,6 +361,7 @@ public static partial class Metadati
 
         void Record(RecordChunk<T> chunk)
         {
+            PuntiDel(chunk, numero + 1 + (chunk.HasMarkers ? 1 : 0));
             numero += chunk.RawLines.Length + (chunk.HasMarkers ? 2 : 0);
             vistoUnRecord = true;
             string nome = nomeDi(chunk.Record);
@@ -415,7 +423,50 @@ public static partial class Metadati
         }
 
         problemi.Sort((a, b) => a.Riga.CompareTo(b.Riga));
-        return new MetadatiDelFile<T>(delFile, perRecord, problemi, sorgente);
+        return new MetadatiDelFile<T>(delFile, perRecord, problemi, sorgente, punti);
+
+        // I //@@ dentro il record (§M regola 4): ognuno si aggancia alla riga dati subito sotto, se è il suo punto.
+        void PuntiDel(RecordChunk<T> chunk, int primaRiga)
+        {
+            string[] righe = chunk.RawLines;
+            for (int i = 0; i < righe.Length; i++)
+            {
+                string t = righe[i].Trim();
+                if (!EUnTagDiPunto(t))
+                {
+                    continue;
+                }
+
+                int riga = primaRiga + i;
+                var tag = Analizza(t[4..].Trim());
+                if (tag.Tipo != TipoDiTag.Dichiarazione)
+                {
+                    problemi.Add(new(TipoDiProblemaDeiMetadati.RigaIllegibile, riga, righe[i]));
+                    continue;
+                }
+
+                string? sotto = i + 1 < righe.Length ? righe[i + 1] : null;
+                if (sotto is null || sotto.Trim().Length == 0 || sotto.TrimStart().StartsWith("//", StringComparison.Ordinal)
+                    || ChiaveDelPunto(sotto) is not { } punto)
+                {
+                    problemi.Add(new(TipoDiProblemaDeiMetadati.TagDiPuntoOrfano, riga, righe[i]));
+                    continue;
+                }
+
+                if (punto != tag.Nome)
+                {
+                    problemi.Add(new(TipoDiProblemaDeiMetadati.PuntoNonCombacia, riga, righe[i]));
+                    continue;
+                }
+
+                if (tag.Chiavi.Keys.Any(k => !catalogo.AmmetteDelPunto(k)))
+                {
+                    problemi.Add(new(TipoDiProblemaDeiMetadati.ChiaveSconosciuta, riga, righe[i]));
+                }
+
+                punti.Add(new MetadatiDelPunto<T>(chunk.Record, punto, tag.Chiavi, riga, i + 1));
+            }
+        }
     }
 
     /// <summary>
@@ -513,6 +564,109 @@ public static partial class Metadati
 
         TogliLaRiga(pezzi, esistenti.Dichiarazione, ancheLoStartSotto: esistenti.Delimitato);
         return letto with { Chunks = pezzi };
+    }
+
+    /// <summary>
+    /// Il nome col quale un <c>//@@</c> aggancia la riga di un punto (§M regola 4): il nome, se il punto è per nome
+    /// (<c>ELVAD;ELVAD;</c> → ELVAD), altrimenti i due campi come sono scritti (<c>N041.49.12.000;E012.14.03.000</c>).
+    /// Null se la riga non ha due campi.
+    /// </summary>
+    public static string? ChiaveDelPunto(string rigaDelPunto)
+    {
+        ArgumentNullException.ThrowIfNull(rigaDelPunto);
+        string[] campi = rigaDelPunto.Split(';');
+        if (campi.Length < 2 || campi[0].Trim().Length == 0 || campi[1].Trim().Length == 0)
+        {
+            return null;
+        }
+
+        string primo = campi[0].Trim(), secondo = campi[1].Trim();
+        return primo == secondo ? primo : primo + ";" + secondo;
+    }
+
+    /// <summary>
+    /// Scrive il tag di un punto (<c>//@@"ELVAD" role=IAF alt=+FL80</c>) subito sopra la riga <paramref name="rigaDelPunto"/>
+    /// di <paramref name="record"/> (l'indice fra le sue righe; la 0 è l'intestazione): cambia il tag se c'è, lo mette
+    /// se manca. Le altre righe restano com'erano. Restituisce il file nuovo.
+    /// </summary>
+    /// <exception cref="ArgumentException">Una riga che non è un punto, una chiave fuori dal catalogo dei punti, un valore che non si scrive.</exception>
+    /// <exception cref="InvalidOperationException">Il file ha tag che non valgono.</exception>
+    public static ParseResult<T> ScriviIlPunto<T>(ParseResult<T> letto, T record, int rigaDelPunto, IReadOnlyDictionary<string, string> chiavi)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        ArgumentNullException.ThrowIfNull(chiavi);
+        var catalogo = CatalogoDelTipo<T>();
+        foreach (var (chiave, valore) in chiavi)
+        {
+            if (!catalogo.AmmetteDelPunto(chiave))
+            {
+                throw new ArgumentException($"Chiave fuori dal catalogo dei punti dei {catalogo.Formato}: '{chiave}'.", nameof(chiavi));
+            }
+
+            ControllaIlValore(valore, nameof(chiavi));
+        }
+
+        RifiutaSeRotto(Leggi(letto, r => NomeDelRecord(r), catalogo));
+        int pezzo = IndiceDel(letto, record);
+        var rec = (RecordChunk<T>)letto.Chunks[pezzo];
+        string punto = PuntoDellaRiga(rec, rigaDelPunto);
+        string tag = "//@@" + FraVirgolette(punto) + string.Concat(chiavi
+            .OrderBy(c => catalogo.DelPunto.ToList().IndexOf(c.Key))
+            .Select(c => " " + c.Key + "=" + c.Value));
+
+        var righe = rec.RawLines.ToList();
+        if (EUnTagDiPunto(righe[rigaDelPunto - 1].Trim()))
+        {
+            righe[rigaDelPunto - 1] = tag;
+        }
+        else
+        {
+            righe.Insert(rigaDelPunto, tag);
+        }
+
+        var pezzi = letto.Chunks.ToList();
+        pezzi[pezzo] = Copia(rec, righe: righe.ToArray());
+        return letto with { Chunks = pezzi };
+    }
+
+    /// <summary>
+    /// Toglie il tag del punto sulla riga <paramref name="rigaDelPunto"/> di <paramref name="record"/>, se c'è. Restituisce
+    /// il file nuovo, o quello di prima se il punto non ha tag.
+    /// </summary>
+    public static ParseResult<T> TogliIlPunto<T>(ParseResult<T> letto, T record, int rigaDelPunto)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        int pezzo = IndiceDel(letto, record);
+        var rec = (RecordChunk<T>)letto.Chunks[pezzo];
+        PuntoDellaRiga(rec, rigaDelPunto);
+        if (!EUnTagDiPunto(rec.RawLines[rigaDelPunto - 1].Trim()))
+        {
+            return letto;
+        }
+
+        var pezzi = letto.Chunks.ToList();
+        pezzi[pezzo] = Copia(rec, righe: rec.RawLines.Where((_, i) => i != rigaDelPunto - 1).ToArray());
+        return letto with { Chunks = pezzi };
+    }
+
+    // Il nome d'aggancio della riga di un punto del record; eccezione se quella riga non è un punto.
+    private static string PuntoDellaRiga<T>(RecordChunk<T> rec, int rigaDelPunto)
+    {
+        if (rigaDelPunto < 1 || rigaDelPunto >= rec.RawLines.Length)
+        {
+            throw new ArgumentException($"La riga {rigaDelPunto} non è una riga di punto del record.", nameof(rigaDelPunto));
+        }
+
+        string riga = rec.RawLines[rigaDelPunto];
+        if (riga.Trim().Length == 0 || riga.TrimStart().StartsWith("//", StringComparison.Ordinal)
+            || ChiaveDelPunto(riga) is not { } punto || punto.Contains('"', StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"La riga {rigaDelPunto} del record non è un punto: «{riga}».", nameof(rigaDelPunto));
+        }
+
+        return punto;
     }
 
     /// <summary>

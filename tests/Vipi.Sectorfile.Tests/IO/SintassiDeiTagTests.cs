@@ -147,13 +147,14 @@ public sealed class SintassiDeiTagTests
         Assert.Equal(ammessa, catalogo.AmmetteDelRecord(chiave));
     }
 
-    // Il tag di un punto (§M regola 4) non è una dichiarazione: non si attacca al record e non è un problema.
+    // Il tag di un punto (§M regola 4) non è una dichiarazione: non si attacca al record sotto. Fuori da una procedura
+    // non ha un punto, ed è un errore (slice 1c: lettura dei punti in TagDeiPuntiTests).
     [Fact]
     public void UnTagDiPuntoNonEUnaDichiarazione()
     {
         var metadati = Metadati.Leggi(Sid(Righe("//@@\"ELVAD\" role=IAF alt=+FL80 spd=-210", LaSid)), Metadati.NomeSid);
 
-        Assert.Empty(metadati.Problemi);
+        Assert.Equal(TipoDiProblemaDeiMetadati.TagDiPuntoFuoriDalRecord, Assert.Single(metadati.Problemi).Tipo);
         Assert.Empty(metadati.Record);
         Assert.True(Metadati.EUnTag("//@@\"ELVAD\" role=IAF"));
         Assert.True(Metadati.EUnTagDiPunto("//@@\"ELVAD\" role=IAF"));

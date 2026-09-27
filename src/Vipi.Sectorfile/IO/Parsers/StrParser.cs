@@ -148,8 +148,9 @@ public sealed class StrParser : IFileParser<StrRecord>
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 // A //@ line (the Lab's tags, carta madre §8.2) is never body: it closes the open record, so that
-                // `//@END NOME` and the next `//@NOME` stay out of it (F2 slice 7). The master has none.
-                if (headerParts is not null && !Metadati.EUnTag(trimmed))
+                // `//@END NOME` and the next `//@NOME` stay out of it (F2 slice 7). The master has none. A //@@ line
+                // is the tag of the point below it, and stays in the body (lotto «Subito» slice 1c, §M regola 4).
+                if (headerParts is not null && (!Metadati.EUnTag(trimmed) || Metadati.EUnTagDiPunto(trimmed)))
                 {
                     currentLines.Add(line);   // in-block comment / disabled body line
                 }

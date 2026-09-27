@@ -107,8 +107,10 @@ public sealed class SidParser : IFileParser<SidProcedure>
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 // Inside a track the comment belongs to it; after a one-line SID it leads the next record. A //@ tag
-                // is never part of a track: it closes it (F2 slice 7).
-                if (current is { Track.Count: > 0 } && !Metadati.EUnTag(trimmed))
+                // is never part of a track: it closes it (F2 slice 7). A //@@ tag is: it sits right above its point,
+                // the first one too (lotto «Subito» slice 1c, «file per file» §M regola 4).
+                if (current is not null
+                    && ((current.Track.Count > 0 && !Metadati.EUnTag(trimmed)) || Metadati.EUnTagDiPunto(trimmed)))
                 {
                     currentLines.Add(line);
                 }
@@ -175,6 +177,12 @@ public sealed class SidParser : IFileParser<SidProcedure>
     {
         int j = from;
         while (j < lines.Count && lines[j].TrimStart().Length == 0)
+        {
+            j++;
+        }
+
+        // The tag of the point that opens the new stretch sits right above it (lotto «Subito» slice 1c): look past it.
+        while (j < lines.Count && Metadati.EUnTagDiPunto(lines[j].TrimStart()))
         {
             j++;
         }
