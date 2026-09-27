@@ -351,7 +351,7 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
             var chiavi = new Dictionary<string, string> { ["initialclimb"] = "5000" };
             if (record is StrRecord { RunwaySpec: "MAPS" })
             {
-                chiavi["composta"] = "ODINA4E,25:NENI5A";
+                chiavi[Metadati.Compose] = "ODINA4E,25:NENI5A";
             }
 
             etichettato = Metadati.Scrivi(etichettato, record, nomeDi, chiavi);
@@ -374,7 +374,7 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         recordEtichettati += riletto.Records.Count;
         recordRitrovati += riletto.Records.Count(r => metadati.Di(r) is { Delimitato: true } m
             && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("initialclimb") == "5000"
-            && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault("composta") == "ODINA4E,25:NENI5A"));
+            && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault(Metadati.Compose) == "ODINA4E,25:NENI5A"));
         if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
             || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610")
         {

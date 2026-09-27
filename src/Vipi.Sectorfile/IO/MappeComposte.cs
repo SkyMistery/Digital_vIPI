@@ -50,9 +50,9 @@ public static class MappeComposte
     {
         ArgumentNullException.ThrowIfNull(letto);
         return Metadati.Leggi(letto, Metadati.NomeStr).Record
-            .Where(m => m.Record.RunwaySpec == "MAPS" && m.Chiavi.ContainsKey("composta"))
-            .Select(m => new MappaComposta(m.Record, m.Chiavi["composta"], Metadati.ElencoDellaComposta(m.Chiavi["composta"]),
-                m.Chiavi.GetValueOrDefault("intere") == "si", m.Riga))
+            .Where(m => m.Record.RunwaySpec == "MAPS" && m.Chiavi.ContainsKey(Metadati.Compose))
+            .Select(m => new MappaComposta(m.Record, m.Chiavi[Metadati.Compose], Metadati.ElencoDellaComposta(m.Chiavi[Metadati.Compose]),
+                m.Chiavi.GetValueOrDefault(Metadati.Whole) == "si", m.Riga))
             .ToList();
     }
 

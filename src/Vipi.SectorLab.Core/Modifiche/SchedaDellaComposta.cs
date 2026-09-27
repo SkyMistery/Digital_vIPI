@@ -10,7 +10,7 @@ namespace Vipi.SectorLab.Core.Modifiche;
 /// </summary>
 public sealed record CasellaDellaComposta(ProceduraDellaComposta Voce, string Piste, string Tipo, bool Scelta)
 {
-    /// <summary>Falso se il nome non può stare nell'elenco (uno spazio, una virgola…): la casella si mostra spenta.</summary>
+    /// <summary>Falso se il nome non può stare nell'elenco (vuoto, o con le virgolette dentro): la casella si mostra spenta.</summary>
     public bool Elencabile => Metadati.NomeElencabile(Voce.Nome);
 
     /// <summary>Come si scrive nell'elenco e nella scheda: <c>ODIN4E</c>, o <c>25:NENI5A</c> se il nome ha più piste.</summary>

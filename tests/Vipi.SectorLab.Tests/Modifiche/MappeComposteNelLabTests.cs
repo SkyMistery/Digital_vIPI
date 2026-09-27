@@ -20,7 +20,7 @@ public sealed class MappeComposteNelLabTests : IDisposable
     public MappeComposteNelLabTests()
     {
         _albero.Scrivi(Lime, string.Join("\r\n",
-            "//@\"STAR RNAV(ALL)\" composta=ODIN4E,EKLI4E",
+            "//@\"STAR RNAV(ALL)\" compose=ODIN4E,EKLI4E",
             "//@START",
             "LIME;MAPS;STAR RNAV(ALL);;;;;1;",
             "ODINA;ODINA;<br>", "ODINA;ODINA;4E;", "ME872;ME872;", "OBFUL;OBFUL;", "TIXUM;TIXUM;", "",

@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using Vipi.Sectorfile.Models;
 
 namespace Vipi.Sectorfile.IO;
@@ -26,39 +25,75 @@ namespace Vipi.Sectorfile.IO;
 /// <para>I tag sono commenti per Aurora e per i lettori: stanno fra le righe grezze o nei commenti di testa dei
 /// record, e un <c>//@</c> chiude sempre il record aperto (<c>StrParser</c>, <c>SidParser</c>). Un file senza tag
 /// si legge come prima: sul master del 22 settembre 2026 le righe <c>//@</c> sono zero.</para>
+/// <para>La sintassi è quella della carta «file per file» §M (27 settembre 2026): un valore con spazi o una voce
+/// con spazi in un elenco vanno <b>fra virgolette</b> (<c>initialclimb="COO APP"</c>,
+/// <c>compose=ODIN4E,25:"RNP10 UPETI"</c>); i valori si conservano come sono scritti (virgolette comprese) e si
+/// leggono con <see cref="Testo"/> e <see cref="ElencoDellaComposta"/>. Le chiavi ammesse dipendono dal tipo di
+/// file (<see cref="CatalogoDeiTag"/>). Le righe <c>//@@</c> sono i tag di un punto dentro il record: qui non si
+/// leggono ancora, e non sono una dichiarazione.</para>
 /// </remarks>
 public static partial class Metadati
 {
     /// <summary>
-    /// Le chiavi di un record: il nome intero del fix (<c>BANA6W</c> è BANAV), l'initial climb, le procedure di una
-    /// mappa composta (F3-bis §2.2: <c>composta=ODINA4E,25:NENI5A</c>, vedi <see cref="ElencoDellaComposta"/>) e come
-    /// si disegnano (<c>intere=si</c>: ognuna intera, anche dove ripassa su un tratto già disegnato; D8 rivista).
+    /// Le procedure di una mappa composta (F3-bis §2.2: <c>compose=ODINA4E,25:NENI5A</c>, vedi
+    /// <see cref="ElencoDellaComposta"/>). Era <c>composta</c> fino al 27 settembre 2026 (§M regola 9: chiavi in
+    /// inglese; nel sector vero i tag erano zero, niente da migrare).
     /// </summary>
-    public static IReadOnlyList<string> ChiaviDelRecord { get; } = new[] { "fix", "initialclimb", "composta", "intere" };
+    public const string Compose = "compose";
+
+    /// <summary>Come si disegnano le procedure di una composta: <c>whole=si</c>, ognuna intera (D8 rivista; era <c>intere</c>).</summary>
+    public const string Whole = "whole";
 
     /// <summary>
-    /// Vero se una procedura con quel nome può stare nell'elenco di <c>composta</c>: niente spazi (il valore di un tag
-    /// non ne ha), virgole e due punti (separano le voci e la pista), virgolette e <c>=</c>. Sul fork 63 procedure su
-    /// 1169 non possono (<c>RNP10 UPETI</c> di <c>lica.str</c>, le rotte <c>AAR …</c> di <c>lizz.str</c>).
+    /// Vero se una procedura con quel nome può stare nell'elenco di <see cref="Compose"/>: un nome con spazi, virgole
+    /// o due punti si scrive fra virgolette (§M regola 5); resta fuori solo un nome vuoto o con le virgolette dentro.
+    /// Fino al 27 settembre 2026 ne restavano fuori 63 su 1169 (<c>RNP10 UPETI</c> di <c>lica.str</c>, le rotte
+    /// <c>AAR …</c> di <c>lizz.str</c>).
     /// </summary>
     public static bool NomeElencabile(string nome)
-        => !string.IsNullOrEmpty(nome) && !nome.Any(c => char.IsWhiteSpace(c) || c is ',' or ':' or '"' or '=');
+        => !string.IsNullOrEmpty(nome) && nome.Trim() == nome && !nome.Contains('"', StringComparison.Ordinal);
 
     /// <summary>
-    /// Le procedure di una mappa composta, dal valore di <c>composta</c> (F3-bis D5): nomi separati da virgola, nell'ordine
-    /// in cui si disegnano; <c>25:NENI5A</c> sceglie la procedura della pista 25, il nome da solo le prende tutte.
-    /// Null se il valore non si legge (una voce vuota, una pista vuota).
+    /// Le procedure di una mappa composta, dal valore di <see cref="Compose"/> (F3-bis D5): voci separate da virgola,
+    /// nell'ordine in cui si disegnano; <c>25:NENI5A</c> sceglie la procedura della pista 25, il nome da solo le
+    /// prende tutte; un nome fra virgolette può avere spazi, virgole e due punti (<c>25:"RNP10 UPETI"</c>).
+    /// Null se il valore non si legge (una voce vuota, una pista vuota, virgolette che non chiudono).
     /// </summary>
     public static IReadOnlyList<ProceduraDellaComposta>? ElencoDellaComposta(string valore)
     {
         ArgumentNullException.ThrowIfNull(valore);
-        var elenco = new List<ProceduraDellaComposta>();
-        foreach (string voce in valore.Split(','))
+        if (Voci(valore) is not { } voci)
         {
+            return null;
+        }
+
+        var elenco = new List<ProceduraDellaComposta>();
+        foreach (string voce in voci)
+        {
+            int virgoletta = voce.IndexOf('"', StringComparison.Ordinal);
             int duePunti = voce.IndexOf(':', StringComparison.Ordinal);
+            if (virgoletta >= 0 && duePunti > virgoletta)
+            {
+                duePunti = -1;  // i due punti stanno dentro il nome fra virgolette
+            }
+
             string pista = duePunti < 0 ? string.Empty : voce[..duePunti];
             string nome = duePunti < 0 ? voce : voce[(duePunti + 1)..];
-            if (nome.Length == 0 || (duePunti >= 0 && pista.Length == 0) || nome.Contains(':', StringComparison.Ordinal))
+            if (nome.StartsWith('"'))
+            {
+                if (nome.Length < 3 || !nome.EndsWith('"') || nome[1..^1].Contains('"', StringComparison.Ordinal))
+                {
+                    return null;
+                }
+
+                nome = nome[1..^1];
+            }
+            else if (nome.Contains(':', StringComparison.Ordinal) || nome.Contains('"', StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            if (nome.Length == 0 || (duePunti >= 0 && pista.Length == 0) || pista.Contains('"', StringComparison.Ordinal))
             {
                 return null;
             }
@@ -69,8 +104,52 @@ public static partial class Metadati
         return elenco;
     }
 
+    /// <summary>
+    /// Il valore di <see cref="Compose"/> per un elenco: le voci con la virgola, la pista davanti coi due punti, e fra
+    /// virgolette i nomi che hanno spazi, virgole o due punti. È l'inverso di <see cref="ElencoDellaComposta"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">Un nome che non può stare nell'elenco (<see cref="NomeElencabile"/>).</exception>
+    public static string ScriviLElenco(IEnumerable<ProceduraDellaComposta> elenco)
+    {
+        ArgumentNullException.ThrowIfNull(elenco);
+        return string.Join(",", elenco.Select(v =>
+        {
+            if (!NomeElencabile(v.Nome))
+            {
+                throw new ArgumentException($"«{v.Nome}» non può stare nell'elenco di una composta.", nameof(elenco));
+            }
+
+            string nome = v.Nome.Any(c => char.IsWhiteSpace(c) || c is ',' or ':' or '=') ? FraVirgolette(v.Nome) : v.Nome;
+            return (v.Pista is null ? string.Empty : v.Pista + ":") + nome;
+        }));
+    }
+
+    /// <summary>
+    /// Un valore da scrivere in un tag: così com'è se non ha spazi, altrimenti fra virgolette (§M regola 5).
+    /// </summary>
+    /// <exception cref="ArgumentException">Vuoto, o con le virgolette dentro.</exception>
+    public static string ValoreDaScrivere(string testo)
+    {
+        ArgumentNullException.ThrowIfNull(testo);
+        if (testo.Length == 0 || testo.Contains('"', StringComparison.Ordinal))
+        {
+            throw new ArgumentException($"Un valore di tag non può essere vuoto né avere virgolette: «{testo}».", nameof(testo));
+        }
+
+        return testo.Any(char.IsWhiteSpace) ? FraVirgolette(testo) : testo;
+    }
+
+    /// <summary>Il testo di un valore letto: senza le virgolette, se è tutto fra virgolette (<c>"COO APP"</c> → COO APP).</summary>
+    public static string Testo(string valore)
+    {
+        ArgumentNullException.ThrowIfNull(valore);
+        return valore.Length >= 2 && valore[0] == '"' && valore[^1] == '"' && valore.Count(c => c == '"') == 2
+            ? valore[1..^1]
+            : valore;
+    }
+
     /// <summary>Le chiavi del file: il ciclo AIRAC da cui vengono i dati.</summary>
-    public static IReadOnlyList<string> ChiaviDelFile { get; } = new[] { "source" };
+    public static IReadOnlyList<string> ChiaviDelFile => CatalogoDeiTag.DelFile;
 
     /// <summary>Il nome col quale si aggancia una SID: il terzo campo (<c>OST1E</c>, <c>SOS5A-ESI8H</c>).</summary>
     public static string NomeSid(SidProcedure sid) => (sid ?? throw new ArgumentNullException(nameof(sid))).Name.Trim();
@@ -78,16 +157,29 @@ public static partial class Metadati
     /// <summary>Il nome col quale si aggancia un record di <c>.str</c>: il terzo campo (<c>BULL1A</c>, <c>LIRF CTR</c>).</summary>
     public static string NomeStr(StrRecord str) => (str ?? throw new ArgumentNullException(nameof(str))).ProcedureId.Trim();
 
-    /// <summary>Vero se la riga (già senza spazi in testa) è un tag <c>//@</c>.</summary>
+    /// <summary>Vero se la riga (già senza spazi in testa) è un tag <c>//@</c>, anche di un punto (<c>//@@</c>).</summary>
     public static bool EUnTag(string rigaSenzaSpaziInTesta)
         => rigaSenzaSpaziInTesta.StartsWith("//@", StringComparison.Ordinal);
 
-    /// <summary>Legge i tag di un file già letto. Non tocca niente.</summary>
+    /// <summary>
+    /// Vero se la riga (già senza spazi in testa) è il tag di un punto, <c>//@@"PUNTO" …</c> (§M regola 4): sta dentro
+    /// il record, sopra il suo punto, e — a differenza di un <c>//@</c> — non lo chiude.
+    /// </summary>
+    public static bool EUnTagDiPunto(string rigaSenzaSpaziInTesta)
+        => rigaSenzaSpaziInTesta.StartsWith("//@@", StringComparison.Ordinal);
+
+    /// <summary>Legge i tag di un file già letto, col catalogo del suo tipo di record. Non tocca niente.</summary>
     public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string> nomeDi)
+        where T : class
+        => Leggi(letto, nomeDi, CatalogoDelTipo<T>());
+
+    /// <summary>Legge i tag di un file già letto, con le chiavi di <paramref name="catalogo"/>. Non tocca niente.</summary>
+    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string> nomeDi, CatalogoDeiTag catalogo)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(letto);
         ArgumentNullException.ThrowIfNull(nomeDi);
+        ArgumentNullException.ThrowIfNull(catalogo);
 
         var delFile = new Dictionary<string, string>(StringComparer.Ordinal);
         PosizioneDelTag? sorgente = null;
@@ -121,7 +213,8 @@ public static partial class Metadati
                 return;
             }
 
-            if (!EUnTag(t))
+            // Il tag di un punto non è una dichiarazione: sta nel record, e lo legge chi legge i punti.
+            if (!EUnTag(t) || EUnTagDiPunto(t))
             {
                 return;
             }
@@ -197,7 +290,7 @@ public static partial class Metadati
 
                 case TipoDiTag.Dichiarazione:
                     Orfana();
-                    if (tag.Chiavi.Keys.Any(k => !ChiaviDelRecord.Contains(k)))
+                    if (tag.Chiavi.Keys.Any(k => !catalogo.AmmetteDelRecord(k)))
                     {
                         problemi.Add(new(TipoDiProblemaDeiMetadati.ChiaveSconosciuta, numero, riga));
                     }
@@ -283,23 +376,27 @@ public static partial class Metadati
     /// Il file ha tag che non valgono (<see cref="MetadatiDelFile{T}.Problemi"/> con un errore: scrivere sopra un blocco
     /// rotto lo romperebbe di più), o il nome del record non si può dichiarare.
     /// </exception>
-    /// <exception cref="ArgumentException">Una chiave fuori dal catalogo, o un valore vuoto o con spazi.</exception>
+    /// <exception cref="ArgumentException">
+    /// Una chiave fuori dal catalogo del file, o un valore che non si scrive: vuoto, o con spazi fuori dalle virgolette
+    /// (<see cref="ValoreDaScrivere"/> mette le virgolette dove servono).
+    /// </exception>
     public static ParseResult<T> Scrivi<T>(ParseResult<T> letto, T record, Func<T, string> nomeDi, IReadOnlyDictionary<string, string> chiavi)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(record);
         ArgumentNullException.ThrowIfNull(chiavi);
+        var catalogo = CatalogoDelTipo<T>();
         foreach (var (chiave, valore) in chiavi)
         {
-            if (!ChiaviDelRecord.Contains(chiave))
+            if (!catalogo.AmmetteDelRecord(chiave))
             {
-                throw new ArgumentException($"Chiave fuori dal catalogo dei record: '{chiave}'.", nameof(chiavi));
+                throw new ArgumentException($"Chiave fuori dal catalogo dei {catalogo.Formato}: '{chiave}'.", nameof(chiavi));
             }
 
             ControllaIlValore(valore, nameof(chiavi));
         }
 
-        var metadati = Leggi(letto, nomeDi);
+        var metadati = Leggi(letto, nomeDi, catalogo);
         RifiutaSeRotto(metadati);
 
         int pezzo = IndiceDel(letto, record);
@@ -309,8 +406,11 @@ public static partial class Metadati
             throw new InvalidOperationException($"Il nome '{nome}' non si può dichiarare in un tag //@.");
         }
 
+        // Le chiavi nell'ordine del catalogo, quelle per verso dopo (in ordine di scrittura): lo stesso tag esce
+        // sempre uguale, chiunque lo scriva.
         string dichiarazione = "//@" + FraVirgolette(nome) + string.Concat(chiavi
-            .OrderBy(c => ChiaviDelRecord.ToList().IndexOf(c.Key))
+            .OrderBy(c => catalogo.DelRecord.Contains(c.Key) ? catalogo.DelRecord.ToList().IndexOf(c.Key) : int.MaxValue)
+            .ThenBy(c => c.Key, StringComparer.Ordinal)
             .Select(c => " " + c.Key + "=" + c.Value));
 
         var pezzi = letto.Chunks.ToList();
@@ -396,12 +496,76 @@ public static partial class Metadati
         return letto with { Chunks = pezzi };
     }
 
+    // Un valore si scrive se, riletto, è una parola sola: niente spazi fuori dalle virgolette, virgolette che chiudono.
     private static void ControllaIlValore(string valore, string parametro)
     {
-        if (string.IsNullOrEmpty(valore) || valore.Any(char.IsWhiteSpace))
+        if (string.IsNullOrEmpty(valore) || Parole(valore) is not [var unaSola] || unaSola.Testo != valore)
         {
-            throw new ArgumentException($"Valore vuoto o con spazi: '{valore}'.", parametro);
+            throw new ArgumentException($"Valore vuoto, con spazi fuori dalle virgolette o virgolette che non chiudono: '{valore}'.", parametro);
         }
+    }
+
+    private static CatalogoDeiTag CatalogoDelTipo<T>()
+        => CatalogoDeiTag.Di<T>()
+           ?? throw new NotSupportedException($"I record di tipo {typeof(T).Name} non hanno ancora un catalogo di tag.");
+
+    // Le voci di un elenco, separate dalle virgole fuori dalle virgolette. Null se una virgoletta non chiude.
+    private static List<string>? Voci(string valore)
+    {
+        var voci = new List<string>();
+        int inizio = 0;
+        bool dentro = false;
+        for (int i = 0; i <= valore.Length; i++)
+        {
+            if (i == valore.Length || (valore[i] == ',' && !dentro))
+            {
+                voci.Add(valore[inizio..i]);
+                inizio = i + 1;
+            }
+            else if (valore[i] == '"')
+            {
+                dentro = !dentro;
+            }
+        }
+
+        return dentro ? null : voci;
+    }
+
+    private readonly record struct Parola(int Indice, string Testo);
+
+    // Le parole di un tag: separate dagli spazi FUORI dalle virgolette (§M regola 5: «RR NE» fra virgolette è una
+    // parola sola). Null se una virgoletta resta aperta.
+    private static List<Parola>? Parole(string testo)
+    {
+        var parole = new List<Parola>();
+        int inizio = -1;
+        bool dentro = false;
+        for (int i = 0; i <= testo.Length; i++)
+        {
+            bool fine = i == testo.Length || (char.IsWhiteSpace(testo[i]) && !dentro);
+            if (fine)
+            {
+                if (inizio >= 0)
+                {
+                    parole.Add(new Parola(inizio, testo[inizio..i]));
+                    inizio = -1;
+                }
+
+                continue;
+            }
+
+            if (inizio < 0)
+            {
+                inizio = i;
+            }
+
+            if (testo[i] == '"')
+            {
+                dentro = !dentro;
+            }
+        }
+
+        return dentro ? null : parole;
     }
 
     private static void RifiutaSeRotto<T>(MetadatiDelFile<T> metadati)
@@ -559,44 +723,24 @@ public static partial class Metadati
         if (corpo.StartsWith('"'))
         {
             int chiude = corpo.IndexOf('"', 1);
-            if (chiude <= 1 || (chiude + 1 < corpo.Length && !char.IsWhiteSpace(corpo[chiude + 1])))
+            if (chiude <= 1 || (chiude + 1 < corpo.Length && !char.IsWhiteSpace(corpo[chiude + 1]))
+                || Parole(corpo[(chiude + 1)..]) is not { } dopo || LeggiLeChiavi(dopo) is not { } chiaviDopo)
             {
                 return new(TipoDiTag.Illegibile, null, nessuna);
-            }
-
-            var chiaviDopo = new Dictionary<string, string>(StringComparer.Ordinal);
-            foreach (Match parola in Parole().Matches(corpo[(chiude + 1)..]))
-            {
-                int uguale = parola.Value.IndexOf('=', StringComparison.Ordinal);
-                if (uguale <= 0 || uguale == parola.Value.Length - 1 || !chiaviDopo.TryAdd(parola.Value[..uguale], parola.Value[(uguale + 1)..]))
-                {
-                    return new(TipoDiTag.Illegibile, null, nessuna);
-                }
             }
 
             return new(TipoDiTag.Dichiarazione, corpo[1..chiude], chiaviDopo);
         }
 
-        var parole = Parole().Matches(corpo);
-        int primaChiave = -1;
-        for (int i = 0; i < parole.Count; i++)
+        if (Parole(corpo) is not { } parole)
         {
-            if (parole[i].Value.Contains('=', StringComparison.Ordinal))
-            {
-                primaChiave = i;
-                break;
-            }
+            return new(TipoDiTag.Illegibile, null, nessuna);
         }
 
-        var chiavi = new Dictionary<string, string>(StringComparer.Ordinal);
-        for (int i = primaChiave < 0 ? parole.Count : primaChiave; i < parole.Count; i++)
+        int primaChiave = parole.FindIndex(p => p.Testo.Contains('=', StringComparison.Ordinal));
+        if (LeggiLeChiavi(primaChiave < 0 ? [] : parole.GetRange(primaChiave, parole.Count - primaChiave)) is not { } chiavi)
         {
-            string parola = parole[i].Value;
-            int uguale = parola.IndexOf('=', StringComparison.Ordinal);
-            if (uguale <= 0 || uguale == parola.Length - 1 || !chiavi.TryAdd(parola[..uguale], parola[(uguale + 1)..]))
-            {
-                return new(TipoDiTag.Illegibile, null, nessuna);
-            }
+            return new(TipoDiTag.Illegibile, null, nessuna);
         }
 
         if (primaChiave == 0)
@@ -604,12 +748,27 @@ public static partial class Metadati
             return new(TipoDiTag.ChiaviDelFile, null, chiavi);
         }
 
-        string nome = primaChiave < 0 ? corpo : corpo[..parole[primaChiave].Index].TrimEnd();
+        string nome = primaChiave < 0 ? corpo : corpo[..parole[primaChiave].Indice].TrimEnd();
         return new(TipoDiTag.Dichiarazione, nome, chiavi);
     }
 
-    private static string FraVirgolette(string nome) => "\"" + nome + "\"";
+    // Le chiavi di un tag, ogni parola «chiave=valore»: null se una parola non lo è (niente «=», chiave o valore
+    // vuoti, virgolette nella chiave) o se una chiave si ripete. Il valore resta com'è scritto, virgolette comprese.
+    private static Dictionary<string, string>? LeggiLeChiavi(List<Parola> parole)
+    {
+        var chiavi = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var parola in parole)
+        {
+            int uguale = parola.Testo.IndexOf('=', StringComparison.Ordinal);
+            if (uguale <= 0 || uguale == parola.Testo.Length - 1 || parola.Testo[..uguale].Contains('"', StringComparison.Ordinal)
+                || parola.Testo[(uguale + 1)..] == "\"\"" || !chiavi.TryAdd(parola.Testo[..uguale], parola.Testo[(uguale + 1)..]))
+            {
+                return null;
+            }
+        }
 
-    [GeneratedRegex(@"\S+")]
-    private static partial Regex Parole();
+        return chiavi;
+    }
+
+    private static string FraVirgolette(string nome) => "\"" + nome + "\"";
 }

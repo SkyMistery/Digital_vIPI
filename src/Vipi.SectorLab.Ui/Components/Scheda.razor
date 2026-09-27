@@ -89,7 +89,7 @@
                 }
                 @foreach (var casella in composta.Caselle)
                 {
-                    <label class="lab-casella" title="@(casella.Elencabile ? null : "Il nome ha uno spazio, una virgola o due punti: non può stare nell'elenco")">
+                    <label class="lab-casella" title="@(casella.Elencabile ? null : "Il nome è vuoto o ha le virgolette dentro: non può stare nell'elenco")">
                         <input type="checkbox" checked="@casella.Scelta" data-procedura="@casella.Testo" disabled="@(!casella.Elencabile)"
                                @onchange="e => Lab.CambiaLaComposta(scheda.File, scheda.Indice, composta.Con(casella, e.Value is true))" />
                         @casella.Testo <span class="lab-nota">@casella.Piste @(casella.Tipo == "STAR" ? "" : "· " + casella.Tipo)</span>

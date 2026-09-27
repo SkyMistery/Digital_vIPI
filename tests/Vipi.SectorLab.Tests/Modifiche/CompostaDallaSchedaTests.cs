@@ -79,7 +79,7 @@ public sealed class CompostaDallaSchedaTests : IDisposable
         Assert.Empty(_modifiche.Voci.OfType<ModificaDellaComposta>());
         var diff = _modifiche.DiffDi(file);
         Assert.Equal((0, 3), (diff.Tolte, diff.Aggiunte));
-        Assert.Contains(diff.Pezzi.SelectMany(p => p.Righe), r => r.Testo == "//@\"STAR RNAV(ALL)\" composta=ODIN4E,EKLI4E");
+        Assert.Contains(diff.Pezzi.SelectMany(p => p.Righe), r => r.Testo == "//@\"STAR RNAV(ALL)\" compose=ODIN4E,EKLI4E");
     }
 
     // La prima volta il Lab sceglie da solo la forma che lascia la mappa com'è: qui intera (come lirs.str).
@@ -161,7 +161,7 @@ public sealed class CompostaDallaSchedaTests : IDisposable
         var letto = ((FileLetto<StrRecord>)file).Letto;
         var metadati = Metadati.Leggi(letto, Metadati.NomeStr);
         Assert.Empty(metadati.Problemi);
-        Assert.Equal(("STAR ALTRA(ALL)", "ODIN4E,EKLI4E"), (metadati.Di(Mappa(file))!.Nome, metadati.Di(Mappa(file))!.Chiavi["composta"]));
+        Assert.Equal(("STAR ALTRA(ALL)", "ODIN4E,EKLI4E"), (metadati.Di(Mappa(file))!.Nome, metadati.Di(Mappa(file))!.Chiavi[Metadati.Compose]));
 
         _modifiche.Annulla(file, rinomina);
         metadati = Metadati.Leggi(((FileLetto<StrRecord>)file).Letto, Metadati.NomeStr);
@@ -199,20 +199,23 @@ public sealed class CompostaDallaSchedaTests : IDisposable
         Assert.Equal((0, 3), (_modifiche.DiffDi(file).Tolte, _modifiche.DiffDi(file).Aggiunte));
     }
 
-    // Un nome con lo spazio (RNP10 UPETI di lica.str) non può stare nell'elenco: casella spenta, e rifiuto, non eccezione.
+    // Un nome con lo spazio (RNP10 UPETI di lica.str) sta nell'elenco fra virgolette («file per file» §M regola 5,
+    // 27 settembre): fino ad allora la casella era spenta e il gesto rifiutato.
     [Fact]
-    public void UnaProceduraColNomeConSpaziNonSiElenca()
+    public void UnaProceduraColNomeConSpaziSiElencaFraVirgolette()
     {
         _albero.Scrivi(Lime, string.Join("\r\n", [.. Troncata, .. Procedure, "", "LIME;10;RNP10 UPETI;;;3;;1;", "UPETI;UPETI;", "ME768;ME768;"]) + "\r\n");
         _sessione = SessioneAperta.Apri(CartellaDelSector.Riconosci(_albero.Radice, out _)!);
         var file = _sessione.File[Lime];
 
         var casella = SchedaDellaComposta.Di(file, 0)!.Caselle.Single(c => c.Voce.Nome == "RNP10 UPETI");
-        Assert.False(casella.Elencabile);
+        Assert.True(casella.Elencabile);
         Assert.Equal("avvicinamento", casella.Tipo);
-        var rifiutata = Assert.IsType<ModificaRifiutata>(_modifiche.CambiaLaComposta(file, 0, [Voce("ODIN4E"), casella.Voce]));
-        Assert.Contains("RNP10 UPETI", rifiutata.Motivo, StringComparison.Ordinal);
-        Assert.False(_modifiche.CEQualcosa);
+        Assert.IsNotType<ModificaRifiutata>(_modifiche.CambiaLaComposta(file, 0, [Voce("ODIN4E"), casella.Voce]));
+
+        var metadati = Metadati.Leggi(((FileLetto<StrRecord>)file).Letto, Metadati.NomeStr);
+        Assert.Equal("ODIN4E,\"RNP10 UPETI\"", metadati.Di(Mappa(file))!.Chiavi[Metadati.Compose]);
+        Assert.Empty(metadati.Problemi);
     }
 
     [Fact]

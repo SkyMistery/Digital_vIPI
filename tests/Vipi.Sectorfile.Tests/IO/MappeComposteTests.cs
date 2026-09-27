@@ -47,7 +47,7 @@ public sealed class MappeComposteTests : IDisposable
     [Fact]
     public void UnaMappaGiaCosiTornaUgualeEFermaSulPrimoPuntoGiaDisegnato()
     {
-        var letto = Str(Composta("composta=ODIN4E,EKLI4E"));
+        var letto = Str(Composta("compose=ODIN4E,EKLI4E"));
         var composta = Assert.Single(MappeComposte.Di(letto));
 
         var rigenerata = composta.Componi(letto.Records);
@@ -57,11 +57,11 @@ public sealed class MappeComposteTests : IDisposable
         Assert.Equal(1, rigenerata.TrattiLiberi);   // l'arco a coordinate: resta in fondo
     }
 
-    // D8 rivista: `intere=si` disegna ogni procedura intera, anche dove ripassa su un tratto già disegnato.
+    // D8 rivista: `whole=si` disegna ogni procedura intera, anche dove ripassa su un tratto già disegnato.
     [Fact]
     public void ConIntereLaProceduraSiDisegnaTutta()
     {
-        var letto = Str(Composta("composta=ODIN4E,EKLI4E intere=si"));
+        var letto = Str(Composta("compose=ODIN4E,EKLI4E whole=si"));
         var composta = Assert.Single(MappeComposte.Di(letto));
 
         var rigenerata = composta.Componi(letto.Records);
@@ -73,7 +73,7 @@ public sealed class MappeComposteTests : IDisposable
     [Fact]
     public void LOrdineELElencoDecidonoIlDisegno()
     {
-        var letto = Str(Composta("composta=EKLI4E,ODIN4E"));
+        var letto = Str(Composta("compose=EKLI4E,ODIN4E"));
         var rigenerata = MappeComposte.Di(letto)[0].Componi(letto.Records);
 
         // EKLI4E prima, intera; ODIN4E dopo, ferma su OBFUL; poi l'arco.
@@ -91,7 +91,7 @@ public sealed class MappeComposteTests : IDisposable
     public void LaTestaDelPrimoTrattoTieneLaSuaForma(params string[] testa)
     {
         string[] mappa = [Mappa[0], .. testa, .. Mappa[3..]];
-        var letto = Str(Composta("composta=ODIN4E,EKLI4E", mappa));
+        var letto = Str(Composta("compose=ODIN4E,EKLI4E", mappa));
         var composta = MappeComposte.Di(letto)[0];
 
         Assert.True(MappeComposte.Uguale(composta.Mappa, composta.Componi(letto.Records).Punti));
@@ -100,7 +100,7 @@ public sealed class MappeComposteTests : IDisposable
     [Fact]
     public void UnaProceduraCheNonCeSiDiceEIlRestoSiDisegna()
     {
-        var letto = Str(Composta("composta=ODIN4E,NENI5A,25:EKLI4E"));
+        var letto = Str(Composta("compose=ODIN4E,NENI5A,25:EKLI4E"));
         var rigenerata = MappeComposte.Di(letto)[0].Componi(letto.Records);
 
         // NENI5A non c'è; EKLI4E c'è, ma per le piste 28:10, non per la 25.
@@ -123,14 +123,18 @@ public sealed class MappeComposteTests : IDisposable
         Assert.True(MappeComposte.Uguale(mappa, MappeComposte.Componi(mappa, elenco, letto.Records).Punti));
     }
 
+    // Dal 27 settembre («file per file» §M regola 5) spazi, virgole e due punti stanno fra virgolette: fuori resta solo
+    // un nome vuoto, con spazi in testa o in coda, o con le virgolette dentro.
     [Theory]
     [InlineData("ODIN4E", true)]
-    [InlineData("RNP10 UPETI", false)]
-    [InlineData("AAR ZOE (FR)", false)]
-    [InlineData("A,B", false)]
-    [InlineData("25:X", false)]
+    [InlineData("RNP10 UPETI", true)]
+    [InlineData("AAR ZOE (FR)", true)]
+    [InlineData("A,B", true)]
+    [InlineData("25:X", true)]
     [InlineData("", false)]
-    public void UnNomeConSpaziNonStaNellElenco(string nome, bool elencabile)
+    [InlineData(" ODIN4E", false)]
+    [InlineData("STAR \"A\"", false)]
+    public void UnNomeStaNellElencoSeNonHaVirgolette(string nome, bool elencabile)
         => Assert.Equal(elencabile, Metadati.NomeElencabile(nome));
 
     [Fact]
@@ -147,7 +151,7 @@ public sealed class MappeComposteTests : IDisposable
     public void IlValidatoreDiceLaProceduraMancanteELaMappaNonAllineata()
     {
         // La mappa ha ancora ME872, ma ODIN4E ora passa da ME999: qualcuno ha cambiato la STAR fuori dal Lab.
-        string[] righe = Composta("composta=ODIN4E,EKLI4E,NENI5A");
+        string[] righe = Composta("compose=ODIN4E,EKLI4E,NENI5A");
         righe = [.. righe.Select((r, i) => r == "ME872;ME872;" && i > 10 ? "ME999;ME999;" : r)];
         string percorso = Path.Combine(_radice, "Include", "IT", "lime.str");
         Directory.CreateDirectory(Path.GetDirectoryName(percorso)!);
@@ -168,7 +172,7 @@ public sealed class MappeComposteTests : IDisposable
     {
         string percorso = Path.Combine(_radice, "Include", "IT", "lime.str");
         Directory.CreateDirectory(Path.GetDirectoryName(percorso)!);
-        File.WriteAllText(percorso, string.Join("\r\n", Composta("composta=ODIN4E,EKLI4E")) + "\r\n");
+        File.WriteAllText(percorso, string.Join("\r\n", Composta("compose=ODIN4E,EKLI4E")) + "\r\n");
 
         Assert.DoesNotContain(Validatore.ValidaLAlbero(_radice),
             p => p.Regola is Regola.CompostaConProceduraAssente or Regola.CompostaNonAllineata or Regola.TagNonValido);

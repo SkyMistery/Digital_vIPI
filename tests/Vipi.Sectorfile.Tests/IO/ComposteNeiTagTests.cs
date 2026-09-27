@@ -37,7 +37,7 @@ public sealed class ComposteNeiTagTests
     public void IlNomeFraVirgoletteHaGliSpaziELeChiaviDopo()
     {
         var letto = Str(Righe([
-            "//@\"STAR RNAV(ALL)\" composta=ODIN4E,EKLI4E",
+            "//@\"STAR RNAV(ALL)\" compose=ODIN4E,EKLI4E",
             "//@START",
             .. Mappa,
             "//@END \"STAR RNAV(ALL)\"",
@@ -48,7 +48,7 @@ public sealed class ComposteNeiTagTests
         Assert.Empty(metadati.Problemi);
         var della = metadati.Di(letto.Records[0])!;
         Assert.Equal(("STAR RNAV(ALL)", true), (della.Nome, della.Delimitato));
-        Assert.Equal("ODIN4E,EKLI4E", della.Chiavi["composta"]);
+        Assert.Equal("ODIN4E,EKLI4E", della.Chiavi[Metadati.Compose]);
     }
 
     [Fact]
@@ -57,10 +57,10 @@ public sealed class ComposteNeiTagTests
         var letto = Str(Righe(Mappa));
 
         var scritto = Metadati.Scrivi(letto, letto.Records[0], Metadati.NomeStr,
-            new Dictionary<string, string> { ["composta"] = "ODIN4E,25:NENI5A" });
+            new Dictionary<string, string> { [Metadati.Compose] = "ODIN4E,25:NENI5A" });
         string[] dopo = Salva(scritto);
 
-        Assert.Equal("//@\"STAR RNAV(ALL)\" composta=ODIN4E,25:NENI5A", dopo[0]);
+        Assert.Equal("//@\"STAR RNAV(ALL)\" compose=ODIN4E,25:NENI5A", dopo[0]);
         Assert.Equal("//@START", dopo[1]);
         Assert.Contains("//@END \"STAR RNAV(ALL)\"", dopo);
         Assert.Equal(Mappa, dopo.Where(r => !Metadati.EUnTag(r)));
@@ -68,26 +68,26 @@ public sealed class ComposteNeiTagTests
         var riletto = Str(string.Join("\r\n", dopo) + "\r\n");
         var metadati = Metadati.Leggi(riletto, Metadati.NomeStr);
         Assert.Empty(metadati.Problemi);
-        Assert.Equal("ODIN4E,25:NENI5A", metadati.Di(riletto.Records[0])!.Chiavi["composta"]);
+        Assert.Equal("ODIN4E,25:NENI5A", metadati.Di(riletto.Records[0])!.Chiavi[Metadati.Compose]);
     }
 
     // Senza virgolette si legge ancora, come lo scriveva F2: il nome arriva fino alla prima parola con «=».
     [Fact]
     public void LaFormaSenzaVirgoletteSiLeggeAncora()
     {
-        var letto = Str(Righe(["//@STAR RNAV(ALL) composta=ODIN4E", "//@START", .. Mappa, "//@END STAR RNAV(ALL)"]));
+        var letto = Str(Righe(["//@STAR RNAV(ALL) compose=ODIN4E", "//@START", .. Mappa, "//@END STAR RNAV(ALL)"]));
 
         var metadati = Metadati.Leggi(letto, Metadati.NomeStr);
 
         Assert.Empty(metadati.Problemi);
-        Assert.Equal("ODIN4E", metadati.Di(letto.Records[0])!.Chiavi["composta"]);
+        Assert.Equal("ODIN4E", metadati.Di(letto.Records[0])!.Chiavi[Metadati.Compose]);
     }
 
     [Theory]
-    [InlineData("//@\"STAR RNAV(ALL) composta=ODIN4E")]     // la virgoletta non chiude
-    [InlineData("//@\"STAR RNAV(ALL)\"composta=ODIN4E")]    // attaccata alla chiave
+    [InlineData("//@\"STAR RNAV(ALL) compose=ODIN4E")]     // la virgoletta non chiude
+    [InlineData("//@\"STAR RNAV(ALL)\"compose=ODIN4E")]    // attaccata alla chiave
     [InlineData("//@\"STAR RNAV(ALL)\" ODIN4E")]            // dopo il nome, una parola che non è una chiave
-    [InlineData("//@\"\" composta=ODIN4E")]                 // nome vuoto
+    [InlineData("//@\"\" compose=ODIN4E")]                 // nome vuoto
     public void LeVirgoletteRotteSonoUnaRigaIllegibile(string dichiarazione)
     {
         var metadati = Metadati.Leggi(Str(Righe([dichiarazione, .. Mappa])), Metadati.NomeStr);
@@ -102,7 +102,7 @@ public sealed class ComposteNeiTagTests
         var letto = Str(Righe("LIME;MAPS;STAR \"A\";;;;;1;", "ODINA;ODINA;"));
 
         Assert.Throws<InvalidOperationException>(() => Metadati.Scrivi(letto, letto.Records[0], Metadati.NomeStr,
-            new Dictionary<string, string> { ["composta"] = "ODIN4E" }));
+            new Dictionary<string, string> { [Metadati.Compose] = "ODIN4E" }));
     }
 
     [Fact]
@@ -152,7 +152,7 @@ public sealed class ComposteNeiTagTests
         string[] righe = [.. Mappa, "", "LIME;28:10;ODIN4E;;;;;1;", "ODINA;ODINA;4E;", "OBFUL;OBFUL;"];
         var letto = Str(Righe(righe));
 
-        var scritto = Metadati.Scrivi(letto, letto.Records[0], Metadati.NomeStr, new Dictionary<string, string> { ["composta"] = "ODIN4E" });
+        var scritto = Metadati.Scrivi(letto, letto.Records[0], Metadati.NomeStr, new Dictionary<string, string> { [Metadati.Compose] = "ODIN4E" });
         var riletto = Str(string.Join("\r\n", Salva(scritto)) + "\r\n");
         var tolto = Metadati.Togli(riletto, riletto.Records[0], Metadati.NomeStr);
 

@@ -106,7 +106,7 @@ public sealed record ModificaDellaComposta(string File, int Record, string Etich
 }
 
 /// <summary>
-/// L'elenco di una mappa composta cambiato dalla scheda (F3-bis §2.2, slice 5): il tag <c>//@"NOME" composta=…</c>
+/// L'elenco di una mappa composta cambiato dalla scheda (F3-bis §2.2, slice 5): il tag <c>//@"NOME" compose=…</c>
 /// scritto, riscritto o tolto. La mappa si rigenera con lui.
 /// </summary>
 public sealed record ModificaDellaDichiarazione(string File, int Record, string Etichetta, string Prima, string Dopo)
@@ -381,7 +381,7 @@ public sealed class ModificheInSospeso
 
     /// <summary>
     /// Cambia l'elenco di una mappa composta (F3-bis §2.2, slice 5): scrive, riscrive o toglie (elenco vuoto) il tag
-    /// <c>//@"NOME" composta=… [intere=si]</c> e rigenera la mappa. Se la mappa diventa composta adesso e
+    /// <c>//@"NOME" compose=… [whole=si]</c> e rigenera la mappa. Se la mappa diventa composta adesso e
     /// <paramref name="intere"/> non è dato, la forma è quella che la lascia com'è (<see cref="IntereLaLascianoComE"/>).
     /// </summary>
     public object CambiaLaComposta(FileAperto file, int indice, IReadOnlyList<ProceduraDellaComposta> elenco, bool? intere = null)
@@ -394,16 +394,16 @@ public sealed class ModificheInSospeso
         if (mappa.RunwaySpec != "MAPS")
             return new ModificaRifiutata("Solo una mappa MAPS può essere composta.");
         if (elenco.FirstOrDefault(v => !Metadati.NomeElencabile(v.Nome)) is { } nonElencabile)
-            return new ModificaRifiutata($"«{nonElencabile.Nome}» non può stare nell'elenco: il nome ha uno spazio, una virgola, due punti o virgolette.");
+            return new ModificaRifiutata($"«{nonElencabile.Nome}» non può stare nell'elenco: il nome è vuoto o ha le virgolette dentro.");
 
         var metadati = Metadati.Leggi(str.Letto, Metadati.NomeStr);
         if (metadati.Problemi.FirstOrDefault(p => p.EUnErrore) is { } rotto)
             return new ModificaRifiutata($"Il file ha tag //@ che non valgono (riga {rotto.Riga}): vanno sistemati prima.");
 
         var chiaviOggi = metadati.Di(mappa)?.Chiavi ?? new Dictionary<string, string>();
-        string? compostaOggi = chiaviOggi.GetValueOrDefault("composta");
-        bool intereOggi = chiaviOggi.GetValueOrDefault("intere") == "si";
-        string? valore = elenco.Count == 0 ? null : string.Join(",", elenco.Select(v => (v.Pista is null ? "" : v.Pista + ":") + v.Nome));
+        string? compostaOggi = chiaviOggi.GetValueOrDefault(Metadati.Compose);
+        bool intereOggi = chiaviOggi.GetValueOrDefault(Metadati.Whole) == "si";
+        string? valore = elenco.Count == 0 ? null : Metadati.ScriviLElenco(elenco);
         bool intereNuove = valore is not null && (intere ?? (compostaOggi is null ? IntereLaLascianoComE(mappa, elenco, str.Letto.Records) : intereOggi));
         if (valore == compostaOggi && intereNuove == intereOggi)
             return new ModificaRifiutata("La mappa è già composta così.");
@@ -413,12 +413,12 @@ public sealed class ModificheInSospeso
             _dichiarazioniDiPartenza[chiave] = (compostaOggi, intereOggi);
         Fotografa(file, str);
 
-        var altre = chiaviOggi.Where(c => c.Key is not ("composta" or "intere")).ToDictionary(c => c.Key, c => c.Value);
+        var altre = chiaviOggi.Where(c => c.Key is not (Metadati.Compose or Metadati.Whole)).ToDictionary(c => c.Key, c => c.Value);
         if (valore is not null)
         {
-            altre["composta"] = valore;
+            altre[Metadati.Compose] = valore;
             if (intereNuove)
-                altre["intere"] = "si";
+                altre[Metadati.Whole] = "si";
         }
 
         str.RipristinaLaStruttura(altre.Count == 0

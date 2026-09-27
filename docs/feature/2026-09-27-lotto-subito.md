@@ -145,3 +145,21 @@ Cosa cambia nelle slice dopo, dalle misure:
   (`NomeDuplicato`, stesso catalogo) → la slice 10 allinea le due misure prima di toccare la regola.
 - Le altre regole nuove hanno già la loro misura nella carta «file per file» (colonna «Uscita» qui sopra): nessuna
   dà centinaia di avvisi falsi, salvo i 713 commenti in coda.
+
+**Slice 1 — metadati nel motore.** Divisa in passi, un commit ciascuno: **1a** grammatica di §M · **1b** i file a una
+riga per record · **1c** i tag di punto `//@@` in `.sid`/`.str` · **1d** i file a blocchi (`.artcc`, `.mva`,
+aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
+
+- **1a (27 settembre)** — `IO/CatalogoDeiTag.cs` (nuovo): le chiavi per tipo di file (comuni `locked`, `gen`, `note`;
+  SID e STAR come §M; chiavi **per verso** `06.tora` con la regex del numero di pista), una chiave fuori dal catalogo
+  del suo file = avviso. `IO/Metadati.cs`: parole separate dagli spazi **fuori dalle virgolette**, valori conservati
+  come scritti e letti con `Testo`, `ValoreDaScrivere` mette le virgolette solo se servono, `Scrivi` rifiuta un
+  valore che riletto non sarebbe una parola sola; `composta`/`intere` → `compose`/`whole` (`Metadati.Compose`,
+  `Metadati.Whole`); elenco delle composte con nomi fra virgolette (`ScriviLElenco` ↔ `ElencoDellaComposta`), e
+  `NomeElencabile` lascia fuori solo nomi vuoti o con virgolette dentro → le 63 procedure con spazi (51 SID militari,
+  `RNP10 UPETI`, `AAR …`) ora si compongono; `//@@` riconosciuto (`EUnTagDiPunto`) e saltato: non è una
+  dichiarazione. Lab: la casella di `RNP10 UPETI` si accende, il gesto scrive `compose=ODIN4E,"RNP10 UPETI"`.
+  Test: motore 479 → **512** (net8 e net10), Lab **358** (un test rovesciato: il nome con spazi si elenca). Albero
+  intero invariato: 701/701, 0 diversi, tag su tutto 2 782/2 782, lo stesso guasto noto di `limf.sid`.
+  🔴 Il cancello di `main` (`~/.claude/hooks/main-gate.mjs`) rifiuta `tools/conta-test.sh` («comando annidato
+  troppe volte»: legge dentro lo script); il conteggio è scritto a mano coi numeri del log, la CI lo ricontrolla.
