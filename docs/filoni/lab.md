@@ -4,6 +4,15 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+## 27 settembre 2026, sera — lotto «Subito» in corso
+
+Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
+la slice 0 (misure di partenza) e la slice 1 fino a **1c**: sintassi dei tag di §M nel motore (1a), tag sui file a
+una riga per record (1b), tag dei punti `//@@` in SID e STAR (1c). Test: motore **540**, Lab **358**. Prossimo: **1d**,
+i tag sui file a blocchi (`.artcc`, `.mva`, aerovie, `.tfl`, `.hartcc`/`.lartcc`, `.geo`/`.pol`); il dettaglio di ogni
+passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il cancello di `main` rifiuta
+`tools/conta-test.sh`.
+
 ## 27 settembre 2026 — revisione del giro dei file
 
 Prima del lotto «Subito» il committente ha chiesto di rileggere tutto il giro e le decisioni: cosa è stato valutato
