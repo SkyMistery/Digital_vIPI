@@ -46,6 +46,19 @@ public sealed class IvaoHttp
         return await _http.SendAsync(req, ct);
     }
 
+    /// <summary>
+    /// GET <b>senza</b> token, per gli endpoint pubblici (il whazzup).
+    /// <para>🔴 U-025 (revisione totale 3): il whazzup passava da <see cref="SendGetAsync"/>, che chiede il token
+    /// quando il ClientId c'è. Un segreto ruotato male o un token endpoint giù facevano fallire una GET che il token
+    /// non lo vuole: vista live e statistiche si spegnevano per tutti, e IVAO riceveva un POST di token fallito al
+    /// minuto.</para>
+    /// </summary>
+    public async Task<HttpResponseMessage> SendGetPubblicoAsync(string path, CancellationToken ct)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, Combine(path));
+        return await _http.SendAsync(req, ct);
+    }
+
     /// <summary>GET autorizzato che ritorna il body come stringa (null su 4xx/5xx). Best-effort.</summary>
     public async Task<string?> GetStringAsync(string path, CancellationToken ct)
     {

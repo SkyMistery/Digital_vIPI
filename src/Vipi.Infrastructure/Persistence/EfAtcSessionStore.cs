@@ -47,7 +47,12 @@ public sealed class EfAtcSessionStore : IAtcSessionStore
         var toccate = 0;
 
         // Le sessioni da aggiornare si caricano in un colpo: sono quelle in frequenza adesso (una manciata).
-        var ids = plan.Upserts.Where(u => !u.IsNew).Select(u => u.SessionId)
+        // 🔴 U-026 (revisione totale 3): anche le «nuove». Il piano decide IsNew su ciò che il poller rilegge (aperte
+        // o finite da meno di 15 minuti): una sessione chiusa all'ultimo avvistamento e ricomparsa con lo STESSO id
+        // dopo più di 15 minuti gli sembra nuova, e l'`Add` su una chiave già in archivio faceva cadere il
+        // `SaveChanges` unico — le righe di TUTTI, ogni minuto, finché quel controllore restava connesso. Trovata
+        // qui, la riga passa dal ramo che riapre, col turno suo.
+        var ids = plan.Upserts.Select(u => u.SessionId)
             .Concat(plan.Closures.Select(c => c.SessionId))
             .Distinct().ToList();
 

@@ -433,5 +433,22 @@
     (`ElenchiSorgenteNonMutiTests`), il giro dei settori (`GiroSettoriNonRegalaVerdeTests`: esclusa, uno scalo rotto,
     senza credenziali), tre su `AirportDataImportTests`, due su `DeletionProbeTests`. Infrastructure 1642 →
     **1666**, Application 2986 → **2988**.
+- ✅ **S20** lotto L7, fetta **B: whazzup e sessioni ATC** — U-025, U-026, U-131. Nessuna migrazione, niente codice
+  comune.
+  - **U-025**: il whazzup è pubblico e ora si chiede **senza token** (`IvaoHttp.SendGetPubblicoAsync`). Prima un
+    segreto ruotato male o un token endpoint giù spegnevano vista live e statistiche, pur col whazzup che rispondeva.
+  - **U-026**: una sessione ricomparsa con lo stesso id dopo più di 15 minuti era «nuova» e l'`Add` su una chiave
+    esistente faceva cadere il `SaveChanges` di tutte, ogni minuto. `EfAtcSessionStore.ApplyAsync` carica anche le
+    «nuove»: la riga trovata passa dal ramo che la riapre, col suo turno.
+  - **U-131**: la fotografia porta `updatedAt` (data di generazione) invece dell'ora d'arrivo; una risposta senza
+    `clients.atcs`/`clients.pilots` è un poll fallito, non «nessuno online»; il poller non ripubblica né registra una
+    fotografia con data uguale o più vecchia della precedente (la cache scade da sé, T-034), salvo un salto
+    indietro di oltre 10 minuti (orologio della sorgente riazzerato). **Verificato sul whazzup vero** il 27-set:
+    `updatedAt` c'è, con **nove** cifre di frazione (`…15.107470159Z`), e il parser le regge su net8 e net10 (il
+    test usa quel formato); `clients.atcs` e `clients.pilots` ci sono sempre; ritardo ~15 s.
+  - Non fatto: la «cache negativa» del token proposta dal registro per U-025 (col whazzup senza token non serve
+    più alla vista live; resta un POST fallito per giro sugli altri endpoint, che girano di notte).
+  - **Test** rossi sul codice di prima: 7 in `WhazzupClientTests`, 2 in `FotografiaFermaTests` (poller), 1 in
+    `AtcSessionStoreTests`. Infrastructure 1666 → **1676**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.
