@@ -21,7 +21,7 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
 - **Pulizie decise** (F4, in un ramo): `limw.pol`, `test.artcc`, `limc_star`/`lirf_star`, SID ripetute e campi spostati,
   ICAO sbagliati, `LIMM_WN4/EN4_CTR` nei trasferimenti; `.fix` vuoti più avanti.
 - **Da chiedere**: `LL` di `lied.str`; configurazioni di Milano 2.1/2.2/3; coordinate in una forma sola anche per
-  `.vfi`/`.tfl` (R-7); `LIMJ_APP`/`LIBB_APP` (R-8); le proposte di §R.
+  `.vfi`/`.tfl` (R-7); `LIMJ_APP`/`LIBB_APP` (R-8) — le ultime due più avanti.
 - **Regole trasversali**: niente commenti in coda · fonte primaria, mai vIPI · `PREFS` solo lo stretto necessario ·
   rami di prova, niente parassiti · coordinate col punto.
 
@@ -929,21 +929,21 @@ una slice del lotto «Subito».
 ## §R — Revisione del 27 settembre: cose valutate per un file e non per il gemello
 
 Rilette §1-§22 e le carte F2/F3-bis il 27 settembre. Le voci con la decisione del committente sono già nelle loro
-sezioni (D9, J7, Q8, M9, M10, P11, Q2d, F8, S6, R6, §M). Qui le **proposte dell'agente** che restano da confermare
+sezioni (D9, J7, Q8, M9, M10, P11, Q2d, F8, S6, R6, §M). Qui le **proposte dell'agente**, confermate dal committente il 27 settembre salvo R-7 e R-8 (rimandate)
 e le misure fatte per controllarle.
 
 | # | Proposta | Perché | Fase |
 |---|---|---|---|
-| R-1 | **«Chi lo usa» anche per posizioni, piste e file**: una posizione (`.frq` ↔ teste dei `.tfl` ↔ trasferimenti), una pista (`.rw` ↔ piste di `.sid`/`.str` ↔ PAR ↔ marcature ↔ prolungamenti ↔ `NN.` di M9), un file (`.cpr`, `.atis` citati dai `.frq`), un nome di `colors.def`. Rinominare aggiorna anche i valori dei tag (`fix=`, `trans=`, `compose=`) | L2 copre solo fix, navaid, attese e punti VFR; una pista rinumerata per la declinazione tocca tutto | Subito — comune |
-| R-2 | **Import dall'AIP anche di CTR, ATZ, TMA** (AD 2.17, ENR 2.1: limiti laterali e verticali, classe) e dei **punti e rotte VFR** | F6 li ha per tutto il resto; con D9/Q8 i limiti hanno un posto | F6 |
-| R-3 | **Spezza/unisci** (§C) vale anche per `<br>` di `.sid`/`.str`, la riga vuota dei `.geo` e delle `.mva` di scalo | lo stesso gesto in tre scritture | Subito — comune |
-| R-4 | **Controlli pari fra gemelli**: `.sid` con «ICAO diverso dal file», «coordinate non DMS», «pista inesistente» (come `.str` Q6 e `.gts` R3); `.tfl` con «nome ripetuto nello stesso file» (`LIBB_FSS`, `LIMM_FSS`, §5). Misurato il 27 settembre: nei `.sid` 0 ICAO diversi (serviranno col disegno, P9); nei `.str` 0 procedure ripetute (il controllo di P3 lo si estende e basta) | un controllo scritto per un file e non per il suo gemello | Subito |
-| R-5 | **Nascondi/mostra ovunque** (B3 «può servire un po' ovunque»): anche `.sid` (10 righe commentate), `.ap` (`//LIRR;…;Roma Area`), ACC, settori, `.geo` | scritto solo per aerovie, MVA, LOW | Subito — comune |
-| R-6 | **Semplifica solo sui file globali** (G4): `.geo`/`.pol` di scalo (69 199 segmenti, 38 763 vertici) restano come sono, disegni fini | non era scritto | — |
-| R-7 | **Coordinate in una forma sola** per `.vfi`/`.tfl` (§C): era «da decidere» e non stava fra i «Da chiedere» | ora in testa | da chiedere |
-| R-8 | `LIMJ_APP` e `LIBB_APP` citati nei `.frq` e non definiti (M2): solo WN4/EN4 avevano una decisione (M7) | | da chiedere |
+| R-1 | **«Chi lo usa» anche per posizioni, piste e file**: una posizione (`.frq` ↔ teste dei `.tfl` ↔ trasferimenti), una pista (`.rw` ↔ piste di `.sid`/`.str` ↔ PAR ↔ marcature ↔ prolungamenti ↔ `NN.` di M9), un file (`.cpr`, `.atis` citati dai `.frq`), un nome di `colors.def`. Rinominare aggiorna anche i valori dei tag (`fix=`, `trans=`, `compose=`) | L2 copre solo fix, navaid, attese e punti VFR; una pista rinumerata per la declinazione tocca tutto | Subito — comune · ✅ confermata (27 settembre) |
+| R-2 | **Import dall'AIP anche di CTR e ATZ** (AD 2.17: limiti laterali e verticali, classe; le **TMA per ora no**, committente) e dei **punti e rotte VFR** | F6 li ha per tutto il resto; con D9/Q8 i limiti hanno un posto | F6 · ✅ confermata (27 settembre) |
+| R-3 | **Spezza/unisci** (§C) vale anche per `<br>` di `.sid`/`.str`, la riga vuota dei `.geo` e delle `.mva` di scalo | lo stesso gesto in tre scritture | Subito — comune · ✅ confermata (27 settembre) |
+| R-4 | **Controlli pari fra gemelli**: `.sid` con «ICAO diverso dal file», «coordinate non DMS», «pista inesistente» (come `.str` Q6 e `.gts` R3); `.tfl` con «nome ripetuto nello stesso file» (`LIBB_FSS`, `LIMM_FSS`, §5). Misurato il 27 settembre: nei `.sid` 0 ICAO diversi (serviranno col disegno, P9); nei `.str` 0 procedure ripetute (il controllo di P3 lo si estende e basta) | un controllo scritto per un file e non per il suo gemello | Subito · ✅ confermata (27 settembre) |
+| R-5 | **Nascondi/mostra ovunque** (B3 «può servire un po' ovunque»): anche `.sid` (10 righe commentate), `.ap` (`//LIRR;…;Roma Area`), ACC, settori, `.geo` | scritto solo per aerovie, MVA, LOW | Subito — comune · ✅ confermata (27 settembre) |
+| R-6 | **Semplifica solo sui file globali** (G4): `.geo`/`.pol` di scalo (69 199 segmenti, 38 763 vertici) restano come sono, disegni fini | non era scritto | — · ✅ confermata (27 settembre) |
+| R-7 | **Coordinate in una forma sola** per `.vfi`/`.tfl` (§C): era «da decidere» e non stava fra i «Da chiedere» | ora in testa | da chiedere · rimandata: «più avanti, come dice l'agente» |
+| R-8 | `LIMJ_APP` e `LIBB_APP` citati nei `.frq` e non definiti (M2): solo WN4/EN4 avevano una decisione (M7) | | da chiedere · rimandata: «più avanti, come dice l'agente» |
 | R-9 | TA = 0 in 66 scali di `itap.ap` (§13): ✅ **dal DB di IVAO** (committente, 27 settembre), come lo IATA (M10) | misurato, ora deciso | F6 |
-| R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 | trovati nelle misure, molti senza una correzione in elenco | F4 |
+| R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 | trovati nelle misure, molti senza una correzione in elenco | F4 · ✅ confermata (27 settembre) |
 
 Messe a posto in questa revisione: H5 chiusa da I2; P4, P5, H6 non sono mai esistite (numerazione).
 
