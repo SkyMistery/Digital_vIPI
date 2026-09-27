@@ -151,7 +151,13 @@ public static class Ispettore
                 continue;
             }
 
-            letti.Add((proprieta.Name, Testo(valore), valore is null or "" ? "" : Testo(valore)));
+            letti.Add((proprieta.Name, Testo(valore), valore switch
+            {
+                null or "" => "",
+                // Il punto si riscrive come un vertice: «ABBOZ», o le coordinate separate da uno spazio (slice 3c).
+                Punto p => Modifiche.ElencoDiVertici.ScriviIlPunto(p),
+                _ => Testo(valore),
+            }));
         }
 
         var campi = new List<CampoDelRecord>();

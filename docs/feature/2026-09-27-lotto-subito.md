@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a e 3b fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a, 3b e 3c fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -368,3 +368,30 @@ che chiede il tipo fisso.
   (`07` → `07:25`), quota della prima zona di `lirr.mva` (`FL90` → `90`, `LIRR` resta), casella CPDLC di
   `LIMM_WS2_CTR` (anche in `limm.frq`), `libd.mva` in sola lettura; la nota «= 10 000 ft» usciva dalla colonna stretta,
   sistemata nel foglio. Test: motore 616 → **618**, Lab 376 → **408**.
+- **3c (28 settembre)** — il punto coi suggerimenti (A2). `Components/CampoPunto.razor`: mentre si scrive, il Lab
+  propone i nomi che il **master scelto** conosce (quelli che Aurora risolverebbe: fix, VOR, NDB, scali, VRP), filtrati
+  man mano nel Lab e non nella pagina (`CatalogoDeiPunti.Suggerisci`: prima quelli che cominciano col testo, poi quelli
+  che lo contengono, al più 20 — i nomi di un master sono ~4 400). Lo usano i campi `Punto` (la posizione di un'attesa
+  di `HOLDENR.hold`, che prima non si scriveva: scelto un nome esce `HLD-ABBOZ;BC404;BC404;…`, A2), `Navaid` (navaid
+  della transizione delle SID, nome dell'etichetta L) e i **vertici** dei file che sanno scrivere un nome (`.tfl`,
+  `.mva`, SID, `.str`…; non i `.pol` né le aerovie, che tengono solo coordinate). La lettura del punto è una sola, la
+  stessa dei vertici (`ModificheInSospeso.LeggiIlPunto`).
+  - 🔴 **Trovato a schermo, codice comune (`FusioneDelRecord.UnisciCampi`)**: scritto il navaid di `OST1E` la riga
+    diventava `LIRF;07;OST1E;;;;OSTE;;` — **l'RNAV `1` dell'8° campo spariva**. Il `;` di chiusura lasciava un pezzo
+    vuoto che contava come campo: una riga nuova più lunga della base lo metteva sopra il campo che il modello non
+    conosce; togliendo il navaid, l'RNAV scivolava nel 7° campo (diventava un navaid); con una grezza più corta un
+    campo nuovo finiva un posto prima. Ora i campi si contano senza il terminatore, un campo tolto tiene il suo posto
+    vuoto se dopo ci sono campi sconosciuti, i campi mancanti alla grezza entrano solo se servono a tenere il posto.
+    Rosso: 3 test su 3 sul codice di prima. Misura su **ogni** SID del fork (navaid messo o tolto): cambia solo il 7°
+    campo (e il 6° vuoto dove la riga finiva prima).
+  - Misura nuova, **ogni campo scrivibile** di ogni tipo su tre record del fork, per la stessa strada della scheda:
+    99 campi su 106 cambiavano la riga. Gli altri 7 non arrivavano mai nel file: transizione e RNAV degli `.str` (lo
+    scrittore si ferma al 6° campo) → **sola lettura** fino alla slice 9; nome e testo di un'etichetta L contano solo
+    nel loro modo («Cosa mostra») → si scrivono solo lì (`DescrizioneDelCampo.SiScriveSe`). Dopo: **99 su 99**. Regola
+    (scelta dell'agente): la scheda non offre mai una scrittura che non arriva nella riga.
+  Prova sull'albero (fusione cambiata): tutto invariato — round-trip 701/701, **tutto toccato 0 righe cambiate**, **una
+  modifica per record 115 568/115 568, 0 righe con più di un campo cambiato**, tag, punti, blocchi, validatore 120/481.
+  Prova a schermo sul banco: suggerimenti veri di ITALY.isc (`OST` → OST · ndb, OSTEG · fix, OSTIA · vrp…), navaid di
+  `OST1E` con l'RNAV che resta, posizione di `HLD-ABBOZ` per nome. 🟡 Scegliere dalla tendina con la tastiera nel
+  browser del pannello non passa (la tendina nativa non c'è): da provare nella finestra vera del Lab (WebView2).
+  Test: motore 618 → **621**, Lab 408 → **418**.

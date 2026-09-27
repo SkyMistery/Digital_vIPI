@@ -122,4 +122,52 @@ public sealed class EditorDeiCampiTests : IDisposable
     [InlineData("NE", false)]
     public void UnaPistaVeraSiRiconosceDalNumero(string voce, bool vera)
         => Assert.Equal(vera, VociDegliElenchi.EUnaPistaVera(voce));
+
+    // --- slice 3c: il punto coi suggerimenti ---------------------------------------------------------------------
+
+    [Fact]
+    public void ISuggerimentiSonoINomiDelMasterFiltratiColTesto()
+    {
+        var catalogo = CatalogoDeiPunti.PerOgniIsc(Apri())["ITALY.isc"];
+
+        var comincia = catalogo.Suggerisci("bc40");
+
+        Assert.NotEmpty(comincia);
+        Assert.Equal("BC404", comincia[0].Nome);
+        Assert.All(comincia, p => Assert.StartsWith("BC40", p.Nome, StringComparison.OrdinalIgnoreCase));
+        // Prima quelli che cominciano col testo, poi quelli che lo contengono; al più quanti se ne chiedono.
+        var contiene = catalogo.Suggerisci("C40", quanti: 50);
+        Assert.Contains(contiene, p => p.Nome == "BC404");
+        Assert.Equal(5, catalogo.Suggerisci("B", quanti: 5).Count);
+        Assert.Empty(catalogo.Suggerisci("  "));
+    }
+
+    [Theory]
+    [InlineData("ABRUS", "HLD-ABBOZ;ABRUS;ABRUS;ABBOZ/225R-9000;")]
+    [InlineData("N046.00.00.000 E011.00.00.000", "HLD-ABBOZ;N046.00.00.000;E011.00.00.000;ABBOZ/225R-9000;")]
+    public void LaPosizioneDiUnAttesaSiScrivePerNomeOPerCoordinate(string scritto, string riga)
+    {
+        var sessione = Apri();
+        var file = sessione.File["SectorFiles/Include/IT/HOLDENR.hold"];
+        int abboz = Indice(file, "HLD-ABBOZ");
+
+        Assert.IsType<ModificaDiCampo>(_modifiche.Cambia(file, abboz, "Posizione", scritto));
+
+        Assert.Equal(riga, ((IFileConRecord)file).RigheDelFile(_modifiche.SporchiDi(file.Relativo))[abboz]);
+    }
+
+    [Fact]
+    public void LaPosizioneDiUnAttesaSiLeggeComeSiRiscrive()
+    {
+        var sessione = Apri();
+        var file = sessione.File["SectorFiles/Include/IT/HOLDENR.hold"];
+
+        var scheda = Ispettore.Scheda(file, Indice(file, "HLD-ABBOZ"), null)!;
+
+        // Il valore nel campo è quello che, riscritto tale e quale, non cambia niente.
+        string scritto = scheda.Campi.Single(c => c.Nome == "Posizione").Scritto;
+        Assert.Equal("N046.02.37.000 E011.07.48.000", scritto);
+        Assert.Equal("Il valore è già questo.",
+            Assert.IsType<ModificaRifiutata>(_modifiche.Cambia(file, Indice(file, "HLD-ABBOZ"), "Posizione", scritto)).Motivo);
+    }
 }

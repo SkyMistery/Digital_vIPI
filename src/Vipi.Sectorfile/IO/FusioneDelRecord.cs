@@ -113,39 +113,69 @@ internal static class FusioneDelRecord
         string[] b = base_.Split(';');
         string[] n = nuova.Split(';');
 
+        // 🔴 Lotto «Subito», slice 3c: il `;` che chiude una riga lascia un pezzo vuoto in fondo, e prima valeva come
+        // un campo. Una riga nuova più lunga della base (la SID col navaid scritto dalla scheda) metteva quel vuoto al
+        // posto del campo che il modello non conosce (l'RNAV «1»), e una più corta faceva scivolare i campi in coda.
+        // I campi si contano senza il terminatore, che si rimette alla fine.
+        int gN = QuantiCampi(grezza, g), bN = QuantiCampi(base_, b), nN = QuantiCampi(nuova, n);
+
         var campi = new List<(string Testo, bool Nuovo)>();
-        int quanti = Math.Max(g.Length, Math.Max(b.Length, n.Length));
+        // I campi che base e nuova hanno uguali e la grezza non ha (grezza più corta): entrano solo se dopo di loro
+        // arriva un campo da scrivere, per tenerlo al suo posto; sennò la grezza non si allunga.
+        var inSospeso = new List<(string Testo, bool Nuovo)>();
+        void Metti(string testo, bool nuovo)
+        {
+            campi.AddRange(inSospeso);
+            inSospeso.Clear();
+            campi.Add((testo, nuovo));
+        }
+
+        int quanti = Math.Max(gN, Math.Max(bN, nN));
         for (int j = 0; j < quanti; j++)
         {
-            bool inG = j < g.Length, inB = j < b.Length, inN = j < n.Length;
+            bool inG = j < gN, inB = j < bN, inN = j < nN;
             if (inB && inN)
             {
-                if (string.Equals(b[j], n[j], StringComparison.Ordinal))
+                if (!string.Equals(b[j], n[j], StringComparison.Ordinal))
                 {
-                    if (inG)
-                    {
-                        campi.Add((g[j], false));
-                    }
+                    Metti(n[j], true);
+                }
+                else if (inG)
+                {
+                    Metti(g[j], false);
                 }
                 else
                 {
-                    campi.Add((n[j], true));
+                    inSospeso.Add((n[j], false));
                 }
             }
             else if (inN)
             {
-                campi.Add((n[j], true));
+                Metti(n[j], true);
             }
-            else if (!inB && inG)
+            else if (inB)
             {
-                campi.Add((g[j], false));
+                // Il modello ha tolto il campo. Se la grezza ha campi dopo quelli che il modello conosce, il posto
+                // resta, vuoto: sennò quei campi scivolerebbero in uno che vuol dire altro.
+                if (gN > bN)
+                {
+                    Metti(string.Empty, true);
+                }
             }
-
-            // inB e non inN: il modello ha tolto il campo, e si toglie.
+            else if (inG)
+            {
+                Metti(g[j], false);
+            }
         }
 
-        return string.Join(";", NellaForma(campi, forma));
+        string unita = string.Join(";", NellaForma(campi, forma));
+        // Il terminatore della grezza, finché la riga non va oltre; di più, quello dello scrittore.
+        bool chiusa = campi.Count <= gN ? grezza.EndsWith(';') : nuova.EndsWith(';');
+        return chiusa ? unita + ";" : unita;
     }
+
+    /// <summary>I campi di una riga, senza il pezzo vuoto che lascia il <c>;</c> di chiusura.</summary>
+    private static int QuantiCampi(string riga, string[] pezzi) => riga.EndsWith(';') ? pezzi.Length - 1 : pezzi.Length;
 
     private static IEnumerable<string> NellaForma(List<(string Testo, bool Nuovo)> campi, FormaDelPunto.Forma forma)
     {

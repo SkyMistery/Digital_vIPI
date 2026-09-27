@@ -9,7 +9,14 @@
 *@
 @if (!Scrivibile())
 {
-    @Campo.Valore
+    @if (Campo.Descrizione?.PercheNo is { } percheNo && Record is { } suo && Campo.Descrizione.SiScriveSe?.Invoke(suo) == false)
+    {
+        <span title="@percheNo" data-non-si-scrive="@Campo.Nome">@Campo.Valore</span>
+    }
+    else
+    {
+        @Campo.Valore
+    }
 }
 else if (Campo.Descrizione is { Editor: Editor.TipoFisso } fisso)
 {
@@ -49,6 +56,11 @@ else if (Campo.Descrizione is { Editor: Editor.Quota } quota)
             <span class="lab-nota" data-quota="@Campo.Nome">@significato</span>
         }
     </span>
+}
+else if (Campo.Descrizione is { Editor: Editor.Punto or Editor.Navaid })
+{
+    @* Slice 3c: un nome coi suggerimenti del master scelto, o (per un punto) le coordinate. *@
+    <CampoPunto Valore="@Campo.Scritto" OnCambia="Cambia" data-scrivi="@Campo.Nome" />
 }
 else if (Campo.Descrizione is { Editor: Editor.Numero })
 {
@@ -105,10 +117,12 @@ else
 
     [Parameter, EditorRequired] public CampoDelRecord Campo { get; set; } = null!;
 
-    private PropertyInfo? Proprieta
+    private object? Record
         => Lab.Sessione?.File.GetValueOrDefault(Scheda.File) is IFileConRecord conRecord && Scheda.Indice < conRecord.RecordDelModello.Count
-            ? conRecord.RecordDelModello[Scheda.Indice].GetType().GetProperty(Campo.Nome, BindingFlags.Public | BindingFlags.Instance)
+            ? conRecord.RecordDelModello[Scheda.Indice]
             : null;
+
+    private PropertyInfo? Proprieta => Record?.GetType().GetProperty(Campo.Nome, BindingFlags.Public | BindingFlags.Instance);
 
     private Type? TipoVero => Proprieta?.PropertyType is { } tipo ? Nullable.GetUnderlyingType(tipo) ?? tipo : null;
 
@@ -118,18 +132,18 @@ else
     private string? Scalo => Scheda.Campi.FirstOrDefault(c => c.Nome == "IcaoCode")?.Scritto;
 
     /// <summary>
-    /// Si scrive quel che il motore sa leggere dal testo: numeri, sì/no, testo, enum, coordinate. Gli elenchi (i vertici)
+    /// Si scrive quel che il motore sa leggere dal testo: numeri, sì/no, testo, enum, coordinate, punti. Gli elenchi (i vertici)
     /// hanno la loro sezione; un campo che la descrizione dice di sola lettura (calcolato) non si scrive.
     /// </summary>
     private bool Scrivibile()
     {
-        if (Campo.Descrizione is { Editor: Editor.SolaLettura })
+        if (Campo.Descrizione is { } descrizione && Record is { } record && !descrizione.SiScriveIn(record))
             return false;
         var proprieta = Proprieta;
         if (proprieta is null || !proprieta.CanWrite || proprieta.SetMethod?.IsPublic != true || TipoVero is not { } tipo)
             return false;
         return tipo.IsPrimitive || tipo.IsEnum || tipo == typeof(string) || tipo == typeof(decimal)
-               || tipo == typeof(Vipi.Sectorfile.Shared.Coordinate);
+               || tipo == typeof(Vipi.Sectorfile.Shared.Coordinate) || tipo == typeof(Vipi.Sectorfile.Shared.Punto);
     }
 
     private void Cambia(string? valore) => Lab.CambiaCampo(Scheda.File, Scheda.Indice, Campo.Nome, valore);

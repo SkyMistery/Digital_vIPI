@@ -1068,6 +1068,13 @@ public sealed class ModificheInSospeso
 
     /// <summary>Legge un vertice scritto: una coppia di coordinate, o il nome di un punto (dove il file lo ammette).</summary>
     private static bool LeggiIlPunto(ElencoDiVertici vertici, string? testo, out Punto punto, out string? perche)
+        => LeggiIlPunto(testo, vertici.AmmetteNomi, vertici.AmmetteCoordinate, out punto, out perche);
+
+    /// <summary>
+    /// Un punto scritto dall'AOD: il NOME di un fix/navaid (uno, o due per latitudine e longitudine) o le coordinate.
+    /// La stessa lettura per i vertici e per un campo punto della scheda (slice 3c: la posizione di un'attesa).
+    /// </summary>
+    internal static bool LeggiIlPunto(string? testo, bool ammetteNomi, bool ammetteCoordinate, out Punto punto, out string? perche)
     {
         punto = default;
         perche = null;
@@ -1089,7 +1096,7 @@ public sealed class ModificheInSospeso
         {
             // Un punto per NOME lo ammettono solo i file che lo sanno scrivere (i .tfl, le SID…): dove l'elenco è di
             // Coordinate, il nome non si potrebbe riscrivere e va rifiutato subito.
-            if (!vertici.AmmetteNomi)
+            if (!ammetteNomi)
             {
                 perche = "Qui un vertice si scrive per coordinate: questo file non sa scrivere i nomi.";
                 return false;
@@ -1099,7 +1106,7 @@ public sealed class ModificheInSospeso
             return true;
         }
 
-        if (!vertici.AmmetteCoordinate)
+        if (!ammetteCoordinate)
         {
             perche = "Qui un punto si scrive per nome: una procedura del .str è fatta di nomi.";
             return false;
@@ -1170,6 +1177,7 @@ public sealed class ModificheInSospeso
     {
         null => "",
         Coordinate c => CoordinateConverter.ToDottedDms(c),
+        Punto p => ElencoDiVertici.ScriviIlPunto(p),
         bool b => b ? "sì" : "no",
         IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
         _ => valore.ToString() ?? "",
@@ -1202,6 +1210,15 @@ public sealed class ModificheInSospeso
         if (vero == typeof(string))
         {
             valore = scritto;
+            return true;
+        }
+
+        if (vero == typeof(Punto))
+        {
+            // Slice 3c: un campo punto (la posizione di un'attesa) prende un nome o le coordinate, come un vertice.
+            if (!LeggiIlPunto(scritto, ammetteNomi: true, ammetteCoordinate: true, out Punto punto, out perche))
+                return false;
+            valore = punto;
             return true;
         }
 

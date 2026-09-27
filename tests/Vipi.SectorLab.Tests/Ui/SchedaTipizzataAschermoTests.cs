@@ -1,5 +1,6 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
+using Vipi.SectorLab.Core.Sessione;
 using Vipi.SectorLab.Ui.Components.Pages;
 using Vipi.SectorLab.Ui.Servizi;
 
@@ -159,5 +160,100 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         Assert.Empty(pagina.FindAll("[data-scrivi='AltLabel']"));
         Assert.Empty(pagina.FindAll("[data-scrivi='LabelSize']"));
         Assert.Contains("slice 15", pagina.Find("[data-campo-record='AltLabel'] th").GetAttribute("title"), StringComparison.Ordinal);
+    }
+
+    // --- slice 3c: il punto coi suggerimenti ---------------------------------------------------------------------
+
+    private static IReadOnlyList<string> Proposti(IRenderedComponent<Home> pagina, AngleSharp.Dom.IElement campo)
+        => [.. pagina.FindAll($"datalist#{campo.GetAttribute("list")} option").Select(o => o.GetAttribute("value") ?? "")];
+
+    [Fact]
+    public async Task IlNavaidDellaSidProponeINomiMentreSiScriveEScriveIlNome()
+    {
+        var pagina = await ConIlRecord("lirf.sid", "OST1E");
+
+        pagina.Find("[data-scrivi='RelatedFix']").Input("bc40");
+
+        pagina.WaitForAssertion(() => Assert.Contains("BC404", Proposti(pagina, pagina.Find("[data-scrivi='RelatedFix']"))));
+        Assert.All(Proposti(pagina, pagina.Find("[data-scrivi='RelatedFix']")), n => Assert.StartsWith("BC40", n, StringComparison.Ordinal));
+        pagina.Find("[data-scrivi='RelatedFix']").Change("BC404");
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        Assert.Contains(Righe("lirf.sid"), r => r.StartsWith("LIRF;07;OST1E;", StringComparison.Ordinal) && r.Contains(";BC404;", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task LaPosizioneDellAttesaSiScegliePerNome()
+    {
+        var pagina = await ConIlRecord("HOLDENR.hold", "HLD-ABBOZ");
+
+        pagina.Find("[data-scrivi='Posizione']").Input("BC40");
+        pagina.WaitForAssertion(() => Assert.NotEmpty(Proposti(pagina, pagina.Find("[data-scrivi='Posizione']"))));
+        pagina.Find("[data-scrivi='Posizione']").Change("BC404");
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        // Scelto un nome, il file lo scrive due volte: NOME;NOME; (A2).
+        Assert.Equal("HLD-ABBOZ;BC404;BC404;ABBOZ/225R-9000;", Righe("HOLDENR.hold")[0]);
+    }
+
+    [Fact]
+    public async Task UnVerticeCheAmmetteINomiLiPropone()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/DYNAMIC_SEC/libb_es_ctr.tfl", 0));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-vertice]")));
+
+        pagina.Find("[data-vertice='0']").Input("BC40");
+
+        pagina.WaitForAssertion(() => Assert.Contains("BC404", Proposti(pagina, pagina.Find("[data-vertice='0']"))));
+    }
+
+    [Fact]
+    public async Task IlTestoDiUnEtichettaSiScriveSoloQuandoLEtichettaMostraUnTesto()
+    {
+        // Misurato su ogni campo: con l'etichetta che mostra il nome del fix il testo scelto non arriva nella riga.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        string file = "SectorFiles/Include/IT/ACC/FRA.artcc";
+        int etichetta = Enumerable.Range(0, _lab.EtichetteDi(file).Count)
+            .First(i => ((IFileConRecord)_lab.Sessione!.File[file]).RecordDelModello[i] is Vipi.Sectorfile.Models.LabelPoint);
+        await pagina.InvokeAsync(() => _lab.Scegli(file, etichetta));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-campo-record='Mode']")));
+
+        Assert.NotNull(pagina.Find("[data-scrivi='FixRef']"));
+        Assert.Empty(pagina.FindAll("[data-scrivi='CustomName']"));
+        Assert.Contains("Cosa mostra", pagina.Find("[data-non-si-scrive='CustomName']").GetAttribute("title"), StringComparison.Ordinal);
+
+        pagina.Find("select[data-scrivi='Mode']").Change("Custom");
+
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-scrivi='CustomName']")));
+        Assert.Empty(pagina.FindAll("[data-scrivi='FixRef']"));
+    }
+
+    [Fact]
+    public async Task TransizioneERnavDiUnaVoceStrNonSiScrivonoFinoAllaSlice9()
+    {
+        // Lo scrittore degli .str si ferma al 6° campo: scriverli dalla scheda non cambierebbe la riga.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/lirf.str", 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-campo-record='RecordType']")));
+
+        Assert.Empty(pagina.FindAll("[data-scrivi='Transition']"));
+        Assert.Empty(pagina.FindAll("[data-scrivi='IsRnav']"));
+        Assert.NotNull(pagina.Find("[data-scrivi='RecordType']"));
+    }
+
+    [Fact]
+    public async Task UnVerticeDiUnFileCheNonSaScrivereINomiNonNePropone()
+    {
+        // I .pol tengono solo coordinate: lì un nome sarebbe rifiutato, e proporlo sarebbe un inganno.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/GND_LAYOUT/br_ad_gnd.pol", 0));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-vertice]")));
+
+        Assert.Null(pagina.Find("[data-vertice='0']").GetAttribute("list"));
     }
 }

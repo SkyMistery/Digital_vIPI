@@ -75,7 +75,8 @@ public sealed class ElencoDiVertici
             _ => null,
         }).OfType<Coordinate>()];
 
-    private static string ScriviIlPunto(Punto p)
+    /// <summary>Un punto come si scrive a schermo: il nome (i due, se diversi) o le coordinate in DMS puntato.</summary>
+    internal static string ScriviIlPunto(Punto p)
         => p.PerNome
             ? p.Nome == p.NomeLongitudine ? p.Nome! : $"{p.Nome} {p.NomeLongitudine}"
             : CoordinateConverter.ToDottedDms(p.Posizione!.Value);

@@ -119,9 +119,18 @@
                     int posizione = i;
                     <div class="lab-vertice">
                         <span class="lab-numero">@(posizione + 1)</span>
-                        <input class="lab-campo" value="@vertici[posizione]"
-                               @onchange="e => Gesto(scheda, chiave, GestoDeiVertici.Cambia, posizione, e.Value?.ToString())"
-                               data-vertice="@posizione" />
+                        @if (elenco.AmmetteNomi)
+                        {
+                            @* Slice 3c: dove il file sa scrivere un nome, il vertice propone i punti del master. *@
+                            <CampoPunto Valore="@vertici[posizione]" data-vertice="@posizione"
+                                        OnCambia="t => Gesto(scheda, chiave, GestoDeiVertici.Cambia, posizione, t)" />
+                        }
+                        else
+                        {
+                            <input class="lab-campo" value="@vertici[posizione]"
+                                   @onchange="e => Gesto(scheda, chiave, GestoDeiVertici.Cambia, posizione, e.Value?.ToString())"
+                                   data-vertice="@posizione" />
+                        }
                         <button class="lab-annulla" title="aggiungi un vertice qui sopra"
                                 @onclick="() => Gesto(scheda, chiave, GestoDeiVertici.Aggiungi, posizione, vertici[posizione])"
                                 data-aggiungi="@posizione">+</button>

@@ -1,0 +1,31 @@
+@inject SessioneDelLab Lab
+
+@*
+    Un punto scritto coi suggerimenti (lotto «Subito», slice 3c; voce A2 della carta «file per file»): mentre si scrive
+    il Lab propone i fix, VOR, NDB e scali che il master scelto conosce, filtrati man mano; scelto un nome, il file lo
+    scrive NOME;NOME;. Le coordinate si scrivono come prima. La modifica parte, come negli altri campi, quando il campo
+    perde il fuoco o si preme Invio (o si sceglie una voce).
+*@
+<input class="lab-campo" value="@Valore" list="@_lista" autocomplete="off" @attributes="Attributi"
+       @oninput="e => _scritto = e.Value?.ToString()" @onchange="e => OnCambia.InvokeAsync(e.Value?.ToString())" />
+<datalist id="@_lista" data-suggerimenti="@_lista">
+    @foreach (var punto in Lab.Suggerimenti(_scritto))
+    {
+        <option value="@punto.Nome">@punto.Catalogo</option>
+    }
+</datalist>
+
+@code {
+    /// <summary>Il valore di adesso, come lo mostra la scheda.</summary>
+    [Parameter] public string? Valore { get; set; }
+
+    [Parameter] public EventCallback<string?> OnCambia { get; set; }
+
+    /// <summary>Gli attributi del campo (<c>data-scrivi</c>, <c>data-vertice</c>): i test e le prove li cercano.</summary>
+    [Parameter(CaptureUnmatchedValues = true)] public IReadOnlyDictionary<string, object>? Attributi { get; set; }
+
+    private readonly string _lista = "punti-" + Guid.NewGuid().ToString("N")[..8];
+
+    /// <summary>Il testo scritto fin qui: i suggerimenti lo seguono a ogni tasto.</summary>
+    private string? _scritto;
+}

@@ -150,6 +150,36 @@ public sealed class FusioneDelRecordTests
                 new[] { "T; //3500 SE;N044.00.03.000;E012.35.24.000; //3500 SE;" },
                 new[] { "T; //3500 SE;N044.00.03.001;E012.35.24.000; //3500 SE;" }));
 
+    // Lotto «Subito», slice 3c (lirf.sid, trovato a schermo): il navaid della transizione scritto dalla scheda. Lo
+    // scrittore non conosce l'8° campo (RNAV) e la riga nuova finisce col `;`: quel campo vuoto di chiusura prendeva
+    // il posto dell'«1», e la SID perdeva l'RNAV.
+    [Fact]
+    public void UnCampoAggiuntoDalModelloNonCancellaQuelloInCodaCheNonConosce()
+        => Assert.Equal(
+            new[] { "LIRF;07;OST1E;;;;OSTE;1;" },
+            Unisci(new[] { "LIRF;07;OST1E;;;;;1;" }, new[] { "LIRF;07;OST1E;;;" }, new[] { "LIRF;07;OST1E;;;;OSTE;" }));
+
+    // E al contrario: il navaid tolto lascia il suo posto vuoto, sennò l'RNAV scivola nel 7° campo e diventa un navaid.
+    [Fact]
+    public void UnCampoToltoDalModelloTieneIlPostoAQuelloInCoda()
+        => Assert.Equal(
+            new[] { "LIRF;16L;SOS5A-ESI8H; ; ;0;;1;" },
+            Unisci(
+                new[] { "LIRF;16L;SOS5A-ESI8H; ; ;0;ESINO;1;" },
+                new[] { "LIRF;16L;SOS5A-ESI8H;;;0;ESINO;" },
+                new[] { "LIRF;16L;SOS5A-ESI8H;;;0;" }));
+
+    // Una grezza più corta della base: un campo aggiunto in fondo va al SUO posto, coi vuoti in mezzo; e se non si
+    // aggiunge niente la grezza non si allunga.
+    [Fact]
+    public void UnaGrezzaCortaSiAllungaSoloSeServe()
+    {
+        Assert.Equal(new[] { "LIRF;07;OST1E;;;0;" },
+            Unisci(new[] { "LIRF;07;OST1E;" }, new[] { "LIRF;07;OST1E;;;" }, new[] { "LIRF;07;OST1E;;;0;" }));
+        Assert.Equal(new[] { "LIRF;25;OST1E;" },
+            Unisci(new[] { "LIRF;07;OST1E;" }, new[] { "LIRF;07;OST1E;;;" }, new[] { "LIRF;25;OST1E;;;" }));
+    }
+
     [Theory]
     [InlineData("LIZZ;BULL;LEVIS; ; ;3;", "LIZZ;BULL;LEVIS;;;3;")]
     [InlineData("LIAA;09;27;113;113;095;275;", "LIAA;09;27;113;113;95;275;")]

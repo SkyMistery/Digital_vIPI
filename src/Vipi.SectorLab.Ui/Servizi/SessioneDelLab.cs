@@ -1467,6 +1467,12 @@ public sealed class SessioneDelLab
     private CatalogoDeiPunti? CatalogoScelto
         => IscScelto is not null && Cataloghi.TryGetValue(IscScelto, out var catalogo) ? catalogo : null;
 
+    /// <summary>
+    /// I punti da proporre mentre si scrive un punto o un navaid (lotto «Subito», slice 3c): dai nomi che il master
+    /// scelto conosce — quelli che Aurora risolverebbe — filtrati col testo scritto fin qui.
+    /// </summary>
+    public IReadOnlyList<PuntoDelCatalogo> Suggerimenti(string? testo) => CatalogoScelto?.Suggerisci(testo) ?? [];
+
     private readonly Dictionary<string, IReadOnlyList<string>> _etichette = new(StringComparer.Ordinal);
 
     /// <summary>La forma scelta, se c'è ancora fra gli strati (cambiando master una forma può sparire).</summary>

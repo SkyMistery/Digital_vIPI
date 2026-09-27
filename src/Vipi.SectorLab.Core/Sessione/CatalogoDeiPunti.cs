@@ -48,6 +48,23 @@ public sealed class CatalogoDeiPunti : IFixResolver
     public bool Risolve(string nome) => Cerca(nome) is not null;
 
     /// <summary>
+    /// I nomi da proporre mentre l'AOD scrive un punto (lotto «Subito», slice 3c): prima quelli che cominciano col
+    /// testo, poi quelli che lo contengono, in ordine alfabetico, al più <paramref name="quanti"/>. Filtrati qui e non
+    /// nella pagina: i nomi di un master sono migliaia, e un elenco intero a ogni campo pesa sulla scheda.
+    /// </summary>
+    public IReadOnlyList<PuntoDelCatalogo> Suggerisci(string? testo, int quanti = 20)
+    {
+        string cercato = (testo ?? "").Trim();
+        if (cercato.Length == 0 || quanti <= 0)
+            return [];
+        var ordinati = _perNome.Values.OrderBy(p => p.Nome, StringComparer.OrdinalIgnoreCase);
+        return [.. ordinati.Where(p => p.Nome.StartsWith(cercato, StringComparison.OrdinalIgnoreCase))
+            .Concat(ordinati.Where(p => !p.Nome.StartsWith(cercato, StringComparison.OrdinalIgnoreCase)
+                                        && p.Nome.Contains(cercato, StringComparison.OrdinalIgnoreCase)))
+            .Take(quanti)];
+    }
+
+    /// <summary>
     /// Come lo chiede il motore (<see cref="Sectorfile.Shared.Punto.TryRisolvi"/>), che con due nomi diversi fa come
     /// Aurora: la latitudine dal primo, la longitudine dal secondo.
     /// </summary>

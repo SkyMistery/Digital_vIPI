@@ -76,6 +76,18 @@ public sealed record DescrizioneDelCampo(string Proprieta, string Nome, string S
 
     /// <summary>Per <see cref="Editor.Quota"/>: il campo scrive le centinaia di piedi (<c>25</c> = 2 500 ft).</summary>
     public bool InCentinaia { get; init; }
+
+    /// <summary>
+    /// Quando il campo si scrive, se dipende dal record (slice 3c): il testo di un'etichetta L arriva nella riga solo
+    /// se l'etichetta mostra un testo scelto. Null = sempre. La scheda non offre mai una scrittura che non scrive.
+    /// </summary>
+    public Func<object, bool>? SiScriveSe { get; init; }
+
+    /// <summary>Il perché, quando <see cref="SiScriveSe"/> dice di no.</summary>
+    public string? PercheNo { get; init; }
+
+    /// <summary>Vero se, per QUEL record, la scheda fa scrivere il campo.</summary>
+    public bool SiScriveIn(object record) => Editor != Editor.SolaLettura && (SiScriveSe?.Invoke(record) ?? true);
 }
 
 /// <summary>Un tipo di record descritto: il suo nome per l'AOD e i campi nell'ordine della riga.</summary>
@@ -242,8 +254,16 @@ public static class DescrizioniDeiCampi
                     new ValoreFisso(nameof(LabelMode.None), "niente (campo vuoto)") { Voce = "niente (campo vuoto)" },
                 ],
             },
-            C("FixRef", "Nome", "Il nome del fix mostrato (2° campo, quando mostra il nome del fix).", Editor.Navaid),
-            C("CustomName", "Testo", "Il testo mostrato (2° campo, quando mostra un testo scelto)."),
+            C("FixRef", "Nome", "Il nome del fix mostrato (2° campo, quando mostra il nome del fix).", Editor.Navaid) with
+            {
+                SiScriveSe = r => r is LabelPoint { Mode: LabelMode.FixName },
+                PercheNo = "Conta solo quando l'etichetta mostra il nome del fix: prima cambia «Cosa mostra».",
+            },
+            C("CustomName", "Testo", "Il testo mostrato (2° campo, quando mostra un testo scelto).") with
+            {
+                SiScriveSe = r => r is LabelPoint { Mode: LabelMode.Custom },
+                PercheNo = "Conta solo quando l'etichetta mostra un testo scelto: prima cambia «Cosa mostra».",
+            },
             Posizione(cosa: "Dove sta la scritta."),
             C("FontSize", "Carattere", "La grandezza del testo, facoltativa (oggi 8 ovunque).", Editor.Numero),
         ]),
@@ -410,8 +430,10 @@ public static class DescrizioniDeiCampi
                             (nameof(StrRecordType.Holding), "2", "attesa (HOLD)"), (nameof(StrRecordType.Iap), "3", "avvicinamento (IAP)"),
                             (nameof(StrRecordType.Fap), "4", "FAP"), (nameof(StrRecordType.GoAround), "5", "mancato avvicinamento (GA)")),
         },
-        C("Transition", "Navaid della transizione", "7° campo (mai usato nei file italiani).", Editor.Navaid),
-        C("IsRnav", "RNAV", "8° campo: 1 = RNAV.", Editor.SiNo),
+        // 🔴 Slice 3c, misurato su ogni campo: lo scrittore degli .str si ferma al 6° campo, e questi due non arrivano
+        // mai nella riga (il file li tiene com'erano). Si scrivono con la scheda delle procedure (slice 9).
+        C("Transition", "Navaid della transizione", "7° campo (mai usato nei file italiani). Si scriverà con la slice 9: oggi il Lab non lo sa riscrivere.", Editor.SolaLettura),
+        C("IsRnav", "RNAV", "8° campo: 1 = RNAV. Si scriverà con la slice 9: oggi il Lab non lo sa riscrivere.", Editor.SolaLettura),
         tracciato,
     ]);
 }
