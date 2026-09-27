@@ -52,7 +52,7 @@
         }
         <span class="muted" style="font-size:13px;margin-left:auto">@L["Live_AtcOnlineN", _snapshot.Callsigns.Count] · @FeedAge()</span>
         <span class="utc-clock" title="@L["Live_UtcNow"]" data-utc-clock>--:--:--Z</span>
-        <button type="button" class="btn ghost" style="padding:3px 10px;font-size:12.5px" data-dense-toggle aria-pressed="false"
+        <button type="button" class="btn ghost live-dense" data-dense-toggle aria-pressed="false"
                 onclick="vipiToggleDense()" title="@L["Live_DenseTip"]">@L["Live_Dense"]</button>
         @if (ExtendedDocHref() is { } href)
         {

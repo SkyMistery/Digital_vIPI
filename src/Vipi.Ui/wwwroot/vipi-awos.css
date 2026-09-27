@@ -410,10 +410,22 @@
   .awos-vento-wrap { grid-template-columns: 1fr; grid-template-rows: 1fr 8px 1fr; height: auto; }
   .awos-divisore { height: 8px; }
   .awos-testata { width: 62px; font-size: 17px; }
+  /* ⚠️ 16px, e non per gusto (revisione 3, U-212): sotto i 16px iOS ingrandisce la pagina quando il campo
+     prende il fuoco, e la lascia ingrandita. */
+  .awos-sel select { font-size: 16px; }
+  /* La barra dei tasti qui va a capo su due o tre righe: le finestrelle ancorate a 54px dall'alto si
+     aprivano SOPRA i tasti che le aprono e le chiudono. Sul telefono stanno in basso. */
+  .awos-mask { top: auto; bottom: 12px; }
   /* Più piste: colonne impilate, e il pannello torna a misurarsi dal contenuto. */
   .awos-multi { height: auto; }
-  .awos-corpo, .awos-blocco-corpo { grid-template-columns: 1fr; }
-  .awos-blocchi.multi { grid-template-rows: none; }
+  /* ⚠️ `minmax(0, 1fr)` e non `1fr` (revisione 3, L9): `1fr` e' `minmax(auto, 1fr)`, e la colonna non
+     scendeva sotto il suo contenuto — le tre celle QNH/temperatura/rugiada da 159px l'una. Su un telefono
+     da 375 la pagina ne misurava 509 e il browser la rimpiccioliva tutta. */
+  .awos-corpo, .awos-blocco-corpo { grid-template-columns: minmax(0, 1fr); }
+  .awos-sub.tre { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Stessa cosa per la colonna implicita della griglia dei blocchi: `auto` si allarga sulla riga della pista
+     (`.awos-rwybar`, testo su una riga sola) e riportava la pagina a 509. */
+  .awos-blocchi.multi { grid-template-rows: none; grid-template-columns: minmax(0, 1fr); }
   .awos-multi .awos-vento-wrap { grid-template-columns: 1fr; }
   .awos-multi .awos-pannello { container-type: inline-size; min-height: 0; }
 }

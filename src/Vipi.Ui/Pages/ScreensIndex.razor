@@ -1,10 +1,12 @@
 @page "/services/vsop/screens"
 @* Indice delle schermate: un attrezzo per la VERIFICA LIVE, non una pagina di prodotto.
-   ⚠️ Le etichette dei collegamenti restano in italiano di proposito (docs/design/regole-lingua.md, in
-      coda): sono i nomi con cui si chiamano le schermate mentre le si prova, e localizzarle vorrebbe
-      dire venti chiavi di risorsa per una pagina che non ha lettori. Il chrome e i titoli seguono la
-      lingua come ovunque. *@
+   ⚠️ Generato dalle ROTTE dell'assembly (revisione 3, U-254), non scritto a mano. La lista a mano era ferma
+      alla mockup v2: diceva «tutte le pagine» e ne elencava 14 su 58, con etichette in italiano anche con
+      l'interfaccia inglese. Una lista a mano si dimentica sempre la prossima pagina; le rotte no.
+      L'etichetta e' l'indirizzo stesso, che non ha lingua. Un indirizzo con parametri ({Acc}, {Icao}…) si
+      mostra ma non si collega: non c'e' un valore giusto da metterci per tutti. *@
 @layout SopLayout
+@using System.Reflection
 @inject IStringLocalizer<SharedResource> L
 @inject EnglishStrings En
 
@@ -12,49 +14,38 @@
 
 <div class="wrap" style="max-width:1100px">
     <div class="breadcrumb"><a href="/services/vsop">@En["Common_Home"]</a> › <b>@En["Home_ScreensTitle"]</b></div>
-    <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">@L["Home_ScreensTitle"]</h1><span class="muted">@L["Screens_Subtitle"]</span></div></div>
+    <div class="doc-head"><div><h1 class="page-h1" style="margin-bottom:2px">@L["Home_ScreensTitle"]</h1><span class="muted">@L["Screens_Subtitle", Rotte.Count]</span></div></div>
 
-    @foreach (var g in Groups)
+    @foreach (var g in Rotte.GroupBy(r => r.Gruppo).OrderBy(g => g.Key))
     {
-        <div class="section-title"><h2 class="h-sect">@g.Title</h2><span class="ln"></span></div>
+        <div class="section-title"><h2 class="h-sect">@L[g.Key switch { 0 => "Screens_GroupPublic", 1 => "Screens_GroupEditor", _ => "Screens_GroupAdmin" }]</h2><span class="ln"></span></div>
         <div class="choice-grid">
-            @foreach (var (label, href) in g.Links)
+            @foreach (var r in g)
             {
-                <a class="choice" href="@href"><h3 class="h-card" style="font-size:1rem">@label</h3><p class="muted" style="font-size:12px;margin:0">@href</p></a>
+                @if (r.ConParametri)
+                {
+                    <div class="choice"><p class="muted" style="font-size:12.5px;margin:0">@r.Modello</p></div>
+                }
+                else
+                {
+                    <a class="choice" href="@r.Modello"><p style="font-size:13px;margin:0;font-weight:600">@r.Modello</p></a>
+                }
             }
         </div>
     }
 </div>
 
 @code {
-    private record Grp(string Title, (string Label, string Href)[] Links);
+    private sealed record Rotta(string Modello, bool ConParametri, int Gruppo);
 
-    private static readonly Grp[] Groups =
-    {
-        new("Navigazione", new[]
-        {
-            ("🏠 Home (4 ACC)", "/services/vsop"),
-            ("📂 Landing ACC — Roma", "/services/vsop/lirr"),
-        }),
-        new("Consultazione", new[]
-        {
-            ("📘 vIPI ACC — Estesa", "/services/vsop/lirr/vipi"),
-            ("🛫 Aeroporti (elenco)", "/services/vsop/lirr/airports"),
-            ("🛫 vIPI Aeroporto (LIRF)", "/services/vsop/lirr/airports?icao=LIRF"),
-            ("📡 APP non remotizzati (elenco)", "/services/vsop/lirr/apps"),
-            ("📡 APP non remotizzato (Pisa)", "/services/vsop/lirr/apps/vipi?app=LIRP_APP"),
-        }),
-        new("Pagine", new[]
-        {
-            ("🆕 Cosa è cambiato", "/services/vsop/changed"),
-            ("🔎 Ricerca full-text", "/services/vsop/search"),
-        }),
-        new("Admin / Editor (Staff)", new[]
-        {
-            ("✏️ Editor vIPI", "/services/vsop/lirr/editor"),
-            ("🔄 Trasferimenti", "/services/vsop/admin/transfers"),
-            ("🤝 Editor vLOA", "/services/vsop/lirr/vloa/editor"),
-            ("🗂️ Bozze & versioni", "/services/vsop/versions"),
-        }),
-    };
+    // Letto una volta: le rotte non cambiano mentre il processo vive.
+    private static readonly IReadOnlyList<Rotta> Rotte = typeof(ScreensIndex).Assembly.GetTypes()
+        .SelectMany(t => t.GetCustomAttributes<RouteAttribute>())
+        .Select(a => a.Template)
+        .Distinct()
+        .Select(m => new Rotta(m, m.Contains('{'),
+            m.StartsWith("/services/vsop/admin", StringComparison.Ordinal) ? 2
+            : m.Contains("/editor", StringComparison.Ordinal) ? 1 : 0))
+        .OrderBy(r => r.ConParametri).ThenBy(r => r.Modello, StringComparer.Ordinal)
+        .ToList();
 }

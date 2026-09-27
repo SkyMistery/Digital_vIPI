@@ -183,7 +183,22 @@
             data-aor3d-css="@AssetVersion.Url("_content/Vipi.Ui/vipi-aor3d.css")"
             data-three-src="@AssetVersion.Url("_content/Vipi.Ui/vendor/three.min.js")"
             data-tour-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-tour.js")"
+            data-tour-testi="@TestiDelTour()"
             data-awos-src="@AssetVersion.Url("_content/Vipi.Ui/vipi-awos.js")"></script>
 </body>
 
 </html>
+
+@code {
+    // I testi del tour degli editor, nella lingua della pagina (revisione 3, U-252): vipi-tour.js li legge da
+    // qui. Prima erano scritti in italiano dentro il JS, e il tour parlava italiano anche all'interfaccia
+    // inglese. JSON in un attributo: Razor lo codifica, e il modulo lo legge con JSON.parse.
+    private static readonly string[] ChiaviDelTour =
+    {
+        "Tour_TocTitle", "Tour_TocBody", "Tour_PreviewTitle", "Tour_PreviewBody", "Tour_ReleaseTitle", "Tour_ReleaseBody",
+        "Tour_Close", "Tour_CloseTitle", "Tour_Skip", "Tour_Prev", "Tour_Next", "Tour_Done", "Tour_Step",
+    };
+
+    private string TestiDelTour() =>
+        System.Text.Json.JsonSerializer.Serialize(ChiaviDelTour.ToDictionary(k => k, k => L[k].Value));
+}

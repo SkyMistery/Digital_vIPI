@@ -37,6 +37,16 @@
                     <button type="button" data-theme-set="light" onclick="vipiSetTema('light')"><Icon Name="sun" /> @L["Chrome_ThemeLightShort"]</button>
                     <button type="button" data-theme-set="dark" onclick="vipiSetTema('dark')"><Icon Name="moon" /> @L["Chrome_ThemeDarkShort"]</button>
                 </div>
+                @* Lo ZOOM (revisione 3, U-085). Il commento qui sopra lo prometteva e non c'era: allo scaglione
+                   tb-4 la barra nasconde «−», «+» e la percentuale, e lo scaglione si sceglie in unità di layout —
+                   quindi alzare lo zoom stringe la barra. Chi ingrandiva su un portatile arrivava a tb-4 e restava
+                   bloccato a quello zoom, salvato, anche alle visite successive. La percentuale porta
+                   `data-zoom-pct`: la aggiorna vipiApplyZoom insieme a quella della barra. *@
+                <div class="tb-menu-zoom" role="group" aria-label="@L["Chrome_ZoomPage"]">
+                    <button type="button" onclick="vipiZoom(-0.1)" title="@L["Chrome_ZoomOut"]" aria-label="@L["Chrome_ZoomOut"]">−</button>
+                    <button type="button" class="tb-zoom-pct" data-zoom-pct onclick="vipiZoomReset()" title="@L["Chrome_ZoomReset"]" aria-label="@L["Chrome_ZoomReset"]">100%</button>
+                    <button type="button" onclick="vipiZoom(0.1)" title="@L["Chrome_ZoomIn"]" aria-label="@L["Chrome_ZoomIn"]">+</button>
+                </div>
                 @* La lingua: dallo scaglione tb-4 il gruppo esce dalla riga, e qui è l'unica strada che
                    resta — la stessa regola del tema e dello zoom. Nomi per esteso, che qui lo spazio c'è. *@
                 <div class="tb-menu-lingua" role="group" aria-label="@L["Chrome_Language"]" data-enhance-nav="false">

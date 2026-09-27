@@ -119,13 +119,16 @@ else
             <table class="res-table sid-table sid-quick">
                 <thead>
                     <tr>
-                        <th class="col-fix">Punto</th>
+                        @* Dal resx (revisione 3, U-253): erano scritte a mano, mezze in italiano («Punto», «Salita
+                           iniz.») e mezze in inglese («Transition», «Condition»), e restavano cosi' in tutte e
+                           due le lingue. *@
+                        <th class="col-fix">@L["Ape_PointFix"]</th>
                         <th class="col-sid">SID</th>
-                        <th class="col-trans">Transition</th>
-                        <th class="col-climb">Salita iniz.</th>
+                        <th class="col-trans">@L["Aqp_ColTransition"]</th>
+                        <th class="col-climb">@L["Ape_InitialClimb"]</th>
                         @if (showCat) { <th class="col-cat">Cat.</th> }
                         @if (showWtc) { <th class="col-wtc">WTC</th> }
-                        <th class="col-cond">Condition</th>
+                        <th class="col-cond">@L["Ape_Condition"]</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -151,7 +154,7 @@ else
         }
         else if (_runways.Count > 0)
         {
-            <p class="muted" style="font-size:13px;margin:0">Nessuna SID@(_selRwy == "all" ? "" : $" per la pista {_selRwy}").</p>
+            <p class="muted" style="font-size:13px;margin:0">@(_selRwy == "all" ? L["Aqp_NoSid"] : L["Aqp_NoSidRunway", _selRwy])</p>
         }
     </div>
 }

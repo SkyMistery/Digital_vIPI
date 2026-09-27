@@ -524,5 +524,58 @@
     «24m» (METAR 20:20Z letto alle 20:43Z). Con la risposta sostituita da un METAR di tre ore fa: «180m», stato
     «morto». Per la prova la scheda era nascosta, e il quadro non interroga il server a scheda nascosta (voluto):
     `document.hidden` forzato a falso solo per la prova. Zero `fail:` nel registro.
+- ✅ **S23** lotto **L9 «Design su telefono e tablet»** della revisione 3 (via del committente il 27-set): U-106,
+  U-107, U-251…U-255, e con loro gli NV della stessa carta (`docs/history/revisione-totale-3/design-responsive.md`)
+  che la sonda ha confermato: U-085, U-086, U-087, U-088, U-201, U-202, U-203, U-205, U-206, U-211, U-212. Nessuna
+  migrazione, niente codice comune. **`wwwroot` sì** (`vipi-theme.css`, `vipi-awos.css`, `vipi-aor3d.css`,
+  `vipi-swapper.css`, `vipi-aor.js`, `vipi-mva.js`, `vipi-aor3d.js`, `vipi-tour.js`, `vipi-zoom.js`) e `App.razor`.
+  - **La sonda** (`docs/history/revisione-totale-3/sonda-telefono.js`): telefono vero (`isMobile` + `hasTouch`),
+    26 pagine a 360, 375, 390, 768 e 1024, stessa misura prima e dopo. Pagine pubbliche, somme su tutti gli assetti:
+    **pagina più larga dello schermo 1625 px → 0**, **parole spezzate 671 → 67** (restano la prosa della guida e
+    gli estratti di ricerca, dove `anywhere` serve), **bersagli sotto 24 px 2033 → 256**, campi sotto 16 px 43 → 11
+    (tutti a 1024: la regola dei 16 px vale sotto i 900), fasce appiccicate oltre il 20% dello schermo 3 → 0, mappe
+    che prendono il dito 10 → 0. Nella sonda di prima il «salta al contenuto» e i campi file sono tolti a mano, come
+    in quella di dopo.
+  - **Larghezze.** `minmax(min(Npx,100%),1fr)` su `.stats-cols` (U-107/U-086, +61 px a 375), `.choice-grid`
+    (U-201), `#xl-cols`, `.red-top-grid`. Due pagine nuove, non nella carta: **vAWOS di uno scalo** a 375 ne misurava
+    509 (colonne `1fr` = `minmax(auto,1fr)`, che non scendono sotto le tre celle QNH/temperatura/rugiada) e il
+    **convertitore di coordinate** 587. Tutte e due `minmax(0,1fr)`, più `flex-wrap` sulla riga del file.
+  - **U-106**: sotto i 900 px la tabella è a blocco e scorre, ma `overflow-wrap:anywhere` sulle celle ne azzerava il
+    minimo: si stringeva e spezzava «LIBD_CS0_/APP», «109./95». Ora `break-word` su tutte le celle (il selettore
+    pesa di più delle regole `anywhere` scritte per `table-layout:fixed`), e «5000 ft» su una riga. Viewer LIBD
+    a 375: 106 → 0 parole spezzate; vSOP LIBV 59 → 1; vIPI LIBB 17 → 0. A 768 la tabella SID sta intera.
+  - **U-251**: non riprodotto ai tagli standard (753, 768, 900, 1024, 1100, 1180, 1280: il pannello release sta
+    nella colonna centrale). La causa è nel foglio: riga release `nowrap` e tasti `flex:none`. Rosso forzando il
+    pannello a 181 px (tasti a 785 con bordo a 533), verde dopo: la riga va a capo solo quando non ci sta, e a
+    larghezza normale resta di 36 px.
+  - **Sovrapposizioni.** U-211: pastiglia AIRAC nel flusso sotto i 900 px, titolo a 30 px sotto i 760, «N online»
+    sopra il codice ACC. U-205: `.hero .muted` bianco. U-206: `--accent` fuori da `.nav-card` → `--ivao-blue`
+    (anelli di fuoco di due tasti, Profile Swapper). vAWOS: le finestrelle in basso sul telefono.
+  - **U-087**: la testata della vista live non si appiccica sotto i 760 px (329 px su 812) né con l'altezza
+    sotto i 520 px.
+  - **U-088**: mappe AoR e MRVA con `dragging` spento sui dispositivi mobili (un dito scorre la pagina, due
+    spostano e ingrandiscono); 3D con `touch-action:pan-y`, pizzico per avvicinare, alto al più il 60% dello schermo.
+  - **U-085**: zoom anche nel menu «☰» (allo scaglione tb-4 la barra lo nasconde); la percentuale si aggiorna in
+    tutti e due i posti.
+  - **U-212**: 16 px ai campi di live, vista rapida, archivio, ricerca VID, convertitore, vAWOS.
+  - **U-255**: con `pointer:coarse` bersagli di almeno 24 px senza spostare niente (padding e margine negativo, o
+    un `::after` che sborda). Il tasto «Compatta» della live aveva lo stile in linea: ora è una classe.
+  - **Lingua.** U-252/U-203: i testi del tour vengono dal resx, in `data-tour-testi` sul tag di `vipi-boot.js`.
+    U-253/U-202: intestazioni della vista rapida dal resx («Punto»/«Salita iniz.» accanto a «Transition»/«Condition»
+    in tutte e due le lingue), «Nessuna SID per la pista» dal resx, titolo dell'archivio «IVAO Italy», titolo
+    dell'anteprima release. U-254: «Tutte le schermate» si genera dalle rotte dell'assembly (55 indirizzi, quelli
+    con parametri non collegati) invece della lista a mano ferma alla mockup v2.
+  - **Non fatto**: U-204 (intestazioni scritte a mano in inglese nelle tabelle pubbliche: lotto L11). Restano
+    spezzate, per scelta, le parole della prosa (guida, estratti di ricerca: `anywhere` serve lì). Editor sul
+    telefono: fuori perimetro (si usano da 1024 in su, carta del 22 agosto).
+  - **Test**: `ScreensIndexTests` (2), rossi sulla pagina di prima e verdi dopo; il resto è CSS/JS, e la prova è la sonda.
+    Suite intera: tutto verde (Ui 1771 → **1773**) tranne `TransientRetryHandlerTests.Un_errore_di_rete…` su
+    net8, rosso di tempo a suite piena (12 s contro il timeout di 10 del client), verde tre volte da solo: fuori da
+    L9, già così prima.
+  - **Non provato**: il pizzico a due dita sul 3D (la logica è letta, non guidata con dita vere); il 3D a pagina
+    intera tiene la sua altezza, il tetto del 60% vale per quello incassato nel documento
+  - **Prova dal vivo** (copia del DB): foto a 360/375/768 di home vSOP, vAWOS LIRF, convertitore, viewer LIBD,
+    vSOP LIBV, menu «☰» con lo zoom; tour in italiano e in inglese; vista rapida LIBD nelle due lingue
+    («FIX · SID · Transizione · Quota iniziale · … · Condizione» e l'inglese).
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

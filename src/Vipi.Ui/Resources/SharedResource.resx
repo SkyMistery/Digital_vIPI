@@ -750,7 +750,7 @@
   <data name="Diag_Severe" xml:space="preserve"><value>grave</value></data>
   <data name="Diag_Warning" xml:space="preserve"><value>avviso</value></data>
   <!-- Tutte le schermate (/vsop/screens) -->
-  <data name="Screens_Subtitle" xml:space="preserve"><value>Indice di navigazione — tutte le pagine del mockup v2 implementate</value></data>
+  <data name="Screens_Subtitle" xml:space="preserve"><value>Indice generato dalle rotte dell'applicazione: {0} indirizzi. Quelli con parametri non si aprono da qui.</value></data>
   <!-- Struttura (/vsop/admin/sectorstructure) -->
   <data name="Struct_PageTitle" xml:space="preserve"><value>Struttura (ACC, settori)</value></data>
   <data name="Struct_Title" xml:space="preserve"><value>Struttura</value></data>
@@ -2413,6 +2413,25 @@
   <data name="Aqp_ClearSearch" xml:space="preserve"><value>Togli la ricerca</value></data>
   <data name="Aqp_SidCount" xml:space="preserve"><value>{0} SID</value></data>
   <data name="Aqp_NoSidMatch" xml:space="preserve"><value>Nessuna SID per «{0}».</value></data>
+  <data name="Aqp_ColTransition" xml:space="preserve"><value>Transizione</value></data>
+  <data name="Aqp_NoSid" xml:space="preserve"><value>Nessuna SID.</value></data>
+  <data name="Aqp_NoSidRunway" xml:space="preserve"><value>Nessuna SID per la pista {0}.</value></data>
+  <data name="Tour_TocTitle" xml:space="preserve"><value>Indice del documento</value></data>
+  <data name="Tour_TocBody" xml:space="preserve"><value>Salta a una sezione. Non c'è un tasto «Salva»: dopo «Modifica» ogni gesto scrive da solo nella &lt;b&gt;bozza&lt;/b&gt;.</value></data>
+  <data name="Tour_PreviewTitle" xml:space="preserve"><value>Anteprima bozza</value></data>
+  <data name="Tour_PreviewBody" xml:space="preserve"><value>Apri il documento come apparirà. Controlla sempre qui &lt;b&gt;prima&lt;/b&gt; di pubblicare.</value></data>
+  <data name="Tour_ReleaseTitle" xml:space="preserve"><value>Pubblica</value></data>
+  <data name="Tour_ReleaseBody" xml:space="preserve"><value>Rendi la bozza pubblica con una &lt;b&gt;release AIRAC&lt;/b&gt;: subito o programmata a un ciclo.</value></data>
+  <data name="Tour_Close" xml:space="preserve"><value>Chiudi il tour</value></data>
+  <data name="Tour_CloseTitle" xml:space="preserve"><value>Chiudi (Esc)</value></data>
+  <data name="Tour_Skip" xml:space="preserve"><value>Salta</value></data>
+  <data name="Tour_Prev" xml:space="preserve"><value>Indietro</value></data>
+  <data name="Tour_Next" xml:space="preserve"><value>Avanti</value></data>
+  <data name="Tour_Done" xml:space="preserve"><value>Fine</value></data>
+  <data name="Tour_Step" xml:space="preserve"><value>Passo {0} di {1}</value></data>
+  <data name="Screens_GroupPublic" xml:space="preserve"><value>Consultazione</value></data>
+  <data name="Screens_GroupEditor" xml:space="preserve"><value>Editor</value></data>
+  <data name="Screens_GroupAdmin" xml:space="preserve"><value>Amministrazione</value></data>
   <data name="Apt_SelectRow" xml:space="preserve"><value>Seleziona {0}</value></data>
   <data name="Apt_SelectAll" xml:space="preserve"><value>Seleziona tutte le righe mostrate</value></data>
   <data name="Struct_ToggleNode" xml:space="preserve"><value>Espandi o richiudi {0}</value></data>

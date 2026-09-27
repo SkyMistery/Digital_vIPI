@@ -86,7 +86,9 @@
 
         el.dataset.init = '1';
         el.innerHTML = '';   // via il fallback SVG reso dal server
-        var map = L.map(el, { scrollWheelZoom: false, zoomControl: true, attributionControl: true });
+        // `dragging` spento sul telefono (revisione 3, U-088): la carta e' alta fino a 620px e, accesa, prendeva
+        // il dito che voleva scorrere la pagina. Due dita la spostano e la ingrandiscono.
+        var map = L.map(el, { scrollWheelZoom: false, dragging: !L.Browser.mobile, zoomControl: true, attributionControl: true });
         el._leafletMap = map;
 
         // Fondo mappa: uno alla volta, pilotato dalle chip `.mva-base` (vedi onMvaClick).
