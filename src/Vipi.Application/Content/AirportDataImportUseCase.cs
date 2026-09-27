@@ -70,6 +70,26 @@ public sealed class AirportDataImportUseCase : IAirportDataImportUseCase
         var failures = new List<AirportImportFailure>();
         var toccati = 0;
 
+        // 🔴 U-128 (revisione totale 3): l'anagrafica per la TA si legge UNA volta per giro, e un suo guasto NON si
+        // inghiotte. Prima la leggeva `SourceMergeInputs.ReadAsync` per ogni aeroporto, best-effort: un 403 o uno
+        // scope perso diventavano «TA invariata», ogni aeroporto contava come toccato, e Sorgenti mostrava «TA»
+        // aggiornata alla data di oggi per settimane senza rileggerne una. Senza credenziali risale subito col suo
+        // tipo (il servizio salta senza timbrare); un altro guasto lascia passare le piste, che sono l'altra metà
+        // del giro, e risale alla fine.
+        IReadOnlyList<SourceAirport>? anagrafica = null;
+        ExceptionDispatchInfo? taNonLetta = null;
+        if (policy.TransitionAltitude)
+        {
+            try { anagrafica = await _directory.GetAirportsAsync(ct); }
+            catch (SorgenteNonConfigurataException) { throw; }
+            catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
+            {
+                if (!policy.Runways) throw;   // il giro non ha altro da fare
+                taNonLetta = ExceptionDispatchInfo.Capture(ex);
+                anagrafica = Array.Empty<SourceAirport>();   // TA invariate per questo giro, che poi risulta fallito
+            }
+        }
+
         foreach (var icao in icaos)
         {
             ct.ThrowIfCancellationRequested();
@@ -77,7 +97,7 @@ public sealed class AirportDataImportUseCase : IAirportDataImportUseCase
             {
                 // Un aeroporto per volta, e il salvataggio dentro il merge: un giro su 92 aeroporti che
                 // accumulasse tutto e salvasse alla fine perderebbe l'intero giro per un 404 sull'ultimo.
-                var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct);
+                var (ta, runways) = await SourceMergeInputs.ReadAsync(policy, icao, _directory, _details, ct, anagrafica);
                 await _repo.MergeFromSourceAsync(icao, ta, runways, ct);
                 toccati++;
             }
@@ -97,10 +117,15 @@ public sealed class AirportDataImportUseCase : IAirportDataImportUseCase
         // altrimenti la pagina Sorgenti mostrerebbe verde e data di oggi per un giro che non ha importato
         // niente, che è esattamente il «verde regalato» chiuso il 22 agosto.
         // ⚠️ `ExceptionDispatchInfo` e non `throw failures[0].Error`: il TIPO deve sopravvivere, perché è
-        // così che il chiamante distingue «credenziali sorgente assenti» (InvalidOperationException, si
-        // salta in silenzio) da un guasto vero da ritentare. Un `throw ex` azzererebbe anche lo stack.
+        // così che il chiamante distingue «credenziali sorgente assenti» (SorgenteNonConfigurataException: si
+        // salta senza timbrare) da un guasto vero da ritentare. Un `throw ex` azzererebbe anche lo stack.
+        // ⚠️ Fino al 27 settembre 2026 (U-128) questa frase era vera solo sulla carta: la TA inghiottiva tutto e
+        // le piste arrivavano vuote su un 401/403, quindi nessun aeroporto falliva mai. Ora falliscono davvero.
         if (failures.Count > 0 && failures.Count == icaos.Count)
             ExceptionDispatchInfo.Capture(failures[0].Error).Throw();
+
+        // Le piste sono passate; la TA no: il giro non è riuscito, e deve dirlo.
+        taNonLetta?.Throw();
 
         return new AirportDataImportResult(toccati, failures, Skipped: false);
     }

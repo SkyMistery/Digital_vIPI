@@ -123,13 +123,14 @@ public sealed class EfDeletionRepository : IDeletionRepository
     {
         var acc = await _db.Accs.AsNoTracking()
             .Where(x => x.Code == accCode)
-            .Select(x => new { x.Id, x.Code, x.Name, x.ImportedAtUtc })
+            .Select(x => new { x.Id, x.Code, x.Name, x.ImportedAtUtc, x.IsForeign })
             .FirstOrDefaultAsync(ct);
         if (acc is null) return null;
 
         return new AccFacts(acc.Code, acc.Name, acc.ImportedAtUtc,
             await _db.Sectors.CountAsync(s => s.AccId == acc.Id, ct),
-            await _db.Airports.CountAsync(a => a.AccId == acc.Id, ct));
+            await _db.Airports.CountAsync(a => a.AccId == acc.Id, ct),
+            acc.IsForeign);
     }
 
     public async Task<DocumentFacts?> DocumentFactsAsync(int documentId, CancellationToken ct = default)

@@ -62,6 +62,36 @@ public sealed class IvaoHttp
         return await res.Content.ReadFromJsonAsync<T>(cancellationToken: ct);
     }
 
+    /// <summary>
+    /// GET di un <b>elenco</b>: il body su 2xx, <c>null</c> su <b>404</b> (la sorgente dice che lì non c'è niente, ed
+    /// è una risposta), <see cref="HttpRequestException"/> con lo status su <b>ogni altro</b> non-2xx.
+    ///
+    /// <para>🔴 U-002 (revisione totale 3): gli elenchi passavano da <see cref="GetStringAsync"/>/<see cref="GetJsonAsync{T}"/>,
+    /// che fanno di ogni non-2xx un <c>null</c>. Un 401/403/429/5xx sulle postazioni d'aeroporto diventava «nessuna
+    /// postazione», il giro dei settori timbrava riuscito e dopo due notti cadeva la D8 dell'eliminazione. Un elenco
+    /// vuoto per sbaglio è peggio di un giro fallito: il secondo si ritenta, il primo si crede. I DETTAGLI per voce
+    /// restano best-effort sui metodi di sopra: un dettaglio non letto tiene i dati della lista.</para>
+    /// </summary>
+    public async Task<string?> GetElencoAsync(string path, CancellationToken ct)
+    {
+        using var res = await SendGetAsync(path, ct);
+        if (res.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        if (!res.IsSuccessStatusCode)
+            throw new HttpRequestException(
+                $"IVAO {(int)res.StatusCode} {res.StatusCode} su {path}: elenco non letto.", null, res.StatusCode);
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    /// <summary>Come <see cref="GetElencoAsync"/>, deserializzato.</summary>
+    public async Task<T?> GetElencoJsonAsync<T>(string path, CancellationToken ct) where T : class
+    {
+        var body = await GetElencoAsync(path, ct);
+        return body is null ? null : JsonSerializer.Deserialize<T>(body, JsonWeb);
+    }
+
+    // Stesse opzioni di ReadFromJsonAsync (nomi camelCase, numeri anche fra virgolette).
+    private static readonly JsonSerializerOptions JsonWeb = new(JsonSerializerDefaults.Web);
+
     // ---- Parser JSON tolleranti (i campi non noti/assenti diventano null/false). ----
 
     public static string? JsonStr(JsonElement e, string name) =>

@@ -12,7 +12,9 @@ namespace Vipi.Infrastructure.Ivao;
 ///
 /// <para><b>Perché non riusa i client anagrafici.</b> <c>IvaoAccClient</c>, <c>IvaoAirportClient</c> e
 /// <c>IvaoAirportDetailClient</c> passano da <c>IvaoHttp.GetJsonAsync</c>/<c>GetStringAsync</c>, che
-/// ritornano <c>null</c> per <b>ogni</b> risposta non-2xx: un 404 e un 401 arrivano identici. Qui si guarda
+/// ritornano <c>null</c> per <b>ogni</b> risposta non-2xx: un 404 e un 401 arrivano identici (dal 27 settembre
+/// 2026 gli ELENCHI passano da <c>GetElencoAsync</c>, che solleva sui non-404 — U-002 —, ma resta un'eccezione
+/// senza verdetto, e i dettagli restano best-effort). Qui si guarda
 /// lo <b>status</b>, perché è l'unica differenza che conta. In più <c>IvaoAirportClient.GetByIcaoAsync</c>
 /// risponde dalla cache di processo prima di uscire in rete — e una verifica che risponde dalla memoria di
 /// stamattina non è una verifica.</para>

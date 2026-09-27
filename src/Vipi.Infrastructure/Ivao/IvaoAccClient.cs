@@ -104,7 +104,8 @@ public sealed class IvaoAccClient : IAccDirectory
 
         // 1) Lista subcenter dell'ACC: composePosition, centerId, position, middleIdentifier.
         var listPath = string.Format(_opt.SubcentersPathFormat, Uri.EscapeDataString(accIcao));
-        var listBody = await _http.GetStringAsync(listPath, ct);
+        // ⚠️ Elenco: 404 = l'ACC non ha subcenter, ogni altro non-2xx solleva (U-002, vedi IvaoHttp.GetElencoAsync).
+        var listBody = await _http.GetElencoAsync(listPath, ct);
         if (listBody is null) return Array.Empty<SourceSubcenter>();
 
         var basics = new List<(string Compose, string Center, string? Pos, string? Mid, string? Name, int? IvaoId)>();

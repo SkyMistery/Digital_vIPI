@@ -411,5 +411,27 @@
     destinazioni → 10 e «At most 10 destination profiles…: 2 files were not loaded»; 600 KB → «exceeds the 512 KB
     limit»; 30.000 «\r» → «more than 10000 lines», e il file buono della stessa selezione entra; anteprima del diff
     giusta (`b=1` tolta, `b=2` aggiunta); circuito vivo per tutta la prova.
+- ✅ **S19** lotto **L7 «Import IVAO»** della revisione 3 (via del committente il 27-set), fetta **A: i giri che
+  timbravano verde senza aver letto** — U-002, U-024, U-128, U-129. Nessuna migrazione. **Codice comune sì**:
+  `Vipi.Application` (`AirportDataImportUseCase`, `SourceMergeInputs`, `DeletionService`, `AccFacts.IsForeign`).
+  Il filo che li lega: il timbro «riuscito» del giro è il penultimo giro che `DeletionService` legge per la D8. Un
+  giro verde che non ha letto niente, due notti di fila, rende eliminabile ogni riga che la sorgente manda ancora.
+  - **U-002**: gli ELENCHI (postazioni d'aeroporto, piste, subcenter di un ACC) passano da `IvaoHttp.GetElencoAsync`:
+    404 = vuoto legittimo, ogni altro non-2xx solleva con lo status. Prima un 401/403/429/5xx era «nessuna
+    postazione». I dettagli per voce restano best-effort. Il giro dei settori ha un `try` per scalo: gli altri si
+    leggono, la proiezione si rifà, e il giro risulta fallito col nome degli scali mancanti (è il testo che Sorgenti
+    mostra). Le pagine che chiamano gli import (editor aeroporto e militare) passano da `_shell.GuardedAsync`, che
+    regge l'eccezione nuova; `AeroportiPage` e `AccAdminPage` prendono solo tre tipi: fetta D (U-029).
+  - **U-024**: con «Settori» esclusa il giro non legge e **non timbra** (prima ritornava `true`).
+  - **U-128**: il giro TA/piste legge l'anagrafica una volta sola; senza credenziali risale col suo tipo (il ramo
+    «non configurata» del servizio, che era codice morto, ora scatta); un altro guasto lascia passare le piste e poi
+    fa fallire il giro. Stesso `SourceMergeInputs.ReadAsync` del bottone, con l'anagrafica già letta.
+  - **U-129**: a un ACC **estero** «Chiedi alla sorgente» non chiede niente e risponde «non si sa». Prima la sonda
+    scorreva i center italiani e diceva «non c'è più». La D8 sugli esteri resta com'era (non li ritimbra il giro
+    ACC ma l'import dei confinanti): non toccata, è una scelta da fare a parte se serve.
+  - **Test** rossi sul codice di prima: 15 casi di status su tre elenchi + 404 e dettaglio mancante
+    (`ElenchiSorgenteNonMutiTests`), il giro dei settori (`GiroSettoriNonRegalaVerdeTests`: esclusa, uno scalo rotto,
+    senza credenziali), tre su `AirportDataImportTests`, due su `DeletionProbeTests`. Infrastructure 1642 →
+    **1666**, Application 2986 → **2988**.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

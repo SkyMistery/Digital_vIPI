@@ -165,8 +165,10 @@ public sealed record AirportFacts(
     IReadOnlyList<SectorFacts> Settori);
 
 /// <summary>Tutto ciò che serve a decidere se e come una ACC si può eliminare.</summary>
+/// <param name="IsForeign">Un ACC estero (confinante): lo porta il nostro import dei confinanti, e la sonda della
+/// sorgente interroga solo i center del paese della divisione (U-129).</param>
 public sealed record AccFacts(
-    string Code, string Name, DateTime? ImportedAtUtc, int Settori, int Aeroporti);
+    string Code, string Name, DateTime? ImportedAtUtc, int Settori, int Aeroporti, bool IsForeign = false);
 
 /// <summary>Tutto ciò che serve a decidere se e come un documento si può eliminare.</summary>
 /// <param name="Incarichi">
