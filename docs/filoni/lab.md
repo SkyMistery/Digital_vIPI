@@ -18,8 +18,8 @@ correzione proposta e «Correggi la riga» (trovati due punti letti in Asia e in
 (nome dell'AOD, significato, editor; 0 campi sconosciuti sul fork), **3b** gli editor (tipo fisso, sì/no, quota,
 numero, piste dal `.rw`, scali e posizioni; corretto lo scrittore delle MVA di ACC che metteva la quota al posto del
 gruppo; MVA di scalo in sola lettura fino alla slice 15), **3c** il punto coi suggerimenti del master (corretta la
-fusione dei campi del motore, che cancellava l'RNAV delle SID quando la riga si allungava). Test: motore **621**, Lab
-**418**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+fusione dei campi del motore, che cancellava l'RNAV delle SID quando la riga si allungava), **3d** i metadati del
+catalogo di §M nella scheda (1 271 record su 1 271 sul fork). Test: motore **621**, Lab **428**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

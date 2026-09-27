@@ -717,6 +717,14 @@ body.lab-trascina * {
     color: var(--lab-avviso);
 }
 
+/* Slice 3d: la chiave del tag accanto al nome dell'AOD, piccola: è quella che si legge nel file. */
+.lab-chiave {
+    display: block;
+    font-weight: 400;
+    font-size: .75em;
+    color: var(--lab-tenue);
+}
+
 .lab-campo-toccato th {
     color: var(--lab-toccato);
     font-weight: 700;

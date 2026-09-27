@@ -782,6 +782,27 @@ public sealed class SessioneDelLab
         return esito is ModificaDiCampo;
     }
 
+    /// <summary>I metadati di §M del record, per la scheda (lotto «Subito», slice 3d); vuoto se il file non porta tag.</summary>
+    public IReadOnlyList<MetadatoDellaScheda> MetadatiDi(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? MetadatiDellaScheda.Di(file, record) : [];
+
+    /// <summary>Scrive, cambia o toglie (vuoto) una chiave dei metadati del record: il tag sopra il record.</summary>
+    public bool CambiaIlMetadato(string fileRelativo, int record, string chiave, string? valore)
+        => NellaStoria($"{chiave} di {EtichettaDi(fileRelativo, record)}", () => CambiaIlMetadatoAdesso(fileRelativo, record, chiave, valore));
+
+    private bool CambiaIlMetadatoAdesso(string fileRelativo, int record, string chiave, string? valore)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        var esito = Modifiche.CambiaIlMetadato(file, record, chiave, valore, EtichettaDi(fileRelativo, record));
+        Registro.Scrivi("modifica", $"{fileRelativo}#{record} tag {chiave} = «{valore}»: {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDelMetadato;
+    }
+
     /// <summary>«Composta da» per la scheda (F3-bis slice 5): null se il record non è una mappa MAPS di un .str.</summary>
     public SchedaDellaComposta? CompostaDi(string fileRelativo, int record)
         => Sessione is not null && Sessione.File.TryGetValue(fileRelativo, out var file) ? SchedaDellaComposta.Di(file, record) : null;

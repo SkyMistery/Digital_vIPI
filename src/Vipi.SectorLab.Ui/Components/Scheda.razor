@@ -56,6 +56,44 @@
         </ChildContent>
         </Sezione>
 
+        @* Slice 3d: i metadati di §M del record, le chiavi del catalogo del suo tipo di file. Si scrivono nel tag
+           //@"NOME" sopra il record; un valore vuoto toglie la chiave. *@
+        @if (Lab.MetadatiDi(scheda.File, scheda.Indice) is { Count: > 0 } metadati)
+        {
+            <Sezione Chiave="scheda-metadati">
+            <Titolo>Metadati <span class="lab-nota">@metadati.Count(m => m.Valore is not null)</span></Titolo>
+            <ChildContent>
+            <table class="lab-campi lab-metadati">
+                <tbody>
+                    @foreach (var metadato in metadati)
+                    {
+                        string chiave = metadato.Chiave;
+                        <tr data-metadato="@chiave" class="@(Toccato(scheda, "§tag:" + chiave) ? "lab-campo-toccato" : null)">
+                            <th title="@metadato.Significato">@metadato.Nome <code class="lab-chiave">@chiave</code></th>
+                            <td>
+                                @if (!metadato.SiScrive)
+                                {
+                                    <span title="@metadato.PercheNo" data-metadato-fermo="@chiave">@(metadato.Valore ?? "—")</span>
+                                }
+                                else if (metadato.SiNo)
+                                {
+                                    <input type="checkbox" class="lab-casella-campo" checked="@(metadato.Valore == "si")" data-scrivi-tag="@chiave"
+                                           @onchange="e => SpuntaIlTag(scheda, chiave, e)" />
+                                }
+                                else
+                                {
+                                    <input class="lab-campo" value="@metadato.Valore" data-scrivi-tag="@chiave" placeholder="—"
+                                           @onchange="e => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, e.Value?.ToString())" />
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </ChildContent>
+            </Sezione>
+        }
+
         @if (Lab.Rifiuto is { } rifiuto)
         {
             <p class="lab-errore" data-rifiuto="1">@rifiuto</p>
@@ -221,6 +259,10 @@ else
 }
 
 @code {
+    /// <summary>Una chiave sì/no dei metadati: spuntata vale «si», tolta sparisce (§M).</summary>
+    private void SpuntaIlTag(SchedaDelRecord scheda, string chiave, ChangeEventArgs e)
+        => Lab.CambiaIlMetadato(scheda.File, scheda.Indice, chiave, Equals(e.Value, true) ? "si" : null);
+
     /// <summary>La riga del problema scelto nel pannello (slice 10).</summary>
     private bool Segnalata(string file, int numero) => Lab.RigaSegnalata is { } s && s.File == file && s.Riga == numero;
 

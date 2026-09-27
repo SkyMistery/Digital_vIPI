@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a, 3b e 3c fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a-3d fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -395,3 +395,17 @@ che chiede il tipo fisso.
   `OST1E` con l'RNAV che resta, posizione di `HLD-ABBOZ` per nome. 🟡 Scegliere dalla tendina con la tastiera nel
   browser del pannello non passa (la tendina nativa non c'è): da provare nella finestra vera del Lab (WebView2).
   Test: motore 618 → **621**, Lab 408 → **418**.
+- **3d (28 settembre)** — i metadati di §M nella scheda. Sotto i campi, la sezione **«Metadati»**: le chiavi del
+  catalogo del tipo di file (`CatalogoDeiTag`, il contratto con vIPI) appaiono da sole, col nome dell'AOD e il
+  significato del catalogo di §M (`Ispezione/MetadatiDellaScheda.cs`); per le piste anche quelle per verso col numero
+  davanti (`16L.tora`, «TORA 16L»); le chiavi che il record ha già si vedono anche fuori catalogo. `locked`, `whole`,
+  `vfronly` sono caselle (`si` o niente). Un valore scritto va nel tag `//@"NOME" …` sopra il record (`Metadati.Scrivi`,
+  fra virgolette solo se serve: `initialclimb="COO APP"`), un valore vuoto toglie la chiave e, senza chiavi, il tag.
+  Voce nuova `ModificaDelMetadato` (una per chiave: «initialclimb: — → 6000ft»), si annulla, segue i record che si
+  spostano, rientra nella storia. Non si scrivono dalla scheda: `gen` (la scrive il generatore, F8), `compose`/`whole`
+  (nelle mappe `.str` c'è già «Composta da»; nei confini J6, F8), le chiavi fuori catalogo, e i record **senza un nome
+  loro** (segmenti `.geo`, poligoni `.pol`: il nome del blocco lo sceglie chi scrive, slice 6) — ognuno col perché.
+  Misura sul fork: in **688 file** con un catalogo, tre record per file, **1 271 record su 1 271** — messa una nota,
+  si aggiungono solo righe di tag, il file riletto non ha tag rotti, tolta torna identico; 669 record senza nome
+  proprio. Prova a schermo sul banco: `EKLO8R` con `fix=EKLOS` e `initialclimb="COO APP"` (diff −0 +3:
+  dichiarazione, `//@START`, `//@END`), righe del tag col lucchetto, annulla. Test: Lab 418 → **428** (motore invariato).

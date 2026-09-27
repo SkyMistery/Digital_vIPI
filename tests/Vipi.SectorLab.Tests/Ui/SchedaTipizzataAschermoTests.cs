@@ -245,6 +245,26 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         Assert.NotNull(pagina.Find("[data-scrivi='RecordType']"));
     }
 
+    // --- slice 3d: i metadati del catalogo ------------------------------------------------------------------------
+
+    [Fact]
+    public async Task IMetadatiDelCatalogoAppaionoNellaSchedaESiScrivonoNelTag()
+    {
+        var pagina = await ConIlRecord("NAVAIDS/APT.fix", "BC404");
+
+        // I .fix hanno le sole chiavi comuni: bloccato, generato da, nota.
+        Assert.Equal(["locked", "gen", "note"], pagina.FindAll("[data-metadato]").Select(r => r.GetAttribute("data-metadato")));
+        Assert.NotNull(pagina.Find("[data-metadato-fermo='gen']"));
+        pagina.Find("[data-scrivi-tag='note']").Change("da rivedere");
+
+        pagina.WaitForAssertion(() => Assert.Contains("note: — → da rivedere", pagina.Find("[data-modifiche]").TextContent, StringComparison.Ordinal));
+        Assert.Contains("//@\"BC404\" note=\"da rivedere\"", Righe("NAVAIDS/APT.fix"));
+        pagina.Find("input[type='checkbox'][data-scrivi-tag='locked']").Change(true);
+
+        pagina.WaitForAssertion(() => Assert.Contains(Righe("NAVAIDS/APT.fix"),
+            r => r.StartsWith("//@\"BC404\"", StringComparison.Ordinal) && r.Contains("locked=si", StringComparison.Ordinal)));
+    }
+
     [Fact]
     public async Task UnVerticeDiUnFileCheNonSaScrivereINomiNonNePropone()
     {

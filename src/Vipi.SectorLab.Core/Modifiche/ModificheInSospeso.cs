@@ -125,6 +125,19 @@ public sealed record ModificaDellaDichiarazione(string File, int Record, string 
     public override string Descrizione => $"composta da: {Prima} → {Dopo}";
 }
 
+/// <summary>
+/// Una chiave dei metadati di un record (§M) scritta, cambiata o tolta dalla scheda (lotto «Subito», slice 3d): il tag
+/// <c>//@"NOME" chiave=valore</c> sopra il record. Una voce per chiave: si annullano una per una.
+/// </summary>
+/// <param name="Prima">Il valore all'apertura come si legge (senza virgolette), «—» se non c'era.</param>
+public sealed record ModificaDelMetadato(string File, int Record, string Etichetta, string Chiave, string Prima, string Dopo)
+    : Modifica(File, Record, Etichetta, Campo: Prefisso + Chiave)
+{
+    internal const string Prefisso = "§tag:";
+
+    public override string Descrizione => $"{Chiave}: {Prima} → {Dopo}";
+}
+
 /// <summary>Perché una modifica non si è potuta fare. Il campo resta com'era.</summary>
 public sealed record ModificaRifiutata(string Motivo);
 
@@ -455,8 +468,7 @@ public sealed class ModificheInSospeso
             // com'erano: il tag scritto di nuovo potrebbe non essere identico a quello di prima (virgolette, ordine).
             _fatte.Remove(voce);
             _dichiarazioniDiPartenza.Remove(chiave);
-            if (!_fatte.Keys.Any(k => k.File == file.Relativo && k.Campo is ModificaDiStruttura.Chiave or ModificaDellaDichiarazione.Chiave or ModificaDelTesto.Chiave)
-                && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
+            if (!PendeStruttura(file.Relativo) && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
             {
                 str.RipristinaLaStruttura(comEra);
             }
@@ -471,6 +483,87 @@ public sealed class ModificheInSospeso
         RigeneraLeComposte(file);
         return modifica;
     }
+
+    /// <summary>I valori dei metadati all'apertura, per chiave: null = la chiave non c'era.</summary>
+    private readonly Dictionary<(string File, int Record, string Chiave), string?> _tagDiPartenza = [];
+
+    /// <summary>
+    /// Scrive, cambia o toglie (valore vuoto) una chiave dei metadati di un record (§M; lotto «Subito», slice 3d). Le
+    /// altre chiavi del record restano; senza più chiavi il tag sparisce. Il valore si scrive fra virgolette solo se
+    /// serve (<see cref="Metadati.ValoreDaScrivere"/>).
+    /// </summary>
+    public object CambiaIlMetadato(FileAperto file, int indice, string chiave, string? valore, string etichetta = "")
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentException.ThrowIfNullOrWhiteSpace(chiave);
+        if (file is not IFileConRecord conRecord || indice < 0 || indice >= conRecord.RecordDelModello.Count)
+            return new ModificaRifiutata("Questo record non c'è.");
+        if (conRecord.CatalogoDeiTag is not { } catalogo)
+            return new ModificaRifiutata("I record di questo file non portano metadati.");
+        if (!catalogo.AmmetteDelRecord(chiave))
+            return new ModificaRifiutata($"«{chiave}» non è fra i metadati dei {catalogo.Formato}.");
+        if (conRecord.TagRotti() is { } rotto)
+            return new ModificaRifiutata($"Il file ha tag //@ che non valgono ({rotto}): vanno sistemati prima.");
+        if (!conRecord.SiDichiara(indice))
+            return new ModificaRifiutata("Questo record non ha un nome suo: i suoi metadati si scrivono sul blocco che lo contiene.");
+
+        var oggi = conRecord.ChiaviDi(indice) ?? new Dictionary<string, string>();
+        string? prima = oggi.GetValueOrDefault(chiave);
+        string scritto = (valore ?? "").Trim();
+        string? dopo = scritto.Length == 0 ? null : Metadati.ValoreDaScrivere(scritto);
+        if (dopo == prima)
+            return new ModificaRifiutata("Il valore è già questo.");
+
+        var nuove = oggi.Where(c => c.Key != chiave).ToDictionary(c => c.Key, c => c.Value, StringComparer.Ordinal);
+        if (dopo is not null)
+            nuove[chiave] = dopo;
+
+        object struttura;
+        try
+        {
+            struttura = conRecord.ConLeChiavi(indice, nuove);
+        }
+        catch (Exception e) when (e is InvalidOperationException or ArgumentException)
+        {
+            return new ModificaRifiutata(e.Message);
+        }
+
+        var suaPartenza = (file.Relativo, indice, chiave);
+        if (!_tagDiPartenza.ContainsKey(suaPartenza))
+            _tagDiPartenza[suaPartenza] = prima;
+        Fotografa(file, conRecord);
+        conRecord.RipristinaLaStruttura(struttura);
+
+        string? partenza = _tagDiPartenza[suaPartenza];
+        var voce = (file.Relativo, indice, ModificaDelMetadato.Prefisso + chiave);
+        var modifica = new ModificaDelMetadato(file.Relativo, indice, etichetta, chiave, Leggibile(partenza), Leggibile(dopo));
+        if (dopo == partenza)
+        {
+            // Tornato il valore dell'apertura: niente voce, e se nel file non pende altra struttura le sue righe tornano
+            // quelle dell'apertura (un tag riscritto può non essere identico a quello di prima: ordine, virgolette).
+            _fatte.Remove(voce);
+            _tagDiPartenza.Remove(suaPartenza);
+            if (!PendeStruttura(file.Relativo) && _strutturaDiPartenza.Remove(file.Relativo, out object? comEra))
+                conRecord.RipristinaLaStruttura(comEra);
+            Ripulisci(file.Relativo);
+        }
+        else
+        {
+            _fatte[voce] = modifica;
+            if (!_sporchi.ContainsKey(file.Relativo))
+                _sporchi[file.Relativo] = [];
+        }
+
+        return modifica;
+    }
+
+    private static string Leggibile(string? valore) => valore is null ? "—" : Metadati.Testo(valore);
+
+    /// <summary>Vero se in quel file pende qualcosa che ne ha cambiato le righe oltre i campi (struttura, testo, tag).</summary>
+    private bool PendeStruttura(string file)
+        => _fatte.Keys.Any(k => k.File == file
+                                && (k.Campo is ModificaDiStruttura.Chiave or ModificaDellaDichiarazione.Chiave or ModificaDelTesto.Chiave
+                                    || k.Campo.StartsWith(ModificaDelMetadato.Prefisso, StringComparison.Ordinal)));
 
     /// <summary>
     /// La forma per una mappa che diventa composta adesso: intera se così, e non troncata, la mappa resta com'è oggi
@@ -621,6 +714,14 @@ public sealed class ModificheInSospeso
                 tagDiPartenza.Composta is null ? [] : Metadati.ElencoDellaComposta(tagDiPartenza.Composta) ?? [], tagDiPartenza.Intere) is Modifica;
         }
 
+        // Una chiave dei metadati torna al valore dell'apertura (o sparisce, se all'apertura non c'era).
+        if (modifica is ModificaDelMetadato metadato
+            && _tagDiPartenza.TryGetValue((modifica.File, modifica.Record, metadato.Chiave), out string? valoreDiPartenza))
+        {
+            return CambiaIlMetadato(file, modifica.Record, metadato.Chiave,
+                valoreDiPartenza is null ? null : Metadati.Testo(valoreDiPartenza), modifica.Etichetta) is Modifica;
+        }
+
         // I vertici non si annullano rifacendo i gesti al contrario: si rimette l'elenco com'era all'apertura.
         if (!_verticiDiPartenza.TryGetValue(chiave, out var comErano) || Vertici(file, modifica.Record, modifica.Campo) is not { } elenco)
             return false;
@@ -666,6 +767,8 @@ public sealed class ModificheInSospeso
             _mappeDiPartenza.Remove(chiave);
         foreach (var chiave in _dichiarazioniDiPartenza.Keys.Where(k => k.File == file).ToList())
             _dichiarazioniDiPartenza.Remove(chiave);
+        foreach (var chiave in _tagDiPartenza.Keys.Where(k => k.File == file).ToList())
+            _tagDiPartenza.Remove(chiave);
         UltimoAggiunto = null;
     }
 
@@ -828,7 +931,7 @@ public sealed class ModificheInSospeso
         foreach (var campo in _fatte.Values.OfType<ModificaDiCampo>().Where(m => m.File == file.Relativo).ToList())
             Cambia(file, campo.Record, campo.Campo, campo.Prima, campo.Etichetta);
         foreach (var altra in _fatte.Values.Where(m => m.File == file.Relativo
-                     && m is ModificaDeiVertici or ModificaDellaComposta or ModificaDellaDichiarazione).ToList())
+                     && m is ModificaDeiVertici or ModificaDellaComposta or ModificaDellaDichiarazione or ModificaDelMetadato).ToList())
         {
             if (_fatte.ContainsKey((altra.File, altra.Record, altra.Campo)))
                 Annulla(file, altra);
@@ -877,8 +980,15 @@ public sealed class ModificheInSospeso
             ModificaDeiVertici m => m with { Record = chiave.Record },
             ModificaDellaComposta m => m with { Record = chiave.Record },
             ModificaDellaDichiarazione m => m with { Record = chiave.Record },
+            ModificaDelMetadato m => m with { Record = chiave.Record },
             _ => modifica,
         });
+        foreach (var chiave in _tagDiPartenza.Keys.Where(k => k.File == file && k.Record >= daIncluso)
+                     .OrderBy(k => k.Record * -scarto).ToList())
+        {
+            _tagDiPartenza[(file, chiave.Record + scarto, chiave.Chiave)] = _tagDiPartenza[chiave];
+            _tagDiPartenza.Remove(chiave);
+        }
         Rinumera(_verticiDiPartenza, file, daIncluso, scarto, (_, elenco) => elenco);
         foreach (var chiave in _mappeDiPartenza.Keys.Where(k => k.File == file && k.Record >= daIncluso)
                      .OrderBy(k => k.Record * -scarto).ToList())

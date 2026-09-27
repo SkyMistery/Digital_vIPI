@@ -105,6 +105,28 @@ public interface IFileConRecord
     /// sceglie anche dalla cartella, <see cref="RiletturaDiProva"/>).
     /// </summary>
     object LeggiLeRighe(IReadOnlyList<string> righe);
+
+    // --- i metadati di §M nella scheda (lotto «Subito», slice 3d) -------------------------------------------------
+
+    /// <summary>Il catalogo delle chiavi dei record di questo file, o null se i suoi record non portano tag.</summary>
+    CatalogoDeiTag? CatalogoDeiTag { get; }
+
+    /// <summary>Le chiavi del record come sono scritte (valori con le virgolette), o null se il record non ha tag.</summary>
+    IReadOnlyDictionary<string, string>? ChiaviDi(int indice);
+
+    /// <summary>Il primo errore dei tag del file (riga e testo), o null: sopra un tag rotto non si scrive.</summary>
+    string? TagRotti();
+
+    /// <summary>Vero se il record ha un nome suo da dichiarare, o sta già in un blocco: i suoi tag si scrivono.</summary>
+    bool SiDichiara(int indice);
+
+    /// <summary>
+    /// La struttura del file col record che porta quelle chiavi (nessuna = il tag tolto), da dare a
+    /// <see cref="RipristinaLaStruttura"/>. Lo scrive <see cref="Metadati"/>: le altre righe restano com'erano.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Il record non si può dichiarare, o il file ha tag rotti.</exception>
+    /// <exception cref="ArgumentException">Una chiave fuori catalogo, o un valore che non si scrive.</exception>
+    object ConLeChiavi(int indice, IReadOnlyDictionary<string, string> chiavi);
 }
 
 /// <summary>Un file che il motore interpreta: record, righe grezze, basi, e lo scrittore che lo riscriverà.</summary>
@@ -221,6 +243,36 @@ public sealed class FileLetto<T> : FileAperto, IFileConRecord
         }
 
         return sezioni;
+    }
+
+    /// <inheritdoc/>
+    public CatalogoDeiTag? CatalogoDeiTag => CatalogoDeiTag.Di<T>();
+
+    private MetadatiDelFile<T>? MetadatiDelFile()
+        => CatalogoDeiTag is { } catalogo ? Metadati.Leggi(Letto, r => Metadati.NomeDelRecord(r), catalogo) : null;
+
+    /// <inheritdoc/>
+    public IReadOnlyDictionary<string, string>? ChiaviDi(int indice)
+        => indice >= 0 && indice < Letto.Records.Count ? MetadatiDelFile()?.Di(Letto.Records[indice])?.Chiavi : null;
+
+    /// <inheritdoc/>
+    public string? TagRotti()
+        => MetadatiDelFile()?.Problemi.FirstOrDefault(p => p.EUnErrore) is { } rotto ? $"riga {rotto.Riga}: {rotto.Testo}" : null;
+
+    /// <inheritdoc/>
+    public bool SiDichiara(int indice)
+        => indice >= 0 && indice < Letto.Records.Count && CatalogoDeiTag is not null
+           && (MetadatiDelFile()?.Di(Letto.Records[indice]) is not null
+               || Metadati.NomeDelRecord(Letto.Records[indice]) is { } nome && Metadati.NomeElencabile(nome));
+
+    /// <inheritdoc/>
+    public object ConLeChiavi(int indice, IReadOnlyDictionary<string, string> chiavi)
+    {
+        ArgumentNullException.ThrowIfNull(chiavi);
+        var record = Letto.Records[indice];
+        return chiavi.Count == 0
+            ? Metadati.Togli(Letto, record, r => Metadati.NomeDelRecord(r))
+            : Metadati.Scrivi(Letto, record, r => Metadati.NomeDelRecord(r), chiavi);
     }
 
     /// <inheritdoc/>
