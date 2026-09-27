@@ -221,8 +221,10 @@ public class TranslationReviewPanelTests : TestContext
 
         var cut = RenderComponent<TranslationReviewPanel>(p => p.Add(x => x.DocumentId, 7));
 
-        var primo = cut.FindAll("button.tr-open").First().ClickAsync(new());
-        var secondo = cut.FindAll("button.tr-open").Last().ClickAsync(new());
+        // ⚠️ Ricerca e clic sul dispatcher (cut.InvokeAsync): fra le due, un render arrivato da un altro thread
+        // cambiava l'albero e il gestore trovato non c'era più — rosso intermittente sul runner, 27 settembre 2026.
+        var primo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").First().ClickAsync(new()));
+        var secondo = cut.InvokeAsync(() => cut.FindAll("button.tr-open").Last().ClickAsync(new()));
         await Task.WhenAll(primo, secondo);
         cut.WaitForElement("textarea.tr-edit", TimeSpan.FromSeconds(3));
 

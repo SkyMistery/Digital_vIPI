@@ -170,6 +170,11 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
         return cut;
     }
 
+    /// <summary>Ricerca e gesto sul dispatcher: fra le due un render da un altro thread può cambiare l'albero, e
+    /// il gestore trovato non esisterebbe più (rosso intermittente visto sul runner il 27 settembre 2026).</summary>
+    private static Task Premi(IRenderedComponent<StrutturaPage> cut, string selettore, Func<AngleSharp.Dom.IElement, Task> gesto) =>
+        cut.InvokeAsync(() => gesto(cut.Find(selettore)));
+
     private async Task NessunaCaduta()
     {
         var caduta = await Task.WhenAny(Renderer.UnhandledException, Task.Delay(200));
@@ -183,8 +188,8 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
     {
         var cut = Apri();
 
-        var primo = cut.Find("#hn-Acc-2").ClickAsync(new());
-        var secondo = cut.Find("#hn-Acc-2").ClickAsync(new());
+        var primo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
+        var secondo = Premi(cut, "#hn-Acc-2", e => e.ClickAsync(new()));
         await Task.WhenAll(primo, secondo);
         cut.WaitForAssertion(() => Assert.True(_ripieghi.Letture >= 2), TimeSpan.FromSeconds(3));
         await Task.Delay(150);
@@ -200,11 +205,11 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
     {
         var cut = Apri();
 
-        await cut.Find("#hn-AirportPosition-3").DragStartAsync(new());
-        var trascina = cut.Find("#hn-Acc-2").DropAsync(new());
+        await Premi(cut, "#hn-AirportPosition-3", e => e.DragStartAsync(new()));
+        var trascina = Premi(cut, "#hn-Acc-2", e => e.DropAsync(new()));
         cut.WaitForAssertion(() => Assert.Equal(1, _gerarchia.Salvataggi), TimeSpan.FromSeconds(3));
 
-        var clic = cut.Find("#hn-Acc-1").ClickAsync(new());
+        var clic = Premi(cut, "#hn-Acc-1", e => e.ClickAsync(new()));
         await Task.Delay(150);   // il clic è partito mentre il salvataggio è ancora in volo
         _gerarchia.Salvataggio.SetResult();
         await Task.WhenAll(trascina, clic);
@@ -222,10 +227,10 @@ public class StrutturaUnaOperazionePerVoltaTests : TestContext
     {
         var cut = Apri();
 
-        await cut.Find("#hn-AirportPosition-3").DragStartAsync(new());
-        var primo = cut.Find("#hn-Acc-2").DropAsync(new());
-        await cut.Find("#hn-AirportPosition-3").DragStartAsync(new());
-        var secondo = cut.Find("#hn-Acc-2").DropAsync(new());
+        await Premi(cut, "#hn-AirportPosition-3", e => e.DragStartAsync(new()));
+        var primo = Premi(cut, "#hn-Acc-2", e => e.DropAsync(new()));
+        await Premi(cut, "#hn-AirportPosition-3", e => e.DragStartAsync(new()));
+        var secondo = Premi(cut, "#hn-Acc-2", e => e.DropAsync(new()));
         await Task.Delay(150);
         _gerarchia.Salvataggio.SetResult();
         await Task.WhenAll(primo, secondo);
