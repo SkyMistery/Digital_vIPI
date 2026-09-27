@@ -1,3 +1,6 @@
+using System.Net;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Vipi.Application.Abstractions;
 using Vipi.Infrastructure.Sectorfile;
 using Xunit;
@@ -101,5 +104,48 @@ public class NavaidIndiceTests
 
         var voce = Assert.Single(catalogo.Entries);
         Assert.Equal(NavaidKind.Vor, voce.Kind);
+    }
+
+    private sealed class Risposte : HttpMessageHandler
+    {
+        public Dictionary<string, (HttpStatusCode Code, string Body)> Tabella { get; } = new();
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct) =>
+            Task.FromResult(Tabella.TryGetValue(request.RequestUri!.ToString(), out var r)
+                ? new HttpResponseMessage(r.Code) { Content = new StringContent(r.Body) }
+                : new HttpResponseMessage(HttpStatusCode.NotFound));
+    }
+
+    /// <summary>
+    /// 🔴 U-033 (revisione totale 3): un 503 su <c>ITALY.isc</c> faceva ripiegare sui tre file di configurazione —
+    /// 1387 nomi invece di 3745 — e quel catalogo ridotto restava in cache per tutto il giro e per ogni «Reimporta»,
+    /// senza che nessuno sapesse che era ridotto. Il ripiego si usa ancora, ma non si tiene: il chiamante dopo
+    /// riprova l'indice.
+    /// </summary>
+    [Fact]
+    public async Task Il_catalogo_ridotto_dal_ripiego_non_resta_in_cache()
+    {
+        const string Base = "https://raw.test/IT/";
+        const string Indice = "https://raw.test/ITALY.isc";
+        var h = new Risposte();
+        h.Tabella[Indice] = (HttpStatusCode.ServiceUnavailable, "");
+        h.Tabella[Base + "NAVAIDS/itvor.vor"] = (HttpStatusCode.OK, "SRN;113.70;N045.03.44.000;E007.36.44.000;\n");
+        h.Tabella[Base + "NAVAIDS/itndb.ndb"] = (HttpStatusCode.OK, "");
+        h.Tabella[Base + "NAVAIDS/itfix.fix"] = (HttpStatusCode.OK, "ALAXI;N040.00.00.000;E010.00.00.000;0;1;\n");
+        h.Tabella[Base + "NAVAIDS/ESTERNI.fix"] = (HttpStatusCode.OK, "GODRA;N046.00.00.000;E008.00.00.000;0;1;\n");
+
+        var cache = new SectorfileCache();
+        var fonte = new AuroraNavaidSource(new HttpClient(h, disposeHandler: false),
+            Options.Create(new SectorfileOptions { RawBaseUrl = Base, SectorIndexUrl = Indice }),
+            cache, NullLogger<AuroraNavaidSource>.Instance);
+
+        var ridotto = await fonte.GetAsync();
+        Assert.Contains("ALAXI", ridotto.Names);
+        Assert.DoesNotContain("GODRA", ridotto.Names);
+
+        // L'indice torna a rispondere: il catalogo completo arriva al chiamante dopo, senza aspettare il giro.
+        h.Tabella[Indice] = (HttpStatusCode.OK, Isc);
+        var completo = await fonte.GetAsync();
+        Assert.Contains("GODRA", completo.Names);
     }
 }

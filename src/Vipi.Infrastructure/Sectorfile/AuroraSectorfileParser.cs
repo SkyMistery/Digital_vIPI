@@ -199,7 +199,7 @@ public static class AuroraSectorfileParser
 
             // Codice = SID o SID-TRANS: il fix di partenza si estrae dalla sola parte SID.
             var sidPart = code.Split('-')[0].Trim();
-            var (prefix, letter) = SplitDesignator(sidPart);
+            var (prefix, _) = SplitDesignator(sidPart);
             var (fix, needsReview) = ResolveFix(prefix, navNames, aliasMap);
 
             var runways = runwaysField.Length == 0
@@ -217,19 +217,37 @@ public static class AuroraSectorfileParser
             }
 
             foreach (var rwy in runways)
-            {
-                // ⚠️ La chiave delle SID resta ESATTAMENTE quella di prima: sta scritta nel database e ci si
-                // riagganciano priorità, pubblicazione forzata e correzioni a mano. Le STAR portano davanti la
-                // loro parola, o una STAR e una SID dello stesso punto e stessa lettera sarebbero la stessa riga.
-                var stableKey = string.Join('|', icao, fix.ToUpperInvariant(), letter.ToUpperInvariant(),
-                    (transition ?? "").ToUpperInvariant(), (rwy ?? "").ToUpperInvariant());
-                if (kind == ProcedureKind.Star) stableKey = "STAR|" + stableKey;
                 result.Add(new SourceProcedure(
                     Icao: icao, Runway: rwy, Fix: fix, Name: code, Transition: transition,
-                    Type: rnav ? "RNAV" : "CONV", StableKey: stableKey, NeedsFixReview: needsReview, Kind: kind));
-            }
+                    Type: rnav ? "RNAV" : "CONV", StableKey: ChiaveStabile(kind, icao, code, transition, rwy),
+                    NeedsFixReview: needsReview, Kind: kind));
         }
         return result;
+    }
+
+    /// <summary>
+    /// L'identità di una procedura importata fra un import e l'altro: <c>ICAO|prefisso|lettera|transition|pista</c>,
+    /// con <c>STAR|</c> davanti per gli arrivi. Esclude di proposito la cifra della revisione (ALAX7G e ALAX8G sono
+    /// la stessa SID rivista).
+    ///
+    /// <para>🔴 <b>Il prefisso è quello GREZZO del codice, non il punto risolto</b> (U-005, revisione totale 3). Col
+    /// punto risolto la chiave dipendeva dal catalogo e dagli alias: creare un alias, un catalogo cambiato, un
+    /// indice che risponde male per un giro cambiavano la chiave, e al reimport la riga rinasceva nuda — senza
+    /// priorità, forzatura, «nascosta», WTC, IC, e col ciclo d'entrata nuovo. Il prefisso sta scritto nel codice,
+    /// e nessuna risoluzione lo tocca.</para>
+    ///
+    /// <para>⚠️ La usa anche il riaggancio del repository, che la <b>ricalcola</b> dai dati delle righe già in
+    /// archivio invece di fidarsi di quella salvata: così le chiavi scritte nel formato di prima (col punto risolto)
+    /// non hanno bisogno di una migrazione, e si riscrivono da sole al primo reimport.</para>
+    /// </summary>
+    public static string ChiaveStabile(ProcedureKind kind, string icao, string code, string? transition, string? runway)
+    {
+        var (prefix, letter) = SplitDesignator(code.Split('-')[0].Trim());
+        var key = string.Join('|', icao.Trim().ToUpperInvariant(), prefix.ToUpperInvariant(), letter.ToUpperInvariant(),
+            (transition ?? "").Trim().ToUpperInvariant(), (runway ?? "").Trim().ToUpperInvariant());
+        // Le STAR portano davanti la loro parola, o una STAR e una SID dello stesso punto e stessa lettera sarebbero
+        // la stessa riga.
+        return kind == ProcedureKind.Star ? "STAR|" + key : key;
     }
 
     // Designatore = ultime 2 char (cifra+lettera); il resto è il prefisso fix troncato. La lettera è l'ultimo char.

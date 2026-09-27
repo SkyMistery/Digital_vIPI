@@ -94,8 +94,13 @@ public class SidImportRepositoryTests : IAsyncLifetime
         Assert.Equal(new[] { "ROBO1H", "ROBO2H" }, sids.Select(s => s.Name).OrderBy(n => n));
     }
 
+    /// <summary>
+    /// 🔴 U-004 (revisione totale 3): con la chiave condivisa vinceva la PRIMA riga, e le sue decisioni tornavano su
+    /// tutte. Ma le coppie vere non sono revisioni della stessa SID: sono procedure diverse che convivono
+    /// (ROBO1H/ROBO5H a LIBG, XIB5A-OKU5R/OKU6A a LIRF, VOG1K/VOG1S a LIME). Ognuna tiene le sue.
+    /// </summary>
     [Fact]
-    public async Task Con_Chiave_Duplicata_Gli_Arricchimenti_Si_Riapplicano_In_Modo_Deterministico()
+    public async Task Con_Chiave_Condivisa_Ogni_Riga_Tiene_Le_Sue_Decisioni()
     {
         var due = new[]
         {
@@ -104,20 +109,73 @@ public class SidImportRepositoryTests : IAsyncLifetime
         };
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
 
-        // Arricchimento editoriale sulla prima riga della coppia.
-        var first = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).OrderBy(s => s.Id).First();
-        await _repo.UpdateImportedSidAsync(first.Id, priority: 3, forcePublished: true, resolvedFix: null,
+        // Arricchimento editoriale sulla seconda riga della coppia: è quella che il first-wins perdeva.
+        var seconda = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.Name == "ROBO2H");
+        await _repo.UpdateImportedSidAsync(seconda.Id, priority: 3, forcePublished: true, resolvedFix: null,
             initialClimb: "5000ft", initialClimbByApp: false, cat: null, wtc: null, condition: null);
 
         await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");
 
-        // Regola first-wins: l'arricchimento associato alla chiave torna su TUTTE le righe che la condividono.
-        // Non è ambiguo per l'utente — la chiave È l'identità editoriale, la revisione no.
         var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
         Assert.Equal(2, sids.Count);
-        Assert.All(sids, s => Assert.Equal(3, s.Priority));
-        Assert.All(sids, s => Assert.Equal("5000ft", s.InitialClimb));
-        Assert.All(sids, s => Assert.True(s.ForcePublished));
+        var r2 = sids.Single(s => s.Name == "ROBO2H");
+        Assert.Equal(3, r2.Priority);
+        Assert.Equal("5000ft", r2.InitialClimb);
+        Assert.True(r2.ForcePublished);
+        var r1 = sids.Single(s => s.Name == "ROBO1H");
+        Assert.Null(r1.Priority);
+        Assert.Null(r1.InitialClimb);
+        Assert.False(r1.ForcePublished);
+    }
+
+    /// <summary>
+    /// 🔴 U-004: la seconda riga della coppia si confrontava col NOME della prima, sempre diverso, quindi a ogni
+    /// giro prendeva il ciclo appena calcolato — col ciclo dichiarato avanti restava fuori dalla pagina pubblica
+    /// per dieci-dodici giorni a ogni ciclo (a LIRF mancava XIB5A-OKU6A).
+    /// </summary>
+    [Fact]
+    public async Task Con_Chiave_Condivisa_Nessuna_Riga_Si_Ritimbra()
+    {
+        var due = new[]
+        {
+            new ImportedProcedure("16L", "XIBIL", "XIB5A-OKU5R", "OKUDA", "RNAV", "LIRF|XIBIL|A|OKUDA|16L", false),
+            new ImportedProcedure("16L", "XIBIL", "XIB5A-OKU6A", "OKUDA", "RNAV", "LIRF|XIBIL|A|OKUDA|16L", false),
+        };
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2606");
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, due, "2607");
+
+        var sids = (await _repo.LoadAsync("LIRF"))!.Sids.Where(s => s.IsImported).ToList();
+        Assert.All(sids, s => Assert.Equal("2606", s.SourceAiracCycle));
+    }
+
+    /// <summary>
+    /// 🔴 U-005: il punto risolto in un altro modo (alias creato, catalogo cambiato) cambiava la chiave, e la riga
+    /// rinasceva nuda. Qui la stessa SID arriva prima «da verificare» col prefisso grezzo, poi risolta: priorità,
+    /// arricchimenti e ciclo d'entrata restano.
+    /// </summary>
+    [Fact]
+    public async Task Il_Punto_Risolto_In_Un_Altro_Modo_Non_Fa_Perdere_Le_Decisioni()
+    {
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("25", "SOSA", "SOSA5A", null, "RNAV", "LIRF|SOSA|A||25", NeedsFixReview: true),
+        }, "2606");
+        var imp = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        await _repo.UpdateImportedSidAsync(imp.Id, priority: 1, forcePublished: false, resolvedFix: null,
+            initialClimb: "4000", initialClimbByApp: false, cat: null, wtc: "M, H", condition: null);
+
+        // La notte dopo qualcuno ha creato l'alias SOSA → SOSAK: il parser risolve, e la chiave vecchia era col fix.
+        await _repo.ReplaceImportedProceduresAsync("LIRF", ProcedureKind.Sid, new[]
+        {
+            new ImportedProcedure("25", "SOSAK", "SOSA5A", null, "RNAV", "LIRF|SOSAK|A||25", NeedsFixReview: false),
+        }, "2607");
+
+        var dopo = (await _repo.LoadAsync("LIRF"))!.Sids.Single(s => s.IsImported);
+        Assert.Equal("SOSAK", dopo.Fix);
+        Assert.Equal(1, dopo.Priority);
+        Assert.Equal("4000", dopo.InitialClimb);
+        Assert.Equal("M, H", dopo.Wtc);
+        Assert.Equal("2606", dopo.SourceAiracCycle);
     }
 
     [Fact]

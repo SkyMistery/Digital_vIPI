@@ -313,26 +313,14 @@ public sealed class EfAirportRepository : IAirportRepository
         IReadOnlyList<ImportedProcedure> rows, string airacCycle, CancellationToken ct = default)
     {
         var id = await AirportIdAsync(icao, ct);
-        // Snapshot per StableKey di TUTTE le righe (manuali + importate): serve a riapplicare priorità/forzatura,
-        // il fix risolto a mano e il PRIMO ciclo d'entrata alle righe con StableKey coincidente.
-        //
-        // First-wins sulla chiave, in ordine di Id. La StableKey esclude di proposito la cifra della revisione,
-        // quindi un file .sid che contiene DUE revisioni della stessa SID (es. ROBO1H e ROBO2H) produce due righe
-        // con la stessa chiave: costruire qui un dizionario a chiave unica lanciava «An item with the same key has
-        // already been added» al primo REIMPORT di quell'aeroporto. Il primo import passava (tabella vuota, nessuna
-        // chiave da indicizzare) e ogni successivo fallliva, quindi l'import restava rotto per sempre su quegli
-        // scali — in silenzio, perché il job periodico logga l'errore per-ICAO a Debug. Misurato sul DB di
-        // sviluppo: 20 coppie così su 1478 righe, tra cui LIRF, LIMC, LIME, LIBG, LIED, LIEO, LIPQ.
+        // Le importate dell'import precedente, per riapplicare alle righe nuove quel che la sorgente non conosce:
+        // priorità e forzatura, il fix risolto a mano, gli arricchimenti, le decisioni dello staff e il PRIMO ciclo
+        // d'entrata. Come si abbinano lo dice `Riaggancia`.
         var priorRows = await _db.AirportProcedures.AsNoTracking()
-            .Where(x => x.AirportId == id && x.Kind == kind && x.StableKey != null)
+            .Where(x => x.AirportId == id && x.Kind == kind && x.IsImported)
             .OrderBy(x => x.Id)
             .ToListAsync(ct);
-        var prior = new Dictionary<string, PriorSid>();
-        foreach (var x in priorRows)
-            prior.TryAdd(x.StableKey!,
-                new PriorSid(x.Priority, x.ForcePublished, x.SourceAiracCycle, x.Fix, x.NeedsFixReview, x.Name, x.Transition, x.Type,
-                    x.InitialClimb, x.Cat, x.Wtc, x.Condition, x.InitialClimbByApp,
-                    x.IsHidden, x.FixOverride, x.TransitionOverride));
+        var abbinate = Riaggancia(icao, kind, priorRows, rows);
 
         _db.AirportProcedures.RemoveRange(_db.AirportProcedures
             .Where(x => x.AirportId == id && x.Kind == kind && x.IsImported));
@@ -348,7 +336,8 @@ public sealed class EfAirportRepository : IAirportRepository
         for (var i = 0; i < rows.Count; i++)
         {
             var r = rows[i];
-            var found = prior.TryGetValue(r.StableKey, out var p);
+            var p = abbinate[i];
+            var found = p is not null;
 
             // `airacCycle` è il ciclo DAL QUALE la riga vale, deciso da SidStampCycle su quel che la sorgente
             // dichiara (carta §AW2). Se il contenuto è invariato dall'import precedente si conserva il PRIMO:
@@ -386,17 +375,77 @@ public sealed class EfAirportRepository : IAirportRepository
     }
 
     // "Contenuto invariato" = stessi campi che definiscono la SID lato sorgente (codice con revisione, transition, tipo).
-    // Fix/pista fanno parte della StableKey, quindi qui non si riconfrontano.
-    private static bool ContentUnchanged(PriorSid p, ImportedProcedure r) =>
+    // Prefisso e pista fanno parte della chiave, quindi qui non si riconfrontano.
+    private static bool ContentUnchanged(AirportProcedure p, ImportedProcedure r) =>
         string.Equals(p.Name, r.Name.Trim(), StringComparison.Ordinal)
         && string.Equals(p.Transition ?? "", r.Transition ?? "", StringComparison.Ordinal)
         && string.Equals(p.Type ?? "", r.Type ?? "", StringComparison.Ordinal);
 
-    // Snapshot dell'import precedente per StableKey (materializzato client-side da ToDictionaryAsync).
-    private sealed record PriorSid(int? Priority, bool ForcePublished, string? SourceAiracCycle,
-        string? Fix, bool NeedsFixReview, string Name, string? Transition, string? Type,
-        string? InitialClimb, string? Cat, string? Wtc, string? Condition, bool InitialClimbByApp,
-        bool IsHidden, string? FixOverride, string? TransitionOverride);
+    /// <summary>
+    /// Per ogni riga nuova, la riga dell'import precedente che ne è la continuazione (o null: è nata adesso).
+    ///
+    /// <para>🔴 <b>La chiave si RICALCOLA dai dati delle righe, non si legge quella salvata</b> (U-005, revisione
+    /// totale 3). Quella salvata fino al 27 settembre 2026 conteneva il punto risolto, e un alias nuovo bastava a
+    /// staccare la riga dal suo passato. Ricalcolata con <see cref="Sectorfile.AuroraSectorfileParser.ChiaveStabile"/>
+    /// sul nome, la transition e la pista, vale anche per le righe scritte nel formato vecchio: niente migrazione.</para>
+    ///
+    /// <para>🔴 <b>Una riga vecchia si abbina a UNA riga nuova, in tre passi</b> (U-004). La chiave esclude la cifra
+    /// della revisione, e nei file ci sono coppie di procedure diverse che la condividono e convivono (ROBO1H/ROBO5H
+    /// a LIBG, XIB5A-OKU5R/OKU6A a LIRF, VOG1K/VOG1S a LIME). Col first-wins di prima la seconda della coppia
+    /// ereditava le decisioni della prima e, confrontata col nome della prima, prendeva il ciclo nuovo a ogni giro:
+    /// restava fuori dalla pagina pubblica per dieci-dodici giorni a ogni ciclo. Ora:</para>
+    /// <list type="number">
+    ///   <item><b>stesso nome</b>: è la stessa procedura, invariata;</item>
+    ///   <item><b>stessa radice del nome</b> (le cifre non contano: <c>XIB?A-OKU?R</c>): la stessa procedura
+    ///         rivista, senza confonderla con la sorella che ha un'altra transition;</item>
+    ///   <item><b>stessa chiave</b>: la revisione nuova di una procedura il cui nome è cambiato di più.</item>
+    /// </list>
+    /// <para>Le righe vecchie si prendono in ordine di Id: a parità, l'esito è lo stesso a ogni giro.</para>
+    ///
+    /// <para>Prima ancora (luglio 2026) il dizionario a chiave unica lanciava «An item with the same key has already
+    /// been added» al primo reimport degli scali con queste coppie: una lista, qui, non ha quel problema.</para>
+    /// </summary>
+    private static AirportProcedure?[] Riaggancia(string icao, ProcedureKind kind,
+        IReadOnlyList<AirportProcedure> vecchie, IReadOnlyList<ImportedProcedure> nuove)
+    {
+        string Chiave(string nome, string? transition, string? pista) =>
+            Sectorfile.AuroraSectorfileParser.ChiaveStabile(kind, icao, nome, transition, pista);
+
+        var v = vecchie.Select(x => (Riga: x, Chiave: Chiave(x.Name, x.Transition, x.Runway),
+            Nome: x.Name.Trim().ToUpperInvariant())).ToList();
+        var n = nuove.Select(x => (Chiave: Chiave(x.Name, x.Transition, x.Runway),
+            Nome: x.Name.Trim().ToUpperInvariant())).ToList();
+        var usata = new bool[v.Count];
+        var esito = new AirportProcedure?[n.Count];
+
+        var passi = new Func<string, string, bool>[]
+        {
+            (a, b) => string.Equals(a, b, StringComparison.Ordinal),
+            (a, b) => string.Equals(Radice(a), Radice(b), StringComparison.Ordinal),
+            (_, _) => true,
+        };
+        foreach (var stessa in passi)
+            for (var i = 0; i < n.Count; i++)
+            {
+                if (esito[i] is not null) continue;
+                for (var j = 0; j < v.Count; j++)
+                {
+                    if (usata[j] || !string.Equals(v[j].Chiave, n[i].Chiave, StringComparison.Ordinal)) continue;
+                    if (!stessa(v[j].Nome, n[i].Nome)) continue;
+                    esito[i] = v[j].Riga;
+                    usata[j] = true;
+                    break;
+                }
+            }
+        return esito;
+    }
+
+    /// <summary>Il nome senza le cifre delle revisioni: <c>XIB5A-OKU6A</c> → <c>XIB?A-OKU?A</c>.</summary>
+    private static string Radice(string nome) =>
+        string.Create(nome.Length, nome, (span, s) =>
+        {
+            for (var k = 0; k < s.Length; k++) span[k] = char.IsAsciiDigit(s[k]) ? '?' : s[k];
+        });
 
     public async Task<int> SetImportedSidsHiddenAsync(string icao, IReadOnlyCollection<int> sidIds, bool hidden, CancellationToken ct = default)
     {

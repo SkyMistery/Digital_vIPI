@@ -47,6 +47,24 @@ public class AuroraSectorfileParserTests
         Assert.NotEqual(g7.StableKey, j7.StableKey);      // 7G e 7J distinte
     }
 
+    /// <summary>
+    /// 🔴 U-005 (revisione totale 3): la chiave conteneva il fix RISOLTO, che dipende dal catalogo e dagli alias.
+    /// Creare un alias (o un catalogo che cambia) cambiava la chiave, e al reimport la riga rinasceva nuda: senza
+    /// priorità, forzatura, «nascosta», WTC, IC, e col ciclo d'entrata nuovo. La chiave si fa col prefisso grezzo
+    /// del codice, che la risoluzione non tocca.
+    /// </summary>
+    [Fact]
+    public void StableKey_Non_Dipende_Da_Come_Si_Risolve_Il_Punto()
+    {
+        var dalCatalogo = Parse("LIRN;25;SOSA5A;;;;;1;").Single();
+        var dallAlias = Parse("LIRN;25;SOSA5A;;;;;1;", new Dictionary<string, string> { ["SOSA"] = "SOSIV" }).Single();
+
+        Assert.Equal("SOSAK", dalCatalogo.Fix);
+        Assert.Equal("SOSIV", dallAlias.Fix);
+        Assert.Equal(dalCatalogo.StableKey, dallAlias.StableKey);
+        Assert.Equal("LIRN|SOSA|A||25", dalCatalogo.StableKey);
+    }
+
     [Fact]
     public void SidTrans_Uses_Transition_Fix_From_Col6()
     {

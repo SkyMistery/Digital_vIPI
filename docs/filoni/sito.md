@@ -276,5 +276,28 @@
   - **Prova dal vivo** (:5199, `Circuiti__TettoAnonimi=1`): prima scheda interattiva; seconda disegnata ma senza
     circuito (503 alla negoziazione), nessuna ricarica da sola in 8 s, modale di riconnessione spenta; chiusa la
     prima, la seconda ricaricata si collega. Nel log la riga «Tetto dei circuiti anonimi raggiunto (1)», zero `fail:`.
+- ✅ **S14** lotto **L4 «Procedure e sectorfile»**, fette A e B (via del committente il 27-set): U-004, U-005, U-032,
+  U-033. Solo `Vipi.Infrastructure`: **nessuna migrazione** (la registro la prevedeva per U-005: non serve), niente
+  codice comune.
+  - **U-005** (la chiave conteneva il punto RISOLTO: un alias nuovo o un catalogo cambiato staccavano la riga dal
+    suo passato, che rinasceva senza priorità, forzatura, WTC, IC, «nascosta» e col ciclo nuovo):
+    `AuroraSectorfileParser.ChiaveStabile` usa il prefisso GREZZO del codice. E il riaggancio non si fida della
+    chiave salvata: la **ricalcola** dai dati delle righe vecchie (nome, transition, pista), quindi le chiavi scritte
+    nel formato di prima si riscrivono da sole al primo reimport.
+  - **U-004** (coppie di procedure diverse con la stessa chiave: la seconda ereditava le decisioni della prima e si
+    ritimbrava a ogni giro): `EfAirportRepository.Riaggancia`, una riga vecchia per una nuova, in tre passi: nome
+    esatto, radice del nome (cifre come `?`: `XIB?A-OKU?R` non è `XIB?A-OKU?A`), chiave. ⚠️ Cambia di proposito la
+    regola «first-wins» che un test teneva ferma: ora ogni riga tiene le sue decisioni (test riscritto).
+  - **U-032** (il «Reimporta» usava il ciclo dichiarato rimasto in cache dal giro prima): la risposta della sorgente
+    in `SectorfileCache` vale 5 minuti (un giro intero, non un tasto premuto ore dopo).
+  - **U-033** (indice `ITALY.isc` non-2xx: catalogo ridotto a 3 file su 8 tenuto in cache in silenzio): il ripiego,
+    e un catalogo vuoto, si consegnano ma non si tengono; il chiamante dopo riprova l'indice.
+  - **Test**: Infrastructure 1628 → **1633** (net8 e net10). Rossi sul codice di prima: chiave uguale con e senza
+    alias; decisioni per riga con chiave condivisa; nessun ritimbro nella coppia XIB5A-OKU5R/OKU6A; decisioni
+    conservate col punto risolto in un altro modo; ciclo riletto dopo 6 minuti; catalogo completo dopo un 503.
+  - **Prova dal vivo** (copia del DB di sviluppo, import vero da GitHub, ciclo dichiarato 2610, catalogo 3744 punti
+    da 8 file): 59 scali, 2354 righe (1503 SID + 851 STAR). Arricchimenti tutti conservati (WTC 69, IC 43, priorità 2,
+    nascoste 3, forzate 83, come prima). ROBO5H (LIBG) e XIB5A-OKU6A (LIRF) restano al 2608 e non passano al 2610.
+    Chiavi riscritte col prefisso grezzo (`LIBG|ROBO|H||17`). Secondo giro: le 2354 righe identiche al primo.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

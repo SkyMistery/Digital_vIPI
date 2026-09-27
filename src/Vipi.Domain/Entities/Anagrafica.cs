@@ -735,7 +735,7 @@ public class AirportProcedure
     public bool IsImported { get; set; }
     /// <summary>Ordine di preferenza tra le SID dello stesso punto (fix). Impostato a mano, persiste tra import per StableKey.</summary>
     public int? Priority { get; set; }
-    /// <summary>Identità stabile della SID (ICAO|fix|lettera|transition|pista), esclusa la cifra della revisione. Per ri-applicare priorità/pubblicazione tra import.</summary>
+    /// <summary>Identità stabile della SID (ICAO|prefisso grezzo|lettera|transition|pista), esclusa la cifra della revisione: la scrive l'import, ma il riaggancio la ricalcola dai dati della riga (U-005, revisione 3).</summary>
     public string? StableKey { get; set; }
     /// <summary>
     /// Ciclo AIRAC (YYNN) <b>dal quale la riga è in vigore</b>. Governa la pubblicazione differita:

@@ -19,6 +19,10 @@ namespace Vipi.Infrastructure.Sectorfile;
 /// </summary>
 public sealed class SectorfileCache
 {
+    private readonly TimeProvider _orologio;
+
+    public SectorfileCache(TimeProvider? orologio = null) => _orologio = orologio ?? TimeProvider.System;
+
     private readonly SemaphoreSlim _navGate = new(1, 1);
     private readonly SemaphoreSlim _twrGate = new(1, 1);
     private readonly SemaphoreSlim _secGate = new(1, 1);
@@ -34,16 +38,28 @@ public sealed class SectorfileCache
     private readonly ConcurrentDictionary<string, MvaChart> _mvaCharts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Il catalogo dei punti, caricato una volta sola per processo.</summary>
+    public Task<NavaidCatalog> GetNavaidsAsync(
+        Func<CancellationToken, Task<NavaidCatalog>> load, CancellationToken ct = default) =>
+        GetNavaidsAsync(async t => (await load(t), true), ct);
+
+    /// <summary>
+    /// Il catalogo dei punti, tenuto <b>solo se chi lo carica dice che è completo</b>.
+    ///
+    /// <para>🔴 U-033 (revisione totale 3): un catalogo ridotto — l'indice che risponde 503 e il ripiego sui tre
+    /// file di configurazione, 1387 nomi invece di 3745 — restava qui per tutto il giro e per ogni «Reimporta»,
+    /// senza che nessuno sapesse che era ridotto. Ora si consegna a chi l'ha chiesto e non si tiene: il chiamante
+    /// dopo riprova la strada intera.</para>
+    /// </summary>
     public async Task<NavaidCatalog> GetNavaidsAsync(
-        Func<CancellationToken, Task<NavaidCatalog>> load, CancellationToken ct = default)
+        Func<CancellationToken, Task<(NavaidCatalog Catalogo, bool DaTenere)>> load, CancellationToken ct = default)
     {
         if (Volatile.Read(ref _navaids) is { } hit) return hit;
         await _navGate.WaitAsync(ct);
         try
         {
             if (Volatile.Read(ref _navaids) is { } cached) return cached;   // caricato da un altro chiamante durante l'attesa
-            var loaded = await load(ct);
-            Volatile.Write(ref _navaids, loaded);
+            var (loaded, daTenere) = await load(ct);
+            if (daTenere) Volatile.Write(ref _navaids, loaded);
             return loaded;
         }
         finally { _navGate.Release(); }
@@ -115,23 +131,39 @@ public sealed class SectorfileCache
     /// come gli altri e si distingue dal «non ancora chiesto», che è il <c>null</c> del campo. Se la sorgente
     /// ha risposto 403, richiederglielo altre trentanove volte nello stesso giro dà trentanove 403.</para>
     /// </summary>
+    ///
+    /// <para>🔴 <b>Ma vale pochi minuti, non per sempre</b> (U-032, revisione totale 3). Solo il giro automatico
+    /// svuota questa cache, e il tasto «Reimporta» dell'editor non passa di lì: la divisione pubblicava il
+    /// changelog del ciclo nuovo con le SID riviste, un editor premeva il tasto prima del giro, e le SID nuove
+    /// prendevano il ciclo VECCHIO — pubbliche subito, e per sempre, perché a contenuto invariato si conserva il
+    /// primo timbro. Cinque minuti bastano a un giro intero (una chiamata per giro, non una per scalo) e sono
+    /// pochi per un tasto premuto dopo.</para>
+    /// </summary>
     public async Task<SidSourceRelease> GetSidSourceReleaseAsync(
         Func<CancellationToken, Task<SidSourceRelease>> load, CancellationToken ct = default)
     {
-        if (Volatile.Read(ref _sidStamp) is { } hit) return hit;
+        if (Fresca(Volatile.Read(ref _sidStamp)) is { } hit) return hit;
         await _stampGate.WaitAsync(ct);
         try
         {
-            if (Volatile.Read(ref _sidStamp) is { } cached) return cached;
+            if (Fresca(Volatile.Read(ref _sidStamp)) is { } cached) return cached;
             var loaded = await load(ct);
-            Volatile.Write(ref _sidStamp, loaded);
+            Volatile.Write(ref _sidStamp, new Timbro(loaded, _orologio.GetUtcNow()));
             return loaded;
         }
         finally { _stampGate.Release(); }
     }
 
+    /// <summary>Quanto vale la risposta della sorgente delle SID. Vedi <see cref="GetSidSourceReleaseAsync"/>.</summary>
+    public static readonly TimeSpan DurataDelTimbro = TimeSpan.FromMinutes(5);
+
+    private SidSourceRelease? Fresca(Timbro? t) =>
+        t is not null && _orologio.GetUtcNow() - t.Quando < DurataDelTimbro ? t.Valore : null;
+
+    private sealed record Timbro(SidSourceRelease Valore, DateTimeOffset Quando);
+
     private readonly SemaphoreSlim _stampGate = new(1, 1);
-    private SidSourceRelease? _sidStamp;
+    private Timbro? _sidStamp;
 
     /// <summary>
     /// Butta via le fette: il prossimo chiamante riscarica.
