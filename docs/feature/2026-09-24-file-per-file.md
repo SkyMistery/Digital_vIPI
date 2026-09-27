@@ -11,7 +11,8 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
 
 - **Revisione del 27 settembre**: una sintassi e un catalogo dei metadati (**§M**, fa fede sugli esempi), i generatori
   coi parametri (§M-G), voci nuove D9 J7 Q8 (limiti verticali), M9 (pista), P11 Q2d (SID, IAP), F8 S6 (rotte VFR),
-  R6 (taxiway); proposte da confermare e correzioni dei dati in **§R**; M10 (dati dello scalo) da scegliere.
+  R6 (taxiway), M10 (dati dello scalo), H10 (confine dello scalo ↔ erba); proposte da confermare e correzioni dei
+  dati in **§R**.
 - **Prossimo**: il **lotto «Subito»** — le voci «Subito» raggruppate per meccanismo comune (§C), in slice e in un
   ordine, in una carta a parte da far leggere al committente prima di cominciare.
 - **Prove in Aurora da fare presto** (committente, in rami di prova): T3 ordine dei simboli · R4 startup col tasto HOLD ·
@@ -20,7 +21,7 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
 - **Pulizie decise** (F4, in un ramo): `limw.pol`, `test.artcc`, `limc_star`/`lirf_star`, SID ripetute e campi spostati,
   ICAO sbagliati, `LIMM_WN4/EN4_CTR` nei trasferimenti; `.fix` vuoti più avanti.
 - **Da chiedere**: `LL` di `lied.str`; configurazioni di Milano 2.1/2.2/3; coordinate in una forma sola anche per
-  `.vfi`/`.tfl` (R-7); `LIMJ_APP`/`LIBB_APP` (R-8); quali dati dello scalo (M10).
+  `.vfi`/`.tfl` (R-7); `LIMJ_APP`/`LIBB_APP` (R-8); le proposte di §R.
 - **Regole trasversali**: niente commenti in coda · fonte primaria, mai vIPI · `PREFS` solo lo stretto necessario ·
   rami di prova, niente parassiti · coordinate col punto.
 
@@ -361,6 +362,7 @@ prestazioni**.
 | H7 | **Carta AIP sopra la mappa**: PDF (AD 2.24) → immagine dentro l'app; **aggancio su 3 punti** noti (soglie e ARP dal testo dell'AIP, AD 2.12/2.2) con lo **scarto misurato** (carta «not to scale» = scarto grande, detto subito); trasparenza regolabile, sotto le linee di oggi. Precisione attesa: carta 1:15 000-20 000, un tratto ≈ 5 m | F6 | ✅ deciso — stesso meccanismo del ricalco MVA (E10) |
 | H8 | **Disegnare sulla carta**: linee e poligoni col tipo, il nome, l'aggancio ai vertici vicini | F9 | ✅ deciso |
 | H9 | ~~OSM come base~~ | — | ❌ scartato: si continua a mano |
+| H10 | **Confine dello scalo legato al suo manto erboso**: il `//AD_BOUNDARY` del `.geo` (il confine, oggi di tipo `BUILDING`) e il `//AD_BOUNDARY_Polygon` del `.pol` (l'erba, `GRASS`) sono la **stessa forma** → una famiglia (`form=`, D5/I2): spostare il confine sposta l'erba. Controllo: confine senza erba o erba che non coincide col confine | Subito (famiglia) · F4 (adozione con le 1 585 coppie di I2) | ✅ deciso (committente, 27 settembre) |
 
 ## §9 — `GND_LAYOUT` (93 `.pol`, i riempimenti dei layout di terra)
 
@@ -559,7 +561,7 @@ F3-bis. Il CPDLC è comune.
 | M7 | Togliere `LIMM_WN4_CTR` e `LIMM_EN4_CTR` dai trasferimenti | F4, in un ramo | ✅ deciso |
 | M8 | Import di scali, piste (AD 2.2, AD 2.12) e posizioni dall'AIP, col confronto | F6 | ✅ deciso |
 | M9 | **Dati della pista in un posto solo**, sopra la riga del `.rw` (il record è la coppia: `//@"LIRN 06/24"`), letti da marcature (O2), prolungamenti (Q4), PAR (N2): `width`, `length` (m); per verso (§M regola 7) `NN.thr` soglia spostata (m), `NN.ils` (`CAT1`, `CAT2`, `CAT3`, `no`), distanze dichiarate `NN.tora` `NN.toda` `NN.asda` `NN.lda` (m, `NU` = non utilizzabile, come AD 2.13), **decolli dagli intermedi** `NN.int=B:2540,C:1893` (TWY:TORA in metri, nell'ordine dell'AD 2.13; es. LIRF `07.tora=NU 07.int=A:2983` = «decollo per 07 solo da A»), **lato del circuito VFR** `NN.circuit=L\|R` (AD 2.20/2.22: LIRN «virate a destra»), **limiti d'uso** `NN.dep=no` (niente decolli), `NN.arr=no` (niente atterraggi), `NN.vfronly=si` (solo VFR); tutta la pista: senza prefisso (`vfronly=si`). Le condizioni che il formato non dice (LIRN: codice E decolla solo per 06, atterra solo per 24) vanno in `note`. Forma dei decolli dagli intermedi scelta dall'agente su delega del committente | Subito (tag e scheda) · F6 (import AD 2.12-2.14, 2.20) | ✅ deciso (revisione 27 settembre) |
-| M10 | **Dati dello scalo** sopra la riga dell'`.ap` — proposta da AD 2 (letto LIRN e LIRF, 27 settembre), il committente sceglie quali: `magvar` (declinazione, `4E`, con l'anno `magvar.year=2025.0`; AD 2.2) · `refcode` (codice di riferimento Annesso 14, `4D`; AD 2.2 note) · `rff` (categoria antincendio, `8`; AD 2.6) · `traffic` (`IFR/VFR`, `VFR`; AD 2.2) · `pref` (pista preferenziale e vento in coda massimo, `pref=24 tailwind=10`; AD 2.20) · `curfew` (divieto notturno, `2200-0500` UTC; AD 2.20/2.21) · `ats` (orario della TWR, `H24`; AD 2.3) · `iata` (**non sta nell'AIP**: dal DB di IVAO, fonte primaria) | Subito (tag e scheda) · F6 (import) | 🟡 elenco da scegliere |
+| M10 | **Dati dello scalo** sopra la riga dell'`.ap` (proposti da AD 2 di LIRN e LIRF, scelti dal committente il 27 settembre): `magvar` (declinazione, `4E`, con l'anno `magvar.year=2025.0`; AD 2.2) · `refcode` (codice di riferimento Annesso 14, `4D`; AD 2.2 note) · `rff` (categoria antincendio, `8`; AD 2.6) · `traffic` (`IFR/VFR`, `VFR`; AD 2.2) · `pref` e `tailwind` (pista preferenziale e vento in coda massimo, `pref=24 tailwind=10`; AD 2.20) · `ats` (orario della TWR, `H24`; AD 2.3). **TA** (campo dell'`.ap`) e **IATA** dal **DB di IVAO**. ❌ `curfew` non serve | Subito (tag e scheda) · F6 (import da AIP e DB IVAO) | ✅ deciso |
 
 ## §14 — `PREFS` (15 `.cpr`, i profili delle posizioni ATC)
 
@@ -868,10 +870,10 @@ procedura** (`StrParser`). **Committente: una sintassi sola, questa.** Gli esemp
 10. **vIPI legge, non scrive** (committente, 27 settembre): i dati entrano dalla fonte primaria (DB IVAO, AIP) o a
     mano, e vIPI popolerà i suoi campi (initial climb, fix intero…) **leggendo i metadati del sector**. Supera la carta
     madre §8.2 («toccando una SID senza tag il Lab propone i valori che vIPI conosce già»): niente proposte da vIPI.
-11. **Valori scritti su ogni record, niente ereditarietà** (proposta dell'agente, da confermare): i «valori di gruppo
-    per pista» di P6 restano un **gesto** della scheda (scrivi su tutte le SID della pista), ma nel file ogni SID porta
-    i suoi. Un valore che vale «finché non si ripete» cambierebbe in silenzio spostando una SID, e vIPI dovrebbe
-    rifare la stessa regola.
+11. **Valori scritti su ogni record, niente ereditarietà** (proposta dell'agente, confermata dal committente il 27
+    settembre, per SID **e STAR**, e vale per ogni record): i «valori di gruppo per pista» di P6 e Q2b restano un
+    **gesto** della scheda (scrivi su tutte le procedure della pista), ma nel file ognuna porta i suoi. Un valore che
+    vale «finché non si ripete» cambierebbe in silenzio spostando una procedura, e vIPI dovrebbe rifare la stessa regola.
 
 ### Nome di un pezzo: commento o blocco (committente: tutti e due, con una regola)
 
@@ -902,7 +904,8 @@ procedura** (`StrParser`). **Committente: una sintassi sola, questa.** Gli esemp
 | `width`, `length`, `NN.thr`, `NN.ils`, `NN.tora` `NN.toda` `NN.asda` `NN.lda`, `NN.int`, `NN.circuit`, `NN.dep`, `NN.arr`, `NN.vfronly` | pista (`.rw`) | vedi M9 | M9 |
 | `code`, `kind`, `use`, `airlines`, `push`, `pushdir`, `apron` | stand (`.gts`) | vedi R2b | R2b |
 | `code`, `oneway` | taxiway (`.txi`) | codice massimo (`A`-`F`), senso unico (`oneway=E` = solo verso est) | R6 |
-| da scegliere | scalo (`.ap`) | proposta M10 | M10 |
+| `magvar`, `magvar.year`, `refcode`, `rff`, `traffic`, `pref`, `tailwind`, `ats` | scalo (`.ap`) | vedi M10 | M10 |
+| `form` | confine dello scalo (`.geo`) ↔ erba (`.pol`) | la stessa forma: bordo e manto erboso | H10 |
 
 ### §M-G — I generatori portano i loro parametri (committente: «assolutamente sì»)
 
@@ -939,7 +942,7 @@ e le misure fatte per controllarle.
 | R-6 | **Semplifica solo sui file globali** (G4): `.geo`/`.pol` di scalo (69 199 segmenti, 38 763 vertici) restano come sono, disegni fini | non era scritto | — |
 | R-7 | **Coordinate in una forma sola** per `.vfi`/`.tfl` (§C): era «da decidere» e non stava fra i «Da chiedere» | ora in testa | da chiedere |
 | R-8 | `LIMJ_APP` e `LIBB_APP` citati nei `.frq` e non definiti (M2): solo WN4/EN4 avevano una decisione (M7) | | da chiedere |
-| R-9 | TA = 0 in 66 scali di `itap.ap` (§13): la TA sta in AD 2.17 → dall'import M8 | misurato, mai deciso | F6 |
+| R-9 | TA = 0 in 66 scali di `itap.ap` (§13): ✅ **dal DB di IVAO** (committente, 27 settembre), come lo IATA (M10) | misurato, ora deciso | F6 |
 | R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 | trovati nelle misure, molti senza una correzione in elenco | F4 |
 
 Messe a posto in questa revisione: H5 chiusa da I2; P4, P5, H6 non sono mai esistite (numerazione).
