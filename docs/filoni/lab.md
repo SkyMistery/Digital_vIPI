@@ -4,6 +4,16 @@
 > [`come-si-lavora-in-parallelo.md`](come-si-lavora-in-parallelo.md). Storia fino al 23 settembre 2026:
 > `docs/lavori-aperti.md` §A71, §A113, §A115, §A116.
 
+## 27 settembre 2026 — revisione del giro dei file
+
+Prima del lotto «Subito» il committente ha chiesto di rileggere tutto il giro e le decisioni: cosa è stato valutato
+per un file e non per il gemello, e quali metadati ci sono. Trovato: gli esempi di tag della carta erano in quattro
+forme e il motore ne legge una (alcune avrebbero spezzato le STAR). Deciso: **una sintassi e un catalogo** (carta
+«file per file» §M), vIPI legge i metadati e non ne propone (supera carta madre §8.2), i generatori portano i loro
+parametri (§M-G), metadati nuovi per settori, pista (TORA dagli intermedi, circuito, limiti d'uso), IAP, SID, rotte
+VFR, taxiway. Proposte ancora da confermare e la lista delle correzioni dei dati: §R. Il «nomi con spazi nelle
+composte» qui sotto è chiuso da §M regola 5. Nessun codice toccato.
+
 ## Dove siamo — 26 settembre 2026 (il committente chiude la chat e riorganizza il lavoro)
 
 **Nessun codice in sospeso.** `lab/f3` pulito e spinto; ultimo codice `e06d6f20` (CI verde), dopo solo documenti.

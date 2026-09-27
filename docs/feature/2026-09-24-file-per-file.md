@@ -9,6 +9,9 @@
 **Giro finito**: §1-§22 coprono tutte le cartelle di `Include\IT` e tutti i tipi di file della radice, ognuno con
 formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e fase. §C raccoglie i meccanismi comuni.
 
+- **Revisione del 27 settembre**: una sintassi e un catalogo dei metadati (**§M**, fa fede sugli esempi), i generatori
+  coi parametri (§M-G), voci nuove D9 J7 Q8 (limiti verticali), M9 (pista), P11 Q2d (SID, IAP), F8 S6 (rotte VFR),
+  R6 (taxiway); proposte da confermare e correzioni dei dati in **§R**; M10 (dati dello scalo) da scegliere.
 - **Prossimo**: il **lotto «Subito»** — le voci «Subito» raggruppate per meccanismo comune (§C), in slice e in un
   ordine, in una carta a parte da far leggere al committente prima di cominciare.
 - **Prove in Aurora da fare presto** (committente, in rami di prova): T3 ordine dei simboli · R4 startup col tasto HOLD ·
@@ -16,7 +19,8 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
   organizzazioni dei file di scalo A-E.
 - **Pulizie decise** (F4, in un ramo): `limw.pol`, `test.artcc`, `limc_star`/`lirf_star`, SID ripetute e campi spostati,
   ICAO sbagliati, `LIMM_WN4/EN4_CTR` nei trasferimenti; `.fix` vuoti più avanti.
-- **Da chiedere**: `LL` di `lied.str`; configurazioni di Milano 2.1/2.2/3.
+- **Da chiedere**: `LL` di `lied.str`; configurazioni di Milano 2.1/2.2/3; coordinate in una forma sola anche per
+  `.vfi`/`.tfl` (R-7); `LIMJ_APP`/`LIBB_APP` (R-8); quali dati dello scalo (M10).
 - **Regole trasversali**: niente commenti in coda · fonte primaria, mai vIPI · `PREFS` solo lo stretto necessario ·
   rami di prova, niente parassiti · coordinate col punto.
 
@@ -115,10 +119,10 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | B1 | **Un blocco per aerovia**: `//@"L81"` … `//@END "L81"`, in cima le sue etichette, poi il tracciato. Nel Lab la vista per aerovia (tracciato + etichette + tratti) c'è anche prima di riorganizzare il file | Subito (la vista) | ✅ deciso |
-| B2 | **Livelli e verso PER TRATTO**: ogni tratto ha il suo verso, la sua quota minima e massima (così nel PDF), scritti **come nel PDF, in piedi**. Tag `//@` sul tratto; Aurora li legge come commenti. Scheda coi tratti uno per uno | Subito (tag e scheda) | ✅ deciso |
+| B2 | **Livelli e verso PER TRATTO**: ogni tratto ha il suo verso, la sua quota minima e massima (così nel PDF), scritti **come nel PDF, in piedi**. Tag `//@@` sul punto che apre il tratto (`dir`, `lower`, `upper`, §M); Aurora li legge come commenti. Scheda coi tratti uno per uno | Subito (tag e scheda) | ✅ deciso |
 | B3 | **Nascondi / mostra**: commenta con `//` ogni riga del blocco, e al contrario; nascosta resta nell'elenco, grigia | Subito — **comune** (§C) | ✅ deciso |
 | B4 | **Etichette calcolate dai tracciati**: una a metà di ogni segmento, coi nomi delle aerovie che lo condividono; la condivisa nel blocco della prima in ordine alfabetico. Sistema le 22 senza etichetta e i nomi «U». Serve già a B14 | Subito (anticipata da F8 per B14) | ✅ deciso |
-| B5 | **Aerovie manuali**: `//@"KY139" manuale` → l'import dai PDF non la tocca né la toglie. **Ma l'utente può sempre cancellarla** dall'app se lo sceglie | Subito (il tag) · F6 (il rispetto nell'import) | ✅ deciso |
+| B5 | **Aerovie manuali**: `//@"KY139" locked=si` (§M) → l'import dai PDF non la tocca né la toglie. **Ma l'utente può sempre cancellarla** dall'app se lo sceglie | Subito (il tag) · F6 (il rispetto nell'import) | ✅ deciso |
 | B6 | **Interruzioni**: gesto «spezza qui / unisci» su un punto (qui scrive `BREAK`, negli `.artcc` `DUMMY`) | Subito — **comune** (§C) | ✅ deciso |
 | B7 | **Punti**: sequenza dei fix con suggerimenti mentre si scrive, «inserisci un punto qui», «inverti» | Subito — **comune** (§C, con A2) | ✅ deciso |
 | B8 | **Import da PDF** ENR 3.1 (rotte ATS di bassa): punti, per tratto verso e quote minima/massima → i tag di B2 | F6 | ✅ deciso |
@@ -202,10 +206,11 @@ poligoni aperti.
 | D2 | **Selettore di colori** vero, più i nomi di `colors.def` | Subito — comune | ✅ deciso |
 | D3 | **Mappa coi colori di Aurora** dallo schema scelto (`LIRR_RDR_V1.0.clr`), per tutti gli strati; settori dinamici solo bordo | Subito — comune | ✅ deciso |
 | D4 | **Settore italiano legato ai `.frq`**: ogni sua posizione è citata in un `.frq`, come posizione o fra i trasferimenti (anche non primaria). Esteri esclusi | Subito | ✅ deciso — «la cosa più importante» |
-| D5 | **Famiglie di forme**: tag `//@forma="NOME"` (riga propria) uguale in ogni copia; la famiglia la trova il Lab. Modifica propagata alle copie uguali, «allinea anche questa» per le già diverse, «copia la forma da…», avviso «copie di forma diverse». Confronto come ANELLO (inizio e verso qualsiasi), formati diversi | Subito — comune | ✅ deciso: **opzione B** (l'opzione A, link verso gli altri file, scartata: N² link, si rompono coi nomi dei file, le copie si perdono di vista) |
+| D5 | **Famiglie di forme**: chiave `form=NOME` nella dichiarazione del settore (§M) uguale in ogni copia; la famiglia la trova il Lab. Modifica propagata alle copie uguali, «allinea anche questa» per le già diverse, «copia la forma da…», avviso «copie di forma diverse». Confronto come ANELLO (inizio e verso qualsiasi), formati diversi | Subito — comune | ✅ deciso: **opzione B** (l'opzione A, link verso gli altri file, scartata: N² link, si rompono coi nomi dei file, le copie si perdono di vista) |
 | D6 | **Adozione**: il Lab propone le famiglie trovate (120 identiche), il committente conferma, i tag si scrivono in un ramo. Le 12 divergenti si sistemano **quando il sistema è pronto** | F4 | ✅ deciso |
 | D7 | Include rotti/doppi negli `.isc`: controllo | Subito — comune (poi correzione in F4) | ✅ deciso |
 | D8 | Copie parziali (confini in comune fra settori) | F8 «saldatura bordi» | come da piano |
+| D9 | **Limiti verticali e classe** del settore (`lower`, `upper`, `class`, §M), come le aree P/R/D (G5) e le aerovie (B2); nella scheda e sulla mappa | Subito (tag e scheda) · F6 (import, R-2) | ✅ deciso (revisione 27 settembre) |
 
 ## §6 — `ENRMVA` (4 `.mva`, uno per ACC; sezione `[MVAENR]`)
 
@@ -236,7 +241,7 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| E1 | **Zona = blocco** `//@zona="Torino"` … `//@END`: etichetta con la quota + i suoi tratti; soprannome facoltativo, **anche ripetuto** (due zone possono chiamarsi uguali). Cosa sta nella zona lo decide l'utente; il Lab propone i tratti intorno all'etichetta | Subito | ✅ deciso |
+| E1 | **Zona = blocco** `//@"LIMM" zone="Torino"` … `//@END "LIMM"` (§M): etichetta con la quota + i suoi tratti; soprannome facoltativo, **anche ripetuto** (due zone possono chiamarsi uguali). Cosa sta nella zona lo decide l'utente; il Lab propone i tratti intorno all'etichetta | Subito | ✅ deciso |
 | E2 | **Scheda della zona**: quota col significato («25 = 2500 ft»), valori speciali da elenco, font | Subito | ✅ deciso |
 | E3 | **Gruppo scritto dal Lab**: il 5° campo di ogni `T` nuova è il gruppo del file (ACC), **anche sulle righe separatrici** (`T;DUMMY;…;LIRR;`); avviso se manca o è diverso | Subito | ✅ deciso |
 | E4 | Tipo fisso, punti coi suggerimenti, nascondi/mostra, spezza/unisci | Subito — comuni | ✅ deciso |
@@ -288,6 +293,7 @@ quota mostrata, font), `T` traccia. Sono le MVA **di ACC**; quelle di aeroporto 
 | F5 | **Prova in Aurora**: i tre file di `ENRVFI` sotto `[VFRFIX]` invece di `[VFRENR]` — si vedono? come si accendono senza un aeroporto? | F4, in un ramo | 🟡 da provare |
 | F6 | Controllo `.isc`: file incluso sotto una sezione che non ha la sua forma | Subito — comune (controllo degli `.isc`) | ✅ deciso |
 | F7 | Sistemare i 9 gemelli diversi, il refuso di `lict.vfi`, i 7 orfani, i 2 doppi | quando il sistema è pronto | da fare coi dati |
+| F8 | **Rotte VFR** (`[VFRENR]`, `[VFRROUTE]`, `[VFRRTEENR]`): quota massima/minima e verso per tratto, come le aerovie (`//@@` con `dir`, `lower`, `upper`, §M) | Subito (tag e scheda) · F6 (import, R-2) | ✅ deciso (revisione 27 settembre) |
 
 ## §8 — `GEO`: i file globali (`itgeo.geo`, `italy.danger`, `italy.prohibit`, `italy.restrict`)
 
@@ -322,7 +328,7 @@ prestazioni**.
 | G2 | **Scheda dell'area**: nome (6° campo), tipo dal file, commento come descrizione, vertici; area nuova con «incolla da testo AIP» (archi, convertitore di F1) | Subito | ✅ deciso |
 | G3 | Controlli: riga illeggibile (con la correzione proposta per lo spazio al posto del `;`), segmento doppio/nullo, catena rotta, area non chiusa | Subito | ✅ deciso |
 | G4 | **Semplifica con tolleranza** (costa 100 m, aree 50 m di partenza), col conto di quanto toglie e la mappa prima/dopo. 🔴 Sulle aree i vertici dichiarati dall'AIP si tengono sempre: si semplificano solo gli archi (pulito con G5) | F8 | ✅ deciso (tolleranze confermate) |
-| G5 | **Quote e forme delle aree dalla fonte primaria**: DB di IVAO o PDF dell'AIP (ENR 5.1), archi rigenerati alla densità scelta; quote come metadato `//@area="P1" da=… a=…`. 🔴 **Mai da vIPI**: niente riferimenti circolari, dati solo dalla fonte primaria | F6 | ✅ deciso |
+| G5 | **Quote e forme delle aree dalla fonte primaria**: DB di IVAO o PDF dell'AIP (ENR 5.1), archi rigenerati alla densità scelta; quote come metadato `//@"P1" lower=… upper=…` (§M). 🔴 **Mai da vIPI**: niente riferimenti circolari, dati solo dalla fonte primaria | F6 | ✅ deciso |
 | G6 | **Adozione in un ramo**: le 86 righe corrette, via doppi e nulli, **coordinate tutte col punto** (`N045.00.00.000`) | F4 | ✅ deciso |
 
 ## §8-bis — `GEO`: i `.geo` degli aeroporti
@@ -378,7 +384,7 @@ prestazioni**.
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | I1 | **Scheda del poligono** (come D1): riempimento e bordo da `colors.def` o col selettore, anche `#AARRGGBB` con l'avviso su *Smooth Drawing* | Subito | ✅ deciso |
-| I2 | **Una forma, uscite a scelta**: una forma si disegna/modifica una volta; due caselle, **«bordo» (`.geo`, col suo tipo) e «riempimento» (`.pol`, col suo colore)** — tutte e due o una sola (linea di centro solo `.geo`, erba senza bordo solo `.pol`); legate come famiglia (`//@forma=`, D5). Adozione delle 1 585 coppie in un ramo | Subito (famiglie) + F4 (adozione) | ✅ deciso |
+| I2 | **Una forma, uscite a scelta**: una forma si disegna/modifica una volta; due caselle, **«bordo» (`.geo`, col suo tipo) e «riempimento» (`.pol`, col suo colore)** — tutte e due o una sola (linea di centro solo `.geo`, erba senza bordo solo `.pol`); legate come famiglia (`form=`, D5). Adozione delle 1 585 coppie in un ramo | Subito (famiglie) + F4 (adozione) | ✅ deciso |
 | I3 | **Ordine di disegno** (vince l'ultimo): erba → cemento → piazzale → taxiway → pista → edifici → buchi; il Lab lo mostra e mette un poligono nuovo al posto del suo tipo | Subito | ✅ deciso |
 | I4 | Controlli: poligono con meno di 3 vertici (43), colore sconosciuto, `.pol` senza `.geo` dello scalo (3) | Subito | ✅ deciso |
 | I5 | L'import/export KML (H4) produce tutte e due le uscite | F6 | ✅ deciso |
@@ -439,7 +445,8 @@ si caricano da soli se lo scalo è in `[AIRPORTS]`** → da verificare nelle pro
 | J3 | **Famiglie con `DYNAMIC_SEC`** (D5): settore colorato e confine restano uguali | Subito + F4 (adozione) | ✅ deciso |
 | J4 | Controlli: commento in coda (avviso). Nome in più blocchi **non** è un errore (pezzi dello stesso settore) | Subito | ✅ deciso |
 | J5 | **Il file giusto per un settore nuovo**: `…_CTR` → `HI_AIRSPACE`, `…_APP` → `LOW_AIRSPACE`; avviso se un settore sta nell'altro | Subito | ✅ deciso |
-| J6 | **Configurazioni composte**: `//@"RR CONF2" composta=RR NE,RR TS` — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
+| J6 | **Configurazioni composte**: `//@"RR CONF2" compose="RR NE","RR TS"` (§M) — la forma della configurazione si calcola dall'unione dei settori (come le mappe composte di F3-bis); le regole di Roma (EW mai diviso, SU solo con ES) diventano controlli. 🔴 L'unione ha bisogno di confini che coincidono (saldatura bordi) | F8 | ✅ deciso (dipende dalla saldatura) |
+| J7 | **Limiti verticali e classe** dei settori (come D9); le configurazioni composte li ricavano dalle parti | Subito (tag e scheda) | ✅ deciso (revisione 27 settembre) |
 
 ## §11 — `LOW_AIRSPACE` (15 `.lartcc`, sezione `[ARTCC LOW]`)
 
@@ -551,6 +558,8 @@ F3-bis. Il CPDLC è comune.
 | M6 | Percorso di include inesistente (`DYNAMIC_SEC\GCI.tfl`): **avviso**, correzione non urgente | Subito (controllo) + F4 | ✅ deciso |
 | M7 | Togliere `LIMM_WN4_CTR` e `LIMM_EN4_CTR` dai trasferimenti | F4, in un ramo | ✅ deciso |
 | M8 | Import di scali, piste (AD 2.2, AD 2.12) e posizioni dall'AIP, col confronto | F6 | ✅ deciso |
+| M9 | **Dati della pista in un posto solo**, sopra la riga del `.rw` (il record è la coppia: `//@"LIRN 06/24"`), letti da marcature (O2), prolungamenti (Q4), PAR (N2): `width`, `length` (m); per verso (§M regola 7) `NN.thr` soglia spostata (m), `NN.ils` (`CAT1`, `CAT2`, `CAT3`, `no`), distanze dichiarate `NN.tora` `NN.toda` `NN.asda` `NN.lda` (m, `NU` = non utilizzabile, come AD 2.13), **decolli dagli intermedi** `NN.int=B:2540,C:1893` (TWY:TORA in metri, nell'ordine dell'AD 2.13; es. LIRF `07.tora=NU 07.int=A:2983` = «decollo per 07 solo da A»), **lato del circuito VFR** `NN.circuit=L\|R` (AD 2.20/2.22: LIRN «virate a destra»), **limiti d'uso** `NN.dep=no` (niente decolli), `NN.arr=no` (niente atterraggi), `NN.vfronly=si` (solo VFR); tutta la pista: senza prefisso (`vfronly=si`). Le condizioni che il formato non dice (LIRN: codice E decolla solo per 06, atterra solo per 24) vanno in `note`. Forma dei decolli dagli intermedi scelta dall'agente su delega del committente | Subito (tag e scheda) · F6 (import AD 2.12-2.14, 2.20) | ✅ deciso (revisione 27 settembre) |
+| M10 | **Dati dello scalo** sopra la riga dell'`.ap` — proposta da AD 2 (letto LIRN e LIRF, 27 settembre), il committente sceglie quali: `magvar` (declinazione, `4E`, con l'anno `magvar.year=2025.0`; AD 2.2) · `refcode` (codice di riferimento Annesso 14, `4D`; AD 2.2 note) · `rff` (categoria antincendio, `8`; AD 2.6) · `traffic` (`IFR/VFR`, `VFR`; AD 2.2) · `pref` (pista preferenziale e vento in coda massimo, `pref=24 tailwind=10`; AD 2.20) · `curfew` (divieto notturno, `2200-0500` UTC; AD 2.20/2.21) · `ats` (orario della TWR, `H24`; AD 2.3) · `iata` (**non sta nell'AIP**: dal DB di IVAO, fonte primaria) | Subito (tag e scheda) · F6 (import) | 🟡 elenco da scegliere |
 
 ## §14 — `PREFS` (15 `.cpr`, i profili delle posizioni ATC)
 
@@ -603,7 +612,7 @@ mira, frecce della soglia spostata, croci.
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | O1 | **Vista per pista**: marcature raggruppate per pista e per parte (dai commenti), dentro la vista per scalo (I6) | Subito | ✅ deciso |
-| O2 | **Generatore di marcature**: dal `.rw` (numero, soglie, direzione) + larghezza, soglia spostata, precisione, aree inutilizzabili/pista chiusa (croci); regole ICAO dell'Annesso 14 **in una tabella modificabile** (strisce per larghezza 18→4, 23→6, 30→8, 45→12, 60→16; numero; linea di centro; segni di mira e zona di contatto per lunghezza; frecce). Scritto in un blocco coi parametri (`//@marcature="LIRN 06" larghezza=45 spostata=0 precisione=si`) che **si ridisegna se la pista cambia** (dipende solo da pista e parametri). **Un pezzo alla volta**: prima barra, pettine, numero, linea di centro; si guarda come va; poi segni di mira, zona di contatto, frecce, croci | F8, a passi | ✅ deciso |
+| O2 | **Generatore di marcature**: dal `.rw` (numero, soglie, direzione) + larghezza, soglia spostata, precisione, aree inutilizzabili/pista chiusa (croci); regole ICAO dell'Annesso 14 **in una tabella modificabile** (strisce per larghezza 18→4, 23→6, 30→8, 45→12, 60→16; numero; linea di centro; segni di mira e zona di contatto per lunghezza; frecce). Scritto in un blocco coi parametri (`//@"LIRN 06" gen=markings precision=si`, §M-G; larghezza e soglia spostata dalla pista, M9) che **si ridisegna se la pista cambia** (dipende solo da pista e parametri). **Un pezzo alla volta**: prima barra, pettine, numero, linea di centro; si guarda come va; poi segni di mira, zona di contatto, frecce, croci | F8, a passi | ✅ deciso |
 | O3 | Controlli: strisce diverse da quelle previste per la larghezza, marcature lontane dalle soglie del `.rw`, pista senza marcature (solo informativo) | Subito | ✅ deciso |
 | O4 | **Dove stanno le marcature** (`RW_MARKINGS` o `.geo` dello scalo): lo decidono le prove di organizzazione (I7) | F4, da provare | 🟡 con I7 |
 | O5 | Larghezza, soglia spostata, precisione importate dall'AIP (AD 2.12/2.13/2.14) | F6 | ✅ deciso |
@@ -640,10 +649,11 @@ poi i punti `Lat;Lon;[Info]` (vincoli, `:` va a capo); `<br>` in coda al primo p
 | P2 | SID nuova nel gruppo della sua pista | Subito | ✅ deciso |
 | P3 | Controlli: procedura ripetuta, 6° campo che non è 0/1 (salvo la convenzione del tipo 0 con transizione), `;` mancante | Subito | ✅ deciso |
 | P3b | Via le 11 ripetute, correzione dei 28 campi spostati | F4, in un ramo | ✅ deciso |
-| P6 | **Metadati** su una riga propria sopra la SID, con **valori di gruppo per pista** (`//@gruppo pista=25 wtc=LMHS cat=ABCD`, poi `//@sid fix=EKLOS trans=ESINO salita=6000ft\|COO APP [wtc=…] [cat=…]`): nome intero del fix e della transizione, salita iniziale (ft o `COO APP`), WTC (L M H S), categoria Vref (A-E) | Subito | ✅ deciso |
+| P6 | **Metadati** su una riga propria sopra la SID, con **valori di gruppo per pista** come gesto della scheda (`//@"EKLO8R" fix=EKLOS trans=ESINO initialclimb=6000ft wtc=LMHS cat=ABCD`, oppure `initialclimb="COO APP"`; §M regola 11): nome intero del fix e della transizione, salita iniziale (ft o `COO APP`), WTC (L M H S), categoria Vref (A-E) | Subito | ✅ deciso |
 | P7 | Fix proposto dal nome della SID (982 automatici, 277 da scegliere) | Subito | ✅ deciso |
 | P8 | **Lettura delle tabelle SID dai PDF** (punti, coordinate, vincoli, nome intero, salita iniziale), con revisione prima di scrivere | F7 | ✅ deciso |
 | P9 | **Disegno automatico della SID intera** nei suoi punti **dentro il `.sid`** (prima le RNAV) | F7 | ✅ deciso |
+| P11 | **SID come STAR**: specifica di navigazione (`nav`, Q2b) e vincoli per punto (`//@@` con `role`, `alt`, `spd`, Q2), quando le SID hanno il tracciato (P9) | Subito (catalogo) · F7 (valori) | ✅ deciso (revisione 27 settembre) |
 | P10 | **Mappa di gruppo in testa al `.sid`** (voce `MAPS`) che aggrega più SID, **come per le STAR**: stesso meccanismo delle mappe composte di F3-bis (`composta=…`) | F7 (col disegno) | ✅ deciso |
 
 ## §17 — `.str` (90 file nella radice `IT`, sezione `[STAR]`, caricati da sé per nome di scalo)
@@ -677,13 +687,15 @@ STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
 | Q1 | **Scheda della voce**: tipo da elenco sulle piste vere (STAR/TRANS/HOLD/IAP/FAP/GA); nel `MAPS` lo stesso campo mostrato come **«si accende col tasto …»** (mai un errore); piste dal `.rw`, RNAV, punti con etichetta. Vista per scalo **per pista e tipo** come la finestra delle procedure di Aurora; `MAPS` a parte | Subito | ✅ deciso |
-| Q2 | **Metadati per punto** su una riga propria sopra il punto: **vincoli di quota e velocità** e **ruolo** (IAF, IF, FAF, MAPt) — `//@punto ruolo=IAF quota=+FL80 vel=-210`. **Mai a schermo in Aurora** (inquinamento visivo): nel Lab al passaggio del mouse e nella scheda | Subito | ✅ deciso |
+| Q2 | **Metadati per punto** su una riga propria sopra il punto: **vincoli di quota e velocità** e **ruolo** (IAF, IF, FAF, MAPt) — `//@@"ELVAD" role=IAF alt=+FL80 spd=-210` (§M: il `//@@` non chiude la procedura). **Mai a schermo in Aurora** (inquinamento visivo): nel Lab al passaggio del mouse e nella scheda | Subito | ✅ deciso |
 | Q2b | Per ogni STAR, come le SID: fix intero, WTC, categoria; **specifica di navigazione** (RNAV1, RNP1, RNP APCH) oltre al flag | Subito | ✅ deciso |
 | Q2c | **Legami fra procedure della stessa pista** (STAR → attesa di scalo → IAP → GA) e controllo «STAR che finisce dove non parte nessuna IAP». ❌ NIENTE legame con `HOLDENR.hold` (attese in rotta, altra cosa) | Subito (legami) | ✅ deciso |
 | Q3 | **Lettura dai PDF** (tabelle «STAR RNAV1 … DESCRIPTION TABLES», come per le SID) e disegno automatico; IAP/FAP/GA dalle carte di avvicinamento (immagini) più tardi | F7 | ✅ deciso |
 | Q4 | **Generatore dei prolungamenti d'asse** dal `.rw`: lunghezza, punto ogni NM, tacca corta ogni NM e lunga ogni 5 NM, lunghezza di ciascuna tacca (parametri per scalo) | F8 | ✅ deciso |
 | Q5 | ATZ/CTR del `MAPS` legati ai settori dinamici (famiglie di forme, D5) | Subito | ✅ deciso (D5) |
 | Q6 | Controlli: coordinate non DMS (decimali), voce di un altro scalo, piste inesistenti o combinate male, nome diverso nei due campi di un punto | Subito | ✅ deciso |
+| Q2d | **IAP** (e FAP, GA dove servono): `type` (ILS, LOC, RNP, VOR, NDB), categoria, **minimi per categoria** (`mins=A:450,B:450,C:500,D:500`), pendenza (`gp`), §M. Dai PDF in F7 | Subito (tag e scheda) · F7 (lettura) | ✅ deciso (revisione 27 settembre) |
+| Q8 | **ATZ/CTR del `MAPS`**: limiti verticali e classe (come D9), import da AD 2.17 (R-2) | Subito (tag) · F6 | ✅ deciso (revisione 27 settembre) |
 | Q7 | Altre mappe `MAPS` generate (cerchi di distanza, sottovento, aree P/R/D, TMA, circuiti VFR) | — | ❌ non servono (committente). SID (ALL) sta nel `.sid` (P10) |
 
 ## §18 — `.txi` e `.gts` (etichette delle taxiway, stand)
@@ -715,6 +727,7 @@ STAR / TRANS / HOLD / IAP / FAP / GA della finestra delle procedure di Aurora.
 | R3b | Via lo stand di LIBP da `libg.gts`; `L3MC`/`L4MC` → `LIMC`; `LINB` → `LIBN` | F4 | ✅ deciso |
 | R4 | **Punti di startup** (committente: non stanno nelle carte, si prendono dalle foto satellitari o se si trovano le posizioni): un **trattino perpendicolare alla taxiway principale** agganciato alla linea di centro, lunghezza fissa modificabile, col nome. **Dove**: proposta del Lab = una mappa `STARTUP` nel `MAPS` dello `.str` dello scalo col **tipo 2 (tasto HOLD)**, l'unico tasto che il `MAPS` non usa oggi (misurato: le 225 voci di tipo 2 stanno TUTTE su piste vere — le attese di scalo come `LIRN;24;HLD-BENTO; ; ;2;` + il circuito punto per punto) → ogni punto un tratto (`<br>`), il nome nell'etichetta del punto. 🔴 Col tasto HOLD la mappa `STARTUP` starebbe nello stesso elenco delle attese della pista (col suo occhio): **prova in Aurora in un ramo** prima di adottarla. Ripiego: `TAXI_CENTER` nel `.geo` | Subito (a mano, coordinate) + F9 (clic sulla mappa) | 🟡 da provare in Aurora |
 | R5 | Stand e taxiway dall'AIP (AD 2.8), col confronto | F6 | ✅ deciso |
+| R6 | **Metadati della taxiway** sull'etichetta `.txi`: codice massimo (`code`, A-F, come lo stand) e senso unico (`oneway`), §M; controllo «stand di codice più grande della taxiway che ci porta» | Subito | ✅ deciso (revisione 27 settembre) |
 
 ## §19 — `.mva` di scalo (24) e `.vrt` (16)
 
@@ -742,7 +755,8 @@ nelle prove I7.
 | S2 | **Tutto nello stile ACC**: un nome per file = **l'ICAO dello scalo** (`LIRN`), zone separate da `T;DUMMY` col gruppo (E3), soprannomi nei tag; **quote tutte in centinaia** (`25` = 2500 ft). Adozione in un ramo: nomi di zona e commenti in coda → soprannomi e note nei tag | Subito (regole) + F4 (adozione) | ✅ deciso |
 | S3 | Controlli: quota in un'unità diversa dal resto, nome del gruppo diverso dall'ICAO, commento in coda | Subito | ✅ deciso |
 | S4 | **Scheda della rotta VFR**: numero, punti in ordine scelti dal `.vfi` dello scalo e **di quelli vicini**, militare; «Chi lo usa» (L2) attraversa gli scali | Subito | ✅ deciso |
-| S5 | Cerchi e archi delle MVA dal convertitore degli archi (F1) invece che a mano | F8 | ✅ deciso |
+| S5 | Cerchi e archi delle MVA dal convertitore degli archi (F1) invece che a mano (`gen=arc`, §M-G) | F8 | ✅ deciso |
+| S6 | Rotte `.vrt`: quote e verso come F8 | Subito | ✅ deciso (revisione 27 settembre) |
 
 ## §20 — `symbols.sym` e `HOLDENR.hold`
 
@@ -825,6 +839,111 @@ committente) nello scratchpad **senza eseguirli**: dentro solo gli eseguibili; d
 | W3 | ATIS ↔ D-ATIS affiancati; avviso se la struttura diverge. Le pronunce NON si correggono da sole | Subito | ✅ deciso |
 | W4 | Controlli: segnaposto sconosciuto, parentesi non bilanciate, file citato inesistente (`\liml.atis`), campo `.fds` che nessun modello usa. `datis.datis` vuoto NON è un avviso | Subito | ✅ deciso |
 
+## §M — Metadati: una sintassi, un catalogo (revisione del 27 settembre)
+
+Rilette tutte le voci il 27 settembre: gli esempi di tag delle §1-§22 erano scritti in quattro forme, e il motore
+(`IO/Metadati.cs`, F2 slice 7 + F3-bis) ne legge una sola. Alcune avrebbero rotto il file: `//@forma="X"` si legge
+come tag del FILE, `//@sid fix=…` come un record di nome «sid», `//@"KY139" manuale` è illeggibile (parola senza `=`),
+`composta=RR NE,RR TS` e `salita=COO APP` hanno spazi nel valore, e 🔴 un `//@` fra i punti di una STAR **chiude la
+procedura** (`StrParser`). **Committente: una sintassi sola, questa.** Gli esempi delle §1-§22 sono già riscritti così.
+
+### Le regole
+
+1. **Riga intera, mai in coda.** Un record: `//@"NOME" chiave=valore …` subito sopra; NOME è il nome del record
+   (terzo campo di SID/STAR, aerovia, settore, area, `LIRN 06/24` della pista…). Se il record sotto ne ha un altro, il
+   validatore lo dice e le chiavi non si attaccano al vicino (come oggi).
+2. **Blocco** quando il pezzo ha più righe di dati: la dichiarazione, `//@START`, le righe, `//@END "NOME"`.
+3. **File**: `//@chiave=valore` nelle prime righe (oggi solo `source`).
+4. **Punto dentro un record** (punti di SID/STAR, tratti di aerovie e rotte VFR): `//@@"PUNTO" chiave=valore` subito
+   sopra il punto. PUNTO = il nome, se il punto è per nome (`ELVAD`), altrimenti i due campi come sono scritti
+   (`"N041.49.12.000;E012.14.03.000"`). Il `//@@` **non chiude** il record: nel motore è una riga del record.
+5. **Valori senza spazi**; se servono, fra virgolette (`initialclimb="COO APP"`). Elenchi con la virgola, e un nome
+   con spazi fra virgolette anche dentro l'elenco (`compose="RR NE","RR TS"`) → chiuso l'aperto di F3-bis sui nomi di
+   procedura con spazi nelle composte (63 su 1 169, 51 SID militari).
+6. **Sì/no sempre `chiave=si`**, mai una parola da sola.
+7. **Per verso di pista**: il numero della pista e il punto davanti alla chiave (`06.tora=2628`).
+8. **Quote come nel PDF, in piedi**: `SFC`, `GND`, `1500ft`, `FL195`, `UNL`.
+9. **Chiavi in inglese**, come la colonna inglese dell'AIP e il catalogo della carta madre (§8.2). `composta` e
+   `intere` diventano `compose` e `whole`: nel sector vero le righe `//@` sono zero, quindi niente migrazione.
+10. **vIPI legge, non scrive** (committente, 27 settembre): i dati entrano dalla fonte primaria (DB IVAO, AIP) o a
+    mano, e vIPI popolerà i suoi campi (initial climb, fix intero…) **leggendo i metadati del sector**. Supera la carta
+    madre §8.2 («toccando una SID senza tag il Lab propone i valori che vIPI conosce già»): niente proposte da vIPI.
+11. **Valori scritti su ogni record, niente ereditarietà** (proposta dell'agente, da confermare): i «valori di gruppo
+    per pista» di P6 restano un **gesto** della scheda (scrivi su tutte le SID della pista), ma nel file ogni SID porta
+    i suoi. Un valore che vale «finché non si ripete» cambierebbe in silenzio spostando una SID, e vIPI dovrebbe
+    rifare la stessa regola.
+
+### Nome di un pezzo: commento o blocco (committente: tutti e due, con una regola)
+
+- **Commento sopra** (`//Zona A`, `//MILANO-ROMA`, `//PENISOLA`): dà il nome a una parte che porta solo geometria.
+  Il Lab lo mostra nelle viste (A3, J1, H3) e lo cambia dalla scheda.
+- **Blocco `//@`**: quando il pezzo porta dati (quote, verso, famiglia, parametri), quando il Lab lo deve ritrovare
+  per rigenerarlo o propagarlo, o quando cosa ci sta dentro non si ricava dalla geometria (zona MVA, E1).
+- Un pezzo che riceve il primo dato passa da commento a blocco, e il commento resta sopra (lo legge chi apre il file).
+- Nei file senza nome nelle righe di dati (`.geo`, `.pol`), il nome del blocco è il nome del gruppo.
+
+### Il catalogo
+
+| Chiave | Dove | Cosa | Voci |
+|---|---|---|---|
+| `source` | file | ciclo AIRAC dei dati importati (`AIRAC2610`) | F2 · B8, G5, L5, M8, P8, Q3, R5, U3 |
+| `locked=si` | ogni record | l'import non lo tocca né lo toglie; l'utente può sempre cancellarlo (era `manuale`) | B5 |
+| `gen` + parametri | ogni cosa generata | il generatore e i suoi parametri: il Lab la **ridisegna** quando cambiano i parametri o i dati da cui dipende (pista, confine, fix) | §M-G sotto |
+| `note` | ogni record | nota per chi legge (i commenti in coda diventano note) | S2, E6 |
+| `id`, `extra` | — | riservate dalla carta madre, non usate | — |
+| `fix`, `trans`, `initialclimb`, `wtc`, `cat`, `nav` | SID **e** STAR | fix intero, transizione, salita iniziale (ft o `"COO APP"`), WTC (`LMHS`), categoria (`ABCD`), specifica (`RNAV1`, `RNP1`, `RNPAPCH`…) | P6, Q2b, P11 |
+| `type`, `mins`, `gp` | IAP | tipo (`ILS`, `LOC`, `RNP`, `VOR`, `NDB`), minimi per categoria (`mins=A:450,B:450,C:500,D:500`, ft), pendenza (`gp=3.0`) | Q2d |
+| `role`, `alt`, `spd` | punto (`//@@`) di SID/STAR | IAF/IF/FAF/MAPt · `+FL80` `-5000` `=4000` `4000/6000` · `-210` | Q2, P11 |
+| `dir`, `lower`, `upper` | tratto (`//@@`) di aerovia e di rotta VFR | verso (`both`, `fwd`, `back` rispetto all'ordine del file) e quote | B2, F8, S6 |
+| `compose`, `whole` | mappe composte, configurazioni | elenco delle parti · disegnate intere | F3-bis, P10, J6 |
+| `zone` | blocco MVA | soprannome della zona (anche ripetuto): `//@"LIMM" zone="Torino"` | E1, S1 |
+| `form` | settori, ATZ/CTR del MAPS, `.geo`, `.pol` | la famiglia di forme | D5, I2, J3, Q5 |
+| `lower`, `upper`, `class` | settori (`.tfl`, `.hartcc`, `.lartcc`, ATZ/CTR del MAPS), aree P/R/D | limiti verticali, classe (`A`-`G`) | D9, J7, Q8, G5 |
+| `width`, `length`, `NN.thr`, `NN.ils`, `NN.tora` `NN.toda` `NN.asda` `NN.lda`, `NN.int`, `NN.circuit`, `NN.dep`, `NN.arr`, `NN.vfronly` | pista (`.rw`) | vedi M9 | M9 |
+| `code`, `kind`, `use`, `airlines`, `push`, `pushdir`, `apron` | stand (`.gts`) | vedi R2b | R2b |
+| `code`, `oneway` | taxiway (`.txi`) | codice massimo (`A`-`F`), senso unico (`oneway=E` = solo verso est) | R6 |
+| da scegliere | scalo (`.ap`) | proposta M10 | M10 |
+
+### §M-G — I generatori portano i loro parametri (committente: «assolutamente sì»)
+
+Ogni cosa che il Lab genera si scrive in un blocco `gen=<generatore>` coi suoi parametri, e si ridisegna da sola
+quando cambiano i parametri o i dati da cui dipende (come le mappe composte di F3-bis). Vale per:
+
+| Generatore | Dipende da | Voce |
+|---|---|---|
+| `gen=gate` (lunghezza) | confine | A5 (A7 resta «da pensare» per il gesto, non per il tag) |
+| `gen=aocc` (lato, gambo) | confine | A6 |
+| `gen=labels` | tracciati delle aerovie | B4 |
+| `gen=markings` (`precision=si`, croci) | pista (M9: larghezza, soglia spostata) | O2 |
+| `gen=centerline` (lunghezza, tacche) | pista | Q4 |
+| `gen=hold` (rotta, virata, tratto in minuti o NM) | fix | U2 |
+| `gen=arc` (centro, raggio, verso) | — | S5, F1 |
+| `gen=startup` (lunghezza del trattino) | linea di centro | R4 |
+
+Sul motore oggi i tag si leggono solo in `.sid` e `.str`: estenderli a ogni file con un nome nelle righe di dati è
+una slice del lotto «Subito».
+
+## §R — Revisione del 27 settembre: cose valutate per un file e non per il gemello
+
+Rilette §1-§22 e le carte F2/F3-bis il 27 settembre. Le voci con la decisione del committente sono già nelle loro
+sezioni (D9, J7, Q8, M9, M10, P11, Q2d, F8, S6, R6, §M). Qui le **proposte dell'agente** che restano da confermare
+e le misure fatte per controllarle.
+
+| # | Proposta | Perché | Fase |
+|---|---|---|---|
+| R-1 | **«Chi lo usa» anche per posizioni, piste e file**: una posizione (`.frq` ↔ teste dei `.tfl` ↔ trasferimenti), una pista (`.rw` ↔ piste di `.sid`/`.str` ↔ PAR ↔ marcature ↔ prolungamenti ↔ `NN.` di M9), un file (`.cpr`, `.atis` citati dai `.frq`), un nome di `colors.def`. Rinominare aggiorna anche i valori dei tag (`fix=`, `trans=`, `compose=`) | L2 copre solo fix, navaid, attese e punti VFR; una pista rinumerata per la declinazione tocca tutto | Subito — comune |
+| R-2 | **Import dall'AIP anche di CTR, ATZ, TMA** (AD 2.17, ENR 2.1: limiti laterali e verticali, classe) e dei **punti e rotte VFR** | F6 li ha per tutto il resto; con D9/Q8 i limiti hanno un posto | F6 |
+| R-3 | **Spezza/unisci** (§C) vale anche per `<br>` di `.sid`/`.str`, la riga vuota dei `.geo` e delle `.mva` di scalo | lo stesso gesto in tre scritture | Subito — comune |
+| R-4 | **Controlli pari fra gemelli**: `.sid` con «ICAO diverso dal file», «coordinate non DMS», «pista inesistente» (come `.str` Q6 e `.gts` R3); `.tfl` con «nome ripetuto nello stesso file» (`LIBB_FSS`, `LIMM_FSS`, §5). Misurato il 27 settembre: nei `.sid` 0 ICAO diversi (serviranno col disegno, P9); nei `.str` 0 procedure ripetute (il controllo di P3 lo si estende e basta) | un controllo scritto per un file e non per il suo gemello | Subito |
+| R-5 | **Nascondi/mostra ovunque** (B3 «può servire un po' ovunque»): anche `.sid` (10 righe commentate), `.ap` (`//LIRR;…;Roma Area`), ACC, settori, `.geo` | scritto solo per aerovie, MVA, LOW | Subito — comune |
+| R-6 | **Semplifica solo sui file globali** (G4): `.geo`/`.pol` di scalo (69 199 segmenti, 38 763 vertici) restano come sono, disegni fini | non era scritto | — |
+| R-7 | **Coordinate in una forma sola** per `.vfi`/`.tfl` (§C): era «da decidere» e non stava fra i «Da chiedere» | ora in testa | da chiedere |
+| R-8 | `LIMJ_APP` e `LIBB_APP` citati nei `.frq` e non definiti (M2): solo WN4/EN4 avevano una decisione (M7) | | da chiedere |
+| R-9 | TA = 0 in 66 scali di `itap.ap` (§13): la TA sta in AD 2.17 → dall'import M8 | misurato, mai deciso | F6 |
+| R-10 | **Correzioni dei dati in una lista sola** (F4, in un ramo), oltre alle pulizie già decise: `EKLAP`→`HLD-ELKAP` · 5 righe illeggibili dei NAVAIDS · 9 righe di `VFR_NASCOSTI.fix` senza tipo · `3:` in `APT.fix` · `limf.sid:28` · decimali di `liba.str` e `lipz.txi` · voce LICC in `licz.str` · `ALPHA SUOTH` di `lied.str` · soglie invertite `LIDW 15`, `LIKL 36` · 51 include dopo un escluso · `\liml.atis` · `LIPC.cpr` · didascalie PAR (`LIPI 06`, `LIBN` INSET3) · cerchio `X07-X08` · 86 righe illeggibili dei `.geo` (G6) · `lict.vfi` e i gemelli di F7 | trovati nelle misure, molti senza una correzione in elenco | F4 |
+
+Messe a posto in questa revisione: H5 chiusa da I2; P4, P5, H6 non sono mai esistite (numerazione).
+
 ## §C — Meccanismi comuni (raccolti cartella per cartella)
 
 Si costruiscono **una volta** per tutti i file che li chiedono. Il lotto «Subito» parte quando tutte le cartelle sono
@@ -838,14 +957,16 @@ passate (committente, 24 settembre): così le parti comuni si accorpano e non si
 | **Nascondi / mostra** (commentare e scommentare un blocco) | AIRWAY B3 — «può servire un po' ovunque» |
 | **Interruzioni** spezza / unisci (`DUMMY`, `BREAK`) | AIRWAY B6 · ACC (tratti) |
 | **Etichette calcolate** dalla geometria | AIRWAY B4 · ACC A5 (etichetta al centro del gate) |
-| **Tag `//@`** di dati che Aurora non legge (livelli, verso, manuale) | AIRWAY B2, B5 · (F3-bis: composte) |
+| **Generatori coi parametri nel tag** (`gen=`, si ridisegnano quando cambia ciò da cui dipendono) | §M-G: A5 A6 B4 O2 Q4 U2 S5 R4 |
+| **Limiti verticali e classe** (`lower`, `upper`, `class`) | D9 · J7 · Q8 · G5 · B2 · F8/S6 |
+| **Tag `//@`** di dati che Aurora non legge — **una sintassi e un catalogo: §M** | AIRWAY B2, B5 · (F3-bis: composte) · tutti |
 | **Rami di prova** per tentativi e prove in Aurora | tutti (§0) · ACC A8, A9 · AIRWAY B9, B10 |
 | **Famiglie di forme** (`//@forma=`: la stessa forma in più file, modifica propagata, integrità) — estende le copie gemelle di F3-bis dai record alle forme | DYNAMIC_SEC D5, D6 |
 | **Gemelli fra file di tipo diverso** (punto `.vfi` ↔ fix nascosto `.fix`, chiave = codice; il gemello nasce col punto) — estende le copie gemelle di F3-bis | ENRVFI F2 |
 | **Colori**: selettore, nomi di `colors.def`, mappa con lo schema di Aurora | DYNAMIC_SEC D2, D3 · COLORS §4 |
 | **Controllo degli `.isc`** (file incluso che non c'è — AVVISO: Aurora trova il file per nome, vedi GCI —, incluso due volte, file non incluso) | DYNAMIC_SEC D7 · AIRWAY (`itawhigh` non incluso) · ACC A9 |
 | **Blocchi con nome** (`//@"NOME"` … `//@END`: un'unità del file con soprannome, anche ripetibile) | AIRWAY B1 · ENRMVA E1 · (F3-bis composte) |
-| **Metadati con valori di gruppo** (un tag di gruppo vale per le righe sotto finché non si ripete il campo) | SID P6 |
+| **Valori per gruppo** come gesto della scheda (nel file ogni record porta i suoi: §M regola 11) | SID P6 |
 | **Mappe composte** (una mappa che aggrega più procedure o settori) | F3-bis (STAR) · SID P10 · HI J6 (configurazioni) |
 | **Campi scritti dal Lab** (il gruppo nel 5° campo MVA, `NOME;NOME;` dei punti per nome) | ENRMVA E3 · ACC A2 |
 | **Ricalco da immagine** (carta PDF/immagine agganciata alla mappa su 3 punti, scarto misurato, disegno sopra) | ENRMVA E10 · GEO H7, H8 |

@@ -256,7 +256,9 @@ col sectorfile che già gira.
      ⚠️ Conseguenza da reggere in F2: per mesi convivono SID con e senza tag. Dove il `//@` c'è comanda il
      sector; dove manca vale ciò che vIPI ha oggi, e la tabella degli alias dei fix resta finché serve. Toccando
      una SID senza tag, il Lab **propone** i valori che vIPI conosce già (initial climb, fix intero), così quel
-     che è stato curato finora non si perde.
+     che è stato curato finora non si perde. ⚠️ **Superato il 27 settembre** (committente): vIPI legge e non scrive,
+     niente proposte da vIPI; vIPI popolerà i suoi campi dai metadati del sector. Sintassi e catalogo dei tag:
+     carta [«file per file» §M](2026-09-24-file-per-file.md).
 3. ✅ `.vrt` e `.hold`: **in F2, subito**.
 4. ✅ **Stesso repo di vIPI** (committente, 18-set): chi manutiene vIPI manutiene anche il Lab, oggi e in futuro —
    non ci sarà chi cura uno solo dei due. Progetti nuovi accanto al Bridge, motori in `Vipi.Application` /
