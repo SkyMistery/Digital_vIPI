@@ -19,14 +19,47 @@ public sealed record CaricoDiUnIsc(
 {
     /// <summary>Il nome del file <c>.isc</c>, com'è nei problemi del validatore.</summary>
     public string Nome => Path.GetFileName(Isc);
+
+    /// <summary>
+    /// I citati che non stanno dove dice il <c>F;</c> ma che Aurora trova per nome, perché sotto <c>Include</c> c'è un
+    /// file solo con quel nome (<c>DYNAMIC_SEC\GCI.tfl</c> sta in <c>OTHER\</c>: carta «file per file» §C, M6). Stanno
+    /// fra i <see cref="Caricati"/>. Lotto «Subito» slice 2b.
+    /// </summary>
+    public IReadOnlyList<(int Riga, string Testo, string Citato, string Trovato)> TrovatiPerNome { get; init; } = [];
+
+    /// <summary>Lo stesso file citato due volte con <c>F;</c> (<c>lirrctr.tfl</c> in <c>ITALY.isc</c>, D7): dove, e la riga della prima.</summary>
+    public IReadOnlyList<(int Riga, string Testo, string Percorso, int PrimaRiga)> Doppi { get; init; } = [];
+
+    /// <summary>
+    /// I file citati sotto una sezione che non ha la loro forma (F6): un <c>.fix</c> sotto <c>[GEO]</c>, i punti VFR
+    /// dei <c>.vfi</c> di <c>ENRVFI</c> sotto <c>[VFRENR]</c>, che vuole le rotte. Con la sezione giusta, se c'è.
+    /// </summary>
+    public IReadOnlyList<(int Riga, string Testo, string Percorso, string Sezione, string Perche)> FuoriSezione { get; init; } = [];
 }
 
 /// <summary>Le tre vie per cui un file entra in un <c>.isc</c>: <c>F;</c>, il codice di uno scalo, un <c>.frq</c>.</summary>
 public static class CarichiDegliIsc
 {
     // Aurora carica da sé, senza F;, i file che portano il codice di uno scalo di [AIRPORT] (SPECIFICA_FORMATI §3 di B).
+    // Il manuale IVAO elenca gts, txi, sid, str, vfi, vrt, mva, tfl: NON geo e pol (carta «file per file» §19, §21 —
+    // per questo `limw.pol` è orfano). Gli .atis restano: la carta non ne dice niente (lotto «Subito» slice 2b).
     private static readonly string[] EstensioniPerIcao =
-        ["gts", "txi", "sid", "str", "vfi", "vrt", "mva", "tfl", "geo", "atis", "pol"];
+        ["gts", "txi", "sid", "str", "vfi", "vrt", "mva", "tfl", "atis"];
+
+    // Che forma vuole ogni sezione degli .isc (manuale IVAO; carta «file per file» §1-§22): le estensioni ammesse. Una
+    // sezione che non c'è qui non si controlla. [VFRENR] vuole .vfi, ma con la forma delle rotte (Numero;Lat;Lon;…).
+    private static readonly Dictionary<string, string[]> FormeDelleSezioni = new(StringComparer.Ordinal)
+    {
+        ["AIRPORT"] = ["ap"], ["RUNWAY"] = ["rw"], ["FIXES"] = ["fix"], ["NDB"] = ["ndb"], ["VOR"] = ["vor"],
+        ["ARTCC"] = ["artcc"], ["ARTCC HIGH"] = ["hartcc"], ["ARTCC LOW"] = ["lartcc"],
+        ["LOW AIRWAY"] = ["lairway"], ["HIGH AIRWAY"] = ["hairway"],
+        ["GEO"] = ["geo", "danger", "prohibit", "restrict"], ["FILLCOLOR"] = ["tfl", "pol"],
+        ["MVA"] = ["mva"], ["MVAENR"] = ["mva"], ["VFRFIX"] = ["vfi"], ["VFRENR"] = ["vfi"],
+        ["VFRROUTE"] = ["vrt"], ["VFRRTEENR"] = ["vrt"], ["SID"] = ["sid"], ["STAR"] = ["str"],
+        ["ATC"] = ["frq"], ["ATIS"] = ["atis"], ["ATISFIELD"] = ["fds"], ["COLORSCHEME"] = ["clr"],
+        ["CPDLC"] = ["cpdlc"], ["CPDLCNAMES"] = ["cpdlcnames"], ["DEFINE"] = ["def"], ["SYMBOLS"] = ["sym"],
+        ["HOLDENR"] = ["hold"],
+    };
 
     /// <summary>
     /// Legge ogni <c>.isc</c> di <paramref name="cartellaSectorFiles"/> e dice che cosa carica.
@@ -106,18 +139,46 @@ public static class CarichiDegliIsc
             => indice.GetValueOrDefault(Chiave(cartellaDati + "/" + Chiave(citato)))
                ?? indice.GetValueOrDefault(Chiave(citato));
 
+        // Aurora trova un file anche per nome, se il percorso è sbagliato (committente, «file per file» §C): vale quando
+        // sotto Include c'è UN file solo con quel nome.
+        string? PerNome(string citato)
+        {
+            string nome = Path.GetFileName(Chiave(citato));
+            var omonimi = indice.Where(f => Path.GetFileName(f.Key) == nome).Take(2).ToList();
+            return omonimi.Count == 1 ? omonimi[0].Value : null;
+        }
+
         string nomeMaster = Path.GetFileName(master);
         var mancanti = new List<(string File, int Riga, string Testo, string Citato)>();
+        var perNome = new List<(int Riga, string Testo, string Citato, string Trovato)>();
+        var doppi = new List<(int Riga, string Testo, string Percorso, int PrimaRiga)>();
+        var fuori = new List<(int Riga, string Testo, string Percorso, string Sezione, string Perche)>();
         var citati = new List<(string Sezione, string Percorso)>();
+        var primaVolta = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var (sez, citato, riga, testo) in daRisolvere)
         {
-            if (Risolvi(citato) is { } trovato)
+            string? trovato = Risolvi(citato);
+            if (trovato is null && PerNome(citato) is { } omonimo)
             {
-                citati.Add((sez, trovato));
+                trovato = omonimo;
+                perNome.Add((riga, testo, citato, omonimo));
             }
-            else
+
+            if (trovato is null)
             {
                 mancanti.Add((nomeMaster, riga, testo, citato));
+                continue;
+            }
+
+            citati.Add((sez, trovato));
+            if (!primaVolta.TryAdd(trovato, riga))
+            {
+                doppi.Add((riga, testo, trovato, primaVolta[trovato]));
+            }
+
+            if (FuoriDallaSezione(sez, trovato) is { } perche)
+            {
+                fuori.Add((riga, testo, trovato, sez, perche));
             }
         }
 
@@ -169,7 +230,42 @@ public static class CarichiDegliIsc
             }
         }
 
-        return new CaricoDiUnIsc(master, cartellaDati, caricati, mancanti);
+        return new CaricoDiUnIsc(master, cartellaDati, caricati, mancanti)
+        {
+            TrovatiPerNome = perNome,
+            Doppi = doppi,
+            FuoriSezione = fuori,
+        };
+    }
+
+    // Perché il file non ha la forma della sua sezione, o null se ce l'ha (o la sezione non si controlla).
+    private static string? FuoriDallaSezione(string sezione, string percorso)
+    {
+        if (!FormeDelleSezioni.TryGetValue(sezione, out var ammesse))
+        {
+            return null;
+        }
+
+        string estensione = Path.GetExtension(percorso).TrimStart('.').ToLowerInvariant();
+        if (!ammesse.Contains(estensione))
+        {
+            var giuste = FormeDelleSezioni.Where(s => s.Value.Contains(estensione)).Select(s => $"[{s.Key}]").ToList();
+            return $"un .{estensione} sotto [{sezione}], che vuole " + string.Join(" o ", ammesse.Select(e => "." + e))
+                + (giuste.Count > 0 ? $": il suo posto è {string.Join(" o ", giuste)}" : string.Empty);
+        }
+
+        // [VFRENR] vuole le rotte (Numero;Lat;Lon;[Gruppo];[Militare]); i punti VFR (Nome;Codice;Lat;Lon;Tipo) vanno in
+        // [VFRFIX]. Si guarda la prima riga di dati: il primo campo è il numero della rotta?
+        if (sezione == "VFRENR"
+            && SectorFileReader.Read(percorso).Lines.Select(r => r.Trim())
+                .FirstOrDefault(r => r.Length > 0 && !r.StartsWith("//", StringComparison.Ordinal)) is { } prima
+            && !prima.Split(';')[0].Trim().All(char.IsAsciiDigit))
+        {
+            return "ha la forma dei punti VFR (Nome;Codice;Lat;Lon;Tipo), che vanno in [VFRFIX]: [VFRENR] vuole le rotte " +
+                   "(Numero;Lat;Lon;…) — carta «file per file» F5, da provare in Aurora";
+        }
+
+        return null;
     }
 
     private static string Chiave(string percorso) => percorso.Replace('\\', '/').Trim('/').ToLowerInvariant();

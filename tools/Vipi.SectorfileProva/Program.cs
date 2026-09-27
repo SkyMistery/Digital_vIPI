@@ -364,10 +364,14 @@ foreach (var p in problemiDelSector.Where(p => p.Gravita == Vipi.Sectorfile.Vali
     Console.WriteLine($"  {p.File}:{p.Riga}  {p.Regola}  {p.Dettaglio}");
 }
 
-Console.WriteLine("\nFILE MAI CITATI:");
-foreach (var p in problemiDelSector.Where(p => p.Regola == Vipi.Sectorfile.Validazione.Regola.FileMaiCitato))
+// I file e gli .isc (lotto «Subito» slice 2b): uno per uno, col dettaglio — sono pochi, e sono la lista per gli AOD.
+Console.WriteLine("\nFILE E INCLUDE:");
+foreach (var p in problemiDelSector.Where(p => p.Regola is Vipi.Sectorfile.Validazione.Regola.FileMaiCitato
+             or Vipi.Sectorfile.Validazione.Regola.FileCitatoAssente or Vipi.Sectorfile.Validazione.Regola.FileInclusoDueVolte
+             or Vipi.Sectorfile.Validazione.Regola.FileNellaSezioneSbagliata or Vipi.Sectorfile.Validazione.Regola.FileVuoto)
+             .OrderBy(p => p.Regola))
 {
-    Console.WriteLine($"  {p.File}");
+    Console.WriteLine($"  {p.Regola,-26} {p.File}{(p.Riga > 0 ? ":" + p.Riga : "")}  {p.Dettaglio}");
 }
 
 // 7. CONCORDANZA col lettore di vIPI (F2 slice 9, carta §2.4): AuroraSectorfileParser, quello dell'import di

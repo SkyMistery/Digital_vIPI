@@ -66,6 +66,25 @@ public static partial class Validatore
                         : $"«{citato}» non c'è"));
             }
 
+            // Lotto «Subito» slice 2b: il file che Aurora trova per nome (§C, M6), quello incluso due volte (D7), quello
+            // sotto la sezione sbagliata (F6).
+            foreach (var (riga, testo, citato, trovato) in carico.TrovatiPerNome)
+            {
+                problemi.Add(new(Regola.FileCitatoAssente, carico.Nome, riga, testo,
+                    $"«{citato}» non c'è lì: Aurora lo trova per nome in {Relativo(trovato)}"));
+            }
+
+            foreach (var (riga, testo, percorso, primaRiga) in carico.Doppi)
+            {
+                problemi.Add(new(Regola.FileInclusoDueVolte, carico.Nome, riga, testo,
+                    $"{Relativo(percorso)} è già alla riga {primaRiga}: Aurora lo carica due volte"));
+            }
+
+            foreach (var (riga, testo, percorso, _, perche) in carico.FuoriSezione)
+            {
+                problemi.Add(new(Regola.FileNellaSezioneSbagliata, carico.Nome, riga, testo, $"{Relativo(percorso)}: {perche}"));
+            }
+
             var caricati = carico.Caricati;
             caricatiDaQualcuno.UnionWith(caricati);
 
@@ -115,13 +134,29 @@ public static partial class Validatore
         problemi.AddRange(nonRisolti.Select(n => new ProblemaDelSector(Regola.NomeNonRisolto, n.Key.File, n.Key.Riga, n.Value.Testo,
             $"«{n.Key.Nome}» non è nei cataloghi di {string.Join(", ", n.Value.Master)}")));
 
-        // I file mai caricati (fuori i testi: note, changelog).
+        // I file mai caricati (fuori i testi: note, changelog). Se le sue coordinate stanno in un file caricato, è una
+        // copia rimasta indietro (V2, lotto «Subito» slice 2b: `limw.pol` e `GND_LAYOUT\mw_ad_gnd.pol`).
+        Dictionary<string, List<string>>? doveStaUnaCoordinata = null;
         foreach (string percorso in indice.Values.Order(StringComparer.Ordinal))
         {
             string estensione = Path.GetExtension(percorso).ToLowerInvariant();
             if (!caricatiDaQualcuno.Contains(percorso) && estensione is not ("" or ".md" or ".txt"))
             {
-                problemi.Add(new(Regola.FileMaiCitato, Relativo(percorso), 0, string.Empty, "nessun .isc lo carica: né F;, né per ICAO, né da un .frq"));
+                doveStaUnaCoordinata ??= IndiceDelleCoordinate(caricatiDaQualcuno);
+                problemi.Add(new(Regola.FileMaiCitato, Relativo(percorso), 0, string.Empty,
+                    "nessun .isc lo carica: né F;, né per ICAO, né da un .frq" + CopiaDi(percorso, doveStaUnaCoordinata, Relativo)));
+            }
+        }
+
+        // I file senza una riga di dati (A9: `ACC\test.artcc`, incluso da ITALY.isc; i .fix vuoti di NAVAIDS). Solo quelli
+        // che il motore legge: un testo vuoto non è un problema.
+        foreach (string percorso in indice.Values.Order(StringComparer.Ordinal))
+        {
+            if (Esito(percorso) is not null && SectorFileReader.Read(percorso).Lines
+                    .All(r => r.Trim().Length == 0 || r.TrimStart().StartsWith("//", StringComparison.Ordinal)))
+            {
+                problemi.Add(new(Regola.FileVuoto, Relativo(percorso), 0, string.Empty,
+                    caricatiDaQualcuno.Contains(percorso) ? "incluso, ma senza una riga di dati" : "senza una riga di dati"));
             }
         }
 
@@ -156,6 +191,81 @@ public static partial class Validatore
         }
 
         return problemi.Distinct().OrderBy(p => p.File, StringComparer.Ordinal).ThenBy(p => p.Riga).ThenBy(p => p.Regola).ToList();
+    }
+
+    // Le coordinate (lat;lon come sono scritte) di ogni file caricato: dove sta ognuna.
+    private static Dictionary<string, List<string>> IndiceDelleCoordinate(IEnumerable<string> caricati)
+    {
+        var dove = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (string file in caricati.Order(StringComparer.Ordinal))
+        {
+            foreach (string coppia in CoordinateDel(file))
+            {
+                if (!dove.TryGetValue(coppia, out var files))
+                {
+                    dove[coppia] = files = [];
+                }
+
+                if (files.Count == 0 || files[^1] != file)
+                {
+                    files.Add(file);
+                }
+            }
+        }
+
+        return dove;
+    }
+
+    // «, è una copia di X: le sue N coordinate ci stanno tutte» (o «M su N»), se almeno il 90% sta in un file solo.
+    private static string CopiaDi(string orfano, Dictionary<string, List<string>> dove, Func<string, string> relativo)
+    {
+        var sue = CoordinateDel(orfano);
+        if (sue.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var migliore = sue.SelectMany(c => dove.GetValueOrDefault(c) ?? []).GroupBy(f => f, StringComparer.Ordinal)
+            .Select(g => (File: g.Key, Quante: g.Count())).OrderByDescending(g => g.Quante)
+            // A pari coordinate, un file dello stesso formato: `limw.pol` è la copia di `mw_ad_gnd.pol`, non di `limw.geo`.
+            .ThenByDescending(g => string.Equals(Path.GetExtension(g.File), Path.GetExtension(orfano), StringComparison.OrdinalIgnoreCase))
+            .ThenBy(g => g.File, StringComparer.Ordinal)
+            .FirstOrDefault();
+        if (migliore.File is null || migliore.Quante * 10 < sue.Count * 9)
+        {
+            return string.Empty;
+        }
+
+        return $"; è una copia di {relativo(migliore.File)}: " + (migliore.Quante == sue.Count
+            ? $"le sue {sue.Count} coordinate ci stanno tutte"
+            : $"{migliore.Quante} delle sue {sue.Count} coordinate ci stanno");
+    }
+
+    // Le coppie latitudine;longitudine DMS di un file, distinte, come sono scritte (fuori dai commenti).
+    private static HashSet<string> CoordinateDel(string file)
+    {
+        var coppie = new HashSet<string>(StringComparer.Ordinal);
+        foreach (string riga in SectorFileReader.Read(file).Lines)
+        {
+            if (riga.TrimStart().StartsWith("//", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            string[] campi = riga.Split(';');
+            for (int i = 0; i + 1 < campi.Length; i++)
+            {
+                string lat = campi[i].Trim(), lon = campi[i + 1].Trim();
+                if (lat.Length > 1 && char.ToUpperInvariant(lat[0]) is 'N' or 'S' && char.IsAsciiDigit(lat[1])
+                    && lon.Length > 1 && char.ToUpperInvariant(lon[0]) is 'E' or 'W' && char.IsAsciiDigit(lon[1]))
+                {
+                    coppie.Add(lat.ToUpperInvariant() + ";" + lon.ToUpperInvariant());
+                    i++;
+                }
+            }
+        }
+
+        return coppie;
     }
 
     // Distanza in metri, piana: basta per dire «stesso punto» o «a quante miglia».

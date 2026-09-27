@@ -47,10 +47,17 @@ public enum Regola
 
     // Le regole dell'albero (slice 8b): vogliono tutti i file e gli .isc che li caricano.
 
-    /// <summary>Un <c>F;</c> di un <c>.isc</c> che non porta a nessun file.</summary>
+    /// <summary>
+    /// Un <c>F;</c> di un <c>.isc</c> col percorso sbagliato. Avviso dal lotto «Subito» slice 2b (carta «file per file»
+    /// §C, M6): Aurora trova il file anche per nome (<c>DYNAMIC_SEC\GCI.tfl</c> sta in <c>OTHER\</c>), e il dettaglio
+    /// dice dove; se il file non c'è da nessuna parte, lo dice.
+    /// </summary>
     FileCitatoAssente,
 
-    /// <summary>Un file che nessun <c>.isc</c> carica: né <c>F;</c>, né per ICAO, né da un <c>.frq</c>.</summary>
+    /// <summary>
+    /// Un file che nessun <c>.isc</c> carica: né <c>F;</c>, né per ICAO, né da un <c>.frq</c>. Se le sue coordinate stanno
+    /// in un file caricato, il dettaglio dice «è una copia di…» (V2).
+    /// </summary>
     FileMaiCitato,
 
     /// <summary>Un punto per nome che non si trova nei cataloghi (fix, VOR, NDB, scali, VRP) di un <c>.isc</c> che carica il file.</summary>
@@ -89,6 +96,18 @@ public enum Regola
     /// file, col numero e le righe. Aurora li legge, ma una riga così le costa circa il doppio del tempo.
     /// </summary>
     CommentoInCoda,
+
+    /// <summary>Lo stesso file citato due volte da un <c>.isc</c> (<c>lirrctr.tfl</c> in <c>ITALY.isc</c>, D7): Aurora lo carica due volte.</summary>
+    FileInclusoDueVolte,
+
+    /// <summary>
+    /// Un file sotto una sezione dell'<c>.isc</c> che non ha la sua forma (F6): i punti VFR di <c>ENRVFI</c> sotto
+    /// <c>[VFRENR]</c>, che vuole le rotte.
+    /// </summary>
+    FileNellaSezioneSbagliata,
+
+    /// <summary>Un file senza una riga di dati (<c>ACC\test.artcc</c>, incluso da <c>ITALY.isc</c>: A9).</summary>
+    FileVuoto,
 }
 
 public enum Gravita
@@ -110,7 +129,8 @@ public static class Regole
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
             or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
-            or Regola.CommentoInCoda => Validazione.Gravita.Avviso,
+            or Regola.CommentoInCoda or Regola.FileCitatoAssente or Regola.FileInclusoDueVolte
+            or Regola.FileNellaSezioneSbagliata or Regola.FileVuoto => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

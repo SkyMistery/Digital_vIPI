@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la **2a**; in corso la slice 2 (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la **2a** e la **2b**; in corso la slice 2 (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -256,3 +256,22 @@ controllo degli `.isc` · **2c** coordinate scritte male con la correzione propo
     `itawlow.lairway` col tasto, 28 commenti spostati (diff giusto), annulla; riga 187 dalla riga a mano; nessun
     avviso «introdotto». Test: motore 569 → **587**, Lab 358 → **363**; rosso sul codice di prima: lettore MVA 1 su
     18, controllo delle modifiche 2 su 5.
+- **2b (27 settembre)** — il controllo degli `.isc` (§C, D7, F6, M6, V2, A9). In `CarichiDegliIsc` (lo usano il
+  validatore e il catalogo dei punti del Lab) e nel validatore dell'albero; tutte **avvisi**:
+  - **`FileCitatoAssente` diventa avviso** (§C, M6). Se sotto `Include` c'è UN file solo con quel nome, Aurora lo trova
+    per nome: conta come caricato e il dettaglio dice dove (scelta dell'agente: con due omonimi non si indovina).
+    Fork: `DYNAMIC_SEC\GCI.tfl` → `OTHER\GCI.tfl` in 5 `.isc` (e `GCI.tfl` non è più «mai citato»); mancano davvero
+    `PREFS\LIPC.cpr` (`itfreq.frq:175`, `lipp.frq:14`) e `DYNAMIC_SEC\lipp_es_ctr.tfl` (`LIPP.isc:130`).
+  - **`FileInclusoDueVolte`** (D7): `lirrctr.tfl` in `ITALY.isc:254` e, nuovo, `lippctr.tfl` in `LIPP.isc:133`.
+  - **`FileNellaSezioneSbagliata`** (F6): la forma di ogni sezione dal manuale (estensioni ammesse); `[VFRENR]` anche
+    dalla forma della prima riga (vuole le rotte, `Numero;Lat;Lon;…`). Fork: i 3 `.vfi` di `ENRVFI` sotto `[VFRENR]`
+    in 4 `.isc` = 6 avvisi (F5, da provare in Aurora); nessun altro file fuori posto.
+  - **`FileVuoto`** (A9): `ACC	est.artcc` (incluso), i 3 `.fix` vuoti di `NAVAIDS`, `itawhigh.hairway` (tutto
+    commentato) e, nuovo, **`lirm.vrt`**, che Aurora carica per nome di scalo ed è vuoto.
+  - **`FileMaiCitato` con «è una copia di…»** (V2): se almeno il 90% delle coordinate di un orfano sta in un file
+    caricato (a pari, quello dello stesso formato). Fork: **`limw.pol`** — ora orfano, perché le estensioni caricate
+    per nome di scalo seguono il manuale (gts, txi, sid, str, vfi, vrt, mva, tfl; via `geo` e `pol`, §19, §21) — «copia
+    di `GND_LAYOUT\mw_ad_gnd.pol`: le sue 52 coordinate ci stanno tutte». Gli `.atis` restano fra quelli per nome.
+  Albero: **117 errori** (−8: i percorsi sbagliati ora sono avvisi), **458 avvisi**. La prova sull'albero stampa ora
+  «FILE E INCLUDE» uno per uno. Test rosso: con la gravità e le estensioni di prima 2 test nuovi su 5 cadono (gli
+  altri tre sono regole nuove). Test: motore 587 → **592**, Lab **363**.
