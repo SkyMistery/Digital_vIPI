@@ -13,8 +13,8 @@ formato (manuale IVAO), misure sul fork `c46226f`, decisioni del committente e f
   coi parametri (§M-G), voci nuove D9 J7 Q8 (limiti verticali), M9 (pista), P11 Q2d (SID, IAP), F8 S6 (rotte VFR),
   R6 (taxiway), M10 (dati dello scalo), H10 (confine dello scalo ↔ erba); proposte da confermare e correzioni dei
   dati in **§R**.
-- **Prossimo**: il **lotto «Subito»** — le voci «Subito» raggruppate per meccanismo comune (§C), in slice e in un
-  ordine, in una carta a parte da far leggere al committente prima di cominciare.
+- **Prossimo**: il **lotto «Subito»** — carta [`2026-09-27-lotto-subito.md`](2026-09-27-lotto-subito.md) (20 slice
+  in tre ondate), da far leggere al committente prima di cominciare.
 - **Prove in Aurora da fare presto** (committente, in rami di prova): T3 ordine dei simboli · R4 startup col tasto HOLD ·
   B9 etichette `L` fra i `T` delle aerovie · A8 etichette ACC per riferimento · F5 `ENRVFI` sotto `[VFRFIX]` · I7/K2
   organizzazioni dei file di scalo A-E.
@@ -132,7 +132,7 @@ Formato (specifica di Aurora): `Tipo;Aerovia;Latitudine;Longitudine;` — `L` et
 | B11 | `itawhigh.hairway`: **si archivia così com'è**, per ora non si tocca | — | ✅ deciso |
 | B12 | Controlli: aerovia senza etichetta, etichetta orfana o con nomi che non esistono, punto che non si trova | Subito | ✅ deciso |
 | B13 | Sulla mappa: frecce del verso, colore per quota | F8 | proposta |
-| B14 | **Aggiungere un'aerovia a mano**: nome + sequenza dei punti (B7); il Lab scrive da sé il blocco, il segno `manuale`, un tag per tratto e le etichette (B4, comprese le condivise). Quote e verso NON si inventano: si scrivono nella scheda per tratto; verso di base «entrambi», quote vuote con avviso «tratto senza quote» | Subito | ✅ deciso |
+| B14 | **Aggiungere un'aerovia a mano**: nome + sequenza dei punti (B7); il Lab scrive da sé il blocco, il segno `locked=si`, un tag per tratto e le etichette (B4, comprese le condivise). Quote e verso NON si inventano: si scrivono nella scheda per tratto; verso di base «entrambi», quote vuote con avviso «tratto senza quote» | Subito | ✅ deciso |
 | B15 | **Togliere un'aerovia**: via il blocco intero (tracciato, etichette, tag); le etichette condivise perdono solo il suo nome | Subito | ✅ deciso |
 
 ## §3 — `CHANGELOG` (e `changelog.md`, `delete.upd`, `update.ini`)
@@ -753,7 +753,7 @@ nelle prove I7.
 
 | # | Esigenza | Fase | Stato |
 |---|---|---|---|
-| S1 | MVA di scalo con le regole delle ACC (§6): zona = blocco `//@zona="…"` col soprannome, scheda con la quota e il suo significato | Subito | ✅ deciso |
+| S1 | MVA di scalo con le regole delle ACC (§6): zona = blocco `//@"ICAO" zone="…"` col soprannome (§M), scheda con la quota e il suo significato | Subito | ✅ deciso |
 | S2 | **Tutto nello stile ACC**: un nome per file = **l'ICAO dello scalo** (`LIRN`), zone separate da `T;DUMMY` col gruppo (E3), soprannomi nei tag; **quote tutte in centinaia** (`25` = 2500 ft). Adozione in un ramo: nomi di zona e commenti in coda → soprannomi e note nei tag | Subito (regole) + F4 (adozione) | ✅ deciso |
 | S3 | Controlli: quota in un'unità diversa dal resto, nome del gruppo diverso dall'ICAO, commento in coda | Subito | ✅ deciso |
 | S4 | **Scheda della rotta VFR**: numero, punti in ordine scelti dal `.vfi` dello scalo e **di quelli vicini**, militare; «Chi lo usa» (L2) attraversa gli scali | Subito | ✅ deciso |
