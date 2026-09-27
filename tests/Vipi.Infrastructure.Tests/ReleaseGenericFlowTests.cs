@@ -475,6 +475,76 @@ public class ReleaseGenericFlowTests : IAsyncLifetime
         await _db.SaveChangesAsync();
     }
 
+    /// <summary>Una sezione con chiave e titolo scelti nell'ultima bozza.</summary>
+    private async Task SezioneNellaBozzaAsync(string chiave, string titolo)
+    {
+        var draft = await _db.DocumentVersions
+            .Where(v => v.DocumentId == _docId && v.Status == DocumentStatus.Draft)
+            .OrderByDescending(v => v.VersionNumber).FirstAsync();
+        _db.DocumentSections.Add(new DocumentSection
+        {
+            DocumentVersionId = draft.Id, Title = titolo, Order = 2, Depth = 0,
+            SectionKey = chiave, RowVersion = Guid.NewGuid().ToByteArray(),
+        });
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Revisione 3, U-249. Il titolo di una sezione di CATALOGO non è una scelta di chi scrive: lo risolve la chiave,
+    /// a view-time, e il DB lo tiene nella lingua di nascita. Una sua riscrittura (la riconciliazione dei titoli
+    /// d'aeroporto, il 21 settembre su LIRL) apriva una riga «da ripubblicare» — «Airport charts, Airport charts /
+    /// Aerodromo…» — che nessun lettore poteva vedere, perché a schermo non cambiava niente.
+    /// </summary>
+    [Fact]
+    public async Task Rinominare_una_sezione_di_catalogo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("frequencies", "Frequencies");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("frequencies", "Frequenze");
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
+    /// <summary>La metà che non deve cambiare: una sezione LIBERA rinominata è una modifica vera.</summary>
+    [Fact]
+    public async Task Rinominare_una_sezione_libera_resta_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("custom:a1", "Note");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("custom:a1", "Note operative");
+
+        var righe = await svc.DriftFromEffectiveAsync(FakeType, "fake-key");
+        Assert.Contains(righe, r => r.Change == ReleaseChangeKind.Added && r.Label == "Note operative");
+        Assert.Contains(righe, r => r.Change == ReleaseChangeKind.Removed && r.Label == "Note");
+    }
+
+    /// <summary>
+    /// La rete del passaggio all'identità per chiave: una release VECCHIA ha la stessa sezione con una chiave
+    /// libera (le sezioni «cotte» d'aeroporto prima della riconciliazione delle chiavi). Stesso titolo, chiave
+    /// cambiata: non è cambiato il documento, e non deve aprire righe su tutto l'archivio pubblicato.
+    /// </summary>
+    [Fact]
+    public async Task Una_chiave_diventata_di_catalogo_con_lo_stesso_titolo_non_e_una_deriva()
+    {
+        var (svc, _, _) = ConDeriva();
+        await AddDraftAsync(2);
+        await SezioneNellaBozzaAsync("custom:cotta", "Carte aeroportuali");
+        await svc.PublishNowAsync(FakeType, "fake-key", null);
+
+        await AddDraftAsync(3);
+        await SezioneNellaBozzaAsync("charts", "Carte aeroportuali");
+
+        Assert.Empty(await svc.DriftFromEffectiveAsync(FakeType, "fake-key"));
+    }
+
     private Task<int> ArchivedCountAsync() =>
         _db.DocumentVersions.CountAsync(v => v.DocumentId == _docId && v.Status == DocumentStatus.Archived);
 

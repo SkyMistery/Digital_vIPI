@@ -28,8 +28,110 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
     private const string PurposeTitle = "Purpose";
 
     private readonly VipiDbContext _db;
+    // Il registro «già fatto» delle passate una tantum (StarCiviliLiveAsync). Facoltativo: i test che non lo
+    // passano non girano quella passata.
+    private readonly Vipi.Application.Abstractions.IImportStateStore? _stati;
 
-    public EfDocumentMaintenance(VipiDbContext db) => _db = db;
+    public EfDocumentMaintenance(VipiDbContext db, Vipi.Application.Abstractions.IImportStateStore? stati = null)
+    {
+        _db = db;
+        _stati = stati;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.RiallineaSezioniSempreLiveAsync"/>
+    public async Task<int> RiallineaSezioniSempreLiveAsync(CancellationToken ct = default)
+    {
+        // Le chiavi «sempre live» sono due (meteo e validità): si cercano per chiave e si filtra in memoria,
+        // perché la regola vive in SectionCatalog e non va ricopiata in una query.
+        var candidate = await _db.DocumentSections
+            .Where(s => s.RenderMode == RenderMode.Frozen
+                        && (s.SectionKey == "weather" || s.SectionKey == "validity"))
+            .Select(s => new { s.Id, s.SectionKey, s.DocumentVersion!.DocumentId })
+            .ToListAsync(ct);
+        if (candidate.Count == 0) return 0;
+
+        var daCurare = (await ConVersioniDaCurareAsync(candidate.Select(c => c.DocumentId).Distinct(), d => d, ct))
+            .Select(x => x.VersionId).ToHashSet();
+        var ids = candidate.Where(c => SectionCatalog.IsAlwaysLive(c.SectionKey)).Select(c => c.Id).ToList();
+        var sezioni = await _db.DocumentSections.Where(s => ids.Contains(s.Id)).ToListAsync(ct);
+        var fatte = 0;
+        foreach (var s in sezioni.Where(s => daCurare.Contains(s.DocumentVersionId)))
+        {
+            s.RenderMode = RenderMode.Live;
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+            fatte++;
+        }
+        if (fatte > 0) await _db.SaveChangesAsync(ct);
+        return fatte;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.TrafficoDaSistemareAManoAsync"/>
+    public async Task<IReadOnlyList<string>> TrafficoDaSistemareAManoAsync(CancellationToken ct = default)
+    {
+        var contenitori = await _db.DocumentSections
+            .Where(s => s.SectionKey == SectionKeys.TrafficManagement)
+            .Select(s => new { s.DocumentVersionId, s.DocumentVersion!.DocumentId })
+            .Distinct().ToListAsync(ct);
+        var titoliDelContenitore = new[] { "it", "en" }
+            .Select(l => SectionCatalog.Find(SectionProfile.App, SectionKeys.TrafficManagement)!.TitleIn(l))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var fuori = new List<string>();
+        foreach (var docId in contenitori.Select(c => c.DocumentId).Distinct())
+        {
+            // L'ultima versione: è quella che l'editor apre, ed è lì che una persona sistema.
+            var vid = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (vid is null) continue;
+            var tutte = await _db.DocumentSections.Include(s => s.Blocks)
+                .Where(s => s.DocumentVersionId == vid).ToListAsync(ct);
+            var titolo = await _db.Documents.Where(d => d.Id == docId).Select(d => d.Title).FirstOrDefaultAsync(ct);
+
+            foreach (var gt in tutte.Where(s => string.Equals(s.SectionKey, SectionKeys.TrafficManagement, StringComparison.OrdinalIgnoreCase)))
+            {
+                var sorelle = tutte.Where(s => s.ParentSectionId == gt.ParentSectionId && s.Id != gt.Id
+                                               && SectionKeys.IsCustom(s.SectionKey)).ToList();
+                var ifr = tutte.FirstOrDefault(s => s.ParentSectionId == gt.Id
+                    && string.Equals(s.SectionKey, "ifr", StringComparison.OrdinalIgnoreCase));
+                var ifrVuota = ifr is not null && ifr.Blocks.Count == 0 && !tutte.Any(s => s.ParentSectionId == ifr.Id);
+                var ifrFuori = sorelle.Where(s => (s.Title ?? "").Contains("IFR", StringComparison.OrdinalIgnoreCase)).ToList();
+                if (ifrVuota && ifrFuori.Count > 0)
+                    fuori.Add($"documento {docId} «{titolo}»: IFR di catalogo vuota accanto a {ifrFuori.Count} sezioni libere IFR ("
+                              + string.Join(", ", ifrFuori.Select(s => $"«{s.Title}»")) + ")");
+                var doppio = sorelle.FirstOrDefault(s => titoliDelContenitore.Contains((s.Title ?? "").Trim()));
+                if (doppio is not null)
+                    fuori.Add($"documento {docId} «{titolo}»: due «{gt.Title}», una di catalogo e una libera (sezione {doppio.Id})");
+            }
+        }
+        return fuori;
+    }
+
+    /// <inheritdoc cref="IDocumentMaintenance.StarCiviliLiveAsync"/>
+    public async Task<int> StarCiviliLiveAsync(CancellationToken ct = default)
+    {
+        if (_stati is null) return 0;
+        var chiave = Vipi.Application.Abstractions.ImportCategories.StarCiviliLive;
+        if (await _stati.GetLastSuccessAsync(chiave, ct) is not null) return 0;   // già fatta: mai più
+
+        var civili = await _db.Airports.Where(a => a.DocumentId != null)
+            .Select(a => a.DocumentId!.Value).ToListAsync(ct);
+        var daCurare = (await ConVersioniDaCurareAsync(civili, d => d, ct)).Select(x => x.VersionId).ToList();
+        var stars = await _db.DocumentSections
+            .Where(s => daCurare.Contains(s.DocumentVersionId) && s.SectionKey == "stars"
+                        && s.RenderMode == RenderMode.Frozen)
+            .ToListAsync(ct);
+        foreach (var s in stars)
+        {
+            s.RenderMode = RenderMode.Live;
+            s.RowVersion = Guid.NewGuid().ToByteArray();
+        }
+        if (stars.Count > 0) await _db.SaveChangesAsync(ct);
+
+        // Il timbro anche a zero righe: la passata ha guardato, e la prossima volta non deve guardare più —
+        // da qui in poi una STAR Frozen è la scelta di un Editor, non un resto della nascita.
+        await _stati.MarkSuccessAsync(chiave, DateTime.UtcNow, ct);
+        return stars.Count;
+    }
 
     public async Task<int> ReconcileCustomSectionKeysAsync(CancellationToken ct = default)
     {
@@ -416,6 +518,33 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         catch (JsonException) { return null; }
     }
 
+    /// <summary>
+    /// Le versioni che una passata strutturale deve curare, per ciascun documento: l'<b>ultima</b> (la bozza, se
+    /// c'è) e la <b>pubblicata corrente</b> (<c>CurrentVersionId</c>), se è un'altra (revisione 3, U-248).
+    /// <para>⚠️ Fino al 28 settembre 2026 le passate toccavano solo l'ultima. Con una bozza aperta la pubblicata
+    /// restava com'era, e «Scarta bozza» faceva nascere la bozza seguente DALLA PUBBLICATA — cioè dalla struttura di
+    /// prima, fino alla consegna successiva. Il vSOP di LIBA aveva le STAR solo nella bozza. Le versioni più vecchie
+    /// no: sono storia, e la storia non si ritocca.</para>
+    /// <para>L'ultima viene per prima (<c>Ultima</c> = vero): i passi che fanno un trasloco da una tabella —
+    /// dove le righe spariscono dopo averle portate dentro — lo fanno solo lì.</para>
+    /// </summary>
+    private async Task<List<(T Doc, int VersionId, bool Ultima)>> ConVersioniDaCurareAsync<T>(
+        IEnumerable<T> docs, Func<T, int> id, CancellationToken ct)
+    {
+        var fuori = new List<(T, int, bool)>();
+        foreach (var doc in docs)
+        {
+            var docId = id(doc);
+            var ultima = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
+                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
+            if (ultima is not int u) continue;
+            fuori.Add((doc, u, true));
+            var corrente = await _db.Documents.Where(d => d.Id == docId).Select(d => d.CurrentVersionId).FirstOrDefaultAsync(ct);
+            if (corrente is int c && c != u) fuori.Add((doc, c, false));
+        }
+        return fuori;
+    }
+
     public async Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default)
     {
         // APP standalone, vLOA, AEROPORTI (carta 2026-08-26) e vSOP MILITARI (3 settembre 2026). La vIPI ACC, che
@@ -439,7 +568,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         // ⚠️ Niente ritorno anticipato a elenco vuoto: il passo delle vIPI ACC, in coda, sta FUORI da questo
         // elenco, e un database con le sole vIPI ACC lo avrebbe saltato. L'ha visto il test, non il sito.
         var added = 0;
-        foreach (var doc in docs)
+        foreach (var (doc, vid, _) in await ConVersioniDaCurareAsync(docs, d => d.Id, ct))
         {
             // ⚠️ Il militare PRIMA dell'aeroporto: le due edizioni dello stesso scalo sono due documenti, ma un
             // campo misto compare in tutt'e due gli elenchi con id diversi — se l'ordine si invertisse, un vSOP
@@ -449,10 +578,7 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 : airports.Contains(doc.Id) ? SectionProfile.Airport
                 : SectionProfile.App;
 
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == doc.Id)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is null) continue;
+            var versionId = (int?)vid;
 
             // ⚠️ TUTTA la versione, non le sole radici: dal 3 settembre 2026 il confronto scende nelle
             // sotto-sezioni, e il profilo militare ha ventisei sezioni dentro sei contenitori — guardando solo il
@@ -504,11 +630,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             select v.DocumentId).Distinct().ToListAsync(ct);
 
         var added = 0;
-        foreach (var docId in docIds)
+        foreach (var (docId, vid, _) in await ConVersioniDaCurareAsync(docIds, d => d, ct))
         {
-            var version = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
-                .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
-            if (version is null) continue;
+            var version = await _db.DocumentVersions.FirstAsync(v => v.Id == vid, ct);
 
             var tutte = await _db.DocumentSections.Where(x => x.DocumentVersionId == version.Id)
                 .OrderBy(x => x.Order).ToListAsync(ct);
@@ -588,9 +712,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 Depth = profondita,
                 SectionKey = desc.Key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
-                // Una sezione «sempre live» non deve nascere Frozen nemmeno quando arriva da qui: il default
-                // della colonna e' Frozen, e il meteo congelato e' meteo scaduto (carta 2026-08-26 §1a).
-                RenderMode = SectionCatalog.IsAlwaysLive(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
+                // Come alla NASCITA del documento, e con la stessa regola (revisione 3, U-245): qui c'era solo
+                // «sempre live», e le STAR delle vIPI civili — che nascono Live come le SID — arrivavano Frozen.
+                RenderMode = Seed.DocumentBirth.NasceLive(profile)(desc.Key) ? RenderMode.Live : RenderMode.Frozen,
                 // Come alla nascita: una sezione che arriva dopo deve nascere col pubblico che il catalogo
                 // le da', o le dodici marcate dal SOD sarebbero marcate solo sui documenti nuovi.
                 Audience = desc.Audience,
@@ -653,13 +777,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         var gruppo = SectionCatalog.Find(SectionProfile.App, SectionKeys.TrafficManagement)!;
 
         var mosse = 0;
-        foreach (var doc in docs)
+        foreach (var (doc, vid, _) in await ConVersioniDaCurareAsync(docs, d => d.Id, ct))
         {
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == doc.Id)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is not int vid) continue;
-
             var tutte = await _db.DocumentSections
                 .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
 
@@ -734,11 +853,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             select v.DocumentId).Distinct().ToListAsync(ct);
 
         var mosse = 0;
-        foreach (var docId in docIds)
+        foreach (var (docId, vid, _) in await ConVersioniDaCurareAsync(docIds, d => d, ct))
         {
-            var version = await _db.DocumentVersions.Where(v => v.DocumentId == docId)
-                .OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
-            if (version is null) continue;
+            var version = await _db.DocumentVersions.FirstAsync(v => v.Id == vid, ct);
             var lingua = await _db.Documents.Where(d => d.Id == docId)
                 .Select(d => d.Language).FirstOrDefaultAsync(ct) == Vipi.Domain.Language.En ? "en" : "it";
 
@@ -866,12 +983,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         if (milDocIds.Count == 0) return 0;
 
         var mosse = 0;
-        foreach (var docId in milDocIds)
+        foreach (var (docId, vid, _) in await ConVersioniDaCurareAsync(milDocIds, d => d, ct))
         {
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == docId)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is not int vid) continue;
 
             var tutte = await _db.DocumentSections
                 .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
@@ -930,12 +1043,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             .Select(a => a.DocumentId!.Value).ToListAsync(ct);
 
         var mosse = 0;
-        foreach (var docId in docIds)
+        foreach (var (docId, vid, _) in await ConVersioniDaCurareAsync(docIds, d => d, ct))
         {
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == docId)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is not int vid) continue;
 
             var tutte = await _db.DocumentSections
                 .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
@@ -1017,12 +1126,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         if (milDocIds.Count == 0) return 0;
 
         var mosse = 0;
-        foreach (var docId in milDocIds)
+        foreach (var (docId, vid, _) in await ConVersioniDaCurareAsync(milDocIds, d => d, ct))
         {
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == docId)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is not int vid) continue;
 
             var tutte = await _db.DocumentSections
                 .Where(x => x.DocumentVersionId == vid).OrderBy(x => x.Order).ToListAsync(ct);
@@ -1196,12 +1301,8 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
         if (scali.Count == 0) return 0;
 
         var toccate = 0;
-        foreach (var scalo in scali)
+        foreach (var (scalo, vid, ultima) in await ConVersioniDaCurareAsync(scali, s => s.DocumentId, ct))
         {
-            var versionId = await _db.DocumentVersions
-                .Where(v => v.DocumentId == scalo.DocumentId)
-                .OrderByDescending(v => v.VersionNumber).Select(v => (int?)v.Id).FirstOrDefaultAsync(ct);
-            if (versionId is not int vid) continue;
 
             var version = await _db.DocumentVersions.FirstAsync(v => v.Id == vid, ct);
             var roots = await _db.DocumentSections.Include(x => x.Blocks)
@@ -1212,7 +1313,9 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
             // di catalogo, e su un documento redatto in inglese li riporterebbe tutti in italiano — a ogni
             // avvio, in silenzio, disfacendo quel che l'editor aveva scritto.
             toccate += ReconcileCookedSections(roots, scalo.Language == Vipi.Domain.Language.En ? "en" : "it");
-            toccate += await MoveExtraSectionsIntoDocumentAsync(scalo.Id, version, roots, ct);
+            // ⚠️ Il trasloco degli extra SOLO nell'ultima versione: è un trasloco — le righe della tabella si
+            // cancellano dopo averle portate dentro — e una seconda versione le troverebbe già sparite.
+            if (ultima) toccate += await MoveExtraSectionsIntoDocumentAsync(scalo.Id, version, roots, ct);
         }
 
         if (toccate > 0) await _db.SaveChangesAsync(ct);
@@ -1247,15 +1350,12 @@ public sealed class EfDocumentMaintenance : IDocumentMaintenance
                 toccata = true;
             }
 
-            // Passo 1-bis — il TITOLO di una sezione di catalogo lo decide il catalogo, e vale anche per quelle
-            // che la chiave giusta ce l'avevano già: «Frequencies» e «SID» non passano dal rinomina di sopra, e
-            // senza questo ramo il documento resterebbe metà in italiano e metà in inglese. Una sezione fissa non
-            // si rinomina a mano (IsMandatory lo vieta), quindi non c'è nessuna scelta editoriale da rispettare.
-            if (SectionCatalog.Find(SectionProfile.Airport, s.SectionKey) is { } desc && s.Title != desc.TitleIn(lingua))
-            {
-                s.Title = desc.TitleIn(lingua);
-                toccata = true;
-            }
+            // ⚠️ Qui c'era il «passo 1-bis», tolto il 28 settembre 2026 (revisione 3, U-249): riscriveva nel DB il
+            // titolo delle sezioni di catalogo nella lingua del documento — ma solo delle RADICI, e le figlie
+            // («Regole piste», le raccolte delle carte) restavano nella lingua di nascita. Una regola sola adesso: il
+            // titolo di una sezione di catalogo lo risolve per chiave TitoliDiCatalogo, nel viewer, nell'editor e
+            // nella firma di deriva (ReleaseService.Signature); nel DB resta quello di nascita. La riscrittura apriva
+            // anche righe «da ripubblicare» che nessun lettore poteva vedere (LIRL, impatto #128).
 
             // Passo 2 — i blocchi. Vale per OGNI sezione il cui corpo lo produce ora la pagina, non solo per
             // quelle appena rinominate: «Frequencies» aveva la chiave giusta fin dall'inizio e la sua tabella

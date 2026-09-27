@@ -413,8 +413,14 @@ public sealed class EfEditingRepository : IEditingRepository
     /// VFR dentro: prima nasceva solo il primo livello, e il contenitore sarebbe nato VUOTO. È la stessa lezione
     /// di <c>DocumentBirth.Semina</c> (28 agosto 2026), che però fa nascere un documento intero e non un blocco.</para>
     /// </summary>
+    /// <summary>
+    /// Semina le sezioni di catalogo sotto un blocco della vIPI ACC (nascita del documento e «+ gruppo APP»).
+    /// <para>⚠️ Con la lingua del documento, il pubblico e la nascosta del catalogo, come <c>DocumentBirth</c>
+    /// (revisione 3, U-246): scriveva sempre il titolo italiano, anche su una vIPI in inglese, e ignorava gli
+    /// altri due campi.</para>
+    /// </summary>
     private void SeminaFiglie(DocumentVersion version, DocumentSection padre, SectionProfile profile,
-        IReadOnlyList<SectionDescriptor> descrittori)
+        IReadOnlyList<SectionDescriptor> descrittori, string lingua)
     {
         var ordine = 1;
         foreach (var d in descrittori.OrderBy(d => d.Order))
@@ -423,16 +429,18 @@ public sealed class EfEditingRepository : IEditingRepository
             {
                 DocumentVersion = version,
                 ParentSection = padre,
-                Title = d.Title,
+                Title = d.TitleIn(lingua),
                 Order = ordine++,
                 Depth = padre.Depth + 1,
                 SectionKey = d.Key,
                 RowVersion = Guid.NewGuid().ToByteArray(),
                 RenderMode = ModoAllaNascita(d.Key),
+                Audience = d.Audience,
+                IsHidden = d.BornHidden,
             };
             _db.DocumentSections.Add(child);
             AggiungiPlaceholderSeServe(version, child, profile, d.Key);
-            if (d.Children is { Count: > 0 } figli) SeminaFiglie(version, child, profile, figli);
+            if (d.Children is { Count: > 0 } figli) SeminaFiglie(version, child, profile, figli, lingua);
         }
     }
 
@@ -491,7 +499,8 @@ public sealed class EfEditingRepository : IEditingRepository
             };
             _db.DocumentSections.Add(blockSection);
 
-            SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
+            SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile),
+                language == Language.En ? "en" : "it");
         }
         await _db.SaveChangesAsync(ct);
 
@@ -530,8 +539,9 @@ public sealed class EfEditingRepository : IEditingRepository
         };
         _db.DocumentSections.Add(blockSection);
 
-        var version = await _db.DocumentVersions.FirstAsync(v => v.Id == versionId, ct);
-        SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile));
+        var version = await _db.DocumentVersions.Include(v => v.Document).FirstAsync(v => v.Id == versionId, ct);
+        SeminaFiglie(version, blockSection, block.Profile, SectionCatalog.For(block.Profile),
+            version.Document!.Language == Language.En ? "en" : "it");
         await _db.SaveChangesAsync(ct);
         return blockSection.Id;
     }

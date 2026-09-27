@@ -104,11 +104,13 @@ public class ReconcileAirportSectionsTests : IAsyncLifetime
             ("Runways", """{"columns":["Runway"],"rows":[]}"""),
             ("SID", null));
 
-        // Cinque toccate: tre rinominate, «Frequencies» che aveva la chiave giusta ma il titolo inglese e la
-        // tabella cotta dentro, e «SID» — che di suo aveva solo il titolo da allineare... e infatti il titolo
-        // di catalogo È «SID», quindi resta com'è. Quattro, allora: la quinta non ha niente da cambiare.
+        // Quattro toccate: tre rinominate, e «Frequencies», che aveva la chiave giusta e la tabella cotta dentro.
+        // «SID» non ha niente da cambiare.
         Assert.Equal(4, await _manutenzione.ReconcileAirportSectionKeysAsync());
-        Assert.Equal("Frequenze", (await _db.DocumentSections.SingleAsync(x => x.SectionKey == "frequencies")).Title);
+        // ⚠️ Il titolo di una sezione che la chiave giusta ce l'aveva già NON si riscrive più (revisione 3, U-249):
+        // lo risolve per chiave TitoliDiCatalogo, nel viewer, nell'editor e nella firma di deriva. Riscriverlo solo
+        // sulle radici lasciava le figlie nell'altra lingua e apriva righe «da ripubblicare» invisibili.
+        Assert.Equal("Frequencies", (await _db.DocumentSections.SingleAsync(x => x.SectionKey == "frequencies")).Title);
 
         var sezioni = await _db.DocumentSections.Include(s => s.Blocks).OrderBy(s => s.Order).ToListAsync();
         Assert.Equal(

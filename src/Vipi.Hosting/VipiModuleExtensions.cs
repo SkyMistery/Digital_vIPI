@@ -1020,6 +1020,28 @@ public static class VipiModuleExtensions
             Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
                 log, "Aggiunte {Count} sezioni di catalogo mancanti ai documenti APP/vLOA/aeroporto/militari e ai blocchi Aerovia delle vIPI ACC.", catalog);
 
+        // Le sezioni «sempre live» rimaste Frozen tornano Live (revisione 3, U-246: la vLOA nasceva con la validità
+        // Frozen). ⚠️ DOPO AddMissingCatalogSections: le sezioni che quel passo ha appena aggiunto nascono già giuste,
+        // e questo raggiunge quelle nate prima.
+        var sempreLive = maintenance.RiallineaSezioniSempreLiveAsync().GetAwaiter().GetResult();
+        if (sempreLive > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Riportate a Live {Count} sezioni «sempre live» (meteo, validità) che erano Frozen.", sempreLive);
+
+        // Una volta sola: le STAR delle vIPI civili, Frozen perché aggiunte dalla manutenzione, diventano Live come
+        // le SID (revisione 3, U-245, scelta del committente). Il registro «già fatta» la ferma dalla seconda volta.
+        var starLive = maintenance.StarCiviliLiveAsync().GetAwaiter().GetResult();
+        if (starLive > 0 && log is not null)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogInformation(
+                log, "Portate a Live {Count} sezioni STAR delle vIPI civili (passata una tantum).", starLive);
+
+        // Sola lettura: dove lo spostamento del VFR ha lasciato un lavoro da fare a mano (revisione 3, U-105). Un
+        // avviso nel registro, uno per documento; il contenuto lo sposta una persona con «Sposta in…».
+        if (log is not null)
+            foreach (var riga in maintenance.TrafficoDaSistemareAManoAsync().GetAwaiter().GetResult())
+                Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                    log, "Gestione del traffico da sistemare a mano: {Riga}", riga);
+
         // QRA/Scramble fuori dai vSOP militari (indice del SOD, 6 settembre 2026). ⚠️ DOPO
         // AddMissingCatalogSections: quel passo misura la presenza per CHIAVE su tutta la versione, e con la
         // sezione ancora al suo posto non c'è niente da confondere — ma togliere prima di aggiungere

@@ -577,5 +577,45 @@
   - **Prova dal vivo** (copia del DB): foto a 360/375/768 di home vSOP, vAWOS LIRF, convertitore, viewer LIBD,
     vSOP LIBV, menu «☰» con lo zoom; tour in italiano e in inglese; vista rapida LIBD nelle due lingue
     («FIX · SID · Transizione · Quota iniziale · … · Condizione» e l'inglese).
+- ✅ **S24** lotto **L10 «Allineamento dei documenti»** della revisione 3 (via del committente il 28-set): U-105,
+  U-245, U-246, U-248, U-249 (U-009 e U-014 già chiusi nel codice da L1, S10). Nessuna migrazione di schema.
+  **Codice comune sì**: `Vipi.Application` (`ReleaseService.Signature` e `Confronta`, `IDocumentMaintenance` con tre
+  metodi nuovi, `ImportCategories.StarCiviliLive`). **Dati in produzione al primo avvio**: le STAR civili Frozen
+  → Live (una volta sola) e le sezioni «sempre live» Frozen → Live.
+  - **U-248** (le passate d'avvio toccavano solo l'ultima versione): ora curano l'ultima **e** la pubblicata
+    corrente (`ConVersioniDaCurareAsync` in `EfDocumentMaintenance`, otto passate). Con una bozza aperta la
+    pubblicata restava vecchia, e «Scarta bozza» faceva ripartire la bozza dalla struttura di prima (vSOP LIBA,
+    STAR solo nella bozza). Il trasloco degli extra d'aeroporto resta solo sull'ultima: è un trasloco.
+  - **U-245** (STAR Frozen accanto a SID Live): la regola «nasce Live» sta in un posto solo,
+    `DocumentBirth.NasceLive(profilo)`, e la usa anche la manutenzione. Scelta del committente: **anche le 45
+    esistenti** → `StarCiviliLiveAsync`, passata **una tantum** col registro `StarCiviliLive` (dopo, una STAR
+    Frozen è la scelta di un Editor e nessuno gliela disfa).
+  - **U-246**: la vLOA nasce con la validità Live, pubblico e nascosta del catalogo (`VloaStructureSeeder`); i
+    blocchi della vIPI ACC seminano le figlie nella lingua del documento, con pubblico e nascosta
+    (`SeminaFiglie`). Per i dati: `RiallineaSezioniSempreLiveAsync` riporta a Live meteo e validità rimaste
+    Frozen (idempotente: per quelle sezioni l'editor non ha il toggle).
+  - **U-249**, una regola sola: il titolo di una sezione di catalogo lo risolve **la chiave**, ovunque. Il viewer
+    e l'editor lo facevano già (`TitoliDiCatalogo`); la firma di deriva (`ReleaseService.Signature`) ora
+    riconosce le sezioni di catalogo per chiave, le libere e le chiavi ripetute fra sorelle per titolo, e accoppia
+    le voci rimaste spaiate con lo stesso percorso di titoli (release vecchie con le sezioni «cotte»).
+    L'etichetta a schermo resta il percorso dei titoli. Tolto il «passo 1-bis» della riconciliazione d'aeroporto,
+    che riscriveva nel DB i titoli delle sole radici e apriva righe «da ripubblicare» invisibili (LIRL, #128).
+  - **U-105**, scelta del committente: **lo sistema lui, a mano**, con «Sposta in…»: vIPI LIBB (blocco Brindisi
+    CS0: le tre sezioni libere IFR dentro la IFR di catalogo) e Perugia Approach (una sola «Gestione del
+    traffico»). Nel codice solo l'avviso: `TrafficoDaSistemareAManoAsync`, in sola lettura, scrive all'avvio una
+    riga di avviso nel registro per ogni documento in quello stato.
+  - **Test**: nuovi `AllineamentoDocumentiTests` (8), `NascitaDocumentoParitaTests` (+1, vIPI ACC in inglese),
+    `ReleaseGenericFlowTests` (+3, deriva). Rossi sul comportamento di prima 6 su 7 di quelli che lo toccano (il
+    settimo, la chiave diventata di catalogo con lo stesso titolo, è la rete della regola nuova e passa anche
+    prima); le tre passate nuove non esistevano. `ReconcileAirportSectionsTests`: il titolo di «Frequencies» non
+    si riscrive più. Suite intera verde:
+    Infrastructure 1683 → **1695**, il resto invariato.
+  - **Prova dal vivo**: copia del DB di sviluppo (del 15-set: senza STAR; la copia di produzione
+    `vipi_rev3` dell'audit non è più su questa macchina). Primo avvio: 70 sezioni di catalogo aggiunte, fra cui 11
+    STAR tutte **Live**; 25 «sempre live» riportate a Live; il registro `StarCiviliLive` scritto; le 12 validità
+    Frozen rimaste stanno solo in versioni **archiviate**; nei 9 documenti con una bozza sopra la pubblicata, bozza e
+    pubblicata hanno le stesse chiavi di catalogo. Secondo avvio: nessuna passata trova lavoro. Editor e viewer
+    LIBD, editor vIPI LIBB e pagina versioni si aprono senza errori. L'avviso U-105 non scatta su questa copia (il
+    caso c'è solo in produzione): lo provano i test.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

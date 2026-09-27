@@ -217,6 +217,13 @@ public static class ImportCategories
     public const string SpecialAreaForeignOptOut = "SpecialAreaForeignOptOut";
 
     /// <summary>
+    /// NON è un import: il segnaposto «già fatta» della passata una tantum che ha portato a Live le STAR delle
+    /// vIPI civili (<c>IDocumentMaintenance.StarCiviliLiveAsync</c>, revisione 3, U-245). Senza, la passata
+    /// rigirerebbe a ogni consegna e disferebbe la scelta di un Editor che congela le STAR.
+    /// </summary>
+    public const string StarCiviliLive = "StarCiviliLive";
+
+    /// <summary>
     /// Lo sweep delle release (<c>ReleaseSweepHostedService</c>, dal 2 settembre 2026): ricalcolo degli stati
     /// e potatura di quel che è scaduto. ⚠️ <b>Non è un import</b> e non compare in Sorgenti, come
     /// <see cref="ImpactDrift"/>: non interroga nessuna sorgente. Chiave sua perché il fatto che lo muove —

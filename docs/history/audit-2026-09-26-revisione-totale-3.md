@@ -553,7 +553,7 @@ Approach) e una **azione in produzione** senza codice (U-009 prima del 1-ott; U-
 | **L7** ✅ | **Import IVAO** — corretto il 27-set (sito S19, S20, S21; U-028 senza declassamento automatico, scelta del committente) | U-002 e gli S3 di d04 | U-002 è NV: prima un test rosso (client finto che risponde 403 → oggi elenco vuoto) |
 | **L8** ✅ | **Dominio e vista rapida** — corretto il 27-set (sito S22; U-091 resta il vento medio e U-093 «///» sotto 1500 m, scelte del committente) | U-015, U-094 e gli S3 di d13 | U-015: TA/TL dal pubblicato come il documento; FL sopra la TA |
 | **L9** ✅ | **Design su telefono e tablet** — corretto il 28-set (sito S23; con gli NV confermati della carta d12: U-085…U-088, U-201…U-203, U-205, U-206, U-211, U-212) | U-106, U-107, U-251…U-255 | CSS e JS: il pacchetto porta wwwroot. Misura prima/dopo con la stessa sonda (parole spezzate, scrollWidth) |
-| **L10** | **Allineamento dei documenti** | U-105, U-245, U-246, U-248, U-249 (+ U-009, U-014) | Vedi §7 |
+| **L10** ✅ | **Allineamento dei documenti** — corretto il 28-set (sito S24; U-245 anche sulle STAR esistenti e U-105 a mano, scelte del committente) | U-105, U-245, U-246, U-248, U-249 (+ U-009, U-014) | Vedi §7 |
 | **L11** | **Il resto** | S3/S4 per dimensione | Da prendere per area di codice quando si tocca quell'area; gli NV partono da una prova rossa |
 
 

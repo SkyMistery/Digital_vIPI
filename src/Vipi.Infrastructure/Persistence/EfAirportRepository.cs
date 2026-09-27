@@ -702,7 +702,7 @@ public sealed class EfAirportRepository : IAirportRepository
             // Su `puntaAllaVersione` c'è una domanda aperta: sta scritta in DocumentBirth.
             (doc, _) = Seed.DocumentBirth.Crea(_db, new AiracService(), $"vIPI — {icao} {airport.Name}",
                 Language.It, SectionProfile.Airport, authorUserId: 0,
-                nasceLive: BornLive, conSegnaposto: false);
+                nasceLive: Seed.DocumentBirth.NasceLive(SectionProfile.Airport), conSegnaposto: false);
             await _db.SaveChangesAsync(ct);
             // ⚠️ `CurrentVersionId` resta NULL, e adesso e' come nascono tutte e quattro le famiglie.
             // Qui veniva impostato sulla versione appena creata, che e' una BOZZA — ma quel campo vuol dire
@@ -745,13 +745,8 @@ public sealed class EfAirportRepository : IAirportRepository
     /// governato dal gate d'import, non dalla release.
     /// </para>
     /// </summary>
-    /// <summary>Sezioni derivate che nascono Live: il meteo (mai congelabile) e le procedure — SID e STAR —
-    /// per la stessa scelta editoriale storica. ⚠️ Gli arrivi nascono come le partenze: sono la stessa
-    /// tabella, e due nascite diverse vorrebbero dire due comportamenti da spiegare.</summary>
-    private static bool BornLive(string key) =>
-        SectionCatalog.IsAlwaysLive(key)
-        || string.Equals(key, "sids", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(key, "stars", StringComparison.OrdinalIgnoreCase);
+    // La regola «nasce Live» (meteo, SID e STAR) sta in DocumentBirth.NasceLive: la usa anche la manutenzione
+    // d'avvio, che aggiunge le sezioni mancanti ai documenti già scritti (revisione 3, U-245).
 
             public async Task<int?> GetDocumentIdAsync(string icao, CancellationToken ct = default)
     {

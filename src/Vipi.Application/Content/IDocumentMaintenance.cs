@@ -77,6 +77,31 @@ public interface IDocumentMaintenance
     Task<int> AddMissingCatalogSectionsAsync(CancellationToken ct = default);
 
     /// <summary>
+    /// Le sezioni «sempre live» (<see cref="SectionCatalog.IsAlwaysLive"/>: meteo e validità) rimaste Frozen
+    /// nelle versioni da curare — l'ultima e la pubblicata corrente — tornano Live (revisione 3, U-246: la vLOA
+    /// nasceva con «Validity and Revision» Frozen). Idempotente, e senza scelte da rispettare: per queste
+    /// sezioni l'editor non offre il toggle.
+    /// </summary>
+    Task<int> RiallineaSezioniSempreLiveAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// <b>Una volta sola</b> (registro <c>ImportCategories.StarCiviliLive</c>): le STAR delle vIPI d'aeroporto
+    /// civili ancora Frozen diventano Live, come le SID e come nascono (revisione 3, U-245, scelta del committente
+    /// il 28 settembre 2026). Una volta sola perché, fatta questa, una STAR Frozen è la scelta di un Editor: una
+    /// passata che girasse a ogni consegna gliela disferebbe.
+    /// </summary>
+    Task<int> StarCiviliLiveAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// SOLA LETTURA: i documenti dove lo spostamento del VFR in «Gestione del traffico» ha lasciato un lavoro a
+    /// mano (revisione 3, U-105). Due casi: la «IFR» di catalogo è vuota mentre accanto al contenitore ci sono
+    /// sezioni libere che parlano di IFR (vIPI LIBB, blocco Brindisi CS0), oppure accanto al contenitore c'è una
+    /// sezione libera che si chiama come lui (Perugia Approach, due «Gestione del traffico»). Il contenuto l'hanno
+    /// scritto gli editori: spostarlo lo decide una persona, con «Sposta in…». Qui si dice solo dove guardare.
+    /// </summary>
+    Task<IReadOnlyList<string>> TrafficoDaSistemareAManoAsync(CancellationToken ct = default);
+
+    /// <summary>
     /// Sposta la sezione <c>parkings</c> dei vSOP militari già scritti da «Procedure di terra» a ultima figlia di
     /// «Dati generali», dove il catalogo la mette dal 3 settembre 2026.
     ///

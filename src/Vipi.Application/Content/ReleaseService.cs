@@ -599,20 +599,9 @@ public sealed class ReleaseService : IReleaseService
         var baseline = precedente is null ? null : await _repo.GetByIdAsync(precedente.Id, ct);
 
         var cur = Signature(rel.PayloadJson);
-        var prev = baseline is null ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        var prev = baseline is null ? new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase)
                                     : Signature(baseline.PayloadJson);
-
-        var rows = new List<ReleaseDiffRow>();
-        foreach (var kv in cur.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            if (!prev.TryGetValue(kv.Key, out var p))
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
-            else if (p != kv.Value)
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
-        }
-        foreach (var kv in prev.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            if (!cur.ContainsKey(kv.Key))
-                rows.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
+        var rows = Confronta(cur, prev);
 
         // Niente frasi in Application: il ciclo di confronto (o la sua assenza) lo formatta la UI.
         return new ReleaseDiff(baseline is not null, baseline?.ReleaseAiracCycle, rows);
@@ -634,22 +623,7 @@ public sealed class ReleaseService : IReleaseService
         var oggiJson = await BuildSnapshotJsonAsync(type, key, alCiclo ?? _airac.GetCycle(DateTime.UtcNow), ct);
         if (oggiJson is null) return Array.Empty<ReleaseDiffRow>();
 
-        var oggi = Signature(oggiJson);
-        var pubblicata = Signature(effettiva.PayloadJson);
-
-        var righe = new List<ReleaseDiffRow>();
-        foreach (var kv in oggi.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-        {
-            if (!pubblicata.TryGetValue(kv.Key, out var p))
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Added, null, kv.Value));
-            else if (p != kv.Value)
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Modified, p, kv.Value));
-        }
-        foreach (var kv in pubblicata.OrderBy(k => k.Key, StringComparer.OrdinalIgnoreCase))
-            if (!oggi.ContainsKey(kv.Key))
-                righe.Add(new ReleaseDiffRow(kv.Key, ReleaseChangeKind.Removed, kv.Value, null));
-
-        return righe;
+        return Confronta(Signature(oggiJson), Signature(effettiva.PayloadJson));
     }
 
     public async Task<string?> ProgrammataAllineataAsync(ReleaseTargetType type, string key,
@@ -679,9 +653,9 @@ public sealed class ReleaseService : IReleaseService
         return null;
     }
 
-    /// <summary>Due firme editoriali dicono la stessa cosa? Stesse voci, stessi conteggi.</summary>
-    private static bool StesseFirme(Dictionary<string, int> a, Dictionary<string, int> b) =>
-        a.Count == b.Count && a.All(kv => b.TryGetValue(kv.Key, out var v) && v == kv.Value);
+    /// <summary>Due firme editoriali dicono la stessa cosa? Il confronto non trova nessuna differenza.</summary>
+    private static bool StesseFirme(Dictionary<string, Voce> a, Dictionary<string, Voce> b) =>
+        Confronta(a, b).Count == 0;
 
     public async Task<ReleasePreview?> GetPreviewAsync(int releaseId, ReleaseTargetType expectedType,
         string expectedKey, CancellationToken ct = default)
@@ -721,28 +695,87 @@ public sealed class ReleaseService : IReleaseService
         return new ReleaseLocation(rel.TargetType, rel.TargetKey, rel.ReleaseAiracCycle, acc);
     }
 
-    /// <summary>Firma editoriale di un payload: voce (sezione/blocco) → conteggio elementi. Base del diff.
-    /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.</summary>
-    private static Dictionary<string, int> Signature(string payloadJson)
+    /// <summary>Una voce della firma: l'etichetta che si mostra (il percorso dei TITOLI) e il numero di blocchi.</summary>
+    private sealed record Voce(string Etichetta, int Blocchi);
+
+    /// <summary>Firma editoriale di un payload: identità della sezione → voce. Base del diff e della deriva.
+    /// Post-08 tutti i tipi sono su DocReleasePayload → firma unica, nessuno switch per-tipo.
+    /// <para>⚠️ L'identità di una sezione di CATALOGO è la sua chiave, non il titolo (revisione 3, U-249). Il titolo
+    /// di una sezione di catalogo non lo sceglie nessuno — lo risolve <c>TitoliDiCatalogo</c> a view-time, e il DB
+    /// lo tiene nella lingua di nascita — quindi una sua riscrittura (la riconciliazione dei titoli d'aeroporto,
+    /// una rinomina del catalogo) non è una modifica del documento. Col percorso dei titoli contava come una sezione
+    /// tolta più una aggiunta, e apriva una riga «da ripubblicare» che nessun lettore poteva vedere: LIRL, 21-set,
+    /// «Airport charts, Airport charts / Aerodromo…».</para>
+    /// <para>Per titolo restano le sezioni LIBERE (<c>custom:…</c>), e le chiavi ripetute fra sorelle
+    /// (<c>appgroup</c> nella vIPI ACC, lo storico <c>custom</c> nudo): lì la chiave non dice quale sezione è.</para>
+    /// </summary>
+    private static Dictionary<string, Voce> Signature(string payloadJson)
     {
-        var sig = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var sig = new Dictionary<string, Voce>(StringComparer.OrdinalIgnoreCase);
         try
         {
             var p = JsonSerializer.Deserialize<DocReleasePayload>(payloadJson);
-            if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", sig);
+            if (p?.Doc?.Roots is not null) FlattenSections(p.Doc.Roots, "", "", sig);
         }
         catch (JsonException) { }
         return sig;
     }
 
-    private static void FlattenSections(IReadOnlyList<RawSection> sections, string prefix, Dictionary<string, int> sig)
+    private static void FlattenSections(IReadOnlyList<RawSection> sections, string idPrefix, string labelPrefix,
+        Dictionary<string, Voce> sig)
     {
+        var ripetute = sections.GroupBy(s => s.SectionKey ?? "", StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() > 1).Select(g => g.Key).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var s in sections)
         {
-            var label = prefix.Length == 0 ? s.Title : $"{prefix} / {s.Title}";
-            sig[label] = s.Blocks.Count;
-            if (s.Children.Count > 0) FlattenSections(s.Children, label, sig);
+            var perChiave = !string.IsNullOrEmpty(s.SectionKey) && !SectionKeys.IsCustom(s.SectionKey)
+                            && !ripetute.Contains(s.SectionKey);
+            // «#» davanti: una chiave non si confonde mai con un titolo che le somigli.
+            var id = perChiave ? "#" + s.SectionKey : s.Title;
+            var idPath = idPrefix.Length == 0 ? id : $"{idPrefix} / {id}";
+            var label = labelPrefix.Length == 0 ? s.Title : $"{labelPrefix} / {s.Title}";
+            sig[idPath] = new Voce(label, s.Blocks.Count);
+            if (s.Children.Count > 0) FlattenSections(s.Children, idPath, label, sig);
         }
+    }
+
+    /// <summary>
+    /// Il confronto fra due firme: aggiunte, modificate (blocchi diversi), tolte. Etichetta dalla firma nuova,
+    /// dalla vecchia per le tolte.
+    /// <para>⚠️ Due passate. La prima per identità. La seconda accoppia fra loro le voci rimaste spaiate che hanno
+    /// lo stesso percorso di TITOLI: una release vecchia può avere la stessa sezione con una chiave libera (le
+    /// sezioni «cotte» degli aeroporti, prima della riconciliazione delle chiavi) — cambiata la chiave, non è
+    /// cambiato il documento. Senza questa rete, il passaggio all'identità per chiave avrebbe aperto righe
+    /// «da ripubblicare» su tutti i documenti pubblicati prima di quella riconciliazione.</para>
+    /// </summary>
+    private static List<ReleaseDiffRow> Confronta(Dictionary<string, Voce> nuova, Dictionary<string, Voce> vecchia)
+    {
+        var aggiunte = nuova.Where(kv => !vecchia.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var tolte = vecchia.Where(kv => !nuova.ContainsKey(kv.Key)).Select(kv => kv.Value).ToList();
+        var righe = new List<ReleaseDiffRow>();
+
+        foreach (var kv in nuova)
+            if (vecchia.TryGetValue(kv.Key, out var v) && v.Blocchi != kv.Value.Blocchi)
+                righe.Add(new ReleaseDiffRow(kv.Value.Etichetta, ReleaseChangeKind.Modified, v.Blocchi, kv.Value.Blocchi));
+
+        foreach (var a in aggiunte)
+        {
+            var gemella = tolte.FirstOrDefault(t => string.Equals(t.Etichetta, a.Etichetta, StringComparison.OrdinalIgnoreCase));
+            if (gemella is null)
+            {
+                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Added, null, a.Blocchi));
+                continue;
+            }
+            tolte.Remove(gemella);
+            if (gemella.Blocchi != a.Blocchi)
+                righe.Add(new ReleaseDiffRow(a.Etichetta, ReleaseChangeKind.Modified, gemella.Blocchi, a.Blocchi));
+        }
+        foreach (var t in tolte)
+            righe.Add(new ReleaseDiffRow(t.Etichetta, ReleaseChangeKind.Removed, t.Blocchi, null));
+
+        // L'ordine di prima: le presenti per etichetta, poi le tolte per etichetta.
+        return righe.OrderBy(r => r.Change == ReleaseChangeKind.Removed)
+            .ThenBy(r => r.Label, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     private async Task SnapshotAndSaveAsync(ReleaseTargetType type, string key, string cycle, DateTime effectiveUtc, string? note, CancellationToken ct)
