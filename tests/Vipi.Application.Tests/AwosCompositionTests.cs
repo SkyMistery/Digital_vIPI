@@ -12,6 +12,21 @@ namespace Vipi.Application.Tests;
 /// </summary>
 public class AwosCompositionTests
 {
+    // 🔴 U-092: oltre 90 minuti il METAR non guida più LVP e pista; senza ora non si sa, e non si dice vecchio.
+    [Theory]
+    [InlineData(89, false)]
+    [InlineData(91, true)]
+    [InlineData(190, true)]
+    public void Un_METAR_oltre_novanta_minuti_e_vecchio(int minuti, bool vecchio)
+    {
+        var adesso = new DateTimeOffset(2026, 9, 27, 9, 0, 0, TimeSpan.Zero);
+        Assert.Equal(vecchio, AwosComposition.MetarVecchio(adesso.AddMinutes(-minuti), adesso));
+    }
+
+    [Fact]
+    public void Senza_ora_il_METAR_non_e_vecchio() =>
+        Assert.False(AwosComposition.MetarVecchio(null, DateTimeOffset.UtcNow));
+
     private static RunwayRow Pista(string ident, int? bearing = null, int? elev = null) =>
         new(0, ident, null, bearing, null, null, null, null, null, null, null, elev);
 

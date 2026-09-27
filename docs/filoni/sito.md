@@ -489,5 +489,40 @@
     be made… (127.0.0.1:9)», circuito vivo. ⚠️ Al primo avvio della prova l'opzione del token aveva il nome
     sbagliato: **una** richiesta di token con credenziali finte è arrivata al vero IVAO (400 «application doesn't
     exist»). Nessun dato scritto; la app è stata fermata e rilanciata subito col token locale.
+- ✅ **S22** lotto **L8 «Dominio e vista rapida»** della revisione 3 (via del committente il 27-set): U-015, U-089,
+  U-090, U-091, U-092, U-093/U-095, U-094. Nessuna migrazione. **Codice comune sì**: `Vipi.Application`
+  (`ParsedMetar.CeilingUnknown`, `MetarParser.OraOsservazione`, `LvpValutatore`, `LvpValutazione.RvrSopraScala`,
+  `AwosComposition.MetarVecchio`, `AwosView.MetarObservedUtc/MetarStale`, `AirportBackfillPlanner`,
+  `AirportTrafficBackfillUseCase`). `wwwroot` sì (`vipi-awos.js`).
+  - **U-015**: la vista rapida legge TA e fasce TL dalla stessa vista del documento pubblico
+    (`IAirportViewDerivationService`, congelata o derivata). Prima le cercava nei blocchi di una sezione Host, che
+    nello snapshot non ne ha: TA «N/A», TL «—», initial climb in piedi sopra la TA. Il TL «adesso» è la fascia del
+    QNH (`AirportViewFormat.TlAdesso`), senza più ripiegare sulla prima riga della tabella.
+  - **U-089**: `VV///` e gli strati con base `///` (`BKN///`, `OVC///`, `//////`) sono un soffitto **ignoto**
+    (`ParsedMetar.CeilingUnknown`), non un cielo sgombro. Le LVP non si propongono da cancellare, e la riga delle
+    nubi scrive «VV ///».
+  - **U-090**: con tutti i gruppi RVR «P» la misura resta l'RVR, come limite inferiore («RVR above 2000 m» nel
+    titolo). Prima si ricadeva sulla visibilità e si accendevano le LVP.
+  - **U-091**, scelta del committente: **resta il vento medio**. Nessun cambio nel calcolo; scritto nel commento di
+    `ExplainRules` e nella carta del vAWOS.
+  - **U-092**: l'età del quadro si misura dall'**ora del METAR** (`ddhhmmZ` risolto in UTC dal server), non
+    dall'ultima risposta. Oltre 90 minuti il server non propone né LVP né pista; il quadro va in «morto». Non fatto:
+    il tetto d'età dentro il ripiego stantio del client NOAA (col controllo nel server non guida più niente).
+  - **U-093/U-095**, scelta del committente: senza RVR, `P2000` solo con visibilità ≥ 1500 m o CAVOK. Sotto, `///`.
+  - **U-094**: il riempimento del traffico d'aeroporto attribuisce **per istante**: la sessione chiede la sua
+    finestra e tiene i movimenti avvenuti quando non c'era in frequenza nessuno più titolato. Una finestra coperta
+    per intero da posizioni più titolate resta saltata senza chiamare la sorgente, come prima. Istante assente, o
+    nessuno in frequenza: vale la regola della finestra, così nessun movimento si conta due volte. **Non fatto**: il
+    recupero delle 198 sessioni già saltate. Serve rimettere `TrafficFilledUtc` a NULL in produzione, entro l'anno
+    della sorgente: è un gesto sui dati veri, lo decide il committente.
+  - **Test**: rossi sul codice di prima quelli di U-094 (GND a zero), U-093 (P2000) e i due U-089/U-090 in
+    `LvpTests`; U-015 e U-092 sono funzioni nuove (`TlAdesso`, `OraOsservazione`, `MetarVecchio`). Suite intera
+    verde: Application 2988 → **3008**, Infrastructure 1682 → **1683**, Ui 1760 → **1771**.
+  - **Prova dal vivo** (copia del DB, METAR veri da NOAA). `/services/vsop/live/libr_twr`: TA «5000 ft», TL «FL60»
+    col QNH 1021, initial climb «FL100» (prima «N/A», «—», «10000 ft»). vAWOS LIBD con
+    `?test=…0400 FG VV/// 08/08…`: RVR `///` sulle due testate, nubi «VV ///», LVP accese. vAWOS LIBD vero: età
+    «24m» (METAR 20:20Z letto alle 20:43Z). Con la risposta sostituita da un METAR di tre ore fa: «180m», stato
+    «morto». Per la prova la scheda era nascosta, e il quadro non interroga il server a scheda nascosta (voluto):
+    `document.hidden` forzato a falso solo per la prova. Zero `fail:` nel registro.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

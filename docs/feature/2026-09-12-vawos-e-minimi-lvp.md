@@ -206,6 +206,17 @@ dodici secondi, la velocità oscillava fra vento e raffica. Sembrava difendibile
 che il bollettino dichiara» — e non lo era: **il vento istantaneo non lo sappiamo**, e quel movimento era
 fabbricato. Restano `<SimDisclaimer />` e l'ora del bollettino.
 
+**Correzioni del 27 settembre 2026 (L8 della revisione totale 3, voce S22 di `docs/filoni/sito.md`):**
+- **Vento medio, non raffica** (U-091, decisione del committente): le soglie di coda e traverso delle regole piste
+  si confrontano col vento medio. PANS-ATM dice «including gusts»: qui è una scelta dichiarata, non una svista.
+- **RVR assente** (U-093/U-095, decisione del committente): `P2000` su ogni testata solo con visibilità ≥ 1500 m
+  (o CAVOK). Sotto, `///`: l'RVR sarebbe dovuto e manca.
+- **Età del bollettino** (U-092): si misura dall'ora del METAR (`ddhhmmZ` risolto in UTC), non dall'ultima
+  risposta. Oltre 90 minuti il quadro mostra il METAR ma non propone né LVP né pista.
+- **Cielo oscurato** (U-089): `VV///`, `BKN///`, `OVC///`, `//////` sono un soffitto ignoto, non un cielo
+  sgombro. Le LVP non si propongono da cancellare, e la riga delle nubi lo scrive.
+- **RVR tutti «P»** (U-090): la misura resta l'RVR, come limite inferiore. Prima si ricadeva sulla visibilità.
+
 **Le etichette sono in inglese e fisse** (decisione 4): DIR, SPEED, GUST, CROSS, TAIL, RVR TDZ/MID/END, QNH,
 TL, VISIBILITY, CLOUD, ATIS INFO. Sono sigle ICAO uguali in ogni torre del mondo, e tradurle sarebbe l'unico
 modo di renderle meno leggibili. Le uniche parole vere — i codici di tempo presente — passano da `WxText`, che

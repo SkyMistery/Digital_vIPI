@@ -42,6 +42,22 @@ public static class AirportViewFormat
     }
 
     /// <summary>
+    /// Il TL «adesso» della vista rapida, dalla STESSA vista del documento (<see cref="AirportTransitionView"/>, derivata o
+    /// congelata): il livello della fascia che contiene il QNH. Senza TA «N/A» (la tabella senza quota di transizione
+    /// non vale); senza QNH o senza una fascia che lo contenga «—».
+    /// <para>🔴 U-015 (revisione totale 3): il pannello cercava TA e righe nei BLOCCHI della sezione «transition» del
+    /// documento pubblicato, e dalla carta del 26 agosto quella sezione è Host, senza blocchi nello snapshot: TA
+    /// sempre «N/A», TL sempre «—», initial climb sopra la TA scritto in piedi («10000 ft» dove il documento dice
+    /// FL100). E senza QNH ripiegava sulla prima riga della tabella, che non è il livello di nessuno.</para>
+    /// </summary>
+    public static string TlAdesso(AirportTransitionView view, int? qnh)
+    {
+        if (view.TransitionAltitudeFt is null) return "N/A";
+        if (qnh is not int q) return Dash;
+        return view.Rows.FirstOrDefault(r => QnhRowMatches(r.QnhRange, q))?.Level ?? Dash;
+    }
+
+    /// <summary>
     /// Vero se <paramref name="qnh"/> ricade nell'intervallo testuale della riga TL. Formati riconosciuti:
     /// «1014 – 1030» (range), «≥ 1031» / «&gt;= 1031», «≤ 984» / «&lt;= 984», «&gt; 1031», «&lt; 984».
     /// Riga senza numeri ⇒ nessuna corrispondenza.

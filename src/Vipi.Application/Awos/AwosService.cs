@@ -97,6 +97,13 @@ public sealed class AwosService : IAwosService
 
         var metar = string.IsNullOrWhiteSpace(raw) ? null : MetarParser.ParseMetar(raw!);
 
+        // 🔴 U-092: l'età del bollettino si misura dal METAR, non dalla risposta. Oltre 90 minuti il quadro lo mostra
+        // ma non ci decide sopra né LVP né pista. Il METAR di prova (staff) è per definizione «adesso».
+        var adesso = DateTimeOffset.UtcNow;
+        var osservato = metarDiProva is null ? MetarParser.OraOsservazione(metar?.TimeRaw, adesso) : null;
+        var vecchio = AwosComposition.MetarVecchio(osservato, adesso);
+        var perDecidere = vecchio ? null : metar;
+
         var piste = AwosComposition.Strisce(scalo.Runways);
         var identificativi = scalo.Runways
             .Select(r => (r.Ident ?? "").Trim())
@@ -109,7 +116,7 @@ public sealed class AwosService : IAwosService
         // elenco aeroporti, vedi IPisteDalPubblicato).
         var (regole, minimiLvp, escluse) = await _pubblicato.PerScaloAsync(id, scalo.Rules, scalo.Lvp, scalo.Runways,
             await DocumentiAsync(ct), ct);
-        var attiva = AwosComposition.PistaAttiva(regole, identificativi, metar,
+        var attiva = AwosComposition.PistaAttiva(regole, identificativi, perDecidere,
             AwosGate.Piste(atis?.PistePartenza), AwosGate.Piste(atis?.PisteArrivo), atis?.Callsign, escluse);
 
         return new AwosResult(new AwosView(
@@ -127,9 +134,11 @@ public sealed class AwosService : IAwosService
             Piste: piste,
             Attiva: attiva,
             Atis: atis,
-            Lvp: ValutaLvp(minimiLvp, metar, giaInVigore),
-            AsOf: DateTimeOffset.UtcNow,
-            MetarStation: metarDiProva is null ? bollettino?.Stazione : null), AwosOutcome.Ok);
+            Lvp: ValutaLvp(minimiLvp, perDecidere, giaInVigore),
+            AsOf: adesso,
+            MetarStation: metarDiProva is null ? bollettino?.Stazione : null,
+            MetarObservedUtc: osservato,
+            MetarStale: vecchio), AwosOutcome.Ok);
     }
 
 

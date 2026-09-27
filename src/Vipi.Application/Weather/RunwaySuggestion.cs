@@ -234,6 +234,10 @@ public static partial class RunwaySuggestion
     ///
     /// <para>Le componenti si calcolano SEMPRE, anche quando la regola cade prima (superficie, orario): chi prova
     /// vuole vedere i numeri comunque. Vento calmo (≤ 2 kt) o senza direzione: zero, come nel confronto.</para>
+    ///
+    /// <para>⚠️ Coda e traverso massimi si confrontano col <b>vento medio</b>, non con la raffica (decisione del
+    /// committente del 27 settembre 2026, U-091 della revisione totale 3). PANS-ATM li scrive «including gusts»: qui
+    /// è una scelta, non una svista — la pista suggerita è un suggerimento, la sceglie chi controlla.</para>
     /// </summary>
     public static IReadOnlyList<RuleExplanation> ExplainRules(IReadOnlyList<RunwayRuleEval> rules, int? windDir,
         int windKt, bool wet, DateTime? nowUtc = null)

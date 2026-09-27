@@ -7,6 +7,33 @@ namespace Vipi.Application.Tests;
 /// <summary>Decoder METAR/TAF + suggerimento pista dal vento (vista vIPI aeroporto).</summary>
 public class WeatherParsingTests
 {
+    // ---- U-092 (revisione totale 3): l'ora del METAR, risolta in UTC ----
+
+    /// <summary>Il gruppo «ddhhmmZ» dice giorno e ora, non mese né anno: li dà l'istante di chi legge. Un giorno
+    /// più avanti di oggi è del mese scorso (il METAR delle 23:50 del 31 letto l'1 alle 00:10).</summary>
+    [Theory]
+    [InlineData("270550Z", "2026-09-27T09:00:00Z", "2026-09-27T05:50:00Z")]
+    [InlineData("312350Z", "2026-10-01T00:10:00Z", "2026-09-30T23:50:00Z")]   // settembre ha 30 giorni: non esiste
+    [InlineData("302350Z", "2026-10-01T00:10:00Z", "2026-09-30T23:50:00Z")]
+    [InlineData("011000Z", "2026-10-01T09:59:00Z", "2026-10-01T10:00:00Z")]   // un minuto avanti: orologi non allineati
+    public void L_ora_del_METAR_si_risolve_rispetto_a_chi_legge(string gruppo, string adesso, string? atteso)
+    {
+        var ora = MetarParser.OraOsservazione(gruppo, DateTimeOffset.Parse(adesso));
+
+        if (gruppo == "312350Z") { Assert.Null(ora); return; }
+        Assert.Equal(DateTimeOffset.Parse(atteso!), ora);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("27055Z")]
+    [InlineData("329999Z")]
+    public void Un_gruppo_orario_illeggibile_non_ha_ora(string? gruppo)
+    {
+        Assert.Null(MetarParser.OraOsservazione(gruppo, DateTimeOffset.Parse("2026-09-27T09:00:00Z")));
+    }
+
     /// <summary>
     /// 🔴 T-010 (revisione del 13 settembre 2026): dopo TEMPO/BECMG le condizioni sono una PREVISIONE, non
     /// l'osservazione. Il ciclo non si fermava: <c>TEMPO … VV001</c> portava il soffitto a 100 ft (LVP in vigore

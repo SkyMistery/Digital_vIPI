@@ -143,6 +143,7 @@ public static class AwosTesto
         if (v.Stato == LvpStato.NonValutabile) return "No minima or no weather data to compare.";
         var misura = v.Misura switch
         {
+            LvpMisura.Rvr when v.RvrSopraScala => $"RVR above {v.RvrM} m",
             LvpMisura.Rvr => $"RVR {v.RvrM} m",
             LvpMisura.Visibilita => $"visibility {v.RvrM} m (no RVR reported)",
             _ => "no visibility measure",
@@ -160,9 +161,10 @@ public static class AwosTesto
     /// Le celle RVR di una striscia: <b>una per testata</b>, con l'ident che le dà il nome.
     /// <para>🔴 Tre casi, e non due (decisione del committente, 15 settembre 2026 — ribalta quella del 12):</para>
     /// <list type="bullet">
-    /// <item>il bollettino <b>non ha nessun RVR</b> ⇒ <c>P2000</c> su ogni cella. È ciò che il gruppo assente
-    /// dice: l'RVR si riporta quando la visibilità scende, e un METAR che non ne riporta nessuno sta dicendo
-    /// «sopra la scala» su tutte le piste. Scrivere <c>///</c> lì si leggeva «sensore guasto».</item>
+    /// <item>il bollettino <b>non ha nessun RVR</b> e la visibilità è ≥ 1500 m (o CAVOK) ⇒ <c>P2000</c> su ogni cella.
+    /// È ciò che il gruppo assente dice: l'RVR si riporta quando la visibilità scende, e un METAR che non ne riporta
+    /// nessuno sta dicendo «sopra la scala» su tutte le piste. Scrivere <c>///</c> lì si leggeva «sensore guasto».
+    /// Sotto i 1500 m invece l'assenza è un buco, e resta <c>///</c> (U-093, regola del committente del 27-set-2026).</item>
     /// <item>il bollettino ha RVR per <b>altre</b> piste ma non per questa ⇒ <c>///</c>: qui l'assenza non si
     /// può più leggere come «sopra la scala», perché sulle altre la visibilità è bassa.</item>
     /// <item><b>nessun bollettino</b> ⇒ <c>///</c>: non c'è niente da dire.</item>
@@ -178,7 +180,11 @@ public static class AwosTesto
     private static string Valore(AwosEnd end, ParsedMetar? metar)
     {
         if (metar is null) return "///";
-        if (metar.RvrGroups.Count == 0) return "P2000";
+        // 🔴 U-093/U-095 (revisione totale 3; regola del committente del 27 settembre 2026): la lettura «nessun RVR =
+        // sopra la scala» regge solo con visibilità alta. Sotto i 1500 m l'RVR sarebbe dovuto, e la sua assenza è un
+        // buco (stazione senza trasmissometro, AUTO): «P2000» accanto a «LVP» e 400 m di visibilità era inventato.
+        if (metar.RvrGroups.Count == 0)
+            return metar.VisibilityMeters is >= 1500 ? "P2000" : "///";
         var g = metar.RvrGroups.FirstOrDefault(r =>
             string.Equals(r.Runway, end.Ident, StringComparison.OrdinalIgnoreCase));
         return g is null ? "///" : Scrivi(g);
@@ -198,6 +204,10 @@ public static class AwosTesto
         if (m is null) return Array.Empty<string>();
         var righe = new List<string>();
         if (m.VerticalVisibilityFt is int vv) righe.Add($"VV {vv} FT");
+        // U-089: il cielo oscurato con l'altezza non misurata si scrive — prima spariva, e la riga restava vuota
+        // come col cielo sgombro.
+        if (m.VerticalVisibilityUnknown) righe.Add("VV ///");
+        foreach (var c in m.CoversWithoutBase ?? Array.Empty<string>()) righe.Add($"{c} ///");
         righe.AddRange(m.Clouds.Select(c => $"{c.Cover} {c.BaseFt} FT{(c.Type is null ? "" : " " + c.Type)}"));
         return righe;
     }

@@ -88,6 +88,17 @@ public static partial class AwosComposition
         return delta <= TolleranzaOppostaDeg;
     }
 
+    /// <summary>Oltre quest'età il METAR non guida più LVP e pista (U-092): i bollettini escono ogni 30-60 minuti.</summary>
+    public static readonly TimeSpan MetarScaduto = TimeSpan.FromMinutes(90);
+
+    /// <summary>
+    /// 🔴 U-092 (revisione totale 3): il METAR è troppo vecchio per proporre LVP o una pista. Con NOAA, IVAO e VATSIM giù
+    /// il client ridava il bollettino delle 05:50, e alle 09:00 il quadro lo usava come fresco. Senza ora leggibile
+    /// non si dice che è vecchio: non lo si sa.
+    /// </summary>
+    public static bool MetarVecchio(DateTimeOffset? osservato, DateTimeOffset adesso) =>
+        osservato is { } o && adesso - o > MetarScaduto;
+
     /// <summary>
     /// Il Transition Level per il QNH corrente, dalla tabella dello scalo.
     /// <para>⚠️ Dalla <b>tabella</b>, non da una formula a fasce come nel prototipo: il TL è dell'AIP di

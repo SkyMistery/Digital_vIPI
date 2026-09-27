@@ -111,6 +111,8 @@ public sealed record AwosActive(IReadOnlyList<string> Dep, IReadOnlyList<string>
 /// <param name="TransitionLevel">Il TL della fascia di QNH corrente, dalla tabella dello scalo. Null = non calcolabile.</param>
 /// <param name="MetarStation">La stazione da cui viene il METAR quando non è lo scalo (<c>Airport.MetarStationIcao</c>); null = lo scalo.</param>
 /// <param name="AsOf">Quando è stata composta: è ciò che fa <b>invecchiare</b> il quadro a schermo se il server smette di rispondere.</param>
+/// <param name="MetarObservedUtc">L'ora dell'osservazione, dal gruppo <c>ddhhmmZ</c> (U-092): è da lì che il quadro misura l'età del bollettino.</param>
+/// <param name="MetarStale">Il METAR ha più di 90 minuti: si mostra, ma LVP e pista non si propongono (<c>AwosComposition.MetarVecchio</c>).</param>
 public sealed record AwosView(
     string Icao,
     string Nome,
@@ -128,4 +130,6 @@ public sealed record AwosView(
     AwosAtis? Atis,
     AwosLvp Lvp,
     DateTimeOffset AsOf,
-    string? MetarStation = null);
+    string? MetarStation = null,
+    DateTimeOffset? MetarObservedUtc = null,
+    bool MetarStale = false);

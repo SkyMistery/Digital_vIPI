@@ -11,6 +11,28 @@ namespace Vipi.Ui.Tests;
 /// </summary>
 public class AirportViewFormatTests
 {
+    // ---- TL «adesso» della vista rapida (U-015, revisione totale 3) ----
+
+    private static readonly AirportTransitionView Libr = new(5000, new[]
+    {
+        new AirportTlRowView("≤ 977", "FL80"),
+        new AirportTlRowView("978 – 1013", "FL70"),
+        new AirportTlRowView("≥ 1014", "FL60"),
+    });
+
+    [Theory]
+    [InlineData(1020, "FL60")]
+    [InlineData(1000, "FL70")]
+    [InlineData(null, "—")]      // senza QNH non si ripiega sulla prima riga: non è il livello di nessuno
+    public void Il_TL_adesso_e_la_fascia_del_QNH(int? qnh, string atteso)
+    {
+        Assert.Equal(atteso, AirportViewFormat.TlAdesso(Libr, qnh));
+    }
+
+    [Fact]
+    public void Senza_TA_il_TL_non_vale() =>
+        Assert.Equal("N/A", AirportViewFormat.TlAdesso(Libr with { TransitionAltitudeFt = null }, 1020));
+
     // ---- InitialClimb ----
 
     [Theory]

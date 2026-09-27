@@ -431,8 +431,9 @@ public static class VipiModuleExtensions
             // La cosa giusta è quella che già succede, non quella che c'era scritta: sotto c'è un METAR con
             // un TTL di DIECI MINUTI (`Weather:TtlMinutes`), quindi una copia tenuta sessanta secondi è più
             // fresca del dato che trasporta, e toglie dall'origine il giro al minuto di ogni scheda aperta.
-            // L'età che il quadro mostra si calcola da un timbro assoluto nel payload: una copia tenuta un
-            // minuto mostra l'età giusta, non un'età congelata.
+            // L'età che il quadro mostra si calcola da un timbro assoluto nel payload (`metarObservedUtc`, l'ora del
+            // METAR — dal 27 settembre 2026, U-092; prima non c'era): una copia tenuta un minuto mostra l'età
+            // giusta, non un'età congelata.
             //
             // ⚠️ E vale SOLO per gli anonimi, che è ciò che rende innocua la riga: chi è entrato non passa
             // il vaglio di `Riutilizzabile` (né per identità né per cookie), quindi il payload di un editor
