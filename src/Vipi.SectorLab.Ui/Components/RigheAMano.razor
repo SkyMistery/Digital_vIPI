@@ -1,3 +1,4 @@
+@using Vipi.Sectorfile.IO
 @inject SessioneDelLab Lab
 
 @*
@@ -5,6 +6,7 @@
     campi non sanno correggere — una riga che il lettore non capisce più, come `BC;518;…` in APT.fix, non è un record e
     nella scheda non ha campi. Clic sulla riga → si scrive → Invio → il Lab chiede conferma, poi rilegge il file.
     🔴 I tag //@ sono metadati del Lab: non si toccano da qui (lucchetto), si cambiano dalla scheda.
+    Una riga col commento in coda (lotto «Subito» slice 2a) offre il gesto che lo sposta sopra.
 *@
 <pre class="lab-righe" data-righe="@Righe.Count">@foreach (var riga in Righe)
 {<span class="@Classe(riga) @(Protetta(riga) ? "lab-riga-protetta" : "lab-riga-a-mano")" data-riga="@riga.Numero" data-segnalata="@(Segnata(riga) ? "si" : null)" title="@(Protetta(riga) ? "Metadati //@ del Lab: si cambiano dalla scheda, non a mano" : "Clic per scrivere questa riga a mano")" @onclick="() => Inizia(riga)"><span class="lab-numero">@riga.Numero</span>@(" ")@if (_numero == riga.Numero)
@@ -12,6 +14,20 @@
 else
 {<text>@riga.Testo</text>}
 </span>}</pre>
+@if (_proposta is null && _numero is { } conCommento && _originale is { } originale && CommentiInCoda.Dove(originale) is not null)
+{
+    <div class="lab-conferma" data-commento-in-coda="@conCommento">
+        <p><strong>Riga @conCommento: commento in coda.</strong> Aurora legge questa riga in circa il doppio del tempo; il
+            commento va sulla riga sopra.</p>
+        <div class="lab-azioni">
+            <button class="lab-tasto" @onclick="SpostaSopra" data-tasto="sposta-commento">Sposta il commento sopra</button>
+        </div>
+        @if (_rifiuto is { } rifiutato)
+        {
+            <p class="lab-errore" data-rifiuto-riga="1">@rifiutato</p>
+        }
+    </div>
+}
 @if (_proposta is { } proposta && _numero is { } numero)
 {
     <div class="lab-conferma" data-conferma-riga="@numero">
@@ -83,6 +99,17 @@ else
             return;
 
         if (Lab.CambiaRigaAMano(File, numero, _proposta))
+            Lascia();
+        else
+            _rifiuto = Lab.Rifiuto;
+    }
+
+    private void SpostaSopra()
+    {
+        if (_numero is not { } numero)
+            return;
+
+        if (Lab.SpostaICommentiSopra(File, numero))
             Lascia();
         else
             _rifiuto = Lab.Rifiuto;

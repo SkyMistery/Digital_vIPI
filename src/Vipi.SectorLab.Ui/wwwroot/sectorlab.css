@@ -1015,6 +1015,12 @@ body.lab-trascina * {
     overflow-wrap: anywhere;
 }
 
+/* Il gesto che risolve un problema, sotto la sua voce (lotto «Subito» slice 2a: commenti in coda). */
+.lab-gesto-del-problema {
+    margin: 0 0 .4rem .6rem;
+    font-size: .85em;
+}
+
 .lab-problemi-nuovi-sezione {
     margin-bottom: .6rem;
     padding: .3rem .5rem;

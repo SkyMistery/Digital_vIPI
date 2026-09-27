@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0 e la slice 1 (1a-1e); prossima la **slice 2** (§6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la **2a**; in corso la slice 2 (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -225,3 +225,34 @@ aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
   (+123 delle rotte VFR); blocchi a più pezzi **107 204 su 107 204** in 321 file. Resta il solo guasto noto di
   `limf.sid`. Test rosso: col `VrtParser` di prima 3 test nuovi su 6 cadono. Test: motore 563 → **569**, Lab **358**.
   **Slice 1 chiusa**; prossima la slice 2.
+
+**Slice 2 — controlli comuni sul testo.** Divisa in tre passi, un commit ciascuno: **2a** commenti in coda · **2b**
+controllo degli `.isc` · **2c** coordinate scritte male con la correzione proposta.
+
+- **2a (27 settembre)** — i commenti in coda (§C). Misura: **712 righe in 54 file** letti dal motore (più 1 in un
+  `.txt` del changelog: sono le 713 della carta; i «70 file» di §6 non tornano, sono 55 con quel `.txt`): `.mva` 456,
+  `.str` 119, `.tfl` 36, `.sid` 34, aerovie 28, `.artcc` 18, `.hartcc` 15, `.lartcc` 6.
+  - Motore: `IO/CommentiInCoda.cs` (dove sta il `//` dopo i dati, come si separa, il testo coi commenti spostati).
+    Validatore: regola nuova **`CommentoInCoda`, avviso, UNO per file** col numero e le righe (scelta della slice 0:
+    713 avvisi annegherebbero il pannello); non negli `.atis` (sono testi). Albero: 125 errori, 382 → **436 avvisi**
+    (+54, uno per file).
+  - 🔴 **Il Lab ne scriveva**: il lettore delle MVA di scalo prendeva `//FL110` di `T;110;N…;E…; //FL110` per il 5°
+    campo, e lo scrittore lo riscriveva come dato, due volte (`T; //FL110;N…;E…; //FL110;`): **74 righe in 8 file**
+    (`lipe` 26, `limj` 18, `liee` 11…), a ogni record MVA toccato. Corretto nel lettore: un 5° campo che comincia con
+    `//` non è un campo. Nuova misura nella prova sull'albero: gli scrittori, riscrivendo **ogni** record dal modello,
+    scrivono **0** commenti in coda (erano 74); test su sette formati.
+  - Lab: gesto **«Sposta sopra i commenti di …»** sulla voce del pannello (file intero) e **«Sposta il commento
+    sopra»** nella riga scritta a mano (riga sola): `ModificheInSospeso.CambiaRighe` (una riga ne diventa più d'una,
+    una voce sola, si annulla). Il controllo delle modifiche confrontava i problemi per testo della riga: spostato il
+    primo commento, l'avviso del file cambiava riga e risultava «introdotto» (visto a schermo) → per `CommentoInCoda`
+    è nuovo solo se i commenti del file crescono.
+  - Prova sull'albero del gesto: spostati sopra tutti i commenti di ogni file, **53 file su 54** si rileggono con gli
+    stessi record; l'unico diverso è `lirs.str`, dove `<br> //ZONA2` diventa `<br>` e il Lab legge l'interruzione
+    (come, si suppone, Aurora che il commento lo toglie).
+  - 🟡 **Da provare in Aurora prima della pulizia (F4)**: una riga di commento **dentro** un tratto (`T;` di MVA e
+    confini, `.artcc`) apre un tratto nuovo? Nei `.geo` sì (specifica), per gli altri non si sa. Il gesto oggi mette
+    il commento sopra la riga ovunque: 374 `//Coast` in `limm.mva` stanno in mezzo ai poligoni.
+  - Prova a schermo: Lab su una copia del fork (server locale, browser del pannello): voce `CommentoInCoda` di
+    `itawlow.lairway` col tasto, 28 commenti spostati (diff giusto), annulla; riga 187 dalla riga a mano; nessun
+    avviso «introdotto». Test: motore 569 → **587**, Lab 358 → **363**; rosso sul codice di prima: lettore MVA 1 su
+    18, controllo delle modifiche 2 su 5.

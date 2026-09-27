@@ -44,6 +44,7 @@ var diversi = new List<string>();
 var toccato = new List<(string File, int Righe, int Cambiate, string? Esempio)>();
 var modifica = new List<(string File, int Spostati, int Cambiate, string? Esempio)>();
 var piuDiUnCampo = new List<string>();
+var commenti = new List<(string File, int NelFile, int Scritti, string? Esempio, string? CambiaSpostandoli)>();
 
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
 {
@@ -53,7 +54,7 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
     (byte[] Originale, byte[] Riscritto)? esito;
     try
     {
-        esito = Formati.Usa(percorso, avvisi, new ProvaDelFile(percorso, Relativo(percorso), cartellaFuoriMisura, toccato, modifica, piuDiUnCampo), out var prova)
+        esito = Formati.Usa(percorso, avvisi, new ProvaDelFile(percorso, Relativo(percorso), cartellaFuoriMisura, toccato, modifica, piuDiUnCampo, commenti), out var prova)
             ? prova
             : null;
     }
@@ -172,6 +173,20 @@ foreach (var gruppo in modifica.Where(m => m.Cambiate != m.Spostati)
     var peggiore = gruppo.MaxBy(m => Math.Abs(m.Cambiate - m.Spostati));
     Console.WriteLine($"  {gruppo.Key,-8} {gruppo.Sum(m => m.Spostati),6} spostati {gruppo.Sum(m => m.Cambiate),6} righe in {gruppo.Count(),3} file" +
         $"   es. {peggiore.File} ({peggiore.Spostati} → {peggiore.Cambiate}): {peggiore.Esempio}");
+}
+
+Console.WriteLine($"\nCOMMENTI IN CODA: {commenti.Sum(c => c.NelFile)} righe in {commenti.Count(c => c.NelFile > 0)} file letti dal motore; " +
+    $"gli scrittori, riscrivendo ogni record dal modello, ne scrivono {commenti.Sum(c => c.Scritti)}");
+foreach (var (file, _, scritti, esempio, _) in commenti.Where(c => c.Scritti > 0).Take(10))
+{
+    Console.WriteLine($"  {file}: {scritti}, es. «{esempio}»");
+}
+
+Console.WriteLine($"SPOSTATI SOPRA (il gesto del Lab su ogni file): {commenti.Count(c => c.NelFile > 0 && c.CambiaSpostandoli is null)} file su " +
+    $"{commenti.Count(c => c.NelFile > 0)} riletti con gli stessi record");
+foreach (var (file, _, _, _, cambia) in commenti.Where(c => c.CambiaSpostandoli is not null))
+{
+    Console.WriteLine($"  {file}: {cambia}");
 }
 
 // 4. CONCORDANZA: vIPI legge il sector col suo DMS (Vipi.Application/Coordinates/DmsCoordinate), il motore col
@@ -619,7 +634,8 @@ sealed class ProvaDelFile(
     string? cartellaFuoriMisura,
     List<(string File, int Righe, int Cambiate, string? Esempio)> toccato,
     List<(string File, int Spostati, int Cambiate, string? Esempio)> modifica,
-    List<string> piuDiUnCampo) : IUsoDelFormato<(byte[], byte[])>
+    List<string> piuDiUnCampo,
+    List<(string File, int NelFile, int Scritti, string? Esempio, string? CambiaSpostandoli)> commenti) : IUsoDelFormato<(byte[], byte[])>
 {
     public (byte[], byte[]) Usa<T>(IFileParser<T> lettore, IFileSaver<T> scrittore)
         where T : class
@@ -659,6 +675,29 @@ sealed class ProvaDelFile(
                     }
                 }
             }
+            // 3c. COMMENTI IN CODA (lotto «Subito» slice 2): quanti ce ne sono nel file, e quanti ne scrivono gli
+            //     scrittori del motore riscrivendo OGNI record dal modello. Il Lab non ne scrive mai: deve fare zero.
+            var scrittiDalModello = letto.Records.SelectMany(r => scrittore.Serialize(r)).Where(r => CommentiInCoda.Dove(r) is not null).ToList();
+            //     E spostati sopra col gesto del Lab: il file riletto deve dare gli stessi record (stesso modello).
+            string? cambia = null;
+            if (CommentiInCoda.Righe(prima).Count > 0)
+            {
+                var lettura = SectorFileReader.Read(percorso);
+                File.WriteAllText(temporaneo, string.Join(lettura.NewLine, CommentiInCoda.SpostaSopra(lettura.Lines)) + lettura.NewLine, lettura.Encoding);
+                var spostato = lettore.Parse(temporaneo, new ColorPalette());
+                var diPrima = lettore.Parse(percorso, new ColorPalette());   // `letto` ha già i punti spostati di 3b
+                if (spostato.Records.Count != diPrima.Records.Count)
+                {
+                    cambia = $"{diPrima.Records.Count} record → {spostato.Records.Count}";
+                }
+                else if (spostato.Records.Zip(diPrima.Records).FirstOrDefault(c => !scrittore.Serialize(c.First).SequenceEqual(scrittore.Serialize(c.Second))) is { First: not null } diverso)
+                {
+                    cambia = $"«{string.Join(" | ", scrittore.Serialize(diverso.Second).Take(2))}» → «{string.Join(" | ", scrittore.Serialize(diverso.First).Take(2))}»";
+                }
+            }
+
+            commenti.Add((relativo, CommentiInCoda.Righe(prima).Count, scrittiDalModello.Count, scrittiDalModello.FirstOrDefault(), cambia));
+
             if (cartellaFuoriMisura is not null && cambiateSpostando != spostati.Count)
             {
                 string copia = Path.Combine(cartellaFuoriMisura, relativo);

@@ -83,6 +83,12 @@ public enum Regola
     /// <c>lirn.str</c> «LIRN ATZ»). Aperta o chiusa per sbaglio: Aurora la disegna com'è.
     /// </summary>
     FormaQuasiChiusa,
+
+    /// <summary>
+    /// Commenti in coda a righe di dati (<c>T;BREAK;RIVAM;RIVAM; //discontinuity</c>, lotto «Subito» slice 2): uno per
+    /// file, col numero e le righe. Aurora li legge, ma una riga così le costa circa il doppio del tempo.
+    /// </summary>
+    CommentoInCoda,
 }
 
 public enum Gravita
@@ -103,7 +109,8 @@ public static class Regole
     {
         Regola.EmisferoMinuscolo or Regola.FrazioneAmbigua or Regola.CoppiaDecimale or Regola.DueNomiDiversi
             or Regola.TagFuoriCatalogo or Regola.FileMaiCitato or Regola.NomeRipetuto
-            or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa => Validazione.Gravita.Avviso,
+            or Regola.CopieDiverse or Regola.CompostaNonAllineata or Regola.FormaQuasiChiusa
+            or Regola.CommentoInCoda => Validazione.Gravita.Avviso,
         _ => Validazione.Gravita.Errore,
     };
 }

@@ -5,6 +5,7 @@ using Vipi.SectorLab.Core.Mappa;
 using Vipi.SectorLab.Core.Modifiche;
 using Vipi.SectorLab.Core.Problemi;
 using Vipi.SectorLab.Core.Sessione;
+using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
 using Vipi.Sectorfile.Shared;
 
@@ -961,6 +962,54 @@ public sealed class SessioneDelLab
             {
                 Scelta = (fileRelativo, record);
                 RigaSegnalata = (fileRelativo, numero);
+            }
+            else if (Scelta is { } scelta && scelta.File == fileRelativo && scelta.Record >= file.Record)
+            {
+                Scelta = null;
+            }
+        }
+
+        RicontrollaLeModifiche();
+        Avvisa();
+        return esito is ModificaDelTesto;
+    }
+
+    /// <summary>
+    /// Sposta sopra la sua riga il commento in coda (lotto «Subito» slice 2a, «file per file» §C): quello della riga
+    /// <paramref name="riga"/> (da 1, nel file com'è adesso), o tutti quelli del file se è null. Una voce sola nelle
+    /// modifiche, che si annulla come una riga scritta a mano.
+    /// </summary>
+    public bool SpostaICommentiSopra(string fileRelativo, int? riga = null)
+        => NellaStoria(riga is { } n
+                ? $"commento della riga {n} di {NomeDelFile(fileRelativo)} spostato sopra"
+                : $"commenti in coda di {NomeDelFile(fileRelativo)} spostati sopra",
+            () => SpostaICommentiSopraAdesso(fileRelativo, riga));
+
+    private bool SpostaICommentiSopraAdesso(string fileRelativo, int? riga)
+    {
+        if (Sessione is null || !Sessione.File.TryGetValue(fileRelativo, out var file))
+            return false;
+
+        var righe = RigheDiAdesso(fileRelativo);
+        var sostituzioni = new Dictionary<int, IReadOnlyList<string>>();
+        foreach (int numero in CommentiInCoda.Righe(righe).Where(n => riga is null || n == riga))
+        {
+            var (commento, dati) = CommentiInCoda.Separa(righe[numero - 1])!.Value;
+            sostituzioni[numero] = [commento, dati];
+        }
+
+        object esito = sostituzioni.Count == 0
+            ? new ModificaRifiutata(riga is null ? "Il file non ha commenti in coda." : $"La riga {riga} non ha un commento in coda.")
+            : Modifiche.CambiaRighe(file, sostituzioni);
+        Registro.Scrivi("commenti in coda", $"{fileRelativo}{(riga is { } r ? ":" + r : "")}: {sostituzioni.Count} spostati, {Descrivi(esito)}");
+        Rifiuto = esito is ModificaRifiutata rifiutata ? rifiutata.Motivo : null;
+        if (esito is ModificaDelTesto)
+        {
+            RifaiLaGeometria(fileRelativo);
+            if (riga is { } spostata && file is IFileConRecord conRecord && conRecord.RecordDellaRiga(spostata + 1) is { } record)
+            {
+                Scelta = (fileRelativo, record);
+                RigaSegnalata = (fileRelativo, spostata + 1);
             }
             else if (Scelta is { } scelta && scelta.File == fileRelativo && scelta.Record >= file.Record)
             {

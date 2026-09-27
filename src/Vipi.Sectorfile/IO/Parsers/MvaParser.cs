@@ -245,7 +245,10 @@ public abstract class MvaParser : IFileParser<MvaSector>
         sector.Vertices.Add(new MvaVertex
         {
             Position = position,
-            ExtraField = n >= 5 ? parts[4] : null,   // field 5 (repeated ident); absent in airport T lines
+            // Field 5 (repeated ident); absent in airport T lines. A trailing comment is not a field 5
+            // (`T;110;N…;E…; //FL110`, lipe.mva): read as one, the saver wrote it back as data, twice (lotto «Subito»
+            // slice 2a — 74 lines in 8 airport .mva of the fork).
+            ExtraField = n >= 5 && !parts[4].TrimStart().StartsWith("//", StringComparison.Ordinal) ? parts[4] : null,
         });
     }
 }

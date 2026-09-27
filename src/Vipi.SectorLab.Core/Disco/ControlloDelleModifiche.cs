@@ -1,4 +1,5 @@
 using Vipi.SectorLab.Core.Modifiche;
+using Vipi.Sectorfile.IO;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.Validazione;
 
@@ -62,13 +63,22 @@ public static class ControlloDelleModifiche
     internal static (List<ProblemaDelSector> Nuovi, int? Riletti) ProvaUnFile(string relativo, string percorso, byte[] dopo)
     {
         var prima = File.Exists(percorso) ? Validatore.ValidaIlFile(percorso, relativo) : [];
-        var (poi, riletti) = RiletturaDiProva.Con(relativo, dopo, copia =>
-            (Validatore.ValidaIlFile(copia, relativo), RiletturaDiProva.QuantiRecord(copia)));
+        var (poi, riletti, inCodaDopo) = RiletturaDiProva.Con(relativo, dopo, copia =>
+            (Validatore.ValidaIlFile(copia, relativo), RiletturaDiProva.QuantiRecord(copia), CommentiInCoda(copia)));
 
         var restano = prima.GroupBy(Chiave).ToDictionary(g => g.Key, g => g.Count());
         var nuovi = new List<ProblemaDelSector>();
         foreach (var problema in poi)
         {
+            // I commenti in coda sono un avviso per FILE, col testo della prima riga che ne ha uno (lotto «Subito»
+            // slice 2a): spostarne uno cambia quella riga, ma non ne aggiunge. È nuovo solo se crescono di numero.
+            if (problema.Regola == Regola.CommentoInCoda)
+            {
+                if (inCodaDopo > (File.Exists(percorso) ? CommentiInCoda(percorso) : 0))
+                    nuovi.Add(problema);
+                continue;
+            }
+
             var chiave = Chiave(problema);
             if (restano.TryGetValue(chiave, out int quanti) && quanti > 0)
                 restano[chiave] = quanti - 1;
@@ -79,5 +89,7 @@ public static class ControlloDelleModifiche
         return (nuovi, riletti);
 
         static (Regola, string) Chiave(ProblemaDelSector p) => (p.Regola, p.Testo.Trim());
+
+        static int CommentiInCoda(string file) => Vipi.Sectorfile.IO.CommentiInCoda.Righe(SectorFileReader.Read(file).Lines).Count;
     }
 }

@@ -75,9 +75,13 @@ public sealed record ModificaDelTesto(string File, IReadOnlyList<int> Righe)
 {
     internal const string Chiave = "§testo";
 
-    public override string Descrizione => Righe.Count == 1
-        ? $"riga {Righe[0]} scritta a mano"
-        : $"righe {string.Join(", ", Righe)} scritte a mano";
+    public override string Descrizione => Righe.Count switch
+    {
+        1 => $"riga {Righe[0]} scritta a mano",
+        <= 6 => $"righe {string.Join(", ", Righe)} scritte a mano",
+        // I commenti in coda spostati sopra in un file intero (slice 2a) sono centinaia di righe.
+        _ => $"{Righe.Count} righe scritte a mano ({string.Join(", ", Righe.Take(3))}, … {Righe[^1]})",
+    };
 }
 
 /// <summary>
@@ -720,39 +724,76 @@ public sealed class ModificheInSospeso
     /// </summary>
     public object CambiaRiga(FileAperto file, int numero, string? testo)
     {
-        ArgumentNullException.ThrowIfNull(file);
-        if (file is not IFileConRecord conRecord)
-            return new ModificaRifiutata("Questo file il motore non lo interpreta: si cambia con un editor.");
         string nuova = testo ?? "";
         if (nuova.Contains('\n', StringComparison.Ordinal) || nuova.Contains('\r', StringComparison.Ordinal))
             return new ModificaRifiutata("Una riga alla volta: il testo non può andare a capo.");
+        return CambiaRighe(file, new Dictionary<int, IReadOnlyList<string>> { [numero] = [nuova] });
+    }
+
+    /// <summary>
+    /// Come <see cref="CambiaRiga"/>, ma ogni riga numero N (da 1, del file com'è adesso) può diventarne più d'una — il
+    /// commento in coda spostato sopra la sua riga (lotto «Subito» slice 2a) — e se ne cambiano più insieme, in una voce
+    /// sola. La voce ricorda i numeri delle righe scritte, nel file com'è dopo.
+    /// </summary>
+    public object CambiaRighe(FileAperto file, IReadOnlyDictionary<int, IReadOnlyList<string>> sostituzioni)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(sostituzioni);
+        if (file is not IFileConRecord conRecord)
+            return new ModificaRifiutata("Questo file il motore non lo interpreta: si cambia con un editor.");
+        if (sostituzioni.Count == 0)
+            return new ModificaRifiutata("Nessuna riga da cambiare.");
+        if (sostituzioni.Values.SelectMany(n => n).Any(r => r.Contains('\n', StringComparison.Ordinal) || r.Contains('\r', StringComparison.Ordinal)))
+            return new ModificaRifiutata("Una riga non può andare a capo: le righe nuove si danno una per una.");
 
         var righe = conRecord.RigheDelFile(SporchiDi(file.Relativo)).ToList();
-        if (numero < 1 || numero > righe.Count)
-            return new ModificaRifiutata($"Il file ha {righe.Count} righe: la {numero} non c'è.");
-        string vecchia = righe[numero - 1];
-        if (vecchia == nuova)
-            return new ModificaRifiutata("La riga è già questa.");
-        if (EUnTag(vecchia) || EUnTag(nuova))
+        if (sostituzioni.Keys.FirstOrDefault(n => n < 1 || n > righe.Count) is var fuori and not 0)
+            return new ModificaRifiutata($"Il file ha {righe.Count} righe: la {fuori} non c'è.");
+        if (sostituzioni.All(s => s.Value.Count == 1 && s.Value[0] == righe[s.Key - 1]))
+            return new ModificaRifiutata(sostituzioni.Count == 1 ? "La riga è già questa." : "Le righe sono già queste.");
+        if (sostituzioni.Any(s => EUnTag(righe[s.Key - 1]) || s.Value.Any(EUnTag)))
             return new ModificaRifiutata("I tag //@ sono metadati del Lab: non si scrivono a mano, si cambiano dalla scheda.");
 
-        righe[numero - 1] = nuova;
+        // Le righe nuove, e dove finiscono: ogni sostituzione sposta in giù quelle dopo di lei.
+        var nuove = new List<string>(righe.Count + sostituzioni.Values.Sum(n => n.Count));
+        var scritte = new List<int>();
+        var spostamento = new Dictionary<int, int>();
+        for (int i = 0; i < righe.Count; i++)
+        {
+            spostamento[i + 1] = nuove.Count + 1;
+            if (sostituzioni.TryGetValue(i + 1, out var alPosto))
+            {
+                foreach (string riga in alPosto)
+                {
+                    nuove.Add(riga);
+                    scritte.Add(nuove.Count);
+                }
+            }
+            else
+            {
+                nuove.Add(righe[i]);
+            }
+        }
+
         object riletto;
         try
         {
-            riletto = conRecord.LeggiLeRighe(righe);
+            riletto = conRecord.LeggiLeRighe(nuove);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             return new ModificaRifiutata($"Il file con quella riga non si rilegge: {e.Message}");
         }
 
-        var giaAMano = (_fatte.GetValueOrDefault((file.Relativo, -1, ModificaDelTesto.Chiave)) as ModificaDelTesto)?.Righe ?? [];
+        // Le righe già scritte a mano prima seguono lo spostamento.
+        var giaAMano = ((_fatte.GetValueOrDefault((file.Relativo, -1, ModificaDelTesto.Chiave)) as ModificaDelTesto)?.Righe ?? [])
+            .Where(n => !sostituzioni.ContainsKey(n))
+            .Select(n => spostamento.GetValueOrDefault(n, n));
         RimettiIlFileDellApertura(file, conRecord);
         Fotografa(file, conRecord);
         conRecord.RipristinaLaStruttura(riletto);
 
-        var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Append(numero).Distinct().Order()]);
+        var modifica = new ModificaDelTesto(file.Relativo, [.. giaAMano.Concat(scritte).Distinct().Order()]);
         _fatte[(file.Relativo, -1, ModificaDelTesto.Chiave)] = modifica;
         _sporchi[file.Relativo] = [];
         UltimoAggiunto = null;

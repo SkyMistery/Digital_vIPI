@@ -104,6 +104,16 @@ public static partial class Validatore
         // 3. I record.
         problemi.AddRange(diRecord.Select(p => p with { File = relativo }));
 
+        // 4. I commenti in coda (lotto «Subito» slice 2, «file per file» §C): UNO per file, col numero e le righe — 713
+        //    avvisi uno per uno annegherebbero il pannello (misura della slice 0). Non negli .atis: sono testi.
+        if (estensione != "atis" && CommentiInCoda.Righe(righe) is { Count: > 0 } inCoda)
+        {
+            string quali = string.Join(", ", inCoda.Take(20)) + (inCoda.Count > 20 ? ", …" : string.Empty);
+            problemi.Add(new(Regola.CommentoInCoda, relativo, inCoda[0], righe[inCoda[0] - 1],
+                (inCoda.Count == 1 ? "1 commento in coda" : $"{inCoda.Count} commenti in coda") + $" (righe {quali}): " +
+                "Aurora legge queste righe in circa il doppio del tempo — il commento va sopra la riga"));
+        }
+
         return letto with { Problemi = problemi.OrderBy(p => p.Riga).ThenBy(p => p.Regola).ToList() };
     }
 

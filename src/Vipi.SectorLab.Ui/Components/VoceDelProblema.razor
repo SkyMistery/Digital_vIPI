@@ -2,6 +2,7 @@
 
 @*
     Un problema, in una riga: gravità, file e riga, regola, dettaglio, e il testo della riga. Il clic porta lì (slice 10).
+    Sotto, il gesto che lo risolve, se c'è: i commenti in coda del file spostati sopra (lotto «Subito» slice 2a).
 *@
 <button class="lab-problema @(Problema.Gravita == Gravita.Errore ? "lab-problema-errore" : "lab-problema-avviso")"
         @onclick="() => Lab.VaiAlProblema(Problema)"
@@ -15,7 +16,16 @@
         <code>@Problema.Problema.Testo</code>
     }
 </button>
+@if (Problema.Problema.Regola == Regola.CommentoInCoda)
+{
+    <button class="lab-tasto lab-tasto-tenue lab-gesto-del-problema" @onclick="SpostaSopra" data-tasto="sposta-commenti"
+            title="Ogni commento in coda del file va sulla riga sopra la sua: una voce nelle modifiche, si annulla">
+        Sposta sopra i commenti di @Problema.Nome
+    </button>
+}
 
 @code {
     [Parameter, EditorRequired] public ProblemaNelLab Problema { get; set; } = null!;
+
+    private void SpostaSopra() => Lab.SpostaICommentiSopra(Problema.File);
 }

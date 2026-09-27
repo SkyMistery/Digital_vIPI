@@ -10,8 +10,9 @@ Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subi
 la slice 0 (misure di partenza) e la **slice 1** intera: sintassi dei tag di §M nel motore (1a), tag sui file a una
 riga per record (1b), tag dei punti `//@@` in SID e STAR (1c), tag sui file a blocchi — `.artcc`, `.mva`, aerovie coi
 `//@@` per tratto, `.tfl`, `.hartcc`/`.lartcc`, `.geo`/`.pol` — coi blocchi che tengono più record (1d), rotte VFR
-`.vrt` e prova su tutti i formati (1e). Test: motore **569**, Lab **358**. Prossima: **slice 2** (controlli comuni sul
-testo). Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+`.vrt` e prova su tutti i formati (1e). Slice 2 in corso: **2a** commenti in coda (avviso per file, gesto «sposta
+sopra», il lettore MVA che ne faceva scrivere 74). Test: motore **587**, Lab **363**. Prossimo: **2b** (controllo
+degli `.isc`). Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file
