@@ -157,6 +157,58 @@ public static partial class Metadati
     /// <summary>Il nome col quale si aggancia un record di <c>.str</c>: il terzo campo (<c>BULL1A</c>, <c>LIRF CTR</c>).</summary>
     public static string NomeStr(StrRecord str) => (str ?? throw new ArgumentNullException(nameof(str))).ProcedureId.Trim();
 
+    /// <summary>
+    /// Il nome col quale si aggancia un record di qualunque file che porta tag (§M regola 1): il terzo campo di SID e
+    /// STAR, <c>LIRN 06/24</c> di una pista (la coppia: un record per riga del <c>.rw</c>), l'ICAO di uno scalo, il
+    /// numero di uno stand, il nome di fix, punti VFR e attese, l'identificativo di VOR e NDB, la posizione di un
+    /// <c>.frq</c>.
+    /// </summary>
+    /// <exception cref="NotSupportedException">Un record di un file che non porta ancora tag.</exception>
+    public static string NomeDelRecord(object record) => record switch
+    {
+        SidProcedure sid => NomeSid(sid),
+        StrRecord str => NomeStr(str),
+        Runway pista => (pista.IcaoCode.Trim() + " " + pista.Designator1.Trim()
+            + (pista.Designator2.Trim().Length > 0 ? "/" + pista.Designator2.Trim() : string.Empty)).Trim(),
+        AirportInfo scalo => scalo.IcaoCode.Trim(),
+        Stand stand => stand.Number.Trim(),
+        TaxiwayLabel taxiway => taxiway.Name.Trim(),
+        Fix fix => fix.Name.Trim(),
+        Vor vor => vor.Ident.Trim(),
+        Ndb ndb => ndb.Ident.Trim(),
+        VfrPoint vfr => vfr.Name.Trim(),
+        AtcPosition posizione => posizione.Code.Trim(),
+        Attesa attesa => attesa.Nome.Trim(),
+        null => throw new ArgumentNullException(nameof(record)),
+        _ => throw new NotSupportedException($"I record di tipo {record.GetType().Name} non portano ancora tag."),
+    };
+
+    /// <summary>Legge i tag di un file già letto, col nome e il catalogo del suo tipo di record (§M). Non tocca niente.</summary>
+    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto)
+        where T : class
+        => Leggi(letto, r => NomeDelRecord(r), CatalogoDelTipo<T>());
+
+    /// <summary>
+    /// I problemi dei tag di un file letto dal motore, qualunque sia il suo tipo; null se i suoi record non portano tag
+    /// (il validatore non ha niente da dire).
+    /// </summary>
+    public static IReadOnlyList<ProblemaDeiMetadati>? ProblemiDi(object letto) => letto switch
+    {
+        ParseResult<SidProcedure> sid => Leggi(sid).Problemi,
+        ParseResult<StrRecord> str => Leggi(str).Problemi,
+        ParseResult<Runway> rw => Leggi(rw).Problemi,
+        ParseResult<AirportInfo> ap => Leggi(ap).Problemi,
+        ParseResult<Stand> gts => Leggi(gts).Problemi,
+        ParseResult<TaxiwayLabel> txi => Leggi(txi).Problemi,
+        ParseResult<Fix> fix => Leggi(fix).Problemi,
+        ParseResult<Vor> vor => Leggi(vor).Problemi,
+        ParseResult<Ndb> ndb => Leggi(ndb).Problemi,
+        ParseResult<VfrPoint> vfi => Leggi(vfi).Problemi,
+        ParseResult<AtcPosition> frq => Leggi(frq).Problemi,
+        ParseResult<Attesa> hold => Leggi(hold).Problemi,
+        _ => null,
+    };
+
     /// <summary>Vero se la riga (già senza spazi in testa) è un tag <c>//@</c>, anche di un punto (<c>//@@</c>).</summary>
     public static bool EUnTag(string rigaSenzaSpaziInTesta)
         => rigaSenzaSpaziInTesta.StartsWith("//@", StringComparison.Ordinal);

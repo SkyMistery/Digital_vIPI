@@ -308,13 +308,8 @@ public static partial class Validatore
                 numero += rec.RawLines.Length + (rec.HasMarkers ? 1 : 0);
             }
 
-            // I tag //@ (slice 7), solo dove ci sono: .sid e .str.
-            IReadOnlyList<ProblemaDeiMetadati> tag = letto switch
-            {
-                ParseResult<SidProcedure> sid => Metadati.Leggi(sid, Metadati.NomeSid).Problemi,
-                ParseResult<StrRecord> str => Metadati.Leggi(str, Metadati.NomeStr).Problemi,
-                _ => Array.Empty<ProblemaDeiMetadati>(),
-            };
+            // I tag //@ (F2 slice 7; lotto «Subito» slice 1b: ogni file che ha un catalogo, «file per file» §M).
+            IReadOnlyList<ProblemaDeiMetadati> tag = Metadati.ProblemiDi(letto) ?? Array.Empty<ProblemaDeiMetadati>();
             problemi.AddRange(tag.Select(p => new ProblemaDelSector(
                 p.EUnErrore ? Regola.TagNonValido : Regola.TagFuoriCatalogo, string.Empty, p.Riga, p.Testo, p.Tipo.ToString())));
 

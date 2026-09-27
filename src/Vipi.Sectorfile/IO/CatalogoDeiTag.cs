@@ -47,6 +47,52 @@ public sealed partial record CatalogoDeiTag(
         [],
         ["role", "alt", "spd"]);
 
+    /// <summary>
+    /// Pista (§M, M9): il record è la coppia (<c>//@"LIRN 06/24"</c>). Larghezza e lunghezza della pista, e per verso
+    /// soglia spostata, ILS, distanze dichiarate (<c>NU</c> = non utilizzabile), decolli dagli intermedi
+    /// (<c>06.int=B:2540,C:1893</c>), lato del circuito, limiti d'uso; <c>vfronly</c> anche senza verso, per tutta la pista.
+    /// </summary>
+    public static CatalogoDeiTag Rw { get; } = new(
+        ".rw",
+        [.. Comuni, "width", "length", "vfronly"],
+        ["thr", "ils", "tora", "toda", "asda", "lda", "int", "circuit", "dep", "arr", "vfronly"],
+        []);
+
+    /// <summary>Scalo (§M, M10): declinazione e suo anno, codice di riferimento, antincendio, traffico, pista preferenziale, vento in coda, orario ATS.</summary>
+    public static CatalogoDeiTag Ap { get; } = new(
+        ".ap",
+        [.. Comuni, "magvar", "magvar.year", "refcode", "rff", "traffic", "pref", "tailwind", "ats"],
+        [],
+        []);
+
+    /// <summary>Stand (§M, R2b): codice ICAO, contatto o remoto, uso, compagnie, pushback e suo verso, piazzale.</summary>
+    public static CatalogoDeiTag Gts { get; } = new(
+        ".gts",
+        [.. Comuni, "code", "kind", "use", "airlines", "push", "pushdir", "apron"],
+        [],
+        []);
+
+    /// <summary>Etichetta di taxiway (§M, R6): codice massimo, senso unico.</summary>
+    public static CatalogoDeiTag Txi { get; } = new(".txi", [.. Comuni, "code", "oneway"], [], []);
+
+    /// <summary>Fix, VOR, NDB, punti VFR, posizioni, attese in rotta: per ora solo le chiavi comuni.</summary>
+    public static CatalogoDeiTag Fix { get; } = new(".fix", [.. Comuni], [], []);
+
+    /// <inheritdoc cref="Fix"/>
+    public static CatalogoDeiTag Vor { get; } = new(".vor", [.. Comuni], [], []);
+
+    /// <inheritdoc cref="Fix"/>
+    public static CatalogoDeiTag Ndb { get; } = new(".ndb", [.. Comuni], [], []);
+
+    /// <inheritdoc cref="Fix"/>
+    public static CatalogoDeiTag Vfi { get; } = new(".vfi", [.. Comuni], [], []);
+
+    /// <inheritdoc cref="Fix"/>
+    public static CatalogoDeiTag Frq { get; } = new(".frq", [.. Comuni], [], []);
+
+    /// <inheritdoc cref="Fix"/>
+    public static CatalogoDeiTag Hold { get; } = new(".hold", [.. Comuni], [], []);
+
     /// <summary>Il catalogo del tipo di record <typeparamref name="T"/>, o null se i suoi file non portano tag.</summary>
     public static CatalogoDeiTag? Di<T>() => Di(typeof(T));
 
@@ -58,6 +104,26 @@ public sealed partial record CatalogoDeiTag(
             return Sid;
         if (typeof(StrRecord).IsAssignableFrom(tipo))
             return Str;
+        if (tipo == typeof(Runway))
+            return Rw;
+        if (tipo == typeof(AirportInfo))
+            return Ap;
+        if (tipo == typeof(Stand))
+            return Gts;
+        if (tipo == typeof(TaxiwayLabel))
+            return Txi;
+        if (tipo == typeof(Models.Fix))
+            return Fix;
+        if (tipo == typeof(Models.Vor))
+            return Vor;
+        if (tipo == typeof(Models.Ndb))
+            return Ndb;
+        if (tipo == typeof(VfrPoint))
+            return Vfi;
+        if (tipo == typeof(AtcPosition))
+            return Frq;
+        if (tipo == typeof(Attesa))
+            return Hold;
         return null;
     }
 

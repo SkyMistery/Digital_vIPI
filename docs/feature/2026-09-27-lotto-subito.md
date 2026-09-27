@@ -163,3 +163,12 @@ aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
   intero invariato: 701/701, 0 diversi, tag su tutto 2 782/2 782, lo stesso guasto noto di `limf.sid`.
   🔴 Il cancello di `main` (`~/.claude/hooks/main-gate.mjs`) rifiuta `tools/conta-test.sh` («comando annidato
   troppe volte»: legge dentro lo script); il conteggio è scritto a mano coi numeri del log, la CI lo ricontrolla.
+- **1b (27 settembre)** — i file a una riga per record: `CatalogoDeiTag` per `.rw` (M9: `width`, `length`,
+  `vfronly`; per verso `thr`, `ils`, `tora` `toda` `asda` `lda`, `int`, `circuit`, `dep`, `arr`, `vfronly`), `.ap`
+  (M10), `.gts` (R2b), `.txi` (R6), e le sole chiavi comuni per `.fix`, `.vor`, `.ndb`, `.vfi`, `.frq`, `.hold`.
+  `Metadati.NomeDelRecord` (il nome d'aggancio di ogni tipo: la pista è la coppia, `LIRN 06/24`), `Metadati.Leggi(letto)`
+  col nome e il catalogo del tipo, `Metadati.ProblemiDi(letto)`: il validatore ora guarda i tag di **ogni** file che
+  ha un catalogo. Le piste sono record solo dentro `//PISTE` (come nei `.rw` veri). La prova «tag su tutto» ora passa
+  anche questi file: **11 265 record su 11 265** ritrovati coi loro tag, **366 file su 366** identici senza le righe
+  `//@` (erano 2 782 record e 148 file); i `.fix` vuoti si saltano (niente da etichettare), resta il solo guasto noto
+  di `limf.sid`. Test: motore 512 → **522**, Lab **358**.

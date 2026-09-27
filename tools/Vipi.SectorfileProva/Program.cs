@@ -223,7 +223,7 @@ foreach (string riga in discordi.Take(40))
     Console.WriteLine("  " + riga);
 }
 
-// 5. I TAG //@ (F2 slice 7, carta madre §8.2), solo su .sid e .str. Sull'albero com'è: quanti tag e quanti problemi.
+// 5. I TAG //@ (F2 slice 7, carta madre §8.2; lotto «Subito» slice 1b: anche i file a una riga per record). Sull'albero com'è: quanti tag e quanti problemi.
 //    Poi TAG SU TUTTO: ogni record riceve il suo blocco (dichiarazione con una chiave, START, END) e il file il suo
 //    //@source; si salva e si rilegge. Ogni record deve ritrovare i suoi tag, delimitati, senza problemi, e tolte
 //    le righe //@ il file deve tornare quello di prima, byte per byte. Le MAPS dei .str ricevono anche `composta`
@@ -239,6 +239,37 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
             break;
         case ".str":
             ProvaITag(new StrParser(avvisi), new StrSaver(), Metadati.NomeStr, percorso);
+            break;
+        // Lotto «Subito» slice 1b: i file a una riga per record («file per file» §M).
+        case ".rw":
+            ProvaITag(new RwParser(avvisi), new RwSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".ap":
+            ProvaITag(new ApParser(avvisi), new ApSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".gts":
+            ProvaITag(new GtsParser(avvisi), new GtsSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".txi":
+            ProvaITag(new TxiParser(avvisi), new TxiSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".fix":
+            ProvaITag(new FixParser(avvisi), new FixSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".vor":
+            ProvaITag(new VorParser(avvisi), new VorSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".ndb":
+            ProvaITag(new NdbParser(avvisi), new NdbSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".vfi":
+            ProvaITag(new VfiParser(avvisi), new VfiSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".frq":
+            ProvaITag(new FrqParser(avvisi), new FrqSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".hold":
+            ProvaITag(new HoldParser(avvisi), new HoldSaver(), r => Metadati.NomeDelRecord(r), percorso);
             break;
     }
 }
@@ -343,12 +374,20 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
     tagNelFile += diOggi.Record.Count;
     problemiNelFile += diOggi.Problemi.Count;
 
+    // Un file senza record (i .fix vuoti di NAVAIDS) non ha niente da etichettare: il solo //@source, tolto, lascerebbe
+    // un a capo che il file non aveva.
+    if (letto.Records.Count == 0)
+    {
+        return;
+    }
+
     var etichettato = Metadati.ScriviSorgente(letto, nomeDi, "AIRAC2610");
     try
     {
         foreach (var record in letto.Records)
         {
-            var chiavi = new Dictionary<string, string> { ["initialclimb"] = "5000" };
+            // `note` è una chiave comune a ogni file (§M), e fra virgolette prova anche i valori con spazi.
+            var chiavi = new Dictionary<string, string> { ["note"] = "\"prova dei tag\"" };
             if (record is StrRecord { RunwaySpec: "MAPS" })
             {
                 chiavi[Metadati.Compose] = "ODINA4E,25:NENI5A";
@@ -373,7 +412,7 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         fileEtichettati++;
         recordEtichettati += riletto.Records.Count;
         recordRitrovati += riletto.Records.Count(r => metadati.Di(r) is { Delimitato: true } m
-            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("initialclimb") == "5000"
+            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("note") == "\"prova dei tag\""
             && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault(Metadati.Compose) == "ODINA4E,25:NENI5A"));
         if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
             || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610")
