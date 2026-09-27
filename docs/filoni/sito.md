@@ -257,5 +257,24 @@
     Confinanti, Sorgenti, Trasferimenti, Versioni, Da sistemare, Compiti, Fraseologia, Radioassistenze, Allegati,
     Spazi aerei, Audit, Diagnostica, Permessi, Chiavi API) → nessun circuito caduto. Zero `fail:` nel log. ⚠️ Su
     SQLite le chiamate «async» non cedono il turno: la corsa vera la provano i bUnit, su MariaDB non l'ho rifatta.
+- ✅ **S13** **U-237** della revisione 3, tetto ai circuiti anonimi (scelta del committente il 27-set: «una soglia
+  nel codice»). Solo `Vipi.Host`: nessuna migrazione, niente `deploy/`, niente codice comune.
+  - `TettoDeiCircuitiAnonimi`, montato dopo `UseAuthentication`: conta le GET di trasporto su `/_blazor` ancora
+    aperte (il WebSocket resta in volo per tutta la connessione) e oltre la soglia risponde 503 con `Retry-After`,
+    anche alla negoziazione. Chi è entrato col VID non si conta e non si ferma. Le POST del long polling passano
+    sempre. Soglia **200**, configurabile con `Circuiti:TettoAnonimi` (zero = nessun tetto). Una riga di avviso al
+    minuto nel log, non una per rifiuto.
+  - **Un tetto solo, globale, niente tetto per IP**: dietro Cloudflare e nginx l'IP o lo sceglie il chiamante o è
+    quello del nodo di Cloudflare (stessa ragione del tetto complessivo del bridge Aurora). I circuiti staccati li
+    limita già `DisconnectedCircuitMaxRetained` (25).
+  - Chi resta fuori vede la pagina disegnata dal server, senza interattività: `vipi-riconnessione.js` scrive
+    l'avvio fallito in console e non ricarica, quindi niente giro di ricariche che moltiplica il carico.
+  - **Test**: E2E 416 → **422** (`TettoDeiCircuitiAnonimiTests`: cinque sul middleware con trasporti tenuti aperti,
+    uno sul sito vero che riempie la sala e bussa a `/_blazor/negotiate`). Rossi col corpo spento (5 su 6: il
+    «tetto a zero» è verde per costruzione) e col solo montaggio spento (il test sul sito). Hosting 68 e Assets 63
+    invariati.
+  - **Prova dal vivo** (:5199, `Circuiti__TettoAnonimi=1`): prima scheda interattiva; seconda disegnata ma senza
+    circuito (503 alla negoziazione), nessuna ricarica da sola in 8 s, modale di riconnessione spenta; chiusa la
+    prima, la seconda ricaricata si collega. Nel log la riga «Tetto dei circuiti anonimi raggiunto (1)», zero `fail:`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

@@ -85,6 +85,12 @@ internal static class VipiStartup
         builder.Services.AddAntiforgery(o => o.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.SameAsRequest);
         builder.Services.AddHsts(o => o.MaxAge = TimeSpan.FromDays(365));
 
+        // Il tetto dei circuiti anonimi aperti insieme (U-237): i trattenuti li limita la riga qui sotto, i connessi
+        // nessuno. Vedi TettoDeiCircuitiAnonimi.
+        builder.Services.AddSingleton(sp => new TettoDeiCircuitiAnonimi(
+            builder.Configuration.GetValue(TettoDeiCircuitiAnonimi.ChiaveConfigurazione, TettoDeiCircuitiAnonimi.TettoPredefinito),
+            sp.GetRequiredService<ILoggerFactory>().CreateLogger<TettoDeiCircuitiAnonimi>()));
+
         builder.Services.AddRazorComponents()
             .AddInteractiveServerComponents(o =>
             {
@@ -570,6 +576,11 @@ internal static class VipiStartup
             app.UseAuthorization();
             app.MapVipiStandaloneAuth();
         }
+
+        // Il tetto dei circuiti anonimi (U-237). DOPO UseAuthentication, perché chi è entrato col VID non si conta
+        // e non si ferma; prima dell'endpoint del circuito, che è chi apre il WebSocket.
+        var tettoDeiCircuiti = app.Services.GetRequiredService<TettoDeiCircuitiAnonimi>();
+        app.Use(tettoDeiCircuiti.PassaAsync);
 
         // DOPO UseAuthentication/UseAuthorization, come chiede la guida Blazor — e non prima, com'era fino
         // all'11 agosto 2026. Il token antiforgery va legato all'identità che lo chiede: girando prima, il
