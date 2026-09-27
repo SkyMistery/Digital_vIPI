@@ -225,5 +225,37 @@
     «Add a pair manually»: un poligono da 41 KB arriva al server («1500 vertices»), circuito su. Zero `fail:` nel
     log. ⚠️ Un primo giro con eventi `change` sintetici da JS aveva «perso» FL90: era il mio evento, non il
     codice. Con la battitura vera il salvataggio c'è.
+- ✅ **S12** lotto **L3 «Circuito che cade»** della revisione 3 (via del committente il 27-set): U-012, U-108.
+  U-017 era già in L1 (S10). **U-237 non è codice**: è una domanda al committente (tetto ai circuiti anonimi con un
+  `CircuitHandler`, o regola di rate limit su `/_blazor` in Cloudflare), e sta anche in L6. **Nessuna migrazione**,
+  nessun codice comune: solo `Vipi.Ui`.
+  - **U-012** (Struttura: un clic su un nodo mentre un'operazione è in volo faceva cadere il circuito): la pagina
+    prende i servizi dal circuito, tutti sullo stesso `DbContext`. Fila di pagina rientrante (`InFilaAsync`, la
+    stessa dei Trasferimenti) per apertura, `Guarded`, `Select`, ripieghi, proposte, rilettura alla presa del lock
+    e dopo un'eliminazione. `Guarded` ha la sentinella PRIMA dell'await e dice se il gesto è andato: «Applica» dei
+    ripieghi rilegge solo dopo un salvataggio vero, sennò butterebbe le righe non salvate. Un clic dato mentre si
+    salva **aspetta il suo turno** e arriva, non si perde (le righe non sono state rese inerti: con la fila non
+    serve, e il clic perso sarebbe stato un difetto nuovo).
+  - **U-108** (pannello «Translation»: due clic ravvicinati su una riga, circuito giù): `ApriAsync` con la
+    sentinella e il conto dei documenti toccati dalla porta del componente; dalla porta anche le riletture dopo
+    «Traduci ora» e dopo un salvataggio; sentinella anche su quei due. Le scritture restano sul circuito (la regola
+    in testa al file).
+  - Resta, non toccato: `DeleteDialog` legge e scrive col SUO `IDeletionService` dal circuito, fuori dalla fila
+    della pagina. È una finestra modale, quindi il clic sull'albero dietro non arriva; da riguardare se diventa
+    non modale.
+  - **Test**: Ui 1733 → **1737** (net8 e net10). `StrutturaUnaOperazionePerVoltaTests` (tre bUnit: doppio clic su
+    un nodo, clic su un nodo con il trascinamento ancora in volo, due rilasci nello stesso istante) e
+    `TranslationReviewPanelTests.Due_clic_ravvicinati_sulle_righe_ne_aprono_una`: un finto che conta le operazioni
+    sovrapposte sul contesto. Tutti e quattro rossi sul codice di prima (2 insieme invece di 1). ⚠️ Il pannello si
+    prova con due righe: dal vivo il secondo clic arriva sulla stessa riga perché il server tiene vivo il gestore
+    finché il browser non conferma il disegno, bUnit lo smaltisce subito.
+  - **Prova dal vivo** (copia del DB di sviluppo, :5199). Struttura: doppio clic vero su LIMM_WS2_CTR → selezionato,
+    circuito su. Trascinato LIMP_APP sotto LIMM_ES5_CTR e subito due clic su LIMM_ES2_CTR → padre salvato, ES2
+    selezionato. «Suggest» doppio, proposta accettata, «Apply» doppio → una riga, catena giusta. Editor LIBB,
+    pannello Translation: doppio clic vero su una riga e due righe nello stesso tick → una sola aperta, col conto
+    dei documenti. Controllo di chiusura del lotto: `doppio-clic.js` su 17 pagine staff (Struttura, ACC, Aeroporti,
+    Confinanti, Sorgenti, Trasferimenti, Versioni, Da sistemare, Compiti, Fraseologia, Radioassistenze, Allegati,
+    Spazi aerei, Audit, Diagnostica, Permessi, Chiavi API) → nessun circuito caduto. Zero `fail:` nel log. ⚠️ Su
+    SQLite le chiamate «async» non cedono il turno: la corsa vera la provano i bUnit, su MariaDB non l'ho rifatta.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

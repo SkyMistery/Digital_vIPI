@@ -588,11 +588,11 @@
     /// <summary>«Inizia modifica»: si rilegge PRIMA che i comandi si riaccendano (U-011, revisione totale 3).
     /// La pagina aperta in sola lettura teneva la fotografia dell'apertura, e la prima scrittura riportava
     /// indietro il lavoro fatto nel frattempo da chi il lock l'aveva tenuto.</summary>
-    private async Task RileggiAllaPresaAsync()
+    private async Task RileggiAllaPresaAsync() => await InFilaAsync(async () =>
     {
         await ReloadTreeAsync();
         await CaricaRipieghiAsync();   // i ripieghi si riscrivono per intero (ReplaceAsync)
-    }
+    });
 
     // Etichetta orfani con pluralizzazione IT/EN gestita via chiavi singolare/plurale.
     private string OrphansLabel(int apt, int app)
@@ -609,11 +609,14 @@
         // lettura. Prima non si vedeva perché ogni comando era dietro `IsAdmin` — ma i dati c'erano.
         if (!Authz.IsEditor) return;
 
-        _accs = await Struct.ListAccsAsync();
-        _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
-        _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
-        await ReloadTreeAsync();
-        await RicaricaOrfaniAsync();
+        await InFilaAsync(async () =>
+        {
+            _accs = await Struct.ListAccsAsync();
+            _confining = await Hierarchy.ListConfiningForeignCallsignsAsync();
+            _online = new HashSet<string>(Online.GetCurrent().Callsigns, StringComparer.OrdinalIgnoreCase);
+            await ReloadTreeAsync();
+            await RicaricaOrfaniAsync();
+        });
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -665,14 +668,14 @@
 
     /// <summary>Dopo un'eliminazione: l'albero cambia, la selezione non esiste più e gli orfani possono
     /// essere diminuiti (il settore tolto poteva essere uno di loro).</summary>
-    private async Task RicaricaDopoEliminazione()
+    private Task RicaricaDopoEliminazione() => InFilaAsync(async () =>
     {
         _selKind = null;
         _selId = 0;
         _pendingParent = null;
         await ReloadTreeAsync();
         await RicaricaOrfaniAsync();
-    }
+    });
 
     private async Task ReloadTreeAsync()
     {
@@ -681,14 +684,68 @@
         _tree = full.Where(n => !n.IsForeign || (n.Callsign != null && _confining.Contains(n.Callsign))).ToList();
     }
 
-    private async Task Guarded(Func<Task> action)
+    /// <summary>
+    /// Un gesto che scrive, poi la rilettura dell'albero. Vero se è andato a buon fine; falso se ha dato un
+    /// messaggio o se non è partito.
+    ///
+    /// <para>⚠️ <b>La sentinella sta PRIMA dell'await</b> (U-012, revisione totale 3): due rilasci nello stesso
+    /// istante — o un «Applica» premuto due volte prima che il render spenga il tasto — erano due
+    /// <c>SetParentAsync</c> sullo stesso contesto. Il secondo gesto <b>non parte</b>, e lo dice il valore di
+    /// ritorno: chi dopo il gesto rilegge (i ripieghi) non deve rileggere sopra un salvataggio che non c'è stato,
+    /// o butta via le righe non salvate.</para>
+    /// </summary>
+    private async Task<bool> Guarded(Func<Task> action)
     {
+        if (_busy) return false;
         _busy = true; _msg = null;
-        try { await action(); await ReloadTreeAsync(); }
+        try
+        {
+            await InFilaAsync(async () => { await action(); await ReloadTreeAsync(); });
+            return true;
+        }
         catch (ValidationException ex) { _msg = ex.Message; }
         catch (EditNotAllowedException ex) { _msg = ex.Message; }
         catch (InvalidOperationException ex) { _msg = ex.Message; }
         finally { _busy = false; }
+        return false;
+    }
+
+    /// <summary>
+    /// 🔴 <b>La fila della pagina: un'operazione per volta sul DbContext del circuito</b> (U-012, revisione
+    /// totale 3). La pagina prende i servizi dal circuito (è nel debito di <c>ScopeProprioDellePagineTests</c>):
+    /// albero, ripieghi e orfani stanno sullo stesso contesto. Un clic su un nodo leggeva i ripieghi mentre un
+    /// trascinamento salvava e riproiettava — «A second operation was started», e il circuito giù. Riprodotto dal
+    /// vivo col doppio clic vero su un nodo: le due letture dei ripieghi una sopra l'altra.
+    ///
+    /// <para>Ci passano <b>tutti</b>: apertura, gesti che scrivono (<see cref="Guarded"/>), selezione di un nodo,
+    /// ripieghi, proposte, rilettura alla presa del lock e dopo un'eliminazione. Un clic su un nodo mentre si
+    /// salva <b>aspetta il suo turno</b> e poi arriva: non si perde.</para>
+    ///
+    /// <para>⚠️ <b>Rientrante</b>, come quella dei Trasferimenti: le catene si annidano (<c>Select</c> →
+    /// <c>CaricaRipieghiAsync</c>, <c>RileggiAllaPresaAsync</c> → <c>CaricaRipieghiAsync</c>) e un semaforo non
+    /// rientrante aspetterebbe sé stesso per sempre. <c>AsyncLocal</c> perché un <c>bool</c> di campo direbbe
+    /// «dentro» anche a un altro gesto.</para>
+    ///
+    /// <para>⚠️ Il semaforo non si smaltisce mai: una lettura in volo arriva al suo <c>Release()</c> anche dopo
+    /// che la pagina se n'è andata (vedi <see cref="ScopeProprioCheAspetta"/>).</para>
+    /// </summary>
+    private readonly SemaphoreSlim _fila = new(1, 1);
+    private readonly AsyncLocal<bool> _inFila = new();
+
+    private async Task InFilaAsync(Func<Task> operazione)
+    {
+        if (_inFila.Value) { await operazione(); return; }
+
+        // 🔴 NIENTE ConfigureAwait(false) (§CW): dopo l'attesa l'operazione scrive lo stato della pagina, e
+        // deve farlo sul dispatcher.
+        await _fila.WaitAsync();
+        _inFila.Value = true;
+        try { await operazione(); }
+        finally
+        {
+            _inFila.Value = false;
+            _fila.Release();
+        }
     }
 
     /// <summary>Vero se il padre selezionato (pending) differisce da quello salvato sul nodo.</summary>
@@ -1071,12 +1128,14 @@
         return sel.Kind == HierarchyNodeKind.Acc ? L["Struct_OptRoot"].Value : L["Struct_OptToAssign"].Value;
     }
 
-    private async Task Select(HierarchyNodeKind kind, int id)
+    /// <summary>La selezione cambia <b>in fila</b>, non prima: il dettaglio e i ripieghi letti devono essere dello
+    /// stesso nodo, e un clic dato mentre si salva passa quando il salvataggio ha finito.</summary>
+    private Task Select(HierarchyNodeKind kind, int id) => InFilaAsync(async () =>
     {
         _selKind = kind; _selId = id; _parentFilter = "";
         _pendingParent = _tree.FirstOrDefault(n => n.Kind == kind && n.Id == id)?.ParentCallsign;
         await CaricaRipieghiAsync();
-    }
+    });
     private bool IsSelected(HierarchyNodeKind kind, int id) => _selKind == kind && _selId == id;
 
     // =====================================================================================================
@@ -1111,7 +1170,7 @@
         _ripieghi.Count != _ripieghiSalvati.Count
         || _ripieghi.Where((r, i) => !r.Equals(_ripieghiSalvati[i])).Any();
 
-    private async Task CaricaRipieghiAsync()
+    private Task CaricaRipieghiAsync() => InFilaAsync(async () =>
     {
         _proposte = Array.Empty<FallbackSuggestion>();
         _proposteChieste = false;
@@ -1125,7 +1184,7 @@
 
         _unita.Clear();
         foreach (var r in _ripieghi) _unita.Add((UnitaDedotta(r.BaseFeet), UnitaDedotta(r.TopFeet)));
-    }
+    });
 
     /// <summary>
     /// I bersagli proposti mentre si scrive: tutti i settori dell'albero tranne sé stesso, filtrati sul testo
@@ -1260,12 +1319,12 @@
     private string FasciaTesto(int? baseFt, int? topFt) =>
         $"{(baseFt is int b ? StatsView.Livello(b) : L["Struct_Fallback_Sfc"].Value)}–{(topFt is int t ? StatsView.Livello(t) : L["Struct_Fallback_Unl"].Value)}";
 
-    private async Task ProponiAsync(HierarchyNode sel)
+    private Task ProponiAsync(HierarchyNode sel) => InFilaAsync(async () =>
     {
         if (sel.Callsign is null) return;
         _proposteChieste = true;
         _proposte = await Fallbacks.SuggestAsync(sel.Callsign);
-    }
+    });
 
     private void AccettaProposta(FallbackSuggestion g)
     {
@@ -1277,8 +1336,7 @@
     private async Task SalvaRipieghiAsync(HierarchyNode sel)
     {
         if (sel.Callsign is null) return;
-        await Guarded(() => Fallbacks.ReplaceAsync(sel.Callsign, _ripieghi));
-        if (_msg is null) await CaricaRipieghiAsync();
+        if (await Guarded(() => Fallbacks.ReplaceAsync(sel.Callsign, _ripieghi))) await CaricaRipieghiAsync();
     }
 
     private HierarchyNode? Selected() => _selKind is HierarchyNodeKind k
