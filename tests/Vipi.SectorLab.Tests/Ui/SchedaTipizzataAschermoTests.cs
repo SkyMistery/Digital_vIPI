@@ -38,6 +38,8 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         return pagina;
     }
 
+    private IReadOnlyList<string> Righe(string file) => _lab.RigheDiAdesso("SectorFiles/Include/IT/" + file);
+
     [Fact]
     public async Task ICampiHannoIlNomeDellAodEIlSignificatoAlPassaggioDelMouse()
     {
@@ -49,5 +51,113 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
         Assert.StartsWith("Fix ·", pagina.Find("[data-tipo-record]").TextContent.Trim(), StringComparison.Ordinal);
         Assert.Empty(pagina.FindAll("[data-sconosciuto]"));
         Assert.Empty(pagina.FindAll("[data-campo-record='Source']"));
+    }
+
+    // --- slice 3b: gli editor -------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task UnTipoFissoSiScegliDaUnElencoColSignificatoEScriveSoloQuelCampo()
+    {
+        var pagina = await ConIlRecord("NAVAIDS/APT.fix", "BC404");
+
+        var tipo = pagina.Find("select[data-scrivi='DisplayType']");
+        Assert.Contains(tipo.QuerySelectorAll("option"), o => o.TextContent == "3 · nascosto");
+        Assert.Contains(tipo.QuerySelectorAll("option"), o => o.TextContent == "1 · terminale (TERM)");
+        tipo.Change("1");
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        // Il pannello e la storia parlano col nome dell'AOD.
+        pagina.WaitForAssertion(() => Assert.Contains("Tipo: 3 → 1", pagina.Find("[data-modifiche]").TextContent, StringComparison.Ordinal));
+        // La riga del motore, con il solo 4° campo cambiato: nessun byte in più.
+        Assert.Contains("BC404;N039.05.11.290;E017.03.27.750;1;", Righe("NAVAIDS/APT.fix"));
+        Assert.DoesNotContain("BC404;N039.05.11.290;E017.03.27.750;3;", Righe("NAVAIDS/APT.fix"));
+    }
+
+    [Fact]
+    public async Task UnValoreFuoriElencoRestaComEESiVede()
+    {
+        _albero.Scrivi("SectorFiles/Include/IT/GEO/prova.geo",
+            "N041.00.00.000;E012.00.00.000;N041.01.00.000;E012.01.00.000;PIPPO;\r\n");
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/GEO/prova.geo", 0));
+
+        pagina.WaitForAssertion(() =>
+        {
+            var tipo = pagina.Find("select[data-scrivi='Color']");
+            Assert.Equal("PIPPO", tipo.GetAttribute("value"));
+            Assert.NotNull(tipo.QuerySelector("option[data-fuori-elenco='PIPPO']"));
+            Assert.Contains(tipo.QuerySelectorAll("option"), o => o.TextContent == "TAXI_CENTER · asse della taxiway");
+        });
+        Assert.Equal(0, _lab.Modifiche.Quante);
+    }
+
+    [Fact]
+    public async Task UnSiNoSiScriveConUnaCasella()
+    {
+        var pagina = await ConIlRecord("OTHER/itfreq.frq", "LIMM_WS2_CTR");
+
+        pagina.Find("input[type='checkbox'][data-scrivi='BlockCpdlc']").Change(true);
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        Assert.Contains(Righe("OTHER/itfreq.frq"), r => r.StartsWith("LIMM_WS2_CTR;", StringComparison.Ordinal)
+                                                      && r.EndsWith(@";PREFS\CTR.cpr;;1;;datis-acc.datis", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task LePisteDellaSidSiScelgonoFraQuelleDelRwDelSuoScalo()
+    {
+        var pagina = await ConIlRecord("lirf.sid", "OST1E");
+
+        var piste = pagina.FindAll("[data-piste='Runway'] [data-pista]").Select(p => p.GetAttribute("data-pista")).ToList();
+        Assert.Equal(["16L", "34R", "16R", "34L", "07", "25", "MAPS"], piste);
+        Assert.Contains("lab-pista-scelta", pagina.Find("[data-pista='07']").ClassList);
+        pagina.Find("[data-pista='25']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal(1, _lab.Modifiche.Quante));
+        Assert.Contains("LIRF;07:25;OST1E;;;;;1;", Righe("lirf.sid"));
+    }
+
+    [Fact]
+    public async Task LaQuotaDiUnaMvaDiAccDiceCosaVuolDireEAccettaIlLivello()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/ENRMVA/lirr.mva", 0));
+        pagina.WaitForAssertion(() => Assert.Equal("= 10 000 ft", pagina.Find("[data-quota='AltLabel']").TextContent));
+
+        pagina.Find("[data-scrivi='AltLabel']").Change("FL90");
+
+        pagina.WaitForAssertion(() => Assert.Equal("= 9 000 ft", pagina.Find("[data-quota='AltLabel']").TextContent));
+        Assert.Contains("L;LIRR;N041.08.58.289;E013.24.48.073;90;8;", Righe("ENRMVA/lirr.mva"));
+    }
+
+    [Fact]
+    public async Task UnCampoCalcolatoNonSiScrive()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/DYNAMIC_SEC/libb_es_ctr.tfl", 0));
+        pagina.WaitForAssertion(() => Assert.NotEmpty(pagina.FindAll("[data-campo-record]")));
+
+        Assert.NotNull(pagina.Find("[data-campo-record='Type']"));
+        Assert.Empty(pagina.FindAll("[data-scrivi='Type']"));
+        // Le posizioni del settore si scrivono con le voci dei .frq a portata di mano.
+        var posizioni = pagina.Find("[data-scrivi='SectorCode']");
+        Assert.NotNull(pagina.Find($"datalist#{posizioni.GetAttribute("list")} option[value='LIMM_WS2_CTR']"));
+    }
+
+    [Fact]
+    public async Task LaQuotaDiUnaMvaDiScaloNonSiScriveFinoAllaSlice15()
+    {
+        // Il motore la legge dal 2° campo e la riscrive nel 5°, dove sul fork sta quasi sempre la quota vera.
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        await pagina.InvokeAsync(() => _lab.Scegli("SectorFiles/Include/IT/liba.mva", 0));
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-campo-record='AltLabel']")));
+
+        Assert.Empty(pagina.FindAll("[data-scrivi='AltLabel']"));
+        Assert.Empty(pagina.FindAll("[data-scrivi='LabelSize']"));
+        Assert.Contains("slice 15", pagina.Find("[data-campo-record='AltLabel'] th").GetAttribute("title"), StringComparison.Ordinal);
     }
 }

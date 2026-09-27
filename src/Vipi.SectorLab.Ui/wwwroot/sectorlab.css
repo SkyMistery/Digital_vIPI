@@ -603,7 +603,8 @@ body.lab-trascina * {
 }
 
 .lab-campi td {
-    padding: .12rem 0;
+    /* A destra il posto della barra di scorrimento della colonna: sennò copre la fine dei campi e delle note. */
+    padding: .12rem .5rem .12rem 0;
     word-break: break-word;
 }
 
@@ -660,6 +661,60 @@ body.lab-trascina * {
 .lab-campo:focus {
     border-color: var(--lab-accento);
     outline: none;
+}
+
+/* Slice 3b: gli editor della scheda. Le piste del .rw sotto il campo, un clic la mette o la toglie. */
+.lab-campo-con-nota {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .1rem .4rem;
+    align-items: baseline;
+}
+
+/* Il campo cede spazio alla nota, e la nota va a capo se la colonna è stretta: con width 100% finiva fuori dal
+   bordo, tagliata (visto a schermo). */
+.lab-campo-con-nota .lab-campo {
+    flex: 1 1 5rem;
+    min-width: 0;
+    width: auto;
+}
+
+.lab-campo-con-nota .lab-nota {
+    white-space: nowrap;
+}
+
+.lab-piste {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .25rem;
+    margin-top: .25rem;
+}
+
+.lab-pista {
+    padding: 0 .4rem;
+    border: 1px solid var(--lab-linea-forte);
+    border-radius: 4px;
+    font: inherit;
+    font-size: .85em;
+    background: var(--lab-superficie);
+    color: var(--lab-tenue);
+    cursor: pointer;
+}
+
+.lab-pista:hover {
+    background: var(--lab-sopra);
+}
+
+.lab-pista-scelta {
+    border-color: var(--lab-accento);
+    background: var(--lab-scelto);
+    color: var(--lab-accento);
+    font-weight: 700;
+}
+
+.lab-fuori-elenco {
+    display: block;
+    color: var(--lab-avviso);
 }
 
 .lab-campo-toccato th {

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a fatta, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a e 3b fatte, §6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -336,3 +336,35 @@ che chiede il tipo fisso.
   cerca nel motore i tipi di record (i T dei lettori e i loro figli concreti: oggi 24) e vuole ogni proprietà
   descritta; rosso provato togliendo la frequenza degli NDB (due test cadono, coi record dei campioni). Test: Lab
   366 → **376**. Prova a schermo con la 3b (la 3a cambia solo i nomi nella tabella).
+- **3b (28 settembre)** — gli editor. `Components/EditorDelCampo.razor` sceglie l'editor dalla descrizione, e ognuno
+  finisce nello stesso `CambiaCampo` di prima col testo del valore: la riga la scrive lo scrittore del motore (test:
+  cambiato il tipo di `BC404`, esce `BC404;N039.05.11.290;E017.03.27.750;1;`, solo il 4° campo diverso). **Tipo
+  fisso** = elenco coi significati («3 · nascosto», «TAXI_CENTER · asse della taxiway»); un valore che l'elenco non ha
+  resta com'è e si vede («PIPPO — non è nell'elenco»). **Sì/no** = casella (menu con «non scritto» per i campi che
+  possono mancare, RNAV). **Quota** (`Ispezione/Quote.cs`, dentro `ModificheInSospeso.Cambia`): si scrive `FL80`,
+  `2500ft`, `2500'` o il numero nell'unità del campo; le MVA di ACC in centinaia, con accanto «= 10 000 ft»; `2550ft`
+  in centinaia è rifiutato col perché. **Elenco** (`Ispezione/VociDegliElenchi.cs`, dai record della sessione come sono
+  adesso): scali dell'`.ap` e posizioni dei `.frq` suggeriti nel campo; le **piste** della SID e delle voci `.str` sono
+  tasti sotto il campo, quelle del `.rw` del suo scalo nell'ordine del file più `MAPS` (un clic la mette o la toglie:
+  `07` → `07:25`). **Numero** = campo col tastierino decimale (non `type=number`, che riscrive `118.700` in `118.7`).
+  Il pannello e la storia dicono il nome dell'AOD («Tipo: 3 → 1», «Elevazione: 14 → 15, come in lirr.ap»).
+  Scelte dell'agente:
+  - 🔴 Le voci `MAPS` del `.rw` per il motore **non sono record** (`//MENU MAPPE` e `//ACC` restano righe grezze):
+    `MAPS` si propone sempre, in coda alle piste; le voci di settore (`LIRR;NE`) sono della slice 11.
+  - Il tipo «altro» dell'`.ap` (`InstallationType.Custom`) resta nell'elenco: sceglierlo scrive l'8° campo vuoto.
+  - 🔴 **Guasto dello scrittore delle MVA di ACC** (codice comune, `MvaSaver`): una zona con le `T;` tutte commentate
+    (la prima di `lirr.mva`) non ha vertici col gruppo nel 5° campo, e lo scrittore ci metteva la **quota**: cambiare la
+    quota scriveva `L;90;…;90;8;` al posto di `L;LIRR;…;100;8;`, e il gruppo della *MVA Selection* spariva. Ora il gruppo
+    viene da `MvaSector.Nome` (2° campo della prima riga), mai dalla quota. Misura su **ogni** zona del fork (quota
+    cambiata, campi confrontati): 105 zone di ACC cambiano solo il 5° campo della `L`, una senza etichetta niente.
+    Rosso sullo scrittore di prima: 2 test su 2.
+  - 🔴 **MVA di scalo in sola lettura** (quota e carattere) fino alla slice 15: il motore legge la quota dal 2° campo
+    della `L` e la riscrive anche nel 5°, ma sul fork **194 etichette su 226** hanno il gruppo nel 2° (`BB CS0`) e la
+    quota nel 5° (`45`), come le ACC — cambiarle dalla scheda cancellava la quota vera. È S1-S2 (MVA di scalo con le
+    regole delle ACC, già decise): la lettura giusta la fa la slice 15.
+  Prova sull'albero (lo scrittore MVA è cambiato): round-trip 701/701, opache 93, tag su tutto 118 469, punti 38 330,
+  blocchi 107 204, validatore 120 errori e 481 avvisi, il solo guasto noto di `limf.sid` — **tutto invariato**. Prova a
+  schermo col banco (server del Lab su una copia del fork): tipo di `BC404` (diff −1 +1), piste di `OST1E`
+  (`07` → `07:25`), quota della prima zona di `lirr.mva` (`FL90` → `90`, `LIRR` resta), casella CPDLC di
+  `LIMM_WS2_CTR` (anche in `limm.frq`), `libd.mva` in sola lettura; la nota «= 10 000 ft» usciva dalla colonna stretta,
+  sistemata nel foglio. Test: motore 616 → **618**, Lab 376 → **408**.

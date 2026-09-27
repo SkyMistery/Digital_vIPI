@@ -1,0 +1,148 @@
+@using System.Reflection
+@inject SessioneDelLab Lab
+
+@*
+    L'editor di un campo della scheda (lotto «Subito», slice 3b): lo sceglie la descrizione del campo. Ogni editor
+    finisce nello stesso CambiaCampo di prima col testo del valore — la riga la scrive lo scrittore del motore, e a
+    parità di valore esce la stessa riga. La modifica parte quando il campo perde il fuoco, o si preme Invio, o si
+    sceglie una voce: a ogni tasto vorrebbe dire rifiutare mezza coordinata mentre la si scrive.
+*@
+@if (!Scrivibile())
+{
+    @Campo.Valore
+}
+else if (Campo.Descrizione is { Editor: Editor.TipoFisso } fisso)
+{
+    <select class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())">
+        @foreach (var voce in fisso.Valori)
+        {
+            <option value="@voce.Valore">@voce.Voce</option>
+        }
+        @if (!fisso.Valori.Any(v => v.Valore == Campo.Scritto))
+        {
+            @* Un valore che il manuale non ha resta com'è e si vede: la scheda non lo cambia da sola. *@
+            <option value="@Campo.Scritto" data-fuori-elenco="@Campo.Scritto">@Campo.Scritto — non è nell'elenco</option>
+        }
+    </select>
+}
+else if (Campo.Descrizione is { Editor: Editor.SiNo } && TipoVero == typeof(bool) && !PuoEssereVuoto)
+{
+    <input type="checkbox" class="lab-casella-campo" checked="@(Campo.Scritto == "sì")" data-scrivi="@Campo.Nome"
+           @onchange="CambiaSiNo" />
+}
+else if (Campo.Descrizione is { Editor: Editor.SiNo })
+{
+    <select class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())">
+        <option value="">— non scritto</option>
+        <option value="sì">sì</option>
+        <option value="no">no</option>
+    </select>
+}
+else if (Campo.Descrizione is { Editor: Editor.Quota } quota)
+{
+    <span class="lab-campo-con-nota">
+        <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())"
+               placeholder="@(quota.InCentinaia ? "centinaia di piedi, FL80, 2500ft" : "piedi, FL80, 2500ft")"
+               title="Si scrive anche FL80 o 2500ft: il Lab la mette nell'unità del campo" />
+        @if (Quote.Significato(Campo.Scritto, quota.InCentinaia) is { } significato)
+        {
+            <span class="lab-nota" data-quota="@Campo.Nome">@significato</span>
+        }
+    </span>
+}
+else if (Campo.Descrizione is { Editor: Editor.Numero })
+{
+    <input class="lab-campo" inputmode="decimal" value="@Campo.Scritto" data-scrivi="@Campo.Nome"
+           @onchange="e => Cambia(e.Value?.ToString())" />
+}
+else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: FonteDellElenco.Piste })
+{
+    var piste = Lab.Elenchi()?.PisteDi(Scalo) ?? [];
+    var scelte = Campo.Scritto.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())" />
+    @if (piste.Any(VociDegliElenchi.EUnaPistaVera))
+    {
+        @* Le piste del .rw di QUESTO scalo, nell'ordine del file: un clic la mette o la toglie (14L:14R). *@
+        <span class="lab-piste" data-piste="@Campo.Nome">
+            @foreach (string pista in piste)
+            {
+                bool scelta = scelte.Contains(pista, StringComparer.OrdinalIgnoreCase);
+                <button class="lab-pista @(scelta ? "lab-pista-scelta" : null)" data-pista="@pista"
+                        title="@(VociDegliElenchi.EUnaPistaVera(pista) ? null : "La voce del menu generale del .rw, non una pista")"
+                        @onclick="() => Cambia(ConLaPista(scelte, piste, pista, !scelta))">@pista</button>
+            }
+        </span>
+    }
+    else
+    {
+        <span class="lab-nota">Nel .rw non c'è niente per @(Scalo is { Length: > 0 } s ? s : "questo scalo").</span>
+    }
+    @if (scelte.Where(p => !piste.Contains(p, StringComparer.OrdinalIgnoreCase)).ToList() is { Count: > 0 } fuori && piste.Any(VociDegliElenchi.EUnaPistaVera))
+    {
+        <span class="lab-nota lab-fuori-elenco" data-fuori-elenco="@string.Join(":", fuori)">@string.Join(", ", fuori): non è nel .rw di @Scalo</span>
+    }
+}
+else if (Campo.Descrizione is { Editor: Editor.Elenco, Fonte: { } fonte })
+{
+    string lista = $"elenco-{Campo.Nome}";
+    var voci = Lab.Elenchi()?.Voci(fonte) ?? [];
+    <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" list="@lista"
+           @onchange="e => Cambia(e.Value?.ToString())" />
+    <datalist id="@lista">
+        @foreach (string voce in voci)
+        {
+            <option value="@voce"></option>
+        }
+    </datalist>
+}
+else
+{
+    <input class="lab-campo" value="@Campo.Scritto" data-scrivi="@Campo.Nome" @onchange="e => Cambia(e.Value?.ToString())" />
+}
+
+@code {
+    [Parameter, EditorRequired] public SchedaDelRecord Scheda { get; set; } = null!;
+
+    [Parameter, EditorRequired] public CampoDelRecord Campo { get; set; } = null!;
+
+    private PropertyInfo? Proprieta
+        => Lab.Sessione?.File.GetValueOrDefault(Scheda.File) is IFileConRecord conRecord && Scheda.Indice < conRecord.RecordDelModello.Count
+            ? conRecord.RecordDelModello[Scheda.Indice].GetType().GetProperty(Campo.Nome, BindingFlags.Public | BindingFlags.Instance)
+            : null;
+
+    private Type? TipoVero => Proprieta?.PropertyType is { } tipo ? Nullable.GetUnderlyingType(tipo) ?? tipo : null;
+
+    private bool PuoEssereVuoto => Proprieta?.PropertyType is { } tipo && Nullable.GetUnderlyingType(tipo) is not null;
+
+    /// <summary>Lo scalo del record, per le sue piste.</summary>
+    private string? Scalo => Scheda.Campi.FirstOrDefault(c => c.Nome == "IcaoCode")?.Scritto;
+
+    /// <summary>
+    /// Si scrive quel che il motore sa leggere dal testo: numeri, sì/no, testo, enum, coordinate. Gli elenchi (i vertici)
+    /// hanno la loro sezione; un campo che la descrizione dice di sola lettura (calcolato) non si scrive.
+    /// </summary>
+    private bool Scrivibile()
+    {
+        if (Campo.Descrizione is { Editor: Editor.SolaLettura })
+            return false;
+        var proprieta = Proprieta;
+        if (proprieta is null || !proprieta.CanWrite || proprieta.SetMethod?.IsPublic != true || TipoVero is not { } tipo)
+            return false;
+        return tipo.IsPrimitive || tipo.IsEnum || tipo == typeof(string) || tipo == typeof(decimal)
+               || tipo == typeof(Vipi.Sectorfile.Shared.Coordinate);
+    }
+
+    private void Cambia(string? valore) => Lab.CambiaCampo(Scheda.File, Scheda.Indice, Campo.Nome, valore);
+
+    private void CambiaSiNo(ChangeEventArgs e) => Cambia(Equals(e.Value, true) ? "sì" : "no");
+
+    /// <summary>Le piste scelte dopo il clic: nell'ordine del .rw, e quelle che il .rw non ha restano in coda.</summary>
+    private static string ConLaPista(string[] scelte, IReadOnlyList<string> piste, string pista, bool metti)
+    {
+        var dopo = scelte.Where(p => !string.Equals(p, pista, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (metti)
+            dopo.Add(pista);
+        return string.Join(":", piste.Where(p => dopo.Contains(p, StringComparer.OrdinalIgnoreCase))
+            .Concat(dopo.Where(p => !piste.Contains(p, StringComparer.OrdinalIgnoreCase))));
+    }
+}

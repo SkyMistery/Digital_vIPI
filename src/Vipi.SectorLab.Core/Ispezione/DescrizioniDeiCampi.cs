@@ -53,7 +53,14 @@ public enum FonteDellElenco
 }
 
 /// <summary>Un valore di un campo a tipo fisso, col suo significato («3 · nascosto»).</summary>
-public sealed record ValoreFisso(string Valore, string Significato);
+/// <param name="Valore">Come lo scrive e lo rilegge la modifica: il testo del campo, o il nome dell'enum del motore.</param>
+public sealed record ValoreFisso(string Valore, string Significato)
+{
+    /// <summary>La voce dell'elenco a schermo: il valore e il suo significato, il vuoto come «— non scritto».</summary>
+    public string Voce { get; init; } = Valore.Length == 0 ? "— " + Significato
+        : Significato == Valore ? Valore
+        : $"{Valore} · {Significato}";
+}
 
 /// <summary>Un campo del record come lo spiega la scheda: nome italiano, significato, come si scrive.</summary>
 /// <param name="Proprieta">Il nome della proprietà nel modello del motore (è la chiave, e resta nei <c>data-</c>).</param>
@@ -122,6 +129,10 @@ public static class DescrizioniDeiCampi
     private static IReadOnlyList<ValoreFisso> Valori(params (string Valore, string Significato)[] valori)
         => [.. valori.Select(v => new ValoreFisso(v.Valore, v.Significato))];
 
+    /// <summary>I valori di un enum del motore: si scrivono col nome (Hidden), si leggono col numero del file (1).</summary>
+    private static IReadOnlyList<ValoreFisso> DiEnum(params (string Nome, string NelFile, string Significato)[] valori)
+        => [.. valori.Select(v => new ValoreFisso(v.Nome, v.Significato) { Voce = $"{v.NelFile} · {v.Significato}" })];
+
     private static readonly IReadOnlyList<ValoreFisso> TipiDelFix = Valori(
         ("0", "in rotta (ENR)"), ("1", "terminale (TERM)"), ("2", "in rotta e terminale"), ("3", "nascosto"));
 
@@ -171,8 +182,12 @@ public static class DescrizioniDeiCampi
     private static readonly DescrizioneDelTipo MvaDiScalo = new("Zona MVA di scalo",
     [
         C("Nome", "Nome", "Il 2° campo della prima riga: è il nome col quale il blocco si aggancia ai tag.", Editor.SolaLettura),
-        C("AltLabel", "Etichetta", "Il testo dell'etichetta (2° campo della riga L): negli scali italiani una quota (4000, 110) o il nome della zona (RR US0).", Editor.Testo),
-        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L).", Editor.Numero),
+        // 🔴 Slice 3b: il motore legge le MVA di scalo col 2° campo della L come quota e lo RISCRIVE anche nel 5°; sul fork
+        // 194 etichette su 226 hanno invece il gruppo nel 2° (BB CS0) e la quota nel 5° (45), come le ACC. Cambiare
+        // la quota o il carattere cancellerebbe la quota vera: si leggono e basta finché la slice 15 (S1-S2) non legge
+        // queste MVA come quelle di ACC.
+        C("AltLabel", "Etichetta", "Il 2° campo della riga L. Sul fork quasi sempre il gruppo (BB CS0), con la quota nel 5° campo: si scriverà con la slice 15, quando il Lab leggerà le MVA di scalo come quelle di ACC.", Editor.SolaLettura),
+        C("LabelSize", "Carattere", "La grandezza del testo dell'etichetta (6° campo della riga L); si scriverà con la slice 15, come l'etichetta.", Editor.SolaLettura),
         C("LabelAnchors", "Etichette", "Dove sta la scritta: le righe L della zona.", Editor.SolaLettura),
         Vertici("Vertices"),
     ]);
@@ -220,8 +235,12 @@ public static class DescrizioniDeiCampi
         [
             C("Mode", "Cosa mostra", "Cosa c'è nel 2° campo.", Editor.TipoFisso) with
             {
-                Valori = Valori((nameof(LabelMode.FixName), "il nome del fix"), (nameof(LabelMode.Custom), "un testo scelto"),
-                                (nameof(LabelMode.None), "niente (campo vuoto)")),
+                Valori =
+                [
+                    new ValoreFisso(nameof(LabelMode.FixName), "il nome del fix") { Voce = "il nome del fix" },
+                    new ValoreFisso(nameof(LabelMode.Custom), "un testo scelto") { Voce = "un testo scelto" },
+                    new ValoreFisso(nameof(LabelMode.None), "niente (campo vuoto)") { Voce = "niente (campo vuoto)" },
+                ],
             },
             C("FixRef", "Nome", "Il nome del fix mostrato (2° campo, quando mostra il nome del fix).", Editor.Navaid),
             C("CustomName", "Testo", "Il testo mostrato (2° campo, quando mostra un testo scelto)."),
@@ -273,14 +292,14 @@ public static class DescrizioniDeiCampi
             C("Name", "Nome", "Il nome dello scalo, al massimo 50 caratteri (6° campo)."),
             C("HideTag", "Nascosto", "7° campo.", Editor.TipoFisso) with
             {
-                Valori = [Vuoto, .. Valori((nameof(HideTag.Hidden), "1 · nascosto"), (nameof(HideTag.Shown), "2 · mostrato"))],
+                Valori = [Vuoto, .. DiEnum((nameof(HideTag.Hidden), "1", "nascosto"), (nameof(HideTag.Shown), "2", "mostrato"))],
             },
             C("InstallationType", "Tipo", "8° campo.", Editor.TipoFisso) with
             {
-                Valori = Valori((nameof(InstallationType.Airport), "0 · aeroporto"), (nameof(InstallationType.Helipad), "1 · eliporto"),
-                                (nameof(InstallationType.Military), "2 · militare"), (nameof(InstallationType.Private), "3 · privato"),
-                                (nameof(InstallationType.Uncontrolled), "4 · non controllato"),
-                                (nameof(InstallationType.Custom), "un valore che il manuale non ha (scritto sotto)")),
+                Valori = DiEnum((nameof(InstallationType.Airport), "0", "aeroporto"), (nameof(InstallationType.Helipad), "1", "eliporto"),
+                                (nameof(InstallationType.Military), "2", "militare"), (nameof(InstallationType.Private), "3", "privato"),
+                                (nameof(InstallationType.Uncontrolled), "4", "non controllato"),
+                                (nameof(InstallationType.Custom), "?", "un valore che il manuale non ha (scritto sotto)")),
             },
             C("CustomInstallationTypeText", "Tipo (come è scritto)", "L'8° campo quando non è uno dei tipi del manuale.", Editor.SolaLettura),
             Commentato,
@@ -387,9 +406,9 @@ public static class DescrizioniDeiCampi
         C("LabelLon", "Longitudine dell'etichetta", "5° campo, di solito vuoto."),
         C("RecordType", "Tipo", "6° campo: il tasto della finestra delle procedure di Aurora; nel MAPS è il tasto che accende la mappa.", Editor.TipoFisso) with
         {
-            Valori = Valori((nameof(StrRecordType.Star), "0 · STAR"), (nameof(StrRecordType.Transition), "1 · transizione (TRANS)"),
-                            (nameof(StrRecordType.Holding), "2 · attesa (HOLD)"), (nameof(StrRecordType.Iap), "3 · avvicinamento (IAP)"),
-                            (nameof(StrRecordType.Fap), "4 · FAP"), (nameof(StrRecordType.GoAround), "5 · mancato avvicinamento (GA)")),
+            Valori = DiEnum((nameof(StrRecordType.Star), "0", "STAR"), (nameof(StrRecordType.Transition), "1", "transizione (TRANS)"),
+                            (nameof(StrRecordType.Holding), "2", "attesa (HOLD)"), (nameof(StrRecordType.Iap), "3", "avvicinamento (IAP)"),
+                            (nameof(StrRecordType.Fap), "4", "FAP"), (nameof(StrRecordType.GoAround), "5", "mancato avvicinamento (GA)")),
         },
         C("Transition", "Navaid della transizione", "7° campo (mai usato nei file italiani).", Editor.Navaid),
         C("IsRnav", "RNAV", "8° campo: 1 = RNAV.", Editor.SiNo),

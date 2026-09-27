@@ -13,6 +13,12 @@ namespace Vipi.SectorLab.Core.Ispezione;
 /// <param name="Descrizione">Nome italiano, significato ed editor (slice 3); null = campo sconosciuto.</param>
 public sealed record CampoDelRecord(string Nome, string Valore, DescrizioneDelCampo? Descrizione = null)
 {
+    /// <summary>
+    /// Il valore come lo riceve l'editor e come la modifica lo rilegge: come <see cref="Valore"/>, ma un campo vuoto è
+    /// vuoto e non «—» (slice 3b: in un elenco a tipo fisso il vuoto è una scelta, «non scritto»).
+    /// </summary>
+    public string Scritto { get; init; } = Valore;
+
     /// <summary>Il nome che legge l'AOD: quello della descrizione, o quello del modello per un campo sconosciuto.</summary>
     public string NomeDaMostrare => Descrizione?.Nome ?? Nome;
 
@@ -128,7 +134,7 @@ public static class Ispettore
     /// </summary>
     internal static IReadOnlyList<CampoDelRecord> Campi(object record, DescrizioneDelTipo? descrizione)
     {
-        var letti = new List<(string Nome, string Valore)>();
+        var letti = new List<(string Nome, string Valore, string Scritto)>();
         foreach (var proprieta in record.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (proprieta.GetIndexParameters().Length > 0 || DescrizioniDeiCampi.Nascoste.Contains(proprieta.Name))
@@ -145,18 +151,18 @@ public static class Ispettore
                 continue;
             }
 
-            letti.Add((proprieta.Name, Testo(valore)));
+            letti.Add((proprieta.Name, Testo(valore), valore is null or "" ? "" : Testo(valore)));
         }
 
         var campi = new List<CampoDelRecord>();
         foreach (var campo in descrizione?.Campi ?? [])
         {
             if (letti.FindIndex(l => l.Nome == campo.Proprieta) is var i and >= 0)
-                campi.Add(new CampoDelRecord(campo.Proprieta, letti[i].Valore, campo));
+                campi.Add(new CampoDelRecord(campo.Proprieta, letti[i].Valore, campo) { Scritto = letti[i].Scritto });
         }
 
         var descritti = campi.Select(c => c.Nome).ToHashSet(StringComparer.Ordinal);
-        campi.AddRange(letti.Where(l => !descritti.Contains(l.Nome)).Select(l => new CampoDelRecord(l.Nome, l.Valore)));
+        campi.AddRange(letti.Where(l => !descritti.Contains(l.Nome)).Select(l => new CampoDelRecord(l.Nome, l.Valore) { Scritto = l.Scritto }));
         return campi;
     }
 

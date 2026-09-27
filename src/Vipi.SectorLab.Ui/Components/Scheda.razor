@@ -48,20 +48,7 @@
                                 <span class="lab-sconosciuto" data-sconosciuto="@campo.Nome">campo sconosciuto</span>
                             }
                         </th>
-                        <td>
-                            @if (Scrivibile(scheda, campo.Nome))
-                            {
-                                @* La modifica parte quando il campo perde il fuoco o si preme Invio: a ogni tasto
-                                   vorrebbe dire rifiutare mezza coordinata mentre la si scrive. *@
-                                <input class="lab-campo" value="@campo.Valore"
-                                       @onchange="e => Cambia(scheda, campo.Nome, e.Value?.ToString())"
-                                       data-scrivi="@campo.Nome" />
-                            }
-                            else
-                            {
-                                @campo.Valore
-                            }
-                        </td>
+                        <td><EditorDelCampo Scheda="scheda" Campo="campo" /></td>
                     </tr>
                 }
             </tbody>
@@ -225,35 +212,11 @@ else
 }
 
 @code {
-    /// <summary>
-    /// Quali campi si scrivono in F3 slice 6: quelli semplici del record. Gli elenchi (i vertici) sono la slice 7,
-    /// e si vede dal fatto che il valore li conta invece di mostrarli.
-    /// </summary>
-    private bool Scrivibile(SchedaDelRecord scheda, string campo)
-    {
-        var proprieta = TipoDelRecord(scheda)?.GetProperty(campo);
-        if (proprieta is null || !proprieta.CanWrite || proprieta.SetMethod?.IsPublic != true)
-            return false;
-
-        var tipo = Nullable.GetUnderlyingType(proprieta.PropertyType) ?? proprieta.PropertyType;
-        return tipo.IsPrimitive || tipo.IsEnum || tipo == typeof(string) || tipo == typeof(decimal)
-               || tipo == typeof(Vipi.Sectorfile.Shared.Coordinate);
-    }
-
-    private Type? TipoDelRecord(SchedaDelRecord scheda)
-        => Lab.Sessione?.File.GetValueOrDefault(scheda.File) is IFileConRecord conRecord
-           && scheda.Indice < conRecord.RecordDelModello.Count
-            ? conRecord.RecordDelModello[scheda.Indice].GetType()
-            : null;
-
     /// <summary>La riga del problema scelto nel pannello (slice 10).</summary>
     private bool Segnalata(string file, int numero) => Lab.RigaSegnalata is { } s && s.File == file && s.Riga == numero;
 
     private bool Toccato(SchedaDelRecord scheda, string campo)
         => Lab.Modifiche.Tutte.Any(m => m.File == scheda.File && m.Record == scheda.Indice && m.Campo == campo);
-
-    private void Cambia(SchedaDelRecord scheda, string campo, string? valore)
-        => Lab.CambiaCampo(scheda.File, scheda.Indice, campo, valore);
 
     private string? _daIncollare;
 

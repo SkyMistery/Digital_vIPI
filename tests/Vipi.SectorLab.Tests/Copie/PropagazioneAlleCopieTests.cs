@@ -48,7 +48,7 @@ public sealed class PropagazioneAlleCopieTests : IDisposable
         Assert.Equal([Ap, ApFir], _modifiche.FileToccati);
         var copia = Assert.Single(_modifiche.CopieDi(principale));
         Assert.Equal((Ap, "14", "15"), (copia.File, copia.Prima, copia.Dopo));
-        Assert.Equal("ElevationFt: 14 → 15, come in lirr.ap", copia.Descrizione);
+        Assert.Equal("Elevazione: 14 → 15, come in lirr.ap", copia.Descrizione);
         Assert.Empty(principale.NonToccate);
 
         // Il criterio della carta: una riga tolta e una aggiunta, in ciascuno dei due file.

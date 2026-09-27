@@ -193,4 +193,40 @@ public sealed class MvaParserTests
         Assert.Equal(string.Empty, r.AltLabel);
         Assert.Single(r.Vertices);
     }
+
+    // Lotto «Subito», slice 3b: la quota cambiata dalla scheda. Una zona di ACC con le T tutte commentate non ha
+    // vertici che portino il gruppo nel 5° campo, e lo scrittore ci metteva la QUOTA (L;LIRR;…;100;8; → L;90;…;90;8;):
+    // il gruppo LIRR (la voce della MVA Selection di Aurora) spariva. Il gruppo è il 2° campo della prima riga.
+    [Fact]
+    public void Enroute_ZonaSenzaVerticiAttivi_TieneIlGruppoNellaL()
+    {
+        var letto = Enroute(
+            "L;LIRR;N041.08.58.289;E013.24.48.073;100;8;\r\n" +
+            "//T;LIRR;N041.25.40.000;E013.11.48.000;LIRR;\r\n" +
+            "//T;LIRR;N041.02.37.000;E013.07.22.000;LIRR;\r\n" +
+            "T;DUMMY;N000.00.00.000;E000.00.00.000;\r\n").FissaLeBasi(new MvaSaver(enroute: true));
+        var zona = Assert.Single(letto.Records);
+        zona.AltLabel = "90";
+
+        var righe = new FileSaverOrchestrator().Righe(letto, new HashSet<MvaSector> { zona }, new MvaSaver(enroute: true));
+
+        Assert.Equal("L;LIRR;N041.08.58.289;E013.24.48.073;90;8;", righe[0]);
+        Assert.Equal("//T;LIRR;N041.25.40.000;E013.11.48.000;LIRR;", righe[1]);
+        Assert.Equal("T;DUMMY;N000.00.00.000;E000.00.00.000;", righe[3]);
+    }
+
+    // Stessa cosa per un vertice di ACC senza il 5° campo: il 2° è il gruppo, non la quota.
+    [Fact]
+    public void Enroute_VerticeSenzaQuintoCampo_TieneIlGruppo()
+    {
+        var zona = Assert.Single(Enroute(
+            "L;LIRR;N041.00.00.000;E012.00.00.000;100;8;\r\n" +
+            "T;LIRR;N041.10.00.000;E012.10.00.000;\r\n" +
+            "T;DUMMY;N000.00.00.000;E000.00.00.000;\r\n").Records);
+        zona.AltLabel = "90";
+
+        var righe = new MvaSaver(enroute: true).Serialize(zona);
+
+        Assert.Equal(["L;LIRR;N041.00.00.000;E012.00.00.000;90;8;", "T;LIRR;N041.10.00.000;E012.10.00.000;"], righe);
+    }
 }

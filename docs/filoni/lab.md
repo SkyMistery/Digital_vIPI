@@ -15,7 +15,9 @@ sopra», il lettore MVA che ne faceva scrivere 74), **2b** controllo degli `.isc
 due volte, sotto la sezione sbagliata, vuoti, orfani copia di un altro), **2c** coordinate scritte male con la
 correzione proposta e «Correggi la riga» (trovati due punti letti in Asia e in Africa). Test: motore **616**, Lab
 **366**. Slice 2 chiusa. Slice 3 (scheda tipizzata) in corso: **3a** descrizioni dei campi per i 24 tipi di record
-(nome dell'AOD, significato, editor; 0 campi sconosciuti sul fork), Lab **376**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
+(nome dell'AOD, significato, editor; 0 campi sconosciuti sul fork), **3b** gli editor (tipo fisso, sì/no, quota,
+numero, piste dal `.rw`, scali e posizioni; corretto lo scrittore delle MVA di ACC che metteva la quota al posto del
+gruppo; MVA di scalo in sola lettura fino alla slice 15). Test: motore **618**, Lab **408**. Il dettaglio di ogni passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il
 cancello di `main` rifiuta `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

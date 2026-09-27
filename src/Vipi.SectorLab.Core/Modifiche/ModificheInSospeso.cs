@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Reflection;
 using Vipi.SectorLab.Core.Copie;
+using Vipi.SectorLab.Core.Ispezione;
 using Vipi.SectorLab.Core.Sessione;
 using Vipi.Sectorfile.IO;
 using Vipi.Sectorfile.Models;
@@ -31,9 +32,12 @@ public sealed record ModificaDiCampo(string File, int Record, string Etichetta, 
     /// </summary>
     public IReadOnlyList<CopiaNonToccata> NonToccate { get; init; } = [];
 
+    /// <summary>Il campo col nome dell'AOD (slice 3: «Tipo», non <c>DisplayType</c>); quello del modello se non è descritto.</summary>
+    public string NomeDelCampo { get; init; } = Campo;
+
     public override string Descrizione => CopiaDi is { } da
-        ? $"{Campo}: {Prima} → {Dopo}, come in {NomeDelFile(da.File)}"
-        : $"{Campo}: {Prima} → {Dopo}";
+        ? $"{NomeDelCampo}: {Prima} → {Dopo}, come in {NomeDelFile(da.File)}"
+        : $"{NomeDelCampo}: {Prima} → {Dopo}";
 
     internal static string NomeDelFile(string relativo) => relativo[(relativo.LastIndexOf('/') + 1)..];
 }
@@ -204,6 +208,15 @@ public sealed class ModificheInSospeso
             return new ModificaRifiutata($"Il campo «{campo}» non si scrive.");
 
         object? prima = proprieta.GetValue(record);
+        // Slice 3b: una quota si scrive come sulla carta (FL80, 2500ft) e diventa il numero nell'unità del campo.
+        var descritto = DescrizioniDeiCampi.Di(record, file.Relativo)?.Campi.FirstOrDefault(c => c.Proprieta == campo);
+        if (descritto is { Editor: Editor.Quota } quota)
+        {
+            if (!Quote.Leggi(valore, quota.InCentinaia, out string inUnita, out string? nonEUnaQuota))
+                return new ModificaRifiutata(nonEUnaQuota!);
+            valore = inUnita;
+        }
+
         if (!Converti(proprieta.PropertyType, valore, out object? dopo, out string? perche))
             return new ModificaRifiutata(perche!);
 
@@ -219,7 +232,10 @@ public sealed class ModificheInSospeso
         string primaScritto = _fatte.TryGetValue(chiave, out var gia) && gia is ModificaDiCampo giaFatta
             ? giaFatta.Prima
             : Scrivi(prima);
-        var modifica = new ModificaDiCampo(file.Relativo, indice, etichetta, campo, primaScritto, Scrivi(dopo));
+        var modifica = new ModificaDiCampo(file.Relativo, indice, etichetta, campo, primaScritto, Scrivi(dopo))
+        {
+            NomeDelCampo = descritto?.Nome ?? campo,
+        };
 
         if (primaScritto == modifica.Dopo)
         {

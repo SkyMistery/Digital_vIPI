@@ -346,6 +346,22 @@ public sealed class SessioneDelLab
             ? Ispettore.Scheda(file, scelta.Record, CatalogoScelto)
             : null;
 
+    /// <summary>
+    /// Le voci degli editor a elenco (lotto «Subito», slice 3b): scali, piste, posizioni come sono adesso. Si rifanno
+    /// dopo ogni modifica (<see cref="RifaiLaGeometria"/> le butta, anche per i file che sulla mappa non ci sono) e
+    /// non a ogni disegno della scheda.
+    /// </summary>
+    public VociDegliElenchi? Elenchi()
+    {
+        if (Sessione is null)
+            return null;
+        if (_elenchi is not { } fatti || !ReferenceEquals(fatti.Sessione, Sessione))
+            _elenchi = fatti = (Sessione, VociDegliElenchi.Di(Sessione));
+        return fatti.Voci;
+    }
+
+    private (SessioneAperta Sessione, VociDegliElenchi Voci)? _elenchi;
+
     /// <summary>La ricerca per nome fra le forme della mappa (slice 5).</summary>
     public IReadOnlyList<Trovato> Cerca(string? testo) => Ricerca.Cerca(Strati, testo);
 
@@ -727,7 +743,15 @@ public sealed class SessioneDelLab
     /// mostrare il punto DOV'È ADESSO, non dov'era all'apertura.
     /// </summary>
     public bool CambiaCampo(string fileRelativo, int record, string campo, string? valore)
-        => NellaStoria($"{campo} di {EtichettaDi(fileRelativo, record)}", () => CambiaCampoAdesso(fileRelativo, record, campo, valore));
+        => NellaStoria($"{NomeDelCampo(fileRelativo, record, campo)} di {EtichettaDi(fileRelativo, record)}",
+            () => CambiaCampoAdesso(fileRelativo, record, campo, valore));
+
+    /// <summary>Il campo col nome dell'AOD, per la storia (slice 3): «Tipo di BC404», non «DisplayType di BC404».</summary>
+    private string NomeDelCampo(string fileRelativo, int record, string campo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord conRecord && record >= 0 && record < conRecord.RecordDelModello.Count
+           && DescrizioniDeiCampi.Di(conRecord.RecordDelModello[record], fileRelativo)?.Campi.FirstOrDefault(c => c.Proprieta == campo) is { } descritto
+            ? descritto.Nome
+            : campo;
 
     private bool CambiaCampoAdesso(string fileRelativo, int record, string campo, string? valore)
     {
@@ -1401,6 +1425,7 @@ public sealed class SessioneDelLab
 
         var tipo = StratiDellaMappa.DiFile(fileRelativo);
         _etichette.Remove(fileRelativo);
+        _elenchi = null;
         foreach (var chiave in _stime.Keys.Where(k => k.File == fileRelativo).ToList())
             _stime.Remove(chiave);
         if (tipo is null)
