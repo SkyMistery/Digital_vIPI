@@ -3768,6 +3768,7 @@
 :where(.vipi-root) .struct .sorg-alias td{padding:7px 10px;vertical-align:middle}
 :where(.vipi-root) .struct .sorg-alias .c-pfx{width:120px}
 :where(.vipi-root) .struct .sorg-alias .c-fix{width:auto}
+:where(.vipi-root) .struct .sorg-alias .c-apt{width:80px}
 :where(.vipi-root) .struct .sorg-alias .c-act{width:64px;text-align:right}
 
 

@@ -39,7 +39,7 @@ internal sealed class AuroraProcedureProvider : IProcedureProvider
         if (testo is null) return Array.Empty<SourceProcedure>();   // aeroporto senza quel file: nessun import
 
         var nav = await _navaids.GetAsync(ct);
-        var aliasMap = await _aliases.GetMapAsync(ct);
+        var aliasMap = await _aliases.GetMapAsync(icao, ct);   // gli alias di QUESTO scalo (U-031)
         var righe = kind == ProcedureKind.Star
             ? AuroraSectorfileParser.ParseStars(icao, testo, nav.Names, aliasMap)
             : AuroraSectorfileParser.ParseSids(icao, testo, nav.Names, aliasMap);

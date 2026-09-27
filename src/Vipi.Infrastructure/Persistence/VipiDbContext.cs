@@ -299,7 +299,11 @@ public class VipiDbContext : DbContext
         // autore e ora sono intatti, e il narratore la mostra nella famiglia «Altro».
         b.Entity<AuditLog>().Property(x => x.Action).HasConversion(v => v.ToString(), s => LeggiAzione(s));
 
-        b.Entity<SidFixAlias>().HasIndex(x => x.Prefix).IsUnique();   // un solo alias per prefisso
+        // Un solo alias per prefisso E SCALO (U-031): lo stesso prefisso vale un punto a LIBD e un altro a LIPE.
+        // ⚠️ L'indice vecchio (solo Prefix) su Postgres non lo toglie nessuna migrazione: vedi
+        // PostgresSchemaReconciler.IndiciRitirati.
+        b.Entity<SidFixAlias>().Property(x => x.Icao).HasMaxLength(4);
+        b.Entity<SidFixAlias>().HasIndex(x => new { x.Icao, x.Prefix }).IsUnique();
         b.Entity<ImportState>().HasKey(x => x.Category);               // una riga per categoria di import
 
         // Policy di import: i flag aggiunti DOPO la creazione della tabella devono nascere a `true`, altrimenti

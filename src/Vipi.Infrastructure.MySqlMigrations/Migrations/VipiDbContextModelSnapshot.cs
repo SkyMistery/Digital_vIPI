@@ -17,7 +17,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.30")
+                .HasAnnotation("ProductVersion", "8.0.31")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
@@ -3235,6 +3235,11 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
                         .HasColumnType("longtext")
                         .UseCollation("utf8mb4_uca1400_as_cs");
 
+                    b.Property<string>("Icao")
+                        .HasMaxLength(4)
+                        .HasColumnType("varchar(4)")
+                        .UseCollation("utf8mb4_uca1400_as_cs");
+
                     b.Property<string>("Prefix")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -3243,7 +3248,7 @@ namespace Vipi.Infrastructure.MySqlMigrations.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Prefix")
+                    b.HasIndex("Icao", "Prefix")
                         .IsUnique();
 
                     b.ToTable("SidFixAliases");

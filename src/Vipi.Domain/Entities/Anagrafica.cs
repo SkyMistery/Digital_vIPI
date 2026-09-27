@@ -775,10 +775,13 @@ public class AirportProcedure
     public string? TransitionOverride { get; set; }
 }
 
-/// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"). Globale.</summary>
+/// <summary>Alias autoritativo per completare i prefissi SID troncati irregolari (es. "SIV" → "SOSIV"), per lo scalo
+/// da cui nasce (U-031, revisione totale 3).</summary>
 public class SidFixAlias
 {
     public int Id { get; set; }
+    /// <summary>Lo scalo per cui vale; null = tutti (gli alias nati prima del 27 settembre 2026).</summary>
+    public string? Icao { get; set; }
     public string Prefix { get; set; } = default!;     // prefisso troncato come appare nel codice SID
     public string FixName { get; set; } = default!;    // fix reale completo
 }

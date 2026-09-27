@@ -1029,7 +1029,7 @@ else
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             fissato = e.FixOverride!.Trim();
-            if (e.CreateAlias) await AliasSid.UpsertAsync(e.Fix, fissato);
+            if (e.CreateAlias) await AliasSid.UpsertAsync(_icao, e.Fix, fissato);   // vale per questo scalo (U-031)
         }
         await Scalo.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, fissato,
             e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);

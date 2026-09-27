@@ -107,10 +107,10 @@ public class PorteDelleAnagraficheTests : IAsyncLifetime
     public async Task Alias_dei_fix_si_creano_da_editor_e_si_tolgono_solo_da_admin()
     {
         await Assert.ThrowsAsync<EditNotAllowedException>(() =>
-            new EfSidFixAliasRepository(_db, Anonimo).UpsertAsync("PAL", "PALAS"));
+            new EfSidFixAliasRepository(_db, Anonimo).UpsertAsync("LICJ", "PAL", "PALAS"));
         Assert.Empty(await _db.SidFixAliases.AsNoTracking().ToListAsync());
 
-        await new EfSidFixAliasRepository(_db, LivelloFisso.Editor).UpsertAsync("PAL", "PALAS");
+        await new EfSidFixAliasRepository(_db, LivelloFisso.Editor).UpsertAsync("LICJ", "PAL", "PALAS");
         var alias = Assert.Single(await _db.SidFixAliases.AsNoTracking().ToListAsync());
 
         // Toglierlo è della pagina Sorgenti, che è dell'Admin: un Editor non basta.

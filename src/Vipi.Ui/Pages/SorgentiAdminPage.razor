@@ -209,7 +209,7 @@
             else
             {
                 <table class="res-table sorg-alias">
-                    <thead><tr><th class="c-pfx">@L["Sorg_AliasColPrefix"]</th><th class="c-fix">@L["Sorg_AliasColFix"]</th><th class="c-act"></th></tr></thead>
+                    <thead><tr><th class="c-pfx">@L["Sorg_AliasColPrefix"]</th><th class="c-fix">@L["Sorg_AliasColFix"]</th><th class="c-apt">@L["Sorg_AliasColIcao"]</th><th class="c-act"></th></tr></thead>
                     <tbody>
                         @foreach (var a in _alias)
                         {
@@ -228,6 +228,9 @@
                                     }
                                     else { @a.FixName }
                                 </td>
+                                @* Per quale scalo vale (U-031): quelli senza scalo sono nati quando l'alias era
+                                   globale, e valgono ancora per tutti — va detto, perché è la portata di un gesto. *@
+                                <td class="c-apt">@if (a.Icao is null) { <span class="muted">@L["Sorg_AliasAll"]</span> } else { @a.Icao }</td>
                                 <td class="c-act">
                                     <InlineConfirm TriggerClass="btn ghost" Disabled="@_busy" Danger="true"
                                                    Prompt="@L["Sorg_AliasDeletePrompt", a.Prefix, a.FixName].Value"

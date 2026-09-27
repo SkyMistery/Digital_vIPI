@@ -299,5 +299,24 @@
     da 8 file): 59 scali, 2354 righe (1503 SID + 851 STAR). Arricchimenti tutti conservati (WTC 69, IC 43, priorità 2,
     nascoste 3, forzate 83, come prima). ROBO5H (LIBG) e XIB5A-OKU6A (LIRF) restano al 2608 e non passano al 2610.
     Chiavi riscritte col prefisso grezzo (`LIBG|ROBO|H||17`). Secondo giro: le 2354 righe identiche al primo.
+- ✅ **S15** lotto L4, fetta C: **U-031**, l'alias dei fix vale per lo scalo da cui nasce. **Migrazione sì**
+  (`AliasPerScalo`, SQLite e MySQL: `DropIndex` + `AddColumn` + `CreateIndex`, niente `DropTable`). **Codice comune
+  toccato**: `Vipi.Application` (`ISidFixAliasRepository`: `GetMapAsync(icao)`, `UpsertAsync(icao, …)`,
+  `SidFixAliasRow.Icao`) e `Vipi.Domain` (`SidFixAlias.Icao`).
+  - Era globale: la radice risolta in uno scalo riscriveva, senza «da verificare», il punto delle procedure di un
+    altro (LUMA = LUMAR a LIBD, LUMAV a LIPE), e lo creava qualunque Editor. Ora colonna `Icao`, indice unico
+    (`Icao`, `Prefix`); l'import di uno scalo legge i suoi alias più quelli senza scalo, e a parità di prefisso vince
+    il suo. Gli alias vecchi (senza scalo) restano validi per tutti: scelta mia, perché sono stati scritti così e
+    toglierli è della pagina Sorgenti, che ora mostra la colonna «Scalo» («tutti» per i vecchi).
+  - L'editor aeroporto e il vSOP militare passano lo scalo; il suggerimento della casella «alias» dice la portata
+    («per gli import futuri di questo scalo (gli altri scali non lo vedono)»), e anche l'aiuto di Sorgenti.
+  - Postgres (nessuna migrazione): `PostgresSchemaReconciler.IndiciRitirati` toglie `IX_SidFixAliases_Prefix`,
+    che altrimenti rifiuterebbe lo stesso prefisso per due scali.
+  - ⚠️ Il `Down` della migrazione ricrea l'unico su `Prefix`: fallisce se nel frattempo due scali hanno lo stesso
+    prefisso. Accettato: il dietrofront in produzione non si fa con `Down`.
+  - **Test**: Infrastructure 1633 → **1636** (`AliasPerScaloTests`, rossi col filtro per scalo spento).
+  - **Prova dal vivo** (copia del DB, :5199): migrazione applicata all'avvio; editor LICG, DOBI7C «fix da
+    verificare» → battuto DOBIX, spuntato «alias», «Fine modifica» → in archivio l'alias `DOBI → DOBIX` con scalo
+    `LICG`, la riga risolta; Sorgenti mostra la riga con la colonna Airport. Zero `fail:`.
 - ▶ Alla ripresa: `git merge main` (il ramo resta indietro dopo ogni fusione dell'integratore). Guardare `da-fare.md` e i lotti di S9.
 - Conteggi del filone: di solito `tests/conteggi/Vipi.Ui.Tests.txt`.

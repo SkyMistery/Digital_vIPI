@@ -885,7 +885,7 @@ else
         if (e.NeedsReview && !string.IsNullOrWhiteSpace(e.FixOverride))
         {
             resolvedFix = e.FixOverride!.Trim();
-            if (e.CreateAlias) await SidAliases.UpsertAsync(e.Fix, resolvedFix);   // e.Fix = prefisso grezzo
+            if (e.CreateAlias) await SidAliases.UpsertAsync(_icao, e.Fix, resolvedFix);   // e.Fix = prefisso grezzo; vale per questo scalo (U-031)
         }
         await Profile.UpdateImportedSidAsync(_icao, e.Id, e.Priority, e.ForcePublished, resolvedFix,
             e.InitialClimb, e.InitialClimbByApp, e.Cat, e.Wtc, e.Condition);
