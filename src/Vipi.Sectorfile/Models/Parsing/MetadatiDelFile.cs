@@ -1,8 +1,8 @@
 namespace Vipi.Sectorfile.Models;
 
 /// <summary>
-/// I tag <c>//@</c> di un <c>.sid</c> o di un <c>.str</c> letti da <c>Metadati.Leggi</c> (carta madre §8.2, carta F2
-/// slice 7): le chiavi del file, i record che hanno una dichiarazione, e ciò che non torna.
+/// I tag <c>//@</c> di un file letti da <c>Metadati.Leggi</c> (carta madre §8.2, carta F2 slice 7; «file per file» §M
+/// per ogni file che ha un catalogo): le chiavi del file, i record che hanno una dichiarazione, e ciò che non torna.
 /// </summary>
 public sealed class MetadatiDelFile<T>
     where T : class
@@ -21,7 +21,9 @@ public sealed class MetadatiDelFile<T>
         Problemi = problemi;
         Sorgente = sorgente;
         Punti = punti ?? [];
-        _perRecord = record.ToDictionary(r => r.Record, ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
+        _perRecord = record
+            .SelectMany(m => m.Records.Select(r => (Record: r, Metadati: m)))
+            .ToDictionary(c => c.Record, c => c.Metadati, ReferenceEqualityComparer.Instance as IEqualityComparer<T>);
     }
 
     /// <summary>
@@ -36,33 +38,51 @@ public sealed class MetadatiDelFile<T>
     /// <summary>Le chiavi del file (<c>//@source=AIRAC2610</c> nelle prime righe).</summary>
     public IReadOnlyDictionary<string, string> DelFile { get; }
 
-    /// <summary>I record che hanno una dichiarazione <c>//@NOME</c> col loro nome, in ordine di file.</summary>
+    /// <summary>
+    /// Le dichiarazioni <c>//@"NOME"</c> agganciate, in ordine di file: una per blocco, e un blocco può tenere più record
+    /// (<see cref="MetadatiDelRecord{T}.Records"/>).
+    /// </summary>
     public IReadOnlyList<MetadatiDelRecord<T>> Record { get; }
 
     /// <summary>Ciò che non torna, in ordine di riga. Un errore vuol dire che almeno un tag non vale.</summary>
     public IReadOnlyList<ProblemaDeiMetadati> Problemi { get; }
 
-    /// <summary>I metadati di <paramref name="record"/>, o null se non ne ha (un record senza tag si legge come oggi).</summary>
+    /// <summary>
+    /// I metadati di <paramref name="record"/> — quelli del blocco che lo tiene, anche se non è il primo — o null se non
+    /// ne ha (un record senza tag si legge come oggi).
+    /// </summary>
     public MetadatiDelRecord<T>? Di(T record) => _perRecord.GetValueOrDefault(record);
 
     /// <summary>Dove sta la riga <c>//@source=…</c>, se c'è.</summary>
     internal PosizioneDelTag? Sorgente { get; }
 }
 
-/// <summary>La dichiarazione di un record: <c>//@BANA6W fix=BANAV initialclimb=5000</c>, e se il blocco è delimitato.</summary>
+/// <summary>
+/// La dichiarazione di un record o di un blocco: <c>//@BANA6W fix=BANAV initialclimb=5000</c>, e se il blocco è
+/// delimitato. Fra <c>//@START</c> e <c>//@END</c> stanno tutti i record col nome del blocco o senza nome (lotto
+/// «Subito» slice 1d: la zona MVA fatta di più pezzi, il gruppo di segmenti di un <c>.geo</c>, l'aerovia spezzata dai
+/// <c>BREAK</c>).
+/// </summary>
 public sealed class MetadatiDelRecord<T>
 {
+    private readonly List<T> _records;
+
     internal MetadatiDelRecord(T record, string nome, IReadOnlyDictionary<string, string> chiavi, int riga, PosizioneDelTag dichiarazione)
     {
-        Record = record;
+        _records = [record];
         Nome = nome;
         Chiavi = chiavi;
         Riga = riga;
         Dichiarazione = dichiarazione;
     }
 
-    public T Record { get; }
+    /// <summary>Il primo record del blocco: quello subito sotto la dichiarazione.</summary>
+    public T Record => _records[0];
 
+    /// <summary>Tutti i record del blocco, in ordine di file (uno solo se la dichiarazione non apre un blocco).</summary>
+    public IReadOnlyList<T> Records => _records;
+
+    /// <summary>Il nome della dichiarazione: quello del record, o del gruppo se i record non ne hanno uno.</summary>
     public string Nome { get; }
 
     /// <summary>Le chiavi della dichiarazione (<c>fix</c>, <c>initialclimb</c>), valori come scritti.</summary>
@@ -75,6 +95,11 @@ public sealed class MetadatiDelRecord<T>
     public int Riga { get; }
 
     internal PosizioneDelTag Dichiarazione { get; }
+
+    /// <summary>Dove sta il <c>//@END</c> che chiude il blocco, se è delimitato.</summary>
+    internal PosizioneDelTag? Fine { get; set; }
+
+    internal void Aggiungi(T record) => _records.Add(record);
 }
 
 /// <summary>
@@ -102,7 +127,10 @@ public sealed class MetadatiDelPunto<T>
     /// <summary>La riga del tag nel file (da 1).</summary>
     public int Riga { get; }
 
-    /// <summary>L'indice della riga del punto fra le righe del record (la prima, 0, è l'intestazione).</summary>
+    /// <summary>
+    /// L'indice della riga del punto fra le righe del record (in SID e STAR la prima, 0, è l'intestazione; un'aerovia
+    /// non ne ha).
+    /// </summary>
     public int RigaDelPunto { get; }
 }
 
@@ -148,8 +176,14 @@ public enum TipoDiProblemaDeiMetadati
     /// <summary>Un <c>//@@"PUNTO"</c> sopra un punto con un altro nome o altre coordinate.</summary>
     PuntoNonCombacia,
 
-    /// <summary>Un <c>//@@</c> fuori da un record: il tag di un punto sta solo dentro una procedura.</summary>
+    /// <summary>Un <c>//@@</c> fuori da un record: il tag di un punto sta solo dentro una procedura o un'aerovia.</summary>
     TagDiPuntoFuoriDalRecord,
+
+    /// <summary>
+    /// Una dichiarazione dentro un blocco aperto (fra <c>//@START</c> e <c>//@END</c>): i blocchi non si annidano, e i
+    /// record che seguono restano del blocco di fuori.
+    /// </summary>
+    DichiarazioneNelBlocco,
 }
 
 /// <summary>Dove sta una riga di tag fra i pezzi del file: nelle righe grezze o nei commenti di testa di un record.</summary>

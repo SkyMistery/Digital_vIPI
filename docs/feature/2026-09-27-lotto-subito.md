@@ -8,9 +8,8 @@
 
 ## Stato — 27 settembre 2026
 
-**Proposta da leggere.** Nessuna slice cominciata. Il committente la legge, sposta o toglie, poi si parte dalla
-slice 0. Tutte le voci citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che
-ordine** si fanno.
+**Approvata** (§5). Fatte la slice 0 e la slice 1 fino a **1d**; prossimo **1e** (§6 «Traccia»). Tutte le voci
+citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
 
@@ -182,3 +181,39 @@ aerovie, `.tfl`, `.hartcc`/`.lartcc`) · **1e** prova sull'albero intero.
   punto di ogni SID e STAR etichettato → **35 898 su 35 898** ritrovati, ogni record riletto si scrive come prima,
   366 file identici senza le righe `//@`. Test rosso sul codice di prima: col vecchio `StrParser` 8 test su 17
   cadono (la STAR si spezzava). Test: motore 522 → **540**, Lab **358**.
+- **1d (27 settembre)** — i file a blocchi: `.artcc`, aerovie, `.mva` (di ACC e di scalo), `.tfl`/`.fic`,
+  `.hartcc`/`.lartcc`, `.geo` (anche le aree P/R/D e `RW_MARKINGS`), `.pol`. Deciso nel codice prima di scrivere
+  (scelte dell'agente, dentro §M):
+  - **I lettori a blocchi chiudono il record su un `//@`.** MVA, ARTCC, TFL, confini e POL tenevano ogni commento
+    nel blocco aperto: un `//@END` senza riga vuota finiva nel record, e due zone MVA di fila diventavano una. Ora un
+    `//@` (non `//@@`) chiude il record, come in SID e STAR dalla F2 slice 7 (`Metadati.EUnTagCheChiude`). Nelle
+    aerovie, dove ogni commento chiudeva già il record, il `//@@` resta col punto sotto, anche il primo (B2).
+  - **Un blocco tiene più record.** Fra `//@START` e `//@END` stanno tutti i record col nome del blocco o senza nome
+    (`MetadatiDelRecord.Records`, `Di(record)` dà il blocco anche per il 2°, 3°… pezzo): la zona MVA fatta di più
+    poligoni (E1: «cosa sta nella zona lo decide l'utente»), il gruppo di segmenti di un `.geo`, l'aerovia che il
+    `BREAK` spezza in tre record (B1). Un record di un altro nome dentro il blocco resta un errore (`NomeNonCombacia`);
+    una dichiarazione dentro un blocco aperto è un errore nuovo (`DichiarazioneNelBlocco`: i blocchi non si annidano).
+    `ScriviIlBlocco(primo, ultimo, nome, chiavi)` scrive il blocco su un tratto di record; `Scrivi` su un pezzo di un
+    blocco cambia la sola dichiarazione; `Togli` toglie il blocco intero (la fine la ritrova dove l'ha letta).
+  - **Record senza nome suo** (`NomeDelRecord` = null): il poligono `.pol`, il segmento `.geo` senza 6° campo,
+    l'etichetta `.artcc` senza fix, la riga `BREAK`. Prendono il nome del blocco (§M: «nei file senza nome nelle righe
+    di dati il nome del blocco è il nome del gruppo»); `Scrivi` da solo li rifiuta, il nome lo dà chi scrive.
+  - **Nomi d'aggancio**: aerovia = 2° campo; settore = la testa (`LIPX_ES0_APP`, `LIBB_ES_CTR LIBB_EU_CTR`); gruppo di
+    confini = il nome del primo vertice (`RR CONF2`, `FRA BDRY`); blocco MVA = 2° campo della prima riga `L;`/`T;` che
+    non è `DUMMY`, anche commentata (`MvaSector.Nome`, nuovo, solo lettura: `LIMM` nei `.mva` di ACC, `CERCHIO-BA`,
+    `RR US0` in quelli di scalo); area P/R/D = 6° campo (`D5A`). Il punto di un'aerovia sta nel 3°-4° campo
+    (`ChiaveDelPunto<Airway>`).
+  - **Catalogo** (`CatalogoDeiTag`): `.artcc` le comuni (i parametri di gate e AOCC arrivano coi generatori, A5-A7);
+    aerovie le comuni, e per tratto `dir`, `lower`, `upper` (B2); `.mva` + `zone` (E1); `.tfl` + `form`, `lower`,
+    `upper`, `class` (D5, D9); `.hartcc`/`.lartcc` come i `.tfl` più `compose`, `whole` (J6, J7); `.geo` + `form`,
+    `lower`, `upper`, `class` (I2, H10, G5: segmenti e aree hanno lo stesso lettore, quindi lo stesso catalogo); `.pol`
+    + `form`.
+  - Il nome della forma di un `.fic` (`ShapeLabel`) salta le righe di tag: la dichiarazione sta fra `//GARDA` e la testa.
+  Prova sull'albero: round-trip 701/701, 93 righe opache e validatore (125 errori, 382 avvisi) **invariati**; tag su
+  tutto **118 417 record su 118 417** in **672 file** identici senza le righe `//@` (erano 11 265 e 366); punti
+  **38 207 su 38 207** (+2 309 punti delle aerovie); nuova misura **BLOCCHI A PIÙ PEZZI**: i record di fila con lo
+  stesso nome (o senza) in un blocco solo → **107 152 record su 107 152** ritrovati nel loro blocco, 1 848 blocchi di
+  cui 805 con più record, 306 file identici senza le righe `//@`. Resta il solo guasto noto di `limf.sid`. Test rosso
+  sul codice di prima: coi sei lettori vecchi 13 test nuovi su 23 cadono. Test: motore 540 → **563**, Lab **358**.
+  🟡 `.vrt` (rotte VFR, F8/S6: `//@@` per tratto) non è in questa slice: il lettore ha un'altra forma di punto; va con
+  la slice 16 (VFR) o con la 1e se il committente lo vuole prima.

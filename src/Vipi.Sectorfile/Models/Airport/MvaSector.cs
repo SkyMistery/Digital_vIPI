@@ -13,6 +13,14 @@ namespace Vipi.Sectorfile.Models;
 /// </summary>
 public sealed class MvaSector
 {
+    /// <summary>
+    /// Il 2° campo della prima riga <c>L;</c>/<c>T;</c> del blocco che non è un separatore <c>DUMMY</c>, anche
+    /// commentata: il gruppo della <i>MVA Selection</i> nei <c>.mva</c> di ACC (<c>LIMM</c>), il nome della zona in
+    /// quelli di scalo (<c>CERCHIO-BA</c>). È il nome col quale si aggancia un tag <c>//@</c> (lotto «Subito» slice
+    /// 1d, «file per file» E1). Solo lettura: lo scrittore non lo usa.
+    /// </summary>
+    public string Nome { get; internal set; } = string.Empty;
+
     /// <summary>Altitude label: "FL110", "3000N", "TRL", "70/TRL" … (airport: L; field 2; enroute: L; field 5).</summary>
     public string AltLabel { get; set; } = string.Empty;
 

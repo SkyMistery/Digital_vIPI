@@ -228,8 +228,12 @@ foreach (string riga in discordi.Take(40))
 //    //@source; si salva e si rilegge. Ogni record deve ritrovare i suoi tag, delimitati, senza problemi, e tolte
 //    le righe //@ il file deve tornare quello di prima, byte per byte. Le MAPS dei .str ricevono anche `composta`
 //    (F3-bis slice 3): i loro nomi hanno spazi, e si scrivono fra virgolette.
+//    Slice 1d, i file a blocchi: un record senza nome suo (.pol, .geo di scalo, BREAK) riceve il blocco col nome
+//    «PROVA»; ogni punto delle aerovie il suo //@@. Poi BLOCCHI A PIÙ PEZZI: i record di fila con lo stesso nome (o
+//    senza) in un blocco solo — la zona MVA, il gruppo del .geo, l'aerovia coi BREAK — e ognuno deve ritrovarlo.
 int tagNelFile = 0, problemiNelFile = 0, recordEtichettati = 0, recordRitrovati = 0, fileTornati = 0, fileEtichettati = 0;
 int puntiEtichettati = 0, puntiRitrovati = 0;
+int bloccoRecord = 0, bloccoRitrovati = 0, blocchiScritti = 0, blocchiAPiuPezzi = 0, bloccoFile = 0, bloccoFileTornati = 0;
 var guastiDeiTag = new List<string>();
 foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
 {
@@ -272,13 +276,46 @@ foreach (string percorso in Directory.GetFiles(radice, "*.*", SearchOption.AllDi
         case ".hold":
             ProvaITag(new HoldParser(avvisi), new HoldSaver(), r => Metadati.NomeDelRecord(r), percorso);
             break;
+        // Lotto «Subito» slice 1d: i file a blocchi (lettori scelti come in Formati: ENRMVA/ e *fic.tfl a parte).
+        case ".artcc":
+            ProvaITag(new ArtccParser(avvisi), new ArtccSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".lairway" or ".hairway":
+            ProvaITag(new AirwayParser(avvisi), new AirwaySaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".mva" when percorso.Replace('\\', '/').Contains("/ENRMVA/", StringComparison.OrdinalIgnoreCase):
+            ProvaITag(new MvaEnrouteParser(avvisi), new MvaSaver(enroute: true), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".mva":
+            ProvaITag(new MvaAirportParser(avvisi), new MvaSaver(enroute: false), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".tfl" when Path.GetFileName(percorso).EndsWith("fic.tfl", StringComparison.OrdinalIgnoreCase):
+            ProvaITag(new FicParser(avvisi), new FicSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".tfl":
+            ProvaITag(new TflParser(avvisi), new TflSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".hartcc":
+            ProvaITag(new HartccParser(avvisi), new HartccSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".lartcc":
+            ProvaITag(new LartccParser(avvisi), new LartccSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".geo" or ".restrict" or ".prohibit" or ".danger":
+            ProvaITag(new GeoParser(avvisi), new GeoSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
+        case ".pol":
+            ProvaITag(new PolParser(avvisi), new PolSaver(), r => Metadati.NomeDelRecord(r), percorso);
+            break;
     }
 }
 
 Console.WriteLine($"\nTAG //@ nell'albero: {tagNelFile} record con tag, {problemiNelFile} problemi");
 Console.WriteLine($"TAG SU TUTTO: {recordRitrovati} record ritrovati su {recordEtichettati} etichettati; " +
     $"{fileTornati} file su {fileEtichettati} tornano identici senza le righe //@; {guastiDeiTag.Count} guasti");
-Console.WriteLine($"TAG DEI PUNTI: {puntiRitrovati} punti di SID e STAR ritrovati coi loro //@@ su {puntiEtichettati} etichettati");
+Console.WriteLine($"TAG DEI PUNTI: {puntiRitrovati} punti di SID, STAR e aerovie ritrovati coi loro //@@ su {puntiEtichettati} etichettati");
+Console.WriteLine($"BLOCCHI A PIÙ PEZZI: {bloccoRitrovati} record ritrovati nel loro blocco su {bloccoRecord}, in {blocchiScritti} blocchi " +
+    $"({blocchiAPiuPezzi} con più di un record); {bloccoFileTornati} file su {bloccoFile} tornano identici senza le righe //@");
 foreach (string riga in guastiDeiTag.Take(20))
 {
     Console.WriteLine("  " + riga);
@@ -368,7 +405,7 @@ foreach (var (cosa, file, esito) in colLettoreDiVipi.Where(p => !p.Esito.Pulito)
 
 return diversi.Count == 0 && discordi.Count == 0 && guastiDeiTag.Count == 0 && recordConBrDiversi == 0 ? 0 : 1;
 
-void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string> nomeDi, string percorso)
+void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string?> nomeDi, string percorso)
     where T : class
 {
     var letto = lettore.Parse(percorso, new ColorPalette());
@@ -383,6 +420,9 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         return;
     }
 
+    // Il nome del blocco: quello del record, o «PROVA» per chi non ne ha uno suo (slice 1d).
+    string NomeDellaProva(T record) => nomeDi(record) ?? "PROVA";
+
     var etichettato = Metadati.ScriviSorgente(letto, nomeDi, "AIRAC2610");
     try
     {
@@ -395,22 +435,29 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
                 chiavi[Metadati.Compose] = "ODINA4E,25:NENI5A";
             }
 
-            etichettato = Metadati.Scrivi(etichettato, record, nomeDi, chiavi);
+            etichettato = nomeDi(record) is null
+                ? Metadati.ScriviIlBlocco(etichettato, record, record, nomeDi, "PROVA", chiavi)
+                : Metadati.Scrivi(etichettato, record, nomeDi, chiavi);
         }
 
         // Lotto «Subito» slice 1c: ogni punto di SID e STAR riceve il suo //@@, dal fondo del record verso l'alto
-        // (un tag in più non sposta le righe che restano da fare).
-        if (letto.Records.FirstOrDefault() is SidProcedure or StrRecord)
+        // (un tag in più non sposta le righe che restano da fare). Slice 1d: anche ogni punto delle aerovie (B2), che
+        // non hanno l'intestazione.
+        if (letto.Records.FirstOrDefault() is SidProcedure or StrRecord or Airway)
         {
+            bool aerovia = letto.Records[0] is Airway;
+            var delPunto = aerovia
+                ? new Dictionary<string, string> { ["dir"] = "both", ["lower"] = "FL95" }
+                : new Dictionary<string, string> { ["alt"] = "+FL80" };
             foreach (var record in letto.Records)
             {
                 var righe = ((RecordChunk<T>)etichettato.Chunks.First(c => c is RecordChunk<T> r && ReferenceEquals(r.Record, record))).RawLines;
-                for (int i = righe.Length - 1; i >= 1; i--)
+                for (int i = righe.Length - 1; i >= (aerovia ? 0 : 1); i--)
                 {
                     if (righe[i].Trim().Length > 0 && !righe[i].TrimStart().StartsWith("//", StringComparison.Ordinal)
-                        && Metadati.ChiaveDelPunto(righe[i]) is { } punto && !punto.Contains('"', StringComparison.Ordinal))
+                        && Metadati.ChiaveDelPunto<T>(righe[i]) is { } punto && !punto.Contains('"', StringComparison.Ordinal))
                     {
-                        etichettato = Metadati.ScriviIlPunto(etichettato, record, i, new Dictionary<string, string> { ["alt"] = "+FL80" });
+                        etichettato = Metadati.ScriviIlPunto(etichettato, record, i, delPunto);
                         puntiEtichettati++;
                     }
                 }
@@ -429,12 +476,12 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
         new FileSaverOrchestrator().Save(etichettato, new HashSet<T>(), scrittore, temporaneo);
         var riletto = lettore.Parse(temporaneo, new ColorPalette());
         var metadati = Metadati.Leggi(riletto, nomeDi);
-        puntiRitrovati += metadati.Punti.Count(m => m.Chiavi.GetValueOrDefault("alt") == "+FL80");
+        puntiRitrovati += metadati.Punti.Count(m => m.Chiavi.GetValueOrDefault("alt") == "+FL80" || m.Chiavi.GetValueOrDefault("dir") == "both");
 
         fileEtichettati++;
         recordEtichettati += riletto.Records.Count;
         recordRitrovati += riletto.Records.Count(r => metadati.Di(r) is { Delimitato: true } m
-            && m.Nome == nomeDi(r) && m.Chiavi.GetValueOrDefault("note") == "\"prova dei tag\""
+            && m.Nome == NomeDellaProva(r) && m.Records.Count == 1 && m.Chiavi.GetValueOrDefault("note") == "\"prova dei tag\""
             && (r is not StrRecord { RunwaySpec: "MAPS" } || m.Chiavi.GetValueOrDefault(Metadati.Compose) == "ODINA4E,25:NENI5A"));
         if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != riletto.Records.Count
             || metadati.Problemi.Count > 0 || metadati.DelFile.GetValueOrDefault("source") != "AIRAC2610"
@@ -445,7 +492,99 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
                 $"{metadati.Record.Count} con tag, problemi: {string.Join(", ", metadati.Problemi.Take(3).Select(p => $"{p.Tipo}@{p.Riga} «{p.Testo}»"))}");
         }
 
-        // Tolte le righe //@, i byte di prima: i tag non hanno cambiato nient'altro.
+        if (SenzaTag(temporaneo))
+        {
+            fileTornati++;
+        }
+    }
+    finally
+    {
+        File.Delete(temporaneo);
+    }
+
+    // BLOCCHI A PIÙ PEZZI (slice 1d): solo i file a blocchi, dove un blocco può tenere più record.
+    if (letto.Records[0] is ElementoArtcc or Airway or MvaSector or TflSector or StaticBoundaryGroup or Line or Polygon)
+    {
+        ProvaIBlocchi(letto, lettore, scrittore, nomeDi, percorso);
+    }
+
+    // Tolte le righe //@, i byte di prima: i tag non hanno cambiato nient'altro.
+    bool SenzaTag(string scritto)
+    {
+        byte[] originale = File.ReadAllBytes(percorso);
+        var lettura = SectorFileReader.Read(scritto);
+        string senzaTag = string.Join(lettura.NewLine, lettura.Lines.Where(r => !Metadati.EUnTag(r.TrimStart())))
+            + (lettura.HasFinalNewLine ? lettura.NewLine : "");
+        byte[] ricostruito = (lettura.HasByteOrderMark ? new byte[] { 0xEF, 0xBB, 0xBF } : Array.Empty<byte>())
+            .Concat(lettura.Encoding.GetBytes(senzaTag)).ToArray();
+        if (originale.AsSpan().SequenceEqual(ricostruito))
+        {
+            return true;
+        }
+
+        guastiDeiTag.Add($"{Relativo(percorso)} — senza le righe //@ non torna uguale ({originale.Length} → {ricostruito.Length} byte)");
+        return false;
+    }
+}
+
+// I record di fila (in ordine di file) col nome del gruppo o senza nome vanno in un blocco solo, col nome del primo
+// che ne ha uno (o «PROVA»); si salva, si rilegge, e ogni record deve stare nel blocco del suo gruppo.
+void ProvaIBlocchi<T>(ParseResult<T> letto, IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, string?> nomeDi, string percorso)
+    where T : class
+{
+    var gruppi = new List<(string? Nome, List<T> Record)>();
+    foreach (var record in letto.Records)
+    {
+        string? nome = nomeDi(record);
+        if (gruppi.Count > 0 && (nome is null || gruppi[^1].Nome is null || gruppi[^1].Nome == nome))
+        {
+            gruppi[^1] = (gruppi[^1].Nome ?? nome, gruppi[^1].Record);
+            gruppi[^1].Record.Add(record);
+        }
+        else
+        {
+            gruppi.Add((nome, [record]));
+        }
+    }
+
+    var etichettato = letto;
+    try
+    {
+        foreach (var (nome, record) in gruppi)
+        {
+            etichettato = Metadati.ScriviIlBlocco(etichettato, record[0], record[^1], nomeDi, nome ?? "PROVA",
+                new Dictionary<string, string> { ["note"] = "\"blocco di prova\"" });
+        }
+    }
+    catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+    {
+        guastiDeiTag.Add($"{Relativo(percorso)} — il blocco a più pezzi non si scrive: {ex.Message}");
+        return;
+    }
+
+    string temporaneo = Path.Combine(Path.GetTempPath(), "sectorfile-blocchi-" + Guid.NewGuid().ToString("N") + ".tmp");
+    try
+    {
+        new FileSaverOrchestrator().Save(etichettato, new HashSet<T>(), scrittore, temporaneo);
+        var riletto = lettore.Parse(temporaneo, new ColorPalette());
+        var metadati = Metadati.Leggi(riletto, nomeDi);
+
+        bloccoFile++;
+        blocchiScritti += gruppi.Count;
+        blocchiAPiuPezzi += gruppi.Count(g => g.Record.Count > 1);
+        bloccoRecord += riletto.Records.Count;
+
+        // Il record i-esimo riletto deve stare nel blocco del gruppo che teneva il record i-esimo di prima.
+        var gruppoDi = gruppi.SelectMany((g, n) => g.Record.Select(_ => n)).ToList();
+        var bloccoDi = metadati.Record.Select((m, n) => (m, n)).ToDictionary(c => c.m, c => c.n);
+        bloccoRitrovati += riletto.Records.Select((r, i) => (r, i)).Count(c => c.i < gruppoDi.Count
+            && metadati.Di(c.r) is { Delimitato: true } m && bloccoDi[m] == gruppoDi[c.i]);
+        if (riletto.Records.Count != letto.Records.Count || metadati.Record.Count != gruppi.Count || metadati.Problemi.Count > 0)
+        {
+            guastiDeiTag.Add($"{Relativo(percorso)} — blocchi a più pezzi: {gruppi.Count} scritti, {metadati.Record.Count} riletti, " +
+                $"{riletto.Records.Count}/{letto.Records.Count} record, problemi: {string.Join(", ", metadati.Problemi.Take(3).Select(p => $"{p.Tipo}@{p.Riga} «{p.Testo}»"))}");
+        }
+
         byte[] originale = File.ReadAllBytes(percorso);
         var lettura = SectorFileReader.Read(temporaneo);
         string senzaTag = string.Join(lettura.NewLine, lettura.Lines.Where(r => !Metadati.EUnTag(r.TrimStart())))
@@ -454,11 +593,11 @@ void ProvaITag<T>(IFileParser<T> lettore, IFileSaver<T> scrittore, Func<T, strin
             .Concat(lettura.Encoding.GetBytes(senzaTag)).ToArray();
         if (originale.AsSpan().SequenceEqual(ricostruito))
         {
-            fileTornati++;
+            bloccoFileTornati++;
         }
         else
         {
-            guastiDeiTag.Add($"{Relativo(percorso)} — senza le righe //@ non torna uguale ({originale.Length} → {ricostruito.Length} byte)");
+            guastiDeiTag.Add($"{Relativo(percorso)} — blocchi a più pezzi: senza le righe //@ non torna uguale");
         }
     }
     finally

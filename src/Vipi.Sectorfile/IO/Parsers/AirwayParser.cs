@@ -40,6 +40,17 @@ public sealed class AirwayParser : IFileParser<Airway>
         List<string> currentLines = new();
         List<string> currentLeading = new();
 
+        // The //@@ tags waiting for their point (lotto «Subito» slice 1d, «file per file» B2): the tag of the point
+        // that opens a stretch sits right above it and belongs to the airway of that point — the one still open, or
+        // the next one. Until the point comes they are nobody's; anything else makes them plain comments, as before.
+        var pointTags = new List<string>();
+
+        void PointTagsAsComments()
+        {
+            comments.AddRange(pointTags);
+            pointTags.Clear();
+        }
+
         void FlushRaw()
         {
             if (raw.Count > 0)
@@ -83,14 +94,22 @@ public sealed class AirwayParser : IFileParser<Airway>
             if (trimmed.Length == 0)
             {
                 FinalizeCurrent();
+                PointTagsAsComments();
                 OrphanComments();
                 raw.Add(line);
+                continue;
+            }
+
+            if (Metadati.EUnTagDiPunto(trimmed))
+            {
+                pointTags.Add(line);
                 continue;
             }
 
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 FinalizeCurrent();
+                PointTagsAsComments();
                 comments.Add(line);
                 continue;
             }
@@ -107,6 +126,9 @@ public sealed class AirwayParser : IFileParser<Airway>
                     comments.Clear();
                 }
 
+                currentLines.AddRange(pointTags);
+                pointTags.Clear();
+
                 if (isT)
                 {
                     current.FixLabels.Add(label);
@@ -122,6 +144,7 @@ public sealed class AirwayParser : IFileParser<Airway>
 
             // Neither a valid T; nor L; line.
             FinalizeCurrent();
+            PointTagsAsComments();
             _warnings.Add(WarningSeverity.Warning, WarningCategory.Parser, source,
                 "Skipping malformed airway line", lineNumber, line);
             OrphanComments();
@@ -129,6 +152,7 @@ public sealed class AirwayParser : IFileParser<Airway>
         }
 
         FinalizeCurrent();
+        PointTagsAsComments();
         OrphanComments();
         FlushRaw();
 

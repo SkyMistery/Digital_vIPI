@@ -104,15 +104,16 @@ public sealed class ArtccParser : IFileParser<ElementoArtcc>
             }
 
             // LabelPoint has no disabled concept; a // line is always a plain comment — inside a boundary run it
-            // belongs to the run, otherwise it leads the next record.
+            // belongs to the run, otherwise it leads the next record. A //@ tag closes the run (lotto «Subito» 1d).
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
-                if (group is not null)
+                if (group is not null && !Metadati.EUnTagCheChiude(trimmed))
                 {
                     groupLines.Add(line);
                 }
                 else
                 {
+                    FinalizeGroup();
                     comments.Add(line);
                 }
 

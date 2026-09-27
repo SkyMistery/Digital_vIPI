@@ -114,6 +114,11 @@ public abstract class MvaParser : IFileParser<MvaSector>
                 }
 
                 currentLines.Add(line);
+                if (current.Nome.Length == 0 && inner.Split(';') is { Length: > 1 } campi
+                    && !string.Equals(campi[1].Trim(), "DUMMY", StringComparison.OrdinalIgnoreCase))
+                {
+                    current.Nome = campi[1].Trim();
+                }
 
                 if (!commented && isL)
                 {
@@ -129,13 +134,16 @@ public abstract class MvaParser : IFileParser<MvaSector>
 
             if (commented)
             {
-                // Plain comment: part of an open block, otherwise a pending leading comment.
-                if (current is not null)
+                // Plain comment: part of an open block, otherwise a pending leading comment. A //@ tag is never
+                // part of a block: it closes it, so that `//@END NOME` and the next declaration stay out of it (lotto
+                // «Subito» slice 1d, as SidParser/StrParser since F2 slice 7).
+                if (current is not null && !Metadati.EUnTagCheChiude(trimmed))
                 {
                     currentLines.Add(line);
                 }
                 else
                 {
+                    Finalize();
                     comments.Add(line);
                 }
 

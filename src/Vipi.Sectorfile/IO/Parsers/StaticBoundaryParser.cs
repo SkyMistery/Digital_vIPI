@@ -97,13 +97,15 @@ public abstract class StaticBoundaryParser : IFileParser<StaticBoundaryGroup>
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 // A comment inside an open group stays in the block (e.g. "//RR CONF2 - TS+US+OV"
-                // after a DUMMY); otherwise it is a pending leading comment for the next group.
-                if (current is not null)
+                // after a DUMMY); otherwise it is a pending leading comment for the next group. A //@ tag closes the
+                // group: `//@END NOME` and the next declaration are not part of it (lotto «Subito» slice 1d).
+                if (current is not null && !Metadati.EUnTagCheChiude(trimmed))
                 {
                     currentLines.Add(line);
                 }
                 else
                 {
+                    Finalize();
                     comments.Add(line);
                 }
 

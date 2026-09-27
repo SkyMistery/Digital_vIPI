@@ -924,7 +924,8 @@ quando cambiano i parametri o i dati da cui dipende (come le mappe composte di F
 | `gen=startup` (lunghezza del trattino) | linea di centro | R4 |
 
 Sul motore oggi i tag si leggono solo in `.sid` e `.str`: estenderli a ogni file con un nome nelle righe di dati è
-una slice del lotto «Subito».
+una slice del lotto «Subito». → Fatto nella slice 1 del lotto (1b file a una riga, 1c punti, 1d file a blocchi): la
+traccia è nella carta del lotto, §6.
 
 ## §R — Revisione del 27 settembre: cose valutate per un file e non per il gemello
 

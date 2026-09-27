@@ -23,14 +23,16 @@ namespace Vipi.Sectorfile.IO;
 /// e i nomi delle mappe hanno spazi, <c>//@"STAR RNAV(ALL)" composta=…</c>). Si legge anche senza, come lo scriveva
 /// F2: allora il nome arriva fino alla prima parola con <c>=</c> (<c>//@LIRF CTR fix=X</c>).</para>
 /// <para>I tag sono commenti per Aurora e per i lettori: stanno fra le righe grezze o nei commenti di testa dei
-/// record, e un <c>//@</c> chiude sempre il record aperto (<c>StrParser</c>, <c>SidParser</c>). Un file senza tag
-/// si legge come prima: sul master del 22 settembre 2026 le righe <c>//@</c> sono zero.</para>
+/// record, e un <c>//@</c> chiude sempre il record aperto (<c>StrParser</c>, <c>SidParser</c>; dalla slice 1d del lotto
+/// «Subito» anche i lettori a blocchi: MVA, ARTCC, TFL, confini, POL). Un file senza tag si legge come prima: sul
+/// master del 22 settembre 2026 le righe <c>//@</c> sono zero. Un blocco <c>//@START</c> … <c>//@END</c> può tenere
+/// più record, se hanno il suo nome o nessun nome (<see cref="NomeDelRecord"/>, <see cref="ScriviIlBlocco"/>).</para>
 /// <para>La sintassi è quella della carta «file per file» §M (27 settembre 2026): un valore con spazi o una voce
 /// con spazi in un elenco vanno <b>fra virgolette</b> (<c>initialclimb="COO APP"</c>,
 /// <c>compose=ODIN4E,25:"RNP10 UPETI"</c>); i valori si conservano come sono scritti (virgolette comprese) e si
 /// leggono con <see cref="Testo"/> e <see cref="ElencoDellaComposta"/>. Le chiavi ammesse dipendono dal tipo di
-/// file (<see cref="CatalogoDeiTag"/>). Le righe <c>//@@</c> sono i tag di un punto dentro il record: qui non si
-/// leggono ancora, e non sono una dichiarazione.</para>
+/// file (<see cref="CatalogoDeiTag"/>). Le righe <c>//@@</c> sono i tag di un punto dentro il record (SID, STAR,
+/// aerovie): non sono una dichiarazione, e non lo chiudono.</para>
 /// </remarks>
 public static partial class Metadati
 {
@@ -161,10 +163,16 @@ public static partial class Metadati
     /// Il nome col quale si aggancia un record di qualunque file che porta tag (§M regola 1): il terzo campo di SID e
     /// STAR, <c>LIRN 06/24</c> di una pista (la coppia: un record per riga del <c>.rw</c>), l'ICAO di uno scalo, il
     /// numero di uno stand, il nome di fix, punti VFR e attese, l'identificativo di VOR e NDB, la posizione di un
-    /// <c>.frq</c>.
+    /// <c>.frq</c>; nei file a blocchi (slice 1d) il nome dell'aerovia, del settore dinamico, del gruppo dei confini,
+    /// del fix di un'etichetta <c>.artcc</c>, il 2° campo di un blocco MVA, il nome dell'area P/R/D.
     /// </summary>
+    /// <returns>
+    /// Null per un record che non ha un nome suo e prende quello del blocco che lo tiene (§M: «nei file senza nome
+    /// nelle righe di dati il nome del blocco è il nome del gruppo»): un poligono <c>.pol</c>, un segmento <c>.geo</c>
+    /// senza 6° campo, un'etichetta <c>.artcc</c> senza fix, la riga <c>BREAK</c> che spezza un'aerovia.
+    /// </returns>
     /// <exception cref="NotSupportedException">Un record di un file che non porta ancora tag.</exception>
-    public static string NomeDelRecord(object record) => record switch
+    public static string? NomeDelRecord(object record) => record switch
     {
         SidProcedure sid => NomeSid(sid),
         StrRecord str => NomeStr(str),
@@ -179,9 +187,18 @@ public static partial class Metadati
         VfrPoint vfr => vfr.Name.Trim(),
         AtcPosition posizione => posizione.Code.Trim(),
         Attesa attesa => attesa.Nome.Trim(),
+        Airway aerovia => string.Equals(aerovia.Name.Trim(), "BREAK", StringComparison.OrdinalIgnoreCase) ? null : aerovia.Name.Trim(),
+        TflSector settore => settore.SectorCode.Trim(),
+        StaticBoundaryGroup gruppo => gruppo.Name.Trim(),
+        LabelPoint etichetta => SeNonVuoto(etichetta.FixRef),
+        MvaSector mva => SeNonVuoto(mva.Nome),
+        Line segmento => SeNonVuoto(segmento.Nome),
+        Polygon => null,
         null => throw new ArgumentNullException(nameof(record)),
         _ => throw new NotSupportedException($"I record di tipo {record.GetType().Name} non portano ancora tag."),
     };
+
+    private static string? SeNonVuoto(string? testo) => string.IsNullOrWhiteSpace(testo) ? null : testo.Trim();
 
     /// <summary>Legge i tag di un file già letto, col nome e il catalogo del suo tipo di record (§M). Non tocca niente.</summary>
     public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto)
@@ -206,6 +223,14 @@ public static partial class Metadati
         ParseResult<VfrPoint> vfi => Leggi(vfi).Problemi,
         ParseResult<AtcPosition> frq => Leggi(frq).Problemi,
         ParseResult<Attesa> hold => Leggi(hold).Problemi,
+        ParseResult<ElementoArtcc> artcc => Leggi(artcc).Problemi,
+        ParseResult<Airway> aerovie => Leggi(aerovie).Problemi,
+        ParseResult<MvaSector> mva => Leggi(mva).Problemi,
+        ParseResult<TflSector> tfl => Leggi(tfl).Problemi,
+        ParseResult<FicSector> fic => Leggi(fic).Problemi,
+        ParseResult<StaticBoundaryGroup> confini => Leggi(confini).Problemi,
+        ParseResult<Line> geo => Leggi(geo).Problemi,
+        ParseResult<Polygon> pol => Leggi(pol).Problemi,
         _ => null,
     };
 
@@ -214,19 +239,34 @@ public static partial class Metadati
         => rigaSenzaSpaziInTesta.StartsWith("//@", StringComparison.Ordinal);
 
     /// <summary>
+    /// Vero se la riga (già senza spazi in testa) è un tag che chiude il record aperto: un <c>//@</c> che non è il tag
+    /// di un punto (dichiarazione, <c>//@START</c>, <c>//@END</c>, chiave del file). I lettori a blocchi tengono i
+    /// commenti nel blocco aperto, ma non questi: sennò il <c>//@END</c> e la dichiarazione dopo finirebbero dentro.
+    /// </summary>
+    public static bool EUnTagCheChiude(string rigaSenzaSpaziInTesta)
+        => EUnTag(rigaSenzaSpaziInTesta) && !EUnTagDiPunto(rigaSenzaSpaziInTesta);
+
+    /// <summary>
     /// Vero se la riga (già senza spazi in testa) è il tag di un punto, <c>//@@"PUNTO" …</c> (§M regola 4): sta dentro
     /// il record, sopra il suo punto, e — a differenza di un <c>//@</c> — non lo chiude.
     /// </summary>
     public static bool EUnTagDiPunto(string rigaSenzaSpaziInTesta)
         => rigaSenzaSpaziInTesta.StartsWith("//@@", StringComparison.Ordinal);
 
-    /// <summary>Legge i tag di un file già letto, col catalogo del suo tipo di record. Non tocca niente.</summary>
-    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string> nomeDi)
+    /// <summary>
+    /// Legge i tag di un file già letto, col catalogo del suo tipo di record. Non tocca niente. <paramref name="nomeDi"/>
+    /// dà il nome d'aggancio di un record, o null se il record non ne ha uno suo (<see cref="NomeDelRecord"/>).
+    /// </summary>
+    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string?> nomeDi)
         where T : class
         => Leggi(letto, nomeDi, CatalogoDelTipo<T>());
 
-    /// <summary>Legge i tag di un file già letto, con le chiavi di <paramref name="catalogo"/>. Non tocca niente.</summary>
-    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string> nomeDi, CatalogoDeiTag catalogo)
+    /// <summary>
+    /// Legge i tag di un file già letto, con le chiavi di <paramref name="catalogo"/>. Non tocca niente. Una
+    /// dichiarazione senza <c>//@START</c> si aggancia al solo record subito sotto; un blocco <c>//@START</c> …
+    /// <c>//@END</c> tiene tutti i record che ha dentro, se hanno il suo nome o nessun nome.
+    /// </summary>
+    public static MetadatiDelFile<T> Leggi<T>(ParseResult<T> letto, Func<T, string?> nomeDi, CatalogoDeiTag catalogo)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(letto);
@@ -239,10 +279,10 @@ public static partial class Metadati
         var punti = new List<MetadatiDelPunto<T>>();
         var problemi = new List<ProblemaDeiMetadati>();
 
-        // La dichiarazione in attesa del suo record, e il blocco aperto da //@START.
+        // La dichiarazione in attesa del suo record, e il blocco aperto da //@START (coi suoi metadati, quando la
+        // dichiarazione ha trovato il primo record).
         (string Nome, Dictionary<string, string> Chiavi, int Riga, string Testo, PosizioneDelTag Dove)? inAttesa = null;
-        (string Nome, int Riga, string Testo, bool ConRecord)? blocco = null;
-        MetadatiDelRecord<T>? delBlocco = null;
+        (string Nome, int Riga, string Testo, MetadatiDelRecord<T>? Metadati)? blocco = null;
         bool vistoUnRecord = false;
         int numero = 0;
 
@@ -294,7 +334,7 @@ public static partial class Metadati
 
                     if (inAttesa is { } d)
                     {
-                        blocco = (d.Nome, numero, riga, false);
+                        blocco = (d.Nome, numero, riga, null);
                     }
                     else
                     {
@@ -314,14 +354,14 @@ public static partial class Metadati
                     {
                         problemi.Add(new(TipoDiProblemaDeiMetadati.EndConAltroNome, numero, riga));
                     }
-                    else if (delBlocco is not null && chiuso.ConRecord)
+                    else if (chiuso.Metadati is { } delBlocco)
                     {
                         delBlocco.Delimitato = true;
+                        delBlocco.Fine = dove;
                     }
 
                     Orfana();
                     blocco = null;
-                    delBlocco = null;
                     break;
 
                 case TipoDiTag.ChiaviDelFile:
@@ -349,6 +389,13 @@ public static partial class Metadati
 
                 case TipoDiTag.Dichiarazione:
                     Orfana();
+                    if (blocco is not null)
+                    {
+                        // I blocchi non si annidano: la dichiarazione non vale, i record dopo restano del blocco aperto.
+                        problemi.Add(new(TipoDiProblemaDeiMetadati.DichiarazioneNelBlocco, numero, riga));
+                        break;
+                    }
+
                     if (tag.Chiavi.Keys.Any(k => !catalogo.AmmetteDelRecord(k)))
                     {
                         problemi.Add(new(TipoDiProblemaDeiMetadati.ChiaveSconosciuta, numero, riga));
@@ -364,32 +411,41 @@ public static partial class Metadati
             PuntiDel(chunk, numero + 1 + (chunk.HasMarkers ? 1 : 0));
             numero += chunk.RawLines.Length + (chunk.HasMarkers ? 2 : 0);
             vistoUnRecord = true;
-            string nome = nomeDi(chunk.Record);
+
+            // Null: il record non ha un nome suo, e prende quello della dichiarazione (§M, .geo e .pol).
+            string? nome = nomeDi(chunk.Record);
 
             if (inAttesa is { } d)
             {
                 inAttesa = null;
-                if (d.Nome != nome)
+                if (nome is not null && d.Nome != nome)
                 {
                     problemi.Add(new(TipoDiProblemaDeiMetadati.NomeNonCombacia, d.Riga, d.Testo));
                     return;
                 }
 
-                var metadati = new MetadatiDelRecord<T>(chunk.Record, nome, d.Chiavi, d.Riga, d.Dove);
+                var metadati = new MetadatiDelRecord<T>(chunk.Record, d.Nome, d.Chiavi, d.Riga, d.Dove);
                 perRecord.Add(metadati);
-                if (blocco is { } aperto && aperto.Nome == d.Nome && !aperto.ConRecord)
+                if (blocco is { Metadati: null } aperto && aperto.Nome == d.Nome)
                 {
-                    blocco = aperto with { ConRecord = true };
-                    delBlocco = metadati;
+                    blocco = aperto with { Metadati = metadati };
                 }
 
                 return;
             }
 
-            // Un secondo record dentro il blocco di un altro nome: il blocco non è il suo.
-            if (blocco is { } dentro && dentro.Nome != nome)
+            if (blocco is { } dentro)
             {
-                problemi.Add(new(TipoDiProblemaDeiMetadati.NomeNonCombacia, dentro.Riga, dentro.Testo));
+                // Un altro record nel blocco: è suo se ha lo stesso nome o nessuno (la zona MVA a più pezzi, il gruppo
+                // di un .geo, l'aerovia dopo un BREAK); un record di un altro nome non lo è.
+                if (nome is not null && dentro.Nome != nome)
+                {
+                    problemi.Add(new(TipoDiProblemaDeiMetadati.NomeNonCombacia, dentro.Riga, dentro.Testo));
+                }
+                else
+                {
+                    dentro.Metadati?.Aggiungi(chunk.Record);
+                }
             }
         }
 
@@ -447,7 +503,7 @@ public static partial class Metadati
 
                 string? sotto = i + 1 < righe.Length ? righe[i + 1] : null;
                 if (sotto is null || sotto.Trim().Length == 0 || sotto.TrimStart().StartsWith("//", StringComparison.Ordinal)
-                    || ChiaveDelPunto(sotto) is not { } punto)
+                    || ChiaveDelPunto<T>(sotto) is not { } punto)
                 {
                     problemi.Add(new(TipoDiProblemaDeiMetadati.TagDiPuntoOrfano, riga, righe[i]));
                     continue;
@@ -471,22 +527,127 @@ public static partial class Metadati
 
     /// <summary>
     /// Scrive i metadati di <paramref name="record"/>: la dichiarazione col suo nome e le <paramref name="chiavi"/>, dentro
-    /// <c>//@START</c>/<c>//@END</c>. Se il record li ha già cambia solo la riga della dichiarazione (e aggiunge
-    /// START/END se mancavano); le altre righe del file restano com'erano. Restituisce il file nuovo: quello passato
-    /// non si tocca.
+    /// <c>//@START</c>/<c>//@END</c>. Se il record li ha già — anche come pezzo di un blocco più grande — cambia solo la
+    /// riga della dichiarazione (e aggiunge START/END se mancavano); le altre righe del file restano com'erano.
+    /// Restituisce il file nuovo: quello passato non si tocca.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     /// Il file ha tag che non valgono (<see cref="MetadatiDelFile{T}.Problemi"/> con un errore: scrivere sopra un blocco
-    /// rotto lo romperebbe di più), o il nome del record non si può dichiarare.
+    /// rotto lo romperebbe di più), o il nome del record non si può dichiarare — anche perché non ne ha uno suo: allora
+    /// il nome lo sceglie chi scrive, con <see cref="ScriviIlBlocco"/>.
     /// </exception>
     /// <exception cref="ArgumentException">
     /// Una chiave fuori dal catalogo del file, o un valore che non si scrive: vuoto, o con spazi fuori dalle virgolette
     /// (<see cref="ValoreDaScrivere"/> mette le virgolette dove servono).
     /// </exception>
-    public static ParseResult<T> Scrivi<T>(ParseResult<T> letto, T record, Func<T, string> nomeDi, IReadOnlyDictionary<string, string> chiavi)
+    public static ParseResult<T> Scrivi<T>(ParseResult<T> letto, T record, Func<T, string?> nomeDi, IReadOnlyDictionary<string, string> chiavi)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(record);
+        var catalogo = ControllaLeChiavi<T>(chiavi);
+        var metadati = Leggi(letto, nomeDi, catalogo);
+        RifiutaSeRotto(metadati);
+
+        int pezzo = IndiceDel(letto, record);
+        if (metadati.Di(record) is not { } esistenti)
+        {
+            string nome = nomeDi(record)
+                ?? throw new InvalidOperationException("Il record non ha un nome suo: il blocco si scrive col nome del gruppo (ScriviIlBlocco).");
+            return NuovoBlocco(letto, pezzo, pezzo, nome, chiavi, catalogo);
+        }
+
+        var pezzi = letto.Chunks.ToList();
+        SostituisciLaRiga(pezzi, esistenti.Dichiarazione, Dichiarazione(esistenti.Nome, chiavi, catalogo),
+            altre: esistenti.Delimitato ? null : "//@START");
+        if (!esistenti.Delimitato)
+        {
+            // Senza START la dichiarazione tiene un record solo: è questo.
+            MettiLaFine(pezzi, pezzo, esistenti.Nome);
+        }
+
+        return letto with { Chunks = pezzi };
+    }
+
+    /// <summary>
+    /// Scrive un blocco nuovo che tiene i record da <paramref name="primo"/> a <paramref name="ultimo"/> (compresi, e
+    /// tutti quelli in mezzo): la dichiarazione <c>//@"<paramref name="nome"/>"</c> con le <paramref name="chiavi"/> e
+    /// <c>//@START</c> subito sopra il primo, <c>//@END</c> subito dopo l'ultimo (lotto «Subito» slice 1d: la zona MVA a
+    /// più pezzi, E1; il gruppo di segmenti di un <c>.geo</c> o il poligono di un <c>.pol</c>, che non hanno un nome loro;
+    /// l'aerovia con le etichette e i pezzi fra i BREAK, B1). Restituisce il file nuovo.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="ultimo"/> viene prima di <paramref name="primo"/>; un record in mezzo ha un altro nome; una chiave
+    /// fuori dal catalogo o un valore che non si scrive.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    /// Il file ha tag che non valgono, un record in mezzo sta già in un blocco, o il nome non si può dichiarare.
+    /// </exception>
+    public static ParseResult<T> ScriviIlBlocco<T>(
+        ParseResult<T> letto, T primo, T ultimo, Func<T, string?> nomeDi, string nome, IReadOnlyDictionary<string, string> chiavi)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(primo);
+        ArgumentNullException.ThrowIfNull(ultimo);
+        ArgumentNullException.ThrowIfNull(nome);
+        var catalogo = ControllaLeChiavi<T>(chiavi);
+        var metadati = Leggi(letto, nomeDi, catalogo);
+        RifiutaSeRotto(metadati);
+
+        int dal = IndiceDel(letto, primo), al = IndiceDel(letto, ultimo);
+        if (al < dal)
+        {
+            throw new ArgumentException("L'ultimo record del blocco viene prima del primo.", nameof(ultimo));
+        }
+
+        foreach (var dentro in letto.Chunks.Skip(dal).Take(al - dal + 1).OfType<RecordChunk<T>>())
+        {
+            if (metadati.Di(dentro.Record) is { } suo)
+            {
+                throw new InvalidOperationException($"Un record sta già nel blocco «{suo.Nome}» (riga {suo.Riga}): i blocchi non si annidano.");
+            }
+
+            if (nomeDi(dentro.Record) is { } altro && altro != nome)
+            {
+                throw new ArgumentException($"Il record «{altro}» non può stare nel blocco «{nome}».", nameof(ultimo));
+            }
+        }
+
+        return NuovoBlocco(letto, dal, al, nome, chiavi, catalogo);
+    }
+
+    /// <summary>
+    /// Toglie i metadati di <paramref name="record"/>: la dichiarazione, <c>//@START</c> e <c>//@END</c> (F3-bis slice 5:
+    /// una mappa che non è più composta) — del blocco intero, se il record ne è un pezzo. Le altre righe restano
+    /// com'erano, e un file al quale si mette e poi si toglie un tag torna uguale byte per byte. Restituisce il file
+    /// nuovo; se il record non ha tag, quello di prima.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Il file ha tag che non valgono: toglierne uno lo romperebbe di più.</exception>
+    public static ParseResult<T> Togli<T>(ParseResult<T> letto, T record, Func<T, string?> nomeDi)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(record);
+        var metadati = Leggi(letto, nomeDi);
+        RifiutaSeRotto(metadati);
+        if (metadati.Di(record) is not { } esistenti)
+        {
+            return letto;
+        }
+
+        // Prima la fine (dopo il record), poi la dichiarazione (prima): stanno in pezzi diversi, e togliere una riga
+        // non sposta i pezzi.
+        var pezzi = letto.Chunks.ToList();
+        if (esistenti.Fine is { } fine)
+        {
+            TogliLaRiga(pezzi, fine, ancheLoStartSotto: false);
+        }
+
+        TogliLaRiga(pezzi, esistenti.Dichiarazione, ancheLoStartSotto: esistenti.Delimitato);
+        return letto with { Chunks = pezzi };
+    }
+
+    // Controlla chiavi e valori contro il catalogo del tipo, e lo restituisce.
+    private static CatalogoDeiTag ControllaLeChiavi<T>(IReadOnlyDictionary<string, string> chiavi)
+    {
         ArgumentNullException.ThrowIfNull(chiavi);
         var catalogo = CatalogoDelTipo<T>();
         foreach (var (chiave, valore) in chiavi)
@@ -499,70 +660,34 @@ public static partial class Metadati
             ControllaIlValore(valore, nameof(chiavi));
         }
 
-        var metadati = Leggi(letto, nomeDi, catalogo);
-        RifiutaSeRotto(metadati);
+        return catalogo;
+    }
 
-        int pezzo = IndiceDel(letto, record);
-        string nome = nomeDi(record);
+    // La riga della dichiarazione. Le chiavi nell'ordine del catalogo, quelle per verso dopo (in ordine di scrittura):
+    // lo stesso tag esce sempre uguale, chiunque lo scriva.
+    private static string Dichiarazione(string nome, IReadOnlyDictionary<string, string> chiavi, CatalogoDeiTag catalogo)
+    {
         if (nome.Length == 0 || nome.Contains('"', StringComparison.Ordinal) || nome.Trim() != nome)
         {
             throw new InvalidOperationException($"Il nome '{nome}' non si può dichiarare in un tag //@.");
         }
 
-        // Le chiavi nell'ordine del catalogo, quelle per verso dopo (in ordine di scrittura): lo stesso tag esce
-        // sempre uguale, chiunque lo scriva.
-        string dichiarazione = "//@" + FraVirgolette(nome) + string.Concat(chiavi
+        return "//@" + FraVirgolette(nome) + string.Concat(chiavi
             .OrderBy(c => catalogo.DelRecord.Contains(c.Key) ? catalogo.DelRecord.ToList().IndexOf(c.Key) : int.MaxValue)
             .ThenBy(c => c.Key, StringComparer.Ordinal)
             .Select(c => " " + c.Key + "=" + c.Value));
-
-        var pezzi = letto.Chunks.ToList();
-        var esistenti = metadati.Di(record);
-        if (esistenti is not null)
-        {
-            SostituisciLaRiga(pezzi, esistenti.Dichiarazione, dichiarazione, altre: esistenti.Delimitato ? null : "//@START");
-            if (!esistenti.Delimitato)
-            {
-                MettiLaFine(pezzi, pezzo, nome);
-            }
-        }
-        else
-        {
-            var rec = (RecordChunk<T>)pezzi[pezzo];
-            pezzi[pezzo] = Copia(rec, testa: rec.LeadingComments.Append(dichiarazione).Append("//@START").ToArray());
-            MettiLaFine(pezzi, pezzo, nome);
-        }
-
-        return letto with { Chunks = pezzi };
     }
 
-    /// <summary>
-    /// Toglie i metadati di <paramref name="record"/>: la dichiarazione, <c>//@START</c> e <c>//@END</c> (F3-bis slice 5:
-    /// una mappa che non è più composta). Le altre righe restano com'erano, e un file al quale si mette e poi si toglie
-    /// un tag torna uguale byte per byte. Restituisce il file nuovo; se il record non ha tag, quello di prima.
-    /// </summary>
-    /// <exception cref="InvalidOperationException">Il file ha tag che non valgono: toglierne uno lo romperebbe di più.</exception>
-    public static ParseResult<T> Togli<T>(ParseResult<T> letto, T record, Func<T, string> nomeDi)
+    // Dichiarazione e START in coda ai commenti di testa del pezzo `dal`, END subito dopo il pezzo `al`.
+    private static ParseResult<T> NuovoBlocco<T>(
+        ParseResult<T> letto, int dal, int al, string nome, IReadOnlyDictionary<string, string> chiavi, CatalogoDeiTag catalogo)
         where T : class
     {
-        ArgumentNullException.ThrowIfNull(record);
-        var metadati = Leggi(letto, nomeDi);
-        RifiutaSeRotto(metadati);
-        if (metadati.Di(record) is not { } esistenti)
-        {
-            return letto;
-        }
-
+        string dichiarazione = Dichiarazione(nome, chiavi, catalogo);
         var pezzi = letto.Chunks.ToList();
-        int pezzo = IndiceDel(letto, record);
-
-        // Prima la fine (dopo il record), poi la dichiarazione (prima): togliere righe non sposta i pezzi.
-        if (esistenti.Delimitato)
-        {
-            TogliLaFine(pezzi, pezzo);
-        }
-
-        TogliLaRiga(pezzi, esistenti.Dichiarazione, ancheLoStartSotto: esistenti.Delimitato);
+        var rec = (RecordChunk<T>)pezzi[dal];
+        pezzi[dal] = Copia(rec, testa: rec.LeadingComments.Append(dichiarazione).Append("//@START").ToArray());
+        MettiLaFine(pezzi, al, nome);
         return letto with { Chunks = pezzi };
     }
 
@@ -585,9 +710,29 @@ public static partial class Metadati
     }
 
     /// <summary>
+    /// Il nome col quale un <c>//@@</c> aggancia la riga di un punto di un record di tipo <typeparamref name="T"/>: in
+    /// un'aerovia il punto sta nel 3° e 4° campo, dopo il tipo e il nome (<c>T;L613;GARGA;GARGA;</c> → GARGA,
+    /// «file per file» B2); negli altri file nei primi due (<see cref="ChiaveDelPunto(string)"/>).
+    /// </summary>
+    public static string? ChiaveDelPunto<T>(string rigaDelPunto)
+    {
+        ArgumentNullException.ThrowIfNull(rigaDelPunto);
+        if (typeof(T) != typeof(Airway))
+        {
+            return ChiaveDelPunto(rigaDelPunto);
+        }
+
+        string[] campi = rigaDelPunto.Split(';');
+        return campi.Length < 4 ? null : ChiaveDelPunto(string.Join(';', campi.Skip(2)));
+    }
+
+    // L'indice della prima riga che può essere un punto: SID e STAR hanno l'intestazione (la riga 0), un'aerovia no.
+    private static int PrimaRigaDiPunto<T>() => typeof(T) == typeof(Airway) ? 0 : 1;
+
+    /// <summary>
     /// Scrive il tag di un punto (<c>//@@"ELVAD" role=IAF alt=+FL80</c>) subito sopra la riga <paramref name="rigaDelPunto"/>
-    /// di <paramref name="record"/> (l'indice fra le sue righe; la 0 è l'intestazione): cambia il tag se c'è, lo mette
-    /// se manca. Le altre righe restano com'erano. Restituisce il file nuovo.
+    /// di <paramref name="record"/> (l'indice fra le sue righe; in SID e STAR la 0 è l'intestazione): cambia il tag se
+    /// c'è, lo mette se manca. Le altre righe restano com'erano. Restituisce il file nuovo.
     /// </summary>
     /// <exception cref="ArgumentException">Una riga che non è un punto, una chiave fuori dal catalogo dei punti, un valore che non si scrive.</exception>
     /// <exception cref="InvalidOperationException">Il file ha tag che non valgono.</exception>
@@ -616,7 +761,7 @@ public static partial class Metadati
             .Select(c => " " + c.Key + "=" + c.Value));
 
         var righe = rec.RawLines.ToList();
-        if (EUnTagDiPunto(righe[rigaDelPunto - 1].Trim()))
+        if (rigaDelPunto > 0 && EUnTagDiPunto(righe[rigaDelPunto - 1].Trim()))
         {
             righe[rigaDelPunto - 1] = tag;
         }
@@ -641,7 +786,7 @@ public static partial class Metadati
         int pezzo = IndiceDel(letto, record);
         var rec = (RecordChunk<T>)letto.Chunks[pezzo];
         PuntoDellaRiga(rec, rigaDelPunto);
-        if (!EUnTagDiPunto(rec.RawLines[rigaDelPunto - 1].Trim()))
+        if (rigaDelPunto == 0 || !EUnTagDiPunto(rec.RawLines[rigaDelPunto - 1].Trim()))
         {
             return letto;
         }
@@ -654,14 +799,14 @@ public static partial class Metadati
     // Il nome d'aggancio della riga di un punto del record; eccezione se quella riga non è un punto.
     private static string PuntoDellaRiga<T>(RecordChunk<T> rec, int rigaDelPunto)
     {
-        if (rigaDelPunto < 1 || rigaDelPunto >= rec.RawLines.Length)
+        if (rigaDelPunto < PrimaRigaDiPunto<T>() || rigaDelPunto >= rec.RawLines.Length)
         {
             throw new ArgumentException($"La riga {rigaDelPunto} non è una riga di punto del record.", nameof(rigaDelPunto));
         }
 
         string riga = rec.RawLines[rigaDelPunto];
         if (riga.Trim().Length == 0 || riga.TrimStart().StartsWith("//", StringComparison.Ordinal)
-            || ChiaveDelPunto(riga) is not { } punto || punto.Contains('"', StringComparison.Ordinal))
+            || ChiaveDelPunto<T>(riga) is not { } punto || punto.Contains('"', StringComparison.Ordinal))
         {
             throw new ArgumentException($"La riga {rigaDelPunto} del record non è un punto: «{riga}».", nameof(rigaDelPunto));
         }
@@ -673,7 +818,7 @@ public static partial class Metadati
     /// Scrive il ciclo AIRAC del file (<c>//@source=AIRAC2610</c>): cambia la riga se c'è, o la mette in cima.
     /// Restituisce il file nuovo.
     /// </summary>
-    public static ParseResult<T> ScriviSorgente<T>(ParseResult<T> letto, Func<T, string> nomeDi, string valore)
+    public static ParseResult<T> ScriviSorgente<T>(ParseResult<T> letto, Func<T, string?> nomeDi, string valore)
         where T : class
     {
         ControllaIlValore(valore, nameof(valore));
@@ -835,25 +980,6 @@ public static partial class Metadati
             RecordChunk<T> rec when dove.InTesta => Copia(rec, testa: Senza(rec.LeadingComments)),
             RawChunk<T> raw => new RawChunk<T>(Senza(raw.Lines)),
             _ => throw new InvalidOperationException("Posizione del tag non valida."),
-        };
-    }
-
-    // Toglie il `//@END` che chiude il record: la prima riga del pezzo dopo, come lo mette MettiLaFine.
-    private static void TogliLaFine<T>(List<FileChunk<T>> pezzi, int pezzo)
-    {
-        static bool EUnaFine(string riga) => riga.Trim().StartsWith("//@END", StringComparison.Ordinal);
-
-        if (pezzo + 1 >= pezzi.Count)
-        {
-            return;
-        }
-
-        pezzi[pezzo + 1] = pezzi[pezzo + 1] switch
-        {
-            RawChunk<T> raw when raw.Lines.Length > 0 && EUnaFine(raw.Lines[0]) => new RawChunk<T>(raw.Lines.Skip(1)),
-            RecordChunk<T> rec when rec.LeadingComments.Length > 0 && EUnaFine(rec.LeadingComments[0])
-                => Copia(rec, testa: rec.LeadingComments[1..]),
-            var altro => altro,
         };
     }
 

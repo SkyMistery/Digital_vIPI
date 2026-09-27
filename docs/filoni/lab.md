@@ -7,10 +7,12 @@
 ## 27 settembre 2026, sera — lotto «Subito» in corso
 
 Carta approvata: [`2026-09-27-lotto-subito.md`](../feature/2026-09-27-lotto-subito.md) (20 slice in tre ondate). Fatte
-la slice 0 (misure di partenza) e la slice 1 fino a **1c**: sintassi dei tag di §M nel motore (1a), tag sui file a
-una riga per record (1b), tag dei punti `//@@` in SID e STAR (1c). Test: motore **540**, Lab **358**. Prossimo: **1d**,
-i tag sui file a blocchi (`.artcc`, `.mva`, aerovie, `.tfl`, `.hartcc`/`.lartcc`, `.geo`/`.pol`); il dettaglio di ogni
-passo sta in §6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il cancello di `main` rifiuta
+la slice 0 (misure di partenza) e la slice 1 fino a **1d**: sintassi dei tag di §M nel motore (1a), tag sui file a
+una riga per record (1b), tag dei punti `//@@` in SID e STAR (1c), tag sui file a blocchi — `.artcc`, `.mva`, aerovie
+coi `//@@` per tratto, `.tfl`, `.hartcc`/`.lartcc`, `.geo`/`.pol` — coi blocchi che tengono più record (1d). Test:
+motore **563**, Lab **358**. Prossimo: **1e** (prova sull'albero di tutti i formati; la misura «tag su tutto» e
+«blocchi a più pezzi» la 1d l'ha già fatta girare su ogni file che ha un catalogo). Il dettaglio di ogni passo sta in
+§6 «Traccia» della carta. I conteggi dei test si scrivono a mano finché il cancello di `main` rifiuta
 `tools/conta-test.sh`.
 
 ## 27 settembre 2026 — revisione del giro dei file

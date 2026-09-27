@@ -98,14 +98,16 @@ public abstract class TflParserBase<T> : IFileParser<T>
             if (trimmed.StartsWith("//", StringComparison.Ordinal))
             {
                 // A comment inside an open block (e.g. the //GARDA label that follows a FIC header)
-                // stays in the block; otherwise it is a pending leading comment for the next block.
-                if (current is not null)
+                // stays in the block; otherwise it is a pending leading comment for the next block. A //@ tag closes
+                // the block (lotto «Subito» slice 1d).
+                if (current is not null && !Metadati.EUnTagCheChiude(trimmed))
                 {
                     currentLines.Add(line);
                     OnComment(current, line);
                 }
                 else
                 {
+                    FinalizeCurrent();
                     comments.Add(line);
                 }
 
@@ -235,11 +237,13 @@ public sealed class FicParser : TflParserBase<FicSector>
     // (e.g. header then "//GARDA"); some files place it before the header (leading comment). Either
     // way the first such comment wins. A comment separated from the block by a blank line is orphaned
     // to a RawChunk and never reaches these hooks, so it correctly does not become a ShapeLabel (§6.6).
+    // A //@ tag line is never the label: the declaration and //@START sit between the name comment and the header
+    // (lotto «Subito» slice 1d).
     protected override void Configure(FicSector sector, IReadOnlyList<string> leadingComments)
     {
-        if (leadingComments.Count > 0)
+        if (leadingComments.LastOrDefault(c => !Metadati.EUnTag(c.TrimStart())) is { } nome)
         {
-            SetShapeLabelIfEmpty(sector, leadingComments[^1]);
+            SetShapeLabelIfEmpty(sector, nome);
         }
     }
 
@@ -248,7 +252,7 @@ public sealed class FicParser : TflParserBase<FicSector>
 
     private static void SetShapeLabelIfEmpty(FicSector sector, string commentLine)
     {
-        if (sector.ShapeLabel is not null)
+        if (sector.ShapeLabel is not null || Metadati.EUnTag(commentLine.TrimStart()))
         {
             return;
         }

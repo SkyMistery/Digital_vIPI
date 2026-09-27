@@ -93,10 +93,48 @@ public sealed partial record CatalogoDeiTag(
     /// <inheritdoc cref="Fix"/>
     public static CatalogoDeiTag Hold { get; } = new(".hold", [.. Comuni], [], []);
 
+    /// <summary>
+    /// Etichette e confini di un <c>.artcc</c> (§1): per ora le chiavi comuni — i parametri dei generatori di gate e AOCC
+    /// (§M-G, A5-A7) arrivano coi generatori.
+    /// </summary>
+    public static CatalogoDeiTag Artcc { get; } = new(".artcc", [.. Comuni], [], []);
+
+    /// <summary>
+    /// Aerovia (§2, B1, B5): il blocco dell'aerovia porta le chiavi comuni (<c>locked=si</c> per quelle a mano); ogni
+    /// tratto il suo verso e le sue quote sul punto che lo apre (B2: <c>//@@"GARGA" dir=both lower=FL95 upper=FL195</c>).
+    /// </summary>
+    public static CatalogoDeiTag Aerovia { get; } = new(".lairway/.hairway", [.. Comuni], [], ["dir", "lower", "upper"]);
+
+    /// <summary>Zona MVA (§6 E1, §19 S1): il soprannome, anche ripetuto (<c>//@"LIMM" zone="Torino"</c>).</summary>
+    public static CatalogoDeiTag Mva { get; } = new(".mva", [.. Comuni, "zone"], [], []);
+
+    /// <summary>Settore dinamico (§5 D5, D9): la famiglia di forme, i limiti verticali e la classe.</summary>
+    public static CatalogoDeiTag Tfl { get; } = new(".tfl", [.. Comuni, "form", "lower", "upper", "class"], [], []);
+
+    /// <summary>
+    /// Gruppi di <c>.hartcc</c>/<c>.lartcc</c> (§10-11, J3, J6, J7): come i settori dinamici, più le configurazioni
+    /// composte dalle parti (<c>//@"RR CONF2" compose="RR NE","RR TS"</c>).
+    /// </summary>
+    public static CatalogoDeiTag Confini { get; } = new(".hartcc/.lartcc",
+        [.. Comuni, "form", "lower", "upper", "class", Metadati.Compose, Metadati.Whole], [], []);
+
+    /// <summary>
+    /// Segmenti dei <c>.geo</c> (§8, §8-bis, I2, H10) e delle aree P/R/D (G5), che hanno lo stesso lettore: la famiglia
+    /// di forme, e i limiti e la classe delle aree.
+    /// </summary>
+    public static CatalogoDeiTag Geo { get; } = new(".geo", [.. Comuni, "form", "lower", "upper", "class"], [], []);
+
+    /// <summary>Poligoni dei <c>.pol</c> (§9, I2, H10): la famiglia di forme, uguale al bordo del <c>.geo</c>.</summary>
+    public static CatalogoDeiTag Pol { get; } = new(".pol", [.. Comuni, "form"], [], []);
+
     /// <summary>Il catalogo del tipo di record <typeparamref name="T"/>, o null se i suoi file non portano tag.</summary>
     public static CatalogoDeiTag? Di<T>() => Di(typeof(T));
 
-    /// <summary>Il catalogo di un tipo di record (anche una sua sottoclasse: le voci di un <c>.str</c>).</summary>
+    /// <summary>
+    /// Il catalogo di un tipo di record (anche una sua sottoclasse: le voci di un <c>.str</c>, i settori di un
+    /// <c>.fic</c>). I record di un <c>.artcc</c> si leggono come <see cref="ElementoArtcc"/>: il loro gruppo di confini
+    /// è un <see cref="StaticBoundaryGroup"/> come quelli dei <c>.hartcc</c>, ma col catalogo del suo file.
+    /// </summary>
     public static CatalogoDeiTag? Di(Type tipo)
     {
         ArgumentNullException.ThrowIfNull(tipo);
@@ -104,6 +142,20 @@ public sealed partial record CatalogoDeiTag(
             return Sid;
         if (typeof(StrRecord).IsAssignableFrom(tipo))
             return Str;
+        if (tipo == typeof(ElementoArtcc))
+            return Artcc;
+        if (tipo == typeof(Airway))
+            return Aerovia;
+        if (tipo == typeof(MvaSector))
+            return Mva;
+        if (typeof(TflSector).IsAssignableFrom(tipo))
+            return Tfl;
+        if (tipo == typeof(StaticBoundaryGroup))
+            return Confini;
+        if (tipo == typeof(Line))
+            return Geo;
+        if (tipo == typeof(Polygon))
+            return Pol;
         if (tipo == typeof(Runway))
             return Rw;
         if (tipo == typeof(AirportInfo))
