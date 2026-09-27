@@ -397,8 +397,9 @@
     scrive con `innerHTML`. Ora passa da `esc`, come il 3D.
   - **U-018**, archivio `/vsop/api/v1/atc/sessions` aperto. Scelta del committente: **`Api:RichiediChiave` vale
     `true` nel codice** se la configurazione non dice niente. ⚠️ Dal pacchetto che porta S18 l'archivio in
-    produzione risponde 401 a chi non ha chiave, anche senza toccare la configurazione: il validatore dei tour
-    deve avere la sua chiave prima, oppure la produzione scrive `Api__RichiediChiave=false` per il passaggio.
+    produzione risponde 401 a chi non ha chiave, anche senza toccare la configurazione. Non si ferma nessuno
+    (committente, 27-set): nessuna chiave emessa, e il validatore dei tour gira ancora su Cloudflare col suo
+    archiviatore, non legge il nostro.
   - **Test**: rossi sul codice di prima, poi verdi. `LineDiff_non_cresce_col_quadrato_delle_righe` (96 MB prima,
     tetto 10 MB), la ricostruzione delle due sezioni su tre taglie, i tre tetti di pagina in bUnit (12 file → 10 e
     il messaggio; 600 KB; 30.000 «\r»), il presidio sul testo di `vipi-aor.js` (ogni `bindTooltip`/`bindPopup`/
