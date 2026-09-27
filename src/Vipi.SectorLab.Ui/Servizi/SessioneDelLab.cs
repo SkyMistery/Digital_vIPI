@@ -949,18 +949,30 @@ public sealed class SessioneDelLab
     /// <param name="nome">Per i record col nome (fix, VOR, NDB, punti VFR): il nome del nuovo, che va al suo posto in
     /// ordine alfabetico nella sezione dove lo mette il nome, anche se il modello sta in un'altra (prove 6 e 40-41 del
     /// committente). Null = subito sotto il modello.</param>
-    public bool AggiungiRecord(string fileRelativo, int record, string? nome = null)
+    /// <param name="tipo">Il tipo fisso scelto per il nuovo (slice 3e, <see cref="TipoDelNuovoDi"/>); null = quello del modello.</param>
+    public bool AggiungiRecord(string fileRelativo, int record, string? nome = null, string? tipo = null)
         => NellaStoria(nome is null ? $"record aggiunto in {NomeDelFile(fileRelativo)}" : $"{nome} aggiunto in {NomeDelFile(fileRelativo)}",
             () => GestoDiStruttura(fileRelativo,
                 () => Sessione!.File[fileRelativo] is { } file
-                    ? Modifiche.AggiungiRecord(file, record, nome)
+                    ? Modifiche.AggiungiRecord(file, record, nome, tipo)
                     : new ModificaRifiutata("Questo file non è aperto.")));
+
+    /// <summary>Il tipo che «+ Nuovo record» chiede prima di tutto in quel file (slice 3e, A1), o null.</summary>
+    public SceltaDelTipo? TipoDelNuovoDi(string fileRelativo)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is { } file ? TipoDelNuovo.Di(file) : null;
+
+    /// <summary>Il tipo del record scelto come lo scrive la domanda del nuovo: il nuovo «come questo» parte da lì.</summary>
+    public string? TipoDelRecord(string fileRelativo, int record)
+        => Sessione?.File.GetValueOrDefault(fileRelativo) is IFileConRecord conRecord && record >= 0 && record < conRecord.RecordDelModello.Count
+           && TipoDelNuovoDi(fileRelativo) is { } scelta
+            ? scelta.Valori.FirstOrDefault(v => TipoDelNuovo.EDelTipo(conRecord.RecordDelModello[record], scelta, v.Valore))?.Valore
+            : null;
 
     /// <summary>
     /// Un record nuovo dal FILE, senza sceglierne uno prima (prova 6 del committente). Il modello è il vicino per nome
     /// (quello che in ordine alfabetico viene subito prima), o l'ultimo record per i file senza nomi da ordinare.
     /// </summary>
-    public bool AggiungiAlFile(string fileRelativo, string? nome = null)
+    public bool AggiungiAlFile(string fileRelativo, string? nome = null, string? tipo = null)
     {
         if (Sessione?.File.GetValueOrDefault(fileRelativo) is not IFileConRecord { RecordDelModello.Count: > 0 } file)
             return false;
@@ -968,7 +980,7 @@ public sealed class SessioneDelLab
         int modello = nome is not null && NomeDelRecordNuovo(fileRelativo) is not null
             ? OrdineAlfabetico.IlVicino(file, nome)
             : file.RecordDelModello.Count - 1;
-        return AggiungiRecord(fileRelativo, modello, NomeDelRecordNuovo(fileRelativo) is null ? null : nome);
+        return AggiungiRecord(fileRelativo, modello, NomeDelRecordNuovo(fileRelativo) is null ? null : nome, tipo);
     }
 
     /// <summary>Il campo che il nuovo record di quel file chiede per primo (il nome), o null se non ne chiede.</summary>

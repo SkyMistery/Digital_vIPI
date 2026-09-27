@@ -784,7 +784,9 @@ public sealed class ModificheInSospeso
     /// <param name="nome">Per i record col nome (<see cref="OrdineAlfabetico"/>): il nome del nuovo, che va al suo posto
     /// in ordine alfabetico nella sezione del suo vicino per nome (non per forza quella del modello, che dà solo la
     /// forma) invece che subito sotto il modello. Null = sotto il modello.</param>
-    public object AggiungiRecord(FileAperto file, int indice, string? nome = null)
+    /// <param name="tipo">Il tipo fisso del nuovo (slice 3e, <see cref="TipoDelNuovo"/>): il valore del campo-tipo, o
+    /// <c>L</c>/<c>T</c> negli <c>.artcc</c>. Null = il tipo del record copiato.</param>
+    public object AggiungiRecord(FileAperto file, int indice, string? nome = null, string? tipo = null)
     {
         ArgumentNullException.ThrowIfNull(file);
         if (file is not IFileConRecord conRecord)
@@ -792,7 +794,28 @@ public sealed class ModificheInSospeso
         if (indice < 0 || indice >= conRecord.RecordDelModello.Count)
             return new ModificaRifiutata("Questo record non c'è.");
 
-        int? dopo = null, primaDi = null;
+        int modello = indice;
+        Action<object>? scriviIlTipo = null;
+        if (tipo is not null)
+        {
+            if (TipoDelNuovo.Di(file) is not { } scelta)
+                return new ModificaRifiutata("In questo file il record nuovo non chiede un tipo.");
+            if (!scelta.Valori.Any(v => v.Valore == tipo))
+                return new ModificaRifiutata($"«{tipo}» non è un tipo di questo file.");
+            if (TipoDelNuovo.Modello(conRecord, indice, scelta, tipo) is not { } daCopiare)
+                return new ModificaRifiutata("Nel file non c'è un record di quel tipo da copiare: il primo si scrive a mano.");
+            modello = daCopiare;
+            if (scelta.Proprieta is { } campoDelTipo)
+            {
+                var proprieta = conRecord.RecordDelModello[modello].GetType().GetProperty(campoDelTipo)!;
+                if (!Converti(proprieta.PropertyType, tipo, out object? valoreDelTipo, out string? nonVa))
+                    return new ModificaRifiutata(nonVa!);
+                scriviIlTipo = r => r.GetType().GetProperty(campoDelTipo)!.SetValue(r, valoreDelTipo);
+            }
+        }
+
+        // Il nuovo va dove andava prima (sotto il record scelto, o al posto del suo nome): il modello dà solo la forma.
+        int? dopo = modello == indice ? null : indice, primaDi = null;
         Action<object>? prepara = null;
         if (nome is not null)
         {
@@ -806,8 +829,18 @@ public sealed class ModificheInSospeso
             prepara = r => r.GetType().GetProperty(campo)!.SetValue(r, nome);
         }
 
+        if (scriviIlTipo is not null)
+        {
+            var conIlNome = prepara;
+            prepara = r =>
+            {
+                conIlNome?.Invoke(r);
+                scriviIlTipo(r);
+            };
+        }
+
         Fotografa(file, conRecord);
-        int nuovo = conRecord.AggiungiComeIlVicino(indice, dopo, prepara, primaDi);
+        int nuovo = conRecord.AggiungiComeIlVicino(modello, dopo, prepara, primaDi);
         SpostaGliIndici(file.Relativo, daIncluso: nuovo, scarto: +1);
         UltimoAggiunto = nuovo;
         return Registra(file, aggiunti: 1, tolti: 0);

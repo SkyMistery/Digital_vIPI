@@ -3,17 +3,34 @@
 @*
     Un record nuovo (slice 8, rivisto dopo la prova 6 del committente, 23 settembre). Dalla scheda copia il record
     scelto; dal file (senza sceglierne uno) copia il vicino per nome, o l'ultimo. Nei file di punti col nome (fix, VOR,
-    NDB, punti VFR) prima chiede il NOME, e il nuovo nasce già al suo posto in ordine alfabetico nella sua sezione —
-    non sotto quello da cui è partito. Negli altri file va sotto il modello, come prima: l'ordine di ogni tipo di file
+    NDB, punti VFR) chiede il NOME, e il nuovo nasce già al suo posto in ordine alfabetico nella sua sezione — non
+    sotto quello da cui è partito. Negli altri file va sotto il modello, come prima: l'ordine di ogni tipo di file
     si decide col committente, file per file.
+    Lotto «Subito», slice 3e (A1): prima di tutto chiede il TIPO FISSO del nuovo, col suo significato — negli .artcc
+    etichetta (L) o traccia (T), da scegliere per forza; negli altri file (tipo del fix, della voce .str, del segmento
+    .geo…) parte dal tipo del record che si copia.
 *@
 @if (_chiede)
 {
     <span class="lab-nuovo-record" data-nuovo-record="@(Modello is null ? "file" : "record")">
-        <input class="lab-campo" placeholder="@($"{Campo} del nuovo")" value="@_nome" @ref="_campo"
-               @oninput="e => _nome = e.Value?.ToString()" @onkeydown="Tasto" data-campo="nome-nuovo" />
-        <button class="lab-tasto" @onclick="Aggiungi" disabled="@string.IsNullOrWhiteSpace(_nome)"
-                title="@(string.IsNullOrWhiteSpace(_nome) ? "Scrivi prima il nome" : "Lo mette al suo posto in ordine alfabetico")"
+        @if (Scelta is { } scelta)
+        {
+            <select class="lab-campo" value="@(_tipo ?? "")" @ref="_campoDelTipo" title="@scelta.Domanda"
+                    @onchange="SceltoIlTipo" data-campo="tipo-nuovo">
+                <option value="">— @scelta.Domanda</option>
+                @foreach (var voce in scelta.Valori)
+                {
+                    <option value="@voce.Valore">@voce.Voce</option>
+                }
+            </select>
+        }
+        @if (Campo is not null)
+        {
+            <input class="lab-campo" placeholder="@($"{Campo} del nuovo")" value="@_nome" @ref="_campo"
+                   @oninput="e => _nome = e.Value?.ToString()" @onkeydown="Tasto" data-campo="nome-nuovo" />
+        }
+        <button class="lab-tasto" @onclick="Aggiungi" disabled="@(PercheNo is not null)"
+                title="@(PercheNo ?? (Campo is null ? "Lo aggiunge sotto quello da cui parte" : "Lo mette al suo posto in ordine alfabetico"))"
                 data-tasto="aggiungi-con-nome">Aggiungi</button>
         <button class="lab-annulla" @onclick="() => _chiede = false" data-tasto="non-aggiungere">annulla</button>
         @if (Lab.Rifiuto is { } rifiuto)
@@ -37,14 +54,24 @@ else
 
     private bool _chiede;
     private string? _nome;
+    private string? _tipo;
     private ElementReference _campo;
+    private ElementReference _campoDelTipo;
     private bool _mettiIlFuoco;
 
     private string? Campo => Lab.NomeDelRecordNuovo(File);
 
+    private SceltaDelTipo? Scelta => Lab.TipoDelNuovoDi(File);
+
+    /// <summary>Perché «Aggiungi» non si può ancora premere, o null.</summary>
+    private string? PercheNo
+        => Scelta is { } scelta && _tipo is null ? $"Scegli prima: {scelta.Domanda.ToLowerInvariant()}"
+            : Campo is not null && string.IsNullOrWhiteSpace(_nome) ? "Scrivi prima il nome"
+            : null;
+
     private void Comincia()
     {
-        if (Campo is null)
+        if (Campo is null && Scelta is null)
         {
             if (Modello is { } modello)
                 Lab.AggiungiRecord(File, modello);
@@ -55,20 +82,28 @@ else
 
         _chiede = true;
         _nome = null;
+        // Il tipo del record da copiare, dove il tipo è un campo; negli .artcc la forma si sceglie sempre.
+        _tipo = Scelta is { Proprieta: not null }
+            ? Lab.TipoDelRecord(File, Modello ?? Lab.EtichetteDi(File).Count - 1)
+            : null;
         _mettiIlFuoco = true;
     }
 
+    private void SceltoIlTipo(ChangeEventArgs e) => _tipo = string.IsNullOrEmpty(e.Value?.ToString()) ? null : e.Value!.ToString();
+
     private void Aggiungi()
     {
-        string nome = (_nome ?? "").Trim();
-        bool fatto = Modello is { } modello ? Lab.AggiungiRecord(File, modello, nome) : Lab.AggiungiAlFile(File, nome);
+        if (PercheNo is not null)
+            return;
+        string? nome = Campo is null ? null : (_nome ?? "").Trim();
+        bool fatto = Modello is { } modello ? Lab.AggiungiRecord(File, modello, nome, _tipo) : Lab.AggiungiAlFile(File, nome, _tipo);
         if (fatto)
             _chiede = false;
     }
 
     private void Tasto(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_nome))
+        if (e.Key == "Enter" && PercheNo is null)
             Aggiungi();
         else if (e.Key == "Escape")
             _chiede = false;
@@ -81,7 +116,8 @@ else
         _mettiIlFuoco = false;
         try
         {
-            await _campo.FocusAsync();
+            // Prima la domanda che manca: il tipo se non c'è, se no il nome.
+            await (Scelta is not null && (_tipo is null || Campo is null) ? _campoDelTipo : _campo).FocusAsync();
         }
         catch (InvalidOperationException)
         {

@@ -8,7 +8,7 @@
 
 ## Stato — 27 settembre 2026
 
-**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e) e la slice 2 (2a-2c); in corso la **slice 3** (3a-3d fatte, §6 «Traccia»). Tutte le voci
+**Approvata** (§5). Fatte la slice 0, la slice 1 (1a-1e), la slice 2 (2a-2c) e la slice 3 (3a-3e); prossima la **slice 4** (§6 «Traccia»). Tutte le voci
 citate hanno la loro decisione nella carta «file per file»: qui c'è solo **come** e **in che ordine** si fanno.
 
 ## §1 — Cosa c'è già (F3, F3-bis) e cosa cambia
@@ -409,3 +409,24 @@ che chiede il tipo fisso.
   si aggiungono solo righe di tag, il file riletto non ha tag rotti, tolta torna identico; 669 record senza nome
   proprio. Prova a schermo sul banco: `EKLO8R` con `fix=EKLOS` e `initialclimb="COO APP"` (diff −0 +3:
   dichiarazione, `//@START`, `//@END`), righe del tag col lucchetto, annulla. Test: Lab 418 → **428** (motore invariato).
+- **3e (28 settembre)** — «+ Nuovo record» chiede il tipo fisso prima di tutto (A1). `Ispezione/TipoDelNuovo.cs`: il
+  «tipo» di ogni tipo di record è il suo campo a tipo fisso principale — quello che in Aurora sceglie strato, filtro o
+  tasto: tipo del fix, del VOR, del punto VFR, dello scalo, della SID, della voce `.str`, del segmento `.geo`,
+  riempimento del `.pol` — e negli `.artcc` la FORMA: **etichetta (L) o traccia (T)**, col significato. Il menu è la
+  prima cosa del gesto; negli `.artcc` va scelto per forza («Aggiungi» spento finché non si sceglie), negli altri parte
+  dal tipo del record che si copia (il gesto di oggi non si allunga; scelta dell'agente). Il vuoto «non scritto» e il
+  tipo fuori manuale dell'`.ap` non si propongono. Quando il tipo è un campo si copia il record scelto e il nuovo prende
+  il tipo; quando è la forma si copia un record di quel tipo (lo scelto se lo è, se no l'ultimo del file), e il nuovo va
+  comunque sotto quello scelto. NDB, attese, settori e gli altri nascono come prima, senza domanda. Visto a schermo: le
+  etichette L degli `.artcc` nell'elenco si chiamavano tutte «LabelPoint» — ora col nome del fix (`FixRef`).
+  Misura sul fork: in **468 file** che chiedono un tipo, un record nuovo per **ogni** tipo possibile, **3 290 su 3 290**
+  riletti col record in più e di quel tipo (`.geo` 1 572, `.pol` 658, `.str` 540, `.vfi` 308, `.sid` 118…). Prova a
+  schermo sul banco: `FRA.artcc` → «+ Nuovo record» → «Etichetta o traccia?», L → `L;XOLTA;…` in fondo, −0 +1.
+  Test: Lab 428 → **438**.
+
+**Slice 3 chiusa.** Uscita misurata sul fork: **ogni tipo di record si apre senza «campo sconosciuto»** (701 file, 118 505
+record, 24 tipi) e **la scheda scrive la stessa riga del motore**: ogni campo che offre di scrivere arriva nella riga
+(99 su 99, stessa strada della scheda), e dove il motore scriveva male — la quota delle MVA di ACC, l'RNAV delle SID —
+ora è corretto e misurato su tutto il fork. Restano in sola lettura, col perché scritto nella scheda: quota e carattere
+delle MVA di scalo (slice 15), transizione e RNAV degli `.str` (slice 9), i metadati dei record senza nome (slice 6).
+Da provare a mano (eseguibile ripubblicato): prove 62-70 in `SectorLab-prova\PROVE.md`.

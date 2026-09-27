@@ -265,6 +265,46 @@ public sealed class SchedaTipizzataAschermoTests : IDisposable
             r => r.StartsWith("//@\"BC404\"", StringComparison.Ordinal) && r.Contains("locked=si", StringComparison.Ordinal)));
     }
 
+    // --- slice 3e: il tipo del record nuovo ------------------------------------------------------------------------
+
+    [Fact]
+    public async Task IlNuovoRecordDiUnArtccChiedeEtichettaOTracciaPrimaDiTutto()
+    {
+        Assert.True(await _lab.ApriEValidaAsync(_albero.Radice));
+        var pagina = _contesto.RenderComponent<Home>();
+        string file = "SectorFiles/Include/IT/ACC/FRA.artcc";
+        await pagina.InvokeAsync(() => _lab.ApriFile(file));
+        int prima = _lab.EtichetteDi(file).Count;
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("[data-tasto='aggiungi-al-file']")));
+
+        pagina.Find("[data-tasto='aggiungi-al-file']").Click();
+
+        // Niente è aggiunto finché non si sceglie: la forma di un record nuovo non si indovina.
+        pagina.WaitForAssertion(() => Assert.NotNull(pagina.Find("select[data-campo='tipo-nuovo']")));
+        Assert.True(pagina.Find("[data-tasto='aggiungi-con-nome']").HasAttribute("disabled"));
+        Assert.Contains(pagina.FindAll("select[data-campo='tipo-nuovo'] option"), o => o.TextContent.StartsWith("T · traccia", StringComparison.Ordinal));
+        pagina.Find("select[data-campo='tipo-nuovo']").Change("T");
+        pagina.Find("[data-tasto='aggiungi-con-nome']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal(prima + 1, _lab.EtichetteDi(file).Count));
+        Assert.IsType<Vipi.Sectorfile.Models.StaticBoundaryGroup>(((IFileConRecord)_lab.Sessione!.File[file]).RecordDelModello[^1]);
+    }
+
+    [Fact]
+    public async Task IlRecordComeQuestoParteDalTipoDelRecordEChiedeIlNome()
+    {
+        var pagina = await ConIlRecord("NAVAIDS/APT.fix", "BC404");
+
+        pagina.Find("[data-tasto='aggiungi-record']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Equal("3", pagina.Find("select[data-campo='tipo-nuovo']").GetAttribute("value")));
+        pagina.Find("select[data-campo='tipo-nuovo']").Change("1");
+        pagina.Find("[data-campo='nome-nuovo']").Input("BC405");
+        pagina.Find("[data-tasto='aggiungi-con-nome']").Click();
+
+        pagina.WaitForAssertion(() => Assert.Contains(Righe("NAVAIDS/APT.fix"), r => r.StartsWith("BC405;", StringComparison.Ordinal) && r.EndsWith(";1;", StringComparison.Ordinal)));
+    }
+
     [Fact]
     public async Task UnVerticeDiUnFileCheNonSaScrivereINomiNonNePropone()
     {

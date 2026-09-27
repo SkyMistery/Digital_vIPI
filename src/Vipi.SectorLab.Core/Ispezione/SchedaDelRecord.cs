@@ -124,9 +124,11 @@ public static class Ispettore
     /// 🔴 <c>Code</c> e <c>Color</c> ci sono perché la misura sull'albero vero ha mostrato che senza di loro gli
     /// elenchi dicevano «AtcPosition» 201 volte (i <c>.frq</c>, che hanno <c>Code</c> = <c>LIRR_NE_CTR</c>) e
     /// «Line» 13 560 volte (i segmenti dei <c>.geo</c>, dove il nome non c'è e resta il colore: <c>COAST</c>).
+    /// <para>Lotto «Subito», slice 3e (visto a schermo): le etichette L degli .artcc si chiamavano tutte «LabelPoint» —
+    /// il loro nome sta in <c>FixRef</c> (o <c>CustomName</c>).</para>
     /// </summary>
     private static readonly string[] NomiCheFannoDaEtichetta =
-        ["Name", "Nome", "Ident", "IcaoCode", "Designator", "Callsign", "Code", "Number", "Identifier", "Color"];
+        ["Name", "Nome", "Ident", "IcaoCode", "Designator", "Callsign", "Code", "Number", "Identifier", "FixRef", "CustomName", "Color"];
 
     /// <summary>
     /// I campi nell'ordine della descrizione (quello della riga del file), poi quelli che la descrizione non conosce:
